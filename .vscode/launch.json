@@ -1,0 +1,20 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "FinalAnswer — Live Debug",
+            "request": "launch",
+            "preLaunchTask": "FinalAnswer: build before debug",
+            "classPaths": [
+                "${workspaceFolder}/core/build/classes/java/main",
+                "${workspaceFolder}/lwjgl3/build/classes/java/main",
+                "$Auto"
+            ],
+            "mainClass": "com.erni.finalanswer.lwjgl3.Lwjgl3Launcher",
+            "cwd": "${workspaceFolder}/assets",
+            "vmArgs": "-XstartOnFirstThread --enable-native-access=ALL-UNNAMED --add-exports=java.base/jdk.internal.misc=ALL-UNNAMED",
+            "console": "internalConsole"
+        }
+    ]
+}

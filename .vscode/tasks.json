@@ -1,0 +1,14 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "FinalAnswer: build before debug",
+            "type": "process",
+            "command": "${workspaceFolder}/gradlew",
+            "args": [":lwjgl3:classes"],
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": [],
+            "presentation": { "reveal": "silent" }
+        }
+    ]
+}
