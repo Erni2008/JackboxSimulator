@@ -19,21 +19,26 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 
 import com.erni.finalanswer.ui.GameFonts;
-import com.erni.finalanswer.ui.MenuButton;
+import com.erni.finalanswer.ui.buttons.AnimatedImageButton;
 import com.erni.finalanswer.ui.buttons.PlayButton;
+import com.erni.finalanswer.ui.buttons.CreateRoomButton;
 
 public class MainMenu extends ScreenAdapter {
 
     private static final float UI_WIDTH = 1920;
     private static final float UI_HEIGHT = 1080;
-
-    private final FinalAnswerGame game;
+    private static final float MENU_LEFT = 90;
+    private static final float MENU_TOP = 620;
+    private static final float MENU_WIDTH = 660;
+    private static final float MENU_BUTTON_WIDTH = 420;
+    private static final float MENU_ROW_GAP = 12;
 
     private final SpriteBatch batch;
     private final Texture background;
     private final Texture titleShade;
     private final Texture titleLogo;
     private float titleTime;
+    private boolean disposed;
 
     // Сцена рисует кнопки и обрабатывает их нажатия.
     private final Stage menuStage;
@@ -41,6 +46,7 @@ public class MainMenu extends ScreenAdapter {
     // Шрифты меню и отдельная кнопка PLAY.
     private final GameFonts fonts;
     private final PlayButton playButton;
+    private final CreateRoomButton createRoomButton;
 
     private final OrthographicCamera backgroundCamera;
 
@@ -49,8 +55,6 @@ public class MainMenu extends ScreenAdapter {
 
 
     public MainMenu(FinalAnswerGame receivedGame) {
-
-        this.game = receivedGame;
 
         batch = new SpriteBatch();
 
@@ -105,6 +109,10 @@ public class MainMenu extends ScreenAdapter {
         // Добавляем кнопку на сцену, чтобы она могла отображаться.
         menuStage.addActor(playButton);
 
+        // Следующая кнопка столбика имеет свой класс и собственные изображения.
+        createRoomButton = new CreateRoomButton();
+        menuStage.addActor(createRoomButton);
+
         resize(
             Gdx.graphics.getWidth(),
             Gdx.graphics.getHeight()
@@ -115,6 +123,10 @@ public class MainMenu extends ScreenAdapter {
     @Override
     public void show() {
 
+        // При возвращении в меню заново запускаем плавное появление.
+        titleTime = 0;
+        playButton.restartEntrance();
+        createRoomButton.restartEntrance();
         // Направляем мышь и нажатия на сцену с кнопками.
         Gdx.input.setInputProcessor(menuStage);
     }
@@ -196,20 +208,34 @@ public class MainMenu extends ScreenAdapter {
         batch.setColor(1f, 1f, 1f, 1f);
         batch.end();
 
-        // Задаём размеры каждый кадр: эти числа можно менять через Live Debug.
-        // Координаты отсчитываются от нижнего левого угла интерфейса.
-        playButton.setBounds(
-            90,     // Отступ слева.
-            500,    // Отступ снизу.
-            660,    // Ширина кнопки.
-            84      // Высота кнопки.
-        );
+        // Положение задаём каждый кадр: метод удобно менять через Live Debug.
+        updateMenuLayout();
+
+        // Восстанавливаем область интерфейса перед отрисовкой кнопок.
+        uiViewport.apply();
 
         // Обновляем сцену и рисуем кнопку поверх фона.
         // Stage рисует самостоятельно, поэтому вызов идёт после batch.end().
         menuStage.act(Math.min(delta, 0.1f));
         menuStage.draw();
 
+    }
+
+
+    private void updateMenuLayout() {
+        // Один столбик по центру логотипа; пропорции изображений сохраняются.
+        positionMenuButton(playButton, 0);
+        positionMenuButton(createRoomButton, 1);
+    }
+
+    private void positionMenuButton(AnimatedImageButton button, int slot) {
+        float width = MENU_BUTTON_WIDTH;
+        float height = width * button.getImageAspectRatio();
+        float rowHeight = width * Math.max(playButton.getImageAspectRatio(),
+            createRoomButton.getImageAspectRatio());
+        float left = MENU_LEFT + (MENU_WIDTH - width) / 2f;
+        float top = MENU_TOP - slot * (rowHeight + MENU_ROW_GAP);
+        button.setBounds(left, top - height, width, height);
     }
 
 
@@ -225,12 +251,17 @@ public class MainMenu extends ScreenAdapter {
     @Override
     public void dispose() {
 
+        // Защита от повторного освобождения одного экрана.
+        if (disposed) return;
+        disposed = true;
+
         // Отключаем ввод меню перед освобождением его ресурсов.
         hide();
 
-        // Освобождаем сцену, общую текстуру кнопок и шрифты.
+        // Stage освобождает свой Batch, но картинки PLAY освобождаем отдельно.
         menuStage.dispose();
-        MenuButton.disposeSharedResources();
+        playButton.dispose();
+        createRoomButton.dispose();
         fonts.dispose();
 
         batch.dispose();

@@ -2,27 +2,17 @@ package com.erni.finalanswer.ui.buttons;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.scenes.scene2d.Actor;
-import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 
-import com.erni.finalanswer.ui.MenuButton;
-
-public class PlayButton extends MenuButton {
-
+/** Отдельная кнопка PLAY со своими изображениями и обработчиком. */
+public class PlayButton extends AnimatedImageButton {
     public PlayButton(BitmapFont font) {
+        // Надпись уже встроена в PNG; параметр оставлен для совместимости меню.
+        super("ui/buttons/play/", "play_up.png", "play.hover.png", "play.pressed.png");
+    }
 
-        super("PLAY", font);
-
-        addListener(new ChangeListener() {
-
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-
-                Gdx.app.log(
-                    "Final Answer",
-                    "PLAY clicked!"
-                );
-            }
-        });
+    @Override
+    protected void onActivate() {
+        // Позже подключим игровой экран; пока проверяем действие в консоли.
+        Gdx.app.log("Final Answer", "PLAY clicked!");
     }
 }
