@@ -1,0 +1,54 @@
+apply plugin: 'application'
+application.mainClass = 'com.erni.inspector.Inspector'
+tasks.named('run', JavaExec) {
+    workingDir = rootProject.projectDir
+    args rootProject.projectDir.absolutePath
+}
+
+tasks.register('verifyIndex', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.inspector.IndexCheck'
+    args rootProject.projectDir.absolutePath
+}
+check.dependsOn verifyIndex
+
+// Verification is a dependency-free executable, not a JUnit test suite.
+test { failOnNoDiscoveredTests = false }
+
+tasks.register('verifyStructure', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.inspector.StructureCheck'
+}
+check.dependsOn verifyStructure
+
+tasks.register('verifyMonitor', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.inspector.MonitorCheck'
+}
+check.dependsOn verifyMonitor
+
+// Only the developer launcher depends on the game. The game never depends on inspector.
+dependencies {
+    implementation project(':lwjgl3')
+    implementation project(':core')
+    implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
+}
+tasks.register('runLive', JavaExec) {
+    dependsOn classes
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.erni.inspector.LiveLauncher'
+    workingDir = rootProject.file('assets')
+    args rootProject.projectDir.absolutePath
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+    if (System.getProperty('os.name').toLowerCase().contains('mac')) jvmArgs '-XstartOnFirstThread'
+}
+
+tasks.register('verifyLive', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.inspector.LiveCheck'
+}
+check.dependsOn verifyLive

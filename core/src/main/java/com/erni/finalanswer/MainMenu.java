@@ -19,22 +19,28 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 
 import com.erni.finalanswer.ui.GameFonts;
+import com.erni.finalanswer.ui.effects.TableCandle;
 import com.erni.finalanswer.ui.buttons.AnimatedImageButton;
 import com.erni.finalanswer.ui.buttons.PlayButton;
 import com.erni.finalanswer.ui.buttons.CreateRoomButton;
+import com.erni.finalanswer.ui.buttons.GenerationCodeButton;
+import com.erni.finalanswer.ui.buttons.SettingsButton;
+import com.erni.finalanswer.ui.buttons.ExitButton;
 
 public class MainMenu extends ScreenAdapter {
 
     private static final float UI_WIDTH = 1920;
     private static final float UI_HEIGHT = 1080;
     private static final float MENU_LEFT = 90;
-    private static final float MENU_TOP = 620;
+    private static final float MENU_TOP = 650;
     private static final float MENU_WIDTH = 660;
-    private static final float MENU_BUTTON_WIDTH = 420;
-    private static final float MENU_ROW_GAP = 12;
+    private static final float MENU_BUTTON_WIDTH = 500;
+    // PNG содержат прозрачные поля: шаг задаём по видимой рамке.
+    private static final float MENU_ROW_STEP = 110;
 
     private final SpriteBatch batch;
     private final Texture background;
+    private final TableCandle tableCandle;
     private final Texture titleShade;
     private final Texture titleLogo;
     private float titleTime;
@@ -47,6 +53,7 @@ public class MainMenu extends ScreenAdapter {
     private final GameFonts fonts;
     private final PlayButton playButton;
     private final CreateRoomButton createRoomButton;
+    private final AnimatedImageButton[] menuButtons;
 
     private final OrthographicCamera backgroundCamera;
 
@@ -57,6 +64,7 @@ public class MainMenu extends ScreenAdapter {
     public MainMenu(FinalAnswerGame receivedGame) {
 
         batch = new SpriteBatch();
+        tableCandle = new TableCandle();
 
         titleLogo = new Texture(Gdx.files.internal("ui/Final_Answer.png"));
         titleLogo.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
@@ -110,8 +118,16 @@ public class MainMenu extends ScreenAdapter {
         menuStage.addActor(playButton);
 
         // Следующая кнопка столбика имеет свой класс и собственные изображения.
-        createRoomButton = new CreateRoomButton();
+        createRoomButton = new CreateRoomButton(receivedGame);
         menuStage.addActor(createRoomButton);
+
+        menuButtons = new AnimatedImageButton[] {
+            playButton, createRoomButton, new GenerationCodeButton(),
+            new SettingsButton(), new ExitButton()
+        };
+        for (int i = 2; i < menuButtons.length; i++) {
+            menuStage.addActor(menuButtons[i]);
+        }
 
         resize(
             Gdx.graphics.getWidth(),
@@ -125,8 +141,9 @@ public class MainMenu extends ScreenAdapter {
 
         // При возвращении в меню заново запускаем плавное появление.
         titleTime = 0;
-        playButton.restartEntrance();
-        createRoomButton.restartEntrance();
+        for (AnimatedImageButton button : menuButtons) {
+            button.restartEntrance();
+        }
         // Направляем мышь и нажатия на сцену с кнопками.
         Gdx.input.setInputProcessor(menuStage);
     }
@@ -182,6 +199,7 @@ public class MainMenu extends ScreenAdapter {
             drawHeight
         );
 
+        tableCandle.draw(batch, delta, drawX, drawY, drawWidth, drawHeight);
         batch.end();
 
         // Draw the title last, in resolution-independent UI coordinates.
@@ -224,18 +242,13 @@ public class MainMenu extends ScreenAdapter {
 
     private void updateMenuLayout() {
         // Один столбик по центру логотипа; пропорции изображений сохраняются.
-        positionMenuButton(playButton, 0);
-        positionMenuButton(createRoomButton, 1);
-    }
-
-    private void positionMenuButton(AnimatedImageButton button, int slot) {
-        float width = MENU_BUTTON_WIDTH;
-        float height = width * button.getImageAspectRatio();
-        float rowHeight = width * Math.max(playButton.getImageAspectRatio(),
-            createRoomButton.getImageAspectRatio());
-        float left = MENU_LEFT + (MENU_WIDTH - width) / 2f;
-        float top = MENU_TOP - slot * (rowHeight + MENU_ROW_GAP);
-        button.setBounds(left, top - height, width, height);
+        float top = MENU_TOP;
+        float left = MENU_LEFT + (MENU_WIDTH - MENU_BUTTON_WIDTH) / 2f;
+        for (AnimatedImageButton button : menuButtons) {
+            float height = MENU_BUTTON_WIDTH * button.getImageAspectRatio();
+            button.setBounds(left, top - height, MENU_BUTTON_WIDTH, height);
+            top -= MENU_ROW_STEP;
+        }
     }
 
 
@@ -260,15 +273,18 @@ public class MainMenu extends ScreenAdapter {
 
         // Stage освобождает свой Batch, но картинки PLAY освобождаем отдельно.
         menuStage.dispose();
-        playButton.dispose();
-        createRoomButton.dispose();
+        for (AnimatedImageButton button : menuButtons) {
+            button.dispose();
+        }
         fonts.dispose();
 
         batch.dispose();
 
         titleLogo.dispose();
 
+        tableCandle.dispose();
         background.dispose();
         titleShade.dispose();
     }
+
 }

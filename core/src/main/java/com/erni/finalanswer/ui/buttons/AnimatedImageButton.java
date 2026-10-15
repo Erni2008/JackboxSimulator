@@ -98,6 +98,17 @@ public abstract class AnimatedImageButton extends Button implements Disposable {
         return (float) textures[0].getHeight() / textures[0].getWidth();
     }
 
+    @Override
+    public Actor hit(float x, float y, boolean touchable) {
+        // Прозрачные поля соседних PNG перекрываются только при рисовании.
+        // Область ввода ограничена рамкой и не перехватывает соседнюю кнопку.
+        if (x < getWidth() * 0.02f || x >= getWidth() * 0.98f
+            || y < getHeight() * 0.18f || y >= getHeight() * 0.82f) {
+            return null;
+        }
+        return super.hit(x, y, touchable);
+    }
+
     public void restartEntrance() {
         entranceTime = 0;
         hoverAmount = 0;

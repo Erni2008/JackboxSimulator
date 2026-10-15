@@ -7,7 +7,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 public class PlayButton extends AnimatedImageButton {
     public PlayButton(BitmapFont font) {
         // Надпись уже встроена в PNG; параметр оставлен для совместимости меню.
-        super("ui/buttons/play/", "play_up.png", "play.hover.png", "play.pressed.png");
+        super("ui/buttons/play/", "play_up.png", "play_hover.png", "play_pressed.png");
     }
 
     @Override
