@@ -5,6 +5,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 
 import com.erni.finalanswer.utils.DisplayManager;
+import com.erni.finalanswer.screens.MainMenu;
 
 public class FinalAnswerGame extends Game {
 

@@ -1,4 +1,4 @@
-package com.erni.finalanswer;
+package com.erni.finalanswer.screens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.ScreenAdapter;

@@ -1,5 +1,8 @@
 # FinalAnswer
 
+**Начинаешь работать с кодом? Открой [карту проекта](PROJECT_MAP.md).**
+Там указано, где находятся экраны, кнопки, игровые режимы, переводы и ресурсы.
+
 A [libGDX](https://libgdx.com/) project generated with [gdx-liftoff](https://github.com/libgdx/gdx-liftoff).
 
 This project was generated with a template including simple application launchers and an `ApplicationAdapter` extension that draws libGDX logo.

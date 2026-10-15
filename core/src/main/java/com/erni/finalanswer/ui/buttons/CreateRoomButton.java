@@ -2,7 +2,7 @@ package com.erni.finalanswer.ui.buttons;
 
 
 import com.erni.finalanswer.FinalAnswerGame;
-import com.erni.finalanswer.RoomSettingsScreen;
+import com.erni.finalanswer.screens.RoomSettingsScreen;
 import com.badlogic.gdx.Gdx;
 
 /** CREATE ROOM: отдельный класс, картинки и действие нажатия. */

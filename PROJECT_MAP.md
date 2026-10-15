@@ -1,0 +1,139 @@
+# Где что находится в Final Answer
+
+Начинай здесь, если не знаешь, какой файл открыть.
+Пути ниже указаны относительно корня проекта.
+
+## Основные папки
+
+```text
+FinalAnswer/
+├── core/src/main/java/com/erni/finalanswer/  ← код игры
+├── assets/                                 ← ресурсы, которые загружает игра
+├── source_assets/                          ← исходные картинки и старые копии
+├── lwjgl3/                                 ← запуск игры на компьютере
+├── inspector/                              ← инструмент для изучения Java-кода
+├── scripts/                                ← вспомогательные скрипты
+├── generated/                              ← сохранённые превью
+├── examples/                               ← учебные заготовки вне сборки
+└── PROJECT_MAP.md                          ← эта карта
+```
+
+## Код игры
+
+Открой `core/src/main/java/com/erni/finalanswer/`:
+
+```text
+finalanswer/
+├── FinalAnswerGame.java                 ← запускает игру и первый экран
+├── screens/                            ← целые экраны
+│   ├── MainMenu.java                   ← главное меню, фон, расположение кнопок
+│   └── RoomSettingsScreen.java         ← экран создания комнаты
+├── ui/                                 ← элементы внутри экранов
+│   ├── windows/
+│   │   └── OptionsMainWindow.java      ← окно CREATE ROOM: поля и настройки
+│   ├── buttons/
+│   │   ├── AnimatedImageButton.java    ← общая анимация больших кнопок меню
+│   │   ├── CreateRoomButton.java       ← действие кнопки CREATE ROOM
+│   │   ├── PlayButton.java             ← действие PLAY
+│   │   ├── SettingsButton.java         ← действие SETTINGS
+│   │   ├── ExitButton.java             ← выход из игры
+│   │   ├── GenerationCodeButton.java   ← действие GENERATION CODE
+│   │   └── PlayerCountSelector.java    ← выбор 2–8 игроков
+│   ├── effects/
+│   │   ├── CyclingRoomBackground.java  ← смена трёх фонов и скорость переходов
+│   │   └── TableCandle.java            ← три свечи, 96 кадров, свет и тени
+│   ├── GameFonts.java                  ← шрифты главного меню
+│   └── MenuButton.java                 ← старый вариант кнопки; меню его не использует
+├── rooms/                              ← данные и логика игровых режимов
+│   ├── GameMode.java                   ← список постоянных идентификаторов режимов
+│   └── modes/
+│       └── StandardMode.java           ← стандартный режим; остальные добавим позже
+├── localization/
+│   └── Localization.java              ← загрузка переводов по ключам
+└── utils/
+    └── DisplayManager.java            ← переключение полноэкранного режима
+```
+
+## Что хочешь изменить → какой файл открыть
+
+| Задача | Файл относительно `core/src/main/java/com/erni/finalanswer/` |
+| --- | --- |
+| Положение и размер кнопок главного меню | `screens/MainMenu.java` |
+| Что происходит при CREATE ROOM | `ui/buttons/CreateRoomButton.java` |
+| Что отображается на экране создания комнаты | `screens/RoomSettingsScreen.java` |
+| Название, пароль, шрифт ввода, анимация окна | `ui/windows/OptionsMainWindow.java` |
+| Кнопки MAX PLAYERS, их размер, цвета и состояния | `ui/buttons/PlayerCountSelector.java` |
+| Скорость смены фонов | `ui/effects/CyclingRoomBackground.java` |
+| Свечи и их освещение | `ui/effects/TableCandle.java` |
+| Список игровых режимов | `rooms/GameMode.java` |
+| Правила стандартного режима | `rooms/modes/StandardMode.java` |
+| Как загружаются переводы | `localization/Localization.java` |
+
+Тексты переводов лежат отдельно: `assets/i18n/messages.properties` — английский,
+`assets/i18n/messages_ru.properties` — русский. Загрузчик уже есть, но выбор режима
+и перевод его названия в интерфейсе пока не подключены.
+
+## Изображения и шрифты
+
+Рабочие файлы, которые использует игра:
+
+- `assets/backgrounds/main_screen_background.png` — фон главного меню.
+- `assets/backgrounds/create_room/` — три варианта освещения экрана комнаты.
+- `assets/ui/windows/create_room/options_main.png` — оформление окна CREATE ROOM.
+- `assets/ui/buttons/` — отдельная папка для каждой кнопки, `player_count` — для MAX PLAYERS.
+- `assets/ui/fonts/` — шрифты и их лицензии.
+- `assets/models/candle/frames/` — 96 кадров трёх свечей.
+
+Чтобы заменить картинку в игре, меняй файл в `assets/` и перезапускай игру.
+`source_assets/` хранит оригиналы; замена только там не меняет игровой ресурс.
+`source_assets/buttons/java_copies/` — сохранённые копии, которые раньше лежали
+рядом с Java-классами. Игра не загружает их оттуда.
+
+В `assets/models/candle/` также сохранены `.blend` и старый рендер одной свечи.
+Текущая анимация использует только папку `frames/`.
+
+## Как связаны части
+
+```text
+Desktop launcher → FinalAnswerGame → screens/MainMenu
+                                       ↓ нажатие CreateRoomButton
+                                    screens/RoomSettingsScreen
+                                       ├── CyclingRoomBackground
+                                       └── OptionsMainWindow
+                                           ├── поле названия
+                                           ├── поле пароля
+                                           └── PlayerCountSelector
+```
+
+`rooms/` отвечает за будущие правила игры, `ui/` — за отображение и ввод.
+Сервер и запуск сетевой сессии пока не реализованы; ввод в форме сам по себе
+не создаёт комнату на сервере.
+
+## Команды
+
+Запуск из корня проекта:
+
+```bash
+./gradlew :lwjgl3:run
+```
+
+Проверка сборки игры:
+
+```bash
+./gradlew :lwjgl3:classes
+```
+
+Открыть инспектор кода:
+
+```bash
+./gradlew :inspector:run
+```
+
+Новая папка для будущих классов режимов:
+
+```bash
+mkdir -p core/src/main/java/com/erni/finalanswer/rooms/modes
+```
+
+`build/`, `.gradle/` и файлы Gradle нужны для сборки. Игровую логику пиши в `core/`.
+Пустой `examples/Main.java` — учебная заготовка, а не точка входа игры.

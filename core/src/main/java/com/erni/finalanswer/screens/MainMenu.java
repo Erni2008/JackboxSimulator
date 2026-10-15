@@ -1,6 +1,7 @@
-package com.erni.finalanswer;
+package com.erni.finalanswer.screens;
 
 import com.badlogic.gdx.Gdx;
+import com.erni.finalanswer.FinalAnswerGame;
 import com.badlogic.gdx.ScreenAdapter;
 
 import com.badlogic.gdx.graphics.Texture;

@@ -1,6 +1,6 @@
 # Three animated table candles
 
-Runtime source: all 96 original PNGs from the user's `candles` folder, copied
+Runtime source: all 96 original PNGs from the user's `source_assets/candles/frames` folder, copied
 without modification to `frames/0001.png` through `frames/0096.png`.
 
 `TableCandle.java` displays these frames in numerical order at 24 FPS, looping
