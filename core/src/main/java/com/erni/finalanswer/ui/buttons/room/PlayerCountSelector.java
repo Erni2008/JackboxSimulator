@@ -1,5 +1,6 @@
 package com.erni.finalanswer.ui.buttons.room;
 
+import com.erni.finalanswer.ui.RuntimeTextures;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
@@ -29,10 +30,10 @@ public final class PlayerCountSelector extends Group implements Disposable {
         int[][] crops = {{293, 198, 1191, 483}, {161, 273, 1208, 452}, {167, 263, 1198, 456}};
         TextureRegionDrawable[] states = new TextureRegionDrawable[3];
         for (int i = 0; i < files.length; i++) {
-            textures[i] = new Texture(Gdx.files.internal("ui/buttons/player_count/" + files[i]));
+            textures[i] = RuntimeTextures.load("ui/buttons/player_count/" + files[i]);
             textures[i].setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
             int[] crop = crops[i];
-            states[i] = new TextureRegionDrawable(new TextureRegion(textures[i],
+            states[i] = new TextureRegionDrawable(RuntimeTextures.region(textures[i],
                 crop[0], crop[1], crop[2], crop[3]));
             states[i].setMinWidth(0);
             states[i].setMinHeight(0);
@@ -105,6 +106,10 @@ public final class PlayerCountSelector extends Group implements Disposable {
                 buttonWidth, buttonHeight);
             button.setOrigin(buttonWidth / 2, buttonHeight / 2);
         }
+    }
+
+    public void resetSelection() {
+        buttons[2].setChecked(true);
     }
 
     public int getMaxPlayers() {

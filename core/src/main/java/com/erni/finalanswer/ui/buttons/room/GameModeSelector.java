@@ -1,5 +1,6 @@
 package com.erni.finalanswer.ui.buttons.room;
 
+import com.erni.finalanswer.ui.RuntimeTextures;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
@@ -49,9 +50,9 @@ public final class GameModeSelector extends Group implements Disposable {
     public GameModeSelector(BitmapFont font, BitmapFont bodyFont, Runnable onInteraction) {
         this.onInteraction = onInteraction;
         setName("gameModeSelector");
-        fieldTexture = new Texture(Gdx.files.internal("ui/windows/create_room/field.png"));
+        fieldTexture = RuntimeTextures.load("ui/windows/create_room/field.png");
         fieldTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
-        field = new Image(new TextureRegion(fieldTexture, 36, 113, 2100, 446));
+        field = new Image(RuntimeTextures.region(fieldTexture, 36, 113, 2100, 446));
         field.setName("gameModeField");
         field.setColor(0.78f, 0.78f, 0.78f, 1);
         field.setTouchable(Touchable.disabled);
@@ -128,14 +129,14 @@ public final class GameModeSelector extends Group implements Disposable {
         String[] states = {"up", "hover", "pressed"};
         TextureRegionDrawable[] frames = new TextureRegionDrawable[3];
         for (int i = 0; i < states.length; i++) {
-            Texture image = new Texture(Gdx.files.internal("ui/buttons/game_mode/" + direction
-                + "/" + direction + "_" + states[i] + ".png"));
+            Texture image = RuntimeTextures.load("ui/buttons/game_mode/" + direction
+                + "/" + direction + "_" + states[i] + ".png");
             textures[offset + i] = image;
             image.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
             // The same crop aligns all three supplied frames without stretching their margins.
             TextureRegion region = direction.equals("info")
-                ? new TextureRegion(image, 30, 140, 2110, 430)
-                : new TextureRegion(image, 160, 70, 1040, 1000);
+                ? RuntimeTextures.region(image, 30, 140, 2110, 430)
+                : RuntimeTextures.region(image, 160, 70, 1040, 1000);
             frames[i] = new TextureRegionDrawable(region);
             frames[i].setMinWidth(0);
             frames[i].setMinHeight(0);
@@ -158,6 +159,11 @@ public final class GameModeSelector extends Group implements Disposable {
         selected = mode;
         updateTitle(true);
         onInteraction.run();
+    }
+
+    public void resetSelection() {
+        selected = GameMode.STANDARD;
+        updateTitle(false);
     }
 
     public GameMode getSelectedMode() {

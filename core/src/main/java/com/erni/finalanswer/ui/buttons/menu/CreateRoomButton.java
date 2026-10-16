@@ -2,7 +2,6 @@ package com.erni.finalanswer.ui.buttons.menu;
 
 
 import com.erni.finalanswer.FinalAnswerGame;
-import com.erni.finalanswer.screens.RoomSettingsScreen;
 import com.badlogic.gdx.Gdx;
 
 /** CREATE ROOM: отдельный класс, картинки и действие нажатия. */
@@ -23,8 +22,7 @@ public class CreateRoomButton extends AnimatedImageButton {
         com.badlogic.gdx.Screen previous = game.getScreen();
         Gdx.app.postRunnable(() -> {
             if (game.getScreen() != previous) return;
-            game.setScreen(new RoomSettingsScreen(game));
-            previous.dispose();
+            game.showRoomSettings();
         });
     }
 

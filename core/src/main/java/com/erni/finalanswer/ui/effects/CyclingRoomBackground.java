@@ -1,5 +1,6 @@
 package com.erni.finalanswer.ui.effects;
 
+import com.erni.finalanswer.ui.RuntimeTextures;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
@@ -60,8 +61,8 @@ public final class CyclingRoomBackground implements Disposable {
         String[] names = {"bright.png", "medium.png", "dim.png"};
         try {
             for (int i = 0; i < names.length; i++) {
-                backgrounds[i] = new Texture(Gdx.files.internal(
-                    "backgrounds/create_room/" + names[i]));
+                backgrounds[i] = RuntimeTextures.load(
+                    "backgrounds/create_room/" + names[i]);
                 backgrounds[i].setFilter(Texture.TextureFilter.Linear,
                     Texture.TextureFilter.Linear);
             }

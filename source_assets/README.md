@@ -15,3 +15,10 @@
 
 Игра загружает ресурсы из `assets/`. После правок оригинала обнови соответствующий
 файл в `assets/`, чтобы увидеть изменение в игре. Карта кода: `../PROJECT_MAP.md`.
+
+- `backgrounds/generation_code/` — четыре оригинала `stage1–stage4`.
+- `buttons/reroll/` — оригиналы состояний REROLL (`hocer` — исходное имя hover).
+
+- `buttons/generate_code/` — оригиналы трёх состояний GENERATE.
+
+- `buttons/back/` — оригиналы BACK и BACK hover.

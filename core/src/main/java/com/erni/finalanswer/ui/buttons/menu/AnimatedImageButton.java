@@ -1,5 +1,6 @@
 package com.erni.finalanswer.ui.buttons.menu;
 
+import com.erni.finalanswer.ui.RuntimeTextures;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
@@ -17,6 +18,8 @@ import com.badlogic.gdx.utils.Disposable;
 public abstract class AnimatedImageButton extends Button implements Disposable {
     private final Texture[] textures = new Texture[3];
     private ShaderProgram transitionShader;
+    private static ShaderProgram sharedTransitionShader;
+    private static int shaderUsers;
     private float hoverAmount;
     private float pressAmount;
     private float entranceTime;
@@ -72,14 +75,21 @@ public abstract class AnimatedImageButton extends Button implements Disposable {
         try {
             // Загружаем три настоящих изображения один раз при создании.
             for (int i = 0; i < files.length; i++) {
-                textures[i] = new Texture(Gdx.files.internal(directory + files[i]));
+                textures[i] = RuntimeTextures.load(directory + files[i]);
                 textures[i].setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
             }
             // Нормализованные координаты допускают небольшую разницу размеров PNG.
-            transitionShader = new ShaderProgram(VERTEX_SHADER, FRAGMENT_SHADER);
-            if (!transitionShader.isCompiled()) {
-                throw new IllegalStateException("Ошибка переходов кнопки: " + transitionShader.getLog());
+            if (sharedTransitionShader == null) {
+                ShaderProgram compiled = new ShaderProgram(VERTEX_SHADER, FRAGMENT_SHADER);
+                if (!compiled.isCompiled()) {
+                    String log = compiled.getLog();
+                    compiled.dispose();
+                    throw new IllegalStateException("Ошибка переходов кнопки: " + log);
+                }
+                sharedTransitionShader = compiled;
             }
+            transitionShader = sharedTransitionShader;
+            shaderUsers++;
         } catch (RuntimeException error) {
             dispose();
             throw error;
@@ -115,6 +125,11 @@ public abstract class AnimatedImageButton extends Button implements Disposable {
         pressAmount = 0;
     }
 
+    public void showImmediately() {
+        restartEntrance();
+        entranceTime = 1;
+    }
+
     @Override
     public void act(float delta) {
         super.act(delta);
@@ -125,9 +140,8 @@ public abstract class AnimatedImageButton extends Button implements Disposable {
         // Наведение примерно 180 мс; возврат чуть медленнее.
         hoverAmount = approach(hoverAmount, hoverTarget, frameDelta,
             hoverTarget > hoverAmount ? 0.06f : 0.075f);
-        // Быстрый, но мягкий отклик без резкой смены изображения.
-        pressAmount = approach(pressAmount, pressTarget, frameDelta,
-            pressTarget > pressAmount ? 0.04f : 0.06f);
+        // Press feedback appears in the next rendered frame; hover retains its existing speed.
+        pressAmount = pressTarget;
     }
 
     private float approach(float current, float target, float delta, float response) {
@@ -191,6 +205,9 @@ public abstract class AnimatedImageButton extends Button implements Disposable {
         for (Texture texture : textures) {
             if (texture != null) texture.dispose();
         }
-        if (transitionShader != null) transitionShader.dispose();
+        if (transitionShader != null && --shaderUsers == 0) {
+            sharedTransitionShader.dispose();
+            sharedTransitionShader = null;
+        }
     }
 }

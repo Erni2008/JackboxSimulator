@@ -1,8 +1,7 @@
 package com.erni.finalanswer.ui.buttons.room;
 
-import com.badlogic.gdx.Gdx;
+import com.erni.finalanswer.ui.RuntimeTextures;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.Button;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
@@ -21,11 +20,11 @@ public final class CancelRoomButton extends Button implements Disposable {
         TextureRegionDrawable[] frames = new TextureRegionDrawable[3];
         try {
             for (int i = 0; i < states.length; i++) {
-                Texture texture = new Texture(Gdx.files.internal(
-                    "ui/buttons/cancel_room/cancel_button_" + states[i] + ".png"));
+                Texture texture = RuntimeTextures.load(
+                    "ui/buttons/cancel_room/cancel_button_" + states[i] + ".png");
                 textures[i] = texture;
                 texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
-                frames[i] = new TextureRegionDrawable(new TextureRegion(texture, 65, 175, 1845, 445));
+                frames[i] = new TextureRegionDrawable(RuntimeTextures.region(texture, 65, 175, 1845, 445));
                 frames[i].setMinWidth(0);
                 frames[i].setMinHeight(0);
             }

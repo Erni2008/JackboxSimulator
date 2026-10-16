@@ -1,5 +1,6 @@
 package com.erni.finalanswer.ui.windows;
 
+import com.erni.finalanswer.ui.RuntimeTextures;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
@@ -52,7 +53,7 @@ public final class OptionsMainWindow extends Group implements Disposable {
     private float floatOffset;
 
     public OptionsMainWindow() {
-        texture = new Texture(Gdx.files.internal("ui/windows/create_room/options_main.png"));
+        texture = RuntimeTextures.load("ui/windows/create_room/options_main.png");
         texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         artwork = new Image(texture);
         artwork.setTouchable(Touchable.disabled);
@@ -320,6 +321,14 @@ public final class OptionsMainWindow extends Group implements Disposable {
 
     public String getPassword() {
         return password.getText();
+    }
+
+    public void resetForNewRoom() {
+        roomName.setText("");
+        password.setText("");
+        validationMessage.setText("");
+        playerCount.resetSelection();
+        gameMode.resetSelection();
     }
 
     public void reveal() {

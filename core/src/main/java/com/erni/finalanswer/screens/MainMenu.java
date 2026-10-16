@@ -1,5 +1,6 @@
 package com.erni.finalanswer.screens;
 
+import com.erni.finalanswer.ui.RuntimeTextures;
 import com.badlogic.gdx.Gdx;
 import com.erni.finalanswer.FinalAnswerGame;
 import com.badlogic.gdx.ScreenAdapter;
@@ -19,7 +20,6 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 
 import com.badlogic.gdx.scenes.scene2d.Stage;
 
-import com.erni.finalanswer.ui.GameFonts;
 import com.erni.finalanswer.ui.effects.TableCandle;
 import com.erni.finalanswer.ui.buttons.menu.AnimatedImageButton;
 import com.erni.finalanswer.ui.buttons.menu.PlayButton;
@@ -46,12 +46,12 @@ public class MainMenu extends ScreenAdapter {
     private final Texture titleLogo;
     private float titleTime;
     private boolean disposed;
+    private boolean firstShow = true;
 
     // Сцена рисует кнопки и обрабатывает их нажатия.
     private final Stage menuStage;
 
     // Шрифты меню и отдельная кнопка PLAY.
-    private final GameFonts fonts;
     private final PlayButton playButton;
     private final CreateRoomButton createRoomButton;
     private final AnimatedImageButton[] menuButtons;
@@ -67,14 +67,12 @@ public class MainMenu extends ScreenAdapter {
         batch = new SpriteBatch();
         tableCandle = new TableCandle();
 
-        titleLogo = new Texture(Gdx.files.internal("ui/Final_Answer.png"));
+        titleLogo = RuntimeTextures.load("ui/Final_Answer.png");
         titleLogo.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
 
 
         // Load background
-        background = new Texture(
-            Gdx.files.internal("backgrounds/main_screen_background.png")
-        );
+        background = RuntimeTextures.load("backgrounds/main_screen_background.png");
 
         background.setFilter(
             Texture.TextureFilter.Linear,
@@ -106,14 +104,11 @@ public class MainMenu extends ScreenAdapter {
             UI_HEIGHT
         );
 
-        // Создаём шрифты после запуска графического контекста игры.
-        fonts = new GameFonts();
-
         // Кнопки используют те же координаты 1920 × 1080, что и логотип.
         menuStage = new Stage(uiViewport);
 
         // Создаём PLAY с её собственным обработчиком нажатия.
-        playButton = new PlayButton(fonts.buttonFont);
+        playButton = new PlayButton();
 
         // Добавляем кнопку на сцену, чтобы она могла отображаться.
         menuStage.addActor(playButton);
@@ -123,7 +118,7 @@ public class MainMenu extends ScreenAdapter {
         menuStage.addActor(createRoomButton);
 
         menuButtons = new AnimatedImageButton[] {
-            playButton, createRoomButton, new GenerationCodeButton(),
+            playButton, createRoomButton, new GenerationCodeButton(receivedGame),
             new SettingsButton(), new ExitButton()
         };
         for (int i = 2; i < menuButtons.length; i++) {
@@ -140,11 +135,13 @@ public class MainMenu extends ScreenAdapter {
     @Override
     public void show() {
 
-        // При возвращении в меню заново запускаем плавное появление.
-        titleTime = 0;
+        // Keep the initial reveal; returning to a cached menu is immediate.
+        titleTime = firstShow ? 0 : 1;
         for (AnimatedImageButton button : menuButtons) {
-            button.restartEntrance();
+            if (firstShow) button.restartEntrance();
+            else button.showImmediately();
         }
+        firstShow = false;
         // Направляем мышь и нажатия на сцену с кнопками.
         Gdx.input.setInputProcessor(menuStage);
     }
@@ -277,7 +274,6 @@ public class MainMenu extends ScreenAdapter {
         for (AnimatedImageButton button : menuButtons) {
             button.dispose();
         }
-        fonts.dispose();
 
         batch.dispose();
 

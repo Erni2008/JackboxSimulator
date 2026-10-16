@@ -54,9 +54,14 @@ public class RoomSettingsScreen extends ScreenAdapter {
         // Defer the transition until the current input event has finished.
         Gdx.app.postRunnable(() -> {
             if (disposed || game.getScreen() != this) return;
-            game.setScreen(new MainMenu(game));
-            dispose();
+            game.showMainMenu();
         });
+    }
+
+    public void resetForNewRoom() {
+        returningToMenu = false;
+        requestedConfiguration = null;
+        optionsWindow.resetForNewRoom();
     }
 
     public RoomConfiguration getRequestedConfiguration() {

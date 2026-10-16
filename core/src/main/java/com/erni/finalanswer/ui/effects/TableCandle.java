@@ -1,6 +1,6 @@
 package com.erni.finalanswer.ui.effects;
 
-import com.badlogic.gdx.Gdx;
+import com.erni.finalanswer.ui.RuntimeTextures;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
@@ -26,21 +26,8 @@ public final class TableCandle implements Disposable {
         try {
             for (int i = 0; i < frames.length; i++) {
                 String number = String.format(java.util.Locale.ROOT, "%04d", i + 1);
-                Pixmap original = new Pixmap(Gdx.files.internal(
-                    "models/candle/frames/" + number + ".png"));
-                Pixmap scaled = new Pixmap(384, 384, Pixmap.Format.RGBA8888);
-                try {
-                    // The full sequence uses 54 MiB on the GPU instead of 216 MiB.
-                    // Keep the original PNGs intact; prepare only display textures.
-                    scaled.setBlending(Pixmap.Blending.None);
-                    scaled.setFilter(Pixmap.Filter.BiLinear);
-                    scaled.drawPixmap(original, 0, 0, original.getWidth(), original.getHeight(),
-                        0, 0, scaled.getWidth(), scaled.getHeight());
-                    frames[i] = new Texture(scaled);
-                } finally {
-                    original.dispose();
-                    scaled.dispose();
-                }
+                // Gradle prepares 256px frames once; no decoding/resizing originals on navigation.
+                frames[i] = RuntimeTextures.load("models/candle/frames/" + number + ".png");
                 frames[i].setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
             }
         } catch (RuntimeException error) {

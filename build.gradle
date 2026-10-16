@@ -64,3 +64,4 @@ subprojects {
 }
 
 eclipse.project.name = 'FinalAnswer' + '-parent'
+apply from: "gradle/runtime-textures.gradle"
