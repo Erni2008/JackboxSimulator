@@ -56,9 +56,9 @@ public abstract class AnimatedImageButton extends Button implements Disposable {
             vec4 over = premultiply(texture2D(u_overTexture, v_texCoords));
             vec4 down = premultiply(texture2D(u_downTexture, v_texCoords));
             vec4 base = mix(up, over, u_hover);
-            // PNG нажатия сильно отличается по рамке и свечению.
-            // Подмешиваем только 22%: сохраняем подсветку и избегаем резкого скачка.
-            vec4 result = mix(base, down, u_press * 0.22);
+            // Каждое состояние использует свой PNG полностью.
+            // Переход остаётся плавным, но наведение и нажатие хорошо различимы.
+            vec4 result = mix(base, down, u_press);
             vec3 rgb = result.rgb / max(result.a, 0.00001);
             // Цвет и свечение уже нарисованы в PNG: сохраняем авторский дизайн.
             gl_FragColor = vec4(rgb, result.a) * v_color;

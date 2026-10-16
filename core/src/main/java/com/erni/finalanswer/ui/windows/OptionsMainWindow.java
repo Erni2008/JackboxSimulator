@@ -15,10 +15,15 @@ import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.utils.BaseDrawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Disposable;
 import com.erni.finalanswer.ui.buttons.PlayerCountSelector;
+import com.erni.finalanswer.ui.buttons.ConfirmCreateButton;
+import com.erni.finalanswer.ui.buttons.CancelRoomButton;
+import java.util.function.Consumer;
+import java.util.Objects;
 import com.erni.finalanswer.ui.buttons.GameModeSelector;
 import com.erni.finalanswer.rooms.GameMode;
 import com.erni.finalanswer.rooms.RoomConfiguration;
@@ -35,6 +40,11 @@ public final class OptionsMainWindow extends Group implements Disposable {
     private final TextField password;
     private final PlayerCountSelector playerCount;
     private final GameModeSelector gameMode;
+    private final ConfirmCreateButton createButton;
+    private final CancelRoomButton cancelButton;
+    private Runnable onCancel = () -> {};
+    private final Label validationMessage;
+    private Consumer<RoomConfiguration> onCreate = configuration -> {};
     private boolean disposed;
     private float baseY;
     private float animationTime;
@@ -92,7 +102,26 @@ public final class OptionsMainWindow extends Group implements Disposable {
 
         gameMode = new GameModeSelector(font, hintFont, () -> quietTime = 0);
         addActor(gameMode);
-        // Keep Tab traversal predictable: name -> mode -> password -> name.
+        validationMessage = new Label("", new Label.LabelStyle(hintFont,
+            new Color(1f, 0.43f, 0.35f, 1)));
+        validationMessage.setName("roomValidationMessage");
+        validationMessage.setAlignment(com.badlogic.gdx.utils.Align.center);
+        validationMessage.setTouchable(Touchable.disabled);
+        addActor(validationMessage);
+        createButton = new ConfirmCreateButton(this::requestCreation);
+        addActor(createButton);
+        cancelButton = new CancelRoomButton(() -> {
+            quietTime = 0;
+            onCancel.run();
+        });
+        addActor(cancelButton);
+        roomName.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
+                validationMessage.setText("");
+            }
+        });
+        // Tab order follows the footer: name -> mode -> password -> CREATE -> CANCEL -> name.
         addCaptureListener(new InputListener() {
             @Override
             public boolean keyTyped(InputEvent event, char character) {
@@ -100,11 +129,15 @@ public final class OptionsMainWindow extends Group implements Disposable {
                 com.badlogic.gdx.scenes.scene2d.Actor current = getStage().getKeyboardFocus();
                 boolean reverse = UIUtils.shift();
                 if (current == roomName) {
-                    getStage().setKeyboardFocus(reverse ? password : gameMode);
+                    getStage().setKeyboardFocus(reverse ? cancelButton : gameMode);
                 } else if (current == gameMode) {
                     getStage().setKeyboardFocus(reverse ? roomName : password);
                 } else if (current == password) {
-                    getStage().setKeyboardFocus(reverse ? gameMode : roomName);
+                    getStage().setKeyboardFocus(reverse ? gameMode : createButton);
+                } else if (current == cancelButton) {
+                    getStage().setKeyboardFocus(reverse ? createButton : roomName);
+                } else if (current == createButton) {
+                    getStage().setKeyboardFocus(reverse ? password : cancelButton);
                 } else {
                     return false;
                 }
@@ -113,6 +146,45 @@ public final class OptionsMainWindow extends Group implements Disposable {
                 return true;
             }
         });
+        cancelButton.addListener(new InputListener() {
+            @Override
+            public boolean keyDown(InputEvent event, int keycode) {
+                if (keycode == com.badlogic.gdx.Input.Keys.ENTER || keycode == com.badlogic.gdx.Input.Keys.SPACE) {
+                    onCancel.run();
+                    return true;
+                }
+                return false;
+            }
+        });
+        createButton.addListener(new InputListener() {
+            @Override
+            public boolean keyDown(InputEvent event, int keycode) {
+                if (keycode == com.badlogic.gdx.Input.Keys.ENTER || keycode == com.badlogic.gdx.Input.Keys.SPACE) {
+                    requestCreation();
+                    return true;
+                }
+                return false;
+            }
+        });
+    }
+
+    public void setOnCancel(Runnable onCancel) {
+        this.onCancel = Objects.requireNonNull(onCancel, "onCancel");
+    }
+
+    public void setOnCreate(Consumer<RoomConfiguration> onCreate) {
+        this.onCreate = Objects.requireNonNull(onCreate, "onCreate");
+    }
+
+    private void requestCreation() {
+        quietTime = 0;
+        if (getRoomName().isEmpty()) {
+            validationMessage.setText("Enter a room name to continue.");
+            focusName();
+            return;
+        }
+        validationMessage.setText("");
+        onCreate.accept(getRoomConfiguration());
     }
 
     private static BitmapFont createFont(String path, int size, boolean shadow) {
@@ -199,6 +271,20 @@ public final class OptionsMainWindow extends Group implements Disposable {
             800 * scale, 86 * scale);
         playerCount.layoutButtons(230 * scale, (texture.getHeight() - 619 - 90) * scale,
             794 * scale, 90 * scale);
+        // Larger footer actions: CREATE on the left, CANCEL on the right.
+        float cancelWidth = 400f * scale;
+        float createWidth = 540f * scale;
+        float gap = 24f * scale;
+        float left = (width - cancelWidth - gap - createWidth) / 2;
+        float bottom = 70f * scale;
+        float createHeight = createWidth * createButton.getImageAspectRatio();
+        float cancelHeight = cancelWidth * cancelButton.getImageAspectRatio();
+        float createOffsetY = 14f * scale;
+        createButton.setBounds(left, bottom + createOffsetY, createWidth, createHeight);
+        cancelButton.setBounds(left + createWidth + gap, bottom + (createHeight - cancelHeight) / 2,
+            cancelWidth, cancelHeight);
+        validationMessage.setBounds(236f * scale, (texture.getHeight() - 1110f) * scale,
+            778f * scale, 36f * scale);
     }
 
     private void placeField(TextField field, float x, float top, float width,
@@ -254,5 +340,7 @@ public final class OptionsMainWindow extends Group implements Disposable {
         hintFont.dispose();
         playerCount.dispose();
         gameMode.dispose();
+        createButton.dispose();
+        cancelButton.dispose();
     }
 }

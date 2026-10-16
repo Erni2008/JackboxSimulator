@@ -20,7 +20,12 @@ public class CreateRoomButton extends AnimatedImageButton {
     protected void onActivate() {
         // Открываем экран настроек комнаты.
         Gdx.app.log("Final Answer", "CREATE ROOM clicked!");
-        game.setScreen(new RoomSettingsScreen());
+        com.badlogic.gdx.Screen previous = game.getScreen();
+        Gdx.app.postRunnable(() -> {
+            if (game.getScreen() != previous) return;
+            game.setScreen(new RoomSettingsScreen(game));
+            previous.dispose();
+        });
     }
 
 

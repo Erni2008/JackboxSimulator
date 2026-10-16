@@ -35,6 +35,8 @@ finalanswer/
 │   ├── buttons/
 │   │   ├── AnimatedImageButton.java    ← общая анимация больших кнопок меню
 │   │   ├── CreateRoomButton.java       ← действие кнопки CREATE ROOM
+│   │   ├── ConfirmCreateButton.java    ← кнопка CREATE внутри формы
+│   │   ├── CancelRoomButton.java       ← CANCEL, возврат в главное меню
 │   │   ├── PlayButton.java             ← действие PLAY
 │   │   ├── SettingsButton.java         ← действие SETTINGS
 │   │   ├── ExitButton.java             ← выход из игры
@@ -150,7 +152,7 @@ mkdir -p core/src/main/java/com/erni/finalanswer/rooms/modes
 ## GAME MODE: управление и данные
 
 Кнопки `<` / `>` переключают режимы по кругу в порядке из `GameMode.java`.
-Tab переводит фокус: название комнаты → режим → пароль → название комнаты.
+Tab переводит фокус: название комнаты → режим → пароль → CREATE → CANCEL → название комнаты.
 В переключателе работают ← / →; Shift+Tab идёт в обратную сторону.
 Название центрируется и при необходимости уменьшается, не меняя размер окна.
 
@@ -163,3 +165,29 @@ Tab переводит фокус: название комнаты → режи�
 Esc или Enter. Когда фокус на переключателе режимов, клавиша I или Enter также
 открывает информацию. Пока окно открыто, клики по настройкам под ним блокируются.
 Три состояния кнопки находятся в `assets/ui/buttons/game_mode/info/`.
+
+## Подтверждение CREATE
+
+- Изображения: `assets/ui/buttons/confirm_create_room/`.
+- Класс: `ui/buttons/ConfirmCreateButton.java`.
+- Размер и положение: `OptionsMainWindow.layoutIn()` (`createWidth`, нижний отступ `bottom`).
+- Проверка названия и сбор настроек: `OptionsMainWindow.requestCreation()`.
+- Обработчик: `RoomSettingsScreen`, подключается через `optionsWindow.setOnCreate(...)`.
+
+CREATE доступна мышью и через Tab → Enter/Space. Пустое название не принимается.
+После подтверждения `RoomSettingsScreen.getRequestedConfiguration()` возвращает
+последний снимок настроек. Пока обработчик только сохраняет его и пишет сообщение
+в консоль; создание комнаты на сервере и переход в лобби ещё не подключены.
+
+## Отмена создания комнаты
+
+`CancelRoomButton.java` находится в `ui/buttons/`, а её три PNG — в
+`assets/ui/buttons/cancel_room/`. CREATE расположена слева, CANCEL — справа.
+Размеры и положение обеих кнопок задаются в `OptionsMainWindow.layoutIn()`.
+
+`RoomSettingsScreen(FinalAnswerGame game)` получает игру для переключения экранов.
+`optionsWindow.setOnCancel(...)` вызывает `cancelCreation()`, которая возвращает
+в `MainMenu` после завершения текущего события и освобождает ресурсы формы.
+Работают мышь, Tab → Enter/Space и Esc. Если открыто описание режима, Esc сначала
+закрывает только описание. При открытии комнаты старое главное меню также
+освобождается, чтобы повторные переходы не оставляли старые текстуры в памяти.

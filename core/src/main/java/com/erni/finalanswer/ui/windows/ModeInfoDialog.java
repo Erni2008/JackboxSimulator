@@ -54,8 +54,8 @@ public final class ModeInfoDialog extends Dialog implements Disposable {
         style.font = bodyFont;
         style.fontColor = new Color(0.96f, 0.88f, 0.83f, 1);
         style.up = solid.tint(new Color(0.23f, 0.045f, 0.045f, 1));
-        style.over = solid.tint(new Color(0.36f, 0.065f, 0.06f, 1));
-        style.down = solid.tint(new Color(0.16f, 0.025f, 0.025f, 1));
+        style.over = solid.tint(new Color(0.27f, 0.05f, 0.05f, 1));
+        style.down = solid.tint(new Color(0.20f, 0.035f, 0.035f, 1));
         close = new TextButton("", style);
         close.setName("closeModeInfo");
         getButtonTable().pad(10, 24, 24, 24);

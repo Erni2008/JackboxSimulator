@@ -186,9 +186,9 @@ public final class GameModeSelector extends Group implements Disposable {
         previous.setOrigin(buttonWidth / 2, buttonHeight / 2);
         next.setOrigin(buttonWidth / 2, buttonHeight / 2);
         // INFO sits below the field, slightly right of its center.
-        float infoWidth = 180f;
-        float infoHeight = 48f;
-        float infoOffsetX = 110f;
+        float infoWidth = 198f;
+        float infoHeight = 52.8f;
+        float infoOffsetX = 150f;
         float infoGapY = 6f;
         info.setBounds((width - infoWidth) / 2 + infoOffsetX,
             -infoHeight - infoGapY, infoWidth, infoHeight);
