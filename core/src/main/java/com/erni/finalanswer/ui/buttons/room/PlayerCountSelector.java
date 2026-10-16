@@ -1,4 +1,4 @@
-package com.erni.finalanswer.ui.buttons;
+package com.erni.finalanswer.ui.buttons.room;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;

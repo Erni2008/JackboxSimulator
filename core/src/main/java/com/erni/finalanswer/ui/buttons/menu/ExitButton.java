@@ -1,4 +1,4 @@
-package com.erni.finalanswer.ui.buttons;
+package com.erni.finalanswer.ui.buttons.menu;
 
 import com.badlogic.gdx.Gdx;
 

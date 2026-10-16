@@ -5,9 +5,12 @@
 
 - `buttons/all_icons/` — исходные изображения больших кнопок меню.
 - `buttons/player_count/` — три исходных состояния кнопок MAX PLAYERS.
+- `buttons/game_mode/next/`, `previous/`, `info/` — оригиналы стрелок и INFO.
+- `buttons/confirm_create_room/` — оригиналы CREATE в форме.
+- `buttons/cancel_room/` — оригиналы CANCEL в форме.
 - `buttons/java_copies/` — копии, раньше лежавшие рядом с Java-классами.
 - `backgrounds/create_room/` — три оригинальных фона комнаты.
-- `windows/create_room/` — оригинал оформления окна.
+- `windows/create_room/` — оригинал оформления окна и поля выбора режима (`field`, `field_hover`).
 - `candles/frames/` — 96 оригинальных кадров трёх свечей.
 
 Игра загружает ресурсы из `assets/`. После правок оригинала обнови соответствующий

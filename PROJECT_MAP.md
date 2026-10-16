@@ -11,6 +11,7 @@ FinalAnswer/
 ├── assets/                                 ← ресурсы, которые загружает игра
 ├── source_assets/                          ← исходные картинки и старые копии
 ├── lwjgl3/                                 ← запуск игры на компьютере
+├── server/                                 ← заготовка отдельного Java-сервера
 ├── inspector/                              ← инструмент для изучения Java-кода
 ├── scripts/                                ← вспомогательные скрипты
 ├── generated/                              ← сохранённые превью
@@ -33,16 +34,19 @@ finalanswer/
 │   │   ├── OptionsMainWindow.java      ← окно CREATE ROOM: поля и настройки
 │   │   └── ModeInfoDialog.java         ← описание выбранного режима
 │   ├── buttons/
-│   │   ├── AnimatedImageButton.java    ← общая анимация больших кнопок меню
-│   │   ├── CreateRoomButton.java       ← действие кнопки CREATE ROOM
-│   │   ├── ConfirmCreateButton.java    ← кнопка CREATE внутри формы
-│   │   ├── CancelRoomButton.java       ← CANCEL, возврат в главное меню
-│   │   ├── PlayButton.java             ← действие PLAY
-│   │   ├── SettingsButton.java         ← действие SETTINGS
-│   │   ├── ExitButton.java             ← выход из игры
-│   │   ├── GenerationCodeButton.java   ← действие GENERATION CODE
-│   │   ├── PlayerCountSelector.java    ← выбор 2–8 игроков
-│   │   └── GameModeSelector.java       ← Previous / Next и название режима
+│   │   ├── menu/                      ← только главное меню
+│   │   │   ├── AnimatedImageButton.java ← общая анимация кнопок меню
+│   │   │   ├── PlayButton.java
+│   │   │   ├── CreateRoomButton.java   ← переход к настройкам комнаты
+│   │   │   ├── GenerationCodeButton.java
+│   │   │   ├── SettingsButton.java
+│   │   │   └── ExitButton.java
+│   │   ├── room/                      ← только форма CREATE ROOM
+│   │   │   ├── ConfirmCreateButton.java ← подтверждение CREATE
+│   │   │   ├── CancelRoomButton.java   ← отмена CANCEL
+│   │   │   ├── PlayerCountSelector.java ← выбор 2–8 игроков
+│   │   │   └── GameModeSelector.java   ← стрелки, INFO, название режима
+│   │   └── SubtleStateDrawable.java    ← сохранённый вспомогательный drawable
 │   ├── effects/
 │   │   ├── CyclingRoomBackground.java  ← смена трёх фонов и скорость переходов
 │   │   └── TableCandle.java            ← три свечи, 96 кадров, свет и тени
@@ -64,14 +68,14 @@ finalanswer/
 | Задача | Файл относительно `core/src/main/java/com/erni/finalanswer/` |
 | --- | --- |
 | Положение и размер кнопок главного меню | `screens/MainMenu.java` |
-| Что происходит при CREATE ROOM | `ui/buttons/CreateRoomButton.java` |
+| Что происходит при CREATE ROOM | `ui/buttons/menu/CreateRoomButton.java` |
 | Что отображается на экране создания комнаты | `screens/RoomSettingsScreen.java` |
 | Название, пароль, шрифт ввода, анимация окна | `ui/windows/OptionsMainWindow.java` |
-| Кнопки MAX PLAYERS, их размер, цвета и состояния | `ui/buttons/PlayerCountSelector.java` |
+| Кнопки MAX PLAYERS, их размер, цвета и состояния | `ui/buttons/room/PlayerCountSelector.java` |
 | Скорость смены фонов | `ui/effects/CyclingRoomBackground.java` |
 | Свечи и их освещение | `ui/effects/TableCandle.java` |
 | Список игровых режимов | `rooms/GameMode.java` |
-| Стрелки, INFO и подпись GAME MODE | `ui/buttons/GameModeSelector.java` |
+| Стрелки, INFO и подпись GAME MODE | `ui/buttons/room/GameModeSelector.java` |
 | Окно с описанием режима | `ui/windows/ModeInfoDialog.java` |
 | Собранные настройки комнаты | `rooms/RoomConfiguration.java` |
 | Правила стандартного режима | `rooms/modes/StandardMode.java` |
@@ -169,7 +173,7 @@ Esc или Enter. Когда фокус на переключателе режи
 ## Подтверждение CREATE
 
 - Изображения: `assets/ui/buttons/confirm_create_room/`.
-- Класс: `ui/buttons/ConfirmCreateButton.java`.
+- Класс: `ui/buttons/room/ConfirmCreateButton.java`.
 - Размер и положение: `OptionsMainWindow.layoutIn()` (`createWidth`, нижний отступ `bottom`).
 - Проверка названия и сбор настроек: `OptionsMainWindow.requestCreation()`.
 - Обработчик: `RoomSettingsScreen`, подключается через `optionsWindow.setOnCreate(...)`.
@@ -181,7 +185,7 @@ CREATE доступна мышью и через Tab → Enter/Space. Пусто
 
 ## Отмена создания комнаты
 
-`CancelRoomButton.java` находится в `ui/buttons/`, а её три PNG — в
+`CancelRoomButton.java` находится в `ui/buttons/room/`, а её три PNG — в
 `assets/ui/buttons/cancel_room/`. CREATE расположена слева, CANCEL — справа.
 Размеры и положение обеих кнопок задаются в `OptionsMainWindow.layoutIn()`.
 
@@ -191,3 +195,27 @@ CREATE доступна мышью и через Tab → Enter/Space. Пусто
 Работают мышь, Tab → Enter/Space и Esc. Если открыто описание режима, Esc сначала
 закрывает только описание. При открытии комнаты старое главное меню также
 освобождается, чтобы повторные переходы не оставляли старые текстуры в памяти.
+
+## Сервер: текущее состояние
+
+`server/` подключён в `settings.gradle` как отдельный модуль с плагином `application`.
+Точка входа — `server/src/main/java/com/finalanswer/server/RoomServer.java`.
+Запуск: `./gradlew :server:run`. Пока программа выводит `Server started` и завершается;
+сетевые подключения и создание комнат ещё не реализованы. Сетевой код будем писать в `server/`,
+а интерфейс клиента останется в `core/`. `lwjgl3/` отвечает за запуск на компьютере;
+экраны и отрисовка интерфейса уже находятся в `core/`.
+
+## Как работать без десятков вкладок
+
+В настройках проекта VS Code включён предварительный просмотр: один клик по файлу
+открывает временную вкладку, следующий файл заменяет её. Двойной клик закрепляет
+вкладку. Лимит — 8 вкладок; файлы с несохранёнными изменениями исключены из лимита.
+Папки `build/`, `.gradle/` и `.idea/` скрыты в проводнике VS Code, но остаются на диске.
+
+Чтобы закрыть уже открытые сохранённые вкладки, вызови палитру команд
+(`Cmd+Shift+P` на macOS) и выбери **Close Saved Editors**.
+
+Новый код размещай по назначению: экраны — `screens/`, кнопки главного меню —
+`ui/buttons/menu/`, кнопки формы — `ui/buttons/room/`, окна — `ui/windows/`,
+правила режимов — `rooms/modes/`. Новые оригиналы PNG складывай в `source_assets/`,
+а используемые игрой изображения — в соответствующую папку `assets/`.

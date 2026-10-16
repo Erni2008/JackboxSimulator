@@ -21,12 +21,12 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 
 import com.erni.finalanswer.ui.GameFonts;
 import com.erni.finalanswer.ui.effects.TableCandle;
-import com.erni.finalanswer.ui.buttons.AnimatedImageButton;
-import com.erni.finalanswer.ui.buttons.PlayButton;
-import com.erni.finalanswer.ui.buttons.CreateRoomButton;
-import com.erni.finalanswer.ui.buttons.GenerationCodeButton;
-import com.erni.finalanswer.ui.buttons.SettingsButton;
-import com.erni.finalanswer.ui.buttons.ExitButton;
+import com.erni.finalanswer.ui.buttons.menu.AnimatedImageButton;
+import com.erni.finalanswer.ui.buttons.menu.PlayButton;
+import com.erni.finalanswer.ui.buttons.menu.CreateRoomButton;
+import com.erni.finalanswer.ui.buttons.menu.GenerationCodeButton;
+import com.erni.finalanswer.ui.buttons.menu.SettingsButton;
+import com.erni.finalanswer.ui.buttons.menu.ExitButton;
 
 public class MainMenu extends ScreenAdapter {
 

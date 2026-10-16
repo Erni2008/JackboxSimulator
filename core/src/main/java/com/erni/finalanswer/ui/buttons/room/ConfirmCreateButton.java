@@ -1,4 +1,4 @@
-package com.erni.finalanswer.ui.buttons;
+package com.erni.finalanswer.ui.buttons.room;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
@@ -9,23 +9,23 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Disposable;
 
-/** Static CANCEL action that returns to the main menu. */
-public final class CancelRoomButton extends Button implements Disposable {
+/** Static CREATE confirmation inside the room form. */
+public final class ConfirmCreateButton extends Button implements Disposable {
     private final Texture[] textures = new Texture[3];
     private boolean disposed;
 
-    public CancelRoomButton(Runnable onCancel) {
+    public ConfirmCreateButton(Runnable onCreate) {
         super(new ButtonStyle());
-        setName("cancelCreateRoom");
+        setName("confirmCreateRoom");
         String[] states = {"up", "hover", "pressed"};
         TextureRegionDrawable[] frames = new TextureRegionDrawable[3];
         try {
             for (int i = 0; i < states.length; i++) {
                 Texture texture = new Texture(Gdx.files.internal(
-                    "ui/buttons/cancel_room/cancel_button_" + states[i] + ".png"));
+                    "ui/buttons/confirm_create_room/create_buttongen_" + states[i] + ".png"));
                 textures[i] = texture;
                 texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
-                frames[i] = new TextureRegionDrawable(new TextureRegion(texture, 65, 175, 1845, 445));
+                frames[i] = new TextureRegionDrawable(new TextureRegion(texture, 50, 80, 1820, 680));
                 frames[i].setMinWidth(0);
                 frames[i].setMinHeight(0);
             }
@@ -47,13 +47,13 @@ public final class CancelRoomButton extends Button implements Disposable {
             public void clicked(InputEvent event, float x, float y) {
                 if (isDisabled()) return;
                 setChecked(false);
-                onCancel.run();
+                onCreate.run();
             }
         });
     }
 
     public float getImageAspectRatio() {
-        return 445f / 1845f;
+        return 680f / 1820f;
     }
 
     @Override
