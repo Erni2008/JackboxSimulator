@@ -66,8 +66,8 @@ public final class PlayerCountSelector extends Group implements Disposable {
         style.fontColor = new Color(0.93f, 0.86f, 0.79f, 1);
         style.overFontColor = new Color(1, 0.96f, 0.87f, 1);
         style.downFontColor = new Color(1, 0.48f, 0.32f, 1);
-        style.checkedFontColor = new Color(0.96f, 0.62f, 0.49f, 1);
-        style.checkedOverFontColor = new Color(1, 0.54f, 0.36f, 1);
+        style.checkedFontColor = new Color(1f, 0.16f, 0.12f, 1f);
+        style.checkedOverFontColor = new Color(1f, 0.27f, 0.20f, 1f);
         style.pressedOffsetY = -1;
 
         choices.setMinCheckCount(1);

@@ -17,10 +17,10 @@ public class StandardMode {
     }
 
     public String getNameKey() {
-        return "mode.standard.name";
+        return getId().getNameKey();
     }
 
     public String getDescriptionKey() {
-        return "mode.standard.description";
+        return getId().getDescriptionKey();
     }
 }

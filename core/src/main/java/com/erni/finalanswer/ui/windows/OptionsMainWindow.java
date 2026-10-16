@@ -19,6 +19,10 @@ import com.badlogic.gdx.scenes.scene2d.utils.BaseDrawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Disposable;
 import com.erni.finalanswer.ui.buttons.PlayerCountSelector;
+import com.erni.finalanswer.ui.buttons.GameModeSelector;
+import com.erni.finalanswer.rooms.GameMode;
+import com.erni.finalanswer.rooms.RoomConfiguration;
+import com.badlogic.gdx.scenes.scene2d.utils.UIUtils;
 
 /** Original artwork with real text fields positioned inside its painted frames. */
 public final class OptionsMainWindow extends Group implements Disposable {
@@ -30,6 +34,7 @@ public final class OptionsMainWindow extends Group implements Disposable {
     private final TextField roomName;
     private final TextField password;
     private final PlayerCountSelector playerCount;
+    private final GameModeSelector gameMode;
     private boolean disposed;
     private float baseY;
     private float animationTime;
@@ -84,6 +89,30 @@ public final class OptionsMainWindow extends Group implements Disposable {
 
         playerCount = new PlayerCountSelector(() -> quietTime = 0);
         addActor(playerCount);
+
+        gameMode = new GameModeSelector(font, hintFont, () -> quietTime = 0);
+        addActor(gameMode);
+        // Keep Tab traversal predictable: name -> mode -> password -> name.
+        addCaptureListener(new InputListener() {
+            @Override
+            public boolean keyTyped(InputEvent event, char character) {
+                if (character != '\t' || getStage() == null) return false;
+                com.badlogic.gdx.scenes.scene2d.Actor current = getStage().getKeyboardFocus();
+                boolean reverse = UIUtils.shift();
+                if (current == roomName) {
+                    getStage().setKeyboardFocus(reverse ? password : gameMode);
+                } else if (current == gameMode) {
+                    getStage().setKeyboardFocus(reverse ? roomName : password);
+                } else if (current == password) {
+                    getStage().setKeyboardFocus(reverse ? gameMode : roomName);
+                } else {
+                    return false;
+                }
+                quietTime = 0;
+                event.stop();
+                return true;
+            }
+        });
     }
 
     private static BitmapFont createFont(String path, int size, boolean shadow) {
@@ -166,6 +195,8 @@ public final class OptionsMainWindow extends Group implements Disposable {
         // Coordinates measured in the original PNG, with its origin at the top left.
         placeField(roomName, 236, 436, 778, 68, scale);
         placeField(password, 236, 986, 778, 68, scale);
+        gameMode.layoutIn(227 * scale, (texture.getHeight() - 784 - 86) * scale,
+            800 * scale, 86 * scale);
         playerCount.layoutButtons(230 * scale, (texture.getHeight() - 619 - 90) * scale,
             794 * scale, 90 * scale);
     }
@@ -186,6 +217,18 @@ public final class OptionsMainWindow extends Group implements Disposable {
 
     public int getMaxPlayers() {
         return playerCount.getMaxPlayers();
+    }
+
+    public GameMode getSelectedGameMode() {
+        return gameMode.getSelectedMode();
+    }
+
+    public void setLanguage(String language) {
+        gameMode.setLanguage(language);
+    }
+
+    public RoomConfiguration getRoomConfiguration() {
+        return new RoomConfiguration(getRoomName(), getMaxPlayers(), getPassword(), getSelectedGameMode());
     }
 
     public String getPassword() {
@@ -210,5 +253,6 @@ public final class OptionsMainWindow extends Group implements Disposable {
         font.dispose();
         hintFont.dispose();
         playerCount.dispose();
+        gameMode.dispose();
     }
 }
