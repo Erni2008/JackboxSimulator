@@ -222,6 +222,7 @@ public final class OptionsMainWindow extends Group implements Disposable {
         float target = (float) Math.sin(animationTime * Math.PI * 2 / 8f) * 1.8f * idle;
         floatOffset += (target - floatOffset) * (1 - (float) Math.exp(-dt / 0.4f));
         setY(baseY - 14f * (1 - entrance) + floatOffset * entrance);
+        gameMode.compensateWindowMotion(getY() - baseY);
     }
 
     private static BaseDrawable padding(com.badlogic.gdx.scenes.scene2d.utils.Drawable drawable) {

@@ -36,6 +36,15 @@ public final class GameModeSelector extends Group implements Disposable {
     private Localization texts = new Localization("en");
     private GameMode selected = GameMode.STANDARD;
     private boolean disposed;
+    private float navigationOffsetY;
+
+    /** Keeps the arrows stationary while their parent window moves vertically. */
+    public void compensateWindowMotion(float windowOffsetY) {
+        float offset = -windowOffsetY;
+        previous.moveBy(0, offset - navigationOffsetY);
+        next.moveBy(0, offset - navigationOffsetY);
+        navigationOffsetY = offset;
+    }
 
     public GameModeSelector(BitmapFont font, BitmapFont bodyFont, Runnable onInteraction) {
         this.onInteraction = onInteraction;
@@ -169,6 +178,7 @@ public final class GameModeSelector extends Group implements Disposable {
     }
 
     public void layoutIn(float x, float y, float width, float height) {
+        navigationOffsetY = 0;
         setBounds(x, y, width, height);
         field.setBounds(0, 0, width, height);
         float buttonHeight = Math.min(58f, height - 4);
