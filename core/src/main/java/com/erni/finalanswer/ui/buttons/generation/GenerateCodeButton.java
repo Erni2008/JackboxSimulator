@@ -8,7 +8,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Disposable;
 
-/** Artwork states only. Supply the code-generation action later. */
+/** Static artwork states; the screen supplies asynchronous room creation. */
 public final class GenerateCodeButton extends Button implements Disposable {
     private final Texture[] textures = new Texture[3];
     private Runnable onGenerate = () -> {};

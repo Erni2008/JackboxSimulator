@@ -21,6 +21,7 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 
 import com.erni.finalanswer.ui.effects.TableCandle;
+import com.erni.finalanswer.ui.lobby.LobbyPanel;
 import com.erni.finalanswer.ui.buttons.menu.AnimatedImageButton;
 import com.erni.finalanswer.ui.buttons.menu.PlayButton;
 import com.erni.finalanswer.ui.buttons.menu.CreateRoomButton;
@@ -47,6 +48,8 @@ public class MainMenu extends ScreenAdapter {
     private float titleTime;
     private boolean disposed;
     private boolean firstShow = true;
+    private final FinalAnswerGame game;
+    private final LobbyPanel lobbyPanel;
 
     // Сцена рисует кнопки и обрабатывает их нажатия.
     private final Stage menuStage;
@@ -63,6 +66,7 @@ public class MainMenu extends ScreenAdapter {
 
 
     public MainMenu(FinalAnswerGame receivedGame) {
+        game = receivedGame;
 
         batch = new SpriteBatch();
         tableCandle = new TableCandle();
@@ -78,6 +82,7 @@ public class MainMenu extends ScreenAdapter {
             Texture.TextureFilter.Linear,
             Texture.TextureFilter.Linear
         );
+
 
         // A fading scrim preserves the artwork while keeping the title readable.
         Pixmap shade = new Pixmap(1, 256, Pixmap.Format.RGBA8888);
@@ -108,7 +113,9 @@ public class MainMenu extends ScreenAdapter {
         menuStage = new Stage(uiViewport);
 
         // Создаём PLAY с её собственным обработчиком нажатия.
-        playButton = new PlayButton();
+        lobbyPanel = new LobbyPanel(game);
+        lobbyPanel.setBounds(1010, 240, 800, 650);
+        playButton = new PlayButton(this::requestPlay);
 
         // Добавляем кнопку на сцену, чтобы она могла отображаться.
         menuStage.addActor(playButton);
@@ -119,12 +126,13 @@ public class MainMenu extends ScreenAdapter {
 
         menuButtons = new AnimatedImageButton[] {
             playButton, createRoomButton, new GenerationCodeButton(receivedGame),
-            new SettingsButton(), new ExitButton()
+            new SettingsButton(game::showSettings), new ExitButton()
         };
         for (int i = 2; i < menuButtons.length; i++) {
             menuStage.addActor(menuButtons[i]);
         }
 
+        menuStage.addActor(lobbyPanel);
         resize(
             Gdx.graphics.getWidth(),
             Gdx.graphics.getHeight()
@@ -136,9 +144,9 @@ public class MainMenu extends ScreenAdapter {
     public void show() {
 
         // Keep the initial reveal; returning to a cached menu is immediate.
-        titleTime = firstShow ? 0 : 1;
+        titleTime = firstShow && !game.getSettings().reducedMotion() ? 0 : 1;
         for (AnimatedImageButton button : menuButtons) {
-            if (firstShow) button.restartEntrance();
+            if (firstShow && !game.getSettings().reducedMotion()) button.restartEntrance();
             else button.showImmediately();
         }
         firstShow = false;
@@ -197,7 +205,7 @@ public class MainMenu extends ScreenAdapter {
             drawHeight
         );
 
-        tableCandle.draw(batch, delta, drawX, drawY, drawWidth, drawHeight);
+        tableCandle.draw(batch, game.getSettings().reducedMotion() ? 0 : delta, drawX, drawY, drawWidth, drawHeight);
         batch.end();
 
         // Draw the title last, in resolution-independent UI coordinates.
@@ -214,11 +222,11 @@ public class MainMenu extends ScreenAdapter {
 
         // The illustrated emblem enters softly and floats almost imperceptibly.
         titleTime += Math.min(delta, 0.1f);
-        float entrance = Interpolation.smooth.apply(MathUtils.clamp(titleTime / 0.8f, 0f, 1f));
+        float entrance = game.getSettings().reducedMotion() ? 1 : Interpolation.smooth.apply(MathUtils.clamp(titleTime / 0.8f, 0f, 1f));
         float logoWidth = 660;
         float logoHeight = logoWidth * titleLogo.getHeight() / titleLogo.getWidth();
         float logoY = UI_HEIGHT - 40 - logoHeight;
-        logoY += (1f - entrance) * 14f + MathUtils.sin(titleTime * 1.15f) * 2f;
+        logoY += (1f - entrance) * 14f + MathUtils.sin(titleTime * 1.15f) * (game.getSettings().reducedMotion() ? 0 : 2f);
         batch.setColor(1f, 1f, 1f, entrance);
         batch.draw(titleLogo, 90, logoY, logoWidth, logoHeight);
         batch.setColor(1f, 1f, 1f, 1f);
@@ -232,11 +240,27 @@ public class MainMenu extends ScreenAdapter {
 
         // Обновляем сцену и рисуем кнопку поверх фона.
         // Stage рисует самостоятельно, поэтому вызов идёт после batch.end().
+        lobbyPanel.update(game.getActiveRoom(), game.getLobbyStatus());
         menuStage.act(Math.min(delta, 0.1f));
         menuStage.draw();
 
     }
 
+
+    public void setLanguage(String language) { lobbyPanel.setLanguage(language); }
+
+    private void requestPlay() {
+        if (game.getActiveRoom() == null) {
+            lobbyPanel.showRoomRequired(menuStage);
+            return;
+        }
+
+        Gdx.app.postRunnable(() -> {
+            if (game.getScreen() == this) {
+                game.showPlayScreen();
+            }
+        });
+    }
 
     private void updateMenuLayout() {
         // Один столбик по центру логотипа; пропорции изображений сохраняются.
@@ -270,6 +294,7 @@ public class MainMenu extends ScreenAdapter {
         hide();
 
         // Stage освобождает свой Batch, но картинки PLAY освобождаем отдельно.
+        lobbyPanel.dispose();
         menuStage.dispose();
         for (AnimatedImageButton button : menuButtons) {
             button.dispose();

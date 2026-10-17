@@ -9,5 +9,6 @@
         "**/.gradle": true,
         "**/build": true,
         "**/.idea": true
-    }
+    },
+    "java.configuration.updateBuildConfiguration": "automatic"
 }

@@ -16,6 +16,7 @@ import com.erni.finalanswer.rooms.RoomConfiguration;
 public class RoomSettingsScreen extends ScreenAdapter {
     private final FinalAnswerGame game;
     private boolean returningToMenu;
+    private boolean reducedMotion;
 
     private static final float UI_WIDTH = 1920;
     private static final float UI_HEIGHT = 1080;
@@ -43,8 +44,9 @@ public class RoomSettingsScreen extends ScreenAdapter {
         });
         optionsWindow.setOnCreate(configuration -> {
             requestedConfiguration = configuration;
-            // The room server will be connected here in a later step.
-            Gdx.app.log("Final Answer", "CREATE requested: " + configuration);
+            Gdx.app.postRunnable(() -> {
+                if (!disposed && game.getScreen() == this) game.beginRoomCreation(configuration);
+            });
         });
     }
 
@@ -57,6 +59,9 @@ public class RoomSettingsScreen extends ScreenAdapter {
             game.showMainMenu();
         });
     }
+
+    public void setLanguage(String language) { optionsWindow.setLanguage(language); }
+    public void setReducedMotion(boolean enabled) { reducedMotion = enabled; optionsWindow.setReducedMotion(enabled); }
 
     public void resetForNewRoom() {
         returningToMenu = false;
@@ -85,7 +90,7 @@ public class RoomSettingsScreen extends ScreenAdapter {
     @Override
     public void render(float delta) {
         ScreenUtils.clear(0.04f, 0.02f, 0.03f, 1f);
-        background.render(delta);
+        background.render(reducedMotion ? 0 : delta);
         stage.getViewport().apply();
         stage.act(Math.min(delta, 0.1f));
         stage.draw();

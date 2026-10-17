@@ -56,6 +56,7 @@ dependencies {
 def os = System.properties['os.name'].toLowerCase(Locale.ROOT)
 
 run {
+  systemProperty 'finalanswer.server', providers.gradleProperty('roomServerUrl').getOrElse('http://127.0.0.1:8080')
   workingDir = rootProject.file('assets').path
 // You can uncomment the next line if your IDE claims a build failure even when the app closed properly.
   //setIgnoreExitValue(true)
@@ -213,4 +214,52 @@ tasks.withType(JavaExec.class).configureEach {
 
 if(enableGraalNative == 'true') {
   apply from: file("nativeimage.gradle")
+}
+// Optional graphical regression. Each run uses a fresh preferences directory.
+def settingsCheckPreferences = layout.buildDirectory.dir("settings-check/" + System.currentTimeMillis())
+tasks.register('settingsCheckWrite', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.SettingsCheck'
+    workingDir = rootProject.file('assets')
+    systemProperty 'settings.qa.dir', settingsCheckPreferences.get().asFile.absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+tasks.register('settingsCheck', JavaExec) {
+    group = 'verification'
+    description = 'Checks language, saving, display rollback and a fresh application restart.'
+    dependsOn settingsCheckWrite
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.SettingsCheck'
+    workingDir = rootProject.file('assets')
+    systemProperty 'settings.qa.dir', settingsCheckPreferences.get().asFile.absolutePath
+    systemProperty 'settings.qa.reload', 'true'
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+// Separate local host preview. Normal menu/room navigation is unchanged.
+tasks.register('playPreview', JavaExec) {
+    group = 'application'
+    description = 'Opens the local host question screen without creating a room.'
+    dependsOn classes
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.PlayPreviewLauncher'
+    workingDir = rootProject.file('assets')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('playCheck', JavaExec) {
+    group = 'verification'
+    description = 'Checks the host presentation, round reset, resizing and menu navigation.'
+    dependsOn testClasses, ':core:roundCheck', ':core:clockCheck'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.PlayCheck'
+    workingDir = rootProject.file('assets')
+    systemProperty 'play.qa.dir', layout.buildDirectory.dir('play-check/' + System.currentTimeMillis()).get().asFile.absolutePath
+    systemProperty 'play.qa.capture', providers.gradleProperty('playCapture').getOrElse('false')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
 }

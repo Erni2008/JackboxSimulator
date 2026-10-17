@@ -8,7 +8,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Disposable;
 
-/** Artwork states only. Supply the code-generation action later. */
+/** Reusable reroll control with aligned idle, hover and pressed artwork. */
 public final class RerollButton extends Button implements Disposable {
     private final Texture[] textures = new Texture[3];
     private Runnable onReroll = () -> {};

@@ -47,6 +47,8 @@ public final class OptionsMainWindow extends Group implements Disposable {
     private final Label validationMessage;
     private Consumer<RoomConfiguration> onCreate = configuration -> {};
     private boolean disposed;
+    private boolean reducedMotion;
+    private final com.erni.finalanswer.localization.Localization texts = new com.erni.finalanswer.localization.Localization("en");
     private float baseY;
     private float animationTime;
     private float quietTime = 3f;
@@ -180,7 +182,7 @@ public final class OptionsMainWindow extends Group implements Disposable {
     private void requestCreation() {
         quietTime = 0;
         if (getRoomName().isEmpty()) {
-            validationMessage.setText("Enter a room name to continue.");
+            validationMessage.setText(texts.get("room.name_required"));
             focusName();
             return;
         }
@@ -214,6 +216,11 @@ public final class OptionsMainWindow extends Group implements Disposable {
     @Override
     public void act(float delta) {
         super.act(delta);
+        if (reducedMotion) {
+            setY(baseY);
+            gameMode.compensateWindowMotion(0);
+            return;
+        }
         float dt = Math.max(0, Math.min(delta, 0.1f));
         animationTime += dt;
         quietTime += dt;
@@ -311,8 +318,14 @@ public final class OptionsMainWindow extends Group implements Disposable {
         return gameMode.getSelectedMode();
     }
 
+    public void setReducedMotion(boolean enabled) { reducedMotion = enabled; }
+
     public void setLanguage(String language) {
+        texts.setLanguage(language);
         gameMode.setLanguage(language);
+        roomName.setMessageText(texts.get("room.name_placeholder"));
+        password.setMessageText(texts.get("room.password_placeholder"));
+        if (!validationMessage.getText().isEmpty()) validationMessage.setText(texts.get("room.name_required"));
     }
 
     public RoomConfiguration getRoomConfiguration() {

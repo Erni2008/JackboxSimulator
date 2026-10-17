@@ -1,0 +1,203 @@
+package com.erni.finalanswer.screens;
+
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.ScreenAdapter;
+import com.badlogic.gdx.graphics.*;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.scenes.scene2d.*;
+import com.badlogic.gdx.scenes.scene2d.ui.*;
+import com.badlogic.gdx.utils.Align;
+import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.erni.finalanswer.FinalAnswerGame;
+import com.erni.finalanswer.gameplay.questions.*;
+import com.erni.finalanswer.gameplay.round.RoundController;
+import com.erni.finalanswer.gameplay.round.RoundPhase;
+import com.erni.finalanswer.ui.UiFonts;
+import com.erni.finalanswer.ui.play.*;
+import com.erni.finalanswer.ui.clock.ClockTimerActor;
+import java.util.Locale;
+
+/** Local host presentation. Room networking remains owned by FinalAnswerGame. */
+public class PlayScreen extends ScreenAdapter {
+    private final FinalAnswerGame game;
+    private final Stage stage = new Stage(new FitViewport(1600, 900));
+    private final RoundController round;
+    private final BitmapFont smallFont = UiFonts.body(19);
+    private final Texture pixel;
+    private final ClockTimerActor clock;
+    private final QuizBackground background;
+    private final Label heading;
+    private final CinematicQuestion question;
+    private final Label hint;
+    private final Label countdown;
+    private final AnswersPresentationActor answers = new AnswersPresentationActor();
+    private java.util.function.Consumer<Question> resultsHandler;
+    private boolean resultsDispatched;
+    private boolean disposed;
+    private String lastStatus = "";
+    private boolean paused, applicationPaused;
+
+    public PlayScreen(FinalAnswerGame game) { this(game, new DemoQuestionSource()); }
+
+    /** Audio adapters can subscribe before show(), then finish with the generation token from QUESTION_STARTED. */
+    public com.erni.finalanswer.gameplay.presentation.QuestionPresentationController presentation() {
+        return round.presentation();
+    }
+
+    /** Optional render-thread handoff after the result hold. Null keeps the local demo cycling. */
+    public void setResultsHandler(java.util.function.Consumer<Question> handler) { resultsHandler = handler; }
+
+    public PlayScreen(FinalAnswerGame game, QuestionSource source) {
+        this.game = java.util.Objects.requireNonNull(game);
+        round = new RoundController(source);
+        Pixmap image = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+        image.setColor(Color.WHITE);
+        image.fill();
+        pixel = new Texture(image);
+        image.dispose();
+        background = new QuizBackground(pixel);
+        background.setBounds(0, 0, stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
+        stage.addActor(background);
+        clock = new ClockTimerActor(round.answerDurationSeconds());
+        heading = label("", smallFont, "AD7777");
+        question = new CinematicQuestion();
+        round.presentation().addListener(event -> {
+            if (event.type() == com.erni.finalanswer.gameplay.presentation.QuestionPresentationController.EventType.TIMER_STARTED)
+                clock.start();
+        });
+        hint = label("", smallFont, "888181");
+        countdown = label("", smallFont, "AD7777");
+        countdown.setName("roundCountdown");
+        stage.addActor(answers);
+        stage.addActor(countdown);
+        stage.addActor(hint);
+        stage.addActor(heading);
+        stage.addActor(question);
+        layoutClock();
+        stage.addActor(clock);
+        stage.addListener(new InputListener() {
+            @Override public boolean keyDown(InputEvent event, int key) {
+                if (key == Input.Keys.ESCAPE) {
+                    Gdx.app.postRunnable(() -> { if (game.getScreen() == PlayScreen.this) game.showMainMenu(); });
+                    return true;
+                }
+                if (key == Input.Keys.SPACE) {
+                    if (paused || applicationPaused) return true;
+                    if (round.next()) beginRound();
+                    return true;
+                }
+                if (key == Input.Keys.R) {
+                    if (paused || applicationPaused) return true;
+                    if (round.revealAnswer()) updatePresentation();
+                    return true;
+                }
+                if (key == Input.Keys.P) {
+                    paused = !paused;
+                    updatePresentation();
+                    return true;
+                }
+                return false;
+            }
+        });
+    }
+
+    private static Label label(String text, BitmapFont font, String color) {
+        Label label = new Label(text, new Label.LabelStyle(font, Color.valueOf(color)));
+        label.setAlignment(Align.center);
+        label.setTouchable(Touchable.disabled);
+        return label;
+    }
+
+    private void beginRound() {
+        resultsDispatched = false;
+        background.showForQuestion(round.number(), game.getSettings().reducedMotion());
+        clock.reset();
+        clock.setReducedMotion(game.getSettings().reducedMotion());
+        lastStatus = "";
+        countdown.setText("");
+        heading.setText(String.format(Locale.ROOT, "%s %02d", game.getTexts().get("play.question"), round.number()));
+        question.prepare(round.question(), stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight(), game.getSettings().reducedMotion());
+        answers.prepare(round.question(), stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
+        hint.setText(game.getTexts().get("play.escape"));
+        updatePresentation();
+    }
+
+    private void updatePresentation() {
+        double answerIntro = round.elapsedSeconds() - round.presentation().answersStartSeconds();
+        clock.synchronize(round.clockAnimationElapsedSeconds(), answerIntro + 3);
+        question.setTime(round.elapsedSeconds());
+        float motion = com.badlogic.gdx.math.Interpolation.smoother.apply(round.presentation().moveProgress());
+        float scale = 1 + (CinematicQuestion.FINAL_SCALE - 1) * motion;
+        question.setScale(scale);
+        float width = stage.getViewport().getWorldWidth(), height = stage.getViewport().getWorldHeight();
+        question.setPosition((width - question.getWidth()) / 2,
+            height * (.55f + .19f * motion) - question.getHeight() / 2);
+        answers.synchronize(round, game.getSettings().reducedMotion());
+        String status = paused || applicationPaused ? game.getTexts().get("play.paused") : round.phase() == RoundPhase.ANSWERING
+            ? game.getTexts().format("play.remaining", (int) Math.ceil(round.answerSecondsRemaining()))
+            : round.resultElapsedSeconds() >= 0
+                ? game.getTexts().format("play.correct", Integer.toString(round.question().correctAnswerIndex() + 1))
+                : "";
+        if (!status.equals(lastStatus)) {
+            countdown.setText(status);
+            lastStatus = status;
+        }
+        hint.setText(game.getTexts().get(round.phase() == RoundPhase.ANSWERING
+            ? "play.answering" : round.canAdvance() ? "play.next" : "play.escape"));
+    }
+
+    @Override public void show() {
+        background.reset();
+        paused = false;
+        applicationPaused = false;
+        round.restart();
+        beginRound();
+        Gdx.input.setInputProcessor(stage);
+    }
+    @Override public void render(float delta) {
+        if (disposed) return;
+        float step = paused || applicationPaused ? 0 : Math.max(0, delta);
+        round.update(step);
+        if (round.revealComplete() && !resultsDispatched) {
+            resultsDispatched = true;
+            if (resultsHandler != null) {
+                resultsHandler.accept(round.question());
+                if (disposed || game.getScreen() != this) return;
+            } else if (round.next()) beginRound();
+        }
+        updatePresentation();
+        ScreenUtils.clear(9 / 255f, 9 / 255f, 9 / 255f, 1);
+        stage.getViewport().apply();
+        stage.act(step);
+        stage.draw();
+    }
+    private void layoutClock() {
+        float w = stage.getViewport().getWorldWidth(), h = stage.getViewport().getWorldHeight();
+        heading.setBounds(w * .25f, h * .845f, w * .5f, h * .03f);
+        countdown.setBounds(w * .15f, h * .057f, w * .7f, h * .028f);
+        hint.setBounds(w * .08f, h * .02f, w * .84f, h * .026f);
+        float clockWidth = w * .20f;
+        clock.setBounds(w * .74f, h * .12f, clockWidth, clockWidth * 1199 / 820);
+    }
+    @Override public void resize(int width, int height) {
+        stage.getViewport().update(width, height, true);
+        layoutClock();
+    }
+    @Override public void pause() { applicationPaused = true; }
+    @Override public void resume() { applicationPaused = false; }
+    @Override public void hide() { if (Gdx.input.getInputProcessor() == stage) Gdx.input.setInputProcessor(null); }
+    @Override public void dispose() {
+        if (disposed) return;
+        disposed = true;
+        hide();
+        stage.dispose();
+        background.dispose();
+        clock.dispose();
+        pixel.dispose();
+        question.dispose();
+        answers.dispose();
+        smallFont.dispose();
+    }
+}

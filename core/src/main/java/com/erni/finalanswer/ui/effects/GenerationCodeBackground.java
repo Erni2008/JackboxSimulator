@@ -17,6 +17,8 @@ public final class GenerationCodeBackground extends Actor implements Disposable 
     private final Texture[] frames = new Texture[2];
     private float elapsed;
     private boolean disposed;
+    private boolean reducedMotion;
+    public void setReducedMotion(boolean enabled) { reducedMotion = enabled; }
 
     public GenerationCodeBackground() {
         setTouchable(Touchable.disabled);
@@ -35,6 +37,7 @@ public final class GenerationCodeBackground extends Actor implements Disposable 
     @Override
     public void act(float delta) {
         super.act(delta);
+        if (reducedMotion) return;
         elapsed = (elapsed + Math.max(0, Math.min(delta, 0.1f)))
             % (STEP_SECONDS * frames.length);
     }

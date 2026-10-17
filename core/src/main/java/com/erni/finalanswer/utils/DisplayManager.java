@@ -1,38 +1,44 @@
 package com.erni.finalanswer.utils;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Graphics;
+import com.erni.finalanswer.settings.GameSettings;
 
+/** All native display changes pass through this owner, including the F11 shortcut. */
 public class DisplayManager {
+    private GameSettings applied;
+    private boolean changing;
 
-    private static final int WINDOW_WIDTH = 1280;
-    private static final int WINDOW_HEIGHT = 720;
+    public boolean isChanging() {
+        return changing;
+    }
 
-    public void toggleFullscreen() {
-
-        if (Gdx.graphics.isFullscreen()) {
-
-            // Switch to windowed mode
-            Gdx.graphics.setWindowedMode(
-                WINDOW_WIDTH,
-                WINDOW_HEIGHT
-            );
-
-        } else {
-
-            // Get current monitor mode
-            Graphics.DisplayMode displayMode =
-                Gdx.graphics.getDisplayMode();
-
-            // Switch to fullscreen
-            Gdx.graphics.setFullscreenMode(displayMode);
-
+    public void apply(GameSettings settings) {
+        if (changing) throw new IllegalStateException("Display change already in progress");
+        changing = true;
+        try {
+            boolean success = true;
+            if (settings.fullscreen()) {
+                if (!Gdx.graphics.isFullscreen())
+                    success = Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode());
+            } else if (Gdx.graphics.isFullscreen()
+                    || applied == null
+                    || applied.width() != settings.width()
+                    || applied.height() != settings.height()) {
+                if (Gdx.graphics.isFullscreen()
+                        || Gdx.graphics.getWidth() != settings.width()
+                        || Gdx.graphics.getHeight() != settings.height())
+                    success = Gdx.graphics.setWindowedMode(settings.width(), settings.height());
+            }
+            if (!success) throw new IllegalStateException("Display mode unavailable");
+            Gdx.graphics.setVSync(settings.vsync());
+            Gdx.graphics.setForegroundFPS(settings.fpsLimit());
+            applied = settings;
+        } finally {
+            changing = false;
         }
     }
 
     public boolean isFullscreen() {
-
         return Gdx.graphics.isFullscreen();
-
     }
 }

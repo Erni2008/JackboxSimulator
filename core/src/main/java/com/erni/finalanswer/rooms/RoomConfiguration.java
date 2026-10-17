@@ -2,7 +2,7 @@ package com.erni.finalanswer.rooms;
 
 import java.util.Objects;
 
-/** A snapshot of the creation form, ready to pass to a future room/session service. */
+/** Immutable creation settings passed from the form to the room API. */
 public record RoomConfiguration(String roomName, int maxPlayers, String password, GameMode gameMode) {
     public RoomConfiguration {
         roomName = Objects.requireNonNull(roomName, "roomName").trim();

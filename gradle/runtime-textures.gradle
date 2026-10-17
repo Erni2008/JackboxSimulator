@@ -4,19 +4,21 @@ import javax.imageio.ImageIO
 
 // Original artwork remains untouched. This task runs only when its inputs change.
 def artwork = fileTree('assets') {
-    include 'ui/**/*.png', 'models/candle/frames/*.png'
+    include 'ui/**/*.png', 'models/candle/frames/*.png', 'clock/*.png', 'backgrounds/play/**/*.png'
 }
 def runtimeDirectory = layout.projectDirectory.dir('assets/runtime')
 tasks.register('prepareRuntimeTextures') {
     inputs.files(artwork)
-    inputs.property('texturePipelineVersion', 1)
+    inputs.property('texturePipelineVersion', 3)
     outputs.dir(runtimeDirectory)
     doLast {
         def manifest = new Properties()
         artwork.files.sort().each { source ->
             def relative = file('assets').toPath().relativize(source.toPath()).toString().replace('\\', '/')
             int limit = 1024
-            if (relative.startsWith('models/candle/frames/')) limit = 256
+            if (relative.startsWith('backgrounds/play/')) limit = 1672
+            else if (relative.startsWith('clock/')) limit = 512
+            else if (relative.startsWith('models/candle/frames/')) limit = 256
             else if (relative.startsWith('ui/buttons/player_count/')) limit = 384
             else if (relative.startsWith('ui/buttons/game_mode/next/') || relative.startsWith('ui/buttons/game_mode/previous/')) limit = 256
             else if (relative.startsWith('ui/buttons/game_mode/info/')) limit = 512
