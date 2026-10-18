@@ -422,3 +422,20 @@ JSON-наборы вопросов и экран окончания сессии
 текстур используется одна с непрерывным освещением свечей. Shader создаётся
 один раз; PlayCheck проверяет его освобождение. ClockTimerActor добавляет
 общую микровибрацию корпуса/стрелки/сектора и более тёмный красный сектор.
+
+
+## Сетевой игровой цикл
+
+- `shared/src/main/java/com/erni/finalanswer/gameplay/questions/` — общие Question,
+  QuestionSource, DemoQuestionSource (перенесены из core, пакеты сохранены).
+- `shared/.../com/finalanswer/protocol/Protocol.java` — JSON, фазы, временные константы.
+- `server/.../rooms/RoomService.java` — единый авторитетный реестр комнат/сессий.
+- `server/.../game/GameSession.java` — вопросы, фазы, дедлайн и результаты.
+- `server/.../RoomServer.java` — HTTP + WebSocket + сайт на одном порту.
+- `core/.../network/RealtimeClient.java` — соединение и переподключение ведущего.
+- `core/.../network/NetworkRoundAdapter.java` — серверное время → существующие анимации.
+- `web/` — телефонный контроллер; `deploy/` — systemd/Caddy/production environment.
+- `server/src/test/` — правила и реальный HTTP/WebSocket с тестовыми часами.
+- `docs/MULTIPLAYER_PROTOCOL.md` и `server/README.md` — протокол и полный запуск.
+
+В сетевом PLAY сервер переключает вопросы; SPACE/R/P доступны только в локальном preview.

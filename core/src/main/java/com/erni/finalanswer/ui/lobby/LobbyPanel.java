@@ -64,7 +64,7 @@ public final class LobbyPanel extends Table implements Disposable {
         add(settings).left().growX().padTop(8).row();
         players = label("");
         players.setName("lobbyPlayers");
-        players.setFontScale(0.95f);
+        players.setFontScale(0.72f);
         players.setAlignment(Align.topLeft);
         add(players).left().top().grow().padTop(20).row();
         connection = label("");
@@ -102,7 +102,7 @@ public final class LobbyPanel extends Table implements Disposable {
         var content = joinDialog.getContentTable();
         content.pad(22);
         content.defaults().padBottom(12);
-        roomCode = field("ROOM CODE", 4);
+        roomCode = field("ROOM CODE", 6);
         roomCode.setName("joinRoomCode");
         playerName = field("Your name", 24);
         playerName.setName("joinPlayerName");
@@ -269,6 +269,7 @@ public final class LobbyPanel extends Table implements Disposable {
         if (room != displayed) {
             displayed = room;
             code.setText(room.code());
+            code.setFontScale(.72f);
             name.setText(room.name());
             String modeName = room.gameMode();
             for (GameMode mode : GameMode.values())
@@ -284,7 +285,7 @@ public final class LobbyPanel extends Table implements Disposable {
             StringBuilder list = new StringBuilder();
             for (RoomSession.Player player : room.players())
                 list.append(player.name())
-                        .append(player.host() ? "  (" + texts.get("lobby.host") + ")" : "")
+                        .append("  ·  " + player.characterId().replace('_', ' ') + "  ·  " + player.connectionStatus())
                         .append('\n');
             players.setText(list);
         }

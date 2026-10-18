@@ -11,7 +11,7 @@ public record Question(String id, String text, List<String> answers, int correct
         answers = List.copyOf(answers);
         if (answers.size() != 4 || answers.stream().anyMatch(String::isBlank))
             throw new IllegalArgumentException("Exactly four nonblank answers are required");
-        if (correctAnswerIndex < 0 || correctAnswerIndex >= 4)
-            throw new IllegalArgumentException("Correct answer index must be 0..3");
+        if (correctAnswerIndex < -1 || correctAnswerIndex >= 4)
+            throw new IllegalArgumentException("Correct answer index must be -1 (hidden) or 0..3");
     }
 }

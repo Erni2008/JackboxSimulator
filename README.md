@@ -8,6 +8,11 @@
 Без активной комнаты PLAY предлагает сначала создать комнату; JOIN ROOM открывает ввод кода для подключения.
 Подробности локальной сети и API: [инструкция сервера](server/README.md).
 
+Игроки открывают сайт сервера на телефоне, вводят **6-символьный код** и имя.
+PLAY запускает комнату после подключения хотя бы одного участника. Ведущий не занимает
+игровое место. Полный запуск, deployment и проверки: [server/README.md](server/README.md).
+События и будущие мини-игры: [протокол](docs/MULTIPLAYER_PROTOCOL.md).
+
 A [libGDX](https://libgdx.com/) project generated with [gdx-liftoff](https://github.com/libgdx/gdx-liftoff).
 
 This project was generated with a template including simple application launchers and an `ApplicationAdapter` extension that draws libGDX logo.
@@ -22,6 +27,9 @@ PNG artwork remains part of the image. See [project map](PROJECT_MAP.md) for sou
 
 ## Platforms
 
+- `shared`: Pure Java questions and versioned multiplayer protocol.
+- `server`: Authoritative HTTP/WebSocket server; serves `web/` controllers.
+- `web`: Mobile HTML/CSS/JavaScript player controller.
 - `core`: Main module with the application logic shared by all platforms.
 - `lwjgl3`: Primary desktop platform using LWJGL3; was called 'desktop' in older docs.
 

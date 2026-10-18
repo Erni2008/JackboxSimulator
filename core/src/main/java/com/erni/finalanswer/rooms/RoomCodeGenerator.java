@@ -1,16 +1,21 @@
 package com.erni.finalanswer.rooms;
 import java.security.SecureRandom;
-import com.erni.finalanswer.rooms.RoomCodeGenerator;
+
 public class RoomCodeGenerator {
 
     
     private static final String ALPHABET =  "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
-    private static final int CODE_LENGTH = 4;
+    public static final int CODE_LENGTH = 6;
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private RoomCodeGenerator() {
+    }
+
+    public static boolean isValid(String code) {
+        return code != null && code.length() == CODE_LENGTH
+                && code.chars().allMatch(symbol -> ALPHABET.indexOf(symbol) >= 0);
     }
 
     public static String generate() {

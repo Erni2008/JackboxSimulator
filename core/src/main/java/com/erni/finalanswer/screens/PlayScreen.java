@@ -24,6 +24,9 @@ public class PlayScreen extends ScreenAdapter {
     private final FinalAnswerGame game;
     private final Stage stage = new Stage(new FitViewport(1600, 900));
     private final RoundController round;
+    private com.erni.finalanswer.network.NetworkRoundAdapter network;
+    private final Label roster;
+    private String rosterText = "";
     private final BitmapFont smallFont = UiFonts.body(19);
     private final Texture pixel;
     private final ClockTimerActor clock;
@@ -40,6 +43,10 @@ public class PlayScreen extends ScreenAdapter {
     private boolean paused, applicationPaused;
 
     public PlayScreen(FinalAnswerGame game) { this(game, new DemoQuestionSource()); }
+    public PlayScreen(FinalAnswerGame game, com.erni.finalanswer.network.RealtimeClient connection) {
+        this(game, new DemoQuestionSource());
+        network = new com.erni.finalanswer.network.NetworkRoundAdapter(round, connection);
+    }
 
     /** Audio adapters can subscribe before show(), then finish with the generation token from QUESTION_STARTED. */
     public com.erni.finalanswer.gameplay.presentation.QuestionPresentationController presentation() {
@@ -62,10 +69,13 @@ public class PlayScreen extends ScreenAdapter {
         stage.addActor(background);
         clock = new ClockTimerActor(round.answerDurationSeconds());
         heading = label("", smallFont, "AD7777");
+        roster = label("", smallFont, "C9C2BD");
+        roster.setWrap(true);
+        stage.addActor(roster);
         question = new CinematicQuestion();
         round.presentation().addListener(event -> {
             if (event.type() == com.erni.finalanswer.gameplay.presentation.QuestionPresentationController.EventType.TIMER_STARTED)
-                clock.start();
+                if (network == null) clock.start();
         });
         hint = label("", smallFont, "888181");
         countdown = label("", smallFont, "AD7777");
@@ -84,16 +94,17 @@ public class PlayScreen extends ScreenAdapter {
                     return true;
                 }
                 if (key == Input.Keys.SPACE) {
-                    if (paused || applicationPaused) return true;
+                    if (network != null || paused || applicationPaused) return true;
                     if (round.next()) beginRound();
                     return true;
                 }
                 if (key == Input.Keys.R) {
-                    if (paused || applicationPaused) return true;
+                    if (network != null || paused || applicationPaused) return true;
                     if (round.revealAnswer()) updatePresentation();
                     return true;
                 }
                 if (key == Input.Keys.P) {
+                    if (network != null) return true;
                     paused = !paused;
                     updatePresentation();
                     return true;
@@ -144,23 +155,28 @@ public class PlayScreen extends ScreenAdapter {
             countdown.setText(status);
             lastStatus = status;
         }
-        hint.setText(game.getTexts().get(round.phase() == RoundPhase.ANSWERING
+        hint.setText(network != null ? game.getTexts().get("play.escape") : game.getTexts().get(round.phase() == RoundPhase.ANSWERING
             ? "play.answering" : round.canAdvance() ? "play.next" : "play.escape"));
+        if (network != null) {
+            String text = network.playerStatus();
+            if (!text.equals(rosterText)) { rosterText=text; roster.setText(text); }
+        }
     }
 
     @Override public void show() {
         background.reset();
         paused = false;
         applicationPaused = false;
-        round.restart();
-        beginRound();
+        if (network == null) { round.restart(); beginRound(); }
+        else if (network.synchronize()) beginRound();
         Gdx.input.setInputProcessor(stage);
     }
     @Override public void render(float delta) {
         if (disposed) return;
         float step = paused || applicationPaused ? 0 : Math.max(0, delta);
         round.update(step);
-        if (round.revealComplete() && !resultsDispatched) {
+        if (network != null && network.synchronize()) beginRound();
+        if (network == null && round.revealComplete() && !resultsDispatched) {
             resultsDispatched = true;
             if (resultsHandler != null) {
                 resultsHandler.accept(round.question());
@@ -172,9 +188,12 @@ public class PlayScreen extends ScreenAdapter {
         stage.getViewport().apply();
         stage.act(step);
         stage.draw();
+        if (network != null && !applicationPaused) network.afterDraw();
     }
     private void layoutClock() {
         float w = stage.getViewport().getWorldWidth(), h = stage.getViewport().getWorldHeight();
+        roster.setBounds(w * .05f, h * .88f, w * .9f, h * .09f);
+        roster.setFontScale(.85f);
         heading.setBounds(w * .25f, h * .845f, w * .5f, h * .03f);
         countdown.setBounds(w * .15f, h * .057f, w * .7f, h * .028f);
         hint.setBounds(w * .08f, h * .02f, w * .84f, h * .026f);

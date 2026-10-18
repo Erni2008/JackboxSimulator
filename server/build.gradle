@@ -5,3 +5,22 @@ plugins {
 application {
     mainClass = 'com.finalanswer.server.RoomServer'
 }
+
+dependencies {
+    implementation project(':shared')
+    implementation 'io.javalin:javalin:7.2.3'
+    runtimeOnly 'org.slf4j:slf4j-simple:2.0.17'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.12.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+test { useJUnitPlatform() }
+processResources {
+    from(rootProject.file('web')) { into 'web' }
+    from(rootProject.file('assets/ui/fonts')) {
+        include 'Creepster-Regular.ttf', 'Creepster-OFL.txt', 'NotoSans-Regular.ttf', 'NotoSans-LICENSE.txt'
+        into 'web/fonts'
+    }
+}
+processResources {
+    from(rootProject.file('assets/ui/Final_Answer.png')) { into 'web/images' }
+}

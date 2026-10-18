@@ -12,3 +12,6 @@ include 'server'
 
 // Standalone source browser for developers; no dependency from the game.
 include 'inspector'
+
+// Pure Java content and wire protocol shared by server and host.
+include 'shared'

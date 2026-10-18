@@ -15,7 +15,9 @@ public record RoomSession(
         players = List.copyOf(players);
     }
 
-    public record Player(String id, String name, boolean host) {}
+    public record Player(String id, String name, boolean host, String characterId, String connectionStatus, boolean hasSubmittedAnswer, int score) {
+        public Player(String id,String name,boolean host) { this(id,name,host,"guest","ONLINE",false,0); }
+    }
 
     @Override
     public String toString() {

@@ -74,9 +74,9 @@ public class FinalAnswerGame extends Game {
     private final RoomApiClient roomApi = new RoomApiClient();
     private RoomConfiguration pendingConfiguration;
     private RoomSession activeRoom;
+    private com.erni.finalanswer.network.RealtimeClient realtime;
+    public com.erni.finalanswer.network.RealtimeClient getRealtime() { return realtime; }
     private String lobbyStatus = "";
-    private float pollTimer;
-    private boolean polling;
 
     public RoomApiClient getRoomApi() {
         return roomApi;
@@ -103,54 +103,50 @@ public class FinalAnswerGame extends Game {
     }
 
     public void showPlayScreen() {
-        if (activeRoom == null) {
-            return;
-        }
-        if (playScreen == null) {
-            playScreen = new PlayScreen(this);
-        }
-        setScreen(playScreen);
+        if (activeRoom == null) return;
+        if (!activeRoom.host()) { lobbyStatus="Only the host can start the game. Use the phone controller to answer."; return; }
+        if (realtime == null || !realtime.connected()) { lobbyStatus="CONNECTION_LOST"; if(realtime!=null)realtime.retry(); return; }
+        var state=realtime.snapshot();
+        if (state == null || state.get("phase").getAsString().equals("LOBBY")) realtime.send("START_GAME",java.util.Map.of());
+        else openNetworkPlay();
+    }
+    private void openNetworkPlay() {
+        if (playScreen == null) playScreen = new PlayScreen(this, realtime);
+        if (getScreen() != playScreen) setScreen(playScreen);
+    }
+    private void onRealtime(com.google.gson.JsonObject event) {
+        if (activeRoom == null) return;
+        String type=event.get("type").getAsString();
+        var data=event.getAsJsonObject("payload");
+        if (type.equals("ROOM_CLOSED")) { leaveRoom(); showMainMenu(); return; }
+        if (type.equals("ERROR")) { lobbyStatus=data.get("code").getAsString(); return; }
+        if (!data.has("players")) return;
+        activeRoom=RoomApiClient.parse(new com.badlogic.gdx.utils.JsonReader().parse(data.toString()),activeRoom.token());
+        if (activeRoom.host() && data.has("question") && (type.equals("QUESTION_STARTED") || type.equals("AUTHENTICATED"))) openNetworkPlay();
     }
 
     public void activateRoom(RoomSession room) {
         if (activeRoom != null && !activeRoom.token().equals(room.token()))
             roomApi.leave(activeRoom);
+        if (realtime != null) realtime.close();
+        if (playScreen != null) { if (getScreen()==playScreen) showMainMenu(); playScreen.dispose(); playScreen=null; }
         activeRoom = room;
+        realtime=new com.erni.finalanswer.network.RealtimeClient(roomApi.baseUrl(),room.code(),room.token(),this::onRealtime,status -> lobbyStatus=status);
         pendingConfiguration = null;
         lobbyStatus = "lobby.waiting";
-        pollTimer = 2;
         showMainMenu();
     }
 
     public void leaveRoom() {
         roomApi.leave(activeRoom);
+        if (realtime != null) { realtime.close(); realtime=null; }
+        if (playScreen != null) { if (getScreen()==playScreen) showMainMenu(); playScreen.dispose(); playScreen=null; }
         activeRoom = null;
         lobbyStatus = "";
     }
 
     public void discardPendingConfiguration() {
         pendingConfiguration = null;
-    }
-
-    private void updateLobby(float delta) {
-        if (activeRoom == null) return;
-        pollTimer += Math.min(Math.max(delta, 0), 0.1f);
-        if (pollTimer < 1 || polling) return;
-        pollTimer = 0;
-        polling = true;
-        RoomSession requested = activeRoom;
-        roomApi.heartbeat(
-                requested,
-                updated -> {
-                    polling = false;
-                    if (activeRoom != requested) return;
-                    activeRoom = updated;
-                    lobbyStatus = "lobby.waiting";
-                },
-                error -> {
-                    polling = false;
-                    if (activeRoom == requested) lobbyStatus = error;
-                });
     }
 
     @Override
@@ -205,13 +201,14 @@ public class FinalAnswerGame extends Game {
                 displayManager.apply(previous);
             }
         }
-        updateLobby(Gdx.graphics.getDeltaTime());
+        // Active lobbies use push snapshots; HTTP heartbeat is retained for the generation screen.
         super.render();
     }
 
     @Override
     public void dispose() {
         // Game.dispose hides the current screen but does not dispose cached screens.
+        if (realtime != null) realtime.close();
         roomApi.close();
         super.dispose();
         if (mainMenu != null) mainMenu.dispose();

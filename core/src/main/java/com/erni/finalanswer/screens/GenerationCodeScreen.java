@@ -34,7 +34,7 @@ public class GenerationCodeScreen extends ScreenAdapter {
     // Match the artwork and keep the code field centered on the board.
     private String generatedCode = "";
     private final BitmapFont codeFont = createCodeFont();
-    private final Label[] codeLabels = new Label[4];
+    private final Label[] codeLabels = new Label[RoomCodeGenerator.CODE_LENGTH];
 
     private static final float WIDTH = 1672;
     private static final float HEIGHT = 941;
@@ -79,7 +79,7 @@ public class GenerationCodeScreen extends ScreenAdapter {
         backButton.setOnBack(this::returnToMenu);
         stage.addActor(backButton);
         codeFieldTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
-        Image codeField = new Image(codeFieldTexture);
+        com.badlogic.gdx.scenes.scene2d.Group codeField = new com.badlogic.gdx.scenes.scene2d.Group();
         codeField.setName("codeField");
         codeField.setTouchable(Touchable.disabled);
         float fieldWidth = 680;
@@ -88,13 +88,25 @@ public class GenerationCodeScreen extends ScreenAdapter {
         float fieldX = (WIDTH - fieldWidth) / 2;
         codeField.setBounds(fieldX, fieldY, fieldWidth, fieldHeight);
         stage.addActor(codeField);
+        // Repeat the original cell artwork six times, preserving the board and outer corners.
+        for (int segment=0;segment<8;segment++) {
+            float sourceX=segment==0?0:segment==7?.9f:.1f;
+            float sourceWidth=segment==0||segment==7?.1f:.2f;
+            var region=new com.badlogic.gdx.graphics.g2d.TextureRegion(codeFieldTexture,
+                Math.round(codeFieldTexture.getWidth()*sourceX),0,
+                Math.round(codeFieldTexture.getWidth()*sourceWidth),codeFieldTexture.getHeight());
+            Image piece=new Image(region);
+            float pieceWidth=fieldWidth*(segment==0||segment==7?.1f:.8f/6);
+            float pieceX=segment==0?0:segment==7?fieldWidth*.9f:fieldWidth*(.1f+(segment-1)*.8f/6);
+            piece.setBounds(pieceX,0,pieceWidth,fieldHeight);codeField.addActor(piece);
+        }
         Label.LabelStyle codeStyle = new Label.LabelStyle(codeFont, Color.valueOf("F0E8DE"));
         for (int i = 0; i < codeLabels.length; i++) {
             Label label = new Label("", codeStyle);
             label.setAlignment(Align.center);
             label.setTouchable(Touchable.disabled);
 
-            float cellWidth = fieldWidth * 0.2f;
+            float cellWidth = fieldWidth * .8f / 6;
             float cellX = fieldX + fieldWidth * 0.1f + i * cellWidth;
             label.setBounds(cellX, fieldY, cellWidth, fieldHeight);
 
@@ -151,7 +163,7 @@ public class GenerationCodeScreen extends ScreenAdapter {
             FreeTypeFontGenerator.FreeTypeFontParameter parameters =
                     new FreeTypeFontGenerator.FreeTypeFontParameter();
 
-            parameters.size = 112;
+            parameters.size = 88;
             parameters.characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
             parameters.minFilter = Texture.TextureFilter.Linear;
             parameters.magFilter = Texture.TextureFilter.Linear;
@@ -167,17 +179,26 @@ public class GenerationCodeScreen extends ScreenAdapter {
         game.getRoomApi().leave(createdRoom);
         createdRoom = null;
         generating = false;
+        leaving = false;
+        heartbeatTimer = 0;
         heartbeatPending = false;
         generatedCode = "";
         for (Label label : codeLabels) label.setText("");
         generateButton.setVisible(true);
         generateButton.setDisabled(false);
         confirmButton.setVisible(false);
+        confirmButton.setDisabled(false);
+        confirmButton.setChecked(false);
+        generateButton.setChecked(false);
+        rerollButton.setVisible(false);
+        rerollButton.setDisabled(false);
+        rerollButton.setChecked(false);
+        backButton.setDisabled(false);
         setStatus(game.getPendingConfiguration() == null ? "code.preview_hint" : "code.generate_hint");
     }
 
     private void generateCode() {
-        if (generating || createdRoom != null) return;
+        if (generating || leaving || disposed || !generatedCode.isEmpty()) return;
         var configuration = game.getPendingConfiguration();
         if (configuration == null) {
             displayCode(nextCode());
@@ -198,6 +219,12 @@ public class GenerationCodeScreen extends ScreenAdapter {
                                 return;
                             }
                             generating = false;
+                            if (!RoomCodeGenerator.isValid(room.code())) {
+                                game.getRoomApi().leave(room);
+                                generateButton.setDisabled(false);
+                                setStatus("code.server_outdated");
+                                return;
+                            }
                             createdRoom = room;
                             displayCode(room.code());
                             generateButton.setVisible(false);
@@ -215,7 +242,11 @@ public class GenerationCodeScreen extends ScreenAdapter {
     }
 
     private void displayCode(String code) {
+        if (!RoomCodeGenerator.isValid(code)) throw new IllegalArgumentException("Expected six room-code characters");
         generatedCode = code;
+        generateButton.setVisible(false);
+        confirmButton.setVisible(true);
+        confirmButton.setDisabled(false);
         rerollButton.setVisible(true);
         for (int i = 0; i < codeLabels.length; i++)
             codeLabels[i].setText(String.valueOf(code.charAt(i)));
@@ -246,6 +277,11 @@ public class GenerationCodeScreen extends ScreenAdapter {
                 game.getRoomApi().leave(room);
                 return;
             }
+            if (!RoomCodeGenerator.isValid(room.code())) {
+                finishReroll();
+                setStatus("code.server_outdated");
+                return;
+            }
             createdRoom = room;
             displayCode(room.code());
             finishReroll();
@@ -266,7 +302,11 @@ public class GenerationCodeScreen extends ScreenAdapter {
     }
 
     private void confirmCode() {
-        if (createdRoom == null || leaving || generating) return;
+        if (leaving || generating || disposed || generatedCode.isEmpty()) return;
+        if (createdRoom == null) {
+            returnToMenu();
+            return;
+        }
         leaving = true;
         RoomSession room = createdRoom;
         createdRoom = null;

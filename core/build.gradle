@@ -27,3 +27,5 @@ tasks.register('clockCheck', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'com.erni.finalanswer.gameplay.ClockCheck'
 }
+
+dependencies { api project(':shared') }

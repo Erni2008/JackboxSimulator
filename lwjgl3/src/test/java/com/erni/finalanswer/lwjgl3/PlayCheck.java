@@ -62,9 +62,7 @@ public final class PlayCheck extends FinalAnswerGame {
             check(getScreen() instanceof MainMenu,"Room gate retained");
             baselineTextures=Texture.getNumManagedTextures();baselineMeshes=Mesh.getManagedStatus();
             baselineShaders=com.badlogic.gdx.graphics.glutils.ShaderProgram.getNumManagedShaderPrograms();
-            try {var f=FinalAnswerGame.class.getDeclaredField("activeRoom");f.setAccessible(true);
-                f.set(this,new RoomSession("TEST","QA",4,"standard","qa-only",true,List.of()));showPlayScreen();f.set(this,null);
-            }catch(Exception e){throw new RuntimeException(e);}
+            setScreen(new PlayScreen(this)); // Local preview; actual host gate is covered by MultiplayerCheck.
             play=(PlayScreen)getScreen();loadedTextures=Texture.getNumManagedTextures();loadedMeshes=Mesh.getManagedStatus();
             loadedShaders=com.badlogic.gdx.graphics.glutils.ShaderProgram.getNumManagedShaderPrograms();return;
         }

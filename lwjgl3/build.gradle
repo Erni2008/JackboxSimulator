@@ -56,7 +56,7 @@ dependencies {
 def os = System.properties['os.name'].toLowerCase(Locale.ROOT)
 
 run {
-  systemProperty 'finalanswer.server', providers.gradleProperty('roomServerUrl').getOrElse('http://127.0.0.1:8080')
+  systemProperty 'finalanswer.server', providers.gradleProperty('roomServerUrl').orElse(providers.environmentVariable('FINALANSWER_SERVER_URL')).getOrElse('http://127.0.0.1:8080')
   workingDir = rootProject.file('assets').path
 // You can uncomment the next line if your IDE claims a build failure even when the app closed properly.
   //setIgnoreExitValue(true)
@@ -262,4 +262,26 @@ tasks.register('playCheck', JavaExec) {
     systemProperty 'play.qa.capture', providers.gradleProperty('playCapture').getOrElse('false')
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('multiplayerCheck', JavaExec) {
+    group = 'verification'
+    description = 'Real multiplayer host: join two browser controllers to run the integration check.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.MultiplayerCheck'
+    workingDir = rootProject.file('assets')
+    systemProperty 'finalanswer.server', providers.gradleProperty('roomServerUrl').orElse(providers.environmentVariable('FINALANSWER_SERVER_URL')).getOrElse('http://127.0.0.1:8080')
+    systemProperty 'multiplayer.qa.dir', layout.buildDirectory.dir('multiplayer-check/' + System.currentTimeMillis()).get().asFile.absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('generationCheck', JavaExec) {
+    dependsOn testClasses
+    mainClass = 'com.erni.finalanswer.lwjgl3.GenerationCheck'
+    classpath = sourceSets.test.runtimeClasspath
+    workingDir = rootProject.file('assets')
+    systemProperty 'generation.qa.dir', layout.buildDirectory.dir('generation-check').get().asFile.absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
 }

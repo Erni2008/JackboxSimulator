@@ -15,7 +15,7 @@ import java.util.function.Consumer;
 /** Asynchronous HTTP; every UI callback is delivered on the LibGDX render thread. */
 public final class RoomApiClient implements AutoCloseable {
     private final String baseUrl =
-            System.getProperty("finalanswer.server", "http://127.0.0.1:8080").replaceAll("/+$", "");
+            System.getProperty("finalanswer.server", System.getenv().getOrDefault("FINALANSWER_SERVER_URL", "http://127.0.0.1:8080")).replaceAll("/+$", "");
     private final Set<Net.HttpRequest> requests = ConcurrentHashMap.newKeySet();
     private volatile boolean closed;
 
@@ -48,8 +48,8 @@ public final class RoomApiClient implements AutoCloseable {
             Consumer<RoomSession> done,
             Consumer<String> failed) {
         String normalized = code.trim().toUpperCase(Locale.ROOT);
-        if (!normalized.matches("[A-HJ-NP-Z2-9]{4}")) {
-            failed.accept("Enter a valid four-character room code.");
+        if (!normalized.matches("[A-HJ-NP-Z2-9]{6}")) {
+            failed.accept("Enter a valid six-character room code.");
             return;
         }
         request(
@@ -145,20 +145,25 @@ public final class RoomApiClient implements AutoCloseable {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
-    private static RoomSession parse(JsonValue json) {
+    public String baseUrl() { return baseUrl; }
+
+    private static RoomSession parse(JsonValue json) { return parse(json, ""); }
+
+    public static RoomSession parse(JsonValue json, String token) {
         List<RoomSession.Player> players = new ArrayList<>();
         for (JsonValue player = json.get("players").child; player != null; player = player.next)
             players.add(
                     new RoomSession.Player(
                             player.getString("id"),
                             player.getString("name"),
-                            player.getBoolean("host")));
+                            player.getBoolean("host"), player.getString("characterId", "guest"),
+                            player.getString("connectionStatus", "OFFLINE"), player.getBoolean("hasSubmittedAnswer", false), player.getInt("score",0)));
         return new RoomSession(
                 json.getString("code"),
                 json.getString("name"),
                 json.getInt("maxPlayers"),
                 json.getString("gameMode"),
-                json.getString("token"),
+                json.getString("token", token),
                 json.getBoolean("host"),
                 players);
     }
