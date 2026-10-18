@@ -1,0 +1,26 @@
+[FinalAnswer-hosting] INFO io.javalin.Javalin - Static file handler added: StaticFileConfig(hostedPath=/, directory=/web, location=CLASSPATH, precompressMaxSize=-1, aliasCheck=null, headers={Cache-Control=max-age=0}, skipFileFunction=null, mimeTypes={}, roles=[]). File system location: '[jar:file:///Users/erni/Documents/FinalAnswer/lwjgl3/build/standalone-release/mac-aarch64/FinalAnswer.app/Contents/app/server-0.1.0.jar!/web/, jar:file:///Users/erni/Documents/FinalAnswer/lwjgl3/build/standalone-release/mac-aarch64/FinalAnswer.app/Contents/app/server-0.1.0.jar!/web/]'
+[FinalAnswer-hosting] INFO io.javalin.Javalin - Starting Javalin ...
+[FinalAnswer-hosting] INFO org.eclipse.jetty.server.Server - jetty-12.1.12; built: 2026-08-03T22:37:55.389Z; git: 10dd3948f37767b84cc2c62358364f042e51dbbe; jvm 21.0.12.1+1-LTS
+[FinalAnswer-hosting] INFO org.eclipse.jetty.session.DefaultSessionIdManager - Session workerName=node0
+[FinalAnswer-hosting] INFO org.eclipse.jetty.server.handler.ContextHandler - Started oeje10s.ServletContextHandler@2757140e{ROOT,/,b=null,a=AVAILABLE,h=oeje10s.SessionHandler@24efcecb{STARTED}}
+[FinalAnswer-hosting] INFO org.eclipse.jetty.ee10.servlet.ServletContextHandler - Started oeje10s.ServletContextHandler@2757140e{ROOT,/,b=null,a=AVAILABLE,h=oeje10s.SessionHandler@24efcecb{STARTED}}
+[FinalAnswer-hosting] INFO org.eclipse.jetty.server.AbstractConnector - Started oejs.ServerConnector@4f4d2cff{HTTP/1.1, (http/1.1)}{0.0.0.0:18091}
+[FinalAnswer-hosting] INFO org.eclipse.jetty.server.Server - Started oejs.Server@4e79b7b6{STARTING}[12.1.12,sto=0] @27ms
+[FinalAnswer-hosting] INFO io.javalin.Javalin - 
+       __                  ___          _____
+      / /___ __   ______ _/ (_)___     /__  /
+ __  / / __ `/ | / / __ `/ / / __ \      / /
+/ /_/ / /_/ /| |/ / /_/ / / / / / /     / /
+\____/\__,_/ |___/\__,_/_/_/_/ /_/     /_/
+
+       https://javalin.io/documentation
+
+[FinalAnswer-hosting] INFO io.javalin.Javalin - Javalin started in 47ms \o/
+[FinalAnswer-hosting] INFO io.javalin.Javalin - Listening on http://0.0.0.0:18091/
+[FinalAnswer-hosting] INFO io.javalin.Javalin - You are running Javalin 7.2.3 (released August 11, 2026).
+[THE IMPOSTOR] Loaded 23/23 textures
+[main] INFO io.javalin.Javalin - Stopping Javalin ...
+[main] INFO org.eclipse.jetty.server.Server - Stopped oejs.Server@4e79b7b6{STOPPING}[12.1.12,sto=0]
+[main] INFO org.eclipse.jetty.server.AbstractConnector - Stopped oejs.ServerConnector@4f4d2cff{HTTP/1.1, (http/1.1)}{0.0.0.0:18091}
+[main] INFO org.eclipse.jetty.ee10.servlet.ServletContextHandler - Stopped oeje10s.ServletContextHandler@2757140e{ROOT,/,b=null,a=AVAILABLE,h=oeje10s.SessionHandler@24efcecb{STOPPED}}
+[main] INFO io.javalin.Javalin - Javalin has stopped

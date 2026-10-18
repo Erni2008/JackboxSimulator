@@ -28,7 +28,9 @@ public final class LobbyPanel extends Table implements Disposable {
     private final TextureRegionDrawable solid;
     private final Label code, name, settings, players, connection;
     private final Label title;
+    private final ConnectionPanel phoneConnection;
     private final TextButton leave, cancel;
+    private final TextButton impostor;
     private final Dialog joinDialog;
     private final TextField roomCode, playerName, password;
     private final Label joinError;
@@ -38,7 +40,9 @@ public final class LobbyPanel extends Table implements Disposable {
     private int joinVersion;
     private boolean disposed;
 
-    public LobbyPanel(FinalAnswerGame game) {
+    public LobbyPanel(FinalAnswerGame game) {this(game,game::leaveRoom);}
+    /** Reuse the existing lobby in an explicitly connected minigame without replacing its socket. */
+    public LobbyPanel(FinalAnswerGame game,Runnable leaveAction) {
         this.game = game;
         setName("roomLobby");
         Pixmap p = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
@@ -62,11 +66,14 @@ public final class LobbyPanel extends Table implements Disposable {
         settings.setFontScale(0.8f);
         settings.setWrap(true);
         add(settings).left().growX().padTop(8).row();
+        phoneConnection=new ConnectionPanel(game.getHosting(),font,button("").getStyle());
+        add(phoneConnection).colspan(2).growX().height(138).padTop(6).row();
         players = label("");
         players.setName("lobbyPlayers");
         players.setFontScale(0.72f);
         players.setAlignment(Align.topLeft);
-        add(players).left().top().grow().padTop(20).row();
+        ScrollPane roster=new ScrollPane(players);roster.setScrollingDisabled(true,false);
+        add(roster).left().top().grow().minHeight(24).padTop(10).row();
         connection = label("");
         connection.setFontScale(0.72f);
         connection.setWrap(true);
@@ -77,10 +84,13 @@ public final class LobbyPanel extends Table implements Disposable {
                 new ClickListener() {
                     @Override
                     public void clicked(InputEvent e, float x, float y) {
-                        game.leaveRoom();
+                        leaveAction.run();
                     }
                 });
         add(leave).left().width(260).height(56);
+        impostor=button("THE IMPOSTOR");impostor.setName("openImpostorLobby");
+        impostor.addListener(new ClickListener(){@Override public void clicked(InputEvent e,float x,float y){if(!impostor.isDisabled())game.showImpostorLobby();}});
+        add(impostor).width(300).height(56);impostor.setVisible(false);
         setVisible(false);
 
         joinDialog =
@@ -262,6 +272,11 @@ public final class LobbyPanel extends Table implements Disposable {
 
     public void update(RoomSession room, String status) {
         setVisible(room != null);
+        boolean showPhone=room!=null&&room.host();phoneConnection.setVisible(showPhone);getCell(phoneConnection).height(showPhone?138:0);
+        if(room!=null)phoneConnection.room(room.code());
+        boolean host=room!=null && room.host() && game.getActiveRoom()!=null;
+        impostor.setVisible(host);impostor.setDisabled(!host || room.players().size()<3);
+        getCell(impostor).width(host?300:0).height(host?56:0);
         if (room == null) {
             displayed = null;
             return;
@@ -302,6 +317,6 @@ public final class LobbyPanel extends Table implements Disposable {
         joinDialog.remove();
         font.dispose();
         codeFont.dispose();
-        pixel.dispose();
+        pixel.dispose();phoneConnection.dispose();
     }
 }

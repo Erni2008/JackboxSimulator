@@ -81,6 +81,10 @@ public final class RoomServer implements AutoCloseable {
                         if(!limits.allow("ws:"+peer.id(),30,6)) throw new RoomService.Failure(429,"RATE_LIMITED");
                         var message=Protocol.decode(ctx.message()); requestId=message.requestId();
                         if(message.type().equals("SUBMIT_ANSWER"))type="ANSWER_REJECTED";
+                        if(message.type().equals("SUBMIT_SUSPICION"))type="SUSPICION_REJECTED";
+                        if(message.type().equals("SUBMIT_CLUE"))type="CLUE_REJECTED";
+                        if(message.type().equals("SUBMIT_FINAL_VOTE"))type="FINAL_VOTE_REJECTED";
+                        if(Set.of("START_IMPOSTOR","REPLAY_IMPOSTOR","IMPOSTOR_RETURN_TO_LOBBY","UPDATE_IMPOSTOR_SETTINGS").contains(message.type()))type="IMPOSTOR_ACTION_REJECTED";
                         if(message.type().equals("AUTH")) {
                             if(peer.authenticated)throw new RoomService.Failure(409,"ALREADY_AUTHENTICATED");
                             rooms.attach(Protocol.string(message.payload(),"roomCode"),Protocol.string(message.payload(),"token"),peer,requestId);

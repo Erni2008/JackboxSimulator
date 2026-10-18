@@ -14,8 +14,9 @@ import java.util.function.Consumer;
 
 /** Asynchronous HTTP; every UI callback is delivered on the LibGDX render thread. */
 public final class RoomApiClient implements AutoCloseable {
-    private final String baseUrl =
-            System.getProperty("finalanswer.server", System.getenv().getOrDefault("FINALANSWER_SERVER_URL", "http://127.0.0.1:8080")).replaceAll("/+$", "");
+    private final HostingAccess hosting;
+    public RoomApiClient(){this(HostingAccess.external(System.getProperty("finalanswer.server",System.getenv().getOrDefault("FINALANSWER_SERVER_URL","http://127.0.0.1:8080")).replaceAll("/+$","")));}
+    public RoomApiClient(HostingAccess hosting){this.hosting=hosting;}
     private final Set<Net.HttpRequest> requests = ConcurrentHashMap.newKeySet();
     private volatile boolean closed;
 
@@ -24,7 +25,10 @@ public final class RoomApiClient implements AutoCloseable {
             String code,
             Consumer<RoomSession> done,
             Consumer<String> failed) {
-        request(
+        hosting.ensureReady().whenComplete((url,error)->Gdx.app.postRunnable(()->{
+            if(closed)return;
+            if(error!=null){Throwable cause=error;while(cause.getCause()!=null)cause=cause.getCause();failed.accept(cause.getMessage()==null?"Server unavailable. Try again.":cause.getMessage());return;}
+            request(
                 "/rooms",
                 Map.of(
                         "name",
@@ -39,6 +43,7 @@ public final class RoomApiClient implements AutoCloseable {
                         code),
                 json -> done.accept(parse(json)),
                 failed);
+        }));
     }
 
     public void join(
@@ -89,7 +94,7 @@ public final class RoomApiClient implements AutoCloseable {
             Consumer<String> failed) {
         if (closed) return;
         Net.HttpRequest request = new Net.HttpRequest(Net.HttpMethods.POST);
-        request.setUrl(baseUrl + path);
+        request.setUrl(hosting.apiUrl() + path);
         request.setTimeOut(5000);
         request.setHeader("Content-Type", "application/x-www-form-urlencoded; charset=utf-8");
         StringJoiner content = new StringJoiner("&");
@@ -145,7 +150,7 @@ public final class RoomApiClient implements AutoCloseable {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
-    public String baseUrl() { return baseUrl; }
+    public String baseUrl() { return hosting.apiUrl(); }
 
     private static RoomSession parse(JsonValue json) { return parse(json, ""); }
 

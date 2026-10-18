@@ -112,10 +112,10 @@ public class StartupHelper {
 			// We also temporarily change the "user.name" property to one without any chars that would be invalid.
 			// We revert our changes immediately after loading LWJGL3 natives.
 			String programData = System.getenv("ProgramData");
-			if (programData == null) programData = "C:\\Temp"; // if ProgramData isn't set, try some fallback.
+			if (programData == null) programData = System.getProperty("java.io.tmpdir"); // if ProgramData isn't set, try some fallback.
 			String prevTmpDir = System.getProperty("java.io.tmpdir", programData);
 			String prevUser = System.getProperty("user.name", "libGDX_User");
-			System.setProperty("java.io.tmpdir", programData + "\\libGDX-temp");
+			System.setProperty("java.io.tmpdir", java.nio.file.Path.of(programData,"libGDX-temp").toString());
 			System.setProperty(
 				"user.name",
 				("User_" + prevUser.hashCode() + "_GDX" + Version.VERSION).replace('.', '_')
@@ -175,7 +175,7 @@ public class StartupHelper {
 		// Spawn the child JVM process with updated environment variables or JVM args
 		List<String> jvmArgs = new ArrayList<>();
 		// The following line is used assuming you target Java 8, the minimum for LWJGL3.
-		String javaExecPath = System.getProperty("java.home") + "/bin/java";
+		String javaExecPath = java.nio.file.Path.of(System.getProperty("java.home"),"bin","java").toString();
 		// If targeting Java 9 or higher, you could use the following instead of the above line:
 		//String javaExecPath = ProcessHandle.current().info().command().orElseThrow()
 		if (!(new File(javaExecPath).exists())) {

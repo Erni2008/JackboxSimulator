@@ -1,0 +1,57 @@
+// Native app images complement the existing Construo cross-target archives.
+// Keep dependency jars separate: Jetty/Javalin ServiceLoader metadata must not be discarded by fat-jar duplicate exclusion.
+def platform = System.getProperty('os.name').toLowerCase(Locale.ROOT)
+def target = platform.contains('mac') ? 'mac' : platform.contains('win') ? 'windows' : 'linux'
+def arch = System.getProperty('os.arch').toLowerCase(Locale.ROOT)
+def imageRoot = providers.gradleProperty("packageOutput").isPresent() ? layout.dir(providers.provider { file(providers.gradleProperty("packageOutput").get()) }) : layout.buildDirectory.dir("standalone/${target}-${arch}")
+def inputRoot = layout.buildDirectory.dir('standalone-input')
+def appJar = tasks.register('standaloneJar', Jar) {
+    dependsOn classes
+    archiveFileName = 'FinalAnswer-desktop.jar'
+    destinationDirectory = layout.buildDirectory.dir('standalone-jar')
+    from sourceSets.main.output
+    manifest { attributes 'Main-Class': application.mainClass }
+}
+tasks.register('prepareStandalone', Sync) {
+    dependsOn appJar
+    into inputRoot
+    from appJar
+    from configurations.runtimeClasspath
+}
+def runtimeModules = 'java.base,java.desktop,java.management,java.net.http,java.logging,java.naming,java.sql,java.xml,java.security.jgss,jdk.unsupported,jdk.crypto.ec,jdk.charsets,jdk.zipfs,jdk.localedata'
+tasks.register('packageNative', Exec) {
+    group = 'distribution'
+    description = 'Builds a native application image with a bundled Java runtime for the current OS/JDK architecture.'
+    dependsOn 'prepareStandalone'
+    doFirst {
+        def root = imageRoot.get().asFile
+        def output = new File(root, target == 'mac' ? 'FinalAnswer.app' : 'FinalAnswer')
+        if(output.exists()) throw new GradleException("Output already exists: ${output}. Move it aside or use a fresh build directory before packaging again.")
+        root.mkdirs()
+        def executable = new File(System.getProperty('java.home'), "bin/jpackage${target == 'windows' ? '.exe' : ''}")
+        if(!executable.isFile()) throw new GradleException('Use a full JDK 21 with jpackage to build standalone applications.')
+        def args = [executable.absolutePath, '--type','app-image','--name','FinalAnswer','--app-version',providers.gradleProperty('packageVersion').getOrElse('1.0.0'),
+            '--input', inputRoot.get().asFile.absolutePath, '--main-jar','FinalAnswer-desktop.jar','--main-class',application.mainClass.get(),
+            '--dest',root.absolutePath,'--vendor','Final Answer','--add-modules',runtimeModules,
+            '--java-options','--enable-native-access=ALL-UNNAMED','--java-options','--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED',
+            '--java-options','-Xmx1g','--java-options','-Dfinalanswer.logToFile=true']
+        // Keep bin/java for StartupHelper's existing NVIDIA relaunch path on Linux.
+        if(target == 'linux') args += ['--jlink-options','--strip-debug --no-header-files --no-man-pages']
+        if(target == 'mac') args += ['--java-options','-XstartOnFirstThread','--mac-package-identifier','com.erni.finalanswer']
+        // Existing platform icons are retained as-is. They are template icons, documented as a branding limitation.
+        def icon = file("icons/logo.${target == 'mac' ? 'icns' : target == 'windows' ? 'ico' : 'png'}")
+        if(icon.isFile()) args += ['--icon',icon.absolutePath]
+        commandLine args
+    }
+}
+['Mac':'mac','Windows':'windows','Linux':'linux'].each { suffix, expected ->
+    tasks.register("package${suffix}") {
+        group = 'distribution'
+        description = "Creates FinalAnswer${expected == 'mac' ? '.app' : expected == 'windows' ? '.exe application image' : ' application image'} on ${suffix} with its bundled runtime."
+        dependsOn tasks.named('packageNative')
+        // Validate before any dependency work, including downloads or resource generation.
+        gradle.taskGraph.whenReady { graph ->
+            if(graph.hasTask(path) && target != expected) throw new GradleException("package${suffix} must run on ${suffix}; current OS is ${System.getProperty('os.name')}. No cross-platform build is claimed.")
+        }
+    }
+}

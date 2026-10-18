@@ -21,6 +21,10 @@ public final class RealtimeClient implements AutoCloseable {
     private volatile WebSocket socket;
     private volatile boolean closed,authenticated;
     private volatile int generation,attempt;
+    private final List<Consumer<JsonObject>> listeners=new ArrayList<>();
+    /** Subscribe/unsubscribe on the render thread, where accepted events are delivered. */
+    public void addEventListener(Consumer<JsonObject> listener){listeners.add(listener);}
+    public void removeEventListener(Consumer<JsonObject> listener){listeners.remove(listener);}
     private JsonObject snapshot;
     private long receivedNano,serverMillis;
     private CompletableFuture<WebSocket> connecting;
@@ -79,6 +83,7 @@ public final class RealtimeClient implements AutoCloseable {
             if(sent!=null)serverMillis+=Math.min(1000,(receivedNano-sent)/2_000_000);
         }
         received.accept(event);
+        for(int i=0;i<listeners.size();i++)listeners.get(i).accept(event);
     }
     private synchronized void lost(int version){
         if(closed||version!=generation)return;
@@ -97,7 +102,7 @@ public final class RealtimeClient implements AutoCloseable {
     public boolean connected(){return authenticated&&!closed;}
     public JsonObject snapshot(){return snapshot;}
     public long serverNow(){return serverMillis+(System.nanoTime()-receivedNano)/1_000_000;}
-    public void send(String type,Map<String,?> payload){if(connected())sendEnvelope(type,UUID.randomUUID().toString(),payload);}
+    public String send(String type,Map<String,?> payload){String id=UUID.randomUUID().toString();if(connected())sendEnvelope(type,id,payload);return id;}
     private synchronized void sendEnvelope(String type,String id,Map<String,?> payload){
         WebSocket ws=socket;if(ws==null||closed)return;
         // Java WebSocket permits only one pending data send.
@@ -107,6 +112,6 @@ public final class RealtimeClient implements AutoCloseable {
     @Override public synchronized void close(){
         if(closed)return;closed=true;authenticated=false;generation++;
         if(connecting!=null)connecting.cancel(true);
-        if(socket!=null)socket.abort();scheduler.shutdownNow();http.shutdownNow();pings.clear();
+        if(socket!=null)socket.abort();scheduler.shutdownNow();http.shutdownNow();pings.clear();listeners.clear();
     }
 }

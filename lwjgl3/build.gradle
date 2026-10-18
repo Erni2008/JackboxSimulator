@@ -37,6 +37,7 @@ dependencies {
     implementation "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-desktop"
 
     implementation project(':core')
+    implementation project(':server')
 
     if (enableGraalNative == 'true') {
         implementation "io.github.berstanio:gdx-svmhelper-backend-lwjgl3:$graalHelperVersion"
@@ -56,7 +57,9 @@ dependencies {
 def os = System.properties['os.name'].toLowerCase(Locale.ROOT)
 
 run {
-  systemProperty 'finalanswer.server', providers.gradleProperty('roomServerUrl').orElse(providers.environmentVariable('FINALANSWER_SERVER_URL')).getOrElse('http://127.0.0.1:8080')
+  def remote = providers.gradleProperty('roomServerUrl').orElse(providers.environmentVariable('FINALANSWER_SERVER_URL'))
+  if(remote.isPresent()) systemProperty 'finalanswer.server', remote.get()
+  if(providers.gradleProperty('localServerPort').isPresent()) systemProperty 'finalanswer.localPort', providers.gradleProperty('localServerPort').get()
   workingDir = rootProject.file('assets').path
 // You can uncomment the next line if your IDE claims a build failure even when the app closed properly.
   //setIgnoreExitValue(true)
@@ -142,7 +145,7 @@ construo {
   jlink {
     guessModulesFromJar.set(false)
     // You may need to add more modules, as needed.
-    modules.addAll("java.base", "java.management", "java.desktop", "jdk.unsupported")
+    modules.addAll("java.base", "java.management", "java.desktop", "jdk.unsupported", "java.net.http", "java.logging", "java.naming", "java.sql", "java.xml", "jdk.crypto.ec", "jdk.charsets", "jdk.zipfs")
   }
 
   targets.configure {
@@ -271,7 +274,9 @@ tasks.register('multiplayerCheck', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'com.erni.finalanswer.lwjgl3.MultiplayerCheck'
     workingDir = rootProject.file('assets')
-    systemProperty 'finalanswer.server', providers.gradleProperty('roomServerUrl').orElse(providers.environmentVariable('FINALANSWER_SERVER_URL')).getOrElse('http://127.0.0.1:8080')
+    def remote = providers.gradleProperty('roomServerUrl').orElse(providers.environmentVariable('FINALANSWER_SERVER_URL'))
+  if(remote.isPresent()) systemProperty 'finalanswer.server', remote.get()
+  if(providers.gradleProperty('localServerPort').isPresent()) systemProperty 'finalanswer.localPort', providers.gradleProperty('localServerPort').get()
     systemProperty 'multiplayer.qa.dir', layout.buildDirectory.dir('multiplayer-check/' + System.currentTimeMillis()).get().asFile.absolutePath
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
@@ -284,4 +289,81 @@ tasks.register('generationCheck', JavaExec) {
     workingDir = rootProject.file('assets')
     systemProperty 'generation.qa.dir', layout.buildDirectory.dir('generation-check').get().asFile.absolutePath
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+}
+
+// Development launchers are deliberately absent from main outputs and production packaging.
+sourceSets {
+    dev {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
+}
+tasks.register('impostorPreview', JavaExec) {
+    group = 'application'
+    description = 'Development-only static THE IMPOSTOR scene; ESC returns to the existing menu.'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.ImpostorPreviewLauncher'
+    systemProperty 'impostor.connection', providers.gradleProperty('impostorConnection').getOrElse('')
+    workingDir = rootProject.file('assets')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('impostorCheck', JavaExec) {
+    group = 'verification'
+    description = 'Real GL check of Impostor composition, resizing, degraded loading and screen lifecycle.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.ImpostorCheck'
+    workingDir = rootProject.file('assets')
+    systemProperty 'impostor.qa.artifacts', layout.buildDirectory.dir('impostor-check/screenshots').get().asFile.absolutePath
+    systemProperty 'impostor.qa.dir', layout.buildDirectory.dir('impostor-check/' + System.currentTimeMillis()).get().asFile.absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+// Graphical checks share development fixtures; neither test nor dev outputs enter production jars.
+sourceSets.test.compileClasspath += sourceSets.dev.output
+sourceSets.test.runtimeClasspath += sourceSets.dev.output
+tasks.named('compileTestJava') { dependsOn devClasses }
+
+// Run alongside the real browser fixture and check_impostor_browser.cjs.
+tasks.register('impostorNetworkCheck', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.ImpostorNetworkCheck'
+    workingDir = rootProject.file('assets')
+    systemProperty 'impostor.connection', providers.gradleProperty('impostorConnection').getOrElse(rootProject.file('server/build/impostor-browser/ready.json').absolutePath)
+    systemProperty 'impostor.network.final', providers.gradleProperty('impostorFinalQA').getOrElse('false')
+    systemProperty 'impostor.network.artifacts', layout.buildDirectory.dir('impostor-network-check').get().asFile.absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+// Desktop checks are explicit JavaExec/OpenGL tasks, not JUnit test methods.
+// Keep GUI verification opt-in so packaging also works on headless build machines.
+test { failOnNoDiscoveredTests = false }
+
+apply from: 'packaging.gradle'
+
+tasks.register('desktopHostingCheck', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.hosting.DesktopHostingCheck'
+}
+check.dependsOn desktopHostingCheck
+
+tasks.register('desktopHostingQA', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.hosting.DesktopHostingQA'
+    workingDir rootProject.file('assets')
+    systemProperty 'desktop.qa.dir', layout.buildDirectory.dir('desktop-hosting-qa').get().asFile.absolutePath
+    if(providers.gradleProperty('desktopQaPort').isPresent()) systemProperty 'desktop.qa.port', providers.gradleProperty('desktopQaPort').get()
+    if(os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
 }

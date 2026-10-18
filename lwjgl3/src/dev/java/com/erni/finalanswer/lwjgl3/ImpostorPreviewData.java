@@ -1,0 +1,57 @@
+package com.erni.finalanswer.lwjgl3;
+
+import com.badlogic.gdx.scenes.scene2d.*;
+import com.erni.finalanswer.impostor.*;
+import java.util.List;
+
+/** Deterministic empty-paper fixtures and development controls. Never packaged in production. */
+public final class ImpostorPreviewData {
+    private ImpostorPreviewData() {}
+
+    public static List<ImpostorParticipant> participants(int count) {
+        if (count != 3 && count != 4) throw new IllegalArgumentException("Preview supports 3 or 4 participants");
+        String[] names = {"Luna", "Shadow", "Mira", "Nyx"};
+        var result = new java.util.ArrayList<ImpostorParticipant>();
+        for (int i=0; i<count; i++) result.add(new ImpostorParticipant(
+            new com.erni.finalanswer.rooms.RoomSession.Player("preview-"+i, names[i], false, "guest_"+(i+1), "ONLINE", false, 0),
+            List.of("", "", "")));
+        return List.copyOf(result);
+    }
+
+    /** Deterministic fixture values keyed by identity, never by nickname or row position. */
+    public static java.util.Map<String, String> clues(int round, List<ImpostorParticipant> participants) {
+        if (round < 1 || round > 3) return java.util.Map.of();
+        String[][] words = {{"ТЕПЛО", "СОЛНЦЕ", "ЛЕТО"}, {"ДВИЖЕНИЕ", "ДОРОГА", "СКОРОСТЬ"},
+                {"СВЕТ", "ЯРКОСТЬ", "ЛАМПА"}, {"СВОБОДА", "НЕБО", "ПОЛЁТ"}};
+        var result = new java.util.LinkedHashMap<String,String>();
+        for (var participant : participants) {
+            for (int i=0; i<words.length; i++)
+                if (participant.player().id().equals("preview-"+i)) result.put(participant.player().id(), words[i][round-1]);
+        }
+        return result;
+    }
+
+    /** Install only in the dev/test classpath; no production screen handles F3/F4. */
+    public static ImpostorSuspicionPreview installControls(ImpostorScreen screen) {
+        var suspicion=new ImpostorSuspicionPreview(screen);
+        // The screen's active input processor is its Stage after show().
+        var stage = (Stage) com.badlogic.gdx.Gdx.input.getInputProcessor();
+        stage.addListener(new InputListener() {
+            @Override public boolean keyDown(InputEvent event, int key) {
+                switch (key) {
+                    case com.badlogic.gdx.Input.Keys.F3 -> { suspicion.cancel();screen.setParticipants(participants(3)); }
+                    case com.badlogic.gdx.Input.Keys.F4 -> { suspicion.cancel();screen.setParticipants(participants(4)); }
+                    case com.badlogic.gdx.Input.Keys.R -> screen.revealClues(clues(screen.revealedRoundCount()+1, screen.participants()));
+                    case com.badlogic.gdx.Input.Keys.B -> screen.flipPapersBack();
+                    case com.badlogic.gdx.Input.Keys.N -> { suspicion.cancel();screen.resetPapers(); }
+                    case com.badlogic.gdx.Input.Keys.V -> suspicion.start();
+                    case com.badlogic.gdx.Input.Keys.F,com.badlogic.gdx.Input.Keys.D -> {suspicion.cancel();return false;}
+                    default -> { return false; }
+                }
+                return true;
+            }
+        });
+        return suspicion;
+    }
+
+}

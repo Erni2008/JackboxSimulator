@@ -69,9 +69,14 @@ public class FinalAnswerGame extends Game {
 
     private MainMenu mainMenu;
     private PlayScreen playScreen;
+    private com.erni.finalanswer.impostor.ImpostorScreen impostorScreen;
     private RoomSettingsScreen roomSettings;
     private GenerationCodeScreen generationCode;
-    private final RoomApiClient roomApi = new RoomApiClient();
+    private final RoomApiClient roomApi;
+    private final com.erni.finalanswer.network.HostingAccess hosting;
+    public FinalAnswerGame(){this(com.erni.finalanswer.network.HostingAccess.external(System.getProperty("finalanswer.server",System.getenv().getOrDefault("FINALANSWER_SERVER_URL","http://127.0.0.1:8080"))));}
+    public FinalAnswerGame(com.erni.finalanswer.network.HostingAccess hosting){this.hosting=hosting;this.roomApi=new RoomApiClient(hosting);}
+    public com.erni.finalanswer.network.HostingAccess getHosting(){return hosting;}
     private RoomConfiguration pendingConfiguration;
     private RoomSession activeRoom;
     private com.erni.finalanswer.network.RealtimeClient realtime;
@@ -114,6 +119,12 @@ public class FinalAnswerGame extends Game {
         if (playScreen == null) playScreen = new PlayScreen(this, realtime);
         if (getScreen() != playScreen) setScreen(playScreen);
     }
+    public void showImpostorLobby(){
+        if(activeRoom==null || !activeRoom.host() || realtime==null || !realtime.connected())return;
+        if(impostorScreen==null){impostorScreen=new com.erni.finalanswer.impostor.ImpostorScreen(this);impostorScreen.show();impostorScreen.connectSuspicion(realtime);}
+        if(getScreen()!=impostorScreen)setScreen(impostorScreen);
+    }
+    private void releaseImpostor(){if(impostorScreen!=null){if(getScreen()==impostorScreen)showMainMenu();impostorScreen.dispose();impostorScreen=null;}}
     private void onRealtime(com.google.gson.JsonObject event) {
         if (activeRoom == null) return;
         String type=event.get("type").getAsString();
@@ -122,10 +133,13 @@ public class FinalAnswerGame extends Game {
         if (type.equals("ERROR")) { lobbyStatus=data.get("code").getAsString(); return; }
         if (!data.has("players")) return;
         activeRoom=RoomApiClient.parse(new com.badlogic.gdx.utils.JsonReader().parse(data.toString()),activeRoom.token());
+        if(activeRoom.host() && type.equals("IMPOSTOR_LOBBY_RETURNED")){showImpostorLobby();return;}
+        if(activeRoom.host() && (data.has("impostor") || data.has("impostorLobby")) && (type.equals("IMPOSTOR_STARTED") || type.equals("IMPOSTOR_REPLAY_READY") || type.equals("AUTHENTICATED"))){showImpostorLobby();return;}
         if (activeRoom.host() && data.has("question") && (type.equals("QUESTION_STARTED") || type.equals("AUTHENTICATED"))) openNetworkPlay();
     }
 
     public void activateRoom(RoomSession room) {
+        releaseImpostor();
         if (activeRoom != null && !activeRoom.token().equals(room.token()))
             roomApi.leave(activeRoom);
         if (realtime != null) realtime.close();
@@ -138,6 +152,7 @@ public class FinalAnswerGame extends Game {
     }
 
     public void leaveRoom() {
+        releaseImpostor();
         roomApi.leave(activeRoom);
         if (realtime != null) { realtime.close(); realtime=null; }
         if (playScreen != null) { if (getScreen()==playScreen) showMainMenu(); playScreen.dispose(); playScreen=null; }
@@ -209,12 +224,13 @@ public class FinalAnswerGame extends Game {
     public void dispose() {
         // Game.dispose hides the current screen but does not dispose cached screens.
         if (realtime != null) realtime.close();
-        roomApi.close();
+        roomApi.close();hosting.close();
         super.dispose();
         if (mainMenu != null) mainMenu.dispose();
         if (roomSettings != null) roomSettings.dispose();
         if (generationCode != null) generationCode.dispose();
         if (playScreen != null) playScreen.dispose();
         if (settingsScreen != null) settingsScreen.dispose();
+        if (impostorScreen != null) impostorScreen.dispose();
     }
 }

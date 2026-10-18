@@ -19,18 +19,20 @@ public class Lwjgl3Launcher {
             return;
         }
 
-        createApplication();
+        com.erni.finalanswer.lwjgl3.hosting.DesktopPaths.logging();
+        var hosting=com.erni.finalanswer.lwjgl3.hosting.LocalServerManager.configured();
+        try { createApplication(hosting); } finally { hosting.close(); }
     }
 
     /**
      * Creates and launches the game.
      */
-    private static Lwjgl3Application createApplication() {
+    private static Lwjgl3Application createApplication(com.erni.finalanswer.network.HostingAccess hosting) {
 
-        return new Lwjgl3Application(
-            new FinalAnswerGame(),
-            getDefaultConfiguration()
-        );
+        FinalAnswerGame game=Boolean.getBoolean("finalanswer.selfCheck")?new com.erni.finalanswer.lwjgl3.hosting.ApplicationSelfCheck(hosting):new FinalAnswerGame(hosting);
+        var application=new Lwjgl3Application(game,getDefaultConfiguration());
+        if(game instanceof com.erni.finalanswer.lwjgl3.hosting.ApplicationSelfCheck check)check.verify();
+        return application;
     }
 
     /**
@@ -56,6 +58,7 @@ public class Lwjgl3Launcher {
 
         // Allow resizing the window
         configuration.setResizable(true);
+        configuration.setPreferencesConfig(com.erni.finalanswer.lwjgl3.hosting.DesktopPaths.dataDirectory().resolve("preferences").toString()+java.io.File.separator,com.badlogic.gdx.Files.FileType.Absolute);
 
         // ---------------------------------
         // GRAPHICS SETTINGS
@@ -72,10 +75,7 @@ public class Lwjgl3Launcher {
         // ---------------------------------
 
         configuration.setWindowIcon(
-            "libgdx128.png",
-            "libgdx64.png",
-            "libgdx32.png",
-            "libgdx16.png"
+            "ui/Final_Answer.png"
         );
 
         return configuration;

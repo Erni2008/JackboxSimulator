@@ -11,3 +11,31 @@ button{-webkit-tap-highlight-color:transparent;touch-action:manipulation;cursor:
 .identity{display:flex;align-items:center;gap:20px;border-block:1px solid #514049;padding:22px 0;margin:28px 0}.seal{font:38px Horror;letter-spacing:-3px;color:#c48b95}.identity small{display:block;color:#aa8a90;font-size:9px;letter-spacing:.2em}.identity strong{display:block;font-size:23px;margin:3px 0}.identity .muted{display:block;font-size:11px}.players{list-style:none;margin:0;padding:0}.players li{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid #51404970;font-size:14px}.players small{color:#96818b;font-size:10px;white-space:nowrap}
 .round-top{display:flex;align-items:center;justify-content:space-between;gap:12px}.timer{font:26px Horror;color:var(--acid)}.answers{display:grid;gap:13px;margin-top:26px}.answer{width:100%;min-height:76px;display:flex;align-items:center;text-align:left;gap:18px;border:1px solid #57404b;border-radius:3px;color:var(--paper);background:linear-gradient(110deg,#302029,#1c161b);padding:15px 20px;font-size:17px;line-height:1.4}.answer .number{font:35px Horror;color:var(--acid);min-width:22px}.answer:not(:disabled):hover{border-color:#b17a86;background:#432530}.answer:active:not(:disabled){transform:scale(.985)}.answer.selected{border-color:#d5a5b0;background:#63303f}.answer:disabled:not(.selected){opacity:.5}.correct-answer{font:34px Horror;color:var(--acid);line-height:1.2}.result h1{color:var(--paper)}#session-footer{margin-top:32px;display:flex;justify-content:space-between;align-items:center;color:#9b8990;font-size:11px;letter-spacing:.12em}.text-button{border:0;background:none;color:#b6a6ad;padding:16px 0;font-size:10px;letter-spacing:.12em}.page-footer{text-align:center;color:#77646d;font-size:8px;letter-spacing:.15em;margin:48px auto 24px}.page-footer span{margin:0 8px}
 @keyframes arrive{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}@media(max-width:350px){body{padding-inline:16px}.masthead{margin-top:16px}.logo{height:75px}.answer{font-size:15px;padding:12px 14px}}
+
+.suspect-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:24px}.suspect-card{min-height:104px;padding:18px 12px;border:1px solid #79535c;border-radius:4px;background:linear-gradient(120deg,#302029,#1c161b);color:var(--paper);font-size:18px;overflow-wrap:anywhere}.suspect-card.selected{border:2px solid #e8c391;background:#63303f;box-shadow:inset 0 0 0 2px #26151a}.suspect-card:disabled:not(.selected){opacity:.55}.suspect-card:not(:disabled):active{transform:scale(.98)}@media(max-width:350px){.suspect-card{font-size:16px;min-height:92px}}
+
+.secret-word{font-size:clamp(1.6rem,7vw,3rem);overflow-wrap:anywhere;color:#ead4aa;text-align:center}
+#clue-input{width:100%;min-height:60px;font-size:1.4rem}#clue-submit{width:100%;min-height:58px;margin-top:16px}
+#impostor-countdown{font-variant-numeric:tabular-nums}#clue-status{min-height:3em}
+
+#final-title{font-size:clamp(1.7rem,7vw,2.8rem);overflow-wrap:anywhere}#final-timer{font-variant-numeric:tabular-nums}
+.final-results{list-style:none;padding:0}.final-results li{padding:12px;border-bottom:1px solid #654138}
+#final-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.final-vote-card{overflow-wrap:anywhere;min-width:0}
+
+.personal-result{font-size:clamp(1.8rem,8vw,3rem);color:#e6c794;text-align:center}#final-waiting-host{line-height:1.7;overflow-wrap:anywhere}
+
+/* Stage 8: presentation only; input is never held for an animation. */
+#impostor-screen button,#final-screen button{transition:transform .15s ease,border-color .22s ease,background .22s ease,box-shadow .22s ease}
+#impostor-screen button:active:not(:disabled),#final-screen button:active:not(:disabled){transform:scale(.98)}
+@media(hover:hover){#impostor-screen button:hover:not(:disabled),#final-screen button:hover:not(:disabled){border-color:#d4b68c;box-shadow:0 0 18px #89374628}}
+#clue-status,#final-status{transition:color .25s ease,border-color .25s ease;border-left:2px solid transparent;padding-left:10px}
+#clue-status.confirmed,#final-status.confirmed{border-color:#d4b68c;color:#ead4aa}
+.timer-warning{color:#edafb5!important;animation:warning-breath 1.6s ease-in-out infinite}
+@keyframes warning-breath{50%{text-shadow:0 0 8px #ab465a66}}
+body[data-cinematic="true"] #impostor-screen[data-phase="ROLE_REVEAL"] .secret-word{animation:private-card .65s ease-out both}
+body[data-cinematic="true"] #impostor-screen[data-phase="ROLE_REVEAL"] #impostor-role{animation:private-card .45s ease-out both}
+body[data-cinematic="true"] #impostor-screen[data-phase="ROUND_CLUE_INPUT"] #impostor-round{animation:private-card .35s ease-out both}
+body[data-cinematic="true"] #final-screen[data-phase="IMPOSTOR_REVEAL"] #final-announcement{animation:private-card .65s ease-out both}
+body[data-cinematic="true"] #final-screen[data-phase="RESULT"] #final-personal{animation:private-card .5s ease-out both}
+@keyframes private-card{from{opacity:.2;transform:translateY(5px) scale(.99)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.timer-warning{text-decoration:underline}}

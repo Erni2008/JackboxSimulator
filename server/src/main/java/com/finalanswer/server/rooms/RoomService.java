@@ -3,6 +3,8 @@ package com.finalanswer.server.rooms;
 import com.finalanswer.protocol.Protocol;
 import com.finalanswer.protocol.Protocol.*;
 import com.finalanswer.server.game.GameSession;
+import com.finalanswer.server.game.ImpostorSession;
+import com.finalanswer.server.game.WordSource;
 import com.finalanswer.server.transport.Peer;
 import com.google.gson.*;
 import java.security.*;
@@ -22,10 +24,15 @@ public final class RoomService {
     private final int maxRooms;
     private final String publicUrl;
     private final EndPolicy endPolicy;
+    private final WordSource impostorWords;
     public RoomService() { this(monotonicTime(),1000,""); }
     public RoomService(LongSupplier time,int maxRooms,String publicUrl) { this(time,maxRooms,publicUrl,EndPolicy.TIME_ONLY); }
     /** Server-selected policy; players cannot choose it in protocol messages. */
     public RoomService(LongSupplier time,int maxRooms,String publicUrl,EndPolicy endPolicy) {
+        this(time,maxRooms,publicUrl,endPolicy,WordSource.configured());
+    }
+    public RoomService(LongSupplier time,int maxRooms,String publicUrl,EndPolicy endPolicy,WordSource words) {
+        this.impostorWords=Objects.requireNonNull(words);
         this.time=time; this.maxRooms=maxRooms; this.publicUrl=publicUrl; this.endPolicy=Objects.requireNonNull(endPolicy);
     }
     public static LongSupplier monotonicTime() {
@@ -50,7 +57,7 @@ public final class RoomService {
     }
     public synchronized String join(String code,Map<String,String> data) {
         Room room=find(code);
-        if(room.game!=null) throw new Failure(409,"GAME_ALREADY_STARTED");
+        if(room.game!=null || room.impostor!=null) throw new Failure(409,"GAME_ALREADY_STARTED");
         String name=text(data.get("name"),24,"INVALID_NICKNAME");
         String password=data.getOrDefault("password","");
         if(password.length()>64 || room.passwordHash!=null&&!MessageDigest.isEqual(room.passwordHash,hash(password,room.salt)))
@@ -70,7 +77,7 @@ public final class RoomService {
     public synchronized String view(String code) { return json(snapshot(find(code),null,false)); }
     public synchronized String reroll(String code,Map<String,String> data) {
         Room room=find(code); Member host=authenticate(room,data.getOrDefault("token","")); requireHost(host);
-        if(room.game!=null || !room.members.isEmpty()) throw new Failure(409,"ROOM_NOT_EMPTY");
+        if(room.game!=null || room.impostor!=null || !room.members.isEmpty()) throw new Failure(409,"ROOM_NOT_EMPTY");
         // Generate while the old code is still reserved, so reroll always changes it.
         String replacement=code();
         rooms.remove(room.code); room.code=replacement; rooms.put(room.code,room); host.seen=now();
@@ -80,7 +87,7 @@ public final class RoomService {
         Room room=find(code); Member member=authenticate(room,token);
         if(member.host) { closeRoom(room,"HOST_CLOSED_ROOM"); return; }
         disconnectMember(member,"PLAYER_LEFT");
-        if(room.game==null) room.members.remove(member.token);
+        if(room.game==null && room.impostor==null) room.members.remove(member.token);
         else member.left=true;
         broadcast(room,"PLAYER_LEFT");
     }
@@ -116,15 +123,106 @@ public final class RoomService {
             peer.send(Protocol.event("STATE",message.requestId(),snapshot(room,member,false))); return;
         }
         if(message.type().equals("LEAVE_ROOM")) { leave(room.code,member.token); return; }
+        if(message.type().equals("UPDATE_IMPOSTOR_SETTINGS")) {
+            requireHost(member);
+            if(room.game!=null || room.impostor!=null)throw new Failure(409,"SETTINGS_LOCKED");
+            if(!data.keySet().equals(Set.of("roomCode","sessionId","settings")) || suppliedCode.isBlank()
+                    || !room.lobbyId.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_IMPOSTOR_SESSION");
+            try {
+                if(!data.get("settings").isJsonObject())throw new IllegalArgumentException();
+                var settings=data.getAsJsonObject("settings");
+                if(!settings.keySet().equals(Set.of("roundCount","discussionSeconds","votingSeconds","clueSeconds","wordCategory","soundEnabled","visualEffectsEnabled","reducedMotion")))throw new IllegalArgumentException();
+                for(String key:List.of("roundCount","discussionSeconds","votingSeconds","clueSeconds")){
+                    var number=settings.get(key);if(!number.isJsonPrimitive()||!number.getAsJsonPrimitive().isNumber()||!number.getAsString().matches("[0-9]{1,3}"))throw new IllegalArgumentException();
+                }
+                for(String key:List.of("soundEnabled","visualEffectsEnabled","reducedMotion"))if(!settings.get(key).isJsonPrimitive()||!settings.getAsJsonPrimitive(key).isBoolean())throw new IllegalArgumentException();
+                if(!settings.get("wordCategory").isJsonPrimitive()||!settings.getAsJsonPrimitive("wordCategory").isString())throw new IllegalArgumentException();
+                var next=Protocol.JSON.fromJson(settings,com.erni.finalanswer.gameplay.impostor.ImpostorSettings.class);
+                room.impostorSettings=next;
+            } catch(RuntimeException invalid){throw new Failure(400,"INVALID_IMPOSTOR_SETTINGS");}
+            broadcast(room,"IMPOSTOR_SETTINGS_UPDATED");reply(peer,room,member,message);return;
+        }
+        if(Set.of("START_IMPOSTOR","REPLAY_IMPOSTOR","IMPOSTOR_RETURN_TO_LOBBY").contains(message.type())) {
+            requireHost(member);
+            boolean start=message.type().equals("START_IMPOSTOR");
+            Set<String> keys=data.keySet();
+            if(!(keys.equals(Set.of("roomCode","sessionId")) || start && keys.equals(Set.of("roomCode","sessionId","participantIds")))
+                || suppliedCode.isBlank() || Protocol.string(data,"sessionId").isBlank())throw new Failure(400,"INVALID_IMPOSTOR_ACTION");
+            String expected=room.impostor==null?room.lobbyId:room.impostor.id;
+            if(!expected.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_IMPOSTOR_SESSION");
+            if(start){
+                if(room.game!=null || room.impostor!=null && room.impostor.phase()!=com.erni.finalanswer.gameplay.impostor.ImpostorPhase.REPLAY_PREPARATION)
+                    throw new Failure(409,"INVALID_PHASE");
+                List<String> roster=room.impostor==null?room.impostorRoster:new ArrayList<>(room.impostor.participants());
+                if(data.has("participantIds")){
+                    if(room.impostor!=null)throw new Failure(409,"INVALID_PHASE");
+                    JsonElement ids=data.get("participantIds");if(!ids.isJsonArray())throw new Failure(400,"INVALID_IMPOSTOR_PARTICIPANTS");
+                    roster=new ArrayList<>();for(JsonElement value:ids.getAsJsonArray()){
+                        if(!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString())throw new Failure(400,"INVALID_IMPOSTOR_PARTICIPANTS");
+                        roster.add(value.getAsString());
+                    }
+                }
+                validateImpostorRoster(room,roster);
+                var session=room.impostor==null?new ImpostorSession(room.id,roster,room.impostorSettings):room.impostor;
+                session.begin(impostorWords,random,now());room.impostor=session;room.impostorRoster=List.copyOf(roster);
+                broadcast(room,"IMPOSTOR_STARTED");
+            }else{
+                if(room.impostor==null || room.impostor.phase()!=com.erni.finalanswer.gameplay.impostor.ImpostorPhase.RESULT)throw new Failure(409,"INVALID_PHASE");
+                var roster=new ArrayList<>(room.impostor.participants());room.impostor.close();
+                room.impostorRoster=List.copyOf(roster);room.lobbyId=UUID.randomUUID().toString();
+                if(message.type().equals("REPLAY_IMPOSTOR")){
+                    room.impostor=new ImpostorSession(room.id,roster,room.impostorSettings);room.impostor.prepareReplay();broadcast(room,"IMPOSTOR_REPLAY_READY");
+                }else{room.impostor=null;broadcast(room,"IMPOSTOR_LOBBY_RETURNED");}
+            }
+            reply(peer,room,member,message);return;
+        }
         if(message.type().equals("START_GAME")) {
             requireHost(member);
-            if(room.game!=null) throw new Failure(409,"GAME_ALREADY_STARTED");
+            if(room.game!=null || room.impostor!=null) throw new Failure(409,"GAME_ALREADY_STARTED");
             Set<String> participants=new LinkedHashSet<>();
             room.members.values().stream().filter(m->m.peer!=null&&!m.left).forEach(m->participants.add(m.id));
             if(participants.isEmpty()) throw new Failure(409,"NOT_ENOUGH_PLAYERS");
             room.game=new GameSession(room.questionCount,participants,endPolicy,now());
             broadcast(room,"GAME_STARTED"); room.game.next(now()); broadcast(room,"QUESTION_STARTED");
             reply(peer,room,member,message); return;
+        }
+        if(message.type().equals("SUBMIT_FINAL_VOTE")) {
+            if(!data.keySet().equals(Set.of("roomCode","sessionId","suspectId")) || suppliedCode.isBlank()
+                || Protocol.string(data,"sessionId").isBlank() || Protocol.string(data,"suspectId").isBlank())
+                throw new Failure(400,"INVALID_FINAL_VOTE");
+            if(member.host || member.left)throw new Failure(403,"NOT_ELIGIBLE");
+            if(room.impostor==null || !room.impostor.id.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_IMPOSTOR_SESSION");
+            room.impostor.submitFinalVote(member.id,Protocol.string(data,"suspectId"),now());
+            peer.send(Protocol.event("FINAL_VOTE_ACCEPTED",message.requestId(),snapshot(room,member,false)));
+            broadcast(room,"IMPOSTOR_UPDATED");return;
+        }
+        if(message.type().equals("SUBMIT_CLUE")) {
+            if(!data.keySet().equals(Set.of("roomCode","sessionId","round","clue")) || suppliedCode.isBlank()
+                || !data.get("round").isJsonPrimitive() || !data.get("round").getAsJsonPrimitive().isNumber()
+                || !data.get("round").toString().matches("[1-3]") || !data.get("clue").isJsonPrimitive()
+                || !data.get("clue").getAsJsonPrimitive().isString())throw new Failure(400,"INVALID_CLUE");
+            if(member.host || member.left)throw new Failure(403,"NOT_ELIGIBLE");
+            if(room.impostor==null || !room.impostor.id.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_IMPOSTOR_SESSION");
+            room.impostor.submitClue(member.id,data.get("round").getAsInt(),data.get("clue").getAsString(),now());
+            peer.send(Protocol.event("CLUE_ACCEPTED",message.requestId(),snapshot(room,member,false)));
+            broadcast(room,room.impostor.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.ROUND_CLUE_REVEAL?
+                "IMPOSTOR_CLUES_REVEALED":"IMPOSTOR_UPDATED");
+            return;
+        }
+        if(message.type().equals("SUBMIT_SUSPICION")) {
+            if(!data.keySet().equals(Set.of("roomCode","sessionId","round","suspectId")))
+                throw new Failure(400,"INVALID_SUSPICION");
+            JsonElement round=data.get("round");
+            if(round==null || !round.isJsonPrimitive() || !round.getAsJsonPrimitive().isNumber()
+                || !round.toString().matches("[1-3]") || Protocol.string(data,"suspectId").isBlank()
+                || Protocol.string(data,"roomCode").isBlank()) throw new Failure(400,"INVALID_SUSPICION");
+            if(member.host || member.left) throw new Failure(403,"NOT_ELIGIBLE");
+            if(room.impostor==null || !room.impostor.id.equals(Protocol.string(data,"sessionId")))
+                throw new Failure(409,"STALE_SUSPICION");
+            room.impostor.submit(member.id,Protocol.string(data,"suspectId"),round.getAsInt(),now());
+            peer.send(Protocol.event("SUSPICION_ACCEPTED",message.requestId(),snapshot(room,member,false)));
+            broadcast(room,room.impostor.current().finalized()?"SUSPICION_FINALIZED":"SUSPICION_UPDATED");
+            return;
         }
         GameSession game=room.game;
         if(game==null || !game.id.equals(Protocol.string(data,"gameId")) || game.question()==null
@@ -169,6 +267,44 @@ public final class RoomService {
         }
         reply(peer,room,member,message);
     }
+    /** Server-only assignment hook. No wire command or automatic participant-selection policy. */
+    public synchronized String installImpostorSession(String code,List<String> activeIds) {
+        Room room=find(code);
+        if(room.game!=null || room.impostor!=null)throw new Failure(409,"GAME_ALREADY_STARTED");
+        Set<String> available=new HashSet<>();
+        room.members.values().stream().filter(m->m.peer!=null&&!m.left).forEach(m->available.add(m.id));
+        if(!available.containsAll(activeIds))throw new Failure(400,"INVALID_IMPOSTOR_PARTICIPANTS");
+        room.impostor=new ImpostorSession(room.id,activeIds,room.impostorSettings);
+        broadcast(room,"IMPOSTOR_SESSION_READY");
+        return room.impostor.id;
+    }
+    /** Starts real rounds using an explicit, validated roster. No public player/host start command. */
+    public synchronized String startImpostorGame(String code,List<String> activeIds) {
+        // Prepare hidden state before installation, so invalid word configuration cannot strand a room.
+        Room room=find(code);
+        if(room.game!=null || room.impostor!=null)throw new Failure(409,"GAME_ALREADY_STARTED");
+        Set<String> available=new HashSet<>();
+        room.members.values().stream().filter(m->m.peer!=null&&!m.left).forEach(m->available.add(m.id));
+        if(!available.containsAll(activeIds))throw new Failure(400,"INVALID_IMPOSTOR_PARTICIPANTS");
+        var session=new ImpostorSession(room.id,activeIds,room.impostorSettings);
+        session.begin(impostorWords,random,now());room.impostor=session;room.impostorRoster=List.copyOf(activeIds);
+        broadcast(room,"IMPOSTOR_STARTED");return session.id;
+    }
+    /** Trusted orchestration, only after the matching clue reveal. Not exposed to host/player commands. */
+    public synchronized void startPreliminarySuspicion(String code,String sessionId,int round) {
+        Room room=find(code);
+        if(room.impostor==null || !room.impostor.id.equals(sessionId))throw new Failure(409,"STALE_SUSPICION");
+        Set<String> eligible=new LinkedHashSet<>();
+        room.members.values().stream().filter(m->m.peer!=null&&!m.left).forEach(m->eligible.add(m.id));
+        room.impostor.startSuspicion(round,eligible,now());
+        broadcast(room,"SUSPICION_STARTED");
+    }
+
+    private void validateImpostorRoster(Room room,List<String> ids){
+        if((ids.size()!=3&&ids.size()!=4) || new HashSet<>(ids).size()!=ids.size())throw new Failure(400,"INVALID_IMPOSTOR_PARTICIPANTS");
+        Set<String> online=new HashSet<>();room.members.values().stream().filter(m->m.peer!=null&&!m.left).forEach(m->online.add(m.id));
+        if(!online.containsAll(ids))throw new Failure(409,"IMPOSTOR_PARTICIPANT_OFFLINE");
+    }
     private void reply(Peer peer,Room room,Member member,Message message) {
         peer.send(Protocol.event("STATE",message.requestId(),snapshot(room,member,false)));
     }
@@ -177,7 +313,7 @@ public final class RoomService {
             // Host heartbeat keeps an unconfirmed CREATE -> GENERATE room alive too.
             if(room.host.peer==null && now()-room.host.seen>120_000) { closeRoom(room,"HOST_DISCONNECTED"); continue; }
             for(Member member:new ArrayList<>(room.members.values())) {
-                if(room.game==null && member.peer==null && now()-member.seen>600_000) {
+                if(room.game==null && room.impostor==null && member.peer==null && now()-member.seen>600_000) {
                     room.members.remove(member.token); broadcast(room,"PLAYER_LEFT");
                 }
             }
@@ -185,6 +321,15 @@ public final class RoomService {
         }
     }
     private void tickRoom(Room room) {
+        if(room.impostor!=null) {
+            var mini=room.impostor;
+            if(mini.gameplay()) {
+                Set<String> connected=new LinkedHashSet<>();
+                room.members.values().stream().filter(m->m.peer!=null&&!m.left).forEach(m->connected.add(m.id));
+                if(mini.advance(now(),connected))broadcast(room,mini.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.ROUND_CLUE_REVEAL?
+                    "IMPOSTOR_CLUES_REVEALED":"IMPOSTOR_UPDATED");
+            } else if(mini.tick(now()))broadcast(room,"SUSPICION_FINALIZED");
+        }
         GameSession game=room.game; if(game==null || game.phase==Phase.GAME_FINISHED) return;
         if(game.phase==Phase.ANSWERING && now()>=game.deadline) {
             game.endAnswers(game.deadline); broadcast(room,"ANSWERING_FINISHED");
@@ -201,6 +346,7 @@ public final class RoomService {
     public synchronized void shutdown() { for(Room r:new ArrayList<>(rooms.values())) closeRoom(r,"SERVER_SHUTDOWN"); }
     private void closeRoom(Room room,String reason) {
         room.revision++;
+        if(room.impostor!=null)room.impostor.close();
         for(Member member:allMembers(room)) if(member.peer!=null) {
             member.peer.send(Protocol.event("ROOM_CLOSED","",Map.of("reason",reason)));
             disconnectMember(member,reason);
@@ -228,6 +374,9 @@ public final class RoomService {
         value.put("roomStatus",game==null?"LOBBY":phase==Phase.GAME_FINISHED?"GAME_FINISHED":"IN_GAME");
         value.put("phase",phase.name()); value.put("revision",room.revision); value.put("serverTime",now()); value.put("publicUrl",publicUrl);
         value.put("hostConnected",room.host.peer!=null);
+        value.put("impostorSettings",room.impostorSettings);value.put("impostorWordCategories",List.of("DEFAULT"));
+        value.put("lobbyId",room.lobbyId);
+        if(room.impostor==null && !room.impostorRoster.isEmpty())value.put("impostorLobby",Map.of("sessionId",room.lobbyId,"participantIds",room.impostorRoster));
         List<Map<String,Object>> players=new ArrayList<>();
         for(Member member:room.members.values()) {
             Map<String,Object> p=new LinkedHashMap<>();
@@ -242,6 +391,63 @@ public final class RoomService {
             value.put("hasSubmittedAnswer",game!=null&&game.submitted.containsKey(self.id));
             value.put("currentAnswer",game==null?-1:game.submitted.getOrDefault(self.id,-1));
             if(credentials) { value.put("token",self.token); if(self.host) value.put("hostSession",self.token); else value.put("sessionToken",self.token); }
+        }
+        if(room.impostor!=null) {
+            var session=room.impostor;var suspicion=session.current();
+            Map<String,Object> mini=new LinkedHashMap<>();
+            mini.put("sessionId",session.id);
+            mini.put("phase",suspicion==null?"READY":suspicion.finalized()?"SUSPICION_FINALIZED":"PRELIMINARY_SUSPICION");
+            mini.put("round",suspicion==null?0:suspicion.round);
+            mini.put("deadline",suspicion==null?0:suspicion.deadline);
+            mini.put("eligibleCount",suspicion==null?0:suspicion.eligibleCount());
+            mini.put("submittedCount",suspicion==null?0:suspicion.submittedCount());
+            List<Map<String,Object>> suspects=new ArrayList<>();
+            for(Member player:room.members.values())if(session.participants().contains(player.id))
+                suspects.add(Map.of("id",player.id,"name",player.name,"characterId",player.characterId));
+            mini.put("participants",suspects);
+            if(self!=null) {
+                mini.put("eligible",suspicion!=null && suspicion.eligible(self.id));
+                String selection=suspicion==null?null:suspicion.ownSelection(self.id);
+                mini.put("hasSubmitted",selection!=null);
+                if(selection!=null)mini.put("selectedSuspectId",selection);
+            }
+            if(session.gameplay()) {
+                boolean suspecting=session.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.PRELIMINARY_SUSPICION;
+                mini.put("phase",session.phase().name());mini.put("round",session.clueRound());
+                mini.put("deadline",session.deadline());mini.put("suspicionFinalized",suspecting && suspicion.finalized());
+                mini.put("revealSequence",session.revealSequence());mini.put("revealedClues",session.revealedClues());
+                if(!suspecting){mini.put("submittedCount",session.clueCount());mini.put("eligibleCount",session.participants().size());
+                    mini.remove("selectedSuspectId");mini.put("hasSubmitted",false);mini.put("eligible",false);}
+                if(self!=null) {
+                    mini.putAll(session.privateRole(self.id));
+                    mini.put("activeParticipant",session.participants().contains(self.id));
+                    mini.put("clueSubmitted",session.clueSubmitted(self.id));
+                    if(session.ownClue(self.id)!=null)mini.put("ownClue",session.ownClue(self.id));
+                }
+            }
+            if(session.finalStage()) {
+                mini.put("finalPhaseStartedAt",session.finalPhaseStartedAt());
+                mini.put("finalRevealStartedAt",session.finalRevealStartedAt());
+                var voting=session.finalVoting();
+                mini.put("finalEligibleCount",session.participants().size());
+                mini.put("finalSubmittedCount",voting==null?0:voting.submitted());
+                if(self!=null && voting!=null) {
+                    String own=voting.ownVote(self.id);mini.put("finalVoteSubmitted",own!=null);
+                    if(own!=null)mini.put("ownFinalVote",own);
+                }
+                if(session.votesPublic()) {
+                    var result=voting.snapshot();
+                    mini.put("finalVoteSnapshot",Map.of("sequenceId",session.id+":final:1","counts",result.counts(),"stampTargets",result.stampTargets()));
+                    if(session.phase()!=com.erni.finalanswer.gameplay.impostor.ImpostorPhase.FINAL_VOTE_REVEAL)mini.put("leadingSuspects",result.leaders());
+                }
+                if(session.identityPublic()) {
+                    mini.put("revealedImpostorId",session.revealedImpostor());
+                    mini.put("outcome",voting.snapshot().outcome().name());
+                }
+            }
+            if(session.result()!=null){mini.put("result",session.result());value.put("roomStatus","GAME_FINISHED");}
+            value.put("impostor",mini);
+            value.put("roomStatus",session.result()!=null?"GAME_FINISHED":"IN_GAME");
         }
         if(game!=null) {
             value.put("gameId",game.id); value.put("questionNumber",game.index+1); value.put("questionCount",game.questions.size());
@@ -290,7 +496,9 @@ public final class RoomService {
     private static final class Room {
         final String id=UUID.randomUUID().toString(), name,mode; String code;
         final int maxPlayers,questionCount; final byte[] salt,passwordHash;
-        final Map<String,Member> members=new LinkedHashMap<>(); Member host; GameSession game; long revision;
+        String lobbyId=UUID.randomUUID().toString();List<String> impostorRoster=List.of();
+        com.erni.finalanswer.gameplay.impostor.ImpostorSettings impostorSettings=com.erni.finalanswer.gameplay.impostor.ImpostorSettings.defaults();
+        final Map<String,Member> members=new LinkedHashMap<>(); Member host; GameSession game; ImpostorSession impostor; long revision;
         Room(String code,String name,int max,String mode,int questions,byte[] salt,byte[] hash) {
             this.code=code;this.name=name;maxPlayers=max;this.mode=mode;questionCount=questions;this.salt=salt;passwordHash=hash;
         }

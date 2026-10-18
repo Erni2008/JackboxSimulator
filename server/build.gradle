@@ -24,3 +24,35 @@ processResources {
 processResources {
     from(rootProject.file('assets/ui/Final_Answer.png')) { into 'web/images' }
 }
+
+// Isolated local browser QA. No fixture code or start endpoint enters the production application.
+tasks.register('suspicionBrowserFixture', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.finalanswer.server.SuspicionBrowserFixture'
+    systemProperty 'suspicion.fixture.dir', layout.buildDirectory.dir('suspicion-browser').get().asFile.absolutePath
+}
+
+// Real existing server/controller, explicit test roster and local-file control only.
+tasks.register('impostorBrowserFixture', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.finalanswer.server.ImpostorBrowserFixture'
+    systemProperty 'impostor.fixture.host', providers.gradleProperty('impostorFixtureHost').getOrElse('127.0.0.1')
+    systemProperty 'impostor.fixture.manualClock', providers.gradleProperty('impostorManualClock').getOrElse('false')
+    systemProperty 'impostor.fixture.dir', layout.buildDirectory.dir('impostor-browser').get().asFile.absolutePath
+}
+
+// Explicit public artwork allowlist. Only build resources are copied; no filesystem route.
+processResources {
+    from(rootProject.file('assets')) {
+        include 'ui/buttons/player_count/*.png', 'ui/windows/create_room/field*.png',
+                'ui/windows/generation_code/CodeField.png', 'impostor/backgrounds/background1.png',
+                'impostor/papers/suspect_papper.png', 'impostor/papers/papper_player_front.png',
+                'impostor/portraits/impostor_avatar_frame.png', 'impostor/voting/suspect_print.png',
+                'ui/fonts/RoadRage-Regular.ttf', 'ui/fonts/RoadRage-OFL.txt'
+        into 'web/art'
+    }
+}

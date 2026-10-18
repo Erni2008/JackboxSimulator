@@ -6,6 +6,11 @@
   <meta name="theme-color" content="#110e10">
   <title>Final Answer — Player controller</title>
   <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/controller-theme.css">
+  <script src="/final-answer-button.js" defer></script>
+  <script src="/final-voting.js" defer></script>
+  <script src="/impostor.js" defer></script>
+  <script src="/suspicion.js" defer></script>
   <script src="/app.js" defer></script>
 </head>
 <body>
@@ -16,7 +21,7 @@
     <section id="join-screen" class="screen">
       <p class="eyebrow">ENTER IF YOU DARE</p><h1>Take your seat.</h1>
       <p class="muted">Your host has the room code.<br>Your phone holds the final answer.</p>
-      <form id="join-form">
+      <form id="join-form" novalidate>
         <label for="room-code">ROOM CODE</label>
         <input id="room-code" name="code" maxlength="6" minlength="6" pattern="[A-Za-z2-9]{6}" placeholder="K7M2QX" autocomplete="off" autocapitalize="characters" spellcheck="false" required>
         <label for="nickname">NICKNAME</label>
@@ -24,7 +29,7 @@
         <label for="password">ROOM PASSWORD <span>IF REQUIRED</span></label>
         <input id="password" type="password" maxlength="64" autocomplete="off" placeholder="Leave empty for an open room">
         <p id="join-error" class="error" role="alert"></p>
-        <button id="join-button" type="submit" class="primary">JOIN THE SHOW <span aria-hidden="true">→</span></button>
+        <button id="join-button" type="submit" class="primary">JOIN ROOM</button>
       </form>
     </section>
     <section id="waiting-screen" class="screen" hidden>
@@ -32,6 +37,7 @@
       <p id="waiting-message" class="muted">The host will begin the show shortly.</p>
       <div class="identity"><span class="seal" aria-hidden="true">FA</span><div><small>YOUR IDENTITY</small><strong id="player-name"></strong><span id="character-name" class="muted"></span></div></div>
       <p class="eyebrow" id="players-count">THE GUEST LIST</p><ul id="players" class="players"></ul>
+      <p id="room-configuration" class="room-configuration"></p>
       <p class="whisper">Keep this page open. Watch the host's screen.</p>
     </section>
     <section id="question-screen" class="screen" hidden>
@@ -39,6 +45,41 @@
       <h1 id="question-text" class="question"></h1>
       <p id="answer-status" class="muted" role="status">Choose carefully. One final answer.</p>
       <div id="answers" class="answers"></div>
+    </section>
+    <section id="final-screen" class="screen" hidden>
+      <p class="eyebrow">THE IMPOSTOR · FINAL ACT</p>
+      <h1 id="final-title"></h1>
+      <p id="final-personal" class="personal-result" aria-live="polite" hidden></p>
+      <p id="final-waiting-host" class="muted" hidden></p>
+      <p id="final-announcement" class="secret-word" aria-live="polite"></p>
+      <p id="final-timer" role="timer"></p>
+      <p id="final-progress"></p>
+      <p id="final-status" role="status" aria-live="polite"></p>
+      <div id="final-cards" class="suspect-cards"></div>
+      <button id="confirm-vote" type="button" hidden disabled>CONFIRM VOTE</button>
+      <p id="result-player" class="eyebrow"></p>
+      <ul id="final-results" class="final-results"></ul>
+    </section>
+    <section id="impostor-screen" class="screen" hidden>
+      <p id="impostor-round" class="eyebrow"></p>
+      <div class="role-panel"><h2 id="impostor-role"></h2>
+      <p id="impostor-word" class="secret-word"></p>
+      <p id="impostor-role-note"></p></div>
+      <p id="impostor-countdown" role="timer"></p>
+      <form id="clue-form" hidden>
+        <label for="clue-input">WRITE ONE CLUE</label>
+        <input id="clue-input" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="48" enterkeyhint="send" aria-describedby="clue-status">
+        <button id="clue-submit" type="submit">SUBMIT</button>
+      </form>
+      <p id="clue-status" role="status" aria-live="polite"></p>
+      <div id="clue-confirmation" class="confirmation-panel" hidden><h2>CLUE SUBMITTED</h2><p>WAITING FOR OTHER PLAYERS...</p></div>
+    </section>
+    <section id="suspicion-screen" class="screen" hidden>
+      <div class="round-top"><p class="eyebrow">THE IMPOSTOR · PRIVATE SUSPICION</p><span id="suspicion-timer" class="timer" aria-label="Seconds remaining"></span></div>
+      <h1 id="suspicion-title">CHOOSE A SUSPECT</h1>
+      <p id="suspicion-progress" class="muted"></p>
+      <p id="suspicion-status" class="muted" role="status" aria-live="polite"></p>
+      <div id="suspect-cards" class="suspect-cards" aria-label="Active participants"></div>
     </section>
     <section id="result-screen" class="screen result" hidden>
       <p class="eyebrow">THE TRUTH IS OUT</p><h1 id="result-title"></h1>

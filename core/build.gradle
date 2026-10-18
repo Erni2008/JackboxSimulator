@@ -29,3 +29,17 @@ tasks.register('clockCheck', JavaExec) {
 }
 
 dependencies { api project(':shared') }
+
+// Like inspector, these checks are dependency-free executables rather than JUnit suites.
+test { failOnNoDiscoveredTests = false }
+check.dependsOn roundCheck, clockCheck
+
+tasks.register('presentationCheck', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.presentation.PresentationCheck'
+}
+check.dependsOn presentationCheck
+
+dependencies { api 'com.google.zxing:core:3.5.4' }
