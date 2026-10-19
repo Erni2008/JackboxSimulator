@@ -8,5 +8,5 @@ public record ImpostorSettings(int roundCount,int discussionSeconds,int votingSe
         if(roundCount<1||roundCount>3||discussionSeconds<5||discussionSeconds>300||votingSeconds<5||votingSeconds>120
                 ||clueSeconds<5||clueSeconds>120||!"DEFAULT".equals(wordCategory))throw new IllegalArgumentException("Invalid Impostor settings");
     }
-    public static ImpostorSettings defaults(){return new ImpostorSettings(3,30,20,10,"DEFAULT",true,true,false);}
+    public static ImpostorSettings defaults(){return new ImpostorSettings(3,10,10,5,"DEFAULT",true,true,false);}
 }

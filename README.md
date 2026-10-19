@@ -209,3 +209,5 @@ PNG и настройка pivot: `assets/clock/README.md`.
 Параметры постановки и подключение озвучки: `docs/QUESTION_PRESENTATION.md`.
 Вопрос, ответы и запуск часов управляются QuestionPresentationController;
 старый независимый старт ответов на третьей секунде заменён новой последовательностью.
+
+Расположение изображений и правила добавления ресурсов: [ASSET_ORGANIZATION.md](docs/ASSET_ORGANIZATION.md). Игровые PNG находятся в `assets/`, исходные варианты и архив — в `source_assets/`.

@@ -11,7 +11,7 @@ const suspicion=createSuspicionController({getState:()=>state,isAuthenticated:()
 Object.assign(messages,{SUSPICION_TOO_LATE:'The suspicion deadline has passed.',SUSPICION_CLOSED:'Suspicions are sealed.',INVALID_SUSPECT:'Choose an active participant.',SELF_SUSPICION:'You cannot suspect yourself.',NOT_ELIGIBLE:'You are not eligible in this phase.',STALE_SUSPICION:'This suspicion round has ended.',WRONG_ROOM:'This request belongs to another room.',INVALID_SUSPICION:'Invalid selection. Please reconnect and try again.'});
 try{credentials=JSON.parse(sessionStorage.getItem('finalanswer-session')||'null');}catch{credentials=null;}
 function id(){return Array.from(crypto.getRandomValues(new Uint32Array(4)),n=>n.toString(16)).join('');}
-function show(name){if(currentScreen===name)return;currentScreen=name;screens.forEach(s=>$(s+'-screen').hidden=s!==name);}
+function show(name){if(currentScreen===name)return;if(currentScreen==='impostor')impostor.hide();currentScreen=name;screens.forEach(s=>$(s+'-screen').hidden=s!==name);}
 function status(text,offline=false){$('connection').textContent=text;$('connection').classList.toggle('offline',offline);}
 function save(){try{if(credentials)sessionStorage.setItem('finalanswer-session',JSON.stringify(credentials));else sessionStorage.removeItem('finalanswer-session');}catch{status('Storage unavailable — keep this tab open.',true);}}
 function send(type,payload={},requestId=id()){if(ws?.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type,requestId,payload}));return requestId;}

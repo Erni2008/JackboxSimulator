@@ -5,11 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#110e10">
   <title>Final Answer — Player controller</title>
+  <link rel="preload" href="/art/ui/fonts/Caveat-Variable.ttf?v=2" as="font" type="font/ttf" crossorigin>
   <link rel="stylesheet" href="/style.css">
-  <link rel="stylesheet" href="/controller-theme.css">
+  <link rel="stylesheet" href="/controller-theme.css?v=role-1">
   <script src="/final-answer-button.js" defer></script>
-  <script src="/final-voting.js" defer></script>
-  <script src="/impostor.js" defer></script>
+  <script src="/final-voting.js?v=3" defer></script>
+  <script src="/parchment-writer.js?v=4" defer></script>
+  <script src="/countdown-clock.js?v=1" defer></script>
+  <script src="/impostor.js?v=5" defer></script>
   <script src="/suspicion.js" defer></script>
   <script src="/app.js" defer></script>
 </head>
@@ -62,14 +65,20 @@
     </section>
     <section id="impostor-screen" class="screen" hidden>
       <p id="impostor-round" class="eyebrow"></p>
-      <div class="role-panel"><h2 id="impostor-role"></h2>
+      <div class="role-panel"><img class="role-parchment" src="/art/impostor/phone/word_reminise.png" alt="" draggable="false"><h2 id="impostor-role"></h2>
       <p id="impostor-word" class="secret-word"></p>
       <p id="impostor-role-note"></p></div>
+      <canvas id="role-countdown-clock" width="1223" height="1286" role="img" aria-label="Role reveal countdown" hidden></canvas>
       <p id="impostor-countdown" role="timer"></p>
       <form id="clue-form" hidden>
-        <label for="clue-input">WRITE ONE CLUE</label>
-        <input id="clue-input" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="48" enterkeyhint="send" aria-describedby="clue-status">
-        <button id="clue-submit" type="submit">SUBMIT</button>
+        <div id="parchment-surface" class="parchment-surface">
+          <img class="writing-paper" src="/art/impostor/phone/papper3dview.png" alt="" draggable="false">
+          <label for="clue-input" class="writing-hint">TAP TO WRITE · MAX 10</label>
+          <div class="parchment-ink" aria-hidden="true"></div>
+          <textarea id="clue-input" rows="3" autocomplete="off" autocapitalize="sentences" spellcheck="false" maxlength="10" enterkeyhint="done" aria-label="Write one clue on the parchment" aria-describedby="clue-status"></textarea>
+          <img class="writing-pen" src="/art/impostor/phone/pen.png" alt="" draggable="false">
+        </div>
+        <button id="clue-submit" type="submit">CONFIRM</button>
       </form>
       <p id="clue-status" role="status" aria-live="polite"></p>
       <div id="clue-confirmation" class="confirmation-panel" hidden><h2>CLUE SUBMITTED</h2><p>WAITING FOR OTHER PLAYERS...</p></div>

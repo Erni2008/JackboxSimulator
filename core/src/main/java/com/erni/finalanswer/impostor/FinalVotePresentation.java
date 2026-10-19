@@ -15,6 +15,8 @@ import java.util.function.Function;
 public final class FinalVotePresentation extends Group {
     private final ImpostorAssets assets;
     private final BitmapFont font;
+    private BitmapFont revealFont;
+    public void revealFont(BitmapFont value){revealFont=Objects.requireNonNull(value);}
     private final Function<RoomSession.Player,Actor> avatars;
     private final Label title,detail,progress;
     private final Group cards=new Group();
@@ -101,7 +103,9 @@ public final class FinalVotePresentation extends Group {
                 case IMPOSTOR_REVEAL,RESULT -> names.getOrDefault(next.impostorId(),"");
                 default -> "";
             });
-            measurement.setText(font,detail.getText());detail.setFontScale(Math.min(1.15f,detail.getWidth()/Math.max(1,measurement.width)));
+            BitmapFont chosen=next.phase()==ImpostorPhase.IMPOSTOR_REVEAL&&revealFont!=null?revealFont:font;
+            detail.setStyle(new Label.LabelStyle(chosen,Color.valueOf("DDB17F")));
+            measurement.setText(chosen,detail.getText());detail.setFontScale(Math.min(1.15f,detail.getWidth()/Math.max(1,measurement.width)));
             for(var entry:cardsById.entrySet()){
                 Image parchment=entry.getValue().findActor("finalParchment");
                 if(parchment!=null){boolean highlight=next.phase()==ImpostorPhase.SUSPECT_ANNOUNCEMENT?next.leaders().contains(entry.getKey()):
@@ -125,7 +129,16 @@ public final class FinalVotePresentation extends Group {
         if(reducedMotion)entry=1;
         title.getColor().a=entry;detail.getColor().a=entry;
         boolean delayedName=snapshot.phase()==ImpostorPhase.SUSPECT_ANNOUNCEMENT || snapshot.phase()==ImpostorPhase.IMPOSTOR_REVEAL;
-        if(delayedName&&!reducedMotion)detail.getColor().a=Math.max(0,Math.min(1,(serverNow-snapshot.phaseStartedAt()-600)/350f));
+        if(snapshot.phase()==ImpostorPhase.IMPOSTOR_REVEAL){
+            long age=serverNow-snapshot.phaseStartedAt()-2000;
+            detail.setVisible(age>=0);
+            detail.getColor().a=age<0?0:reducedMotion?1:Math.min(1,age/400f);
+            for(var entryCard:cardsById.entrySet()){
+                boolean highlight=age>=0&&entryCard.getKey().equals(snapshot.impostorId());
+                Image paper=entryCard.getValue().findActor("finalParchment");if(paper!=null)paper.setColor(highlight?Color.valueOf("FFD5B0"):Color.WHITE);
+                Label nickname=entryCard.getValue().findActor("finalNickname");nickname.setColor(highlight?Color.valueOf("841F2C"):Color.valueOf("352116"));nickname.setFontScale(highlight?1:.9f);
+            }
+        }else{detail.setVisible(true);if(delayedName&&!reducedMotion)detail.getColor().a=Math.max(0,Math.min(1,(serverNow-snapshot.phaseStartedAt()-600)/350f));}
         if(!cards.isVisible()){if(stamp!=null)stamp.setVisible(false);return;}
         long elapsed=Math.max(0,serverNow-snapshot.revealStartedAt());
         float cardsEntry=Math.min(1,elapsed/650f);cardsEntry=cardsEntry*cardsEntry*(3-2*cardsEntry);

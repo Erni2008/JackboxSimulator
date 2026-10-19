@@ -35,10 +35,10 @@ try{
     await phase('FINAL_VOTE_REVEAL');await sleep(1650);await host('CAPTURE',{},`match-${match+1}-stamps`);
     await phase('RESULT');await sleep(650);const result=(await state()).impostor.result;
     assert.equal(result.outcome,match===1?'IMPOSTOR_ESCAPED':match===3?'NO_CONSENSUS':'IMPOSTOR_CAUGHT');assert.equal(result.statistics.validVotes,count);assert.equal(result.statistics.completedRounds,1);
-    await host('CAPTURE',{},`match-${match+1}-results`);
+    await host('CAPTURE',{},`match-${match+1}-completion`);
     await clients[0].page.reload();await clients[0].page.locator('#final-screen').waitFor({state:'visible'});assert.deepEqual((await state()).impostor.result,result);
     await clients[0].page.evaluate(()=>window.__qaSocket.close());await clients[0].page.locator('#disconnected-screen').waitFor({state:'visible'});await clients[0].page.locator('#final-screen').waitFor({state:'visible'});assert.deepEqual((await state()).impostor.result,result);
-    for(let i=0;i<clients.length;i++){const personal=result.participants.find(p=>p.playerId===clients[i].credentials.selfId);assert.equal(await clients[i].page.locator('#final-personal').textContent(),personal?(personal.winner?'YOU WIN!':'YOU LOSE!'):'MATCH COMPLETE · SPECTATOR');}
+    for(const {page} of clients){assert.equal(await page.locator('#final-title').textContent(),'THE IMPOSTOR IS…');for(const id of ['final-personal','final-waiting-host','final-results','result-player'])assert(await page.locator('#'+id).isHidden());assert.equal(await page.locator('#final-status').textContent(),'');}
     const next=match===0||match===2?'REPLAY_IMPOSTOR':'IMPOSTOR_RETURN_TO_LOBBY';await action(next);for(const c of clients)await c.page.locator('#waiting-screen').waitFor({state:'visible'});
     assert.equal((await state()).code,initial.code);assert.deepEqual((await state()).players,initial.players);
     console.log(`PASS live owned server: match ${match+1}, ${count} active + ${6-count} spectators, ${result.outcome}, ${next}`);

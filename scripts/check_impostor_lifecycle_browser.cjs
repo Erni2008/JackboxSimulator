@@ -60,7 +60,8 @@ try{
     const s=await state(),id=s.impostor.sessionId,configuration=s.impostorSettings;assert.deepEqual(configuration,before.impostorSettings);assert(!sessions.has(id));sessions.add(id);
     assert.equal(s.code,initial.code);assert.equal(s.roomId,initial.roomId);assert.deepEqual(s.players,initial.players);
     for(const c of clients)await c.page.locator('#impostor-screen').waitFor({state:'visible'});
-    const personalized=await Promise.all(clients.map(c=>wire(c.page,'SYNC')));const actual=personalized.findIndex(e=>e.payload.impostor.role==='IMPOSTOR');assert(actual>=0&&actual<count);
+    const personalized=await Promise.all(clients.map(c=>wire(c.page,'SYNC')));if(process.env.PARCHMENT_QA==='1'){for(const value of personalized)assert.equal(value.payload.impostor.roleRevealDurationMillis,4000);}
+    const actual=personalized.findIndex(e=>e.payload.impostor.role==='IMPOSTOR');assert(actual>=0&&actual<count);
     if(redesign)await clients[0].page.screenshot({path:path.join(dir,`stage9-role-${match+1}.png`),fullPage:true});
     assert(!s.impostor.result);assert.equal(s.impostor.revealedClues.length,0);
     for(let i=count;i<clients.length;i++)assert(!personalized[i].payload.impostor.role&&!personalized[i].payload.impostor.secretWord,'Spectator private data');
@@ -77,7 +78,13 @@ try{
     if(redesign){await clients[0].page.locator('#clue-input').waitFor({state:'visible'});await clients[0].page.screenshot({path:path.join(dir,'stage9-clue.png'),fullPage:true});}
     for(let round=1;round<=configuration.roundCount;round++){
       for(let i=0;i<count;i++){
-        const reply=await wire(clients[i].page,'SUBMIT_CLUE',{roomCode:ready.code,sessionId:id,round,clue:['СВЕТ','ЛУНА','ВЕТЕР'][round-1]});assert.equal(reply.type,'CLUE_ACCEPTED');
+        if(process.env.PARCHMENT_QA==='1'){
+          const phone=clients[i].page,clue=['СВЕТ','ЛУНА','ВЕТЕР'][round-1];
+          await phone.locator('#clue-input').fill(clue);assert.equal(await phone.locator('.parchment-ink').textContent(),clue);
+          await phone.locator('#clue-submit').click();
+          await phone.waitForFunction(()=>document.getElementById('clue-form').hidden);
+          if(i===0&&round===1)await phone.screenshot({path:path.join(dir,`parchment-confirmed-match-${match+1}.png`),fullPage:true});
+        }else{const reply=await wire(clients[i].page,'SUBMIT_CLUE',{roomCode:ready.code,sessionId:id,round,clue:['СВЕТ','ЛУНА','ВЕТЕР'][round-1]});assert.equal(reply.type,'CLUE_ACCEPTED');}
       }
       await advance(500);await advance(5000);await advance(1);await advance(1850);
     }
@@ -92,13 +99,15 @@ try{
     const result=(await state()).impostor.result;assert.equal(result.outcome,['IMPOSTOR_CAUGHT','IMPOSTOR_ESCAPED','NO_CONSENSUS'][mode]);assert.equal(result.statistics.submittedClues,count*configuration.roundCount);assert.equal(result.participants.length,count);
     for(let i=0;i<clients.length;i++){
       const page=clients[i].page,personal=result.participants.find(p=>p.playerId===clients[i].credentials.selfId);
-      await page.waitForFunction(()=>!document.getElementById('final-personal').hidden);
-      assert.equal(await page.locator('#final-personal').textContent(),personal?(personal.winner?'YOU WIN!':'YOU LOSE!'):'MATCH COMPLETE · SPECTATOR');
+      await page.waitForFunction(()=>document.getElementById('final-title').textContent==='THE IMPOSTOR IS…');
+      for(const id of ['final-personal','final-waiting-host','final-results','result-player','confirm-vote'])assert(await page.locator('#'+id).isHidden(),id+' must not appear after completion');
+      assert.equal(await page.locator('#final-status').textContent(),'');
+      assert.equal((await wire(page,'SYNC')).payload.impostor.completed,true);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
     }
     await clients[0].page.reload();await clients[0].page.locator('#final-screen').waitFor({state:'visible'});assert.deepEqual((await wire(clients[0].page,'SYNC')).payload.impostor.result,result);
     await clients[0].page.waitForFunction(()=>getComputedStyle(document.getElementById('final-screen')).opacity==='1');
-    if(polish){await clients[5].page.waitForFunction(()=>getComputedStyle(document.getElementById('final-personal')).animationName==='none');}
+    assert(await clients[0].page.locator('#final-personal').isHidden(),'Reconnect must not show results');
     await clients[0].page.screenshot({path:path.join(dir,`${redesign?'stage9':polish?'stage8':'stage7'}-match-${match+1}.png`),fullPage:true});
     if(match===2||match===5){await action('IMPOSTOR_RETURN_TO_LOBBY');for(const c of clients)await c.page.locator('#waiting-screen').waitFor({state:'visible'});assert(!(await state()).impostor);}
     else{

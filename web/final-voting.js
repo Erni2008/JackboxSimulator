@@ -22,6 +22,8 @@ function createFinalVotingController({getState,isAuthenticated,send,now,makeId})
     const timed=s.phase==='EVIDENCE_REVIEW'||s.phase==='FINAL_VOTING';
     el('final-timer').classList.toggle('timer-warning',timed&&s.deadline-now()>0&&s.deadline-now()<=5000);
     el('final-timer').textContent=timed?`TIME REMAINING: ${Math.max(0,Math.ceil((s.deadline-now())/1000))}s`:'';
+    const waitingForName=s.phase==='IMPOSTOR_REVEAL'&&now()-s.finalPhaseStartedAt<2000;
+    el('final-announcement').hidden=waitingForName;
     for(const card of el('final-cards').children)card.disabled=!canVote(card.dataset.id);
     el('confirm-vote').disabled=!selection||!canVote(selection);
   }
@@ -30,23 +32,22 @@ function createFinalVotingController({getState,isAuthenticated,send,now,makeId})
     el('confirm-vote').hidden=s.phase!=='FINAL_VOTING'||!s.activeParticipant||s.finalVoteSubmitted;
     if(s.finalVoteSubmitted){selection=s.ownFinalVote||'';pending=null;clearTimeout(timeout);error='';}
     const names=new Map(s.participants.map(p=>[p.id,p.name]));
+    const completed=s.phase==='RESULT';
     const titles={EVIDENCE_REVIEW:'FINAL DISCUSSION',FINAL_VOTING:'WHO IS THE IMPOSTOR?',VOTING_LOCKED:'VOTING LOCKED',
       FINAL_VOTE_REVEAL:'THE VOTES ARE BEING REVEALED',SUSPECT_ANNOUNCEMENT:'THE MOST SUSPECTED PLAYER IS…',
-      IMPOSTOR_REVEAL:'THE IMPOSTOR IS…',RESULT:(s.outcome||'FINAL RESULT').replaceAll('_',' ')};
-    el('final-screen').dataset.phase=s.phase;el('final-status').classList.toggle('confirmed',!!s.finalVoteSubmitted);
-    el('final-title').textContent=titles[s.phase]||'THE IMPOSTOR';
-    const result=s.result,personal=result?.participants.find(p=>p.playerId===getState().selfId);
-    el('final-personal').hidden=!result;el('final-waiting-host').hidden=!result;
-    el('final-personal').textContent=result?(personal?(personal.winner?'YOU WIN!':'YOU LOSE!'):'MATCH COMPLETE · SPECTATOR'):'';
-    if(result)el('final-title').textContent=result.outcome==='IMPOSTOR_ESCAPED'?'THE IMPOSTOR ESCAPED':result.outcome.replaceAll('_',' ');
-    el('final-waiting-host').textContent=result?`WINNING SIDE: ${result.winningSide} · MATCH COMPLETE · WAITING FOR HOST...`:'';
-    el('result-player').textContent=result?'PLAYER: '+(getState().players.find(p=>p.id===getState().selfId)?.name||''):'';
+      IMPOSTOR_REVEAL:'THE IMPOSTOR IS…'};
+    el('final-screen').dataset.phase=completed?'IMPOSTOR_REVEAL':s.phase;el('final-status').classList.toggle('confirmed',!!s.finalVoteSubmitted);
+    el('final-title').textContent=completed?'THE IMPOSTOR IS…':titles[s.phase]||'THE IMPOSTOR';
+    for(const id of ['final-personal','final-waiting-host','result-player','final-results']){el(id).hidden=true;el(id).textContent='';}
     el('final-announcement').textContent=s.revealedImpostorId?'IMPOSTOR: '+(names.get(s.revealedImpostorId)||''):
       s.leadingSuspects?(s.leadingSuspects.length===1?names.get(s.leadingSuspects[0]):'NO CONSENSUS · '+s.leadingSuspects.map(id=>names.get(id)).join(', ')):'';
+    el('final-status').hidden=completed;
+    el('result-player').hidden=completed;
+    el('final-results').hidden=completed;
     el('final-progress').textContent=s.phase==='FINAL_VOTING'||s.phase==='VOTING_LOCKED'?`VOTES SUBMITTED: ${s.finalSubmittedCount} / ${s.finalEligibleCount}`:'';
     el('final-status').textContent=error||(s.phase==='EVIDENCE_REVIEW'?'Discuss the complete clue history on the shared screen.':
       s.phase==='FINAL_VOTING'?(!s.activeParticipant?'You are watching. Spectators cannot submit final votes.':s.finalVoteSubmitted?'VOTE ACCEPTED. Your choice is final.':pending?'SENDING YOUR VOTE…':'Select a suspect, then CONFIRM VOTE. One final choice.'):
-      s.phase==='RESULT'?'The result was decided by the server.':'Watch the shared screen.');
+      completed?'':'Watch the shared screen.');
     el('final-cards').replaceChildren();
     if(s.phase==='EVIDENCE_REVIEW'||s.phase==='FINAL_VOTING')for(const p of s.participants){
       const card=document.createElement('button');card.type='button';card.className='suspect-card final-vote-card';card.dataset.id=p.id;
@@ -56,8 +57,6 @@ function createFinalVotingController({getState,isAuthenticated,send,now,makeId})
       card.addEventListener('click',()=>{if(canVote(p.id)){selection=p.id;render();}});el('final-cards').append(card);
     }
     el('final-results').replaceChildren();
-    if(s.phase==='RESULT'&&s.finalVoteSnapshot)for(const p of s.participants){const row=document.createElement('li');
-      const pr=result?.participants.find(r=>r.playerId===p.id);row.textContent=`${p.name}: ${s.finalVoteSnapshot.counts[p.id]||0}${pr?' · '+pr.role+' · '+(pr.winner?'WINNER':'DEFEATED'):''}`;el('final-results').append(row);}
     tick();
   }
   el('confirm-vote').addEventListener('click',()=>submit(selection));

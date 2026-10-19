@@ -178,10 +178,11 @@ public final class RoomService {
         }
         if(message.type().equals("START_GAME")) {
             requireHost(member);
-            if(room.game!=null || room.impostor!=null) throw new Failure(409,"GAME_ALREADY_STARTED");
+            if(room.game!=null || room.impostor!=null&&room.impostor.result()==null) throw new Failure(409,"GAME_ALREADY_STARTED");
             Set<String> participants=new LinkedHashSet<>();
             room.members.values().stream().filter(m->m.peer!=null&&!m.left).forEach(m->participants.add(m.id));
             if(participants.isEmpty()) throw new Failure(409,"NOT_ENOUGH_PLAYERS");
+            if(room.impostor!=null){room.lastImpostorResult=room.impostor.result();room.impostor.close();room.impostor=null;}
             room.game=new GameSession(room.questionCount,participants,endPolicy,now());
             broadcast(room,"GAME_STARTED"); room.game.next(now()); broadcast(room,"QUESTION_STARTED");
             reply(peer,room,member,message); return;
@@ -308,6 +309,11 @@ public final class RoomService {
     private void reply(Peer peer,Room room,Member member,Message message) {
         peer.send(Protocol.event("STATE",message.requestId(),snapshot(room,member,false)));
     }
+    /** Server-side continuation point. The immutable outcome survives entering the main game. */
+    public synchronized com.erni.finalanswer.gameplay.impostor.ImpostorMatchResult completedImpostorResult(String code) {
+        return find(code).lastImpostorResult;
+    }
+
     public synchronized void tick() {
         for(Room room:new ArrayList<>(rooms.values())) {
             // Host heartbeat keeps an unconfirmed CREATE -> GENERATE room alive too.
@@ -326,8 +332,11 @@ public final class RoomService {
             if(mini.gameplay()) {
                 Set<String> connected=new LinkedHashSet<>();
                 room.members.values().stream().filter(m->m.peer!=null&&!m.left).forEach(m->connected.add(m.id));
-                if(mini.advance(now(),connected))broadcast(room,mini.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.ROUND_CLUE_REVEAL?
-                    "IMPOSTOR_CLUES_REVEALED":"IMPOSTOR_UPDATED");
+                if(mini.advance(now(),connected)){
+                    if(mini.result()!=null){room.lastImpostorResult=mini.result();broadcast(room,"IMPOSTOR_COMPLETED");}
+                    else broadcast(room,mini.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.ROUND_CLUE_REVEAL?
+                        "IMPOSTOR_CLUES_REVEALED":"IMPOSTOR_UPDATED");
+                }
             } else if(mini.tick(now()))broadcast(room,"SUSPICION_FINALIZED");
         }
         GameSession game=room.game; if(game==null || game.phase==Phase.GAME_FINISHED) return;
@@ -414,6 +423,7 @@ public final class RoomService {
             if(session.gameplay()) {
                 boolean suspecting=session.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.PRELIMINARY_SUSPICION;
                 mini.put("phase",session.phase().name());mini.put("round",session.clueRound());
+                if(session.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.ROLE_REVEAL)mini.put("roleRevealDurationMillis",ImpostorSession.ROLE_MILLIS);
                 mini.put("deadline",session.deadline());mini.put("suspicionFinalized",suspecting && suspicion.finalized());
                 mini.put("revealSequence",session.revealSequence());mini.put("revealedClues",session.revealedClues());
                 if(!suspecting){mini.put("submittedCount",session.clueCount());mini.put("eligibleCount",session.participants().size());
@@ -428,6 +438,7 @@ public final class RoomService {
             if(session.finalStage()) {
                 mini.put("finalPhaseStartedAt",session.finalPhaseStartedAt());
                 mini.put("finalRevealStartedAt",session.finalRevealStartedAt());
+                if(session.identityRevealStartedAt()>0)mini.put("identityRevealStartedAt",session.identityRevealStartedAt());
                 var voting=session.finalVoting();
                 mini.put("finalEligibleCount",session.participants().size());
                 mini.put("finalSubmittedCount",voting==null?0:voting.submitted());
@@ -445,9 +456,9 @@ public final class RoomService {
                     mini.put("outcome",voting.snapshot().outcome().name());
                 }
             }
-            if(session.result()!=null){mini.put("result",session.result());value.put("roomStatus","GAME_FINISHED");}
+            if(session.result()!=null){mini.put("result",session.result());mini.put("completed",true);mini.put("continuation","UNASSIGNED");}
             value.put("impostor",mini);
-            value.put("roomStatus",session.result()!=null?"GAME_FINISHED":"IN_GAME");
+            value.put("roomStatus","IN_GAME");
         }
         if(game!=null) {
             value.put("gameId",game.id); value.put("questionNumber",game.index+1); value.put("questionCount",game.questions.size());
@@ -498,6 +509,7 @@ public final class RoomService {
         final int maxPlayers,questionCount; final byte[] salt,passwordHash;
         String lobbyId=UUID.randomUUID().toString();List<String> impostorRoster=List.of();
         com.erni.finalanswer.gameplay.impostor.ImpostorSettings impostorSettings=com.erni.finalanswer.gameplay.impostor.ImpostorSettings.defaults();
+        com.erni.finalanswer.gameplay.impostor.ImpostorMatchResult lastImpostorResult;
         final Map<String,Member> members=new LinkedHashMap<>(); Member host; GameSession game; ImpostorSession impostor; long revision;
         Room(String code,String name,int max,String mode,int questions,byte[] salt,byte[] hash) {
             this.code=code;this.name=name;maxPlayers=max;this.mode=mode;questionCount=questions;this.salt=salt;passwordHash=hash;

@@ -42,6 +42,7 @@ public final class ImpostorScreen extends ScreenAdapter {
     private final ImpostorAssets assets = new ImpostorAssets();
     private final Stage stage = new Stage(new FitViewport(ImpostorLayout.WIDTH, ImpostorLayout.HEIGHT));
     private final BitmapFont labelFont = UiFonts.body(16);
+    private final BitmapFont revealNameFont = UiFonts.handwriting(52);
     private final BitmapFont timerFont = UiFonts.horror(52);
     private final BitmapFont participantFont = UiFonts.body(24);
     private final Function<RoomSession.Player, Actor> avatarFactory;
@@ -149,12 +150,8 @@ public final class ImpostorScreen extends ScreenAdapter {
                 lifecycle.waiting(ready?mini.get("sessionId").getAsString():snapshot.get("lobbyId").getAsString(),room.players(),ids,room.host(),ready);
             }else{
                 waitingPresentation="";roomLobby.update(null,"");playerLayer.setVisible(true);
-                if(mini.has("result")){
-                    var result=com.finalanswer.protocol.Protocol.JSON.fromJson(mini.get("result"),com.erni.finalanswer.gameplay.impostor.ImpostorMatchResult.class);
-                    if(!lifecycle.isVisible()){resultEntered=System.nanoTime();}
-                    if(!resultCue.equals(result.matchId())){resultCue=result.matchId();if(!phaseRestored)audio.play(result.winningSide()==com.erni.finalanswer.gameplay.impostor.ImpostorMatchResult.Side.INNOCENTS?com.erni.finalanswer.audio.PresentationAudio.Cue.VICTORY:com.erni.finalanswer.audio.PresentationAudio.Cue.DEFEAT);}
-                    lifecycle.result(result,participants,snapshot.get("host").getAsBoolean());finalPresentation.setVisible(false);playerLayer.setVisible(false);
-                }else lifecycle.hidePanel();
+                // The match result remains on the server; completion has no intermediate UI.
+                lifecycle.hidePanel();
             }
         }
         if(!pendingAction.isEmpty() && System.nanoTime()-actionStarted>3_000_000_000L){pendingAction="";lifecycleError="Checking room state...";liveConnection.send("SYNC",Map.of());}
@@ -258,7 +255,7 @@ public final class ImpostorScreen extends ScreenAdapter {
         paperReveal.reset();transition.reset();presentationKey="";warnedDeadline=0;
         clearSuspicion();clearFinal();
         participants = copy;
-        if (built){rebuildParticipants();finalPresentation.setRoster(participants);}
+        if (built){rebuildParticipants();finalPresentation.revealFont(revealNameFont);finalPresentation.setRoster(participants);}
     }
 
     private void rebuildParticipants() {
@@ -355,7 +352,7 @@ public final class ImpostorScreen extends ScreenAdapter {
         suspicionEnvelope=new SuspicionEnvelope(assets,labelFont);
         stage.addActor(suspicionEnvelope);
         finalPresentation=new FinalVotePresentation(assets,participantFont,avatarFactory);
-        finalPresentation.setRoster(participants);finalPresentation.onImpact(()->audio.play(com.erni.finalanswer.audio.PresentationAudio.Cue.STAMP_IMPACT));stage.addActor(finalPresentation);
+        finalPresentation.revealFont(revealNameFont);finalPresentation.setRoster(participants);finalPresentation.onImpact(()->audio.play(com.erni.finalanswer.audio.PresentationAudio.Cue.STAMP_IMPACT));stage.addActor(finalPresentation);
         lifecycle=new ImpostorLifecyclePanel(assets,participantFont,avatarFactory,this::sendLifecycle);stage.addActor(lifecycle);
         addImage(ImpostorAsset.CLOCK, "impostorClock", ImpostorLayout.CLOCK);
         // The hand is only meaningful when the clock body exists.
@@ -471,7 +468,7 @@ public final class ImpostorScreen extends ScreenAdapter {
         stage.dispose();
         labelFont.dispose();
         timerFont.dispose();audio.close();if(roomSettings!=null)roomSettings.dispose();if(dust!=null)dust.dispose();if(veil!=null)veil.dispose();
-        participantFont.dispose();
+        participantFont.dispose();revealNameFont.dispose();
         assets.dispose();
     }
 }

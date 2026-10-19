@@ -34,7 +34,8 @@ public final class ImpostorSession {
             new ImpostorMatchResult.Statistics(participants.size(),revealed.size(),submitted,votes.ballots().size(),abstentions.size()));
         enterFinalPhase(ImpostorPhase.RESULT,now,0);
     }
-    private long finalPhaseStartedAt, finalRevealStartedAt;
+    private long finalPhaseStartedAt, finalRevealStartedAt, identityRevealStartedAt;
+    public long identityRevealStartedAt(){return identityRevealStartedAt;}
     public boolean finalStage(){return finalPhaseStartedAt>0;}
     public long finalPhaseStartedAt(){return finalPhaseStartedAt;}
     public long finalRevealStartedAt(){return finalRevealStartedAt;}
@@ -42,7 +43,7 @@ public final class ImpostorSession {
     public boolean votesPublic(){return phase==ImpostorPhase.FINAL_VOTE_REVEAL || phase==ImpostorPhase.SUSPECT_ANNOUNCEMENT || identityPublic();}
     public boolean identityPublic(){return phase==ImpostorPhase.IMPOSTOR_REVEAL || phase==ImpostorPhase.RESULT;}
     public String revealedImpostor(){return identityPublic()?impostorId:null;}
-    private void enterFinalPhase(ImpostorPhase next,long now,long duration){phase=next;finalPhaseStartedAt=now;deadline=duration==0?0:now+duration;}
+    private void enterFinalPhase(ImpostorPhase next,long now,long duration){if(next==ImpostorPhase.IMPOSTOR_REVEAL)identityRevealStartedAt=now;phase=next;finalPhaseStartedAt=now;deadline=duration==0?0:now+duration;}
     public void submitFinalVote(String voter,String target,long now){
         if(closed || phase!=ImpostorPhase.FINAL_VOTING || now>=deadline)throw new Failure(409,"FINAL_VOTING_CLOSED");
         finalVoting.submit(voter,target,now);

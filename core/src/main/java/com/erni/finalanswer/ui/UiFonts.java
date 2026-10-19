@@ -50,6 +50,21 @@ public final class UiFonts {
         }
     }
 
+    /** Cyrillic and Latin handwriting for the public identity announcement. Caller owns it. */
+    public static BitmapFont handwriting(int size) {
+        var generator = new FreeTypeFontGenerator(Gdx.files.internal("ui/fonts/Caveat-Variable.ttf"));
+        try {
+            var parameters = new FreeTypeFontGenerator.FreeTypeFontParameter();
+            parameters.size = size;
+            StringBuilder characters = new StringBuilder(FreeTypeFontGenerator.DEFAULT_CHARS);
+            for (char c = '\u0400'; c <= '\u04ff'; c++) characters.append(c);
+            parameters.characters = characters.toString();
+            parameters.minFilter = Texture.TextureFilter.Linear;
+            parameters.magFilter = Texture.TextureFilter.Linear;
+            return generator.generateFont(parameters);
+        } finally { generator.dispose(); }
+    }
+
     public static BitmapFont body(int size) {
         FreeTypeFontGenerator generator =
                 new FreeTypeFontGenerator(Gdx.files.internal("ui/fonts/NotoSans-Regular.ttf"));

@@ -51,8 +51,17 @@ processResources {
         include 'ui/buttons/player_count/*.png', 'ui/windows/create_room/field*.png',
                 'ui/windows/generation_code/CodeField.png', 'impostor/backgrounds/background1.png',
                 'impostor/papers/suspect_papper.png', 'impostor/papers/papper_player_front.png',
-                'impostor/portraits/impostor_avatar_frame.png', 'impostor/voting/suspect_print.png',
-                'ui/fonts/RoadRage-Regular.ttf', 'ui/fonts/RoadRage-OFL.txt'
+                'impostor/portraits/impostor_avatar_frame.png', 'impostor/voting/suspect_print.png', 'impostor/clock/clockmini.png', 'impostor/clock/arrow_clock1.png',
+                'ui/fonts/RoadRage-Regular.ttf', 'ui/fonts/RoadRage-OFL.txt',
+                'ui/fonts/Caveat-Variable.ttf', 'ui/fonts/Caveat-OFL.txt'
+        into 'web/art'
+    }
+}
+
+// Browser controllers share these original files with desktop packaging.
+processResources {
+    from(rootProject.file('assets')) {
+        include 'impostor/phone/papper3dview.png', 'impostor/phone/pen.png', 'impostor/phone/word_reminise.png'
         into 'web/art'
     }
 }

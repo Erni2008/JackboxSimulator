@@ -24,6 +24,9 @@ public final class ImpostorSuspicionAdapter {
     /** Also usable by deterministic development fixtures; never assigns roles or selects a roster. */
     public void apply(JsonObject mini,long serverNow){
         String phase=mini.get("phase").getAsString(),id=mini.get("sessionId").getAsString();
+        // Completion holds the existing identity scene. Never enter the obsolete results presentation.
+        boolean completed=phase.equals("RESULT");
+        if(completed)phase="IMPOSTOR_REVEAL";
         boolean fresh=!id.equals(session);
         if(!mini.has("finalPhaseStartedAt"))screen.clearFinal();
         if(mini.has("revealedClues")) {
@@ -54,7 +57,7 @@ public final class ImpostorSuspicionAdapter {
                 if(!phase.equals("PRELIMINARY_SUSPICION"))screen.clearSuspicion();
                 lastPhase=phase;
             }
-            screen.presentPhase(ImpostorPhase.valueOf(phase),mini.get("deadline").getAsLong(),serverNow);
+            if(!completed)screen.presentPhase(ImpostorPhase.valueOf(phase),mini.get("deadline").getAsLong(),serverNow);
             if(mini.has("finalPhaseStartedAt")) {
                 var targets=new ArrayList<String>();var counts=new LinkedHashMap<String,Integer>();String finalSequence="";
                 if(mini.has("finalVoteSnapshot")){
@@ -63,7 +66,7 @@ public final class ImpostorSuspicionAdapter {
                     result.getAsJsonObject("counts").entrySet().forEach(e->counts.put(e.getKey(),e.getValue().getAsInt()));
                 }
                 var leaders=new ArrayList<String>();if(mini.has("leadingSuspects"))for(var leader:mini.getAsJsonArray("leadingSuspects"))leaders.add(leader.getAsString());
-                screen.presentFinal(new FinalActSnapshot(id,ImpostorPhase.valueOf(phase),mini.get("finalPhaseStartedAt").getAsLong(),
+                screen.presentFinal(new FinalActSnapshot(id,ImpostorPhase.valueOf(phase),(completed&&mini.has("identityRevealStartedAt")?mini.get("identityRevealStartedAt").getAsLong():mini.get("finalPhaseStartedAt").getAsLong()-(completed?4000:0)),
                     mini.get("deadline").getAsLong(),mini.get("finalRevealStartedAt").getAsLong(),mini.get("finalSubmittedCount").getAsInt(),
                     mini.get("finalEligibleCount").getAsInt(),finalSequence,targets,counts,leaders,
                     mini.has("revealedImpostorId")?mini.get("revealedImpostorId").getAsString():"",mini.has("outcome")?mini.get("outcome").getAsString():""),serverNow);

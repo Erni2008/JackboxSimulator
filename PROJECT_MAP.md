@@ -439,3 +439,7 @@ JSON-наборы вопросов и экран окончания сессии
 - `docs/MULTIPLAYER_PROTOCOL.md` и `server/README.md` — протокол и полный запуск.
 
 В сетевом PLAY сервер переключает вопросы; SPACE/R/P доступны только в локальном preview.
+
+## Уборка корневых изображений — 19 октября 2026
+
+Все 52 корневых PNG разложены без изменения содержимого: два используемых холста — в `assets/impostor/phone/`, остальные оригиналы — в `source_assets/archive/root-imports/` по назначению. HTTP-пути ресурсов сохранены. Подробности и реестр старых/новых путей: [docs/ASSET_ORGANIZATION.md](docs/ASSET_ORGANIZATION.md).

@@ -610,7 +610,12 @@ public final class ImpostorCheck extends FinalAnswerGame {
             preview.presentFinal(announcement,59000);preview.render(0);view.update(59000);check(((Label)view.findActor("finalDetail")).getText().toString().equals("Shadow"),"Suspect announcement before identity");
             finalCaptureNow=59000;capturePaperState("final-suspect");
             var identity=new FinalActSnapshot("final-"+count,ImpostorPhase.IMPOSTOR_REVEAL,61500,65500,reveal,count,count,snapshot.sequenceId(),targets,counts,java.util.List.of(b),b,"IMPOSTOR_CAUGHT");
-            preview.presentFinal(identity,62500);preview.render(0);view.update(62500);finalCaptureNow=62500;capturePaperState("final-identity");
+            preview.presentFinal(identity,62500);preview.render(0);view.update(63499);
+            Label identityName=view.findActor("finalDetail");check(!identityName.isVisible(),"Identity name waits full two seconds");
+            view.reducedMotion(true);view.update(63499);check(!identityName.isVisible(),"Reduced motion preserves suspense pause");
+            view.update(63500);check(identityName.isVisible()&&identityName.getColor().a==1,"Identity appears at two seconds with reduced motion");
+            check(identityName.getStyle().font.getData().hasGlyph('Ж')&&identityName.getStyle().font.getData().hasGlyph('Я'),"Reveal handwriting contains Cyrillic glyphs");
+            view.reducedMotion(false);view.update(64100);finalCaptureNow=64100;capturePaperState("final-identity");
             var result=new FinalActSnapshot("final-"+count,ImpostorPhase.RESULT,65500,0,reveal,count,count,snapshot.sequenceId(),targets,counts,java.util.List.of(b),b,"IMPOSTOR_CAUGHT");
             preview.presentFinal(result,66500);preview.render(0);view.update(66500);finalCaptureNow=66500;capturePaperState("final-result");
             check(view.visibleStampCount()==count,"Final result keeps every stamp");
