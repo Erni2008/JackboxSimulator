@@ -43,3 +43,45 @@ tasks.register('presentationCheck', JavaExec) {
 check.dependsOn presentationCheck
 
 dependencies { api 'com.google.zxing:core:3.5.4' }
+
+tasks.register('cageCheck', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lobby.CageCheck'
+}
+check.dependsOn tasks.named('cageCheck')
+
+tasks.register('ghostCheck', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lobby.GhostCheck'
+}
+check.dependsOn tasks.named('ghostCheck')
+
+// Keep the supplied zombie artwork in place; expose unchanged originals as classpath assets.
+processResources {
+    from(rootProject.projectDir) { include 'zombie1.png', 'zombie2.png', 'zombie3.png', 'zombie4.png', 'zombie5.png', 'zombie6.png' }
+}
+
+tasks.register('zombieCheck', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lobby.ZombieCheck'
+}
+check.dependsOn tasks.named('zombieCheck')
+
+// Package the seven supplied Dracula PNGs under their original names, leaving sources untouched.
+processResources {
+    from(rootProject.projectDir) { include 'drakula.png', 'drakula2.png', 'drakula3.png', 'drakula5.png', 'drakula6.png', 'drakula7.png', 'drakula8.png' }
+}
+
+tasks.register('draculaCheck', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lobby.DraculaCheck'
+}
+check.dependsOn tasks.named('draculaCheck')

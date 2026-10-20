@@ -31,7 +31,7 @@ class ImpostorCompletionTest {
         m.f.advance(700);m.f.advance(5000);m.f.advance(3500);m.f.advance(4000);
         assertEquals("NO_CONSENSUS",m.f.rooms.completedImpostorResult(m.f.code).outcome());assertEquals(4,m.f.rooms.completedImpostorResult(m.f.code).statistics().validVotes());assertTrue(m.f.mini(0).get("completed").getAsBoolean());
     }
-    @Test void hostSyncCanDeliverDueCompletionToEveryController(){var m=new ImpostorLifecycleTest.Match(3);m.toVoting();m.f.advance(10000);m.f.advance(700);m.f.advance(5000);m.f.advance(3500);
+    @Test void hostSyncCanDeliverDueCompletionToEveryController(){var m=new ImpostorLifecycleTest.Match(3);m.toVoting();m.f.advance(20000);m.f.advance(700);m.f.advance(5000);m.f.advance(3500);
         m.f.clock.addAndGet(4000);m.f.rooms.command(m.f.hostPeer,Protocol.decode(Protocol.event("SYNC","host-finish",Map.of())));
         for(var peer:m.f.peers)assertEquals(1,peer.events.stream().filter(e->s(e,"type").equals("IMPOSTOR_COMPLETED")).count());
     }

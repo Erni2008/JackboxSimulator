@@ -52,6 +52,11 @@ public final class RoomApiClient implements AutoCloseable {
             String password,
             Consumer<RoomSession> done,
             Consumer<String> failed) {
+        join(code, name, password, "", done, failed);
+    }
+
+    public void join(String code, String name, String password, String characterId,
+                     Consumer<RoomSession> done, Consumer<String> failed) {
         String normalized = code.trim().toUpperCase(Locale.ROOT);
         if (!normalized.matches("[A-HJ-NP-Z2-9]{6}")) {
             failed.accept("Enter a valid six-character room code.");
@@ -59,7 +64,7 @@ public final class RoomApiClient implements AutoCloseable {
         }
         request(
                 "/rooms/" + normalized + "/join",
-                Map.of("name", name, "password", password),
+                Map.of("name", name, "password", password, "characterId", characterId),
                 json -> done.accept(parse(json)),
                 failed);
     }

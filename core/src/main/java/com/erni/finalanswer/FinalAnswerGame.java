@@ -69,6 +69,7 @@ public class FinalAnswerGame extends Game {
 
     private MainMenu mainMenu;
     private PlayScreen playScreen;
+    private com.erni.finalanswer.screens.CageLobbyScreen cageLobbyScreen;
     private com.erni.finalanswer.impostor.ImpostorScreen impostorScreen;
     private RoomSettingsScreen roomSettings;
     private GenerationCodeScreen generationCode;
@@ -119,6 +120,11 @@ public class FinalAnswerGame extends Game {
         if (playScreen == null) playScreen = new PlayScreen(this, realtime);
         if (getScreen() != playScreen) setScreen(playScreen);
     }
+    public void showRoomLobby() {
+        if (activeRoom == null) { showMainMenu(); return; }
+        if (cageLobbyScreen == null) cageLobbyScreen = new com.erni.finalanswer.screens.CageLobbyScreen(this);
+        setScreen(cageLobbyScreen);
+    }
     public void showImpostorLobby(){
         if(activeRoom==null || !activeRoom.host() || realtime==null || !realtime.connected())return;
         if(impostorScreen==null){impostorScreen=new com.erni.finalanswer.impostor.ImpostorScreen(this);impostorScreen.show();impostorScreen.connectSuspicion(realtime);}
@@ -148,7 +154,7 @@ public class FinalAnswerGame extends Game {
         realtime=new com.erni.finalanswer.network.RealtimeClient(roomApi.baseUrl(),room.code(),room.token(),this::onRealtime,status -> lobbyStatus=status);
         pendingConfiguration = null;
         lobbyStatus = "lobby.waiting";
-        showMainMenu();
+        showRoomLobby();
     }
 
     public void leaveRoom() {
@@ -157,6 +163,7 @@ public class FinalAnswerGame extends Game {
         if (realtime != null) { realtime.close(); realtime=null; }
         if (playScreen != null) { if (getScreen()==playScreen) showMainMenu(); playScreen.dispose(); playScreen=null; }
         activeRoom = null;
+        if (cageLobbyScreen != null) cageLobbyScreen.synchronize(null, "");
         lobbyStatus = "";
     }
 
@@ -226,6 +233,7 @@ public class FinalAnswerGame extends Game {
         if (realtime != null) realtime.close();
         roomApi.close();hosting.close();
         super.dispose();
+        if (cageLobbyScreen != null) cageLobbyScreen.dispose();
         if (mainMenu != null) mainMenu.dispose();
         if (roomSettings != null) roomSettings.dispose();
         if (generationCode != null) generationCode.dispose();

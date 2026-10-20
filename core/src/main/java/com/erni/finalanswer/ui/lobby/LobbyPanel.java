@@ -35,6 +35,7 @@ public final class LobbyPanel extends Table implements Disposable {
     private final TextField roomCode, playerName, password;
     private final Label joinError;
     private final TextButton join;
+    private String selectedCharacter = "skeleton";
     private RoomSession displayed;
     private String displayedStatus;
     private int joinVersion;
@@ -122,6 +123,20 @@ public final class LobbyPanel extends Table implements Disposable {
         content.add(roomCode).width(500).height(64).row();
         content.add(playerName).width(500).height(64).row();
         content.add(password).width(500).height(64).row();
+        TextButton character = button("CHARACTER: SKELETON");
+        character.setName("joinCharacter");
+        character.addListener(new ClickListener() {
+            @Override public void clicked(InputEvent event, float x, float y) {
+                selectedCharacter = switch (selectedCharacter) {
+                    case "skeleton" -> "ghost";
+                    case "ghost" -> "zombie";
+                    case "zombie" -> "dracula";
+                    default -> "skeleton";
+                };
+                character.setText("CHARACTER: " + selectedCharacter.toUpperCase(java.util.Locale.ROOT));
+            }
+        });
+        content.add(character).width(500).height(56).row();
         joinError = label("");
         joinError.setColor(Color.valueOf("FF8A72"));
         joinError.setFontScale(0.8f);
@@ -253,6 +268,7 @@ public final class LobbyPanel extends Table implements Disposable {
                         roomCode.getText(),
                         playerName.getText(),
                         password.getText(),
+                        selectedCharacter,
                         room -> {
                             if (disposed || version != joinVersion || !joinDialog.hasParent()) {
                                 game.getRoomApi().leave(room);

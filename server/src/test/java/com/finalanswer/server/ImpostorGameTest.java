@@ -53,7 +53,7 @@ class ImpostorGameTest {
         assertEquals("ТЕПЛО",mini(0).getAsJsonArray("revealedClues").get(0).getAsJsonObject().get(pid(0)).getAsString());
         advance(1);assertEquals(1,mini(0).get("revealSequence").getAsInt());
     }
-    @Test void timeoutUsesMissingMarkersAndBoundary(){start(4);advance(4000);submit(0,1,"СВЕТ");advance(10000);
+    @Test void timeoutUsesMissingMarkersAndBoundary(){start(4);advance(4000);submit(0,1,"СВЕТ");advance(20000);
         fail("CLUE_ROUND_CLOSED",()->submit(1,1,"ЛЕТО"));
         var clues=mini(0).getAsJsonArray("revealedClues").get(0).getAsJsonObject();
         assertEquals(4,clues.size());assertEquals("—",clues.get(pid(3)).getAsString());
@@ -102,7 +102,7 @@ class ImpostorGameTest {
     @Test void invalidBudgetCannotProbeIndefinitely(){start(3);advance(4000);
         for(int i=0;i<4;i++)fail("INVALID_CLUE",()->submit(0,1,"ЯБЛОКО"));
         fail("INVALID_CLUE",()->submit(0,1,"СВЕТ"));assertFalse(mini(0).get("clueSubmitted").getAsBoolean());
-        advance(10000);assertEquals("—",mini(0).getAsJsonArray("revealedClues").get(0).getAsJsonObject().get(pid(0)).getAsString());
+        advance(20000);assertEquals("—",mini(0).getAsJsonArray("revealedClues").get(0).getAsJsonObject().get(pid(0)).getAsString());
     }
     @Test void malformedWirePayloads(){start(3);advance(4000);
         for(Object value:Arrays.asList(null,12,List.of("A"),Map.of("x","A"))){

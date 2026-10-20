@@ -65,6 +65,24 @@ public final class UiFonts {
         } finally { generator.dispose(); }
     }
 
+    /** Upright, heavy condensed lettering with full Cyrillic support for small cage nameplates. */
+    public static BitmapFont nameplate(int size) {
+        var generator = new FreeTypeFontGenerator(Gdx.files.internal("ui/fonts/NotoSans-SemiCondensedSemiBold.ttf"));
+        try {
+            var parameters = new FreeTypeFontGenerator.FreeTypeFontParameter();
+            parameters.size = size;
+            StringBuilder characters = new StringBuilder(FreeTypeFontGenerator.DEFAULT_CHARS);
+            for (char c = '\u0400'; c <= '\u04ff'; c++) characters.append(c);
+            parameters.characters = characters.toString();
+            parameters.borderWidth = .7f;
+            parameters.borderColor = com.badlogic.gdx.graphics.Color.WHITE;
+            parameters.kerning = true;
+            parameters.minFilter = Texture.TextureFilter.Linear;
+            parameters.magFilter = Texture.TextureFilter.Linear;
+            return generator.generateFont(parameters);
+        } finally { generator.dispose(); }
+    }
+
     public static BitmapFont body(int size) {
         FreeTypeFontGenerator generator =
                 new FreeTypeFontGenerator(Gdx.files.internal("ui/fonts/NotoSans-Regular.ttf"));

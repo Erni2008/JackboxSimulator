@@ -367,3 +367,114 @@ tasks.register('desktopHostingQA', JavaExec) {
     if(os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
+
+tasks.register('cagePreview', JavaExec) {
+    group = 'application'
+    description = 'Development-only eight-cage lobby preview; R, 1, 8, L and J exercise occupancy.'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.CagePreviewLauncher'
+    workingDir = rootProject.file('assets')
+    systemProperty 'cage.check', providers.gradleProperty('cageCheck').getOrElse('false')
+    systemProperty 'cage.output', rootProject.file('generated/cage-preview').absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('ghostPreview', JavaExec) {
+    group = 'application'
+    description = 'Ghost preview: I idle, S scared, H hit, D death, F flip, R restart.'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.CagePreviewLauncher'
+    workingDir = rootProject.file('assets')
+    systemProperty 'cage.character', 'ghost'
+    systemProperty 'cage.check', providers.gradleProperty('ghostCheck').getOrElse('false')
+    systemProperty 'cage.output', rootProject.file('generated/ghost-preview').absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('ghostStudio', JavaExec) {
+    group = 'application'
+    description = 'Large ghost inspection: I/S/H/D states, F mirror, R reset.'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.GhostStudioLauncher'
+    workingDir = rootProject.file('assets')
+    systemProperty 'ghost.studio.check', providers.gradleProperty('ghostStudioCheck').getOrElse('false')
+    systemProperty 'ghost.studio.output', rootProject.file('generated/ghost-preview').absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('zombieStudio', JavaExec) {
+    group = 'application'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.ZombieStudioLauncher'
+    workingDir = rootProject.file('assets')
+    systemProperty 'zombie.studio.check', providers.gradleProperty('zombieStudioCheck').getOrElse('false')
+    systemProperty 'zombie.output', rootProject.file('generated/zombie-preview').absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+tasks.register('zombiePreview', JavaExec) {
+    group = 'application'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.CagePreviewLauncher'
+    workingDir = rootProject.file('assets')
+    systemProperty 'cage.character', 'zombie'
+    systemProperty 'cage.check', providers.gradleProperty('zombieCheck').getOrElse('false')
+    systemProperty 'cage.output', rootProject.file('generated/zombie-preview').absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('zombieLobbyCheck', JavaExec) {
+    group = 'verification'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.ZombieLobbyCheck'
+    workingDir = rootProject.file('assets')
+    systemProperty 'zombie.output', rootProject.file('generated/zombie-preview').absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+
+tasks.register('draculaStudio', JavaExec) {
+    group = 'application'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.DraculaStudioLauncher'
+    workingDir = rootProject.file('assets')
+    systemProperty 'dracula.studio.check', providers.gradleProperty('draculaStudioCheck').getOrElse('false')
+    systemProperty 'dracula.output', rootProject.file('generated/dracula-preview').absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+tasks.register('draculaPreview', JavaExec) {
+    group = 'application'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.CagePreviewLauncher'
+    workingDir = rootProject.file('assets')
+    systemProperty 'cage.character', 'dracula'
+    systemProperty 'cage.check', providers.gradleProperty('draculaCheck').getOrElse('false')
+    systemProperty 'cage.output', rootProject.file('generated/dracula-preview').absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('draculaLobbyCheck', JavaExec) {
+    group = 'verification'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.DraculaLobbyCheck'
+    workingDir = rootProject.file('assets')
+    systemProperty 'dracula.output', rootProject.file('generated/dracula-preview').absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}

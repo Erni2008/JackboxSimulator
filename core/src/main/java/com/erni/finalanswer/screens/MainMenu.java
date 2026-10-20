@@ -257,7 +257,10 @@ public class MainMenu extends ScreenAdapter {
 
         Gdx.app.postRunnable(() -> {
             if (game.getScreen() == this) {
-                game.showPlayScreen();
+                var live = game.getRealtime();
+                var snapshot = live == null ? null : live.snapshot();
+                if (snapshot == null || snapshot.get("phase").getAsString().equals("LOBBY")) game.showRoomLobby();
+                else game.showPlayScreen();
             }
         });
     }

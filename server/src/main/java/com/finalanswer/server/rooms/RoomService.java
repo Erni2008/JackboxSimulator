@@ -64,8 +64,11 @@ public final class RoomService {
             throw new Failure(403,"INVALID_PASSWORD");
         if(room.members.size()>=room.maxPlayers) throw new Failure(409,"ROOM_IS_FULL");
         if(room.members.values().stream().anyMatch(m->m.name.equalsIgnoreCase(name))) throw new Failure(409,"NICKNAME_IN_USE");
+        String character=data.getOrDefault("characterId", "");
+        if(!character.isEmpty() && !character.equals("skeleton") && !character.equals("ghost") && !character.equals("zombie") && !character.equals("dracula"))
+            throw new Failure(400,"INVALID_CHARACTER");
         Member member=new Member(name,false,token(),now());
-        member.characterId="guest_"+(room.members.size()+1);
+        member.characterId=character.isEmpty()?"guest_"+(room.members.size()+1):character;
         room.members.put(member.token,member);
         broadcast(room,"PLAYER_JOINED");
         return json(snapshot(room,member,true));

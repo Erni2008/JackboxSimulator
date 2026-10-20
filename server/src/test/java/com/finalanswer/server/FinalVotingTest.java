@@ -34,7 +34,7 @@ class FinalVotingTest {
     static final class Match {
         final ImpostorGameTest f=new ImpostorGameTest();
         Match(int count){f.start(count);f.advance(4000);
-            for(int r=1;r<=3;r++){f.advance(10000);f.advance(500);f.advance(5000);f.advance(1);f.advance(1850);}
+            for(int r=1;r<=3;r++){f.advance(20000);f.advance(500);f.advance(5000);f.advance(1);f.advance(1850);}
             assertEquals("EVIDENCE_REVIEW",s(f.mini(0),"phase"));
         }
         void vote(int voter,int suspect){f.rooms.command(f.peers.get(voter),Protocol.decode(Protocol.event("SUBMIT_FINAL_VOTE","vote",Map.of("roomCode",f.code,"sessionId",f.session,"suspectId",f.pid(suspect)))));}
@@ -42,7 +42,7 @@ class FinalVotingTest {
     }
     @Test void discussionDeadlineAndEligibility(){var m=new Match(3);fail("FINAL_VOTING_CLOSED",()->m.vote(0,1));
         assertEquals(10000,m.f.mini(0).get("deadline").getAsLong()-m.f.clock.get());m.f.advance(9999);assertEquals("EVIDENCE_REVIEW",m.phase());
-        m.f.advance(1);assertEquals("FINAL_VOTING",m.phase());assertEquals(10000,m.f.mini(0).get("deadline").getAsLong()-m.f.clock.get());
+        m.f.advance(1);assertEquals("FINAL_VOTING",m.phase());assertEquals(20000,m.f.mini(0).get("deadline").getAsLong()-m.f.clock.get());
         fail("NOT_ELIGIBLE",()->m.vote(3,0));fail("SELF_VOTE",()->m.vote(0,0));}
     @Test void privateVotesUntilRevealAndIdentityAfterAnnouncement(){var m=new Match(3);m.f.advance(10000);m.vote(0,1);
         var publicState=obj(m.f.rooms.view(m.f.code)).getAsJsonObject("impostor");assertFalse(publicState.has("ownFinalVote"));assertFalse(publicState.has("finalVoteSnapshot"));assertFalse(publicState.has("revealedImpostorId"));
@@ -57,7 +57,7 @@ class FinalVotingTest {
         assertEquals(actual,s(m.f.mini(4),"revealedImpostorId"));assertEquals(actual.equals(m.f.pid(1))?"IMPOSTOR_CAUGHT":"IMPOSTOR_ESCAPED",s(m.f.mini(4),"outcome"));
         m.f.advance(4000);assertEquals("RESULT",m.phase());}
     @Test void timeoutAndDisconnectRetainFrozenVoters(){var m=new Match(4);m.f.advance(10000);m.vote(0,1);m.f.rooms.detach(m.f.peers.get(3).id());
-        assertEquals(4,m.f.mini(0).get("finalEligibleCount").getAsInt());m.f.advance(10000);assertEquals("VOTING_LOCKED",m.phase());
+        assertEquals(4,m.f.mini(0).get("finalEligibleCount").getAsInt());m.f.advance(20000);assertEquals("VOTING_LOCKED",m.phase());
         fail("FINAL_VOTING_CLOSED",()->m.vote(1,0));m.f.advance(700);
         assertEquals(1,m.f.mini(0).getAsJsonObject("finalVoteSnapshot").getAsJsonArray("stampTargets").size());}
     @Test void reconnectRestoresAcceptedVoteAndImmutableSnapshot(){var m=new Match(3);m.f.advance(10000);m.vote(0,1);m.f.rooms.detach(m.f.peers.getFirst().id());

@@ -29,6 +29,38 @@ class RoomServiceTest {
     void ends(){clock.addAndGet(20_000);service.tick();}
     void results(){ends();clock.addAndGet(720);command(h,"REVEAL_READY");}
     void failure(String code,Runnable action){assertEquals(code,assertThrows(RoomService.Failure.class,action::run).getMessage());}
+    @Test void characterChoiceSurvivesReconnectAndRejectsUnknownWithoutOccupyingSeat() {
+        String code=s(host,"code");
+        failure("INVALID_CHARACTER",()->service.join(code,Map.of("name","Bad","characterId","unknown")));
+        var ghost=obj(service.join(code,Map.of("name","Ghost","characterId","ghost")));
+        service.attach(code,s(ghost,"token"),a,"ghost");
+        assertEquals("ghost",s(a.latest().getAsJsonArray("players").get(0).getAsJsonObject(),"characterId"));
+        service.detach(a.id()); var replacement=new TestPeer(); service.attach(code,s(ghost,"token"),replacement,"again");
+        assertEquals("ghost",s(replacement.latest().getAsJsonArray("players").get(0).getAsJsonObject(),"characterId"));
+        join("Legacy"); assertEquals(2,replacement.latest().getAsJsonArray("players").size());
+    }
+    @Test void zombieSelectionSurvivesRosterRefreshAndReconnect() {
+        String code=s(host,"code");
+        var zombie=obj(service.join(code,Map.of("name","Zombie","characterId","zombie")));
+        service.attach(code,s(zombie,"token"),a,"zombie");
+        assertEquals("zombie",s(a.latest().getAsJsonArray("players").get(0).getAsJsonObject(),"characterId"));
+        join("Other");
+        assertEquals("zombie",s(a.latest().getAsJsonArray("players").get(0).getAsJsonObject(),"characterId"));
+        service.detach(a.id()); var replacement=new TestPeer();
+        service.attach(code,s(zombie,"token"),replacement,"zombie-reconnect");
+        assertEquals("zombie",s(replacement.latest().getAsJsonArray("players").get(0).getAsJsonObject(),"characterId"));
+    }
+    @Test void draculaSelectionSurvivesRosterRefreshAndReconnect() {
+        String code=s(host,"code");
+        var dracula=obj(service.join(code,Map.of("name","Dracula","characterId","dracula")));
+        service.attach(code,s(dracula,"token"),a,"dracula");
+        assertEquals("dracula",s(a.latest().getAsJsonArray("players").get(0).getAsJsonObject(),"characterId"));
+        join("Other");
+        assertEquals("dracula",s(a.latest().getAsJsonArray("players").get(0).getAsJsonObject(),"characterId"));
+        service.detach(a.id()); var replacement=new TestPeer();
+        service.attach(code,s(dracula,"token"),replacement,"dracula-reconnect");
+        assertEquals("dracula",s(replacement.latest().getAsJsonArray("players").get(0).getAsJsonObject(),"characterId"));
+    }
     @Test void createsServerGeneratedUniqueCodes(){Set<String> codes=new HashSet<>();for(int i=0;i<100;i++){JsonObject room=create(Map.of("code","AAAAAA"));assertTrue(s(room,"code").matches("[A-HJ-NP-Z2-9]{6}"));assertTrue(codes.add(s(room,"code")));assertEquals(43,s(room,"token").length());assertTrue(room.has("roomId"));}}
     @Test void joinsAndCapacityExcludesHost(){players();assertEquals(2,h.latest().getAsJsonArray("players").size());failure("ROOM_IS_FULL",()->join("Third"));}
     @Test void wrongCodeAndBadNickname(){failure("ROOM_NOT_FOUND",()->service.join("ZZZZZZ",Map.of("name","A")));failure("INVALID_NICKNAME",()->join("\n\t"));failure("INVALID_NICKNAME",()->join("x".repeat(25)));join("Test");failure("NICKNAME_IN_USE",()->join("test"));}

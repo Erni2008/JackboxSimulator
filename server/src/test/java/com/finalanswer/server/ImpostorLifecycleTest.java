@@ -22,7 +22,7 @@ class ImpostorLifecycleTest {
             f.advance(4000);
             for(int round=1;round<=3;round++){
                 f.submit(0,round,List.of("СВЕТ","ЛУНА","ВЕТЕР").get(round-1));
-                f.advance(10000);f.advance(500);f.advance(5000);f.advance(1);f.advance(1850);
+                f.advance(20000);f.advance(500);f.advance(5000);f.advance(1);f.advance(1850);
             }
             assertEquals("EVIDENCE_REVIEW",phase());assertFalse(f.mini(0).has("result"));f.advance(30000);
         }
