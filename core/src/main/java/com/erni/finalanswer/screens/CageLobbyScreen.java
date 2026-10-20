@@ -37,14 +37,14 @@ public final class CageLobbyScreen extends ScreenAdapter {
     private final Label code, roomName, playerCount, connectedCount, status;
     private final TextButton play, impostor;
     private RoomSession displayed;
-    private boolean disposed,starting,pendingStart;
+    private boolean disposed,starting,pendingStart,preloadQueued;
     private float pendingSeconds;
     private long transitionStarted,serverAnchor,nanoAnchor;
     private final Image blackout;
     private final Label roundTitle;
     public void startRequested(){pendingStart=true;pendingSeconds=0;lockButtons(true);}
     public void startRejected(){if(!starting)pendingStart=false;}
-    private void resetTransition(){pendingStart=starting=false;blackout.setColor(0,0,0,0);roundTitle.setVisible(false);}
+    private void resetTransition(){pendingStart=starting=preloadQueued=false;blackout.setColor(0,0,0,0);roundTitle.setVisible(false);}
     private void lockButtons(boolean locked){lockButtons(stage.getRoot(),locked);}
     private void lockButtons(com.badlogic.gdx.scenes.scene2d.Group group,boolean locked){
         for(var actor:group.getChildren()){
@@ -54,6 +54,9 @@ public final class CageLobbyScreen extends ScreenAdapter {
     }
     public void transition(com.google.gson.JsonObject state,long serverNow){
         if(!state.has("transitionStartedAt"))return;
+        long start=state.get("transitionStartedAt").getAsLong();
+        if(starting&&transitionStarted==start)return; // Network refreshes never rewind the swing clock.
+        preloadQueued=false;
         starting=true;pendingStart=false;transitionStarted=state.get("transitionStartedAt").getAsLong();
         serverAnchor=serverNow;nanoAnchor=System.nanoTime();lockButtons(true);
         roundTitle.setText(state.has("roundTitle")?state.get("roundTitle").getAsString():"ROUND 1");
@@ -143,6 +146,11 @@ public final class CageLobbyScreen extends ScreenAdapter {
         blackout.setColor(0,0,0,fade);roundTitle.setVisible(starting&&age>2.25f);
         roundTitle.getColor().a=Math.min(1,Math.max(0,(age-2.25f)/.6f));
         ScreenUtils.clear(.025f, .02f, .025f, 1); viewport.apply(); stage.act(delta); stage.draw();
+        if(starting&&fade>=1&&!preloadQueued){
+            preloadQueued=true;
+            // The backend presents this black frame before this runnable allocates fonts/textures.
+            Gdx.app.postRunnable(()->{if(!disposed&&starting&&game.getScreen()==this)game.prepareNetworkPlay();});
+        }
     }
     @Override public void resize(int width, int height) { viewport.update(width, height, true); }
     @Override public void dispose() {

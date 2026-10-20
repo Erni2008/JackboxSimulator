@@ -17,7 +17,7 @@ test { useJUnitPlatform() }
 processResources {
     from(rootProject.file('web')) { into 'web' }
     from(rootProject.file('assets/ui/fonts')) {
-        include 'Creepster-Regular.ttf', 'Creepster-OFL.txt', 'NotoSans-Regular.ttf', 'NotoSans-LICENSE.txt'
+        include 'Creepster-Regular.ttf', 'Creepster-OFL.txt', 'NotoSans-Regular.ttf', 'NotoSans-LICENSE.txt', 'RubikWetPaint-Regular.ttf', 'RubikWetPaint-OFL.txt'
         into 'web/fonts'
     }
 }

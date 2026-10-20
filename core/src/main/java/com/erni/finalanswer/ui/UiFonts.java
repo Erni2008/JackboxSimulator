@@ -35,9 +35,9 @@ public final class UiFonts {
         } finally { generator.dispose(); }
     }
 
-    /** Condensed semibold Cyrillic display face, preserving readable strokes at question scale. */
+    /** One horror display face covering both Latin and Cyrillic for round text and nicknames. */
     public static BitmapFont question(int size) {
-        var generator=new FreeTypeFontGenerator(Gdx.files.internal("ui/fonts/NotoSans-SemiCondensedSemiBold.ttf"));
+        var generator=new FreeTypeFontGenerator(Gdx.files.internal("ui/fonts/RubikWetPaint-Regular.ttf"));
         try{
             var p=new FreeTypeFontGenerator.FreeTypeFontParameter();p.size=size;
             StringBuilder glyphs=new StringBuilder(FreeTypeFontGenerator.DEFAULT_CHARS);

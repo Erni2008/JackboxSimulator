@@ -30,8 +30,8 @@ public final class LobbyStartCheck {
         try{new Lwjgl3Application(new FinalAnswerGame(HostingAccess.external(base)){
             final boolean interactive=Boolean.getBoolean("lobbyStart.interactive");
             final boolean performanceCheck=Boolean.getBoolean("lobbyStart.performanceCheck");
-            final long[] answerFrameIntervals=new long[4096];
-            long previousFrame;int measuredFrames,captures;
+            final long[] answerFrameIntervals=new long[4096],launchFrameIntervals=new long[512];
+            long previousFrame;int measuredFrames,launchFrames,captures;
             final com.erni.finalanswer.gameplay.questions.DemoQuestionSource questions=new com.erni.finalanswer.gameplay.questions.DemoQuestionSource();
             final ArrayList<RealtimeClient> phones=new ArrayList<>();
             final Set<Integer> phoneStarts=new HashSet<>(),phoneQuestions=new HashSet<>(),phoneAnswers=new HashSet<>();
@@ -96,7 +96,12 @@ public final class LobbyStartCheck {
                 }
                 if(phase.equals("STARTING")){
                     startAt=state.get("transitionStartedAt").getAsLong();endAt=state.get("transitionEndsAt").getAsLong();
-                    float age=(now-startAt)/1000f;check(getScreen()==lobby,"Host stays in lobby throughout STARTING");check(lobby.cages().cage(stableSlot).character()==stableCharacter,"Start preserves rigs");
+                    float age=(now-startAt)/1000f;
+                    if(age>=0&&age<LobbyStartAnimation.FADE_END){
+                        check(!networkPlayPrepared(),"No heavy game-scene creation while cages are still visible");
+                        if(performanceCheck&&interval>0&&launchFrames<launchFrameIntervals.length)launchFrameIntervals[launchFrames++]=interval;
+                    }
+                    check(getScreen()==lobby,"Host stays in lobby throughout STARTING");check(lobby.cages().cage(stableSlot).character()==stableCharacter,"Start preserves rigs");
                     if(age>.1f&&age<LobbyStartAnimation.FADE_END)for(int i=0;i<8;i++){float angle=lobby.cages().cage(i).getRotation();if(Math.abs(angle-previousRotation[i])>.001f)sawSwing=true;previousRotation[i]=angle;}
                     if(age>=LobbyStartAnimation.FADE_END+.03f){
                         check(lobby.blackoutOpacity()==1,"Stop only after screen is fully black");
@@ -118,6 +123,9 @@ public final class LobbyStartCheck {
                     if(performanceCheck&&verifiedAnswers==8){
                         check(interactive&&captures==0,"Interactive answer preview must never capture or encode images");
                         Arrays.sort(answerFrameIntervals,0,measuredFrames);
+                        Arrays.sort(launchFrameIntervals,0,launchFrames);
+                        check(launchFrames>0,"Measured visible launch animation");
+                        System.out.println("VISIBLE_CAGE_FRAME_MS frames="+launchFrames+" p95="+launchFrameIntervals[Math.min(launchFrames-1,(int)(launchFrames*.95))]/1e6+" max="+launchFrameIntervals[launchFrames-1]/1e6);
                         check(measuredFrames>0,"Measured actual answering frames");
                         System.out.println("PREVIEW_FRAME_MS frames="+measuredFrames+" median="+answerFrameIntervals[measuredFrames/2]/1e6+" p95="+answerFrameIntervals[Math.min(measuredFrames-1,(int)(measuredFrames*.95))]/1e6+" max="+answerFrameIntervals[measuredFrames-1]/1e6+" captures="+captures);
                         System.out.println("PASS: eight sequential live answers, no screenshot readback/PNG encoding in interactive rendering");Gdx.app.exit();

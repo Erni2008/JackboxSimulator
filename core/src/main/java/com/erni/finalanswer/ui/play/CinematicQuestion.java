@@ -28,7 +28,7 @@ public final class CinematicQuestion extends Actor implements Disposable {
 
     public CinematicQuestion() {
         setName("cinematicQuestion"); setTouchable(Touchable.disabled);
-        displayFont = UiFonts.horror(FONT_SIZE);
+        displayFont = UiFonts.question(FONT_SIZE);
     }
 
     public void prepare(Question question, float viewportWidth, float viewportHeight, boolean reducedMotion) {

@@ -122,14 +122,17 @@ public class FinalAnswerGame extends Game {
         else if(state.get("phase").getAsString().equals("STARTING")){showRoomLobby();cageLobbyScreen.transition(state,realtime.serverNow());}
         else openNetworkPlay();
     }
+    /** Render-thread preparation, called only after the blackout frame has been presented. */
+    public boolean networkPlayPrepared(){return playScreen!=null;}
+    public void prepareNetworkPlay(){if(activeRoom!=null&&activeRoom.host()&&realtime!=null&&playScreen==null)playScreen=new PlayScreen(this,realtime);}
     private void openNetworkPlay() {
-        if (playScreen == null) playScreen = new PlayScreen(this, realtime);
+        prepareNetworkPlay();
         if (getScreen() != playScreen) setScreen(playScreen);
     }
     public void showRoomLobby() {
         if (activeRoom == null) { showMainMenu(); return; }
         if (cageLobbyScreen == null) cageLobbyScreen = new com.erni.finalanswer.screens.CageLobbyScreen(this);
-        setScreen(cageLobbyScreen);
+        if(getScreen()!=cageLobbyScreen)setScreen(cageLobbyScreen);
     }
     public void showImpostorLobby(){
         if(activeRoom==null || !activeRoom.host() || realtime==null || !realtime.connected())return;
@@ -153,8 +156,7 @@ public class FinalAnswerGame extends Game {
         if(activeRoom.host() && (data.has("impostor") || data.has("impostorLobby")) && (type.equals("IMPOSTOR_STARTED") || type.equals("IMPOSTOR_REPLAY_READY") || type.equals("AUTHENTICATED"))){showImpostorLobby();return;}
         if(activeRoom.host() && data.has("phase") && data.get("phase").getAsString().equals("STARTING")){
             showRoomLobby();cageLobbyScreen.transition(data,realtime.serverNow());
-            // Allocate the existing game scene while the blackout is still playing.
-            if(playScreen==null)playScreen=new PlayScreen(this,realtime);
+            // Heavy scene construction is queued by the lobby only after a fully black frame.
         }
         if (activeRoom.host() && data.has("question") && (type.equals("QUESTION_STARTED") || type.equals("AUTHENTICATED") || getScreen()==cageLobbyScreen)) openNetworkPlay();
     }

@@ -34,7 +34,7 @@ public final class QuestionPlayers extends Actor implements Disposable {
     private final CageLobby source;
     private final QuestionPlayerStates states=new QuestionPlayerStates();
     private final ArrayList<Entry> entries=new ArrayList<>(8);
-    private final BitmapFont font=UiFonts.nameplate(26);
+    private final BitmapFont font=UiFonts.question(26);
     private final Matrix4 saved=new Matrix4(),local=new Matrix4();
     private final Color color=new Color(),fontSaved=new Color();
     private final CageCharacterPresentation presentation=new CageCharacterPresentation();

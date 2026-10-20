@@ -12,7 +12,7 @@ import java.util.function.Supplier;
 /** Roster adapter and resource owner. Character factories can be registered without changing cages. */
 public final class CageLobby extends Group implements Disposable {
     private final CageAssets assets = new CageAssets();
-    private final BitmapFont font = UiFonts.nameplate(48);
+    private final BitmapFont font = UiFonts.question(48);
     private final CageAssignments assignments = new CageAssignments();
     private final HangingCage[] cages = new HangingCage[CageLayoutManager.SLOTS];
     private final Map<String, Supplier<CageCharacter>> characters = new HashMap<>();
