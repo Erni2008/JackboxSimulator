@@ -25,6 +25,9 @@ public final class HangingCage extends Group {
     private String playerId, nickname = "", characterId = "";
     private float ceilingX, ceilingY;
     private boolean reducedMotion;
+    private float departureRotation;
+    /** Match-start-only motion; idle and impact animation are unchanged. */
+    public void departure(float seconds){departureRotation=reducedMotion?0:LobbyStartAnimation.rotation(seconds,phase);}
     private Runnable impactCue = () -> {}, lockCue = () -> {};
 
     public HangingCage(CageAssets assets, BitmapFont font, int slot) {
@@ -41,6 +44,7 @@ public final class HangingCage extends Group {
     public String playerId() { return playerId; }
     public CageAnimator animation() { return animation; }
     public void assign(String id, String name, String selected, CageCharacter next) {
+        nameplate.ink(com.erni.finalanswer.ui.PlayerColors.ink(selected));
         if (id.equals(playerId)) {
             if (next != null) { character = next; characterId = selected; }
             rename(name); return;
@@ -65,7 +69,7 @@ public final class HangingCage extends Group {
         animation.update(delta);
         if (animation.impact()) impactCue.run();
         if (animation.locked()) lockCue.run();
-        setRotation(reducedMotion ? 0 : animation.impactRotation());
+        setRotation(reducedMotion ? 0 : animation.impactRotation()+departureRotation);
         if (character != null) character.update(delta, animation.time(), phase, reducedMotion);
     }
     @Override public void draw(Batch batch, float parentAlpha) {
@@ -82,7 +86,7 @@ public final class HangingCage extends Group {
         // cover the edges; the gate has its own clip so no bars float above the cage during entry.
         batch.flush();
         if (character != null && clipBegin(108, 62, 140, 163)) {
-            presentation.draw(batch, character, assets.presentation.profile(characterId), parentAlpha, animation.time());
+            presentation.drawInCage(batch, character, assets.presentation.profile(characterId), parentAlpha, animation.time());
             batch.flush(); clipEnd();
         }
         if (animation.occupied() && animation.gate() > 0 && clipBegin(91, 58, 177, 179)) {

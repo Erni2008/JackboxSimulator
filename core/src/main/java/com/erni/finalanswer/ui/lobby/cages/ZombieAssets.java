@@ -3,7 +3,6 @@ package com.erni.finalanswer.ui.lobby.cages;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.Disposable;
-import com.erni.finalanswer.ui.RuntimeTextures;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,7 +18,7 @@ public final class ZombieAssets implements Disposable {
         } catch(RuntimeException failure) { dispose(); throw failure; }
     }
     private TextureRegion load(String name) {
-        Texture t=RuntimeTextures.load("lobby/characters/zombie/"+name); owned.add(t); return new TextureRegion(t);
+        Texture t=CharacterTextures.load("lobby/characters/zombie/"+name); owned.add(t); return new TextureRegion(t);
     }
     @Override public void dispose() { for(Texture t:owned) t.dispose(); owned.clear(); }
 }

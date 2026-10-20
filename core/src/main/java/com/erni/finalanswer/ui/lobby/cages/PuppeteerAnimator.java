@@ -9,7 +9,7 @@ public final class PuppeteerAnimator {
     public enum State {IDLE,INTRO,WALK,LAUGH,SCARE,LOOK_AT_PLAYER,BROKEN,STRING_PULL}
     public enum Behavior {HEAD_SNAP,DIRECT_STARE,BROKEN_PUPPET,SILENT_LAUGHTER,STRING_PULL,FINGER_THREAT,FALSE_DEACTIVATION}
     public enum Mouth {CLOSED,SMILE,OPEN,LAUGH,TWITCH}
-    public static final int ROOT_Y=0,BODY=1,HEAD=2,HEAD_Y=3,ARM_L=4,ARM_R=5,WRIST_L=6,WRIST_R=7,LEG_L=8,LEG_R=9,SHOULDER_L=10,SHOULDER_R=11,BODY_Y=12,EYE_LX=13,EYE_LY=14,EYE_RX=15,EYE_RY=16,EYE_ROT=17,JAW=18,MOUTH_ROT=19,GLOW=20,HAIR=21,ROOT_X=22,COUNT=23;
+    public static final int ROOT_Y=0,BODY=1,HEAD=2,HEAD_Y=3,ARM_L=4,ARM_R=5,WRIST_L=6,WRIST_R=7,LEG_L=8,LEG_R=9,SHOULDER_L=10,SHOULDER_R=11,BODY_Y=12,EYE_LX=13,EYE_LY=14,EYE_RX=15,EYE_RY=16,EYE_ROT=17,JAW=18,MOUTH_ROT=19,GLOW=20,HAIR=21,ROOT_X=22,ALPHA=23,COUNT=24;
     public final float[] pose=new float[COUNT];
     private final float[] target=new float[COUNT],from=new float[COUNT];
     private final PuppeteerConfig config;private final Random random;
@@ -23,6 +23,8 @@ public final class PuppeteerAnimator {
     public PuppeteerAnimator(PuppeteerConfig config,long seed){this.config=config;random=new Random(seed);nextBehavior=config.introSeconds+interval();calculate();System.arraycopy(target,0,pose,0,COUNT);System.arraycopy(pose,0,from,0,COUNT);blendAge=config.blendSeconds;}
     public State state(){return state;}public float stateTime(){return stateTime;}public float motionTime(){return time;}public Behavior behavior(){return behavior;}
     public void play(State next){if(next==state)return;System.arraycopy(pose,0,from,0,COUNT);blendAge=0;stateTime=0;state=next;behavior=null;nextBehavior=time+duration()+interval();}
+    /** Occupant-local reveal; roster refreshes retain this timer and never replay the fade. */
+    public float appearanceAlpha(){return pose[ALPHA];}
     public void mouth(Mouth value){mouth=value;}
     /** Normalized target in character space; caller can project the pointer into this space. */
     public void lookAt(float x,float y){if(!Float.isFinite(x)||!Float.isFinite(y))return;externalLook=true;lookX=MathUtils.clamp(x,-1,1);lookY=MathUtils.clamp(y,-1,1);}
@@ -56,7 +58,7 @@ public final class PuppeteerAnimator {
     private static final Behavior[] BEHAVIORS=Behavior.values();
     private static final int[] INTRO_LIMBS={ARM_L,ARM_R,WRIST_L,WRIST_R,LEG_L,LEG_R,HAIR};
     private void calculate(){
-        Arrays.fill(target,0);float t=time+phase,amount=reduced?.18f:1;
+        Arrays.fill(target,0);target[ALPHA]=1;float t=time+phase,amount=reduced?.18f:1;
         if(idleMovement){
             target[BODY]=(MathUtils.sin(t*.73f)*.75f+MathUtils.sin(t*1.17f+1.8f)*.25f)*config.idleBodyDegrees*amount;
             target[HEAD]=(MathUtils.sin(t*.49f-.8f)*.75f+MathUtils.sin(t*.91f)*.25f)*config.idleHeadDegrees*amount;
@@ -73,7 +75,7 @@ public final class PuppeteerAnimator {
         float s=stateTime;
         switch(state){
             case INTRO -> {
-                float intro=s/config.introSeconds*6.5f;
+                float intro=s/config.introSeconds*6.5f;target[ALPHA]=ease(intro,.08f,.9f);
                 float lift=ease(intro,1,2),snap=pulse(intro,2,2.12f,2.38f,2.8f),settle=ease(intro,4.8f,6.5f);
                 target[BODY]*=lift;target[HEAD]=MathUtils.lerp(-15,5,lift)+snap*13;target[HEAD]*=1-settle;target[ROOT_Y]=-2*(1-lift);
                 target[GLOW]=MathUtils.lerp(.08f,.95f,ease(intro,2.3f,3.5f));target[GLOW]=MathUtils.lerp(target[GLOW],.6f,settle);
@@ -117,7 +119,7 @@ public final class PuppeteerAnimator {
             }
         }
         target[GLOW]=MathUtils.clamp(target[GLOW],0,1);
-        if(reduced){for(int i=0;i<COUNT;i++)if(i!=GLOW&&i!=EYE_LX&&i!=EYE_LY&&i!=EYE_RX&&i!=EYE_RY)target[i]*=.35f;}
+        if(reduced){for(int i=0;i<COUNT;i++)if(i!=ALPHA&&i!=GLOW&&i!=EYE_LX&&i!=EYE_LY&&i!=EYE_RX&&i!=EYE_RY)target[i]*=.35f;}
     }
     private void stare(float e){target[BODY]*=1-e;target[HEAD]*=1-e;for(int i=EYE_LX;i<=EYE_ROT;i++)target[i]*=1-e;}
     private void broken(float e){target[SHOULDER_L]-=3*e;target[HEAD]-=19*e;target[ARM_L]-=13*e;target[BODY]+=4*e;}

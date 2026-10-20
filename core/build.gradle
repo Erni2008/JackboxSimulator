@@ -109,3 +109,11 @@ tasks.register('puppeteerCheck', JavaExec) {
     args rootProject.file('assets/lobby/characters/puppeteer/puppeteer_config.json').absolutePath
 }
 check.dependsOn tasks.named('puppeteerCheck')
+
+tasks.register('questionPlayersCheck', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lobby.QuestionPlayersCheck'
+}
+check.dependsOn tasks.named('questionPlayersCheck')

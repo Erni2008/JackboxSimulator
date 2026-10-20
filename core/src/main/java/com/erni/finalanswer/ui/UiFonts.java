@@ -35,6 +35,19 @@ public final class UiFonts {
         } finally { generator.dispose(); }
     }
 
+    /** Condensed semibold Cyrillic display face, preserving readable strokes at question scale. */
+    public static BitmapFont question(int size) {
+        var generator=new FreeTypeFontGenerator(Gdx.files.internal("ui/fonts/NotoSans-SemiCondensedSemiBold.ttf"));
+        try{
+            var p=new FreeTypeFontGenerator.FreeTypeFontParameter();p.size=size;
+            StringBuilder glyphs=new StringBuilder(FreeTypeFontGenerator.DEFAULT_CHARS);
+            for(char c='\u0400';c<='\u04ff';c++)glyphs.append(c);
+            p.characters=glyphs.append("«»–—‘’“”").toString();p.kerning=true;
+            p.minFilter=Texture.TextureFilter.Linear;p.magFilter=Texture.TextureFilter.Linear;
+            return generator.generateFont(p);
+        }finally{generator.dispose();}
+    }
+
     public static BitmapFont code(int size) {
         FreeTypeFontGenerator generator =
                 new FreeTypeFontGenerator(Gdx.files.internal("ui/fonts/RoadRage-Regular.ttf"));

@@ -30,7 +30,7 @@ public final class DraculaAssets implements Disposable {
         } catch(RuntimeException error) { dispose(); throw error; }
     }
     private TextureRegion load(String name) {
-        Texture texture=RuntimeTextures.load("lobby/characters/dracula/"+name);owned.add(texture);return new TextureRegion(texture);
+        Texture texture=CharacterTextures.load("lobby/characters/dracula/"+name);owned.add(texture);return new TextureRegion(texture);
     }
     private TextureRegion createSmoke() {
         Pixmap pixels=new Pixmap(32,32,Pixmap.Format.RGBA8888);
@@ -42,8 +42,8 @@ public final class DraculaAssets implements Disposable {
                 int alpha=Math.round(255*falloff*falloff*falloff);
                 pixels.drawPixel(x,y,0xffffff00|alpha);
             }
-            Texture texture=new Texture(pixels);owned.add(texture);
-            texture.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);
+            Texture texture=CharacterTextures.upload(pixels);owned.add(texture);
+
             return new TextureRegion(texture);
         } finally { pixels.dispose(); }
     }

@@ -58,13 +58,13 @@ public final class GameSession {
     private static List<Question> catalog() {
         var source=new DemoQuestionSource(); var list=new ArrayList<Question>();
         for(int i=0;i<source.size();i++) list.add(source.get(i));
-        list.add(new Question("sunlight","Which legendary creature is traditionally said to fear sunlight?",List.of("Vampire","Skeleton","Ghost","Werewolf"),0));
-        list.add(new Question("chemical-gold","What is the chemical symbol for gold?",List.of("Ag","Fe","Au","Cu"),2));
-        list.add(new Question("chess-king","Which chess piece can move only one square in any direction?",List.of("Bishop","Rook","Queen","King"),3));
-        list.add(new Question("octopus","How many hearts does an octopus have?",List.of("One","Two","Three","Four"),2));
-        list.add(new Question("frankenstein","Who wrote the novel Frankenstein?",List.of("Mary Shelley","Bram Stoker","Jane Austen","Emily Bronte"),0));
-        list.add(new Question("sound-space","Why does ordinary sound not travel through a vacuum?",List.of("It is too cold","There is no material medium","Light absorbs it","Gravity stops it"),1));
-        list.add(new Question("triangle","What is the sum of the interior angles of a triangle in Euclidean geometry?",List.of("90 degrees","180 degrees","270 degrees","360 degrees"),1));
+        list.add(new Question("sunlight","Какое легендарное существо боится солнечного света?",List.of("Вампир","Скелет","Призрак","Оборотень"),0));
+        list.add(new Question("chemical-gold","Какой химический символ обозначает золото?",List.of("Ag","Fe","Au","Cu"),2));
+        list.add(new Question("chess-king","Какая шахматная фигура ходит на одну клетку в любом направлении?",List.of("Слон","Ладья","Ферзь","Король"),3));
+        list.add(new Question("octopus","Сколько сердец у осьминога?",List.of("Одно","Два","Три","Четыре"),2));
+        list.add(new Question("frankenstein","Кто написал роман «Франкенштейн»?",List.of("Мэри Шелли","Брэм Стокер","Джейн Остин","Эмили Бронте"),0));
+        list.add(new Question("sound-space","Почему обычный звук не распространяется в вакууме?",List.of("Там слишком холодно","Нет среды для звуковых волн","Свет поглощает звук","Ему мешает гравитация"),1));
+        list.add(new Question("triangle","Чему равна сумма внутренних углов треугольника в евклидовой геометрии?",List.of("90 градусов","180 градусов","270 градусов","360 градусов"),1));
         return list;
     }
 }

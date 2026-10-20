@@ -18,7 +18,7 @@ public final class AnswersPresentationActor extends Group implements Disposable 
     };
     private final BitmapFont numbers = UiFonts.horror(NUMBER_FONT_SIZE);
     private final BitmapFont text = UiFonts.horror(TEXT_FONT_SIZE);
-    private final BitmapFont fallback = UiFonts.body(TEXT_FONT_SIZE);
+    private final BitmapFont fallback = UiFonts.question(TEXT_FONT_SIZE);
     private final AnswerView[] answers = new AnswerView[4];
     private boolean disposed;
 

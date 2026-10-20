@@ -75,7 +75,7 @@ public final class PumpkinAssets implements Disposable {
         return new Part(new TextureRegion(texture,texture.getWidth()==w?0:x,texture.getHeight()==h?0:y,w,h),x,y,w,h);
     }
     private Texture texture(Pixmap pixels) {
-        Texture texture=new Texture(pixels);owned.add(texture);texture.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);return texture;
+        Texture texture=CharacterTextures.upload(pixels);owned.add(texture);return texture;
     }
     private static float smooth(float p) {p=Math.max(0,Math.min(1,p));return p*p*(3-2*p);}
     private static boolean inside(float[] polygon,float x,float y) {

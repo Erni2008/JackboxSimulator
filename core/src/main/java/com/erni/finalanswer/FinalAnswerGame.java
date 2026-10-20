@@ -92,6 +92,8 @@ public class FinalAnswerGame extends Game {
         return pendingConfiguration;
     }
 
+    public com.erni.finalanswer.ui.lobby.cages.CageLobby getRoomCharacters(){return cageLobbyScreen==null?null:cageLobbyScreen.cages();}
+
     public RoomSession getActiveRoom() {
         return activeRoom;
     }
@@ -113,7 +115,11 @@ public class FinalAnswerGame extends Game {
         if (!activeRoom.host()) { lobbyStatus="Only the host can start the game. Use the phone controller to answer."; return; }
         if (realtime == null || !realtime.connected()) { lobbyStatus="CONNECTION_LOST"; if(realtime!=null)realtime.retry(); return; }
         var state=realtime.snapshot();
-        if (state == null || state.get("phase").getAsString().equals("LOBBY")) realtime.send("START_GAME",java.util.Map.of());
+        if (state == null || state.get("phase").getAsString().equals("LOBBY")) {
+            if(cageLobbyScreen!=null)cageLobbyScreen.startRequested();
+            realtime.send("START_GAME",java.util.Map.of());
+        }
+        else if(state.get("phase").getAsString().equals("STARTING")){showRoomLobby();cageLobbyScreen.transition(state,realtime.serverNow());}
         else openNetworkPlay();
     }
     private void openNetworkPlay() {
@@ -136,7 +142,7 @@ public class FinalAnswerGame extends Game {
         String type=event.get("type").getAsString();
         var data=event.getAsJsonObject("payload");
         if (type.equals("ROOM_CLOSED")) { leaveRoom(); showMainMenu(); return; }
-        if (type.equals("ERROR")) { lobbyStatus=data.get("code").getAsString(); return; }
+        if (type.equals("ERROR")) { lobbyStatus=data.get("code").getAsString(); if(cageLobbyScreen!=null)cageLobbyScreen.startRejected(); return; }
         if (!data.has("players")) return;
         activeRoom=RoomApiClient.parse(new com.badlogic.gdx.utils.JsonReader().parse(data.toString()),activeRoom.token());
         if (cageLobbyScreen != null) {
@@ -145,7 +151,12 @@ public class FinalAnswerGame extends Game {
         }
         if(activeRoom.host() && type.equals("IMPOSTOR_LOBBY_RETURNED")){showImpostorLobby();return;}
         if(activeRoom.host() && (data.has("impostor") || data.has("impostorLobby")) && (type.equals("IMPOSTOR_STARTED") || type.equals("IMPOSTOR_REPLAY_READY") || type.equals("AUTHENTICATED"))){showImpostorLobby();return;}
-        if (activeRoom.host() && data.has("question") && (type.equals("QUESTION_STARTED") || type.equals("AUTHENTICATED"))) openNetworkPlay();
+        if(activeRoom.host() && data.has("phase") && data.get("phase").getAsString().equals("STARTING")){
+            showRoomLobby();cageLobbyScreen.transition(data,realtime.serverNow());
+            // Allocate the existing game scene while the blackout is still playing.
+            if(playScreen==null)playScreen=new PlayScreen(this,realtime);
+        }
+        if (activeRoom.host() && data.has("question") && (type.equals("QUESTION_STARTED") || type.equals("AUTHENTICATED") || getScreen()==cageLobbyScreen)) openNetworkPlay();
     }
 
     public void activateRoom(RoomSession room) {

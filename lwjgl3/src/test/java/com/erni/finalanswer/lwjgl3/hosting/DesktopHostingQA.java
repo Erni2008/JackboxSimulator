@@ -34,7 +34,7 @@ public final class DesktopHostingQA extends FinalAnswerGame {
     }
     @Override public void render(){try{super.render();
         if(!opened&&getActiveRoom()!=null&&getRealtime()!=null&&getRealtime().connected()){
-            opened=true;showImpostorLobby();port=java.net.URI.create(hosting.apiUrl()).getPort();
+            opened=true;showRoomLobby();port=java.net.URI.create(hosting.apiUrl()).getPort();
             getRealtime().addEventListener(event->{if(!request.isEmpty()&&request.equals(event.get("requestId").getAsString())){request="";write("processed.json",Map.of("id",commandId,"type",event.get("type").getAsString(),"code",event.getAsJsonObject("payload").has("code")?event.getAsJsonObject("payload").get("code").getAsString():""));}});
             write("ready.json",Map.of("url",hosting.apiUrl(),"code",getActiveRoom().code(),"addresses",hosting.addresses()));
             try{Path old=directory.resolve("control.json");if(java.nio.file.Files.exists(old))previous=JsonParser.parseString(java.nio.file.Files.readString(old)).getAsJsonObject().get("id").getAsString();}catch(Exception ignored){}

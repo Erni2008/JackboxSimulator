@@ -62,6 +62,9 @@ public final class CageLobby extends Group implements Disposable {
         for (int i = 0; i < cages.length; i++) { cages[i] = new HangingCage(assets, font, i); addActor(cages[i]); }
         CageLayoutManager.layout(cages);
     }
+    /** Independent rig using this lobby's shared asset ownership. Caller must not dispose textures. */
+    public CageCharacter createCharacter(String id){return characters.getOrDefault(id,characters.get("skeleton")).get();}
+    public CageCharacterPresentation.Profile presentation(String id){return assets.presentation.profile(id);}
     public HangingCage cage(int slot) { return cages[slot]; }
     public void registerCharacter(String id, Supplier<CageCharacter> factory) { characters.put(id, factory); }
     public void synchronize(RoomSession room) {

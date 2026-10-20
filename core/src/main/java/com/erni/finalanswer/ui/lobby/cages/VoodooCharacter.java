@@ -30,6 +30,8 @@ public final class VoodooCharacter implements CageCharacter {
     private final Particle[] pool=new Particle[24];
     private final Matrix4 saved=new Matrix4(),root=new Matrix4(),poseRoot=new Matrix4(),drawMatrix=new Matrix4();
     private final Color color=new Color();private final float[] bodyVertices=new float[10*12*20];
+    private TextureRegion cachedBodyRegion;
+    private float cachedHeartScale=Float.NaN,cachedPivotX,cachedPivotY,cachedArtScale,cachedHeartX,cachedHeartY,cachedHeartRadius,cachedPackedColor;
     private float lastTime=-1,phase;private boolean particlesStarted,reduced;private VoodooAnimationController.State previous;
     private final LinkedHashMap<String,Boolean> networkSequences=new LinkedHashMap<>();private long networkEpoch;private float networkAge;
     public VoodooCharacter(VoodooAssets assets,VoodooConfig config){this(assets,config,new Random().nextLong());}
@@ -71,9 +73,11 @@ public final class VoodooCharacter implements CageCharacter {
         if(!Float.isFinite(delta)||delta<0)return;this.phase=phase;reduced=reducedMotion;
         // Bounded substeps keep detach attachment sampling stable when a frame straddles an event.
         float remaining=delta;
-        do {float step=Math.min(remaining,1f/120);controller.update(step,phase,reducedMotion);
+        do {float step=controller.terminal()&&controller.finished()?remaining:Math.min(remaining,1f/120);controller.update(step,phase,reducedMotion);
             if(previous!=controller.state()){if(previous==VoodooAnimationController.State.DEATH||previous==VoodooAnimationController.State.ELIMINATION)resetEffects();previous=controller.state();}
-            applyPose();detach();remaining-=step;
+            if(controller.state()==VoodooAnimationController.State.DEATH){applyPose();detach();}
+            else if(remaining-step<=.000001f)applyPose();
+            remaining-=step;
         } while(remaining>.000001f);
     }
     private void applyPose() {
@@ -190,6 +194,8 @@ public final class VoodooCharacter implements CageCharacter {
     private void drawBody(Batch batch,Part p,TextureRegion region) {
         int index=0;float packed=batch.getColor().toFloatBits(),scale=p.config.artScale;
         var h=config.embeddedHeartGeometry;
+        boolean rebuild=cachedBodyRegion!=region||cachedHeartScale!=controller.pose.heartScale||cachedPivotX!=p.pivotX||cachedPivotY!=p.pivotY||cachedArtScale!=scale||cachedHeartX!=h.sourceX||cachedHeartY!=h.sourceY||cachedHeartRadius!=h.radius;
+        if(rebuild) {
         for(int row=0;row<12;row++)for(int col=0;col<10;col++)for(int corner=0;corner<4;corner++) {
             float u=(col+(corner>=2?1:0))/10f,v=(row+(corner==0||corner==3?1:0))/12f;
             float sx=u*region.getRegionWidth()+(p.config.region==null?0:p.config.region[0]),sy=v*region.getRegionHeight()+(p.config.region==null?0:p.config.region[1]);float dx=sx-h.sourceX,dy=sy-h.sourceY;
@@ -197,6 +203,8 @@ public final class VoodooCharacter implements CageCharacter {
             bodyVertices[index++]=(sx-p.pivotX+dx*weight)*scale;bodyVertices[index++]=(p.pivotY-sy-dy*weight)*scale;
             bodyVertices[index++]=packed;bodyVertices[index++]=region.getU()+(region.getU2()-region.getU())*u;bodyVertices[index++]=region.getV()+(region.getV2()-region.getV())*v;
         }
+        } else if(cachedPackedColor!=packed)for(int i=2;i<bodyVertices.length;i+=5)bodyVertices[i]=packed;
+        cachedBodyRegion=region;cachedHeartScale=controller.pose.heartScale;cachedPivotX=p.pivotX;cachedPivotY=p.pivotY;cachedArtScale=scale;cachedHeartX=h.sourceX;cachedHeartY=h.sourceY;cachedHeartRadius=h.radius;cachedPackedColor=packed;
         batch.draw(region.getTexture(),bodyVertices,0,bodyVertices.length);
     }
     private void particles(Batch batch,float opacity) {

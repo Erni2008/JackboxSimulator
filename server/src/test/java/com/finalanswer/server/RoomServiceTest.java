@@ -23,7 +23,7 @@ class RoomServiceTest {
     void command(TestPeer peer,String type,Map<String,?> payload){service.command(peer,Protocol.decode(Protocol.event(type,UUID.randomUUID().toString(),payload)));}
     void command(TestPeer peer,String type){command(peer,type,fields());}
     Map<String,Object> fields(){JsonObject st=h.latest();return Map.of("gameId",s(st,"gameId"),"questionId",s(st.getAsJsonObject("question"),"id"));}
-    void start(){players();command(h,"START_GAME",Map.of());}
+    void start(){players();command(h,"START_GAME",Map.of());clock.addAndGet(Protocol.LOBBY_TRANSITION_MILLIS);service.tick();}
     void answering(){start();command(h,"PRESENTATION_READY");}
     void submit(TestPeer peer,int index){var f=new HashMap<>(fields());f.put("answerIndex",index);command(peer,"SUBMIT_ANSWER",f);}
     void ends(){clock.addAndGet(20_000);service.tick();}
@@ -106,7 +106,7 @@ class RoomServiceTest {
     @Test void passwordAndTokenPrivacy(){var locked=create(Map.of("password","secret"));String code=s(locked,"code");failure("INVALID_PASSWORD",()->service.join(code,Map.of("name","A","password","wrong")));var player=obj(service.join(code,Map.of("name","A","password","secret")));assertFalse(player.has("hostSession"));assertFalse(service.view(code).contains(s(locked,"token")));assertFalse(service.view(code).contains("secret"));}
     @Test void reconnectDoesNotDuplicateAndRevokesOldSocket(){players();var replacement=new TestPeer();service.attach(s(host,"code"),s(one,"token"),replacement,"r");assertEquals(4001,a.closed);assertEquals(2,replacement.latest().getAsJsonArray("players").size());failure("AUTH_REQUIRED",()->command(a,"PING",Map.of()));service.detach(a.id());assertEquals("ONLINE",replacement.latest().getAsJsonArray("players").get(0).getAsJsonObject().get("connectionStatus").getAsString());}
     @Test void startsSameQuestionForEveryone(){start();assertEquals(s(h.latest().getAsJsonObject("question"),"id"),s(a.latest().getAsJsonObject("question"),"id"));assertEquals(s(a.latest().getAsJsonObject("question"),"id"),s(b.latest().getAsJsonObject("question"),"id"));assertEquals("QUESTION_PRESENTATION",s(h.latest(),"phase"));assertFalse(a.latest().getAsJsonObject("question").has("correctAnswerIndex"));assertFalse(h.latest().getAsJsonObject("question").has("correctAnswerIndex"));}
-    @Test void needsOnlinePlayersAndHostRole(){failure("NOT_ENOUGH_PLAYERS",()->command(h,"START_GAME",Map.of()));players();failure("HOST_ONLY",()->command(a,"START_GAME",Map.of()));command(h,"START_GAME",Map.of());failure("HOST_ONLY",()->command(a,"PRESENTATION_READY"));}
+    @Test void needsOnlinePlayersAndHostRole(){failure("NOT_ENOUGH_PLAYERS",()->command(h,"START_GAME",Map.of()));players();failure("HOST_ONLY",()->command(a,"START_GAME",Map.of()));command(h,"START_GAME",Map.of());clock.addAndGet(Protocol.LOBBY_TRANSITION_MILLIS);service.tick();failure("HOST_ONLY",()->command(a,"PRESENTATION_READY"));}
     @Test void noEarlyAnswers(){start();failure("ANSWERING_NOT_STARTED",()->submit(a,1));}
     @Test void acceptsCorrectAndWrongAndOnlyOnce(){answering();submit(a,1);submit(b,0);assertEquals("ANSWERING",s(h.latest(),"phase"));failure("ANSWER_ALREADY_SUBMITTED",()->submit(a,2));assertTrue(a.events.stream().anyMatch(e->s(e,"type").equals("ANSWER_ACCEPTED")));assertFalse(h.latest().getAsJsonArray("players").get(0).getAsJsonObject().has("currentAnswer"));results();var rs=h.latest().getAsJsonArray("results");assertEquals(1,java.util.stream.StreamSupport.stream(rs.spliterator(),false).filter(r->r.getAsJsonObject().get("isCorrect").getAsBoolean()).count());}
     @Test void deadlineIsExclusiveAndAuthoritative(){answering();clock.addAndGet(19999);submit(a,1);clock.incrementAndGet();failure("ANSWER_TOO_LATE",()->submit(b,1));assertEquals("REVEALING",s(h.latest(),"phase"));assertFalse(a.latest().getAsJsonObject("question").has("correctAnswerIndex"));assertFalse(obj(service.view(s(host,"code"))).getAsJsonObject("question").has("correctAnswerIndex"));}
@@ -125,15 +125,18 @@ class RoomServiceTest {
         var early=new RoomService(clock::get,10,"",Protocol.EndPolicy.ALL_SUBMITTED_OR_TIMEOUT);
         var room=obj(early.create(Map.of("name","Early")));
         var player=obj(early.join(s(room,"code"),Map.of("name","Player")));
+        var second=obj(early.join(s(room,"code"),Map.of("name","Second")));var secondPeer=new TestPeer();
+        early.attach(s(room,"code"),s(second,"token"),secondPeer,"second");
         var hostPeer=new TestPeer();var playerPeer=new TestPeer();
         early.attach(s(room,"code"),s(room,"token"),hostPeer,"h");
         early.attach(s(room,"code"),s(player,"token"),playerPeer,"p");
-        early.command(hostPeer,Protocol.decode(Protocol.event("START_GAME","start",Map.of())));
+        early.command(hostPeer,Protocol.decode(Protocol.event("START_GAME","start",Map.of())));clock.addAndGet(Protocol.LOBBY_TRANSITION_MILLIS);early.tick();
         var state=hostPeer.latest();var payload=new HashMap<String,Object>();
         payload.put("gameId",s(state,"gameId"));payload.put("questionId",s(state.getAsJsonObject("question"),"id"));
         early.command(hostPeer,Protocol.decode(Protocol.event("PRESENTATION_READY","ready",payload)));
         clock.addAndGet(1000);payload.put("answerIndex",1);
         early.command(playerPeer,Protocol.decode(Protocol.event("SUBMIT_ANSWER","answer",payload)));
+        early.command(secondPeer,Protocol.decode(Protocol.event("SUBMIT_ANSWER","second-answer",payload)));
         assertEquals("REVEALING",s(hostPeer.latest(),"phase"));
         assertEquals(clock.get(),hostPeer.latest().get("answeringEndedAt").getAsLong());
     }

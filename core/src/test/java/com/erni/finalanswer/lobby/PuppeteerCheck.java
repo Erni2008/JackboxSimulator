@@ -12,6 +12,7 @@ public final class PuppeteerCheck {
     public static void main(String[] args)throws Exception {
         var c=PuppeteerConfig.parse(Files.readString(Path.of(args[0])));PuppeteerConfig.parse(new Json().toJson(c));
         check(c.parts.size==14,"Complete calibrated rig, no extra hat");for(var p:c.parts)check(!p.name.equals("hat"),"No separate hat");
+        var reveal=new PuppeteerAnimator(c,42);check(reveal.appearanceAlpha()==0,"Puppeteer initially invisible");advance(reveal,.5f,60);check(reveal.appearanceAlpha()>0&&reveal.appearanceAlpha()<1,"Visible gradual reveal");advance(reveal,.5f,60);check(reveal.appearanceAlpha()==1,"Reveal finishes before gate closes");
         var a=new PuppeteerAnimator(c,42);check(a.state()==PuppeteerAnimator.State.INTRO,"Fresh occupant intro");advance(a,7,60);check(a.state()==PuppeteerAnimator.State.IDLE,"Intro completes");
         for(int fps:new int[]{30,60,144}){var b=new PuppeteerAnimator(c,42);var reference=new PuppeteerAnimator(c,42);advance(b,90,fps);advance(reference,90,120);same(b,reference);}
         for(var state:PuppeteerAnimator.State.values()){

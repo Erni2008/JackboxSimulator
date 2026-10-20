@@ -32,7 +32,7 @@ class TransportTest {
                 h.auth(code,host);a.auth(code,first);b.auth(code,second);
                 a.send("START_GAME",Map.of());assertEquals("HOST_ONLY",a.await("ERROR").get("code").getAsString());
                 a.socket.sendText("broken json",true).join();assertEquals("INVALID_MESSAGE",a.await("ERROR").get("code").getAsString());
-                h.send("START_GAME",Map.of());var q=h.await("QUESTION_STARTED");
+                h.send("START_GAME",Map.of());h.await("GAME_STARTED");time.addAndGet(Protocol.LOBBY_TRANSITION_MILLIS);rooms.tick();var q=h.await("QUESTION_STARTED");
                 assertEquals(q.get("question"),a.await("QUESTION_STARTED").get("question"));
                 assertEquals(q.get("question"),b.await("QUESTION_STARTED").get("question"));
                 assertFalse(q.getAsJsonObject("question").has("correctAnswerIndex"));

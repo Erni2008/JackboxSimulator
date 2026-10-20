@@ -9,7 +9,9 @@
       "y": 4,
       "brightness": 1,
       "growAt": 1.5,
-      "growDuration": 0.95
+      "growDuration": 0.95,
+      "cageExposure": 0.93,
+      "cageContrast": 1
     },
     {
       "id": "ghost",
@@ -18,7 +20,9 @@
       "pivotY": 151,
       "x": 0,
       "y": -1,
-      "brightness": 1
+      "brightness": 1,
+      "cageExposure": 0.93,
+      "cageContrast": 1
     },
     {
       "id": "zombie",
@@ -27,7 +31,9 @@
       "pivotY": 68,
       "x": 0,
       "y": -5,
-      "brightness": 0.86
+      "brightness": 0.86,
+      "cageExposure": 0.93,
+      "cageContrast": 1
     },
     {
       "id": "dracula",
@@ -36,7 +42,9 @@
       "pivotY": 68,
       "x": 1,
       "y": -5,
-      "brightness": 1
+      "brightness": 1,
+      "cageExposure": 0.93,
+      "cageContrast": 1
     },
     {
       "id": "pumpkin",
@@ -45,7 +53,9 @@
       "pivotY": 68,
       "x": 0,
       "y": -2,
-      "brightness": 1
+      "brightness": 1,
+      "cageExposure": 0.93,
+      "cageContrast": 1
     },
     {
       "id": "plague_doctor",
@@ -54,7 +64,11 @@
       "pivotY": 68,
       "x": 0,
       "y": -1,
-      "brightness": 1
+      "brightness": 1,
+      "exposure": 1.85,
+      "contrast": 1.18,
+      "cageExposure": 1.55,
+      "cageContrast": 1.1
     },
     {
       "id": "voodoo",
@@ -63,7 +77,9 @@
       "pivotY": 68,
       "x": 2,
       "y": 1,
-      "brightness": 1
+      "brightness": 1,
+      "cageExposure": 0.93,
+      "cageContrast": 1
     },
     {
       "id": "puppeteer",
@@ -72,7 +88,11 @@
       "pivotY": 68,
       "x": 0,
       "y": -8,
-      "brightness": 0.87
+      "brightness": 1,
+      "exposure": 1.9,
+      "contrast": 1.2,
+      "cageExposure": 1.6,
+      "cageContrast": 1.12
     }
   ]
 }

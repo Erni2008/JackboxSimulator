@@ -19,7 +19,7 @@ class ImpostorCompletionTest {
     }
     @Test void existingMainGameCanContinueAndArchiveSurvives(){var m=new ImpostorLifecycleTest.Match(3);m.finish("IMPOSTOR_CAUGHT");var result=m.f.rooms.completedImpostorResult(m.f.code);
         m.f.rooms.command(m.f.hostPeer,Protocol.decode(Protocol.event("START_GAME","continue",Map.of())));
-        assertFalse(m.f.hostPeer.latest().has("impostor"));assertEquals("QUESTION_PRESENTATION",s(m.f.hostPeer.latest(),"phase"));assertSame(result,m.f.rooms.completedImpostorResult(m.f.code));
+        m.f.advance(Protocol.LOBBY_TRANSITION_MILLIS);assertFalse(m.f.hostPeer.latest().has("impostor"));assertEquals("QUESTION_PRESENTATION",s(m.f.hostPeer.latest(),"phase"));assertSame(result,m.f.rooms.completedImpostorResult(m.f.code));
         for(var peer:m.f.peers)assertEquals(0,peer.closed);
     }
     @Test void reconnectRestoresCompletionWithoutDuplicatedEvent(){var m=new ImpostorLifecycleTest.Match(4);m.finish("NO_CONSENSUS");var peer=new TestPeer();m.f.rooms.detach(m.f.peers.getFirst().id());m.f.rooms.attach(m.f.code,s(m.f.players.getFirst(),"token"),peer,"reconnect");

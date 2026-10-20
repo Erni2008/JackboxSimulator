@@ -39,8 +39,8 @@ public final class GhostAssets implements Disposable {
             if (maxX < 0) throw new IllegalArgumentException("Empty ghost texture: " + path);
             minX = Math.max(0, minX - 6); minY = Math.max(0, minY - 6);
             maxX = Math.min(pixels.getWidth() - 1, maxX + 6); maxY = Math.min(pixels.getHeight() - 1, maxY + 6);
-            Texture texture = new Texture(pixels); textures.add(texture);
-            texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+            Texture texture = CharacterTextures.upload(pixels); textures.add(texture);
+
             return new Part(new TextureRegion(texture, minX, minY, maxX - minX + 1, maxY - minY + 1),
                 minX, minY, maxX - minX + 1, maxY - minY + 1);
         } finally { pixels.dispose(); }

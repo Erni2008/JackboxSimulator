@@ -16,7 +16,7 @@ public final class CinematicQuestion extends Actor implements Disposable {
     public static final float MAX_WIDTH_FRACTION = .8f, MAX_HEIGHT_FRACTION = .27f;
     public static final float FINAL_SCALE = .60f;
     private final BitmapFont displayFont;
-    private final BitmapFont fallback = UiFonts.body(FONT_SIZE);
+    private final BitmapFont fallback = UiFonts.question(FONT_SIZE);
     private final GlyphLayout layout = new GlyphLayout();
     private final float[] working = new float[20];
     private float[][] quads = new float[0][];

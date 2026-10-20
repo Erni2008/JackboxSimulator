@@ -52,7 +52,7 @@ public final class VoodooAssets implements Disposable {
             Gdx.app.log("VoodooAssets","Torso has an embedded heart: separate heart overlay is disabled. Source 5,7–12 contain painted haze; no color-key applied.");
         } catch(RuntimeException error) {dispose();throw error;}
     }
-    private Texture texture(Pixmap p) {Texture t=new Texture(p);owned.add(t);t.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);return t;}
+    private Texture texture(Pixmap p) {Texture t=CharacterTextures.upload(p);owned.add(t);return t;}
     private static TextureRegion[] regions(TextureRegion source,int[][] rectangles) {
         if(rectangles==null||rectangles.length==0) throw new IllegalArgumentException("Voodoo atlas rectangles required");
         TextureRegion[] result=new TextureRegion[rectangles.length];

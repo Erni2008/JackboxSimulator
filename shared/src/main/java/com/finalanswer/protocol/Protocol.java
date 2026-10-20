@@ -7,6 +7,7 @@ import java.util.Map;
 /** Versioned JSON envelope shared by desktop, HTTP and WebSocket adapters. */
 public final class Protocol {
     public static final int VERSION = 1, MAX_MESSAGE_BYTES = 16384;
+    public static final long LOBBY_TRANSITION_MILLIS = 4_000;
     public static final long ANSWER_MILLIS = 20_000, CLOCK_EXIT_MILLIS = 720,
         RESULT_ANIMATION_MILLIS = 600, RESULT_HOLD_MILLIS = 2500;
     public static final Gson JSON = new GsonBuilder().disableHtmlEscaping().create();

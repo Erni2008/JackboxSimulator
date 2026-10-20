@@ -8,6 +8,15 @@ public final class CageCheck {
     private static void check(boolean value, String message) { if (!value) throw new AssertionError(message); }
     private static void near(float a, float b) { check(Math.abs(a - b) < .0001f, "Expected " + a + ", got " + b); }
     public static void main(String[] args) {
+        near(0,LobbyStartAnimation.darkness(0));near(1,LobbyStartAnimation.darkness(LobbyStartAnimation.FADE_END));
+        for(int slot=0;slot<8;slot++){
+            float phase=slot*2.39996f;
+            float handoffMotion=0;for(int frame=150;frame<240;frame++)handoffMotion+=Math.abs(LobbyStartAnimation.rotation(frame/60f,phase)-LobbyStartAnimation.rotation((frame-1)/60f,phase));
+            check(handoffMotion>10,"No stopped interval during blackout/title handoff");
+            float motion=0;for(int frame=1;frame<149;frame++)motion+=Math.abs(LobbyStartAnimation.rotation(frame/60f,phase)-LobbyStartAnimation.rotation((frame-1)/60f,phase));
+            check(motion>15,"Each cage keeps moving until the blackout finishes");
+            near(0,LobbyStartAnimation.rotation(0,phase));
+        }
         var slots = new CageAssignments(); slots.synchronize(List.of("a", "b", "c"));
         slots.synchronize(List.of("c", "a")); check(slots.slotOf("a") == 0 && slots.slotOf("c") == 2, "Leaving must not reshuffle");
         slots.synchronize(List.of("c", "d", "a")); check(slots.slotOf("d") == 1, "Reuse the vacant cage");

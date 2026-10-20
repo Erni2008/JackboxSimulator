@@ -10,10 +10,12 @@ import com.badlogic.gdx.math.Matrix4;
 /** Nine-part rig in the existing cage Batch: fixed feet, neck-parented hat, hand-parented lantern. */
 public final class PlagueDoctorCharacter implements CageCharacter {
     private static final float LOBBY_SCALE=1.32f;
-    /** Uniform RGB multiplier for the character; lantern lighting retains its authored intensity. */
-    public static float plagueDoctorBrightness=.60f;
+    /** Base material exposure; readability is calibrated separately for mask, cloth and hat. Lantern intensity is independent. */
+    public static float plagueDoctorBrightness=.65f;
+    /** Material groups retain their source shadows; only the mask gets the larger readability lift. */
+    public static float plagueDoctorClothReadability=1.08f,plagueDoctorMaskReadability=1.20f,plagueDoctorMetalReadability=1.10f;
     /** Independent lantern exposure; never applied to the character sprites. */
-    public static float plagueDoctorLanternBrightness=1.5f;
+    public static float plagueDoctorLanternBrightness=3.6f;
     public static final float HEAD_SCALE=.052f,BODY_SCALE=.046f,HAT_SCALE=.047f,ROBE_SCALE=.053f;
     private static final float FREE_SCALE=.038f;
     private static final float UPPER_LENGTH=(float)Math.hypot(420,280)*FREE_SCALE;
@@ -49,6 +51,7 @@ public final class PlagueDoctorCharacter implements CageCharacter {
     public void drawNeutralAt(Batch batch,float x,float floor,float size,float alpha) {drawPose(batch,x,floor,size,alpha,neutral,true);}
     private void drawPose(Batch batch,float x,float floor,float size,float alpha,PlagueDoctorAnimator.Pose p,boolean still) {
         saved.set(batch.getTransformMatrix());color.set(batch.getColor());
+        var materialShader=batch.getShader();
         int src=batch.getBlendSrcFunc(),dst=batch.getBlendDstFunc(),srcA=batch.getBlendSrcFuncAlpha(),dstA=batch.getBlendDstFuncAlpha();
         root.set(saved).translate(x,floor,0).scale(size,size,1);inverseRoot.set(root).inv();
         opacity=color.a*alpha;
@@ -65,12 +68,13 @@ public final class PlagueDoctorCharacter implements CageCharacter {
         lightX=matrix[Matrix4.M00]*fx+matrix[Matrix4.M01]*fy+matrix[Matrix4.M03];
         lightY=matrix[Matrix4.M10]*fx+matrix[Matrix4.M11]*fy+matrix[Matrix4.M13];
         batch.setTransformMatrix(root);
+        batch.setShader(null); // Lantern emission retains its original rendering.
         batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
         batch.setColor(1,.37f,.08f,opacity*MathUtils.clamp(p.light*.18f*plagueDoctorLanternBrightness,0,1));
         batch.draw(assets.radial,lightX-29,lightY-29,58,58);
         batch.setBlendFunctionSeparate(src,dst,srcA,dstA);
-        float brightness=MathUtils.clamp(plagueDoctorBrightness,0,1);
-        batch.setColor(color.r*brightness,color.g*brightness,color.b*brightness,opacity*p.alpha);
+        batch.setShader(materialShader);
+        characterTint(batch,plagueDoctorClothReadability,opacity*p.alpha);
         leftLeg.draw(batch,p.hipX-8,hip,-14,3,-1);rightLeg.draw(batch,p.hipX+8,hip,14,3,1);
         robe.set(torso).translate(0,8,0);batch.setTransformMatrix(robe);drawRobe(batch,p,still);
         batch.setTransformMatrix(rightArm);
@@ -87,19 +91,27 @@ public final class PlagueDoctorCharacter implements CageCharacter {
         part(batch,assets.body,0,0,600,780,BODY_SCALE,0);
         head.set(torso).translate(PlagueDoctorRig.NECK_X+p.headX,PlagueDoctorRig.NECK_Y,0).rotate(0,0,1,p.headAngle);
         batch.setTransformMatrix(head);
+        characterTint(batch,plagueDoctorMaskReadability,opacity*p.alpha);
         part(batch,assets.head,0,0,790,1000,HEAD_SCALE,0);
         // The foreground mantle covers the scarf root, giving the mask a seated neck joint.
         batch.setTransformMatrix(torso);
+        characterTint(batch,plagueDoctorClothReadability,opacity*p.alpha);
         part(batch,assets.collar,0,0,600,780,BODY_SCALE,0);
         // Wrist/hand stay on the same forearm bone. Only the hand passes in front of the portrait.
         part(batch,assets.freeHand,freePose.jointX,freePose.jointY,720,540,FREE_SCALE,lowerAngle);
         batch.setTransformMatrix(head);
+        characterTint(batch,plagueDoctorMetalReadability,opacity*p.alpha);
         part(batch,assets.hat,0,40,780,850,HAT_SCALE,p.hatAngle);
+        batch.setShader(null);
         batch.setTransformMatrix(lantern);batch.setColor(color.r,color.g,color.b,opacity*p.alpha);
         part(batch,assets.lantern,0,0,PlagueDoctorRig.RING_X,PlagueDoctorRig.RING_Y,PlagueDoctorRig.LANTERN_SCALE,0);
         batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
-        batch.setColor(1,1,1,opacity*p.alpha*MathUtils.clamp(p.fire*.85f*plagueDoctorLanternBrightness,0,1));
+        batch.setColor(1,1,1,opacity*p.alpha*MathUtils.clamp(p.fire*.38f*plagueDoctorLanternBrightness,0,1));
         float scale=PlagueDoctorRig.LANTERN_SCALE;
+        batch.draw(assets.fire,-PlagueDoctorRig.RING_X*scale,(PlagueDoctorRig.RING_Y-assets.lantern.height())*scale,
+            assets.lantern.width()*scale,assets.lantern.height()*scale);
+        // A second warm emission pass adds radiance after the original pass reaches alpha one.
+        batch.setColor(1,.77f,.34f,opacity*p.alpha*MathUtils.clamp(p.fire*.20f*plagueDoctorLanternBrightness,0,1));
         batch.draw(assets.fire,-PlagueDoctorRig.RING_X*scale,(PlagueDoctorRig.RING_Y-assets.lantern.height())*scale,
             assets.lantern.width()*scale,assets.lantern.height()*scale);
         batch.setColor(1,.48f,.07f,opacity*MathUtils.clamp(p.fire*.12f*plagueDoctorLanternBrightness,0,1));
@@ -112,7 +124,11 @@ public final class PlagueDoctorCharacter implements CageCharacter {
             batch.draw(assets.radial,flameX+MathUtils.sin(i*2.4f+age)*1.5f,flameY+age*5,.55f,.85f);
         }
         batch.setBlendFunctionSeparate(src,dst,srcA,dstA);
-        batch.setTransformMatrix(saved);batch.setColor(color);
+        batch.setTransformMatrix(saved);batch.setColor(color);batch.setShader(materialShader);
+    }
+    private void characterTint(Batch batch,float material,float alpha) {
+        float value=MathUtils.clamp(plagueDoctorBrightness*material,0,1);
+        batch.setColor(color.r*value,color.g*value,color.b*value,alpha);
     }
     private void part(Batch batch,PlagueDoctorAssets.Part p,float x,float y,float px,float py,float scale,float angle) {
         float ox=(px-p.x())*scale,oy=(p.y()+p.height()-py)*scale;

@@ -16,6 +16,7 @@ import javax.crypto.spec.PBEKeySpec;
 /** One authoritative registry. Membership, phase changes, deadlines and submissions share a lock. */
 public final class RoomService {
     private static final String ALPHABET="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    private static final List<String> CHARACTERS=List.of("skeleton","ghost","zombie","dracula","pumpkin","plague_doctor","voodoo","puppeteer");
     private static final Set<String> MODES=Set.of("standard","deadline","every_man_for_himself","trust_no_one","house_rules");
     private final SecureRandom random=new SecureRandom();
     private final Map<String,Room> rooms=new HashMap<>();
@@ -65,10 +66,12 @@ public final class RoomService {
         if(room.members.size()>=room.maxPlayers) throw new Failure(409,"ROOM_IS_FULL");
         if(room.members.values().stream().anyMatch(m->m.name.equalsIgnoreCase(name))) throw new Failure(409,"NICKNAME_IN_USE");
         String character=data.getOrDefault("characterId", "");
-        if(!character.isEmpty() && !character.equals("skeleton") && !character.equals("ghost") && !character.equals("zombie") && !character.equals("dracula") && !character.equals("pumpkin") && !character.equals("plague_doctor") && !character.equals("voodoo") && !character.equals("puppeteer"))
-            throw new Failure(400,"INVALID_CHARACTER");
+        if(!character.isEmpty() && !CHARACTERS.contains(character))throw new Failure(400,"INVALID_CHARACTER");
+        Set<String> taken=new HashSet<>();room.members.values().forEach(m->taken.add(m.characterId));
+        if(character.isEmpty())character=CHARACTERS.stream().filter(c->!taken.contains(c)).findFirst().orElseThrow(()->new Failure(409,"ROOM_IS_FULL"));
+        if(taken.contains(character))throw new Failure(409,"CHARACTER_IN_USE");
         Member member=new Member(name,false,token(),now());
-        member.characterId=character.isEmpty()?"guest_"+(room.members.size()+1):character;
+        member.characterId=character;
         room.members.put(member.token,member);
         broadcast(room,"PLAYER_JOINED");
         return json(snapshot(room,member,true));
@@ -184,10 +187,12 @@ public final class RoomService {
             if(room.game!=null || room.impostor!=null&&room.impostor.result()==null) throw new Failure(409,"GAME_ALREADY_STARTED");
             Set<String> participants=new LinkedHashSet<>();
             room.members.values().stream().filter(m->m.peer!=null&&!m.left).forEach(m->participants.add(m.id));
-            if(participants.isEmpty()) throw new Failure(409,"NOT_ENOUGH_PLAYERS");
+            if(room.members.size()<2) throw new Failure(409,"NOT_ENOUGH_PLAYERS");
+            if(room.members.values().stream().anyMatch(m->m.peer==null||m.left))throw new Failure(409,"PLAYER_OFFLINE");
+            if(room.members.values().stream().map(m->m.characterId).distinct().count()!=participants.size())throw new Failure(409,"CHARACTER_IN_USE");
             if(room.impostor!=null){room.lastImpostorResult=room.impostor.result();room.impostor.close();room.impostor=null;}
             room.game=new GameSession(room.questionCount,participants,endPolicy,now());
-            broadcast(room,"GAME_STARTED"); room.game.next(now()); broadcast(room,"QUESTION_STARTED");
+            broadcast(room,"GAME_STARTED");
             reply(peer,room,member,message); return;
         }
         if(message.type().equals("SUBMIT_FINAL_VOTE")) {
@@ -319,6 +324,10 @@ public final class RoomService {
 
     public synchronized void tick() {
         for(Room room:new ArrayList<>(rooms.values())) {
+            // Detect half-open sockets even when the transport has not reported a close.
+            for(Member member:allMembers(room))if(room.game==null && room.impostor==null && member.peer!=null && now()-member.seen>45_000){
+                disconnectMember(member,"CONNECTION_LOST");broadcast(room,"PLAYER_LEFT");
+            }
             // Host heartbeat keeps an unconfirmed CREATE -> GENERATE room alive too.
             if(room.host.peer==null && now()-room.host.seen>120_000) { closeRoom(room,"HOST_DISCONNECTED"); continue; }
             for(Member member:new ArrayList<>(room.members.values())) {
@@ -343,6 +352,10 @@ public final class RoomService {
             } else if(mini.tick(now()))broadcast(room,"SUSPICION_FINALIZED");
         }
         GameSession game=room.game; if(game==null || game.phase==Phase.GAME_FINISHED) return;
+        if(game.phase==Phase.STARTING && now()>=game.phaseStartedAt+Protocol.LOBBY_TRANSITION_MILLIS){
+            // The start roster is frozen. Reconnecting members retain their original seat.
+            game.next(game.phaseStartedAt+Protocol.LOBBY_TRANSITION_MILLIS);broadcast(room,"QUESTION_STARTED");
+        }
         if(game.phase==Phase.ANSWERING && now()>=game.deadline) {
             game.endAnswers(game.deadline); broadcast(room,"ANSWERING_FINISHED");
         }
@@ -366,7 +379,7 @@ public final class RoomService {
         rooms.remove(room.code);
     }
     private void disconnectMember(Member member,String reason) {
-        if(member.peer!=null) { bindings.remove(member.peer.id()); member.peer.close(4002,reason); member.peer=null; }
+        if(member.peer!=null) { bindings.remove(member.peer.id()); member.peer.close(reason.equals("CONNECTION_LOST")?4000:4002,reason); member.peer=null; }
         member.seen=now();
     }
     private void broadcast(Room room,String type) {
@@ -386,6 +399,8 @@ public final class RoomService {
         value.put("roomStatus",game==null?"LOBBY":phase==Phase.GAME_FINISHED?"GAME_FINISHED":"IN_GAME");
         value.put("phase",phase.name()); value.put("revision",room.revision); value.put("serverTime",now()); value.put("publicUrl",publicUrl);
         value.put("hostConnected",room.host.peer!=null);
+        value.put("availableCharacters",CHARACTERS.stream().filter(c->room.members.values().stream().noneMatch(m->m.characterId.equals(c))).toList());
+        value.put("canStart",game==null && room.impostor==null && room.host.peer!=null && room.members.size()>=2 && room.members.values().stream().allMatch(m->m.peer!=null&&!m.left));
         value.put("impostorSettings",room.impostorSettings);value.put("impostorWordCategories",List.of("DEFAULT"));
         value.put("lobbyId",room.lobbyId);
         if(room.impostor==null && !room.impostorRoster.isEmpty())value.put("impostorLobby",Map.of("sessionId",room.lobbyId,"participantIds",room.impostorRoster));
@@ -464,6 +479,10 @@ public final class RoomService {
             value.put("roomStatus","IN_GAME");
         }
         if(game!=null) {
+            value.put("transitionStartedAt",game.phase==Phase.STARTING?game.phaseStartedAt:0);
+            value.put("transitionEndsAt",game.phase==Phase.STARTING?game.phaseStartedAt+Protocol.LOBBY_TRANSITION_MILLIS:0);
+            value.put("roundTitle","РАУНД 1 — ПЕРВЫЙ ВОПРОС");
+            value.put("participantIds",game.participants);
             value.put("gameId",game.id); value.put("questionNumber",game.index+1); value.put("questionCount",game.questions.size());
             value.put("questionStartTime",game.questionStartedAt); value.put("phaseStartedAt",game.phaseStartedAt); value.put("answeringStartedAt",game.answeringStartedAt);
             value.put("deadline",game.deadline); value.put("answeringEndedAt",game.endedAt);

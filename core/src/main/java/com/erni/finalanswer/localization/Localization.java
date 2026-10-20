@@ -75,6 +75,8 @@ public class Localization {
                     case "INVALID_GAME_MODE" -> "error.game_mode";
                     case "ROOM_NOT_EMPTY" -> "error.reroll_players";
                     case "NOT_ENOUGH_PLAYERS" -> "network.need_players";
+                    case "PLAYER_OFFLINE" -> "network.player_offline";
+                    case "CHARACTER_IN_USE" -> "network.character_taken";
                     case "HOST_ONLY" -> "network.host_only";
                     case "GAME_ALREADY_STARTED" -> "network.started";
                     case "CONNECTED" -> "network.connected";

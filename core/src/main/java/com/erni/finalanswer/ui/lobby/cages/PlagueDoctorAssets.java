@@ -86,7 +86,7 @@ public final class PlagueDoctorAssets implements Disposable {
         return new Part(new TextureRegion(original.region().getTexture(),x,y,w,h),x,y,w,h);
     }
     private Texture texture(Pixmap p) {
-        Texture t=new Texture(p);owned.add(t);t.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);return t;
+        Texture t=CharacterTextures.upload(p);CharacterTextures.detailBias(t,-.55f);owned.add(t);return t;
     }
     @Override public void dispose() {for(Texture t:owned)t.dispose();owned.clear();}
 }

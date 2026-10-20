@@ -10,13 +10,15 @@ public final class CageNameplate {
     public static final float X = 126, Y = 27, WIDTH = 101, HEIGHT = 18;
     private final BitmapFontCache cache;
     private final float maximumScale;
+    private final Color ink=new Color(.105f,.055f,.025f,1);
+    public void ink(Color value){ink.set(value);cache.setColors(ink);}
 
     public CageNameplate(BitmapFont font) {
         cache = new BitmapFontCache(font, false);
         maximumScale = (HEIGHT - 2) / Math.max(1, font.getCapHeight());
     }
     public void setText(String text) {
-        cache.setColor(new Color(.105f, .055f, .025f, 1));
+        cache.setColor(ink);
         cache.setText(text.replace('\n', ' ').replace('\r', ' ').strip(), 0, 0);
         float minX = Float.POSITIVE_INFINITY, minY = Float.POSITIVE_INFINITY;
         float maxX = Float.NEGATIVE_INFINITY, maxY = Float.NEGATIVE_INFINITY;

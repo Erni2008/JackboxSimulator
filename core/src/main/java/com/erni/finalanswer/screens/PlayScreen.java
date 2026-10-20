@@ -25,6 +25,8 @@ public class PlayScreen extends ScreenAdapter {
     private final Stage stage = new Stage(new FitViewport(1600, 900));
     private final RoundController round;
     private com.erni.finalanswer.network.NetworkRoundAdapter network;
+    private com.erni.finalanswer.network.RealtimeClient connection;
+    private QuestionPlayers players;
     private final Label roster;
     private String rosterText = "";
     private final BitmapFont smallFont = UiFonts.body(19);
@@ -46,9 +48,13 @@ public class PlayScreen extends ScreenAdapter {
     public PlayScreen(FinalAnswerGame game, com.erni.finalanswer.network.RealtimeClient connection) {
         this(game, new DemoQuestionSource());
         network = new com.erni.finalanswer.network.NetworkRoundAdapter(round, connection);
+        this.connection=connection;
+        if(game.getRoomCharacters()!=null){players=new QuestionPlayers(game.getRoomCharacters(),pixel);stage.addActor(players);layoutClock();}
     }
 
     /** Audio adapters can subscribe before show(), then finish with the generation token from QUESTION_STARTED. */
+    public QuestionPlayers playerCharacters(){return players;}
+
     public com.erni.finalanswer.gameplay.presentation.QuestionPresentationController presentation() {
         return round.presentation();
     }
@@ -144,7 +150,7 @@ public class PlayScreen extends ScreenAdapter {
         question.setScale(scale);
         float width = stage.getViewport().getWorldWidth(), height = stage.getViewport().getWorldHeight();
         question.setPosition((width - question.getWidth()) / 2,
-            height * (.55f + .19f * motion) - question.getHeight() / 2);
+            height * (.55f + (players==null?.19f:.15f) * motion) - question.getHeight() / 2);
         answers.synchronize(round, game.getSettings().reducedMotion());
         String status = paused || applicationPaused ? game.getTexts().get("play.paused") : round.phase() == RoundPhase.ANSWERING
             ? game.getTexts().format("play.remaining", (int) Math.ceil(round.answerSecondsRemaining()))
@@ -157,7 +163,7 @@ public class PlayScreen extends ScreenAdapter {
         }
         hint.setText(network != null ? game.getTexts().get("play.escape") : game.getTexts().get(round.phase() == RoundPhase.ANSWERING
             ? "play.answering" : round.canAdvance() ? "play.next" : "play.escape"));
-        if (network != null) {
+        if (network != null && players==null) {
             String text = network.playerStatus();
             if (!text.equals(rosterText)) { rosterText=text; roster.setText(text); }
         }
@@ -184,6 +190,7 @@ public class PlayScreen extends ScreenAdapter {
             } else if (round.next()) beginRound();
         }
         updatePresentation();
+        if(players!=null){players.synchronize(connection.snapshot(),connection.serverNow());players.answersVisible(round.presentation().answerProgress(0)>0);players.advance(step,game.getSettings().reducedMotion());}
         ScreenUtils.clear(9 / 255f, 9 / 255f, 9 / 255f, 1);
         stage.getViewport().apply();
         stage.act(step);
@@ -192,9 +199,11 @@ public class PlayScreen extends ScreenAdapter {
     }
     private void layoutClock() {
         float w = stage.getViewport().getWorldWidth(), h = stage.getViewport().getWorldHeight();
+        roster.setVisible(players==null);
         roster.setBounds(w * .05f, h * .88f, w * .9f, h * .09f);
+        if(players!=null){players.setBounds(0,h-180,w,180);answers.setY(-26);}
         roster.setFontScale(.85f);
-        heading.setBounds(w * .25f, h * .845f, w * .5f, h * .03f);
+        heading.setBounds(w * .25f, h * (players==null?.845f:.775f), w * .5f, h * .03f);
         countdown.setBounds(w * .15f, h * .057f, w * .7f, h * .028f);
         hint.setBounds(w * .08f, h * .02f, w * .84f, h * .026f);
         float clockWidth = w * .20f;
@@ -218,5 +227,6 @@ public class PlayScreen extends ScreenAdapter {
         question.dispose();
         answers.dispose();
         smallFont.dispose();
+        if(players!=null)players.dispose();
     }
 }

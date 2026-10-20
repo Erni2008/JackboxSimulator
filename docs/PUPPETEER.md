@@ -7,7 +7,7 @@ Implemented inside Final Answer's existing `CageCharacter` / `CageLobby` system.
 Created in `core/src/main/java/com/erni/finalanswer/ui/lobby/cages/`:
 
 - `PuppeteerConfig.java`: validated source-pixel pivots, attachment offsets, ordering, contours and animation settings.
-- `PuppeteerAssets.java`: shared lazy textures, load-time contour masks, isolated eyeballs and amber-only emission mask.
+- `PuppeteerAssets.java`: shared lazy textures, load-time contour masks, isolated eyeballs and alpha-correct texture minification.
 - `PuppeteerSkeleton.java`: per-instance parent matrices and transform offsets.
 - `PuppeteerAnimator.java`: per-instance state machine, seeded weighted scheduler, independent eyes and procedural pose layers.
 - `PuppeteerStrings.java`: curved cords from stationary suspension points to transformed bone attachments, with damped slack.
@@ -50,11 +50,11 @@ The torso owns the head, shoulders/arms and hips/legs. Eyes, mouth, nose and ext
 
 Legs and arms render behind the torso's existing sleeves/coat, hands over their arm ends, ribbons behind the head, then head, eyes, grin and nose. The suspension stays in character-root space and is not rotated with the torso. Cords use the current bone matrix to calculate each end, so raising/rotating a hand cannot detach its string. Slack decreases on upward pulls and follows with exponential damping. The cords are one cached quad mesh drawn with the existing Batch; no ShapeRenderer begin/end interrupts gameplay rendering.
 
-Only isolated amber iris pixels receive additive illumination. The eye's base tint is dimmer during the opening freeze. The main character never receives additive blending. Every draw restores the incoming transform, color and separate RGB/alpha blend functions.
+The amber eye uses its original texture and existing restrained color pulse. The redundant additive iris pass was removed during the lighting correction; neither wood, cloth nor eyes receive additive lighting. Character textures now share coverage-weighted mipmaps and trilinear minification. Every lobby draw starts with the existing default Batch shader and straight-alpha blending, then restores the incoming shader, blend enable/factors, transform and color. See `CHARACTER_LIGHTING.md`.
 
 ## Animation
 
-- `INTRO`, default 6.5 seconds, starts once per new character assignment: downturned freeze; gradual tightening/head lift; staggered eye focus/head snap; increasing amber intensity and raised hand; theatrical grin/shoulder response; eased return to IDLE.
+- `INTRO`, default 6.5 seconds, starts once per new character assignment: short whole-rig fade-in (0.08–0.9 seconds), then downturned freeze; gradual tightening/head lift; staggered eye focus/head snap; increasing amber intensity and raised hand; theatrical grin/shoulder response; eased return to IDLE.
 - `IDLE`: overlapping irregular torso/head waves, asymmetric arms/wrists/shoulders, restrained rigid-leg orientation changes and damped ribbon lag. Independent eyes choose timed targets; the amber eye follows the pointer in the actual lobby, while the dark eye sometimes ignores it and otherwise follows more slowly.
 - `WALK`: optional in-place preview using uneven rigid-leg strides, weight shifts and lagging arms/head. It does not move a player out of their cage.
 - `LAUGH`: adjustable `laughIntensity`, mouth hinge cycles, head-back/side tilt, synchronized shoulder/body pulses and amber emphasis. No sound is played; `stateTime()` is available for future sound synchronization.

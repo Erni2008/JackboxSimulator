@@ -173,3 +173,8 @@ Thumbs.db
 # Reproducible local character QA captures (source and JSON reports are versioned).
 /generated/puppeteer-preview/*.png
 /generated/lobby-character-polish/*.png
+
+# Local synchronized lobby transition captures.
+/generated/lobby-start/
+
+/generated/question-players/

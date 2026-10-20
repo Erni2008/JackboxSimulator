@@ -629,6 +629,52 @@ tasks.register('lobbyCharacterPolishCheck', JavaExec) {
     mainClass = 'com.erni.finalanswer.lwjgl3.LobbyCharacterPolishCheck'
     workingDir = rootProject.file('assets')
     systemProperty 'polish.output', rootProject.file('generated/lobby-character-polish').absolutePath
+    systemProperty 'polish.interactive', providers.gradleProperty('characterPreview').getOrElse('false')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('characterLightingCheck', JavaExec) {
+    group = 'verification'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.CharacterLightingCheck'
+    workingDir = rootProject.file('assets')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('characterPerformanceCheck', JavaExec) {
+    group = 'verification'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.CharacterPerformanceCheck'
+    workingDir = rootProject.file('assets')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+// Development-only real server + desktop + eight authenticated phone clients.
+tasks.register('lobbyStartCheck', JavaExec) {
+    group = 'verification'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.LobbyStartCheck'
+    workingDir = rootProject.file('assets')
+    systemProperty 'lobbyStart.output', rootProject.file('generated/lobby-start').absolutePath
+    systemProperty 'lobbyStart.interactive', providers.gradleProperty('questionPreview').getOrElse('false')
+    systemProperty 'lobbyStart.performanceCheck', providers.gradleProperty('questionPerformanceCheck').getOrElse('false')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('questionPlayersRenderCheck', JavaExec) {
+    group = 'verification'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.QuestionPlayersRenderCheck'
+    workingDir = rootProject.file('assets')
+    systemProperty 'questionPlayers.output', rootProject.file('generated/question-players').absolutePath
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
