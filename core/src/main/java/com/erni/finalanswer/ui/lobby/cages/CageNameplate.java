@@ -11,7 +11,6 @@ public final class CageNameplate {
     private final BitmapFontCache cache;
     private final float maximumScale;
     private final Color ink=new Color(.105f,.055f,.025f,1);
-    public void ink(Color value){ink.set(value);cache.setColors(ink);}
 
     public CageNameplate(BitmapFont font) {
         cache = new BitmapFontCache(font, false);

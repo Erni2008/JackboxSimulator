@@ -74,3 +74,21 @@ Measured same-pose opaque shadow/midtone luminance gain: Doctor **1.819×** (10,
 ## Cage-only softer lighting
 
 Presentation profiles now optionally define `cageExposure` and `cageContrast`. HangingCage calls `drawInCage`; question rigs retain the prior `draw` profile, so gameplay readability is unaffected. Doctor's cage curve is 1.55/1.10 (question curve 1.85/1.18), Puppeteer's 1.60/1.12 (question 1.90/1.20). Other characters receive a gentle cage-only 0.93/1.00 curve. This reduces the recent lift without changing source PNGs, alpha, body proportions, cage/background light or intended separate doctor lantern rendering. The same owned program is reused per character profile with uniforms selected at draw time and incoming state restored afterwards.
+
+### Cage doctor correction and Impostor portraits
+
+The doctor now uses `cageExposure: 0.85`, `cageContrast: 1.0`: the cage-only
+midtone lift has been removed and material shading is reduced. Question/mini-game
+profiles remain separate; the doctor's lantern still bypasses material grading.
+Cage nameplates again use `UiFonts.nameplate(48)` with their original uniform brown ink.
+Character colors belong to question labels and mini-game portrait nameplates.
+
+`ImpostorCharacterActor` borrows the existing `CageLobby` texture owner and creates
+an independent existing rig per portrait. The production Impostor avatar factory
+now supplies these actors to participant frames, final voting and result cards.
+No cage graphics or new character textures are used. Actors advance through Scene2D
+`act(delta)` and restore the batch transform after drawing with the shared material profile.
+Run `./gradlew :lwjgl3:impostorCharactersCheck` for an eight-character OpenGL contact
+sheet, or `./gradlew :lwjgl3:impostorPreview` for the interactive three/four-player scene
+(F3/F4 changes participant count, F5 switches between the two groups of four characters). The contact sheet is written to
+`generated/impostor-characters.png`; this is a development artifact.

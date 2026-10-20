@@ -10,19 +10,22 @@ public final class ImpostorPreviewLauncher {
     public static void main(String[] args) {
         if (StartupHelper.startNewJvmIfRequired()) return;
         var config = new Lwjgl3ApplicationConfiguration();
-        config.setTitle("Final Answer - THE IMPOSTOR / Stage 6 / F: final act / V: suspicion / F3-F4: players / R: reveal / B: back / N: reset");
+        config.setTitle("Final Answer - THE IMPOSTOR / Stage 6 / F: final act / V: suspicion / F3-F4: players / F5: other characters / R: reveal / B: back / N: reset");
         config.setWindowedMode(1280, 720);
         config.disableAudio(true);
         new Lwjgl3Application(new FinalAnswerGame() {
             private ImpostorScreen preview;
+            private com.erni.finalanswer.ui.lobby.cages.CageLobby characters;
+            @Override public com.erni.finalanswer.ui.lobby.cages.CageLobby getRoomCharacters(){return characters;}
             private ImpostorSuspicionPreview suspicion;
             private ImpostorCluePreview clues;
             private ImpostorFinalPreview finalAct;
             private com.erni.finalanswer.network.RealtimeClient live;
             @Override public void create() {
                 super.create();
+                characters = new com.erni.finalanswer.ui.lobby.cages.CageLobby();
                 preview = new ImpostorScreen(this);
-                preview.setParticipants(ImpostorPreviewData.participants(3));
+                preview.setParticipants(ImpostorPreviewData.participants(4));
                 setScreen(preview);
                 String configFile=System.getProperty("impostor.connection","");
                 if(configFile.isBlank()){suspicion=ImpostorPreviewData.installControls(preview);clues=new ImpostorCluePreview(preview);finalAct=new ImpostorFinalPreview(preview);}
@@ -47,6 +50,7 @@ public final class ImpostorPreviewLauncher {
                 if(live!=null)live.close();
                 if (preview != null) preview.dispose();
                 super.dispose();
+                if(characters!=null)characters.dispose();
             }
         }, config);
     }

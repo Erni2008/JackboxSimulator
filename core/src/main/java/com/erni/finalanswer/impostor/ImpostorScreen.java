@@ -74,7 +74,10 @@ public final class ImpostorScreen extends ScreenAdapter {
     private boolean built, disposed;
 
     public ImpostorScreen(FinalAnswerGame game) {
-        this(game, player -> null);
+        this(game, player -> {
+            var characters = game.getRoomCharacters();
+            return characters == null ? null : new ImpostorCharacterActor(characters, player);
+        });
     }
 
     /** Avatar actors borrow resources owned by the caller and must have positive natural dimensions. */

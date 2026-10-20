@@ -67,8 +67,8 @@
       "brightness": 1,
       "exposure": 1.85,
       "contrast": 1.18,
-      "cageExposure": 1.32,
-      "cageContrast": 1.07
+      "cageExposure": 0.85,
+      "cageContrast": 1
     },
     {
       "id": "voodoo",

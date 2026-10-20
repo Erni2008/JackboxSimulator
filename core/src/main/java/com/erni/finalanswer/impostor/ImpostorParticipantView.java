@@ -72,7 +72,7 @@ public final class ImpostorParticipantView extends Group {
             frame.setBounds(0, 30, FRAME_WIDTH, FRAME_HEIGHT);
             addActor(frame);
         });
-        Label nickname = nickname(participant.player().name(), Color.valueOf("352116"));
+        Label nickname = nickname(participant.player().name(), com.erni.finalanswer.ui.PlayerColors.ink(participant.player().characterId()));
         nickname.setName("nickname");
         nickname.setVisible(hasFrame);
         addActor(nickname);

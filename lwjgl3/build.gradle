@@ -678,3 +678,14 @@ tasks.register('questionPlayersRenderCheck', JavaExec) {
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
+
+tasks.register('impostorCharactersCheck', JavaExec) {
+    group = 'verification'
+    description = 'Real GL check of all eight existing animated characters inside Impostor portraits.'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.ImpostorCharactersCheck'
+    workingDir = rootProject.file('assets')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}

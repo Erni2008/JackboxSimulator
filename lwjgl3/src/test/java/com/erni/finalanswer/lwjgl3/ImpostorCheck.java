@@ -343,7 +343,7 @@ public final class ImpostorCheck extends FinalAnswerGame {
             var plate=ImpostorParticipantView.NAMEPLATE;
             check(nickname.getX()==plate.x() && nickname.getY()==plate.y()
                 && nickname.getWidth()==plate.width() && nickname.getHeight()==plate.height(), "Nickname inside measured nameplate");
-            check(nickname.getStyle().fontColor.r<.3f, "Dark nameplate ink");
+            check(nickname.getStyle().fontColor.equals(com.erni.finalanswer.ui.PlayerColors.ink(participant.player().characterId())), "Character-specific parchment ink");
             com.badlogic.gdx.scenes.scene2d.Group paper=view.findActor("paper");
             Image front=paper.findActor("paperFront");
             check(front != null && Math.abs(front.getWidth()/front.getHeight()-1120f/1404)<.0001f,

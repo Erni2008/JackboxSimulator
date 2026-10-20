@@ -44,7 +44,6 @@ public final class HangingCage extends Group {
     public String playerId() { return playerId; }
     public CageAnimator animation() { return animation; }
     public void assign(String id, String name, String selected, CageCharacter next) {
-        nameplate.ink(com.erni.finalanswer.ui.PlayerColors.ink(selected));
         if (id.equals(playerId)) {
             if (next != null) { character = next; characterId = selected; }
             rename(name); return;
