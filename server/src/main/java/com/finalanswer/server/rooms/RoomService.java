@@ -65,7 +65,7 @@ public final class RoomService {
         if(room.members.size()>=room.maxPlayers) throw new Failure(409,"ROOM_IS_FULL");
         if(room.members.values().stream().anyMatch(m->m.name.equalsIgnoreCase(name))) throw new Failure(409,"NICKNAME_IN_USE");
         String character=data.getOrDefault("characterId", "");
-        if(!character.isEmpty() && !character.equals("skeleton") && !character.equals("ghost") && !character.equals("zombie") && !character.equals("dracula"))
+        if(!character.isEmpty() && !character.equals("skeleton") && !character.equals("ghost") && !character.equals("zombie") && !character.equals("dracula") && !character.equals("pumpkin") && !character.equals("plague_doctor") && !character.equals("voodoo"))
             throw new Failure(400,"INVALID_CHARACTER");
         Member member=new Member(name,false,token(),now());
         member.characterId=character.isEmpty()?"guest_"+(room.members.size()+1):character;

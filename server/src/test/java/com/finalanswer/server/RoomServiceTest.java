@@ -61,6 +61,36 @@ class RoomServiceTest {
         service.attach(code,s(dracula,"token"),replacement,"dracula-reconnect");
         assertEquals("dracula",s(replacement.latest().getAsJsonArray("players").get(0).getAsJsonObject(),"characterId"));
     }
+    @Test void plagueDoctorSelectionSurvivesRosterRefreshAndReconnect() {
+        String code=s(host,"code");
+        var dracula=obj(service.join(code,Map.of("name","Plague Doctor","characterId","plague_doctor")));
+        service.attach(code,s(dracula,"token"),a,"plague_doctor");
+        assertEquals("plague_doctor",s(a.latest().getAsJsonArray("players").get(0).getAsJsonObject(),"characterId"));
+        join("Other");
+        assertEquals("plague_doctor",s(a.latest().getAsJsonArray("players").get(0).getAsJsonObject(),"characterId"));
+        service.detach(a.id()); var replacement=new TestPeer();
+        service.attach(code,s(dracula,"token"),replacement,"dracula-reconnect");
+        assertEquals("plague_doctor",s(replacement.latest().getAsJsonArray("players").get(0).getAsJsonObject(),"characterId"));
+    }
+    @Test void pumpkinChoiceSurvivesRosterRefreshAndReconnect() {
+        String code=s(host,"code");
+        var pumpkin=obj(service.join(code,Map.of("name","Pumpkin Head","characterId","pumpkin")));
+        service.attach(code,s(pumpkin,"token"),a,"pumpkin");
+        assertEquals("pumpkin",s(a.latest().getAsJsonArray("players").get(0).getAsJsonObject(),"characterId"));
+        service.heartbeat(code,s(pumpkin,"token"));
+        service.detach(a.id());var replacement=new TestPeer();service.attach(code,s(pumpkin,"token"),replacement,"pumpkin-reconnect");
+        assertEquals("pumpkin",s(replacement.latest().getAsJsonArray("players").get(0).getAsJsonObject(),"characterId"));
+        service.leave(code,s(pumpkin,"token"));assertEquals(0,h.latest().getAsJsonArray("players").size());
+    }
+    @Test void voodooSelectionSurvivesReconnectWithoutChangingProtocol() {
+        String code=s(host,"code");
+        var doll=obj(service.join(code,Map.of("name","Voodoo","characterId","voodoo")));
+        service.attach(code,s(doll,"token"),a,"voodoo");
+        assertEquals("voodoo",s(a.latest().getAsJsonArray("players").get(0).getAsJsonObject(),"characterId"));
+        service.detach(a.id());var replacement=new TestPeer();service.attach(code,s(doll,"token"),replacement,"voodoo-again");
+        assertEquals("voodoo",s(replacement.latest().getAsJsonArray("players").get(0).getAsJsonObject(),"characterId"));
+        service.leave(code,s(doll,"token"));assertEquals(0,h.latest().getAsJsonArray("players").size());
+    }
     @Test void createsServerGeneratedUniqueCodes(){Set<String> codes=new HashSet<>();for(int i=0;i<100;i++){JsonObject room=create(Map.of("code","AAAAAA"));assertTrue(s(room,"code").matches("[A-HJ-NP-Z2-9]{6}"));assertTrue(codes.add(s(room,"code")));assertEquals(43,s(room,"token").length());assertTrue(room.has("roomId"));}}
     @Test void joinsAndCapacityExcludesHost(){players();assertEquals(2,h.latest().getAsJsonArray("players").size());failure("ROOM_IS_FULL",()->join("Third"));}
     @Test void wrongCodeAndBadNickname(){failure("ROOM_NOT_FOUND",()->service.join("ZZZZZZ",Map.of("name","A")));failure("INVALID_NICKNAME",()->join("\n\t"));failure("INVALID_NICKNAME",()->join("x".repeat(25)));join("Test");failure("NICKNAME_IN_USE",()->join("test"));}

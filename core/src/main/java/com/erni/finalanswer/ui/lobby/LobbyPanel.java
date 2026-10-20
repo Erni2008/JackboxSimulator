@@ -131,9 +131,12 @@ public final class LobbyPanel extends Table implements Disposable {
                     case "skeleton" -> "ghost";
                     case "ghost" -> "zombie";
                     case "zombie" -> "dracula";
+                    case "dracula" -> "pumpkin";
+                    case "pumpkin" -> "plague_doctor";
+                    case "plague_doctor" -> "voodoo";
                     default -> "skeleton";
                 };
-                character.setText("CHARACTER: " + selectedCharacter.toUpperCase(java.util.Locale.ROOT));
+                character.setText("CHARACTER: " + selectedCharacter.replace('_', ' ').toUpperCase(java.util.Locale.ROOT));
             }
         });
         content.add(character).width(500).height(56).row();

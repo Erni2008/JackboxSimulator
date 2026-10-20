@@ -478,3 +478,110 @@ tasks.register('draculaLobbyCheck', JavaExec) {
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
+
+tasks.register('pumpkinStudio', JavaExec) {
+    group = 'application'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.PumpkinStudioLauncher'
+    workingDir = rootProject.file('assets')
+    systemProperty 'pumpkin.studio.check', providers.gradleProperty('pumpkinStudioCheck').getOrElse('false')
+    systemProperty 'pumpkin.output', rootProject.file('generated/pumpkin-preview').absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+tasks.register('pumpkinPreview', JavaExec) {
+    group = 'application'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.CagePreviewLauncher'
+    workingDir = rootProject.file('assets')
+    systemProperty 'cage.character', 'pumpkin'
+    systemProperty 'cage.check', providers.gradleProperty('pumpkinCheck').getOrElse('false')
+    systemProperty 'cage.output', rootProject.file('generated/pumpkin-preview').absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('pumpkinLobbyCheck', JavaExec) {
+    group = 'verification'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.PumpkinLobbyCheck'
+    workingDir = rootProject.file('assets')
+    systemProperty 'pumpkin.output', rootProject.file('generated/pumpkin-preview').absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+
+tasks.register('plagueDoctorStudio', JavaExec) {
+    group = 'application'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.PlagueDoctorStudioLauncher'
+    workingDir = rootProject.file('assets')
+    systemProperty 'plagueDoctor.studio.check', providers.gradleProperty('plagueDoctorStudioCheck').getOrElse('false')
+    systemProperty 'plagueDoctor.output', rootProject.file('generated/plague-doctor-preview').absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+tasks.register('plagueDoctorPreview', JavaExec) {
+    group = 'application'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.CagePreviewLauncher'
+    workingDir = rootProject.file('assets')
+    systemProperty 'cage.character', 'plague_doctor'
+    systemProperty 'cage.check', providers.gradleProperty('plagueDoctorCheck').getOrElse('false')
+    systemProperty 'cage.output', rootProject.file('generated/plague-doctor-preview').absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('plagueDoctorLobbyCheck', JavaExec) {
+    group = 'verification'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.PlagueDoctorLobbyCheck'
+    workingDir = rootProject.file('assets')
+    systemProperty 'plagueDoctor.output', rootProject.file('generated/plague-doctor-preview').absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('voodooStudio', JavaExec) {
+    group = 'application'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.VoodooStudioLauncher'
+    workingDir = rootProject.file('assets')
+    systemProperty 'voodoo.studio.check', providers.gradleProperty('voodooStudioCheck').getOrElse('false')
+    systemProperty 'voodoo.config', rootProject.file('assets/lobby/characters/voodoo/voodoo_config.json').absolutePath
+    systemProperty 'voodoo.output', rootProject.file('generated/voodoo-preview').absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+tasks.register('voodooPreview', JavaExec) {
+    group = 'application'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.CagePreviewLauncher'
+    workingDir = rootProject.file('assets')
+    systemProperty 'cage.character', 'voodoo'
+    systemProperty 'cage.check', providers.gradleProperty('voodooCapture').getOrElse('false')
+    systemProperty 'cage.output', rootProject.file('generated/voodoo-preview').absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('voodooLobbyCheck', JavaExec) {
+    group = 'verification'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.VoodooLobbyCheck'
+    workingDir = rootProject.file('assets')
+    systemProperty 'voodoo.output', rootProject.file('generated/voodoo-preview').absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}

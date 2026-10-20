@@ -139,6 +139,10 @@ public class FinalAnswerGame extends Game {
         if (type.equals("ERROR")) { lobbyStatus=data.get("code").getAsString(); return; }
         if (!data.has("players")) return;
         activeRoom=RoomApiClient.parse(new com.badlogic.gdx.utils.JsonReader().parse(data.toString()),activeRoom.token());
+        if (cageLobbyScreen != null) {
+            cageLobbyScreen.synchronize(activeRoom, lobbyStatus);
+            cageLobbyScreen.cages().onRoomEvent(data, realtime == null ? System.currentTimeMillis() : realtime.serverNow());
+        }
         if(activeRoom.host() && type.equals("IMPOSTOR_LOBBY_RETURNED")){showImpostorLobby();return;}
         if(activeRoom.host() && (data.has("impostor") || data.has("impostorLobby")) && (type.equals("IMPOSTOR_STARTED") || type.equals("IMPOSTOR_REPLAY_READY") || type.equals("AUTHENTICATED"))){showImpostorLobby();return;}
         if (activeRoom.host() && data.has("question") && (type.equals("QUESTION_STARTED") || type.equals("AUTHENTICATED"))) openNetworkPlay();

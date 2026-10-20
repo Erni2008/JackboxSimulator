@@ -19,6 +19,11 @@ public final class CageLobby extends Group implements Disposable {
     private GhostAssets ghostAssets;
     private ZombieAssets zombieAssets;
     private DraculaAssets draculaAssets;
+    private PumpkinAssets pumpkinAssets;
+    private PlagueDoctorAssets plagueDoctorAssets;
+    private VoodooAssets voodooAssets;
+    private VoodooConfig voodooConfig;
+    private final VoodooRoomEvents voodooEvents = new VoodooRoomEvents();
     private RoomSession previous;
     private String roomCode;
     public CageLobby() {
@@ -35,6 +40,18 @@ public final class CageLobby extends Group implements Disposable {
             if (draculaAssets == null) draculaAssets = new DraculaAssets();
             return new DraculaCharacter(draculaAssets);
         });
+        registerCharacter("pumpkin", () -> {
+            if (pumpkinAssets == null) pumpkinAssets = new PumpkinAssets();
+            return new PumpkinCharacter(pumpkinAssets);
+        });
+        registerCharacter("plague_doctor", () -> {
+            if (plagueDoctorAssets == null) plagueDoctorAssets = new PlagueDoctorAssets();
+            return new PlagueDoctorCharacter(plagueDoctorAssets);
+        });
+        registerCharacter("voodoo", () -> {
+            if (voodooAssets == null) { voodooConfig = VoodooConfig.load(); voodooAssets = new VoodooAssets(voodooConfig); }
+            return new VoodooCharacter(voodooAssets, voodooConfig);
+        });
         for (int i = 0; i < cages.length; i++) { cages[i] = new HangingCage(assets, font, i); addActor(cages[i]); }
         CageLayoutManager.layout(cages);
     }
@@ -44,7 +61,7 @@ public final class CageLobby extends Group implements Disposable {
         if (room == previous) return;
         previous = room;
         if (room == null || !room.code().equals(roomCode)) {
-            assignments.clear(); for (HangingCage cage : cages) cage.clear();
+            assignments.clear(); voodooEvents.clear(); for (HangingCage cage : cages) cage.clear();
             roomCode = room == null ? null : room.code();
         }
         if (room == null) return;
@@ -62,6 +79,14 @@ public final class CageLobby extends Group implements Disposable {
             }
         }
     }
+    public void onRoomEvent(com.google.gson.JsonObject payload, long serverNow) {
+        voodooEvents.accept(payload, serverNow, this::playVoodoo);
+    }
+    /** Existing gameplay can explicitly request a terminal animation without a new wire protocol. */
+    public void playVoodoo(String playerId, VoodooAnimationController.State state, String sequence, long seed, float age) {
+        for (HangingCage cage : cages) if (playerId.equals(cage.playerId()) && cage.character() instanceof VoodooCharacter doll)
+            doll.playNetwork(state, sequence, seed, age);
+    }
     public void reducedMotion(boolean value) { for (HangingCage cage : cages) cage.reducedMotion(value); }
-    @Override public void dispose() { clearChildren(); font.dispose(); assets.dispose(); if (ghostAssets != null) ghostAssets.dispose(); if (zombieAssets != null) zombieAssets.dispose(); if (draculaAssets != null) draculaAssets.dispose(); }
+    @Override public void dispose() { clearChildren(); font.dispose(); assets.dispose(); if (ghostAssets != null) ghostAssets.dispose(); if (zombieAssets != null) zombieAssets.dispose(); if (draculaAssets != null) draculaAssets.dispose(); if (pumpkinAssets != null) pumpkinAssets.dispose(); if (plagueDoctorAssets != null) plagueDoctorAssets.dispose(); if (voodooAssets != null) voodooAssets.dispose(); }
 }

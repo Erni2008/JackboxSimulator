@@ -85,3 +85,35 @@ tasks.register('draculaCheck', JavaExec) {
     mainClass = 'com.erni.finalanswer.lobby.DraculaCheck'
 }
 check.dependsOn tasks.named('draculaCheck')
+
+tasks.register('pumpkinCheck', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lobby.PumpkinCheck'
+}
+check.dependsOn tasks.named('pumpkinCheck')
+
+// Exact approved Plague Doctor source list; no wildcard asset discovery at runtime or packaging.
+processResources {
+    from(rootProject.projectDir) {
+        include 'doktor1.png', 'doktor_body.png', 'left_hand_doktor.png', 'doktor4.png', 'doktor5.png', 'doktor6.png', 'doktor7.png', 'doktor8.png', 'doktor9.png'
+    }
+}
+
+tasks.register('plagueDoctorCheck', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lobby.PlagueDoctorCheck'
+}
+check.dependsOn tasks.named('plagueDoctorCheck')
+
+tasks.register('voodooCheck', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lobby.VoodooCheck'
+    args rootProject.file('assets/lobby/characters/voodoo/voodoo_config.json').absolutePath
+}
+check.dependsOn tasks.named('voodooCheck')
