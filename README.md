@@ -211,3 +211,5 @@ PNG и настройка pivot: `assets/clock/README.md`.
 старый независимый старт ответов на третьей секунде заменён новой последовательностью.
 
 Расположение изображений и правила добавления ресурсов: [ASSET_ORGANIZATION.md](docs/ASSET_ORGANIZATION.md). Игровые PNG находятся в `assets/`, исходные варианты и архив — в `source_assets/`.
+
+Настройка персонажей в клетках: `assets/lobby/character_presentation.json`. Оригиналы последних импортов упорядочены в `source_assets/lobby/`, игровые PNG — в `assets/lobby/characters/`. Кукловод: [сборка, анимации и просмотр](docs/PUPPETEER.md). Проверка всех восьми персонажей: `./gradlew :lwjgl3:lobbyCharacterPolishCheck`.

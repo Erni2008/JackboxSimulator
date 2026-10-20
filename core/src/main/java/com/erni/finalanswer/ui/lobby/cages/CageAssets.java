@@ -10,6 +10,7 @@ import java.util.List;
 
 /** One owner per lobby, shared by all eight cages. Original transparent PNGs are unchanged. */
 public final class CageAssets implements Disposable {
+    public final CageCharacterPresentation.Settings presentation=CageCharacterPresentation.Settings.load();
     private final List<Texture> owned = new ArrayList<>();
     public final TextureRegion cage, gate, key, chain, hook;
     public final TextureRegion head, body, leftArm, rightArm, leftLeg, rightLeg;

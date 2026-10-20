@@ -16,6 +16,7 @@ public final class HangingCage extends Group {
     private static final float KEYHOLE_X = 226.4f, KEYHOLE_Y = 67.7f;
     private final CageAssets assets;
     private final CageNameplate nameplate;
+    private final CageCharacterPresentation presentation=new CageCharacterPresentation();
     private final CageAnimator animation = new CageAnimator();
     private final Color saved = new Color();
     private final Vector2 endpoint = new Vector2();
@@ -81,7 +82,7 @@ public final class HangingCage extends Group {
         // cover the edges; the gate has its own clip so no bars float above the cage during entry.
         batch.flush();
         if (character != null && clipBegin(108, 62, 140, 163)) {
-            character.draw(batch, parentAlpha);
+            presentation.draw(batch, character, assets.presentation.profile(characterId), parentAlpha, animation.time());
             batch.flush(); clipEnd();
         }
         if (animation.occupied() && animation.gate() > 0 && clipBegin(91, 58, 177, 179)) {

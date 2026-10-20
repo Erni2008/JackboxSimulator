@@ -31,7 +31,7 @@ public final class GhostCharacter implements CageCharacter {
     }
     @Override public void draw(Batch batch,float alpha) {
         // Deeper shoulder overlap leaves room for the full claw sweep at the larger lobby scale.
-        drawRig(batch,174,151,LOBBY_SCALE,flipped,alpha,4);
+        drawRig(batch,174,151,LOBBY_SCALE,flipped,alpha,7);
     }
     public void drawAt(Batch batch,float x,float y,float size,boolean flip,float alpha) {
         drawRig(batch,x,y,size,flip,alpha,0);

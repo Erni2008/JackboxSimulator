@@ -1,0 +1,337 @@
+[
+  {
+    "old": "arm_right.png",
+    "new": "source_assets/lobby/skeleton/arm_right.png",
+    "sha256": "9ed4dc6df4a5aba6243a8867fd5987a704e1c71c1eb8ee55a7bd4149d5d0eada"
+  },
+  {
+    "old": "background_cages.png",
+    "new": "source_assets/lobby/cages/background_cages.png",
+    "sha256": "e2bc694d3a8845b1c3bc86ff5baa7711bbbb809d8ddcac4ebe3ba018292b93b6"
+  },
+  {
+    "old": "cage.png",
+    "new": "source_assets/lobby/cages/cage.png",
+    "sha256": "17ea5183c06e205984fdcf27c8be0cb896ab401e43946162ca4c0bc3dfe40788"
+  },
+  {
+    "old": "chain1.png",
+    "new": "source_assets/lobby/cages/chain1.png",
+    "sha256": "0cbe21d2ca32567bd8d95b4d36525ec27aefc31d1bcd535aaf133abca18593d4"
+  },
+  {
+    "old": "chain2.png",
+    "new": "source_assets/lobby/cages/chain2.png",
+    "sha256": "d8173371c9c4005faa554b755ea6794e1f244e1a4944949b9c7df086ea0fbf9b"
+  },
+  {
+    "old": "doktor.png",
+    "new": "source_assets/lobby/plague_doctor/doktor.png",
+    "sha256": "03b2903f28957ba7479db5eb12490d570ea04b6b2c72ade88bebb74686292918"
+  },
+  {
+    "old": "doktor1.png",
+    "new": "assets/lobby/characters/plague_doctor/doktor1.png",
+    "sha256": "2295489944fb1712b326bba78c28eb2b8c3edd98d257d1e2cc20fd23ca981498"
+  },
+  {
+    "old": "doktor4.png",
+    "new": "assets/lobby/characters/plague_doctor/doktor4.png",
+    "sha256": "e22874bf91c7b0047d71247b1b31495108d6b7abf55c7528e2ca8c0aa24a9d25"
+  },
+  {
+    "old": "doktor5.png",
+    "new": "assets/lobby/characters/plague_doctor/doktor5.png",
+    "sha256": "1b9d8c512ace50e01cf521fd68f6a1f0104567feb3b20b9866e546f8f0c6a288"
+  },
+  {
+    "old": "doktor6.png",
+    "new": "assets/lobby/characters/plague_doctor/doktor6.png",
+    "sha256": "00105628a6c7068a4f3c47c97329d9cc4384b733b0fc89d056c26ad2f9b7da30"
+  },
+  {
+    "old": "doktor7.png",
+    "new": "assets/lobby/characters/plague_doctor/doktor7.png",
+    "sha256": "c5f2173d627e76f8b90fe68f08d7d29c48a638493ad88c59b0e0bf8eba83811b"
+  },
+  {
+    "old": "doktor8.png",
+    "new": "assets/lobby/characters/plague_doctor/doktor8.png",
+    "sha256": "8d317f00e4e51f236c49445e695f46c741754f5d8b3a2eb9da4c17ac1f717c77"
+  },
+  {
+    "old": "doktor9.png",
+    "new": "assets/lobby/characters/plague_doctor/doktor9.png",
+    "sha256": "7ab53a6cd99330e4233662c9e34fcb46fdfa80b6bd3a01b13c1d1ad0f034a049"
+  },
+  {
+    "old": "doktor_body.png",
+    "new": "assets/lobby/characters/plague_doctor/doktor_body.png",
+    "sha256": "8cf15f3c3e4ba34415daac2c2e447c1b7d52d9ee9feaeaae039750f4a06ad686"
+  },
+  {
+    "old": "drakula.png",
+    "new": "assets/lobby/characters/dracula/drakula.png",
+    "sha256": "2116531854681ea06183093ac7a75513e679b1d0c0516a4367a8a99b37027773"
+  },
+  {
+    "old": "drakula2.png",
+    "new": "assets/lobby/characters/dracula/drakula2.png",
+    "sha256": "e3852fbe62ffef2008d7add2f9286810e06d4c63b4fce5e7766a3e2fc765d410"
+  },
+  {
+    "old": "drakula3.png",
+    "new": "assets/lobby/characters/dracula/drakula3.png",
+    "sha256": "abbae7690ebc8023272fe39cbd4656bbfb996919595cb5cb78b9632790a10f07"
+  },
+  {
+    "old": "drakula5.png",
+    "new": "assets/lobby/characters/dracula/drakula5.png",
+    "sha256": "b7f3682a036ca316baeb4c33c0d84103075901c3ee7dd65931b34fecdb4b216d"
+  },
+  {
+    "old": "drakula6.png",
+    "new": "assets/lobby/characters/dracula/drakula6.png",
+    "sha256": "94da1ab3f363ce4a93189a8765f8db32e73ee6139c88413c3675f0db208d75b0"
+  },
+  {
+    "old": "drakula7.png",
+    "new": "assets/lobby/characters/dracula/drakula7.png",
+    "sha256": "4da9c4c0f67bc3c4d59852bdc91e58e8b7668b6f7eebf4beb9885b44c0754e5d"
+  },
+  {
+    "old": "drakula8.png",
+    "new": "assets/lobby/characters/dracula/drakula8.png",
+    "sha256": "80f929f82e7fc6c7a08773a62c5c7d9e6b50f5b7458afc79482c5fd74d5ab201"
+  },
+  {
+    "old": "ghost1.png",
+    "new": "source_assets/lobby/ghost/ghost1.png",
+    "sha256": "02d6c483ba3e11721c0d19ffd59c245f7cd5cc8c97d9d239427a1fc7814e41e9"
+  },
+  {
+    "old": "ghost2.png",
+    "new": "source_assets/lobby/ghost/ghost2.png",
+    "sha256": "9084cc6f53aa53e878be96399d06ebe116a66caa7873f435654996ce53ad433a"
+  },
+  {
+    "old": "ghost3.png",
+    "new": "source_assets/lobby/ghost/ghost3.png",
+    "sha256": "29268427c4c973ce758231950ab4d1591fc228a0428bebf38beab29e4da19f7e"
+  },
+  {
+    "old": "ghost4.png",
+    "new": "source_assets/lobby/ghost/ghost4.png",
+    "sha256": "d51894ab773a6342367ae49784f54b1bce116744321163b5adfb39f3f7a5cb8a"
+  },
+  {
+    "old": "key.png",
+    "new": "source_assets/lobby/cages/key.png",
+    "sha256": "495c9bd0e24f7737bf4aa0d9b1470541c728edc5e6bfe8cf36d6e1d5f35c253f"
+  },
+  {
+    "old": "kletka2.png",
+    "new": "source_assets/lobby/cages/kletka2.png",
+    "sha256": "ebfcbaf9cf6b315c2ecbe51cc82f9c4d4c3f6dc98461014cd9fc2fce0d436f1f"
+  },
+  {
+    "old": "left_hand_doktor.png",
+    "new": "assets/lobby/characters/plague_doctor/left_hand_doktor.png",
+    "sha256": "3a2d182bbd5a952ff64ced79d491373701cd0c9d0bed84b6f3ac644cbfdc4867"
+  },
+  {
+    "old": "pupet16.png",
+    "new": "source_assets/lobby/puppeteer/pupet16.png",
+    "sha256": "336591c30938a518a17b56202b0758e4165a47f8b7fce03bb9d89b2f917ce59d"
+  },
+  {
+    "old": "pupper9.png",
+    "new": "source_assets/lobby/puppeteer/pupper9.png",
+    "sha256": "0e46a4acb23e9bf9b267769c11648057f6c627ab46e7f50f5ef930e581058697"
+  },
+  {
+    "old": "puppet1.png",
+    "new": "source_assets/lobby/puppeteer/puppet1.png",
+    "sha256": "45d741e3f3d81a7f06557cce934fa2fa1c2ecc864374e889f4d8f8bce7846284"
+  },
+  {
+    "old": "puppet10.png",
+    "new": "source_assets/lobby/puppeteer/puppet10.png",
+    "sha256": "20e8863f8d507f31437f1c0813d8234d5605a04c99a8197632d30301b54815da"
+  },
+  {
+    "old": "puppet11.png",
+    "new": "source_assets/lobby/puppeteer/puppet11.png",
+    "sha256": "ec3f387d80e0f5412b2ef71d8d138bcd6c7b52ee9bd8f2dc08f72d875b59cde8"
+  },
+  {
+    "old": "puppet12.png",
+    "new": "source_assets/lobby/puppeteer/puppet12.png",
+    "sha256": "2ee8137af31b4af62fe3ca692fac9278b05f0f2c862bcd6eb8355b02e19fab87"
+  },
+  {
+    "old": "puppet13.png",
+    "new": "source_assets/lobby/puppeteer/puppet13.png",
+    "sha256": "a676c2880135890df7e88f8560283ed912c0afb2e71c7d3517dc1267ac142672"
+  },
+  {
+    "old": "puppet14.png",
+    "new": "source_assets/lobby/puppeteer/puppet14.png",
+    "sha256": "f41e3c847dd218f9ddf7232fe6c03b6dcfe06a13ec23d410b11e2ce91b8b3ddc"
+  },
+  {
+    "old": "puppet15.png",
+    "new": "source_assets/lobby/puppeteer/puppet15.png",
+    "sha256": "d36f6e0cd19b573e99458692a37ab4fa92579380aa3562cdcff516137f1effb2"
+  },
+  {
+    "old": "puppet2.png",
+    "new": "source_assets/lobby/puppeteer/puppet2.png",
+    "sha256": "7718bb2e4eb9b5f6bd96711058729c865e0185f49102a0aad85bdf8f2ef1c554"
+  },
+  {
+    "old": "puppet3.png",
+    "new": "source_assets/lobby/puppeteer/puppet3.png",
+    "sha256": "fc702bfa925dfeae63c801f4bd27cdb56676eee2b5b0fb04b990c6736f8d1629"
+  },
+  {
+    "old": "puppet4.png",
+    "new": "source_assets/lobby/puppeteer/puppet4.png",
+    "sha256": "e62a5b86aec09f4efb0a951907fbb19982076ae2f3342808aabb4b4348115793"
+  },
+  {
+    "old": "puppet5.png",
+    "new": "source_assets/lobby/puppeteer/puppet5.png",
+    "sha256": "eae1bb2794d6e2cd1411b6ef5c1f7996b5ccbf3cefdc36971f0172235b30c792"
+  },
+  {
+    "old": "puppet7.png",
+    "new": "source_assets/lobby/puppeteer/puppet7.png",
+    "sha256": "dbc64dcfa61de5c79b0ecdb16fdb1bbd658e3edae1540cd092092ec894f076d6"
+  },
+  {
+    "old": "puppet8.png",
+    "new": "source_assets/lobby/puppeteer/puppet8.png",
+    "sha256": "90bd09af70a2d2cffa7aa6534e30185f3c91a5679d1fb825145dd7b986089ac5"
+  },
+  {
+    "old": "skeleton_body.png",
+    "new": "source_assets/lobby/skeleton/skeleton_body.png",
+    "sha256": "467b338d119b6397d8c1a6af7491f99e3d0430b2d09233ca2666d55b771f65d4"
+  },
+  {
+    "old": "skeleton_leg1.png",
+    "new": "source_assets/lobby/skeleton/skeleton_leg1.png",
+    "sha256": "023b53485b042d0814b8a871cec018bef25586add9b5294ad8b31e823350911a"
+  },
+  {
+    "old": "skeleton_leg2.png",
+    "new": "source_assets/lobby/skeleton/skeleton_leg2.png",
+    "sha256": "eea251eb596755af525b9008ff5c1836d648e7420d5cbc89d0d808d77e9c7f61"
+  },
+  {
+    "old": "skeletone_head.png",
+    "new": "source_assets/lobby/skeleton/skeletone_head.png",
+    "sha256": "8359c446b3231eac25e69bfc2842377cb558f61f57b2b01a0e2dfaf8ddc6fcc3"
+  },
+  {
+    "old": "skeletonleft_arm.png",
+    "new": "source_assets/lobby/skeleton/skeletonleft_arm.png",
+    "sha256": "f4b420de80942ae1ada2aece6e19ccac0e361eedfe1b5297392af2d065d6c1b2"
+  },
+  {
+    "old": "vudu1.png",
+    "new": "source_assets/lobby/voodoo/vudu1.png",
+    "sha256": "2834b63d6bd5bfa37302cee3a8c1fb218e4a002ef70899fe19b984686b2649bc"
+  },
+  {
+    "old": "vudu10.png",
+    "new": "source_assets/lobby/voodoo/vudu10.png",
+    "sha256": "47c90fb7f1eff0851bdb7fbd50a172556e9a654b95614f09150a55a89d19504d"
+  },
+  {
+    "old": "vudu11.png",
+    "new": "source_assets/lobby/voodoo/vudu11.png",
+    "sha256": "ced7b3893c10192b6323277df2f6451b0f18d6cfb1bcd7b0f690ac13c004dd81"
+  },
+  {
+    "old": "vudu12.png",
+    "new": "source_assets/lobby/voodoo/vudu12.png",
+    "sha256": "1b4ddae00681d3531d0592848b21f96d923b42ad54018fd8c6d50be9be9b4677"
+  },
+  {
+    "old": "vudu2.png",
+    "new": "source_assets/lobby/voodoo/vudu2.png",
+    "sha256": "6fac7870c3fc336e951f26545ef95e98e66bad51f11cf021147625a16c6fa950"
+  },
+  {
+    "old": "vudu3.png",
+    "new": "source_assets/lobby/voodoo/vudu3.png",
+    "sha256": "4dcb1372982388539864318cbeec8f86fff5d0a40a663d863655915d49d23900"
+  },
+  {
+    "old": "vudu4.png",
+    "new": "source_assets/lobby/voodoo/vudu4.png",
+    "sha256": "2dcdf1f4a6426c8b98ecc87174f3bf6e84722b4b1b0be4102b598bc3657040cc"
+  },
+  {
+    "old": "vudu5.png",
+    "new": "source_assets/lobby/voodoo/vudu5.png",
+    "sha256": "2fd67c857be2394bc1ad6df460848dda980b55096ef0c91339dcc344d5c747e0"
+  },
+  {
+    "old": "vudu6.png",
+    "new": "source_assets/lobby/voodoo/vudu6.png",
+    "sha256": "afd2d26eec7ea7a8c06aca06b424f2bcf7b16ec780751fad73aa1e55159c2f90"
+  },
+  {
+    "old": "vudu7.png",
+    "new": "source_assets/lobby/voodoo/vudu7.png",
+    "sha256": "1a310967e97e0f6d77cf37cdbaa05493a3a06dc9f33d04e7da5a0a9453de167d"
+  },
+  {
+    "old": "vudu8.png",
+    "new": "source_assets/lobby/voodoo/vudu8.png",
+    "sha256": "71a4dd9424a64f835d4864bf9442a886cc9c4873be658d205f4db1f76711a2b9"
+  },
+  {
+    "old": "vudu9.png",
+    "new": "source_assets/lobby/voodoo/vudu9.png",
+    "sha256": "55783bb3ba73b24af6b2455671ced1aad74dcac9a3b5db82d9e1f276b45264b6"
+  },
+  {
+    "old": "zombie1.png",
+    "new": "assets/lobby/characters/zombie/zombie1.png",
+    "sha256": "4d322c8a3f2a921f0776ceaab772845d0747003621a09b0974c922dff0a9e37e"
+  },
+  {
+    "old": "zombie2.png",
+    "new": "assets/lobby/characters/zombie/zombie2.png",
+    "sha256": "b0f890be7394b50900cb94d074872fe563cad7bdd424588769d60652331111b7"
+  },
+  {
+    "old": "zombie3.png",
+    "new": "assets/lobby/characters/zombie/zombie3.png",
+    "sha256": "98057529b4235c408a672a911b90fe67d9459d45658b3eeec9c38e5fa7ff11bf"
+  },
+  {
+    "old": "zombie4.png",
+    "new": "assets/lobby/characters/zombie/zombie4.png",
+    "sha256": "97c2a694544b50fe195880ca472dce0d3d629dd76962b87f38e6a7c0099839a7"
+  },
+  {
+    "old": "zombie5.png",
+    "new": "assets/lobby/characters/zombie/zombie5.png",
+    "sha256": "4d0b183d04e57bd6e3e8cb378cd7bfd81bb02c036cd7aa71946efd603e6aad77"
+  },
+  {
+    "old": "zombie6.png",
+    "new": "assets/lobby/characters/zombie/zombie6.png",
+    "sha256": "b8af6ede1ff685832bde92ef8b2342b97194b3c8e49b0c4f293841012087229d"
+  },
+  {
+    "old": "ворота клетки.png",
+    "new": "source_assets/lobby/cages/ворота клетки.png",
+    "sha256": "a0c5aeb90a119abd54d05058f76f4e0e2f36172a3fff18c4731fa6ea0beb221f"
+  }
+]

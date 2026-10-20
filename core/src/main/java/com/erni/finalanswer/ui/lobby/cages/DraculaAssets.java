@@ -30,7 +30,7 @@ public final class DraculaAssets implements Disposable {
         } catch(RuntimeException error) { dispose(); throw error; }
     }
     private TextureRegion load(String name) {
-        Texture texture=RuntimeTextures.load(name);owned.add(texture);return new TextureRegion(texture);
+        Texture texture=RuntimeTextures.load("lobby/characters/dracula/"+name);owned.add(texture);return new TextureRegion(texture);
     }
     private TextureRegion createSmoke() {
         Pixmap pixels=new Pixmap(32,32,Pixmap.Format.RGBA8888);

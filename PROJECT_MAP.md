@@ -443,3 +443,11 @@ JSON-наборы вопросов и экран окончания сессии
 ## Уборка корневых изображений — 19 октября 2026
 
 Все 52 корневых PNG разложены без изменения содержимого: два используемых холста — в `assets/impostor/phone/`, остальные оригиналы — в `source_assets/archive/root-imports/` по назначению. HTTP-пути ресурсов сохранены. Подробности и реестр старых/новых путей: [docs/ASSET_ORGANIZATION.md](docs/ASSET_ORGANIZATION.md).
+
+### Актуализация персонажей лобби
+
+- `assets/lobby/characters/` — все действующие модульные персонажи, включая zombie, dracula, plague_doctor и puppeteer.
+- `assets/lobby/character_presentation.json` — параметры размера, положения и яркости внутри клетки.
+- `source_assets/lobby/` — упорядоченные оригинальные импорты из корня; реестр перемещений: `docs/lobby-asset-moves.json`.
+- `CageCharacterPresentation` применяет только оформление внутри клетки; анимации и размещение клеток сохраняются.
+- `:lwjgl3:lobbyCharacterPolishCheck` проверяет смешанный состав и три разрешения; `:lwjgl3:puppeteerStudio` открывает настройку Кукловода.

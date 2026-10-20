@@ -7,7 +7,7 @@ import com.erni.finalanswer.ui.RuntimeTextures;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Original root PNGs are packaged without moving, renaming or editing the source files. */
+/** Shared original PNGs in the standard lobby asset tree. */
 public final class ZombieAssets implements Disposable {
     private final List<Texture> owned = new ArrayList<>();
     public final TextureRegion head, body, leftArm, rightArm, leftLeg, rightLeg;
@@ -19,7 +19,7 @@ public final class ZombieAssets implements Disposable {
         } catch(RuntimeException failure) { dispose(); throw failure; }
     }
     private TextureRegion load(String name) {
-        Texture t=RuntimeTextures.load(name); owned.add(t); return new TextureRegion(t);
+        Texture t=RuntimeTextures.load("lobby/characters/zombie/"+name); owned.add(t); return new TextureRegion(t);
     }
     @Override public void dispose() { for(Texture t:owned) t.dispose(); owned.clear(); }
 }

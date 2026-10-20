@@ -1,0 +1,198 @@
+[
+  {
+    "file": "pupper9.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "alphaRange": [
+      0,
+      254
+    ],
+    "transparentPixels": 1104779,
+    "partialPixels": 468085,
+    "sha256": "0e46a4acb23e9bf9b267769c11648057f6c627ab46e7f50f5ef930e581058697"
+  },
+  {
+    "file": "puppet1.png",
+    "size": [
+      1303,
+      1207
+    ],
+    "alphaRange": [
+      0,
+      255
+    ],
+    "transparentPixels": 679489,
+    "partialPixels": 893032,
+    "sha256": "45d741e3f3d81a7f06557cce934fa2fa1c2ecc864374e889f4d8f8bce7846284"
+  },
+  {
+    "file": "puppet10.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "alphaRange": [
+      0,
+      254
+    ],
+    "transparentPixels": 1059701,
+    "partialPixels": 513163,
+    "sha256": "20e8863f8d507f31437f1c0813d8234d5605a04c99a8197632d30301b54815da"
+  },
+  {
+    "file": "puppet11.png",
+    "size": [
+      1024,
+      1536
+    ],
+    "alphaRange": [
+      0,
+      254
+    ],
+    "transparentPixels": 1118873,
+    "partialPixels": 453991,
+    "sha256": "ec3f387d80e0f5412b2ef71d8d138bcd6c7b52ee9bd8f2dc08f72d875b59cde8"
+  },
+  {
+    "file": "puppet12.png",
+    "size": [
+      1024,
+      1536
+    ],
+    "alphaRange": [
+      0,
+      254
+    ],
+    "transparentPixels": 1099275,
+    "partialPixels": 473589,
+    "sha256": "2ee8137af31b4af62fe3ca692fac9278b05f0f2c862bcd6eb8355b02e19fab87"
+  },
+  {
+    "file": "puppet13.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "alphaRange": [
+      0,
+      254
+    ],
+    "transparentPixels": 980708,
+    "partialPixels": 592156,
+    "sha256": "a676c2880135890df7e88f8560283ed912c0afb2e71c7d3517dc1267ac142672"
+  },
+  {
+    "file": "puppet14.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "alphaRange": [
+      0,
+      254
+    ],
+    "transparentPixels": 958938,
+    "partialPixels": 613926,
+    "sha256": "f41e3c847dd218f9ddf7232fe6c03b6dcfe06a13ec23d410b11e2ce91b8b3ddc"
+  },
+  {
+    "file": "puppet15.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "alphaRange": [
+      0,
+      254
+    ],
+    "transparentPixels": 795952,
+    "partialPixels": 776912,
+    "sha256": "d36f6e0cd19b573e99458692a37ab4fa92579380aa3562cdcff516137f1effb2"
+  },
+  {
+    "file": "puppet2.png",
+    "size": [
+      1287,
+      1222
+    ],
+    "alphaRange": [
+      0,
+      255
+    ],
+    "transparentPixels": 1063378,
+    "partialPixels": 508863,
+    "sha256": "7718bb2e4eb9b5f6bd96711058729c865e0185f49102a0aad85bdf8f2ef1c554"
+  },
+  {
+    "file": "puppet3.png",
+    "size": [
+      1287,
+      1222
+    ],
+    "alphaRange": [
+      0,
+      255
+    ],
+    "transparentPixels": 811527,
+    "partialPixels": 760645,
+    "sha256": "fc702bfa925dfeae63c801f4bd27cdb56676eee2b5b0fb04b990c6736f8d1629"
+  },
+  {
+    "file": "puppet4.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "alphaRange": [
+      0,
+      254
+    ],
+    "transparentPixels": 777968,
+    "partialPixels": 794896,
+    "sha256": "e62a5b86aec09f4efb0a951907fbb19982076ae2f3342808aabb4b4348115793"
+  },
+  {
+    "file": "puppet5.png",
+    "size": [
+      1352,
+      1163
+    ],
+    "alphaRange": [
+      0,
+      255
+    ],
+    "transparentPixels": 774981,
+    "partialPixels": 796968,
+    "sha256": "eae1bb2794d6e2cd1411b6ef5c1f7996b5ccbf3cefdc36971f0172235b30c792"
+  },
+  {
+    "file": "puppet7.png",
+    "size": [
+      1427,
+      1102
+    ],
+    "alphaRange": [
+      0,
+      255
+    ],
+    "transparentPixels": 841664,
+    "partialPixels": 730435,
+    "sha256": "dbc64dcfa61de5c79b0ecdb16fdb1bbd658e3edae1540cd092092ec894f076d6"
+  },
+  {
+    "file": "puppet8.png",
+    "size": [
+      1145,
+      1374
+    ],
+    "alphaRange": [
+      0,
+      255
+    ],
+    "transparentPixels": 592564,
+    "partialPixels": 980207,
+    "sha256": "90bd09af70a2d2cffa7aa6534e30185f3c91a5679d1fb825145dd7b986089ac5"
+  }
+]

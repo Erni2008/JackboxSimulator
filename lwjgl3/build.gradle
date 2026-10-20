@@ -585,3 +585,50 @@ tasks.register('voodooLobbyCheck', JavaExec) {
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
+
+// Development-only Puppeteer rig inspection; excluded from production jars.
+tasks.register('puppeteerStudio', JavaExec) {
+    group = 'application'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.PuppeteerStudioLauncher'
+    workingDir = rootProject.file('assets')
+    systemProperty 'puppeteer.check', providers.gradleProperty('puppeteerCheck').getOrElse('false')
+    systemProperty 'puppeteer.output', rootProject.file('generated/puppeteer-preview').absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+tasks.register('puppeteerPreview', JavaExec) {
+    group = 'application'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.CagePreviewLauncher'
+    workingDir = rootProject.file('assets')
+    systemProperty 'cage.character', 'puppeteer'
+    systemProperty 'cage.check', providers.gradleProperty('puppeteerCheck').getOrElse('false')
+    systemProperty 'cage.output', rootProject.file('generated/puppeteer-preview').absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('puppeteerLobbyCheck', JavaExec) {
+    group = 'verification'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.PuppeteerLobbyCheck'
+    workingDir = rootProject.file('assets')
+    systemProperty 'puppeteer.output', rootProject.file('generated/puppeteer-preview').absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('lobbyCharacterPolishCheck', JavaExec) {
+    group = 'verification'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.LobbyCharacterPolishCheck'
+    workingDir = rootProject.file('assets')
+    systemProperty 'polish.output', rootProject.file('generated/lobby-character-polish').absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}

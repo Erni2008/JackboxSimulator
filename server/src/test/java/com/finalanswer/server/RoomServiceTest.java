@@ -91,6 +91,15 @@ class RoomServiceTest {
         assertEquals("voodoo",s(replacement.latest().getAsJsonArray("players").get(0).getAsJsonObject(),"characterId"));
         service.leave(code,s(doll,"token"));assertEquals(0,h.latest().getAsJsonArray("players").size());
     }
+    @Test void puppeteerSelectionSurvivesReconnectWithoutChangingProtocol() {
+        String code=s(host,"code");
+        var doll=obj(service.join(code,Map.of("name","Puppeteer","characterId","puppeteer")));
+        service.attach(code,s(doll,"token"),a,"puppeteer");
+        assertEquals("puppeteer",s(a.latest().getAsJsonArray("players").get(0).getAsJsonObject(),"characterId"));
+        service.detach(a.id());var replacement=new TestPeer();service.attach(code,s(doll,"token"),replacement,"puppeteer-again");
+        assertEquals("puppeteer",s(replacement.latest().getAsJsonArray("players").get(0).getAsJsonObject(),"characterId"));
+        service.leave(code,s(doll,"token"));assertEquals(0,h.latest().getAsJsonArray("players").size());
+    }
     @Test void createsServerGeneratedUniqueCodes(){Set<String> codes=new HashSet<>();for(int i=0;i<100;i++){JsonObject room=create(Map.of("code","AAAAAA"));assertTrue(s(room,"code").matches("[A-HJ-NP-Z2-9]{6}"));assertTrue(codes.add(s(room,"code")));assertEquals(43,s(room,"token").length());assertTrue(room.has("roomId"));}}
     @Test void joinsAndCapacityExcludesHost(){players();assertEquals(2,h.latest().getAsJsonArray("players").size());failure("ROOM_IS_FULL",()->join("Third"));}
     @Test void wrongCodeAndBadNickname(){failure("ROOM_NOT_FOUND",()->service.join("ZZZZZZ",Map.of("name","A")));failure("INVALID_NICKNAME",()->join("\n\t"));failure("INVALID_NICKNAME",()->join("x".repeat(25)));join("Test");failure("NICKNAME_IN_USE",()->join("test"));}

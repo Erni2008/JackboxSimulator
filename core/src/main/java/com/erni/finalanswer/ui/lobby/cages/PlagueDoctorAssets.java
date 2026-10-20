@@ -75,7 +75,8 @@ public final class PlagueDoctorAssets implements Disposable {
         return x>470-110*v&&x<785-45*v;
     }
     private static float smooth(float p) {p=Math.max(0,Math.min(1,p));return p*p*(3-2*p);}
-    private static Pixmap read(String path) {
+    private static Pixmap read(String name) {
+        String path="lobby/characters/plague_doctor/"+name;
         if(!Gdx.files.internal(path).exists()) throw new IllegalStateException("Missing Plague Doctor sprite: "+path);
         return new Pixmap(Gdx.files.internal(path));
     }

@@ -21,9 +21,12 @@ public final class CageLobby extends Group implements Disposable {
     private DraculaAssets draculaAssets;
     private PumpkinAssets pumpkinAssets;
     private PlagueDoctorAssets plagueDoctorAssets;
+    private PuppeteerAssets puppeteerAssets;
+    private PuppeteerConfig puppeteerConfig;
     private VoodooAssets voodooAssets;
     private VoodooConfig voodooConfig;
     private final VoodooRoomEvents voodooEvents = new VoodooRoomEvents();
+    private final com.badlogic.gdx.math.Vector2 puppeteerPointer = new com.badlogic.gdx.math.Vector2();
     private RoomSession previous;
     private String roomCode;
     public CageLobby() {
@@ -51,6 +54,10 @@ public final class CageLobby extends Group implements Disposable {
         registerCharacter("voodoo", () -> {
             if (voodooAssets == null) { voodooConfig = VoodooConfig.load(); voodooAssets = new VoodooAssets(voodooConfig); }
             return new VoodooCharacter(voodooAssets, voodooConfig);
+        });
+        registerCharacter("puppeteer", () -> {
+            if (puppeteerAssets == null) { puppeteerConfig = PuppeteerConfig.load(); puppeteerAssets = new PuppeteerAssets(puppeteerConfig); }
+            return new PuppeteerCharacter(puppeteerAssets, puppeteerConfig);
         });
         for (int i = 0; i < cages.length; i++) { cages[i] = new HangingCage(assets, font, i); addActor(cages[i]); }
         CageLayoutManager.layout(cages);
@@ -87,6 +94,19 @@ public final class CageLobby extends Group implements Disposable {
         for (HangingCage cage : cages) if (playerId.equals(cage.playerId()) && cage.character() instanceof VoodooCharacter doll)
             doll.playNetwork(state, sequence, seed, age);
     }
+    @Override public void act(float delta) {
+        super.act(delta);
+        if (getStage() == null) return;
+        getStage().screenToStageCoordinates(puppeteerPointer.set(com.badlogic.gdx.Gdx.input.getX(), com.badlogic.gdx.Gdx.input.getY()));
+        float stageX = puppeteerPointer.x, stageY = puppeteerPointer.y;
+        for (HangingCage cage : cages) if (cage.character() instanceof PuppeteerCharacter puppet) {
+            cage.stageToLocalCoordinates(puppeteerPointer.set(stageX, stageY));
+            assets.presentation.profile(cage.characterId()).inverse(puppeteerPointer);
+            var config = puppet.configuration();
+            puppet.animator().lookAt((puppeteerPointer.x - config.lobbyX) / 100,
+                (puppeteerPointer.y - config.lobbyFloor - 120) / 100);
+        }
+    }
     public void reducedMotion(boolean value) { for (HangingCage cage : cages) cage.reducedMotion(value); }
-    @Override public void dispose() { clearChildren(); font.dispose(); assets.dispose(); if (ghostAssets != null) ghostAssets.dispose(); if (zombieAssets != null) zombieAssets.dispose(); if (draculaAssets != null) draculaAssets.dispose(); if (pumpkinAssets != null) pumpkinAssets.dispose(); if (plagueDoctorAssets != null) plagueDoctorAssets.dispose(); if (voodooAssets != null) voodooAssets.dispose(); }
+    @Override public void dispose() { clearChildren(); font.dispose(); assets.dispose(); if (ghostAssets != null) ghostAssets.dispose(); if (zombieAssets != null) zombieAssets.dispose(); if (draculaAssets != null) draculaAssets.dispose(); if (pumpkinAssets != null) pumpkinAssets.dispose(); if (plagueDoctorAssets != null) plagueDoctorAssets.dispose(); if (voodooAssets != null) voodooAssets.dispose(); if (puppeteerAssets != null) puppeteerAssets.dispose(); }
 }

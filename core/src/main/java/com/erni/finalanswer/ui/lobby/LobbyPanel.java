@@ -134,6 +134,7 @@ public final class LobbyPanel extends Table implements Disposable {
                     case "dracula" -> "pumpkin";
                     case "pumpkin" -> "plague_doctor";
                     case "plague_doctor" -> "voodoo";
+                    case "voodoo" -> "puppeteer";
                     default -> "skeleton";
                 };
                 character.setText("CHARACTER: " + selectedCharacter.replace('_', ' ').toUpperCase(java.util.Locale.ROOT));

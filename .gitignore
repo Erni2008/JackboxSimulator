@@ -169,3 +169,7 @@ Thumbs.db
 
 # Standalone distribution archives are published as release assets.
 /generated/distributions/
+
+# Reproducible local character QA captures (source and JSON reports are versioned).
+/generated/puppeteer-preview/*.png
+/generated/lobby-character-polish/*.png
