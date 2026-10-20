@@ -1,0 +1,242 @@
+[
+  {
+    "file": "assets/lobby/characters/voodoo/vudu1.png",
+    "size": [
+      1295,
+      1215
+    ],
+    "alphaRange": [
+      0,
+      255
+    ],
+    "fullyTransparentPixels": 591936,
+    "partiallyTransparentPixels": 981468,
+    "visibleBounds": [
+      10,
+      11,
+      1285,
+      1202
+    ],
+    "sha256": "2834b63d6bd5bfa37302cee3a8c1fb218e4a002ef70899fe19b984686b2649bc"
+  },
+  {
+    "file": "assets/lobby/characters/voodoo/vudu2.png",
+    "size": [
+      1295,
+      1215
+    ],
+    "alphaRange": [
+      0,
+      255
+    ],
+    "fullyTransparentPixels": 589398,
+    "partiallyTransparentPixels": 983749,
+    "visibleBounds": [
+      83,
+      60,
+      1215,
+      1161
+    ],
+    "sha256": "6fac7870c3fc336e951f26545ef95e98e66bad51f11cf021147625a16c6fa950"
+  },
+  {
+    "file": "assets/lobby/characters/voodoo/vudu3.png",
+    "size": [
+      1295,
+      1215
+    ],
+    "alphaRange": [
+      0,
+      255
+    ],
+    "fullyTransparentPixels": 635837,
+    "partiallyTransparentPixels": 937360,
+    "visibleBounds": [
+      99,
+      69,
+      1192,
+      1153
+    ],
+    "sha256": "4dcb1372982388539864318cbeec8f86fff5d0a40a663d863655915d49d23900"
+  },
+  {
+    "file": "assets/lobby/characters/voodoo/vudu4.png",
+    "size": [
+      1295,
+      1215
+    ],
+    "alphaRange": [
+      0,
+      255
+    ],
+    "fullyTransparentPixels": 1378431,
+    "partiallyTransparentPixels": 194320,
+    "visibleBounds": [
+      110,
+      16,
+      1280,
+      1204
+    ],
+    "sha256": "2dcdf1f4a6426c8b98ecc87174f3bf6e84722b4b1b0be4102b598bc3657040cc"
+  },
+  {
+    "file": "assets/lobby/characters/voodoo/vudu5.png",
+    "size": [
+      1024,
+      1536
+    ],
+    "alphaRange": [
+      0,
+      254
+    ],
+    "fullyTransparentPixels": 667431,
+    "partiallyTransparentPixels": 905433,
+    "visibleBounds": [
+      81,
+      83,
+      990,
+      1489
+    ],
+    "sha256": "2fd67c857be2394bc1ad6df460848dda980b55096ef0c91339dcc344d5c747e0"
+  },
+  {
+    "file": "assets/lobby/characters/voodoo/vudu6.png",
+    "size": [
+      1254,
+      1254
+    ],
+    "alphaRange": [
+      0,
+      255
+    ],
+    "fullyTransparentPixels": 720386,
+    "partiallyTransparentPixels": 851934,
+    "visibleBounds": [
+      59,
+      75,
+      1215,
+      1197
+    ],
+    "sha256": "afd2d26eec7ea7a8c06aca06b424f2bcf7b16ec780751fad73aa1e55159c2f90"
+  },
+  {
+    "file": "assets/lobby/characters/voodoo/vudu7.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "alphaRange": [
+      0,
+      254
+    ],
+    "fullyTransparentPixels": 1054776,
+    "partiallyTransparentPixels": 518088,
+    "visibleBounds": [
+      34,
+      28,
+      1511,
+      969
+    ],
+    "sha256": "1a310967e97e0f6d77cf37cdbaa05493a3a06dc9f33d04e7da5a0a9453de167d"
+  },
+  {
+    "file": "assets/lobby/characters/voodoo/vudu8.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "alphaRange": [
+      0,
+      254
+    ],
+    "fullyTransparentPixels": 1052879,
+    "partiallyTransparentPixels": 519985,
+    "visibleBounds": [
+      56,
+      17,
+      1514,
+      1007
+    ],
+    "sha256": "71a4dd9424a64f835d4864bf9442a886cc9c4873be658d205f4db1f76711a2b9"
+  },
+  {
+    "file": "assets/lobby/characters/voodoo/vudu9.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "alphaRange": [
+      0,
+      254
+    ],
+    "fullyTransparentPixels": 1104955,
+    "partiallyTransparentPixels": 467909,
+    "visibleBounds": [
+      52,
+      24,
+      1515,
+      1008
+    ],
+    "sha256": "55783bb3ba73b24af6b2455671ced1aad74dcac9a3b5db82d9e1f276b45264b6"
+  },
+  {
+    "file": "assets/lobby/characters/voodoo/vudu10.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "alphaRange": [
+      0,
+      254
+    ],
+    "fullyTransparentPixels": 1231183,
+    "partiallyTransparentPixels": 341681,
+    "visibleBounds": [
+      316,
+      13,
+      1336,
+      1008
+    ],
+    "sha256": "47c90fb7f1eff0851bdb7fbd50a172556e9a654b95614f09150a55a89d19504d"
+  },
+  {
+    "file": "assets/lobby/characters/voodoo/vudu11.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "alphaRange": [
+      0,
+      254
+    ],
+    "fullyTransparentPixels": 866979,
+    "partiallyTransparentPixels": 705885,
+    "visibleBounds": [
+      18,
+      24,
+      1527,
+      1015
+    ],
+    "sha256": "ced7b3893c10192b6323277df2f6451b0f18d6cfb1bcd7b0f690ac13c004dd81"
+  },
+  {
+    "file": "assets/lobby/characters/voodoo/vudu12.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "alphaRange": [
+      0,
+      254
+    ],
+    "fullyTransparentPixels": 549108,
+    "partiallyTransparentPixels": 1023756,
+    "visibleBounds": [
+      20,
+      10,
+      1517,
+      1012
+    ],
+    "sha256": "1b4ddae00681d3531d0592848b21f96d923b42ad54018fd8c6d50be9be9b4677"
+  }
+]

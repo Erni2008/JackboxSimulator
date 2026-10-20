@@ -89,13 +89,30 @@ public final class VoodooAnimationController {
         if(terminal()) {
             pose.copy(anchor);
             if(state==State.DEATH) {
-                float curse=envelope(t,0,.65f,1.2f)*strength;
-                pose.bodyAngle+=sin(t*73)*2*curse;pose.headAngle+=sin(t*89)*4*curse;
+                float pressure=ease(t,.08f,.72f);
+                float curse=pressure*(1-ease(t,.82f,1.5f))*strength;
+                pose.bodyAngle+=sin(t*71)*1.6f*curse;pose.headAngle+=sin(t*87+.4f)*3.2f*curse;
                 pose.heartScale=anchor.heartScale+.12f*pulse(t,8)*curse;
-                float collapse=ease(t,2.5f,5);
-                pose.bodyY-=31*collapse;pose.bodyAngle-=65*collapse;pose.headAngle+=95*ease(t,2.6f,4.8f);
-                pose.headY-=3*collapse;pose.heartScale=mix(pose.heartScale,1,ease(t,3.5f,4));pose.redGlow*=1-ease(t,1.5f,2);
-                for(int i=0;i<4;i++)pose.threads[i]=mix(anchor.threads[i],-6+i*3,ease(t,3.8f,5));
+                pose.redGlow=anchor.redGlow+.22f*curse;
+                // Each extracted needle has a separate, short recoil; no sustained whole-body jitter.
+                for(int i=0;i<4;i++) {
+                    float age=t-needleReleaseAt(i);
+                    if(age>=0&&age<.35f){float recoil=sin(age*31)*((1-age/.35f)*(1-age/.35f))*strength;
+                        pose.headAngle+=recoil*(i%2==0?-1.5f:1.5f);pose.bodyAngle-=recoil*.35f;
+                    }
+                }
+                float sag=ease(t,2.5f,3.7f),fall=ease(t,3.8f,4.55f);
+                float impactAge=t-4.55f;
+                float impact=impactAge>0&&t<5?sin(impactAge*34)*(float)Math.exp(-impactAge*12)*(1-ease(t,4.8f,5)):0;
+                pose.bodyY-=7*sag+24*fall;pose.bodyAngle-=12*sag+53*fall;
+                pose.bodyY+=Math.max(0,impact)*.7f;pose.bodyAngle+=impact*.7f;
+                pose.bodySY*=1-.035f*sag;
+                // The heavy head follows the torso, then settles a fraction later onto the floor.
+                pose.headAngle+=20*sag+75*ease(t,3.94f,4.72f)+impact*2;
+                pose.headY-=3*sag;pose.leftLeg+=8*sag+8*fall;pose.rightLeg-=6*sag+10*fall;
+                pose.heartScale=mix(pose.heartScale,1,ease(t,2.5f,3.8f));pose.redGlow*=1-ease(t,1.7f,2);
+                for(int i=0;i<4;i++)pose.threads[i]=mix(anchor.threads[i],-6+i*3,ease(t,3.8f,4.9f))+impact*(i%2==0?1:-1);
+
             } else {
                 float lift=ease(t,.5f,1.2f),jerk=envelope(t-1.2f,.1f,.8f,1.6f)*strength;
                 pose.rootY+=17*lift;pose.headAngle+=14*ease(t,1.2f,1.4f)*strength;
@@ -139,7 +156,7 @@ public final class VoodooAnimationController {
         }
     }
     private static double overlap(double a,double b,double start,double end){return Math.max(0,Math.min(b,end)-Math.max(a,start));}
-    private static float hop(float t,float start,float duration){float p=(t-start)/duration;return p>0&&p<1?sin(p*3.1415927f):0;}
+    private static float hop(float t,float start,float duration){float p=(t-start)/duration;float height=p>0&&p<1?sin(p*3.1415927f):0;return height*height;}
     private static float pulse(float time,float hz){float s=sin(time*3.1415927f*hz);return s*s;}
     public static float ease(float t,float a,float b){float p=Math.max(0,Math.min(1,(t-a)/(b-a)));return p*p*p*(p*(p*6-15)+10);}
     private static float envelope(float t,float attack,float hold,float end){return ease(t,0,Math.max(.00001f,attack))*(1-ease(t,hold,end));}

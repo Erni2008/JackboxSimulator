@@ -41,33 +41,33 @@
       "name": "leftArm",
       "asset": 8,
       "parent": "body",
-      "x": -12,
-      "y": 14,
-      "pivotX": 1260,
-      "pivotY": 200,
+      "x": -11.592,
+      "y": 11.52,
+      "pivotX": 1360,
+      "pivotY": 230,
       "artScale": 0.019,
       "rotation": 25,
       "scaleX": 1,
       "scaleY": 1,
       "alpha": 1,
       "visible": true,
-      "order": 10
+      "order": 21
     },
     {
       "name": "rightArm",
       "asset": 7,
       "parent": "body",
-      "x": 12,
-      "y": 14,
-      "pivotX": 260,
-      "pivotY": 220,
+      "x": 12.384,
+      "y": 9.648,
+      "pivotX": 220,
+      "pivotY": 240,
       "artScale": 0.019,
       "rotation": -25,
       "scaleX": 1,
       "scaleY": 1,
       "alpha": 1,
       "visible": true,
-      "order": 11
+      "order": 22
     },
     {
       "name": "leftLeg",
@@ -241,8 +241,8 @@
       "parent": "head",
       "x": 27,
       "y": 11,
-      "pivotX": 380,
-      "pivotY": 100,
+      "pivotX": 570,
+      "pivotY": 410,
       "artScale": 0.012,
       "rotation": -60,
       "scaleX": 1,
@@ -251,10 +251,10 @@
       "visible": true,
       "order": 51,
       "region": [
-        0,
-        0,
-        750,
-        300
+        440,
+        310,
+        830,
+        420
       ]
     },
     {
@@ -263,8 +263,8 @@
       "parent": "body",
       "x": -13,
       "y": 4,
-      "pivotX": 380,
-      "pivotY": 100,
+      "pivotX": 300,
+      "pivotY": 800,
       "artScale": 0.012,
       "rotation": 25,
       "scaleX": 1,
@@ -274,8 +274,8 @@
       "order": 52,
       "region": [
         0,
-        0,
-        750,
+        710,
+        800,
         300
       ]
     },
@@ -285,8 +285,8 @@
       "parent": "body",
       "x": 10,
       "y": -11,
-      "pivotX": 380,
-      "pivotY": 100,
+      "pivotX": 1370,
+      "pivotY": 630,
       "artScale": 0.012,
       "rotation": -35,
       "scaleX": 1,
@@ -295,10 +295,10 @@
       "visible": true,
       "order": 53,
       "region": [
-        0,
-        0,
-        750,
-        300
+        1280,
+        580,
+        256,
+        440
       ]
     }
   ],
@@ -320,7 +320,7 @@
     "blend": 0.2,
     "selected": 2.5,
     "victory": 2.8,
-    "defeat": 3.2,
+    "defeat": 3.0,
     "death": 5,
     "elimination": 3.5
   },

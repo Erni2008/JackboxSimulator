@@ -42,6 +42,13 @@ public final class VoodooCheck {
             a=new VoodooAnimationController(c,3);a.play(state,4);a.update(.9f,.7f,false);head=a.pose.headAngle;a.play(VoodooAnimationController.State.DEATH,5);a.update(0,.7f,false);near(head,a.pose.headAngle,.0001f);
         }
         a=new VoodooAnimationController(c,42);float time=a.stateTime();a.update(Float.NaN,0,false);a.update(-1,0,false);near(time,a.stateTime(),.00001f);
+        for(float peak:new float[]{1.4666667f,1.6f,1.7333333f}) {
+            var pulse=new VoodooAnimationController(c,1);pulse.update(peak,0,false);near(1.15f,pulse.pose.heartScale,.0002f);
+        }
+        var slots=new VoodooAnimationController[8];for(int i=0;i<8;i++){slots[i]=new VoodooAnimationController(c,i+1);slots[i].update(3,i*.67f,false);}
+        float untouched=slots[1].stateTime();slots[0].play(VoodooAnimationController.State.DEATH,4);slots[0].update(.5f,0,false);near(untouched,slots[1].stateTime(),.00001f);
+        float diversity=0;for(int i=0;i<1200;i++)for(int j=0;j<8;j++){slots[j].update(1f/60,j*.67f,false);if(j>1)diversity+=Math.abs(slots[j].pose.headAngle-slots[1].pose.headAngle);}
+        check(diversity>1000,"Independent phase and pose storage");
         var events=new VoodooRoomEvents();var received=new ArrayList<String>();
         VoodooRoomEvents.Sink sink=(id,state,seq,seed,age)->received.add(id+":"+state+":"+age);
         events.accept(JsonParser.parseString("{\"phase\":\"RESULTS\",\"gameId\":\"g\",\"phaseStartedAt\":1000,\"question\":{\"id\":\"q\"},\"results\":[{\"playerId\":\"a\",\"isCorrect\":true},{\"playerId\":\"b\",\"isCorrect\":false}]}").getAsJsonObject(),1500,sink);

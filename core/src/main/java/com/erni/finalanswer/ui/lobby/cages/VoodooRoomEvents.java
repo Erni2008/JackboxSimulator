@@ -13,8 +13,8 @@ public final class VoodooRoomEvents {
         var present=new java.util.HashSet<String>();
         if(payload.has("players"))for(var element:payload.getAsJsonArray("players")) {
             var p=element.getAsJsonObject();String id=text(p,"id","");boolean now=!p.has("isAlive")||p.get("isAlive").getAsBoolean();
-            present.add(id);Boolean was=alive.put(id,now);
-            if(!now&&(was==null||was))emit(sink,id,VoodooAnimationController.State.DEATH,"death:"+text(payload,"gameId",text(payload,"roomId",""))+":"+id,0);
+            present.add(id);alive.put(id,now);
+            if(!now)emit(sink,id,VoodooAnimationController.State.DEATH,"death:"+text(payload,"gameId",text(payload,"roomId",""))+":"+id,0);
         }
         if(payload.has("players"))alive.keySet().retainAll(present);
         String phase=text(payload,"phase","");
