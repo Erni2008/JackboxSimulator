@@ -118,3 +118,11 @@ tasks.register('questionPlayersCheck', JavaExec) {
     mainClass = 'com.erni.finalanswer.lobby.QuestionPlayersCheck'
 }
 check.dependsOn tasks.named('questionPlayersCheck')
+
+tasks.register('shotgunCheck', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.shotgun.ShotgunCheck'
+}
+check.dependsOn tasks.named('shotgunCheck')

@@ -689,3 +689,17 @@ tasks.register('impostorCharactersCheck', JavaExec) {
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
+
+tasks.register('shotgunPreview', JavaExec) {
+    group = 'application'
+    description = 'Developer-only modular GLB shotgun alignment and animation preview.'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.ShotgunPreviewLauncher'
+    workingDir = rootProject.file('assets')
+    systemProperty 'shotgun.config', rootProject.file('assets/models/shotgun/shotgun_config.json').absolutePath
+    systemProperty 'shotgun.output', rootProject.file('generated/shotgun').absolutePath
+    systemProperty 'shotgun.qa', providers.gradleProperty('shotgunQA').getOrElse('false')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}

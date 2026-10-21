@@ -180,3 +180,6 @@ Thumbs.db
 /generated/question-players/
 
 /generated/impostor-characters.png
+
+# Local modular shotgun preview captures and QA configurations.
+/generated/shotgun/

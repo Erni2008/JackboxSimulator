@@ -1,0 +1,114 @@
+{
+  "calibrated": false,
+  "body": {
+    "asset": "models/shotgun/shotgun_body.glb",
+    "position": [
+      0,
+      0,
+      0
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ],
+    "scale": [
+      1,
+      1,
+      1
+    ],
+    "visible": true
+  },
+  "pump": {
+    "asset": "models/shotgun/shotgun_pump.glb",
+    "position": [
+      0.43,
+      0.17,
+      0
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ],
+    "scale": [
+      0.32,
+      0.32,
+      0.32
+    ],
+    "visible": true,
+    "anchor": [
+      -0.02256751,
+      0.109605,
+      -0.001693
+    ]
+  },
+  "bolt": {
+    "asset": "models/shotgun/shotgun_bolt.glb",
+    "position": [
+      0.075,
+      0.172,
+      0
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ],
+    "scale": [
+      0.105,
+      0.105,
+      0.105
+    ],
+    "visible": true
+  },
+  "shell": {
+    "asset": "models/shotgun/shotgun_shell.glb",
+    "position": [
+      0,
+      0,
+      0
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ],
+    "scale": [
+      0.045,
+      0.045,
+      0.045
+    ],
+    "visible": true
+  },
+  "pumpDirection": [
+    -1,
+    0,
+    0
+  ],
+  "pumpTravel": 0.09,
+  "pumpDuration": 0.85,
+  "boltDirection": [
+    -1,
+    0,
+    0
+  ],
+  "boltTravel": 0.06,
+  "boltDuration": 0.3,
+  "reloadDuration": 1.8,
+  "shellStart": [
+    0.08,
+    0.08,
+    0.16
+  ],
+  "shellEnd": [
+    0.08,
+    0.17,
+    0.03
+  ],
+  "easing": "smooth",
+  "notes": "BODY is one connected merged surface: fixed pump and closed receiver obstruct independent parts. Assembly suppresses duplicate PUMP/BOLT. A clean BODY with an open port is required.",
+  "shellScale": 1.5,
+  "bodyHasFixedPump": true,
+  "bodyHasClosedPort": true
+}
