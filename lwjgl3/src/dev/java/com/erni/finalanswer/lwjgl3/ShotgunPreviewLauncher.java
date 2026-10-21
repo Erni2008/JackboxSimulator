@@ -11,13 +11,13 @@ public final class ShotgunPreviewLauncher {
     private static Throwable failure;
     public static void main(String[] args){
         var configuration=new Lwjgl3ApplicationConfiguration();configuration.setTitle("Final Answer / Modular Shotgun / Developer Preview");
-        configuration.setWindowedMode(1440,900);configuration.setBackBufferConfig(8,8,8,8,24,8,0);configuration.disableAudio(true);configuration.setForegroundFPS(60);
+        configuration.setWindowedMode(1440,900);configuration.setBackBufferConfig(8,8,8,8,24,8,0);configuration.disableAudio(Boolean.getBoolean("shotgun.qa")&&!Boolean.getBoolean("shotgun.audioQA"));configuration.setForegroundFPS(60);
         boolean qa=Boolean.getBoolean("shotgun.qa");
         new Lwjgl3Application(new Game(){
-            private ShotgunPreviewScreen preview;private int step;private float age;private boolean pumpRear;
+            private ShotgunPreviewScreen preview;private int step;private float age;private boolean flashShot,ejectionShot,loadingShot;
             @Override public void create(){
                 try{preview=new ShotgunPreviewScreen(Gdx.files.internal(ShotgunConfig.PATH),Gdx.files.absolute(System.getProperty("shotgun.config")));setScreen(preview);
-                    if(qa){if(!preview.shotgun().complete())throw new AssertionError("Four GLB assets must load");checkHierarchy();preview.inspectPart(0);preview.highlight(true);}}
+                    if(qa){preview.config().audioVolume=0;if(Boolean.getBoolean("shotgun.audioQA")&&!preview.audioAvailable())throw new AssertionError("Native audio backend or decoded clips unavailable");if(!preview.shotgun().complete())throw new AssertionError("Four GLB assets must load");checkHierarchy();preview.inspectPart(0);preview.highlight(true);}}
                 catch(Throwable error){failure=error;Gdx.app.exit();}
             }
             private void checkHierarchy(){
@@ -57,9 +57,29 @@ public final class ShotgunPreviewLauncher {
                 float[] pumpRest=rig.model(1).transform.val.clone(),boltRest=rig.model(2).transform.val.clone();
                 for(int cycle=0;cycle<100;cycle++){rig.animator.playPumpAnimation();rig.update(cfg.pumpDuration+1);}
                 if(!java.util.Arrays.equals(pumpRest,rig.model(1).transform.val)||!java.util.Arrays.equals(boltRest,rig.model(2).transform.val))throw new AssertionError("Mechanical transforms drift after 100 cycles");
-                if(!rig.blocked(1)||!rig.blocked(2)||rig.rendered(1)||rig.rendered(2)||!rig.rendered(0))throw new AssertionError("Merged body must suppress duplicates without hiding BODY");
-                preview.keyDown(Input.Keys.P);preview.keyDown(Input.Keys.L);
-                if(rig.animator.isAnimating())throw new AssertionError("Preview falsely animates obstructed assembly");
+                if(!rig.bodyPrepared()||!rig.mechanismReady()||!rig.rendered(1)||!rig.rendered(2))throw new AssertionError("Prepared BODY mechanism unavailable");
+                // The prepared body has actual empty space at the authored port, rather than an overlay.
+                for(var mesh:rig.model(0).model.meshes){
+                    float[] data=new float[mesh.getNumVertices()*mesh.getVertexSize()/4];mesh.getVertices(data);
+                    int stride=mesh.getVertexSize()/4,offset=mesh.getVertexAttributes().findByUsage(com.badlogic.gdx.graphics.VertexAttributes.Usage.Position).offset/4;
+                    for(int v=0;v+stride*2<data.length;v+=stride*3){
+                        boolean strictlyInside=true;
+                        for(int axis=0;axis<3;axis++){float center=(data[v+offset+axis]+data[v+stride+offset+axis]+data[v+stride*2+offset+axis])/3;
+                            if(center<=cfg.preparation.portMin[axis]+.00001f||center>=cfg.preparation.portMax[axis]-.00001f)strictlyInside=false;}
+                        if(strictlyInside)throw new AssertionError("BODY still closes the ejection port");
+                    }
+                }
+                rig.animator.resetShotgun();rig.animator.chamber(ShotgunAnimator.Chamber.SPENT);rig.cycle();rig.update(cfg.pumpDuration*cfg.ejectionAt+.000001f);
+                var shellBounds=new com.badlogic.gdx.math.collision.BoundingBox();rig.ejectedShell().calculateBoundingBox(shellBounds);shellBounds.mul(rig.ejectedShell().transform);
+                var boltBounds=new com.badlogic.gdx.math.collision.BoundingBox();rig.model(2).calculateBoundingBox(boltBounds);boltBounds.mul(rig.model(2).transform);
+                if(shellBounds.min.x<boltBounds.max.x-.001f||shellBounds.min.x<cfg.preparation.portMin[0]-.001f||shellBounds.max.x>cfg.preparation.portMax[0]+.001f||shellBounds.min.y<cfg.preparation.portMin[1]-.001f||shellBounds.max.y>cfg.preparation.portMax[1]+.001f)throw new AssertionError("Ejection does not fit the opened port");
+                var position=new com.badlogic.gdx.math.Vector3(cfg.shell.anchor).mul(rig.ejectedShell().transform);
+                var start=new com.badlogic.gdx.math.Vector3(cfg.ejectionSocket);float age0=rig.animator.ejectionAge();
+                rig.transform.translate(5,0,0);rig.update(.1f);
+                var centerAfter=new com.badlogic.gdx.math.Vector3(cfg.shell.anchor).mul(rig.ejectedShell().transform);
+                float age1=rig.animator.ejectionAge();start.mulAdd(new com.badlogic.gdx.math.Vector3(cfg.ejectionVelocity),age1);start.y-=.5f*cfg.ejectionGravity*age1*age1;
+                if(!centerAfter.epsilonEquals(start,.0001f))throw new AssertionError("Ejected shell follows the gun or spins around the wrong origin");
+                rig.transform.idt();rig.animator.resetShotgun();rig.update(0);
                 rig.inspection(1);if(!rig.rendered(1)||rig.rendered(0))throw new AssertionError("Inspection must show one independent source");rig.inspection(-1);
                 var saved=Gdx.files.absolute(System.getProperty("shotgun.output")+"/qa-config.json");cfg.save(saved);
                 var roundTrip=ShotgunConfig.load(saved);
@@ -71,35 +91,44 @@ public final class ShotgunPreviewLauncher {
                 rig.getRenderables(renderables,pool);int hidden=renderables.size;pool.freeAll(renderables);renderables.clear();
                 rig.animator.showShell();rig.update(0);rig.getRenderables(renderables,pool);
                 if(renderables.size<=hidden)throw new AssertionError("Visible shell not rendered");pool.freeAll(renderables);renderables.clear();
-                rig.animator.playReloadAnimation();rig.update(5);rig.getRenderables(renderables,pool);
+                rig.animator.chamber(ShotgunAnimator.Chamber.EMPTY);rig.animator.playReloadAnimation();rig.update(5);rig.getRenderables(renderables,pool);
                 if(renderables.size!=hidden)throw new AssertionError("Loaded shell still intersects receiver visually");pool.freeAll(renderables);
                 rig.animator.resetShotgun();rig.update(0);
             }
             private void shot(String name){var image=ScreenUtils.getFrameBufferPixmap(0,0,Gdx.graphics.getBackBufferWidth(),Gdx.graphics.getBackBufferHeight());try{PixmapIO.writePNG(Gdx.files.absolute(System.getProperty("shotgun.output")+"/"+name+".png"),image,-1,true);}finally{image.dispose();}}
             @Override public void render(){
                 if(failure!=null)return;
-                try{super.render();if(!qa)return;
+                try{if(qa)preview.render(1f/60);else super.render();if(!qa)return;
                     if(Gdx.gl.glGetError()!=GL20.GL_NO_ERROR)throw new AssertionError("OpenGL error");
-                    age+=Gdx.graphics.getDeltaTime();
-                    if(step<4&&age>.35f){shot("source-"+step);step++;age=0;if(step<4)preview.inspectPart(step);else{
-                        preview.highlight(false);preview.keyDown(Input.Keys.TAB);
-                        preview.config().body.visible=false;preview.shotgun().update(0);
-                        preview.keyDown(Input.Keys.P);
-                        if(!preview.shotgun().animator.isAnimating())throw new AssertionError("Isolated independent mechanism cannot animate");
-                    }}
-                    else if(step==4){
-                        if(age>.35f&&!pumpRear){shot("isolated-pump-back");pumpRear=true;}
-                        if(age>1){if(preview.shotgun().animator.isAnimating()||preview.shotgun().animator.pump()!=0)throw new AssertionError("Pump did not settle");preview.shotgun().animator.playReloadAnimation();step++;age=0;}}
-                    else if(step==5&&age>2.1f){
-                        var a=preview.shotgun().animator;if(a.isAnimating()||a.shellState()!=ShotgunAnimator.ShellState.LOADED)throw new AssertionError("Reload did not finish");
-                        shot("isolated-mechanism");preview.config().body.visible=true;
-                        preview.shotgun().animator.showShell();preview.shotgun().update(0);preview.highlight(true);
-                        preview.viewDirection(0,0,1);step=6;age=0;
-                    }else if(step>=6&&age>.2f){
-                        shot(step==6?"assembly-side":step==7?"assembly-reverse":"assembly-top");
-                        if(step==6){preview.viewDirection(0,0,-1);step++;age=0;}
-                        else if(step==7){preview.viewDirection(0,1,0);step++;age=0;}
-                        else{Gdx.app.log("Shotgun","PASS: four textured GLBs, PBR render, isolated views, rotated parent/local travel, original PBR maps, blocked merged-body assembly, duplicate suppression, isolated pump/bolt cycling, uniform shell multiplier, config round-trip, reload/hidden shell, GL error check");Gdx.app.exit();}}
+                    age+=1f/60;
+                    var gun=preview.shotgun();var animator=gun.animator;
+                    if(step<4&&age>.3f){
+                        shot("source-"+step);step++;age=0;
+                        if(step<4)preview.inspectPart(step);
+                        else{preview.highlight(false);preview.keyDown(Input.Keys.TAB);preview.keyDown(Input.Keys.R);preview.keyDown(Input.Keys.ENTER);
+                            if(animator.chamber()!=ShotgunAnimator.Chamber.SPENT)throw new AssertionError("Preview trigger failed");}
+                    }else if(step==4){
+                        if(!flashShot&&animator.flash()>0){shot("firing-flash-recoil");flashShot=true;}
+                        if(age>.35f){if(!flashShot)throw new AssertionError("Muzzle flash not rendered");preview.keyDown(Input.Keys.P);step=5;age=0;}
+                    }else if(step==5){
+                        if(!ejectionShot&&animator.ejecting()&&animator.ejectionAge()>.12f){
+                            if(animator.bolt()<.4f)throw new AssertionError("Case ejected through a closed port");
+                            shot("ejection-open-port");ejectionShot=true;
+                        }
+                        if(age>1.1f){if(!ejectionShot||animator.chamber()!=ShotgunAnimator.Chamber.EMPTY)throw new AssertionError("Spent case was not ejected");preview.keyDown(Input.Keys.L);step=6;age=0;}
+                    }else if(step==6){
+                        if(!loadingShot&&animator.shellState()==ShotgunAnimator.ShellState.MOVING){shot("reload-cartridge");loadingShot=true;}
+                        if(age>2.1f){if(!loadingShot||!gun.readyToFire())throw new AssertionError("Reload did not return to ready");preview.viewDirection(0,0,1);step=7;age=0;}
+                    }else if(step==7&&age>.2f){shot("assembled-closed");preview.keyDown(Input.Keys.O);step=8;age=0;}
+                    else if(step==8&&age>.4f){shot("assembled-open");preview.keyDown(Input.Keys.C);step=9;age=0;}
+                    else if(step==9&&age>.4f){shot("assembled-closed-again");preview.keyDown(Input.Keys.F5);step=10;age=0;}
+                    else if(step==10&&age>4){
+                        if(!gun.readyToFire())throw new AssertionError("Full cinematic demo did not finish ready");
+                        shot("demo-finished");preview.viewDirection(0,0,-1);step=11;age=0;
+                    }else if(step==11&&age>.2f){shot("assembly-reverse");preview.viewDirection(0,1,0);step=12;age=0;}
+                    else if(step==12&&age>.2f){
+                        shot("assembly-top");Gdx.app.log("Shotgun","PASS: source-preserving prepared BODY, real port, one wooden pump, full fire/recoil/flash/cycle/ejection/reload demo, chamber rules, parent-local motion, GL and texture cleanup checks");Gdx.app.exit();
+                    }
                 }catch(Throwable error){failure=error;Gdx.app.exit();}
             }
             @Override public void dispose(){

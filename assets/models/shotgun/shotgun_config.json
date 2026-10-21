@@ -46,8 +46,8 @@
   "bolt": {
     "asset": "models/shotgun/shotgun_bolt.glb",
     "position": [
-      0.075,
-      0.172,
+      0.0675,
+      0.189,
       0
     ],
     "rotation": [
@@ -56,11 +56,16 @@
       0
     ],
     "scale": [
-      0.105,
-      0.105,
-      0.105
+      0.13,
+      0.13,
+      0.13
     ],
-    "visible": true
+    "visible": true,
+    "anchor": [
+      -0.022589,
+      0.14834,
+      -1.35e-05
+    ]
   },
   "shell": {
     "asset": "models/shotgun/shotgun_shell.glb",
@@ -79,7 +84,12 @@
       0.045,
       0.045
     ],
-    "visible": true
+    "visible": true,
+    "anchor": [
+      -0.0995485,
+      0.220746,
+      0.0476425
+    ]
   },
   "pumpDirection": [
     -1,
@@ -93,7 +103,7 @@
     0,
     0
   ],
-  "boltTravel": 0.06,
+  "boltTravel": 0.09,
   "boltDuration": 0.3,
   "reloadDuration": 1.8,
   "shellStart": [
@@ -102,13 +112,76 @@
     0.16
   ],
   "shellEnd": [
-    0.08,
-    0.17,
+    0.1,
+    0.189,
     0.03
   ],
   "easing": "smooth",
-  "notes": "BODY is one connected merged surface: fixed pump and closed receiver obstruct independent parts. Assembly suppresses duplicate PUMP/BOLT. A clean BODY with an open port is required.",
+  "notes": "Runtime-prepared BODY: authored receiver port cut; fixed fore-end surfaces reuse original BOLT metal maps as magazine guide. Original GLBs remain intact.",
   "shellScale": 1.5,
   "bodyHasFixedPump": true,
-  "bodyHasClosedPort": true
+  "bodyHasClosedPort": true,
+  "preparation": {
+    "enabled": true,
+    "sourceSha256": "e49985a7726839ceccfc4032f6181c7068a25d27be109023aca02b9148ce33ea",
+    "portMin": [
+      -0.005,
+      0.17,
+      0.001
+    ],
+    "portMax": [
+      0.14,
+      0.208,
+      0.06
+    ],
+    "guideMin": [
+      0.158,
+      0.132,
+      -0.028
+    ],
+    "guideMax": [
+      0.583,
+      0.185,
+      0.028
+    ],
+    "maxPortAreaFraction": 0.12
+  },
+  "startLoaded": true,
+  "fireDuration": 0.26,
+  "flashDuration": 0.055,
+  "recoilTravel": 0.028,
+  "recoilAngle": 2.2,
+  "ejectionLifetime": 0.8,
+  "ejectionGravity": 4,
+  "muzzle": [
+    0.65,
+    0.206,
+    0
+  ],
+  "recoilPivot": [
+    0,
+    0.17,
+    0
+  ],
+  "ejectionSocket": [
+    0.1,
+    0.189,
+    0.044
+  ],
+  "ejectionVelocity": [
+    0.1,
+    1.2,
+    1.1
+  ],
+  "ejectionSpin": [
+    400,
+    660,
+    120
+  ],
+  "ejectionAt": 0.4,
+  "fireSound": "models/shotgun/audio/fire.wav",
+  "pumpBackSound": "models/shotgun/audio/pump_back.wav",
+  "pumpForwardSound": "models/shotgun/audio/pump_forward.wav",
+  "loadSound": "models/shotgun/audio/load.wav",
+  "audioVolume": 0.45
 }

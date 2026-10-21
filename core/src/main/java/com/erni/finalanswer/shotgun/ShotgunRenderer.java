@@ -14,7 +14,10 @@ public final class ShotgunRenderer implements Disposable {
     private final SceneManager manager;
     private final Cubemap diffuse,specular;
     private final Texture brdf;
+    private final ShotgunEffects effects;
+    private ModularShotgun weapon;
     public ShotgunRenderer(PerspectiveCamera camera){
+        effects=new ShotgunEffects(camera);
         manager=new SceneManager();manager.setCamera(camera);
         DirectionalLightEx key=new DirectionalLightEx();key.direction.set(-.35f,-.8f,-.6f).nor();key.color.set(.85f,.79f,.70f,1);
         manager.environment.add(key);
@@ -27,7 +30,8 @@ public final class ShotgunRenderer implements Disposable {
         manager.environment.set(PBRCubemapAttribute.createSpecularEnv(specular));
         manager.environment.set(new PBRTextureAttribute(PBRTextureAttribute.BRDFLUTTexture,brdf));
     }
-    public void provider(RenderableProvider provider){manager.getRenderableProviders().clear();if(provider!=null)manager.getRenderableProviders().add(provider);}
-    public void render(float delta){manager.update(Math.max(0,delta));manager.render();}
-    @Override public void dispose(){manager.dispose();diffuse.dispose();specular.dispose();brdf.dispose();}
+    public com.badlogic.gdx.graphics.g3d.Environment environment(){return manager.environment;}
+    public void provider(RenderableProvider provider){weapon=provider instanceof ModularShotgun gun?gun:null;manager.getRenderableProviders().clear();if(provider!=null)manager.getRenderableProviders().add(provider);}
+    public void render(float delta){manager.update(Math.max(0,delta));manager.render();if(weapon!=null)effects.render(weapon);}
+    @Override public void dispose(){effects.dispose();manager.dispose();diffuse.dispose();specular.dispose();brdf.dispose();}
 }

@@ -1,0 +1,16 @@
+FINAL ANSWER shotgun presentation audio
+
+fire.wav is adapted from N_26P.wav (Mossberg), The Free Firearm Sound Library.
+Creators: Ben Jaszczak, Brian Nelson, Kevin Heras, Matthew Nanney.
+Source: https://opengameart.org/node/21826
+License: CC0 1.0 Universal, https://creativecommons.org/publicdomain/zero/1.0/
+Changes: isolated one report, converted to mono 44.1 kHz PCM16, short fade/reverb and peak limiting.
+
+pump_back.wav, pump_forward.wav, load.wav are adapted from Rack.mp3 and
+Shell in Chamber.mp3, Shotgun Reload Sound effects by zer0_sol.
+Source: https://opengameart.org/content/shotgun-reload-sound-effects
+License: CC0 1.0 Universal, https://creativecommons.org/publicdomain/zero/1.0/
+Changes: trimmed individual mechanical actions, tempo alignment, fades,
+peak limiting and mono 44.1 kHz PCM16 conversion.
+
+Only the selected derived clips are distributed; source archives are not bundled.

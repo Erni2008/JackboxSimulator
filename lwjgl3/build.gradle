@@ -700,6 +700,7 @@ tasks.register('shotgunPreview', JavaExec) {
     systemProperty 'shotgun.config', rootProject.file('assets/models/shotgun/shotgun_config.json').absolutePath
     systemProperty 'shotgun.output', rootProject.file('generated/shotgun').absolutePath
     systemProperty 'shotgun.qa', providers.gradleProperty('shotgunQA').getOrElse('false')
+    systemProperty 'shotgun.audioQA', providers.gradleProperty('shotgunAudioQA').getOrElse('false')
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
