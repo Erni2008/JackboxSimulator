@@ -85,10 +85,18 @@ Character colors belong to question labels and mini-game portrait nameplates.
 
 `ImpostorCharacterActor` borrows the existing `CageLobby` texture owner and creates
 an independent existing rig per portrait. The production Impostor avatar factory
-now supplies these actors to participant frames, final voting and result cards.
+now supplies these actors to participant displays, final voting and result cards.
 No cage graphics or new character textures are used. Actors advance through Scene2D
 `act(delta)` and restore the batch transform after drawing with the shared material profile.
 Run `./gradlew :lwjgl3:impostorCharactersCheck` for an eight-character OpenGL contact
 sheet, or `./gradlew :lwjgl3:impostorPreview` for the interactive three/four-player scene
 (F3/F4 changes participant count, F5 switches between the two groups of four characters). The contact sheet is written to
 `generated/impostor-characters.png`; this is a development artifact.
+
+
+The Impostor top row is now frameless. Each character has a 194×195 display lane
+above a fitted, colored nickname with a restrained dark shadow. This provides over
+twice the previous portrait height while retaining the existing clue parchment,
+row placement and timer clearance. The production screen borrows a separate bold
+nameplate font for nicknames; clue text keeps its existing font. Missing decorative
+frame artwork no longer affects character or nickname visibility.

@@ -142,7 +142,7 @@ public final class ImpostorCheck extends FinalAnswerGame {
             check(scope.assets.failures().isEmpty(), "All supplied assets load");
             for (ImpostorAsset asset : ImpostorAsset.values())
                 check(scope.assets.isAvailable(asset), "Available: " + asset.path());
-            checkFrameGeometry(scope.assets);
+            checkCharacterLane(scope.assets);
             Texture first = scope.assets.texture(ImpostorAsset.CLOCK).orElseThrow();
             int count = Texture.getNumManagedTextures();
             scope.assets.load();
@@ -185,7 +185,7 @@ public final class ImpostorCheck extends FinalAnswerGame {
                 check(stage.getRoot().findActor("impostorBackground") == null, "Missing background safely omitted");
                 check(stage.getRoot().findActor("impostorClockArrow") == null, "Hand omitted without clock");
                 check(stage.getRoot().findActor("portraitFrame") == null, "Missing frame safely omitted");
-                check(!stage.getRoot().findActor("nickname").isVisible(), "No floating nickname without frame");
+                check(stage.getRoot().findActor("nickname").isVisible(), "Nickname remains independent of decorative frame assets");
                 check(stage.getRoot().findActor("impostorTimerValue") != null, "Text remains usable without panel");
                 check(stage.getRoot().findActor("paperFront") == null, "Missing paper omitted safely");
                 check(!stage.getRoot().findActor("clue0").isVisible(), "Ink hidden without parchment");
@@ -324,26 +324,24 @@ public final class ImpostorCheck extends FinalAnswerGame {
             float left=view.getX(), bottom=view.getY();
             float right=left+view.getWidth()*view.getScaleX();
             float top=bottom+view.getHeight()*view.getScaleY();
-            check(left>=ImpostorLayout.TOP_PLAYERS.x() && right<=1500.1f && bottom>=744 && top<=984.1f,
+            check(left>=ImpostorLayout.TOP_PLAYERS.x() && right<=1500.1f && bottom>=744 && top<=ImpostorLayout.TOP_PLAYERS.y()+ImpostorLayout.TOP_PLAYERS.height()+.1f,
                 "Participant fits reserved region");
             check(left>=previousRight && (previousY<0 || Math.abs(bottom-previousY)<.01f), "Single nonoverlapping row");
             check(right<ImpostorLayout.CLOCK_REGION.x(), "Clock/timer clearance");
             previousRight=right; previousY=bottom;
             check(view.findActor("avatar") == null && view.findActor("devAvatarLabel") == null,
                 "No fabricated avatar or debug labels");
-            Image frame=view.findActor("portraitFrame");
-            check(frame != null && Math.abs(frame.getWidth()/frame.getHeight()-1297f/1212)<.0001f,
-                "Reusable frame proportions");
+            check(view.findActor("portraitFrame")==null, "Frameless character presentation");
             Label nickname=view.findActor("nickname");
             nickname.validate();
             check(nickname.getText().toString().equals(participant.player().name()), "Underlying nickname preserved");
             check(nickname.getGlyphLayout().width<=nickname.getWidth()+.1f
                 && nickname.getGlyphLayout().height<=nickname.getHeight(), "Nickname fits measured plate with visual ellipsis");
-            check(view.findActor("nicknameShadow") == null, "No floating nickname shadow");
+            check(view.findActor("nicknameShadow") != null, "Readable nickname shadow");
             var plate=ImpostorParticipantView.NAMEPLATE;
             check(nickname.getX()==plate.x() && nickname.getY()==plate.y()
                 && nickname.getWidth()==plate.width() && nickname.getHeight()==plate.height(), "Nickname inside measured nameplate");
-            check(nickname.getStyle().fontColor.equals(com.erni.finalanswer.ui.PlayerColors.ink(participant.player().characterId())), "Character-specific parchment ink");
+            check(nickname.getStyle().fontColor.equals(com.erni.finalanswer.ui.PlayerColors.light(participant.player().characterId())), "Character-specific nickname color");
             com.badlogic.gdx.scenes.scene2d.Group paper=view.findActor("paper");
             Image front=paper.findActor("paperFront");
             check(front != null && Math.abs(front.getWidth()/front.getHeight()-1120f/1404)<.0001f,
@@ -395,14 +393,10 @@ public final class ImpostorCheck extends FinalAnswerGame {
             check(participant.clues().stream().allMatch(String::isEmpty), "Preview contains no sample clue words");
     }
 
-    private void checkFrameGeometry(ImpostorAssets assets) {
-        Pixmap image=new Pixmap(Gdx.files.internal(ImpostorAsset.AVATAR_FRAME.path()));
-        try {
-            check(image.getWidth()==1297 && image.getHeight()==1212, "Expected frame source size");
-            for (int y=290;y<815;y+=8) for (int x=350;x<945;x+=8)
-                check((image.getPixel(x,y)&255)<=1, "Transparent inscribed avatar opening");
-            check((image.getPixel(650,990)&255)>245, "Opaque parchment nameplate");
-        } finally { image.dispose(); }
+    private void checkCharacterLane(ImpostorAssets assets) {
+        check(ImpostorParticipantView.AVATAR_OPENING.height()>190, "Large character display area");
+        check(ImpostorParticipantView.AVATAR_OPENING.x()+ImpostorParticipantView.AVATAR_OPENING.width()<208,
+                "Character lane clears clue paper");
         // Geometry-only stand-in tests future avatar fitting; it draws no placeholder artwork.
         Actor supplied=new Actor(); supplied.setSize(400,100);
         var font=com.erni.finalanswer.ui.UiFonts.body(24);
@@ -411,11 +405,11 @@ public final class ImpostorCheck extends FinalAnswerGame {
             com.badlogic.gdx.scenes.scene2d.Group avatar=view.findActor("avatar");
             Image frame=view.findActor("portraitFrame");
             var opening=ImpostorParticipantView.AVATAR_OPENING;
-            check(avatar.getZIndex()<frame.getZIndex(), "Avatar behind frame");
+            check(frame==null, "No decorative portrait frame");
             check(avatar.getX()>=opening.x() && avatar.getY()>=opening.y()
                 && avatar.getX()+avatar.getWidth()*avatar.getScaleX()<=opening.x()+opening.width()+.01f
                 && avatar.getY()+avatar.getHeight()*avatar.getScaleY()<=opening.y()+opening.height()+.01f,
-                "Avatar fits within transparent opening without covering decorations");
+                "Avatar fits dedicated character lane");
             check(avatar.getScaleX()==avatar.getScaleY(), "Avatar keeps its proportions");
         } finally { font.dispose(); }
     }

@@ -9,7 +9,7 @@ public final class ImpostorLayout {
         public float centerY() { return y + height / 2; }
     }
 
-    public static final Bounds TOP_PLAYERS = new Bounds(260, 744, 1240, 240);
+    public static final Bounds TOP_PLAYERS = new Bounds(70, 744, 1430, 320);
     public static final Bounds CENTRAL_CONTENT = new Bounds(360, 470, 1140, 290);
     public static final Bounds TABLE = new Bounds(300, 100, 1300, 340);
     public static final Bounds CLOCK_REGION = new Bounds(1540, 620, 360, 420);

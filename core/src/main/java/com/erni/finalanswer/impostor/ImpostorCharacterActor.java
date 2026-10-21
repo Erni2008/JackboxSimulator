@@ -28,7 +28,7 @@ public final class ImpostorCharacterActor extends Actor {
             case "skeleton", "ghost" -> 69; case "puppeteer" -> 68;
             case "pumpkin" -> 67; default -> 63;
         };
-        setSize(180, 210);
+        setSize(180, 280);
         setTouchable(Touchable.disabled);
         // Enter the established idle without replaying cage entrances on every portrait rebuild.
         for (int i = 1; i <= 240; i++) character.update(1f / 30, i / 30f, phase, false);
@@ -44,7 +44,7 @@ public final class ImpostorCharacterActor extends Actor {
     @Override public void draw(Batch batch, float parentAlpha) {
         saved.set(batch.getTransformMatrix());
         // Reserve headroom for limbs/accessories and the existing procedural idle.
-        float scale = Math.min(getWidth() / 180, getHeight() / (height * 1.14f));
+        float scale = Math.min(getWidth() / 135, getHeight() / (height * 1.10f));
         local.set(saved).translate(getX() + getWidth() / 2, getY() + 5, 0)
                 .scale(scale, scale, 1).translate(-174, -floor, 0);
         try {

@@ -5,25 +5,18 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
-import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.utils.Align;
-import com.badlogic.gdx.utils.Scaling;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import java.util.List;
 
 /** Independent portrait and paper assembly. Text and images borrow screen-owned resources. */
 public final class ImpostorParticipantView extends Group {
-    public static final float WIDTH = 360, HEIGHT = 240;
-    public static final float FRAME_WIDTH = 200, FRAME_HEIGHT = FRAME_WIDTH * 1212 / 1297;
+    public static final float WIDTH = 360, HEIGHT = 320;
     public static final float PAPER_WIDTH = 152, PAPER_HEIGHT = PAPER_WIDTH * 1404 / 1120;
-    // Source coordinates measured from the original frame's top-left. The opening is curved;
-    // this inset rectangle lies entirely inside it, clear of the emblem and rounded corners.
-    public static final com.erni.finalanswer.impostor.ImpostorLayout.Bounds AVATAR_OPENING =
-            frameRegion(350, 290, 595, 525);
-    public static final com.erni.finalanswer.impostor.ImpostorLayout.Bounds NAMEPLATE =
-            frameRegion(390, 935, 520, 130);
+    public static final ImpostorLayout.Bounds AVATAR_OPENING = new ImpostorLayout.Bounds(0, 40, 194, 275);
+    public static final ImpostorLayout.Bounds NAMEPLATE = new ImpostorLayout.Bounds(0, 6, 194, 30);
     private double idleTime;
     private float portraitY=Float.NaN;
     public void updatePortrait(float delta,boolean reduced){
@@ -38,23 +31,23 @@ public final class ImpostorParticipantView extends Group {
     private final Image back;
     private PaperFlipState paperState = PaperFlipState.FACE_DOWN;
     public PaperFlipState paperState() { return paperState; }
-    private static ImpostorLayout.Bounds frameRegion(float x, float y, float width, float height) {
-        float scale = FRAME_WIDTH / 1297;
-        return new ImpostorLayout.Bounds(x*scale, 30+(1212-y-height)*scale, width*scale, height*scale);
-    }
     private final Label[] lines = new Label[3];
     private final GlyphLayout measurement = new GlyphLayout();
     private final BitmapFont font;
 
     public ImpostorParticipantView(ImpostorParticipant participant, Actor avatar,
                                    ImpostorAssets assets, BitmapFont font) {
+        this(participant, avatar, assets, font, font);
+    }
+
+    public ImpostorParticipantView(ImpostorParticipant participant, Actor avatar,
+                                   ImpostorAssets assets, BitmapFont font, BitmapFont nicknameFont) {
         this.font = font;
         setName("participant:" + participant.player().id());
         setSize(WIDTH, HEIGHT);
         setOrigin(0, 0);
-        boolean hasFrame = assets.isAvailable(ImpostorAsset.AVATAR_FRAME);
-        // An inscribed transparent rectangle prevents supplied avatars from covering any border.
-        if (avatar != null && hasFrame) {
+        // Character and nickname occupy the left lane; clue parchment keeps its existing right lane.
+        if (avatar != null) {
             Group portrait = new Group();
             portrait.setName("avatar");
             float scale = Math.min(AVATAR_OPENING.width()/avatar.getWidth(), AVATAR_OPENING.height()/avatar.getHeight());
@@ -66,16 +59,19 @@ public final class ImpostorParticipantView extends Group {
             portrait.addActor(avatar);
             addActor(portrait);
         }
-        assets.texture(ImpostorAsset.AVATAR_FRAME).ifPresent(texture -> {
-            Image frame = new Image(texture);
-            frame.setName("portraitFrame");
-            frame.setBounds(0, 30, FRAME_WIDTH, FRAME_HEIGHT);
-            addActor(frame);
-        });
-        Label nickname = nickname(participant.player().name(), com.erni.finalanswer.ui.PlayerColors.ink(participant.player().characterId()));
+        Label nickname = new Label(participant.player().name(), new Label.LabelStyle(nicknameFont,
+                com.erni.finalanswer.ui.PlayerColors.light(participant.player().characterId())));
         nickname.setName("nickname");
-        nickname.setVisible(hasFrame);
-        addActor(nickname);
+        nickname.setAlignment(Align.center);
+        nickname.setBounds(NAMEPLATE.x(), NAMEPLATE.y(), NAMEPLATE.width(), NAMEPLATE.height());
+        measurement.setText(nicknameFont, participant.player().name());
+        float nameScale=Math.min(1,Math.min((NAMEPLATE.width()-8)/Math.max(1,measurement.width),
+                (NAMEPLATE.height()-4)/Math.max(1,measurement.height)));
+        nickname.setFontScale(nameScale);
+        Label shadow = new Label(participant.player().name(), new Label.LabelStyle(nicknameFont, new Color(.015f,.008f,.008f,.9f)));
+        shadow.setName("nicknameShadow");shadow.setAlignment(Align.center);shadow.setFontScale(nameScale);
+        shadow.setBounds(NAMEPLATE.x()+1.2f,NAMEPLATE.y()-1.2f,NAMEPLATE.width(),NAMEPLATE.height());
+        addActor(shadow);addActor(nickname);
         paper.setName("paper");
         paper.setBounds(208, 28, PAPER_WIDTH, PAPER_HEIGHT);
         paper.setOrigin(PAPER_WIDTH/2, PAPER_HEIGHT/2);
@@ -102,19 +98,11 @@ public final class ImpostorParticipantView extends Group {
         return label;
     }
 
-    private Label nickname(String text, Color color) {
-        Label label = label(text, color);
-        label.setFontScale(18f/24);
-        label.setEllipsis("...");
-        label.setBounds(NAMEPLATE.x(), NAMEPLATE.y(), NAMEPLATE.width(), NAMEPLATE.height());
-        return label;
-    }
-
     private Image paperImage(ImpostorAssets assets, ImpostorAsset asset, String name) {
         var texture = assets.texture(asset).orElse(null);
         if (texture == null) return null;
         Image image = new Image(texture);
-        image.setScaling(Scaling.fit);
+        image.setScaling(com.badlogic.gdx.utils.Scaling.fit);
         image.setName(name);
         image.setSize(PAPER_WIDTH, PAPER_HEIGHT);
         paper.addActor(image);

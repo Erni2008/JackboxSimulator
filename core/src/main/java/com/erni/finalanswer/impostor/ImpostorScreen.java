@@ -45,6 +45,7 @@ public final class ImpostorScreen extends ScreenAdapter {
     private final BitmapFont revealNameFont = UiFonts.handwriting(52);
     private final BitmapFont timerFont = UiFonts.horror(52);
     private final BitmapFont participantFont = UiFonts.body(24);
+    private final BitmapFont nicknameFont = UiFonts.nameplate(28);
     private final Function<RoomSession.Player, Actor> avatarFactory;
     private List<ImpostorParticipant> participants = List.of();
     private Group playerLayer;
@@ -278,7 +279,7 @@ public final class ImpostorScreen extends ScreenAdapter {
             if (avatar != null && (avatar.getWidth() <= 0 || avatar.getHeight() <= 0))
                 throw new IllegalArgumentException("Avatar must have positive natural dimensions");
 
-            var view = new ImpostorParticipantView(participant, avatar, assets, participantFont);
+            var view = new ImpostorParticipantView(participant, avatar, assets, participantFont, nicknameFont);
             view.setPosition(start+i*(width+gap), region.y()+(region.height()-height)/2);
             view.setScale(scale);
             playerLayer.addActor(view);
@@ -471,7 +472,7 @@ public final class ImpostorScreen extends ScreenAdapter {
         stage.dispose();
         labelFont.dispose();
         timerFont.dispose();audio.close();if(roomSettings!=null)roomSettings.dispose();if(dust!=null)dust.dispose();if(veil!=null)veil.dispose();
-        participantFont.dispose();revealNameFont.dispose();
+        participantFont.dispose();nicknameFont.dispose();revealNameFont.dispose();
         assets.dispose();
     }
 }
