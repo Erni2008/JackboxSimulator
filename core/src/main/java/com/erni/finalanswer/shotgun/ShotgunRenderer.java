@@ -32,6 +32,9 @@ public final class ShotgunRenderer implements Disposable {
     }
     public com.badlogic.gdx.graphics.g3d.Environment environment(){return manager.environment;}
     public void provider(RenderableProvider provider){weapon=provider instanceof ModularShotgun gun?gun:null;manager.getRenderableProviders().clear();if(provider!=null)manager.getRenderableProviders().add(provider);}
+    /** Draw the effect shader once while the host is still loading. */
+    public void renderEffects(ModularShotgun gun){effects.render(gun);}
+    public void warmupEffects(){effects.warmup();}
     public void render(float delta){manager.update(Math.max(0,delta));manager.render();if(weapon!=null)effects.render(weapon);}
     @Override public void dispose(){effects.dispose();manager.dispose();diffuse.dispose();specular.dispose();brdf.dispose();}
 }

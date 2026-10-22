@@ -31,6 +31,7 @@ final class ShotgunEffects implements Disposable {
         core=Decal.newDecal(.13f,.13f,region,GL20.GL_SRC_ALPHA,GL20.GL_ONE);
         ray=Decal.newDecal(.23f,.035f,region,GL20.GL_SRC_ALPHA,GL20.GL_ONE);
     }
+    void warmup(){core.setPosition(camera.position.x,camera.position.y,camera.position.z-1);core.lookAt(camera.position,camera.up);core.setColor(1,1,1,.01f);batch.add(core);batch.flush();}
     void render(ModularShotgun gun){
         float intensity=gun.animator.flash();if(intensity<=0)return;
         gun.muzzle(muzzle);screenA.set(muzzle);camera.project(screenA);

@@ -41,4 +41,24 @@ public class DisplayManager {
     public boolean isFullscreen() {
         return Gdx.graphics.isFullscreen();
     }
+    /** Platform adapter: presentation must not enter an exclusive monitor mode. */
+    public interface Presentation {
+        void enter();
+        void toggle();
+        void restore();
+        boolean fullscreen();
+    }
+    private static java.util.function.Supplier<Presentation> presentationFactory=()->new Presentation(){
+        public void enter(){} public void toggle(){} public void restore(){}
+        public boolean fullscreen(){return Gdx.graphics.isFullscreen();}
+    };
+    public static void installPresentation(java.util.function.Supplier<Presentation> factory){presentationFactory=java.util.Objects.requireNonNull(factory);}
+    /** Screen-scoped, non-persistent borderless presentation. The desktop owns native window coordinates. */
+    public static final class TemporaryFullscreen implements Presentation {
+        private final Presentation desktop=presentationFactory.get();
+        public void enter(){desktop.enter();}
+        public void toggle(){desktop.toggle();}
+        public void restore(){desktop.restore();}
+        public boolean fullscreen(){return desktop.fullscreen();}
+    }
 }

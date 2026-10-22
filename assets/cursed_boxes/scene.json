@@ -1,0 +1,12 @@
+{
+  "impactAt": 0.03,
+  "pumpAt": 0.45,
+  "shotDuration": 1.1,
+  "ghostSlot": 5,
+  "largeFragments": 4,
+  "smallSplinters": 7,
+  "dustClouds": 2,
+  "lowEffects": false,
+  "debrisForwardSpeed": 8.5,
+  "debrisSideSpeed": 4
+}

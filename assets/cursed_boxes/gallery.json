@@ -1,0 +1,17 @@
+{
+  "imageWidth": 1672,
+  "imageHeight": 941,
+  "shelfFloorY": 675,
+  "shelfImageHeight": 594,
+  "counterFrontY": 884,
+  "restImageX": 1060,
+  "restImageY": 827,
+  "restWorldZ": 6.0,
+  "weaponScale": 3.5,
+  "restYaw": 145,
+  "pickupDuration": 0.65,
+  "aimDuration": 0.3,
+  "returnDuration": 0.8,
+  "dustCount": 28,
+  "ghostHeight": 1.18
+}

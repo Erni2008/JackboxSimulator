@@ -67,6 +67,17 @@ public class FinalAnswerGame extends Game {
         if (generationCode != null) generationCode.setReducedMotion(settings.reducedMotion());
     }
 
+    private com.erni.finalanswer.cursedboxes.CursedBoxesScreen cursedBoxes;
+    private com.erni.finalanswer.cursedboxes.CursedBoxesLoadingScreen cursedLoading;
+    public void showCursedBoxes() {
+        if(cursedBoxes!=null){setScreen(cursedBoxes);return;}
+        if(cursedLoading!=null)return;
+        cursedLoading=new com.erni.finalanswer.cursedboxes.CursedBoxesLoadingScreen(scene->{
+            cursedBoxes=scene;cursedLoading=null;setScreen(scene);
+        },()->{cursedLoading=null;showMainMenu();});
+        setScreen(cursedLoading);
+    }
+
     private MainMenu mainMenu;
     private PlayScreen playScreen;
     private com.erni.finalanswer.screens.CageLobbyScreen cageLobbyScreen;
@@ -231,6 +242,8 @@ public class FinalAnswerGame extends Game {
     @Override
     public void render() {
         if (Gdx.input.isKeyJustPressed(Input.Keys.F11)
+                && !(getScreen() instanceof com.erni.finalanswer.cursedboxes.CursedBoxesScreen)
+                && !(getScreen() instanceof com.erni.finalanswer.cursedboxes.CursedBoxesLoadingScreen)
                 && getScreen() != settingsScreen
                 && !displayManager.isChanging()) {
             GameSettings previous = settings;
@@ -250,6 +263,8 @@ public class FinalAnswerGame extends Game {
         if (realtime != null) realtime.close();
         roomApi.close();hosting.close();
         super.dispose();
+        if (cursedBoxes != null) cursedBoxes.dispose();
+        if (cursedLoading != null) cursedLoading.dispose();
         if (cageLobbyScreen != null) cageLobbyScreen.dispose();
         if (mainMenu != null) mainMenu.dispose();
         if (roomSettings != null) roomSettings.dispose();

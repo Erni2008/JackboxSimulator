@@ -29,6 +29,7 @@ public class Lwjgl3Launcher {
      */
     private static Lwjgl3Application createApplication(com.erni.finalanswer.network.HostingAccess hosting) {
 
+        com.erni.finalanswer.lwjgl3.display.DesktopBorderless.install();
         FinalAnswerGame game=Boolean.getBoolean("finalanswer.selfCheck")?new com.erni.finalanswer.lwjgl3.hosting.ApplicationSelfCheck(hosting):new FinalAnswerGame(hosting);
         var application=new Lwjgl3Application(game,getDefaultConfiguration());
         if(game instanceof com.erni.finalanswer.lwjgl3.hosting.ApplicationSelfCheck check)check.verify();

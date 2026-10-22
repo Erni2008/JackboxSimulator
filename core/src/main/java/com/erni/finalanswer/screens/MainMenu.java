@@ -45,6 +45,7 @@ public class MainMenu extends ScreenAdapter {
     private final TableCandle tableCandle;
     private final Texture titleShade;
     private final Texture titleLogo;
+    private final com.badlogic.gdx.graphics.g2d.BitmapFont demoFont = com.erni.finalanswer.ui.UiFonts.body(20);
     private float titleTime;
     private boolean disposed;
     private boolean firstShow = true;
@@ -167,6 +168,7 @@ public class MainMenu extends ScreenAdapter {
 
     @Override
     public void render(float delta) {
+        if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.F6)) { game.showCursedBoxes(); return; }
 
         ScreenUtils.clear(0.05f, 0.03f, 0.08f, 1f);
 
@@ -229,6 +231,8 @@ public class MainMenu extends ScreenAdapter {
         logoY += (1f - entrance) * 14f + MathUtils.sin(titleTime * 1.15f) * (game.getSettings().reducedMotion() ? 0 : 2f);
         batch.setColor(1f, 1f, 1f, entrance);
         batch.draw(titleLogo, 90, logoY, logoWidth, logoHeight);
+        demoFont.setColor(.70f, .58f, .40f, 1f);
+        demoFont.draw(batch, "F6  /  CURSED BOXES — LOCAL DEMO", 90, 48);
         batch.setColor(1f, 1f, 1f, 1f);
         batch.end();
 
@@ -304,6 +308,7 @@ public class MainMenu extends ScreenAdapter {
         }
 
         batch.dispose();
+        demoFont.dispose();
 
         titleLogo.dispose();
 

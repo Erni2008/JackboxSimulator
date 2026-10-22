@@ -126,3 +126,19 @@ tasks.register('shotgunCheck', JavaExec) {
     mainClass = 'com.erni.finalanswer.shotgun.ShotgunCheck'
 }
 check.dependsOn tasks.named('shotgunCheck')
+
+tasks.register('cursedBoxesTurnCheck', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.cursedboxes.CursedBoxesTurnCheck'
+}
+check.dependsOn tasks.named('cursedBoxesTurnCheck')
+
+tasks.register('cursedBoxesBackgroundCheck', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.cursedboxes.CursedBoxesBackgroundCheck'
+}
+check.dependsOn tasks.named('cursedBoxesBackgroundCheck')

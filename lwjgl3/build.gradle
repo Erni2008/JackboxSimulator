@@ -704,3 +704,61 @@ tasks.register('shotgunPreview', JavaExec) {
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
+
+tasks.register('cursedBoxes', JavaExec) {
+    group = 'application'
+    description = 'Local Cursed Boxes cinematic demo; -PcursedQA=true runs native GL regression captures.'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.CursedBoxesLauncher'
+    workingDir = rootProject.file('assets')
+    systemProperty 'cursed.qa', providers.gradleProperty('cursedQA').getOrElse('false')
+    systemProperty 'cursed.output', rootProject.file('generated/cursed-boxes').absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('cursedBoxesNavigationCheck', JavaExec) {
+    group = 'verification'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.CursedBoxesNavigationCheck'
+    workingDir = rootProject.file('assets')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('cursedBoxesPerformanceCheck', JavaExec) {
+    group = 'verification'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.CursedBoxesPerformanceCheck'
+    workingDir = rootProject.file('assets')
+    systemProperty 'cursed.cycles', providers.gradleProperty('cursedCycles').getOrElse('20')
+    systemProperty 'cursed.paced', providers.gradleProperty('cursedPaced').getOrElse('false')
+    systemProperty 'cursed.fullscreenProfile', providers.gradleProperty('cursedFullscreenProfile').getOrElse('false')
+    systemProperty 'cursed.profile', rootProject.file(providers.gradleProperty('cursedProfile').getOrElse('generated/cursed-boxes/after-profile.json')).absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('cursedBoxesBackgroundCheck', JavaExec) {
+    group = 'verification'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.CursedBoxesBackgroundCheck'
+    workingDir = rootProject.file('assets')
+    systemProperty 'cursed.backgroundOutput', rootProject.file('generated/cursed-boxes/backgrounds').absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('cursedBoxesDisplayCheck', JavaExec) {
+    group = 'verification'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.CursedBoxesDisplayCheck'
+    workingDir = rootProject.file('assets')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}

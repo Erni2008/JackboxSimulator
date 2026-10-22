@@ -28,6 +28,8 @@ public final class ShotgunAudio implements Disposable {
             catch(RuntimeException error){Gdx.app.log("Shotgun audio","Unavailable "+paths[i]+": "+error.getMessage());}
         }
     }
+    /** Prime native source/buffer attachment during a host loading phase, without audible playback. */
+    public void warmup(){for(Sound sound:sounds)if(sound!=null){long id=sound.play(0f);if(id>=0)sound.stop(id);}}
     public boolean available(){if(!nativeAudio)return false;for(Sound sound:sounds)if(sound==null)return false;return true;}
     public boolean muted(){return muted;}
     public void muted(boolean muted){this.muted=muted;if(muted)stop();}
