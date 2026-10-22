@@ -18,6 +18,7 @@ public final class ModularShotgun implements RenderableProvider {
     private final Vector3 offset=new Vector3(),ejectedStart=new Vector3(),ejectedVelocity=new Vector3(),ejectedPosition=new Vector3();
     private final Matrix4 pose=new Matrix4(),ejectedBase=new Matrix4();
     private final Scene ejected;
+    private final com.badlogic.gdx.math.collision.BoundingBox shellLocalBounds=new com.badlogic.gdx.math.collision.BoundingBox(),shellWorldBounds=new com.badlogic.gdx.math.collision.BoundingBox();
     private long seenEjection;
     private int inspection=-1;
     private final boolean preparedBody;
@@ -26,6 +27,7 @@ public final class ModularShotgun implements RenderableProvider {
         this.config=config;animator=new ShotgunAnimator(config);
         for(int i=0;i<4;i++){var asset=assets.load(config.part(i).asset);if(asset!=null)parts[i]=new Scene(asset.scene);}
         ejected=parts[3]==null?null:new Scene(parts[3].modelInstance.model);
+        if(ejected!=null)ejected.modelInstance.calculateBoundingBox(shellLocalBounds);
         if(ejected!=null)for(var material:ejected.modelInstance.materials)material.set(new com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA,1));
         originalBody=parts[0];var prepared=assets.preparedBody(config);preparedBody=prepared!=null;
         if(preparedBody)parts[0]=new Scene(prepared);
@@ -38,6 +40,12 @@ public final class ModularShotgun implements RenderableProvider {
     public Vector3 barrelDirection(Vector3 out){return out.set(Vector3.X).rot(pose).nor();}
     public Vector3 muzzle(Vector3 out){return out.set(config.muzzle).mul(pose);}
     public ModelInstance ejectedShell(){return ejected==null?null:ejected.modelInstance;}
+    /** Read-only contact query on the same transformed bounds used by the rendered, ballistic shell.
+     * A shell that has already faded out cannot produce a fictitious landing event. */
+    public boolean visibleShellTouchesFloor(float worldFloorY){
+        if(ejected==null||!Float.isFinite(worldFloorY)||!animator.ejecting()||ejectedStart.y<=worldFloorY)return false;
+        return shellWorldBounds.set(shellLocalBounds).mul(ejected.modelInstance.transform).min.y<=worldFloorY;
+    }
     public boolean bodyPrepared(){return preparedBody;}
     public ModelInstance model(int part){var scene=part==0&&inspection==0?originalBody:parts[part];return scene==null?null:scene.modelInstance;}
     public void visible(int part,boolean value){visible[part]=value;}

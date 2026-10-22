@@ -16,6 +16,7 @@ public final class CursedBoxesAssets implements Disposable {
     public final ShotgunConfig weaponConfig=ShotgunConfig.load(Gdx.files.internal(ShotgunConfig.PATH));
     public final SceneAsset[] crates=new SceneAsset[3],splinters=new SceneAsset[2];
     public Texture shelf,dust;
+    public final CursedBoxesSoundManager sounds=new CursedBoxesSoundManager();
     public final CursedSurvivorAssets survivors=new CursedSurvivorAssets();
     public final Texture[] characters=new Texture[8],debris=new Texture[2];
     public final CursedCharacterImage.Info[] characterInfo=new CursedCharacterImage.Info[8];
@@ -23,7 +24,7 @@ public final class CursedBoxesAssets implements Disposable {
     public static final String MISSING_SHELF="cursed_boxes/shelf.glb";
     public static final String[] BACKGROUNDS={ROOT+"backgrounds/background1.png",ROOT+"backgrounds/background2.png",ROOT+"backgrounds/background3.png"};
     public final Texture[] backgrounds=new Texture[3],lighting=new Texture[3];
-    private static final String[] STAGES={"Intact wood","Destroyed wood","Wood fragments I","Wood fragments II","Shotgun body","Shotgun pump","Shotgun bolt","Shotgun shell","Weapon mechanism","Ghost","Dracula","Plague Doctor","Puppeteer","Skeleton","Zombie","Pumpkin","Voodoo","Cabinet","Fine debris I","Fine debris II","Gallery I","Lantern light I","Gallery II","Lantern light II","Gallery III","Lantern light III","Soft effects","Survivor intact panel","Survivor damaged panel","Survivor destroyed panel","Survivor Ghost","Survivor Dracula","Survivor Doctor","Survivor Skeleton","Survivor Pumpkin","Survivor Puppeteer","Survivor Zombie","Survivor Voodoo","Cursed smoke","Cursed glow"};
+    private static final String[] STAGES={"Intact wood","Destroyed wood","Wood fragments I","Wood fragments II","Shotgun body","Shotgun pump","Shotgun bolt","Shotgun shell","Weapon mechanism","Ghost","Dracula","Plague Doctor","Puppeteer","Skeleton","Zombie","Pumpkin","Voodoo","Cabinet","Fine debris I","Fine debris II","Gallery I","Lantern light I","Gallery II","Lantern light II","Gallery III","Lantern light III","Soft effects","Survivor intact panel","Survivor damaged panel","Survivor destroyed panel","Survivor Ghost","Survivor Dracula","Survivor Doctor","Survivor Skeleton","Survivor Pumpkin","Survivor Puppeteer","Survivor Zombie","Survivor Voodoo","Cursed smoke","Cursed glow","Shot audio","Mechanism audio","Shell contact audio","Wood impact audio","Heartbeat audio","Reveal start audio","Reveal finish audio","Cartridge insertion audio","Optional host announcement"};
     private int loaded;
     private boolean disposed;
     public CursedBoxesAssets(){this(false);}
@@ -58,7 +59,7 @@ public final class CursedBoxesAssets implements Disposable {
                 var pixels=new com.badlogic.gdx.graphics.Pixmap(32,32,com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
                 try{for(int y=0;y<32;y++)for(int x=0;x<32;x++){float dx=(x-15.5f)/15.5f,dy=(y-15.5f)/15.5f,r=dx*dx+dy*dy;pixels.setColor(1,1,1,(float)Math.exp(-r*5)*Math.max(0,1-r));pixels.drawPixel(x,y);}dust=new Texture(pixels);}finally{pixels.dispose();}
                 dust.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);break;
-            default:survivors.load(loaded-27,this);break;
+            default:if(loaded<40)survivors.load(loaded-27,this);else if(loaded<48)sounds.loadNext();else sounds.loadHostVoice();break;
         }
         loaded++;Gdx.app.log("Cursed loading",label+": "+Math.round((System.nanoTime()-start)/1e6)+" ms");
     }
@@ -92,5 +93,5 @@ public final class CursedBoxesAssets implements Disposable {
         Vector3 size=box.getDimensions(new Vector3()),center=box.getCenter(new Vector3());m.transform.idt().scale(width/size.x,height/size.y,depth/size.z).translate(-center.x,-center.y,-center.z);return m;
     }
     private void release(Texture[] textures){for(Texture t:textures)if(t!=null)t.dispose();}
-    @Override public void dispose(){if(disposed)return;disposed=true;survivors.dispose();models.dispose();if(shelf!=null)shelf.dispose();if(dust!=null)dust.dispose();release(characters);release(debris);release(backgrounds);release(lighting);}
+    @Override public void dispose(){if(disposed)return;disposed=true;sounds.dispose();survivors.dispose();models.dispose();if(shelf!=null)shelf.dispose();if(dust!=null)dust.dispose();release(characters);release(debris);release(backgrounds);release(lighting);}
 }

@@ -80,7 +80,7 @@ async function resolved(p){await p.waitForFunction(()=>!window.__qaState?.cursed
     report=await host('INSPECT');assert.equal(report.slots[ghost].state,'DESTROYED');assert.equal(report.slots[ghost].pose,'REVEALED');assert.equal(report.slots[ghost].nickname,'Phone Ghost');assert.equal((await state(b)).cursedBoxes.shotsRemaining,2);
     await selected(b,voodoo);await b.locator('#cursed-fire').click();await revealed(a,voodoo);await resolved(b);assert.equal(await b.locator('#cursed-result-title').textContent(),'CHARACTER FOUND!');assert((await b.locator('#cursed-result-detail').textContent()).includes('Voodoo Guest'));
     await selected(b,empty[1]);await b.locator('#cursed-fire').click();await revealed(a,empty[1]);await b.waitForFunction(()=>window.__qaState.cursedBoxes.phase==='FINISHED');
-    await sleep(6500);report=await host('INSPECT');assert.equal(report.gun,'RESTING');assert.equal(report.turnLimit,2);assert.equal(report.slots.filter(b=>b.state==='DESTROYED').length,4);assert.equal(report.slots.filter(b=>b.state==='INTACT').length,12);
+    await sleep(6500);report=await host('INSPECT');assert.equal(report.gun,'RESTING');assert.equal(report.soundShots,2);assert.equal(report.soundWood,2);assert.equal(report.soundReload,2);assert.equal(report.soundInsertion,0);assert.equal(report.soundHeartbeat,false);assert.equal(report.turnLimit,2);assert.equal(report.slots.filter(b=>b.state==='DESTROYED').length,4);assert.equal(report.slots.filter(b=>b.state==='INTACT').length,12);
     for(const id of [ghost,voodoo]){assert.equal(report.slots[id].pose,'REVEALED');assert(report.reactionMask&(1<<id),'Real native reaction was not observed');}
     for(const id of [ghost,voodoo,...empty.slice(0,2)])assert(report.impactMask&(1<<id),'Real native debris/impact missing for box '+id);
     assert.equal((await state(b)).cursedBoxes.shotsRemaining,0);assert.equal((await state(a)).cursedBoxes.destroyedCrateIds,(await state(b)).cursedBoxes.destroyedCrateIds);
@@ -105,7 +105,7 @@ async function resolved(p){await p.waitForFunction(()=>!window.__qaState?.cursed
     await a.waitForFunction(()=>window.__qaState.cursedBoxes.survivors.length>=1);
     await host('RECONNECT_HOST');
     await a.waitForFunction(()=>window.__qaState.cursedBoxes.phase==='FINISHED');await sleep(800);
-    report=await host('INSPECT');assert.equal(report.survivorState,'COMPLETED');assert.equal(report.slots.filter(b=>b.survivorOpening).length,2);
+    report=await host('INSPECT');assert.equal(report.soundShots,0,'Host restore replayed historical shot audio');assert.equal(report.soundWood,0,'Host restore replayed historical impacts');assert.equal(report.soundHeartbeat,false);assert.equal(report.survivorState,'COMPLETED');assert.equal(report.slots.filter(b=>b.survivorOpening).length,2);
     for(const person of survivors){assert(report.survivorMask&(1<<person.boxId));assert.equal(report.slots[person.boxId].state,'INTACT');assert.equal(report.slots[person.boxId].panelOpacity,0);}
     assert.equal(report.slots.filter(b=>b.state==='DESTROYED').length,4);
     assert.equal((await state(a)).cursedBoxes.survivors.length,2);assert.equal((await state(b)).cursedBoxes.survivors.length,2);

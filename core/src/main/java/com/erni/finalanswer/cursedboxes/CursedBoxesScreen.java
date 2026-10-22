@@ -50,6 +50,7 @@ public final class CursedBoxesScreen extends InputAdapter implements Screen {
     public boolean aimedAtSelected(){return shotgun.aimedAt(slots[selected]);}
     public int activeDebris(){return debris.activeDebris();}
     public int activeParticles(){return debris.activeParticles();}
+    public CursedBoxesSoundManager sounds(){return assets.sounds;}
     public int loadedModels(){return assets.models.loadedCount();}
     public boolean networkBusy(){return pendingFire||turn.active();}
     public com.finalanswer.protocol.CursedSurvivorTimeline survivorTimeline(){return renderer.survivors.clock;}
@@ -60,7 +61,7 @@ public final class CursedBoxesScreen extends InputAdapter implements Screen {
     }
     public boolean developerSurvivors(int count){
         if(multiplayer!=null||characterTest!=null||networkBusy()||count<0||count>8)return false;
-        renderer.resetSurvivors(slots);int mask=0,index=0;
+        renderer.resetSurvivors(slots);assets.sounds.reset();int mask=0,index=0;
         // Isolated local roster; damaged/destroyed geometry and existing visible hit characters are retained.
         for(CrateSlot slot:slots)if(slot.state!=CrateSlot.State.DESTROYED&&index<8){slot.character=CursedCharacterType.values()[index];slot.occupantNickname="Survivor "+(index+1);slot.occupantPlayerId="developer-"+index;if(index++<count)mask|=1<<slot.id;}
         renderer.survivors.start(mask,slots);shotgun.returnToTable();return true;
@@ -101,13 +102,13 @@ public final class CursedBoxesScreen extends InputAdapter implements Screen {
         if(multiplayer!=null)multiplayer.shotStarted();
     }
     public void reset(){
-        pendingFire=false;for(CrateSlot s:slots){s.reset();s.selected=s.hovered=false;s.previewHidden=false;s.character=CursedCharacterAssignment.at(s.id,config.ghostSlot,config.characterSeed);s.occupantNickname=s.character==null?null:"Player 1";}
+        assets.sounds.reset();pendingFire=false;for(CrateSlot s:slots){s.reset();s.selected=s.hovered=false;s.previewHidden=false;s.character=CursedCharacterAssignment.at(s.id,config.ghostSlot,config.characterSeed);s.occupantNickname=s.character==null?null:"Player 1";}
         renderer.resetSurvivors(slots);renderer.resetEffects();camera.reset();turn.reset();characters.reset();debris.reset();shotgun.reset();shotAge=9;shotTarget=-1;events=0;selected=config.ghostSlot;
         if(characterTest!=null)characterTest.assign();
     }
     @Override public void show(){
         if(!Boolean.getBoolean("cursed.windowed"))display.enter();
-        prepare();if(characterTest!=null)characterTest.start();activeScreen=true;Gdx.input.setInputProcessor(this);
+        prepare();assets.sounds.paused(false);if(characterTest!=null)characterTest.start();activeScreen=true;Gdx.input.setInputProcessor(this);
     }
     public void prepare(){
         resize(Gdx.graphics.getWidth(),Gdx.graphics.getHeight());camera.update(0,time,slots[selected]);
@@ -117,7 +118,7 @@ public final class CursedBoxesScreen extends InputAdapter implements Screen {
         if(shotTarget<0||!turn.active())return;
         CrateSlot slot=slots[shotTarget];
         if((events&1)==0&&shotAge>=config.impactAt){
-            events|=1;slot.state=CrateSlot.State.DESTROYED;
+            events|=1;slot.state=CrateSlot.State.DESTROYED;assets.sounds.impact(shotgun.gun.animator.shotSerial());
             debris.impact(slot.position);debris.burst(slot.position,false);debris.burst(slot.position,true);
             // Preserve direct source BOX3. The transparent opening already belongs to the selected PNG.
             if(slot.character!=null)characters.damage(slot.id);
@@ -143,6 +144,7 @@ public final class CursedBoxesScreen extends InputAdapter implements Screen {
         if(pendingFire&&shotgun.resting())shotgun.select(slots[selected]);
         camera.update(dt,time,slots[selected]);shotgun.update(dt,slots[turn.active()?shotTarget:selected]);
         if(pendingFire&&(multiplayer==null||multiplayer.canStartShot())&&shotgun.aimedAt(slots[selected]))trigger();
+        assets.sounds.reveal(survivorTimeline(),dt);
         camera.applyShake();
         try{renderer.render(dt,time,slots,slots[selected],characters,debris,shotgun,turn,performance);}finally{camera.restore();}
         performance.end();
@@ -169,10 +171,10 @@ public final class CursedBoxesScreen extends InputAdapter implements Screen {
     }}
     @Override public void resize(int w,int h){if(w>0&&h>0){
         camera.resize(w,h);camera.update(0,time,slots[selected]);roomLayout.update(camera.camera,w,h);
-        for(CrateSlot slot:slots)slot.place(roomLayout.origin);renderer.placeShelf(roomLayout.origin);shotgun.placeTable(roomLayout.tableAnchor);
+        for(CrateSlot slot:slots)slot.place(roomLayout.origin);renderer.placeShelf(roomLayout.origin);shotgun.placeTable(roomLayout.tableAnchor);shotgun.audioFloor(roomLayout.origin.y+CursedBoxesShelf.RIGHT_FOOT_Y);
     }}
-    @Override public void hide(){activeScreen=false;renderer.resetSurvivors(slots);renderer.resetEffects();camera.reset();if(Gdx.input.getInputProcessor()==this)Gdx.input.setInputProcessor(null);if(performance.visible)performance.toggle();display.restore();}
-    @Override public void pause(){}
-    @Override public void resume(){}
+    @Override public void hide(){activeScreen=false;assets.sounds.paused(true);renderer.resetSurvivors(slots);renderer.resetEffects();camera.reset();if(Gdx.input.getInputProcessor()==this)Gdx.input.setInputProcessor(null);if(performance.visible)performance.toggle();display.restore();}
+    @Override public void pause(){assets.sounds.paused(true);}
+    @Override public void resume(){if(activeScreen)assets.sounds.paused(false);}
     @Override public void dispose(){if(disposed)return;disposed=true;hide();if(multiplayer!=null)multiplayer.close();performance.dispose();renderer.dispose();shotgun.dispose();assets.dispose();}
 }

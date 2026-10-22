@@ -44,6 +44,7 @@ public final class CursedBoxesCharactersLauncher {
                 if(!qa){if(!started){started=true;if(Boolean.getBoolean("cursed.characterAuto"))demo.keyDown(Input.Keys.T);}super.render();return;}
                 if(!started){
                     started=true;models=demo.loadedModels();textures=Texture.getNumManagedTextures();
+                    demo.sounds().levels.master=.12f;check(demo.sounds().loaded()==8,"All eight WAVs preloaded");
                     profile.renderer=Gdx.gl.glGetString(GL20.GL_RENDERER);profile.version=Gdx.gl.glGetString(GL20.GL_VERSION);profile.resolution=Gdx.graphics.getBackBufferWidth()+"x"+Gdx.graphics.getBackBufferHeight();profile.cycles=1;
                     profile.gcCount=profile.gcMs=-1;
                     profile.note=paced?"Real delta/vsync presentation run, no GPU fence. presentedMs measures frame intervals; cpuMs is submission, totalMs/gpuWaitMs unavailable (-1). Loading excluded; allocation/heap/GC not sampled.":"Nine real developer shots, eight persistent named occupants. Serialized glFinish diagnostic; PNG capture I/O, loading, vsync and presentation excluded. Allocation/heap/GC not sampled here.";
@@ -95,6 +96,12 @@ public final class CursedBoxesCharactersLauncher {
                 }else if(phase==1&&frames>360){
                     check(demo.turn.ended()&&demo.turn.shotsRemaining()==0&&Integer.bitCount(demo.turn.destroyedCrateIds())==9&&!demo.fire(),"Exactly nine distinct test shots; tenth rejected");
                     check(demo.weaponState()==ShotgunController.State.RESTING,"Shotgun returned to the counter");
+                    var sound=demo.sounds();
+                    check(sound.playCount(CursedBoxesSoundManager.Cue.SHOT)==9&&sound.playCount(CursedBoxesSoundManager.Cue.WOOD_BREAK)==9&&sound.playCount(CursedBoxesSoundManager.Cue.MECHANISM)==9,"One shot/wood/mechanical cue per actual salvo");
+                    check(sound.playCount(CursedBoxesSoundManager.Cue.INSERT_ROUND)==0,"No invented round insertion during automatic refill");
+                    check(!sound.heartbeatActive(),"Shot test leaves no heartbeat");
+                    Gdx.app.log("Cursed audio","PASS: 8 WAVs decoded, 9 shot/wood/cycle cues, no false insertion; visible shell contacts="+sound.playCount(CursedBoxesSoundManager.Cue.SHELL_DROP));
+                    Gdx.files.absolute(System.getProperty("cursed.characterOutput")+"/audio.json").writeString("{\"loaded\":"+sound.loaded()+",\"shots\":"+sound.playCount(CursedBoxesSoundManager.Cue.SHOT)+",\"wood\":"+sound.playCount(CursedBoxesSoundManager.Cue.WOOD_BREAK)+",\"cycles\":"+sound.playCount(CursedBoxesSoundManager.Cue.MECHANISM)+",\"visibleShellContacts\":"+sound.playCount(CursedBoxesSoundManager.Cue.SHELL_DROP)+",\"insertions\":"+sound.playCount(CursedBoxesSoundManager.Cue.INSERT_ROUND)+"}",false);
                     int intact=0,destroyed=0;
                     for(CrateSlot box:demo.slots){
                         if(box.state==CrateSlot.State.INTACT)intact++;else if(box.state==CrateSlot.State.DESTROYED)destroyed++;

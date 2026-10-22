@@ -11,10 +11,11 @@ public final class CursedBoxesConfig {
     public int ghostSlot=5;
     public long characterSeed;
     public boolean lowEffects;
+    public com.finalanswer.protocol.CursedBoxesCinematicConfig cinematic=new com.finalanswer.protocol.CursedBoxesCinematicConfig();
     public static CursedBoxesConfig load(){
         var file=Gdx.files.internal(CursedBoxesAssets.ROOT+"scene.json");
         CursedBoxesConfig c=file.exists()?new Json().fromJson(CursedBoxesConfig.class,file):new CursedBoxesConfig();
-        float last=0;
+        c.cinematic.validate();float last=0;
         for(float t:new float[]{c.impactAt,c.pumpAt,c.shotDuration}){
             if(!Float.isFinite(t)||t<last)throw new IllegalArgumentException("Invalid destruction timeline");last=t;
         }

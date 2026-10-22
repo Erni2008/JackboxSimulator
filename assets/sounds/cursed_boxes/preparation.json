@@ -1,0 +1,58 @@
+[
+  {
+    "source": "shotgun_shoot_done.wav",
+    "playback": "runtime/shotgun_shoot_done.wav",
+    "removedFrames": 14508,
+    "sampleRate": 48000,
+    "removedMilliseconds": 302.25
+  },
+  {
+    "source": "reload_done.wav",
+    "playback": "reload_done.wav",
+    "removedFrames": 0,
+    "sampleRate": 48000,
+    "removedMilliseconds": 0.0
+  },
+  {
+    "source": "773860__mrgungus__12-guage-shotgun-shell-drop.wav",
+    "playback": "773860__mrgungus__12-guage-shotgun-shell-drop.wav",
+    "removedFrames": 0,
+    "sampleRate": 44100,
+    "removedMilliseconds": 0.0
+  },
+  {
+    "source": "box_destroy_done.wav",
+    "playback": "runtime/box_destroy_done.wav",
+    "removedFrames": 3184,
+    "sampleRate": 24000,
+    "removedMilliseconds": 132.667
+  },
+  {
+    "source": "heart_beating_done.wav",
+    "playback": "heart_beating_done.wav",
+    "removedFrames": 0,
+    "sampleRate": 44100,
+    "removedMilliseconds": 0.0
+  },
+  {
+    "source": "reveal_sound2(done).wav",
+    "playback": "reveal_sound2(done).wav",
+    "removedFrames": 0,
+    "sampleRate": 44100,
+    "removedMilliseconds": 0.0
+  },
+  {
+    "source": "reveal_done.wav",
+    "playback": "reveal_done.wav",
+    "removedFrames": 0,
+    "sampleRate": 32000,
+    "removedMilliseconds": 0.0
+  },
+  {
+    "source": "reload_done(bullets).wav",
+    "playback": "reload_done(bullets).wav",
+    "removedFrames": 0,
+    "sampleRate": 24000,
+    "removedMilliseconds": 0.0
+  }
+]
