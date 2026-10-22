@@ -1,0 +1,290 @@
+{
+  "version": 1,
+  "imports": [
+    {
+      "originalRootPath": "background4.png",
+      "path": "cursed_boxes/backgrounds/alternatives/background4.png",
+      "sha256": "8f216fbaf4e65ee1205f3355f4587208dea7d92fdced4384ba2e14986dd15a9f"
+    },
+    {
+      "originalRootPath": "voddoo_shoot.png",
+      "path": "cursed_boxes/characters/intact/voddoo_shoot.png",
+      "sha256": "7efea9668900320170821012ad5d929ec619a70144c8c3694837536d23310a9e"
+    },
+    {
+      "originalRootPath": "pupeetee_shot.png",
+      "path": "cursed_boxes/characters/damaged/pupeetee_shot.png",
+      "sha256": "a90e6e6e6e9cf32a91fe950d8516a3129970afd3be65e279c01b69bd645adf46"
+    },
+    {
+      "originalRootPath": "background2.png",
+      "path": "cursed_boxes/backgrounds/background2.png",
+      "sha256": "56b28f996866871dcb39a49c2a668248c9c2bb623a31c41c300f1aebd68b18be"
+    },
+    {
+      "originalRootPath": "reveal_done.wav",
+      "path": "audio/cursed_boxes/reveal_done.wav",
+      "sha256": "7e64a68001d0d5d42bf2803a09587d1b3346d6b4d3bf8756742bccb3e0b627df"
+    },
+    {
+      "originalRootPath": "background3.png",
+      "path": "cursed_boxes/backgrounds/background3.png",
+      "sha256": "e59370bb319e5a67dabd9aa43d080073d0b94dc78b0b994cb236ca59f9fa55cb"
+    },
+    {
+      "originalRootPath": "background1.png",
+      "path": "cursed_boxes/backgrounds/background1.png",
+      "sha256": "e65bdf6f2113adb72d7bff5aac0fe893fdcf8e8c5fb226fec133528c88f9fac9"
+    },
+    {
+      "originalRootPath": "773860__mrgungus__12-guage-shotgun-shell-drop.wav",
+      "path": "audio/cursed_boxes/773860__mrgungus__12-guage-shotgun-shell-drop.wav",
+      "sha256": "df075910b0dad3102498717f690307ba79c64d67263296b18459eb92d4d65ae1"
+    },
+    {
+      "originalRootPath": "box_destroy_done.wav",
+      "path": "audio/cursed_boxes/box_destroy_done.wav",
+      "sha256": "13fa6652bf3c25fa9833d582696a42e8026ddf8420457bd3581df1e62fb3b644"
+    },
+    {
+      "originalRootPath": "shotgun_shoot_done.wav",
+      "path": "audio/cursed_boxes/shotgun_shoot_done.wav",
+      "sha256": "24cf331897745dfe015557cfd2c22e13f6e213d15c7810c45d3b9d9a446fff9a"
+    },
+    {
+      "originalRootPath": "reveal_sound2(done).wav",
+      "path": "audio/cursed_boxes/reveal_sound2(done).wav",
+      "sha256": "af585599e2d8e9199fef92e912e7f3d9c3f0c056d8ca21d7e59bac76cd497de6"
+    },
+    {
+      "originalRootPath": "shelves5.png",
+      "path": "cursed_boxes/shelf/shelves5.png",
+      "sha256": "e20870ee36061c84d9aedf6a8f3ab8bedfeeaa93946efd0f059402d50aae4c34"
+    },
+    {
+      "originalRootPath": "щепки3.png",
+      "path": "cursed_boxes/effects/debris/щепки3.png",
+      "sha256": "27306c910018335d88d2e34932f9c027c0ddc18dc7124d38dd10e6877801c181"
+    },
+    {
+      "originalRootPath": "reload_done(bullets).wav",
+      "path": "audio/cursed_boxes/reload_done(bullets).wav",
+      "sha256": "6de9e4f73e206f56cd42d1405d983d5134a2018564623ea9edb472a59d917edc"
+    },
+    {
+      "originalRootPath": "вспышка2.png",
+      "path": "cursed_boxes/effects/вспышка2.png",
+      "sha256": "1109cb7339ffe2b98d97bc010360ae06ffc4a8afa89846dd26cf71928dd36778"
+    },
+    {
+      "originalRootPath": "щепки5.png",
+      "path": "cursed_boxes/effects/debris/щепки5.png",
+      "sha256": "61bdb17c55a61bb16024bbcfa8ed0a8d534c9e40e45223243f9ea886b9637ae7"
+    },
+    {
+      "originalRootPath": "ghost.png",
+      "path": "cursed_boxes/characters/intact/ghost.png",
+      "sha256": "0c0f542c38ddd91e2d0539ad9986f5acd07ce7936df81ab91d1114cb69f8d2bf"
+    },
+    {
+      "originalRootPath": "вспышка.png",
+      "path": "cursed_boxes/effects/вспышка.png",
+      "sha256": "ae3c88d9b7bff5f39c182740d24d6d5257818943248f1ba51564d6cae8507639"
+    },
+    {
+      "originalRootPath": "heart_beating_done.wav",
+      "path": "audio/cursed_boxes/heart_beating_done.wav",
+      "sha256": "bcca71aed3c67c3486fc75256c714e8e9c0aba7fc00b59a68acd5a91ac1e8e0e"
+    },
+    {
+      "originalRootPath": "doktor_shot.png",
+      "path": "cursed_boxes/characters/damaged/doktor_shot.png",
+      "sha256": "96158383491506db5c7fa33c6c480fa700e4a707a843c020c8e10c1db1d6bb64"
+    },
+    {
+      "originalRootPath": "cumnoidoktor.png",
+      "path": "cursed_boxes/characters/intact/cumnoidoktor.png",
+      "sha256": "cffae44d003cecafc08f77e5d2f08e5e4f7b0708c481e8a3255bdea7bf6e32ff"
+    },
+    {
+      "originalRootPath": "box1.glb",
+      "path": "cursed_boxes/models/crates/box1.glb",
+      "sha256": "37eaa335c4cbc01fb2d8d21ebc4144b2c91d610acc3fa1bfda21d03234cb1b93"
+    },
+    {
+      "originalRootPath": "box2.glb",
+      "path": "cursed_boxes/models/crates/box2.glb",
+      "sha256": "41e412182bc22ee96946d89b73621f54e5a4b55983867d4d129f7b96e8da54ca"
+    },
+    {
+      "originalRootPath": "drakula-shot.png",
+      "path": "cursed_boxes/characters/damaged/drakula-shot.png",
+      "sha256": "b6133ea5e9503ff599725cc972d5a0886496d18ede0e3a2e5d0320d27d4ccaf8"
+    },
+    {
+      "originalRootPath": "box3.glb",
+      "path": "cursed_boxes/models/crates/box3.glb",
+      "sha256": "45250340fb27df89a41036917d5b69860ca87ec198ddab7917fc850012a171e2"
+    },
+    {
+      "originalRootPath": "zombie_shot.png",
+      "path": "cursed_boxes/characters/damaged/zombie_shot.png",
+      "sha256": "b8d71de0cdfc5e18c5f9ab3821d9444e023268c5f710ed4972dfd4b00ea6bc4d"
+    },
+    {
+      "originalRootPath": "vampir.png",
+      "path": "cursed_boxes/characters/intact/vampir.png",
+      "sha256": "fba481cf59b199dca500fe6387dc5c5ff7c824f5b3732e92fb41efaca463dc9d"
+    },
+    {
+      "originalRootPath": "щепки1.glb",
+      "path": "cursed_boxes/models/debris/щепки1.glb",
+      "sha256": "200a139a9f8a1745b8d8c07f29f021e24a490c1df6fcfc540dd2eea4d26b929f"
+    },
+    {
+      "originalRootPath": "smoke1.png",
+      "path": "cursed_boxes/effects/smoke1.png",
+      "sha256": "7dc4594a1a18bde05f81f9eb5e713e7186e2f262c0f513e3a8b2b7b42359f608"
+    },
+    {
+      "originalRootPath": "Shotgun1.glb",
+      "path": "shotgun/models/Shotgun1.glb",
+      "sha256": "e49985a7726839ceccfc4032f6181c7068a25d27be109023aca02b9148ce33ea"
+    },
+    {
+      "originalRootPath": "ghost1.png",
+      "path": "cursed_boxes/characters/ghost/ghost1.png",
+      "sha256": "5b798b32f2ce7bd391c421cab5ac65e423bbb6311d2d6d243a9cd595833f0f5b"
+    },
+    {
+      "originalRootPath": "ghost3.png",
+      "path": "cursed_boxes/characters/ghost/ghost3.png",
+      "sha256": "32c0470ab61dee94ba3cc4b2919b85a44f189a67c9f93dfaafb2b113df6bbb2a"
+    },
+    {
+      "originalRootPath": "reload_done.wav",
+      "path": "audio/cursed_boxes/reload_done.wav",
+      "sha256": "244808ff368b04b0f32383f4af4642e298c36bf55046179d10e85fe5a9bb6daf"
+    },
+    {
+      "originalRootPath": "shotgun3.glb",
+      "path": "shotgun/models/shotgun3.glb",
+      "sha256": "9cc33525adab4e938f60bd47eb55d0be6b9d72b6f10f535f57fba24a7c3b0b9e"
+    },
+    {
+      "originalRootPath": "smoke2.png",
+      "path": "cursed_boxes/effects/smoke2.png",
+      "sha256": "c0c2decf17eb2508aadc8d7b5c2905e2278c58f37abf7826453723bafc8141cf"
+    },
+    {
+      "originalRootPath": "shotgun2.glb",
+      "path": "shotgun/models/shotgun2.glb",
+      "sha256": "fc68cf2b818558b92f11caa06729b6093c024ab7cecf5044c40a3dea2a8fe971"
+    },
+    {
+      "originalRootPath": "skeleton.png",
+      "path": "cursed_boxes/characters/intact/skeleton.png",
+      "sha256": "2301952c4798d312d4fe522de0df61771b81c9b69f6c7e1eb21794eb390afd3a"
+    },
+    {
+      "originalRootPath": "ghost2.png",
+      "path": "cursed_boxes/characters/ghost/ghost2.png",
+      "sha256": "6567876d6d7370a656d1d9b23819f44bb68336027a9712b03fbb1ebc3ef08dba"
+    },
+    {
+      "originalRootPath": "pumpkin.png",
+      "path": "cursed_boxes/characters/intact/pumpkin.png",
+      "sha256": "3730cfb53ef90a2f3e91aae00798dfec83ef005690ebfa939e49a58b92d188d3"
+    },
+    {
+      "originalRootPath": "pumpkin_dead.png",
+      "path": "cursed_boxes/characters/damaged/pumpkin_dead.png",
+      "sha256": "08d0edc31ccc4e5290af6be548e4ebc3fde756ba3c9a69435e53cceabb105d9c"
+    },
+    {
+      "originalRootPath": "щепки4.glb",
+      "path": "cursed_boxes/models/debris/щепки4.glb",
+      "sha256": "6a03d992adcd787b64ceac5eb672610982294c7c6026d249ce3dba4139c8dced"
+    },
+    {
+      "originalRootPath": "shotgun4.glb",
+      "path": "shotgun/models/shotgun4.glb",
+      "sha256": "663fc94296c88acaa7a8b672f49ac63bea193347622fd03e9c0b2aee092b47d8"
+    },
+    {
+      "originalRootPath": "skeleton_shot.png",
+      "path": "cursed_boxes/characters/damaged/skeleton_shot.png",
+      "sha256": "1b7997e0c6dedb1964c83e6e207a8a99f9899d49046871cbc355aec899fe267f"
+    },
+    {
+      "originalRootPath": "beckground1.png",
+      "path": "cursed_boxes/backgrounds/alternatives/beckground1.png",
+      "sha256": "b39bbd2bb143b290674cba284609b1bb7131f284bfa83cdf0ac0819426a5699a"
+    },
+    {
+      "originalRootPath": "appearance.wav",
+      "path": "audio/cursed_boxes_expansion/appearance.wav",
+      "sha256": "90ec123b31cb3895ca0095d8a003fabc41fed7b7daeb61de7a70c6110a2fbe7b"
+    },
+    {
+      "originalRootPath": "appearance2.wav",
+      "path": "audio/cursed_boxes_expansion/appearance2.wav",
+      "sha256": "153329f3efa54d7a1fc1e42c7cf68ccc26433f6fe22f04937556639d4eb0b39f"
+    },
+    {
+      "originalRootPath": "appearance3.wav",
+      "path": "audio/cursed_boxes_expansion/appearance3.wav",
+      "sha256": "90ec123b31cb3895ca0095d8a003fabc41fed7b7daeb61de7a70c6110a2fbe7b"
+    },
+    {
+      "originalRootPath": "appearance4.wav",
+      "path": "audio/cursed_boxes_expansion/appearance4.wav",
+      "sha256": "1b08919f2783c5846b3c0a0b7ea8af6c3bf3c412982911f219b6d810ef587233"
+    },
+    {
+      "originalRootPath": "button_press.mp3",
+      "path": "audio/cursed_boxes_expansion/button_press.mp3",
+      "sha256": "bbe838c71e350fb779c39c65cdd2a703cc8817f5ee84baf18a3f8c17dfa128f4"
+    },
+    {
+      "originalRootPath": "chain_cage.wav",
+      "path": "audio/cursed_boxes_expansion/chain_cage.wav",
+      "sha256": "f636595db52041854be7241b26051b0b913aefe22130ffc3d500e1323b88e0ce"
+    },
+    {
+      "originalRootPath": "chain_cage2.wav",
+      "path": "audio/cursed_boxes_expansion/chain_cage2.wav",
+      "sha256": "9184a01d3fb6c343f804e64341b2710e18143c7a526ac2faa345202b6d36b1e0"
+    },
+    {
+      "originalRootPath": "creepy_basement.mp3",
+      "path": "audio/cursed_boxes_expansion/creepy_basement.mp3",
+      "sha256": "ed66e2e8c5bfe448052d7409bd157181ab0a88a94ae54e8e21c1920424385258"
+    },
+    {
+      "originalRootPath": "gate_closes.wav",
+      "path": "audio/cursed_boxes_expansion/gate_closes.wav",
+      "sha256": "8d0f01624b610a78f7a48b208d4912da376223accc7405ac81713d367eafa5a1"
+    },
+    {
+      "originalRootPath": "horror_appearance.wav",
+      "path": "audio/cursed_boxes_expansion/horror_appearance.wav",
+      "sha256": "5a22ed0aa37a2de84dd54d58f81f5e664f25a5efd86bbb38f32e07c49afbb99b"
+    },
+    {
+      "originalRootPath": "horror_appearance2.wav",
+      "path": "audio/cursed_boxes_expansion/horror_appearance2.wav",
+      "sha256": "492e423edb8e73918c956af93013b1342a9fc23a6a30bf730b4850804e89c6fe"
+    },
+    {
+      "originalRootPath": "hover_button.wav",
+      "path": "audio/cursed_boxes_expansion/hover_button.wav",
+      "sha256": "576f6275e2cfd7c1779b685de258bfe4bc95987aff4a5d6c3e5984155947823a"
+    },
+    {
+      "originalRootPath": "shooted_box2.wav",
+      "path": "audio/cursed_boxes_expansion/shooted_box2.wav",
+      "sha256": "767f6f975e2eb8a47975110af3e3c7e6bd931ac001298ebc2a2feb8b3ea22a49"
+    }
+  ]
+}

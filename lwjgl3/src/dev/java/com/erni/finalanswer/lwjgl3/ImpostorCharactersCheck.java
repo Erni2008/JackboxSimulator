@@ -40,7 +40,7 @@ public final class ImpostorCharactersCheck extends ApplicationAdapter {
             stage.act(1f/60);stage.draw();
             if(Gdx.gl.glGetError()!=GL20.GL_NO_ERROR)throw new AssertionError("Portrait GL error");
             if(++frames==180){
-                var file=Gdx.files.local("../generated/impostor-characters.png");
+                var file=Gdx.files.local("../generated/previews/impostor-characters.png");
                 var pixels=Pixmap.createFromFrameBuffer(0,0,Gdx.graphics.getBackBufferWidth(),Gdx.graphics.getBackBufferHeight());
                 try{PixmapIO.writePNG(file,pixels,-1,true);}finally{pixels.dispose();}
                 Gdx.app.log("Impostor characters","PASS: eight real rigs, production portrait frames, three seconds of animation, no GL errors");

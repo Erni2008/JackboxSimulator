@@ -1,0 +1,69 @@
+[
+  {
+    "source": "source_assets/audio/cursed_boxes_expansion/shooted_box2.wav",
+    "asset": "sounds/cursed_boxes/shooted_box2.wav",
+    "sha256": "767f6f975e2eb8a47975110af3e3c7e6bd931ac001298ebc2a2feb8b3ea22a49"
+  },
+  {
+    "source": "source_assets/audio/cursed_boxes_expansion/appearance.wav",
+    "asset": "sounds/cursed_boxes/appearance.wav",
+    "sha256": "90ec123b31cb3895ca0095d8a003fabc41fed7b7daeb61de7a70c6110a2fbe7b"
+  },
+  {
+    "source": "source_assets/audio/cursed_boxes_expansion/appearance2.wav",
+    "asset": "sounds/cursed_boxes/appearance2.wav",
+    "sha256": "153329f3efa54d7a1fc1e42c7cf68ccc26433f6fe22f04937556639d4eb0b39f"
+  },
+  {
+    "source": "source_assets/audio/cursed_boxes_expansion/appearance3.wav",
+    "asset": "sounds/cursed_boxes/appearance3.wav",
+    "sha256": "90ec123b31cb3895ca0095d8a003fabc41fed7b7daeb61de7a70c6110a2fbe7b"
+  },
+  {
+    "source": "source_assets/audio/cursed_boxes_expansion/appearance4.wav",
+    "asset": "sounds/cursed_boxes/appearance4.wav",
+    "sha256": "1b08919f2783c5846b3c0a0b7ea8af6c3bf3c412982911f219b6d810ef587233"
+  },
+  {
+    "source": "source_assets/audio/cursed_boxes_expansion/horror_appearance.wav",
+    "asset": "sounds/cursed_boxes/horror_appearance.wav",
+    "sha256": "5a22ed0aa37a2de84dd54d58f81f5e664f25a5efd86bbb38f32e07c49afbb99b"
+  },
+  {
+    "source": "source_assets/audio/cursed_boxes_expansion/horror_appearance2.wav",
+    "asset": "sounds/cursed_boxes/horror_appearance2.wav",
+    "sha256": "492e423edb8e73918c956af93013b1342a9fc23a6a30bf730b4850804e89c6fe"
+  },
+  {
+    "source": "source_assets/audio/cursed_boxes_expansion/gate_closes.wav",
+    "asset": "sounds/cages/gate_closes.wav",
+    "sha256": "8d0f01624b610a78f7a48b208d4912da376223accc7405ac81713d367eafa5a1"
+  },
+  {
+    "source": "source_assets/audio/cursed_boxes_expansion/chain_cage.wav",
+    "asset": "sounds/cages/chain_cage.wav",
+    "sha256": "f636595db52041854be7241b26051b0b913aefe22130ffc3d500e1323b88e0ce",
+    "playbackAsset": "sounds/cages/runtime/chain_cage.wav"
+  },
+  {
+    "source": "source_assets/audio/cursed_boxes_expansion/chain_cage2.wav",
+    "asset": "sounds/cages/chain_cage2.wav",
+    "sha256": "9184a01d3fb6c343f804e64341b2710e18143c7a526ac2faa345202b6d36b1e0",
+    "playbackAsset": "sounds/cages/runtime/chain_cage2.wav"
+  },
+  {
+    "source": "source_assets/audio/cursed_boxes_expansion/creepy_basement.mp3",
+    "asset": "sounds/environment/creepy_basement.mp3",
+    "sha256": "ed66e2e8c5bfe448052d7409bd157181ab0a88a94ae54e8e21c1920424385258"
+  },
+  {
+    "source": "source_assets/audio/cursed_boxes_expansion/button_press.mp3",
+    "asset": "sounds/ui/button_press.mp3",
+    "sha256": "bbe838c71e350fb779c39c65cdd2a703cc8817f5ee84baf18a3f8c17dfa128f4"
+  },
+  {
+    "source": "source_assets/audio/cursed_boxes_expansion/hover_button.wav",
+    "asset": "sounds/ui/hover_button.wav",
+    "sha256": "576f6275e2cfd7c1779b685de258bfe4bc95987aff4a5d6c3e5984155947823a"
+  }
+]

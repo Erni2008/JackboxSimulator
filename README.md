@@ -3,21 +3,25 @@
 **Начинаешь работать с кодом? Открой [карту проекта](PROJECT_MAP.md).**
 Там указано, где находятся экраны, кнопки, игровые режимы, переводы и ресурсы.
 
+[Документация](docs/README.md) · [Инструменты](tools/README.md) · [Оригиналы ассетов](source_assets/README.md)
+
+Исходный код находится в Gradle-модулях; игровые ресурсы — в `assets/`, оригиналы — в `source_assets/`, утилиты — в `tools/`, результаты проверок — в `generated/` и `<module>/build/`.
+
 Создание комнаты: **CREATE ROOM → настройки → CREATE → GENERATE → OK → лобби в главном меню**.
 Для разработки достаточно `./gradlew :lwjgl3:run`: локальный сервер запускается автоматически при создании комнаты.
 Для обычного запуска открой собранный `FinalAnswer.app` (macOS) или `FinalAnswer.exe` из полной папки приложения (Windows); Java включена в сборку.
-Упаковка, QR, внешний сервер и ограничения платформ: [Stage 10 — standalone](docs/IMPOSTOR_STAGE_10.md).
+Упаковка, QR, внешний сервер и ограничения платформ: [Stage 10 — standalone](docs/impostor/stages/stage-10.md).
 Без активной комнаты PLAY предлагает сначала создать комнату; JOIN ROOM открывает ввод кода для подключения.
 Подробности локальной сети и API: [инструкция сервера](server/README.md).
 
 Игроки открывают сайт сервера на телефоне, вводят **6-символьный код** и имя.
-PLAY запускает комнату после подключения хотя бы одного участника. Ведущий не занимает
+PLAY запускает комнату после подключения как минимум двух участников. Ведущий не занимает
 игровое место. Полный запуск, deployment и проверки: [server/README.md](server/README.md).
-События и будущие мини-игры: [протокол](docs/MULTIPLAYER_PROTOCOL.md).
+События и будущие мини-игры: [протокол](docs/architecture/multiplayer-protocol.md).
 
 A [libGDX](https://libgdx.com/) project generated with [gdx-liftoff](https://github.com/libgdx/gdx-liftoff).
 
-This project was generated with a template including simple application launchers and an `ApplicationAdapter` extension that draws libGDX logo.
+Java 21 + libGDX multiplayer horror party game with an authoritative Java server and phone controllers.
 
 ## Settings
 
@@ -206,10 +210,10 @@ PNG и настройка pivot: `assets/clock/README.md`.
 На третьем вопросе фон плавно исчезает. Режим уменьшения движения оставляет
 неподвижный кадр; пауза P останавливает фон вместе с таймером.
 
-Параметры постановки и подключение озвучки: `docs/QUESTION_PRESENTATION.md`.
+Параметры постановки и подключение озвучки: `docs/questions/presentation.md`.
 Вопрос, ответы и запуск часов управляются QuestionPresentationController;
 старый независимый старт ответов на третьей секунде заменён новой последовательностью.
 
-Расположение изображений и правила добавления ресурсов: [ASSET_ORGANIZATION.md](docs/ASSET_ORGANIZATION.md). Игровые PNG находятся в `assets/`, исходные варианты и архив — в `source_assets/`.
+Расположение изображений и правила добавления ресурсов: [ASSET_ORGANIZATION.md](docs/assets/README.md). Игровые PNG находятся в `assets/`, исходные варианты и архив — в `source_assets/`.
 
-Настройка персонажей в клетках: `assets/lobby/character_presentation.json`. Оригиналы последних импортов упорядочены в `source_assets/lobby/`, игровые PNG — в `assets/lobby/characters/`. Кукловод: [сборка, анимации и просмотр](docs/PUPPETEER.md). Проверка всех восьми персонажей: `./gradlew :lwjgl3:lobbyCharacterPolishCheck`.
+Настройка персонажей в клетках: `assets/lobby/character_presentation.json`. Оригиналы последних импортов упорядочены в `source_assets/lobby/`, игровые PNG — в `assets/lobby/characters/`. Кукловод: [сборка, анимации и просмотр](docs/lobby/characters/puppeteer.md). Проверка всех восьми персонажей: `./gradlew :lwjgl3:lobbyCharacterPolishCheck`.

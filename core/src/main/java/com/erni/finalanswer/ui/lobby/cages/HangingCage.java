@@ -36,7 +36,7 @@ public final class HangingCage extends Group {
         setSize(WIDTH, HEIGHT); setOrigin(RING_X, RING_Y);
         setTouchable(Touchable.disabled);
     }
-    /** Optional audio hooks; the lobby has no supplied metallic/locking sound assets. */
+    /** Optional audio hooks; closing impact and locking retain distinct event markers. */
     public void setSoundCues(Runnable impact, Runnable lock) {
         impactCue = java.util.Objects.requireNonNull(impact); lockCue = java.util.Objects.requireNonNull(lock);
     }

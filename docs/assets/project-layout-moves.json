@@ -1,0 +1,807 @@
+[
+  {
+    "old": "background4.png",
+    "new": "source_assets/cursed_boxes/backgrounds/alternatives/background4.png",
+    "sha256Before": "8f216fbaf4e65ee1205f3355f4587208dea7d92fdced4384ba2e14986dd15a9f",
+    "kind": "original-asset",
+    "sha256After": "8f216fbaf4e65ee1205f3355f4587208dea7d92fdced4384ba2e14986dd15a9f"
+  },
+  {
+    "old": "voddoo_shoot.png",
+    "new": "source_assets/cursed_boxes/characters/intact/voddoo_shoot.png",
+    "sha256Before": "7efea9668900320170821012ad5d929ec619a70144c8c3694837536d23310a9e",
+    "kind": "original-asset",
+    "sha256After": "7efea9668900320170821012ad5d929ec619a70144c8c3694837536d23310a9e"
+  },
+  {
+    "old": "pupeetee_shot.png",
+    "new": "source_assets/cursed_boxes/characters/damaged/pupeetee_shot.png",
+    "sha256Before": "a90e6e6e6e9cf32a91fe950d8516a3129970afd3be65e279c01b69bd645adf46",
+    "kind": "original-asset",
+    "sha256After": "a90e6e6e6e9cf32a91fe950d8516a3129970afd3be65e279c01b69bd645adf46"
+  },
+  {
+    "old": "background2.png",
+    "new": "source_assets/cursed_boxes/backgrounds/background2.png",
+    "sha256Before": "56b28f996866871dcb39a49c2a668248c9c2bb623a31c41c300f1aebd68b18be",
+    "kind": "original-asset",
+    "sha256After": "56b28f996866871dcb39a49c2a668248c9c2bb623a31c41c300f1aebd68b18be"
+  },
+  {
+    "old": "reveal_done.wav",
+    "new": "source_assets/audio/cursed_boxes/reveal_done.wav",
+    "sha256Before": "7e64a68001d0d5d42bf2803a09587d1b3346d6b4d3bf8756742bccb3e0b627df",
+    "kind": "original-asset",
+    "sha256After": "7e64a68001d0d5d42bf2803a09587d1b3346d6b4d3bf8756742bccb3e0b627df"
+  },
+  {
+    "old": "background3.png",
+    "new": "source_assets/cursed_boxes/backgrounds/background3.png",
+    "sha256Before": "e59370bb319e5a67dabd9aa43d080073d0b94dc78b0b994cb236ca59f9fa55cb",
+    "kind": "original-asset",
+    "sha256After": "e59370bb319e5a67dabd9aa43d080073d0b94dc78b0b994cb236ca59f9fa55cb"
+  },
+  {
+    "old": "background1.png",
+    "new": "source_assets/cursed_boxes/backgrounds/background1.png",
+    "sha256Before": "e65bdf6f2113adb72d7bff5aac0fe893fdcf8e8c5fb226fec133528c88f9fac9",
+    "kind": "original-asset",
+    "sha256After": "e65bdf6f2113adb72d7bff5aac0fe893fdcf8e8c5fb226fec133528c88f9fac9"
+  },
+  {
+    "old": "773860__mrgungus__12-guage-shotgun-shell-drop.wav",
+    "new": "source_assets/audio/cursed_boxes/773860__mrgungus__12-guage-shotgun-shell-drop.wav",
+    "sha256Before": "df075910b0dad3102498717f690307ba79c64d67263296b18459eb92d4d65ae1",
+    "kind": "original-asset",
+    "sha256After": "df075910b0dad3102498717f690307ba79c64d67263296b18459eb92d4d65ae1"
+  },
+  {
+    "old": "box_destroy_done.wav",
+    "new": "source_assets/audio/cursed_boxes/box_destroy_done.wav",
+    "sha256Before": "13fa6652bf3c25fa9833d582696a42e8026ddf8420457bd3581df1e62fb3b644",
+    "kind": "original-asset",
+    "sha256After": "13fa6652bf3c25fa9833d582696a42e8026ddf8420457bd3581df1e62fb3b644"
+  },
+  {
+    "old": "shotgun_shoot_done.wav",
+    "new": "source_assets/audio/cursed_boxes/shotgun_shoot_done.wav",
+    "sha256Before": "24cf331897745dfe015557cfd2c22e13f6e213d15c7810c45d3b9d9a446fff9a",
+    "kind": "original-asset",
+    "sha256After": "24cf331897745dfe015557cfd2c22e13f6e213d15c7810c45d3b9d9a446fff9a"
+  },
+  {
+    "old": "reveal_sound2(done).wav",
+    "new": "source_assets/audio/cursed_boxes/reveal_sound2(done).wav",
+    "sha256Before": "af585599e2d8e9199fef92e912e7f3d9c3f0c056d8ca21d7e59bac76cd497de6",
+    "kind": "original-asset",
+    "sha256After": "af585599e2d8e9199fef92e912e7f3d9c3f0c056d8ca21d7e59bac76cd497de6"
+  },
+  {
+    "old": "shelves5.png",
+    "new": "source_assets/cursed_boxes/shelf/shelves5.png",
+    "sha256Before": "e20870ee36061c84d9aedf6a8f3ab8bedfeeaa93946efd0f059402d50aae4c34",
+    "kind": "original-asset",
+    "sha256After": "e20870ee36061c84d9aedf6a8f3ab8bedfeeaa93946efd0f059402d50aae4c34"
+  },
+  {
+    "old": "щепки3.png",
+    "new": "source_assets/cursed_boxes/effects/debris/щепки3.png",
+    "sha256Before": "27306c910018335d88d2e34932f9c027c0ddc18dc7124d38dd10e6877801c181",
+    "kind": "original-asset",
+    "sha256After": "27306c910018335d88d2e34932f9c027c0ddc18dc7124d38dd10e6877801c181"
+  },
+  {
+    "old": "reload_done(bullets).wav",
+    "new": "source_assets/audio/cursed_boxes/reload_done(bullets).wav",
+    "sha256Before": "6de9e4f73e206f56cd42d1405d983d5134a2018564623ea9edb472a59d917edc",
+    "kind": "original-asset",
+    "sha256After": "6de9e4f73e206f56cd42d1405d983d5134a2018564623ea9edb472a59d917edc"
+  },
+  {
+    "old": "вспышка2.png",
+    "new": "source_assets/cursed_boxes/effects/вспышка2.png",
+    "sha256Before": "1109cb7339ffe2b98d97bc010360ae06ffc4a8afa89846dd26cf71928dd36778",
+    "kind": "original-asset",
+    "sha256After": "1109cb7339ffe2b98d97bc010360ae06ffc4a8afa89846dd26cf71928dd36778"
+  },
+  {
+    "old": "щепки5.png",
+    "new": "source_assets/cursed_boxes/effects/debris/щепки5.png",
+    "sha256Before": "61bdb17c55a61bb16024bbcfa8ed0a8d534c9e40e45223243f9ea886b9637ae7",
+    "kind": "original-asset",
+    "sha256After": "61bdb17c55a61bb16024bbcfa8ed0a8d534c9e40e45223243f9ea886b9637ae7"
+  },
+  {
+    "old": "ghost.png",
+    "new": "source_assets/cursed_boxes/characters/intact/ghost.png",
+    "sha256Before": "0c0f542c38ddd91e2d0539ad9986f5acd07ce7936df81ab91d1114cb69f8d2bf",
+    "kind": "original-asset",
+    "sha256After": "0c0f542c38ddd91e2d0539ad9986f5acd07ce7936df81ab91d1114cb69f8d2bf"
+  },
+  {
+    "old": "вспышка.png",
+    "new": "source_assets/cursed_boxes/effects/вспышка.png",
+    "sha256Before": "ae3c88d9b7bff5f39c182740d24d6d5257818943248f1ba51564d6cae8507639",
+    "kind": "original-asset",
+    "sha256After": "ae3c88d9b7bff5f39c182740d24d6d5257818943248f1ba51564d6cae8507639"
+  },
+  {
+    "old": "heart_beating_done.wav",
+    "new": "source_assets/audio/cursed_boxes/heart_beating_done.wav",
+    "sha256Before": "bcca71aed3c67c3486fc75256c714e8e9c0aba7fc00b59a68acd5a91ac1e8e0e",
+    "kind": "original-asset",
+    "sha256After": "bcca71aed3c67c3486fc75256c714e8e9c0aba7fc00b59a68acd5a91ac1e8e0e"
+  },
+  {
+    "old": "doktor_shot.png",
+    "new": "source_assets/cursed_boxes/characters/damaged/doktor_shot.png",
+    "sha256Before": "96158383491506db5c7fa33c6c480fa700e4a707a843c020c8e10c1db1d6bb64",
+    "kind": "original-asset",
+    "sha256After": "96158383491506db5c7fa33c6c480fa700e4a707a843c020c8e10c1db1d6bb64"
+  },
+  {
+    "old": "cumnoidoktor.png",
+    "new": "source_assets/cursed_boxes/characters/intact/cumnoidoktor.png",
+    "sha256Before": "cffae44d003cecafc08f77e5d2f08e5e4f7b0708c481e8a3255bdea7bf6e32ff",
+    "kind": "original-asset",
+    "sha256After": "cffae44d003cecafc08f77e5d2f08e5e4f7b0708c481e8a3255bdea7bf6e32ff"
+  },
+  {
+    "old": "box1.glb",
+    "new": "source_assets/cursed_boxes/models/crates/box1.glb",
+    "sha256Before": "37eaa335c4cbc01fb2d8d21ebc4144b2c91d610acc3fa1bfda21d03234cb1b93",
+    "kind": "original-asset",
+    "sha256After": "37eaa335c4cbc01fb2d8d21ebc4144b2c91d610acc3fa1bfda21d03234cb1b93"
+  },
+  {
+    "old": "box2.glb",
+    "new": "source_assets/cursed_boxes/models/crates/box2.glb",
+    "sha256Before": "41e412182bc22ee96946d89b73621f54e5a4b55983867d4d129f7b96e8da54ca",
+    "kind": "original-asset",
+    "sha256After": "41e412182bc22ee96946d89b73621f54e5a4b55983867d4d129f7b96e8da54ca"
+  },
+  {
+    "old": "drakula-shot.png",
+    "new": "source_assets/cursed_boxes/characters/damaged/drakula-shot.png",
+    "sha256Before": "b6133ea5e9503ff599725cc972d5a0886496d18ede0e3a2e5d0320d27d4ccaf8",
+    "kind": "original-asset",
+    "sha256After": "b6133ea5e9503ff599725cc972d5a0886496d18ede0e3a2e5d0320d27d4ccaf8"
+  },
+  {
+    "old": "box3.glb",
+    "new": "source_assets/cursed_boxes/models/crates/box3.glb",
+    "sha256Before": "45250340fb27df89a41036917d5b69860ca87ec198ddab7917fc850012a171e2",
+    "kind": "original-asset",
+    "sha256After": "45250340fb27df89a41036917d5b69860ca87ec198ddab7917fc850012a171e2"
+  },
+  {
+    "old": "zombie_shot.png",
+    "new": "source_assets/cursed_boxes/characters/damaged/zombie_shot.png",
+    "sha256Before": "b8d71de0cdfc5e18c5f9ab3821d9444e023268c5f710ed4972dfd4b00ea6bc4d",
+    "kind": "original-asset",
+    "sha256After": "b8d71de0cdfc5e18c5f9ab3821d9444e023268c5f710ed4972dfd4b00ea6bc4d"
+  },
+  {
+    "old": "vampir.png",
+    "new": "source_assets/cursed_boxes/characters/intact/vampir.png",
+    "sha256Before": "fba481cf59b199dca500fe6387dc5c5ff7c824f5b3732e92fb41efaca463dc9d",
+    "kind": "original-asset",
+    "sha256After": "fba481cf59b199dca500fe6387dc5c5ff7c824f5b3732e92fb41efaca463dc9d"
+  },
+  {
+    "old": "щепки1.glb",
+    "new": "source_assets/cursed_boxes/models/debris/щепки1.glb",
+    "sha256Before": "200a139a9f8a1745b8d8c07f29f021e24a490c1df6fcfc540dd2eea4d26b929f",
+    "kind": "original-asset",
+    "sha256After": "200a139a9f8a1745b8d8c07f29f021e24a490c1df6fcfc540dd2eea4d26b929f"
+  },
+  {
+    "old": "smoke1.png",
+    "new": "source_assets/cursed_boxes/effects/smoke1.png",
+    "sha256Before": "7dc4594a1a18bde05f81f9eb5e713e7186e2f262c0f513e3a8b2b7b42359f608",
+    "kind": "original-asset",
+    "sha256After": "7dc4594a1a18bde05f81f9eb5e713e7186e2f262c0f513e3a8b2b7b42359f608"
+  },
+  {
+    "old": "Shotgun1.glb",
+    "new": "source_assets/shotgun/models/Shotgun1.glb",
+    "sha256Before": "e49985a7726839ceccfc4032f6181c7068a25d27be109023aca02b9148ce33ea",
+    "kind": "original-asset",
+    "sha256After": "e49985a7726839ceccfc4032f6181c7068a25d27be109023aca02b9148ce33ea"
+  },
+  {
+    "old": "ghost1.png",
+    "new": "source_assets/cursed_boxes/characters/ghost/ghost1.png",
+    "sha256Before": "5b798b32f2ce7bd391c421cab5ac65e423bbb6311d2d6d243a9cd595833f0f5b",
+    "kind": "original-asset",
+    "sha256After": "5b798b32f2ce7bd391c421cab5ac65e423bbb6311d2d6d243a9cd595833f0f5b"
+  },
+  {
+    "old": "ghost3.png",
+    "new": "source_assets/cursed_boxes/characters/ghost/ghost3.png",
+    "sha256Before": "32c0470ab61dee94ba3cc4b2919b85a44f189a67c9f93dfaafb2b113df6bbb2a",
+    "kind": "original-asset",
+    "sha256After": "32c0470ab61dee94ba3cc4b2919b85a44f189a67c9f93dfaafb2b113df6bbb2a"
+  },
+  {
+    "old": "reload_done.wav",
+    "new": "source_assets/audio/cursed_boxes/reload_done.wav",
+    "sha256Before": "244808ff368b04b0f32383f4af4642e298c36bf55046179d10e85fe5a9bb6daf",
+    "kind": "original-asset",
+    "sha256After": "244808ff368b04b0f32383f4af4642e298c36bf55046179d10e85fe5a9bb6daf"
+  },
+  {
+    "old": "shotgun3.glb",
+    "new": "source_assets/shotgun/models/shotgun3.glb",
+    "sha256Before": "9cc33525adab4e938f60bd47eb55d0be6b9d72b6f10f535f57fba24a7c3b0b9e",
+    "kind": "original-asset",
+    "sha256After": "9cc33525adab4e938f60bd47eb55d0be6b9d72b6f10f535f57fba24a7c3b0b9e"
+  },
+  {
+    "old": "smoke2.png",
+    "new": "source_assets/cursed_boxes/effects/smoke2.png",
+    "sha256Before": "c0c2decf17eb2508aadc8d7b5c2905e2278c58f37abf7826453723bafc8141cf",
+    "kind": "original-asset",
+    "sha256After": "c0c2decf17eb2508aadc8d7b5c2905e2278c58f37abf7826453723bafc8141cf"
+  },
+  {
+    "old": "shotgun2.glb",
+    "new": "source_assets/shotgun/models/shotgun2.glb",
+    "sha256Before": "fc68cf2b818558b92f11caa06729b6093c024ab7cecf5044c40a3dea2a8fe971",
+    "kind": "original-asset",
+    "sha256After": "fc68cf2b818558b92f11caa06729b6093c024ab7cecf5044c40a3dea2a8fe971"
+  },
+  {
+    "old": "skeleton.png",
+    "new": "source_assets/cursed_boxes/characters/intact/skeleton.png",
+    "sha256Before": "2301952c4798d312d4fe522de0df61771b81c9b69f6c7e1eb21794eb390afd3a",
+    "kind": "original-asset",
+    "sha256After": "2301952c4798d312d4fe522de0df61771b81c9b69f6c7e1eb21794eb390afd3a"
+  },
+  {
+    "old": "ghost2.png",
+    "new": "source_assets/cursed_boxes/characters/ghost/ghost2.png",
+    "sha256Before": "6567876d6d7370a656d1d9b23819f44bb68336027a9712b03fbb1ebc3ef08dba",
+    "kind": "original-asset",
+    "sha256After": "6567876d6d7370a656d1d9b23819f44bb68336027a9712b03fbb1ebc3ef08dba"
+  },
+  {
+    "old": "pumpkin.png",
+    "new": "source_assets/cursed_boxes/characters/intact/pumpkin.png",
+    "sha256Before": "3730cfb53ef90a2f3e91aae00798dfec83ef005690ebfa939e49a58b92d188d3",
+    "kind": "original-asset",
+    "sha256After": "3730cfb53ef90a2f3e91aae00798dfec83ef005690ebfa939e49a58b92d188d3"
+  },
+  {
+    "old": "pumpkin_dead.png",
+    "new": "source_assets/cursed_boxes/characters/damaged/pumpkin_dead.png",
+    "sha256Before": "08d0edc31ccc4e5290af6be548e4ebc3fde756ba3c9a69435e53cceabb105d9c",
+    "kind": "original-asset",
+    "sha256After": "08d0edc31ccc4e5290af6be548e4ebc3fde756ba3c9a69435e53cceabb105d9c"
+  },
+  {
+    "old": "щепки4.glb",
+    "new": "source_assets/cursed_boxes/models/debris/щепки4.glb",
+    "sha256Before": "6a03d992adcd787b64ceac5eb672610982294c7c6026d249ce3dba4139c8dced",
+    "kind": "original-asset",
+    "sha256After": "6a03d992adcd787b64ceac5eb672610982294c7c6026d249ce3dba4139c8dced"
+  },
+  {
+    "old": "shotgun4.glb",
+    "new": "source_assets/shotgun/models/shotgun4.glb",
+    "sha256Before": "663fc94296c88acaa7a8b672f49ac63bea193347622fd03e9c0b2aee092b47d8",
+    "kind": "original-asset",
+    "sha256After": "663fc94296c88acaa7a8b672f49ac63bea193347622fd03e9c0b2aee092b47d8"
+  },
+  {
+    "old": "skeleton_shot.png",
+    "new": "source_assets/cursed_boxes/characters/damaged/skeleton_shot.png",
+    "sha256Before": "1b7997e0c6dedb1964c83e6e207a8a99f9899d49046871cbc355aec899fe267f",
+    "kind": "original-asset",
+    "sha256After": "1b7997e0c6dedb1964c83e6e207a8a99f9899d49046871cbc355aec899fe267f"
+  },
+  {
+    "old": "beckground1.png",
+    "new": "source_assets/cursed_boxes/backgrounds/alternatives/beckground1.png",
+    "sha256Before": "b39bbd2bb143b290674cba284609b1bb7131f284bfa83cdf0ac0819426a5699a",
+    "kind": "original-asset",
+    "sha256After": "b39bbd2bb143b290674cba284609b1bb7131f284bfa83cdf0ac0819426a5699a"
+  },
+  {
+    "old": "docs/cursed-boxes-audio.md",
+    "new": "docs/cursed-boxes/audio.md",
+    "sha256Before": "80ab712ddbc2bcc99fe56d068ce838068e2a26dfd65387bc09317424f3554bee",
+    "kind": "documentation",
+    "sha256After": "e703e4489f7de471b5755bd51be2f6d4aa430110b4c70fefe36672000e92c277"
+  },
+  {
+    "old": "docs/PLAGUE_DOCTOR_CHARACTER.md",
+    "new": "docs/lobby/characters/plague-doctor.md",
+    "sha256Before": "51bcb3b78e82c778b359b9160427da38eef3393a6e8284f1af5213fd698f05f2",
+    "kind": "documentation",
+    "sha256After": "51bcb3b78e82c778b359b9160427da38eef3393a6e8284f1af5213fd698f05f2"
+  },
+  {
+    "old": "docs/CURSED_BOXES.md",
+    "new": "docs/cursed-boxes/README.md",
+    "sha256Before": "2b241b2b4e1b1103c361b5ef1fc1ac68251d79aacb85e98c4c3b6bb14ce63c20",
+    "kind": "documentation",
+    "sha256After": "955c576ec2fb3aac712bccb12a9a0431f7d2bebde188ebe343abfec780ffd42e"
+  },
+  {
+    "old": "docs/IMPOSTOR_STAGE_8.md",
+    "new": "docs/impostor/stages/stage-8.md",
+    "sha256Before": "5610fa06913078e26ec8846cbe0f75b067e537fdb89642658559ff09435ab8a4",
+    "kind": "documentation",
+    "sha256After": "870b79cedfb409ac0aef52fe246e04ae63b18d5d1910d0b27e02a6318c51cf6d"
+  },
+  {
+    "old": "docs/ZOMBIE_CHARACTER.md",
+    "new": "docs/lobby/characters/zombie.md",
+    "sha256Before": "30683d16b08de7cb173e753a883cf1f9f205b9e736ba8af0eafbdfa7cae9df0e",
+    "kind": "documentation",
+    "sha256After": "cc3ca35980cde44e065369ced4c21121282ebeb6ffab003b6294c5cd3f92660d"
+  },
+  {
+    "old": "docs/ASSET_ORGANIZATION.md",
+    "new": "docs/assets/README.md",
+    "sha256Before": "8e30f03b5d21bd47f238ae20a6e9b8d677c647875c36ac7bab93c66e6edba1d1",
+    "kind": "documentation",
+    "sha256After": "0d5947d6c8314163cd97da0084eee07c41e63a9206b35f124f9eddf6594f9d04"
+  },
+  {
+    "old": "docs/INTERACTIVE_PARCHMENT.md",
+    "new": "docs/impostor/interactive-parchment.md",
+    "sha256Before": "6d1a677d5e1a5bb64f5db685e796bab9469b00389dc56e99f283e1cd525a62e1",
+    "kind": "documentation",
+    "sha256After": "a3be5a2aa8269fe6d736207c016a62b27d3a138b084128d2bf3d9c80d40b1467"
+  },
+  {
+    "old": "docs/SHOTGUN.md",
+    "new": "docs/shotgun/README.md",
+    "sha256Before": "004c148e3749550d0268140503ae828c4b6b2fd5b8d37b817b75640c075ad122",
+    "kind": "documentation",
+    "sha256After": "79b6602f84c4d4844f1259610780c9ec7ff2c61985d5bd8d79ed0bcc4c64ee3e"
+  },
+  {
+    "old": "docs/IMPOSTOR_STAGE_9.md",
+    "new": "docs/impostor/stages/stage-9.md",
+    "sha256Before": "795a021276b9922b687abe9097da0a443bdb905c6e8ee369e5d52116a074f15a",
+    "kind": "documentation",
+    "sha256After": "a688e4e09123a5cd26bb4d85f9d02c736d711c8a23665726b9142a7b7ce18dc3"
+  },
+  {
+    "old": "docs/QUESTION_PRESENTATION.md",
+    "new": "docs/questions/presentation.md",
+    "sha256Before": "8bf702990eb7ba2a354b790ca0858b6b65c87195348299f088056f1fa9fad187",
+    "kind": "documentation",
+    "sha256After": "8bf702990eb7ba2a354b790ca0858b6b65c87195348299f088056f1fa9fad187"
+  },
+  {
+    "old": "docs/IMPOSTOR_STAGE_6.md",
+    "new": "docs/impostor/stages/stage-6.md",
+    "sha256Before": "a9f5897535b611928217ccdf00b8d7c62bf23fd61eaeb579692c6d74f272c572",
+    "kind": "documentation",
+    "sha256After": "6357b1777f6a4cdff1328007514a8c4fc36fb99b0bdd4ce9622c219b5594f4f0"
+  },
+  {
+    "old": "docs/CURSED_BOXES_BACKGROUND.md",
+    "new": "docs/cursed-boxes/background.md",
+    "sha256Before": "4c2a25b38a5d9f185fedfb32dd14bce6e65929446f6c3a9d2ee8363d589cc771",
+    "kind": "documentation",
+    "sha256After": "98e8a27627d8a87596328eb23301091fa0f3015eeddcc73668a0187e7b547b8d"
+  },
+  {
+    "old": "docs/IMPOSTOR_STAGE_2B.md",
+    "new": "docs/impostor/stages/stage-2b.md",
+    "sha256Before": "0b01339bf0b9d4010a1b37b32b0d9927e0e7be228a8f4897f649f6738e7351b6",
+    "kind": "documentation",
+    "sha256After": "c89977d57e1588b2d3a60d337869f8acacfd74156d1f72db40d0d2d885f9551e"
+  },
+  {
+    "old": "docs/VOODOO_DOLL.md",
+    "new": "docs/lobby/characters/voodoo-doll.md",
+    "sha256Before": "8c5eb8b536cc52fe9304a5f401e969335f5117066ae2c2db3eb45781471398b2",
+    "kind": "documentation",
+    "sha256After": "8c5eb8b536cc52fe9304a5f401e969335f5117066ae2c2db3eb45781471398b2"
+  },
+  {
+    "old": "docs/LOBBY_CHARACTER_PRESENTATION.md",
+    "new": "docs/lobby/character-presentation.md",
+    "sha256Before": "92ed5ee917eee583b70860d13fa35f05fa49156a7fb727ff11e7cf8c6e847445",
+    "kind": "documentation",
+    "sha256After": "074f40471fdd3ab82ac1a6e7c8c828ee7817753de1610915c8f4f9fc9e846b08"
+  },
+  {
+    "old": "docs/CURSED_BOXES_MULTIPLAYER.md",
+    "new": "docs/cursed-boxes/multiplayer.md",
+    "sha256Before": "9d03532b13f28ef22a9332a37471e645500a1383e8569b9b75477917dbe92ce7",
+    "kind": "documentation",
+    "sha256After": "3c48b65841a78e6539bb828828e9e2fefff8d8432dad0a12f12a97d12dc5e035"
+  },
+  {
+    "old": "docs/CHARACTER_LIGHTING.md",
+    "new": "docs/lobby/character-lighting.md",
+    "sha256Before": "4fa73765793884e324a0fde408d507c6aa2cfeb6eab20c35b4db11afe49030a9",
+    "kind": "documentation",
+    "sha256After": "dabd85f64edda8077cb303e9780777ffd7f85b56dc8f289fb6a9d578d11e973b"
+  },
+  {
+    "old": "docs/IMPOSTOR_COMPLETION_HANDOFF.md",
+    "new": "docs/impostor/completion-handoff.md",
+    "sha256Before": "ec8df412821a0290911ec6c9e624d316c864f9c38f8d9cfcf363df280f24599b",
+    "kind": "documentation",
+    "sha256After": "1856793e8402cdce2d726f83b433c956fcbb6b4f3161dffd2b4ecfdbb468e10d"
+  },
+  {
+    "old": "docs/QUESTION_PLAYERS.md",
+    "new": "docs/questions/players.md",
+    "sha256Before": "99c783102954c2d74a8a11a14c83adec4aa53f397bf9feb88d38705a39b83108",
+    "kind": "documentation",
+    "sha256After": "99c783102954c2d74a8a11a14c83adec4aa53f397bf9feb88d38705a39b83108"
+  },
+  {
+    "old": "docs/MULTIPLAYER_PROTOCOL.md",
+    "new": "docs/architecture/multiplayer-protocol.md",
+    "sha256Before": "bac2cfac69368221fd95653d6beeafb2c7dc4fc42190a53407d0cfaf98f3d151",
+    "kind": "documentation",
+    "sha256After": "bac2cfac69368221fd95653d6beeafb2c7dc4fc42190a53407d0cfaf98f3d151"
+  },
+  {
+    "old": "docs/PUMPKIN_CHARACTER.md",
+    "new": "docs/lobby/characters/pumpkin.md",
+    "sha256Before": "a262d697929cf0a2b9a2ca6ca6f3c9634e032743ae4efdeedb0be91e11cc631c",
+    "kind": "documentation",
+    "sha256After": "a262d697929cf0a2b9a2ca6ca6f3c9634e032743ae4efdeedb0be91e11cc631c"
+  },
+  {
+    "old": "docs/PUPPETEER.md",
+    "new": "docs/lobby/characters/puppeteer.md",
+    "sha256Before": "353d95a788f0be9025da0f2c71d9be7a5a286224d3de49ab175bfeb899f36ca6",
+    "kind": "documentation",
+    "sha256After": "353d95a788f0be9025da0f2c71d9be7a5a286224d3de49ab175bfeb899f36ca6"
+  },
+  {
+    "old": "docs/IMPOSTOR_STAGE_3.md",
+    "new": "docs/impostor/stages/stage-3.md",
+    "sha256Before": "f793deede1105ecda30d43e6d9e714340c68c003e11fb0240d897fe34b52375f",
+    "kind": "documentation",
+    "sha256After": "96db598028335db12f571cb6fc213ba270716e04512c431f9e6446c2b1d51cdc"
+  },
+  {
+    "old": "docs/DRACULA_CHARACTER.md",
+    "new": "docs/lobby/characters/dracula.md",
+    "sha256Before": "718747e282cd500de0b35185eeb08823e93cc3b196de9cd645395d5bb0beb8aa",
+    "kind": "documentation",
+    "sha256After": "8772ea1629634f7ca63e2575e5a281c32533a79fecf49791e5598601121b8c6d"
+  },
+  {
+    "old": "docs/IDENTITY_REVEAL_POLISH.md",
+    "new": "docs/impostor/identity-reveal-polish.md",
+    "sha256Before": "59dcfb821d21033f4f1d8a3b4d1ea14da8e4b54a8cfdd432ea64ff134de9924e",
+    "kind": "documentation",
+    "sha256After": "8089201c12877cf6b6c8f6b2f8a2f69be2dccbe8ee525eeac28323232ad2c3a1"
+  },
+  {
+    "old": "docs/CURSED_BOXES_HIDING.md",
+    "new": "docs/cursed-boxes/hiding.md",
+    "sha256Before": "080fce6a86a047ad65817ac5589cb32619bb85d13a1005a4cf6f1f2d5f6669a6",
+    "kind": "documentation",
+    "sha256After": "7b74ba7b16f8402d0ae81f8156e417d68c53a990cd7fe244a3cf9acf47b107c0"
+  },
+  {
+    "old": "docs/IMPOSTOR_STAGE_7.md",
+    "new": "docs/impostor/stages/stage-7.md",
+    "sha256Before": "0d67bd9460decd5668c2d289551955d78a6856b3887d52e149ff0141910da2a9",
+    "kind": "documentation",
+    "sha256After": "dad32f7dc582416146c95b183d5ac25600baed59a3e5271efb8bcb7564b7e289"
+  },
+  {
+    "old": "docs/IMPOSTOR_STAGE_10.md",
+    "new": "docs/impostor/stages/stage-10.md",
+    "sha256Before": "cc3db71fd22fc0ce5dfe9879042d93391c764d61978aadb34eca58a868ce362e",
+    "kind": "documentation",
+    "sha256After": "ff6cf67934fdfc01097ae69c6038290b6dba1f0090ad02583333878c4ff54470"
+  },
+  {
+    "old": "docs/CAGE_LOBBY.md",
+    "new": "docs/lobby/README.md",
+    "sha256Before": "a5e2b36cb933f2630353add0bd086ca97854b9c4246753f9c824417093692909",
+    "kind": "documentation",
+    "sha256After": "a5e2b36cb933f2630353add0bd086ca97854b9c4246753f9c824417093692909"
+  },
+  {
+    "old": "docs/PERFORMANCE.md",
+    "new": "docs/development/performance.md",
+    "sha256Before": "68e4cda067a182213296b87529af2f5b00716541c926ec0d1c4702013524261c",
+    "kind": "documentation",
+    "sha256After": "68e4cda067a182213296b87529af2f5b00716541c926ec0d1c4702013524261c"
+  },
+  {
+    "old": "docs/cursed-boxes-firing-vfx.md",
+    "new": "docs/cursed-boxes/firing-vfx.md",
+    "sha256Before": "f1c90984dfedf80d8852fd46afaa0d7dc16f6b36fa188da30eb68966b475342f",
+    "kind": "documentation",
+    "sha256After": "95892f3d39a5407e2b130b45a94988151363054865018a16ce475ac6691405e4"
+  },
+  {
+    "old": "docs/IMPOSTOR_STAGE_4.md",
+    "new": "docs/impostor/stages/stage-4.md",
+    "sha256Before": "59e896631a2fbd2b33b35eb9ae74b0b343688eff314688dd504f9b58c4106862",
+    "kind": "documentation",
+    "sha256After": "8b12abda60de4b354a75b124d46973751ed630bf86bc455f904f19177643d792"
+  },
+  {
+    "old": "docs/GHOST_CHARACTER.md",
+    "new": "docs/lobby/characters/ghost.md",
+    "sha256Before": "dceb32e6f06920a3b086fc15de7403b11338b9b1f476916ed46603488fc25ca2",
+    "kind": "documentation",
+    "sha256After": "dceb32e6f06920a3b086fc15de7403b11338b9b1f476916ed46603488fc25ca2"
+  },
+  {
+    "old": "docs/IMPOSTOR_STAGE_5.md",
+    "new": "docs/impostor/stages/stage-5.md",
+    "sha256Before": "2ccfc8ea492c974b9e11302cef251f05ab9475456f9e5963fb82a3f7b6b680b2",
+    "kind": "documentation",
+    "sha256After": "7baa43d26c1291fab51a86d28f9b15acf99dc7525af6cd1c5a1b47c0af52e490"
+  },
+  {
+    "old": "docs/IMPOSTOR_STAGE_2A.md",
+    "new": "docs/impostor/stages/stage-2a.md",
+    "sha256Before": "17b0aa5515762668170ec25ce9b54e4456e8f59300602919fd1c0b45c627a075",
+    "kind": "documentation",
+    "sha256After": "54d02033785c36c9ec866cb6794b48c3061fbdf0b8c9561d79147b723b28c0f2"
+  },
+  {
+    "old": "docs/cursed-boxes-survivor-reveal.md",
+    "new": "docs/cursed-boxes/survivor-reveal.md",
+    "sha256Before": "7072f27bdddd194292490036c5c4b888aa7a8a107a305d1bcc5faf31e7c97884",
+    "kind": "documentation",
+    "sha256After": "02a7dbf023e3860ca342fa86dbe792c62e58591473ad1967e9c61992a07ca452"
+  },
+  {
+    "old": "docs/IMPOSTOR_STAGE_1.md",
+    "new": "docs/impostor/stages/stage-1.md",
+    "sha256Before": "9546665ad217ccb5b68f764d2771635775ac14fbc6aef0ae89bed83e477a8974",
+    "kind": "documentation",
+    "sha256After": "19f2a967c9ae96c7f5f751dcf99e769085fb534ee44960ecb6cff92f5c252d61"
+  },
+  {
+    "old": "docs/ROLE_REVEAL_CANVAS.md",
+    "new": "docs/impostor/role-reveal-canvas.md",
+    "sha256Before": "bd9d6824acda78168030965252ce1fac4340fe4ca2b7ea2f5fdcbfac6a9cc95b",
+    "kind": "documentation",
+    "sha256After": "6b260dfb8a0792b9db1228089b01edfeeef65780b54f348aff489668cf9c01e1"
+  },
+  {
+    "old": "docs/IMPOSTOR_STAGE_2B_VISUAL_REWORK.md",
+    "new": "docs/impostor/stages/stage-2b-visual-rework.md",
+    "sha256Before": "ae1c74898cd9514578abd7b740f7c663ecee8430ca28d43581514851b1b406b3",
+    "kind": "documentation",
+    "sha256After": "0829a4d66fd941fd6c896323eb043f3f7f59ab69b19eadd1c009f6cc992c14d8"
+  },
+  {
+    "old": "docs/CURSED_BOXES_AUDIO_EXPANSION.md",
+    "new": "docs/cursed-boxes/audio-expansion.md",
+    "sha256Before": "e66b92317182d37caf91232b706ff4a78d7caa16ae4f7f5ce4420956fb35fb2d",
+    "kind": "documentation",
+    "sha256After": "4ed6bfa99746f99eea868313c60dd5c5a9df59000406ebd848e8c9f86f7698fa"
+  },
+  {
+    "old": "docs/CURSED_BOXES_CHARACTERS.md",
+    "new": "docs/cursed-boxes/characters.md",
+    "sha256Before": "29ddbe503a50ed1848c539d4a442b467f039c5e4487a4f0119f05bfcfdaf0077",
+    "kind": "documentation",
+    "sha256After": "29ddbe503a50ed1848c539d4a442b467f039c5e4487a4f0119f05bfcfdaf0077"
+  },
+  {
+    "old": "docs/LOBBY_START.md",
+    "new": "docs/lobby/start.md",
+    "sha256Before": "56f64ca2b104fccd258ab36ac8c54127b25b9704e5f77b319887c6d2de36aa91",
+    "kind": "documentation",
+    "sha256After": "82644ee7b03fa0e7d498dd13aec1df6c1c516baf5fc9f4f9cb87928884a7c677"
+  },
+  {
+    "old": "docs/lobby-asset-moves.json",
+    "new": "docs/assets/lobby-asset-moves.json",
+    "sha256Before": "70e07d2f0f986342af5a030de40edb9a72377e49c44b16cb388477887f2797e5",
+    "kind": "metadata",
+    "sha256After": "70e07d2f0f986342af5a030de40edb9a72377e49c44b16cb388477887f2797e5"
+  },
+  {
+    "old": "scripts/render_candle.py",
+    "new": "tools/assets/render_candle.py",
+    "sha256Before": "8c87e82adda8204f8a6f021316e35b86f64f8a5cff759a0df110827e7b503eda",
+    "kind": "tool",
+    "sha256After": "ecd7ff0b02654ad58487ebc724c09c0ffd518d14b2722f7b5158984dd8c354dc"
+  },
+  {
+    "old": "scripts/summarize_cursed_boxes_profile.py",
+    "new": "tools/dev/summarize_cursed_boxes_profile.py",
+    "sha256Before": "02aea8d6f54739fb1c22f64085166c781fa6e3a8dd728d3f691f7bff5ca70700",
+    "kind": "tool",
+    "sha256After": "b56c4be7d6d04b7724bddce98e7cb6ba5a2f4a801a4755e2fbf89085ef2111c9"
+  },
+  {
+    "old": "scripts/import_cursed_boxes.py",
+    "new": "tools/assets/import_cursed_boxes.py",
+    "sha256Before": "7a4f21483f052a7e2f8ef41da46ac49b3c7a449ce4596befb6c60f6ff4f77f3d",
+    "kind": "tool",
+    "sha256After": "7165d50819d145ec550f899c5813233bba704a03bfdf86adc7d8625909bc3ba5"
+  },
+  {
+    "old": "scripts/check_cursed_boxes_browser.cjs",
+    "new": "tools/checks/check_cursed_boxes_browser.cjs",
+    "sha256Before": "015f4e5c83fb6c9adc673972bf41a9a8ef8dad0eb4ac273dfdb5f3196aed0f5e",
+    "kind": "tool",
+    "sha256After": "bb176aee4d95d82784d175090f37ee52813edc5c4440d5c10e80ffb3f5723b83"
+  },
+  {
+    "old": "scripts/check_desktop_hosting_browser.cjs",
+    "new": "tools/checks/check_desktop_hosting_browser.cjs",
+    "sha256Before": "6305a29d78fc029e70779bdcd986dab00789c83b95e8e1ac89b247244c6af74f",
+    "kind": "tool",
+    "sha256After": "27d566accb299f081de5f1d9cb4bf29ae2512096432a78c96170a4ab646ec3e8"
+  },
+  {
+    "old": "scripts/check_lobby_start_browser.cjs",
+    "new": "tools/checks/check_lobby_start_browser.cjs",
+    "sha256Before": "079a9bb21f088e950895b69e1c447dff32430ac3270dd1782695386b3cf6e4bb",
+    "kind": "tool",
+    "sha256After": "70e83196432120c2069655b7d388987f60181c887bdb66b219b546ec6fb429db"
+  },
+  {
+    "old": "scripts/review_cursed_players.cjs",
+    "new": "tools/dev/review_cursed_players.cjs",
+    "sha256Before": "53356a7c30a5b055734b59421601c0ba342f2368722a6151686b5259a31be869",
+    "kind": "tool",
+    "sha256After": "7506be4201317720157216c94b730feb3b26cec9ce2e790bc39fc438dcb2dac9"
+  },
+  {
+    "old": "scripts/export_cursed_phone_art.py",
+    "new": "tools/assets/export_cursed_phone_art.py",
+    "sha256Before": "c812132f2c5544cf0ab87540463c28ed67ecf1b295cb1e6841656bad7ec9fff8",
+    "kind": "tool",
+    "sha256After": "6a15e0a7fca1060051b05d54b5b8d38b0810a0a477964226a23eae95e45c8492"
+  },
+  {
+    "old": "scripts/check_impostor_lifecycle_browser.cjs",
+    "new": "tools/checks/check_impostor_lifecycle_browser.cjs",
+    "sha256Before": "0b572a6264bbac30fa23142ba36ace71ea0d234e1276ad20631ea8852eb3798a",
+    "kind": "tool",
+    "sha256After": "668127cf2f3bb0a43af5855d026afb49c7b69779e7055cb7941d611c76e1b9be"
+  },
+  {
+    "old": "scripts/check_impostor_final_browser.cjs",
+    "new": "tools/checks/check_impostor_final_browser.cjs",
+    "sha256Before": "ef0fbf4fe5ab39cc9848d72d4e0e06a0baf07aa09e46653a3925da41479f190d",
+    "kind": "tool",
+    "sha256After": "ec7fe5a7264b9ff78aa9a9837219b7d520b71b8c6754f9dfed015c984a46ad29"
+  },
+  {
+    "old": "scripts/prepare_cursed_survivors.py",
+    "new": "tools/assets/prepare_cursed_survivors.py",
+    "sha256Before": "d353498ef4288f3ea4ebbbfb41d862334e0e4cbf5fbf248f0df5758a0c83e60f",
+    "kind": "tool",
+    "sha256After": "f7d1226a60f0ddb1d1f793ca985e92906b283e71f097e4029acef33a66a5a5e1"
+  },
+  {
+    "old": "scripts/prepare_cursed_boxes_audio.py",
+    "new": "tools/assets/prepare_cursed_boxes_audio.py",
+    "sha256Before": "8886bb56e6deffe500af2d6dfe875776b0294acb42d6c6136aed879cddade5a5",
+    "kind": "tool",
+    "sha256After": "57b1dff786f8d231b97b871834ddf122569baf97469104edf1a0ca8532c1d47f"
+  },
+  {
+    "old": "scripts/check_room_api.py",
+    "new": "tools/checks/check_room_api.py",
+    "sha256Before": "3de9fecb7bc1e39f967c8f65a2ca763a0429dc3ad74b08e000d418abd03086d8",
+    "kind": "tool",
+    "sha256After": "3de9fecb7bc1e39f967c8f65a2ca763a0429dc3ad74b08e000d418abd03086d8"
+  },
+  {
+    "old": "scripts/prepare_cursed_audio_expansion.py",
+    "new": "tools/assets/prepare_cursed_audio_expansion.py",
+    "sha256Before": "4aaf8fceb9d2bd83dd675711a9f144ffea372d71de0766e3e815e48958ccb24d",
+    "kind": "tool",
+    "sha256After": "e5e2e9039c176f98d5e831fd99cdfb495b3b1677f90a5dc9c03596ece42cd50b"
+  },
+  {
+    "old": "scripts/import_cursed_boxes_weapon_maps.py",
+    "new": "tools/assets/import_cursed_boxes_weapon_maps.py",
+    "sha256Before": "1c0cc2e69099484d058b2fb2c251db8bb39b3a22d4c136ec32d7e9490459b267",
+    "kind": "tool",
+    "sha256After": "a6ea6b4715c8ec6ab684b7ebb1cfce473f141a4bb655e736b61236ced762903f"
+  },
+  {
+    "old": "scripts/check_role_reveal_browser.cjs",
+    "new": "tools/checks/check_role_reveal_browser.cjs",
+    "sha256Before": "578dc5f3cfcb49b13994ef9b3ff44b99261dfdb00473af4a1d10ac68f2566492",
+    "kind": "tool",
+    "sha256After": "341e2d16ad864c7b207a28d6baea3090e91bfb98c25ae0f6547ac8b23066b57f"
+  },
+  {
+    "old": "scripts/check_identity_reveal_browser.cjs",
+    "new": "tools/checks/check_identity_reveal_browser.cjs",
+    "sha256Before": "e8879d2c00ca7aac4e7996dffff5f3794785033eedea276f146f2bb960ea5a92",
+    "kind": "tool",
+    "sha256After": "32798999bd4512bbb51baede1cb91d644d892c10b678ee9da3e39c387d4e38f8"
+  },
+  {
+    "old": "scripts/check_cursed_full_round.cjs",
+    "new": "tools/checks/check_cursed_full_round.cjs",
+    "sha256Before": "57cfd46618831aa8ffe0e6b7176cd5d11ebef3c9689d2ebc27da3c3bb49839fd",
+    "kind": "tool",
+    "sha256After": "3deab4783f3242264e0761ed9ded9a43eda18f0076d14cdc52c8b2cdb31cc062"
+  },
+  {
+    "old": "scripts/import_cursed_boxes_backgrounds.py",
+    "new": "tools/assets/import_cursed_boxes_backgrounds.py",
+    "sha256Before": "f88bdd6f1bdeb16e29a4d76187d92c87a958a3dda2cec8cfc04e09721e9a6f2d",
+    "kind": "tool",
+    "sha256After": "a8bc3cce93810f70a013e85dd7fcabe0a71f4e93b1eec20ab2e9674bf35b95c4"
+  },
+  {
+    "old": "scripts/check_parchment_browser.cjs",
+    "new": "tools/checks/check_parchment_browser.cjs",
+    "sha256Before": "f482c6a62b53b1f42338961754509baebb2956413fbce8e6fff69b344e0d16cb",
+    "kind": "tool",
+    "sha256After": "1aacd38ac3f0ec1f99a348a5aee32314407d3bbdcbd7f59dcc2957ff9fbd1f05"
+  },
+  {
+    "old": "scripts/check_suspicion_browser.cjs",
+    "new": "tools/checks/check_suspicion_browser.cjs",
+    "sha256Before": "904828c92f9d19e8d44d8f3cb4b090bc12567000b739b22f3f1e826547e0cd90",
+    "kind": "tool",
+    "sha256After": "4d5a2ac6c7e847ab413303eca2c7fc2244de445cc50864aaf64365051fc48bd5"
+  },
+  {
+    "old": "scripts/impostor_fixture_control.py",
+    "new": "tools/dev/impostor_fixture_control.py",
+    "sha256Before": "1213c5199c3055c0d23f836ad7114f52cc43ce3aa08968f6b1e1c75ea3471ec5",
+    "kind": "tool",
+    "sha256After": "4f70796db7ae612af646f43f739bcace966253c5aa9ca43656c0ba733de70997"
+  },
+  {
+    "old": "scripts/check_impostor_browser.cjs",
+    "new": "tools/checks/check_impostor_browser.cjs",
+    "sha256Before": "52e7ef323aae2ac6b56d51cdf20e92a2bee5247f68b86fea00c70ead9d7d335e",
+    "kind": "tool",
+    "sha256After": "9d58f8929438cf5c35411053a63f5bdf9c6edce20623f40a70ed4d14aa34e251"
+  },
+  {
+    "old": "generated/create-room-preview.png",
+    "new": "generated/previews/create-room-preview.png",
+    "sha256Before": "8581d2947933a8cc77c79046685871fbdbc0a171246b3514b6ded9eadb14a60a",
+    "kind": "artifact",
+    "sha256After": "8581d2947933a8cc77c79046685871fbdbc0a171246b3514b6ded9eadb14a60a"
+  },
+  {
+    "old": "generated/play-button-preview.png",
+    "new": "generated/previews/play-button-preview.png",
+    "sha256Before": "eb12f22a1ad979109a2ef94b7be3256bbf5d8f23adcfe2918df545778887a7b7",
+    "kind": "artifact",
+    "sha256After": "eb12f22a1ad979109a2ef94b7be3256bbf5d8f23adcfe2918df545778887a7b7"
+  },
+  {
+    "old": "generated/impostor-characters.png",
+    "new": "generated/previews/impostor-characters.png",
+    "sha256Before": "5f6d21ea15a63b6dd94613d752c199d08c62389b39b24a5e032c591068aeb653",
+    "kind": "artifact",
+    "sha256After": "5f6d21ea15a63b6dd94613d752c199d08c62389b39b24a5e032c591068aeb653"
+  },
+  {
+    "old": "generated/stage9-assets.jpg",
+    "new": "generated/previews/stage9-assets.jpg",
+    "sha256Before": "c88c6e9e9443d600a105f4bdf3f983b0543e1a0880f12b6697964fd8145cd25f",
+    "kind": "artifact",
+    "sha256After": "c88c6e9e9443d600a105f4bdf3f983b0543e1a0880f12b6697964fd8145cd25f"
+  },
+  {
+    "old": "PROJECT_MAP.md",
+    "new": "docs/development/project-map-history.md",
+    "sha256Before": "2da13078eb29a19171cdc8cd2c66cd4a2955dc100eff70631d72d41782a3f06a",
+    "kind": "documentation",
+    "sha256After": "5d235635811ee72a6667aef34b1f211f0d03813392bacde69c9fab1032f1f945"
+  }
+]

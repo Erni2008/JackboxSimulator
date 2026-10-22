@@ -40,7 +40,10 @@ public final class CursedBoxesPhoneCheck {
                 java.nio.file.Files.writeString(directory.resolve("ready.json"),ProtocolJson(Map.of("url",url,"code",code)));
             }catch(Throwable e){failure=e;Gdx.app.exit();}}
             JsonObject inspect(){
-                JsonObject report=new JsonObject();var root=getRealtime()==null?null:getRealtime().snapshot();if(root!=null)report.add("state",root);
+                JsonObject report=new JsonObject();
+                report.addProperty("applicationAudioLoaded",getAudio().loaded());report.addProperty("ambiencePlaying",getAudio().ambiencePlaying());
+                try{var field=com.erni.finalanswer.audio.GameAudio.class.getDeclaredField("ambience");field.setAccessible(true);var music=(com.badlogic.gdx.audio.Music)field.get(getAudio());if(music!=null)report.addProperty("ambiencePosition",music.getPosition());}catch(ReflectiveOperationException e){throw new AssertionError(e);}var appCues=new JsonObject();for(var cue:com.erni.finalanswer.audio.GameAudio.Cue.values())appCues.addProperty(cue.name(),getAudio().playCount(cue));report.add("applicationAudioCues",appCues);
+                var root=getRealtime()==null?null:getRealtime().snapshot();if(root!=null)report.add("state",root);
                 report.addProperty("screen",getScreen().getClass().getSimpleName());report.addProperty("impactMask",impacts);report.addProperty("reactionMask",reactions);report.addProperty("renderChecks",checkedFrames);report.addProperty("flashFrames",flashFrames);report.addProperty("reloadFrames",reloadFrames);
                 if(getScreen() instanceof CursedBoxesScreen scene){
                     var cues=new JsonObject();for(var cue:CursedBoxesSoundManager.Cue.values())cues.addProperty(cue.name(),scene.sounds().playCount(cue));report.add("soundCues",cues);report.addProperty("mechanism",scene.mechanismState().name());report.addProperty("flash",scene.muzzleFlashIntensity());
@@ -70,6 +73,21 @@ public final class CursedBoxesPhoneCheck {
                         check(stage.touchDown(Math.round(point.x),Math.round(point.y),0,Input.Buttons.LEFT),"Lobby tap was outside the viewport: "+point);
                         stage.touchUp(Math.round(point.x),Math.round(point.y),0,Input.Buttons.LEFT);
                     }
+                    case "AMBIENCE_SEEK_END"->{
+                        // Test-only seek near the real MP3 boundary; the next frames exercise backend looping.
+                        var field=com.erni.finalanswer.audio.GameAudio.class.getDeclaredField("ambience");field.setAccessible(true);
+                        var music=(com.badlogic.gdx.audio.Music)field.get(getAudio());check(music!=null&&music.isPlaying(),"Room ambience active");music.setPosition(47.1f);
+                    }
+                    case "UI_AUDIO_CHECK"->{
+                        var stage=(com.badlogic.gdx.scenes.scene2d.Stage)Gdx.input.getInputProcessor();
+                        com.badlogic.gdx.scenes.scene2d.ui.Button button=stage.getRoot().findActor("chooseNetwork");
+                        var point=button.localToStageCoordinates(new com.badlogic.gdx.math.Vector2(button.getWidth()/2,button.getHeight()/2));stage.stageToScreenCoordinates(point);
+                        long hover=getAudio().playCount(com.erni.finalanswer.audio.GameAudio.Cue.HOVER),press=getAudio().playCount(com.erni.finalanswer.audio.GameAudio.Cue.PRESS);
+                        stage.mouseMoved(Math.round(point.x),Math.round(point.y));stage.act(.1f);stage.mouseMoved(Math.round(point.x),Math.round(point.y));stage.act(.016f);
+                        check(getAudio().playCount(com.erni.finalanswer.audio.GameAudio.Cue.HOVER)==hover+1,"Hover fires once on enter");
+                        stage.touchDown(Math.round(point.x),Math.round(point.y),0,Input.Buttons.LEFT);stage.touchUp(Math.round(point.x),Math.round(point.y),0,Input.Buttons.LEFT);
+                        check(getAudio().playCount(com.erni.finalanswer.audio.GameAudio.Cue.PRESS)==press+1,"Accepted real Scene2D click sounds once");
+                    }
                     case "START_QUESTIONS"->getRealtime().send("START_GAME",Map.of());
                     case "RECONNECT_HOST"->activateRoom(RoomApiClient.parse(new JsonReader().parse(host.toString()),token));
                     case "END"->{var root=getRealtime().snapshot();getRealtime().send("CURSED_RETURN_TO_LOBBY",Map.of("roomCode",code,"sessionId",root.getAsJsonObject("cursedBoxes").get("sessionId").getAsString()));}
@@ -90,7 +108,7 @@ public final class CursedBoxesPhoneCheck {
                 if(sceneBefore&&getScreen() instanceof CursedBoxesScreen scene){
                     if(scene.muzzleFlashIntensity()>0)flashFrames++;if(scene.mechanismState()==com.erni.finalanswer.shotgun.ShotgunAnimator.State.RELOAD)reloadFrames++;
                     check(scene.characterTest()==null&&scene.turn.shotLimit()==(FULL_ROUND?1:2),"Developer nine-shot mode entered multiplayer");
-                    check(scene.loadedModels()==11,"Shared models lost");check(scene.sounds().loaded()==8,"Missing preloaded WAVs");check(audit.compiles==0&&audit.uploads==0&&audit.staticBuffers==0,"Runtime GL loading during multiplayer render");checkedFrames++;
+                    check(scene.loadedModels()==11,"Shared models lost");check(scene.sounds().loaded()==CursedBoxesSoundManager.cueCount(),"Missing preloaded WAVs");check(audit.compiles==0&&audit.uploads==0&&audit.staticBuffers==0,"Runtime GL loading during multiplayer render");checkedFrames++;
                     var root=getRealtime().snapshot();var mini=root.getAsJsonObject("cursedBoxes");if(mini!=null){
                         int mask=mini.get("destroyedCrateIds").getAsInt();
                         for(int i=0;i<16;i++){

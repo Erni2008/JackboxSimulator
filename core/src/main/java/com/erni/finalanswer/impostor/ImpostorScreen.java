@@ -24,6 +24,9 @@ import com.erni.finalanswer.rooms.RoomSession;
 
 /** Impostor presentation with independent participants and ambient room illumination. Caller owns the screen; actors borrow its textures/fonts. */
 public final class ImpostorScreen extends ScreenAdapter {
+    /** Existing local sound controls also govern shared UI feedback on this screen. */
+    public float uiAudioGain(){return audio.muted()?0:audio.volume();}
+
     private static final String[] TIMER_ACTORS={"impostorTimerPanel","impostorTimerLabel","impostorTimerValue"};
     private final com.erni.finalanswer.presentation.PhaseTransition transition=new com.erni.finalanswer.presentation.PhaseTransition();
     private final com.erni.finalanswer.audio.PresentationAudio audio=new com.erni.finalanswer.audio.PresentationAudio(com.erni.finalanswer.audio.PresentationAudio.GDX);

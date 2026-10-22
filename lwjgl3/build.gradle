@@ -782,7 +782,7 @@ tasks.register('cursedBoxesCharacters', JavaExec) {
 
 tasks.register('cursedBoxesPhoneCheck', JavaExec) {
     group = 'verification'
-    description = 'Real desktop and existing WebSocket server; scripts/check_cursed_boxes_browser.cjs supplies phone browsers.'
+    description = 'Real desktop and existing WebSocket server; tools/checks/check_cursed_boxes_browser.cjs supplies phone browsers.'
     dependsOn devClasses
     classpath = sourceSets.dev.runtimeClasspath
     mainClass = 'com.erni.finalanswer.lwjgl3.CursedBoxesPhoneCheck'

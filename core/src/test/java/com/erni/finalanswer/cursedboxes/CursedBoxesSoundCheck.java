@@ -28,7 +28,7 @@ public final class CursedBoxesSoundCheck {
     private static final class Fixture {
         final Map<String,Fake> files=new HashMap<>();int loads;
         final CursedBoxesSoundManager audio=new CursedBoxesSoundManager(path->{loads++;Fake f=new Fake();files.put(path,f);return f.sound;});
-        Fixture(){for(int i=0;i<9;i++)audio.loadNext();check(loads==8&&audio.loaded()==8,"Exactly eight preloaded resources");}
+        Fixture(){for(int i=0;i<CursedBoxesSoundManager.cueCount()+1;i++)audio.loadNext();check(loads==CursedBoxesSoundManager.cueCount()&&audio.loaded()==loads,"All original and additional resources preloaded once");}
         Fake cue(CursedBoxesSoundManager.Cue cue){return files.get(cue.path);}
     }
     public static void main(String[] args){
@@ -39,7 +39,9 @@ public final class CursedBoxesSoundCheck {
         audio.weaponEvent(ShotgunAnimator.Event.EJECTED,3);check(audio.playCount(SHELL_DROP)==0,"Ejection is not a landing");
         audio.shellContact(1,false);audio.shellContact(1,true);audio.shellContact(1,true);audio.shellContact(2,true);
         check(audio.playCount(SHELL_DROP)==2&&f.cue(SHELL_DROP).lastVolume==.9f,"One landing per shell, repeated shots");
-        audio.impact(1);audio.impact(1);audio.impact(2);check(audio.playCount(WOOD_BREAK)==2&&f.cue(WOOD_BREAK).lastVolume==.85f,"One wood impact per salvo");
+        audio.impact(1);audio.impact(1);audio.impact(2);check(audio.playCount(WOOD_BREAK)==2&&f.cue(WOOD_BREAK).lastVolume==.85f*audio.levels.destructionHeadroom,"One wood impact per salvo");
+        check(audio.playCount(WOOD_EXTRA)==2&&f.cue(WOOD_EXTRA).lastVolume==.65f*audio.levels.destructionHeadroom,"Extra wood layer shares the same deduplicated impact event");
+        check((audio.levels.wood+audio.levels.newWood)*audio.levels.destructionHeadroom<=1,"Layered bus has peak headroom");
         audio.levels.master=.5f;audio.weaponEvent(ShotgunAnimator.Event.FIRED,4);check(f.cue(SHOT).lastVolume==.5f,"Scene master gain");
         audio.muted(true);audio.weaponEvent(ShotgunAnimator.Event.FIRED,5);check(audio.playCount(SHOT)==2,"Mute consumes without replay");audio.muted(false);
         Fixture insert=new Fixture();var config=new ShotgunConfig();var animator=new ShotgunAnimator(config);animator.listener(insert.audio::weaponEvent);
@@ -52,6 +54,8 @@ public final class CursedBoxesSoundCheck {
         Fixture r=new Fixture();var timeline=new CursedSurvivorTimeline();timeline.start(0x15);
         for(int i=0;i<620;i++){r.audio.reveal(timeline,1f/60);timeline.update(1f/60);}
         check(r.audio.playCount(REVEAL_START)==3&&r.audio.playCount(REVEAL_COMPLETE)==3,"Ordered start/visible cues for each survivor");
+        long appearances=r.audio.playCount(APPEARANCE_1)+r.audio.playCount(APPEARANCE_2)+r.audio.playCount(APPEARANCE_3)+r.audio.playCount(APPEARANCE_4);
+        check(appearances==3&&r.audio.playCount(HORROR_1)+r.audio.playCount(HORROR_2)==0,"One regular appearance per actual survivor; actual count="+appearances+"; special horror="+(r.audio.playCount(HORROR_1)+r.audio.playCount(HORROR_2)));
         check(r.cue(HEARTBEAT).loops==3&&r.cue(HEARTBEAT).maxActive==1&&!r.audio.heartbeatActive(),"Single heartbeat loop with fade-out per survivor");
         for(int i=0;i<120;i++)r.audio.reveal(timeline,1f/60);check(r.audio.playCount(REVEAL_COMPLETE)==3,"Snapshot refresh never repeats reveal");
         r.audio.reset();timeline.reset();timeline.start(1);r.audio.reveal(timeline,.016f);check(r.audio.heartbeatActive(),"Restartable heartbeat");
@@ -70,7 +74,16 @@ public final class CursedBoxesSoundCheck {
         check(!failures.isEmpty()&&failures.size()<=8,"Optional device failures warn once per cue without crashing");
         var cinematic=new com.finalanswer.protocol.CursedBoxesCinematicConfig();cinematic.validate();check(cinematic.aimDuration(0,3)==.9f&&cinematic.aimDuration(1,3)==.6f&&cinematic.suspenseDuration(2,3)==.55f,"Centralized first/middle/last pacing");
         cinematic.selectionDuration=Float.NaN;try{cinematic.validate();throw new AssertionError("Invalid duration accepted");}catch(IllegalArgumentException expected){}
+        Fixture variants=new Fixture();int previous=-1;
+        for(int i=0;i<20;i++){
+            var reveal=new CursedSurvivorTimeline();reveal.start(1);variants.audio.reset();variants.audio.reveal(reveal,.016f);
+            check(variants.audio.lastAppearance()==previous,"Hidden character does not consume appearance variation");
+            for(int frame=0;frame<130;frame++){reveal.update(.016f);variants.audio.reveal(reveal,.016f);}
+            int next=variants.audio.lastAppearance();check(next!=previous&&!(previous==0&&next==2)&&!(previous==2&&next==0),"Avoid consecutive filenames and identical-source audio repeats");previous=next;
+        }
+        variants.audio.specialReveal(1);variants.audio.specialReveal(1);variants.audio.specialReveal(2);
+        check(variants.audio.playCount(HORROR_1)+variants.audio.playCount(HORROR_2)==2,"Explicit special reveals deduplicated");variants.audio.dispose();
         audio.dispose();insert.audio.dispose();
-        System.out.println("PASS: eight cached WAVs, shot/impact/cycle/contact/insertion events, independent gain, reveal order, single heartbeat loop/fade, duplicate suppression, late join, reset/pause/mute/disposal");
+        System.out.println("PASS: original eight plus seven cached WAVs, layered impact, nonrepeating survivor variations, explicit special reveals, shot/impact/cycle/contact/insertion events, independent gain, reveal order, single heartbeat loop/fade, duplicate suppression, late join, reset/pause/mute/disposal");
     }
 }

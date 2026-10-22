@@ -22,6 +22,8 @@
 
 `assets.txt` создаётся сборкой. Имена существующих изображений сохраняются ради совместимости с кодом.
 
-Неиспользуемые оригиналы и архивные копии находятся в `../source_assets/`, а не рядом с Java-классами и Gradle-файлами. Полный порядок добавления изображений: [документация](../docs/ASSET_ORGANIZATION.md).
+Неиспользуемые оригиналы и архивные копии находятся в `../source_assets/`, а не рядом с Java-классами и Gradle-файлами. Полный порядок добавления изображений: [документация](../docs/assets/README.md).
 
 Комната ожидания: `lobby/cages/` содержит клетки и цепи, `lobby/characters/<id>/` — PNG и конфигурацию каждого персонажа. `lobby/character_presentation.json` задаёт масштаб, смещение и яркость персонажа именно внутри клетки. Исходники и запасные варианты хранятся в `source_assets/lobby/`.
+
+Cursed Boxes: `cursed_boxes/` содержит рабочие модели, фон, эффекты, персонажей и survivor rigs; `sounds/` содержит записи по категориям (`cursed_boxes`, `cages`, `ui`, `environment`). Исходные файлы хранятся в `source_assets/cursed_boxes/`, `source_assets/shotgun/` и `source_assets/audio/`, а не в корне проекта. Подготовка — [tools/assets](../tools/assets/), каталог оригиналов — [source_assets/catalog.json](../source_assets/catalog.json).

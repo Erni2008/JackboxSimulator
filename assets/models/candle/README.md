@@ -14,7 +14,7 @@ Warm tabletop lighting, individual flame halos and contact shadows are rendered
 in background coordinates to stay aligned when resizing the game window.
 The table is part of a flat background; these are composited light effects.
 
-The blend file, standalone candle images, and `scripts/render_candle.py` belong
+The blend file, standalone candle images, and `tools/assets/render_candle.py` belong
 to the earlier single-candle preparation and are not used by the runtime animation.
 
 Placement and timing: `core/src/main/java/com/erni/finalanswer/ui/effects/TableCandle.java`.

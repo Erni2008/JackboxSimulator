@@ -103,7 +103,7 @@ Production требует HTTPS publicUrl. TLS завершается на rever
 ```sh
 ./gradlew :server:test :lwjgl3:classes :server:installDist
 ./gradlew :lwjgl3:playCheck -PplayCapture=true
-python3 scripts/check_room_api.py http://127.0.0.1:8080
+python3 tools/checks/check_room_api.py http://127.0.0.1:8080
 ```
 
 `RoomServiceTest`: бизнес-правила, фальшивые часы, роли, пароли, reconnect,
@@ -119,4 +119,4 @@ python3 scripts/check_room_api.py http://127.0.0.1:8080
 следующие вопросы и refresh. Физические iPhone/Android и удалённый HTTPS deployment
 в этой среде не проверялись. Нагрузочное тестирование ещё требуется.
 
-Протокол, сроки и точки расширения: [MULTIPLAYER_PROTOCOL.md](../docs/MULTIPLAYER_PROTOCOL.md).
+Протокол, сроки и точки расширения: [MULTIPLAYER_PROTOCOL.md](../docs/architecture/multiplayer-protocol.md).

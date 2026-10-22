@@ -232,8 +232,17 @@ public class FinalAnswerGame extends Game {
         pendingConfiguration = null;
     }
 
+    private com.erni.finalanswer.audio.GameAudio audio;
+    private com.erni.finalanswer.audio.UiAudioCapture uiAudio;
+    public com.erni.finalanswer.audio.GameAudio getAudio(){return audio;}
+    @Override public void setScreen(com.badlogic.gdx.Screen screen){super.setScreen(screen);attachUiAudio();}
+    private void attachUiAudio(){if(uiAudio!=null&&Gdx.input.getInputProcessor() instanceof com.badlogic.gdx.scenes.scene2d.Stage stage)uiAudio.attach(stage);}
+    @Override public void pause(){if(audio!=null)audio.pause(true);super.pause();}
+    @Override public void resume(){super.resume();if(audio!=null)audio.pause(false);}
+
     @Override
     public void create() {
+        audio=new com.erni.finalanswer.audio.GameAudio();uiAudio=new com.erni.finalanswer.audio.UiAudioCapture(audio);
         settingsStore = new SettingsStore();
         settings = settingsStore.load();
         texts = new Localization(settings.language());
@@ -286,6 +295,10 @@ public class FinalAnswerGame extends Game {
                 displayManager.apply(previous);
             }
         }
+        attachUiAudio();
+        audio.uiGain(getScreen() instanceof com.erni.finalanswer.impostor.ImpostorScreen screen?screen.uiAudioGain():1);
+        audio.room(getScreen() instanceof com.erni.finalanswer.screens.CageLobbyScreen||getScreen() instanceof com.erni.finalanswer.cursedboxes.CursedBoxesScreen);
+        audio.update(Gdx.graphics.getDeltaTime());
         // Active lobbies use push snapshots; HTTP heartbeat is retained for the generation screen.
         super.render();
     }
@@ -307,5 +320,6 @@ public class FinalAnswerGame extends Game {
         if (playScreen != null) playScreen.dispose();
         if (settingsScreen != null) settingsScreen.dispose();
         if (impostorScreen != null) impostorScreen.dispose();
+        if(audio!=null)audio.close();
     }
 }

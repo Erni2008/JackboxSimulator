@@ -27,6 +27,10 @@ public final class CageLobby extends Group implements Disposable {
     private VoodooConfig voodooConfig;
     private final VoodooRoomEvents voodooEvents = new VoodooRoomEvents();
     private final com.badlogic.gdx.math.Vector2 puppeteerPointer = new com.badlogic.gdx.math.Vector2();
+    private com.erni.finalanswer.audio.GameAudio audio;
+    public void audio(com.erni.finalanswer.audio.GameAudio value){audio=value;for(int i=0;i<cages.length;i++){final int slot=i;cages[i].setSoundCues(()->{if(audio!=null)audio.gate(slot,pan(cages[slot]));},()->{});}}
+    public void stopAudio(){if(audio!=null)audio.leaveCages();}
+    private float pan(HangingCage cage){float width=getStage()==null?1920:getStage().getWidth();return Math.max(-.65f,Math.min(.65f,((cage.getX()+cage.getWidth()*.5f)/width*2-1)*.65f));}
     private RoomSession previous;
     private String roomCode;
     public CageLobby() {
@@ -99,6 +103,7 @@ public final class CageLobby extends Group implements Disposable {
     }
     @Override public void act(float delta) {
         super.act(delta);
+        if(audio!=null)for(int i=0;i<cages.length;i++)audio.cageMotion(i,cages[i].playerId()!=null,cages[i].getRotation(),delta,pan(cages[i]));
         if (getStage() == null) return;
         getStage().screenToStageCoordinates(puppeteerPointer.set(com.badlogic.gdx.Gdx.input.getX(), com.badlogic.gdx.Gdx.input.getY()));
         float stageX = puppeteerPointer.x, stageY = puppeteerPointer.y;

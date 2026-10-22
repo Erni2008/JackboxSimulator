@@ -21,12 +21,12 @@ public final class PresentationAudio implements AutoCloseable {
         for(Cue cue:Cue.values())try{Sound sound=backend.sound("audio/impostor/"+cue.name().toLowerCase(Locale.ROOT)+".ogg");if(sound!=null)sounds.put(cue,sound);}catch(RuntimeException ignored){}
         for(String name:List.of("room","suspense"))try{Music music=backend.music("audio/impostor/"+name+".ogg");if(music!=null){music.setLooping(true);tracks.put(name,music);}}catch(RuntimeException ignored){}
     }
-    public void play(Cue cue){if(!closed&&!muted&&!paused){Sound sound=sounds.get(cue);if(sound!=null)sound.play(volume);}}
+    public void play(Cue cue){if(!closed&&!muted&&!paused){Sound sound=sounds.get(cue);if(sound!=null)sound.play(volume*AudioMix.GLOBAL.gain(AudioMix.Category.MASTER));}}
     public void ambience(String name){if(closed)return;Music next=tracks.get(name);if(next==current)return;
         if(previous!=null)previous.stop();previous=current;current=next;fade=0;
         if(current!=null){current.setVolume(0);if(!paused&&!muted&&!ambienceMuted)current.play();}}
     public void update(float delta){if(closed||paused)return;if(Float.isFinite(delta)&&delta>0)fade=Math.min(1,fade+delta/1.2f);
-        float level=muted||ambienceMuted?0:volume*.22f;
+        float level=muted||ambienceMuted?0:volume*.22f*AudioMix.GLOBAL.gain(AudioMix.Category.MASTER);
         if(current!=null)current.setVolume(level*fade);
         if(previous!=null){previous.setVolume(level*(1-fade));if(fade==1){previous.stop();previous=null;}}}
     public void volume(float value){if(Float.isFinite(value))volume=Math.max(0,Math.min(1,value));}

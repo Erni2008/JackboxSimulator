@@ -44,7 +44,7 @@ public final class CursedBoxesCharactersLauncher {
                 if(!qa){if(!started){started=true;if(Boolean.getBoolean("cursed.characterAuto"))demo.keyDown(Input.Keys.T);}super.render();return;}
                 if(!started){
                     started=true;models=demo.loadedModels();textures=Texture.getNumManagedTextures();
-                    demo.sounds().levels.master=.12f;check(demo.sounds().loaded()==8,"All eight WAVs preloaded");
+                    demo.sounds().levels.master=.12f;check(demo.sounds().loaded()==CursedBoxesSoundManager.cueCount(),"All original and additional WAVs preloaded");
                     profile.renderer=Gdx.gl.glGetString(GL20.GL_RENDERER);profile.version=Gdx.gl.glGetString(GL20.GL_VERSION);profile.resolution=Gdx.graphics.getBackBufferWidth()+"x"+Gdx.graphics.getBackBufferHeight();profile.cycles=1;
                     profile.gcCount=profile.gcMs=-1;
                     profile.note=paced?"Real delta/vsync presentation run, no GPU fence. presentedMs measures frame intervals; cpuMs is submission, totalMs/gpuWaitMs unavailable (-1). Loading excluded; allocation/heap/GC not sampled.":"Nine real developer shots, eight persistent named occupants. Serialized glFinish diagnostic; PNG capture I/O, loading, vsync and presentation excluded. Allocation/heap/GC not sampled here.";

@@ -33,7 +33,7 @@ public final class CursedSurvivorRevealLauncher {
             }
             @Override public void render(){if(done||failure!=null||rendering)return;rendering=true;try{
                 if(scene==null||!qa){super.render();return;}
-                if(test<0){scene.sounds().levels.master=.12f;check(scene.sounds().loaded()==8,"All eight WAVs preloaded");scene.slots[0].state=CrateSlot.State.DAMAGED;scene.slots[15].character=CursedCharacterType.VOODOO;scene.slots[15].occupantNickname="Already revealed / excluded";scene.networkReveal(15);textures=Texture.getNumManagedTextures();models=scene.loadedModels();next();}
+                if(test<0){scene.sounds().levels.master=.12f;check(scene.sounds().loaded()==CursedBoxesSoundManager.cueCount(),"All original and additional WAVs preloaded");scene.slots[0].state=CrateSlot.State.DAMAGED;scene.slots[15].character=CursedCharacterType.VOODOO;scene.slots[15].occupantNickname="Already revealed / excluded";scene.networkReveal(15);textures=Texture.getNumManagedTextures();models=scene.loadedModels();next();}
                 audit.clear();long start=System.nanoTime();scene.render(1f/60);double cpu=(System.nanoTime()-start)/1e6;maxCpu=Math.max(maxCpu,cpu);totalCpu+=cpu;measured++;frames++;
                 check(Gdx.gl.glGetError()==GL20.GL_NO_ERROR,"OpenGL error");
                 check(audit.compiles==0&&audit.uploads==0&&audit.staticBuffers==0,"Cold shader/texture/static mesh during reveal: "+audit.compiles+"/"+audit.uploads+"/"+audit.staticBuffers);

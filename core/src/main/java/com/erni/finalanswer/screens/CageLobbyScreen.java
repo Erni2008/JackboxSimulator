@@ -63,7 +63,7 @@ public final class CageLobbyScreen extends ScreenAdapter {
     }
 
     public CageLobbyScreen(FinalAnswerGame game) {
-        this.game = game;
+        this.game = game;cages.audio(game.getAudio());
         Image scene = new Image(background); scene.setBounds(0, 0, 1920, 1080); stage.addActor(scene);
         stage.addActor(cages);
         // The background's original logo and parchment remain visible, with the code inside its ink field.
@@ -133,7 +133,7 @@ public final class CageLobbyScreen extends ScreenAdapter {
         cages.reducedMotion(game.getSettings().reducedMotion());
     }
     @Override public void show() { Gdx.input.setInputProcessor(stage); }
-    @Override public void hide() { if (Gdx.input.getInputProcessor() == stage) Gdx.input.setInputProcessor(null); }
+    @Override public void hide() { cages.stopAudio(); if (Gdx.input.getInputProcessor() == stage) Gdx.input.setInputProcessor(null); }
     @Override public void render(float delta) {
         if (!starting && !pendingStart && Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) { game.showMainMenu(); return; }
         synchronize(game.getActiveRoom(), game.getLobbyStatus());

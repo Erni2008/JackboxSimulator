@@ -24,7 +24,7 @@ public final class CursedBoxesAssets implements Disposable {
     public static final String MISSING_SHELF="cursed_boxes/shelf.glb";
     public static final String[] BACKGROUNDS={ROOT+"backgrounds/background1.png",ROOT+"backgrounds/background2.png",ROOT+"backgrounds/background3.png"};
     public final Texture[] backgrounds=new Texture[3],lighting=new Texture[3];
-    private static final String[] STAGES={"Intact wood","Destroyed wood","Wood fragments I","Wood fragments II","Shotgun body","Shotgun pump","Shotgun bolt","Shotgun shell","Weapon mechanism","Ghost","Dracula","Plague Doctor","Puppeteer","Skeleton","Zombie","Pumpkin","Voodoo","Cabinet","Fine debris I","Fine debris II","Gallery I","Lantern light I","Gallery II","Lantern light II","Gallery III","Lantern light III","Soft effects","Survivor intact panel","Survivor damaged panel","Survivor destroyed panel","Survivor Ghost","Survivor Dracula","Survivor Doctor","Survivor Skeleton","Survivor Pumpkin","Survivor Puppeteer","Survivor Zombie","Survivor Voodoo","Cursed smoke","Cursed glow","Shot audio","Mechanism audio","Shell contact audio","Wood impact audio","Heartbeat audio","Reveal start audio","Reveal finish audio","Cartridge insertion audio","Optional host announcement"};
+    private static final String[] STAGES={"Intact wood","Destroyed wood","Wood fragments I","Wood fragments II","Shotgun body","Shotgun pump","Shotgun bolt","Shotgun shell","Weapon mechanism","Ghost","Dracula","Plague Doctor","Puppeteer","Skeleton","Zombie","Pumpkin","Voodoo","Cabinet","Fine debris I","Fine debris II","Gallery I","Lantern light I","Gallery II","Lantern light II","Gallery III","Lantern light III","Soft effects","Survivor intact panel","Survivor damaged panel","Survivor destroyed panel","Survivor Ghost","Survivor Dracula","Survivor Doctor","Survivor Skeleton","Survivor Pumpkin","Survivor Puppeteer","Survivor Zombie","Survivor Voodoo","Cursed smoke","Cursed glow","Shot audio","Mechanism audio","Shell contact audio","Wood impact audio","Heartbeat audio","Reveal start audio","Reveal finish audio","Cartridge insertion audio","Extra wood impact audio","Appearance I","Appearance II","Appearance III","Appearance IV","Special horror I","Special horror II","Optional host announcement"};
     private int loaded;
     private boolean disposed;
     public CursedBoxesAssets(){this(false);}
@@ -59,7 +59,7 @@ public final class CursedBoxesAssets implements Disposable {
                 var pixels=new com.badlogic.gdx.graphics.Pixmap(32,32,com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
                 try{for(int y=0;y<32;y++)for(int x=0;x<32;x++){float dx=(x-15.5f)/15.5f,dy=(y-15.5f)/15.5f,r=dx*dx+dy*dy;pixels.setColor(1,1,1,(float)Math.exp(-r*5)*Math.max(0,1-r));pixels.drawPixel(x,y);}dust=new Texture(pixels);}finally{pixels.dispose();}
                 dust.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);break;
-            default:if(loaded<40)survivors.load(loaded-27,this);else if(loaded<48)sounds.loadNext();else sounds.loadHostVoice();break;
+            default:if(loaded<40)survivors.load(loaded-27,this);else if(loaded<40+CursedBoxesSoundManager.Cue.values().length)sounds.loadNext();else sounds.loadHostVoice();break;
         }
         loaded++;Gdx.app.log("Cursed loading",label+": "+Math.round((System.nanoTime()-start)/1e6)+" ms");
     }
