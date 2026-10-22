@@ -713,7 +713,7 @@ tasks.register('cursedBoxes', JavaExec) {
     mainClass = 'com.erni.finalanswer.lwjgl3.CursedBoxesLauncher'
     workingDir = rootProject.file('assets')
     systemProperty 'cursed.qa', providers.gradleProperty('cursedQA').getOrElse('false')
-    systemProperty 'cursed.output', rootProject.file('generated/cursed-boxes').absolutePath
+    systemProperty 'cursed.output', rootProject.file(providers.gradleProperty('cursedOutput').getOrElse('generated/cursed-boxes')).absolutePath
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
@@ -759,6 +759,35 @@ tasks.register('cursedBoxesDisplayCheck', JavaExec) {
     classpath = sourceSets.dev.runtimeClasspath
     mainClass = 'com.erni.finalanswer.lwjgl3.CursedBoxesDisplayCheck'
     workingDir = rootProject.file('assets')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('cursedBoxesCharacters', JavaExec) {
+    group = 'application'
+    description = 'Developer-only 1–8 character preview, SPACE real shot, T automatic sequence; -PcursedCharacterQA=true captures and verifies all eight.'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.CursedBoxesCharactersLauncher'
+    workingDir = rootProject.file('assets')
+    systemProperty 'cursed.characterQA', providers.gradleProperty('cursedCharacterQA').getOrElse('false')
+    systemProperty 'cursed.characterCaptures', providers.gradleProperty('cursedCharacterCaptures').getOrElse('false')
+    systemProperty 'cursed.characterAuto', providers.gradleProperty('cursedCharactersAuto').getOrElse('false')
+    systemProperty 'cursed.characterPaced', providers.gradleProperty('cursedCharacterPaced').getOrElse('false')
+    systemProperty 'cursed.characterProfile', rootProject.file(providers.gradleProperty('cursedCharacterProfile').getOrElse('generated/cursed-boxes/characters/profile.json')).absolutePath
+    systemProperty 'cursed.characterOutput', rootProject.file('generated/cursed-boxes/characters').absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('cursedBoxesPhoneCheck', JavaExec) {
+    group = 'verification'
+    description = 'Real desktop and existing WebSocket server; scripts/check_cursed_boxes_browser.cjs supplies phone browsers.'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.CursedBoxesPhoneCheck'
+    workingDir = rootProject.file('assets')
+    systemProperty 'cursed.phone.dir', layout.buildDirectory.dir('cursed-phone-check').get().asFile.absolutePath
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }

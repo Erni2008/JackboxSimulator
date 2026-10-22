@@ -21,7 +21,7 @@ public final class CursedBoxesPerformanceCheck {
         public String renderer,version,resolution,note="Serialized diagnostic frames with libGDX GL intercept counters; excludes loading and presentation/vsync.";
         public int cycles;public long gcCount,gcMs;public ArrayList<Sample> samples=new ArrayList<>();
     }
-    private static final class AuditGL extends GL20Interceptor {
+    static final class AuditGL extends GL20Interceptor {
         int compiles,uploads,buffers,staticBuffers;
         AuditGL(){super(new GLProfiler(Gdx.graphics),Gdx.gl20);}
         @Override public void glCompileShader(int shader){compiles++;super.glCompileShader(shader);}

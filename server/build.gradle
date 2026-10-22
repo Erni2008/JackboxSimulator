@@ -65,3 +65,11 @@ processResources {
         into 'web/art'
     }
 }
+
+// Public phone art only: previews of the original empty crate models. No private character map/assets.
+processResources {
+    from(rootProject.file('assets')) {
+        include 'cursed_boxes/phone/crate-intact.png', 'cursed_boxes/phone/crate-destroyed.png'
+        into 'web/art'
+    }
+}

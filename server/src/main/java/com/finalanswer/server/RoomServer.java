@@ -80,6 +80,7 @@ public final class RoomServer implements AutoCloseable {
                     try {
                         if(!limits.allow("ws:"+peer.id(),30,6)) throw new RoomService.Failure(429,"RATE_LIMITED");
                         var message=Protocol.decode(ctx.message()); requestId=message.requestId();
+                        if(message.type().startsWith("CURSED_")||message.type().equals("START_CURSED_BOXES"))type="CURSED_ACTION_REJECTED";
                         if(message.type().equals("SUBMIT_ANSWER"))type="ANSWER_REJECTED";
                         if(message.type().equals("SUBMIT_SUSPICION"))type="SUSPICION_REJECTED";
                         if(message.type().equals("SUBMIT_CLUE"))type="CLUE_REJECTED";

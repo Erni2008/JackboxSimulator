@@ -1,11 +1,18 @@
 package com.erni.finalanswer.cursedboxes;
 
-/** Local rules only. A future network snapshot can provide the same player/selection/shot fields. */
+/** Scene turn rules; the multiplayer adapter mirrors authenticated server state between shots. */
 public final class CursedBoxesTurn {
-    public final String currentPlayerId;
-    private int shotsRemaining=2,selectedCrateId=-1,destroyedCrateIds;
+    public String currentPlayerId;
+    private final int shotLimit;
+    private int shotsRemaining,selectedCrateId=-1,destroyedCrateIds;
     private boolean active;
-    public CursedBoxesTurn(String playerId){currentPlayerId=playerId;}
+    public CursedBoxesTurn(String playerId){this(playerId,2);}
+    /** Explicit developer budget; production callers retain the two-shot constructor. */
+    public CursedBoxesTurn(String playerId,int shotLimit){
+        if(shotLimit<1||shotLimit>16)throw new IllegalArgumentException("Shot budget must fit sixteen unique boxes");
+        currentPlayerId=playerId;this.shotLimit=shotLimit;shotsRemaining=shotLimit;
+    }
+    public int shotLimit(){return shotLimit;}
     public int shotsRemaining(){return shotsRemaining;}
     public int selectedCrateId(){return selectedCrateId;}
     /** Sixteen-bit ID set. Reserved as soon as a valid shot starts. */
@@ -16,5 +23,11 @@ public final class CursedBoxesTurn {
     public boolean select(int id){if(id<0||id>=16||destroyed(id)||active||shotsRemaining==0)return false;selectedCrateId=id;return true;}
     public boolean begin(){if(active||shotsRemaining==0||selectedCrateId<0||destroyed(selectedCrateId))return false;shotsRemaining--;destroyedCrateIds|=1<<selectedCrateId;active=true;return true;}
     public void complete(){active=false;selectedCrateId=-1;}
-    public void reset(){shotsRemaining=2;selectedCrateId=-1;destroyedCrateIds=0;active=false;}
+    public void reset(){shotsRemaining=shotLimit;selectedCrateId=-1;destroyedCrateIds=0;active=false;}
+    /** Trusted desktop adapter mirrors the authenticated server snapshot only between animations. */
+    public void synchronize(String playerId,int remaining,int destroyed){
+        if(active)throw new IllegalStateException("Cannot replace an active shot");
+        if(shotLimit!=2||remaining<0||remaining>2||(destroyed&~0xffff)!=0)throw new IllegalArgumentException("Invalid multiplayer turn");
+        currentPlayerId=playerId;shotsRemaining=remaining;destroyedCrateIds=destroyed;selectedCrateId=-1;
+    }
 }

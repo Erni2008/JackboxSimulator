@@ -3,6 +3,7 @@
   "pumpAt": 0.45,
   "shotDuration": 1.1,
   "ghostSlot": 5,
+  "characterSeed": 0,
   "largeFragments": 4,
   "smallSplinters": 7,
   "dustClouds": 2,

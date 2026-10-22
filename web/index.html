@@ -14,6 +14,8 @@
   <script src="/countdown-clock.js?v=1" defer></script>
   <script src="/impostor.js?v=5" defer></script>
   <script src="/suspicion.js" defer></script>
+  <link rel="stylesheet" href="/cursed-boxes.css?v=1">
+  <script src="/cursed-boxes.js?v=1" defer></script>
   <script src="/app.js" defer></script>
 </head>
 <body>
@@ -44,6 +46,20 @@
       <p class="eyebrow" id="players-count">THE GUEST LIST</p><ul id="players" class="players"></ul>
       <p id="room-configuration" class="room-configuration"></p>
       <p class="whisper">Keep this page open. Watch the host's screen.</p>
+    </section>
+    <section id="cursed-screen" class="screen" hidden aria-label="Cursed Boxes phone controller">
+      <header class="cursed-heading">
+        <div><p class="cursed-brand">FINAL ANSWER</p><h1>CURSED BOXES</h1></div>
+        <div class="cursed-identity"><strong id="cursed-player-name"></strong><span id="cursed-player-character"></span></div>
+      </header>
+      <div class="cursed-turn"><span id="cursed-shot-counter">SHOT 1 / 2</span><span id="cursed-current-player"></span></div>
+      <div id="cursed-grid" class="cursed-grid" role="group" aria-label="Sixteen boxes, ordered left to right, top to bottom"></div>
+      <div class="cursed-controls">
+        <p id="cursed-selected">SELECTED BOX: NONE</p>
+        <button id="cursed-fire" class="cursed-fire" data-native-button type="button" disabled>FIRE!</button>
+        <p id="cursed-status" role="status" aria-live="polite">WAITING FOR THE HOST…</p>
+      </div>
+      <div id="cursed-result" class="cursed-result" role="status" aria-live="polite" hidden><h2 id="cursed-result-title"></h2><p id="cursed-result-detail"></p></div>
     </section>
     <section id="question-screen" class="screen" hidden>
       <div class="round-top"><p id="question-number" class="eyebrow"></p><span id="timer" class="timer" aria-label="Seconds remaining"></span></div>

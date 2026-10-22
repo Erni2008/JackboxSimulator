@@ -13,6 +13,13 @@ import com.erni.finalanswer.shotgun.ShotgunRenderer;
 /** Background -> opaque PBR -> depth-tested transparent sprites -> weapon -> UI. */
 public final class CursedBoxesRenderer implements Disposable {
     private final ShotgunRenderer world;
+    private CursedCharacterTestMode characterTest;
+    private String networkPlayer,networkMessage;
+    private int networkRemaining;
+    public void multiplayerStatus(String player,String message,int remaining){networkPlayer=player;networkMessage=message;networkRemaining=remaining;}
+    private static final String[] COMPLETION={"TEST COMPLETED","9 / 9 SHOTS FIRED","8 / 8 CHARACTERS REVEALED","1 EMPTY BOX DESTROYED","ALL CHARACTERS REMAIN VISIBLE"};
+    private static final String[] CHARACTER_KEYS={"[1] Ghost    [2] Dracula","[3] Plague Doctor    [4] Puppeteer","[5] Skeleton    [6] Zombie","[7] Pumpkin    [8] Voodoo    [9] Empty","SPACE real shot   R reset   T test all","P inspection visibility   ESC exit"};
+    public void characterTest(CursedCharacterTestMode mode){characterTest=mode;}
     private final CameraGroupStrategy strategy;
     private final DecalBatch decals;
     private final CursedBoxesShelf shelf;
@@ -24,7 +31,7 @@ public final class CursedBoxesRenderer implements Disposable {
     private final OrthographicCamera overlay=new OrthographicCamera();
     private final PointLight flash=new PointLight();
     private final PerspectiveCamera camera;
-    private final Vector3 muzzle=new Vector3();
+    private final Vector3 muzzle=new Vector3(),namePosition=new Vector3();
     private final CursedBoxesBackground background;
     private final CursedBoxesAtmosphere atmosphere;
     private final Texture soft;
@@ -42,7 +49,7 @@ public final class CursedBoxesRenderer implements Disposable {
             shelfContacts[i].setRotation(planeRotation);shelfContacts[i].setColor(.025f,.012f,.006f,i==0?.25f:core?.95f:.45f);
         }
         background=new CursedBoxesBackground(assets.backgrounds,assets.lighting,CursedBoxesBackground.Settings.load());this.camera=camera;world=new ShotgunRenderer(camera);
-        world.provider((out,pool)->{for(CrateSlot slot:slots)slot.model().getRenderables(out,pool);debris.getRenderables(out,pool);gun.gun.getRenderables(out,pool);});
+        world.provider((out,pool)->{for(CrateSlot slot:slots)if(!slot.previewHidden)slot.model().getRenderables(out,pool);debris.getRenderables(out,pool);gun.gun.getRenderables(out,pool);});
         world.environment().add(flash);
         world.environment().set(new com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute(com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute.AmbientLight,.32f,.255f,.19f,1));
         strategy=new CameraGroupStrategy(camera);decals=new DecalBatch(80,strategy);
@@ -59,7 +66,7 @@ public final class CursedBoxesRenderer implements Disposable {
             shelfContacts[i].setPosition(origin.x+x,origin.y+y-.004f,origin.z-.55f+(core?.008f:.08f));
         }
     }
-    public void render(float delta,float time,CrateSlot[] slots,CrateSlot selected,GhostController ghost,DebrisSystem debris,ShotgunController gun,CursedBoxesTurn turn,CursedBoxesPerformance performance){
+    public void render(float delta,float time,CrateSlot[] slots,CrateSlot selected,CursedCharacterController characters,DebrisSystem debris,ShotgunController gun,CursedBoxesTurn turn,CursedBoxesPerformance performance){
         com.badlogic.gdx.graphics.glutils.HdpiUtils.glViewport(0,0,Gdx.graphics.getWidth(),Gdx.graphics.getHeight());Gdx.gl.glClearColor(.018f,.009f,.014f,1);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT|GL20.GL_DEPTH_BUFFER_BIT);
         overlay.setToOrtho(false,Gdx.graphics.getWidth(),Gdx.graphics.getHeight());ui.setProjectionMatrix(overlay.combined);
         // Color-only pass. Keep gallery pixels out of the 3D depth buffer.
@@ -75,7 +82,7 @@ public final class CursedBoxesRenderer implements Disposable {
         float intensity=gun.gun.animator.flash();gun.gun.muzzle(muzzle);flash.set(1,.67f,.3f,muzzle,55*intensity);
         world.render(delta);
         Gdx.gl.glDepthMask(false);
-        for(CrateSlot slot:slots)if(slot.ghost)ghost.render(decals,camera,slot,time);
+        characters.render(decals,camera,slots,time);
         debris.renderDust(decals,camera);decals.flush();
         world.renderEffects(gun.gun);
         Gdx.gl.glDisable(GL20.GL_DEPTH_TEST);Gdx.gl.glDepthMask(false);
@@ -88,19 +95,40 @@ public final class CursedBoxesRenderer implements Disposable {
         float w=Gdx.graphics.getWidth();
         title.setColor(.76f,.58f,.33f,1);layout.setText(title,"CURSED BOXES");title.draw(ui,layout,(w-layout.width)/2,h-12);
         font.setColor(.57f,.48f,.38f,1);font.getData().setScale(.72f);font.draw(ui,"F I N A L   A N S W E R",30,h-25);
-        font.getData().setScale(.8f);font.draw(ui,"ONE SPIRIT. SIXTEEN BOXES.",w-260,h-27);
+        font.getData().setScale(.8f);font.draw(ui,networkPlayer!=null?"PHONE CONTROL / TWO SHOTS":characterTest==null?"ONE SPIRIT. SIXTEEN BOXES.":"EIGHT PLAYERS. NINE SHOTS.",w-260,h-27);
+        if(networkPlayer!=null){font.setColor(.89f,.73f,.49f,1);layout.setText(font,networkPlayer);font.draw(ui,layout,(w-layout.width)/2,h-75);font.getData().setScale(.65f);layout.setText(font,networkMessage);font.draw(ui,layout,(w-layout.width)/2,h-96);}
         font.getData().setScale(.9f);font.setColor(.65f,.57f,.45f,1);
-        font.draw(ui,"CLICK select   SPACE fire   R reset   F11 fullscreen   F3 stats   Q effects   ESC return",30,28);
-        status.setLength(0);status.append("BOX ");if(selected.id<9)status.append('0');status.append(selected.id+1).append("   /   ").append(selected.state).append("   /   ").append(weaponStatus(gun,turn,selected)).append("   /   SHOTS ").append(turn.shotsRemaining()).append(" / 2");
+        font.draw(ui,networkPlayer==null?"CLICK select   SPACE fire   R reset   F11 fullscreen   F3 stats   Q effects   ESC return":"PHONE select / fire   F11 fullscreen   F3 stats   Q effects   ESC return to lobby",30,28);
+        status.setLength(0);status.append("BOX ");if(selected.id<9)status.append('0');status.append(selected.id+1).append("   /   ").append(selected.state).append("   /   ").append(weaponStatus(gun,turn,selected)).append("   /   SHOTS ").append(networkPlayer==null?turn.shotsRemaining():networkRemaining).append(" / ").append(turn.shotLimit());
         font.draw(ui,status,30,51);
         font.getData().setScale(.85f);
-        font.draw(ui,(debris.lowQuality?"LOCAL DEMO  /  LOW FX":"LOCAL DEMO  /  FULL FX"),w-215,28);
+        font.draw(ui,networkPlayer!=null?(debris.lowQuality?"MULTIPLAYER / LOW FX":"MULTIPLAYER / FULL FX"):(debris.lowQuality?"LOCAL DEMO  /  LOW FX":"LOCAL DEMO  /  FULL FX"),w-215,28);
         if(performance.visible){
             font.setColor(.92f,.82f,.6f,1);font.getData().setScale(.9f);
             status.setLength(0);status.append("FPS ").append(Gdx.graphics.getFramesPerSecond()).append("  FRAME ").append(Math.round(performance.frameMs*10)/10f).append(" ms  CPU ").append(Math.round(performance.cpuMs*10)/10f).append(" ms");
             font.draw(ui,status,28,h-85);
             status.setLength(0);status.append("DRAWS ").append(performance.draws).append("  DEBRIS ").append(debris.activeDebris()).append("  PARTICLES ").append(debris.activeParticles());font.draw(ui,status,28,h-108);
             status.setLength(0);status.append(selected.state).append("  SHOTS ").append(turn.shotsRemaining()).append("  ").append(turn.currentPlayerId);font.draw(ui,status,28,h-131);
+        }
+        // Revealed occupants carry a player nickname; intact normal boxes never disclose their content.
+        font.getData().setScale(.62f);
+        for(CrateSlot slot:slots)if(slot.character!=null&&slot.occupantNickname!=null&&(slot.previewHidden||slot.state==CrateSlot.State.DESTROYED)){
+            float alpha=1;
+            camera.project(namePosition.set(slot.position.x,slot.position.y-.66f,slot.position.z+.12f));
+            font.setColor(.025f,.012f,.005f,alpha);layout.setText(font,slot.occupantNickname);float nx=namePosition.x-layout.width*.5f,ny=namePosition.y;
+            font.draw(ui,layout,nx+1,ny-1);
+            font.setColor(.88f,.74f,.5f,alpha);layout.setText(font,slot.occupantNickname);font.draw(ui,layout,nx,ny);
+        }
+        if(characterTest!=null){
+            float x=w-365,y=h-85;
+            font.getData().setScale(.8f);font.setColor(.92f,.76f,.48f,1);
+            font.draw(ui,"CHARACTER TEST / DEVELOPER",x,y);y-=23;
+            font.draw(ui,characterTest.targetName(),x,y);y-=21;
+            font.draw(ui,characterTest.targetNickname(),x,y);y-=23;
+            for(String line:CHARACTER_KEYS){font.draw(ui,line,x,y);y-=20;}
+            if(characterTest.completed()){
+                for(String line:COMPLETION){font.draw(ui,line,x,y-3);y-=21;}
+            }else font.draw(ui,characterTest.automatic()?"AUTO / NINE SHOTS":characterTest.preview()?"INSPECTION / BOX HIDDEN":"REAL SHOT / FRONT VISIBLE",x,y-3);
         }
         ui.end();
     }
@@ -112,7 +140,7 @@ public final class CursedBoxesRenderer implements Disposable {
         return gun.aimedAt(selected)?"READY":"LIFT / AIM";
     }
     /** Submit every mesh/material/texture/effect variant, including the spent shell, before input. */
-    public void warmup(CrateSlot[] slots,GhostController ghost,DebrisSystem debris,ShotgunController gun){
+    public void warmup(CrateSlot[] slots,CursedCharacterController characters,DebrisSystem debris,ShotgunController gun){
         CursedBoxesTurn loadingTurn=new CursedBoxesTurn("loading");
         CursedBoxesPerformance loadingStats=new CursedBoxesPerformance();
         gun.warmupAudio(true);
@@ -121,11 +149,14 @@ public final class CursedBoxesRenderer implements Disposable {
             debris.impact(slots[5].position);debris.burst(slots[5].position,false);debris.burst(slots[5].position,true);debris.smoke(gun.gun.muzzle(muzzle));debris.update(0);
             for(int state=0;state<3;state+=2){
                 for(CrateSlot slot:slots)slot.state=CrateSlot.State.values()[state];
-                if(state==2)ghost.damage();
-                render(0,0,slots,slots[5],ghost,debris,gun,loadingTurn,loadingStats);
+                if(state==2)characters.damage(5);
+                render(0,0,slots,slots[5],characters,debris,gun,loadingTurn,loadingStats);
+            }
+            for(CursedCharacterType type:CursedCharacterType.values()){
+                slots[5].character=type;render(0,0,slots,slots[5],characters,debris,gun,loadingTurn,loadingStats);
             }
             gun.update(.46f,slots[5]);gun.update(.2f,slots[5]);
-            render(0,0,slots,slots[5],ghost,debris,gun,loadingTurn,loadingStats);
+            render(0,0,slots,slots[5],characters,debris,gun,loadingTurn,loadingStats);
             // Loading-only fence: driver pipeline setup must finish before the first playable frame.
             Gdx.gl.glFinish();
         }finally{gun.warmupAudio(false);loadingStats.dispose();}

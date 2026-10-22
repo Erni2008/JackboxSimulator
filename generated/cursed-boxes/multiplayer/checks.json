@@ -1,0 +1,27 @@
+{
+  "server": {
+    "tests": 128,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "browser": "PASS: two independent authenticated Chromium mobile sessions and the real native scene",
+  "viewports": [
+    "320x568",
+    "360x640",
+    "390x844",
+    "412x915",
+    "568x320",
+    "844x390",
+    "1280x800"
+  ],
+  "entry": "real lobby button",
+  "native": "four real shots, shared destruction, persistent Ghost/Voodoo, phone + host reconnect, unchanged scores, existing question UI",
+  "gameplayGL": {
+    "shaderCompiles": 0,
+    "textureUploads": 0,
+    "staticMeshUploads": 0
+  },
+  "physicalDevicesTested": false,
+  "notes": "No hidden assignment, token or private fixture report is included in this shareable report."
+}

@@ -1,0 +1,47 @@
+/* The original rendered crate, warm metal and restrained blood-red accents. No animation library. */
+body[data-controller=cursed]{background:#090609 url('/art/impostor/backgrounds/background1.png') center/cover fixed;padding: max(6px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));}
+body[data-controller=cursed] .masthead,body[data-controller=cursed] .page-footer{display:none}
+body[data-controller=cursed] main{max-width:480px;margin:0 auto;padding:12px 16px 8px;border-color:#634033;background:linear-gradient(150deg,#211219f5,#0e090df5 55%,#170d10f8);box-shadow:0 8px 38px #0008,inset 0 1px #b18b4730}
+body[data-controller=cursed] .connection{margin:0 0 9px;padding:4px 0;font-size:8px;letter-spacing:.1em}
+body[data-controller=cursed] #session-footer{margin:8px 0 0;gap:8px;border-top:1px solid #72514244;padding-top:4px;flex-wrap:nowrap}
+body[data-controller=cursed] #leave.fa-button{width:118px;min-height:30px;height:30px;aspect-ratio:auto;font-size:16px;margin:0;padding:3px 16px}
+body[data-controller=cursed] #session-code{font-size:9px}
+#cursed-screen{user-select:none;-webkit-user-select:none;touch-action:manipulation;animation:arrive .25s ease both}
+.cursed-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid #aa795d50;padding-bottom:8px;margin-bottom:10px}
+.cursed-brand{font-size:8px;letter-spacing:.27em;color:#bfa788;margin:0}
+#cursed-screen h1{font-size:clamp(26px,7.6vw,36px);margin:4px 0 0;color:#dec49e;text-shadow:0 2px 2px #000;line-height:1.05;letter-spacing:.03em}
+.cursed-identity{text-align:right;min-width:0;max-width:44%;line-height:1.35}
+#cursed-player-name{display:block;font-size:12px;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#f0dfbf}
+#cursed-player-character{font-size:9px;letter-spacing:.07em;text-transform:uppercase;color:#b39488}
+.cursed-turn{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;min-height:31px}
+#cursed-shot-counter{font-size:10px;color:#dfc79f;letter-spacing:.06em;font-weight:bold}
+#cursed-current-player{font-size:8px;text-align:right;max-width:60%;color:#b9a59a;line-height:1.5}
+.cursed-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(6px,1.9vw,10px);padding:9px;border:1px solid #7e5941;background:#090608;box-shadow:inset 0 0 24px #000a,0 0 0 3px #1b1112;margin-bottom:12px}
+button.cursed-box{display:block;position:relative;isolation:isolate;min-width:0;width:100%;min-height:49px;aspect-ratio:1.42;margin:0;padding:0;border:1px solid #816049;border-radius:2px;background:#302016 url('/art/cursed_boxes/phone/crate-intact.png') center/cover no-repeat;box-shadow:0 3px 0 #080607,inset 0 1px #dfbd8425;color:#f5dcc0;transition:transform .14s ease,box-shadow .14s ease,border-color .14s ease;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.cursed-box::after{content:'';position:absolute;inset:0;border:1px solid #0006;background:linear-gradient(160deg,#e8a65908,transparent 50%,#09050944);pointer-events:none}
+.cursed-box:not(:disabled):active{transform:translateY(2px) scale(.97);box-shadow:0 1px 0 #080607}
+.cursed-box.selected{transform:scale(1.035);border-color:#d66b64;box-shadow:0 0 0 2px #942e3c,0 0 15px #bd243f55,0 3px 0 #050405;z-index:1}
+.cursed-box:focus-visible{outline:2px solid #e2be8a;outline-offset:3px}
+.cursed-box-plate{position:absolute;z-index:1;left:4px;bottom:3px;padding:1px 3px;background:#120b0be8;box-shadow:0 1px 2px #0008;font-size:clamp(8px,2.25vw,11px);line-height:1.3;letter-spacing:.02em;color:#e6cba6;pointer-events:none}
+.cursed-box-state{display:none;position:absolute;inset:0;align-items:center;justify-content:center;z-index:2;color:#d9c1ac;font-size:clamp(6px,1.65vw,9px);letter-spacing:.02em;text-shadow:0 1px 2px #000;background:#0b070997;pointer-events:none}
+.cursed-box.destroyed{background-image:url('/art/cursed_boxes/phone/crate-destroyed.png');border-color:#3c2c29;box-shadow:inset 0 0 18px #0008}
+.cursed-box.locked .cursed-box-state,.cursed-box.destroyed .cursed-box-state{display:flex}
+.cursed-box.locked{border-color:#ad7c51}
+.cursed-box:disabled{cursor:default}.waiting-turn .cursed-box:not(.destroyed){border-color:#5a4034}
+.cursed-controls{padding:0 1px}
+#cursed-selected{font-size:9px;letter-spacing:.13em;text-align:center;margin:5px 0 7px;color:#baa694;min-height:15px}
+button.cursed-fire{position:relative;display:block;width:100%;height:62px;min-height:52px;margin:0;border:3px double #b58c66;border-radius:2px;background:linear-gradient(160deg,#86293a,#4b111f 65%,#721d2c);box-shadow:0 4px 0 #070407,inset 0 1px #f8cba125,inset 0 -6px 15px #16080d88,0 0 20px #9c18312b;color:#f8e8d0;font-family:RoadRage,Horror,sans-serif;font-size:38px;letter-spacing:.08em;line-height:1;transition:transform .13s ease,background .15s ease;touch-action:manipulation}
+.cursed-fire:not(:disabled):active{transform:translateY(3px);box-shadow:0 1px 0 #070407,inset 0 3px 16px #0007}
+.cursed-fire:disabled{background:linear-gradient(145deg,#332126,#201318);border-color:#705348;color:#917c74;box-shadow:0 3px 0 #070407,inset 0 0 12px #0005;cursor:default}
+.cursed-fire.firing{animation:cursed-recoil .23s ease-out}
+#cursed-status{font-size:9px;letter-spacing:.055em;line-height:1.5;min-height:29px;margin:12px 0 5px;text-align:center;color:#d1b7a3}
+.cursed-result{padding:9px 12px;border:1px solid #795743;border-left:3px solid #b38351;background:linear-gradient(100deg,#39221999,#100b1099);animation:arrive .25s ease-out}
+#cursed-screen .cursed-result h2{font-family:Horror,sans-serif;font-size:23px;letter-spacing:.03em;margin:0;color:#e5cca6}
+#cursed-result-detail{font-size:10px;color:#c9b3a5;margin:4px 0 0;line-height:1.4}
+@media(hover:hover){.cursed-box:not(:disabled):hover{border-color:#bb7563;box-shadow:0 0 10px #b12a342e,0 3px 0 #080607}.cursed-fire:not(:disabled):hover{background:linear-gradient(160deg,#9e3547,#661628)}}
+@media(max-width:350px){body[data-controller=cursed] main{padding:9px 9px 6px}.cursed-grid{gap:6px;padding:6px}.cursed-heading{gap:8px}.cursed-identity{max-width:42%}#cursed-player-name{font-size:10px}.cursed-turn{margin-bottom:6px}#cursed-shot-counter{font-size:8px}.cursed-fire{height:53px!important}.cursed-result{padding:6px 9px}}
+@media(orientation:portrait) and (max-height:680px){body[data-controller=cursed] main{padding-block:7px}body[data-controller=cursed] .connection{padding-block:2px;margin-bottom:5px}.cursed-heading{padding-bottom:5px;margin-bottom:5px}#cursed-screen h1{font-size:26px}.cursed-turn{min-height:23px;margin-bottom:6px}.cursed-grid{gap:6px;padding:6px;margin-bottom:8px}.cursed-box{min-height:44px!important;aspect-ratio:1.65!important}.cursed-fire{height:50px!important;min-height:48px!important}#cursed-status{margin:8px 0 3px;min-height:26px}.cursed-result{padding:6px 9px}#cursed-screen .cursed-result h2{font-size:21px}body[data-controller=cursed] #session-footer{margin-top:5px}body[data-controller=cursed] #leave.fa-button{min-height:26px;height:26px}}
+@media(orientation:landscape) and (max-height:540px){body[data-controller=cursed]{padding:max(4px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(4px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}body[data-controller=cursed] main{max-width:900px;padding:5px 14px}body[data-controller=cursed] .connection{margin-bottom:4px;font-size:7px;padding:1px 0}#cursed-screen{display:grid;grid-template-columns:minmax(220px,1fr) minmax(170px,.8fr);column-gap:22px;align-items:start}.cursed-heading{grid-column:1/-1;margin:0 0 5px;padding-bottom:5px}#cursed-screen h1{font-size:25px}.cursed-brand{font-size:7px}.cursed-turn{grid-column:2;grid-row:2;align-self:start;margin:4px 0}.cursed-grid{grid-column:1;grid-row:2/5;width:100%;max-width:370px;margin:0 auto;gap:5px;padding:6px}.cursed-box{aspect-ratio:1.65!important;min-height:38px!important}.cursed-controls{grid-column:2;grid-row:3;margin-top:0}.cursed-fire{height:55px!important}.cursed-result{grid-column:2;grid-row:4;margin-top:4px}#cursed-status{margin-top:8px;min-height:23px}body[data-controller=cursed] #session-footer{margin-top:6px}body[data-controller=cursed] #leave.fa-button{height:26px;min-height:26px}}
+@media(prefers-reduced-motion:reduce){#cursed-screen,.cursed-result,.cursed-fire.firing{animation:none}.cursed-box,.cursed-fire{transition:none}}
+body[data-reduced-motion=true] #cursed-screen,body[data-reduced-motion=true] .cursed-result,body[data-reduced-motion=true] .cursed-fire.firing{animation:none}
+@keyframes cursed-recoil{0%,100%{transform:translateY(0)}35%{transform:translateY(3px)}65%{transform:translateY(-1px)}}

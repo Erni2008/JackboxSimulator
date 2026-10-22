@@ -5,7 +5,7 @@ window.FinalAnswerButton=(()=>{
   const states=[['up','button_up.png',1774,887,[293,198,1191,483]],['hover','button_hover.png',1536,1024,[161,273,1208,452]],['pressed','button_pressed.png',1536,1024,[167,263,1198,456]]];
   const svgNS='http://www.w3.org/2000/svg';
   function enhance(button,options={}){
-    if(button.dataset.faReady)return button;button.dataset.faReady='true';button.classList.add('fa-button');
+    if(button.dataset.faReady||button.hasAttribute("data-native-button"))return button;button.dataset.faReady='true';button.classList.add('fa-button');
     const original=Array.from(button.childNodes);const label=options.label??button.textContent.trim();button.replaceChildren();
     const suspect=button.classList.contains('suspect-card');
     for(const [state,file,w,h,crop] of states){

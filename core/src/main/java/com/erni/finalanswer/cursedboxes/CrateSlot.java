@@ -10,13 +10,16 @@ public final class CrateSlot {
     public final int id;
     public final Vector3 position=new Vector3();
     public final BoundingBox pickBounds=new BoundingBox();
-    public final boolean ghost;
+    public CursedCharacterType character;
+    public String occupantNickname;
+    /** Developer inspection only; does not change state, collision, turn rules or original meshes. */
+    public boolean previewHidden;
     public boolean selected,hovered;
     public State state=State.INTACT;
     public final ModelInstance[] models=new ModelInstance[3];
     private final Matrix4[] normalized=new Matrix4[3];
     public CrateSlot(int id,CursedBoxesAssets assets,int ghostSlot){
-        this.id=id;ghost=id==ghostSlot;
+        this.id=id;
         position.set((id%4-1.5f)*2.08f,(1.5f-id/4)*1.52f,0);
         for(int i=0;i<3;i++){models[i]=CursedBoxesAssets.fit(assets.crates[i],1.82f,1.17f,.72f);normalized[i]=new Matrix4(models[i].transform);}
         pickBounds.set(new Vector3(position).add(-.94f,-.62f,-.4f),new Vector3(position).add(.94f,.62f,.42f));update(0,0);

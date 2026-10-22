@@ -35,7 +35,7 @@ public final class CageLobbyScreen extends ScreenAdapter {
     private final CageLobby cages = new CageLobby();
     private final ConnectionPanel phone;
     private final Label code, roomName, playerCount, connectedCount, status;
-    private final TextButton play, impostor;
+    private final TextButton play, impostor, cursed;
     private RoomSession displayed;
     private boolean disposed,starting,pendingStart,preloadQueued;
     private float pendingSeconds;
@@ -88,6 +88,7 @@ public final class CageLobbyScreen extends ScreenAdapter {
         play = button("PLAY", 650, style, game::showPlayScreen);
         play.setText(game.getTexts().get("lobby.start_game"));
         impostor = button("THE IMPOSTOR", 930, style, game::showImpostorLobby);
+        cursed=button("CURSED BOXES",60,style,game::startCursedBoxesMultiplayer);cursed.setWidth(390);
         button("MENU", 1210, style, game::showMainMenu);
         button("LEAVE ROOM", 1490, style, () -> { game.leaveRoom(); game.showMainMenu(); });
         blackout=new Image(solid);blackout.setBounds(0,0,1920,1080);blackout.setColor(0,0,0,0);blackout.setTouchable(com.badlogic.gdx.scenes.scene2d.Touchable.disabled);stage.addActor(blackout);
@@ -121,6 +122,7 @@ public final class CageLobbyScreen extends ScreenAdapter {
         boolean host = room != null && room.host();
         boolean ready=host && room.players().size()>=2 && room.players().stream().allMatch(p->"ONLINE".equals(p.connectionStatus()));
         lockButtons(starting||pendingStart);
+        cursed.setDisabled(starting||pendingStart||!ready);
         play.setDisabled(starting||pendingStart||!ready); impostor.setDisabled(starting||pendingStart||!host || room.players().size() < 3);
         String notice=connectionStatus;
         if(host&&!starting&&!pendingStart&&!ready){

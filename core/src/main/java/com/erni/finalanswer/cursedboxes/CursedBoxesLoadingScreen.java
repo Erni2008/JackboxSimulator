@@ -14,6 +14,7 @@ public final class CursedBoxesLoadingScreen extends InputAdapter implements Scre
     private final DisplayManager.TemporaryFullscreen display=new DisplayManager.TemporaryFullscreen();
     private final Consumer<CursedBoxesScreen> ready;
     private final Runnable back;
+    private final boolean characterTest;
     private SpriteBatch batch;
     private BitmapFont title,font;
     private Texture white;
@@ -24,7 +25,8 @@ public final class CursedBoxesLoadingScreen extends InputAdapter implements Scre
     private boolean transferred,disposed,presenting,activeScreen,rendering;
     private float age;
     private final long started=System.nanoTime();
-    public CursedBoxesLoadingScreen(Consumer<CursedBoxesScreen> ready,Runnable back){this.ready=ready;this.back=back;}
+    public CursedBoxesLoadingScreen(Consumer<CursedBoxesScreen> ready,Runnable back){this(ready,back,false);}
+    public CursedBoxesLoadingScreen(Consumer<CursedBoxesScreen> ready,Runnable back,boolean characterTest){this.ready=ready;this.back=back;this.characterTest=characterTest;}
     @Override public void show(){
         batch=new SpriteBatch();title=UiFonts.horror(46);font=UiFonts.body(18);
         Pixmap p=new Pixmap(1,1,Pixmap.Format.RGBA8888);p.setColor(Color.WHITE);p.fill();white=new Texture(p);p.dispose();
@@ -48,7 +50,7 @@ public final class CursedBoxesLoadingScreen extends InputAdapter implements Scre
         // The first loading frame reaches the compositor before any model/texture work begins.
         if(presenting||frames++==0)return;
         if(!assets.ready()){assets.loadNext();return;}
-        if(phase==0){long start=System.nanoTime();prepared=new CursedBoxesScreen(back,assets,display);Gdx.app.log("Cursed loading","Scene assembly: "+Math.round((System.nanoTime()-start)/1e6)+" ms");phase++;draw(0);return;}
+        if(phase==0){long start=System.nanoTime();prepared=new CursedBoxesScreen(back,assets,display,characterTest);Gdx.app.log("Cursed loading","Scene assembly: "+Math.round((System.nanoTime()-start)/1e6)+" ms");phase++;draw(0);return;}
         if(phase==1){long start=System.nanoTime();prepared.prepare();Gdx.app.log("Cursed loading","GPU/audio warmup: "+Math.round((System.nanoTime()-start)/1e6)+" ms");phase++;draw(0);return;}
         transferred=true;Gdx.app.log("Cursed loading","Ready after "+Math.round((System.nanoTime()-started)/1e6)+" ms across "+frames+" presented frames");ready.accept(prepared);disposeUi();
         }finally{rendering=false;}

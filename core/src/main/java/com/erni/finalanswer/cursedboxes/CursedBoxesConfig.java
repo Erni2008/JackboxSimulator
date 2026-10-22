@@ -9,6 +9,7 @@ public final class CursedBoxesConfig {
     public float debrisForwardSpeed=8.5f,debrisSideSpeed=4f;
     public int largeFragments=4,smallSplinters=7,dustClouds=2;
     public int ghostSlot=5;
+    public long characterSeed;
     public boolean lowEffects;
     public static CursedBoxesConfig load(){
         var file=Gdx.files.internal(CursedBoxesAssets.ROOT+"scene.json");

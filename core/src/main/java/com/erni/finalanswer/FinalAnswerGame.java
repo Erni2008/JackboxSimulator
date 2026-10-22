@@ -78,6 +78,36 @@ public class FinalAnswerGame extends Game {
         setScreen(cursedLoading);
     }
 
+    private com.erni.finalanswer.cursedboxes.CursedBoxesScreen networkCursed;
+    private com.erni.finalanswer.cursedboxes.CursedBoxesLoadingScreen networkCursedLoading;
+    private String networkCursedSession="";
+    public void startCursedBoxesMultiplayer(){
+        if(activeRoom==null||!activeRoom.host()||realtime==null||!realtime.connected())return;
+        var state=realtime.snapshot();if(state==null||!state.has("lobbyId"))return;
+        realtime.send("START_CURSED_BOXES",java.util.Map.of("roomCode",activeRoom.code(),"sessionId",state.get("lobbyId").getAsString()));
+    }
+    private void exitNetworkCursed(){
+        if(realtime!=null&&realtime.connected()&&!networkCursedSession.isEmpty())realtime.send("CURSED_RETURN_TO_LOBBY",java.util.Map.of("roomCode",activeRoom.code(),"sessionId",networkCursedSession));
+    }
+    private void openNetworkCursed(com.google.gson.JsonObject state){
+        String session=state.getAsJsonObject("cursedBoxes").get("sessionId").getAsString();
+        if(session.equals(networkCursedSession)&&(networkCursed!=null||networkCursedLoading!=null)){
+            var expected=networkCursed!=null?networkCursed:networkCursedLoading;if(getScreen()!=expected)setScreen(expected);return;
+        }
+        releaseNetworkCursed();networkCursedSession=session;
+        networkCursedLoading=new com.erni.finalanswer.cursedboxes.CursedBoxesLoadingScreen(scene->{
+            networkCursed=scene;networkCursedLoading=null;setScreen(scene);
+            new com.erni.finalanswer.cursedboxes.CursedBoxesMultiplayerController(scene,realtime);
+        },this::exitNetworkCursed);
+        setScreen(networkCursedLoading);
+    }
+    private void releaseNetworkCursed(){
+        if(getScreen()==networkCursed||getScreen()==networkCursedLoading){if(activeRoom!=null)showRoomLobby();else showMainMenu();}
+        if(networkCursed!=null){networkCursed.dispose();networkCursed=null;}
+        if(networkCursedLoading!=null){networkCursedLoading.dispose();networkCursedLoading=null;}
+        networkCursedSession="";
+    }
+
     private MainMenu mainMenu;
     private PlayScreen playScreen;
     private com.erni.finalanswer.screens.CageLobbyScreen cageLobbyScreen;
@@ -157,12 +187,15 @@ public class FinalAnswerGame extends Game {
         var data=event.getAsJsonObject("payload");
         if (type.equals("ROOM_CLOSED")) { leaveRoom(); showMainMenu(); return; }
         if (type.equals("ERROR")) { lobbyStatus=data.get("code").getAsString(); if(cageLobbyScreen!=null)cageLobbyScreen.startRejected(); return; }
+        if(type.equals("CURSED_ACTION_REJECTED")&&(getScreen()==cageLobbyScreen||getScreen()==networkCursedLoading)){lobbyStatus=data.get("code").getAsString();return;}
         if (!data.has("players")) return;
         activeRoom=RoomApiClient.parse(new com.badlogic.gdx.utils.JsonReader().parse(data.toString()),activeRoom.token());
         if (cageLobbyScreen != null) {
             cageLobbyScreen.synchronize(activeRoom, lobbyStatus);
             cageLobbyScreen.cages().onRoomEvent(data, realtime == null ? System.currentTimeMillis() : realtime.serverNow());
         }
+        if(activeRoom.host()&&data.has("cursedBoxes")){openNetworkCursed(data);return;}
+        if(type.equals("CURSED_BOXES_ENDED")||!networkCursedSession.isEmpty()&&!data.has("cursedBoxes"))releaseNetworkCursed();
         if(activeRoom.host() && type.equals("IMPOSTOR_LOBBY_RETURNED")){showImpostorLobby();return;}
         if(activeRoom.host() && (data.has("impostor") || data.has("impostorLobby")) && (type.equals("IMPOSTOR_STARTED") || type.equals("IMPOSTOR_REPLAY_READY") || type.equals("AUTHENTICATED"))){showImpostorLobby();return;}
         if(activeRoom.host() && data.has("phase") && data.get("phase").getAsString().equals("STARTING")){
@@ -173,7 +206,7 @@ public class FinalAnswerGame extends Game {
     }
 
     public void activateRoom(RoomSession room) {
-        releaseImpostor();
+        releaseNetworkCursed();releaseImpostor();
         if (activeRoom != null && !activeRoom.token().equals(room.token()))
             roomApi.leave(activeRoom);
         if (realtime != null) realtime.close();
@@ -186,7 +219,7 @@ public class FinalAnswerGame extends Game {
     }
 
     public void leaveRoom() {
-        releaseImpostor();
+        releaseNetworkCursed();releaseImpostor();
         roomApi.leave(activeRoom);
         if (realtime != null) { realtime.close(); realtime=null; }
         if (playScreen != null) { if (getScreen()==playScreen) showMainMenu(); playScreen.dispose(); playScreen=null; }
@@ -263,6 +296,8 @@ public class FinalAnswerGame extends Game {
         if (realtime != null) realtime.close();
         roomApi.close();hosting.close();
         super.dispose();
+        if(networkCursed!=null)networkCursed.dispose();
+        if(networkCursedLoading!=null)networkCursedLoading.dispose();
         if (cursedBoxes != null) cursedBoxes.dispose();
         if (cursedLoading != null) cursedLoading.dispose();
         if (cageLobbyScreen != null) cageLobbyScreen.dispose();
