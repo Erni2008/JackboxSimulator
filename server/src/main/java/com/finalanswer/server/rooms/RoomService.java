@@ -259,7 +259,13 @@ public final class RoomService {
             case "NEXT_READY" -> {
                 requireHost(member);
                 if(!game.resultHoldComplete(now())) throw new Failure(409,"NOT_READY");
-                game.next(now()); broadcast(room,game.phase==Phase.GAME_FINISHED?"GAME_FINISHED":"QUESTION_STARTED");
+                if(room.cursed!=null)throw new Failure(409,"CURSED_IN_PROGRESS");
+                var roster=room.members.values().stream().filter(m->m.alive&&!m.left&&game.participants.contains(m.id)).toList();
+                var hiders=roster.stream().filter(m->game.submitted.getOrDefault(m.id,-1)!=game.question().correctAnswerIndex()).map(m->m.id).collect(java.util.stream.Collectors.toSet());
+                if(!hiders.isEmpty()&&hiders.size()<roster.size()){
+                    room.cursed=new CursedBoxesSession(roster.stream().map(m->new CursedBoxesSession.Player(m.id,m.name,m.characterId)).toList(),hiders,1);
+                    broadcast(room,"CURSED_BOXES_STARTED");
+                }else{game.next(now());broadcast(room,game.phase==Phase.GAME_FINISHED?"GAME_FINISHED":"QUESTION_STARTED");}
             }
             case "SUBMIT_ANSWER" -> {
                 if(member.host||member.left||!member.alive||!game.participants.contains(member.id)) throw new Failure(403,"NOT_A_PLAYER");
@@ -289,6 +295,7 @@ public final class RoomService {
     private void cursedCommand(Room room,Member member,Peer peer,Message message){
         var data=message.payload();String type=message.type();
         Set<String> fields=switch(type){
+            case "CURSED_HIDE" -> Set.of("roomCode","sessionId","boxId");
             case "CURSED_SELECT" -> Set.of("roomCode","sessionId","turnId","boxId");
             case "CURSED_FIRE" -> Set.of("roomCode","sessionId","turnId","boxId","shotNumber");
             case "CURSED_SHOT_STARTED","CURSED_SHOT_IMPACT","CURSED_SHOT_COMPLETE" -> Set.of("roomCode","sessionId","shotId");
@@ -308,7 +315,14 @@ public final class RoomService {
         var mini=room.cursed;
         if(mini==null||!mini.id.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_CURSED_SESSION");
         if(type.equals("CURSED_RETURN_TO_LOBBY")){
-            requireHost(member);room.cursed=null;room.lobbyId=UUID.randomUUID().toString();broadcast(room,"CURSED_BOXES_ENDED");reply(peer,room,member,message);return;
+            requireHost(member);
+            if(room.game!=null){
+                if(!mini.finished())throw new Failure(409,"CURSED_IN_PROGRESS");
+                for(Member player:room.members.values())if(mini.eliminatedPlayers().contains(player.id))player.alive=false;
+                room.game.retainParticipants(room.members.values().stream().filter(m->m.alive&&!m.left).map(m->m.id).collect(java.util.stream.Collectors.toSet()));
+                room.game.next(now());
+            }else room.lobbyId=UUID.randomUUID().toString();
+            room.cursed=null;broadcast(room,"CURSED_BOXES_ENDED");reply(peer,room,member,message);return;
         }
         if(type.equals("CURSED_SCENE_READY")){
             requireHost(member);mini.ready(true,now());broadcast(room,"CURSED_BOXES_READY");reply(peer,room,member,message);return;
@@ -320,6 +334,9 @@ public final class RoomService {
         }
         if(member.host||member.left)throw new Failure(403,"NOT_A_PLAYER");
         if(room.host.peer==null)throw new Failure(409,"CURSED_NOT_READY");
+        if(type.equals("CURSED_HIDE")){
+            mini.hide(member.id,cursedNumber(data,"boxId",0,15));broadcast(room,"CURSED_HIDING_UPDATED");reply(peer,room,member,message);return;
+        }
         int turn=cursedNumber(data,"turnId",1,8),box=cursedNumber(data,"boxId",0,15);
         if(type.equals("CURSED_SELECT")){
             mini.select(member.id,turn,box);broadcast(room,"CURSED_SELECTION_UPDATED");reply(peer,room,member,message);
@@ -404,7 +421,7 @@ public final class RoomService {
                 }
             } else if(mini.tick(now()))broadcast(room,"SUSPICION_FINALIZED");
         }
-        GameSession game=room.game; if(game==null || game.phase==Phase.GAME_FINISHED) return;
+        GameSession game=room.game; if(room.cursed!=null || game==null || game.phase==Phase.GAME_FINISHED) return;
         if(game.phase==Phase.STARTING && now()>=game.phaseStartedAt+Protocol.LOBBY_TRANSITION_MILLIS){
             // The start roster is frozen. Reconnecting members retain their original seat.
             game.next(game.phaseStartedAt+Protocol.LOBBY_TRANSITION_MILLIS);broadcast(room,"QUESTION_STARTED");

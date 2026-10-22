@@ -20,7 +20,7 @@ public final class GameSession {
     public GameSession(int count, Set<String> participants, EndPolicy policy, long now) {
         if(count<1 || count>12) throw new IllegalArgumentException("INVALID_QUESTION_COUNT");
         this.questions=List.copyOf(catalog().subList(0,count));
-        this.participants=Set.copyOf(participants); this.endPolicy=policy; phaseStartedAt=now;
+        this.participants=new LinkedHashSet<>(participants); this.endPolicy=policy; phaseStartedAt=now;
     }
     public Question question() { return index < 0 ? null : questions.get(index); }
     public void next(long now) {
@@ -37,6 +37,7 @@ public final class GameSession {
         if(phase!=Phase.ANSWERING) return;
         endedAt=Math.min(now,deadline); change(Phase.REVEALING,endedAt);
     }
+    public void retainParticipants(Set<String> alive){participants.retainAll(alive);}
     public boolean allSubmitted() { return submitted.keySet().containsAll(participants); }
     public void reveal(long now) {
         if(phase!=Phase.REVEALING || now<endedAt+Protocol.CLOCK_EXIT_MILLIS) throw new IllegalStateException("NOT_READY");

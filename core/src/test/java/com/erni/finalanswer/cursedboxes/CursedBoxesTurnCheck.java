@@ -17,6 +17,12 @@ public final class CursedBoxesTurnCheck {
             check(Integer.bitCount(turn.destroyedCrateIds())==2,"Exactly two distinct boxes");
             turn.reset();
         }
-        System.out.println("PASS: 20 resets, two distinct shots, active-shot exclusion, destroyed-slot rejection, turn completion and reset");
+        turn.multiplayerLimit(1);turn.synchronize("correct-player",1,0);
+        check(turn.shotLimit()==1&&turn.select(10)&&turn.begin(),"Trivia shooter has one shot");
+        check(turn.shotsRemaining()==0,"Single cartridge reserved");turn.complete();
+        check(turn.ended()&&!turn.select(11)&&!turn.begin(),"No second shot for correct respondent");
+        turn.synchronize("next-correct-player",1,1<<10);
+        check(turn.select(11)&&turn.begin(),"Next correct respondent gets their own shot");turn.complete();
+        System.out.println("PASS: 20 resets, two distinct shots, active-shot exclusion, destroyed-slot rejection, turn completion/reset and one-shot trivia synchronization");
     }
 }

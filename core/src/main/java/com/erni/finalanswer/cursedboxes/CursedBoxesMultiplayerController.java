@@ -22,13 +22,15 @@ public final class CursedBoxesMultiplayerController implements AutoCloseable {
         this.scene=scene;this.connection=connection;
         JsonObject root=connection.snapshot();state=root.getAsJsonObject("cursedBoxes");sessionId=state.get("sessionId").getAsString();roomCode=root.get("code").getAsString();
         if(!root.get("host").getAsBoolean()||!state.has("hostContents"))throw new IllegalStateException("Only authenticated host may render hidden contents");
-        scene.multiplayer(this);
+        scene.multiplayer(this);scene.networkRules(state.get("shotLimit").getAsInt());
         for(CrateSlot box:scene.slots){box.character=null;box.occupantNickname=null;box.occupantPlayerId=null;}
+        connection.addEventListener(listener);apply();send("CURSED_SCENE_READY",Map.of());
+    }
+    private void applyContents(){
         for(JsonElement element:state.getAsJsonArray("hostContents")){
             var person=element.getAsJsonObject();CrateSlot box=scene.slots[person.get("boxId").getAsInt()];
             box.character=CursedCharacterType.valueOf(person.get("characterId").getAsString().toUpperCase(Locale.ROOT));box.occupantNickname=person.get("nickname").getAsString();box.occupantPlayerId=person.get("playerId").getAsString();
         }
-        connection.addEventListener(listener);apply();send("CURSED_SCENE_READY",Map.of());
     }
     private void send(String type,Map<String,?> extra){
         if(!connection.connected())return;
@@ -52,11 +54,12 @@ public final class CursedBoxesMultiplayerController implements AutoCloseable {
         scene.networkSurvivors(mask,Math.max(0,(connection.serverNow()-state.get("revealStartedAt").getAsLong())/1000f),t);
     }
     private void apply(){
+        applyContents();
         int destroyed=state.get("destroyedCrateIds").getAsInt();
         for(int i=0;i<16;i++)if((destroyed&(1<<i))!=0)scene.networkReveal(i);
         applyReveal();
         String player=state.get("activePlayerName").getAsString();
-        String status=!connection.connected()?"RECONNECTING — SHOTS SAVED":!state.get("hostReady").getAsBoolean()?"PREPARING / RESTORING THE GALLERY":!state.get("activePlayerOnline").getAsBoolean()?"WAITING FOR PLAYER TO RECONNECT":state.get("phase").getAsString().equals("REVEALING")?"SURVIVOR REVEAL / WATCH THE SHELF":state.get("phase").getAsString().equals("FINISHED")?"SURVIVORS REVEALED / ESC RETURN TO LOBBY":state.has("pendingShot")?"FIRING — WATCH THE TARGET":"SELECT A BOX ON YOUR PHONE";
+        String status=!connection.connected()?"RECONNECTING — SHOTS SAVED":!state.get("hostReady").getAsBoolean()?"PREPARING / RESTORING THE GALLERY":!state.get("activePlayerOnline").getAsBoolean()?"WAITING FOR PLAYER TO RECONNECT":state.get("phase").getAsString().equals("REVEALING")?"SURVIVOR REVEAL / WATCH THE SHELF":state.get("phase").getAsString().equals("FINISHED")?"SURVIVORS REVEALED / ESC RETURN TO LOBBY":state.get("phase").getAsString().equals("HIDING_SELECTION")?"HIDING PLAYERS / CHOOSE YOUR SECRET BOX":state.has("pendingShot")?"FIRING — WATCH THE TARGET":"SELECT A BOX ON YOUR PHONE";
         int remaining=state.get("shotsRemaining").getAsInt();
         if(!player.equals(lastPlayer)||!status.equals(lastStatus)||remaining!=lastRemaining){lastPlayer=player;lastStatus=status;lastRemaining=remaining;scene.networkStatus(player,status,remaining);}
     }
@@ -67,6 +70,7 @@ public final class CursedBoxesMultiplayerController implements AutoCloseable {
         if(!state.get("hostReady").getAsBoolean()){
             if(readyRetry>=1){readyRetry=0;send("CURSED_SCENE_READY",Map.of());}return;
         }
+        if(!state.get("hidingLocked").getAsBoolean())return;
         if(state.has("pendingShot")){
             JsonObject job=state.getAsJsonObject("pendingShot");String id=job.get("id").getAsString();
             if(!id.equals(localShot)){

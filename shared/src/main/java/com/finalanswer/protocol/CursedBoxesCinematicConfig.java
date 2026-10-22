@@ -2,7 +2,7 @@ package com.finalanswer.protocol;
 
 /** Shared timing contract. All values are seconds, independent of frame rate. */
 public final class CursedBoxesCinematicConfig {
-    public int boxCount=7;
+    public int boxCount=16;
     public float introDuration=.8f,selectionDuration=30,selectionLockedHold=1.2f;
     public float hostSubtitleFadeIn=.25f,hostSubtitleFallbackDuration=2.8f;
     public float cameraMoveToBox=.75f,identificationDuration=1.2f;
@@ -12,7 +12,7 @@ public final class CursedBoxesCinematicConfig {
     public float revealPreparationDuration=.65f,panelFadeDuration=1,revealHoldDuration=1.2f;
     public float resultHoldDuration=1.25f,nextBoxTransitionDuration=.55f,finalResultsDuration=3;
     public void validate(){
-        if(boxCount!=7)throw new IllegalArgumentException("Cinematic Cursed Boxes requires seven boxes");
+        if(boxCount!=16)throw new IllegalArgumentException("Cinematic Cursed Boxes requires sixteen boxes");
         for(float value:new float[]{introDuration,selectionDuration,selectionLockedHold,hostSubtitleFadeIn,hostSubtitleFallbackDuration,cameraMoveToBox,identificationDuration,firstBoxAimDuration,normalBoxAimDuration,lastBoxAimDuration,firstBoxSuspense,normalBoxSuspense,lastBoxSuspense,shotCameraRecoilDuration,impactPresentationDuration,revealPreparationDuration,panelFadeDuration,revealHoldDuration,resultHoldDuration,nextBoxTransitionDuration,finalResultsDuration})
             if(!Float.isFinite(value)||value<=0||value>120)throw new IllegalArgumentException("Invalid Cursed Boxes cinematic duration");
     }

@@ -17,6 +17,10 @@ public final class CursedBoxesSession {
     }
     public final String id=UUID.randomUUID().toString();
     private final List<Player> players;
+    private final int shotLimit;
+    private final Set<String> hidingPlayers;
+    private final Map<String,Integer> hidingChoices=new HashMap<>();
+    private boolean hidingLocked;
     private final Map<Integer,Player> contents=new HashMap<>();
     private final Map<String,Shot> accepted=new HashMap<>();
     private final int[] remaining,selections,personalHits;
@@ -29,13 +33,36 @@ public final class CursedBoxesSession {
     private int survivorMask,publicSurvivors;
     private String notice="";
     private Shot pending;
-    public CursedBoxesSession(List<Player> roster,Random random){
-        if(roster.size()<2||roster.size()>8||roster.stream().map(Player::id).distinct().count()!=roster.size())throw new Failure(400,"INVALID_CURSED_ROSTER");
-        players=List.copyOf(roster);remaining=new int[players.size()];selections=new int[players.size()];personalHits=new int[players.size()];
-        Arrays.fill(remaining,CursedBoxesProtocol.SHOTS_PER_PLAYER);Arrays.fill(selections,-1);
-        var boxes=new ArrayList<Integer>();for(int i=0;i<16;i++)boxes.add(i);Collections.shuffle(boxes,random);
-        for(int i=0;i<players.size();i++)contents.put(boxes.get(i),players.get(i));
+    /** Standalone practice: first joined player hides, the others shoot. No hidden location is generated. */
+    public CursedBoxesSession(List<Player> roster,Random unused){this(roster,roster.isEmpty()?Set.of():Set.of(roster.getFirst().id()));}
+    public CursedBoxesSession(List<Player> roster,Set<String> hidingIds){this(roster,hidingIds,2);}
+    public CursedBoxesSession(List<Player> roster,Set<String> hidingIds,int shotLimit){
+        if(shotLimit<1||shotLimit>2)throw new Failure(400,"INVALID_SHOT_LIMIT");
+        this.shotLimit=shotLimit;
+        if(roster.size()<2||roster.size()>8||roster.stream().map(Player::id).distinct().count()!=roster.size()
+            ||hidingIds.isEmpty()||hidingIds.size()>=roster.size()||!roster.stream().map(Player::id).toList().containsAll(hidingIds))throw new Failure(400,"INVALID_CURSED_ROSTER");
+        players=List.copyOf(roster);hidingPlayers=Set.copyOf(hidingIds);
+        remaining=new int[players.size()];selections=new int[players.size()];personalHits=new int[players.size()];
+        Arrays.fill(selections,-1);
+        for(int i=0;i<players.size();i++)if(!hidingPlayers.contains(players.get(i).id()))remaining[i]=shotLimit;
+        while(remaining[active]==0)active++;
     }
+    /** Confirmation is final and idempotent. Only the owner and authenticated renderer see this mapping. */
+    public void hide(String player,int box){
+        int owner=index(player);
+        if(!hidingPlayers.contains(player))throw new Failure(403,"NOT_HIDING_PLAYER");
+        Integer prior=hidingChoices.get(player);
+        if(prior!=null){if(prior==box)return;throw new Failure(409,"HIDING_ALREADY_CONFIRMED");}
+        if(eliminated.contains(player))throw new Failure(403,"NOT_A_PLAYER");
+        if(hidingLocked||finished)throw new Failure(409,"HIDING_LOCKED");
+        if(!ready)throw new Failure(409,"CURSED_NOT_READY");
+        intact(box);
+        if(contents.containsKey(box))throw new Failure(409,"HIDING_BOX_UNAVAILABLE");
+        hidingChoices.put(player,box);contents.put(box,players.get(owner));
+        lockHidingIfComplete();
+    }
+    private void lockHidingIfComplete(){hidingLocked=hidingPlayers.stream().allMatch(p->hidingChoices.containsKey(p)||eliminated.contains(p));}
+    public Set<String> eliminatedPlayers(){return Set.copyOf(eliminated);}
     public boolean finished(){return finished&&revealCompleted;}
     private void beginReveal(long now){
         if(!finished||revealStartedAt!=0)return;
@@ -45,12 +72,14 @@ public final class CursedBoxesSession {
     }
     public boolean ready(){return ready;}
     public Shot pending(){return pending;}
-    public String activeId(){return finished?"":players.get(active).id();}
+    public String activeId(){return finished||!hidingLocked?"":players.get(active).id();}
     public int destroyedMask(){return destroyed;}
     public void ready(boolean value,long now){if(value&&!ready&&pending!=null)pending.waitSince=now;ready=value;if(value)notice="";}
     private int index(String player){for(int i=0;i<players.size();i++)if(players.get(i).id().equals(player))return i;throw new Failure(403,"NOT_A_PLAYER");}
     private void eligible(String player,int turn){
-        index(player);if(finished)throw new Failure(409,"CURSED_FINISHED");
+        index(player);if(!hidingLocked)throw new Failure(409,"HIDING_NOT_LOCKED");
+        if(hidingPlayers.contains(player))throw new Failure(403,"NOT_SHOOTING_PLAYER");
+        if(finished)throw new Failure(409,"CURSED_FINISHED");
         if(!ready)throw new Failure(409,"CURSED_NOT_READY");
         if(!activeId().equals(player))throw new Failure(403,"NOT_YOUR_TURN");
         if(turn!=active+1)throw new Failure(409,"STALE_CURSED_TURN");
@@ -64,7 +93,7 @@ public final class CursedBoxesSession {
         if(prior!=null){if(prior.boxId!=box||prior.number!=number||prior.turn!=turn)throw new Failure(409,"REQUEST_ID_REUSED");return prior;}
         eligible(player,turn);intact(box);
         if((personalHits[active]&(1<<box))!=0)throw new Failure(409,"BOX_ALREADY_SHOT");
-        if(number!=3-remaining[active])throw new Failure(409,"STALE_CURSED_SHOT");
+        if(number!=shotLimit+1-remaining[active])throw new Failure(409,"STALE_CURSED_SHOT");
         if(selections[active]!=box)throw new Failure(409,"BOX_NOT_SELECTED");
         Shot shot=new Shot(request,player,box,number,turn,now);pending=shot;accepted.put(key,shot);
         // One durable reservation per accepted request; retries never consume another cartridge.
@@ -93,17 +122,18 @@ public final class CursedBoxesSession {
         if(remaining[active]==0)next();
         beginReveal(now);
     }
-    private void next(){active++;if(active>=players.size())finished=true;}
+    private void next(){do{active++;}while(active<players.size()&&remaining[active]==0);if(active>=players.size())finished=true;}
     /** A disconnected player keeps their seat/ammo; an explicit leaver forfeits only unspent turns. */
     public boolean tick(long now,Set<String> left){
         boolean changed=false;
         if(!finished)eliminated.addAll(left);
+        if(!hidingLocked){boolean before=hidingLocked;lockHidingIfComplete();changed=before!=hidingLocked;}
         if(finished&&!revealCompleted&&now>=revealEndsAt){revealCompleted=true;changed=true;}
         if(pending!=null&&ready&&now-pending.waitSince>=CursedBoxesProtocol.START_TIMEOUT_MILLIS){
             // Pause rather than discard an accepted shot when the host is unavailable.
             ready=false;notice="HOST_SCENE_PAUSED";changed=true;
         }
-        while(!finished&&pending==null&&left.contains(activeId())){next();changed=true;}
+        while(hidingLocked&&!finished&&pending==null&&left.contains(activeId())){next();changed=true;}
         beginReveal(now);
         if(finished){int visible=(int)Math.max(0,Math.min(Integer.bitCount(survivorMask),Math.floor((now-revealStartedAt-(revealTimings.anticipation+revealTimings.smoke)*1000)/(revealTimings.period()*1000))+1));if(visible!=publicSurvivors){publicSurvivors=visible;changed=true;}}
         return changed;
@@ -116,14 +146,18 @@ public final class CursedBoxesSession {
     }
     public Map<String,Object> snapshot(String self,boolean host,boolean hostOnline,Set<String> online,long now){
         Map<String,Object> value=new LinkedHashMap<>();
-        String phase=finished?(revealCompleted?"FINISHED":"REVEALING"):!ready?"PREPARING":pending!=null?"FIRING":"SELECTING";
-        boolean activeOnline=finished||online.contains(activeId());
+        String phase=finished?(revealCompleted?"FINISHED":"REVEALING"):!ready?"PREPARING":!hidingLocked?"HIDING_SELECTION":pending!=null?"FIRING":"SELECTING";
+        boolean activeOnline=finished||!hidingLocked||online.contains(activeId());
         value.put("sessionId",id);value.put("phase",phase);value.put("turnId",active+1);value.put("turnOrder",players.stream().map(Player::id).toList());
-        value.put("activePlayerId",activeId());value.put("activePlayerName",finished?"":players.get(active).nickname());
+        value.put("activePlayerId",activeId());value.put("activePlayerName",finished||!hidingLocked?"":players.get(active).nickname());
         value.put("hostReady",ready&&hostOnline);value.put("activePlayerOnline",activeOnline);value.put("notice",notice);
         value.put("canAct",!host&&!finished&&self.equals(activeId())&&hostOnline&&activeOnline&&ready&&pending==null&&remaining[active]>0);
         int own=-1;for(int i=0;i<players.size();i++)if(players.get(i).id().equals(self))own=i;
-        value.put("shotsRemaining",own<0?0:remaining[own]);value.put("shotLimit",2);value.put("selectedCrateId",own<0?-1:selections[own]);
+        value.put("role",hidingPlayers.contains(self)?"HIDING":own>=0?"SHOOTING":"SPECTATOR");
+        value.put("hidingLocked",hidingLocked);
+        value.put("canHide",!host&&hidingPlayers.contains(self)&&!hidingLocked&&!hidingChoices.containsKey(self)&&!eliminated.contains(self)&&ready&&hostOnline);
+        if(hidingPlayers.contains(self)){value.put("hidingConfirmed",hidingChoices.containsKey(self));value.put("hidingBoxId",hidingChoices.getOrDefault(self,-1));}
+        value.put("shotsRemaining",own<0?0:remaining[own]);value.put("shotLimit",shotLimit);value.put("selectedCrateId",own<0?-1:selections[own]);
         value.put("destroyedCrateIds",destroyed);
         List<Map<String,Object>> boxes=new ArrayList<>();
         for(int box=0;box<16;box++){
@@ -141,7 +175,7 @@ public final class CursedBoxesSession {
                 if(host||now>=visibleAt){Player p=contents.get(box);survivors.add(Map.of("boxId",box,"playerId",p.id(),"nickname",p.nickname(),"characterId",p.characterId()));}
             }
             value.put("survivors",survivors);
-            value.put("outcomes",players.stream().map(p->Map.of("playerId",p.id(),"survived",!eliminated.contains(p.id()))).toList());
+            value.put("outcomes",players.stream().filter(p->hidingPlayers.contains(p.id())).map(p->Map.of("playerId",p.id(),"survived",!eliminated.contains(p.id()))).toList());
         }
         value.put("boxes",boxes);Shot last=lastResults.get(self);if(last!=null)value.put("lastResult",result(last));
         if(pending!=null){

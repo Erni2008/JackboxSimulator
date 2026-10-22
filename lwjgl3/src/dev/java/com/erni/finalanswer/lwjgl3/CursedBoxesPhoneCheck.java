@@ -18,6 +18,7 @@ import java.util.concurrent.*;
 /** Real room server + existing desktop + browser phones. Test-only local files, never an admin HTTP route. */
 public final class CursedBoxesPhoneCheck {
     private static Throwable failure;
+    private static final boolean FULL_ROUND=Boolean.getBoolean("cursed.phone.fullRound");
     private static void check(boolean ok,String message){if(!ok)throw new AssertionError(message);}
     public static void main(String[] args)throws Exception{
         com.erni.finalanswer.lwjgl3.display.DesktopBorderless.install();
@@ -26,10 +27,10 @@ public final class CursedBoxesPhoneCheck {
         var rooms=new RoomService();var server=new RoomServer(new ServerConfig("127.0.0.1",0,"",Set.of(),"",10),rooms).start();
         String url="http://127.0.0.1:"+server.port();var host=JsonParser.parseString(rooms.create(Map.of("name","CURSED BOXES / PHONE CHECK","maxPlayers","8"))).getAsJsonObject();
         String code=host.get("code").getAsString(),token=host.get("token").getAsString();
-        var config=new Lwjgl3ApplicationConfiguration();config.setTitle("FINAL ANSWER — CURSED BOXES / PHONE CHECK");config.setWindowedMode(1280,800);config.useVsync(true);config.setForegroundFPS(60);
+        var config=new Lwjgl3ApplicationConfiguration();config.setTitle(FULL_ROUND?"FINAL ANSWER — FULL ROUND / 2 HIDERS + 2 SHOOTERS":"FINAL ANSWER — CURSED BOXES / PHONE CHECK");config.setWindowedMode(1280,800);config.useVsync(true);config.setForegroundFPS(60);
         config.setPreferencesConfig(directory.resolve("preferences").toString(),com.badlogic.gdx.Files.FileType.Absolute);
         try{new Lwjgl3Application(new FinalAnswerGame(HostingAccess.external(url)){
-            String processed="";double elapsed;float poll,startWait;boolean rendering,finished;int impacts,reactions,checkedFrames;
+            String processed="";double elapsed;float poll,startWait;boolean rendering,finished;int impacts,reactions,checkedFrames,flashFrames,reloadFrames;
             CursedBoxesPerformanceCheck.AuditGL audit;
             final ExecutorService snapshots=Executors.newSingleThreadExecutor();
             Future<?> snapshot;
@@ -40,8 +41,9 @@ public final class CursedBoxesPhoneCheck {
             }catch(Throwable e){failure=e;Gdx.app.exit();}}
             JsonObject inspect(){
                 JsonObject report=new JsonObject();var root=getRealtime()==null?null:getRealtime().snapshot();if(root!=null)report.add("state",root);
-                report.addProperty("impactMask",impacts);report.addProperty("reactionMask",reactions);report.addProperty("renderChecks",checkedFrames);
+                report.addProperty("screen",getScreen().getClass().getSimpleName());report.addProperty("impactMask",impacts);report.addProperty("reactionMask",reactions);report.addProperty("renderChecks",checkedFrames);report.addProperty("flashFrames",flashFrames);report.addProperty("reloadFrames",reloadFrames);
                 if(getScreen() instanceof CursedBoxesScreen scene){
+                    var cues=new JsonObject();for(var cue:CursedBoxesSoundManager.Cue.values())cues.addProperty(cue.name(),scene.sounds().playCount(cue));report.add("soundCues",cues);report.addProperty("mechanism",scene.mechanismState().name());report.addProperty("flash",scene.muzzleFlashIntensity());
                     report.addProperty("soundShots",scene.sounds().playCount(CursedBoxesSoundManager.Cue.SHOT));report.addProperty("soundWood",scene.sounds().playCount(CursedBoxesSoundManager.Cue.WOOD_BREAK));report.addProperty("soundReload",scene.sounds().playCount(CursedBoxesSoundManager.Cue.MECHANISM));report.addProperty("soundInsertion",scene.sounds().playCount(CursedBoxesSoundManager.Cue.INSERT_ROUND));report.addProperty("soundHeartbeat",scene.sounds().heartbeatActive());report.addProperty("survivorState",scene.survivorTimeline().state().name());report.addProperty("survivorMask",scene.survivorTimeline().mask());report.addProperty("nativeReady",true);report.addProperty("selected",scene.selected());report.addProperty("gun",scene.weaponState().name());report.addProperty("models",scene.loadedModels());report.addProperty("turnLimit",scene.turn.shotLimit());report.addProperty("developerTest",scene.characterTest()!=null);
                     var slots=new JsonArray();for(CrateSlot box:scene.slots){var value=new JsonObject();value.addProperty("id",box.id);value.addProperty("state",box.state.name());value.addProperty("survivorOpening",box.survivorOpening);value.addProperty("panelOpacity",box.survivorPanelOpacity);value.addProperty("pose",scene.characterState(box.id).name());if(box.character!=null){value.addProperty("characterId",box.character.name().toLowerCase(Locale.ROOT));value.addProperty("nickname",box.occupantNickname);}slots.add(value);}report.add("slots",slots);
                 }else report.addProperty("nativeReady",false);
@@ -81,12 +83,13 @@ public final class CursedBoxesPhoneCheck {
             }
             @Override public void render(){if(rendering||failure!=null)return;rendering=true;try{
                 boolean sceneBefore=getScreen() instanceof CursedBoxesScreen;
-                if(sceneBefore)((CursedBoxesScreen)getScreen()).sounds().levels.master=.12f;
+                if(sceneBefore)((CursedBoxesScreen)getScreen()).sounds().levels.master=FULL_ROUND?.65f:.12f;
                 if(sceneBefore&&audit==null){audit=new CursedBoxesPerformanceCheck.AuditGL();Gdx.graphics.setGL20(audit);Gdx.gl=Gdx.gl20=audit;}
                 if(audit!=null)audit.clear();super.render();elapsed+=Gdx.graphics.getDeltaTime();poll+=Gdx.graphics.getDeltaTime();
-                if(elapsed>600)throw new AssertionError("Phone fixture timed out");
+                if(!FULL_ROUND&&elapsed>600)throw new AssertionError("Phone fixture timed out");
                 if(sceneBefore&&getScreen() instanceof CursedBoxesScreen scene){
-                    check(scene.characterTest()==null&&scene.turn.shotLimit()==2,"Developer nine-shot mode entered multiplayer");
+                    if(scene.muzzleFlashIntensity()>0)flashFrames++;if(scene.mechanismState()==com.erni.finalanswer.shotgun.ShotgunAnimator.State.RELOAD)reloadFrames++;
+                    check(scene.characterTest()==null&&scene.turn.shotLimit()==(FULL_ROUND?1:2),"Developer nine-shot mode entered multiplayer");
                     check(scene.loadedModels()==11,"Shared models lost");check(scene.sounds().loaded()==8,"Missing preloaded WAVs");check(audit.compiles==0&&audit.uploads==0&&audit.staticBuffers==0,"Runtime GL loading during multiplayer render");checkedFrames++;
                     var root=getRealtime().snapshot();var mini=root.getAsJsonObject("cursedBoxes");if(mini!=null){
                         int mask=mini.get("destroyedCrateIds").getAsInt();
@@ -102,7 +105,7 @@ public final class CursedBoxesPhoneCheck {
                 if(poll>=.1f){poll=0;controls();}
                 if(Gdx.gl.glGetError()!=GL20.GL_NO_ERROR)throw new AssertionError("OpenGL error");
             }catch(Throwable e){failure=e;Gdx.app.exit();}finally{rendering=false;}}
-            @Override public void dispose(){try{super.dispose();snapshots.shutdown();if(snapshot!=null)snapshot.get(15,TimeUnit.SECONDS);if(!finished&&failure==null)failure=new AssertionError("Fixture closed before browser check finished");}catch(Throwable e){failure=e;}}
+            @Override public void dispose(){try{super.dispose();snapshots.shutdown();if(snapshot!=null)snapshot.get(15,TimeUnit.SECONDS);if(!FULL_ROUND&&!finished&&failure==null)failure=new AssertionError("Fixture closed before browser check finished");}catch(Throwable e){failure=e;}}
         },config);}finally{server.close();}
         if(failure!=null)throw new AssertionError("Cursed phone/native integration",failure);
         java.nio.file.Files.writeString(directory.resolve("cleanup.json"),ProtocolJson(Map.of("passed",true,"portReleased",true)));

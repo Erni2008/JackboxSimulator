@@ -52,7 +52,28 @@ class TransportTest {
                     assertEquals(2,results.getAsJsonArray("results").size());
                     long correct=java.util.stream.StreamSupport.stream(results.getAsJsonArray("results").spliterator(),false).filter(r->r.getAsJsonObject().get("isCorrect").getAsBoolean()).count();
                     assertEquals(1,correct);
-                    time.addAndGet(3100);h.send("NEXT_READY",fields);assertEquals(2,h.await("QUESTION_STARTED").get("questionNumber").getAsInt());
+                    time.addAndGet(3100);h.send("NEXT_READY",fields);
+                    var started=h.await("CURSED_BOXES_STARTED");var mini=started.getAsJsonObject("cursedBoxes");
+                    var hiding=b.await("CURSED_BOXES_STARTED").getAsJsonObject("cursedBoxes");
+                    assertEquals("HIDING",hiding.get("role").getAsString());
+                    assertEquals("SHOOTING",replacement.await("CURSED_BOXES_STARTED").getAsJsonObject("cursedBoxes").get("role").getAsString());
+                    Map<String,Object> baseFields=Map.of("roomCode",code,"sessionId",mini.get("sessionId").getAsString());
+                    h.send("CURSED_SCENE_READY",baseFields);h.await("CURSED_BOXES_READY");b.await("CURSED_BOXES_READY");replacement.await("CURSED_BOXES_READY");
+                    var hideFields=new HashMap<>(baseFields);hideFields.put("boxId",15);b.send("CURSED_HIDE",hideFields);
+                    var locked=h.await("CURSED_HIDING_UPDATED").getAsJsonObject("cursedBoxes");
+                    assertTrue(locked.get("hidingLocked").getAsBoolean());assertEquals(15,locked.getAsJsonArray("hostContents").get(0).getAsJsonObject().get("boxId").getAsInt());
+                    for(int shotNumber=1;shotNumber<=1;shotNumber++){
+                        var target=new HashMap<>(baseFields);target.put("turnId",locked.get("turnId").getAsInt());target.put("boxId",shotNumber-1);
+                        replacement.send("CURSED_SELECT",target);replacement.await("CURSED_SELECTION_UPDATED");target.put("shotNumber",shotNumber);replacement.send("CURSED_FIRE",target);
+                        var job=h.await("CURSED_SHOT_QUEUED").getAsJsonObject("cursedBoxes").getAsJsonObject("pendingShot");
+                        var stageFields=new HashMap<>(baseFields);stageFields.put("shotId",job.get("id").getAsString());
+                        h.send("CURSED_SHOT_STARTED",stageFields);h.await("CURSED_SHOT_STARTED");time.addAndGet(30);
+                        h.send("CURSED_SHOT_IMPACT",stageFields);h.await("CURSED_BOX_REVEALED");time.addAndGet(1070);
+                        h.send("CURSED_SHOT_COMPLETE",stageFields);h.await("CURSED_SHOT_RESOLVED");
+                    }
+                    time.addAndGet(5000);rooms.tick();var finished=h.await("CURSED_BOXES_UPDATED").getAsJsonObject("cursedBoxes");
+                    assertEquals(1,finished.get("survivorCount").getAsInt());
+                    h.send("CURSED_RETURN_TO_LOBBY",baseFields);assertEquals(2,h.await("CURSED_BOXES_ENDED").get("questionNumber").getAsInt());
                 }
             }
         }

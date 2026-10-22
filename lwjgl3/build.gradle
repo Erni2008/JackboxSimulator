@@ -805,3 +805,16 @@ tasks.register('cursedSurvivors', JavaExec) {
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
+
+// Full trivia -> two hiders/two one-shot shooters -> survivor reveal. Leaves the native viewer open.
+tasks.register('cursedBoxesFullRoundCheck', JavaExec) {
+    group = 'verification'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.CursedBoxesPhoneCheck'
+    workingDir = rootProject.file('assets')
+    systemProperty 'cursed.phone.dir', layout.buildDirectory.dir('cursed-full-round').get().asFile.absolutePath
+    systemProperty 'cursed.phone.fullRound', 'true'
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}

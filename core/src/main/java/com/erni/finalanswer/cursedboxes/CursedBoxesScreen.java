@@ -46,6 +46,8 @@ public final class CursedBoxesScreen extends InputAdapter implements Screen {
     public boolean ghostWounded(){return characters.wounded(config.ghostSlot);}
     public CursedCharacterTestMode characterTest(){return characterTest;}
     public CursedCharacterController.State characterState(int slot){return characters.state(slot);}
+    public com.erni.finalanswer.shotgun.ShotgunAnimator.State mechanismState(){return shotgun.gun.animator.state();}
+    public float muzzleFlashIntensity(){return shotgun.gun.animator.flash();}
     public ShotgunController.State weaponState(){return shotgun.state();}
     public boolean aimedAtSelected(){return shotgun.aimedAt(slots[selected]);}
     public int activeDebris(){return debris.activeDebris();}
@@ -70,6 +72,7 @@ public final class CursedBoxesScreen extends InputAdapter implements Screen {
         if(characterTest!=null)throw new IllegalStateException("Nine-shot developer test cannot join multiplayer");
         multiplayer=controller;reset();
     }
+    public void networkRules(int limit){turn.multiplayerLimit(limit);shotgun.cinematicReload(limit==1);}
     public void networkTurn(String player,int remaining,int destroyed,int selection){
         if(networkBusy())return;
         turn.synchronize(player,remaining,destroyed);
@@ -124,7 +127,7 @@ public final class CursedBoxesScreen extends InputAdapter implements Screen {
             if(slot.character!=null)characters.damage(slot.id);
             if(multiplayer!=null)multiplayer.shotImpacted();
         }
-        if(shotAge>=config.shotDuration){
+        if(shotAge>=config.shotDuration&&shotgun.cycleSettled()){
             turn.complete();slots[selected].selected=false;
             if(turn.shotsRemaining()==0)shotgun.returnToTable();
             if(multiplayer!=null)multiplayer.shotCompleted();

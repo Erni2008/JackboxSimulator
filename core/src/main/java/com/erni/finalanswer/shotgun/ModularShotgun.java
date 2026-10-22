@@ -20,6 +20,8 @@ public final class ModularShotgun implements RenderableProvider {
     private final Scene ejected;
     private final com.badlogic.gdx.math.collision.BoundingBox shellLocalBounds=new com.badlogic.gdx.math.collision.BoundingBox(),shellWorldBounds=new com.badlogic.gdx.math.collision.BoundingBox();
     private long seenEjection;
+    private float ejectionFloor=Float.NEGATIVE_INFINITY;
+    private boolean shellLanded;
     private int inspection=-1;
     private final boolean preparedBody;
     private final Scene originalBody;
@@ -44,8 +46,12 @@ public final class ModularShotgun implements RenderableProvider {
      * A shell that has already faded out cannot produce a fictitious landing event. */
     public boolean visibleShellTouchesFloor(float worldFloorY){
         if(ejected==null||!Float.isFinite(worldFloorY)||!animator.ejecting()||ejectedStart.y<=worldFloorY)return false;
-        return shellWorldBounds.set(shellLocalBounds).mul(ejected.modelInstance.transform).min.y<=worldFloorY;
+        return shellLanded||shellWorldBounds.set(shellLocalBounds).mul(ejected.modelInstance.transform).min.y<=worldFloorY;
     }
+    /** Optional scene floor; the existing ejected model settles on its actual transformed bounds. */
+    public void ejectionFloor(float y){ejectionFloor=y;}
+    public void ejectionGravity(float gravity){if(!Float.isFinite(gravity)||gravity<=0)throw new IllegalArgumentException("Invalid shell gravity");config.ejectionGravity=gravity;}
+    public void ejectionLifetime(float seconds){if(!Float.isFinite(seconds)||seconds<=0)throw new IllegalArgumentException("Invalid shell lifetime");config.ejectionLifetime=seconds;}
     public boolean bodyPrepared(){return preparedBody;}
     public ModelInstance model(int part){var scene=part==0&&inspection==0?originalBody:parts[part];return scene==null?null:scene.modelInstance;}
     public void visible(int part,boolean value){visible[part]=value;}
@@ -78,7 +84,7 @@ public final class ModularShotgun implements RenderableProvider {
             if(i==0&&originalBody!=null&&preparedBody)originalBody.modelInstance.transform.set(parts[0].modelInstance.transform);
         }
         if(ejected!=null&&seenEjection!=animator.ejectionSerial()){
-            seenEjection=animator.ejectionSerial();
+            seenEjection=animator.ejectionSerial();shellLanded=false;
             var shell=config.shell;
             ejectedBase.set(pose).translate(config.ejectionSocket[0]+shell.position[0],config.ejectionSocket[1]+shell.position[1],config.ejectionSocket[2]+shell.position[2])
                 .rotate(Vector3.Z,shell.rotation[2]).rotate(Vector3.Y,shell.rotation[1]).rotate(Vector3.X,shell.rotation[0]);
@@ -88,11 +94,17 @@ public final class ModularShotgun implements RenderableProvider {
             float t=animator.ejectionAge();
             float opacity=MathUtils.clamp((config.ejectionLifetime-t)/.18f,0,1);
             for(var material:ejected.modelInstance.materials)material.get(com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute.class,com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute.Type).opacity=opacity;
-            ejectedPosition.set(ejectedStart).mulAdd(ejectedVelocity,t);ejectedPosition.y-=.5f*config.ejectionGravity*t*t;
-            ejected.modelInstance.transform.set(ejectedBase).rotate(Vector3.X,config.ejectionSpin[0]*t)
-                .setTranslation(ejectedPosition).rotate(Vector3.Y,config.ejectionSpin[1]*t).rotate(Vector3.Z,config.ejectionSpin[2]*t)
-                .scale(config.shell.scale[0]*config.shellScale,config.shell.scale[1]*config.shellScale,config.shell.scale[2]*config.shellScale)
-                .translate(-config.shell.anchor[0],-config.shell.anchor[1],-config.shell.anchor[2]);
+            if(!shellLanded){
+                ejectedPosition.set(ejectedStart).mulAdd(ejectedVelocity,t);ejectedPosition.y-=.5f*config.ejectionGravity*t*t;
+                ejected.modelInstance.transform.set(ejectedBase).rotate(Vector3.X,config.ejectionSpin[0]*t)
+                    .setTranslation(ejectedPosition).rotate(Vector3.Y,config.ejectionSpin[1]*t).rotate(Vector3.Z,config.ejectionSpin[2]*t)
+                    .scale(config.shell.scale[0]*config.shellScale,config.shell.scale[1]*config.shellScale,config.shell.scale[2]*config.shellScale)
+                    .translate(-config.shell.anchor[0],-config.shell.anchor[1],-config.shell.anchor[2]);
+                if(Float.isFinite(ejectionFloor)&&ejectedStart.y>ejectionFloor){
+                    float bottom=shellWorldBounds.set(shellLocalBounds).mul(ejected.modelInstance.transform).min.y;
+                    if(bottom<=ejectionFloor){ejected.modelInstance.transform.getTranslation(ejectedPosition);ejectedPosition.y+=ejectionFloor-bottom;ejected.modelInstance.transform.setTranslation(ejectedPosition);shellLanded=true;}
+                }
+            }
         }
     }
     private final Vector3 end=new Vector3();

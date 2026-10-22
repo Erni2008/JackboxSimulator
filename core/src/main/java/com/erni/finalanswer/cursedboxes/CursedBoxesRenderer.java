@@ -111,7 +111,7 @@ public final class CursedBoxesRenderer implements Disposable {
         float w=Gdx.graphics.getWidth();
         title.setColor(.76f,.58f,.33f,1);layout.setText(title,"CURSED BOXES");title.draw(ui,layout,(w-layout.width)/2,h-12);
         font.setColor(.57f,.48f,.38f,1);font.getData().setScale(.72f);font.draw(ui,"F I N A L   A N S W E R",30,h-25);
-        font.getData().setScale(.8f);font.draw(ui,networkPlayer!=null?"PHONE CONTROL / TWO SHOTS":characterTest==null?"ONE SPIRIT. SIXTEEN BOXES.":"EIGHT PLAYERS. NINE SHOTS.",w-260,h-27);
+        font.getData().setScale(.8f);font.draw(ui,networkPlayer!=null?(turn.shotLimit()==1?"PHONE CONTROL / ONE SHOT":"PHONE CONTROL / TWO SHOTS"):characterTest==null?"ONE SPIRIT. SIXTEEN BOXES.":"EIGHT PLAYERS. NINE SHOTS.",w-260,h-27);
         if(networkPlayer!=null){font.setColor(.89f,.73f,.49f,1);layout.setText(font,networkPlayer);font.draw(ui,layout,(w-layout.width)/2,h-75);font.getData().setScale(.65f);layout.setText(font,networkMessage);font.draw(ui,layout,(w-layout.width)/2,h-96);}
         font.getData().setScale(.9f);font.setColor(.65f,.57f,.45f,1);
         font.draw(ui,networkPlayer==null?"CLICK select   SPACE fire   R reset   F11 fullscreen   F3 stats   Q effects   F8 survivors   ESC return":"PHONE select / fire   F11 fullscreen   F3 stats   Q effects   F8 survivors   ESC return to lobby",30,28);

@@ -19,7 +19,7 @@ public final class ShotgunController implements Disposable {
     private final Quaternion aim=new Quaternion(),desired=new Quaternion(),restAim=new Quaternion(),transitionAim=new Quaternion();
     private final float muzzleY,restBottom,pumpAt;
     private float shotAge=9,stateAge;
-    private boolean cycling;
+    private boolean cycling,cinematicReload;
     private int targetId=-1;
     private State state=State.RESTING;
     public ShotgunController(CursedBoxesAssets assets,CursedBoxesConfig scene,CursedBoxesGalleryConfig gallery){
@@ -35,6 +35,8 @@ public final class ShotgunController implements Disposable {
         restBottom=bounds.min.y;
         reset();
     }
+    public void cinematicReload(boolean enabled){cinematicReload=enabled;if(enabled){gun.ejectionFloor(audioFloor);gun.ejectionLifetime(3f);gun.ejectionGravity(9.81f);}}
+    public boolean cycleSettled(){return !cinematicReload||(!cycling&&!gun.animator.isAnimating()&&gun.animator.chamber()==ShotgunAnimator.Chamber.LIVE);}
     public State state(){return state;}
     public boolean resting(){return state==State.RESTING;}
     public boolean returning(){return state==State.RETURNING;}
@@ -85,9 +87,9 @@ public final class ShotgunController implements Disposable {
         }
         gun.transform.set(origin,aim,scale);gun.update(dt);
         if(shotAge>=pumpAt&&gun.animator.chamber()==ShotgunAnimator.Chamber.SPENT&&!gun.animator.isAnimating()&&!cycling){gun.cycle();cycling=true;}
-        if(cycling&&!gun.animator.isAnimating()&&gun.animator.chamber()==ShotgunAnimator.Chamber.EMPTY){gun.animator.chamber(ShotgunAnimator.Chamber.LIVE);cycling=false;}
+        if(cycling&&!gun.animator.isAnimating()&&gun.animator.chamber()==ShotgunAnimator.Chamber.EMPTY){if(cinematicReload)gun.reload();else gun.animator.chamber(ShotgunAnimator.Chamber.LIVE);cycling=false;}
         audio.weaponPose(gun.animator);audio.shellContact(gun.animator.ejectionSerial(),gun.visibleShellTouchesFloor(audioFloor));
     }
-    public void audioFloor(float worldY){audioFloor=worldY;}
+    public void audioFloor(float worldY){audioFloor=worldY;if(cinematicReload)gun.ejectionFloor(worldY);}
     @Override public void dispose(){gun.animator.listener(null);audio.stop();}
 }
