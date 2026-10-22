@@ -175,3 +175,11 @@ tasks.register('gameAudioCheck', JavaExec) {
     mainClass = 'com.erni.finalanswer.audio.GameAudioCheck'
 }
 check.dependsOn tasks.named('gameAudioCheck')
+
+tasks.register('shotgunMagazineCheck', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.cursedboxes.ShotgunMagazineCheck'
+}
+check.dependsOn tasks.named('shotgunMagazineCheck')

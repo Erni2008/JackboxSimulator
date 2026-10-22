@@ -24,7 +24,10 @@ public final class CursedBoxesMultiplayerController implements AutoCloseable {
         if(!root.get("host").getAsBoolean()||!state.has("hostContents"))throw new IllegalStateException("Only authenticated host may render hidden contents");
         scene.multiplayer(this);scene.networkRules(state.get("shotLimit").getAsInt());
         for(CrateSlot box:scene.slots){box.character=null;box.occupantNickname=null;box.occupantPlayerId=null;}
-        connection.addEventListener(listener);apply();send("CURSED_SCENE_READY",Map.of());
+        connection.addEventListener(listener);
+        int waiting=state.has("pendingShot")&&state.getAsJsonObject("pendingShot").get("impactedAt").getAsLong()==0?1:0;
+        scene.restoreMagazine(state.get("presentedShotCount").getAsInt(),state.get("remainingShotCount").getAsInt()+waiting);
+        apply();send("CURSED_SCENE_READY",Map.of());
     }
     private void applyContents(){
         for(JsonElement element:state.getAsJsonArray("hostContents")){
@@ -54,6 +57,7 @@ public final class CursedBoxesMultiplayerController implements AutoCloseable {
         scene.networkSurvivors(mask,Math.max(0,(connection.serverNow()-state.get("revealStartedAt").getAsLong())/1000f),t);
     }
     private void apply(){
+        scene.networkShotBudget(state.get("remainingShotCount").getAsInt());
         applyContents();
         int destroyed=state.get("destroyedCrateIds").getAsInt();
         for(int i=0;i<16;i++)if((destroyed&(1<<i))!=0)scene.networkReveal(i);

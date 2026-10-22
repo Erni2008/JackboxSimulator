@@ -1,0 +1,223 @@
+{
+  "passed": true,
+  "reports": [
+    {
+      "name": "cursed-hide",
+      "width": 320,
+      "height": 568,
+      "file": "generated/controller-polish/cursed-hide-320.png"
+    },
+    {
+      "name": "cursed-confirmed",
+      "width": 320,
+      "height": 568,
+      "file": "generated/controller-polish/cursed-confirmed-320.png"
+    },
+    {
+      "name": "cursed-shot",
+      "width": 320,
+      "height": 568,
+      "file": "generated/controller-polish/cursed-shot-320.png"
+    },
+    {
+      "name": "impostor-role",
+      "width": 320,
+      "height": 568,
+      "file": "generated/controller-polish/impostor-role-320.png"
+    },
+    {
+      "name": "impostor-clue",
+      "width": 320,
+      "height": 568,
+      "file": "generated/controller-polish/impostor-clue-320.png"
+    },
+    {
+      "name": "impostor-confirmed",
+      "width": 320,
+      "height": 568,
+      "file": "generated/controller-polish/impostor-confirmed-320.png"
+    },
+    {
+      "name": "vote-choice",
+      "width": 320,
+      "height": 568,
+      "file": "generated/controller-polish/vote-choice-320.png"
+    },
+    {
+      "name": "vote-accepted",
+      "width": 320,
+      "height": 568,
+      "file": "generated/controller-polish/vote-accepted-320.png"
+    },
+    {
+      "name": "question-open",
+      "width": 320,
+      "height": 568,
+      "file": "generated/controller-polish/question-open-320.png"
+    },
+    {
+      "name": "lobby-guests",
+      "width": 320,
+      "height": 568,
+      "file": "generated/controller-polish/lobby-guests-320.png"
+    },
+    {
+      "name": "question-accepted",
+      "width": 320,
+      "height": 568,
+      "file": "generated/controller-polish/question-accepted-320.png"
+    },
+    {
+      "name": "question-result",
+      "width": 320,
+      "height": 568,
+      "file": "generated/controller-polish/question-result-320.png"
+    },
+    {
+      "name": "cursed-hide",
+      "width": 390,
+      "height": 844,
+      "file": "generated/controller-polish/cursed-hide-390.png"
+    },
+    {
+      "name": "cursed-confirmed",
+      "width": 390,
+      "height": 844,
+      "file": "generated/controller-polish/cursed-confirmed-390.png"
+    },
+    {
+      "name": "cursed-shot",
+      "width": 390,
+      "height": 844,
+      "file": "generated/controller-polish/cursed-shot-390.png"
+    },
+    {
+      "name": "impostor-role",
+      "width": 390,
+      "height": 844,
+      "file": "generated/controller-polish/impostor-role-390.png"
+    },
+    {
+      "name": "impostor-clue",
+      "width": 390,
+      "height": 844,
+      "file": "generated/controller-polish/impostor-clue-390.png"
+    },
+    {
+      "name": "impostor-confirmed",
+      "width": 390,
+      "height": 844,
+      "file": "generated/controller-polish/impostor-confirmed-390.png"
+    },
+    {
+      "name": "vote-choice",
+      "width": 390,
+      "height": 844,
+      "file": "generated/controller-polish/vote-choice-390.png"
+    },
+    {
+      "name": "vote-accepted",
+      "width": 390,
+      "height": 844,
+      "file": "generated/controller-polish/vote-accepted-390.png"
+    },
+    {
+      "name": "question-open",
+      "width": 390,
+      "height": 844,
+      "file": "generated/controller-polish/question-open-390.png"
+    },
+    {
+      "name": "lobby-guests",
+      "width": 390,
+      "height": 844,
+      "file": "generated/controller-polish/lobby-guests-390.png"
+    },
+    {
+      "name": "question-accepted",
+      "width": 390,
+      "height": 844,
+      "file": "generated/controller-polish/question-accepted-390.png"
+    },
+    {
+      "name": "question-result",
+      "width": 390,
+      "height": 844,
+      "file": "generated/controller-polish/question-result-390.png"
+    },
+    {
+      "name": "cursed-hide",
+      "width": 844,
+      "height": 390,
+      "file": "generated/controller-polish/cursed-hide-844.png"
+    },
+    {
+      "name": "cursed-confirmed",
+      "width": 844,
+      "height": 390,
+      "file": "generated/controller-polish/cursed-confirmed-844.png"
+    },
+    {
+      "name": "cursed-shot",
+      "width": 844,
+      "height": 390,
+      "file": "generated/controller-polish/cursed-shot-844.png"
+    },
+    {
+      "name": "impostor-role",
+      "width": 844,
+      "height": 390,
+      "file": "generated/controller-polish/impostor-role-844.png"
+    },
+    {
+      "name": "impostor-clue",
+      "width": 844,
+      "height": 390,
+      "file": "generated/controller-polish/impostor-clue-844.png"
+    },
+    {
+      "name": "impostor-confirmed",
+      "width": 844,
+      "height": 390,
+      "file": "generated/controller-polish/impostor-confirmed-844.png"
+    },
+    {
+      "name": "vote-choice",
+      "width": 844,
+      "height": 390,
+      "file": "generated/controller-polish/vote-choice-844.png"
+    },
+    {
+      "name": "vote-accepted",
+      "width": 844,
+      "height": 390,
+      "file": "generated/controller-polish/vote-accepted-844.png"
+    },
+    {
+      "name": "question-open",
+      "width": 844,
+      "height": 390,
+      "file": "generated/controller-polish/question-open-844.png"
+    },
+    {
+      "name": "lobby-guests",
+      "width": 844,
+      "height": 390,
+      "file": "generated/controller-polish/lobby-guests-844.png"
+    },
+    {
+      "name": "question-accepted",
+      "width": 844,
+      "height": 390,
+      "file": "generated/controller-polish/question-accepted-844.png"
+    },
+    {
+      "name": "question-result",
+      "width": 844,
+      "height": 390,
+      "file": "generated/controller-polish/question-result-844.png"
+    }
+  ],
+  "errors": [],
+  "physicalDevices": false
+}

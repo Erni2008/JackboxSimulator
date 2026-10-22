@@ -117,4 +117,24 @@ class CursedBoxesTest {
         assertEquals((1<<5)|1,state.get("destroyedCrateIds"));
     }
 
+    @Test void ammunitionPresentationBudgetIsHostOnlyAndReservationsAreCountedOnce(){
+        var game=new CursedBoxesSession(List.of(new CursedBoxesSession.Player("h","H","ghost"),new CursedBoxesSession.Player("s","S","zombie")),Set.of("h"),2);
+        Set<String> online=Set.of("h","s");game.ready(true,clock.get());game.hide("h",15);
+        assertEquals(2,game.snapshot("host",true,true,online,clock.get()).get("remainingShotCount"));
+        assertFalse(game.snapshot("s",false,true,online,clock.get()).containsKey("remainingShotCount"));
+        game.select("s",2,0);var shot=game.fire("s","one",2,0,1,clock.get());
+        assertSame(shot,game.fire("s","one",2,0,1,clock.get()));
+        assertEquals(1,game.snapshot("host",true,true,online,clock.get()).get("remainingShotCount"));
+        game.started(shot.id,clock.get());game.impact(shot.id,clock.get()+30);
+        assertEquals(1L,game.snapshot("host",true,true,online,clock.get()+30).get("presentedShotCount"));
+    }
+
+    @Test void presentationBudgetRetainsDisconnectedSeatsButExcludesExplicitLeavers(){
+        var game=new CursedBoxesSession(List.of(new CursedBoxesSession.Player("h","H","ghost"),new CursedBoxesSession.Player("a","A","zombie"),new CursedBoxesSession.Player("b","B","dracula")),Set.of("h"),2);
+        game.ready(true,clock.get());game.hide("h",15);
+        assertEquals(4,game.snapshot("host",true,true,Set.of("h","a"),clock.get()).get("remainingShotCount"));
+        game.tick(clock.get(),Set.of("b"));
+        assertEquals(2,game.snapshot("host",true,true,Set.of("h","a"),clock.get()).get("remainingShotCount"));
+    }
+
 }

@@ -9,13 +9,15 @@
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/controller-theme.css?v=role-1">
   <script src="/final-answer-button.js" defer></script>
-  <script src="/final-voting.js?v=3" defer></script>
+  <script src="/final-voting.js?v=5" defer></script>
   <script src="/parchment-writer.js?v=4" defer></script>
   <script src="/countdown-clock.js?v=1" defer></script>
   <script src="/impostor.js?v=5" defer></script>
   <script src="/suspicion.js" defer></script>
   <link rel="stylesheet" href="/cursed-boxes.css?v=1">
   <script src="/cursed-boxes.js?v=1" defer></script>
+  <link rel="stylesheet" href="/controller-polish.css?v=3">
+  <script src="/controller-presentation.js?v=2" defer></script>
   <script src="/app.js" defer></script>
 </head>
 <body>
@@ -23,6 +25,12 @@
   <header class="masthead"><img src="/images/Final_Answer.png" alt="Final Answer" class="logo"><p>A SURVIVAL TRIVIA SHOW</p></header>
   <main>
     <div id="connection" class="connection" role="status" aria-live="polite">YOUR SEAT IS WAITING</div>
+    <aside id="controller-director" class="controller-director" aria-label="Game progress" hidden>
+      <div class="director-top"><span id="director-mode"></span><span class="director-private">PERSONAL CONTROLLER</span></div>
+      <ol class="director-steps" aria-label="Game stages"><li class="director-step"></li><li class="director-step"></li><li class="director-step"></li></ol>
+      <p id="director-label" class="director-label"></p>
+      <p id="director-note" class="director-note"></p>
+    </aside>
     <section id="join-screen" class="screen">
       <p class="eyebrow">ENTER IF YOU DARE</p><h1>Take your seat.</h1>
       <p class="muted">Your host has the room code.<br>Your phone holds the final answer.</p>
@@ -65,7 +73,9 @@
       <div class="round-top"><p id="question-number" class="eyebrow"></p><span id="timer" class="timer" aria-label="Seconds remaining"></span></div>
       <h1 id="question-text" class="question"></h1>
       <p id="answer-status" class="muted" role="status">Choose carefully. One final answer.</p>
+      <div class="answer-clock-track" aria-hidden="true"><div id="answer-clock-fill"></div></div>
       <div id="answers" class="answers"></div>
+      <div id="answer-receipt" class="choice-receipt" hidden><p class="receipt-label">ANSWER LOCKED</p><p id="answer-receipt-value"></p><span>Your choice was received. Watch the shared screen.</span></div>
     </section>
     <section id="final-screen" class="screen" hidden>
       <p class="eyebrow">THE IMPOSTOR · FINAL ACT</p>
@@ -75,8 +85,10 @@
       <p id="final-announcement" class="secret-word" aria-live="polite"></p>
       <p id="final-timer" role="timer"></p>
       <p id="final-progress"></p>
+      <div id="vote-receipt" class="choice-receipt" hidden><p class="receipt-label">VOTE SEALED</p><p id="vote-receipt-value"></p><span>Your first vote is final. Watch the shared screen.</span></div>
       <p id="final-status" role="status" aria-live="polite"></p>
       <div id="final-cards" class="suspect-cards"></div>
+      <div id="vote-draft" class="vote-draft" hidden><span>YOUR SELECTED SUSPECT</span><strong id="vote-draft-name"></strong><p>Check your choice, then confirm below.</p></div>
       <button id="confirm-vote" type="button" hidden disabled>CONFIRM VOTE</button>
       <p id="result-player" class="eyebrow"></p>
       <ul id="final-results" class="final-results"></ul>
@@ -91,7 +103,7 @@
       <form id="clue-form" hidden>
         <div id="parchment-surface" class="parchment-surface">
           <img class="writing-paper" src="/art/impostor/phone/papper3dview.png" alt="" draggable="false">
-          <label for="clue-input" class="writing-hint">TAP TO WRITE · MAX 10</label>
+          <label for="clue-input" class="writing-hint">TAP TO WRITE<span>ONE WORD · 10 LETTERS</span></label>
           <div class="parchment-ink" aria-hidden="true"></div>
           <textarea id="clue-input" rows="3" autocomplete="off" autocapitalize="sentences" spellcheck="false" maxlength="10" enterkeyhint="done" aria-label="Write one clue on the parchment" aria-describedby="clue-status"></textarea>
           <img class="writing-pen" src="/art/impostor/phone/pen.png" alt="" draggable="false">
@@ -110,7 +122,7 @@
     </section>
     <section id="result-screen" class="screen result" hidden>
       <p class="eyebrow">THE TRUTH IS OUT</p><h1 id="result-title"></h1>
-      <p class="muted">THE CORRECT ANSWER WAS</p><p id="correct-answer" class="correct-answer"></p>
+      <p class="muted result-caption">THE CORRECT ANSWER WAS</p><p id="correct-answer" class="correct-answer"></p>
       <p id="result-score" class="muted"></p><p class="whisper">Stay close. The show isn't over.</p>
     </section>
     <section id="finished-screen" class="screen" hidden>

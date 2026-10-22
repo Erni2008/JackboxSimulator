@@ -12,7 +12,7 @@ const suspicion=createSuspicionController({getState:()=>state,isAuthenticated:()
 Object.assign(messages,{SUSPICION_TOO_LATE:'The suspicion deadline has passed.',SUSPICION_CLOSED:'Suspicions are sealed.',INVALID_SUSPECT:'Choose an active participant.',SELF_SUSPICION:'You cannot suspect yourself.',NOT_ELIGIBLE:'You are not eligible in this phase.',STALE_SUSPICION:'This suspicion round has ended.',WRONG_ROOM:'This request belongs to another room.',INVALID_SUSPICION:'Invalid selection. Please reconnect and try again.'});
 try{credentials=JSON.parse(sessionStorage.getItem('finalanswer-session')||'null');}catch{credentials=null;}
 function id(){return Array.from(crypto.getRandomValues(new Uint32Array(4)),n=>n.toString(16)).join('');}
-function show(name){if(currentScreen===name)return;if(currentScreen==='impostor')impostor.hide();if(currentScreen==='cursed')cursed.suspend();currentScreen=name;document.body.dataset.controller=name==='cursed'?'cursed':'';screens.forEach(s=>$(s+'-screen').hidden=s!==name);window.scrollTo(0,0);}
+function show(name){if(currentScreen===name)return;if(currentScreen==='impostor')impostor.hide();if(currentScreen==='cursed')cursed.suspend();currentScreen=name;document.body.dataset.view=name;if(!['cursed','impostor','suspicion','final'].includes(name))renderControllerPresentation(null);document.body.dataset.controller=name==='cursed'?'cursed':'';screens.forEach(s=>$(s+'-screen').hidden=s!==name);window.scrollTo(0,0);}
 function status(text,offline=false){$('connection').textContent=text;$('connection').classList.toggle('offline',offline);}
 function save(){try{if(credentials)sessionStorage.setItem('finalanswer-session',JSON.stringify(credentials));else sessionStorage.removeItem('finalanswer-session');}catch{status('Storage unavailable — keep this tab open.',true);}}
 function send(type,payload={},requestId=id()){if(ws?.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type,requestId,payload}));return requestId;}
@@ -76,6 +76,7 @@ function handle(event){const payload=event.payload||{};
   if(authenticated)render();
 }
 function render(){
+  renderControllerPresentation(state);
   $('session-footer').hidden=false;$('session-code').textContent=`ROOM ${state.code}`;
   const self=state.players.find(p=>p.id===state.selfId);
   if(state.cursedBoxes){show('cursed');cursed.render();return;}
@@ -91,13 +92,20 @@ function render(){
     $('waiting-message').textContent=state.impostor?.phase==='REPLAY_PREPARATION'?'The previous match is complete. The host will start a fresh match.':!state.hostConnected?'Host disconnected. Waiting for reconnection.':state.phase==='LOBBY'?'The host will begin the show shortly.':`${state.roundTitle||'ROUND 1'} · ${Math.max(0,Math.ceil((state.transitionEndsAt-now())/1000))}s`;
     $('player-name').textContent=self?.name||credentials.name;$('character-name').textContent=`${self?.characterId?.replace('_',' ').toUpperCase()||'GUEST'}`;
     $('players-count').textContent=`THE GUEST LIST · ${state.players.length} / ${state.maxPlayers}`;
-    $('players').replaceChildren();for(const player of state.players){const row=document.createElement('li'),name=document.createElement('span'),flag=document.createElement('small');name.textContent=player.name;flag.textContent=player.connectionStatus;row.append(name,flag);$('players').append(row);}return;
+    $('players').replaceChildren();for(const player of state.players){
+      const row=document.createElement('li'),name=document.createElement('span'),flag=document.createElement('small');
+      row.dataset.connection=player.connectionStatus;row.classList.toggle('is-self',player.id===state.selfId);
+      name.textContent=player.name;name.className='guest-name';
+      if(player.id===state.selfId){const you=document.createElement('span');you.className='guest-you';you.textContent='YOU';name.append(you);}
+      flag.textContent=player.connectionStatus==='ONLINE'?'CONNECTED':player.connectionStatus==='OFFLINE'?'RECONNECTING':player.connectionStatus;
+      flag.className='guest-connection';row.append(name,flag);$('players').append(row);
+    }return;
   }
   if(state.phase==='GAME_FINISHED'){
     show('finished');$('finish-message').textContent=state.finishReason==='COMPLETED'?'You made it through every question. Thank you for playing.':'The show ended because the host connection was lost.';$('final-score').textContent=`${self?.score||0} POINTS`;return;
   }
   if(state.phase==='RESULTS'){
-    show('result');const result=state.results.find(r=>r.playerId===state.selfId);$('result-title').textContent=!result?.answeredInTime?"Time's up!":result.isCorrect?'Correct!':'Wrong answer!';
+    show('result');const result=state.results.find(r=>r.playerId===state.selfId);$('result-screen').dataset.outcome=!result?.answeredInTime?'timeout':result.isCorrect?'correct':'incorrect';$('result-title').textContent=!result?.answeredInTime?"Time's up!":result.isCorrect?'Correct!':'Wrong answer!';
     $('correct-answer').textContent=`${state.question.correctAnswerIndex+1}. ${state.question.answers[state.question.correctAnswerIndex]}`;$('result-score').textContent=`${self?.score||0} POINTS · ${state.questionNumber} / ${state.questionCount} QUESTIONS`;return;
   }
   show('question');const q=state.question,key=state.gameId+':'+q.id;
@@ -106,8 +114,19 @@ function render(){
   $('answer-status').textContent=state.phase==='QUESTION_PRESENTATION'?'Listen to the question. Answers unlock together when the host finishes presenting.':state.phase==='REVEALING'?'THE HOUSE IS DECIDING. Watch the host’s screen…':state.hasSubmittedAnswer?'ANSWER SUBMITTED. Your choice is final.':pending!==null?'SENDING YOUR ANSWER…':'Choose carefully. One final answer.';
   updateButtons();updateClock();
 }
-function updateButtons(){if(!state?.question)return;for(const button of $('answers').children){const index=Number(button.dataset.index);button.disabled=!authenticated||state.phase!=='ANSWERING'||state.hasSubmittedAnswer||pending!==null||now()>=state.deadline;button.classList.toggle('selected',index===(state.hasSubmittedAnswer?state.currentAnswer:pending));}}
-function updateClock(){if(currentScreen!=='question'||!state)return;const remaining=state.phase==='ANSWERING'?Math.max(0,state.deadline-now()):0;$('timer').textContent=state.phase==='QUESTION_PRESENTATION'?'—':`${Math.ceil(remaining/1000)}s`;if(remaining===0)updateButtons();}
+function updateButtons(){if(!state?.question)return;for(const button of $('answers').children){const index=Number(button.dataset.index);button.disabled=!authenticated||state.phase!=='ANSWERING'||state.hasSubmittedAnswer||pending!==null||now()>=state.deadline;button.classList.toggle('selected',index===(state.hasSubmittedAnswer?state.currentAnswer:pending));button.setAttribute('aria-pressed',String(index===(state.hasSubmittedAnswer?state.currentAnswer:pending)));button.classList.toggle('accepted',state.hasSubmittedAnswer&&index===state.currentAnswer);}}
+function updateClock(){if(currentScreen!=='question'||!state)return;
+  const view=questionPresentation(state,now());
+  $('timer').textContent=state.phase==='QUESTION_PRESENTATION'?'—':`${Math.ceil(view.remaining/1000)}s`;
+  $('timer').classList.toggle('timer-warning',view.urgent);
+  $('answer-clock-fill').style.transform=`scaleX(${view.fraction})`;
+  $('answer-clock-fill').classList.toggle('urgent',view.urgent);
+  $('answer-receipt').hidden=!view.receipt;
+  $('question-screen').dataset.answerAccepted=String(!!view.receipt);
+  // Do not replace accepted text on every timer tick (screen readers and selection).
+  if($('answer-receipt-value').textContent!==view.receipt)$('answer-receipt-value').textContent=view.receipt;
+  if(view.remaining===0)updateButtons();
+}
 function submit(index){if(!authenticated||state.phase!=='ANSWERING'||state.hasSubmittedAnswer||pending!==null||now()>=state.deadline)return;pending=index;render();send('SUBMIT_ANSWER',{...sessionFields(),answerIndex:index});pendingTimer=setTimeout(()=>{pending=null;send('SYNC');$('answer-status').textContent='Checking whether your answer was received…';updateButtons();},5000);}
 $('join-form').addEventListener('submit',async event=>{event.preventDefault();if($('join-button').disabled)return;
   $('join-error').textContent='';const code=$('room-code').value.trim().toUpperCase(),name=$('nickname').value.trim();

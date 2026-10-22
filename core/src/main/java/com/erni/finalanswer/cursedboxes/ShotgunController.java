@@ -10,6 +10,9 @@ import com.badlogic.gdx.utils.Disposable;
 public final class ShotgunController implements Disposable {
     public enum State { RESTING, PICKUP, AIMING, READY, RETURNING }
     public final ModularShotgun gun;
+    public final ShotgunMagazine magazine;
+    private int remainingShots=2;
+    private boolean loadingWarmup;
     private final CursedBoxesSoundManager audio;
     private float audioFloor=Float.NEGATIVE_INFINITY;
     private final CursedBoxesGalleryConfig gallery;
@@ -26,6 +29,7 @@ public final class ShotgunController implements Disposable {
         this.gallery=gallery;scale.set(gallery.weaponScale,gallery.weaponScale,gallery.weaponScale);
         ShotgunConfig config=assets.weaponConfig;config.startLoaded=true;config.pumpDuration=.45f;config.fireDuration=.44f;config.flashDuration=.08f;config.recoilTravel=.055f;config.recoilAngle=4.2f;pumpAt=scene.pumpAt;
         muzzleY=config.muzzle[1];gun=new ModularShotgun(assets.models,config);if(!gun.complete()||!gun.mechanismReady())throw new IllegalStateException("Existing modular shotgun unavailable: "+assets.models.failures());
+        magazine=new ShotgunMagazine(gun.animator);
         audio=assets.sounds;gun.animator.listener(audio::weaponEvent);
         // Barrel is local +X. Lay the receiver on its side on a horizontal virtual plane.
         restAim.set(Vector3.Y,gallery.restYaw).mul(new Quaternion(Vector3.X,90));
@@ -36,7 +40,9 @@ public final class ShotgunController implements Disposable {
         reset();
     }
     public void cinematicReload(boolean enabled){cinematicReload=enabled;if(enabled){gun.ejectionFloor(audioFloor);gun.ejectionLifetime(3f);gun.ejectionGravity(9.81f);}}
-    public boolean cycleSettled(){return !cinematicReload||(!cycling&&!gun.animator.isAnimating()&&gun.animator.chamber()==ShotgunAnimator.Chamber.LIVE);}
+    public boolean cycleSettled(){return !cycling&&!gun.animator.isAnimating()&&!magazine.loading();}
+    public void remainingShots(int count){remainingShots=Math.max(0,count);}
+    public void restoreMagazine(int fired,int remaining){magazine.restore(fired,remaining);remainingShots=remaining;}
     public State state(){return state;}
     public boolean resting(){return state==State.RESTING;}
     public boolean returning(){return state==State.RETURNING;}
@@ -48,7 +54,7 @@ public final class ShotgunController implements Disposable {
     }
     public Vector3 shadowPosition(Vector3 out){return out.set(shadow);}
     public float restYaw(){return gallery.restYaw;}
-    public void prepareWarmup(CrateSlot target){select(target);update(gallery.pickupDuration,target);update(gallery.aimDuration,target);}
+    public void prepareWarmup(CrateSlot target){gun.animator.chamber(ShotgunAnimator.Chamber.LIVE);select(target);update(gallery.pickupDuration,target);update(gallery.aimDuration,target);}
     public void placeTable(Vector3 anchor){
         rest.set(anchor);rest.y-=restBottom;shadow.set(anchor);shadow.y+=.008f;
         if(resting()){origin.set(rest);aim.set(restAim);gun.transform.set(origin,aim,scale);gun.update(0);}
@@ -64,9 +70,9 @@ public final class ShotgunController implements Disposable {
         if(state!=State.READY)return false;
         gun.muzzle(muzzle);gun.barrelDirection(barrel);direction.set(target.position).sub(muzzle).nor();return barrel.dot(direction)>.9997f;
     }
-    public boolean fire(){if(state!=State.READY||!gun.readyToFire())return false;if(gun.fire()){cycling=false;shotAge=0;return true;}return false;}
-    public void reset(){gun.animator.resetShotgun();audio.stop();cycling=false;shotAge=9;stateAge=0;state=State.RESTING;targetId=-1;origin.set(rest);aim.set(restAim);gun.transform.set(origin,aim,scale);gun.update(0);}
-    public void warmupAudio(boolean loading){if(loading){audio.warmup();audio.loading(true);}else audio.loading(false);}
+    public boolean fire(){if(state!=State.READY||!gun.readyToFire()||!loadingWarmup&&!magazine.canFire())return false;if(gun.fire()){if(!loadingWarmup)magazine.fired();cycling=false;shotAge=0;return true;}return false;}
+    public void reset(){magazine.reset();audio.stop();cycling=false;shotAge=9;stateAge=0;state=State.RESTING;targetId=-1;origin.set(rest);aim.set(restAim);gun.transform.set(origin,aim,scale);gun.update(0);}
+    public void warmupAudio(boolean loading){loadingWarmup=loading;if(loading){audio.warmup();audio.loading(true);}else audio.loading(false);}
     private static float ease(float t){t=MathUtils.clamp(t,0,1);return t*t*t*(t*(t*6-15)+10);}
     public void update(float dt,CrateSlot target){
         shotAge+=dt;stateAge+=dt;
@@ -87,7 +93,8 @@ public final class ShotgunController implements Disposable {
         }
         gun.transform.set(origin,aim,scale);gun.update(dt);
         if(shotAge>=pumpAt&&gun.animator.chamber()==ShotgunAnimator.Chamber.SPENT&&!gun.animator.isAnimating()&&!cycling){gun.cycle();cycling=true;}
-        if(cycling&&!gun.animator.isAnimating()&&gun.animator.chamber()==ShotgunAnimator.Chamber.EMPTY){if(cinematicReload)gun.reload();else gun.animator.chamber(ShotgunAnimator.Chamber.LIVE);cycling=false;}
+        if(cycling&&!gun.animator.isAnimating()&&gun.animator.chamber()==ShotgunAnimator.Chamber.EMPTY){cycling=false;}
+        if(!loadingWarmup)magazine.update(remainingShots);
         audio.weaponPose(gun.animator);audio.shellContact(gun.animator.ejectionSerial(),gun.visibleShellTouchesFloor(audioFloor));
     }
     public void audioFloor(float worldY){audioFloor=worldY;if(cinematicReload)gun.ejectionFloor(worldY);}

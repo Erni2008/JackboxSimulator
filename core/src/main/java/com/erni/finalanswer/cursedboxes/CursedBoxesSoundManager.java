@@ -53,7 +53,9 @@ public final class CursedBoxesSoundManager implements Disposable {
     private final long[] voices=new long[CUES.length],plays=new long[CUES.length];
     private int loaded,smokeCues,completeCues;
     private long weaponSequence,lastImpact=-1,landedShell=-1;
-    private boolean loading,paused,muted,disposed,inserting,revealObserved,heartbeatWanted,heartbeatAttempted;
+    private boolean loading,paused,muted,disposed,revealObserved,heartbeatWanted,heartbeatAttempted;
+    private long insertionReload=-1;
+    private int insertionHeard;
     private ShotgunAnimator.State weaponState=ShotgunAnimator.State.IDLE;
     private float heartbeatGain,previousRevealAge;
     public CursedBoxesSoundManager(){this(path->Gdx.audio.newSound(Gdx.files.internal(path)));loading=true;}
@@ -117,13 +119,13 @@ public final class CursedBoxesSoundManager implements Disposable {
             default->{/* Ejection is not floor contact, and chamber refill is not insertion. */}
         }
     }
-    /** Poll the existing shell MOVING state; normal auto-refill has no insertion animation. */
+    /** Consume insertion markers once, including multiple rounds within the same reload state. */
     public void weaponPose(ShotgunAnimator animator){
         var next=animator.state();
         if(next!=weaponState&&(next==ShotgunAnimator.State.RELOAD||next==ShotgunAnimator.State.OPENING||next==ShotgunAnimator.State.CLOSING))play(Cue.MECHANISM);
-        boolean moving=next==ShotgunAnimator.State.RELOAD&&animator.shellState()==ShotgunAnimator.ShellState.MOVING;
-        if(moving&&!inserting)play(Cue.INSERT_ROUND);
-        inserting=moving;weaponState=next;
+        if(insertionReload!=animator.reloadSerial()){insertionHeard=insertionReload<0&&next!=ShotgunAnimator.State.RELOAD?animator.insertionCount():0;insertionReload=animator.reloadSerial();}
+        while(insertionHeard<animator.insertionCount()){insertionHeard++;play(Cue.INSERT_ROUND);}
+        weaponState=next;
     }
     public void impact(long shotSerial){if(shotSerial<=lastImpact)return;lastImpact=shotSerial;AudioMix.GLOBAL.important(.3f);play(Cue.WOOD_BREAK);play(Cue.WOOD_EXTRA);}
     private boolean differentAppearance(int index){return lastAppearance<0||APPEARANCE_GROUP[index]!=APPEARANCE_GROUP[lastAppearance];}
@@ -178,6 +180,6 @@ public final class CursedBoxesSoundManager implements Disposable {
     public long playCount(Cue cue){return plays[cue.ordinal()];}
     public boolean heartbeatActive(){return voices[Cue.HEARTBEAT.ordinal()]>=0;}
     public void stop(){if(hostVoice!=null)try{hostVoice.stop();}catch(RuntimeException error){warning.accept("Cannot stop host voice: "+error.getMessage());}for(int i=0;i<sounds.length;i++){if(sounds[i]!=null)try{sounds[i].stop();}catch(RuntimeException error){warn(CUES[i],"Cannot stop",error);}voices[i]=-1;}heartbeatGain=0;heartbeatWanted=heartbeatAttempted=false;}
-    public void reset(){stop();lastImpact=landedShell=-1;smokeCues=completeCues=appearanceCues=0;lastSpecialReveal=-1;hostAnnounced=revealObserved=inserting=false;previousRevealAge=0;weaponState=ShotgunAnimator.State.IDLE;}
+    public void reset(){stop();insertionReload=-1;insertionHeard=0;lastImpact=landedShell=-1;smokeCues=completeCues=appearanceCues=0;lastSpecialReveal=-1;hostAnnounced=revealObserved=false;previousRevealAge=0;weaponState=ShotgunAnimator.State.IDLE;}
     @Override public void dispose(){if(disposed)return;stop();disposed=true;for(int i=0;i<sounds.length;i++)if(sounds[i]!=null)try{sounds[i].dispose();}catch(RuntimeException error){warn(CUES[i],"Cannot dispose",error);}if(hostVoice!=null)try{hostVoice.dispose();}catch(RuntimeException error){warning.accept("Cannot dispose host voice: "+error.getMessage());}}
 }

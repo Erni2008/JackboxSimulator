@@ -27,6 +27,8 @@ function createCursedBoxesController({getState,isAuthenticated,send,makeId,expla
     el('cursed-player-name').textContent=self?.nickname||self?.name||'PLAYER';
     el('cursed-player-character').textContent=labels[self?.characterId]||'';
     const hiding=s.role==='HIDING';
+    el('cursed-screen').dataset.role=s.role;
+    el('cursed-screen').dataset.phase=s.phase;
     el('cursed-shot-counter').textContent=s.role==='HIDING'?(s.hidingConfirmed?'HIDING PLACE CONFIRMED':'CHOOSE YOUR HIDING PLACE'):s.shotsRemaining===0?'NO SHOTS REMAINING':`SHOT ${s.shotLimit+1-s.shotsRemaining} / ${s.shotLimit}`;
     el('cursed-current-player').textContent=s.phase==='REVEALING'?'SURVIVORS ARE EMERGING':s.phase==='FINISHED'?'ALL TURNS COMPLETE':s.phase==='HIDING_SELECTION'?(hiding?'YOUR CHOICE IS SECRET':'WAITING FOR HIDING PLAYERS'):`CURRENT PLAYER: ${s.activePlayerName}`;
     const selected=draft??(hiding?s.hidingBoxId:s.selectedCrateId);

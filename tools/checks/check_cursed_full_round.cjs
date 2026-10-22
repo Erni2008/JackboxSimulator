@@ -65,13 +65,13 @@ async function resolved(p){await p.waitForFunction(()=>!window.__qaState?.cursed
       await p.waitForFunction(()=>window.__qaState.cursedBoxes.pendingShot);
       let flash=false,reload=false;
       for(let n=0;n<400;n++){
-        const r=await host('INSPECT');if(r.flash>0)flash=true;if(r.mechanism==='RELOAD')reload=true;
+        const r=await host('INSPECT');if(r.flash>0)flash=true;if(r.mechanism==='PUMP')reload=true;
         if(!r.state.cursedBoxes.pendingShot){stages.push({box,flash,reload});break;}
         await sleep(30);
       }
       await revealed(p,box);await resolved(p);
       assert.equal((await state(p)).cursedBoxes.shotsRemaining,0);
-      assert(reload,'Existing shell insertion animation did not run');
+      assert(reload,'Pump/ejection cycle did not run');
     }
     await shot(shooter1,5);
     assert.equal((await state(shooter1)).cursedBoxes.survivors,undefined,'Survivor reveal began before last shooter');
@@ -85,7 +85,8 @@ async function resolved(p){await p.waitForFunction(()=>!window.__qaState?.cursed
     assert.equal(s.outcomes.find(p=>p.playerId===clients[1].credentials.selfId).survived,true);
     assert.equal(s.destroyedCrateIds,(1<<5)|1);assert.equal(report.slots[5].state,'DESTROYED');assert.notEqual(report.slots[5].pose,'HIDDEN');
     assert.equal(report.slots[10].characterId,'puppeteer');assert.equal(report.slots[10].state,'INTACT');
-    for(const cue of ['SHOT','WOOD_BREAK','SHELL_DROP','INSERT_ROUND'])assert.equal(report.soundCues[cue],2,`Wrong audio count: ${cue}`);
+    for(const cue of ['SHOT','WOOD_BREAK','SHELL_DROP'])assert.equal(report.soundCues[cue],2,`Wrong audio count: ${cue}`);
+    assert.equal(report.soundCues.INSERT_ROUND,5,'Exactly five initial shells; no per-player insertion');assert.equal(report.loadedRounds,3,'Two shots consume two of five loaded shells');
     assert(report.applicationAudioCues.GATE>=4);assert(report.applicationAudioCues.CHAIN_1>0&&report.applicationAudioCues.CHAIN_2>0);assert.equal(report.applicationAudioCues.HOVER,1);assert.equal(report.applicationAudioCues.PRESS,1);assert(report.ambiencePlaying);
     assert.equal(report.soundCues.WOOD_EXTRA,2,'Existing and additional wood layers each fire twice');
     assert.equal(['APPEARANCE_1','APPEARANCE_2','APPEARANCE_3','APPEARANCE_4'].reduce((n,c)=>n+report.soundCues[c],0),1,'One appearance variation per survivor');

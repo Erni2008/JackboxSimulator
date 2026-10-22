@@ -107,18 +107,24 @@ public final class CursedBoxesRenderer implements Disposable {
         Gdx.gl.glDepthMask(true);ui.begin();
         if(intensity>0){ui.setColor(1,.57f,.21f,intensity*.06f);ui.draw(soft,0,0,Gdx.graphics.getWidth(),Gdx.graphics.getHeight());ui.setColor(Color.WHITE);}
         float h=Gdx.graphics.getHeight();
-        if(survivors.clock.started()){font.setColor(.9f,.4f,.35f,1);font.getData().setScale(.85f);status.setLength(0);status.append("SURVIVORS  ").append(survivors.clock.count()).append("  /  ").append(survivors.clock.state());layout.setText(font,status);font.draw(ui,layout,(Gdx.graphics.getWidth()-layout.width)/2,h-65);}
+        if(survivors.clock.started()){font.setColor(.9f,.4f,.35f,1);font.getData().setScale(.85f);status.setLength(0);status.append(survivors.clock.state()==com.finalanswer.protocol.CursedSurvivorTimeline.State.COMPLETED?"THE SURVIVORS":"SURVIVORS EMERGE").append("  /  ").append(survivors.clock.count());layout.setText(font,status);font.draw(ui,layout,(Gdx.graphics.getWidth()-layout.width)/2,h-(networkPlayer==null?65:122));}
         float w=Gdx.graphics.getWidth();
+        if(gun.magazine.loading()){
+            font.getData().setScale(.8f);font.setColor(.9f,.75f,.5f,1);status.setLength(0);
+            status.append("LOADING  ").append(gun.gun.animator.insertionCount()).append(" / ").append(gun.magazine.loadingTarget()).append("  SHELLS");
+            layout.setText(font,status);font.draw(ui,layout,(w-layout.width)/2,92);
+        }
         title.setColor(.76f,.58f,.33f,1);layout.setText(title,"CURSED BOXES");title.draw(ui,layout,(w-layout.width)/2,h-12);
         font.setColor(.57f,.48f,.38f,1);font.getData().setScale(.72f);font.draw(ui,"F I N A L   A N S W E R",30,h-25);
         font.getData().setScale(.8f);font.draw(ui,networkPlayer!=null?(turn.shotLimit()==1?"PHONE CONTROL / ONE SHOT":"PHONE CONTROL / TWO SHOTS"):characterTest==null?"ONE SPIRIT. SIXTEEN BOXES.":"EIGHT PLAYERS. NINE SHOTS.",w-260,h-27);
         if(networkPlayer!=null){font.setColor(.89f,.73f,.49f,1);layout.setText(font,networkPlayer);font.draw(ui,layout,(w-layout.width)/2,h-75);font.getData().setScale(.65f);layout.setText(font,networkMessage);font.draw(ui,layout,(w-layout.width)/2,h-96);}
         font.getData().setScale(.9f);font.setColor(.65f,.57f,.45f,1);
-        font.draw(ui,networkPlayer==null?"CLICK select   SPACE fire   R reset   F11 fullscreen   F3 stats   Q effects   F8 survivors   ESC return":"PHONE select / fire   F11 fullscreen   F3 stats   Q effects   F8 survivors   ESC return to lobby",30,28);
+        if(networkPlayer==null||performance.visible)font.draw(ui,networkPlayer==null?"CLICK select   SPACE fire   R reset   F11 fullscreen   F3 stats   Q effects   F8 survivors   ESC return":"PHONE select / fire   F11 fullscreen   F3 stats   Q effects   F8 survivors   ESC return to lobby",30,28);
+        else font.draw(ui,"CHOOSE ON YOUR PHONE. WATCH THE GALLERY.",30,28);
         status.setLength(0);status.append("BOX ");if(selected.id<9)status.append('0');status.append(selected.id+1).append("   /   ").append(selected.state).append("   /   ").append(weaponStatus(gun,turn,selected)).append("   /   SHOTS ").append(networkPlayer==null?turn.shotsRemaining():networkRemaining).append(" / ").append(turn.shotLimit());
         font.draw(ui,status,30,51);
         font.getData().setScale(.85f);
-        font.draw(ui,networkPlayer!=null?(debris.lowQuality?"MULTIPLAYER / LOW FX":"MULTIPLAYER / FULL FX"):(debris.lowQuality?"LOCAL DEMO  /  LOW FX":"LOCAL DEMO  /  FULL FX"),w-215,28);
+        if(networkPlayer==null||performance.visible)font.draw(ui,networkPlayer!=null?(debris.lowQuality?"MULTIPLAYER / LOW FX":"MULTIPLAYER / FULL FX"):(debris.lowQuality?"LOCAL DEMO  /  LOW FX":"LOCAL DEMO  /  FULL FX"),w-215,28);
         if(performance.visible){
             font.setColor(.92f,.82f,.6f,1);font.getData().setScale(.9f);
             status.setLength(0);status.append("FPS ").append(Gdx.graphics.getFramesPerSecond()).append("  FRAME ").append(Math.round(performance.frameMs*10)/10f).append(" ms  CPU ").append(Math.round(performance.cpuMs*10)/10f).append(" ms");
@@ -172,6 +178,9 @@ public final class CursedBoxesRenderer implements Disposable {
                 slots[5].character=type;render(0,0,slots,slots[5],characters,debris,gun,loadingTurn,loadingStats);
             }
             gun.update(.46f,slots[5]);gun.update(.2f,slots[5]);
+            render(0,0,slots,slots[5],characters,debris,gun,loadingTurn,loadingStats);
+            // Submit the original live-shell material/mesh before the five-round introduction.
+            gun.update(3,slots[5]);gun.gun.reload();gun.update(.6f,slots[5]);
             render(0,0,slots,slots[5],characters,debris,gun,loadingTurn,loadingStats);
             // Loading-only fence: driver pipeline setup must finish before the first playable frame.
             survivors.warmup(camera,slots);

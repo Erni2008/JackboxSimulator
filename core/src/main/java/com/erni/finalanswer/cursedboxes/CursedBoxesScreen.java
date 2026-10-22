@@ -24,6 +24,7 @@ public final class CursedBoxesScreen extends InputAdapter implements Screen {
     private final DisplayManager.TemporaryFullscreen display;
     private final Runnable back;
     private final Vector3 intersection=new Vector3();
+    private int networkShotBudget=-1;
     private int selected,shotTarget=-1,events,developerRevealIndex;
     private static final int[] DEVELOPER_SURVIVORS={1,3,5,8,0};
     private float time,shotAge=9;
@@ -72,7 +73,11 @@ public final class CursedBoxesScreen extends InputAdapter implements Screen {
         if(characterTest!=null)throw new IllegalStateException("Nine-shot developer test cannot join multiplayer");
         multiplayer=controller;reset();
     }
-    public void networkRules(int limit){turn.multiplayerLimit(limit);shotgun.cinematicReload(limit==1);}
+    public void networkRules(int limit){turn.multiplayerLimit(limit);shotgun.cinematicReload(true);}
+    public void networkShotBudget(int remaining){networkShotBudget=remaining;}
+    public void restoreMagazine(int fired,int remaining){shotgun.restoreMagazine(fired,remaining);}
+    public int loadedRounds(){return shotgun.magazine.rounds();}
+    public int loadingRounds(){return shotgun.magazine.loadingTarget();}
     public void networkTurn(String player,int remaining,int destroyed,int selection){
         if(networkBusy())return;
         turn.synchronize(player,remaining,destroyed);
@@ -145,6 +150,7 @@ public final class CursedBoxesScreen extends InputAdapter implements Screen {
         // A new server turn may arrive while the previous player's gun is returning.
         // Keep the accepted shot queued and begin pickup as soon as that return finishes.
         if(pendingFire&&shotgun.resting())shotgun.select(slots[selected]);
+        shotgun.remainingShots(multiplayer==null?turn.shotsRemaining():networkShotBudget+(pendingFire?1:0));
         camera.update(dt,time,slots[selected]);shotgun.update(dt,slots[turn.active()?shotTarget:selected]);
         if(pendingFire&&(multiplayer==null||multiplayer.canStartShot())&&shotgun.aimedAt(slots[selected]))trigger();
         assets.sounds.reveal(survivorTimeline(),dt);

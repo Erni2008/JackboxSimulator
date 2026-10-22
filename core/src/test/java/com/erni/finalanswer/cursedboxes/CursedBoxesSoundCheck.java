@@ -51,6 +51,13 @@ public final class CursedBoxesSoundCheck {
         check(insert.audio.playCount(INSERT_ROUND)==1,"Insertion at shell MOVING, once");
         animator.update(config.reloadDuration);insert.audio.weaponPose(animator);check(insert.audio.playCount(INSERT_ROUND)==1,"Reload completion is not another insertion");
         animator.chamber(ShotgunAnimator.Chamber.LIVE);insert.audio.weaponPose(animator);check(insert.audio.playCount(INSERT_ROUND)==1,"Automatic ammo refill stays silent");
+        Fixture batch=new Fixture();var batchAnimator=new ShotgunAnimator(config);
+        batchAnimator.listener(batch.audio::weaponEvent);
+        check(batchAnimator.playReloadAnimation(5),"Batch insertion starts");batch.audio.weaponPose(batchAnimator);
+        for(int frame=0;frame<400;frame++){batchAnimator.update(1f/60);batch.audio.weaponPose(batchAnimator);}
+        check(batch.audio.playCount(INSERT_ROUND)==5&&batch.audio.playCount(MECHANISM)==1,"Five real insertions, one mechanism start");
+        batch.audio.weaponPose(batchAnimator);check(batch.audio.playCount(INSERT_ROUND)==5,"No duplicate insertion after loading");
+        batch.audio.reset();batch.audio.weaponPose(batchAnimator);check(batch.audio.playCount(INSERT_ROUND)==5,"Reset at idle does not replay completed insertions");
         Fixture r=new Fixture();var timeline=new CursedSurvivorTimeline();timeline.start(0x15);
         for(int i=0;i<620;i++){r.audio.reveal(timeline,1f/60);timeline.update(1f/60);}
         check(r.audio.playCount(REVEAL_START)==3&&r.audio.playCount(REVEAL_COMPLETE)==3,"Ordered start/visible cues for each survivor");

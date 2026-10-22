@@ -33,6 +33,13 @@ function createFinalVotingController({getState,isAuthenticated,send,now,makeId})
     if(s.finalVoteSubmitted){selection=s.ownFinalVote||'';pending=null;clearTimeout(timeout);error='';}
     const names=new Map(s.participants.map(p=>[p.id,p.name]));
     const completed=s.phase==='RESULT';
+    const acceptedName=s.finalVoteSubmitted&&['FINAL_VOTING','VOTING_LOCKED'].includes(s.phase)?names.get(s.ownFinalVote):null;
+    el('vote-receipt').hidden=!acceptedName;
+    el('vote-receipt-value').textContent=acceptedName||'';
+    const draftName=s.phase==='FINAL_VOTING'&&s.activeParticipant&&!s.finalVoteSubmitted?names.get(selection):null;
+    el('vote-draft').hidden=!draftName;
+    el('vote-draft-name').textContent=draftName||'';
+    el('final-screen').dataset.voteSelected=String(!!draftName);
     const titles={EVIDENCE_REVIEW:'FINAL DISCUSSION',FINAL_VOTING:'WHO IS THE IMPOSTOR?',VOTING_LOCKED:'VOTING LOCKED',
       FINAL_VOTE_REVEAL:'THE VOTES ARE BEING REVEALED',SUSPECT_ANNOUNCEMENT:'THE MOST SUSPECTED PLAYER IS…',
       IMPOSTOR_REVEAL:'THE IMPOSTOR IS…'};
@@ -48,6 +55,7 @@ function createFinalVotingController({getState,isAuthenticated,send,now,makeId})
     el('final-status').textContent=error||(s.phase==='EVIDENCE_REVIEW'?'Discuss the complete clue history on the shared screen.':
       s.phase==='FINAL_VOTING'?(!s.activeParticipant?'You are watching. Spectators cannot submit final votes.':s.finalVoteSubmitted?'VOTE ACCEPTED. Your choice is final.':pending?'SENDING YOUR VOTE…':'Select a suspect, then CONFIRM VOTE. One final choice.'):
       completed?'':'Watch the shared screen.');
+    const focusedId=el('final-cards').contains(document.activeElement)?document.activeElement.closest('[data-id]')?.dataset.id:null;
     el('final-cards').replaceChildren();
     if(s.phase==='EVIDENCE_REVIEW'||s.phase==='FINAL_VOTING')for(const p of s.participants){
       const card=document.createElement('button');card.type='button';card.className='suspect-card final-vote-card';card.dataset.id=p.id;
@@ -58,6 +66,7 @@ function createFinalVotingController({getState,isAuthenticated,send,now,makeId})
     }
     el('final-results').replaceChildren();
     tick();
+    if(focusedId){const card=Array.from(el('final-cards').children).find(c=>c.dataset.id===focusedId);if(card&&!card.disabled)card.focus({preventScroll:true});}
   }
   el('confirm-vote').addEventListener('click',()=>submit(selection));
   return {render,tick,event,reset};

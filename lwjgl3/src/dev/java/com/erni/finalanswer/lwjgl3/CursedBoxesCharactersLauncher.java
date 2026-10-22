@@ -97,10 +97,10 @@ public final class CursedBoxesCharactersLauncher {
                     check(demo.turn.ended()&&demo.turn.shotsRemaining()==0&&Integer.bitCount(demo.turn.destroyedCrateIds())==9&&!demo.fire(),"Exactly nine distinct test shots; tenth rejected");
                     check(demo.weaponState()==ShotgunController.State.RESTING,"Shotgun returned to the counter");
                     var sound=demo.sounds();
-                    check(sound.playCount(CursedBoxesSoundManager.Cue.SHOT)==9&&sound.playCount(CursedBoxesSoundManager.Cue.WOOD_BREAK)==9&&sound.playCount(CursedBoxesSoundManager.Cue.MECHANISM)==9,"One shot/wood/mechanical cue per actual salvo");
-                    check(sound.playCount(CursedBoxesSoundManager.Cue.INSERT_ROUND)==0,"No invented round insertion during automatic refill");
+                    check(sound.playCount(CursedBoxesSoundManager.Cue.SHOT)==9&&sound.playCount(CursedBoxesSoundManager.Cue.WOOD_BREAK)==9&&sound.playCount(CursedBoxesSoundManager.Cue.MECHANISM)==11,"Nine cycles plus initial and refill mechanism cues");
+                    check(sound.playCount(CursedBoxesSoundManager.Cue.INSERT_ROUND)==9&&demo.loadedRounds()==0,"Five initial shells plus four refill shells, all nine consumed");
                     check(!sound.heartbeatActive(),"Shot test leaves no heartbeat");
-                    Gdx.app.log("Cursed audio","PASS: 8 WAVs decoded, 9 shot/wood/cycle cues, no false insertion; visible shell contacts="+sound.playCount(CursedBoxesSoundManager.Cue.SHELL_DROP));
+                    Gdx.app.log("Cursed audio","PASS: 8 WAVs decoded, 9 shots/wood cues, 11 mechanical cues, 5+4 real insertions; visible shell contacts="+sound.playCount(CursedBoxesSoundManager.Cue.SHELL_DROP));
                     Gdx.files.absolute(System.getProperty("cursed.characterOutput")+"/audio.json").writeString("{\"loaded\":"+sound.loaded()+",\"shots\":"+sound.playCount(CursedBoxesSoundManager.Cue.SHOT)+",\"wood\":"+sound.playCount(CursedBoxesSoundManager.Cue.WOOD_BREAK)+",\"cycles\":"+sound.playCount(CursedBoxesSoundManager.Cue.MECHANISM)+",\"visibleShellContacts\":"+sound.playCount(CursedBoxesSoundManager.Cue.SHELL_DROP)+",\"insertions\":"+sound.playCount(CursedBoxesSoundManager.Cue.INSERT_ROUND)+"}",false);
                     int intact=0,destroyed=0;
                     for(CrateSlot box:demo.slots){

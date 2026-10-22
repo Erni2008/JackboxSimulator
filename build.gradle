@@ -27,24 +27,13 @@ configure(subprojects) {
     java.sourceCompatibility = 21
     java.targetCompatibility = 21
 
-    // Создание списка игровых ресурсов
+    // One owner for the shared manifest, including parallel module builds.
     tasks.register('generateAssetList') {
-        inputs.dir("${project.rootDir}/assets/")
-
-        File assetsFolder = new File("${project.rootDir}/assets/")
-        File assetsFile = new File(assetsFolder, "assets.txt")
-
-        assetsFile.delete()
-
-        fileTree(assetsFolder)
-            .collect { assetsFolder.relativePath(it) }
-            .sort()
-            .each {
-                assetsFile.append(it + "\n")
-            }
+        dependsOn rootProject.tasks.named('generateAssetList')
     }
-
-    processResources.dependsOn 'generateAssetList'
+    tasks.named('processResources') {
+        dependsOn rootProject.tasks.named('generateAssetList')
+    }
 
     compileJava {
         options.incremental = true
@@ -65,3 +54,36 @@ subprojects {
 
 eclipse.project.name = 'FinalAnswer' + '-parent'
 apply from: "gradle/runtime-textures.gradle"
+
+// Never mutate assets while Gradle is configuring or listing tasks.
+tasks.register('generateAssetList') {
+    group = 'build'
+    description = 'Generate a deterministic shared asset manifest when resources change.'
+    dependsOn 'prepareRuntimeTextures'
+    def assetsDirectory = layout.projectDirectory.dir('assets')
+    def manifest = assetsDirectory.file('assets.txt')
+    def resources = fileTree(assetsDirectory) { exclude 'assets.txt' }
+    inputs.files(resources).withPathSensitivity(PathSensitivity.RELATIVE)
+    outputs.file(manifest)
+    doLast {
+        def base = assetsDirectory.asFile.toPath()
+        def entries = resources.files.collect {
+            base.relativize(it.toPath()).toString().replace('\\', '/')
+        }.sort()
+        manifest.asFile.setText(entries.join('\n') + (entries.empty ? '' : '\n'), 'UTF-8')
+    }
+}
+
+tasks.register('checkProjectLayout', Exec) {
+    group = 'verification'
+    description = 'Check original asset integrity, source catalogue and documentation links (Python 3 required).'
+    workingDir rootDir
+    commandLine providers.gradleProperty('pythonExecutable').getOrElse('python3'),
+        'tools/checks/check_project_layout.py'
+}
+
+tasks.register('verifyProject') {
+    group = 'verification'
+    description = 'Run layout validation, Java regression checks and desktop assembly.'
+    dependsOn 'checkProjectLayout', ':server:check', ':core:check', ':shared:check', ':lwjgl3:assemble'
+}

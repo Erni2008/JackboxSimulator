@@ -12,6 +12,8 @@
 
 ## CURSED BOXES
 
+- [Пять патронов и дозарядка дробовика](cursed-boxes/shotgun-magazine.md)
+
 - [Current gallery integration](cursed-boxes/README.md)
 - [Cursed Boxes — расширение звука](cursed-boxes/audio-expansion.md)
 - [Звук Cursed Boxes](cursed-boxes/audio.md)
@@ -66,6 +68,8 @@
 - [FINAL ANSWER modular shotgun](shotgun/README.md)
 
 ## Разработка и проверки
+
+- [Оформление телефонных контроллеров двух режимов](development/controller-polish.md)
 
 - [Организация проекта и результаты проверок](development/project-layout.md)
 

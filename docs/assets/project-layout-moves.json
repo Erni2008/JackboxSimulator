@@ -732,7 +732,7 @@
     "new": "tools/checks/check_cursed_full_round.cjs",
     "sha256Before": "57cfd46618831aa8ffe0e6b7176cd5d11ebef3c9689d2ebc27da3c3bb49839fd",
     "kind": "tool",
-    "sha256After": "3deab4783f3242264e0761ed9ded9a43eda18f0076d14cdc52c8b2cdb31cc062"
+    "sha256After": "d158d1ecf2b2ba43d37bbca492ddeca935378ffeddae1fbe8027e80aebc81dd7"
   },
   {
     "old": "scripts/import_cursed_boxes_backgrounds.py",
@@ -767,7 +767,7 @@
     "new": "tools/checks/check_impostor_browser.cjs",
     "sha256Before": "52e7ef323aae2ac6b56d51cdf20e92a2bee5247f68b86fea00c70ead9d7d335e",
     "kind": "tool",
-    "sha256After": "9d58f8929438cf5c35411053a63f5bdf9c6edce20623f40a70ed4d14aa34e251"
+    "sha256After": "64e248fc48d17426a88d625304b2d1507c440f9f7f65b4a361cd25df94494e5d"
   },
   {
     "old": "generated/create-room-preview.png",

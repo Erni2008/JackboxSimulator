@@ -188,3 +188,6 @@ Thumbs.db
 __pycache__/
 *.py[cod]
 /generated/tmp/
+
+# Reproducible mobile presentation captures; keep the JSON report.
+/generated/controller-polish/*.png

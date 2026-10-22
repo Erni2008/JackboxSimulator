@@ -44,7 +44,7 @@ public final class CursedCharacterTestMode {
     public void update(float dt){
         if(!automatic)return;age+=dt;
         if(!fired&&age>=1.5f){if(!shoot())throw new IllegalStateException("Character test shot rejected: "+targetName());fired=true;}
-        if(fired&&age>=3.5f&&!scene.turn.active()){
+        if(fired&&age>=3.5f&&!scene.networkBusy()){
             if(index<8){index++;age=0;fired=false;scene.select(slot());}
             else{automatic=false;completed=true;com.badlogic.gdx.Gdx.app.log("Cursed character test","TEST COMPLETED: 9/9 shots, 8/8 persistent characters, one empty box destroyed");}
         }

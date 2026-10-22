@@ -27,7 +27,7 @@ public final class CursedBoxesSession {
     private final Map<String,Shot> lastResults=new HashMap<>();
     private int active,destroyed;
     private boolean ready,finished,revealCompleted;
-    private final Set<String> eliminated=new HashSet<>();
+    private final Set<String> eliminated=new HashSet<>(),departed=new HashSet<>();
     private final CursedSurvivorTimeline.Timings revealTimings=new CursedSurvivorTimeline.Timings();
     private long revealStartedAt,revealEndsAt;
     private int survivorMask,publicSurvivors;
@@ -125,7 +125,7 @@ public final class CursedBoxesSession {
     private void next(){do{active++;}while(active<players.size()&&remaining[active]==0);if(active>=players.size())finished=true;}
     /** A disconnected player keeps their seat/ammo; an explicit leaver forfeits only unspent turns. */
     public boolean tick(long now,Set<String> left){
-        boolean changed=false;
+        boolean changed=false;departed.addAll(left);
         if(!finished)eliminated.addAll(left);
         if(!hidingLocked){boolean before=hidingLocked;lockHidingIfComplete();changed=before!=hidingLocked;}
         if(finished&&!revealCompleted&&now>=revealEndsAt){revealCompleted=true;changed=true;}
@@ -182,6 +182,10 @@ public final class CursedBoxesSession {
             value.put("pendingShot",Map.of("id",pending.id,"playerId",pending.playerId,"boxId",pending.boxId,"number",pending.number,"requestId",pending.requestId,"startedAt",pending.startedAt,"impactedAt",pending.impactedAt));
         }
         if(host){
+            // Presentation budget contains no hiding assignment and does not alter turn ammunition.
+            int budget=0;for(int i=0;i<players.size();i++)if(!departed.contains(players.get(i).id()))budget+=remaining[i];
+            value.put("remainingShotCount",budget);
+            value.put("presentedShotCount",accepted.values().stream().filter(s->s.impactedAt>0).count());
             value.put("hostContents",contents.entrySet().stream().sorted(Map.Entry.comparingByKey()).map(e->Map.of("boxId",e.getKey(),"playerId",e.getValue().id(),"nickname",e.getValue().nickname(),"characterId",e.getValue().characterId())).toList());
             value.put("selectedCrateId",finished?-1:selections[active]);value.put("shotsRemaining",finished?0:remaining[active]);
         }
