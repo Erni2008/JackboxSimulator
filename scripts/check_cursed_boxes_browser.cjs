@@ -34,7 +34,7 @@ async function resolved(p){await p.waitForFunction(()=>!window.__qaState?.cursed
     assert.equal(await a.locator('#cursed-player-name').textContent(),'Phone Ghost');assert.equal(await b.locator('#cursed-player-name').textContent(),'Voodoo Guest');
     assert(await a.locator('#cursed-fire').isDisabled());assert(await b.locator('#cursed-fire').isDisabled());assert.equal(await b.locator('.cursed-box:enabled').count(),0);
     assert.equal(snapshot.cursedBoxes.shotsRemaining,2);assert.equal(await a.locator('#cursed-shot-counter').textContent(),'SHOT 1 / 2');
-    let report=await host('INSPECT');assert(report.nativeReady);assert.equal(report.turnLimit,2);assert.equal(report.developerTest,false);assert.equal(report.models,8);
+    let report=await host('INSPECT');assert(report.nativeReady);assert.equal(report.turnLimit,2);assert.equal(report.developerTest,false);assert.equal(report.models,11);
     const contents=report.state.cursedBoxes.hostContents,ghost=contents.find(c=>c.characterId==='ghost').boxId,voodoo=contents.find(c=>c.characterId==='voodoo').boxId;
     const empty=Array.from({length:16},(_,i)=>i).filter(i=>!contents.some(c=>c.boxId===i));
     for(const viewport of [{width:390,height:844},{width:320,height:568},{width:360,height:640},{width:412,height:915},{width:568,height:320},{width:844,height:390},{width:1280,height:800}]){
@@ -94,11 +94,29 @@ async function resolved(p){await p.waitForFunction(()=>!window.__qaState?.cursed
     await a.screenshot({path:path.join(dir,'phone-finished.png'),fullPage:true,animations:'disabled'});await host('CAPTURE');
     await host('END');await Promise.all(clients.map(c=>c.p.locator('#waiting-screen').waitFor({state:'visible'})));
     await host('CAPTURE_LOBBY');
+    // Second real round deliberately misses both players. Only server-owned survivors may open.
+    await host('START');await a.waitForFunction(()=>window.__qaState?.cursedBoxes?.canAct===true);
+    report=await host('INSPECT');const survivors=report.state.cursedBoxes.hostContents;
+    const misses=Array.from({length:16},(_,i)=>i).filter(i=>!survivors.some(p=>p.boxId===i));
+    for(let i=0;i<4;i++){const phone=i<2?a:b;await phone.waitForFunction(()=>window.__qaState.cursedBoxes.canAct);await selected(phone,misses[i]);await phone.locator('#cursed-fire').click();await revealed(a,misses[i]);await resolved(phone);}
+    await a.waitForFunction(()=>window.__qaState.cursedBoxes.phase==='REVEALING');
+    let reveal=await state(a);assert.equal(reveal.cursedBoxes.survivorCount,2);assert.equal(reveal.cursedBoxes.survivors.length,0);
+    assert.equal(await a.locator('.cursed-box:enabled').count(),0);assert(await b.locator('#cursed-fire').isDisabled());
+    await a.waitForFunction(()=>window.__qaState.cursedBoxes.survivors.length>=1);
+    await host('RECONNECT_HOST');
+    await a.waitForFunction(()=>window.__qaState.cursedBoxes.phase==='FINISHED');await sleep(800);
+    report=await host('INSPECT');assert.equal(report.survivorState,'COMPLETED');assert.equal(report.slots.filter(b=>b.survivorOpening).length,2);
+    for(const person of survivors){assert(report.survivorMask&(1<<person.boxId));assert.equal(report.slots[person.boxId].state,'INTACT');assert.equal(report.slots[person.boxId].panelOpacity,0);}
+    assert.equal(report.slots.filter(b=>b.state==='DESTROYED').length,4);
+    assert.equal((await state(a)).cursedBoxes.survivors.length,2);assert.equal((await state(b)).cursedBoxes.survivors.length,2);
+    assert.equal(await a.locator('#cursed-result-title').textContent(),'YOU SURVIVED');assert.equal(await b.locator('#cursed-result-title').textContent(),'YOU SURVIVED');
+    assert((await state(a)).players.every(p=>p.score===0),'Reveal changed scoring');
+    await host('CAPTURE');await host('END');await Promise.all(clients.map(c=>c.p.locator('#waiting-screen').waitFor({state:'visible'})));
     await host('START_QUESTIONS');await a.locator('#question-screen').waitFor({state:'visible',timeout:30000});await b.locator('#question-screen').waitFor({state:'visible',timeout:30000});
     assert.equal((await state(a)).cursedBoxes,undefined);assert.equal((await state(a)).gameId,(await state(b)).gameId);assert.equal(await a.locator('#answers button').count(),4);
     assert.deepEqual(errors,[]);await host('EXIT');
     for(let n=0;n<200&&!fs.existsSync(path.join(dir,'cleanup.json'));n++)await sleep(50);
     assert(JSON.parse(fs.readFileSync(path.join(dir,'cleanup.json'))).portReleased);
-    console.log('PASS: two authenticated mobile browsers -> real native shots, 16 row-major boxes, seven viewports, selection/confirmation, rejected/duplicate/third shots, shared destruction, redaction, phone + host reconnect, persistent Ghost/Voodoo, 2-shot isolation, unchanged scores and return to existing question UI');
+    console.log('PASS: two authenticated mobile browsers -> real native shots, 16 row-major boxes, seven viewports, selection/confirmation, rejected/duplicate/third shots, shared destruction, redaction, phone + host reconnect, persistent Ghost/Voodoo, 2-shot isolation, unchanged scores, server-timed two-survivor reveal with host reconnect and synchronized phone results, and return to existing question UI');
   }finally{try{await host('EXIT');}catch{}await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

@@ -17,7 +17,7 @@ public final class CursedBoxesLauncher {
         cfg.setWindowedMode(1280,800);cfg.useVsync(true);cfg.setForegroundFPS(60);cfg.setIdleFPS(15);
         boolean qa=Boolean.getBoolean("cursed.qa");
         new Lwjgl3Application(new Game(){
-            CursedBoxesScreen demo;float age;int phase,shotFrame;boolean rendering,finished;
+            CursedBoxesScreen demo;float age;int phase,shotFrame,aimTarget;boolean rendering,finished;
             @Override public void create(){try{setScreen(new CursedBoxesLoadingScreen(scene->{demo=scene;setScreen(scene);},()->Gdx.app.exit()));}catch(Throwable e){failure=e;Gdx.app.exit();}}
             void capture(String name){Pixmap p=ScreenUtils.getFrameBufferPixmap(0,0,Gdx.graphics.getBackBufferWidth(),Gdx.graphics.getBackBufferHeight());try{PixmapIO.writePNG(Gdx.files.absolute(System.getProperty("cursed.output")+"/"+name+".png"),p,-1,true);}finally{p.dispose();}}
             void checkSlots(){
@@ -48,6 +48,8 @@ public final class CursedBoxesLauncher {
                     }break;
                     case 2:
                         shotFrame++;
+                        if(shotFrame==1)capture("02-muzzle-flash");
+                        if(shotFrame==18)capture("03-barrel-smoke");
                         if(shotFrame==6){if(demo.slots[5].state!=CrateSlot.State.DESTROYED||!demo.ghostWounded())throw new AssertionError("Direct source box3/ghost3");capture("02-first-impact");}
                         if(shotFrame==12){if(demo.slots[5].state!=CrateSlot.State.DESTROYED)throw new AssertionError("160 ms stage");capture("03-revealed");}
                         if(shotFrame==15)capture("04-ghost-reaction");
@@ -69,7 +71,16 @@ public final class CursedBoxesLauncher {
                     case 7:if(age>.5f){
                         if(!demo.presentationFullscreen()||demo.turn.shotsRemaining()!=2||demo.turn.destroyedCrateIds()!=0)throw new AssertionError("Fullscreen/reset");
                         for(var s:demo.slots)if(s.state!=CrateSlot.State.INTACT)throw new AssertionError("Reset geometry");
-                        Gdx.app.log("Cursed Boxes","PASS: fullscreen/F11, 16 slots, direct original box3/ghost3, ghost alpha, two-shot rules, F3, reset and OpenGL");Gdx.app.exit();
+                        phase=8;age=0;aimTarget=0;demo.reset();demo.select(aimTarget);
+                    }break;
+                    case 8:if(age>1.2f){
+                        if(!demo.aimedAtSelected()||!demo.fire())throw new AssertionError("Target fire "+aimTarget);
+                        phase=9;age=0;
+                    }break;
+                    case 9:if(age>1.9f){
+                        if(demo.slots[aimTarget].state!=CrateSlot.State.DESTROYED)throw new AssertionError("Target impact "+aimTarget);
+                        if(++aimTarget==16){Gdx.app.log("Cursed Boxes","PASS: fullscreen/F11, all sixteen targets aimed/fired/destroyed, two-shot rules, alpha, reset and OpenGL");Gdx.app.exit();}
+                        else{demo.reset();demo.select(aimTarget);phase=8;age=0;}
                     }break;
                 }
             }catch(Throwable e){failure=e;Gdx.app.exit();}finally{rendering=false;}}

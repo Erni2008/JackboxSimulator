@@ -16,8 +16,9 @@ public final class ShotgunRenderer implements Disposable {
     private final Texture brdf;
     private final ShotgunEffects effects;
     private ModularShotgun weapon;
-    public ShotgunRenderer(PerspectiveCamera camera){
-        effects=new ShotgunEffects(camera);
+    public ShotgunRenderer(PerspectiveCamera camera){this(camera,true);}
+    public ShotgunRenderer(PerspectiveCamera camera,boolean legacyEffects){
+        effects=legacyEffects?new ShotgunEffects(camera):null;
         manager=new SceneManager();manager.setCamera(camera);
         DirectionalLightEx key=new DirectionalLightEx();key.direction.set(-.35f,-.8f,-.6f).nor();key.color.set(.85f,.79f,.70f,1);
         manager.environment.add(key);
@@ -31,10 +32,11 @@ public final class ShotgunRenderer implements Disposable {
         manager.environment.set(new PBRTextureAttribute(PBRTextureAttribute.BRDFLUTTexture,brdf));
     }
     public com.badlogic.gdx.graphics.g3d.Environment environment(){return manager.environment;}
+    public void renderTransparent(RenderableProvider provider){var batch=manager.getBatch();batch.begin(manager.camera);batch.render(provider,manager.environment);batch.end();}
     public void provider(RenderableProvider provider){weapon=provider instanceof ModularShotgun gun?gun:null;manager.getRenderableProviders().clear();if(provider!=null)manager.getRenderableProviders().add(provider);}
     /** Draw the effect shader once while the host is still loading. */
-    public void renderEffects(ModularShotgun gun){effects.render(gun);}
-    public void warmupEffects(){effects.warmup();}
-    public void render(float delta){manager.update(Math.max(0,delta));manager.render();if(weapon!=null)effects.render(weapon);}
-    @Override public void dispose(){effects.dispose();manager.dispose();diffuse.dispose();specular.dispose();brdf.dispose();}
+    public void renderEffects(ModularShotgun gun){if(effects!=null)effects.render(gun);}
+    public void warmupEffects(){if(effects!=null)effects.warmup();}
+    public void render(float delta){manager.update(Math.max(0,delta));manager.render();if(weapon!=null&&effects!=null)effects.render(weapon);}
+    @Override public void dispose(){if(effects!=null)effects.dispose();manager.dispose();diffuse.dispose();specular.dispose();brdf.dispose();}
 }

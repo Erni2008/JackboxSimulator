@@ -23,7 +23,7 @@ public final class ShotgunController implements Disposable {
     private State state=State.RESTING;
     public ShotgunController(CursedBoxesAssets assets,CursedBoxesConfig scene,CursedBoxesGalleryConfig gallery){
         this.gallery=gallery;scale.set(gallery.weaponScale,gallery.weaponScale,gallery.weaponScale);
-        ShotgunConfig config=assets.weaponConfig;config.startLoaded=true;config.pumpDuration=.45f;pumpAt=scene.pumpAt;
+        ShotgunConfig config=assets.weaponConfig;config.startLoaded=true;config.pumpDuration=.45f;config.fireDuration=.44f;config.flashDuration=.08f;config.recoilTravel=.055f;config.recoilAngle=4.2f;pumpAt=scene.pumpAt;
         muzzleY=config.muzzle[1];gun=new ModularShotgun(assets.models,config);if(!gun.complete()||!gun.mechanismReady())throw new IllegalStateException("Existing modular shotgun unavailable: "+assets.models.failures());
         audio=new ShotgunAudio(config);
         // Barrel is local +X. Lay the receiver on its side on a horizontal virtual plane.

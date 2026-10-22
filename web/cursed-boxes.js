@@ -27,7 +27,7 @@ function createCursedBoxesController({getState,isAuthenticated,send,makeId,expla
     el('cursed-player-name').textContent=self?.nickname||self?.name||'PLAYER';
     el('cursed-player-character').textContent=labels[self?.characterId]||'';
     el('cursed-shot-counter').textContent=s.shotsRemaining===0?'NO SHOTS REMAINING':`SHOT ${3-s.shotsRemaining} / 2`;
-    el('cursed-current-player').textContent=s.phase==='FINISHED'?'ALL TURNS COMPLETE':`CURRENT PLAYER: ${s.activePlayerName}`;
+    el('cursed-current-player').textContent=s.phase==='REVEALING'?'SURVIVORS ARE EMERGING':s.phase==='FINISHED'?'ALL TURNS COMPLETE':`CURRENT PLAYER: ${s.activePlayerName}`;
     const selected=draft??s.selectedCrateId;
     for(const button of grid.children){
       const id=Number(button.dataset.box),box=s.boxes?.find(box=>box.id===id),state=box?.state||'LOCKED';
@@ -43,10 +43,12 @@ function createCursedBoxesController({getState,isAuthenticated,send,makeId,expla
     fire.disabled=!allowed()||selectionRequest!==null||selected<0||selected!==s.selectedCrateId||s.boxes?.find(box=>box.id===selected)?.state!=='AVAILABLE';
     const ours=s.pendingShot?.playerId===root.selfId;
     fire.classList.toggle('firing',ours);el('cursed-screen').classList.toggle('waiting-turn',!s.canAct);
-    const text=error||(!s.hostReady?(s.notice||!root.hostConnected?'SHOW PAUSED — RESTORING THE GALLERY. YOUR SHOTS ARE SAVED.':'PREPARING THE GALLERY…'):s.phase==='FINISHED'?'THE GALLERY IS SILENT. WAITING FOR THE HOST.':s.pendingShot?ours?'SHOT CONFIRMED · FIRING…':'WAITING FOR YOUR TURN…':!s.canAct?'WAITING FOR YOUR TURN…':fireRequest?'CONFIRMING YOUR SHOT…':selectionRequest?'ALIGNING WITH YOUR TARGET…':'SELECT A BOX. MAKE IT COUNT.');
+    const text=error||(!s.hostReady?(s.notice||!root.hostConnected?'SHOW PAUSED — RESTORING THE GALLERY. YOUR SHOTS ARE SAVED.':'PREPARING THE GALLERY…'):s.phase==='REVEALING'?`SURVIVOR REVEAL · ${s.survivorCount} SURVIVOR${s.survivorCount===1?'':'S'}. WATCH THE SHARED SCREEN.`:s.phase==='FINISHED'?(s.survivorCount===0?'NO SURVIVORS. THE GALLERY IS SILENT.':`SURVIVORS: ${(s.survivors||[]).map(p=>p.nickname).join(', ')}. WAITING FOR THE HOST.`):s.pendingShot?ours?'SHOT CONFIRMED · FIRING…':'WAITING FOR YOUR TURN…':!s.canAct?'WAITING FOR YOUR TURN…':fireRequest?'CONFIRMING YOUR SHOT…':selectionRequest?'ALIGNING WITH YOUR TARGET…':'SELECT A BOX. MAKE IT COUNT.');
     el('cursed-status').textContent=text;
     const result=s.lastResult,panel=el('cursed-result');panel.hidden=!result||!!fireRequest||!!(ours&&s.pendingShot.id!==result?.shotId);
-    if(result){panel.dataset.kind=result.empty?'empty':'found';el('cursed-result-title').textContent=result.empty?'EMPTY BOX':'CHARACTER FOUND!';el('cursed-result-detail').textContent=result.empty?'NOTHING INSIDE…':`${result.nickname} · ${labels[result.characterId]||result.characterId}`;}
+    if(s.phase==='REVEALING')panel.hidden=true;
+    if(s.phase==='FINISHED'&&s.outcomes){const own=s.outcomes.find(p=>p.playerId===root.selfId);panel.hidden=!own;if(own){panel.dataset.kind=own.survived?'found':'empty';el('cursed-result-title').textContent=own.survived?'YOU SURVIVED':'ELIMINATED';el('cursed-result-detail').textContent=own.survived?'Your character remains in the gallery.':'Your character is excluded from the survivor reveal.';}}
+    else if(result){panel.dataset.kind=result.empty?'empty':'found';el('cursed-result-title').textContent=result.empty?'EMPTY BOX':'CHARACTER FOUND!';el('cursed-result-detail').textContent=result.empty?'NOTHING INSIDE…':`${result.nickname} · ${labels[result.characterId]||result.characterId}`;}
   }
   function select(id){
     if(!allowed()||mini().boxes?.find(b=>b.id===id)?.state!=='AVAILABLE')return;

@@ -63,7 +63,7 @@ class CursedBoxesTest {
         rejects("BOX_DESTROYED",()->command(a,"CURSED_SELECT",selection(0)));command(a,"CURSED_SELECT",selection(1));rejects("STALE_CURSED_SHOT",()->command(a,"CURSED_FIRE",fireFields(1,1)));
         command(a,"CURSED_FIRE",fireFields(1,2));resolve();assertTrue(mini(b).get("canAct").getAsBoolean());assertEquals(0,mini(a).get("shotsRemaining").getAsInt());
         rejects("NOT_YOUR_TURN",()->command(a,"CURSED_SELECT",selection(2)));shoot(b,2,1);shoot(b,3,2);
-        assertEquals("FINISHED",mini(a).get("phase").getAsString());assertEquals(4,Integer.bitCount(mini(a).get("destroyedCrateIds").getAsInt()));assertEquals(0,mini(b).get("shotsRemaining").getAsInt());
+        assertEquals(mini(a).get("survivorCount").getAsInt()==0?"FINISHED":"REVEALING",mini(a).get("phase").getAsString());clock.addAndGet(60_000);rooms.tick();assertEquals("FINISHED",mini(a).get("phase").getAsString());assertEquals(4,Integer.bitCount(mini(a).get("destroyedCrateIds").getAsInt()));assertEquals(0,mini(b).get("shotsRemaining").getAsInt());
         rejects("CURSED_FINISHED",()->command(b,"CURSED_SELECT",selection(4)));
         command(h,"CURSED_RETURN_TO_LOBBY",base());assertFalse(h.latest().has("cursedBoxes"));assertTrue(h.latest().get("canStart").getAsBoolean());
     }
@@ -84,6 +84,40 @@ class CursedBoxesTest {
         start();ready();assertEquals(8,mini(h).getAsJsonArray("hostContents").size());
         for(int i=0;i<8;i++){shoot(peers.get(i),i*2,1);shoot(peers.get(i),i*2+1,2);for(int box=0;box<=i*2+1;box++)assertEquals("DESTROYED",box(peers.get(i),box).get("state").getAsString());}
         assertEquals(0xffff,mini(h).get("destroyedCrateIds").getAsInt());assertEquals("FINISHED",mini(h).get("phase").getAsString());clock.addAndGet(60_000);rooms.tick();assertEquals(0xffff,mini(h).get("destroyedCrateIds").getAsInt());
+    }
+    @Test void survivorPhaseIsAuthoritativeDelayedRedactedAndReconnectable(){
+        start();ready();
+        var assignments=mini(h).getAsJsonArray("hostContents");var victim=assignments.get(0).getAsJsonObject();var survivor=assignments.get(1).getAsJsonObject();
+        int killed=victim.get("boxId").getAsInt(),safe=survivor.get("boxId").getAsInt();
+        var empties=new ArrayList<Integer>();for(int i=0;i<16;i++)if(i!=killed&&i!=safe)empties.add(i);
+        shoot(a,killed,1);assertFalse(mini(h).has("survivors"));shoot(a,empties.get(0),2);assertFalse(mini(b).has("outcomes"));shoot(b,empties.get(1),1);
+        assertEquals("SELECTING",mini(h).get("phase").getAsString());assertFalse(mini(h).has("survivors"));
+        shoot(b,empties.get(2),2);
+        assertEquals("REVEALING",mini(h).get("phase").getAsString());assertEquals(1,mini(h).get("survivorCount").getAsInt());
+        assertFalse(mini(a).get("canAct").getAsBoolean());assertFalse(mini(b).get("canAct").getAsBoolean());
+        assertEquals(1,mini(h).getAsJsonArray("survivors").size());assertEquals(survivor,mini(h).getAsJsonArray("survivors").get(0));
+        assertEquals(0,mini(a).getAsJsonArray("survivors").size());assertFalse(box(a,safe).has("characterId"));
+        assertEquals(1,mini(h).getAsJsonArray("outcomes").asList().stream().filter(e->e.getAsJsonObject().get("survived").getAsBoolean()).count());
+        rejects("INVALID_CURSED_ACTION",()->command(a,"CURSED_REVEAL_COMPLETE",base()));
+        rejects("CURSED_FINISHED",()->command(b,"CURSED_SELECT",selection(15)));
+        long at=mini(h).get("revealStartedAt").getAsLong(),end=mini(h).get("revealEndsAt").getAsLong();int damage=mini(h).get("destroyedCrateIds").getAsInt();
+        rooms.detach(a.id());rooms.detach(h.id());clock.set(at+1000);rooms.tick();
+        assertEquals(1,mini(b).getAsJsonArray("survivors").size());assertEquals("REVEALING",mini(b).get("phase").getAsString());
+        rooms.attach(code,host.get("token").getAsString(),h,"host-return");assertEquals(at,mini(h).get("revealStartedAt").getAsLong());
+        clock.set(end);rooms.tick();assertEquals("FINISHED",mini(b).get("phase").getAsString());assertEquals(damage,mini(h).get("destroyedCrateIds").getAsInt());
+        assertEquals(safe,mini(b).getAsJsonArray("survivors").get(0).getAsJsonObject().get("boxId").getAsInt());
+    }
+    @Test void fiveSurvivorsAreSequentialAndEmptyBoxesNeverEnterResults(){
+        var peers=new ArrayList<RoomServiceTest.TestPeer>(List.of(a,b));
+        for(String type:List.of("dracula","plague_doctor","puppeteer")){var p=json(rooms.join(code,Map.of("name",type,"characterId",type)));var peer=new RoomServiceTest.TestPeer();rooms.attach(code,p.get("token").getAsString(),peer,type);peers.add(peer);}
+        start();ready();var occupied=new HashSet<Integer>();for(var e:mini(h).getAsJsonArray("hostContents"))occupied.add(e.getAsJsonObject().get("boxId").getAsInt());
+        var empty=new ArrayList<Integer>();for(int i=0;i<16;i++)if(!occupied.contains(i))empty.add(i);
+        for(int i=0;i<5;i++){shoot(peers.get(i),empty.get(i*2),1);shoot(peers.get(i),empty.get(i*2+1),2);if(i<4)assertFalse(mini(h).has("survivors"));}
+        assertEquals(5,mini(h).get("survivorCount").getAsInt());assertEquals(5,mini(h).getAsJsonArray("survivors").size());
+        long start=mini(h).get("revealStartedAt").getAsLong();clock.set(start+1000);rooms.tick();assertEquals(1,mini(a).getAsJsonArray("survivors").size());
+        clock.set(start+4000);rooms.tick();assertEquals(2,mini(a).getAsJsonArray("survivors").size());
+        clock.set(mini(h).get("revealEndsAt").getAsLong());rooms.tick();assertEquals("FINISHED",mini(a).get("phase").getAsString());
+        for(var e:mini(a).getAsJsonArray("survivors"))assertTrue(occupied.contains(e.getAsJsonObject().get("boxId").getAsInt()));
     }
     @Test void stalledMidAnimationPausesExplicitlyAndResumesWithoutRefundOrExtraConsumption(){
         start();ready();command(a,"CURSED_SELECT",selection(0));command(a,"CURSED_FIRE",fireFields(0,1));String shot=pending();stage("CURSED_SHOT_STARTED",shot);

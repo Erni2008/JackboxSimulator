@@ -17,15 +17,16 @@ public final class CursedBoxesMultiplayerController implements AutoCloseable {
     private int lastRemaining=-1;
     private boolean started,impacted,completed,closed;
     private float retry,readyRetry;
+    private final com.finalanswer.protocol.CursedSurvivorTimeline.Timings revealTimings=new com.finalanswer.protocol.CursedSurvivorTimeline.Timings();
     public CursedBoxesMultiplayerController(CursedBoxesScreen scene,RealtimeClient connection){
         this.scene=scene;this.connection=connection;
         JsonObject root=connection.snapshot();state=root.getAsJsonObject("cursedBoxes");sessionId=state.get("sessionId").getAsString();roomCode=root.get("code").getAsString();
         if(!root.get("host").getAsBoolean()||!state.has("hostContents"))throw new IllegalStateException("Only authenticated host may render hidden contents");
         scene.multiplayer(this);
-        for(CrateSlot box:scene.slots){box.character=null;box.occupantNickname=null;}
+        for(CrateSlot box:scene.slots){box.character=null;box.occupantNickname=null;box.occupantPlayerId=null;}
         for(JsonElement element:state.getAsJsonArray("hostContents")){
             var person=element.getAsJsonObject();CrateSlot box=scene.slots[person.get("boxId").getAsInt()];
-            box.character=CursedCharacterType.valueOf(person.get("characterId").getAsString().toUpperCase(Locale.ROOT));box.occupantNickname=person.get("nickname").getAsString();
+            box.character=CursedCharacterType.valueOf(person.get("characterId").getAsString().toUpperCase(Locale.ROOT));box.occupantNickname=person.get("nickname").getAsString();box.occupantPlayerId=person.get("playerId").getAsString();
         }
         connection.addEventListener(listener);apply();send("CURSED_SCENE_READY",Map.of());
     }
@@ -37,17 +38,32 @@ public final class CursedBoxesMultiplayerController implements AutoCloseable {
         JsonObject root=event.getAsJsonObject("payload");
         if(root.has("cursedBoxes")&&sessionId.equals(root.getAsJsonObject("cursedBoxes").get("sessionId").getAsString())){state=root.getAsJsonObject("cursedBoxes");apply();}
     }
+    private boolean finalPhase(){String phase=state.get("phase").getAsString();return phase.equals("REVEALING")||phase.equals("FINISHED");}
+    private void applyReveal(){
+        if(!finalPhase()||scene.networkBusy()||!state.has("survivors"))return;
+        int mask=0;
+        for(JsonElement e:state.getAsJsonArray("survivors")){
+            var person=e.getAsJsonObject();int box=person.get("boxId").getAsInt();
+            if(box<0||box>=16||!person.get("playerId").getAsString().equals(scene.slots[box].occupantPlayerId))throw new IllegalStateException("Mismatched authoritative survivor assignment");
+            mask|=1<<box;
+        }
+        var t=revealTimings;
+        if(state.has("revealTimings")){var j=state.getAsJsonObject("revealTimings");t.anticipation=j.get("anticipation").getAsFloat();t.smoke=j.get("smoke").getAsFloat();t.panel=j.get("panel").getAsFloat();t.character=j.get("character").getAsFloat();t.idle=j.get("idle").getAsFloat();t.gap=j.get("gap").getAsFloat();}
+        scene.networkSurvivors(mask,Math.max(0,(connection.serverNow()-state.get("revealStartedAt").getAsLong())/1000f),t);
+    }
     private void apply(){
         int destroyed=state.get("destroyedCrateIds").getAsInt();
         for(int i=0;i<16;i++)if((destroyed&(1<<i))!=0)scene.networkReveal(i);
+        applyReveal();
         String player=state.get("activePlayerName").getAsString();
-        String status=!connection.connected()?"RECONNECTING — SHOTS SAVED":!state.get("hostReady").getAsBoolean()?"PREPARING / RESTORING THE GALLERY":!state.get("activePlayerOnline").getAsBoolean()?"WAITING FOR PLAYER TO RECONNECT":state.get("phase").getAsString().equals("FINISHED")?"ALL TURNS COMPLETE / ESC RETURN TO LOBBY":state.has("pendingShot")?"FIRING — WATCH THE TARGET":"SELECT A BOX ON YOUR PHONE";
+        String status=!connection.connected()?"RECONNECTING — SHOTS SAVED":!state.get("hostReady").getAsBoolean()?"PREPARING / RESTORING THE GALLERY":!state.get("activePlayerOnline").getAsBoolean()?"WAITING FOR PLAYER TO RECONNECT":state.get("phase").getAsString().equals("REVEALING")?"SURVIVOR REVEAL / WATCH THE SHELF":state.get("phase").getAsString().equals("FINISHED")?"SURVIVORS REVEALED / ESC RETURN TO LOBBY":state.has("pendingShot")?"FIRING — WATCH THE TARGET":"SELECT A BOX ON YOUR PHONE";
         int remaining=state.get("shotsRemaining").getAsInt();
         if(!player.equals(lastPlayer)||!status.equals(lastStatus)||remaining!=lastRemaining){lastPlayer=player;lastStatus=status;lastRemaining=remaining;scene.networkStatus(player,status,remaining);}
     }
     public void update(float dt){
         if(closed)return;retry+=dt;readyRetry+=dt;
         if(!connection.connected()){apply();return;}
+        if(finalPhase()){applyReveal();return;}
         if(!state.get("hostReady").getAsBoolean()){
             if(readyRetry>=1){readyRetry=0;send("CURSED_SCENE_READY",Map.of());}return;
         }

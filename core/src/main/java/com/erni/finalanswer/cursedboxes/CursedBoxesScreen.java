@@ -24,7 +24,8 @@ public final class CursedBoxesScreen extends InputAdapter implements Screen {
     private final DisplayManager.TemporaryFullscreen display;
     private final Runnable back;
     private final Vector3 intersection=new Vector3();
-    private int selected,shotTarget=-1,events;
+    private int selected,shotTarget=-1,events,developerRevealIndex;
+    private static final int[] DEVELOPER_SURVIVORS={1,3,5,8,0};
     private float time,shotAge=9;
     private boolean disposed,pendingFire,warmed,activeScreen,rendering;
     public CursedBoxesScreen(Runnable back){this(back,new CursedBoxesAssets(),new DisplayManager.TemporaryFullscreen());}
@@ -51,6 +52,19 @@ public final class CursedBoxesScreen extends InputAdapter implements Screen {
     public int activeParticles(){return debris.activeParticles();}
     public int loadedModels(){return assets.models.loadedCount();}
     public boolean networkBusy(){return pendingFire||turn.active();}
+    public com.finalanswer.protocol.CursedSurvivorTimeline survivorTimeline(){return renderer.survivors.clock;}
+    public void networkSurvivors(int mask,float age,com.finalanswer.protocol.CursedSurvivorTimeline.Timings timings){
+        if(networkBusy())return;
+        var clock=survivorTimeline();if(!clock.started()){clock.timings.anticipation=timings.anticipation;clock.timings.smoke=timings.smoke;clock.timings.panel=timings.panel;clock.timings.character=timings.character;clock.timings.idle=timings.idle;clock.timings.gap=timings.gap;clock.timings.validate();renderer.survivors.start(mask,slots);shotgun.returnToTable();}
+        clock.seek(age);
+    }
+    public boolean developerSurvivors(int count){
+        if(multiplayer!=null||characterTest!=null||networkBusy()||count<0||count>8)return false;
+        renderer.resetSurvivors(slots);int mask=0,index=0;
+        // Isolated local roster; damaged/destroyed geometry and existing visible hit characters are retained.
+        for(CrateSlot slot:slots)if(slot.state!=CrateSlot.State.DESTROYED&&index<8){slot.character=CursedCharacterType.values()[index];slot.occupantNickname="Survivor "+(index+1);slot.occupantPlayerId="developer-"+index;if(index++<count)mask|=1<<slot.id;}
+        renderer.survivors.start(mask,slots);shotgun.returnToTable();return true;
+    }
     public void multiplayer(CursedBoxesMultiplayerController controller){
         if(characterTest!=null)throw new IllegalStateException("Nine-shot developer test cannot join multiplayer");
         multiplayer=controller;reset();
@@ -72,23 +86,23 @@ public final class CursedBoxesScreen extends InputAdapter implements Screen {
     public void select(int id){
         if(characterTest!=null&&!characterTest.accepts(id))return;
         if(characterTest!=null&&characterTest.automatic()&&id!=characterTest.slot())return;
-        if(pendingFire||!turn.select(id))return;
+        if(survivorTimeline().started()||pendingFire||!turn.select(id))return;
         if(characterTest!=null)characterTest.selectedSlot(id);
         slots[selected].selected=false;selected=id;slots[id].selected=true;shotgun.select(slots[id]);
     }
     public boolean fire(){
-        if(turn.active()||turn.shotsRemaining()==0||turn.selectedCrateId()<0||turn.destroyed(selected)||pendingFire)return false;
+        if(survivorTimeline().started()||turn.active()||turn.shotsRemaining()==0||turn.selectedCrateId()<0||turn.destroyed(selected)||pendingFire)return false;
         pendingFire=true;slots[selected].previewHidden=false;return true;
     }
     private void trigger(){
         if(!shotgun.fire())return;
         if(!turn.begin())throw new IllegalStateException("Shot started without a valid turn selection");
-        pendingFire=false;shotTarget=selected;shotAge=0;events=0;debris.smoke(shotgun.gun.muzzle(intersection));
+        pendingFire=false;shotTarget=selected;shotAge=0;events=0;renderer.shot(shotgun);camera.shot();
         if(multiplayer!=null)multiplayer.shotStarted();
     }
     public void reset(){
         pendingFire=false;for(CrateSlot s:slots){s.reset();s.selected=s.hovered=false;s.previewHidden=false;s.character=CursedCharacterAssignment.at(s.id,config.ghostSlot,config.characterSeed);s.occupantNickname=s.character==null?null:"Player 1";}
-        turn.reset();characters.reset();debris.reset();shotgun.reset();shotAge=9;shotTarget=-1;events=0;selected=config.ghostSlot;
+        renderer.resetSurvivors(slots);renderer.resetEffects();camera.reset();turn.reset();characters.reset();debris.reset();shotgun.reset();shotAge=9;shotTarget=-1;events=0;selected=config.ghostSlot;
         if(characterTest!=null)characterTest.assign();
     }
     @Override public void show(){
@@ -123,10 +137,14 @@ public final class CursedBoxesScreen extends InputAdapter implements Screen {
         if(multiplayer!=null)multiplayer.update(dt);
         // Advance existing particles before spawning timeline events so new bursts begin at age zero.
         if(characterTest!=null)characterTest.update(dt);
-        characters.update(dt);debris.update(dt);updateTimeline();
+        renderer.updateEffects(dt);renderer.survivors.update(dt,slots);characters.update(dt);debris.update(dt);updateTimeline();
+        // A new server turn may arrive while the previous player's gun is returning.
+        // Keep the accepted shot queued and begin pickup as soon as that return finishes.
+        if(pendingFire&&shotgun.resting())shotgun.select(slots[selected]);
         camera.update(dt,time,slots[selected]);shotgun.update(dt,slots[turn.active()?shotTarget:selected]);
         if(pendingFire&&(multiplayer==null||multiplayer.canStartShot())&&shotgun.aimedAt(slots[selected]))trigger();
-        renderer.render(dt,time,slots,slots[selected],characters,debris,shotgun,turn,performance);
+        camera.applyShake();
+        try{renderer.render(dt,time,slots,slots[selected],characters,debris,shotgun,turn,performance);}finally{camera.restore();}
         performance.end();
         }finally{rendering=false;}
     }
@@ -140,6 +158,7 @@ public final class CursedBoxesScreen extends InputAdapter implements Screen {
     }
     @Override public boolean touchDown(int x,int y,int pointer,int button){if(multiplayer!=null||button!=Input.Buttons.LEFT)return false;int hit=pick(x,y);if(hit>=0)select(hit);return hit>=0;}
     @Override public boolean keyDown(int key){if(multiplayer!=null&&(key==Input.Keys.R||key==Input.Keys.SPACE))return true;if(characterTest!=null&&characterTest.keyDown(key))return true;switch(key){
+        case Input.Keys.F8:if(developerSurvivors(DEVELOPER_SURVIVORS[developerRevealIndex]))developerRevealIndex=(developerRevealIndex+1)%DEVELOPER_SURVIVORS.length;return true;
         case Input.Keys.SPACE:fire();return true;
         case Input.Keys.R:reset();return true;
         case Input.Keys.Q:debris.lowQuality=!debris.lowQuality;return true;
@@ -152,7 +171,7 @@ public final class CursedBoxesScreen extends InputAdapter implements Screen {
         camera.resize(w,h);camera.update(0,time,slots[selected]);roomLayout.update(camera.camera,w,h);
         for(CrateSlot slot:slots)slot.place(roomLayout.origin);renderer.placeShelf(roomLayout.origin);shotgun.placeTable(roomLayout.tableAnchor);
     }}
-    @Override public void hide(){activeScreen=false;if(Gdx.input.getInputProcessor()==this)Gdx.input.setInputProcessor(null);if(performance.visible)performance.toggle();display.restore();}
+    @Override public void hide(){activeScreen=false;renderer.resetSurvivors(slots);renderer.resetEffects();camera.reset();if(Gdx.input.getInputProcessor()==this)Gdx.input.setInputProcessor(null);if(performance.visible)performance.toggle();display.restore();}
     @Override public void pause(){}
     @Override public void resume(){}
     @Override public void dispose(){if(disposed)return;disposed=true;hide();if(multiplayer!=null)multiplayer.close();performance.dispose();renderer.dispose();shotgun.dispose();assets.dispose();}

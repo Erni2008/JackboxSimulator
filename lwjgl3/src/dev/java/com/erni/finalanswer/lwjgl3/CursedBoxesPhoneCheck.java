@@ -42,8 +42,8 @@ public final class CursedBoxesPhoneCheck {
                 JsonObject report=new JsonObject();var root=getRealtime()==null?null:getRealtime().snapshot();if(root!=null)report.add("state",root);
                 report.addProperty("impactMask",impacts);report.addProperty("reactionMask",reactions);report.addProperty("renderChecks",checkedFrames);
                 if(getScreen() instanceof CursedBoxesScreen scene){
-                    report.addProperty("nativeReady",true);report.addProperty("selected",scene.selected());report.addProperty("gun",scene.weaponState().name());report.addProperty("models",scene.loadedModels());report.addProperty("turnLimit",scene.turn.shotLimit());report.addProperty("developerTest",scene.characterTest()!=null);
-                    var slots=new JsonArray();for(CrateSlot box:scene.slots){var value=new JsonObject();value.addProperty("id",box.id);value.addProperty("state",box.state.name());value.addProperty("pose",scene.characterState(box.id).name());if(box.character!=null){value.addProperty("characterId",box.character.name().toLowerCase(Locale.ROOT));value.addProperty("nickname",box.occupantNickname);}slots.add(value);}report.add("slots",slots);
+                    report.addProperty("survivorState",scene.survivorTimeline().state().name());report.addProperty("survivorMask",scene.survivorTimeline().mask());report.addProperty("nativeReady",true);report.addProperty("selected",scene.selected());report.addProperty("gun",scene.weaponState().name());report.addProperty("models",scene.loadedModels());report.addProperty("turnLimit",scene.turn.shotLimit());report.addProperty("developerTest",scene.characterTest()!=null);
+                    var slots=new JsonArray();for(CrateSlot box:scene.slots){var value=new JsonObject();value.addProperty("id",box.id);value.addProperty("state",box.state.name());value.addProperty("survivorOpening",box.survivorOpening);value.addProperty("panelOpacity",box.survivorPanelOpacity);value.addProperty("pose",scene.characterState(box.id).name());if(box.character!=null){value.addProperty("characterId",box.character.name().toLowerCase(Locale.ROOT));value.addProperty("nickname",box.occupantNickname);}slots.add(value);}report.add("slots",slots);
                 }else report.addProperty("nativeReady",false);
                 return report;
             }
@@ -86,7 +86,7 @@ public final class CursedBoxesPhoneCheck {
                 if(elapsed>600)throw new AssertionError("Phone fixture timed out");
                 if(sceneBefore&&getScreen() instanceof CursedBoxesScreen scene){
                     check(scene.characterTest()==null&&scene.turn.shotLimit()==2,"Developer nine-shot mode entered multiplayer");
-                    check(scene.loadedModels()==8,"Shared models lost");check(audit.compiles==0&&audit.uploads==0&&audit.staticBuffers==0,"Runtime GL loading during multiplayer render");checkedFrames++;
+                    check(scene.loadedModels()==11,"Shared models lost");check(audit.compiles==0&&audit.uploads==0&&audit.staticBuffers==0,"Runtime GL loading during multiplayer render");checkedFrames++;
                     var root=getRealtime().snapshot();var mini=root.getAsJsonObject("cursedBoxes");if(mini!=null){
                         int mask=mini.get("destroyedCrateIds").getAsInt();
                         for(int i=0;i<16;i++){

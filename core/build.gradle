@@ -151,3 +151,11 @@ tasks.register('cursedCharactersCheck', JavaExec) {
     args rootProject.file('assets').absolutePath
 }
 check.dependsOn tasks.named('cursedCharactersCheck')
+
+tasks.register('cursedSurvivorCheck', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.cursedboxes.CursedSurvivorCheck'
+}
+check.dependsOn tasks.named('cursedSurvivorCheck')

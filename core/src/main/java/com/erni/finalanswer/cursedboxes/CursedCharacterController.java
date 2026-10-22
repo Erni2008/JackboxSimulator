@@ -35,7 +35,7 @@ public final class CursedCharacterController {
     }}
     public void render(DecalBatch batch,Camera camera,CrateSlot[] slots,float time){
         // A closed opaque front completely hides HIDDEN occupants; skip their draw calls as well.
-        for(CrateSlot slot:slots)if(slot.character!=null&&(states[slot.id]!=State.HIDDEN||slot.previewHidden)){
+        for(CrateSlot slot:slots)if(!slot.survivorOpening&&slot.character!=null&&(states[slot.id]!=State.HIDDEN||slot.previewHidden)){
             int type=slot.character.ordinal(),id=slot.id;
             Decal frame=frames[id][type];CursedCharacterFit fit=fits[type];
             float phase=id*.618f+type*.91f,t=time+phase,age=hitAge[id];

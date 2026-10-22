@@ -1,6 +1,7 @@
 package com.finalanswer.server.game;
 
 import com.finalanswer.protocol.CursedBoxesProtocol;
+import com.finalanswer.protocol.CursedSurvivorTimeline;
 import com.finalanswer.server.rooms.RoomService.Failure;
 import java.util.*;
 
@@ -21,7 +22,11 @@ public final class CursedBoxesSession {
     private final int[] remaining,selections,personalHits;
     private final Map<String,Shot> lastResults=new HashMap<>();
     private int active,destroyed;
-    private boolean ready,finished;
+    private boolean ready,finished,revealCompleted;
+    private final Set<String> eliminated=new HashSet<>();
+    private final CursedSurvivorTimeline.Timings revealTimings=new CursedSurvivorTimeline.Timings();
+    private long revealStartedAt,revealEndsAt;
+    private int survivorMask,publicSurvivors;
     private String notice="";
     private Shot pending;
     public CursedBoxesSession(List<Player> roster,Random random){
@@ -31,7 +36,13 @@ public final class CursedBoxesSession {
         var boxes=new ArrayList<Integer>();for(int i=0;i<16;i++)boxes.add(i);Collections.shuffle(boxes,random);
         for(int i=0;i<players.size();i++)contents.put(boxes.get(i),players.get(i));
     }
-    public boolean finished(){return finished;}
+    public boolean finished(){return finished&&revealCompleted;}
+    private void beginReveal(long now){
+        if(!finished||revealStartedAt!=0)return;
+        survivorMask=0;for(var entry:contents.entrySet())if(!eliminated.contains(entry.getValue().id()))survivorMask|=1<<entry.getKey();
+        revealStartedAt=now;revealEndsAt=now+Math.round(Integer.bitCount(survivorMask)*revealTimings.period()*1000);
+        revealCompleted=survivorMask==0;
+    }
     public boolean ready(){return ready;}
     public Shot pending(){return pending;}
     public String activeId(){return finished?"":players.get(active).id();}
@@ -72,23 +83,29 @@ public final class CursedBoxesSession {
     public void impact(String shotId,long now){
         Shot shot=shot(shotId);if(shot.impactedAt>0)return;
         if(shot!=pending||shot.startedAt==0||now<shot.startedAt+CursedBoxesProtocol.IMPACT_MILLIS)throw new Failure(409,"SHOT_NOT_READY");
-        shot.impactedAt=shot.waitSince=now;destroyed|=1<<shot.boxId;lastResults.put(shot.playerId,shot);
+        shot.impactedAt=shot.waitSince=now;destroyed|=1<<shot.boxId;
+        Player victim=contents.get(shot.boxId);if(victim!=null)eliminated.add(victim.id());lastResults.put(shot.playerId,shot);
     }
     public void complete(String shotId,long now){
         Shot shot=shot(shotId);if(shot.completedAt>0)return;
         if(shot!=pending||shot.impactedAt==0||now<shot.startedAt+CursedBoxesProtocol.SHOT_MILLIS)throw new Failure(409,"SHOT_NOT_READY");
         shot.completedAt=now;pending=null;selections[active]=-1;notice="";
         if(remaining[active]==0)next();
+        beginReveal(now);
     }
     private void next(){active++;if(active>=players.size())finished=true;}
     /** A disconnected player keeps their seat/ammo; an explicit leaver forfeits only unspent turns. */
     public boolean tick(long now,Set<String> left){
         boolean changed=false;
+        if(!finished)eliminated.addAll(left);
+        if(finished&&!revealCompleted&&now>=revealEndsAt){revealCompleted=true;changed=true;}
         if(pending!=null&&ready&&now-pending.waitSince>=CursedBoxesProtocol.START_TIMEOUT_MILLIS){
             // Pause rather than discard an accepted shot when the host is unavailable.
             ready=false;notice="HOST_SCENE_PAUSED";changed=true;
         }
         while(!finished&&pending==null&&left.contains(activeId())){next();changed=true;}
+        beginReveal(now);
+        if(finished){int visible=(int)Math.max(0,Math.min(Integer.bitCount(survivorMask),Math.floor((now-revealStartedAt-(revealTimings.anticipation+revealTimings.smoke)*1000)/(revealTimings.period()*1000))+1));if(visible!=publicSurvivors){publicSurvivors=visible;changed=true;}}
         return changed;
     }
     private Map<String,Object> result(Shot shot){
@@ -97,9 +114,9 @@ public final class CursedBoxesSession {
         if(person!=null){value.put("characterId",person.characterId());value.put("nickname",person.nickname());value.put("playerId",person.id());}
         return value;
     }
-    public Map<String,Object> snapshot(String self,boolean host,boolean hostOnline,Set<String> online){
+    public Map<String,Object> snapshot(String self,boolean host,boolean hostOnline,Set<String> online,long now){
         Map<String,Object> value=new LinkedHashMap<>();
-        String phase=finished?"FINISHED":!ready?"PREPARING":pending!=null?"FIRING":"SELECTING";
+        String phase=finished?(revealCompleted?"FINISHED":"REVEALING"):!ready?"PREPARING":pending!=null?"FIRING":"SELECTING";
         boolean activeOnline=finished||online.contains(activeId());
         value.put("sessionId",id);value.put("phase",phase);value.put("turnId",active+1);value.put("turnOrder",players.stream().map(Player::id).toList());
         value.put("activePlayerId",activeId());value.put("activePlayerName",finished?"":players.get(active).nickname());
@@ -114,6 +131,17 @@ public final class CursedBoxesSession {
             item.put("state",(destroyed&(1<<box))!=0?"DESTROYED":pending!=null&&pending.boxId==box?"LOCKED":"AVAILABLE");
             if((destroyed&(1<<box))!=0){Player person=contents.get(box);item.put("empty",person==null);if(person!=null){item.put("characterId",person.characterId());item.put("nickname",person.nickname());}}
             boxes.add(item);
+        }
+        if(finished){
+            value.put("revealStartedAt",revealStartedAt);value.put("revealEndsAt",revealEndsAt);value.put("survivorCount",Integer.bitCount(survivorMask));
+            value.put("revealTimings",Map.of("anticipation",revealTimings.anticipation,"smoke",revealTimings.smoke,"panel",revealTimings.panel,"character",revealTimings.character,"idle",revealTimings.idle,"gap",revealTimings.gap));
+            var survivors=new ArrayList<Map<String,Object>>();int index=0;
+            for(int box=0;box<16;box++)if((survivorMask&(1<<box))!=0){
+                long visibleAt=revealStartedAt+Math.round((index++*revealTimings.period()+revealTimings.anticipation+revealTimings.smoke)*1000);
+                if(host||now>=visibleAt){Player p=contents.get(box);survivors.add(Map.of("boxId",box,"playerId",p.id(),"nickname",p.nickname(),"characterId",p.characterId()));}
+            }
+            value.put("survivors",survivors);
+            value.put("outcomes",players.stream().map(p->Map.of("playerId",p.id(),"survived",!eliminated.contains(p.id()))).toList());
         }
         value.put("boxes",boxes);Shot last=lastResults.get(self);if(last!=null)value.put("lastResult",result(last));
         if(pending!=null){

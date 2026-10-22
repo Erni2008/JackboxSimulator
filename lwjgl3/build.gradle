@@ -791,3 +791,17 @@ tasks.register('cursedBoxesPhoneCheck', JavaExec) {
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
+
+tasks.register('cursedSurvivors', JavaExec) {
+    group = 'application'
+    description = 'Survivor reveal studio. F8 cycles 1/3/5/8/0; -PcursedSurvivorQA=true verifies native GL and lifecycle.'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.CursedSurvivorRevealLauncher'
+    workingDir = rootProject.file('assets')
+    systemProperty 'cursed.survivorQA', providers.gradleProperty('cursedSurvivorQA').getOrElse('false')
+    systemProperty 'cursed.survivorCaptures', providers.gradleProperty('cursedSurvivorCaptures').getOrElse('false')
+    systemProperty 'cursed.survivorOutput', rootProject.file('generated/cursed-boxes/survivors').absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}

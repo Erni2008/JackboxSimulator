@@ -474,7 +474,7 @@ public final class RoomService {
         }
         if(room.cursed!=null){
             Set<String> online=room.members.values().stream().filter(m->m.peer!=null&&!m.left).map(m->m.id).collect(java.util.stream.Collectors.toSet());
-            value.put("cursedBoxes",room.cursed.snapshot(self==null?"":self.id,self!=null&&self.host,room.host.peer!=null,online));
+            value.put("cursedBoxes",room.cursed.snapshot(self==null?"":self.id,self!=null&&self.host,room.host.peer!=null,online,now()));
         }
         if(room.impostor!=null) {
             var session=room.impostor;var suspicion=session.current();

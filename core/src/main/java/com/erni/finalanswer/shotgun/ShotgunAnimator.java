@@ -32,8 +32,9 @@ public final class ShotgunAnimator {
     public float flash(){return state==State.FIRING?(float)Math.pow(Math.max(0,1-time/config.flashDuration),2):0;}
     public float recoil(){
         if(state!=State.FIRING)return 0;
-        if(time<.035)return (float)Math.sin(time/.035*Math.PI*.5);
-        float t=(float)Math.min(1,(time-.035)/(config.fireDuration-.035));
+        double kick=Math.min(.09,config.fireDuration*.25);
+        if(time<kick)return (float)Math.sin(time/kick*Math.PI*.5);
+        float t=(float)Math.min(1,(time-kick)/(config.fireDuration-kick));
         return (1-t)*(1-t)*(float)Math.cos(t*3.3);
     }
     public boolean fire(){
