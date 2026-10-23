@@ -35,29 +35,30 @@ async function checkFinalAct({clients,count,latest,ready,matchIndex}){
     else target=active.findIndex((c,n)=>n!==i&&n!==impostor);
     const p=active[i].page,id=active[target].credentials.selfId;
     await p.locator(`#final-cards [data-id="${id}"]`).click();await p.locator("#confirm-vote").click();
-    await p.waitForFunction(()=>document.getElementById('final-status').textContent==='VOTE ACCEPTED. Your choice is final.'||document.getElementById('final-title').textContent==='VOTING LOCKED');
+    await p.locator('#blackout-screen').waitFor({state:'visible'});
+    await p.waitForFunction(()=>impostorPhoneAudio.playCount('vote')===1);
     assert.equal(await p.locator('.final-vote-card:enabled').count(),0);
-    if(i===0){await p.locator('#vote-receipt').waitFor({state:'visible'});assert.equal(await p.locator('#vote-receipt-value').textContent(),latest(active[0]).participants.find(c=>c.id===id).name);const duplicate=await wire(active[0],{roomCode:ready.code,sessionId:latest(active[0]).sessionId,suspectId:id});assert.equal(duplicate.payload.code,'FINAL_VOTE_ALREADY_SUBMITTED');await p.reload();await p.locator('#final-screen').waitFor({state:'visible'});
-      if(matchIndex!==2)assert.equal(await p.locator('.final-vote-card.selected').count(),1);
+    if(i===0){assert(await p.locator('#vote-receipt').isHidden());assert.equal(await p.locator('#vote-receipt-value').textContent(),'');const duplicate=await wire(active[0],{roomCode:ready.code,sessionId:latest(active[0]).sessionId,suspectId:id});assert.equal(duplicate.payload.code,'FINAL_VOTE_ALREADY_SUBMITTED');assert.equal(await p.evaluate(()=>impostorPhoneAudio.playCount('vote')),1);await p.reload();await p.locator('#blackout-screen').waitFor({state:'visible'});assert.equal(await p.evaluate(()=>impostorPhoneAudio.playCount('vote')),0,'Reload does not replay accepted vote audio');
+      if(matchIndex!==2)assert.equal(await p.locator('.final-vote-card.selected').count(),0);
     }
   }
   if(matchIndex===2){await command('advance',{millis:20000});expected='IMPOSTOR_ESCAPED';}
   else expected=matchIndex===0?'IMPOSTOR_CAUGHT':'NO_CONSENSUS';
-  for(const c of clients)await c.page.waitForFunction(()=>document.getElementById('final-title').textContent==='VOTING LOCKED');
+  for(const c of clients)await c.page.waitForFunction(()=>state?.impostor?.phase==='VOTING_LOCKED');
   assert(!latest(watcher).finalVoteSnapshot,'Locked votes leaked before reveal');assert(!latest(watcher).revealedImpostorId);
   await command('advance',{millis:700});
-  for(const c of clients)await c.page.waitForFunction(()=>document.getElementById('final-title').textContent==='THE VOTES ARE BEING REVEALED');
+  for(const c of clients)await c.page.waitForFunction(()=>state?.impostor?.phase==='FINAL_VOTE_REVEAL');
   const snapshot=latest(watcher).finalVoteSnapshot;assert.equal(snapshot.stampTargets.length,submitCount);
   assert.equal(Object.values(snapshot.counts).reduce((a,b)=>a+b,0),submitCount);assert(!latest(watcher).outcome);assert(!latest(watcher).revealedImpostorId);
-  await watcher.page.reload();await watcher.page.locator('#final-screen').waitFor({state:'visible'});assert.deepEqual(latest(watcher).finalVoteSnapshot,snapshot,'Reconnect changed snapshot');
+  await watcher.page.reload();await watcher.page.locator('#blackout-screen').waitFor({state:'visible'});assert.deepEqual(latest(watcher).finalVoteSnapshot,snapshot,'Reconnect changed snapshot');
   await command('advance',{millis:800+submitCount*400+1000});
-  for(const c of clients)await c.page.waitForFunction(()=>document.getElementById('final-title').textContent==='THE MOST SUSPECTED PLAYER IS…');
+  for(const c of clients)await c.page.waitForFunction(()=>state?.impostor?.phase==='SUSPECT_ANNOUNCEMENT');
   assert(!latest(watcher).revealedImpostorId);assert(!latest(watcher).outcome);
-  await command('advance',{millis:3500});for(const c of clients)await c.page.waitForFunction(()=>document.getElementById('final-title').textContent==='THE IMPOSTOR IS…');
-  assert.equal(latest(watcher).revealedImpostorId,actualId);assert.equal(await watcher.page.locator('#final-announcement').textContent(),'IMPOSTOR: '+latest(watcher).participants.find(p=>p.id===actualId).name);assert.equal(latest(watcher).outcome,expected);
+  await command('advance',{millis:3500});for(const c of clients)await c.page.waitForFunction(()=>state?.impostor?.phase==='IMPOSTOR_REVEAL');
+  assert.equal(latest(watcher).revealedImpostorId,actualId);assert.equal(await watcher.page.locator('#final-announcement').textContent(),'');assert(await watcher.page.locator('#blackout-screen').isVisible());assert.equal(latest(watcher).outcome,expected);
   await command('advance',{millis:4000});
   for(let attempt=0;attempt<100&&!clients.every(c=>latest(c).phase==='RESULT');attempt++)await sleep(20);
-  for(const c of clients){assert.equal(latest(c).phase,'RESULT');assert.equal(latest(c).outcome,expected);assert.equal(await c.page.locator('#final-title').textContent(),'THE IMPOSTOR IS…');assert.equal(await c.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert(await c.page.locator('#final-results').isHidden(),'Detailed results belong to the shared screen');}
+  for(const c of clients){assert.equal(latest(c).phase,'RESULT');assert.equal(latest(c).outcome,expected);assert.equal(await c.page.locator('#final-title').textContent(),'');assert(await c.page.locator('#blackout-screen').isVisible());assert.equal((await c.page.locator('body').innerText()).trim(),'');assert.equal(await c.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert(await c.page.locator('#final-results').isHidden(),'Detailed results belong to the shared screen');}
   for(const width of [360,390,768]){await first.setViewportSize({width,height:844});await first.screenshot({path:path.join(dir,`stage6-${count}players-${expected}-${width}.png`),fullPage:true});}
   console.log(`PASS FINAL: ${count} active + 2 spectators, ${expected}, ${submitCount} votes/stamps, privacy, self/spectator restrictions, locked input, reconnect, deadlines and result`);
 }
@@ -82,6 +83,11 @@ async function checkFinalAct({clients,count,latest,ready,matchIndex}){
      if(s.role==='ORDINARY')assert.equal(await c.page.locator('#impostor-word').textContent(),word);
      else{assert.equal(await c.page.locator('#impostor-word').textContent(),s.role==='IMPOSTOR'&&s.phase==='ROLE_REVEAL'?'NO SECRET WORD':'');assert(!JSON.stringify(c.frames).includes(word),'Private word leaked');}
      if(i>=count){assert(!s.role);assert(!s.activeParticipant);assert.equal(await c.page.locator('#clue-form').isVisible(),false);}
+   }
+   for(let i=0;i<clients.length;i++){
+     const c=clients[i],expected=i<count&&latest(c).role==='IMPOSTOR'?1:0;
+     if(expected)await c.page.waitForFunction(()=>impostorPhoneAudio.playCount('role')===1);
+     assert.equal(await c.page.evaluate(()=>impostorPhoneAudio.playCount('role')),expected,'Private role audio on the assigned device only');
    }
    await clients[0].page.screenshot({path:path.join(dir,`${count}participants-role.png`),fullPage:true});
    await command('advance',{millis:Math.max(...roles.map(s=>s.roleRevealDurationMillis||20000))});

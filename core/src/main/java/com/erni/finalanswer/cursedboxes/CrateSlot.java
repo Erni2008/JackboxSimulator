@@ -38,6 +38,11 @@ public final class CrateSlot {
         pickBounds.min.set(position.x-.94f,position.y-.62f,position.z-.4f);pickBounds.max.set(position.x+.94f,position.y+.62f,position.z+.42f);pickBounds.update();
         update(0,0);
     }
+    /** A reveal can only open further; only an explicit round reset restores the front. */
+    public void revealPanel(float opacity){
+        if(!Float.isFinite(opacity))return;
+        survivorOpening=true;survivorPanelOpacity=Math.min(survivorPanelOpacity,MathUtils.clamp(opacity,0,1));
+    }
     public boolean impact(){if(state==State.DESTROYED)return false;state=State.DESTROYED;return true;}
     public void reset(){survivorOpening=false;survivorPanelOpacity=1;state=State.INTACT;update(0,0); }
     /** Placement only; targeting and hits never animate a crate transform. */

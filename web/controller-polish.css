@@ -273,3 +273,10 @@ body[data-view="ghost"] #session-code { min-width:0; overflow-wrap:anywhere; tex
 #clue-confirmed-value { font:500 clamp(24px,7vw,36px)/1.5 Body,sans-serif; color:#f0dfbc; padding:12px 0; margin:10px 0; border-block:1px solid #ad916a33; overflow-wrap:anywhere; }
 .mode-room-progress { padding:10px 0; text-align:center; font-size:10px; letter-spacing:.12em; color:#cdbb9e; font-variant-numeric:tabular-nums; }
 @media(orientation:landscape) and (max-height:540px) { .mode-briefing { padding:7px 10px; }.mode-briefing p { margin-top:2px; } }
+
+/* Deliberately blank during the shared-screen finale; no results, receipt or navigation. */
+body[data-view="blackout"] { background:#000!important; padding:0!important; margin:0; }
+body[data-view="blackout"] .ambient,body[data-view="blackout"] .masthead,body[data-view="blackout"] .page-footer { display:none!important; }
+body[data-view="blackout"] main { width:100%; max-width:none; margin:0; padding:0; min-height:100dvh; border:0; box-shadow:none; background:#000; }
+body[data-view="blackout"] main > :not(#blackout-screen) { display:none!important; }
+#blackout-screen { min-height:100dvh; background:#000; animation:none; }

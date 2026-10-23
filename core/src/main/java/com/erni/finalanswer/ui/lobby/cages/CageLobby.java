@@ -28,7 +28,7 @@ public final class CageLobby extends Group implements Disposable {
     private final VoodooRoomEvents voodooEvents = new VoodooRoomEvents();
     private final com.badlogic.gdx.math.Vector2 puppeteerPointer = new com.badlogic.gdx.math.Vector2();
     private com.erni.finalanswer.audio.GameAudio audio;
-    public void audio(com.erni.finalanswer.audio.GameAudio value){audio=value;for(int i=0;i<cages.length;i++){final int slot=i;cages[i].setSoundCues(()->{if(audio!=null)audio.gate(slot,pan(cages[slot]));},()->{});}}
+    public void audio(com.erni.finalanswer.audio.GameAudio value){audio=value;for(int i=0;i<cages.length;i++){final int slot=i;cages[i].setSoundCues(()->{if(audio!=null)audio.gate(slot,pan(cages[slot]));},()->{if(audio!=null)audio.lock(slot,pan(cages[slot]));});}}
     public void stopAudio(){if(audio!=null)audio.leaveCages();}
     private float pan(HangingCage cage){float width=getStage()==null?1920:getStage().getWidth();return Math.max(-.65f,Math.min(.65f,((cage.getX()+cage.getWidth()*.5f)/width*2-1)*.65f));}
     private RoomSession previous;

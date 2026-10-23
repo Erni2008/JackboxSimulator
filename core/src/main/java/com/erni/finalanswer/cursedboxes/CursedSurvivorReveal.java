@@ -51,7 +51,7 @@ public final class CursedSurvivorReveal implements Disposable {
     public void update(float dt,CrateSlot[] slots){
         clock.update(dt);
         for(CrateSlot box:slots)if(clock.eligible(box.id)&&clock.localAge(box.id)>=0){
-            box.survivorOpening=true;box.survivorPanelOpacity=clock.panelOpacity(box.id);
+            box.revealPanel(clock.panelOpacity(box.id));
             if(clock.characterOpacity(box.id)<=0)continue;
             CageCharacter rig=layered[box.id][box.character.ordinal()];if(rig==null)continue;
             float entrance=clock.entranceAge(box.id),span=clock.entranceDuration();

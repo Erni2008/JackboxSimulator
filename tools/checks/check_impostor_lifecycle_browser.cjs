@@ -91,7 +91,7 @@ try{
     }
     assert.equal((await state()).impostor.phase,'EVIDENCE_REVIEW');await advance(configuration.discussionSeconds*1000);
     for(const c of clients)await c.page.waitForFunction(()=>document.getElementById('final-title').textContent==='WHO IS THE IMPOSTOR?');
-    if(redesign){await clients[0].page.waitForFunction(()=>getComputedStyle(document.getElementById('final-screen')).opacity==='1');await clients[0].page.screenshot({path:path.join(dir,'stage9-voting.png'),fullPage:true});assert.equal(await clients[0].page.locator('#confirm-vote').isDisabled(),true);}
+    if(redesign){await clients[0].page.waitForFunction(()=>document.body.dataset.view==='blackout');await clients[0].page.screenshot({path:path.join(dir,'stage9-voting.png'),fullPage:true});assert.equal(await clients[0].page.locator('#confirm-vote').isDisabled(),true);}
     const unauthorized=await wire(clients[count].page,'REPLAY_IMPOSTOR',{roomCode:ready.code,sessionId:id});assert.equal(unauthorized.payload.code,'HOST_ONLY');
     const mode=match%3,target=mode===0?actual:(actual+1)%count;
     if(mode===2)await advance(configuration.votingSeconds*1000);
@@ -100,14 +100,14 @@ try{
     const result=(await state()).impostor.result;assert.equal(result.outcome,['IMPOSTOR_CAUGHT','IMPOSTOR_ESCAPED','NO_CONSENSUS'][mode]);assert.equal(result.statistics.submittedClues,count*configuration.roundCount);assert.equal(result.participants.length,count);
     for(let i=0;i<clients.length;i++){
       const page=clients[i].page,personal=result.participants.find(p=>p.playerId===clients[i].credentials.selfId);
-      await page.waitForFunction(()=>document.getElementById('final-title').textContent==='THE IMPOSTOR IS…');
+      await page.locator('#blackout-screen').waitFor({state:'visible'});assert.equal((await page.locator('body').innerText()).trim(),'');
       for(const id of ['final-personal','final-waiting-host','final-results','result-player','confirm-vote'])assert(await page.locator('#'+id).isHidden(),id+' must not appear after completion');
       assert.equal(await page.locator('#final-status').textContent(),'');
       assert.equal((await wire(page,'SYNC')).payload.impostor.completed,true);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
     }
-    await clients[0].page.reload();await clients[0].page.locator('#final-screen').waitFor({state:'visible'});assert.deepEqual((await wire(clients[0].page,'SYNC')).payload.impostor.result,result);
-    await clients[0].page.waitForFunction(()=>getComputedStyle(document.getElementById('final-screen')).opacity==='1');
+    await clients[0].page.reload();await clients[0].page.locator('#blackout-screen').waitFor({state:'visible'});assert.deepEqual((await wire(clients[0].page,'SYNC')).payload.impostor.result,result);
+    await clients[0].page.waitForFunction(()=>document.body.dataset.view==='blackout');
     assert(await clients[0].page.locator('#final-personal').isHidden(),'Reconnect must not show results');
     await clients[0].page.screenshot({path:path.join(dir,`${redesign?'stage9':polish?'stage8':'stage7'}-match-${match+1}.png`),fullPage:true});
     if(match===2||match===5){await action('IMPOSTOR_RETURN_TO_LOBBY');for(const c of clients)await c.page.locator('#waiting-screen').waitFor({state:'visible'});assert(!(await state()).impostor);}

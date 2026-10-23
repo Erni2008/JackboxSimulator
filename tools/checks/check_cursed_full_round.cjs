@@ -38,7 +38,7 @@ async function resolved(p){await p.waitForFunction(()=>!window.__qaState?.cursed
       console.log('READY: manual player review from '+mode+'. No automated answers, selections or shots.');
     }
     if(process.env.REVIEW_FROM_QUESTION==='1'){await prepareManualReview('question');return;}
-    const lobbyAudio=await host('UI_AUDIO_CHECK');assert.equal(lobbyAudio.applicationAudioLoaded,6);
+    const lobbyAudio=await host('UI_AUDIO_CHECK');assert.equal(lobbyAudio.applicationAudioLoaded,7);
     await host('AMBIENCE_SEEK_END');await sleep(1100);const loop=await host('INSPECT');assert(loop.ambiencePlaying&&loop.ambiencePosition<3,'Real Music loops across MP3 boundary');
     await host('START_QUESTIONS');
     for(const c of clients)await c.p.waitForFunction(()=>window.__qaState?.phase==='ANSWERING');
@@ -101,7 +101,7 @@ async function resolved(p){await p.waitForFunction(()=>!window.__qaState?.cursed
     assert.equal(report.slots[10].characterId,'puppeteer');assert.equal(report.slots[10].state,'INTACT');
     for(const cue of ['SHOT','WOOD_BREAK','SHELL_DROP'])assert.equal(report.soundCues[cue],expectedShots,`Wrong audio count: ${cue}`);
     assert.equal(report.soundCues.INSERT_ROUND,5,'Exactly five initial shells; no per-player insertion');assert.equal(report.loadedRounds,5-expectedShots,'Two shots consume two of five loaded shells');
-    assert(report.applicationAudioCues.GATE>=4);assert(report.applicationAudioCues.CHAIN_1>0&&report.applicationAudioCues.CHAIN_2>0);assert.equal(report.applicationAudioCues.HOVER,1);assert.equal(report.applicationAudioCues.PRESS,1);assert(report.ambiencePlaying);
+    assert(report.applicationAudioCues.GATE>=4);assert(report.applicationAudioCues.GATE_LOCK>=1,'Real cage key-lock cue is missing');assert(report.applicationAudioCues.CHAIN_1>0&&report.applicationAudioCues.CHAIN_2>0);assert.equal(report.applicationAudioCues.HOVER,1);assert.equal(report.applicationAudioCues.PRESS,1);assert(report.ambiencePlaying);
     assert.equal(report.soundCues.WOOD_EXTRA,expectedShots,'Existing and additional wood layers each fire twice');
     assert.equal(['APPEARANCE_1','APPEARANCE_2','APPEARANCE_3','APPEARANCE_4'].reduce((n,c)=>n+report.soundCues[c],0),1,'One appearance variation per survivor');
     assert.equal(report.soundCues.APPEARANCE_2,1,'Survivor must use appearance2');assert.equal(report.soundCues.REVEAL_COMPLETE,0,'Legacy final reveal must not mask appearance2');

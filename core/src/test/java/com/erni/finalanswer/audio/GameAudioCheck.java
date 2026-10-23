@@ -27,11 +27,15 @@ public final class GameAudioCheck {
     public static void main(String[] args){
         var files=new HashMap<String,Fake>();var track=new Fake();var warnings=new ArrayList<String>();var mix=new AudioMix();
         var audio=new GameAudio(new PresentationAudio.Backend(){public Sound sound(String path){var f=new Fake();files.put(path,f);return f.proxy(Sound.class);}public Music music(String path){check(path.equals(GameAudio.AMBIENCE),"Real ambience path");return track.proxy(Music.class);}},mix,warnings::add);
-        check(audio.loaded()==6&&track.loop,"Five cached effects and one looped Music");
+        check(audio.loaded()==7&&track.loop,"Six cached effects and one looped Music");
         audio.hover();audio.hover();check(audio.playCount(HOVER)==1,"Hover entry cooldown");audio.update(.09f);audio.hover();check(audio.playCount(HOVER)==2,"Next hover after cooldown");
         audio.press();audio.press();check(audio.playCount(PRESS)==1&&files.get(PRESS.path).volume==.55f,"Immediate press, duplicate mouse/touch rejection");
         audio.update(.03f);audio.uiGain(0);audio.press();check(audio.playCount(PRESS)==1,"Existing screen-local mute also governs shared UI");audio.uiGain(1);
         for(int i=0;i<8;i++){audio.gate(i,(i-3.5f)/6);audio.gate(i,0);}check(audio.playCount(GATE)==8,"Eight independent gates; duplicate impact suppressed");
+        audio.update(2);
+        for(int i=0;i<8;i++)audio.lock(i,0);check(audio.playCount(GATE_LOCK)==1,"Overlapping key locks do not stack or restart the full recording");
+        int lockStops=files.get(GATE_LOCK.path).stops;audio.update(2);check(files.get(GATE_LOCK.path).stops==lockStops,"Metal key resonance is not cut at the short gate duration");
+        audio.update(6.1f);audio.lock(0,0);check(audio.playCount(GATE_LOCK)==2,"Next closure can play the key again");
         for(int i=0;i<8;i++)audio.cageMotion(i,true,0,.016f,0);
         for(int i=0;i<8;i++)audio.cageMotion(i,true,.3f,.016f,(i-3.5f)/6);
         check(audio.playCount(CHAIN_1)==4&&audio.playCount(CHAIN_2)==4&&audio.activeChains()<=2,"Eight independent movements, alternating chain variations, bounded voices");
@@ -47,7 +51,7 @@ public final class GameAudioCheck {
         audio.room(false);audio.update(1);check(!track.playing,"Fade out when leaving room");audio.leaveCages();audio.close();audio.close();
         for(Fake f:files.values())check(f.disposals==1,"Effects disposed once");check(track.disposals==1&&warnings.isEmpty(),"Music disposed once without device errors");
         var absent=new GameAudio(new PresentationAudio.Backend(){public Sound sound(String path){return null;}public Music music(String path){return null;}},new AudioMix(),warnings::add);
-        check(absent.loaded()==0&&warnings.size()==6,"Missing assets are optional and actionable");absent.hover();absent.room(true);absent.update(1);absent.close();
+        check(absent.loaded()==0&&warnings.size()==7,"Missing assets are optional and actionable");absent.hover();absent.room(true);absent.update(1);absent.close();
         System.out.println("PASS: cached UI/cage/Music resources, eight independent cages, chain variation/voice cap/panning, cooldowns, shared master, ducking, pause/resume/exit and disposal");
     }
 }

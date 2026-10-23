@@ -10,16 +10,18 @@ public final class GameAudio implements AutoCloseable {
     public enum Cue {
         HOVER("sounds/ui/hover_button.wav",UI), PRESS("sounds/ui/button_press.mp3",UI),
         GATE("sounds/cages/gate_closes.wav",CAGES),
+        GATE_LOCK(QuestionAudio.LOCK,CAGES),
         CHAIN_1("sounds/cages/runtime/chain_cage.wav",CAGES), CHAIN_2("sounds/cages/runtime/chain_cage2.wav",CAGES);
         public final String path;final AudioMix.Category category;
         Cue(String path,AudioMix.Category category){this.path=path;this.category=category;}
     }
     public static final String AMBIENCE="sounds/environment/creepy_basement.mp3";
-    public static final class Levels {public float hover=.35f,press=.55f,gate=.75f,chain=.55f,ambience=.20f;}
+    public static final class Levels {public float hover=.35f,press=.55f,gate=.75f,lock=.75f,chain=.55f,ambience=.20f;}
     private static final Cue[] CUES=Cue.values();
     private static final class Voice {Sound sound;Cue cue;long id=-1;float age,level,pan,duration;}
     public final Levels levels=new Levels();
     private final AudioMix mix;
+    private final float lockDuration;
     private final PresentationAudio.Backend backend;
     private QuestionAudio questions;
     public QuestionAudio activeQuestions(){return questions;}
@@ -37,14 +39,14 @@ public final class GameAudio implements AutoCloseable {
     private boolean room,paused,closed,ambienceFailed;
     public GameAudio(){this(PresentationAudio.GDX,AudioMix.GLOBAL,message->Gdx.app.error("Game audio",message));}
     public GameAudio(PresentationAudio.Backend backend,AudioMix mix,Consumer<String> warning){
-        this.mix=mix;this.warning=warning;this.backend=backend;
+        this.mix=mix;this.warning=warning;this.backend=backend;lockDuration=backend==PresentationAudio.GDX?QuestionAudio.lockDuration():8;
         for(int i=0;i<voices.length;i++)voices[i]=new Voice();
         for(Cue cue:CUES)try{sounds[cue.ordinal()]=backend.sound(cue.path);if(sounds[cue.ordinal()]==null)warning.accept("Missing optional audio: "+cue.path);}catch(RuntimeException e){warning.accept("Cannot preload "+cue.path+": "+e.getMessage());}
         try{ambience=backend.music(AMBIENCE);if(ambience==null)warning.accept("Missing optional ambience: "+AMBIENCE);else{ambience.setLooping(true);ambience.setVolume(0);}}catch(RuntimeException e){warning.accept("Cannot preload "+AMBIENCE+": "+e.getMessage());}
     }
     private void warn(Cue cue,String message){if(!warned[cue.ordinal()]){warned[cue.ordinal()]=true;warning.accept(message);}}
     public void uiGain(float value){uiScopeGain=AudioMix.unit(value);}
-    private float level(Cue cue){return (cue.category==UI?uiScopeGain:1)*AudioMix.unit(switch(cue){case HOVER->levels.hover;case PRESS->levels.press;case GATE->levels.gate;default->levels.chain;});}
+    private float level(Cue cue){return (cue.category==UI?uiScopeGain:1)*AudioMix.unit(switch(cue){case HOVER->levels.hover;case PRESS->levels.press;case GATE->levels.gate;case GATE_LOCK->levels.lock;default->levels.chain;});}
     private void stop(Voice voice){if(voice.id>=0)try{voice.sound.stop(voice.id);}catch(RuntimeException e){warn(voice.cue,"Cannot stop "+voice.cue.path+": "+e.getMessage());}voice.id=-1;}
     private void play(Cue cue,float strength,float pan){
         Sound sound=sounds[cue.ordinal()];if(closed||paused||sound==null)return;
@@ -53,12 +55,18 @@ public final class GameAudio implements AutoCloseable {
         for(Voice voice:voices){if(voice.id<0){if(free==null)free=voice;continue;}boolean same=chain?(voice.cue==Cue.CHAIN_1||voice.cue==Cue.CHAIN_2):voice.cue==cue;if(same){count++;if(oldest==null||voice.age>oldest.age)oldest=voice;}}
         int limit=chain?2:cue==Cue.GATE?3:1;Voice voice=count>=limit?oldest:free;
         if(voice==null)return;stop(voice);
-        try{voice.id=sound.play(volume,1,Math.max(-.65f,Math.min(.65f,pan)));if(voice.id<0){warn(cue,"No playback voice: "+cue.path);return;}voice.sound=sound;voice.cue=cue;voice.age=0;voice.level=AudioMix.unit(strength);voice.pan=pan;voice.duration=chain?1.1f:cue==Cue.GATE?1.3f:cue==Cue.HOVER?.49f:.24f;starts[cue.ordinal()]++;}
+        try{voice.id=sound.play(volume,1,Math.max(-.65f,Math.min(.65f,pan)));if(voice.id<0){warn(cue,"No playback voice: "+cue.path);return;}voice.sound=sound;voice.cue=cue;voice.age=0;voice.level=AudioMix.unit(strength);voice.pan=pan;voice.duration=cue==Cue.GATE_LOCK?lockDuration:chain?1.1f:cue==Cue.GATE?1.3f:cue==Cue.HOVER?.49f:.24f;starts[cue.ordinal()]++;}
         catch(RuntimeException e){voice.id=-1;warn(cue,"Cannot play "+cue.path+": "+e.getMessage());}
     }
     public void hover(){if(hoverCooldown>0)return;hoverCooldown=.085f;play(Cue.HOVER,1,0);}
     public void press(){if(pressCooldown>0)return;pressCooldown=.025f;play(Cue.PRESS,1,0);}
     public void gate(int slot,float pan){if(slot<0||slot>=8||gateCooldown[slot]>0)return;gateCooldown[slot]=.65f;play(Cue.GATE,1,pan);}
+    /** One full key recording covers overlapping cage locks without stacking identical tails. */
+    public void lock(int slot,float pan){
+        if(slot<0||slot>=8)return;
+        for(Voice voice:voices)if(voice.id>=0&&voice.cue==Cue.GATE_LOCK)return;
+        play(Cue.GATE_LOCK,1,pan);
+    }
     /** Observe the actual rendered angle, including existing impact and departure animation. */
     public void cageMotion(int slot,boolean occupied,float rotation,float dt,float pan){
         if(slot<0||slot>=8||!Float.isFinite(rotation)||!Float.isFinite(dt)||dt<=0)return;

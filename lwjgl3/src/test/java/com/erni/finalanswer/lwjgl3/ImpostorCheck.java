@@ -45,7 +45,7 @@ public final class ImpostorCheck extends FinalAnswerGame {
     public static void main(String[] args) {
         var config = new Lwjgl3ApplicationConfiguration();
         config.setWindowedMode(960, 540);
-        config.disableAudio(true);
+        config.disableAudio(!Boolean.getBoolean("impostor.audioQA"));
         config.setHdpiMode(HdpiMode.Pixels);
         config.setPreferencesConfig(System.getProperty("impostor.qa.dir"), Files.FileType.Absolute);
         new Lwjgl3Application(new ImpostorCheck(), config);
@@ -86,6 +86,7 @@ public final class ImpostorCheck extends FinalAnswerGame {
                 checkIdentityBinding();
                 checkAuthoritativePresentation();
                 checkOfflineClueControls();
+                checkAudioBoundaries();
                 checkFinalVoting();
                 checkLifecycleResults();
                 checkStage8Presentation();
@@ -564,6 +565,30 @@ public final class ImpostorCheck extends FinalAnswerGame {
         preview.render(0);check(!view.isVisible(),"N resets final preview");
     }
 
+    private void checkAudioBoundaries() throws Exception {
+        var field=ImpostorScreen.class.getDeclaredField("audio");field.setAccessible(true);
+        var audio=(com.erni.finalanswer.audio.PresentationAudio)field.get(preview);audio.mute(false);
+        if(Boolean.getBoolean("impostor.audioQA"))check(audio.loadedCues()>=6,"All six shared-screen WAVs decoded by native audio backend");
+        var intro=com.erni.finalanswer.audio.PresentationAudio.Cue.INTRODUCTION;
+        var opened=com.erni.finalanswer.audio.PresentationAudio.Cue.VOTING_START;
+        var closed=com.erni.finalanswer.audio.PresentationAudio.Cue.VOTING_CLOSED;
+        preview.resetPapers();long starts=audio.playCount(intro);
+        preview.presentPhase(ImpostorPhase.ROLE_REVEAL,4000,0);preview.presentPhase(ImpostorPhase.ROLE_REVEAL,4000,10);
+        check(audio.playCount(intro)==starts+1,"One introduction per role entrance");
+        preview.presentPhase(ImpostorPhase.EVIDENCE_REVIEW,30000,1000);
+        var clockSnapshot=new FinalActSnapshot("audio-clock",ImpostorPhase.EVIDENCE_REVIEW,1000,31000,0,0,preview.participants().size(),"",java.util.List.of(),java.util.Map.of(),java.util.List.of(),"","");
+        preview.presentFinal(clockSnapshot,1000);preview.render(0);
+        Image arrow=stage(preview).getRoot().findActor("impostorClockArrow");float first=arrow.getRotation();
+        preview.presentFinal(clockSnapshot,16000);preview.render(0);check(Math.abs(arrow.getRotation()+180)<3&&Math.abs(arrow.getRotation()-first)>170,"Rendered clock hand follows authoritative midpoint");
+        preview.pause();float held=arrow.getRotation();preview.render(.5f);check(arrow.getRotation()==held,"Clock hand freezes on application pause");preview.resume();preview.clearFinal();
+        long votes=audio.playCount(opened),locks=audio.playCount(closed);
+        preview.presentPhase(ImpostorPhase.FINAL_VOTING,50000,30000);preview.presentPhase(ImpostorPhase.FINAL_VOTING,50000,30001);
+        check(audio.playCount(opened)==votes+1,"Voting starts once");
+        preview.presentPhase(ImpostorPhase.VOTING_LOCKED,51000,49000);preview.presentPhase(ImpostorPhase.VOTING_LOCKED,51000,49001);
+        check(audio.playCount(closed)==locks+1,"Official early vote lock sounds once");
+        preview.resetPapers();
+    }
+
     private void checkFinalVoting() throws Exception {
         var original=preview.participants();int textures=Texture.getNumManagedTextures();
         for(int count:new int[]{3,4}) {
@@ -571,6 +596,7 @@ public final class ImpostorCheck extends FinalAnswerGame {
             String a=preview.participants().get(0).player().id(),b=preview.participants().get(1).player().id();
             var counts=new java.util.LinkedHashMap<String,Integer>();for(var p:preview.participants())counts.put(p.player().id(),0);counts.put(a,1);counts.put(b,count-1);
             var targets=new java.util.ArrayList<String>();targets.add(a);for(int i=1;i<count;i++)targets.add(b);
+            if(count==4){targets.clear();for(int i=0;i<count;i++)targets.add(b);counts.put(a,0);counts.put(b,count);}
             var discussion=new FinalActSnapshot("final-"+count,ImpostorPhase.EVIDENCE_REVIEW,1000,31000,0,0,count,"",java.util.List.of(),java.util.Map.of(),java.util.List.of(),"","");
             preview.presentPhase(ImpostorPhase.EVIDENCE_REVIEW,31000,1000);preview.presentFinal(discussion,1000);preview.render(0);
             FinalVotePresentation view=stage(preview).getRoot().findActor("finalAct");
@@ -586,7 +612,7 @@ public final class ImpostorCheck extends FinalAnswerGame {
             check(view.stampCount()==count && view.visibleStampCount()==0,"One prepared imprint per vote; none before impact");
             for(int i=0;i<count;i++){
                 long impact=reveal+com.erni.finalanswer.gameplay.impostor.FinalRevealTiming.LEAD+i*400+220;
-                view.update(impact);check(view.visibleStampCount()==i+1,"Exactly one additional imprint per impact");
+                view.update(i==0?impact+200:impact);check(view.visibleStampCount()==i+1,"Exactly one additional imprint per impact");
                 for(int j=0;j<=i;j++)check(view.findActor("voteStamp:"+j).isVisible(),"Earlier stamps persist");
                 preview.presentFinal(snapshot,impact);view.update(impact);check(view.visibleStampCount()==i+1,"Duplicate snapshot cannot replay or erase stamps");
                 if(i==1){finalCaptureNow=impact;capturePaperState("final-mid-reveal");}
@@ -605,12 +631,12 @@ public final class ImpostorCheck extends FinalAnswerGame {
             preview.presentFinal(announcement,59000);preview.render(0);view.update(59000);check(((Label)view.findActor("finalDetail")).getText().toString().equals("Shadow"),"Suspect announcement before identity");
             finalCaptureNow=59000;capturePaperState("final-suspect");
             var identity=new FinalActSnapshot("final-"+count,ImpostorPhase.IMPOSTOR_REVEAL,61500,65500,reveal,count,count,snapshot.sequenceId(),targets,counts,java.util.List.of(b),b,"IMPOSTOR_CAUGHT");
-            preview.presentFinal(identity,62500);preview.render(0);view.update(63499);
-            Label identityName=view.findActor("finalDetail");check(!identityName.isVisible(),"Identity name waits full two seconds");
-            view.reducedMotion(true);view.update(63499);check(!identityName.isVisible(),"Reduced motion preserves suspense pause");
-            view.update(63500);check(identityName.isVisible()&&identityName.getColor().a==1,"Identity appears at two seconds with reduced motion");
+            preview.presentFinal(identity,62500);preview.render(0);view.update(64899);
+            Label identityName=view.findActor("finalDetail");check(!identityName.isVisible(),"Identity name waits for the 3.4-second musical accent");
+            view.reducedMotion(true);view.update(64899);check(!identityName.isVisible(),"Reduced motion preserves suspense pause");
+            view.update(64900);check(identityName.isVisible()&&identityName.getColor().a==1,"Identity appears at musical accent with reduced motion");
             check(identityName.getStyle().font.getData().hasGlyph('Ж')&&identityName.getStyle().font.getData().hasGlyph('Я'),"Reveal handwriting contains Cyrillic glyphs");
-            view.reducedMotion(false);view.update(64100);finalCaptureNow=64100;capturePaperState("final-identity");
+            view.reducedMotion(false);view.update(65200);finalCaptureNow=65200;capturePaperState("final-identity");
             var result=new FinalActSnapshot("final-"+count,ImpostorPhase.RESULT,65500,0,reveal,count,count,snapshot.sequenceId(),targets,counts,java.util.List.of(b),b,"IMPOSTOR_CAUGHT");
             preview.presentFinal(result,66500);preview.render(0);view.update(66500);finalCaptureNow=66500;capturePaperState("final-result");
             check(view.visibleStampCount()==count,"Final result keeps every stamp");

@@ -2,6 +2,11 @@ package com.erni.finalanswer.impostor;
 
 /** Immutable design-space regions. Coordinates use libGDX's bottom-left origin. */
 public final class ImpostorLayout {
+    /** One clockwise revolution per authoritative countdown; never advances gameplay. */
+    public static float clockRotation(long now,long started,long deadline){
+        if(deadline<=started)return 0;
+        return -360f*(float)Math.max(0,Math.min(1,(double)(now-started)/(deadline-started)));
+    }
     public static final float WIDTH = 1920;
     public static final float HEIGHT = 1080;
     public record Bounds(float x, float y, float width, float height) {

@@ -198,7 +198,7 @@ public final class CursedBoxesScreen extends InputAdapter implements Screen {
         camera.resize(w,h);camera.update(0,time,slots[selected]);roomLayout.update(camera.camera,w,h);
         for(CrateSlot slot:slots)slot.place(roomLayout.origin);renderer.placeShelf(roomLayout.origin);shotgun.placeTable(roomLayout.tableAnchor);shotgun.audioFloor(roomLayout.origin.y+CursedBoxesShelf.RIGHT_FOOT_Y);
     }}
-    @Override public void hide(){activeScreen=false;assets.sounds.paused(true);renderer.resetSurvivors(slots);renderer.resetEffects();camera.reset();if(Gdx.input.getInputProcessor()==this)Gdx.input.setInputProcessor(null);if(performance.visible)performance.toggle();display.restore();}
+    @Override public void hide(){activeScreen=false;assets.sounds.paused(true);renderer.resetEffects();camera.reset();if(Gdx.input.getInputProcessor()==this)Gdx.input.setInputProcessor(null);if(performance.visible)performance.toggle();display.restore();}
     @Override public void pause(){assets.sounds.paused(true);}
     @Override public void resume(){if(activeScreen)assets.sounds.paused(false);}
     @Override public void dispose(){if(disposed)return;disposed=true;hide();if(multiplayer!=null)multiplayer.close();performance.dispose();renderer.dispose();shotgun.dispose();assets.dispose();}

@@ -36,7 +36,11 @@ public final class ImpostorScreen extends ScreenAdapter {
     private boolean settingsSoundMuted,previousLocalMute;
     private Label introduction;
     private String presentationKey="";
-    private boolean restorePresentation=true;
+    private boolean restorePresentation=true,introductionPlayed,voteOpen;
+    private Image clockHand;
+    private String tickKey="";
+    private com.erni.finalanswer.gameplay.impostor.ImpostorPhase tickPhase;
+    private long tickDeadline;
     private long warnedDeadline;
     private boolean phaseRestored;
     private String resultCue="",waitingPresentation="";
@@ -217,6 +221,11 @@ public final class ImpostorScreen extends ScreenAdapter {
             var style=phase==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.RESULT?com.erni.finalanswer.presentation.PhaseTransition.Style.ZOOM:com.erni.finalanswer.presentation.PhaseTransition.Style.DARKNESS;
             transition.enter(key,new com.erni.finalanswer.presentation.PhaseTransition.Config(style,.65f,.16f),restore);
             if(introduction!=null)introduction.setText(phase==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.ROUND_CLUE_INPUT?"ROUND "+(paperReveal.round()+1):"");
+            if(!introductionPlayed&&(phase==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.INTRO||phase==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.ROLE_REVEAL)){
+                introductionPlayed=true;audio.play(com.erni.finalanswer.audio.PresentationAudio.Cue.INTRODUCTION);
+            }
+            if(voteOpen&&phase!=com.erni.finalanswer.gameplay.impostor.ImpostorPhase.FINAL_VOTING&&!restore)audio.play(com.erni.finalanswer.audio.PresentationAudio.Cue.VOTING_CLOSED);
+            voteOpen=phase==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.FINAL_VOTING;
             var cue=switch(phase){
                 case ROUND_CLUE_INPUT -> com.erni.finalanswer.audio.PresentationAudio.Cue.ROUND_INTRO;
                 case ROUND_CLUE_REVEAL -> com.erni.finalanswer.audio.PresentationAudio.Cue.CLUE_REVEAL;
@@ -259,7 +268,7 @@ public final class ImpostorScreen extends ScreenAdapter {
         var ids = new HashSet<String>();
         for (ImpostorParticipant participant : copy)
             if (!ids.add(participant.player().id())) throw new IllegalArgumentException("Duplicate active player ID");
-        paperReveal.reset();transition.reset();presentationKey="";warnedDeadline=0;
+        paperReveal.reset();transition.reset();presentationKey="";warnedDeadline=0;introductionPlayed=voteOpen=false;if(clockHand!=null)clockHand.setRotation(0);
         clearSuspicion();clearFinal();
         participants = copy;
         if (built){rebuildParticipants();finalPresentation.revealFont(revealNameFont);finalPresentation.setRoster(participants);}
@@ -307,12 +316,14 @@ public final class ImpostorScreen extends ScreenAdapter {
         for (int i=0; i<participantViews.size(); i++)
             participantViews.get(i).setClue(slot, cluesByPlayerId.get(participants.get(i).player().id()));
         paperReveal.reveal();
+        audio.play(com.erni.finalanswer.audio.PresentationAudio.Cue.PAGE_TURN);
         presentPapers();
         return true;
     }
 
     public boolean flipPapersBack() {
         if (disposed || !built || !paperReveal.flipBack()) return false;
+        audio.play(com.erni.finalanswer.audio.PresentationAudio.Cue.PAGE_TURN);
         presentPapers();
         return true;
     }
@@ -320,7 +331,7 @@ public final class ImpostorScreen extends ScreenAdapter {
     /** Cancels any in-flight flip, clears all three slots and restores the first-round start. */
     public void resetPapers() {
         if (disposed) return;
-        paperReveal.reset();transition.reset();presentationKey="";warnedDeadline=0;
+        paperReveal.reset();transition.reset();presentationKey="";warnedDeadline=0;introductionPlayed=voteOpen=false;if(clockHand!=null)clockHand.setRotation(0);
         clearSuspicion();clearFinal();
         for (var view : participantViews) view.setClues(List.of("", "", ""));
         presentPapers();
@@ -371,12 +382,12 @@ public final class ImpostorScreen extends ScreenAdapter {
                 float clockScale = ImpostorLayout.CLOCK.width() / 1223;
                 float pivotX = ImpostorLayout.CLOCK.x() + ImpostorLayout.CLOCK_PIVOT_X * clockScale;
                 float pivotY = ImpostorLayout.CLOCK.y() + (1286 - ImpostorLayout.CLOCK_PIVOT_Y) * clockScale;
-                Image arrow = new Image(texture);
+                Image arrow = new Image(texture);clockHand=arrow;
                 arrow.setName("impostorClockArrow");
                 arrow.setBounds(pivotX - originX, pivotY - originY,
                         com.erni.finalanswer.ui.RuntimeTextures.originalWidth(texture) * scale, com.erni.finalanswer.ui.RuntimeTextures.originalHeight(texture) * scale);
                 arrow.setOrigin(originX, originY);
-                // Fixed twelve-o'clock pose. Actor rotation can later use the measured hub origin.
+                // Rotation is updated from the authoritative countdown, around this measured hub.
                 arrow.setRotation(0);
                 stage.addActor(arrow);
             });
@@ -442,9 +453,22 @@ public final class ImpostorScreen extends ScreenAdapter {
         long clockDeadline=liveRound?roundDeadline:finalSnapshot==null?0:finalSnapshot.deadline();
         if(finalSnapshot!=null)clockNow=finalServerTime+(System.nanoTime()-finalReceivedNano)/1_000_000;
         long remaining=clockDeadline-clockNow;
+        boolean timed=finalSnapshot!=null&&(finalSnapshot.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.EVIDENCE_REVIEW||finalSnapshot.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.FINAL_VOTING);
+        if(timed&&(tickPhase!=finalSnapshot.phase()||tickDeadline!=clockDeadline)){tickPhase=finalSnapshot.phase();tickDeadline=clockDeadline;tickKey=tickPhase.name()+":"+tickDeadline;}
+        audio.timer(timed?tickKey:"",timed&&!paused&&remaining>0&&!lifecycle.isVisible(),timed?Math.max(0,clockNow-finalSnapshot.phaseStartedAt())/1000f:0);
         if(remaining>0&&remaining<=5000){
             if(!reduced)warning=1+.035f*(float)Math.sin(remaining/1000.0*Math.PI*2);
             if(warnedDeadline!=clockDeadline){warnedDeadline=clockDeadline;if(!phaseRestored)audio.play(com.erni.finalanswer.audio.PresentationAudio.Cue.TIMER_WARNING);}
+        }
+        if(clockHand!=null&&!paused){
+            long handNow=clockNow,handDeadline=clockDeadline,handStart=0;
+            boolean running=false;
+            if(timed){handStart=finalSnapshot.phaseStartedAt();running=true;}
+            else if(liveRound){handStart=roundDeadline-authoritativeSettings.clueSeconds()*1000L;running=true;}
+            else if(suspicion!=null&&suspicionEnvelope.active()&&!suspicion.finalized()){
+                handNow=suspicionServerTime+(System.nanoTime()-suspicionReceivedNano)/1_000_000;handDeadline=suspicion.deadline();handStart=handDeadline-5000;running=true;
+            }
+            if(running){if(reduced)handNow=handStart+Math.max(0,(handNow-handStart)/1000)*1000;clockHand.setRotation(ImpostorLayout.clockRotation(handNow,handStart,handDeadline));}
         }
         Actor timerValue=stage.getRoot().findActor("impostorTimerValue");if(timerValue!=null){timerValue.setOrigin(timerValue.getWidth()/2,timerValue.getHeight()/2);timerValue.setScale(warning);}
         for(String name:TIMER_ACTORS){
@@ -461,9 +485,16 @@ public final class ImpostorScreen extends ScreenAdapter {
 
     @Override public void resize(int width, int height) { stage.getViewport().update(width, height, true); }
     @Override public void pause() { paused = true;audio.pause(true); }
-    @Override public void resume() { paused = false;transition.cancel();restorePresentation=true;audio.pause(false); }
+    @Override public void resume() {
+        paused=false;transition.cancel();restorePresentation=true;presentationKey="";audio.timer("",false);audio.pause(false);
+        if(built&&!disposed){
+            long base=finalSnapshot!=null?finalServerTime:roundServerTime;
+            long received=finalSnapshot!=null?finalReceivedNano:roundReceivedNano;
+            presentPhase(state.phase(),finalSnapshot!=null?finalSnapshot.deadline():roundDeadline,base+(System.nanoTime()-received)/1_000_000);
+        }
+    }
     @Override public void hide() {
-        transition.cancel();restorePresentation=true;audio.pause(true);
+        transition.cancel();restorePresentation=true;audio.timer("",false);audio.pause(true);
         if (Gdx.input.getInputProcessor() == stage) Gdx.input.setInputProcessor(null);
     }
     @Override public void dispose() {

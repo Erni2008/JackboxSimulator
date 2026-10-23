@@ -92,6 +92,36 @@
       "file": "generated/controller-polish/vote-accepted-320.png"
     },
     {
+      "name": "blackout-voting_locked",
+      "width": 320,
+      "height": 568,
+      "file": "generated/controller-polish/blackout-voting_locked-320.png"
+    },
+    {
+      "name": "blackout-final_vote_reveal",
+      "width": 320,
+      "height": 568,
+      "file": "generated/controller-polish/blackout-final_vote_reveal-320.png"
+    },
+    {
+      "name": "blackout-suspect_announcement",
+      "width": 320,
+      "height": 568,
+      "file": "generated/controller-polish/blackout-suspect_announcement-320.png"
+    },
+    {
+      "name": "blackout-impostor_reveal",
+      "width": 320,
+      "height": 568,
+      "file": "generated/controller-polish/blackout-impostor_reveal-320.png"
+    },
+    {
+      "name": "blackout-result",
+      "width": 320,
+      "height": 568,
+      "file": "generated/controller-polish/blackout-result-320.png"
+    },
+    {
       "name": "question-sending",
       "width": 320,
       "height": 568,
@@ -242,6 +272,36 @@
       "file": "generated/controller-polish/vote-accepted-390.png"
     },
     {
+      "name": "blackout-voting_locked",
+      "width": 390,
+      "height": 844,
+      "file": "generated/controller-polish/blackout-voting_locked-390.png"
+    },
+    {
+      "name": "blackout-final_vote_reveal",
+      "width": 390,
+      "height": 844,
+      "file": "generated/controller-polish/blackout-final_vote_reveal-390.png"
+    },
+    {
+      "name": "blackout-suspect_announcement",
+      "width": 390,
+      "height": 844,
+      "file": "generated/controller-polish/blackout-suspect_announcement-390.png"
+    },
+    {
+      "name": "blackout-impostor_reveal",
+      "width": 390,
+      "height": 844,
+      "file": "generated/controller-polish/blackout-impostor_reveal-390.png"
+    },
+    {
+      "name": "blackout-result",
+      "width": 390,
+      "height": 844,
+      "file": "generated/controller-polish/blackout-result-390.png"
+    },
+    {
       "name": "question-sending",
       "width": 390,
       "height": 844,
@@ -390,6 +450,36 @@
       "width": 844,
       "height": 390,
       "file": "generated/controller-polish/vote-accepted-844.png"
+    },
+    {
+      "name": "blackout-voting_locked",
+      "width": 844,
+      "height": 390,
+      "file": "generated/controller-polish/blackout-voting_locked-844.png"
+    },
+    {
+      "name": "blackout-final_vote_reveal",
+      "width": 844,
+      "height": 390,
+      "file": "generated/controller-polish/blackout-final_vote_reveal-844.png"
+    },
+    {
+      "name": "blackout-suspect_announcement",
+      "width": 844,
+      "height": 390,
+      "file": "generated/controller-polish/blackout-suspect_announcement-844.png"
+    },
+    {
+      "name": "blackout-impostor_reveal",
+      "width": 844,
+      "height": 390,
+      "file": "generated/controller-polish/blackout-impostor_reveal-844.png"
+    },
+    {
+      "name": "blackout-result",
+      "width": 844,
+      "height": 390,
+      "file": "generated/controller-polish/blackout-result-844.png"
     },
     {
       "name": "question-sending",

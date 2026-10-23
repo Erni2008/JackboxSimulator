@@ -130,9 +130,9 @@ public final class FinalVotePresentation extends Group {
         title.getColor().a=entry;detail.getColor().a=entry;
         boolean delayedName=snapshot.phase()==ImpostorPhase.SUSPECT_ANNOUNCEMENT || snapshot.phase()==ImpostorPhase.IMPOSTOR_REVEAL;
         if(snapshot.phase()==ImpostorPhase.IMPOSTOR_REVEAL){
-            long age=serverNow-snapshot.phaseStartedAt()-2000;
+            long age=serverNow-snapshot.phaseStartedAt()-FinalRevealTiming.IDENTITY_NAME_MILLIS;
             detail.setVisible(age>=0);
-            detail.getColor().a=age<0?0:reducedMotion?1:Math.min(1,age/400f);
+            detail.getColor().a=age<0?0:reducedMotion?1:Math.min(1,age/(float)FinalRevealTiming.IDENTITY_NAME_FADE_MILLIS);
             for(var entryCard:cardsById.entrySet()){
                 boolean highlight=age>=0&&entryCard.getKey().equals(snapshot.impostorId());
                 Image paper=entryCard.getValue().findActor("finalParchment");if(paper!=null)paper.setColor(highlight?Color.valueOf("FFD5B0"):Color.WHITE);
@@ -150,7 +150,7 @@ public final class FinalVotePresentation extends Group {
         for(int i=0;i<marks.size();i++){
             long age=elapsed-(FinalRevealTiming.LEAD+i*FinalRevealTiming.INTERVAL+FinalRevealTiming.IMPACT);
             if(age>=0)count=i+1;
-            if(i>=revealed && age>=0 && age<140 && previousUpdate>=0 && serverNow>=previousUpdate)impact.run();
+            if(i>=revealed && age>=0 && previousUpdate>=0 && snapshot.revealStartedAt()+FinalRevealTiming.LEAD+i*FinalRevealTiming.INTERVAL+FinalRevealTiming.IMPACT>previousUpdate && serverNow>=previousUpdate)impact.run();
             if(!reducedMotion&&age>=0&&age<180)cardsById.get(targets.get(i)).setScale(1-.008f*(float)Math.sin(Math.PI*age/180));
             Image image=marks.get(i);if(image==null)continue;
             boolean visible=i<revealed || age>=0;image.setVisible(visible);

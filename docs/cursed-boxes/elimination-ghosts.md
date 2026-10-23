@@ -48,3 +48,11 @@ Snapshot игрока содержит `lifeState` (`ALIVE` / `GHOST`), `isGhost
 Реальный full-round тест с четырьмя телефонами подтверждает: без смерти после первого выстрела; ELIMINATION после последнего; ровно один ghostMask и отдельный survivorMask; затем один appearance2 и один horror2. С `CURSED_GHOST_HANDOFF_QA=1 KEEP_OPEN=0` он также возвращается к вопросу и проверяет обычный question-screen со статусом GHOST. Кадры — `lwjgl3/build/cursed-full-round/falling-players.png`, `rising-ghosts.png`, `phone-ghost-waiting.png`. Медиа по-прежнему игнорируются Git.
 
 Браузерная проверка контроллеров расширена с 36 до 42 кадров, включая личный ghost-result и ожидание следующего вопроса на 320/390/844 px. Проверка физических телефонов остаётся отдельной ручной проверкой.
+
+## Постоянное раскрытие и ключ решётки
+
+`CrateSlot.revealPanel()` сохраняет минимальную достигнутую непрозрачность передней панели. Задняя и боковые части, повреждения и состояние коробки не меняются. `CursedBoxesScreen.hide()` больше не сбрасывает survivor clock и панели; повторный показ сохранённой сцены оставляет раскрытие на месте. Полный reset раунда и явный перезапуск developer fixture по-прежнему восстанавливают панели.
+
+Существующий `HangingCage` вызывает lock callback при прохождении отметки поворота ключа (`KEY_AT + KEY * .6`). `CageLobby` теперь подключает его к `GameAudio.lock()`: используется реальный `assets/sounds/questions/door_lock(done).wav` (около 7,96 с), отдельный регулируемый `levels.lock`, общие MASTER/CAGES настройки. Удар `gate_closes.wav` сохранён. Одновременные ключи используют одну полную запись без перезапуска хвоста; загрузка и чтение длительности выполняются заранее, без файловых операций в render.
+
+Проверки: `:core:gameAudioCheck`, `:core:cageCheck`, `:core:cursedSurvivorCheck`; native `:lwjgl3:cursedSurvivors -PcursedSurvivorQA=true -PcursedSurvivorCaptures=true` проверяет 0/1/3/5/8 выживших, сохранение повреждений, прозрачности при hide/show и защиту от устаревшего opacity=1, затем явный reset. Полный browser/native round проверяет также фактический `GATE_LOCK` из анимации клеток.

@@ -1,0 +1,83 @@
+{
+  "source": "Project-root WAV originals retained unchanged",
+  "assets": [
+    {
+      "path": "card_role_impostor.wav",
+      "channels": 2,
+      "bits": 16,
+      "rate": 24000,
+      "seconds": 2.6,
+      "sha256": "1a45cb3458864c5454d81c962d98e0af656e5931d7e6a8dec8c0965e5d421814"
+    },
+    {
+      "path": "impostor_role_reveal.wav",
+      "channels": 2,
+      "bits": 16,
+      "rate": 48000,
+      "seconds": 7.0,
+      "sha256": "0f4512da245cffdbfd9b4d6f9ff90dde801b3934b12bdb9cc9df0b0f9c46e486"
+    },
+    {
+      "path": "mini_game_introduction.wav",
+      "channels": 2,
+      "bits": 16,
+      "rate": 44100,
+      "seconds": 7.7845,
+      "sha256": "92aceeba41a3ff703bfef08a746c57ae31e1caf4d365b366f37947b7b842874c"
+    },
+    {
+      "path": "page_turn.wav",
+      "channels": 2,
+      "bits": 16,
+      "rate": 44100,
+      "seconds": 0.9083,
+      "sha256": "51a4ac20804bdcfdcaaf9a45bb0f842aed8da5e727f684c8da89287e2f938015"
+    },
+    {
+      "path": "vote_sent.wav",
+      "channels": 2,
+      "bits": 16,
+      "rate": 44100,
+      "seconds": 1.071,
+      "sha256": "1cc8376d78955da53594f954d2f17ecb4c5c75de84e41f4352f23e3405b05ad3"
+    },
+    {
+      "path": "vote_started.wav",
+      "channels": 2,
+      "bits": 16,
+      "rate": 48000,
+      "seconds": 1.512,
+      "sha256": "d4c2cd89be30e14c64b3c4fcc93a3b2ceb4436fde60e557c43d8b236b61c32b0"
+    },
+    {
+      "path": "voting_closed.wav",
+      "channels": 2,
+      "bits": 16,
+      "rate": 48000,
+      "seconds": 3.0,
+      "sha256": "1cfc7f48b67f557200e9cd4abcdc1a4e5a69f68e13d51d8df7c73435c1e10014"
+    },
+    {
+      "path": "wooden_stumb_hit.wav",
+      "channels": 2,
+      "bits": 16,
+      "rate": 44100,
+      "seconds": 1.5902,
+      "sha256": "860438bc033d796ec7bf86303eea0969375e6216988b74423f1918e52fd35875"
+    }
+  ],
+  "runtime": {
+    "path": "runtime/voting_closed.wav",
+    "source": "voting_closed.wav",
+    "gain": 10.85958904109589,
+    "target_peak": 0.75,
+    "sha256": "dbfbc465c47943d02926be4bb9e8f5333434b5a9c923eed52a63a3224d47d806"
+  },
+  "stamp_alignment": {
+    "path": "runtime/wooden_stumb_hit.wav",
+    "source": "wooden_stumb_hit.wav",
+    "removed_lead_seconds": 0.5003174603174603,
+    "attack_lead_seconds": 0.001,
+    "sha256": "9d4fff56b59a57674117425fc09df10def9640843a75f05700eea82a73c6f40a"
+  }
+}

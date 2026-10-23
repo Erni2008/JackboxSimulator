@@ -47,7 +47,11 @@ public final class CursedSurvivorRevealLauncher {
                 }
                 if(clock.currentBox()!=current){current=clock.currentBox();capturedFade=false;}
                 if(current>=0&&!capturedFade&&clock.state()==CursedSurvivorTimeline.State.PANEL_FADING&&clock.panelOpacity(current)<.55f){capture(counts[test]+"-survivors-box-"+current+"-fading");capturedFade=true;}
-                if(clock.state()==CursedSurvivorTimeline.State.COMPLETED){finishedAge+=1f/60;if(finishedAge>1){check(scene.sounds().playCount(CursedBoxesSoundManager.Cue.REVEAL_START)-starts==counts[test]&&scene.sounds().playCount(CursedBoxesSoundManager.Cue.APPEARANCE_2)-ends==counts[test],"Exactly one start and visible cue per survivor");check(scene.sounds().playCount(CursedBoxesSoundManager.Cue.HEARTBEAT)-hearts==counts[test]&&!scene.sounds().heartbeatActive(),"Single heartbeat per anticipation, stopped at completion");capture(counts[test]+"-survivors-complete");next();}}
+                if(clock.state()==CursedSurvivorTimeline.State.COMPLETED){finishedAge+=1f/60;if(finishedAge>1){check(scene.sounds().playCount(CursedBoxesSoundManager.Cue.REVEAL_START)-starts==counts[test]&&scene.sounds().playCount(CursedBoxesSoundManager.Cue.APPEARANCE_2)-ends==counts[test],"Exactly one start and visible cue per survivor");check(scene.sounds().playCount(CursedBoxesSoundManager.Cue.HEARTBEAT)-hearts==counts[test]&&!scene.sounds().heartbeatActive(),"Single heartbeat per anticipation, stopped at completion");capture(counts[test]+"-survivors-complete");
+                    scene.hide();scene.show();
+                    check(scene.survivorTimeline()==clock&&clock.state()==CursedSurvivorTimeline.State.COMPLETED,"Scene reentry reset the reveal clock");
+                    for(CrateSlot box:scene.slots)if(clock.eligible(box.id)){box.revealPanel(1);check(box.survivorOpening&&box.survivorPanelOpacity==0,"Opened front was restored by reentry or a stale fade");}
+                    scene.render(1f/60);next();}}
                 if(frames>6000)throw new AssertionError("Reveal test timed out");
             }catch(Throwable t){failure=t;Gdx.app.exit();}finally{rendering=false;}}
             @Override public void dispose(){super.dispose();if(scene!=null)scene.dispose();if(qa&&Texture.getNumManagedTextures()!=0)failure=new AssertionError("Survivor texture leak "+Texture.getNumManagedTextures());}

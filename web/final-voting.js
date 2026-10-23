@@ -18,7 +18,7 @@ function createFinalVotingController({getState,isAuthenticated,send,now,makeId})
       render();
     }
   }
-  function tick(){const s=mini();if(!s)return;
+  function tick(){const s=mini();if(!s)return;if(impostorPhoneBlackout(getState())){blackout();return;}
     const timed=s.phase==='EVIDENCE_REVIEW'||s.phase==='FINAL_VOTING';
     el('final-timer').classList.toggle('timer-warning',timed&&s.deadline-now()>0&&s.deadline-now()<=5000);
     el('final-timer').textContent=timed?`TIME REMAINING: ${Math.max(0,Math.ceil((s.deadline-now())/1000))}s`:'';
@@ -27,7 +27,7 @@ function createFinalVotingController({getState,isAuthenticated,send,now,makeId})
     for(const card of el('final-cards').children)card.disabled=!canVote(card.dataset.id);
     el('confirm-vote').disabled=!selection||!canVote(selection);
   }
-  function render(){const s=mini();if(!s)return;if(session!==s.sessionId){reset();session=s.sessionId;}
+  function render(){const s=mini();if(!s)return;if(session!==s.sessionId){reset();session=s.sessionId;}if(impostorPhoneBlackout(getState())){blackout();return;}
     if(s.phase!=='FINAL_VOTING')selection='';
     el('confirm-vote').hidden=s.phase!=='FINAL_VOTING'||!s.activeParticipant||s.finalVoteSubmitted;
     if(s.finalVoteSubmitted){selection=s.ownFinalVote||'';pending=null;clearTimeout(timeout);error='';}
@@ -69,5 +69,11 @@ function createFinalVotingController({getState,isAuthenticated,send,now,makeId})
     if(focusedId){const card=Array.from(el('final-cards').children).find(c=>c.dataset.id===focusedId);if(card&&!card.disabled)card.focus({preventScroll:true});}
   }
   el('confirm-vote').addEventListener('click',()=>submit(selection));
-  return {render,tick,event,reset};
+  function blackout(){
+    clearTimeout(timeout);pending=null;selection='';error='';
+    for(const id of ['final-title','final-announcement','final-progress','final-status','vote-receipt-value','vote-draft-name','final-personal','result-player'])el(id).textContent='';
+    el('final-cards').replaceChildren();el('final-results').replaceChildren();
+    el('vote-receipt').hidden=el('vote-draft').hidden=true;
+  }
+  return {render,tick,event,reset,blackout};
 }

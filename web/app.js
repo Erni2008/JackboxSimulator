@@ -1,10 +1,11 @@
 'use strict';
 const $=id=>document.getElementById(id);
-const screens=['join','waiting','question','result','finished','disconnected','suspicion','impostor','final','cursed','ghost'];
+const screens=['join','waiting','question','result','finished','disconnected','suspicion','impostor','final','cursed','ghost','blackout'];
 const messages={ROOM_NOT_FOUND:'ROOM NOT FOUND — check the six-character code.',ROOM_IS_FULL:'ROOM IS FULL.',CHARACTER_IN_USE:'That character belongs to another player. Choose a different character.',PLAYER_OFFLINE:'A player is disconnected. Reconnect before starting.',NOT_ENOUGH_PLAYERS:'At least two connected players are required.',GAME_ALREADY_STARTED:'GAME ALREADY STARTED. Only returning guests can rejoin.',INVALID_NICKNAME:'INVALID NICKNAME — use 1–24 characters.',NICKNAME_IN_USE:'That nickname is already taken.',INVALID_PASSWORD:'INVALID PASSWORD.',RATE_LIMITED:'Too many attempts. Wait a moment and try again.',SESSION_ENDED:'Your session has ended. Join a room again.',HOST_DISCONNECTED:'The host disconnected.',HOST_CLOSED_ROOM:'The host closed this room.',SERVER_SHUTDOWN:'The server is restarting. Please join again shortly.',ANSWER_TOO_LATE:"TIME’S UP — your answer arrived after the deadline.",ANSWER_ALREADY_SUBMITTED:'ANSWER SUBMITTED — your first answer is final.',ANSWERING_NOT_STARTED:'Wait for the host to finish presenting the question.',CONNECTION_LOST:'CONNECTION LOST — reconnecting to your seat…',SESSION_REPLACED:'This session was opened in another tab. Join separately to play as another guest.'};
 const explanation=code=>messages[code]||String(code||'Connection error. Please try again.').replaceAll('_',' ');
 let credentials=null,ws=null,state=null,authenticated=false,generation=0,retries=0,retryTimer=null,heartbeat=null,pending=null,pendingTimer=null,currentScreen='',questionKey='',serverTime=0,receivedAt=0,stopped=false,reconnectAt=0;
 const pings=new Map();
+const impostorPhoneAudio=createImpostorPhoneAudio();
 const heartbeatWatch=createResponseWatchdog({onTimeout:()=>{
   if(!authenticated||stopped||document.hidden)return;
   const socket=ws;lost(generation);socket?.close();
@@ -31,9 +32,9 @@ function save(){try{if(credentials)sessionStorage.setItem('finalanswer-session',
 function send(type,payload={},requestId=id()){if(ws?.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type,requestId,payload}));return requestId;}
 function now(){return serverTime+performance.now()-receivedAt;}
 function sessionFields(){return {roomCode:credentials.code,gameId:state.gameId,questionId:state.question.id};}
-function stop(){reconnectAt=0;cursed.reset();suspicion.reset();impostor.reset();finalVoting.reset();stopped=true;generation++;authenticated=false;clearTimeout(retryTimer);clearTimeout(pendingTimer);clearInterval(heartbeat);heartbeatWatch.clear();if(ws){ws.close();ws=null;}}
+function stop(){impostorPhoneAudio.suspend();reconnectAt=0;cursed.reset();suspicion.reset();impostor.reset();finalVoting.reset();stopped=true;generation++;authenticated=false;clearTimeout(retryTimer);clearTimeout(pendingTimer);clearInterval(heartbeat);heartbeatWatch.clear();if(ws){ws.close();ws=null;}}
 function end(code){stop();credentials=null;save();state=null;pending=null;$('session-footer').hidden=true;show('join');$('join-error').textContent=explanation(code);status('THE CONNECTION HAS ENDED',true);}
-function lost(version){if(version!==generation||stopped)return;cursed.suspend();suspicion.reset();impostor.suspend();finalVoting.reset();authenticated=false;generation++;clearInterval(heartbeat);heartbeatWatch.clear();clearTimeout(pendingTimer);pending=null;status('CONNECTION LOST',true);show('disconnected');$('retry').hidden=false;
+function lost(version){if(version!==generation||stopped)return;impostorPhoneAudio.suspend();cursed.suspend();suspicion.reset();impostor.suspend();finalVoting.reset();authenticated=false;generation++;clearInterval(heartbeat);heartbeatWatch.clear();clearTimeout(pendingTimer);pending=null;status('CONNECTION LOST',true);show('disconnected');$('retry').hidden=false;
   reconnectAt=0;
   if(++retries>12){$('disconnect-message').textContent='We could not reconnect. Your seat is reserved for this session; try again when the connection returns.';return;}
   const delay=Math.min(15000,500*2**Math.min(retries-1,5))+Math.random()*200;
@@ -75,6 +76,7 @@ function handle(event){const payload=event.payload||{};heartbeatWatch.acknowledg
   const previousMatch=state?.impostor?.sessionId;
   const oldPhase=state?.impostor?.phase;
   state=payload;
+  impostorPhoneAudio.sync(state,event.type);
   const settings=state.impostorSettings;
   document.body.dataset.reducedMotion=String(!!settings?.reducedMotion);
   document.body.dataset.effects=String(settings?.visualEffectsEnabled!==false);
@@ -97,7 +99,7 @@ function render(){
   if(state.cursedBoxes){show('cursed');cursed.render();return;}
   if(state.impostor&&state.impostor.phase!=='READY'&&state.impostor.phase!=='REPLAY_PREPARATION'){
     const phase=state.impostor.phase;
-    if(state.impostor.finalPhaseStartedAt){show('final');finalVoting.render();return;}
+    if(state.impostor.finalPhaseStartedAt){if(impostorPhoneBlackout(state)){finalVoting.blackout();renderControllerPresentation(null);show('blackout');$('session-footer').hidden=true;return;}show('final');finalVoting.render();return;}
     if(phase==='PRELIMINARY_SUSPICION'||phase==='SUSPICION_FINALIZED'){show('suspicion');suspicion.render();}
     else{show('impostor');impostor.render();}return;
   }
@@ -244,3 +246,6 @@ $('room-code').addEventListener('change',refreshCharacters);
 $('character').addEventListener('focus',refreshCharacters);
 setInterval(()=>{if(currentScreen==='join'&&!credentials)refreshCharacters();},3000);
 refreshCharacters();
+
+window.addEventListener('pagehide',()=>impostorPhoneAudio.suspend());
+window.addEventListener('beforeunload',()=>impostorPhoneAudio.dispose());

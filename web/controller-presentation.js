@@ -69,3 +69,10 @@ function finalStandings(state) {
   let rank=0,lastScore=null;
   return players.map((player,index)=>{if(player.score!==lastScore){rank=index+1;lastScore=player.score;}return {...player,rank};});
 }
+
+/** Phones go dark after their accepted final vote and throughout the public reveal. */
+function impostorPhoneBlackout(state){
+  const mini=state?.impostor;if(!mini)return false;
+  return ['VOTING_LOCKED','FINAL_VOTE_REVEAL','SUSPECT_ANNOUNCEMENT','IMPOSTOR_REVEAL','RESULT','COMPLETE'].includes(mini.phase)
+    ||mini.phase==='FINAL_VOTING'&&mini.finalVoteSubmitted===true;
+}

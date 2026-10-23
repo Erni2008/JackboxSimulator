@@ -12,7 +12,7 @@ public final class ImpostorPreviewLauncher {
         var config = new Lwjgl3ApplicationConfiguration();
         config.setTitle("Final Answer - THE IMPOSTOR / Stage 6 / F: final act / V: suspicion / F3-F4: players / F5: other characters / R: reveal / B: back / N: reset");
         config.setWindowedMode(1280, 720);
-        config.disableAudio(true);
+        config.disableAudio(false);
         new Lwjgl3Application(new FinalAnswerGame() {
             private ImpostorScreen preview;
             private com.erni.finalanswer.ui.lobby.cages.CageLobby characters;
@@ -28,7 +28,7 @@ public final class ImpostorPreviewLauncher {
                 preview.setParticipants(ImpostorPreviewData.participants(4));
                 setScreen(preview);
                 String configFile=System.getProperty("impostor.connection","");
-                if(configFile.isBlank()){suspicion=ImpostorPreviewData.installControls(preview);clues=new ImpostorCluePreview(preview);finalAct=new ImpostorFinalPreview(preview);}
+                if(configFile.isBlank()){preview.presentPhase(com.erni.finalanswer.gameplay.impostor.ImpostorPhase.INTRO,0,0);suspicion=ImpostorPreviewData.installControls(preview);clues=new ImpostorCluePreview(preview);finalAct=new ImpostorFinalPreview(preview);}
                 else {
                     try {
                         var config=com.google.gson.JsonParser.parseString(java.nio.file.Files.readString(java.nio.file.Path.of(configFile))).getAsJsonObject();
