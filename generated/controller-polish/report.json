@@ -2,6 +2,12 @@
   "passed": true,
   "reports": [
     {
+      "name": "join-welcome",
+      "width": 320,
+      "height": 568,
+      "file": "generated/controller-polish/join-welcome-320.png"
+    },
+    {
       "name": "cursed-hide",
       "width": 320,
       "height": 568,
@@ -18,6 +24,24 @@
       "width": 320,
       "height": 568,
       "file": "generated/controller-polish/cursed-shot-320.png"
+    },
+    {
+      "name": "cursed-secret-target",
+      "width": 320,
+      "height": 568,
+      "file": "generated/controller-polish/cursed-secret-target-320.png"
+    },
+    {
+      "name": "cursed-target-locked",
+      "width": 320,
+      "height": 568,
+      "file": "generated/controller-polish/cursed-target-locked-320.png"
+    },
+    {
+      "name": "cursed-spectator",
+      "width": 320,
+      "height": 568,
+      "file": "generated/controller-polish/cursed-spectator-320.png"
     },
     {
       "name": "cursed-ghost",
@@ -68,10 +92,34 @@
       "file": "generated/controller-polish/vote-accepted-320.png"
     },
     {
+      "name": "question-sending",
+      "width": 320,
+      "height": 568,
+      "file": "generated/controller-polish/question-sending-320.png"
+    },
+    {
+      "name": "question-expired",
+      "width": 320,
+      "height": 568,
+      "file": "generated/controller-polish/question-expired-320.png"
+    },
+    {
       "name": "question-open",
       "width": 320,
       "height": 568,
       "file": "generated/controller-polish/question-open-320.png"
+    },
+    {
+      "name": "show-finished",
+      "width": 320,
+      "height": 568,
+      "file": "generated/controller-polish/show-finished-320.png"
+    },
+    {
+      "name": "show-interrupted",
+      "width": 320,
+      "height": 568,
+      "file": "generated/controller-polish/show-interrupted-320.png"
     },
     {
       "name": "lobby-guests",
@@ -92,10 +140,22 @@
       "file": "generated/controller-polish/ghost-result-320.png"
     },
     {
+      "name": "question-timeout",
+      "width": 320,
+      "height": 568,
+      "file": "generated/controller-polish/question-timeout-320.png"
+    },
+    {
       "name": "question-result",
       "width": 320,
       "height": 568,
       "file": "generated/controller-polish/question-result-320.png"
+    },
+    {
+      "name": "join-welcome",
+      "width": 390,
+      "height": 844,
+      "file": "generated/controller-polish/join-welcome-390.png"
     },
     {
       "name": "cursed-hide",
@@ -114,6 +174,24 @@
       "width": 390,
       "height": 844,
       "file": "generated/controller-polish/cursed-shot-390.png"
+    },
+    {
+      "name": "cursed-secret-target",
+      "width": 390,
+      "height": 844,
+      "file": "generated/controller-polish/cursed-secret-target-390.png"
+    },
+    {
+      "name": "cursed-target-locked",
+      "width": 390,
+      "height": 844,
+      "file": "generated/controller-polish/cursed-target-locked-390.png"
+    },
+    {
+      "name": "cursed-spectator",
+      "width": 390,
+      "height": 844,
+      "file": "generated/controller-polish/cursed-spectator-390.png"
     },
     {
       "name": "cursed-ghost",
@@ -164,10 +242,34 @@
       "file": "generated/controller-polish/vote-accepted-390.png"
     },
     {
+      "name": "question-sending",
+      "width": 390,
+      "height": 844,
+      "file": "generated/controller-polish/question-sending-390.png"
+    },
+    {
+      "name": "question-expired",
+      "width": 390,
+      "height": 844,
+      "file": "generated/controller-polish/question-expired-390.png"
+    },
+    {
       "name": "question-open",
       "width": 390,
       "height": 844,
       "file": "generated/controller-polish/question-open-390.png"
+    },
+    {
+      "name": "show-finished",
+      "width": 390,
+      "height": 844,
+      "file": "generated/controller-polish/show-finished-390.png"
+    },
+    {
+      "name": "show-interrupted",
+      "width": 390,
+      "height": 844,
+      "file": "generated/controller-polish/show-interrupted-390.png"
     },
     {
       "name": "lobby-guests",
@@ -188,10 +290,22 @@
       "file": "generated/controller-polish/ghost-result-390.png"
     },
     {
+      "name": "question-timeout",
+      "width": 390,
+      "height": 844,
+      "file": "generated/controller-polish/question-timeout-390.png"
+    },
+    {
       "name": "question-result",
       "width": 390,
       "height": 844,
       "file": "generated/controller-polish/question-result-390.png"
+    },
+    {
+      "name": "join-welcome",
+      "width": 844,
+      "height": 390,
+      "file": "generated/controller-polish/join-welcome-844.png"
     },
     {
       "name": "cursed-hide",
@@ -210,6 +324,24 @@
       "width": 844,
       "height": 390,
       "file": "generated/controller-polish/cursed-shot-844.png"
+    },
+    {
+      "name": "cursed-secret-target",
+      "width": 844,
+      "height": 390,
+      "file": "generated/controller-polish/cursed-secret-target-844.png"
+    },
+    {
+      "name": "cursed-target-locked",
+      "width": 844,
+      "height": 390,
+      "file": "generated/controller-polish/cursed-target-locked-844.png"
+    },
+    {
+      "name": "cursed-spectator",
+      "width": 844,
+      "height": 390,
+      "file": "generated/controller-polish/cursed-spectator-844.png"
     },
     {
       "name": "cursed-ghost",
@@ -260,10 +392,34 @@
       "file": "generated/controller-polish/vote-accepted-844.png"
     },
     {
+      "name": "question-sending",
+      "width": 844,
+      "height": 390,
+      "file": "generated/controller-polish/question-sending-844.png"
+    },
+    {
+      "name": "question-expired",
+      "width": 844,
+      "height": 390,
+      "file": "generated/controller-polish/question-expired-844.png"
+    },
+    {
       "name": "question-open",
       "width": 844,
       "height": 390,
       "file": "generated/controller-polish/question-open-844.png"
+    },
+    {
+      "name": "show-finished",
+      "width": 844,
+      "height": 390,
+      "file": "generated/controller-polish/show-finished-844.png"
+    },
+    {
+      "name": "show-interrupted",
+      "width": 844,
+      "height": 390,
+      "file": "generated/controller-polish/show-interrupted-844.png"
     },
     {
       "name": "lobby-guests",
@@ -282,6 +438,12 @@
       "width": 844,
       "height": 390,
       "file": "generated/controller-polish/ghost-result-844.png"
+    },
+    {
+      "name": "question-timeout",
+      "width": 844,
+      "height": 390,
+      "file": "generated/controller-polish/question-timeout-844.png"
     },
     {
       "name": "question-result",

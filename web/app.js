@@ -106,18 +106,23 @@ function render(){
     $('waiting-title').textContent=state.impostor?.phase==='REPLAY_PREPARATION'?'WAITING FOR HOST...':state.phase==='LOBBY'?"You're on the list.":'The doors are closing…';
     $('waiting-message').textContent=state.impostor?.phase==='REPLAY_PREPARATION'?'The previous match is complete. The host will start a fresh match.':!state.hostConnected?'Host disconnected. Waiting for reconnection.':state.phase==='LOBBY'?'The host will begin the show shortly.':`${state.roundTitle||'ROUND 1'} · ${Math.max(0,Math.ceil((state.transitionEndsAt-now())/1000))}s`;
     $('player-name').textContent=self?.name||credentials.name;$('character-name').textContent=`${self?.characterId?.replace('_',' ').toUpperCase()||'GUEST'}`;
-    $('players-count').textContent=`THE GUEST LIST · ${state.players.length} / ${state.maxPlayers}`;
-    $('players').replaceChildren();for(const player of state.players){
+    const guests=state.players.filter(player=>!player.host);
+    $('room-connected').textContent=`${guests.filter(player=>player.connectionStatus==='ONLINE').length} / ${guests.length} CONNECTED`;
+    $('room-capacity').max=Math.max(1,state.maxPlayers||8);$('room-capacity').value=guests.length;
+    $('players-count').textContent=`THE GUEST LIST · ${guests.length} / ${state.maxPlayers}`;
+    const rosterKey=JSON.stringify([state.selfId,guests.map(player=>[player.id,player.name,player.characterId,player.connectionStatus])]);
+    if($('players').dataset.roster!==rosterKey){
+    $('players').dataset.roster=rosterKey;$('players').replaceChildren();for(const player of guests){
       const row=document.createElement('li'),name=document.createElement('span'),flag=document.createElement('small');
       row.dataset.connection=player.connectionStatus;row.classList.toggle('is-self',player.id===state.selfId);
       name.textContent=player.name;name.className='guest-name';
       if(player.id===state.selfId){const you=document.createElement('span');you.className='guest-you';you.textContent='YOU';name.append(you);}
       flag.textContent=player.connectionStatus==='ONLINE'?'CONNECTED':player.connectionStatus==='OFFLINE'?'RECONNECTING':player.connectionStatus;
       flag.className='guest-connection';row.append(name,flag);$('players').append(row);
-    }return;
+    }}return;
   }
   if(state.phase==='GAME_FINISHED'){
-    show('finished');$('finish-message').textContent=state.finishReason==='COMPLETED'?'You made it through every question. Thank you for playing.':'The show ended because the host connection was lost.';$('final-score').textContent=`${self?.score||0} POINTS`;return;
+    show('finished');$('finish-message').textContent=state.finishReason==='COMPLETED'?'You made it through every question. Thank you for playing.':'The show ended because the host connection was lost.';$('final-score').textContent=`${self?.score||0} POINTS`;renderFinalStandings();return;
   }
   renderLifeRoster();
   if(isGhost(self)&&!state.question){
@@ -126,13 +131,28 @@ function render(){
   }
   if(state.phase==='RESULTS'){
     show('result');const result=state.results.find(r=>r.playerId===state.selfId);$('result-screen').dataset.outcome=!result?.answeredInTime?'timeout':result.isCorrect?'correct':'incorrect';$('result-title').textContent=!result?.answeredInTime?"Time's up!":result.isCorrect?'Correct!':'Wrong answer!';
+    $('result-detail').textContent=!result?.answeredInTime?'The clock ran out before an answer was received.':result.isCorrect?'Your answer was correct. Points have been recorded.':'Your answer was incorrect. Watch the shared screen for the next stage.';
     $('correct-answer').textContent=`${state.question.correctAnswerIndex+1}. ${state.question.answers[state.question.correctAnswerIndex]}`;$('result-score').textContent=`${self?.score||0} POINTS · ${state.questionNumber} / ${state.questionCount} QUESTIONS`;return;
   }
-  show('question');const q=state.question,key=state.gameId+':'+q.id;
+  show('question');const q=state.question,key=state.gameId+':'+state.questionNumber+':'+q.id;
   if(questionKey!==key){questionKey=key;pending=null;clearTimeout(pendingTimer);$('question-text').textContent=q.text;$('answers').replaceChildren();q.answers.forEach((answer,index)=>{const button=document.createElement('button'),number=document.createElement('span'),text=document.createElement('span');button.type='button';button.className='answer';button.dataset.index=String(index);number.className='number';number.textContent=String(index+1);text.textContent=answer;button.append(number,text);button.addEventListener('click',()=>submit(index));$('answers').append(button);});}
+  $('question-progress').max=Math.max(1,state.questionCount||1);$('question-progress').value=Math.max(0,(state.questionNumber||1)-1);
   $('question-number').textContent=`QUESTION ${String(state.questionNumber).padStart(2,'0')} / ${state.questionCount}`;
-  $('answer-status').textContent=state.phase==='QUESTION_PRESENTATION'?'Listen to the question. Answers unlock together when the host finishes presenting.':state.phase==='REVEALING'?'THE HOUSE IS DECIDING. Watch the host’s screen…':state.hasSubmittedAnswer?'ANSWER SUBMITTED. Your choice is final.':pending!==null?'SENDING YOUR ANSWER…':'Choose carefully. One final answer.';
-  updateButtons();updateClock();
+
+  updateClock();updateButtons();
+}
+function renderFinalStandings(){
+  const list=$('final-standings'),rows=finalStandings(state),key=JSON.stringify([state.selfId,rows]);
+  if(list.dataset.ranking===key)return;
+  list.dataset.ranking=key;list.replaceChildren();
+  for(const player of rows){
+    const row=document.createElement('li'),rank=document.createElement('span'),identity=document.createElement('div'),name=document.createElement('strong'),life=document.createElement('small'),score=document.createElement('span');
+    row.classList.toggle('is-self',player.id===state.selfId);row.dataset.life=player.ghost?'ghost':'alive';
+    rank.className='standing-rank';rank.textContent=String(player.rank).padStart(2,'0');
+    name.textContent=player.name+(player.id===state.selfId?' · YOU':'');life.textContent=player.ghost?'GHOST':'ALIVE';
+    identity.append(name,life);score.className='standing-score';score.textContent=`${player.score} PTS`;
+    row.append(rank,identity,score);list.append(row);
+  }
 }
 function isGhost(player){return player?.lifeState==='GHOST'||player?.isGhost===true;}
 function renderLifeRoster(){
@@ -143,7 +163,7 @@ function renderLifeRoster(){
     if(card.dataset.life!==life){
       card.dataset.life=life;
       card.querySelector('span').textContent=ghost?'YOU ARE A GHOST':'YOU ARE ALIVE';
-      card.querySelector('p').textContent=ghost?'Keep answering and earning points. You sit out elimination games.':'Answer questions and earn points. Wrong answers may send you to an elimination game.';
+      card.querySelector('p').textContent=ghost?'Keep answering and earning points. In Cursed Boxes, you choose shot targets without risking elimination.':'Answer questions and earn points. Wrong answers may send you to an elimination game.';
     }
   }
   const players=state.players.filter(player=>!player.host);
@@ -167,11 +187,20 @@ function renderLifeRoster(){
 function updateButtons(){if(!state?.question)return;for(const button of $('answers').children){const index=Number(button.dataset.index);button.disabled=!authenticated||state.phase!=='ANSWERING'||state.hasSubmittedAnswer||pending!==null||now()>=state.deadline;button.classList.toggle('selected',index===(state.hasSubmittedAnswer?state.currentAnswer:pending));button.setAttribute('aria-pressed',String(index===(state.hasSubmittedAnswer?state.currentAnswer:pending)));button.classList.toggle('accepted',state.hasSubmittedAnswer&&index===state.currentAnswer);}}
 function updateClock(){if(currentScreen!=='question'||!state)return;
   const view=questionPresentation(state,now());
+  const interaction=questionInteraction(state,now(),pending),panel=$('question-screen');
+  if(panel.dataset.interaction!==interaction.kind){
+    panel.dataset.interaction=interaction.kind;
+    $('question-phase').textContent=interaction.label;
+    $('answer-status').textContent=interaction.message;
+  }
+  $('answers').setAttribute('aria-busy',String(interaction.kind==='sending'));
   $('timer').textContent=state.phase==='QUESTION_PRESENTATION'?'—':`${Math.ceil(view.remaining/1000)}s`;
   $('timer').classList.toggle('timer-warning',view.urgent);
   $('answer-clock-fill').style.transform=`scaleX(${view.fraction})`;
   $('answer-clock-fill').classList.toggle('urgent',view.urgent);
+  const focusAccepted=!!view.receipt&&$('answer-receipt').hidden&&$('answers').contains(document.activeElement);
   $('answer-receipt').hidden=!view.receipt;
+  if(focusAccepted)$('answer-receipt').focus({preventScroll:true});
   $('question-screen').dataset.answerAccepted=String(!!view.receipt);
   // Do not replace accepted text on every timer tick (screen readers and selection).
   if($('answer-receipt-value').textContent!==view.receipt)$('answer-receipt-value').textContent=view.receipt;

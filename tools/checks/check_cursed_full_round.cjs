@@ -71,24 +71,23 @@ async function resolved(p){await p.waitForFunction(()=>!window.__qaState?.cursed
     await hide(puppet,10);await shooter1.waitForFunction(()=>window.__qaState.cursedBoxes.canAct);
     for(const p of [shooter1,shooter2]){const s=(await state(p)).cursedBoxes;assert.equal(s.hidingBoxId,undefined);assert.equal(s.hostContents,undefined);assert(s.boxes.every(b=>b.characterId===undefined));}
     let report=await host('INSPECT');assert.equal(report.questionTicking,false,'No timer audio after questions');assert.equal(report.questionLockCount,1,'Exactly one authoritative answer-lock cue');assert.equal(report.state.cursedBoxes.hostContents.length,2);assert.equal(report.turnLimit,1);
-    const stages=[];
-    async function shot(p,box){
-      await selected(p,box);await p.locator('#cursed-fire').click();
-      await p.waitForFunction(()=>window.__qaState.cursedBoxes.pendingShot);
-      let flash=false,reload=false;
-      for(let n=0;n<400;n++){
-        const r=await host('INSPECT');if(r.flash>0)flash=true;if(r.mechanism==='PUMP')reload=true;
-        if(!r.state.cursedBoxes.pendingShot){stages.push({box,flash,reload});break;}
-        await sleep(30);
-      }
-      await revealed(p,box);await resolved(p);
-      assert.equal((await state(p)).cursedBoxes.shotsRemaining,0);
-      assert(reload,'Pump/ejection cycle did not run');
+    const stages=[],duplicateTargets=process.env.CURSED_DUPLICATE_TARGET_QA==='1',expectedShots=duplicateTargets?1:2;
+    await selected(shooter1,5);await shooter1.locator('#cursed-fire').click();
+    await shooter1.waitForFunction(()=>window.__qaState.cursedBoxes.targetConfirmed);
+    assert.equal((await state(shooter2)).cursedBoxes.selectedCrateId,-1);
+    assert.equal((await state(shooter2)).cursedBoxes.boxes[5].state,'AVAILABLE','Other selection must not mark the box');
+    assert.equal((await host('INSPECT')).state.cursedBoxes.pendingShot,undefined,'No firing before all targets lock');
+    await selected(shooter2,duplicateTargets?5:0);await shooter2.locator('#cursed-fire').click();
+    let current=null;
+    for(let n=0;n<900;n++){
+      const r=await host('INSPECT'),job=r.state.cursedBoxes.pendingShot;
+      if(job&&job.id!==current?.id){if(current)stages.push(current);current={id:job.id,box:job.boxId,flash:false,reload:false};}
+      if(current){current.flash||=r.flash>0;current.reload||=r.mechanism==='PUMP';}
+      if(['ELIMINATION','REVEALING','FINISHED'].includes(r.state.cursedBoxes.phase)){if(current)stages.push(current);break;}
+      await sleep(30);
     }
-    await shot(shooter1,5);
-    assert.equal((await state(shooter1)).cursedBoxes.survivors,undefined,'Survivor reveal began before last shooter');
-    await shooter2.waitForFunction(()=>window.__qaState.cursedBoxes.canAct);
-    await shot(shooter2,0);
+    assert.equal(stages.length,expectedShots);for(const stage of stages){assert(stage.reload,'Pump/ejection cycle did not run');}
+    assert.equal((await state(shooter1)).cursedBoxes.shotsRemaining,0);assert.equal((await state(shooter2)).cursedBoxes.shotsRemaining,0);
     const death=await host('INSPECT');assert.equal(death.ghostMask,1<<5,'Only the authoritative eliminated player transforms');
     assert.equal(death.state.cursedBoxes.phase,'ELIMINATION','All shots finish before collective death');
     assert.equal(death.survivorState,'WAITING','Living survivor reveal must wait for the death stage');
@@ -98,12 +97,12 @@ async function resolved(p){await p.waitForFunction(()=>!window.__qaState?.cursed
     assert.equal(s.survivorCount,1);assert.equal(report.survivorMask,1<<10);assert.equal(report.slots[10].panelOpacity,0);
     assert.equal(s.outcomes.find(p=>p.playerId===clients[0].credentials.selfId).survived,false);
     assert.equal(s.outcomes.find(p=>p.playerId===clients[1].credentials.selfId).survived,true);
-    assert.equal(s.destroyedCrateIds,(1<<5)|1);assert.equal(report.slots[5].state,'DESTROYED');assert.notEqual(report.slots[5].pose,'HIDDEN');
+    assert.equal(s.destroyedCrateIds,(1<<5)|(duplicateTargets?0:1));assert.equal(report.slots[5].state,'DESTROYED');assert.notEqual(report.slots[5].pose,'HIDDEN');
     assert.equal(report.slots[10].characterId,'puppeteer');assert.equal(report.slots[10].state,'INTACT');
-    for(const cue of ['SHOT','WOOD_BREAK','SHELL_DROP'])assert.equal(report.soundCues[cue],2,`Wrong audio count: ${cue}`);
-    assert.equal(report.soundCues.INSERT_ROUND,5,'Exactly five initial shells; no per-player insertion');assert.equal(report.loadedRounds,3,'Two shots consume two of five loaded shells');
+    for(const cue of ['SHOT','WOOD_BREAK','SHELL_DROP'])assert.equal(report.soundCues[cue],expectedShots,`Wrong audio count: ${cue}`);
+    assert.equal(report.soundCues.INSERT_ROUND,5,'Exactly five initial shells; no per-player insertion');assert.equal(report.loadedRounds,5-expectedShots,'Two shots consume two of five loaded shells');
     assert(report.applicationAudioCues.GATE>=4);assert(report.applicationAudioCues.CHAIN_1>0&&report.applicationAudioCues.CHAIN_2>0);assert.equal(report.applicationAudioCues.HOVER,1);assert.equal(report.applicationAudioCues.PRESS,1);assert(report.ambiencePlaying);
-    assert.equal(report.soundCues.WOOD_EXTRA,2,'Existing and additional wood layers each fire twice');
+    assert.equal(report.soundCues.WOOD_EXTRA,expectedShots,'Existing and additional wood layers each fire twice');
     assert.equal(['APPEARANCE_1','APPEARANCE_2','APPEARANCE_3','APPEARANCE_4'].reduce((n,c)=>n+report.soundCues[c],0),1,'One appearance variation per survivor');
     assert.equal(report.soundCues.APPEARANCE_2,1,'Survivor must use appearance2');assert.equal(report.soundCues.REVEAL_COMPLETE,0,'Legacy final reveal must not mask appearance2');
     assert.equal(report.soundCues.HORROR_1,0);assert.equal(report.soundCues.HORROR_2,1,'One collective ghost transformation accent');
@@ -112,7 +111,7 @@ async function resolved(p){await p.waitForFunction(()=>!window.__qaState?.cursed
     assert.equal(report.soundHeartbeat,false);assert(report.flashFrames>0);assert(report.reloadFrames>0);assert.deepEqual(errors,[]);
     await host('CAPTURE');await sleep(500);
     for(let i=0;i<4;i++)await clients[i].p.screenshot({path:path.join(dir,`phone-${i+1}-result.png`),fullPage:true});
-    fs.writeFileSync(path.join(dir,'full-round-report.json'),JSON.stringify({passed:true,scenario:'real trivia: two incorrect / two correct; one shot each; ghost eliminated, puppeteer survives',stages,soundCues:report.soundCues,renderChecks:report.renderChecks,flashFrames:report.flashFrames,reloadFrames:report.reloadFrames,applicationAudioCues:report.applicationAudioCues,ambiencePlaying:report.ambiencePlaying,finalState:s},null,2));
+    fs.writeFileSync(path.join(dir,'full-round-report.json'),JSON.stringify({passed:true,scenario:duplicateTargets?'real trivia: two private matching targets, one physical shot; ghost eliminated, puppeteer survives':'real trivia: two private distinct targets, two shots; ghost eliminated, puppeteer survives',stages,soundCues:report.soundCues,renderChecks:report.renderChecks,flashFrames:report.flashFrames,reloadFrames:report.reloadFrames,applicationAudioCues:report.applicationAudioCues,ambiencePlaying:report.ambiencePlaying,finalState:s},null,2));
     if(process.env.CURSED_GHOST_HANDOFF_QA==='1'){
       await host('END');await ghost.locator('#question-screen').waitFor({state:'visible'});await ghost.locator('#question-screen').evaluate(async el=>{await Promise.all(el.getAnimations().map(a=>a.finished));});
       const after=await state(ghost);assert.equal(after.players.find(p=>p.id===after.selfId)?.lifeState,'GHOST');

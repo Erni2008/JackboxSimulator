@@ -19,6 +19,10 @@ public final class CursedBoxesSession {
     public final String id=UUID.randomUUID().toString();
     private final List<Player> players;
     private final int shotLimit;
+    private final boolean groupedTargets;
+    private boolean targetsLocked;
+    private final Map<String,Integer> confirmedTargets=new LinkedHashMap<>();
+    private final ArrayDeque<Shot> targetQueue=new ArrayDeque<>();
     private final Set<String> hidingPlayers;
     private final Map<String,Integer> hidingChoices=new HashMap<>();
     private boolean hidingLocked;
@@ -38,7 +42,10 @@ public final class CursedBoxesSession {
     /** Standalone practice: first joined player hides, the others shoot. No hidden location is generated. */
     public CursedBoxesSession(List<Player> roster,Random unused){this(roster,roster.isEmpty()?Set.of():Set.of(roster.getFirst().id()));}
     public CursedBoxesSession(List<Player> roster,Set<String> hidingIds){this(roster,hidingIds,2);}
-    public CursedBoxesSession(List<Player> roster,Set<String> hidingIds,int shotLimit){
+    public CursedBoxesSession(List<Player> roster,Set<String> hidingIds,int shotLimit){this(roster,hidingIds,shotLimit,false);}
+    public CursedBoxesSession(List<Player> roster,Set<String> hidingIds,int shotLimit,boolean groupedTargets){
+        if(groupedTargets&&shotLimit!=1)throw new Failure(400,"INVALID_SHOT_LIMIT");
+        this.groupedTargets=groupedTargets;
         if(shotLimit<1||shotLimit>2)throw new Failure(400,"INVALID_SHOT_LIMIT");
         this.shotLimit=shotLimit;
         if(roster.size()<2||roster.size()>8||roster.stream().map(Player::id).distinct().count()!=roster.size()
@@ -79,32 +86,65 @@ public final class CursedBoxesSession {
     }
     public boolean ready(){return ready;}
     public Shot pending(){return pending;}
-    public String activeId(){return finished||!hidingLocked?"":players.get(active).id();}
+    public String activeId(){return finished||!hidingLocked||groupedTargets&&!targetsLocked?"":players.get(active).id();}
     public int destroyedMask(){return destroyed;}
     public void ready(boolean value,long now){if(value&&!ready&&pending!=null)pending.waitSince=now;ready=value;if(value)notice="";}
     private int index(String player){for(int i=0;i<players.size();i++)if(players.get(i).id().equals(player))return i;throw new Failure(403,"NOT_A_PLAYER");}
     private void eligible(String player,int turn){
-        index(player);if(!hidingLocked)throw new Failure(409,"HIDING_NOT_LOCKED");
+        int owner=index(player);if(!hidingLocked)throw new Failure(409,"HIDING_NOT_LOCKED");
         if(hidingPlayers.contains(player))throw new Failure(403,"NOT_SHOOTING_PLAYER");
         if(finished)throw new Failure(409,"CURSED_FINISHED");
         if(!ready)throw new Failure(409,"CURSED_NOT_READY");
+        if(groupedTargets){
+            if(targetsLocked||confirmedTargets.containsKey(player))throw new Failure(409,"TARGET_ALREADY_CONFIRMED");
+            if(departed.contains(player))throw new Failure(403,"NOT_A_PLAYER");
+            if(turn!=owner+1)throw new Failure(409,"STALE_CURSED_TURN");
+            return;
+        }
         if(!activeId().equals(player))throw new Failure(403,"NOT_YOUR_TURN");
         if(turn!=active+1)throw new Failure(409,"STALE_CURSED_TURN");
         if(pending!=null)throw new Failure(409,"SHOT_IN_PROGRESS");
         if(remaining[active]==0)throw new Failure(409,"NO_SHOTS_REMAINING");
     }
     private void intact(int box){if(box<0||box>=16)throw new Failure(400,"INVALID_BOX");if((destroyed&(1<<box))!=0)throw new Failure(409,"BOX_DESTROYED");}
-    public void select(String player,int turn,int box){eligible(player,turn);intact(box);selections[active]=box;notice="";}
+    public void select(String player,int turn,int box){eligible(player,turn);intact(box);selections[groupedTargets?index(player):active]=box;notice="";}
     public Shot fire(String player,String request,int turn,int box,int number,long now){
         String key=player+":"+request;Shot prior=accepted.get(key);
         if(prior!=null){if(prior.boxId!=box||prior.number!=number||prior.turn!=turn)throw new Failure(409,"REQUEST_ID_REUSED");return prior;}
         eligible(player,turn);intact(box);
+        if(groupedTargets){
+            int owner=index(player);
+            if(number!=1)throw new Failure(409,"STALE_CURSED_SHOT");
+            if(selections[owner]!=box)throw new Failure(409,"BOX_NOT_SELECTED");
+            Shot choice=new Shot(request,player,box,number,turn,now);
+            accepted.put(key,choice);confirmedTargets.put(player,box);remaining[owner]=0;
+            lockTargetsIfComplete(now);return choice;
+        }
         if((personalHits[active]&(1<<box))!=0)throw new Failure(409,"BOX_ALREADY_SHOT");
         if(number!=shotLimit+1-remaining[active])throw new Failure(409,"STALE_CURSED_SHOT");
         if(selections[active]!=box)throw new Failure(409,"BOX_NOT_SELECTED");
         Shot shot=new Shot(request,player,box,number,turn,now);pending=shot;accepted.put(key,shot);
         // One durable reservation per accepted request; retries never consume another cartridge.
         remaining[active]--;personalHits[active]|=1<<box;notice="";return shot;
+    }
+    private void lockTargetsIfComplete(long now){
+        if(!groupedTargets||targetsLocked||!hidingLocked)return;
+        for(Player player:players)if(!hidingPlayers.contains(player.id())&&!departed.contains(player.id())&&!confirmedTargets.containsKey(player.id()))return;
+        targetsLocked=true;
+        Set<Integer> queued=new HashSet<>();
+        for(Player player:players){
+            Integer box=confirmedTargets.get(player.id());
+            if(box!=null&&queued.add(box)){
+                Shot shot=accepted.values().stream().filter(value->value.playerId.equals(player.id())).findFirst().orElseThrow();
+                targetQueue.addLast(shot);
+            }
+        }
+        advanceTarget(now);
+    }
+    private void advanceTarget(long now){
+        pending=targetQueue.pollFirst();
+        if(pending==null){finished=true;beginReveal(now);return;}
+        active=index(pending.playerId);pending.waitSince=now;
     }
     private Shot shot(String shotId){
         // Stage acknowledgements are idempotent even after the following turn has begun.
@@ -121,12 +161,13 @@ public final class CursedBoxesSession {
         if(shot!=pending||shot.startedAt==0||now<shot.startedAt+CursedBoxesProtocol.IMPACT_MILLIS)throw new Failure(409,"SHOT_NOT_READY");
         shot.impactedAt=shot.waitSince=now;destroyed|=1<<shot.boxId;
         Player victim=contents.get(shot.boxId);if(victim!=null)eliminated.add(victim.id());lastResults.put(shot.playerId,shot);
+        if(groupedTargets)for(var choice:confirmedTargets.entrySet())if(choice.getValue()==shot.boxId)lastResults.put(choice.getKey(),shot);
     }
     public void complete(String shotId,long now){
         Shot shot=shot(shotId);if(shot.completedAt>0)return;
         if(shot!=pending||shot.impactedAt==0||now<shot.startedAt+CursedBoxesProtocol.SHOT_MILLIS)throw new Failure(409,"SHOT_NOT_READY");
         shot.completedAt=now;pending=null;selections[active]=-1;notice="";
-        if(remaining[active]==0)next();
+        if(groupedTargets)advanceTarget(now);else if(remaining[active]==0)next();
         beginReveal(now);
     }
     private void next(){do{active++;}while(active<players.size()&&remaining[active]==0);if(active>=players.size())finished=true;}
@@ -140,7 +181,8 @@ public final class CursedBoxesSession {
             // Pause rather than discard an accepted shot when the host is unavailable.
             ready=false;notice="HOST_SCENE_PAUSED";changed=true;
         }
-        while(hidingLocked&&!finished&&pending==null&&left.contains(activeId())){next();changed=true;}
+        lockTargetsIfComplete(now);
+        while(!groupedTargets&&hidingLocked&&!finished&&pending==null&&left.contains(activeId())){next();changed=true;}
         beginReveal(now);
         if(finished){int visible=(int)Math.max(0,Math.min(Integer.bitCount(survivorMask),Math.floor((now-revealStartedAt-(revealTimings.anticipation+revealTimings.smoke)*1000)/(revealTimings.period()*1000))+1));if(visible!=publicSurvivors){publicSurvivors=visible;changed=true;}}
         return changed;
@@ -153,13 +195,20 @@ public final class CursedBoxesSession {
     }
     public Map<String,Object> snapshot(String self,boolean host,boolean hostOnline,Set<String> online,long now){
         Map<String,Object> value=new LinkedHashMap<>();
-        String phase=finished?(revealCompleted?"FINISHED":now<revealStartedAt?"ELIMINATION":"REVEALING"):!ready?"PREPARING":!hidingLocked?"HIDING_SELECTION":pending!=null?"FIRING":"SELECTING";
-        boolean activeOnline=finished||!hidingLocked||online.contains(activeId());
-        value.put("sessionId",id);value.put("phase",phase);value.put("turnId",active+1);value.put("turnOrder",players.stream().map(Player::id).toList());
-        value.put("activePlayerId",activeId());value.put("activePlayerName",finished||!hidingLocked?"":players.get(active).nickname());
+        String phase=finished?(revealCompleted?"FINISHED":now<revealStartedAt?"ELIMINATION":"REVEALING"):!ready?"PREPARING":!hidingLocked?"HIDING_SELECTION":groupedTargets&&!targetsLocked?"TARGET_SELECTION":pending!=null?"FIRING":"SELECTING";
+        boolean activeOnline=finished||!hidingLocked||groupedTargets&&!targetsLocked||online.contains(activeId());
+        value.put("sessionId",id);value.put("phase",phase);value.put("turnId",groupedTargets&&!host&&!targetsLocked&&players.stream().anyMatch(p->p.id().equals(self))?index(self)+1:active+1);value.put("turnOrder",players.stream().map(Player::id).toList());
+        value.put("activePlayerId",activeId());value.put("activePlayerName",finished||!hidingLocked||groupedTargets&&!targetsLocked?"":players.get(active).nickname());
         value.put("hostReady",ready&&hostOnline);value.put("activePlayerOnline",activeOnline);value.put("notice",notice);
         value.put("canAct",!host&&!finished&&self.equals(activeId())&&hostOnline&&activeOnline&&ready&&pending==null&&remaining[active]>0);
         int own=-1;for(int i=0;i<players.size();i++)if(players.get(i).id().equals(self))own=i;
+        if(groupedTargets){
+            value.put("groupedTargets",true);value.put("targetsLocked",targetsLocked);
+            value.put("targetConfirmed",confirmedTargets.containsKey(self));
+            value.put("confirmedTargetCount",confirmedTargets.size());
+            value.put("targetPlayerCount",players.stream().filter(p->!hidingPlayers.contains(p.id())&&(!departed.contains(p.id())||confirmedTargets.containsKey(p.id()))).count());
+            value.put("canAct",!host&&own>=0&&!hidingPlayers.contains(self)&&!departed.contains(self)&&hidingLocked&&!targetsLocked&&!confirmedTargets.containsKey(self)&&ready&&hostOnline&&online.contains(self));
+        }
         value.put("role",hidingPlayers.contains(self)?"HIDING":own>=0?"SHOOTING":"SPECTATOR");
         value.put("hidingLocked",hidingLocked);
         value.put("canHide",!host&&hidingPlayers.contains(self)&&!hidingLocked&&!hidingChoices.containsKey(self)&&!eliminated.contains(self)&&ready&&hostOnline);
@@ -194,10 +243,11 @@ public final class CursedBoxesSession {
         if(host){
             // Presentation budget contains no hiding assignment and does not alter turn ammunition.
             int budget=0;for(int i=0;i<players.size();i++)if(!departed.contains(players.get(i).id()))budget+=remaining[i];
+            if(groupedTargets)budget=targetsLocked?targetQueue.size():confirmedTargets.values().stream().distinct().toList().size()+(int)players.stream().filter(p->!hidingPlayers.contains(p.id())&&!departed.contains(p.id())&&!confirmedTargets.containsKey(p.id())).count();
             value.put("remainingShotCount",budget);
             value.put("presentedShotCount",accepted.values().stream().filter(s->s.impactedAt>0).count());
             value.put("hostContents",contents.entrySet().stream().sorted(Map.Entry.comparingByKey()).map(e->Map.of("boxId",e.getKey(),"playerId",e.getValue().id(),"nickname",e.getValue().nickname(),"characterId",e.getValue().characterId())).toList());
-            value.put("selectedCrateId",finished?-1:selections[active]);value.put("shotsRemaining",finished?0:remaining[active]);
+            value.put("selectedCrateId",finished||groupedTargets&&!targetsLocked?-1:selections[active]);value.put("shotsRemaining",finished?0:remaining[active]);
         }
         return value;
     }

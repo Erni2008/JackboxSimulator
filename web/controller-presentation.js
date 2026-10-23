@@ -7,8 +7,8 @@ function controllerPresentation(state) {
     const complete=cursed.phase==='FINISHED', elimination=cursed.phase==='ELIMINATION', revealing=cursed.phase==='REVEALING';
     return {mode:'cursed',title:'CURSED BOXES',steps:['HIDE','SHOTS','SURVIVORS'],
       step:selecting?0:elimination||revealing||complete?2:1,
-      label:elimination?'THE FALLEN BECOME GHOSTS':complete?'THE GALLERY HAS SPOKEN':revealing?'WATCH THE SHARED SCREEN':selecting?(hiding?'YOUR HIDING PLACE IS SECRET':'WAIT FOR THE HIDING PLAYERS'):hiding?'STAY HIDDEN':cursed.canAct?'YOUR TURN TO SHOOT':'WATCH THE SHARED SCREEN',
-      note:elimination?'Stay connected. A fallen player’s story is not over.':selecting?(hiding?(cursed.hidingConfirmed?'Confirmed. Your choice is locked.':'Choose a crate below, then confirm your hiding place.'):'Shooting begins after every hiding place is locked.'):revealing?'Only surviving players join the final reveal.':complete?'Your final result appears below.':hiding?'Your character stays in the box you chose.':cursed.canAct?'Select a crate, then press FIRE. Each shot counts.':'Your controls unlock when your turn begins.',
+      label:cursed.phase==='TARGET_SELECTION'?(cursed.targetConfirmed?'YOUR TARGET IS SEALED':'CHOOSE YOUR SECRET TARGET'):elimination?'THE FALLEN BECOME GHOSTS':complete?'THE GALLERY HAS SPOKEN':revealing?'WATCH THE SHARED SCREEN':selecting?(hiding?'YOUR HIDING PLACE IS SECRET':'WAIT FOR THE HIDING PLAYERS'):hiding?'STAY HIDDEN':cursed.canAct?'YOUR TURN TO SHOOT':'WATCH THE SHARED SCREEN',
+      note:cursed.phase==='TARGET_SELECTION'?'All targets lock before firing. Matching choices produce one shot.':cursed.role==='SPECTATOR'?'You are observing this round. Follow the action on the shared screen.':elimination?'Stay connected. A fallen player’s story is not over.':selecting?(hiding?(cursed.hidingConfirmed?'Confirmed. Your choice is locked.':'Choose a crate below, then confirm your hiding place.'):'Shooting begins after every hiding place is locked.'):revealing?'Only surviving players join the final reveal.':complete?'Your final result appears below.':hiding?'Your character stays in the box you chose.':cursed.canAct?'Select a crate, then press FIRE. Each shot counts.':'Your controls unlock when your turn begins.',
       tone:complete?'complete':selecting&&hiding&&cursed.hidingConfirmed?'confirmed':!selecting&&cursed.canAct?'active':'quiet'};
   }
   if(impostor&&!['READY','REPLAY_PREPARATION'].includes(impostor.phase)){
@@ -47,4 +47,25 @@ function questionPresentation(state,time) {
   const accepted=!!state?.hasSubmittedAnswer&&['ANSWERING','REVEALING'].includes(state.phase)&&Number.isInteger(index)&&index>=0&&index<(answers?.length||0);
   return {remaining,fraction,urgent:answering&&remaining>0&&remaining<=5000,
     receipt:accepted?`${String(index+1).padStart(2,'0')} · ${answers[index]}`:''};
+}
+
+/** Local feedback never claims server acceptance from a pending tap. */
+function questionInteraction(state,time,pending=null) {
+  const view=questionPresentation(state,time);
+  if(view.receipt)return {kind:'accepted',label:'ANSWER LOCKED',message:'ANSWER SUBMITTED. Your choice is final.'};
+  if(state?.phase==='QUESTION_PRESENTATION')return {kind:'waiting',label:'LISTEN CLOSELY',message:'Listen to the question. Answers unlock together when the host finishes presenting.'};
+  if(pending!==null)return {kind:'sending',label:'AWAITING CONFIRMATION',message:'Sending your answer. Waiting for confirmation from the server…'};
+  if(state?.phase!=='ANSWERING'||view.remaining===0)return {kind:'closed',label:'ANSWERS CLOSED',message:'Answers are closed. Watch the shared screen for the reveal.'};
+  return {kind:'ready',label:'YOUR FINAL ANSWER',message:'Choose carefully. One final answer.'};
+}
+
+/** Public score ranking, never a survival decision. Equal scores share their rank. */
+function finalStandings(state) {
+  if(state?.phase!=='GAME_FINISHED')return [];
+  const players=(state.players||[]).filter(player=>!player.host).map(player=>({
+    id:player.id,name:player.name,score:Number.isFinite(player.score)?player.score:0,
+    ghost:player.lifeState==='GHOST'||player.isGhost===true
+  })).sort((a,b)=>b.score-a.score||(a.id<b.id?-1:a.id>b.id?1:0));
+  let rank=0,lastScore=null;
+  return players.map((player,index)=>{if(player.score!==lastScore){rank=index+1;lastScore=player.score;}return {...player,rank};});
 }

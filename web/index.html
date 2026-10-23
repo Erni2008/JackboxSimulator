@@ -12,14 +12,14 @@
   <script src="/final-voting.js?v=5" defer></script>
   <script src="/parchment-writer.js?v=5" defer></script>
   <script src="/countdown-clock.js?v=2" defer></script>
-  <script src="/impostor.js?v=6" defer></script>
+  <script src="/impostor.js?v=receipt-7" defer></script>
   <script src="/suspicion.js" defer></script>
   <link rel="stylesheet" href="/cursed-boxes.css?v=1">
-  <script src="/cursed-boxes.js?v=ghost-2" defer></script>
-  <link rel="stylesheet" href="/controller-polish.css?v=polish-2-5">
-  <script src="/controller-presentation.js?v=ghost-2" defer></script>
+  <script src="/cursed-boxes.js?v=private-targets-1" defer></script>
+  <link rel="stylesheet" href="/controller-polish.css?v=mode-polish-1">
+  <script src="/controller-presentation.js?v=private-targets-1" defer></script>
   <script src="/connection-health.js?v=1" defer></script>
-  <script src="/app.js?v=ghost-trivia-2" defer></script>
+  <script src="/app.js?v=private-targets-1" defer></script>
 </head>
 <body>
   <div class="ambient" aria-hidden="true"></div>
@@ -35,6 +35,7 @@
     <section id="join-screen" class="screen">
       <p class="eyebrow">ENTER IF YOU DARE</p><h1>Take your seat.</h1>
       <p class="muted">Your host has the room code.<br>Your phone holds the final answer.</p>
+      <ol class="join-steps" aria-label="How to join"><li>Enter room code</li><li>Choose your identity</li><li>Join the show</li></ol>
       <form id="join-form" novalidate>
         <label for="room-code">ROOM CODE</label>
         <input id="room-code" name="code" maxlength="6" minlength="6" pattern="[A-Za-z2-9]{6}" placeholder="K7M2QX" autocomplete="off" autocapitalize="characters" spellcheck="false" required>
@@ -52,6 +53,8 @@
       <p class="eyebrow" id="room-label"></p><h1 id="waiting-title">You're on the list.</h1>
       <p id="waiting-message" class="muted">The host will begin the show shortly.</p>
       <div class="identity"><span class="seal" aria-hidden="true">FA</span><div><small>YOUR IDENTITY</small><strong id="player-name"></strong><span id="character-name" class="muted"></span></div></div>
+      <div class="room-readiness"><span id="room-connected"></span><span>HOST STARTS THE SHOW</span></div>
+      <progress id="room-capacity" class="room-capacity" aria-label="Occupied seats" max="8" value="0"></progress>
       <p class="eyebrow" id="players-count">THE GUEST LIST</p><ul id="players" class="players"></ul>
       <p id="room-configuration" class="room-configuration"></p>
       <p class="whisper">Keep this page open. Watch the host's screen.</p>
@@ -61,6 +64,7 @@
         <div><p class="cursed-brand">FINAL ANSWER</p><h1>CURSED BOXES</h1></div>
         <div class="cursed-identity"><strong id="cursed-player-name"></strong><span id="cursed-player-character"></span></div>
       </header>
+      <div class="mode-briefing" id="cursed-briefing"><strong id="cursed-briefing-title"></strong><p id="cursed-briefing-note"></p></div>
       <div class="cursed-turn"><span id="cursed-shot-counter">SHOT 1 / 2</span><span id="cursed-current-player"></span></div>
       <div id="cursed-grid" class="cursed-grid" role="group" aria-label="Sixteen boxes, ordered left to right, top to bottom"></div>
       <div class="cursed-controls">
@@ -71,13 +75,15 @@
       <div id="cursed-result" class="cursed-result" role="status" aria-live="polite" hidden><h2 id="cursed-result-title"></h2><p id="cursed-result-detail"></p></div>
     </section>
     <section id="question-screen" class="screen" hidden>
+      <progress id="question-progress" class="question-progress" aria-label="Questions completed" max="1" value="0"></progress>
       <div class="round-top"><p id="question-number" class="eyebrow"></p><span id="timer" class="timer" aria-label="Seconds remaining"></span></div>
       <div id="question-life-status" class="personal-life" role="status" aria-live="polite"><span class="personal-life-badge"></span><p></p></div>
       <h1 id="question-text" class="question"></h1>
+      <p id="question-phase" class="question-phase"></p>
       <p id="answer-status" class="muted" role="status">Choose carefully. One final answer.</p>
       <div class="answer-clock-track" aria-hidden="true"><div id="answer-clock-fill"></div></div>
-      <div id="answers" class="answers"></div>
-      <div id="answer-receipt" class="choice-receipt" hidden><p class="receipt-label">ANSWER LOCKED</p><p id="answer-receipt-value"></p><span>Your choice was received. Watch the shared screen.</span></div>
+      <div id="answers" class="answers" role="group" aria-label="Choose your final answer"></div>
+      <div id="answer-receipt" class="choice-receipt" tabindex="-1" aria-label="Answer accepted by the server" hidden><p class="receipt-label">ANSWER LOCKED</p><p id="answer-receipt-value"></p><span>Your choice was received. Watch the shared screen.</span></div>
       <div id="question-life-roster" class="life-roster" aria-label="Player life status"></div>
     </section>
     <section id="ghost-screen" class="screen" hidden>
@@ -86,7 +92,7 @@
       <h1>YOU ARE A GHOST</h1>
       <p id="ghost-player-name"></p>
       <p class="ghost-assurance">Your story is not over.</p>
-      <p>Keep answering questions. You sit out elimination games. A chance to return will come later.</p>
+      <p>Keep answering questions and choosing shot targets in Cursed Boxes. A chance to return to life will come later.</p>
       <div id="ghost-life-roster" class="life-roster" aria-label="Player life status"></div>
       <div class="ghost-current"><p class="eyebrow">THE GAME CONTINUES</p><p id="ghost-question"></p></div>
     </section>
@@ -125,7 +131,8 @@
         <button id="clue-submit" type="submit">CONFIRM</button>
       </form>
       <p id="clue-status" role="status" aria-live="polite"></p>
-      <div id="clue-confirmation" class="confirmation-panel" hidden><h2>CLUE SUBMITTED</h2><p>WAITING FOR OTHER PLAYERS...</p></div>
+      <div id="clue-confirmation" class="confirmation-panel" hidden><p class="eyebrow">RECEIVED BY THE SERVER</p><h2>CLUE SUBMITTED</h2><p id="clue-confirmed-value"></p><p>Watch the shared screen. Your clue is locked.</p></div>
+      <p id="clue-room-progress" class="mode-room-progress" hidden></p>
     </section>
     <section id="suspicion-screen" class="screen" hidden>
       <div class="round-top"><p class="eyebrow">THE IMPOSTOR · PRIVATE SUSPICION</p><span id="suspicion-timer" class="timer" aria-label="Seconds remaining"></span></div>
@@ -136,13 +143,19 @@
     </section>
     <section id="result-screen" class="screen result" hidden>
       <div id="result-life-status" class="personal-life" role="status" aria-live="polite"><span class="personal-life-badge"></span><p></p></div>
-      <p class="eyebrow">THE TRUTH IS OUT</p><h1 id="result-title"></h1>
-      <p class="muted result-caption">THE CORRECT ANSWER WAS</p><p id="correct-answer" class="correct-answer"></p>
+      <div class="verdict-card">
+        <p class="eyebrow">THE TRUTH IS OUT</p>
+        <div class="verdict-seal" aria-hidden="true"><svg viewBox="0 0 64 64" focusable="false"><circle cx="32" cy="32" r="27"/><path class="verdict-correct" d="M18 32l9 9 20-22"/><path class="verdict-incorrect" d="M23 23l18 18m0-18L23 41"/><path class="verdict-timeout" d="M32 17v16l10 6"/></svg></div>
+        <h1 id="result-title"></h1>
+        <p id="result-detail" class="verdict-detail"></p>
+      </div>
+      <div class="answer-reveal"><p class="muted result-caption">THE CORRECT ANSWER WAS</p><p id="correct-answer" class="correct-answer"></p></div>
       <p id="result-score" class="muted"></p><p class="whisper">Stay close. The show isn't over.</p>
     </section>
     <section id="finished-screen" class="screen" hidden>
       <p class="eyebrow">END OF THE SHOW</p><h1>Still with us?</h1><p id="finish-message" class="muted"></p>
-      <p id="final-score" class="correct-answer"></p><p class="whisper">Your host can create a new room for another game.</p>
+      <p id="final-score" class="correct-answer"></p>
+      <p class="eyebrow">THE FINAL STANDINGS</p><ol id="final-standings" class="final-standings" aria-label="Final points ranking"></ol><p class="whisper">Your host can create a new room for another game.</p>
     </section>
     <section id="disconnected-screen" class="screen" hidden>
       <p class="eyebrow">A BREAK IN THE SIGNAL</p><h1>Don't disappear.</h1>

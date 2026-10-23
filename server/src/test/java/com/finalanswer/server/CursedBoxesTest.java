@@ -90,7 +90,9 @@ class CursedBoxesTest {
         game.select("s",3,3);var shot=game.fire("s","1",3,3,1,clock.get());game.started(shot.id,clock.get());game.impact(shot.id,clock.get()+30);game.complete(shot.id,clock.get()+1100);
         assertEquals(Set.of("a"),game.eliminatedPlayers());assertEquals(14,((Map<?,?>)((List<?>)game.snapshot("b",false,true,Set.of("b","s"),clock.get()).get("boxes")).get(14)).get("id"));
     }
-    @Test void triviaAssignsWrongRespondentRatherThanFirstJoinedAndResumesAfterReveal(){
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(ints={0,2})
+    void triviaAssignsWrongRespondentRatherThanFirstJoinedAndResumesAfterReveal(int ghostAnswer){
         command(h,"START_GAME",Map.of());clock.addAndGet(4000);rooms.tick();
         var question=h.latest();var fields=new HashMap<String,Object>();fields.put("gameId",question.get("gameId").getAsString());fields.put("questionId",question.getAsJsonObject("question").get("id").getAsString());
         command(h,"PRESENTATION_READY",fields);fields.put("answerIndex",1);command(a,"SUBMIT_ANSWER",fields);fields.put("answerIndex",0);command(b,"SUBMIT_ANSWER",fields);
@@ -108,19 +110,59 @@ class CursedBoxesTest {
         var victim=h.latest().getAsJsonArray("players").asList().stream().map(JsonElement::getAsJsonObject).filter(p->p.get("id").equals(two.get("selfId"))).findFirst().orElseThrow();assertFalse(victim.get("isAlive").getAsBoolean());assertEquals("GHOST",victim.get("lifeState").getAsString());assertTrue(victim.get("canReturn").getAsBoolean());
         assertTrue(h.latest().getAsJsonArray("participantIds").asList().contains(two.get("selfId")),"Ghost remains in the trivia roster");
         var nextFields=new HashMap<String,Object>();nextFields.put("gameId",h.latest().get("gameId").getAsString());nextFields.put("questionId",h.latest().getAsJsonObject("question").get("id").getAsString());
-        command(h,"PRESENTATION_READY",nextFields);nextFields.put("answerIndex",2);command(b,"SUBMIT_ANSWER",nextFields);
+        command(h,"PRESENTATION_READY",nextFields);nextFields.put("answerIndex",ghostAnswer);command(b,"SUBMIT_ANSWER",nextFields);
         assertTrue(b.latest().get("hasSubmittedAnswer").getAsBoolean(),"Ghost can submit an answer");
         rejects("ANSWER_ALREADY_SUBMITTED",()->command(b,"SUBMIT_ANSWER",nextFields));
         nextFields.put("answerIndex",0);command(a,"SUBMIT_ANSWER",nextFields);
         clock.addAndGet(20_000);rooms.tick();clock.addAndGet(720);command(h,"REVEAL_READY",nextFields);
         var ghostResult=b.latest().getAsJsonArray("results").asList().stream().map(JsonElement::getAsJsonObject).filter(p->p.get("playerId").equals(two.get("selfId"))).findFirst().orElseThrow();
-        assertTrue(ghostResult.get("isCorrect").getAsBoolean(),"Ghost receives correct result");
+        assertEquals(ghostAnswer==2,ghostResult.get("isCorrect").getAsBoolean(),"Ghost receives authoritative result");
         clock.addAndGet(3100);command(h,"NEXT_READY",nextFields);
-        assertFalse(h.latest().has("cursedBoxes"),"Ghost's correct answer cannot assign a shot against the sole remaining living player");
+        assertTrue(h.latest().has("cursedBoxes"),"Ghost shoots even when their trivia answer was wrong");
+        session=mini(h).get("sessionId").getAsString();
+        assertEquals("SHOOTING",mini(b).get("role").getAsString());assertEquals("HIDING",mini(a).get("role").getAsString());
+        assertFalse(mini(b).has("hidingBoxId"));command(h,"CURSED_SCENE_READY",base());
+        rejects("NOT_HIDING_PLAYER",()->command(b,"CURSED_HIDE",hideFields(9)));
+        command(a,"CURSED_HIDE",hideFields(9));
+        command(b,"CURSED_SELECT",selection(0));command(b,"CURSED_FIRE",fireFields(0,1));resolve();
+        clock.set(mini(h).get("revealEndsAt").getAsLong());rooms.tick();command(h,"CURSED_RETURN_TO_LOBBY",base());
+        var stillGhost=b.latest().getAsJsonArray("players").asList().stream().map(JsonElement::getAsJsonObject).filter(p->p.get("id").equals(two.get("selfId"))).findFirst().orElseThrow();
+        assertTrue(stillGhost.get("isGhost").getAsBoolean(),"Shooting does not resurrect a ghost");
         assertEquals(3,h.latest().get("questionNumber").getAsInt());
         assertTrue(rooms.revivePlayer(code,two.get("selfId").getAsString()));assertFalse(rooms.revivePlayer(code,two.get("selfId").getAsString()));
         var restored=h.latest().getAsJsonArray("players").asList().stream().map(JsonElement::getAsJsonObject).filter(p->p.get("id").equals(two.get("selfId"))).findFirst().orElseThrow();assertTrue(restored.get("isAlive").getAsBoolean());
         assertTrue(h.latest().getAsJsonArray("participantIds").asList().contains(two.get("selfId")));
+    }
+
+    @Test void privateTargetsAreLockedTogetherAndDuplicateBoxesFireOnlyOnce(){
+        var game=new CursedBoxesSession(List.of(new CursedBoxesSession.Player("h","H","ghost"),new CursedBoxesSession.Player("a","A","zombie"),new CursedBoxesSession.Player("b","B","voodoo")),Set.of("h"),1,true);
+        var online=Set.of("h","a","b");game.ready(true,clock.get());game.hide("h",5);
+        game.select("a",2,5);var first=game.fire("a","one",2,5,1,clock.get());
+        assertNull(game.pending(),"No shot before every target is locked");
+        var phone=game.snapshot("b",false,true,online,clock.get());
+        assertEquals(-1,phone.get("selectedCrateId"));assertEquals("TARGET_SELECTION",phone.get("phase"));
+        assertEquals("AVAILABLE",((Map<?,?>)((List<?>)phone.get("boxes")).get(5)).get("state"));
+        assertFalse(phone.containsKey("pendingShot"));assertFalse(phone.containsKey("hostContents"));
+        assertEquals(-1,game.snapshot("host",true,true,online,clock.get()).get("selectedCrateId"));
+        game.select("b",3,5);var duplicate=game.fire("b","two",3,5,1,clock.get());
+        assertSame(first,game.pending());assertSame(duplicate,game.fire("b","two",3,5,1,clock.get()));
+        game.started(first.id,clock.get());game.impact(first.id,clock.get()+30);game.complete(first.id,clock.get()+1100);
+        assertNull(game.pending());assertEquals(1<<5,game.destroyedMask());assertEquals(Set.of("h"),game.eliminatedPlayers());
+        var a=game.snapshot("a",false,true,online,clock.get()+1100);var b=game.snapshot("b",false,true,online,clock.get()+1100);
+        assertEquals(((Map<?,?>)a.get("lastResult")).get("shotId"),((Map<?,?>)b.get("lastResult")).get("shotId"));
+        assertEquals(1L,game.snapshot("host",true,true,online,clock.get()+1100).get("presentedShotCount"));
+        game.complete(first.id,clock.get()+1200);assertNull(game.pending(),"Duplicate completion cannot fire again");
+    }
+    @Test void distinctPrivateTargetsUseOneContinuousQueueAndLeftPlayersCannotBlockLock(){
+        var game=new CursedBoxesSession(List.of(new CursedBoxesSession.Player("h","H","ghost"),new CursedBoxesSession.Player("a","A","zombie"),new CursedBoxesSession.Player("b","B","voodoo")),Set.of("h"),1,true);
+        game.ready(true,clock.get());game.hide("h",9);game.select("b",3,6);game.fire("b","b",3,6,1,clock.get());
+        game.select("a",2,5);var first=game.fire("a","a",2,5,1,clock.get());assertEquals(5,game.pending().boxId,"Roster order, independent of packet arrival");
+        game.started(first.id,clock.get());game.impact(first.id,clock.get()+30);game.complete(first.id,clock.get()+1100);
+        var second=game.pending();assertEquals(6,second.boxId);game.complete(first.id,clock.get()+1200);assertSame(second,game.pending());
+        game.started(second.id,clock.get()+1200);game.impact(second.id,clock.get()+1230);game.complete(second.id,clock.get()+2300);assertNull(game.pending());assertEquals((1<<5)|(1<<6),game.destroyedMask());
+        var left=new CursedBoxesSession(List.of(new CursedBoxesSession.Player("h","H","ghost"),new CursedBoxesSession.Player("a","A","zombie"),new CursedBoxesSession.Player("b","B","voodoo")),Set.of("h"),1,true);
+        left.ready(true,clock.get());left.hide("h",9);left.select("a",2,0);left.fire("a","a",2,0,1,clock.get());assertNull(left.pending());
+        left.tick(clock.get(),Set.of("b"));assertNotNull(left.pending(),"Explicit leaver forfeits unconfirmed choice");
     }
 
     @Test void twoWrongPlayersHideAndEachCorrectPlayerHasExactlyOneShot(){

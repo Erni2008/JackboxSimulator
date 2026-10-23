@@ -260,10 +260,10 @@ public final class RoomService {
                 requireHost(member);
                 if(!game.resultHoldComplete(now())) throw new Failure(409,"NOT_READY");
                 if(room.cursed!=null)throw new Failure(409,"CURSED_IN_PROGRESS");
-                var roster=room.members.values().stream().filter(m->m.alive&&!m.left&&game.participants.contains(m.id)).toList();
-                var hiders=roster.stream().filter(m->game.submitted.getOrDefault(m.id,-1)!=game.question().correctAnswerIndex()).map(m->m.id).collect(java.util.stream.Collectors.toSet());
+                var roster=room.members.values().stream().filter(m->!m.host&&!m.left&&game.participants.contains(m.id)).toList();
+                var hiders=roster.stream().filter(m->m.alive&&game.submitted.getOrDefault(m.id,-1)!=game.question().correctAnswerIndex()).map(m->m.id).collect(java.util.stream.Collectors.toSet());
                 if(!hiders.isEmpty()&&hiders.size()<roster.size()){
-                    room.cursed=new CursedBoxesSession(roster.stream().map(m->new CursedBoxesSession.Player(m.id,m.name,m.characterId)).toList(),hiders,1);
+                    room.cursed=new CursedBoxesSession(roster.stream().map(m->new CursedBoxesSession.Player(m.id,m.name,m.characterId)).toList(),hiders,1,true);
                     broadcast(room,"CURSED_BOXES_STARTED");
                 }else{game.next(now());broadcast(room,game.phase==Phase.GAME_FINISHED?"GAME_FINISHED":"QUESTION_STARTED");}
             }
