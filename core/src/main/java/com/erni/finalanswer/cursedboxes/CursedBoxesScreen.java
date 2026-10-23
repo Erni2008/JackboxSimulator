@@ -57,10 +57,25 @@ public final class CursedBoxesScreen extends InputAdapter implements Screen {
     public int loadedModels(){return assets.models.loadedCount();}
     public boolean networkBusy(){return pendingFire||turn.active();}
     public com.finalanswer.protocol.CursedSurvivorTimeline survivorTimeline(){return renderer.survivors.clock;}
+    public com.finalanswer.protocol.CursedEliminationTimeline eliminationTimeline(){return renderer.eliminations;}
+    public void networkEliminations(int mask,float age,com.finalanswer.protocol.CursedEliminationTimeline.Timings timings){
+        if(networkBusy())return;
+        var clock=eliminationTimeline();
+        if(!clock.started()){
+            clock.timings.announcement=timings.announcement;clock.timings.fall=timings.fall;clock.timings.rise=timings.rise;clock.timings.hold=timings.hold;clock.start(mask);shotgun.returnToTable();
+        }else if(clock.mask()!=mask)throw new IllegalStateException("Authoritative eliminated assignment changed");
+        clock.seek(age);
+    }
     public void networkSurvivors(int mask,float age,com.finalanswer.protocol.CursedSurvivorTimeline.Timings timings){
         if(networkBusy())return;
         var clock=survivorTimeline();if(!clock.started()){clock.timings.anticipation=timings.anticipation;clock.timings.smoke=timings.smoke;clock.timings.panel=timings.panel;clock.timings.character=timings.character;clock.timings.idle=timings.idle;clock.timings.gap=timings.gap;clock.timings.validate();renderer.survivors.start(mask,slots);shotgun.returnToTable();}
         clock.seek(age);
+    }
+    /** Local-only end-of-turn preview; multiplayer always uses the server's victim list. */
+    public boolean developerEliminations(){
+        if(multiplayer!=null||networkBusy()||!turn.ended()||eliminationTimeline().started())return false;
+        int mask=0;for(CrateSlot slot:slots)if(slot.state==CrateSlot.State.DESTROYED&&slot.character!=null)mask|=1<<slot.id;
+        eliminationTimeline().start(mask);return true;
     }
     public boolean developerSurvivors(int count){
         if(multiplayer!=null||characterTest!=null||networkBusy()||count<0||count>8)return false;
@@ -111,7 +126,7 @@ public final class CursedBoxesScreen extends InputAdapter implements Screen {
     }
     public void reset(){
         assets.sounds.reset();pendingFire=false;for(CrateSlot s:slots){s.reset();s.selected=s.hovered=false;s.previewHidden=false;s.character=CursedCharacterAssignment.at(s.id,config.ghostSlot,config.characterSeed);s.occupantNickname=s.character==null?null:"Player 1";}
-        renderer.resetSurvivors(slots);renderer.resetEffects();camera.reset();turn.reset();characters.reset();debris.reset();shotgun.reset();shotAge=9;shotTarget=-1;events=0;selected=config.ghostSlot;
+        renderer.resetSurvivors(slots);renderer.eliminations.reset();renderer.resetEffects();camera.reset();turn.reset();characters.reset();debris.reset();shotgun.reset();shotAge=9;shotTarget=-1;events=0;selected=config.ghostSlot;
         if(characterTest!=null)characterTest.assign();
     }
     @Override public void show(){
@@ -146,14 +161,15 @@ public final class CursedBoxesScreen extends InputAdapter implements Screen {
         if(multiplayer!=null)multiplayer.update(dt);
         // Advance existing particles before spawning timeline events so new bursts begin at age zero.
         if(characterTest!=null)characterTest.update(dt);
-        renderer.updateEffects(dt);renderer.survivors.update(dt,slots);characters.update(dt);debris.update(dt);updateTimeline();
+        renderer.updateEffects(dt);renderer.eliminations.update(dt);renderer.survivors.update(dt,slots);characters.update(dt);debris.update(dt);updateTimeline();
+        if(multiplayer==null&&turn.ended())developerEliminations();
         // A new server turn may arrive while the previous player's gun is returning.
         // Keep the accepted shot queued and begin pickup as soon as that return finishes.
         if(pendingFire&&shotgun.resting())shotgun.select(slots[selected]);
         shotgun.remainingShots(multiplayer==null?turn.shotsRemaining():networkShotBudget+(pendingFire?1:0));
         camera.update(dt,time,slots[selected]);shotgun.update(dt,slots[turn.active()?shotTarget:selected]);
         if(pendingFire&&(multiplayer==null||multiplayer.canStartShot())&&shotgun.aimedAt(slots[selected]))trigger();
-        assets.sounds.reveal(survivorTimeline(),dt);
+        assets.sounds.elimination(eliminationTimeline(),dt);assets.sounds.reveal(survivorTimeline(),dt);
         camera.applyShake();
         try{renderer.render(dt,time,slots,slots[selected],characters,debris,shotgun,turn,performance);}finally{camera.restore();}
         performance.end();

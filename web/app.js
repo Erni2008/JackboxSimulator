@@ -1,6 +1,6 @@
 'use strict';
 const $=id=>document.getElementById(id);
-const screens=['join','waiting','question','result','finished','disconnected','suspicion','impostor','final','cursed'];
+const screens=['join','waiting','question','result','finished','disconnected','suspicion','impostor','final','cursed','ghost'];
 const messages={ROOM_NOT_FOUND:'ROOM NOT FOUND — check the six-character code.',ROOM_IS_FULL:'ROOM IS FULL.',CHARACTER_IN_USE:'That character belongs to another player. Choose a different character.',PLAYER_OFFLINE:'A player is disconnected. Reconnect before starting.',NOT_ENOUGH_PLAYERS:'At least two connected players are required.',GAME_ALREADY_STARTED:'GAME ALREADY STARTED. Only returning guests can rejoin.',INVALID_NICKNAME:'INVALID NICKNAME — use 1–24 characters.',NICKNAME_IN_USE:'That nickname is already taken.',INVALID_PASSWORD:'INVALID PASSWORD.',RATE_LIMITED:'Too many attempts. Wait a moment and try again.',SESSION_ENDED:'Your session has ended. Join a room again.',HOST_DISCONNECTED:'The host disconnected.',HOST_CLOSED_ROOM:'The host closed this room.',SERVER_SHUTDOWN:'The server is restarting. Please join again shortly.',ANSWER_TOO_LATE:"TIME’S UP — your answer arrived after the deadline.",ANSWER_ALREADY_SUBMITTED:'ANSWER SUBMITTED — your first answer is final.',ANSWERING_NOT_STARTED:'Wait for the host to finish presenting the question.',CONNECTION_LOST:'CONNECTION LOST — reconnecting to your seat…',SESSION_REPLACED:'This session was opened in another tab. Join separately to play as another guest.'};
 const explanation=code=>messages[code]||String(code||'Connection error. Please try again.').replaceAll('_',' ');
 let credentials=null,ws=null,state=null,authenticated=false,generation=0,retries=0,retryTimer=null,heartbeat=null,pending=null,pendingTimer=null,currentScreen='',questionKey='',serverTime=0,receivedAt=0,stopped=false,reconnectAt=0;
@@ -118,6 +118,10 @@ function render(){
   }
   if(state.phase==='GAME_FINISHED'){
     show('finished');$('finish-message').textContent=state.finishReason==='COMPLETED'?'You made it through every question. Thank you for playing.':'The show ended because the host connection was lost.';$('final-score').textContent=`${self?.score||0} POINTS`;return;
+  }
+  if(self?.isGhost){
+    show('ghost');$('ghost-player-name').textContent=self.name;
+    $('ghost-question').textContent=state.question?.text||'Watch the shared screen.';return;
   }
   if(state.phase==='RESULTS'){
     show('result');const result=state.results.find(r=>r.playerId===state.selfId);$('result-screen').dataset.outcome=!result?.answeredInTime?'timeout':result.isCorrect?'correct':'incorrect';$('result-title').textContent=!result?.answeredInTime?"Time's up!":result.isCorrect?'Correct!':'Wrong answer!';

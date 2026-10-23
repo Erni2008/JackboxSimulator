@@ -4,11 +4,11 @@ function controllerPresentation(state) {
   const cursed=state?.cursedBoxes, impostor=state?.impostor;
   if(cursed){
     const hiding=cursed.role==='HIDING', selecting=cursed.phase==='HIDING_SELECTION';
-    const complete=cursed.phase==='FINISHED', revealing=cursed.phase==='REVEALING';
+    const complete=cursed.phase==='FINISHED', elimination=cursed.phase==='ELIMINATION', revealing=cursed.phase==='REVEALING';
     return {mode:'cursed',title:'CURSED BOXES',steps:['HIDE','SHOTS','SURVIVORS'],
-      step:selecting?0:revealing||complete?2:1,
-      label:complete?'THE GALLERY HAS SPOKEN':revealing?'WATCH THE SHARED SCREEN':selecting?(hiding?'YOUR HIDING PLACE IS SECRET':'WAIT FOR THE HIDING PLAYERS'):hiding?'STAY HIDDEN':cursed.canAct?'YOUR TURN TO SHOOT':'WATCH THE SHARED SCREEN',
-      note:selecting?(hiding?(cursed.hidingConfirmed?'Confirmed. Your choice is locked.':'Choose a crate below, then confirm your hiding place.'):'Shooting begins after every hiding place is locked.'):revealing?'Only surviving players join the final reveal.':complete?'Your final result appears below.':hiding?'Your character stays in the box you chose.':cursed.canAct?'Select a crate, then press FIRE. Each shot counts.':'Your controls unlock when your turn begins.',
+      step:selecting?0:elimination||revealing||complete?2:1,
+      label:elimination?'THE FALLEN BECOME GHOSTS':complete?'THE GALLERY HAS SPOKEN':revealing?'WATCH THE SHARED SCREEN':selecting?(hiding?'YOUR HIDING PLACE IS SECRET':'WAIT FOR THE HIDING PLAYERS'):hiding?'STAY HIDDEN':cursed.canAct?'YOUR TURN TO SHOOT':'WATCH THE SHARED SCREEN',
+      note:elimination?'Stay connected. A fallen player’s story is not over.':selecting?(hiding?(cursed.hidingConfirmed?'Confirmed. Your choice is locked.':'Choose a crate below, then confirm your hiding place.'):'Shooting begins after every hiding place is locked.'):revealing?'Only surviving players join the final reveal.':complete?'Your final result appears below.':hiding?'Your character stays in the box you chose.':cursed.canAct?'Select a crate, then press FIRE. Each shot counts.':'Your controls unlock when your turn begins.',
       tone:complete?'complete':selecting&&hiding&&cursed.hidingConfirmed?'confirmed':!selecting&&cursed.canAct?'active':'quiet'};
   }
   if(impostor&&!['READY','REPLAY_PREPARATION'].includes(impostor.phase)){

@@ -13,6 +13,8 @@ import com.erni.finalanswer.shotgun.ShotgunRenderer;
 /** Background -> opaque PBR -> depth-tested transparent sprites -> weapon -> UI. */
 public final class CursedBoxesRenderer implements Disposable {
     private final ShotgunRenderer world;
+    public final com.finalanswer.protocol.CursedEliminationTimeline eliminations=new com.finalanswer.protocol.CursedEliminationTimeline();
+    private final Decal[] ghostHalos=new Decal[16];
     private final CursedShotgunVfx firing;
     private final CursedGalleryFog fog;
     public final CursedSurvivorReveal survivors;
@@ -50,6 +52,7 @@ public final class CursedBoxesRenderer implements Disposable {
     private final Quaternion shadowRotation=new Quaternion(),planeRotation=new Quaternion(Vector3.X,-90);
     public CursedBoxesRenderer(CursedBoxesAssets assets,PerspectiveCamera camera,CrateSlot[] slots,DebrisSystem debris,ShotgunController gun,CursedBoxesGalleryConfig gallery,CursedBoxesRoomLayout roomLayout){
         this.roomLayout=roomLayout;survivors=new CursedSurvivorReveal(assets.survivors,assets.dust);survivorPanels=(out,pool)->{for(CrateSlot slot:slots)if(!slot.previewHidden)slot.renderParts(out,pool,true);};firing=new CursedShotgunVfx(camera,assets.dust);fog=new CursedGalleryFog(firing.smokeTexture(),gallery);soft=assets.dust;atmosphere=new CursedBoxesAtmosphere(assets.dust,gallery);
+        for(int i=0;i<ghostHalos.length;i++)ghostHalos[i]=Decal.newDecal(1.4f,1.35f,new TextureRegion(assets.dust),true);
         contactShadow=Decal.newDecal(gallery.weaponScale*1.32f,gallery.weaponScale*.243f,new TextureRegion(assets.dust),true);
         for(int i=0;i<shelfContacts.length;i++){
             boolean core=i>=3;
@@ -103,7 +106,10 @@ public final class CursedBoxesRenderer implements Disposable {
         Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
         fog.render(decals,camera,roomLayout.origin,reduced?0:time,debris.lowQuality);decals.flush();
         survivors.renderGlow(decals,camera,slots);
-        characters.render(decals,camera,slots,time);
+        for(CrateSlot box:slots)if(eliminations.eligible(box.id)&&eliminations.spirit()>0){
+            Decal halo=ghostHalos[box.id];halo.setPosition(box.position.x,box.position.y+.1f,box.position.z+.06f);halo.lookAt(camera.position,camera.up);halo.setColor(.47f,.67f,.74f,.16f*eliminations.spirit());decals.add(halo);
+        }
+        characters.render(decals,camera,slots,time,eliminations);
         debris.renderDust(decals,camera);decals.flush();
         survivors.renderCharacters(camera,slots,time);
         world.renderTransparent(survivorPanels);
@@ -130,10 +136,18 @@ public final class CursedBoxesRenderer implements Disposable {
         title.setColor(.76f,.58f,.33f,1);layout.setText(title,"CURSED BOXES");title.draw(ui,layout,(w-layout.width)/2,h-12);
         font.setColor(.57f,.48f,.38f,1);font.getData().setScale(.72f);font.draw(ui,"F I N A L   A N S W E R",30,h-25);
         font.getData().setScale(.8f);font.draw(ui,networkPlayer!=null?(turn.shotLimit()==1?"PHONE CONTROL / ONE SHOT":"PHONE CONTROL / TWO SHOTS"):characterTest==null?"ONE SPIRIT. SIXTEEN BOXES.":"EIGHT PLAYERS. NINE SHOTS.",w-260,h-27);
-        if(networkPlayer!=null){font.setColor(.89f,.73f,.49f,1);layout.setText(font,networkPlayer,0,networkPlayer.length(),font.getColor(),w*.55f,Align.center,false,"...");font.draw(ui,layout,w*.225f,h-75);font.getData().setScale(.65f);String message=gun.magazine.loading()?"LOADING THE SHOTGUN":gun.state()==ShotgunController.State.PICKUP?"LIFTING THE SHOTGUN":gun.state()==ShotgunController.State.AIMING?"TAKING AIM":networkMessage;layout.setText(font,message,0,message.length(),font.getColor(),w*.65f,Align.center,false,"...");font.draw(ui,layout,w*.175f,h-96);}
+        if(networkPlayer!=null&&!eliminations.active()){font.setColor(.89f,.73f,.49f,1);layout.setText(font,networkPlayer,0,networkPlayer.length(),font.getColor(),w*.55f,Align.center,false,"...");font.draw(ui,layout,w*.225f,h-75);font.getData().setScale(.65f);String message=gun.magazine.loading()?"LOADING THE SHOTGUN":gun.state()==ShotgunController.State.PICKUP?"LIFTING THE SHOTGUN":gun.state()==ShotgunController.State.AIMING?"TAKING AIM":networkMessage;layout.setText(font,message,0,message.length(),font.getColor(),w*.65f,Align.center,false,"...");font.draw(ui,layout,w*.175f,h-96);}
+        if(eliminations.active()){
+            font.getData().setScale(1);font.setColor(.72f,.83f,.86f,1);
+            String line=eliminations.state()==com.finalanswer.protocol.CursedEliminationTimeline.State.ANNOUNCEMENT?"THE HOUSE HAS DECIDED":eliminations.spirit()<.01f?"THE FALLEN":"YOUR STORY IS NOT OVER";
+            layout.setText(font,line);font.draw(ui,layout,(w-layout.width)/2,h-75);
+            status.setLength(0);for(CrateSlot box:slots)if(eliminations.eligible(box.id)){if(status.length()>0)status.append("  /  ");status.append(box.occupantNickname);}
+            font.getData().setScale(.7f);layout.setText(font,status,0,status.length(),font.getColor(),w*.75f,Align.center,false,"...");font.draw(ui,layout,w*.125f,h-100);
+            font.getData().setScale(.65f);layout.setText(font,"BECOME GHOSTS. STAY WITH THE GAME. YOU MAY RETURN.");font.draw(ui,layout,(w-layout.width)/2,h-124);
+        }
         font.getData().setScale(.9f);font.setColor(.65f,.57f,.45f,1);
         if(networkPlayer==null||performance.visible)font.draw(ui,networkPlayer==null?"CLICK select   SPACE fire   R reset   F11 fullscreen   F3 stats   Q effects   F8 survivors   ESC return":"PHONE select / fire   F11 fullscreen   F3 stats   Q effects   F8 survivors   ESC return to lobby",30,28);
-        else font.draw(ui,"CHOOSE ON YOUR PHONE. WATCH THE GALLERY.",30,28);
+        else font.draw(ui,eliminations.active()?"THE FALLEN ARE BECOMING GHOSTS. STAY WITH THE SHOW.":survivors.clock.started()?"THE LIVING AND THE GHOSTS / WATCH THE SHARED SCREEN.":"CHOOSE ON YOUR PHONE. WATCH THE GALLERY.",30,28);
         status.setLength(0);status.append("BOX ");if(selected.id<9)status.append('0');status.append(selected.id+1).append("   /   ").append(selected.state).append("   /   ").append(weaponStatus(gun,turn,selected)).append("   /   SHOTS ").append(networkPlayer==null?turn.shotsRemaining():networkRemaining).append(" / ").append(turn.shotLimit());
         font.draw(ui,status,30,51);
         font.getData().setScale(.85f);
@@ -148,11 +162,11 @@ public final class CursedBoxesRenderer implements Disposable {
         // Revealed occupants carry a player nickname; intact normal boxes never disclose their content.
         font.getData().setScale(.62f);
         for(CrateSlot slot:slots)if(slot.character!=null&&slot.occupantNickname!=null&&(slot.previewHidden||slot.state==CrateSlot.State.DESTROYED||slot.survivorOpening&&survivors.clock.characterOpacity(slot.id)>.8f)){
-            float alpha=1;
+            float alpha=1;status.setLength(0);status.append(slot.occupantNickname);if(eliminations.eligible(slot.id)&&eliminations.spirit()>.8f)status.append(" / GHOST");
             camera.project(namePosition.set(slot.position.x,slot.position.y-.66f,slot.position.z+.12f));
-            font.setColor(.025f,.012f,.005f,alpha);layout.setText(font,slot.occupantNickname,0,slot.occupantNickname.length(),font.getColor(),w*.105f,Align.center,false,"...");float nx=namePosition.x-w*.0525f,ny=namePosition.y;
+            font.setColor(.025f,.012f,.005f,alpha);layout.setText(font,status,0,status.length(),font.getColor(),w*.105f,Align.center,false,"...");float nx=namePosition.x-w*.0525f,ny=namePosition.y;
             font.draw(ui,layout,nx+1,ny-1);
-            font.setColor(.88f,.74f,.5f,alpha);layout.setText(font,slot.occupantNickname,0,slot.occupantNickname.length(),font.getColor(),w*.105f,Align.center,false,"...");font.draw(ui,layout,nx,ny);
+            font.setColor(.88f,.74f,.5f,alpha);layout.setText(font,status,0,status.length(),font.getColor(),w*.105f,Align.center,false,"...");font.draw(ui,layout,nx,ny);
         }
         if(characterTest!=null){
             float x=w-365,y=h-85;

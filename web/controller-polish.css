@@ -154,3 +154,14 @@ body[data-keyboard=open] #impostor-countdown{padding-top:0}
 
 #clue-form[hidden] .writing-pen,body[data-reduced-motion=true] .writing-pen,body[data-effects=false] .writing-pen{will-change:auto}
 @media(prefers-reduced-motion:reduce){.writing-pen{will-change:auto}}
+
+/* A ghost stays connected; its identity is retained rather than replaced by a generic character. */
+#cursed-result[data-kind=ghost]{border-color:#8fb6c266;background:linear-gradient(120deg,#29414e66,#111018)}
+#cursed-result[data-kind=ghost] h2{color:#c1dde3}
+#ghost-screen{text-align:center;padding:28px 8px;color:#cad9de}
+#ghost-screen h1{color:#d0e4e9;font-size:clamp(32px,9vw,46px)}
+.ghost-seal{width:100px;height:100px;margin:12px auto 24px;border:1px solid #97bec366;border-radius:50%;font-size:58px;line-height:96px;color:#c1dbe0;background:radial-gradient(ellipse,#7897a426,transparent 70%)}
+#ghost-player-name{font-size:20px;overflow-wrap:anywhere;color:#e2edf0}
+.ghost-assurance{font-size:22px;color:#b6d7df}
+.ghost-current{margin-top:28px;padding:20px 16px;border-block:1px solid #7a9eac44;background:#1d2c3433}
+#ghost-question{font-size:18px;line-height:1.6}

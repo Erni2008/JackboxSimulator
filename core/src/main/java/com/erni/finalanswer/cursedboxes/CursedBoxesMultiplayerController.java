@@ -17,6 +17,7 @@ public final class CursedBoxesMultiplayerController implements AutoCloseable {
     private int lastRemaining=-1;
     private boolean started,impacted,completed,closed;
     private float retry,readyRetry;
+    private final com.finalanswer.protocol.CursedEliminationTimeline.Timings eliminationTimings=new com.finalanswer.protocol.CursedEliminationTimeline.Timings();
     private final com.finalanswer.protocol.CursedSurvivorTimeline.Timings revealTimings=new com.finalanswer.protocol.CursedSurvivorTimeline.Timings();
     public CursedBoxesMultiplayerController(CursedBoxesScreen scene,RealtimeClient connection){
         this.scene=scene;this.connection=connection;
@@ -43,9 +44,20 @@ public final class CursedBoxesMultiplayerController implements AutoCloseable {
         JsonObject root=event.getAsJsonObject("payload");
         if(root.has("cursedBoxes")&&sessionId.equals(root.getAsJsonObject("cursedBoxes").get("sessionId").getAsString())){state=root.getAsJsonObject("cursedBoxes");apply();}
     }
-    private boolean finalPhase(){String phase=state.get("phase").getAsString();return phase.equals("REVEALING")||phase.equals("FINISHED");}
+    private boolean finalPhase(){String phase=state.get("phase").getAsString();return phase.equals("ELIMINATION")||phase.equals("REVEALING")||phase.equals("FINISHED");}
     private void applyReveal(){
         if(!finalPhase()||scene.networkBusy()||!state.has("survivors"))return;
+        if(state.has("ghosts")){
+            int victims=0;
+            for(JsonElement e:state.getAsJsonArray("ghosts")){
+                var person=e.getAsJsonObject();int box=person.get("boxId").getAsInt();
+                if(box<0||box>=16||!person.get("playerId").getAsString().equals(scene.slots[box].occupantPlayerId))throw new IllegalStateException("Mismatched authoritative ghost assignment");
+                victims|=1<<box;
+            }
+            if(state.has("eliminationTimings")){var j=state.getAsJsonObject("eliminationTimings");eliminationTimings.announcement=j.get("announcement").getAsFloat();eliminationTimings.fall=j.get("fall").getAsFloat();eliminationTimings.rise=j.get("rise").getAsFloat();eliminationTimings.hold=j.get("hold").getAsFloat();}
+            scene.networkEliminations(victims,Math.max(0,(connection.serverNow()-state.get("eliminationStartedAt").getAsLong())/1000f),eliminationTimings);
+            if(connection.serverNow()<state.get("revealStartedAt").getAsLong())return;
+        }
         int mask=0;
         for(JsonElement e:state.getAsJsonArray("survivors")){
             var person=e.getAsJsonObject();int box=person.get("boxId").getAsInt();
@@ -63,7 +75,7 @@ public final class CursedBoxesMultiplayerController implements AutoCloseable {
         for(int i=0;i<16;i++)if((destroyed&(1<<i))!=0)scene.networkReveal(i);
         applyReveal();
         String player=state.get("activePlayerName").getAsString();
-        String status=!connection.connected()?"RECONNECTING — SHOTS SAVED":!state.get("hostReady").getAsBoolean()?"PREPARING / RESTORING THE GALLERY":!state.get("activePlayerOnline").getAsBoolean()?"WAITING FOR PLAYER TO RECONNECT":state.get("phase").getAsString().equals("REVEALING")?"SURVIVOR REVEAL / WATCH THE SHELF":state.get("phase").getAsString().equals("FINISHED")?"SURVIVORS REVEALED / ESC RETURN TO LOBBY":state.get("phase").getAsString().equals("HIDING_SELECTION")?"HIDING PLAYERS / CHOOSE YOUR SECRET BOX":state.has("pendingShot")?"FIRING — WATCH THE TARGET":"SELECT A BOX ON YOUR PHONE";
+        String status=!connection.connected()?"RECONNECTING — SHOTS SAVED":!state.get("hostReady").getAsBoolean()?"PREPARING / RESTORING THE GALLERY":!state.get("activePlayerOnline").getAsBoolean()?"WAITING FOR PLAYER TO RECONNECT":state.get("phase").getAsString().equals("ELIMINATION")?"THE FALLEN / BECOMING GHOSTS":state.get("phase").getAsString().equals("REVEALING")?"SURVIVOR REVEAL / WATCH THE SHELF":state.get("phase").getAsString().equals("FINISHED")?"ROUND COMPLETE / THE GHOSTS MAY RETURN / ESC CONTINUE":state.get("phase").getAsString().equals("HIDING_SELECTION")?"HIDING PLAYERS / CHOOSE YOUR SECRET BOX":state.has("pendingShot")?"FIRING — WATCH THE TARGET":"SELECT A BOX ON YOUR PHONE";
         int remaining=state.get("shotsRemaining").getAsInt();
         if(!player.equals(lastPlayer)||!status.equals(lastStatus)||remaining!=lastRemaining){lastPlayer=player;lastStatus=status;lastRemaining=remaining;scene.networkStatus(player,status,remaining);}
     }

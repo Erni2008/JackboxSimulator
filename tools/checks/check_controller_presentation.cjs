@@ -4,7 +4,7 @@ const fs=require('node:fs'),assert=require('node:assert/strict'),vm=require('nod
 const context=vm.createContext({});vm.runInContext(fs.readFileSync('web/controller-presentation.js','utf8'),context);
 const view=state=>context.controllerPresentation(state);
 assert.equal(view(null),null);
-for(const role of ['HIDING','SHOOTING'])for(const phase of ['HIDING_SELECTION','SHOOTING','REVEALING','FINISHED']){
+for(const role of ['HIDING','SHOOTING'])for(const phase of ['HIDING_SELECTION','SHOOTING','ELIMINATION','REVEALING','FINISHED']){
   const s={cursedBoxes:{role,phase,canAct:role==='SHOOTING'&&phase==='SHOOTING',hidingBoxId:14,hiddenAssignments:'MUST NEVER RENDER'}};
   const v=view(s);assert(!JSON.stringify(v).includes('MUST NEVER RENDER'));assert(!JSON.stringify(v).includes('14'));
   assert.equal(v.step,phase==='HIDING_SELECTION'?0:phase==='SHOOTING'?1:2);
@@ -40,6 +40,8 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
  {name:'cursed-hide',screen:'cursed',root:{cursedBoxes:{phase:'HIDING_SELECTION',role:'HIDING',canAct:true,hidingConfirmed:false,hostReady:true,shotsRemaining:0,shotLimit:0,hidingBoxId:-1}}},
  {name:'cursed-confirmed',screen:'cursed',root:{cursedBoxes:{phase:'HIDING_SELECTION',role:'HIDING',canAct:false,hidingConfirmed:true,hostReady:true,shotsRemaining:0,shotLimit:0,hidingBoxId:6}}},
  {name:'cursed-shot',screen:'cursed',root:{cursedBoxes:{phase:'SHOOTING',role:'SHOOTING',canAct:true,hostReady:true,shotsRemaining:1,shotLimit:1,selectedCrateId:4,activePlayerName:'ОченьДлинныйНикИгрока'}}},
+ {name:'cursed-ghost',screen:'cursed',root:{cursedBoxes:{phase:'FINISHED',role:'HIDING',canAct:false,hostReady:true,shotsRemaining:0,shotLimit:0,survivorCount:0,hidingBoxId:5,outcomes:[{playerId:'self',survived:false,lifeState:'GHOST',canReturn:true}]}}},
+ {name:'ghost-waiting',screen:'ghost',root:{phase:'QUESTION_PRESENTATION',gameId:'visual',questionNumber:3,questionCount:5,players:[{id:'self',name:'SHADOW',characterId:'ghost',isGhost:true,lifeState:'GHOST',isAlive:false,canReturn:true}],question:{id:'spectator',text:'The living players are answering this question.',answers:['One','Two','Three','Four']}}},
  {name:'impostor-role',screen:'impostor',root:{impostor:{phase:'ROLE_REVEAL',role:'ORDINARY',secretWord:'ПОДСОЛНУХ',activeParticipant:true,round:0}}},
  {name:'impostor-clue',screen:'impostor',root:{impostor:{phase:'ROUND_CLUE_INPUT',role:'IMPOSTOR',activeParticipant:true,round:1}}},
  {name:'impostor-confirmed',screen:'impostor',root:{impostor:{phase:'ROUND_CLUE_INPUT',role:'ORDINARY',clueSubmitted:true,ownClue:'ТЕПЛО',secretWord:'СОЛНЦЕ',activeParticipant:true,round:1}}},
@@ -79,7 +81,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
  await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(100);
  if(sample.name==='question-open')assert((await page.locator('#answers .fa-label').first().evaluate(node=>getComputedStyle(node).fontFamily)).includes('Body'),'Answer text must use the reading face');
  const geometry=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth,steps:document.querySelectorAll('.director-step[aria-current=step]').length,directorVisible:!document.getElementById('controller-director').hidden,buttons:[...document.querySelectorAll('#cursed-screen:not([hidden]) .cursed-box')].map(b=>({width:b.getBoundingClientRect().width,height:b.getBoundingClientRect().height}))}));
- assert(geometry.scroll<=geometry.width,`${sample.name}: horizontal overflow at ${size.width}`);if(!['question','result','waiting'].includes(sample.screen)){assert.equal(geometry.steps,1);assert(geometry.directorVisible);}else assert(!geometry.directorVisible);
+ assert(geometry.scroll<=geometry.width,`${sample.name}: horizontal overflow at ${size.width}`);if(!['question','result','waiting','ghost'].includes(sample.screen)){assert.equal(geometry.steps,1);assert(geometry.directorVisible);}else assert(!geometry.directorVisible);
  for(const b of geometry.buttons){assert(b.width>=44&&b.height>=38,'Crate target too small');}
  const file=`${output}/${sample.name}-${size.width}.png`;await page.screenshot({path:file,fullPage:true});reports.push({name:sample.name,...size,file});
  }

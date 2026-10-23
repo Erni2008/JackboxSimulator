@@ -43,7 +43,9 @@ public final class CursedBoxesSoundManager implements Disposable {
     private final Sound[] sounds=new Sound[CUES.length];
     private final boolean[] warned=new boolean[CUES.length];
     private final java.util.function.Consumer<String> warning;
-    private Sound hostVoice;
+    private Sound hostVoice,ghostHostVoice;
+    private boolean eliminationObserved;
+    private float previousEliminationAge;
     private float hostVoiceDuration;
     private boolean hostAnnounced;
     private final long[] voices=new long[CUES.length],plays=new long[CUES.length];
@@ -62,9 +64,11 @@ public final class CursedBoxesSoundManager implements Disposable {
     public void loadHostVoice(){
         String path="sounds/cursed_boxes/host_check_boxes.wav";
         var file=Gdx.files.internal(path);
-        if(!file.exists()){warning.accept("Optional host voice missing: "+path+"; using cinematic subtitle");return;}
-        try{hostVoiceDuration=wavDuration(file.readBytes());hostVoice=backend.load(path);}
+        if(!file.exists())warning.accept("Optional host voice missing: "+path+"; using cinematic subtitle");
+        else try{hostVoiceDuration=wavDuration(file.readBytes());hostVoice=backend.load(path);}
         catch(RuntimeException error){warning.accept("Cannot load optional host voice "+path+": "+error.getMessage());hostVoiceDuration=0;}
+        String ghosts="sounds/cursed_boxes/host_ghosts.wav";
+        if(Gdx.files.internal(ghosts).exists())try{ghostHostVoice=backend.load(ghosts);}catch(RuntimeException error){warning.accept("Cannot load optional ghost announcement: "+error.getMessage());}
     }
     public void hostAnnouncement(){
         if(hostAnnounced||!audible())return;hostAnnounced=true;
@@ -87,7 +91,8 @@ public final class CursedBoxesSoundManager implements Disposable {
         catch(RuntimeException error){warn(cue,"Cannot preload",error);}
         sounds[loaded++]=sound;
     }
-    public void warmup(){for(int i=0;i<sounds.length;i++)if(sounds[i]!=null)try{long id=sounds[i].play(0);if(id>=0)sounds[i].stop(id);}catch(RuntimeException error){warn(CUES[i],"Cannot warm up",error);}}
+    private void warmVoice(Sound voice){if(voice!=null)try{long id=voice.play(0);if(id>=0)voice.stop(id);}catch(RuntimeException error){warning.accept("Cannot warm optional announcement: "+error.getMessage());}}
+    public void warmup(){warmVoice(hostVoice);warmVoice(ghostHostVoice);for(int i=0;i<sounds.length;i++)if(sounds[i]!=null)try{long id=sounds[i].play(0);if(id>=0)sounds[i].stop(id);}catch(RuntimeException error){warn(CUES[i],"Cannot warm up",error);}}
     public void loading(boolean value){loading=value;if(value)stop();}
     public void muted(boolean value){muted=value;if(value)stop();}
     public void paused(boolean value){paused=value;if(value)stop();}
@@ -132,6 +137,17 @@ public final class CursedBoxesSoundManager implements Disposable {
     public void shellContact(long ejectionSerial,boolean visibleContact){
         if(!visibleContact||ejectionSerial<=landedShell)return;landedShell=ejectionSerial;play(Cue.SHELL_DROP);
     }
+    public void elimination(com.finalanswer.protocol.CursedEliminationTimeline clock,float dt){
+        if(!clock.started()){eliminationObserved=false;return;}
+        float step=Float.isFinite(dt)?Math.max(0,dt):0,age=clock.age();
+        if(!eliminationObserved){
+            previousEliminationAge=age<=step+.05f?-.001f:age;eliminationObserved=true;
+            if(clock.count()>0&&age<=step+.05f&&ghostHostVoice!=null&&audible())try{ghostHostVoice.play(levels.gain(Category.REVEAL));}catch(RuntimeException error){warning.accept("Ghost announcement playback failed: "+error.getMessage());}
+        }
+        float boundary=clock.timings.announcement,lower=Math.max(previousEliminationAge,age-step-.05f);
+        if(clock.count()>0&&age>=boundary&&boundary>lower){AudioMix.GLOBAL.important(.8f);play(Cue.HORROR_2);}
+        previousEliminationAge=age;
+    }
     public void reveal(CursedSurvivorTimeline clock,float dt){
         if(disposed)return;
         float step=Float.isFinite(dt)?Math.max(0,dt):0;
@@ -167,7 +183,7 @@ public final class CursedBoxesSoundManager implements Disposable {
     }
     public long playCount(Cue cue){return plays[cue.ordinal()];}
     public boolean heartbeatActive(){return voices[Cue.HEARTBEAT.ordinal()]>=0;}
-    public void stop(){if(hostVoice!=null)try{hostVoice.stop();}catch(RuntimeException error){warning.accept("Cannot stop host voice: "+error.getMessage());}for(int i=0;i<sounds.length;i++){if(sounds[i]!=null)try{sounds[i].stop();}catch(RuntimeException error){warn(CUES[i],"Cannot stop",error);}voices[i]=-1;}heartbeatGain=0;heartbeatWanted=heartbeatAttempted=false;}
-    public void reset(){stop();lastImpact=landedShell=-1;smokeCues=appearanceCues=0;lastSpecialReveal=-1;hostAnnounced=revealObserved=false;previousRevealAge=0;weaponState=ShotgunAnimator.State.IDLE;}
-    @Override public void dispose(){if(disposed)return;stop();disposed=true;for(int i=0;i<sounds.length;i++)if(sounds[i]!=null)try{sounds[i].dispose();}catch(RuntimeException error){warn(CUES[i],"Cannot dispose",error);}if(hostVoice!=null)try{hostVoice.dispose();}catch(RuntimeException error){warning.accept("Cannot dispose host voice: "+error.getMessage());}}
+    public void stop(){if(ghostHostVoice!=null)try{ghostHostVoice.stop();}catch(RuntimeException error){warning.accept("Cannot stop ghost announcement: "+error.getMessage());}if(hostVoice!=null)try{hostVoice.stop();}catch(RuntimeException error){warning.accept("Cannot stop host voice: "+error.getMessage());}for(int i=0;i<sounds.length;i++){if(sounds[i]!=null)try{sounds[i].stop();}catch(RuntimeException error){warn(CUES[i],"Cannot stop",error);}voices[i]=-1;}heartbeatGain=0;heartbeatWanted=heartbeatAttempted=false;}
+    public void reset(){stop();eliminationObserved=false;previousEliminationAge=0;lastImpact=landedShell=-1;smokeCues=appearanceCues=0;lastSpecialReveal=-1;hostAnnounced=revealObserved=false;previousRevealAge=0;weaponState=ShotgunAnimator.State.IDLE;}
+    @Override public void dispose(){if(disposed)return;stop();disposed=true;for(int i=0;i<sounds.length;i++)if(sounds[i]!=null)try{sounds[i].dispose();}catch(RuntimeException error){warn(CUES[i],"Cannot dispose",error);}if(ghostHostVoice!=null)try{ghostHostVoice.dispose();}catch(RuntimeException error){warning.accept("Cannot dispose ghost announcement: "+error.getMessage());}if(hostVoice!=null)try{hostVoice.dispose();}catch(RuntimeException error){warning.accept("Cannot dispose host voice: "+error.getMessage());}}
 }

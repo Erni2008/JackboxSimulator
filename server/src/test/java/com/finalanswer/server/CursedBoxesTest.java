@@ -59,7 +59,10 @@ class CursedBoxesTest {
     }
     @Test void hitEliminatesOnlyOccupantAndExcludesFinalReveal(){
         start();command(a,"CURSED_HIDE",hideFields(9));shoot(9,1);shoot(0,2);
-        assertEquals("FINISHED",mini(a).get("phase").getAsString());assertEquals(0,mini(h).get("survivorCount").getAsInt());
+        assertEquals("ELIMINATION",mini(a).get("phase").getAsString());assertEquals(0,mini(h).get("survivorCount").getAsInt());
+        assertFalse(mini(b).get("canAct").getAsBoolean());
+        var ghost=mini(h).getAsJsonArray("ghosts").get(0).getAsJsonObject();assertEquals(9,ghost.get("boxId").getAsInt());assertEquals(one.get("selfId"),ghost.get("playerId"));assertTrue(ghost.get("canReturn").getAsBoolean());
+        clock.set(mini(h).get("revealEndsAt").getAsLong());rooms.tick();assertEquals("FINISHED",mini(a).get("phase").getAsString());
         assertEquals(0,mini(h).getAsJsonArray("survivors").size());assertFalse(mini(a).getAsJsonArray("outcomes").get(0).getAsJsonObject().get("survived").getAsBoolean());
         assertEquals("ghost",mini(b).getAsJsonArray("boxes").get(9).getAsJsonObject().get("characterId").getAsString());
     }
@@ -97,9 +100,15 @@ class CursedBoxesTest {
         rejects("CURSED_IN_PROGRESS",()->command(h,"NEXT_READY",fields));
         rejects("CURSED_IN_PROGRESS",()->command(h,"CURSED_RETURN_TO_LOBBY",base()));
         for(int number=1;number<=1;number++){int box=7;command(a,"CURSED_SELECT",selection(box));command(a,"CURSED_FIRE",fireFields(box,number));resolve();}
-        assertEquals(0,mini(h).get("survivorCount").getAsInt());command(h,"CURSED_RETURN_TO_LOBBY",base());
+        assertEquals(0,mini(h).get("survivorCount").getAsInt());
+        assertEquals("ELIMINATION",mini(h).get("phase").getAsString());
+        rejects("REVIVAL_NOT_READY",()->rooms.revivePlayer(code,two.get("selfId").getAsString()));
+        clock.set(mini(h).get("revealEndsAt").getAsLong());rooms.tick();command(h,"CURSED_RETURN_TO_LOBBY",base());
         assertFalse(h.latest().has("cursedBoxes"));assertEquals(2,h.latest().get("questionNumber").getAsInt());
-        var victim=h.latest().getAsJsonArray("players").asList().stream().map(JsonElement::getAsJsonObject).filter(p->p.get("id").equals(two.get("selfId"))).findFirst().orElseThrow();assertFalse(victim.get("isAlive").getAsBoolean());
+        var victim=h.latest().getAsJsonArray("players").asList().stream().map(JsonElement::getAsJsonObject).filter(p->p.get("id").equals(two.get("selfId"))).findFirst().orElseThrow();assertFalse(victim.get("isAlive").getAsBoolean());assertEquals("GHOST",victim.get("lifeState").getAsString());assertTrue(victim.get("canReturn").getAsBoolean());
+        assertTrue(rooms.revivePlayer(code,two.get("selfId").getAsString()));assertFalse(rooms.revivePlayer(code,two.get("selfId").getAsString()));
+        var restored=h.latest().getAsJsonArray("players").asList().stream().map(JsonElement::getAsJsonObject).filter(p->p.get("id").equals(two.get("selfId"))).findFirst().orElseThrow();assertTrue(restored.get("isAlive").getAsBoolean());
+        assertTrue(h.latest().getAsJsonArray("participantIds").asList().contains(two.get("selfId")));
     }
 
     @Test void twoWrongPlayersHideAndEachCorrectPlayerHasExactlyOneShot(){
@@ -135,6 +144,20 @@ class CursedBoxesTest {
         assertEquals(4,game.snapshot("host",true,true,Set.of("h","a"),clock.get()).get("remainingShotCount"));
         game.tick(clock.get(),Set.of("b"));
         assertEquals(2,game.snapshot("host",true,true,Set.of("h","a"),clock.get()).get("remainingShotCount"));
+    }
+
+    @Test void allVictimsShareFinalDeathStageAndSurvivorsRemainSecretUntilTheirReveal(){
+        var game=new CursedBoxesSession(List.of(new CursedBoxesSession.Player("a","A","ghost"),new CursedBoxesSession.Player("b","B","voodoo"),new CursedBoxesSession.Player("c","C","pumpkin"),new CursedBoxesSession.Player("s","S","zombie")),Set.of("a","b","c"),2);
+        var online=Set.of("a","b","c","s");long now=clock.get();game.ready(true,now);game.hide("a",2);game.hide("b",9);game.hide("c",13);
+        for(int i=0;i<2;i++){
+            int box=i==0?2:9;game.select("s",4,box);var shot=game.fire("s","shot"+i,4,box,i+1,now);game.started(shot.id,now);game.impact(shot.id,now+30);game.complete(shot.id,now+1100);now+=1200;
+            if(i==0)assertFalse(game.snapshot("s",false,true,online,now).containsKey("ghosts"));
+        }
+        var state=game.snapshot("host",true,true,online,now);assertEquals("ELIMINATION",state.get("phase"));assertEquals(2,((List<?>)state.get("ghosts")).size());
+        assertEquals(Set.of("a","b"),game.eliminatedPlayers());assertFalse(game.finished());
+        var phone=game.snapshot("c",false,true,online,now);assertEquals(0,((List<?>)phone.get("survivors")).size());
+        long reveal=(long)state.get("revealStartedAt");assertTrue(reveal>now);game.tick(reveal,Set.of());assertEquals("REVEALING",game.snapshot("s",false,true,online,reveal).get("phase"));
+        game.tick((long)state.get("revealEndsAt"),Set.of());assertTrue(game.finished());assertEquals(1,game.snapshot("host",true,true,online,reveal).get("survivorCount"));
     }
 
 }

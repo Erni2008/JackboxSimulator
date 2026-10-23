@@ -2,6 +2,7 @@ package com.finalanswer.server.game;
 
 import com.finalanswer.protocol.CursedBoxesProtocol;
 import com.finalanswer.protocol.CursedSurvivorTimeline;
+import com.finalanswer.protocol.CursedEliminationTimeline;
 import com.finalanswer.server.rooms.RoomService.Failure;
 import java.util.*;
 
@@ -29,7 +30,8 @@ public final class CursedBoxesSession {
     private boolean ready,finished,revealCompleted;
     private final Set<String> eliminated=new HashSet<>(),departed=new HashSet<>();
     private final CursedSurvivorTimeline.Timings revealTimings=new CursedSurvivorTimeline.Timings();
-    private long revealStartedAt,revealEndsAt;
+    private long revealStartedAt,revealEndsAt,eliminationStartedAt;
+    private final CursedEliminationTimeline elimination=new CursedEliminationTimeline();
     private int survivorMask,publicSurvivors;
     private String notice="";
     private Shot pending;
@@ -64,11 +66,16 @@ public final class CursedBoxesSession {
     private void lockHidingIfComplete(){hidingLocked=hidingPlayers.stream().allMatch(p->hidingChoices.containsKey(p)||eliminated.contains(p));}
     public Set<String> eliminatedPlayers(){return Set.copyOf(eliminated);}
     public boolean finished(){return finished&&revealCompleted;}
+    public boolean isGhost(String player){return finished&&eliminated.contains(player);}
+    public boolean canReturn(String player){return isGhost(player)&&!departed.contains(player);}
+
     private void beginReveal(long now){
         if(!finished||revealStartedAt!=0)return;
         survivorMask=0;for(var entry:contents.entrySet())if(!eliminated.contains(entry.getValue().id()))survivorMask|=1<<entry.getKey();
-        revealStartedAt=now;revealEndsAt=now+Math.round(Integer.bitCount(survivorMask)*revealTimings.period()*1000);
-        revealCompleted=survivorMask==0;
+        int victims=0;for(var entry:contents.entrySet())if(eliminated.contains(entry.getValue().id()))victims|=1<<entry.getKey();
+        elimination.start(victims);eliminationStartedAt=now;
+        revealStartedAt=now+Math.round(elimination.duration()*1000);revealEndsAt=revealStartedAt+Math.round(Integer.bitCount(survivorMask)*revealTimings.period()*1000);
+        revealCompleted=survivorMask==0&&elimination.mask()==0;
     }
     public boolean ready(){return ready;}
     public Shot pending(){return pending;}
@@ -146,7 +153,7 @@ public final class CursedBoxesSession {
     }
     public Map<String,Object> snapshot(String self,boolean host,boolean hostOnline,Set<String> online,long now){
         Map<String,Object> value=new LinkedHashMap<>();
-        String phase=finished?(revealCompleted?"FINISHED":"REVEALING"):!ready?"PREPARING":!hidingLocked?"HIDING_SELECTION":pending!=null?"FIRING":"SELECTING";
+        String phase=finished?(revealCompleted?"FINISHED":now<revealStartedAt?"ELIMINATION":"REVEALING"):!ready?"PREPARING":!hidingLocked?"HIDING_SELECTION":pending!=null?"FIRING":"SELECTING";
         boolean activeOnline=finished||!hidingLocked||online.contains(activeId());
         value.put("sessionId",id);value.put("phase",phase);value.put("turnId",active+1);value.put("turnOrder",players.stream().map(Player::id).toList());
         value.put("activePlayerId",activeId());value.put("activePlayerName",finished||!hidingLocked?"":players.get(active).nickname());
@@ -167,6 +174,9 @@ public final class CursedBoxesSession {
             boxes.add(item);
         }
         if(finished){
+            value.put("eliminationStartedAt",eliminationStartedAt);value.put("eliminationEndsAt",revealStartedAt);
+            var et=elimination.timings;value.put("eliminationTimings",Map.of("announcement",et.announcement,"fall",et.fall,"rise",et.rise,"hold",et.hold));
+            value.put("ghosts",contents.entrySet().stream().filter(e->eliminated.contains(e.getValue().id())).sorted(Map.Entry.comparingByKey()).map(e->Map.of("boxId",e.getKey(),"playerId",e.getValue().id(),"nickname",e.getValue().nickname(),"characterId",e.getValue().characterId(),"lifeState","GHOST","canReturn",canReturn(e.getValue().id()))).toList());
             value.put("revealStartedAt",revealStartedAt);value.put("revealEndsAt",revealEndsAt);value.put("survivorCount",Integer.bitCount(survivorMask));
             value.put("revealTimings",Map.of("anticipation",revealTimings.anticipation,"smoke",revealTimings.smoke,"panel",revealTimings.panel,"character",revealTimings.character,"idle",revealTimings.idle,"gap",revealTimings.gap));
             var survivors=new ArrayList<Map<String,Object>>();int index=0;
@@ -175,7 +185,7 @@ public final class CursedBoxesSession {
                 if(host||now>=visibleAt){Player p=contents.get(box);survivors.add(Map.of("boxId",box,"playerId",p.id(),"nickname",p.nickname(),"characterId",p.characterId()));}
             }
             value.put("survivors",survivors);
-            value.put("outcomes",players.stream().filter(p->hidingPlayers.contains(p.id())).map(p->Map.of("playerId",p.id(),"survived",!eliminated.contains(p.id()))).toList());
+            value.put("outcomes",players.stream().filter(p->hidingPlayers.contains(p.id())).map(p->Map.of("playerId",p.id(),"survived",!eliminated.contains(p.id()),"lifeState",eliminated.contains(p.id())?"GHOST":"ALIVE","canReturn",canReturn(p.id()))).toList());
         }
         value.put("boxes",boxes);Shot last=lastResults.get(self);if(last!=null)value.put("lastResult",result(last));
         if(pending!=null){

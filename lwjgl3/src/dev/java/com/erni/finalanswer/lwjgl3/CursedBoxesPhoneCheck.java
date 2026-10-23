@@ -30,7 +30,7 @@ public final class CursedBoxesPhoneCheck {
         var config=new Lwjgl3ApplicationConfiguration();config.setTitle(FULL_ROUND?"FINAL ANSWER — FULL ROUND / 2 HIDERS + 2 SHOOTERS":"FINAL ANSWER — CURSED BOXES / PHONE CHECK");config.setWindowedMode(1280,800);config.useVsync(true);config.setForegroundFPS(60);
         config.setPreferencesConfig(directory.resolve("preferences").toString(),com.badlogic.gdx.Files.FileType.Absolute);
         try{new Lwjgl3Application(new FinalAnswerGame(HostingAccess.external(url)){
-            String processed="";double elapsed;float poll,startWait;boolean rendering,finished,capturedLoading;int impacts,reactions,checkedFrames,flashFrames,reloadFrames;
+            String processed="";double elapsed;float poll,startWait;boolean rendering,finished,capturedLoading,capturedFall,capturedSpirit;int impacts,reactions,checkedFrames,flashFrames,reloadFrames;
             CursedBoxesPerformanceCheck.AuditGL audit;
             final ExecutorService snapshots=Executors.newSingleThreadExecutor();
             Future<?> snapshot;
@@ -47,6 +47,7 @@ public final class CursedBoxesPhoneCheck {
                 var root=getRealtime()==null?null:getRealtime().snapshot();if(root!=null)report.add("state",root);
                 report.addProperty("screen",getScreen().getClass().getSimpleName());report.addProperty("impactMask",impacts);report.addProperty("reactionMask",reactions);report.addProperty("renderChecks",checkedFrames);report.addProperty("flashFrames",flashFrames);report.addProperty("reloadFrames",reloadFrames);
                 if(getScreen() instanceof CursedBoxesScreen scene){
+                    report.addProperty("ghostMask",scene.eliminationTimeline().mask());report.addProperty("eliminationState",scene.eliminationTimeline().state().name());
                     var cues=new JsonObject();for(var cue:CursedBoxesSoundManager.Cue.values())cues.addProperty(cue.name(),scene.sounds().playCount(cue));report.add("soundCues",cues);report.addProperty("loadedRounds",scene.loadedRounds());report.addProperty("loadingRounds",scene.loadingRounds());report.addProperty("mechanism",scene.mechanismState().name());report.addProperty("flash",scene.muzzleFlashIntensity());
                     report.addProperty("soundShots",scene.sounds().playCount(CursedBoxesSoundManager.Cue.SHOT));report.addProperty("soundWood",scene.sounds().playCount(CursedBoxesSoundManager.Cue.WOOD_BREAK));report.addProperty("soundReload",scene.sounds().playCount(CursedBoxesSoundManager.Cue.MECHANISM));report.addProperty("soundInsertion",scene.sounds().playCount(CursedBoxesSoundManager.Cue.INSERT_ROUND));report.addProperty("soundHeartbeat",scene.sounds().heartbeatActive());report.addProperty("survivorState",scene.survivorTimeline().state().name());report.addProperty("survivorMask",scene.survivorTimeline().mask());report.addProperty("nativeReady",true);report.addProperty("selected",scene.selected());report.addProperty("gun",scene.weaponState().name());report.addProperty("models",scene.loadedModels());report.addProperty("turnLimit",scene.turn.shotLimit());report.addProperty("developerTest",scene.characterTest()!=null);
                     var slots=new JsonArray();for(CrateSlot box:scene.slots){var value=new JsonObject();value.addProperty("id",box.id);value.addProperty("state",box.state.name());value.addProperty("survivorOpening",box.survivorOpening);value.addProperty("panelOpacity",box.survivorPanelOpacity);value.addProperty("pose",scene.characterState(box.id).name());if(box.character!=null){value.addProperty("characterId",box.character.name().toLowerCase(Locale.ROOT));value.addProperty("nickname",box.occupantNickname);}slots.add(value);}report.add("slots",slots);
@@ -109,6 +110,8 @@ public final class CursedBoxesPhoneCheck {
                 if(sceneBefore&&getScreen() instanceof CursedBoxesScreen scene){
                     if(scene.mechanismState()==com.erni.finalanswer.shotgun.ShotgunAnimator.State.RELOAD)
                         check(scene.weaponState()==ShotgunController.State.LOADING,"Reload must hold a raised weapon, never a table/pickup pose");
+                    if(FULL_ROUND&&!capturedFall&&scene.eliminationTimeline().fall()>.25f&&scene.eliminationTimeline().mask()!=0){capturedFall=true;capture("falling-players");}
+                    if(FULL_ROUND&&!capturedSpirit&&scene.eliminationTimeline().spirit()>.45f&&scene.eliminationTimeline().mask()!=0){capturedSpirit=true;capture("rising-ghosts");}
                     if(FULL_ROUND&&!capturedLoading&&scene.mechanismState()==com.erni.finalanswer.shotgun.ShotgunAnimator.State.RELOAD&&scene.sounds().playCount(CursedBoxesSoundManager.Cue.INSERT_ROUND)>0){capturedLoading=true;capture("loading-right");}
                     if(scene.muzzleFlashIntensity()>0)flashFrames++;if(scene.mechanismState()==com.erni.finalanswer.shotgun.ShotgunAnimator.State.RELOAD)reloadFrames++;
                     check(scene.characterTest()==null&&scene.turn.shotLimit()==(FULL_ROUND?1:2),"Developer nine-shot mode entered multiplayer");

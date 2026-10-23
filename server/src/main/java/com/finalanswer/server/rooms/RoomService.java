@@ -386,6 +386,14 @@ public final class RoomService {
     private void reply(Peer peer,Room room,Member member,Message message) {
         peer.send(Protocol.event("STATE",message.requestId(),snapshot(room,member,false)));
     }
+    /** Trusted future rule hook. Restore only before an answer timer, never during a minigame/result. */
+    public synchronized boolean revivePlayer(String code,String playerId){
+        Room room=find(code);Member player=room.members.values().stream().filter(p->p.id.equals(playerId)).findFirst().orElse(null);
+        if(player==null||player.host||player.left)throw new Failure(403,"NOT_A_PLAYER");
+        if(room.cursed!=null||room.impostor!=null||room.game==null||room.game.phase!=Phase.QUESTION_PRESENTATION)throw new Failure(409,"REVIVAL_NOT_READY");
+        if(player.alive)return false;
+        room.game.participants.add(player.id);player.alive=true;broadcast(room,"PLAYER_REVIVED");return true;
+    }
     /** Server-side continuation point. The immutable outcome survives entering the main game. */
     public synchronized com.erni.finalanswer.gameplay.impostor.ImpostorMatchResult completedImpostorResult(String code) {
         return find(code).lastImpostorResult;
@@ -479,7 +487,8 @@ public final class RoomService {
             Map<String,Object> p=new LinkedHashMap<>();
             p.put("id",member.id); p.put("name",member.name); p.put("nickname",member.name); p.put("host",false);
             p.put("characterId",member.characterId); p.put("connectionStatus",member.peer==null?"OFFLINE":"ONLINE");
-            p.put("isAlive",member.alive); p.put("score",member.score);
+            boolean ghost=!member.alive||room.cursed!=null&&room.cursed.isGhost(member.id);
+            p.put("isAlive",!ghost);p.put("isGhost",ghost);p.put("lifeState",ghost?"GHOST":"ALIVE");p.put("canReturn",ghost&&!member.left);p.put("score",member.score);
             p.put("hasSubmittedAnswer",game!=null&&game.submitted.containsKey(member.id)); players.add(p);
         }
         value.put("players",players); value.put("currentPlayers",players);

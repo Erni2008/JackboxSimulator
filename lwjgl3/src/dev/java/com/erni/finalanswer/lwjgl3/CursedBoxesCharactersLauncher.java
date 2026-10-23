@@ -98,6 +98,8 @@ public final class CursedBoxesCharactersLauncher {
                 }else if(phase==1&&frames>360){
                     check(demo.turn.ended()&&demo.turn.shotsRemaining()==0&&Integer.bitCount(demo.turn.destroyedCrateIds())==9&&!demo.fire(),"Exactly nine distinct test shots; tenth rejected");
                     check(demo.weaponState()==ShotgunController.State.RESTING,"Shotgun returned to the counter");
+                    check(demo.eliminationTimeline().state()==com.finalanswer.protocol.CursedEliminationTimeline.State.COMPLETED&&demo.eliminationTimeline().count()==8,"Eight victims finish as persistent ghosts after all nine shots");
+                    check(!demo.eliminationTimeline().eligible(test.emptySlot()),"Empty compartment cannot become a ghost");
                     var sound=demo.sounds();
                     check(sound.playCount(CursedBoxesSoundManager.Cue.SHOT)==9&&sound.playCount(CursedBoxesSoundManager.Cue.WOOD_BREAK)==9&&sound.playCount(CursedBoxesSoundManager.Cue.MECHANISM)==11,"Nine cycles plus initial and refill mechanism cues");
                     check(sound.playCount(CursedBoxesSoundManager.Cue.INSERT_ROUND)==9&&demo.loadedRounds()==0,"Five initial shells plus four refill shells, all nine consumed");

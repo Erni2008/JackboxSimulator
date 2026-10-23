@@ -33,21 +33,25 @@ public final class CursedCharacterController {
         hitAge[i]=Math.min(REACTION_DURATION,hitAge[i]+dt);
         if(hitAge[i]>=REACTION_DURATION)states[i]=State.REVEALED;
     }}
-    public void render(DecalBatch batch,Camera camera,CrateSlot[] slots,float time){
+    public void render(DecalBatch batch,Camera camera,CrateSlot[] slots,float time){render(batch,camera,slots,time,null);}
+    public void render(DecalBatch batch,Camera camera,CrateSlot[] slots,float time,com.finalanswer.protocol.CursedEliminationTimeline elimination){
         // A closed opaque front completely hides HIDDEN occupants; skip their draw calls as well.
         for(CrateSlot slot:slots)if(!slot.survivorOpening&&slot.character!=null&&(states[slot.id]!=State.HIDDEN||slot.previewHidden)){
             int type=slot.character.ordinal(),id=slot.id;
             Decal frame=frames[id][type];CursedCharacterFit fit=fits[type];
             float phase=id*.618f+type*.91f,t=time+phase,age=hitAge[id];
             float reaction=age<0?0:MathUtils.clamp(1-age/.3f,0,1);
+            boolean victim=elimination!=null&&elimination.eligible(id);
+            float fall=victim?elimination.fall():0,spirit=victim?elimination.spirit():0,slump=fall*(1-spirit);
             // Translation stays behind the front geometry. Recoil moves away from the camera.
             frame.setPosition(slot.position.x+MathUtils.sin(age*61+phase)*reaction*.005f,
-                slot.position.y+fit.centerY()+MathUtils.sin(t*1.7f)*CursedCharacterFit.HOVER,
+                slot.position.y+fit.centerY()+MathUtils.sin(t*1.7f)*CursedCharacterFit.HOVER-.16f*slump+.12f*spirit+MathUtils.sin(t*1.1f)*.025f*spirit,
                 slot.position.z+.09f-reaction*.08f);
             frame.lookAt(camera.position,camera.up);
-            frame.rotateZ(MathUtils.sin(t*1.1f)*.6f+MathUtils.sin(age*35)*reaction*1.2f);
-            frame.setScale(1+MathUtils.sin(t*1.8f)*CursedCharacterFit.BREATH-reaction*.04f);
-            frame.setColor(.92f,.88f,.8f,1);batch.add(frame);
+            frame.rotateZ(MathUtils.sin(t*1.1f)*.6f+MathUtils.sin(age*35)*reaction*1.2f+(id%2==0?1:-1)*13*slump);
+            float breathing=1+MathUtils.sin(t*1.8f)*CursedCharacterFit.BREATH-reaction*.04f;
+            frame.setScale(breathing*(1-.08f*slump),breathing*(1-.18f*slump));
+            frame.setColor(.92f-.29f*spirit,.88f-.12f*spirit,.8f,1-.68f*fall+.3f*spirit);batch.add(frame);
         }
     }
 }

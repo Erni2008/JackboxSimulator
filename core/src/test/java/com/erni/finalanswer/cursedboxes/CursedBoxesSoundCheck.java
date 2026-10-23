@@ -59,6 +59,10 @@ public final class CursedBoxesSoundCheck {
         check(batch.audio.playCount(INSERT_ROUND)==5&&batch.audio.playCount(MECHANISM)==1,"Five contacts then one mechanical close");
         batch.audio.weaponPose(batchAnimator);check(batch.audio.playCount(INSERT_ROUND)==5,"No duplicate insertion after loading");
         batch.audio.reset();batch.audio.weaponPose(batchAnimator);check(batch.audio.playCount(INSERT_ROUND)==5,"Reset at idle does not replay completed insertions");
+        Fixture ghosts=new Fixture();var death=new com.finalanswer.protocol.CursedEliminationTimeline();death.start(3);
+        for(int i=0;i<300;i++){death.update(1f/60);ghosts.audio.elimination(death,1f/60);ghosts.audio.elimination(death,1f/60);}
+        check(ghosts.audio.playCount(HORROR_2)==1&&ghosts.audio.playCount(APPEARANCE_2)==0,"One death accent for simultaneous ghosts, never survivor appearance");
+        ghosts.audio.reset();var lateDeath=new com.finalanswer.protocol.CursedEliminationTimeline();lateDeath.start(3);lateDeath.seek(5);ghosts.audio.elimination(lateDeath,.016f);check(ghosts.audio.playCount(HORROR_2)==1,"Late restoration skips historical death sound");ghosts.audio.dispose();
         Fixture r=new Fixture();var timeline=new CursedSurvivorTimeline();timeline.start(0x15);
         for(int i=0;i<620;i++){r.audio.reveal(timeline,1f/60);timeline.update(1f/60);}
         check(r.audio.playCount(REVEAL_START)==3&&r.audio.playCount(APPEARANCE_2)==3&&r.audio.playCount(REVEAL_COMPLETE)==0,"Ordered start/visible cues for each survivor");

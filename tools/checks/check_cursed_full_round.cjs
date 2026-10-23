@@ -89,6 +89,9 @@ async function resolved(p){await p.waitForFunction(()=>!window.__qaState?.cursed
     assert.equal((await state(shooter1)).cursedBoxes.survivors,undefined,'Survivor reveal began before last shooter');
     await shooter2.waitForFunction(()=>window.__qaState.cursedBoxes.canAct);
     await shot(shooter2,0);
+    const death=await host('INSPECT');assert.equal(death.ghostMask,1<<5,'Only the authoritative eliminated player transforms');
+    assert.equal(death.state.cursedBoxes.phase,'ELIMINATION','All shots finish before collective death');
+    assert.equal(death.survivorState,'WAITING','Living survivor reveal must wait for the death stage');
     await puppet.waitForFunction(()=>window.__qaState.cursedBoxes.phase==='FINISHED');
     for(let n=0;n<100;n++){report=await host('INSPECT');if(report.survivorState==='COMPLETED'&&!report.soundHeartbeat)break;await sleep(100);}
     const s=report.state.cursedBoxes;
@@ -103,13 +106,19 @@ async function resolved(p){await p.waitForFunction(()=>!window.__qaState?.cursed
     assert.equal(report.soundCues.WOOD_EXTRA,2,'Existing and additional wood layers each fire twice');
     assert.equal(['APPEARANCE_1','APPEARANCE_2','APPEARANCE_3','APPEARANCE_4'].reduce((n,c)=>n+report.soundCues[c],0),1,'One appearance variation per survivor');
     assert.equal(report.soundCues.APPEARANCE_2,1,'Survivor must use appearance2');assert.equal(report.soundCues.REVEAL_COMPLETE,0,'Legacy final reveal must not mask appearance2');
-    assert.equal(report.soundCues.HORROR_1+report.soundCues.HORROR_2,0,'No fabricated special reveal');
+    assert.equal(report.soundCues.HORROR_1,0);assert.equal(report.soundCues.HORROR_2,1,'One collective ghost transformation accent');
+    assert.equal(report.eliminationState,'COMPLETED');assert.equal(report.ghostMask,1<<5);assert.equal(s.ghosts.length,1);assert.equal(s.ghosts[0].lifeState,'GHOST');assert.equal(s.ghosts[0].canReturn,true);
     for(const cue of ['MECHANISM','HEARTBEAT','REVEAL_START'])assert(report.soundCues[cue]>0,`Missing sound: ${cue}`);
     assert.equal(report.soundHeartbeat,false);assert(report.flashFrames>0);assert(report.reloadFrames>0);assert.deepEqual(errors,[]);
     await host('CAPTURE');await sleep(500);
     for(let i=0;i<4;i++)await clients[i].p.screenshot({path:path.join(dir,`phone-${i+1}-result.png`),fullPage:true});
     fs.writeFileSync(path.join(dir,'full-round-report.json'),JSON.stringify({passed:true,scenario:'real trivia: two incorrect / two correct; one shot each; ghost eliminated, puppeteer survives',stages,soundCues:report.soundCues,renderChecks:report.renderChecks,flashFrames:report.flashFrames,reloadFrames:report.reloadFrames,applicationAudioCues:report.applicationAudioCues,ambiencePlaying:report.ambiencePlaying,finalState:s},null,2));
-    console.log('PASS: full trivia round; shot/cycle/shell audio preserved; layered wood, fixed appearance2, gates/chains/UI, real MP3 loop; '+(process.env.KEEP_OPEN!=='0'?'native viewer remains open.':'closing native viewer.'));
+    if(process.env.CURSED_GHOST_HANDOFF_QA==='1'){
+      await host('END');await ghost.locator('#ghost-screen').waitFor({state:'visible'});
+      const after=await state(ghost);assert.equal(after.players.find(p=>p.id===after.selfId)?.lifeState,'GHOST');
+      await ghost.screenshot({path:path.join(dir,'phone-ghost-waiting.png'),fullPage:true});
+    }
+    console.log('PASS: full trivia round; collective ghost transformation;  shot/cycle/shell audio preserved; layered wood, fixed appearance2, gates/chains/UI, real MP3 loop; '+(process.env.KEEP_OPEN!=='0'?'native viewer remains open.':'closing native viewer.'));
     if(process.env.KEEP_OPEN!=='0'){
       while(!fs.existsSync(path.join(dir,'cleanup.json')))await sleep(1000);
     }else await host('EXIT');
