@@ -1,4 +1,4 @@
-"""Preserve all eight original WAVs; remove near-silent pre-roll only from two runtime transients.
+"""Preserve all eight original WAVs; remove near-silent pre-roll only from short runtime transients.
 No resampling, normalization, pitch changes or render-time preprocessing.
 """
 from pathlib import Path
@@ -15,7 +15,7 @@ for name in NAMES:
   params=w.getparams();pcm=w.readframes(w.getnframes())
   if params.sampwidth!=2 or params.comptype!='NONE':raise ValueError('Expected original 16-bit PCM: '+name)
   start=0;runtime=name
-  if name in ['shotgun_shoot_done.wav','box_destroy_done.wav']:
+  if name in ['shotgun_shoot_done.wav','box_destroy_done.wav','reload_done.wav','reload_done(bullets).wav']:
    # -60 dBFS gates only initial near-silence; retain 5ms before its first nontrivial sample.
    samples=struct.iter_unpack('<'+'h'*params.nchannels,pcm)
    first=next((i for i,s in enumerate(samples) if max(abs(x) for x in s)>32),0)

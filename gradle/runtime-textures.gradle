@@ -4,15 +4,16 @@ import javax.imageio.ImageIO
 
 // Original artwork remains untouched. This task runs only when its inputs change.
 def artwork = fileTree('assets') {
-    include 'ui/**/*.png', 'models/candle/frames/*.png', 'clock/*.png', 'backgrounds/play/**/*.png'
+    include 'ui/**/*.png', 'models/candle/frames/*.png', 'clock/*.png', 'backgrounds/play/**/*.png', 'impostor/**/*.png'
 }
 def runtimeDirectory = layout.projectDirectory.dir('assets/runtime')
 tasks.register('prepareRuntimeTextures') {
     inputs.files(artwork)
-    inputs.property('texturePipelineVersion', 3)
+    inputs.property('texturePipelineVersion', 4)
     outputs.dir(runtimeDirectory)
     doLast {
         def manifest = new Properties()
+        def prepared = new HashSet<File>()
         artwork.files.sort().each { source ->
             def relative = file('assets').toPath().relativize(source.toPath()).toString().replace('\\', '/')
             int limit = 1024
@@ -28,16 +29,22 @@ tasks.register('prepareRuntimeTextures') {
             else if (relative == 'ui/Final_Answer.png') limit = 1536
             def original = ImageIO.read(source)
             if (original == null) throw new GradleException("Cannot decode ${source}")
-            if (original.width > limit) {
-                int height = Math.max(1, Math.round(original.height * limit / (float) original.width))
-                def resized = new BufferedImage(limit, height, BufferedImage.TYPE_INT_ARGB)
+            if (relative.startsWith('impostor/backgrounds/')) limit = 1672
+            else if (relative.startsWith('impostor/clock/') || relative.startsWith('impostor/voting/')) limit = 512
+            // Keep measured source-space pivots/crops; only the display bitmap is bounded.
+            int extent = relative.startsWith('impostor/') ? Math.max(original.width, original.height) : original.width
+            if (extent > limit) {
+                int width = Math.max(1, Math.round(original.width * limit / (float) extent))
+                int height = Math.max(1, Math.round(original.height * limit / (float) extent))
+                def resized = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
                 def graphics = resized.createGraphics()
                 try {
                     graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC)
-                    graphics.drawImage(original, 0, 0, limit, height, null)
+                    graphics.drawImage(original, 0, 0, width, height, null)
                 } finally { graphics.dispose() }
                 def output = runtimeDirectory.file(relative).asFile
                 output.parentFile.mkdirs()
+                prepared.add(output)
                 if (!ImageIO.write(resized, 'png', output)) throw new GradleException("Cannot write ${output}")
                 manifest.setProperty(relative, "${original.width},${original.height}")
                 resized.flush()
@@ -45,9 +52,14 @@ tasks.register('prepareRuntimeTextures') {
             original.flush()
         }
         runtimeDirectory.asFile.mkdirs()
-        runtimeDirectory.file('sizes.properties').asFile.withOutputStream {
-            manifest.store(it, 'Original dimensions for cropped runtime textures')
+        fileTree(runtimeDirectory).matching { include '**/*.png' }.files.each { stale ->
+            if (!prepared.contains(stale)) stale.delete()
         }
+        // Stable bytes: Properties.store adds a changing timestamp even when inputs are identical.
+        def writer = new StringWriter()
+        manifest.store(writer, null)
+        def entries = writer.toString().readLines().findAll { !it.startsWith('#') }.sort()
+        runtimeDirectory.file('sizes.properties').asFile.setText(entries.join('\n') + '\n', 'ISO-8859-1')
         logger.lifecycle("Prepared ${manifest.size()} display-sized textures; original artwork preserved.")
     }
 }

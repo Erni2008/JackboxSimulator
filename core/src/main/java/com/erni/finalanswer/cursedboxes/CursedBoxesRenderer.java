@@ -14,6 +14,7 @@ import com.erni.finalanswer.shotgun.ShotgunRenderer;
 public final class CursedBoxesRenderer implements Disposable {
     private final ShotgunRenderer world;
     private final CursedShotgunVfx firing;
+    private final CursedGalleryFog fog;
     public final CursedSurvivorReveal survivors;
     private final com.badlogic.gdx.graphics.g3d.RenderableProvider survivorPanels;
     private final PointLight cursedLight=new PointLight();
@@ -29,6 +30,8 @@ public final class CursedBoxesRenderer implements Disposable {
     private final DecalBatch decals;
     private final CursedBoxesShelf shelf;
     private final SpriteBatch ui=new SpriteBatch();
+    private final com.erni.finalanswer.ui.effects.CinematicFrame frame=new com.erni.finalanswer.ui.effects.CinematicFrame();
+    private int overlayWidth=-1,overlayHeight=-1;
     private final BitmapFont font=com.erni.finalanswer.ui.UiFonts.body(18);
     private final BitmapFont title=com.erni.finalanswer.ui.UiFonts.horror(48);
     private final GlyphLayout layout=new GlyphLayout();
@@ -46,7 +49,7 @@ public final class CursedBoxesRenderer implements Disposable {
     private final Vector3 shadowPosition=new Vector3();
     private final Quaternion shadowRotation=new Quaternion(),planeRotation=new Quaternion(Vector3.X,-90);
     public CursedBoxesRenderer(CursedBoxesAssets assets,PerspectiveCamera camera,CrateSlot[] slots,DebrisSystem debris,ShotgunController gun,CursedBoxesGalleryConfig gallery,CursedBoxesRoomLayout roomLayout){
-        this.roomLayout=roomLayout;survivors=new CursedSurvivorReveal(assets.survivors,assets.dust);survivorPanels=(out,pool)->{for(CrateSlot slot:slots)if(!slot.previewHidden)slot.renderParts(out,pool,true);};firing=new CursedShotgunVfx(camera,assets.dust);soft=assets.dust;atmosphere=new CursedBoxesAtmosphere(assets.dust,gallery);
+        this.roomLayout=roomLayout;survivors=new CursedSurvivorReveal(assets.survivors,assets.dust);survivorPanels=(out,pool)->{for(CrateSlot slot:slots)if(!slot.previewHidden)slot.renderParts(out,pool,true);};firing=new CursedShotgunVfx(camera,assets.dust);fog=new CursedGalleryFog(firing.smokeTexture(),gallery);soft=assets.dust;atmosphere=new CursedBoxesAtmosphere(assets.dust,gallery);
         contactShadow=Decal.newDecal(gallery.weaponScale*1.32f,gallery.weaponScale*.243f,new TextureRegion(assets.dust),true);
         for(int i=0;i<shelfContacts.length;i++){
             boolean core=i>=3;
@@ -77,7 +80,10 @@ public final class CursedBoxesRenderer implements Disposable {
     }
     public void render(float delta,float time,CrateSlot[] slots,CrateSlot selected,CursedCharacterController characters,DebrisSystem debris,ShotgunController gun,CursedBoxesTurn turn,CursedBoxesPerformance performance){
         com.badlogic.gdx.graphics.glutils.HdpiUtils.glViewport(0,0,Gdx.graphics.getWidth(),Gdx.graphics.getHeight());Gdx.gl.glClearColor(.018f,.009f,.014f,1);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT|GL20.GL_DEPTH_BUFFER_BIT);
-        overlay.setToOrtho(false,Gdx.graphics.getWidth(),Gdx.graphics.getHeight());ui.setProjectionMatrix(overlay.combined);
+        if(overlayWidth!=Gdx.graphics.getWidth()||overlayHeight!=Gdx.graphics.getHeight()){
+            overlayWidth=Gdx.graphics.getWidth();overlayHeight=Gdx.graphics.getHeight();
+            overlay.setToOrtho(false,overlayWidth,overlayHeight);ui.setProjectionMatrix(overlay.combined);
+        }
         // Color-only pass. Keep gallery pixels out of the 3D depth buffer.
         Gdx.gl.glDisable(GL20.GL_DEPTH_TEST);Gdx.gl.glDepthMask(false);
         background.update(delta);background.draw(ui,Gdx.graphics.getWidth(),Gdx.graphics.getHeight());
@@ -93,6 +99,9 @@ public final class CursedBoxesRenderer implements Disposable {
         world.environment().get(com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute.class,com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute.AmbientLight).color.set(.32f-drama*.045f,.255f-drama*.045f,.19f-drama*.025f,1);
         world.render(delta);
         Gdx.gl.glDepthMask(false);
+        boolean reduced=com.badlogic.gdx.Gdx.app.getApplicationListener() instanceof com.erni.finalanswer.FinalAnswerGame game&&game.getSettings().reducedMotion();
+        Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
+        fog.render(decals,camera,roomLayout.origin,reduced?0:time,debris.lowQuality);decals.flush();
         survivors.renderGlow(decals,camera,slots);
         characters.render(decals,camera,slots,time);
         debris.renderDust(decals,camera);decals.flush();
@@ -105,6 +114,10 @@ public final class CursedBoxesRenderer implements Disposable {
         int counterHeight=Math.max(0,Math.min(Gdx.graphics.getHeight(),Math.round(roomLayout.counterFrontScreenY(Gdx.graphics.getWidth(),Gdx.graphics.getHeight()))));
         if(counterHeight>0){Gdx.gl.glEnable(GL20.GL_SCISSOR_TEST);com.badlogic.gdx.graphics.glutils.HdpiUtils.glScissor(0,0,Gdx.graphics.getWidth(),counterHeight);background.draw(ui,Gdx.graphics.getWidth(),Gdx.graphics.getHeight());Gdx.gl.glDisable(GL20.GL_SCISSOR_TEST);}
         Gdx.gl.glDepthMask(true);ui.begin();
+        frame.draw(ui,overlayWidth,overlayHeight,1);
+        // Quiet edge plates protect the HUD without covering the shelf or adding a framebuffer pass.
+        ui.setColor(.015f,.007f,.012f,.55f);ui.draw(soft,-overlayWidth*.15f,-75,overlayWidth*1.3f,160);
+        ui.draw(soft,-overlayWidth*.15f,overlayHeight-135,overlayWidth*1.3f,210);ui.setColor(Color.WHITE);
         if(intensity>0){ui.setColor(1,.57f,.21f,intensity*.06f);ui.draw(soft,0,0,Gdx.graphics.getWidth(),Gdx.graphics.getHeight());ui.setColor(Color.WHITE);}
         float h=Gdx.graphics.getHeight();
         if(survivors.clock.started()){font.setColor(.9f,.4f,.35f,1);font.getData().setScale(.85f);status.setLength(0);status.append(survivors.clock.state()==com.finalanswer.protocol.CursedSurvivorTimeline.State.COMPLETED?"THE SURVIVORS":"SURVIVORS EMERGE").append("  /  ").append(survivors.clock.count());layout.setText(font,status);font.draw(ui,layout,(Gdx.graphics.getWidth()-layout.width)/2,h-(networkPlayer==null?65:122));}
@@ -117,7 +130,7 @@ public final class CursedBoxesRenderer implements Disposable {
         title.setColor(.76f,.58f,.33f,1);layout.setText(title,"CURSED BOXES");title.draw(ui,layout,(w-layout.width)/2,h-12);
         font.setColor(.57f,.48f,.38f,1);font.getData().setScale(.72f);font.draw(ui,"F I N A L   A N S W E R",30,h-25);
         font.getData().setScale(.8f);font.draw(ui,networkPlayer!=null?(turn.shotLimit()==1?"PHONE CONTROL / ONE SHOT":"PHONE CONTROL / TWO SHOTS"):characterTest==null?"ONE SPIRIT. SIXTEEN BOXES.":"EIGHT PLAYERS. NINE SHOTS.",w-260,h-27);
-        if(networkPlayer!=null){font.setColor(.89f,.73f,.49f,1);layout.setText(font,networkPlayer);font.draw(ui,layout,(w-layout.width)/2,h-75);font.getData().setScale(.65f);layout.setText(font,networkMessage);font.draw(ui,layout,(w-layout.width)/2,h-96);}
+        if(networkPlayer!=null){font.setColor(.89f,.73f,.49f,1);layout.setText(font,networkPlayer,0,networkPlayer.length(),font.getColor(),w*.55f,Align.center,false,"...");font.draw(ui,layout,w*.225f,h-75);font.getData().setScale(.65f);String message=gun.magazine.loading()?"LOADING THE SHOTGUN":gun.state()==ShotgunController.State.PICKUP?"LIFTING THE SHOTGUN":gun.state()==ShotgunController.State.AIMING?"TAKING AIM":networkMessage;layout.setText(font,message,0,message.length(),font.getColor(),w*.65f,Align.center,false,"...");font.draw(ui,layout,w*.175f,h-96);}
         font.getData().setScale(.9f);font.setColor(.65f,.57f,.45f,1);
         if(networkPlayer==null||performance.visible)font.draw(ui,networkPlayer==null?"CLICK select   SPACE fire   R reset   F11 fullscreen   F3 stats   Q effects   F8 survivors   ESC return":"PHONE select / fire   F11 fullscreen   F3 stats   Q effects   F8 survivors   ESC return to lobby",30,28);
         else font.draw(ui,"CHOOSE ON YOUR PHONE. WATCH THE GALLERY.",30,28);
@@ -137,9 +150,9 @@ public final class CursedBoxesRenderer implements Disposable {
         for(CrateSlot slot:slots)if(slot.character!=null&&slot.occupantNickname!=null&&(slot.previewHidden||slot.state==CrateSlot.State.DESTROYED||slot.survivorOpening&&survivors.clock.characterOpacity(slot.id)>.8f)){
             float alpha=1;
             camera.project(namePosition.set(slot.position.x,slot.position.y-.66f,slot.position.z+.12f));
-            font.setColor(.025f,.012f,.005f,alpha);layout.setText(font,slot.occupantNickname);float nx=namePosition.x-layout.width*.5f,ny=namePosition.y;
+            font.setColor(.025f,.012f,.005f,alpha);layout.setText(font,slot.occupantNickname,0,slot.occupantNickname.length(),font.getColor(),w*.105f,Align.center,false,"...");float nx=namePosition.x-w*.0525f,ny=namePosition.y;
             font.draw(ui,layout,nx+1,ny-1);
-            font.setColor(.88f,.74f,.5f,alpha);layout.setText(font,slot.occupantNickname);font.draw(ui,layout,nx,ny);
+            font.setColor(.88f,.74f,.5f,alpha);layout.setText(font,slot.occupantNickname,0,slot.occupantNickname.length(),font.getColor(),w*.105f,Align.center,false,"...");font.draw(ui,layout,nx,ny);
         }
         if(characterTest!=null){
             float x=w-365,y=h-85;
@@ -156,6 +169,7 @@ public final class CursedBoxesRenderer implements Disposable {
     }
     private String weaponStatus(ShotgunController gun,CursedBoxesTurn turn,CrateSlot selected){
         if(gun.returning())return "RETURNING";
+        if(gun.magazine.loading())return "LOADING / CHAMBERING";
         if(turn.ended())return "TURN COMPLETE";
         if(gun.resting())return "SELECT A BOX";
         if(!gun.gun.readyToFire())return "CYCLING";
@@ -189,5 +203,5 @@ public final class CursedBoxesRenderer implements Disposable {
             Gdx.gl.glFinish();
         }finally{gun.warmupAudio(false);loadingStats.dispose();}
     }
-    @Override public void dispose(){survivors.dispose();background.dispose();firing.dispose();world.dispose();shelf.dispose();decals.dispose();strategy.dispose();ui.dispose();font.dispose();title.dispose();}
+    @Override public void dispose(){survivors.dispose();background.dispose();firing.dispose();world.dispose();shelf.dispose();decals.dispose();strategy.dispose();frame.dispose();ui.dispose();font.dispose();title.dispose();}
 }

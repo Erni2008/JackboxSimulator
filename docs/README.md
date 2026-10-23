@@ -12,6 +12,8 @@
 
 ## CURSED BOXES
 
+- [Живой туман и синхронизация дробовика](cursed-boxes/gallery-fog.md)
+
 - [Пять патронов и дозарядка дробовика](cursed-boxes/shotgun-magazine.md)
 
 - [Current gallery integration](cursed-boxes/README.md)
@@ -70,6 +72,8 @@
 - [FINAL ANSWER modular shotgun](shotgun/README.md)
 
 ## Разработка и проверки
+
+- [Графика, память, размер сборки и удобство телефонов](development/production-polish.md)
 
 - [Восстановление телефонного контроллера](development/controller-recovery.md)
 

@@ -42,6 +42,8 @@ public final class CursedBoxesCharactersLauncher {
             @Override public void render(){if(failure!=null||rendering||finished)return;rendering=true;try{
                 if(demo==null){super.render();return;}
                 if(!qa){if(!started){started=true;if(Boolean.getBoolean("cursed.characterAuto"))demo.keyDown(Input.Keys.T);}super.render();return;}
+                if(demo.mechanismState()==com.erni.finalanswer.shotgun.ShotgunAnimator.State.RELOAD)
+                    check(demo.weaponState()==ShotgunController.State.LOADING,"Inserting shells before pickup completed");
                 if(!started){
                     started=true;models=demo.loadedModels();textures=Texture.getNumManagedTextures();
                     demo.sounds().levels.master=.12f;check(demo.sounds().loaded()==CursedBoxesSoundManager.cueCount(),"All original and additional WAVs preloaded");
@@ -78,7 +80,7 @@ public final class CursedBoxesCharactersLauncher {
                 check(demo.loadedModels()==models&&Texture.getNumManagedTextures()==textures,"Character switch leaked/loaded resources");
                 var test=demo.characterTest();int id=test.targetIndex(),slot=test.slot();String name=id==8?"EMPTY":CursedCharacterType.values()[id].name();
                 if(phase==0){
-                    if(!previews[id]&&demo.aimedAtSelected()&&demo.slots[slot].state==CrateSlot.State.INTACT){
+                    if(!previews[id]&&!demo.turn.active()&&(demo.aimedAtSelected()||demo.weaponState()==ShotgunController.State.LOADING)&&demo.slots[slot].state==CrateSlot.State.INTACT){
                         check(demo.turn.shotsRemaining()==9-id&&demo.slots[slot].state==CrateSlot.State.INTACT,"Preview changed gameplay state");
                         previews[id]=true;
                     }
@@ -100,7 +102,7 @@ public final class CursedBoxesCharactersLauncher {
                     check(sound.playCount(CursedBoxesSoundManager.Cue.SHOT)==9&&sound.playCount(CursedBoxesSoundManager.Cue.WOOD_BREAK)==9&&sound.playCount(CursedBoxesSoundManager.Cue.MECHANISM)==11,"Nine cycles plus initial and refill mechanism cues");
                     check(sound.playCount(CursedBoxesSoundManager.Cue.INSERT_ROUND)==9&&demo.loadedRounds()==0,"Five initial shells plus four refill shells, all nine consumed");
                     check(!sound.heartbeatActive(),"Shot test leaves no heartbeat");
-                    Gdx.app.log("Cursed audio","PASS: 8 WAVs decoded, 9 shots/wood cues, 11 mechanical cues, 5+4 real insertions; visible shell contacts="+sound.playCount(CursedBoxesSoundManager.Cue.SHELL_DROP));
+                    Gdx.app.log("Cursed audio","PASS: "+sound.loaded()+" WAVs decoded, 9 shots/wood cues, 11 mechanical cues, 5+4 real insertions; visible shell contacts="+sound.playCount(CursedBoxesSoundManager.Cue.SHELL_DROP));
                     Gdx.files.absolute(System.getProperty("cursed.characterOutput")+"/audio.json").writeString("{\"loaded\":"+sound.loaded()+",\"shots\":"+sound.playCount(CursedBoxesSoundManager.Cue.SHOT)+",\"wood\":"+sound.playCount(CursedBoxesSoundManager.Cue.WOOD_BREAK)+",\"cycles\":"+sound.playCount(CursedBoxesSoundManager.Cue.MECHANISM)+",\"visibleShellContacts\":"+sound.playCount(CursedBoxesSoundManager.Cue.SHELL_DROP)+",\"insertions\":"+sound.playCount(CursedBoxesSoundManager.Cue.INSERT_ROUND)+"}",false);
                     int intact=0,destroyed=0;
                     for(CrateSlot box:demo.slots){

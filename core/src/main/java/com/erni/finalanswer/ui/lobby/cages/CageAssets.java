@@ -31,7 +31,7 @@ public final class CageAssets implements Disposable {
 
     private TextureRegion load(String relative) {
         String path = "lobby/" + relative;
-        if (!Gdx.files.internal(path).exists()) throw new IllegalStateException("Missing cage asset: assets/" + path);
+        if (!(relative.startsWith("characters/")?Gdx.files.internal(path).exists():RuntimeTextures.exists(path))) throw new IllegalStateException("Missing cage asset: assets/" + path);
         Texture texture = relative.startsWith("characters/") ? CharacterTextures.load(path) : RuntimeTextures.load(path);
         owned.add(texture);
         return new TextureRegion(texture);

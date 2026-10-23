@@ -21,12 +21,15 @@ public final class ShotgunMagazine {
     }
     public boolean canFire(){return !initial&&!loading()&&rounds>0;}
     public void fired(){if(!canFire())throw new IllegalStateException("Magazine is not ready");rounds--;}
-    public void update(int remaining){
+    public void update(int remaining){update(remaining,true);}
+    /** Starting a batch requires a held weapon; completing an active batch is never suspended. */
+    public void update(int remaining,boolean held){
         if(remaining<0)throw new IllegalArgumentException("Negative remaining shots");
         if(loading()){
             if(!animator.isAnimating()&&animator.chamber()==ShotgunAnimator.Chamber.LIVE){rounds=loadingTarget;loadingTarget=0;initial=false;}
             return;
         }
+        if(!held)return;
         if(animator.isAnimating()||animator.chamber()==ShotgunAnimator.Chamber.SPENT)return;
         if(rounds>0){if(animator.chamber()==ShotgunAnimator.Chamber.EMPTY)animator.chamber(ShotgunAnimator.Chamber.LIVE);return;}
         int count=initial?CAPACITY:Math.min(CAPACITY,remaining);

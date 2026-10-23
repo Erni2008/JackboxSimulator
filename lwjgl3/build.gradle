@@ -19,7 +19,7 @@ apply plugin: 'io.github.fourlastor.construo'
 
 import io.github.fourlastor.construo.Target
 
-sourceSets.main.resources.srcDirs += [ rootProject.file('assets').path ]
+apply from: rootProject.file('gradle/desktop-assets.gradle')
 application.mainClass = 'com.erni.finalanswer.lwjgl3.Lwjgl3Launcher'
 application.applicationName = appName
 eclipse.project.name = appName + '-lwjgl3'
@@ -826,6 +826,18 @@ tasks.register('questionAudioNativeCheck', JavaExec) {
     classpath = sourceSets.dev.runtimeClasspath
     mainClass = 'com.erni.finalanswer.lwjgl3.QuestionAudioNativeCheck'
     workingDir = rootProject.file('assets')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+// No working-directory fallback to source assets: exercises the actual resource staging contract.
+tasks.register('packagedAssetsCheck', JavaExec) {
+    group = 'verification'
+    dependsOn devClasses, tasks.named('jar')
+    classpath = files(sourceSets.dev.output, tasks.named('jar').flatMap { it.archiveFile })
+    mainClass = 'com.erni.finalanswer.lwjgl3.PackagedAssetsCheck'
+    workingDir = layout.buildDirectory.get().asFile
+    systemProperty 'packaging.qa.dir', layout.buildDirectory.dir('packaging-preferences').get().asFile.absolutePath
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }

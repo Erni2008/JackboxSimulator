@@ -1,0 +1,58 @@
+// Development retains original art. The distribution carries one working texture per logical asset.
+// No lossy processing here: all display textures were prepared by the existing root pipeline.
+def stagedAssets = layout.buildDirectory.dir('runtime-assets')
+def sourceAssets = rootProject.file('assets')
+def dimensions = rootProject.file('assets/runtime/sizes.properties')
+def preparedPaths = new HashSet<String>()
+
+tasks.register('stageDesktopAssets', Sync) {
+    group = 'build'
+    description = 'Stage runtime resources without redundant full-resolution UI sources or editor files.'
+    dependsOn rootProject.tasks.named('generateAssetList')
+    inputs.file(dimensions)
+    from(sourceAssets) {
+        exclude 'assets.txt', '**/*.blend', '**/*.blend1', '**/*.md', '**/.DS_Store'
+        // Original 4K maps are retained in the workspace. Use the already validated game models.
+        exclude 'models/shotgun/shotgun_bolt.glb', 'models/shotgun/shotgun_shell.glb'
+        exclude 'sounds/questions/background_music2.wav'
+        exclude { entry ->
+            if (entry.directory) return false
+            preparedPaths.contains(entry.relativePath.pathString)
+        }
+    }
+    from(new File(sourceAssets, 'cursed_boxes/shotgun')) {
+        include 'shotgun_bolt.glb', 'shotgun_shell.glb'
+        into 'models/shotgun'
+    }
+    into stagedAssets
+    doFirst {
+        // A stale/missing prepared counterpart must fail packaging, never ship a broken runtime.
+        def sizes = new Properties()
+        dimensions.withInputStream { sizes.load(it) }
+        preparedPaths.clear(); preparedPaths.addAll(sizes.stringPropertyNames())
+        sizes.stringPropertyNames().each { path ->
+            if (!new File(sourceAssets, "runtime/${path}").isFile())
+                throw new GradleException("Missing prepared desktop texture: ${path}")
+        }
+        ['cursed_boxes/shotgun/shotgun_bolt.glb', 'cursed_boxes/shotgun/shotgun_shell.glb',
+         'sounds/questions/runtime/background_music2.wav'].each { path ->
+            if (!new File(sourceAssets, path).isFile()) throw new GradleException("Missing runtime replacement: ${path}")
+        }
+    }
+    doLast {
+        def directory = stagedAssets.get().asFile
+        def paths = fileTree(directory).files.collect {
+            directory.toPath().relativize(it.toPath()).toString().replace('\\', '/')
+        }.sort()
+        new File(directory, 'assets.txt').setText(paths.join('\n') + '\n', 'UTF-8')
+        long originalBytes = fileTree(sourceAssets).files.sum { it.length() } as long
+        long runtimeBytes = fileTree(directory).files.sum { it.length() } as long
+        logger.lifecycle("Desktop resources: ${originalBytes} -> ${runtimeBytes} bytes (original artwork preserved).")
+    }
+}
+sourceSets.main.resources.srcDir(stagedAssets)
+tasks.named('processResources') {
+    dependsOn tasks.named('stageDesktopAssets')
+    // ProcessResources is a Copy task: it otherwise retains previously shipped originals.
+    doFirst { project.delete(destinationDir) }
+}

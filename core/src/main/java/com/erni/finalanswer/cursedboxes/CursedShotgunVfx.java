@@ -31,6 +31,7 @@ final class CursedShotgunVfx implements Disposable {
         for(int i=0;i<puffs.length;i++){puffs[i]=Decal.newDecal(1,1,region,true);origins[i]=new Vector3();}
         for(int i=0;i<sparks.length;i++)sparks[i]=Decal.newDecal(.025f,.025f,spark,GL20.GL_SRC_ALPHA,GL20.GL_ONE);
     }
+    Texture smokeTexture(){return smoke;}
     void fire(ModularShotgun gun){
         age=0;state=State.FLASHING;gun.muzzle(start);gun.barrelDirection(direction);
         for(int i=0;i<origins.length;i++)origins[i].set(start).mulAdd(direction,.015f*i);

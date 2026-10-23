@@ -12,13 +12,13 @@ public final class CursedBoxesSoundManager implements Disposable {
     public enum Category { SHOTGUN, RELOAD, SHELL, WOOD, HEARTBEAT, REVEAL }
     public enum Cue {
         SHOT("shotgun_shoot_done.wav",Category.SHOTGUN,true),
-        MECHANISM("reload_done.wav",Category.RELOAD),
+        MECHANISM("reload_done.wav",Category.RELOAD,true),
         SHELL_DROP("773860__mrgungus__12-guage-shotgun-shell-drop.wav",Category.SHELL),
         WOOD_BREAK("box_destroy_done.wav",Category.WOOD,true),
         HEARTBEAT("heart_beating_done.wav",Category.HEARTBEAT),
         REVEAL_START("reveal_sound2(done).wav",Category.REVEAL),
         REVEAL_COMPLETE("reveal_done.wav",Category.REVEAL),
-        INSERT_ROUND("reload_done(bullets).wav",Category.RELOAD),
+        INSERT_ROUND("reload_done(bullets).wav",Category.RELOAD,true),
         WOOD_EXTRA("shooted_box2.wav",Category.WOOD,true),
         APPEARANCE_1("appearance.wav",Category.REVEAL), APPEARANCE_2("appearance2.wav",Category.REVEAL),
         APPEARANCE_3("appearance3.wav",Category.REVEAL), APPEARANCE_4("appearance4.wav",Category.REVEAL),
@@ -50,8 +50,6 @@ public final class CursedBoxesSoundManager implements Disposable {
     private int loaded,smokeCues;
     private long weaponSequence,lastImpact=-1,landedShell=-1;
     private boolean loading,paused,muted,disposed,revealObserved,heartbeatWanted,heartbeatAttempted;
-    private long insertionReload=-1;
-    private int insertionHeard;
     private ShotgunAnimator.State weaponState=ShotgunAnimator.State.IDLE;
     private float heartbeatGain,previousRevealAge;
     public CursedBoxesSoundManager(){this(path->Gdx.audio.newSound(Gdx.files.internal(path)));loading=true;}
@@ -110,17 +108,16 @@ public final class CursedBoxesSoundManager implements Disposable {
         if(disposed||sequence<=weaponSequence)return;weaponSequence=sequence;
         switch(event){
             case FIRED->{AudioMix.GLOBAL.important(.3f);play(Cue.SHOT);}
-            case CYCLE_STARTED->play(Cue.MECHANISM);
+            case CYCLE_STARTED,RELOAD_CLOSING->play(Cue.MECHANISM);
+            case ROUND_INSERTED->play(Cue.INSERT_ROUND);
             case RESET->reset();
             default->{/* Ejection is not floor contact, and chamber refill is not insertion. */}
         }
     }
-    /** Consume insertion markers once, including multiple rounds within the same reload state. */
+    /** Standalone inspection open/close poses; production loading uses animator contact/closing events. */
     public void weaponPose(ShotgunAnimator animator){
         var next=animator.state();
-        if(next!=weaponState&&(next==ShotgunAnimator.State.RELOAD||next==ShotgunAnimator.State.OPENING||next==ShotgunAnimator.State.CLOSING))play(Cue.MECHANISM);
-        if(insertionReload!=animator.reloadSerial()){insertionHeard=insertionReload<0&&next!=ShotgunAnimator.State.RELOAD?animator.insertionCount():0;insertionReload=animator.reloadSerial();}
-        while(insertionHeard<animator.insertionCount()){insertionHeard++;play(Cue.INSERT_ROUND);}
+        if(next!=weaponState&&(next==ShotgunAnimator.State.OPENING||next==ShotgunAnimator.State.CLOSING))play(Cue.MECHANISM);
         weaponState=next;
     }
     public void impact(long shotSerial){if(shotSerial<=lastImpact)return;lastImpact=shotSerial;AudioMix.GLOBAL.important(.3f);play(Cue.WOOD_BREAK);play(Cue.WOOD_EXTRA);}
@@ -171,6 +168,6 @@ public final class CursedBoxesSoundManager implements Disposable {
     public long playCount(Cue cue){return plays[cue.ordinal()];}
     public boolean heartbeatActive(){return voices[Cue.HEARTBEAT.ordinal()]>=0;}
     public void stop(){if(hostVoice!=null)try{hostVoice.stop();}catch(RuntimeException error){warning.accept("Cannot stop host voice: "+error.getMessage());}for(int i=0;i<sounds.length;i++){if(sounds[i]!=null)try{sounds[i].stop();}catch(RuntimeException error){warn(CUES[i],"Cannot stop",error);}voices[i]=-1;}heartbeatGain=0;heartbeatWanted=heartbeatAttempted=false;}
-    public void reset(){stop();insertionReload=-1;insertionHeard=0;lastImpact=landedShell=-1;smokeCues=appearanceCues=0;lastSpecialReveal=-1;hostAnnounced=revealObserved=false;previousRevealAge=0;weaponState=ShotgunAnimator.State.IDLE;}
+    public void reset(){stop();lastImpact=landedShell=-1;smokeCues=appearanceCues=0;lastSpecialReveal=-1;hostAnnounced=revealObserved=false;previousRevealAge=0;weaponState=ShotgunAnimator.State.IDLE;}
     @Override public void dispose(){if(disposed)return;stop();disposed=true;for(int i=0;i<sounds.length;i++)if(sounds[i]!=null)try{sounds[i].dispose();}catch(RuntimeException error){warn(CUES[i],"Cannot dispose",error);}if(hostVoice!=null)try{hostVoice.dispose();}catch(RuntimeException error){warning.accept("Cannot dispose host voice: "+error.getMessage());}}
 }

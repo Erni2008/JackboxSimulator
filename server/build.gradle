@@ -45,31 +45,28 @@ tasks.register('impostorBrowserFixture', JavaExec) {
     systemProperty 'impostor.fixture.dir', layout.buildDirectory.dir('impostor-browser').get().asFile.absolutePath
 }
 
-// Explicit public artwork allowlist. Only build resources are copied; no filesystem route.
+// Public artwork allowlist stays identical. Ship prepared display copies at the same URLs.
+// Character assignments, private assets and arbitrary filesystem routes remain inaccessible.
+def publicArt = [
+    'ui/buttons/player_count/*.png', 'ui/windows/create_room/field*.png',
+    'ui/windows/generation_code/CodeField.png', 'impostor/backgrounds/background1.png',
+    'impostor/papers/suspect_papper.png', 'impostor/papers/papper_player_front.png',
+    'impostor/portraits/impostor_avatar_frame.png', 'impostor/voting/suspect_print.png',
+    'impostor/clock/clockmini.png', 'impostor/clock/arrow_clock1.png',
+    'ui/fonts/RoadRage-Regular.ttf', 'ui/fonts/RoadRage-OFL.txt',
+    'ui/fonts/Caveat-Variable.ttf', 'ui/fonts/Caveat-OFL.txt',
+    'impostor/phone/papper3dview.png', 'impostor/phone/pen.png', 'impostor/phone/word_reminise.png',
+    'cursed_boxes/phone/crate-intact.png', 'cursed_boxes/phone/crate-destroyed.png'
+]
 processResources {
+    dependsOn rootProject.tasks.named('prepareRuntimeTextures')
     from(rootProject.file('assets')) {
-        include 'ui/buttons/player_count/*.png', 'ui/windows/create_room/field*.png',
-                'ui/windows/generation_code/CodeField.png', 'impostor/backgrounds/background1.png',
-                'impostor/papers/suspect_papper.png', 'impostor/papers/papper_player_front.png',
-                'impostor/portraits/impostor_avatar_frame.png', 'impostor/voting/suspect_print.png', 'impostor/clock/clockmini.png', 'impostor/clock/arrow_clock1.png',
-                'ui/fonts/RoadRage-Regular.ttf', 'ui/fonts/RoadRage-OFL.txt',
-                'ui/fonts/Caveat-Variable.ttf', 'ui/fonts/Caveat-OFL.txt'
+        include publicArt
+        exclude { entry -> new File(rootProject.file('assets/runtime'), entry.relativePath.pathString).isFile() }
         into 'web/art'
     }
-}
-
-// Browser controllers share these original files with desktop packaging.
-processResources {
-    from(rootProject.file('assets')) {
-        include 'impostor/phone/papper3dview.png', 'impostor/phone/pen.png', 'impostor/phone/word_reminise.png'
-        into 'web/art'
-    }
-}
-
-// Public phone art only: previews of the original empty crate models. No private character map/assets.
-processResources {
-    from(rootProject.file('assets')) {
-        include 'cursed_boxes/phone/crate-intact.png', 'cursed_boxes/phone/crate-destroyed.png'
+    from(rootProject.file('assets/runtime')) {
+        include publicArt
         into 'web/art'
     }
 }

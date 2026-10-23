@@ -33,25 +33,32 @@ button:focus-visible,select:focus-visible{outline:2px solid #f0cf9e;outline-offs
 .confirmation-panel{border-bottom:2px solid #b99a66;box-shadow:0 8px 24px #0004}
 #final-results li{display:block;border-left:2px solid #ae8859;padding:16px;overflow-wrap:anywhere}
 #final-personal{padding:20px 12px;border-block:1px solid var(--controller-line);background:radial-gradient(ellipse,#6e40252b,transparent 75%)}
-.fa-button.suspect-card[aria-pressed=true]{outline:2px solid #ddbb87;outline-offset:2px}
+.fa-button.suspect-card[aria-pressed=true]{outline:2px solid #ddbb87;outline-offset:2px;transform:translateY(-3px)}
 body[data-controller=cursed] .controller-director{padding:10px 12px;margin-bottom:12px}
 body[data-controller=cursed] .director-steps{margin:10px 0 8px}
 body[data-controller=cursed] .director-label{font-size:11px}
 body[data-controller=cursed] .director-note{font-size:11px}
 body[data-controller=cursed] #leave.fa-button{min-height:44px;height:44px}
 body[data-controller=cursed] #cursed-status{font-size:11px;line-height:1.65;letter-spacing:.02em}
-#cursed-selected{font-size:11px;letter-spacing:.08em}
+#cursed-selected{font-size:12px;letter-spacing:.08em;font-variant-numeric:tabular-nums;color:#edcf9e;margin:0 0 10px}
 #cursed-current-player{font-size:10px}
 .cursed-box.selected .cursed-box-plate{background:#ead2a5;color:#35151a;font-weight:700}
 .cursed-box.selected::after{border:2px solid #e8bb83;background:linear-gradient(150deg,#e6bd8524,transparent 65%)}
 #cursed-screen[data-role=HIDING] .cursed-box.selected{border-color:#d4b27b;box-shadow:0 0 0 2px #b69a66,0 0 18px #b58a4938}
 #cursed-screen[data-role=HIDING] .cursed-fire:not(:disabled){background:linear-gradient(140deg,#66502e,#35241c);border-color:#dbc08a}
+#cursed-screen .cursed-controls{padding:12px;border:1px solid #aa795333;border-top-color:#b18d5e66;background:linear-gradient(135deg,#39251b55,#140c12aa);box-shadow:inset 0 1px #f0d4a50a}
 #cursed-screen .cursed-result{padding:14px;border-left-width:3px}
+#cursed-screen[data-role=HIDING] .cursed-controls{border-top-color:#bda46f88}
+#cursed-screen .cursed-box.selected .cursed-box-plate{padding:2px 5px;box-shadow:0 1px 4px #0009}
+#impostor-screen #impostor-countdown,#final-screen #final-timer{font-variant-numeric:tabular-nums;letter-spacing:.07em;color:#e6c79b}
+#final-screen .vote-draft{border-top:2px solid #c09d6b;background:linear-gradient(125deg,#47302b88,#170f15);padding:16px 18px}
+@media(hover:hover){.fa-button.suspect-card:not(:disabled):hover{transform:translateY(-2px)}}
 #cursed-result-detail{font-size:12px;line-height:1.6}
 @media(max-width:360px){.controller-director{padding:10px}.director-top{font-size:9px}.director-private{font-size:7px}.director-step{font-size:8px;letter-spacing:.04em}body[data-controller=cursed] main{padding-inline:10px}}
 @media(orientation:landscape) and (max-height:540px){.controller-director{margin-bottom:10px;padding:8px 12px}.director-steps{margin:6px 0}.director-note{font-size:11px}body[data-controller=cursed] .controller-director{margin-bottom:8px}.director-private{display:none}}
 @media(prefers-reduced-motion:no-preference){.director-step{transition:color .2s ease,border-color .2s ease}}
 body[data-reduced-motion=true] .director-step,body[data-effects=false] .director-step{transition:none}
+body[data-reduced-motion=true] .fa-button.suspect-card,body[data-effects=false] .fa-button.suspect-card{transform:none}
 /* Keep the next action close to the thumb, including small phones. */
 body[data-mode] .masthead{display:none}
 body[data-mode] main{margin-top:max(8px,env(safe-area-inset-top))}
@@ -128,3 +135,22 @@ body[data-view=disconnected] main{margin-top:max(14px,env(safe-area-inset-top))}
 .reconnect-countdown:not(:empty){padding:14px 16px;margin:20px 0 12px;border:1px solid #b8956655;border-left:3px solid #bd9460;background:#31202988;color:#ead0a7;font-size:12px;letter-spacing:.1em;font-variant-numeric:tabular-nums}
 .reconnect-assurance{font-size:13px;line-height:1.8;color:#bca9a1;margin:16px 0 22px}
 #retry{max-width:320px}
+
+/* Three suspects form one balanced row; smaller phones keep the spacious two-column layout. */
+@media(min-width:375px){
+ #final-cards:has(> :nth-child(3):last-child){grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+ #final-cards:has(> :nth-child(3):last-child) .suspect-card{min-height:135px;padding:12px 8px 30px;font-size:13px}
+ #final-cards:has(> :nth-child(3):last-child) .fa-selection{font-size:14px;bottom:14px;left:6px;right:6px}
+}
+
+.clue-compose-meta{display:flex;justify-content:space-between;gap:12px;max-width:330px;margin:10px auto 0;color:#bda88e;font-size:9px;letter-spacing:.05em;font-variant-numeric:tabular-nums}
+#clue-length{white-space:nowrap;color:#dfc395}
+body[data-keyboard=open][data-presentation-phase=ROUND_CLUE_INPUT] .controller-director,
+body[data-keyboard=open] #impostor-screen[data-phase=ROUND_CLUE_INPUT] .role-panel{display:none}
+body[data-keyboard=open] #clue-form{margin-top:8px}
+body[data-keyboard=open] #parchment-surface{width:min(100%,210px)}
+body[data-keyboard=open] #clue-input,body[data-keyboard=open] .parchment-ink{font-size:28px}
+body[data-keyboard=open] #impostor-countdown{padding-top:0}
+
+#clue-form[hidden] .writing-pen,body[data-reduced-motion=true] .writing-pen,body[data-effects=false] .writing-pen{will-change:auto}
+@media(prefers-reduced-motion:reduce){.writing-pen{will-change:auto}}

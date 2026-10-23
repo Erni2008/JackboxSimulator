@@ -23,7 +23,7 @@ public final class ImpostorAssets implements Disposable {
         loaded = true;
         for (ImpostorAsset asset : ImpostorAsset.values()) {
             try {
-                if (!Gdx.files.internal(asset.path()).exists()) {
+                if (!RuntimeTextures.exists(asset.path())) {
                     report(asset, "Missing asset");
                     continue;
                 }

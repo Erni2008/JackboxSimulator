@@ -46,16 +46,17 @@ public final class CursedBoxesSoundCheck {
         audio.muted(true);audio.weaponEvent(ShotgunAnimator.Event.FIRED,5);check(audio.playCount(SHOT)==2,"Mute consumes without replay");audio.muted(false);
         Fixture insert=new Fixture();var config=new ShotgunConfig();var animator=new ShotgunAnimator(config);animator.listener(insert.audio::weaponEvent);
         check(animator.playReloadAnimation(),"Existing insertion animation starts");insert.audio.weaponPose(animator);
-        check(insert.audio.playCount(MECHANISM)==1&&insert.audio.playCount(INSERT_ROUND)==0,"No early insertion sound");
+        check(insert.audio.playCount(MECHANISM)==0&&insert.audio.playCount(INSERT_ROUND)==0,"No rack or insertion before contact");
         animator.update(config.reloadDuration*.26f);insert.audio.weaponPose(animator);insert.audio.weaponPose(animator);
-        check(insert.audio.playCount(INSERT_ROUND)==1,"Insertion at shell MOVING, once");
+        check(insert.audio.playCount(INSERT_ROUND)==0,"Shell movement is not insertion contact");
+        animator.update(config.reloadDuration*.35f);check(insert.audio.playCount(INSERT_ROUND)==1&&insert.audio.playCount(MECHANISM)==1,"Insertion then mechanical close at timeline markers");
         animator.update(config.reloadDuration);insert.audio.weaponPose(animator);check(insert.audio.playCount(INSERT_ROUND)==1,"Reload completion is not another insertion");
         animator.chamber(ShotgunAnimator.Chamber.LIVE);insert.audio.weaponPose(animator);check(insert.audio.playCount(INSERT_ROUND)==1,"Automatic ammo refill stays silent");
         Fixture batch=new Fixture();var batchAnimator=new ShotgunAnimator(config);
         batchAnimator.listener(batch.audio::weaponEvent);
         check(batchAnimator.playReloadAnimation(5),"Batch insertion starts");batch.audio.weaponPose(batchAnimator);
         for(int frame=0;frame<400;frame++){batchAnimator.update(1f/60);batch.audio.weaponPose(batchAnimator);}
-        check(batch.audio.playCount(INSERT_ROUND)==5&&batch.audio.playCount(MECHANISM)==1,"Five real insertions, one mechanism start");
+        check(batch.audio.playCount(INSERT_ROUND)==5&&batch.audio.playCount(MECHANISM)==1,"Five contacts then one mechanical close");
         batch.audio.weaponPose(batchAnimator);check(batch.audio.playCount(INSERT_ROUND)==5,"No duplicate insertion after loading");
         batch.audio.reset();batch.audio.weaponPose(batchAnimator);check(batch.audio.playCount(INSERT_ROUND)==5,"Reset at idle does not replay completed insertions");
         Fixture r=new Fixture();var timeline=new CursedSurvivorTimeline();timeline.start(0x15);

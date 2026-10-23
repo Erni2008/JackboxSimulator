@@ -30,7 +30,7 @@ public final class CursedBoxesPhoneCheck {
         var config=new Lwjgl3ApplicationConfiguration();config.setTitle(FULL_ROUND?"FINAL ANSWER — FULL ROUND / 2 HIDERS + 2 SHOOTERS":"FINAL ANSWER — CURSED BOXES / PHONE CHECK");config.setWindowedMode(1280,800);config.useVsync(true);config.setForegroundFPS(60);
         config.setPreferencesConfig(directory.resolve("preferences").toString(),com.badlogic.gdx.Files.FileType.Absolute);
         try{new Lwjgl3Application(new FinalAnswerGame(HostingAccess.external(url)){
-            String processed="";double elapsed;float poll,startWait;boolean rendering,finished;int impacts,reactions,checkedFrames,flashFrames,reloadFrames;
+            String processed="";double elapsed;float poll,startWait;boolean rendering,finished,capturedLoading;int impacts,reactions,checkedFrames,flashFrames,reloadFrames;
             CursedBoxesPerformanceCheck.AuditGL audit;
             final ExecutorService snapshots=Executors.newSingleThreadExecutor();
             Future<?> snapshot;
@@ -107,6 +107,9 @@ public final class CursedBoxesPhoneCheck {
                 if(audit!=null)audit.clear();super.render();elapsed+=Gdx.graphics.getDeltaTime();poll+=Gdx.graphics.getDeltaTime();
                 if(!FULL_ROUND&&elapsed>600)throw new AssertionError("Phone fixture timed out");
                 if(sceneBefore&&getScreen() instanceof CursedBoxesScreen scene){
+                    if(scene.mechanismState()==com.erni.finalanswer.shotgun.ShotgunAnimator.State.RELOAD)
+                        check(scene.weaponState()==ShotgunController.State.LOADING,"Reload must hold a raised weapon, never a table/pickup pose");
+                    if(FULL_ROUND&&!capturedLoading&&scene.mechanismState()==com.erni.finalanswer.shotgun.ShotgunAnimator.State.RELOAD&&scene.sounds().playCount(CursedBoxesSoundManager.Cue.INSERT_ROUND)>0){capturedLoading=true;capture("loading-right");}
                     if(scene.muzzleFlashIntensity()>0)flashFrames++;if(scene.mechanismState()==com.erni.finalanswer.shotgun.ShotgunAnimator.State.RELOAD)reloadFrames++;
                     check(scene.characterTest()==null&&scene.turn.shotLimit()==(FULL_ROUND?1:2),"Developer nine-shot mode entered multiplayer");
                     check(scene.loadedModels()==11,"Shared models lost");check(scene.sounds().loaded()==CursedBoxesSoundManager.cueCount(),"Missing preloaded WAVs");check(audit.compiles==0&&audit.uploads==0&&audit.staticBuffers==0,"Runtime GL loading during multiplayer render");checkedFrames++;

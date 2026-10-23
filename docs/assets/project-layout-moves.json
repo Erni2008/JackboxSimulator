@@ -312,7 +312,7 @@
     "new": "docs/cursed-boxes/audio.md",
     "sha256Before": "80ab712ddbc2bcc99fe56d068ce838068e2a26dfd65387bc09317424f3554bee",
     "kind": "documentation",
-    "sha256After": "e703e4489f7de471b5755bd51be2f6d4aa430110b4c70fefe36672000e92c277"
+    "sha256After": "1da76fdd60afaffeb8e23a1cc0aba1526adf5b91a9117dae308fe36755229214"
   },
   {
     "old": "docs/PLAGUE_DOCTOR_CHARACTER.md",
@@ -690,7 +690,7 @@
     "new": "tools/assets/prepare_cursed_boxes_audio.py",
     "sha256Before": "8886bb56e6deffe500af2d6dfe875776b0294acb42d6c6136aed879cddade5a5",
     "kind": "tool",
-    "sha256After": "57b1dff786f8d231b97b871834ddf122569baf97469104edf1a0ca8532c1d47f"
+    "sha256After": "194f16e81b0d18148e90b829bf077007c705f7b64201584e45ba3c43ad19904c"
   },
   {
     "old": "scripts/check_room_api.py",
@@ -746,7 +746,7 @@
     "new": "tools/checks/check_parchment_browser.cjs",
     "sha256Before": "f482c6a62b53b1f42338961754509baebb2956413fbce8e6fff69b344e0d16cb",
     "kind": "tool",
-    "sha256After": "1aacd38ac3f0ec1f99a348a5aee32314407d3bbdcbd7f59dcc2957ff9fbd1f05"
+    "sha256After": "ef4ea4a16c3bbb40782d678866f9f7820ee65e85630fb831811794a29843ab50"
   },
   {
     "old": "scripts/check_suspicion_browser.cjs",

@@ -17,7 +17,7 @@ public final class RuntimeTextures {
 
     private RuntimeTextures() {}
 
-    public static Texture load(String path) {
+    private static void initialize() {
         if (!initialized) {
             if (Gdx.files.internal("runtime/sizes.properties").exists()) {
                 try (InputStream input = Gdx.files.internal("runtime/sizes.properties").read()) {
@@ -28,6 +28,19 @@ public final class RuntimeTextures {
             }
             initialized = true;
         }
+    }
+
+    /** A distribution may omit the original after the prepared texture has replaced it. */
+    public static boolean exists(String path) {
+        initialize();
+        return Gdx.files.internal(SIZES.containsKey(path) ? "runtime/" + path : path).exists();
+    }
+
+    public static int originalWidth(Texture texture){int[] size=ORIGINAL_SIZES.get(texture);return size==null?texture.getWidth():size[0];}
+    public static int originalHeight(Texture texture){int[] size=ORIGINAL_SIZES.get(texture);return size==null?texture.getHeight():size[1];}
+
+    public static Texture load(String path) {
+        initialize();
         String size = SIZES.getProperty(path);
         Texture texture = new Texture(Gdx.files.internal(size == null ? path : "runtime/" + path));
         texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);

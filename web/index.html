@@ -7,16 +7,16 @@
   <title>Final Answer — Player controller</title>
   <link rel="preload" href="/art/ui/fonts/Caveat-Variable.ttf?v=2" as="font" type="font/ttf" crossorigin>
   <link rel="stylesheet" href="/style.css">
-  <link rel="stylesheet" href="/controller-theme.css?v=role-1">
+  <link rel="stylesheet" href="/controller-theme.css?v=role-2">
   <script src="/final-answer-button.js" defer></script>
   <script src="/final-voting.js?v=5" defer></script>
-  <script src="/parchment-writer.js?v=4" defer></script>
-  <script src="/countdown-clock.js?v=1" defer></script>
-  <script src="/impostor.js?v=5" defer></script>
+  <script src="/parchment-writer.js?v=5" defer></script>
+  <script src="/countdown-clock.js?v=2" defer></script>
+  <script src="/impostor.js?v=6" defer></script>
   <script src="/suspicion.js" defer></script>
   <link rel="stylesheet" href="/cursed-boxes.css?v=1">
   <script src="/cursed-boxes.js?v=2" defer></script>
-  <link rel="stylesheet" href="/controller-polish.css?v=4">
+  <link rel="stylesheet" href="/controller-polish.css?v=polish-2-4">
   <script src="/controller-presentation.js?v=2" defer></script>
   <script src="/connection-health.js?v=1" defer></script>
   <script src="/app.js?v=recovery-1" defer></script>
@@ -99,16 +99,17 @@
       <div class="role-panel"><img class="role-parchment" src="/art/impostor/phone/word_reminise.png" alt="" draggable="false"><h2 id="impostor-role"></h2>
       <p id="impostor-word" class="secret-word"></p>
       <p id="impostor-role-note"></p></div>
-      <canvas id="role-countdown-clock" width="1223" height="1286" role="img" aria-label="Role reveal countdown" hidden></canvas>
+      <canvas id="role-countdown-clock" width="320" height="336" role="img" aria-label="Role reveal countdown" hidden></canvas>
       <p id="impostor-countdown" role="timer"></p>
       <form id="clue-form" hidden>
         <div id="parchment-surface" class="parchment-surface">
           <img class="writing-paper" src="/art/impostor/phone/papper3dview.png" alt="" draggable="false">
           <label for="clue-input" class="writing-hint">TAP TO WRITE<span>ONE WORD · 10 LETTERS</span></label>
           <div class="parchment-ink" aria-hidden="true"></div>
-          <textarea id="clue-input" rows="3" autocomplete="off" autocapitalize="sentences" spellcheck="false" maxlength="10" enterkeyhint="done" aria-label="Write one clue on the parchment" aria-describedby="clue-status"></textarea>
+          <textarea id="clue-input" rows="3" autocomplete="off" autocapitalize="sentences" spellcheck="false" maxlength="10" enterkeyhint="done" aria-label="Write one clue on the parchment" aria-describedby="clue-status clue-length"></textarea>
           <img class="writing-pen" src="/art/impostor/phone/pen.png" alt="" draggable="false">
         </div>
+        <div class="clue-compose-meta"><span>ONE WORD. MAKE IT COUNT.</span><span id="clue-length">0 / 10 LETTERS</span></div>
         <button id="clue-submit" type="submit">CONFIRM</button>
       </form>
       <p id="clue-status" role="status" aria-live="polite"></p>

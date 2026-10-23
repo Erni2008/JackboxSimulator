@@ -4,6 +4,8 @@ function createImpostorController({getState,isAuthenticated,send,now,makeId}) {
   const el=id=>document.getElementById(id);
   const writer=createParchmentWriter(el('clue-input'),el('parchment-surface'));
   const roleClock=new CountdownClock(el('role-countdown-clock'),now);
+  function updateLength(){const count=Array.from(el('clue-input').value.normalize('NFC')).length;el('clue-length').textContent=`${count} / 10 LETTERS`;}
+
   const fitWord=()=>{const word=el('impostor-word');if(mini()?.phase!=='ROLE_REVEAL'){word.style.fontSize='';return;}word.style.fontSize='';let size=parseFloat(getComputedStyle(word).fontSize);while(word.scrollWidth>word.clientWidth&&size>8){size-=1;word.style.fontSize=size+'px';}};
   const roleResize=new ResizeObserver(fitWord);roleResize.observe(el('impostor-word'));document.fonts.ready.then(fitWord);
   let key='',focusKey='',pending=null,error='',timeout,draftKey='',draft='';
@@ -24,7 +26,7 @@ function createImpostorController({getState,isAuthenticated,send,now,makeId}) {
       (!s.activeParticipant?'Wait for the players to reveal their clues.':error||(s.clueSubmitted?'WAITING FOR OTHER PLAYERS':pending?'SENDING YOUR CLUE…':'WRITE ONE CLUE')):
       s.phase==='ROUND_CLUE_REVEAL'?'Watch the shared screen.':s.phase==='EVIDENCE_REVIEW'?'Review the revealed clues on the shared screen.':'Keep your role private. The round will begin shortly.';
     el('clue-confirmation').hidden=!s.clueSubmitted||s.phase!=='ROUND_CLUE_INPUT';
-    fitWord();writer.refresh();tick();
+    fitWord();writer.refresh();updateLength();tick();
     if(allowed()&&focusKey!==next){focusKey=next;requestAnimationFrame(()=>{if(allowed())el('clue-input').focus({preventScroll:true});});}
   }
   function submit(e){e.preventDefault();if(!allowed())return;
@@ -36,7 +38,7 @@ function createImpostorController({getState,isAuthenticated,send,now,makeId}) {
   }
   el('clue-input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing&&e.keyCode!==229){e.preventDefault();el('clue-form').requestSubmit();}});
   el('clue-form').addEventListener('submit',submit);
-  el('clue-input').addEventListener('input',()=>{draftKey=key;draft=el('clue-input').value;});
+  el('clue-input').addEventListener('input',()=>{draftKey=key;draft=el('clue-input').value;updateLength();});
   function suspend(){roleClock.set(0,0,false);writer.sync(false);pending=null;clearTimeout(timeout);key='';el('impostor-word').textContent='';}
   function event(e){if(e.type==='CLUE_REJECTED'&&e.requestId===pending){pending=null;clearTimeout(timeout);error=e.payload?.code==='INVALID_CLUE'?'Invalid clue. Use one new word of up to 10 letters. At most three attempts per round.':'This clue could not be accepted. Refreshing round state…';render();}
     if(e.type==='CLUE_ACCEPTED'&&e.requestId===pending){if(getState().impostorSettings?.soundEnabled!==false)document.dispatchEvent(new CustomEvent('impostor:audio',{detail:{cue:'clue_submitted'}}));pending=null;error='';clearTimeout(timeout);}}

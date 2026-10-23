@@ -51,15 +51,18 @@ public final class CursedBoxesPerformanceCheck {
             @Override public void render(){if(failure!=null)return;try{
                 if(warm<90){demo.render(1f/60);Gdx.gl.glFinish();warm++;return;}
                 if(frame==0){Gdx.app.log("Profile", "cycle="+cycle+" frame="+frame+" warm="+warm);demo.select(5);if(!demo.fire())throw new AssertionError("First fire rejected cycle="+cycle+" selected="+demo.selected());shot=1;}
-                if(frame==145){demo.select(0);if(!demo.fire())throw new AssertionError("Second fire rejected");shot=2;}
+                if(shot==1&&demo.slots[5].state==CrateSlot.State.DESTROYED&&!demo.turn.active()){
+                    demo.select(0);if(!demo.fire())throw new AssertionError("Second fire rejected");shot=2;
+                }
+                if(frame>2400)throw new AssertionError("Shot/loading/return timeline stalled in cycle "+cycle);
                 audit.clear();long before=threads.getThreadAllocatedBytes(Thread.currentThread().threadId());long start=System.nanoTime();
                 demo.render(1f/60);long submitted=System.nanoTime();Gdx.gl.glFinish();long done=System.nanoTime();
                 Sample s=new Sample();s.presentedMs=Gdx.graphics.getRawDeltaTime()*1000;s.cycle=cycle;s.frame=frame;s.shot=shot;s.cpuMs=(submitted-start)/1e6;s.gpuWaitMs=(done-submitted)/1e6;s.totalMs=(done-start)/1e6;s.draws=audit.getDrawCalls();s.compiles=audit.compiles;s.uploads=audit.uploads;s.buffers=audit.buffers;s.staticBuffers=audit.staticBuffers;s.models=demo.loadedModels();s.debris=demo.activeDebris();s.particles=demo.activeParticles();s.textures=Texture.getNumManagedTextures();s.allocated=threads.getThreadAllocatedBytes(Thread.currentThread().threadId())-before;s.heap=Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory();report.samples.add(s);
                 if(s.compiles!=0||s.uploads!=0||s.staticBuffers!=0||s.models!=modelCount||s.textures!=textureCount)throw new AssertionError("Cold asset/shader or resource growth during gameplay");
-                if(frame==120&&demo.slots[5].state!=CrateSlot.State.DESTROYED)throw new AssertionError("Single blast failed");
-                if(frame==299&&demo.weaponState()!=ShotgunController.State.RESTING)throw new AssertionError("Return-to-counter incomplete");
-                if(frame==299&&(demo.turn.shotsRemaining()!=0||!demo.turn.ended()||demo.fire()))throw new AssertionError("Two-shot limit");
-                if(++frame==300){frame=0;cycle++;demo.reset();if(cycle==report.cycles){report.gcCount=gc(false)-initialGc;report.gcMs=gc(true)-initialGcMs;Json json=new Json(com.badlogic.gdx.utils.JsonWriter.OutputType.json);json.setUsePrototypes(false);Gdx.files.absolute(System.getProperty("cursed.profile")).writeString(json.prettyPrint(report),false);Gdx.app.log("Cursed profile","Saved "+report.samples.size()+" measured frames to "+System.getProperty("cursed.profile"));Gdx.app.exit();}}
+                frame++;
+                // Observe completion, including the five-shell opening load; never assume a fixed shot frame.
+                if(shot==2&&demo.turn.ended()&&demo.weaponState()==ShotgunController.State.RESTING){
+                    if(demo.slots[5].state!=CrateSlot.State.DESTROYED||demo.slots[0].state!=CrateSlot.State.DESTROYED||demo.turn.shotsRemaining()!=0||demo.fire())throw new AssertionError("Two-shot destruction/limit");frame=0;cycle++;demo.reset();if(cycle==report.cycles){report.gcCount=gc(false)-initialGc;report.gcMs=gc(true)-initialGcMs;Json json=new Json(com.badlogic.gdx.utils.JsonWriter.OutputType.json);json.setUsePrototypes(false);Gdx.files.absolute(System.getProperty("cursed.profile")).writeString(json.prettyPrint(report),false);Gdx.app.log("Cursed profile","Saved "+report.samples.size()+" measured frames to "+System.getProperty("cursed.profile"));Gdx.app.exit();}}
             }catch(Throwable e){failure=e;Gdx.app.exit();}}
             @Override public void resize(int w,int h){if(demo!=null)demo.resize(w,h);}
             @Override public void dispose(){if(cycle!=report.cycles&&failure==null)failure=new AssertionError("Profile interrupted after "+cycle+" of "+report.cycles+" cycles");if(demo!=null){demo.dispose();if(Texture.getNumManagedTextures()!=0)failure=new AssertionError("Texture leak");}}

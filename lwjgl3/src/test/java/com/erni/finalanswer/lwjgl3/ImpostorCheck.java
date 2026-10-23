@@ -158,13 +158,14 @@ public final class ImpostorCheck extends FinalAnswerGame {
             Gdx.files = (Files) Proxy.newProxyInstance(Files.class.getClassLoader(), new Class<?>[]{Files.class},
                 (proxy, method, args) -> {
                     if (method.getName().equals("internal")) {
-                        if (args[0].equals(ImpostorAsset.CLOCK.path())
-                                || args[0].equals(ImpostorAsset.BACKGROUND_1.path())
-                                || args[0].equals(ImpostorAsset.TIMER_RECTANGLE.path())
-                                || args[0].equals(ImpostorAsset.PAPER_FRONT.path())
-                                || args[0].equals(ImpostorAsset.AVATAR_FRAME.path()))
+                        String path=args[0].toString();if(path.startsWith("runtime/"))path=path.substring(8);
+                        if (path.equals(ImpostorAsset.CLOCK.path())
+                                || path.equals(ImpostorAsset.BACKGROUND_1.path())
+                                || path.equals(ImpostorAsset.TIMER_RECTANGLE.path())
+                                || path.equals(ImpostorAsset.PAPER_FRONT.path())
+                                || path.equals(ImpostorAsset.AVATAR_FRAME.path()))
                             return original.absolute(directory.resolve("missing.png").toString());
-                        if (args[0].equals(ImpostorAsset.PAPER_BACK.path()))
+                        if (path.equals(ImpostorAsset.PAPER_BACK.path()))
                             return original.absolute(corrupt.toString());
                     }
                     return method.invoke(original, args);

@@ -8,10 +8,10 @@
   },
   {
     "source": "reload_done.wav",
-    "playback": "reload_done.wav",
-    "removedFrames": 0,
+    "playback": "runtime/reload_done.wav",
+    "removedFrames": 140,
     "sampleRate": 48000,
-    "removedMilliseconds": 0.0
+    "removedMilliseconds": 2.917
   },
   {
     "source": "773860__mrgungus__12-guage-shotgun-shell-drop.wav",
@@ -50,9 +50,9 @@
   },
   {
     "source": "reload_done(bullets).wav",
-    "playback": "reload_done(bullets).wav",
-    "removedFrames": 0,
+    "playback": "runtime/reload_done(bullets).wav",
+    "removedFrames": 975,
     "sampleRate": 24000,
-    "removedMilliseconds": 0.0
+    "removedMilliseconds": 40.625
   }
 ]

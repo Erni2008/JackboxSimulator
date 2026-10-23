@@ -367,14 +367,14 @@ public final class ImpostorScreen extends ScreenAdapter {
             assets.texture(ImpostorAsset.CLOCK_ARROW).ifPresent(texture -> {
                 float scale = ImpostorLayout.ARROW_SCALE;
                 float originX = ImpostorLayout.ARROW_PIVOT_X * scale;
-                float originY = (texture.getHeight() - ImpostorLayout.ARROW_PIVOT_Y) * scale;
+                float originY = (com.erni.finalanswer.ui.RuntimeTextures.originalHeight(texture) - ImpostorLayout.ARROW_PIVOT_Y) * scale;
                 float clockScale = ImpostorLayout.CLOCK.width() / 1223;
                 float pivotX = ImpostorLayout.CLOCK.x() + ImpostorLayout.CLOCK_PIVOT_X * clockScale;
                 float pivotY = ImpostorLayout.CLOCK.y() + (1286 - ImpostorLayout.CLOCK_PIVOT_Y) * clockScale;
                 Image arrow = new Image(texture);
                 arrow.setName("impostorClockArrow");
                 arrow.setBounds(pivotX - originX, pivotY - originY,
-                        texture.getWidth() * scale, texture.getHeight() * scale);
+                        com.erni.finalanswer.ui.RuntimeTextures.originalWidth(texture) * scale, com.erni.finalanswer.ui.RuntimeTextures.originalHeight(texture) * scale);
                 arrow.setOrigin(originX, originY);
                 // Fixed twelve-o'clock pose. Actor rotation can later use the measured hub origin.
                 arrow.setRotation(0);

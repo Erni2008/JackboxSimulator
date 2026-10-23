@@ -8,7 +8,7 @@ import com.badlogic.gdx.utils.Disposable;
 
 /** Table placement/pickup is a parent transform; original weapon mechanics remain independent. */
 public final class ShotgunController implements Disposable {
-    public enum State { RESTING, PICKUP, AIMING, READY, RETURNING }
+    public enum State { RESTING, PICKUP, AIMING, LOADING, READY, RETURNING }
     public final ModularShotgun gun;
     public final ShotgunMagazine magazine;
     private int remainingShots=2;
@@ -28,6 +28,10 @@ public final class ShotgunController implements Disposable {
     public ShotgunController(CursedBoxesAssets assets,CursedBoxesConfig scene,CursedBoxesGalleryConfig gallery){
         this.gallery=gallery;scale.set(gallery.weaponScale,gallery.weaponScale,gallery.weaponScale);
         ShotgunConfig config=assets.weaponConfig;config.startLoaded=true;config.pumpDuration=.45f;config.fireDuration=.44f;config.flashDuration=.08f;config.recoilTravel=.055f;config.recoilAngle=4.2f;pumpAt=scene.pumpAt;
+        config.shellStart[0]=.10f;config.shellStart[1]=.189f;config.shellStart[2]=.23f;
+        config.shellEnd[0]=.10f;config.shellEnd[1]=.189f;config.shellEnd[2]=.025f;
+        // Final 0.5s close matches reload_done.wav; retain the same normalized insertion timeline.
+        config.reloadDuration=1.25f;
         muzzleY=config.muzzle[1];gun=new ModularShotgun(assets.models,config);if(!gun.complete()||!gun.mechanismReady())throw new IllegalStateException("Existing modular shotgun unavailable: "+assets.models.failures());
         magazine=new ShotgunMagazine(gun.animator);
         audio=assets.sounds;gun.animator.listener(audio::weaponEvent);
@@ -61,6 +65,7 @@ public final class ShotgunController implements Disposable {
     }
     public void select(CrateSlot target){
         if(state==State.RETURNING)return;
+        if(state==State.LOADING){targetId=target.id;return;}
         if(state==State.RESTING){transitionStart.set(origin);transitionAim.set(aim);state=State.PICKUP;stateAge=0;}
         else if(state!=State.PICKUP&&targetId!=target.id){transitionAim.set(aim);state=State.AIMING;stateAge=0;}
         targetId=target.id;
@@ -81,6 +86,7 @@ public final class ShotgunController implements Disposable {
             origin.set(transitionStart).lerp(rest,e);origin.y+=MathUtils.sin(t*MathUtils.PI)*.25f;aim.set(transitionAim).slerp(restAim,e);
             if(t>=1){state=State.RESTING;origin.set(rest);aim.set(restAim);}
         }else if(state==State.RESTING){origin.set(rest);aim.set(restAim);}
+        else if(state==State.LOADING){origin.set(held);}
         else{
             float t=state==State.PICKUP?MathUtils.clamp(stateAge/gallery.pickupDuration,0,1):1;
             origin.set(transitionStart).lerp(held,ease(t));if(state==State.PICKUP)origin.y+=MathUtils.sin(t*MathUtils.PI)*.36f;else origin.set(held);
@@ -94,7 +100,14 @@ public final class ShotgunController implements Disposable {
         gun.transform.set(origin,aim,scale);gun.update(dt);
         if(shotAge>=pumpAt&&gun.animator.chamber()==ShotgunAnimator.Chamber.SPENT&&!gun.animator.isAnimating()&&!cycling){gun.cycle();cycling=true;}
         if(cycling&&!gun.animator.isAnimating()&&gun.animator.chamber()==ShotgunAnimator.Chamber.EMPTY){cycling=false;}
-        if(!loadingWarmup)magazine.update(remainingShots);
+        if(!loadingWarmup){
+            magazine.update(remainingShots,state==State.READY||state==State.LOADING);
+            if(magazine.loading()&&state==State.READY){state=State.LOADING;stateAge=0;}
+            else if(state==State.LOADING&&!magazine.loading()){
+                // Loading holds the receiver steady; only a chambered weapon resumes target tracking.
+                transitionAim.set(aim);state=State.AIMING;stateAge=0;
+            }
+        }
         audio.weaponPose(gun.animator);audio.shellContact(gun.animator.ejectionSerial(),gun.visibleShellTouchesFloor(audioFloor));
     }
     public void audioFloor(float worldY){audioFloor=worldY;if(cinematicReload)gun.ejectionFloor(worldY);}

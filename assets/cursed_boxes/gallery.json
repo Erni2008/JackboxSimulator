@@ -13,5 +13,7 @@
   "aimDuration": 0.3,
   "returnDuration": 0.8,
   "dustCount": 28,
-  "ghostHeight": 1.18
+  "ghostHeight": 1.18,
+  "fogOpacity": 0.15,
+  "fogSpeed": 0.018
 }

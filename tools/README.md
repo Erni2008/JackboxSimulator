@@ -65,3 +65,5 @@ node tools/dev/review_cursed_players.cjs
 Остальные сценарии перечислены в [документации мини-игр](../docs/README.md). Результаты Gradle находятся в `build/` соответствующего модуля; сохранённые визуальные материалы — в `generated/`.
 
 Музыка и таймер вопросов: `./gradlew :core:questionAudioCheck :lwjgl3:questionAudioNativeCheck --offline`. [Ресурсы, фазы и настройки](../docs/questions/audio.md).
+
+Проверки поставки и лимитов: `python3 tools/checks/check_runtime_distribution.py` (после desktop jar), `node tools/checks/check_countdown_budget.cjs`, `./gradlew :lwjgl3:packagedAssetsCheck --offline`. [Описание и измерения](../docs/development/production-polish.md).

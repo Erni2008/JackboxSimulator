@@ -7,7 +7,7 @@ public final class ShotgunAnimator {
     public enum BoltState { CLOSED, OPENING, OPEN, CLOSING }
     public enum ShellState { HIDDEN, VISIBLE, MOVING, LOADED }
     public enum Chamber { EMPTY, LIVE, SPENT }
-    public enum Event { FIRED, EJECTED, RELOADED, CYCLE_STARTED, EMPTY_TRIGGER, RESET }
+    public enum Event { FIRED, EJECTED, RELOADED, CYCLE_STARTED, ROUND_INSERTED, RELOAD_CLOSING, EMPTY_TRIGGER, RESET }
     @FunctionalInterface public interface Listener { void onEvent(Event event,long sequence); }
     private static final Listener NONE=(event,sequence)->{};
     private Listener listener=NONE;
@@ -19,6 +19,7 @@ public final class ShotgunAnimator {
     private float pump,bolt,fromBolt,shellProgress;
     private long sequence,shots,ejections,reloads;
     private int reloadRounds=1,insertions;
+    private boolean reloadClosing;
     public int reloadRounds(){return reloadRounds;}
     public long reloadSerial(){return reloads;}
     public int insertionCount(){return insertions;}
@@ -74,10 +75,10 @@ public final class ShotgunAnimator {
     public boolean playReloadAnimation(int rounds){
         if(rounds<1||rounds>5)throw new IllegalArgumentException("Load 1..5 rounds");
         if(chamber!=Chamber.EMPTY||!start(State.RELOAD))return false;
-        reloadRounds=rounds;insertions=0;reloads++;shell=ShellState.VISIBLE;shellProgress=0;return true;
+        reloadRounds=rounds;insertions=0;reloadClosing=false;reloads++;shell=ShellState.HIDDEN;shellProgress=0;return true;
     }
     private boolean start(State next){if(isAnimating())return false;state=next;time=0;fromBolt=bolt;return true;}
-    public void resetShotgun(){insertions=0;reloadRounds=1;state=State.IDLE;shell=ShellState.HIDDEN;time=0;pump=bolt=fromBolt=shellProgress=0;chamber=config.startLoaded?Chamber.LIVE:Chamber.EMPTY;ejectionAge=Double.POSITIVE_INFINITY;emit(Event.RESET);}
+    public void resetShotgun(){reloadClosing=false;insertions=0;reloadRounds=1;state=State.IDLE;shell=ShellState.HIDDEN;time=0;pump=bolt=fromBolt=shellProgress=0;chamber=config.startLoaded?Chamber.LIVE:Chamber.EMPTY;ejectionAge=Double.POSITIVE_INFINITY;emit(Event.RESET);}
     public void showShell(){if(!isAnimating()){shell=ShellState.VISIBLE;shellProgress=0;}}
     public void hideShell(){if(!isAnimating())shell=ShellState.HIDDEN;}
     private void eject(double trigger){
@@ -98,10 +99,12 @@ public final class ShotgunAnimator {
             case RELOAD->{
                 double open=config.reloadDuration*.25,one=config.reloadDuration*.35,close=config.reloadDuration*.4;
                 double insertionTime=time-open;
+                int completed=Math.max(0,Math.min(reloadRounds,(int)Math.floor((insertionTime+1e-7)/one)));
+                while(insertions<completed){insertions++;emit(Event.ROUND_INSERTED);}
+                if(insertionTime>=one*reloadRounds&&!reloadClosing){reloadClosing=true;emit(Event.RELOAD_CLOSING);}
                 if(insertionTime<0){bolt=fromBolt+(1-fromBolt)*ease((float)(time/open));pump=ease((float)(time/open));}
                 else if(insertionTime<one*reloadRounds){
                     bolt=pump=1;shell=ShellState.MOVING;
-                    insertions=Math.min(reloadRounds,(int)(insertionTime/one)+1);
                     shellProgress=ease((float)((insertionTime%one)/one));
                 }else{
                     insertions=reloadRounds;shell=ShellState.LOADED;shellProgress=1;

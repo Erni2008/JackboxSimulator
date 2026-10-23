@@ -24,9 +24,20 @@ public final class ShotgunMagazineCheck {
             check(!m.loading(),"No loading after final shot");
             a.resetShotgun();m.reset();check(!m.canFire(),"Reset blocks fire before introduction");m.update(shots);check(m.loadingTarget()==5,"Reset repeats five-round introduction");
         }
+        for(int fps:new int[]{10,30,60,144}){
+            ShotgunAnimator marked=new ShotgunAnimator(new ShotgunConfig());List<ShotgunAnimator.Event> trace=new ArrayList<>();
+            marked.listener((event,sequence)->{trace.add(event);if(event==ShotgunAnimator.Event.RELOAD_CLOSING)check(marked.insertionCount()==5,"Rack begins after all five contacts");});
+            marked.playReloadAnimation(5);for(int i=0;i<fps*8;i++)marked.update(1f/fps);
+            check(Collections.frequency(trace,ShotgunAnimator.Event.ROUND_INSERTED)==5&&Collections.frequency(trace,ShotgunAnimator.Event.RELOAD_CLOSING)==1,"One contact per round, one rack at "+fps+" FPS");
+            check(trace.indexOf(ShotgunAnimator.Event.RELOAD_CLOSING)>trace.lastIndexOf(ShotgunAnimator.Event.ROUND_INSERTED)&&trace.getLast()==ShotgunAnimator.Event.RELOADED,"Contacts -> rack -> live chamber");
+        }
+        ShotgunConfig heldConfig=ShotgunConfig.parse("{}");ShotgunAnimator heldAnimator=new ShotgunAnimator(heldConfig);ShotgunMagazine held=new ShotgunMagazine(heldAnimator);held.reset();
+        for(int i=0;i<200;i++){heldAnimator.update(.1f);held.update(9,false);}check(held.loadingTarget()==0&&heldAnimator.reloadSerial()==0,"No loading on table or during pickup");
+        held.update(9,true);check(held.loadingTarget()==5,"Raised weapon begins five-shell batch");
+        heldAnimator.update(10);held.update(9,false);check(held.rounds()==5,"Active batch completes even if pose gate closes");
         ShotgunConfig c=ShotgunConfig.parse("{}");ShotgunAnimator a=new ShotgunAnimator(c);
         check(a.playReloadAnimation(5),"Five shell animation starts");check(!a.playReloadAnimation(1),"Cannot overlap reloads");
-        a.update(c.reloadDuration*.26f);check(a.insertionCount()==1,"First insertion boundary");
+        a.update(c.reloadDuration*.26f);check(a.insertionCount()==0,"Movement precedes insertion contact");a.update(c.reloadDuration*.35f);check(a.insertionCount()==1,"First completed insertion boundary");
         a.update(100);check(a.insertionCount()==5&&!a.isAnimating(),"Low FPS crosses all five markers");
         ShotgunMagazine m=new ShotgunMagazine(a);a.resetShotgun();m.restore(3,6);check(m.rounds()==2&&m.canFire(),"Restore does not replay introduction");
         a.resetShotgun();m.restore(5,3);m.update(3);check(m.loadingTarget()==3,"Restore reloads remaining three");
