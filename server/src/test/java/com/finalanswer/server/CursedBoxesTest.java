@@ -106,6 +106,18 @@ class CursedBoxesTest {
         clock.set(mini(h).get("revealEndsAt").getAsLong());rooms.tick();command(h,"CURSED_RETURN_TO_LOBBY",base());
         assertFalse(h.latest().has("cursedBoxes"));assertEquals(2,h.latest().get("questionNumber").getAsInt());
         var victim=h.latest().getAsJsonArray("players").asList().stream().map(JsonElement::getAsJsonObject).filter(p->p.get("id").equals(two.get("selfId"))).findFirst().orElseThrow();assertFalse(victim.get("isAlive").getAsBoolean());assertEquals("GHOST",victim.get("lifeState").getAsString());assertTrue(victim.get("canReturn").getAsBoolean());
+        assertTrue(h.latest().getAsJsonArray("participantIds").asList().contains(two.get("selfId")),"Ghost remains in the trivia roster");
+        var nextFields=new HashMap<String,Object>();nextFields.put("gameId",h.latest().get("gameId").getAsString());nextFields.put("questionId",h.latest().getAsJsonObject("question").get("id").getAsString());
+        command(h,"PRESENTATION_READY",nextFields);nextFields.put("answerIndex",2);command(b,"SUBMIT_ANSWER",nextFields);
+        assertTrue(b.latest().get("hasSubmittedAnswer").getAsBoolean(),"Ghost can submit an answer");
+        rejects("ANSWER_ALREADY_SUBMITTED",()->command(b,"SUBMIT_ANSWER",nextFields));
+        nextFields.put("answerIndex",0);command(a,"SUBMIT_ANSWER",nextFields);
+        clock.addAndGet(20_000);rooms.tick();clock.addAndGet(720);command(h,"REVEAL_READY",nextFields);
+        var ghostResult=b.latest().getAsJsonArray("results").asList().stream().map(JsonElement::getAsJsonObject).filter(p->p.get("playerId").equals(two.get("selfId"))).findFirst().orElseThrow();
+        assertTrue(ghostResult.get("isCorrect").getAsBoolean(),"Ghost receives correct result");
+        clock.addAndGet(3100);command(h,"NEXT_READY",nextFields);
+        assertFalse(h.latest().has("cursedBoxes"),"Ghost's correct answer cannot assign a shot against the sole remaining living player");
+        assertEquals(3,h.latest().get("questionNumber").getAsInt());
         assertTrue(rooms.revivePlayer(code,two.get("selfId").getAsString()));assertFalse(rooms.revivePlayer(code,two.get("selfId").getAsString()));
         var restored=h.latest().getAsJsonArray("players").asList().stream().map(JsonElement::getAsJsonObject).filter(p->p.get("id").equals(two.get("selfId"))).findFirst().orElseThrow();assertTrue(restored.get("isAlive").getAsBoolean());
         assertTrue(h.latest().getAsJsonArray("participantIds").asList().contains(two.get("selfId")));

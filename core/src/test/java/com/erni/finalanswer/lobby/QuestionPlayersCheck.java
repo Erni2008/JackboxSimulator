@@ -28,5 +28,23 @@ public final class QuestionPlayersCheck {
         states.synchronize(snapshot(count,5,2,"QUESTION_PRESENTATION",0),21000);check(states.players().get(0)==first,"No per-question replacement");for(var p:states.players())check(!p.playing&&p.thinking&&!p.submitted&&!p.correct,"Next question holds idle and clears checkmarks");
         var offline=snapshot(count,6,2,"ANSWERING",1);offline.getAsJsonArray("players").get(1).getAsJsonObject().addProperty("connectionStatus","OFFLINE");states.synchronize(offline,1000);check(!states.players().get(1).playing&&first.playing,"Disconnect isolated");
         states.synchronize(snapshot(count,7,2,"ANSWERING",0),1001);check(states.players().get(1).thinking&&!states.players().get(1).playing,"Unanswered reconnect returns to thinking");
-    }System.out.println("PASS: 2/4/6/8 participants, authoritative post-answer playback, stale snapshots, deadline, results, next-question reuse and reconnect");}
+    }
+        var states=new QuestionPlayerStates();
+        var mixed=snapshot(8,10,3,"ANSWERING",255);
+
+        var ghost=mixed.getAsJsonArray("players").get(0).getAsJsonObject();
+        ghost.addProperty("lifeState","GHOST");ghost.addProperty("isGhost",true);
+        states.synchronize(mixed,500);
+        var spirit=states.players().get(0);
+        check(states.players().size()==8&&spirit.ghost&&spirit.eligible,"Ghost remains a trivia participant");
+        check(!spirit.thinking&&spirit.playing&&spirit.submitted,"Ghost accepted answer plays normally");
+        var ghostResults=mixed.deepCopy();ghostResults.addProperty("phase","RESULTS");
+        var results=new JsonArray();var row=new JsonObject();row.addProperty("playerId","player0");row.addProperty("isCorrect",true);row.addProperty("answeredInTime",true);results.add(row);ghostResults.add("results",results);
+        states.synchronize(ghostResults,550);check(spirit.correct,"Ghost receives authoritative correct-answer result");
+        var next=mixed.deepCopy();next.addProperty("revision",11);next.addProperty("questionNumber",4);
+        states.synchronize(next,600);check(states.players().get(0)==spirit&&spirit.ghost,"Ghost persists across questions without replacing artwork");
+        var revived=snapshot(8,12,5,"QUESTION_PRESENTATION",0);
+        states.synchronize(revived,700);check(states.players().get(0)==spirit&&!spirit.ghost&&spirit.eligible&&spirit.thinking,"Authoritative revival restores participation on same identity");
+        states.synchronize(next,800);check(!spirit.ghost,"Stale snapshot cannot undo revival");
+        System.out.println("PASS: 2/4/6/8 participants, authoritative post-answer playback, stale snapshots, deadline, results, next-question reuse and reconnect");}
 }

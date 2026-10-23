@@ -70,7 +70,7 @@ public final class QuestionPlayers extends Actor implements Disposable {
             boolean nervous=choicesVisible&&e.player.thinking&&!reduced;
             if(nervous)e.shakeTime+=delta;
             e.shakeEnvelope=states.activeRound()?MathUtils.clamp(e.shakeEnvelope+(nervous?1:-1)*delta/.14f,0,1):0;
-            if(e.player.playing){float step=delta*answeringAnimationSpeed;e.time+=step;e.character.update(step,e.time,e.phase,reduced);}
+            if(e.player.playing||e.player.ghost){float step=delta*answeringAnimationSpeed;e.time+=step;e.character.update(step,e.time,e.phase,reduced);}
         }
     }
     @Override public void draw(Batch batch,float alpha){
@@ -83,9 +83,11 @@ public final class QuestionPlayers extends Actor implements Disposable {
             float scale=Math.min(135/e.height,(cell-24)/150)*e.size;
             float shakeX=!reduced?MathUtils.sin(e.shakeTime*31+e.phase)*.65f*e.shakeEnvelope:0;
             float shakeY=!reduced?MathUtils.sin(e.shakeTime*27+e.phase*1.7f)*.28f*e.shakeEnvelope:0;
-            local.set(saved).translate(center+shakeX,getY()+32+shakeY,0).scale(scale,scale,1).translate(-174,-e.floor,0);
+            local.set(saved).translate(center+shakeX,getY()+52+shakeY,0).scale(scale,scale,1).translate(-174,-e.floor,0);
             batch.setTransformMatrix(local);
-            presentation.draw(batch,e.character,e.profile,alpha,e.time);
+            if(e.player.ghost)batch.setColor(.63f,.78f,.88f,color.a);
+            presentation.draw(batch,e.character,e.profile,alpha*(e.player.ghost?.52f:1),e.time);
+            batch.setColor(color);
             batch.setTransformMatrix(saved);
             if(!e.nickname.equals(e.player.nickname)){
                 e.nickname=e.player.nickname;font.getData().setScale(1);e.name.setText(font,e.nickname);
@@ -93,9 +95,13 @@ public final class QuestionPlayers extends Actor implements Disposable {
             }
             e.nameScale=Math.min(1,(cell-16)/Math.max(1,e.nameWidth));
             font.getData().setScale(e.nameScale);e.name.setText(font,e.nickname);
-            float x=center-e.name.width/2,y=getY()+23;
+            float x=center-e.name.width/2,y=getY()+43;
             font.setColor(.015f,.008f,.008f,alpha*.9f);font.draw(batch,e.nickname,x+1.4f,y-1.4f);
             font.setColor(com.erni.finalanswer.ui.PlayerColors.light(e.player.characterId));font.getColor().a=alpha;font.draw(batch,e.nickname,x,y);
+            font.getData().setScale(Math.min(.48f,(cell-16)/105f));
+            String status=e.player.ghost?"GHOST":!e.player.online?"OFFLINE":"ALIVE";
+            font.setColor(e.player.ghost?.60f:.77f,e.player.ghost?.80f:.86f,e.player.ghost?.93f:.66f,alpha);
+            e.name.setText(font,status);font.draw(batch,status,center-e.name.width/2,getY()+18);
             if(e.showingCorrect){drawCorrect(batch,center+cell*.30f,getY()+142,alpha);batch.setColor(color);}
         }}finally{batch.setTransformMatrix(saved);batch.setColor(color);font.getData().setScale(oldScaleX,oldScaleY);font.setColor(fontSaved);}
     }

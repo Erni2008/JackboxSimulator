@@ -268,7 +268,7 @@ public final class RoomService {
                 }else{game.next(now());broadcast(room,game.phase==Phase.GAME_FINISHED?"GAME_FINISHED":"QUESTION_STARTED");}
             }
             case "SUBMIT_ANSWER" -> {
-                if(member.host||member.left||!member.alive||!game.participants.contains(member.id)) throw new Failure(403,"NOT_A_PLAYER");
+                if(member.host||member.left||!game.participants.contains(member.id)) throw new Failure(403,"NOT_A_PLAYER");
                 if(game.phase!=Phase.ANSWERING || now()>=game.deadline) throw new Failure(409,
                     game.phase==Phase.QUESTION_PRESENTATION?"ANSWERING_NOT_STARTED":"ANSWER_TOO_LATE");
                 if(game.submitted.containsKey(member.id)) throw new Failure(409,"ANSWER_ALREADY_SUBMITTED");
@@ -319,7 +319,7 @@ public final class RoomService {
             if(room.game!=null){
                 if(!mini.finished())throw new Failure(409,"CURSED_IN_PROGRESS");
                 for(Member player:room.members.values())if(mini.eliminatedPlayers().contains(player.id))player.alive=false;
-                room.game.retainParticipants(room.members.values().stream().filter(m->m.alive&&!m.left).map(m->m.id).collect(java.util.stream.Collectors.toSet()));
+                room.game.retainParticipants(room.members.values().stream().filter(m->!m.host&&!m.left).map(m->m.id).collect(java.util.stream.Collectors.toSet()));
                 room.game.next(now());
             }else room.lobbyId=UUID.randomUUID().toString();
             room.cursed=null;broadcast(room,"CURSED_BOXES_ENDED");reply(peer,room,member,message);return;

@@ -14,6 +14,8 @@
 
 ## CURSED BOXES
 
+- [Общее выбывание и превращение в призраков](cursed-boxes/elimination-ghosts.md)
+
 - [Живой туман и синхронизация дробовика](cursed-boxes/gallery-fog.md)
 
 - [Пять патронов и дозарядка дробовика](cursed-boxes/shotgun-magazine.md)

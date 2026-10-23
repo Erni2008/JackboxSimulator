@@ -56,6 +56,11 @@ public final class QuestionPlayersRenderCheck {
                 check(green>20,"Correct check appears immediately");immediate.dispose();
                 held=strip.animationTime("p0");strip.advance(.6f,false);check(strip.animationTime("p0")==held,"Results stop rig playback");after=capture(strip);
                 PixmapIO.writePNG(Gdx.files.absolute(System.getProperty("questionPlayers.output")+"/correct-"+count+".png"),after,-1,true);after.dispose();
+                var ghostState=snapshot(count,7,3,0);
+                ghostState.getAsJsonArray("players").get(0).getAsJsonObject().addProperty("lifeState","GHOST");
+                strip.synchronize(ghostState,1000);strip.advance(.4f,false);
+                check(strip.character("p0")==rig&&strip.shaking("p0")&&strip.states().players().size()==count,"Ghost retains original rig and participates in questions");
+                after=capture(strip);PixmapIO.writePNG(Gdx.files.absolute(System.getProperty("questionPlayers.output")+"/life-status-"+count+".png"),after,-1,true);after.dispose();
                 strip.dispose();check(Gdx.gl.glGetError()==0,"No GL error");
             }
             void equal(Pixmap a,Pixmap b){for(int y=0;y<200;y++)for(int x=0;x<1600;x++)check(a.getPixel(x,y)==b.getPixel(x,y),"Frozen rig pixels changed");}

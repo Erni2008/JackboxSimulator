@@ -158,10 +158,27 @@ body[data-keyboard=open] #impostor-countdown{padding-top:0}
 /* A ghost stays connected; its identity is retained rather than replaced by a generic character. */
 #cursed-result[data-kind=ghost]{border-color:#8fb6c266;background:linear-gradient(120deg,#29414e66,#111018)}
 #cursed-result[data-kind=ghost] h2{color:#c1dde3}
-#ghost-screen{text-align:center;padding:28px 8px;color:#cad9de}
+#ghost-screen{text-align:center;padding:20px 8px;color:#cad9de;animation:none}
+body[data-view=ghost] .masthead{display:none}
+body[data-view=ghost] main{margin-top:max(8px,env(safe-area-inset-top))}
 #ghost-screen h1{color:#d0e4e9;font-size:clamp(32px,9vw,46px)}
 .ghost-seal{width:100px;height:100px;margin:12px auto 24px;border:1px solid #97bec366;border-radius:50%;font-size:58px;line-height:96px;color:#c1dbe0;background:radial-gradient(ellipse,#7897a426,transparent 70%)}
 #ghost-player-name{font-size:20px;overflow-wrap:anywhere;color:#e2edf0}
 .ghost-assurance{font-size:22px;color:#b6d7df}
 .ghost-current{margin-top:28px;padding:20px 16px;border-block:1px solid #7a9eac44;background:#1d2c3433}
 #ghost-question{font-size:18px;line-height:1.6}
+
+/* Public life state only; never contains answers or hiding assignments. */
+.life-roster { margin:20px 0 8px; padding:14px; border:1px solid #58636b55; border-radius:12px; background:#0a1016bb; text-align:left; }
+.life-roster > .eyebrow { margin:0 0 10px; font-size:10px; letter-spacing:.1em; color:#b9c4c8; }
+.life-roster ul { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; padding:0; margin:0; list-style:none; }
+.life-roster li { min-width:0; padding:8px; border-left:2px solid #a8bc87; background:#ffffff05; }
+.life-roster li > span:first-child { display:block; overflow-wrap:anywhere; color:#e2e2dc; font-size:12px; }
+.life-roster li > span:last-child { display:block; margin-top:4px; font-size:9px; letter-spacing:.12em; color:#b1c999; }
+.life-roster li[data-life=ghost] { border-color:#91b6ce; }
+.life-roster li[data-life=ghost] > span:last-child { color:#a7cbe0; }
+.life-roster .is-self { background:#ffffff0b; }
+@media(prefers-reduced-motion:reduce) { .life-roster * { animation:none; } }
+body[data-view="ghost"] #session-footer { gap:16px; }
+body[data-view="ghost"] #leave { flex:0 0 auto; width:auto; min-width:124px; min-height:44px; font-size:12px; white-space:nowrap; padding:10px 12px; }
+body[data-view="ghost"] #session-code { min-width:0; overflow-wrap:anywhere; text-align:right; }

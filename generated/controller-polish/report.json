@@ -20,6 +20,24 @@
       "file": "generated/controller-polish/cursed-shot-320.png"
     },
     {
+      "name": "cursed-ghost",
+      "width": 320,
+      "height": 568,
+      "file": "generated/controller-polish/cursed-ghost-320.png"
+    },
+    {
+      "name": "ghost-waiting",
+      "width": 320,
+      "height": 568,
+      "file": "generated/controller-polish/ghost-waiting-320.png"
+    },
+    {
+      "name": "ghost-answering",
+      "width": 320,
+      "height": 568,
+      "file": "generated/controller-polish/ghost-answering-320.png"
+    },
+    {
       "name": "impostor-role",
       "width": 320,
       "height": 568,
@@ -92,6 +110,24 @@
       "file": "generated/controller-polish/cursed-shot-390.png"
     },
     {
+      "name": "cursed-ghost",
+      "width": 390,
+      "height": 844,
+      "file": "generated/controller-polish/cursed-ghost-390.png"
+    },
+    {
+      "name": "ghost-waiting",
+      "width": 390,
+      "height": 844,
+      "file": "generated/controller-polish/ghost-waiting-390.png"
+    },
+    {
+      "name": "ghost-answering",
+      "width": 390,
+      "height": 844,
+      "file": "generated/controller-polish/ghost-answering-390.png"
+    },
+    {
       "name": "impostor-role",
       "width": 390,
       "height": 844,
@@ -162,6 +198,24 @@
       "width": 844,
       "height": 390,
       "file": "generated/controller-polish/cursed-shot-844.png"
+    },
+    {
+      "name": "cursed-ghost",
+      "width": 844,
+      "height": 390,
+      "file": "generated/controller-polish/cursed-ghost-844.png"
+    },
+    {
+      "name": "ghost-waiting",
+      "width": 844,
+      "height": 390,
+      "file": "generated/controller-polish/ghost-waiting-844.png"
+    },
+    {
+      "name": "ghost-answering",
+      "width": 844,
+      "height": 390,
+      "file": "generated/controller-polish/ghost-answering-844.png"
     },
     {
       "name": "impostor-role",

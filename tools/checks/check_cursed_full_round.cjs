@@ -114,7 +114,7 @@ async function resolved(p){await p.waitForFunction(()=>!window.__qaState?.cursed
     for(let i=0;i<4;i++)await clients[i].p.screenshot({path:path.join(dir,`phone-${i+1}-result.png`),fullPage:true});
     fs.writeFileSync(path.join(dir,'full-round-report.json'),JSON.stringify({passed:true,scenario:'real trivia: two incorrect / two correct; one shot each; ghost eliminated, puppeteer survives',stages,soundCues:report.soundCues,renderChecks:report.renderChecks,flashFrames:report.flashFrames,reloadFrames:report.reloadFrames,applicationAudioCues:report.applicationAudioCues,ambiencePlaying:report.ambiencePlaying,finalState:s},null,2));
     if(process.env.CURSED_GHOST_HANDOFF_QA==='1'){
-      await host('END');await ghost.locator('#ghost-screen').waitFor({state:'visible'});
+      await host('END');await ghost.locator('#question-screen').waitFor({state:'visible'});await ghost.locator('#question-screen').evaluate(async el=>{await Promise.all(el.getAnimations().map(a=>a.finished));});
       const after=await state(ghost);assert.equal(after.players.find(p=>p.id===after.selfId)?.lifeState,'GHOST');
       await ghost.screenshot({path:path.join(dir,'phone-ghost-waiting.png'),fullPage:true});
     }

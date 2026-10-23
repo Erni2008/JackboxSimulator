@@ -119,7 +119,8 @@ function render(){
   if(state.phase==='GAME_FINISHED'){
     show('finished');$('finish-message').textContent=state.finishReason==='COMPLETED'?'You made it through every question. Thank you for playing.':'The show ended because the host connection was lost.';$('final-score').textContent=`${self?.score||0} POINTS`;return;
   }
-  if(self?.isGhost){
+  renderLifeRoster();
+  if(isGhost(self)&&!state.question){
     show('ghost');$('ghost-player-name').textContent=self.name;
     $('ghost-question').textContent=state.question?.text||'Watch the shared screen.';return;
   }
@@ -132,6 +133,24 @@ function render(){
   $('question-number').textContent=`QUESTION ${String(state.questionNumber).padStart(2,'0')} / ${state.questionCount}`;
   $('answer-status').textContent=state.phase==='QUESTION_PRESENTATION'?'Listen to the question. Answers unlock together when the host finishes presenting.':state.phase==='REVEALING'?'THE HOUSE IS DECIDING. Watch the host’s screen…':state.hasSubmittedAnswer?'ANSWER SUBMITTED. Your choice is final.':pending!==null?'SENDING YOUR ANSWER…':'Choose carefully. One final answer.';
   updateButtons();updateClock();
+}
+function isGhost(player){return player?.lifeState==='GHOST'||player?.isGhost===true;}
+function renderLifeRoster(){
+  const players=state.players.filter(player=>!player.host);
+  for(const id of ['question-life-roster','ghost-life-roster']){
+    const target=$(id);target.replaceChildren();
+    const heading=document.createElement('p');heading.className='eyebrow';
+    const ghosts=players.filter(isGhost).length;
+    heading.textContent=`STILL IN THE GAME · ${players.length-ghosts} ALIVE / ${ghosts} GHOSTS`;target.append(heading);
+    const list=document.createElement('ul');
+    for(const player of players){
+      const item=document.createElement('li'),name=document.createElement('span'),badge=document.createElement('span');
+      item.dataset.life=isGhost(player)?'ghost':'alive';item.classList.toggle('is-self',player.id===state.selfId);
+      name.textContent=player.name+(player.id===state.selfId?' · YOU':'');
+      badge.textContent=isGhost(player)?'GHOST':'ALIVE';
+      item.append(name,badge);list.append(item);
+    }target.append(list);
+  }
 }
 function updateButtons(){if(!state?.question)return;for(const button of $('answers').children){const index=Number(button.dataset.index);button.disabled=!authenticated||state.phase!=='ANSWERING'||state.hasSubmittedAnswer||pending!==null||now()>=state.deadline;button.classList.toggle('selected',index===(state.hasSubmittedAnswer?state.currentAnswer:pending));button.setAttribute('aria-pressed',String(index===(state.hasSubmittedAnswer?state.currentAnswer:pending)));button.classList.toggle('accepted',state.hasSubmittedAnswer&&index===state.currentAnswer);}}
 function updateClock(){if(currentScreen!=='question'||!state)return;

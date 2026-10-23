@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="/controller-polish.css?v=polish-2-4">
   <script src="/controller-presentation.js?v=ghost-2" defer></script>
   <script src="/connection-health.js?v=1" defer></script>
-  <script src="/app.js?v=recovery-1" defer></script>
+  <script src="/app.js?v=ghost-trivia-1" defer></script>
 </head>
 <body>
   <div class="ambient" aria-hidden="true"></div>
@@ -76,6 +76,7 @@
       <p id="answer-status" class="muted" role="status">Choose carefully. One final answer.</p>
       <div class="answer-clock-track" aria-hidden="true"><div id="answer-clock-fill"></div></div>
       <div id="answers" class="answers"></div>
+      <div id="question-life-roster" class="life-roster" aria-label="Player life status"></div>
       <div id="answer-receipt" class="choice-receipt" hidden><p class="receipt-label">ANSWER LOCKED</p><p id="answer-receipt-value"></p><span>Your choice was received. Watch the shared screen.</span></div>
     </section>
     <section id="ghost-screen" class="screen" hidden>
@@ -84,7 +85,8 @@
       <h1>YOU ARE A GHOST</h1>
       <p id="ghost-player-name"></p>
       <p class="ghost-assurance">Your story is not over.</p>
-      <p>Stay connected and follow the shared screen. A chance to return will come later.</p>
+      <p>Keep answering questions. You sit out elimination games. A chance to return will come later.</p>
+      <div id="ghost-life-roster" class="life-roster" aria-label="Player life status"></div>
       <div class="ghost-current"><p class="eyebrow">THE GAME CONTINUES</p><p id="ghost-question"></p></div>
     </section>
     <section id="final-screen" class="screen" hidden>

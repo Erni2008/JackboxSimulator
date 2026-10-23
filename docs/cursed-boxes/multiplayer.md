@@ -239,3 +239,6 @@ Modified:
 
 Character PNGs, source models, backgrounds, multiplayer identities, questions,
 scoring and the independent developer-test implementation were not replaced.
+
+
+После завершения выстрелов добавлен авторитетный этап `ELIMINATION` перед survivor reveal. Его timestamps и ghost-состояние описаны в [общем выбывании](elimination-ghosts.md). Призраки не участвуют в survivor queue, не отключаются от комнаты и не имеют клиентской команды воскрешения.
