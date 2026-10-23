@@ -26,6 +26,18 @@ class ImpostorSettingsTest {
         JsonObject mini(){return host.latest().getAsJsonObject("impostor");}
         void finish(int rounds,int clues,int discussion,int voting){advance(4000);for(int r=0;r<rounds;r++){assertEquals("ROUND_CLUE_INPUT",s(mini(),"phase"));advance(clues*1000L);advance(500);advance(5000);advance(1);advance(1850);}assertEquals("EVIDENCE_REVIEW",s(mini(),"phase"));assertEquals(discussion*1000L,mini().get("deadline").getAsLong()-clock.get());advance(discussion*1000L);assertEquals(voting*1000L,mini().get("deadline").getAsLong()-clock.get());advance(voting*1000L);advance(700);advance(5000);advance(3500);advance(4000);assertEquals("RESULT",s(mini(),"phase"));}
     }
+    @Test void writingActivityIsValidatedShortLivedAndOnlyAggregatedForHost(){
+        var r=new Room();r.start();r.advance(4000);var fields=r.fields();fields.put("round",1);
+        r.command(r.peers.getFirst(),"IMPOSTOR_TYPING",fields);
+        assertEquals(r.clock.get()+450,r.mini().get("writingUntil").getAsLong());
+        assertFalse(r.peers.getFirst().latest().getAsJsonObject("impostor").has("writingUntil"));
+        int events=r.host.events.size();r.command(r.peers.getFirst(),"IMPOSTOR_TYPING",fields);assertEquals(events,r.host.events.size(),"Repeated activity is coalesced");
+        failure("NOT_ELIGIBLE",()->r.command(r.peers.get(4),"IMPOSTOR_TYPING",fields));
+        var forged=new HashMap<String,Object>(fields);forged.put("clue","SECRET");failure("INVALID_CLUE",()->r.command(r.peers.getFirst(),"IMPOSTOR_TYPING",forged));
+        r.advance(500);r.command(r.host,"SYNC",Map.of());assertEquals(0,r.mini().get("writingUntil").getAsLong(),"No stale activity after its short lease");
+        var clue=new HashMap<String,Object>(fields);clue.put("clue","СВЕТ");r.command(r.peers.getFirst(),"SUBMIT_CLUE",clue);
+        failure("CLUE_ALREADY_SUBMITTED",()->r.command(r.peers.getFirst(),"IMPOSTOR_TYPING",fields));
+    }
     ImpostorSettings custom(){return new ImpostorSettings(2,7,9,12,"DEFAULT",false,false,true);}
     void failure(String code,Runnable work){assertEquals(code,assertThrows(RoomService.Failure.class,work::run).getMessage());}
     @Test void defaultsArePublicAndContainNoSecret(){var r=new Room();assertEquals(20,ImpostorSettings.defaults().clueSeconds());assertEquals(10,ImpostorSettings.defaults().discussionSeconds());assertEquals(20,ImpostorSettings.defaults().votingSeconds());assertEquals(ImpostorSettings.defaults(),Protocol.JSON.fromJson(r.host.latest().get("impostorSettings"),ImpostorSettings.class));assertEquals(List.of("DEFAULT"),Protocol.JSON.fromJson(r.host.latest().get("impostorWordCategories"),List.class));assertFalse(r.rooms.view(r.code).contains("secretWord"));}

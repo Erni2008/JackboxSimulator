@@ -16,6 +16,20 @@ public final class ImpostorSession {
     private final Set<String> participants;
     private final List<SuspicionRound> rounds = new ArrayList<>();
     private boolean closed;
+    private final Map<String,Long> typing=new HashMap<>();
+    public boolean typing(String player,int round,long now){
+        if(closed||phase!=ImpostorPhase.ROUND_CLUE_INPUT||round!=clueRound||now>=deadline)throw new Failure(409,"CLUE_ROUND_CLOSED");
+        if(!participants.contains(player))throw new Failure(403,"NOT_ELIGIBLE");
+        if(clues.containsKey(player))throw new Failure(409,"CLUE_ALREADY_SUBMITTED");
+        long until=typing.getOrDefault(player,0L);
+        if(until-now>240)return false;
+        typing.put(player,now+450);return true;
+    }
+    public long writingUntil(long now){
+        if(phase!=ImpostorPhase.ROUND_CLUE_INPUT||now>=deadline)return 0;
+        long until=0;for(var entry:typing.entrySet())if(!clues.containsKey(entry.getKey()))until=Math.max(until,entry.getValue());
+        return Math.min(deadline,until>now?until:0);
+    }
     private final FinalVoting.Timing finalTiming;
     private FinalVoting finalVoting;
     private final ImpostorResultPolicy resultPolicy=ImpostorResultPolicy.configured();
@@ -83,7 +97,7 @@ public final class ImpostorSession {
         return player.equals(impostorId)?Map.of("role","IMPOSTOR"):Map.of("role","ORDINARY","secretWord",secretWord);
     }
     private void beginRound(long now){
-        clueRound++;clues.clear();attempts.clear();phase=ImpostorPhase.ROUND_CLUE_INPUT;deadline=now+clueMillis;
+        clueRound++;clues.clear();attempts.clear();typing.clear();phase=ImpostorPhase.ROUND_CLUE_INPUT;deadline=now+clueMillis;
     }
     public void submitClue(String player,int round,String text,long now) {
         if(closed || phase!=ImpostorPhase.ROUND_CLUE_INPUT || round!=clueRound || now>=deadline)
@@ -95,7 +109,7 @@ public final class ImpostorSession {
         String normalized=normalize(text);
         if(normalized.equals(secretWord) || revealed.stream().anyMatch(r->normalized.equals(r.get(player))))
             throw new Failure(400,"INVALID_CLUE");
-        clues.put(player,normalized);
+        clues.put(player,normalized);typing.remove(player);
         if(clues.size()==participants.size())finalizeClues(now);
     }
     public static String normalize(String raw) {
@@ -191,7 +205,7 @@ public final class ImpostorSession {
         if(current==null || current.finalized || now<current.deadline)return false;
         current.finalized=true;return true;
     }
-    public void close() {closed=true;secretWord=null;impostorId=null;clues.clear();attempts.clear();result=null;revealed.clear();finalVoting=null;if(current()!=null)current().finalized=true;}
+    public void close() {closed=true;typing.clear();secretWord=null;impostorId=null;clues.clear();attempts.clear();result=null;revealed.clear();finalVoting=null;if(current()!=null)current().finalized=true;}
 
     public static final class SuspicionRound {
         public final String roomId, sessionId;

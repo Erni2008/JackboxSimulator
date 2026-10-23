@@ -637,6 +637,12 @@ public final class ImpostorCheck extends FinalAnswerGame {
             view.update(64900);check(identityName.isVisible()&&identityName.getColor().a==1,"Identity appears at musical accent with reduced motion");
             check(identityName.getStyle().font.getData().hasGlyph('Ж')&&identityName.getStyle().font.getData().hasGlyph('Я'),"Reveal handwriting contains Cyrillic glyphs");
             view.reducedMotion(false);view.update(65200);finalCaptureNow=65200;capturePaperState("final-identity");
+            preview.presentFinal(identity,66000);preview.render(0);view.update(66000);
+            Group doomed=view.findActor("finalCard:"+b);Group doomedAvatar=doomed.findActor("finalAvatar");if(doomedAvatar!=null)check(doomedAvatar.getColor().a<.4f,"Caught impostor visibly fades on the final card");
+            Actor top=stage(preview).getRoot().findActor("participant:"+b);if(doomedAvatar!=null)check(((Group)top).findActor("eliminationStatus").isVisible(),"Caught participant is marked eliminated");
+            view.update(69000);if(doomedAvatar!=null)check(Math.abs(doomedAvatar.getColor().a-.48f)<.01f,"Ghost remnant persists");
+            var escapedIdentity=new FinalActSnapshot("final-"+count,ImpostorPhase.IMPOSTOR_REVEAL,61500,65500,reveal,count,count,snapshot.sequenceId(),targets,counts,java.util.List.of(b),b,"IMPOSTOR_ESCAPED");preview.presentFinal(escapedIdentity,69000);preview.render(0);if(doomedAvatar!=null)check(doomedAvatar.getColor().a==1,"Escaped impostor never remains eliminated");
+            preview.presentFinal(identity,69000);preview.render(0);
             var result=new FinalActSnapshot("final-"+count,ImpostorPhase.RESULT,65500,0,reveal,count,count,snapshot.sequenceId(),targets,counts,java.util.List.of(b),b,"IMPOSTOR_CAUGHT");
             preview.presentFinal(result,66500);preview.render(0);view.update(66500);finalCaptureNow=66500;capturePaperState("final-result");
             check(view.visibleStampCount()==count,"Final result keeps every stamp");

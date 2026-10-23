@@ -1,10 +1,11 @@
 'use strict';
 /** Device-local bridge for personalized server cues. Never transmits role or audio events. */
 function createImpostorPhoneAudio({AudioContextType=window.AudioContext||window.webkitAudioContext,fetchAudio=window.fetch.bind(window)}={}) {
-  const files={role:'card_role_impostor.wav',vote:'vote_sent.wav'},buffers=new Map(),voices=new Set(),seen=new Set(),counts={role:0,vote:0};
+  const files={role:'card_role_impostor.wav',vote:'vote_sent.wav',writing:'writing_words_on_paper_theimpostor.wav'},buffers=new Map(),voices=new Set(),seen=new Set(),counts={role:0,vote:0,writing:0};
   let context=null,root=null,pendingVote=null,closed=false,loading=false,warned=false;
+  let writingVoice=null,writingCursor=.1,snapshotAt=0;
   const warn=error=>{if(!warned){warned=true;console.warn('Impostor phone audio unavailable:',error?.message||error);}};
-  function stop(){for(const source of voices)try{source.stop();}catch{}voices.clear();}
+  function stop(){writingVoice=null;for(const source of voices)try{source.stop();}catch{}voices.clear();}
   function enabled(){return root?.impostorSettings?.soundEnabled!==false&&!document.hidden;}
   function load(){
     if(context||closed||!AudioContextType)return;
@@ -35,16 +36,39 @@ function createImpostorPhoneAudio({AudioContextType=window.AudioContext||window.
     if(pendingVote?.key===key&&performance.now()-pendingVote.at<1500&&play('vote',key+':vote'))pendingVote=null;
   }
   function sync(state,eventType){
-    const previous=root?.impostor?.sessionId;root=state;const mini=state?.impostor;
+    const previous=root?.impostor?.sessionId;root=state;snapshotAt=performance.now();const mini=state?.impostor;
     if(previous!==mini?.sessionId){stop();pendingVote=null;}
     if(!mini||!enabled()){stop();return;}
     if(eventType==='FINAL_VOTE_ACCEPTED'&&mini.finalVoteSubmitted&&mini.activeParticipant)pendingVote={key:mini.sessionId+':'+state.selfId,at:performance.now()};
+    if(!writingAllowed())stopWriting();
     if(!context)load();flush();
   }
+  function writingAllowed(){
+    const mini=root?.impostor,input=document.getElementById('clue-input');
+    return enabled()&&mini?.phase==='ROUND_CLUE_INPUT'&&mini.activeParticipant&&!mini.clueSubmitted&&input&&!input.disabled
+      &&mini.deadline>root.serverTime+performance.now()-snapshotAt;
+  }
+  function stopWriting(){if(writingVoice){try{writingVoice.source.stop();}catch{}writingVoice=null;}}
+  function writing(event){
+    if(event.target?.id!=='clue-input'||!writingAllowed()||!event.target.value||closed||context?.state!=='running'||!buffers.has('writing'))return;
+    const time=context.currentTime;
+    if(!writingVoice||time>=writingVoice.until){
+      stopWriting();
+      const source=context.createBufferSource(),gain=context.createGain(),buffer=buffers.get('writing'),offset=writingCursor%buffer.duration;
+      source.buffer=buffer;source.loop=true;source.connect(gain);gain.connect(context.destination);gain.gain.value=0;
+      const voice={source,gain,until:0};writingVoice=voice;voices.add(source);counts.writing++;
+      source.onended=()=>{voices.delete(source);source.disconnect();gain.disconnect();writingCursor=(offset+context.currentTime-time)%buffer.duration;if(writingVoice===voice)writingVoice=null;};
+      source.start(0,offset);
+    }
+    const voice=writingVoice;voice.until=time+.24;
+    voice.gain.gain.cancelScheduledValues(time);voice.gain.gain.setTargetAtTime(5.2,time,.008);
+    voice.gain.gain.setTargetAtTime(0,time+.20,.01);voice.source.stop(voice.until);
+  }
+  document.addEventListener('input',writing);
   function unlock(){load();if(context?.state==='suspended')context.resume().then(flush).catch(warn);else flush();}
   document.addEventListener('pointerdown',unlock,{passive:true});document.addEventListener('keydown',unlock);
   const visibility=()=>{if(document.hidden)stop();else flush();};document.addEventListener('visibilitychange',visibility);
   function suspend(){stop();root=null;pendingVote=null;}
-  function dispose(){if(closed)return;closed=true;suspend();document.removeEventListener('pointerdown',unlock);document.removeEventListener('keydown',unlock);document.removeEventListener('visibilitychange',visibility);buffers.clear();context?.close().catch(warn);}
+  function dispose(){if(closed)return;closed=true;suspend();document.removeEventListener('input',writing);document.removeEventListener('pointerdown',unlock);document.removeEventListener('keydown',unlock);document.removeEventListener('visibilitychange',visibility);buffers.clear();context?.close().catch(warn);}
   load();return {sync,suspend,dispose,playCount:cue=>counts[cue],loading:()=>loading};
 }

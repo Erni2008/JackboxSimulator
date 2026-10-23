@@ -64,6 +64,14 @@
       "rate": 44100,
       "seconds": 1.5902,
       "sha256": "860438bc033d796ec7bf86303eea0969375e6216988b74423f1918e52fd35875"
+    },
+    {
+      "path": "writing_words_on_paper_theimpostor.wav",
+      "channels": 2,
+      "bits": 16,
+      "rate": 48000,
+      "seconds": 17.0,
+      "sha256": "a8f204b51afe2100a954d35b099bf0e33665c090ef4e81dfdb95c9ed90fedb5d"
     }
   ],
   "runtime": {
@@ -79,5 +87,10 @@
     "removed_lead_seconds": 0.5003174603174603,
     "attack_lead_seconds": 0.001,
     "sha256": "9d4fff56b59a57674117425fc09df10def9640843a75f05700eea82a73c6f40a"
+  },
+  "host_writing": {
+    "path": "runtime/writing_words_on_paper_theimpostor.wav",
+    "gain": 15.648042024832856,
+    "source": "writing_words_on_paper_theimpostor.wav"
   }
 }

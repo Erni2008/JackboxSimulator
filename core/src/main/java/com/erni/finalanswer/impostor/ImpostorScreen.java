@@ -37,6 +37,9 @@ public final class ImpostorScreen extends ScreenAdapter {
     private Label introduction;
     private String presentationKey="";
     private boolean restorePresentation=true,introductionPlayed,voteOpen;
+    private float heldEliminationAge=-1;
+    private long writingUntil;
+    public void networkWriting(long until){writingUntil=until;}
     private Image clockHand;
     private String tickKey="";
     private com.erni.finalanswer.gameplay.impostor.ImpostorPhase tickPhase;
@@ -436,14 +439,18 @@ public final class ImpostorScreen extends ScreenAdapter {
         // Clear the whole framebuffer so letterbox bars never retain pixels from other screens.
         ScreenUtils.clear(0, 0, 0, 1);
         if (background != null) background.update(paused ? 0 : delta, reducedMotion());
+        finalPresentation.paused(paused);
         paperReveal.update(paused ? 0 : delta);
         presentPapers();
         updateSuspicion(paused?0:delta);
         updateLifecycle(paused?0:delta);
         boolean reduced=reducedMotion();
-        transition.update(delta,paused,reduced);audio.update(paused?0:delta);finalPresentation.reducedMotion(reduced);
+        transition.update(delta,paused,reduced);audio.writing(liveConnection!=null&&liveConnection.connected()&&liveConnection.serverNow()<writingUntil&&state.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.ROUND_CLUE_INPUT);audio.update(paused?0:delta);finalPresentation.reducedMotion(reduced);
         dust.update(paused?0:delta,reduced);veil.update(paused?0:delta,reduced);
-        for(var participant:participantViews)participant.updatePortrait(paused?0:delta,reduced);
+        long verdictNow=finalServerTime+(System.nanoTime()-finalReceivedNano)/1_000_000;
+        if(!paused||finalSnapshot==null)heldEliminationAge=ImpostorElimination.age(finalSnapshot,verdictNow);
+        float eliminatedAge=heldEliminationAge;
+        for(var participant:participantViews)participant.updatePortrait(paused?0:delta,reduced,finalSnapshot!=null&&participant.playerId().equals(finalSnapshot.impostorId())?eliminatedAge:-1);
         if(reduced&&paperReveal.flipping()){paperReveal.update(Float.POSITIVE_INFINITY);presentPapers();}
         introduction.setVisible(transition.active()&&!introduction.getText().isEmpty());
         introduction.getColor().a=(float)Math.sin(Math.PI*transition.progress());

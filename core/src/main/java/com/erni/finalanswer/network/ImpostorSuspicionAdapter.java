@@ -24,6 +24,7 @@ public final class ImpostorSuspicionAdapter {
     /** Also usable by deterministic development fixtures; never assigns roles or selects a roster. */
     public void apply(JsonObject mini,long serverNow){
         String phase=mini.get("phase").getAsString(),id=mini.get("sessionId").getAsString();
+        screen.networkWriting(phase.equals("ROUND_CLUE_INPUT")&&mini.has("writingUntil")?mini.get("writingUntil").getAsLong():0);
         // Completion holds the existing identity scene. Never enter the obsolete results presentation.
         boolean completed=phase.equals("RESULT");
         if(completed)phase="IMPOSTOR_REVEAL";

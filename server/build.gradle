@@ -74,7 +74,7 @@ processResources {
 // Only personal device cues are served to phones; the desktop owns shared-screen audio.
 processResources {
     from(rootProject.file('assets/sounds/impostor')) {
-        include 'card_role_impostor.wav', 'vote_sent.wav'
+        include 'card_role_impostor.wav', 'vote_sent.wav', 'writing_words_on_paper_theimpostor.wav'
         into 'web/audio/impostor'
     }
 }

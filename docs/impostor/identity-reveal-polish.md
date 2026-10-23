@@ -1,13 +1,11 @@
-# Identity reveal pause
+# Identity reveal presentation
 
-The public host and phone identity announcements wait until authoritative phase start + 2000 ms before showing the impostor nickname. Host card highlighting waits too. This is a presentation delay; server phases/deadlines/security are unchanged. Reduced motion preserves the pause and shows the name without a fade. Late snapshots/reconnection resume at the current point, without restarting a local timer.
+The shared-screen identity nickname and card highlight wait until authoritative identity phase start + 3400 ms. This marker follows the measured strong 3.4–3.7 second accent of `impostor_role_reveal.wav`. Normal motion uses a 120 ms fade; reduced motion preserves the delay and shows the name immediately at the marker. Late snapshots/reconnection resume the same phase age. The existing four-second authoritative phase and scoring are unchanged; the completed scene retains its original identity phase start.
 
-Host uses a dedicated owned Caveat bitmap font with Latin and Cyrillic glyphs, generated through existing libGDX FreeType. It is disposed with ImpostorScreen. Phones use the same bundled Caveat source, with the existing responsive parchment presentation. Browser script/theme URLs versioned for cache refresh.
+Phones intentionally show a completely black game viewport after accepting their own final vote and during locked votes, vote counting, suspect announcement, identity reveal and completion. No nickname, chosen-vote receipt, result, room footer or game navigation is visible. Reload remains black. Initial secret-role cards and voting inputs for players who have not submitted are unchanged; the next lobby/game restores normal routing. Authoritative snapshot delivery is unchanged; this is a presentation rule.
 
-Changed: `core/.../ui/UiFonts.java`, `core/.../impostor/ImpostorScreen.java`, `core/.../impostor/FinalVotePresentation.java`, `web/final-voting.js`, `web/controller-theme.css`, `web/index.html`, `lwjgl3/src/test/.../ImpostorCheck.java`.
+The host retains the existing Caveat font and Cyrillic/Latin glyphs, original character artwork and card animations. No new textures or rendering pipeline.
 
-New browser check: `tools/checks/check_identity_reveal_browser.cjs`, using the existing isolated browser fixture. It verifies hidden at 1999 ms, visible at 2000 ms, late reconnection, Cyrillic and Latin nicknames and font selection. Screenshots: `server/build/parchment-browser/identity-russian.png`, `identity-english.png`. These are presentation-harness screenshots; physical phones were not tested.
+Checks: `:lwjgl3:impostorCheck -PimpostorAudioQA=true` verifies 3399/3400 ms boundaries, reduced motion and retained reveals. `tools/checks/check_identity_reveal_browser.cjs` verifies black phone screens for English/Russian names and safe restoration/disconnect. The controller viewport suite covers accepted votes, all final phases and 320/390/844 widths; native game and browser lifecycle checks cover replay and multiplayer synchronization. Physical phone hardware testing remains manual.
 
-Native check includes two-second boundaries, reduced motion and actual Cyrillic bitmap glyph availability. Launch normally with `./gradlew :lwjgl3:run`; create a room and finish a match. During THE IMPOSTOR IS… the nickname and card emphasis must wait two seconds. Refresh phone pages to load updated resources.
-
-Validation: server tests and graphical impostorCheck passed; updated graphical boundary/reduced-motion/Cyrillic checks passed on a second run.
+See [audio integration](audio-integration.md) for actual asset paths, audio routing and the real-time demo.

@@ -210,6 +210,14 @@ public final class RoomService {
             peer.send(Protocol.event("FINAL_VOTE_ACCEPTED",message.requestId(),snapshot(room,member,false)));
             broadcast(room,"IMPOSTOR_UPDATED");return;
         }
+        if(message.type().equals("IMPOSTOR_TYPING")){
+            if(!data.keySet().equals(Set.of("roomCode","sessionId","round"))||suppliedCode.isBlank()||!data.get("round").isJsonPrimitive()||!data.get("round").toString().matches("[1-3]"))throw new Failure(400,"INVALID_CLUE");
+            if(member.host||member.left)throw new Failure(403,"NOT_ELIGIBLE");
+            if(room.impostor==null||!room.impostor.id.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_IMPOSTOR_SESSION");
+            if(room.impostor.typing(member.id,data.get("round").getAsInt(),now())&&room.host.peer!=null)
+                room.host.peer.send(Protocol.event("IMPOSTOR_WRITING",message.requestId(),snapshot(room,room.host,false)));
+            return;
+        }
         if(message.type().equals("SUBMIT_CLUE")) {
             if(!data.keySet().equals(Set.of("roomCode","sessionId","round","clue")) || suppliedCode.isBlank()
                 || !data.get("round").isJsonPrimitive() || !data.get("round").getAsJsonPrimitive().isNumber()
@@ -523,7 +531,7 @@ public final class RoomService {
             }
             if(session.gameplay()) {
                 boolean suspecting=session.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.PRELIMINARY_SUSPICION;
-                mini.put("phase",session.phase().name());mini.put("round",session.clueRound());
+                mini.put("phase",session.phase().name());mini.put("round",session.clueRound());if(self!=null&&self.host)mini.put("writingUntil",session.writingUntil(now()));
                 if(session.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.ROLE_REVEAL)mini.put("roleRevealDurationMillis",ImpostorSession.ROLE_MILLIS);
                 mini.put("deadline",session.deadline());mini.put("suspicionFinalized",suspecting && suspicion.finalized());
                 mini.put("revealSequence",session.revealSequence());mini.put("revealedClues",session.revealedClues());

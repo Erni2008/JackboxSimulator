@@ -9,7 +9,7 @@ async function command(command,extra={}){
  for(let i=0;i<200;i++){try{if(JSON.parse(fs.readFileSync(path.join(dir,'processed.json'))).id===id)return;}catch{}await sleep(25);}throw Error('Fixture did not accept '+command);
 }
 (async()=>{
- const ready=JSON.parse(fs.readFileSync(path.join(dir,'ready.json')));
+ let ready;for(let i=0;i<300;i++){try{const candidate=JSON.parse(fs.readFileSync(path.join(dir,'ready.json')));if((await fetch(candidate.url+'/rooms/'+candidate.code)).ok){ready=candidate;break;}}catch{}await sleep(100);}assert(ready,'Live fixture did not become ready');
  const browser=await chromium.launch({headless:false,executablePath:process.env.CHROME_PATH||undefined,args:['--window-size=460,930','--window-position=1000,30']});
  const context=await browser.newContext({viewport:{width:390,height:780},hasTouch:true,isMobile:true}),players=[],errors=[];
  try{
@@ -27,9 +27,10 @@ async function command(command,extra={}){
   const clues=[['ТЕПЛО','СВЕТ','НЕБО','ДОРОГА'],['СОЛНЦЕ','ЛАМПА','ВЕТЕР','ДВИЖЕНИЕ'],['ЛЕТО','ЛУНА','ПОЛЁТ','СКОРОСТЬ']];
   for(let round=1;round<=3;round++){
    for(const player of players.slice(0,4))await player.page.waitForFunction(round=>state?.impostor?.phase==='ROUND_CLUE_INPUT'&&state.impostor.round===round&&!document.getElementById('clue-input').disabled,round);
-   for(let i=0;i<4;i++){const page=players[i].page;await page.bringToFront();await page.locator('#clue-input').fill(clues[round-1][i]);await page.locator('#clue-submit').click();await page.waitForFunction(()=>state?.impostor?.clueSubmitted||state?.impostor?.phase!=='ROUND_CLUE_INPUT');await sleep(350);}
+   for(let i=0;i<4;i++){const page=players[i].page;await page.bringToFront();await page.locator('#clue-input').pressSequentially(clues[round-1][i],{delay:70});await sleep(260);await page.locator('#clue-submit').click();await page.waitForFunction(()=>state?.impostor?.clueSubmitted||state?.impostor?.phase!=='ROUND_CLUE_INPUT');await sleep(350);}
    await players[4].page.waitForFunction(()=>state?.impostor?.phase==='PRELIMINARY_SUSPICION');
    await players[4].page.locator(`[data-id="${players[0].id}"]`).click();
+   for(const player of players.slice(0,4))assert(await player.page.evaluate(()=>impostorPhoneAudio.playCount('writing'))>=round,'Writing cue missing in a repeated clue round');
    console.log('Round '+round+': clues and paper flips complete; live suspicion countdown.');
   }
   await players[0].page.waitForFunction(()=>state?.impostor?.phase==='EVIDENCE_REVIEW');console.log('Discussion: real countdown and moving clock hand.');

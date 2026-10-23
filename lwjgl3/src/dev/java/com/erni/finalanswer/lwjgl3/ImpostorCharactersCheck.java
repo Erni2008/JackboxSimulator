@@ -37,13 +37,17 @@ public final class ImpostorCharactersCheck extends ApplicationAdapter {
         if(failure!=null)return;
         try{
             Gdx.gl.glClearColor(.035f,.025f,.03f,1);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+            for(int i=0;i<stage.getActors().size;i++){
+                var view=(ImpostorParticipantView)stage.getActors().get(i);view.updatePortrait(1f/60,false,i==1&&frames>=60?(frames-60)/60f:-1);
+                if(frames>=155){Actor portrait=view.findActor("avatar");if(i==1&&Math.abs(portrait.getColor().a-.48f)>.01f)throw new AssertionError("Caught real rig does not retain ghost opacity");if(i!=1&&portrait.getColor().a!=1)throw new AssertionError("Unrelated rig was eliminated");}
+            }
             stage.act(1f/60);stage.draw();
             if(Gdx.gl.glGetError()!=GL20.GL_NO_ERROR)throw new AssertionError("Portrait GL error");
             if(++frames==180){
                 var file=Gdx.files.local("../generated/previews/impostor-characters.png");
                 var pixels=Pixmap.createFromFrameBuffer(0,0,Gdx.graphics.getBackBufferWidth(),Gdx.graphics.getBackBufferHeight());
                 try{PixmapIO.writePNG(file,pixels,-1,true);}finally{pixels.dispose();}
-                Gdx.app.log("Impostor characters","PASS: eight real rigs, production portrait frames, three seconds of animation, no GL errors");
+                Gdx.app.log("Impostor characters","PASS: eight real rigs, production portraits, caught-only elimination with persistent ghost opacity, three seconds of animation, no GL errors");
                 Gdx.app.exit();
             }
         }catch(Throwable error){failure=error;Gdx.app.exit();}

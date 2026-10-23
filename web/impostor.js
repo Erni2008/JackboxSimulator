@@ -8,9 +8,10 @@ function createImpostorController({getState,isAuthenticated,send,now,makeId}) {
 
   const fitWord=()=>{const word=el('impostor-word');if(mini()?.phase!=='ROLE_REVEAL'){word.style.fontSize='';return;}word.style.fontSize='';let size=parseFloat(getComputedStyle(word).fontSize);while(word.scrollWidth>word.clientWidth&&size>8){size-=1;word.style.fontSize=size+'px';}};
   const roleResize=new ResizeObserver(fitWord);roleResize.observe(el('impostor-word'));document.fonts.ready.then(fitWord);
+  let typingAt=-Infinity;
   let key='',focusKey='',pending=null,error='',timeout,draftKey='',draft='';
   const mini=()=>getState()?.impostor;
-  function reset(){roleClock.set(0,0,false);writer.sync(false);draftKey='';draft='';key='';pending=null;error='';clearTimeout(timeout);el('clue-input').value='';el('impostor-word').textContent='';el('clue-confirmed-value').textContent='';}
+  function reset(){typingAt=-Infinity;roleClock.set(0,0,false);writer.sync(false);draftKey='';draft='';key='';pending=null;error='';clearTimeout(timeout);el('clue-input').value='';el('impostor-word').textContent='';el('clue-confirmed-value').textContent='';}
   function allowed(){const s=mini();return isAuthenticated()&&s?.phase==='ROUND_CLUE_INPUT'&&s.activeParticipant&&!s.clueSubmitted&&!pending&&now()<s.deadline;}
   function tick(){const s=mini();if(!s)return;const showingRole=s.phase==='ROLE_REVEAL';el('role-countdown-clock').hidden=!showingRole;roleClock.set(s.deadline,(s.roleRevealDurationMillis||0)/1000,showingRole);el('impostor-countdown').textContent=s.deadline?`TIME REMAINING: 00:${String(Math.max(0,Math.ceil((s.deadline-now())/1000))).padStart(2,'0')}`:'';el('impostor-countdown').classList.toggle('timer-warning',s.phase==='ROUND_CLUE_INPUT'&&s.deadline-now()>0&&s.deadline-now()<=5000);el('clue-input').disabled=!allowed();el('clue-submit').disabled=!allowed();writer.sync(allowed(),getState()?.impostorSettings?.reducedMotion||getState()?.impostorSettings?.visualEffectsEnabled===false);}
   function render(){const s=mini();if(!s)return;const next=s.sessionId+':'+s.round;
@@ -42,7 +43,10 @@ function createImpostorController({getState,isAuthenticated,send,now,makeId}) {
   }
   el('clue-input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing&&e.keyCode!==229){e.preventDefault();el('clue-form').requestSubmit();}});
   el('clue-form').addEventListener('submit',submit);
-  el('clue-input').addEventListener('input',()=>{draftKey=key;draft=el('clue-input').value;updateLength();});
+  el('clue-input').addEventListener('input',()=>{
+    draftKey=key;draft=el('clue-input').value;updateLength();
+    if(allowed()&&draft&&now()-typingAt>=220){typingAt=now();const s=mini();send('IMPOSTOR_TYPING',{roomCode:getState().code,sessionId:s.sessionId,round:s.round});}
+  });
   function suspend(){roleClock.set(0,0,false);writer.sync(false);pending=null;clearTimeout(timeout);key='';el('impostor-word').textContent='';el('clue-confirmed-value').textContent='';}
   function event(e){if(e.type==='CLUE_REJECTED'&&e.requestId===pending){pending=null;clearTimeout(timeout);error=e.payload?.code==='INVALID_CLUE'?'Invalid clue. Use one new word of up to 10 letters. At most three attempts per round.':'This clue could not be accepted. Refreshing round state…';render();}
     if(e.type==='CLUE_ACCEPTED'&&e.requestId===pending){if(getState().impostorSettings?.soundEnabled!==false)document.dispatchEvent(new CustomEvent('impostor:audio',{detail:{cue:'clue_submitted'}}));pending=null;error='';clearTimeout(timeout);}}

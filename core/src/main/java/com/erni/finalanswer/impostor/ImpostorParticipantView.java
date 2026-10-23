@@ -18,12 +18,18 @@ public final class ImpostorParticipantView extends Group {
     public static final ImpostorLayout.Bounds AVATAR_OPENING = new ImpostorLayout.Bounds(0, 40, 194, 275);
     public static final ImpostorLayout.Bounds NAMEPLATE = new ImpostorLayout.Bounds(0, 6, 194, 30);
     private double idleTime;
+    private String playerId;
+    public String playerId(){return playerId;}
+    private ImpostorElimination elimination;
+    private Label eliminationLabel;
     private float portraitY=Float.NaN;
-    public void updatePortrait(float delta,boolean reduced){
+    public void updatePortrait(float delta,boolean reduced){updatePortrait(delta,reduced,-1);}
+    public void updatePortrait(float delta,boolean reduced,float eliminatedAge){
         Actor avatar=findActor("avatar");if(avatar==null)return;
         if(Float.isNaN(portraitY))portraitY=avatar.getY();
         if(Float.isFinite(delta))idleTime=(idleTime+Math.max(0,delta))%100;
-        avatar.setY(portraitY+(reduced?0:(float)Math.sin(idleTime*.7)*.65f));
+        elimination.apply(eliminatedAge,reduced,reduced?0:(float)Math.sin(idleTime*.7)*.65f);
+        eliminationLabel.setVisible(eliminatedAge>=.6f);
     }
     private final boolean hasPaper;
     private final Group paper = new Group();
@@ -43,7 +49,7 @@ public final class ImpostorParticipantView extends Group {
     public ImpostorParticipantView(ImpostorParticipant participant, Actor avatar,
                                    ImpostorAssets assets, BitmapFont font, BitmapFont nicknameFont) {
         this.font = font;
-        setName("participant:" + participant.player().id());
+        playerId=participant.player().id();setName("participant:" + playerId);
         setSize(WIDTH, HEIGHT);
         setOrigin(0, 0);
         // Character and nickname occupy the left lane; clue parchment keeps its existing right lane.
@@ -57,8 +63,9 @@ public final class ImpostorParticipantView extends Group {
             portrait.setScale(scale);
             avatar.setPosition(0, 0);
             portrait.addActor(avatar);
-            addActor(portrait);
+            addActor(portrait);elimination=new ImpostorElimination(portrait);
         }
+        eliminationLabel=new Label("ELIMINATED",new Label.LabelStyle(font,Color.valueOf("D89A9F")));eliminationLabel.setName("eliminationStatus");eliminationLabel.setFontScale(.5f);eliminationLabel.setAlignment(Align.center);eliminationLabel.setBounds(0,-14,194,20);eliminationLabel.setVisible(false);addActor(eliminationLabel);
         Label nickname = new Label(participant.player().name(), new Label.LabelStyle(nicknameFont,
                 com.erni.finalanswer.ui.PlayerColors.light(participant.player().characterId())));
         nickname.setName("nickname");

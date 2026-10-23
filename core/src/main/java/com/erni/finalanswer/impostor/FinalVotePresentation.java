@@ -26,6 +26,11 @@ public final class FinalVotePresentation extends Group {
     private final List<String> targets=new ArrayList<>();
     private final com.badlogic.gdx.graphics.g2d.GlyphLayout measurement=new com.badlogic.gdx.graphics.g2d.GlyphLayout();
     private final Image stamp;
+    private boolean paused;
+    public void paused(boolean value){paused=value;}
+    private boolean eliminationCaption;
+    private static final Color ELIMINATION_COLOR=Color.valueOf("D89A9F"),PROGRESS_COLOR=Color.valueOf("DBCDC1");
+    private final Map<String,ImpostorElimination> eliminations=new LinkedHashMap<>();
     private FinalActSnapshot snapshot;
     private String sequence="";
     private int revealed;
@@ -49,9 +54,9 @@ public final class FinalVotePresentation extends Group {
         result.setFontScale(scale);result.setBounds(x,y,width,height);result.setWrap(true);addActor(result);return result;
     }
     public void hidePresentation(){snapshot=null;sequence="";revealed=0;previousUpdate=-1;for(Image image:marks)if(image!=null)image.remove();marks.clear();targets.clear();setVisible(false);if(stamp!=null)stamp.setVisible(false);}
-    public void clear(){snapshot=null;sequence="";revealed=0;previousUpdate=-1;marks.clear();targets.clear();cards.clearChildren();cardsById.clear();names.clear();setVisible(false);if(stamp!=null)stamp.setVisible(false);}
+    public void clear(){snapshot=null;sequence="";revealed=0;previousUpdate=-1;marks.clear();targets.clear();cards.clearChildren();cardsById.clear();names.clear();eliminations.clear();setVisible(false);if(stamp!=null)stamp.setVisible(false);}
     public void setRoster(List<ImpostorParticipant> roster){
-        clear();int count=roster.size();float width=250,height=assets.texture(ImpostorAsset.SUSPECT_PAPER).map(t->width*t.getHeight()/t.getWidth()).orElse(width*1353/1162);
+        clear();eliminations.clear();int count=roster.size();float width=250,height=assets.texture(ImpostorAsset.SUSPECT_PAPER).map(t->width*t.getHeight()/t.getWidth()).orElse(width*1353/1162);
         for(int i=0;i<count;i++){
             var player=roster.get(i).player();names.put(player.id(),player.name());
             Group card=new Group();card.setName("finalCard:"+player.id());card.setSize(width,height);card.setOrigin(width/2,height/2);
@@ -62,7 +67,7 @@ public final class FinalVotePresentation extends Group {
             if(avatar!=null && avatar.getWidth()>0 && avatar.getHeight()>0){
                 float scale=Math.min(88/avatar.getWidth(),50/avatar.getHeight());
                 Group portrait=new Group();portrait.setName("finalAvatar");portrait.setBounds(125-avatar.getWidth()*scale/2,174,avatar.getWidth(),avatar.getHeight());portrait.setScale(scale);
-                avatar.setPosition(0,0);portrait.addActor(avatar);card.addActor(portrait);
+                avatar.setPosition(0,0);portrait.addActor(avatar);card.addActor(portrait);eliminations.put(player.id(),new ImpostorElimination(portrait));
             }
             Label nickname=new Label(player.name(),new Label.LabelStyle(font,Color.valueOf("352116")));
             nickname.setName("finalNickname");nickname.setBounds(35,230,180,34);nickname.setAlignment(Align.center);nickname.setFontScale(.9f);nickname.setEllipsis("...");card.addActor(nickname);
@@ -72,6 +77,7 @@ public final class FinalVotePresentation extends Group {
     public int visibleStampCount(){int count=0;for(Image image:marks)if(image!=null && image.isVisible())count++;return count;}
     public int stampCount(){return targets.size();}
     public void accept(FinalActSnapshot next){
+        eliminationCaption=false;progress.setColor(PROGRESS_COLOR);
         boolean phaseChanged=snapshot==null || snapshot.phase()!=next.phase();
         snapshot=next;setVisible(true);
         if(!next.sequenceId().isEmpty() && !next.sequenceId().equals(sequence)){
@@ -124,7 +130,10 @@ public final class FinalVotePresentation extends Group {
     private static String abbreviate(String value,int max){return value.codePointCount(0,value.length())<=max?value:value.substring(0,value.offsetByCodePoints(0,max-3))+"...";}
     /** Absolute server time makes reconnects and low frame rates resume, rather than replay, impacts. */
     public void update(long serverNow){
-        if(snapshot==null)return;
+        if(snapshot==null||paused)return;
+        float eliminatedAge=ImpostorElimination.age(snapshot,serverNow);
+        for(var entry:eliminations.entrySet())entry.getValue().apply(entry.getKey().equals(snapshot.impostorId())?eliminatedAge:-1,reducedMotion,0);
+        if(eliminatedAge>=.6f&&!eliminationCaption){eliminationCaption=true;progress.setText("EXPOSED / ELIMINATED");progress.setColor(ELIMINATION_COLOR);}
         float entry=Math.max(0,Math.min(1,(serverNow-snapshot.phaseStartedAt())/350f));entry=entry*entry*(3-2*entry);
         if(reducedMotion)entry=1;
         title.getColor().a=entry;detail.getColor().a=entry;

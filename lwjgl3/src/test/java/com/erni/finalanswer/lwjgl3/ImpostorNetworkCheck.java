@@ -18,7 +18,7 @@ public final class ImpostorNetworkCheck extends FinalAnswerGame {
     private ImpostorScreen screen;
     private RealtimeClient connection;
     private final HashSet<Integer> completed=new HashSet<>();
-    private long started,nextConnect;
+    private long started,nextConnect,writingBaseline;
     private String code="";
     private boolean waiting;
     public static void main(String[] args){
@@ -64,7 +64,11 @@ public final class ImpostorNetworkCheck extends FinalAnswerGame {
             int votes=mini.getAsJsonObject("finalVoteSnapshot").getAsJsonArray("stampTargets").size();
             if(view.visibleStampCount()!=votes || view.stampCount()!=votes)throw new AssertionError("Every final vote must have exactly one retained stamp");
         }
-        int count=screen.participants().size();if(!completed.add(count))return;
+        int count=screen.participants().size();if(completed.contains(count))return;
+        var audioField=ImpostorScreen.class.getDeclaredField("audio");audioField.setAccessible(true);var audio=(com.erni.finalanswer.audio.PresentationAudio)audioField.get(screen);
+        if(audio.writingPlaying())return;
+        if(audio.writingPlayCount()<=writingBaseline)throw new AssertionError("Host writing must play for real input in each match");
+        if(!completed.add(count))return;writingBaseline=audio.writingPlayCount();
         if(screen.revealedRoundCount()!=3)throw new AssertionError("Host missed reveal history");
         var image=Pixmap.createFromFrameBuffer(0,0,Gdx.graphics.getBackBufferWidth(),Gdx.graphics.getBackBufferHeight());
         try{var file=Gdx.files.absolute(System.getProperty("impostor.network.artifacts")+"/"+count+"players-real-network"+(finalQA?"-final":"")+".png");file.parent().mkdirs();PixmapIO.writePNG(file,image,-1,true);}finally{image.dispose();}
