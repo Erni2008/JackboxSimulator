@@ -2,7 +2,15 @@
   {
     "source": "source_assets/audio/cursed_boxes_expansion/shooted_box2.wav",
     "asset": "sounds/cursed_boxes/shooted_box2.wav",
-    "sha256": "767f6f975e2eb8a47975110af3e3c7e6bd931ac001298ebc2a2feb8b3ea22a49"
+    "sha256": "767f6f975e2eb8a47975110af3e3c7e6bd931ac001298ebc2a2feb8b3ea22a49",
+    "processing": {
+      "removedFrames": 1134,
+      "drive": 4,
+      "peakLimit": 0.95,
+      "inputRms": 0.050838171266156286,
+      "outputRms": 0.11981188177399534
+    },
+    "playbackAsset": "sounds/cursed_boxes/runtime/shooted_box2.wav"
   },
   {
     "source": "source_assets/audio/cursed_boxes_expansion/appearance.wav",

@@ -41,6 +41,7 @@ public final class CursedBoxesPhoneCheck {
             }catch(Throwable e){failure=e;Gdx.app.exit();}}
             JsonObject inspect(){
                 JsonObject report=new JsonObject();
+                var questions=getAudio().activeQuestions();if(questions!=null){report.addProperty("questionAudioLoaded",questions.loaded());report.addProperty("questionTicking",questions.ticking());report.addProperty("questionLockCount",questions.lockCount());report.addProperty("questionTrack",questions.currentTrack());}
                 report.addProperty("applicationAudioLoaded",getAudio().loaded());report.addProperty("ambiencePlaying",getAudio().ambiencePlaying());
                 try{var field=com.erni.finalanswer.audio.GameAudio.class.getDeclaredField("ambience");field.setAccessible(true);var music=(com.badlogic.gdx.audio.Music)field.get(getAudio());if(music!=null)report.addProperty("ambiencePosition",music.getPosition());}catch(ReflectiveOperationException e){throw new AssertionError(e);}var appCues=new JsonObject();for(var cue:com.erni.finalanswer.audio.GameAudio.Cue.values())appCues.addProperty(cue.name(),getAudio().playCount(cue));report.add("applicationAudioCues",appCues);
                 var root=getRealtime()==null?null:getRealtime().snapshot();if(root!=null)report.add("state",root);

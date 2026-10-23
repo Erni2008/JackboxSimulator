@@ -80,6 +80,8 @@ public class SettingsCheck extends FinalAnswerGame {
     }
 
     void checkSaved() {
+        var mix=com.erni.finalanswer.audio.AudioMix.GLOBAL;
+        if(Math.abs(mix.master-.8f)>.001f||Math.abs(mix.music-.4f)>.001f||Math.abs(mix.sfx-.6f)>.001f)throw new AssertionError("Audio settings not persisted");
         if (!getSettings().language().equals("ru")
                 || getSettings().fpsLimit() != 120
                 || getSettings().vsync()
@@ -102,7 +104,7 @@ public class SettingsCheck extends FinalAnswerGame {
                 throw new AssertionError("Locale not restored");
             System.out.println(
                     "PASS: preferences restored in a fresh JVM; Russian interface and display"
-                        + " options retained");
+                        + " options and independent Master/Music/SFX retained");
             Gdx.app.exit();
             return;
         }
@@ -121,6 +123,7 @@ public class SettingsCheck extends FinalAnswerGame {
                 if (!(getScreen() instanceof SettingsScreen)) break;
                 capture("en");
                 select("settingsLanguage", 1);
+                select("settingsMasterVolume", 5);
                 step = 2;
             }
             case 2 -> {
@@ -136,9 +139,11 @@ public class SettingsCheck extends FinalAnswerGame {
                 if (!(getScreen() instanceof MainMenu)) break;
                 if (!getTexts().getLanguage().equals("en"))
                     throw new AssertionError("Cancel did not restore language");
+                if(com.erni.finalanswer.audio.AudioMix.GLOBAL.master!=1)throw new AssertionError("Cancelled audio changes were applied");
                 showSettings();
                 select("settingsLanguage", 1);
                 select("settingsFps", 2);
+                select("settingsMasterVolume",16);select("settingsMusicVolume",8);select("settingsSfxVolume",12);
                 ((CheckBox) actor("settingsVsync")).setChecked(false);
                 ((CheckBox) actor("settingsReducedMotion")).setChecked(true);
                 click(actor("settingsApply"));

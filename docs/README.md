@@ -60,6 +60,8 @@
 
 ## Вопросы и раунды
 
+- [Музыка вопросов, тиканье и блокировка ответов](questions/audio.md)
+
 - [Question-round character presentation](questions/players.md)
 - [Постановка вопросов PLAY](questions/presentation.md)
 
@@ -68,6 +70,8 @@
 - [FINAL ANSWER modular shotgun](shotgun/README.md)
 
 ## Разработка и проверки
+
+- [Восстановление телефонного контроллера](development/controller-recovery.md)
 
 - [Оформление телефонных контроллеров двух режимов](development/controller-polish.md)
 

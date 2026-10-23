@@ -285,6 +285,26 @@
       "originalRootPath": "shooted_box2.wav",
       "path": "audio/cursed_boxes_expansion/shooted_box2.wav",
       "sha256": "767f6f975e2eb8a47975110af3e3c7e6bd931ac001298ebc2a2feb8b3ea22a49"
+    },
+    {
+      "originalRootPath": "background_music.wav",
+      "path": "audio/questions/background_music.wav",
+      "sha256": "07056a8f28db4a71e3ce49170d0b3b1a43c0b3786f24a15c3a2b7ae2dda3cbf4"
+    },
+    {
+      "originalRootPath": "background_music2.wav",
+      "path": "audio/questions/background_music2.wav",
+      "sha256": "68c86452d7913cb2f28ab92600a40b2e3ec4b7cf5164ad84081eec6377c89c21"
+    },
+    {
+      "originalRootPath": "door_lock(done).wav",
+      "path": "audio/questions/door_lock(done).wav",
+      "sha256": "2b09f12d3e528c683ceb13b2c28c6aa673f8c7d5f9634b010a0c5fc8fe2b8761"
+    },
+    {
+      "originalRootPath": "clock_ticks.wav",
+      "path": "audio/questions/clock_ticks.wav",
+      "sha256": "0b30b2ffddfeda11af60f02a360d135a4c6cd704212d8e3d2dc2d5b21e077f9e"
     }
   ]
 }

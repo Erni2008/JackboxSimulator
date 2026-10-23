@@ -15,10 +15,11 @@
   <script src="/impostor.js?v=5" defer></script>
   <script src="/suspicion.js" defer></script>
   <link rel="stylesheet" href="/cursed-boxes.css?v=1">
-  <script src="/cursed-boxes.js?v=1" defer></script>
-  <link rel="stylesheet" href="/controller-polish.css?v=3">
+  <script src="/cursed-boxes.js?v=2" defer></script>
+  <link rel="stylesheet" href="/controller-polish.css?v=4">
   <script src="/controller-presentation.js?v=2" defer></script>
-  <script src="/app.js" defer></script>
+  <script src="/connection-health.js?v=1" defer></script>
+  <script src="/app.js?v=recovery-1" defer></script>
 </head>
 <body>
   <div class="ambient" aria-hidden="true"></div>
@@ -132,6 +133,8 @@
     <section id="disconnected-screen" class="screen" hidden>
       <p class="eyebrow">A BREAK IN THE SIGNAL</p><h1>Don't disappear.</h1>
       <p id="disconnect-message" class="muted">Reconnecting to your seat…</p>
+      <p id="reconnect-countdown" class="reconnect-countdown" aria-hidden="true"></p>
+      <p class="reconnect-assurance">Accepted choices stay on the server. Reconnecting restores the current stage.</p>
       <button id="retry" class="primary" type="button">TRY AGAIN</button>
     </section>
     <footer id="session-footer" hidden><button id="leave" type="button" class="text-button">LEAVE ROOM</button><span id="session-code"></span></footer>

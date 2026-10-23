@@ -19,7 +19,7 @@ public final class CursedBoxesSoundManager implements Disposable {
         REVEAL_START("reveal_sound2(done).wav",Category.REVEAL),
         REVEAL_COMPLETE("reveal_done.wav",Category.REVEAL),
         INSERT_ROUND("reload_done(bullets).wav",Category.RELOAD),
-        WOOD_EXTRA("shooted_box2.wav",Category.WOOD),
+        WOOD_EXTRA("shooted_box2.wav",Category.WOOD,true),
         APPEARANCE_1("appearance.wav",Category.REVEAL), APPEARANCE_2("appearance2.wav",Category.REVEAL),
         APPEARANCE_3("appearance3.wav",Category.REVEAL), APPEARANCE_4("appearance4.wav",Category.REVEAL),
         HORROR_1("horror_appearance.wav",Category.REVEAL), HORROR_2("horror_appearance2.wav",Category.REVEAL);
@@ -29,19 +29,15 @@ public final class CursedBoxesSoundManager implements Disposable {
     }
     public static final class Levels {
         public float master=1,shotgun=1,reload=.75f,shell=.90f,wood=.85f,heartbeat=.60f,reveal=.80f;
-        public float newWood=.65f,destructionHeadroom=.65f,appearance=.9f,horror=.75f;
-        public float gain(Category category){return AudioMix.GLOBAL.gain(category==Category.WOOD?AudioMix.Category.BOX_DESTRUCTION:category==Category.REVEAL?AudioMix.Category.CHARACTER_REVEAL:AudioMix.Category.MASTER)*unit(master)*unit(switch(category){case SHOTGUN->shotgun;case RELOAD->reload;case SHELL->shell;case WOOD->wood;case HEARTBEAT->heartbeat;case REVEAL->reveal;});}
+        public float newWood=.75f,destructionHeadroom=.60f,appearance=.9f,horror=.75f;
+        public float gain(Category category){return AudioMix.GLOBAL.gain(category==Category.WOOD?AudioMix.Category.BOX_DESTRUCTION:category==Category.REVEAL?AudioMix.Category.CHARACTER_REVEAL:AudioMix.Category.SFX)*unit(master)*unit(switch(category){case SHOTGUN->shotgun;case RELOAD->reload;case SHELL->shell;case WOOD->wood;case HEARTBEAT->heartbeat;case REVEAL->reveal;});}
     }
     @FunctionalInterface public interface Backend {Sound load(String path);}
     private static final Cue[] CUES=Cue.values();
     public final Levels levels=new Levels();
     private final Backend backend;
-    private static final Cue[] APPEARANCES={Cue.APPEARANCE_1,Cue.APPEARANCE_2,Cue.APPEARANCE_3,Cue.APPEARANCE_4};
     // RMS trims measured from the supplied, unchanged files; avoid boosting their peaks.
     private static final float[] APPEARANCE_TRIM={.859f,.902f,.859f,1};
-    // Supplied appearance.wav and appearance3.wav have identical SHA-256/audio.
-    private static final int[] APPEARANCE_GROUP={0,1,0,2};
-    private final java.util.Random variations=new java.util.Random();
     private int lastAppearance=-1,appearanceCues,horrorVariant;
     private long lastSpecialReveal=-1;
     private final Sound[] sounds=new Sound[CUES.length];
@@ -51,7 +47,7 @@ public final class CursedBoxesSoundManager implements Disposable {
     private float hostVoiceDuration;
     private boolean hostAnnounced;
     private final long[] voices=new long[CUES.length],plays=new long[CUES.length];
-    private int loaded,smokeCues,completeCues;
+    private int loaded,smokeCues;
     private long weaponSequence,lastImpact=-1,landedShell=-1;
     private boolean loading,paused,muted,disposed,revealObserved,heartbeatWanted,heartbeatAttempted;
     private long insertionReload=-1;
@@ -128,13 +124,9 @@ public final class CursedBoxesSoundManager implements Disposable {
         weaponState=next;
     }
     public void impact(long shotSerial){if(shotSerial<=lastImpact)return;lastImpact=shotSerial;AudioMix.GLOBAL.important(.3f);play(Cue.WOOD_BREAK);play(Cue.WOOD_EXTRA);}
-    private boolean differentAppearance(int index){return lastAppearance<0||APPEARANCE_GROUP[index]!=APPEARANCE_GROUP[lastAppearance];}
     private void appearance(){
-        if(!audible())return;
-        int count=0;for(int i=0;i<APPEARANCES.length;i++)if(differentAppearance(i)&&sounds[APPEARANCES[i].ordinal()]!=null)count++;
-        boolean repeat=count==0;if(repeat)for(Cue cue:APPEARANCES)if(sounds[cue.ordinal()]!=null)count++;
-        if(count==0)return;int choice=variations.nextInt(count);
-        for(int i=0;i<APPEARANCES.length;i++)if((repeat||differentAppearance(i))&&sounds[APPEARANCES[i].ordinal()]!=null&&choice--==0){lastAppearance=i;AudioMix.GLOBAL.important(.5f);play(APPEARANCES[i]);return;}
+        if(!audible()||sounds[Cue.APPEARANCE_2.ordinal()]==null)return;
+        lastAppearance=1;AudioMix.GLOBAL.important(.5f);play(Cue.APPEARANCE_2);
     }
     public int lastAppearance(){return lastAppearance;}
     /** Explicit opt-in for an actual special reveal. Normal survivors never call this hook. */
@@ -147,7 +139,7 @@ public final class CursedBoxesSoundManager implements Disposable {
         if(disposed)return;
         float step=Float.isFinite(dt)?Math.max(0,dt):0;
         if(!clock.started()){
-            revealObserved=false;smokeCues=completeCues=appearanceCues=0;heartbeatWanted=false;
+            revealObserved=false;smokeCues=appearanceCues=0;heartbeatWanted=false;
         }else{
             float age=clock.age();
             if(!revealObserved){
@@ -156,10 +148,9 @@ public final class CursedBoxesSoundManager implements Disposable {
             }
             float lower=Math.max(previousRevealAge,age-step-.05f);
             for(int box=0;box<16;box++)if(clock.eligible(box)){
-                int bit=1<<box;float start=age-clock.localAge(box),smoke=start+clock.timings.anticipation,visible=start+clock.timings.anticipation+clock.timings.smoke+clock.timings.panel;
+                int bit=1<<box;float start=age-clock.localAge(box),smoke=start+clock.timings.anticipation;
                 if(age>=smoke&&(smokeCues&bit)==0){smokeCues|=bit;if(smoke>lower)play(Cue.REVEAL_START);}
                 if(clock.characterOpacity(box)>0&&clock.panelOpacity(box)<1&&(appearanceCues&bit)==0){appearanceCues|=bit;float appearanceAt=smoke+clock.timings.smoke;if(appearanceAt>=lower-.05f&&age-appearanceAt<=step+.05f)appearance();}
-                if(age>=visible&&(completeCues&bit)==0){completeCues|=bit;if(visible>lower)play(Cue.REVEAL_COMPLETE);}
             }
             previousRevealAge=age;
             int box=clock.currentBox();float local=box<0?-1:clock.localAge(box);
@@ -180,6 +171,6 @@ public final class CursedBoxesSoundManager implements Disposable {
     public long playCount(Cue cue){return plays[cue.ordinal()];}
     public boolean heartbeatActive(){return voices[Cue.HEARTBEAT.ordinal()]>=0;}
     public void stop(){if(hostVoice!=null)try{hostVoice.stop();}catch(RuntimeException error){warning.accept("Cannot stop host voice: "+error.getMessage());}for(int i=0;i<sounds.length;i++){if(sounds[i]!=null)try{sounds[i].stop();}catch(RuntimeException error){warn(CUES[i],"Cannot stop",error);}voices[i]=-1;}heartbeatGain=0;heartbeatWanted=heartbeatAttempted=false;}
-    public void reset(){stop();insertionReload=-1;insertionHeard=0;lastImpact=landedShell=-1;smokeCues=completeCues=appearanceCues=0;lastSpecialReveal=-1;hostAnnounced=revealObserved=false;previousRevealAge=0;weaponState=ShotgunAnimator.State.IDLE;}
+    public void reset(){stop();insertionReload=-1;insertionHeard=0;lastImpact=landedShell=-1;smokeCues=appearanceCues=0;lastSpecialReveal=-1;hostAnnounced=revealObserved=false;previousRevealAge=0;weaponState=ShotgunAnimator.State.IDLE;}
     @Override public void dispose(){if(disposed)return;stop();disposed=true;for(int i=0;i<sounds.length;i++)if(sounds[i]!=null)try{sounds[i].dispose();}catch(RuntimeException error){warn(CUES[i],"Cannot dispose",error);}if(hostVoice!=null)try{hostVoice.dispose();}catch(RuntimeException error){warning.accept("Cannot dispose host voice: "+error.getMessage());}}
 }

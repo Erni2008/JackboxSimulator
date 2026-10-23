@@ -43,6 +43,7 @@ async function resolved(p){await p.waitForFunction(()=>!window.__qaState?.cursed
     await host('START_QUESTIONS');
     for(const c of clients)await c.p.waitForFunction(()=>window.__qaState?.phase==='ANSWERING');
     assert.equal((await state(ghost)).questionNumber,1);
+    const questionAudio=await host('INSPECT');assert.equal(questionAudio.questionAudioLoaded,4);assert.equal(questionAudio.questionTicking,true,'Ticking starts with actual server countdown');assert.equal(questionAudio.questionLockCount,0,'No lock before answer deadline');
     // The existing first trivia question has correct answer 1. Submit through the real phone buttons.
     for(let i=0;i<4;i++)await clients[i].p.locator(`#answers button[data-index="${i<2?0:1}"]`).click();
     await ghost.waitForFunction(()=>window.__qaState?.cursedBoxes?.canHide);
@@ -53,12 +54,23 @@ async function resolved(p){await p.waitForFunction(()=>!window.__qaState?.cursed
       await prepareManualReview('hiding');
       return;
     }
-    async function hide(p,box){await p.locator(`.cursed-box[data-box="${box}"]`).click();await p.locator('#cursed-fire').click();await p.waitForFunction(()=>window.__qaState.cursedBoxes.hidingConfirmed);}
+    async function hide(p,box){
+      await p.locator(`.cursed-box[data-box="${box}"]`).click();
+      if(process.env.CURSED_RECONNECT_QA==='1'&&p===ghost){
+        const identity=(await state(p)).selfId;
+        await p.evaluate(()=>window.__qaSocket.close());await p.locator('#disconnected-screen').waitFor({state:'visible'});
+        await p.locator('#retry').click();await p.locator('#cursed-screen').waitFor({state:'visible'});
+        assert.equal((await state(p)).selfId,identity,'Recovery changed the hiding player');
+        assert.equal((await state(p)).cursedBoxes.hidingConfirmed,false,'Recovery confirmed an unsent hiding choice');
+        assert.equal(await p.locator(`.cursed-box[data-box="${box}"]`).getAttribute('aria-pressed'),'true','Manual reconnect lost private hiding draft');
+      }
+      await p.locator('#cursed-fire').click();await p.waitForFunction(()=>window.__qaState.cursedBoxes.hidingConfirmed);
+    }
     await hide(ghost,5);
     assert.equal((await state(shooter1)).cursedBoxes.canAct,false,'Shot unlocked before all hiders confirmed');
     await hide(puppet,10);await shooter1.waitForFunction(()=>window.__qaState.cursedBoxes.canAct);
     for(const p of [shooter1,shooter2]){const s=(await state(p)).cursedBoxes;assert.equal(s.hidingBoxId,undefined);assert.equal(s.hostContents,undefined);assert(s.boxes.every(b=>b.characterId===undefined));}
-    let report=await host('INSPECT');assert.equal(report.state.cursedBoxes.hostContents.length,2);assert.equal(report.turnLimit,1);
+    let report=await host('INSPECT');assert.equal(report.questionTicking,false,'No timer audio after questions');assert.equal(report.questionLockCount,1,'Exactly one authoritative answer-lock cue');assert.equal(report.state.cursedBoxes.hostContents.length,2);assert.equal(report.turnLimit,1);
     const stages=[];
     async function shot(p,box){
       await selected(p,box);await p.locator('#cursed-fire').click();
@@ -90,13 +102,14 @@ async function resolved(p){await p.waitForFunction(()=>!window.__qaState?.cursed
     assert(report.applicationAudioCues.GATE>=4);assert(report.applicationAudioCues.CHAIN_1>0&&report.applicationAudioCues.CHAIN_2>0);assert.equal(report.applicationAudioCues.HOVER,1);assert.equal(report.applicationAudioCues.PRESS,1);assert(report.ambiencePlaying);
     assert.equal(report.soundCues.WOOD_EXTRA,2,'Existing and additional wood layers each fire twice');
     assert.equal(['APPEARANCE_1','APPEARANCE_2','APPEARANCE_3','APPEARANCE_4'].reduce((n,c)=>n+report.soundCues[c],0),1,'One appearance variation per survivor');
+    assert.equal(report.soundCues.APPEARANCE_2,1,'Survivor must use appearance2');assert.equal(report.soundCues.REVEAL_COMPLETE,0,'Legacy final reveal must not mask appearance2');
     assert.equal(report.soundCues.HORROR_1+report.soundCues.HORROR_2,0,'No fabricated special reveal');
-    for(const cue of ['MECHANISM','HEARTBEAT','REVEAL_START','REVEAL_COMPLETE'])assert(report.soundCues[cue]>0,`Missing sound: ${cue}`);
+    for(const cue of ['MECHANISM','HEARTBEAT','REVEAL_START'])assert(report.soundCues[cue]>0,`Missing sound: ${cue}`);
     assert.equal(report.soundHeartbeat,false);assert(report.flashFrames>0);assert(report.reloadFrames>0);assert.deepEqual(errors,[]);
     await host('CAPTURE');await sleep(500);
     for(let i=0;i<4;i++)await clients[i].p.screenshot({path:path.join(dir,`phone-${i+1}-result.png`),fullPage:true});
     fs.writeFileSync(path.join(dir,'full-round-report.json'),JSON.stringify({passed:true,scenario:'real trivia: two incorrect / two correct; one shot each; ghost eliminated, puppeteer survives',stages,soundCues:report.soundCues,renderChecks:report.renderChecks,flashFrames:report.flashFrames,reloadFrames:report.reloadFrames,applicationAudioCues:report.applicationAudioCues,ambiencePlaying:report.ambiencePlaying,finalState:s},null,2));
-    console.log('PASS: full trivia round; original 8 cues preserved; layered wood, survivor variation, gates/chains/UI, real MP3 loop; '+(process.env.KEEP_OPEN!=='0'?'native viewer remains open.':'closing native viewer.'));
+    console.log('PASS: full trivia round; shot/cycle/shell audio preserved; layered wood, fixed appearance2, gates/chains/UI, real MP3 loop; '+(process.env.KEEP_OPEN!=='0'?'native viewer remains open.':'closing native viewer.'));
     if(process.env.KEEP_OPEN!=='0'){
       while(!fs.existsSync(path.join(dir,'cleanup.json')))await sleep(1000);
     }else await host('EXIT');

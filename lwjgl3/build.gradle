@@ -818,3 +818,14 @@ tasks.register('cursedBoxesFullRoundCheck', JavaExec) {
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
+
+// Actual cached recordings and OpenAL playback; no test assets or replacement audio backend.
+tasks.register('questionAudioNativeCheck', JavaExec) {
+    group = 'verification'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.QuestionAudioNativeCheck'
+    workingDir = rootProject.file('assets')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}

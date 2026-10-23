@@ -1,0 +1,29 @@
+[
+  {
+    "source": "source_assets/audio/questions/background_music.wav",
+    "asset": "sounds/questions/background_music.wav",
+    "sha256": "07056a8f28db4a71e3ce49170d0b3b1a43c0b3786f24a15c3a2b7ae2dda3cbf4",
+    "duration": 30.0
+  },
+  {
+    "source": "source_assets/audio/questions/background_music2.wav",
+    "asset": "sounds/questions/background_music2.wav",
+    "sha256": "68c86452d7913cb2f28ab92600a40b2e3ec4b7cf5164ad84081eec6377c89c21",
+    "duration": 30.0,
+    "runtimeAsset": "sounds/questions/runtime/background_music2.wav",
+    "circularSpliceSeconds": 0.15,
+    "runtimeSha256": "bdc4c815491f8835c156a1d4977ef53c80f310c24672a9ac400c327d0a7a139c"
+  },
+  {
+    "source": "source_assets/audio/questions/door_lock(done).wav",
+    "asset": "sounds/questions/door_lock(done).wav",
+    "sha256": "2b09f12d3e528c683ceb13b2c28c6aa673f8c7d5f9634b010a0c5fc8fe2b8761",
+    "duration": 7.9580625
+  },
+  {
+    "source": "source_assets/audio/questions/clock_ticks.wav",
+    "asset": "sounds/questions/clock_ticks.wav",
+    "sha256": "0b30b2ffddfeda11af60f02a360d135a4c6cd704212d8e3d2dc2d5b21e077f9e",
+    "duration": 20.0
+  }
+]

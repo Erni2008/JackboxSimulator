@@ -6,6 +6,15 @@ import com.badlogic.gdx.Preferences;
 public final class SettingsStore {
     private final Preferences preferences = Gdx.app.getPreferences("FinalAnswer.settings");
 
+    public void loadAudio(com.erni.finalanswer.audio.AudioMix mix){
+        mix.master=com.erni.finalanswer.audio.AudioMix.unit(preferences.getFloat("audio.master",1));
+        mix.music=com.erni.finalanswer.audio.AudioMix.unit(preferences.getFloat("audio.music",1));
+        mix.sfx=com.erni.finalanswer.audio.AudioMix.unit(preferences.getFloat("audio.sfx",1));
+    }
+    public void saveAudio(com.erni.finalanswer.audio.AudioMix mix){
+        preferences.putFloat("audio.master",mix.master).putFloat("audio.music",mix.music).putFloat("audio.sfx",mix.sfx).flush();
+    }
+
     public GameSettings load() {
         GameSettings defaults = GameSettings.defaults();
         try {

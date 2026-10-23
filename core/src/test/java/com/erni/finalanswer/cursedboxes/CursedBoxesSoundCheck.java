@@ -40,7 +40,7 @@ public final class CursedBoxesSoundCheck {
         audio.shellContact(1,false);audio.shellContact(1,true);audio.shellContact(1,true);audio.shellContact(2,true);
         check(audio.playCount(SHELL_DROP)==2&&f.cue(SHELL_DROP).lastVolume==.9f,"One landing per shell, repeated shots");
         audio.impact(1);audio.impact(1);audio.impact(2);check(audio.playCount(WOOD_BREAK)==2&&f.cue(WOOD_BREAK).lastVolume==.85f*audio.levels.destructionHeadroom,"One wood impact per salvo");
-        check(audio.playCount(WOOD_EXTRA)==2&&f.cue(WOOD_EXTRA).lastVolume==.65f*audio.levels.destructionHeadroom,"Extra wood layer shares the same deduplicated impact event");
+        check(audio.playCount(WOOD_EXTRA)==2&&f.cue(WOOD_EXTRA).lastVolume==.75f*audio.levels.destructionHeadroom,"Extra wood layer shares the same deduplicated impact event");
         check((audio.levels.wood+audio.levels.newWood)*audio.levels.destructionHeadroom<=1,"Layered bus has peak headroom");
         audio.levels.master=.5f;audio.weaponEvent(ShotgunAnimator.Event.FIRED,4);check(f.cue(SHOT).lastVolume==.5f,"Scene master gain");
         audio.muted(true);audio.weaponEvent(ShotgunAnimator.Event.FIRED,5);check(audio.playCount(SHOT)==2,"Mute consumes without replay");audio.muted(false);
@@ -60,15 +60,15 @@ public final class CursedBoxesSoundCheck {
         batch.audio.reset();batch.audio.weaponPose(batchAnimator);check(batch.audio.playCount(INSERT_ROUND)==5,"Reset at idle does not replay completed insertions");
         Fixture r=new Fixture();var timeline=new CursedSurvivorTimeline();timeline.start(0x15);
         for(int i=0;i<620;i++){r.audio.reveal(timeline,1f/60);timeline.update(1f/60);}
-        check(r.audio.playCount(REVEAL_START)==3&&r.audio.playCount(REVEAL_COMPLETE)==3,"Ordered start/visible cues for each survivor");
+        check(r.audio.playCount(REVEAL_START)==3&&r.audio.playCount(APPEARANCE_2)==3&&r.audio.playCount(REVEAL_COMPLETE)==0,"Ordered start/visible cues for each survivor");
         long appearances=r.audio.playCount(APPEARANCE_1)+r.audio.playCount(APPEARANCE_2)+r.audio.playCount(APPEARANCE_3)+r.audio.playCount(APPEARANCE_4);
         check(appearances==3&&r.audio.playCount(HORROR_1)+r.audio.playCount(HORROR_2)==0,"One regular appearance per actual survivor; actual count="+appearances+"; special horror="+(r.audio.playCount(HORROR_1)+r.audio.playCount(HORROR_2)));
         check(r.cue(HEARTBEAT).loops==3&&r.cue(HEARTBEAT).maxActive==1&&!r.audio.heartbeatActive(),"Single heartbeat loop with fade-out per survivor");
-        for(int i=0;i<120;i++)r.audio.reveal(timeline,1f/60);check(r.audio.playCount(REVEAL_COMPLETE)==3,"Snapshot refresh never repeats reveal");
+        for(int i=0;i<120;i++)r.audio.reveal(timeline,1f/60);check(r.audio.playCount(APPEARANCE_2)==3,"Snapshot refresh never repeats reveal");
         r.audio.reset();timeline.reset();timeline.start(1);r.audio.reveal(timeline,.016f);check(r.audio.heartbeatActive(),"Restartable heartbeat");
         r.audio.paused(true);check(!r.audio.heartbeatActive()&&r.cue(HEARTBEAT).active==0,"Pause stops loop immediately");
         r.audio.paused(false);r.audio.reset();timeline.reset();timeline.start(1);timeline.seek(2.3f);r.audio.reveal(timeline,.016f);
-        check(r.audio.playCount(REVEAL_START)==3&&r.audio.playCount(REVEAL_COMPLETE)==3,"Late host restore skips historical cues");
+        check(r.audio.playCount(REVEAL_START)==3&&r.audio.playCount(APPEARANCE_2)==3&&r.audio.playCount(REVEAL_COMPLETE)==0,"Late host restore skips historical cues");
         timeline.reset();r.audio.reset();timeline.start(0);r.audio.reveal(timeline,.016f);check(!r.audio.heartbeatActive(),"Zero survivors are silent");
         int loads=r.loads;r.audio.warmup();check(r.loads==loads,"Warmup reuses Sound objects");
         r.audio.dispose();r.audio.dispose();r.audio.weaponEvent(ShotgunAnimator.Event.FIRED,100);
@@ -86,11 +86,11 @@ public final class CursedBoxesSoundCheck {
             var reveal=new CursedSurvivorTimeline();reveal.start(1);variants.audio.reset();variants.audio.reveal(reveal,.016f);
             check(variants.audio.lastAppearance()==previous,"Hidden character does not consume appearance variation");
             for(int frame=0;frame<130;frame++){reveal.update(.016f);variants.audio.reveal(reveal,.016f);}
-            int next=variants.audio.lastAppearance();check(next!=previous&&!(previous==0&&next==2)&&!(previous==2&&next==0),"Avoid consecutive filenames and identical-source audio repeats");previous=next;
+            int next=variants.audio.lastAppearance();check(next==1&&variants.audio.playCount(APPEARANCE_2)==i+1&&variants.audio.playCount(APPEARANCE_1)+variants.audio.playCount(APPEARANCE_3)+variants.audio.playCount(APPEARANCE_4)==0,"Every survivor uses appearance2 exclusively");previous=next;
         }
         variants.audio.specialReveal(1);variants.audio.specialReveal(1);variants.audio.specialReveal(2);
         check(variants.audio.playCount(HORROR_1)+variants.audio.playCount(HORROR_2)==2,"Explicit special reveals deduplicated");variants.audio.dispose();
         audio.dispose();insert.audio.dispose();
-        System.out.println("PASS: original eight plus seven cached WAVs, layered impact, nonrepeating survivor variations, explicit special reveals, shot/impact/cycle/contact/insertion events, independent gain, reveal order, single heartbeat loop/fade, duplicate suppression, late join, reset/pause/mute/disposal");
+        System.out.println("PASS: original eight plus seven cached WAVs, layered impact, fixed appearance2 survivor reveal, explicit special reveals, shot/impact/cycle/contact/insertion events, independent gain, reveal order, single heartbeat loop/fade, duplicate suppression, late join, reset/pause/mute/disposal");
     }
 }

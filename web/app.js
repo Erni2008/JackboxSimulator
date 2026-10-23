@@ -3,8 +3,21 @@ const $=id=>document.getElementById(id);
 const screens=['join','waiting','question','result','finished','disconnected','suspicion','impostor','final','cursed'];
 const messages={ROOM_NOT_FOUND:'ROOM NOT FOUND — check the six-character code.',ROOM_IS_FULL:'ROOM IS FULL.',CHARACTER_IN_USE:'That character belongs to another player. Choose a different character.',PLAYER_OFFLINE:'A player is disconnected. Reconnect before starting.',NOT_ENOUGH_PLAYERS:'At least two connected players are required.',GAME_ALREADY_STARTED:'GAME ALREADY STARTED. Only returning guests can rejoin.',INVALID_NICKNAME:'INVALID NICKNAME — use 1–24 characters.',NICKNAME_IN_USE:'That nickname is already taken.',INVALID_PASSWORD:'INVALID PASSWORD.',RATE_LIMITED:'Too many attempts. Wait a moment and try again.',SESSION_ENDED:'Your session has ended. Join a room again.',HOST_DISCONNECTED:'The host disconnected.',HOST_CLOSED_ROOM:'The host closed this room.',SERVER_SHUTDOWN:'The server is restarting. Please join again shortly.',ANSWER_TOO_LATE:"TIME’S UP — your answer arrived after the deadline.",ANSWER_ALREADY_SUBMITTED:'ANSWER SUBMITTED — your first answer is final.',ANSWERING_NOT_STARTED:'Wait for the host to finish presenting the question.',CONNECTION_LOST:'CONNECTION LOST — reconnecting to your seat…',SESSION_REPLACED:'This session was opened in another tab. Join separately to play as another guest.'};
 const explanation=code=>messages[code]||String(code||'Connection error. Please try again.').replaceAll('_',' ');
-let credentials=null,ws=null,state=null,authenticated=false,generation=0,retries=0,retryTimer=null,heartbeat=null,pending=null,pendingTimer=null,currentScreen='',questionKey='',serverTime=0,receivedAt=0,stopped=false;
+let credentials=null,ws=null,state=null,authenticated=false,generation=0,retries=0,retryTimer=null,heartbeat=null,pending=null,pendingTimer=null,currentScreen='',questionKey='',serverTime=0,receivedAt=0,stopped=false,reconnectAt=0;
 const pings=new Map();
+const heartbeatWatch=createResponseWatchdog({onTimeout:()=>{
+  if(!authenticated||stopped||document.hidden)return;
+  const socket=ws;lost(generation);socket?.close();
+}});
+function ping(){
+  if(!authenticated)return;
+  const requestId=id();pings.clear();pings.set(requestId,performance.now());
+  send('PING',{},requestId);if(!document.hidden)heartbeatWatch.arm(requestId);
+}
+function updateReconnect(){
+  if(currentScreen!=='disconnected')return;
+  $('reconnect-countdown').textContent=reconnectAt>0?`NEXT ATTEMPT · ${Math.max(0,Math.ceil((reconnectAt-performance.now())/1000))}s`:'';
+}
 const cursed=createCursedBoxesController({getState:()=>state,isAuthenticated:()=>authenticated,send,makeId:id,explain:explanation});
 const finalVoting=createFinalVotingController({getState:()=>state,isAuthenticated:()=>authenticated,send,now,makeId:id});
 const impostor=createImpostorController({getState:()=>state,isAuthenticated:()=>authenticated,send,now,makeId:id});
@@ -18,15 +31,17 @@ function save(){try{if(credentials)sessionStorage.setItem('finalanswer-session',
 function send(type,payload={},requestId=id()){if(ws?.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type,requestId,payload}));return requestId;}
 function now(){return serverTime+performance.now()-receivedAt;}
 function sessionFields(){return {roomCode:credentials.code,gameId:state.gameId,questionId:state.question.id};}
-function stop(){cursed.reset();suspicion.reset();impostor.reset();finalVoting.reset();stopped=true;generation++;authenticated=false;clearTimeout(retryTimer);clearTimeout(pendingTimer);clearInterval(heartbeat);if(ws){ws.close();ws=null;}}
+function stop(){reconnectAt=0;cursed.reset();suspicion.reset();impostor.reset();finalVoting.reset();stopped=true;generation++;authenticated=false;clearTimeout(retryTimer);clearTimeout(pendingTimer);clearInterval(heartbeat);heartbeatWatch.clear();if(ws){ws.close();ws=null;}}
 function end(code){stop();credentials=null;save();state=null;pending=null;$('session-footer').hidden=true;show('join');$('join-error').textContent=explanation(code);status('THE CONNECTION HAS ENDED',true);}
-function lost(version){if(version!==generation||stopped)return;cursed.suspend();suspicion.reset();impostor.suspend();finalVoting.reset();authenticated=false;generation++;clearInterval(heartbeat);clearTimeout(pendingTimer);pending=null;status('CONNECTION LOST',true);show('disconnected');$('retry').hidden=false;
+function lost(version){if(version!==generation||stopped)return;cursed.suspend();suspicion.reset();impostor.suspend();finalVoting.reset();authenticated=false;generation++;clearInterval(heartbeat);heartbeatWatch.clear();clearTimeout(pendingTimer);pending=null;status('CONNECTION LOST',true);show('disconnected');$('retry').hidden=false;
+  reconnectAt=0;
   if(++retries>12){$('disconnect-message').textContent='We could not reconnect. Your seat is reserved for this session; try again when the connection returns.';return;}
   const delay=Math.min(15000,500*2**Math.min(retries-1,5))+Math.random()*200;
-  $('disconnect-message').textContent=`Reconnecting in ${Math.ceil(delay/1000)}s. Your accepted answer is saved on the server.`;
+  reconnectAt=performance.now()+delay;updateReconnect();
+  $('disconnect-message').textContent='The signal dropped. Reconnecting to your seat…';
   retryTimer=setTimeout(connect,delay);
 }
-function connect(){if(!credentials)return;stopped=false;clearTimeout(retryTimer);clearInterval(heartbeat);const version=++generation;if(ws){ws.onclose=null;ws.close();}authenticated=false;
+function connect(){if(!credentials)return;reconnectAt=0;updateReconnect();stopped=false;clearTimeout(retryTimer);clearInterval(heartbeat);heartbeatWatch.clear();const version=++generation;if(ws){ws.onclose=null;ws.close();}authenticated=false;
   status('CONNECTING TO THE SHOW',true);show('disconnected');$('disconnect-message').textContent='Restoring your seat…';
   const socket=new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}/ws`);ws=socket;
   const authTimeout=setTimeout(()=>{if(version===generation&&!authenticated)socket.close();},10000);
@@ -35,7 +50,7 @@ function connect(){if(!credentials)return;stopped=false;clearTimeout(retryTimer)
   socket.onclose=e=>{clearTimeout(authTimeout);if(version!==generation)return;if(e.code===4001){end('SESSION_REPLACED');return;}if(e.code===4002){end(e.reason);return;}lost(version);};
   socket.onerror=()=>{socket.close();};
 }
-function handle(event){const payload=event.payload||{};
+function handle(event){const payload=event.payload||{};heartbeatWatch.acknowledge(event.requestId);
   cursed.event(event);suspicion.event(event);impostor.event(event);finalVoting.event(event);
   if(event.type==='CURSED_ACTION_REJECTED'){if(authenticated)send('SYNC');return;}
   if(event.type==='FINAL_VOTE_REJECTED'){if(authenticated)send('SYNC');return;}
@@ -53,7 +68,7 @@ function handle(event){const payload=event.payload||{};
   }
   if(event.type==='AUTHENTICATED'){
     authenticated=true;retries=0;pending=null;status('CONNECTED · YOUR SEAT IS SECURE');
-    clearInterval(heartbeat);heartbeat=setInterval(()=>{if(authenticated){const requestId=id();pings.clear();pings.set(requestId,performance.now());send('PING',{},requestId);}},10000);
+    clearInterval(heartbeat);heartbeatWatch.clear();heartbeat=setInterval(ping,10000);
   }
   if(!payload.roomId)return;
   if(state&&payload.revision<state.revision)return;
@@ -136,11 +151,15 @@ $('join-form').addEventListener('submit',async event=>{event.preventDefault();if
   try{const response=await fetch(`/rooms/${encodeURIComponent(code)}/join`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({name,password:$('password').value,characterId:$('character').value}),signal:abort.signal});const data=await response.json();if(!response.ok)throw new Error(explanation(data.error));credentials={code:data.code,token:data.token,name};save();$('password').value='';retries=0;state=null;connect();}catch(error){$('join-error').textContent=error.name==='AbortError'?'CONNECTION LOST — the server did not respond.':error.message||'Unable to join. Please try again.';}finally{clearTimeout(timer);$('join-button').disabled=false;refreshCharacters();}
 });
 $('room-code').addEventListener('input',()=>{$('room-code').value=$('room-code').value.toUpperCase().replace(/[^A-Z2-9]/g,'');});
-$('retry').addEventListener('click',()=>{stop();retries=0;connect();});
+$('retry').addEventListener('click',()=>{retries=0;connect();});
 $('leave').addEventListener('click',async()=>{const saved=credentials;stop();credentials=null;save();state=null;pending=null;questionKey='';$('session-footer').hidden=true;show('join');status('YOUR SEAT IS WAITING');if(saved)try{await fetch(`/rooms/${encodeURIComponent(saved.code)}/leave`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({token:saved.token})});}catch{/* Disconnect still preserves the seat until the server expires it. */}});
 window.addEventListener('online',()=>{if(credentials&&!authenticated){retries=0;connect();}});
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&credentials){if(authenticated)send('SYNC');else{retries=0;connect();}}});
-setInterval(()=>{if(currentScreen==='waiting'&&state?.phase==='STARTING')render();updateClock();if(currentScreen==='suspicion')suspicion.tick();if(currentScreen==='impostor')impostor.tick();if(currentScreen==='final')finalVoting.tick();},100);
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){heartbeatWatch.clear();return;}
+  if(credentials){if(authenticated){send('SYNC');ping();}else{retries=0;connect();}}
+});
+window.addEventListener('offline',()=>{if(credentials&&authenticated){const socket=ws;lost(generation);socket?.close();}});
+setInterval(()=>{updateReconnect();if(currentScreen==='waiting'&&state?.phase==='STARTING')render();updateClock();if(currentScreen==='suspicion')suspicion.tick();if(currentScreen==='impostor')impostor.tick();if(currentScreen==='final')finalVoting.tick();},100);
 if(credentials?.code&&credentials?.token)connect();else show('join');
 
 // QR links carry only the public room code; nickname/password still require the normal join flow.

@@ -585,7 +585,7 @@
     "new": "docs/cursed-boxes/audio-expansion.md",
     "sha256Before": "e66b92317182d37caf91232b706ff4a78d7caa16ae4f7f5ce4420956fb35fb2d",
     "kind": "documentation",
-    "sha256After": "4ed6bfa99746f99eea868313c60dd5c5a9df59000406ebd848e8c9f86f7698fa"
+    "sha256After": "6e44fe0d2f33674c20bb17adebfae76249d448a559b8fc4a93eed354bed73a09"
   },
   {
     "old": "docs/CURSED_BOXES_CHARACTERS.md",
@@ -704,7 +704,7 @@
     "new": "tools/assets/prepare_cursed_audio_expansion.py",
     "sha256Before": "4aaf8fceb9d2bd83dd675711a9f144ffea372d71de0766e3e815e48958ccb24d",
     "kind": "tool",
-    "sha256After": "e5e2e9039c176f98d5e831fd99cdfb495b3b1677f90a5dc9c03596ece42cd50b"
+    "sha256After": "dcc2c2a5285f756e83a5b2f69dc5036bd2d8c47a3ebddce168b9d9ee8d037732"
   },
   {
     "old": "scripts/import_cursed_boxes_weapon_maps.py",
@@ -732,7 +732,7 @@
     "new": "tools/checks/check_cursed_full_round.cjs",
     "sha256Before": "57cfd46618831aa8ffe0e6b7176cd5d11ebef3c9689d2ebc27da3c3bb49839fd",
     "kind": "tool",
-    "sha256After": "d158d1ecf2b2ba43d37bbca492ddeca935378ffeddae1fbe8027e80aebc81dd7"
+    "sha256After": "1bb56fdad4feff91cb293d159dd2351408df32c9be96ac900ae2938fa38968f1"
   },
   {
     "old": "scripts/import_cursed_boxes_backgrounds.py",
@@ -803,5 +803,33 @@
     "sha256Before": "2da13078eb29a19171cdc8cd2c66cd4a2955dc100eff70631d72d41782a3f06a",
     "kind": "documentation",
     "sha256After": "5d235635811ee72a6667aef34b1f211f0d03813392bacde69c9fab1032f1f945"
+  },
+  {
+    "old": "background_music.wav",
+    "new": "source_assets/audio/questions/background_music.wav",
+    "sha256Before": "07056a8f28db4a71e3ce49170d0b3b1a43c0b3786f24a15c3a2b7ae2dda3cbf4",
+    "sha256After": "07056a8f28db4a71e3ce49170d0b3b1a43c0b3786f24a15c3a2b7ae2dda3cbf4",
+    "kind": "original-asset"
+  },
+  {
+    "old": "background_music2.wav",
+    "new": "source_assets/audio/questions/background_music2.wav",
+    "sha256Before": "68c86452d7913cb2f28ab92600a40b2e3ec4b7cf5164ad84081eec6377c89c21",
+    "sha256After": "68c86452d7913cb2f28ab92600a40b2e3ec4b7cf5164ad84081eec6377c89c21",
+    "kind": "original-asset"
+  },
+  {
+    "old": "door_lock(done).wav",
+    "new": "source_assets/audio/questions/door_lock(done).wav",
+    "sha256Before": "2b09f12d3e528c683ceb13b2c28c6aa673f8c7d5f9634b010a0c5fc8fe2b8761",
+    "sha256After": "2b09f12d3e528c683ceb13b2c28c6aa673f8c7d5f9634b010a0c5fc8fe2b8761",
+    "kind": "original-asset"
+  },
+  {
+    "old": "clock_ticks.wav",
+    "new": "source_assets/audio/questions/clock_ticks.wav",
+    "sha256Before": "0b30b2ffddfeda11af60f02a360d135a4c6cd704212d8e3d2dc2d5b21e077f9e",
+    "sha256After": "0b30b2ffddfeda11af60f02a360d135a4c6cd704212d8e3d2dc2d5b21e077f9e",
+    "kind": "original-asset"
   }
 ]

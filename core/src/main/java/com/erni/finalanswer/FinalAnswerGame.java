@@ -38,6 +38,12 @@ public class FinalAnswerGame extends Game {
         setScreen(settingsScreen);
     }
 
+    public void commitAudioVolumes(float master,float music,float sfx){
+        var mix=com.erni.finalanswer.audio.AudioMix.GLOBAL;
+        mix.master=com.erni.finalanswer.audio.AudioMix.unit(master);mix.music=com.erni.finalanswer.audio.AudioMix.unit(music);mix.sfx=com.erni.finalanswer.audio.AudioMix.unit(sfx);
+        settingsStore.saveAudio(mix);
+    }
+
     public boolean isChangingDisplay() {
         return displayManager.isChanging();
     }
@@ -245,6 +251,7 @@ public class FinalAnswerGame extends Game {
         audio=new com.erni.finalanswer.audio.GameAudio();uiAudio=new com.erni.finalanswer.audio.UiAudioCapture(audio);
         settingsStore = new SettingsStore();
         settings = settingsStore.load();
+        settingsStore.loadAudio(com.erni.finalanswer.audio.AudioMix.GLOBAL);
         texts = new Localization(settings.language());
         displayManager = new DisplayManager();
         try {

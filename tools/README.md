@@ -11,6 +11,7 @@
 ## Ресурсы
 
 ```sh
+python3 tools/assets/prepare_question_audio.py
 python3 tools/assets/prepare_cursed_boxes_audio.py
 python3 tools/assets/prepare_cursed_audio_expansion.py
 python3 tools/assets/import_cursed_boxes.py
@@ -23,6 +24,8 @@ python3 tools/assets/prepare_cursed_survivors.py
 Оригиналы находятся через `source_assets/catalog.json` и `tools/assets/_sources.py`. Исходные имена файлов сохранены. Новые материалы сначала помещаются в `source_assets/incoming/`, затем регистрируются и подготавливаются для `assets/`.
 
 ## Основные проверки
+
+`node tools/checks/check_connection_health.cjs` проверяет сроки ожидания ответов. С `CONTROLLER_URL` из изолированного Impostor fixture дополнительно проверяет настоящий reconnect и приватный черновик укрытия. Подробности — [восстановление контроллера](../docs/development/controller-recovery.md).
 
 `node tools/checks/check_controller_presentation.cjs` проверяет модель стадий обоих режимов без браузера. С `CONTROLLER_URL` дополнительно выполняет 36 мобильных визуальных проверок; нужны Playwright и Chromium.
 
@@ -60,3 +63,5 @@ node tools/dev/review_cursed_players.cjs
 Адрес viewer печатается в консоли. Он работает только на loopback, использует настоящую тестовую комнату и не добавляет маршруты в production-сервер. Артефакты и временные учётные данные находятся в игнорируемом `lwjgl3/build/cursed-full-round/`.
 
 Остальные сценарии перечислены в [документации мини-игр](../docs/README.md). Результаты Gradle находятся в `build/` соответствующего модуля; сохранённые визуальные материалы — в `generated/`.
+
+Музыка и таймер вопросов: `./gradlew :core:questionAudioCheck :lwjgl3:questionAudioNativeCheck --offline`. [Ресурсы, фазы и настройки](../docs/questions/audio.md).

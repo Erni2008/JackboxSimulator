@@ -29,7 +29,7 @@ public final class SettingsScreen extends ScreenAdapter {
     private final Skin skin = new Skin();
     private final Map<String, Label> captions = new LinkedHashMap<>();
     private final java.util.List<Actor> focusOrder = new ArrayList<>();
-    private final SelectBox<String> language, resolution, fps;
+    private final SelectBox<String> language, resolution, fps, masterVolume, musicVolume, sfxVolume;
     private final CheckBox fullscreen, vsync, motion;
     private final TextButton apply, back, defaults;
     private final Label status;
@@ -82,6 +82,8 @@ public final class SettingsScreen extends ScreenAdapter {
         fullscreen = check("settingsFullscreen");
         vsync = check("settingsVsync");
         motion = check("settingsReducedMotion");
+        String[] volumes=new String[21];for(int i=0;i<volumes.length;i++)volumes[i]=(i*5)+"%";
+        masterVolume=select("settingsMasterVolume",volumes);musicVolume=select("settingsMusicVolume",volumes);sfxVolume=select("settingsSfxVolume",volumes);
         section(content, "settings.language_section");
         row(content, "settings.language", "settings.language_hint", language);
         section(content, "settings.display_section");
@@ -89,6 +91,10 @@ public final class SettingsScreen extends ScreenAdapter {
         row(content, "settings.resolution", "settings.native_resolution", resolution);
         row(content, "settings.vsync", "settings.vsync_hint", vsync);
         row(content, "settings.fps", null, fps);
+        section(content,"settings.audio_section");
+        row(content,"settings.master_volume",null,masterVolume);
+        row(content,"settings.music_volume",null,musicVolume);
+        row(content,"settings.sfx_volume",null,sfxVolume);
         section(content, "settings.comfort_section");
         row(content, "settings.reduced_motion", "settings.motion_hint", motion);
         Table footer = new Table();
@@ -113,6 +119,9 @@ public final class SettingsScreen extends ScreenAdapter {
                         resolution,
                         vsync,
                         fps,
+                        masterVolume,
+                        musicVolume,
+                        sfxVolume,
                         motion,
                         back,
                         defaults,
@@ -126,7 +135,7 @@ public final class SettingsScreen extends ScreenAdapter {
                         changedSetting();
                     }
                 });
-        for (Actor control : java.util.List.of(fullscreen, resolution, vsync, fps, motion))
+        for (Actor control : java.util.List.of(fullscreen, resolution, vsync, fps, motion,masterVolume,musicVolume,sfxVolume))
             control.addListener(
                     new ChangeListener() {
                         @Override
@@ -153,6 +162,7 @@ public final class SettingsScreen extends ScreenAdapter {
                     @Override
                     public void changed(ChangeEvent e, Actor a) {
                         loadValues(GameSettings.defaults());
+                        updating=true;masterVolume.setSelectedIndex(20);musicVolume.setSelectedIndex(20);sfxVolume.setSelectedIndex(20);updating=false;
                         game.previewLanguage("en");
                         changedSetting();
                     }
@@ -341,7 +351,12 @@ public final class SettingsScreen extends ScreenAdapter {
         refreshChecks();
         statusKey = "settings.pending";
         status.setText(game.getTexts().get(statusKey));
-        apply.setDisabled(draft().equals(game.getSettings()));
+        apply.setDisabled(draft().equals(game.getSettings())&&audioUnchanged());
+    }
+
+    private boolean audioUnchanged(){
+        var mix=com.erni.finalanswer.audio.AudioMix.GLOBAL;
+        return Math.abs(masterVolume.getSelectedIndex()*.05f-mix.master)<.001f&&Math.abs(musicVolume.getSelectedIndex()*.05f-mix.music)<.001f&&Math.abs(sfxVolume.getSelectedIndex()*.05f-mix.sfx)<.001f;
     }
 
     private GameSettings draft() {
@@ -358,6 +373,10 @@ public final class SettingsScreen extends ScreenAdapter {
 
     private void loadValues(GameSettings settings) {
         updating = true;
+        var mix=com.erni.finalanswer.audio.AudioMix.GLOBAL;
+        masterVolume.setSelectedIndex(Math.round(com.erni.finalanswer.audio.AudioMix.unit(mix.master)*20));
+        musicVolume.setSelectedIndex(Math.round(com.erni.finalanswer.audio.AudioMix.unit(mix.music)*20));
+        sfxVolume.setSelectedIndex(Math.round(com.erni.finalanswer.audio.AudioMix.unit(mix.sfx)*20));
         language.setSelectedIndex(settings.language().equals("ru") ? 1 : 0);
         fullscreen.setChecked(settings.fullscreen());
         vsync.setChecked(settings.vsync());
@@ -441,6 +460,7 @@ public final class SettingsScreen extends ScreenAdapter {
     private void commit() {
         try {
             game.commitSettings(pending);
+            game.commitAudioVolumes(masterVolume.getSelectedIndex()*.05f,musicVolume.getSelectedIndex()*.05f,sfxVolume.getSelectedIndex()*.05f);
             statusKey = "settings.saved";
             loadValues(game.getSettings());
             statusKey = "settings.saved";

@@ -27,6 +27,7 @@ function createCursedBoxesController({getState,isAuthenticated,send,makeId,expla
     el('cursed-player-name').textContent=self?.nickname||self?.name||'PLAYER';
     el('cursed-player-character').textContent=labels[self?.characterId]||'';
     const hiding=s.role==='HIDING';
+    if(hiding&&(s.hidingConfirmed||s.phase!=='HIDING_SELECTION'))draft=null;
     el('cursed-screen').dataset.role=s.role;
     el('cursed-screen').dataset.phase=s.phase;
     el('cursed-shot-counter').textContent=s.role==='HIDING'?(s.hidingConfirmed?'HIDING PLACE CONFIRMED':'CHOOSE YOUR HIDING PLACE'):s.shotsRemaining===0?'NO SHOTS REMAINING':`SHOT ${s.shotLimit+1-s.shotsRemaining} / ${s.shotLimit}`;
@@ -86,5 +87,9 @@ function createCursedBoxesController({getState,isAuthenticated,send,makeId,expla
     if(event.requestId===fireRequest&&(event.type==='CURSED_SHOT_ACCEPTED'||event.type==='STATE')){fireRequest=null;draft=null;clearTimeout(timer);error='';}
     if(event.requestId===syncRequest&&event.type==='STATE'){clear();error='';}
   }
-  return {render,event,reset,suspend:clear};
+  function suspend(){
+    const keep=mini()?.role==='HIDING'&&mini()?.phase==='HIDING_SELECTION'&&!mini()?.hidingConfirmed?draft:null;
+    clear();draft=keep;
+  }
+  return {render,event,reset,suspend};
 }

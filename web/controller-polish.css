@@ -120,3 +120,11 @@ button.fa-button.answer{aspect-ratio:auto;min-height:72px;height:auto;margin:0;p
 .players li[data-connection=OFFLINE] .guest-connection::before{background:#d79b7f}
 @media(max-width:360px){.players li{padding:12px 10px;gap:8px}.guest-connection{font-size:7px!important}button.fa-button.answer{padding:12px;min-height:68px;font-size:15px}}
 #question-screen #answers .fa-label{font:inherit}
+/* Recovery never displays cached secret roles or allows input from a disconnected screen. */
+body[data-view=disconnected] .masthead{display:none}
+body[data-view=disconnected] main{margin-top:max(14px,env(safe-area-inset-top))}
+#disconnected-screen{padding:12px 0 6px;animation:none}
+#disconnect-message{font-size:16px;line-height:1.7;color:#e7cfc0}
+.reconnect-countdown:not(:empty){padding:14px 16px;margin:20px 0 12px;border:1px solid #b8956655;border-left:3px solid #bd9460;background:#31202988;color:#ead0a7;font-size:12px;letter-spacing:.1em;font-variant-numeric:tabular-nums}
+.reconnect-assurance{font-size:13px;line-height:1.8;color:#bca9a1;margin:16px 0 22px}
+#retry{max-width:320px}

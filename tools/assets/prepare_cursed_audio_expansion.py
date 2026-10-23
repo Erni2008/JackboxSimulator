@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Copy the 13 supplied source recordings and prepare mono chain buffers for real stereo panning.
+"""Copy 13 supplied recordings; prepare bounded wood detail and mono chain playback buffers.
 Offline only; originals remain byte-for-byte intact. No generated placeholder audio.
 """
 from pathlib import Path
 import array
 import hashlib
 import json
+import math
 import shutil
 import sys
 import wave
@@ -32,6 +33,30 @@ def main():
             digest = hashlib.sha256(source.read_bytes()).hexdigest()
             assert hashlib.sha256(destination.read_bytes()).hexdigest() == digest
             entry = {'source': str(source.relative_to(ROOT)), 'asset': str(destination.relative_to(ROOT / 'assets')), 'sha256': digest}
+            if name == 'shooted_box2.wav':
+                # Source peaks already reach full scale but its wood detail is much quieter.
+                # Prepare a bounded soft-limited playback copy; never overwrite the recording.
+                runtime = destination.parent / 'runtime' / name
+                runtime.parent.mkdir(parents=True, exist_ok=True)
+                with wave.open(str(source), 'rb') as recording:
+                    if recording.getsampwidth() != 2:
+                        raise ValueError(f'Expected PCM16 wood recording: {source}')
+                    params = recording.getparams()
+                    samples = array.array('h', recording.readframes(recording.getnframes()))
+                    if sys.byteorder != 'little': samples.byteswap()
+                channels = params.nchannels
+                first = next((i for i in range(0, len(samples), channels)
+                              if max(abs(x) for x in samples[i:i + channels]) > 32), 0) // channels
+                start = max(0, first - round(params.framerate * .005))
+                samples = samples[start * channels:]
+                shaped = array.array('h', (round(32767 * .95 * math.tanh(x / 32768 * 4) / math.tanh(4)) for x in samples))
+                def rms(values): return math.sqrt(sum((x / 32768) ** 2 for x in values) / len(values))
+                entry['processing'] = {'removedFrames': start, 'drive': 4, 'peakLimit': .95,
+                                       'inputRms': rms(samples), 'outputRms': rms(shaped)}
+                if sys.byteorder != 'little': shaped.byteswap()
+                with wave.open(str(runtime), 'wb') as output:
+                    output.setparams(params); output.writeframes(shaped.tobytes())
+                entry['playbackAsset'] = str(runtime.relative_to(ROOT / 'assets'))
             if name.startswith('chain_cage'):
                 runtime = destination.parent / 'runtime' / name
                 runtime.parent.mkdir(parents=True, exist_ok=True)
@@ -48,7 +73,7 @@ def main():
             entries.append(entry)
     manifest = ROOT / 'assets/sounds/cursed_boxes/expansion_manifest.json'
     manifest.write_text(json.dumps(entries, indent=2) + '\n')
-    print(f'Prepared {len(entries)} unchanged source copies and two mono chain buffers; {manifest.relative_to(ROOT)}')
+    print(f'Prepared {len(entries)} unchanged source copies, boosted wood detail and two mono chain buffers; {manifest.relative_to(ROOT)}')
 
 if __name__ == '__main__':
     main()

@@ -22,6 +22,8 @@ import java.util.Locale;
 /** Local host presentation. Room networking remains owned by FinalAnswerGame. */
 public class PlayScreen extends ScreenAdapter {
     private final FinalAnswerGame game;
+    private final com.erni.finalanswer.audio.QuestionAudio questionAudio;
+    private final String audioSession=java.util.UUID.randomUUID().toString();
     private final Stage stage = new Stage(new FitViewport(1600, 900));
     private final RoundController round;
     private com.erni.finalanswer.network.NetworkRoundAdapter network;
@@ -64,6 +66,7 @@ public class PlayScreen extends ScreenAdapter {
 
     public PlayScreen(FinalAnswerGame game, QuestionSource source) {
         this.game = java.util.Objects.requireNonNull(game);
+        questionAudio=game.getAudio().questions();
         round = new RoundController(source);
         Pixmap image = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
         image.setColor(Color.WHITE);
@@ -129,6 +132,8 @@ public class PlayScreen extends ScreenAdapter {
 
     private void beginRound() {
         resultsDispatched = false;
+        String key=network==null?audioSession+":"+round.presentation().generation():connection.snapshot().get("gameId").getAsString()+":"+round.question().id();
+        questionAudio.question(key,round.number());
         background.showForQuestion(round.number(), game.getSettings().reducedMotion());
         clock.reset();
         clock.setReducedMotion(game.getSettings().reducedMotion());
@@ -139,6 +144,7 @@ public class PlayScreen extends ScreenAdapter {
         answers.prepare(round.question(), stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
         hint.setText(game.getTexts().get("play.escape"));
         updatePresentation();
+        synchronizeAudio();
     }
 
     private void updatePresentation() {
@@ -169,6 +175,20 @@ public class PlayScreen extends ScreenAdapter {
         }
     }
 
+    private void synchronizeAudio(){
+        questionAudio.pause(paused||applicationPaused);
+        if(network==null){
+            boolean answering=round.phase()==RoundPhase.ANSWERING;
+            questionAudio.phase(answering,round.phase()==RoundPhase.REVEAL,Math.max(0,round.elapsedSeconds()-round.answeringStartsAt()),round.answerSecondsRemaining());
+        }else{
+            var snapshot=connection.snapshot();if(snapshot==null||!snapshot.has("question")){questionAudio.phase(false,false,0,0);return;}
+            String phase=snapshot.get("phase").getAsString();long now=connection.serverNow();
+            boolean answering=connection.connected()&&phase.equals("ANSWERING");
+            boolean locked=phase.equals("REVEALING")||phase.equals("RESULTS")||phase.equals("GAME_FINISHED");
+            questionAudio.phase(answering,locked,Math.max(0,(now-snapshot.get("answeringStartedAt").getAsLong())/1000.0),Math.max(0,(snapshot.get("deadline").getAsLong()-now)/1000.0));
+        }
+    }
+
     @Override public void show() {
         background.reset();
         paused = false;
@@ -182,6 +202,7 @@ public class PlayScreen extends ScreenAdapter {
         float step = paused || applicationPaused ? 0 : Math.max(0, delta);
         round.update(step);
         if (network != null && network.synchronize()) beginRound();
+        synchronizeAudio();
         if (network == null && round.revealComplete() && !resultsDispatched) {
             resultsDispatched = true;
             if (resultsHandler != null) {
@@ -213,9 +234,9 @@ public class PlayScreen extends ScreenAdapter {
         stage.getViewport().update(width, height, true);
         layoutClock();
     }
-    @Override public void pause() { applicationPaused = true; }
+    @Override public void pause() { applicationPaused = true;questionAudio.pause(true); }
     @Override public void resume() { applicationPaused = false; }
-    @Override public void hide() { if (Gdx.input.getInputProcessor() == stage) Gdx.input.setInputProcessor(null); }
+    @Override public void hide() { questionAudio.leave();if (Gdx.input.getInputProcessor() == stage) Gdx.input.setInputProcessor(null); }
     @Override public void dispose() {
         if (disposed) return;
         disposed = true;
