@@ -136,9 +136,21 @@ function render(){
 }
 function isGhost(player){return player?.lifeState==='GHOST'||player?.isGhost===true;}
 function renderLifeRoster(){
+  const self=state.players.find(player=>player.id===state.selfId),ghost=isGhost(self);
+  for(const id of ['question-life-status','result-life-status']){
+    const card=$(id),life=ghost?'ghost':'alive';
+    card.hidden=!self;
+    if(card.dataset.life!==life){
+      card.dataset.life=life;
+      card.querySelector('span').textContent=ghost?'YOU ARE A GHOST':'YOU ARE ALIVE';
+      card.querySelector('p').textContent=ghost?'Keep answering and earning points. You sit out elimination games.':'Answer questions and earn points. Wrong answers may send you to an elimination game.';
+    }
+  }
   const players=state.players.filter(player=>!player.host);
   for(const id of ['question-life-roster','ghost-life-roster']){
-    const target=$(id);target.replaceChildren();
+    const target=$(id),key=JSON.stringify([state.selfId,players.map(player=>[player.id,player.name,isGhost(player)])]);
+    if(target.dataset.roster===key)continue;
+    target.dataset.roster=key;target.replaceChildren();
     const heading=document.createElement('p');heading.className='eyebrow';
     const ghosts=players.filter(isGhost).length;
     heading.textContent=`STILL IN THE GAME · ${players.length-ghosts} ALIVE / ${ghosts} GHOSTS`;target.append(heading);

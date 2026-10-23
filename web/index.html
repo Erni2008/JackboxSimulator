@@ -16,10 +16,10 @@
   <script src="/suspicion.js" defer></script>
   <link rel="stylesheet" href="/cursed-boxes.css?v=1">
   <script src="/cursed-boxes.js?v=ghost-2" defer></script>
-  <link rel="stylesheet" href="/controller-polish.css?v=polish-2-4">
+  <link rel="stylesheet" href="/controller-polish.css?v=polish-2-5">
   <script src="/controller-presentation.js?v=ghost-2" defer></script>
   <script src="/connection-health.js?v=1" defer></script>
-  <script src="/app.js?v=ghost-trivia-1" defer></script>
+  <script src="/app.js?v=ghost-trivia-2" defer></script>
 </head>
 <body>
   <div class="ambient" aria-hidden="true"></div>
@@ -72,12 +72,13 @@
     </section>
     <section id="question-screen" class="screen" hidden>
       <div class="round-top"><p id="question-number" class="eyebrow"></p><span id="timer" class="timer" aria-label="Seconds remaining"></span></div>
+      <div id="question-life-status" class="personal-life" role="status" aria-live="polite"><span class="personal-life-badge"></span><p></p></div>
       <h1 id="question-text" class="question"></h1>
       <p id="answer-status" class="muted" role="status">Choose carefully. One final answer.</p>
       <div class="answer-clock-track" aria-hidden="true"><div id="answer-clock-fill"></div></div>
       <div id="answers" class="answers"></div>
-      <div id="question-life-roster" class="life-roster" aria-label="Player life status"></div>
       <div id="answer-receipt" class="choice-receipt" hidden><p class="receipt-label">ANSWER LOCKED</p><p id="answer-receipt-value"></p><span>Your choice was received. Watch the shared screen.</span></div>
+      <div id="question-life-roster" class="life-roster" aria-label="Player life status"></div>
     </section>
     <section id="ghost-screen" class="screen" hidden>
       <p class="eyebrow">FINAL ANSWER · THE OTHER SIDE</p>
@@ -134,6 +135,7 @@
       <div id="suspect-cards" class="suspect-cards" aria-label="Active participants"></div>
     </section>
     <section id="result-screen" class="screen result" hidden>
+      <div id="result-life-status" class="personal-life" role="status" aria-live="polite"><span class="personal-life-badge"></span><p></p></div>
       <p class="eyebrow">THE TRUTH IS OUT</p><h1 id="result-title"></h1>
       <p class="muted result-caption">THE CORRECT ANSWER WAS</p><p id="correct-answer" class="correct-answer"></p>
       <p id="result-score" class="muted"></p><p class="whisper">Stay close. The show isn't over.</p>

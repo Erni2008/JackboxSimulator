@@ -51,6 +51,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
  {name:'question-open',screen:'question',root:{phase:'ANSWERING',gameId:'visual',hasSubmittedAnswer:false,questionNumber:2,questionCount:5,question:{id:'open',text:'Which answer will keep you alive?',answers:['A short first choice','Длинный вариант ответа, который должен оставаться читаемым на небольшом телефоне','A third possibility','The final answer']}}},
  {name:'lobby-guests',screen:'waiting',root:{phase:'LOBBY',name:'The midnight show',maxPlayers:8,players:[{id:'self',name:'ОченьДлинныйНикИгрока',characterId:'puppeteer',connectionStatus:'ONLINE'},{id:'friend',name:'SHADOW',connectionStatus:'ONLINE'},{id:'offline',name:'NYX',connectionStatus:'OFFLINE'}]}},
  {name:'question-accepted',screen:'question',root:{phase:'ANSWERING',gameId:'visual',hasSubmittedAnswer:true,currentAnswer:1,questionNumber:2,questionCount:5,question:{id:'two',text:'Which answer will keep you alive?',answers:['A long first choice','Подтверждённый ответ игрока','A third choice','The final possibility']}}},
+ {name:'ghost-result',screen:'result',root:{phase:'RESULTS',questionNumber:3,questionCount:5,players:[{id:'self',name:'SHADOW',lifeState:'GHOST'}],results:[{playerId:'self',answeredInTime:true,isCorrect:true}],question:{correctAnswerIndex:1,answers:['First choice','The correct answer']}}},
  {name:'question-result',screen:'result',root:{phase:'RESULTS',questionNumber:2,questionCount:5,results:[{playerId:'self',answeredInTime:true,isCorrect:false}],question:{correctAnswerIndex:1,answers:['First choice','The correct answer']} }}
  ];
  for(const size of [{width:320,height:568},{width:390,height:844},{width:844,height:390}]){
@@ -75,6 +76,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
    state=visualState;authenticated=true;serverTime=now;receivedAt=performance.now();
    if(screen==='question'){state.answeringStartedAt=now-15000;state.deadline=now+4000;}
    render();
+   if(screen==='question'){const row=document.querySelector('#question-life-roster li');render();if(row!==document.querySelector('#question-life-roster li'))throw Error('Unchanged roster rebuilt on state refresh');}
    if(screen==='question'&&document.getElementById('answer-receipt').hidden===!!visualState.hasSubmittedAnswer)throw Error('Answer receipt state incorrect');
    if(screen==='waiting'&&(document.querySelectorAll('.guest-you').length!==1||document.querySelector('[data-connection=OFFLINE] .guest-connection').textContent!=='RECONNECTING'))throw Error('Guest states missing');
   }
@@ -82,6 +84,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
  await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(100);
  if(sample.screen==='question'||sample.screen==='ghost'){const roster=page.locator('#'+sample.screen+'-life-roster');assert(await roster.isVisible());assert.equal(await roster.locator('li').count(),sample.root.players?.filter(p=>!p.host).length||1);}
  if(sample.name==='ghost-waiting'){assert(await page.locator('#question-screen').isVisible());assert(await page.locator('#ghost-screen').isHidden());assert.equal(await page.locator('#answers button').count(),4);assert.equal(await page.locator('#question-life-roster [data-life=ghost]').count(),3);assert(await page.locator('#answers button').first().isDisabled(),'Presentation lock applies to ghosts too');}
+ if(sample.screen==='question'||sample.screen==='result'){const card=page.locator('#'+sample.screen+'-life-status');assert(await card.isVisible());const ghost=sample.root.players?.find(p=>p.id==='self')?.lifeState==='GHOST';assert.equal(await card.getAttribute('data-life'),ghost?'ghost':'alive');}
  if(sample.name==='ghost-answering')assert(await page.locator('#answers button').first().isEnabled(),'Ghost can answer during the real answer phase');
  if(sample.name==='cursed-ghost'){assert.equal(await page.locator('#cursed-result-title').textContent(),'YOU ARE A GHOST');assert(await page.locator('#cursed-fire').isDisabled());}
  if(sample.name==='question-open')assert((await page.locator('#answers .fa-label').first().evaluate(node=>getComputedStyle(node).fontFamily)).includes('Body'),'Answer text must use the reading face');
