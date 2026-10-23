@@ -8,6 +8,8 @@
 
 ## Ресурсы и реестры
 
+- [Приватные медиа: Git, восстановление и история](assets/private-media.md)
+
 - [Организация изображений Final Answer](assets/README.md)
 
 ## CURSED BOXES

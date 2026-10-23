@@ -170,7 +170,7 @@ Thumbs.db
 # Standalone distribution archives are published as release assets.
 /generated/distributions/
 
-# Reproducible local character QA captures (source and JSON reports are versioned).
+# Reproducible local character QA captures (JSON reports remain versioned).
 /generated/puppeteer-preview/*.png
 /generated/lobby-character-polish/*.png
 
@@ -184,10 +184,71 @@ Thumbs.db
 # Local modular shotgun preview captures and QA configurations.
 /generated/shotgun/
 
-# Python tooling caches and scratch QA outputs; original assets remain versioned.
+# Python tooling caches and scratch QA outputs; original assets remain local.
 __pycache__/
 *.py[cod]
 /generated/tmp/
 
 # Reproducible mobile presentation captures; keep the JSON report.
 /generated/controller-polish/*.png
+
+# Private local media: keep working files, never commit game art/audio or visual captures.
+# GLB/Blend containers can embed image textures. History is not removed by these rules.
+
+# Images and texture formats
+*.[pP][nN][gG]
+*.[jJ][pP][gG]
+*.[jJ][pP][eE][gG]
+*.[wW][eE][bB][pP]
+*.[gG][iI][fF]
+*.[bB][mM][pP]
+*.[tT][gG][aA]
+*.[tT][iI][fF]
+*.[tT][iI][fF][fF]
+*.[sS][vV][gG]
+*.[iI][cC][oO]
+*.[iI][cC][nN][sS]
+*.[aA][vV][iI][fF]
+*.[aA][pP][nN][gG]
+*.[kK][tT][xX]
+*.[kK][tT][xX]2
+*.[dD][dD][sS]
+*.[hH][dD][rR]
+*.[eE][xX][rR]
+*.[bB][aA][sS][iI][sS]
+*.[aA][sS][tT][cC]
+*.[pP][vV][rR]
+*.[pP][kK][mM]
+*.[qQ][oO][iI]
+
+# Audio recordings
+*.[wW][aA][vV]
+*.[mM][pP]3
+*.[oO][gG][gG]
+*.[fF][lL][aA][cC]
+*.[aA][iI][fF]
+*.[aA][iI][fF][fF]
+*.[aA][aA][cC]
+*.[mM]4[aA]
+*.[oO][pP][uU][sS]
+*.[mM][iI][dD]
+*.[mM][iI][dD][iI]
+*.[mM][pP]2
+*.[wW][mM][aA]
+*.[wW][eE][bB][aA]
+*.[cC][aA][fF]
+*.[aA][uU]
+
+# Visual model containers (embedded artwork)
+*.[gG][lL][bB]
+*.[gG][lL][tT][fF]
+*.[bB][lL][eE][nN][dD]
+*.[bB][lL][eE][nN][dD]1
+
+# Video/audio captures
+*.[mM][pP]4
+*.[mM][oO][vV]
+*.[wW][eE][bB][mM]
+*.[aA][vV][iI]
+*.[mM]4[vV]
+*.[mM][kK][vV]
