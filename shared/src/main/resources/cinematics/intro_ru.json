@@ -80,10 +80,23 @@
       "lines": [
         {
           "id": "intro_02_01",
-          "text": "Ах да! Где же мои манеры?",
+          "text": "Точно.",
+          "subtitleText": "Точно.",
+          "emotion": "NEUTRAL",
+          "pauseAfter": 0.25,
+          "audioTailSeconds": 0.18
+        },
+        {
+          "id": "intro_02_01b",
+          "text": "Где же мои манеры?",
+          "subtitleText": "Где же мои манеры?",
+          "emotion": "SARCASTIC",
           "pauseAfter": 0.2,
-          "subtitleText": "Ах, да! Где же мои манеры?",
-          "spokenText": "Ах, дааа! Где же мои манеры?"
+          "audioTailSeconds": 0.18,
+          "generation": {
+            "seed": 3,
+            "temperature": 0.8
+          }
         },
         {
           "id": "intro_02_02",
@@ -222,9 +235,10 @@
       "lines": [
         {
           "id": "intro_05_01",
-          "text": "Итак, мои драгоценные экспонаты…",
-          "pauseAfter": 0.8,
-          "subtitleText": "Итак, мои драгоценные экспонаты…"
+          "text": "Итак, мои драгоценные экспонаты!",
+          "pauseAfter": 1.2,
+          "subtitleText": "Итак, мои драгоценные экспонаты!",
+          "audioTailSeconds": 0.18
         },
         {
           "id": "intro_05_03",
@@ -242,7 +256,7 @@
       "at": 0.7,
       "file": "sounds/cages/runtime/chain_cage.wav",
       "category": "CINEMATIC_SFX",
-      "gain": 0.3
+      "gain": 0.15
     },
     {
       "id": "metal_impact",

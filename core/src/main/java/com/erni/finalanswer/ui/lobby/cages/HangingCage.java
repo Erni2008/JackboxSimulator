@@ -26,9 +26,8 @@ public final class HangingCage extends Group {
     private float ceilingX, ceilingY;
     private boolean reducedMotion;
     private float departureRotation;
-    private float cinematicSway;
     private boolean cinematic;
-    public void cinematic(boolean active,float seconds){cinematic=active;cinematicSway=active&&playerId!=null&&!reducedMotion?.10f*(float)Math.sin(seconds*.65f+phase):0;}
+    public void cinematic(boolean active){cinematic=active;}
     /** Match-start-only motion; idle and impact animation are unchanged. */
     public void departure(float seconds){departureRotation=reducedMotion?0:LobbyStartAnimation.rotation(seconds,phase);}
     private Runnable impactCue = () -> {}, lockCue = () -> {};
@@ -71,7 +70,7 @@ public final class HangingCage extends Group {
         animation.update(delta);
         if (animation.impact()) impactCue.run();
         if (animation.locked()) lockCue.run();
-        setRotation(reducedMotion ? 0 : animation.impactRotation()+departureRotation+cinematicSway);
+        setRotation(reducedMotion||cinematic ? 0 : animation.impactRotation()+departureRotation);
         if (character != null) character.update(delta, animation.time(), phase, reducedMotion);
     }
     @Override public void draw(Batch batch, float parentAlpha) {

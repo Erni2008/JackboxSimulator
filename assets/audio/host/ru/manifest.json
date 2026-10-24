@@ -209,12 +209,20 @@
       "processingHash": "6c28f8581ed3e0ebeb2dff46ec3a36b9e44c2551b9b195626ae41577f0a1ae2e"
     },
     "intro_02_01": {
-      "file": "intro/intro_02_01_f8a3bc2bdd27.ogg",
+      "file": "intro/intro_02_01_54e6fa51762b.ogg",
       "status": "ready",
-      "hash": "f8a3bc2bdd2715dccff39a83b65f0562126e04ee58babd172bb7143fc3ebef91",
-      "duration": 2.806583,
+      "hash": "54e6fa51762bf4afe2086c84a59307135b03a450a46df149ac9ccaabfb9929af",
+      "duration": 0.79925,
       "manualReview": "approved_by_user",
-      "processingHash": "58adc2229546788be1a1e164ca33190979ae483058bf447b1f00e45cc0568b95"
+      "processingHash": "b9be8e7e620449f0b5d4d7bc39a377594f4efc940c4a533bb60c8af5a5a879c5"
+    },
+    "intro_02_01b": {
+      "file": "intro/intro_02_01b_7d1f3b9aee89.ogg",
+      "status": "ready",
+      "hash": "7d1f3b9aee8996c9bc05f67f384cc1d6e1df7493d4d13ad71e469473ace36649",
+      "duration": 1.5995,
+      "manualReview": "approved_by_user",
+      "processingHash": "f363b24ddf72a5ac7d23c9a6a945ce9ec4717ddf73bad7b06e7754f5cd1500e2"
     },
     "intro_02_02": {
       "file": "intro/intro_02_02_2f9e6454445e.ogg",
@@ -337,12 +345,12 @@
       "processingHash": "476307908a64f31854f514b1aa15da91ad3e84a90534ae2a089d8f5dba876692"
     },
     "intro_05_01": {
-      "file": "intro/intro_05_01_f56c2f52af66.ogg",
+      "file": "intro/intro_05_01_ca84a165c5b3.ogg",
       "status": "ready",
-      "hash": "ab6a1cf058f5fc43a436f4c6fa916f6db36561940a991689928cbcf5500a0eb3",
-      "duration": 2.77875,
+      "hash": "ca84a165c5b3bc94003728cb1245fd111598d3c7d0e5f31e78a2a47e083091b9",
+      "duration": 2.799167,
       "manualReview": "approved_by_user",
-      "processingHash": "011fc823eff99910f840975f829950a1ac2fe1026f2e41182d8ea845f70053c3"
+      "processingHash": "2868bfc7934ebed371123b6da3414ab16857071a4b1a01d66296da091b42f92d"
     },
     "intro_05_03": {
       "file": "intro/intro_05_03_87934ef4fcc9.ogg",

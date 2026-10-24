@@ -1,7 +1,7 @@
 {
   "introId": "final_answer_intro_v1",
-  "durationSeconds": 74,
-  "speechSeconds": 54.678,
+  "durationSeconds": 74.303167,
+  "speechSeconds": 54.290584,
   "fitsMaximum": true,
   "scenes": [
     {
@@ -34,7 +34,7 @@
       "actualStart": 23,
       "end": 38,
       "budgetOverrun": 0,
-      "speechEnd": 37.832625
+      "speechEnd": 37.674792
     },
     {
       "id": "offer",
@@ -56,9 +56,9 @@
       "id": "show_begins",
       "targetStart": 68,
       "actualStart": 68.375333,
-      "end": 74,
+      "end": 74.303167,
       "budgetOverrun": 0,
-      "speechEnd": 73.18275
+      "speechEnd": 73.603167
     }
   ],
   "lines": [
@@ -104,17 +104,25 @@
     },
     {
       "id": "intro_02_01",
-      "text": "Ах, да! Где же мои манеры?",
-      "file": "intro/intro_02_01_f8a3bc2bdd27.ogg",
+      "text": "Точно.",
+      "file": "intro/intro_02_01_54e6fa51762b.ogg",
       "start": 23,
-      "duration": 2.806583,
+      "duration": 0.79925,
+      "status": "ready"
+    },
+    {
+      "id": "intro_02_01b",
+      "text": "Где же мои манеры?",
+      "file": "intro/intro_02_01b_7d1f3b9aee89.ogg",
+      "start": 24.04925,
+      "duration": 1.5995,
       "status": "ready"
     },
     {
       "id": "intro_02_02",
       "text": "Я — охотник на паранормальные явления.",
       "file": "intro/intro_02_02_2f9e6454445e.ogg",
-      "start": 26.006583,
+      "start": 25.84875,
       "duration": 2.476625,
       "status": "ready"
     },
@@ -122,7 +130,7 @@
       "id": "intro_02_03",
       "text": "Призраки, демоны, проклятые создания…",
       "file": "intro/intro_02_03_819502333c3d.ogg",
-      "start": 28.633208,
+      "start": 28.475375,
       "duration": 2.636792,
       "status": "ready"
     },
@@ -130,7 +138,7 @@
       "id": "intro_02_04",
       "text": "Все вы — часть моей замечательной коллекции!",
       "file": "intro/intro_02_04_bba477b8445f.ogg",
-      "start": 31.82,
+      "start": 31.662167,
       "duration": 2.77875,
       "status": "ready"
     },
@@ -138,7 +146,7 @@
       "id": "intro_02_05",
       "text": "И, поверьте, поймать вас было непросто.",
       "file": "intro/intro_02_05_c2b144bf8b67.ogg",
-      "start": 35.04875,
+      "start": 34.890917,
       "duration": 2.633875,
       "status": "ready"
     },
@@ -232,17 +240,17 @@
     },
     {
       "id": "intro_05_01",
-      "text": "Итак, мои драгоценные экспонаты…",
-      "file": "intro/intro_05_01_f56c2f52af66.ogg",
+      "text": "Итак, мои драгоценные экспонаты!",
+      "file": "intro/intro_05_01_ca84a165c5b3.ogg",
       "start": 68.375333,
-      "duration": 2.77875,
+      "duration": 2.799167,
       "status": "ready"
     },
     {
       "id": "intro_05_03",
       "text": "Первый вопрос!",
       "file": "intro/intro_05_03_87934ef4fcc9.ogg",
-      "start": 71.954083,
+      "start": 72.3745,
       "duration": 1.128667,
       "status": "ready"
     }

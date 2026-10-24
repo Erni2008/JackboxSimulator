@@ -31,11 +31,11 @@ public final class IntroNetworkCheck {
             final Set<Integer> readyPhones=new HashSet<>(),questionPhones=new HashSet<>();
             final Object[] rigs=new Object[8];
             CageLobbyScreen lobby;int run,count,questionEvents;boolean requested,skipped,resized,sawSubtitle,sawVoice;
-            long began;String session="";
+            long began,introStarted;String session="";
             @Override public void create(){super.create();AudioMix.GLOBAL.master=0;begin(2);}
             void begin(int participants){
                 for(var phone:phones)phone.close();phones.clear();ids.clear();readyPhones.clear();questionPhones.clear();
-                count=participants;run++;int generation=run;requested=skipped=resized=sawSubtitle=sawVoice=false;questionEvents=0;session="";began=System.nanoTime();
+                count=participants;run++;int generation=run;requested=skipped=resized=sawSubtitle=sawVoice=false;questionEvents=0;session="";introStarted=0;began=System.nanoTime();
                 var host=JsonParser.parseString(rooms.create(Map.of("name","Intro QA "+count,"maxPlayers","8"))).getAsJsonObject();String code=host.get("code").getAsString();
                 var guests=new ArrayList<JsonObject>();for(int i=0;i<count;i++){var guest=JsonParser.parseString(rooms.join(code,Map.of("name","Phone "+i))).getAsJsonObject();guests.add(guest);ids.add(guest.get("selfId").getAsString());}
                 activateRoom(RoomApiClient.parse(new JsonReader().parse(host.toString()),host.get("token").getAsString()));lobby=(CageLobbyScreen)getScreen();lobby.reviewIntroNarration(true);
@@ -60,7 +60,8 @@ public final class IntroNetworkCheck {
                     if(state.has("intro")){
                         check(getScreen()==lobby&&lobby.introActive(),"Existing basement stays active");
                         String game=state.get("gameId").getAsString();if(session.isEmpty())session=game;check(session.equals(game),"One cinematic session");
-                        for(int i=0;i<count;i++){check(ids.get(i).equals(lobby.cages().cage(i).playerId()),"Stable assigned cage");check(rigs[i]==lobby.cages().cage(i).character(),"No replacement of character rig");}
+                        introStarted=state.getAsJsonObject("intro").get("startedAt").getAsLong();
+                        for(int i=0;i<count;i++){check(ids.get(i).equals(lobby.cages().cage(i).playerId()),"Stable assigned cage");check(rigs[i]==lobby.cages().cage(i).character(),"No replacement of character rig");check(lobby.cages().cage(i).getRotation()==0,"Cages stay stationary throughout the intro");}
                         TextButton skip=stage().getRoot().findActor("skipIntro");
                         com.erni.finalanswer.intro.BasementIntro intro=stage().getRoot().findActor("basementIntro");
                         check(!skip.isDisabled()||intro.awaitingTransition(),"Host skip stays enabled until the one transition signal");
@@ -73,7 +74,11 @@ public final class IntroNetworkCheck {
                     }
                     if(requested&&getScreen() instanceof PlayScreen&&questionPhones.size()==count){
                         check(questionEvents==1,"First question starts exactly once");check(!lobby.introActive(),"Temporary intro presentation is removed");
-                        if(count==8){check(sawSubtitle&&sawVoice,"Full sequence had real voice and synchronized subtitles");System.out.println("PASS: real server/native screen, 2-player black-screen skip, 8-player full intro, stable cages/rigs, phone waiting, one first question, resize and audio cleanup");Gdx.app.exit();}
+                        if(count==8){
+                            check(sawSubtitle&&sawVoice,"Full sequence had real voice and synchronized subtitles");
+                            long duration=state.get("questionStartTime").getAsLong()-introStarted;
+                            check(duration<=80_000,"Actual intro exceeded 80 seconds: "+duration+" ms");
+                            System.out.println("PASS: real server/native screen, 2-player skip, 8-player full intro, stationary cages/rigs, phone waiting, one first question, resize and audio cleanup; actual duration "+duration+" ms");Gdx.app.exit();}
                         else begin(8);
                     }
                 }catch(Throwable error){failure=error;Gdx.app.exit();}

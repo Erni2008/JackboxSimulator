@@ -34,10 +34,15 @@ def main():
         try:
             request = json.loads(line)
             with contextlib.redirect_stdout(sys.stderr):
-                mx.random.seed(config.get('seed', 42))
+                sampling=request.get('generation',{})
+                seed=int(sampling.get('seed',config.get('seed',42)))
+                temperature=float(sampling.get('temperature',config.get('temperature',.6)))
+                if not 0<=seed<2**32 or not .2<=temperature<=1.2:
+                    raise ValueError('Invalid sampling settings')
+                mx.random.seed(seed)
                 chunks = [np.asarray(part.audio).reshape(-1) for part in model.generate(
                     text=request['text'], ref_audio=reference, ref_text=transcript,
-                    lang_code=config['language'], temperature=config.get('temperature', .6),
+                    lang_code=config['language'], temperature=temperature,
                     max_tokens=config.get('maxTokens', 1024), verbose=False)]
                 if not chunks:
                     raise ValueError('Empty model output')

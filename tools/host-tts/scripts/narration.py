@@ -38,7 +38,13 @@ def catalog():
     events = json.loads((TOOL/'config/events.json').read_text())['events']
     definition=json.loads((ROOT/'shared/src/main/resources/cinematics/intro_ru.json').read_text())
     # Presentation pauses do not change synthesized words; retiming must not regenerate the voice.
-    intro=[dict(id=line['id'],text=line['text'],**({'spokenText':line['spokenText']} if line.get('spokenText') else {}),emotion=scene.get('emotion','NEUTRAL')) for scene in definition['scenes'] for line in scene['lines']]
+    intro=[]
+    for scene in definition['scenes']:
+        for line in scene['lines']:
+            entry=dict(id=line['id'],text=line['text'],emotion=line.get('emotion',scene.get('emotion','NEUTRAL')))
+            for optional in ('spokenText','generation'):
+                if line.get(optional):entry[optional]=line[optional]
+            intro.append(entry)
     result = []
     import re
     for kind, entries in [('questions', questions), ('events', events),('intro',intro)]:
@@ -116,8 +122,9 @@ class LocalWorker:
                 raise RuntimeError('Local Qwen worker failed; inspect worker.log')
         raise TimeoutError('Qwen generation exceeded five minutes')
 
-    def generate(self, text, output):
-        self.process.stdin.write(json.dumps({'text': text, 'output': str(output)}, ensure_ascii=False)+'\n')
+    def generate(self, text, output, **generation):
+        if set(generation)-{'seed','temperature'}:raise ValueError('Unsupported generation setting')
+        self.process.stdin.write(json.dumps({'text': text, 'output': str(output),'generation':generation}, ensure_ascii=False)+'\n')
         self.process.stdin.flush()
         response = self.receive()
         if not response.get('ok'):
@@ -293,7 +300,7 @@ def main():
                             wav.parent.mkdir(parents=True,exist_ok=True)
                             filename = f"{entry['kind']}/{entry['id']}_{row['hash'][:12]}.ogg"
                             ogg = asset_root/filename;ogg.parent.mkdir(parents=True,exist_ok=True)
-                            worker.generate(entry['spokenText'],wav)
+                            worker.generate(entry['spokenText'],wav,**entry.get('generation',{}))
                             validate(wav,entry['spokenText'])
                             # A retry can reuse its lossless source; final replacement is atomic.
                             candidate=ogg.with_name(ogg.stem+f'_{time.time_ns()}.ogg')

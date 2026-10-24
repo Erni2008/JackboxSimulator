@@ -17,6 +17,10 @@ class NarrationTest(unittest.TestCase):
         self.assertEqual(len(questions),12)
         self.assertEqual(questions[0]['id'],'solar-largest')
         self.assertEqual(len([e for e in entries if e['kind']=='events']),8)
+        intro={e['id']:e for e in entries if e['kind']=='intro'}
+        self.assertEqual(intro['intro_02_01']['spokenText'],'Точно.')
+        self.assertEqual(intro['intro_02_01']['emotion'],'NEUTRAL')
+        self.assertEqual(intro['intro_02_01b']['generation'],{'seed':3,'temperature':.8})
         original = questions[0]
         changed = dict(original,spokenText='Проверка произношения: Юпитер.')
         self.assertNotEqual(narration.content_hash(original,'voice-v1'),narration.content_hash(changed,'voice-v1'))

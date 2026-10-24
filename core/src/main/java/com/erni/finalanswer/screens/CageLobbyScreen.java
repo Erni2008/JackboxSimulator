@@ -175,12 +175,12 @@ public final class CageLobbyScreen extends ScreenAdapter {
     /** Also used by the isolated developer preview (which owns its synthetic roster). */
     public void draw(float delta) {
         if(introActive()){
-            for(int i=0;i<8;i++){cages.cage(i).departure(0);cages.cage(i).cinematic(true,intro.age());}
+            for(int i=0;i<8;i++){cages.cage(i).departure(0);cages.cage(i).cinematic(true);}
             intro.frame(delta);ScreenUtils.clear(0,0,0,1);viewport.apply();stage.act(intro.stepDelta());stage.draw();
             if(!preloadQueued&&game.getActiveRoom()!=null){preloadQueued=true;Gdx.app.postRunnable(()->{if(!disposed&&introActive()&&game.getScreen()==this)game.prepareNetworkPlay();});}
             return;
         }
-        for(int i=0;i<8;i++)cages.cage(i).cinematic(false,0);
+        for(int i=0;i<8;i++)cages.cage(i).cinematic(false);
         if(pendingStart && (pendingSeconds+=delta)>10)startRejected();
         float age=starting?Math.max(0,(serverAnchor+(System.nanoTime()-nanoAnchor)/1_000_000-transitionStarted)/1000f):0;
         for(int i=0;i<8;i++)cages.cage(i).departure(age);
