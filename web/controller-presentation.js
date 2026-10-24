@@ -12,19 +12,21 @@ function controllerPresentation(state) {
       tone:complete?'complete':selecting&&hiding&&cursed.hidingConfirmed?'confirmed':!selecting&&cursed.canAct?'active':'quiet'};
   }
   if(impostor&&!['READY','REPLAY_PREPARATION'].includes(impostor.phase)){
-    const phase=impostor.phase, final=!!impostor.finalPhaseStartedAt;
+    const phase=impostor.phase, final=['EVIDENCE_REVIEW','FINAL_VOTING','VOTING_LOCKED','FINAL_VOTE_REVEAL','SUSPECT_ANNOUNCEMENT','IMPOSTOR_REVEAL','RESULT'].includes(phase);
     const role=phase==='ROLE_REVEAL', writing=phase==='ROUND_CLUE_INPUT';
-    return {mode:'impostor',title:'THE IMPOSTOR',steps:['ROLE','CLUES','VERDICT'],step:final?2:role?0:1,
-      label:role?'FOR YOUR EYES ONLY':writing?(impostor.clueSubmitted?'YOUR CLUE IS SEALED':impostor.activeParticipant?'WRITE YOUR CLUE':'WATCH THE SHARED SCREEN'):final?'THE FINAL ACT':'FOLLOW THE EVIDENCE',
-      note:role?'Keep your screen private. Do not reveal your role.':writing?(impostor.clueSubmitted?'You can relax. Waiting for the other players.':impostor.activeParticipant?'One word. Up to 10 letters. Make it convincing.':'The active players are preparing their clues.'):'Follow the instructions below. The shared screen tells the story.',
+    return {mode:'impostor',title:'ИМПОСТОР',steps:['РОЛЬ','СЛОВА','ВЕРДИКТ'],step:final?2:role?0:1,
+      label:role?'ТОЛЬКО ДЛЯ ВАС':writing?(impostor.clueSubmitted?'СЛОВО ЗАФИКСИРОВАНО':impostor.activeParticipant?'НАПИШИТЕ СЛОВО':'СМОТРИТЕ НА ОБЩИЙ ЭКРАН'):final?'ФИНАЛЬНЫЙ АКТ':'СОПОСТАВЛЯЙТЕ СЛОВА',
+      note:role?'Не показывайте свой экран другим игрокам.':writing?(impostor.clueSubmitted?'Ваше слово принято. Ожидаем остальных игроков.':impostor.activeParticipant?'Одно слово, до 10 букв. Постарайтесь звучать убедительно.':'Игроки готовят свои слова.'):'Следуйте подсказкам ниже и смотрите на общий экран.',
       tone:writing&&impostor.clueSubmitted?'confirmed':writing&&impostor.activeParticipant?'active':'quiet'};
   }
   return null;
 }
 function renderControllerPresentation(state) {
   const panel=document.getElementById('controller-director'),view=controllerPresentation(state);
-  panel.hidden=!view;
+  panel.hidden=!view;panel.lang=view?.mode==='impostor'?'ru':'en';
   if(!view){delete document.body.dataset.mode;delete document.body.dataset.presentationPhase;return;}
+  panel.querySelector('.director-private').textContent=view.mode==='impostor'?'ЛИЧНЫЙ КОНТРОЛЛЕР':'PERSONAL CONTROLLER';
+  panel.setAttribute('aria-label',view.mode==='impostor'?'Ход игры':'Game progress');
   document.body.dataset.mode=view.mode;document.body.dataset.presentationPhase=state.cursedBoxes?.phase||state.impostor?.phase||'';panel.dataset.tone=view.tone;
   document.getElementById('director-mode').textContent=view.title;
   document.getElementById('director-label').textContent=view.label;

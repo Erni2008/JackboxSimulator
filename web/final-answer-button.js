@@ -16,7 +16,7 @@ window.FinalAnswerButton=(()=>{
     }
     if(options.icon){const icon=document.createElement('img');icon.className='fa-icon';icon.src=options.icon;icon.alt='';button.append(icon);}
     const text=document.createElement('span');text.className='fa-label';if(options.label!==undefined||original.length===0)text.textContent=label;else text.append(...original);button.append(text);
-    if(suspect){const indicator=document.createElement('span');indicator.className='fa-selection';indicator.textContent='SELECTED';indicator.setAttribute('aria-hidden','true');button.append(indicator);}
+    if(suspect){const indicator=document.createElement('span');indicator.className='fa-selection';indicator.textContent='ВЫБРАНО';indicator.setAttribute('aria-hidden','true');button.append(indicator);}
     const release=()=>button.classList.remove('is-pressed');
     button.addEventListener('pointerdown',e=>{if(button.disabled)return;button.classList.add('is-pressed');try{button.setPointerCapture(e.pointerId);}catch{}});
     for(const event of ['pointerup','pointercancel','lostpointercapture','blur'])button.addEventListener(event,release);

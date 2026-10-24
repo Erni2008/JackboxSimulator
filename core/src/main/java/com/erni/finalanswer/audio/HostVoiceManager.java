@@ -151,6 +151,7 @@ public final class HostVoiceManager implements AutoCloseable {
     public void resume(){if(!paused)return;paused=false;if(music!=null)try{startMusic();}catch(RuntimeException error){warn("Cannot resume host narration: "+error.getMessage());finish(Result.FAILED);}}
     public void setVolume(float value){volume=AudioMix.unit(value);}
     public void scopeGain(float value){scopeGain=AudioMix.unit(value);}
+    public float position(){return music==null?0:Math.max(0,music.getPosition());}
     public boolean playing(){return music!=null&&!paused;}
     @Override public void close(){if(closed)return;closed=true;stop();loader.close();}
 

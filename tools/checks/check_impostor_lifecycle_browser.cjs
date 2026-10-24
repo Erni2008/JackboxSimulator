@@ -61,13 +61,13 @@ try{
     const s=await state(),id=s.impostor.sessionId,configuration=s.impostorSettings;assert.deepEqual(configuration,before.impostorSettings);assert(!sessions.has(id));sessions.add(id);
     assert.equal(s.code,initial.code);assert.equal(s.roomId,initial.roomId);assert.deepEqual(s.players,initial.players);
     for(const c of clients)await c.page.locator('#impostor-screen').waitFor({state:'visible'});
-    const personalized=await Promise.all(clients.map(c=>wire(c.page,'SYNC')));if(process.env.PARCHMENT_QA==='1'){for(const value of personalized)assert.equal(value.payload.impostor.roleRevealDurationMillis,4000);}
+    const personalized=await Promise.all(clients.map(c=>wire(c.page,'SYNC')));if(process.env.PARCHMENT_QA==='1'){for(const value of personalized)assert.equal(value.payload.impostor.roleRevealDurationMillis,12000);}
     const actual=personalized.findIndex(e=>e.payload.impostor.role==='IMPOSTOR');assert(actual>=0&&actual<count);
     if(redesign)await clients[0].page.screenshot({path:path.join(dir,`stage9-role-${match+1}.png`),fullPage:true});
     assert(!s.impostor.result);assert.equal(s.impostor.revealedClues.length,0);
     for(let i=count;i<clients.length;i++)assert(!personalized[i].payload.impostor.role&&!personalized[i].payload.impostor.secretWord,'Spectator private data');
     assert(!s.impostor.role&&!s.impostor.secretWord,'Host private data');
-    await advance(4000);
+    await advance(12000);
     if(polish){
       const phone=clients[0].page;await phone.locator('#clue-input').waitFor({state:'visible'});await phone.locator('#clue-input').fill('ЧЕРНОВИК');
       await phone.evaluate(()=>window.__qaSocket.close());
@@ -90,7 +90,7 @@ try{
       await advance(500);await advance(5000);await advance(1);await advance(1850);
     }
     assert.equal((await state()).impostor.phase,'EVIDENCE_REVIEW');await advance(configuration.discussionSeconds*1000);
-    for(const c of clients)await c.page.waitForFunction(()=>document.getElementById('final-title').textContent==='WHO IS THE IMPOSTOR?');
+    for(const c of clients)await c.page.waitForFunction(()=>document.getElementById('final-title').textContent==='КТО ИМПОСТОР?');
     if(redesign){await clients[0].page.waitForFunction(()=>document.body.dataset.view==='blackout');await clients[0].page.screenshot({path:path.join(dir,'stage9-voting.png'),fullPage:true});assert.equal(await clients[0].page.locator('#confirm-vote').isDisabled(),true);}
     const unauthorized=await wire(clients[count].page,'REPLAY_IMPOSTOR',{roomCode:ready.code,sessionId:id});assert.equal(unauthorized.payload.code,'HOST_ONLY');
     const mode=match%3,target=mode===0?actual:(actual+1)%count;

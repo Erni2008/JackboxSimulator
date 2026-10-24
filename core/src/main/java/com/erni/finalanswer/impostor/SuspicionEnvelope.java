@@ -36,7 +36,7 @@ public final class SuspicionEnvelope extends Group {
         if(fresh) {elapsed=0;state=State.OPEN;setVisible(true);}
         if(next.finalized() && (fresh || !snapshot.finalized())) {state=State.CLOSED;elapsed=0;setVisible(true);}
         snapshot=next;
-        progress.setText("SUSPICIONS RECEIVED: "+next.submitted()+"/"+next.eligible());
+        progress.setText("ПОДОЗРЕНИЙ ПОЛУЧЕНО: "+next.submitted()+"/"+next.eligible());
         updateFaces();
     }
     public void update(float delta) {

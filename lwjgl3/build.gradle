@@ -316,6 +316,7 @@ tasks.register('impostorCheck', JavaExec) {
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'com.erni.finalanswer.lwjgl3.ImpostorCheck'
+    systemProperty 'impostor.opening.skip', 'true'
     systemProperty 'impostor.audioQA', providers.gradleProperty('impostorAudioQA').getOrElse('false')
     workingDir = rootProject.file('assets')
     systemProperty 'impostor.qa.artifacts', layout.buildDirectory.dir('impostor-check/screenshots').get().asFile.absolutePath

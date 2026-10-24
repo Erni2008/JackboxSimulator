@@ -31,7 +31,7 @@ class CountdownClock {
     c.clearRect(0,0,1223,1286);if(this.face.complete&&this.face.naturalWidth)c.drawImage(this.face,0,0,1223,1286);
     if(angle>0){c.save();c.beginPath();c.moveTo(613,682);c.arc(613,682,354,-Math.PI/2,(angle-90)*Math.PI/180);c.closePath();c.fillStyle='rgba(135,8,24,.42)';c.shadowColor='rgba(210,18,36,.6)';c.shadowBlur=20*width/1223;c.fill();c.restore();}
     if(this.hand.complete&&this.hand.naturalWidth){c.save();c.translate(613,682);c.rotate(angle*Math.PI/180);c.drawImage(this.hand,-512*.26,-1320*.26,1024*.26,1536*.26);c.restore();}
-    const seconds=Math.ceil(remaining);if(this.lastSeconds!==seconds){this.lastSeconds=seconds;this.canvas.setAttribute('aria-label',`${seconds} seconds remaining`);}
+    const seconds=Math.ceil(remaining);if(this.lastSeconds!==seconds){this.lastSeconds=seconds;this.canvas.setAttribute('aria-label',this.canvas.closest('[lang]')?.lang==='ru'?`${seconds} с до конца чтения роли`:`${seconds} seconds remaining`);}
     this.canvas.dataset.angle=String(angle);
   }
   dispose(){this.disposed=true;this.enabled=false;this.resizeObserver.disconnect();cancelAnimationFrame(this.frameId);document.removeEventListener('visibilitychange',this.visibility);this.face.onload=this.hand.onload=null;}

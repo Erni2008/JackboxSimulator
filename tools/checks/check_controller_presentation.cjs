@@ -14,6 +14,7 @@ for(const phase of ['ROLE_REVEAL','ROUND_CLUE_INPUT','PRELIMINARY_SUSPICION','FI
   const s={impostor:{phase,role:'IMPOSTOR',secretWord:'DO_NOT_COPY',activeParticipant:true,finalPhaseStartedAt:phase==='FINAL_VOTING'?1:0}};
   assert(!JSON.stringify(view(s)).includes('DO_NOT_COPY'));
 }
+assert.equal(view({impostor:{phase:'FINAL_VOTING',finalPhaseStartedAt:0}}).step,2,'Final guide follows the authoritative phase, including a zero timestamp');
 assert.equal(view({impostor:{phase:'READY'}}),null);
 assert.equal(view({impostor:{phase:'REPLAY_PREPARATION'}}),null);
 assert.equal(view({impostor:{phase:'ROUND_CLUE_INPUT',clueSubmitted:true}}).tone,'confirmed');

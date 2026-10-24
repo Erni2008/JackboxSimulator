@@ -6,7 +6,7 @@ import java.util.*;
 
 /** Optional asset-backed audio; missing cues are silent. Each screen owns one scope. */
 public final class PresentationAudio implements AutoCloseable {
-    public enum Cue { HOVER, CLICK, ROOM_CREATED, PLAYER_JOINED, ROUND_INTRO, TIMER_WARNING, CLUE_SUBMITTED, CLUE_REVEAL, VOTING_START, VOTE_CONFIRMED, STAMP_IMPACT, SUSPECT, IMPOSTOR, VICTORY, DEFEAT, LOBBY, INTRODUCTION, PAGE_TURN, VOTING_CLOSED }
+    public enum Cue { HOVER, CLICK, ROOM_CREATED, PLAYER_JOINED, ROUND_INTRO, TIMER_WARNING, CLUE_SUBMITTED, CLUE_REVEAL, VOTING_START, VOTE_CONFIRMED, STAMP_IMPACT, SUSPECT, IMPOSTOR, VICTORY, DEFEAT, LOBBY, INTRODUCTION, ROLE_CARDS, PAGE_TURN, VOTING_CLOSED }
     public interface Backend { Sound sound(String path); Music music(String path); }
     public static final Backend GDX=new Backend(){
         public Sound sound(String path){return Gdx.files.internal(path).exists()?Gdx.audio.newSound(Gdx.files.internal(path)):null;}
@@ -29,6 +29,7 @@ public final class PresentationAudio implements AutoCloseable {
     public float tickVolume=.40f;
     public static String preparedPath(Cue cue){return switch(cue){
         case INTRODUCTION->"mini_game_introduction.wav";
+        case ROLE_CARDS->"card_deal.wav";
         case PAGE_TURN->"page_turn.wav";
         case VOTING_START->"vote_started.wav";
         case VOTING_CLOSED->"runtime/voting_closed.wav";
@@ -51,6 +52,7 @@ public final class PresentationAudio implements AutoCloseable {
     }
     private static void warn(String message){if(Gdx.app!=null)Gdx.app.error("Impostor audio",message);}
     private boolean effect(Sound sound){if(sound!=null)try{return sound.play(volume*AudioMix.GLOBAL.gain(AudioMix.Category.SFX))>=0;}catch(RuntimeException e){warn("Cannot play effect: "+e.getMessage());}return false;}
+    public void stop(Cue cue){Sound legacy=sounds.get(cue),extra=prepared.get(cue);if(legacy!=null)legacy.stop();if(extra!=null)extra.stop();}
     public void play(Cue cue){if(!closed&&!muted&&!paused){boolean legacy=effect(sounds.get(cue)),additional=effect(prepared.get(cue));if(legacy||additional)played[cue.ordinal()]++;}}
     /** Driven by the actual displayed authoritative deadline; no extra gameplay timer. */
     public long playCount(Cue cue){return played[cue.ordinal()];}

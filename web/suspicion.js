@@ -12,12 +12,12 @@ function createSuspicionController({getState,isAuthenticated,send,now,explain,ma
     const s=current(),requestId=makeId();
     pending={requestId,target};error='';render();
     send('SUBMIT_SUSPICION',{roomCode:getState().code,sessionId:s.sessionId,round:s.round,suspectId:target},requestId);
-    pendingTimer=setTimeout(()=>{reset();error='Checking your accepted selection…';send('SYNC');render();},4000);
+    pendingTimer=setTimeout(()=>{reset();error='Проверяем, принят ли выбор…';send('SYNC');render();},4000);
   }
   function event(message){
     const snapshot=message.payload?.impostor;
     if(snapshot && pending && snapshot.selectedSuspectId===pending.target){reset();error='';}
-    if(snapshot && message.type==='STATE' && error==='Checking your accepted selection…')error='';
+    if(snapshot && message.type==='STATE' && error==='Проверяем, принят ли выбор…')error='';
     if(pending&&message.requestId===pending.requestId) {
       if(message.type==='SUSPICION_ACCEPTED'){reset();error='';}
       else if(message.type==='SUSPICION_REJECTED'||message.type==='ERROR'){reset();error=explain(message.payload?.code);}
@@ -33,20 +33,24 @@ function createSuspicionController({getState,isAuthenticated,send,now,explain,ma
     const s=current();if(!s)return;
     const next=`${s.sessionId}:${s.round}`;
     if(next!==key){reset();error='';key=next;}
-    el('suspicion-title').textContent=s.phase==='PRELIMINARY_SUSPICION'&&!s.suspicionFinalized?'CHOOSE A SUSPECT':'SUSPICIONS SEALED';
-    el('suspicion-progress').textContent=`SUSPICIONS RECEIVED: ${s.submittedCount}/${s.eligibleCount}`;
-    el('suspicion-status').textContent=error|| (pending?'SENDING YOUR SELECTION…':(s.phase!=='PRELIMINARY_SUSPICION'||s.suspicionFinalized)?(s.hasSubmitted?'Your private suspicion was recorded.':'Phase ended. You abstained.'):!s.eligible?
-      'You are not eligible in this phase.':s.hasSubmitted?'Selection accepted. You may change it while the phase is open.':
-      'Choose one active participant, or abstain. Your selection is private.');
+    el('suspicion-title').textContent=s.phase==='PRELIMINARY_SUSPICION'&&!s.suspicionFinalized?'ВЫБЕРИТЕ ПОДОЗРЕВАЕМОГО':'ПОДОЗРЕНИЯ ЗАПЕЧАТАНЫ';
+    el('suspicion-progress').textContent=`ПОЛУЧЕНО ПОДОЗРЕНИЙ: ${s.submittedCount}/${s.eligibleCount}`;
+    el('suspicion-status').textContent=error|| (pending?'ОТПРАВЛЯЕМ ВЫБОР…':(s.phase!=='PRELIMINARY_SUSPICION'||s.suspicionFinalized)?(s.hasSubmitted?'Ваше подозрение принято.':'Время истекло. Вы воздержались.'):!s.eligible?
+      'В этой фазе вы наблюдаете за игрой.':s.hasSubmitted?'Выбор принят. До конца отсчёта его можно изменить.':
+      'Выберите участника или воздержитесь. Ваш выбор останется тайным.');
+    const focusedId=el('suspect-cards').contains(document.activeElement)?document.activeElement.closest('[data-id]')?.dataset.id:null;
+    el('suspect-cards').setAttribute('aria-busy',String(!!pending));
     el('suspect-cards').replaceChildren();
     for(const participant of s.participants){
       const button=document.createElement('button');button.type='button';button.className='suspect-card';
-      button.dataset.id=participant.id;button.textContent=participant.name+(participant.id===getState().selfId?' · YOU':'');
+      button.title=participant.name;button.setAttribute('aria-label',participant.name+(participant.id===getState().selfId?' · вы':''));
+      button.dataset.id=participant.id;button.textContent=participant.name+(participant.id===getState().selfId?' · ВЫ':'');
       const selected=participant.id===s.selectedSuspectId;
       button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));
       button.addEventListener('click',()=>submit(participant.id));el('suspect-cards').append(button);
     }
     tick();
+    if(focusedId){const button=Array.from(el('suspect-cards').children).find(b=>b.dataset.id===focusedId);if(button&&!button.disabled)button.focus({preventScroll:true});}
   }
   return {render,tick,event,reset};
 }

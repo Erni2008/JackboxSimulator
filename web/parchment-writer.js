@@ -36,7 +36,7 @@ function createParchmentWriter(input, surface) {
   }
   function update(immediate=false){if(disposed||document.hidden)return;locate();if(!active||immediate||reduced.matches||roomReduced){cancelAnimationFrame(frame);frame=0;lastFrame=0;x=tx;y=ty;paint();return;}until=performance.now()+Math.min(250,Math.max(170,interval*1.15));if(!frame)frame=requestAnimationFrame(animate);}
   function onInput(event){
-    if(!event?.isComposing){const limited=Array.from(input.value.normalize('NFC')).slice(0,10).join('');if(input.value!==limited){const cursor=input.selectionEnd;input.value=limited;input.setSelectionRange(Math.min(cursor,limited.length),Math.min(cursor,limited.length));}}
+    if(!event?.isComposing){const limited=Array.from(input.value.normalize('NFC').trim()).slice(0,10).join('');if(input.value!==limited){const cursor=input.selectionEnd;input.value=limited;input.setSelectionRange(Math.min(cursor,limited.length),Math.min(cursor,limited.length));}}
     const t=performance.now();interval=Math.min(220,Math.max(16,t-lastInput));lastInput=t;update();}
   function selection(){if(document.activeElement===input)update();}
   const composed=()=>input.dispatchEvent(new Event('input',{bubbles:true}));

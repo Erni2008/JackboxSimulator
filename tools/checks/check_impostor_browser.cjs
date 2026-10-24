@@ -11,7 +11,7 @@ async function checkFinalAct({clients,count,latest,ready,matchIndex}){
   const states=c=>c.frames.filter(e=>e.payload?.impostor).map(e=>e.payload.impostor);
   assert(clients.every(c=>states(c).every(s=>!s.revealedImpostorId&&!s.finalVoteSnapshot&&!s.outcome)),'Premature final data');
   await command('advance',{millis:30000});
-  for(const c of clients)await c.page.waitForFunction(()=>document.getElementById('final-title').textContent==='WHO IS THE IMPOSTOR?');
+  for(const c of clients)await c.page.waitForFunction(()=>document.getElementById('final-title').textContent==='КТО ИМПОСТОР?');
   assert.equal(await first.locator('.final-vote-card').count(),count);
   assert.equal(await first.locator(`#final-cards [data-id="${active[0].credentials.selfId}"]`).isDisabled(),true);
   assert.equal(await watcher.page.locator('.final-vote-card:enabled').count(),0);
@@ -56,7 +56,7 @@ async function checkFinalAct({clients,count,latest,ready,matchIndex}){
   assert(!latest(watcher).revealedImpostorId);assert(!latest(watcher).outcome);
   await command('advance',{millis:3500});for(const c of clients)await c.page.waitForFunction(()=>state?.impostor?.phase==='IMPOSTOR_REVEAL');
   assert.equal(latest(watcher).revealedImpostorId,actualId);assert.equal(await watcher.page.locator('#final-announcement').textContent(),'');assert(await watcher.page.locator('#blackout-screen').isVisible());assert.equal(latest(watcher).outcome,expected);
-  await command('advance',{millis:4000});
+  await command('advance',{millis:12000});
   for(let attempt=0;attempt<100&&!clients.every(c=>latest(c).phase==='RESULT');attempt++)await sleep(20);
   for(const c of clients){assert.equal(latest(c).phase,'RESULT');assert.equal(latest(c).outcome,expected);assert.equal(await c.page.locator('#final-title').textContent(),'');assert(await c.page.locator('#blackout-screen').isVisible());assert.equal((await c.page.locator('body').innerText()).trim(),'');assert.equal(await c.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert(await c.page.locator('#final-results').isHidden(),'Detailed results belong to the shared screen');}
   for(const width of [360,390,768]){await first.setViewportSize({width,height:844});await first.screenshot({path:path.join(dir,`stage6-${count}players-${expected}-${width}.png`),fullPage:true});}
@@ -81,7 +81,7 @@ async function checkFinalAct({clients,count,latest,ready,matchIndex}){
    for(let i=0;i<clients.length;i++){
      const c=clients[i],s=latest(c);
      if(s.role==='ORDINARY')assert.equal(await c.page.locator('#impostor-word').textContent(),word);
-     else{assert.equal(await c.page.locator('#impostor-word').textContent(),s.role==='IMPOSTOR'&&s.phase==='ROLE_REVEAL'?'NO SECRET WORD':'');assert(!JSON.stringify(c.frames).includes(word),'Private word leaked');}
+     else{assert.equal(await c.page.locator('#impostor-word').textContent(),s.role==='IMPOSTOR'&&s.phase==='ROLE_REVEAL'?'СЛОВО ВАМ НЕИЗВЕСТНО':'');assert(!JSON.stringify(c.frames).includes(word),'Private word leaked');}
      if(i>=count){assert(!s.role);assert(!s.activeParticipant);assert.equal(await c.page.locator('#clue-form').isVisible(),false);}
    }
    for(let i=0;i<clients.length;i++){
@@ -93,20 +93,20 @@ async function checkFinalAct({clients,count,latest,ready,matchIndex}){
    await command('advance',{millis:Math.max(...roles.map(s=>s.roleRevealDurationMillis||20000))});
    const words=[['ТЕПЛО','СВЕТ','НЕБО','ДОРОГА'],['СОЛНЦЕ','ЛАМПА','ВЕТЕР','ДВИЖЕНИЕ'],['ЛЕТО','ЛУНА','ПОЛЁТ','СКОРОСТЬ']];
    for(let round=1;round<=3;round++){
-     for(const c of clients.slice(0,count))await c.page.waitForFunction(r=>document.getElementById('impostor-round').textContent===`ROUND ${r} / 3`&&!document.getElementById('clue-input').disabled,round);
+     for(const c of clients.slice(0,count))await c.page.waitForFunction(r=>document.getElementById('impostor-round').textContent===`РАУНД ${r} / 3`&&!document.getElementById('clue-input').disabled,round);
      if(round===1){
        await clients[0].page.locator('#clue-input').fill('two words');await clients[0].page.locator('#clue-submit').click();
-       await clients[0].page.waitForFunction(()=>document.getElementById('clue-status').textContent.startsWith('Invalid clue.'));
+       await clients[0].page.waitForFunction(()=>document.getElementById('clue-status').textContent.startsWith('Введите одно слово:'));
        assert.equal(await clients[0].page.locator('#clue-input').isDisabled(),false);
      }
      const submitted=round===2?count-1:count;
      for(let i=0;i<submitted;i++){
        const p=clients[i].page;await p.locator('#clue-input').fill(words[round-1][i]);
        if(i%2===0)await p.locator('#clue-input').press('Enter');else await p.locator('#clue-submit').click();
-       if(i<submitted-1||round===2)await p.waitForFunction(()=>document.getElementById('clue-status').textContent==='WAITING FOR OTHER PLAYERS');
+       if(i<submitted-1||round===2)await p.waitForFunction(()=>document.getElementById('clue-status').textContent==='СЛОВО ПРИНЯТО. ОЖИДАЕМ ОСТАЛЬНЫХ');
        else await p.waitForFunction(()=>document.getElementById('clue-status').textContent==='Watch the shared screen.');
        assert.equal(await p.locator('#clue-input').isDisabled(),true);
-       if(i===0&&round===1){await p.reload();await p.waitForFunction(()=>document.getElementById('clue-status').textContent==='WAITING FOR OTHER PLAYERS');assert.equal(await p.locator('#clue-input').inputValue(),words[0][0]);}
+       if(i===0&&round===1){await p.reload();await p.waitForFunction(()=>document.getElementById('clue-status').textContent==='СЛОВО ПРИНЯТО. ОЖИДАЕМ ОСТАЛЬНЫХ');assert.equal(await p.locator('#clue-input').inputValue(),words[0][0]);}
      }
      if(round===2){const snapshot=clients[0].frames.filter(e=>e.payload?.impostor).at(-1).payload;await command('advance',{millis:Math.max(0,snapshot.impostor.deadline-snapshot.serverTime)+1});}
      for(const c of clients)await c.page.waitForFunction(()=>document.getElementById('clue-status').textContent==='Watch the shared screen.');
@@ -118,10 +118,10 @@ async function checkFinalAct({clients,count,latest,ready,matchIndex}){
      // A real spectator submits through the existing Stage 4 controller.
      const watcher=clients[count].page;await watcher.locator(`[data-id="${clients[0].credentials.selfId}"]`).click();
      await watcher.waitForFunction(()=>document.querySelectorAll('.suspect-card.selected').length===1);
-     await command('advance',{millis:5000});await watcher.waitForFunction(()=>document.getElementById('suspicion-title').textContent==='SUSPICIONS SEALED');
+     await command('advance',{millis:5000});await watcher.waitForFunction(()=>document.getElementById('suspicion-title').textContent==='ПОДОЗРЕНИЯ ЗАПЕЧАТАНЫ');
      await command('advance',{millis:1851});
    }
-   for(const c of clients)await c.page.waitForFunction(()=>document.getElementById('final-title').textContent==='FINAL DISCUSSION');
+   for(const c of clients)await c.page.waitForFunction(()=>document.getElementById('final-title').textContent==='ОБСУЖДЕНИЕ');
    assert.equal(latest(clients[0]).phase,'EVIDENCE_REVIEW');
    for(let i=0;i<clients.length;i++){
      if(i>=count||latest(clients[i]).role==='IMPOSTOR')assert(!JSON.stringify(clients[i].frames).includes(word),'Secret leaked in a later phase');

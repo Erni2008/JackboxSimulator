@@ -19,7 +19,7 @@ class ImpostorLifecycleTest {
         void action(String type){action(f.hostPeer,type,f.session);}
         void action(TestPeer peer,String type,String session){f.rooms.command(peer,Protocol.decode(Protocol.event(type,UUID.randomUUID().toString(),Map.of("roomCode",f.code,"sessionId",session))));}
         void toVoting(){
-            f.advance(4000);
+            f.advance(com.finalanswer.server.game.ImpostorSession.ROLE_MILLIS);
             for(int round=1;round<=3;round++){
                 f.submit(0,round,List.of("СВЕТ","ЛУНА","ВЕТЕР").get(round-1));
                 f.advance(20000);f.advance(500);f.advance(5000);f.advance(1);f.advance(1850);

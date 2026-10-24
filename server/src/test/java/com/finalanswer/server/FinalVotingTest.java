@@ -33,7 +33,7 @@ class FinalVotingTest {
 
     static final class Match {
         final ImpostorGameTest f=new ImpostorGameTest();
-        Match(int count){f.start(count);f.advance(4000);
+        Match(int count){f.start(count);f.advance(com.finalanswer.server.game.ImpostorSession.ROLE_MILLIS);
             for(int r=1;r<=3;r++){f.advance(20000);f.advance(500);f.advance(5000);f.advance(1);f.advance(1850);}
             assertEquals("EVIDENCE_REVIEW",s(f.mini(0),"phase"));
         }

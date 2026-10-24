@@ -46,38 +46,38 @@ class ImpostorGameTest {
         assertFalse(hostPeer.latest().toString().contains("ЯБЛОКО"));
         assertFalse(hostPeer.latest().getAsJsonObject("impostor").has("role"));
     }
-    @Test void earlyCompletionAndPrivateCollection(){start(3);advance(4000);
+    @Test void earlyCompletionAndPrivateCollection(){start(3);advance(com.finalanswer.server.game.ImpostorSession.ROLE_MILLIS);
         submit(0,1,"тепло");assertEquals("ТЕПЛО",s(mini(0),"ownClue"));assertFalse(mini(1).toString().contains("ТЕПЛО"));assertFalse(rooms.view(code).contains("ТЕПЛО"));
         fail("CLUE_ALREADY_SUBMITTED",()->submit(0,1,"СВЕТ"));submit(1,1,"СВЕТ");submit(2,1,"ЛЕТО");
         assertEquals("ROUND_CLUE_REVEAL",s(mini(0),"phase"));assertEquals(1,mini(0).get("revealSequence").getAsInt());
         assertEquals("ТЕПЛО",mini(0).getAsJsonArray("revealedClues").get(0).getAsJsonObject().get(pid(0)).getAsString());
         advance(1);assertEquals(1,mini(0).get("revealSequence").getAsInt());
     }
-    @Test void timeoutUsesMissingMarkersAndBoundary(){start(4);advance(4000);submit(0,1,"СВЕТ");advance(20000);
+    @Test void timeoutUsesMissingMarkersAndBoundary(){start(4);advance(com.finalanswer.server.game.ImpostorSession.ROLE_MILLIS);submit(0,1,"СВЕТ");advance(20000);
         fail("CLUE_ROUND_CLOSED",()->submit(1,1,"ЛЕТО"));
         var clues=mini(0).getAsJsonArray("revealedClues").get(0).getAsJsonObject();
         assertEquals(4,clues.size());assertEquals("—",clues.get(pid(3)).getAsString());
     }
-    @Test void rejectsMalformedSecretRepeatedAndOversizedClues(){start(3);advance(4000);
+    @Test void rejectsMalformedSecretRepeatedAndOversizedClues(){start(3);advance(com.finalanswer.server.game.ImpostorSession.ROLE_MILLIS);
         fail("INVALID_CLUE",()->submit(0,1,"яблоко"));fail("INVALID_CLUE",()->submit(0,1,"два слова"));submit(0,1,"свет");
     }
     @Test void unicodeNormalization(){assertEquals("ПОЛЁТ",ImpostorSession.normalize("поле\u0308т"));
         for(String text:List.of(""," ","<script>","a\n","a-b","x".repeat(25),"🙂"))assertThrows(RoomService.Failure.class,()->ImpostorSession.normalize(text));}
-    @Test void spectatorAndHostCannotSubmit(){start(3);advance(4000);fail("NOT_ELIGIBLE",()->submit(3,1,"СВЕТ"));
+    @Test void spectatorAndHostCannotSubmit(){start(3);advance(com.finalanswer.server.game.ImpostorSession.ROLE_MILLIS);fail("NOT_ELIGIBLE",()->submit(3,1,"СВЕТ"));
         fail("NOT_ELIGIBLE",()->rooms.command(hostPeer,Protocol.decode(Protocol.event("SUBMIT_CLUE","x",fields(1,"СВЕТ")))));}
-    @Test void sessionRoomRoundIdentityValidation(){start(3);advance(4000);
+    @Test void sessionRoomRoundIdentityValidation(){start(3);advance(com.finalanswer.server.game.ImpostorSession.ROLE_MILLIS);
         fail("AUTH_REQUIRED",()->rooms.command(new TestPeer(),Protocol.decode(Protocol.event("SUBMIT_CLUE","x",fields(1,"СВЕТ")))));
         var wrongRoom=fields(1,"СВЕТ");wrongRoom.put("roomCode","OTHER");fail("WRONG_ROOM",()->rooms.command(peers.getFirst(),Protocol.decode(Protocol.event("SUBMIT_CLUE","x",wrongRoom))));
         var wrong=fields(1,"СВЕТ");wrong.put("playerId",pid(1));var spoof=wrong;fail("INVALID_CLUE",()->rooms.command(peers.getFirst(),Protocol.decode(Protocol.event("SUBMIT_CLUE","x",spoof))));
         var stale=fields(1,"СВЕТ");stale.put("sessionId","old");fail("STALE_IMPOSTOR_SESSION",()->rooms.command(peers.getFirst(),Protocol.decode(Protocol.event("SUBMIT_CLUE","x",stale))));
         fail("CLUE_ROUND_CLOSED",()->submit(0,2,"СВЕТ"));
     }
-    @Test void reconnectRetainsPrivateRoleAndSubmission(){start(3);var role=mini(0).deepCopy();advance(4000);submit(0,1,"СВЕТ");rooms.detach(peers.getFirst().id());
+    @Test void reconnectRetainsPrivateRoleAndSubmission(){start(3);var role=mini(0).deepCopy();advance(com.finalanswer.server.game.ImpostorSession.ROLE_MILLIS);submit(0,1,"СВЕТ");rooms.detach(peers.getFirst().id());
         var replacement=new TestPeer();rooms.attach(code,s(players.getFirst(),"token"),replacement,"new");var restored=replacement.latest().getAsJsonObject("impostor");
         assertEquals(role.get("role"),restored.get("role"));assertEquals(role.get("secretWord"),restored.get("secretWord"));assertEquals("СВЕТ",s(restored,"ownClue"));
         fail("AUTH_REQUIRED",()->submit(0,1,"ЛЕТО"));
     }
-    @Test void threeRoundsAndSuspicionIntegration(){start(3);advance(4000);
+    @Test void threeRoundsAndSuspicionIntegration(){start(3);advance(com.finalanswer.server.game.ImpostorSession.ROLE_MILLIS);
         for(int round=1;round<=3;round++){
             submit(0,round,List.of("ТЕПЛО","СОЛНЦЕ","ЛЕТО").get(round-1));
             submit(1,round,List.of("СВЕТ","ЛАМПА","ЛУНА").get(round-1));submit(2,round,List.of("НЕБО","ПОЛЁТ","ВЕТЕР").get(round-1));
@@ -90,7 +90,7 @@ class ImpostorGameTest {
         }
         assertEquals(3,mini(0).get("revealSequence").getAsInt());advance(30000);assertEquals("FINAL_VOTING",s(mini(0),"phase"));
     }
-    @Test void concurrentLastSubmissionsFinalizeOnce()throws Exception {start(4);advance(4000);var pool=Executors.newFixedThreadPool(4);
+    @Test void concurrentLastSubmissionsFinalizeOnce()throws Exception {start(4);advance(com.finalanswer.server.game.ImpostorSession.ROLE_MILLIS);var pool=Executors.newFixedThreadPool(4);
         try{var barrier=new CyclicBarrier(4);var jobs=new ArrayList<Future<?>>();for(int i=0;i<4;i++){int n=i;jobs.add(pool.submit(()->{try{barrier.await();submit(n,1,"СВЕТ");}catch(Exception e){throw new RuntimeException(e);}}));}for(var job:jobs)job.get();}
         finally{pool.shutdownNow();}assertEquals(1,mini(0).get("revealSequence").getAsInt());assertEquals(4,mini(0).getAsJsonArray("revealedClues").get(0).getAsJsonObject().size());}
     @Test void cleanupInvalidatesSession(){start(3);rooms.leave(code,s(host,"token"));fail("AUTH_REQUIRED",()->submit(0,1,"СВЕТ"));fail("ROOM_NOT_FOUND",()->rooms.view(code));}
@@ -99,12 +99,12 @@ class ImpostorGameTest {
             assertThrows(RoomService.Failure.class,()->new ImpostorSession("room",ids));
         start(3);fail("GAME_ALREADY_STARTED",()->rooms.startImpostorGame(code,List.of(pid(0),pid(1),pid(2))));
     }
-    @Test void invalidBudgetCannotProbeIndefinitely(){start(3);advance(4000);
+    @Test void invalidBudgetCannotProbeIndefinitely(){start(3);advance(com.finalanswer.server.game.ImpostorSession.ROLE_MILLIS);
         for(int i=0;i<4;i++)fail("INVALID_CLUE",()->submit(0,1,"ЯБЛОКО"));
         fail("INVALID_CLUE",()->submit(0,1,"СВЕТ"));assertFalse(mini(0).get("clueSubmitted").getAsBoolean());
         advance(20000);assertEquals("—",mini(0).getAsJsonArray("revealedClues").get(0).getAsJsonObject().get(pid(0)).getAsString());
     }
-    @Test void malformedWirePayloads(){start(3);advance(4000);
+    @Test void malformedWirePayloads(){start(3);advance(com.finalanswer.server.game.ImpostorSession.ROLE_MILLIS);
         for(Object value:Arrays.asList(null,12,List.of("A"),Map.of("x","A"))){
             var data=fields(1,"СВЕТ");data.put("clue",value);
             fail("INVALID_CLUE",()->rooms.command(peers.getFirst(),Protocol.decode(Protocol.event("SUBMIT_CLUE","x",data))));
@@ -112,7 +112,7 @@ class ImpostorGameTest {
         var data=fields(1,"СВЕТ");data.put("round","1");
         fail("INVALID_CLUE",()->rooms.command(peers.getFirst(),Protocol.decode(Protocol.event("SUBMIT_CLUE","x",data))));
     }
-    @Test void roomIsolation(){start(3);advance(4000);
+    @Test void roomIsolation(){start(3);advance(com.finalanswer.server.game.ImpostorSession.ROLE_MILLIS);
         var other=obj(rooms.create(Map.of("name","Other")));String otherCode=s(other,"code");
         var stranger=obj(rooms.join(otherCode,Map.of("name","Stranger")));var peer=new TestPeer();rooms.attach(otherCode,s(stranger,"token"),peer,"x");
         fail("WRONG_ROOM",()->rooms.command(peer,Protocol.decode(Protocol.event("SUBMIT_CLUE","x",fields(1,"СВЕТ")))));

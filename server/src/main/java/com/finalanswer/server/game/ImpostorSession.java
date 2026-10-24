@@ -74,7 +74,7 @@ public final class ImpostorSession {
     private final Map<String,String> clues = new LinkedHashMap<>();
     // A bounded semantic attempt budget prevents a rapid secret-word validation oracle.
     private final Map<String,Integer> attempts = new HashMap<>();
-    public static final long CLUE_MILLIS=10_000, REVEAL_MILLIS=500, ROLE_MILLIS=4_000, SEAL_MILLIS=1_850;
+    public static final long CLUE_MILLIS=10_000, REVEAL_MILLIS=500, ROLE_MILLIS=12_000, SEAL_MILLIS=1_850;
 
     /** Trusted start only. Hidden information never leaves personalized serialization. */
     public void begin(WordSource words, SecureRandom random, long now) {

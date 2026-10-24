@@ -258,9 +258,9 @@ public final class ImpostorCheck extends FinalAnswerGame {
                 "Text clear of panel edges");
         }
         check(((Label)stage.getRoot().findActor("impostorTimerLabel")).getText().toString()
-                .equals("ДО КОНЦА ГОЛОСОВАНИЯ"), "Exact Cyrillic label");
+                .equals("ОЖИДАЕМ НАЧАЛА"), "Idle phase label");
         check(((Label)stage.getRoot().findActor("impostorTimerValue")).getText().toString()
-                .equals("00:12"), "Static preview time");
+                .equals("—"), "Idle preview does not display a fake countdown");
         // Deterministic target-size renders avoid desktop window-manager size limits.
         int[][] sizes = {{1920,1080},{1600,900},{1280,720},{1366,768},{1024,768}};
         for (int[] size : sizes) {
@@ -576,7 +576,7 @@ public final class ImpostorCheck extends FinalAnswerGame {
         var closed=com.erni.finalanswer.audio.PresentationAudio.Cue.VOTING_CLOSED;
         preview.resetPapers();long starts=audio.playCount(intro);
         preview.presentPhase(ImpostorPhase.ROLE_REVEAL,4000,0);preview.presentPhase(ImpostorPhase.ROLE_REVEAL,4000,10);
-        check(audio.playCount(intro)==starts+1,"One introduction per role entrance");
+        check(audio.playCount(intro)==starts,"Opening effect does not replay during role distribution");
         preview.presentPhase(ImpostorPhase.EVIDENCE_REVIEW,30000,1000);
         var clockSnapshot=new FinalActSnapshot("audio-clock",ImpostorPhase.EVIDENCE_REVIEW,1000,31000,0,0,preview.participants().size(),"",java.util.List.of(),java.util.Map.of(),java.util.List.of(),"","");
         preview.presentFinal(clockSnapshot,1000);preview.render(0);
@@ -606,7 +606,7 @@ public final class ImpostorCheck extends FinalAnswerGame {
             check(view.isVisible() && !stage(preview).getRoot().findActor("finalCards").isVisible(),"Discussion reserves table; no premature final cards");
             finalCaptureNow=1600;capturePaperState("final-discussion");
             var voting=new FinalActSnapshot("final-"+count,ImpostorPhase.FINAL_VOTING,31000,51000,0,1,count,"",java.util.List.of(),java.util.Map.of(),java.util.List.of(),"","");
-            preview.presentFinal(voting,32000);preview.render(0);view.update(32000);check(((Label)view.findActor("finalProgress")).getText().toString().equals("VOTES SUBMITTED: 1 / "+count),"Final progress stays aggregate");
+            preview.presentFinal(voting,32000);preview.render(0);view.update(32000);check(((Label)view.findActor("finalProgress")).getText().toString().equals("ПРИНЯТО ГОЛОСОВ: 1 / "+count),"Final progress stays aggregate");
             finalCaptureNow=32000;capturePaperState("final-voting");
             long reveal=52000;
             var snapshot=new FinalActSnapshot("final-"+count,ImpostorPhase.FINAL_VOTE_REVEAL,reveal,reveal+5000,reveal,count,count,"final-"+count+":1",targets,counts,java.util.List.of(),"","");
@@ -746,6 +746,11 @@ public final class ImpostorCheck extends FinalAnswerGame {
             check(saved[0]!=null&&saved[0].roundCount()==2,"Native settings send validated configuration");
             capturePaperState("stage9-host-settings");
             saved[0]=null;rounds.setText("9");settings.findActor("applyImpostorSettings").fire(new com.badlogic.gdx.scenes.scene2d.utils.ChangeListener.ChangeEvent());check(saved[0]==null,"Native invalid settings are not sent");
+            check(stage(preview).getKeyboardFocus()==rounds,"Invalid field receives keyboard focus");
+            check(settings.closeIfOpen(),"Escape can dismiss settings before leaving game");
+            open.fire(new com.badlogic.gdx.scenes.scene2d.utils.ChangeListener.ChangeEvent());
+            settings.findActor("resetImpostorSettings").fire(new com.badlogic.gdx.scenes.scene2d.utils.ChangeListener.ChangeEvent());
+            check(rounds.getText().equals("3")&&saved[0]==null,"Defaults remain a draft until applied");
             settings.update(com.erni.finalanswer.gameplay.impostor.ImpostorSettings.defaults(),false);check(!open.isVisible(),"Nonhost/active match cannot open settings");
         }finally{settings.remove();settings.dispose();font.dispose();}
         check(Texture.getNumManagedTextures()==textures,"Settings textures released");
@@ -755,7 +760,7 @@ public final class ImpostorCheck extends FinalAnswerGame {
         preview.resetPapers();preview.presentPhase(ImpostorPhase.ROLE_REVEAL,5000,1000);
         preview.presentPhase(ImpostorPhase.ROUND_CLUE_INPUT,15000,5000);preview.render(.2f);
         Label intro=stage(preview).getRoot().findActor("impostorRoundIntro");
-        check(intro.isVisible()&&intro.getText().toString().equals("ROUND 1"),"Short nonblocking round introduction");
+        check(intro.isVisible()&&intro.getText().toString().equals("РАУНД 1"),"Short nonblocking round introduction");
         var field=ImpostorScreen.class.getDeclaredField("transition");field.setAccessible(true);
         var transition=(com.erni.finalanswer.presentation.PhaseTransition)field.get(preview);
         float progress=transition.progress();preview.pause();preview.render(.2f);check(transition.progress()==progress,"Application pause freezes new effects");preview.resume();
@@ -796,6 +801,12 @@ public final class ImpostorCheck extends FinalAnswerGame {
             int actors=panel.getChildren().size;panel.result(result,roster,true);check(panel.getChildren().size==actors,"Duplicate result does not rebuild panel");
             panel.result(result,roster,false);check(!panel.findActor("impostorReplay").isVisible(),"Nonhost replay hidden");
             panel.hidePanel();check(panel.findActor("resultParticipant:"+ids.getFirst())==null,"Reset removes old results");
+            panel.waiting("qa-selection-"+count,roster.stream().map(p->p.player()).toList(),ids.subList(0,3),true,false);
+            var start=(com.badlogic.gdx.scenes.scene2d.ui.TextButton)panel.findActor("impostorStart");
+            check(!start.isDisabled(),"Three selected players can start");
+            var choice=(com.badlogic.gdx.scenes.scene2d.ui.CheckBox)panel.findActor("impostorSelect:"+ids.getFirst());
+            choice.setChecked(false);panel.status("",false);check(start.isDisabled(),"Two selected players cannot start, including after status refresh");
+            choice.setChecked(true);check(!start.isDisabled(),"Valid selection reenables start");panel.status("Отправляем…",true);check(start.isDisabled(),"Pending command disables start");panel.status("",false);panel.hidePanel();
         }
     }
 
@@ -892,12 +903,12 @@ public final class ImpostorCheck extends FinalAnswerGame {
         check(envelope.state()==SuspicionEnvelope.State.OPEN,"OPEN envelope while accepting suspicions");
         Label counter=envelope.findActor("suspicionProgress");
         int eligible=preview.participants().size()+2;
-        check(counter.getText().toString().equals("SUSPICIONS RECEIVED: 0/"+eligible),"Aggregate count includes spectators");
+        check(counter.getText().toString().equals("ПОДОЗРЕНИЙ ПОЛУЧЕНО: 0/"+eligible),"Aggregate count includes spectators");
         Label timer=stage(preview).getRoot().findActor("impostorTimerValue");
         check(timer.getText().toString().equals("00:05"),"Server-based five-second timer");
         showMainMenu();setScreen(preview);preview.resize(1024,768);
         suspicionDemo.update(2.5f);preview.render(.1f);
-        check(counter.getText().toString().equals("SUSPICIONS RECEIVED: 3/"+eligible),"Dynamic submission aggregate");
+        check(counter.getText().toString().equals("ПОДОЗРЕНИЙ ПОЛУЧЕНО: 3/"+eligible),"Dynamic submission aggregate");
         capturePaperState("suspicion-open");
         suspicionDemo.update(2.5f);preview.render(0);
         check(envelope.state()==SuspicionEnvelope.State.CLOSED,"CLOSED after authoritative finalization");
@@ -911,7 +922,7 @@ public final class ImpostorCheck extends FinalAnswerGame {
             check(image.getX()>=0 && image.getRight()<=600,"Envelope aspect-preserving bounds");
         }
         preview.render(1.6f);
-        check(!envelope.active() && timer.getText().toString().equals("00:12"),"Previous timer context restored");
+        check(!envelope.active() && timer.getText().toString().equals("—"),"Previous timer context restored");
         check(preview.revealedRoundCount()==round && preview.paperState()==prior,"Paper context remains intact");
         suspicionDemo.start();preview.render(.25f);
         check(envelope.active(),"Repeated preview can start a fresh phase");

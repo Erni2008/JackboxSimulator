@@ -280,3 +280,27 @@ body[data-view="blackout"] .ambient,body[data-view="blackout"] .masthead,body[da
 body[data-view="blackout"] main { width:100%; max-width:none; margin:0; padding:0; min-height:100dvh; border:0; box-shadow:none; background:#000; }
 body[data-view="blackout"] main > :not(#blackout-screen) { display:none!important; }
 #blackout-screen { min-height:100dvh; background:#000; animation:none; }
+
+/* Phone Impostor: readable Russian copy, deliberate touch targets and explicit input errors. */
+#impostor-screen,#suspicion-screen,#final-screen { scroll-margin-top:16px; }
+#impostor-screen .writing-hint { font-size:clamp(11px,3.2vw,14px); line-height:1.5; }
+#impostor-screen .writing-hint span { display:block; font-size:10px; }
+#impostor-screen .clue-compose-meta { gap:12px; flex-wrap:wrap; line-height:1.5; }
+#clue-length { margin-left:auto; white-space:nowrap; font-variant-numeric:tabular-nums; }
+#clue-length.over-limit { color:#f2a4a4; font-weight:700; }
+#impostor-screen #clue-input[aria-invalid=true] { outline:2px solid #bd5766; outline-offset:5px; border-radius:5px; }
+#impostor-screen #clue-submit,#final-screen #confirm-vote { min-height:54px; touch-action:manipulation; }
+#suspicion-screen .suspect-card,#final-screen .suspect-card { min-height:64px; touch-action:manipulation; }
+#suspicion-screen button:focus-visible,#final-screen button:focus-visible,#impostor-screen button:focus-visible { outline:3px solid #e7c693; outline-offset:4px; }
+#impostor-countdown,#final-timer,#suspicion-timer { font-variant-numeric:tabular-nums; }
+#suspicion-status,#final-status,#clue-status { line-height:1.65; overflow-wrap:anywhere; }
+#impostor-screen .fa-label,#final-screen #confirm-vote .fa-label { font-size:clamp(11px,3.3vw,15px); }
+@media(prefers-reduced-motion:reduce) {
+  #impostor-screen *,#suspicion-screen *,#final-screen * { animation:none!important; transition:none!important; scroll-behavior:auto!important; }
+}
+#suspicion-screen .suspect-card .fa-label,#final-screen .suspect-card .fa-label {
+  display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:3; overflow:hidden; overflow-wrap:anywhere;
+}
+#suspicion-screen .fa-selection,#final-screen .fa-selection {
+  font-family:Body,sans-serif; font-size:clamp(9px,2.7vw,13px); letter-spacing:.02em; white-space:nowrap; text-align:center;
+}

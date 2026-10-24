@@ -45,13 +45,13 @@ async function command(command,extra={}){
       await p.waitForFunction(id=>document.querySelector(`[data-id="${id}"]`)?.getAttribute('aria-pressed')==='true',b);
       assert.equal(await clients[0].page.locator(`[data-id="${a}"]`).isDisabled(),true);
       await clients[0].page.locator(`[data-id="${b}"]`).click();
-      await p.waitForFunction(total=>document.getElementById('suspicion-progress').textContent===`SUSPICIONS RECEIVED: 2/${total}`,activeCount+2);
+      await p.waitForFunction(total=>document.getElementById('suspicion-progress').textContent===`ПОЛУЧЕНО ПОДОЗРЕНИЙ: 2/${total}`,activeCount+2);
       assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
       await p.screenshot({path:path.join(directory,`${activeCount}participants-mobile-open.png`),fullPage:true});
       assert(other.frames.filter(e=>e.payload?.impostor).every(e=>!e.payload.impostor.selectedSuspectId),'Other player saw a private target');
       assert(clients.every(c=>c.frames.every(e=>!e.payload?.impostor?.selections)),'Raw selections leaked');
       await command('expire');
-      await p.waitForFunction(()=>document.getElementById('suspicion-title').textContent==='SUSPICIONS SEALED');
+      await p.waitForFunction(()=>document.getElementById('suspicion-title').textContent==='ПОДОЗРЕНИЯ ЗАПЕЧАТАНЫ');
       assert.equal(await p.locator('.suspect-card:enabled').count(),0);
       assert.equal(await p.locator('#suspicion-timer').textContent(),'0s');
       await p.screenshot({path:path.join(directory,`${activeCount}participants-mobile-sealed.png`),fullPage:true});
@@ -78,8 +78,8 @@ async function command(command,extra={}){
         await clients[i].page.locator(`[data-id="${target}"]`).click();
         await clients[i].page.waitForFunction(id=>document.querySelector(`[data-id="${id}"]`)?.getAttribute('aria-pressed')==='true',target);
       }
-      await p.waitForFunction(total=>document.getElementById('suspicion-progress').textContent===`SUSPICIONS RECEIVED: ${total}/${total}`,clients.length);
-      assert.equal(await p.locator('#suspicion-title').textContent(),'SUSPICIONS SEALED');
+      await p.waitForFunction(total=>document.getElementById('suspicion-progress').textContent===`ПОЛУЧЕНО ПОДОЗРЕНИЙ: ${total}/${total}`,clients.length);
+      assert.equal(await p.locator('#suspicion-title').textContent(),'ПОДОЗРЕНИЯ ЗАПЕЧАТАНЫ');
       await command('new');await p.locator('#join-screen').waitFor({state:'visible'});
       for(const client of clients)await client.context.close();
       console.log(`PASS: ${activeCount} active + 2 spectators, mobile layout, accepted/replaced/private selection, rejection UX, reconnect, deadline, early completion, round reset and room closure`);

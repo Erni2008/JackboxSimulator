@@ -8,19 +8,19 @@
   <link rel="preload" href="/art/ui/fonts/Caveat-Variable.ttf?v=2" as="font" type="font/ttf" crossorigin>
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/controller-theme.css?v=role-2">
-  <script src="/final-answer-button.js" defer></script>
-  <script src="/final-voting.js?v=blackout-1" defer></script>
-  <script src="/parchment-writer.js?v=5" defer></script>
-  <script src="/countdown-clock.js?v=2" defer></script>
-  <script src="/impostor.js?v=host-writing-8" defer></script>
-  <script src="/suspicion.js" defer></script>
+  <script src="/final-answer-button.js?v=phone-polish-2" defer></script>
+  <script src="/final-voting.js?v=phone-polish-2" defer></script>
+  <script src="/parchment-writer.js?v=phone-polish-2" defer></script>
+  <script src="/countdown-clock.js?v=phone-polish-2" defer></script>
+  <script src="/impostor.js?v=phone-polish-2" defer></script>
+  <script src="/suspicion.js?v=phone-polish-2" defer></script>
   <link rel="stylesheet" href="/cursed-boxes.css?v=1">
   <script src="/cursed-boxes.js?v=private-targets-1" defer></script>
-  <link rel="stylesheet" href="/controller-polish.css?v=blackout-1">
-  <script src="/controller-presentation.js?v=blackout-1" defer></script>
+  <link rel="stylesheet" href="/controller-polish.css?v=phone-polish-2">
+  <script src="/controller-presentation.js?v=phone-polish-2" defer></script>
   <script src="/connection-health.js?v=1" defer></script>
   <script src="/impostor-audio.js?v=writing-2" defer></script>
-  <script src="/app.js?v=blackout-1" defer></script>
+  <script src="/app.js?v=phone-polish-2" defer></script>
 </head>
 <body>
   <div class="ambient" aria-hidden="true"></div>
@@ -98,50 +98,50 @@
       <div class="ghost-current"><p class="eyebrow">THE GAME CONTINUES</p><p id="ghost-question"></p></div>
     </section>
     <section id="blackout-screen" class="screen" aria-label="Watch the shared screen" hidden></section>
-    <section id="final-screen" class="screen" hidden>
-      <p class="eyebrow">THE IMPOSTOR · FINAL ACT</p>
+    <section id="final-screen" class="screen" lang="ru" hidden>
+      <p class="eyebrow">ИМПОСТОР · ФИНАЛ</p>
       <h1 id="final-title"></h1>
       <p id="final-personal" class="personal-result" aria-live="polite" hidden></p>
       <p id="final-waiting-host" class="muted" hidden></p>
       <p id="final-announcement" class="secret-word" aria-live="polite"></p>
       <p id="final-timer" role="timer"></p>
       <p id="final-progress"></p>
-      <div id="vote-receipt" class="choice-receipt" hidden><p class="receipt-label">VOTE SEALED</p><p id="vote-receipt-value"></p><span>Your first vote is final. Watch the shared screen.</span></div>
+      <div id="vote-receipt" class="choice-receipt" hidden><p class="receipt-label">ГОЛОС ЗАФИКСИРОВАН</p><p id="vote-receipt-value"></p><span>Ваш выбор принят. Смотрите на общий экран.</span></div>
       <p id="final-status" role="status" aria-live="polite"></p>
       <div id="final-cards" class="suspect-cards"></div>
-      <div id="vote-draft" class="vote-draft" hidden><span>YOUR SELECTED SUSPECT</span><strong id="vote-draft-name"></strong><p>Check your choice, then confirm below.</p></div>
-      <button id="confirm-vote" type="button" hidden disabled>CONFIRM VOTE</button>
+      <div id="vote-draft" class="vote-draft" hidden><span>ВАШ ПОДОЗРЕВАЕМЫЙ</span><strong id="vote-draft-name"></strong><p>Проверьте выбор и подтвердите голос.</p></div>
+      <button id="confirm-vote" type="button" hidden disabled>ПОДТВЕРДИТЬ ГОЛОС</button>
       <p id="result-player" class="eyebrow"></p>
       <ul id="final-results" class="final-results"></ul>
     </section>
-    <section id="impostor-screen" class="screen" hidden>
+    <section id="impostor-screen" class="screen" lang="ru" hidden>
       <p id="impostor-round" class="eyebrow"></p>
       <div class="role-panel"><img class="role-parchment" src="/art/impostor/phone/word_reminise.png" alt="" draggable="false"><h2 id="impostor-role"></h2>
       <p id="impostor-word" class="secret-word"></p>
       <p id="impostor-role-note"></p></div>
-      <canvas id="role-countdown-clock" width="320" height="336" role="img" aria-label="Role reveal countdown" hidden></canvas>
+      <canvas id="role-countdown-clock" width="320" height="336" role="img" aria-label="Время чтения роли" hidden></canvas>
       <p id="impostor-countdown" role="timer"></p>
       <form id="clue-form" hidden>
         <div id="parchment-surface" class="parchment-surface">
           <img class="writing-paper" src="/art/impostor/phone/papper3dview.png" alt="" draggable="false">
-          <label for="clue-input" class="writing-hint">TAP TO WRITE<span>ONE WORD · 10 LETTERS</span></label>
+          <label for="clue-input" class="writing-hint">НАЖМИТЕ, ЧТОБЫ НАПИСАТЬ<span>ОДНО СЛОВО · ДО 10 БУКВ</span></label>
           <div class="parchment-ink" aria-hidden="true"></div>
-          <textarea id="clue-input" rows="3" autocomplete="off" autocapitalize="sentences" spellcheck="false" maxlength="10" enterkeyhint="done" aria-label="Write one clue on the parchment" aria-describedby="clue-status clue-length"></textarea>
+          <textarea id="clue-input" rows="3" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="20" enterkeyhint="done" aria-label="Напишите одно слово на пергаменте" aria-describedby="clue-status clue-length"></textarea>
           <img class="writing-pen" src="/art/impostor/phone/pen.png" alt="" draggable="false">
         </div>
-        <div class="clue-compose-meta"><span>ONE WORD. MAKE IT COUNT.</span><span id="clue-length">0 / 10 LETTERS</span></div>
-        <button id="clue-submit" type="submit">CONFIRM</button>
+        <div class="clue-compose-meta"><span>ОДНО СЛОВО. ВЫБИРАЙТЕ ТОЧНО.</span><span id="clue-length">0 / 10 БУКВ</span></div>
+        <button id="clue-submit" type="submit">ПОДТВЕРДИТЬ СЛОВО</button>
       </form>
       <p id="clue-status" role="status" aria-live="polite"></p>
-      <div id="clue-confirmation" class="confirmation-panel" hidden><p class="eyebrow">RECEIVED BY THE SERVER</p><h2>CLUE SUBMITTED</h2><p id="clue-confirmed-value"></p><p>Watch the shared screen. Your clue is locked.</p></div>
+      <div id="clue-confirmation" class="confirmation-panel" hidden><p class="eyebrow">ПРИНЯТО ИГРОЙ</p><h2>СЛОВО ЗАФИКСИРОВАНО</h2><p id="clue-confirmed-value"></p><p>Смотрите на общий экран. Ваше слово принято.</p></div>
       <p id="clue-room-progress" class="mode-room-progress" hidden></p>
     </section>
-    <section id="suspicion-screen" class="screen" hidden>
-      <div class="round-top"><p class="eyebrow">THE IMPOSTOR · PRIVATE SUSPICION</p><span id="suspicion-timer" class="timer" aria-label="Seconds remaining"></span></div>
-      <h1 id="suspicion-title">CHOOSE A SUSPECT</h1>
+    <section id="suspicion-screen" class="screen" lang="ru" hidden>
+      <div class="round-top"><p class="eyebrow">ИМПОСТОР · ТАЙНОЕ ПОДОЗРЕНИЕ</p><span id="suspicion-timer" class="timer" aria-label="Осталось секунд"></span></div>
+      <h1 id="suspicion-title">ВЫБЕРИТЕ ПОДОЗРЕВАЕМОГО</h1>
       <p id="suspicion-progress" class="muted"></p>
       <p id="suspicion-status" class="muted" role="status" aria-live="polite"></p>
-      <div id="suspect-cards" class="suspect-cards" aria-label="Active participants"></div>
+      <div id="suspect-cards" class="suspect-cards" aria-label="Участники игры"></div>
     </section>
     <section id="result-screen" class="screen result" hidden>
       <div id="result-life-status" class="personal-life" role="status" aria-live="polite"><span class="personal-life-badge"></span><p></p></div>

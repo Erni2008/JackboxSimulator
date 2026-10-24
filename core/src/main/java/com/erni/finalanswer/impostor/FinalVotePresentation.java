@@ -94,17 +94,17 @@ public final class FinalVotePresentation extends Group {
         }
         if(phaseChanged){
             title.setText(switch(next.phase()){
-                case EVIDENCE_REVIEW -> "FINAL DISCUSSION";case FINAL_VOTING -> "FINAL VOTING";
-                case VOTING_LOCKED -> "VOTING LOCKED";case FINAL_VOTE_REVEAL -> "THE INK WILL TELL";
-                case SUSPECT_ANNOUNCEMENT -> next.leaders().size()==1?"THE MOST SUSPECTED PLAYER IS...":"NO CONSENSUS";
-                case IMPOSTOR_REVEAL -> "THE IMPOSTOR IS...";case RESULT -> next.outcome().replace('_',' ');
+                case EVIDENCE_REVIEW -> "ОБСУЖДЕНИЕ";case FINAL_VOTING -> "ФИНАЛЬНОЕ ГОЛОСОВАНИЕ";
+                case VOTING_LOCKED -> "ГОЛОСОВАНИЕ ЗАКРЫТО";case FINAL_VOTE_REVEAL -> "ГОЛОСА РАСКРЫВАЮТСЯ";
+                case SUSPECT_ANNOUNCEMENT -> next.leaders().size()==1?"БОЛЬШЕ ВСЕГО ПОДОЗРЕНИЙ…":"НЕТ ЕДИНОГО РЕШЕНИЯ";
+                case IMPOSTOR_REVEAL -> "ИМПОСТОР — ЭТО…";case RESULT -> switch(next.outcome()){case "IMPOSTOR_CAUGHT" -> "ИМПОСТОР РАСКРЫТ";case "IMPOSTOR_ESCAPED" -> "ИМПОСТОР СКРЫЛСЯ";default -> "НЕТ ЕДИНОГО РЕШЕНИЯ";};
                 default -> "";
             });
             detail.setText(switch(next.phase()){
-                case EVIDENCE_REVIEW -> "Every round. Every clue. One impostor.";
-                case FINAL_VOTING -> "One final choice. Keep it private.";
-                case VOTING_LOCKED -> "Every accepted vote is sealed.";
-                case FINAL_VOTE_REVEAL -> "One vote. One mark.";
+                case EVIDENCE_REVIEW -> "Все раунды. Все слова. Один импостор.";
+                case FINAL_VOTING -> "Сделайте выбор на своём телефоне.";
+                case VOTING_LOCKED -> "Все принятые голоса зафиксированы.";
+                case FINAL_VOTE_REVEAL -> "Один голос — одна печать.";
                 case SUSPECT_ANNOUNCEMENT -> joinNames(next.leaders());
                 case IMPOSTOR_REVEAL,RESULT -> names.getOrDefault(next.impostorId(),"");
                 default -> "";
@@ -121,7 +121,7 @@ public final class FinalVotePresentation extends Group {
             }
         }
         progress.setText(next.phase()==ImpostorPhase.FINAL_VOTING || next.phase()==ImpostorPhase.VOTING_LOCKED?
-            "VOTES SUBMITTED: "+next.submitted()+" / "+next.eligible():next.phase()==ImpostorPhase.RESULT?resultSummary(next.counts()):"");
+            "ПРИНЯТО ГОЛОСОВ: "+next.submitted()+" / "+next.eligible():next.phase()==ImpostorPhase.RESULT?resultSummary(next.counts()):"");
         progress.setFontScale(next.phase()==ImpostorPhase.RESULT?.8f:1);
         cards.setVisible(next.phase()==ImpostorPhase.FINAL_VOTE_REVEAL || next.phase()==ImpostorPhase.SUSPECT_ANNOUNCEMENT || next.phase()==ImpostorPhase.IMPOSTOR_REVEAL || next.phase()==ImpostorPhase.RESULT);
     }

@@ -81,7 +81,7 @@ function handle(event){const payload=event.payload||{};heartbeatWatch.acknowledg
   document.body.dataset.reducedMotion=String(!!settings?.reducedMotion);
   document.body.dataset.effects=String(settings?.visualEffectsEnabled!==false);
   document.body.dataset.sound=String(settings?.soundEnabled!==false);
-  if(settings)$('room-configuration').textContent=`${settings.roundCount} ROUNDS · CLUES ${settings.clueSeconds}s · DISCUSSION ${settings.discussionSeconds}s · VOTING ${settings.votingSeconds}s · WORDS: ${settings.wordCategory}`;
+  if(settings)$('room-configuration').textContent=`${settings.roundCount} раунда · Слово: ${settings.clueSeconds} с · Обсуждение: ${settings.discussionSeconds} с · Голосование: ${settings.votingSeconds} с`;
   if(event.type==='AUTHENTICATED')document.body.dataset.cinematic='false';
   else if(oldPhase!==state.impostor?.phase)document.body.dataset.cinematic='true';
   if(previousMatch && (previousMatch!==state.impostor?.sessionId || state.impostor?.phase==='REPLAY_PREPARATION')){
