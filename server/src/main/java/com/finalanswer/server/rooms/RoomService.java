@@ -189,6 +189,8 @@ public final class RoomService {
         }
         if(message.type().equals("START_GAME")) {
             requireHost(member);
+            String introId=Protocol.string(data,"introId");
+            if(data.has("introId")&&!introId.equals(com.erni.finalanswer.gameplay.intro.IntroDefinition.RUSSIAN.introId()))throw new Failure(400,"INVALID_INTRO");
             if(room.game!=null || room.cursed!=null || room.impostor!=null&&room.impostor.result()==null) throw new Failure(409,"GAME_ALREADY_STARTED");
             Set<String> participants=new LinkedHashSet<>();
             room.members.values().stream().filter(m->m.peer!=null&&!m.left).forEach(m->participants.add(m.id));
@@ -197,6 +199,9 @@ public final class RoomService {
             if(room.members.values().stream().map(m->m.characterId).distinct().count()!=participants.size())throw new Failure(409,"CHARACTER_IN_USE");
             if(room.impostor!=null){room.lastImpostorResult=room.impostor.result();room.impostor.close();room.impostor=null;}
             room.game=new GameSession(room.questionCount,participants,endPolicy,now());
+            if(!introId.isEmpty()){
+                room.game.intro=new com.finalanswer.server.game.IntroGate(now());
+            }
             broadcast(room,"GAME_STARTED");
             reply(peer,room,member,message); return;
         }
@@ -247,6 +252,23 @@ public final class RoomService {
             return;
         }
         GameSession game=room.game;
+        if(Set.of("INTRO_READY","SKIP_INTRO","INTRO_PAUSE","INTRO_RESUME").contains(message.type())){
+            requireHost(member);
+            if(game==null||game.intro==null||!game.id.equals(Protocol.string(data,"gameId"))
+                ||!com.erni.finalanswer.gameplay.intro.IntroDefinition.RUSSIAN.introId().equals(Protocol.string(data,"introId")))throw new Failure(409,"STALE_INTRO");
+            if(game.intro.completed()){reply(peer,room,member,message);return;}
+            if(game.phase!=Phase.STARTING)throw new Failure(409,"INVALID_PHASE");
+            switch(message.type()){
+                case "INTRO_PAUSE" -> game.intro.pause(now());
+                case "INTRO_RESUME" -> game.intro.resume(now());
+                default -> {
+                    if(message.type().equals("INTRO_READY")&&!game.intro.ready(now()))throw new Failure(409,"INTRO_NOT_READY");
+                    game.intro.complete();game.next(now());broadcast(room,"QUESTION_STARTED");
+                }
+            }
+            if(game.phase==Phase.STARTING)broadcast(room,"INTRO_UPDATED");
+            reply(peer,room,member,message);return;
+        }
         if(game==null || !game.id.equals(Protocol.string(data,"gameId")) || game.question()==null
             || !game.question().id().equals(Protocol.string(data,"questionId"))) throw new Failure(409,"STALE_QUESTION");
         switch(message.type()) {
@@ -438,7 +460,11 @@ public final class RoomService {
             } else if(mini.tick(now()))broadcast(room,"SUSPICION_FINALIZED");
         }
         GameSession game=room.game; if(room.cursed!=null || game==null || game.phase==Phase.GAME_FINISHED) return;
-        if(game.phase==Phase.STARTING && now()>=game.phaseStartedAt+Protocol.LOBBY_TRANSITION_MILLIS){
+        if(game.phase==Phase.STARTING && game.intro!=null&&game.intro.reportDeadline(now())){
+            // Report a stalled/late presentation, but never cut speech or open answers automatically.
+            broadcast(room,"INTRO_TIMING_WARNING");
+        }
+        if(game.phase==Phase.STARTING && game.intro==null&&now()>=game.phaseStartedAt+Protocol.LOBBY_TRANSITION_MILLIS){
             // The start roster is frozen. Reconnecting members retain their original seat.
             game.next(game.phaseStartedAt+Protocol.LOBBY_TRANSITION_MILLIS);broadcast(room,"QUESTION_STARTED");
         }
@@ -570,6 +596,7 @@ public final class RoomService {
             value.put("roomStatus","IN_GAME");
         }
         if(game!=null) {
+            if(game.intro!=null&&game.phase==Phase.STARTING)value.put("intro",game.intro.snapshot(now()));
             value.put("transitionStartedAt",game.phase==Phase.STARTING?game.phaseStartedAt:0);
             value.put("transitionEndsAt",game.phase==Phase.STARTING?game.phaseStartedAt+Protocol.LOBBY_TRANSITION_MILLIS:0);
             value.put("roundTitle","РАУНД 1 — ПЕРВЫЙ ВОПРОС");

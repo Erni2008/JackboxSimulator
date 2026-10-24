@@ -5,6 +5,9 @@ rejected for similarity. The approved ICL voice profile is `final_answer_host_ru
 The checked batch contains 12 actual project questions and 8 host lines, not 10,000
 questions. Runtime playback uses local OGG assets and never calls Qwen.
 
+The cinematic intro adds 23 separately reviewable lines, lossless timbre processing,
+subtitles and a measured schedule. See [the intro guide](../../docs/cinematics/intro.md).
+
 ## Verified installation
 
 Local app: `/Users/erni/Desktop/QwenTTS`. Its current HTTP server listens on

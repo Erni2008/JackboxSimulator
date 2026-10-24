@@ -20,11 +20,11 @@ public final class HostVoiceManager implements AutoCloseable {
     public static final class Manifest {
         public int version;
         public String language,voiceId;
-        public Map<String,Entry> questions=Map.of(),events=Map.of();
+        public Map<String,Entry> questions=Map.of(),events=Map.of(),intro=Map.of();
     }
-    public static final class Entry {public String file,status,hash;}
-    private record Request(String path,Consumer<Result> completion) {}
-    private record Pending(boolean question,String id,Consumer<Result> completion) {}
+    public static final class Entry {public String file,status,hash;public float duration;}
+    private record Request(String path,float offset,Consumer<Result> completion) {}
+    private record Pending(String section,String id,float offset,Consumer<Result> completion) {}
     private final Loader loader;
     private Manifest manifest;
     private final String root;
@@ -37,6 +37,10 @@ public final class HostVoiceManager implements AutoCloseable {
     private Music music;
     private boolean paused,closed,manifestPending;
     private float volume=.8f,scopeGain=1;
+    private float seekOffset;
+    private final Set<String> retained=new LinkedHashSet<>();
+    private Collection<String> introBank=List.of();
+    private boolean bankQueued,releaseBank,allowIntroReview;
     private float gain(){return volume*scopeGain*mix.gain(AudioMix.Category.SFX);}
 
     public HostVoiceManager(String language,AudioMix mix,Consumer<String> warning){
@@ -55,28 +59,38 @@ public final class HostVoiceManager implements AutoCloseable {
     }
     public void playQuestion(String id){playQuestion(id,null,null);}
     public void playLine(String id){playLine(id,null,null);}
-    public void playQuestion(String id,String eventId,Consumer<Result> completion){request(true,id,eventId,completion);}
-    public void playLine(String id,String eventId,Consumer<Result> completion){request(false,id,eventId,completion);}
-    private void request(boolean question,String id,String eventId,Consumer<Result> completion){
+    public void playQuestion(String id,String eventId,Consumer<Result> completion){request("questions",id,eventId,completion);}
+    public void playLine(String id,String eventId,Consumer<Result> completion){request("events",id,eventId,completion);}
+    public void playIntro(String id,String eventId,Consumer<Result> completion){request("intro",id,eventId,completion);}
+    public void playIntro(String id,String eventId,float offset,Consumer<Result> completion){request("intro",id,eventId,offset,completion);}
+    public Entry introEntry(String id){return manifest.intro==null?null:manifest.intro.get(id);}
+    public void prepareIntro(Collection<String> ids,boolean review){introBank=List.copyOf(ids);allowIntroReview=review;bankQueued=false;releaseBank=false;}
+    public boolean introPrepared(){return !manifestPending&&bankQueued&&loaderReady;}
+    private boolean loaderReady;
+    public void releaseIntro(){stop();introBank=List.of();releaseBank=true;}
+    private void request(String section,String id,String eventId,Consumer<Result> completion){
+        request(section,id,eventId,0,completion);
+    }
+    private void request(String section,String id,String eventId,float offset,Consumer<Result> completion){
         if(closed){complete(completion,Result.CANCELLED);return;}
         if(eventId!=null&&!eventId.isBlank()){
             if(!seen.add(eventId))return;
             if(seen.size()>128)seen.remove(seen.iterator().next());
         }
         stop();
-        if(manifestPending){pending=new Pending(question,id,completion);return;}
-        resolve(question,id,completion);
+        if(manifestPending){pending=new Pending(section,id,offset,completion);return;}
+        resolve(section,id,offset,completion);
     }
-    private void resolve(boolean question,String id,Consumer<Result> completion){
-        Map<String,Entry> entries=question?manifest.questions:manifest.events;
+    private void resolve(String section,String id,float offset,Consumer<Result> completion){
+        Map<String,Entry> entries=switch(section){case "questions"->manifest.questions;case "intro"->manifest.intro;default->manifest.events;};
         Entry entry=entries==null?null:entries.get(id);
-        if(entry==null||!"ready".equals(entry.status)||!safePath(entry.file)){
+        if(entry==null||!("ready".equals(entry.status)||section.equals("intro")&&allowIntroReview&&"review".equals(entry.status))||!safePath(entry.file)){
             warn("Missing approved host narration: "+id);complete(completion,Result.MISSING);return;
         }
-        queued=new Request(root+entry.file,completion);
+        queued=new Request(root+entry.file,Float.isFinite(offset)?Math.max(0,offset):0,completion);
     }
     private static boolean safePath(String file){
-        return file!=null&&file.matches("(?:questions|events)/[A-Za-z0-9_-]+\\.ogg");
+        return file!=null&&file.matches("(?:questions|events|intro)/[A-Za-z0-9_-]+\\.ogg");
     }
     private void warn(String message){if(warned.add(message))warning.accept(message);}
     private void complete(Consumer<Result> callback,Result result){
@@ -86,25 +100,32 @@ public final class HostVoiceManager implements AutoCloseable {
         if(closed)return;
         try{
             boolean ready=loader.update();
+            loaderReady=ready;
             if(manifestPending&&ready){
                 Manifest loaded=loader.manifest();manifestPending=false;
                 if(loaded!=null&&loaded.version==1&&manifest.language.equals(loaded.language))manifest=loaded;
                 else warn("Unsupported or missing host narration manifest");
                 Pending waiting=pending;pending=null;
-                if(waiting!=null)resolve(waiting.question(),waiting.id(),waiting.completion());
+                if(waiting!=null)resolve(waiting.section(),waiting.id(),waiting.offset(),waiting.completion());
+            }
+            if(!manifestPending&&!bankQueued&&!introBank.isEmpty()){
+                bankQueued=true;loaderReady=false;ready=false;
+                for(String id:introBank){Entry entry=introEntry(id);if(entry!=null&&safePath(entry.file)&&("ready".equals(entry.status)||allowIntroReview&&"review".equals(entry.status))&&retained.add(root+entry.file))loader.load(root+entry.file);}
             }
             if(loading!=null&&ready){
                 String path=loading;loading=null;
                 if(current==null){loader.unload(path);}
                 else{music=loader.music(path);if(music==null)throw new IllegalStateException("No music for "+path);
                     music.setLooping(false);music.setVolume(gain());
-                    music.setOnCompletionListener(ignored->finish(Result.COMPLETED));
-                    if(!paused)music.play();}
+                    Request playing=current;
+                    music.setOnCompletionListener(ignored->{if(current==playing)finish(Result.COMPLETED);});
+                    seekOffset=current.offset();if(!paused)startMusic();}
             }
             if(current==null&&loading==null&&queued!=null){
                 current=queued;queued=null;loading=current.path();loader.load(loading);
             }
             if(music!=null){music.setVolume(gain());if(!paused&&gain()>0)mix.important(.2f);}
+            if(releaseBank&&ready&&loading==null){for(String path:retained)loader.unload(path);retained.clear();releaseBank=false;allowIntroReview=false;bankQueued=false;}
         }catch(RuntimeException error){
             warn("Host narration playback failed: "+error.getMessage());
             if(manifestPending){manifestPending=false;Pending waiting=pending;pending=null;if(waiting!=null)complete(waiting.completion(),Result.MISSING);}
@@ -112,6 +133,7 @@ public final class HostVoiceManager implements AutoCloseable {
         }
     }
     private void finish(Result result){
+        seekOffset=0;
         Request done=current;current=null;
         if(music!=null){try{music.setOnCompletionListener(null);music.stop();}catch(RuntimeException error){warn("Cannot stop host narration: "+error.getMessage());}finally{music=null;}}
         if(done!=null&&loading==null)try{loader.unload(done.path());}catch(RuntimeException error){warn("Cannot unload host narration: "+error.getMessage());}
@@ -124,7 +146,9 @@ public final class HostVoiceManager implements AutoCloseable {
         if(pending!=null)complete(pending.completion(),Result.CANCELLED);
     }
     public void pause(){if(paused)return;paused=true;if(music!=null)try{music.pause();}catch(RuntimeException error){warn("Cannot pause host narration: "+error.getMessage());finish(Result.FAILED);}}
-    public void resume(){if(!paused)return;paused=false;if(music!=null)try{music.play();}catch(RuntimeException error){warn("Cannot resume host narration: "+error.getMessage());finish(Result.FAILED);}}
+    private void applySeek(){if(seekOffset>0){music.setPosition(seekOffset);seekOffset=0;}}
+    private void startMusic(){music.play();applySeek();if(!music.isPlaying())throw new IllegalStateException("Host audio device did not start playback");}
+    public void resume(){if(!paused)return;paused=false;if(music!=null)try{startMusic();}catch(RuntimeException error){warn("Cannot resume host narration: "+error.getMessage());finish(Result.FAILED);}}
     public void setVolume(float value){volume=AudioMix.unit(value);}
     public void scopeGain(float value){scopeGain=AudioMix.unit(value);}
     public boolean playing(){return music!=null&&!paused;}

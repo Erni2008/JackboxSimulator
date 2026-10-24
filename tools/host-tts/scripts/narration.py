@@ -36,9 +36,12 @@ def atomic_json(path, data):
 def catalog():
     questions = json.loads((ROOT/'shared/src/main/resources/questions/ru.json').read_text())['questions']
     events = json.loads((TOOL/'config/events.json').read_text())['events']
+    definition=json.loads((ROOT/'shared/src/main/resources/cinematics/intro_ru.json').read_text())
+    # Presentation pauses do not change synthesized words; retiming must not regenerate the voice.
+    intro=[dict(id=line['id'],text=line['text'],**({'spokenText':line['spokenText']} if line.get('spokenText') else {}),emotion=scene.get('emotion','NEUTRAL')) for scene in definition['scenes'] for line in scene['lines']]
     result = []
     import re
-    for kind, entries in [('questions', questions), ('events', events)]:
+    for kind, entries in [('questions', questions), ('events', events),('intro',intro)]:
         seen = set()
         for entry in entries:
             entry = dict(entry, kind=kind)
@@ -146,6 +149,10 @@ def database():
         kind TEXT, id TEXT, hash TEXT, status TEXT, attempts INTEGER DEFAULT 0,
         file TEXT, wav TEXT, audio_sha TEXT, duration REAL, error TEXT,
         PRIMARY KEY(kind,id))''')
+    columns={row['name'] for row in db.execute('PRAGMA table_info(jobs)')}
+    for name in ('processed_wav','processing_hash'):
+        if name not in columns:db.execute(f'ALTER TABLE jobs ADD COLUMN {name} TEXT')
+    if 'reviewed' not in columns:db.execute('ALTER TABLE jobs ADD COLUMN reviewed INTEGER NOT NULL DEFAULT 0')
     return db
 
 
@@ -154,10 +161,10 @@ def export_manifest(db, config, profile):
     if locale != 'ru':
         raise ValueError('Only Russian generation is enabled; other languages require their own approved profile')
     manifest = dict(version=1, language=locale, voiceId=config['voiceId'], profileHash=profile,
-                    questions={}, events={})
-    for row in db.execute("SELECT * FROM jobs WHERE status='ready' ORDER BY kind,id"):
-        manifest[row['kind']][row['id']] = dict(file=row['file'], status='ready', hash=row['hash'],
-                                              duration=row['duration'], manualReview='not_yet_reviewed')
+                    questions={}, events={},intro={})
+    for row in db.execute("SELECT * FROM jobs WHERE status='ready' OR (kind='intro' AND status='review' AND file IS NOT NULL) ORDER BY kind,id"):
+        manifest[row['kind']][row['id']] = dict(file=row['file'], status=row['status'], hash=row['hash'],
+                                              duration=row['duration'], manualReview='approved_by_user' if row['reviewed'] else 'not_yet_reviewed',processingHash=row['processing_hash'])
     atomic_json(ROOT/f'assets/audio/host/{locale}/manifest.json', manifest)
 
 
@@ -172,7 +179,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', type=Path, default=TOOL/'config/local.json')
     parser.add_argument('command', choices=['generate','retry','validate','progress','export','flag','approve'])
-    parser.add_argument('--kind', choices=['questions','events','all'], default='questions')
+    parser.add_argument('--kind', choices=['questions','events','intro','all'], default='questions')
+    parser.add_argument('--all-reviewed',action='store_true',help='Explicit confirmation that every selected clip was listened to and approved')
     parser.add_argument('--id', help='Exact stable question/event ID')
     parser.add_argument('--range', help='One-based inclusive catalog range, e.g. 1:20')
     parser.add_argument('--limit', type=int, default=50)
@@ -181,6 +189,8 @@ def main():
     parser.add_argument('--attempts', type=int, default=3)
     parser.add_argument('--reason', default='Manual audio review requested')
     args = parser.parse_args()
+    if args.command=='approve' and not args.id and not args.all_reviewed:
+        parser.error('Approve one --id, or explicitly confirm --all-reviewed after listening')
     if args.limit < 1 or args.attempts < 1 or args.attempts > 5:
         parser.error('Positive limit and 1–5 attempts required')
     if args.command == 'progress':
@@ -208,6 +218,9 @@ def main():
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         db = database()
         entries = catalog()
+        active={(entry['kind'],entry['id']) for entry in entries}
+        for row in db.execute('SELECT kind,id FROM jobs').fetchall():
+            if (row['kind'],row['id']) not in active:db.execute("UPDATE jobs SET status='archived' WHERE kind=? AND id=?",(row['kind'],row['id']))
         for entry in entries:
             digest = content_hash(entry, profile)
             previous = db.execute('SELECT hash FROM jobs WHERE kind=? AND id=?', (entry['kind'],entry['id'])).fetchone()
@@ -234,13 +247,13 @@ def main():
                     continue
                 try:
                     if args.command == 'flag':
-                        db.execute("UPDATE jobs SET status='review',error=? WHERE kind=? AND id=?",(args.reason,row['kind'],row['id']))
+                        db.execute("UPDATE jobs SET status='review',reviewed=0,error=? WHERE kind=? AND id=?",(args.reason,row['kind'],row['id']))
                     elif row['file']:
                         validate(asset_root/row['file'],by_key[(row['kind'],row['id'])]['spokenText'])
                         if sha(asset_root/row['file']) != row['audio_sha']:
                             raise ValueError('Audio content hash changed')
                         if args.command == 'approve':
-                            db.execute("UPDATE jobs SET status='ready',error=NULL WHERE kind=? AND id=?",(row['kind'],row['id']))
+                            db.execute("UPDATE jobs SET status='ready',reviewed=1,error=NULL WHERE kind=? AND id=?",(row['kind'],row['id']))
                 except Exception as error:
                     db.execute("UPDATE jobs SET status='failed',error=? WHERE kind=? AND id=?",(str(error),row['kind'],row['id']))
                     print(f"FAIL {row['id']}: {error}",file=sys.stderr)
@@ -251,7 +264,7 @@ def main():
                 row = db.execute('SELECT * FROM jobs WHERE kind=? AND id=?',(entry['kind'],entry['id'])).fetchone()
                 if args.command == 'retry' and row['status'] != 'failed':
                     continue
-                if not args.force and row['status'] == 'ready':
+                if not args.force and row['status'] in ('ready','review') and row['file']:
                     try:
                         validate(asset_root/row['file'],entry['spokenText'])
                         if sha(asset_root/row['file']) == row['audio_sha']:
@@ -288,8 +301,9 @@ def main():
                             duration=validate(candidate,entry['spokenText'])
                             previous_size=ogg.stat().st_size if ogg.exists() else 0
                             candidate.replace(ogg);size+=ogg.stat().st_size-previous_size
-                            db.execute("UPDATE jobs SET status='ready',attempts=coalesce(attempts,0)+1,file=?,wav=?,audio_sha=?,duration=?,error=NULL WHERE kind=? AND id=?",
-                                       (filename,str(wav),sha(ogg),duration,*key));db.commit();break
+                            status='review' if entry['kind']=='intro' else 'ready'
+                            db.execute("UPDATE jobs SET status=?,attempts=coalesce(attempts,0)+1,file=?,wav=?,audio_sha=?,duration=?,error=NULL,processed_wav=NULL,processing_hash=NULL,reviewed=0 WHERE kind=? AND id=?",
+                                       (status,filename,str(wav),sha(ogg),duration,*key));db.commit();break
                         except Exception as error:
                             db.execute("UPDATE jobs SET status='failed',attempts=coalesce(attempts,0)+1,error=? WHERE kind=? AND id=?",(str(error),*key));db.commit()
                             print(f"FAIL {entry['id']} attempt {attempt+1}: {error}",file=sys.stderr,flush=True)

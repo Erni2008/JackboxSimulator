@@ -7,18 +7,19 @@ import java.util.*;
 public final class HostVoiceCheck {
     private static void check(boolean value,String message){if(!value)throw new AssertionError(message);}
     private static final class Device implements HostVoiceManager.Loader {
-        boolean ready,fail,closed;
+        boolean ready,fail,closed,active;
         int loads,unloads,plays,pauses,stops;
         float volume;
         Music.OnCompletionListener listener;
         final Music music=(Music)Proxy.newProxyInstance(Music.class.getClassLoader(),new Class[]{Music.class},(proxy,method,args)->{
             switch(method.getName()){
-                case "play" -> plays++;
-                case "pause" -> pauses++;
-                case "stop" -> stops++;
+                case "play" -> {plays++;active=true;}
+                case "pause" -> {pauses++;active=false;}
+                case "stop" -> {stops++;active=false;}
                 case "setVolume" -> volume=(float)args[0];
                 case "setOnCompletionListener" -> listener=(Music.OnCompletionListener)args[0];
             }
+            if(method.getName().equals("isPlaying"))return active;
             if(method.getReturnType()==boolean.class)return false;
             if(method.getReturnType()==float.class)return 0f;
             return null;
@@ -46,6 +47,8 @@ public final class HostVoiceCheck {
         check(device.unloads==1&&device.loads==2&&device.plays==1,"Stale load cannot play; next clip starts");
         check(Math.abs(device.volume-.2f)<.0001f,"Narration respects master, SFX and local volume");
         voice.pause();voice.pause();check(device.pauses==1,"Pause is idempotent");voice.resume();voice.resume();check(device.plays==2,"Resume does not restart every frame");
+        var staleCompletion=device.listener;voice.stop();voice.playLine("intro","intro:replacement",results::add);voice.update();voice.update();
+        staleCompletion.onCompletion(device.music);check(voice.playing(),"A queued completion from stopped music cannot cancel its replacement");
         device.listener.onCompletion(device.music);check(results.getLast()==HostVoiceManager.Result.COMPLETED&&!voice.playing(),"Completion releases one clip and calls back");
         voice.playLine("missing","missing:1",results::add);voice.playLine("missing","missing:1",results::add);
         check(results.getLast()==HostVoiceManager.Result.MISSING&&warnings.size()==1,"Missing audio warns once and does not block");

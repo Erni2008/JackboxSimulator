@@ -164,7 +164,7 @@ public class FinalAnswerGame extends Game {
         var state=realtime.snapshot();
         if (state == null || state.get("phase").getAsString().equals("LOBBY")) {
             if(cageLobbyScreen!=null)cageLobbyScreen.startRequested();
-            realtime.send("START_GAME",java.util.Map.of());
+            realtime.send("START_GAME",java.util.Map.of("introId",com.erni.finalanswer.gameplay.intro.IntroDefinition.RUSSIAN.introId()));
         }
         else if(state.get("phase").getAsString().equals("STARTING")){showRoomLobby();cageLobbyScreen.transition(state,realtime.serverNow());}
         else openNetworkPlay();
@@ -208,6 +208,7 @@ public class FinalAnswerGame extends Game {
             showRoomLobby();cageLobbyScreen.transition(data,realtime.serverNow());
             // Heavy scene construction is queued by the lobby only after a fully black frame.
         }
+        if(activeRoom.host()&&data.has("phase")&&data.get("phase").getAsString().equals("GAME_FINISHED")&&!data.has("question")&&cageLobbyScreen!=null)cageLobbyScreen.abortIntro();
         if (activeRoom.host() && data.has("question") && (type.equals("QUESTION_STARTED") || type.equals("AUTHENTICATED") || getScreen()==cageLobbyScreen)) openNetworkPlay();
     }
 
@@ -304,7 +305,9 @@ public class FinalAnswerGame extends Game {
         }
         attachUiAudio();
         audio.uiGain(getScreen() instanceof com.erni.finalanswer.impostor.ImpostorScreen screen?screen.uiAudioGain():1);
-        audio.room(getScreen() instanceof com.erni.finalanswer.screens.CageLobbyScreen||getScreen() instanceof com.erni.finalanswer.cursedboxes.CursedBoxesScreen);
+        audio.room(getScreen() instanceof com.erni.finalanswer.screens.CageLobbyScreen lobby&&lobby.introAmbience()||getScreen() instanceof com.erni.finalanswer.cursedboxes.CursedBoxesScreen);
+        audio.environmentGain(getScreen() instanceof com.erni.finalanswer.screens.CageLobbyScreen lobby?lobby.introAmbienceGain():1);
+        audio.cagesGain(getScreen() instanceof com.erni.finalanswer.screens.CageLobbyScreen lobby&&lobby.introActive()?.15f:1);
         audio.update(Gdx.graphics.getDeltaTime());
         // Active lobbies use push snapshots; HTTP heartbeat is retained for the generation screen.
         super.render();

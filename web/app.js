@@ -105,8 +105,8 @@ function render(){
   }
   if(state.phase==='LOBBY'||state.phase==='STARTING'){
     show('waiting');$('room-label').textContent=`ROOM ${state.code} · ${state.name}`;
-    $('waiting-title').textContent=state.impostor?.phase==='REPLAY_PREPARATION'?'WAITING FOR HOST...':state.phase==='LOBBY'?"You're on the list.":'The doors are closing…';
-    $('waiting-message').textContent=state.impostor?.phase==='REPLAY_PREPARATION'?'The previous match is complete. The host will start a fresh match.':!state.hostConnected?'Host disconnected. Waiting for reconnection.':state.phase==='LOBBY'?'The host will begin the show shortly.':`${state.roundTitle||'ROUND 1'} · ${Math.max(0,Math.ceil((state.transitionEndsAt-now())/1000))}s`;
+    $('waiting-title').textContent=state.intro?'THE SHOW IS ABOUT TO BEGIN':state.impostor?.phase==='REPLAY_PREPARATION'?'WAITING FOR HOST...':state.phase==='LOBBY'?"You're on the list.":'The doors are closing…';
+    $('waiting-message').textContent=state.intro?'Watch the main screen. Your place is saved; answers will open after the introduction.':state.impostor?.phase==='REPLAY_PREPARATION'?'The previous match is complete. The host will start a fresh match.':!state.hostConnected?'Host disconnected. Waiting for reconnection.':state.phase==='LOBBY'?'The host will begin the show shortly.':`${state.roundTitle||'ROUND 1'} · ${Math.max(0,Math.ceil((state.transitionEndsAt-now())/1000))}s`;
     $('player-name').textContent=self?.name||credentials.name;$('character-name').textContent=`${self?.characterId?.replace('_',' ').toUpperCase()||'GUEST'}`;
     const guests=state.players.filter(player=>!player.host);
     $('room-connected').textContent=`${guests.filter(player=>player.connectionStatus==='ONLINE').length} / ${guests.length} CONNECTED`;

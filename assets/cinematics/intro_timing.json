@@ -1,0 +1,260 @@
+{
+  "introId": "final_answer_intro_v1",
+  "durationSeconds": 74,
+  "speechSeconds": 54.678,
+  "fitsMaximum": true,
+  "scenes": [
+    {
+      "id": "darkness",
+      "targetStart": 0,
+      "actualStart": 0,
+      "end": 4,
+      "budgetOverrun": 0,
+      "speechEnd": 0
+    },
+    {
+      "id": "awakening",
+      "targetStart": 4,
+      "actualStart": 4,
+      "end": 9,
+      "budgetOverrun": 0,
+      "speechEnd": 4
+    },
+    {
+      "id": "greeting",
+      "targetStart": 9,
+      "actualStart": 9,
+      "end": 23,
+      "budgetOverrun": 0,
+      "speechEnd": 21.912625
+    },
+    {
+      "id": "hunter",
+      "targetStart": 23,
+      "actualStart": 23,
+      "end": 38,
+      "budgetOverrun": 0,
+      "speechEnd": 37.832625
+    },
+    {
+      "id": "offer",
+      "targetStart": 38,
+      "actualStart": 38,
+      "end": 55.741792,
+      "budgetOverrun": 2.741792,
+      "speechEnd": 55.741792
+    },
+    {
+      "id": "rules",
+      "targetStart": 53,
+      "actualStart": 55.741792,
+      "end": 68.375333,
+      "budgetOverrun": 0.375333,
+      "speechEnd": 68.375333
+    },
+    {
+      "id": "show_begins",
+      "targetStart": 68,
+      "actualStart": 68.375333,
+      "end": 74,
+      "budgetOverrun": 0,
+      "speechEnd": 73.18275
+    }
+  ],
+  "lines": [
+    {
+      "id": "intro_01_01",
+      "text": "О, ну наконец-то!",
+      "file": "intro/intro_01_01_611a7442ab73.ogg",
+      "start": 9,
+      "duration": 1.677875,
+      "status": "ready"
+    },
+    {
+      "id": "intro_01_02",
+      "text": "Проснулись, мои хорошие?",
+      "file": "intro/intro_01_02_80f46c1af79a.ogg",
+      "start": 10.927875,
+      "duration": 1.441042,
+      "status": "ready"
+    },
+    {
+      "id": "intro_01_03",
+      "text": "А я уж начал переживать.",
+      "file": "intro/intro_01_03_6e6205d337dd.ogg",
+      "start": 13.018917,
+      "duration": 1.673625,
+      "status": "ready"
+    },
+    {
+      "id": "intro_01_04",
+      "text": "Вы только посмотрите на себя… Сидите такие тихие, такие сладкие…",
+      "file": "intro/intro_01_04_c2865f497a47.ogg",
+      "start": 14.892542,
+      "duration": 5.109083,
+      "status": "ready"
+    },
+    {
+      "id": "intro_01_05",
+      "text": "Прямо загляденье!",
+      "file": "intro/intro_01_05_cb480fd1961d.ogg",
+      "start": 20.251625,
+      "duration": 1.511,
+      "status": "ready"
+    },
+    {
+      "id": "intro_02_01",
+      "text": "Ах, да! Где же мои манеры?",
+      "file": "intro/intro_02_01_f8a3bc2bdd27.ogg",
+      "start": 23,
+      "duration": 2.806583,
+      "status": "ready"
+    },
+    {
+      "id": "intro_02_02",
+      "text": "Я — охотник на паранормальные явления.",
+      "file": "intro/intro_02_02_2f9e6454445e.ogg",
+      "start": 26.006583,
+      "duration": 2.476625,
+      "status": "ready"
+    },
+    {
+      "id": "intro_02_03",
+      "text": "Призраки, демоны, проклятые создания…",
+      "file": "intro/intro_02_03_819502333c3d.ogg",
+      "start": 28.633208,
+      "duration": 2.636792,
+      "status": "ready"
+    },
+    {
+      "id": "intro_02_04",
+      "text": "Все вы — часть моей замечательной коллекции!",
+      "file": "intro/intro_02_04_bba477b8445f.ogg",
+      "start": 31.82,
+      "duration": 2.77875,
+      "status": "ready"
+    },
+    {
+      "id": "intro_02_05",
+      "text": "И, поверьте, поймать вас было непросто.",
+      "file": "intro/intro_02_05_c2b144bf8b67.ogg",
+      "start": 35.04875,
+      "duration": 2.633875,
+      "status": "ready"
+    },
+    {
+      "id": "intro_03_01",
+      "text": "Но, знаете, мне стало немного скучно.",
+      "file": "intro/intro_03_01_be1f36f47ec3.ogg",
+      "start": 38,
+      "duration": 3.519417,
+      "status": "ready"
+    },
+    {
+      "id": "intro_03_02",
+      "text": "Поэтому я решил устроить небольшое соревнование!",
+      "file": "intro/intro_03_02_baf0392929e7.ogg",
+      "start": 41.769417,
+      "duration": 3.182833,
+      "status": "ready"
+    },
+    {
+      "id": "intro_03_03",
+      "text": "Победитель получит свободу.",
+      "file": "intro/intro_03_03_085fafecbae6.ogg",
+      "start": 45.60225,
+      "duration": 1.594875,
+      "status": "ready"
+    },
+    {
+      "id": "intro_03_04",
+      "text": "Да! Один из вас действительно сможет выбраться отсюда!",
+      "file": "intro/intro_03_04_d3006a024d3f.ogg",
+      "start": 47.497125,
+      "duration": 4.0495,
+      "status": "ready"
+    },
+    {
+      "id": "intro_03_05",
+      "text": "А остальные…",
+      "file": "intro/intro_03_05_8ad603324d25.ogg",
+      "start": 51.996625,
+      "duration": 1.120292,
+      "status": "ready"
+    },
+    {
+      "id": "intro_03_06",
+      "text": "Ну, не будем о грустном!",
+      "file": "intro/intro_03_06_5bae661e10f5.ogg",
+      "start": 53.916917,
+      "duration": 1.674875,
+      "status": "ready"
+    },
+    {
+      "id": "intro_04_01",
+      "text": "Правила просты!",
+      "file": "intro/intro_04_01_45e7253a7dde.ogg",
+      "start": 55.741792,
+      "duration": 1.122125,
+      "status": "ready"
+    },
+    {
+      "id": "intro_04_02",
+      "text": "Я задаю вопросы — вы отвечаете.",
+      "file": "intro/intro_04_02_b4734efe15c5.ogg",
+      "start": 57.113917,
+      "duration": 2.73025,
+      "status": "ready"
+    },
+    {
+      "id": "intro_04_03",
+      "text": "За правильные ответы получаете преимущество.",
+      "file": "intro/intro_04_03_8c3d245972e1.ogg",
+      "start": 59.994167,
+      "duration": 3.117125,
+      "status": "ready"
+    },
+    {
+      "id": "intro_04_04",
+      "text": "А за неправильные…",
+      "file": "intro/intro_04_04_c3e682ac8b74.ogg",
+      "start": 63.261292,
+      "duration": 1.194458,
+      "status": "ready"
+    },
+    {
+      "id": "intro_04_05",
+      "text": "Вас ждут мои особенные испытания!",
+      "file": "intro/intro_04_05_e979a249b9b7.ogg",
+      "start": 65.15575,
+      "duration": 2.719583,
+      "status": "ready"
+    },
+    {
+      "id": "intro_05_01",
+      "text": "Итак, мои драгоценные экспонаты…",
+      "file": "intro/intro_05_01_f56c2f52af66.ogg",
+      "start": 68.375333,
+      "duration": 2.77875,
+      "status": "ready"
+    },
+    {
+      "id": "intro_05_03",
+      "text": "Первый вопрос!",
+      "file": "intro/intro_05_03_87934ef4fcc9.ogg",
+      "start": 71.954083,
+      "duration": 1.128667,
+      "status": "ready"
+    }
+  ],
+  "missingAudio": [
+    "sounds/intro/distant_footsteps.wav",
+    "sounds/intro/distant_metal_impact.wav",
+    "sounds/intro/host_quiet_laugh.wav",
+    "sounds/intro/host_short_laugh.wav",
+    "sounds/intro/host_sinister_laugh.wav",
+    "sounds/intro/mechanical_click.wav",
+    "sounds/intro/metal_tool.wav",
+    "sounds/intro/show_sting.ogg"
+  ]
+}

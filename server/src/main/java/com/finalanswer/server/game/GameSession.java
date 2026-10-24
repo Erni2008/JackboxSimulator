@@ -16,6 +16,7 @@ public final class GameSession {
     public int index = -1;
     public long questionStartedAt, phaseStartedAt, deadline, answeringStartedAt, endedAt;
     public String finishReason = "";
+    public IntroGate intro;
 
     public GameSession(int count, Set<String> participants, EndPolicy policy, long now) {
         if(count<1 || count>12) throw new IllegalArgumentException("INVALID_QUESTION_COUNT");

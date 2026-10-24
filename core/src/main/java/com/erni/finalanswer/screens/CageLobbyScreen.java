@@ -42,17 +42,36 @@ public final class CageLobbyScreen extends ScreenAdapter {
     private long transitionStarted,serverAnchor,nanoAnchor;
     private final Image blackout;
     private final Label roundTitle;
+    private final com.erni.finalanswer.intro.BasementIntro intro;
+    private final com.badlogic.gdx.scenes.scene2d.Group posterShade=new com.badlogic.gdx.scenes.scene2d.Group();
+    private final com.badlogic.gdx.utils.Array<com.badlogic.gdx.scenes.scene2d.Actor> cinematicHidden=new com.badlogic.gdx.utils.Array<>();
+    private boolean introReview;
+    private boolean introAborted;
+    public void abortIntro(){resetTransition();introAborted=true;}
+    /** Explicit local QA only; never set from room/controller messages. */
+    public void reviewIntroNarration(boolean value){introReview=value;}
+    public boolean introActive(){return intro.isVisible();}
+    public boolean introAmbience(){return !introActive()||intro.ambience();}
+    public float introAmbienceGain(){return introActive()?intro.ambienceGain():1;}
     public void startRequested(){pendingStart=true;pendingSeconds=0;lockButtons(true);}
     public void startRejected(){if(!starting)pendingStart=false;}
-    private void resetTransition(){pendingStart=starting=preloadQueued=false;blackout.setColor(0,0,0,0);roundTitle.setVisible(false);}
+    private void resetTransition(){intro.end();posterShade.setVisible(false);for(var actor:cinematicHidden)actor.setVisible(true);pendingStart=starting=preloadQueued=false;blackout.setColor(0,0,0,0);roundTitle.setVisible(false);}
     private void lockButtons(boolean locked){lockButtons(stage.getRoot(),locked);}
     private void lockButtons(com.badlogic.gdx.scenes.scene2d.Group group,boolean locked){
         for(var actor:group.getChildren()){
-            if(actor instanceof TextButton button)button.setDisabled(locked);
+            if(actor instanceof TextButton button&&!"skipIntro".equals(button.getName()))button.setDisabled(locked);
             if(actor instanceof com.badlogic.gdx.scenes.scene2d.Group child)lockButtons(child,locked);
         }
     }
     public void transition(com.google.gson.JsonObject state,long serverNow){
+        if(state.has("intro")){
+            if(!introActive())preloadQueued=false;
+            var data=state.getAsJsonObject("intro");starting=true;pendingStart=false;lockButtons(true);
+            intro.begin(state.get("gameId").getAsString(),data.get("elapsedMillis").getAsFloat()/1000f,introReview,event->{
+                var connection=game.getRealtime();if(connection!=null&&connection.connected())connection.send(event,java.util.Map.of("gameId",state.get("gameId").getAsString(),"introId",data.get("introId").getAsString()));
+            });
+            intro.pause(data.get("paused").getAsBoolean());cinematicUi();return;
+        }
         if(!state.has("transitionStartedAt"))return;
         long start=state.get("transitionStartedAt").getAsLong();
         if(starting&&transitionStarted==start)return; // Network refreshes never rewind the swing clock.
@@ -94,7 +113,21 @@ public final class CageLobbyScreen extends ScreenAdapter {
         blackout=new Image(solid);blackout.setBounds(0,0,1920,1080);blackout.setColor(0,0,0,0);blackout.setTouchable(com.badlogic.gdx.scenes.scene2d.Touchable.disabled);stage.addActor(blackout);
         roundTitle=new Label("",new Label.LabelStyle(titleFont,Color.valueOf("DCC9AE")));
         roundTitle.setFontScale(1);roundTitle.setAlignment(Align.center);roundTitle.setBounds(220,440,1480,160);roundTitle.setVisible(false);stage.addActor(roundTitle);
+        // Hide the poster baked into the background with a restrained side shadow; artwork is untouched.
+        Image shade=new Image(pixel);shade.setBounds(0,0,470,1080);shade.setColor(0,0,0,1);posterShade.addActor(shade);
+        posterShade.addActor(new com.badlogic.gdx.scenes.scene2d.Actor(){
+            private final float[] vertices=new float[20];
+            @Override public void draw(com.badlogic.gdx.graphics.g2d.Batch batch,float alpha){
+                float opaque=Color.toFloatBits(0,0,0,alpha),clear=Color.toFloatBits(0,0,0,0);
+                float[] v=vertices;v[0]=470;v[1]=0;v[2]=opaque;v[3]=v[4]=0;v[5]=470;v[6]=1080;v[7]=opaque;v[8]=v[9]=0;v[10]=580;v[11]=1080;v[12]=clear;v[13]=v[14]=0;v[15]=580;v[16]=0;v[17]=clear;v[18]=v[19]=0;batch.draw(pixel,v,0,20);
+            }
+        });posterShade.setTouchable(com.badlogic.gdx.scenes.scene2d.Touchable.disabled);stage.addActor(posterShade);posterShade.setZIndex(1);posterShade.setVisible(false);
+        for(var actor:stage.getActors())if(actor!=cages&&actor!=posterShade&&actor!=scene)cinematicHidden.add(actor);
+        intro=new com.erni.finalanswer.intro.BasementIntro(game,pixel,font,style);stage.addActor(intro);
     }
+    private void cinematicUi(){if(!introActive())return;for(var actor:cinematicHidden)actor.setVisible(false);posterShade.setVisible(true);intro.toFront();}
+    /** Explicit development preview; production always enters through an authorized server snapshot. */
+    public void previewIntro(RoomSession room,Runnable complete){synchronize(room,"");starting=true;intro.begin("preview-"+java.util.UUID.randomUUID(),0,true,event->{if(event.equals("INTRO_READY")||event.equals("SKIP_INTRO"))Gdx.app.postRunnable(complete);});cinematicUi();}
     private TextButton button(String text, float x, TextButton.TextButtonStyle style, Runnable action) {
         TextButton button = new TextButton(text, style); button.setBounds(x, 73, 250, 60);
         button.setName("cageLobby" + text.replace(" ", ""));
@@ -107,8 +140,8 @@ public final class CageLobbyScreen extends ScreenAdapter {
     /** Public for development fixtures; production always passes the existing live RoomSession. */
     public void synchronize(RoomSession room, String connectionStatus) {
         cages.synchronize(room);
-        if(room!=null && displayed!=null && !room.code().equals(displayed.code()))resetTransition();
-        if(room==null){resetTransition();for(int i=0;i<8;i++)cages.cage(i).departure(0);}
+        if(room!=null && displayed!=null && !room.code().equals(displayed.code())){resetTransition();introAborted=false;}
+        if(room==null){resetTransition();introAborted=false;for(int i=0;i<8;i++)cages.cage(i).departure(0);}
         if (displayed != room) {
             displayed = room;
             code.setText(room == null ? "" : room.code());
@@ -118,22 +151,22 @@ public final class CageLobbyScreen extends ScreenAdapter {
             connectedCount.setText(room==null?"":game.getTexts().format("lobby.connected_count",online,room.players().size()));
             if (room != null) phone.room(room.code());
         }
-        phone.setVisible(room != null && room.host());
+        phone.setVisible(room != null && room.host()&&!introActive());
         boolean host = room != null && room.host();
         boolean ready=host && room.players().size()>=2 && room.players().stream().allMatch(p->"ONLINE".equals(p.connectionStatus()));
         lockButtons(starting||pendingStart);
         cursed.setDisabled(starting||pendingStart||!ready);
-        play.setDisabled(starting||pendingStart||!ready); impostor.setDisabled(starting||pendingStart||!host || room.players().size() < 3);
+        play.setDisabled(starting||pendingStart||!ready||introAborted); impostor.setDisabled(starting||pendingStart||!host || room.players().size() < 3);
         String notice=connectionStatus;
         if(host&&!starting&&!pendingStart&&!ready){
             notice+=" · "+game.getTexts().error(room.players().size()<2?"NOT_ENOUGH_PLAYERS":"PLAYER_OFFLINE");
         }
         if(host&&ready&&!starting&&!pendingStart)notice+=" · "+game.getTexts().get("lobby.ready_to_start");
-        status.setText(notice);
+        status.setText(introAborted?"INTRO INTERRUPTED — RETURN TO MENU":notice);
         cages.reducedMotion(game.getSettings().reducedMotion());
     }
     @Override public void show() { Gdx.input.setInputProcessor(stage); }
-    @Override public void hide() { cages.stopAudio(); if (Gdx.input.getInputProcessor() == stage) Gdx.input.setInputProcessor(null); }
+    @Override public void hide() { if(introActive())resetTransition();cages.stopAudio(); if (Gdx.input.getInputProcessor() == stage) Gdx.input.setInputProcessor(null); }
     @Override public void render(float delta) {
         if (!starting && !pendingStart && Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) { game.showMainMenu(); return; }
         synchronize(game.getActiveRoom(), game.getLobbyStatus());
@@ -141,6 +174,13 @@ public final class CageLobbyScreen extends ScreenAdapter {
     }
     /** Also used by the isolated developer preview (which owns its synthetic roster). */
     public void draw(float delta) {
+        if(introActive()){
+            for(int i=0;i<8;i++){cages.cage(i).departure(0);cages.cage(i).cinematic(true,intro.age());}
+            intro.frame(delta);ScreenUtils.clear(0,0,0,1);viewport.apply();stage.act(intro.stepDelta());stage.draw();
+            if(!preloadQueued&&game.getActiveRoom()!=null){preloadQueued=true;Gdx.app.postRunnable(()->{if(!disposed&&introActive()&&game.getScreen()==this)game.prepareNetworkPlay();});}
+            return;
+        }
+        for(int i=0;i<8;i++)cages.cage(i).cinematic(false,0);
         if(pendingStart && (pendingSeconds+=delta)>10)startRejected();
         float age=starting?Math.max(0,(serverAnchor+(System.nanoTime()-nanoAnchor)/1_000_000-transitionStarted)/1000f):0;
         for(int i=0;i<8;i++)cages.cage(i).departure(age);
@@ -155,6 +195,9 @@ public final class CageLobbyScreen extends ScreenAdapter {
         }
     }
     @Override public void resize(int width, int height) { viewport.update(width, height, true); }
+    @Override public void pause(){if(introActive()){intro.pause(true);introSignal("INTRO_PAUSE");}}
+    @Override public void resume(){if(introActive()){introSignal("INTRO_RESUME");intro.pause(false);}}
+    private void introSignal(String event){var client=game.getRealtime();if(client==null||!client.connected())return;var state=client.snapshot();if(state!=null&&state.has("intro"))client.send(event,java.util.Map.of("gameId",state.get("gameId").getAsString(),"introId",state.getAsJsonObject("intro").get("introId").getAsString()));}
     @Override public void dispose() {
         if (disposed) return; disposed = true; hide();
         stage.dispose(); cages.dispose(); phone.dispose(); font.dispose(); codeFont.dispose(); titleFont.dispose(); pixel.dispose(); background.dispose();

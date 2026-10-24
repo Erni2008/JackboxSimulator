@@ -1,0 +1,12 @@
+{
+  "id":"intro_warm_gruff_v1",
+  "approvedByUser":true,
+  "pitchRatio":0.98,
+  "bassHz":160,
+  "bassGainDb":2.0,
+  "presenceHz":3500,
+  "presenceGainDb":-1.2,
+  "compressorThreshold":0.16,
+  "compressorRatio":1.35,
+  "makeup":1.05
+}
