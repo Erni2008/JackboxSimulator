@@ -560,6 +560,7 @@ public final class RoomService {
                 mini.put("phase",session.phase().name());mini.put("round",session.clueRound());if(self!=null&&self.host)mini.put("writingUntil",session.writingUntil(now()));
                 if(session.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.ROLE_REVEAL)mini.put("roleRevealDurationMillis",ImpostorSession.ROLE_MILLIS);
                 mini.put("deadline",session.deadline());mini.put("suspicionFinalized",suspecting && suspicion.finalized());
+                if(self!=null&&self.host&&session.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.ROUND_CLUE_INPUT)mini.put("clueReadyIds",session.participants().stream().filter(session::clueSubmitted).toList());
                 mini.put("revealSequence",session.revealSequence());mini.put("revealedClues",session.revealedClues());
                 if(!suspecting){mini.put("submittedCount",session.clueCount());mini.put("eligibleCount",session.participants().size());
                     mini.remove("selectedSuspectId");mini.put("hasSubmitted",false);mini.put("eligible",false);}

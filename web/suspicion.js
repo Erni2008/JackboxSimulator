@@ -26,8 +26,8 @@ function createSuspicionController({getState,isAuthenticated,send,now,explain,ma
   function tick(){
     const s=current();if(!s||!el('suspicion-timer'))return;
     const active=s.phase==='PRELIMINARY_SUSPICION'&&!s.suspicionFinalized,left=active?Math.max(0,s.deadline-now()):0;
-    el('suspicion-timer').textContent=`${Math.ceil(left/1000)}s`;
-    for(const button of el('suspect-cards').children)button.disabled=!canSelect(button.dataset.id);
+    const label=`${Math.ceil(left/1000)} с`;if(el('suspicion-timer').textContent!==label)el('suspicion-timer').textContent=label;
+    for(const button of el('suspect-cards').children){const disabled=!canSelect(button.dataset.id);if(button.disabled!==disabled)button.disabled=disabled;}
   }
   function render(){
     const s=current();if(!s)return;

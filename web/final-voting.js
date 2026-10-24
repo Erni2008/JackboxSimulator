@@ -2,10 +2,20 @@
 /** Final votes are immutable and confirmed only by personalized authoritative snapshots. */
 function createFinalVotingController({getState,isAuthenticated,send,now,makeId}) {
   const el=id=>document.getElementById(id);
-  let session='',pending=null,error='',timeout,selection='';
+  let session='',pending=null,error='',timeout,selection='',historyKey='';
+  const text=(element,value)=>{if(element.textContent!==value)element.textContent=value;};
+  const disabled=(element,value)=>{if(element.disabled!==value)element.disabled=value;};
   const clockText=seconds=>`${String(Math.floor(seconds/60)).padStart(2,'0')}:${String(seconds%60).padStart(2,'0')}`;
   const mini=()=>getState()?.impostor;
-  function reset(){selection='';session='';pending=null;error='';clearTimeout(timeout);}
+  function reset(){historyKey='';el('clue-history-content').replaceChildren();el('clue-history').hidden=true;selection='';session='';pending=null;error='';clearTimeout(timeout);}
+  function history(s){
+    const rounds=s.revealedClues||[],visible=rounds.length>0&&['EVIDENCE_REVIEW','FINAL_VOTING'].includes(s.phase);
+    el('clue-history').hidden=!visible;if(!visible)return;
+    const key=JSON.stringify([s.sessionId,s.participants,rounds]);if(key===historyKey)return;historyKey=key;
+    const table=document.createElement('table'),head=document.createElement('thead'),row=document.createElement('tr');
+    for(const title of ['ИГРОК',...rounds.map((_,i)=>'РАУНД '+(i+1))]){const cell=document.createElement('th');cell.scope='col';cell.textContent=title;row.append(cell);}head.append(row);table.append(head);
+    const body=document.createElement('tbody');for(const player of s.participants){const line=document.createElement('tr'),name=document.createElement('th');name.scope='row';name.textContent=player.name;line.append(name);for(const clues of rounds){const cell=document.createElement('td');cell.textContent=clues[player.id]||'—';line.append(cell);}body.append(line);}table.append(body);el('clue-history-content').replaceChildren(table);
+  }
   function canVote(target){const s=mini();return isAuthenticated()&&s?.phase==='FINAL_VOTING'&&s.activeParticipant&&!s.finalVoteSubmitted&&!pending&&now()<s.deadline&&target!==getState().selfId;}
   function submit(target){if(!canVote(target))return;pending=makeId();error='';const s=mini();
     send('SUBMIT_FINAL_VOTE',{roomCode:getState().code,sessionId:s.sessionId,suspectId:target},pending);render();
@@ -22,17 +32,18 @@ function createFinalVotingController({getState,isAuthenticated,send,now,makeId})
   function tick(){const s=mini();if(!s)return;if(impostorPhoneBlackout(getState())){blackout();return;}
     const timed=s.phase==='EVIDENCE_REVIEW'||s.phase==='FINAL_VOTING';
     el('final-timer').classList.toggle('timer-warning',timed&&s.deadline-now()>0&&s.deadline-now()<=5000);
-    el('final-timer').textContent=timed?`ОСТАЛОСЬ: ${clockText(Math.max(0,Math.ceil((s.deadline-now())/1000)))}`:'';
+    text(el('final-timer'),timed?`ОСТАЛОСЬ: ${clockText(Math.max(0,Math.ceil((s.deadline-now())/1000)))}`:'');
     const waitingForName=s.phase==='IMPOSTOR_REVEAL'&&now()-s.finalPhaseStartedAt<2000;
     el('final-announcement').hidden=waitingForName;
-    for(const card of el('final-cards').children)card.disabled=!canVote(card.dataset.id);
-    el('confirm-vote').disabled=!selection||!canVote(selection);
+    for(const card of el('final-cards').children)disabled(card,!canVote(card.dataset.id));
+    disabled(el('confirm-vote'),!selection||!canVote(selection));
   }
   function render(){const s=mini();if(!s)return;if(session!==s.sessionId){reset();session=s.sessionId;}if(impostorPhoneBlackout(getState())){blackout();return;}
     if(s.phase!=='FINAL_VOTING'){selection='';pending=null;clearTimeout(timeout);error='';}
     el('confirm-vote').hidden=s.phase!=='FINAL_VOTING'||!s.activeParticipant||s.finalVoteSubmitted;
     if(s.finalVoteSubmitted){selection=s.ownFinalVote||'';pending=null;clearTimeout(timeout);error='';}
     (el('confirm-vote').querySelector('.fa-label')||el('confirm-vote')).textContent=pending?'ОТПРАВЛЯЕМ…':'ПОДТВЕРДИТЬ ГОЛОС';el('final-screen').setAttribute('aria-busy',String(!!pending));
+    history(s);
     const names=new Map(s.participants.map(p=>[p.id,p.name]));
     const completed=s.phase==='RESULT';
     const acceptedName=s.finalVoteSubmitted&&['FINAL_VOTING','VOTING_LOCKED'].includes(s.phase)?names.get(s.ownFinalVote):null;
@@ -73,6 +84,7 @@ function createFinalVotingController({getState,isAuthenticated,send,now,makeId})
   }
   el('confirm-vote').addEventListener('click',()=>submit(selection));
   function blackout(){
+    el('clue-history').hidden=true;el('clue-history-content').replaceChildren();historyKey='';
     el('final-screen').setAttribute('aria-busy','false');el('confirm-vote').hidden=true;el('confirm-vote').disabled=true;
     clearTimeout(timeout);pending=null;selection='';error='';
     for(const id of ['final-title','final-announcement','final-progress','final-status','vote-receipt-value','vote-draft-name','final-personal','result-player'])el(id).textContent='';

@@ -13,11 +13,11 @@ public final class ImpostorPreviewData {
     }
 
     public static List<ImpostorParticipant> participants(int count, boolean secondGroup) {
-        if (count != 3 && count != 4) throw new IllegalArgumentException("Preview supports 3 or 4 participants");
-        String[] names = {"Luna", "Shadow", "Mira", "Nyx"};
+        if(count<2||count>8)throw new IllegalArgumentException("Presentation preview supports 2–8 participants");
+        String[] names = {"Luna", "Shadow", "Mira", "Nyx", "Vesper", "Kronos", "Morrow", "Raven"};
         var result = new java.util.ArrayList<ImpostorParticipant>();
         for (int i=0; i<count; i++) result.add(new ImpostorParticipant(
-            new com.erni.finalanswer.rooms.RoomSession.Player("preview-"+i, names[i], false, (secondGroup ? new String[]{"skeleton","zombie","pumpkin","voodoo"} : new String[]{"ghost","dracula","plague_doctor","puppeteer"})[i], "ONLINE", false, 0),
+            new com.erni.finalanswer.rooms.RoomSession.Player("preview-"+i, names[i], false, (secondGroup ? new String[]{"skeleton","zombie","pumpkin","voodoo","ghost","dracula","plague_doctor","puppeteer"} : new String[]{"ghost","dracula","plague_doctor","puppeteer","skeleton","zombie","pumpkin","voodoo"})[i], "ONLINE", false, 0),
             List.of("", "", "")));
         return List.copyOf(result);
     }
@@ -39,13 +39,13 @@ public final class ImpostorPreviewData {
     public static ImpostorSuspicionPreview installControls(ImpostorScreen screen) {
         var suspicion=new ImpostorSuspicionPreview(screen);
         // The screen's active input processor is its Stage after show().
-        var stage = (Stage) com.badlogic.gdx.Gdx.input.getInputProcessor();
-        stage.addListener(new InputListener() {
+        screen.addPreviewListener(new InputListener() {
             private boolean secondGroup;
             @Override public boolean keyDown(InputEvent event, int key) {
                 switch (key) {
                     case com.badlogic.gdx.Input.Keys.F3 -> { suspicion.cancel();screen.setParticipants(participants(3, secondGroup)); }
                     case com.badlogic.gdx.Input.Keys.F4 -> { suspicion.cancel();screen.setParticipants(participants(4, secondGroup)); }
+                    case com.badlogic.gdx.Input.Keys.F6 -> {suspicion.cancel();screen.setParticipants(participants(screen.participants().size()==8?2:screen.participants().size()+1,secondGroup));}
                     case com.badlogic.gdx.Input.Keys.F5 -> { suspicion.cancel();secondGroup=!secondGroup;screen.setParticipants(participants(4,secondGroup)); }
                     case com.badlogic.gdx.Input.Keys.R -> screen.revealClues(clues(screen.revealedRoundCount()+1, screen.participants()));
                     case com.badlogic.gdx.Input.Keys.B -> screen.flipPapersBack();

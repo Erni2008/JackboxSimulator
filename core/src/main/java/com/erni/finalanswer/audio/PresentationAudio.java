@@ -53,7 +53,7 @@ public final class PresentationAudio implements AutoCloseable {
     private static void warn(String message){if(Gdx.app!=null)Gdx.app.error("Impostor audio",message);}
     private boolean effect(Sound sound){if(sound!=null)try{return sound.play(volume*AudioMix.GLOBAL.gain(AudioMix.Category.SFX))>=0;}catch(RuntimeException e){warn("Cannot play effect: "+e.getMessage());}return false;}
     public void stop(Cue cue){Sound legacy=sounds.get(cue),extra=prepared.get(cue);if(legacy!=null)legacy.stop();if(extra!=null)extra.stop();}
-    public void play(Cue cue){if(!closed&&!muted&&!paused){boolean legacy=effect(sounds.get(cue)),additional=effect(prepared.get(cue));if(legacy||additional)played[cue.ordinal()]++;}}
+    public void play(Cue cue){if(!closed&&!muted&&!paused){boolean legacy=effect(sounds.get(cue)),additional=effect(prepared.get(cue));if((cue==Cue.ROLE_CARDS||cue==Cue.ROUND_INTRO)&&prepared.get(cue)==null&&!legacy)additional=effect(prepared.get(Cue.PAGE_TURN));if(legacy||additional)played[cue.ordinal()]++;}}
     /** Driven by the actual displayed authoritative deadline; no extra gameplay timer. */
     public long playCount(Cue cue){return played[cue.ordinal()];}
     public void timer(String key,boolean active){timer(key,active,0);}

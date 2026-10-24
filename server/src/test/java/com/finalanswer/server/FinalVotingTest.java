@@ -50,7 +50,7 @@ class FinalVotingTest {
         m.vote(1,0);m.vote(2,1);assertEquals("VOTING_LOCKED",m.phase());assertFalse(m.f.mini(0).has("finalVoteSnapshot"));
         m.f.advance(700);assertEquals("FINAL_VOTE_REVEAL",m.phase());assertEquals(3,m.f.mini(0).getAsJsonObject("finalVoteSnapshot").getAsJsonArray("stampTargets").size());
         assertFalse(m.f.mini(0).has("revealedImpostorId"));assertFalse(m.f.mini(0).has("outcome"));
-        m.f.advance(3000);assertEquals("SUSPECT_ANNOUNCEMENT",m.phase());assertFalse(m.f.mini(0).has("revealedImpostorId"));
+        m.f.advance(com.erni.finalanswer.gameplay.impostor.FinalRevealTiming.duration(3));assertEquals("SUSPECT_ANNOUNCEMENT",m.phase());assertFalse(m.f.mini(0).has("revealedImpostorId"));
         assertEquals(m.f.pid(1),m.f.mini(0).getAsJsonArray("leadingSuspects").get(0).getAsString());
         m.f.advance(3500);assertEquals("IMPOSTOR_REVEAL",m.phase());assertTrue(m.f.mini(0).has("revealedImpostorId"));
         String actual=m.f.players.stream().filter(p->{int i=m.f.players.indexOf(p);return i<3&&s(m.f.mini(i),"role").equals("IMPOSTOR");}).map(p->s(p,"selfId")).findFirst().orElseThrow();

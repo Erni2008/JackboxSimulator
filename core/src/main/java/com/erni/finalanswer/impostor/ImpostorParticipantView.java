@@ -22,6 +22,33 @@ public final class ImpostorParticipantView extends Group {
     public String playerId(){return playerId;}
     private ImpostorElimination elimination;
     private Label eliminationLabel;
+    private Label readyLabel;
+    private boolean ceremony;
+    private Image identityAccent;
+    private Label.LabelStyle originalNameStyle,originalShadowStyle;
+    private float originalNameScale;
+    public void ceremony(boolean enabled,BitmapFont ceremonyFont,float fontScale,com.badlogic.gdx.graphics.Texture pixel){
+        if(ceremony==enabled)return;ceremony=enabled;
+        Label name=findActor("nickname"),shadow=findActor("nicknameShadow");
+        if(enabled){
+            if(identityAccent==null){identityAccent=new Image(pixel);identityAccent.setBounds(80,-38,34,2);identityAccent.setName("votingIdentityAccent");addActor(identityAccent);}
+            identityAccent.setColor(name.getStyle().fontColor);identityAccent.getColor().a=.65f;identityAccent.setVisible(true);
+            originalNameStyle=name.getStyle();originalShadowStyle=shadow.getStyle();originalNameScale=name.getFontScaleX();
+            name.setStyle(new Label.LabelStyle(ceremonyFont,Color.valueOf("E9DBC0")));shadow.setStyle(new Label.LabelStyle(ceremonyFont,new Color(0,0,0,.85f)));
+            name.setFontScale(fontScale*.80f);shadow.setFontScale(fontScale*.80f);name.setWrap(true);shadow.setWrap(true);name.setEllipsis(null);name.setAlignment(Align.bottom|Align.center);shadow.setAlignment(Align.bottom|Align.center);
+            name.setBounds(-10,-30,214,70);shadow.setBounds(-9,-32,214,70);
+            float fit=fontScale*.80f;name.validate();
+            while(name.getPrefHeight()>70&&fit>fontScale*.60f){fit-=fontScale*.025f;name.setFontScale(fit);shadow.setFontScale(fit);name.validate();}readyLabel.setVisible(false);eliminationLabel.setVisible(false);
+        }else{
+            if(identityAccent!=null)identityAccent.setVisible(false);
+            name.setStyle(originalNameStyle);shadow.setStyle(originalShadowStyle);name.setWrap(false);shadow.setWrap(false);name.setAlignment(Align.center);shadow.setAlignment(Align.center);name.setFontScale(originalNameScale);shadow.setFontScale(originalNameScale);
+            name.setBounds(NAMEPLATE.x(),NAMEPLATE.y(),NAMEPLATE.width(),NAMEPLATE.height());shadow.setBounds(NAMEPLATE.x()+1.2f,NAMEPLATE.y()-1.2f,NAMEPLATE.width(),NAMEPLATE.height());
+        }
+        paper.setVisible(!enabled);
+    }
+    private Boolean readyState;
+    private static final Color READY_COLOR=Color.valueOf("BCD5A6"),WAITING_COLOR=Color.valueOf("BDAA93");
+    public void ready(Boolean ready){if(java.util.Objects.equals(readyState,ready))return;readyState=ready;readyLabel.setVisible(ready!=null);if(ready!=null){readyLabel.setText(ready?"СЛОВО ПРИНЯТО":"ОЖИДАЕМ СЛОВО");readyLabel.setColor(ready?READY_COLOR:WAITING_COLOR);}}
     private float portraitY=Float.NaN;
     public void updatePortrait(float delta,boolean reduced){updatePortrait(delta,reduced,-1);}
     public void updatePortrait(float delta,boolean reduced,float eliminatedAge){
@@ -29,7 +56,7 @@ public final class ImpostorParticipantView extends Group {
         if(Float.isNaN(portraitY))portraitY=avatar.getY();
         if(Float.isFinite(delta))idleTime=(idleTime+Math.max(0,delta))%100;
         elimination.apply(eliminatedAge,reduced,reduced?0:(float)Math.sin(idleTime*.7)*.65f);
-        eliminationLabel.setVisible(eliminatedAge>=.6f);
+        eliminationLabel.setVisible(!ceremony&&eliminatedAge>=.6f);
     }
     private final boolean hasPaper;
     private final Group paper = new Group();
@@ -65,7 +92,8 @@ public final class ImpostorParticipantView extends Group {
             portrait.addActor(avatar);
             addActor(portrait);elimination=new ImpostorElimination(portrait);
         }
-        eliminationLabel=new Label("ELIMINATED",new Label.LabelStyle(font,Color.valueOf("D89A9F")));eliminationLabel.setName("eliminationStatus");eliminationLabel.setFontScale(.5f);eliminationLabel.setAlignment(Align.center);eliminationLabel.setBounds(0,-14,194,20);eliminationLabel.setVisible(false);addActor(eliminationLabel);
+        eliminationLabel=new Label("РАСКРЫТ",new Label.LabelStyle(font,Color.valueOf("D89A9F")));eliminationLabel.setName("eliminationStatus");eliminationLabel.setFontScale(.5f);eliminationLabel.setAlignment(Align.center);eliminationLabel.setBounds(0,-14,194,20);eliminationLabel.setVisible(false);addActor(eliminationLabel);
+        readyLabel=new Label("",new Label.LabelStyle(font,Color.WHITE));readyLabel.setName("clueReadiness");readyLabel.setAlignment(Align.center);readyLabel.setFontScale(.55f);readyLabel.setBounds(0,-36,194,22);readyLabel.setVisible(false);addActor(readyLabel);
         Label nickname = new Label(participant.player().name(), new Label.LabelStyle(nicknameFont,
                 com.erni.finalanswer.ui.PlayerColors.light(participant.player().characterId())));
         nickname.setName("nickname");

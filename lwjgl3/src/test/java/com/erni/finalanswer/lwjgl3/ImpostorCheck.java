@@ -62,6 +62,7 @@ public final class ImpostorCheck extends FinalAnswerGame {
                 check(getScreen() instanceof MainMenu, "Existing menu opens");
                 showPlayScreen();
                 check(getScreen() instanceof MainMenu, "Existing PLAY room gate remains");
+                previewLanguage("ru");
                 originalBaseline = Texture.getNumManagedTextures();
                 baseline = Texture.getNumManagedTextures();
                 checkAssetScope();
@@ -95,6 +96,9 @@ public final class ImpostorCheck extends FinalAnswerGame {
                 checkStage9Settings();
                 checkConnectionQr();
                 checkFinalPreviewControls();
+                checkStoryPresentation();
+                checkOpeningInputRoute();
+                checkSteadyPresentationCost();
                 int textures = Texture.getNumManagedTextures();
                 check(Gdx.input.getInputProcessor().keyDown(com.badlogic.gdx.Input.Keys.F3), "Dev F3 handled");
                 check(preview.participants().size() == 3, "Three-player dev configuration");
@@ -137,6 +141,59 @@ public final class ImpostorCheck extends FinalAnswerGame {
             Gdx.app.error("THE IMPOSTOR", "CHECK FAILED", error);
             Gdx.app.exit();
         } finally { rendering = false; }
+    }
+
+    private void checkStoryPresentation() throws Exception {
+        preview.setParticipants(ImpostorPreviewData.participants(4));preview.resetPapers();
+        preview.presentPhase(ImpostorPhase.ROLE_REVEAL,12000,0);preview.render(.1f);
+        Group deal=stage(preview).getRoot().findActor("impostorRoleDeal");check(deal.isVisible(),"Role distribution has a visible public card-back animation");
+        preview.render(.6f);capturePaperState("story-card-deal");preview.render(.7f);check(!deal.isVisible(),"Card dealing finishes without advancing gameplay");
+        String first=preview.participants().getFirst().player().id();preview.networkReady(java.util.Set.of(first));
+        preview.presentPhase(ImpostorPhase.ROUND_CLUE_INPUT,20000,1000);preview.render(0);
+        Label ready=((Group)stage(preview).getRoot().findActor("participant:"+first)).findActor("clueReadiness");
+        check(ready.isVisible()&&ready.getText().toString().equals("СЛОВО ПРИНЯТО"),"Host readiness shows receipt without clue contents");
+        var rounds=java.util.List.of(ImpostorPreviewData.clues(1,preview.participants()),ImpostorPreviewData.clues(2,preview.participants()),ImpostorPreviewData.clues(3,preview.participants()));
+        preview.restoreClues(rounds,true);preview.presentPhase(ImpostorPhase.EVIDENCE_REVIEW,30000,10000);
+        preview.presentFinal(new FinalActSnapshot("story",ImpostorPhase.EVIDENCE_REVIEW,10000,30000,0,0,4,"",java.util.List.of(),java.util.Map.of(),java.util.List.of(),"",""),10000);preview.render(0);
+        check(stage(preview).getRoot().findActor("impostorEvidenceBoard").isVisible(),"Discussion presents all public clue rounds");capturePaperState("story-evidence-board");
+        var outcomes=java.util.List.of("IMPOSTOR_CAUGHT","IMPOSTOR_ESCAPED","NO_CONSENSUS");
+        var titles=java.util.List.of("САМОЗВАНЕЦ ИЗГНАН","САМОЗВАНЕЦ СКРЫЛСЯ","ГОЛОСА РАЗДЕЛИЛИСЬ");
+        for(int i=0;i<outcomes.size();i++){
+            preview.presentPhase(ImpostorPhase.IMPOSTOR_REVEAL,104000,100000);
+            preview.presentFinal(new FinalActSnapshot("story",ImpostorPhase.IMPOSTOR_REVEAL,100000,104000,95000,4,4,"story-votes",java.util.List.of(first,first),java.util.Map.of(first,2),java.util.List.of(first,preview.participants().get(1).player().id()),first,outcomes.get(i)),105000);
+            preview.render(0);Label title=stage(preview).getRoot().findActor("finalTitle");check(title.getText().toString().equals(titles.get(i)),"Distinct final outcome: "+outcomes.get(i));
+            finalCaptureNow=105000;capturePaperState("final-story-"+outcomes.get(i).toLowerCase(java.util.Locale.ROOT));
+            check(!stage(preview).getRoot().findActor("impostorLifecycle").isVisible(),"Outcome scene does not introduce a rematch flow");
+        }
+        preview.resetPapers();preview.presentPhase(ImpostorPhase.INTRO,0,0);
+    }
+
+    private void checkOpeningInputRoute() throws Exception {
+        String previous=System.getProperty("impostor.opening.skip");int textures=Texture.getNumManagedTextures();
+        ImpostorScreen openingScreen=null;
+        try{
+            System.setProperty("impostor.opening.skip","false");openingScreen=new ImpostorScreen(this,player->null);setScreen(openingScreen);
+            final boolean[] triggered={false};openingScreen.addPreviewListener(new com.badlogic.gdx.scenes.scene2d.InputListener(){
+                @Override public boolean keyDown(com.badlogic.gdx.scenes.scene2d.InputEvent event,int key){if(key!=com.badlogic.gdx.Input.Keys.F7)return false;triggered[0]=true;return true;}
+            });
+            Gdx.input.getInputProcessor().keyDown(com.badlogic.gdx.Input.Keys.F7);check(!triggered[0],"Opening does not accept gameplay preview keys");
+            openingScreen.render(0);openingScreen.render(9);
+            Gdx.input.getInputProcessor().keyDown(com.badlogic.gdx.Input.Keys.F7);check(triggered[0],"Preview keys remain installed after opening finishes");
+        }finally{setScreen(preview);if(openingScreen!=null)openingScreen.dispose();if(previous==null)System.clearProperty("impostor.opening.skip");else System.setProperty("impostor.opening.skip",previous);}
+        check(Texture.getNumManagedTextures()==textures,"Opening test releases all owned textures/fonts");
+    }
+
+    private void checkSteadyPresentationCost() throws Exception {
+        for(int i=0;i<120;i++)preview.render(1/60f);
+        int textures=Texture.getNumManagedTextures(),actors=stage(preview).getRoot().getChildren().size;
+        double[] samples=new double[360];
+        for(int i=0;i<samples.length;i++){long start=System.nanoTime();preview.render(1/60f);samples[i]=(System.nanoTime()-start)/1_000_000.0;}
+        check(Texture.getNumManagedTextures()==textures,"Sustained presentation does not accumulate textures");
+        check(stage(preview).getRoot().getChildren().size==actors,"Sustained presentation does not accumulate root actors");
+        java.util.Arrays.sort(samples);
+        var report=java.util.Map.of("samples",samples.length,"cpuMedianMs",samples[180],"cpuP95Ms",samples[342],"texturesBefore",textures,"texturesAfter",Texture.getNumManagedTextures(),"rootActors",actors,"includesWindowSwap",false);
+        Gdx.files.absolute(System.getProperty("impostor.qa.artifacts")+"/performance.json").writeString(new com.google.gson.Gson().toJson(report),false);
+        Gdx.app.log("THE IMPOSTOR","Steady presentation: "+report);
     }
 
     private void checkAssetScope() throws Exception {
@@ -613,7 +670,7 @@ public final class ImpostorCheck extends FinalAnswerGame {
             preview.presentFinal(snapshot,reveal);preview.render(0);view.update(reveal+1019);
             check(view.stampCount()==count && view.visibleStampCount()==0,"One prepared imprint per vote; none before impact");
             for(int i=0;i<count;i++){
-                long impact=reveal+com.erni.finalanswer.gameplay.impostor.FinalRevealTiming.LEAD+i*400+220;
+                long impact=reveal+com.erni.finalanswer.gameplay.impostor.FinalRevealTiming.LEAD+i*com.erni.finalanswer.gameplay.impostor.FinalRevealTiming.INTERVAL+com.erni.finalanswer.gameplay.impostor.FinalRevealTiming.IMPACT;
                 view.update(i==0?impact+200:impact);check(view.visibleStampCount()==i+1,"Exactly one additional imprint per impact");
                 for(int j=0;j<=i;j++)check(view.findActor("voteStamp:"+j).isVisible(),"Earlier stamps persist");
                 preview.presentFinal(snapshot,impact);view.update(impact);check(view.visibleStampCount()==i+1,"Duplicate snapshot cannot replay or erase stamps");
@@ -627,21 +684,21 @@ public final class ImpostorCheck extends FinalAnswerGame {
             for(var p:preview.participants()){
                 Group card=view.findActor("finalCard:"+p.player().id());check(card!=null,"One final card per active suspect");
                 check(((Label)card.findActor("finalNickname")).getText().toString().equals(p.player().name()),"Final card identity binding");
-                check(card.getX()>0 && card.getX()+card.getWidth()<1550 && card.getY()+card.getHeight()<510,"Final cards clear clock and portrait row");
+                check(card.getX()>0 && card.getX()+card.getWidth()<=VotingLayout.TABLE_RIGHT+1 && card.getY()+card.getHeight()<510,"Final cards clear clock and portrait row");
             }
             var announcement=new FinalActSnapshot("final-"+count,ImpostorPhase.SUSPECT_ANNOUNCEMENT,58000,61500,reveal,count,count,snapshot.sequenceId(),targets,counts,java.util.List.of(b),"","");
-            preview.presentFinal(announcement,59000);preview.render(0);view.update(59000);check(((Label)view.findActor("finalDetail")).getText().toString().equals("Shadow"),"Suspect announcement before identity");
+            preview.presentFinal(announcement,59000);preview.render(0);view.update(59000);check(((Label)view.findActor("finalDetail")).getText().toString().contains("Shadow"),"Suspect announcement before identity");
             finalCaptureNow=59000;capturePaperState("final-suspect");
             var identity=new FinalActSnapshot("final-"+count,ImpostorPhase.IMPOSTOR_REVEAL,61500,65500,reveal,count,count,snapshot.sequenceId(),targets,counts,java.util.List.of(b),b,"IMPOSTOR_CAUGHT");
             preview.presentFinal(identity,62500);preview.render(0);view.update(64899);
-            Label identityName=view.findActor("finalDetail");check(!identityName.isVisible(),"Identity name waits for the 3.4-second musical accent");
-            view.reducedMotion(true);view.update(64899);check(!identityName.isVisible(),"Reduced motion preserves suspense pause");
-            view.update(64900);check(identityName.isVisible()&&identityName.getColor().a==1,"Identity appears at musical accent with reduced motion");
+            Label identityName=view.findActor("finalDetail");check(!identityName.getText().toString().contains("Shadow"),"Identity name waits for the 3.4-second musical accent");
+            view.reducedMotion(true);view.update(64899);check(!identityName.getText().toString().contains("Shadow"),"Reduced motion preserves suspense pause");
+            view.update(64900);check(identityName.getText().toString().contains("Shadow")&&identityName.getColor().a==1,"Identity appears at musical accent with reduced motion");
             check(identityName.getStyle().font.getData().hasGlyph('Ж')&&identityName.getStyle().font.getData().hasGlyph('Я'),"Reveal handwriting contains Cyrillic glyphs");
             view.reducedMotion(false);view.update(65200);finalCaptureNow=65200;capturePaperState("final-identity");
             preview.presentFinal(identity,66000);preview.render(0);view.update(66000);
             Group doomed=view.findActor("finalCard:"+b);Group doomedAvatar=doomed.findActor("finalAvatar");if(doomedAvatar!=null)check(doomedAvatar.getColor().a<.4f,"Caught impostor visibly fades on the final card");
-            Actor top=stage(preview).getRoot().findActor("participant:"+b);if(doomedAvatar!=null)check(((Group)top).findActor("eliminationStatus").isVisible(),"Caught participant is marked eliminated");
+            Actor top=stage(preview).getRoot().findActor("participant:"+b);if(doomedAvatar!=null)check(!((Group)top).findActor("eliminationStatus").isVisible(),"Redundant elimination overlay stays out of the ceremony");
             view.update(69000);if(doomedAvatar!=null)check(Math.abs(doomedAvatar.getColor().a-.48f)<.01f,"Ghost remnant persists");
             var escapedIdentity=new FinalActSnapshot("final-"+count,ImpostorPhase.IMPOSTOR_REVEAL,61500,65500,reveal,count,count,snapshot.sequenceId(),targets,counts,java.util.List.of(b),b,"IMPOSTOR_ESCAPED");preview.presentFinal(escapedIdentity,69000);preview.render(0);if(doomedAvatar!=null)check(doomedAvatar.getColor().a==1,"Escaped impostor never remains eliminated");
             preview.presentFinal(identity,69000);preview.render(0);

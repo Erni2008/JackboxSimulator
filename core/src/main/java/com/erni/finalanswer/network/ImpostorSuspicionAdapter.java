@@ -74,6 +74,7 @@ public final class ImpostorSuspicionAdapter {
             }
 
         }
+        var ready=new HashSet<String>();if(mini.has("clueReadyIds"))for(var readyId:mini.getAsJsonArray("clueReadyIds"))ready.add(readyId.getAsString());screen.networkReady(ready);
         if(phase.equals("PRELIMINARY_SUSPICION") || phase.equals("SUSPICION_FINALIZED")){
             boolean finalized=phase.equals("SUSPICION_FINALIZED") || mini.has("suspicionFinalized") && mini.get("suspicionFinalized").getAsBoolean();
             screen.presentSuspicion(new SuspicionSnapshot(id,mini.get("round").getAsInt(),

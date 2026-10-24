@@ -15,6 +15,8 @@ public final class ImpostorCharacterActor extends Actor {
     private final Matrix4 saved = new Matrix4(), local = new Matrix4();
     private final float phase, floor, height;
     private float time = 8;
+    private boolean portraitFraming;
+    public void portraitFraming(boolean value){portraitFraming=value;}
 
     public ImpostorCharacterActor(CageLobby source, RoomSession.Player player) {
         character = source.createCharacter(player.characterId());
@@ -43,15 +45,16 @@ public final class ImpostorCharacterActor extends Actor {
 
     @Override public void draw(Batch batch, float parentAlpha) {
         saved.set(batch.getTransformMatrix());
+        float previousColor=batch.getPackedColor();batch.setColor(getColor().r,getColor().g,getColor().b,1);
         // Reserve headroom for limbs/accessories and the existing procedural idle.
-        float scale = Math.min(getWidth() / 135, getHeight() / (height * 1.10f));
-        local.set(saved).translate(getX() + getWidth() / 2, getY() + 5, 0)
+        float scale = portraitFraming?getWidth()/160:Math.min(getWidth() / 135, getHeight() / (height * 1.10f));
+        local.set(saved).translate(getX() + getWidth() / 2, portraitFraming?getY()+getHeight()*.92f-height*scale:getY()+5, 0)
                 .scale(scale, scale, 1).translate(-174, -floor, 0);
         try {
             batch.setTransformMatrix(local);
             presentation.draw(batch, character, profile, parentAlpha * getColor().a, time);
         } finally {
-            batch.setTransformMatrix(saved);
+            batch.setTransformMatrix(saved);batch.setPackedColor(previousColor);
         }
     }
 }

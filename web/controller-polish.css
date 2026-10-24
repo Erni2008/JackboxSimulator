@@ -304,3 +304,25 @@ body[data-view="blackout"] main > :not(#blackout-screen) { display:none!importan
 #suspicion-screen .fa-selection,#final-screen .fa-selection {
   font-family:Body,sans-serif; font-size:clamp(9px,2.7vw,13px); letter-spacing:.02em; white-space:nowrap; text-align:center;
 }
+
+/* Private role envelope and optional, non-blocking first-match guidance. */
+#role-private { display:contents; } #role-private[hidden] { display:none!important; }
+.role-cover { position:absolute; inset:18% 14%; display:flex; flex-direction:column; justify-content:center; gap:8px; padding:8px; text-align:center; color:#f1ddba; background:#1b1119ed; border:1px solid #b99a704d; }
+.role-cover strong { font:700 clamp(16px,4.5vw,24px)/1.3 Body,sans-serif; }
+.role-cover span { font:500 12px/1.5 Body,sans-serif; }
+#impostor-screen:not([data-phase=ROLE_REVEAL]) .role-cover { position:static; padding:12px 0; }
+#impostor-screen:has(#role-cover:not([hidden])) .role-panel { width:100%; }
+#role-privacy-toggle { width:100%; min-height:48px; margin:18px 0 8px; border:1px solid #c2a16b; background:#291c22; color:#f3dec0; font:700 13px/1.4 Body,sans-serif; letter-spacing:.05em; }
+#role-guide-toggle,#role-guide-dismiss { min-height:44px; margin:4px 0; padding:10px 14px; border:1px solid #8b72544d; background:#21181b; color:#dfc9a4; font:600 11px/1.5 Body,sans-serif; }
+.role-guide { padding:14px; margin:8px 0 20px; border-left:2px solid #bd9b67; background:#bfa16a12; }
+.role-guide h3 { font:700 12px/1.5 Body,sans-serif; color:#ead3ac; margin:0 0 8px; }
+.role-guide p { font:400 13px/1.65 Body,sans-serif; color:#d6c7b8; margin:0 0 10px; }
+@keyframes role-card-arrival { from{opacity:0;transform:translateY(32px) rotate(-7deg) scale(.9)} to{opacity:1;transform:none} }
+#impostor-screen[data-phase=ROLE_REVEAL][data-deal] .role-panel { animation:role-card-arrival .7s cubic-bezier(.2,.75,.25,1) both; }
+body[data-reduced-motion=true] #impostor-screen .role-panel,body[data-effects=false] #impostor-screen .role-panel { animation:none; }
+.clue-history { margin:18px 0; border:1px solid #98734e66; background:#20171b; }
+.clue-history summary { min-height:48px; padding:15px 12px; color:#dfc79f; font:700 11px/1.6 Body,sans-serif; cursor:pointer; }
+#clue-history-content { overflow-x:auto; padding:0 10px 12px; }
+.clue-history table { width:100%; border-collapse:collapse; table-layout:fixed; font:400 11px/1.55 Body,sans-serif; }
+.clue-history th,.clue-history td { padding:10px 5px; border-top:1px solid #a58b6933; overflow-wrap:anywhere; text-align:left; vertical-align:top; }
+.clue-history thead th { color:#cba97b; font-size:9px; }.clue-history tbody th { color:#ebd8b7; }.clue-history td { color:#d8cbbf; }

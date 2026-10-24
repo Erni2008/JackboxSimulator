@@ -48,6 +48,8 @@ class ImpostorGameTest {
     }
     @Test void earlyCompletionAndPrivateCollection(){start(3);advance(com.finalanswer.server.game.ImpostorSession.ROLE_MILLIS);
         submit(0,1,"тепло");assertEquals("ТЕПЛО",s(mini(0),"ownClue"));assertFalse(mini(1).toString().contains("ТЕПЛО"));assertFalse(rooms.view(code).contains("ТЕПЛО"));
+        assertTrue(hostPeer.latest().getAsJsonObject("impostor").getAsJsonArray("clueReadyIds").toString().contains(pid(0)),"Host sees who is ready");
+        assertFalse(mini(1).has("clueReadyIds"),"Readiness IDs are host-only");assertFalse(obj(rooms.view(code)).getAsJsonObject("impostor").has("clueReadyIds"));
         fail("CLUE_ALREADY_SUBMITTED",()->submit(0,1,"СВЕТ"));submit(1,1,"СВЕТ");submit(2,1,"ЛЕТО");
         assertEquals("ROUND_CLUE_REVEAL",s(mini(0),"phase"));assertEquals(1,mini(0).get("revealSequence").getAsInt());
         assertEquals("ТЕПЛО",mini(0).getAsJsonArray("revealedClues").get(0).getAsJsonObject().get(pid(0)).getAsString());

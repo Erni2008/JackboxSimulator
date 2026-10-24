@@ -51,7 +51,7 @@ async function checkFinalAct({clients,count,latest,ready,matchIndex}){
   const snapshot=latest(watcher).finalVoteSnapshot;assert.equal(snapshot.stampTargets.length,submitCount);
   assert.equal(Object.values(snapshot.counts).reduce((a,b)=>a+b,0),submitCount);assert(!latest(watcher).outcome);assert(!latest(watcher).revealedImpostorId);
   await watcher.page.reload();await watcher.page.locator('#blackout-screen').waitFor({state:'visible'});assert.deepEqual(latest(watcher).finalVoteSnapshot,snapshot,'Reconnect changed snapshot');
-  await command('advance',{millis:800+submitCount*400+1000});
+  await command('advance',{millis:1700+submitCount*400+800});
   for(const c of clients)await c.page.waitForFunction(()=>state?.impostor?.phase==='SUSPECT_ANNOUNCEMENT');
   assert(!latest(watcher).revealedImpostorId);assert(!latest(watcher).outcome);
   await command('advance',{millis:3500});for(const c of clients)await c.page.waitForFunction(()=>state?.impostor?.phase==='IMPOSTOR_REVEAL');
@@ -76,6 +76,7 @@ async function checkFinalAct({clients,count,latest,ready,matchIndex}){
    await command('start-game',{activeIds:clients.slice(0,count).map(c=>c.credentials.selfId)});
    for(const c of clients)await c.page.locator('#impostor-screen').waitFor({state:'visible'});
    const latest=c=>c.frames.filter(e=>e.payload?.impostor).at(-1)?.payload.impostor;
+   for(const c of clients.slice(0,count)){await c.page.locator('#role-privacy-toggle').click();}
    const roles=clients.slice(0,count).map(latest);assert.equal(roles.filter(s=>s.role==='IMPOSTOR').length,1);
    const word=roles.find(s=>s.role==='ORDINARY').secretWord;
    for(let i=0;i<clients.length;i++){
@@ -104,12 +105,12 @@ async function checkFinalAct({clients,count,latest,ready,matchIndex}){
        const p=clients[i].page;await p.locator('#clue-input').fill(words[round-1][i]);
        if(i%2===0)await p.locator('#clue-input').press('Enter');else await p.locator('#clue-submit').click();
        if(i<submitted-1||round===2)await p.waitForFunction(()=>document.getElementById('clue-status').textContent==='СЛОВО ПРИНЯТО. ОЖИДАЕМ ОСТАЛЬНЫХ');
-       else await p.waitForFunction(()=>document.getElementById('clue-status').textContent==='Watch the shared screen.');
+       else await p.waitForFunction(()=>document.getElementById('clue-status').textContent==='Смотрите на общий экран.');
        assert.equal(await p.locator('#clue-input').isDisabled(),true);
        if(i===0&&round===1){await p.reload();await p.waitForFunction(()=>document.getElementById('clue-status').textContent==='СЛОВО ПРИНЯТО. ОЖИДАЕМ ОСТАЛЬНЫХ');assert.equal(await p.locator('#clue-input').inputValue(),words[0][0]);}
      }
      if(round===2){const snapshot=clients[0].frames.filter(e=>e.payload?.impostor).at(-1).payload;await command('advance',{millis:Math.max(0,snapshot.impostor.deadline-snapshot.serverTime)+1});}
-     for(const c of clients)await c.page.waitForFunction(()=>document.getElementById('clue-status').textContent==='Watch the shared screen.');
+     for(const c of clients)await c.page.waitForFunction(()=>document.getElementById('clue-status').textContent==='Смотрите на общий экран.');
      const data=latest(clients.at(-1));assert.equal(data.revealSequence,round);assert.equal(data.revealedClues.length,round);
      if(round===2)assert.equal(data.revealedClues[1][clients[count-1].credentials.selfId],'—');
      assert.equal(await clients[0].page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);

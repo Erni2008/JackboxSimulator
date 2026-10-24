@@ -21,6 +21,7 @@ async function command(command,extra={}){
   }
   await command('start-game',{activeIds:players.slice(0,4).map(player=>player.id)});
   for(const player of players)await player.page.waitForFunction(()=>state?.impostor?.phase==='ROLE_REVEAL');
+  for(const player of players.slice(0,4))await player.page.locator('#role-privacy-toggle').click();
   const role=await Promise.all(players.map(player=>player.page.evaluate(()=>state.impostor.role))),impostor=role.indexOf('IMPOSTOR');assert(impostor>=0);
   await players[impostor].page.bringToFront();await players[impostor].page.waitForFunction(()=>impostorPhoneAudio.playCount('role')===1);
   console.log('DEMO RUNNING: four active players + one observer, real-time clocks, native shared screen and private phone audio.');

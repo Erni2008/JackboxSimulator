@@ -10,7 +10,7 @@ public record FinalActSnapshot(String sessionId,ImpostorPhase phase,long phaseSt
     public FinalActSnapshot {
         Objects.requireNonNull(sessionId);Objects.requireNonNull(phase);Objects.requireNonNull(sequenceId);
         stampTargets=List.copyOf(stampTargets);counts=Map.copyOf(counts);leaders=List.copyOf(leaders);
-        if(submitted<0 || eligible<3 || eligible>4 || submitted>eligible || stampTargets.size()>eligible)
+        if(submitted<0 || eligible<2 || eligible>8 || submitted>eligible || stampTargets.size()>eligible)
             throw new IllegalArgumentException("Invalid final voting aggregate");
     }
 }

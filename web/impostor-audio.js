@@ -29,7 +29,7 @@ function createImpostorPhoneAudio({AudioContextType=window.AudioContext||window.
   function flush(){
     const mini=root?.impostor;if(!mini||!enabled())return;
     const key=mini.sessionId+':'+root.selfId;
-    if(mini.role==='IMPOSTOR'&&mini.activeParticipant&&mini.phase==='ROLE_REVEAL'){
+    if(mini.role==='IMPOSTOR'&&mini.activeParticipant&&mini.phase==='ROLE_REVEAL'&&document.getElementById('role-private')?.hidden!==true){
       let restored=false;try{restored=sessionStorage.getItem('impostor-role-audio')===key+':role';}catch{}
       if(!restored)play('role',key+':role');
     }
@@ -64,11 +64,11 @@ function createImpostorPhoneAudio({AudioContextType=window.AudioContext||window.
     voice.gain.gain.cancelScheduledValues(time);voice.gain.gain.setTargetAtTime(5.2,time,.008);
     voice.gain.gain.setTargetAtTime(0,time+.20,.01);voice.source.stop(voice.until);
   }
-  document.addEventListener('input',writing);
+  document.addEventListener('input',writing);document.addEventListener('impostor:role-visible',flush);
   function unlock(){load();if(context?.state==='suspended')context.resume().then(flush).catch(warn);else flush();}
   document.addEventListener('pointerdown',unlock,{passive:true});document.addEventListener('keydown',unlock);
   const visibility=()=>{if(document.hidden)stop();else flush();};document.addEventListener('visibilitychange',visibility);
   function suspend(){stop();root=null;pendingVote=null;}
-  function dispose(){if(closed)return;closed=true;suspend();document.removeEventListener('input',writing);document.removeEventListener('pointerdown',unlock);document.removeEventListener('keydown',unlock);document.removeEventListener('visibilitychange',visibility);buffers.clear();context?.close().catch(warn);}
+  function dispose(){if(closed)return;closed=true;suspend();document.removeEventListener('input',writing);document.removeEventListener('impostor:role-visible',flush);document.removeEventListener('pointerdown',unlock);document.removeEventListener('keydown',unlock);document.removeEventListener('visibilitychange',visibility);buffers.clear();context?.close().catch(warn);}
   load();return {sync,suspend,dispose,playCount:cue=>counts[cue],loading:()=>loading};
 }

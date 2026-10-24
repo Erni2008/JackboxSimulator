@@ -300,7 +300,9 @@ sourceSets {
 }
 tasks.register('impostorPreview', JavaExec) {
     group = 'application'
-    description = 'Development-only static THE IMPOSTOR scene; ESC returns to the existing menu.'
+    description = 'Development-only THE IMPOSTOR presentation; optional direct verdict preview.'
+    systemProperty 'impostor.opening.skip', providers.gradleProperty('impostorSkipOpening').getOrElse('false')
+    systemProperty 'impostor.preview.verdict', providers.gradleProperty('impostorVerdict').getOrElse('')
     dependsOn devClasses
     classpath = sourceSets.dev.runtimeClasspath
     mainClass = 'com.erni.finalanswer.lwjgl3.ImpostorPreviewLauncher'
@@ -882,6 +884,19 @@ tasks.register('packagedAssetsCheck', JavaExec) {
     mainClass = 'com.erni.finalanswer.lwjgl3.PackagedAssetsCheck'
     workingDir = layout.buildDirectory.get().asFile
     systemProperty 'packaging.qa.dir', layout.buildDirectory.dir('packaging-preferences').get().asFile.absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+// Actual character rigs, 2–8-player presentation stress, pixel opacity and render-state regressions.
+tasks.register('votingRedesignCheck', JavaExec) {
+    group = 'verification'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.VotingRedesignCheck'
+    systemProperty 'impostor.opening.skip', 'true'
+    systemProperty 'voting.qa.dir', layout.buildDirectory.dir('voting-redesign').get().asFile.absolutePath
+    workingDir = rootProject.file('assets')
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }

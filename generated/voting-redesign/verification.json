@@ -1,0 +1,35 @@
+{
+  "cpuP95MsWithoutSwap": 2.284417,
+  "retinaScale": 2.0,
+  "resolutions": 4,
+  "passed": true,
+  "texturesBefore": 229,
+  "counts": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "batchStateRestored": true,
+  "texturesAfter": 229,
+  "scenarios": 5,
+  "opacityPixelRegression": true,
+  "realtime": [
+    {
+      "players": 4,
+      "measuredWindowFps": 59.96772736805476,
+      "cpuP95Ms": 2.254583,
+      "frames": 180
+    },
+    {
+      "players": 8,
+      "measuredWindowFps": 60.00515626307941,
+      "cpuP95Ms": 3.136667,
+      "frames": 180
+    }
+  ],
+  "characterBatchColorIsolation": true
+}

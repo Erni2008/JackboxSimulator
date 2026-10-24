@@ -10,7 +10,7 @@ public final class ImpostorPreviewLauncher {
     public static void main(String[] args) {
         if (StartupHelper.startNewJvmIfRequired()) return;
         var config = new Lwjgl3ApplicationConfiguration();
-        config.setTitle("Final Answer - THE IMPOSTOR / Stage 6 / F: final act / V: suspicion / F3-F4: players / F5: other characters / R: reveal / B: back / N: reset");
+        config.setTitle("Final Answer — The Impostor");
         config.setWindowedMode(1280, 720);
         config.disableAudio(false);
         new Lwjgl3Application(new FinalAnswerGame() {
@@ -22,13 +22,13 @@ public final class ImpostorPreviewLauncher {
             private ImpostorFinalPreview finalAct;
             private com.erni.finalanswer.network.RealtimeClient live;
             @Override public void create() {
-                super.create();
+                super.create();previewLanguage("ru");
                 characters = new com.erni.finalanswer.ui.lobby.cages.CageLobby();
                 preview = new ImpostorScreen(this);
                 preview.setParticipants(ImpostorPreviewData.participants(4));
                 setScreen(preview);
                 String configFile=System.getProperty("impostor.connection","");
-                if(configFile.isBlank()){preview.presentPhase(com.erni.finalanswer.gameplay.impostor.ImpostorPhase.INTRO,0,0);suspicion=ImpostorPreviewData.installControls(preview);clues=new ImpostorCluePreview(preview);finalAct=new ImpostorFinalPreview(preview);}
+                if(configFile.isBlank()){preview.presentPhase(com.erni.finalanswer.gameplay.impostor.ImpostorPhase.INTRO,0,0);suspicion=ImpostorPreviewData.installControls(preview);clues=new ImpostorCluePreview(preview);finalAct=new ImpostorFinalPreview(preview);String verdict=System.getProperty("impostor.preview.verdict","");if(!verdict.isBlank())finalAct.previewOutcome(verdict);}
                 else {
                     try {
                         var config=com.google.gson.JsonParser.parseString(java.nio.file.Files.readString(java.nio.file.Path.of(configFile))).getAsJsonObject();

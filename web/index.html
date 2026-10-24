@@ -8,19 +8,19 @@
   <link rel="preload" href="/art/ui/fonts/Caveat-Variable.ttf?v=2" as="font" type="font/ttf" crossorigin>
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/controller-theme.css?v=role-2">
-  <script src="/final-answer-button.js?v=phone-polish-2" defer></script>
-  <script src="/final-voting.js?v=phone-polish-2" defer></script>
-  <script src="/parchment-writer.js?v=phone-polish-2" defer></script>
-  <script src="/countdown-clock.js?v=phone-polish-2" defer></script>
-  <script src="/impostor.js?v=phone-polish-2" defer></script>
-  <script src="/suspicion.js?v=phone-polish-2" defer></script>
+  <script src="/final-answer-button.js?v=story-3" defer></script>
+  <script src="/final-voting.js?v=story-3" defer></script>
+  <script src="/parchment-writer.js?v=story-3" defer></script>
+  <script src="/countdown-clock.js?v=story-3" defer></script>
+  <script src="/impostor.js?v=story-3" defer></script>
+  <script src="/suspicion.js?v=story-3" defer></script>
   <link rel="stylesheet" href="/cursed-boxes.css?v=1">
   <script src="/cursed-boxes.js?v=private-targets-1" defer></script>
-  <link rel="stylesheet" href="/controller-polish.css?v=phone-polish-2">
-  <script src="/controller-presentation.js?v=phone-polish-2" defer></script>
+  <link rel="stylesheet" href="/controller-polish.css?v=story-3">
+  <script src="/controller-presentation.js?v=story-3" defer></script>
   <script src="/connection-health.js?v=1" defer></script>
   <script src="/impostor-audio.js?v=writing-2" defer></script>
-  <script src="/app.js?v=phone-polish-2" defer></script>
+  <script src="/app.js?v=story-3" defer></script>
 </head>
 <body>
   <div class="ambient" aria-hidden="true"></div>
@@ -107,6 +107,7 @@
       <p id="final-timer" role="timer"></p>
       <p id="final-progress"></p>
       <div id="vote-receipt" class="choice-receipt" hidden><p class="receipt-label">ГОЛОС ЗАФИКСИРОВАН</p><p id="vote-receipt-value"></p><span>Ваш выбор принят. Смотрите на общий экран.</span></div>
+      <details id="clue-history" class="clue-history" hidden><summary>ИСТОРИЯ ПОДСКАЗОК</summary><div id="clue-history-content"></div></details>
       <p id="final-status" role="status" aria-live="polite"></p>
       <div id="final-cards" class="suspect-cards"></div>
       <div id="vote-draft" class="vote-draft" hidden><span>ВАШ ПОДОЗРЕВАЕМЫЙ</span><strong id="vote-draft-name"></strong><p>Проверьте выбор и подтвердите голос.</p></div>
@@ -116,9 +117,13 @@
     </section>
     <section id="impostor-screen" class="screen" lang="ru" hidden>
       <p id="impostor-round" class="eyebrow"></p>
-      <div class="role-panel"><img class="role-parchment" src="/art/impostor/phone/word_reminise.png" alt="" draggable="false"><h2 id="impostor-role"></h2>
+      <div class="role-panel"><img class="role-parchment" src="/art/impostor/phone/word_reminise.png" alt="" draggable="false"><div id="role-private" hidden><h2 id="impostor-role"></h2>
       <p id="impostor-word" class="secret-word"></p>
       <p id="impostor-role-note"></p></div>
+      <div id="role-cover" class="role-cover" hidden><strong>ВАША РОЛЬ СКРЫТА</strong><span>Карточку видите только вы.</span></div></div>
+      <button id="role-privacy-toggle" type="button" data-native-button aria-controls="role-private" aria-expanded="false">ПОКАЗАТЬ РОЛЬ</button>
+      <button id="role-guide-toggle" class="role-guide-toggle" type="button" data-native-button aria-controls="role-guide" aria-expanded="false">КАК ИГРАТЬ</button>
+      <aside id="role-guide" class="role-guide" hidden><h3 id="role-guide-title"></h3><p id="role-guide-copy"></p><button id="role-guide-dismiss" type="button" data-native-button>ПОНЯТНО</button></aside>
       <canvas id="role-countdown-clock" width="320" height="336" role="img" aria-label="Время чтения роли" hidden></canvas>
       <p id="impostor-countdown" role="timer"></p>
       <form id="clue-form" hidden>
