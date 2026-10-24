@@ -215,3 +215,11 @@ tasks.register('cursedEliminationCheck', JavaExec) {
     mainClass = 'com.erni.finalanswer.cursedboxes.CursedEliminationCheck'
 }
 check.dependsOn tasks.named('cursedEliminationCheck')
+
+tasks.register('votingNarrationCheck', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.impostor.VotingNarrationCheck'
+}
+check.dependsOn tasks.named('votingNarrationCheck')

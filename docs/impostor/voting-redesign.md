@@ -1,5 +1,11 @@
 # Voting ceremony redesign
 
+Updated follow-up: the ceremony now displays **one verdict heading only**, after
+counting. The former kicker, supporting sentence, imprint counter and zero-vote
+caption have been removed. Upper characters/layout are unchanged in this follow-up.
+See [recorded narration integration](voting-narration.md) for recording IDs, scripts,
+server-owned duration scheduling and missing-file behavior.
+
 The voting presentation has been rebuilt; the existing room artwork, round table,
 chairs, lamp, wall decorations, clock, character rigs and original textures are preserved.
 
@@ -39,7 +45,7 @@ incoming batch color is black or white, and restores the incoming state.
   name baseline; readable Cyrillic names; restrained identity-colored rules. Old clue
   parchments and redundant elimination captions are hidden only during the ceremony.
 - **Announcement:** native-resolution horror display type, aged ivory, a dark shadow,
-  restrained bronze ornaments, and one explanatory sentence. English/Russian copy
+  restrained bronze ornaments, and one result heading. English/Russian copy
   uses the existing `Localization` bundles. Ties never single out a player. No votes
   is a separate state; a condemned innocent is shown only when the server identifies
   a single accused player different from the impostor.

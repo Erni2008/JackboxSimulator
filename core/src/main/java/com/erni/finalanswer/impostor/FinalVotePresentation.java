@@ -14,24 +14,23 @@ import java.util.function.Function;
 
 /** A server-timed, three-zone ceremony. Owns render resources; never computes a vote or changes a phase. */
 public final class FinalVotePresentation extends Group implements AutoCloseable {
-    private static final Color IVORY=Color.valueOf("E8D8B5"),BEIGE=Color.valueOf("BDAD91"),GOLD=Color.valueOf("BA995F");
+    private static final Color IVORY=Color.valueOf("E8D8B5");
     private final ImpostorAssets assets;
     private final Localization texts;
     private final Function<RoomSession.Player,Actor> avatars;
     private final VotingResources resources=new VotingResources();
     private final Group cards=new Group(),heading=new Group();
-    private final Label title,titleShadow,detail,progress,kicker;
+    private final Label title,titleShadow;
     private final Image stamp,shade;
     private final Map<String,VotingCard> cardsById=new LinkedHashMap<>();
-    private final Map<String,String> names=new LinkedHashMap<>();
     private final java.util.List<Image> marks=new ArrayList<>();
     private final java.util.List<String> targets=new ArrayList<>();
     private final com.badlogic.gdx.math.Vector2 impactPoint=new com.badlogic.gdx.math.Vector2(),previousPoint=new com.badlogic.gdx.math.Vector2();
     private FinalActSnapshot snapshot;
-    private String sequence="",shownLanguage="";
+    private String sequence="",shownLanguage="",shownTitleKey="",selectedId="";
     private boolean copyDirty=true,lastIdentified;
-    private int revealed,shownVote=-1;
-    private long previousUpdate=-1,ceremonyStarted;
+    private int revealed;
+    private long previousUpdate=-1,ceremonyStarted,headlineStarted,verdictStarted;
     private boolean paused,reducedMotion;
     private Runnable impact=()->{};
     public FinalVotePresentation(ImpostorAssets assets,Localization texts,Function<RoomSession.Player,Actor> avatars){
@@ -39,12 +38,8 @@ public final class FinalVotePresentation extends Group implements AutoCloseable 
         setName("finalAct");setSize(1920,1080);setTouchable(Touchable.disabled);setVisible(false);
         shade=new Image(new TextureRegionDrawable(resources.pixel));shade.setName("votingRoomShade");shade.setBounds(0,0,1920,1080);shade.setColor(0,0,0,0);shade.setTouchable(Touchable.disabled);shade.setVisible(false);
         addActor(heading);
-        kicker=label("finalKicker",resources.caption,GOLD,220,724,1480,30);
         titleShadow=label("finalTitleShadow",resources.heading,new Color(0,0,0,.8f),152,601,1620,112);
         title=label("finalTitle",resources.heading,IVORY,150,605,1620,112);
-        detail=label("finalDetail",resources.body,BEIGE,210,550,1500,72);detail.setWrap(true);
-        progress=label("finalProgress",resources.caption,GOLD,220,724,1480,30);
-        decoration(600,719,290,1);decoration(1030,719,290,1);Image seal=decoration(956,715,8,8);seal.setOrigin(4,4);seal.setRotation(45);
         cards.setName("finalCards");addActor(cards);
         stamp=assets.texture(ImpostorAsset.STAMP).map(Image::new).orElse(null);
         if(stamp!=null){stamp.setName("woodenVoteStamp");stamp.setVisible(false);addActor(stamp);}
@@ -61,25 +56,25 @@ public final class FinalVotePresentation extends Group implements AutoCloseable 
     private Label label(String name,BitmapFont font,Color color,float x,float y,float width,float height){
         Label label=new Label("",new Label.LabelStyle(font,color));label.setFontScale(resources.fontScale);label.setName(name);label.setAlignment(Align.center);label.setBounds(x,y,width,height);heading.addActor(label);return label;
     }
-    private Image decoration(float x,float y,float width,float height){Image line=new Image(new TextureRegionDrawable(resources.pixel));line.setBounds(x,y,width,height);line.setColor(.47f,.35f,.20f,.65f);heading.addActor(line);return line;}
-    public void hidePresentation(){snapshot=null;sequence="";copyDirty=true;revealed=0;shownVote=-1;previousUpdate=-1;marks.clear();targets.clear();for(var card:cardsById.values())card.clearStamps();setVisible(false);shade.setVisible(false);if(stamp!=null)stamp.setVisible(false);}
-    public void clear(){hidePresentation();cards.clearChildren();cardsById.clear();names.clear();}
+    public void hidePresentation(){shownTitleKey="";selectedId="";headlineStarted=0;verdictStarted=0;snapshot=null;sequence="";copyDirty=true;revealed=0;previousUpdate=-1;marks.clear();targets.clear();for(var card:cardsById.values())card.clearStamps();setVisible(false);shade.setVisible(false);if(stamp!=null)stamp.setVisible(false);}
+    public void clear(){hidePresentation();cards.clearChildren();cardsById.clear();}
     public void setRoster(java.util.List<ImpostorParticipant> roster){
         if(roster.isEmpty()){clear();return;}
         if(roster.size()<2||roster.size()>8)throw new IllegalArgumentException("Voting presentation supports 2–8 players");
         var ids=new HashSet<String>();for(var player:roster)if(!ids.add(player.player().id()))throw new IllegalArgumentException("Duplicate voting identity");
         clear();boolean dense=roster.size()>=7;
-        kicker.setY(dense?735:724);progress.setY(kicker.getY());title.setY(dense?625:605);titleShadow.setY(title.getY()-4);detail.setY(dense?583:550);detail.setHeight(dense?44:72);
+        title.setY(dense?625:605);titleShadow.setY(title.getY()-4);
         int index=0;
-        for(var player:roster){var person=player.player();names.put(person.id(),person.name());VotingCard card=new VotingCard(person,avatars.apply(person),assets,resources,VotingLayout.card(roster.size(),index++),texts.get("impostor.vote.no_votes.card"));cardsById.put(person.id(),card);cards.addActor(card);}
+        for(var player:roster){var person=player.player();VotingCard card=new VotingCard(person,avatars.apply(person),assets,resources,VotingLayout.card(roster.size(),index++));cardsById.put(person.id(),card);cards.addActor(card);}
     }
     public int visibleStampCount(){int count=0;for(Image image:marks)if(image!=null&&image.isVisible())count++;return count;}
     public int stampCount(){return targets.size();}
     public void accept(FinalActSnapshot next){
+        if(snapshot!=null&&!snapshot.sessionId().equals(next.sessionId()))hidePresentation();
         if(VotingLayout.ceremony(next.phase())&&(snapshot==null||!VotingLayout.ceremony(snapshot.phase())||!snapshot.sessionId().equals(next.sessionId())))ceremonyStarted=next.phaseStartedAt();
         snapshot=next;setVisible(true);copyDirty=true;
         if(!next.sequenceId().isEmpty()&&!next.sequenceId().equals(sequence)){
-            sequence=next.sequenceId();previousUpdate=-1;shownVote=-1;revealed=0;marks.clear();targets.clear();for(var card:cardsById.values())card.clearStamps();
+            sequence=next.sequenceId();previousUpdate=-1;revealed=0;marks.clear();targets.clear();for(var card:cardsById.values())card.clearStamps();
             var totals=new HashMap<String,Integer>();for(String id:next.stampTargets()){if(!cardsById.containsKey(id))throw new IllegalArgumentException("Unknown vote target: "+id);totals.merge(id,1,Integer::sum);}
             var slots=new HashMap<String,Integer>();
             for(String id:next.stampTargets()){int slot=slots.merge(id,1,Integer::sum)-1;Image mark=cardsById.get(id).addStamp(slot,totals.get(id),marks.size());marks.add(mark);targets.add(id);}
@@ -90,49 +85,50 @@ public final class FinalVotePresentation extends Group implements AutoCloseable 
     private void copy(long serverNow){
         boolean identified=snapshot.phase()==ImpostorPhase.RESULT||snapshot.phase()==ImpostorPhase.IMPOSTOR_REVEAL&&(snapshot.outcome().equals("NO_CONSENSUS")||serverNow-snapshot.phaseStartedAt()>=FinalRevealTiming.IDENTITY_NAME_MILLIS);
         if(!copyDirty&&lastIdentified==identified&&shownLanguage.equals(texts.getLanguage()))return;copyDirty=false;lastIdentified=identified;shownLanguage=texts.getLanguage();
-        String titleKey,detailKey;Object[] args={};
+        String titleKey="";
         if(identified){
-            switch(snapshot.outcome()){
-                case "NO_CONSENSUS"->{titleKey=snapshot.submitted()==0?"no_votes":"tie";detailKey=titleKey+".detail";}
-                case "IMPOSTOR_CAUGHT"->{titleKey="caught";detailKey="caught.detail";args=new Object[]{names.getOrDefault(snapshot.impostorId(),"")};}
-                case "IMPOSTOR_ESCAPED"->{
-                    boolean accused=snapshot.leaders().size()==1&&!snapshot.leaders().getFirst().equals(snapshot.impostorId());
-                    titleKey=accused?"innocent":"escaped";detailKey=accused?"innocent.detail":"escaped.detail";
-                    if(accused)args=new Object[]{names.getOrDefault(snapshot.leaders().getFirst(),"")};
-                }
-                default->{titleKey="complete";detailKey="complete.detail";}
-            }
-        }else switch(snapshot.phase()){
-            case EVIDENCE_REVIEW->{titleKey="discussion";detailKey="discussion.detail";}
-            case FINAL_VOTING->{titleKey="voting";detailKey="voting.detail";}
-            case VOTING_LOCKED->{titleKey="sealed";detailKey="sealed.detail";}
-            case FINAL_VOTE_REVEAL->{titleKey="revealing";detailKey="revealing.detail";}
-            case SUSPECT_ANNOUNCEMENT->{
-                if(snapshot.leaders().size()!=1){titleKey=snapshot.submitted()==0?"no_votes":"tie";detailKey=titleKey+".detail";}
-                else{titleKey="accused";detailKey="accused.detail";args=new Object[]{names.getOrDefault(snapshot.leaders().getFirst(),"")};}
-            }
-            default->{titleKey="identity";detailKey="identity.detail";}
+            titleKey=switch(snapshot.outcome()){
+                case "NO_CONSENSUS" -> snapshot.submitted()==0?"no_votes":"tie";
+                case "IMPOSTOR_CAUGHT" -> "caught";
+                case "IMPOSTOR_ESCAPED" -> snapshot.leaders().size()==1&&!snapshot.leaders().getFirst().equals(snapshot.impostorId())?"innocent":"escaped";
+                default -> "complete";
+            };
+        }else if(snapshot.phase()==ImpostorPhase.SUSPECT_ANNOUNCEMENT || snapshot.phase()==ImpostorPhase.IMPOSTOR_REVEAL){
+            titleKey=snapshot.leaders().size()==1?"accused":snapshot.submitted()==0?"no_votes":"tie";
         }
-        String value=texts.get("impostor.vote."+titleKey);title.setText(value);titleShadow.setText(value);detail.setText(texts.format("impostor.vote."+detailKey,args));kicker.setText(texts.get("impostor.vote.kicker"));
+        String value=titleKey.isEmpty()?"":texts.get("impostor.vote."+titleKey);
+        if(!shownTitleKey.equals(titleKey)){
+            shownTitleKey=titleKey;headlineStarted=snapshot.phaseStartedAt();
+            if(identified&&snapshot.phase()==ImpostorPhase.IMPOSTOR_REVEAL&&!snapshot.outcome().equals("NO_CONSENSUS"))headlineStarted+=FinalRevealTiming.IDENTITY_NAME_MILLIS;
+            headlineStarted=Math.max(headlineStarted,snapshot.revealStartedAt()+FinalRevealTiming.duration(targets.size()));
+        }
+        title.setText(value);titleShadow.setText(value);
+        // Measure at native font density; only shrink unusually long localized headings.
+        title.setFontScale(resources.fontScale);title.invalidate();
+        float fit=Math.min(1,title.getWidth()/Math.max(1,title.getPrefWidth()));
+        title.setFontScale(resources.fontScale*fit);titleShadow.setFontScale(resources.fontScale*fit);
         // Ties never select a random/actual impostor as the visual winner of the vote.
         String selected="";if(identified&&!snapshot.outcome().equals("NO_CONSENSUS"))selected=snapshot.outcome().equals("IMPOSTOR_CAUGHT")?snapshot.impostorId():snapshot.leaders().size()==1?snapshot.leaders().getFirst():"";
-        else if(snapshot.phase()==ImpostorPhase.SUSPECT_ANNOUNCEMENT&&snapshot.leaders().size()==1)selected=snapshot.leaders().getFirst();
-        for(var entry:cardsById.entrySet()){entry.getValue().caption(texts.get("impostor.vote.no_votes.card"));entry.getValue().emphasize(entry.getKey().equals(selected));}
+        else if((snapshot.phase()==ImpostorPhase.SUSPECT_ANNOUNCEMENT||snapshot.phase()==ImpostorPhase.IMPOSTOR_REVEAL)&&snapshot.leaders().size()==1)selected=snapshot.leaders().getFirst();
+        if(!selectedId.equals(selected)){selectedId=selected;verdictStarted=snapshot.phaseStartedAt();}
     }
     public void update(long serverNow){
         if(snapshot==null||paused)return;copy(serverNow);
-        long age=Math.max(0,serverNow-snapshot.phaseStartedAt()),elapsed=Math.max(0,serverNow-snapshot.revealStartedAt());
+        long elapsed=Math.max(0,serverNow-snapshot.revealStartedAt());
         boolean ceremony=VotingLayout.ceremony(snapshot.phase());
         shade.getColor().a=ceremony?.18f*(reducedMotion?1:smooth(VotingCard.clamp((serverNow-ceremonyStarted)/650f))):0;
-        long headlineStart=snapshot.phaseStartedAt();
-        if(snapshot.phase()==ImpostorPhase.IMPOSTOR_REVEAL&&!snapshot.outcome().equals("NO_CONSENSUS")&&serverNow-snapshot.phaseStartedAt()>=FinalRevealTiming.IDENTITY_NAME_MILLIS)headlineStart+=FinalRevealTiming.IDENTITY_NAME_MILLIS;
-        float intro=reducedMotion?1:smooth(VotingCard.clamp((serverNow-headlineStart)/550f));
+        float intro=reducedMotion?1:smooth(VotingCard.clamp((serverNow-headlineStarted)/550f));
         if(!reducedMotion&&snapshot.phase()==ImpostorPhase.IMPOSTOR_REVEAL&&!snapshot.outcome().equals("NO_CONSENSUS")){long until=snapshot.phaseStartedAt()+FinalRevealTiming.IDENTITY_NAME_MILLIS-serverNow;if(until>0&&until<180)intro*=VotingCard.clamp(until/180f);}
+        long countFinished=snapshot.revealStartedAt()+FinalRevealTiming.duration(targets.size());
+        boolean verdictPhase=snapshot.phase()==ImpostorPhase.SUSPECT_ANNOUNCEMENT||snapshot.phase()==ImpostorPhase.IMPOSTOR_REVEAL||snapshot.phase()==ImpostorPhase.RESULT;
+        heading.setVisible(verdictPhase&&serverNow>=countFinished&&!title.getText().isEmpty());
         heading.getColor().a=intro;
-        detail.getColor().a=reducedMotion?1:smooth(VotingCard.clamp((serverNow-headlineStart-100)/450f));
+        heading.setOrigin(960,title.getY()+56);heading.setScale(reducedMotion?1:.985f+.015f*intro);
         int index=0;for(var card:cardsById.values()){
             if(cards.isVisible())card.place(elapsed,index++,reducedMotion);
-            card.zeroVotes(snapshot.phase()!=ImpostorPhase.FINAL_VOTE_REVEAL);
+            float emphasis=reducedMotion?1:smooth(VotingCard.clamp((serverNow-verdictStarted)/450f));
+            card.emphasize(card.playerId.equals(selectedId),!selectedId.isEmpty(),emphasis);
+
             float eliminated=card.playerId.equals(snapshot.impostorId())?ImpostorElimination.age(snapshot,serverNow):-1;
             card.elimination.apply(eliminated,reducedMotion,0);
         }
@@ -145,9 +141,6 @@ public final class FinalVotePresentation extends Group implements AutoCloseable 
             if(!reducedMotion&&markAge>=0&&markAge<160){VotingCard target=cardsById.get(targets.get(i));target.moveBy(0,-1.3f*(float)Math.sin(Math.PI*markAge/160));}
         }
         revealed=Math.max(revealed,count);previousUpdate=serverNow;
-        if(snapshot.phase()==ImpostorPhase.FINAL_VOTE_REVEAL){if(shownVote!=count){shownVote=count;progress.setText(texts.format("impostor.vote.imprints",count,targets.size()));}}
-        else if(snapshot.phase()==ImpostorPhase.FINAL_VOTING||snapshot.phase()==ImpostorPhase.VOTING_LOCKED)progress.setText(texts.format("impostor.vote.accepted",snapshot.submitted(),snapshot.eligible()));else progress.setText("");
-        boolean counter=!progress.getText().isEmpty();progress.setVisible(counter);kicker.setVisible(!counter);
         if(stamp==null)return;
         long relative=elapsed-FinalRevealTiming.LEAD;int current=(int)(relative/FinalRevealTiming.INTERVAL);
         boolean moving=!reducedMotion&&snapshot.phase()==ImpostorPhase.FINAL_VOTE_REVEAL&&relative>=0&&current<targets.size();stamp.setVisible(moving);

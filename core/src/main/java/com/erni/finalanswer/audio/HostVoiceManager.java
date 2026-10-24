@@ -63,6 +63,8 @@ public final class HostVoiceManager implements AutoCloseable {
     public void playLine(String id,String eventId,Consumer<Result> completion){request("events",id,eventId,completion);}
     public void playIntro(String id,String eventId,Consumer<Result> completion){request("intro",id,eventId,completion);}
     public void playIntro(String id,String eventId,float offset,Consumer<Result> completion){request("intro",id,eventId,offset,completion);}
+    public boolean manifestReady(){return !manifestPending;}
+    public Entry eventEntry(String id){return manifest.events==null?null:manifest.events.get(id);}
     public Entry introEntry(String id){return manifest.intro==null?null:manifest.intro.get(id);}
     public void prepareIntro(Collection<String> ids,boolean review){introBank=List.copyOf(ids);allowIntroReview=review;bankQueued=false;releaseBank=false;}
     public boolean introPrepared(){return !manifestPending&&bankQueued&&loaderReady;}
@@ -152,6 +154,7 @@ public final class HostVoiceManager implements AutoCloseable {
     public void setVolume(float value){volume=AudioMix.unit(value);}
     public void scopeGain(float value){scopeGain=AudioMix.unit(value);}
     public float position(){return music==null?0:Math.max(0,music.getPosition());}
+    public boolean busy(){return music!=null||current!=null||queued!=null||pending!=null||loading!=null;}
     public boolean playing(){return music!=null&&!paused;}
     @Override public void close(){if(closed)return;closed=true;stop();loader.close();}
 

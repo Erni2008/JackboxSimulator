@@ -17,8 +17,18 @@ public final class FinalVoting {
         private static long duration(String key,long fallback){return Long.parseLong(System.getProperty("impostor."+key+"Millis",
             System.getenv().getOrDefault("IMPOSTOR_"+key.toUpperCase(Locale.ROOT)+"_MILLIS",Long.toString(fallback))));}
     }
-    public static final long LOCK_MILLIS=700, LEAD_MILLIS=FinalRevealTiming.LEAD, STAMP_MILLIS=FinalRevealTiming.INTERVAL, IMPACT_MILLIS=FinalRevealTiming.IMPACT,
-        HOLD_MILLIS=FinalRevealTiming.HOLD, ANNOUNCEMENT_MILLIS=3500, IDENTITY_MILLIS=4000;
+    private static final Properties VOICE_TIMING=voiceTiming();
+    private static Properties voiceTiming(){
+        var values=new Properties();
+        try(var stream=FinalVoting.class.getResourceAsStream("/impostor-vote-narration.properties")){if(stream!=null)values.load(stream);}
+        catch(java.io.IOException ignored){}return values;
+    }
+    private static long voiceWindow(String bank,long minimum,long lead){
+        try{long duration=Long.parseLong(VOICE_TIMING.getProperty(bank,"0"));return duration>0?Math.max(minimum,lead+Math.min(120_000,duration)):minimum;}
+        catch(NumberFormatException ignored){return minimum;}
+    }
+    public static final long LOCK_MILLIS=voiceWindow("intro",700,350), LEAD_MILLIS=FinalRevealTiming.LEAD, STAMP_MILLIS=FinalRevealTiming.INTERVAL, IMPACT_MILLIS=FinalRevealTiming.IMPACT,
+        HOLD_MILLIS=FinalRevealTiming.HOLD, ANNOUNCEMENT_MILLIS=voiceWindow("announcement",3500,350), IDENTITY_MILLIS=voiceWindow("identity",4000,FinalRevealTiming.IDENTITY_NAME_MILLIS+350);
     private final Set<String> eligible;
     private final Map<String,String> votes=new LinkedHashMap<>();
     private final long deadline;

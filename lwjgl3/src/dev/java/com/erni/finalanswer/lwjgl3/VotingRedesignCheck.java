@@ -56,12 +56,27 @@ public final class VotingRedesignCheck extends FinalAnswerGame {
                     scene.presentFinal(new FinalActSnapshot("visual-"+count,ImpostorPhase.IMPOSTOR_REVEAL,100000,104000,90000,targets.size(),count,"visual-"+count+outcome,targets,counts,leaders,impostor,result),105000);scene.render(0);
                     check(view.stampCount()==targets.size()&&view.visibleStampCount()==targets.size(),"One visible stamp per actual vote: "+count+outcome);
                     for(var player:roster){Group card=view.findActor("finalCard:"+player.player().id());check(card.getColor().a==1,"Opaque card group in "+outcome);Image paper=card.findActor("finalParchment");check(paper.getColor().a==1,"Opaque paper actor");check(!((Group)stage().getRoot().findActor("participant:"+player.player().id())).findActor("paper").isVisible(),"No stray clue parchment in upper row");}
-                    if(result.equals("NO_CONSENSUS")){String supporting=((Label)view.findActor("finalDetail")).getText().toString();for(var player:roster)check(!supporting.contains(player.player().name()),"Tie must not single out a player");}
+                    if(result.equals("NO_CONSENSUS")){String supporting=((Label)view.findActor("finalTitle")).getText().toString();for(var player:roster)check(!supporting.contains(player.player().name()),"Tie must not single out a player");}
                     geometry(view,roster);
                     for(int[] size:new int[][]{{1920,1080},{1600,900},{1366,768},{1280,720}}){boolean save=count==4||size[0]==1280&&outcome.equals("caught");capture(size[0],size[1],count+"players-"+outcome,save);}
                 }
                 check(Texture.getNumManagedTextures()==baseline,"Rosters and outcomes cannot accumulate textures");Gdx.app.log("Voting QA","PASS 2–8 layout case: "+count+" players");
             }
+            // Same verdict survives phase boundaries; appearance changes only with its meaning.
+            scene.setParticipants(ImpostorPreviewData.participants(4));
+            var stableTargets=java.util.List.of("preview-1","preview-1");var stableCounts=Map.of("preview-1",2);
+            view.accept(new FinalActSnapshot("continuity",ImpostorPhase.SUSPECT_ANNOUNCEMENT,100000,101000,90000,2,4,"stable",stableTargets,stableCounts,java.util.List.of("preview-1"),"",""));view.update(100600);
+            Actor headline=view.findActor("finalTitle").getParent();check(headline.getColor().a==1,"Settled announcement is fully visible");
+            Image otherShade=((Group)view.findActor("finalCard:preview-0")).findActor("verdictCardShade");
+            check(Math.abs(otherShade.getColor().a-.17f)<.001f,"Verdict shade restores immediately from server time");
+            view.accept(new FinalActSnapshot("continuity",ImpostorPhase.IMPOSTOR_REVEAL,101000,105000,90000,2,4,"stable",stableTargets,stableCounts,java.util.List.of("preview-1"),"preview-1","IMPOSTOR_CAUGHT"));view.update(101001);
+            check(headline.getColor().a==1,"Unchanged verdict never flashes at identity phase start");
+            view.update(104950);check(headline.getColor().a==1,"Identity title finishes its own entrance");
+            view.accept(new FinalActSnapshot("continuity",ImpostorPhase.RESULT,105000,0,90000,2,4,"stable",stableTargets,stableCounts,java.util.List.of("preview-1"),"preview-1","IMPOSTOR_CAUGHT"));view.update(105001);
+            check(headline.getColor().a==1,"Result retains the revealed title without restarting animation");
+            view.accept(new FinalActSnapshot("new-session",ImpostorPhase.FINAL_VOTE_REVEAL,110000,115000,110000,1,4,"stable",java.util.List.of("preview-0"),Map.of("preview-0",1),java.util.List.of(),"",""));view.update(110001);
+            check(view.stampCount()==1&&view.visibleStampCount()==0,"Reused sequence ID in a new session cannot retain old ink");
+            check(otherShade.getColor().a==0,"New ceremony clears the previous verdict shade");
             var longRoster=new ArrayList<ImpostorParticipant>(ImpostorPreviewData.participants(4));var old=longRoster.get(0).player();String longName="ЖёлтыйОченьДлинныйНик";
             longRoster.set(0,new ImpostorParticipant(new com.erni.finalanswer.rooms.RoomSession.Player(old.id(),longName,false,old.characterId(),"ONLINE",false,0),java.util.List.of("","","")));
             scene.setParticipants(longRoster);scene.presentPhase(ImpostorPhase.IMPOSTOR_REVEAL,104000,100000);scene.presentFinal(new FinalActSnapshot("long",ImpostorPhase.IMPOSTOR_REVEAL,100000,104000,90000,1,4,"long",java.util.List.of("preview-1"),Map.of("preview-1",1),java.util.List.of("preview-1"),"preview-1","IMPOSTOR_CAUGHT"),105000);scene.render(0);
@@ -75,6 +90,8 @@ public final class VotingRedesignCheck extends FinalAnswerGame {
             final int[] sounds={0};view.onImpact(()->sounds[0]++);view.update(reveal);
             for(int i=0;i<4;i++){long at=reveal+FinalRevealTiming.LEAD+i*FinalRevealTiming.INTERVAL+FinalRevealTiming.IMPACT;view.update(at-1);check(view.visibleStampCount()==i,"No early imprint");view.update(at);view.update(at);check(view.visibleStampCount()==i+1,"One imprint at each contact");}
             check(sounds[0]==4,"Exactly four synchronized impact callbacks");
+            check(!view.findActor("finalTitle").isVisible() || !view.findActor("finalTitle").getParent().isVisible(),"No headline during counting");
+            check(view.findActor("finalDetail")==null&&view.findActor("finalKicker")==null&&view.findActor("finalProgress")==null,"Only one central announcement");
             var snapshot=new FinalActSnapshot("sequence",ImpostorPhase.FINAL_VOTE_REVEAL,reveal,reveal+FinalRevealTiming.duration(4),reveal,4,4,"sequence",java.util.List.of(ids.get(0),ids.get(1),ids.get(1),ids.get(1)),Map.of(ids.get(0),1,ids.get(1),3),java.util.List.of(),"","");view.accept(snapshot);view.update(reveal+5000);check(sounds[0]==4,"Resync does not replay impacts");
             sounds[0]=0;view.accept(new FinalActSnapshot("pause",ImpostorPhase.FINAL_VOTE_REVEAL,reveal,reveal+FinalRevealTiming.duration(4),reveal,4,4,"pause",java.util.List.of(ids.get(0),ids.get(1),ids.get(1),ids.get(1)),Map.of(ids.get(0),1,ids.get(1),3),java.util.List.of(),"",""));
             view.update(reveal);view.update(reveal+FinalRevealTiming.LEAD+FinalRevealTiming.IMPACT);view.paused(true);view.update(reveal+5000);view.paused(false);view.update(reveal+5000);

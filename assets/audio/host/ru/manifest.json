@@ -165,6 +165,120 @@
       "duration": 3.599958,
       "manualReview": "not_yet_reviewed",
       "processingHash": null
+    },
+    "impostor_vote_intro_1": {
+      "file": "events/impostor_vote_intro_1.ogg",
+      "status": "missing",
+      "duration": 0,
+      "script": "Ну что же, мои дорогие…"
+    },
+    "impostor_vote_intro_2": {
+      "file": "events/impostor_vote_intro_2.ogg",
+      "status": "missing",
+      "duration": 0,
+      "script": "Посмотрим, кого вы решили отправить на тот свет!"
+    },
+    "impostor_vote_first": {
+      "file": "events/impostor_vote_first.ogg",
+      "status": "missing",
+      "duration": 0,
+      "script": "Первый голос…"
+    },
+    "impostor_vote_second": {
+      "file": "events/impostor_vote_second.ogg",
+      "status": "missing",
+      "duration": 0,
+      "script": "А вот и второй…"
+    },
+    "impostor_vote_tie_1": {
+      "file": "events/impostor_vote_tie_1.ogg",
+      "status": "missing",
+      "duration": 0,
+      "script": "О-о-о… Да вы издеваетесь!"
+    },
+    "impostor_vote_tie_2": {
+      "file": "events/impostor_vote_tie_2.ogg",
+      "status": "missing",
+      "duration": 0,
+      "script": "Ничья? Серьёзно?"
+    },
+    "impostor_vote_tie_3": {
+      "file": "events/impostor_vote_tie_3.ogg",
+      "status": "missing",
+      "duration": 0,
+      "script": "Какие же вы нерешительные…"
+    },
+    "impostor_vote_tie_spared": {
+      "file": "events/impostor_vote_tie_spared.ogg",
+      "status": "missing",
+      "duration": 0,
+      "script": "Что ж… На этот раз никто не покинет комнату."
+    },
+    "impostor_vote_accused_1": {
+      "file": "events/impostor_vote_accused_1.ogg",
+      "status": "missing",
+      "duration": 0,
+      "script": "О-о-о… Кажется, у нас есть победитель!"
+    },
+    "impostor_vote_accused_2": {
+      "file": "events/impostor_vote_accused_2.ogg",
+      "status": "missing",
+      "duration": 0,
+      "script": "Хотя… Для одного из вас это совсем не победа."
+    },
+    "impostor_vote_accused_address": {
+      "file": "events/impostor_vote_accused_address.ogg",
+      "status": "missing",
+      "duration": 0,
+      "script": "Ну что…"
+    },
+    "impostor_vote_accused_reveal": {
+      "file": "events/impostor_vote_accused_reveal.ogg",
+      "status": "missing",
+      "duration": 0,
+      "script": "Пришло время узнать, кто ты на самом деле."
+    },
+    "impostor_vote_caught_1": {
+      "file": "events/impostor_vote_caught_1.ogg",
+      "status": "missing",
+      "duration": 0,
+      "script": "Надо же… Вы действительно его нашли."
+    },
+    "impostor_vote_caught_2": {
+      "file": "events/impostor_vote_caught_2.ogg",
+      "status": "missing",
+      "duration": 0,
+      "script": "Признаюсь, я такого не ожидал."
+    },
+    "impostor_vote_caught_3": {
+      "file": "events/impostor_vote_caught_3.ogg",
+      "status": "missing",
+      "duration": 0,
+      "script": "Похоже, сегодня вам повезло."
+    },
+    "impostor_vote_innocent_1": {
+      "file": "events/impostor_vote_innocent_1.ogg",
+      "status": "missing",
+      "duration": 0,
+      "script": "Ой-ой-ой…"
+    },
+    "impostor_vote_innocent_2": {
+      "file": "events/impostor_vote_innocent_2.ogg",
+      "status": "missing",
+      "duration": 0,
+      "script": "Кажется, кто-то совершил ужасную ошибку."
+    },
+    "impostor_vote_innocent_3": {
+      "file": "events/impostor_vote_innocent_3.ogg",
+      "status": "missing",
+      "duration": 0,
+      "script": "Вы только что избавились от невиновного."
+    },
+    "impostor_vote_innocent_4": {
+      "file": "events/impostor_vote_innocent_4.ogg",
+      "status": "missing",
+      "duration": 0,
+      "script": "А настоящий самозванец всё ещё среди вас…"
     }
   },
   "intro": {

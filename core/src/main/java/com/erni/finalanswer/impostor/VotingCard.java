@@ -16,13 +16,12 @@ final class VotingCard extends Group {
     final VotingLayout.Placement rest;
     final Group portrait;
     final ImpostorElimination elimination;
-    private final Image shadow,contact,line;
-    private final Label name,noVotes;
+    private final Image shadow,contact,line,dim;
+    private final Label name;
     private final VotingResources resources;
     private final ImpostorAssets assets;
-    private int votes;
     private final java.util.List<Image> imprints=new ArrayList<>();
-    VotingCard(RoomSession.Player player,Actor avatar,ImpostorAssets assets,VotingResources resources,VotingLayout.Placement placement,String zeroText){
+    VotingCard(RoomSession.Player player,Actor avatar,ImpostorAssets assets,VotingResources resources,VotingLayout.Placement placement){
         this.playerId=player.id();this.assets=assets;this.resources=resources;rest=placement;
         setName("finalCard:"+player.id());setBounds(rest.x(),rest.y(),rest.width(),rest.height());setOrigin(getWidth()/2,getHeight()/2);setRotation(rest.rotation());
         Texture paper=assets.texture(ImpostorAsset.SUSPECT_PAPER).orElse(null);
@@ -40,20 +39,24 @@ final class VotingCard extends Group {
         }
         addActor(portrait);elimination=new ImpostorElimination(portrait);
         Image portraitEdge=new Image(new TextureRegionDrawable(resources.pixel));portraitEdge.setBounds(portrait.getX(),portrait.getY()-1,portrait.getWidth(),1);portraitEdge.setColor(.35f,.25f,.18f,.32f);addActor(portraitEdge);
-        noVotes=new Label(zeroText,new Label.LabelStyle(resources.caption,Color.valueOf("775D46")));noVotes.setAlignment(Align.center);noVotes.setBounds(getWidth()*.12f,getHeight()*.18f,getWidth()*.76f,getHeight()*.13f);noVotes.setFontScale(resources.fontScale*Math.min(1,getWidth()/250));noVotes.setVisible(false);addActor(noVotes);
+        dim=paper==null?new Image(new TextureRegionDrawable(resources.pixel)):new Image(paper);
+        dim.setName("verdictCardShade");dim.setSize(getWidth(),getHeight());dim.setColor(0,0,0,0);dim.setTouchable(Touchable.disabled);addActor(dim);
     }
-    void caption(String value){noVotes.setText(value);}
-    void zeroVotes(boolean visible){noVotes.setVisible(visible&&votes==0);}
-    void clearStamps(){votes=0;for(Image mark:imprints)mark.remove();imprints.clear();}
+    void clearStamps(){emphasize(false,false,1);for(Image mark:imprints)mark.remove();imprints.clear();}
     Image addStamp(int slot,int total,int globalIndex){
-        votes=total;Texture ink=assets.texture(ImpostorAsset.STAMP_MARK).orElse(null);if(ink==null)return null;
+        Texture ink=assets.texture(ImpostorAsset.STAMP_MARK).orElse(null);if(ink==null)return null;
         int columns=total<=2?total:total<=4?2:total<=6?3:4,rows=(total+columns-1)/columns,row=slot/columns,col=slot%columns;
         float gap=getWidth()*.027f,size=Math.min(getWidth()*.23f,Math.min((getWidth()*.70f-gap*(columns-1))/columns,(getHeight()*.29f-gap*(rows-1))/rows));
         int rowCount=Math.min(columns,total-row*columns);
         float x=(getWidth()-rowCount*size-(rowCount-1)*gap)/2+col*(size+gap),y=getHeight()*.115f+(rows-1-row)*(size+gap);
-        Image mark=new Image(ink);mark.setName("voteStamp:"+globalIndex);mark.setBounds(x,y,size,size*ink.getHeight()/ink.getWidth());mark.setOrigin(size/2,mark.getHeight()/2);mark.setRotation((globalIndex%5-2)*2.1f);mark.setColor(.72f,.50f,.50f,1);mark.setVisible(false);addActor(mark);imprints.add(mark);return mark;
+        Image mark=new Image(ink);mark.setName("voteStamp:"+globalIndex);mark.setBounds(x,y,size,size*ink.getHeight()/ink.getWidth());mark.setOrigin(size/2,mark.getHeight()/2);mark.setRotation((globalIndex%5-2)*2.1f);mark.setColor(.72f,.50f,.50f,1);mark.setVisible(false);addActorBefore(dim,mark);imprints.add(mark);return mark;
     }
-    void emphasize(boolean selected){line.setColor(selected?SELECTED_RULE:RULE);name.setColor(selected?SELECTED_INK:INK);}
+    void emphasize(boolean selected,boolean verdict,float progress){
+        float p=clamp(progress);
+        line.setColor(RULE);name.setColor(INK);
+        if(selected){line.getColor().lerp(SELECTED_RULE,p);name.getColor().lerp(SELECTED_INK,p);}
+        dim.getColor().a=verdict&&!selected?.17f*p:0;
+    }
     void place(long elapsed,int index,boolean reduced){
         float p=reduced?1:clamp((elapsed-650-index*90)/420f);setVisible(reduced||elapsed>=650+index*90);
         float ease=1-(float)Math.pow(1-p,3),landing=p<.78f?0:(float)Math.sin((p-.78f)/.22f*Math.PI)*1.4f;

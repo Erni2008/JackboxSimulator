@@ -46,6 +46,7 @@ public final class ImpostorScreen extends ScreenAdapter {
     private boolean openingAmbienceMuted;
     private RoleSubtitles roleInstruction;
     private float roleInstructionAge=-1;
+    private VotingNarration votingNarration;
     private boolean roleNarrationRequested,roleNarrationFinished;
     private String pendingRoleNarration;
     private final com.badlogic.gdx.Preferences localPreferences=Gdx.app.getPreferences("impostor-presentation");
@@ -236,6 +237,7 @@ public final class ImpostorScreen extends ScreenAdapter {
         } else if(finalSnapshot!=null) {
             long now=finalServerTime+(System.nanoTime()-finalReceivedNano)/1_000_000;
             finalPresentation.update(now);
+            if(!paused){if(votingNarration==null)votingNarration=new VotingNarration(game.getAudio().hostVoice());votingNarration.update(finalSnapshot,now);}
             boolean timed=finalSnapshot.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.EVIDENCE_REVIEW || finalSnapshot.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.FINAL_VOTING;
             long seconds=timed?Math.max(0,(finalSnapshot.deadline()-now+999)/1000):0;
             if(seconds!=displayedSuspicionSeconds){displayedSuspicionSeconds=seconds;
@@ -304,7 +306,7 @@ public final class ImpostorScreen extends ScreenAdapter {
         finalSnapshot=snapshot;finalServerTime=serverNow;finalReceivedNano=System.nanoTime();
         finalPresentation.accept(snapshot);displayedSuspicionSeconds=-1;
     }
-    public void clearFinal(){finalSnapshot=null;if(finalPresentation!=null)finalPresentation.hidePresentation();if(deathWindow!=null)deathWindow.reset();}
+    public void clearFinal(){if(votingNarration!=null)votingNarration.reset();finalSnapshot=null;if(finalPresentation!=null)finalPresentation.hidePresentation();if(deathWindow!=null)deathWindow.reset();}
 
     /** Optional development listeners attach to the game stage, never to the temporary opening. */
     public void addPreviewListener(InputListener listener){stage.addListener(listener);}
@@ -581,6 +583,7 @@ public final class ImpostorScreen extends ScreenAdapter {
         for(var view:participantViews)view.ready(liveRound&&!ceremony?readyIds.contains(view.playerId()):null);
         evidenceBoard.setVisible(evidenceBoard.hasClues()&&finalSnapshot!=null&&(finalSnapshot.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.EVIDENCE_REVIEW||finalSnapshot.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.FINAL_VOTING));
         game.getAudio().hostVoice().scopeGain(uiAudioGain());
+        audio.narrationActive(game.getAudio().hostVoice().playing(),paused?0:delta);
         transition.update(delta,paused,reduced);audio.writing(liveConnection!=null&&liveConnection.connected()&&liveConnection.serverNow()<writingUntil&&state.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.ROUND_CLUE_INPUT);audio.update(paused?0:delta);finalPresentation.reducedMotion(reduced);
         dust.update(paused?0:delta,reduced);veil.update(paused?0:delta,reduced);
         long verdictNow=finalServerTime+(System.nanoTime()-finalReceivedNano)/1_000_000;
@@ -645,6 +648,7 @@ public final class ImpostorScreen extends ScreenAdapter {
         if(deathWindow!=null)deathWindow.reset();
         pendingRoleNarration=null;roleInstructionAge=-1;roleNarrationFinished=true;
         if(roleInstruction!=null)roleInstruction.dismiss();
+        if(votingNarration!=null)votingNarration.reset();
         game.getAudio().hostVoice().stop();
         game.getAudio().hostVoice().scopeGain(1);
         transition.cancel();restorePresentation=true;audio.timer("",false);audio.pause(true);
@@ -659,6 +663,7 @@ public final class ImpostorScreen extends ScreenAdapter {
         if(deathWindow!=null)deathWindow.dispose();stage.dispose();
         if(opening!=null)opening.close();
         if(roleInstruction!=null)roleInstruction.close();if(evidenceBoard!=null)evidenceBoard.close();
+        if(votingNarration!=null)votingNarration.close();
         if(finalPresentation!=null)finalPresentation.close();if(localSettings!=null)localSettings.close();
         labelFont.dispose();
         timerFont.dispose();audio.close();if(roomSettings!=null)roomSettings.dispose();if(dust!=null)dust.dispose();if(veil!=null)veil.dispose();

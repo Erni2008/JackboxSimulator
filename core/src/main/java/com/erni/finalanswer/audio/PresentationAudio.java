@@ -37,7 +37,9 @@ public final class PresentationAudio implements AutoCloseable {
         case IMPOSTOR->"impostor_role_reveal.wav";
         default->null;
     };}
-    private float fade=1,volume=.65f;
+    private float fade=1,volume=.65f,narrationGain=1;
+    /** Screen-local voice duck; defaults to unity for every other presentation. */
+    public void narrationActive(boolean active,float delta){float target=active?.42f:1;float dt=Float.isFinite(delta)?Math.max(0,delta):0;narrationGain+=(target-narrationGain)*(1-(float)Math.exp(-dt/(active?.05f:.35f)));}
     private boolean muted,ambienceMuted,paused,closed;
     public PresentationAudio(Backend backend){
         clockPeriod=backend==GDX?QuestionAudio.clockPeriod():20;
@@ -79,7 +81,7 @@ public final class PresentationAudio implements AutoCloseable {
             float gain=writingFade*writingVolume*volume*AudioMix.GLOBAL.gain(AudioMix.Category.SFX);writing.setVolume(gain);
             if(gain>0&&!writingPlaying){writing.play();writing.setPosition(.1f);writingPlaying=true;writingStarts++;}else if(gain<=0&&writingPlaying)stopWriting();
         }catch(RuntimeException e){writingFailed=true;warn("Writing playback failed: "+e.getMessage());stopWriting();}
-        float level=muted||ambienceMuted?0:volume*.22f*AudioMix.GLOBAL.gain(AudioMix.Category.MUSIC);
+        float level=muted||ambienceMuted?0:volume*.22f*AudioMix.GLOBAL.gain(AudioMix.Category.MUSIC)*narrationGain;
         if(current!=null)current.setVolume(level*fade);
         if(previous!=null){previous.setVolume(level*(1-fade));if(fade==1){previous.stop();previous=null;}}}
     public void volume(float value){if(Float.isFinite(value))volume=Math.max(0,Math.min(1,value));}

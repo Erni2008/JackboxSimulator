@@ -78,3 +78,35 @@ processResources {
         into 'web/audio/impostor'
     }
 }
+
+// Only duration metadata is shipped to the server; host recordings stay on the desktop.
+// Ready recordings extend authoritative ceremony windows without changing vote rules.
+def votingVoiceTiming = tasks.register('generateVotingVoiceTiming') {
+    def manifest = rootProject.file('assets/audio/host/ru/manifest.json')
+    def output = layout.buildDirectory.file('generated/votingVoice/impostor-vote-narration.properties')
+    inputs.file(manifest)
+    outputs.file(output)
+    doLast {
+        def events = new groovy.json.JsonSlurper().parse(manifest).events
+        def duration = { String id ->
+            def entry = events['impostor_vote_' + id]
+            entry?.status == 'ready' && entry.duration instanceof Number && entry.duration > 0 && entry.duration <= 120 ? Math.ceil(entry.duration * 1000).longValue() : 0L
+        }
+        def bank = { List ids ->
+            ids.sum { id -> def ms = duration(id); ms > 0 ? ms + 680L : 0L } ?: 0L
+        }
+        long intro = bank(['intro_1','intro_2'])
+        long accused = bank(['accused_1','accused_2','accused_address','accused_reveal'])
+        long named = events.keySet().findAll { it.startsWith('impostor_vote_name_') }.collect { duration(it.substring('impostor_vote_'.length())) }.max() ?: 0L
+        if (named > duration('accused_address')) accused += named - duration('accused_address') + 680L
+        long announcement = Math.max(accused, bank(['tie_1','tie_2','tie_3','tie_spared']))
+        long identity = Math.max(bank(['caught_1','caught_2','caught_3']), bank(['innocent_1','innocent_2','innocent_3','innocent_4']))
+        def target = output.get().asFile
+        target.parentFile.mkdirs()
+        target.text = "intro=${intro}\nannouncement=${announcement}\nidentity=${identity}\n"
+    }
+}
+processResources {
+    dependsOn votingVoiceTiming
+    from(layout.buildDirectory.dir('generated/votingVoice'))
+}

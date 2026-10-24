@@ -157,7 +157,7 @@ public final class ImpostorCheck extends FinalAnswerGame {
         preview.presentFinal(new FinalActSnapshot("story",ImpostorPhase.EVIDENCE_REVIEW,10000,30000,0,0,4,"",java.util.List.of(),java.util.Map.of(),java.util.List.of(),"",""),10000);preview.render(0);
         check(stage(preview).getRoot().findActor("impostorEvidenceBoard").isVisible(),"Discussion presents all public clue rounds");capturePaperState("story-evidence-board");
         var outcomes=java.util.List.of("IMPOSTOR_CAUGHT","IMPOSTOR_ESCAPED","NO_CONSENSUS");
-        var titles=java.util.List.of("САМОЗВАНЕЦ ИЗГНАН","САМОЗВАНЕЦ СКРЫЛСЯ","ГОЛОСА РАЗДЕЛИЛИСЬ");
+        var titles=java.util.List.of("САМОЗВАНЕЦ РАСКРЫТ!","САМОЗВАНЕЦ СКРЫЛСЯ","НИЧЬЯ!");
         for(int i=0;i<outcomes.size();i++){
             preview.presentPhase(ImpostorPhase.IMPOSTOR_REVEAL,104000,100000);
             preview.presentFinal(new FinalActSnapshot("story",ImpostorPhase.IMPOSTOR_REVEAL,100000,104000,95000,4,4,"story-votes",java.util.List.of(first,first),java.util.Map.of(first,2),java.util.List.of(first,preview.participants().get(1).player().id()),first,outcomes.get(i)),105000);
@@ -663,7 +663,7 @@ public final class ImpostorCheck extends FinalAnswerGame {
             check(view.isVisible() && !stage(preview).getRoot().findActor("finalCards").isVisible(),"Discussion reserves table; no premature final cards");
             finalCaptureNow=1600;capturePaperState("final-discussion");
             var voting=new FinalActSnapshot("final-"+count,ImpostorPhase.FINAL_VOTING,31000,51000,0,1,count,"",java.util.List.of(),java.util.Map.of(),java.util.List.of(),"","");
-            preview.presentFinal(voting,32000);preview.render(0);view.update(32000);check(((Label)view.findActor("finalProgress")).getText().toString().equals("ПРИНЯТО ГОЛОСОВ: 1 / "+count),"Final progress stays aggregate");
+            preview.presentFinal(voting,32000);preview.render(0);view.update(32000);check(view.findActor("finalProgress")==null,"No production counter overlay");
             finalCaptureNow=32000;capturePaperState("final-voting");
             long reveal=52000;
             var snapshot=new FinalActSnapshot("final-"+count,ImpostorPhase.FINAL_VOTE_REVEAL,reveal,reveal+5000,reveal,count,count,"final-"+count+":1",targets,counts,java.util.List.of(),"","");
@@ -687,13 +687,13 @@ public final class ImpostorCheck extends FinalAnswerGame {
                 check(card.getX()>0 && card.getX()+card.getWidth()<=VotingLayout.TABLE_RIGHT+1 && card.getY()+card.getHeight()<510,"Final cards clear clock and portrait row");
             }
             var announcement=new FinalActSnapshot("final-"+count,ImpostorPhase.SUSPECT_ANNOUNCEMENT,58000,61500,reveal,count,count,snapshot.sequenceId(),targets,counts,java.util.List.of(b),"","");
-            preview.presentFinal(announcement,59000);preview.render(0);view.update(59000);check(((Label)view.findActor("finalDetail")).getText().toString().contains("Shadow"),"Suspect announcement before identity");
+            preview.presentFinal(announcement,59000);preview.render(0);view.update(59000);check(((Label)view.findActor("finalTitle")).getText().toString().equals("ПРИГОВОР ВЫНЕСЕН!"),"Suspect announcement before identity");
             finalCaptureNow=59000;capturePaperState("final-suspect");
             var identity=new FinalActSnapshot("final-"+count,ImpostorPhase.IMPOSTOR_REVEAL,61500,65500,reveal,count,count,snapshot.sequenceId(),targets,counts,java.util.List.of(b),b,"IMPOSTOR_CAUGHT");
             preview.presentFinal(identity,62500);preview.render(0);view.update(64899);
-            Label identityName=view.findActor("finalDetail");check(!identityName.getText().toString().contains("Shadow"),"Identity name waits for the 3.4-second musical accent");
-            view.reducedMotion(true);view.update(64899);check(!identityName.getText().toString().contains("Shadow"),"Reduced motion preserves suspense pause");
-            view.update(64900);check(identityName.getText().toString().contains("Shadow")&&identityName.getColor().a==1,"Identity appears at musical accent with reduced motion");
+            Label identityName=view.findActor("finalTitle");check(identityName.getText().toString().equals("ПРИГОВОР ВЫНЕСЕН!"),"Identity name waits for the 3.4-second musical accent");
+            view.reducedMotion(true);view.update(64899);check(identityName.getText().toString().equals("ПРИГОВОР ВЫНЕСЕН!"),"Reduced motion preserves suspense pause");
+            view.update(64900);check(identityName.getText().toString().equals("САМОЗВАНЕЦ РАСКРЫТ!")&&identityName.getColor().a==1,"Identity appears at musical accent with reduced motion");
             check(identityName.getStyle().font.getData().hasGlyph('Ж')&&identityName.getStyle().font.getData().hasGlyph('Я'),"Reveal handwriting contains Cyrillic glyphs");
             view.reducedMotion(false);view.update(65200);finalCaptureNow=65200;capturePaperState("final-identity");
             preview.presentFinal(identity,66000);preview.render(0);view.update(66000);
