@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "events": [
+    {"id":"round_start","text":"Начинаем новый раунд. Посмотрим, чему вы научились.","emotion":"NEUTRAL"},
+    {"id":"correct_answer","text":"Верно. Пока что вам удаётся меня удивлять.","emotion":"SARCASTIC"},
+    {"id":"wrong_answer","text":"Неверный ответ. Боюсь, это будет иметь последствия.","emotion":"SINISTER"},
+    {"id":"impostor_intro","text":"Добро пожаловать в игру «Самозванец». Внимательно прочитайте свою роль.","emotion":"DRAMATIC"},
+    {"id":"cursed_boxes_intro","text":"Перед вами проклятые коробки. Выбирайте своё укрытие с умом.","emotion":"SINISTER"},
+    {"id":"voting_start","text":"Пора голосовать. Кому из вас больше нельзя доверять?","emotion":"DRAMATIC"},
+    {"id":"results","text":"Пришло время узнать результаты.","emotion":"NEUTRAL"},
+    {"id":"winner","text":"Итак, у нас есть победитель. Наслаждайтесь этим мгновением.","emotion":"EXCITED"}
+  ]
+}

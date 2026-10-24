@@ -56,16 +56,5 @@ public final class GameSession {
                 "isCorrect",selected==question().correctAnswerIndex(),"answeredInTime",selected>=0);
         }).toList();
     }
-    private static List<Question> catalog() {
-        var source=new DemoQuestionSource(); var list=new ArrayList<Question>();
-        for(int i=0;i<source.size();i++) list.add(source.get(i));
-        list.add(new Question("sunlight","Какое легендарное существо боится солнечного света?",List.of("Вампир","Скелет","Призрак","Оборотень"),0));
-        list.add(new Question("chemical-gold","Какой химический символ обозначает золото?",List.of("Ag","Fe","Au","Cu"),2));
-        list.add(new Question("chess-king","Какая шахматная фигура ходит на одну клетку в любом направлении?",List.of("Слон","Ладья","Ферзь","Король"),3));
-        list.add(new Question("octopus","Сколько сердец у осьминога?",List.of("Одно","Два","Три","Четыре"),2));
-        list.add(new Question("frankenstein","Кто написал роман «Франкенштейн»?",List.of("Мэри Шелли","Брэм Стокер","Джейн Остин","Эмили Бронте"),0));
-        list.add(new Question("sound-space","Почему обычный звук не распространяется в вакууме?",List.of("Там слишком холодно","Нет среды для звуковых волн","Свет поглощает звук","Ему мешает гравитация"),1));
-        list.add(new Question("triangle","Чему равна сумма внутренних углов треугольника в евклидовой геометрии?",List.of("90 градусов","180 градусов","270 градусов","360 градусов"),1));
-        return list;
-    }
+    private static List<Question> catalog() { return QuestionCatalog.all(); }
 }

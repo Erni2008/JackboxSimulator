@@ -192,6 +192,14 @@ tasks.register('questionAudioCheck', JavaExec) {
 }
 check.dependsOn tasks.named('questionAudioCheck')
 
+tasks.register('hostVoiceCheck', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.audio.HostVoiceCheck'
+}
+check.dependsOn tasks.named('hostVoiceCheck')
+
 tasks.register('cursedEliminationCheck', JavaExec) {
     group = 'verification'
     dependsOn testClasses

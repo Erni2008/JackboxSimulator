@@ -134,6 +134,9 @@ public class PlayScreen extends ScreenAdapter {
         resultsDispatched = false;
         String key=network==null?audioSession+":"+round.presentation().generation():connection.snapshot().get("gameId").getAsString()+":"+round.question().id();
         questionAudio.question(key,round.number());
+        game.getAudio().hostVoice().scopeGain(1);
+        if(network==null||connection.snapshot().get("phase").getAsString().equals("QUESTION_PRESENTATION"))
+            game.getAudio().hostVoice().playQuestion(round.question().id(),"question:"+key,null);
         background.showForQuestion(round.number(), game.getSettings().reducedMotion());
         clock.reset();
         clock.setReducedMotion(game.getSettings().reducedMotion());
@@ -177,6 +180,9 @@ public class PlayScreen extends ScreenAdapter {
 
     private void synchronizeAudio(){
         questionAudio.pause(paused||applicationPaused);
+        var host=game.getAudio().hostVoice();
+        if(paused||applicationPaused)host.pause();else host.resume();
+        if(round.phase()==RoundPhase.REVEAL||connection!=null&&!connection.connected())host.stop();
         if(network==null){
             boolean answering=round.phase()==RoundPhase.ANSWERING;
             questionAudio.phase(answering,round.phase()==RoundPhase.REVEAL,Math.max(0,round.elapsedSeconds()-round.answeringStartsAt()),round.answerSecondsRemaining());
@@ -236,7 +242,7 @@ public class PlayScreen extends ScreenAdapter {
     }
     @Override public void pause() { applicationPaused = true;questionAudio.pause(true); }
     @Override public void resume() { applicationPaused = false; }
-    @Override public void hide() { questionAudio.leave();if (Gdx.input.getInputProcessor() == stage) Gdx.input.setInputProcessor(null); }
+    @Override public void hide() { questionAudio.leave();game.getAudio().hostVoice().stop();if (Gdx.input.getInputProcessor() == stage) Gdx.input.setInputProcessor(null); }
     @Override public void dispose() {
         if (disposed) return;
         disposed = true;

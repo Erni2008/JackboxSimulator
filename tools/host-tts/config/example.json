@@ -1,0 +1,14 @@
+{
+  "voiceId": "final_answer_host_ru_v1",
+  "locale": "ru",
+  "voiceApproved": false,
+  "language": "russian",
+  "model": "/absolute/path/to/existing/Qwen3-TTS-Base-model",
+  "reference": "/absolute/path/to/host_ru_reference.wav",
+  "transcript": null,
+  "transcriptApproved": false,
+  "temperature": 0.6,
+  "maxTokens": 600,
+  "bitrate": 96,
+  "seed": 42
+}

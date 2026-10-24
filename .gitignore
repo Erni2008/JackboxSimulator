@@ -222,6 +222,17 @@ __pycache__/
 *.[qQ][oO][iI]
 
 # Audio recordings
+# Private host voice references, machine paths and generation state
+tools/host-tts/reference/*
+!tools/host-tts/reference/README.md
+tools/host-tts/config/local.json
+tools/host-tts/config/*.local.json
+tools/host-tts/config/*.lock
+tools/host-tts/output/
+tools/host-tts/models/
+tools/host-tts/.cache/
+tools/host-tts/**/__pycache__/
+
 *.[wW][aA][vV]
 *.[mM][pP]3
 *.[oO][gG][gG]

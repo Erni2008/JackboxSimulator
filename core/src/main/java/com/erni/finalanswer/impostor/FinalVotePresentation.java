@@ -56,7 +56,7 @@ public final class FinalVotePresentation extends Group {
     public void hidePresentation(){snapshot=null;sequence="";revealed=0;previousUpdate=-1;for(Image image:marks)if(image!=null)image.remove();marks.clear();targets.clear();setVisible(false);if(stamp!=null)stamp.setVisible(false);}
     public void clear(){snapshot=null;sequence="";revealed=0;previousUpdate=-1;marks.clear();targets.clear();cards.clearChildren();cardsById.clear();names.clear();eliminations.clear();setVisible(false);if(stamp!=null)stamp.setVisible(false);}
     public void setRoster(List<ImpostorParticipant> roster){
-        clear();eliminations.clear();int count=roster.size();float width=250,height=assets.texture(ImpostorAsset.SUSPECT_PAPER).map(t->width*t.getHeight()/t.getWidth()).orElse(width*1353/1162);
+        clear();int count=roster.size();float width=250,height=assets.texture(ImpostorAsset.SUSPECT_PAPER).map(t->width*t.getHeight()/t.getWidth()).orElse(width*1353/1162);
         for(int i=0;i<count;i++){
             var player=roster.get(i).player();names.put(player.id(),player.name());
             Group card=new Group();card.setName("finalCard:"+player.id());card.setSize(width,height);card.setOrigin(width/2,height/2);

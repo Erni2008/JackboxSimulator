@@ -70,6 +70,8 @@ public final class ImpostorCheck extends FinalAnswerGame {
             } else if (step == 1) {
                 super.render();
                 checkParticipantValidation();
+                var deathFont=com.erni.finalanswer.ui.UiFonts.body(24);
+                try{com.erni.finalanswer.impostor.DeathWindowCheck.verify(deathFont,preview.participants());}finally{deathFont.dispose();}
                 checkEmptyPreview();
                 checkComposition();
                 checkBackgroundAnimation();

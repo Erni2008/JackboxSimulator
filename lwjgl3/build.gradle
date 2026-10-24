@@ -324,6 +324,27 @@ tasks.register('impostorCheck', JavaExec) {
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
 
+tasks.register('impostorDeathWindowCheck', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.impostor.DeathWindowCheck'
+    workingDir = rootProject.file('assets')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('hostVoicePlaybackCheck', JavaExec) {
+    group = 'verification'
+    description = 'Play a real local question and host announcement; no TTS server is used.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.HostVoicePlaybackCheck'
+    workingDir = rootProject.file('assets')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
 // Graphical checks share development fixtures; neither test nor dev outputs enter production jars.
 sourceSets.test.compileClasspath += sourceSets.dev.output
 sourceSets.test.runtimeClasspath += sourceSets.dev.output

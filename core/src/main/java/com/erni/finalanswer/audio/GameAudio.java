@@ -24,6 +24,8 @@ public final class GameAudio implements AutoCloseable {
     private final float lockDuration;
     private final PresentationAudio.Backend backend;
     private QuestionAudio questions;
+    private HostVoiceManager host;
+    public HostVoiceManager hostVoice(){if(closed)throw new IllegalStateException("Audio disposed");if(host==null){host=new HostVoiceManager("ru",mix,warning);if(paused)host.pause();}return host;}
     public QuestionAudio activeQuestions(){return questions;}
     public QuestionAudio questions(){if(closed)throw new IllegalStateException("Audio disposed");if(questions==null)questions=new QuestionAudio(backend,mix,warning,QuestionAudio.clockPeriod(),QuestionAudio.lockDuration());return questions;}
     private final boolean[] warned=new boolean[CUES.length];
@@ -83,7 +85,7 @@ public final class GameAudio implements AutoCloseable {
     }
     public void room(boolean active){room=active;}
     public void update(float dt){
-        if(closed||!Float.isFinite(dt)||dt<0)return;mix.update(dt);if(questions!=null)questions.update(dt);
+        if(closed||!Float.isFinite(dt)||dt<0)return;mix.update(dt);if(questions!=null)questions.update(dt);if(host!=null)host.update();
         hoverCooldown=Math.max(0,hoverCooldown-dt);pressCooldown=Math.max(0,pressCooldown-dt);
         for(int i=0;i<8;i++){cageCooldown[i]=Math.max(0,cageCooldown[i]-dt);gateCooldown[i]=Math.max(0,gateCooldown[i]-dt);}
         for(Voice voice:voices)if(voice.id>=0){voice.age+=dt;if(paused||voice.age>=voice.duration){stop(voice);continue;}
@@ -95,14 +97,14 @@ public final class GameAudio implements AutoCloseable {
             ambience.setVolume(gain);if(gain>0&&!ambience.isPlaying())ambience.play();else if(gain<=0&&ambience.isPlaying())ambience.pause();
         }catch(RuntimeException e){warning.accept("Ambience device failure: "+e.getMessage());try{ambience.stop();}catch(RuntimeException ignored){}ambienceFailed=true;}
     }
-    public void pause(boolean value){paused=value;if(questions!=null)questions.pause(value);if(value){for(Voice voice:voices)stop(voice);if(ambience!=null)try{ambience.pause();}catch(RuntimeException e){ambienceFailed=true;warning.accept("Cannot pause ambience: "+e.getMessage());}}}
+    public void pause(boolean value){paused=value;if(questions!=null)questions.pause(value);if(host!=null){if(value)host.pause();else host.resume();}if(value){for(Voice voice:voices)stop(voice);if(ambience!=null)try{ambience.pause();}catch(RuntimeException e){ambienceFailed=true;warning.accept("Cannot pause ambience: "+e.getMessage());}}}
     public void leaveCages(){for(int i=0;i<8;i++){observed[i]=moving[i]=false;angle[i]=velocity[i]=cageCooldown[i]=gateCooldown[i]=0;}for(Voice voice:voices)if(voice.id>=0&&voice.cue.category==CAGES)stop(voice);}
     public boolean ambiencePlaying(){return ambience!=null&&ambience.isPlaying();}
     public int loaded(){int n=0;for(Sound sound:sounds)if(sound!=null)n++;return n+(ambience==null?0:1);}
     public long playCount(Cue cue){return starts[cue.ordinal()];}
     public int activeChains(){int n=0;for(Voice v:voices)if(v.id>=0&&(v.cue==Cue.CHAIN_1||v.cue==Cue.CHAIN_2))n++;return n;}
     @Override public void close(){
-        if(closed)return;closed=true;if(questions!=null)questions.close();for(Voice voice:voices)stop(voice);
+        if(closed)return;closed=true;if(questions!=null)questions.close();if(host!=null)host.close();for(Voice voice:voices)stop(voice);
         for(Cue cue:CUES)if(sounds[cue.ordinal()]!=null){
             try{sounds[cue.ordinal()].stop();}catch(RuntimeException e){warn(cue,"Cannot stop "+cue.path+": "+e.getMessage());}
             try{sounds[cue.ordinal()].dispose();}catch(RuntimeException e){warn(cue,"Cannot dispose "+cue.path+": "+e.getMessage());}

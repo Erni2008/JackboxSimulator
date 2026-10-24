@@ -1,0 +1,150 @@
+{
+  "version": 1,
+  "language": "ru",
+  "voiceId": "final_answer_host_ru_v1",
+  "profileHash": "98c26cd09938bd8c25fe01564241fab66c2e08f32d10c79b4d3003ae6c8e545b",
+  "questions": {
+    "chemical-gold": {
+      "file": "questions/chemical-gold_229e19d5ceb9.ogg",
+      "status": "ready",
+      "hash": "229e19d5ceb935690a677b8a949a7af0afdd22d715f273f8c9c97cb8a769e399",
+      "duration": 2.719958,
+      "manualReview": "not_yet_reviewed"
+    },
+    "chess-king": {
+      "file": "questions/chess-king_6bccb0d969a2.ogg",
+      "status": "ready",
+      "hash": "6bccb0d969a2b525d6d069b0a4efbd2d505c8986de6427f5244aeb40d232a103",
+      "duration": 3.839958,
+      "manualReview": "not_yet_reviewed"
+    },
+    "frankenstein": {
+      "file": "questions/frankenstein_b694a524170a.ogg",
+      "status": "ready",
+      "hash": "b694a524170a3acf9a7ac061330ce0ac2de533ffb89a8b7a651d06412ae79e9c",
+      "duration": 2.079958,
+      "manualReview": "not_yet_reviewed"
+    },
+    "human-bones": {
+      "file": "questions/human-bones_16db8966df14.ogg",
+      "status": "ready",
+      "hash": "16db8966df143014997c4a1efcca1db15f759e00c724ec27b79dd4a21ee22272",
+      "duration": 3.599958,
+      "manualReview": "not_yet_reviewed"
+    },
+    "light-year": {
+      "file": "questions/light-year_d951721e04cc.ogg",
+      "status": "ready",
+      "hash": "d951721e04cc714ae89d181d4055080277b3f951763bdb10720ab4cc990bceec",
+      "duration": 3.999958,
+      "manualReview": "not_yet_reviewed"
+    },
+    "ocean-deepest": {
+      "file": "questions/ocean-deepest_26bec1009bcd.ogg",
+      "status": "ready",
+      "hash": "26bec1009bcdd1403192a3db8635760377df77123d96d47e6ad5eb96519854f2",
+      "duration": 3.599958,
+      "manualReview": "not_yet_reviewed"
+    },
+    "octopus": {
+      "file": "questions/octopus_b3892b5f7e83.ogg",
+      "status": "ready",
+      "hash": "b3892b5f7e83a230f2c927c4f6a18f8abbdbfbd38cdff01086d1d05a2cb43578",
+      "duration": 1.679958,
+      "manualReview": "not_yet_reviewed"
+    },
+    "raven-author": {
+      "file": "questions/raven-author_38ccc43ed2cd.ogg",
+      "status": "ready",
+      "hash": "38ccc43ed2cda6e9d35d12a18ba3190c9fc3f4386bcfe8a3be7bca1b3804ac3f",
+      "duration": 1.919958,
+      "manualReview": "not_yet_reviewed"
+    },
+    "solar-largest": {
+      "file": "questions/solar-largest_21b53323d0af.ogg",
+      "status": "ready",
+      "hash": "21b53323d0af7890147df642f96181e52761f5df02ed9111e1cd33d863402f48",
+      "duration": 3.519958,
+      "manualReview": "not_yet_reviewed"
+    },
+    "sound-space": {
+      "file": "questions/sound-space_df8faa221674.ogg",
+      "status": "ready",
+      "hash": "df8faa221674ce15323165259b02efc3022f772ec46f946d5cf2e0daef28453b",
+      "duration": 2.799958,
+      "manualReview": "not_yet_reviewed"
+    },
+    "sunlight": {
+      "file": "questions/sunlight_f6be3881a9f5.ogg",
+      "status": "ready",
+      "hash": "f6be3881a9f5b371fdf111654d688ae3bea28e2215681b64fa51a93ce9b3f4a9",
+      "duration": 2.719958,
+      "manualReview": "not_yet_reviewed"
+    },
+    "triangle": {
+      "file": "questions/triangle_28fdfd302bba.ogg",
+      "status": "ready",
+      "hash": "28fdfd302bbaf022cce9ce22374a63609f5c152fc3bbcb3dc18384ac7e265500",
+      "duration": 4.719958,
+      "manualReview": "not_yet_reviewed"
+    }
+  },
+  "events": {
+    "correct_answer": {
+      "file": "events/correct_answer_f8f1dc119454.ogg",
+      "status": "ready",
+      "hash": "f8f1dc11945482dabc87ee826af2ae2c15ecfb9ad1aa87dcf05834871956857c",
+      "duration": 3.039958,
+      "manualReview": "not_yet_reviewed"
+    },
+    "cursed_boxes_intro": {
+      "file": "events/cursed_boxes_intro_c2c7aafafe22.ogg",
+      "status": "ready",
+      "hash": "c2c7aafafe221f2633c4391ff8f860cdfa2440e8a1bf610784d26289d449005d",
+      "duration": 4.479958,
+      "manualReview": "not_yet_reviewed"
+    },
+    "impostor_intro": {
+      "file": "events/impostor_intro_00b077390742.ogg",
+      "status": "ready",
+      "hash": "00b07739074219bd64333860f55b2e5d09cc7f06dae0611e473f600bdecf3d4c",
+      "duration": 5.567792,
+      "manualReview": "not_yet_reviewed"
+    },
+    "results": {
+      "file": "events/results_8b9981a46c97.ogg",
+      "status": "ready",
+      "hash": "8b9981a46c97484e38604c0ce17fe01f11ad3a0938433e155c68f324165e6465",
+      "duration": 1.759958,
+      "manualReview": "not_yet_reviewed"
+    },
+    "round_start": {
+      "file": "events/round_start_c929786acd81.ogg",
+      "status": "ready",
+      "hash": "c929786acd815c38dd9620a6f79a5b632f7e92db962e891385dc9642e327febc",
+      "duration": 4.319958,
+      "manualReview": "not_yet_reviewed"
+    },
+    "voting_start": {
+      "file": "events/voting_start_30fe3fea41eb.ogg",
+      "status": "ready",
+      "hash": "30fe3fea41eb8f5c7ab76178848f485cc4ac4c99c45206d8f04ea61ec71e5172",
+      "duration": 3.439958,
+      "manualReview": "not_yet_reviewed"
+    },
+    "winner": {
+      "file": "events/winner_5f9cebc85400.ogg",
+      "status": "ready",
+      "hash": "5f9cebc85400f74608fd55f770178e62adec8a5e8935a23e74511c2816c31dd4",
+      "duration": 4.133292,
+      "manualReview": "not_yet_reviewed"
+    },
+    "wrong_answer": {
+      "file": "events/wrong_answer_a0926fd58d10.ogg",
+      "status": "ready",
+      "hash": "a0926fd58d1047a47a78f50994bf7d64fee7df3c70a642be19dba29c5af34646",
+      "duration": 3.599958,
+      "manualReview": "not_yet_reviewed"
+    }
+  }
+}
