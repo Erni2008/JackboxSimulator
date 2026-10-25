@@ -57,9 +57,22 @@ public final class RoomService {
         rooms.put(room.code,room);
         return json(snapshot(room,room.host,true));
     }
-    public synchronized String join(String code,Map<String,String> data) {
+    /** Local development entry point; never registered by the production RoomServer. */
+    public synchronized String lastCommandDevelopment(String code,String name,long seed,String scenario) {
+        if(code.isBlank()){
+            JsonObject created=JsonParser.parseString(create(Map.of("name","THE_LAST_COMMAND_DEV","maxPlayers","8"))).getAsJsonObject();
+            Room room=find(created.get("code").getAsString());room.lastCommand=new LastCommandSession(seed);room.lastCommand.development=true;
+            JsonObject action=new JsonObject();for(var e:Map.of("roomCode",room.code,"sessionId",room.lastCommand.id,"element","CODE_PANEL","action","TEST_ROUND","value",scenario).entrySet())action.addProperty(e.getKey(),e.getValue());
+            room.lastCommand.action(room.host.id,true,UUID.randomUUID().toString(),action,now());
+            return json(snapshot(room,room.host,true));
+        }
+        Room room=find(code);if(room.lastCommand==null||!room.lastCommand.development)throw new Failure(409,"NOT_DEV_ROOM");
+        return joinInternal(code,Map.of("name",name),true);
+    }
+    public synchronized String join(String code,Map<String,String> data) {return joinInternal(code,data,false);}
+    private String joinInternal(String code,Map<String,String> data,boolean developmentJoin) {
         Room room=find(code);
-        if(room.game!=null || room.impostor!=null || room.cursed!=null || room.lastCommand!=null) throw new Failure(409,"GAME_ALREADY_STARTED");
+        if(room.game!=null || room.impostor!=null || room.cursed!=null || (room.lastCommand!=null&&!developmentJoin)) throw new Failure(409,"GAME_ALREADY_STARTED");
         String name=text(data.get("name"),24,"INVALID_NICKNAME");
         String password=data.getOrDefault("password","");
         if(password.length()>64 || room.passwordHash!=null&&!MessageDigest.isEqual(room.passwordHash,hash(password,room.salt)))
@@ -338,7 +351,7 @@ public final class RoomService {
         }else{
             if(room.lastCommand==null||!room.lastCommand.id.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_LAST_COMMAND_SESSION");
             if(message.type().equals("END_LAST_COMMAND")){requireHost(member);if(!data.keySet().equals(Set.of("roomCode","sessionId")))throw new Failure(400,"INVALID_LAST_COMMAND_ACTION");room.lastCommand=null;room.lobbyId=UUID.randomUUID().toString();broadcast(room,"LAST_COMMAND_ENDED");}
-            else {if(room.host.peer==null)throw new Failure(409,"HOST_DISCONNECTED");if(room.lastCommand.action(member.id,member.host,message.requestId(),data))broadcast(room,"LAST_COMMAND_UPDATED");}
+            else {if(room.host.peer==null&&!room.lastCommand.development)throw new Failure(409,"HOST_DISCONNECTED");if(room.lastCommand.action(member.id,member.host,message.requestId(),data,now()))broadcast(room,"LAST_COMMAND_UPDATED");}
         }
         reply(peer,room,member,message);
     }
@@ -451,6 +464,7 @@ public final class RoomService {
     }
 
     public synchronized void tick() {
+        for(Room room:rooms.values())if(room.lastCommand!=null&&room.lastCommand.timeout(now()))broadcast(room,"LAST_COMMAND_UPDATED");
         for(Room room:new ArrayList<>(rooms.values())) {
             // Detect half-open sockets even when the transport has not reported a close.
             for(Member member:allMembers(room))if(room.game==null && room.impostor==null && room.cursed==null && room.lastCommand==null && member.peer!=null && now()-member.seen>45_000){
@@ -554,7 +568,7 @@ public final class RoomService {
             value.put("currentAnswer",game==null?-1:game.submitted.getOrDefault(self.id,-1));
             if(credentials) { value.put("token",self.token); if(self.host) value.put("hostSession",self.token); else value.put("sessionToken",self.token); }
         }
-        if(room.lastCommand!=null)value.put("lastCommand",room.lastCommand.snapshot());
+        if(room.lastCommand!=null)value.put("lastCommand",room.lastCommand.snapshot(now()));
         if(room.cursed!=null){
             Set<String> online=room.members.values().stream().filter(m->m.peer!=null&&!m.left).map(m->m.id).collect(java.util.stream.Collectors.toSet());
             value.put("cursedBoxes",room.cursed.snapshot(self==null?"":self.id,self!=null&&self.host,room.host.peer!=null,online,now()));

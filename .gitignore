@@ -263,3 +263,8 @@ tools/host-tts/**/__pycache__/
 *.[aA][vV][iI]
 *.[mM]4[vV]
 *.[mM][kK][vV]
+
+# Browser development dependencies and generated bundle
+web3d/node_modules/
+web/last-command-3d/app.js
+web/last-command-3d/app.js.map

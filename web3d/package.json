@@ -1,0 +1,1 @@
+{"name":"final-answer-browser-runtime","private":true,"type":"module","scripts":{"build":"esbuild src/main.ts --bundle --loader:.glsl=text --format=esm --sourcemap --outfile=../web/last-command-3d/app.js","watch":"npm run build -- --watch=forever"},"dependencies":{"three":"0.186.1"},"devDependencies":{"esbuild":"0.25.12"}}

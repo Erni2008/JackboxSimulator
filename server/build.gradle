@@ -108,3 +108,15 @@ processResources {
     dependsOn votingVoiceTiming
     from(layout.buildDirectory.dir('generated/votingVoice'))
 }
+
+// One opt-in process: existing room API + WebSocket + live browser development files.
+tasks.register('lastCommandDev', JavaExec) {
+    group = 'application'
+    dependsOn classes
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.finalanswer.server.RoomServer'
+    systemProperty 'lastcommand.dev', 'true'
+    systemProperty 'lastcommand.root', rootProject.projectDir.absolutePath
+    args providers.gradleProperty('lc.port').getOrElse('8080')
+    doFirst { println 'THE_LAST_COMMAND_DEV: http://localhost:' + providers.gradleProperty('lc.port').getOrElse('8080') + '/last-command-3d/' }
+}
