@@ -1,0 +1,277 @@
+{
+  "sourcesUnchanged": 10,
+  "runtimeCopiesVerified": 30,
+  "exactDuplicateImages": [],
+  "assets": [
+    {
+      "source": "box_final.glb",
+      "runtime": "assets/models/last_command/low/box_final.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    },
+    {
+      "source": "box_final.glb",
+      "runtime": "assets/models/last_command/medium/box_final.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    },
+    {
+      "source": "box_final.glb",
+      "runtime": "assets/models/last_command/high/box_final.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    },
+    {
+      "source": "hole_final.glb",
+      "runtime": "assets/models/last_command/low/hole_final.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    },
+    {
+      "source": "hole_final.glb",
+      "runtime": "assets/models/last_command/medium/hole_final.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    },
+    {
+      "source": "hole_final.glb",
+      "runtime": "assets/models/last_command/high/hole_final.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    },
+    {
+      "source": "button.glb",
+      "runtime": "assets/models/last_command/low/button.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    },
+    {
+      "source": "button.glb",
+      "runtime": "assets/models/last_command/medium/button.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    },
+    {
+      "source": "button.glb",
+      "runtime": "assets/models/last_command/high/button.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    },
+    {
+      "source": "assets/models/last_command/adjuster.glb",
+      "runtime": "assets/models/last_command/low/adjuster.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    },
+    {
+      "source": "assets/models/last_command/adjuster.glb",
+      "runtime": "assets/models/last_command/medium/adjuster.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    },
+    {
+      "source": "assets/models/last_command/adjuster.glb",
+      "runtime": "assets/models/last_command/high/adjuster.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    },
+    {
+      "source": "assets/models/last_command/light.glb",
+      "runtime": "assets/models/last_command/low/light.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    },
+    {
+      "source": "assets/models/last_command/light.glb",
+      "runtime": "assets/models/last_command/medium/light.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    },
+    {
+      "source": "assets/models/last_command/light.glb",
+      "runtime": "assets/models/last_command/high/light.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    },
+    {
+      "source": "level_handler.glb",
+      "runtime": "assets/models/last_command/low/level_handler.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    },
+    {
+      "source": "level_handler.glb",
+      "runtime": "assets/models/last_command/medium/level_handler.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    },
+    {
+      "source": "level_handler.glb",
+      "runtime": "assets/models/last_command/high/level_handler.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    },
+    {
+      "source": "lever.glb",
+      "runtime": "assets/models/last_command/low/lever.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    },
+    {
+      "source": "lever.glb",
+      "runtime": "assets/models/last_command/medium/lever.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    },
+    {
+      "source": "lever.glb",
+      "runtime": "assets/models/last_command/high/lever.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    },
+    {
+      "source": "secret_hole.glb",
+      "runtime": "assets/models/last_command/low/secret_hole.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    },
+    {
+      "source": "secret_hole.glb",
+      "runtime": "assets/models/last_command/medium/secret_hole.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    },
+    {
+      "source": "secret_hole.glb",
+      "runtime": "assets/models/last_command/high/secret_hole.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    },
+    {
+      "source": "door.glb",
+      "runtime": "assets/models/last_command/low/door.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    },
+    {
+      "source": "door.glb",
+      "runtime": "assets/models/last_command/medium/door.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    },
+    {
+      "source": "door.glb",
+      "runtime": "assets/models/last_command/high/door.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    },
+    {
+      "source": "code_display.glb",
+      "runtime": "assets/models/last_command/low/code_display.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    },
+    {
+      "source": "code_display.glb",
+      "runtime": "assets/models/last_command/medium/code_display.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    },
+    {
+      "source": "code_display.glb",
+      "runtime": "assets/models/last_command/high/code_display.glb",
+      "sourceUnchanged": true,
+      "runtimeHashVerified": true,
+      "ushortIndices": true,
+      "mipmaps": true,
+      "requiredExtensions": []
+    }
+  ]
+}

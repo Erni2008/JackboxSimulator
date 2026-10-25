@@ -1,0 +1,107 @@
+{
+  "capturedAt": "2026-10-25T19:08:02.140Z",
+  "headless": true,
+  "physicalPhones": false,
+  "conditions": "1400x1000 viewport, DPR 1, five-second orbit/profile, capped 30/60, default seed 20261025, no GPU timer; short smoke benchmark, not thermal soak",
+  "rows": [
+    {
+      "quality": "LOW",
+      "sourceQuality": "LOW",
+      "metrics": {
+        "fps": 30.000750018750466,
+        "frameMs": 33.3325,
+        "p95": 33.400000000000546,
+        "drawCalls": 23,
+        "triangles": 654830,
+        "geometries": 21,
+        "textures": 38,
+        "models": 10,
+        "loadMs": 612.4000000953674,
+        "jsHeap": 79965809,
+        "gpuMs": null,
+        "submissionMs": 0.8000000715255737,
+        "assetMemoryEstimate": {
+          "meshBytes": 19405584,
+          "textureBytes": 73007104.00000001,
+          "note": "RGBA8+mips estimate; excludes environment/shadows/driver. Not measured VRAM."
+        },
+        "backend": "WebKit WebGL"
+      },
+      "viewport": [
+        1400,
+        1000
+      ],
+      "backBuffer": [
+        1070,
+        935
+      ],
+      "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)"
+    },
+    {
+      "quality": "MEDIUM",
+      "sourceQuality": "MEDIUM",
+      "metrics": {
+        "fps": 60.00300015000745,
+        "frameMs": 16.665833333333346,
+        "p95": 16.700000000000728,
+        "drawCalls": 23,
+        "triangles": 682824,
+        "geometries": 21,
+        "textures": 38,
+        "models": 10,
+        "loadMs": 926,
+        "jsHeap": 131061043,
+        "gpuMs": null,
+        "submissionMs": 0.6999999284744263,
+        "assetMemoryEstimate": {
+          "meshBytes": 20061452,
+          "textureBytes": 211419136.00000006,
+          "note": "RGBA8+mips estimate; excludes environment/shadows/driver. Not measured VRAM."
+        },
+        "backend": "WebKit WebGL"
+      },
+      "viewport": [
+        1400,
+        1000
+      ],
+      "backBuffer": [
+        1070,
+        935
+      ],
+      "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)"
+    },
+    {
+      "quality": "HIGH",
+      "sourceQuality": "HIGH",
+      "metrics": {
+        "fps": 60.00300015000745,
+        "frameMs": 16.665833333333346,
+        "p95": 16.700000000000728,
+        "drawCalls": 23,
+        "triangles": 770338,
+        "geometries": 21,
+        "textures": 40,
+        "models": 10,
+        "loadMs": 1834.8999999761581,
+        "jsHeap": 273459148,
+        "gpuMs": null,
+        "submissionMs": 0.7000000476837158,
+        "assetMemoryEstimate": {
+          "meshBytes": 22051464,
+          "textureBytes": 576323583.9999999,
+          "note": "RGBA8+mips estimate; excludes environment/shadows/driver. Not measured VRAM."
+        },
+        "backend": "WebKit WebGL"
+      },
+      "viewport": [
+        1400,
+        1000
+      ],
+      "backBuffer": [
+        1070,
+        935
+      ],
+      "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)"
+    }
+  ]
+}

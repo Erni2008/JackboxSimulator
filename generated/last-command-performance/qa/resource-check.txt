@@ -1,0 +1,2 @@
+RESOURCE_CYCLE_OK 0 textures=0, buffers=0, framebuffers=0, renderbuffers=0, programs=0, shaders=0
+RESOURCE_CYCLE_OK 1 textures=0, buffers=0, framebuffers=0, renderbuffers=0, programs=0, shaders=0

@@ -1,0 +1,31 @@
+{
+  "frames": 240,
+  "intervalSamples": 239,
+  "averageFps": 183.4709440516541,
+  "onePercentLowFps": 81.2778701816853,
+  "averageFrameMs": 5.450454322175732,
+  "cpuUpdateMs": 0.015413016666666666,
+  "renderSubmissionMs": 0.24965540416666668,
+  "drawCalls": 30.0,
+  "renderedTrianglesAllPasses": 1299690.0,
+  "textureBindings": 22.0,
+  "loadedSources": 5,
+  "uniqueTextures": 15,
+  "textureMemoryEstimateBytes": 704643072,
+  "meshMemoryEstimateBytes": 24877206,
+  "loadedModelMemoryEstimateBytes": 729520278,
+  "measuredJavaHeapUsedBytes": 175245352,
+  "gpuTimeMs": null,
+  "actualGpuMemoryBytes": null,
+  "notes": "FPS/frame intervals and CPU submission wall time measured; submission is NOT GPU time. Texture/mesh memory estimates exclude driver/padding/IBL/shadow buffers. GL triangle counter includes shadow and color passes.",
+  "label": "existing-before",
+  "backBuffer": [
+    1600,
+    900
+  ],
+  "gl": "Type: OpenGL\nVersion: 2:1:0\nVendor: Apple\nRenderer: Apple M4",
+  "java": "21.0.12.1",
+  "vsync": false,
+  "fpsLimit": 0,
+  "gpuCompletionBarrier": true
+}

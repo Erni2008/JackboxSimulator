@@ -1,0 +1,33 @@
+{
+  "devRoom": "3FAQXT",
+  "models": 10,
+  "mechanisms": "WON",
+  "memory": "WON",
+  "idleFrames": 0,
+  "desktopMetrics": {
+    "fps": 59.99999999999999,
+    "frameMs": 16.666666666666668,
+    "p95": 16.700000000000728,
+    "drawCalls": 23,
+    "triangles": 654830,
+    "geometries": 21,
+    "textures": 38,
+    "models": 10,
+    "loadMs": 730.6999999284744,
+    "jsHeap": 77921561,
+    "gpuMs": null,
+    "submissionMs": 0.20000004768371582,
+    "assetMemoryEstimate": {
+      "meshBytes": 19405584,
+      "textureBytes": 73007104.00000001,
+      "note": "RGBA8+mips estimate; excludes environment/shadows/driver. Not measured VRAM."
+    },
+    "backend": "WebKit WebGL"
+  },
+  "mobileEmulationMetrics": {
+    "calibrationP95Ms": 1.3000000715255737
+  },
+  "errors": [],
+  "physicalDevicesTested": false,
+  "ordinaryRoom": "host + two guests synced"
+}
