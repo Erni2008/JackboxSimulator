@@ -75,6 +75,10 @@ public class FinalAnswerGame extends Game {
 
     private com.erni.finalanswer.cursedboxes.CursedBoxesScreen cursedBoxes;
     private com.erni.finalanswer.cursedboxes.CursedBoxesLoadingScreen cursedLoading;
+    public void showTheLastCommand() {
+        setScreen(new com.erni.finalanswer.lastcommand.TheLastCommandScreen(this));
+    }
+
     public void showCursedBoxes() {
         if(cursedBoxes!=null){setScreen(cursedBoxes);return;}
         if(cursedLoading!=null)return;
@@ -323,6 +327,7 @@ public class FinalAnswerGame extends Game {
         // Game.dispose hides the current screen but does not dispose cached screens.
         if (realtime != null) realtime.close();
         roomApi.close();hosting.close();
+        if (getScreen() instanceof com.erni.finalanswer.lastcommand.TheLastCommandScreen preview) preview.dispose();
         super.dispose();
         if(networkCursed!=null)networkCursed.dispose();
         if(networkCursedLoading!=null)networkCursedLoading.dispose();

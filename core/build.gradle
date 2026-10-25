@@ -223,3 +223,11 @@ tasks.register('votingNarrationCheck', JavaExec) {
     mainClass = 'com.erni.finalanswer.impostor.VotingNarrationCheck'
 }
 check.dependsOn tasks.named('votingNarrationCheck')
+
+tasks.register('lastCommandCheck', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lastcommand.MechanicalButtonCheck'
+}
+check.dependsOn tasks.named('lastCommandCheck')

@@ -168,6 +168,7 @@ public class MainMenu extends ScreenAdapter {
 
     @Override
     public void render(float delta) {
+        if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.F7)) { game.showTheLastCommand(); return; }
         if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.F6)) { game.showCursedBoxes(); return; }
 
         ScreenUtils.clear(0.05f, 0.03f, 0.08f, 1f);
@@ -232,7 +233,7 @@ public class MainMenu extends ScreenAdapter {
         batch.setColor(1f, 1f, 1f, entrance);
         batch.draw(titleLogo, 90, logoY, logoWidth, logoHeight);
         demoFont.setColor(.70f, .58f, .40f, 1f);
-        demoFont.draw(batch, "F6  /  CURSED BOXES — LOCAL DEMO", 90, 48);
+        demoFont.draw(batch, "F6 / CURSED BOXES    F7 / THE LAST COMMAND (3D PREVIEW)", 90, 48);
         batch.setColor(1f, 1f, 1f, 1f);
         batch.end();
 

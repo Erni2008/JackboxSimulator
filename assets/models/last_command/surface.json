@@ -1,0 +1,24 @@
+{
+  "enabled": true,
+  "exposure": 1.15,
+  "body": {
+    "coverage": 0.88,
+    "relief": 1.3,
+    "roughness": 0.79
+  },
+  "base": {
+    "coverage": 0.77,
+    "relief": 1.1,
+    "roughness": 0.76
+  },
+  "cap": {
+    "coverage": 0.65,
+    "relief": 0.9,
+    "roughness": 0.73
+  },
+  "floor": {
+    "coverage": 0.25,
+    "relief": 0.55,
+    "roughness": 0.9
+  }
+}

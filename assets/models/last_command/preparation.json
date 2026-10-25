@@ -1,0 +1,44 @@
+[
+  {
+    "source": "box_final.glb",
+    "sourceSha256": "f4a766ff9f7c3d0bb6e2ee80e2d4397f8ed467715d0facd30f28dbde951c3fb8",
+    "runtimeSha256": "7e16df571659e8850b38c9b5c7b2b36d85c4d01754aa666830f702c29e0b495a",
+    "sourceBytes": 30260344,
+    "runtimeBytes": 27354388,
+    "triangles": 495304,
+    "primitives": 6,
+    "imageSha256": [
+      "f04797e978ba9926944bacac8c98a622e9f4ed678ca3567a77d57b4c156ffa45",
+      "cf43feab923beade9ee1a5b978036ec82afe5d43ac9b5e37236290aeda00a584",
+      "6d56101c8d4073d6715993fd984321c5ab68c27acf623acaa6d1330a7fec0dc3"
+    ]
+  },
+  {
+    "source": "hole_final.glb",
+    "sourceSha256": "6f561f13fc6d96041121405de9fa02627f316756547084cc1f46d1b96a6ab94c",
+    "runtimeSha256": "4e6843947e3d478f12e8f4f417b73d9d73185024b2c33612a9af4b8617583549",
+    "sourceBytes": 46513660,
+    "runtimeBytes": 46513660,
+    "triangles": 12957,
+    "primitives": 1,
+    "imageSha256": [
+      "27465ac94cf946eac0048bef9f44b8847985e1fa6c5621816eeb250eb8b195e5",
+      "06ea7278e30e394e364613c8ccc718f86df95eb658654997770bccfe643cd3db",
+      "5bb2dd6513e97f6dcc1d1e7229e210b5122077507296a18b03f860e489b58cc0"
+    ]
+  },
+  {
+    "source": "button.glb",
+    "sourceSha256": "07725257ca0cabed46f54dd7fe4decaad1846484cb2bcf43eb0f76faaa65d7b0",
+    "runtimeSha256": "dfaecb6863898eecd766680b5b7ac2bf5903db4c1ca333c81b1f0827e221d52f",
+    "sourceBytes": 55124916,
+    "runtimeBytes": 55124916,
+    "triangles": 5690,
+    "primitives": 1,
+    "imageSha256": [
+      "ae972e5100889dd2d431d4f6f3e1a7d770a83fddf343a70383d1048873bb74df",
+      "f3395957493461b54e7813405a864bc408cc6a57c7fcc7171f75752c3adca890",
+      "166f793feac6f7bac0be565eb627842cde243e62c2dcc64581ce8697b3ee8ec4"
+    ]
+  }
+]

@@ -918,3 +918,34 @@ tasks.register('prepareImpostorPreviewLaunch') {
         def file=destination.get().asFile;file.parentFile.mkdirs();file.text=args.collect(quote).join('\n')+'\n'
     }
 }
+
+tasks.register('lastCommandPreviewCheck', JavaExec) {
+    group = 'verification'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.LastCommandPreviewCheck'
+    workingDir = rootProject.file('assets')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('lastCommandModelInspection', JavaExec) {
+    group = 'verification'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.LastCommandModelInspection'
+    workingDir = rootProject.file('assets')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('lastCommandPreview', JavaExec) {
+    group = 'application'
+    description = 'Open the interactive THE LAST COMMAND preview.'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.LastCommandPreviewLauncher'
+    workingDir = rootProject.file('assets')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}

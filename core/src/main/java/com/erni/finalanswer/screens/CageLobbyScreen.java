@@ -108,6 +108,8 @@ public final class CageLobbyScreen extends ScreenAdapter {
         play.setText(game.getTexts().get("lobby.start_game"));
         impostor = button("THE IMPOSTOR", 930, style, game::showImpostorLobby);
         cursed=button("CURSED BOXES",60,style,game::startCursedBoxesMultiplayer);cursed.setWidth(390);
+        var lastCommand=button("THE LAST COMMAND (3D PREVIEW)",60,style,game::showTheLastCommand);
+        lastCommand.setBounds(60,145,520,54);lastCommand.getLabel().setFontScale(.68f);
         button("MENU", 1210, style, game::showMainMenu);
         button("LEAVE ROOM", 1490, style, () -> { game.leaveRoom(); game.showMainMenu(); });
         blackout=new Image(solid);blackout.setBounds(0,0,1920,1080);blackout.setColor(0,0,0,0);blackout.setTouchable(com.badlogic.gdx.scenes.scene2d.Touchable.disabled);stage.addActor(blackout);
