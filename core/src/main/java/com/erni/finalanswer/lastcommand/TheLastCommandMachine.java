@@ -11,7 +11,7 @@ import net.mgsx.gltf.scene3d.scene.*;
 /** One GLB load/cache per source; panel instances share meshes, maps and indexed pick geometry. */
 public final class TheLastCommandMachine implements Disposable {
     public static final String ROOT="models/last_command/";
-    public static final String[] FILES={"box_final.glb","hole_final.glb","button.glb","adjuster.glb","light.glb"};
+    public static final String[] FILES={"box_final.glb","hole_final.glb","button.glb","adjuster.glb","light.glb","level_handler.glb","lever.glb","secret_hole.glb","door.glb","code_display.glb"};
     public static class Placement {
         public Vector3 position=new Vector3(),rotation=new Vector3(),scale=new Vector3(1,1,1);
         Matrix4 matrix(){
@@ -30,15 +30,22 @@ public final class TheLastCommandMachine implements Disposable {
     public final MechanicalButton button=new MechanicalButton();
     public final BoundingBox bounds=new BoundingBox();
     public final StringBuilder status=new StringBuilder();
-    private final SceneAsset[] assets=new SceneAsset[5];
-    private final PickGeometry[] geometry=new PickGeometry[5];
+    private final SceneAsset[] assets=new SceneAsset[FILES.length];
+    private final PickGeometry[] geometry=new PickGeometry[FILES.length];
     private final Matrix4 capRest=new Matrix4(),inverse=new Matrix4();
     private final Vector3 localHit=new Vector3(),worldHit=new Vector3();
     private final Ray localRay=new Ray();
     private float capPickMinY;
     private FrontPanel panel;
-    private boolean disposed,bigHeld;
-    public TheLastCommandMachine(){
+    private AdditionalMechanisms mechanisms;
+    public final Matrix4 transform=new Matrix4();
+    private final Matrix4 worldTransform=new Matrix4();
+    public AdditionalMechanisms mechanisms(){return mechanisms;}
+    private boolean disposed,bigHeld,bigLocked;
+    public boolean centralLocked(){return bigLocked;}
+    public void setCentralLocked(boolean locked){bigLocked=locked;if(locked)endInteraction(PanelElementId.BIG_BUTTON);}
+    public TheLastCommandMachine(){this(Long.getLong("lc.seed",20261025L));}
+    public TheLastCommandMachine(long seed){
         try{
             Config c=Gdx.files.internal(ROOT+"assembly.json").exists()?new com.badlogic.gdx.utils.Json().fromJson(Config.class,Gdx.files.internal(ROOT+"assembly.json")):new Config();
             Placement[] placements={c.body,c.base,c.cap};
@@ -46,7 +53,11 @@ public final class TheLastCommandMachine implements Disposable {
             for(Placement p:placements)p.matrix();
             button.localAxis.set(c.pressAxis).nor();button.travel=c.travel;capPickMinY=c.capPickMinY;capRest.set(c.cap.matrix());
             for(int i=0;i<FILES.length;i++){
-                var file=Gdx.files.internal(ROOT+FILES[i]);
+                String selected=Boolean.getBoolean("lc.originalAssets")?ROOT+FILES[i]:ROOT+GraphicsProfile.current().name().toLowerCase(java.util.Locale.ROOT)+"/"+FILES[i];
+                var file=Gdx.files.internal(selected);
+                if(!file.exists())file=Gdx.files.internal(ROOT+FILES[i]);
+                if(!file.exists())file=Gdx.files.internal("../"+FILES[i]);
+                if(i>=5&&Boolean.getBoolean("lc.existingOnly"))continue;
                 if(!file.exists()){status.append("Missing: ").append(file.path()).append('\n');continue;}
                 try{
                     assets[i]=new GLBLoader().load(file);Scene source=newInstance(i);geometry[i]=new PickGeometry(source.modelInstance);
@@ -57,22 +68,25 @@ public final class TheLastCommandMachine implements Disposable {
                     status.append("Load failed: ").append(FILES[i]).append(" / ").append(error.getMessage()).append('\n');
                 }
             }
-            if(loadedAssetCount()==5)try{panel=new FrontPanel(this,PanelConfiguration.load());}catch(RuntimeException error){status.append("Panel configuration: ").append(error.getMessage());Gdx.app.error("THE LAST COMMAND","Cannot assemble front panel",error);}
+            if(assets[0]!=null&&assets[1]!=null&&assets[2]!=null&&assets[3]!=null&&assets[4]!=null)try{panel=new FrontPanel(this,PanelConfiguration.load());
+                if(loadedAssetCount()==FILES.length&&!Boolean.getBoolean("lc.existingOnly")){mechanisms=new AdditionalMechanisms(this,new java.util.Random(seed));panel.addControls(mechanisms.controls());}}catch(RuntimeException error){status.append("Panel configuration: ").append(error.getMessage());Gdx.app.error("THE LAST COMMAND","Cannot assemble front panel",error);}
         }catch(RuntimeException error){status.append("Invalid assembly.json: ").append(error.getMessage());}
         if(!bounds.isValid())bounds.set(new Vector3(-1,-1,-1),new Vector3(1,1,1));
     }
     private void scenesSafeClear(int index){if(index<3)scenes[index]=null;}
     Scene newInstance(int source){return new Scene(assets[source].scene);}
     PickGeometry sourceGeometry(int source){return geometry[source];}
+    public SceneAsset[] loadedSources(){return assets.clone();}
     public int loadedAssetCount(){int count=0;for(SceneAsset asset:assets)if(asset!=null)count++;return count;}
     public FrontPanel panel(){return panel;}
     public boolean complete(){return scenes[0]!=null&&scenes[1]!=null&&scenes[2]!=null;}
     public boolean panelReady(){return panel!=null;}
     public void update(float delta){button.update(delta);if(scenes[2]!=null)button.apply(capRest,scenes[2].modelInstance.transform);if(panel!=null)panel.update(delta);}
     private float hit(Ray worldRay,ModelInstance instance,PickGeometry shape){
-        localRay.set(worldRay);localRay.mul(inverse.set(instance.transform).inv());
+        worldTransform.set(transform).mul(instance.transform);
+        localRay.set(worldRay);localRay.mul(inverse.set(worldTransform).inv());
         if(!shape.hit(localRay,localHit))return Float.POSITIVE_INFINITY;
-        return worldHit.set(localHit).mul(instance.transform).dst2(worldRay.origin);
+        return worldHit.set(localHit).mul(worldTransform).dst2(worldRay.origin);
     }
     /** Closest solid surface wins. Locked controls remain solid, rather than allowing click-through. */
     public PanelElementId pick(Ray worldRay){
@@ -82,21 +96,23 @@ public final class TheLastCommandMachine implements Disposable {
             if(distance<nearest){nearest=distance;selected=i==2&&localHit.y>=capPickMinY?PanelElementId.BIG_BUTTON:null;}
         }
         if(panel!=null)for(PanelControl control:panel.controls()){
+            if(!control.visible())continue;
             float distance=hit(worldRay,control.scene.modelInstance,control.geometry);
-            if(distance<nearest){nearest=distance;selected=control.activeSurface(localHit)?control.id():null;}
+            if(distance<nearest){nearest=distance;selected=control.hitId(localHit);}
         }
         return selected;
     }
+    public boolean animating(){if(button.animating())return true;if(panel!=null){var controls=panel.controls();for(int i=0;i<controls.size();i++)if(controls.get(i).animating())return true;}return false;}
     public boolean hitCap(Ray worldRay){return pick(worldRay)==PanelElementId.BIG_BUTTON;}
     public void beginInteraction(PanelElementId id){
-        if(id==PanelElementId.BIG_BUTTON){if(!bigHeld){bigHeld=true;button.held(true);if(panel!=null)panel.bigButton(true);}}
+        if(id==PanelElementId.BIG_BUTTON){if(bigLocked)return;if(!bigHeld){bigHeld=true;button.held(true);if(panel!=null)panel.bigButton(true);}}
         else if(panel!=null&&id!=null)panel.pointerDown(id);
     }
     public void endInteraction(PanelElementId id){
         if(id==PanelElementId.BIG_BUTTON){if(bigHeld){bigHeld=false;button.held(false);if(panel!=null)panel.bigButton(false);}}
         else if(panel!=null&&id!=null)panel.pointerUp(id);
     }
-    void resetCentralButton(){bigHeld=false;button.reset();if(scenes[2]!=null)scenes[2].modelInstance.transform.set(capRest);}
+    void resetCentralButton(){bigLocked=false;bigHeld=false;button.reset();if(scenes[2]!=null)scenes[2].modelInstance.transform.set(capRest);}
     @Override public void dispose(){
         if(disposed)return;disposed=true;if(panel!=null)panel.clear();
         for(SceneAsset asset:assets)if(asset!=null)asset.dispose();for(PickGeometry shape:geometry)if(shape!=null)shape.clear();

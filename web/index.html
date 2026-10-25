@@ -20,7 +20,9 @@
   <script src="/controller-presentation.js?v=clear-role-5" defer></script>
   <script src="/connection-health.js?v=1" defer></script>
   <script src="/impostor-audio.js?v=writing-2" defer></script>
-  <script src="/app.js?v=story-3" defer></script>
+  <link rel="stylesheet" href="/last-command.css?v=1">
+  <script src="/last-command.js?v=1" defer></script>
+  <script src="/app.js?v=lastcommand-1" defer></script>
 </head>
 <body>
   <div class="ambient" aria-hidden="true"></div>
@@ -162,6 +164,7 @@
       <p id="final-score" class="correct-answer"></p>
       <p class="eyebrow">THE FINAL STANDINGS</p><ol id="final-standings" class="final-standings" aria-label="Final points ranking"></ol><p class="whisper">Your host can create a new room for another game.</p>
     </section>
+<section id="lastcommand-screen" class="screen" hidden><p class="eyebrow">THE LAST COMMAND</p><h1>Mechanical controls</h1><p id="lc-state" aria-live="polite"></p><div class="lc-controls"><button type="button" data-lc-hold="SMALL_BUTTON_1">RED</button><button type="button" data-lc-hold="SMALL_BUTTON_2">GREEN</button><button type="button" data-lc-hold="SMALL_BUTTON_3">BLUE</button><button type="button" data-lc-hold="SMALL_BUTTON_4">YELLOW</button><button type="button" data-lc-hold="BIG_BUTTON">THE LAST COMMAND</button><button type="button" id="lc-hatch">HATCH</button></div><h2>Lever</h2><div class="lc-controls"><button type="button" data-lc-set="LEVER_MODULE" data-value="UP">UP</button><button type="button" data-lc-set="LEVER_MODULE" data-value="MIDDLE">MIDDLE</button><button type="button" data-lc-set="LEVER_MODULE" data-value="DOWN">DOWN</button></div><h2>Adjuster</h2><div class="lc-controls"><button type="button" data-lc-set="ADJUSTER" data-value="0">0°</button><button type="button" data-lc-set="ADJUSTER" data-value="45">45°</button><button type="button" data-lc-set="ADJUSTER" data-value="90">90°</button><button type="button" data-lc-set="ADJUSTER" data-value="135">135°</button></div><h2>Code panel</h2><div class="lc-code-controls"><button type="button" aria-label="Increase digit 1" data-lc-step="0:+1">▲</button><button type="button" aria-label="Increase digit 2" data-lc-step="1:+1">▲</button><button type="button" aria-label="Increase digit 3" data-lc-step="2:+1">▲</button><button type="button" aria-label="Increase digit 4" data-lc-step="3:+1">▲</button><output id="lc-code" aria-live="polite">0000</output><button type="button" aria-label="Decrease digit 1" data-lc-step="0:-1">▼</button><button type="button" aria-label="Decrease digit 2" data-lc-step="1:-1">▼</button><button type="button" aria-label="Decrease digit 3" data-lc-step="2:-1">▼</button><button type="button" aria-label="Decrease digit 4" data-lc-step="3:-1">▼</button></div><h2>Indicator: <output id="lc-lamp">OFF</output></h2><div class="lc-controls"><button type="button" data-lc-set="LIGHT_MODULE" data-value="OFF">OFF</button><button type="button" data-lc-set="LIGHT_MODULE" data-value="RED">RED</button><button type="button" data-lc-set="LIGHT_MODULE" data-value="GREEN">GREEN</button><button type="button" data-lc-set="LIGHT_MODULE" data-value="YELLOW">YELLOW</button><button type="button" data-lc-set="LIGHT_MODULE" data-value="BLUE">BLUE</button></div></section>
     <section id="disconnected-screen" class="screen" hidden>
       <p class="eyebrow">A BREAK IN THE SIGNAL</p><h1>Don't disappear.</h1>
       <p id="disconnect-message" class="muted">Reconnecting to your seat…</p>

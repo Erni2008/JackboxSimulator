@@ -59,7 +59,7 @@ public final class RoomService {
     }
     public synchronized String join(String code,Map<String,String> data) {
         Room room=find(code);
-        if(room.game!=null || room.impostor!=null || room.cursed!=null) throw new Failure(409,"GAME_ALREADY_STARTED");
+        if(room.game!=null || room.impostor!=null || room.cursed!=null || room.lastCommand!=null) throw new Failure(409,"GAME_ALREADY_STARTED");
         String name=text(data.get("name"),24,"INVALID_NICKNAME");
         String password=data.getOrDefault("password","");
         if(password.length()>64 || room.passwordHash!=null&&!MessageDigest.isEqual(room.passwordHash,hash(password,room.salt)))
@@ -84,7 +84,7 @@ public final class RoomService {
     public synchronized String view(String code) { return json(snapshot(find(code),null,false)); }
     public synchronized String reroll(String code,Map<String,String> data) {
         Room room=find(code); Member host=authenticate(room,data.getOrDefault("token","")); requireHost(host);
-        if(room.game!=null || room.impostor!=null || room.cursed!=null || !room.members.isEmpty()) throw new Failure(409,"ROOM_NOT_EMPTY");
+        if(room.game!=null || room.impostor!=null || room.cursed!=null || room.lastCommand!=null || !room.members.isEmpty()) throw new Failure(409,"ROOM_NOT_EMPTY");
         // Generate while the old code is still reserved, so reroll always changes it.
         String replacement=code();
         rooms.remove(room.code); room.code=replacement; rooms.put(room.code,room); host.seen=now();
@@ -116,6 +116,7 @@ public final class RoomService {
         Binding binding=bindings.remove(peerId);
         if(binding==null || binding.member.peer==null || !binding.member.peer.id().equals(peerId)) return;
         binding.member.peer=null; binding.member.seen=now();
+        if(binding.room.lastCommand!=null)binding.room.lastCommand.disconnect(binding.member.id);
         if(binding.member.host&&binding.room.cursed!=null)binding.room.cursed.ready(false,now());
         broadcast(binding.room,"PLAYER_LEFT");
     }
@@ -131,12 +132,14 @@ public final class RoomService {
             peer.send(Protocol.event("STATE",message.requestId(),snapshot(room,member,false))); return;
         }
         if(message.type().equals("LEAVE_ROOM")) { leave(room.code,member.token); return; }
+        if(Set.of("START_LAST_COMMAND","LAST_COMMAND_ACTION","END_LAST_COMMAND").contains(message.type())){lastCommandCommand(room,member,peer,message);return;}
+        if(room.lastCommand!=null)throw new Failure(409,"LAST_COMMAND_IN_PROGRESS");
         if(message.type().startsWith("CURSED_") || message.type().equals("START_CURSED_BOXES")){
             cursedCommand(room,member,peer,message);return;
         }
         if(message.type().equals("UPDATE_IMPOSTOR_SETTINGS")) {
             requireHost(member);
-            if(room.game!=null || room.impostor!=null || room.cursed!=null)throw new Failure(409,"SETTINGS_LOCKED");
+            if(room.game!=null || room.impostor!=null || room.cursed!=null || room.lastCommand!=null)throw new Failure(409,"SETTINGS_LOCKED");
             if(!data.keySet().equals(Set.of("roomCode","sessionId","settings")) || suppliedCode.isBlank()
                     || !room.lobbyId.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_IMPOSTOR_SESSION");
             try {
@@ -322,6 +325,24 @@ public final class RoomService {
         if(value==null||!value.isJsonPrimitive()||!value.getAsJsonPrimitive().isNumber()||!value.toString().matches("[0-9]{1,2}"))throw new Failure(400,"INVALID_CURSED_ACTION");
         int number=value.getAsInt();if(number<min||number>max)throw new Failure(400,key.equals("boxId")?"INVALID_BOX":"INVALID_CURSED_ACTION");return number;
     }
+    private void lastCommandCommand(Room room,Member member,Peer peer,Message message){
+        JsonObject data=message.payload();requireRoomCode(room,data);
+        if(message.type().equals("START_LAST_COMMAND")){
+            requireHost(member);
+            if(!data.keySet().equals(Set.of("roomCode","sessionId","seed"))||!room.lobbyId.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_LAST_COMMAND_SESSION");
+            if(room.game!=null||room.impostor!=null||room.cursed!=null||room.lastCommand!=null)throw new Failure(409,"GAME_ALREADY_STARTED");
+            if(room.members.size()<2)throw new Failure(409,"NOT_ENOUGH_PLAYERS");
+            if(room.members.values().stream().anyMatch(m->m.peer==null||m.left))throw new Failure(409,"PLAYER_OFFLINE");
+            long seed;try{seed=Long.parseLong(Protocol.string(data,"seed"));}catch(NumberFormatException e){throw new Failure(400,"INVALID_LAST_COMMAND_SEED");}
+            room.lastCommand=new LastCommandSession(seed);broadcast(room,"LAST_COMMAND_STARTED");
+        }else{
+            if(room.lastCommand==null||!room.lastCommand.id.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_LAST_COMMAND_SESSION");
+            if(message.type().equals("END_LAST_COMMAND")){requireHost(member);if(!data.keySet().equals(Set.of("roomCode","sessionId")))throw new Failure(400,"INVALID_LAST_COMMAND_ACTION");room.lastCommand=null;room.lobbyId=UUID.randomUUID().toString();broadcast(room,"LAST_COMMAND_ENDED");}
+            else {if(room.host.peer==null)throw new Failure(409,"HOST_DISCONNECTED");if(room.lastCommand.action(member.id,member.host,message.requestId(),data))broadcast(room,"LAST_COMMAND_UPDATED");}
+        }
+        reply(peer,room,member,message);
+    }
+    private void requireRoomCode(Room room,JsonObject data){if(!room.code.equals(Protocol.string(data,"roomCode")))throw new Failure(409,"WRONG_ROOM");}
     private void cursedCommand(Room room,Member member,Peer peer,Message message){
         var data=message.payload();String type=message.type();
         Set<String> fields=switch(type){
@@ -378,7 +399,7 @@ public final class RoomService {
     /** Server-only assignment hook. No wire command or automatic participant-selection policy. */
     public synchronized String installImpostorSession(String code,List<String> activeIds) {
         Room room=find(code);
-        if(room.game!=null || room.impostor!=null || room.cursed!=null)throw new Failure(409,"GAME_ALREADY_STARTED");
+        if(room.game!=null || room.impostor!=null || room.cursed!=null || room.lastCommand!=null)throw new Failure(409,"GAME_ALREADY_STARTED");
         Set<String> available=new HashSet<>();
         room.members.values().stream().filter(m->m.peer!=null&&!m.left).forEach(m->available.add(m.id));
         if(!available.containsAll(activeIds))throw new Failure(400,"INVALID_IMPOSTOR_PARTICIPANTS");
@@ -390,7 +411,7 @@ public final class RoomService {
     public synchronized String startImpostorGame(String code,List<String> activeIds) {
         // Prepare hidden state before installation, so invalid word configuration cannot strand a room.
         Room room=find(code);
-        if(room.game!=null || room.impostor!=null || room.cursed!=null)throw new Failure(409,"GAME_ALREADY_STARTED");
+        if(room.game!=null || room.impostor!=null || room.cursed!=null || room.lastCommand!=null)throw new Failure(409,"GAME_ALREADY_STARTED");
         Set<String> available=new HashSet<>();
         room.members.values().stream().filter(m->m.peer!=null&&!m.left).forEach(m->available.add(m.id));
         if(!available.containsAll(activeIds))throw new Failure(400,"INVALID_IMPOSTOR_PARTICIPANTS");
@@ -432,13 +453,13 @@ public final class RoomService {
     public synchronized void tick() {
         for(Room room:new ArrayList<>(rooms.values())) {
             // Detect half-open sockets even when the transport has not reported a close.
-            for(Member member:allMembers(room))if(room.game==null && room.impostor==null && room.cursed==null && member.peer!=null && now()-member.seen>45_000){
+            for(Member member:allMembers(room))if(room.game==null && room.impostor==null && room.cursed==null && room.lastCommand==null && member.peer!=null && now()-member.seen>45_000){
                 disconnectMember(member,"CONNECTION_LOST");broadcast(room,"PLAYER_LEFT");
             }
             // Host heartbeat keeps an unconfirmed CREATE -> GENERATE room alive too.
             if(room.host.peer==null && now()-room.host.seen>120_000) { closeRoom(room,"HOST_DISCONNECTED"); continue; }
             for(Member member:new ArrayList<>(room.members.values())) {
-                if(room.game==null && room.impostor==null && room.cursed==null && member.peer==null && now()-member.seen>600_000) {
+                if(room.game==null && room.impostor==null && room.cursed==null && room.lastCommand==null && member.peer==null && now()-member.seen>600_000) {
                     room.members.remove(member.token); broadcast(room,"PLAYER_LEFT");
                 }
             }
@@ -491,6 +512,7 @@ public final class RoomService {
         rooms.remove(room.code);
     }
     private void disconnectMember(Member member,String reason) {
+        for(Room room:rooms.values())if(room.lastCommand!=null)room.lastCommand.disconnect(member.id);
         if(member.peer!=null) { bindings.remove(member.peer.id()); member.peer.close(reason.equals("CONNECTION_LOST")?4000:4002,reason); member.peer=null; }
         member.seen=now();
     }
@@ -508,11 +530,11 @@ public final class RoomService {
         value.put("protocolVersion",Protocol.VERSION); value.put("roomId",room.id); value.put("code",room.code); value.put("roomCode",room.code);
         value.put("name",room.name); value.put("maxPlayers",room.maxPlayers); value.put("gameMode",room.mode); value.put("questionCount",room.questionCount);
         value.put("roomSettings",Map.of("name",room.name,"maxPlayers",room.maxPlayers,"gameMode",room.mode,"questionCount",room.questionCount,"passwordRequired",room.passwordHash!=null));
-        value.put("roomStatus",room.cursed!=null?room.cursed.finished()?"GAME_FINISHED":"IN_GAME":game==null?"LOBBY":phase==Phase.GAME_FINISHED?"GAME_FINISHED":"IN_GAME");
+        value.put("roomStatus",room.lastCommand!=null?"IN_GAME":room.cursed!=null?room.cursed.finished()?"GAME_FINISHED":"IN_GAME":game==null?"LOBBY":phase==Phase.GAME_FINISHED?"GAME_FINISHED":"IN_GAME");
         value.put("phase",phase.name()); value.put("revision",room.revision); value.put("serverTime",now()); value.put("publicUrl",publicUrl);
         value.put("hostConnected",room.host.peer!=null);
         value.put("availableCharacters",CHARACTERS.stream().filter(c->room.members.values().stream().noneMatch(m->m.characterId.equals(c))).toList());
-        value.put("canStart",game==null && room.impostor==null && room.cursed==null && room.host.peer!=null && room.members.size()>=2 && room.members.values().stream().allMatch(m->m.peer!=null&&!m.left));
+        value.put("canStart",game==null && room.impostor==null && room.cursed==null && room.lastCommand==null && room.host.peer!=null && room.members.size()>=2 && room.members.values().stream().allMatch(m->m.peer!=null&&!m.left));
         value.put("impostorSettings",room.impostorSettings);value.put("impostorWordCategories",List.of("DEFAULT"));
         value.put("lobbyId",room.lobbyId);
         if(room.impostor==null && !room.impostorRoster.isEmpty())value.put("impostorLobby",Map.of("sessionId",room.lobbyId,"participantIds",room.impostorRoster));
@@ -532,6 +554,7 @@ public final class RoomService {
             value.put("currentAnswer",game==null?-1:game.submitted.getOrDefault(self.id,-1));
             if(credentials) { value.put("token",self.token); if(self.host) value.put("hostSession",self.token); else value.put("sessionToken",self.token); }
         }
+        if(room.lastCommand!=null)value.put("lastCommand",room.lastCommand.snapshot());
         if(room.cursed!=null){
             Set<String> online=room.members.values().stream().filter(m->m.peer!=null&&!m.left).map(m->m.id).collect(java.util.stream.Collectors.toSet());
             value.put("cursedBoxes",room.cursed.snapshot(self==null?"":self.id,self!=null&&self.host,room.host.peer!=null,online,now()));
@@ -651,7 +674,7 @@ public final class RoomService {
         String lobbyId=UUID.randomUUID().toString();List<String> impostorRoster=List.of();
         com.erni.finalanswer.gameplay.impostor.ImpostorSettings impostorSettings=com.erni.finalanswer.gameplay.impostor.ImpostorSettings.defaults();
         com.erni.finalanswer.gameplay.impostor.ImpostorMatchResult lastImpostorResult;
-        final Map<String,Member> members=new LinkedHashMap<>(); Member host; GameSession game; ImpostorSession impostor; CursedBoxesSession cursed; long revision;
+        final Map<String,Member> members=new LinkedHashMap<>(); Member host; GameSession game; ImpostorSession impostor; CursedBoxesSession cursed; LastCommandSession lastCommand; long revision;
         Room(String code,String name,int max,String mode,int questions,byte[] salt,byte[] hash) {
             this.code=code;this.name=name;maxPlayers=max;this.mode=mode;questionCount=questions;this.salt=salt;passwordHash=hash;
         }

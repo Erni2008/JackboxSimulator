@@ -27,69 +27,78 @@ struct TlcSurface {
     vec3 gradient;
     float rust;
     float roughness;
+    float metallic;
 };
-TlcSurface tlcWeather(vec3 position,vec3 original) {
-    // Rotate the solid field to avoid a grid aligned to the rectangular panels.
-    mat3 rotation=mat3(.8,-.36,.48, .6,.48,-.64, 0.0,.8,.6);
-    vec3 p=rotation*position+vec3(2.73,5.17,1.39);
-    float footprint=max(length(dFdx(position)),length(dFdy(position)));
-    vec4 broad=tlcNoise(p*9.0);
-    vec4 macro=tlcNoise(p*37.0+broad.x*2.0);
-    vec4 flake=tlcNoise(p*186.0+macro.x*1.7);
-    vec4 grain=tlcNoise(p*790.0);
-    vec4 micro=tlcNoise(p*2370.0);
-    float grainFilter=tlcDetailFilter(790.0,footprint);
-    float microFilter=tlcDetailFilter(2370.0,footprint);
-    float flakeFilter=tlcDetailFilter(186.0,footprint);
-    float moisture=tlcNoise((position+vec3(2.73,5.17,1.39))*vec3(105.0,9.0,105.0)).x;
-    float paint=0.0;
-    if(u_weather.w>1.5 && u_weather.w<2.5) {
-        paint=smoothstep(1.7,2.6,original.r/(original.g+0.006))*smoothstep(0.025,0.09,original.r);
+TlcSurface tlcWeather(vec3 position,vec3 original,float sourceMetal,float sourceRoughness) {
+    if(u_weather.w>2.5){
+        vec4 n=tlcNoise(position*37.0);
+        // Small feathered contact patch under the fixed machine. No extra pass or render target.
+        vec2 outside=max(abs(position.xz-vec2(-.005,.02))-vec2(.33,.28),vec2(0));
+        float contact=1.0-smoothstep(0.0,.16,length(outside));
+        vec3 color=original*mix(.78,1.12,n.x)*(1.0-contact*.44);
+        return TlcSurface(color,n.yzw*.018,0.0,.86,sourceMetal);
     }
-    float darkPanel=0.0;
-    if(u_weather.w<0.5) {
-        float brightness=dot(original,vec3(.2126,.7152,.0722));
-        darkPanel=(1.0-smoothstep(.012,.045,brightness))*(1.0-smoothstep(.025,.08,abs(original.r-original.b)));
-        // The source front display is one inset plane in the body's shared material.
-        float display=(1.0-smoothstep(.0004,.002,abs(position.z-.11292)))
+    float brightness=dot(original,vec3(.2126,.7152,.0722));
+    float redRatio=original.r/(original.g+.003);
+    float warmRatio=original.g/(original.b+.003);
+    // Read the authored color/metalness maps first: enamel is not rust, brass is not dirt.
+    float paint=smoothstep(3.0,6.0,redRatio)*(1.0-smoothstep(1.8,2.6,warmRatio));
+    if(u_weather.w>1.5)paint=max(paint,smoothstep(2.0,3.2,redRatio)*smoothstep(.025,.10,original.r));
+    float oxide=smoothstep(2.0,4.2,redRatio)*smoothstep(1.5,2.8,warmRatio)*(1.0-paint);
+    float display=0.0;
+    if(u_weather.w<.5){
+        display=(1.0-smoothstep(.0004,.002,abs(position.z-.11292)))
             *(1.0-smoothstep(.146,.154,abs(position.x+.003)))
             *smoothstep(.400,.405,position.y)*(1.0-smoothstep(.582,.588,position.y));
-        darkPanel=max(darkPanel,display);
     }
-    float coverage=u_weather.x*mix(1.0,.57,paint);
-    float field=macro.x*.40+flake.x*.22+broad.x*.27+moisture*.11;
-    float rust=smoothstep(.62-coverage*.42,.76-coverage*.42,field);
-    float glassMask=0.0;
-#ifdef panelSurfaceFlag
-    if(u_controlData.x>1.5)glassMask=tlcControlMask(original);
-    rust*=1.0-glassMask;
-#endif
-    rust*=mix(1.0,.008,darkPanel);
-    float pits=smoothstep(.58,.84,grain.x)*grainFilter;
-    float flakeRim=(1.0-smoothstep(.012,.075,abs(flake.x-.48)))*flakeFilter;
-    float sediment=smoothstep(.53,.82,moisture)*.23;
-    vec3 oxide=mix(vec3(.042,.012,.005),vec3(.23,.069,.018),smoothstep(.19,.78,flake.x*.65+macro.x*.35));
-    oxide*=mix(.68,1.25,grain.x*grainFilter+.5*(1.0-grainFilter));
-    oxide*=1.0-pits*.42-flakeRim*.16;
-    if(u_weather.w>2.5)oxide*=.14; // the floor frames the machine, rather than competing with it
-    // Keep the red control recognizable under chipped, chalky paint.
+    vec3 p=position+vec3(2.73,5.17,1.39);
+    float footprint=max(length(dFdx(position)),length(dFdy(position)));
+    vec4 patina=tlcNoise(p*31.0);
+    vec4 grain=tlcNoise(p*340.0);
+    float grainFilter=tlcDetailFilter(340.0,footprint);
+    float added=u_weather.x*smoothstep(.58,.81,patina.x)*(1.0-paint)*(.25+.75*oxide);
+    float rust=clamp(oxide*.72+added,0.0,.9)*(1.0-display);
     vec3 substrate=original;
 #ifdef panelSurfaceFlag
     substrate=tlcControlColor(original);
 #endif
-    substrate*=mix(.84,1.04,macro.x);
-    substrate=mix(substrate,substrate*vec3(.88,.91,.94),paint);
-    vec3 color=mix(substrate,oxide,rust*.88);
-    color*=1.0-sediment-pits*.12;
-    // Millimeter-scale granular metal beneath larger flakes, with subpixel filtering.
-    vec3 gradient=flake.yzw*186.0*.0011*flakeFilter*(.28+rust)
-        +grain.yzw*790.0*.00017*grainFilter
-        +micro.yzw*2370.0*.000035*microFilter;
-    gradient=vec3(dot(rotation[0],gradient),dot(rotation[1],gradient),dot(rotation[2],gradient));
-    gradient*=mix(1.0,.20,darkPanel)*mix(1.0,.10,glassMask);
-    float roughness=clamp(u_weather.z+rust*.12+(grain.x-.5)*.12*grainFilter,0.0,.99);
-    roughness=mix(roughness,.38,glassMask);
-    return TlcSurface(max(color,vec3(.0003)),gradient,rust,roughness);
+    // Preserve authored wear; add old rubbed-through enamel and ingrained grime, not a rust blanket.
+    vec3 oxideColor=mix(vec3(.048,.017,.007),vec3(.14,.047,.016),patina.x);
+    vec3 color=mix(substrate,oxideColor,added*.32);
+    color*=mix(.91,1.035,patina.x);
+    float wear=clamp(u_weather.y,0.0,1.5);
+    float grime=(1.0-smoothstep(.23,.49,patina.x))*wear*.24;
+    color*=1.0-grime;
+    // Irregular islands break up the coating. No repeated straight scratches across the whole body.
+    float chipped=smoothstep(.57,.77,patina.x)*smoothstep(.43,.69,grain.x)*wear;
+    float chipFilter=tlcDetailFilter(340.0,footprint);
+    float enamelChip=chipped*paint*chipFilter;
+    vec3 oldSteel=vec3(.095,.083,.069)*mix(.68,1.2,grain.x);
+    color=mix(color,oldSteel,enamelChip*.82);
+    vec4 abrasion=tlcNoise(p*vec3(760.0,48.0,260.0));
+    float scratchFilter=tlcDetailFilter(760.0,footprint);
+    float scratches=smoothstep(.74,.86,abrasion.x)*smoothstep(.35,.65,patina.x)*scratchFilter*wear;
+    color=mix(color,mix(oldSteel,substrate*.64,.25),scratches*.36);
+    float rough=clamp(max(sourceRoughness*.64,u_weather.z)+(grain.x-.5)*.07*grainFilter,.24,.82);
+    rough=mix(rough,max(rough,.76),rust);
+    rough=mix(rough,clamp(sourceRoughness*.72,.33,.58),paint);
+    rough=mix(rough,.67,clamp(grime+enamelChip*.8+scratches*.35,0.0,1.0));
+    float metal=mix(sourceMetal*(1.0-rust*.94),.025,paint);
+    metal=mix(metal,.58,enamelChip*.8);
+    vec3 gradient=grain.yzw*(.32+wear*.035)*grainFilter*(.4+.6*rust);
+    gradient+=abrasion.yzw*vec3(.025,.002,.01)*scratchFilter*wear;
+#ifndef TLC_FAST_WEATHER
+    float microFilter=tlcDetailFilter(1250.0,footprint);
+    if(microFilter>0.0)gradient+=tlcNoise(p*vec3(1250.0,170.0,750.0)).yzw*.055*microFilter;
+#endif
+    float glass=display;
+#ifdef panelSurfaceFlag
+    if(u_controlData.x>1.5&&u_controlData.x<2.5)glass=max(glass,tlcControlMask(original));
+#endif
+    gradient*=1.0-glass;
+    rough=mix(rough,.22,glass);metal=mix(metal,0.0,glass);rust*=1.0-glass;
+    color=mix(color,substrate,display);
+    return TlcSurface(max(color,vec3(.0003)),gradient,rust,rough,clamp(metal,0.0,1.0));
 }
 #endif
 

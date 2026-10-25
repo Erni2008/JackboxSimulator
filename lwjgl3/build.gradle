@@ -973,3 +973,46 @@ tasks.register('lastCommandPanelCheck', JavaExec) {
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
+
+tasks.register('lastCommandBenchmark', JavaExec) {
+    group = 'verification'
+    dependsOn tasks.named('compileDevJava')
+    classpath = files(sourceSets.dev.output.classesDirs, sourceSets.main.output.classesDirs, configurations.runtimeClasspath)
+    mainClass = 'com.erni.finalanswer.lwjgl3.LastCommandBenchmark'
+    workingDir = rootProject.file('assets')
+    ['label','output','samples','warmup','originalAssets','existingOnly','legacyRendering','quality','seed','look','diagnostic'].each { key -> if (providers.gradleProperty('lc.'+key).isPresent()) systemProperty 'lc.'+key, providers.gradleProperty('lc.'+key).get() }
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('lastCommandMechanismCheck', JavaExec) {
+    group = 'verification'
+    dependsOn tasks.named('compileDevJava')
+    classpath = files(sourceSets.dev.output.classesDirs, sourceSets.main.output.classesDirs, configurations.runtimeClasspath)
+    mainClass = 'com.erni.finalanswer.lwjgl3.LastCommandMechanismCheck'
+    workingDir = rootProject.file('assets')
+    ['seed','quality','shots','originalAssets','existingOnly','look','diagnostic'].each { key -> if (providers.gradleProperty('lc.'+key).isPresent()) systemProperty 'lc.'+key, providers.gradleProperty('lc.'+key).get() }
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('lastCommandPhoneCheck', JavaExec) {
+    group = 'verification'
+    dependsOn tasks.named('compileDevJava'), ':server:classes'
+    classpath = files(sourceSets.dev.output.classesDirs, sourceSets.main.output.classesDirs, configurations.runtimeClasspath)
+    mainClass = 'com.erni.finalanswer.lwjgl3.LastCommandPhoneCheck'
+    workingDir = rootProject.file('assets')
+    systemProperty 'lc.phone.dir', layout.buildDirectory.dir('last-command-phone-check').get().asFile.absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('lastCommandResourceCheck', JavaExec) {
+    group = 'verification'
+    dependsOn tasks.named('compileDevJava')
+    classpath = files(sourceSets.dev.output.classesDirs, sourceSets.main.output.classesDirs, configurations.runtimeClasspath)
+    mainClass = 'com.erni.finalanswer.lwjgl3.LastCommandResourceCheck'
+    workingDir = rootProject.file('assets')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}

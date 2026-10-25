@@ -100,6 +100,40 @@ class RoomServiceTest {
         assertEquals("puppeteer",s(replacement.latest().getAsJsonArray("players").get(0).getAsJsonObject(),"characterId"));
         service.leave(code,s(doll,"token"));assertEquals(0,h.latest().getAsJsonArray("players").size());
     }
+    void startPanel(){players();command(h,"START_LAST_COMMAND",Map.of("roomCode",s(host,"code"),"sessionId",s(h.latest(),"lobbyId"),"seed","20261025"));}
+    Map<String,Object> panelAction(String element,String action,String value){return Map.of("roomCode",s(host,"code"),"sessionId",s(h.latest().getAsJsonObject("lastCommand"),"sessionId"),"element",element,"action",action,"value",value);}
+    @Test void lastCommandPanelIsAuthoritativeAndAtomicAcrossPlayers(){
+        startPanel();assertEquals("IN_GAME",s(h.latest(),"roomStatus"));
+        command(a,"LAST_COMMAND_ACTION",panelAction("CODE_PANEL","STEP","0:+1"));command(b,"LAST_COMMAND_ACTION",panelAction("CODE_PANEL","STEP","0:+1"));
+        assertEquals("2000",s(h.latest().getAsJsonObject("lastCommand"),"code"));
+        command(a,"LAST_COMMAND_ACTION",panelAction("LEVER_MODULE","SET","DOWN"));command(b,"LAST_COMMAND_ACTION",panelAction("HIDDEN_HATCH","SET","OPEN"));
+        assertEquals("DOWN",s(a.latest().getAsJsonObject("lastCommand"),"lever"));assertTrue(b.latest().getAsJsonObject("lastCommand").get("hatch").getAsBoolean());
+        String request=UUID.randomUUID().toString();var message=Protocol.decode(Protocol.event("LAST_COMMAND_ACTION",request,panelAction("CODE_PANEL","STEP","1:-1")));
+        service.command(a,message);service.command(a,message);assertEquals("2900",s(h.latest().getAsJsonObject("lastCommand"),"code"));
+        assertTrue(h.latest().toString().length()<16384);assertFalse(h.latest().toString().contains(".glb"));
+        failure("LAST_COMMAND_IN_PROGRESS",()->command(h,"START_GAME",Map.of()));
+    }
+    @Test void lastCommandHoldsAreOwnedAndDisconnectReleasesOnlyItsOwner(){
+        startPanel();var press=panelAction("SMALL_BUTTON_1","PRESS","");command(a,"LAST_COMMAND_ACTION",press);command(b,"LAST_COMMAND_ACTION",press);
+        service.detach(a.id());assertEquals(1,h.latest().getAsJsonObject("lastCommand").getAsJsonArray("held").size());service.detach(b.id());assertTrue(h.latest().getAsJsonObject("lastCommand").getAsJsonArray("held").isEmpty());
+        var reconnected=new TestPeer();service.attach(s(host,"code"),s(one,"token"),reconnected,"again");assertTrue(reconnected.latest().has("lastCommand"));assertEquals("20261025",s(reconnected.latest().getAsJsonObject("lastCommand"),"seed"));
+    }
+    @Test void lastCommandSynchronizesEightPlayers() throws Exception {
+        service.leave(s(host,"code"),s(host,"token"));host=create(Map.of("maxPlayers","8"));h=new TestPeer();service.attach(s(host,"code"),s(host,"token"),h,"host-eight");
+        List<TestPeer> peers=new ArrayList<>();for(int i=0;i<8;i++){var player=join("Panel "+i);var peer=new TestPeer();service.attach(s(host,"code"),s(player,"token"),peer,"eight-"+i);peers.add(peer);}
+        command(h,"START_LAST_COMMAND",Map.of("roomCode",s(host,"code"),"sessionId",s(h.latest(),"lobbyId"),"seed","991"));
+        var pool=Executors.newFixedThreadPool(8);try{var barrier=new CyclicBarrier(8);List<Future<?>> tasks=new ArrayList<>();for(var peer:peers)tasks.add(pool.submit(()->{try{barrier.await();command(peer,"LAST_COMMAND_ACTION",panelAction("CODE_PANEL","STEP","0:+1"));}catch(Exception e){throw new RuntimeException(e);}}));for(var task:tasks)task.get();}finally{pool.shutdownNow();}
+        for(var peer:peers)assertEquals("8000",s(peer.latest().getAsJsonObject("lastCommand"),"code"));
+    }
+    @Test void lastCommandLocksSessionsRolesAndReset(){
+        startPanel();command(h,"LAST_COMMAND_ACTION",panelAction("CODE_PANEL","LOCK","true"));failure("MECHANISM_LOCKED",()->command(a,"LAST_COMMAND_ACTION",panelAction("CODE_PANEL","STEP","0:+1")));
+        failure("HOST_REQUIRED",()->command(a,"LAST_COMMAND_ACTION",panelAction("LIGHT_MODULE","LOCK","true")));
+        failure("INVALID_LAST_COMMAND_ACTION",()->command(a,"LAST_COMMAND_ACTION",panelAction("ADJUSTER","SET","999")));
+        var forged=new HashMap<>(panelAction("LEVER_MODULE","SET","DOWN"));forged.put("playerId",s(two,"selfId"));failure("INVALID_LAST_COMMAND_ACTION",()->command(a,"LAST_COMMAND_ACTION",forged));
+        var stale=new HashMap<>(panelAction("LEVER_MODULE","SET","DOWN"));stale.put("sessionId","old");failure("STALE_LAST_COMMAND_SESSION",()->command(a,"LAST_COMMAND_ACTION",stale));
+        command(h,"LAST_COMMAND_ACTION",panelAction("CODE_PANEL","RESET",""));assertEquals("0000",s(h.latest().getAsJsonObject("lastCommand"),"code"));assertTrue(h.latest().getAsJsonObject("lastCommand").getAsJsonArray("locked").isEmpty());
+        command(h,"END_LAST_COMMAND",Map.of("roomCode",s(host,"code"),"sessionId",s(h.latest().getAsJsonObject("lastCommand"),"sessionId")));assertFalse(h.latest().has("lastCommand"));assertTrue(h.latest().get("canStart").getAsBoolean());
+    }
     @Test void createsServerGeneratedUniqueCodes(){Set<String> codes=new HashSet<>();for(int i=0;i<100;i++){JsonObject room=create(Map.of("code","AAAAAA"));assertTrue(s(room,"code").matches("[A-HJ-NP-Z2-9]{6}"));assertTrue(codes.add(s(room,"code")));assertEquals(43,s(room,"token").length());assertTrue(room.has("roomId"));}}
     @Test void joinsAndCapacityExcludesHost(){players();assertEquals(2,h.latest().getAsJsonArray("players").size());failure("ROOM_IS_FULL",()->join("Third"));}
     @Test void wrongCodeAndBadNickname(){failure("ROOM_NOT_FOUND",()->service.join("ZZZZZZ",Map.of("name","A")));failure("INVALID_NICKNAME",()->join("\n\t"));failure("INVALID_NICKNAME",()->join("x".repeat(25)));join("Test");failure("NICKNAME_IN_USE",()->join("test"));}

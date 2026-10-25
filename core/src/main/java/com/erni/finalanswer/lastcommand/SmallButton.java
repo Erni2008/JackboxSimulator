@@ -33,6 +33,7 @@ public final class SmallButton extends PanelControl {
     public boolean held(){return held;}
     public float depression(){return motion.depression();}
     @Override public void setLocked(boolean value){super.setLocked(value);if(value)release();}
+    @Override public boolean animating(){return motion.animating();}
     @Override public void update(float delta){motion.update(delta);motion.apply(rest,scene.modelInstance.transform);}
     @Override public void reset(){super.setLocked(false);held=false;motion.reset();surface.color.set(initialColor);scene.modelInstance.transform.set(rest);}
     @Override boolean activeSurface(Vector3 point){return point.y>=pickMinY;}

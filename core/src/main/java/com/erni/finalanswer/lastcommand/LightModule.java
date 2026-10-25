@@ -32,6 +32,8 @@ public final class LightModule extends PanelControl {
     public float brightness(){return brightness;}
     public float intensity(){return surface.emission;}
     public boolean blinking(){return blinking;}
+    public float blinkPeriod(){return period;}
+    public float blinkDuty(){return duty;}
     public void setColor(State value){
         if(value==null)throw new IllegalArgumentException("Missing lamp color");
         if(state==value)return;
@@ -50,7 +52,8 @@ public final class LightModule extends PanelControl {
     }
     public void setBlinking(boolean enabled){setBlinking(enabled,period,duty);}
     private float desiredIntensity(){return state!=State.OFF&&(!blinking||phase<period*duty)?brightness:0;}
-    private void fadeTo(float target,float duration){intensityStart=surface.emission;intensityTarget=target;intensityElapsed=0;intensityDuration=duration;}
+    private void fadeTo(float target,float duration){com.badlogic.gdx.Gdx.graphics.requestRendering();intensityStart=surface.emission;intensityTarget=target;intensityElapsed=0;intensityDuration=duration;}
+    @Override public boolean animating(){return blinking&&state!=State.OFF&&brightness>0||tintElapsed<.15f||intensityElapsed<intensityDuration;}
     @Override public void update(float delta){
         if(!Float.isFinite(delta)||delta<0)return;
         if(blinking){phase=(phase+delta)%period;float target=desiredIntensity();if(target!=intensityTarget)fadeTo(target,.045f);}

@@ -7,6 +7,9 @@ import com.erni.finalanswer.settings.GameSettings;
 public class DisplayManager {
     private GameSettings applied;
     private boolean changing;
+    private Integer sceneFps;
+    public void setSceneFps(Integer fps){sceneFps=fps;applyFps();}
+    private void applyFps(){if(applied==null)return;int configured=applied.fpsLimit();Gdx.graphics.setForegroundFPS(sceneFps==null?configured:(configured==0?sceneFps:Math.min(configured,sceneFps)));}
 
     public boolean isChanging() {
         return changing;
@@ -31,8 +34,7 @@ public class DisplayManager {
             }
             if (!success) throw new IllegalStateException("Display mode unavailable");
             Gdx.graphics.setVSync(settings.vsync());
-            Gdx.graphics.setForegroundFPS(settings.fpsLimit());
-            applied = settings;
+            applied = settings;applyFps();
         } finally {
             changing = false;
         }

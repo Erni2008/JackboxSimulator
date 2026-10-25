@@ -47,9 +47,10 @@ public final class RotaryAdjuster extends PanelControl {
     boolean setPosition(int position,PanelAction.Cause cause){
         if(position<0||position>=angles.length)throw new IllegalArgumentException("Invalid detent index");
         if(position==index)return false;
-        start=angle;index=position;elapsed=0;turning=true;this.cause=cause;return true;
+        com.badlogic.gdx.Gdx.graphics.requestRendering();start=angle;index=position;elapsed=0;turning=true;this.cause=cause;return true;
     }
     boolean step(PanelAction.Cause cause){return !locked()&&setPosition((index+1)%angles.length,cause);}
+    @Override public boolean animating(){return turning;}
     @Override public void update(float delta){
         if(!Float.isFinite(delta)||delta<0)return;
         if(turning){

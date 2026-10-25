@@ -1,0 +1,1442 @@
+[
+  {
+    "name": "box_final",
+    "profile": "low",
+    "source": "box_final.glb",
+    "sourceSha256": "f4a766ff9f7c3d0bb6e2ee80e2d4397f8ed467715d0facd30f28dbde951c3fb8",
+    "sourceStats": {
+      "bytes": 30260344,
+      "triangles": 495304,
+      "primitives": 1,
+      "maps": [
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 14241848,
+      "triangles": 346508,
+      "primitives": 5,
+      "maps": [
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "a1880b156bd68bc8e6853e945e19b476935561f2b84dc1d9c9bb462e6f806b3b",
+    "maxSimplificationError": 0.0005
+  },
+  {
+    "name": "box_final",
+    "profile": "medium",
+    "source": "box_final.glb",
+    "sourceSha256": "f4a766ff9f7c3d0bb6e2ee80e2d4397f8ed467715d0facd30f28dbde951c3fb8",
+    "sourceStats": {
+      "bytes": 30260344,
+      "triangles": 495304,
+      "primitives": 1,
+      "maps": [
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 21084276,
+      "triangles": 346492,
+      "primitives": 5,
+      "maps": [
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "c9724bd7ca399cb72e0a479ed7dc9388e66f02fb446f0227e8fed6c8247c1fe0",
+    "maxSimplificationError": 0.0005
+  },
+  {
+    "name": "box_final",
+    "profile": "high",
+    "source": "box_final.glb",
+    "sourceSha256": "f4a766ff9f7c3d0bb6e2ee80e2d4397f8ed467715d0facd30f28dbde951c3fb8",
+    "sourceStats": {
+      "bytes": 30260344,
+      "triangles": 495304,
+      "primitives": 1,
+      "maps": [
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 21679320,
+      "triangles": 371478,
+      "primitives": 5,
+      "maps": [
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "5081c0cb8640dc15458bd71040997b32f0f5b2da4790e4ec0ad1ccebfa5e47a6",
+    "maxSimplificationError": 0.0005
+  },
+  {
+    "name": "hole_final",
+    "profile": "low",
+    "source": "hole_final.glb",
+    "sourceSha256": "6f561f13fc6d96041121405de9fa02627f316756547084cc1f46d1b96a6ab94c",
+    "sourceStats": {
+      "bytes": 46513660,
+      "triangles": 12957,
+      "primitives": 1,
+      "maps": [
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 1414008,
+      "triangles": 12949,
+      "primitives": 1,
+      "maps": [
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "d4c33d4b1be4e2b8d79fd6cd3ea53be4a094e157e560572f1d85164595f09127",
+    "maxSimplificationError": 0.0005
+  },
+  {
+    "name": "hole_final",
+    "profile": "medium",
+    "source": "hole_final.glb",
+    "sourceSha256": "6f561f13fc6d96041121405de9fa02627f316756547084cc1f46d1b96a6ab94c",
+    "sourceStats": {
+      "bytes": 46513660,
+      "triangles": 12957,
+      "primitives": 1,
+      "maps": [
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 3679576,
+      "triangles": 12949,
+      "primitives": 1,
+      "maps": [
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "cf85adf3be2691b8e954796e145d2f7b47f930a096e18bf530268919e2b257ed",
+    "maxSimplificationError": 0.0005
+  },
+  {
+    "name": "hole_final",
+    "profile": "high",
+    "source": "hole_final.glb",
+    "sourceSha256": "6f561f13fc6d96041121405de9fa02627f316756547084cc1f46d1b96a6ab94c",
+    "sourceStats": {
+      "bytes": 46513660,
+      "triangles": 12957,
+      "primitives": 1,
+      "maps": [
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 3679752,
+      "triangles": 12957,
+      "primitives": 1,
+      "maps": [
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "8fe77bf4b9c1ad70bdbd81f61af4c1b95d8fa9b42d0b6610a1bc10c8bbe43075",
+    "maxSimplificationError": 0.0005
+  },
+  {
+    "name": "button",
+    "profile": "low",
+    "source": "button.glb",
+    "sourceSha256": "07725257ca0cabed46f54dd7fe4decaad1846484cb2bcf43eb0f76faaa65d7b0",
+    "sourceStats": {
+      "bytes": 55124916,
+      "triangles": 5690,
+      "primitives": 1,
+      "maps": [
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 1046564,
+      "triangles": 5438,
+      "primitives": 1,
+      "maps": [
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "fe6ab02d5ccaf6cf813cc5bfb7cfe6d630e23b63f1eb9458028296ad9a547f98",
+    "maxSimplificationError": 0.0005
+  },
+  {
+    "name": "button",
+    "profile": "medium",
+    "source": "button.glb",
+    "sourceSha256": "07725257ca0cabed46f54dd7fe4decaad1846484cb2bcf43eb0f76faaa65d7b0",
+    "sourceStats": {
+      "bytes": 55124916,
+      "triangles": 5690,
+      "primitives": 1,
+      "maps": [
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 3712220,
+      "triangles": 5438,
+      "primitives": 1,
+      "maps": [
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "ee9abb4ce43e5efef306ab4b4a9e00ff195d01ca969a35c1ea776b9e3fe60174",
+    "maxSimplificationError": 0.0005
+  },
+  {
+    "name": "button",
+    "profile": "high",
+    "source": "button.glb",
+    "sourceSha256": "07725257ca0cabed46f54dd7fe4decaad1846484cb2bcf43eb0f76faaa65d7b0",
+    "sourceStats": {
+      "bytes": 55124916,
+      "triangles": 5690,
+      "primitives": 1,
+      "maps": [
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 14327996,
+      "triangles": 5690,
+      "primitives": 1,
+      "maps": [
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "725121a1d0b6b8ab2ebdb5316573855cb6a159f74a91e75b22809b1c4c3a4ea1",
+    "maxSimplificationError": 0.0005
+  },
+  {
+    "name": "adjuster",
+    "profile": "low",
+    "source": "assets/models/last_command/adjuster.glb",
+    "sourceSha256": "eba114edcb1e65e7636a2df6924b25162c855f0bba84df337cbcb4ccc7f9d87c",
+    "sourceStats": {
+      "bytes": 49596608,
+      "triangles": 50000,
+      "primitives": 1,
+      "maps": [
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 2228932,
+      "triangles": 46866,
+      "primitives": 1,
+      "maps": [
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "ae33054233ac102f45905fde2a3d4856db5c6ce4a6d3e8e6ac878e73431859ae",
+    "maxSimplificationError": 0.0005
+  },
+  {
+    "name": "adjuster",
+    "profile": "medium",
+    "source": "assets/models/last_command/adjuster.glb",
+    "sourceSha256": "eba114edcb1e65e7636a2df6924b25162c855f0bba84df337cbcb4ccc7f9d87c",
+    "sourceStats": {
+      "bytes": 49596608,
+      "triangles": 50000,
+      "primitives": 1,
+      "maps": [
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 4564944,
+      "triangles": 46866,
+      "primitives": 1,
+      "maps": [
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "7ebe40ea5d127367af7ed7691be0140e166e08d26c05097d5a57391550e8dc30",
+    "maxSimplificationError": 0.0005
+  },
+  {
+    "name": "adjuster",
+    "profile": "high",
+    "source": "assets/models/last_command/adjuster.glb",
+    "sourceSha256": "eba114edcb1e65e7636a2df6924b25162c855f0bba84df337cbcb4ccc7f9d87c",
+    "sourceStats": {
+      "bytes": 49596608,
+      "triangles": 50000,
+      "primitives": 1,
+      "maps": [
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 13418384,
+      "triangles": 50000,
+      "primitives": 1,
+      "maps": [
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "c7d543aecc90207ff9629fc5472bd0225096a7a35996d7790e2a03cbb57cd989",
+    "maxSimplificationError": 0.0005
+  },
+  {
+    "name": "light",
+    "profile": "low",
+    "source": "assets/models/last_command/light.glb",
+    "sourceSha256": "0eecf3c9d2cbeff56298a750f191afdb908c7fa6d101b2aae35dc26a23783689",
+    "sourceStats": {
+      "bytes": 10250952,
+      "triangles": 51602,
+      "primitives": 1,
+      "maps": [
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 2010228,
+      "triangles": 39934,
+      "primitives": 1,
+      "maps": [
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "3fd0118b1d910db720dd0e4075eaeaa6d0a48a2e68507aef332993b2701d33ce",
+    "maxSimplificationError": 0.0005
+  },
+  {
+    "name": "light",
+    "profile": "medium",
+    "source": "assets/models/last_command/light.glb",
+    "sourceSha256": "0eecf3c9d2cbeff56298a750f191afdb908c7fa6d101b2aae35dc26a23783689",
+    "sourceStats": {
+      "bytes": 10250952,
+      "triangles": 51602,
+      "primitives": 1,
+      "maps": [
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 2010116,
+      "triangles": 39926,
+      "primitives": 1,
+      "maps": [
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "22ba18212a01f268f4fd3f1a6627aaa239707e8e6d6fffa5e2de5c15c9f95a0d",
+    "maxSimplificationError": 0.0005
+  },
+  {
+    "name": "light",
+    "profile": "high",
+    "source": "assets/models/last_command/light.glb",
+    "sourceSha256": "0eecf3c9d2cbeff56298a750f191afdb908c7fa6d101b2aae35dc26a23783689",
+    "sourceStats": {
+      "bytes": 10250952,
+      "triangles": 51602,
+      "primitives": 1,
+      "maps": [
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 3801204,
+      "triangles": 51602,
+      "primitives": 1,
+      "maps": [
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "dde0f1e9c06ddfe594f68e5b41b33690e61a8766c15cf423d46265a21a4326b6",
+    "maxSimplificationError": 0.0005
+  },
+  {
+    "name": "level_handler",
+    "profile": "low",
+    "source": "level_handler.glb",
+    "sourceSha256": "48949b42be51ddf68e57a6b02e8ff29d6e9c9b405f4b3149621b99745c57585d",
+    "sourceStats": {
+      "bytes": 53973176,
+      "triangles": 50000,
+      "primitives": 1,
+      "maps": [
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 2278216,
+      "triangles": 45724,
+      "primitives": 1,
+      "maps": [
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "3a2921461b3ea71ddeb4b9a1b7ccba40b97c19c910f9c5775ddd1c37a25bc8f1",
+    "maxSimplificationError": 0.0005
+  },
+  {
+    "name": "level_handler",
+    "profile": "medium",
+    "source": "level_handler.glb",
+    "sourceSha256": "48949b42be51ddf68e57a6b02e8ff29d6e9c9b405f4b3149621b99745c57585d",
+    "sourceStats": {
+      "bytes": 53973176,
+      "triangles": 50000,
+      "primitives": 1,
+      "maps": [
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 4906268,
+      "triangles": 45724,
+      "primitives": 1,
+      "maps": [
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "7d7c0554eb78c605ede7124891ed0eb8812ebfbdc503376c60ec9548444bf149",
+    "maxSimplificationError": 0.0005
+  },
+  {
+    "name": "level_handler",
+    "profile": "high",
+    "source": "level_handler.glb",
+    "sourceSha256": "48949b42be51ddf68e57a6b02e8ff29d6e9c9b405f4b3149621b99745c57585d",
+    "sourceStats": {
+      "bytes": 53973176,
+      "triangles": 50000,
+      "primitives": 1,
+      "maps": [
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 14803068,
+      "triangles": 50000,
+      "primitives": 1,
+      "maps": [
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "560e17f128628af10fbeae01f2ae4bb144173762850f2c5c3ed45bd1aac04e74",
+    "maxSimplificationError": 0.0005
+  },
+  {
+    "name": "lever",
+    "profile": "low",
+    "source": "lever.glb",
+    "sourceSha256": "623dc389bbdfe93d403042c0b6becd0ae05cdc6b1b58b52fc40cffe6b1a78968",
+    "sourceStats": {
+      "bytes": 56676592,
+      "triangles": 50000,
+      "primitives": 1,
+      "maps": [
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 1958748,
+      "triangles": 27500,
+      "primitives": 1,
+      "maps": [
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "c379aafd644826059f5f2f7505bec31c42cce731f3d072923bc78135a096c1d9",
+    "maxSimplificationError": 0.0005
+  },
+  {
+    "name": "lever",
+    "profile": "medium",
+    "source": "lever.glb",
+    "sourceSha256": "623dc389bbdfe93d403042c0b6becd0ae05cdc6b1b58b52fc40cffe6b1a78968",
+    "sourceStats": {
+      "bytes": 56676592,
+      "triangles": 50000,
+      "primitives": 1,
+      "maps": [
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 5458268,
+      "triangles": 37500,
+      "primitives": 1,
+      "maps": [
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "f2e9a8066204f5fa794d9e390c3e62b932bbe4885a704526f40f8555b41b1569",
+    "maxSimplificationError": 0.0005
+  },
+  {
+    "name": "lever",
+    "profile": "high",
+    "source": "lever.glb",
+    "sourceSha256": "623dc389bbdfe93d403042c0b6becd0ae05cdc6b1b58b52fc40cffe6b1a78968",
+    "sourceStats": {
+      "bytes": 56676592,
+      "triangles": 50000,
+      "primitives": 1,
+      "maps": [
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 16063316,
+      "triangles": 50000,
+      "primitives": 1,
+      "maps": [
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "8927e7d443e32beed8b4eaadbf7ccd540250141662f7e0bbe438dbda682dc9d9",
+    "maxSimplificationError": 0.0005
+  },
+  {
+    "name": "secret_hole",
+    "profile": "low",
+    "source": "secret_hole.glb",
+    "sourceSha256": "312f094b8df652c3f9d0760cad0781e174eea5d47bc36ad453ebca762502c777",
+    "sourceStats": {
+      "bytes": 46554368,
+      "triangles": 55807,
+      "primitives": 1,
+      "maps": [
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 2123476,
+      "triangles": 33843,
+      "primitives": 1,
+      "maps": [
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "67aa4705bb5900e9a17dc4b06a126ac0ef64acebbb3203b541d2e11f5180aad5",
+    "maxSimplificationError": 0.0005
+  },
+  {
+    "name": "secret_hole",
+    "profile": "medium",
+    "source": "secret_hole.glb",
+    "sourceSha256": "312f094b8df652c3f9d0760cad0781e174eea5d47bc36ad453ebca762502c777",
+    "sourceStats": {
+      "bytes": 46554368,
+      "triangles": 55807,
+      "primitives": 1,
+      "maps": [
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 4740844,
+      "triangles": 41855,
+      "primitives": 1,
+      "maps": [
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "0962ecb84cc14635734641a2bc4f381df198b760a491e4d7603e8427f9a73778",
+    "maxSimplificationError": 0.0005
+  },
+  {
+    "name": "secret_hole",
+    "profile": "high",
+    "source": "secret_hole.glb",
+    "sourceSha256": "312f094b8df652c3f9d0760cad0781e174eea5d47bc36ad453ebca762502c777",
+    "sourceStats": {
+      "bytes": 46554368,
+      "triangles": 55807,
+      "primitives": 1,
+      "maps": [
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 13715468,
+      "triangles": 55807,
+      "primitives": 1,
+      "maps": [
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "b5c25b3c167cf63f5ce493b523c36a92394ee7ad07e189a761fe23370c786e16",
+    "maxSimplificationError": 0.0005
+  },
+  {
+    "name": "door",
+    "profile": "low",
+    "source": "door.glb",
+    "sourceSha256": "3b7186dc0d1d712084b37f7c211dc60c3e1f6746d6792c6c8d4b902472952370",
+    "sourceStats": {
+      "bytes": 45735316,
+      "triangles": 50030,
+      "primitives": 1,
+      "maps": [
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 1698916,
+      "triangles": 27516,
+      "primitives": 1,
+      "maps": [
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "eff5c2298362e4b7904198130ac8df417ab79d28eee892172b79814aaabed35c",
+    "maxSimplificationError": 0.0005
+  },
+  {
+    "name": "door",
+    "profile": "medium",
+    "source": "door.glb",
+    "sourceSha256": "3b7186dc0d1d712084b37f7c211dc60c3e1f6746d6792c6c8d4b902472952370",
+    "sourceStats": {
+      "bytes": 45735316,
+      "triangles": 50030,
+      "primitives": 1,
+      "maps": [
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 4471468,
+      "triangles": 37522,
+      "primitives": 1,
+      "maps": [
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "c3cac28c2897a441a1581fc8f3e81db1a39075c9020561d5a23810690783cec1",
+    "maxSimplificationError": 0.0005
+  },
+  {
+    "name": "door",
+    "profile": "high",
+    "source": "door.glb",
+    "sourceSha256": "3b7186dc0d1d712084b37f7c211dc60c3e1f6746d6792c6c8d4b902472952370",
+    "sourceStats": {
+      "bytes": 45735316,
+      "triangles": 50030,
+      "primitives": 1,
+      "maps": [
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 13427964,
+      "triangles": 50030,
+      "primitives": 1,
+      "maps": [
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "37ff7af39ee8231d6d8fc9db5623c11e6b16b49d0e46e71fe1f25306fda8e004",
+    "maxSimplificationError": 0.0005
+  },
+  {
+    "name": "code_display",
+    "profile": "low",
+    "source": "code_display.glb",
+    "sourceSha256": "b1b4d3fd9b5bfb35122d00bd87ca05036f1f2efc77ce2e1a0efee93a1acb2c89",
+    "sourceStats": {
+      "bytes": 57154064,
+      "triangles": 50004,
+      "primitives": 1,
+      "maps": [
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 5142164,
+      "triangles": 46790,
+      "primitives": 1,
+      "maps": [
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "3c9c1735ac646d2c20b7f842cd72a7c5074047cb5a39b62ac4a94c709877bc83",
+    "maxSimplificationError": 0.0005
+  },
+  {
+    "name": "code_display",
+    "profile": "medium",
+    "source": "code_display.glb",
+    "sourceSha256": "b1b4d3fd9b5bfb35122d00bd87ca05036f1f2efc77ce2e1a0efee93a1acb2c89",
+    "sourceStats": {
+      "bytes": 57154064,
+      "triangles": 50004,
+      "primitives": 1,
+      "maps": [
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 5142164,
+      "triangles": 46790,
+      "primitives": 1,
+      "maps": [
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "3c9c1735ac646d2c20b7f842cd72a7c5074047cb5a39b62ac4a94c709877bc83",
+    "maxSimplificationError": 0.0005
+  },
+  {
+    "name": "code_display",
+    "profile": "high",
+    "source": "code_display.glb",
+    "sourceSha256": "b1b4d3fd9b5bfb35122d00bd87ca05036f1f2efc77ce2e1a0efee93a1acb2c89",
+    "sourceStats": {
+      "bytes": 57154064,
+      "triangles": 50004,
+      "primitives": 1,
+      "maps": [
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ],
+        [
+          4096,
+          4096
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeStats": {
+      "bytes": 15436768,
+      "triangles": 50004,
+      "primitives": 1,
+      "maps": [
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ]
+      ],
+      "extensions": []
+    },
+    "runtimeSha256": "d35a8cde738392265393bb6311a5219f58e11436a2735dfc05eb5b0a0de7ae27",
+    "maxSimplificationError": 0.0005
+  }
+]

@@ -19,6 +19,7 @@ public final class MechanicalButton {
             Interpolation.smooth.apply(duration == 0 ? 1 : Math.min(1, elapsed / duration)));
     }
     public void reset() { value=start=elapsed=duration=0;held=false; }
+    public boolean animating(){return elapsed<duration;}
     public float depression() { return value; }
     public void apply(Matrix4 rest, Matrix4 output) {
         output.set(rest).translate(localAxis.x * travel * value,

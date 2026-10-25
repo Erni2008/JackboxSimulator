@@ -30,10 +30,10 @@ public final class LastCommandPanelCheck extends ApplicationAdapter {
     }
     private void up(){orbit.touchUp(0,0,0,Input.Buttons.LEFT);}
     @Override public void create(){
-        machine=new TheLastCommandMachine();panel=machine.panel();check(machine.loadedAssetCount()==5&&panel!=null,"All five original models must load: "+machine.status);
+        machine=new TheLastCommandMachine();panel=machine.panel();check(machine.loadedAssetCount()==10&&panel!=null,"All five original models must load: "+machine.status);
         camera=new PerspectiveCamera(45,1200,800);orbit=new OrbitCameraController(camera,machine);
         renderer=new TheLastCommandRenderer(camera,machine);
-        check(panel.controls().size()==6,"Four buttons, one adjuster, one indicator");
+        check(panel.controls().size()==11,"Four buttons, one adjuster, one indicator");
         check(panel.light().color()==LightModule.State.OFF,"Indicator must start OFF");near(0,panel.light().intensity());
         var central=machine.scenes[2].modelInstance;
         Texture sourceTexture=central.materials.first().get(TextureAttribute.class,TextureAttribute.Diffuse).textureDescription.texture;
@@ -88,7 +88,7 @@ public final class LastCommandPanelCheck extends ApplicationAdapter {
         machine.beginInteraction(PanelElementId.BIG_BUTTON);machine.update(.1f);near(1,machine.button.depression());machine.endInteraction(PanelElementId.BIG_BUTTON);machine.update(.15f);near(0,machine.button.depression());
         machine.beginInteraction(PanelElementId.BIG_BUTTON);panel.press(red.id());machine.update(.1f);panel.reset();near(0,machine.button.depression());near(0,red.depression());check(panel.history().isEmpty(),"Reset clears action history");check(panel.controls().stream().noneMatch(PanelControl::locked),"Reset unlocks all panel controls");
         // Pairwise visible control centers are separated; the closest pair is the two lower buttons.
-        for(PanelControl a:panel.controls())for(PanelControl b:panel.controls())if(a!=b)check(target(a).dst(target(b))>.032f,"Controls overlap each other");
+        for(PanelControl a:panel.controls())for(PanelControl b:panel.controls())if(a!=b&&a.id().ordinal()<=PanelElementId.LIGHT_MODULE.ordinal()&&b.id().ordinal()<=PanelElementId.LIGHT_MODULE.ordinal())check(target(a).dst(target(b))>.032f,"Controls overlap each other");
         System.out.println("PANEL LOGIC OK: four shared caps, masks/material independence, ray targets, held gestures, locks, pivot/detents/events, light fades/blink, sequence/reset, central button");
         closeCamera();
     }

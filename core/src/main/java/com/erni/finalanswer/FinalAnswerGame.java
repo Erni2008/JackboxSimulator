@@ -24,6 +24,8 @@ public class FinalAnswerGame extends Game {
     private GameSettings settings;
     private Localization texts;
 
+    public void setSceneFps(Integer fps){if(displayManager!=null)displayManager.setSceneFps(fps);}
+
     public GameSettings getSettings() {
         return settings;
     }
@@ -75,6 +77,21 @@ public class FinalAnswerGame extends Game {
 
     private com.erni.finalanswer.cursedboxes.CursedBoxesScreen cursedBoxes;
     private com.erni.finalanswer.cursedboxes.CursedBoxesLoadingScreen cursedLoading;
+    private String lastCommandSession="";
+    public void startLastCommand(){
+        if(activeRoom==null||realtime==null){showTheLastCommand();return;}
+        var snapshot=realtime.snapshot();if(snapshot==null||!snapshot.has("lobbyId"))return;
+        realtime.send("START_LAST_COMMAND",java.util.Map.of("roomCode",activeRoom.code(),"sessionId",snapshot.get("lobbyId").getAsString(),"seed",Long.toString(System.currentTimeMillis())));
+    }
+    public void reloadLastCommand(){if(realtime!=null&&realtime.snapshot()!=null&&realtime.snapshot().has("lastCommand"))openLastCommand(realtime.snapshot(),true);}
+    private void openLastCommand(com.google.gson.JsonObject state,boolean force){
+        var mini=state.getAsJsonObject("lastCommand");String session=mini.get("sessionId").getAsString();
+        if(!force&&session.equals(lastCommandSession)&&getScreen() instanceof com.erni.finalanswer.lastcommand.TheLastCommandScreen)return;
+        lastCommandSession=session;com.erni.finalanswer.lastcommand.OrbitCameraController.State cameraState=null;
+        if(getScreen() instanceof com.erni.finalanswer.lastcommand.TheLastCommandScreen old){cameraState=old.cameraState();setScreen(null);}
+        var screen=new com.erni.finalanswer.lastcommand.TheLastCommandScreen(this,Long.parseLong(mini.get("seed").getAsString()));
+        screen.connectNetwork(realtime,state);if(cameraState!=null)screen.restoreCamera(cameraState);setScreen(screen);
+    }
     public void showTheLastCommand() {
         setScreen(new com.erni.finalanswer.lastcommand.TheLastCommandScreen(this));
     }
@@ -204,6 +221,8 @@ public class FinalAnswerGame extends Game {
             cageLobbyScreen.synchronize(activeRoom, lobbyStatus);
             cageLobbyScreen.cages().onRoomEvent(data, realtime == null ? System.currentTimeMillis() : realtime.serverNow());
         }
+        if(activeRoom.host()&&data.has("lastCommand")){openLastCommand(data,false);return;}
+        if(!lastCommandSession.isEmpty()&&!data.has("lastCommand")){lastCommandSession="";if(getScreen() instanceof com.erni.finalanswer.lastcommand.TheLastCommandScreen)showRoomLobby();}
         if(activeRoom.host()&&data.has("cursedBoxes")){openNetworkCursed(data);return;}
         if(type.equals("CURSED_BOXES_ENDED")||!networkCursedSession.isEmpty()&&!data.has("cursedBoxes"))releaseNetworkCursed();
         if(activeRoom.host() && type.equals("IMPOSTOR_LOBBY_RETURNED")){showImpostorLobby();return;}

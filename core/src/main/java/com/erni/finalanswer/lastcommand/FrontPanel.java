@@ -10,6 +10,7 @@ public final class FrontPanel {
     private final TheLastCommandMachine machine;
     private final EnumMap<PanelElementId,SmallButton> buttons=new EnumMap<>(PanelElementId.class);
     private final List<PanelControl> controls;
+    private final List<PanelControl> controlsView;
     private final ArrayDeque<PanelAction> history=new ArrayDeque<>();
     private final List<Consumer<PanelAction>> listeners=new java.util.concurrent.CopyOnWriteArrayList<>();
     private final EnumMap<PanelElementId,PanelAction.Cause> pressCauses=new EnumMap<>(PanelElementId.class);
@@ -29,9 +30,10 @@ public final class FrontPanel {
         adjuster=new RotaryAdjuster(machine.newInstance(3),machine.sourceGeometry(3),config.adjuster,
             (angle,cause)->emit(PanelElementId.ADJUSTER,PanelAction.Kind.ADJUSTER_CHANGED,Float.toString(angle),cause));
         light=new LightModule(machine.newInstance(4),machine.sourceGeometry(4),config.light);
-        List<PanelControl> all=new ArrayList<>(buttons.values());all.add(adjuster);all.add(light);controls=List.copyOf(all);
+        List<PanelControl> all=new ArrayList<>(buttons.values());all.add(adjuster);all.add(light);controls=all;controlsView=Collections.unmodifiableList(controls);
     }
-    public List<PanelControl> controls(){return controls;}
+    public List<PanelControl> controls(){return controlsView;}
+    void addControls(List<PanelControl> additions){controls.addAll(additions);}
     public SmallButton button(PanelElementId id){SmallButton b=buttons.get(id);if(b==null)throw new IllegalArgumentException("Not a small button: "+id);return b;}
     public RotaryAdjuster adjuster(){return adjuster;}
     public LightModule light(){return light;}
@@ -39,10 +41,14 @@ public final class FrontPanel {
     public void onSmallButtonPressed(Consumer<PanelElementId> listener){onSmallButtonPressed=Objects.requireNonNull(listener);}
     public void addListener(Consumer<PanelAction> listener){listeners.add(Objects.requireNonNull(listener));}
     public void removeListener(Consumer<PanelAction> listener){listeners.remove(listener);}
+    record ActionLog(List<PanelAction> entries,long sequence,double time,int limit){}
+    ActionLog saveLog(){return new ActionLog(List.copyOf(history),sequence,time,historyLimit);}
+    void restoreLog(ActionLog log){history.clear();history.addAll(log.entries());sequence=log.sequence();time=log.time();historyLimit=log.limit();}
     public List<PanelAction> history(){return List.copyOf(history);}
     public List<PanelAction> playerActions(){return history.stream().filter(a->a.cause()==PanelAction.Cause.PLAYER).toList();}
     public void setHistoryLimit(int limit){if(limit<1)throw new IllegalArgumentException("History limit must be positive");historyLimit=limit;while(history.size()>limit)history.removeFirst();}
-    private void emit(PanelElementId id,PanelAction.Kind kind,String value,PanelAction.Cause cause){
+    void emit(PanelElementId id,PanelAction.Kind kind,String value,PanelAction.Cause cause){
+        com.badlogic.gdx.Gdx.graphics.requestRendering();
         PanelAction event=new PanelAction(++sequence,time,id,kind,value,cause);
         if(history.size()==historyLimit)history.removeFirst();history.addLast(event);for(var listener:listeners)listener.accept(event);
     }
@@ -57,6 +63,7 @@ public final class FrontPanel {
     }
     public void setButtonColor(PanelElementId id,Color color){button(id).setColor(color);emit(id,PanelAction.Kind.COLOR_CHANGED,color.toString(),PanelAction.Cause.PROGRAM);}
     public void setLocked(PanelElementId id,boolean locked){
+        if(id==PanelElementId.BIG_BUTTON){machine.setCentralLocked(locked);emit(id,PanelAction.Kind.LOCK_CHANGED,Boolean.toString(locked),PanelAction.Cause.PROGRAM);return;}
         PanelControl control=control(id);if(control.locked()==locked)return;
         if(control instanceof SmallButton button&&button.held())release(id);
         control.setLocked(locked);emit(id,PanelAction.Kind.LOCK_CHANGED,Boolean.toString(locked),PanelAction.Cause.PROGRAM);
@@ -67,7 +74,8 @@ public final class FrontPanel {
         if(light.color()==color)return;light.setColor(color);emit(PanelElementId.LIGHT_MODULE,PanelAction.Kind.LIGHT_CHANGED,color.name(),cause);
     }
     boolean pointerDown(PanelElementId id){
-        PanelControl control=control(id);if(control.locked())return false;
+        if(machine.mechanisms()!=null&&machine.mechanisms().handles(id))return machine.mechanisms().interact(id,PanelAction.Cause.PLAYER);
+        PanelControl control=control(id);if(control.locked()||!control.visible())return false;
         if(control instanceof SmallButton)return press(id,PanelAction.Cause.PLAYER);
         if(id==PanelElementId.ADJUSTER)return adjuster.step(PanelAction.Cause.PLAYER);
         LightModule.State[] states=LightModule.State.values();setLightColor(states[(light.color().ordinal()+1)%states.length],PanelAction.Cause.PLAYER);return true;
@@ -75,8 +83,8 @@ public final class FrontPanel {
     void pointerUp(PanelElementId id){if(buttons.containsKey(id))release(id);}
     void bigButton(boolean down){emit(PanelElementId.BIG_BUTTON,down?PanelAction.Kind.PRESSED:PanelAction.Kind.RELEASED,"RED",PanelAction.Cause.PLAYER);}
     public void update(float delta){
-        if(!Float.isFinite(delta)||delta<0)return;time+=delta;for(PanelControl control:controls)control.update(delta);
+        if(!Float.isFinite(delta)||delta<0)return;time+=delta;for(int i=0;i<controls.size();i++)controls.get(i).update(delta);
     }
-    public void reset(){machine.resetCentralButton();for(PanelControl control:controls)control.reset();pressCauses.clear();history.clear();sequence=0;time=0;}
-    void clear(){listeners.clear();history.clear();pressCauses.clear();}
+    public void reset(){machine.resetCentralButton();for(PanelControl control:controls){control.reset();control.setVisible(true);}pressCauses.clear();history.clear();sequence=0;time=0;}
+    void clear(){for(var control:controls)control.dispose();listeners.clear();history.clear();pressCauses.clear();}
 }

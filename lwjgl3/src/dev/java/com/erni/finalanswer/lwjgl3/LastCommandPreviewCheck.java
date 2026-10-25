@@ -66,7 +66,7 @@ public final class LastCommandPreviewCheck extends ApplicationAdapter {
     }
     @Override public void create(){cameraCheck();screen=new TheLastCommandScreen(new FinalAnswerGame());screen.show();screen.resize(1000,700);}
     @Override public void render(){
-        screen.render(Gdx.graphics.getDeltaTime());frames++;
+        screen.render(Gdx.graphics.getDeltaTime());frames++;Gdx.graphics.requestRendering();
         if(frames==10){
             var image=com.badlogic.gdx.graphics.Pixmap.createFromFrameBuffer(0,0,Gdx.graphics.getBackBufferWidth(),Gdx.graphics.getBackBufferHeight());
             int titlePixels=0;
@@ -76,7 +76,7 @@ public final class LastCommandPreviewCheck extends ApplicationAdapter {
             com.badlogic.gdx.graphics.PixmapIO.writePNG(Gdx.files.absolute("/tmp/last-command-preview.png"),image,-1,true);image.dispose();
         }
         if(frames==30){screen.pause();screen.hide();screen.dispose();screen=new TheLastCommandScreen(new FinalAnswerGame());screen.show();screen.resize(1000,700);}
-        if(frames==60){System.out.println("LastCommandPreviewCheck OK: native rendering, orbit/pan/reset, collision limit, five real GLBs, red-only picking/occlusion, press/hold/release, fixed body/base, reopen/dispose");Gdx.app.exit();}
+        if(frames==60){System.out.println("LastCommandPreviewCheck OK: native rendering, orbit/pan/reset, collision limit, ten real GLBs, red-only picking/occlusion, press/hold/release, fixed body/base, reopen/dispose");Gdx.app.exit();}
     }
     @Override public void dispose(){if(screen!=null){screen.hide();screen.dispose();}}
     public static void main(String[] args){var c=new Lwjgl3ApplicationConfiguration();c.setTitle("THE LAST COMMAND / smoke check");c.setWindowedMode(1000,700);c.disableAudio(true);new Lwjgl3Application(new LastCommandPreviewCheck(),c);}
