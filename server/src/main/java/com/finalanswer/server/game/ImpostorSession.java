@@ -67,7 +67,7 @@ public final class ImpostorSession {
         finalVoting.close(impostorId);enterFinalPhase(ImpostorPhase.VOTING_LOCKED,now,FinalVoting.LOCK_MILLIS);
     }
     private ImpostorPhase phase;
-    private String secretWord, impostorId;
+    private String secretWord, impostorId, wordHint;
     private int clueRound;
     private long deadline, sequence, finalizedAt;
     private final List<Map<String,String>> revealed = new ArrayList<>();
@@ -80,6 +80,7 @@ public final class ImpostorSession {
     public void begin(WordSource words, SecureRandom random, long now) {
         if(closed || phase!=null && phase!=ImpostorPhase.REPLAY_PREPARATION || !rounds.isEmpty())throw new Failure(409,"INVALID_PHASE");
         secretWord=normalize(words.choose(random));
+        wordHint=WordHints.safe(secretWord,words.hint(secretWord));
         impostorId=new ArrayList<>(participants).get(random.nextInt(participants.size()));
         phase=ImpostorPhase.ROLE_REVEAL;deadline=now+ROLE_MILLIS;
     }
@@ -94,7 +95,7 @@ public final class ImpostorSession {
     public int clueCount(){return clues.size();}
     public Map<String,String> privateRole(String player) {
         if(closed || !gameplay() || secretWord==null || impostorId==null || !participants.contains(player))return Map.of();
-        return player.equals(impostorId)?Map.of("role","IMPOSTOR"):Map.of("role","ORDINARY","secretWord",secretWord);
+        return player.equals(impostorId)?Map.of("role","IMPOSTOR","wordHint",wordHint):Map.of("role","ORDINARY","secretWord",secretWord);
     }
     private void beginRound(long now){
         clueRound++;clues.clear();attempts.clear();typing.clear();phase=ImpostorPhase.ROUND_CLUE_INPUT;deadline=now+clueMillis;
@@ -205,7 +206,7 @@ public final class ImpostorSession {
         if(current==null || current.finalized || now<current.deadline)return false;
         current.finalized=true;return true;
     }
-    public void close() {closed=true;typing.clear();secretWord=null;impostorId=null;clues.clear();attempts.clear();result=null;revealed.clear();finalVoting=null;if(current()!=null)current().finalized=true;}
+    public void close() {closed=true;typing.clear();secretWord=null;impostorId=null;wordHint=null;clues.clear();attempts.clear();result=null;revealed.clear();finalVoting=null;if(current()!=null)current().finalized=true;}
 
     public static final class SuspicionRound {
         public final String roomId, sessionId;

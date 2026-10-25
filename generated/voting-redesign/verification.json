@@ -1,5 +1,10 @@
 {
-  "texturesAfter": 229,
+  "resolutions": 4,
+  "retinaScale": 2.0,
+  "cpuP95MsWithoutSwap": 3.894417,
+  "opacityPixelRegression": true,
+  "scenarios": 5,
+  "texturesAfter": 221,
   "batchStateRestored": true,
   "counts": [
     2,
@@ -10,25 +15,20 @@
     7,
     8
   ],
-  "texturesBefore": 229,
+  "texturesBefore": 221,
   "passed": true,
-  "resolutions": 4,
-  "retinaScale": 2.0,
-  "cpuP95MsWithoutSwap": 2.853625,
-  "opacityPixelRegression": true,
-  "scenarios": 5,
   "realtime": [
     {
-      "cpuP95Ms": 0.545042,
-      "measuredWindowFps": 60.00350436466424,
-      "players": 4,
-      "frames": 180
+      "frames": 180,
+      "cpuP95Ms": 2.117542,
+      "measuredWindowFps": 59.973786457502534,
+      "players": 4
     },
     {
-      "cpuP95Ms": 0.7115,
-      "measuredWindowFps": 60.00050666427844,
-      "players": 8,
-      "frames": 180
+      "frames": 180,
+      "cpuP95Ms": 3.567125,
+      "measuredWindowFps": 60.01268852274282,
+      "players": 8
     }
   ],
   "characterBatchColorIsolation": true

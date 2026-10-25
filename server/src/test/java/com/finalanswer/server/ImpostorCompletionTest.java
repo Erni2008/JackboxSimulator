@@ -28,11 +28,11 @@ class ImpostorCompletionTest {
     @Test void activeMainGameHandoffRejected(){var m=new ImpostorLifecycleTest.Match(3);assertEquals("GAME_ALREADY_STARTED",assertThrows(com.finalanswer.server.rooms.RoomService.Failure.class,()->m.f.rooms.command(m.f.hostPeer,Protocol.decode(Protocol.event("START_GAME","early",Map.of())))).getMessage());assertNull(m.f.rooms.completedImpostorResult(m.f.code));}
     @Test void tiedSubmittedVotesCompleteWithoutSelectingRandomWinner(){var m=new ImpostorLifecycleTest.Match(4);m.toVoting();
         for(int i=0;i<4;i++)m.f.rooms.command(m.f.peers.get(i),Protocol.decode(Protocol.event("SUBMIT_FINAL_VOTE","tie",Map.of("roomCode",m.f.code,"sessionId",m.f.session,"suspectId",m.f.pid((i+1)%4)))));
-        m.f.advance(700);m.f.advance(5000);m.f.advance(3500);m.f.advance(4000);
+        m.f.advance(com.finalanswer.server.game.FinalVoting.LOCK_MILLIS);m.f.advance(5000);m.f.advance(com.finalanswer.server.game.FinalVoting.ANNOUNCEMENT_MILLIS);m.f.advance(com.finalanswer.server.game.FinalVoting.IDENTITY_MILLIS);
         assertEquals("NO_CONSENSUS",m.f.rooms.completedImpostorResult(m.f.code).outcome());assertEquals(4,m.f.rooms.completedImpostorResult(m.f.code).statistics().validVotes());assertTrue(m.f.mini(0).get("completed").getAsBoolean());
     }
-    @Test void hostSyncCanDeliverDueCompletionToEveryController(){var m=new ImpostorLifecycleTest.Match(3);m.toVoting();m.f.advance(20000);m.f.advance(700);m.f.advance(5000);m.f.advance(3500);
-        m.f.clock.addAndGet(4000);m.f.rooms.command(m.f.hostPeer,Protocol.decode(Protocol.event("SYNC","host-finish",Map.of())));
+    @Test void hostSyncCanDeliverDueCompletionToEveryController(){var m=new ImpostorLifecycleTest.Match(3);m.toVoting();m.f.advance(20000);m.f.advance(com.finalanswer.server.game.FinalVoting.LOCK_MILLIS);m.f.advance(5000);m.f.advance(com.finalanswer.server.game.FinalVoting.ANNOUNCEMENT_MILLIS);
+        m.f.clock.addAndGet(com.finalanswer.server.game.FinalVoting.IDENTITY_MILLIS);m.f.rooms.command(m.f.hostPeer,Protocol.decode(Protocol.event("SYNC","host-finish",Map.of())));
         for(var peer:m.f.peers)assertEquals(1,peer.events.stream().filter(e->s(e,"type").equals("IMPOSTOR_COMPLETED")).count());
     }
 

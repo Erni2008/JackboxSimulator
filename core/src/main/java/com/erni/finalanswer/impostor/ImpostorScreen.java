@@ -70,7 +70,6 @@ public final class ImpostorScreen extends ScreenAdapter {
     private final ImpostorAssets assets = new ImpostorAssets();
     private final Stage stage = new Stage(new FitViewport(ImpostorLayout.WIDTH, ImpostorLayout.HEIGHT));
     private final BitmapFont labelFont = UiFonts.body(16);
-    private final BitmapFont revealNameFont = UiFonts.handwriting(52);
     private final BitmapFont timerFont = UiFonts.horror(52);
     private final BitmapFont participantFont = UiFonts.body(24);
     private final BitmapFont nicknameFont = UiFonts.nameplate(28);
@@ -98,7 +97,7 @@ public final class ImpostorScreen extends ScreenAdapter {
     private SuspicionSnapshot suspicion;
     private long suspicionServerTime, suspicionReceivedNano;
     private long displayedSuspicionSeconds = -1;
-    private long roundDeadline, roundServerTime, roundReceivedNano;
+    private long roundDeadline, roundServerTime, roundReceivedNano,roundPhaseStartedAt;
     private boolean liveRound;
     private com.erni.finalanswer.network.ImpostorSuspicionAdapter suspicionAdapter;
     private final PaperRevealController paperReveal = new PaperRevealController();
@@ -261,6 +260,7 @@ public final class ImpostorScreen extends ScreenAdapter {
     public void presentPhase(com.erni.finalanswer.gameplay.impostor.ImpostorPhase phase,long deadline,long serverNow) {
         String key=phase.name()+":"+paperReveal.round()+":"+deadline;
         if(!presentationKey.equals(key)){
+            roundPhaseStartedAt=serverNow;
             boolean restore=restorePresentation || presentationKey.isEmpty();phaseRestored=restore;
             if(joiningActiveGame&&opening!=null&&opening.active()){
                 opening.cancel();audio.stop(com.erni.finalanswer.audio.PresentationAudio.Cue.INTRODUCTION);
@@ -306,7 +306,9 @@ public final class ImpostorScreen extends ScreenAdapter {
         finalSnapshot=snapshot;finalServerTime=serverNow;finalReceivedNano=System.nanoTime();
         finalPresentation.accept(snapshot);displayedSuspicionSeconds=-1;
     }
-    public void clearFinal(){if(votingNarration!=null)votingNarration.reset();finalSnapshot=null;if(finalPresentation!=null)finalPresentation.hidePresentation();if(deathWindow!=null)deathWindow.reset();}
+    public void clearFinal(){if(finalSnapshot!=null&&votingNarration!=null)votingNarration.reset();finalSnapshot=null;if(finalPresentation!=null)finalPresentation.hidePresentation();if(deathWindow!=null)deathWindow.reset();}
+
+    public boolean openingActive(){return opening!=null&&opening.active();}
 
     /** Optional development listeners attach to the game stage, never to the temporary opening. */
     public void addPreviewListener(InputListener listener){stage.addListener(listener);}
@@ -327,7 +329,7 @@ public final class ImpostorScreen extends ScreenAdapter {
         if(roleDeal!=null)roleDeal.cancel();publicHistory.clear();readyIds=java.util.Set.of();
         participants = copy;
         if(evidenceBoard!=null)evidenceBoard.update(participants,publicHistory);
-        if (built){rebuildParticipants();finalPresentation.revealFont(revealNameFont);finalPresentation.setRoster(participants);}
+        if (built){rebuildParticipants();finalPresentation.setRoster(participants);}
     }
 
     private void rebuildParticipants() {
@@ -407,10 +409,9 @@ public final class ImpostorScreen extends ScreenAdapter {
             buildScene();
             built = true;
         }
-        if(opening==null){
+        if(opening==null&&!Boolean.getBoolean("impostor.opening.skip")){
             opening=new ImpostorOpening();opening.resize(Gdx.graphics.getWidth(),Gdx.graphics.getHeight());
             openingAmbienceMuted=audio.ambienceMuted();audio.muteAmbience(true);
-            if(Boolean.getBoolean("impostor.opening.skip")){opening.cancel();audio.muteAmbience(openingAmbienceMuted);}
             opening.input().addListener(new InputListener(){
                 @Override public boolean keyDown(InputEvent event,int key){
                     if((key==Input.Keys.ENTER||key==Input.Keys.SPACE)&&opening.canSkip()){
@@ -422,7 +423,7 @@ public final class ImpostorScreen extends ScreenAdapter {
                 }
             });
         }
-        Gdx.input.setInputProcessor(opening.active()?opening.input():stage);
+        Gdx.input.setInputProcessor(opening!=null&&opening.active()?opening.input():stage);
     }
 
     private void buildScene() {
@@ -446,7 +447,7 @@ public final class ImpostorScreen extends ScreenAdapter {
         evidenceBoard=new EvidenceBoard(participantFont);stage.addActor(evidenceBoard);
         roleDeal=new RoleDeal(assets);stage.addActor(roleDeal);
         finalPresentation=new FinalVotePresentation(assets,game.getTexts(),avatarFactory);stage.addActor(finalPresentation.environmentShade());finalPresentation.environmentShade().setZIndex(playerLayer.getZIndex());
-        finalPresentation.revealFont(revealNameFont);finalPresentation.setRoster(participants);finalPresentation.onImpact(()->audio.play(com.erni.finalanswer.audio.PresentationAudio.Cue.STAMP_IMPACT));stage.addActor(finalPresentation);
+        finalPresentation.setRoster(participants);finalPresentation.onImpact(()->audio.play(com.erni.finalanswer.audio.PresentationAudio.Cue.STAMP_IMPACT));stage.addActor(finalPresentation);
         deathWindow=new ImpostorDeathWindow(nicknameFont);deathWindow.roster(participants,avatarFactory);stage.addActor(deathWindow);
         lifecycle=new ImpostorLifecyclePanel(assets,participantFont,avatarFactory,this::sendLifecycle);stage.addActor(lifecycle);
         addImage(ImpostorAsset.CLOCK, "impostorClock", ImpostorLayout.CLOCK);
@@ -583,6 +584,15 @@ public final class ImpostorScreen extends ScreenAdapter {
         for(var view:participantViews)view.ready(liveRound&&!ceremony?readyIds.contains(view.playerId()):null);
         evidenceBoard.setVisible(evidenceBoard.hasClues()&&finalSnapshot!=null&&(finalSnapshot.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.EVIDENCE_REVIEW||finalSnapshot.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.FINAL_VOTING));
         game.getAudio().hostVoice().scopeGain(uiAudioGain());
+        if(!paused&&finalSnapshot==null){
+            if(votingNarration==null)votingNarration=new VotingNarration(game.getAudio().hostVoice());
+            String voiceSession=liveState!=null&&liveState.has("impostor")?liveState.getAsJsonObject("impostor").get("sessionId").getAsString():narrationSession;
+            long voiceNow=roundServerTime+(System.nanoTime()-roundReceivedNano)/1_000_000;
+            int voiceRound=liveState!=null&&liveState.has("impostor")?liveState.getAsJsonObject("impostor").get("round").getAsInt():paperReveal.round()+1;
+            long voiceStarted=liveState==null?roundPhaseStartedAt:state.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.ROUND_CLUE_INPUT?roundDeadline-authoritativeSettings.clueSeconds()*1000L:
+                state.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.PRELIMINARY_SUSPICION?roundDeadline-5000:roundPhaseStartedAt;
+            votingNarration.round(voiceSession,state.phase(),voiceRound,voiceStarted,roundDeadline,voiceNow);
+        }
         audio.narrationActive(game.getAudio().hostVoice().playing(),paused?0:delta);
         transition.update(delta,paused,reduced);audio.writing(liveConnection!=null&&liveConnection.connected()&&liveConnection.serverNow()<writingUntil&&state.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.ROUND_CLUE_INPUT);audio.update(paused?0:delta);finalPresentation.reducedMotion(reduced);
         dust.update(paused?0:delta,reduced);veil.update(paused?0:delta,reduced);
@@ -667,7 +677,7 @@ public final class ImpostorScreen extends ScreenAdapter {
         if(finalPresentation!=null)finalPresentation.close();if(localSettings!=null)localSettings.close();
         labelFont.dispose();
         timerFont.dispose();audio.close();if(roomSettings!=null)roomSettings.dispose();if(dust!=null)dust.dispose();if(veil!=null)veil.dispose();
-        participantFont.dispose();nicknameFont.dispose();revealNameFont.dispose();
+        participantFont.dispose();nicknameFont.dispose();
         assets.dispose();
     }
 }

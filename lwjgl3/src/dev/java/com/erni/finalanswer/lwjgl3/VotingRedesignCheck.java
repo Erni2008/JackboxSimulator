@@ -57,6 +57,19 @@ public final class VotingRedesignCheck extends FinalAnswerGame {
                     check(view.stampCount()==targets.size()&&view.visibleStampCount()==targets.size(),"One visible stamp per actual vote: "+count+outcome);
                     for(var player:roster){Group card=view.findActor("finalCard:"+player.player().id());check(card.getColor().a==1,"Opaque card group in "+outcome);Image paper=card.findActor("finalParchment");check(paper.getColor().a==1,"Opaque paper actor");check(!((Group)stage().getRoot().findActor("participant:"+player.player().id())).findActor("paper").isVisible(),"No stray clue parchment in upper row");}
                     if(result.equals("NO_CONSENSUS")){String supporting=((Label)view.findActor("finalTitle")).getText().toString();for(var player:roster)check(!supporting.contains(player.player().name()),"Tie must not single out a player");}
+                    Actor identityCard=view.findActor("impostorIdentityReveal");
+                    if(result.equals("NO_CONSENSUS"))check(!identityCard.isVisible(),"Tie cannot single out an identity card");
+                    else{
+                        check(identityCard.isVisible(),"Identity appears after the musical accent");
+                        check(view.findActor("identityRole")==null,"Reveal contains the nickname only");
+                        for(var player:roster){
+                            Group dossier=view.findActor("finalCard:"+player.player().id());Image accent=dossier.findActor("impostorPaperAccent"),paper=dossier.findActor("finalParchment");
+                            check(paper.getColor().g>.94f&&paper.getColor().b>.94f,"Parchment stays light rather than fully red");
+                            check((accent.getColor().a>0)==player.player().id().equals(impostor),"Only the real impostor receives the crimson edge");
+                        }
+                        String actualName=roster.stream().filter(p->p.player().id().equals(impostor)).findFirst().orElseThrow().player().name();
+                        check(((Label)view.findActor("identityName")).getText().toString().equals(actualName),"Reveal shows the real impostor, including wrongful accusations");
+                    }
                     geometry(view,roster);
                     for(int[] size:new int[][]{{1920,1080},{1600,900},{1366,768},{1280,720}}){boolean save=count==4||size[0]==1280&&outcome.equals("caught");capture(size[0],size[1],count+"players-"+outcome,save);}
                 }
@@ -71,6 +84,13 @@ public final class VotingRedesignCheck extends FinalAnswerGame {
             check(Math.abs(otherShade.getColor().a-.17f)<.001f,"Verdict shade restores immediately from server time");
             view.accept(new FinalActSnapshot("continuity",ImpostorPhase.IMPOSTOR_REVEAL,101000,105000,90000,2,4,"stable",stableTargets,stableCounts,java.util.List.of("preview-1"),"preview-1","IMPOSTOR_CAUGHT"));view.update(101001);
             check(headline.getColor().a==1,"Unchanged verdict never flashes at identity phase start");
+            view.update(104399);check(!view.findActor("impostorIdentityReveal").isVisible(),"Identity remains concealed before the 3.4-second accent");
+            view.reducedMotion(true);view.update(104400);check(view.findActor("impostorIdentityReveal").isVisible(),"Identity appears exactly on the accent with reduced motion");view.reducedMotion(false);
+            view.update(104950);
+            Group heldPortrait=((Group)view.findActor("finalCard:preview-1")).findActor("finalAvatar");
+            check(heldPortrait.getColor().a==1,"Character remains alive after identity reveal");
+            view.update(106799);check(heldPortrait.getColor().a==1,"Full 2.4-second hold before ghost transition");
+            view.update(107100);check(heldPortrait.getColor().a<1,"Ghost transition begins after the hold");
             view.update(104950);check(headline.getColor().a==1,"Identity title finishes its own entrance");
             view.accept(new FinalActSnapshot("continuity",ImpostorPhase.RESULT,105000,0,90000,2,4,"stable",stableTargets,stableCounts,java.util.List.of("preview-1"),"preview-1","IMPOSTOR_CAUGHT"));view.update(105001);
             check(headline.getColor().a==1,"Result retains the revealed title without restarting animation");

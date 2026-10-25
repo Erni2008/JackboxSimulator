@@ -5,7 +5,7 @@ import com.erni.finalanswer.gameplay.impostor.*;
 
 /** A visual offset over an existing portrait; eligibility is solely the public server outcome. */
 public final class ImpostorElimination {
-    public static final long AFTER_NAME_MILLIS=450;
+    public static final long AFTER_NAME_MILLIS=2400;
     private final Actor actor;
     private final float x,y,sx,sy,rotation,alpha,height;
     public ImpostorElimination(Actor actor){this.actor=actor;x=actor.getX();y=actor.getY();sx=actor.getScaleX();sy=actor.getScaleY();rotation=actor.getRotation();alpha=actor.getColor().a;height=actor.getHeight()*sy;}

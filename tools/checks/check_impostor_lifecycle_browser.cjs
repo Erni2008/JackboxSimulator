@@ -96,7 +96,7 @@ try{
     const mode=match%3,target=mode===0?actual:(actual+1)%count;
     if(mode===2)await advance(configuration.votingSeconds*1000);
     else for(let i=0;i<count;i++){const suspect=i===target?(target+1)%count:target;await clients[i].page.locator(`#final-cards [data-id="${clients[suspect].credentials.selfId}"]`).click();if(redesign){assert.equal((await wire(clients[i].page,'SYNC')).payload.impostor.finalVoteSubmitted,false,'Selection must not submit vote');}await clients[i].page.locator("#confirm-vote").click();await wire(clients[i].page,'SYNC');}
-    await advance(700);await advance(5000);await advance(3500);await advance(4000);
+    for(let phase=0;phase<4;phase++){const current=(await state()).impostor;await advance(current.deadline-current.finalPhaseStartedAt);}
     const result=(await state()).impostor.result;assert.equal(result.outcome,['IMPOSTOR_CAUGHT','IMPOSTOR_ESCAPED','NO_CONSENSUS'][mode]);assert.equal(result.statistics.submittedClues,count*configuration.roundCount);assert.equal(result.participants.length,count);
     for(let i=0;i<clients.length;i++){
       const page=clients[i].page,personal=result.participants.find(p=>p.playerId===clients[i].credentials.selfId);

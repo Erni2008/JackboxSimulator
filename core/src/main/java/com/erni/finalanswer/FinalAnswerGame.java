@@ -247,6 +247,9 @@ public class FinalAnswerGame extends Game {
     @Override public void pause(){if(audio!=null)audio.pause(true);super.pause();}
     @Override public void resume(){super.resume();if(audio!=null)audio.pause(false);}
 
+    /** Standalone development viewers can defer menus; normal application startup is unchanged. */
+    protected boolean preloadMenuScreens(){return true;}
+
     @Override
     public void create() {
         audio=new com.erni.finalanswer.audio.GameAudio();uiAudio=new com.erni.finalanswer.audio.UiAudioCapture(audio);
@@ -263,13 +266,15 @@ public class FinalAnswerGame extends Game {
         }
         // Warm the bounded menu cache before enabling input on the first screen.
         // Display-sized textures keep the three screens smaller than the former full-size UI.
-        mainMenu = new MainMenu(this);
-        roomSettings = new RoomSettingsScreen(this);
-        generationCode = new GenerationCodeScreen(this);
-        settingsScreen = new SettingsScreen(this);
+        if(preloadMenuScreens()){
+            mainMenu = new MainMenu(this);
+            roomSettings = new RoomSettingsScreen(this);
+            generationCode = new GenerationCodeScreen(this);
+            settingsScreen = new SettingsScreen(this);
+        }
         previewLanguage(settings.language());
         refreshMotion();
-        showMainMenu();
+        if(preloadMenuScreens())showMainMenu();
     }
 
     public void showMainMenu() {

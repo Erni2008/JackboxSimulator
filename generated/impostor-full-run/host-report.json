@@ -1,0 +1,20 @@
+{
+  "realTime": true,
+  "phase": "RESULT",
+  "completed": true,
+  "voicePlayCounts": {
+    "impostor_round_1": 1,
+    "impostor_outcome_caught": 1,
+    "impostor_vote_intro_2": 1,
+    "impostor_vote_intro_1": 1,
+    "impostor_vote_first": 1,
+    "impostor_intro": 1,
+    "impostor_vote_reveal_intro": 1,
+    "impostor_final_voting": 1,
+    "impostor_suspicion": 3,
+    "impostor_discussion": 1,
+    "impostor_round_deadline": 3,
+    "impostor_round_3": 1,
+    "impostor_round_2": 1
+  }
+}

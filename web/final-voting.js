@@ -66,11 +66,12 @@ function createFinalVotingController({getState,isAuthenticated,send,now,makeId})
     el('final-results').hidden=completed;
     el('final-progress').textContent=s.phase==='FINAL_VOTING'||s.phase==='VOTING_LOCKED'?`ПРИНЯТО ГОЛОСОВ: ${s.finalSubmittedCount} / ${s.finalEligibleCount}`:'';
     el('final-status').textContent=error||(s.phase==='EVIDENCE_REVIEW'?'Обсудите все слова на общем экране.':
-      s.phase==='FINAL_VOTING'?(!s.activeParticipant?'Вы наблюдаете за игрой. Зрители не голосуют.':s.finalVoteSubmitted?'ГОЛОС ПРИНЯТ. Ваш выбор зафиксирован.':pending?'ОТПРАВЛЯЕМ ГОЛОС…':'Выберите подозреваемого и подтвердите голос. Изменить его будет нельзя.'):
+      s.phase==='FINAL_VOTING'?(!s.activeParticipant?'Вы наблюдаете за игрой. Зрители не голосуют.':s.finalVoteSubmitted?'ГОЛОС ПРИНЯТ. Ваш выбор зафиксирован.':pending?'ОТПРАВЛЯЕМ ГОЛОС…':'Выберите игрока.'):
       completed?'':'Смотрите на общий экран.');
+    if(draftName&&!error&&!pending)el('final-status').hidden=true;
     const focusedId=el('final-cards').contains(document.activeElement)?document.activeElement.closest('[data-id]')?.dataset.id:null;
     el('final-cards').replaceChildren();
-    if(s.phase==='EVIDENCE_REVIEW'||s.phase==='FINAL_VOTING')for(const p of s.participants){
+    if(s.phase==='FINAL_VOTING')for(const p of s.participants){
       const card=document.createElement('button');card.type='button';card.className='suspect-card final-vote-card';card.dataset.id=p.id;
       card.title=p.name;card.setAttribute('aria-label',p.name+(p.id===getState().selfId?' · вы':''));
       card.textContent=p.name+(p.id===getState().selfId?' · ВЫ':'');

@@ -1,0 +1,116 @@
+{
+  "voiceId": "final_answer_host_ru_v1",
+  "clips": [
+    {
+      "id": "impostor_intro",
+      "text": "Перед вами — карточки с ролями. Внимательно прочитайте свою карточку. И помните: ваша роль должна остаться тайной.",
+      "seconds": 8.64,
+      "file": "events/impostor_intro_c05744fee536.ogg",
+      "status": "ready"
+    },
+    {
+      "id": "impostor_round_1",
+      "text": "Первый раунд. Одно слово, одна ассоциация. Постарайтесь не выдать себя.",
+      "seconds": 5.648,
+      "file": "events/impostor_round_1_cc84afec2f6e.ogg",
+      "status": "ready"
+    },
+    {
+      "id": "impostor_round_2",
+      "text": "Второй раунд. Новые слова — и новые поводы для сомнений.",
+      "seconds": 4.08,
+      "file": "events/impostor_round_2_d6360889b727.ogg",
+      "status": "ready"
+    },
+    {
+      "id": "impostor_round_3",
+      "text": "Последний раунд. Теперь каждое слово может вас выдать.",
+      "seconds": 3.84,
+      "file": "events/impostor_round_3_1f3ef5059215.ogg",
+      "status": "ready"
+    },
+    {
+      "id": "impostor_suspicion",
+      "text": "Слова раскрыты. Кому вы теперь не доверяете?",
+      "seconds": 3.098,
+      "file": "events/impostor_suspicion_229d19d499d4.ogg",
+      "status": "ready"
+    },
+    {
+      "id": "impostor_discussion",
+      "text": "Все слова перед вами. Обсудите, кто здесь лишний.",
+      "seconds": 4.16,
+      "file": "events/impostor_discussion_abaea70ded6f.ogg",
+      "status": "ready"
+    },
+    {
+      "id": "impostor_final_voting",
+      "text": "Время решать. Выберите того, кому больше не верите.",
+      "seconds": 3.6,
+      "file": "events/impostor_final_voting_cd3156757b9c.ogg",
+      "status": "ready"
+    },
+    {
+      "id": "impostor_round_deadline",
+      "text": "Время почти вышло.",
+      "seconds": 1.76,
+      "file": "events/impostor_round_deadline_4ccf8776af6a.ogg",
+      "status": "ready"
+    },
+    {
+      "id": "impostor_vote_intro_1",
+      "text": "Ваш выбор сделан.",
+      "seconds": 1.36,
+      "file": "events/impostor_vote_intro_1_4053a174764d.ogg",
+      "status": "ready"
+    },
+    {
+      "id": "impostor_vote_intro_2",
+      "text": "Посмотрим, кого вы решили изгнать.",
+      "seconds": 1.92,
+      "file": "events/impostor_vote_intro_2_90cd4dc5940a.ogg",
+      "status": "ready"
+    },
+    {
+      "id": "impostor_vote_tie",
+      "text": "Ничья. Как удобно… Сегодня никто не покинет комнату.",
+      "seconds": 4.72,
+      "file": "events/impostor_vote_tie_918288aad564.ogg",
+      "status": "ready"
+    },
+    {
+      "id": "impostor_vote_no_votes",
+      "text": "Никто не решился проголосовать. Что ж… Сегодня комната вас отпускает.",
+      "seconds": 5.04,
+      "file": "events/impostor_vote_no_votes_ccbfa33940ab.ogg",
+      "status": "ready"
+    },
+    {
+      "id": "impostor_vote_reveal_intro",
+      "text": "Что ж… Пора узнать, кто всё это время скрывался среди вас.",
+      "seconds": 4.24,
+      "file": "events/impostor_vote_reveal_intro_32ef8e4d8330.ogg",
+      "status": "ready"
+    },
+    {
+      "id": "impostor_outcome_caught",
+      "text": "Вы нашли самозванца. Сегодня вам повезло.",
+      "seconds": 3.36,
+      "file": "events/impostor_outcome_caught_b7e3d09d526d.ogg",
+      "status": "ready"
+    },
+    {
+      "id": "impostor_outcome_escaped",
+      "text": "Вы осудили невиновного. А самозванец всё это время был рядом.",
+      "seconds": 5.2,
+      "file": "events/impostor_outcome_escaped_a7d2c82b91d8.ogg",
+      "status": "ready"
+    }
+  ],
+  "newClips": 14,
+  "reusedClips": 1,
+  "disabledLegacy": [
+    "impostor_vote_first",
+    "impostor_vote_second"
+  ]
+}

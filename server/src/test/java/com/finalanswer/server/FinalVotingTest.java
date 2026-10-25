@@ -48,22 +48,22 @@ class FinalVotingTest {
         var publicState=obj(m.f.rooms.view(m.f.code)).getAsJsonObject("impostor");assertFalse(publicState.has("ownFinalVote"));assertFalse(publicState.has("finalVoteSnapshot"));assertFalse(publicState.has("revealedImpostorId"));
         assertEquals(m.f.pid(1),s(m.f.mini(0),"ownFinalVote"));assertFalse(m.f.mini(1).has("ownFinalVote"));
         m.vote(1,0);m.vote(2,1);assertEquals("VOTING_LOCKED",m.phase());assertFalse(m.f.mini(0).has("finalVoteSnapshot"));
-        m.f.advance(700);assertEquals("FINAL_VOTE_REVEAL",m.phase());assertEquals(3,m.f.mini(0).getAsJsonObject("finalVoteSnapshot").getAsJsonArray("stampTargets").size());
+        m.f.advance(com.finalanswer.server.game.FinalVoting.LOCK_MILLIS);assertEquals("FINAL_VOTE_REVEAL",m.phase());assertEquals(3,m.f.mini(0).getAsJsonObject("finalVoteSnapshot").getAsJsonArray("stampTargets").size());
         assertFalse(m.f.mini(0).has("revealedImpostorId"));assertFalse(m.f.mini(0).has("outcome"));
         m.f.advance(com.erni.finalanswer.gameplay.impostor.FinalRevealTiming.duration(3));assertEquals("SUSPECT_ANNOUNCEMENT",m.phase());assertFalse(m.f.mini(0).has("revealedImpostorId"));
         assertEquals(m.f.pid(1),m.f.mini(0).getAsJsonArray("leadingSuspects").get(0).getAsString());
-        m.f.advance(3500);assertEquals("IMPOSTOR_REVEAL",m.phase());assertTrue(m.f.mini(0).has("revealedImpostorId"));
+        m.f.advance(com.finalanswer.server.game.FinalVoting.ANNOUNCEMENT_MILLIS);assertEquals("IMPOSTOR_REVEAL",m.phase());assertTrue(m.f.mini(0).has("revealedImpostorId"));
         String actual=m.f.players.stream().filter(p->{int i=m.f.players.indexOf(p);return i<3&&s(m.f.mini(i),"role").equals("IMPOSTOR");}).map(p->s(p,"selfId")).findFirst().orElseThrow();
         assertEquals(actual,s(m.f.mini(4),"revealedImpostorId"));assertEquals(actual.equals(m.f.pid(1))?"IMPOSTOR_CAUGHT":"IMPOSTOR_ESCAPED",s(m.f.mini(4),"outcome"));
-        m.f.advance(4000);assertEquals("RESULT",m.phase());}
+        m.f.advance(com.finalanswer.server.game.FinalVoting.IDENTITY_MILLIS);assertEquals("RESULT",m.phase());}
     @Test void timeoutAndDisconnectRetainFrozenVoters(){var m=new Match(4);m.f.advance(10000);m.vote(0,1);m.f.rooms.detach(m.f.peers.get(3).id());
         assertEquals(4,m.f.mini(0).get("finalEligibleCount").getAsInt());m.f.advance(20000);assertEquals("VOTING_LOCKED",m.phase());
-        fail("FINAL_VOTING_CLOSED",()->m.vote(1,0));m.f.advance(700);
+        fail("FINAL_VOTING_CLOSED",()->m.vote(1,0));m.f.advance(com.finalanswer.server.game.FinalVoting.LOCK_MILLIS);
         assertEquals(1,m.f.mini(0).getAsJsonObject("finalVoteSnapshot").getAsJsonArray("stampTargets").size());}
     @Test void reconnectRestoresAcceptedVoteAndImmutableSnapshot(){var m=new Match(3);m.f.advance(10000);m.vote(0,1);m.f.rooms.detach(m.f.peers.getFirst().id());
         var replacement=new TestPeer();m.f.rooms.attach(m.f.code,s(m.f.players.getFirst(),"token"),replacement,"again");
         assertEquals(m.f.pid(1),s(replacement.latest().getAsJsonObject("impostor"),"ownFinalVote"));
-        m.vote(1,0);m.vote(2,0);m.f.advance(700);
+        m.vote(1,0);m.vote(2,0);m.f.advance(com.finalanswer.server.game.FinalVoting.LOCK_MILLIS);
         var result=m.f.mini(1).get("finalVoteSnapshot");var another=new TestPeer();m.f.rooms.attach(m.f.code,s(m.f.players.getFirst(),"token"),another,"again2");
         assertEquals(result,another.latest().getAsJsonObject("impostor").get("finalVoteSnapshot"));}
     @Test void schemaRoomSessionAndAuthentication(){var m=new Match(3);m.f.advance(10000);

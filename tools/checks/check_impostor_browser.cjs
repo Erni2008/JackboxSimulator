@@ -46,7 +46,7 @@ async function checkFinalAct({clients,count,latest,ready,matchIndex}){
   else expected=matchIndex===0?'IMPOSTOR_CAUGHT':'NO_CONSENSUS';
   for(const c of clients)await c.page.waitForFunction(()=>state?.impostor?.phase==='VOTING_LOCKED');
   assert(!latest(watcher).finalVoteSnapshot,'Locked votes leaked before reveal');assert(!latest(watcher).revealedImpostorId);
-  await command('advance',{millis:700});
+  await command('advance',{millis:latest(watcher).deadline-latest(watcher).finalPhaseStartedAt});
   for(const c of clients)await c.page.waitForFunction(()=>state?.impostor?.phase==='FINAL_VOTE_REVEAL');
   const snapshot=latest(watcher).finalVoteSnapshot;assert.equal(snapshot.stampTargets.length,submitCount);
   assert.equal(Object.values(snapshot.counts).reduce((a,b)=>a+b,0),submitCount);assert(!latest(watcher).outcome);assert(!latest(watcher).revealedImpostorId);
@@ -54,7 +54,7 @@ async function checkFinalAct({clients,count,latest,ready,matchIndex}){
   await command('advance',{millis:1700+submitCount*400+800});
   for(const c of clients)await c.page.waitForFunction(()=>state?.impostor?.phase==='SUSPECT_ANNOUNCEMENT');
   assert(!latest(watcher).revealedImpostorId);assert(!latest(watcher).outcome);
-  await command('advance',{millis:3500});for(const c of clients)await c.page.waitForFunction(()=>state?.impostor?.phase==='IMPOSTOR_REVEAL');
+  await command('advance',{millis:latest(watcher).deadline-latest(watcher).finalPhaseStartedAt});for(const c of clients)await c.page.waitForFunction(()=>state?.impostor?.phase==='IMPOSTOR_REVEAL');
   assert.equal(latest(watcher).revealedImpostorId,actualId);assert.equal(await watcher.page.locator('#final-announcement').textContent(),'');assert(await watcher.page.locator('#blackout-screen').isVisible());assert.equal(latest(watcher).outcome,expected);
   await command('advance',{millis:12000});
   for(let attempt=0;attempt<100&&!clients.every(c=>latest(c).phase==='RESULT');attempt++)await sleep(20);
@@ -76,13 +76,12 @@ async function checkFinalAct({clients,count,latest,ready,matchIndex}){
    await command('start-game',{activeIds:clients.slice(0,count).map(c=>c.credentials.selfId)});
    for(const c of clients)await c.page.locator('#impostor-screen').waitFor({state:'visible'});
    const latest=c=>c.frames.filter(e=>e.payload?.impostor).at(-1)?.payload.impostor;
-   for(const c of clients.slice(0,count)){await c.page.locator('#role-privacy-toggle').click();}
    const roles=clients.slice(0,count).map(latest);assert.equal(roles.filter(s=>s.role==='IMPOSTOR').length,1);
    const word=roles.find(s=>s.role==='ORDINARY').secretWord;
    for(let i=0;i<clients.length;i++){
      const c=clients[i],s=latest(c);
      if(s.role==='ORDINARY')assert.equal(await c.page.locator('#impostor-word').textContent(),word);
-     else{assert.equal(await c.page.locator('#impostor-word').textContent(),s.role==='IMPOSTOR'&&s.phase==='ROLE_REVEAL'?'СЛОВО ВАМ НЕИЗВЕСТНО':'');assert(!JSON.stringify(c.frames).includes(word),'Private word leaked');}
+     else{assert.equal(await c.page.locator('#impostor-word').textContent(),s.role==='IMPOSTOR'?(s.wordHint||'СЛОВО ВАМ НЕИЗВЕСТНО'):'');assert(!JSON.stringify(c.frames).includes(word),'Private word leaked');}
      if(i>=count){assert(!s.role);assert(!s.activeParticipant);assert.equal(await c.page.locator('#clue-form').isVisible(),false);}
    }
    for(let i=0;i<clients.length;i++){

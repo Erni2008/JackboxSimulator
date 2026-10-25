@@ -34,6 +34,7 @@ public final class CursedBoxesRenderer implements Disposable {
     private final SpriteBatch ui=new SpriteBatch();
     private final com.erni.finalanswer.ui.effects.CinematicFrame frame=new com.erni.finalanswer.ui.effects.CinematicFrame();
     private int overlayWidth=-1,overlayHeight=-1;
+    private final CursedCeremonyHud ceremonyHud=new CursedCeremonyHud();
     private final BitmapFont font=com.erni.finalanswer.ui.UiFonts.body(18);
     private final BitmapFont title=com.erni.finalanswer.ui.UiFonts.horror(48);
     private final GlyphLayout layout=new GlyphLayout();
@@ -131,12 +132,10 @@ public final class CursedBoxesRenderer implements Disposable {
         if(gun.magazine.loading()){
             font.getData().setScale(.8f);font.setColor(.9f,.75f,.5f,1);status.setLength(0);
             status.append("LOADING  ").append(gun.gun.animator.insertionCount()).append(" / ").append(gun.magazine.loadingTarget()).append("  SHELLS");
-            layout.setText(font,status);font.draw(ui,layout,(w-layout.width)/2,92);
+            layout.setText(font,status);font.draw(ui,layout,(w-layout.width)/2,106*Math.min(w/1600f,h/900f));
         }
-        title.setColor(.76f,.58f,.33f,1);layout.setText(title,"CURSED BOXES");title.draw(ui,layout,(w-layout.width)/2,h-12);
-        font.setColor(.57f,.48f,.38f,1);font.getData().setScale(.72f);font.draw(ui,"F I N A L   A N S W E R",30,h-25);
-        font.getData().setScale(.8f);font.draw(ui,networkPlayer!=null?(turn.shotLimit()==1?"PHONE CONTROL / ONE SHOT":"PHONE CONTROL / TWO SHOTS"):characterTest==null?"ONE SPIRIT. SIXTEEN BOXES.":"EIGHT PLAYERS. NINE SHOTS.",w-260,h-27);
-        if(networkPlayer!=null&&!eliminations.active()){font.setColor(.89f,.73f,.49f,1);layout.setText(font,networkPlayer,0,networkPlayer.length(),font.getColor(),w*.55f,Align.center,false,"...");font.draw(ui,layout,w*.225f,h-75);font.getData().setScale(.65f);String message=gun.magazine.loading()?"LOADING THE SHOTGUN":gun.state()==ShotgunController.State.PICKUP?"LIFTING THE SHOTGUN":gun.state()==ShotgunController.State.AIMING?"TAKING AIM":networkMessage;layout.setText(font,message,0,message.length(),font.getColor(),w*.65f,Align.center,false,"...");font.draw(ui,layout,w*.175f,h-96);}
+        String activity=gun.magazine.loading()?"LOADING THE SHOTGUN":gun.state()==ShotgunController.State.PICKUP?"LIFTING THE SHOTGUN":gun.state()==ShotgunController.State.AIMING?"TAKING AIM":networkMessage;
+        ceremonyHud.draw(ui,font,title,w,h,networkPlayer,activity,turn.selectedCrateId(),networkPlayer==null?turn.shotsRemaining():networkRemaining,turn.shotLimit(),eliminations.active()||survivors.clock.started());
         if(eliminations.active()){
             font.getData().setScale(1);font.setColor(.72f,.83f,.86f,1);
             String line=eliminations.state()==com.finalanswer.protocol.CursedEliminationTimeline.State.ANNOUNCEMENT?"THE HOUSE HAS DECIDED":eliminations.spirit()<.01f?"THE FALLEN":"YOUR STORY IS NOT OVER";
@@ -145,6 +144,7 @@ public final class CursedBoxesRenderer implements Disposable {
             font.getData().setScale(.7f);layout.setText(font,status,0,status.length(),font.getColor(),w*.75f,Align.center,false,"...");font.draw(ui,layout,w*.125f,h-100);
             font.getData().setScale(.65f);layout.setText(font,"BECOME GHOSTS. STAY WITH THE GAME. YOU MAY RETURN.");font.draw(ui,layout,(w-layout.width)/2,h-124);
         }
+        if(performance.visible||characterTest!=null){
         font.getData().setScale(.9f);font.setColor(.65f,.57f,.45f,1);
         if(networkPlayer==null||performance.visible)font.draw(ui,networkPlayer==null?"CLICK select   SPACE fire   R reset   F11 fullscreen   F3 stats   Q effects   F8 survivors   ESC return":"PHONE select / fire   F11 fullscreen   F3 stats   Q effects   F8 survivors   ESC return to lobby",30,28);
         else font.draw(ui,eliminations.active()?"THE FALLEN ARE BECOMING GHOSTS. STAY WITH THE SHOW.":survivors.clock.started()?"THE LIVING AND THE GHOSTS / WATCH THE SHARED SCREEN.":"CHOOSE ON YOUR PHONE. WATCH THE GALLERY.",30,28);
@@ -152,6 +152,7 @@ public final class CursedBoxesRenderer implements Disposable {
         font.draw(ui,status,30,51);
         font.getData().setScale(.85f);
         if(networkPlayer==null||performance.visible)font.draw(ui,networkPlayer!=null?(debris.lowQuality?"MULTIPLAYER / LOW FX":"MULTIPLAYER / FULL FX"):(debris.lowQuality?"LOCAL DEMO  /  LOW FX":"LOCAL DEMO  /  FULL FX"),w-215,28);
+        }
         if(performance.visible){
             font.setColor(.92f,.82f,.6f,1);font.getData().setScale(.9f);
             status.setLength(0);status.append("FPS ").append(Gdx.graphics.getFramesPerSecond()).append("  FRAME ").append(Math.round(performance.frameMs*10)/10f).append(" ms  CPU ").append(Math.round(performance.cpuMs*10)/10f).append(" ms");
@@ -217,5 +218,5 @@ public final class CursedBoxesRenderer implements Disposable {
             Gdx.gl.glFinish();
         }finally{gun.warmupAudio(false);loadingStats.dispose();}
     }
-    @Override public void dispose(){survivors.dispose();background.dispose();firing.dispose();world.dispose();shelf.dispose();decals.dispose();strategy.dispose();frame.dispose();ui.dispose();font.dispose();title.dispose();}
+    @Override public void dispose(){ceremonyHud.close();survivors.dispose();background.dispose();firing.dispose();world.dispose();shelf.dispose();decals.dispose();strategy.dispose();frame.dispose();ui.dispose();font.dispose();title.dispose();}
 }

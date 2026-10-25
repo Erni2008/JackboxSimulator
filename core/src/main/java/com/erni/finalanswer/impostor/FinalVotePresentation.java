@@ -22,6 +22,8 @@ public final class FinalVotePresentation extends Group implements AutoCloseable 
     private final Group cards=new Group(),heading=new Group();
     private final Label title,titleShadow;
     private final Image stamp,shade;
+    private final IdentityReveal identity;
+    private final Map<String,RoomSession.Player> rosterById=new LinkedHashMap<>();
     private final Map<String,VotingCard> cardsById=new LinkedHashMap<>();
     private final java.util.List<Image> marks=new ArrayList<>();
     private final java.util.List<String> targets=new ArrayList<>();
@@ -41,6 +43,7 @@ public final class FinalVotePresentation extends Group implements AutoCloseable 
         titleShadow=label("finalTitleShadow",resources.heading,new Color(0,0,0,.8f),152,601,1620,112);
         title=label("finalTitle",resources.heading,IVORY,150,605,1620,112);
         cards.setName("finalCards");addActor(cards);
+        identity=new IdentityReveal(assets,resources);addActor(identity);
         stamp=assets.texture(ImpostorAsset.STAMP).map(Image::new).orElse(null);
         if(stamp!=null){stamp.setName("woodenVoteStamp");stamp.setVisible(false);addActor(stamp);}
     }
@@ -56,8 +59,8 @@ public final class FinalVotePresentation extends Group implements AutoCloseable 
     private Label label(String name,BitmapFont font,Color color,float x,float y,float width,float height){
         Label label=new Label("",new Label.LabelStyle(font,color));label.setFontScale(resources.fontScale);label.setName(name);label.setAlignment(Align.center);label.setBounds(x,y,width,height);heading.addActor(label);return label;
     }
-    public void hidePresentation(){shownTitleKey="";selectedId="";headlineStarted=0;verdictStarted=0;snapshot=null;sequence="";copyDirty=true;revealed=0;previousUpdate=-1;marks.clear();targets.clear();for(var card:cardsById.values())card.clearStamps();setVisible(false);shade.setVisible(false);if(stamp!=null)stamp.setVisible(false);}
-    public void clear(){hidePresentation();cards.clearChildren();cardsById.clear();}
+    public void hidePresentation(){identity.reset();shownTitleKey="";selectedId="";headlineStarted=0;verdictStarted=0;snapshot=null;sequence="";copyDirty=true;revealed=0;previousUpdate=-1;marks.clear();targets.clear();for(var card:cardsById.values())card.clearStamps();setVisible(false);shade.setVisible(false);if(stamp!=null)stamp.setVisible(false);}
+    public void clear(){hidePresentation();cards.clearChildren();cardsById.clear();rosterById.clear();}
     public void setRoster(java.util.List<ImpostorParticipant> roster){
         if(roster.isEmpty()){clear();return;}
         if(roster.size()<2||roster.size()>8)throw new IllegalArgumentException("Voting presentation supports 2–8 players");
@@ -65,7 +68,7 @@ public final class FinalVotePresentation extends Group implements AutoCloseable 
         clear();boolean dense=roster.size()>=7;
         title.setY(dense?625:605);titleShadow.setY(title.getY()-4);
         int index=0;
-        for(var player:roster){var person=player.player();VotingCard card=new VotingCard(person,avatars.apply(person),assets,resources,VotingLayout.card(roster.size(),index++));cardsById.put(person.id(),card);cards.addActor(card);}
+        for(var player:roster){var person=player.player();rosterById.put(person.id(),person);VotingCard card=new VotingCard(person,avatars.apply(person),assets,resources,VotingLayout.card(roster.size(),index++));cardsById.put(person.id(),card);cards.addActor(card);}
     }
     public int visibleStampCount(){int count=0;for(Image image:marks)if(image!=null&&image.isVisible())count++;return count;}
     public int stampCount(){return targets.size();}
@@ -124,10 +127,25 @@ public final class FinalVotePresentation extends Group implements AutoCloseable 
         heading.setVisible(verdictPhase&&serverNow>=countFinished&&!title.getText().isEmpty());
         heading.getColor().a=intro;
         heading.setOrigin(960,title.getY()+56);heading.setScale(reducedMotion?1:.985f+.015f*intro);
+        boolean identityPhase=snapshot.phase()==ImpostorPhase.IMPOSTOR_REVEAL||snapshot.phase()==ImpostorPhase.RESULT;
+        var revealedPlayer=rosterById.get(snapshot.impostorId());
+        boolean revealIdentity=identityPhase&&!snapshot.outcome().equals("NO_CONSENSUS")&&revealedPlayer!=null;
+        long identityAt=snapshot.phaseStartedAt()+FinalRevealTiming.IDENTITY_NAME_MILLIS;
+        if(revealIdentity){
+            // The RESULT fixtures carry their own phase start; live restores retain the identity start.
+            if(snapshot.phase()==ImpostorPhase.RESULT)identityAt=snapshot.phaseStartedAt()-4000+FinalRevealTiming.IDENTITY_NAME_MILLIS;
+            if(serverNow>=identityAt){identity.identity(revealedPlayer,avatars,texts);identity.present(reducedMotion?1:VotingCard.clamp((serverNow-identityAt)/600f),cardsById.size()>=7,reducedMotion);}
+            else identity.setVisible(false);
+            heading.setVisible(false);
+        }else identity.setVisible(false);
         int index=0;for(var card:cardsById.values()){
             if(cards.isVisible())card.place(elapsed,index++,reducedMotion);
             float emphasis=reducedMotion?1:smooth(VotingCard.clamp((serverNow-verdictStarted)/450f));
             card.emphasize(card.playerId.equals(selectedId),!selectedId.isEmpty(),emphasis);
+            float ink=revealIdentity&&card.playerId.equals(snapshot.impostorId())?smooth(VotingCard.clamp((serverNow-identityAt-600)/650f)):0;
+            float revealContrast=revealIdentity?smooth(VotingCard.clamp((serverNow-identityAt-600)/450f)):0;
+            card.revealContrast(card.playerId.equals(snapshot.impostorId()),revealContrast);
+            card.identityInk(ink);
 
             float eliminated=card.playerId.equals(snapshot.impostorId())?ImpostorElimination.age(snapshot,serverNow):-1;
             card.elimination.apply(eliminated,reducedMotion,0);

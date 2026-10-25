@@ -9,6 +9,7 @@ import java.util.*;
 /** Offline final-act demonstration only. Real games use server snapshots through the network adapter. */
 public final class ImpostorFinalPreview {
     private final ImpostorScreen screen;
+    private static final long VOTING_AT=7000,LOCKED_AT=14000;
     private double elapsed;
     private boolean active;
     private int generation;
@@ -20,22 +21,24 @@ public final class ImpostorFinalPreview {
             @Override public boolean keyDown(InputEvent e,int key){
                 if(key==Input.Keys.NUM_1||key==Input.Keys.NUM_2||key==Input.Keys.NUM_3){
                     outcome=key==Input.Keys.NUM_1?"IMPOSTOR_CAUGHT":key==Input.Keys.NUM_2?"IMPOSTOR_ESCAPED":"NO_CONSENSUS";
-                    start();elapsed=30;shownPhase=null;present();return true;
+                    start();elapsed=60;shownPhase=null;present();return true;
                 }
+                if(key==Input.Keys.I){previewReveal();return true;}
                 if(key==Input.Keys.F){start();return true;}
                 if(key==Input.Keys.N || key==Input.Keys.F3 || key==Input.Keys.F4 || key==Input.Keys.D || key==Input.Keys.V || key==Input.Keys.R || key==Input.Keys.B)cancel();
                 return false;
             }
         });
     }
-    public void previewOutcome(String value){outcome=switch(value.toLowerCase(java.util.Locale.ROOT)){case "caught"->"IMPOSTOR_CAUGHT";case "escaped"->"IMPOSTOR_ESCAPED";case "tie"->"NO_CONSENSUS";default->throw new IllegalArgumentException("Use caught, escaped or tie");};start();elapsed=30;shownPhase=null;present();}
+    public void previewReveal(){outcome="IMPOSTOR_CAUGHT";start();elapsed=(LOCKED_AT+com.finalanswer.server.game.FinalVoting.LOCK_MILLIS+FinalRevealTiming.duration(screen.participants().size())-1000)/1000.0;shownPhase=null;present();}
+    public void previewOutcome(String value){if(value.equalsIgnoreCase("reveal")){previewReveal();return;}outcome=switch(value.toLowerCase(java.util.Locale.ROOT)){case "caught"->"IMPOSTOR_CAUGHT";case "escaped"->"IMPOSTOR_ESCAPED";case "tie"->"NO_CONSENSUS";default->throw new IllegalArgumentException("Use caught, escaped or tie");};start();elapsed=60;shownPhase=null;present();}
     public void start(){elapsed=0;active=true;generation++;shownPhase=null;shownSubmitted=-1;screen.clearSuspicion();present();}
     public void cancel(){if(active){screen.clearFinal();if(screen.state().phase()!=ImpostorPhase.ROUND_CLUE_INPUT)screen.presentPhase(ImpostorPhase.INTRO,0,0);}active=false;}
     public void update(float delta){if(active && Float.isFinite(delta) && delta>0){elapsed+=delta;present();}}
     private void present(){
         var players=screen.participants();if(players.size()<3){cancel();return;}
         long now=(long)(elapsed*1000)+1000;
-        long voting=4000,locked=8000,reveal=8700,announcement=reveal+FinalRevealTiming.duration(players.size()),identity=announcement+3500,result=identity+4000;
+        long voting=VOTING_AT,locked=LOCKED_AT,reveal=locked+com.finalanswer.server.game.FinalVoting.LOCK_MILLIS,announcement=reveal+FinalRevealTiming.duration(players.size()),identity=announcement+com.finalanswer.server.game.FinalVoting.ANNOUNCEMENT_MILLIS,result=identity+com.finalanswer.server.game.FinalVoting.IDENTITY_MILLIS;
         ImpostorPhase phase=now<voting?ImpostorPhase.EVIDENCE_REVIEW:now<locked?ImpostorPhase.FINAL_VOTING:now<reveal?ImpostorPhase.VOTING_LOCKED:
             now<announcement?ImpostorPhase.FINAL_VOTE_REVEAL:now<identity?ImpostorPhase.SUSPECT_ANNOUNCEMENT:now<result?ImpostorPhase.IMPOSTOR_REVEAL:ImpostorPhase.RESULT;
         long started=switch(phase){case EVIDENCE_REVIEW->1000;case FINAL_VOTING->voting;case VOTING_LOCKED->locked;case FINAL_VOTE_REVEAL->reveal;case SUSPECT_ANNOUNCEMENT->announcement;case IMPOSTOR_REVEAL->identity;default->result;};

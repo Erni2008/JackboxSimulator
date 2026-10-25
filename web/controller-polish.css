@@ -326,3 +326,64 @@ body[data-reduced-motion=true] #impostor-screen .role-panel,body[data-effects=fa
 .clue-history table { width:100%; border-collapse:collapse; table-layout:fixed; font:400 11px/1.55 Body,sans-serif; }
 .clue-history th,.clue-history td { padding:10px 5px; border-top:1px solid #a58b6933; overflow-wrap:anywhere; text-align:left; vertical-align:top; }
 .clue-history thead th { color:#cba97b; font-size:9px; }.clue-history tbody th { color:#ebd8b7; }.clue-history td { color:#d8cbbf; }
+
+/* Ceremony refinement: shared hierarchy, tactile choices, restrained ink accents. */
+#impostor-screen,#final-screen,#cursed-screen{--ceremony-ivory:#eadbc2;--ceremony-gold:#c8a674;--ceremony-line:#735744}
+#impostor-screen .eyebrow,#final-screen .eyebrow{color:var(--ceremony-gold);font-size:11px;letter-spacing:.14em;line-height:1.6}
+#impostor-role-note,#clue-status,#final-status{font-size:14px;line-height:1.65;overflow-wrap:anywhere}
+#clue-status,#final-status{border:0;border-left:2px solid #795944;background:#1b1213b8;padding:14px 16px;color:#d2beaa}
+#impostor-countdown,#final-timer{font-variant-numeric:tabular-nums;letter-spacing:.06em;border-color:#73574466}
+#final-cards{gap:clamp(10px,3vw,18px);padding:8px 2px 12px}
+#final-cards .suspect-card{min-width:0;transition:transform .16s ease,filter .16s ease}
+#final-cards .suspect-card[aria-pressed=true]{transform:translateY(-3px);filter:drop-shadow(0 5px 4px #0009)}
+#final-cards .suspect-card:focus-visible{outline:2px solid #dcc49a;outline-offset:4px}
+#final-cards .suspect-card .fa-label{font-size:clamp(15px,4vw,19px);overflow-wrap:anywhere}
+#final-status.confirmed,#clue-status.confirmed{border-left-color:#c8a674;color:#eadbc2}
+#cursed-screen .cursed-turn{border-block:1px solid #73574466;padding-block:10px;gap:16px}
+#cursed-screen #cursed-shot-counter{font-variant-numeric:tabular-nums;font-size:12px;line-height:1.5;color:#e0c59e}
+#cursed-screen #cursed-current-player{font-size:11px;line-height:1.5;overflow-wrap:anywhere}
+#cursed-screen .cursed-grid{border-color:#795943;box-shadow:inset 0 0 20px #0008;gap:8px}
+#cursed-screen .cursed-box.selected{transform:translateY(-2px);border-color:#dfbe88;box-shadow:0 0 0 2px #bb9565,0 5px 8px #0008}
+#cursed-screen .cursed-box-plate{font-variant-numeric:tabular-nums;min-width:22px;padding:3px 5px;color:#e4c99f}
+#cursed-screen #cursed-status{font-size:12px;line-height:1.6;letter-spacing:.02em;min-height:38px;color:#d6c1aa}
+#cursed-screen #cursed-selected{font-size:11px;line-height:1.5;letter-spacing:.07em}
+#cursed-screen .cursed-result{border-left-color:#c8a674;background:#20171ae8;padding:14px}
+@media(max-width:360px){#cursed-screen #cursed-current-player{font-size:10px}#cursed-screen .cursed-turn{gap:8px;padding-block:6px}}
+@media(orientation:landscape) and (max-height:540px){#cursed-screen .cursed-turn{padding-block:5px}#cursed-screen #cursed-status{font-size:11px;min-height:30px}#cursed-screen .cursed-result{padding:8px}}
+@media(prefers-reduced-motion:reduce){#final-cards .suspect-card{transition:none;transform:none!important}}
+body[data-reduced-motion=true] #final-cards .suspect-card,body[data-effects=false] #final-cards .suspect-card{transition:none;transform:none!important}
+
+/* Clear phone composition: role is always open; one current task, no duplicate instruction panels. */
+body[data-mode=impostor] .controller-director{padding:8px 0;margin:0 0 10px;background:none;border:0;border-bottom:1px solid #73574466;box-shadow:none}
+body[data-mode=impostor] .director-private,body[data-mode=impostor] .director-steps,body[data-mode=impostor] #director-label,body[data-mode=impostor] #director-note{display:none}
+body[data-mode=impostor] .director-top{margin:0;font-size:11px;letter-spacing:.14em;color:#c5a87e}
+body[data-mode=impostor] .connection{padding-block:3px;margin-bottom:10px;font-size:10px}
+#impostor-screen .role-guide{margin:16px 0 4px;padding:0;border:0;background:none}
+#impostor-screen .role-guide summary{cursor:pointer;min-height:40px;display:flex;align-items:center;color:#ab9983;font:500 11px/1.5 Body,sans-serif;letter-spacing:.08em}
+#impostor-screen .role-guide h3{display:none}#impostor-screen .role-guide p{font-size:12px;line-height:1.6;margin:4px 0 12px}
+#impostor-screen[data-phase=ROLE_REVEAL] .role-panel{margin:6px auto 10px}
+#impostor-screen[data-phase=ROLE_REVEAL] #impostor-role-note{font-size:11px;line-height:1.5;margin-top:5px;color:#baa68d}
+#impostor-screen #role-countdown-clock{width:min(44%,155px);margin:24px auto 4px}
+#impostor-screen:not([data-phase=ROLE_REVEAL]) .role-panel,
+body[data-keyboard=open] #impostor-screen[data-phase=ROUND_CLUE_INPUT] .role-panel{display:block;width:100%;margin:8px 0 12px;padding:12px 14px;text-align:left;border:0;border-left:2px solid #aa8658;background:#241a1c88;box-shadow:none;min-height:0}
+#impostor-screen:not([data-phase=ROLE_REVEAL]) #impostor-role{font:600 11px/1.4 Body,sans-serif;letter-spacing:.05em;color:#baa180;margin:0 0 4px}
+#impostor-screen:not([data-phase=ROLE_REVEAL]) #impostor-word:not(:empty){background:none;padding:0;margin:0;color:#ead7b7;text-shadow:none;font:600 clamp(20px,6vw,27px)/1.35 Body,sans-serif;overflow-wrap:anywhere}
+#impostor-screen:not([data-phase=ROLE_REVEAL]) #impostor-role-note{display:none}
+#impostor-countdown{margin:8px 0;padding:5px 0;text-align:right;font-size:13px}
+#impostor-screen .clue-compose-meta{justify-content:flex-end;margin-top:4px;font-size:10px}
+#impostor-screen #clue-submit{margin:8px auto;min-height:54px}
+#impostor-screen .confirmation-panel{margin-top:18px;padding:24px 18px;background:#2b211be0;border:1px solid #95704c}
+#impostor-screen .confirmation-panel h2{font:600 13px/1.4 Body,sans-serif;letter-spacing:.08em;color:#c8aa7b;margin:0 0 10px}
+#impostor-screen #clue-confirmed-value{font:600 28px/1.3 Body,sans-serif;color:#ead7b7;margin:0;overflow-wrap:anywhere}
+#impostor-screen #clue-room-progress{margin:10px 0;text-align:center;font-size:11px;color:#a99986;border:0;background:none;padding:0}
+#final-screen #final-progress{font-size:11px;color:#ac9981;margin:8px 0}
+#final-screen #final-status{font-size:13px;border:0;background:none;padding:4px 0;margin:8px 0}
+#final-screen #vote-draft{padding:10px 14px;margin:10px 0;border-left:2px solid #b7925f;background:#2b211b80}
+#final-screen #vote-draft strong{font-size:22px;line-height:1.3;overflow-wrap:anywhere}
+body[data-mode=impostor] #session-footer{margin-top:18px;padding-top:10px;border-top:1px solid #73574444}
+@media(orientation:landscape) and (max-height:540px){#impostor-screen[data-phase=ROLE_REVEAL] .role-panel{max-width:360px}#impostor-screen #role-countdown-clock{width:105px;margin:12px auto}#impostor-screen .role-guide{margin-top:8px}}
+body[data-mode=impostor] #connection:not(.offline),body[data-mode=impostor] .page-footer{display:none}
+body[data-mode=impostor] #leave.fa-button{width:auto;min-width:80px;min-height:38px;height:38px;aspect-ratio:auto;padding:7px 10px;margin:0;background:none;border:0;box-shadow:none;color:#b29f88;font:500 11px/1.4 Body,sans-serif;letter-spacing:.06em}
+body[data-mode=impostor] #leave .fa-art{display:none}
+body[data-mode=impostor] #leave .fa-label{text-shadow:none}
+#impostor-screen .writing-hint{top:43%;font-size:12px;line-height:1.5}

@@ -1,0 +1,7 @@
+{
+  "readyMillis": 2785,
+  "samples": 180,
+  "frameP95Millis": 16.999666,
+  "meanFrameMillis": 16.575318283333335,
+  "framesOver50Millis": 0
+}

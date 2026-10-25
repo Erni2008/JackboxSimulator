@@ -118,11 +118,123 @@
       "manualReview": "not_yet_reviewed",
       "processingHash": null
     },
+    "impostor_discussion": {
+      "file": "events/impostor_discussion_abaea70ded6f.ogg",
+      "status": "ready",
+      "hash": "abaea70ded6ffcdb41a850037e0473168ee3e15fb13862bc331666b678ac9bf6",
+      "duration": 4.159958,
+      "manualReview": "not_yet_reviewed",
+      "processingHash": null
+    },
+    "impostor_final_voting": {
+      "file": "events/impostor_final_voting_cd3156757b9c.ogg",
+      "status": "ready",
+      "hash": "cd3156757b9c4d77246ac3b599e9ca0c02280250205c6c50de265e49364af169",
+      "duration": 3.599958,
+      "manualReview": "not_yet_reviewed",
+      "processingHash": null
+    },
     "impostor_intro": {
       "file": "events/impostor_intro_c05744fee536.ogg",
       "status": "ready",
       "hash": "c05744fee5360a4d9ee13c24d6287b887eb5786e5395999b6f1d1d5804d99366",
       "duration": 8.639958,
+      "manualReview": "not_yet_reviewed",
+      "processingHash": null
+    },
+    "impostor_outcome_caught": {
+      "file": "events/impostor_outcome_caught_b7e3d09d526d.ogg",
+      "status": "ready",
+      "hash": "b7e3d09d526dfcdec500117f4fe2229e3c51c5dfe9158fbead513c17492bfc4d",
+      "duration": 3.359958,
+      "manualReview": "not_yet_reviewed",
+      "processingHash": null
+    },
+    "impostor_outcome_escaped": {
+      "file": "events/impostor_outcome_escaped_a7d2c82b91d8.ogg",
+      "status": "ready",
+      "hash": "a7d2c82b91d8deb7cfa670f6d527552d5f1da40b6e19fb0ba04e633a17901968",
+      "duration": 5.199958,
+      "manualReview": "not_yet_reviewed",
+      "processingHash": null
+    },
+    "impostor_round_1": {
+      "file": "events/impostor_round_1_cc84afec2f6e.ogg",
+      "status": "ready",
+      "hash": "cc84afec2f6e84dda56e6091bfeb4a624027b1266a4c1e04dd5fe13809328895",
+      "duration": 5.647542,
+      "manualReview": "not_yet_reviewed",
+      "processingHash": null
+    },
+    "impostor_round_2": {
+      "file": "events/impostor_round_2_d6360889b727.ogg",
+      "status": "ready",
+      "hash": "d6360889b72715ce905e5c146e2e4096fc674f79208af2b6879fb33f5f4afb7a",
+      "duration": 4.079958,
+      "manualReview": "not_yet_reviewed",
+      "processingHash": null
+    },
+    "impostor_round_3": {
+      "file": "events/impostor_round_3_1f3ef5059215.ogg",
+      "status": "ready",
+      "hash": "1f3ef505921549a971286f00255c8d506f0c67688038a54ff47135f98877a020",
+      "duration": 3.839958,
+      "manualReview": "not_yet_reviewed",
+      "processingHash": null
+    },
+    "impostor_round_deadline": {
+      "file": "events/impostor_round_deadline_4ccf8776af6a.ogg",
+      "status": "ready",
+      "hash": "4ccf8776af6ac92c891ea8adf5ef5c22f65b6c05140333fb12360f85189cffbb",
+      "duration": 1.759958,
+      "manualReview": "not_yet_reviewed",
+      "processingHash": null
+    },
+    "impostor_suspicion": {
+      "file": "events/impostor_suspicion_229d19d499d4.ogg",
+      "status": "ready",
+      "hash": "229d19d499d473696531a1f86854c4e49b146613510da7cc090d3454da3dfc56",
+      "duration": 3.098167,
+      "manualReview": "not_yet_reviewed",
+      "processingHash": null
+    },
+    "impostor_vote_intro_1": {
+      "file": "events/impostor_vote_intro_1_4053a174764d.ogg",
+      "status": "ready",
+      "hash": "4053a174764d8ff3ad811b1ffa819fdc9eba0be3be135ea6e5223f9edec7f3df",
+      "duration": 1.359958,
+      "manualReview": "not_yet_reviewed",
+      "processingHash": null
+    },
+    "impostor_vote_intro_2": {
+      "file": "events/impostor_vote_intro_2_90cd4dc5940a.ogg",
+      "status": "ready",
+      "hash": "90cd4dc5940a7b608cc5afea7fc17bd8a6d074db6bdda92e722d9cc29015fb16",
+      "duration": 1.919958,
+      "manualReview": "not_yet_reviewed",
+      "processingHash": null
+    },
+    "impostor_vote_no_votes": {
+      "file": "events/impostor_vote_no_votes_ccbfa33940ab.ogg",
+      "status": "ready",
+      "hash": "ccbfa33940abefd4db36f8527902423b7cab8168b7518e7e99c898723cac805b",
+      "duration": 5.039958,
+      "manualReview": "not_yet_reviewed",
+      "processingHash": null
+    },
+    "impostor_vote_reveal_intro": {
+      "file": "events/impostor_vote_reveal_intro_32ef8e4d8330.ogg",
+      "status": "ready",
+      "hash": "32ef8e4d8330f449c87337786db4678dafb0409fa4fe79d2553a00ee31a153b7",
+      "duration": 4.239958,
+      "manualReview": "not_yet_reviewed",
+      "processingHash": null
+    },
+    "impostor_vote_tie": {
+      "file": "events/impostor_vote_tie_918288aad564.ogg",
+      "status": "ready",
+      "hash": "918288aad5647899fbf7bba0b72c13e2fbbdfc7822b21dcd3ea94854852ecee1",
+      "duration": 4.719958,
       "manualReview": "not_yet_reviewed",
       "processingHash": null
     },
@@ -165,120 +277,6 @@
       "duration": 3.599958,
       "manualReview": "not_yet_reviewed",
       "processingHash": null
-    },
-    "impostor_vote_intro_1": {
-      "file": "events/impostor_vote_intro_1.ogg",
-      "status": "missing",
-      "duration": 0,
-      "script": "Ну что же, мои дорогие…"
-    },
-    "impostor_vote_intro_2": {
-      "file": "events/impostor_vote_intro_2.ogg",
-      "status": "missing",
-      "duration": 0,
-      "script": "Посмотрим, кого вы решили отправить на тот свет!"
-    },
-    "impostor_vote_first": {
-      "file": "events/impostor_vote_first.ogg",
-      "status": "missing",
-      "duration": 0,
-      "script": "Первый голос…"
-    },
-    "impostor_vote_second": {
-      "file": "events/impostor_vote_second.ogg",
-      "status": "missing",
-      "duration": 0,
-      "script": "А вот и второй…"
-    },
-    "impostor_vote_tie_1": {
-      "file": "events/impostor_vote_tie_1.ogg",
-      "status": "missing",
-      "duration": 0,
-      "script": "О-о-о… Да вы издеваетесь!"
-    },
-    "impostor_vote_tie_2": {
-      "file": "events/impostor_vote_tie_2.ogg",
-      "status": "missing",
-      "duration": 0,
-      "script": "Ничья? Серьёзно?"
-    },
-    "impostor_vote_tie_3": {
-      "file": "events/impostor_vote_tie_3.ogg",
-      "status": "missing",
-      "duration": 0,
-      "script": "Какие же вы нерешительные…"
-    },
-    "impostor_vote_tie_spared": {
-      "file": "events/impostor_vote_tie_spared.ogg",
-      "status": "missing",
-      "duration": 0,
-      "script": "Что ж… На этот раз никто не покинет комнату."
-    },
-    "impostor_vote_accused_1": {
-      "file": "events/impostor_vote_accused_1.ogg",
-      "status": "missing",
-      "duration": 0,
-      "script": "О-о-о… Кажется, у нас есть победитель!"
-    },
-    "impostor_vote_accused_2": {
-      "file": "events/impostor_vote_accused_2.ogg",
-      "status": "missing",
-      "duration": 0,
-      "script": "Хотя… Для одного из вас это совсем не победа."
-    },
-    "impostor_vote_accused_address": {
-      "file": "events/impostor_vote_accused_address.ogg",
-      "status": "missing",
-      "duration": 0,
-      "script": "Ну что…"
-    },
-    "impostor_vote_accused_reveal": {
-      "file": "events/impostor_vote_accused_reveal.ogg",
-      "status": "missing",
-      "duration": 0,
-      "script": "Пришло время узнать, кто ты на самом деле."
-    },
-    "impostor_vote_caught_1": {
-      "file": "events/impostor_vote_caught_1.ogg",
-      "status": "missing",
-      "duration": 0,
-      "script": "Надо же… Вы действительно его нашли."
-    },
-    "impostor_vote_caught_2": {
-      "file": "events/impostor_vote_caught_2.ogg",
-      "status": "missing",
-      "duration": 0,
-      "script": "Признаюсь, я такого не ожидал."
-    },
-    "impostor_vote_caught_3": {
-      "file": "events/impostor_vote_caught_3.ogg",
-      "status": "missing",
-      "duration": 0,
-      "script": "Похоже, сегодня вам повезло."
-    },
-    "impostor_vote_innocent_1": {
-      "file": "events/impostor_vote_innocent_1.ogg",
-      "status": "missing",
-      "duration": 0,
-      "script": "Ой-ой-ой…"
-    },
-    "impostor_vote_innocent_2": {
-      "file": "events/impostor_vote_innocent_2.ogg",
-      "status": "missing",
-      "duration": 0,
-      "script": "Кажется, кто-то совершил ужасную ошибку."
-    },
-    "impostor_vote_innocent_3": {
-      "file": "events/impostor_vote_innocent_3.ogg",
-      "status": "missing",
-      "duration": 0,
-      "script": "Вы только что избавились от невиновного."
-    },
-    "impostor_vote_innocent_4": {
-      "file": "events/impostor_vote_innocent_4.ogg",
-      "status": "missing",
-      "duration": 0,
-      "script": "А настоящий самозванец всё ещё среди вас…"
     }
   },
   "intro": {

@@ -301,7 +301,8 @@ sourceSets {
 tasks.register('impostorPreview', JavaExec) {
     group = 'application'
     description = 'Development-only THE IMPOSTOR presentation; optional direct verdict preview.'
-    systemProperty 'impostor.opening.skip', providers.gradleProperty('impostorSkipOpening').getOrElse('false')
+    systemProperty 'impostor.opening.skip', providers.gradleProperty('impostorSkipOpening').getOrElse('true')
+    systemProperty 'impostor.preview.startupCheck', providers.gradleProperty('impostorStartupCheck').getOrElse('false')
     systemProperty 'impostor.preview.verdict', providers.gradleProperty('impostorVerdict').getOrElse('')
     dependsOn devClasses
     classpath = sourceSets.dev.runtimeClasspath
@@ -343,6 +344,7 @@ tasks.register('hostVoicePlaybackCheck', JavaExec) {
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'com.erni.finalanswer.lwjgl3.HostVoicePlaybackCheck'
+    systemProperty 'host.voice.impostor', providers.gradleProperty('impostorVoiceReview').getOrElse('false')
     workingDir = rootProject.file('assets')
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
@@ -899,4 +901,20 @@ tasks.register('votingRedesignCheck', JavaExec) {
     workingDir = rootProject.file('assets')
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+// Standalone dev launch after one compilation; repeated previews need no Gradle daemon.
+tasks.register('prepareImpostorPreviewLaunch') {
+    group = 'application'
+    dependsOn devClasses, sourceSets.dev.runtimeClasspath
+    def destination=layout.buildDirectory.file('dev-launch/impostor-preview.args')
+    outputs.file(destination)
+    outputs.upToDateWhen { false }
+    doLast {
+        def quote={ String value -> '"'+value.replace('\\','\\\\').replace('"','\\"')+'"' }
+        def args=['--enable-native-access=ALL-UNNAMED']
+        if(os.contains('mac'))args.add('-XstartOnFirstThread')
+        args.addAll(['-cp',sourceSets.dev.runtimeClasspath.asPath,'com.erni.finalanswer.lwjgl3.ImpostorPreviewLauncher'])
+        def file=destination.get().asFile;file.parentFile.mkdirs();file.text=args.collect(quote).join('\n')+'\n'
+    }
 }

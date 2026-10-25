@@ -47,8 +47,11 @@ public final class ImpostorCharacterActor extends Actor {
         saved.set(batch.getTransformMatrix());
         float previousColor=batch.getPackedColor();batch.setColor(getColor().r,getColor().g,getColor().b,1);
         // Reserve headroom for limbs/accessories and the existing procedural idle.
-        float scale = portraitFraming?getWidth()/160:Math.min(getWidth() / 135, getHeight() / (height * 1.10f));
-        local.set(saved).translate(getX() + getWidth() / 2, portraitFraming?getY()+getHeight()*.92f-height*scale:getY()+5, 0)
+        boolean wholeDoctor=portraitFraming&&character instanceof PlagueDoctorCharacter;
+        float scale = wholeDoctor?Math.min(getWidth()/210,getHeight()/(height*1.18f)):
+            portraitFraming?getWidth()/160:Math.min(getWidth() / 135, getHeight() / (height * 1.10f));
+        float baseline=wholeDoctor?getY()+getHeight()*.07f:portraitFraming?getY()+getHeight()*.92f-height*scale:getY()+5;
+        local.set(saved).translate(getX() + getWidth() / 2, baseline, 0)
                 .scale(scale, scale, 1).translate(-174, -floor, 0);
         try {
             batch.setTransformMatrix(local);

@@ -1,13 +1,115 @@
 {
   "version": 1,
   "events": [
-    {"id":"round_start","text":"Начинаем новый раунд. Посмотрим, чему вы научились.","emotion":"NEUTRAL"},
-    {"id":"correct_answer","text":"Верно. Пока что вам удаётся меня удивлять.","emotion":"SARCASTIC"},
-    {"id":"wrong_answer","text":"Неверный ответ. Боюсь, это будет иметь последствия.","emotion":"SINISTER"},
-    {"id":"impostor_intro","text":"Перед вами — карточки с ролями. Внимательно прочитайте свою карточку. И помните: ваша роль должна остаться тайной.","emotion":"DRAMATIC"},
-    {"id":"cursed_boxes_intro","text":"Перед вами проклятые коробки. Выбирайте своё укрытие с умом.","emotion":"SINISTER"},
-    {"id":"voting_start","text":"Пора голосовать. Кому из вас больше нельзя доверять?","emotion":"DRAMATIC"},
-    {"id":"results","text":"Пришло время узнать результаты.","emotion":"NEUTRAL"},
-    {"id":"winner","text":"Итак, у нас есть победитель. Наслаждайтесь этим мгновением.","emotion":"EXCITED"}
+    {
+      "id": "round_start",
+      "text": "Начинаем новый раунд. Посмотрим, чему вы научились.",
+      "emotion": "NEUTRAL"
+    },
+    {
+      "id": "correct_answer",
+      "text": "Верно. Пока что вам удаётся меня удивлять.",
+      "emotion": "SARCASTIC"
+    },
+    {
+      "id": "wrong_answer",
+      "text": "Неверный ответ. Боюсь, это будет иметь последствия.",
+      "emotion": "SINISTER"
+    },
+    {
+      "id": "impostor_intro",
+      "text": "Перед вами — карточки с ролями. Внимательно прочитайте свою карточку. И помните: ваша роль должна остаться тайной.",
+      "emotion": "DRAMATIC"
+    },
+    {
+      "id": "cursed_boxes_intro",
+      "text": "Перед вами проклятые коробки. Выбирайте своё укрытие с умом.",
+      "emotion": "SINISTER"
+    },
+    {
+      "id": "voting_start",
+      "text": "Пора голосовать. Кому из вас больше нельзя доверять?",
+      "emotion": "DRAMATIC"
+    },
+    {
+      "id": "results",
+      "text": "Пришло время узнать результаты.",
+      "emotion": "NEUTRAL"
+    },
+    {
+      "id": "winner",
+      "text": "Итак, у нас есть победитель. Наслаждайтесь этим мгновением.",
+      "emotion": "EXCITED"
+    },
+    {
+      "id": "impostor_round_1",
+      "text": "Первый раунд. Одно слово, одна ассоциация. Постарайтесь не выдать себя.",
+      "emotion": "DRAMATIC"
+    },
+    {
+      "id": "impostor_round_2",
+      "text": "Второй раунд. Новые слова — и новые поводы для сомнений.",
+      "emotion": "SARCASTIC"
+    },
+    {
+      "id": "impostor_round_3",
+      "text": "Последний раунд. Теперь каждое слово может вас выдать.",
+      "emotion": "SINISTER"
+    },
+    {
+      "id": "impostor_suspicion",
+      "text": "Слова раскрыты. Кому вы теперь не доверяете?",
+      "emotion": "DRAMATIC"
+    },
+    {
+      "id": "impostor_discussion",
+      "text": "Все слова перед вами. Обсудите, кто здесь лишний.",
+      "emotion": "NEUTRAL"
+    },
+    {
+      "id": "impostor_final_voting",
+      "text": "Время решать. Выберите того, кому больше не верите.",
+      "emotion": "DRAMATIC"
+    },
+    {
+      "id": "impostor_round_deadline",
+      "text": "Время почти вышло.",
+      "emotion": "SINISTER"
+    },
+    {
+      "id": "impostor_vote_intro_1",
+      "text": "Ваш выбор сделан.",
+      "emotion": "DRAMATIC"
+    },
+    {
+      "id": "impostor_vote_intro_2",
+      "text": "Посмотрим, кого вы решили изгнать.",
+      "emotion": "SINISTER"
+    },
+    {
+      "id": "impostor_vote_tie",
+      "text": "Ничья. Как удобно… Сегодня никто не покинет комнату.",
+      "emotion": "SARCASTIC"
+    },
+    {
+      "id": "impostor_vote_no_votes",
+      "text": "Никто не решился проголосовать. Что ж… Сегодня комната вас отпускает.",
+      "emotion": "SARCASTIC"
+    },
+    {
+      "id": "impostor_vote_reveal_intro",
+      "text": "Что ж… Пора узнать, кто всё это время скрывался среди вас.",
+      "emotion": "DRAMATIC"
+    },
+    {
+      "id": "impostor_outcome_caught",
+      "text": "Вы нашли самозванца. Сегодня вам повезло.",
+      "emotion": "SURPRISED"
+    },
+    {
+      "id": "impostor_outcome_escaped",
+      "text": "Вы осудили невиновного. А самозванец всё это время был рядом.",
+      "emotion": "SINISTER"
+    }
   ]
 }

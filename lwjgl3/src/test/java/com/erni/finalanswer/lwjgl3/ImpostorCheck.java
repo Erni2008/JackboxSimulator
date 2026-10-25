@@ -179,7 +179,7 @@ public final class ImpostorCheck extends FinalAnswerGame {
             Gdx.input.getInputProcessor().keyDown(com.badlogic.gdx.Input.Keys.F7);check(!triggered[0],"Opening does not accept gameplay preview keys");
             openingScreen.render(0);openingScreen.render(9);
             Gdx.input.getInputProcessor().keyDown(com.badlogic.gdx.Input.Keys.F7);check(triggered[0],"Preview keys remain installed after opening finishes");
-        }finally{setScreen(preview);if(openingScreen!=null)openingScreen.dispose();if(previous==null)System.clearProperty("impostor.opening.skip");else System.setProperty("impostor.opening.skip",previous);}
+        }finally{if(previous==null)System.clearProperty("impostor.opening.skip");else System.setProperty("impostor.opening.skip",previous);setScreen(preview);if(openingScreen!=null)openingScreen.dispose();}
         check(Texture.getNumManagedTextures()==textures,"Opening test releases all owned textures/fonts");
     }
 
@@ -613,7 +613,7 @@ public final class ImpostorCheck extends FinalAnswerGame {
         var demo=new ImpostorFinalPreview(preview);
         check(Gdx.input.getInputProcessor().keyDown(com.badlogic.gdx.Input.Keys.F),"Dev F starts final act");
         preview.render(0);check(preview.state().phase()==ImpostorPhase.EVIDENCE_REVIEW,"Dev discussion phase");
-        demo.update(20);preview.render(0);
+        demo.update(60);preview.render(0);
         FinalVotePresentation view=stage(preview).getRoot().findActor("finalAct");
         check(view.visibleStampCount()==preview.participants().size(),"Dev result restores each sample imprint");
         Gdx.input.getInputProcessor().keyDown(com.badlogic.gdx.Input.Keys.F);
@@ -697,7 +697,7 @@ public final class ImpostorCheck extends FinalAnswerGame {
             check(identityName.getStyle().font.getData().hasGlyph('Ж')&&identityName.getStyle().font.getData().hasGlyph('Я'),"Reveal handwriting contains Cyrillic glyphs");
             view.reducedMotion(false);view.update(65200);finalCaptureNow=65200;capturePaperState("final-identity");
             preview.presentFinal(identity,66000);preview.render(0);view.update(66000);
-            Group doomed=view.findActor("finalCard:"+b);Group doomedAvatar=doomed.findActor("finalAvatar");if(doomedAvatar!=null)check(doomedAvatar.getColor().a<.4f,"Caught impostor visibly fades on the final card");
+            Group doomed=view.findActor("finalCard:"+b);Group doomedAvatar=doomed.findActor("finalAvatar");if(doomedAvatar!=null)check(doomedAvatar.getColor().a==1,"Caught impostor stays alive during the post-name dramatic hold");
             Actor top=stage(preview).getRoot().findActor("participant:"+b);if(doomedAvatar!=null)check(!((Group)top).findActor("eliminationStatus").isVisible(),"Redundant elimination overlay stays out of the ceremony");
             view.update(69000);if(doomedAvatar!=null)check(Math.abs(doomedAvatar.getColor().a-.48f)<.01f,"Ghost remnant persists");
             var escapedIdentity=new FinalActSnapshot("final-"+count,ImpostorPhase.IMPOSTOR_REVEAL,61500,65500,reveal,count,count,snapshot.sequenceId(),targets,counts,java.util.List.of(b),b,"IMPOSTOR_ESCAPED");preview.presentFinal(escapedIdentity,69000);preview.render(0);if(doomedAvatar!=null)check(doomedAvatar.getColor().a==1,"Escaped impostor never remains eliminated");

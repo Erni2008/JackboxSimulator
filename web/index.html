@@ -9,15 +9,15 @@
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/controller-theme.css?v=role-2">
   <script src="/final-answer-button.js?v=story-3" defer></script>
-  <script src="/final-voting.js?v=story-3" defer></script>
+  <script src="/final-voting.js?v=clear-role-5" defer></script>
   <script src="/parchment-writer.js?v=story-3" defer></script>
   <script src="/countdown-clock.js?v=story-3" defer></script>
-  <script src="/impostor.js?v=story-3" defer></script>
+  <script src="/impostor.js?v=clear-role-5" defer></script>
   <script src="/suspicion.js?v=story-3" defer></script>
   <link rel="stylesheet" href="/cursed-boxes.css?v=1">
   <script src="/cursed-boxes.js?v=private-targets-1" defer></script>
-  <link rel="stylesheet" href="/controller-polish.css?v=story-3">
-  <script src="/controller-presentation.js?v=story-3" defer></script>
+  <link rel="stylesheet" href="/controller-polish.css?v=clear-role-5">
+  <script src="/controller-presentation.js?v=clear-role-5" defer></script>
   <script src="/connection-health.js?v=1" defer></script>
   <script src="/impostor-audio.js?v=writing-2" defer></script>
   <script src="/app.js?v=story-3" defer></script>
@@ -110,36 +110,34 @@
       <details id="clue-history" class="clue-history" hidden><summary>ИСТОРИЯ ПОДСКАЗОК</summary><div id="clue-history-content"></div></details>
       <p id="final-status" role="status" aria-live="polite"></p>
       <div id="final-cards" class="suspect-cards"></div>
-      <div id="vote-draft" class="vote-draft" hidden><span>ВАШ ПОДОЗРЕВАЕМЫЙ</span><strong id="vote-draft-name"></strong><p>Проверьте выбор и подтвердите голос.</p></div>
+      <div id="vote-draft" class="vote-draft" hidden><span>ВАШ ПОДОЗРЕВАЕМЫЙ</span><strong id="vote-draft-name"></strong></div>
       <button id="confirm-vote" type="button" hidden disabled>ПОДТВЕРДИТЬ ГОЛОС</button>
       <p id="result-player" class="eyebrow"></p>
       <ul id="final-results" class="final-results"></ul>
     </section>
     <section id="impostor-screen" class="screen" lang="ru" hidden>
       <p id="impostor-round" class="eyebrow"></p>
-      <div class="role-panel"><img class="role-parchment" src="/art/impostor/phone/word_reminise.png" alt="" draggable="false"><div id="role-private" hidden><h2 id="impostor-role"></h2>
+      <div class="role-panel"><img class="role-parchment" src="/art/impostor/phone/word_reminise.png" alt="" draggable="false"><div id="role-private"><h2 id="impostor-role"></h2>
       <p id="impostor-word" class="secret-word"></p>
       <p id="impostor-role-note"></p></div>
-      <div id="role-cover" class="role-cover" hidden><strong>ВАША РОЛЬ СКРЫТА</strong><span>Карточку видите только вы.</span></div></div>
-      <button id="role-privacy-toggle" type="button" data-native-button aria-controls="role-private" aria-expanded="false">ПОКАЗАТЬ РОЛЬ</button>
-      <button id="role-guide-toggle" class="role-guide-toggle" type="button" data-native-button aria-controls="role-guide" aria-expanded="false">КАК ИГРАТЬ</button>
-      <aside id="role-guide" class="role-guide" hidden><h3 id="role-guide-title"></h3><p id="role-guide-copy"></p><button id="role-guide-dismiss" type="button" data-native-button>ПОНЯТНО</button></aside>
+      </div>
       <canvas id="role-countdown-clock" width="320" height="336" role="img" aria-label="Время чтения роли" hidden></canvas>
       <p id="impostor-countdown" role="timer"></p>
       <form id="clue-form" hidden>
         <div id="parchment-surface" class="parchment-surface">
           <img class="writing-paper" src="/art/impostor/phone/papper3dview.png" alt="" draggable="false">
-          <label for="clue-input" class="writing-hint">НАЖМИТЕ, ЧТОБЫ НАПИСАТЬ<span>ОДНО СЛОВО · ДО 10 БУКВ</span></label>
+          <label for="clue-input" class="writing-hint">НАПИШИТЕ СЛОВО<span>ДО 10 БУКВ</span></label>
           <div class="parchment-ink" aria-hidden="true"></div>
           <textarea id="clue-input" rows="3" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="20" enterkeyhint="done" aria-label="Напишите одно слово на пергаменте" aria-describedby="clue-status clue-length"></textarea>
           <img class="writing-pen" src="/art/impostor/phone/pen.png" alt="" draggable="false">
         </div>
-        <div class="clue-compose-meta"><span>ОДНО СЛОВО. ВЫБИРАЙТЕ ТОЧНО.</span><span id="clue-length">0 / 10 БУКВ</span></div>
+        <div class="clue-compose-meta"><span id="clue-length">0 / 10 БУКВ</span></div>
         <button id="clue-submit" type="submit">ПОДТВЕРДИТЬ СЛОВО</button>
       </form>
       <p id="clue-status" role="status" aria-live="polite"></p>
-      <div id="clue-confirmation" class="confirmation-panel" hidden><p class="eyebrow">ПРИНЯТО ИГРОЙ</p><h2>СЛОВО ЗАФИКСИРОВАНО</h2><p id="clue-confirmed-value"></p><p>Смотрите на общий экран. Ваше слово принято.</p></div>
+      <div id="clue-confirmation" class="confirmation-panel" hidden><h2>СЛОВО ПРИНЯТО</h2><p id="clue-confirmed-value"></p></div>
       <p id="clue-room-progress" class="mode-room-progress" hidden></p>
+      <details id="role-guide" class="role-guide"><summary>КАК ИГРАТЬ</summary><h3 id="role-guide-title"></h3><p id="role-guide-copy"></p></details>
     </section>
     <section id="suspicion-screen" class="screen" lang="ru" hidden>
       <div class="round-top"><p class="eyebrow">ИМПОСТОР · ТАЙНОЕ ПОДОЗРЕНИЕ</p><span id="suspicion-timer" class="timer" aria-label="Осталось секунд"></span></div>

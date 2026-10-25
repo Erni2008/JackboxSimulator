@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "players": 4,
+  "observers": 1,
+  "privateRoleOnOnePhone": true,
+  "acceptedVoteSounds": 4,
+  "realTime": true,
+  "browserErrors": []
+}

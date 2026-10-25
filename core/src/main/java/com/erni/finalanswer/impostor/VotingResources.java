@@ -7,13 +7,13 @@ import com.erni.finalanswer.ui.UiFonts;
 
 /** Screen-owned resources, allocated once. Two type families; no per-frame textures or shaders. */
 final class VotingResources implements AutoCloseable {
-    final BitmapFont heading,name,body,caption;
+    final BitmapFont heading,name;
     final float fontScale;
     final Texture pixel;
     final ShaderProgram opaquePaper;
     VotingResources(){
         float density=Math.max(1,Math.min(2,com.badlogic.gdx.Gdx.graphics.getBackBufferWidth()/(float)Math.max(1,com.badlogic.gdx.Gdx.graphics.getWidth())));
-        fontScale=1/density;heading=UiFonts.question(Math.round(76*density));name=UiFonts.body(Math.round(32*density));body=UiFonts.body(Math.round(28*density));caption=UiFonts.body(Math.round(20*density));
+        fontScale=1/density;heading=UiFonts.question(Math.round(76*density));name=UiFonts.body(Math.round(32*density));
         Pixmap map=new Pixmap(1,1,Pixmap.Format.RGBA8888);map.setColor(Color.WHITE);map.fill();pixel=new Texture(map);map.dispose();
         opaquePaper=new ShaderProgram("""
             attribute vec4 a_position; attribute vec4 a_color; attribute vec2 a_texCoord0;
@@ -31,5 +31,5 @@ final class VotingResources implements AutoCloseable {
             """);
         if(!opaquePaper.isCompiled()){String log=opaquePaper.getLog();close();throw new IllegalStateException("Voting parchment shader: "+log);}
     }
-    @Override public void close(){heading.dispose();name.dispose();body.dispose();caption.dispose();pixel.dispose();opaquePaper.dispose();}
+    @Override public void close(){heading.dispose();name.dispose();pixel.dispose();opaquePaper.dispose();}
 }

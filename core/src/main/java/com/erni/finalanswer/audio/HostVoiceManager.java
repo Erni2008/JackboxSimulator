@@ -23,7 +23,7 @@ public final class HostVoiceManager implements AutoCloseable {
         public Map<String,Entry> questions=Map.of(),events=Map.of(),intro=Map.of();
     }
     public static final class Entry {public String file,status,hash;public float duration;}
-    private record Request(String path,float offset,Consumer<Result> completion) {}
+    private record Request(String id,String path,float offset,Consumer<Result> completion) {}
     private record Pending(String section,String id,float offset,Consumer<Result> completion) {}
     private final Loader loader;
     private Manifest manifest;
@@ -31,7 +31,9 @@ public final class HostVoiceManager implements AutoCloseable {
     private final AudioMix mix;
     private final Consumer<String> warning;
     private final Set<String> seen=new LinkedHashSet<>(),warned=new HashSet<>();
-    private Request queued,current;
+    private Request queued,current,startedCurrent;
+    private final LinkedHashMap<String,Integer> playCounts=new LinkedHashMap<>();
+    public Map<String,Integer> playCounts(){return Map.copyOf(playCounts);}
     private Pending pending;
     private String loading;
     private Music music;
@@ -89,7 +91,7 @@ public final class HostVoiceManager implements AutoCloseable {
         if(entry==null||!("ready".equals(entry.status)||section.equals("intro")&&allowIntroReview&&"review".equals(entry.status))||!safePath(entry.file)){
             warn("Missing approved host narration: "+id);complete(completion,Result.MISSING);return;
         }
-        queued=new Request(root+entry.file,Float.isFinite(offset)?Math.max(0,offset):0,completion);
+        queued=new Request(id,root+entry.file,Float.isFinite(offset)?Math.max(0,offset):0,completion);
     }
     private static boolean safePath(String file){
         return file!=null&&file.matches("(?:questions|events|intro)/[A-Za-z0-9_-]+\\.ogg");
@@ -136,7 +138,7 @@ public final class HostVoiceManager implements AutoCloseable {
     }
     private void finish(Result result){
         seekOffset=0;
-        Request done=current;current=null;
+        Request done=current;current=null;startedCurrent=null;
         if(music!=null){try{music.setOnCompletionListener(null);music.stop();}catch(RuntimeException error){warn("Cannot stop host narration: "+error.getMessage());}finally{music=null;}}
         if(done!=null&&loading==null)try{loader.unload(done.path());}catch(RuntimeException error){warn("Cannot unload host narration: "+error.getMessage());}
         if(done!=null)complete(done.completion(),result);
@@ -149,7 +151,9 @@ public final class HostVoiceManager implements AutoCloseable {
     }
     public void pause(){if(paused)return;paused=true;if(music!=null)try{music.pause();}catch(RuntimeException error){warn("Cannot pause host narration: "+error.getMessage());finish(Result.FAILED);}}
     private void applySeek(){if(seekOffset>0){music.setPosition(seekOffset);seekOffset=0;}}
-    private void startMusic(){music.play();applySeek();if(!music.isPlaying())throw new IllegalStateException("Host audio device did not start playback");}
+    private void startMusic(){music.play();applySeek();if(!music.isPlaying())throw new IllegalStateException("Host audio device did not start playback");
+        if(startedCurrent!=current&&current!=null){startedCurrent=current;playCounts.merge(current.id(),1,Integer::sum);if(playCounts.size()>128)playCounts.remove(playCounts.keySet().iterator().next());}
+    }
     public void resume(){if(!paused)return;paused=false;if(music!=null)try{startMusic();}catch(RuntimeException error){warn("Cannot resume host narration: "+error.getMessage());finish(Result.FAILED);}}
     public void setVolume(float value){volume=AudioMix.unit(value);}
     public void scopeGain(float value){scopeGain=AudioMix.unit(value);}

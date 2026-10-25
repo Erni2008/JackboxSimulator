@@ -24,6 +24,7 @@ function controllerPresentation(state) {
 function renderControllerPresentation(state) {
   const panel=document.getElementById('controller-director'),view=controllerPresentation(state);
   panel.hidden=!view;panel.lang=view?.mode==='impostor'?'ru':'en';
+  const leave=document.querySelector('#leave .fa-label');if(leave)leave.textContent=view?.mode==='impostor'?'ВЫЙТИ':'LEAVE ROOM';
   if(!view){delete document.body.dataset.mode;delete document.body.dataset.presentationPhase;return;}
   panel.querySelector('.director-private').textContent=view.mode==='impostor'?'ЛИЧНЫЙ КОНТРОЛЛЕР':'PERSONAL CONTROLLER';
   panel.setAttribute('aria-label',view.mode==='impostor'?'Ход игры':'Game progress');

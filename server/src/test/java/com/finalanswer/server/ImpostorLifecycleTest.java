@@ -34,7 +34,7 @@ class ImpostorLifecycleTest {
                 f.rooms.command(f.peers.get(i),Protocol.decode(Protocol.event("SUBMIT_FINAL_VOTE","v",Map.of("roomCode",f.code,"sessionId",f.session,"suspectId",f.pid(suspect)))));
             }
             else f.advance(20000);
-            f.advance(700);f.advance(5000);f.advance(3500);assertFalse(f.mini(0).has("result"));f.advance(4000);
+            f.advance(com.finalanswer.server.game.FinalVoting.LOCK_MILLIS);f.advance(5000);f.advance(com.finalanswer.server.game.FinalVoting.ANNOUNCEMENT_MILLIS);assertFalse(f.mini(0).has("result"));f.advance(com.finalanswer.server.game.FinalVoting.IDENTITY_MILLIS);
             assertEquals("RESULT",phase());assertEquals(outcome,result().outcome());
         }
         ImpostorMatchResult result(){return Protocol.JSON.fromJson(f.mini(0).get("result"),ImpostorMatchResult.class);}

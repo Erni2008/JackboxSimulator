@@ -10,7 +10,7 @@ public final class ImpostorSuspicionPreview {
     private int lastCount=-1;
     private int generation;
     public ImpostorSuspicionPreview(ImpostorScreen screen){this.screen=screen;}
-    public void start(){if(running)return;running=true;generation++;elapsed=0;lastCount=-1;update(0);}
+    public void start(){if(running)return;running=true;generation++;elapsed=0;lastCount=-1;screen.presentPhase(com.erni.finalanswer.gameplay.impostor.ImpostorPhase.PRELIMINARY_SUSPICION,5000,0);update(0);}
     public void cancel(){running=false;screen.clearSuspicion();}
     public void update(float delta){
         if(!running)return;
