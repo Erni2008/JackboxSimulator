@@ -294,7 +294,7 @@ tasks.register('generationCheck', JavaExec) {
 // Development launchers are deliberately absent from main outputs and production packaging.
 sourceSets {
     dev {
-        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        compileClasspath += sourceSets.main.output.classesDirs + sourceSets.main.compileClasspath
         runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
     }
 }
@@ -921,8 +921,10 @@ tasks.register('prepareImpostorPreviewLaunch') {
 
 tasks.register('lastCommandPreviewCheck', JavaExec) {
     group = 'verification'
-    dependsOn devClasses
-    classpath = sourceSets.dev.runtimeClasspath
+    dependsOn tasks.named('compileDevJava')
+    // Source assets are read from workingDir; avoid two complete desktop resource copies.
+    classpath = files(sourceSets.dev.output.classesDirs, sourceSets.main.output.classesDirs,
+        configurations.runtimeClasspath)
     mainClass = 'com.erni.finalanswer.lwjgl3.LastCommandPreviewCheck'
     workingDir = rootProject.file('assets')
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
@@ -942,9 +944,31 @@ tasks.register('lastCommandModelInspection', JavaExec) {
 tasks.register('lastCommandPreview', JavaExec) {
     group = 'application'
     description = 'Open the interactive THE LAST COMMAND preview.'
-    dependsOn devClasses
-    classpath = sourceSets.dev.runtimeClasspath
+    dependsOn tasks.named('compileDevJava')
+    // Source assets are read from workingDir; avoid two complete desktop resource copies.
+    classpath = files(sourceSets.dev.output.classesDirs, sourceSets.main.output.classesDirs,
+        configurations.runtimeClasspath)
     mainClass = 'com.erni.finalanswer.lwjgl3.LastCommandPreviewLauncher'
+    workingDir = rootProject.file('assets')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('lastCommandPanelModelInspection', JavaExec) {
+    group = 'verification'
+    dependsOn tasks.named('compileDevJava')
+    classpath = files(sourceSets.dev.output.classesDirs, sourceSets.main.output.classesDirs, configurations.runtimeClasspath)
+    mainClass = 'com.erni.finalanswer.lwjgl3.LastCommandPanelModelInspection'
+    workingDir = rootProject.file('assets')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('lastCommandPanelCheck', JavaExec) {
+    group = 'verification'
+    dependsOn tasks.named('compileDevJava')
+    classpath = files(sourceSets.dev.output.classesDirs, sourceSets.main.output.classesDirs, configurations.runtimeClasspath)
+    mainClass = 'com.erni.finalanswer.lwjgl3.LastCommandPanelCheck'
     workingDir = rootProject.file('assets')
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'

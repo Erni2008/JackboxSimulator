@@ -59,6 +59,11 @@ TlcSurface tlcWeather(vec3 position,vec3 original) {
     float coverage=u_weather.x*mix(1.0,.57,paint);
     float field=macro.x*.40+flake.x*.22+broad.x*.27+moisture*.11;
     float rust=smoothstep(.62-coverage*.42,.76-coverage*.42,field);
+    float glassMask=0.0;
+#ifdef panelSurfaceFlag
+    if(u_controlData.x>1.5)glassMask=tlcControlMask(original);
+    rust*=1.0-glassMask;
+#endif
     rust*=mix(1.0,.008,darkPanel);
     float pits=smoothstep(.58,.84,grain.x)*grainFilter;
     float flakeRim=(1.0-smoothstep(.012,.075,abs(flake.x-.48)))*flakeFilter;
@@ -68,7 +73,11 @@ TlcSurface tlcWeather(vec3 position,vec3 original) {
     oxide*=1.0-pits*.42-flakeRim*.16;
     if(u_weather.w>2.5)oxide*=.14; // the floor frames the machine, rather than competing with it
     // Keep the red control recognizable under chipped, chalky paint.
-    vec3 substrate=original*mix(.84,1.04,macro.x);
+    vec3 substrate=original;
+#ifdef panelSurfaceFlag
+    substrate=tlcControlColor(original);
+#endif
+    substrate*=mix(.84,1.04,macro.x);
     substrate=mix(substrate,substrate*vec3(.88,.91,.94),paint);
     vec3 color=mix(substrate,oxide,rust*.88);
     color*=1.0-sediment-pits*.12;
@@ -77,8 +86,9 @@ TlcSurface tlcWeather(vec3 position,vec3 original) {
         +grain.yzw*790.0*.00017*grainFilter
         +micro.yzw*2370.0*.000035*microFilter;
     gradient=vec3(dot(rotation[0],gradient),dot(rotation[1],gradient),dot(rotation[2],gradient));
-    gradient*=mix(1.0,.20,darkPanel);
+    gradient*=mix(1.0,.20,darkPanel)*mix(1.0,.10,glassMask);
     float roughness=clamp(u_weather.z+rust*.12+(grain.x-.5)*.12*grainFilter,0.0,.99);
+    roughness=mix(roughness,.38,glassMask);
     return TlcSurface(max(color,vec3(.0003)),gradient,rust,roughness);
 }
 #endif

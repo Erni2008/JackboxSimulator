@@ -68,3 +68,18 @@ node tools/dev/review_cursed_players.cjs
 Музыка и таймер вопросов: `./gradlew :core:questionAudioCheck :lwjgl3:questionAudioNativeCheck --offline`. [Ресурсы, фазы и настройки](../docs/questions/audio.md).
 
 Проверки поставки и лимитов: `python3 tools/checks/check_runtime_distribution.py` (после desktop jar), `node tools/checks/check_countdown_budget.cjs`, `./gradlew :lwjgl3:packagedAssetsCheck --offline`. [Описание и измерения](../docs/development/production-polish.md).
+
+## Очистка локальных результатов
+
+Закройте запущенные приложения проекта. Сначала просмотрите объём:
+
+```sh
+python3 tools/dev/clean_project.py
+python3 tools/dev/clean_project.py --apply
+```
+
+Удаляются только пересоздаваемые `build/`, локальный `.gradle/`, Python-кеши и
+неотслеживаемые визуальные снимки/архивы из `generated/`. Исходники, обе папки
+ресурсов, отчёты под Git и общие зависимости Gradle сохраняются.
+Превью `:lwjgl3:lastCommandPreview` читает оригинальные рабочие ресурсы напрямую
+и не создаёт полные desktop-копии. Подробности: [очистка проекта](../docs/development/storage-cleanup.md).

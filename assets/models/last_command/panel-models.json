@@ -1,0 +1,14 @@
+[
+  {
+    "originalPath": "adjuster.glb",
+    "runtimePath": "assets/models/last_command/adjuster.glb",
+    "sha256": "eba114edcb1e65e7636a2df6924b25162c855f0bba84df337cbcb4ccc7f9d87c",
+    "operation": "move, no duplicate file"
+  },
+  {
+    "originalPath": "light.glb",
+    "runtimePath": "assets/models/last_command/light.glb",
+    "sha256": "0eecf3c9d2cbeff56298a750f191afdb908c7fa6d101b2aae35dc26a23783689",
+    "operation": "move, no duplicate file"
+  }
+]

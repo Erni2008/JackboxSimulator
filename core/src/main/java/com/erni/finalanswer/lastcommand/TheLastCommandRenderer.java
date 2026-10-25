@@ -30,6 +30,10 @@ public final class TheLastCommandRenderer implements Disposable {
             for(Material material:machine.scenes[part].modelInstance.materials)
                 if(style.enabled)material.set(surfaces[part].attribute(part));
                 else material.remove(WeatheredMetalAttribute.TYPE);
+        if(machine.panel()!=null)for(PanelControl control:machine.panel().controls())
+            for(Material material:control.scene().modelInstance.materials)
+                if(style.enabled)material.set((control instanceof SmallButton?style.cap:style.base).attribute(control instanceof SmallButton?2:1));
+                else material.remove(WeatheredMetalAttribute.TYPE);
         manager.setCamera(camera);
         float radius = machine.bounds.getDimensions(new Vector3()).len()*.5f;
         key = new DirectionalShadowLight(2048,2048,radius*4,radius*4,.01f,radius*6);
@@ -51,6 +55,7 @@ public final class TheLastCommandRenderer implements Disposable {
             com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute.Fog, Color.BLACK));
         manager.environment.set(FogAttribute.createFog(radius*3.5f,radius*8,1.5f));
         for(var scene:machine.scenes)if(scene!=null)manager.getRenderableProviders().add(scene);
+        if(machine.panel()!=null)for(PanelControl control:machine.panel().controls())manager.getRenderableProviders().add(control.scene());
         Material iron=new Material(PBRColorAttribute.createBaseColorFactor(new Color(.012f,.016f,.02f,1)),
             PBRFloatAttribute.createMetallic(.65f),PBRFloatAttribute.createRoughness(.83f));
         if(style.enabled)iron.set(style.floor.attribute(3));

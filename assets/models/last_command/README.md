@@ -84,3 +84,11 @@ unchanged, and all three scene instances remain separate.
 - Native full-scene screenshot `/tmp/last-command-preview.png` and closeups
   `/tmp/last-command-button-0.png` through `-3.png` (rest/pressed, two angles).
 - Source-model diagnostic: `./gradlew :lwjgl3:lastCommandModelInspection --offline`.
+
+## Interactive front panel
+
+The preview now also loads the user's original `adjuster.glb` and `light.glb`.
+They were moved here from the project root without copying or altering their
+bytes (see `panel-models.json`). `panel.json` calibrates four shared cap instances,
+the rotary control and the indicator. No per-button GLB or texture copies exist.
+See [front-panel API and validation](../../../docs/the-last-command-panel.md).

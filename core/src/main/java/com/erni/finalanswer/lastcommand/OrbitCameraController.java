@@ -12,7 +12,7 @@ public final class OrbitCameraController extends InputAdapter {
     private final Vector3 center = new Vector3(), target = new Vector3();
     private float radius, distance, yaw, pitch, ground;
     private int active = -1, pointer = -1, lastX, lastY;
-    private boolean pressing;
+    private PanelElementId captured;
     public OrbitCameraController(PerspectiveCamera camera, TheLastCommandMachine machine) {
         this.camera=camera;this.machine=machine;
         BoundingBox bounds=machine.bounds; bounds.getCenter(center);
@@ -21,18 +21,18 @@ public final class OrbitCameraController extends InputAdapter {
         reset();
     }
     public void reset() { cancel();target.set(center);distance=radius*3.2f;yaw=25;pitch=15;update(); }
-    public void cancel(){machine.button.held(false);pressing=false;pointer=-1;active=-1;}
+    public void cancel(){if(captured!=null)machine.endInteraction(captured);captured=null;pointer=-1;active=-1;}
     @Override public boolean touchDown(int x,int y,int p,int button) {
         if(pointer!=-1 || button!=Input.Buttons.LEFT&&button!=Input.Buttons.RIGHT)return false;
         pointer=p;active=button;lastX=x;lastY=y;
-        pressing=button==Input.Buttons.LEFT&&machine.hitCap(camera.getPickRay(x,y));
-        if(pressing)machine.button.held(true);
+        captured=button==Input.Buttons.LEFT?machine.pick(camera.getPickRay(x,y)):null;
+        if(captured!=null)machine.beginInteraction(captured);
         return true;
     }
     @Override public boolean touchDragged(int x,int y,int p) {
         if(p!=pointer)return false;
         float dx=x-lastX,dy=y-lastY;lastX=x;lastY=y;
-        if(pressing)return true;
+        if(captured!=null)return true;
         if(active==Input.Buttons.LEFT){yaw-=dx*.3f;pitch=MathUtils.clamp(pitch+dy*.3f,-85,85);}
         else {
             float amount=distance*.0015f;

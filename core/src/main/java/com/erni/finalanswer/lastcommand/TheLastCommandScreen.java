@@ -30,15 +30,22 @@ public final class TheLastCommandScreen extends ScreenAdapter {
         Table table=new Table();table.setFillParent(true);table.top().left().pad(20);ui.addActor(table);
         table.add(new Label("THE LAST COMMAND (3D PREVIEW)",new Label.LabelStyle(font,Color.valueOf("C5BAAB")))).left().expandX();
         TextButton reset=new TextButton("RESET CAMERA",style);table.add(reset).padLeft(16);
+        TextButton panelReset=new TextButton("RESET PANEL",style);table.add(panelReset).padLeft(16);
         TextButton back=new TextButton("BACK",style);table.add(back).padLeft(16);table.row();
-        String message=machine.complete()?"LMB: orbit / hold red cap | RMB: pan | wheel: zoom | Esc: back"
-            :"Place the three original GLBs in assets/models/last_command/\n"+machine.status+"Assembly calibration requires the original models.";
+        String message=machine.complete()&&machine.panelReady()?"LMB: orbit / hold buttons / click dial or lens | RMB: pan | wheel: zoom | Esc: back"
+            :"Front panel assets/configuration: \n"+machine.status;
         Label info=new Label(message,new Label.LabelStyle(font,Color.valueOf("9D9690")));info.setWrap(true);
-        table.add(info).colspan(3).fillX().left().padTop(15);
+        table.add(info).colspan(4).fillX().left().padTop(15);
+        panelReset.addListener(new ChangeListener(){public void changed(ChangeEvent e,Actor actor){orbit.cancel();if(machine.panel()!=null)machine.panel().reset();}});
+        if(machine.panel()!=null)machine.panel().addListener(event->{
+            if(event.cause()==PanelAction.Cause.PLAYER&&game.getAudio()!=null
+                &&(event.kind()==PanelAction.Kind.ADJUSTER_CHANGED||event.kind()==PanelAction.Kind.PRESSED))game.getAudio().press();
+        });
         reset.addListener(new ChangeListener(){public void changed(ChangeEvent e,Actor actor){orbit.reset();}});
         back.addListener(new ChangeListener(){public void changed(ChangeEvent e,Actor actor){exit();}});
         input=new InputMultiplexer(ui,new InputAdapter(){@Override public boolean keyDown(int key){if(key==Input.Keys.ESCAPE){exit();return true;}return false;}},orbit);
     }
+    public FrontPanel panel(){return machine.panel();}
     private void exit(){Gdx.app.postRunnable(()->{if(game.getScreen()==this)game.showMainMenu();});}
     @Override public void show(){Gdx.input.setInputProcessor(input);}
     @Override public void render(float delta){

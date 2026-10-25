@@ -7,9 +7,9 @@ import com.badlogic.gdx.utils.Json;
 public final class LastCommandSurfaceStyle {
     public boolean enabled=true;
     public float exposure=1.15f;
-    public Surface body=new Surface(.88f,1.3f,.79f);
-    public Surface base=new Surface(.77f,1.1f,.76f);
-    public Surface cap=new Surface(.65f,.9f,.73f);
+    public Surface body=new Surface(.50f,1.3f,.79f);
+    public Surface base=new Surface(.44f,1.1f,.76f);
+    public Surface cap=new Surface(.38f,.9f,.73f);
     public Surface floor=new Surface(.25f,.55f,.90f);
     public static final class Surface {
         public float coverage,relief,roughness;
