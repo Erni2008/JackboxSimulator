@@ -1,0 +1,12 @@
+{
+  "contextualHelp": true,
+  "keyboardNavigation": true,
+  "shortcutsIgnoreInputs": true,
+  "authoritativeFrozenTime": true,
+  "retrySameVariant": true,
+  "uniqueAttempts": true,
+  "guestDialogsResetAndReopen": true,
+  "noModelReloadOnRetry": true,
+  "nextVariantStillAdvances": true,
+  "errors": []
+}

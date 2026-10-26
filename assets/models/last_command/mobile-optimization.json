@@ -1,0 +1,482 @@
+[
+  {
+    "name": "box_final",
+    "source": "low/box_final.glb",
+    "sourceSha256": "a1880b156bd68bc8e6853e945e19b476935561f2b84dc1d9c9bb462e6f806b3b",
+    "runtimeSha256": "49f02a9e358f8e4fbcac36a4a95b4d4f623d8c73962979c7275896e09f669f69",
+    "before": {
+      "bytes": 14241848,
+      "triangles": 346508,
+      "primitives": 5,
+      "maps": [
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ]
+      ],
+      "extensions": []
+    },
+    "after": {
+      "bytes": 8773384,
+      "triangles": 122112,
+      "primitives": 1,
+      "maps": [
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ]
+      ],
+      "extensions": []
+    },
+    "relativeErrorLimit": 0.002,
+    "lockedBorders": true
+  },
+  {
+    "name": "hole_final",
+    "source": "low/hole_final.glb",
+    "sourceSha256": "d4c33d4b1be4e2b8d79fd6cd3ea53be4a094e157e560572f1d85164595f09127",
+    "runtimeSha256": "8f42fb60a872147bc52843f230e4d4b5c90d04a88ef4e2a618895acbddbf7167",
+    "before": {
+      "bytes": 1414008,
+      "triangles": 12949,
+      "primitives": 1,
+      "maps": [
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "extensions": []
+    },
+    "after": {
+      "bytes": 1399328,
+      "triangles": 12465,
+      "primitives": 1,
+      "maps": [
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "extensions": []
+    },
+    "relativeErrorLimit": 0.002,
+    "lockedBorders": true
+  },
+  {
+    "name": "button",
+    "source": "low/button.glb",
+    "sourceSha256": "fe6ab02d5ccaf6cf813cc5bfb7cfe6d630e23b63f1eb9458028296ad9a547f98",
+    "runtimeSha256": "c211d8d8c5a7a0668be3a6d9cafef92d339aeeef71a901fcf740df4daa567657",
+    "before": {
+      "bytes": 1046564,
+      "triangles": 5438,
+      "primitives": 1,
+      "maps": [
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "extensions": []
+    },
+    "after": {
+      "bytes": 1010972,
+      "triangles": 3954,
+      "primitives": 1,
+      "maps": [
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "extensions": []
+    },
+    "relativeErrorLimit": 0.002,
+    "lockedBorders": true
+  },
+  {
+    "name": "adjuster",
+    "source": "low/adjuster.glb",
+    "sourceSha256": "ae33054233ac102f45905fde2a3d4856db5c6ce4a6d3e8e6ac878e73431859ae",
+    "runtimeSha256": "b1025c9290103b342ae40d881e8dc41a0b0f11d6aa4805ec7effd91ebd5c95cd",
+    "before": {
+      "bytes": 2228932,
+      "triangles": 46866,
+      "primitives": 1,
+      "maps": [
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "extensions": []
+    },
+    "after": {
+      "bytes": 1729832,
+      "triangles": 26674,
+      "primitives": 1,
+      "maps": [
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "extensions": []
+    },
+    "relativeErrorLimit": 0.002,
+    "lockedBorders": true
+  },
+  {
+    "name": "light",
+    "source": "low/light.glb",
+    "sourceSha256": "3fd0118b1d910db720dd0e4075eaeaa6d0a48a2e68507aef332993b2701d33ce",
+    "runtimeSha256": "996488e53b859c7f4629262a9659734a178aa923d41e234d4cf5b724c1b711fe",
+    "before": {
+      "bytes": 2010228,
+      "triangles": 39934,
+      "primitives": 1,
+      "maps": [
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "extensions": []
+    },
+    "after": {
+      "bytes": 1405528,
+      "triangles": 17612,
+      "primitives": 1,
+      "maps": [
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "extensions": []
+    },
+    "relativeErrorLimit": 0.002,
+    "lockedBorders": true
+  },
+  {
+    "name": "level_handler",
+    "source": "low/level_handler.glb",
+    "sourceSha256": "3a2921461b3ea71ddeb4b9a1b7ccba40b97c19c910f9c5775ddd1c37a25bc8f1",
+    "runtimeSha256": "d9e404c4c03c5f4e5a7194e3188c1ef04ad0c51cde1b5bed3e01a01570357556",
+    "before": {
+      "bytes": 2278216,
+      "triangles": 45724,
+      "primitives": 1,
+      "maps": [
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "extensions": []
+    },
+    "after": {
+      "bytes": 1698480,
+      "triangles": 22760,
+      "primitives": 1,
+      "maps": [
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "extensions": []
+    },
+    "relativeErrorLimit": 0.002,
+    "lockedBorders": true
+  },
+  {
+    "name": "lever",
+    "source": "low/lever.glb",
+    "sourceSha256": "c379aafd644826059f5f2f7505bec31c42cce731f3d072923bc78135a096c1d9",
+    "runtimeSha256": "d10fcf8132e07a48f317459f938cf0e66e6103278c04e90bd05744ddc1eac47a",
+    "before": {
+      "bytes": 1958748,
+      "triangles": 27500,
+      "primitives": 1,
+      "maps": [
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "extensions": []
+    },
+    "after": {
+      "bytes": 1514176,
+      "triangles": 9624,
+      "primitives": 1,
+      "maps": [
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "extensions": []
+    },
+    "relativeErrorLimit": 0.002,
+    "lockedBorders": true
+  },
+  {
+    "name": "secret_hole",
+    "source": "low/secret_hole.glb",
+    "sourceSha256": "67aa4705bb5900e9a17dc4b06a126ac0ef64acebbb3203b541d2e11f5180aad5",
+    "runtimeSha256": "1109894c816a1d199c12fc3c37b8ecfe30b3860c4f5a36ee5534316876140b13",
+    "before": {
+      "bytes": 2123476,
+      "triangles": 33843,
+      "primitives": 1,
+      "maps": [
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "extensions": []
+    },
+    "after": {
+      "bytes": 1687176,
+      "triangles": 18439,
+      "primitives": 1,
+      "maps": [
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "extensions": []
+    },
+    "relativeErrorLimit": 0.002,
+    "lockedBorders": true
+  },
+  {
+    "name": "door",
+    "source": "low/door.glb",
+    "sourceSha256": "eff5c2298362e4b7904198130ac8df417ab79d28eee892172b79814aaabed35c",
+    "runtimeSha256": "90ff93079d062453e15150a526d780b2759d5dbc300430e44a54e37ce9e560ca",
+    "before": {
+      "bytes": 1698916,
+      "triangles": 27516,
+      "primitives": 1,
+      "maps": [
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "extensions": []
+    },
+    "after": {
+      "bytes": 1232592,
+      "triangles": 9630,
+      "primitives": 1,
+      "maps": [
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "extensions": []
+    },
+    "relativeErrorLimit": 0.002,
+    "lockedBorders": true
+  },
+  {
+    "name": "code_display",
+    "source": "low/code_display.glb",
+    "sourceSha256": "3c9c1735ac646d2c20b7f842cd72a7c5074047cb5a39b62ac4a94c709877bc83",
+    "runtimeSha256": "d48a16fac623ab586c4486b20a6b9a86c0e22cfa56503a80e336225a454796f7",
+    "before": {
+      "bytes": 5142164,
+      "triangles": 46790,
+      "primitives": 1,
+      "maps": [
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ]
+      ],
+      "extensions": []
+    },
+    "after": {
+      "bytes": 4654652,
+      "triangles": 27668,
+      "primitives": 1,
+      "maps": [
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ]
+      ],
+      "extensions": []
+    },
+    "relativeErrorLimit": 0.002,
+    "lockedBorders": true
+  }
+]

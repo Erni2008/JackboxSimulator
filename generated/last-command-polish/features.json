@@ -1,0 +1,11 @@
+{
+  "inspectionWin": true,
+  "inspectionWrongConfirmation": true,
+  "objectives": 7,
+  "cameraMinRadius": 1.0096534058774824,
+  "replaySync": true,
+  "crtPhaseSwitch": true,
+  "replayDoesNotExtendDeadline": true,
+  "memoryWin": true,
+  "errors": []
+}

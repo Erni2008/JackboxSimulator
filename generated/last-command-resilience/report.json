@@ -1,0 +1,16 @@
+{
+  "preferencesSurviveReload": true,
+  "objectiveCameraFocus": true,
+  "phoneClipboard": true,
+  "autoReleasesHeavyAssets": true,
+  "highFailureRecoversLow": true,
+  "lowFailureCanRetry": true,
+  "cameraAndSessionPreserved": true,
+  "offlineActionsBlocked": true,
+  "reconnected": true,
+  "accessibleStates": true,
+  "identicalSyncDoesNotRender": true,
+  "restrictedStorageStillPlayable": true,
+  "resumeResynchronizesClock": true,
+  "errors": []
+}

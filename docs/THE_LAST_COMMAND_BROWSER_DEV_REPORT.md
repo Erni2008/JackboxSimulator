@@ -1,6 +1,6 @@
 # THE LAST COMMAND: рабочий локальный браузерный пилот
 
-Дата: 25 октября 2026. Запуск и управление: [THE_LAST_COMMAND_DEV.md](../THE_LAST_COMMAND_DEV.md).
+Дата: 25 октября 2026. Этот отчёт описывает первоначальный пилот; последующая итерация — `THE_LAST_COMMAND_POLISH.md` (новый mobile LOD, интерфейс, camera focus и третий тестовый сценарий). Запуск и управление: [THE_LAST_COMMAND_DEV.md](../THE_LAST_COMMAND_DEV.md).
 
 ## Что реализовано
 

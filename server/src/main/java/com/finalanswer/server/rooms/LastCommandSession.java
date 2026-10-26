@@ -23,11 +23,16 @@ public final class LastCommandSession {
         if(locked.contains(element)&&!action.equals("RELEASE")&&!host)throw new RoomService.Failure(409,"MECHANISM_LOCKED");
         boolean changed=true;
         try{
-            if(action.equals("TEST_ROUND")){
+            if(action.equals("TEST_ROUND")||action.equals("RETRY_ROUND")){
                 if(!host&&!development)throw new RoomService.Failure(403,"HOST_REQUIRED");
                 if(!element.equals("CODE_PANEL"))throw new IllegalArgumentException();
-                testRound=new LastCommandTestRound(seed,roundIndex++,value,now);held.clear();locked.clear();Arrays.fill(digits,0);lever=adjuster=0;light="OFF";hatch=false;animal=symbol="";
+                if(action.equals("RETRY_ROUND")){
+                    if(testRound==null||!value.isEmpty())throw new IllegalArgumentException();
+                    testRound=new LastCommandTestRound(seed,testRound.round,testRound.scenario,now);
+                }else{var next=new LastCommandTestRound(seed,roundIndex,value,now);roundIndex++;testRound=next;}
+                held.clear();locked.clear();Arrays.fill(digits,0);lever=adjuster=0;light="OFF";hatch=false;animal=symbol="";
             }
+            else if(action.equals("REPLAY")){if(!element.equals("LIGHT_MODULE")||!value.isEmpty()||testRound==null||!testRound.replay(now))throw new RoomService.Failure(409,"SIGNAL_REPLAY_UNAVAILABLE");}
             else if(action.equals("RESET")){if(!host)throw new RoomService.Failure(403,"HOST_REQUIRED");if(!element.equals("CODE_PANEL")||!value.isEmpty())throw new IllegalArgumentException();held.clear();locked.clear();Arrays.fill(digits,0);lever=adjuster=0;light="OFF";hatch=false;}
             else if(action.equals("LOCK")){if(!host)throw new RoomService.Failure(403,"HOST_REQUIRED");if(!Set.of("true","false").contains(value))throw new IllegalArgumentException();if(Boolean.parseBoolean(value)){locked.add(element);held.remove(element);}else locked.remove(element);}
             else if(locked.contains(element)&&!action.equals("RELEASE"))throw new RoomService.Failure(409,"MECHANISM_LOCKED");
@@ -49,7 +54,7 @@ public final class LastCommandSession {
                 default->throw new IllegalArgumentException();
             }
         }catch(IllegalArgumentException error){throw new RoomService.Failure(400,"INVALID_LAST_COMMAND_ACTION");}
-        if(changed&&testRound!=null&&!Set.of("TEST_ROUND","RESET","LOCK").contains(action))testRound.action(element,action,value,panelSnapshot(),now);
+        if(changed&&testRound!=null&&!Set.of("TEST_ROUND","RETRY_ROUND","RESET","LOCK").contains(action))testRound.action(element,action,value,panelSnapshot(),now);
         requests.add(key);if(requests.size()>2048)requests.remove(requests.iterator().next());
         if(changed){lastAction=Map.of("sequence",++sequence,"actor",actor,"element",element,"action",action,"value",value);history.addLast(lastAction);if(history.size()>128)history.removeFirst();}return changed;
     }
@@ -57,9 +62,9 @@ public final class LastCommandSession {
     public List<Map<String,Object>> history(){return List.copyOf(history);}
     public boolean timeout(long now){return testRound!=null&&testRound.timeout(now);}
     public Map<String,Object> snapshot(){return snapshot(System.currentTimeMillis());}
-    public Map<String,Object> snapshot(long now){var r=panelSnapshot();r.put("development",development);r.put("placementId",new Random(seed).nextInt(2)==0?"back":"right");r.put("animal",animal);r.put("symbol",symbol);if(testRound!=null){r.put("testRound",testRound.snapshot(now));r.put("hint",hatch?testRound.code:"?");}return r;}
+    public Map<String,Object> snapshot(long now){var r=panelSnapshot();r.put("development",development);r.put("placementId",new Random(seed).nextInt(2)==0?"back":"right");r.put("animal",animal);r.put("symbol",symbol);if(testRound!=null){r.put("testRound",testRound.snapshot(now,panelSnapshot()));r.put("hint",hatch?testRound.code:"?");}return r;}
     private Map<String,Object> panelSnapshot(){
         Map<String,Object> result=new LinkedHashMap<>();result.put("sessionId",id);result.put("seed",Long.toString(seed));result.put("sequence",sequence);result.put("held",List.copyOf(held.keySet()));result.put("locked",locked.stream().sorted().toList());
-        result.put("lever",List.of("UP","MIDDLE","DOWN").get(lever));result.put("adjuster",adjuster);result.put("light",light);result.put("hatch",hatch);result.put("code",""+digits[0]+digits[1]+digits[2]+digits[3]);result.put("lastAction",lastAction);return result;
+        result.put("lever",List.of("UP","MIDDLE","DOWN").get(lever));result.put("adjuster",adjuster);result.put("light",light);result.put("hatch",hatch);result.put("code",""+digits[0]+digits[1]+digits[2]+digits[3]);result.put("lastAction",lastAction);result.put("animal",animal);result.put("symbol",symbol);return result;
     }
 }
