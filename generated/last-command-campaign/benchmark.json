@@ -1,0 +1,119 @@
+{
+  "capturedAt": "2026-10-27T00:53:44.119Z",
+  "headless": true,
+  "physicalPhones": false,
+  "conditions": "1400x1000 viewport, DPR 1, five-second orbit/profile, capped 30/60, default seed 20261025, no GPU timer; short smoke benchmark, not thermal soak",
+  "rows": [
+    {
+      "assetVariant": "mobile",
+      "averageSubmissionMs": 27.49230769556812,
+      "averageDrawCalls": 18.700854700854702,
+      "averageTriangles": 286763.4017094017,
+      "quality": "LOW",
+      "sourceQuality": "LOW",
+      "metrics": {
+        "fps": 29.60750406120631,
+        "frameMs": 33.77522123893805,
+        "p95": 33.400000000000546,
+        "drawCalls": 17,
+        "triangles": 286760,
+        "geometries": 15,
+        "textures": 37,
+        "models": 11,
+        "loadMs": 715.0999999046326,
+        "jsHeap": 86082701,
+        "gpuMs": null,
+        "submissionMs": 0.5,
+        "assetMemoryEstimate": {
+          "meshBytes": 11087472,
+          "textureBytes": 74842111.99999999,
+          "note": "RGBA8+mips estimate; excludes environment/shadows/driver. Not measured VRAM."
+        },
+        "backend": "WebKit WebGL"
+      },
+      "viewport": [
+        1400,
+        1000
+      ],
+      "backBuffer": [
+        1082,
+        928
+      ],
+      "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)"
+    },
+    {
+      "assetVariant": "mobile",
+      "averageSubmissionMs": 0.5767441888980295,
+      "averageDrawCalls": 22.98671096345515,
+      "averageTriangles": 682823.973421927,
+      "quality": "MEDIUM",
+      "sourceQuality": "MEDIUM",
+      "metrics": {
+        "fps": 60.00300015000751,
+        "frameMs": 16.66583333333333,
+        "p95": 16.700000000000728,
+        "drawCalls": 24,
+        "triangles": 682826,
+        "geometries": 22,
+        "textures": 40,
+        "models": 11,
+        "loadMs": 1308.8000000715256,
+        "jsHeap": 136069768,
+        "gpuMs": null,
+        "submissionMs": 0.6000000238418579,
+        "assetMemoryEstimate": {
+          "meshBytes": 21161972,
+          "textureBytes": 228982784.0000001,
+          "note": "RGBA8+mips estimate; excludes environment/shadows/driver. Not measured VRAM."
+        },
+        "backend": "WebKit WebGL"
+      },
+      "viewport": [
+        1400,
+        1000
+      ],
+      "backBuffer": [
+        1082,
+        928
+      ],
+      "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)"
+    },
+    {
+      "assetVariant": "mobile",
+      "averageSubmissionMs": 0.5996666665871938,
+      "averageDrawCalls": 23.706666666666667,
+      "averageTriangles": 801151.0933333334,
+      "quality": "HIGH",
+      "sourceQuality": "HIGH",
+      "metrics": {
+        "fps": 60.00300015000745,
+        "frameMs": 16.665833333333346,
+        "p95": 16.799999999999272,
+        "drawCalls": 24,
+        "triangles": 770340,
+        "geometries": 22,
+        "textures": 42,
+        "models": 11,
+        "loadMs": 2047.2999999523163,
+        "jsHeap": 306894454,
+        "gpuMs": null,
+        "submissionMs": 0.2999999523162842,
+        "assetMemoryEstimate": {
+          "meshBytes": 23151984,
+          "textureBytes": 593887232,
+          "note": "RGBA8+mips estimate; excludes environment/shadows/driver. Not measured VRAM."
+        },
+        "backend": "WebKit WebGL"
+      },
+      "viewport": [
+        1400,
+        1000
+      ],
+      "backBuffer": [
+        1082,
+        928
+      ],
+      "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)"
+    }
+  ]
+}

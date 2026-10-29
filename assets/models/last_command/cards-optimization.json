@@ -1,0 +1,98 @@
+[
+  {
+    "profile": "mobile",
+    "sourceSha256": "2337334139dae2337657ca79d1c43f59d6ab434f6ba87508f218bb2888036f18",
+    "runtime": {
+      "bytes": 773164,
+      "triangles": 22498,
+      "primitives": 1,
+      "maps": [
+        [
+          256,
+          256
+        ],
+        [
+          256,
+          256
+        ],
+        [
+          256,
+          256
+        ]
+      ],
+      "extensions": []
+    }
+  },
+  {
+    "profile": "low",
+    "sourceSha256": "2337334139dae2337657ca79d1c43f59d6ab434f6ba87508f218bb2888036f18",
+    "runtime": {
+      "bytes": 903632,
+      "triangles": 22498,
+      "primitives": 1,
+      "maps": [
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "extensions": []
+    }
+  },
+  {
+    "profile": "medium",
+    "sourceSha256": "2337334139dae2337657ca79d1c43f59d6ab434f6ba87508f218bb2888036f18",
+    "runtime": {
+      "bytes": 1737492,
+      "triangles": 37500,
+      "primitives": 1,
+      "maps": [
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ]
+      ],
+      "extensions": []
+    }
+  },
+  {
+    "profile": "high",
+    "sourceSha256": "2337334139dae2337657ca79d1c43f59d6ab434f6ba87508f218bb2888036f18",
+    "runtime": {
+      "bytes": 1737492,
+      "triangles": 37500,
+      "primitives": 1,
+      "maps": [
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ],
+        [
+          1024,
+          1024
+        ]
+      ],
+      "extensions": []
+    }
+  }
+]

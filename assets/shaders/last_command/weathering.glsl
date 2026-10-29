@@ -98,6 +98,18 @@ TlcSurface tlcWeather(vec3 position,vec3 original,float sourceMetal,float source
     gradient*=1.0-glass;
     rough=mix(rough,.22,glass);metal=mix(metal,0.0,glass);rust*=1.0-glass;
     color=mix(color,substrate,display);
+#ifdef TLC_REFINED_MATERIALS
+    // Replace the baked orange corrosion with graphite enamel and brushed steel.
+    // Keep authored luminance for seams and fasteners, with restrained surface detail.
+    float coating=smoothstep(1.25,2.4,warmRatio)*(1.0-paint)*(1.0-display);
+    float luminance=clamp(brightness*2.0,.12,.85);
+    vec3 graphite=vec3(.018,.026,.023)*mix(.65,1.25,luminance);
+    color=mix(color,graphite,(1.0-paint)*(1.0-display)*.94);
+    color=mix(color,vec3(.19,.018,.012)*mix(.6,1.25,luminance),paint*.85);
+    metal=mix(metal,.12,(1.0-paint)*(1.0-display));
+    rough=mix(rough,.57,1.0-display);
+    gradient*=.12;
+#endif
     return TlcSurface(max(color,vec3(.0003)),gradient,rust,rough,clamp(metal,0.0,1.0));
 }
 #endif

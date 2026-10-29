@@ -100,7 +100,7 @@ class RoomServiceTest {
         assertEquals("puppeteer",s(replacement.latest().getAsJsonArray("players").get(0).getAsJsonObject(),"characterId"));
         service.leave(code,s(doll,"token"));assertEquals(0,h.latest().getAsJsonArray("players").size());
     }
-    void startPanel(){players();command(h,"START_LAST_COMMAND",Map.of("roomCode",s(host,"code"),"sessionId",s(h.latest(),"lobbyId"),"seed","20261025"));}
+    void startPanel(){players();command(h,"START_LAST_COMMAND",Map.of("roomCode",s(host,"code"),"sessionId",s(h.latest(),"lobbyId"),"seed","20261025"));command(h,"LAST_COMMAND_ACTION",panelAction("CODE_PANEL","TEST_ROUND","inspection"));}
     Map<String,Object> panelAction(String element,String action,String value){return Map.of("roomCode",s(host,"code"),"sessionId",s(h.latest().getAsJsonObject("lastCommand"),"sessionId"),"element",element,"action",action,"value",value);}
     @Test void lastCommandPanelIsAuthoritativeAndAtomicAcrossPlayers(){
         startPanel();assertEquals("IN_GAME",s(h.latest(),"roomStatus"));
@@ -121,7 +121,7 @@ class RoomServiceTest {
     @Test void lastCommandSynchronizesEightPlayers() throws Exception {
         service.leave(s(host,"code"),s(host,"token"));host=create(Map.of("maxPlayers","8"));h=new TestPeer();service.attach(s(host,"code"),s(host,"token"),h,"host-eight");
         List<TestPeer> peers=new ArrayList<>();for(int i=0;i<8;i++){var player=join("Panel "+i);var peer=new TestPeer();service.attach(s(host,"code"),s(player,"token"),peer,"eight-"+i);peers.add(peer);}
-        command(h,"START_LAST_COMMAND",Map.of("roomCode",s(host,"code"),"sessionId",s(h.latest(),"lobbyId"),"seed","991"));
+        command(h,"START_LAST_COMMAND",Map.of("roomCode",s(host,"code"),"sessionId",s(h.latest(),"lobbyId"),"seed","991"));command(h,"LAST_COMMAND_ACTION",panelAction("CODE_PANEL","TEST_ROUND","inspection"));
         var pool=Executors.newFixedThreadPool(8);try{var barrier=new CyclicBarrier(8);List<Future<?>> tasks=new ArrayList<>();for(var peer:peers)tasks.add(pool.submit(()->{try{barrier.await();command(peer,"LAST_COMMAND_ACTION",panelAction("CODE_PANEL","STEP","0:+1"));}catch(Exception e){throw new RuntimeException(e);}}));for(var task:tasks)task.get();}finally{pool.shutdownNow();}
         for(var peer:peers)assertEquals("8000",s(peer.latest().getAsJsonObject("lastCommand"),"code"));
     }

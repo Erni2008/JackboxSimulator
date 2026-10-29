@@ -1,0 +1,34 @@
+{
+  "expiredAutostartRecovery": true,
+  "touchCap": true,
+  "touchCodeArrow": true,
+  "lossRestart": true,
+  "invalidActionRecovery": true,
+  "quality": [
+    {
+      "quality": "LOW",
+      "models": 11,
+      "textures": 37,
+      "geometries": 15
+    },
+    {
+      "quality": "MEDIUM",
+      "models": 11,
+      "textures": 37,
+      "geometries": 19
+    },
+    {
+      "quality": "HIGH",
+      "models": 11,
+      "textures": 39,
+      "geometries": 19
+    },
+    {
+      "quality": "LOW",
+      "models": 11,
+      "textures": 37,
+      "geometries": 15
+    }
+  ],
+  "shaderErrors": []
+}

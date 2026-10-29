@@ -1,0 +1,43 @@
+{
+  "types": [
+    "LIGHT_SEQUENCE",
+    "REMEMBER",
+    "COLOR",
+    "ANIMAL",
+    "HATCH",
+    "LEVER",
+    "ADJUSTER",
+    "BUTTON",
+    "SYMBOL",
+    "ENTER_CODE"
+  ],
+  "correct": 20,
+  "wrong": 1,
+  "memoryRecalls": 3,
+  "modelLoads": 11,
+  "realCardClicks": true,
+  "noReloadDuringTasks": true,
+  "twoClientSynchronization": true,
+  "restart": true,
+  "metrics": {
+    "fps": 58.06357961968364,
+    "frameMs": 17.222499999999975,
+    "p95": 16.79999999998836,
+    "drawCalls": 39,
+    "triangles": 326596,
+    "geometries": 34,
+    "textures": 44,
+    "models": 11,
+    "loadMs": 1525.8999999761581,
+    "jsHeap": 62888401,
+    "gpuMs": null,
+    "submissionMs": 0.3999999761581421,
+    "assetMemoryEstimate": {
+      "meshBytes": 11775728,
+      "textureBytes": 74842111.99999999,
+      "note": "RGBA8+mips estimate; excludes environment/shadows/driver. Not measured VRAM."
+    },
+    "backend": "WebKit WebGL"
+  },
+  "errors": []
+}

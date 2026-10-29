@@ -62,7 +62,7 @@ public final class RoomService {
         if(code.isBlank()){
             JsonObject created=JsonParser.parseString(create(Map.of("name","THE_LAST_COMMAND_DEV","maxPlayers","8"))).getAsJsonObject();
             Room room=find(created.get("code").getAsString());room.lastCommand=new LastCommandSession(seed);room.lastCommand.development=true;
-            JsonObject action=new JsonObject();for(var e:Map.of("roomCode",room.code,"sessionId",room.lastCommand.id,"element","CODE_PANEL","action","TEST_ROUND","value",scenario).entrySet())action.addProperty(e.getKey(),e.getValue());
+            JsonObject action=new JsonObject();for(var e:Map.of("roomCode",room.code,"sessionId",room.lastCommand.id,"element","CODE_PANEL","action",scenario.equals("campaign")?"PREPARE_GAME":"TEST_ROUND","value",scenario.equals("campaign")?"":scenario).entrySet())action.addProperty(e.getKey(),e.getValue());
             room.lastCommand.action(room.host.id,true,UUID.randomUUID().toString(),action,now());
             return json(snapshot(room,room.host,true));
         }
@@ -347,7 +347,9 @@ public final class RoomService {
             if(room.members.size()<2)throw new Failure(409,"NOT_ENOUGH_PLAYERS");
             if(room.members.values().stream().anyMatch(m->m.peer==null||m.left))throw new Failure(409,"PLAYER_OFFLINE");
             long seed;try{seed=Long.parseLong(Protocol.string(data,"seed"));}catch(NumberFormatException e){throw new Failure(400,"INVALID_LAST_COMMAND_SEED");}
-            room.lastCommand=new LastCommandSession(seed);broadcast(room,"LAST_COMMAND_STARTED");
+            room.lastCommand=new LastCommandSession(seed);
+            JsonObject start=new JsonObject();for(var e:Map.of("roomCode",room.code,"sessionId",room.lastCommand.id,"element","CODE_PANEL","action","START_GAME","value","").entrySet())start.addProperty(e.getKey(),e.getValue());
+            room.lastCommand.action(member.id,true,UUID.randomUUID().toString(),start,now());broadcast(room,"LAST_COMMAND_STARTED");
         }else{
             if(room.lastCommand==null||!room.lastCommand.id.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_LAST_COMMAND_SESSION");
             if(message.type().equals("END_LAST_COMMAND")){requireHost(member);if(!data.keySet().equals(Set.of("roomCode","sessionId")))throw new Failure(400,"INVALID_LAST_COMMAND_ACTION");room.lastCommand=null;room.lobbyId=UUID.randomUUID().toString();broadcast(room,"LAST_COMMAND_ENDED");}

@@ -268,3 +268,8 @@ tools/host-tts/**/__pycache__/
 web3d/node_modules/
 web/last-command-3d/app.js
 web/last-command-3d/app.js.map
+
+# Runtime copies introduced by the dynamic Last Command task panels.
+!assets/models/last_command/*/animal_panel.glb
+!assets/models/last_command/panel_lamps.png
+!assets/models/last_command/hole1.png

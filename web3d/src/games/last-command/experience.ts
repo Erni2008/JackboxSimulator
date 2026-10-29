@@ -13,7 +13,7 @@ const guide:Record<string,{title:string;text:string}>={
  LIGHT_MODULE:{title:'Цветной индикатор',text:'Нажимайте линзу для переключения: выключен → красный → зелёный → жёлтый → синий → выключен. В световой памяти вспышками управляет сценарий.'},
  SIGNAL_PANEL:memory
 };
-export function helpFor(round:any,hoverId=''){if(hoverId)return hoverId.startsWith('SMALL_BUTTON_')?small:guide[hoverId]||general;if(round?.scenario==='memory')return memory;return guide[round?.focusId]||general;}
-export function scenarioName(id:string){return ({mechanisms:'Диагностика механизмов',memory:'Световая память',inspection:'Аварийный протокол'} as Record<string,string>)[id]||'Тестовый сценарий';}
+export function helpFor(round:any,hoverId=''){if(round?.campaign&&['LIGHT_SEQUENCE','REMEMBER'].includes(round.taskType)&&round.signals?.length)return {title:'Память сигналов',text:'Запомните порядок вспышек. Когда CRT попросит повторить, нажмите цветные кнопки: красная №1, зелёная №2, синяя №3, жёлтая №4. В отложенном задании последовательность потребуется после других команд.'};if(hoverId)return hoverId.startsWith('SMALL_BUTTON_')?small:guide[hoverId]||general;if(round?.scenario==='memory')return memory;return guide[round?.focusId]||general;}
+export function scenarioName(id:string){return ({campaign:'THE LAST COMMAND · 20 команд',mechanisms:'Диагностика механизмов',memory:'Световая память',inspection:'Аварийный протокол'} as Record<string,string>)[id]||'Тестовый сценарий';}
 export function durationText(ms:number){if(!Number.isFinite(ms)||ms<0)return '—';const minutes=Math.floor(ms/60000),seconds=Math.floor(ms/1000)%60,tenth=Math.floor(ms/100)%10;return `${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')},${tenth}`;}
 export function finishReason(id:string){return ({COMPLETED:'Задание выполнено',TIMEOUT:'Закончилось время',MISTAKES:'Исчерпаны три попытки'} as Record<string,string>)[id]||'Раунд завершён';}
