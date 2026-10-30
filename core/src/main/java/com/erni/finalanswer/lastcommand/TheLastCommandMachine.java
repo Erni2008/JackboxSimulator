@@ -11,7 +11,7 @@ import net.mgsx.gltf.scene3d.scene.*;
 /** One GLB load/cache per source; panel instances share meshes, maps and indexed pick geometry. */
 public final class TheLastCommandMachine implements Disposable {
     public static final String ROOT="models/last_command/";
-    public static final String[] FILES={"box_final.glb","hole_final.glb","button.glb","adjuster.glb","light.glb","level_handler.glb","lever.glb","secret_hole.glb","door.glb","code_display.glb"};
+    public static final String[] FILES={"computer.glb","hole_final.glb","button.glb","adjuster.glb","light.glb","level_handler.glb","lever.glb","secret_hole.glb","door.glb","code_display.glb"};
     public static class Placement {
         public Vector3 position=new Vector3(),rotation=new Vector3(),scale=new Vector3(1,1,1);
         Matrix4 matrix(){
@@ -55,7 +55,7 @@ public final class TheLastCommandMachine implements Disposable {
             for(Placement p:placements)p.matrix();
             button.localAxis.set(c.pressAxis).nor();button.travel=c.travel;capPickMinY=c.capPickMinY;capRest.set(c.cap.matrix());
             for(int i=0;i<FILES.length;i++){
-                String selected=Boolean.getBoolean("lc.originalAssets")?ROOT+FILES[i]:ROOT+GraphicsProfile.current().name().toLowerCase(java.util.Locale.ROOT)+"/"+FILES[i];
+                String selected=Boolean.getBoolean("lc.originalAssets")?ROOT+FILES[i]:ROOT+(i==0?"high":GraphicsProfile.current().name().toLowerCase(java.util.Locale.ROOT))+"/"+FILES[i];
                 var file=Gdx.files.internal(selected);
                 if(!file.exists())file=Gdx.files.internal(ROOT+FILES[i]);
                 if(!file.exists())file=Gdx.files.internal("../"+FILES[i]);

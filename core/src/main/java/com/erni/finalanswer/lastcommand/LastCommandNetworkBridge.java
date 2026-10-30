@@ -36,7 +36,7 @@ final class LastCommandNetworkBridge implements AutoCloseable {
             for(var id:new PanelElementId[]{PanelElementId.BIG_BUTTON,PanelElementId.SMALL_BUTTON_1,PanelElementId.SMALL_BUTTON_2,PanelElementId.SMALL_BUTTON_3,PanelElementId.SMALL_BUTTON_4}){
                 if(held.contains(id.name()))machine.beginInteraction(id);else machine.endInteraction(id);
             }
-            var modules=machine.mechanisms();if(modules!=null){modules.setLeverState(AdditionalMechanisms.LeverState.valueOf(panel.get("lever").getAsString()));modules.hatch().setOpen(panel.get("hatch").getAsBoolean());modules.code().setCode(panel.get("code").getAsString());}
+            var modules=machine.mechanisms();if(modules!=null){modules.setLeverState(AdditionalMechanisms.LeverState.valueOf(panel.get("lever").getAsString()));modules.hatch().setOpen(panel.get("hatch").getAsBoolean());modules.code().setCode(panel.get("code").getAsString());if(expanded&&commandRound.get("taskType").getAsString().equals("HATCH"))modules.hatch().setNote(panel.has("hint")?panel.get("hint").getAsString():"");}
             machine.panel().adjuster().setAngle(panel.get("adjuster").getAsFloat());machine.panel().light().setColor(LightModule.State.valueOf(panel.get("light").getAsString()));
         }finally{applying=false;}Gdx.graphics.requestRendering();
     }

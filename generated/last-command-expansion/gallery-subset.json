@@ -1,9 +1,9 @@
 {
   "seen": [
     {
-      "family": "CIRCUIT",
-      "kind": "circuit",
-      "task": "2a843937-f000-40a8-bbec-6f1419566141",
+      "family": "ANIMAL",
+      "kind": "physical",
+      "task": "cdc8ef20-fde4-424b-a0b7-ea007a8985c0",
       "score": 0,
       "canvas": [
         1440,
@@ -11,29 +11,9 @@
       ]
     },
     {
-      "family": "LIGHT_MEMORY",
-      "kind": "sequence",
-      "task": "22d27b26-c04f-49a1-8b20-e0010fbc7c67",
-      "score": 0,
-      "canvas": [
-        1440,
-        1000
-      ]
-    },
-    {
-      "family": "MATH",
-      "kind": "number",
-      "task": "3fedf3eb-4db0-4dfb-bd4b-5dbd08de35bc",
-      "score": 0,
-      "canvas": [
-        1440,
-        1000
-      ]
-    },
-    {
-      "family": "POSITION",
+      "family": "BUTTON",
       "kind": "choice",
-      "task": "1393b777-7685-4ceb-a035-a6877e113ef0",
+      "task": "e431af08-8835-45fd-b833-63ef54a495f1",
       "score": 0,
       "canvas": [
         1440,
@@ -41,39 +21,9 @@
       ]
     },
     {
-      "family": "PRESSURE",
-      "kind": "pressure",
-      "task": "2ca178ba-51b4-44d0-b29a-93e613b14796",
-      "score": 0,
-      "canvas": [
-        1440,
-        1000
-      ]
-    },
-    {
-      "family": "RADIO",
-      "kind": "radio",
-      "task": "b2e18ed1-c970-4768-9a9d-56db842dcab6",
-      "score": 0,
-      "canvas": [
-        1440,
-        1000
-      ]
-    },
-    {
-      "family": "SYMBOL_MEMORY",
-      "kind": "choice",
-      "task": "752b58bb-bbe7-4496-9079-3ae19599372e",
-      "score": 0,
-      "canvas": [
-        1440,
-        1000
-      ]
-    },
-    {
-      "family": "TIMING",
-      "kind": "timing",
-      "task": "951020a8-a1ec-4916-ae45-d8a1ea157e56",
+      "family": "SYMBOL",
+      "kind": "physical",
+      "task": "fe446347-233d-411a-bf68-bfbb60ecd5cb",
       "score": 0,
       "canvas": [
         1440,

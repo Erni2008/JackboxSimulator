@@ -103,11 +103,11 @@ class RoomServiceTest {
     @Test void expandedTerminalsStartTogetherAfterReadinessAndKeepPrivateTasks(){
         players();command(h,"START_LAST_COMMAND",Map.of("roomCode",s(host,"code"),"sessionId",s(h.latest(),"lobbyId"),"seed","20261025"));
         Set<String> ids=new HashSet<>();
-        for(TestPeer peer:List.of(h,a,b)){var r=peer.latest().getAsJsonObject("lastCommand").getAsJsonObject("testRound");assertTrue(r.get("paused").getAsBoolean());assertEquals("WAITING FOR TERMINALS",s(r,"instruction"));assertFalse(r.has("taskSeed"));ids.add(s(r,"taskId"));}
+        for(TestPeer peer:List.of(h,a,b)){var r=peer.latest().getAsJsonObject("lastCommand").getAsJsonObject("testRound");assertTrue(r.get("paused").getAsBoolean());assertEquals("ОЖИДАНИЕ ГОТОВНОСТИ ИГРОКОВ",s(r,"instruction"));assertFalse(r.has("taskSeed"));ids.add(s(r,"taskId"));}
         assertEquals(3,ids.size());
         for(TestPeer peer:List.of(h,a,b)){var panel=peer.latest().getAsJsonObject("lastCommand");command(peer,"LAST_COMMAND_ACTION",Map.of("roomCode",s(host,"code"),"sessionId",s(panel,"sessionId"),"taskId",s(panel.getAsJsonObject("testRound"),"taskId"),"element","TOUCH_PANEL","action","CLIENT_READY","value",""));}
         long ready=h.latest().getAsJsonObject("lastCommand").getAsJsonObject("testRound").get("readyAt").getAsLong();
-        for(TestPeer peer:List.of(h,a,b)){var r=peer.latest().getAsJsonObject("lastCommand").getAsJsonObject("testRound");assertFalse(r.get("paused").getAsBoolean());assertEquals(ready,r.get("readyAt").getAsLong());assertEquals("CONDITIONAL",s(r,"taskType"));assertFalse(r.getAsJsonObject("touchscreen").has("answer"));}
+        for(TestPeer peer:List.of(h,a,b)){var r=peer.latest().getAsJsonObject("lastCommand").getAsJsonObject("testRound");assertFalse(r.get("paused").getAsBoolean());assertEquals(ready,r.get("readyAt").getAsLong());assertEquals("COMPARISON",s(r,"taskType"));assertFalse(r.getAsJsonObject("touchscreen").has("answer"));}
     }
     void startPanel(){players();command(h,"START_LAST_COMMAND",Map.of("roomCode",s(host,"code"),"sessionId",s(h.latest(),"lobbyId"),"seed","20261025"));command(h,"LAST_COMMAND_ACTION",panelAction("CODE_PANEL","TEST_ROUND","inspection"));}
     Map<String,Object> panelAction(String element,String action,String value){return Map.of("roomCode",s(host,"code"),"sessionId",s(h.latest().getAsJsonObject("lastCommand"),"sessionId"),"element",element,"action",action,"value",value);}

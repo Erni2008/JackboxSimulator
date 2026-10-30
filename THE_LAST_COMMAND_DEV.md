@@ -1,5 +1,7 @@
 # THE LAST COMMAND — локальная браузерная разработка
 
+Новый корпус `computer.glb`, подготовка профилей и крепления: `docs/THE_LAST_COMMAND_COMPUTER.md`.
+
 Расширение заданий, персональные состояния, тесты и ограничения: `docs/THE_LAST_COMMAND_EXPANSION.md`. Расширенная игра — `scenario=campaign`; прежняя игра — `scenario=classic`.
 
 Обновление 27 октября: `docs/THE_LAST_COMMAND_DYNAMIC_GAME.md` — игра до 20 команд, динамические механизмы, отложенная память и результаты проверок.

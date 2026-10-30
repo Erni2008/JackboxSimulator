@@ -7,7 +7,7 @@ import java.util.*;
 
 /** Explicit opt-in local development routes. No filesystem wildcard or original GLB export. */
 final class LastCommandDevRoutes {
-    private static final Set<String> MODELS=Set.of("box_final.glb","hole_final.glb","button.glb","adjuster.glb","light.glb","level_handler.glb","lever.glb","secret_hole.glb","door.glb","code_display.glb","animal_panel.glb");
+    private static final Set<String> MODELS=Set.of("computer.glb","box_final.glb","hole_final.glb","button.glb","adjuster.glb","light.glb","level_handler.glb","lever.glb","secret_hole.glb","door.glb","code_display.glb","animal_panel.glb");
     static void install(JavalinConfig c,RoomService rooms){
         Path root=Path.of(System.getProperty("lastcommand.root")).toAbsolutePath().normalize();
         c.routes.get("/last-command-3d/",ctx->send(ctx,root.resolve("web/last-command-3d/index.html"),"text/html"));

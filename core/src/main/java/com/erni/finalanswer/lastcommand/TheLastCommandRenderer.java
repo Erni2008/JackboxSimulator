@@ -40,7 +40,7 @@ public final class TheLastCommandRenderer implements Disposable {
         LastCommandSurfaceStyle.Surface[] surfaces={style.body,style.base,style.cap};
         for(int part=0;part<machine.scenes.length;part++)if(machine.scenes[part]!=null)
             for(Material material:machine.scenes[part].modelInstance.materials)
-                if(style.enabled)material.set(surfaces[part].attribute(part));
+                if(style.enabled&&part>0)material.set(surfaces[part].attribute(part));
                 else material.remove(WeatheredMetalAttribute.TYPE);
         if(machine.panel()!=null)for(PanelControl control:machine.panel().controls())
             for(Material material:control.scene().modelInstance.materials)

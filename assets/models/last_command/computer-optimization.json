@@ -1,0 +1,70 @@
+[
+  {
+    "source": "computer.glb",
+    "sourceSha256": "7ddaf6d823f67ebdb9e2670540df7e1de0000e3e4a426984f1c9fa3a51ac558d",
+    "runtimeSha256": "4ab87cc0dac691adb88529744f4065fa6e81d1c31fb256b9c3422354d87027d8",
+    "sourceBytes": 70804048,
+    "runtimeBytes": 68197848,
+    "triangles": 446597,
+    "primitives": 6,
+    "imageSha256": [
+      "4d3f2a5a418430a551f2aae194206ec13019901595113e73c4d8298eaa63f528",
+      "6538ba6c1154422340bbda80e6eb565fab8fbd39e3bde60547efa61cba3dd734",
+      "76d15a3bd6e2ef5242089ffb1734be59691aee7380604fb5d09460c6ad4d0de3"
+    ],
+    "profile": "high",
+    "ratio": 0.45,
+    "textureLimit": 4096
+  },
+  {
+    "source": "computer.glb",
+    "sourceSha256": "7ddaf6d823f67ebdb9e2670540df7e1de0000e3e4a426984f1c9fa3a51ac558d",
+    "runtimeSha256": "2d70f7896f5f873aa8701fb98478e3b0589a5b78304a6657655c859eda5fa5e9",
+    "sourceBytes": 28105188,
+    "runtimeBytes": 26828064,
+    "triangles": 218336,
+    "primitives": 4,
+    "imageSha256": [
+      "be1579fd2228c89a7b3d4b91adc3313f88040ecc447ebc0e39b8217a73b0facf",
+      "ea081537e9887ae46cfd960315c2ecc0b2aa975f942b7223fe9e761eee0abc31",
+      "3840e47d93af57313f4b6174d5426b87167e18ee0eed341856c9a53a2936e9f7"
+    ],
+    "profile": "medium",
+    "ratio": 0.22,
+    "textureLimit": 2048
+  },
+  {
+    "source": "computer.glb",
+    "sourceSha256": "7ddaf6d823f67ebdb9e2670540df7e1de0000e3e4a426984f1c9fa3a51ac558d",
+    "runtimeSha256": "5aa9767283dab9f565086c786229bd2889141c74a6ca451df32df8dd399c56b5",
+    "sourceBytes": 11013532,
+    "runtimeBytes": 10424308,
+    "triangles": 99243,
+    "primitives": 2,
+    "imageSha256": [
+      "4c8b45ab4ca325b6d97fcfa9c4b1297a63e3effbbfa91109f8c5a62bbaa78715",
+      "f96e75140b6ba8b598b2bd2221b398029ce51bb999e82532664ec068a42dcd85",
+      "d6fc9694e4616cdcc2ca5ab3271b49e496a9fa7415a25021b4e48a6fb4ab13d2"
+    ],
+    "profile": "low",
+    "ratio": 0.1,
+    "textureLimit": 1024
+  },
+  {
+    "source": "computer.glb",
+    "sourceSha256": "7ddaf6d823f67ebdb9e2670540df7e1de0000e3e4a426984f1c9fa3a51ac558d",
+    "runtimeSha256": "c2d73275c5c803f93013a61790f5028a69cab9966bbab1344d13fbf8551750f0",
+    "sourceBytes": 8532968,
+    "runtimeBytes": 8180632,
+    "triangles": 59546,
+    "primitives": 2,
+    "imageSha256": [
+      "4c8b45ab4ca325b6d97fcfa9c4b1297a63e3effbbfa91109f8c5a62bbaa78715",
+      "f96e75140b6ba8b598b2bd2221b398029ce51bb999e82532664ec068a42dcd85",
+      "d6fc9694e4616cdcc2ca5ab3271b49e496a9fa7415a25021b4e48a6fb4ab13d2"
+    ],
+    "profile": "mobile",
+    "ratio": 0.06,
+    "textureLimit": 1024
+  }
+]

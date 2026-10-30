@@ -30,7 +30,7 @@ final class PanelCanvas implements Disposable {
         for(int i=0;i<cells;i++){
             int cellWidth=buffer.getWidth()/cells;
             TextureRegion region=new TextureRegion(buffer.getColorBufferTexture(),cellWidth*i,0,cellWidth,buffer.getHeight());region.flip(false,true);
-            Material material=new Material(PBRTextureAttribute.createBaseColorTexture(region),PBRTextureAttribute.createEmissiveTexture(region),PBRColorAttribute.createEmissive(new Color(.9f,.17f,.09f,1)),PBRFloatAttribute.createMetallic(0),PBRFloatAttribute.createRoughness(1));
+            Material material=new Material(PBRTextureAttribute.createBaseColorTexture(region),PBRTextureAttribute.createEmissiveTexture(region),PBRColorAttribute.createEmissive((cells==1?new Color(.35f,.32f,.25f,1):new Color(.9f,.17f,.09f,1))),PBRFloatAttribute.createMetallic(0),PBRFloatAttribute.createRoughness(1));
             var part=builder.part("display-"+i,GL20.GL_TRIANGLES,VertexAttributes.Usage.Position|VertexAttributes.Usage.Normal|VertexAttributes.Usage.TextureCoordinates,material);
             float x=centers[i],w=width*.5f,h=height*.5f;
             part.rect(x-w,y-h,z,x+w,y-h,z,x+w,y+h,z,x-w,y+h,z,0,0,1);
@@ -57,6 +57,11 @@ final class PanelCanvas implements Disposable {
         if(image!=null)batch.draw(image,0,0,buffer.getWidth(),buffer.getHeight());
         else {font.setColor(.72f,.57f,.31f,1);layout.setText(font,text);font.getData().setScale(Math.min(.65f,(buffer.getWidth()-24)/Math.max(1,layout.width)));layout.setText(font,text);font.draw(batch,text,(buffer.getWidth()-layout.width)*.5f,buffer.getHeight()*.5f+layout.height*.5f);font.getData().setScale(1);}
         batch.end();buffer.end();
+    }
+    void paper(String value){
+        begin();Gdx.gl.glClearColor(.84f,.77f,.60f,1);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);batch.begin();
+        font.setColor(.18f,.14f,.09f,1);font.getData().setScale(.32f);layout.setText(font,"КОД ДОСТУПА");font.draw(batch,"КОД ДОСТУПА",(buffer.getWidth()-layout.width)/2,106);
+        font.getData().setScale(.8f);layout.setText(font,value);font.draw(batch,value,(buffer.getWidth()-layout.width)/2,68);font.getData().setScale(1);batch.end();buffer.end();
     }
     private void begin(){buffer.begin();Gdx.gl.glDisable(GL20.GL_SCISSOR_TEST);Gdx.gl.glClearColor(.012f,.007f,.006f,1);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);batch.setProjectionMatrix(projection.setToOrtho2D(0,0,buffer.getWidth(),buffer.getHeight()));}
     private void text(String text,int x,float offset){layout.setText(font,text);font.draw(batch,text,x+(128-layout.width)*.5f,128+layout.height*.5f+offset);}

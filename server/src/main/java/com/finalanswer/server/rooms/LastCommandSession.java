@@ -17,6 +17,13 @@ public final class LastCommandSession {
     boolean action(String actor,boolean host,String requestId,JsonObject data){return action(actor,host,requestId,data,System.currentTimeMillis());}
     boolean action(String actor,boolean host,String requestId,JsonObject data,long now){
         String expandedAction=Protocol.string(data,"action");
+        if(expandedAction.equals("PREVIEW_TASK")){
+            if(!development)throw new RoomService.Failure(403,"DEVELOPMENT_ONLY");
+            if(race==null||!Protocol.string(data,"element").equals("CODE_PANEL")||!data.keySet().equals(Set.of("roomCode","sessionId","taskId","element","action","value")))throw new RoomService.Failure(400,"INVALID_LAST_COMMAND_ACTION");
+            if(!Protocol.string(data,"taskId").equals(race.taskId(race.player(actor,now))))return false;
+            String key=actor+":"+requestId;if(!requests.add(key))return false;while(requests.size()>2048)requests.remove(requests.iterator().next());
+            race.preview(actor,Protocol.string(data,"value"),now);return true;
+        }
         if(!classic&&Set.of("START_GAME","PREPARE_GAME").contains(expandedAction)){
             if(!host&&!development)throw new RoomService.Failure(403,"HOST_REQUIRED");
             if(!data.keySet().equals(Set.of("roomCode","sessionId","element","action","value"))&&!data.keySet().equals(Set.of("roomCode","sessionId","taskId","element","action","value")))throw new RoomService.Failure(400,"INVALID_LAST_COMMAND_ACTION");

@@ -12,7 +12,7 @@ The repository's established lobby counts guests separately from the host. Exist
 
 ## Generation and validation
 
-Four configurable category weights default to LOGIC 25, MECHANICAL 35, MEMORY 25, REACTION 15. A match shares its family schedule across actors at the same assignment index, while individual task parameters differ. Recent families are excluded. A failed task is replaced by the same family with a new instance and seed, to preserve comparable complexity. There is no score penalty or overall failure timer.
+Four configurable category weights default to LOGIC 20, MECHANICAL 50, MEMORY 20, REACTION 10. A match shares its family schedule across actors at the same assignment index, while individual task parameters differ. Recent families are excluded. A failed task is replaced by the same family with a new instance and seed, to preserve comparable complexity. There is no score penalty or overall failure timer.
 
 Generation uses a stored private seed, bounded to eight validation attempts. The factory has explicit arithmetic rules; it never evaluates arbitrary expression text. It validates numeric formats, option indexes, sequence presence, pressure/frequency reachability and circuit solvability. Circuit completion runs a graph traversal of the **current** segment connections, accepting valid connectivity rather than one saved arrangement.
 
@@ -61,7 +61,7 @@ All rows below have procedural server generation, authoritative action handling 
 | False command | Trusted display or audio/caption source; conflicting generated colors; browser speech synthesis when available |
 | Delayed execution | Second-signal confirmation window; browser audio pulses and visual signal count |
 
-The older four-digit mechanical code, animal/symbol panels, lever, adjuster, lamp and hatch also remain generated physical tasks. There are 35 selectable first-task families, plus scheduled recall tasks.
+The older four-digit mechanical code, animal/symbol panels, lever, adjuster, lamp and hatch also remain generated physical tasks. There are 36 selectable first-task families, plus scheduled recall tasks.
 
 ## Multiplayer and memory
 
@@ -117,11 +117,11 @@ Changes already present before this expansion to materials, scene CSS, deploymen
 - `./gradlew :lwjgl3:lastCommandExpansionCheck` — actual native GL window, authenticated room, generated math task, projected CRT tap, authoritative numeric input and screenshot; GL error checked.
 - `node tools/checks/check_last_command_expansion.cjs` — real 3D CRT hit, valid answer, server score and independent second player.
 - `node tools/checks/check_last_command_touch_controller.cjs` — lightweight mobile controller canvas tap and authoritative guest score.
-- `node tools/checks/check_last_command_expansion_gallery.cjs` — launches and captures all 35 first-task families using the generated seed catalogue.
+- `node tools/checks/check_last_command_expansion_gallery.cjs` — launches and captures all 36 first-task families using the generated seed catalogue.
 - `node tools/checks/check_last_command_mobile_smoke.cjs` — portrait browser emulation.
 - `node tools/checks/check_last_command_campaign.cjs` — retained classic campaign through 20 successes, a wrong answer, delayed recall, two synchronized clients and restart.
 
-Browser scripts accept `PLAYWRIGHT_MODULE`, `CHROME_PATH`, and `LC_URL`. `CommandRaceTest` generates 35,000 family/seed cases and completes 3,500 generated family cases, plus scoring, duplicate/stale messages, graph alternatives, timing, memory, reconnect, reproducibility, history and 2/4/6/8-actor tests. It writes `server/build/command-task-seeds.json` for the gallery harness.
+Browser scripts accept `PLAYWRIGHT_MODULE`, `CHROME_PATH`, and `LC_URL`. `CommandRaceTest` generates 36,000 family/seed cases and completes 3,600 generated family cases, plus scoring, duplicate/stale messages, graph alternatives, timing, memory, reconnect, reproducibility, history and 2/4/6/8-actor tests. It writes `server/build/command-task-seeds.json` for the gallery harness.
 
 Screenshots and reports are under `generated/last-command-expansion/`; classic reports remain under `generated/last-command-campaign/`.
 
@@ -139,3 +139,12 @@ This is an integrated playable expansion, but not a claim that every requested p
 - Existing lobby guest/host counting is retained as described above.
 
 These limitations mean the full production completion checklist in the request is not yet satisfied in every detail.
+
+Button and exploration update: physical button, hatch, rear animal/symbol, lever and code families receive four selection tickets within the mechanical pool; other mechanical families receive one. Recent-family exclusion still applies. Rear selectors have no duplicate CRT buttons in the 3D client. Rear/hatch camera rotation is manual. Hatch completion requires opening the door, discovering a paper note, entering its generated four-digit code and confirming with the red button; opening alone awards no point. The code is withheld from snapshots until the hatch is open. Lightweight controllers retain accessible interaction alternatives.
+
+Latest button/exploration verification: 195 server tests pass (including 36,000 generated cases and 3,600 completions); Java core compiles; browser build passes. `check_last_command_hatch.cjs` verifies hidden code, zero points for opening and one point for correct code/red confirmation; BUTTON/ANIMAL/SYMBOL gallery checks pass without JavaScript errors. Paper placement was checked in the open hatch screenshot.
+
+Russian presentation verification: 196 server tests pass, including 3,600 localized family scenarios checked for untranslated instruction fragments. Browser validation confirms Russian conditional instructions, an authoritative CRT answer, isolated player scores, 4096 px body maps and anisotropy 8. False-command speech uses ru-RU in the browser; native voice cue identifiers remain language independent and missing recordings retain the documented caption fallback. Auto quality now requires sustained slow render submissions rather than idle frame intervals.
+
+Developer task catalogue: open `/last-command-3d/?showcase=1&autostart=1` (optional `&task=RADIO`). A separate local development room exposes 37 catalogue entries with previous/next, fresh variant and module focus. All inputs use the existing server-generated tasks and validators. PREVIEW_TASK is rejected in non-development sessions; stale task IDs and duplicate requests cannot reassign tasks. Selecting a family resets the inspecting actor's practice progress; success normally generates another variant of the selected family. NUMBER_MEMORY runs the full three-completion recall cycle. RECALL provides a shortened observation/recall inspection cycle without granting a point for the observation. No answer-reveal or auto-complete action exists. Descriptions distinguish actual 3D controls from touchscreen mechanisms. Normal matches have no catalogue overlay.
+Verification: 198 server tests pass; `check_last_command_showcase.cjs` selects every catalogue entry through the actual browser UI, checks new instance IDs, previous/next controls, Russian descriptions and absence of JavaScript errors.
