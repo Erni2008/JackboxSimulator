@@ -27,9 +27,9 @@ public final class CodePanel extends PanelControl {
     public ModelCanvasView display(){return new ModelCanvasView(canvas.instance,this);}
     @Override PanelElementId hitId(Vector3 point){
         if(point.z<.17f)return null;
-        int i=Math.round((point.x+.335f)/.2233f);if(i<0||i>3||Math.abs(point.x-(-.335f+i*.2233f))>.072f)return null;
-        if(Math.abs(point.y-.447f)<.045f)return PanelElementId.values()[PanelElementId.CODE_UP_1.ordinal()+i];
-        if(Math.abs(point.y-.066f)<.045f)return PanelElementId.values()[PanelElementId.CODE_DOWN_1.ordinal()+i];return null;
+        int i=Math.round((point.x+.335f)/.2233f);if(i<0||i>3||Math.abs(point.x-(-.335f+i*.2233f))>.105f)return null;
+        if(Math.abs(point.y-.447f)<.078f)return PanelElementId.values()[PanelElementId.CODE_UP_1.ordinal()+i];
+        if(Math.abs(point.y-.066f)<.078f)return PanelElementId.values()[PanelElementId.CODE_DOWN_1.ordinal()+i];return null;
     }
     @Override boolean activeSurface(Vector3 p){return hitId(p)!=null;}
     @Override public void dispose(){canvas.dispose();}

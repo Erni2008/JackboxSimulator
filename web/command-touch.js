@@ -9,7 +9,7 @@ function layout(r,now){const t=r.touchscreen;if(!t)return [];if(r.spatialClient&
  else if(['timing','silence','delayed'].includes(kind))add('CONFIRM','CONFIRM','',240,320,288,72);
  else if(t.physicalSelector){(t.options||[]).forEach((label,i)=>add(label,'SELECT_PHYSICAL',label,34+i*175,240,163,62));}
  else if(kind!=='physical'&&kind!=='store'&&!t.mechanical){(t.options||[]).forEach((label,i)=>{const columns=t.options.length<=4?t.options.length:3;const width=700/columns;add(label+(t.tileHints?' / '+t.tileHints[i]:''),'SELECT',String(i),34+(i%columns)*width,(t.options.length>6?196:240)+Math.floor(i/columns)*72,width-12,62);});if(kind==='switches')add('CONFIRM','CONFIRM','',250,380,268,50);}
- if(t.canRestartMemory)add("ЗАБЫЛ — НАЧАТЬ ЗАНОВО","RESTART_MEMORY","",180,370,408,52);
+ if(t.canRestartMemory)add("ЗАБЫЛ — НАЧАТЬ ЗАНОВО","RESTART_MEMORY","",kind==='number'?390:180,kind==='number'?361:370,kind==='number'?350:408,51);
  return controls;
 }
 function draw(ctx,r,now){const t=r.touchscreen;if(!t)return;const w=ctx.canvas.width,h=ctx.canvas.height;if(r.status==='WON'&&now-r.finishedAt<700){ctx.fillStyle='#010302';ctx.fillRect(0,0,w,h);return;}ctx.save();ctx.scale(w/768,h/448);const face=ctx.createLinearGradient(0,0,0,448);face.addColorStop(0,'#14251f');face.addColorStop(.45,'#07120f');face.addColorStop(1,'#0b1713');ctx.fillStyle=face;ctx.fillRect(0,0,768,448);ctx.strokeStyle='#506d58';ctx.lineWidth=2;ctx.strokeRect(12,12,744,424);ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle='#8da998';ctx.font='16px Arial';ctx.fillText('КОМАНДА / '+ru(r.category),28,34);ctx.textAlign='right';ctx.fillText(String(r.localScore??r.step).padStart(2,'0')+' / 20',738,34);ctx.textAlign='center';ctx.fillStyle='#d6f1de';ctx.font='bold 24px Arial';

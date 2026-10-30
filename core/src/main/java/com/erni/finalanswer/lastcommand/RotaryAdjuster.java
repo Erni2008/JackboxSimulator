@@ -10,7 +10,7 @@ public final class RotaryAdjuster extends PanelControl {
     private final Matrix4 patternAnchor,patternInverse,patternWork=new Matrix4();
     private float[] angles;
     private float angle,start,elapsed,seconds;
-    private int index;
+    private int index;private int direction=1;
     private final Vector3 axis;
     private final float pickMinY;
     private boolean turning;
@@ -49,7 +49,7 @@ public final class RotaryAdjuster extends PanelControl {
         if(position==index)return false;
         com.badlogic.gdx.Gdx.graphics.requestRendering();start=angle;index=position;elapsed=0;turning=true;this.cause=cause;return true;
     }
-    boolean step(PanelAction.Cause cause){return !locked()&&setPosition((index+1)%angles.length,cause);}
+    boolean step(PanelAction.Cause cause){return !locked()&&setPosition(Math.floorMod(index+direction,angles.length),cause);}
     @Override public boolean animating(){return turning;}
     @Override public void update(float delta){
         if(!Float.isFinite(delta)||delta<0)return;
@@ -66,5 +66,5 @@ public final class RotaryAdjuster extends PanelControl {
         surface.patternFrame.set(patternWork.set(patternAnchor).rotate(axis,-angle).mul(patternInverse));
     }
     @Override public void reset(){super.setLocked(false);index=0;angle=start=angles[0];elapsed=0;turning=false;apply();}
-    @Override boolean activeSurface(Vector3 point){return point.y>=pickMinY;}
+    @Override boolean activeSurface(Vector3 point){direction=(point.x-mount.pivot.x)*MathUtils.cosDeg(angle)+(point.z-mount.pivot.z)*MathUtils.sinDeg(angle)<0?-1:1;return point.y>=pickMinY;}
 }
