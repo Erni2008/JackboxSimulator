@@ -1,0 +1,18 @@
+{
+  "sampleRequests": 1,
+  "decoded": true,
+  "acceptedAdjusterPlays": true,
+  "syncDoesNotReplay": true,
+  "muteWorks": true,
+  "unmuteWorks": true,
+  "httpHashMatches": true,
+  "profiles": [
+    "LOW",
+    "HIGH",
+    "MEDIUM"
+  ],
+  "mediumCalibrationVerdictLoadsMediumModel": true,
+  "expandedAdjusterSample": true,
+  "errors": [],
+  "shaderErrors": []
+}

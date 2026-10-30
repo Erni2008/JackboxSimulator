@@ -53,4 +53,61 @@ class CommandRaceTest {
     @Test void firstTaskSeedCatalogue() throws Exception {var found=new TreeMap<String,Long>();int expected=CommandRace.FAMILIES.values().stream().mapToInt(List::size).sum();for(long seed=0;seed<5000&&found.size()<expected;seed++){var g=new CommandRace(seed,0);g.start(0);found.putIfAbsent(g.player("catalogue",0).family,seed);}assertEquals(expected,found.size());java.nio.file.Files.createDirectories(java.nio.file.Path.of("build"));java.nio.file.Files.writeString(java.nio.file.Path.of("build/command-task-seeds.json"),com.finalanswer.protocol.Protocol.JSON.toJson(found));}
     @Test void comparableEstimatedDurationAcrossPlayers(){var g=new CommandRace(51,0);g.start(0);var a=g.player("a",0);var b=g.player("b",0);for(int i=0;i<40;i++){assertEquals(a.family,b.family);assertEquals(a.task.estimatedMillis,b.task.estimatedMillis);g.next("a",a,1000L*i);g.next("b",b,1000L*i);}}
     @Test void categoryScheduleIndependentOfPlayerAndHistory(){var g=new CommandRace(123,0);var a=new CommandRace.Player();var b=new CommandRace.Player();Set<String> seen=new HashSet<>();for(int i=1;i<=100;i++){a.serial=b.serial=i;String x=g.family(a),y=g.family(b);assertEquals(x,y);assertFalse(a.recent.contains(x));seen.add(x);a.recent.addLast(x);b.recent.addLast(y);if(a.recent.size()>4){a.recent.removeFirst();b.recent.removeFirst();}}assertTrue(seen.size()>20);}
+    @Test void leverAndAngleNeedExplicitConfirmationAtTheActualTarget(){
+        for(String family:List.of("LEVER","ADJUSTER"))for(int seed=0;seed<100;seed++){
+            var g=new CommandRace(seed,0);g.start(0);var p=g.player("a",0);p.family=family;p.readyAt=0;p.revealUntil=0;p.task=g.generate(family,new Random(seed),p,0);String id=g.taskId(p),element=family.equals("LEVER")?"LEVER_MODULE":"ADJUSTER";
+            List<String> positions=family.equals("LEVER")?List.of("UP","MIDDLE","DOWN"):List.of("0","45","90","135");
+            for(String value:positions){g.action("a","set"+value,id,element,"SET",value,1000);assertEquals(0,p.score);assertEquals(0,p.nextAt);assertEquals(0,p.failures);}
+            g.action("a","target",id,element,"SET",p.task.answer,1000);assertEquals(0,p.score);g.action("a","confirm",id,"BIG_BUTTON","PRESS","",1000);assertEquals(1,p.score);
+            g.action("a","again",id,"BIG_BUTTON","PRESS","",1001);assertEquals(1,p.score);
+        }
+    }
+    @Test void mechanicalSequenceAllowsTransitButOnlyConfirmsCompleteState(){
+        var g=new CommandRace(1,0);g.start(0);var p=g.player("a",0);p.family="LEVER_SEQUENCE";p.readyAt=p.revealUntil=0;p.task=g.generate(p.family,new Random(1),p,0);p.task.steps=List.of("LEVER_MODULE:DOWN","ADJUSTER:135","BIG_BUTTON:PRESS");String id=g.taskId(p);
+        g.action("a","middle",id,"LEVER_MODULE","SET","MIDDLE",1000);assertEquals(0,p.sequence);assertEquals(0,p.failures);assertEquals(0,p.score);
+        g.action("a","down",id,"LEVER_MODULE","SET","DOWN",1000);assertEquals(1,p.sequence);assertEquals(0,p.score);
+        for(String angle:List.of("45","90","135"))g.action("a","angle"+angle,id,"ADJUSTER","SET",angle,1000);
+        assertEquals(2,p.sequence);assertEquals(0,p.failures);assertEquals(0,p.score);
+        g.action("a","confirm",id,"BIG_BUTTON","PRESS","",1000);assertEquals(1,p.score);
+    }
+    @Test void sequenceConfirmationRechecksPreviouslySetMechanisms(){
+        var g=new CommandRace(1,0);g.start(0);var p=g.player("a",0);p.family="LEVER_SEQUENCE";p.readyAt=p.revealUntil=0;p.task=g.generate(p.family,new Random(1),p,0);p.task.steps=List.of("LEVER_MODULE:DOWN","ADJUSTER:135","BIG_BUTTON:PRESS");p.sequence=2;p.mechanisms.put("lever","UP");p.mechanisms.put("adjuster",135);
+        g.action("a","confirm",g.taskId(p),"BIG_BUTTON","PRESS","",1000);assertEquals(0,p.score);assertEquals(1,p.failures);
+    }
+    @Test void instrumentDialIgnoresRepeatedStateAndRejectsSkippedDetents(){
+        for(String family:List.of("PRESSURE","RADIO","BALANCE")){
+            var g=new CommandRace(1,0);g.start(0);var p=g.player("a",0);p.family=family;p.readyAt=p.revealUntil=0;p.task=g.generate(family,new Random(1),p,0);p.mechanisms.put("adjuster",0);String id=g.taskId(p);double pressure=p.task.pressure,frequency=p.task.frequency;
+            assertFalse(g.action("a","same",id,"ADJUSTER","SET","0",1000));assertEquals(pressure,p.task.pressure);assertEquals(frequency,p.task.frequency);
+            assertFalse(g.action("a","skip",id,"ADJUSTER","SET","90",1000));assertEquals(0,p.mechanisms.get("adjuster"));assertEquals(pressure,p.task.pressure);assertEquals(frequency,p.task.frequency);
+            assertTrue(g.action("a","turn",id,"ADJUSTER","SET","45",1000));assertEquals(45,p.mechanisms.get("adjuster"));double changed=family.equals("RADIO")?p.task.frequency:p.task.pressure;
+            assertFalse(g.action("a","repeat",id,"ADJUSTER","SET","45",1000));assertEquals(changed,family.equals("RADIO")?p.task.frequency:p.task.pressure);
+            assertTrue(g.action("a","reverse",id,"ADJUSTER","SET","0",1000));assertEquals(pressure,p.task.pressure,.00001);assertEquals(frequency,p.task.frequency,.00001);assertEquals(0,p.score);assertEquals(0,p.failures);
+        }
+    }
+    @Test void feedbackRemainsVisibleAndBlocksInputUntilNextTask(){
+        var g=new CommandRace(1,0);g.start(0);var p=g.player("a",0);p.family="MATH";p.task=g.generate("MATH",new Random(1),p,0);p.readyAt=p.revealUntil=0;p.input=p.task.answer;String id=g.taskId(p);
+        assertTrue(g.action("a","confirm",id,"TOUCH_PANEL","CONFIRM","",1000));assertEquals(1700,p.nextAt);g.tick(1699);assertEquals(id,g.taskId(p));assertFalse(g.action("a","duplicate",id,"TOUCH_PANEL","CONFIRM","",1699));assertEquals(1,p.score);g.tick(1700);assertNotEquals(id,g.taskId(p));assertEquals(1,p.score);
+    }
+    @Test void relativeDialStepsUseAuthoritativeStateAndKeepReplayProtection(){
+        var g=new CommandRace(1,0);g.start(0);var p=g.player("a",0);p.family="ADJUSTER";p.readyAt=p.revealUntil=0;p.task=g.generate(p.family,new Random(1),p,0);p.mechanisms.put("adjuster",0);String id=g.taskId(p);
+        for(int i=0;i<7;i++)assertTrue(g.action("a","step"+i,id,"ADJUSTER","STEP","+1",1000));assertEquals(135,p.mechanisms.get("adjuster"));assertEquals(0,p.score);
+        assertFalse(g.action("a","step6",id,"ADJUSTER","STEP","+1",1001));assertEquals(135,p.mechanisms.get("adjuster"));assertFalse(g.action("a","stale","old-task","ADJUSTER","STEP","+1",1001));assertFalse(g.action("a","bad",id,"ADJUSTER","STEP","+2",1001));assertEquals(135,p.mechanisms.get("adjuster"));
+        for(int i=0;i<3;i++)assertTrue(g.action("a","back"+i,id,"ADJUSTER","STEP","-1",1002));assertEquals(0,p.mechanisms.get("adjuster"));assertEquals(0,p.failures);
+    }
+    @Test void relativeStepsKeepInstrumentDirectionAcrossWrap(){
+        for(String family:List.of("PRESSURE","RADIO","BALANCE")){
+            var g=new CommandRace(1,0);g.start(0);var p=g.player("a",0);p.family=family;p.readyAt=p.revealUntil=0;p.task=g.generate(family,new Random(1),p,0);p.mechanisms.put("adjuster",0);double value=family.equals("RADIO")?p.task.frequency:p.task.pressure;String id=g.taskId(p);
+            assertTrue(g.action("a","left",id,"ADJUSTER","STEP","-1",1000));assertEquals(135,p.mechanisms.get("adjuster"));assertTrue((family.equals("RADIO")?p.task.frequency:p.task.pressure)<value);
+            assertTrue(g.action("a","right",id,"ADJUSTER","STEP","+1",1000));assertEquals(0,p.mechanisms.get("adjuster"));assertEquals(value,family.equals("RADIO")?p.task.frequency:p.task.pressure,.00001);
+        }
+    }
+    @Test void lampCanCycleThroughOffWithoutBecomingStuck(){
+        var g=new CommandRace(1,0);g.start(0);var p=g.player("a",0);p.family="COLOR";p.readyAt=p.revealUntil=0;p.task=g.generate(p.family,new Random(1),p,0);String id=g.taskId(p);
+        for(String value:List.of("RED","GREEN","YELLOW","BLUE","OFF","RED")){assertTrue(g.action("a","color"+p.requests.size(),id,"LIGHT_MODULE","SET",value,1000));assertEquals(value,p.mechanisms.get("light"));assertEquals(0,p.score);assertEquals(0,p.failures);}
+        assertFalse(g.action("a","invalid",id,"LIGHT_MODULE","SET","ORANGE",1001));assertEquals("RED",p.mechanisms.get("light"));
+    }
+    @Test void memorySignalLampIsReadOnlyAfterObservationAsWell(){
+        var g=new CommandRace(1,0);g.start(0);var p=g.player("a",0);p.family="LIGHT_MEMORY";p.task=g.generate(p.family,new Random(1),p,0);p.readyAt=p.revealUntil=0;String id=g.taskId(p);Object light=p.mechanisms.get("light");
+        assertFalse(g.action("a","lamp",id,"LIGHT_MODULE","SET","BLUE",1000));assertEquals(light,p.mechanisms.get("light"));assertEquals(0,p.failures);assertEquals(0,p.score);assertEquals(0,p.sequence);
+    }
 }

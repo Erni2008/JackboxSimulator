@@ -17,5 +17,5 @@ export class Mechanisms {
     m.state=m.amount===0?'HIDDEN':m.amount===1?(this.enabled&&!this.disabled.has(id)?'ACTIVE':'DISABLED'):m.wanted?'APPEARING':'DISAPPEARING';
   }}
   active(id:string){return this.mounts.get(id)?.state==='ACTIVE';}
-  moving(){return [...this.mounts.values()].some(m=>m.wanted?m.amount<1:m.amount>0);}
+  moving(){for(const m of this.mounts.values())if(m.wanted?m.amount<1:m.amount>0)return true;return false;}
 }

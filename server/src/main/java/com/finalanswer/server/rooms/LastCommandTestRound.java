@@ -31,6 +31,13 @@ final class LastCommandTestRound {
             if(element.equals(signals.get(step))){step++;feedback="Верно";if(step==signals.size())finish("WON","COMPLETED",now);}
             else {step=0;wrong(now);}return;
         }
+        if(step==0||step==1){
+            if(element.equals("BIG_BUTTON")&&action.equals("PRESS")){
+                boolean correct=step==0?lever.equals(panel.get("lever")):Objects.equals(angle,panel.get("adjuster"));
+                if(correct){step++;feedback="Положение подтверждено";}else wrong(now);
+            }else if(element.equals(step==0?"LEVER_MODULE":"ADJUSTER"))feedback="Установите нужное положение и подтвердите красной кнопкой";
+            return;
+        }
         String expected=switch(step){case 0->"LEVER_MODULE";case 1->"ADJUSTER";case 2->"HIDDEN_HATCH";case 3->"BIG_BUTTON";case 4->"ANIMAL_PANEL";case 5->"SYMBOL_PANEL";case 6->"LIGHT_MODULE";case 7->"SMALL_BUTTON_"+button;default->"BIG_BUTTON";};
         if(!element.equals(expected))return;
         boolean correct=switch(step){case 0->value.equals(lever);case 1->value.equals(""+angle);case 2->value.equals("OPEN");case 3->action.equals("PRESS")&&code.equals(panel.get("code"));case 4->value.equals(animal);case 5->value.equals(symbol);case 6->value.equals(light);default->action.equals("PRESS");};
@@ -49,7 +56,7 @@ final class LastCommandTestRound {
         if(!status.equals("PLAYING"))instruction=status.equals("WON")?"Тест пройден":"Тест не пройден";
         else if(scenario.equals("memory"))instruction=now<inputAt?"Запомните сигналы индикатора (панель также сзади)":"Повторите последовательность четырьмя цветными кнопками";
         else if(scenario.equals("inspection"))instruction="Восстановите все узлы по протоколу. Подтвердите большой кнопкой.";
-        else instruction=switch(step){case 0->"Установите рычаг: "+lever;case 1->"Установите регулятор: "+angle+"°";case 2->"Найдите и откройте секретный люк";case 3->"Введите код из люка и нажмите большую кнопку";case 4->"На задней панели выберите животное: "+animal;case 5->"На задней панели выберите символ: "+symbol;case 6->"Переключите индикатор на "+light;case 7->"Нажмите маленькую кнопку №"+button;default->"Нажмите большую кнопку для завершения";};
+        else instruction=switch(step){case 0->"Установите рычаг: "+lever+" / подтвердите красной кнопкой";case 1->"Установите регулятор: "+angle+"° / подтвердите красной кнопкой";case 2->"Найдите и откройте секретный люк";case 3->"Введите код из люка и нажмите большую кнопку";case 4->"На задней панели выберите животное: "+animal;case 5->"На задней панели выберите символ: "+symbol;case 6->"Переключите индикатор на "+light;case 7->"Нажмите маленькую кнопку №"+button;default->"Нажмите большую кнопку для завершения";};
         Map<String,Object> r=new LinkedHashMap<>();r.put("attemptId",attemptId);r.put("testScenario",true);r.put("scenario",scenario);r.put("round",round);r.put("status",status);r.put("instruction",instruction);r.put("step",step);r.put("steps",scenario.equals("memory")?4:scenario.equals("inspection")?7:9);r.put("mistakes",mistakes);r.put("feedback",feedback);r.put("startedAt",startedAt);r.put("finishedAt",finishedAt);r.put("finishReason",finishReason);r.put("elapsedMs",Math.max(0,(status.equals("PLAYING")?now:finishedAt)-startedAt));r.put("deadline",deadline);r.put("inputAt",inputAt);r.put("signalStartedAt",signalStartedAt);r.put("replays",replays);r.put("canReplay",scenario.equals("memory")&&replays<2&&now>=inputAt&&status.equals("PLAYING"));if(scenario.equals("inspection"))r.put("objectives",checklist(panel));r.put("focusId",scenario.equals("memory")?(now<inputAt?"LIGHT_MODULE":"BIG_BUTTON"):scenario.equals("inspection")?(Boolean.TRUE.equals(panel.get("hatch"))?"BIG_BUTTON":"HIDDEN_HATCH"):switch(step){case 0->"LEVER_MODULE";case 1->"ADJUSTER";case 2->"HIDDEN_HATCH";case 3->"CODE_PANEL";case 4->"ANIMAL_PANEL";case 5->"SYMBOL_PANEL";case 6->"LIGHT_MODULE";default->"BIG_BUTTON";});r.put("signals",scenario.equals("memory")?signals:List.of());return r;
     }
 }

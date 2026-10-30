@@ -30,3 +30,41 @@ body.campaign #viewport{width:100%;height:100dvh}
 body.campaign #error:not(:empty){position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:9;max-width:90vw;background:#231815ed;border:1px solid #9a6f56;padding:12px 18px}
 
 #task-showcase{position:absolute;z-index:8;top:12px;left:12px;width:min(420px,calc(100% - 24px));padding:12px;background:#101a18ed;border:1px solid #6e8075;border-radius:8px;color:#dbe7df;font:13px/1.4 system-ui;box-shadow:0 5px 24px #0007}#task-showcase strong{display:block;font-size:11px;letter-spacing:1px;margin-bottom:7px}#task-showcase select{display:block;width:100%;font:14px system-ui;padding:9px}#task-showcase div{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}#task-showcase button{padding:10px;font:12px system-ui;min-height:40px}#task-showcase p{margin:8px 0;color:#b9c9bd}#showcase-status{font-size:11px;color:#e2c58f}@media(max-width:600px){#task-showcase{padding:8px}#task-showcase p{font-size:11px;margin:5px 0}#task-showcase strong{font-size:10px}#task-showcase button{padding:8px}}
+
+/* Terminal surfaces: readable hierarchy without additional GPU postprocessing. */
+#loading{background:radial-gradient(ellipse at 50% 42%,#1a2924,#080e0f 68%);padding:24px;line-height:1.8;letter-spacing:3px}
+#loading:before{content:'';display:block;width:42px;height:42px;margin:0 auto 24px;border:1px solid #52665a;border-top:2px solid #c9dacd;border-radius:50%;animation:terminal-load 1.4s linear infinite}
+#load-progress{letter-spacing:1px;max-width:34ch;margin-inline:auto}
+@keyframes terminal-load{to{transform:rotate(360deg)}}
+#result{width:min(480px,calc(100vw - 32px));padding:clamp(22px,5vw,36px);max-height:calc(100dvh - 32px);overflow:auto}
+#result-title{font:600 clamp(22px,4vw,30px)/1.25 system-ui;letter-spacing:.5px;margin:0 0 18px}
+#result-text{font-size:14px;color:#c0cec4}
+#result-stats{gap:10px}#result-stats>div{border-radius:6px;border-color:#3f5748;background:#0d1913}#result-stats dd{color:#d2e3d7;font-size:22px}
+#retry-same,#again,#close-result{min-height:44px}#close-result{width:100%;background:transparent;box-shadow:none;color:#b6c8bc;border-color:#40564a}
+#network-notice{border-radius:6px;text-align:center;top:max(20px,env(safe-area-inset-top));width:max-content;box-shadow:0 6px 24px #0005}
+#scene-start{bottom:max(32px,calc(env(safe-area-inset-bottom) + 16px));min-height:52px}
+@media(max-width:420px){#result-stats{gap:5px}#result-stats>div{padding:10px 6px}#result-stats dt{font-size:8px}#result-stats dd{font-size:19px}#network-notice{max-width:calc(100% - 24px)}}
+@media(prefers-reduced-motion:reduce){#loading:before{animation:none;border-top-color:#c9dacd}}
+
+@media(max-width:720px){.scene-caption{display:none}}
+
+/* Shared typography and spacing for terminal setup and service controls. */
+#join h1{font-size:clamp(32px,3vw,42px);font-weight:600;letter-spacing:-1.5px;line-height:1.08;margin:28px 0 18px}
+#join>p{font-size:13px;line-height:1.8;color:#aebfb5;margin-bottom:24px}
+#join label{font:500 11px/1.5 system-ui,sans-serif;letter-spacing:.5px;color:#b5c5bb;margin:18px 0}
+#join input,#join select{min-height:44px;font-family:system-ui,sans-serif;font-size:14px;padding:12px}
+#join .join-badge{font-size:9px;letter-spacing:1.2px;line-height:1.7;color:#9db8a7}
+#join #quick{min-height:48px;font:600 13px system-ui,sans-serif;margin:4px 0 14px}
+#join #join-dev{width:100%;min-height:44px}
+#join details p{line-height:1.7}
+#load-meter{width:min(240px,65vw);height:3px;margin:24px auto 0;border:0;accent-color:#b6cfbe;background:#24372d}
+#load-meter::-webkit-progress-bar{background:#24372d;border-radius:2px}#load-meter::-webkit-progress-value{background:#b6cfbe;border-radius:2px}
+button:disabled{cursor:default}input:focus-visible,select:focus-visible{outline:2px solid #b6cfbe;outline-offset:3px}
+@media(max-width:720px){#join{max-width:480px;margin:auto}#join input,#join select{font-size:16px}#join h1{margin-top:24px}}
+
+/* Brushed brass launch key and restrained instrument-room chrome. */
+#scene-start{border-radius:3px;border-color:#bdab85;background:linear-gradient(110deg,#cabb9b,#e0d0ab 45%,#ad9465);color:#1b211c;box-shadow:0 10px 30px #0007,inset 0 1px #fff8,inset 0 -3px #594d324d;font-size:12px;letter-spacing:4px;padding:18px 52px}
+#scene-start:hover{border-color:#e8d9b8;background:linear-gradient(110deg,#d4c7a9,#ebddbd 45%,#bca477)}
+#result:before{content:'FINAL ANSWER / THE LAST COMMAND';display:block;margin-bottom:20px;font:9px/1.6 Terminal,monospace;letter-spacing:2px;color:#92ae9a}
+#result{border-top:2px solid #b6a27a;box-shadow:0 28px 100px #000b,inset 0 1px #ffffff08}
+.scene-tools button{box-shadow:0 4px 14px #0004,inset 0 1px #c0d3c00b;border-color:#4d6355}

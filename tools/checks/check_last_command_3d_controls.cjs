@@ -2,7 +2,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs');
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
 (async()=>{const b=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH||undefined});const p=await b.newPage({viewport:{width:1000,height:900},hasTouch:true});p.setDefaultTimeout(120000);const errors=[];p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='error'&&m.text().includes('Shader'))errors.push(m.text());});const url=process.env.LC_URL||'http://localhost:8080';
 try{await p.goto(url+'/last-command-3d/');await p.evaluate(()=>sessionStorage.setItem('lc3d-session',JSON.stringify({code:'AAAAAA',token:'expired',revision:0})));await p.goto(url+'/last-command-3d/?autostart=1&scenario=memory&seed=42');await p.waitForFunction(()=>window.__lc3d?.view?.machine?.loaded);
-await p.waitForTimeout(600);
+await p.waitForFunction(()=>window.__lc3d.view.machine.deployment.active('CODE_PANEL')&&window.__lc3d.view.machine.deployment.active('BIG_BUTTON'));
 const project=async(id,point)=>p.evaluate(([id,point])=>{const v=window.__lc3d.view,c=v.machine.controls.get(id),p=c.group.position.clone().set(...point).sub(c.pivot);c.group.localToWorld(p);p.project(v.camera);const r=v.renderer.domElement.getBoundingClientRect();const x=r.x+(p.x+1)*r.width/2,y=r.y+(1-p.y)*r.height/2;return{x,y,hit:v.hit(x,y)};},[id,point]);
 let point=await project('CODE_PANEL',[-.335,.447,.26]);assert.equal(point.hit?.id,'CODE_PANEL');assert.equal(point.hit?.value,'0:+1');await p.touchscreen.tap(point.x,point.y);await p.waitForFunction(()=>window.__lc3d.state.lastCommand.code==='1000');
 // Touch input on the actual 3D cap, not a DOM control.

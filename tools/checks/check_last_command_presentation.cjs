@@ -1,0 +1,21 @@
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
+(async()=>{const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH||undefined});try{
+ const p=await browser.newPage({viewport:{width:1400,height:1000}}),errors=[],models=[];p.setDefaultTimeout(30000);
+ p.on('pageerror',e=>errors.push(e.message));p.on('request',r=>{if(r.url().includes('/models/'))models.push(r.url());});
+ await p.addInitScript(()=>localStorage.setItem('finalanswer.lastcommand.preferences.v1',JSON.stringify({quality:'LOW',sound:false})));
+ await p.goto((process.env.LC_URL||'http://localhost:18094')+'/last-command-3d/?autostart=1&scenario=inspection');
+ await p.waitForFunction(()=>window.__lc3d?.view?.machine?.loaded&&!document.querySelector('#quality').disabled,null,{timeout:120000});
+ assert.ok(models.some(u=>u.endsWith('/low/computer.glb')));assert.ok(!models.some(u=>u.endsWith('/high/computer.glb')));
+ await p.waitForFunction(()=>window.__lc3d.view.machine.deployment.active('CODE_PANEL'));
+ await p.waitForFunction(()=>{const v=window.__lc3d.view;return !v.machine.moving()&&!v.fly&&performance.now()>v.activityUntil+500;});await p.waitForTimeout(1000);const idle=await p.evaluate(()=>window.__lc3d.view.renderCount);await p.waitForTimeout(300);assert.equal(await p.evaluate(()=>window.__lc3d.view.renderCount),idle,'idle scene must stop rendering');
+ const picking=await p.evaluate(()=>{const v=window.__lc3d.view,c=v.machine.controls.get('CODE_PANEL');v.focus('CODE_PANEL');return c.group.visible;});assert.ok(picking);
+ await p.waitForFunction(()=>!window.__lc3d.view.fly);
+ const hit=await p.evaluate(()=>{const v=window.__lc3d.view,c=v.machine.controls.get('CODE_PANEL'),pt=c.group.position.clone().set(-.335,.447,.275).sub(c.pivot);c.group.localToWorld(pt);pt.project(v.camera);const rect=v.renderer.domElement.getBoundingClientRect();return v.hit(rect.x+(pt.x+1)*rect.width/2,rect.y+(1-pt.y)*rect.height/2);});
+ assert.equal(hit?.id,'CODE_PANEL');assert.equal(hit?.value,'0:+1');
+ await p.evaluate(()=>{const v=window.__lc3d.view;v.focus('SCREEN');});await p.waitForFunction(()=>!window.__lc3d.view.fly);
+ fs.mkdirSync('generated/last-command-professional',{recursive:true});await p.screenshot({path:'generated/last-command-professional/desktop.png'});
+ await p.evaluate(()=>{const s=window.__lc3d.view.machine.questionCanvas;window.__screen=s.canvas.toDataURL();});fs.writeFileSync('generated/last-command-professional/crt.png',Buffer.from((await p.evaluate(()=>window.__screen)).split(',')[1],'base64'));
+ await p.setViewportSize({width:390,height:844});await p.waitForTimeout(300);await p.screenshot({path:'generated/last-command-professional/mobile.png'});
+ assert.deepEqual(errors,[]);console.log('PRESENTATION_OK: LOW body, code picking at focused panel, desktop/mobile, no page errors');
+ }finally{await browser.close();}})().catch(e=>{console.error(e);process.exit(1)});
