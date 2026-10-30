@@ -13,6 +13,7 @@ public final class OrbitCameraController extends InputAdapter {
     private final Vector3 dragRight=new Vector3(),panShift=new Vector3(),orbitDirection=new Vector3(),collisionOffset=new Vector3();
     private float radius, distance, yaw, pitch, ground;
     private int active = -1, pointer = -1, lastX, lastY;
+    private State focusFrom,focusTo;private float focusElapsed;
     private PanelElementId captured;
     public OrbitCameraController(PerspectiveCamera camera, TheLastCommandMachine machine) {
         this.camera=camera;this.machine=machine;
@@ -24,11 +25,13 @@ public final class OrbitCameraController extends InputAdapter {
     public record State(float distance,float yaw,float pitch,Vector3 target){}
     public State snapshot(){return new State(distance,yaw,pitch,new Vector3(target));}
     public void restore(State state){cancel();distance=state.distance();yaw=state.yaw();pitch=state.pitch();target.set(state.target());update();}
-    public void reset() { cancel();target.set(center);distance=radius*3.2f;yaw=25;pitch=15;update(); }
+    public void focus(String id){cancel();focusFrom=snapshot();float angle=0;Vector3 point=new Vector3(0,.43f,.1f);if(id.equals("ANIMAL_PANEL")||id.equals("SYMBOL_PANEL")){angle=0;point.set(0,.49f,.12f);}else if(id.equals("LEVER_MODULE")){angle=-32;point.set(-.12f,.40f,.08f);}else if(id.equals("HIDDEN_HATCH")){if(machine.mechanisms()!=null&&machine.mechanisms().hatch().placementId().equals("back")){angle=180;point.set(0,.43f,-.23f);}else{angle=90;point.set(.28f,.3f,0);}}focusTo=new State(Math.max(radius*1.5f,1.05f),angle,8,point);focusElapsed=0;}
+    public void updateFocus(float delta){if(focusTo==null)return;focusElapsed=Math.min(.55f,focusElapsed+delta);float t=focusElapsed/.55f;t=t*t*(3-2*t);distance=MathUtils.lerp(focusFrom.distance,focusTo.distance,t);yaw=MathUtils.lerpAngleDeg(focusFrom.yaw,focusTo.yaw,t);pitch=MathUtils.lerp(focusFrom.pitch,focusTo.pitch,t);target.set(focusFrom.target).lerp(focusTo.target,t);update();if(focusElapsed>=.55f)focusTo=null;}
+    public void reset() { focusTo=null;cancel();target.set(center);distance=radius*3.2f;yaw=25;pitch=15;update(); }
     public void cancel(){if(captured!=null)machine.endInteraction(captured);captured=null;pointer=-1;active=-1;}
     @Override public boolean touchDown(int x,int y,int p,int button) {
         if(pointer!=-1 || button!=Input.Buttons.LEFT&&button!=Input.Buttons.RIGHT)return false;
-        pointer=p;active=button;lastX=x;lastY=y;
+        focusTo=null;pointer=p;active=button;lastX=x;lastY=y;
         captured=button==Input.Buttons.LEFT?machine.pick(camera.getPickRay(x,y)):null;
         if(captured!=null)machine.beginInteraction(captured);
         Gdx.graphics.requestRendering();return true;
@@ -47,7 +50,7 @@ public final class OrbitCameraController extends InputAdapter {
         update();Gdx.graphics.requestRendering();return true;
     }
     @Override public boolean touchUp(int x,int y,int p,int button){if(p!=pointer||button!=active)return false;cancel();Gdx.graphics.requestRendering();return true;}
-    @Override public boolean scrolled(float x,float y){distance=MathUtils.clamp(distance*(float)Math.exp(y*.12f),radius*1.2f,radius*12);update();Gdx.graphics.requestRendering();return true;}
+    @Override public boolean scrolled(float x,float y){focusTo=null;distance=MathUtils.clamp(distance*(float)Math.exp(y*.12f),radius*1.2f,radius*12);update();Gdx.graphics.requestRendering();return true;}
     private void update(){
         Vector3 direction=orbitDirection.set(MathUtils.sinDeg(yaw)*MathUtils.cosDeg(pitch),MathUtils.sinDeg(pitch),MathUtils.cosDeg(yaw)*MathUtils.cosDeg(pitch));
         camera.position.set(target).mulAdd(direction,distance);

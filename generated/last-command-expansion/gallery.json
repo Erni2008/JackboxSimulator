@@ -1,0 +1,355 @@
+{
+  "seen": [
+    {
+      "family": "ADJUSTER",
+      "kind": "physical",
+      "task": "149:121261223413:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "ANIMAL",
+      "kind": "physical",
+      "task": "7:75212866053:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "ANIMAL_MEMORY",
+      "kind": "choice",
+      "task": "24:71158453260:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "BALANCE",
+      "kind": "balance",
+      "task": "3:51828525038:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "BROKEN_SWITCH",
+      "kind": "switches",
+      "task": "46:118070790792:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "CIRCUIT",
+      "kind": "circuit",
+      "task": "4:61182889336:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "COLOR",
+      "kind": "physical",
+      "task": "50:11683206002:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "COMPARISON",
+      "kind": "choice",
+      "task": "10:111290269008:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "CONDITIONAL",
+      "kind": "choice",
+      "task": "234:29311420201:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "DECIPHER",
+      "kind": "number",
+      "task": "148:56610810894:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "DELAYED_EXECUTION",
+      "kind": "delayed",
+      "task": "2:41561295680:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "ENTER_CODE",
+      "kind": "physical",
+      "task": "189:121207805307:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "FALSE_COMMAND",
+      "kind": "choice",
+      "task": "13:13813502684:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "FAULTY_GAUGE",
+      "kind": "choice",
+      "task": "0:80392470201:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "FIND_CHANGE",
+      "kind": "choice",
+      "task": "111:66982643297:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "FORBIDDEN",
+      "kind": "choice",
+      "task": "41:124240303155:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "FUSE",
+      "kind": "choice",
+      "task": "35:69046006166:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "HATCH",
+      "kind": "physical",
+      "task": "31:53421577184:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "LEVER",
+      "kind": "physical",
+      "task": "42:2194068112:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "LEVER_SEQUENCE",
+      "kind": "sequence",
+      "task": "19:88081073201:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "LIGHT_MEMORY",
+      "kind": "sequence",
+      "task": "359:73549292015:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "MATH",
+      "kind": "number",
+      "task": "136:5235069471:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "NUMBER_MEMORY",
+      "kind": "store",
+      "task": "248:12424936907:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "NUMBER_SEQUENCE",
+      "kind": "number",
+      "task": "18:28060237293:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "ODD_SYMBOL",
+      "kind": "choice",
+      "task": "72:93548472357:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "POSITION",
+      "kind": "choice",
+      "task": "237:129399364891:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "PRESSURE",
+      "kind": "pressure",
+      "task": "185:106410344570:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "RADIO",
+      "kind": "radio",
+      "task": "54:50795504494:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "REVERSE",
+      "kind": "sequence",
+      "task": "1:126478822477:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "SHUTDOWN",
+      "kind": "sequence",
+      "task": "8:115668186966:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "SILENCE",
+      "kind": "silence",
+      "task": "9:59123054413:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "STROOP",
+      "kind": "choice",
+      "task": "21:88440978987:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "SYMBOL",
+      "kind": "physical",
+      "task": "70:109219867821:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "SYMBOL_MEMORY",
+      "kind": "choice",
+      "task": "120:105945023407:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "family": "TIMING",
+      "kind": "timing",
+      "task": "6:19307802588:1",
+      "score": 0,
+      "canvas": [
+        1440,
+        1000
+      ]
+    }
+  ],
+  "errors": []
+}

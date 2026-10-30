@@ -131,6 +131,7 @@ public final class TheLastCommandRenderer implements Disposable {
         if(legacy||!shadowReady||hash!=shadowHash){shadowPass=true;manager.renderShadows();shadowPass=false;shadowHash=hash;shadowReady=true;}
         manager.renderColors();
     }
+    void addCommandDisplay(net.mgsx.gltf.scene3d.scene.Scene scene){manager.addScene(scene);}
     @Override public void dispose() {
         if(disposed)return;disposed=true;
         manager.dispose();key.dispose();floor.dispose();diffuse.dispose();specular.dispose();brdf.dispose();

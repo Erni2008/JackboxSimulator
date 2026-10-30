@@ -22,7 +22,7 @@ final class LastCommandDevRoutes {
         c.routes.post("/last-command-dev/join",ctx->{
             String code=Objects.requireNonNullElse(ctx.formParam("roomCode"),"");String name=Objects.requireNonNullElse(ctx.formParam("name"),"Player");
             long seed;try{seed=Long.parseLong(Objects.requireNonNullElse(ctx.formParam("seed"),"20261025"));}catch(NumberFormatException e){throw new RoomService.Failure(400,"INVALID_SEED");}
-            String scenario=Objects.requireNonNullElse(ctx.formParam("scenario"),"mechanisms");if(!Set.of("campaign","mechanisms","memory","inspection").contains(scenario))throw new RoomService.Failure(400,"INVALID_SCENARIO");
+            String scenario=Objects.requireNonNullElse(ctx.formParam("scenario"),"mechanisms");if(!Set.of("campaign","classic","mechanisms","memory","inspection").contains(scenario))throw new RoomService.Failure(400,"INVALID_SCENARIO");
             ctx.contentType("application/json").result(rooms.lastCommandDevelopment(code,name,seed,scenario));
         });
     }

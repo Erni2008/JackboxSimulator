@@ -68,6 +68,16 @@ public final class GameAudio implements AutoCloseable {
         try{voice.id=sound.play(volume,1,Math.max(-.65f,Math.min(.65f,pan)));if(voice.id<0){warn(cue,"No playback voice: "+cue.path);return;}voice.sound=sound;voice.cue=cue;voice.age=0;voice.level=AudioMix.unit(strength);voice.pan=pan;voice.duration=cue==Cue.GATE_LOCK?lockDuration:chain?1.1f:cue==Cue.GATE?1.3f:cue==Cue.HOVER?.49f:.24f;starts[cue.ordinal()]++;}
         catch(RuntimeException e){voice.id=-1;warn(cue,"Cannot play "+cue.path+": "+e.getMessage());}
     }
+    public enum CommandCue { BUTTON, SWITCH, LEVER, VALVE, METAL, ELECTRICAL, CIRCUIT, RADIO_STATIC, TUNING, STEAM, WARNING, CORRECT, INCORRECT, MEMORY, TRANSITION, SHUTDOWN, SIGNAL, VOICE_RED, VOICE_GREEN, VOICE_BLUE, VOICE_YELLOW }
+    private final java.util.EnumMap<CommandCue,Sound> commandSounds=new java.util.EnumMap<>(CommandCue.class);
+    private final java.util.EnumSet<CommandCue> missingCommandSounds=java.util.EnumSet.noneOf(CommandCue.class);
+    /** Optional command-machine foley. Missing files use the existing UI press cue. */
+    private Sound commandSound(CommandCue cue){Sound sound=commandSounds.get(cue);if(sound==null&&!missingCommandSounds.contains(cue)){String path="sounds/last_command/"+cue.name().toLowerCase(java.util.Locale.ROOT)+".wav";try{if(Gdx.files!=null&&Gdx.files.internal(path).exists())sound=backend.sound(path);}catch(RuntimeException error){warning.accept("Cannot load command cue: "+error.getMessage());}if(sound==null){missingCommandSounds.add(cue);warning.accept("Optional command foley unavailable: "+path+"; using UI press");}else commandSounds.put(cue,sound);}return sound;}
+    public void command(CommandCue cue){if(closed||paused)return;Sound sound=commandSound(cue);if(sound==null){press();return;}try{sound.play(.45f*uiScopeGain*mix.gain(UI));}catch(RuntimeException error){warning.accept("Cannot play command cue: "+error.getMessage());}}
+    public long commandStartLoop(CommandCue cue){if(closed||paused)return -1;Sound sound=commandSound(cue);if(sound==null)return -1;try{return sound.loop(.2f*uiScopeGain*mix.gain(UI));}catch(RuntimeException error){warning.accept("Cannot loop command cue: "+error.getMessage());return -1;}}
+    public void commandStopLoop(CommandCue cue,long id){Sound sound=commandSounds.get(cue);if(sound!=null&&id>=0)try{sound.stop(id);}catch(RuntimeException ignored){}}
+    public void commandLoopLevel(CommandCue cue,long id,float strength){Sound sound=commandSounds.get(cue);if(sound!=null&&id>=0)try{sound.setVolume(id,AudioMix.unit(strength)*uiScopeGain*mix.gain(UI));}catch(RuntimeException ignored){}}
+
     public void hover(){if(hoverCooldown>0)return;hoverCooldown=.085f;play(Cue.HOVER,1,0);}
     public void press(){if(pressCooldown>0)return;pressCooldown=.025f;play(Cue.PRESS,1,0);}
     public void gate(int slot,float pan){if(slot<0||slot>=8||gateCooldown[slot]>0)return;gateCooldown[slot]=.65f;play(Cue.GATE,1,pan);}
@@ -105,14 +115,14 @@ public final class GameAudio implements AutoCloseable {
             ambience.setVolume(gain);if(gain>0&&!ambience.isPlaying())ambience.play();else if(gain<=0&&ambience.isPlaying())ambience.pause();
         }catch(RuntimeException e){warning.accept("Ambience device failure: "+e.getMessage());try{ambience.stop();}catch(RuntimeException ignored){}ambienceFailed=true;}
     }
-    public void pause(boolean value){paused=value;if(questions!=null)questions.pause(value);if(host!=null){if(value)host.pause();else host.resume();}if(value){for(Voice voice:voices)stop(voice);if(ambience!=null)try{ambience.pause();}catch(RuntimeException e){ambienceFailed=true;warning.accept("Cannot pause ambience: "+e.getMessage());}}}
+    public void pause(boolean value){paused=value;if(value)for(Sound command:commandSounds.values())try{command.stop();}catch(RuntimeException ignored){}if(questions!=null)questions.pause(value);if(host!=null){if(value)host.pause();else host.resume();}if(value){for(Voice voice:voices)stop(voice);if(ambience!=null)try{ambience.pause();}catch(RuntimeException e){ambienceFailed=true;warning.accept("Cannot pause ambience: "+e.getMessage());}}}
     public void leaveCages(){for(int i=0;i<8;i++){observed[i]=moving[i]=false;angle[i]=velocity[i]=cageCooldown[i]=gateCooldown[i]=0;}for(Voice voice:voices)if(voice.id>=0&&voice.cue.category==CAGES)stop(voice);}
     public boolean ambiencePlaying(){return ambience!=null&&ambience.isPlaying();}
     public int loaded(){int n=0;for(Sound sound:sounds)if(sound!=null)n++;return n+(ambience==null?0:1);}
     public long playCount(Cue cue){return starts[cue.ordinal()];}
     public int activeChains(){int n=0;for(Voice v:voices)if(v.id>=0&&(v.cue==Cue.CHAIN_1||v.cue==Cue.CHAIN_2))n++;return n;}
     @Override public void close(){
-        if(closed)return;closed=true;if(questions!=null)questions.close();if(intro!=null)intro.close();if(host!=null)host.close();for(Voice voice:voices)stop(voice);
+        if(closed)return;closed=true;for(Sound command:commandSounds.values()){try{command.stop();command.dispose();}catch(RuntimeException error){warning.accept("Cannot dispose command foley: "+error.getMessage());}}commandSounds.clear();if(questions!=null)questions.close();if(intro!=null)intro.close();if(host!=null)host.close();for(Voice voice:voices)stop(voice);
         for(Cue cue:CUES)if(sounds[cue.ordinal()]!=null){
             try{sounds[cue.ordinal()].stop();}catch(RuntimeException e){warn(cue,"Cannot stop "+cue.path+": "+e.getMessage());}
             try{sounds[cue.ordinal()].dispose();}catch(RuntimeException e){warn(cue,"Cannot dispose "+cue.path+": "+e.getMessage());}

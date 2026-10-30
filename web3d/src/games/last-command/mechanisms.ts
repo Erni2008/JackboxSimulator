@@ -13,7 +13,7 @@ export class Mechanisms {
     const direction=m.wanted?1:-1;m.amount=T.MathUtils.clamp(m.amount+direction*dt/.32,0,1);
     const t=m.amount*m.amount*(3-2*m.amount);
     // A telescopic standoff grows away from the case; it never sweeps through another panel.
-    const scale=.04+.96*t;m.group.position.copy(m.pivot).multiplyScalar(1-scale).addScaledVector(m.normal,t*.028);m.group.scale.setScalar(scale);m.group.visible=m.amount>0;
+    const scale=.04+.96*t;m.group.position.copy(m.pivot).multiplyScalar(1-scale).addScaledVector(m.normal,-(1-t)*.018);m.group.scale.setScalar(scale);m.group.visible=m.amount>0;
     m.state=m.amount===0?'HIDDEN':m.amount===1?(this.enabled&&!this.disabled.has(id)?'ACTIVE':'DISABLED'):m.wanted?'APPEARING':'DISAPPEARING';
   }}
   active(id:string){return this.mounts.get(id)?.state==='ACTIVE';}

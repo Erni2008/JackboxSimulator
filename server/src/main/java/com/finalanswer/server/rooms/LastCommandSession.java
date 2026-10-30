@@ -4,7 +4,7 @@ import com.finalanswer.protocol.Protocol;
 import java.util.*;
 /** Authoritative lightweight panel state. Never references libGDX or sends model/texture data. */
 public final class LastCommandSession {
-    boolean development; private LastCommandGame game; private LastCommandTestRound testRound; private int roundIndex; private String animal="",symbol="";
+    private CommandRace race; boolean classic; boolean development; private LastCommandGame game; private LastCommandTestRound testRound; private int roundIndex; private String animal="",symbol="";
     final String id=UUID.randomUUID().toString();final long seed;
     private final Map<String,Set<String>> held=new LinkedHashMap<>();
     private final Set<String> locked=new HashSet<>();
@@ -16,6 +16,18 @@ public final class LastCommandSession {
     LastCommandSession(long seed){this.seed=seed;}
     boolean action(String actor,boolean host,String requestId,JsonObject data){return action(actor,host,requestId,data,System.currentTimeMillis());}
     boolean action(String actor,boolean host,String requestId,JsonObject data,long now){
+        String expandedAction=Protocol.string(data,"action");
+        if(!classic&&Set.of("START_GAME","PREPARE_GAME").contains(expandedAction)){
+            if(!host&&!development)throw new RoomService.Failure(403,"HOST_REQUIRED");
+            if(!data.keySet().equals(Set.of("roomCode","sessionId","element","action","value"))&&!data.keySet().equals(Set.of("roomCode","sessionId","taskId","element","action","value")))throw new RoomService.Failure(400,"INVALID_LAST_COMMAND_ACTION");
+            if(!Protocol.string(data,"element").equals("CODE_PANEL")||!Protocol.string(data,"value").isEmpty())throw new RoomService.Failure(400,"INVALID_LAST_COMMAND_ACTION");
+            String key=actor+":"+requestId;if(requests.contains(key))return false;requests.add(key);if(requests.size()>2048)requests.remove(requests.iterator().next());
+            race=new CommandRace(seed+roundIndex*104729L,now,true);race.player(actor,now);if(expandedAction.equals("START_GAME")){roundIndex++;race.start(now);}game=null;testRound=null;return true;
+        }
+        if(race!=null&&!Set.of("TEST_ROUND","RETRY_ROUND").contains(expandedAction)){
+            if(!data.keySet().equals(Set.of("roomCode","sessionId","taskId","element","action","value")))return false;
+            return race.action(actor,actor+":"+requestId,Protocol.string(data,"taskId"),Protocol.string(data,"element"),expandedAction,Protocol.string(data,"value"),now);
+        }
         if(!data.keySet().equals(Set.of("roomCode","sessionId","element","action","value"))||requestId.isBlank())throw new RoomService.Failure(400,"INVALID_LAST_COMMAND_ACTION");
         String key=actor+":"+requestId;if(requests.contains(key))return false;
         String element=Protocol.string(data,"element"),action=Protocol.string(data,"action"),value=Protocol.string(data,"value");
@@ -39,7 +51,7 @@ public final class LastCommandSession {
                     if(testRound==null||!value.isEmpty())throw new IllegalArgumentException();
                     testRound=new LastCommandTestRound(seed,testRound.round,testRound.scenario,now);
                 }else{var next=new LastCommandTestRound(seed,roundIndex,value,now);roundIndex++;testRound=next;}
-                game=null;held.clear();locked.clear();Arrays.fill(digits,0);lever=adjuster=0;light="OFF";hatch=false;animal=symbol="";
+                race=null;game=null;held.clear();locked.clear();Arrays.fill(digits,0);lever=adjuster=0;light="OFF";hatch=false;animal=symbol="";
             }
             else if(action.equals("REPLAY")){if(!element.equals("LIGHT_MODULE")||!value.isEmpty()||testRound==null||!testRound.replay(now))throw new RoomService.Failure(409,"SIGNAL_REPLAY_UNAVAILABLE");}
             else if(action.equals("RESET")){if(!host)throw new RoomService.Failure(403,"HOST_REQUIRED");if(!element.equals("CODE_PANEL")||!value.isEmpty())throw new IllegalArgumentException();held.clear();locked.clear();Arrays.fill(digits,0);lever=adjuster=0;light="OFF";hatch=false;}
@@ -68,11 +80,14 @@ public final class LastCommandSession {
         requests.add(key);if(requests.size()>2048)requests.remove(requests.iterator().next());
         if(changed){lastAction=Map.of("sequence",++sequence,"actor",actor,"element",element,"action",action,"value",value);history.addLast(lastAction);if(history.size()>128)history.removeFirst();}return changed;
     }
-    void disconnect(String actor){for(var entry:held.entrySet())entry.getValue().remove(actor);held.entrySet().removeIf(e->e.getValue().isEmpty());}
+    void disconnect(String actor){disconnect(actor,System.currentTimeMillis());}
+    void disconnect(String actor,long now){if(race!=null)race.disconnect(actor,now);for(var entry:held.entrySet())entry.getValue().remove(actor);held.entrySet().removeIf(e->e.getValue().isEmpty());}
+    void registerActors(Collection<String> actors,long now){if(race!=null)for(String actor:actors)race.player(actor,now);}
     public List<Map<String,Object>> history(){return List.copyOf(history);}
-    public boolean timeout(long now){return game!=null?game.tick(now):testRound!=null&&testRound.timeout(now);}
+    public boolean timeout(long now){return race!=null?race.tick(now):game!=null?game.tick(now):testRound!=null&&testRound.timeout(now);}
+    public Map<String,Object> snapshot(String actor,long now){if(race==null)return snapshot(now);var r=actor.isBlank()?panelSnapshot():race.snapshot(actor,now);if(actor.isBlank())r.put("testRound",Map.of("campaign",true,"expanded",true,"status",race.winner.isEmpty()?(race.started?"PLAYING":"READY"):"WON","scores",race.scores(),"winner",race.winner));r.put("sessionId",id);r.put("seed",Long.toString(seed));r.put("development",development);r.put("placementId",new Random(seed).nextInt(2)==0?"back":"right");return r;}
     public Map<String,Object> snapshot(){return snapshot(System.currentTimeMillis());}
-    public Map<String,Object> snapshot(long now){var r=panelSnapshot();r.put("development",development);r.put("placementId",new Random(seed).nextInt(2)==0?"back":"right");r.put("animal",animal);r.put("symbol",symbol);if(game!=null)r.put("testRound",game.snapshot(now));if(testRound!=null){r.put("testRound",testRound.snapshot(now,panelSnapshot()));r.put("hint",hatch?testRound.code:"?");}return r;}
+    public Map<String,Object> snapshot(long now){if(race!=null)return snapshot("",now);var r=panelSnapshot();r.put("development",development);r.put("placementId",new Random(seed).nextInt(2)==0?"back":"right");r.put("animal",animal);r.put("symbol",symbol);if(game!=null)r.put("testRound",game.snapshot(now));if(testRound!=null){r.put("testRound",testRound.snapshot(now,panelSnapshot()));r.put("hint",hatch?testRound.code:"?");}return r;}
     private Map<String,Object> panelSnapshot(){
         Map<String,Object> result=new LinkedHashMap<>();result.put("sessionId",id);result.put("seed",Long.toString(seed));result.put("sequence",sequence);result.put("held",List.copyOf(held.keySet()));result.put("locked",locked.stream().sorted().toList());
         result.put("lever",List.of("UP","MIDDLE","DOWN").get(lever));result.put("adjuster",adjuster);result.put("light",light);result.put("hatch",hatch);result.put("code",""+digits[0]+digits[1]+digits[2]+digits[3]);result.put("lastAction",lastAction);result.put("animal",animal);result.put("symbol",symbol);return result;

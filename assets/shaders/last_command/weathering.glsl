@@ -104,11 +104,13 @@ TlcSurface tlcWeather(vec3 position,vec3 original,float sourceMetal,float source
     float coating=smoothstep(1.25,2.4,warmRatio)*(1.0-paint)*(1.0-display);
     float luminance=clamp(brightness*2.0,.12,.85);
     vec3 graphite=vec3(.018,.026,.023)*mix(.65,1.25,luminance);
-    color=mix(color,graphite,(1.0-paint)*(1.0-display)*.94);
+    color=mix(color,graphite,(1.0-paint)*(1.0-display)*.72);
+    float aged=smoothstep(.62,.79,patina.x)*(1.0-paint)*(1.0-display);
+    color=mix(color,oxideColor,aged*.35);
     color=mix(color,vec3(.19,.018,.012)*mix(.6,1.25,luminance),paint*.85);
     metal=mix(metal,.12,(1.0-paint)*(1.0-display));
     rough=mix(rough,.57,1.0-display);
-    gradient*=.12;
+    gradient*=.23;
 #endif
     return TlcSurface(max(color,vec3(.0003)),gradient,rust,rough,clamp(metal,0.0,1.0));
 }

@@ -41,7 +41,9 @@ public final class TheLastCommandMachine implements Disposable {
     public final Matrix4 transform=new Matrix4();
     private final Matrix4 worldTransform=new Matrix4();
     public AdditionalMechanisms mechanisms(){return mechanisms;}
-    private boolean disposed,bigHeld,bigLocked;
+    private boolean centralVisible=true;private boolean disposed,bigHeld,bigLocked;
+    public void setCentralVisible(boolean visible){centralVisible=visible;for(int i=1;i<3;i++)if(scenes[i]!=null)for(var node:scenes[i].modelInstance.nodes)setNodeVisible(node,visible);}
+    private void setNodeVisible(com.badlogic.gdx.graphics.g3d.model.Node node,boolean visible){for(var part:node.parts)part.enabled=visible;for(var child:node.getChildren())setNodeVisible(child,visible);}
     public boolean centralLocked(){return bigLocked;}
     public void setCentralLocked(boolean locked){bigLocked=locked;if(locked)endInteraction(PanelElementId.BIG_BUTTON);}
     public TheLastCommandMachine(){this(Long.getLong("lc.seed",20261025L));}
@@ -91,7 +93,7 @@ public final class TheLastCommandMachine implements Disposable {
     /** Closest solid surface wins. Locked controls remain solid, rather than allowing click-through. */
     public PanelElementId pick(Ray worldRay){
         float nearest=Float.POSITIVE_INFINITY;PanelElementId selected=null;
-        for(int i=0;i<3;i++)if(scenes[i]!=null){
+        for(int i=0;i<3;i++)if(scenes[i]!=null&&(i==0||centralVisible)){
             float distance=hit(worldRay,scenes[i].modelInstance,geometry[i]);
             if(distance<nearest){nearest=distance;selected=i==2&&localHit.y>=capPickMinY?PanelElementId.BIG_BUTTON:null;}
         }

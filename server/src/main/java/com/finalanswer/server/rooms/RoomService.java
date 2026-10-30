@@ -61,8 +61,8 @@ public final class RoomService {
     public synchronized String lastCommandDevelopment(String code,String name,long seed,String scenario) {
         if(code.isBlank()){
             JsonObject created=JsonParser.parseString(create(Map.of("name","THE_LAST_COMMAND_DEV","maxPlayers","8"))).getAsJsonObject();
-            Room room=find(created.get("code").getAsString());room.lastCommand=new LastCommandSession(seed);room.lastCommand.development=true;
-            JsonObject action=new JsonObject();for(var e:Map.of("roomCode",room.code,"sessionId",room.lastCommand.id,"element","CODE_PANEL","action",scenario.equals("campaign")?"PREPARE_GAME":"TEST_ROUND","value",scenario.equals("campaign")?"":scenario).entrySet())action.addProperty(e.getKey(),e.getValue());
+            Room room=find(created.get("code").getAsString());room.lastCommand=new LastCommandSession(seed);room.lastCommand.development=true;room.lastCommand.classic=scenario.equals("classic");
+            JsonObject action=new JsonObject();for(var e:Map.of("roomCode",room.code,"sessionId",room.lastCommand.id,"element","CODE_PANEL","action",(scenario.equals("campaign")||scenario.equals("classic"))?"PREPARE_GAME":"TEST_ROUND","value",(scenario.equals("campaign")||scenario.equals("classic"))?"":scenario).entrySet())action.addProperty(e.getKey(),e.getValue());
             room.lastCommand.action(room.host.id,true,UUID.randomUUID().toString(),action,now());
             return json(snapshot(room,room.host,true));
         }
@@ -129,7 +129,7 @@ public final class RoomService {
         Binding binding=bindings.remove(peerId);
         if(binding==null || binding.member.peer==null || !binding.member.peer.id().equals(peerId)) return;
         binding.member.peer=null; binding.member.seen=now();
-        if(binding.room.lastCommand!=null)binding.room.lastCommand.disconnect(binding.member.id);
+        if(binding.room.lastCommand!=null)binding.room.lastCommand.disconnect(binding.member.id,now());
         if(binding.member.host&&binding.room.cursed!=null)binding.room.cursed.ready(false,now());
         broadcast(binding.room,"PLAYER_LEFT");
     }
@@ -349,11 +349,11 @@ public final class RoomService {
             long seed;try{seed=Long.parseLong(Protocol.string(data,"seed"));}catch(NumberFormatException e){throw new Failure(400,"INVALID_LAST_COMMAND_SEED");}
             room.lastCommand=new LastCommandSession(seed);
             JsonObject start=new JsonObject();for(var e:Map.of("roomCode",room.code,"sessionId",room.lastCommand.id,"element","CODE_PANEL","action","START_GAME","value","").entrySet())start.addProperty(e.getKey(),e.getValue());
-            room.lastCommand.action(member.id,true,UUID.randomUUID().toString(),start,now());broadcast(room,"LAST_COMMAND_STARTED");
+            room.lastCommand.action(member.id,true,UUID.randomUUID().toString(),start,now());room.lastCommand.registerActors(allMembers(room).stream().map(m->m.id).toList(),now());broadcast(room,"LAST_COMMAND_STARTED");
         }else{
             if(room.lastCommand==null||!room.lastCommand.id.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_LAST_COMMAND_SESSION");
             if(message.type().equals("END_LAST_COMMAND")){requireHost(member);if(!data.keySet().equals(Set.of("roomCode","sessionId")))throw new Failure(400,"INVALID_LAST_COMMAND_ACTION");room.lastCommand=null;room.lobbyId=UUID.randomUUID().toString();broadcast(room,"LAST_COMMAND_ENDED");}
-            else {if(room.host.peer==null&&!room.lastCommand.development)throw new Failure(409,"HOST_DISCONNECTED");if(room.lastCommand.action(member.id,member.host,message.requestId(),data,now()))broadcast(room,"LAST_COMMAND_UPDATED");}
+            else {if(room.host.peer==null&&!room.lastCommand.development)throw new Failure(409,"HOST_DISCONNECTED");if(room.lastCommand.action(member.id,member.host,message.requestId(),data,now())){room.lastCommand.registerActors(allMembers(room).stream().map(m->m.id).toList(),now());broadcast(room,"LAST_COMMAND_UPDATED");}}
         }
         reply(peer,room,member,message);
     }
@@ -528,7 +528,7 @@ public final class RoomService {
         rooms.remove(room.code);
     }
     private void disconnectMember(Member member,String reason) {
-        for(Room room:rooms.values())if(room.lastCommand!=null)room.lastCommand.disconnect(member.id);
+        for(Room room:rooms.values())if(room.lastCommand!=null)room.lastCommand.disconnect(member.id,now());
         if(member.peer!=null) { bindings.remove(member.peer.id()); member.peer.close(reason.equals("CONNECTION_LOST")?4000:4002,reason); member.peer=null; }
         member.seen=now();
     }
@@ -570,7 +570,7 @@ public final class RoomService {
             value.put("currentAnswer",game==null?-1:game.submitted.getOrDefault(self.id,-1));
             if(credentials) { value.put("token",self.token); if(self.host) value.put("hostSession",self.token); else value.put("sessionToken",self.token); }
         }
-        if(room.lastCommand!=null)value.put("lastCommand",room.lastCommand.snapshot(now()));
+        if(room.lastCommand!=null)value.put("lastCommand",room.lastCommand.snapshot(self==null?"":self.id,now()));
         if(room.cursed!=null){
             Set<String> online=room.members.values().stream().filter(m->m.peer!=null&&!m.left).map(m->m.id).collect(java.util.stream.Collectors.toSet());
             value.put("cursedBoxes",room.cursed.snapshot(self==null?"":self.id,self!=null&&self.host,room.host.peer!=null,online,now()));

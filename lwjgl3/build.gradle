@@ -1016,3 +1016,14 @@ tasks.register('lastCommandResourceCheck', JavaExec) {
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
+
+tasks.register('lastCommandExpansionCheck', JavaExec) {
+    group = 'verification'
+    dependsOn tasks.named('compileDevJava'), ':server:classes'
+    classpath = files(sourceSets.dev.output.classesDirs, sourceSets.main.output.classesDirs, configurations.runtimeClasspath)
+    mainClass = 'com.erni.finalanswer.lwjgl3.LastCommandExpansionCheck'
+    workingDir = rootProject.file('assets')
+    systemProperty 'lc.expansion.image', rootProject.file('generated/last-command-expansion/native.png').absolutePath
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
