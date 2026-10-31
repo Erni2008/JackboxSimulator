@@ -4,11 +4,48 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 class CommandRaceTest {
     @Test void thousandsOfSeedsAndAllFamilies(){for(int seed=0;seed<1000;seed++){var game=new CommandRace(seed,0);for(var families:CommandRace.FAMILIES.values())for(String family:families){var p=new CommandRace.Player();p.readyAt=400;var a=game.generate(family,new Random(seed),p,0);CommandRace.validateGenerated(a);var other=new CommandRace.Player();other.readyAt=400;var b=game.generate(family,new Random(seed),other,0);assertEquals(a.instruction,b.instruction);assertEquals(a.answer,b.answer);if(family.equals("FUSE")){assertTrue(Integer.parseInt(a.answer)>=0);assertTrue(Integer.parseInt(a.answer)<a.options.size());}if(family.equals("PRESSURE"))assertTrue(a.low<a.high&&a.high<=100);}}}
+    @Test void decipherShowsAllArithmeticVariantsAndValidatesTheVisibleResult(){
+        var forms=new HashSet<String>();boolean negative=false;
+        for(int seed=0;seed<1000;seed++){
+            var g=new CommandRace(seed,0);g.start(0);var p=g.player("decoder",0);p.family="DECIPHER";p.readyAt=p.revealUntil=0;p.task=g.generate("DECIPHER",new Random(seed),p,0);
+            String[] parts=p.task.instruction.split(" / ");assertEquals(3,parts.length);assertTrue(parts[1].startsWith("ВЫЧИСЛИТЕ: "));assertTrue(parts[2].contains("Сначала скобки"));
+            String expression=parts[1].substring("ВЫЧИСЛИТЕ: ".length()).replace(" = ?","");forms.add(expression.replaceAll("[☀☾★◆]","s"));
+            var mapping=java.util.regex.Pattern.compile("([☀☾★◆])=([1-9])").matcher(parts[0]);int count=0;while(mapping.find()){expression=expression.replace(mapping.group(1),mapping.group(2));count++;}assertEquals(4,count);
+            int result=calculateVisibleArithmetic(expression);assertEquals(Integer.toString(result),p.task.answer,p.task.instruction);negative|=result<0;
+            if(seed<32){String id=g.taskId(p),answer=Integer.toString(result);for(int i=0;i<answer.length();i++)assertTrue(g.action("decoder","key"+i,id,"TOUCH_PANEL","KEY",answer.substring(i,i+1),1000));assertEquals(0,p.score);assertEquals(0,p.failures);assertTrue(g.action("decoder","confirm",id,"TOUCH_PANEL","CONFIRM","",1000));assertEquals(1,p.score);assertEquals(0,p.failures);assertFalse(g.action("decoder","duplicate",id,"TOUCH_PANEL","CONFIRM","",1001));assertEquals(1,p.score);}
+        }
+        assertEquals(8,forms.size());assertTrue(negative);assertTrue(forms.stream().anyMatch(x->x.contains("÷")));assertTrue(forms.stream().anyMatch(x->x.contains("(")));
+    }
+    private static int calculateVisibleArithmetic(String text){
+        // Independent precedence parser checks the public expression, not the generator's mode.
+        class Parser {
+            final String s=text.replace(" ","");int i;
+            int number(){if(s.charAt(i)=='('){i++;int value=sum();assertEquals(')',s.charAt(i++));return value;}int start=i;while(i<s.length()&&Character.isDigit(s.charAt(i)))i++;assertTrue(i>start);return Integer.parseInt(s.substring(start,i));}
+            int product(){int value=number();while(i<s.length()&&(s.charAt(i)=='×'||s.charAt(i)=='÷')){char op=s.charAt(i++);int right=number();if(op=='×')value*=right;else{assertNotEquals(0,right);assertEquals(0,value%right);value/=right;}}return value;}
+            int sum(){int value=product();while(i<s.length()&&(s.charAt(i)=='+'||s.charAt(i)=='−')){char op=s.charAt(i++);int right=product();value=op=='+'?value+right:value-right;}return value;}
+        }
+        var parser=new Parser();int value=parser.sum();assertEquals(parser.s.length(),parser.i);return value;
+    }
+    @Test void contradictoryCommandHintsAreVariedAndAlwaysMatchAuthoritativeRule(){
+        Map<String,Boolean> rules=Map.of("Терминал показывает ложную команду. Ведущий говорит правду.",true,"Текст — ловушка. Выполните то, что произнесёт ведущий.",true,"Не верьте экрану: в этой команде верен только голос.",true,"Если приказы расходятся, ошибается терминал. Слушайте ведущего.",true,"Ведущий говорит неправду. Терминал передаёт верную команду.",false,"Голос — ловушка. Выполните то, что написано на терминале.",false,"Не слушайте ведущего: в этой команде верен только текст.",false,"Если приказы расходятся, ошибается ведущий. Доверяйте экрану.",false);var seen=new HashSet<String>();
+        for(int seed=0;seed<1000;seed++){
+            var g=new CommandRace(seed,0);g.start(0);var p=g.player("reader",0);p.family="FALSE_COMMAND";p.readyAt=p.revealUntil=0;p.task=g.generate(p.family,new Random(seed),p,0);var t=p.task;String hint=(String)t.display.get("trustHint"),display=(String)t.display.get("displayColor"),spoken=(String)t.display.get("spokenColor");assertTrue(rules.containsKey(hint));seen.add(hint);assertNotEquals(display,spoken);assertTrue(t.instruction.startsWith(hint));assertEquals("PRESS "+spoken,t.display.get("spoken"));int expected=CommandRace.COLORS.indexOf(rules.get(hint)?spoken:display);assertEquals(Integer.toString(expected),t.answer);
+            if(seed<64){boolean followVoice=seed%2==0;int selected=CommandRace.COLORS.indexOf(followVoice?spoken:display);boolean correct=selected==expected;assertTrue(g.action("reader","press",g.taskId(p),"SMALL_BUTTON_"+(selected+1),"PRESS","",1000));assertEquals(correct?1:0,p.score);assertEquals(correct?0:1,p.failures);}
+        }
+        assertEquals(rules.keySet(),seen);
+    }
+    @Test void hatchPlacementChangesPerTaskButNeverWhileOpeningOrSynchronizing(){
+        var g=new CommandRace(42,0);String previous="";for(int i=0;i<20;i++){
+            long now=1000L+i*2000;g.preview("viewer","HATCH",now);var p=g.players.get("viewer");String placement=(String)g.snapshot("viewer",now+1000).get("placementId");assertTrue(Set.of("right","back").contains(placement));assertNotEquals(previous,placement);assertEquals(false,g.snapshot("viewer",now+1000).get("hatch"));assertFalse(g.snapshot("viewer",now+1000).containsKey("hint"));
+            assertTrue(g.action("viewer","open-"+i,g.taskId(p),"HIDDEN_HATCH","SET","OPEN",now+1000));assertEquals(p.task.answer,g.snapshot("viewer",now+1000).get("hint"));assertEquals(placement,g.snapshot("viewer",now+1000).get("placementId"));
+            assertTrue(g.action("viewer","close-"+i,g.taskId(p),"HIDDEN_HATCH","SET","CLOSED",now+1001));assertFalse(g.snapshot("viewer",now+1001).containsKey("hint"));assertEquals(placement,g.snapshot("viewer",now+1002).get("placementId"));previous=placement;
+        }
+    }
     @Test void hatchRequiresDiscoveringNoteAndConfirmedCode(){var g=new CommandRace(1,0);g.start(0);var p=g.player("a",0);p.family="HATCH";p.readyAt=0;p.revealUntil=0;p.task=g.generate("HATCH",new Random(19),p,0);p.mechanisms.put("code",p.task.answer);String id=g.taskId(p);assertFalse(g.snapshot("a",1000).containsKey("hint"));assertTrue(g.action("a","guess",id,"BIG_BUTTON","PRESS","",1000));assertEquals(0,p.score);assertEquals("WRONG COMMAND",p.feedback);p.nextAt=0;assertTrue(g.action("a","open",id,"HIDDEN_HATCH","SET","OPEN",1001));assertEquals(0,p.score);assertEquals(p.task.answer,g.snapshot("a",1001).get("hint"));assertTrue(g.action("a","close",id,"HIDDEN_HATCH","SET","CLOSED",1002));assertFalse(g.snapshot("a",1002).containsKey("hint"));assertTrue(g.action("a","confirm",id,"BIG_BUTTON","PRESS","",1003));assertEquals(1,p.score);assertFalse(g.action("a","confirm",id,"BIG_BUTTON","PRESS","",1004));assertEquals(1,p.score);}
     @Test void russianInstructionsCoverEveryGeneratedFamily(){for(int seed=0;seed<100;seed++)for(var families:CommandRace.FAMILIES.values())for(String family:families){var g=new CommandRace(seed,0);g.start(0);var p=g.player("ru",0);p.family=family;p.revealUntil=0;p.task=g.generate(family,new Random(seed),p,0);var round=(Map<?,?>)g.snapshot("ru",1000).get("testRound");String instruction=round.get("instruction").toString();assertFalse(java.util.regex.Pattern.compile("[A-Za-z_]{2,}").matcher(instruction).find(),family+": "+instruction);var touch=(Map<?,?>)round.get("touchscreen");for(String key:List.of("spoken","afterInstruction"))if(touch.containsKey(key))assertFalse(java.util.regex.Pattern.compile("[A-Za-z_]{2,}").matcher(touch.get(key).toString()).find(),family+": "+touch.get(key));}}
     @Test void previewUsesRealGeneratedTasksAndKeepsChosenFamily(){var g=new CommandRace(9,0);for(var families:CommandRace.FAMILIES.values())for(String family:families){g.preview("viewer",family,1000);var p=g.players.get("viewer");assertEquals(family,p.family);CommandRace.validateGenerated(p.task);String first=g.taskId(p);g.preview("viewer",family,2000);assertNotEquals(first,g.taskId(p));assertEquals(0,p.score);assertEquals(family,((Map<?,?>)g.snapshot("viewer",2000).get("testRound")).get("previewFamily"));}g.preview("viewer","RECALL",3000);var p=g.players.get("viewer");assertEquals("NUMBER_MEMORY",p.family);assertNotNull(p.memory);g.tick(8000);assertEquals("RECALL",p.family);assertEquals(0,p.score);assertThrows(RoomService.Failure.class,()->g.preview("viewer","MISSING",9000));}
     @Test void previewCommandIsUnavailableInNormalSessions(){var session=new LastCommandSession(9);var data=new com.google.gson.JsonObject();data.addProperty("action","PREVIEW_TASK");assertThrows(RoomService.Failure.class,()->session.action("viewer",true,"request",data,1000));}
-    @Test void removedFamiliesCannotBeScheduledOrPreviewed(){var g=new CommandRace(1,0);for(String family:List.of("CONDITIONAL","STROOP","BROKEN_SWITCH","FUSE","SYMBOL_MEMORY")){assertFalse(CommandRace.FAMILIES.values().stream().anyMatch(xs->xs.contains(family)));assertThrows(RoomService.Failure.class,()->g.preview("a",family,0));}}
+    @Test void removedFamiliesCannotBeScheduledOrPreviewed(){var g=new CommandRace(1,0);for(String family:List.of("CONDITIONAL","STROOP","BROKEN_SWITCH","FUSE","SYMBOL_MEMORY","BALANCE")){assertFalse(CommandRace.FAMILIES.values().stream().anyMatch(xs->xs.contains(family)));assertThrows(RoomService.Failure.class,()->g.preview("a",family,0));}}
     @Test void instrumentsVaryUnitsAndExposeActualAngle(){var g=new CommandRace(1,0);Set<Object> units=new HashSet<>();for(int seed=0;seed<100;seed++){var p=new CommandRace.Player();var t=g.generate("PRESSURE",new Random(seed),p,0);units.add(t.display.get("unit"));assertTrue(t.pressure>=0&&t.pressure<=100);assertTrue(t.high<=100);}assertEquals(4,units.size());g.preview("a","LEVER_SEQUENCE",0);var p=g.players.get("a");g.action("a","turn",g.taskId(p),"ADJUSTER","SET","90",1000);var screen=(Map<?,?>)((Map<?,?>)g.snapshot("a",1000).get("testRound")).get("touchscreen");assertEquals(90,screen.get("adjusterAngle"));}
     @Test void forgottenMemoryRestartsObservationWithoutPointsEvenNearFinish(){var g=new CommandRace(1,0);g.start(0);var p=g.player("a",0);p.score=19;p.family="RECALL";p.memory=new CommandRace.Memory("NUMBER",List.of("5836"),19);p.task=g.generate("RECALL",new Random(9),p,0);p.readyAt=0;p.revealUntil=0;String old=g.taskId(p);assertTrue(g.action("a","restart",old,"TOUCH_PANEL","RESTART_MEMORY","",1000));assertEquals(19,p.score);assertEquals("NUMBER_MEMORY",p.family);assertNotEquals(old,g.taskId(p));assertFalse(g.action("a","stale",old,"TOUCH_PANEL","RESTART_MEMORY","",1001));g.tick(6000);assertEquals("RECALL",p.family);assertEquals(19,p.score);p.input=p.task.answer;assertTrue(g.action("a","answer",g.taskId(p),"TOUCH_PANEL","CONFIRM","",7000));assertEquals(20,p.score);}
     @Test void selectingPreviewDuringAssetLoadDoesNotDoubleReadinessDelay(){var g=new CommandRace(1,0,true);g.player("a",0);g.preview("a","BUTTON",10000);var p=g.players.get("a");g.action("a","ready",g.taskId(p),"TOUCH_PANEL","CLIENT_READY","",11000);assertTrue(p.online);assertEquals(11220,p.readyAt);}
@@ -63,12 +100,28 @@ class CommandRaceTest {
         }
     }
     @Test void mechanicalSequenceAllowsTransitButOnlyConfirmsCompleteState(){
-        var g=new CommandRace(1,0);g.start(0);var p=g.player("a",0);p.family="LEVER_SEQUENCE";p.readyAt=p.revealUntil=0;p.task=g.generate(p.family,new Random(1),p,0);p.task.steps=List.of("LEVER_MODULE:DOWN","ADJUSTER:135","BIG_BUTTON:PRESS");String id=g.taskId(p);
+        var g=new CommandRace(1,0);g.start(0);var p=g.player("a",0);p.family="LEVER_SEQUENCE";p.readyAt=p.revealUntil=0;p.task=g.generate(p.family,new Random(1),p,0);p.task.steps=List.of("LEVER_MODULE:DOWN","ADJUSTER:135","BIG_BUTTON:PRESS");p.mechanisms.put("lever","UP");p.mechanisms.put("adjuster",0);String id=g.taskId(p);
         g.action("a","middle",id,"LEVER_MODULE","SET","MIDDLE",1000);assertEquals(0,p.sequence);assertEquals(0,p.failures);assertEquals(0,p.score);
         g.action("a","down",id,"LEVER_MODULE","SET","DOWN",1000);assertEquals(1,p.sequence);assertEquals(0,p.score);
         for(String angle:List.of("45","90","135"))g.action("a","angle"+angle,id,"ADJUSTER","SET",angle,1000);
         assertEquals(2,p.sequence);assertEquals(0,p.failures);assertEquals(0,p.score);
         g.action("a","confirm",id,"BIG_BUTTON","PRESS","",1000);assertEquals(1,p.score);
+    }
+    @Test void typeTwelveAllowsUnlimitedOutOfOrderAdjustmentUntilRedConfirmation(){
+        for(boolean correct:List.of(false,true)){
+            var g=new CommandRace(1,0);g.start(0);var p=g.player("a",0);p.family="LEVER_SEQUENCE";p.readyAt=p.revealUntil=0;p.task=g.generate(p.family,new Random(1),p,0);p.task.steps=List.of("LEVER_MODULE:DOWN","ADJUSTER:135","BIG_BUTTON:PRESS");p.mechanisms.put("lever","UP");p.mechanisms.put("adjuster",0);String id=g.taskId(p);
+            for(int i=0;i<100;i++){
+                g.action("a","dial"+i,id,"ADJUSTER","SET",String.valueOf(i%4*45),1000);
+                g.action("a","lever"+i,id,"LEVER_MODULE","SET",List.of("UP","MIDDLE","DOWN").get(i%3),1000);
+                assertEquals(0,p.failures);assertEquals(0,p.score);assertEquals(0,p.nextAt);assertEquals("",p.feedback);assertEquals(id,g.taskId(p));
+            }
+            g.action("a","target-dial",id,"ADJUSTER","SET","135",1000);
+            g.action("a","target-lever",id,"LEVER_MODULE","SET",correct?"DOWN":"UP",1000);
+            g.action("a","confirm",id,"BIG_BUTTON","PRESS","",1000);
+            assertEquals(correct?1:0,p.score);assertEquals(correct?0:1,p.failures);
+            assertEquals(correct?"COMMAND ACCEPTED":"WRONG COMMAND",p.feedback);
+            g.action("a","duplicate",id,"BIG_BUTTON","PRESS","",1001);assertEquals(correct?1:0,p.score);assertEquals(correct?0:1,p.failures);
+        }
     }
     @Test void sequenceConfirmationRechecksPreviouslySetMechanisms(){
         var g=new CommandRace(1,0);g.start(0);var p=g.player("a",0);p.family="LEVER_SEQUENCE";p.readyAt=p.revealUntil=0;p.task=g.generate(p.family,new Random(1),p,0);p.task.steps=List.of("LEVER_MODULE:DOWN","ADJUSTER:135","BIG_BUTTON:PRESS");p.sequence=2;p.mechanisms.put("lever","UP");p.mechanisms.put("adjuster",135);

@@ -1,0 +1,20 @@
+package com.erni.finalanswer.lwjgl3;
+import com.badlogic.gdx.*;
+import com.badlogic.gdx.backends.lwjgl3.*;
+import com.badlogic.gdx.graphics.*;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.scenes.scene2d.*;
+import com.badlogic.gdx.scenes.scene2d.ui.*;
+import com.badlogic.gdx.scenes.scene2d.utils.*;
+import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import com.erni.finalanswer.audio.LastCommandAudio;
+/** Separate audible test bench. It never connects to a room or changes game state. */
+public final class LastCommandAudioPreview {
+ public static void main(String[] args){if(StartupHelper.startNewJvmIfRequired())return;var config=new Lwjgl3ApplicationConfiguration();config.setTitle("The Last Command / Sound test");config.setWindowedMode(1100,1000);config.setForegroundFPS(30);new Lwjgl3Application(new ApplicationAdapter(){
+  LastCommandAudio audio;Stage stage;BitmapFont font;Texture pixel;Label info;float time;
+  public void create(){audio=new LastCommandAudio();if(Boolean.getBoolean("lc.audio.verify")){for(var cue:LastCommandAudio.Cue.values())if(!audio.available(cue))throw new AssertionError("Missing native decode: "+cue);var manifest=new com.badlogic.gdx.utils.JsonReader().parse(Gdx.files.internal("audio/host/ru/manifest.json"));for(String id:new String[]{"PRESS_RED","PRESS_GREEN","PRESS_BLUE","PRESS_YELLOW"}){var entry=manifest.get("events").get(id);if(entry==null||!entry.getString("status").equals("ready"))throw new AssertionError("Missing host template "+id);var voice=Gdx.audio.newMusic(Gdx.files.internal("audio/host/ru/"+entry.getString("file")));voice.dispose();}audio.close();System.out.println("NATIVE_HOST_TEMPLATE_DECODE_OK: 4 existing-pipeline announcer recordings");System.out.println("NATIVE_AUDIO_DECODE_OK: 25 Sound + 1 streaming Music");Gdx.app.exit();return;}
+   stage=new Stage(new ScreenViewport());font=new BitmapFont();font.getData().setScale(1.1f);Pixmap p=new Pixmap(1,1,Pixmap.Format.RGBA8888);p.setColor(Color.WHITE);p.fill();pixel=new Texture(p);p.dispose();var solid=new TextureRegionDrawable(pixel);var style=new TextButton.TextButtonStyle();style.font=font;style.fontColor=Color.valueOf("D2E5D5");style.up=solid.tint(Color.valueOf("243B2B"));style.over=solid.tint(Color.valueOf("385541"));style.down=solid.tint(Color.valueOf("18251E"));Table table=new Table();table.setFillParent(true);table.pad(18);stage.addActor(table);info=new Label("Sound test / click a cue. +/- volume. Space: stop all. Escape: exit.",new Label.LabelStyle(font,Color.valueOf("CFD9CA")));table.add(info).colspan(2).padBottom(16);table.row();int i=0;for(var cue:LastCommandAudio.Cue.values()){TextButton button=new TextButton(cue.name(),style);button.setDisabled(!audio.available(cue));button.addListener(new ChangeListener(){public void changed(ChangeEvent e,Actor actor){audio.stopAll();audio.audition(cue);info.setText(cue.name()+" / volume "+Math.round(audio.volume()*100)+"%");}});table.add(button).width(500).height(52).pad(3);if(++i%2==0)table.row();}Gdx.input.setInputProcessor(new InputMultiplexer(stage,new InputAdapter(){public boolean keyDown(int key){if(key==Input.Keys.ESCAPE)Gdx.app.exit();else if(key==Input.Keys.SPACE)audio.stopAll();else if(key==Input.Keys.PLUS||key==Input.Keys.EQUALS)audio.volume(audio.volume()+.1f);else if(key==Input.Keys.MINUS)audio.volume(audio.volume()-.1f);else return false;info.setText("Effects volume "+Math.round(audio.volume()*100)+"%");return true;}}));}
+  public void render(){if(stage==null)return;Gdx.gl.glClearColor(.035f,.065f,.045f,1);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);audio.update();stage.act(Gdx.graphics.getDeltaTime());stage.draw();}
+  public void resize(int w,int h){if(stage!=null)stage.getViewport().update(w,h,true);}public void pause(){if(audio!=null)audio.pause(true);}public void resume(){if(audio!=null)audio.pause(false);}public void dispose(){if(audio!=null)audio.close();if(stage!=null)stage.dispose();if(font!=null)font.dispose();if(pixel!=null)pixel.dispose();}
+ },config);}
+}

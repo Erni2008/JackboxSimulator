@@ -110,6 +110,26 @@
       "id": "impostor_outcome_escaped",
       "text": "Вы осудили невиновного. А самозванец всё это время был рядом.",
       "emotion": "SINISTER"
+    },
+    {
+      "id": "PRESS_RED",
+      "text": "Нажми красную",
+      "emotion": "NEUTRAL"
+    },
+    {
+      "id": "PRESS_GREEN",
+      "text": "Нажми зелёную",
+      "emotion": "NEUTRAL"
+    },
+    {
+      "id": "PRESS_BLUE",
+      "text": "Нажми синюю",
+      "emotion": "NEUTRAL"
+    },
+    {
+      "id": "PRESS_YELLOW",
+      "text": "Нажми жёлтую",
+      "emotion": "NEUTRAL"
     }
   ]
 }

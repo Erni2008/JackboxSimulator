@@ -101,7 +101,7 @@ public final class TheLastCommandRenderer implements Disposable {
     private void addProvider(RenderableProvider source,ModelInstance instance,PanelControl control,boolean display){
         final var localBounds=instance.calculateBoundingBox(new com.badlogic.gdx.math.collision.BoundingBox());
         manager.getRenderableProviders().add((output,pool)->{
-            if(control!=null&&!control.visible()||display&&shadowPass)return;
+            if(control!=null&&!control.visible()||display&&shadowPass||display&&control instanceof HiddenHatch hatch&&!hatch.noteVisible())return;
             cullTransform.set(machine.transform).mul(instance.transform);cullBounds.set(localBounds).mul(cullTransform);
             if(!legacy&&!shadowPass){
                 if(!camera.frustum.boundsInFrustum(cullBounds))return;

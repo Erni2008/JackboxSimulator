@@ -4,12 +4,13 @@ import java.util.*;
 /** One assembly and seed owner; components never create their own random generator. */
 public final class AdditionalMechanisms {
     public enum LeverState {UP,MIDDLE,DOWN}
+    private final MechanismConfiguration config;private final StaticMechanism frame;
     private final PivotMechanism lever;
     private final HiddenHatch hatch;
     private final CodePanel code;
     private final List<PanelControl> controls;
     AdditionalMechanisms(TheLastCommandMachine machine,java.util.random.RandomGenerator generator){
-        var config=MechanismConfiguration.load();var panel=machine.panel();
+        config=MechanismConfiguration.load();var panel=machine.panel();
         var screenArea=new com.badlogic.gdx.math.collision.BoundingBox(config.questionScreenMin,config.questionScreenMax);
         if(new com.badlogic.gdx.math.collision.BoundingBox(machine.sourceGeometry(9).bounds).mul(config.code.rest()).intersects(screenArea))throw new IllegalArgumentException("CODE_PANEL must not occupy the question screen");
         var base=new StaticMechanism(PanelElementId.LEVER_BASE,machine.newInstance(5),machine.sourceGeometry(5),config.leverBase);
@@ -22,18 +23,23 @@ public final class AdditionalMechanisms {
         occupied.add(base.interactionBounds(new com.badlogic.gdx.math.collision.BoundingBox()));occupied.add(lever.interactionBounds(new com.badlogic.gdx.math.collision.BoundingBox()));
         occupied.add(new com.badlogic.gdx.math.collision.BoundingBox(machine.sourceGeometry(9).bounds).mul(config.code.rest()));
         var placement=config.select(generator,occupied);
-        var frame=new StaticMechanism(PanelElementId.HATCH_FRAME,machine.newInstance(7),machine.sourceGeometry(7),placement);
-        var door=new PanelConfiguration.Mount();
-        Matrix4 world=new Matrix4(placement.rest()).translate(config.doorOffset).scale(config.doorScale.x,config.doorScale.y,config.doorScale.z);
-        Vector3 hinge=new Vector3(config.doorPivot).mul(world);world.getScale(door.scale);
-        // Matrix Euler extraction is assigned explicitly (libGDX uses yaw/pitch/roll).
-        Quaternion q=world.getRotation(new Quaternion(),true);door.rotation.set(q.getPitch(),q.getYaw(),q.getRoll());door.position.set(hinge);door.pivot.set(config.doorPivot);
+        frame=new StaticMechanism(PanelElementId.HATCH_FRAME,machine.newInstance(7),machine.sourceGeometry(7),placement);
+        var door=doorMount(placement,config);
         hatch=new HiddenHatch(machine.newInstance(8),machine.sourceGeometry(8),door,placement,config,placement.id,
             (value,cause)->panel.emit(PanelElementId.HIDDEN_HATCH,PanelAction.Kind.HATCH_CHANGED,value==1?"OPEN":"CLOSED",cause));
         code=new CodePanel(machine.newInstance(9),machine.sourceGeometry(9),config.code,
             (value,cause)->panel.emit(PanelElementId.CODE_PANEL,PanelAction.Kind.CODE_UPDATED,value,cause));
         controls=List.of(base,lever,frame,hatch,code);
     }
+    private static PanelConfiguration.Mount doorMount(MechanismConfiguration.PlacementPoint placement,MechanismConfiguration config){
+        var door=new PanelConfiguration.Mount();
+        Matrix4 world=new Matrix4(placement.rest()).translate(config.doorOffset).scale(config.doorScale.x,config.doorScale.y,config.doorScale.z);
+        Vector3 hinge=new Vector3(config.doorPivot).mul(world);world.getScale(door.scale);
+        // Matrix Euler extraction is assigned explicitly (libGDX uses yaw/pitch/roll).
+        Quaternion q=world.getRotation(new Quaternion(),true);door.rotation.set(q.getPitch(),q.getYaw(),q.getRoll());door.position.set(hinge);door.pivot.set(config.doorPivot);
+        return door;
+    }
+    public void relocateHatch(String id){if(hatch.placementId().equals(id))return;for(var placement:config.hatches)if(placement.enabled&&placement.id.equals(id)){frame.anchor.set(placement.matrix());frame.rest.set(placement.rest());frame.reset();hatch.relocate(doorMount(placement,config),placement);return;}throw new IllegalArgumentException("Unknown hatch mount: "+id);}
     public PivotMechanism lever(){return lever;}
     public LeverState leverState(){return LeverState.values()[lever.position()];}
     public void setLeverState(LeverState state){lever.setPosition(state.ordinal());}

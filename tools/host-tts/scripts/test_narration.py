@@ -16,7 +16,11 @@ class NarrationTest(unittest.TestCase):
         questions = [e for e in entries if e['kind']=='questions']
         self.assertEqual(len(questions),12)
         self.assertEqual(questions[0]['id'],'solar-largest')
-        self.assertEqual(len([e for e in entries if e['kind']=='events']),8)
+        events={e['id']:e for e in entries if e['kind']=='events'}
+        self.assertEqual(len(events),26)
+        for color,text in [('RED','Нажми красную'),('GREEN','Нажми зелёную'),('BLUE','Нажми синюю'),('YELLOW','Нажми жёлтую')]:
+            self.assertEqual(events['PRESS_'+color]['spokenText'],text)
+            self.assertEqual(events['PRESS_'+color]['emotion'],'NEUTRAL')
         intro={e['id']:e for e in entries if e['kind']=='intro'}
         self.assertEqual(intro['intro_02_01']['spokenText'],'Точно.')
         self.assertEqual(intro['intro_02_01']['emotion'],'NEUTRAL')

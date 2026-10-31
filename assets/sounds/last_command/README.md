@@ -1,7 +1,9 @@
-# The Last Command — звук регулятора
+# The Last Command audio
 
-`adjuster.wav` импортирован без изменения из предоставленного пользователем THE_LAST_COMMAND_AUDIO/adjuster.wav. PCM WAV, 48 кГц, stereo, 16 bit, 1 секунда, 192130 байт.
+Twenty-four supplied original recordings are preserved here with exact filenames and byte hashes. Playback uses compatible PCM16 copies in `runtime/`; victory remains streaming MP3. The canonical `runtime/manifest.json` maps 26 effects plus four references to existing host voice templates, with volume, priority, throttle and original SHA-256 metadata.
 
-SHA-256: `5922ebfd61888c2bce359cfd878da4bcee498e1c7cf812d2e6843a70536c1a69`.
+The 0.241-second memory source contains one impulse. Four pitch variants were generated with user authorization; they are not claimed as four extracted original notes. Preserve the original.
 
-Браузер загружает и декодирует файл один раз после жеста пользователя при включённом звуке. Семпл заменяет общий щелчок для принятого ADJUSTER-действия. Повторный SYNC не воспроизводит его заново. При отключении звука и скрытии вкладки текущие семплы останавливаются; одновременно играют максимум два. При недоступном файле остаётся синтетический щелчок.
+See [integration, mappings and listening tests](../../../docs/THE_LAST_COMMAND_AUDIO_INTEGRATION.md). Rebuild via `tools/audio/prepare_last_command_audio.py --help`.
+
+[Voice commands and additional effects, including the typing-animation limitation](../../../docs/THE_LAST_COMMAND_AUDIO_UPDATE.md).

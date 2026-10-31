@@ -1027,3 +1027,24 @@ tasks.register('lastCommandExpansionCheck', JavaExec) {
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
+
+tasks.register('lastCommandAudioPreview', JavaExec) {
+    group = 'application'
+    description = 'Audition every Last Command cue in a separate native sound test bench.'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.LastCommandAudioPreview'
+    workingDir = rootProject.file('assets')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+tasks.register('lastCommandAudioDecodeCheck', JavaExec) {
+    group = 'verification'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.LastCommandAudioPreview'
+    workingDir = rootProject.file('assets')
+    systemProperty 'lc.audio.verify', 'true'
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}

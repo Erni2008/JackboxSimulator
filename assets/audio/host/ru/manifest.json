@@ -102,6 +102,38 @@
     }
   },
   "events": {
+    "PRESS_BLUE": {
+      "file": "events/PRESS_BLUE_f58f620baaf1.ogg",
+      "status": "ready",
+      "hash": "f58f620baaf118626ba5bc0ac425f147b2f6677f46d9acd6e089f861d33f3d8e",
+      "duration": 1.119958,
+      "manualReview": "not_yet_reviewed",
+      "processingHash": null
+    },
+    "PRESS_GREEN": {
+      "file": "events/PRESS_GREEN_e77c0fa43838.ogg",
+      "status": "ready",
+      "hash": "e77c0fa438389c9b9f99e51b79f4a2493b638a3b9ac3c50485f5bf9b08468d56",
+      "duration": 1.119958,
+      "manualReview": "not_yet_reviewed",
+      "processingHash": null
+    },
+    "PRESS_RED": {
+      "file": "events/PRESS_RED_3a14213442b9.ogg",
+      "status": "ready",
+      "hash": "3a14213442b9bbd209d7b282618c666f410556b8f010df7ca61398fb5b4c9074",
+      "duration": 1.199958,
+      "manualReview": "not_yet_reviewed",
+      "processingHash": null
+    },
+    "PRESS_YELLOW": {
+      "file": "events/PRESS_YELLOW_9875d80b4b27.ogg",
+      "status": "ready",
+      "hash": "9875d80b4b273b69c1f20770bdcfec91113f2c749c67a362b59b3a51ede0ceb0",
+      "duration": 1.119958,
+      "manualReview": "not_yet_reviewed",
+      "processingHash": null
+    },
     "correct_answer": {
       "file": "events/correct_answer_f8f1dc119454.ogg",
       "status": "ready",

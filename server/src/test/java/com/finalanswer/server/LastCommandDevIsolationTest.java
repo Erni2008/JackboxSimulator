@@ -17,7 +17,7 @@ class LastCommandDevIsolationTest {
         String prior=System.getProperty("lastcommand.dev");System.clearProperty("lastcommand.dev");
         try(var server=new RoomServer(new ServerConfig("127.0.0.1",0,"",Set.of(),"",4)).start()){
             var client=HttpClient.newHttpClient();String origin="http://127.0.0.1:"+server.port();
-            for(String path:new String[]{"/last-command-dev/info","/last-command-3d/models/low/box_final.glb"})assertEquals(404,client.send(HttpRequest.newBuilder(URI.create(origin+path)).GET().build(),HttpResponse.BodyHandlers.discarding()).statusCode());
+            for(String path:new String[]{"/last-command-dev/info","/last-command-3d/models/low/box_final.glb","/last-command-3d/sfx/manifest.json"})assertEquals(404,client.send(HttpRequest.newBuilder(URI.create(origin+path)).GET().build(),HttpResponse.BodyHandlers.discarding()).statusCode());
             var health=client.send(HttpRequest.newBuilder(URI.create(origin+"/health")).GET().build(),HttpResponse.BodyHandlers.discarding());assertEquals(200,health.statusCode());assertFalse(health.headers().firstValue("Content-Security-Policy").orElseThrow().contains("blob:"));
         }finally{if(prior!=null)System.setProperty("lastcommand.dev",prior);}
     }

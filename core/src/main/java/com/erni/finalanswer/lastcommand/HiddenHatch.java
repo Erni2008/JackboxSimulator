@@ -5,7 +5,7 @@ import net.mgsx.gltf.scene3d.scene.Scene;
 import java.util.function.BiConsumer;
 public final class HiddenHatch extends PivotMechanism {
     private final PanelCanvas clue=new PanelCanvas(1,new float[]{-.10f},.35f,.20f,.52f,.28f,true);
-    private final String placementId;
+    private String placementId;
     private boolean paper;private String hintText="?";private Texture hintImage;
     public Texture hintImage(){return hintImage;}
     public String hintText(){return hintText;}
@@ -13,6 +13,8 @@ public final class HiddenHatch extends PivotMechanism {
         super(PanelElementId.HIDDEN_HATCH,scene,geometry,door,Vector3.Y,config.hatchSeconds,new float[]{0,config.hatchAngle},changed);
         this.placementId=placementId;clue.instance.transform.set(frame.rest());setHint("?");
     }
+    public boolean noteVisible(){return visible()&&open()&&Math.abs(angle())>=Math.abs(targetAngle())*.8f&&(hintImage!=null||hintText!=null&&!hintText.isEmpty());}
+    void relocate(PanelConfiguration.Mount door,MechanismConfiguration.PlacementPoint frame){boolean locked=locked();anchor.set(door.matrix());rest.set(door.rest());mount.pivot.set(door.pivot);clue.instance.transform.set(frame.rest());placementId=frame.id;reset();setLocked(locked);setNote("");}
     public String placementId(){return placementId;}
     public boolean open(){return position()==1;}
     public boolean setOpen(boolean value){return setPosition(value?1:0);}

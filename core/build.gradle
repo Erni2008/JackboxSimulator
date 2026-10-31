@@ -231,3 +231,20 @@ tasks.register('lastCommandCheck', JavaExec) {
     mainClass = 'com.erni.finalanswer.lastcommand.MechanicalButtonCheck'
 }
 check.dependsOn tasks.named('lastCommandCheck')
+
+tasks.register('lastCommandAudioCheck', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lastcommand.LastCommandAudioCheck'
+    args rootProject.file('assets').absolutePath
+}
+check.dependsOn tasks.named('lastCommandAudioCheck')
+
+tasks.register('lastCommandNumberInputCheck', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lastcommand.NumberInputPreviewCheck'
+}
+check.dependsOn tasks.named('lastCommandNumberInputCheck')
