@@ -13,10 +13,16 @@ for item in manifest['files']:
         errors.append(f"Missing: {item['path']}")
         continue
     digest = hashlib.sha256()
-    with path.open('rb') as stream:
-        for block in iter(lambda: stream.read(1024 * 1024), b''):
-            digest.update(block)
-    if path.stat().st_size != item['bytes'] or digest.hexdigest() != item['sha256']:
+    if item.get('normalizeLineEndings') == 'lf':
+        data = path.read_bytes().replace(b'\r\n', b'\n')
+        digest.update(data)
+        size = len(data)
+    else:
+        with path.open('rb') as stream:
+            for block in iter(lambda: stream.read(1024 * 1024), b''):
+                digest.update(block)
+        size = path.stat().st_size
+    if size != item['bytes'] or digest.hexdigest() != item['sha256']:
         errors.append(f"Changed: {item['path']}")
 if errors:
     raise SystemExit('\n'.join(errors))

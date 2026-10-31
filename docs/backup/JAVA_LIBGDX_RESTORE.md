@@ -7,18 +7,19 @@ preparation to confirm they were not edited by the backup operation.
 
 - Repository: https://github.com/Erni2008/JackboxSimulator
 - Backup branch: `backup/java-libgdx-final`
-- Annotated tag: `java-libgdx-final-backup`
+- Original annotated tag (preserved): `java-libgdx-final-backup`
+- Verified recovery tag: `java-libgdx-final-backup-verified`
 - Commit message: `BACKUP: Final Answer Java/libGDX before Unity migration`
 
 The tag identifies the exact commit; obtain its SHA with
-`git rev-parse 'java-libgdx-final-backup^{commit}'`. It must not be moved.
+`git rev-parse 'java-libgdx-final-backup-verified^{commit}'`. It must not be moved.
 
 ## Restore and continue Java development
 
 ```sh
 git clone --branch backup/java-libgdx-final https://github.com/Erni2008/JackboxSimulator.git FinalAnswer-Java
 cd FinalAnswer-Java
-git switch -c java-development java-libgdx-final-backup
+git switch -c java-development java-libgdx-final-backup-verified
 python3 tools/checks/check_java_backup.py
 ./gradlew :core:check :server:test :shared:check :lwjgl3:assemble :inspector:assemble
 npm --prefix web3d ci
@@ -84,3 +85,13 @@ pattern scan; this is not a guarantee about arbitrary opaque binary metadata.
 
 Remote branch/tag checks and an isolated checkout restoration/build are reported
 by the assistant after the commit, to avoid embedding a self-referential commit ID.
+
+## Git text normalization correction
+
+The original backup commit/tag remains intact. A follow-up backup-only commit
+corrects the verifier for `docs/assets/root-image-migration.csv`: Git's existing
+`text=auto eol=lf` rule converts its CRLF to LF on checkout. The manifest now
+records its canonical LF bytes and the verifier accepts either local line ending.
+Java sources and runtime resources are unchanged. Prefer the `-verified` tag;
+the original snapshot is also restorable, but its first verifier reports this
+CSV line-ending difference. No tag was moved or replaced.

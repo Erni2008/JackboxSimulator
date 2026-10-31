@@ -1,7 +1,7 @@
 {
   "format": 1,
   "description": "Final Answer Java/libGDX backup payload; excludes this manifest itself",
-  "totalBytes": 2501272943,
+  "totalBytes": 2501273763,
   "files": [
     {
       "path": ".editorconfig",
@@ -4660,13 +4660,14 @@
     },
     {
       "path": "docs/assets/root-image-migration.csv",
-      "bytes": 10810,
-      "sha256": "38a9cc951517613b9cc41fc19b493c89265a7e6cb4667779f84de78c45e72d87"
+      "bytes": 10757,
+      "sha256": "6a103b5e576f63912855778d34ff18cea4f2145176cf4bd610abc17b353ebf26",
+      "normalizeLineEndings": "lf"
     },
     {
       "path": "docs/backup/JAVA_LIBGDX_RESTORE.md",
-      "bytes": 4827,
-      "sha256": "f2e833a745ef6d692f41095245d6280d44f8265198ecfddde4520dd71067a81d"
+      "bytes": 5499,
+      "sha256": "6b892e3c29b1bac407c491acf68bc118fec2e5c1d6b5c06d3b2a93afd4b420be"
     },
     {
       "path": "docs/cinematics/intro.md",
@@ -7745,8 +7746,8 @@
     },
     {
       "path": "tools/checks/check_java_backup.py",
-      "bytes": 925,
-      "sha256": "31ae6369aaf91332dd1d9d96c1cd08cd6afae358c3be76b78b494078409efd29"
+      "bytes": 1126,
+      "sha256": "c3ee168e1a681364e3ea644afa8fc80d5bff2a9354564bc8c623bd508a61c59e"
     },
     {
       "path": "tools/checks/check_last_command_3d.cjs",
