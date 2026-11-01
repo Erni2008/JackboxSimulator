@@ -13,6 +13,11 @@ public final class LastCommandSession {
     private final int[] digits=new int[4];private int lever,adjuster;private String light="OFF";private boolean hatch;
     private long sequence;private Map<String,Object> lastAction=Map.of();
     private static final Set<String> IDS=Set.of("BIG_BUTTON","SMALL_BUTTON_1","SMALL_BUTTON_2","SMALL_BUTTON_3","SMALL_BUTTON_4","LEVER_MODULE","ADJUSTER","LIGHT_MODULE","HIDDEN_HATCH","CODE_PANEL","ANIMAL_PANEL","SYMBOL_PANEL");
+    /** Server started with -Dlastcommand.debug=true (or FA_LC_DEBUG=1): host-only DEBUG commands and task inspection. */
+    public static final boolean DEBUG=Boolean.getBoolean("lastcommand.debug")||"1".equals(System.getenv("FA_LC_DEBUG"));
+    /** Solo session (exactly one phone): the host does not race; its machine mirrors and controls that player's terminal. */
+    String soloHost="",mirror="",hostId="";
+    String view(String actor){return !mirror.isEmpty()&&actor.equals(soloHost)?mirror:actor;}
     LastCommandSession(long seed){this.seed=seed;}
     boolean action(String actor,boolean host,String requestId,JsonObject data){return action(actor,host,requestId,data,System.currentTimeMillis());}
     boolean action(String actor,boolean host,String requestId,JsonObject data,long now){
@@ -29,11 +34,17 @@ public final class LastCommandSession {
             if(!data.keySet().equals(Set.of("roomCode","sessionId","element","action","value"))&&!data.keySet().equals(Set.of("roomCode","sessionId","taskId","element","action","value")))throw new RoomService.Failure(400,"INVALID_LAST_COMMAND_ACTION");
             if(!Protocol.string(data,"element").equals("CODE_PANEL")||!Protocol.string(data,"value").isEmpty())throw new RoomService.Failure(400,"INVALID_LAST_COMMAND_ACTION");
             String key=actor+":"+requestId;if(requests.contains(key))return false;requests.add(key);if(requests.size()>2048)requests.remove(requests.iterator().next());
-            race=new CommandRace(seed+roundIndex*104729L,now,true);race.player(actor,now);if(expandedAction.equals("START_GAME")){roundIndex++;race.start(now);}game=null;testRound=null;return true;
+            race=new CommandRace(seed+roundIndex*104729L,now,true);race.awaitHost=!soloHost.isEmpty();if(!actor.equals(soloHost))race.player(actor,now);if(expandedAction.equals("START_GAME")){roundIndex++;race.start(now);}game=null;testRound=null;return true;
         }
         if(race!=null&&!Set.of("TEST_ROUND","RETRY_ROUND").contains(expandedAction)){
             if(!data.keySet().equals(Set.of("roomCode","sessionId","taskId","element","action","value")))return false;
-            return race.action(actor,actor+":"+requestId,Protocol.string(data,"taskId"),Protocol.string(data,"element"),expandedAction,Protocol.string(data,"value"),now);
+            String raceElement=Protocol.string(data,"element");
+            if(raceElement.equals("DEBUG")){if(!host||!DEBUG)throw new RoomService.Failure(403,"DEBUG_DISABLED");return race.debug(view(actor),expandedAction,Protocol.string(data,"value"),now);}
+            if(!mirror.isEmpty()&&actor.equals(soloHost)&&raceElement.equals("TOUCH_PANEL")){
+                if(expandedAction.equals("CLIENT_READY"))return race.hostReady(now);
+                if(Set.of("CLOCK_SYNC","VISIBILITY").contains(expandedAction))return false; // the phone owns its own clock and visibility
+            }
+            return race.action(view(actor),actor+":"+requestId,Protocol.string(data,"taskId"),Protocol.string(data,"element"),expandedAction,Protocol.string(data,"value"),now);
         }
         if(!data.keySet().equals(Set.of("roomCode","sessionId","element","action","value"))||requestId.isBlank())throw new RoomService.Failure(400,"INVALID_LAST_COMMAND_ACTION");
         String key=actor+":"+requestId;if(requests.contains(key))return false;
@@ -89,10 +100,12 @@ public final class LastCommandSession {
     }
     void disconnect(String actor){disconnect(actor,System.currentTimeMillis());}
     void disconnect(String actor,long now){if(race!=null)race.disconnect(actor,now);for(var entry:held.entrySet())entry.getValue().remove(actor);held.entrySet().removeIf(e->e.getValue().isEmpty());}
-    void registerActors(Collection<String> actors,long now){if(race!=null)for(String actor:actors)race.player(actor,now);}
+    void registerActors(Collection<String> actors,long now){if(race!=null)for(String actor:actors)if(!actor.equals(soloHost))race.player(actor,now);}
     public List<Map<String,Object>> history(){return List.copyOf(history);}
     public boolean timeout(long now){return race!=null?race.tick(now):game!=null?game.tick(now):testRound!=null&&testRound.timeout(now);}
-    public Map<String,Object> snapshot(String actor,long now){if(race==null)return snapshot(now);var r=actor.isBlank()?panelSnapshot():race.snapshot(actor,now);if(actor.isBlank())r.put("testRound",Map.of("campaign",true,"expanded",true,"status",race.winner.isEmpty()?(race.started?"PLAYING":"READY"):"WON","scores",race.scores(),"winner",race.winner));r.put("sessionId",id);r.put("seed",Long.toString(seed));r.put("development",development);r.putIfAbsent("placementId",new Random(seed).nextInt(2)==0?"back":"right");return r;}
+    public Map<String,Object> snapshot(String actor,long now){if(race==null)return snapshot(now);var r=actor.isBlank()?panelSnapshot():race.snapshot(view(actor),now);
+        if(!actor.isBlank()&&!mirror.isEmpty()&&actor.equals(soloHost)){r.put("clockChallenge","");r.put("mirroring",mirror);if(r.get("testRound") instanceof Map<?,?> round){@SuppressWarnings("unchecked") var t=(Map<String,Object>)round;t.put("awaitingReady",!race.hostReady);if(!race.hostReady)t.put("waitingForTerminals",true);}}
+        if(!actor.isBlank()&&DEBUG&&actor.equals(soloHost.isEmpty()?hostId:soloHost))r.put("debug",race.debugView(view(actor)));if(actor.isBlank())r.put("testRound",Map.of("campaign",true,"expanded",true,"status",race.winner.isEmpty()?(race.started?"PLAYING":"READY"):"WON","scores",race.scores(),"winner",race.winner));r.put("sessionId",id);r.put("seed",Long.toString(seed));r.put("development",development);r.putIfAbsent("placementId",new Random(seed).nextInt(2)==0?"back":"right");return r;}
     public Map<String,Object> snapshot(){return snapshot(System.currentTimeMillis());}
     public Map<String,Object> snapshot(long now){if(race!=null)return snapshot("",now);var r=panelSnapshot();r.put("development",development);r.put("placementId",new Random(seed).nextInt(2)==0?"back":"right");r.put("animal",animal);r.put("symbol",symbol);if(game!=null)r.put("testRound",game.snapshot(now));if(testRound!=null){r.put("testRound",testRound.snapshot(now,panelSnapshot()));r.put("hint",hatch?testRound.code:"?");}return r;}
     private Map<String,Object> panelSnapshot(){

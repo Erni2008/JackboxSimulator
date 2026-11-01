@@ -45,7 +45,7 @@ public final class RoomServer implements AutoCloseable {
                     if(!limits.allow("http:"+ip(ctx),80,2))throw new RoomService.Failure(429,"RATE_LIMITED");
                 }
             });
-            c.routes.get("/health",ctx->ctx.contentType("application/json").result("{\"status\":\"ok\"}"));
+            c.routes.get("/health",ctx->ctx.contentType("application/json").result("{\"status\":\"ok\",\"protocol\":1,\"lastCommand\":{\"engine\":\"race\",\"solo\":true,\"debug\":"+com.finalanswer.server.rooms.LastCommandSession.DEBUG+"}}"));
             c.routes.post("/rooms",ctx->{
                 if(!limits.allow("create:"+ip(ctx),6,.1))throw new RoomService.Failure(429,"RATE_LIMITED");
                 ctx.status(201).result(rooms.create(form(ctx)));

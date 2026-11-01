@@ -344,10 +344,12 @@ public final class RoomService {
             requireHost(member);
             if(!data.keySet().equals(Set.of("roomCode","sessionId","seed"))||!room.lobbyId.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_LAST_COMMAND_SESSION");
             if(room.game!=null||room.impostor!=null||room.cursed!=null||room.lastCommand!=null)throw new Failure(409,"GAME_ALREADY_STARTED");
-            if(room.members.size()<2)throw new Failure(409,"NOT_ENOUGH_PLAYERS");
+            if(room.members.isEmpty())throw new Failure(409,"NOT_ENOUGH_PLAYERS");
             if(room.members.values().stream().anyMatch(m->m.peer==null||m.left))throw new Failure(409,"PLAYER_OFFLINE");
             long seed;try{seed=Long.parseLong(Protocol.string(data,"seed"));}catch(NumberFormatException e){throw new Failure(400,"INVALID_LAST_COMMAND_SEED");}
-            room.lastCommand=new LastCommandSession(seed);
+            room.lastCommand=new LastCommandSession(seed);room.lastCommand.hostId=member.id;
+            if(room.members.size()==1){room.lastCommand.soloHost=member.id;room.lastCommand.mirror=room.members.values().iterator().next().id;}
+            System.out.println("[last-command] start room="+room.code+" players="+room.members.size()+(room.members.size()==1?" solo":"")+(LastCommandSession.DEBUG?" debug":""));
             JsonObject start=new JsonObject();for(var e:Map.of("roomCode",room.code,"sessionId",room.lastCommand.id,"element","CODE_PANEL","action","START_GAME","value","").entrySet())start.addProperty(e.getKey(),e.getValue());
             room.lastCommand.action(member.id,true,UUID.randomUUID().toString(),start,now());room.lastCommand.registerActors(allMembers(room).stream().map(m->m.id).toList(),now());broadcast(room,"LAST_COMMAND_STARTED");
         }else{
