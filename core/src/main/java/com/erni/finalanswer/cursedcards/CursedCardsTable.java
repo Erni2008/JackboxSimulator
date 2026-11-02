@@ -110,7 +110,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         var c=config.card;cardModel=CardGeometry.build(c.width,c.height,c.thickness,c.cornerRadius,c.cornerSegments);
         // Matte card stock: low specular so the burgundy backs keep their depth instead of mirroring the cool room light.
         cardModel.getMaterial(CardGeometry.FRONT).set(PBRFloatAttribute.createRoughness(.9f),PBRFloatAttribute.createMetallic(0),PBRFloatAttribute.createSpecularFactor(.2f));
-        cardModel.getMaterial(CardGeometry.BACK).set(PBRFloatAttribute.createRoughness(.88f),PBRFloatAttribute.createMetallic(0),PBRFloatAttribute.createSpecularFactor(.2f));
+        cardModel.getMaterial(CardGeometry.BACK).set(PBRFloatAttribute.createRoughness(.88f),PBRFloatAttribute.createMetallic(0),PBRFloatAttribute.createSpecularFactor(.2f),PBRColorAttribute.createBaseColorFactor(new Color(1.25f,1.18f,1.12f,1)));
         buildQuads();
         for(int i=0;i<MAX_CARDS;i++){var card=new Card3D(i,cardModel,faces,CardValue.DEATH);card.visible=false;cards.add(card);}
         for(int i=0;i<CursedDeck.MAX_PLAYERS;i++)hands.add(new Array<>());
@@ -121,8 +121,8 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         director.main();director.snap();
         Gdx.input.setInputProcessor(input());
         warmUp();
-        // Render on demand: a still table costs no GPU time; input events and animations request frames.
-        Gdx.graphics.setContinuousRendering(false);Gdx.graphics.requestRendering();
+        // HIGH/MEDIUM render every display frame for perfectly even motion; LOW renders on demand to save battery.
+        Gdx.graphics.setContinuousRendering(quality!=CursedCardsQuality.LOW);Gdx.graphics.requestRendering();
         Gdx.app.log("CursedCards","quality "+quality);
     }
     /** Compile every shader variant at load (cards face up/down, glowing) so the first deal does not hitch. */
@@ -287,7 +287,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
 
     // ---------------- frame ----------------
     @Override public void render(){
-        float dt=Math.min(Gdx.graphics.getDeltaTime(),1/20f)*timeScale;update(dt);
+        float dt=frameDelta()*timeScale;update(dt);
         Gdx.gl.glClearColor(0,0,0,1);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT|GL20.GL_DEPTH_BUFFER_BIT);
         batch.getProjectionMatrix().setToOrtho2D(0,0,Gdx.graphics.getWidth(),Gdx.graphics.getHeight());
         batch.begin();batch.disableBlending();batch.draw(background,view.x,view.y,view.width,view.height);batch.enableBlending();drawCharacters(batch);batch.end();
@@ -296,6 +296,16 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         Gdx.gl.glViewport(0,0,Gdx.graphics.getBackBufferWidth(),Gdx.graphics.getBackBufferHeight());
         batch.begin();fx.draw(batch,camera,view,1-dim*.8f);fillHud();hud.draw(batch,hudFrame,dt);drawOverlay(batch);batch.end();
         if(needsFrames())Gdx.graphics.requestRendering();
+    }
+    private float smoothDt=1/60f;
+    /**
+     * Even frame pacing: the raw delta jitters and, after an idle (render-on-demand) gap, would jump an animation forward
+     * on its first frame. Gaps restart at one display frame; otherwise the delta is smoothed and clamped.
+     */
+    private float frameDelta(){
+        float raw=Gdx.graphics.getDeltaTime(),frame=1f/Math.max(30,Gdx.graphics.getDisplayMode().refreshRate);
+        if(raw>.1f){smoothDt=frame;return frame;}
+        smoothDt+=(MathUtils.clamp(raw,frame*.5f,1/30f)-smoothDt)*.2f;return smoothDt;
     }
     /** Layer 2: seated character sprites behind the table edge. No suitable art exists yet; anchors are {@link SeatLayout.Seat#characterAnchor}. */
     protected void drawCharacters(SpriteBatch batch){}
@@ -330,8 +340,8 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     /** Felt-level quads: machine and card contact shadows, turn glows. */
     private void feltRenderables(Array<Renderable> out,Pool<Renderable> pool){
         if(machine.visible()){opacity(machineShadow,machine.presence()*.9f);machineShadow.getRenderables(out,pool);}
-        if(activeAmount>0&&glowDrawer>=0){placeGlow(activeGlow,glowDrawer,activeAmount*(.55f+.12f*MathUtils.sin(clock*2.6f)));activeGlow.getRenderables(out,pool);}
-        if(targetAmount>0&&glowSource>=0){placeGlow(targetGlow,glowSource,targetAmount*.42f);targetGlow.getRenderables(out,pool);}
+        if(activeAmount>0&&glowDrawer>=0){placeGlow(activeGlow,glowDrawer,activeAmount*(.4f+.1f*MathUtils.sin(clock*2.6f)));activeGlow.getRenderables(out,pool);}
+        if(targetAmount>0&&glowSource>=0){placeGlow(targetGlow,glowSource,targetAmount*.22f);targetGlow.getRenderables(out,pool);}
     }
     private void placeGlow(ModelInstance g,int seat,float a){var st=seatList.get(seat);int n=Math.max(1,hands.get(seat).size);float w=Math.min(st.handWidth,cardWidth+(n-1)*cardWidth*.62f)+1.4f;
         g.transform.setToTranslation(st.hand.x,.002f,st.hand.z).rotate(Vector3.Y,st.handYaw).scale(w*1.15f,1,cardHeight*1.9f);opacity(g,a);}
@@ -340,8 +350,8 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         for(int i=0;i<cards.size;i++){Card3D c=cards.get(i);if(!c.visible)continue;var p=c.pose.position;if(!camera.frustum.sphereInFrustum(p.x,p.y,p.z,1.2f))continue;c.instance.getRenderables(out,pool);
             // Soft shadow on the felt, fading and spreading as the card rises; none on the machine platform.
             if(p.y<1.6f&&c.pose.scale>.9f){float lift=MathUtils.clamp(p.y/1.6f,0,1),k=1+lift*.7f;var sh=cardShadows[i];
-                sh.transform.setToTranslation(p.x+lift*.35f,.003f,p.z+lift*.3f).rotate(Vector3.Y,c.pose.yaw).scale(cardWidth*1.22f*k,1,cardHeight*1.16f*k);
-                opacity(sh,(1-lift)*.7f*(1-c.vanish));sh.getRenderables(out,pool);}}
+                sh.transform.setToTranslation(p.x+.06f+lift*.35f,.003f,p.z+.08f+lift*.3f).rotate(Vector3.Y,c.pose.yaw).scale(cardWidth*1.22f*k,1,cardHeight*1.16f*k);
+                opacity(sh,(1-lift)*.95f*(1-c.vanish));sh.getRenderables(out,pool);}}
     }
     /** 3D layer in the letterbox; MEDIUM/LOW render it at reduced resolution and upscale it. */
     private void renderScene(){

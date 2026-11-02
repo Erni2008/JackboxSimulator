@@ -19,7 +19,7 @@ public final class CursedCardsBenchmark extends CursedCardsPrototype {
         profiler.reset();long s=System.nanoTime();super.render();Gdx.gl.glFinish();float ms=(System.nanoTime()-s)/1e6f;
         t+=Gdx.graphics.getDeltaTime();
         if(!started&&t>1){setPlayers(8);startMatch();autoPlay=true;started=true;t=0;}
-        if(started){frames.add(ms);calls+=profiler.getDrawCalls();verts+=(long)profiler.getVertexCount().total;samples++;}
+        if(started){frames.add(ms);if(ms>14)System.out.printf(Locale.ROOT,"HITCH %.1f ms at t=%.2f status=%s presenting=%s%n",ms,t,status,presenting());calls+=profiler.getDrawCalls();verts+=(long)profiler.getVertexCount().total;samples++;}
         if(started&&(t>28||(game!=null&&game.phase()==com.erni.finalanswer.gameplay.cursedcards.CursedCardsGame.Phase.FINISHED&&!presenting()&&t>6))){
             Collections.sort(frames);float avg=0;for(float f:frames)avg+=f;avg/=frames.size();
             System.out.printf(Locale.ROOT,"BENCH %s%s: load %d ms, frames %d, avg %.2f ms, p95 %.2f ms, worst %.1f ms, draw calls %d, vertices/frame %d%n",quality,modelOverride!=null?" (SOURCE MODEL)":"",loadMs,frames.size(),avg,frames.get((int)(frames.size()*.95f)),frames.get(frames.size()-1),calls/samples,verts/samples);

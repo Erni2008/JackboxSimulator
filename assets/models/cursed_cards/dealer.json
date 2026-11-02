@@ -11,5 +11,5 @@
   "deckTilt": 7.9,
   "deckYaw": 90,
   "feedTravel": 0.3,
-  "card": { "width": 1.19, "height": 1.785, "thickness": 0.006, "cornerRadius": 0.08, "cornerSegments": 5, "deckScale": 0.666 }
+  "card": { "width": 1.19, "height": 1.785, "thickness": 0.014, "cornerRadius": 0.08, "cornerSegments": 5, "deckScale": 0.666 }
 }
