@@ -202,31 +202,22 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
             CardPose dest=handPose(player,hand.size-1,finalDealt[player],new CardPose());
             animator.deal(c,path,dest,0,clearance(dest.position),machine::dispense,()->{actions.receiveCard(player);machine.sound("land",.35f);});return dealInterval;});
     }
-    /**
-     * Pairs are fed back to the dealer: both cards rise face up, arc to the front slot and are swallowed one after the
-     * other; the machine flashes crimson, embers and smoke escape the slot. If the dealer has dissolved it is summoned
-     * first. Durations come from dealer.json.
-     */
+    /** Pairs: lift face up, drift together, glow crimson and burn away in embers. */
     @Override public void pairRemoved(int player,CursedCard a,CursedCard b){
         endDealing();waitForAnimations();
-        steps.add(()->{machineTarget=1;return machine.presence()>=1?0:-1;});
         enqueue(()->{Card3D ca=cards.get(a.id()),cb=cards.get(b.id());var hand=hands.get(player);hand.removeValue(ca,true);hand.removeValue(cb,true);
-            var t=CardAnimator.timing;machine.activate();float end=0;
-            for(int i=0;i<2;i++){Card3D c=i==0?ca:cb;boolean last=i==1;float delay=i*t.pairStagger;
-                CardPose up=new CardPose().set(c.pose);up.position.y+=.6f;facing(up,camera.position,38);
-                c.queue.add(CardMotion.to(up,t.pairRise,CardMotion.Ease.DECELERATE).delay(delay));
-                c.queue.add(CardMotion.to(up,t.pairHold,CardMotion.Ease.LINEAR));
-                CardPose mouth=new CardPose().set(path.outside);mouth.roll=0;
-                c.queue.add(CardMotion.to(mouth,t.pairTravel,CardMotion.Ease.SMOOTH).arc(Math.max(.9f,clearance(c.pose.position))).wobble(6));
-                CardPose in=new CardPose().set(path.inside);in.roll=0;
-                c.queue.add(CardMotion.to(in,t.pairInsert,CardMotion.Ease.ACCELERATE).onStart(machine::intake).onEnd(()->{c.visible=false;
-                    if(last){machine.destroyPair();fx.burst(slotPoint,26,.45f,.15f);fx.smoke(slotPoint,9);}}));
-                discardPile.add(c);end=delay+t.pairRise+t.pairHold+t.pairTravel+t.pairInsert;}
-            actions.discardPair(player);relayout(player,.3f);hud.toast("A PAIR OF "+CardValue.of(a.value()).label+" IS DEVOURED");status="PAIR OF "+CardValue.of(a.value()).label+" — "+names[player];return end*.6f;});
+            SeatLayout.Seat seat=seatList.get(player);float yaw=seat.handYaw;Vector3 mid=new Vector3(seat.hand).mulAdd(seat.normal,-1.3f).add(0,1.1f,0);
+            for(int i=0;i<2;i++){Card3D c=i==0?ca:cb;float side=(i==0?-.9f:.9f);
+                CardPose up=new CardPose();up.position.set(mid).add(MathUtils.cosDeg(yaw)*side,0,-MathUtils.sinDeg(yaw)*side);facing(up,camera.position,58);up.yaw+=i==0?-8:8;
+                c.queue.add(CardMotion.to(up,.55f,CardMotion.Ease.SMOOTH).arc(.25f));
+                CardPose meet=new CardPose().set(up);meet.position.set(mid).add(MathUtils.cosDeg(yaw)*side*.18f,.15f,-MathUtils.sinDeg(yaw)*side*.18f);meet.yaw+=i==0?5:-5;
+                c.queue.add(CardMotion.to(meet,.45f,CardMotion.Ease.SMOOTH).delay(.45f).onEnd(()->burning.add(c)));
+                discardPile.add(c);}
+            actions.discardPair(player);relayout(player,.3f);hud.toast("A PAIR OF "+CardValue.of(a.value()).label+" BURNS");status="PAIR OF "+CardValue.of(a.value()).label+" — "+names[player];return .9f;});
     }
     @Override public void turnChanged(int drawer,int source){
         endDealing();waitForAnimations();
-        enqueue(()->{this.drawer=drawer;this.source=source;selectedSlot=hoverSlot=-1;glowDrawer=drawer;glowSource=source;machine.shutdown();machineTarget=0;
+        enqueue(()->{this.drawer=drawer;this.source=source;selectedSlot=hoverSlot=-1;glowDrawer=drawer;glowSource=source;
             hud.phase(names[drawer]+" TAKES FROM "+names[source]);status="P"+(drawer+1)+" DRAWS FROM P"+(source+1);
             actions.lookAtCards(drawer);actions.nervous(source);return 0;});
     }
@@ -245,15 +236,14 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     /** DEATH: a held breath, the room darkens, the card rises into a red glow, turns, and the verdict appears. */
     @Override public void finished(int loser,List<Integer> survivors){
         endDealing();waitForAnimations();
-        enqueue(()->{this.loser=loser;drawer=source=-1;glowDrawer=glowSource=-1;deathCard=hands.get(loser).first();hud.phase("");dimTarget=1;status="DEATH";machine.shutdown();machineTarget=0;return 1.0f;});
+        enqueue(()->{this.loser=loser;drawer=source=-1;glowDrawer=glowSource=-1;deathCard=hands.get(loser).first();hud.phase("");dimTarget=1;status="DEATH";return 1.0f;});
         enqueue(()->{SeatLayout.Seat seat=seatList.get(loser);
             CardPose shown=new CardPose().set(deathCard.pose);shown.position.set(seat.hand).mulAdd(seat.normal,-1.6f).add(0,2.4f,0);facing(shown,camera.position,64);shown.scale=1.55f;
             deathCard.queue.add(CardMotion.to(shown,1.6f,CardMotion.Ease.SMOOTH).arc(.3f).wobble(10));deathLight=.01f;
             for(int p=0;p<players;p++)actions.nervous(p);actions.eliminate(loser);return 1.7f;});
         enqueue(()->{fx.burst(deathCard.pose.position,70,.9f,.25f);actions.eliminate(loser);for(int p:survivors)actions.survive(p);verdict=true;return 1.2f;});
     }
-    /** Dealing done: the dealer powers down; it dissolves when play begins (or after devouring the initial pairs). */
-    private void endDealing(){if(dealing){dealing=false;waitForAnimations();enqueue(()->{machine.shutdown();return .25f;});}}
+    private void endDealing(){if(dealing){dealing=false;waitForAnimations();enqueue(()->{machine.shutdown();return .6f;});enqueue(()->{machineTarget=0;hud.phase("THE DEALER DISSOLVES");return 1.3f;});}}
     /** True once the dealer has been dismissed for play (it may still be fading out). */
     public boolean dealerDismissed(){return machineTarget==0;}
 

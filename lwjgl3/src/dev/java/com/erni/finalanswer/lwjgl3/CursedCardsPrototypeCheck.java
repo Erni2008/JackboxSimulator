@@ -62,8 +62,6 @@ public final class CursedCardsPrototypeCheck extends CursedCardsPrototype {
             else if(seated&&t>3.6f&&!mainShot){mainShot=true;shot("m"+counts[match]+"-0-main");castCheck();}
             else if(mainShot&&t>3.9f){startMatch();started=true;seated=mainShot=false;t=0;}return;}
         if(!dealShot&&t>3.5f*1){dealShot=true;shot("m"+players+"-1-dealing");}
-        if(!pairShot&&started){var slot=machine.worldPoint(machine.config.spawn,new com.badlogic.gdx.math.Vector3());
-            for(Card3D c:cards)if(c.visible&&!c.pose.faceDown()&&c.pose.position.dst(slot)<2.2f&&machine.presence()>=1){pairShot=true;shot("m"+players+"-1b-pair-into-slot");break;}}
         if(awaitingDraw()){
             turns++;mirror();
             if(!manualDone){manualDone=true;int before=hands.get(source).size;select(before-1);check(selectedSlot==before-1,"card selection");check(drawSelected(),"manual draw of the selected hidden card");return;}
@@ -78,11 +76,11 @@ public final class CursedCardsPrototypeCheck extends CursedCardsPrototype {
             check(discardPile.size==game.deck().size()-1,"all pairs on the discard pile ("+discardPile.size+")");
             boolean gone=true;for(Card3D c:discardPile)gone&=!c.visible;check(gone,"discarded pairs vanished after their animation");
             shot("m"+players+"-3-result");log.add("match "+players+" players: "+turns+" turns, loser P"+(loser+1));
-            match++;started=manualDone=midShot=dealShot=pairShot=false;turns=0;t=-1;resetNext=true;
+            match++;started=manualDone=midShot=dealShot=false;turns=0;t=-1;resetNext=true;
             if(match==counts.length){check(Texture.getNumManagedTextures()==textures,"no texture growth across matches ("+textures+" -> "+Texture.getNumManagedTextures()+")");finishSoon=true;}
         }
     }
-    private boolean finishSoon,resetNext,seated,mainShot;private float finishedAt=-1;private boolean flashShot,pairShot;
+    private boolean finishSoon,resetNext,seated,mainShot;private float finishedAt=-1;private boolean flashShot;
     /** Visual hands equal rules hands slot-for-slot, all face down, nothing visible that is not in a hand or the pile. */
     private void mirror(){
         boolean same=true,down=true;
