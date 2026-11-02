@@ -21,10 +21,12 @@ public final class DealerConfig {
     /** How far the bottom card is drawn back under the stack when fed, world units. */
     public float feedTravel=.3f;
     public Card card=new Card();
-    public static final class Card{public float width=.63f,height=.88f,thickness=.003f,cornerRadius=.035f;public int cornerSegments=5;}
+    public static final class Card{public float width=.63f,height=.88f,thickness=.003f,cornerRadius=.035f;public int cornerSegments=5;
+        /** Size inside the machine (deck, slot) relative to the table size; the machine is fitted to the smaller card. */
+        public float deckScale=1;}
     public static DealerConfig load(){var f=Gdx.files.internal(FILE);if(!f.exists())return new DealerConfig();var json=new Json();json.setIgnoreUnknownFields(true);return json.fromJson(DealerConfig.class,f);}
     /** Smallest scale at which the card both clears the slot and lies entirely inside the top compartment. */
-    public float machineScale(){boolean across=Math.abs(deckYaw%180)>45;
-        float along=across?card.width:card.height,side=across?card.height:card.width;
-        return Math.max(card.width*slotClearance/slotWidth,Math.max(along*platformClearance/platformLength,side*platformClearance/platformWidth));}
+    public float machineScale(){boolean across=Math.abs(deckYaw%180)>45;float k=card.deckScale;
+        float along=(across?card.width:card.height)*k,side=(across?card.height:card.width)*k;
+        return Math.max(card.width*k*slotClearance/slotWidth,Math.max(along*platformClearance/platformLength,side*platformClearance/platformWidth));}
 }

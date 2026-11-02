@@ -2,71 +2,78 @@ package com.erni.finalanswer.cursedcards;
 
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.*;
-import com.badlogic.gdx.graphics.g2d.GlyphLayout;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.math.*;
+import com.badlogic.gdx.graphics.g2d.*;
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
+import com.badlogic.gdx.math.MathUtils;
 import com.erni.finalanswer.gameplay.cursedcards.*;
 
 /**
- * Local test harness for THE CURSED CARDS without phones. Development controls (players, start, draw, auto play,
- * reset, debug overlay with every hidden value) sit on top of the production {@link CursedCardsTable} and are
- * never part of it. Keys: 2–8 players · ENTER start · SPACE draw selected · A random draw · P auto play ·
- * R reset · I debug · C camera.
+ * Local test harness for THE CURSED CARDS without phones. The production scene ({@link CursedCardsTable}) stays clean;
+ * F1 (or `) toggles a separate development panel: player count, start, draw, random, auto play, reset and a debug view
+ * of every hidden value. Keys work with the panel hidden: 2–8 players · ENTER start · SPACE draw selected · A random ·
+ * P auto play · R reset · I hidden values.
  */
 public class CursedCardsPrototype extends CursedCardsTable {
-    private static final String[] BUTTONS={"-","+","START","DRAW","RANDOM","AUTO PLAY","RESET","DEBUG","CAMERA"};
-    private final Rectangle[] buttons=new Rectangle[BUTTONS.length];private int hover=-1;
-    protected boolean debug,autoPlay;private float autoDelay;
+    private static final String[][] BUTTONS={{"cursed_minus","-"},{"cursed_plus","+"},{"cursed_start","START"},{"cursed_draw","DRAW"},{"cursed_random","RANDOM"},{"cursed_auto","AUTO PLAY"},{"cursed_reset","RESET"},{"cursed_debug","VALUES"}};
+    private final CursedButton[] buttons=new CursedButton[BUTTONS.length];
+    protected boolean devPanel,debug,autoPlay;private float autoDelay,panelFade;private int mouseX,mouseY;private boolean mouseDown;
+    private BitmapFont devFont,devSmall;private final GlyphLayout layout=new GlyphLayout();private Texture pixel;
 
-    @Override public void create(){super.create();for(int i=0;i<buttons.length;i++)buttons[i]=new Rectangle();}
+    @Override public void create(){
+        super.create();
+        for(int i=0;i<buttons.length;i++)buttons[i]=new CursedButton(BUTTONS[i][0],BUTTONS[i][1]);
+        var gen=new FreeTypeFontGenerator(Gdx.files.internal("ui/fonts/BebasNeue-Regular.ttf"));var p=new FreeTypeFontGenerator.FreeTypeFontParameter();p.spaceX=1;p.characters+="—·←→";
+        p.size=26;devFont=gen.generateFont(p);gen.dispose();
+        gen=new FreeTypeFontGenerator(Gdx.files.internal("ui/fonts/Rajdhani-SemiBold.ttf"));p.size=17;p.spaceX=0;devSmall=gen.generateFont(p);gen.dispose();
+        Pixmap px=new Pixmap(1,1,Pixmap.Format.RGBA8888);px.setColor(Color.WHITE);px.fill();pixel=new Texture(px);px.dispose();
+    }
+    @Override protected boolean needsFrames(){return super.needsFrames()||autoPlay||panelFade>0&&panelFade<1;}
     @Override protected void update(float dt){
-        super.update(dt);
-        if(autoPlay&&awaitingDraw()){autoDelay-=dt;if(autoDelay<=0){drawRandom();autoDelay=.35f;}}
+        super.update(dt);panelFade=MathUtils.clamp(panelFade+(devPanel?dt:-dt)*5,0,1);
+        if(autoPlay&&awaitingDraw()){autoDelay-=dt;if(autoDelay<=0){drawRandom();autoDelay=.45f;}}
         if(game!=null&&game.phase()==CursedCardsGame.Phase.FINISHED)autoPlay=false;
     }
-    @Override protected boolean needsFrames(){return super.needsFrames()||autoPlay;}
     private void press(int b){switch(b){
         case 0->setPlayers(players-1);case 1->setPlayers(players+1);case 2->startMatch();case 3->drawSelected();case 4->drawRandom();
-        case 5->autoPlay=!autoPlay;case 6->{autoPlay=false;resetMatch();}case 7->debug=!debug;case 8->resetCamera();default->{}}}
-
-    @Override protected void drawHud(){
-        super.drawHud();
-        int w=Gdx.graphics.getWidth();float bw=104,bh=38,gap=8,x0=(w-(BUTTONS.length*bw+(BUTTONS.length-1)*gap))*.5f;
-        for(int i=0;i<buttons.length;i++)buttons[i].set(x0+i*(bw+gap),18,bw,bh);
-        Gdx.gl.glEnable(GL20.GL_BLEND);shapes.setProjectionMatrix(batch.getProjectionMatrix());shapes.begin(ShapeRenderer.ShapeType.Filled);
-        for(int i=0;i<buttons.length;i++){var r=buttons[i];boolean off=!enabled(i),on=(i==5&&autoPlay)||(i==7&&debug);
-            shapes.setColor(.62f,.42f,.20f,off?.3f:1);shapes.rect(r.x-1.5f,r.y-1.5f,r.width+3,r.height+3);
-            shapes.setColor(on?.32f:hover==i&&!off?.22f:.10f,on?.07f:hover==i&&!off?.06f:.035f,on?.06f:.04f,.95f);shapes.rect(r.x,r.y,r.width,r.height);}
-        shapes.end();
-        batch.begin();
-        for(int i=0;i<buttons.length;i++){var r=buttons[i];font.setColor(enabled(i)?new Color(.95f,.82f,.6f,1):new Color(.5f,.42f,.34f,1));
-            var l=new GlyphLayout(font,BUTTONS[i]);font.draw(batch,BUTTONS[i],r.x+(r.width-l.width)*.5f,r.y+(r.height+l.height)*.5f);}
-        small.setColor(.6f,.55f,.5f,1);small.draw(batch,"DEV · PLAYERS "+players+" · DECK "+deckRules.size(players)+" · click a card of the glowing hand, click again or DRAW to take it · keys 2–8 ENTER SPACE A P R I C",24,Gdx.graphics.getHeight()-78);
-        if(debug)drawDebug();
-        batch.end();
-    }
+        case 5->autoPlay=!autoPlay;case 6->{autoPlay=false;resetMatch();}case 7->debug=!debug;default->{}}}
     private boolean enabled(int i){return switch(i){case 0,1,2->!presenting();case 3->awaitingDraw()&&selectedSlot>=0;case 4->awaitingDraw();case 5->game!=null&&game.phase()==CursedCardsGame.Phase.PLAYING;default->true;};}
-    /** Test-only: every hidden value over its card plus the authoritative state. Never shown in production. */
-    private void drawDebug(){
-        for(Card3D c:cards){if(!c.visible)continue;tmp.set(c.pose.position);tmp.y+=.02f;camera.project(tmp);if(tmp.z>=1)continue;
-            String v=c.value.label;var l=new GlyphLayout(small,v);small.setColor(c.value==CardValue.DEATH?new Color(1,.3f,.25f,1):new Color(.55f,1,.7f,1));small.draw(batch,v,tmp.x-l.width*.5f,tmp.y+l.height*.5f);}
-        if(game==null)return;float y=Gdx.graphics.getHeight()-110;
-        small.setColor(.55f,1,.7f,1);small.draw(batch,"DEBUG · phase "+game.phase()+" · drawer "+(game.current()+1)+" ← source "+(game.source()+1)+" · discarded "+game.discard().size()+"/"+game.deck().size(),24,y);
-        for(int p=0;p<game.players();p++){y-=20;StringBuilder s=new StringBuilder("P"+(p+1)+(game.safe(p)?" safe":"")+": ");for(CursedCard c:game.hand(p))s.append(c.death()?"DEATH":c.value()).append(' ');small.draw(batch,s.toString(),24,y);}
+
+    @Override protected void drawOverlay(SpriteBatch batch){
+        float k=view.height/1080f;
+        // Idle invitation (production-styled, only when nothing is in play).
+        if(game==null&&!presenting()){String t="PRESS ENTER TO SUMMON THE DEALER";devFont.getData().setScale(k*1.1f);layout.setText(devFont,t);float a=.55f+.25f*MathUtils.sin(System.nanoTime()*1e-9f*2);
+            devFont.setColor(.93f,.76f,.45f,a);devFont.draw(batch,t,view.x+(view.width-layout.width)*.5f,view.y+view.height*.44f);
+            String s=players+" PLAYERS  ·  F1 DEVELOPER PANEL";devSmall.getData().setScale(k);layout.setText(devSmall,s);devSmall.setColor(.8f,.72f,.6f,.6f);devSmall.draw(batch,s,view.x+(view.width-layout.width)*.5f,view.y+view.height*.44f-40*k);}
+        if(debug)drawValues(batch,k);
+        if(panelFade<=0)return;
+        // Developer panel: a dark strip at the bottom, separate from the production HUD.
+        float h=64*k,y=view.y;batch.setColor(0,0,0,.72f*panelFade);batch.draw(pixel,view.x,y,view.width,h);batch.setColor(.93f,.76f,.45f,.35f*panelFade);batch.draw(pixel,view.x,y+h,view.width,Math.max(1,k));batch.setColor(Color.WHITE);
+        float bw=150*k,gap=6*k,x0=view.x+(view.width-(buttons.length*bw+(buttons.length-1)*gap))*.5f;devFont.getData().setScale(k);
+        for(int i=0;i<buttons.length;i++){var b=buttons[i];b.bounds.set(x0+i*(bw+gap),y+8*k,bw,h-16*k);b.enabled=enabled(i)&&panelFade>.5f;b.on=(i==5&&autoPlay)||(i==7&&debug);
+            b.update(Gdx.graphics.getDeltaTime(),b.bounds.contains(mouseX,Gdx.graphics.getHeight()-mouseY),mouseDown);b.draw(batch,devFont);}
+        devSmall.getData().setScale(k);devSmall.setColor(.75f,.68f,.58f,.85f*panelFade);
+        String line="DEV · "+players+" PLAYERS · DECK "+deckRules.size(players)+(status.isEmpty()?"":" · "+status)+" · QUALITY "+quality;devSmall.draw(batch,line,view.x+16*k,y+h+24*k);
+    }
+    /** Test-only: every hidden value over its card plus the authoritative hands. Never part of production. */
+    private void drawValues(SpriteBatch batch,float k){
+        devSmall.getData().setScale(k);
+        for(Card3D c:cards){if(!c.visible)continue;tmp.set(c.pose.position);tmp.y+=.05f;camera.project(tmp,view.x,view.y,view.width,view.height);if(tmp.z>=1)continue;
+            String v=c.value.label;layout.setText(devSmall,v);devSmall.setColor(c.value==CardValue.DEATH?new Color(1,.35f,.3f,1):new Color(.6f,1,.75f,1));devSmall.draw(batch,v,tmp.x-layout.width*.5f,tmp.y+layout.height*.5f);}
+        if(game==null)return;float y=view.y+view.height-80*k;
+        for(int p=0;p<game.players();p++){StringBuilder s=new StringBuilder(names[p]).append(game.safe(p)?" (safe)":"").append(": ");for(CursedCard c:game.hand(p))s.append(c.death()?"DEATH":c.value()).append(' ');
+            devSmall.setColor(.6f,1,.75f,.9f);devSmall.draw(batch,s.toString(),view.x+16*k,y);y-=20*k;}
     }
     @Override protected InputAdapter input(){
         InputAdapter table=super.input();
         return new InputAdapter(){
             @Override public boolean keyDown(int k){
                 if(k>=Input.Keys.NUM_2&&k<=Input.Keys.NUM_8){setPlayers(k-Input.Keys.NUM_0);return true;}
-                switch(k){case Input.Keys.ENTER->startMatch();case Input.Keys.SPACE->drawSelected();case Input.Keys.A->drawRandom();case Input.Keys.P->autoPlay=!autoPlay;
-                    case Input.Keys.R->{autoPlay=false;resetMatch();}case Input.Keys.I->debug=!debug;case Input.Keys.C->resetCamera();default->{return false;}}return true;}
-            @Override public boolean touchDown(int x,int y,int p,int b){int i=button(x,y);if(i>=0){if(enabled(i))press(i);return true;}return table.touchDown(x,y,p,b);}
-            @Override public boolean touchDragged(int x,int y,int p){return table.touchDragged(x,y,p);}
-            @Override public boolean touchUp(int x,int y,int p,int b){return table.touchUp(x,y,p,b);}
-            @Override public boolean mouseMoved(int x,int y){hover=button(x,y);return false;}
-            @Override public boolean scrolled(float ax,float ay){return table.scrolled(ax,ay);}
+                switch(k){case Input.Keys.F1,Input.Keys.GRAVE->devPanel=!devPanel;case Input.Keys.ENTER->startMatch();case Input.Keys.SPACE->drawSelected();case Input.Keys.A->drawRandom();case Input.Keys.P->autoPlay=!autoPlay;
+                    case Input.Keys.R->{autoPlay=false;resetMatch();}case Input.Keys.I->debug=!debug;default->{return false;}}Gdx.graphics.requestRendering();return true;}
+            @Override public boolean touchDown(int x,int y,int p,int b){mouseDown=true;mouseX=x;mouseY=y;if(panelFade>.5f)for(int i=0;i<buttons.length;i++)if(buttons[i].contains(x,Gdx.graphics.getHeight()-y)){press(i);return true;}return table.touchDown(x,y,p,b);}
+            @Override public boolean touchUp(int x,int y,int p,int b){mouseDown=false;return false;}
+            @Override public boolean mouseMoved(int x,int y){mouseX=x;mouseY=y;if(panelFade>0)Gdx.graphics.requestRendering();return table.mouseMoved(x,y);}
         };
     }
-    private int button(int x,int y){int sy=Gdx.graphics.getHeight()-y;for(int i=0;i<buttons.length;i++)if(buttons[i]!=null&&buttons[i].contains(x,sy))return i;return -1;}
+    @Override public void dispose(){super.dispose();for(var b:buttons)b.dispose();devFont.dispose();devSmall.dispose();pixel.dispose();}
 }

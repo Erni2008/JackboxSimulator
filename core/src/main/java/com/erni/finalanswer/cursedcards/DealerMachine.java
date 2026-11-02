@@ -33,15 +33,16 @@ public final class DealerMachine implements Disposable {
     private final Sound start,click,stop;
     private State state=State.IDLE;
     private float stateTime,activity,recoil,recoilVelocity,flash,time;
-    public final float scale;
+    public final float scale;private final float tableTop;
+    /** Stand the machine on the table at (x, z) facing {@code yaw} (0 = slot toward +Z). Attachment points follow. */
+    public void place(float x,float z,float yaw){base.setToTranslation(x,tableTop-localBounds.min.y*scale,z).rotate(Vector3.Y,yaw).scale(scale,scale,scale);worldBounds.set(localBounds).mul(base);apply();}
 
     public DealerMachine(DealerConfig config,float tableTop,CursedCardsQuality quality){this(config,tableTop,quality,quality.model);}
     /** @param model explicit GLB (benchmarks against the full-resolution source). */
     public DealerMachine(DealerConfig config,float tableTop,CursedCardsQuality quality,String model){
         this.config=config;asset=new GLBLoader().load(Gdx.files.internal(model));scene=new Scene(asset.scene);
         scene.modelInstance.calculateBoundingBox(localBounds);scale=config.machineScale();
-        base.setToTranslation(0,tableTop-localBounds.min.y*scale,0).scale(scale,scale,scale);
-        worldBounds.set(localBounds).mul(base);
+        this.tableTop=tableTop;place(0,0,0);
         FileHandle glow=Gdx.files.internal(quality.glow);glowMask=glow.exists()?mipmapped(new Texture(glow,true)):buildGlowMask(Gdx.files.internal(quality.model));
         for(Material m:scene.modelInstance.materials){
             if(glowMask!=null)m.set(PBRTextureAttribute.createEmissiveTexture(glowMask));
@@ -60,6 +61,14 @@ public final class DealerMachine implements Disposable {
     /** Card leaves the slot: small backward kick, lamp flash, click. */
     public void dispense(){recoilVelocity-=1.4f;flash=1;play(click,.7f);}
     public void reset(){state=State.IDLE;stateTime=activity=recoil=recoilVelocity=flash=0;apply();}
+    private float presence=1;private final Array<com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute> fades=new Array<>();
+    /** 0..1: the machine evaporates (rises, shrinks, glows, fades) once it has dealt; 0 = not drawn at all. */
+    public void presence(float p){presence=MathUtils.clamp(p,0,1);
+        if(presence<1&&fades.isEmpty())for(Material m:scene.modelInstance.materials){var b=new com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute(1);m.set(b);fades.add((com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute)m.get(com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute.Type));}
+        if(presence>=1&&fades.notEmpty()){for(Material m:scene.modelInstance.materials)m.remove(com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute.Type);fades.clear();}
+        for(var b:fades)b.opacity=presence*presence;apply();}
+    public float presence(){return presence;}
+    public boolean visible(){return presence>0;}
 
     public void update(float dt){
         time+=dt;stateTime+=dt;
@@ -73,14 +82,14 @@ public final class DealerMachine implements Disposable {
         float k=260,d=2*(float)Math.sqrt(k);recoilVelocity+=(-k*recoil-d*recoilVelocity)*dt;recoil+=recoilVelocity*dt;flash=Math.max(0,flash-dt*3.2f);
         apply();
     }
-    private void apply(){
+    private void apply(){if(emissive==null||scene==null)return;
         float pulse=.5f+.5f*MathUtils.sin(time*6.2f),startFlicker=state==State.STARTING&&MathUtils.sin(stateTime*55)>.2f?.35f:1;
-        float glow=(IDLE_GLOW+activity*(.55f+.55f*pulse)*startFlicker+flash*.9f);
+        float glow=(IDLE_GLOW+activity*(.55f+.55f*pulse)*startFlicker+flash*.9f)+(1-presence)*2.2f;
         for(ColorAttribute c:emissive)c.color.set(glow,glow*.85f,glow*.85f,1);
-        slotLight.intensity=.04f+activity*(.18f+.12f*pulse)+flash*.35f;
+        slotLight.intensity=presence<=0?0:.04f+activity*(.18f+.12f*pulse)+flash*.35f+(1-presence)*.6f;
         float hum=activity*.0011f,jx=hum*(MathUtils.sin(time*71)+.5f*MathUtils.sin(time*113)),jy=hum*.6f*MathUtils.sin(time*89);
         Matrix4 m=scene.modelInstance.transform.set(base);
-        m.trn(jx,jy,recoil*.18f);m.rotate(Vector3.X,recoil*-20);
+        m.trn(jx,jy+(1-presence)*1.4f,recoil*.18f);m.rotate(Vector3.X,recoil*-20);float s=.55f+.45f*presence;m.scale(s,s,s);
     }
     /** Transform a model-local point/direction (unjittered placement). */
     public Vector3 worldPoint(Vector3 local,Vector3 out){return out.set(local).mul(base);}

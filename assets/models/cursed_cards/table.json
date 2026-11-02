@@ -1,0 +1,65 @@
+{
+  "comment": "THE CURSED CARDS table scene over the painted table in cursed_cards/background.png (1672x941). The camera below reproduces the painting's perspective: the felt plane is world y=0 and its gold oval maps to an ellipse of half extents playHalfLength x playHalfWidth (scale 1, world units). The rim ellipse is used to place chairs. Card height 0.88*1.35 world.",
+  "table": {
+    "painted": true,
+    "shape": "ellipse",
+    "scale": 1.0,
+    "yaw": 0,
+    "x": 0,
+    "z": 0,
+    "feltHeight": 4.454,
+    "playHalfLength": 10.4,
+    "playHalfWidth": 4.15,
+    "rimHalfLength": 12.0,
+    "rimHalfWidth": 5.85
+  },
+  "chair": {
+    "scale": 6.0,
+    "seatHeight": 0.457,
+    "seatCenterZ": 0.04,
+    "halfDepth": 0.19,
+    "rimGap": 0.55
+  },
+  "character": {
+    "height": 4.6,
+    "crop": 0.3,
+    "lean": 0.25
+  },
+  "machine": {
+    "x": 0,
+    "z": -0.2,
+    "yaw": 0
+  },
+  "discard": {
+    "x": 3.0,
+    "z": 0.2
+  },
+  "handInset": 1.4,
+  "handMaxWidth": 3.8,
+  "floorBelowFelt": 4.454,
+  "camera": {
+    "fov": 32,
+    "main": {
+      "distance": 28.99,
+      "pitch": 24,
+      "targetY": 0,
+      "targetZ": -5.03
+    },
+    "dealing": {
+      "distance": 11,
+      "pitch": 36
+    },
+    "turn": {
+      "minDistance": 16,
+      "pitch": 60
+    },
+    "elimination": {
+      "distance": 8,
+      "pitch": 40
+    },
+    "minHeight": 0,
+    "smoothing": 2.6,
+    "fixed": true,
+    "aspect": 1.7768331562167907
+  }
+}

@@ -39,7 +39,7 @@ public final class CardMotion {
     public CardMotion onStart(Runnable r){onStart=r;return this;}
     public CardMotion onEnd(Runnable r){onEnd=r;return this;}
 
-    private static float reach(CardPose p){return halfWidth*Math.abs(MathUtils.sinDeg(p.roll))*Math.abs(MathUtils.cosDeg(p.pitch))+halfHeight*Math.abs(MathUtils.sinDeg(p.pitch));}
+    private static float reach(CardPose p){return p.scale*halfWidth*Math.abs(MathUtils.sinDeg(p.roll))*Math.abs(MathUtils.cosDeg(p.pitch))+p.scale*halfHeight*Math.abs(MathUtils.sinDeg(p.pitch));}
     /** Advance by dt; returns leftover time once finished, or -1 while running. */
     float step(Card3D card,float dt){
         if(delay>0){delay-=dt;if(delay>0)return -1;dt=-delay;delay=0;}
@@ -49,7 +49,7 @@ public final class CardMotion {
         if(arc!=0)p.y+=arc*4*e*(1-e);
         card.pose.yaw=MathUtils.lerp(from.yaw,target.yaw,e)+wobble*bump;
         card.pose.pitch=MathUtils.lerp(from.pitch,target.pitch,e)+lift*bump;
-        card.pose.roll=MathUtils.lerp(from.roll,target.roll,e);
+        card.pose.roll=MathUtils.lerp(from.roll,target.roll,e);card.pose.scale=MathUtils.lerp(from.scale,target.scale,e);
         // A tilted/rolling card reaches further down than its centre: lift by whatever exceeds the end poses, so it never cuts into the table.
         float extra=reach(card.pose)-MathUtils.lerp(reach(from),reach(target),e);if(extra>0)p.y+=extra;
         if(t<1)return -1;

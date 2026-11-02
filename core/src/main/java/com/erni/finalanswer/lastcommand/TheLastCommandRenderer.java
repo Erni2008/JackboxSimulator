@@ -64,8 +64,8 @@ public final class TheLastCommandRenderer implements Disposable {
         IBLBuilder ibl = IBLBuilder.createIndoor(key);
         if(!style.legacyLook){
             // Neutral industrial room, with broad cool/warm emitter reflections baked only at load.
-            ibl.nearGroundColor.set(.035f,.037f,.04f,1);ibl.farGroundColor.set(.08f,.085f,.095f,1);
-            ibl.nearSkyColor.set(.34f,.37f,.42f,1);ibl.farSkyColor.set(.10f,.115f,.14f,1);
+            ibl.nearGroundColor.set(.09f,.095f,.10f,1);ibl.farGroundColor.set(.16f,.17f,.19f,1);
+            ibl.nearSkyColor.set(.52f,.55f,.60f,1);ibl.farSkyColor.set(.22f,.24f,.28f,1);
             ibl.lights.clear();environmentEmitter(ibl,key.direction,.88f,.9f,.92f,28);
             environmentEmitter(ibl,fill.direction,.24f,.30f,.40f,10);
             environmentEmitter(ibl,new Vector3(.3f,-.55f,.85f),.24f,.21f,.16f,16);

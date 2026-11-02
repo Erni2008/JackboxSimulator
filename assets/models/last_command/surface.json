@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "exposure": 1.12,
+  "exposure": 1.5,
   "body": {
     "coverage": 0.22,
     "relief": 0.95,
@@ -22,7 +22,7 @@
     "roughness": 0.9
   },
   "lighting": {
-    "ambient": 0.16,
+    "ambient": 0.32,
     "shadowBias": 0.0025,
     "shadowSpan": 3.1,
     "shadowDepth": 5,
@@ -37,9 +37,9 @@
       2.25
     ],
     "fillColor": [
-      0.36,
-      0.44,
-      0.56
+      0.8,
+      0.9,
+      1.05
     ],
     "rimColor": [
       0.55,

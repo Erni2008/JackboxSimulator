@@ -6,7 +6,7 @@ import com.badlogic.gdx.utils.Json;
 /** Artist-facing corrosion controls, independent from placement and button mechanics. */
 public final class LastCommandSurfaceStyle {
     public boolean enabled=true;
-    public float exposure=1.12f;
+    public float exposure=1.5f;
     public boolean legacyLook;
     public Lighting lighting=new Lighting();
     public Surface body=new Surface(.22f,.95f,.36f);
@@ -14,9 +14,9 @@ public final class LastCommandSurfaceStyle {
     public Surface cap=new Surface(.08f,1.05f,.32f);
     public Surface floor=new Surface(.25f,.55f,.90f);
     public static final class Lighting {
-        public float ambient=.16f,shadowBias=.0025f,shadowSpan=3.1f,shadowDepth=5f;
+        public float ambient=.32f,shadowBias=.0025f,shadowSpan=3.1f,shadowDepth=5f;
         public com.badlogic.gdx.math.Vector3 keyDirection=new com.badlogic.gdx.math.Vector3(-.55f,-.76f,-.4f);
-        public float[] keyColor={2.55f,2.45f,2.25f},fillColor={.36f,.44f,.56f},rimColor={.55f,.65f,.78f};
+        public float[] keyColor={2.55f,2.45f,2.25f},fillColor={.8f,.9f,1.05f},rimColor={.55f,.65f,.78f};
         void validate(){
             if(!Float.isFinite(ambient)||ambient<0||ambient>1||!Float.isFinite(shadowBias)||shadowBias<0||shadowBias>.01f||!Float.isFinite(shadowSpan)||shadowSpan<2.5f||shadowSpan>6||!Float.isFinite(shadowDepth)||shadowDepth<3||shadowDepth>10||keyDirection==null||keyDirection.isZero()||!Float.isFinite(keyDirection.len2()))throw new IllegalArgumentException("Invalid lighting settings");
             for(float[] color:new float[][]{keyColor,fillColor,rimColor}){if(color==null||color.length!=3)throw new IllegalArgumentException("Light needs RGB");for(float c:color)if(!Float.isFinite(c)||c<0||c>8)throw new IllegalArgumentException("Invalid light color");}

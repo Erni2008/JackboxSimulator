@@ -27,14 +27,16 @@ public final class CardAnimator {
     /** Cards above this height are on the machine's platform; moves to/from it arc high enough to clear the front panel. */
     public static float platformHeight=.3f;
     /** DEAL: the bottom card is drawn back under the stack into the machine, accelerates out of the slot, arcs to the player and settles. */
-    public float deal(Card3D card,DealPath path,CardPose destination,float delay,Runnable onDispense,Runnable onLanded){
+    public float deal(Card3D card,DealPath path,CardPose destination,float delay,Runnable onDispense,Runnable onLanded){return deal(card,path,destination,delay,0,onDispense,onLanded);}
+    /** @param minArc lowest allowed apex above the straight path (e.g. to clear the machine for seats behind it). */
+    public float deal(Card3D card,DealPath path,CardPose destination,float delay,float minArc,Runnable onDispense,Runnable onLanded){
         card.queue.add(CardMotion.to(path.feed,.34f,Ease.SMOOTH).delay(delay));
         card.queue.add(CardMotion.to(path.inside,0,Ease.LINEAR).visible(false));
         card.queue.add(CardMotion.to(path.inside,.08f,Ease.LINEAR).visible(true));
         card.queue.add(CardMotion.to(path.outside,.38f,Ease.ACCELERATE).onStart(onDispense));
         float distance=path.outside.position.dst(destination.position);
         tmp.set(destination);tmp.position.y+=.018f;
-        card.queue.add(CardMotion.to(tmp,.62f+.25f*distance,Ease.DECELERATE).arc(.16f+.12f*distance).lift(-12).wobble(8));
+        card.queue.add(CardMotion.to(tmp,.62f+.25f*distance,Ease.DECELERATE).arc(Math.max(minArc,.16f+.12f*distance)).lift(-12).wobble(8));
         card.queue.add(CardMotion.to(destination,.22f,Ease.DECELERATE).onEnd(onLanded));
         return delay+.34f+.08f+.38f+.62f+.25f*distance+.22f;
     }
