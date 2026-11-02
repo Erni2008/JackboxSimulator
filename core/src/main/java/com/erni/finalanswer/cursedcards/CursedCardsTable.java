@@ -31,8 +31,10 @@ import java.util.List;
  */
 public class CursedCardsTable extends ApplicationAdapter implements CursedCardsListener {
     public static final int MAX_CARDS=25;
-    public static final String BACKGROUND="cursed_cards/background.png";
+    public static final String BACKGROUND="cursed_cards/background.jpg";
     private static final float DEAL_INTERVAL=.5f;
+    /** Fan pitch as a fraction of card width: cards overlap by about a fifth, so each stays readable without sprawling. */
+    private static final float FAN_SPACING=.8f;
 
     // scene
     protected PerspectiveCamera camera;
@@ -51,10 +53,10 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     private FrameBuffer lowRes;private int lowW,lowH;
     /** Contact shadows on the painted felt (one per card, one under the machine) and the two hand glows (turn cues). */
     private final ModelInstance[] cardShadows=new ModelInstance[MAX_CARDS];private ModelInstance machineShadow,activeGlow,targetGlow;
-    private DirectionalLightEx key;private final PointLightEx warm=new PointLightEx();
+    private DirectionalLightEx key,moon;private final PointLightEx warm=new PointLightEx();
     protected SpriteBatch batch;
     protected CursedHud hud;protected final CursedHud.Frame hudFrame=new CursedHud.Frame();
-    protected TableFx fx;
+    protected TableFx fx;protected BackdropFx backdrop;
     /** Seated character sprites: none in the project are suitable yet, so the layer draws nothing; anchors are ready. */
     protected CharacterActions actions=NO_ACTIONS;
     private static final CharacterActions NO_ACTIONS=new CharacterActions(){public void idle(int s){}public void lookAtCards(int s){}public void drawCard(int s){}public void receiveCard(int s){}public void discardPair(int s){}public void nervous(int s){}public void survive(int s){}public void eliminate(int s){}};
@@ -99,7 +101,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
 
     @Override public void create(){
         DealerConfig config=DealerConfig.load();
-        tableConfig=TableConfig.load();
+        tableConfig=TableConfig.load();tableConfig.cardHalfHeight=config.card.height*.5f;
         camera=new PerspectiveCamera(tableConfig.camera.fov,Gdx.graphics.getWidth(),Gdx.graphics.getHeight());camera.near=.2f;camera.far=140;director=new CameraDirector(tableConfig.camera);
         PBRShaderConfig shader=PBRShaderProvider.createDefaultConfig();shader.numBones=0;shader.numDirectionalLights=quality==CursedCardsQuality.LOW?1:2;shader.numPointLights=quality.pointLights;shader.numSpotLights=0;
         DepthShader.Config depth=PBRShaderProvider.createDefaultDepthConfig();depth.numBones=0;
@@ -117,20 +119,20 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         computePaths(config);layoutSeats();
         var providers=scene.getRenderableProviders();
         providers.add((out,pool)->{if(machine.visible())machine.scene.getRenderables(out,pool);});providers.add(this::feltRenderables);providers.add(this::cardRenderables);
-        batch=new SpriteBatch();hud=new CursedHud();fx=new TableFx();
+        batch=new SpriteBatch();hud=new CursedHud();fx=new TableFx();backdrop=new BackdropFx(tableConfig.backdrop.moonU,tableConfig.backdrop.moonV);
         director.main();director.snap();
         Gdx.input.setInputProcessor(input());
         warmUp();
-        // HIGH/MEDIUM render every display frame for perfectly even motion; LOW renders on demand to save battery.
-        Gdx.graphics.setContinuousRendering(quality!=CursedCardsQuality.LOW);Gdx.graphics.requestRendering();
+        // Every display frame is rendered: the backdrop is alive and motion stays perfectly even (the scene costs ~2–4 ms).
+        Gdx.graphics.setContinuousRendering(true);
         Gdx.app.log("CursedCards","quality "+quality);
     }
     /** Compile every shader variant at load (cards face up/down, glowing) so the first deal does not hitch. */
     private void warmUp(){
         resize(Gdx.graphics.getWidth(),Gdx.graphics.getHeight());
-        for(int i=0;i<cards.size;i++){Card3D c=cards.get(i);deckPose(i,c.pose);if(i%2==0)c.pose.roll=0;if(i%3==0)c.glow(1,.2f,.1f,.5f);c.visible=true;c.sync();}
+        for(int i=0;i<cards.size;i++){Card3D c=cards.get(i);deckPose(i,c.pose);if(i%2==0)c.pose.roll=0;if(i%3==0)c.glow(1,.2f,.1f,.5f);if(i%4==0)c.opacity(.5f);c.visible=true;c.sync();}
         activeAmount=targetAmount=1;scene.update(0);renderScene();Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT|GL20.GL_DEPTH_BUFFER_BIT);activeAmount=targetAmount=0;
-        for(Card3D c:cards){c.visible=false;c.glow(0,0,0,0);}
+        for(Card3D c:cards){c.visible=false;c.glow(0,0,0,0);c.opacity(1);}
     }
     /** True while anything on screen changes; otherwise no frames are drawn until the next input. */
     protected boolean needsFrames(){return presenting()||machine.active()||machine.presence()!=machineTarget||cameraMoving||burning.notEmpty()||fx.active()||hud.animating()
@@ -264,7 +266,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
      */
     protected CardPose handPose(int player,int k,int n,CardPose out){
         SeatLayout.Seat seat=seatList.get(player);float yaw=seat.handYaw,u=k-(n-1)*.5f;
-        float spread=Math.max(0,seat.handWidth-cardWidth),gap=n>1?Math.min(cardWidth*.62f,spread/(n-1)):0,radius=4.2f,angle=MathUtils.radDeg*(gap/radius);
+        float spread=Math.max(0,seat.handWidth-cardWidth),gap=n>1?Math.min(cardWidth*FAN_SPACING,spread/(n-1)):0,radius=5.5f,angle=MathUtils.radDeg*(gap/radius);
         float a=-u*angle;
         // pivot lies toward the player; card centres sit on an arc around it
         float px=seat.hand.x+seat.normal.x*radius,pz=seat.hand.z+seat.normal.z*radius,ca=MathUtils.cosDeg(a),sa=MathUtils.sinDeg(a);
@@ -290,7 +292,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         float dt=frameDelta()*timeScale;update(dt);
         Gdx.gl.glClearColor(0,0,0,1);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT|GL20.GL_DEPTH_BUFFER_BIT);
         batch.getProjectionMatrix().setToOrtho2D(0,0,Gdx.graphics.getWidth(),Gdx.graphics.getHeight());
-        batch.begin();batch.disableBlending();batch.draw(background,view.x,view.y,view.width,view.height);batch.enableBlending();drawCharacters(batch);batch.end();
+        batch.begin();backdrop.draw(batch,background,view.x,view.y,view.width,view.height);drawCharacters(batch);batch.end();
         Gdx.gl.glClear(GL20.GL_DEPTH_BUFFER_BIT);
         scene.update(dt);renderScene();
         Gdx.gl.glViewport(0,0,Gdx.graphics.getBackBufferWidth(),Gdx.graphics.getBackBufferHeight());
@@ -314,7 +316,9 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     protected void update(float dt){
         clock+=dt;
         while(clock>=stepUntil&&!steps.isEmpty()){float d=steps.peek().run();if(d<0)break;steps.poll();stepUntil=clock+d;}
-        animator.update(cards,dt);machine.update(dt);fx.update(dt);hud.update(dt);
+        animator.update(cards,dt);machine.update(dt);fx.update(dt);hud.update(dt);backdrop.update(dt);
+        // lightning also lights the 3D objects on the table, so they stay part of the painted room
+        float f=backdrop.flash();key.intensity=2.6f+f*2.2f;key.updateColor();if(moon!=null){moon.intensity=1.3f+f*3f;moon.updateColor();}
         machine.slotLight.position.set(path.outside.position).add(0,.06f,-.25f);
         // burning pairs: crimson glow rises, embers, then gone
         for(int i=burning.size-1;i>=0;i--){Card3D c=burning.get(i);c.vanish+=dt/.55f;c.pose.position.y+=dt*.35f;c.sync();
@@ -343,7 +347,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         if(activeAmount>0&&glowDrawer>=0){placeGlow(activeGlow,glowDrawer,activeAmount*(.4f+.1f*MathUtils.sin(clock*2.6f)));activeGlow.getRenderables(out,pool);}
         if(targetAmount>0&&glowSource>=0){placeGlow(targetGlow,glowSource,targetAmount*.22f);targetGlow.getRenderables(out,pool);}
     }
-    private void placeGlow(ModelInstance g,int seat,float a){var st=seatList.get(seat);int n=Math.max(1,hands.get(seat).size);float w=Math.min(st.handWidth,cardWidth+(n-1)*cardWidth*.62f)+1.4f;
+    private void placeGlow(ModelInstance g,int seat,float a){var st=seatList.get(seat);int n=Math.max(1,hands.get(seat).size);float w=Math.min(st.handWidth,cardWidth+(n-1)*cardWidth*FAN_SPACING)+1.4f;
         g.transform.setToTranslation(st.hand.x,.002f,st.hand.z).rotate(Vector3.Y,st.handYaw).scale(w*1.15f,1,cardHeight*1.9f);opacity(g,a);}
     private static void opacity(ModelInstance m,float a){((BlendingAttribute)m.materials.first().get(BlendingAttribute.Type)).opacity=a;}
     private void cardRenderables(Array<Renderable> out,Pool<Renderable> pool){
@@ -392,7 +396,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     /** Lights matched to the painting: warm candle key from the left, cool moonlight rim from the windows, warm fill above. */
     private void buildLights(){
         key=new DirectionalLightEx();key.set(new Color(1,.80f,.60f,1),new Vector3(.45f,-1,-.35f).nor(),2.6f);scene.environment.add(key);
-        if(quality!=CursedCardsQuality.LOW){var moon=new DirectionalLightEx();moon.set(new Color(.55f,.66f,1,1),new Vector3(-.15f,-.45f,1).nor(),1.3f);scene.environment.add(moon);}
+        if(quality!=CursedCardsQuality.LOW){moon=new DirectionalLightEx();moon.set(new Color(.55f,.66f,1,1),new Vector3(-.15f,-.45f,1).nor(),1.3f);scene.environment.add(moon);}
         if(quality.pointLights>1){warm.set(new Color(1,.68f,.42f,1),new Vector3(0,6,3.5f),70f,40f);scene.environment.add(warm);}
         var builder=IBLBuilder.createIndoor(key);builder.nearGroundColor.set(.22f,.06f,.05f,1);builder.farGroundColor.set(.06f,.02f,.02f,1);builder.nearSkyColor.set(.38f,.26f,.22f,1);builder.farSkyColor.set(.12f,.12f,.2f,1);
         try{diffuse=builder.buildIrradianceMap(quality.irradiance);specular=builder.buildRadianceMap(quality==CursedCardsQuality.LOW?5:7);}finally{builder.dispose();}
@@ -431,6 +435,6 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     }
     @Override public void dispose(){
         scene.dispose();machine.dispose();faces.dispose();cardModel.dispose();quadModel.dispose();blob.dispose();if(lowRes!=null)lowRes.dispose();
-        diffuse.dispose();specular.dispose();brdf.dispose();background.dispose();batch.dispose();hud.dispose();fx.dispose();
+        diffuse.dispose();specular.dispose();brdf.dispose();background.dispose();batch.dispose();hud.dispose();fx.dispose();backdrop.dispose();
     }
 }

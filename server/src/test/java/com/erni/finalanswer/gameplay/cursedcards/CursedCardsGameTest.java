@@ -10,7 +10,7 @@ class CursedCardsGameTest {
 
     @Test void deckForEveryPlayerCountHasOneDeathAndEvenValues(){
         var deck=new CursedDeck();
-        for(int p=2;p<=8;p++)for(int seed=0;seed<200;seed++){
+        for(int p=4;p<=8;p++)for(int seed=0;seed<200;seed++){
             var cards=deck.build(p,new Random(seed));assertEquals(SIZES[p],cards.size());
             assertEquals(1,cards.stream().filter(CursedCard::death).count());
             Map<Integer,Integer> counts=new HashMap<>();for(var c:cards)if(!c.death()){assertTrue(c.value()>=1&&c.value()<=10);counts.merge(c.value(),1,Integer::sum);}
@@ -19,26 +19,27 @@ class CursedCardsGameTest {
         }
     }
     @Test void customSizesAndValuesAreValidated(){
-        int[] sizes=SIZES.clone();sizes[3]=11;var deck=new CursedDeck(sizes,new int[]{7});
-        var cards=deck.build(3,new Random(1));assertEquals(11,cards.size());assertTrue(cards.stream().filter(c->!c.death()).allMatch(c->c.value()==7));
+        int[] sizes=SIZES.clone();sizes[4]=11;var deck=new CursedDeck(sizes,new int[]{7});
+        var cards=deck.build(4,new Random(1));assertEquals(11,cards.size());assertTrue(cards.stream().filter(c->!c.death()).allMatch(c->c.value()==7));
         int[] bad=SIZES.clone();bad[4]=12;assertThrows(IllegalArgumentException.class,()->new CursedDeck(bad,new int[]{1}));
         assertThrows(IllegalArgumentException.class,()->new CursedDeck().build(9,new Random()));
-        assertThrows(IllegalArgumentException.class,()->new CursedDeck().build(1,new Random()));
+        assertThrows(IllegalArgumentException.class,()->new CursedDeck().build(3,new Random()),"fewer than 4 players is not supported");
     }
     @Test void dealIsBalancedAndInitialPairsAreDiscarded(){
-        for(int p=2;p<=8;p++){var g=CursedCardsGame.create(p,new CursedDeck(),new Random(p));int[] dealt=new int[p];
+        for(int p=4;p<=8;p++){var g=CursedCardsGame.create(p,new CursedDeck(),new Random(p));int[] dealt=new int[p];
             g.addListener(new CursedCardsListener(){public void dealt(CursedCard c,int to){dealt[to]++;}});g.start();
             int min=Arrays.stream(dealt).min().getAsInt(),max=Arrays.stream(dealt).max().getAsInt();assertTrue(max-min<=1,Arrays.toString(dealt));
             for(int q=0;q<p;q++)assertNoPairs(g.hand(q));conserved(g);}
     }
     @Test void pairRemovalHandlesFourOfAKindAndNeverPairsDeath(){
-        List<CursedCard> deck=List.of(c(0,4),c(1,9),c(2,4),c(3,9),c(4,4),c(5,0),c(6,4));
-        var g=new CursedCardsGame(2,deck,new Random(0));List<int[]> pairs=new ArrayList<>();
+        // Round-robin to 4 players: P0 gets ids 0,4,8,12 (four 4s), P1 9,9,DEATH, P2 7,7,3, P3 3,6,6.
+        List<CursedCard> deck=List.of(c(0,4),c(1,9),c(2,7),c(3,3),c(4,4),c(5,9),c(6,7),c(7,6),c(8,4),c(9,0),c(10,3),c(11,6),c(12,4));
+        var g=new CursedCardsGame(4,deck,new Random(0));List<int[]> pairs=new ArrayList<>();
         g.addListener(new CursedCardsListener(){public void pairRemoved(int p,CursedCard a,CursedCard b){assertEquals(a.value(),b.value());assertFalse(a.death());pairs.add(new int[]{p,a.value()});}});
         g.start();
-        // P0 gets 4,4,4,4 (ids 0,2,4,6) -> two pairs; P1 gets 9,9,DEATH -> one pair, DEATH stays.
-        assertEquals(3,pairs.size());assertEquals(0,g.handSize(0));assertEquals(List.of(c(5,0)),g.hand(1));
-        assertEquals(CursedCardsGame.Phase.FINISHED,g.phase());assertEquals(1,g.loser());
+        // Four of a kind -> two pairs; the 9s, 7s and 6s pair once each; DEATH never pairs.
+        assertEquals(5,pairs.size());assertEquals(0,g.handSize(0));assertEquals(List.of(c(9,0)),g.hand(1));
+        assertEquals(List.of(c(10,3)),g.hand(2));assertEquals(List.of(c(3,3)),g.hand(3));assertEquals(CursedCardsGame.Phase.PLAYING,g.phase());
     }
     @Test void turnsGoClockwiseAndSkipEmptyHands(){
         // P0: 1,2   P1: 1,3   P2: 2,DEATH   P3: 3,5   P4: 5 ... crafted so nobody starts with a pair.
@@ -58,7 +59,7 @@ class CursedCardsGameTest {
         conserved(g);
     }
     @Test void randomMatchesAlwaysEndWithOneDeathHolderAndConserveCards(){
-        for(int p=2;p<=8;p++)for(int seed=0;seed<300;seed++){
+        for(int p=4;p<=8;p++)for(int seed=0;seed<300;seed++){
             var g=CursedCardsGame.create(p,new CursedDeck(),new Random(seed*31+p));int[] finished={0};int[] loser={-2};List<Integer> survivors=new ArrayList<>();
             g.addListener(new CursedCardsListener(){
                 public void turnChanged(int d,int s){assertNotEquals(d,s);assertTrue(g.handSize(d)>0&&g.handSize(s)>0);}

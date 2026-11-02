@@ -35,7 +35,7 @@
     "z": 0.2
   },
   "handInset": 1.4,
-  "handMaxWidth": 3.8,
+  "handMaxWidth": 6.0,
   "floorBelowFelt": 4.454,
   "camera": {
     "fov": 32,
@@ -61,5 +61,10 @@
     "smoothing": 2.6,
     "fixed": true,
     "aspect": 1.7768331562167907
-  }
+  },
+  "backdrop": {
+    "moonU": 0.6172,
+    "moonV": 0.1181
+  },
+  "nearMargin": 1.1
 }

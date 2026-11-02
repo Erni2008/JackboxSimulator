@@ -13,7 +13,7 @@ public enum CursedCardsQuality {
     MEDIUM("medium","models/cursed_cards/shufle_glow_1024.png",1024,16,1,768,true,.8f),
     LOW("low","models/cursed_cards/shufle_glow_512.png",0,8,1,576,false,.67f);
 
-    public final String model,chair,glow;
+    public final String model,glow;
     /** 3D layer resolution relative to the screen (upscaled; the 2D backdrop and HUD stay sharp). */
     public final float renderScale;
     /** Shadow map size; 0 disables the shadow pass. */
@@ -21,7 +21,7 @@ public enum CursedCardsQuality {
     /** Animated turn outline (forces continuous frames while waiting for a draw). */
     public final boolean pulse;
     CursedCardsQuality(String tier,String glow,int shadowMap,int irradiance,int pointLights,int faceHeight,boolean pulse,float renderScale){
-        model="models/cursed_cards/shufle_"+tier+".glb";chair="models/cursed_cards/chair_"+tier+".glb";this.renderScale=renderScale;this.glow=glow;this.shadowMap=shadowMap;this.irradiance=irradiance;this.pointLights=pointLights;this.faceHeight=faceHeight;this.pulse=pulse;}
+        model="models/cursed_cards/shufle_"+tier+".glb";this.renderScale=renderScale;this.glow=glow;this.shadowMap=shadowMap;this.irradiance=irradiance;this.pointLights=pointLights;this.faceHeight=faceHeight;this.pulse=pulse;}
     public static CursedCardsQuality detect(){
         String forced=System.getProperty("cursedcards.quality","");
         for(var q:values())if(q.name().equalsIgnoreCase(forced))return q;

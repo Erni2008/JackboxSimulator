@@ -17,7 +17,7 @@ import java.util.EnumMap;
  * Missing source art is replaced by procedural placeholders and reported through {@link #missing}.
  */
 public final class CardFaces implements Disposable {
-    public static final String BACK_FILE="cursed_cards/cards/card_back.png",FRONT_FILE="cursed_cards/cards/card_front_blank.png";
+    public static final String BACK_FILE="cursed_cards/cards/card_back.jpg",FRONT_FILE="cursed_cards/cards/card_front_blank.jpg";
     static final int W=512,H=716;
     public final Texture back;
     private final Texture blank;
@@ -34,13 +34,13 @@ public final class CardFaces implements Disposable {
         BitmapFont big=font(generator,280,"0123456789"),small=font(generator,74,"0123456789"),death=font(horror,150,"DEATH"),deathSmall=font(horror,44,"DEATH");
         generator.dispose();horror.dispose();
         var fbo=new FrameBuffer(Pixmap.Format.RGBA8888,W,H,false);var batch=new SpriteBatch();
-        try{for(CardValue value:CardValue.values()){FileHandle art=Gdx.files.internal(faceFile(value));
+        try{for(CardValue value:CardValue.values()){FileHandle art=art(faceFile(value));
             fronts.put(value,art.exists()?loadArt(art):compose(fbo,batch,value,value==CardValue.DEATH?death:big,value==CardValue.DEATH?deathSmall:small));}}
         finally{fbo.dispose();batch.dispose();big.dispose();small.dispose();death.dispose();deathSmall.dispose();}
     }
     public Texture front(CardValue value){return fronts.get(value);}
     /** Optional finished face art per value (e.g. card_10.png, card_death.png); used as-is instead of printing on the blank. */
-    public static String faceFile(CardValue value){return "cursed_cards/cards/card_"+value.label.toLowerCase(java.util.Locale.ROOT)+".png";}
+    public static String faceFile(CardValue value){return "cursed_cards/cards/card_"+value.label.toLowerCase(java.util.Locale.ROOT)+".jpg";}
     private Texture loadArt(FileHandle file){Pixmap p=fit(new Pixmap(file));try{return texture(p);}finally{p.dispose();}}
     private Pixmap fit(Pixmap p){
         if(p.getHeight()<=maxHeight)return p;
@@ -48,8 +48,10 @@ public final class CardFaces implements Disposable {
         out.setFilter(Pixmap.Filter.BiLinear);out.setBlending(Pixmap.Blending.None);out.drawPixmap(p,0,0,p.getWidth(),p.getHeight(),0,0,w,h);p.dispose();return out;}
     public boolean placeholders(){return missing.notEmpty();}
 
+    /** Art may ship as .jpg (default, small) or .png. */
+    static FileHandle art(String path){FileHandle f=Gdx.files.internal(path);if(f.exists())return f;FileHandle png=Gdx.files.internal(path.replace(".jpg",".png"));return png.exists()?png:f;}
     private Texture load(String path,boolean isBack){
-        FileHandle file=Gdx.files.internal(path);Pixmap pixmap;
+        FileHandle file=art(path);Pixmap pixmap;
         if(file.exists())pixmap=fit(new Pixmap(file));else{missing.add(path);pixmap=isBack?placeholderBack():placeholderFront();}
         try{return texture(pixmap);}finally{pixmap.dispose();}
     }

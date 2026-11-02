@@ -14,13 +14,13 @@ import java.util.*;
  * Screenshots go to -Dout=dir.
  */
 public final class CursedCardsPrototypeCheck extends CursedCardsPrototype {
-    private final String out=System.getProperty("out","/tmp");private final int[] counts={2,3,4,6,8};
+    private final String out=System.getProperty("out","/tmp");private final int[] counts={4,5,6,7,8};
     private int match,turns,textures=-1;private float t;private boolean started,manualDone,midShot,dealShot;private String pending;private final List<String> log=new ArrayList<>();private boolean failed;
     @Override public void create(){super.create();timeScale=3;Gdx.graphics.setContinuousRendering(true);layoutChecks();}
     /** Static scene geometry for every player count: chairs/characters/hands placed without intersections. */
     private void layoutChecks(){
         var t=tableConfig.table;float chairWidth=.54f*tableConfig.chair.scale;var mb=machine.worldBounds();
-        for(int n=2;n<=8;n++){var seats=SeatLayout.layout(tableConfig,n);boolean ok=seats.size==n,outside=true,apart=true,inside=true,clearMachine=true;
+        for(int n=CursedDeck.MIN_PLAYERS;n<=8;n++){var seats=SeatLayout.layout(tableConfig,n);boolean ok=seats.size==n,outside=true,apart=true,inside=true,clearMachine=true;
             for(int i=0;i<seats.size;i++){var st=seats.get(i);
                 float seatDepth=tableConfig.chair.halfDepth*tableConfig.chair.scale;
                 // chair front edge stays outside the rim
@@ -49,8 +49,10 @@ public final class CursedCardsPrototypeCheck extends CursedCardsPrototype {
         if(resetNext&&t>-.8f){resetNext=false;resetMatch();}
         if(match>=counts.length)return;
         if(!started){if(!seated&&t>.5f){if(textures<0)textures=Texture.getNumManagedTextures();setPlayers(counts[match]);seated=true;t=0;if(match==0)resizeCheck();}
-            else if(seated&&t>3f&&!mainShot){mainShot=true;shot("m"+counts[match]+"-0-main");}
-            else if(mainShot&&t>3.3f){startMatch();started=true;seated=mainShot=false;t=0;}return;}
+            else if(seated&&t>2.75f&&t<2.8f&&match==counts.length-1)backdrop.strike();
+            else if(seated&&t>2.86f&&!flashShot&&match==counts.length-1){flashShot=true;shot("m"+counts[match]+"-0-lightning");}
+            else if(seated&&t>3.6f&&!mainShot){mainShot=true;shot("m"+counts[match]+"-0-main");}
+            else if(mainShot&&t>3.9f){startMatch();started=true;seated=mainShot=false;t=0;}return;}
         if(!dealShot&&t>3.5f*1){dealShot=true;shot("m"+players+"-1-dealing");}
         if(awaitingDraw()){
             turns++;mirror();
@@ -70,7 +72,7 @@ public final class CursedCardsPrototypeCheck extends CursedCardsPrototype {
             if(match==counts.length){check(Texture.getNumManagedTextures()==textures,"no texture growth across matches ("+textures+" -> "+Texture.getNumManagedTextures()+")");finishSoon=true;}
         }
     }
-    private boolean finishSoon,resetNext,seated,mainShot;private float finishedAt=-1;
+    private boolean finishSoon,resetNext,seated,mainShot;private float finishedAt=-1;private boolean flashShot;
     /** Visual hands equal rules hands slot-for-slot, all face down, nothing visible that is not in a hand or the pile. */
     private void mirror(){
         boolean same=true,down=true;

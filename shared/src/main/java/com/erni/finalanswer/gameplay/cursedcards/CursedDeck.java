@@ -7,7 +7,8 @@ import java.util.*;
  * Sizes per player count are configurable; defaults follow the design table (2→7 … 8→25).
  */
 public final class CursedDeck {
-    public static final int MIN_PLAYERS=2,MAX_PLAYERS=8;
+    /** THE CURSED CARDS is designed for 4–8 players. */
+    public static final int MIN_PLAYERS=4,MAX_PLAYERS=8;
     private static final int[] DEFAULT_SIZES={0,0,7,9,13,15,19,21,25};
     private final int[] sizes;private final int[] values;
 
@@ -26,5 +27,5 @@ public final class CursedDeck {
         for(int i=0;i<pairs;i++){if(pool.isEmpty()){for(int v:values)pool.add(v);Collections.shuffle(pool,random);}int v=pool.remove(pool.size()-1);deck.add(new CursedCard(id++,v));deck.add(new CursedCard(id++,v));}
         deck.add(new CursedCard(id,CursedCard.DEATH));Collections.shuffle(deck,random);return deck;
     }
-    static void check(int players){if(players<MIN_PLAYERS||players>MAX_PLAYERS)throw new IllegalArgumentException("players must be 2–8: "+players);}
+    static void check(int players){if(players<MIN_PLAYERS||players>MAX_PLAYERS)throw new IllegalArgumentException("players must be 4–8: "+players);}
 }

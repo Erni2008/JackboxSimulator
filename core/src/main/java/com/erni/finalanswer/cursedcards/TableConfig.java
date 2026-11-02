@@ -16,7 +16,14 @@ public final class TableConfig {
     public float handInset=1.35f,handMaxWidth=2.8f,floorBelowFelt=5.37f;
     /** Nameplate distance from the hand centre toward the player (world units on the felt). */
     public float handPlate=1.45f;
+    /** Extra felt margin toward the near rim (+Z), whose painted skull ornament rises above the felt edge on screen. */
+    public float nearMargin=1.1f;
+    /** Half the table-size card height; set from the dealer config so the fan fit includes the card ends. */
+    public float cardHalfHeight=.9f;
     public Camera camera=new Camera();
+    /** Backdrop animation: moon position in the painting (u from left, v from top), from tools/assets/cursed_cards_backdrop.py. */
+    public Backdrop backdrop=new Backdrop();
+    public static final class Backdrop{public float moonU=.617f,moonV=.118f;}
 
     public static final class Table{
         /** true: the table is painted in the backdrop (no 3D table/floor; the camera matches the painting). */

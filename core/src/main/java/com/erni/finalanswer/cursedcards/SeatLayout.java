@@ -49,12 +49,16 @@ public final class SeatLayout {
     /** Keep the whole fan on the felt: narrow it, then move it toward the centre (the oval narrows at its ends). */
     private static void fitHand(TableConfig c,Seat s){
         var t=c.table;float margin=.35f;
-        for(int guard=0;guard<40&&!fits(t,s,margin);guard++){if(s.handWidth>1.4f)s.handWidth*=.9f;else s.hand.mulAdd(s.normal,-.2f);}
+        // Prefer sliding the fan toward the centre (keeps cards apart); narrow it only when that is not enough.
+        float moved=0;for(int guard=0;guard<80&&!fits(c,s,margin);guard++){if(moved<1.6f){s.hand.mulAdd(s.normal,-.2f);moved+=.2f;}else if(s.handWidth>1.4f)s.handWidth*=.93f;else s.hand.mulAdd(s.normal,-.2f);}
         s.interaction.set(s.hand).add(0,.35f,0);
-        s.plate.set(s.hand).mulAdd(s.normal,c.handPlate);
+        // Near-side plates go on the inner side of the fan so they never sit on the painted rim ornament.
+        if(s.normal.z>.5f)s.plate.set(s.hand).mulAdd(s.normal,-c.handPlate);else s.plate.set(s.hand).mulAdd(s.normal,c.handPlate);
     }
-    private static boolean fits(TableConfig.Table t,Seat s,float margin){float tx=MathUtils.cosDeg(s.handYaw),tz=-MathUtils.sinDeg(s.handYaw);
-        for(float u:new float[]{-.5f,.5f})if(!t.onFelt(s.hand.x+tx*u*s.handWidth,s.hand.z+tz*u*s.handWidth,margin))return false;return true;}
+    /** The whole fan, including the card ends toward and away from the player, stays on the felt; extra margin on the near side. */
+    private static boolean fits(TableConfig c,Seat s,float margin){var t=c.table;float tx=MathUtils.cosDeg(s.handYaw),tz=-MathUtils.sinDeg(s.handYaw),half=c.cardHalfHeight;
+        for(float u:new float[]{-.5f,0,.5f})for(float v:new float[]{-1,1}){float x=s.hand.x+tx*u*s.handWidth+s.normal.x*v*half,z=s.hand.z+tz*u*s.handWidth+s.normal.z*v*half;
+            float m=margin+(z>0?c.nearMargin*Math.min(1,z/t.playB()):0);if(!t.onFelt(x,z,m))return false;}return true;}
     public static Array<Seat> layout(TableConfig c,int players){
         if(players<2||players>8)throw new IllegalArgumentException("players 2–8: "+players);
         var t=c.table;float straight=t.rimA()-t.rimB(),playStraight=t.playA()-t.playB();
@@ -82,7 +86,7 @@ public final class SeatLayout {
             seats.add(s);
         }
         // Hand width: share of the gap to the nearest neighbouring hand.
-        for(int i=0;i<seats.size;i++){Seat s=seats.get(i);float nearest=Float.MAX_VALUE;for(int j=0;j<seats.size;j++)if(j!=i)nearest=Math.min(nearest,seats.get(j).hand.dst(s.hand));s.handWidth=Math.min(c.handMaxWidth,nearest*.78f);fitHand(c,s);}
+        for(int i=0;i<seats.size;i++){Seat s=seats.get(i);float nearest=Float.MAX_VALUE;for(int j=0;j<seats.size;j++)if(j!=i)nearest=Math.min(nearest,seats.get(j).hand.dst(s.hand));s.handWidth=Math.min(c.handMaxWidth,nearest*.74f);fitHand(c,s);}
         return seats;
     }
 }

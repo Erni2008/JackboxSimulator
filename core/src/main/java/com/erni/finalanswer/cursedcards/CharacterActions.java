@@ -2,8 +2,7 @@ package com.erni.finalanswer.cursedcards;
 
 /**
  * Animation hooks for seated players, called by the table presentation in sync with card motion.
- * The current {@link SeatedCharacters} answers with transform-only reactions; a future seated 3D rig with real clips
- * (none exist in the project yet) implements the same interface.
+ * No seated characters exist yet (the scene uses a no-op); future 2D sprites or rigs implement this interface.
  */
 public interface CharacterActions {
     void idle(int seat);
