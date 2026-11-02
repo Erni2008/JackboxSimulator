@@ -1048,3 +1048,52 @@ tasks.register('lastCommandAudioDecodeCheck', JavaExec) {
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
+
+tasks.register('cursedCardsModelInspection', JavaExec) {
+    group = 'verification'
+    description = 'Development-only shufle.glb inspection renders (-Pout=dir).'
+    dependsOn tasks.named('compileDevJava')
+    classpath = files(sourceSets.dev.output.classesDirs, sourceSets.main.output.classesDirs, configurations.runtimeClasspath)
+    mainClass = 'com.erni.finalanswer.lwjgl3.CursedCardsModelInspection'
+    systemProperty 'out', providers.gradleProperty('out').getOrElse('/tmp')
+    workingDir = rootProject.file('assets')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED', '-Xmx3g'
+}
+
+tasks.register('cursedCardsDemo', JavaExec) {
+    group = 'application'
+    description = 'Development-only local THE CURSED CARDS prototype (shufle.glb dealer, 2-8 players).'
+    dependsOn tasks.named('compileDevJava')
+    classpath = files(sourceSets.dev.output.classesDirs, sourceSets.main.output.classesDirs, configurations.runtimeClasspath)
+    mainClass = 'com.erni.finalanswer.lwjgl3.CursedCardsDemoLauncher'
+    workingDir = rootProject.file('assets')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED', '-Xmx3g'
+}
+
+tasks.register('cursedCardsDemoCheck', JavaExec) {
+    group = 'verification'
+    description = 'Plays 2/5/8-player matches through the 3D table; screenshots (-Pout=dir) plus rules/visual mirror assertions.'
+    dependsOn tasks.named('compileDevJava')
+    classpath = files(sourceSets.dev.output.classesDirs, sourceSets.main.output.classesDirs, configurations.runtimeClasspath)
+    mainClass = 'com.erni.finalanswer.lwjgl3.CursedCardsPrototypeCheck'
+    systemProperty 'cursedcards.quality', providers.gradleProperty('quality').getOrElse('high')
+    systemProperty 'out', providers.gradleProperty('out').getOrElse('/tmp')
+    workingDir = rootProject.file('assets')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED', '-Xmx3g'
+}
+
+tasks.register('cursedCardsBenchmark', JavaExec) {
+    group = 'verification'
+    description = 'THE CURSED CARDS frame-time benchmark (-Pquality=high|medium|low, -PbenchSource=true for the unoptimised model).'
+    dependsOn tasks.named('compileDevJava')
+    classpath = files(sourceSets.dev.output.classesDirs, sourceSets.main.output.classesDirs, configurations.runtimeClasspath)
+    mainClass = 'com.erni.finalanswer.lwjgl3.CursedCardsBenchmark'
+    systemProperty 'cursedcards.quality', providers.gradleProperty('quality').getOrElse('high')
+    systemProperty 'bench.source', providers.gradleProperty('benchSource').getOrElse('false')
+    workingDir = rootProject.file('assets')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED', '-Xmx3g'
+}

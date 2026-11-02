@@ -566,6 +566,8 @@ public final class RoomService {
             p.put("hasSubmittedAnswer",game!=null&&game.submitted.containsKey(member.id)); players.add(p);
         }
         value.put("players",players); value.put("currentPlayers",players);
+        // The host races in THE LAST COMMAND but is not a lobby member; race boards need its public name.
+        if(room.lastCommand!=null)value.put("lastCommandHost",Map.of("id",room.host.id,"nickname",room.host.name));
         if(self!=null) {
             value.put("host",self.host); value.put("selfId",self.id);
             value.put("hasSubmittedAnswer",game!=null&&game.submitted.containsKey(self.id));

@@ -7,6 +7,7 @@ import os, json, struct, hashlib, subprocess, tempfile, io
 from PIL import Image
 import numpy as np
 import prepare_last_command as partition
+from _sources import source_path
 ROOT=Path(__file__).resolve().parents[2]
 DEST=ROOT/'assets/models/last_command'
 NAMES=['box_final','hole_final','button','adjuster','light','level_handler','lever','secret_hole','door','code_display']
@@ -27,8 +28,8 @@ def main():
     with tempfile.TemporaryDirectory(prefix='tlc-opt-') as temp:
         temp=Path(temp)
         for name in NAMES:
-            source=ROOT/(name+'.glb')
-            if not source.exists():source=DEST/(name+'.glb')
+            try:source=source_path(name+'.glb')
+            except FileNotFoundError:source=DEST/(name+'.glb')
             digest=hashlib.sha256(source.read_bytes()).hexdigest(); original=stats(source)
             for profile in ['low','medium','high']:
                 out=DEST/profile;out.mkdir(exist_ok=True)
@@ -57,7 +58,7 @@ def main():
                 packed=temp/(name+'.glb')
                 ratio=({'low':'0.30','medium':'0.50','high':'0.75'} if name=='box_final' else {'low':'0.55','medium':'0.75','high':'1'})[profile]
                 subprocess.run([os.environ['GLTFPACK'],'-i',str(resized),'-o',str(packed),'-noq','-kn','-km','-si',ratio,'-se','0.0005','-slb'],check=True)
-                partition.ROOT=temp;partition.OUT=out;partition.prepare(name+'.glb')
+                partition.OUT=out;partition.prepare(name+'.glb', packed)
                 info=stats(target);assert not info['extensions'],info
                 manifest.append({'name':name,'profile':profile,'source':str(source.relative_to(ROOT)),'sourceSha256':digest,'sourceStats':original,'runtimeStats':info,'runtimeSha256':hashlib.sha256(target.read_bytes()).hexdigest(),'maxSimplificationError':0.0005})
                 assert hashlib.sha256(source.read_bytes()).hexdigest()==digest

@@ -6,6 +6,7 @@ public final class CommandText {
     private CommandText() {}
     private static final Map<String,String> TEXT=new LinkedHashMap<>();
     static {
+        TEXT.put("SELECT THE ONLY EVEN RESULT","ВЫБЕРИТЕ ЕДИНСТВЕННЫЙ ЧЁТНЫЙ РЕЗУЛЬТАТ");
         TEXT.put("TEST SWITCHES: GOOD SWITCH STAYS SET AND LIGHTS ITS OWN LAMP. SELECT FAULTY SWITCH","ПРОВЕРЬТЕ ПЕРЕКЛЮЧАТЕЛИ: ИСПРАВНЫЙ ОСТАЁТСЯ ВКЛЮЧЁННЫМ И ЗАЖИГАЕТ СВОЮ ЛАМПУ. ВЫБЕРИТЕ НЕИСПРАВНЫЙ");
         TEXT.put("CONFIRM AFTER SECOND SIGNAL, BEFORE THIRD (ONE SIGNAL EACH SECOND)","ПОДТВЕРДИТЕ ПОСЛЕ ВТОРОГО СИГНАЛА, ДО ТРЕТЬЕГО (СИГНАЛ КАЖДУЮ СЕКУНДУ)");
         TEXT.put("SELECT A TILE THAT IS NEITHER RED NOR CIRCULAR","ВЫБЕРИТЕ КНОПКУ: НЕ КРАСНУЮ И НЕ КРУГЛУЮ");

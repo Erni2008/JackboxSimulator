@@ -305,6 +305,221 @@
       "originalRootPath": "clock_ticks.wav",
       "path": "audio/questions/clock_ticks.wav",
       "sha256": "0b30b2ffddfeda11af60f02a360d135a4c6cd704212d8e3d2dc2d5b21e077f9e"
+    },
+    {
+      "originalRootPath": "1 to 4 sound(appearing sequence).wav",
+      "path": "audio/last_command/1 to 4 sound(appearing sequence).wav",
+      "sha256": "1c795dad3ac60cec5b85b7af401c878e83980dbabf5d816a97aa6a5808671ef4"
+    },
+    {
+      "originalRootPath": "Success2.wav",
+      "path": "audio/last_command/Success2.wav",
+      "sha256": "1849b05094e44369aea5121ced2b764004c0eb7060a7c767067c8e5472731f6e"
+    },
+    {
+      "originalRootPath": "adjuster.wav",
+      "path": "audio/last_command/adjuster.wav",
+      "sha256": "5922ebfd61888c2bce359cfd878da4bcee498e1c7cf812d2e6843a70536c1a69"
+    },
+    {
+      "originalRootPath": "box_final.glb",
+      "path": "last_command/models/box_final.glb",
+      "sha256": "f4a766ff9f7c3d0bb6e2ee80e2d4397f8ed467715d0facd30f28dbde951c3fb8"
+    },
+    {
+      "originalRootPath": "button.glb",
+      "path": "last_command/models/button.glb",
+      "sha256": "07725257ca0cabed46f54dd7fe4decaad1846484cb2bcf43eb0f76faaa65d7b0"
+    },
+    {
+      "originalRootPath": "button_pressed.wav",
+      "path": "audio/last_command/button_pressed.wav",
+      "sha256": "a21a29bc6c4a1c5ade319721a4f3e99c62fc9051ca87544a222e8364cd68ce5a"
+    },
+    {
+      "originalRootPath": "card_role_impostor.wav",
+      "path": "audio/impostor/card_role_impostor.wav",
+      "sha256": "1a45cb3458864c5454d81c962d98e0af656e5931d7e6a8dec8c0965e5d421814"
+    },
+    {
+      "originalRootPath": "code_display.glb",
+      "path": "last_command/models/code_display.glb",
+      "sha256": "b1b4d3fd9b5bfb35122d00bd87ca05036f1f2efc77ce2e1a0efee93a1acb2c89"
+    },
+    {
+      "originalRootPath": "computer.glb",
+      "path": "last_command/models/computer.glb",
+      "sha256": "7ddaf6d823f67ebdb9e2670540df7e1de0000e3e4a426984f1c9fa3a51ac558d"
+    },
+    {
+      "originalRootPath": "confirm_button.wav",
+      "path": "audio/last_command/confirm_button.wav",
+      "sha256": "ef820d8bd813032d9382cae8a0fa572b1017ed5b52e04aac1ee3ed9398dfdf38"
+    },
+    {
+      "originalRootPath": "door.glb",
+      "path": "last_command/models/door.glb",
+      "sha256": "3b7186dc0d1d712084b37f7c211dc60c3e1f6746d6792c6c8d4b902472952370"
+    },
+    {
+      "originalRootPath": "door_open.wav",
+      "path": "audio/last_command/door_open.wav",
+      "sha256": "fe39eef243a7d4dc5fcfe873ffd68f10cea2feb5d4b1b44d79e602d00f3e955a"
+    },
+    {
+      "originalRootPath": "electrical_circuit_done.wav",
+      "path": "audio/last_command/electrical_circuit_done.wav",
+      "sha256": "e864beb2833ff97c4ba6b95553d0f4c2b3573986789b63a6917b4336efcd0258"
+    },
+    {
+      "originalRootPath": "failed.circuit.wav",
+      "path": "audio/last_command/failed.circuit.wav",
+      "sha256": "52fb60c62aca42d3d81829caf27e4f8228890d6e560409b4dc08726cc9936d43"
+    },
+    {
+      "originalRootPath": "hole_final.glb",
+      "path": "last_command/models/hole_final.glb",
+      "sha256": "6f561f13fc6d96041121405de9fa02627f316756547084cc1f46d1b96a6ab94c"
+    },
+    {
+      "originalRootPath": "impostor_role_reveal.wav",
+      "path": "audio/impostor/impostor_role_reveal.wav",
+      "sha256": "0f4512da245cffdbfd9b4d6f9ff90dde801b3934b12bdb9cc9df0b0f9c46e486"
+    },
+    {
+      "originalRootPath": "impostorrole_reveal.wav",
+      "path": "audio/impostor/impostorrole_reveal.wav",
+      "sha256": "4d898cf54781a20de34bd3ac9e6584b03d74f8f0c91e8526c97f49d7ea25b57b"
+    },
+    {
+      "originalRootPath": "level_handler.glb",
+      "path": "last_command/models/level_handler.glb",
+      "sha256": "48949b42be51ddf68e57a6b02e8ff29d6e9c9b405f4b3149621b99745c57585d"
+    },
+    {
+      "originalRootPath": "lever.glb",
+      "path": "last_command/models/lever.glb",
+      "sha256": "623dc389bbdfe93d403042c0b6becd0ae05cdc6b1b58b52fc40cffe6b1a78968"
+    },
+    {
+      "originalRootPath": "lever.wav",
+      "path": "audio/last_command/lever.wav",
+      "sha256": "b8a95e748b0340d3d81e204cd8306db065d5eacd63341807cf8cad1ab999de9f"
+    },
+    {
+      "originalRootPath": "machine_shutdown .wav",
+      "path": "audio/last_command/machine_shutdown .wav",
+      "sha256": "b924e9e4641aba692a6d2891a3c0810d24d087464ce569fd09fb2f89cf22f972"
+    },
+    {
+      "originalRootPath": "metal_DOOR_CLOSE.wav",
+      "path": "audio/last_command/metal_DOOR_CLOSE.wav",
+      "sha256": "5bc27f91f4e5bd63470883ba51870279faf3efa83fd130057177eba27dd81799"
+    },
+    {
+      "originalRootPath": "metal_cracking.wav",
+      "path": "audio/last_command/metal_cracking.wav",
+      "sha256": "1856a2a7d632a0ea8bc9a5738e964b6a7fd456dbe26ac09c498a4cc6668ddc72"
+    },
+    {
+      "originalRootPath": "mini_game_introduction.wav",
+      "path": "audio/impostor/mini_game_introduction.wav",
+      "sha256": "92aceeba41a3ff703bfef08a746c57ae31e1caf4d365b366f37947b7b842874c"
+    },
+    {
+      "originalRootPath": "page_turn.wav",
+      "path": "audio/impostor/page_turn.wav",
+      "sha256": "51a4ac20804bdcfdcaaf9a45bb0f842aed8da5e727f684c8da89287e2f938015"
+    },
+    {
+      "originalRootPath": "question_typing.wav",
+      "path": "audio/last_command/question_typing.wav",
+      "sha256": "2a73891443fdd6f197b85ea6ecef33f228fa6e20d5e867ad1f2b864b5e2edb9d"
+    },
+    {
+      "originalRootPath": "questiontyping2.wav",
+      "path": "audio/last_command/questiontyping2.wav",
+      "sha256": "f2032a77ec0c6618466ca6dca151b0d2bb6714c744c52f2b9602e2c4938e7eb6"
+    },
+    {
+      "originalRootPath": "second_metal_cracking.wav",
+      "path": "audio/last_command/second_metal_cracking.wav",
+      "sha256": "26b4e0d15679738b2f737b46695e1b1aed0d623f80033abece2042b9c9b62610"
+    },
+    {
+      "originalRootPath": "secret_hole.glb",
+      "path": "last_command/models/secret_hole.glb",
+      "sha256": "312f094b8df652c3f9d0760cad0781e174eea5d47bc36ad453ebca762502c777"
+    },
+    {
+      "originalRootPath": "small_button_click.wav",
+      "path": "audio/last_command/small_button_click.wav",
+      "sha256": "44eb7d92579a93620d8d753152412895a521c44452189389868c18a71277c240"
+    },
+    {
+      "originalRootPath": "success.mp3",
+      "path": "audio/last_command/success.mp3",
+      "sha256": "0753b98651369402f4cc92bbf132e5345e8232a3e3ef3ae7747c20f03af92693"
+    },
+    {
+      "originalRootPath": "success.wav",
+      "path": "audio/last_command/success.wav",
+      "sha256": "10afe814b6d2a97dfaeca722e1708a664596e1bda3117d1577d79d48a8f06841"
+    },
+    {
+      "originalRootPath": "symbol_appear.wav",
+      "path": "audio/last_command/symbol_appear.wav",
+      "sha256": "ff6ee72b753b3f36e44ed70348895abf2ec2bde87302f1caefcb8541e1799179"
+    },
+    {
+      "originalRootPath": "symbol_clicked.wav",
+      "path": "audio/last_command/symbol_clicked.wav",
+      "sha256": "74e566b93a7ff0c40dc04b5151e6eea3eedace9f8a75f0683966a352aba36bbf"
+    },
+    {
+      "originalRootPath": "transition_screen.wav",
+      "path": "audio/last_command/transition_screen.wav",
+      "sha256": "4130e9ee84da78e389aabff7dd863dca6a1ecbc0e24a27cc1177c4e5f9c3906f"
+    },
+    {
+      "originalRootPath": "vote_sent.wav",
+      "path": "audio/impostor/vote_sent.wav",
+      "sha256": "1cc8376d78955da53594f954d2f17ecb4c5c75de84e41f4352f23e3405b05ad3"
+    },
+    {
+      "originalRootPath": "vote_started.wav",
+      "path": "audio/impostor/vote_started.wav",
+      "sha256": "d4c2cd89be30e14c64b3c4fcc93a3b2ceb4436fde60e557c43d8b236b61c32b0"
+    },
+    {
+      "originalRootPath": "voting_closed.wav",
+      "path": "audio/impostor/voting_closed.wav",
+      "sha256": "1cfc7f48b67f557200e9cd4abcdc1a4e5a69f68e13d51d8df7c73435c1e10014"
+    },
+    {
+      "originalRootPath": "wires1.wav",
+      "path": "audio/last_command/wires1.wav",
+      "sha256": "b12b3a2c9ff5187c4b2012fca15aa9e36c49842893df496ed767c881bc8c482a"
+    },
+    {
+      "originalRootPath": "wooden_stumb_hit.wav",
+      "path": "audio/shotgun/wooden_stumb_hit.wav",
+      "sha256": "860438bc033d796ec7bf86303eea0969375e6216988b74423f1918e52fd35875"
+    },
+    {
+      "originalRootPath": "writing_words_on_paper_theimpostor.wav",
+      "path": "audio/impostor/writing_words_on_paper_theimpostor.wav",
+      "sha256": "a8f204b51afe2100a954d35b099bf0e33665c090ef4e81dfdb95c9ed90fedb5d"
+    },
+    {
+      "originalRootPath": "wrong_answer.wav",
+      "path": "audio/last_command/wrong_answer.wav",
+      "sha256": "9d3e50c5c2a9e44918f3bd1b1a0ff83d087d04f3459d141807798ed0abe07e53"
+    },
+    {
+      "originalRootPath": "wrong_symbol_chosen.wav",
+      "path": "audio/last_command/wrong_symbol_chosen.wav",
+      "sha256": "9fb6a7cbdedbcfc580cd3e143533db36185e2b61bf068c2fd77d392473d721ef"
     }
   ]
 }

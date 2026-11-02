@@ -7,8 +7,9 @@ import bpy,sys,json,hashlib,tempfile,struct
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'tools/assets'))
 import prepare_last_command as partition
+from _sources import source_path
 bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
-source=ROOT/'computer.glb';digest=hashlib.sha256(source.read_bytes()).hexdigest()
+source=source_path('computer.glb');digest=hashlib.sha256(source.read_bytes()).hexdigest()
 bpy.ops.import_scene.gltf(filepath=str(source));objects=[o for o in bpy.context.scene.objects if o.type=='MESH']
 for obj in bpy.context.scene.objects:obj.select_set(obj in objects)
 for obj in objects:
@@ -29,8 +30,8 @@ with tempfile.TemporaryDirectory(prefix='lc-computer-') as folder:
   bpy.context.view_layer.objects.active=objects[0]
   target=folder/'computer.glb'
   bpy.ops.export_scene.gltf(filepath=str(target),export_format='GLB',use_selection=True,export_apply=True,export_tangents=True,export_image_format='AUTO',export_animations=False)
-  partition.ROOT=folder;partition.OUT=ROOT/'assets/models/last_command'/profile;partition.OUT.mkdir(parents=True,exist_ok=True)
-  entry=partition.prepare('computer.glb');entry.update(profile=profile,source='computer.glb',sourceSha256=digest,ratio=ratio,textureLimit=limit);manifest.append(entry)
+  partition.OUT=ROOT/'assets/models/last_command'/profile;partition.OUT.mkdir(parents=True,exist_ok=True)
+  entry=partition.prepare('computer.glb', target);entry.update(profile=profile,source='computer.glb',sourceSha256=digest,ratio=ratio,textureLimit=limit);manifest.append(entry)
   print('COMPUTER_PROFILE_READY',profile,flush=True)
 (ROOT/'assets/models/last_command/computer-optimization.json').write_text(json.dumps(manifest,indent=2)+'\n')
 assert hashlib.sha256(source.read_bytes()).hexdigest()==digest

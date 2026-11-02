@@ -1,4 +1,5 @@
 import * as T from 'three';
+const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
 export type MechanismState='HIDDEN'|'APPEARING'|'ACTIVE'|'DISAPPEARING'|'DISABLED';
 /** Reusable mounts: deployment is separate from the mechanism's own press/rotation animation. */
 export class Mechanisms {
@@ -11,7 +12,8 @@ export class Mechanisms {
     if(!m.wanted&&m.amount===0)continue;
     if(m.wanted&&retiring&&m.amount===0){m.group.visible=false;continue;}
     const direction=m.wanted?1:-1;m.amount=T.MathUtils.clamp(m.amount+direction*dt/.18,0,1);
-    const t=m.amount*m.amount*(3-2*m.amount);
+    // Deploying overshoots ~4% and settles like a latch; retracting stays smooth.
+    const t=m.wanted&&!reducedMotion?1+2.2*(m.amount-1)**3+1.2*(m.amount-1)**2:m.amount*m.amount*(3-2*m.amount);
     // A telescopic standoff grows away from the case; it never sweeps through another panel.
     const scale=.04+.96*t;m.group.position.copy(m.pivot).multiplyScalar(1-scale).addScaledVector(m.normal,-(1-t)*.018);m.group.scale.setScalar(scale);m.group.visible=m.amount>0;
     m.state=m.amount===0?'HIDDEN':m.amount===1?(this.enabled&&!this.disabled.has(id)?'ACTIVE':'DISABLED'):m.wanted?'APPEARING':'DISAPPEARING';

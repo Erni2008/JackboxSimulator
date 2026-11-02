@@ -2,6 +2,16 @@
 
 Актуальная [карта проекта](../PROJECT_MAP.md), [инструменты](../tools/README.md) и [общий README](../README.md). Команды выполняются из корня проекта.
 
+## Подготовка переноса Unity 6.6
+
+- [MIGRATION_PLAN — этапы, фактический объём и критерии](migration/MIGRATION_PLAN.md)
+- [UNITY_ARCHITECTURE — модули, сцены, lifecycle, аудио и результаты](migration/UNITY_ARCHITECTURE.md)
+- [NETWORK_ARCHITECTURE — Java-сервер, Unity host и старые телефоны](migration/NETWORK_ARCHITECTURE.md)
+- [ASSET_MIGRATION — исходники, GLB, материалы и импорт](migration/ASSET_MIGRATION.md)
+- [THE_LAST_COMMAND_PLAN — первый модуль и матрица паритета](migration/THE_LAST_COMMAND_PLAN.md)
+- [Инвентарь рабочих ассетов](migration/INVENTORY.json)
+- [Побайтный реестр новых перемещений](assets/unity-preparation-moves.json)
+
 ## Архитектура и сеть
 
 - [Multiplayer protocol v1](architecture/multiplayer-protocol.md)

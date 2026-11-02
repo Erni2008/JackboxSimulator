@@ -107,7 +107,7 @@ class RoomServiceTest {
         assertEquals(3,ids.size());
         for(TestPeer peer:List.of(h,a,b)){var panel=peer.latest().getAsJsonObject("lastCommand");command(peer,"LAST_COMMAND_ACTION",Map.of("roomCode",s(host,"code"),"sessionId",s(panel,"sessionId"),"taskId",s(panel.getAsJsonObject("testRound"),"taskId"),"element","TOUCH_PANEL","action","CLIENT_READY","value",""));}
         long ready=h.latest().getAsJsonObject("lastCommand").getAsJsonObject("testRound").get("readyAt").getAsLong();
-        for(TestPeer peer:List.of(h,a,b)){var r=peer.latest().getAsJsonObject("lastCommand").getAsJsonObject("testRound");assertFalse(r.get("paused").getAsBoolean());assertEquals(ready,r.get("readyAt").getAsLong());assertEquals("COMPARISON",s(r,"taskType"));assertFalse(r.getAsJsonObject("touchscreen").has("answer"));}
+        Set<String> families=new HashSet<>();for(TestPeer peer:List.of(h,a,b)){var r=peer.latest().getAsJsonObject("lastCommand").getAsJsonObject("testRound");assertFalse(r.get("paused").getAsBoolean());assertEquals(ready,r.get("readyAt").getAsLong());assertFalse(s(r,"taskType").isEmpty());families.add(s(r,"taskType"));assertFalse(r.getAsJsonObject("touchscreen").has("answer"));}assertEquals(1,families.size(),"every terminal starts with the same task family");
     }
     void startPanel(){players();command(h,"START_LAST_COMMAND",Map.of("roomCode",s(host,"code"),"sessionId",s(h.latest(),"lobbyId"),"seed","20261025"));command(h,"LAST_COMMAND_ACTION",panelAction("CODE_PANEL","TEST_ROUND","inspection"));}
     Map<String,Object> panelAction(String element,String action,String value){return Map.of("roomCode",s(host,"code"),"sessionId",s(h.latest().getAsJsonObject("lastCommand"),"sessionId"),"element",element,"action",action,"value",value);}

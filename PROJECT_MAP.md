@@ -62,3 +62,9 @@ CURSED BOXES использует 16 ячеек. В раунде после во
 - [Инструменты](tools/README.md).
 - [Развёртывание сервера](server/README.md).
 - [История прежней карты](docs/development/project-map-history.md): сохранена для справки, не является актуальным индексом.
+
+## Подготовка Unity 6.6
+
+Работа ведётся отдельно в `planning/unity-migration-architecture`; backup-теги не меняются. [Пять технических документов](docs/migration/MIGRATION_PLAN.md) описывают будущий Unity desktop с существующим Java-сервером и браузерами телефонов. Папка Unity и C#-механики ещё не создавались.
+
+Для уменьшения числа файлов в корне оригиналы GLB/WAV/MP3 перенесены в `source_assets/last_command/models/` и `source_assets/audio/{last_command,impostor,shotgun}/`. [Реестр с SHA-256](docs/assets/unity-preparation-moves.json). Игровые `assets/`, Gradle, Java-модули и контроллеры не перемещались. Не переносите модули под `legacy/` до отдельного обновления всех путей/сборок.

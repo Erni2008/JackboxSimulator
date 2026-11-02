@@ -1,0 +1,15 @@
+{
+  "comment": "Attachment points are in shufle.glb local units (after its +90deg X node rotation; front faces +Z). Measured by ray probes: slot opening x -0.26..0.25, y 0.185..0.237, recess back z 0.28; card platform in the top tray: x -0.20..0.20, rear edge z -0.20 y 0.497, front edge z 0.24 y 0.453; deck = centre of the bottom card resting on both edges. The machine is scaled so the card fits both the slot and the platform.",
+  "slotWidth": 0.51,
+  "slotClearance": 1.18,
+  "platformLength": 0.44,
+  "platformWidth": 0.40,
+  "platformClearance": 1.04,
+  "spawn": { "x": -0.005, "y": 0.211, "z": 0.28 },
+  "exitDirection": { "x": 0, "y": 0, "z": 1 },
+  "deck": { "x": 0, "y": 0.478, "z": -0.06 },
+  "deckTilt": 7.9,
+  "deckYaw": 90,
+  "feedTravel": 0.3,
+  "card": { "width": 0.587, "height": 0.88, "thickness": 0.003, "cornerRadius": 0.04, "cornerSegments": 5 }
+}

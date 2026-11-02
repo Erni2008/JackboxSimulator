@@ -1,17 +1,18 @@
 """Lossless GLB runtime copies: 16-bit mesh partitions, byte-identical embedded maps.
-Original root GLBs remain untouched. No simplification, compression extensions or texture resizing.
+Original GLBs in source_assets/ remain untouched. No simplification, compression extensions or texture resizing.
 Run: python3 tools/assets/prepare_last_command.py
 """
 from pathlib import Path
 import copy, hashlib, json, struct
+from _sources import source_path
 import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / 'assets/models/last_command'
 TYPES = {5120: '<i1', 5121: '<u1', 5122: '<i2', 5123: '<u2', 5125: '<u4', 5126: '<f4'}
 COUNTS = {'SCALAR': 1, 'VEC2': 2, 'VEC3': 3, 'VEC4': 4}
 
-def prepare(name):
-    raw = (ROOT / name).read_bytes()
+def prepare(name, source=None):
+    raw = (Path(source) if source is not None else source_path(name)).read_bytes()
     length, = struct.unpack_from('<I', raw, 12)
     source = json.loads(raw[20:20+length])
     data = raw[28+length:]
