@@ -21,7 +21,7 @@ public final class BackdropFx implements Disposable {
         #ifdef GL_ES
         precision mediump float;
         #endif
-        varying vec2 v_uv;uniform sampler2D u_texture;uniform sampler2D u_mask;uniform sampler2D u_noise;
+        varying vec2 v_uv;uniform sampler2D u_texture;uniform sampler2D u_mask;uniform sampler2D u_noise;uniform sampler2D u_front;uniform float u_useFront;
         uniform float u_time;uniform float u_flash;uniform float u_flicker;uniform vec2 u_moon;uniform float u_aspect;
         void main(){
             vec2 uv=v_uv;vec3 c=texture2D(u_texture,uv).rgb;float w=texture2D(u_mask,uv).r;
@@ -35,7 +35,7 @@ public final class BackdropFx implements Disposable {
             c+=w*u_flash*vec3(.70,.76,1.)*.85+u_flash*.07*vec3(.72,.78,1.);
             float table=smoothstep(.42,.95,uv.y);
             c*=1.+u_flicker*.055*table*vec3(1.,.85,.6);
-            gl_FragColor=vec4(c,1.);
+            gl_FragColor=vec4(c,u_useFront>.5?texture2D(u_front,uv).r:1.);
         }""";
     private final ShaderProgram shader;private final Texture mask,noise;private final Vector2 moon;
     private float time,flash,nextFlash,flashAge=99;private final RandomXS128 random=new RandomXS128(13);
@@ -60,11 +60,16 @@ public final class BackdropFx implements Disposable {
         // two quick strikes and a fading afterglow
         float a=flashAge;flash=a<.09f?a/.09f:a<.2f?1-(a-.09f)/.11f*.85f:a<.27f?.15f+(a-.2f)/.07f*.75f:a<1.1f?.9f*(float)Math.exp(-(a-.27f)*5):0;
     }
-    public void draw(SpriteBatch batch,Texture background,float x,float y,float w,float h){
-        if(!enabled()){batch.disableBlending();batch.draw(background,x,y,w,h);batch.enableBlending();return;}
-        batch.setShader(shader);batch.disableBlending();
+    public void draw(SpriteBatch batch,Texture background,float x,float y,float w,float h){draw(batch,background,null,x,y,w,h);}
+    /**
+     * With {@code front} (a table-silhouette alpha mask) only the painted table is drawn, blended over what is already there:
+     * the foreground layer that seats characters behind the table. Same shader, so the table keeps its animated light.
+     */
+    public void draw(SpriteBatch batch,Texture background,Texture front,float x,float y,float w,float h){
+        if(!enabled()){if(front!=null)return;batch.disableBlending();batch.draw(background,x,y,w,h);batch.enableBlending();return;}
+        batch.setShader(shader);if(front==null)batch.disableBlending();else{batch.enableBlending();front.bind(3);}
         mask.bind(1);noise.bind(2);Gdx.gl.glActiveTexture(GL20.GL_TEXTURE0);
-        shader.setUniformi("u_mask",1);shader.setUniformi("u_noise",2);shader.setUniformf("u_time",time);shader.setUniformf("u_flash",flash);
+        shader.setUniformi("u_mask",1);shader.setUniformi("u_noise",2);shader.setUniformi("u_front",3);shader.setUniformf("u_useFront",front==null?0:1);shader.setUniformf("u_time",time);shader.setUniformf("u_flash",flash);
         float flicker=MathUtils.sin(time*7.1f)*.5f+MathUtils.sin(time*12.7f+1.3f)*.3f+MathUtils.sin(time*3.3f)*.2f;
         shader.setUniformf("u_flicker",flicker);shader.setUniformf("u_moon",moon);shader.setUniformf("u_aspect",w/h);
         batch.draw(background,x,y,w,h);batch.flush();

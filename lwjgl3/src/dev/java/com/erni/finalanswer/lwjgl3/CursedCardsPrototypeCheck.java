@@ -35,6 +35,14 @@ public final class CursedCardsPrototypeCheck extends CursedCardsPrototype {
         check(mb.min.y>=-.01f&&t.onFelt(mb.min.x,mb.min.z,0)&&t.onFelt(mb.max.x,mb.max.z,0)&&t.onFelt(mb.min.x,mb.max.z,0)&&t.onFelt(mb.max.x,mb.min.z,0),"machine stands on the felt inside the playing area");
     }
     /** Window resizing keeps every hand on the same spot of the painting (letterboxed 16:9). */
+    /** Characters: one per seat with real art, stable identities, no two sprites overlapping by more than a sliver. */
+    private void castCheck(){
+        boolean art=true,apart=true;var a=new com.badlogic.gdx.math.Rectangle();var b=new com.badlogic.gdx.math.Rectangle();
+        for(int i=0;i<players;i++){art&=cast.hasArt(i);cast.bounds(i,a);
+            for(int j=i+1;j<players;j++){cast.bounds(j,b);float ox=Math.max(0,Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x)),oy=Math.max(0,Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y));
+                apart&=ox*oy<.25f*Math.min(a.area(),b.area());}}
+        check(art&&apart,players+" players: characters seated with art="+art+" overlapLimited="+apart);
+    }
     private void resizeCheck(){
         float[] ref=null;boolean ok=true;
         for(int[] size:new int[][]{{1600,900},{1280,720},{1400,1000},{1600,900}}){resize(size[0],size[1]);camera.update();
@@ -51,7 +59,7 @@ public final class CursedCardsPrototypeCheck extends CursedCardsPrototype {
         if(!started){if(!seated&&t>.5f){if(textures<0)textures=Texture.getNumManagedTextures();setPlayers(counts[match]);seated=true;t=0;if(match==0)resizeCheck();}
             else if(seated&&t>2.75f&&t<2.8f&&match==counts.length-1)backdrop.strike();
             else if(seated&&t>2.86f&&!flashShot&&match==counts.length-1){flashShot=true;shot("m"+counts[match]+"-0-lightning");}
-            else if(seated&&t>3.6f&&!mainShot){mainShot=true;shot("m"+counts[match]+"-0-main");}
+            else if(seated&&t>3.6f&&!mainShot){mainShot=true;shot("m"+counts[match]+"-0-main");castCheck();}
             else if(mainShot&&t>3.9f){startMatch();started=true;seated=mainShot=false;t=0;}return;}
         if(!dealShot&&t>3.5f*1){dealShot=true;shot("m"+players+"-1-dealing");}
         if(awaitingDraw()){

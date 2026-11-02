@@ -33,9 +33,16 @@ public final class SeatLayout {
         {{Side.NEAR,1f},{Side.NEAR,0f},{Side.NEAR,-1f},{Side.LEFT,0f},{Side.FAR,-1f},{Side.FAR,0f},{Side.FAR,1f},{Side.RIGHT,0f}},
     };
 
+    /**
+     * Painted table: everyone sits on the far half and the ends (angles on the ellipse; 90° = toward the camera), so all
+     * seated characters stay visible behind the table and the near half is free for the dealer. Increasing angle =
+     * left end → far side → right end, i.e. clockwise seen from above (rules turn order).
+     */
+    static final float[][] ARC={{},{},{},{},
+        {200,252,288,340},{195,233,270,307,345},{192,222,253,287,318,348},{190,215,242,270,298,325,350},{188,211,235,258,282,305,329,352}};
     /** Oval table: sides map to angles on the ellipse (near = toward the camera); t spreads seats along the side. */
     private static void ellipseSeat(TableConfig c,Seat s,float seatOut,float seatY,float floor){
-        var t=c.table;float deg=switch(s.side){case NEAR->90-s.along*38;case FAR->270+s.along*38;case RIGHT->0;default->180;};
+        var t=c.table;float deg=t.painted?s.along:switch(s.side){case NEAR->90-s.along*38;case FAR->270+s.along*38;case RIGHT->0;default->180;};
         float cos=MathUtils.cosDeg(deg),sin=MathUtils.sinDeg(deg);
         s.normal.set(cos/t.rimA(),0,sin/t.rimB()).nor();
         Vector3 seatPoint=new Vector3(t.x+t.rimA()*cos,seatY,t.z+t.rimB()*sin).mulAdd(s.normal,seatOut);
@@ -67,7 +74,7 @@ public final class SeatLayout {
         for(Object[] spec:LAYOUTS[players]){
             Seat s=new Seat();s.side=(Side)spec[0];s.along=(Float)spec[1];
             float rimX,rimZ,handX,handZ;
-            if(t.ellipse()){ellipseSeat(c,s,seatOut,seatY,floor);seats.add(s);continue;}
+            if(t.ellipse()){s.along=t.painted?ARC[players][seats.size]:s.along;ellipseSeat(c,s,seatOut,seatY,floor);seats.add(s);continue;}
             switch(s.side){
                 case NEAR->{s.normal.set(0,0,1);rimX=s.along*straight;rimZ=t.rimB();handX=s.along*playStraight;handZ=t.playB()-c.handInset;}
                 case FAR->{s.normal.set(0,0,-1);rimX=s.along*straight;rimZ=-t.rimB();handX=s.along*playStraight;handZ=-(t.playB()-c.handInset);}

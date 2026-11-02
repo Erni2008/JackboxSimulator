@@ -57,6 +57,8 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     protected SpriteBatch batch;
     protected CursedHud hud;protected final CursedHud.Frame hudFrame=new CursedHud.Frame();
     protected TableFx fx;protected BackdropFx backdrop;
+    /** Seated FINAL ANSWER characters (layer 2) and the painted table's silhouette mask that sits them behind it. */
+    protected TableCast cast;private Texture tableFront;
     /** Seated character sprites: none in the project are suitable yet, so the layer draws nothing; anchors are ready. */
     protected CharacterActions actions=NO_ACTIONS;
     private static final CharacterActions NO_ACTIONS=new CharacterActions(){public void idle(int s){}public void lookAtCards(int s){}public void drawCard(int s){}public void receiveCard(int s){}public void discardPair(int s){}public void nervous(int s){}public void survive(int s){}public void eliminate(int s){}};
@@ -123,6 +125,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         director.main();director.snap();
         Gdx.input.setInputProcessor(input());
         warmUp();
+        cast=new TableCast(tableConfig.character.height,fx.dot());actions=cast;cast.seat(players);tableFront=tableSilhouette();
         // Every display frame is rendered: the backdrop is alive and motion stays perfectly even (the scene costs ~2–4 ms).
         Gdx.graphics.setContinuousRendering(true);
         Gdx.app.log("CursedCards","quality "+quality);
@@ -164,7 +167,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         dealInterval=deck.size()>15?.34f:deck.size()>9?.4f:DEAL_INTERVAL;
         game.start();
     }
-    private void resetCues(){drawer=source=loser=selectedSlot=hoverSlot=-1;glowDrawer=glowSource=-1;java.util.Arrays.fill(safe,false);verdict=false;dimTarget=0;deathLight=0;deathCard=null;}
+    private void resetCues(){if(cast!=null)cast.seat(players);drawer=source=loser=selectedSlot=hoverSlot=-1;glowDrawer=glowSource=-1;java.util.Arrays.fill(safe,false);verdict=false;dimTarget=0;deathLight=0;deathCard=null;}
     /** Take the hidden card at {@code slot} of the current source's hand. Values are never consulted here. */
     public boolean drawSlot(int slot){
         if(!awaitingDraw())return false;
@@ -236,7 +239,8 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         enqueue(()->{this.loser=loser;drawer=source=-1;glowDrawer=glowSource=-1;deathCard=hands.get(loser).first();hud.phase("");dimTarget=1;status="DEATH";return 1.0f;});
         enqueue(()->{SeatLayout.Seat seat=seatList.get(loser);
             CardPose shown=new CardPose().set(deathCard.pose);shown.position.set(seat.hand).mulAdd(seat.normal,-1.6f).add(0,2.4f,0);facing(shown,camera.position,64);shown.scale=1.55f;
-            deathCard.queue.add(CardMotion.to(shown,1.6f,CardMotion.Ease.SMOOTH).arc(.3f).wobble(10));deathLight=.01f;actions.nervous(loser);return 1.7f;});
+            deathCard.queue.add(CardMotion.to(shown,1.6f,CardMotion.Ease.SMOOTH).arc(.3f).wobble(10));deathLight=.01f;
+            for(int p=0;p<players;p++)actions.nervous(p);actions.eliminate(loser);return 1.7f;});
         enqueue(()->{fx.burst(deathCard.pose.position,70,.9f,.25f);actions.eliminate(loser);for(int p:survivors)actions.survive(p);verdict=true;return 1.2f;});
     }
     private void endDealing(){if(dealing){dealing=false;waitForAnimations();enqueue(()->{machine.shutdown();return .6f;});enqueue(()->{machineTarget=0;hud.phase("THE DEALER DISSOLVES");return 1.3f;});}}
@@ -252,7 +256,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         path.feed.set(deckPose(0,new CardPose()));path.feed.position.add(0,MathUtils.sinDeg(deckTilt)*config.feedTravel,-MathUtils.cosDeg(deckTilt)*config.feedTravel);
         CardMotion.halfWidth=c.width*.5f;CardMotion.halfHeight=c.height*.5f;CardAnimator.platformHeight=machine.worldBounds().getHeight()*.4f;
     }
-    private void layoutSeats(){seatList=SeatLayout.layout(tableConfig,players);}
+    private void layoutSeats(){seatList=SeatLayout.layout(tableConfig,players);if(cast!=null)cast.seat(players);}
     /** Card {@code index} of the loaded deck lying on the top platform, index 0 at the bottom (fed first), backs up. */
     protected CardPose deckPose(int index,CardPose out){
         Vector3 normal=tmp2.set(0,MathUtils.cosDeg(deckTilt),MathUtils.sinDeg(deckTilt));
@@ -292,7 +296,8 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         float dt=frameDelta()*timeScale;update(dt);
         Gdx.gl.glClearColor(0,0,0,1);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT|GL20.GL_DEPTH_BUFFER_BIT);
         batch.getProjectionMatrix().setToOrtho2D(0,0,Gdx.graphics.getWidth(),Gdx.graphics.getHeight());
-        batch.begin();backdrop.draw(batch,background,view.x,view.y,view.width,view.height);drawCharacters(batch);batch.end();
+        batch.begin();backdrop.draw(batch,background,view.x,view.y,view.width,view.height);drawCharacters(batch);
+        if(tableFront!=null)backdrop.draw(batch,background,tableFront,view.x,view.y,view.width,view.height);batch.end();
         Gdx.gl.glClear(GL20.GL_DEPTH_BUFFER_BIT);
         scene.update(dt);renderScene();
         Gdx.gl.glViewport(0,0,Gdx.graphics.getBackBufferWidth(),Gdx.graphics.getBackBufferHeight());
@@ -310,13 +315,14 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         smoothDt+=(MathUtils.clamp(raw,frame*.5f,1/30f)-smoothDt)*.2f;return smoothDt;
     }
     /** Layer 2: seated character sprites behind the table edge. No suitable art exists yet; anchors are {@link SeatLayout.Seat#characterAnchor}. */
-    protected void drawCharacters(SpriteBatch batch){}
+    protected void drawCharacters(SpriteBatch batch){if(cast!=null)cast.draw(batch);}
     /** Development overlay hook (drawn above the HUD); empty in production. */
     protected void drawOverlay(SpriteBatch batch){}
     protected void update(float dt){
         clock+=dt;
         while(clock>=stepUntil&&!steps.isEmpty()){float d=steps.peek().run();if(d<0)break;steps.poll();stepUntil=clock+d;}
         animator.update(cards,dt);machine.update(dt);fx.update(dt);hud.update(dt);backdrop.update(dt);
+        if(cast!=null)cast.layout(seatList,camera,view,awaitingDraw()?drawer:-1,dt);
         // lightning also lights the 3D objects on the table, so they stay part of the painted room
         float f=backdrop.flash();key.intensity=2.6f+f*2.2f;key.updateColor();if(moon!=null){moon.intensity=1.3f+f*3f;moon.updateColor();}
         machine.slotLight.position.set(path.outside.position).add(0,.06f,-.25f);
@@ -423,6 +429,31 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         new BlendingAttribute(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA,1),new DepthTestAttribute(GL20.GL_LEQUAL,false));return m;}
     private ModelInstance glowQuad(Color c){var m=new ModelInstance(quadModel);m.materials.first().set(PBRColorAttribute.createBaseColorFactor(Color.BLACK),PBRTextureAttribute.createEmissiveTexture(blob),
         com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute.createEmissive(c),new BlendingAttribute(GL20.GL_SRC_ALPHA,GL20.GL_ONE,1),new DepthTestAttribute(GL20.GL_LEQUAL,false));return m;}
+    /**
+     * Alpha mask (backdrop UV space) of the painted table's silhouette: convex hull of the projected rim ellipse and its
+     * pedestal at floor level, supersampled for a soft edge. Characters drawn before this layer appear seated behind it.
+     */
+    private Texture tableSilhouette(){
+        var t=tableConfig.table;int seg=72;float[] pts=new float[seg*4];
+        for(int i=0;i<seg;i++){float a=i*MathUtils.PI2/seg,c=MathUtils.cos(a),sn=MathUtils.sin(a);
+            uv(tmp.set(t.x+t.rimA()*c,.35f,t.z+t.rimB()*sn),pts,i*2);uv(tmp.set(t.x+t.rimA()*.82f*c,-tableConfig.floorBelowFelt,t.z+t.rimB()*.82f*sn),pts,seg*2+i*2);}
+        float[] hull=hull(pts);int w=836,h=470;Pixmap p=new Pixmap(w,h,Pixmap.Format.RGBA8888);p.setBlending(Pixmap.Blending.None);
+        for(int y=0;y<h;y++)for(int x=0;x<w;x++){int in=0;for(int sy=0;sy<2;sy++)for(int sx=0;sx<2;sx++)if(inside(hull,(x+.25f+.5f*sx)/w,(y+.25f+.5f*sy)/h))in++;
+            float a=in/4f;p.drawPixel(x,y,Color.rgba8888(a,a,a,1));}
+        var tex=new Texture(p);tex.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();return tex;
+    }
+    private void uv(Vector3 world,float[] out,int i){camera.project(world,view.x,view.y,view.width,view.height);out[i]=(world.x-view.x)/view.width;out[i+1]=1-(world.y-view.y)/view.height;}
+    /** Monotone-chain convex hull of (x,y) pairs, counter-clockwise. */
+    private static float[] hull(float[] p){int n=p.length/2;Integer[] idx=new Integer[n];for(int i=0;i<n;i++)idx[i]=i;
+        java.util.Arrays.sort(idx,(a,b)->p[a*2]!=p[b*2]?Float.compare(p[a*2],p[b*2]):Float.compare(p[a*2+1],p[b*2+1]));
+        int[] h=new int[2*n];int k=0;
+        for(int i=0;i<n;i++){while(k>=2&&cross(p,h[k-2],h[k-1],idx[i])<=0)k--;h[k++]=idx[i];}
+        for(int i=n-2,lo=k+1;i>=0;i--){while(k>=lo&&cross(p,h[k-2],h[k-1],idx[i])<=0)k--;h[k++]=idx[i];}
+        float[] out=new float[(k-1)*2];for(int i=0;i<k-1;i++){out[i*2]=p[h[i]*2];out[i*2+1]=p[h[i]*2+1];}return out;}
+    private static float cross(float[] p,int o,int a,int b){return (p[a*2]-p[o*2])*(p[b*2+1]-p[o*2+1])-(p[a*2+1]-p[o*2+1])*(p[b*2]-p[o*2]);}
+    /** Inside a convex polygon of either winding (UV space has y pointing down). */
+    private static boolean inside(float[] hull,float x,float y){int n=hull.length/2,pos=0,neg=0;for(int i=0;i<n;i++){int j=(i+1)%n;
+        float c=(hull[j*2]-hull[i*2])*(y-hull[i*2+1])-(hull[j*2+1]-hull[i*2+1])*(x-hull[i*2]);if(c>0)pos++;else if(c<0)neg++;if(pos>0&&neg>0)return false;}return true;}
     /** Place the dealer's contact shadow once its bounds are known. */
     private void placeMachineShadow(){var b=machine.worldBounds();machineShadow.transform.setToTranslation((b.min.x+b.max.x)*.5f,.004f,(b.min.z+b.max.z)*.5f+.2f).scale(b.getWidth()*1.4f,1,b.getDepth()*1.5f);}
     /** The painted hall and table backdrop; downsampled on weak devices. Falls back to a dark fill. */
@@ -435,6 +466,6 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     }
     @Override public void dispose(){
         scene.dispose();machine.dispose();faces.dispose();cardModel.dispose();quadModel.dispose();blob.dispose();if(lowRes!=null)lowRes.dispose();
-        diffuse.dispose();specular.dispose();brdf.dispose();background.dispose();batch.dispose();hud.dispose();fx.dispose();backdrop.dispose();
+        diffuse.dispose();specular.dispose();brdf.dispose();background.dispose();batch.dispose();hud.dispose();fx.dispose();backdrop.dispose();if(cast!=null)cast.dispose();if(tableFront!=null)tableFront.dispose();
     }
 }
