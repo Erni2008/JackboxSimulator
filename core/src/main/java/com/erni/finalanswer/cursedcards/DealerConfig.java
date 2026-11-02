@@ -21,6 +21,14 @@ public final class DealerConfig {
     /** How far the bottom card is drawn back under the stack when fed, world units. */
     public float feedTravel=.3f;
     public Card card=new Card();
+    public Timing timing=new Timing();
+    /** Sound per dealer event (activate, shuffle, eject, land, insert, destroy, shutdown); empty = silent hook only. Existing files only. */
+    public com.badlogic.gdx.utils.ObjectMap<String,String> sounds=new com.badlogic.gdx.utils.ObjectMap<>();
+    /** Animation durations in seconds (all adjustable in dealer.json). */
+    public static final class Timing{
+        public float activation=.25f,emergence=.2f,travelMin=.4f,travelMax=.65f,landing=.15f,
+            pairRise=.25f,pairHold=.15f,pairTravel=.4f,pairInsert=.15f,pairStagger=.15f,summon=.45f,dissolve=1.0f,idleTickMin=5f,idleTickMax=9f;
+    }
     public static final class Card{public float width=.63f,height=.88f,thickness=.003f,cornerRadius=.035f;public int cornerSegments=5;
         /** Size inside the machine (deck, slot) relative to the table size; the machine is fitted to the smaller card. */
         public float deckScale=1;}

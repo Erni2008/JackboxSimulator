@@ -72,7 +72,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     protected final Array<Array<Card3D>> hands=new Array<>();
     protected final Array<Card3D> discardPile=new Array<>(),tray=new Array<>();
     protected Array<SeatLayout.Seat> seatList=new Array<>();
-    private final Vector3 deckOrigin=new Vector3();
+    private final Vector3 deckOrigin=new Vector3(),slotPoint=new Vector3();
     private float deckScale=1,deckTilt,deckYaw,thickness,cardWidth,cardHeight;
     private final int[] finalDealt=new int[CursedDeck.MAX_PLAYERS];
     /** Machine presence target: 1 while it loads and deals, 0 once every card is out (it evaporates). */
@@ -163,7 +163,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         enqueue(()->{for(Card3D c:cards){c.visible=false;}tray.clear();
             for(int i=0;i<deck.size();i++){Card3D c=cards.get(deck.get(i).id());c.setValue(faces,CardValue.of(deck.get(i).value()));tray.add(c);}
             for(int i=0;i<tray.size;i++){Card3D c=tray.get(i);animator.stop(c);deckPose(i,c.pose);c.visible=true;c.sync();}
-            status="DEALING "+deck.size()+" CARDS TO "+players+" PLAYERS";hud.phase("THE DEAL");machine.activate();return .7f;},collect);
+            status="DEALING "+deck.size()+" CARDS TO "+players+" PLAYERS";hud.phase("THE DEAL");machine.activate();machine.sound("shuffle",.5f);return .45f;},collect);
         dealInterval=deck.size()>15?.34f:deck.size()>9?.4f:DEAL_INTERVAL;
         game.start();
     }
@@ -200,24 +200,33 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
             for(int i=0;i<tray.size;i++){CardPose p=deckPose(i,new CardPose());tray.get(i).queue.add(CardMotion.to(p,.25f,CardMotion.Ease.SMOOTH).delay(.34f));}
             Array<Card3D> hand=hands.get(player);hand.add(c);
             CardPose dest=handPose(player,hand.size-1,finalDealt[player],new CardPose());
-            animator.deal(c,path,dest,0,clearance(dest.position),machine::dispense,()->actions.receiveCard(player));return dealInterval;});
+            animator.deal(c,path,dest,0,clearance(dest.position),machine::dispense,()->{actions.receiveCard(player);machine.sound("land",.35f);});return dealInterval;});
     }
-    /** Pairs: lift face up, drift together, glow crimson and burn away in embers. */
+    /**
+     * Pairs are fed back to the dealer: both cards rise face up, arc to the front slot and are swallowed one after the
+     * other; the machine flashes crimson, embers and smoke escape the slot. If the dealer has dissolved it is summoned
+     * first. Durations come from dealer.json.
+     */
     @Override public void pairRemoved(int player,CursedCard a,CursedCard b){
         endDealing();waitForAnimations();
+        steps.add(()->{machineTarget=1;return machine.presence()>=1?0:-1;});
         enqueue(()->{Card3D ca=cards.get(a.id()),cb=cards.get(b.id());var hand=hands.get(player);hand.removeValue(ca,true);hand.removeValue(cb,true);
-            SeatLayout.Seat seat=seatList.get(player);float yaw=seat.handYaw;Vector3 mid=new Vector3(seat.hand).mulAdd(seat.normal,-1.3f).add(0,1.1f,0);
-            for(int i=0;i<2;i++){Card3D c=i==0?ca:cb;float side=(i==0?-.9f:.9f);
-                CardPose up=new CardPose();up.position.set(mid).add(MathUtils.cosDeg(yaw)*side,0,-MathUtils.sinDeg(yaw)*side);facing(up,camera.position,58);up.yaw+=i==0?-8:8;
-                c.queue.add(CardMotion.to(up,.55f,CardMotion.Ease.SMOOTH).arc(.25f));
-                CardPose meet=new CardPose().set(up);meet.position.set(mid).add(MathUtils.cosDeg(yaw)*side*.18f,.15f,-MathUtils.sinDeg(yaw)*side*.18f);meet.yaw+=i==0?5:-5;
-                c.queue.add(CardMotion.to(meet,.45f,CardMotion.Ease.SMOOTH).delay(.45f).onEnd(()->burning.add(c)));
-                discardPile.add(c);}
-            actions.discardPair(player);relayout(player,.3f);hud.toast("A PAIR OF "+CardValue.of(a.value()).label+" BURNS");status="PAIR OF "+CardValue.of(a.value()).label+" — "+names[player];return .9f;});
+            var t=CardAnimator.timing;machine.activate();float end=0;
+            for(int i=0;i<2;i++){Card3D c=i==0?ca:cb;boolean last=i==1;float delay=i*t.pairStagger;
+                CardPose up=new CardPose().set(c.pose);up.position.y+=.6f;facing(up,camera.position,38);
+                c.queue.add(CardMotion.to(up,t.pairRise,CardMotion.Ease.DECELERATE).delay(delay));
+                c.queue.add(CardMotion.to(up,t.pairHold,CardMotion.Ease.LINEAR));
+                CardPose mouth=new CardPose().set(path.outside);mouth.roll=0;
+                c.queue.add(CardMotion.to(mouth,t.pairTravel,CardMotion.Ease.SMOOTH).arc(Math.max(.9f,clearance(c.pose.position))).wobble(6));
+                CardPose in=new CardPose().set(path.inside);in.roll=0;
+                c.queue.add(CardMotion.to(in,t.pairInsert,CardMotion.Ease.ACCELERATE).onStart(machine::intake).onEnd(()->{c.visible=false;
+                    if(last){machine.destroyPair();fx.burst(slotPoint,26,.45f,.15f);fx.smoke(slotPoint,9);}}));
+                discardPile.add(c);end=delay+t.pairRise+t.pairHold+t.pairTravel+t.pairInsert;}
+            actions.discardPair(player);relayout(player,.3f);hud.toast("A PAIR OF "+CardValue.of(a.value()).label+" IS DEVOURED");status="PAIR OF "+CardValue.of(a.value()).label+" — "+names[player];return end*.6f;});
     }
     @Override public void turnChanged(int drawer,int source){
         endDealing();waitForAnimations();
-        enqueue(()->{this.drawer=drawer;this.source=source;selectedSlot=hoverSlot=-1;glowDrawer=drawer;glowSource=source;
+        enqueue(()->{this.drawer=drawer;this.source=source;selectedSlot=hoverSlot=-1;glowDrawer=drawer;glowSource=source;machine.shutdown();machineTarget=0;
             hud.phase(names[drawer]+" TAKES FROM "+names[source]);status="P"+(drawer+1)+" DRAWS FROM P"+(source+1);
             actions.lookAtCards(drawer);actions.nervous(source);return 0;});
     }
@@ -236,14 +245,17 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     /** DEATH: a held breath, the room darkens, the card rises into a red glow, turns, and the verdict appears. */
     @Override public void finished(int loser,List<Integer> survivors){
         endDealing();waitForAnimations();
-        enqueue(()->{this.loser=loser;drawer=source=-1;glowDrawer=glowSource=-1;deathCard=hands.get(loser).first();hud.phase("");dimTarget=1;status="DEATH";return 1.0f;});
+        enqueue(()->{this.loser=loser;drawer=source=-1;glowDrawer=glowSource=-1;deathCard=hands.get(loser).first();hud.phase("");dimTarget=1;status="DEATH";machine.shutdown();machineTarget=0;return 1.0f;});
         enqueue(()->{SeatLayout.Seat seat=seatList.get(loser);
             CardPose shown=new CardPose().set(deathCard.pose);shown.position.set(seat.hand).mulAdd(seat.normal,-1.6f).add(0,2.4f,0);facing(shown,camera.position,64);shown.scale=1.55f;
             deathCard.queue.add(CardMotion.to(shown,1.6f,CardMotion.Ease.SMOOTH).arc(.3f).wobble(10));deathLight=.01f;
             for(int p=0;p<players;p++)actions.nervous(p);actions.eliminate(loser);return 1.7f;});
         enqueue(()->{fx.burst(deathCard.pose.position,70,.9f,.25f);actions.eliminate(loser);for(int p:survivors)actions.survive(p);verdict=true;return 1.2f;});
     }
-    private void endDealing(){if(dealing){dealing=false;waitForAnimations();enqueue(()->{machine.shutdown();return .6f;});enqueue(()->{machineTarget=0;hud.phase("THE DEALER DISSOLVES");return 1.3f;});}}
+    /** Dealing done: the dealer powers down; it dissolves when play begins (or after devouring the initial pairs). */
+    private void endDealing(){if(dealing){dealing=false;waitForAnimations();enqueue(()->{machine.shutdown();return .25f;});}}
+    /** True once the dealer has been dismissed for play (it may still be fading out). */
+    public boolean dealerDismissed(){return machineTarget==0;}
 
     // ---------------- layout ----------------
     private void computePaths(DealerConfig config){
@@ -254,7 +266,8 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         path.outside.set(tmp.set(slot).mulAdd(exit,inner*.5f+.05f),exitYaw,0,180);path.outside.scale=deckScale;
         deckOrigin.set(machine.worldPoint(config.deck,new Vector3()));deckTilt=config.deckTilt;deckYaw=config.deckYaw;thickness=c.thickness;cardWidth=c.width;cardHeight=c.height;
         path.feed.set(deckPose(0,new CardPose()));path.feed.position.add(0,MathUtils.sinDeg(deckTilt)*config.feedTravel,-MathUtils.cosDeg(deckTilt)*config.feedTravel);
-        CardMotion.halfWidth=c.width*.5f;CardMotion.halfHeight=c.height*.5f;CardAnimator.platformHeight=machine.worldBounds().getHeight()*.4f;
+        CardMotion.halfWidth=c.width*.5f;CardMotion.halfHeight=c.height*.5f;CardAnimator.platformHeight=machine.worldBounds().getHeight()*.4f;CardAnimator.timing=config.timing;
+        slotPoint.set(slot).add(0,.15f,.25f);
     }
     private void layoutSeats(){seatList=SeatLayout.layout(tableConfig,players);if(cast!=null)cast.seat(players);}
     /** Card {@code index} of the loaded deck lying on the top platform, index 0 at the bottom (fed first), backs up. */
@@ -332,7 +345,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
             if(c.vanish>.25f&&c.vanish-dt/.55f<=.25f)fx.burst(c.pose.position,14,.45f,.1f);
             if(c.vanish>=1){c.visible=false;c.opacity(1);c.glow(0,0,0,0);c.vanish=0;burning.removeIndex(i);}else c.opacity(1-c.vanish*c.vanish);}
         cameraMoving=director.update(dt,camera);
-        float pr=machine.presence();if(pr!=machineTarget)machine.presence(machineTarget>pr?Math.min(machineTarget,pr+dt/.7f):Math.max(machineTarget,pr-dt/1.2f));
+        float pr=machine.presence();if(pr!=machineTarget)machine.presence(machineTarget>pr?Math.min(machineTarget,pr+dt/CardAnimator.timing.summon):Math.max(machineTarget,pr-dt/CardAnimator.timing.dissolve));
         activeAmount=approach(activeAmount,awaitingDraw()&&glowDrawer>=0?1:0,dt*2.5f);targetAmount=approach(targetAmount,awaitingDraw()&&glowSource>=0?1:0,dt*2.5f);
         dim=approach(dim,dimTarget,dt*(dimTarget>dim?.9f:2));
         // DEATH light: a red glow that swells under the rising card (replaces the vanished machine's slot light).

@@ -21,7 +21,8 @@ import java.nio.*;
  */
 public final class DealerMachine implements Disposable {
     public enum State {IDLE,STARTING,RUNNING,STOPPING}
-    private static final float IDLE_GLOW=.18f,START_TIME=.55f,STOP_TIME=.7f;
+    private static final float IDLE_GLOW=.18f,STOP_TIME=.7f;
+    private final float startTime;
     public final DealerConfig config;
     public final Scene scene;
     public final PointLightEx slotLight=new PointLightEx();
@@ -30,7 +31,12 @@ public final class DealerMachine implements Disposable {
     private final Array<ColorAttribute> emissive=new Array<>();
     private final Matrix4 base=new Matrix4();
     private final BoundingBox localBounds=new BoundingBox(),worldBounds=new BoundingBox();
-    private final Sound start,click,stop;
+    /** Dealer sound events: activate, shuffle, eject, land, insert, destroy, shutdown. */
+    public interface SoundHook{void play(String event,float volume);}
+    /** Replace to route dealer events into the game's audio system; the default plays the files mapped in dealer.json. */
+    public SoundHook sounds;
+    private final ObjectMap<String,Sound> loaded=new ObjectMap<>();
+    private float nextTick=6,tick;
     private State state=State.IDLE;
     private float stateTime,activity,recoil,recoilVelocity,flash,time;
     public final float scale;private final float tableTop;
@@ -48,18 +54,26 @@ public final class DealerMachine implements Disposable {
             if(glowMask!=null)m.set(PBRTextureAttribute.createEmissiveTexture(glowMask));
             var c=ColorAttribute.createEmissive(0,0,0,1);m.set(c);emissive.add((ColorAttribute)m.get(ColorAttribute.Emissive));}
         slotLight.set(new Color(1,.16f,.08f,1),worldPoint(config.spawn,new Vector3()).add(0,.02f,.18f),0,1.6f);
-        start=sound("sounds/last_command/lever.wav");click=sound("sounds/last_command/small_button_click.wav");stop=sound("sounds/last_command/machine_shutdown .wav");
+        startTime=Math.max(.05f,config.timing.activation);
+        for(var e:config.sounds){if(e.value==null||e.value.isEmpty())continue;Sound snd=sound(e.value);if(snd!=null)loaded.put(e.key,snd);else Gdx.app.error("CursedCards","dealer sound unavailable: "+e.value);}
+        sounds=(event,volume)->{Sound snd=loaded.get(event);if(snd!=null)snd.play(volume);};
         apply();
     }
     private static Sound sound(String path){if(Gdx.audio==null)return null;FileHandle f=Gdx.files.internal(path);try{return f.exists()?Gdx.audio.newSound(f):null;}catch(RuntimeException e){return null;}}
-    private static void play(Sound s,float volume){if(s!=null)s.play(volume);}
+    public void sound(String event,float volume){if(sounds!=null)sounds.play(event,volume);}
 
     public State state(){return state;}
     public boolean active(){return state!=State.IDLE;}
-    public void activate(){if(state==State.RUNNING||state==State.STARTING)return;state=State.STARTING;stateTime=0;play(start,.55f);}
-    public void shutdown(){if(state==State.IDLE||state==State.STOPPING)return;state=State.STOPPING;stateTime=0;play(stop,.45f);}
+    /** Lights come up over {@code timing.activation} with a short mechanical shudder. */
+    public void activate(){if(state==State.RUNNING||state==State.STARTING)return;state=State.STARTING;stateTime=0;sound("activate",.55f);}
+    public void shutdown(){if(state==State.IDLE||state==State.STOPPING)return;state=State.STOPPING;stateTime=0;sound("shutdown",.45f);}
     /** Card leaves the slot: small backward kick, lamp flash, click. */
-    public void dispense(){recoilVelocity-=1.4f;flash=1;play(click,.7f);}
+    public void dispense(){recoilVelocity-=1.4f;flash=1;sound("eject",.7f);}
+    /** A card is swallowed by the slot: pull-in kick and a lamp blink. */
+    public void intake(){recoilVelocity+=1.1f;flash=Math.max(flash,.7f);sound("insert",.6f);}
+    /** The pair is destroyed inside: a short crimson flash and a harder shudder. */
+    public void destroyPair(){recoilVelocity-=2.2f;flash=1.6f;burst=1;sound("destroy",.55f);}
+    private float burst;
     public void reset(){state=State.IDLE;stateTime=activity=recoil=recoilVelocity=flash=0;apply();}
     private float presence=1;private final Array<com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute> fades=new Array<>();
     /** 0..1: the machine evaporates (rises, shrinks, glows, fades) once it has dealt; 0 = not drawn at all. */
@@ -73,21 +87,26 @@ public final class DealerMachine implements Disposable {
     public void update(float dt){
         time+=dt;stateTime+=dt;
         switch(state){
-            case STARTING->{activity=Math.min(1,stateTime/START_TIME);if(stateTime>=START_TIME)state=State.RUNNING;}
+            case STARTING->{activity=Math.min(1,stateTime/startTime);if(stateTime>=startTime)state=State.RUNNING;}
             case RUNNING->activity=1;
             case STOPPING->{activity=Math.max(0,1-stateTime/STOP_TIME);if(stateTime>=STOP_TIME)state=State.IDLE;}
-            case IDLE->activity=0;
+            case IDLE->{activity=0;
+                // occasional restrained mechanism: a tiny settle and lamp blink while waiting
+                if(presence>0&&time>=nextTick){recoilVelocity-=.25f;tick=1;nextTick=time+config.timing.idleTickMin+MathUtils.random()*(config.timing.idleTickMax-config.timing.idleTickMin);}}
         }
+        tick=Math.max(0,tick-dt*2.5f);burst=Math.max(0,burst-dt*2.2f);
         // Critically damped spring for the recoil offset.
         float k=260,d=2*(float)Math.sqrt(k);recoilVelocity+=(-k*recoil-d*recoilVelocity)*dt;recoil+=recoilVelocity*dt;flash=Math.max(0,flash-dt*3.2f);
         apply();
     }
     private void apply(){if(emissive==null||scene==null)return;
         float pulse=.5f+.5f*MathUtils.sin(time*6.2f),startFlicker=state==State.STARTING&&MathUtils.sin(stateTime*55)>.2f?.35f:1;
-        float glow=(IDLE_GLOW+activity*(.55f+.55f*pulse)*startFlicker+flash*.9f)+(1-presence)*2.2f;
-        for(ColorAttribute c:emissive)c.color.set(glow,glow*.85f,glow*.85f,1);
-        slotLight.intensity=presence<=0?0:.04f+activity*(.18f+.12f*pulse)+flash*.35f+(1-presence)*.6f;
-        float hum=activity*.0011f,jx=hum*(MathUtils.sin(time*71)+.5f*MathUtils.sin(time*113)),jy=hum*.6f*MathUtils.sin(time*89);
+        float idle=IDLE_GLOW*(.8f+.2f*MathUtils.sin(time*1.3f))+tick*.12f;
+        float glow=(idle+activity*(.55f+.55f*pulse)*startFlicker+flash*.9f)+(1-presence)*2.2f;
+        // crimson destroy flash pushes the lamps toward deep red
+        for(ColorAttribute c:emissive)c.color.set(glow+burst*.8f,glow*.85f*(1-burst*.6f),glow*.85f*(1-burst*.7f),1);
+        slotLight.intensity=presence<=0?0:.04f+activity*(.18f+.12f*pulse)+flash*.35f+burst*1.2f+(1-presence)*.6f;
+        float shudder=state==State.STARTING?.004f*(1-stateTime/startTime):0,hum=activity*.0011f+shudder+burst*.003f,jx=hum*(MathUtils.sin(time*71)+.5f*MathUtils.sin(time*113)),jy=hum*.6f*MathUtils.sin(time*89);
         Matrix4 m=scene.modelInstance.transform.set(base);
         m.trn(jx,jy+(1-presence)*1.4f,recoil*.18f);m.rotate(Vector3.X,recoil*-20);float s=.55f+.45f*presence;m.scale(s,s,s);
     }
@@ -115,5 +134,5 @@ public final class DealerMachine implements Disposable {
             try{var t=new Texture(mask,true);t.setFilter(Texture.TextureFilter.MipMapLinearLinear,Texture.TextureFilter.Linear);return t;}finally{mask.dispose();}
         }catch(RuntimeException e){Gdx.app.error("CursedCards","glow mask unavailable, lamps will not pulse: "+e.getMessage());return null;}
     }
-    @Override public void dispose(){asset.dispose();if(glowMask!=null)glowMask.dispose();for(Sound s:new Sound[]{start,click,stop})if(s!=null)s.dispose();}
+    @Override public void dispose(){asset.dispose();if(glowMask!=null)glowMask.dispose();for(Sound snd:loaded.values())snd.dispose();loaded.clear();}
 }

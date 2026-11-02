@@ -14,6 +14,8 @@ public final class CardAnimator {
         public final CardPose feed=new CardPose(),inside=new CardPose(),outside=new CardPose();
     }
     public static final float THICKNESS_GAP=1.15f;
+    /** Dealer durations (from dealer.json). */
+    public static DealerConfig.Timing timing=new DealerConfig.Timing();
     private final CardPose tmp=new CardPose();
 
     public void update(Array<Card3D> cards,float dt){
@@ -30,15 +32,17 @@ public final class CardAnimator {
     public float deal(Card3D card,DealPath path,CardPose destination,float delay,Runnable onDispense,Runnable onLanded){return deal(card,path,destination,delay,0,onDispense,onLanded);}
     /** @param minArc lowest allowed apex above the straight path (e.g. to clear the machine for seats behind it). */
     public float deal(Card3D card,DealPath path,CardPose destination,float delay,float minArc,Runnable onDispense,Runnable onLanded){
-        card.queue.add(CardMotion.to(path.feed,.34f,Ease.SMOOTH).delay(delay));
+        var t=timing;
+        card.queue.add(CardMotion.to(path.feed,.3f,Ease.SMOOTH).delay(delay));
         card.queue.add(CardMotion.to(path.inside,0,Ease.LINEAR).visible(false));
-        card.queue.add(CardMotion.to(path.inside,.08f,Ease.LINEAR).visible(true));
-        card.queue.add(CardMotion.to(path.outside,.38f,Ease.ACCELERATE).onStart(onDispense));
-        float distance=path.outside.position.dst(destination.position);
-        tmp.set(destination);tmp.position.y+=.018f;
-        card.queue.add(CardMotion.to(tmp,.62f+.25f*distance,Ease.DECELERATE).arc(Math.max(minArc,.16f+.12f*distance)).lift(-12).wobble(8));
-        card.queue.add(CardMotion.to(destination,.22f,Ease.DECELERATE).onEnd(onLanded));
-        return delay+.34f+.08f+.38f+.62f+.25f*distance+.22f;
+        card.queue.add(CardMotion.to(path.inside,.06f,Ease.LINEAR).visible(true));
+        // short mechanical impulse out of the slot, then a curved, decelerating flight that grows the card to table size
+        card.queue.add(CardMotion.to(path.outside,t.emergence,Ease.ACCELERATE).onStart(onDispense));
+        float distance=path.outside.position.dst(destination.position),travel=MathUtils.clamp(t.travelMin+distance*.035f,t.travelMin,t.travelMax);
+        tmp.set(destination);tmp.position.y+=.05f;
+        card.queue.add(CardMotion.to(tmp,travel,Ease.DECELERATE).arc(Math.max(minArc,.3f+.1f*distance)).lift(-10).wobble(7));
+        card.queue.add(CardMotion.to(destination,t.landing,Ease.DECELERATE).onEnd(onLanded));
+        return delay+.3f+.06f+t.emergence+travel+t.landing;
     }
     /** FLIP: lift, turn 180 degrees about the long axis, settle in place. */
     public float flip(Card3D card,float delay){

@@ -3,13 +3,57 @@
   "slotWidth": 0.51,
   "slotClearance": 1.18,
   "platformLength": 0.44,
-  "platformWidth": 0.40,
+  "platformWidth": 0.4,
   "platformClearance": 1.04,
-  "spawn": { "x": -0.005, "y": 0.211, "z": 0.28 },
-  "exitDirection": { "x": 0, "y": 0, "z": 1 },
-  "deck": { "x": 0, "y": 0.478, "z": -0.06 },
+  "spawn": {
+    "x": -0.005,
+    "y": 0.211,
+    "z": 0.28
+  },
+  "exitDirection": {
+    "x": 0,
+    "y": 0,
+    "z": 1
+  },
+  "deck": {
+    "x": 0,
+    "y": 0.478,
+    "z": -0.06
+  },
   "deckTilt": 7.9,
   "deckYaw": 90,
   "feedTravel": 0.3,
-  "card": { "width": 1.19, "height": 1.785, "thickness": 0.014, "cornerRadius": 0.08, "cornerSegments": 5, "deckScale": 0.666 }
+  "card": {
+    "width": 1.19,
+    "height": 1.785,
+    "thickness": 0.014,
+    "cornerRadius": 0.08,
+    "cornerSegments": 5,
+    "deckScale": 0.666
+  },
+  "timing": {
+    "activation": 0.25,
+    "emergence": 0.2,
+    "travelMin": 0.4,
+    "travelMax": 0.65,
+    "landing": 0.15,
+    "pairRise": 0.25,
+    "pairHold": 0.15,
+    "pairTravel": 0.4,
+    "pairInsert": 0.15,
+    "pairStagger": 0.15,
+    "summon": 0.45,
+    "dissolve": 1.0,
+    "idleTickMin": 5,
+    "idleTickMax": 9
+  },
+  "sounds": {
+    "activate": "sounds/last_command/runtime/lever.wav",
+    "shuffle": "sounds/last_command/runtime/adjuster.wav",
+    "eject": "sounds/last_command/runtime/small_button_click.wav",
+    "land": "",
+    "insert": "sounds/last_command/runtime/button_pressed.wav",
+    "destroy": "sounds/cursed_boxes/runtime/box_destroy_done.wav",
+    "shutdown": "sounds/last_command/runtime/machine_shutdown .wav"
+  }
 }
