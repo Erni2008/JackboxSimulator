@@ -15,7 +15,7 @@ import com.badlogic.gdx.utils.Disposable;
 public final class CursedHud implements Disposable {
     public static final String[] DEFAULT_NAMES={"VESPER","MORDECAI","LILITH","ABSALOM","SERAPHINE","CORVIN","ODETTE","BALTHAZAR"};
     private final BitmapFont plate,status,phaseFont,title,toastFont;
-    private final Texture pixel,spot,spotSoft,vignette,grain;
+    private final Texture pixel,spot,spotSoft,vignette,grain,grade;
     private final GlyphLayout layout=new GlyphLayout();
     private String phase="",shownPhase="",toast="";private float phaseFade,toastAge=99,time,verdictFade;
     private final Color gold=new Color(.93f,.76f,.45f,1),ivory=new Color(.92f,.86f,.76f,1),crimson=new Color(.95f,.22f,.18f,1),ash=new Color(.62f,.58f,.54f,1);
@@ -32,9 +32,13 @@ public final class CursedHud implements Disposable {
         spotSoft=new Texture(p);spotSoft.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();
         n=256;p=new Pixmap(n,n,Pixmap.Format.RGBA8888);for(int y=0;y<n;y++)for(int x=0;x<n;x++){float u=(x+.5f)/n*2-1,v=(y+.5f)/n*2-1,r=(float)Math.sqrt(u*u*.8f+v*v),a=MathUtils.clamp((r-.62f)/.75f,0,1);p.drawPixel(x,y,Color.rgba8888(0,0,0,a*a*.85f));}
         vignette=new Texture(p);vignette.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();
-        n=256;p=new Pixmap(n,n,Pixmap.Format.RGBA8888);var rnd=new RandomXS128(9);for(int y=0;y<n;y++)for(int x=0;x<n;x++){float v=.5f+(rnd.nextFloat()-.5f)*.07f;p.drawPixel(x,y,Color.rgba8888(v,v,v,1));}
-        grain=new Texture(p);grain.setWrap(Texture.TextureWrap.Repeat,Texture.TextureWrap.Repeat);grain.setFilter(Texture.TextureFilter.Nearest,Texture.TextureFilter.Nearest);p.dispose();
+        // vertical grade ramp: cool moonlight at the top fading out, warm candle amber rising from the bottom
+        p=new Pixmap(4,256,Pixmap.Format.RGBA8888);for(int y=0;y<256;y++){float t=y/255f,cool=MathUtils.clamp((.45f-t)/.45f,0,1),warm=MathUtils.clamp((t-.55f)/.45f,0,1);
+            for(int x=0;x<4;x++)p.drawPixel(x,y,cool>0?Color.rgba8888(.35f,.48f,.85f,cool*cool):Color.rgba8888(1f,.62f,.28f,warm*warm));}
+        grade=new Texture(p);grade.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();
+        grain=new Texture(p=grainMap());grain.setWrap(Texture.TextureWrap.Repeat,Texture.TextureWrap.Repeat);grain.setFilter(Texture.TextureFilter.Nearest,Texture.TextureFilter.Nearest);p.dispose();
     }
+    private static Pixmap grainMap(){int n=256;var p=new Pixmap(n,n,Pixmap.Format.RGBA8888);var rnd=new RandomXS128(9);for(int y=0;y<n;y++)for(int x=0;x<n;x++){float v=.5f+(rnd.nextFloat()-.5f)*.07f;p.drawPixel(x,y,Color.rgba8888(v,v,v,1));}return p;}
     private static BitmapFont font(FreeTypeFontGenerator g,int size,int spacing){var p=new FreeTypeFontGenerator.FreeTypeFontParameter();p.size=size;p.spaceX=spacing;p.characters+="—·←→";p.minFilter=p.magFilter=Texture.TextureFilter.Linear;p.genMipMaps=false;return g.generateFont(p);}
 
     public void phase(String text){if(!text.equals(phase)){phase=text;}}
@@ -59,6 +63,11 @@ public final class CursedHud implements Disposable {
             batch.draw(pixel,v.x,v.y,cx-s*.5f-v.x,v.height);batch.draw(pixel,cx+s*.5f,v.y,v.x+v.width-(cx+s*.5f),v.height);
             batch.draw(pixel,cx-s*.5f,v.y,s,cy-s*.5f-v.y);batch.draw(pixel,cx-s*.5f,cy+s*.5f,s,v.y+v.height-(cy+s*.5f));batch.setColor(Color.WHITE);}
         // Film look: soft corner vignette and fine animated grain (barely visible; it settles the 3D layer into the painting).
+        // Colour grade: moon-cool top, candle-warm bottom (additive, very low), with a slow candle breath.
+        {float breath=.85f+.1f*MathUtils.sin(time*1.3f)+.05f*MathUtils.sin(time*4.7f);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
+        batch.setColor(1,1,1,.07f*breath*(1-f.dim));batch.draw(grade,v.x,v.y,v.width,v.height,0,1,1,0);
+        batch.setColor(1f,.6f,.3f,.05f*breath*(1-f.dim));batch.draw(spotSoft,v.x+v.width*.2f,v.y-v.height*.25f,v.width*.6f,v.height*.75f);
+        batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
         {batch.setColor(1,1,1,.55f);batch.draw(vignette,v.x,v.y,v.width,v.height);
         batch.setBlendFunction(GL20.GL_DST_COLOR,GL20.GL_SRC_COLOR);int g=MathUtils.floor(time*24)%8;batch.setColor(1,1,1,1);
         batch.draw(grain,v.x,v.y,v.width,v.height,(g%4)*.25f,(g/4)*.5f,(g%4)*.25f+v.width/256f*.6f,(g/4)*.5f+v.height/256f*.6f);
@@ -77,6 +86,7 @@ public final class CursedHud implements Disposable {
             plate.setColor(0,0,0,.75f*fade);plate.draw(batch,name,x+2*pk,y-2*pk);plate.setColor(c.r,c.g,c.b,(ok?.65f:1)*fade);plate.draw(batch,name,x,y);
             // thin gold rule under the name, wider for the active player
             float rule=(active?1:.55f)*w;batch.setColor(gold.r,gold.g,gold.b,(active?.85f:.28f)*fade);batch.draw(pixel,at.x-rule*.5f,y-h-7*k,rule,Math.max(1,1.5f*k));
+            {float d=4*k,ry=y-h-7*k+.75f*k;for(int sgn=-1;sgn<=1;sgn+=2)batch.draw(pixel,at.x+sgn*(rule*.5f+d*.6f)-d*.5f,ry-d*.5f,d*.5f,d*.5f,d,d,.7f,.7f,45,0,0,1,1,false,false);}
             String st=dead?"CURSED":ok?"SAFE":active?"DRAWS":target?"OFFERS A CARD":null;
             if(st!=null){status.getData().setScale(k);layout.setText(status,st);status.setColor(c.r,c.g,c.b,.9f*fade);status.draw(batch,st,at.x-layout.width*.5f,y-h-14*k);}
             if(active&&f.timer>=0){float tw=Math.max(w*1.2f,70*k),urgent=f.timer<.3f?1:0,blink=urgent>0?.6f+.4f*MathUtils.sin(time*14):1,ty=y-h-28*k;
@@ -101,11 +111,14 @@ public final class CursedHud implements Disposable {
         // Verdict.
         verdictFade=f.verdict?Math.min(1,verdictFade+dt*.8f):0;
         if(verdictFade>0&&f.loser>=0){String who=f.names[f.loser%f.names.length];title.getData().setScale(k);layout.setText(title,"CURSED");float y=v.y+v.height*.86f;
+            {float hw=layout.width*1.6f,hh=layout.height*3.2f,pulse=.85f+.15f*MathUtils.sin(time*2.2f);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(crimson.r,crimson.g*.4f,crimson.b*.3f,.32f*verdictFade*pulse);
+            batch.draw(spotSoft,v.x+(v.width-hw)*.5f,y-layout.height*.5f-hh*.5f,hw,hh);batch.setColor(1,1,1,.9f*verdictFade);batch.draw(pixel,v.x+(v.width-hw*.7f)*.5f,y-layout.height-18*k,hw*.7f,Math.max(1,1.5f*k));
+            batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
             title.setColor(0,0,0,.8f*verdictFade);title.draw(batch,"CURSED",v.x+(v.width-layout.width)*.5f+3*k,y-3*k);title.setColor(crimson.r,crimson.g,crimson.b,verdictFade);title.draw(batch,"CURSED",v.x+(v.width-layout.width)*.5f,y);
             String sub=who+" HOLDS DEATH  ·  ALL OTHERS SURVIVE";phaseFont.getData().setScale(k);layout.setText(phaseFont,sub);phaseFont.setColor(ivory.r,ivory.g,ivory.b,verdictFade);phaseFont.draw(batch,sub,v.x+(v.width-layout.width)*.5f,y-110*k);}
         // Scene fade (entry from black and between phases).
         if(f.fade>0){batch.setColor(0,0,0,f.fade);batch.draw(pixel,v.x,v.y,v.width,v.height);}
         batch.setColor(Color.WHITE);
     }
-    @Override public void dispose(){plate.dispose();status.dispose();phaseFont.dispose();title.dispose();toastFont.dispose();pixel.dispose();spot.dispose();spotSoft.dispose();vignette.dispose();grain.dispose();}
+    @Override public void dispose(){plate.dispose();status.dispose();phaseFont.dispose();title.dispose();toastFont.dispose();pixel.dispose();spot.dispose();spotSoft.dispose();vignette.dispose();grain.dispose();grade.dispose();}
 }

@@ -73,7 +73,9 @@ public final class TableFx implements Disposable {
         for(int i=0;i<EMBERS;i++){if(elife[i]<=0)continue;tmp.set(ex[i],ey[i],ez[i]);camera.project(tmp,view.x,view.y,view.width,view.height);if(tmp.z>=1)continue;
             float k=elife[i]/emax[i],flick=.75f+.25f*MathUtils.sin(time*30+i*1.7f),s=esize[i]*view.height/1080f*(.6f+.4f*k);
             batch.setColor(ecolor[i].r,ecolor[i].g,ecolor[i].b,k*flick);batch.draw(dot,tmp.x-s,tmp.y-s,s*2,s*2);
-            batch.setColor(ecolor[i].r,ecolor[i].g*.6f,ecolor[i].b*.5f,k*.25f);batch.draw(dot,tmp.x-s*3,tmp.y-s*3,s*6,s*6);}
+            batch.setColor(ecolor[i].r,ecolor[i].g*.6f,ecolor[i].b*.5f,k*.25f);batch.draw(dot,tmp.x-s*3,tmp.y-s*3,s*6,s*6);
+            // faint anamorphic streak: the lens catches each ember
+            batch.setColor(ecolor[i].r,ecolor[i].g*.7f,ecolor[i].b*.6f,k*.12f*flick);batch.draw(dot,tmp.x-s*9,tmp.y-s*.5f,s*18,s);}
         batch.setColor(Color.WHITE);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
     }
     public void clear(){for(int i=0;i<EMBERS;i++)elife[i]=0;live=0;for(int i=0;i<SMOKE;i++)mlife[i]=0;smokeLive=0;}
