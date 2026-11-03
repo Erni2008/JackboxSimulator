@@ -6,11 +6,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /** Rules of THE CURSED CARDS: deck composition, dealing, pairs, turn order, completion, conservation of cards. */
 class CursedCardsGameTest {
-    private static final int[] SIZES={0,0,7,9,13,15,19,21,25};
+    private static final int[] SIZES={0,0,0,0,17,17,17};
 
     @Test void deckForEveryPlayerCountHasOneDeathAndEvenValues(){
         var deck=new CursedDeck();
-        for(int p=4;p<=8;p++)for(int seed=0;seed<200;seed++){
+        for(int p=4;p<=6;p++)for(int seed=0;seed<200;seed++){
             var cards=deck.build(p,new Random(seed));assertEquals(SIZES[p],cards.size());
             assertEquals(1,cards.stream().filter(CursedCard::death).count());
             Map<Integer,Integer> counts=new HashMap<>();for(var c:cards)if(!c.death()){assertTrue(c.value()>=1&&c.value()<=10);counts.merge(c.value(),1,Integer::sum);}
@@ -26,7 +26,7 @@ class CursedCardsGameTest {
         assertThrows(IllegalArgumentException.class,()->new CursedDeck().build(3,new Random()),"fewer than 4 players is not supported");
     }
     @Test void dealIsBalancedAndInitialPairsAreDiscarded(){
-        for(int p=4;p<=8;p++){var g=CursedCardsGame.create(p,new CursedDeck(),new Random(p));int[] dealt=new int[p];
+        for(int p=4;p<=6;p++){var g=CursedCardsGame.create(p,new CursedDeck(),new Random(p));int[] dealt=new int[p];
             g.addListener(new CursedCardsListener(){public void dealt(CursedCard c,int to){dealt[to]++;}});g.start();
             int min=Arrays.stream(dealt).min().getAsInt(),max=Arrays.stream(dealt).max().getAsInt();assertTrue(max-min<=1,Arrays.toString(dealt));
             for(int q=0;q<p;q++)assertNoPairs(g.hand(q));conserved(g);}
@@ -59,7 +59,7 @@ class CursedCardsGameTest {
         conserved(g);
     }
     @Test void randomMatchesAlwaysEndWithOneDeathHolderAndConserveCards(){
-        for(int p=4;p<=8;p++)for(int seed=0;seed<300;seed++){
+        for(int p=4;p<=6;p++)for(int seed=0;seed<300;seed++){
             var g=CursedCardsGame.create(p,new CursedDeck(),new Random(seed*31+p));int[] finished={0};int[] loser={-2};List<Integer> survivors=new ArrayList<>();
             g.addListener(new CursedCardsListener(){
                 public void turnChanged(int d,int s){assertNotEquals(d,s);assertTrue(g.handSize(d)>0&&g.handSize(s)>0);}

@@ -4,7 +4,7 @@ import com.erni.finalanswer.gameplay.cursedcards.*;
 import java.util.*;
 
 /**
- * Server-authoritative THE CURSED CARDS match: 4–8 seated players, everyone else spectates. Phases:
+ * Server-authoritative THE CURSED CARDS match: 4–6 seated players, everyone else spectates. Phases:
  * CURSE_VOTE (spectators may curse one player; skipped without spectators) → DEALING (presentation time on the
  * shared screen) → PLAYING (turn timer; timeout takes a random hidden card) → FINISHED. The rules live in
  * {@link CursedCardsGame}; this class adds timing, idempotent commands and per-viewer snapshots. Hidden values
@@ -12,7 +12,11 @@ import java.util.*;
  */
 final class CursedCardsSession {
     enum Phase {CURSE_VOTE,DEALING,PLAYING,FINISHED}
-    static final long VOTE_MS=12_000,TURN_MS=12_000,DEAL_STEP_MS=420,DEAL_BASE_MS=2_600,PAIR_MS=900,AFTER_DRAW_MS=1_400;
+    /** All match pacing in one place; the defaults target a 1.5–2.5 minute match for 4–6 players. */
+    record Timing(long voteMs,long turnMs,long dealStepMs,long dealBaseMs,long pairMs,long afterDrawMs){
+        static final Timing DEFAULT=new Timing(10_000,10_000,300,2_200,800,1_200);}
+    static final long VOTE_MS=Timing.DEFAULT.voteMs(),TURN_MS=Timing.DEFAULT.turnMs();
+    private final Timing timing;
     /** Probability that the audience's curse puts DEATH into the cursed player's initial hand. */
     static final double CURSE_WEIGHT=.5;
 
@@ -26,11 +30,12 @@ final class CursedCardsSession {
     private final Set<String> handled=new HashSet<>();
     private int timeouts;private boolean readyAnnounced;
 
-    CursedCardsSession(List<String> seats,Collection<String> spectators,Random random,long now){
+    CursedCardsSession(List<String> seats,Collection<String> spectators,Random random,long now){this(seats,spectators,random,now,Timing.DEFAULT);}
+    CursedCardsSession(List<String> seats,Collection<String> spectators,Random random,long now,Timing timing){this.timing=timing;
         if(seats.size()<CursedDeck.MIN_PLAYERS||seats.size()>CursedDeck.MAX_PLAYERS)throw new RoomService.Failure(409,"CARDS_PLAYER_COUNT");
         if(new HashSet<>(seats).size()!=seats.size())throw new RoomService.Failure(400,"INVALID_CARDS_ROSTER");
         this.seats=List.copyOf(seats);this.spectators=new LinkedHashSet<>(spectators);this.spectators.removeAll(seats);this.random=random;
-        if(this.spectators.isEmpty())deal(now);else{phase=Phase.CURSE_VOTE;phaseEnds=now+VOTE_MS;}
+        if(this.spectators.isEmpty())deal(now);else{phase=Phase.CURSE_VOTE;phaseEnds=now+timing.voteMs();}
     }
     Phase phase(){return phase;}
     int seat(String member){return seats.indexOf(member);}
@@ -76,9 +81,9 @@ final class CursedCardsSession {
         long pairs=events.subList(before,events.size()).stream().filter(e->e.get("type").equals("pair")).count();
         turnSeq++;readyAnnounced=false;
         if(game.phase()==CursedCardsGame.Phase.FINISHED){phase=Phase.FINISHED;return;}
-        turnReadyAt=now+AFTER_DRAW_MS+pairs*PAIR_MS;turnDeadline=turnReadyAt+TURN_MS;
+        turnReadyAt=now+timing.afterDrawMs()+pairs*timing.pairMs();turnDeadline=turnReadyAt+timing.turnMs();
     }
-    private void openTurn(long now){turnReadyAt=now;turnDeadline=now+TURN_MS;readyAnnounced=true;}
+    private void openTurn(long now){turnReadyAt=now;turnDeadline=now+timing.turnMs();readyAnnounced=true;}
 
     /** Build the deck (ids shuffled), apply the audience curse to the initial distribution only, deal. */
     private void deal(long now){
@@ -101,7 +106,7 @@ final class CursedCardsSession {
         });
         game.start();
         long pairCount=events.stream().filter(e->e.get("type").equals("pair")).count();
-        phase=Phase.DEALING;phaseEnds=now+DEAL_BASE_MS+deck.size()*DEAL_STEP_MS+pairCount*PAIR_MS;
+        phase=Phase.DEALING;phaseEnds=now+timing.dealBaseMs()+deck.size()*timing.dealStepMs()+pairCount*timing.pairMs();
     }
     private String topVote(){Map<String,Integer> tally=tally();int best=Collections.max(tally.values());
         List<String> top=tally.entrySet().stream().filter(e->e.getValue()==best).map(Map.Entry::getKey).sorted().toList();return top.get(random.nextInt(top.size()));}

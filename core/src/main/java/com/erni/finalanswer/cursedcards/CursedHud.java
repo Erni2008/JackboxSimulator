@@ -80,7 +80,7 @@ public final class CursedHud implements Disposable {
         for(int i=0;i<f.players;i++){Vector2 at=f.plates[i];String name=f.names[i%f.names.length];
             boolean active=i==f.drawer,target=i==f.source,dead=i==f.loser,ok=f.safe[i]&&!dead;float fade=f.dim>0&&!dead?1-f.dim*.7f:1;
             Color c=dead?crimson:active?gold:target?crimson:ok?ash:ivory;
-            float pk=k*f.plateScale[i];plate.getData().setScale(pk);layout.setText(plate,name);float w=layout.width,h=layout.height,x=at.x-w*.5f,y=at.y+h*.5f;
+            float pk=k*f.plateScale[i];plate.getData().setScale(pk);layout.setText(plate,name);float w=layout.width,h=layout.height,x=Math.round(at.x-w*.5f),y=Math.round(at.y+h*.5f);
             // soft dark backing keeps the name readable on bright felt or embroidery
             batch.setColor(0,0,0,.42f*fade);batch.draw(spotSoft,at.x-w*.75f,at.y-h*1.2f,w*1.5f,h*2.6f);batch.setColor(Color.WHITE);
             plate.setColor(0,0,0,.75f*fade);plate.draw(batch,name,x+2*pk,y-2*pk);plate.setColor(c.r,c.g,c.b,(ok?.65f:1)*fade);plate.draw(batch,name,x,y);
@@ -88,7 +88,7 @@ public final class CursedHud implements Disposable {
             float rule=(active?1:.55f)*w;batch.setColor(gold.r,gold.g,gold.b,(active?.85f:.28f)*fade);batch.draw(pixel,at.x-rule*.5f,y-h-7*k,rule,Math.max(1,1.5f*k));
             {float d=4*k,ry=y-h-7*k+.75f*k;for(int sgn=-1;sgn<=1;sgn+=2)batch.draw(pixel,at.x+sgn*(rule*.5f+d*.6f)-d*.5f,ry-d*.5f,d*.5f,d*.5f,d,d,.7f,.7f,45,0,0,1,1,false,false);}
             String st=dead?"CURSED":ok?"SAFE":active?"DRAWS":target?"OFFERS A CARD":null;
-            if(st!=null){status.getData().setScale(k);layout.setText(status,st);status.setColor(c.r,c.g,c.b,.9f*fade);status.draw(batch,st,at.x-layout.width*.5f,y-h-14*k);}
+            if(st!=null){status.getData().setScale(k);layout.setText(status,st);status.setColor(c.r,c.g,c.b,.9f*fade);status.draw(batch,st,Math.round(at.x-layout.width*.5f),Math.round(y-h-14*k));}
             if(active&&f.timer>=0){float tw=Math.max(w*1.2f,70*k),urgent=f.timer<.3f?1:0,blink=urgent>0?.6f+.4f*MathUtils.sin(time*14):1,ty=y-h-28*k;
                 batch.setColor(0,0,0,.45f*fade);batch.draw(pixel,at.x-tw*.5f,ty,tw,Math.max(2,3*k));
                 batch.setColor(MathUtils.lerp(gold.r,crimson.r,urgent),MathUtils.lerp(gold.g,crimson.g,urgent),MathUtils.lerp(gold.b,crimson.b,urgent),.9f*blink*fade);

@@ -60,8 +60,8 @@ public final class CursedCardsHostCheck extends ApplicationAdapter {
                 check(table().handSize(seat)==1&&table().handCard(seat,0).value==CardValue.DEATH,"DEATH revealed face up in the loser's place");
                 shot("h3-result");t=0;}}
         screen.render(dt);
-        if(pendingShot!=null){Pixmap p=Pixmap.createFromFrameBuffer(0,0,Gdx.graphics.getBackBufferWidth(),Gdx.graphics.getBackBufferHeight());PixmapIO.writePNG(Gdx.files.absolute(out+"/"+pendingShot+".png"),p,-1,true);p.dispose();pendingShot=null;}
-        if(finishedSeen&&t>1.5f){check(turnsChecked>=3,"table mirrored the server on "+turnsChecked+" turns");check(curseShown,"audience curse shown on the shared screen");
+        if(pendingShot!=null){Pixmap p=Pixmap.createFromFrameBuffer(0,0,Gdx.graphics.getBackBufferWidth(),Gdx.graphics.getBackBufferHeight());{var file=Gdx.files.absolute(out+"/"+pendingShot+".png");var px=p;SHOTS.execute(()->{PixmapIO.writePNG(file,px,-1,true);px.dispose();});}pendingShot=null;}
+        if(finishedSeen&&t>1.5f){check(turnsChecked>=2,"table mirrored the server on "+turnsChecked+" turns");check(curseShown,"audience curse shown on the shared screen");
             log.forEach(System.out::println);System.out.println(failed?"RESULT FAIL":"RESULT PASS");Gdx.app.exit();}
         if(t>240){System.out.println("FAIL timeout turnsChecked="+turnsChecked+" phase="+(last==null?"-":last.get("phase")));log.forEach(System.out::println);Gdx.app.exit();}
         if(last!=null&&last.has("cursedPlayer")&&!curseShown){curseShown=true;check(last.get("cursedPlayer").getAsString().equals(bots.get("Lilith").id),"server cursed the voted player");}
@@ -76,5 +76,8 @@ public final class CursedCardsHostCheck extends ApplicationAdapter {
     private void shot(String n){pendingShot=n;}
     private void check(boolean ok,String what){log.add((ok?"PASS ":"FAIL ")+what);failed|=!ok;}
     @Override public void dispose(){if(screen!=null)screen.dispose();if(host!=null)host.close();for(var b:bots.values())if(b.ws!=null)b.ws.abort();}
+    /** PNG encoding off the render thread, so screenshots never freeze the picture. */
+    private static final java.util.concurrent.ExecutorService SHOTS=java.util.concurrent.Executors.newSingleThreadExecutor(r->{var t=new Thread(r,"shots");t.setDaemon(true);return t;});
+    static{Runtime.getRuntime().addShutdownHook(new Thread(()->{SHOTS.shutdown();try{SHOTS.awaitTermination(20,java.util.concurrent.TimeUnit.SECONDS);}catch(InterruptedException e){}}));}
     public static void main(String[] a){var c=new Lwjgl3ApplicationConfiguration();c.setWindowedMode(1600,900);c.useVsync(true);c.setBackBufferConfig(8,8,8,8,24,0,4);new Lwjgl3Application(new CursedCardsHostCheck(),c);}
 }

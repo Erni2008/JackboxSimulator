@@ -30,7 +30,8 @@ public final class BackdropFx implements Disposable {
             vec2 suv=uv+vec2(fold*.0032*hang*hang*(.6+.4*u_wind),0.)*curtain;
             // branches and fog behind the glass drift with the wind
             float gust=sin(u_time*.6+uv.y*24.)*.5+sin(u_time*1.3+uv.x*31.)*.25;
-            suv+=vec2(gust*.0011*u_wind,0.)*w;
+            float bough=sin(u_time*.35+uv.x*3.)*.6+sin(u_time*.9+uv.y*9.)*.4;
+            suv+=vec2((gust*.0013+bough*.0016*smoothstep(.15,.6,uv.y))*u_wind,bough*.0006*u_wind)*w;
             vec3 c=texture2D(u_texture,suv).rgb;
             // folds catch the candlelight
             c*=1.+curtain*fold*.07*hang;
@@ -40,6 +41,20 @@ public final class BackdropFx implements Disposable {
             c*=mix(1.,.80+.20*smoothstep(.25,.75,n),w*.7);
             c+=w*mist*vec3(.30,.36,.52)*.42;
             vec2 d=(uv-u_moon)*vec2(u_aspect,1.);float halo=exp(-dot(d,d)*70.)*(.09+.04*sin(u_time*.45));
+            // drifting storm clouds behind the glass: two layers at different speeds (parallax), lit silver near the moon
+            vec2 cq=vec2(uv.x*1.6,uv.y*2.6);
+            float cl=texture2D(u_noise,cq+vec2(u_time*.016,0.)).r*.6+texture2D(u_noise,cq*1.9+vec2(u_time*.028,.37)).r*.4;
+            float cloud=smoothstep(.45,.8,cl),edge=smoothstep(.38,.55,cl)-smoothstep(.55,.75,cl);
+            float nearMoon=exp(-dot(d,d)*9.);
+            c*=mix(1.,.62,cloud*w*.8);
+            c+=w*edge*nearMoon*vec3(.55,.62,.9)*.55;
+            float atMoon=texture2D(u_noise,vec2(u_moon.x*1.6,u_moon.y*2.6)+vec2(u_time*.016,0.)).r;
+            halo*=1.-smoothstep(.5,.85,atMoon)*.55;
+            // faint stars in the clear dark patches, each with its own slow twinkle
+            vec2 cell=floor(uv*vec2(320.,180.));float hs=fract(sin(dot(cell,vec2(12.9898,78.233)))*43758.5453);
+            vec2 inCell=fract(uv*vec2(320.,180.))-.5;float star=step(.993,hs)*smoothstep(.35,0.,length(inCell))*(.5+.5*sin(u_time*(1.+hs*3.)+hs*40.));
+            c+=w*star*(1.-cloud)*smoothstep(.25,.05,dot(c,vec3(.33)))*vec3(.8,.85,1.)*.9;
+            c+=w*cloud*u_flash*vec3(.6,.66,1.)*.6;
             c+=halo*vec3(.62,.70,1.)*(1.-w*.3);
             // moonbeams: soft shafts from the moon falling across the hall, slowly breathing
             vec2 r=uv-u_moon;float ang=atan(r.x*u_aspect,r.y),dist=length(r*vec2(u_aspect,1.));

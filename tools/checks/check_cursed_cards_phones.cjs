@@ -27,6 +27,8 @@ async function until(fn,ms,what){const t=Date.now();while(Date.now()-t<ms){const
     // too few players is refused
     send(host,'START_CARDS',{roomCode:code,sessionId:host.state.lobbyId,participantIds:seats.slice(0,3)});await sleep(400);
     assert.ok(host.errors.includes('CARDS_PLAYER_COUNT'));ok('3 players refused (CARDS_PLAYER_COUNT)');
+    host.errors.length=0;send(host,'START_CARDS',{roomCode:code,sessionId:host.state.lobbyId,participantIds:names.map(n=>ids[n])});await sleep(400);
+    assert.ok(host.errors.includes('CARDS_PLAYER_COUNT'));ok('7 players refused (CARDS_PLAYER_COUNT)');
     send(host,'START_CARDS',{roomCode:code,sessionId:host.state.lobbyId,participantIds:seats});
     await until(()=>host.state?.cursedCards?.phase==='CURSE_VOTE',5000,'vote phase');ok('6 seated + 1 spectator -> audience curse vote');
     await watcher.waitForSelector('#cards-screen:not([hidden]) .cards-target');await sleep(300);await watcher.screenshot({path:out+'/phone-spectator-vote.png'});

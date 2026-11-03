@@ -9,19 +9,20 @@ import com.erni.finalanswer.gameplay.cursedcards.*;
 import java.util.*;
 
 /**
- * Plays complete local matches (2, 5 and 8 players) through the 3D table and checks, at every turn, that the visual
+ * Plays complete local matches (4, 5 and 6 players) through the 3D table and checks, at every turn, that the visual
  * hands mirror the authoritative rules, stay face down, and that the end state shows DEATH with the loser.
  * Screenshots go to -Dout=dir.
  */
 public final class CursedCardsPrototypeCheck extends CursedCardsPrototype {
-    private final String out=System.getProperty("out","/tmp");private final int[] counts={4,5,6,7,8};
+    private final String out=System.getProperty("out","/tmp");private final int[] counts={4,5,6};
     private int match,turns,textures=-1;private float t;private boolean started,manualDone,midShot,dealShot;private String pending;private final List<String> log=new ArrayList<>();private boolean failed;
     private int resultsFired;private float matchSeconds;private boolean timerArmed;private final List<String> phases=new ArrayList<>();private boolean disposalRun;private final java.util.Set<String> cineShots=new java.util.HashSet<>();
-    @Override public void create(){super.create();timeScale=3;resultListener=(l,alive)->{resultsFired++;check(game!=null&&l==game.loser()&&alive.length==players-1,"results hand-off matches the rules' loser");};Gdx.graphics.setContinuousRendering(true);layoutChecks();}
+    @Override public void create(){super.create();timeScale=3;resultListener=(l,alive)->{resultsFired++;check(game!=null&&l==game.loser()&&alive.length==players-1,"results hand-off matches the rules' loser");};Gdx.graphics.setContinuousRendering(true);layoutChecks();
+        for(int n:new int[]{3,7,8}){boolean refused;try{SeatLayout.layout(tableConfig,n);refused=false;}catch(IllegalArgumentException e){refused=true;}check(refused,n+" players refused by the table");}}
     /** Static scene geometry for every player count: chairs/characters/hands placed without intersections. */
     private void layoutChecks(){
         var t=tableConfig.table;float chairWidth=.54f*tableConfig.chair.scale;var mb=machine.worldBounds();
-        for(int n=CursedDeck.MIN_PLAYERS;n<=8;n++){var seats=SeatLayout.layout(tableConfig,n);boolean ok=seats.size==n,outside=true,apart=true,inside=true,clearMachine=true;
+        for(int n=CursedDeck.MIN_PLAYERS;n<=CursedDeck.MAX_PLAYERS;n++){var seats=SeatLayout.layout(tableConfig,n);boolean ok=seats.size==n,outside=true,apart=true,inside=true,clearMachine=true;
             for(int i=0;i<seats.size;i++){var st=seats.get(i);
                 float seatDepth=tableConfig.chair.halfDepth*tableConfig.chair.scale;
                 // chair front edge stays outside the rim
@@ -107,10 +108,13 @@ public final class CursedCardsPrototypeCheck extends CursedCardsPrototype {
     }
     @Override public void render(){
         super.render();
-        if(pending!=null){Pixmap p=Pixmap.createFromFrameBuffer(0,0,Gdx.graphics.getBackBufferWidth(),Gdx.graphics.getBackBufferHeight());PixmapIO.writePNG(Gdx.files.absolute(out+"/"+pending+".png"),p,-1,true);p.dispose();pending=null;}
+        if(pending!=null){Pixmap p=Pixmap.createFromFrameBuffer(0,0,Gdx.graphics.getBackBufferWidth(),Gdx.graphics.getBackBufferHeight());{var file=Gdx.files.absolute(out+"/"+pending+".png");var px=p;SHOTS.execute(()->{PixmapIO.writePNG(file,px,-1,true);px.dispose();});}pending=null;}
         else if(finishSoon){Map<String,Integer> agg=new LinkedHashMap<>();for(String l:log)agg.merge(l,1,Integer::sum);agg.forEach((k,v)->System.out.println(k+(v>1?"  ×"+v:"")));System.out.println(failed?"RESULT FAIL":"RESULT PASS");Gdx.app.exit();finishSoon=false;}
     }
     private void shot(String n){pending=n;}
     private void check(boolean ok,String what){log.add((ok?"PASS ":"FAIL ")+what);failed|=!ok;}
+    /** PNG encoding off the render thread, so screenshots never freeze the picture. */
+    private static final java.util.concurrent.ExecutorService SHOTS=java.util.concurrent.Executors.newSingleThreadExecutor(r->{var t=new Thread(r,"shots");t.setDaemon(true);return t;});
+    static{Runtime.getRuntime().addShutdownHook(new Thread(()->{SHOTS.shutdown();try{SHOTS.awaitTermination(20,java.util.concurrent.TimeUnit.SECONDS);}catch(InterruptedException e){}}));}
     public static void main(String[] a){var c=new Lwjgl3ApplicationConfiguration();c.setWindowedMode(1600,900);c.setBackBufferConfig(8,8,8,8,24,0,4);c.useVsync(true);new Lwjgl3Application(new CursedCardsPrototypeCheck(),c);}
 }

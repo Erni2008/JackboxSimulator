@@ -10,10 +10,23 @@ class CursedCardsSessionTest {
     static List<String> seats(int n){List<String> s=new ArrayList<>();for(int i=0;i<n;i++)s.add("p"+i);return s;}
     static String code(Runnable r){return assertThrows(RoomService.Failure.class,r::run).getMessage();}
 
-    @Test void onlyFourToEightSeatedPlayers(){
-        for(int n:new int[]{1,2,3,9})assertEquals("CARDS_PLAYER_COUNT",code(()->new CursedCardsSession(seats(n),List.of(),new Random(1),0)));
-        for(int n=4;n<=8;n++)assertEquals(CursedCardsSession.Phase.DEALING,new CursedCardsSession(seats(n),List.of(),new Random(n),0).phase());
+    @Test void onlyFourToSixSeatedPlayers(){
+        for(int n:new int[]{1,2,3,7,8,9})assertEquals("CARDS_PLAYER_COUNT",code(()->new CursedCardsSession(seats(n),List.of(),new Random(1),0)));
+        for(int n=4;n<=6;n++)assertEquals(CursedCardsSession.Phase.DEALING,new CursedCardsSession(seats(n),List.of(),new Random(n),0).phase());
         assertEquals("INVALID_CARDS_ROSTER",code(()->new CursedCardsSession(List.of("a","a","b","c"),List.of(),new Random(1),0)));
+    }
+    @Test void eligibilityFollowsTheIncorrectAnswerCount(){
+        for(int n=0;n<=8;n++)assertEquals(n>=4&&n<=6,com.erni.finalanswer.gameplay.cursedcards.CursedDeck.eligible(n),"incorrect answers: "+n);
+    }
+    /** Simulated pacing: phones act after ~3 s on average; a match must land in 1.5–2.5 minutes. */
+    @Test void matchLastsAboutTwoMinutes(){
+        for(int n=4;n<=6;n++){long sum=0;int runs=80;
+            for(int seed=0;seed<runs;seed++){var s=new CursedCardsSession(seats(n),List.of("w"),new Random(seed),0);var think=new Random(seed+99L);long now=0;s.vote("w","v","p0",1_000);now=2_300;s.tick(now);
+                now=(long)s.snapshot("host",true,now).get("dealEndsAt");s.tick(now);int g=0;
+                while(s.phase()==CursedCardsSession.Phase.PLAYING){var v=s.snapshot("host",true,now);now=(long)v.get("turnReadyAt")+1_000+think.nextInt(4_000);
+                    s.draw((String)v.get("drawer"),"r"+g++,(int)v.get("turn"),think.nextInt((int)v.get("sourceCards")),now);}
+                sum+=now+4_000; /* DEATH reveal */}
+            double minutes=sum/(double)runs/60_000;System.out.println("PACE "+n+" "+minutes);assertTrue(minutes>=1.5&&minutes<=2.5,n+" players: average "+minutes+" min");}
     }
     @Test void spectatorsCurseBeforeTheDealAndOnlyThem(){
         var s=new CursedCardsSession(seats(5),List.of("w1","w2"),new Random(3),0);
@@ -48,7 +61,7 @@ class CursedCardsSessionTest {
             assertEquals("CARDS_TURN_NOT_READY",code(()->s.draw(next,"y",turn+1,0,s0)),"the next turn waits for the shared-screen animation");}
     }
     @Test void completeMatchesForEveryPlayerCountKeepExactlyOneDeath(){
-        for(int n=4;n<=8;n++)for(int seed=0;seed<60;seed++){
+        for(int n=4;n<=6;n++)for(int seed=0;seed<60;seed++){
             var s=playing(n,seed);long now=s0;int guard=0;var pick=new Random(seed*31L+n);
             while(s.phase()==CursedCardsSession.Phase.PLAYING){var v=s.snapshot("host",true,now);now=Math.max(now,(long)v.get("turnReadyAt"));
                 String drawer=(String)v.get("drawer");int cards=(int)v.get("sourceCards");

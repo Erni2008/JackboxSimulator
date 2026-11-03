@@ -93,7 +93,7 @@ public class FinalAnswerGame extends Game {
         screen.connectNetwork(realtime,state);if(cameraState!=null)screen.restoreCamera(cameraState);setScreen(screen);
     }
     private com.erni.finalanswer.cursedcards.CursedCardsScreen cardsScreen;
-    /** Host: start THE CURSED CARDS for the room (server seats 4–8 connected players; the rest spectate and curse). */
+    /** Host: start THE CURSED CARDS for the room (server seats 4–6 connected players; the rest spectate and curse). */
     public void startCursedCards(){
         if(activeRoom==null||realtime==null||!activeRoom.host())return;
         var snapshot=realtime.snapshot();if(snapshot==null||!snapshot.has("lobbyId"))return;

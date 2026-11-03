@@ -159,8 +159,8 @@ public final class CageLobbyScreen extends ScreenAdapter {
         boolean ready=host && room.players().size()>=2 && room.players().stream().allMatch(p->"ONLINE".equals(p.connectionStatus()));
         lockButtons(starting||pendingStart);
         cursed.setDisabled(starting||pendingStart||!ready);
-        // THE CURSED CARDS seats 4–8 connected players; anyone beyond eight watches and may curse.
-        cards.setDisabled(starting||pendingStart||!host||room.players().size()<4);
+        // THE CURSED CARDS needs 4–6 players; with more it is not offered (nobody is dropped to fit).
+        cards.setDisabled(starting||pendingStart||!host||!com.erni.finalanswer.gameplay.cursedcards.CursedDeck.eligible(room.players().size()));
         play.setDisabled(starting||pendingStart||!ready||introAborted); impostor.setDisabled(starting||pendingStart||!host || room.players().size() < 3);
         String notice=connectionStatus;
         if(host&&!starting&&!pendingStart&&!ready){

@@ -212,8 +212,8 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     /** Collect every card, summon the dealer, load the new shuffled deck and deal it through the slot. */
     public void startMatch(){
         if(presenting())return;network=false;
-        // THE CURSED CARDS is 4–8 active players only (spectators never get a seat or cards).
-        if(players<CursedDeck.MIN_PLAYERS||players>CursedDeck.MAX_PLAYERS){hud.toast("4–8 PLAYERS REQUIRED");return;}
+        // THE CURSED CARDS is 4–6 active players only (spectators never get a seat or cards).
+        if(players<CursedDeck.MIN_PLAYERS||players>CursedDeck.MAX_PLAYERS){hud.toast("4–6 PLAYERS REQUIRED");return;}
         game=CursedCardsGame.create(players,deckRules,random);game.addListener(this);
         layoutSeats();resetCues();
         List<CursedCard> deck=game.deck();
@@ -471,9 +471,15 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     private void fillHud(){
         var f=hudFrame;f.view=view;f.players=seatList.size;f.names=names;f.drawer=awaitingDraw()?drawer:-1;f.source=awaitingDraw()?source:-1;f.loser=verdict||eliminationShown?loser:-1;f.flash=redFlash;f.verdict=verdict;f.dim=dim;
         f.fade=sceneFade*sceneFade;f.bars=bars;float limit=tableConfig.turn.seconds;f.timer=network?(awaitingDraw()&&netTurnDeadline>netTurnStart?MathUtils.clamp((netTurnDeadline-(System.currentTimeMillis()+netOffset))/(float)(netTurnDeadline-netTurnStart),0,1):-1):awaitingDraw()&&limit>0?1-turnClock/limit:-1;f.turnAge=turnAge;
-        for(int i=0;i<seatList.size;i++){tmp.set(seatList.get(i).plate);camera.project(tmp,view.x,view.y,view.width,view.height);f.plates[i].set(tmp.x,tmp.y);f.safe[i]=safe[i];
-            // farther seats (higher on screen) read slightly smaller, within a narrow range
-            f.plateScale[i]=MathUtils.clamp(1.12f-(tmp.y-view.y)/view.height*.55f,.82f,1.05f);}
+        for(int i=0;i<seatList.size;i++){tmp.set(seatList.get(i).plate);
+            // Names are pinned to the steady frame (no hand-held drift, whole pixels, fixed size) so the letters never swim.
+            camera.project(tmp,baseView.x,baseView.y,baseView.width,baseView.height);f.plates[i].set(Math.round(tmp.x),Math.round(tmp.y));f.safe[i]=safe[i];
+            f.plateScale[i]=Math.round(MathUtils.clamp(1.12f-(tmp.y-baseView.y)/baseView.height*.55f,.82f,1.05f)*20)/20f;}
+        // Neighbouring names never collide: names that would overlap step apart (static layout, so nothing swims).
+        float gapX=baseView.height*.13f,gapY=baseView.height*.045f;
+        for(int pass=0;pass<6;pass++)for(int a=0;a<seatList.size;a++)for(int b=a+1;b<seatList.size;b++){var pa=f.plates[a];var pb=f.plates[b];
+            float ddx=pb.x-pa.x;if(Math.abs(ddx)<gapX&&Math.abs(pb.y-pa.y)<gapY){float push=(gapY-Math.abs(pb.y-pa.y))*.5f+1;if(pa.y<=pb.y){pa.y-=push;pb.y+=push;}else{pa.y+=push;pb.y-=push;}
+                pa.y=Math.round(pa.y);pb.y=Math.round(pb.y);}}
         if(deathCard!=null){tmp.set(deathCard.pose.position);camera.project(tmp,view.x,view.y,view.width,view.height);f.spotlight.set(tmp.x,tmp.y);}
     }
     /** Felt-level quads: machine and card contact shadows, turn glows. */

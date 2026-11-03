@@ -4,7 +4,7 @@ import com.badlogic.gdx.math.*;
 import com.badlogic.gdx.utils.Array;
 
 /**
- * Symmetric seating around the oval (stadium) table for 2–8 players, derived only from {@link TableConfig}.
+ * Symmetric seating around the oval (stadium) table for 4–6 players, derived only from {@link TableConfig}.
  * Seats are returned clockwise seen from above (player 1 first, at the near-side right), so rule turn order
  * maps directly to the table. The near side faces the main camera (+Z).
  */
@@ -23,14 +23,10 @@ public final class SeatLayout {
     }
     // Per player count: side and position along that side (-1..1 of the straight edge).
     private static final Object[][][] LAYOUTS={
-        {},{},
-        {{Side.NEAR,0f},{Side.FAR,0f}},
-        {{Side.NEAR,.7f},{Side.NEAR,-.7f},{Side.FAR,0f}},
+        {},{},{},{},
         {{Side.NEAR,.6f},{Side.NEAR,-.6f},{Side.FAR,-.6f},{Side.FAR,.6f}},
         {{Side.NEAR,0f},{Side.LEFT,0f},{Side.FAR,-.6f},{Side.FAR,.6f},{Side.RIGHT,0f}},
         {{Side.NEAR,1f},{Side.NEAR,0f},{Side.NEAR,-1f},{Side.FAR,-1f},{Side.FAR,0f},{Side.FAR,1f}},
-        {{Side.NEAR,.8f},{Side.NEAR,-.8f},{Side.LEFT,0f},{Side.FAR,-1f},{Side.FAR,0f},{Side.FAR,1f},{Side.RIGHT,0f}},
-        {{Side.NEAR,1f},{Side.NEAR,0f},{Side.NEAR,-1f},{Side.LEFT,0f},{Side.FAR,-1f},{Side.FAR,0f},{Side.FAR,1f},{Side.RIGHT,0f}},
     };
 
     /**
@@ -39,7 +35,7 @@ public final class SeatLayout {
      * left end → far side → right end, i.e. clockwise seen from above (rules turn order).
      */
     static final float[][] ARC={{},{},{},{},
-        {200,252,288,340},{195,233,270,307,345},{192,222,253,287,318,348},{190,215,242,270,298,325,350},{188,211,235,258,282,305,329,352}};
+        {200,252,288,340},{195,233,270,307,345},{192,222,253,287,318,348}};
     /** Oval table: sides map to angles on the ellipse (near = toward the camera); t spreads seats along the side. */
     private static void ellipseSeat(TableConfig c,Seat s,float seatOut,float seatY,float floor){
         var t=c.table;float deg=t.painted?s.along:switch(s.side){case NEAR->90-s.along*38;case FAR->270+s.along*38;case RIGHT->0;default->180;};
@@ -60,14 +56,16 @@ public final class SeatLayout {
         float moved=0;for(int guard=0;guard<80&&!fits(c,s,margin);guard++){if(moved<1.6f){s.hand.mulAdd(s.normal,-.2f);moved+=.2f;}else if(s.handWidth>1.4f)s.handWidth*=.93f;else s.hand.mulAdd(s.normal,-.2f);}
         s.interaction.set(s.hand).add(0,.35f,0);
         // Near-side plates go on the inner side of the fan so they never sit on the painted rim ornament.
-        if(s.normal.z>.5f)s.plate.set(s.hand).mulAdd(s.normal,-c.handPlate);else s.plate.set(s.hand).mulAdd(s.normal,c.handPlate);
+        // Painted table: the name sits on the felt in front of the cards (toward the camera), never over them.
+        if(c.table.painted)s.plate.set(s.hand).mulAdd(s.normal,-c.handPlate*.95f);
+        else if(s.normal.z>.5f)s.plate.set(s.hand).mulAdd(s.normal,-c.handPlate);else s.plate.set(s.hand).mulAdd(s.normal,c.handPlate);
     }
     /** The whole fan, including the card ends toward and away from the player, stays on the felt; extra margin on the near side. */
     private static boolean fits(TableConfig c,Seat s,float margin){var t=c.table;float tx=MathUtils.cosDeg(s.handYaw),tz=-MathUtils.sinDeg(s.handYaw),half=c.cardHalfHeight;
         for(float u:new float[]{-.5f,0,.5f})for(float v:new float[]{-1,1}){float x=s.hand.x+tx*u*s.handWidth+s.normal.x*v*half,z=s.hand.z+tz*u*s.handWidth+s.normal.z*v*half;
             float m=margin+(z>0?c.nearMargin*Math.min(1,z/t.playB()):0);if(!t.onFelt(x,z,m))return false;}return true;}
     public static Array<Seat> layout(TableConfig c,int players){
-        if(players<2||players>8)throw new IllegalArgumentException("players 2–8: "+players);
+        if(players<com.erni.finalanswer.gameplay.cursedcards.CursedDeck.MIN_PLAYERS||players>com.erni.finalanswer.gameplay.cursedcards.CursedDeck.MAX_PLAYERS)throw new IllegalArgumentException("players 4–6: "+players);
         var t=c.table;float straight=t.rimA()-t.rimB(),playStraight=t.playA()-t.playB();
         float seatOut=c.chair.rimGap+c.chair.halfDepth*c.chair.scale,floor=-c.floorBelowFelt,seatY=floor+c.chair.seatHeight*c.chair.scale;
         Array<Seat> seats=new Array<>();

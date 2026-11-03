@@ -352,7 +352,7 @@ public final class RoomService {
                 List<String> seats;
                 if(data.has("participantIds")){seats=new ArrayList<>();for(JsonElement e:data.getAsJsonArray("participantIds"))seats.add(e.getAsString());
                     if(!online.containsAll(seats))throw new Failure(400,"INVALID_CARDS_ROSTER");}
-                else seats=online.subList(0,Math.min(online.size(),com.erni.finalanswer.gameplay.cursedcards.CursedDeck.MAX_PLAYERS));
+                else seats=List.copyOf(online); // everyone plays; never drop players to fit 4–6 (the session refuses instead)
                 List<String> watching=online.stream().filter(id->!seats.contains(id)).toList();
                 room.cards=new CursedCardsSession(seats,watching,random,now());
                 System.out.println("[cursed-cards] start room="+room.code+" seats="+seats.size()+" spectators="+watching.size());
