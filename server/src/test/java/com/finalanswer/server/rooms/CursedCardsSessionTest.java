@@ -144,6 +144,8 @@ class CursedCardsSessionTest {
         var watcher=s.snapshot("stranger",false,s0);assertFalse(watcher.containsKey("hand"));assertEquals("SPECTATOR",watcher.get("role"));
         assertFalse(s.snapshot("host",true,s0).containsKey("hand"),"the shared screen never gets hand values");
         for(var e:events(s)){if(Set.of("dealt","transfer").contains(e.get("type")))assertFalse(e.containsKey("value"),"moving cards carry no value");}
+        @SuppressWarnings("unchecked") var phoneLog=(List<Map<String,Object>>)s.snapshot("p0",false,s0).get("events");
+        assertFalse(phoneLog.toString().contains("card=")||phoneLog.toString().contains("id="),"phones never receive card ids: "+phoneLog);
         Set<Integer> ids=new HashSet<>();for(var c:s.game().deck())ids.add(c.id());assertEquals(s.game().deck().size(),ids.size());
         int deathIdLast=0,runs=200;for(int seed=0;seed<runs;seed++){var t=playing(5,seed);for(var c:t.game().deck())if(c.death()&&c.id()==t.game().deck().size()-1)deathIdLast++;}
         assertTrue(deathIdLast<runs*.2,"card ids are shuffled; the DEATH id is not predictable ("+deathIdLast+"/"+runs+")");

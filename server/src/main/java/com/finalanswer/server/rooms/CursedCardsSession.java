@@ -148,6 +148,14 @@ final class CursedCardsSession {
         List<String> top=tally.entrySet().stream().filter(e->e.getValue()==best).map(Map.Entry::getKey).sorted().toList();return top.get(random.nextInt(top.size()));}
     private Map<String,Integer> tally(){Map<String,Integer> t=new LinkedHashMap<>();for(String s:seats)t.put(s,0);for(String v:votes.values())t.merge(v,1,Integer::sum);return t;}
     private int deathId(){for(int p=0;p<seats.size();p++)for(CursedCard c:game.hand(p))if(c.death())return c.id();return -1;}
+    /**
+     * Phones get the log without card ids: an id would let a player follow one face-down card from hand to hand
+     * (and through any shuffle). Only the shared screen, which must animate the right card, receives them.
+     */
+    private List<Map<String,Object>> publicEvents(){List<Map<String,Object>> out=new ArrayList<>(events.size());
+        for(var e:events){Map<String,Object> p=new LinkedHashMap<>(e);p.remove("card");p.remove("death");
+            if(p.get("a") instanceof Map<?,?> a)p.put("a",Map.of("value",a.get("value")));if(p.get("b") instanceof Map<?,?> b)p.put("b",Map.of("value",b.get("value")));out.add(p);}
+        return out;}
     private static Map<String,Object> c(CursedCard c){return Map.of("id",c.id(),"value",c.value());}
     private void event(String type,Object... kv){Map<String,Object> e=new LinkedHashMap<>();e.put("seq",events.size());e.put("type",type);for(int i=0;i<kv.length;i+=2)e.put((String)kv[i],kv[i+1]);events.add(e);}
 
@@ -159,7 +167,7 @@ final class CursedCardsSession {
         if(phase==Phase.CURSE_VOTE){v.put("voteEndsAt",phaseEnds);v.put("tally",tally());v.put("votes",votes.size());v.put("voters",spectators.size());if(votes.containsKey(self))v.put("myVote",votes.get(self));}
         else if(cursed!=null)v.put("cursedPlayer",cursed);
         if(game==null)return v;
-        v.put("deckSize",game.deck().size());v.put("events",events);
+        v.put("deckSize",game.deck().size());v.put("events",host?events:publicEvents());
         List<Integer> sizes=new ArrayList<>();for(int p=0;p<seats.size();p++)sizes.add(game.handSize(p));v.put("handSizes",sizes);
         List<Integer> revs=new ArrayList<>();for(int r:revision)revs.add(r);v.put("handRevisions",revs);
         List<Integer> sh=new ArrayList<>();for(int c:shuffledCount)sh.add(c);v.put("shuffled",sh);
