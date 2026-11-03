@@ -68,7 +68,9 @@ async function until(fn,ms,what){const t=Date.now();while(Date.now()-t<ms){const
         if(!ready){if(host.state.cursedCards.turn!==s.turn||host.state.cursedCards.phase!=='PLAYING'){timeouts++;continue;}
           await vesper.screenshot({path:out+'/phone-stuck.png'});throw new Error('phone never offered its cards: '+JSON.stringify({turn:s.turn,ready:s.turnReadyAt,deadline:s.turnDeadline,now:Date.now()}));}
         if(phoneTurns===0)await vesper.screenshot({path:out+'/phone-player-turn.png'});
-        await vesper.locator('.cards-back').first().click();phoneTurns++; // one tap takes the card
+        const tappedOk=await vesper.locator('.cards-back').first().click({timeout:Math.max(300,s.turnDeadline-Date.now())}).then(()=>true,()=>false); // one tap takes the card
+        if(!tappedOk){if(host.state.cursedCards.turn!==s.turn||host.state.cursedCards.phase!=='PLAYING'){timeouts++;continue;}throw new Error('phone tap failed inside its turn');}
+        phoneTurns++;
         const turn=s.turn;await until(()=>host.state.cursedCards.turn!==turn||host.state.cursedCards.phase!=='PLAYING',15000,'phone draw applied');}
       else{const bot=bots[drawer];const turn=s.turn;const srcName=Object.keys(ids).find(n=>ids[n]===s.source);
         if(bots[srcName]&&s.sourceCards>=2&&turns%3===0)send(bots[srcName],'CARDS_SHUFFLE',{roomCode:code,sessionId:s.sessionId}); // the owner shuffles during the selection
