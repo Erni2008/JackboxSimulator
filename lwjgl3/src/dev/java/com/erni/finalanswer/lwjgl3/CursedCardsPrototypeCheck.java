@@ -64,7 +64,7 @@ public final class CursedCardsPrototypeCheck extends CursedCardsPrototype {
             else if(mainShot&&t>3.9f){startMatch();started=true;seated=mainShot=false;t=0;}return;}
         if(!dealShot&&t>3.5f*1){dealShot=true;shot("m"+players+"-1-dealing");}
         if(cine.active()){String ph=cine.phase().name();if(phases.isEmpty()||!phases.get(phases.size()-1).equals(ph))phases.add(ph);
-            if(match==2&&cine.phase()==com.erni.finalanswer.cursedcards.DeathCinematic.Phase.LAST_CARD&&!cine.skipped())skipCinematic();
+            if(match==2&&!disposalRun&&cine.phase()==com.erni.finalanswer.cursedcards.DeathCinematic.Phase.LAST_CARD&&!cine.skipped())skipCinematic();
             if(match==0||match==4){var P=com.erni.finalanswer.cursedcards.DeathCinematic.Phase.class;String key=cine.phase()+(cine.progress()>.55f?"b":"a");
                 if(!disposalRun&&cine.progress()>.55f&&!cineShots.contains(key)){cineShots.add(key);shot("m"+players+"-4-"+cine.phase().name().toLowerCase());}}
             if(disposalRun&&cine.phase()==com.erni.finalanswer.cursedcards.DeathCinematic.Phase.LAST_CARD&&!finishSoon){log.add("PASS exit requested during the DEATH cinematic (dispose mid-animation)");finishSoon=true;}}

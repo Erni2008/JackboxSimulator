@@ -110,7 +110,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         camera=new PerspectiveCamera(tableConfig.camera.fov,Gdx.graphics.getWidth(),Gdx.graphics.getHeight());camera.near=.2f;camera.far=140;director=new CameraDirector(tableConfig.camera);
         PBRShaderConfig shader=PBRShaderProvider.createDefaultConfig();shader.numBones=0;shader.numDirectionalLights=quality==CursedCardsQuality.LOW?1:2;shader.numPointLights=quality.pointLights;shader.numSpotLights=0;
         DepthShader.Config depth=PBRShaderProvider.createDefaultDepthConfig();depth.numBones=0;
-        scene=new SceneManager(new PBRShaderProvider(shader),new PBRDepthShaderProvider(depth));scene.setCamera(camera);
+        scene=new SceneManager(new PBRShaderProvider(shader){@Override protected com.badlogic.gdx.graphics.g3d.Shader createShader(Renderable r){if(PROFILE&&warmed){StringBuilder b=new StringBuilder();for(var at:r.material)b.append(com.badlogic.gdx.graphics.g3d.Attribute.getAttributeAlias(at.type)).append(' ');StringBuilder e=new StringBuilder();for(var at:r.environment)e.append(com.badlogic.gdx.graphics.g3d.Attribute.getAttributeAlias(at.type)).append(' ');System.out.println((warmed?"RUNTIME ":"WARM ")+r.material.id+" mask="+Long.toHexString(r.material.getMask())+" env="+Long.toHexString(r.environment.getMask())+" ["+b+"] env["+e+"]");}return super.createShader(r);}},new PBRDepthShaderProvider(depth));scene.setCamera(camera);
         buildLights();
         machine=new DealerMachine(config,0,quality,modelOverride!=null?modelOverride:quality.model);machine.place(tableConfig.table.x+tableConfig.machine.x,tableConfig.table.z+tableConfig.machine.z,tableConfig.machineYaw);
         faces=new CardFaces(quality.faceHeight);for(String m:faces.missing)Gdx.app.error("CursedCards","PLACEHOLDER texture in use, provide assets/"+m);
@@ -131,16 +131,38 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         cast=new TableCast(tableConfig.character.height,fx.dot());actions=cast;cast.seat(players);tableFront=tableSilhouette();
         audio=new TableAudio(tableConfig.audio);
         cine=new DeathCinematic(tableConfig.death);var cineSound=cine.sounds;cine.sounds=new DeathCinematic.SoundHook(){public void play(String e,float v){cineSound.play(e,v);}public void musicDuck(float v){audio.duck(v);}};cine.onResults=(l,alive)->{hud.toast("");if(resultListener!=null)resultListener.results(l,alive);};
+        warmUp2d();warmed=true;
         // Every display frame is rendered: the backdrop is alive and motion stays perfectly even (the scene costs ~2–4 ms).
         Gdx.graphics.setContinuousRendering(true);
         Gdx.app.log("CursedCards","quality "+quality);
     }
     /** Compile every shader variant at load (cards face up/down, glowing) so the first deal does not hitch. */
+    /**
+     * Compile every shader/material variant the match will use, so no frame stalls on a first appearance: cards on the
+     * felt (with contact shadows), face up and down, glowing, fading, burning (glow + fade), the hand glows, the dealer
+     * while dissolving, the red throb; then the 2D layers once (backdrop shader, characters, HUD fonts, particles).
+     */
     private void warmUp(){
-        resize(Gdx.graphics.getWidth(),Gdx.graphics.getHeight());
-        for(int i=0;i<cards.size;i++){Card3D c=cards.get(i);deckPose(i,c.pose);if(i%2==0)c.pose.roll=0;if(i%3==0)c.glow(1,.2f,.1f,.5f);if(i%4==0)c.opacity(.5f);c.visible=true;c.sync();}
-        activeAmount=targetAmount=1;scene.update(0);renderScene();Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT|GL20.GL_DEPTH_BUFFER_BIT);activeAmount=targetAmount=0;
-        for(Card3D c:cards){c.visible=false;c.glow(0,0,0,0);c.opacity(1);}
+        // place the fixed camera first: frustum culling would otherwise skip some warm-up cards
+        resize(Gdx.graphics.getWidth(),Gdx.graphics.getHeight());director.update(0,camera);
+        for(int i=0;i<cards.size;i++){Card3D c=cards.get(i);
+            if(i<seatList.size*2)handPose(i%seatList.size,i/seatList.size,2,c.pose);else deckPose(i,c.pose);
+            c.setValue(faces,CardValue.values()[i%CardValue.values().length]);if(i%2==0||i<CardValue.values().length)c.pose.roll=0;int k=i%5;if(k==1)c.glow(1,.2f,.1f,.5f);if(k==2)c.opacity(.5f);if(k==3){c.glow(1,.2f,.1f,.5f);c.opacity(.6f);}c.visible=true;c.sync();}
+        glowDrawer=0;glowSource=Math.min(1,seatList.size-1);activeAmount=targetAmount=1;throb=1;
+        for(float presence:new float[]{1,.5f}){machine.presence(presence);scene.update(0);renderScene();}
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT|GL20.GL_DEPTH_BUFFER_BIT);
+        machine.presence(1);activeAmount=targetAmount=0;throb=0;glowDrawer=glowSource=-1;
+        for(Card3D c:cards){c.visible=false;c.glow(0,0,0,0);c.opacity(1);c.setValue(faces,CardValue.DEATH);}
+    }
+    /** 2D warm-up once everything exists: backdrop (both passes), characters, particles and every HUD font. */
+    private void warmUp2d(){
+        tmp.set(0,0,0);fx.burst(tmp,4,.1f,.5f);fx.smoke(tmp,2);fx.puff(tmp);fx.update(.01f);
+        hud.phase("WARM");hud.toast("WARM");var f=hudFrame;fillHud();f.verdict=true;f.loser=0;f.drawer=0;f.timer=.5f;f.flash=.1f;f.dim=.1f;
+        batch.getProjectionMatrix().setToOrtho2D(0,0,Gdx.graphics.getWidth(),Gdx.graphics.getHeight());
+        batch.begin();backdrop.draw(batch,background,view.x,view.y,view.width,view.height);if(cast!=null){cast.layout(seatList,camera,view,0,0);cast.draw(batch);}
+        if(tableFront!=null)backdrop.draw(batch,background,tableFront,view.x,view.y,view.width,view.height);fx.draw(batch,camera,view,1);hud.draw(batch,f,0);batch.end();
+        Gdx.gl.glFinish();Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT|GL20.GL_DEPTH_BUFFER_BIT);
+        fx.clear();hud.phase("");hud.toast("");f.verdict=false;f.loser=-1;
     }
     /** True while anything on screen changes; otherwise no frames are drawn until the next input. */
     protected boolean needsFrames(){return presenting()||machine.active()||machine.presence()!=machineTarget||cameraMoving||burning.notEmpty()||fx.active()||hud.animating()
@@ -165,7 +187,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         enqueue(()->{for(Card3D c:cards)c.visible=false;tray.clear();
             for(int i=0;i<deckSize;i++){Card3D c=cards.get(dealOrder[i]);c.setValue(faces,CardValue.ONE);tray.add(c);}
             for(int i=0;i<tray.size;i++){Card3D c=tray.get(i);animator.stop(c);deckPose(i,c.pose);c.visible=true;c.sync();}
-            hud.phase("THE DEAL");machine.activate();machine.sound("shuffle",.5f);return .45f;},collect);
+            hud.phase("THE DEAL");dealShowing=true;machine.activate();machine.sound("shuffle",.5f);return .45f;},collect);
         dealInterval=deckSize>15?.34f:deckSize>9?.4f:DEAL_INTERVAL;
     }
     private final int[] dealOrder=new int[MAX_CARDS];
@@ -202,11 +224,11 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         enqueue(()->{for(Card3D c:cards){c.visible=false;}tray.clear();
             for(int i=0;i<deck.size();i++){Card3D c=cards.get(deck.get(i).id());c.setValue(faces,CardValue.of(deck.get(i).value()));tray.add(c);}
             for(int i=0;i<tray.size;i++){Card3D c=tray.get(i);animator.stop(c);deckPose(i,c.pose);c.visible=true;c.sync();}
-            status="DEALING "+deck.size()+" CARDS TO "+players+" PLAYERS";hud.phase("THE DEAL");machine.activate();machine.sound("shuffle",.5f);return .45f;},collect);
+            status="DEALING "+deck.size()+" CARDS TO "+players+" PLAYERS";hud.phase("THE DEAL");dealShowing=true;machine.activate();machine.sound("shuffle",.5f);return .45f;},collect);
         dealInterval=deck.size()>15?.34f:deck.size()>9?.4f:DEAL_INTERVAL;
         game.start();
     }
-    private void resetCues(){if(cast!=null)cast.seat(players);if(cine!=null)cine.cancel();zoom=zoomTarget=1;shake=redFlash=0;revealed=eliminationShown=false;drawer=source=loser=selectedSlot=hoverSlot=-1;glowDrawer=glowSource=-1;java.util.Arrays.fill(safe,false);verdict=false;dimTarget=0;deathLight=0;deathCard=null;}
+    private void resetCues(){dealShowing=false;if(cast!=null)cast.seat(players);if(cine!=null)cine.cancel();zoom=zoomTarget=1;shake=redFlash=0;revealed=eliminationShown=false;drawer=source=loser=selectedSlot=hoverSlot=-1;glowDrawer=glowSource=-1;java.util.Arrays.fill(safe,false);verdict=false;dimTarget=0;deathLight=0;deathCard=null;}
     /** Take the hidden card at {@code slot} of the current source's hand. Values are never consulted here. */
     public boolean drawSlot(int slot){
         if(network||!awaitingDraw())return false;
@@ -287,6 +309,9 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         if(!eliminationShown){eliminationShown=true;actions.eliminate(loser);if(cast!=null)cast.doom(loser);for(int p=0;p<players;p++)if(p!=loser)actions.survive(p);}
         dimTarget=0;dim=Math.min(dim,.3f);zoom=1;shake=0;redFlash=0;deathLight=1;verdict=true;
     }
+    private final Vector3 focus=new Vector3();private float bars;
+    /** True while the deal is on screen (the rules' dealing flag ends as soon as events are queued). */
+    private boolean dealShowing;
     private final CardPose deathStart=new CardPose();private float zoom=1,zoomTarget=1,shake,redFlash;private boolean revealed,eliminationShown;
     private final Vector3 deathCentre=new Vector3(0,2.9f,1.8f);
     /** Final reveal pose: face up at the centre, upright toward the camera, enlarged. */
@@ -313,7 +338,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     private final CardPose tmpPose=new CardPose();private float throbAge=99;
     /** Seconds the current drawer has been deciding; timeout takes a random hidden card for them. */
     protected float turnClock,turnAge=99;protected int turnTimeouts;
-    private void endDealing(){if(dealing){dealing=false;waitForAnimations();enqueue(()->{machine.shutdown();return .6f;});enqueue(()->{machineTarget=0;hud.phase("THE DEALER DISSOLVES");return 1.3f;});}}
+    private void endDealing(){if(dealing){dealing=false;waitForAnimations();enqueue(()->{machine.shutdown();dealShowing=false;return .6f;});enqueue(()->{machineTarget=0;hud.phase("THE DEALER DISSOLVES");return 1.3f;});}}
     /** True once the dealer has been dismissed for play (it may still be fading out). */
     public boolean dealerDismissed(){return machineTarget==0;}
 
@@ -366,17 +391,20 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
 
     // ---------------- frame ----------------
     @Override public void render(){
-        float dt=frameDelta()*timeScale;update(dt);
+        long p0=System.nanoTime();float dt=frameDelta()*timeScale;update(dt);long p1=System.nanoTime();
         Gdx.gl.glClearColor(0,0,0,1);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT|GL20.GL_DEPTH_BUFFER_BIT);
         batch.getProjectionMatrix().setToOrtho2D(0,0,Gdx.graphics.getWidth(),Gdx.graphics.getHeight());
         batch.begin();backdrop.draw(batch,background,view.x,view.y,view.width,view.height);drawCharacters(batch);
         if(tableFront!=null)backdrop.draw(batch,background,tableFront,view.x,view.y,view.width,view.height);batch.end();
         Gdx.gl.glClear(GL20.GL_DEPTH_BUFFER_BIT);
-        scene.update(dt);renderScene();
+        long p2=System.nanoTime();scene.update(dt);renderScene();if(PROFILE)Gdx.gl.glFinish();long p3=System.nanoTime();
         Gdx.gl.glViewport(0,0,Gdx.graphics.getBackBufferWidth(),Gdx.graphics.getBackBufferHeight());
         batch.begin();fx.draw(batch,camera,view,1-dim*.8f);fillHud();hud.draw(batch,hudFrame,dt);drawOverlay(batch);batch.end();
+        if(PROFILE){Gdx.gl.glFinish();long p4=System.nanoTime();float tot=(p4-p0)/1e6f;if(tot>12)System.out.printf(java.util.Locale.ROOT,"PROFILE %.1f ms: update %.1f, backdrop %.1f, 3d %.1f, hud %.1f%n",tot,(p1-p0)/1e6f,(p2-p1)/1e6f,(p3-p2)/1e6f,(p4-p3)/1e6f);}
         if(needsFrames())Gdx.graphics.requestRendering();
     }
+    private boolean warmed;
+    private static final boolean PROFILE=Boolean.getBoolean("cursedcards.profile");
     private float smoothDt=1/60f;
     /**
      * Even frame pacing: the raw delta jitters and, after an idle (render-on-demand) gap, would jump an animation forward
@@ -414,7 +442,11 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         if(audio!=null)audio.update(dt);sceneFade=Math.max(0,sceneFade-dt*1.1f);
         // the dealer's red heart: an occasional faint glow on the felt where it stands (or stood)
         nextThrob-=dt;if(nextThrob<=0&&(cine==null||!cine.active())){throbAge=0;nextThrob=11+MathUtils.random(9f);}throbAge+=dt;throb=throbAge<2.4f?MathUtils.sin(throbAge/2.4f*MathUtils.PI):0;
-        zoom+=(zoomTarget-zoom)*Math.min(1,dt*3);applyView();
+        // Cinematic framing: a slow push toward the hands involved in the turn, a wider breath while dealing.
+        if(deathCard==null){if(awaitingDraw()&&glowDrawer>=0&&glowSource>=0){focus.set(seatList.get(glowDrawer).hand).lerp(seatList.get(glowSource).hand,.5f);zoomTarget=1.035f;}
+            else if(dealShowing){focus.set(machine.worldBounds().getCenter(tmp2));zoomTarget=1.015f;}else{zoomTarget=1;}}
+        bars=approach(bars,dealShowing||deathCard!=null&&cine!=null&&cine.running()?1:0,dt*(bars<.5f?1.6f:1.1f));
+        zoom+=(zoomTarget-zoom)*Math.min(1,dt*(deathCard!=null?3:.9f));applyView();
         dim=approach(dim,dimTarget,dt*(dimTarget>dim?1.4f:1.6f));
         // DEATH light: a red glow that swells under the rising card (replaces the vanished machine's slot light).
         if(deathCard!=null&&deathLight>0){deathLight=Math.min(1,deathLight+dt*.8f);float flick=.85f+.15f*MathUtils.sin(clock*17)*MathUtils.sin(clock*7.3f);
@@ -426,14 +458,15 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     private void applyView(){
         view.set(baseView);if(zoom==1&&shake==0)return;
         float fx0=baseView.x+baseView.width*.5f,fy0=baseView.y+baseView.height*.5f;
-        if(deathCard!=null){tmp.set(deathCentre);camera.project(tmp,baseView.x,baseView.y,baseView.width,baseView.height);fx0=tmp.x;fy0=tmp.y;}
+        if(deathCard!=null)tmp.set(deathCentre);else tmp.set(focus);
+        camera.project(tmp,baseView.x,baseView.y,baseView.width,baseView.height);fx0=MathUtils.lerp(fx0,tmp.x,deathCard!=null?1:.6f);fy0=MathUtils.lerp(fy0,tmp.y,deathCard!=null?1:.6f);
         view.set(fx0-(fx0-baseView.x)*zoom,fy0-(fy0-baseView.y)*zoom,baseView.width*zoom,baseView.height*zoom);
         float s=shake*shake*baseView.height*.008f;view.x+=MathUtils.sin(clock*61)*s;view.y+=MathUtils.sin(clock*47+1)*s;
     }
     private static float approach(float v,float t,float step){return v<t?Math.min(t,v+step):Math.max(t,v-step);}
     private void fillHud(){
         var f=hudFrame;f.view=view;f.players=seatList.size;f.names=names;f.drawer=awaitingDraw()?drawer:-1;f.source=awaitingDraw()?source:-1;f.loser=verdict||eliminationShown?loser:-1;f.flash=redFlash;f.verdict=verdict;f.dim=dim;
-        f.fade=sceneFade*sceneFade;float limit=tableConfig.turn.seconds;f.timer=network?(awaitingDraw()&&netTurnDeadline>netTurnStart?MathUtils.clamp((netTurnDeadline-(System.currentTimeMillis()+netOffset))/(float)(netTurnDeadline-netTurnStart),0,1):-1):awaitingDraw()&&limit>0?1-turnClock/limit:-1;f.turnAge=turnAge;
+        f.fade=sceneFade*sceneFade;f.bars=bars;float limit=tableConfig.turn.seconds;f.timer=network?(awaitingDraw()&&netTurnDeadline>netTurnStart?MathUtils.clamp((netTurnDeadline-(System.currentTimeMillis()+netOffset))/(float)(netTurnDeadline-netTurnStart),0,1):-1):awaitingDraw()&&limit>0?1-turnClock/limit:-1;f.turnAge=turnAge;
         for(int i=0;i<seatList.size;i++){tmp.set(seatList.get(i).plate);camera.project(tmp,view.x,view.y,view.width,view.height);f.plates[i].set(tmp.x,tmp.y);f.safe[i]=safe[i];
             // farther seats (higher on screen) read slightly smaller, within a narrow range
             f.plateScale[i]=MathUtils.clamp(1.12f-(tmp.y-view.y)/view.height*.55f,.82f,1.05f);}

@@ -15,7 +15,7 @@ import com.badlogic.gdx.utils.Disposable;
 public final class CursedHud implements Disposable {
     public static final String[] DEFAULT_NAMES={"VESPER","MORDECAI","LILITH","ABSALOM","SERAPHINE","CORVIN","ODETTE","BALTHAZAR"};
     private final BitmapFont plate,status,phaseFont,title,toastFont;
-    private final Texture pixel,spot,spotSoft;
+    private final Texture pixel,spot,spotSoft,vignette,grain;
     private final GlyphLayout layout=new GlyphLayout();
     private String phase="",shownPhase="",toast="";private float phaseFade,toastAge=99,time,verdictFade;
     private final Color gold=new Color(.93f,.76f,.45f,1),ivory=new Color(.92f,.86f,.76f,1),crimson=new Color(.95f,.22f,.18f,1),ash=new Color(.62f,.58f,.54f,1);
@@ -30,6 +30,10 @@ public final class CursedHud implements Disposable {
         spot=new Texture(p);spot.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();
         n=64;p=new Pixmap(n,n,Pixmap.Format.RGBA8888);for(int y=0;y<n;y++)for(int x=0;x<n;x++){float u=(x+.5f)/n*2-1,v=(y+.5f)/n*2-1,r=(float)Math.sqrt(u*u+v*v),a=MathUtils.clamp(1-r,0,1);p.drawPixel(x,y,Color.rgba8888(1,1,1,a*a));}
         spotSoft=new Texture(p);spotSoft.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();
+        n=256;p=new Pixmap(n,n,Pixmap.Format.RGBA8888);for(int y=0;y<n;y++)for(int x=0;x<n;x++){float u=(x+.5f)/n*2-1,v=(y+.5f)/n*2-1,r=(float)Math.sqrt(u*u*.8f+v*v),a=MathUtils.clamp((r-.62f)/.75f,0,1);p.drawPixel(x,y,Color.rgba8888(0,0,0,a*a*.85f));}
+        vignette=new Texture(p);vignette.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();
+        n=256;p=new Pixmap(n,n,Pixmap.Format.RGBA8888);var rnd=new RandomXS128(9);for(int y=0;y<n;y++)for(int x=0;x<n;x++){float v=.5f+(rnd.nextFloat()-.5f)*.07f;p.drawPixel(x,y,Color.rgba8888(v,v,v,1));}
+        grain=new Texture(p);grain.setWrap(Texture.TextureWrap.Repeat,Texture.TextureWrap.Repeat);grain.setFilter(Texture.TextureFilter.Nearest,Texture.TextureFilter.Nearest);p.dispose();
     }
     private static BitmapFont font(FreeTypeFontGenerator g,int size,int spacing){var p=new FreeTypeFontGenerator.FreeTypeFontParameter();p.size=size;p.spaceX=spacing;p.characters+="—·←→";p.minFilter=p.magFilter=Texture.TextureFilter.Linear;p.genMipMaps=false;return g.generateFont(p);}
 
@@ -43,7 +47,7 @@ public final class CursedHud implements Disposable {
     public static final class Frame{
         public Rectangle view;public int players;public final Vector2[] plates=new Vector2[8];public String[] names=DEFAULT_NAMES;
         public int drawer=-1,source=-1,loser=-1;public final boolean[] safe=new boolean[8];
-        public float dim,flash,fade,timer=-1,turnAge=99;public final float[] plateScale=new float[8];public final Vector2 spotlight=new Vector2();public boolean verdict;
+        public float dim,flash,fade,timer=-1,turnAge=99,bars;public final float[] plateScale=new float[8];public final Vector2 spotlight=new Vector2();public boolean verdict;
         public Frame(){for(int i=0;i<8;i++)plates[i]=new Vector2();}
     }
     public void draw(SpriteBatch batch,Frame f,float dt){
@@ -54,6 +58,13 @@ public final class CursedHud implements Disposable {
             batch.draw(spot,cx-s*.5f,cy-s*.5f,s,s);batch.setColor(0,0,0,a);
             batch.draw(pixel,v.x,v.y,cx-s*.5f-v.x,v.height);batch.draw(pixel,cx+s*.5f,v.y,v.x+v.width-(cx+s*.5f),v.height);
             batch.draw(pixel,cx-s*.5f,v.y,s,cy-s*.5f-v.y);batch.draw(pixel,cx-s*.5f,cy+s*.5f,s,v.y+v.height-(cy+s*.5f));batch.setColor(Color.WHITE);}
+        // Film look: soft corner vignette and fine animated grain (barely visible; it settles the 3D layer into the painting).
+        {batch.setColor(1,1,1,.55f);batch.draw(vignette,v.x,v.y,v.width,v.height);
+        batch.setBlendFunction(GL20.GL_DST_COLOR,GL20.GL_SRC_COLOR);int g=MathUtils.floor(time*24)%8;batch.setColor(1,1,1,1);
+        batch.draw(grain,v.x,v.y,v.width,v.height,(g%4)*.25f,(g/4)*.5f,(g%4)*.25f+v.width/256f*.6f,(g/4)*.5f+v.height/256f*.6f);
+        batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.setColor(Color.WHITE);}
+        // Cinematic bars for the deal and the DEATH reveal.
+        if(f.bars>0){float e=f.bars*f.bars*(3-2*f.bars),bh=v.height*.085f*e;batch.setColor(0,0,0,1);batch.draw(pixel,v.x,v.y,v.width,bh);batch.draw(pixel,v.x,v.y+v.height-bh,v.width,bh);batch.setColor(Color.WHITE);}
         // Supernatural red flash at the reveal.
         if(f.flash>0){batch.setColor(.75f,.02f,.02f,.32f*f.flash*f.flash);batch.draw(pixel,v.x,v.y,v.width,v.height);batch.setColor(Color.WHITE);}
         // Nameplates.
@@ -96,5 +107,5 @@ public final class CursedHud implements Disposable {
         if(f.fade>0){batch.setColor(0,0,0,f.fade);batch.draw(pixel,v.x,v.y,v.width,v.height);}
         batch.setColor(Color.WHITE);
     }
-    @Override public void dispose(){plate.dispose();status.dispose();phaseFont.dispose();title.dispose();toastFont.dispose();pixel.dispose();spot.dispose();spotSoft.dispose();}
+    @Override public void dispose(){plate.dispose();status.dispose();phaseFont.dispose();title.dispose();toastFont.dispose();pixel.dispose();spot.dispose();spotSoft.dispose();vignette.dispose();grain.dispose();}
 }
