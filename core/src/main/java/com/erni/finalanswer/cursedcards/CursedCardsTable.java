@@ -274,7 +274,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
                 CardPose meet=new CardPose().set(up);meet.position.set(mid).add(MathUtils.cosDeg(yaw)*side*.18f,.15f,-MathUtils.sinDeg(yaw)*side*.18f);meet.yaw+=i==0?5:-5;
                 c.queue.add(CardMotion.to(meet,.45f,CardMotion.Ease.SMOOTH).delay(.45f).onEnd(()->burning.add(c)));
                 discardPile.add(c);}
-            actions.discardPair(player);relayout(player,.3f);hud.toast("A PAIR OF "+CardValue.of(a.value()).label+" BURNS");status="PAIR OF "+CardValue.of(a.value()).label+" — "+names[player];return .9f;});
+            actions.discardPair(player);relayout(player,.3f);hud.toast("A PAIR OF "+CardValue.of(a.value()).label+" BURNS");status="PAIR OF "+CardValue.of(a.value()).label+" — "+names[player];return .55f;});
     }
     @Override public void turnChanged(int drawer,int source){
         endDealing();waitForAnimations();
@@ -283,15 +283,22 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
             actions.lookAtCards(drawer);actions.nervous(source);return 0;});
     }
     /** A drawn card lifts out of the fan, travels on a soft arc and settles into the drawer's fan, still face down. */
-    @Override public void transferred(CursedCard card,int from,int to){
-        enqueue(()->{Card3D c=cards.get(card.id());hands.get(from).removeValue(c,true);Array<Card3D> hand=hands.get(to);hand.add(c);
+    @Override public void transferred(CursedCard card,int from,int to){transferred(card,from,to,-1);}
+    /**
+     * {@code slot}: the face-down position the drawer tapped. The host never knows the true order, so the card at that
+     * position simply takes the travelling card's identity (two identical backs trade places invisibly).
+     */
+    public void transferred(CursedCard card,int from,int to,int slot){
+        enqueue(()->{Card3D c=cards.get(card.id());var src=hands.get(from);int at=src.indexOf(c,true);
+            if(slot>=0&&slot<src.size&&at>=0&&at!=slot){Card3D o=src.get(slot);swapPose.set(o.pose);o.pose.set(c.pose);c.pose.set(swapPose);src.swap(at,slot);}
+            hands.get(from).removeValue(c,true);Array<Card3D> hand=hands.get(to);hand.add(c);
             hoverSlot=selectedSlot=-1;relayout(from,.25f);
             CardPose lift=new CardPose().set(c.pose);lift.position.y+=.7f;lift.position.mulAdd(seatList.get(from).normal,-.4f);lift.pitch=-8;
             c.queue.add(CardMotion.to(lift,.22f,CardMotion.Ease.DECELERATE).onStart(()->audio.play("pickup",.5f)));
             CardPose dest=handPose(to,hand.size-1,hand.size,new CardPose());c.queue.add(CardMotion.to(dest,.72f,CardMotion.Ease.SMOOTH).arc(.6f).lift(-12).wobble(7).flex(6).onStart(()->audio.play("exchange",.5f)).onEnd(()->{audio.play("place",.45f);fx.puff(dest.position);}));
             for(int k=0;k<hand.size-1;k++)animator.move(hand.get(k),handPose(to,k,hand.size,new CardPose()),.45f,.35f);
             actions.drawCard(to);actions.receiveCard(to);actions.loseCard(from);
-            status="P"+(to+1)+" TOOK A CARD FROM P"+(from+1);drawer=source=-1;return .85f;});
+            status="P"+(to+1)+" TOOK A CARD FROM P"+(from+1);drawer=source=-1;return .45f;});
     }
     @Override public void playerSafe(int player){enqueue(()->{safe[player]=true;hud.toast(names[player]+" IS SAFE");actions.survive(player);return 0;});}
     /** DEATH: the rules have decided; the cinematic only presents it (see {@link #driveCinematic}). */
@@ -379,6 +386,16 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         else if(player==source&&k==hoverSlot){out.position.y+=.08f;out.position.mulAdd(seat.normal,-.22f);}
         return out;
     }
+    private final CardPose swapPose=new CardPose();private final float[] lastShuffleAt=new float[CursedDeck.MAX_PLAYERS];
+    /**
+     * An owner shuffled on their phone: the face-down fan lifts, the cards trade places on short arcs and settle
+     * (≈0.32 s). The new visual order is random — the true order stays secret. Repeats inside one animation merge.
+     */
+    public void networkShuffle(int seat){var h=hands.get(seat);if(h.size<2||seat>=players)return;
+        if(clock-lastShuffleAt[seat]<.12f)return;lastShuffleAt[seat]=clock;h.shuffle();
+        for(int k=0;k<h.size;k++){Card3D c=h.get(k);c.queue.clear();CardPose dest=handPose(seat,k,h.size,new CardPose());
+            c.queue.add(CardMotion.to(dest,.32f,CardMotion.Ease.SMOOTH).arc(.18f+.06f*(k%3)).flex(3));}
+        audio.play("select",.35f);}
     private void relayout(int player,float duration){var h=hands.get(player);for(int k=0;k<h.size;k++)animator.move(h.get(k),handPose(player,k,h.size,new CardPose()),duration,0);}
     /** Return every visible card to the tray, face down; returns seconds until done. */
     private float collectAll(){

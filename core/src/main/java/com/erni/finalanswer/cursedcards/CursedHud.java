@@ -89,7 +89,7 @@ public final class CursedHud implements Disposable {
             {float d=4*k,ry=y-h-7*k+.75f*k;for(int sgn=-1;sgn<=1;sgn+=2)batch.draw(pixel,at.x+sgn*(rule*.5f+d*.6f)-d*.5f,ry-d*.5f,d*.5f,d*.5f,d,d,.7f,.7f,45,0,0,1,1,false,false);}
             String st=dead?"CURSED":ok?"SAFE":active?"DRAWS":target?"OFFERS A CARD":null;
             if(st!=null){status.getData().setScale(k);layout.setText(status,st);status.setColor(c.r,c.g,c.b,.9f*fade);status.draw(batch,st,Math.round(at.x-layout.width*.5f),Math.round(y-h-14*k));}
-            if(active&&f.timer>=0){float tw=Math.max(w*1.2f,70*k),urgent=f.timer<.3f?1:0,blink=urgent>0?.6f+.4f*MathUtils.sin(time*14):1,ty=y-h-28*k;
+            if(active&&f.timer>=0){float tw=Math.max(w*1.2f,70*k),urgent=f.timer<.2f?1:0,blink=urgent>0?.6f+.4f*MathUtils.sin(time*14):1,ty=y-h-28*k;
                 batch.setColor(0,0,0,.45f*fade);batch.draw(pixel,at.x-tw*.5f,ty,tw,Math.max(2,3*k));
                 batch.setColor(MathUtils.lerp(gold.r,crimson.r,urgent),MathUtils.lerp(gold.g,crimson.g,urgent),MathUtils.lerp(gold.b,crimson.b,urgent),.9f*blink*fade);
                 batch.draw(pixel,at.x-tw*.5f,ty,tw*f.timer,Math.max(2,3*k));batch.setColor(Color.WHITE);}

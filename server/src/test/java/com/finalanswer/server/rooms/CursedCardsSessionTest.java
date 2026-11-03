@@ -18,12 +18,66 @@ class CursedCardsSessionTest {
     @Test void eligibilityFollowsTheIncorrectAnswerCount(){
         for(int n=0;n<=8;n++)assertEquals(n>=4&&n<=6,com.erni.finalanswer.gameplay.cursedcards.CursedDeck.eligible(n),"incorrect answers: "+n);
     }
-    /** Simulated pacing: phones act after ~3 s on average; a match must land in 1.5–2.5 minutes. */
+    @Test void everyTurnHasExactlyFiveSecondsWhateverThePhase(){
+        for(int n=4;n<=6;n++)for(int seed=0;seed<20;seed++){var s=playing(n,seed);long now=s0;int g=0;
+            while(s.phase()==CursedCardsSession.Phase.PLAYING){var v=s.snapshot("host",true,now);long ready=(long)v.get("turnReadyAt"),deadline=(long)v.get("turnDeadline");
+                assertEquals(5_000,deadline-ready,"turn window (players left: "+v.get("handSizes")+")");
+                // shuffling by everyone never moves the deadline
+                for(String p:s.seats)try{s.shuffle(p,"s"+g+p,Math.max(now,ready)+100);}catch(RoomService.Failure ignored){}
+                assertEquals(deadline,(long)s.snapshot("host",true,now).get("turnDeadline"));
+                assertTrue(s.tick(deadline),"timeout commits a random card exactly at the deadline");now=deadline;assertTrue(++g<500);}
+            assertEquals(CursedCardsSession.Phase.FINISHED,s.phase());}
+    }
+    @Test void lateSelectionNeverOverridesTheTimeout(){
+        var s=playing(5,3);var v=s.snapshot("host",true,s0);String drawer=(String)v.get("drawer");long deadline=(long)v.get("turnDeadline");int turn=(int)v.get("turn");
+        assertEquals("CARDS_TURN_EXPIRED",code(()->s.draw(drawer,"late",turn,0,deadline)));
+        assertTrue(s.tick(deadline));assertEquals(1,s.timeouts());
+        assertFalse(s.draw(drawer,"late",turn,0,deadline+5),"the same late request id is ignored");
+        assertTrue(Set.of("CARDS_STALE_TURN","CARDS_TURN_NOT_READY","CARDS_NOT_PLAYING").contains(code(()->s.draw(drawer,"late2",turn,0,deadline+5))));
+    }
+    @Test void shufflingIsUnlimitedRealAndKeepsTheCards(){
+        var s=playing(4,8);long now=s0;int seat=-1;for(int p=0;p<4;p++)if(s.game().handSize(p)>=3)seat=p;assertTrue(seat>=0);String owner="p"+seat;
+        var before=new HashSet<>(s.game().hand(seat));int changed=0;List<CursedCard> last=List.copyOf(s.game().hand(seat));int r0=s.revision(seat);
+        for(int i=0;i<300;i++){now+=500;assertTrue(s.shuffle(owner,"sh"+i,now));var h=List.copyOf(s.game().hand(seat));if(!h.equals(last))changed++;last=h;
+            assertEquals(before,new HashSet<>(h),"same cards");if(s.phase()!=CursedCardsSession.Phase.PLAYING)break;}
+        assertTrue(changed>=290,"the order really changes ("+changed+"/300)");assertTrue(s.revision(seat)>r0);
+        // the owner's private hand follows the new order; nobody else learns it
+        List<Integer> real=new ArrayList<>();for(var c:s.game().hand(seat))real.add(c.value());assertEquals(real,s.snapshot(owner,false,now).get("hand"));
+        for(var e:events(s))assertNotEquals("shuffle",e.get("type"),"shuffles leave no trail in the public log");
+        assertEquals("CARDS_NOT_PLAYER",code(()->s.shuffle("stranger","x",0)));
+    }
+    @Test void rapidShufflesAreCoalescedNotQueued(){
+        var s=playing(5,12);int seat=-1;for(int p=0;p<5;p++)if(s.game().handSize(p)>=2)seat=p;int r=s.revision(seat);long t=s0+50;
+        int accepted=0;for(int i=0;i<100;i++)if(s.shuffle("p"+seat,"r"+i,t+i))accepted++; // 100 taps in 100 ms
+        assertEquals(1,accepted,"one reorder per pacing window; the rest change nothing");assertEquals(r+1,s.revision(seat));
+    }
+    @Test void shufflingWhileBeingDrawnFromIsFairAndCannotStarve(){
+        for(int seed=0;seed<200;seed++){var s=playing(5,seed);var v=s.snapshot("host",true,s0);String drawer=(String)v.get("drawer"),src=(String)v.get("source");int turn=(int)v.get("turn");
+            int srcSeat=s.seats.indexOf(src);if(s.game().handSize(srcSeat)<2)continue;int seenRev=(int)v.get("sourceRevision");
+            int slot=1;int wanted=s.game().hand(srcSeat).get(slot).id();long t=s0+100;
+            assertTrue(s.shuffle(src,"dodge",t));// the owner shuffles while the drawer's tap is in flight
+            int toBefore=s.game().handSize(s.seats.indexOf(drawer));
+            assertTrue(s.draw(drawer,"tap",turn,slot,seenRev,t+300),"a tap on the order the drawer saw still lands");
+            boolean took=false;for(var e:events(s))if(e.get("type").equals("transfer")&&(int)e.get("card")==wanted)took=true;assertTrue(took,"the card at the tapped position is the one taken");
+            int total=0;for(int p=0;p<5;p++)total+=s.game().handSize(p);assertEquals(s.game().deck().size(),total+s.game().discard().size());}
+        // an order replaced long ago is refused, and the phone simply taps again on the fresh order
+        var s=playing(5,77);var v=s.snapshot("host",true,s0);String drawer=(String)v.get("drawer"),src=(String)v.get("source");int turn=(int)v.get("turn");int rev=(int)v.get("sourceRevision");
+        if(s.game().handSize(s.seats.indexOf(src))>=2){assertTrue(s.shuffle(src,"a",s0+10));
+            assertEquals("CARDS_STALE_HAND",code(()->s.draw(drawer,"old",turn,0,rev,s0+10+CursedCardsSession.STALE_GRACE_MS+1)));
+            int fresh=(int)s.snapshot(drawer,false,s0+2_000).get("sourceRevision");assertTrue(s.draw(drawer,"new",turn,0,fresh,s0+2_000));}
+        // continuous shuffling by the source never blocks a selection: every attempt within the window succeeds
+        for(int seed=0;seed<50;seed++){var q=playing(6,seed);long t=s0;int g=0;var pick=new Random(seed);
+            while(q.phase()==CursedCardsSession.Phase.PLAYING){var w=q.snapshot("host",true,t);t=Math.max(t,(long)w.get("turnReadyAt"));String d=(String)w.get("drawer"),so=(String)w.get("source");int seen=(int)q.snapshot(d,false,t).get("sourceRevision");
+                for(int k=0;k<10;k++){t+=60;try{q.shuffle(so,"z"+g+"-"+k,t);}catch(RoomService.Failure ignored){}}
+                assertTrue(q.draw(d,"d"+g,(int)w.get("turn"),pick.nextInt((int)w.get("sourceCards")),seen,t),"selection is never starved");assertTrue(++g<500);}
+            assertEquals(1,q.game().hand(q.game().loser()).size());assertTrue(q.game().hand(q.game().loser()).get(0).death());}
+    }
+    /** Simulated pacing: phones act within the five-second window; a match must land in 1.5–2.5 minutes. */
     @Test void matchLastsAboutTwoMinutes(){
         for(int n=4;n<=6;n++){long sum=0;int runs=80;
             for(int seed=0;seed<runs;seed++){var s=new CursedCardsSession(seats(n),List.of("w"),new Random(seed),0);var think=new Random(seed+99L);long now=0;s.vote("w","v","p0",1_000);now=2_300;s.tick(now);
                 now=(long)s.snapshot("host",true,now).get("dealEndsAt");s.tick(now);int g=0;
-                while(s.phase()==CursedCardsSession.Phase.PLAYING){var v=s.snapshot("host",true,now);now=(long)v.get("turnReadyAt")+1_000+think.nextInt(4_000);
+                while(s.phase()==CursedCardsSession.Phase.PLAYING){var v=s.snapshot("host",true,now);now=(long)v.get("turnReadyAt")+1_000+think.nextInt(3_900);
                     s.draw((String)v.get("drawer"),"r"+g++,(int)v.get("turn"),think.nextInt((int)v.get("sourceCards")),now);}
                 sum+=now+4_000; /* DEATH reveal */}
             double minutes=sum/(double)runs/60_000;System.out.println("PACE "+n+" "+minutes);assertTrue(minutes>=1.5&&minutes<=2.5,n+" players: average "+minutes+" min");}

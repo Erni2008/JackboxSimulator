@@ -14,7 +14,9 @@ final class CursedCardsSession {
     enum Phase {CURSE_VOTE,DEALING,PLAYING,FINISHED}
     /** All match pacing in one place; the defaults target a 1.5–2.5 minute match for 4–6 players. */
     record Timing(long voteMs,long turnMs,long dealStepMs,long dealBaseMs,long pairMs,long afterDrawMs){
-        static final Timing DEFAULT=new Timing(10_000,10_000,300,2_200,800,1_200);}
+        static final Timing DEFAULT=new Timing(10_000,5_000,260,2_000,900,1_400);}
+    /** Shuffle pacing: per-player minimum gap, a longer gap while the hand is being drawn from, and how long a superseded order stays selectable. */
+    static final long SHUFFLE_GAP_MS=180,SOURCE_SHUFFLE_GAP_MS=450,STALE_GRACE_MS=900;
     static final long VOTE_MS=Timing.DEFAULT.voteMs(),TURN_MS=Timing.DEFAULT.turnMs();
     private final Timing timing;
     /** Probability that the audience's curse puts DEATH into the cursed player's initial hand. */
@@ -29,12 +31,15 @@ final class CursedCardsSession {
     private final List<Map<String,Object>> events=new ArrayList<>();
     private final Set<String> handled=new HashSet<>();
     private int timeouts;private boolean readyAnnounced;
+    /** Hand revision per seat (bumps on every shuffle and every change of contents) and recently superseded orders. */
+    private int[] revision,shuffledCount;private long[] lastShuffle;private final ArrayDeque<Past> past=new ArrayDeque<>();private int shuffles,drawSlot=-1;
+    private record Past(int seat,int revision,int[] ids,long supersededAt){}
 
     CursedCardsSession(List<String> seats,Collection<String> spectators,Random random,long now){this(seats,spectators,random,now,Timing.DEFAULT);}
     CursedCardsSession(List<String> seats,Collection<String> spectators,Random random,long now,Timing timing){this.timing=timing;
         if(seats.size()<CursedDeck.MIN_PLAYERS||seats.size()>CursedDeck.MAX_PLAYERS)throw new RoomService.Failure(409,"CARDS_PLAYER_COUNT");
         if(new HashSet<>(seats).size()!=seats.size())throw new RoomService.Failure(400,"INVALID_CARDS_ROSTER");
-        this.seats=List.copyOf(seats);this.spectators=new LinkedHashSet<>(spectators);this.spectators.removeAll(seats);this.random=random;
+        this.seats=List.copyOf(seats);this.spectators=new LinkedHashSet<>(spectators);this.spectators.removeAll(seats);this.random=random;revision=new int[seats.size()];shuffledCount=new int[seats.size()];lastShuffle=new long[seats.size()];Arrays.fill(lastShuffle,Long.MIN_VALUE/2);
         if(this.spectators.isEmpty())deal(now);else{phase=Phase.CURSE_VOTE;phaseEnds=now+timing.voteMs();}
     }
     Phase phase(){return phase;}
@@ -53,21 +58,50 @@ final class CursedCardsSession {
         votes.put(member,target);if(votes.size()==spectators.size())phaseEnds=Math.min(phaseEnds,now+1_200);return true;
     }
     /** The current drawer takes the hidden card at {@code slot} of the source's hand. Duplicates and stale turns are ignored or refused. */
-    boolean draw(String member,String requestId,int turn,int slot,long now){
+    boolean draw(String member,String requestId,int turn,int slot,long now){return draw(member,requestId,turn,slot,null,now);}
+    /**
+     * {@code seenRevision} is the source-hand revision the drawer's phone showed; null means "the current order". A
+     * selection made against an order the owner replaced less than {@link #STALE_GRACE_MS} ago still takes the card that
+     * was at that position (an atomic snapshot: shuffling cannot dodge a tap already in flight, nor starve the drawer);
+     * anything older is refused so the phone asks again. Past the five-second deadline the timeout wins.
+     */
+    boolean draw(String member,String requestId,int turn,int slot,Integer seenRevision,long now){
         if(!handled.add(requestId))return false;
         if(phase!=Phase.PLAYING)throw new RoomService.Failure(409,"CARDS_NOT_PLAYING");
         if(now<turnReadyAt)throw new RoomService.Failure(409,"CARDS_TURN_NOT_READY");
         if(turn!=turnSeq)throw new RoomService.Failure(409,"CARDS_STALE_TURN");
         int s=seat(member);if(s<0||s!=game.current())throw new RoomService.Failure(403,"CARDS_NOT_YOUR_TURN");
-        if(slot<0||slot>=game.handSize(game.source()))throw new RoomService.Failure(400,"CARDS_INVALID_SLOT");
-        apply(new CursedCardsGame.Draw(s,game.source(),slot),now,false);return true;
+        if(now>=turnDeadline)throw new RoomService.Failure(409,"CARDS_TURN_EXPIRED"); // the room tick commits the timeout draw
+        int src=game.source();int current;
+        if(seenRevision==null||seenRevision==revision[src]){
+            if(slot<0||slot>=game.handSize(src))throw new RoomService.Failure(400,"CARDS_INVALID_SLOT");current=slot;}
+        else{Past seen=null;for(Past p:past)if(p.seat()==src&&p.revision()==seenRevision)seen=p;
+            if(seen==null||now-seen.supersededAt()>STALE_GRACE_MS)throw new RoomService.Failure(409,"CARDS_STALE_HAND");
+            if(slot<0||slot>=seen.ids().length)throw new RoomService.Failure(400,"CARDS_INVALID_SLOT");
+            current=indexOf(src,seen.ids()[slot]);if(current<0)throw new RoomService.Failure(409,"CARDS_STALE_HAND");}
+        drawSlot=slot;apply(new CursedCardsGame.Draw(s,src,current),now,false);return true;
     }
+    /** The seated owner reorders their own hand; unlimited, but paced so it cannot flood the room. */
+    boolean shuffle(String member,String requestId,long now){
+        if(!handled.add(requestId))return false;
+        if(phase!=Phase.PLAYING&&phase!=Phase.DEALING)throw new RoomService.Failure(409,"CARDS_NOT_PLAYING");
+        int s=seat(member);if(s<0)throw new RoomService.Failure(403,"CARDS_NOT_PLAYER");
+        if(game.handSize(s)<2)throw new RoomService.Failure(409,"CARDS_NOTHING_TO_SHUFFLE");
+        boolean beingDrawn=phase==Phase.PLAYING&&s==game.source();
+        if(now-lastShuffle[s]<(beingDrawn?SOURCE_SHUFFLE_GAP_MS:SHUFFLE_GAP_MS))return false; // coalesced: the latest order already stands
+        int[] ids=new int[game.handSize(s)];for(int i=0;i<ids.length;i++)ids[i]=game.hand(s).get(i).id();
+        past.addLast(new Past(s,revision[s],ids,now));while(past.size()>24)past.removeFirst();
+        game.shuffle(s,random);revision[s]++;shuffledCount[s]++;lastShuffle[s]=now;shuffles++;return true;
+    }
+    int shuffles(){return shuffles;}
+    int revision(int seat){return revision[seat];}
+    private int indexOf(int seat,int id){var h=game.hand(seat);for(int i=0;i<h.size();i++)if(h.get(i).id()==id)return i;return -1;}
     /** Advances timed phases; returns true when the snapshot changed. */
     boolean tick(long now){
         switch(phase){
             case CURSE_VOTE->{if(now>=phaseEnds){deal(now);return true;}}
             case DEALING->{if(now>=phaseEnds){phase=game.phase()==CursedCardsGame.Phase.FINISHED?Phase.FINISHED:Phase.PLAYING;openTurn(now);return true;}}
-            case PLAYING->{if(now>=turnDeadline){timeouts++;apply(game.randomDraw(),now,true);return true;}
+            case PLAYING->{if(now>=turnDeadline){timeouts++;var d=game.randomDraw();drawSlot=d.slot();apply(d,now,true);return true;}
                 // announce the moment the drawer may act, so phones enable their cards without waiting for a ping
                 if(!readyAnnounced&&now>=turnReadyAt){readyAnnounced=true;return true;}}
             default->{}
@@ -79,7 +113,9 @@ final class CursedCardsSession {
         if(timeout)event("timeout","seat",draw.player());
         if(!game.draw(draw))throw new IllegalStateException("rules refused a validated draw");
         long pairs=events.subList(before,events.size()).stream().filter(e->e.get("type").equals("pair")).count();
-        turnSeq++;readyAnnounced=false;
+        turnSeq++;readyAnnounced=false;drawSlot=-1;
+        // contents changed: every hand's revision moves on and no earlier order can be selected any more
+        for(int p=0;p<revision.length;p++)revision[p]++;past.clear();
         if(game.phase()==CursedCardsGame.Phase.FINISHED){phase=Phase.FINISHED;return;}
         turnReadyAt=now+timing.afterDrawMs()+pairs*timing.pairMs();turnDeadline=turnReadyAt+timing.turnMs();
     }
@@ -100,7 +136,7 @@ final class CursedCardsSession {
             public void dealt(CursedCard c,int p){event("dealt","card",c.id(),"seat",p);}
             public void pairRemoved(int p,CursedCard a,CursedCard b){event("pair","seat",p,"a",c(a),"b",c(b));}
             public void turnChanged(int d,int s){event("turn","drawer",d,"source",s);}
-            public void transferred(CursedCard c,int from,int to){event("transfer","card",c.id(),"from",from,"to",to);}
+            public void transferred(CursedCard c,int from,int to){event("transfer","card",c.id(),"from",from,"to",to,"slot",drawSlot);}
             public void playerSafe(int p){event("safe","seat",p);}
             public void finished(int loser,List<Integer> survivors){event("finished","loser",loser,"survivors",List.copyOf(survivors),"death",deathId());}
         });
@@ -125,10 +161,12 @@ final class CursedCardsSession {
         if(game==null)return v;
         v.put("deckSize",game.deck().size());v.put("events",events);
         List<Integer> sizes=new ArrayList<>();for(int p=0;p<seats.size();p++)sizes.add(game.handSize(p));v.put("handSizes",sizes);
+        List<Integer> revs=new ArrayList<>();for(int r:revision)revs.add(r);v.put("handRevisions",revs);
+        List<Integer> sh=new ArrayList<>();for(int c:shuffledCount)sh.add(c);v.put("shuffled",sh);
         List<Boolean> safe=new ArrayList<>();for(int p=0;p<seats.size();p++)safe.add(game.safe(p));v.put("safe",safe);
         if(me>=0){int[] own=game.handFor(me,me);List<Integer> hand=new ArrayList<>();for(int value:own)hand.add(value);v.put("hand",hand);}
         if(phase==Phase.DEALING)v.put("dealEndsAt",phaseEnds);
-        if(phase==Phase.PLAYING){v.put("turn",turnSeq);v.put("drawer",seats.get(game.current()));v.put("source",seats.get(game.source()));v.put("sourceCards",game.handSize(game.source()));
+        if(phase==Phase.PLAYING){v.put("turn",turnSeq);v.put("drawer",seats.get(game.current()));v.put("source",seats.get(game.source()));v.put("sourceCards",game.handSize(game.source()));v.put("sourceRevision",revision[game.source()]);
             v.put("turnReadyAt",turnReadyAt);v.put("turnDeadline",turnDeadline);v.put("canDraw",me>=0&&me==game.current()&&now>=turnReadyAt);}
         if(phase==Phase.FINISHED){v.put("loser",seats.get(game.loser()));List<String> alive=new ArrayList<>();for(int p=0;p<seats.size();p++)if(p!=game.loser())alive.add(seats.get(p));v.put("survivors",alive);}
         return v;

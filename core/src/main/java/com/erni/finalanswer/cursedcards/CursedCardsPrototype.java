@@ -11,7 +11,7 @@ import com.erni.finalanswer.gameplay.cursedcards.*;
  * Local test harness for THE CURSED CARDS without phones. The production scene ({@link CursedCardsTable}) stays clean;
  * F1 (or `) toggles a separate development panel: player count, start, draw, random, auto play, reset and a debug view
  * of every hidden value. Keys work with the panel hidden: 4–6 players · ENTER start · SPACE draw selected · A random ·
- * P auto play · R reset · I hidden values · ESC skip the DEATH cinematic · T toggle the turn timer.
+ * P auto play · R reset · I hidden values · ESC skip the DEATH cinematic · T toggle the 5 s turn timer · S shuffle every hand (visual).
  */
 public class CursedCardsPrototype extends CursedCardsTable {
     private static final String[][] BUTTONS={{"cursed_minus","-"},{"cursed_plus","+"},{"cursed_start","START"},{"cursed_draw","DRAW"},{"cursed_random","RANDOM"},{"cursed_auto","AUTO PLAY"},{"cursed_reset","RESET"},{"cursed_debug","VALUES"}};
@@ -69,7 +69,7 @@ public class CursedCardsPrototype extends CursedCardsTable {
             @Override public boolean keyDown(int k){
                 if(k>=Input.Keys.NUM_4&&k<=Input.Keys.NUM_6){setPlayers(k-Input.Keys.NUM_0);return true;}
                 switch(k){case Input.Keys.F1,Input.Keys.GRAVE->devPanel=!devPanel;case Input.Keys.ENTER->startMatch();case Input.Keys.SPACE->drawSelected();case Input.Keys.A->drawRandom();case Input.Keys.P->autoPlay=!autoPlay;
-                    case Input.Keys.R->{autoPlay=false;resetMatch();}case Input.Keys.I->debug=!debug;case Input.Keys.ESCAPE->skipCinematic();case Input.Keys.T->tableConfig.turn.seconds=tableConfig.turn.seconds>0?0:10;default->{return false;}}Gdx.graphics.requestRendering();return true;}
+                    case Input.Keys.R->{autoPlay=false;resetMatch();}case Input.Keys.I->debug=!debug;case Input.Keys.ESCAPE->skipCinematic();case Input.Keys.T->tableConfig.turn.seconds=tableConfig.turn.seconds>0?0:5;case Input.Keys.S->{for(int p=0;p<players;p++)if(handSize(p)>1)networkShuffle(p);}default->{return false;}}Gdx.graphics.requestRendering();return true;}
             @Override public boolean touchDown(int x,int y,int p,int b){mouseDown=true;mouseX=x;mouseY=y;if(panelFade>.5f)for(int i=0;i<buttons.length;i++)if(buttons[i].contains(x,Gdx.graphics.getHeight()-y)){press(i);return true;}return table.touchDown(x,y,p,b);}
             @Override public boolean touchUp(int x,int y,int p,int b){mouseDown=false;return false;}
             @Override public boolean mouseMoved(int x,int y){mouseX=x;mouseY=y;if(panelFade>0)Gdx.graphics.requestRendering();return table.mouseMoved(x,y);}

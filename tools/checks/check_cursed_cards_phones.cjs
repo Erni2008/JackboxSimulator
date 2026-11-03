@@ -43,21 +43,41 @@ async function until(fn,ms,what){const t=Date.now();while(Date.now()-t<ms){const
     const vesperSeat=seats.indexOf(ids.Vesper);
     await until(()=>host.state.cursedCards.phase!=='DEALING',60000,'dealing done');
     assert.equal(own,host.state.cursedCards.handSizes[vesperSeat]||own);await vesper.screenshot({path:out+'/phone-player-hand.png'});ok(`phone shows its own ${own} card(s) face up`);
-    // play: bots act when it is their turn; the browser phone acts through the real UI
-    let turns=0,phoneTurns=0,dup=false;const total=host.state.cursedCards.deckSize;
+    // SHUFFLE: unlimited, real (server order changes), private (only counts reach others), rapid taps coalesce
+    const cdp=await vesper.context().newCDPSession(vesper);await cdp.send('Network.enable');await cdp.send('Network.emulateNetworkConditions',{offline:false,latency:250,downloadThroughput:-1,uploadThroughput:-1});
+    await until(()=>host.state.cursedCards.phase==='PLAYING',60000,'playing');
+    const vSeat=seats.indexOf(ids.Vesper);const order=()=>vesper.$$eval('#cards-hand .cards-own',n=>n.map(x=>x.dataset.v).join(','));
+    if((await vesper.locator('#cards-hand .cards-own').count())>=2){
+      const before=await order(),set=before.split(',').sort().join(),count0=host.state.cursedCards.shuffled[vSeat];
+      for(let i=0;i<12;i++){await vesper.locator('#cards-shuffle').click();await sleep(30);} // rapid taps under 250 ms latency
+      await until(()=>host.state.cursedCards.shuffled[vSeat]>count0,8000,'shuffle reached the server');await sleep(900);
+      const after=await order();assert.equal(after.split(',').sort().join(),set,'same cards after shuffling');
+      const n=host.state.cursedCards.shuffled[vSeat]-count0;assert.ok(n>=1&&n<=12,'shuffles coalesced: '+n);
+      assert.ok(!JSON.stringify(host.state.cursedCards).includes('"hand"'),'shared screen never receives hand values');
+      ok(`SHUFFLE under 250 ms latency: ${n} accepted of 12 rapid taps, same cards, order ${before} → ${after}`);
+      await vesper.screenshot({path:out+'/phone-player-shuffle.png'});
+      await vesper.reload();await vesper.waitForSelector('#cards-hand .cards-own');await sleep(400);const re=(await order()).split(','),af=after.split(','),keep=a=>a.filter(v=>re.includes(v)&&af.includes(v)).join(',');
+      assert.equal(keep(re),keep(af),'reconnect restores the shuffled order (cards the game moved meanwhile aside)');ok('reload after shuffling restores the server order');}
+    await cdp.send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});
+    // play: bots act when it is their turn; the browser phone acts through the real UI; bots shuffle while being drawn from
+    let turns=0,phoneTurns=0,dup=false,timeouts=0;const total=host.state.cursedCards.deckSize;
     while(host.state.cursedCards.phase==='PLAYING'){const s=host.state.cursedCards;
       if(Date.now()<s.turnReadyAt+50){await sleep(80);continue;}
       const drawer=Object.keys(ids).find(n=>ids[n]===s.drawer);
-      if(drawer==='Vesper'){await vesper.waitForSelector('#cards-pick:not([hidden]) .cards-back:not([disabled])',{timeout:15000});
+      if(drawer==='Vesper'){const ready=await vesper.waitForSelector('#cards-pick:not([hidden]) .cards-back:not([disabled])',{timeout:Math.max(800,s.turnDeadline-Date.now())}).catch(()=>null);
+        if(!ready){if(host.state.cursedCards.turn!==s.turn||host.state.cursedCards.phase!=='PLAYING'){timeouts++;continue;}
+          await vesper.screenshot({path:out+'/phone-stuck.png'});throw new Error('phone never offered its cards: '+JSON.stringify({turn:s.turn,ready:s.turnReadyAt,deadline:s.turnDeadline,now:Date.now()}));}
         if(phoneTurns===0)await vesper.screenshot({path:out+'/phone-player-turn.png'});
-        await vesper.locator('.cards-back').first().click();await vesper.locator('#cards-take').click();phoneTurns++;
+        await vesper.locator('.cards-back').first().click();phoneTurns++; // one tap takes the card
         const turn=s.turn;await until(()=>host.state.cursedCards.turn!==turn||host.state.cursedCards.phase!=='PLAYING',15000,'phone draw applied');}
-      else{const bot=bots[drawer];const turn=s.turn;const rid=send(bot,'CARDS_DRAW',{roomCode:code,sessionId:s.sessionId,turn,slot:Math.floor(Math.random()*s.sourceCards)});
+      else{const bot=bots[drawer];const turn=s.turn;const srcName=Object.keys(ids).find(n=>ids[n]===s.source);
+        if(bots[srcName]&&s.sourceCards>=2&&turns%3===0)send(bots[srcName],'CARDS_SHUFFLE',{roomCode:code,sessionId:s.sessionId}); // the owner shuffles during the selection
+        const rid=send(bot,'CARDS_DRAW',{roomCode:code,sessionId:s.sessionId,turn,slot:Math.floor(Math.random()*s.sourceCards),revision:s.sourceRevision});
         if(!dup){dup=true;bot.ws.send(JSON.stringify({type:'CARDS_DRAW',requestId:rid,payload:{roomCode:code,sessionId:s.sessionId,turn,slot:0}}));}
         await until(()=>host.state.cursedCards.turn!==turn||host.state.cursedCards.phase!=='PLAYING',15000,'bot draw applied');}
-      turns++;const c=host.state.cursedCards;const held=c.handSizes.reduce((a,b)=>a+b,0),gone=c.events.filter(e=>e.type==='pair').length*2;assert.equal(held+gone,total,'cards conserved');
+      turns++;const c=host.state.cursedCards;if(c.phase==='PLAYING')assert.equal(c.turnDeadline-c.turnReadyAt,5000,'five seconds per turn');const held=c.handSizes.reduce((a,b)=>a+b,0),gone=c.events.filter(e=>e.type==='pair').length*2;assert.equal(held+gone,total,'cards conserved');
       assert.ok(turns<400);}
-    ok(`match finished in ${turns} turns (${phoneTurns} by the browser phone); cards conserved every turn; duplicate request ignored`);
+    ok(`match finished in ${turns} turns (${phoneTurns} by the browser phone, ${timeouts} phone turns lost to the 5 s clock); cards conserved every turn; duplicate request ignored`);
     const c=host.state.cursedCards;assert.equal(c.phase,'FINISHED');assert.equal(c.survivors.length,5);ok('one loser, five survivors: '+Object.keys(ids).find(n=>ids[n]===c.loser));
     await vesper.waitForSelector('#cards-result:not([hidden])');await watcher.waitForSelector('#cards-result:not([hidden])');await sleep(300);
     await vesper.screenshot({path:out+'/phone-player-result.png'});await watcher.screenshot({path:out+'/phone-spectator-result.png'});ok('result shown on both phones');

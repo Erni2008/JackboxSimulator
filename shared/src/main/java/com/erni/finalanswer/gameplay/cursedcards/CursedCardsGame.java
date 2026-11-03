@@ -47,6 +47,15 @@ public final class CursedCardsGame {
         if(!checkFinished())openTurn(nextWithCards(current));
         return true;
     }
+    /**
+     * Reorders {@code player}'s hand with an unbiased Fisher–Yates shuffle (only the order changes, never the cards).
+     * A different order is preferred when one exists. Returns false when there is nothing to reorder.
+     */
+    public boolean shuffle(int player,Random rnd){
+        if(phase==Phase.FINISHED)return false;List<CursedCard> h=hands.get(player);if(h.size()<2)return false;
+        List<CursedCard> before=List.copyOf(h);for(int tries=0;tries<8;tries++){Collections.shuffle(h,rnd);if(!h.equals(before))break;}
+        for(var l:listeners)l.shuffled(player);return true;
+    }
     /** Owner sees values; everyone else sees hidden (-1) in the same slots. */
     public int[] handFor(int viewer,int owner){List<CursedCard> h=hands.get(owner);int[] out=new int[h.size()];for(int i=0;i<out.length;i++)out[i]=viewer==owner?h.get(i).value():-1;return out;}
 

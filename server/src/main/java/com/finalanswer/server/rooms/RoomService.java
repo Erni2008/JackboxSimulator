@@ -146,7 +146,7 @@ public final class RoomService {
         }
         if(message.type().equals("LEAVE_ROOM")) { leave(room.code,member.token); return; }
         if(Set.of("START_LAST_COMMAND","LAST_COMMAND_ACTION","END_LAST_COMMAND").contains(message.type())){lastCommandCommand(room,member,peer,message);return;}
-        if(Set.of("START_CARDS","CARDS_DRAW","CARDS_VOTE","END_CARDS").contains(message.type())){cardsCommand(room,member,peer,message);return;}
+        if(Set.of("START_CARDS","CARDS_DRAW","CARDS_SHUFFLE","CARDS_VOTE","END_CARDS").contains(message.type())){cardsCommand(room,member,peer,message);return;}
         if(room.cards!=null)throw new Failure(409,"CARDS_IN_PROGRESS");
         if(room.lastCommand!=null)throw new Failure(409,"LAST_COMMAND_IN_PROGRESS");
         if(message.type().startsWith("CURSED_") || message.type().equals("START_CURSED_BOXES")){
@@ -360,8 +360,10 @@ public final class RoomService {
             }
             case "END_CARDS"->{requireHost(member);requireCards(room,data);room.cards=null;room.lobbyId=UUID.randomUUID().toString();broadcast(room,"CARDS_ENDED");}
             case "CARDS_DRAW"->{requireCards(room,data);
-                int turn,slot;try{turn=data.get("turn").getAsInt();slot=data.get("slot").getAsInt();}catch(RuntimeException e){throw new Failure(400,"INVALID_CARDS_ACTION");}
-                if(room.cards.draw(member.id,message.requestId(),turn,slot,now()))broadcast(room,"CARDS_UPDATED");else reply(peer,room,member,message);}
+                int turn,slot;Integer rev=null;try{turn=data.get("turn").getAsInt();slot=data.get("slot").getAsInt();if(data.has("revision"))rev=data.get("revision").getAsInt();}catch(RuntimeException e){throw new Failure(400,"INVALID_CARDS_ACTION");}
+                if(room.cards.draw(member.id,message.requestId(),turn,slot,rev,now()))broadcast(room,"CARDS_UPDATED");else reply(peer,room,member,message);}
+            case "CARDS_SHUFFLE"->{requireCards(room,data);
+                if(room.cards.shuffle(member.id,message.requestId(),now()))broadcast(room,"CARDS_UPDATED");else reply(peer,room,member,message);}
             case "CARDS_VOTE"->{requireCards(room,data);
                 if(room.cards.vote(member.id,message.requestId(),Protocol.string(data,"targetId"),now()))broadcast(room,"CARDS_UPDATED");else reply(peer,room,member,message);}
             default->throw new Failure(400,"UNKNOWN_COMMAND");

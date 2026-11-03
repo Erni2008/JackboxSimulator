@@ -14,7 +14,7 @@ import java.util.function.Consumer;
 public final class CursedCardsNetworkBridge implements AutoCloseable {
     private final RealtimeClient client;private final CursedCardsTable table;private final String room;
     private final Consumer<JsonObject> listener=this::receive;
-    private String session="";private int applied=-1;private boolean started,cursedShown;private List<String> seats=List.of();
+    private String session="";private int applied=-1;private boolean started,cursedShown;private List<String> seats=List.of();private int[] shuffled=new int[0];
 
     public CursedCardsNetworkBridge(RealtimeClient client,CursedCardsTable table,JsonObject snapshot){
         this.client=client;this.table=table;room=snapshot.get("code").getAsString();client.addEventListener(listener);apply(snapshot);
@@ -22,7 +22,7 @@ public final class CursedCardsNetworkBridge implements AutoCloseable {
     private void receive(JsonObject event){JsonObject data=event.getAsJsonObject("payload");if(data!=null&&data.has("cursedCards"))apply(data);}
     private void apply(JsonObject snapshot){
         JsonObject c=snapshot.getAsJsonObject("cursedCards");if(c==null)return;
-        String id=c.get("sessionId").getAsString();if(!id.equals(session)){session=id;applied=-1;started=cursedShown=false;}
+        String id=c.get("sessionId").getAsString();if(!id.equals(session)){session=id;applied=-1;started=cursedShown=false;shuffled=new int[0];}
         seats=new ArrayList<>();for(var e:c.getAsJsonArray("seats"))seats.add(e.getAsString());
         String phase=c.get("phase").getAsString();
         if(phase.equals("CURSE_VOTE")){table.networkCurseVote(true,c.get("voteEndsAt").getAsLong());return;}
@@ -36,13 +36,16 @@ public final class CursedCardsNetworkBridge implements AutoCloseable {
         long offset=snapshot.has("serverTime")?snapshot.get("serverTime").getAsLong()-System.currentTimeMillis():0;
         if(c.has("turnDeadline"))table.networkTurnClock(c.get("turnReadyAt").getAsLong(),c.get("turnDeadline").getAsLong(),offset);
         for(var e:events){var o=e.getAsJsonObject();int seq=o.get("seq").getAsInt();if(seq<=applied)continue;applied=seq;replay(o);}
+        // owners' shuffles: only a per-seat counter arrives (no card identities); several in one update play as one
+        if(c.has("shuffled")){var a=c.getAsJsonArray("shuffled");if(shuffled.length!=a.size())shuffled=new int[a.size()];
+            for(int p=0;p<a.size();p++){int n=a.get(p).getAsInt();if(n>shuffled[p]){shuffled[p]=n;table.networkShuffle(p);}}}
     }
     private void replay(JsonObject o){
         switch(o.get("type").getAsString()){
             case "dealt"->table.dealt(new CursedCard(o.get("card").getAsInt(),-1),o.get("seat").getAsInt());
             case "pair"->{CursedCard a=card(o.getAsJsonObject("a")),b=card(o.getAsJsonObject("b"));table.networkReveal(a.id(),a.value());table.networkReveal(b.id(),b.value());table.pairRemoved(o.get("seat").getAsInt(),a,b);}
             case "turn"->table.turnChanged(o.get("drawer").getAsInt(),o.get("source").getAsInt());
-            case "transfer"->table.transferred(new CursedCard(o.get("card").getAsInt(),-1),o.get("from").getAsInt(),o.get("to").getAsInt());
+            case "transfer"->table.transferred(new CursedCard(o.get("card").getAsInt(),-1),o.get("from").getAsInt(),o.get("to").getAsInt(),o.has("slot")?o.get("slot").getAsInt():-1);
             case "safe"->table.playerSafe(o.get("seat").getAsInt());
             case "timeout"->table.hud.toast("TIME — FATE CHOOSES");
             case "finished"->{table.networkReveal(o.get("death").getAsInt(),CursedCard.DEATH);List<Integer> alive=new ArrayList<>();for(var s:o.getAsJsonArray("survivors"))alive.add(s.getAsInt());table.finished(o.get("loser").getAsInt(),alive);}

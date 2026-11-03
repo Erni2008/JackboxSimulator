@@ -11,5 +11,7 @@ public interface CursedCardsListener {
     default void transferred(CursedCard card,int from,int to){}
     /** A player emptied their hand and is safe. */
     default void playerSafe(int player){}
+    /** The owner reordered their hand (no card identities). */
+    default void shuffled(int player){}
     default void finished(int loser,List<Integer> survivors){}
 }

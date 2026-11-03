@@ -52,8 +52,10 @@ public final class CursedCardsHostCheck extends ApplicationAdapter {
             if(phase.equals("PLAYING")){
                 boolean drawerIsBot=false;String drawer=c.get("drawer").getAsString();
                 for(var b:bots.values())if(drawer.equals(b.id)&&b.state!=null&&b.state.has("cursedCards")){var bc=b.state.getAsJsonObject("cursedCards");
-                    if(bc.has("canDraw")&&bc.get("canDraw").getAsBoolean()&&!(code+bc.get("turn")).equals(pending)){pending=code+bc.get("turn");
-                        if(table().awaitingDraw()){mirror(c);if(!shots.contains("turn")&&turnsChecked>=2){shots.add("turn");shot("h2-turn");}}
+                    long since=System.currentTimeMillis()-bc.get("turnReadyAt").getAsLong();
+                    // a player acts once the shared screen shows the turn (or after 3.5 s, as a slow player would)
+                    if(bc.has("canDraw")&&bc.get("canDraw").getAsBoolean()&&!(code+bc.get("turn")).equals(pending)&&(table().awaitingDraw()||since>3_500)){pending=code+bc.get("turn");
+                        if(table().awaitingDraw()){maxLag=Math.max(maxLag,since);mirror(c);if(!shots.contains("turn")&&turnsChecked>=2){shots.add("turn");shot("h2-turn");}}
                         b.send("CARDS_DRAW",Map.of("roomCode",code,"sessionId",bc.get("sessionId").getAsString(),"turn",bc.get("turn").getAsInt(),"slot",new Random().nextInt(bc.get("sourceCards").getAsInt())));}}}
             if(phase.equals("FINISHED")&&!finishedSeen&&table().loserSeat()>=0&&!table().presenting()){finishedSeen=true;
                 int seat=seatOf(c,c.get("loser").getAsString());check(table().loserSeat()==seat,"table shows the server's loser");
@@ -61,12 +63,12 @@ public final class CursedCardsHostCheck extends ApplicationAdapter {
                 shot("h3-result");t=0;}}
         screen.render(dt);
         if(pendingShot!=null){Pixmap p=Pixmap.createFromFrameBuffer(0,0,Gdx.graphics.getBackBufferWidth(),Gdx.graphics.getBackBufferHeight());{var file=Gdx.files.absolute(out+"/"+pendingShot+".png");var px=p;SHOTS.execute(()->{PixmapIO.writePNG(file,px,-1,true);px.dispose();});}pendingShot=null;}
-        if(finishedSeen&&t>1.5f){check(turnsChecked>=2,"table mirrored the server on "+turnsChecked+" turns");check(curseShown,"audience curse shown on the shared screen");
+        if(finishedSeen&&t>1.5f){check(turnsChecked>=2,"table mirrored the server on "+turnsChecked+" turns");check(curseShown,"audience curse shown on the shared screen");check(maxLag<2_500,"shared screen caught up with each turn within "+maxLag+" ms of the server opening it");
             log.forEach(System.out::println);System.out.println(failed?"RESULT FAIL":"RESULT PASS");Gdx.app.exit();}
         if(t>240){System.out.println("FAIL timeout turnsChecked="+turnsChecked+" phase="+(last==null?"-":last.get("phase")));log.forEach(System.out::println);Gdx.app.exit();}
         if(last!=null&&last.has("cursedPlayer")&&!curseShown){curseShown=true;check(last.get("cursedPlayer").getAsString().equals(bots.get("Lilith").id),"server cursed the voted player");}
     }
-    private boolean curseShown;private String pendingShot;
+    private boolean curseShown;private long maxLag;private String pendingShot;
     private CursedCardsTable table(){try{var f=CursedCardsScreen.class.getDeclaredField("table");f.setAccessible(true);return (CursedCardsTable)f.get(screen);}catch(Exception e){throw new RuntimeException(e);}}
     /** Visual hand sizes equal the server's, all face down, nothing the host should not know is face up. */
     private void mirror(JsonObject c){var sizes=c.getAsJsonArray("handSizes");boolean same=true,down=true;
