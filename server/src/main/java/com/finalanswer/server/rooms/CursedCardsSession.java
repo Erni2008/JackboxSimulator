@@ -24,7 +24,7 @@ final class CursedCardsSession {
     private final Map<String,String> votes=new LinkedHashMap<>();private String cursed;
     private final List<Map<String,Object>> events=new ArrayList<>();
     private final Set<String> handled=new HashSet<>();
-    private int timeouts;
+    private int timeouts;private boolean readyAnnounced;
 
     CursedCardsSession(List<String> seats,Collection<String> spectators,Random random,long now){
         if(seats.size()<CursedDeck.MIN_PLAYERS||seats.size()>CursedDeck.MAX_PLAYERS)throw new RoomService.Failure(409,"CARDS_PLAYER_COUNT");
@@ -62,7 +62,9 @@ final class CursedCardsSession {
         switch(phase){
             case CURSE_VOTE->{if(now>=phaseEnds){deal(now);return true;}}
             case DEALING->{if(now>=phaseEnds){phase=game.phase()==CursedCardsGame.Phase.FINISHED?Phase.FINISHED:Phase.PLAYING;openTurn(now);return true;}}
-            case PLAYING->{if(now>=turnDeadline){timeouts++;apply(game.randomDraw(),now,true);return true;}}
+            case PLAYING->{if(now>=turnDeadline){timeouts++;apply(game.randomDraw(),now,true);return true;}
+                // announce the moment the drawer may act, so phones enable their cards without waiting for a ping
+                if(!readyAnnounced&&now>=turnReadyAt){readyAnnounced=true;return true;}}
             default->{}
         }
         return false;
@@ -72,11 +74,11 @@ final class CursedCardsSession {
         if(timeout)event("timeout","seat",draw.player());
         if(!game.draw(draw))throw new IllegalStateException("rules refused a validated draw");
         long pairs=events.subList(before,events.size()).stream().filter(e->e.get("type").equals("pair")).count();
-        turnSeq++;
+        turnSeq++;readyAnnounced=false;
         if(game.phase()==CursedCardsGame.Phase.FINISHED){phase=Phase.FINISHED;return;}
         turnReadyAt=now+AFTER_DRAW_MS+pairs*PAIR_MS;turnDeadline=turnReadyAt+TURN_MS;
     }
-    private void openTurn(long now){turnReadyAt=now;turnDeadline=now+TURN_MS;}
+    private void openTurn(long now){turnReadyAt=now;turnDeadline=now+TURN_MS;readyAnnounced=true;}
 
     /** Build the deck (ids shuffled), apply the audience curse to the initial distribution only, deal. */
     private void deal(long now){

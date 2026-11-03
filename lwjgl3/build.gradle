@@ -1097,3 +1097,16 @@ tasks.register('cursedCardsBenchmark', JavaExec) {
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED', '-Xmx3g'
 }
+
+tasks.register('cursedCardsHostCheck', JavaExec) {
+    group = 'verification'
+    description = 'THE CURSED CARDS shared screen against a running room server (-Purl, -Pout).'
+    dependsOn tasks.named('compileDevJava')
+    classpath = files(sourceSets.dev.output.classesDirs, sourceSets.main.output.classesDirs, configurations.runtimeClasspath)
+    mainClass = 'com.erni.finalanswer.lwjgl3.CursedCardsHostCheck'
+    systemProperty 'url', providers.gradleProperty('url').getOrElse('http://localhost:18231')
+    systemProperty 'out', providers.gradleProperty('out').getOrElse('/tmp')
+    workingDir = rootProject.file('assets')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED', '-Xmx3g'
+}

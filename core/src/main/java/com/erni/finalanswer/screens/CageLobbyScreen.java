@@ -35,7 +35,7 @@ public final class CageLobbyScreen extends ScreenAdapter {
     private final CageLobby cages = new CageLobby();
     private final ConnectionPanel phone;
     private final Label code, roomName, playerCount, connectedCount, status;
-    private final TextButton play, impostor, cursed;
+    private final TextButton play, impostor, cursed, cards;
     private RoomSession displayed;
     private boolean disposed,starting,pendingStart,preloadQueued;
     private float pendingSeconds;
@@ -110,6 +110,7 @@ public final class CageLobbyScreen extends ScreenAdapter {
         cursed=button("CURSED BOXES",60,style,game::startCursedBoxesMultiplayer);cursed.setWidth(390);
         var lastCommand=button("THE LAST COMMAND (3D PREVIEW)",60,style,game::startLastCommand);
         lastCommand.setBounds(60,145,520,54);lastCommand.getLabel().setFontScale(.68f);
+        cards=button("THE CURSED CARDS",60,style,game::startCursedCards);cards.setBounds(60,210,520,54);cards.getLabel().setFontScale(.68f);
         button("MENU", 1210, style, game::showMainMenu);
         button("LEAVE ROOM", 1490, style, () -> { game.leaveRoom(); game.showMainMenu(); });
         blackout=new Image(solid);blackout.setBounds(0,0,1920,1080);blackout.setColor(0,0,0,0);blackout.setTouchable(com.badlogic.gdx.scenes.scene2d.Touchable.disabled);stage.addActor(blackout);
@@ -158,6 +159,8 @@ public final class CageLobbyScreen extends ScreenAdapter {
         boolean ready=host && room.players().size()>=2 && room.players().stream().allMatch(p->"ONLINE".equals(p.connectionStatus()));
         lockButtons(starting||pendingStart);
         cursed.setDisabled(starting||pendingStart||!ready);
+        // THE CURSED CARDS seats 4–8 connected players; anyone beyond eight watches and may curse.
+        cards.setDisabled(starting||pendingStart||!host||room.players().size()<4);
         play.setDisabled(starting||pendingStart||!ready||introAborted); impostor.setDisabled(starting||pendingStart||!host || room.players().size() < 3);
         String notice=connectionStatus;
         if(host&&!starting&&!pendingStart&&!ready){

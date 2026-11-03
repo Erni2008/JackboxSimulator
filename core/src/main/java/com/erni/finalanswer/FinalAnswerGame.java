@@ -92,6 +92,19 @@ public class FinalAnswerGame extends Game {
         var screen=new com.erni.finalanswer.lastcommand.TheLastCommandScreen(this,Long.parseLong(mini.get("seed").getAsString()));
         screen.connectNetwork(realtime,state);if(cameraState!=null)screen.restoreCamera(cameraState);setScreen(screen);
     }
+    private com.erni.finalanswer.cursedcards.CursedCardsScreen cardsScreen;
+    /** Host: start THE CURSED CARDS for the room (server seats 4–8 connected players; the rest spectate and curse). */
+    public void startCursedCards(){
+        if(activeRoom==null||realtime==null||!activeRoom.host())return;
+        var snapshot=realtime.snapshot();if(snapshot==null||!snapshot.has("lobbyId"))return;
+        realtime.send("START_CARDS",java.util.Map.of("roomCode",activeRoom.code(),"sessionId",snapshot.get("lobbyId").getAsString()));
+    }
+    private void openCursedCards(com.google.gson.JsonObject state){
+        String session=state.getAsJsonObject("cursedCards").get("sessionId").getAsString();
+        if(cardsScreen!=null&&cardsScreen.session().equals(session)){if(getScreen()!=cardsScreen)setScreen(cardsScreen);return;}
+        releaseCursedCards(false);cardsScreen=new com.erni.finalanswer.cursedcards.CursedCardsScreen(realtime,state);setScreen(cardsScreen);
+    }
+    private void releaseCursedCards(boolean toLobby){if(cardsScreen==null)return;var old=cardsScreen;cardsScreen=null;if(toLobby)showRoomLobby();else if(getScreen()==old)setScreen(null);old.dispose();}
     public void showTheLastCommand() {
         setScreen(new com.erni.finalanswer.lastcommand.TheLastCommandScreen(this));
     }
@@ -222,6 +235,8 @@ public class FinalAnswerGame extends Game {
             cageLobbyScreen.cages().onRoomEvent(data, realtime == null ? System.currentTimeMillis() : realtime.serverNow());
         }
         if(activeRoom.host()&&data.has("lastCommand")){openLastCommand(data,false);return;}
+        if(activeRoom.host()&&data.has("cursedCards")){openCursedCards(data);return;}
+        if(cardsScreen!=null&&!data.has("cursedCards"))releaseCursedCards(true);
         if(!lastCommandSession.isEmpty()&&!data.has("lastCommand")){lastCommandSession="";if(getScreen() instanceof com.erni.finalanswer.lastcommand.TheLastCommandScreen)showRoomLobby();}
         if(activeRoom.host()&&data.has("cursedBoxes")){openNetworkCursed(data);return;}
         if(type.equals("CURSED_BOXES_ENDED")||!networkCursedSession.isEmpty()&&!data.has("cursedBoxes"))releaseNetworkCursed();

@@ -149,15 +149,47 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     // ---------------- match flow ----------------
     public boolean presenting(){return !steps.isEmpty()||clock<stepUntil||animator.busy(cards)||cine!=null&&cine.running();}
     /** A draw is accepted once every queued rules event has played (a selection lift may still be moving). */
-    public boolean awaitingDraw(){return game!=null&&game.phase()==CursedCardsGame.Phase.PLAYING&&steps.isEmpty()&&clock>=stepUntil&&drawer>=0;}
+    public boolean awaitingDraw(){return network?steps.isEmpty()&&clock>=stepUntil&&drawer>=0&&loser<0:game!=null&&game.phase()==CursedCardsGame.Phase.PLAYING&&steps.isEmpty()&&clock>=stepUntil&&drawer>=0;}
+
+    // ---------------- networked presentation (server-authoritative; this screen only shows) ----------------
+    /** True when a server session drives the table: no local rules, no local draws, the server's clock times turns. */
+    protected boolean network;
+    private int netDeck;private long netTurnStart,netTurnDeadline,netOffset;
+    /** Prepare a server match: seat count, nicknames and deck size; values stay unknown until cards are revealed publicly. */
+    public void startNetworkMatch(int seats,String[] names,int deckSize){
+        network=true;game=null;players=seats;setNames(names);netDeck=deckSize;
+        layoutSeats();resetCues();for(var h:hands)h.clear();discardPile.clear();tray.clear();burning.clear();
+        java.util.Arrays.fill(finalDealt,0);
+        float collect=collectAll();machineTarget=1;hud.phase("THE DEALER AWAKENS");
+        steps.add(()->machine.presence()>=1?0:-1);
+        enqueue(()->{for(Card3D c:cards)c.visible=false;tray.clear();
+            for(int i=0;i<deckSize;i++){Card3D c=cards.get(dealOrder[i]);c.setValue(faces,CardValue.ONE);tray.add(c);}
+            for(int i=0;i<tray.size;i++){Card3D c=tray.get(i);animator.stop(c);deckPose(i,c.pose);c.visible=true;c.sync();}
+            hud.phase("THE DEAL");machine.activate();machine.sound("shuffle",.5f);return .45f;},collect);
+        dealInterval=deckSize>15?.34f:deckSize>9?.4f:DEAL_INTERVAL;
+    }
+    private final int[] dealOrder=new int[MAX_CARDS];
+    /** Deal order (card ids in the order the server dealt them) and final hand sizes; call before the first dealt event. */
+    public void networkDealOrder(int[] cardIds,int[] seatOf){for(int i=0;i<cardIds.length;i++){dealOrder[i]=cardIds[i];finalDealt[seatOf[i]]++;}}
+    /** The publicly revealed value of a card (a discarded pair or the final DEATH). */
+    public void networkReveal(int cardId,int value){cards.get(cardId).setValue(faces,CardValue.of(value));}
+    /** Server turn clock for the HUD bar (server-time millis plus this machine's offset). */
+    public void networkTurnClock(long readyAt,long deadline,long serverNowMinusLocal){netTurnStart=readyAt;netTurnDeadline=deadline;netOffset=serverNowMinusLocal;}
+    /** Audience curse: shown during the vote and on the cursed character during the deal; never who holds DEATH. */
+    public void networkCurseVote(boolean open,long endsAt){if(open)hud.phase("THE AUDIENCE CHOOSES A CURSE");}
+    public void networkCursed(int seat){if(seat<0)return;hud.toast("THE AUDIENCE CURSES "+names[seat%names.length]);if(cast!=null)cast.curse(seat);}
     public int players(){return players;}
+    /** Read-only views for checks and adapters. */
+    public int loserSeat(){return loser;}
+    public int handSize(int seat){return hands.get(seat).size;}
+    public Card3D handCard(int seat,int k){return hands.get(seat).get(k);}
     public void setPlayers(int n){if(game!=null&&game.phase()!=CursedCardsGame.Phase.FINISHED&&presenting())return;players=MathUtils.clamp(n,CursedDeck.MIN_PLAYERS,CursedDeck.MAX_PLAYERS);if(game==null||game.phase()==CursedCardsGame.Phase.FINISHED)layoutSeats();}
     /** Nicknames by seat (stable player order); the HUD shows them on the nameplates. */
     public void setNames(String[] names){this.names=names;}
 
     /** Collect every card, summon the dealer, load the new shuffled deck and deal it through the slot. */
     public void startMatch(){
-        if(presenting())return;
+        if(presenting())return;network=false;
         // THE CURSED CARDS is 4–8 active players only (spectators never get a seat or cards).
         if(players<CursedDeck.MIN_PLAYERS||players>CursedDeck.MAX_PLAYERS){hud.toast("4–8 PLAYERS REQUIRED");return;}
         game=CursedCardsGame.create(players,deckRules,random);game.addListener(this);
@@ -177,11 +209,11 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     private void resetCues(){if(cast!=null)cast.seat(players);if(cine!=null)cine.cancel();zoom=zoomTarget=1;shake=redFlash=0;revealed=eliminationShown=false;drawer=source=loser=selectedSlot=hoverSlot=-1;glowDrawer=glowSource=-1;java.util.Arrays.fill(safe,false);verdict=false;dimTarget=0;deathLight=0;deathCard=null;}
     /** Take the hidden card at {@code slot} of the current source's hand. Values are never consulted here. */
     public boolean drawSlot(int slot){
-        if(!awaitingDraw())return false;
+        if(network||!awaitingDraw())return false;
         boolean ok=game.draw(new CursedCardsGame.Draw(drawer,source,slot));selectedSlot=hoverSlot=-1;return ok;
     }
     public boolean drawSelected(){return selectedSlot>=0&&drawSlot(selectedSlot);}
-    public boolean drawRandom(){if(!awaitingDraw())return false;var d=game.randomDraw();selectedSlot=hoverSlot=-1;return game.draw(d);}
+    public boolean drawRandom(){if(network||!awaitingDraw())return false;var d=game.randomDraw();selectedSlot=hoverSlot=-1;return game.draw(d);}
     public void select(int slot){if(!awaitingDraw()||slot<0||slot>=hands.get(source).size)return;selectedSlot=slot==selectedSlot?-1:slot;relayout(source,.18f);audio.play("select",.4f);}
     private void hover(int slot){if(slot==hoverSlot||!awaitingDraw())return;hoverSlot=slot;relayout(source,.14f);}
     public void resetMatch(){
@@ -378,7 +410,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         activeAmount=approach(activeAmount,awaitingDraw()&&glowDrawer>=0?1:0,dt*2.5f);targetAmount=approach(targetAmount,awaitingDraw()&&glowSource>=0?1:0,dt*2.5f);
         if(cine!=null&&cine.active()){cine.update(dt);driveCinematic(dt);}
         turnAge+=dt;float limit=tableConfig.turn.seconds;
-        if(awaitingDraw()&&limit>0){turnClock+=dt;if(turnClock>=limit){turnClock=0;turnTimeouts++;hud.toast("TIME — FATE CHOOSES");drawRandom();}}
+        if(!network&&awaitingDraw()&&limit>0){turnClock+=dt;if(turnClock>=limit){turnClock=0;turnTimeouts++;hud.toast("TIME — FATE CHOOSES");drawRandom();}}
         if(audio!=null)audio.update(dt);sceneFade=Math.max(0,sceneFade-dt*1.1f);
         // the dealer's red heart: an occasional faint glow on the felt where it stands (or stood)
         nextThrob-=dt;if(nextThrob<=0&&(cine==null||!cine.active())){throbAge=0;nextThrob=11+MathUtils.random(9f);}throbAge+=dt;throb=throbAge<2.4f?MathUtils.sin(throbAge/2.4f*MathUtils.PI):0;
@@ -401,7 +433,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     private static float approach(float v,float t,float step){return v<t?Math.min(t,v+step):Math.max(t,v-step);}
     private void fillHud(){
         var f=hudFrame;f.view=view;f.players=seatList.size;f.names=names;f.drawer=awaitingDraw()?drawer:-1;f.source=awaitingDraw()?source:-1;f.loser=verdict||eliminationShown?loser:-1;f.flash=redFlash;f.verdict=verdict;f.dim=dim;
-        f.fade=sceneFade*sceneFade;float limit=tableConfig.turn.seconds;f.timer=awaitingDraw()&&limit>0?1-turnClock/limit:-1;f.turnAge=turnAge;
+        f.fade=sceneFade*sceneFade;float limit=tableConfig.turn.seconds;f.timer=network?(awaitingDraw()&&netTurnDeadline>netTurnStart?MathUtils.clamp((netTurnDeadline-(System.currentTimeMillis()+netOffset))/(float)(netTurnDeadline-netTurnStart),0,1):-1):awaitingDraw()&&limit>0?1-turnClock/limit:-1;f.turnAge=turnAge;
         for(int i=0;i<seatList.size;i++){tmp.set(seatList.get(i).plate);camera.project(tmp,view.x,view.y,view.width,view.height);f.plates[i].set(tmp.x,tmp.y);f.safe[i]=safe[i];
             // farther seats (higher on screen) read slightly smaller, within a narrow range
             f.plateScale[i]=MathUtils.clamp(1.12f-(tmp.y-view.y)/view.height*.55f,.82f,1.05f);}

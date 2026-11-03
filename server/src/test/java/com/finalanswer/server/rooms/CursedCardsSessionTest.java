@@ -59,6 +59,12 @@ class CursedCardsSessionTest {
             assertEquals(1,s.game().hand(seat).size());assertTrue(s.game().hand(seat).get(0).death());
             assertEquals(n-1,((List<?>)end.get("survivors")).size());}
     }
+    @Test void theMomentATurnOpensIsAnnounced(){
+        var s=playing(5,4);var v=s.snapshot("host",true,s0);String drawer=(String)v.get("drawer");assertTrue(s.draw(drawer,"d",(int)v.get("turn"),0,s0));
+        if(s.phase()!=CursedCardsSession.Phase.PLAYING)return;long ready=(long)s.snapshot("host",true,s0).get("turnReadyAt");
+        assertFalse(s.tick(ready-1));assertTrue(s.tick(ready),"phones learn the drawer may act");assertFalse(s.tick(ready+10),"announced once");
+        String next=(String)s.snapshot("host",true,ready).get("drawer");assertEquals(true,s.snapshot(next,false,ready).get("canDraw"));
+    }
     @Test void timeoutTakesARandomCardForAnIdleDrawer(){
         var s=playing(4,11);var v=s.snapshot("host",true,s0);int turn=(int)v.get("turn");
         assertFalse(s.tick((long)v.get("turnDeadline")-1));assertTrue(s.tick((long)v.get("turnDeadline")));
