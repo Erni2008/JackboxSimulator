@@ -66,5 +66,20 @@
     "moonU": 0.6172,
     "moonV": 0.1181
   },
-  "nearMargin": 1.1
+  "nearMargin": 1.1,
+  "death": {
+    "silence": 0.5,
+    "lastCard": 1.5,
+    "reveal": 1.0,
+    "elimination": 2.0,
+    "results": 1.0,
+    "sounds": {
+      "suspense": "sounds/cursed_boxes/heart_beating_done.wav",
+      "cardMove": "sounds/cursed_boxes/appearance.wav",
+      "cardFlip": "sounds/impostor/card_role_impostor.wav",
+      "deathReveal": "sounds/cursed_boxes/horror_appearance.wav",
+      "reaction": "sounds/cursed_boxes/reveal_done.wav",
+      "results": "sounds/last_command/runtime/transition_screen.wav"
+    }
+  }
 }

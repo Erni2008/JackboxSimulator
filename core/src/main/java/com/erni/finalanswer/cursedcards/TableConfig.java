@@ -23,6 +23,8 @@ public final class TableConfig {
     public Camera camera=new Camera();
     /** Backdrop animation: moon position in the painting (u from left, v from top), from tools/assets/cursed_cards_backdrop.py. */
     public Backdrop backdrop=new Backdrop();
+    /** DEATH reveal timeline and its sounds. */
+    public DeathCinematic.Config death=new DeathCinematic.Config();
     public static final class Backdrop{public float moonU=.617f,moonV=.118f;}
 
     public static final class Table{

@@ -41,7 +41,7 @@ public final class CursedHud implements Disposable {
     public static final class Frame{
         public Rectangle view;public int players;public final Vector2[] plates=new Vector2[8];public String[] names=DEFAULT_NAMES;
         public int drawer=-1,source=-1,loser=-1;public final boolean[] safe=new boolean[8];
-        public float dim;public final Vector2 spotlight=new Vector2();public boolean verdict;
+        public float dim,flash;public final Vector2 spotlight=new Vector2();public boolean verdict;
         public Frame(){for(int i=0;i<8;i++)plates[i]=new Vector2();}
     }
     public void draw(SpriteBatch batch,Frame f,float dt){
@@ -52,6 +52,8 @@ public final class CursedHud implements Disposable {
             batch.draw(spot,cx-s*.5f,cy-s*.5f,s,s);batch.setColor(0,0,0,a);
             batch.draw(pixel,v.x,v.y,cx-s*.5f-v.x,v.height);batch.draw(pixel,cx+s*.5f,v.y,v.x+v.width-(cx+s*.5f),v.height);
             batch.draw(pixel,cx-s*.5f,v.y,s,cy-s*.5f-v.y);batch.draw(pixel,cx-s*.5f,cy+s*.5f,s,v.y+v.height-(cy+s*.5f));batch.setColor(Color.WHITE);}
+        // Supernatural red flash at the reveal.
+        if(f.flash>0){batch.setColor(.75f,.02f,.02f,.32f*f.flash*f.flash);batch.draw(pixel,v.x,v.y,v.width,v.height);batch.setColor(Color.WHITE);}
         // Nameplates.
         for(int i=0;i<f.players;i++){Vector2 at=f.plates[i];String name=f.names[i%f.names.length];
             boolean active=i==f.drawer,target=i==f.source,dead=i==f.loser,ok=f.safe[i]&&!dead;float fade=f.dim>0&&!dead?1-f.dim*.7f:1;

@@ -16,7 +16,8 @@ import java.util.*;
 public final class CursedCardsPrototypeCheck extends CursedCardsPrototype {
     private final String out=System.getProperty("out","/tmp");private final int[] counts={4,5,6,7,8};
     private int match,turns,textures=-1;private float t;private boolean started,manualDone,midShot,dealShot;private String pending;private final List<String> log=new ArrayList<>();private boolean failed;
-    @Override public void create(){super.create();timeScale=3;Gdx.graphics.setContinuousRendering(true);layoutChecks();}
+    private int resultsFired;private final List<String> phases=new ArrayList<>();private boolean disposalRun;private final java.util.Set<String> cineShots=new java.util.HashSet<>();
+    @Override public void create(){super.create();timeScale=3;resultListener=(l,alive)->{resultsFired++;check(game!=null&&l==game.loser()&&alive.length==players-1,"results hand-off matches the rules' loser");};Gdx.graphics.setContinuousRendering(true);layoutChecks();}
     /** Static scene geometry for every player count: chairs/characters/hands placed without intersections. */
     private void layoutChecks(){
         var t=tableConfig.table;float chairWidth=.54f*tableConfig.chair.scale;var mb=machine.worldBounds();
@@ -62,6 +63,11 @@ public final class CursedCardsPrototypeCheck extends CursedCardsPrototype {
             else if(seated&&t>3.6f&&!mainShot){mainShot=true;shot("m"+counts[match]+"-0-main");castCheck();}
             else if(mainShot&&t>3.9f){startMatch();started=true;seated=mainShot=false;t=0;}return;}
         if(!dealShot&&t>3.5f*1){dealShot=true;shot("m"+players+"-1-dealing");}
+        if(cine.active()){String ph=cine.phase().name();if(phases.isEmpty()||!phases.get(phases.size()-1).equals(ph))phases.add(ph);
+            if(match==2&&cine.phase()==com.erni.finalanswer.cursedcards.DeathCinematic.Phase.LAST_CARD&&!cine.skipped())skipCinematic();
+            if(match==0||match==4){var P=com.erni.finalanswer.cursedcards.DeathCinematic.Phase.class;String key=cine.phase()+(cine.progress()>.55f?"b":"a");
+                if(!disposalRun&&cine.progress()>.55f&&!cineShots.contains(key)){cineShots.add(key);shot("m"+players+"-4-"+cine.phase().name().toLowerCase());}}
+            if(disposalRun&&cine.phase()==com.erni.finalanswer.cursedcards.DeathCinematic.Phase.LAST_CARD&&!finishSoon){log.add("PASS exit requested during the DEATH cinematic (dispose mid-animation)");finishSoon=true;}}
         if(awaitingDraw()){
             turns++;mirror();
             if(!manualDone){manualDone=true;int before=hands.get(source).size;select(before-1);check(selectedSlot==before-1,"card selection");check(drawSelected(),"manual draw of the selected hidden card");return;}
@@ -71,13 +77,18 @@ public final class CursedCardsPrototypeCheck extends CursedCardsPrototype {
         if(game!=null&&game.phase()==CursedCardsGame.Phase.FINISHED&&!presenting()&&finishedAt<0)finishedAt=t;
         if(finishedAt>=0&&t-finishedAt>1.8f){finishedAt=-1;
             check(loser==game.loser(),"loser shown = rules loser");
+            boolean skippedRun=match==2;
+            check(resultsFired==1,"results fired exactly once"+(skippedRun?" (skipped)":""));
+            if(skippedRun)check(cine.skipped()&&phases.contains("RESULTS")&&!phases.contains("ELIMINATION"),"skip jumps to results: "+phases);
+            else check(phases.equals(List.of("SILENCE","LAST_CARD","REVEAL","ELIMINATION","RESULTS")),"cinematic phase order "+phases);
+            resultsFired=0;phases.clear();cineShots.clear();
             check(hands.get(loser).size==1&&hands.get(loser).first().value==CardValue.DEATH&&!hands.get(loser).first().pose.faceDown(),"DEATH revealed in loser's place");
             int others=0;for(int p=0;p<players;p++)if(p!=loser)others+=hands.get(p).size;check(others==0,"survivors hold no cards");
             check(discardPile.size==game.deck().size()-1,"all pairs on the discard pile ("+discardPile.size+")");
             boolean gone=true;for(Card3D c:discardPile)gone&=!c.visible;check(gone,"discarded pairs vanished after their animation");
             shot("m"+players+"-3-result");log.add("match "+players+" players: "+turns+" turns, loser P"+(loser+1));
             match++;started=manualDone=midShot=dealShot=false;turns=0;t=-1;resetNext=true;
-            if(match==counts.length){check(Texture.getNumManagedTextures()==textures,"no texture growth across matches ("+textures+" -> "+Texture.getNumManagedTextures()+")");finishSoon=true;}
+            if(match==counts.length){check(Texture.getNumManagedTextures()==textures,"no texture growth across matches ("+textures+" -> "+Texture.getNumManagedTextures()+")");disposalRun=true;match=counts.length-1;}
         }
     }
     private boolean finishSoon,resetNext,seated,mainShot;private float finishedAt=-1;private boolean flashShot;

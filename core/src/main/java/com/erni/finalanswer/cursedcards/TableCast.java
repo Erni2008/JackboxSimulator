@@ -33,7 +33,7 @@ public final class TableCast implements CharacterActions,Disposable {
     // per seat
     private final Member[] cast=new Member[8];
     private final State[] state=new State[8];private final float[] stateAge=new float[8],active=new float[8],relief=new float[8],phase=new float[8];
-    private final float[] sx=new float[8],sy=new float[8],sh=new float[8];private final Integer[] order=new Integer[8];
+    private final float[] doom=new float[8],sx=new float[8],sy=new float[8],sh=new float[8];private final Integer[] order=new Integer[8];
     private int seats;private float time;
     /** Visible character height in world units (seated, from the seat up). */
     private final float height;
@@ -71,9 +71,11 @@ public final class TableCast implements CharacterActions,Disposable {
         }finally{fbo.dispose();batch.dispose();}
     }
     /** Stable seat → character identity (by player id order); reset all states for a new layout. */
-    public void seat(int count){seats=count;for(int i=0;i<8;i++){state[i]=State.IDLE;stateAge[i]=0;active[i]=0;relief[i]=0;}}
+    public void seat(int count){seats=count;for(int i=0;i<8;i++){state[i]=State.IDLE;stateAge[i]=0;active[i]=0;relief[i]=0;doom[i]=0;}}
     public Member member(int seat){return cast[seat];}
     public State state(int seat){return state[seat];}
+    /** Eliminated presentation for this match only: red halo, then the figure dims (cleared by {@link #seat}). */
+    public void doom(int seat){doom[seat]=Math.max(doom[seat],.001f);}
     public void setState(int seat,State s){if(state[seat]!=s){state[seat]=s;stateAge[seat]=0;}}
 
     /** Project each seat's anchor: sprite bottom sits at seat height behind the rim; height follows perspective. */
@@ -84,7 +86,7 @@ public final class TableCast implements CharacterActions,Disposable {
             camera.project(tmp,view.x,view.y,view.width,view.height);camera.project(top,view.x,view.y,view.width,view.height);
             sx[i]=tmp.x;sy[i]=tmp.y;sh[i]=top.y-tmp.y;
             active[i]=MathUtils.clamp(active[i]+(i==activeSeat?dt:-dt)*2.5f,0,1);stateAge[i]+=dt;relief[i]=Math.max(0,relief[i]-dt);
-            if(state[i]==State.NERVOUS&&stateAge[i]>4.5f)setState(i,State.IDLE);}
+            if(state[i]==State.NERVOUS&&stateAge[i]>4.5f)setState(i,State.IDLE);if(doom[i]>0)doom[i]=Math.min(1,doom[i]+dt*.6f);}
         // farther (higher on screen) first
         java.util.Arrays.sort(order,0,8,(a,b)->a>=seats?1:b>=seats?-1:Float.compare(sy[b],sy[a]));
     }
@@ -102,7 +104,9 @@ public final class TableCast implements CharacterActions,Disposable {
             // active player: a warm golden halo behind and a faint gilded rim on the sprite
             if(active[i]>0){batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(gold.r,gold.g*.85f,gold.b*.6f,.22f*active[i]);
                 batch.draw(dot,sx[i]-w*.75f,sy[i]+h*.05f,w*1.5f,h*1.05f);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
-            float shade=state[i]==State.SCARED?.82f:1;batch.setColor(shade,shade,shade,1);
+            if(doom[i]>0){float d=doom[i],pulse=.75f+.25f*MathUtils.sin(time*9);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(1,.1f,.06f,.35f*pulse*(1-d*.5f));
+                batch.draw(dot,sx[i]-w*.85f,sy[i]-h*.05f,w*1.7f,h*1.2f);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
+            float shade=state[i]==State.SCARED?.82f:1,fade=1-doom[i]*.6f;batch.setColor(shade*fade,shade*fade*(1-doom[i]*.35f),shade*fade*(1-doom[i]*.35f),1-doom[i]*.45f);
             batch.draw(r,x,y,ow,0,w,h*breathe,1,1,rot);
             if(active[i]>0){batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(gold.r,gold.g,gold.b,.10f*active[i]);batch.draw(r,x,y,ow,0,w,h*breathe,1,1,rot);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
             batch.setColor(Color.WHITE);}

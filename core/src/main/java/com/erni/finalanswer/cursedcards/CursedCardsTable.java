@@ -59,6 +59,9 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     protected TableFx fx;protected BackdropFx backdrop;
     /** Seated FINAL ANSWER characters (layer 2) and the painted table's silhouette mask that sits them behind it. */
     protected TableCast cast;private Texture tableFront;
+    protected DeathCinematic cine;
+    /** Letterbox before cinematic zoom/shake. */
+    private final Rectangle baseView=new Rectangle();
     /** Seated character sprites: none in the project are suitable yet, so the layer draws nothing; anchors are ready. */
     protected CharacterActions actions=NO_ACTIONS;
     private static final CharacterActions NO_ACTIONS=new CharacterActions(){public void idle(int s){}public void lookAtCards(int s){}public void drawCard(int s){}public void receiveCard(int s){}public void discardPair(int s){}public void nervous(int s){}public void survive(int s){}public void eliminate(int s){}};
@@ -126,6 +129,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         Gdx.input.setInputProcessor(input());
         warmUp();
         cast=new TableCast(tableConfig.character.height,fx.dot());actions=cast;cast.seat(players);tableFront=tableSilhouette();
+        cine=new DeathCinematic(tableConfig.death);cine.onResults=(l,alive)->{hud.toast("");if(resultListener!=null)resultListener.results(l,alive);};
         // Every display frame is rendered: the backdrop is alive and motion stays perfectly even (the scene costs ~2–4 ms).
         Gdx.graphics.setContinuousRendering(true);
         Gdx.app.log("CursedCards","quality "+quality);
@@ -139,10 +143,10 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     }
     /** True while anything on screen changes; otherwise no frames are drawn until the next input. */
     protected boolean needsFrames(){return presenting()||machine.active()||machine.presence()!=machineTarget||cameraMoving||burning.notEmpty()||fx.active()||hud.animating()
-        ||Math.abs(dim-dimTarget)>.001f||verdict||quality.pulse;}
+        ||Math.abs(dim-dimTarget)>.001f||verdict||quality.pulse||cine!=null&&cine.active();}
 
     // ---------------- match flow ----------------
-    public boolean presenting(){return !steps.isEmpty()||clock<stepUntil||animator.busy(cards);}
+    public boolean presenting(){return !steps.isEmpty()||clock<stepUntil||animator.busy(cards)||cine!=null&&cine.running();}
     /** A draw is accepted once every queued rules event has played (a selection lift may still be moving). */
     public boolean awaitingDraw(){return game!=null&&game.phase()==CursedCardsGame.Phase.PLAYING&&steps.isEmpty()&&clock>=stepUntil&&drawer>=0;}
     public int players(){return players;}
@@ -167,7 +171,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         dealInterval=deck.size()>15?.34f:deck.size()>9?.4f:DEAL_INTERVAL;
         game.start();
     }
-    private void resetCues(){if(cast!=null)cast.seat(players);drawer=source=loser=selectedSlot=hoverSlot=-1;glowDrawer=glowSource=-1;java.util.Arrays.fill(safe,false);verdict=false;dimTarget=0;deathLight=0;deathCard=null;}
+    private void resetCues(){if(cast!=null)cast.seat(players);if(cine!=null)cine.cancel();zoom=zoomTarget=1;shake=redFlash=0;revealed=eliminationShown=false;drawer=source=loser=selectedSlot=hoverSlot=-1;glowDrawer=glowSource=-1;java.util.Arrays.fill(safe,false);verdict=false;dimTarget=0;deathLight=0;deathCard=null;}
     /** Take the hidden card at {@code slot} of the current source's hand. Values are never consulted here. */
     public boolean drawSlot(int slot){
         if(!awaitingDraw())return false;
@@ -233,16 +237,45 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
             status="P"+(to+1)+" TOOK A CARD FROM P"+(from+1);drawer=source=-1;return 1.1f;});
     }
     @Override public void playerSafe(int player){enqueue(()->{safe[player]=true;hud.toast(names[player]+" IS SAFE");actions.survive(player);return 0;});}
-    /** DEATH: a held breath, the room darkens, the card rises into a red glow, turns, and the verdict appears. */
+    /** DEATH: the rules have decided; the cinematic only presents it (see {@link #driveCinematic}). */
     @Override public void finished(int loser,List<Integer> survivors){
         endDealing();waitForAnimations();
-        enqueue(()->{this.loser=loser;drawer=source=-1;glowDrawer=glowSource=-1;deathCard=hands.get(loser).first();hud.phase("");dimTarget=1;status="DEATH";return 1.0f;});
-        enqueue(()->{SeatLayout.Seat seat=seatList.get(loser);
-            CardPose shown=new CardPose().set(deathCard.pose);shown.position.set(seat.hand).mulAdd(seat.normal,-1.6f).add(0,2.4f,0);facing(shown,camera.position,64);shown.scale=1.55f;
-            deathCard.queue.add(CardMotion.to(shown,1.6f,CardMotion.Ease.SMOOTH).arc(.3f).wobble(10));deathLight=.01f;
-            for(int p=0;p<players;p++)actions.nervous(p);actions.eliminate(loser);return 1.7f;});
-        enqueue(()->{fx.burst(deathCard.pose.position,70,.9f,.25f);actions.eliminate(loser);for(int p:survivors)actions.survive(p);verdict=true;return 1.2f;});
+        enqueue(()->{this.loser=loser;drawer=source=-1;glowDrawer=glowSource=-1;deathCard=hands.get(loser).first();deathStart.set(deathCard.pose);hud.phase("");status="DEATH";
+            int[] alive=new int[survivors.size()];for(int i=0;i<alive.length;i++)alive[i]=survivors.get(i);cine.start(loser,alive);return 0;});
     }
+    /** Optional hand-off to the mini-game result system (fired once per match, also when skipped). */
+    public DeathCinematic.ResultListener resultListener;
+    /** Skip the DEATH cinematic (when the host allows it): audio stops, visuals snap to the final state, results fire once. */
+    public void skipCinematic(){
+        if(cine==null||!cine.running())return;cine.skip();
+        CardPose shown=deathFinalPose(new CardPose());deathCard.queue.clear();deathCard.pose.set(shown);deathCard.sync();
+        if(!eliminationShown){eliminationShown=true;actions.eliminate(loser);if(cast!=null)cast.doom(loser);for(int p=0;p<players;p++)if(p!=loser)actions.survive(p);}
+        dimTarget=0;dim=Math.min(dim,.3f);zoom=1;shake=0;redFlash=0;deathLight=1;verdict=true;
+    }
+    private final CardPose deathStart=new CardPose();private float zoom=1,zoomTarget=1,shake,redFlash;private boolean revealed,eliminationShown;
+    private final Vector3 deathCentre=new Vector3(0,2.9f,1.8f);
+    /** Final reveal pose: face up at the centre, upright toward the camera, enlarged. */
+    private CardPose deathFinalPose(CardPose out){out.position.set(deathCentre);facing(out,camera.position,58);out.scale=1.75f;return out;}
+    /** Five phases, screen-space only (static backdrop): dim + focus vignette, slow rise and turn, flip with red flash, shake and slight zoom, the loser's reaction, then the results. */
+    private void driveCinematic(float dt){
+        var ph=cine.phase();float p=cine.progress();
+        if(cine.entered(DeathCinematic.Phase.SILENCE)){dimTarget=.45f;revealed=eliminationShown=false;cine.sound("suspense",.7f);if(cine.sounds!=null)cine.sounds.musicDuck(.3f);
+            for(Card3D c:cards)if(c!=deathCard)animator.stop(c);}
+        if(cine.entered(DeathCinematic.Phase.LAST_CARD)){cine.sound("cardMove",.6f);deathLight=.01f;dimTarget=.75f;}
+        if(ph==DeathCinematic.Phase.LAST_CARD){float e=p*p*(3-2*p);CardPose fin=deathFinalPose(tmpPose);
+            deathCard.pose.position.set(deathStart.position).lerp(deathCentre,e);deathCard.pose.position.y+=MathUtils.sin(e*MathUtils.PI)*.8f;
+            deathCard.pose.yaw=MathUtils.lerp(deathStart.yaw,fin.yaw-300,e)+300*e*e;deathCard.pose.pitch=fin.pitch*e;deathCard.pose.roll=180;deathCard.pose.scale=MathUtils.lerp(1,fin.scale,e);deathCard.sync();}
+        if(cine.entered(DeathCinematic.Phase.REVEAL))cine.sound("cardFlip",.75f);
+        if(ph==DeathCinematic.Phase.REVEAL){float f=Math.min(1,p/.45f),e=f*f*(3-2*f);CardPose fin=deathFinalPose(tmpPose);
+            deathCard.pose.set(fin);deathCard.pose.roll=180*(1-e);deathCard.pose.position.y+=MathUtils.sin(e*MathUtils.PI)*.35f;deathCard.sync();
+            if(f>=1&&!revealed){revealed=true;redFlash=1;shake=1;zoomTarget=1.06f;fx.burst(deathCentre,90,1.1f,.2f);cine.sound("deathReveal",.85f);}}
+        if(cine.entered(DeathCinematic.Phase.ELIMINATION)&&!eliminationShown){eliminationShown=true;actions.eliminate(loser);if(cast!=null)cast.doom(loser);cine.sound("reaction",.6f);
+            tmp.set(seatList.get(loser).characterAnchor).add(0,1.4f,0);fx.burst(tmp,40,1.2f,.05f);fx.smoke(tmp,8);}
+        if(ph==DeathCinematic.Phase.ELIMINATION&&p>.45f)for(int q=0;q<players;q++)if(q!=loser&&cast!=null&&cast.state(q)!=TableCast.State.IDLE)actions.survive(q);
+        if(cine.entered(DeathCinematic.Phase.RESULTS)){dimTarget=0;zoomTarget=1;verdict=true;cine.sound("results",.5f);if(cine.sounds!=null)cine.sounds.musicDuck(1);}
+        redFlash=Math.max(0,redFlash-dt*3.6f);shake=Math.max(0,shake-dt*2.2f);
+    }
+    private final CardPose tmpPose=new CardPose();
     private void endDealing(){if(dealing){dealing=false;waitForAnimations();enqueue(()->{machine.shutdown();return .6f;});enqueue(()->{machineTarget=0;hud.phase("THE DEALER DISSOLVES");return 1.3f;});}}
     /** True once the dealer has been dismissed for play (it may still be fading out). */
     public boolean dealerDismissed(){return machineTarget==0;}
@@ -337,16 +370,26 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         cameraMoving=director.update(dt,camera);
         float pr=machine.presence();if(pr!=machineTarget)machine.presence(machineTarget>pr?Math.min(machineTarget,pr+dt/CardAnimator.timing.summon):Math.max(machineTarget,pr-dt/CardAnimator.timing.dissolve));
         activeAmount=approach(activeAmount,awaitingDraw()&&glowDrawer>=0?1:0,dt*2.5f);targetAmount=approach(targetAmount,awaitingDraw()&&glowSource>=0?1:0,dt*2.5f);
-        dim=approach(dim,dimTarget,dt*(dimTarget>dim?.9f:2));
+        if(cine!=null&&cine.active()){cine.update(dt);driveCinematic(dt);}
+        zoom+=(zoomTarget-zoom)*Math.min(1,dt*3);applyView();
+        dim=approach(dim,dimTarget,dt*(dimTarget>dim?1.4f:1.6f));
         // DEATH light: a red glow that swells under the rising card (replaces the vanished machine's slot light).
         if(deathCard!=null&&deathLight>0){deathLight=Math.min(1,deathLight+dt*.8f);float flick=.85f+.15f*MathUtils.sin(clock*17)*MathUtils.sin(clock*7.3f);
-            machine.slotLight.position.set(deathCard.pose.position).add(0,-.6f,.9f);machine.slotLight.color.set(1,.12f,.06f,1);machine.slotLight.intensity=deathLight*1.6f*flick;
-            deathCard.glow(1,.15f,.08f,deathLight*.35f*flick);}
+            machine.slotLight.position.set(deathCard.pose.position).add(0,-.6f,.9f);machine.slotLight.color.set(1,.12f,.06f,1);machine.slotLight.intensity=deathLight*1.1f*flick;
+            deathCard.glow(1,.15f,.08f,deathLight*.14f*flick);}
         else machine.slotLight.color.set(1,.16f,.08f,1);
+    }
+    /** Cinematic screen-space framing: a slight zoom toward the DEATH card and a brief shake, applied to the whole letterbox. */
+    private void applyView(){
+        view.set(baseView);if(zoom==1&&shake==0)return;
+        float fx0=baseView.x+baseView.width*.5f,fy0=baseView.y+baseView.height*.5f;
+        if(deathCard!=null){tmp.set(deathCentre);camera.project(tmp,baseView.x,baseView.y,baseView.width,baseView.height);fx0=tmp.x;fy0=tmp.y;}
+        view.set(fx0-(fx0-baseView.x)*zoom,fy0-(fy0-baseView.y)*zoom,baseView.width*zoom,baseView.height*zoom);
+        float s=shake*shake*baseView.height*.008f;view.x+=MathUtils.sin(clock*61)*s;view.y+=MathUtils.sin(clock*47+1)*s;
     }
     private static float approach(float v,float t,float step){return v<t?Math.min(t,v+step):Math.max(t,v-step);}
     private void fillHud(){
-        var f=hudFrame;f.view=view;f.players=seatList.size;f.names=names;f.drawer=awaitingDraw()?drawer:-1;f.source=awaitingDraw()?source:-1;f.loser=verdict||dim>.5f?loser:-1;f.verdict=verdict;f.dim=dim;
+        var f=hudFrame;f.view=view;f.players=seatList.size;f.names=names;f.drawer=awaitingDraw()?drawer:-1;f.source=awaitingDraw()?source:-1;f.loser=verdict||eliminationShown?loser:-1;f.flash=redFlash;f.verdict=verdict;f.dim=dim;
         for(int i=0;i<seatList.size;i++){tmp.set(seatList.get(i).plate);camera.project(tmp,view.x,view.y,view.width,view.height);f.plates[i].set(tmp.x,tmp.y);f.safe[i]=safe[i];}
         if(deathCard!=null){tmp.set(deathCard.pose.position);camera.project(tmp,view.x,view.y,view.width,view.height);f.spotlight.set(tmp.x,tmp.y);}
     }
@@ -398,7 +441,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     };}
     @Override public void resize(int width,int height){
         float aspect=tableConfig.camera.aspect>0?tableConfig.camera.aspect:width/(float)height,w=width,h=width/aspect;if(h>height){h=height;w=height*aspect;}
-        view.set((width-w)*.5f,(height-h)*.5f,w,h);camera.viewportWidth=w;camera.viewportHeight=h;camera.update();scene.updateViewport(w,h);
+        baseView.set((width-w)*.5f,(height-h)*.5f,w,h);view.set(baseView);camera.viewportWidth=w;camera.viewportHeight=h;camera.update();scene.updateViewport(w,h);
         float k=Gdx.graphics.getBackBufferWidth()/(float)width;resizeLowRes(Math.round(w*k),Math.round(h*k));}
 
     // ---------------- scene construction ----------------
@@ -469,6 +512,6 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     }
     @Override public void dispose(){
         scene.dispose();machine.dispose();faces.dispose();cardModel.dispose();quadModel.dispose();blob.dispose();if(lowRes!=null)lowRes.dispose();
-        diffuse.dispose();specular.dispose();brdf.dispose();background.dispose();batch.dispose();hud.dispose();fx.dispose();backdrop.dispose();if(cast!=null)cast.dispose();if(tableFront!=null)tableFront.dispose();
+        diffuse.dispose();specular.dispose();brdf.dispose();background.dispose();batch.dispose();hud.dispose();fx.dispose();backdrop.dispose();if(cine!=null)cine.dispose();if(cast!=null)cast.dispose();if(tableFront!=null)tableFront.dispose();
     }
 }
