@@ -35,6 +35,8 @@ public final class TableCast implements CharacterActions,Disposable {
     private final State[] state=new State[8];private final float[] stateAge=new float[8],active=new float[8],relief=new float[8],phase=new float[8];
     private final float[] doom=new float[8],sx=new float[8],sy=new float[8],sh=new float[8];private final Integer[] order=new Integer[8];
     private int seats;private float time;
+    /** Farther (higher on screen) first; empty seats last. Allocated once. */
+    private final java.util.Comparator<Integer> byDepth=(a,b)->a>=seats?(b>=seats?0:1):b>=seats?-1:Float.compare(sy[b],sy[a]);
     /** Visible character height in world units (seated, from the seat up). */
     private final float height;
     private final Vector3 tmp=new Vector3(),top=new Vector3();
@@ -88,7 +90,7 @@ public final class TableCast implements CharacterActions,Disposable {
             active[i]=MathUtils.clamp(active[i]+(i==activeSeat?dt:-dt)*2.5f,0,1);stateAge[i]+=dt;relief[i]=Math.max(0,relief[i]-dt);
             if(state[i]==State.NERVOUS&&stateAge[i]>4.5f)setState(i,State.IDLE);if(doom[i]>0)doom[i]=Math.min(1,doom[i]+dt*.6f);}
         // farther (higher on screen) first
-        java.util.Arrays.sort(order,0,8,(a,b)->a>=seats?1:b>=seats?-1:Float.compare(sy[b],sy[a]));
+        java.util.Arrays.sort(order,0,8,byDepth);
     }
     public void draw(SpriteBatch batch){
         for(int n=0;n<seats;n++){int i=order[n];TextureRegion r=sprites[cast[i].ordinal()];if(r==null)continue;

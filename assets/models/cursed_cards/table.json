@@ -81,5 +81,17 @@
       "reaction": "sounds/cursed_boxes/reveal_done.wav",
       "results": "sounds/last_command/runtime/transition_screen.wav"
     }
+  },
+  "audio": {
+    "ambient": "sounds/environment/creepy_basement.mp3",
+    "ambientVolume": 0.28,
+    "sounds": {
+      "select": "sounds/ui/hover_button.wav",
+      "pickup": "sounds/ui/hover_button.wav",
+      "exchange": "",
+      "place": "",
+      "pairBurn": "sounds/cursed_boxes/reveal_sound2(done).wav",
+      "turn": ""
+    }
   }
 }

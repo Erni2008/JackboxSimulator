@@ -25,6 +25,8 @@ public final class TableConfig {
     public Backdrop backdrop=new Backdrop();
     /** DEATH reveal timeline and its sounds. */
     public DeathCinematic.Config death=new DeathCinematic.Config();
+    /** Table sound events and the ambient room bed. */
+    public TableAudio.Config audio=new TableAudio.Config();
     public static final class Backdrop{public float moonU=.617f,moonV=.118f;}
 
     public static final class Table{

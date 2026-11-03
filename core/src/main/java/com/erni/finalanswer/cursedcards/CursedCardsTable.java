@@ -59,7 +59,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     protected TableFx fx;protected BackdropFx backdrop;
     /** Seated FINAL ANSWER characters (layer 2) and the painted table's silhouette mask that sits them behind it. */
     protected TableCast cast;private Texture tableFront;
-    protected DeathCinematic cine;
+    protected DeathCinematic cine;protected TableAudio audio;private float sceneFade=1,throb,nextThrob=9;private ModelInstance redThrob;
     /** Letterbox before cinematic zoom/shake. */
     private final Rectangle baseView=new Rectangle();
     /** Seated character sprites: none in the project are suitable yet, so the layer draws nothing; anchors are ready. */
@@ -129,7 +129,8 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         Gdx.input.setInputProcessor(input());
         warmUp();
         cast=new TableCast(tableConfig.character.height,fx.dot());actions=cast;cast.seat(players);tableFront=tableSilhouette();
-        cine=new DeathCinematic(tableConfig.death);cine.onResults=(l,alive)->{hud.toast("");if(resultListener!=null)resultListener.results(l,alive);};
+        audio=new TableAudio(tableConfig.audio);
+        cine=new DeathCinematic(tableConfig.death);var cineSound=cine.sounds;cine.sounds=new DeathCinematic.SoundHook(){public void play(String e,float v){cineSound.play(e,v);}public void musicDuck(float v){audio.duck(v);}};cine.onResults=(l,alive)->{hud.toast("");if(resultListener!=null)resultListener.results(l,alive);};
         // Every display frame is rendered: the backdrop is alive and motion stays perfectly even (the scene costs ~2–4 ms).
         Gdx.graphics.setContinuousRendering(true);
         Gdx.app.log("CursedCards","quality "+quality);
@@ -179,7 +180,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     }
     public boolean drawSelected(){return selectedSlot>=0&&drawSlot(selectedSlot);}
     public boolean drawRandom(){if(!awaitingDraw())return false;var d=game.randomDraw();selectedSlot=hoverSlot=-1;return game.draw(d);}
-    public void select(int slot){if(!awaitingDraw()||slot<0||slot>=hands.get(source).size)return;selectedSlot=slot==selectedSlot?-1:slot;relayout(source,.18f);}
+    public void select(int slot){if(!awaitingDraw()||slot<0||slot>=hands.get(source).size)return;selectedSlot=slot==selectedSlot?-1:slot;relayout(source,.18f);audio.play("select",.4f);}
     private void hover(int slot){if(slot==hoverSlot||!awaitingDraw())return;hoverSlot=slot;relayout(source,.14f);}
     public void resetMatch(){
         steps.clear();stepUntil=clock;game=null;resetCues();
@@ -230,8 +231,8 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         enqueue(()->{Card3D c=cards.get(card.id());hands.get(from).removeValue(c,true);Array<Card3D> hand=hands.get(to);hand.add(c);
             hoverSlot=selectedSlot=-1;relayout(from,.25f);
             CardPose lift=new CardPose().set(c.pose);lift.position.y+=.7f;lift.position.mulAdd(seatList.get(from).normal,-.4f);lift.pitch=-8;
-            c.queue.add(CardMotion.to(lift,.22f,CardMotion.Ease.DECELERATE));
-            CardPose dest=handPose(to,hand.size-1,hand.size,new CardPose());c.queue.add(CardMotion.to(dest,.85f,CardMotion.Ease.SMOOTH).arc(.6f).lift(-12).wobble(7));
+            c.queue.add(CardMotion.to(lift,.22f,CardMotion.Ease.DECELERATE).onStart(()->audio.play("pickup",.5f)));
+            CardPose dest=handPose(to,hand.size-1,hand.size,new CardPose());c.queue.add(CardMotion.to(dest,.85f,CardMotion.Ease.SMOOTH).arc(.6f).lift(-12).wobble(7).onStart(()->audio.play("exchange",.5f)).onEnd(()->audio.play("place",.45f)));
             for(int k=0;k<hand.size-1;k++)animator.move(hand.get(k),handPose(to,k,hand.size,new CardPose()),.45f,.35f);
             actions.drawCard(to);actions.receiveCard(to);
             status="P"+(to+1)+" TOOK A CARD FROM P"+(from+1);drawer=source=-1;return 1.1f;});
@@ -275,7 +276,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         if(cine.entered(DeathCinematic.Phase.RESULTS)){dimTarget=0;zoomTarget=1;verdict=true;cine.sound("results",.5f);if(cine.sounds!=null)cine.sounds.musicDuck(1);}
         redFlash=Math.max(0,redFlash-dt*3.6f);shake=Math.max(0,shake-dt*2.2f);
     }
-    private final CardPose tmpPose=new CardPose();
+    private final CardPose tmpPose=new CardPose();private float throbAge=99;
     private void endDealing(){if(dealing){dealing=false;waitForAnimations();enqueue(()->{machine.shutdown();return .6f;});enqueue(()->{machineTarget=0;hud.phase("THE DEALER DISSOLVES");return 1.3f;});}}
     /** True once the dealer has been dismissed for play (it may still be fading out). */
     public boolean dealerDismissed(){return machineTarget==0;}
@@ -363,14 +364,18 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         float f=backdrop.flash();key.intensity=2.6f+f*2.2f;key.updateColor();if(moon!=null){moon.intensity=1.3f+f*3f;moon.updateColor();}
         machine.slotLight.position.set(path.outside.position).add(0,.06f,-.25f);
         // burning pairs: crimson glow rises, embers, then gone
+        boolean burnSounded=false;
         for(int i=burning.size-1;i>=0;i--){Card3D c=burning.get(i);c.vanish+=dt/.55f;c.pose.position.y+=dt*.35f;c.sync();
             c.glow(1,.18f,.08f,Math.min(1.6f,c.vanish*3));
-            if(c.vanish>.25f&&c.vanish-dt/.55f<=.25f)fx.burst(c.pose.position,14,.45f,.1f);
+            if(c.vanish>.25f&&c.vanish-dt/.55f<=.25f){fx.burst(c.pose.position,14,.45f,.1f);if(!burnSounded){burnSounded=true;audio.play("pairBurn",.5f);}}
             if(c.vanish>=1){c.visible=false;c.opacity(1);c.glow(0,0,0,0);c.vanish=0;burning.removeIndex(i);}else c.opacity(1-c.vanish*c.vanish);}
         cameraMoving=director.update(dt,camera);
         float pr=machine.presence();if(pr!=machineTarget)machine.presence(machineTarget>pr?Math.min(machineTarget,pr+dt/CardAnimator.timing.summon):Math.max(machineTarget,pr-dt/CardAnimator.timing.dissolve));
         activeAmount=approach(activeAmount,awaitingDraw()&&glowDrawer>=0?1:0,dt*2.5f);targetAmount=approach(targetAmount,awaitingDraw()&&glowSource>=0?1:0,dt*2.5f);
         if(cine!=null&&cine.active()){cine.update(dt);driveCinematic(dt);}
+        if(audio!=null)audio.update(dt);sceneFade=Math.max(0,sceneFade-dt*1.1f);
+        // the dealer's red heart: an occasional faint glow on the felt where it stands (or stood)
+        nextThrob-=dt;if(nextThrob<=0&&(cine==null||!cine.active())){throbAge=0;nextThrob=11+MathUtils.random(9f);}throbAge+=dt;throb=throbAge<2.4f?MathUtils.sin(throbAge/2.4f*MathUtils.PI):0;
         zoom+=(zoomTarget-zoom)*Math.min(1,dt*3);applyView();
         dim=approach(dim,dimTarget,dt*(dimTarget>dim?1.4f:1.6f));
         // DEATH light: a red glow that swells under the rising card (replaces the vanished machine's slot light).
@@ -390,7 +395,10 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     private static float approach(float v,float t,float step){return v<t?Math.min(t,v+step):Math.max(t,v-step);}
     private void fillHud(){
         var f=hudFrame;f.view=view;f.players=seatList.size;f.names=names;f.drawer=awaitingDraw()?drawer:-1;f.source=awaitingDraw()?source:-1;f.loser=verdict||eliminationShown?loser:-1;f.flash=redFlash;f.verdict=verdict;f.dim=dim;
-        for(int i=0;i<seatList.size;i++){tmp.set(seatList.get(i).plate);camera.project(tmp,view.x,view.y,view.width,view.height);f.plates[i].set(tmp.x,tmp.y);f.safe[i]=safe[i];}
+        f.fade=sceneFade*sceneFade;
+        for(int i=0;i<seatList.size;i++){tmp.set(seatList.get(i).plate);camera.project(tmp,view.x,view.y,view.width,view.height);f.plates[i].set(tmp.x,tmp.y);f.safe[i]=safe[i];
+            // farther seats (higher on screen) read slightly smaller, within a narrow range
+            f.plateScale[i]=MathUtils.clamp(1.12f-(tmp.y-view.y)/view.height*.55f,.82f,1.05f);}
         if(deathCard!=null){tmp.set(deathCard.pose.position);camera.project(tmp,view.x,view.y,view.width,view.height);f.spotlight.set(tmp.x,tmp.y);}
     }
     /** Felt-level quads: machine and card contact shadows, turn glows. */
@@ -398,6 +406,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         if(machine.visible()){opacity(machineShadow,machine.presence()*.9f);machineShadow.getRenderables(out,pool);}
         if(activeAmount>0&&glowDrawer>=0){placeGlow(activeGlow,glowDrawer,activeAmount*(.4f+.1f*MathUtils.sin(clock*2.6f)));activeGlow.getRenderables(out,pool);}
         if(targetAmount>0&&glowSource>=0){placeGlow(targetGlow,glowSource,targetAmount*.22f);targetGlow.getRenderables(out,pool);}
+        if(throb>0){var b=machine.worldBounds();redThrob.transform.setToTranslation((b.min.x+b.max.x)*.5f,.002f,(b.min.z+b.max.z)*.5f).scale(5.5f,1,3.2f);opacity(redThrob,throb*.28f);redThrob.getRenderables(out,pool);}
     }
     private void placeGlow(ModelInstance g,int seat,float a){var st=seatList.get(seat);int n=Math.max(1,hands.get(seat).size);float w=Math.min(st.handWidth,cardWidth+(n-1)*cardWidth*FAN_SPACING)+1.4f;
         g.transform.setToTranslation(st.hand.x,.002f,st.hand.z).rotate(Vector3.Y,st.handYaw).scale(w*1.15f,1,cardHeight*1.9f);opacity(g,a);}
@@ -468,7 +477,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         quadModel=mb.end();
         for(int i=0;i<cardShadows.length;i++)cardShadows[i]=shadowQuad();
         machineShadow=shadowQuad();
-        activeGlow=glowQuad(new Color(1,.74f,.36f,1));targetGlow=glowQuad(new Color(.9f,.16f,.1f,1));
+        activeGlow=glowQuad(new Color(1,.74f,.36f,1));targetGlow=glowQuad(new Color(.9f,.16f,.1f,1));redThrob=glowQuad(new Color(1,.1f,.05f,1));
         placeMachineShadow();
     }
     private ModelInstance shadowQuad(){var m=new ModelInstance(quadModel);m.materials.first().set(PBRColorAttribute.createBaseColorFactor(new Color(.02f,0,0,1)),PBRTextureAttribute.createBaseColorTexture(blob),
@@ -512,6 +521,6 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     }
     @Override public void dispose(){
         scene.dispose();machine.dispose();faces.dispose();cardModel.dispose();quadModel.dispose();blob.dispose();if(lowRes!=null)lowRes.dispose();
-        diffuse.dispose();specular.dispose();brdf.dispose();background.dispose();batch.dispose();hud.dispose();fx.dispose();backdrop.dispose();if(cine!=null)cine.dispose();if(cast!=null)cast.dispose();if(tableFront!=null)tableFront.dispose();
+        diffuse.dispose();specular.dispose();brdf.dispose();background.dispose();batch.dispose();hud.dispose();fx.dispose();backdrop.dispose();if(cine!=null)cine.dispose();if(audio!=null)audio.dispose();if(cast!=null)cast.dispose();if(tableFront!=null)tableFront.dispose();
     }
 }

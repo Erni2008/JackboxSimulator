@@ -15,7 +15,7 @@ import com.badlogic.gdx.utils.Disposable;
 public final class CursedHud implements Disposable {
     public static final String[] DEFAULT_NAMES={"VESPER","MORDECAI","LILITH","ABSALOM","SERAPHINE","CORVIN","ODETTE","BALTHAZAR"};
     private final BitmapFont plate,status,phaseFont,title,toastFont;
-    private final Texture pixel,spot;
+    private final Texture pixel,spot,spotSoft;
     private final GlyphLayout layout=new GlyphLayout();
     private String phase="",shownPhase="",toast="";private float phaseFade,toastAge=99,time,verdictFade;
     private final Color gold=new Color(.93f,.76f,.45f,1),ivory=new Color(.92f,.86f,.76f,1),crimson=new Color(.95f,.22f,.18f,1),ash=new Color(.62f,.58f,.54f,1);
@@ -28,6 +28,8 @@ public final class CursedHud implements Disposable {
         int n=256;p=new Pixmap(n,n,Pixmap.Format.RGBA8888);
         for(int y=0;y<n;y++)for(int x=0;x<n;x++){float u=(x+.5f)/n*2-1,v=(y+.5f)/n*2-1,r=(float)Math.sqrt(u*u+v*v),a=MathUtils.clamp((r-.18f)/.82f,0,1);a=a*a*(3-2*a);p.drawPixel(x,y,Color.rgba8888(0,0,0,r>=1?1:a));}
         spot=new Texture(p);spot.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();
+        n=64;p=new Pixmap(n,n,Pixmap.Format.RGBA8888);for(int y=0;y<n;y++)for(int x=0;x<n;x++){float u=(x+.5f)/n*2-1,v=(y+.5f)/n*2-1,r=(float)Math.sqrt(u*u+v*v),a=MathUtils.clamp(1-r,0,1);p.drawPixel(x,y,Color.rgba8888(1,1,1,a*a));}
+        spotSoft=new Texture(p);spotSoft.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();
     }
     private static BitmapFont font(FreeTypeFontGenerator g,int size,int spacing){var p=new FreeTypeFontGenerator.FreeTypeFontParameter();p.size=size;p.spaceX=spacing;p.characters+="—·←→";p.minFilter=p.magFilter=Texture.TextureFilter.Linear;p.genMipMaps=false;return g.generateFont(p);}
 
@@ -41,7 +43,7 @@ public final class CursedHud implements Disposable {
     public static final class Frame{
         public Rectangle view;public int players;public final Vector2[] plates=new Vector2[8];public String[] names=DEFAULT_NAMES;
         public int drawer=-1,source=-1,loser=-1;public final boolean[] safe=new boolean[8];
-        public float dim,flash;public final Vector2 spotlight=new Vector2();public boolean verdict;
+        public float dim,flash,fade;public final float[] plateScale=new float[8];public final Vector2 spotlight=new Vector2();public boolean verdict;
         public Frame(){for(int i=0;i<8;i++)plates[i]=new Vector2();}
     }
     public void draw(SpriteBatch batch,Frame f,float dt){
@@ -58,8 +60,10 @@ public final class CursedHud implements Disposable {
         for(int i=0;i<f.players;i++){Vector2 at=f.plates[i];String name=f.names[i%f.names.length];
             boolean active=i==f.drawer,target=i==f.source,dead=i==f.loser,ok=f.safe[i]&&!dead;float fade=f.dim>0&&!dead?1-f.dim*.7f:1;
             Color c=dead?crimson:active?gold:target?crimson:ok?ash:ivory;
-            plate.getData().setScale(k);layout.setText(plate,name);float w=layout.width,h=layout.height,x=at.x-w*.5f,y=at.y+h*.5f;
-            plate.setColor(0,0,0,.75f*fade);plate.draw(batch,name,x+2*k,y-2*k);plate.setColor(c.r,c.g,c.b,(ok?.65f:1)*fade);plate.draw(batch,name,x,y);
+            float pk=k*f.plateScale[i];plate.getData().setScale(pk);layout.setText(plate,name);float w=layout.width,h=layout.height,x=at.x-w*.5f,y=at.y+h*.5f;
+            // soft dark backing keeps the name readable on bright felt or embroidery
+            batch.setColor(0,0,0,.42f*fade);batch.draw(spotSoft,at.x-w*.75f,at.y-h*1.2f,w*1.5f,h*2.6f);batch.setColor(Color.WHITE);
+            plate.setColor(0,0,0,.75f*fade);plate.draw(batch,name,x+2*pk,y-2*pk);plate.setColor(c.r,c.g,c.b,(ok?.65f:1)*fade);plate.draw(batch,name,x,y);
             // thin gold rule under the name, wider for the active player
             float rule=(active?1:.55f)*w;batch.setColor(gold.r,gold.g,gold.b,(active?.85f:.28f)*fade);batch.draw(pixel,at.x-rule*.5f,y-h-7*k,rule,Math.max(1,1.5f*k));
             String st=dead?"CURSED":ok?"SAFE":active?"DRAWS":target?"OFFERS A CARD":null;
@@ -81,7 +85,9 @@ public final class CursedHud implements Disposable {
         if(verdictFade>0&&f.loser>=0){String who=f.names[f.loser%f.names.length];title.getData().setScale(k);layout.setText(title,"CURSED");float y=v.y+v.height*.86f;
             title.setColor(0,0,0,.8f*verdictFade);title.draw(batch,"CURSED",v.x+(v.width-layout.width)*.5f+3*k,y-3*k);title.setColor(crimson.r,crimson.g,crimson.b,verdictFade);title.draw(batch,"CURSED",v.x+(v.width-layout.width)*.5f,y);
             String sub=who+" HOLDS DEATH  ·  ALL OTHERS SURVIVE";phaseFont.getData().setScale(k);layout.setText(phaseFont,sub);phaseFont.setColor(ivory.r,ivory.g,ivory.b,verdictFade);phaseFont.draw(batch,sub,v.x+(v.width-layout.width)*.5f,y-110*k);}
+        // Scene fade (entry from black and between phases).
+        if(f.fade>0){batch.setColor(0,0,0,f.fade);batch.draw(pixel,v.x,v.y,v.width,v.height);}
         batch.setColor(Color.WHITE);
     }
-    @Override public void dispose(){plate.dispose();status.dispose();phaseFont.dispose();title.dispose();toastFont.dispose();pixel.dispose();spot.dispose();}
+    @Override public void dispose(){plate.dispose();status.dispose();phaseFont.dispose();title.dispose();toastFont.dispose();pixel.dispose();spot.dispose();spotSoft.dispose();}
 }
