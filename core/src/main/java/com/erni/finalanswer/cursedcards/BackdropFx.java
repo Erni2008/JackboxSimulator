@@ -8,12 +8,12 @@ import com.badlogic.gdx.math.*;
 import com.badlogic.gdx.utils.Disposable;
 
 /**
- * Living backdrop in one pass over the painted hall: mist and cloud shadows drift behind the window tracery (masked by
- * {@code background_window.png}), the moon's halo breathes, rare double lightning flashes light the glass and the room,
+ * Living backdrop in one pass over the painted hall: velvet curtains sway in slow folds, branches and mist move behind the
+ * window tracery, moonbeams fall across the hall (masks in {@code background_masks.png}), the moon's halo breathes, rare double lightning flashes light the glass and the room,
  * and an unseen candle makes the table light flicker very gently. No extra render targets; falls back to the plain image.
  */
 public final class BackdropFx implements Disposable {
-    public static final String MASK="cursed_cards/background_window.png";
+    public static final String MASK="cursed_cards/background_masks.png";
     private static final String VERT="""
         attribute vec4 a_position;attribute vec4 a_color;attribute vec2 a_texCoord0;uniform mat4 u_projTrans;varying vec2 v_uv;
         void main(){v_uv=a_texCoord0;gl_Position=u_projTrans*a_position;}""";
@@ -22,9 +22,18 @@ public final class BackdropFx implements Disposable {
         precision mediump float;
         #endif
         varying vec2 v_uv;uniform sampler2D u_texture;uniform sampler2D u_mask;uniform sampler2D u_noise;uniform sampler2D u_front;uniform float u_useFront;
-        uniform float u_time;uniform float u_flash;uniform float u_flicker;uniform vec2 u_moon;uniform float u_aspect;
+        uniform float u_time;uniform float u_flash;uniform float u_flicker;uniform vec2 u_moon;uniform float u_aspect;uniform float u_wind;
         void main(){
-            vec2 uv=v_uv;vec3 c=texture2D(u_texture,uv).rgb;float w=texture2D(u_mask,uv).r;
+            vec2 uv=v_uv;vec3 m=texture2D(u_mask,uv).rgb;float w=m.r,curtain=m.g,hang=m.b;
+            // velvet curtains: slow travelling folds, stronger toward the hem, pinned at the rod
+            float fold=sin(uv.y*11.-u_time*.9+uv.x*7.)*.6+sin(uv.y*5.3-u_time*.55)*.4;
+            vec2 suv=uv+vec2(fold*.0032*hang*hang*(.6+.4*u_wind),0.)*curtain;
+            // branches and fog behind the glass drift with the wind
+            float gust=sin(u_time*.6+uv.y*24.)*.5+sin(u_time*1.3+uv.x*31.)*.25;
+            suv+=vec2(gust*.0011*u_wind,0.)*w;
+            vec3 c=texture2D(u_texture,suv).rgb;
+            // folds catch the candlelight
+            c*=1.+curtain*fold*.07*hang;
             vec2 q=vec2(uv.x*2.4,uv.y*4.2);
             float n=texture2D(u_noise,q+vec2(u_time*.010,0.)).r*.62+texture2D(u_noise,q*2.1+vec2(-u_time*.018,u_time*.003)).r*.38;
             float mist=smoothstep(.48,.92,n);
@@ -32,7 +41,12 @@ public final class BackdropFx implements Disposable {
             c+=w*mist*vec3(.30,.36,.52)*.42;
             vec2 d=(uv-u_moon)*vec2(u_aspect,1.);float halo=exp(-dot(d,d)*70.)*(.09+.04*sin(u_time*.45));
             c+=halo*vec3(.62,.70,1.)*(1.-w*.3);
-            c+=w*u_flash*vec3(.70,.76,1.)*.85+u_flash*.07*vec3(.72,.78,1.);
+            // moonbeams: soft shafts from the moon falling across the hall, slowly breathing
+            vec2 r=uv-u_moon;float ang=atan(r.x*u_aspect,r.y),dist=length(r*vec2(u_aspect,1.));
+            float shafts=texture2D(u_noise,vec2(ang*.9+u_time*.004,.5)).r;shafts=smoothstep(.55,.95,shafts);
+            float beam=shafts*smoothstep(1.1,.15,dist)*smoothstep(.05,.25,dist)*smoothstep(.0,.35,r.y)*(1.-w);
+            c+=beam*vec3(.42,.50,.75)*(.075+.025*sin(u_time*.3));
+            c+=w*u_flash*vec3(.70,.76,1.)*.85+u_flash*.07*vec3(.72,.78,1.)+beam*u_flash*.5;
             float table=smoothstep(.42,.95,uv.y);
             c*=1.+u_flicker*.055*table*vec3(1.,.85,.6);
             gl_FragColor=vec4(c,u_useFront>.5?texture2D(u_front,uv).r:1.);
@@ -71,7 +85,7 @@ public final class BackdropFx implements Disposable {
         mask.bind(1);noise.bind(2);Gdx.gl.glActiveTexture(GL20.GL_TEXTURE0);
         shader.setUniformi("u_mask",1);shader.setUniformi("u_noise",2);shader.setUniformi("u_front",3);shader.setUniformf("u_useFront",front==null?0:1);shader.setUniformf("u_time",time);shader.setUniformf("u_flash",flash);
         float flicker=MathUtils.sin(time*7.1f)*.5f+MathUtils.sin(time*12.7f+1.3f)*.3f+MathUtils.sin(time*3.3f)*.2f;
-        shader.setUniformf("u_flicker",flicker);shader.setUniformf("u_moon",moon);shader.setUniformf("u_aspect",w/h);
+        shader.setUniformf("u_flicker",flicker);shader.setUniformf("u_wind",.65f+.35f*MathUtils.sin(time*.13f)*MathUtils.sin(time*.07f+1));shader.setUniformf("u_moon",moon);shader.setUniformf("u_aspect",w/h);
         batch.draw(background,x,y,w,h);batch.flush();
         batch.enableBlending();batch.setShader(null);
     }

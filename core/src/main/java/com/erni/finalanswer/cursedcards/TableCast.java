@@ -18,12 +18,19 @@ import com.erni.finalanswer.ui.lobby.cages.*;
 public final class TableCast implements CharacterActions,Disposable {
     /** Characters and their existing art. Full-figure PNGs where they exist; otherwise one frame of the lobby rig's own idle. */
     public enum Member {
-        DRACULA("cursed_boxes/survivors/dracula.png",null,false),SKELETON("cursed_boxes/survivors/skeleton.png",null,false),
-        GHOST("cursed_boxes/survivors/ghost.png",null,true),PUMPKIN("cursed_boxes/survivors/pumpkin.png",null,false),
-        PLAGUE_DOCTOR("cursed_boxes/survivors/plague_doctor.png",null,false),ZOMBIE(null,"zombie",false),
-        VOODOO(null,"voodoo",false),PUPPETEER(null,"puppeteer",false);
+        //            art                                              rig          floats  pace  sway  bend  jitter
+        DRACULA("cursed_boxes/survivors/dracula.png",null,false,           .8f,  .8f,  .6f,  0),
+        SKELETON("cursed_boxes/survivors/skeleton.png",null,false,         1.3f, .9f,  .8f,  .35f),
+        GHOST("cursed_boxes/survivors/ghost.png",null,true,                .55f, 1.6f, 2.2f, 0),
+        PUMPKIN("cursed_boxes/survivors/pumpkin.png",null,false,           .65f, .7f,  .5f,  0),
+        PLAGUE_DOCTOR("cursed_boxes/survivors/plague_doctor.png",null,false,.75f, .9f, 1.1f, 0),
+        ZOMBIE(null,"zombie",false,                                        .5f,  1.3f, 1.4f, .15f),
+        VOODOO(null,"voodoo",false,                                        1.1f, 1.0f, .9f,  .1f),
+        PUPPETEER(null,"puppeteer",false,                                  .9f,  1.4f, 1.8f, 0);
         public final String png,rig;public final boolean floats;
-        Member(String png,String rig,boolean floats){this.png=png;this.rig=rig;this.floats=floats;}
+        /** Idle personality: tempo, sway amount, upper-body bend, nervous micro-jitter. */
+        public final float pace,sway,bend,jitter;
+        Member(String png,String rig,boolean floats,float pace,float sway,float bend,float jitter){this.png=png;this.rig=rig;this.floats=floats;this.pace=pace;this.sway=sway;this.bend=bend;this.jitter=jitter;}
     }
     public enum State {IDLE,NERVOUS,SCARED}
 
@@ -33,7 +40,7 @@ public final class TableCast implements CharacterActions,Disposable {
     // per seat
     private final Member[] cast=new Member[8];
     private final State[] state=new State[8];private final float[] stateAge=new float[8],active=new float[8],relief=new float[8],phase=new float[8];
-    private final float[] curse=new float[8],hop=new float[8],flinch=new float[8],lean=new float[8],doom=new float[8],sx=new float[8],sy=new float[8],sh=new float[8];private final Integer[] order=new Integer[8];
+    private int activeSeat=-1;private float centerX;private final float[] look=new float[8],curse=new float[8],hop=new float[8],flinch=new float[8],lean=new float[8],doom=new float[8],sx=new float[8],sy=new float[8],sh=new float[8];private final Integer[] order=new Integer[8];
     private int seats;private float time;
     /** Farther (higher on screen) first; empty seats last. Allocated once. */
     private final java.util.Comparator<Integer> byDepth=(a,b)->a>=seats?(b>=seats?0:1):b>=seats?-1:Float.compare(sy[b],sy[a]);
@@ -84,7 +91,7 @@ public final class TableCast implements CharacterActions,Disposable {
 
     /** Project each seat's anchor: sprite bottom sits at seat height behind the rim; height follows perspective. */
     public void layout(Array<SeatLayout.Seat> list,Camera camera,Rectangle view,int activeSeat,float dt){
-        time+=dt;
+        time+=dt;this.activeSeat=activeSeat;centerX=view.x+view.width*.5f;for(int i=0;i<8;i++)look[i]=MathUtils.clamp(look[i]+(activeSeat>=0?dt:-dt)*1.2f,0,1);
         for(int i=0;i<seats;i++){var st=list.get(i);
             tmp.set(st.characterAnchor).add(0,-1.9f,0);top.set(tmp).add(0,height,0);
             camera.project(tmp,view.x,view.y,view.width,view.height);camera.project(top,view.x,view.y,view.width,view.height);
@@ -98,7 +105,12 @@ public final class TableCast implements CharacterActions,Disposable {
     public void draw(SpriteBatch batch){
         for(int n=0;n<seats;n++){int i=order[n];TextureRegion r=sprites[cast[i].ordinal()];if(r==null)continue;
             float h=sh[i],w=h*r.getRegionWidth()/(float)r.getRegionHeight(),t=time+phase[i],age=stateAge[i];
-            float breathe=1+.012f*MathUtils.sin(t*1.9f),sway=MathUtils.sin(t*.7f)*1.1f,dx=0,dy=cast[i].floats?MathUtils.sin(t*1.3f)*h*.018f:0,rot=sway;
+            Member m=cast[i];float tp=t*m.pace;
+            float breathe=1+.014f*MathUtils.sin(tp*1.9f),sway=(MathUtils.sin(tp*.7f)*.8f+MathUtils.sin(tp*.31f+1.7f)*.4f)*m.sway,dx=0,dy=m.floats?MathUtils.sin(tp*1.3f)*h*.022f:0,rot=sway*.35f;
+            // upper body bends (bottom stays seated): idle drift, a glance toward the player whose turn it is
+            float bend=(MathUtils.sin(tp*.53f+.8f)*.5f+MathUtils.sin(tp*1.21f)*.18f)*m.bend*.012f;
+            if(activeSeat>=0&&activeSeat!=i)bend+=MathUtils.clamp((sx[activeSeat]-sx[i])/(h*6),-1,1)*.022f*look[i];
+            if(m.jitter>0)rot+=MathUtils.sin(tp*23)*MathUtils.sin(tp*3.1f)*m.jitter;
             switch(state[i]){
                 case NERVOUS->{float k=Math.min(1,age*3);dx=MathUtils.sin(t*31)*h*.004f*k;rot+=MathUtils.sin(t*2.3f)*2.4f*k+MathUtils.sin(t*17)*.6f*k;}
                 case SCARED->{float jolt=age<.35f?MathUtils.sin(age/.35f*MathUtils.PI):0;dy+=jolt*h*.06f;breathe*=1+jolt*.04f;
@@ -107,7 +119,7 @@ public final class TableCast implements CharacterActions,Disposable {
             if(relief[i]>0)dy+=MathUtils.sin((1-relief[i])*MathUtils.PI)*h*.035f;
             if(hop[i]>0)dy+=MathUtils.sin((1-hop[i])*MathUtils.PI)*h*.022f;
             if(flinch[i]>0){float f=flinch[i]*flinch[i];dx+=MathUtils.sin(t*38)*h*.006f*f;rot+=-4*f;breathe*=1-.02f*f;}
-            if(lean[i]>0)rot+=MathUtils.sin((1-lean[i])*MathUtils.PI)*3.5f*(sx[i]<0?1:-1);
+            if(lean[i]>0)bend+=MathUtils.sin((1-lean[i])*MathUtils.PI)*.05f*Math.signum(centerX-sx[i]);
             float x=sx[i]-w*.5f+dx,y=sy[i]+dy,ow=w*.5f;
             // active player: a warm golden halo behind and a faint gilded rim on the sprite
             if(active[i]>0){batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(gold.r,gold.g*.85f,gold.b*.6f,.22f*active[i]);
@@ -117,10 +129,27 @@ public final class TableCast implements CharacterActions,Disposable {
             if(doom[i]>0){float d=doom[i],pulse=.75f+.25f*MathUtils.sin(time*9);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(1,.1f,.06f,.35f*pulse*(1-d*.5f));
                 batch.draw(dot,sx[i]-w*.85f,sy[i]-h*.05f,w*1.7f,h*1.2f);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
             float shade=state[i]==State.SCARED?.82f:1,fade=1-doom[i]*.6f;batch.setColor(shade*fade,shade*fade*(1-doom[i]*.35f),shade*fade*(1-doom[i]*.35f),1-doom[i]*.45f);
-            batch.draw(r,x,y,ow,0,w,h*breathe,1,1,rot);
-            if(active[i]>0){batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(gold.r,gold.g,gold.b,.10f*active[i]);batch.draw(r,x,y,ow,0,w,h*breathe,1,1,rot);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
+            float tint=batch.getPackedColor();bent(batch,r,x,y,w,h*breathe,bend*h,rot,tint);
+            // cool moonlight catching the upper edge (window side)
+            batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(.55f,.65f,1,.07f*(1-doom[i]));bent(batch,r,x+h*.004f,y+h*.006f,w,h*breathe,bend*h,rot,batch.getPackedColor());
+            batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
+            if(active[i]>0){batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(gold.r,gold.g,gold.b,.10f*active[i]);bent(batch,r,x,y,w,h*breathe,bend*h,rot,batch.getPackedColor());batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
             batch.setColor(Color.WHITE);}
     }
+    private final float[] quad=new float[20*STRIPS];private static final int STRIPS=10;
+    /**
+     * The sprite as a strip mesh: the base stays put, each strip is shifted by bend·f² (f = height fraction), so the
+     * figure leans and flexes like a body instead of rotating as a rigid card; {@code rot} tilts the whole figure.
+     */
+    private void bent(SpriteBatch batch,TextureRegion r,float x,float y,float w,float h,float bend,float rot,float color){
+        float u=r.getU(),u2=r.getU2(),v=r.getV(),v2=r.getV2(),cx=x+w*.5f,cos=MathUtils.cosDeg(rot),sin=MathUtils.sinDeg(rot);int k=0;
+        for(int s=0;s<STRIPS;s++){float f0=s/(float)STRIPS,f1=(s+1f)/STRIPS,o0=bend*f0*f0,o1=bend*f1*f1,y0=h*f0,y1=h*f1,tv0=MathUtils.lerp(v2,v,f0),tv1=MathUtils.lerp(v2,v,f1);
+            k=vertex(k,-w*.5f+o0,y0,cx,y,cos,sin,color,u,tv0);k=vertex(k,-w*.5f+o1,y1,cx,y,cos,sin,color,u,tv1);
+            k=vertex(k,w*.5f+o1,y1,cx,y,cos,sin,color,u2,tv1);k=vertex(k,w*.5f+o0,y0,cx,y,cos,sin,color,u2,tv0);}
+        batch.draw(r.getTexture(),quad,0,k);
+    }
+    private int vertex(int k,float lx,float ly,float cx,float by,float cos,float sin,float color,float u,float v){
+        quad[k++]=cx+lx*cos-ly*sin;quad[k++]=by+lx*sin+ly*cos;quad[k++]=color;quad[k++]=u;quad[k++]=v;return k;}
     /** Screen rectangles (bottom-left x,y,w,h) of seated sprites, for overlap checks. */
     public Rectangle bounds(int seat,Rectangle out){TextureRegion r=sprites[cast[seat].ordinal()];float h=sh[seat],w=r==null?0:h*r.getRegionWidth()/(float)r.getRegionHeight();return out.set(sx[seat]-w*.5f,sy[seat],w,h);}
     public boolean hasArt(int seat){return sprites[cast[seat].ordinal()]!=null;}
