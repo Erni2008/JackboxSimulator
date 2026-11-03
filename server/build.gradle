@@ -56,7 +56,8 @@ def publicArt = [
     'ui/fonts/RoadRage-Regular.ttf', 'ui/fonts/RoadRage-OFL.txt',
     'ui/fonts/Caveat-Variable.ttf', 'ui/fonts/Caveat-OFL.txt',
     'impostor/phone/papper3dview.png', 'impostor/phone/pen.png', 'impostor/phone/word_reminise.png',
-    'cursed_boxes/phone/crate-intact.png', 'cursed_boxes/phone/crate-destroyed.png'
+    'cursed_boxes/phone/crate-intact.png', 'cursed_boxes/phone/crate-destroyed.png',
+    'cursed_cards/cards/*.jpg'
 ]
 processResources {
     dependsOn rootProject.tasks.named('prepareRuntimeTextures')

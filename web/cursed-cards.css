@@ -1,0 +1,41 @@
+/* THE CURSED CARDS phone controller: burgundy, antique gold, parchment; large touch targets. */
+#cards-screen{display:flex;flex-direction:column;gap:14px;padding:16px 16px calc(20px + env(safe-area-inset-bottom));color:#efe2c8;box-sizing:border-box;
+  background:radial-gradient(120% 70% at 50% 0%,#3a0c12 0%,#1a070b 55%,#0d0507 100%)}
+#cards-screen[hidden]{display:none}
+.cards-heading{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;border-bottom:1px solid rgba(214,168,96,.35);padding-bottom:10px}
+.cards-brand{margin:0;font-size:.7rem;letter-spacing:.3em;color:#b98f55}
+.cards-heading h1{margin:2px 0 0;font-size:1.35rem;letter-spacing:.08em;color:#e9c27f}
+.cards-identity{text-align:right;display:flex;flex-direction:column}
+.cards-identity strong{font-size:1rem;letter-spacing:.06em}
+.cards-identity span{font-size:.7rem;letter-spacing:.18em;color:#b98f55}
+.cards-clock{position:relative;height:22px;border:1px solid rgba(214,168,96,.45);border-radius:11px;overflow:hidden;background:rgba(0,0,0,.35)}
+.cards-clock-fill{position:absolute;inset:0 auto 0 0;width:100%;background:linear-gradient(90deg,#8c6a2f,#e9c27f);transition:width .25s linear}
+.cards-clock.urgent .cards-clock-fill{background:linear-gradient(90deg,#7a0f12,#e2392f);animation:cards-pulse .5s ease-in-out infinite alternate}
+.cards-clock span{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:.75rem;letter-spacing:.1em;text-shadow:0 1px 2px #000}
+@keyframes cards-pulse{from{opacity:.65}to{opacity:1}}
+.cards-vote h2,.cards-pick h2{margin:4px 0 10px;font-size:1rem;letter-spacing:.12em;color:#e9c27f;text-align:center}
+.cards-vote-list{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.cards-target{min-height:56px;border-radius:10px;border:1px solid rgba(214,168,96,.5);background:rgba(40,8,12,.85);color:#efe2c8;font:inherit;font-size:.95rem;letter-spacing:.06em;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;touch-action:manipulation;transition:transform .12s,background .2s,border-color .2s}
+.cards-target span{font-size:.7rem;color:#e2392f;min-height:.8rem}
+.cards-target:active{transform:scale(.97)}
+.cards-target.chosen{border-color:#e2392f;background:rgba(110,12,18,.9);box-shadow:0 0 0 2px rgba(226,57,47,.35)}
+.cards-target:disabled{opacity:.55}
+.cards-pick-row{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.cards-back{width:64px;aspect-ratio:2/3;border-radius:7px;border:1px solid rgba(214,168,96,.6);background:#4a0d12 url('/art/cursed_cards/cards/card_back.jpg') center/cover no-repeat;
+  box-shadow:0 4px 10px rgba(0,0,0,.55);touch-action:manipulation;transition:transform .14s ease-out,box-shadow .2s}
+.cards-back:active{transform:scale(.96)}
+.cards-back.selected{transform:translateY(-12px);box-shadow:0 0 0 2px #e9c27f,0 10px 18px rgba(0,0,0,.6)}
+.cards-back:disabled{filter:grayscale(.4) brightness(.7)}
+.cards-take{display:block;margin:14px auto 0;min-width:70%;min-height:54px;border-radius:12px;border:1px solid #e9c27f;background:linear-gradient(#8c1a1f,#5a0e12);color:#fff2d6;
+  font:inherit;font-size:1rem;letter-spacing:.12em;touch-action:manipulation}
+.cards-take:disabled{opacity:.5}
+.cards-hand-label{margin:0 0 8px;font-size:.75rem;letter-spacing:.18em;color:#b98f55;text-align:center}
+.cards-hand{display:flex;justify-content:center;flex-wrap:wrap;gap:6px}
+.cards-own{width:clamp(52px,17vw,84px);aspect-ratio:2/3;border-radius:6px;box-shadow:0 4px 10px rgba(0,0,0,.6);object-fit:cover;user-select:none;-webkit-user-select:none}
+.cards-status{margin:0;text-align:center;font-size:.9rem;letter-spacing:.05em;color:#d8c3a0;min-height:2.4em}
+.cards-result{border:1px solid rgba(214,168,96,.5);border-radius:12px;padding:14px;text-align:center;background:rgba(0,0,0,.4)}
+.cards-result h2{margin:0 0 6px;letter-spacing:.12em}
+.cards-result[data-kind=cursed] h2{color:#e2392f}
+.cards-result[data-kind=safe] h2{color:#e9c27f}
+@media (prefers-reduced-motion:reduce){.cards-back,.cards-target,.cards-clock-fill{transition:none}.cards-clock.urgent .cards-clock-fill{animation:none}}

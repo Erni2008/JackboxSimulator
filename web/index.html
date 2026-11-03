@@ -24,7 +24,9 @@
   <script src="/command-ru.js" defer></script>
   <script src="/command-touch.js" defer></script>
   <script src="/last-command.js?v=1" defer></script>
-  <script src="/app.js?v=lastcommand-1" defer></script>
+  <link rel="stylesheet" href="/cursed-cards.css?v=2">
+  <script src="/cursed-cards.js?v=2" defer></script>
+  <script src="/app.js?v=cards-1" defer></script>
 </head>
 <body>
   <div class="ambient" aria-hidden="true"></div>
@@ -63,6 +65,17 @@
       <p class="eyebrow" id="players-count">THE GUEST LIST</p><ul id="players" class="players"></ul>
       <p id="room-configuration" class="room-configuration"></p>
       <p class="whisper">Keep this page open. Watch the host's screen.</p>
+    </section>
+    <section id="cards-screen" class="screen" hidden aria-label="The Cursed Cards phone controller">
+      <header class="cards-heading"><div><p class="cards-brand">FINAL ANSWER</p><h1>THE CURSED CARDS</h1></div>
+        <div class="cards-identity"><strong id="cards-name"></strong><span id="cards-role"></span></div></header>
+      <div id="cards-clock" class="cards-clock" hidden><div id="cards-clock-fill" class="cards-clock-fill"></div><span id="cards-clock-text"></span></div>
+      <div id="cards-vote" class="cards-vote" hidden><h2 id="cards-vote-title"></h2><div id="cards-vote-list" class="cards-vote-list" role="group" aria-label="Players to curse"></div></div>
+      <div id="cards-pick" class="cards-pick" hidden><h2 id="cards-pick-title"></h2><div id="cards-pick-row" class="cards-pick-row" role="group" aria-label="Hidden cards"></div>
+        <button id="cards-take" class="cards-take" data-native-button type="button" disabled>CHOOSE A CARD</button></div>
+      <div id="cards-result" class="cards-result" role="status" aria-live="polite" hidden><h2 id="cards-result-title"></h2><p id="cards-result-detail"></p></div>
+      <p id="cards-status" class="cards-status" role="status" aria-live="polite"></p>
+      <div id="cards-hand-wrap" class="cards-hand-wrap"><p id="cards-hand-label" class="cards-hand-label"></p><div id="cards-hand" class="cards-hand" aria-label="Your private cards"></div></div>
     </section>
     <section id="cursed-screen" class="screen" hidden aria-label="Cursed Boxes phone controller">
       <header class="cursed-heading">
