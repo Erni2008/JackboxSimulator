@@ -13,4 +13,8 @@ public interface CharacterActions {
     void nervous(int seat);
     void survive(int seat);
     void eliminate(int seat);
+    /** A card was taken from this player's hand. */
+    default void loseCard(int seat){}
+    /** This player's turn begins. */
+    default void becomeActive(int seat){}
 }

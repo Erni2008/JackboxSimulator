@@ -39,6 +39,10 @@ public final class TableFx implements Disposable {
     public void smoke(Vector3 at,int count){for(int n=0;n<count;n++){int i=-1;for(int k=0;k<SMOKE;k++)if(mlife[k]<=0){i=k;break;}if(i<0)return;smokeLive++;
         mx[i]=at.x+(random.nextFloat()-.5f)*.5f;my[i]=at.y+random.nextFloat()*.2f;mz[i]=at.z+random.nextFloat()*.2f;mvx[i]=(random.nextFloat()-.5f)*.4f;mmax[i]=mlife[i]=1.2f+random.nextFloat()*1.2f;msize[i]=14+random.nextFloat()*14;}}
 
+    /** Tiny felt-dust puff where a card lands (a few pale motes, low and short-lived). */
+    public void puff(Vector3 at){for(int n=0;n<5;n++){int i=findSlot();if(i<0)return;float a=random.nextFloat()*MathUtils.PI2;
+        ex[i]=at.x;ey[i]=at.y+.02f;ez[i]=at.z;evx[i]=MathUtils.cos(a)*(.6f+random.nextFloat()*.5f);evz[i]=MathUtils.sin(a)*(.4f+random.nextFloat()*.3f);evy[i]=.25f+random.nextFloat()*.3f;
+        emax[i]=elife[i]=.25f+random.nextFloat()*.2f;esize[i]=2+random.nextFloat()*2;ecolor[i].set(.85f,.72f,.6f,1);}}
     /** A short burst of embers rising from {@code at}; {@code hot} 0..1 shifts crimson toward gold. */
     public void burst(Vector3 at,int count,float spread,float hot){
         for(int n=0;n<count;n++){int i=findSlot();if(i<0)return;

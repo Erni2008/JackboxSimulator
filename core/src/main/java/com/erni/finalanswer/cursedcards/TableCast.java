@@ -33,7 +33,7 @@ public final class TableCast implements CharacterActions,Disposable {
     // per seat
     private final Member[] cast=new Member[8];
     private final State[] state=new State[8];private final float[] stateAge=new float[8],active=new float[8],relief=new float[8],phase=new float[8];
-    private final float[] doom=new float[8],sx=new float[8],sy=new float[8],sh=new float[8];private final Integer[] order=new Integer[8];
+    private final float[] hop=new float[8],flinch=new float[8],lean=new float[8],doom=new float[8],sx=new float[8],sy=new float[8],sh=new float[8];private final Integer[] order=new Integer[8];
     private int seats;private float time;
     /** Farther (higher on screen) first; empty seats last. Allocated once. */
     private final java.util.Comparator<Integer> byDepth=(a,b)->a>=seats?(b>=seats?0:1):b>=seats?-1:Float.compare(sy[b],sy[a]);
@@ -73,7 +73,7 @@ public final class TableCast implements CharacterActions,Disposable {
         }finally{fbo.dispose();batch.dispose();}
     }
     /** Stable seat → character identity (by player id order); reset all states for a new layout. */
-    public void seat(int count){seats=count;for(int i=0;i<8;i++){state[i]=State.IDLE;stateAge[i]=0;active[i]=0;relief[i]=0;doom[i]=0;}}
+    public void seat(int count){seats=count;for(int i=0;i<8;i++){state[i]=State.IDLE;stateAge[i]=0;active[i]=0;relief[i]=0;doom[i]=0;hop[i]=flinch[i]=lean[i]=0;}}
     public Member member(int seat){return cast[seat];}
     public State state(int seat){return state[seat];}
     /** Eliminated presentation for this match only: red halo, then the figure dims (cleared by {@link #seat}). */
@@ -88,6 +88,7 @@ public final class TableCast implements CharacterActions,Disposable {
             camera.project(tmp,view.x,view.y,view.width,view.height);camera.project(top,view.x,view.y,view.width,view.height);
             sx[i]=tmp.x;sy[i]=tmp.y;sh[i]=top.y-tmp.y;
             active[i]=MathUtils.clamp(active[i]+(i==activeSeat?dt:-dt)*2.5f,0,1);stateAge[i]+=dt;relief[i]=Math.max(0,relief[i]-dt);
+            hop[i]=Math.max(0,hop[i]-dt*2.6f);flinch[i]=Math.max(0,flinch[i]-dt*2.2f);lean[i]=Math.max(0,lean[i]-dt*1.6f);
             if(state[i]==State.NERVOUS&&stateAge[i]>4.5f)setState(i,State.IDLE);if(doom[i]>0)doom[i]=Math.min(1,doom[i]+dt*.6f);}
         // farther (higher on screen) first
         java.util.Arrays.sort(order,0,8,byDepth);
@@ -102,6 +103,9 @@ public final class TableCast implements CharacterActions,Disposable {
                     dx=MathUtils.sin(t*42)*h*.007f;rot+=MathUtils.sin(t*29)*1.6f-3*Math.min(1,age*2);}
                 default->{}}
             if(relief[i]>0)dy+=MathUtils.sin((1-relief[i])*MathUtils.PI)*h*.035f;
+            if(hop[i]>0)dy+=MathUtils.sin((1-hop[i])*MathUtils.PI)*h*.022f;
+            if(flinch[i]>0){float f=flinch[i]*flinch[i];dx+=MathUtils.sin(t*38)*h*.006f*f;rot+=-4*f;breathe*=1-.02f*f;}
+            if(lean[i]>0)rot+=MathUtils.sin((1-lean[i])*MathUtils.PI)*3.5f*(sx[i]<0?1:-1);
             float x=sx[i]-w*.5f+dx,y=sy[i]+dy,ow=w*.5f;
             // active player: a warm golden halo behind and a faint gilded rim on the sprite
             if(active[i]>0){batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(gold.r,gold.g*.85f,gold.b*.6f,.22f*active[i]);
@@ -120,8 +124,10 @@ public final class TableCast implements CharacterActions,Disposable {
     // ---- CharacterActions ----
     @Override public void idle(int s){setState(s,State.IDLE);}
     @Override public void lookAtCards(int s){if(state[s]==State.IDLE)stateAge[s]=0;}
-    @Override public void drawCard(int s){}
-    @Override public void receiveCard(int s){}
+    @Override public void drawCard(int s){lean[s]=1;}
+    @Override public void receiveCard(int s){hop[s]=Math.max(hop[s],.55f);}
+    @Override public void loseCard(int s){flinch[s]=1;}
+    @Override public void becomeActive(int s){hop[s]=1;if(state[s]==State.IDLE)stateAge[s]=0;}
     @Override public void discardPair(int s){relief[s]=.6f;}
     @Override public void nervous(int s){if(state[s]!=State.SCARED)setState(s,State.NERVOUS);}
     @Override public void survive(int s){setState(s,State.IDLE);relief[s]=.8f;}

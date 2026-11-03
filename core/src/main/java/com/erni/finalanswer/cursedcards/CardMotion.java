@@ -34,6 +34,9 @@ public final class CardMotion {
     public CardMotion arc(float h){arc=h;return this;}
     public CardMotion lift(float degrees){lift=degrees;return this;}
     public CardMotion wobble(float degrees){wobble=degrees;return this;}
+    /** Bending illusion: a small roll that peaks mid-flight, as if the card stock flexed in the air. */
+    public CardMotion flex(float degrees){flex=degrees;return this;}
+    float flex;
     public CardMotion delay(float seconds){delay=seconds;return this;}
     public CardMotion visible(boolean v){visible=v;return this;}
     public CardMotion onStart(Runnable r){onStart=r;return this;}
@@ -49,7 +52,7 @@ public final class CardMotion {
         if(arc!=0)p.y+=arc*4*e*(1-e);
         card.pose.yaw=MathUtils.lerp(from.yaw,target.yaw,e)+wobble*bump;
         card.pose.pitch=MathUtils.lerp(from.pitch,target.pitch,e)+lift*bump;
-        card.pose.roll=MathUtils.lerp(from.roll,target.roll,e);card.pose.scale=MathUtils.lerp(from.scale,target.scale,e);
+        card.pose.roll=MathUtils.lerp(from.roll,target.roll,e)+flex*MathUtils.sin(t*MathUtils.PI2)*bump;card.pose.scale=MathUtils.lerp(from.scale,target.scale,e);
         // A tilted/rolling card reaches further down than its centre: lift by whatever exceeds the end poses, so it never cuts into the table.
         float extra=reach(card.pose)-MathUtils.lerp(reach(from),reach(target),e);if(extra>0)p.y+=extra;
         if(t<1)return -1;

@@ -43,7 +43,7 @@ public final class CursedHud implements Disposable {
     public static final class Frame{
         public Rectangle view;public int players;public final Vector2[] plates=new Vector2[8];public String[] names=DEFAULT_NAMES;
         public int drawer=-1,source=-1,loser=-1;public final boolean[] safe=new boolean[8];
-        public float dim,flash,fade;public final float[] plateScale=new float[8];public final Vector2 spotlight=new Vector2();public boolean verdict;
+        public float dim,flash,fade,timer=-1,turnAge=99;public final float[] plateScale=new float[8];public final Vector2 spotlight=new Vector2();public boolean verdict;
         public Frame(){for(int i=0;i<8;i++)plates[i]=new Vector2();}
     }
     public void draw(SpriteBatch batch,Frame f,float dt){
@@ -68,6 +68,13 @@ public final class CursedHud implements Disposable {
             float rule=(active?1:.55f)*w;batch.setColor(gold.r,gold.g,gold.b,(active?.85f:.28f)*fade);batch.draw(pixel,at.x-rule*.5f,y-h-7*k,rule,Math.max(1,1.5f*k));
             String st=dead?"CURSED":ok?"SAFE":active?"DRAWS":target?"OFFERS A CARD":null;
             if(st!=null){status.getData().setScale(k);layout.setText(status,st);status.setColor(c.r,c.g,c.b,.9f*fade);status.draw(batch,st,at.x-layout.width*.5f,y-h-14*k);}
+            if(active&&f.timer>=0){float tw=Math.max(w*1.2f,70*k),urgent=f.timer<.3f?1:0,blink=urgent>0?.6f+.4f*MathUtils.sin(time*14):1,ty=y-h-28*k;
+                batch.setColor(0,0,0,.45f*fade);batch.draw(pixel,at.x-tw*.5f,ty,tw,Math.max(2,3*k));
+                batch.setColor(MathUtils.lerp(gold.r,crimson.r,urgent),MathUtils.lerp(gold.g,crimson.g,urgent),MathUtils.lerp(gold.b,crimson.b,urgent),.9f*blink*fade);
+                batch.draw(pixel,at.x-tw*.5f,ty,tw*f.timer,Math.max(2,3*k));batch.setColor(Color.WHITE);}
+            // turn change: the new drawer's name swells briefly
+            if(active&&f.turnAge<.6f){float e=1-f.turnAge/.6f;batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(gold.r,gold.g,gold.b,.35f*e);
+                batch.draw(spotSoft,at.x-w*(1+e),at.y-h*(1+e),w*2*(1+e),h*2.4f*(1+e));batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.setColor(Color.WHITE);}
             if(active){float pulse=.5f+.5f*MathUtils.sin(time*3.2f),d=(7+2*pulse)*k,my=y+14*k;batch.setColor(gold.r,gold.g,gold.b,.9f*fade);
                 batch.draw(pixel,at.x-d*.5f,my,d*.5f,d*.5f,d,d,.72f,.72f,45,0,0,1,1,false,false);
                 batch.setColor(gold.r,gold.g,gold.b,.18f+.12f*pulse);batch.draw(pixel,at.x-d,my-d*.5f,d,d,d*2,d*2,.72f,.72f,45,0,0,1,1,false,false);}

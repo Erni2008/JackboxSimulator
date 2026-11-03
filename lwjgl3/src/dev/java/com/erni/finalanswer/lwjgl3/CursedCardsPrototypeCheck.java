@@ -16,7 +16,7 @@ import java.util.*;
 public final class CursedCardsPrototypeCheck extends CursedCardsPrototype {
     private final String out=System.getProperty("out","/tmp");private final int[] counts={4,5,6,7,8};
     private int match,turns,textures=-1;private float t;private boolean started,manualDone,midShot,dealShot;private String pending;private final List<String> log=new ArrayList<>();private boolean failed;
-    private int resultsFired;private final List<String> phases=new ArrayList<>();private boolean disposalRun;private final java.util.Set<String> cineShots=new java.util.HashSet<>();
+    private int resultsFired;private float matchSeconds;private boolean timerArmed;private final List<String> phases=new ArrayList<>();private boolean disposalRun;private final java.util.Set<String> cineShots=new java.util.HashSet<>();
     @Override public void create(){super.create();timeScale=3;resultListener=(l,alive)->{resultsFired++;check(game!=null&&l==game.loser()&&alive.length==players-1,"results hand-off matches the rules' loser");};Gdx.graphics.setContinuousRendering(true);layoutChecks();}
     /** Static scene geometry for every player count: chairs/characters/hands placed without intersections. */
     private void layoutChecks(){
@@ -54,7 +54,7 @@ public final class CursedCardsPrototypeCheck extends CursedCardsPrototype {
         check(ok,"resizing keeps hands registered to the backdrop (16:9 letterbox)");
     }
     @Override protected void update(float dt){
-        super.update(dt);t+=dt;
+        super.update(dt);t+=dt;if(started)matchSeconds+=dt;
         if(resetNext&&t>-.8f){resetNext=false;resetMatch();}
         if(match>=counts.length)return;
         if(!started){if(!seated&&t>.5f){if(textures<0)textures=Texture.getNumManagedTextures();setPlayers(counts[match]);seated=true;t=0;if(match==0)resizeCheck();}
@@ -72,7 +72,7 @@ public final class CursedCardsPrototypeCheck extends CursedCardsPrototype {
             turns++;mirror();
             if(!manualDone){manualDone=true;int before=hands.get(source).size;select(before-1);check(selectedSlot==before-1,"card selection");check(drawSelected(),"manual draw of the selected hidden card");return;}
             if(!midShot&&turns==3){midShot=true;select(0);shot("m"+players+"-2-turn");return;}
-            debug=false;drawRandom();check(turns<2000,"terminates");
+            debug=false;if(match==1){if(!timerArmed){timerArmed=true;tableConfig.turn.seconds=1.2f;}}else drawRandom();check(turns<2000,"terminates");
         }
         if(game!=null&&game.phase()==CursedCardsGame.Phase.FINISHED&&!presenting()&&finishedAt<0)finishedAt=t;
         if(finishedAt>=0&&t-finishedAt>1.8f){finishedAt=-1;
@@ -81,6 +81,8 @@ public final class CursedCardsPrototypeCheck extends CursedCardsPrototype {
             check(resultsFired==1,"results fired exactly once"+(skippedRun?" (skipped)":""));
             if(skippedRun)check(cine.skipped()&&phases.contains("RESULTS")&&!phases.contains("ELIMINATION"),"skip jumps to results: "+phases);
             else check(phases.equals(List.of("SILENCE","LAST_CARD","REVEAL","ELIMINATION","RESULTS")),"cinematic phase order "+phases);
+            if(match==1){check(turnTimeouts>0,"turn timer takes a card when the drawer does not act ("+turnTimeouts+" timeouts)");tableConfig.turn.seconds=10;timerArmed=false;}
+            log.add(String.format(java.util.Locale.ROOT,"match %d players: %.0f s of presentation with instant decisions, %d turns",players,matchSeconds,turns));matchSeconds=0;turnTimeouts=0;
             resultsFired=0;phases.clear();cineShots.clear();
             check(hands.get(loser).size==1&&hands.get(loser).first().value==CardValue.DEATH&&!hands.get(loser).first().pose.faceDown(),"DEATH revealed in loser's place");
             int others=0;for(int p=0;p<players;p++)if(p!=loser)others+=hands.get(p).size;check(others==0,"survivors hold no cards");

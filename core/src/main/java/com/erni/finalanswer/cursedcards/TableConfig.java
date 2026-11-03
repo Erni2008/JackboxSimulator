@@ -27,6 +27,9 @@ public final class TableConfig {
     public DeathCinematic.Config death=new DeathCinematic.Config();
     /** Table sound events and the ambient room bed. */
     public TableAudio.Config audio=new TableAudio.Config();
+    /** Seconds a drawer has to pick (0 = no limit). On expiry a random hidden card is taken for them, keeping matches moving. */
+    public Turn turn=new Turn();
+    public static final class Turn{public float seconds=10,warning=3;}
     public static final class Backdrop{public float moonU=.617f,moonV=.118f;}
 
     public static final class Table{

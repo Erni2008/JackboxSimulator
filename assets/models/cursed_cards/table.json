@@ -93,5 +93,9 @@
       "pairBurn": "sounds/cursed_boxes/reveal_sound2(done).wav",
       "turn": ""
     }
+  },
+  "turn": {
+    "seconds": 10,
+    "warning": 3
   }
 }

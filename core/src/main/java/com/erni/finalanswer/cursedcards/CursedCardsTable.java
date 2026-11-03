@@ -158,6 +158,8 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     /** Collect every card, summon the dealer, load the new shuffled deck and deal it through the slot. */
     public void startMatch(){
         if(presenting())return;
+        // THE CURSED CARDS is 4–8 active players only (spectators never get a seat or cards).
+        if(players<CursedDeck.MIN_PLAYERS||players>CursedDeck.MAX_PLAYERS){hud.toast("4–8 PLAYERS REQUIRED");return;}
         game=CursedCardsGame.create(players,deckRules,random);game.addListener(this);
         layoutSeats();resetCues();
         List<CursedCard> deck=game.deck();
@@ -205,7 +207,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
             for(int i=0;i<tray.size;i++){CardPose p=deckPose(i,new CardPose());tray.get(i).queue.add(CardMotion.to(p,.25f,CardMotion.Ease.SMOOTH).delay(.34f));}
             Array<Card3D> hand=hands.get(player);hand.add(c);
             CardPose dest=handPose(player,hand.size-1,finalDealt[player],new CardPose());
-            animator.deal(c,path,dest,0,clearance(dest.position),machine::dispense,()->{actions.receiveCard(player);machine.sound("land",.35f);});return dealInterval;});
+            animator.deal(c,path,dest,0,clearance(dest.position),machine::dispense,()->{actions.receiveCard(player);machine.sound("land",.35f);fx.puff(dest.position);});return dealInterval;});
     }
     /** Pairs: lift face up, drift together, glow crimson and burn away in embers. */
     @Override public void pairRemoved(int player,CursedCard a,CursedCard b){
@@ -222,7 +224,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     }
     @Override public void turnChanged(int drawer,int source){
         endDealing();waitForAnimations();
-        enqueue(()->{this.drawer=drawer;this.source=source;selectedSlot=hoverSlot=-1;glowDrawer=drawer;glowSource=source;
+        enqueue(()->{this.drawer=drawer;this.source=source;selectedSlot=hoverSlot=-1;glowDrawer=drawer;glowSource=source;turnClock=0;turnAge=0;actions.becomeActive(drawer);audio.play("turn",.4f);
             hud.phase(names[drawer]+" TAKES FROM "+names[source]);status="P"+(drawer+1)+" DRAWS FROM P"+(source+1);
             actions.lookAtCards(drawer);actions.nervous(source);return 0;});
     }
@@ -232,10 +234,10 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
             hoverSlot=selectedSlot=-1;relayout(from,.25f);
             CardPose lift=new CardPose().set(c.pose);lift.position.y+=.7f;lift.position.mulAdd(seatList.get(from).normal,-.4f);lift.pitch=-8;
             c.queue.add(CardMotion.to(lift,.22f,CardMotion.Ease.DECELERATE).onStart(()->audio.play("pickup",.5f)));
-            CardPose dest=handPose(to,hand.size-1,hand.size,new CardPose());c.queue.add(CardMotion.to(dest,.85f,CardMotion.Ease.SMOOTH).arc(.6f).lift(-12).wobble(7).onStart(()->audio.play("exchange",.5f)).onEnd(()->audio.play("place",.45f)));
+            CardPose dest=handPose(to,hand.size-1,hand.size,new CardPose());c.queue.add(CardMotion.to(dest,.72f,CardMotion.Ease.SMOOTH).arc(.6f).lift(-12).wobble(7).flex(6).onStart(()->audio.play("exchange",.5f)).onEnd(()->{audio.play("place",.45f);fx.puff(dest.position);}));
             for(int k=0;k<hand.size-1;k++)animator.move(hand.get(k),handPose(to,k,hand.size,new CardPose()),.45f,.35f);
-            actions.drawCard(to);actions.receiveCard(to);
-            status="P"+(to+1)+" TOOK A CARD FROM P"+(from+1);drawer=source=-1;return 1.1f;});
+            actions.drawCard(to);actions.receiveCard(to);actions.loseCard(from);
+            status="P"+(to+1)+" TOOK A CARD FROM P"+(from+1);drawer=source=-1;return .85f;});
     }
     @Override public void playerSafe(int player){enqueue(()->{safe[player]=true;hud.toast(names[player]+" IS SAFE");actions.survive(player);return 0;});}
     /** DEATH: the rules have decided; the cinematic only presents it (see {@link #driveCinematic}). */
@@ -277,6 +279,8 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         redFlash=Math.max(0,redFlash-dt*3.6f);shake=Math.max(0,shake-dt*2.2f);
     }
     private final CardPose tmpPose=new CardPose();private float throbAge=99;
+    /** Seconds the current drawer has been deciding; timeout takes a random hidden card for them. */
+    protected float turnClock,turnAge=99;protected int turnTimeouts;
     private void endDealing(){if(dealing){dealing=false;waitForAnimations();enqueue(()->{machine.shutdown();return .6f;});enqueue(()->{machineTarget=0;hud.phase("THE DEALER DISSOLVES");return 1.3f;});}}
     /** True once the dealer has been dismissed for play (it may still be fading out). */
     public boolean dealerDismissed(){return machineTarget==0;}
@@ -373,6 +377,8 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         float pr=machine.presence();if(pr!=machineTarget)machine.presence(machineTarget>pr?Math.min(machineTarget,pr+dt/CardAnimator.timing.summon):Math.max(machineTarget,pr-dt/CardAnimator.timing.dissolve));
         activeAmount=approach(activeAmount,awaitingDraw()&&glowDrawer>=0?1:0,dt*2.5f);targetAmount=approach(targetAmount,awaitingDraw()&&glowSource>=0?1:0,dt*2.5f);
         if(cine!=null&&cine.active()){cine.update(dt);driveCinematic(dt);}
+        turnAge+=dt;float limit=tableConfig.turn.seconds;
+        if(awaitingDraw()&&limit>0){turnClock+=dt;if(turnClock>=limit){turnClock=0;turnTimeouts++;hud.toast("TIME — FATE CHOOSES");drawRandom();}}
         if(audio!=null)audio.update(dt);sceneFade=Math.max(0,sceneFade-dt*1.1f);
         // the dealer's red heart: an occasional faint glow on the felt where it stands (or stood)
         nextThrob-=dt;if(nextThrob<=0&&(cine==null||!cine.active())){throbAge=0;nextThrob=11+MathUtils.random(9f);}throbAge+=dt;throb=throbAge<2.4f?MathUtils.sin(throbAge/2.4f*MathUtils.PI):0;
@@ -395,7 +401,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     private static float approach(float v,float t,float step){return v<t?Math.min(t,v+step):Math.max(t,v-step);}
     private void fillHud(){
         var f=hudFrame;f.view=view;f.players=seatList.size;f.names=names;f.drawer=awaitingDraw()?drawer:-1;f.source=awaitingDraw()?source:-1;f.loser=verdict||eliminationShown?loser:-1;f.flash=redFlash;f.verdict=verdict;f.dim=dim;
-        f.fade=sceneFade*sceneFade;
+        f.fade=sceneFade*sceneFade;float limit=tableConfig.turn.seconds;f.timer=awaitingDraw()&&limit>0?1-turnClock/limit:-1;f.turnAge=turnAge;
         for(int i=0;i<seatList.size;i++){tmp.set(seatList.get(i).plate);camera.project(tmp,view.x,view.y,view.width,view.height);f.plates[i].set(tmp.x,tmp.y);f.safe[i]=safe[i];
             // farther seats (higher on screen) read slightly smaller, within a narrow range
             f.plateScale[i]=MathUtils.clamp(1.12f-(tmp.y-view.y)/view.height*.55f,.82f,1.05f);}

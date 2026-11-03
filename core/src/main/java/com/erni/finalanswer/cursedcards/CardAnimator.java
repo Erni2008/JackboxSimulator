@@ -40,7 +40,7 @@ public final class CardAnimator {
         card.queue.add(CardMotion.to(path.outside,t.emergence,Ease.ACCELERATE).onStart(onDispense));
         float distance=path.outside.position.dst(destination.position),travel=MathUtils.clamp(t.travelMin+distance*.035f,t.travelMin,t.travelMax);
         tmp.set(destination);tmp.position.y+=.05f;
-        card.queue.add(CardMotion.to(tmp,travel,Ease.DECELERATE).arc(Math.max(minArc,.3f+.1f*distance)).lift(-10).wobble(7));
+        card.queue.add(CardMotion.to(tmp,travel,Ease.DECELERATE).arc(Math.max(minArc,.3f+.1f*distance)).lift(-10).wobble(7).flex(5));
         card.queue.add(CardMotion.to(destination,t.landing,Ease.DECELERATE).onEnd(onLanded));
         return delay+.3f+.06f+t.emergence+travel+t.landing;
     }
