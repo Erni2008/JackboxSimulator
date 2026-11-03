@@ -53,4 +53,3 @@
 - `audio/last_command/` — 24 исходных записи машины; `audio/impostor/` — 9 записей; `audio/shotgun/` — исходный удар дерева.
 - [Реестр перемещений](../docs/assets/unity-preparation-moves.json) сохраняет имена и SHA-256 всех 43 публичных оригиналов.
 - `_sources.source_path` разрешает их по дополненному каталогу; runtime-файлы `assets/` не перемещены.
-- Unity-импорт, новые prefabs и C#-механики пока не создавались. См. [план](../docs/migration/MIGRATION_PLAN.md).
