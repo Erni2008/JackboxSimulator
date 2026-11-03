@@ -49,7 +49,7 @@ async function until(fn,ms,what){const t=Date.now();while(Date.now()-t<ms){const
     const vSeat=seats.indexOf(ids.Vesper);const order=()=>vesper.$$eval('#cards-hand .cards-own',n=>n.map(x=>x.dataset.v).join(','));
     if((await vesper.locator('#cards-hand .cards-own').count())>=2){
       const before=await order(),set=before.split(',').sort().join(),count0=host.state.cursedCards.shuffled[vSeat];
-      for(let i=0;i<12;i++){await vesper.locator('#cards-shuffle').click();await sleep(30);} // rapid taps under 250 ms latency
+      for(let i=0;i<12;i++){if(await vesper.locator('#cards-shuffle').isDisabled())break; /* a timeout took a card: one left, nothing to shuffle */await vesper.locator('#cards-shuffle').click({timeout:2000});await sleep(30);} // rapid taps under 250 ms latency
       await until(()=>host.state.cursedCards.shuffled[vSeat]>count0,8000,'shuffle reached the server');await sleep(900);
       const after=await order();assert.equal(after.split(',').sort().join(),set,'same cards after shuffling');
       const n=host.state.cursedCards.shuffled[vSeat]-count0;assert.ok(n>=1&&n<=12,'shuffles coalesced: '+n);
