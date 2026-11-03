@@ -1,61 +1,158 @@
-/* THE CURSED CARDS phone controller: burgundy, antique gold, parchment; large touch targets. */
-#cards-screen{display:flex;flex-direction:column;gap:14px;padding:16px 16px calc(20px + env(safe-area-inset-bottom));color:#efe2c8;box-sizing:border-box;
-  background:radial-gradient(120% 70% at 50% 0%,#3a0c12 0%,#1a070b 55%,#0d0507 100%)}
+/*
+ * THE CURSED CARDS phone controller — modern gothic: burgundy lacquer, blackened steel, antique gold, a little crimson
+ * light. Full-screen portrait layout (reference 432×768): compact top bar, card stage, one primary control at the bottom.
+ * Motion is transform/opacity only.
+ */
+:root{--cc-gold:#d8b26e;--cc-gold-hi:#f3dca8;--cc-gold-lo:#8a6a35;--cc-ink:#efe2c8;--cc-mute:#a99178;--cc-crimson:#d8342b;--cc-wine:#5c0f18;--cc-steel:#15100f;--cc-ease:cubic-bezier(.22,.8,.2,1);--cc-move:.34s}
+body[data-view=cards]{overflow:hidden}
+body[data-view=cards] .masthead,body[data-view=cards] #connection,body[data-view=cards] #controller-director{display:none}
+
+#cards-screen{position:fixed;inset:0;z-index:40;display:grid;grid-template-rows:auto 1fr auto;color:var(--cc-ink);font-family:Body,Georgia,serif;overflow:hidden;
+  padding:max(10px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));box-sizing:border-box;
+  background:#0b0607;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 #cards-screen[hidden]{display:none}
-.cards-heading{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;border-bottom:1px solid rgba(214,168,96,.35);padding-bottom:10px}
-.cards-brand{margin:0;font-size:.7rem;letter-spacing:.3em;color:#b98f55}
-.cards-heading h1{margin:2px 0 0;font-size:1.35rem;letter-spacing:.08em;color:#e9c27f}
-.cards-identity{text-align:right;display:flex;flex-direction:column}
-.cards-identity strong{font-size:1rem;letter-spacing:.06em}
-.cards-identity span{font-size:.7rem;letter-spacing:.18em;color:#b98f55}
-.cards-clock{position:relative;height:22px;border:1px solid rgba(214,168,96,.45);border-radius:11px;overflow:hidden;background:rgba(0,0,0,.35)}
-.cards-clock-fill{position:absolute;inset:0 auto 0 0;width:100%;background:linear-gradient(90deg,#8c6a2f,#e9c27f);transition:width .25s linear}
-.cards-clock.urgent .cards-clock-fill{background:linear-gradient(90deg,#7a0f12,#e2392f);animation:cards-pulse .5s ease-in-out infinite alternate}
-.cards-clock span{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:.75rem;letter-spacing:.1em;text-shadow:0 1px 2px #000}
-@keyframes cards-pulse{from{opacity:.65}to{opacity:1}}
-.cards-vote h2,.cards-pick h2{margin:4px 0 10px;font-size:1rem;letter-spacing:.12em;color:#e9c27f;text-align:center}
-.cards-vote-list{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.cards-target{min-height:56px;border-radius:10px;border:1px solid rgba(214,168,96,.5);background:rgba(40,8,12,.85);color:#efe2c8;font:inherit;font-size:.95rem;letter-spacing:.06em;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;touch-action:manipulation;transition:transform .12s,background .2s,border-color .2s}
-.cards-target span{font-size:.7rem;color:#e2392f;min-height:.8rem}
+.cc-bg{position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(90% 55% at 50% 38%,rgba(120,18,28,.42),transparent 70%),radial-gradient(130% 80% at 50% 110%,rgba(216,52,43,.10),transparent 60%),
+    linear-gradient(180deg,#140809 0%,#0c0607 45%,#070405 100%)}
+.cc-bg::after{content:'';position:absolute;inset:0;opacity:.06;background:repeating-linear-gradient(115deg,#fff 0 1px,transparent 1px 4px);mix-blend-mode:overlay}
+#cards-screen[data-mode=picked] .cc-bg{background:radial-gradient(90% 55% at 50% 60%,rgba(170,20,26,.5),transparent 70%),linear-gradient(180deg,#160709,#0b0506 60%,#070405)}
+
+/* top */
+.cc-top{display:grid;grid-template-columns:1fr auto;grid-template-areas:'title id' 'meta meta';gap:6px 10px;align-items:end;padding-bottom:8px;position:relative}
+.cc-top::after{content:'';position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,transparent,var(--cc-gold-lo) 20%,var(--cc-gold) 50%,var(--cc-gold-lo) 80%,transparent)}
+.cc-title{grid-area:title;min-width:0}
+.cc-brand{display:block;font-size:9px;letter-spacing:.34em;color:var(--cc-gold-lo)}
+.cc-title h1{margin:2px 0 0;font-family:Horror,serif;font-weight:400;font-size:clamp(20px,6.2vw,27px);line-height:1;color:var(--cc-gold-hi);letter-spacing:.04em;text-shadow:0 0 14px rgba(216,178,110,.25),0 2px 2px #000;white-space:nowrap}
+.cc-id{grid-area:id;text-align:right;display:flex;flex-direction:column;min-width:0}
+.cc-id strong{font-size:14px;letter-spacing:.08em;color:var(--cc-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:38vw}
+.cc-id span{font-size:9px;letter-spacing:.24em;color:var(--cc-mute)}
+.cc-meta{grid-area:meta;display:flex;justify-content:space-between;align-items:center}
+.cc-phase{font-size:10px;letter-spacing:.28em;color:var(--cc-gold);padding:3px 10px;border:1px solid rgba(216,178,110,.35);border-radius:999px;background:rgba(0,0,0,.35)}
+#cards-screen[data-mode=pick] .cc-phase,#cards-screen[data-mode=picked] .cc-phase{color:#ffd9cf;border-color:rgba(216,52,43,.6);background:rgba(92,15,24,.6)}
+.cc-counter{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--cc-gold-hi);letter-spacing:.1em}
+.cc-counter::before{content:'';width:12px;height:17px;border-radius:2px;border:1px solid var(--cc-gold);background:var(--cc-wine) url('/art/cursed_cards/cards/card_back.jpg') center/cover;box-shadow:0 1px 3px #000}
+.cc-counter[hidden]{display:none}
+
+/* stage */
+.cc-stage{position:relative;display:flex;flex-direction:column;min-height:0;gap:6px;padding-top:10px}
+.cc-banner{text-align:center;flex:0 0 auto}
+.cc-banner h2{margin:0;font-family:Horror,serif;font-weight:400;font-size:clamp(22px,7vw,32px);line-height:1.05;color:var(--cc-gold-hi);letter-spacing:.03em;text-shadow:0 0 18px rgba(216,178,110,.22),0 2px 2px #000}
+#cards-screen[data-mode=picked] .cc-banner h2{color:#ff9b8e;text-shadow:0 0 20px rgba(216,52,43,.55),0 2px 2px #000;animation:cc-throb 1.6s ease-in-out infinite}
+.cc-sub{margin:4px 0 0;min-height:1.3em;font-size:12px;letter-spacing:.14em;color:var(--cc-mute)}
+@keyframes cc-throb{50%{opacity:.78}}
+
+/* ring timer: antique gold bezel, crimson sweep, big numeral */
+.cc-timer{position:relative;flex:0 0 auto;align-self:center;width:clamp(64px,19vw,84px);aspect-ratio:1;margin:2px 0}
+.cc-timer[hidden]{display:none}
+.cc-timer svg{position:absolute;inset:0;transform:rotate(-90deg);filter:drop-shadow(0 3px 6px rgba(0,0,0,.7))}
+.cc-ring-bg{fill:rgba(12,6,7,.85);stroke:var(--cc-gold-lo);stroke-width:5}
+.cc-ring{fill:none;stroke:var(--cc-crimson);stroke-width:5;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:0}
+.cc-timer::before{content:'';position:absolute;inset:-3px;border-radius:50%;border:1px solid rgba(243,220,168,.45);box-shadow:inset 0 0 0 2px rgba(0,0,0,.6)}
+.cc-timer span{position:absolute;inset:0;display:grid;place-items:center;font-family:Horror,serif;font-size:clamp(30px,9vw,40px);color:var(--cc-gold-hi);text-shadow:0 2px 2px #000}
+.cc-timer.beat span{animation:cc-beat .3s var(--cc-ease)}
+.cc-timer.urgent span{color:#ff5a49;text-shadow:0 0 18px rgba(255,70,50,.8),0 2px 2px #000}
+.cc-timer.urgent{animation:cc-shake .12s linear 3}
+.cc-timer.urgent .cc-ring{stroke:#ff3b2c;filter:drop-shadow(0 0 4px rgba(255,59,44,.8))}
+@keyframes cc-beat{from{transform:scale(1.32);opacity:.5}to{transform:none;opacity:1}}
+@keyframes cc-shake{25%{transform:translateX(-2px)}75%{transform:translateX(2px)}}
+
+/* fans */
+.cc-fan{position:relative;width:100%;height:100%;perspective:900px}
+.cc-fan>*{position:absolute;left:0;top:0;transform-origin:50% 100%;will-change:transform;transition:transform var(--cc-move) var(--cc-ease),opacity .3s ease,filter .3s ease,box-shadow .3s ease}
+.cc-hand-wrap{position:relative;flex:1 1 auto;min-height:0}
+.cc-hand-wrap[hidden]{display:none}
+.cc-hand-wrap::after{content:'';position:absolute;left:12%;right:12%;bottom:4%;height:16%;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.6),transparent);z-index:-1}
+#cards-screen[data-mode=picked] .cc-hand-wrap::after{background:radial-gradient(closest-side,rgba(216,52,43,.35),transparent)}
+.cards-own{border-radius:8px;object-fit:cover;box-shadow:0 10px 22px rgba(0,0,0,.7),0 2px 4px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,236,200,.18);background:#2a1310}
+.cards-own.pairing{box-shadow:0 0 0 2px var(--cc-gold-hi),0 0 30px rgba(243,220,168,.7),0 0 60px rgba(216,52,43,.55);filter:brightness(1.15)}
+.cards-own.burning{transition:transform .6s ease-in,opacity .6s ease-in,filter .6s ease-in;opacity:0!important;filter:brightness(2.2) sepia(1) saturate(4) hue-rotate(-30deg) blur(2px);scale:.4}
+.cards-own.leaving{transition:transform .45s cubic-bezier(.5,0,.75,0),opacity .45s ease-in}
+/* the active player's mode: the hand steps back, the opponent's cards come forward */
+#cards-screen[data-mode=pick] .cc-hand-wrap{flex:0 0 22%;opacity:.55;filter:saturate(.7)}
+.cc-pick{position:relative;flex:1 1 auto;min-height:0}
+.cc-pick[hidden]{display:none}
+.cards-back{padding:0;border:0;border-radius:8px;background:#4a0d12 url('/art/cursed_cards/cards/card_back.jpg') center/cover no-repeat;touch-action:manipulation;cursor:pointer;
+  box-shadow:0 10px 20px rgba(0,0,0,.7),inset 0 0 0 1px rgba(243,220,168,.35)}
+.cards-back.pressing{transition-duration:.08s;filter:brightness(1.2)}
+.cards-back.selected{box-shadow:0 0 0 2px var(--cc-gold-hi),0 0 26px rgba(243,220,168,.6),0 16px 26px rgba(0,0,0,.7)}
+.cards-back.dimmed{opacity:.35;filter:grayscale(.5)}
+.cards-back:disabled{cursor:default}
+.cc-flyer{position:absolute;z-index:60;border-radius:8px;background:url('/art/cursed_cards/cards/card_back.jpg') center/cover;box-shadow:0 0 22px rgba(243,220,168,.6);pointer-events:none}
+
+/* vote: steel plaques with gold rims */
+.cc-vote{flex:1 1 auto;display:flex;align-items:center}
+.cc-vote[hidden]{display:none}
+.cc-vote-list{width:100%;display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.cards-target{min-height:60px;padding:8px;border-radius:10px;border:1px solid rgba(216,178,110,.45);background:linear-gradient(180deg,rgba(255,255,255,.04),transparent 40%),linear-gradient(160deg,#241615,#120b0b);
+  color:var(--cc-ink);font:inherit;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;touch-action:manipulation;box-shadow:0 4px 10px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,236,200,.08);transition:transform .12s,border-color .2s,background .2s}
+.cards-target strong{font-size:15px;letter-spacing:.08em;font-weight:600}
+.cards-target span{font-size:11px;color:var(--cc-crimson);min-height:12px;letter-spacing:.2em}
 .cards-target:active{transform:scale(.97)}
-.cards-target.chosen{border-color:#e2392f;background:rgba(110,12,18,.9);box-shadow:0 0 0 2px rgba(226,57,47,.35)}
-.cards-target:disabled{opacity:.55}
-.cards-pick-row{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
-.cards-back{width:64px;aspect-ratio:2/3;border-radius:7px;border:1px solid rgba(214,168,96,.6);background:#4a0d12 url('/art/cursed_cards/cards/card_back.jpg') center/cover no-repeat;
-  box-shadow:0 4px 10px rgba(0,0,0,.55);touch-action:manipulation;transition:transform .14s ease-out,box-shadow .2s}
-.cards-back:active{transform:scale(.96)}
-.cards-back.selected{transform:translateY(-12px);box-shadow:0 0 0 2px #e9c27f,0 10px 18px rgba(0,0,0,.6)}
-.cards-back:disabled{filter:grayscale(.4) brightness(.7)}
-.cards-hand-label{margin:0 0 8px;font-size:.75rem;letter-spacing:.18em;color:#b98f55;text-align:center}
-.cards-hand{display:flex;justify-content:center;flex-wrap:wrap;gap:6px}
-.cards-own{width:clamp(52px,17vw,84px);aspect-ratio:2/3;border-radius:6px;box-shadow:0 4px 10px rgba(0,0,0,.6);object-fit:cover;user-select:none;-webkit-user-select:none}
-.cards-status{margin:0;text-align:center;font-size:.9rem;letter-spacing:.05em;color:#d8c3a0;min-height:2.4em}
-.cards-result{border:1px solid rgba(214,168,96,.5);border-radius:12px;padding:14px;text-align:center;background:rgba(0,0,0,.4)}
-.cards-result h2{margin:0 0 6px;letter-spacing:.12em}
-.cards-result[data-kind=cursed] h2{color:#e2392f}
-.cards-result[data-kind=safe] h2{color:#e9c27f}
-/* five-second countdown */
-.cards-count{display:flex;justify-content:center;height:64px;margin-top:-4px}
-.cards-count span{font-family:Horror,serif;font-size:58px;line-height:64px;color:#e9c27f;text-shadow:0 0 18px rgba(233,194,127,.35),0 2px 3px #000}
-.cards-count.beat span{animation:cards-beat .32s cubic-bezier(.2,.8,.2,1)}
-.cards-count.urgent span{color:#ff4a3a;text-shadow:0 0 26px rgba(255,60,40,.75),0 2px 3px #000;animation:cards-beat .32s cubic-bezier(.2,.8,.2,1),cards-shake .12s linear 3}
-@keyframes cards-beat{from{transform:scale(1.35);opacity:.6}to{transform:scale(1);opacity:1}}
-@keyframes cards-shake{0%,100%{translate:0}25%{translate:-3px}75%{translate:3px}}
-.cards-pick-row{gap:12px}
-.cards-back{width:clamp(62px,19vw,84px)}
-.cards-back.selected{transform:translateY(-16px) scale(1.04);box-shadow:0 0 0 2px #e9c27f,0 0 22px rgba(233,194,127,.55),0 12px 20px rgba(0,0,0,.6)}
-/* SHUFFLE: burgundy lacquer, antique gold rim, brushed-metal sheen */
-.cards-shuffle{position:relative;display:block;width:min(100%,340px);min-height:62px;margin:16px auto 0;border-radius:14px;border:2px solid #c9a15f;
-  background:linear-gradient(180deg,rgba(255,236,200,.10),rgba(0,0,0,0) 45%),repeating-linear-gradient(100deg,rgba(255,255,255,.035) 0 2px,rgba(0,0,0,.04) 2px 4px),linear-gradient(160deg,#8a1d27,#4c0d14 60%,#6e1620);
-  box-shadow:0 5px 0 #1d0508,0 10px 22px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,226,170,.35),inset 0 0 0 4px rgba(20,4,6,.35);
-  color:#f6dfaf;font-family:Horror,serif;font-size:30px;letter-spacing:.14em;text-shadow:0 2px 2px #000;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
-  transition:transform .12s ease,box-shadow .12s ease,filter .2s}
-.cards-shuffle::before,.cards-shuffle::after{content:'✦';position:absolute;top:50%;translate:0 -50%;font-size:14px;color:#c9a15f}
-.cards-shuffle::before{left:18px}.cards-shuffle::after{right:18px}
-.cards-shuffle:active,.cards-shuffle.pressed{transform:translateY(4px);box-shadow:0 1px 0 #1d0508,0 4px 10px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,226,170,.25),inset 0 0 0 4px rgba(20,4,6,.45)}
-.cards-shuffle.pressed{animation:cards-press .26s ease-out}
-@keyframes cards-press{from{filter:brightness(1.25)}to{filter:brightness(1)}}
-.cards-shuffle:disabled{filter:grayscale(.6) brightness(.6);box-shadow:0 2px 0 #1d0508}
-.cards-hand{margin-bottom:2px}
-@media (prefers-reduced-motion:reduce){.cards-back,.cards-target,.cards-clock-fill,.cards-shuffle{transition:none}.cards-count span{animation:none!important}.cards-clock.urgent .cards-clock-fill{animation:none}}
+.cards-target.chosen{border-color:var(--cc-crimson);background:linear-gradient(160deg,#5c0f18,#2a070b);box-shadow:0 0 0 1px rgba(216,52,43,.5),0 0 18px rgba(216,52,43,.35)}
+.cards-target:disabled{opacity:.6}
+
+/* audience / safe board */
+.cc-board{flex:1 1 auto;display:flex;flex-direction:column;justify-content:center;gap:8px;min-height:0}
+.cc-board[hidden]{display:none}
+.cc-seat{display:grid;grid-template-columns:1fr auto;grid-template-areas:'n s' 'c c';gap:4px 8px;padding:9px 12px;border-radius:10px;border:1px solid rgba(216,178,110,.18);background:rgba(18,10,10,.75);transition:border-color .3s,background .3s}
+.cc-seat strong{grid-area:n;font-size:14px;letter-spacing:.08em;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cc-seat-state{grid-area:s;font-size:10px;letter-spacing:.24em;color:var(--cc-mute)}
+.cc-seat[data-state=draws]{border-color:rgba(216,178,110,.6);background:rgba(60,40,18,.45)}.cc-seat[data-state=draws] .cc-seat-state{color:var(--cc-gold-hi)}
+.cc-seat[data-state=offers]{border-color:rgba(216,52,43,.55)}.cc-seat[data-state=offers] .cc-seat-state{color:#ff8a7c}
+.cc-seat[data-state=safe]{opacity:.55}
+.cc-seat-count{grid-area:c;display:flex;gap:3px;min-height:15px}
+.cc-seat-count i{width:10px;height:15px;border-radius:2px;background:#4a0d12 url('/art/cursed_cards/cards/card_back.jpg') center/cover;box-shadow:0 1px 2px #000,inset 0 0 0 1px rgba(216,178,110,.4)}
+
+/* SHUFFLE: burgundy lacquer, antique gold rim, brushed steel sheen */
+.cc-bottom{padding-top:10px;display:flex;justify-content:center}
+.cc-bottom[hidden]{display:none}
+.cc-shuffle{position:relative;width:min(100%,360px);min-height:60px;border-radius:14px;border:2px solid var(--cc-gold);cursor:pointer;
+  background:linear-gradient(180deg,rgba(255,236,200,.12),rgba(0,0,0,0) 42%),repeating-linear-gradient(100deg,rgba(255,255,255,.035) 0 2px,rgba(0,0,0,.05) 2px 4px),linear-gradient(160deg,#86202b,#4a0c14 60%,#6a1520);
+  box-shadow:0 5px 0 #1c0507,0 12px 24px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,226,170,.35),inset 0 0 0 4px rgba(20,4,6,.4);
+  color:#f6dfaf;font-family:Horror,serif;font-size:30px;letter-spacing:.16em;text-shadow:0 2px 2px #000;touch-action:manipulation;transition:transform .12s ease,box-shadow .12s ease,filter .2s}
+.cc-shuffle::before,.cc-shuffle::after{content:'✦';position:absolute;top:50%;translate:0 -50%;font-size:13px;color:var(--cc-gold)}
+.cc-shuffle::before{left:18px}.cc-shuffle::after{right:18px}
+.cc-shuffle:active,.cc-shuffle.pressed{transform:translateY(4px);box-shadow:0 1px 0 #1c0507,0 4px 10px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,226,170,.25),inset 0 0 0 4px rgba(20,4,6,.5)}
+.cc-shuffle.pressed{animation:cc-press .26s ease-out}
+@keyframes cc-press{from{filter:brightness(1.3)}to{filter:none}}
+.cc-shuffle:disabled{filter:grayscale(.65) brightness(.55);box-shadow:0 2px 0 #1c0507;cursor:default}
+
+/* toast */
+.cc-toast{position:absolute;left:50%;top:calc(max(10px,env(safe-area-inset-top)) + 132px);translate:-50% 0;z-index:30;max-width:88%;padding:8px 16px;border-radius:999px;border:1px solid rgba(216,178,110,.4);
+  background:rgba(14,7,8,.92);font-size:11px;letter-spacing:.2em;color:var(--cc-gold-hi);text-align:center;opacity:0;transform:translateY(8px);transition:opacity .25s,transform .25s var(--cc-ease);pointer-events:none}
+.cc-toast.show{opacity:1;transform:none}
+
+/* survival moment */
+.cc-moment{position:absolute;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:rgba(8,5,4,.82);pointer-events:none}
+.cc-moment[hidden]{display:none}
+.cc-moment-glow{position:absolute;width:120%;aspect-ratio:1;background:radial-gradient(closest-side,rgba(243,220,168,.35),rgba(216,178,110,.08) 50%,transparent)}
+.cc-moment h2{position:relative;margin:0;font-family:Horror,serif;font-weight:400;font-size:clamp(36px,11vw,52px);color:var(--cc-gold-hi);text-shadow:0 0 24px rgba(243,220,168,.6),0 2px 2px #000}
+.cc-moment p{position:relative;margin:8px 0 0;font-size:12px;letter-spacing:.2em;color:var(--cc-mute)}
+.cc-moment.show{animation:cc-fade 2.6s ease forwards}.cc-moment.show h2{animation:cc-rise 1s var(--cc-ease)}.cc-moment.show .cc-moment-glow{animation:cc-bloom 2.6s ease-out}
+@keyframes cc-fade{0%{opacity:0}12%{opacity:1}80%{opacity:1}100%{opacity:0}}
+@keyframes cc-rise{from{transform:translateY(18px) scale(.94);letter-spacing:.2em;opacity:0}to{transform:none;opacity:1}}
+@keyframes cc-bloom{from{transform:scale(.4);opacity:0}30%{opacity:1}to{transform:scale(1.1);opacity:.6}}
+
+/* verdict */
+.cc-result{position:absolute;inset:0;z-index:55;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px;text-align:center;background:rgba(6,3,4,.9);animation:cc-in .5s ease}
+.cc-result[hidden]{display:none}
+.cc-result-card{width:min(46vw,190px);aspect-ratio:2/3;display:none}
+.cc-result-card img{width:100%;height:100%;object-fit:cover;border-radius:10px}
+.cc-result h2{margin:0;font-family:Horror,serif;font-weight:400;font-size:clamp(30px,9vw,44px);line-height:1.05;letter-spacing:.03em}
+.cc-result p{margin:0;font-size:12px;letter-spacing:.18em;color:var(--cc-mute);min-height:1.2em}
+.cc-result[data-kind=safe] h2,.cc-result[data-kind=watch] h2{color:var(--cc-gold-hi);text-shadow:0 0 24px rgba(243,220,168,.5),0 2px 2px #000}
+.cc-result[data-kind=safe]{background:radial-gradient(70% 50% at 50% 45%,rgba(216,178,110,.18),transparent 70%),rgba(6,3,4,.9)}
+.cc-result[data-kind=cursed]{background:radial-gradient(70% 55% at 50% 42%,rgba(190,20,24,.45),transparent 70%),rgba(4,1,2,.94);animation:cc-in .5s ease,cc-quake .5s linear .1s}
+.cc-result[data-kind=cursed] .cc-result-card{display:block;animation:cc-death 1.4s var(--cc-ease)}
+.cc-result[data-kind=cursed] .cc-result-card img{box-shadow:0 0 0 2px rgba(216,52,43,.7),0 0 50px rgba(216,52,43,.6),0 20px 40px #000}
+.cc-result[data-kind=cursed] h2{color:#ff4a3a;text-shadow:0 0 26px rgba(255,60,40,.7),0 2px 3px #000}
+.cc-result[data-stage='1'] h2{animation:cc-rise .7s var(--cc-ease)}
+@keyframes cc-in{from{opacity:0}to{opacity:1}}
+@keyframes cc-death{0%{transform:rotateY(180deg) scale(.6);opacity:0;filter:brightness(3)}40%{opacity:1}100%{transform:none;filter:none}}
+@keyframes cc-quake{10%,50%,90%{transform:translate(-4px,2px)}30%,70%{transform:translate(4px,-2px)}100%{transform:none}}
+
+/* small and short screens */
+@media (max-height:600px){.cc-title h1{font-size:19px}.cc-banner h2{font-size:21px}.cc-shuffle{min-height:50px;font-size:24px}.cc-timer{width:58px}.cc-top{gap:3px 10px}}
+@media (max-width:340px){.cc-id strong{max-width:30vw}.cc-shuffle{font-size:24px}}
+@media (prefers-reduced-motion:reduce){#cards-screen{--cc-move:.01s}.cc-fan>*,.cards-target,.cc-shuffle{transition:none}
+  .cc-timer.beat span,.cc-timer.urgent,.cc-moment.show h2,.cc-moment.show .cc-moment-glow,.cc-result,.cc-result-card,.cc-result h2,#cards-screen[data-mode=picked] .cc-banner h2{animation:none!important}}

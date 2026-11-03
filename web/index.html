@@ -24,8 +24,8 @@
   <script src="/command-ru.js" defer></script>
   <script src="/command-touch.js" defer></script>
   <script src="/last-command.js?v=1" defer></script>
-  <link rel="stylesheet" href="/cursed-cards.css?v=3">
-  <script src="/cursed-cards.js?v=3" defer></script>
+  <link rel="stylesheet" href="/cursed-cards.css?v=4">
+  <script src="/cursed-cards.js?v=4" defer></script>
   <script src="/app.js?v=cards-2" defer></script>
 </head>
 <body>
@@ -66,16 +66,25 @@
       <p id="room-configuration" class="room-configuration"></p>
       <p class="whisper">Keep this page open. Watch the host's screen.</p>
     </section>
-    <section id="cards-screen" class="screen" hidden aria-label="The Cursed Cards phone controller">
-      <header class="cards-heading"><div><p class="cards-brand">FINAL ANSWER</p><h1>THE CURSED CARDS</h1></div>
-        <div class="cards-identity"><strong id="cards-name"></strong><span id="cards-role"></span></div></header>
-      <div id="cards-clock" class="cards-clock" hidden><div id="cards-clock-fill" class="cards-clock-fill"></div><span id="cards-clock-text"></span></div>
-      <div id="cards-vote" class="cards-vote" hidden><h2 id="cards-vote-title"></h2><div id="cards-vote-list" class="cards-vote-list" role="group" aria-label="Players to curse"></div></div>
-      <div id="cards-pick" class="cards-pick" hidden><div class="cards-count" aria-hidden="true"><span id="cards-count"></span></div><h2 id="cards-pick-title"></h2><div id="cards-pick-row" class="cards-pick-row" role="group" aria-label="Hidden cards — tap one to take it"></div></div>
-      <div id="cards-result" class="cards-result" role="status" aria-live="polite" hidden><h2 id="cards-result-title"></h2><p id="cards-result-detail"></p></div>
-      <p id="cards-status" class="cards-status" role="status" aria-live="polite"></p>
-      <div id="cards-hand-wrap" class="cards-hand-wrap"><p id="cards-hand-label" class="cards-hand-label"></p><div id="cards-hand" class="cards-hand" aria-label="Your private cards"></div>
-        <button id="cards-shuffle" class="cards-shuffle" data-native-button type="button" disabled><span>SHUFFLE</span></button></div>
+    <section id="cards-screen" class="screen cc" hidden aria-label="The Cursed Cards phone controller">
+      <div class="cc-bg" aria-hidden="true"></div>
+      <header class="cc-top">
+        <div class="cc-title"><span class="cc-brand">FINAL ANSWER</span><h1>THE CURSED CARDS</h1></div>
+        <div class="cc-id"><strong id="cards-name"></strong><span id="cards-role"></span></div>
+        <div class="cc-meta"><span id="cards-phase" class="cc-phase"></span><span id="cards-counter" class="cc-counter" aria-label="Cards in your hand"></span></div>
+      </header>
+      <div id="cards-stage" class="cc-stage">
+        <div class="cc-banner"><h2 id="cards-banner"></h2><p id="cards-status" class="cc-sub" role="status" aria-live="polite"></p></div>
+        <div id="cards-clock" class="cc-timer" hidden aria-hidden="true"><svg viewBox="0 0 100 100"><circle class="cc-ring-bg" cx="50" cy="50" r="44"/><circle id="cards-ring" class="cc-ring" cx="50" cy="50" r="44" pathLength="100"/></svg><span id="cards-count"></span></div>
+        <div id="cards-vote" class="cc-vote" hidden><div id="cards-vote-list" class="cc-vote-list" role="group" aria-label="Players to curse"></div></div>
+        <div id="cards-board" class="cc-board" hidden></div>
+        <div id="cards-pick" class="cc-pick" hidden><div id="cards-pick-row" class="cc-fan cc-pick-row" role="group" aria-label="Hidden cards — tap one to take it"></div></div>
+        <div id="cards-hand-wrap" class="cc-hand-wrap"><div id="cards-hand" class="cc-fan cc-hand" aria-label="Your private cards"></div></div>
+      </div>
+      <footer class="cc-bottom"><button id="cards-shuffle" class="cc-shuffle" data-native-button type="button" disabled><span>SHUFFLE</span></button></footer>
+      <div id="cards-toast" class="cc-toast" aria-live="polite"></div>
+      <div id="cards-moment" class="cc-moment" hidden><div class="cc-moment-glow"></div><h2>YOU SURVIVED</h2><p>Your hand is empty. Watch the others.</p></div>
+      <div id="cards-result" class="cc-result" role="status" aria-live="polite" hidden><div class="cc-result-card"><img id="cards-result-art" alt=""></div><h2 id="cards-result-title"></h2><p id="cards-result-detail"></p></div>
     </section>
     <section id="cursed-screen" class="screen" hidden aria-label="Cursed Boxes phone controller">
       <header class="cursed-heading">

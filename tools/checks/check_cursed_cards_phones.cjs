@@ -11,7 +11,7 @@ const send=(c,type,payload)=>{const requestId=c.name+'-'+(++c.id);c.ws.send(JSON
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function until(fn,ms,what){const t=Date.now();while(Date.now()-t<ms){const v=fn();if(v)return v;await sleep(100);}throw new Error('timeout: '+what);}
 (async()=>{
-  const browser=await chromium.launch({executablePath:process.env.CHROME_PATH});const pageErrors=[];
+  const frames={};const browser=await chromium.launch({executablePath:process.env.CHROME_PATH});const pageErrors=[];
   try{
     const room=await post('/rooms',{name:'Cards QA',maxPlayers:'8',gameMode:'standard'});const code=room.code;
     const host=await socket(code,room.token,'host');
@@ -20,8 +20,19 @@ async function until(fn,ms,what){const t=Date.now();while(Date.now()-t<ms){const
     const bots={};for(const n of names.slice(1,6))bots[n]=await socket(code,joined[n].token,n);
     async function phone(n){const ctx=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true});
       await ctx.addInitScript(([c,t,n])=>{sessionStorage.setItem('finalanswer-session',JSON.stringify({code:c,token:t,name:n}));},[code,joined[n].token,n]);
-      const p=await ctx.newPage();p.on('pageerror',e=>pageErrors.push(n+': '+e.message));await p.goto(base+'/');return p;}
+      const p=await ctx.newPage();p.on('pageerror',e=>pageErrors.push(n+': '+e.message));frames[n]=[];p.on('websocket',ws=>ws.on('framereceived',f=>{if(typeof f.payload==='string'&&f.payload.includes('cursedCards'))frames[n].push(f.payload);}));await p.goto(base+'/');return p;}
     const vesper=await phone('Vesper'),watcher=await phone('Watcher');
+    // privacy: record every frame both phones receive
+    
+    const SIZES=[[320,568],[375,667],[390,844],[432,768],[430,932]];
+    async function sweep(pg,label){for(const [w,h] of SIZES){await pg.setViewportSize({width:w,height:h});await sleep(450);
+        const bad=await pg.evaluate(()=>{const W=innerWidth,H=innerHeight,out=[];if(document.documentElement.scrollWidth>W)out.push('h-scroll');
+          for(const n of document.querySelectorAll('#cards-screen .cards-own,#cards-screen .cards-back,#cards-shuffle:not([disabled]),.cards-target')){const r=n.getBoundingClientRect();if(!r.width)continue;
+            if(r.left<-1||r.right>W+1||r.top<-1||r.bottom>H+1)out.push(n.className+' outside '+[r.left,r.top,r.right,r.bottom].map(Math.round));
+            if((n.id==='cards-shuffle'||n.classList.contains('cards-target'))&&(r.width<44||r.height<44))out.push(n.className+' too small');}
+          for(const t of document.querySelectorAll('#cards-screen h1,#cards-screen h2,.cc-sub')){if(t.offsetParent&&t.scrollWidth>t.clientWidth+2)out.push('clipped: '+t.textContent);}return out;});
+        assert.deepEqual(bad,[],`${label} at ${w}x${h}`);await pg.screenshot({path:`${out}/phone-${label}-${w}x${h}.png`});}
+      await pg.setViewportSize({width:390,height:844});ok(`${label}: no overflow, cards inside, targets ≥44 px at 5 portrait sizes`);}
     await until(()=>host.state?.players?.length===7&&host.state.players.every(p=>p.connectionStatus==='ONLINE'),15000,'all online');
     const ids=Object.fromEntries(host.state.players.map(p=>[p.name,p.id]));const seats=names.slice(0,6).map(n=>ids[n]);
     // too few players is refused
@@ -31,7 +42,7 @@ async function until(fn,ms,what){const t=Date.now();while(Date.now()-t<ms){const
     assert.ok(host.errors.includes('CARDS_PLAYER_COUNT'));ok('7 players refused (CARDS_PLAYER_COUNT)');
     send(host,'START_CARDS',{roomCode:code,sessionId:host.state.lobbyId,participantIds:seats});
     await until(()=>host.state?.cursedCards?.phase==='CURSE_VOTE',5000,'vote phase');ok('6 seated + 1 spectator -> audience curse vote');
-    await watcher.waitForSelector('#cards-screen:not([hidden]) .cards-target');await sleep(300);await watcher.screenshot({path:out+'/phone-spectator-vote.png'});
+    await watcher.waitForSelector('#cards-screen:not([hidden]) .cards-target');await sleep(300);await watcher.screenshot({path:out+'/phone-spectator-vote.png'});await sweep(watcher,'vote');
     // seated player cannot vote
     send(bots.Mordecai,'CARDS_VOTE',{roomCode:code,sessionId:host.state.cursedCards.sessionId,targetId:ids.Lilith});await sleep(300);
     assert.ok(bots.Mordecai.errors.includes('CARDS_NOT_SPECTATOR'));ok('seated player cannot curse');
@@ -45,8 +56,8 @@ async function until(fn,ms,what){const t=Date.now();while(Date.now()-t<ms){const
     assert.equal(own,host.state.cursedCards.handSizes[vesperSeat]||own);await vesper.screenshot({path:out+'/phone-player-hand.png'});ok(`phone shows its own ${own} card(s) face up`);
     // SHUFFLE: unlimited, real (server order changes), private (only counts reach others), rapid taps coalesce
     const cdp=await vesper.context().newCDPSession(vesper);await cdp.send('Network.enable');await cdp.send('Network.emulateNetworkConditions',{offline:false,latency:250,downloadThroughput:-1,uploadThroughput:-1});
-    await until(()=>host.state.cursedCards.phase==='PLAYING',60000,'playing');
-    const vSeat=seats.indexOf(ids.Vesper);const order=()=>vesper.$$eval('#cards-hand .cards-own',n=>n.map(x=>x.dataset.v).join(','));
+    await until(()=>host.state.cursedCards.phase==='PLAYING',60000,'playing');await sweep(vesper,'hand');await sweep(watcher,'board');
+    const vSeat=seats.indexOf(ids.Vesper);const order=async()=>{await sleep(450);return vesper.$$eval('#cards-hand .cards-own:not(.leaving):not(.pairing)',n=>n.map(x=>[x.getBoundingClientRect().left,x.dataset.v]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]).join(','));}; // visual order (cards move by transform)
     if((await vesper.locator('#cards-hand .cards-own').count())>=2){
       const before=await order(),set=before.split(',').sort().join(),count0=host.state.cursedCards.shuffled[vSeat];
       for(let i=0;i<12;i++){if(await vesper.locator('#cards-shuffle').isDisabled())break; /* a timeout took a card: one left, nothing to shuffle */await vesper.locator('#cards-shuffle').click({timeout:2000});await sleep(30);} // rapid taps under 250 ms latency
@@ -82,7 +93,13 @@ async function until(fn,ms,what){const t=Date.now();while(Date.now()-t<ms){const
     ok(`match finished in ${turns} turns (${phoneTurns} by the browser phone, ${timeouts} phone turns lost to the 5 s clock); cards conserved every turn; duplicate request ignored`);
     const c=host.state.cursedCards;assert.equal(c.phase,'FINISHED');assert.equal(c.survivors.length,5);ok('one loser, five survivors: '+Object.keys(ids).find(n=>ids[n]===c.loser));
     await vesper.waitForSelector('#cards-result:not([hidden])');await watcher.waitForSelector('#cards-result:not([hidden])');await sleep(300);
-    await vesper.screenshot({path:out+'/phone-player-result.png'});await watcher.screenshot({path:out+'/phone-spectator-result.png'});ok('result shown on both phones');
+    await sleep(1700);await vesper.screenshot({path:out+'/phone-player-result.png'});await watcher.screenshot({path:out+'/phone-spectator-result.png'});
+    const vt=await vesper.textContent('#cards-result-title'),lostV=c.loser===ids.Vesper;assert.equal(vt,lostV?'YOU HAVE BEEN ELIMINATED':'YOU SURVIVED');
+    assert.equal(await watcher.textContent('#cards-result-title'),`${Object.keys(ids).find(n=>ids[n]===c.loser).toUpperCase()} IS CURSED`);ok(`result shown on both phones (Vesper: ${vt})`);
+    await sweep(vesper,'result');
+    // privacy over the wire: the spectator never got a hand; nobody's phone got card ids; Vesper only ever got own values
+    const leak=frames.Watcher.find(f=>f.includes('"hand"'));assert.ok(frames.Watcher.length>5&&!leak,'spectator frames carry no hand: '+(leak?leak.slice(Math.max(0,leak.indexOf('"hand"')-200),leak.indexOf('"hand"')+80):''));
+    assert.ok([...frames.Vesper,...frames.Watcher].every(f=>!/"card":\d/.test(f)&&!/"id":\d/.test(f)),'phone frames carry no card ids');ok(`privacy: ${frames.Vesper.length+frames.Watcher.length} phone frames, no foreign hands, no card ids`);
     // reconnect: a dropped phone gets the same authoritative state back
     await vesper.reload();await vesper.waitForSelector('#cards-result:not([hidden])',{timeout:15000});ok('phone reload restores the finished match');
     const overflow=await vesper.evaluate(()=>document.documentElement.scrollWidth>innerWidth);assert.ok(!overflow);ok('no horizontal overflow at 390 px');
