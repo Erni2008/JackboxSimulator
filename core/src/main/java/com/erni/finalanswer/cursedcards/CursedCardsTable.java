@@ -458,8 +458,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     private float slowMo=1,realClock;
     private void applyView(){
         view.set(baseView);
-        // a barely perceptible hand-held drift keeps the frame alive (fraction of a pixel to ~2 px at 1080p)
-        float drift=baseView.height*.0016f;float hx=(MathUtils.sin(realClock*.37f)+MathUtils.sin(realClock*.83f+1.3f)*.5f)*drift,hy=(MathUtils.sin(realClock*.29f+.7f)+MathUtils.sin(realClock*.71f)*.5f)*drift;
+        float hx=0,hy=0; // locked-off camera: cards, names and the painting never creep
         float z=zoom*1.012f;
         float fx0=baseView.x+baseView.width*.5f,fy0=baseView.y+baseView.height*.5f;
         if(deathCard!=null)tmp.set(deathCentre);else tmp.set(focus);

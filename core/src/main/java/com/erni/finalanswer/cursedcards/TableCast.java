@@ -120,56 +120,59 @@ public final class TableCast implements CharacterActions,Disposable {
     /** Start the survivor's evaporation (once per match). */
     public void evaporate(int seat){if(Float.isNaN(evap[seat]))evap[seat]=-.6f;}
     public boolean evaporating(){for(int i=0;i<seats;i++)if(!Float.isNaN(evap[i])&&evap[i]<1||!Float.isNaN(death[i])&&death[i]<1)return true;for(int k=0;k<WISPS;k++)if(wl[k]>0)return true;return false;}
-    /** 0..1 within a recurring beat of {@code len} seconds every {@code period} seconds (personal gestures). */
-    private static float beat(float t,float period,float len){float ph=t%period;return ph<len?MathUtils.sin(ph/len*MathUtils.PI):0;}
+    /** Smooth organic noise (incommensurate sines), roughly −1..1. */
+    private static float n(float x){return MathUtils.sin(x)*.6f+MathUtils.sin(x*2.13f+1.7f)*.3f+MathUtils.sin(x*3.71f+4.1f)*.1f;}
+    /** Ease-in-out hold: rises, holds, returns within each period (for deliberate gestures). */
+    private static float hold(float t,float period,float len){float ph=(t%period)/len;if(ph>=1)return 0;float e=ph<.3f?ph/.3f:ph>.7f?(1-ph)/.3f:1;return e*e*(3-2*e);}
+    /** Damped spring step; returns the new value and keeps velocity in {@code v[i]}. */
+    private static float spring(float a,float[] v,int i,float target,float k,float c,float dt){dt=Math.min(dt,1/30f);v[i]+=(k*(target-a)-c*v[i])*dt;return a+v[i]*dt;}
+    private final float[] headA=new float[8],headV=new float[8],leanA=new float[8],leanV=new float[8];
     public void draw(SpriteBatch batch){
+        float dt=lastDt;
         for(int n=0;n<seats;n++){int i=order[n];TextureRegion r=sprites[cast[i].ordinal()];if(r==null)continue;
             float ev=Float.isNaN(evap[i])?-1:evap[i];if(ev>=1)continue;dissolve=ev>0?ev:-1;dTop=false;dR=.5f;dG=.55f;dB=.7f;
             float D=Float.isNaN(death[i])?-1:Math.min(1,death[i]);if(D>=1)continue;
             float h=sh[i],w=h*r.getRegionWidth()/(float)r.getRegionHeight(),t=time+phase[i],age=stateAge[i];
-            Member m=cast[i];float tp=t*m.pace;
-            float breathe=1+.014f*MathUtils.sin(tp*1.9f),sway=(MathUtils.sin(tp*.7f)*.8f+MathUtils.sin(tp*.31f+1.7f)*.4f)*m.sway,dx=0,dy=m.floats?MathUtils.sin(tp*1.3f)*h*.022f:0,rot=sway*.35f;
-            // upper body bends (bottom stays seated): idle drift, a glance toward the player whose turn it is
-            float bend=(MathUtils.sin(tp*.53f+.8f)*.5f+MathUtils.sin(tp*1.21f)*.18f)*m.bend*.012f;
-            if(activeSeat>=0&&activeSeat!=i)bend+=MathUtils.clamp((sx[activeSeat]-sx[i])/(h*6),-1,1)*.022f*look[i];
-            if(m.jitter>0)rot+=MathUtils.sin(tp*23)*MathUtils.sin(tp*3.1f)*m.jitter;
-            float glowA=0;
-            // Each character moves in its own way.
-            if(D<0)switch(m){
-                case DRACULA->{float lp=beat(t,7.3f,1.8f);bend+=lp*.07f*Math.signum(centerX-sx[i]);breathe*=1+lp*.025f;rot+=MathUtils.sin(tp*.4f)*.8f;}
-                case SKELETON->{float b=beat(t,5.3f,.55f);dx+=MathUtils.sin(t*61)*h*.005f*b;rot+=MathUtils.sin(t*47)*2.2f*b;dy+=Math.abs(MathUtils.sin(t*30))*h*.006f*b;}
-                case GHOST->{wave=h*.014f;dx+=MathUtils.sin(t*.42f)*h*.025f;dy+=MathUtils.sin(t*.9f+1)*h*.01f;}
-                case PUMPKIN->{rot+=MathUtils.sin(tp*1.1f)*2.4f;glowA=.12f+.08f*MathUtils.sin(t*5.3f)+.05f*MathUtils.sin(t*13.1f);}
-                case PLAGUE_DOCTOR->{float tl=beat(t,6.1f,1.5f),s2=MathUtils.sin(t*.37f)>0?1:-1;rot+=tl*7*s2;bend+=tl*.035f*s2;}
-                case ZOMBIE->{rot+=MathUtils.sin(tp*.9f)*3;float tw=beat(t,3.7f,.2f);dx+=tw*h*.02f;rot-=tw*6;bend+=MathUtils.sin(tp*.45f)*.03f;}
-                case VOODOO->{float b=Math.abs(MathUtils.sin(tp*2.2f));breathe*=1+b*.03f;dy+=b*h*.01f;rot+=beat(t,4.4f,.28f)*12;}
-                case PUPPETEER->{float tq=MathUtils.floor(t*4)/4f;rot+=MathUtils.sin(tq*1.7f)*4.5f;dy+=Math.abs(MathUtils.sin(tq*2.3f))*h*.022f;bend+=MathUtils.sin(tq*1.1f)*.03f;}
+            Member m=cast[i];
+            // shared body language: breathing in the chest, a glance toward the player whose turn it is
+            float toward=activeSeat>=0&&activeSeat!=i?MathUtils.clamp((sx[activeSeat]-sx[i])/(h*5),-1,1)*look[i]:0;
+            float dx=0,dy=0,rot=0,glowA=0;breath=.010f*MathUtils.sin(t*1.45f);squash=0;wave=0;neck=.64f;
+            float headT=-toward*7,leanT=toward*.025f,k=26,c=7;
+            switch(m){
+                case DRACULA->{breath=.012f*MathUtils.sin(t*1.1f);headT+=3*n(t*.23f);leanT+=hold(t,9.5f,3.2f)*.05f*Math.signum(centerX-sx[i]+.01f);k=18;c=7;}
+                case SKELETON->{breath=.004f*MathUtils.sin(t*1.7f);headT+=5*n(t*.62f);leanT+=.012f*n(t*.4f);k=55;c=6;neck=.6f;}
+                case GHOST->{dy=MathUtils.sin(t*.85f)*h*.02f+MathUtils.sin(t*.37f)*h*.008f;dx=n(t*.21f)*h*.015f;wave=w*.06f;headT+=4*n(t*.4f);leanT+=.02f*n(t*.3f);k=14;c=4;}
+                case PUMPKIN->{breath=.008f*MathUtils.sin(t*.9f);headT+=6*n(t*.33f);k=7;c=3;neck=.55f;glowA=.13f+.05f*n(t*2.3f)+.03f*n(t*7.1f);}
+                case PLAGUE_DOCTOR->{float g=hold(t,6.5f,2.6f),side=MathUtils.sin(MathUtils.floor(t/6.5f)*2.4f)>0?1:-1;headT+=g*13*side+2*n(t*.5f);k=32;c=9;neck=.62f;}
+                case ZOMBIE->{headT+=9+7*n(t*.27f);leanT+=.03f+.02f*n(t*.19f);k=6;c=1.1f;if(beatEdge(t,4.3f,dt))headV[i]+=55;breath=.007f*MathUtils.sin(t*.8f);}
+                case VOODOO->{float b=MathUtils.sin(t*2.1f);squash=.018f*b*b;headT+=4*n(t*.5f)-leanV[i]*30;k=45;c=5;neck=.5f;}
+                case PUPPETEER->{leanT+=.05f*n(t*.35f);headT+=6*n(t*.45f+1);k=10;c=2.2f;breath=.006f*MathUtils.sin(t*1.3f);}
             }
             if(D<0)switch(state[i]){
-                case NERVOUS->{float k=Math.min(1,age*3);dx+=MathUtils.sin(t*31)*h*.004f*k;rot+=MathUtils.sin(t*2.3f)*2.4f*k+MathUtils.sin(t*17)*.6f*k;}
-                case SCARED->{float jolt=age<.35f?MathUtils.sin(age/.35f*MathUtils.PI):0;dy+=jolt*h*.06f;breathe*=1+jolt*.04f;
-                    dx+=MathUtils.sin(t*42)*h*.007f;rot+=MathUtils.sin(t*29)*1.6f-3*Math.min(1,age*2);}
+                case NERVOUS->{float q=Math.min(1,age*2);breath*=1.6f;headT+=MathUtils.sin(t*6.3f)*.9f*q;}
+                case SCARED->{float jolt=age<.5f?MathUtils.sin(age/.5f*MathUtils.PI):0;squash-=jolt*.03f;dy+=jolt*h*.03f;leanT-=.05f*Math.signum(centerX-sx[i]+.01f)*Math.min(1,age*2);headT+=MathUtils.sin(t*8.5f)*1.2f+8;}
                 default->{}}
-            if(relief[i]>0)dy+=MathUtils.sin((1-relief[i])*MathUtils.PI)*h*.035f;
-            if(hop[i]>0)dy+=MathUtils.sin((1-hop[i])*MathUtils.PI)*h*.022f;
-            if(flinch[i]>0){float f=flinch[i]*flinch[i];dx+=MathUtils.sin(t*38)*h*.006f*f;rot+=-4*f;breathe*=1-.02f*f;}
-            if(lean[i]>0)bend+=MathUtils.sin((1-lean[i])*MathUtils.PI)*.05f*Math.signum(centerX-sx[i]);
+            if(relief[i]>0){float e=MathUtils.sin((1-relief[i])*MathUtils.PI);squash+=e*.02f;dy+=e*h*.02f;}
+            if(hop[i]>0){float e=MathUtils.sin((1-hop[i])*MathUtils.PI);squash+=e*.025f;dy+=e*h*.014f;}
+            if(flinch[i]>0)headT-=flinch[i]*flinch[i]*10;
+            if(lean[i]>0)leanT+=MathUtils.sin((1-lean[i])*MathUtils.PI)*.06f*Math.signum(centerX-sx[i]+.01f);
+            headA[i]=spring(headA[i],headV,i,headT,k,c,dt);leanA[i]=spring(leanA[i],leanV,i,leanT,k*.6f,c*1.2f,dt);
+            headAng=headA[i];bend=leanA[i]*h;
             // Each character dies in its own way.
             float alpha=1,tr=1,tg=1,tb=1,scaleW=1,scaleH=1;
             if(D>=0){float q;switch(m){
-                case DRACULA->{q=MathUtils.clamp(D/.3f,0,1);dy+=q*h*.05f;breathe*=1+q*.05f;rot+=MathUtils.sin(t*20)*q*1.5f;
-                    if(D>.25f){dissolve=(D-.25f)/.75f;dTop=true;dR=.9f;dG=.05f;dB=.05f;emit(i,lastDt,1-front(dissolve),1,.15f,.1f,120);}}
-                case SKELETON->{dx+=D<.2f?MathUtils.sin(t*70)*h*.008f:0;collapse=MathUtils.clamp((D-.15f)/.85f,0,1);alpha=1-MathUtils.clamp((D-.8f)/.2f,0,1);}
-                case GHOST->{q=D*D;scaleW=1-q*.95f;scaleH=1+q*.4f-q*q*1.3f;dx+=(centerX-sx[i])*q;dy+=-h*.25f*q;rot+=q*720;alpha=1-MathUtils.clamp((D-.75f)/.25f,0,1);tr=tg=1;tb=1;
-                    if(D<.9f)emit(i,lastDt,.6f,.8f,.9f,1,60);}
-                case PUMPKIN->{q=MathUtils.clamp(D/.4f,0,1);glowA=(1-q)*(.6f+.4f*MathUtils.sin(t*40));float dark=MathUtils.clamp((D-.3f)/.3f,0,1);tr=tg=tb=1-dark*.85f;
-                    float s2=MathUtils.clamp((D-.55f)/.45f,0,1);dy-=s2*s2*h*.95f;rot+=s2*8;}
-                case PLAGUE_DOCTOR->{dissolve=D;dR=1;dG=.45f;dB=.05f;emit(i,lastDt,front(D),1,.55f,.15f,140);rot+=MathUtils.sin(t*9)*D*2;}
-                case ZOMBIE->{q=MathUtils.clamp((D-.1f)/.75f,0,1);q=q*q;rot+=q*-82*Math.signum(centerX-sx[i]+.01f);dy-=q*h*.35f;tr=1-D*.3f;tb=1-D*.4f;alpha=1-MathUtils.clamp((D-.85f)/.15f,0,1);
-                    dx+=D<.12f?MathUtils.sin(t*50)*h*.006f:0;}
-                case VOODOO->{q=MathUtils.clamp(D/.3f,0,1);dx+=MathUtils.sin(t*80)*h*.012f*(1-q*.5f);tr=1;tg=tb=1-q*.5f;shear=MathUtils.clamp((D-.3f)/.7f,0,1);alpha=1-MathUtils.clamp((D-.8f)/.2f,0,1);}
-                case PUPPETEER->{if(D<.12f){dy+=MathUtils.sin(D/.12f*MathUtils.PI)*h*.05f;}else{q=(D-.12f)/.88f;float fall=q<.55f?(q/.55f)*(q/.55f):1-MathUtils.sin((q-.55f)/.45f*MathUtils.PI)*.12f;
-                    dy-=fall*h*.8f;rot+=q*28;bend+=q*.12f;}alpha=1-MathUtils.clamp((D-.85f)/.15f,0,1);}
+                case DRACULA->{q=MathUtils.clamp(D/.3f,0,1);dy+=q*h*.04f;squash+=q*.03f;headAng+=-q*14;
+                    if(D>.25f){dissolve=(D-.25f)/.75f;dTop=true;dR=.9f;dG=.05f;dB=.05f;emit(i,dt,1-front(dissolve),1,.15f,.1f,120);}}
+                case SKELETON->{headAng+=D<.2f?MathUtils.sin(t*18)*4:0;collapse=MathUtils.clamp((D-.15f)/.85f,0,1);alpha=1-MathUtils.clamp((D-.8f)/.2f,0,1);}
+                case GHOST->{q=D*D*(3-2*D);scaleW=1-q*.9f;scaleH=1+q*.35f-q*q*1.2f;dx+=(centerX-sx[i])*q*.9f;dy+=-h*.2f*q;rot+=q*160;wave=w*(.06f+q*.2f);alpha=1-MathUtils.clamp((D-.75f)/.25f,0,1);
+                    if(D<.9f)emit(i,dt,.6f,.8f,.9f,1,60);}
+                case PUMPKIN->{q=MathUtils.clamp(D/.4f,0,1);glowA=(1-q)*(.5f+.25f*n(t*11));float dark=MathUtils.clamp((D-.3f)/.3f,0,1);tr=tg=tb=1-dark*.85f;
+                    float s2=MathUtils.clamp((D-.55f)/.45f,0,1);dy-=s2*s2*h*.95f;headAng+=s2*25;}
+                case PLAGUE_DOCTOR->{dissolve=D;dR=1;dG=.45f;dB=.05f;emit(i,dt,front(D),1,.55f,.15f,140);headAng+=D*18;}
+                case ZOMBIE->{q=MathUtils.clamp((D-.1f)/.75f,0,1);q=q*q;rot+=q*-82*Math.signum(centerX-sx[i]+.01f);dy-=q*h*.35f;headAng+=q*30;tr=1-D*.3f;tb=1-D*.4f;alpha=1-MathUtils.clamp((D-.85f)/.15f,0,1);}
+                case VOODOO->{q=MathUtils.clamp(D/.3f,0,1);dx+=MathUtils.sin(t*14)*h*.006f*(1-q*.5f);tg=tb=1-q*.5f;shear=MathUtils.clamp((D-.3f)/.7f,0,1);alpha=1-MathUtils.clamp((D-.8f)/.2f,0,1);}
+                case PUPPETEER->{if(D<.12f){dy+=MathUtils.sin(D/.12f*MathUtils.PI)*h*.04f;}else{q=(D-.12f)/.88f;float fall=q<.55f?(q/.55f)*(q/.55f):1-MathUtils.sin((q-.55f)/.45f*MathUtils.PI)*.12f;
+                    dy-=fall*h*.8f;rot+=q*22;headAng+=q*40;bend+=q*.1f*h;}alpha=1-MathUtils.clamp((D-.85f)/.15f,0,1);}
             }}
             float ww=w*scaleW,hh=h*scaleH;
             float x=sx[i]-ww*.5f+dx,y=sy[i]+dy;
@@ -178,18 +181,18 @@ public final class TableCast implements CharacterActions,Disposable {
                 batch.draw(dot,sx[i]-w*.75f,sy[i]+h*.05f,w*1.5f,h*1.05f);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
             if(curse[i]>0&&doom[i]==0){float pulse=.6f+.4f*MathUtils.sin(time*2.2f+i);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(.9f,.08f,.06f,.18f*curse[i]*pulse);
                 batch.draw(dot,sx[i]-w*.7f,sy[i]-h*.02f,w*1.4f,h*1.05f);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
-            if(doom[i]>0){float d=doom[i],pulse=.75f+.25f*MathUtils.sin(time*9);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(1,.1f,.06f,.35f*pulse*(1-d*.5f)*alpha);
+            if(doom[i]>0){float d=doom[i],pulse=.8f+.2f*MathUtils.sin(time*3.1f);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(1,.1f,.06f,.32f*pulse*(1-d*.5f)*alpha);
                 batch.draw(dot,sx[i]-w*.85f,sy[i]-h*.05f,w*1.7f,h*1.2f);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
             if(dissolve>0){float g=MathUtils.sin(dissolve*MathUtils.PI),fy=dTop?1-front(dissolve):front(dissolve);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(Math.min(1,.25f+dR),Math.min(1,.3f+dG),Math.min(1,.3f+dB),.28f*g);
                 batch.draw(dot,sx[i]-w*.8f,sy[i]+h*fy-h*.35f,w*1.6f,h*.8f);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
             if(dissolve>0&&D<0)y+=dissolve*dissolve*h*.06f;
             if(glowA>0){batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(1,.55f,.12f,glowA*alpha);batch.draw(dot,sx[i]+dx-w*.55f,sy[i]+dy+h*.45f,w*1.1f,h*.6f);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
-            float shade=state[i]==State.SCARED&&D<0?.82f:1,fade=1-doom[i]*.35f;batch.setColor(shade*fade*tr,shade*fade*tg*(1-doom[i]*.25f),shade*fade*tb*(1-doom[i]*.25f),alpha);
-            float tint=batch.getPackedColor();bent(batch,r,x,y,ww,hh*breathe,bend*h,rot,tint);
+            float shade=state[i]==State.SCARED&&D<0?.85f:1,fade=1-doom[i]*.35f;batch.setColor(shade*fade*tr,shade*fade*tg*(1-doom[i]*.25f),shade*fade*tb*(1-doom[i]*.25f),alpha);
+            bent(batch,r,x,y,ww,hh,bend,rot,batch.getPackedColor());
             // cool moonlight catching the upper edge (window side)
-            batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(.55f,.65f,1,.07f*(1-doom[i])*alpha);bent(batch,r,x+h*.004f,y+h*.006f,ww,hh*breathe,bend*h,rot,batch.getPackedColor());
+            batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(.55f,.65f,1,.07f*(1-doom[i])*alpha);bent(batch,r,x+h*.004f,y+h*.006f,ww,hh,bend,rot,batch.getPackedColor());
+            if(active[i]>0){batch.setColor(gold.r,gold.g,gold.b,.10f*active[i]);bent(batch,r,x,y,ww,hh,bend,rot,batch.getPackedColor());}
             batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
-            if(active[i]>0){batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(gold.r,gold.g,gold.b,.10f*active[i]);bent(batch,r,x,y,ww,hh*breathe,bend*h,rot,batch.getPackedColor());batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
             batch.setColor(Color.WHITE);wave=0;collapse=0;shear=0;}
         dissolve=-1;
         // the light (or ash, or embers) the characters turn into
@@ -199,32 +202,49 @@ public final class TableCast implements CharacterActions,Disposable {
             batch.setColor(Math.min(1,wr[k]+.15f),wg[k]*.8f,wb[k]*.5f,.18f*life);batch.draw(dot,wx[k]-s*4,wy[k]-s*4,s*8,s*8);}
         batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.setColor(Color.WHITE);
     }
-    private float dissolve=-1,dR,dG,dB,wave,collapse,shear,lastDt;private boolean dTop;
+    /** True once per {@code period} (a small push the spring turns into a natural motion). */
+    private static boolean beatEdge(float t,float period,float dt){return (t%period)<dt;}
+    private float dissolve=-1,dR,dG,dB,wave,collapse,shear,lastDt,breath,squash,neck=.64f,headAng,bend;private boolean dTop;
     /** The loser's personal death animation, 0..1 (NaN = alive). */
     private final float[] death=new float[8];private static final float DEATH_SECONDS=3.2f;
-    private final float[] quad=new float[20*STRIPS*3];private static final int STRIPS=10;
+    private static final int COLS=4,ROWS=14,ROWS_FINE=32;private final float[] quad=new float[20*COLS*ROWS_FINE];
     /**
-     * The sprite as a strip mesh: the base stays put, each strip is shifted by bend·f² (f = height fraction), so the
-     * figure leans and flexes like a body instead of rotating as a rigid card; {@code rot} tilts the whole figure.
-     * Strips also carry the dissolves, the ghost's ripple, the skeleton's collapse and the doll's unravelling.
+     * The sprite as a deforming grid (the painting itself never warps by more than a few percent): the seat stays put,
+     * the body leans (bend·f²), the chest breathes, the head turns about the neck with spring inertia, a ghost's hem
+     * flows; cells also carry the dissolves, the skeleton's collapse and the doll's unravelling. {@code rot} tilts the
+     * whole figure about its base.
      */
     private void bent(SpriteBatch batch,TextureRegion r,float x,float y,float w,float h,float bend,float rot,float color){
         float u=r.getU(),u2=r.getU2(),v=r.getV(),v2=r.getV2(),cx=x+w*.5f,cos=MathUtils.cosDeg(rot),sin=MathUtils.sinDeg(rot);int k=0;
-        boolean fine=dissolve>0||collapse>0||shear>0||wave!=0;int strips=fine?STRIPS*3:STRIPS;Color.abgr8888ToColor(base,color);float fr=front(dissolve);
-        for(int s=0;s<strips;s++){float f0=s/(float)strips,f1=(s+1f)/strips,o0=bend*f0*f0,o1=bend*f1*f1,y0=h*f0,y1=h*f1,tv0=MathUtils.lerp(v2,v,f0),tv1=MathUtils.lerp(v2,v,f1);
-            float c0=color,c1=color;
-            if(wave!=0){o0+=MathUtils.sin(f0*9-time*2.6f)*wave*f0;o1+=MathUtils.sin(f1*9-time*2.6f)*wave*f1;}
-            if(collapse>0){float fc=(f0+f1)*.5f,delay=fc*.45f,c=MathUtils.clamp((collapse-delay)/(1-delay),0,1),drop=c*c*h*(.6f+fc*.8f),side=MathUtils.sin(s*12.9898f)*w*.35f*c;
-                y0-=drop;y1-=drop;o0+=side;o1+=side;}
-            if(shear>0){float dir=(s&1)==0?1:-1,sh2=dir*shear*shear*w*(.4f+((s*7)%5)*.15f);o0+=sh2;o1+=sh2;y0+=shear*h*.1f*f0;y1+=shear*h*.1f*f1;}
-            if(dissolve>0){float g0=dTop?1-f0:f0,g1=dTop?1-f1:f1,a0=MathUtils.clamp((g0-fr)/.22f,0,1),a1=MathUtils.clamp((g1-fr)/.22f,0,1);if(a0<=0&&a1<=0)continue;
-                // the edge shimmers sideways and glows as it comes apart
-                o0+=MathUtils.sin(f0*19+time*7)*w*.04f*(1-a0);o1+=MathUtils.sin(f1*19+time*7)*w*.04f*(1-a1);
-                c0=Color.toFloatBits(Math.min(1,base.r+(1-a0)*dR),Math.min(1,base.g+(1-a0)*dG),Math.min(1,base.b+(1-a0)*dB),base.a*a0);
-                c1=Color.toFloatBits(Math.min(1,base.r+(1-a1)*dR),Math.min(1,base.g+(1-a1)*dG),Math.min(1,base.b+(1-a1)*dB),base.a*a1);}
-            k=vertex(k,-w*.5f+o0,y0,cx,y,cos,sin,c0,u,tv0);k=vertex(k,-w*.5f+o1,y1,cx,y,cos,sin,c1,u,tv1);
-            k=vertex(k,w*.5f+o1,y1,cx,y,cos,sin,c1,u2,tv1);k=vertex(k,w*.5f+o0,y0,cx,y,cos,sin,c0,u2,tv0);}
+        int rows=dissolve>0||collapse>0||shear>0?ROWS_FINE:ROWS;Color.abgr8888ToColor(base,color);float fr=front(dissolve);
+        float hc=MathUtils.cosDeg(headAng),hs=MathUtils.sinDeg(headAng),px=bend*neck*neck,py=neck*h*(1+squash);
+        for(int s=0;s<rows;s++)for(int col=0;col<COLS;col++){
+            float f0=s/(float)rows,f1=(s+1f)/rows,a0=col/(float)COLS-.5f,a1=(col+1f)/COLS-.5f;
+            float cdx=0,cdy=0;
+            if(collapse>0){float fc=(f0+f1)*.5f,delay=fc*.45f,cc=MathUtils.clamp((collapse-delay)/(1-delay),0,1);cdy=-cc*cc*h*(.6f+fc*.8f);cdx=MathUtils.sin(s*12.9898f+col*4.1f)*w*.35f*cc;}
+            if(shear>0){float dir=((s+col)&1)==0?1:-1;cdx+=dir*shear*shear*w*(.4f+((s*7+col)%5)*.15f);}
+            float al0=1,al1=1;
+            if(dissolve>0){float g0=dTop?1-f0:f0,g1=dTop?1-f1:f1;al0=MathUtils.clamp((g0-fr)/.22f,0,1);al1=MathUtils.clamp((g1-fr)/.22f,0,1);if(al0<=0&&al1<=0)continue;}
+            float c0=al0<1?Color.toFloatBits(Math.min(1,base.r+(1-al0)*dR),Math.min(1,base.g+(1-al0)*dG),Math.min(1,base.b+(1-al0)*dB),base.a*al0):color;
+            float c1=al1<1?Color.toFloatBits(Math.min(1,base.r+(1-al1)*dR),Math.min(1,base.g+(1-al1)*dG),Math.min(1,base.b+(1-al1)*dB),base.a*al1):color;
+            float tu0=MathUtils.lerp(u,u2,a0+.5f),tu1=MathUtils.lerp(u,u2,a1+.5f),tv0=MathUtils.lerp(v2,v,f0),tv1=MathUtils.lerp(v2,v,f1);
+            k=gv(k,a0,f0,w,h,bend,hc,hs,px,py,cdx,cdy,al0,cx,y,cos,sin,c0,tu0,tv0);
+            k=gv(k,a0,f1,w,h,bend,hc,hs,px,py,cdx,cdy,al1,cx,y,cos,sin,c1,tu0,tv1);
+            k=gv(k,a1,f1,w,h,bend,hc,hs,px,py,cdx,cdy,al1,cx,y,cos,sin,c1,tu1,tv1);
+            k=gv(k,a1,f0,w,h,bend,hc,hs,px,py,cdx,cdy,al0,cx,y,cos,sin,c0,tu1,tv0);}
         batch.draw(r.getTexture(),quad,0,k);
+    }
+    /** One deformed grid vertex at (a = −.5...5 across, f = 0..1 up). */
+    private int gv(int k,float a,float f,float w,float h,float bend,float hc,float hs,float px,float py,float cdx,float cdy,float al,float cx,float by,float cos,float sin,float color,float tu,float tv){
+        float chest=(float)Math.exp(-((f-.45f)*(f-.45f))/.03f);
+        float lx=a*w*(1+breath*chest)*(1-squash*.5f),ly=f*h*(1+squash)+breath*chest*h*.3f*f;
+        lx+=bend*f*f;
+        float hb=MathUtils.clamp((f-(neck-.1f))/.16f,0,1);hb=hb*hb*(3-2*hb);
+        if(hb>0){float rx=lx-px,ry=ly-py,nx=px+rx*hc-ry*hs,ny=py+rx*hs+ry*hc;lx=MathUtils.lerp(lx,nx,hb);ly=MathUtils.lerp(ly,ny,hb);}
+        if(wave!=0){float hem=(1-f)*(1-f);lx+=wave*hem*MathUtils.sin(f*7-time*2.2f+a*2.5f);}
+        if(dissolve>0&&al<1)lx+=MathUtils.sin(f*19+time*7)*w*.04f*(1-al);
+        lx+=cdx;ly+=cdy;
+        return vertex(k,lx,ly,cx,by,cos,sin,color,tu,tv);
     }
     private int vertex(int k,float lx,float ly,float cx,float by,float cos,float sin,float color,float u,float v){
         quad[k++]=cx+lx*cos-ly*sin;quad[k++]=by+lx*sin+ly*cos;quad[k++]=color;quad[k++]=u;quad[k++]=v;return k;}

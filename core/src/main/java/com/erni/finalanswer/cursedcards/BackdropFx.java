@@ -23,49 +23,49 @@ public final class BackdropFx implements Disposable {
         #endif
         varying vec2 v_uv;uniform sampler2D u_texture;uniform sampler2D u_mask;uniform sampler2D u_noise;uniform sampler2D u_front;uniform float u_useFront;
         uniform float u_time;uniform float u_flash;uniform float u_flicker;uniform vec2 u_moon;uniform float u_aspect;uniform float u_wind;
+        // Slow, domain-warped cloud field (three octaves); everything drifts at real-sky speeds.
+        float clouds(vec2 uv){
+            vec2 p=vec2(uv.x*u_aspect*.9,uv.y*2.4);
+            float warp=texture2D(u_noise,p*.31+vec2(u_time*.0018,u_time*.0007)).r;
+            float n=texture2D(u_noise,p+vec2(u_time*.0055,0.)+warp*.55).r*.55
+                   +texture2D(u_noise,p*2.27+vec2(u_time*.0095,.31)+warp*.35).r*.30
+                   +texture2D(u_noise,p*4.9+vec2(u_time*.016,.77)).r*.15;
+            return n;}
         void main(){
             vec2 uv=v_uv;vec3 m=texture2D(u_mask,uv).rgb;float w=m.r,curtain=m.g,hang=m.b;
             // velvet curtains: slow travelling folds, stronger toward the hem, pinned at the rod
             float fold=sin(uv.y*11.-u_time*.9+uv.x*7.)*.6+sin(uv.y*5.3-u_time*.55)*.4;
             vec2 suv=uv+vec2(fold*.0032*hang*hang*(.6+.4*u_wind),0.)*curtain;
-            // branches and fog behind the glass drift with the wind
-            float gust=sin(u_time*.6+uv.y*24.)*.5+sin(u_time*1.3+uv.x*31.)*.25;
-            float bough=sin(u_time*.35+uv.x*3.)*.6+sin(u_time*.9+uv.y*9.)*.4;
-            suv+=vec2((gust*.0013+bough*.0016*smoothstep(.15,.6,uv.y))*u_wind,bough*.0006*u_wind)*w;
             vec3 c=texture2D(u_texture,suv).rgb;
-            // folds catch the candlelight
             c*=1.+curtain*fold*.07*hang;
-            vec2 q=vec2(uv.x*2.4,uv.y*4.2);
-            float n=texture2D(u_noise,q+vec2(u_time*.010,0.)).r*.62+texture2D(u_noise,q*2.1+vec2(-u_time*.018,u_time*.003)).r*.38;
-            float mist=smoothstep(.48,.92,n);
-            c*=mix(1.,.80+.20*smoothstep(.25,.75,n),w*.7);
-            c+=w*mist*vec3(.30,.36,.52)*.42;
-            vec2 d=(uv-u_moon)*vec2(u_aspect,1.);float halo=exp(-dot(d,d)*70.)*(.09+.04*sin(u_time*.45));
-            // drifting storm clouds behind the glass: two layers at different speeds (parallax), lit silver near the moon
-            vec2 cq=vec2(uv.x*1.6,uv.y*2.6);
-            float cl=texture2D(u_noise,cq+vec2(u_time*.016,0.)).r*.6+texture2D(u_noise,cq*1.9+vec2(u_time*.028,.37)).r*.4;
-            float cloud=smoothstep(.45,.8,cl),edge=smoothstep(.38,.55,cl)-smoothstep(.55,.75,cl);
-            float nearMoon=exp(-dot(d,d)*9.);
-            c*=mix(1.,.62,cloud*w*.8);
-            c+=w*edge*nearMoon*vec3(.55,.62,.9)*.55;
-            float atMoon=texture2D(u_noise,vec2(u_moon.x*1.6,u_moon.y*2.6)+vec2(u_time*.016,0.)).r;
-            halo*=1.-smoothstep(.5,.85,atMoon)*.55;
-            // faint stars in the clear dark patches, each with its own slow twinkle
-            vec2 cell=floor(uv*vec2(320.,180.));float hs=fract(sin(dot(cell,vec2(12.9898,78.233)))*43758.5453);
-            vec2 inCell=fract(uv*vec2(320.,180.))-.5;float star=step(.993,hs)*smoothstep(.35,0.,length(inCell))*(.5+.5*sin(u_time*(1.+hs*3.)+hs*40.));
-            c+=w*star*(1.-cloud)*smoothstep(.25,.05,dot(c,vec3(.33)))*vec3(.8,.85,1.)*.9;
-            c+=w*cloud*u_flash*vec3(.6,.66,1.)*.6;
+            // Sky behind the glass: clouds pass only over the lit sky, never over the painted trees and castle,
+            // so the silhouettes stay crisp and the weather reads as far behind them.
+            float lum=dot(c,vec3(.3,.5,.2));float sky=w*smoothstep(.05,.17,lum)*smoothstep(.62,.30,uv.y);
+            vec2 d=(uv-u_moon)*vec2(u_aspect,1.);float moonNear=exp(-dot(d,d)*11.);
+            float cl=clouds(uv),dens=smoothstep(.46,.74,cl),rim=smoothstep(.36,.50,cl)*(1.-smoothstep(.52,.70,cl));
+            c=mix(c,c*.50+vec3(.035,.045,.07),dens*sky*.6);
+            c+=sky*rim*moonNear*vec3(.62,.68,.85)*.55;
+            c+=sky*dens*u_flash*vec3(.55,.6,.9)*.45;
+            // the moon dims when a cloud crosses it
+            float atMoon=smoothstep(.48,.74,clouds(u_moon));
+            float halo=exp(-dot(d,d)*70.)*(.09+.03*sin(u_time*.31))*(1.-atMoon*.7);
+            c*=1.-w*atMoon*moonNear*.18;
             c+=halo*vec3(.62,.70,1.)*(1.-w*.3);
+            // low ground mist rolling slowly in front of the distant trees
+            float mistN=texture2D(u_noise,vec2(uv.x*u_aspect*1.3+u_time*.008,uv.y*5.)).r*.6+texture2D(u_noise,vec2(uv.x*u_aspect*2.7-u_time*.005,uv.y*9.+.4)).r*.4;
+            float mist=w*smoothstep(.20,.42,uv.y)*smoothstep(.45,.75,mistN);
+            c=mix(c,vec3(.20,.24,.34),mist*.32);
             // moonbeams: soft shafts from the moon falling across the hall, slowly breathing
             vec2 r=uv-u_moon;float ang=atan(r.x*u_aspect,r.y),dist=length(r*vec2(u_aspect,1.));
             float shafts=texture2D(u_noise,vec2(ang*.9+u_time*.004,.5)).r;shafts=smoothstep(.55,.95,shafts);
-            float beam=shafts*smoothstep(1.1,.15,dist)*smoothstep(.05,.25,dist)*smoothstep(.0,.35,r.y)*(1.-w);
+            float beam=shafts*smoothstep(1.1,.15,dist)*smoothstep(.05,.25,dist)*smoothstep(.0,.35,r.y)*(1.-w)*(1.-atMoon*.6);
             c+=beam*vec3(.42,.50,.75)*(.075+.025*sin(u_time*.3));
-            c+=w*u_flash*vec3(.70,.76,1.)*.85+u_flash*.07*vec3(.72,.78,1.)+beam*u_flash*.5;
+            c+=w*u_flash*vec3(.70,.76,1.)*.4+u_flash*.07*vec3(.72,.78,1.)+beam*u_flash*.5;
             float table=smoothstep(.42,.95,uv.y);
             c*=1.+u_flicker*.055*table*vec3(1.,.85,.6);
             gl_FragColor=vec4(c,u_useFront>.5?texture2D(u_front,uv).r:1.);
         }""";
+
     private final ShaderProgram shader;private final Texture mask,noise;private final Vector2 moon;
     private float time,flash,nextFlash,flashAge=99;private final RandomXS128 random=new RandomXS128(13);
 
@@ -75,7 +75,7 @@ public final class BackdropFx implements Disposable {
         if(!program.isCompiled()){Gdx.app.error("CursedCards","backdrop shader: "+program.getLog());program.dispose();program=null;}
         shader=program;
         var f=Gdx.files.internal(MASK);mask=f.exists()?new Texture(f):null;if(mask!=null)mask.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);
-        noise=tileableNoise(128);nextFlash=14+random.nextFloat()*12;
+        noise=tileableNoise(256);nextFlash=14+random.nextFloat()*12;
     }
     public boolean enabled(){return shader!=null&&mask!=null;}
     /** Trigger a lightning strike now (checks, scripted moments). */
@@ -106,10 +106,10 @@ public final class BackdropFx implements Disposable {
     }
     /** Smooth, wrap-around value noise (two octaves) for the drifting mist. */
     private static Texture tileableNoise(int n){
-        var rnd=new RandomXS128(5);int g=8;float[] grid=new float[g*g];for(int i=0;i<grid.length;i++)grid[i]=rnd.nextFloat();
-        int g2=16;float[] fine=new float[g2*g2];for(int i=0;i<fine.length;i++)fine[i]=rnd.nextFloat();
+        var rnd=new RandomXS128(5);int[] gs={4,8,16,32};float[] amp={.5f,.27f,.15f,.08f};float[][] grids=new float[gs.length][];
+        for(int o=0;o<gs.length;o++){grids[o]=new float[gs[o]*gs[o]];for(int i=0;i<grids[o].length;i++)grids[o][i]=rnd.nextFloat();}
         Pixmap p=new Pixmap(n,n,Pixmap.Format.RGBA8888);
-        for(int y=0;y<n;y++)for(int x=0;x<n;x++){float v=.7f*sample(grid,g,x*g/(float)n,y*g/(float)n)+.3f*sample(fine,g2,x*g2/(float)n,y*g2/(float)n);p.drawPixel(x,y,Color.rgba8888(v,v,v,1));}
+        for(int y=0;y<n;y++)for(int x=0;x<n;x++){float v=0;for(int o=0;o<gs.length;o++)v+=amp[o]*sample(grids[o],gs[o],x*gs[o]/(float)n,y*gs[o]/(float)n);p.drawPixel(x,y,Color.rgba8888(v,v,v,1));}
         var t=new Texture(p);t.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);t.setWrap(Texture.TextureWrap.Repeat,Texture.TextureWrap.Repeat);p.dispose();return t;
     }
     private static float sample(float[] grid,int g,float x,float y){
