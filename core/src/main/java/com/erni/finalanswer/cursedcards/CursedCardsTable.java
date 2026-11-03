@@ -328,7 +328,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         if(cine.entered(DeathCinematic.Phase.REVEAL))cine.sound("cardFlip",.75f);
         if(ph==DeathCinematic.Phase.REVEAL){float f=Math.min(1,p/.45f),e=f*f*(3-2*f);CardPose fin=deathFinalPose(tmpPose);
             deathCard.pose.set(fin);deathCard.pose.roll=180*(1-e);deathCard.pose.position.y+=MathUtils.sin(e*MathUtils.PI)*.35f;deathCard.sync();
-            if(f>=1&&!revealed){revealed=true;redFlash=1;shake=1;zoomTarget=1.06f;fx.burst(deathCentre,90,1.1f,.2f);cine.sound("deathReveal",.85f);}}
+            if(f>=1&&!revealed){revealed=true;redFlash=1;shake=1;slowMo=.25f;zoomTarget=1.06f;fx.burst(deathCentre,90,1.1f,.2f);cine.sound("deathReveal",.85f);}}
         if(cine.entered(DeathCinematic.Phase.ELIMINATION)&&!eliminationShown){eliminationShown=true;actions.eliminate(loser);if(cast!=null)cast.doom(loser);cine.sound("reaction",.6f);
             tmp.set(seatList.get(loser).characterAnchor).add(0,1.4f,0);fx.burst(tmp,40,1.2f,.05f);fx.smoke(tmp,8);}
         if(ph==DeathCinematic.Phase.ELIMINATION&&p>.45f)for(int q=0;q<players;q++)if(q!=loser&&cast!=null&&cast.state(q)!=TableCast.State.IDLE)actions.survive(q);
@@ -391,7 +391,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
 
     // ---------------- frame ----------------
     @Override public void render(){
-        long p0=System.nanoTime();float dt=frameDelta()*timeScale;update(dt);long p1=System.nanoTime();
+        long p0=System.nanoTime();float raw=frameDelta();slowMo=approach(slowMo,1,raw*1.4f);float dt=raw*timeScale*slowMo;realClock+=raw;update(dt);long p1=System.nanoTime();
         Gdx.gl.glClearColor(0,0,0,1);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT|GL20.GL_DEPTH_BUFFER_BIT);
         batch.getProjectionMatrix().setToOrtho2D(0,0,Gdx.graphics.getWidth(),Gdx.graphics.getHeight());
         batch.begin();backdrop.draw(batch,background,view.x,view.y,view.width,view.height);drawCharacters(batch);
@@ -431,7 +431,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         boolean burnSounded=false;
         for(int i=burning.size-1;i>=0;i--){Card3D c=burning.get(i);c.vanish+=dt/.55f;c.pose.position.y+=dt*.35f;c.sync();
             c.glow(1,.18f,.08f,Math.min(1.6f,c.vanish*3));
-            if(c.vanish>.25f&&c.vanish-dt/.55f<=.25f){fx.burst(c.pose.position,14,.45f,.1f);if(!burnSounded){burnSounded=true;audio.play("pairBurn",.5f);}}
+            if(c.vanish>.25f&&c.vanish-dt/.55f<=.25f){fx.burst(c.pose.position,14,.45f,.1f);if(!burnSounded){burnSounded=true;audio.play("pairBurn",.5f);slowMo=Math.min(slowMo,.55f);}}
             if(c.vanish>=1){c.visible=false;c.opacity(1);c.glow(0,0,0,0);c.vanish=0;burning.removeIndex(i);}else c.opacity(1-c.vanish*c.vanish);}
         cameraMoving=director.update(dt,camera);
         float pr=machine.presence();if(pr!=machineTarget)machine.presence(machineTarget>pr?Math.min(machineTarget,pr+dt/CardAnimator.timing.summon):Math.max(machineTarget,pr-dt/CardAnimator.timing.dissolve));
@@ -455,12 +455,17 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         else machine.slotLight.color.set(1,.16f,.08f,1);
     }
     /** Cinematic screen-space framing: a slight zoom toward the DEATH card and a brief shake, applied to the whole letterbox. */
+    /** Time dilation for dramatic beats (1 = normal); recovers on real time. */
+    private float slowMo=1,realClock;
     private void applyView(){
-        view.set(baseView);if(zoom==1&&shake==0)return;
+        view.set(baseView);
+        // a barely perceptible hand-held drift keeps the frame alive (fraction of a pixel to ~2 px at 1080p)
+        float drift=baseView.height*.0016f;float hx=(MathUtils.sin(realClock*.37f)+MathUtils.sin(realClock*.83f+1.3f)*.5f)*drift,hy=(MathUtils.sin(realClock*.29f+.7f)+MathUtils.sin(realClock*.71f)*.5f)*drift;
+        float z=zoom*1.012f;
         float fx0=baseView.x+baseView.width*.5f,fy0=baseView.y+baseView.height*.5f;
         if(deathCard!=null)tmp.set(deathCentre);else tmp.set(focus);
         camera.project(tmp,baseView.x,baseView.y,baseView.width,baseView.height);fx0=MathUtils.lerp(fx0,tmp.x,deathCard!=null?1:.6f);fy0=MathUtils.lerp(fy0,tmp.y,deathCard!=null?1:.6f);
-        view.set(fx0-(fx0-baseView.x)*zoom,fy0-(fy0-baseView.y)*zoom,baseView.width*zoom,baseView.height*zoom);
+        view.set(fx0-(fx0-baseView.x)*z+hx,fy0-(fy0-baseView.y)*z+hy,baseView.width*z,baseView.height*z);
         float s=shake*shake*baseView.height*.008f;view.x+=MathUtils.sin(clock*61)*s;view.y+=MathUtils.sin(clock*47+1)*s;
     }
     private static float approach(float v,float t,float step){return v<t?Math.min(t,v+step):Math.max(t,v-step);}
