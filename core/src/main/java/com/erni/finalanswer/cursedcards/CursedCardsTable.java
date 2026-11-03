@@ -442,9 +442,8 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
         if(audio!=null)audio.update(dt);sceneFade=Math.max(0,sceneFade-dt*1.1f);
         // the dealer's red heart: an occasional faint glow on the felt where it stands (or stood)
         nextThrob-=dt;if(nextThrob<=0&&(cine==null||!cine.active())){throbAge=0;nextThrob=11+MathUtils.random(9f);}throbAge+=dt;throb=throbAge<2.4f?MathUtils.sin(throbAge/2.4f*MathUtils.PI):0;
-        // Cinematic framing: a slow push toward the hands involved in the turn, a wider breath while dealing.
-        if(deathCard==null){if(awaitingDraw()&&glowDrawer>=0&&glowSource>=0){focus.set(seatList.get(glowDrawer).hand).lerp(seatList.get(glowSource).hand,.5f);zoomTarget=1.035f;}
-            else if(dealShowing){focus.set(machine.worldBounds().getCenter(tmp2));zoomTarget=1.015f;}else{zoomTarget=1;}}
+        // Cinematic framing: no push-in during turns and exchanges; only a slight breath while dealing.
+        if(deathCard==null){if(dealShowing){focus.set(machine.worldBounds().getCenter(tmp2));zoomTarget=1.015f;}else{zoomTarget=1;}}
         bars=approach(bars,dealShowing||deathCard!=null&&cine!=null&&cine.running()?1:0,dt*(bars<.5f?1.6f:1.1f));
         zoom+=(zoomTarget-zoom)*Math.min(1,dt*(deathCard!=null?3:.9f));applyView();
         dim=approach(dim,dimTarget,dt*(dimTarget>dim?1.4f:1.6f));
