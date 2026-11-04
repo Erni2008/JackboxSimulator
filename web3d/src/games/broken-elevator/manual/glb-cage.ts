@@ -9,9 +9,10 @@ import {HDRLoader} from 'three/addons/loaders/HDRLoader.js';
 import {TEX} from './materials';
 import {rng} from './page-art';
 import type {Plane} from './physics';
+import {createLava} from './lava';
 
 /** Interior height the model is scaled to (asset units are arbitrary: ~0.8 tall). */
-export const CAGE_HEIGHT = 2.6;
+export const CAGE_HEIGHT = 3.6;
 
 export interface CageInfo {
   root: T.Object3D; mesh: T.Mesh; planes: Plane[]; floorY: number; ceilingY: number;
@@ -48,7 +49,7 @@ function matteMaps(base: HTMLImageElement | ImageBitmap, orig: HTMLImageElement 
 export async function buildGlbCage(renderer: T.WebGLRenderer, scene: T.Scene, hi: boolean, url = 'models/cage.glb'): Promise<CageInfo> {
   const [gltf, hdr] = await Promise.all([new GLTFLoader().loadAsync(url), new HDRLoader().loadAsync(TEX + 'boiler_room_1k.hdr')]);
   const pmrem = new T.PMREMGenerator(renderer); hdr.mapping = T.EquirectangularReflectionMapping; scene.environment = pmrem.fromEquirectangular(hdr).texture; hdr.dispose(); pmrem.dispose();
-  scene.environmentIntensity = .4; scene.background = new T.Color('#030201'); scene.fog = new T.FogExp2('#0b0503', .045);
+  scene.environmentIntensity = .5; scene.background = new T.Color('#030201'); scene.fog = new T.FogExp2('#0b0503', .045);
   const root = gltf.scene; let mesh!: T.Mesh; root.traverse(o => { if ((o as T.Mesh).isMesh) mesh = o as T.Mesh; });
   // scale from the measured bounds, then stand it on y = 0 centred on the origin
   let box = new T.Box3().setFromObject(root); const size = box.getSize(new T.Vector3()); const s = CAGE_HEIGHT / size.y; root.scale.setScalar(s); root.updateMatrixWorld(true);
@@ -70,16 +71,13 @@ export async function buildGlbCage(renderer: T.WebGLRenderer, scene: T.Scene, hi
   const inner = new T.Box3(new T.Vector3(-nx, floorY, -nz), new T.Vector3(px, ceilingY, pz));
   const eye = new T.Vector3(0, Math.min(floorY + 1.55, ceilingY - .25), (pz - nz) * .5 + pz * .1);
   // lighting: one dim caged bulb under the roof, lava glow from below and through the bars
-  const lamp = new T.SpotLight('#ffb366', 22, 7, 1.15, .75, 1.4); lamp.position.set(0, ceilingY - .12, 0); lamp.target.position.set(0, floorY, 0); lamp.castShadow = true;
-  lamp.shadow.mapSize.set(hi ? 2048 : 1024, hi ? 2048 : 1024); lamp.shadow.bias = -.0002; lamp.shadow.normalBias = .02; lamp.shadow.camera.near = .1; lamp.shadow.camera.far = 6;
+  const lamp = new T.SpotLight('#ffb870', 34, 9, 1.2, .75, 1.3); lamp.position.set(0, ceilingY - .12, 0); lamp.target.position.set(0, floorY, 0); lamp.castShadow = true;
+  lamp.shadow.mapSize.set(hi ? 2048 : 1024, hi ? 2048 : 1024); lamp.shadow.bias = -.0002; lamp.shadow.normalBias = .02; lamp.shadow.camera.near = .1; lamp.shadow.camera.far = 8;
   scene.add(lamp, lamp.target);
   const bulb = new T.PointLight('#ff9a4a', 2.2, 4, 1.6); bulb.position.copy(lamp.position); scene.add(bulb);
   const glow = new T.Mesh(new T.SphereGeometry(.03, 16, 10), new T.MeshBasicMaterial({color: '#ffcf96'})); glow.position.copy(lamp.position).y -= .02; scene.add(glow);
-  const lavaMat = new T.ShaderMaterial({uniforms: {time: {value: 0}}, fog: false, vertexShader: 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-    fragmentShader: 'uniform float time;varying vec2 vUv;float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);}float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}void main(){vec2 p=vUv*12.;float v=n(p+time*.04)*.55+n(p*2.3-time*.07)*.3+n(p*5.-time*.1)*.15;v=pow(v,2.);vec3c=vec3(0.);vec3 c0=mix(vec3(.06,.008,.0),vec3(1.,.3,.03),v)+vec3(1.,.72,.3)*pow(v,6.)*1.6;float r=length(vUv-.5)*2.;gl_FragColor=vec4(c0*(1.-smoothstep(.6,1.,r))*.9,1.);}'.replace('vec3c=vec3(0.);', '')});
-  const lava = new T.Mesh(new T.CircleGeometry(16, 48), lavaMat); lava.rotation.x = -Math.PI / 2; lava.position.y = floorY - 7; scene.add(lava);
-  const lavaLights: T.PointLight[] = []; for (const [x, z] of [[-1.6, .4], [1.5, -.5], [0, 1.7]]) { const l = new T.PointLight('#ff5410', 4, 8, 1.4); l.position.set(x, floorY - .5, z); scene.add(l); lavaLights.push(l); }
-  scene.add(new T.HemisphereLight('#6a5644', '#4a1808', .45));
+  const lava = createLava(scene, floorY - 3.2, hi);
+  scene.add(new T.HemisphereLight('#8a7058', '#5a2008', .8));
   // wall shelf: weathered iron plank on two aged-brass brackets, on the back wall (−z), off-centre so it clears the doors
   const shelf = buildShelf(); const shelfY = floorY + 1.02, shelfX = Math.min(px, nx) * .35; shelf.position.set(shelfX, shelfY, -nz + .005); scene.add(shelf);
   const shelfTop = new T.Vector3(shelfX, shelfY + .012, -nz + .005 + .13);
@@ -90,8 +88,8 @@ export async function buildGlbCage(renderer: T.WebGLRenderer, scene: T.Scene, hi
   ];
   let t = 0;
   return {root, mesh, planes, floorY, ceilingY, inner, eye, lamp, shelf: {group: shelf, top: shelfTop, facing: 0}, update(dt) {
-    t += dt; lavaMat.uniforms.time.value = t; lavaLights.forEach((l, i) => { l.intensity = 4 + Math.sin(t * 1.1 + i * 2) * .9 + Math.sin(t * 4.3 + i) * .3; });
-    const f = Math.random() < .003 ? .3 : 1; lamp.intensity = 22 * (.97 + Math.sin(t * 47) * .015) * f; bulb.intensity = 2.2 * f;
+    t += dt; lava.update(dt);
+    const f = Math.random() < .003 ? .3 : 1; lamp.intensity = 34 * (.97 + Math.sin(t * 47) * .015) * f; bulb.intensity = 2.2 * f;
   }};
 }
 

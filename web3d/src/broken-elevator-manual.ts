@@ -14,7 +14,7 @@ const mobile = matchMedia('(pointer: coarse)').matches || Math.min(screen.width,
 let quality: 'high' | 'low' = params.get('quality') === 'low' || (mobile && params.get('quality') !== 'high') ? 'low' : 'high';
 
 const renderer = new T.WebGLRenderer({antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: params.has('capture')});
-renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.AgXToneMapping; renderer.toneMappingExposure = .95;
+renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.AgXToneMapping; renderer.toneMappingExposure = 1.15;
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFShadowMap;
 let dpr = Math.min(devicePixelRatio, quality === 'high' ? 2 : 1.75); renderer.setPixelRatio(dpr);
 $('viewport').append(renderer.domElement);

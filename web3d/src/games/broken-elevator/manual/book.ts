@@ -13,7 +13,7 @@ import {paginate, type ManualContent, type ManualPage} from './content';
 import {loadLeather, leatherMaps, leatherMaterial, brassMaterial, endpaperTexture, frontTooling, backTooling, spineTooling} from './materials';
 
 export const W = .18, H = .25, TH = .04, C = .0036; // board width, height, total thickness, board thickness
-const PW = W - .005, PH = H - .007, P = TH - 2 * C; // page block width/height and total paper thickness
+const PW = W - .0075, PH = H - .0095, P = TH - 2 * C; // page block width/height and total paper thickness
 const BANDS = [.1, .22, .56, .66, .88];
 const ease = (t: number) => t < .5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
 const smooth = (a: number, b: number, x: number) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -103,8 +103,8 @@ export class EngineersManual {
     this.backBoard.scale.z = -1; // undo z flip so the back cover's head matches the front's
     this.frontBoard.add(this.left.mesh);
     this.backBoard.add(this.right.mesh);
-    this.right.mesh.scale.y = -1; this.right.mesh.position.set(.0012, -C, 0); // backBoard frame is flipped: -y local == +y book
-    this.left.mesh.scale.y = -1; this.left.mesh.position.set(.0012, -C, 0);
+    this.right.mesh.scale.y = -1; this.right.mesh.position.set(.0025, -C, 0); // backBoard frame is flipped: -y local == +y book
+    this.left.mesh.scale.y = -1; this.left.mesh.position.set(.0025, -C, 0);
     // spine
     this.spine = new T.Mesh(new T.BufferGeometry(), spineMat); this.spine.castShadow = this.spine.receiveShadow = true; this.initSpine(); this.pickables.push(this.spine);
     // turning leaf: one subdivided sheet, two materials (recto / verso) on the same vertices
@@ -129,7 +129,7 @@ export class EngineersManual {
   private prefetch() { const go = () => { for (const i of [2 * this.spread + 2, 2 * this.spread + 3, 2 * this.spread - 1, 2 * this.spread - 2]) if (i >= 0 && i < this.pages.length && !this.cache.has(i)) { this.page(i); requestIdleCallbackSafe(go); return; } }; requestIdleCallbackSafe(go); }
 
   // ---------------------------------------------------------------- opening
-  open(dur = 1.15) { if (this.openTo === 1) return; this.animateOpen(1, dur); this.sounds?.coverOpen(); this.flutter = 1; this.prefetch(); }
+  open(dur = 1.15) { if (this.openTo === 1) return; this.animateOpen(1, dur); this.sounds?.coverOpen(); this.flutter = 0; this.prefetch(); }
   close(dur = 1.0) { if (this.openTo === 0) return; if (this.turning) { this.finishTurn(); } this.animateOpen(0, dur); this.sounds?.coverClose(); }
   get isOpen() { return this.openTo === 1 && this.openT >= 1; }
   get isClosed() { return this.openTo === 0 && this.openT >= 1; }
@@ -179,7 +179,8 @@ export class EngineersManual {
     this.sweepSpine(A, S, o);
     // keep the book centred on whatever is its visual middle (closed: board centre, open: gutter)
     this.inner.position.set(-(W / 2) * (1 - o) + (TH / 2) * o, -(TH / 2) * (1 - o) - C * o, 0);
-    if (this.leaf.visible || this.flutter > 0) this.poseLeaf(R, L, dip, slide);
+    // the loose leaf only exists while a page is actually turning in a fully open book
+    if (this.turning && o > .98) this.poseLeaf(R, L, dip, slide); else this.leaf.visible = false;
   }
 
   /** Bends the turning leaf: each row along the height is integrated from the gutter outward. */
