@@ -1,153 +1,192 @@
-// Typeset pages for INDUSTRIAL EMERGENCY DIAGNOSTICS: a Victorian engineering-handbook
-// layout with a modern information hierarchy (rule number → condition → CUT instruction).
-// Logical page space is 1024×1408; renderPage scales the context for high-DPI textures.
-import {RULES, TERMINALS, type RuleSection} from '../puzzles/rules24';
-import {paper, rng} from './page-art';
+// WIRE MODULE pages — visual-first rule cards. Every rule row is
+//   [ NUMBER ]  [ condition icon ] + [ condition icon ]  →  ✂ [ TERMINAL ]
+// built from one reusable icon set driven by the structured rules in rules24.ts,
+// so the page can never drift from the evaluator. Short labels sit under icons
+// only where an icon alone would be ambiguous. Logical page space: 1024×1408.
+import {RULES, TERMINALS, type Cond, type RuleSection} from '../puzzles/rules24';
+import {WIRE_COLORS, type WireColor} from '../puzzles/wire-puzzle';
+import {paper} from './page-art';
 
-export const INK = '#150c06', INK2 = 'rgba(28,17,9,.84)', BURGUNDY = '#5c0c0e', BRASS = '#8a652a', BRASS_D = '#5c431c';
+export const INK = '#140b05', INK2 = 'rgba(20,11,5,.7)', BURGUNDY = '#6a1013', RULE_LINE = 'rgba(20,11,5,.22)', BRASS = '#8a652a';
 export const F = {
-  display: (w: number, px: number) => `${w} ${px}px 'Cinzel', 'IM Fell English SC', Georgia, serif`,
+  display: (w: number, px: number) => `${w} ${px}px 'Cinzel', Georgia, serif`,
   body: (px: number, w = 400, it = false) => `${it ? 'italic ' : ''}${w} ${px}px 'Libre Caslon Text', Georgia, serif`,
   tech: (px: number, w = 700) => `${w} ${px}px 'Barlow Condensed', 'Arial Narrow', sans-serif`,
   mono: (px: number, w = 700) => `${w} ${px}px 'IBM Plex Mono', Menlo, monospace`,
 };
-const W = 1024, H = 1408, MX = 92;
+const W = 1024, H = 1408, MX = 84;
+// wire colours on paper: same hues as the panel, tuned to read on ivory under warm light
+const INKED: Record<WireColor, string> = {red: '#b3221a', yellow: '#d9a514', blue: '#1f4fa8', green: '#2f7d32', purple: '#6b2f93', white: '#f4f0e6'};
+void WIRE_COLORS;
 
 export interface RulePage { layout: 'rules'; section: number; half: 0 | 1 }
-export interface GuidePage { layout: 'guide' }
+type X = CanvasRenderingContext2D;
 
-function spaced(x: CanvasRenderingContext2D, t: string, cx: number, y: number, sp: number) {
-  const ws = [...t].map(c => x.measureText(c).width), tot = ws.reduce((a, b) => a + b, 0) + sp * (t.length - 1); let px = cx - tot / 2;
-  x.textAlign = 'left'; [...t].forEach((c, i) => { x.fillText(c, px, y); px += ws[i] + sp; }); return tot;
+// ------------------------------------------------------------------ primitives
+function rr(x: X, px: number, py: number, w: number, h: number, r: number) { x.beginPath(); x.moveTo(px + r, py); x.arcTo(px + w, py, px + w, py + h, r); x.arcTo(px + w, py + h, px, py + h, r); x.arcTo(px, py + h, px, py, r); x.arcTo(px, py, px + w, py, r); x.closePath(); }
+function label(x: X, t: string, cx: number, y: number, px = 22, col = INK) { x.font = F.tech(px, 700); x.fillStyle = col; x.textAlign = 'center'; x.textBaseline = 'alphabetic'; x.fillText(t, cx, y); }
+/** one insulated wire segment drawn vertically, with brass ferrules — white gets an ink outline */
+function wire(x: X, cx: number, y0: number, y1: number, color: WireColor, w = 15) {
+  x.lineCap = 'round'; x.strokeStyle = INK; x.lineWidth = w + 4; x.beginPath(); x.moveTo(cx, y0); x.lineTo(cx, y1); x.stroke();
+  x.strokeStyle = INKED[color]; x.lineWidth = w; x.beginPath(); x.moveTo(cx, y0); x.lineTo(cx, y1); x.stroke();
+  x.strokeStyle = 'rgba(255,255,255,.28)'; x.lineWidth = w * .25; x.beginPath(); x.moveTo(cx - w * .2, y0 + 3); x.lineTo(cx - w * .2, y1 - 3); x.stroke();
+  x.fillStyle = BRASS; for (const y of [y0 - 6, y1 + 6]) { x.fillRect(cx - w * .7, y - 6, w * 1.4, 12); x.strokeStyle = INK; x.lineWidth = 1.5; x.strokeRect(cx - w * .7, y - 6, w * 1.4, 12); }
 }
-function brassRule(x: CanvasRenderingContext2D, x0: number, x1: number, y: number, double = false) {
-  x.strokeStyle = BRASS; x.lineWidth = 2; x.beginPath(); x.moveTo(x0, y); x.lineTo(x1, y); x.stroke();
-  if (double) { x.lineWidth = .9; x.strokeStyle = BRASS_D; x.beginPath(); x.moveTo(x0, y + 6); x.lineTo(x1, y + 6); x.stroke(); }
-}
-function diamond(x: CanvasRenderingContext2D, cx: number, cy: number, r: number, c = BRASS) { x.fillStyle = c; x.beginPath(); x.moveTo(cx, cy - r); x.lineTo(cx + r, cy); x.lineTo(cx, cy + r); x.lineTo(cx - r, cy); x.closePath(); x.fill(); }
-function cog(x: CanvasRenderingContext2D, cx: number, cy: number, r: number, teeth = 12) {
-  x.save(); x.translate(cx, cy); x.strokeStyle = INK2; x.lineWidth = 1.6; x.beginPath();
-  for (let i = 0; i < teeth * 4; i++) { const a = i / (teeth * 4) * Math.PI * 2, rr = i % 4 < 2 ? r : r * .82; x.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); }
-  x.closePath(); x.stroke(); x.beginPath(); x.arc(0, 0, r * .42, 0, 7); x.stroke(); x.beginPath(); x.arc(0, 0, r * .14, 0, 7); x.fillStyle = INK2; x.fill(); x.restore();
-}
-/** running head with page number on the outer corner */
-function head(x: CanvasRenderingContext2D, text: string, page: number, side: number) {
-  x.fillStyle = INK2; x.font = F.display(600, 21); x.textBaseline = 'alphabetic'; const w = spaced(x, text, W / 2, 74, 4);
-  brassRule(x, MX, W / 2 - w / 2 - 22, 67); brassRule(x, W / 2 + w / 2 + 22, W - MX, 67); diamond(x, W / 2 - w / 2 - 12, 67, 4); diamond(x, W / 2 + w / 2 + 12, 67, 4);
-  x.font = F.display(600, 22); x.fillStyle = INK; x.textAlign = side > 0 ? 'right' : 'left'; x.fillText(String(page), side > 0 ? W - MX : MX, 120);
-}
-function foot(x: CanvasRenderingContext2D, label: string) {
-  brassRule(x, MX, W - MX, H - 98); x.font = F.body(17, 400, true); x.fillStyle = INK2; x.textAlign = 'center'; x.fillText(label, W / 2, H - 66);
+/** a terminal strip: n slots, optional highlighted slot (colour or ink) — the shared "position" language */
+function strip(x: X, cx: number, cy: number, n: number, hl: number, color: WireColor | null, slotW = 26, h = 74) {
+  const w = n * slotW; x.strokeStyle = INK; x.lineWidth = 2.5; rr(x, cx - w / 2 - 8, cy - h / 2 - 12, w + 16, h + 24, 6); x.stroke();
+  for (let i = 0; i < n; i++) { const px = cx - w / 2 + slotW * (i + .5);
+    if (i === hl) { if (color) wire(x, px, cy - h / 2 + 6, cy + h / 2 - 6, color, 13); else { x.fillStyle = INK; x.fillRect(px - 6, cy - h / 2 + 6, 12, h - 12); } }
+    else { x.strokeStyle = 'rgba(20,11,5,.3)'; x.setLineDash([5, 5]); x.lineWidth = 3; x.beginPath(); x.moveTo(px, cy - h / 2 + 8); x.lineTo(px, cy + h / 2 - 8); x.stroke(); x.setLineDash([]); } }
 }
 
-/** small engraving of the terminal block for a given wire count */
-function terminalStrip(x: CanvasRenderingContext2D, n: number, cx: number, cy: number, w: number) {
-  const gap = w / n; x.strokeStyle = INK; x.lineWidth = 1.8; x.strokeRect(cx - w / 2 - 8, cy - 26, w + 16, 52);
-  for (let k = 0; k < 20; k++) { x.globalAlpha = .18; x.beginPath(); x.moveTo(cx - w / 2 - 8 + k * (w + 16) / 20, cy + 26); x.lineTo(cx - w / 2 - 8 + k * (w + 16) / 20 + 10, cy + 16); x.stroke(); } x.globalAlpha = 1;
-  for (let i = 0; i < n; i++) { const px = cx - w / 2 + gap * (i + .5); x.beginPath(); x.arc(px, cy - 4, 9, 0, 7); x.stroke(); x.beginPath(); x.moveTo(px - 5, cy - 4); x.lineTo(px + 5, cy - 4); x.stroke(); x.beginPath(); x.moveTo(px, cy + 5); x.lineTo(px, cy + 46); x.stroke();
-    x.font = F.mono(17, 700); x.fillStyle = INK; x.textAlign = 'center'; x.fillText(TERMINALS[i], px, cy - 32); }
+// ------------------------------------------------------------------ icons (each fits a 150×150 cell centred at cx,cy)
+const S = 150;
+function iconFault(x: X, v: 'overload' | 'short' | 'power', cx: number, cy: number) {
+  x.save(); x.translate(cx, cy - 12);
+  if (v === 'overload') { // analog meter, needle in the red zone
+    const r = 52, a = (t: number) => Math.PI * (.75 + t * 1.5);
+    x.fillStyle = '#efe6cf'; x.beginPath(); x.arc(0, 0, r, 0, 7); x.fill(); x.strokeStyle = INK; x.lineWidth = 5; x.stroke();
+    x.strokeStyle = '#b3221a'; x.lineWidth = 12; x.beginPath(); x.arc(0, 0, r - 13, a(.72), a(1)); x.stroke();
+    x.strokeStyle = INK; x.lineWidth = 2; for (let i = 0; i <= 10; i++) { const t = a(i / 10); x.beginPath(); x.moveTo(Math.cos(t) * (r - 6), Math.sin(t) * (r - 6)); x.lineTo(Math.cos(t) * (r - 15), Math.sin(t) * (r - 15)); x.stroke(); }
+    const n = a(.9); x.lineWidth = 5; x.lineCap = 'round'; x.beginPath(); x.moveTo(0, 0); x.lineTo(Math.cos(n) * (r - 10), Math.sin(n) * (r - 10)); x.stroke(); x.fillStyle = INK; x.beginPath(); x.arc(0, 0, 6, 0, 7); x.fill();
+  } else if (v === 'short') { // spark between two conductor ends
+    x.strokeStyle = INK; x.lineWidth = 10; x.lineCap = 'round'; x.beginPath(); x.moveTo(-60, 30); x.lineTo(-24, 30); x.moveTo(24, 30); x.lineTo(60, 30); x.stroke();
+    x.fillStyle = '#e0a21b'; x.strokeStyle = INK; x.lineWidth = 3.5; x.lineJoin = 'round'; x.beginPath(); x.moveTo(8, -52); x.lineTo(-26, 2); x.lineTo(-2, 2); x.lineTo(-12, 46); x.lineTo(26, -10); x.lineTo(2, -10); x.lineTo(14, -52); x.closePath(); x.fill(); x.stroke();
+    for (const [dx, dy] of [[-40, -20], [38, -26], [-34, 12], [42, 8]]) { x.lineWidth = 3; x.beginPath(); x.moveTo(dx * .7, dy * .7); x.lineTo(dx, dy); x.stroke(); }
+  } else { // dimmed lamp: dark bulb, no rays, a downward arrow
+    x.fillStyle = '#8f8778'; x.strokeStyle = INK; x.lineWidth = 4.5; x.beginPath(); x.arc(0, -10, 36, Math.PI * .8, Math.PI * 2.2); x.lineTo(14, 32); x.lineTo(-14, 32); x.closePath(); x.fill(); x.stroke();
+    x.fillStyle = INK; x.fillRect(-15, 34, 30, 14); x.strokeStyle = '#efe6cf'; x.lineWidth = 2; x.beginPath(); x.moveTo(-15, 41); x.lineTo(15, 41); x.stroke();
+    x.strokeStyle = 'rgba(20,11,5,.55)'; x.lineWidth = 3; x.beginPath(); x.moveTo(-10, -4); x.lineTo(-4, -18); x.lineTo(4, -4); x.lineTo(10, -18); x.stroke();
+    x.strokeStyle = '#b3221a'; x.lineWidth = 6; x.lineCap = 'round'; x.beginPath(); x.moveTo(52, -34); x.lineTo(52, 10); x.moveTo(40, -2); x.lineTo(52, 12); x.lineTo(64, -2); x.stroke();
+  }
+  x.restore(); label(x, v === 'overload' ? 'OVERLOAD' : v === 'short' ? 'SHORT' : 'NO POWER', cx, cy + S / 2 - 4, 25, BURGUNDY);
 }
-
-/** fault icon drawn as a small engraved mark (shape, not colour, carries the meaning) */
-function faultIcon(x: CanvasRenderingContext2D, word: string, cx: number, cy: number) {
-  x.save(); x.translate(cx, cy); x.strokeStyle = BURGUNDY; x.fillStyle = BURGUNDY; x.lineWidth = 2.4; x.lineJoin = 'round';
-  if (word === 'OVERLOAD') { x.beginPath(); x.arc(0, 4, 13, Math.PI * 1.1, Math.PI * 1.9); x.stroke(); x.beginPath(); x.moveTo(0, 4); x.lineTo(9, -7); x.stroke(); }
-  else if (word === 'SHORT CIRCUIT') { x.beginPath(); x.moveTo(-12, 0); x.lineTo(-5, -8); x.lineTo(1, 7); x.lineTo(7, -6); x.lineTo(13, 0); x.stroke(); }
-  else { x.beginPath(); x.moveTo(0, -10); x.lineTo(0, 7); x.stroke(); x.beginPath(); x.moveTo(-7, 1); x.lineTo(0, 9); x.lineTo(7, 1); x.stroke(); }
-  x.restore();
+function iconMode(x: X, v: 'normal' | 'emergency', cx: number, cy: number) {
+  x.save(); x.translate(cx, cy - 14); const r = 46;
+  x.fillStyle = '#e3d6b4'; x.beginPath(); x.arc(0, 0, r, 0, 7); x.fill(); x.strokeStyle = INK; x.lineWidth = 4; x.stroke();
+  x.font = F.tech(28, 700); x.textAlign = 'center'; x.textBaseline = 'middle';
+  for (const [t, a] of [['N', -Math.PI * .75], ['E', -Math.PI * .25]] as const) { const on = (t === 'N') === (v === 'normal'); x.fillStyle = on ? INK : 'rgba(20,11,5,.3)'; x.fillText(t, Math.cos(a) * (r + 18), Math.sin(a) * (r + 18)); }
+  const a = v === 'normal' ? -Math.PI * .75 : -Math.PI * .25; x.rotate(a + Math.PI / 2);
+  x.fillStyle = INK; rr(x, -9, -r + 6, 18, r * 2 - 12, 8); x.fill(); x.fillStyle = '#b3221a'; x.beginPath(); x.moveTo(0, -r + 2); x.lineTo(-9, -r + 18); x.lineTo(9, -r + 18); x.closePath(); x.fill();
+  x.restore(); label(x, v === 'normal' ? 'NORMAL' : 'EMERGENCY', cx, cy + S / 2 - 4, 25);
 }
-const FAULTS = ['OVERLOAD', 'SHORT CIRCUIT', 'POWER FAILURE'];
-
-function ruleBlock(x: CanvasRenderingContext2D, n: number, when: string[], cut: number, y: number, h: number) {
-  const left = MX + 6, colX = left + 128, right = W - MX - 6;
-  // rule number column
-  x.textAlign = 'center'; x.fillStyle = BRASS_D; x.font = F.display(600, 15); spaced(x, 'RULE', left + 50, y + 36, 3);
-  x.fillStyle = INK; x.font = F.display(800, 64); x.textAlign = 'center'; x.fillText(String(n).padStart(2, '0'), left + 50, y + 100);
-  x.strokeStyle = BRASS; x.lineWidth = 1.4; x.beginPath(); x.moveTo(left + 112, y + 18); x.lineTo(left + 112, y + h - 22); x.stroke();
-  // condition
-  const otherwise = when[0] === 'NO OTHER RULE APPLIES';
-  x.textAlign = 'left'; x.fillStyle = INK2; x.font = F.body(21, 400, true); x.fillText(otherwise ? 'Otherwise' : 'If', colX, y + 38);
-  let cy = y + 82, cx = colX; x.font = F.tech(38, 700);
-  when.forEach((w, i) => {
-    const isFault = FAULTS.includes(w), label = otherwise ? 'NO OTHER RULE APPLIES' : w, tw = x.measureText(label).width + (isFault ? 34 : 0);
-    if (cx + tw > right - 10 && cx > colX) { cx = colX; cy += 46; }
-    if (isFault) { faultIcon(x, w, cx + 13, cy - 13); cx += 34; }
-    x.fillStyle = otherwise ? INK2 : INK; x.fillText(label, cx, cy); cx += x.measureText(label).width;
-    if (i < when.length - 1) { x.fillStyle = BRASS_D; x.font = F.tech(34, 500); x.fillText('  +  ', cx, cy); cx += x.measureText('  +  ').width; x.font = F.tech(38, 700); }
-  });
-  // CUT instruction — burgundy, with an engraved terminal badge
-  const ky = cy + 62; x.fillStyle = BURGUNDY; x.font = F.tech(34, 700); x.fillText('→  CUT TERMINAL', colX, ky);
-  const bx = colX + x.measureText('→  CUT TERMINAL').width + 18, label = TERMINALS[cut];
-  x.font = F.mono(38, 700); const bw = x.measureText(label).width + 30;
-  x.strokeStyle = BURGUNDY; x.lineWidth = 3; roundRect(x, bx, ky - 38, bw, 50, 7); x.stroke(); x.lineWidth = 1; roundRect(x, bx + 5, ky - 33, bw - 10, 40, 4); x.stroke();
-  x.fillText(label, bx + 15, ky);
-  // divider
-  x.strokeStyle = 'rgba(155,118,56,.55)'; x.lineWidth = 1.2; x.beginPath(); x.moveTo(left, y + h); x.lineTo(right, y + h); x.stroke();
+function plate(x: X, cx: number, cy: number, chars: string, hl: number[], w = 128) {
+  const h = 54; x.fillStyle = '#1c1612'; rr(x, cx - w / 2, cy - h / 2, w, h, 6); x.fill(); x.strokeStyle = BRASS; x.lineWidth = 4; rr(x, cx - w / 2, cy - h / 2, w, h, 6); x.stroke();
+  x.font = F.mono(30, 700); x.textAlign = 'center'; x.textBaseline = 'middle'; const step = (w - 22) / chars.length;
+  [...chars].forEach((c, i) => { const px = cx - w / 2 + 11 + step * (i + .5); if (hl.includes(i)) { x.fillStyle = '#b3221a'; rr(x, px - step / 2 + 2, cy - 19, step - 4, 38, 4); x.fill(); x.fillStyle = '#f5ecd6'; } else x.fillStyle = 'rgba(240,229,201,.5)'; x.fillText(c, px, cy + 1); });
 }
-function roundRect(x: CanvasRenderingContext2D, px: number, py: number, w: number, h: number, r: number) { x.beginPath(); x.moveTo(px + r, py); x.arcTo(px + w, py, px + w, py + h, r); x.arcTo(px + w, py + h, px, py + h, r); x.arcTo(px, py + h, px, py, r); x.arcTo(px, py, px + w, py, r); x.closePath(); }
-
-function instructionBox(x: CanvasRenderingContext2D, y: number) {
-  const x0 = MX, x1 = W - MX, h = 132; x.fillStyle = 'rgba(107,23,24,.06)'; x.fillRect(x0, y, x1 - x0, h);
-  x.strokeStyle = BURGUNDY; x.lineWidth = 2.4; x.strokeRect(x0, y, x1 - x0, h); x.lineWidth = .9; x.strokeRect(x0 + 6, y + 6, x1 - x0 - 12, h - 12);
-  for (const [cx, cy] of [[x0, y], [x1, y], [x0, y + h], [x1, y + h]]) diamond(x, cx, cy, 7, BURGUNDY);
-  x.fillStyle = BURGUNDY; x.font = F.tech(33, 700); x.textAlign = 'center'; x.fillText('FIRST MATCHING RULE WINS.', W / 2, y + 46);
-  x.fillStyle = INK; x.font = F.tech(26, 500); x.fillText('CHECK RULES FROM TOP TO BOTTOM  ·  WIRE POSITIONS ARE COUNTED LEFT TO RIGHT', W / 2, y + 92);
+function iconSerial(x: X, k: 'odd' | 'even' | 'vowel', cx: number, cy: number) {
+  if (k === 'vowel') { plate(x, cx, cy - 26, 'A E U', [0, 2, 4]); label(x, 'VOWEL IN', cx, cy + 32, 24); label(x, 'SERIAL', cx, cy + 58, 24); return; }
+  plate(x, cx, cy - 26, '••••' + (k === 'odd' ? '7' : '4'), [4]);
+  label(x, k === 'odd' ? 'LAST DIGIT' : 'LAST DIGIT', cx, cy + 32, 24); label(x, k === 'odd' ? 'ODD' : 'EVEN', cx, cy + 60, 28, BURGUNDY);
 }
-
-export function drawRulePage(x: CanvasRenderingContext2D, p: RulePage, index: number) {
-  const sec: RuleSection = RULES[p.section], side = p.half ? 1 : -1;
-  paper(x, index + 41, side, true);
-  if (p.half === 0) {
-    head(x, "THE ENGINEER’S MANUAL", index + 1, side);
-    x.fillStyle = BURGUNDY; x.font = F.display(600, 30); x.textAlign = 'left'; spacedLeft(x, `SECTION ${sec.numeral}`, MX, 186, 5);
-    x.fillStyle = INK; x.font = F.display(800, 70); x.fillText(sec.title, MX - 4, 262);
-    terminalStrip(x, sec.wires, W - MX - 150, 222, sec.wires * 46);
-    brassRule(x, MX, W - MX, 296, true);
-    instructionBox(x, 326);
-    const top = 492, bh = (H - 140 - top) / 4; sec.rules.slice(0, 4).forEach((r, i) => ruleBlock(x, i + 1, r.when, r.cut, top + i * bh, bh));
-    foot(x, `Section ${sec.numeral} · ${sec.wires} conductors · Rules 01–04`);
-  } else {
-    head(x, 'EMERGENCY DISCONNECTION PROTOCOL', index + 1, side);
-    x.fillStyle = INK2; x.font = F.display(600, 24); x.textAlign = 'left'; spacedLeft(x, `SECTION ${sec.numeral} — ${sec.title}  ·  RULES 05–08`, MX, 178, 3);
-    brassRule(x, MX, W - MX, 204, true);
-    const top = 226, bh = (H - 330 - top) / 4; sec.rules.slice(4, 8).forEach((r, i) => ruleBlock(x, i + 5, r.when, r.cut, top + i * bh, bh));
-    // closing reminder with a small engraved cog
-    const y = H - 300; cog(x, MX + 38, y + 56, 30); x.textAlign = 'left'; x.fillStyle = INK; x.font = F.body(22, 400, true);
-    x.fillText('One cut only. A severed conductor cannot be rejoined', MX + 92, y + 46); x.fillText('within the car. When in doubt, test the circuit again.', MX + 92, y + 78);
-    foot(x, `Section ${sec.numeral} · ${sec.wires} conductors · Rules 05–08`);
+const ORD = ['1ST', '2ND', '3RD', '4TH', '5TH', '6TH'];
+function iconPos(x: X, c: Extract<Cond, {k: 'pos'}>, n: number, cx: number, cy: number) {
+  const i = c.at === 'last' ? n - 1 : c.at; strip(x, cx, cy - 16, n, i, c.color, n > 5 ? 22 : 25);
+  label(x, `${c.at === 'last' ? 'LAST' : ORD[c.at]} = ${c.color.toUpperCase()}`, cx, cy + S / 2 - 4, 24);
+}
+function iconNone(x: X, color: WireColor, cx: number, cy: number) {
+  wire(x, cx, cy - 58, cy + 22, color, 20);
+  x.strokeStyle = '#b3221a'; x.lineWidth = 7; x.beginPath(); x.arc(cx, cy - 18, 46, 0, 7); x.stroke(); x.beginPath(); x.moveTo(cx - 32, cy + 14); x.lineTo(cx + 32, cy - 50); x.stroke();
+  label(x, `NO ${color.toUpperCase()}`, cx, cy + S / 2 - 4, 25);
+}
+function iconHas(x: X, color: WireColor, cx: number, cy: number) {
+  wire(x, cx, cy - 58, cy + 22, color, 20);
+  x.strokeStyle = '#2f6b33'; x.lineWidth = 6; x.beginPath(); x.arc(cx + 34, cy - 50, 16, 0, 7); x.stroke(); x.beginPath(); x.moveTo(cx + 26, cy - 50); x.lineTo(cx + 32, cy - 43); x.lineTo(cx + 43, cy - 58); x.stroke();
+  label(x, `ANY ${color.toUpperCase()}`, cx, cy + S / 2 - 4, 25);
+}
+function iconLeftOf(x: X, a: WireColor, b: WireColor, cx: number, cy: number) {
+  wire(x, cx - 40, cy - 58, cy + 18, a, 18); wire(x, cx + 40, cy - 58, cy + 18, b, 18);
+  x.fillStyle = INK; x.font = F.tech(34, 700); x.textAlign = 'center'; x.fillText('…', cx, cy - 10);
+  label(x, `${a.toUpperCase()} BEFORE ${b.toUpperCase()}`, cx, cy + S / 2 - 4, 22);
+}
+function iconElse(x: X, cx: number, cy: number) {
+  x.strokeStyle = INK; x.lineWidth = 3; x.setLineDash([8, 6]); rr(x, cx - 66, cy - 58, 132, 92, 10); x.stroke(); x.setLineDash([]);
+  x.fillStyle = INK; x.font = F.tech(46, 700); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('ELSE', cx, cy - 12); x.textBaseline = 'alphabetic';
+  label(x, 'NO RULE ABOVE', cx, cy + S / 2 - 4, 22, INK2);
+}
+export function drawCond(x: X, c: Cond, n: number, cx: number, cy: number) {
+  switch (c.k) {
+    case 'fault': return iconFault(x, c.v, cx, cy); case 'mode': return iconMode(x, c.v, cx, cy);
+    case 'pos': return iconPos(x, c, n, cx, cy); case 'none': return iconNone(x, c.color, cx, cy); case 'has': return iconHas(x, c.color, cx, cy);
+    case 'leftOf': return iconLeftOf(x, c.a, c.b, cx, cy); case 'odd': case 'even': case 'vowel': return iconSerial(x, c.k, cx, cy); case 'else': return iconElse(x, cx, cy);
   }
 }
-function spacedLeft(x: CanvasRenderingContext2D, t: string, px: number, y: number, sp: number) { for (const c of t) { x.fillText(c, px, y); px += x.measureText(c).width + sp; } }
 
-/** small meter engraving with the needle where each fault leaves it */
-function meterSketch(x: CanvasRenderingContext2D, cx: number, cy: number, r: number, fault: number) {
-  x.save(); x.strokeStyle = INK; x.lineWidth = 2; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.stroke(); x.lineWidth = .8; x.beginPath(); x.arc(cx, cy, r - 5, 0, 7); x.stroke();
-  const ang = (v: number) => Math.PI * .75 + v / 10 * Math.PI * 1.5;
-  x.lineWidth = 6; x.strokeStyle = 'rgba(107,23,24,.55)'; x.beginPath(); x.arc(cx, cy, r - 14, ang(8), ang(10)); x.stroke();
-  x.lineWidth = 1.2; x.strokeStyle = INK; for (let v = 0; v <= 10; v++) { const a = ang(v); x.beginPath(); x.moveTo(cx + Math.cos(a) * (r - 18), cy + Math.sin(a) * (r - 18)); x.lineTo(cx + Math.cos(a) * (r - 8), cy + Math.sin(a) * (r - 8)); x.stroke(); }
-  const needle = (v: number, a = 1) => { x.globalAlpha = a; x.lineWidth = 2.6; x.strokeStyle = BURGUNDY; const t = ang(v); x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.cos(t) * (r - 16), cy + Math.sin(t) * (r - 16)); x.stroke(); x.globalAlpha = 1; };
-  if (fault === 0) needle(9.2); else if (fault === 1) { needle(2.5, .3); needle(6.5, .45); needle(4.2, .6); needle(7.6, .9); } else needle(.2);
-  x.fillStyle = INK; x.beginPath(); x.arc(cx, cy, 4, 0, 7); x.fill(); x.restore();
+/** wire cutters (shared action symbol) */
+function cutter(x: X, cx: number, cy: number, s = 1) {
+  x.save(); x.translate(cx, cy); x.scale(s, s); x.rotate(-.5);
+  x.fillStyle = '#7d1a16'; x.strokeStyle = INK; x.lineWidth = 3;
+  for (const d of [-1, 1]) { x.beginPath(); x.moveTo(0, 0); x.quadraticCurveTo(-18, d * 10, -46, d * 16); x.lineTo(-48, d * 6); x.quadraticCurveTo(-20, d * 2, 0, 0); x.closePath(); x.fill(); x.stroke(); }
+  x.fillStyle = '#6f6a62'; for (const d of [-1, 1]) { x.beginPath(); x.moveTo(0, 0); x.lineTo(30, d * 8); x.lineTo(32, d * 1); x.closePath(); x.fill(); x.stroke(); }
+  x.fillStyle = INK; x.beginPath(); x.arc(0, 0, 5, 0, 7); x.fill(); x.restore();
+}
+/** CUT target: cutters + engraved terminal tag + mini strip showing which position it is */
+function target(x: X, t: number, n: number, cx: number, cy: number) {
+  cutter(x, cx - 70, cy - 38, 1.15);
+  x.fillStyle = '#1c1612'; rr(x, cx - 30, cy - 70, 104, 64, 8); x.fill(); x.strokeStyle = BURGUNDY; x.lineWidth = 5; rr(x, cx - 30, cy - 70, 104, 64, 8); x.stroke();
+  x.fillStyle = '#f5ecd6'; x.font = F.mono(44, 700); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(TERMINALS[t], cx + 22, cy - 37); x.textBaseline = 'alphabetic';
+  const sw = 16, w = n * sw; for (let i = 0; i < n; i++) { const px = cx - w / 2 + sw * (i + .5) + 2; x.fillStyle = i === t ? BURGUNDY : 'rgba(20,11,5,.25)'; x.fillRect(px - 4, cy + 4, 8, i === t ? 34 : 24); }
+  label(x, `${ORD[t]} WIRE`, cx + 2, cy + 64, 22, BURGUNDY);
 }
 
-export function drawGuidePage(x: CanvasRenderingContext2D, index: number) {
-  paper(x, index + 31, 1, true); head(x, 'INDUSTRIAL EMERGENCY DIAGNOSTICS', index + 1, 1);
-  x.fillStyle = INK; x.font = F.display(800, 50); x.textAlign = 'center'; x.fillText('Procedure', W / 2, 190); brassRule(x, MX, W - MX, 222, true);
-  const steps: [string, string][] = [
-    ['OPEN THE JUNCTION BOX', 'Turn the brass latch a quarter turn and swing the door wide.'],
-    ['COUNT THE CONDUCTORS', 'Four, five or six wires. The count names the section to use.'],
-    ['PRESS “TEST CIRCUIT”', 'Watch the meter needle for two seconds and identify the fault.'],
-    ['READ MODE AND SERIAL NO.', 'Note the selector position and the plate above the terminals.'],
-    ['APPLY THE SECTION RULES', 'Top to bottom. The first rule that matches decides the cut.'],
-  ];
-  let y = 278; steps.forEach(([a, b], i) => {
-    x.fillStyle = BURGUNDY; x.font = F.display(800, 40); x.textAlign = 'left'; x.fillText(String(i + 1), MX + 4, y + 30);
-    x.fillStyle = INK; x.font = F.tech(32, 700); x.fillText(a, MX + 60, y + 24); x.fillStyle = INK2; x.font = F.body(21); x.fillText(b, MX + 60, y + 58); y += 96;
+// ------------------------------------------------------------------ page
+function header(x: X, sec: RuleSection, side: number, page: number, cont: boolean) {
+  x.textBaseline = 'alphabetic';
+  x.fillStyle = INK; x.font = F.display(800, cont ? 46 : 74); x.textAlign = 'left'; x.fillText('WIRE MODULE', MX, cont ? 118 : 150);
+  x.fillStyle = BURGUNDY; x.font = F.tech(cont ? 40 : 52, 700); x.fillText(`${sec.wires} WIRES`, MX + 2, cont ? 168 : 218);
+  // small diagram of the module: n wires between two rails
+  const n = sec.wires, w = n * 30, cx = W - MX - w / 2 - 10, top = cont ? 78 : 104, h = cont ? 92 : 120;
+  x.strokeStyle = INK; x.lineWidth = 4; x.beginPath(); x.moveTo(cx - w / 2 - 12, top); x.lineTo(cx + w / 2 + 12, top); x.moveTo(cx - w / 2 - 12, top + h); x.lineTo(cx + w / 2 + 12, top + h); x.stroke();
+  const cols: WireColor[] = ['red', 'yellow', 'blue', 'green', 'purple', 'white'];
+  for (let i = 0; i < n; i++) { const px = cx - w / 2 + 30 * (i + .5); wire(x, px, top + 12, top + h - 12, cols[i], 12); x.fillStyle = INK; x.font = F.mono(17, 700); x.textAlign = 'center'; x.fillText(TERMINALS[i], px, top - 10); }
+  x.font = F.tech(22, 700); x.fillStyle = INK2; x.textAlign = side > 0 ? 'right' : 'left'; x.fillText(String(page), side > 0 ? W - MX : MX, H - 58);
+  const y = cont ? 200 : 256; x.strokeStyle = INK; x.lineWidth = 3; x.beginPath(); x.moveTo(MX, y); x.lineTo(W - MX, y); x.stroke();
+  if (!cont) { // priority: one line + a downward arrow
+    x.fillStyle = BURGUNDY; x.font = F.tech(36, 700); x.textAlign = 'left'; x.fillText('FIRST MATCH WINS', MX + 54, y + 52);
+    x.strokeStyle = BURGUNDY; x.lineWidth = 6; x.lineCap = 'round'; x.beginPath(); x.moveTo(MX + 20, y + 20); x.lineTo(MX + 20, y + 58); x.moveTo(MX + 8, y + 46); x.lineTo(MX + 20, y + 60); x.lineTo(MX + 32, y + 46); x.stroke();
+    x.fillStyle = INK2; x.font = F.tech(26, 500); x.fillText('COUNT WIRES LEFT → RIGHT', MX + 330, y + 52);
+  }
+  return cont ? y + 14 : y + 84;
+}
+
+function ruleRow(x: X, num: number, cond: Cond[], cut: number, n: number, y: number, h: number) {
+  const cy = y + h / 2 + 8;
+  x.fillStyle = INK; x.font = F.display(800, 70); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(num).padStart(2, '0'), MX + 52, y + h / 2); x.textBaseline = 'alphabetic';
+  // condition cells (1 or 2), "+" between them
+  const c0 = MX + 130, cell = 168;
+  cond.forEach((c, i) => {
+    const cx = c0 + cell / 2 + i * (cell + 44);
+    x.fillStyle = 'rgba(255,250,235,.55)'; rr(x, cx - cell / 2, y + 14, cell, h - 28, 12); x.fill(); x.strokeStyle = 'rgba(20,11,5,.35)'; x.lineWidth = 2; rr(x, cx - cell / 2, y + 14, cell, h - 28, 12); x.stroke();
+    drawCond(x, c, n, cx, cy);
+    if (i < cond.length - 1) { x.fillStyle = INK; x.font = F.tech(54, 700); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('+', cx + cell / 2 + 22, y + h / 2); x.textBaseline = 'alphabetic'; }
   });
-  brassRule(x, MX, W - MX, y + 4); x.fillStyle = INK; x.font = F.display(600, 26); x.textAlign = 'center'; spaced(x, 'READING THE METER', W / 2, y + 52, 3);
-  const names = ['OVERLOAD', 'SHORT CIRCUIT', 'POWER FAILURE'], notes = ['Needle pinned in the red', 'Needle jumps erratically', 'Needle sinks to zero'];
-  names.forEach((n, i) => { const cx = MX + 140 + i * ((W - 2 * MX - 280) / 2), cy = y + 170; meterSketch(x, cx, cy, 78, i); faultIcon(x, n, cx - x.measureText(n).width / 2 - 26, cy + 128);
-    x.fillStyle = INK; x.font = F.tech(28, 700); x.textAlign = 'center'; x.fillText(n, cx + 10, cy + 128); x.fillStyle = INK2; x.font = F.body(18, 400, true); x.fillText(notes[i], cx, cy + 160); });
-  foot(x, 'Hartwell Lift & Hoist Co. · Form VII · Rules apply to every car of this pattern');
-  void rng;
+  // arrow and target
+  const ax = c0 + 2 * cell + 44 + 18; x.strokeStyle = INK; x.lineWidth = 6; x.lineCap = 'round'; x.beginPath(); x.moveTo(ax, y + h / 2); x.lineTo(ax + 44, y + h / 2); x.moveTo(ax + 30, y + h / 2 - 14); x.lineTo(ax + 46, y + h / 2); x.lineTo(ax + 30, y + h / 2 + 14); x.stroke();
+  target(x, cut, n, W - MX - 92, cy);
+  x.strokeStyle = RULE_LINE; x.lineWidth = 2; x.beginPath(); x.moveTo(MX, y + h); x.lineTo(W - MX, y + h); x.stroke();
+}
+
+export function drawRulePage(x: X, p: RulePage, index: number) {
+  const sec = RULES[p.section], side = p.half ? 1 : -1; paper(x, index + 41, side, true);
+  const top = header(x, sec, side, index + 1, p.half === 1), bottom = H - 96, h = (bottom - top) / 4;
+  sec.rules.slice(p.half * 4, p.half * 4 + 4).forEach((r, i) => ruleRow(x, p.half * 4 + i + 1, r.cond, r.cut, sec.wires, top + i * h, h));
+}
+
+/** SYMBOL KEY page: every icon once, with its meaning (replaces the old prose procedure) */
+export function drawGuidePage(x: X, index: number) {
+  paper(x, index + 31, 1, true); x.textBaseline = 'alphabetic';
+  x.fillStyle = INK; x.font = F.display(800, 66); x.textAlign = 'left'; x.fillText('SYMBOL KEY', MX, 140);
+  x.strokeStyle = INK; x.lineWidth = 3; x.beginPath(); x.moveTo(MX, 172); x.lineTo(W - MX, 172); x.stroke();
+  const cells: [Cond, string][] = [
+    [{k: 'fault', v: 'overload'}, 'needle in the red'], [{k: 'fault', v: 'short'}, 'needle jumps'], [{k: 'fault', v: 'power'}, 'needle sinks to 0'],
+    [{k: 'mode', v: 'normal'}, 'selector on N'], [{k: 'mode', v: 'emergency'}, 'selector on E'], [{k: 'vowel'}, 'A, E or U anywhere'],
+    [{k: 'odd'}, '1 3 5 7 9'], [{k: 'even'}, '0 2 4 6 8'], [{k: 'pos', at: 0, color: 'red'}, 'wire position'],
+  ];
+  const cw = (W - 2 * MX) / 3, ch = 300;
+  cells.forEach(([c, note], i) => { const cx = MX + cw * (i % 3 + .5), cy = 300 + Math.floor(i / 3) * ch; drawCond(x, c, 4, cx, cy); x.fillStyle = INK2; x.font = F.body(22, 400, true); x.textAlign = 'center'; x.fillText(note, cx, cy + 112); });
+  const y = 300 + 3 * ch - 90; x.strokeStyle = RULE_LINE; x.lineWidth = 2; x.beginPath(); x.moveTo(MX, y); x.lineTo(W - MX, y); x.stroke();
+  target(x, 1, 4, W / 2 + 120, y + 130); x.fillStyle = INK; x.font = F.tech(34, 700); x.textAlign = 'left'; x.fillText('CUT THIS', MX + 20, y + 110); x.fillText('TERMINAL', MX + 20, y + 150);
+  x.font = F.tech(22, 700); x.fillStyle = INK2; x.textAlign = 'right'; x.fillText(String(index + 1), W - MX, H - 58);
 }

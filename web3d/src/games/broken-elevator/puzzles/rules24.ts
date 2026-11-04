@@ -8,52 +8,72 @@ import type {WireColor} from './wire-puzzle';
 
 export const TERMINALS = ['A1', 'B2', 'C3', 'D4', 'E5', 'F6'] as const;
 export interface PanelState { fault: Fault; mode: Mode; wires: WireColor[]; serial: string }
-export interface Rule { when: string[]; cut: number; test: (s: PanelState) => boolean }
+/** Structured condition: drives the icon renderer, the text fallback and the evaluator. */
+export type Cond =
+  | {k: 'fault'; v: Fault} | {k: 'mode'; v: Mode}
+  | {k: 'pos'; at: number | 'last'; color: WireColor}       // wire at position (0-based) or the last one has colour
+  | {k: 'none'; color: WireColor} | {k: 'has'; color: WireColor}
+  | {k: 'leftOf'; a: WireColor; b: WireColor}
+  | {k: 'odd'} | {k: 'even'} | {k: 'vowel'} | {k: 'else'};
+export interface Rule { cond: Cond[]; when: string[]; cut: number; test: (s: PanelState) => boolean }
 export interface RuleSection { numeral: string; title: string; wires: 4 | 5 | 6; rules: Rule[] }
 
 const FAULT = {overload: 'OVERLOAD', short: 'SHORT CIRCUIT', power: 'POWER FAILURE'} as const;
-const lastDigit = (s: PanelState) => +s.serial[s.serial.length - 1];
-const vowel = (s: PanelState) => /[AEU]/.test(s.serial);
-const f = (k: Fault) => (s: PanelState) => s.fault === k, m = (k: Mode) => (s: PanelState) => s.mode === k;
-const first = (c: WireColor) => (s: PanelState) => s.wires[0] === c, last = (c: WireColor) => (s: PanelState) => s.wires[s.wires.length - 1] === c;
-const nth = (i: number, c: WireColor) => (s: PanelState) => s.wires[i] === c, none = (c: WireColor) => (s: PanelState) => !s.wires.includes(c);
-const count = (c: WireColor, n: number) => (s: PanelState) => s.wires.filter(w => w === c).length === n;
-const odd = (s: PanelState) => lastDigit(s) % 2 === 1, even = (s: PanelState) => lastDigit(s) % 2 === 0;
-const leftOf = (a: WireColor, b: WireColor) => (s: PanelState) => s.wires.includes(a) && s.wires.includes(b) && s.wires.indexOf(a) < s.wires.indexOf(b);
-const all = (...t: ((s: PanelState) => boolean)[]) => (s: PanelState) => t.every(x => x(s));
-const R = (when: string[], cut: string, test: (s: PanelState) => boolean): Rule => ({when, cut: TERMINALS.indexOf(cut as any), test});
-const ALWAYS = () => true;
+const ORD = ['FIRST', 'SECOND', 'THIRD', 'FOURTH', 'FIFTH', 'SIXTH'];
+export function evalCond(c: Cond, s: PanelState): boolean {
+  switch (c.k) {
+    case 'fault': return s.fault === c.v; case 'mode': return s.mode === c.v;
+    case 'pos': return s.wires[c.at === 'last' ? s.wires.length - 1 : c.at] === c.color;
+    case 'none': return !s.wires.includes(c.color); case 'has': return s.wires.includes(c.color);
+    case 'leftOf': return s.wires.includes(c.a) && s.wires.includes(c.b) && s.wires.indexOf(c.a) < s.wires.indexOf(c.b);
+    case 'odd': return +s.serial[s.serial.length - 1] % 2 === 1; case 'even': return +s.serial[s.serial.length - 1] % 2 === 0;
+    case 'vowel': return /[AEU]/.test(s.serial); case 'else': return true;
+  }
+}
+export function condText(c: Cond): string {
+  switch (c.k) {
+    case 'fault': return FAULT[c.v]; case 'mode': return `${c.v.toUpperCase()} MODE`;
+    case 'pos': return `${c.at === 'last' ? 'LAST' : ORD[c.at]} WIRE ${c.color.toUpperCase()}`;
+    case 'none': return `NO ${c.color.toUpperCase()} WIRE`; case 'has': return `A ${c.color.toUpperCase()} WIRE IS PRESENT`;
+    case 'leftOf': return `${c.a.toUpperCase()} LEFT OF ${c.b.toUpperCase()}`;
+    case 'odd': return 'SERIAL ENDS IN ODD DIGIT'; case 'even': return 'SERIAL ENDS IN EVEN DIGIT'; case 'vowel': return 'SERIAL CONTAINS A VOWEL'; case 'else': return 'NO OTHER RULE APPLIES';
+  }
+}
+const R = (cond: Cond[], cut: string): Rule => ({cond, when: cond.map(condText), cut: TERMINALS.indexOf(cut as any), test: s => cond.every(c => evalCond(c, s))});
+const F = (v: Fault): Cond => ({k: 'fault', v}), M = (v: Mode): Cond => ({k: 'mode', v}), P = (at: number | 'last', color: WireColor): Cond => ({k: 'pos', at, color});
+const ODD: Cond = {k: 'odd'}, EVEN: Cond = {k: 'even'}, VOWEL: Cond = {k: 'vowel'}, ELSE: Cond = {k: 'else'};
 
+// Same 24 rules, same order and targets as before — only expressed as structured conditions.
 export const RULES: RuleSection[] = [
   {numeral: 'I', title: 'FOUR WIRES', wires: 4, rules: [
-    R([FAULT.overload, 'FIRST WIRE RED'], 'B2', all(f('overload'), first('red'))),
-    R([FAULT.short, 'NO BLUE WIRE'], 'D4', all(f('short'), none('blue'))),
-    R([FAULT.power, 'EMERGENCY MODE'], 'A1', all(f('power'), m('emergency'))),
-    R(['LAST WIRE WHITE', 'SERIAL ENDS IN ODD DIGIT'], 'C3', all(last('white'), odd)),
-    R([FAULT.overload, 'EMERGENCY MODE'], 'D4', all(f('overload'), m('emergency'))),
-    R([FAULT.short, 'SERIAL CONTAINS A VOWEL'], 'A1', all(f('short'), vowel)),
-    R(['A YELLOW WIRE IS PRESENT'], 'C3', count('yellow', 1)),
-    R(['NO OTHER RULE APPLIES'], 'B2', ALWAYS),
+    R([F('overload'), P(0, 'red')], 'B2'),
+    R([F('short'), {k: 'none', color: 'blue'}], 'D4'),
+    R([F('power'), M('emergency')], 'A1'),
+    R([P('last', 'white'), ODD], 'C3'),
+    R([F('overload'), M('emergency')], 'D4'),
+    R([F('short'), VOWEL], 'A1'),
+    R([{k: 'has', color: 'yellow'}], 'C3'),
+    R([ELSE], 'B2'),
   ]},
   {numeral: 'II', title: 'FIVE WIRES', wires: 5, rules: [
-    R([FAULT.power, 'FIRST WIRE GREEN'], 'E5', all(f('power'), first('green'))),
-    R([FAULT.overload, 'NO RED WIRE'], 'C3', all(f('overload'), none('red'))),
-    R([FAULT.short, 'EMERGENCY MODE'], 'B2', all(f('short'), m('emergency'))),
-    R(['THIRD WIRE BLUE', 'SERIAL ENDS IN EVEN DIGIT'], 'D4', all(nth(2, 'blue'), even)),
-    R([FAULT.overload, 'NORMAL MODE'], 'A1', all(f('overload'), m('normal'))),
-    R([FAULT.short, 'LAST WIRE PURPLE'], 'E5', all(f('short'), last('purple'))),
-    R(['SERIAL CONTAINS A VOWEL'], 'D4', vowel),
-    R(['NO OTHER RULE APPLIES'], 'C3', ALWAYS),
+    R([F('power'), P(0, 'green')], 'E5'),
+    R([F('overload'), {k: 'none', color: 'red'}], 'C3'),
+    R([F('short'), M('emergency')], 'B2'),
+    R([P(2, 'blue'), EVEN], 'D4'),
+    R([F('overload'), M('normal')], 'A1'),
+    R([F('short'), P('last', 'purple')], 'E5'),
+    R([VOWEL], 'D4'),
+    R([ELSE], 'C3'),
   ]},
   {numeral: 'III', title: 'SIX WIRES', wires: 6, rules: [
-    R([FAULT.short, 'FIRST WIRE WHITE'], 'F6', all(f('short'), first('white'))),
-    R([FAULT.power, 'NORMAL MODE'], 'B2', all(f('power'), m('normal'))),
-    R([FAULT.overload, 'RED LEFT OF BLUE'], 'E5', all(f('overload'), leftOf('red', 'blue'))),
-    R(['EMERGENCY MODE', 'SERIAL ENDS IN ODD DIGIT'], 'A1', all(m('emergency'), odd)),
-    R([FAULT.power, 'LAST WIRE YELLOW'], 'D4', all(f('power'), last('yellow'))),
-    R([FAULT.short, 'SERIAL CONTAINS A VOWEL'], 'C3', all(f('short'), vowel)),
-    R([FAULT.overload], 'F6', f('overload')),
-    R(['NO OTHER RULE APPLIES'], 'D4', ALWAYS),
+    R([F('short'), P(0, 'white')], 'F6'),
+    R([F('power'), M('normal')], 'B2'),
+    R([F('overload'), {k: 'leftOf', a: 'red', b: 'blue'}], 'E5'),
+    R([M('emergency'), ODD], 'A1'),
+    R([F('power'), P('last', 'yellow')], 'D4'),
+    R([F('short'), VOWEL], 'C3'),
+    R([F('overload')], 'F6'),
+    R([ELSE], 'D4'),
   ]},
 ];
 
