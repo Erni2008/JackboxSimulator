@@ -68,8 +68,10 @@ async function boot() {
   const press = new PressureMachine(quality === 'high');
   if (ci) press.group.position.set(ci.max.x - .006, floorY + 1.28, .12); else press.group.position.set(1.2, 1.3, .1);
   press.group.rotation.y = -Math.PI / 2; scene.add(press.group); press.group.updateMatrixWorld(true);
-  press.sounds = {click: () => audio.play('valveClick'), turn: () => audio.play('valveTurn'), knock: k => audio.play('pipeKnock', k), alarm: () => audio.play('alarm'), tick: k => audio.play('holdTick', k), steam: (h, r) => audio.steam(h, r)};
-  const link = new PressureLink(); press.onValve = (v, p) => link.setValve(v, p);
+  press.sounds = {click: () => audio.play('valveClick'), turn: () => audio.play('valveTurn'), grind: () => audio.play('grind'), lever: () => audio.play('lever'), press: () => { audio.play('button'); audio.play('relay'); }, pull: () => audio.play('lever'),
+    knock: k => audio.play('pipeKnock', k), alarm: () => audio.play('alarm'), whistle: () => audio.play('whistle'), surge: () => audio.play('surge'), vent: k => audio.play('vent', k), burst: () => audio.play('burst'), tick: k => audio.play('holdTick', k), steam: (h, r) => audio.steam(h, r)};
+  const link = new PressureLink(); press.onAction = a => link.act(a);
+  link.onRejected = code => { if (code === 'EMERGENCY_USED') { $('hint').textContent = 'Аварийный сброс уже использован'; $('hint').style.opacity = '1'; } };
   link.onStatus = t => { if (t) $('hint').textContent = t; };
   let valvePointer: number | null = null;
   let focusTo: [number, number] | null = null, inspecting = false, inspectK = 0, inspectTarget: 'box' | 'pressure' = 'box';
@@ -77,20 +79,22 @@ async function boot() {
   // task kinds alternate: odd = wire cutting, even = pressure control (?task=pressure starts with pressure)
   const firstPressure = params.get('task') === 'pressure'; const kindOf = (n: number) => ((n % 2 === 0) !== firstPressure) ? 'pressure' : 'wire';
   let kind: 'wire' | 'pressure' = kindOf(1);
-  const hud = () => { $('task').textContent = `ЗАДАНИЕ ${taskNo} / ${TOTAL} · ${kind === 'pressure' ? 'ДАВЛЕНИЕ' : 'ПРОВОДА'}`; };
+  const hud = () => { $('task').textContent = `ЗАДАНИЕ ${taskNo} / ${TOTAL} · ${kind === 'pressure' ? 'КЛАПАНЫ' : 'ПРОВОДА'}`; };
   // result card: low on screen (≈85 % of the viewport), fades in, a small mechanical jolt, holds, fades out (~2 s)
   let verdictTimer: any = 0;
   const verdict = (ok: boolean, sub: string, title?: string) => { const v = $('verdict'); v.querySelector('b')!.textContent = title ?? (ok ? 'Цепь стабилизирована' : 'Критическая ошибка'); v.querySelector('span')!.textContent = sub; v.dataset.tone = ok ? 'good' : 'bad';
     v.classList.remove('show'); void v.offsetWidth; v.classList.add('show'); clearTimeout(verdictTimer); verdictTimer = setTimeout(() => v.classList.remove('show'), 2300); if (!ok) { document.body.classList.remove('jolt'); void document.body.offsetWidth; document.body.classList.add('jolt'); } };
   const newTask = (advance: boolean) => { if (advance) taskNo = Math.min(TOTAL, taskNo + 1); taskSeed++; kind = kindOf(taskNo);
     const t = makeTask(wireRules, taskSeed, wireCount || 4 + Math.floor(Math.random() * 3), fixed); box.setTask(t); box.configure(t.fault, t.mode); deadline = 0;
-    if (kind === 'pressure') { box.locked = true; press.enabled = true; link.start(); pressureDone = false; if (ui.state === 'rest' || ui.state === 'falling') { const d = press.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } }
+    if (kind === 'pressure') { box.locked = true; press.enabled = true; press.reset(); link.start(); pressureDone = false; if (ui.state === 'rest' || ui.state === 'falling') { const d = press.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } }
     else { press.enabled = false; link.stop(); }
     hud(); };
   // PRESSURE CONTROL outcome: decided by the server in a room (locally in practice); the client only reacts
   let pressureDone = false;
-  link.onOutcome = o => { if (kind !== 'pressure' || pressureDone) return; pressureDone = true; press.enabled = false; const ok = o === 'STABILIZED';
-    audio.play(ok ? 'good' : 'bad'); verdict(ok, ok ? 'РЕМОНТ УСПЕШЕН · СПУСК ОСТАНОВЛЕН' : 'ВРЕМЯ ВЫШЛО', ok ? 'Давление стабилизировано' : 'Отказ давления'); if (!ok) setTimeout(() => cage.drop?.(.8), 350);
+  // one penalty / reward per machine: pressureDone guards against repeated server pushes
+  link.onOutcome = (o, reason) => { if (kind !== 'pressure' || pressureDone) return; pressureDone = true; press.enabled = false; const ok = o === 'STABILIZED';
+    audio.play(ok ? 'good' : 'bad'); if (!ok) audio.play('burst');
+    verdict(ok, ok ? 'PRESSURE STABILIZED · СПУСК ОСТАНОВЛЕН' : 'PRESSURE SYSTEM FAILED · ' + (reason === 'CRITICAL' ? 'КРИТИЧЕСКОЕ ДАВЛЕНИЕ 120 PSI' : 'ВРЕМЯ ВЫШЛО'), ok ? 'Давление стабилизировано' : 'Отказ системы давления'); if (!ok) setTimeout(() => cage.drop?.(.8), 350);
     clearTimeout(pending); pending = setTimeout(() => { if (inspecting && inspectTarget === 'pressure') setInspect(false); setTimeout(() => newTask(ok), 400); }, 2600); };
   const finish = (ok: boolean, why: string) => { box.locked = true; box.setLamp(ok ? 'good' : 'bad'); audio.play(ok ? 'good' : 'bad'); verdict(ok, ok ? 'РЕМОНТ УСПЕШЕН' : why); hud(); deadline = 0; clearTimeout(pending); pending = setTimeout(() => { if (box.open) box.toggleDoor(); setTimeout(() => newTask(ok), 500); }, 2400); };
   box.onCut = i => { const ok = i === box.task!.answer; finish(ok, 'НЕВЕРНЫЙ ПРОВОД'); if (!ok) setTimeout(() => cage.drop?.(.8), 350); };
@@ -147,11 +151,14 @@ async function boot() {
   let last = performance.now(), acc = 0, frames = 0;
   // 360° look-around from the player's spot: drag to turn the head. Disabled while the book is in hand so page taps never rotate the view.
   const drag = new Map<number, {x: number; y: number}>(); const canLook = () => !free && !inspecting && valvePointer === null && (ui.state === 'rest' || ui.state === 'falling' || ui.lowered);
+  // machine controls grab the pointer before look-around and tap logic; a short, still press counts as a tap
+  let valveStart = {x: 0, y: 0, t: 0};
   renderer.domElement.addEventListener('pointerdown', e => { if (valvePointer !== null || free || !press.enabled || ((ui.state === 'reading' || ui.state === 'held') && !ui.lowered)) return;
-    ray.setFromCamera(new T.Vector2(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1), camera); const i = press.pick(ray);
-    if (i >= 0 && press.beginDrag(i, e.clientX, e.clientY, camera)) { valvePointer = e.pointerId; try { renderer.domElement.setPointerCapture(e.pointerId); } catch {} if (!inspecting) setInspect(true, 'pressure'); } });
-  addEventListener('pointermove', e => { if (e.pointerId === valvePointer) press.moveDrag(e.clientX, e.clientY); });
-  const endValve = (e: PointerEvent) => { if (e.pointerId !== valvePointer) return; press.endDrag(); setTimeout(() => { valvePointer = null; }, 0); };
+    ray.setFromCamera(new T.Vector2(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1), camera);
+    if (!inspecting) { if (press.hits(ray)) return; } // first tap on the machine only opens the close-up
+    if (press.pointerDown(ray, e.clientX, e.clientY, camera)) { valvePointer = e.pointerId; valveStart = {x: e.clientX, y: e.clientY, t: performance.now()}; try { renderer.domElement.setPointerCapture(e.pointerId); } catch {} } });
+  addEventListener('pointermove', e => { if (e.pointerId === valvePointer) press.pointerMove(e.clientX, e.clientY); });
+  const endValve = (e: PointerEvent) => { if (e.pointerId !== valvePointer) return; press.pointerUp(e.type === 'pointerup' && Math.hypot(e.clientX - valveStart.x, e.clientY - valveStart.y) < 10 && performance.now() - valveStart.t < 450); setTimeout(() => { valvePointer = null; }, 0); };
   addEventListener('pointerup', endValve); addEventListener('pointercancel', endValve);
   renderer.domElement.addEventListener('pointerdown', e => drag.set(e.pointerId, {x: e.clientX, y: e.clientY}));
   addEventListener('pointerup', e => drag.delete(e.pointerId)); addEventListener('pointercancel', e => drag.delete(e.pointerId));
@@ -166,13 +173,14 @@ async function boot() {
     inspectK += ((inspecting ? 1 : 0) - inspectK) * (1 - Math.exp(-dt * 6));
     if (free) orbit.update(); else if (inspectK > .001) {
       // close-up: stand ~55 cm in front of the panel (still inside the cage), framing meter + wires
-      const P = inspectTarget === 'pressure', tg = P ? press.group : box.group, c = P ? press.center() : box.center(), n = new T.Vector3(0, 0, 1).applyQuaternion(tg.getWorldQuaternion(new T.Quaternion())), at = c.clone().add(new T.Vector3(0, P ? 0 : .05, 0)), from = c.clone().addScaledVector(n, P ? (camera.aspect < .9 ? 1.25 : .82) : camera.aspect < .9 ? 1.3 : 1.12).add(new T.Vector3(0, P ? .06 : .09, 0));
+      const P = inspectTarget === 'pressure', tg = P ? press.group : box.group, c = P ? press.center() : box.center(), n = new T.Vector3(0, 0, 1).applyQuaternion(tg.getWorldQuaternion(new T.Quaternion())), at = c.clone().add(new T.Vector3(0, P ? 0 : .05, 0)), from = c.clone().addScaledVector(n, P ? (camera.aspect < .9 ? 1.75 : 1.05) : camera.aspect < .9 ? 1.3 : 1.12).add(new T.Vector3(0, P ? .06 : .09, 0));
       const look = new T.Quaternion().setFromRotationMatrix(new T.Matrix4().lookAt(from, at, new T.Vector3(0, 1, 0))), base = new T.Quaternion().setFromEuler(new T.Euler(pitch, yaw, 0, 'YXZ'));
       camera.position.copy(eye).lerp(from, inspectK); camera.quaternion.copy(base).slerp(look, inspectK);
       if (!inspecting && inspectK < .002) inspectK = 0;
     } else { camera.position.copy(eye); camera.quaternion.setFromEuler(new T.Euler(pitch, yaw, 0, 'YXZ')); }
     cage.update(dt); ui.update(dt); box.update(dt); press.update(dt, link.view());
     if (focusTo) { let dy = focusTo[0] - yawT; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yawT += dy * Math.min(1, dt * 5); pitchT += (focusTo[1] - pitchT) * Math.min(1, dt * 5); if (Math.abs(dy) < .002 && Math.abs(focusTo[1] - pitchT) < .002) focusTo = null; }
+    document.body.classList.toggle('surge', kind === 'pressure' && !!link.view()?.surgeWarning);
     if (kind === 'pressure') { const v = link.view(), lim = PRESSURE_LIMIT_MS / 1000, left = v ? (v.outcome === 'RUNNING' ? Math.max(0, (v.deadline - performance.now()) / 1000) : 0) : lim;
       $('clock-num').textContent = String(Math.ceil(left)); ($('clock-ring') as any).style.strokeDashoffset = String(176 * (1 - left / lim)); $('clock').dataset.urgent = String(!!v && v.outcome === 'RUNNING' && left < 10); }
     else { const left = deadline ? Math.max(0, (deadline - performance.now()) / 1000) : LIMIT; $('clock-num').textContent = String(Math.ceil(left)); ($('clock-ring') as any).style.strokeDashoffset = String(176 * (1 - left / LIMIT)); $('clock').dataset.urgent = String(!!deadline && left < 10); if (deadline && left <= 0 && !box.locked) { finish(false, 'ВРЕМЯ ВЫШЛО'); setTimeout(() => cage.drop?.(.8), 350); } }

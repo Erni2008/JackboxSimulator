@@ -1,89 +1,110 @@
-// PRESSURE CONTROL end-to-end: real pointer drags on the 3D valves (mouse + touch), practice mode and room mode
-// (server-authoritative pressure, success + repair reward, timeout -> failure -> the car drops).
+// THE BROKEN VALVES end-to-end — every control is operated through real pointer input on the 3D machine
+// (mouse and touch): TEST + fault code, the fault's behaviour, BYPASS, FINE, EMERGENCY RELEASE (once), solving to a
+// server-confirmed success, critical pressure, timeout, surge warning, and WIRE CUTTING afterwards.
 // URL=http://host:port/broken-elevator-manual/ BASE=http://host:port OUT=dir PLAYWRIGHT_MODULE=... CHROME_PATH=... node tools/checks/check_broken_elevator_pressure.cjs
 const assert = require('node:assert/strict'); const {chromium} = require(process.env.PLAYWRIGHT_MODULE);
 const url = process.env.URL, base = process.env.BASE, out = process.env.OUT; const ok = m => console.log('PASS ' + m);
 const post = async (path, form) => { const r = await fetch(base + path, {method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: new URLSearchParams(form)}); const j = await r.json(); if (!r.ok) throw new Error(path + ' ' + JSON.stringify(j)); return j; };
+const CODES = ['R-02', 'B-04', 'F-01', 'L-03'];
 
-async function page(b, touch, seat) {
+async function page(b, touch, seat, extra = '') {
   const p = await b.newPage({viewport: touch ? {width: 844, height: 390} : {width: 1280, height: 800}, deviceScaleFactor: touch ? 2 : 1, hasTouch: touch, isMobile: touch});
   const errors = []; p.on('pageerror', e => errors.push(String(e)));
   if (seat) await p.addInitScript(s => sessionStorage.setItem('finalanswer-session', s), JSON.stringify(seat));
-  await p.goto(`${url}?capture=1&seed=11&task=pressure&quality=${touch ? 'low' : 'high'}`); await p.waitForFunction(() => window.__manual, null, {timeout: 120000});
-  await p.waitForFunction(() => window.__manual.link.view(), null, {timeout: 20000}); await p.waitForTimeout(600); return {p, errors};
+  await p.goto(`${url}?capture=1&seed=11&task=pressure&quality=${touch ? 'low' : 'high'}${extra}`); await p.waitForFunction(() => window.__manual, null, {timeout: 120000});
+  await p.waitForFunction(() => window.__manual.link.view(), null, {timeout: 20000});
+  await p.evaluate(() => window.__manual.setInspect(true, 'pressure')); await p.waitForTimeout(1400); return {p, errors, touch};
 }
-const view = p => p.evaluate(() => window.__manual.link.view());
-/** screen centre of valve i (0 intake, 1 release, 2 stabilizer) */
-const centre = (p, i) => p.evaluate(i => { const m = window.__manual, v = m.press.valves[i]; const w = v.spin.getWorldPosition(new m.camera.position.constructor()).project(m.camera); return {x: (w.x + 1) / 2 * innerWidth, y: (1 - w.y) / 2 * innerHeight}; }, i);
-/** turn valve i to detent `to` with a real drag along an arc around its hub (left = shut, top = half, right = open) */
-async function turn(p, i, from, to, touch) {
-  const c = await centre(p, i), R = 46, ang = k => Math.PI + k * Math.PI / 2; const pts = []; const steps = 14;
-  for (let s = 0; s <= steps; s++) { const a = ang(from) + (ang(to) - ang(from)) * s / steps; pts.push([c.x + Math.cos(a) * R, c.y + Math.sin(a) * R]); }
-  if (touch) { const cdp = await p.context().newCDPSession(p); const tp = ([x, y]) => [{x, y, id: 1}];
-    await cdp.send('Input.dispatchTouchEvent', {type: 'touchStart', touchPoints: tp(pts[0])}); for (const q of pts.slice(1)) { await cdp.send('Input.dispatchTouchEvent', {type: 'touchMove', touchPoints: tp(q)}); await p.waitForTimeout(16); } await cdp.send('Input.dispatchTouchEvent', {type: 'touchEnd', touchPoints: []}); }
-  else { await p.mouse.move(...pts[0]); await p.mouse.down(); for (const q of pts.slice(1)) { await p.mouse.move(...q); await p.waitForTimeout(16); } await p.mouse.up(); }
-  await p.waitForTimeout(500);
+const view = s => s.p.evaluate(() => window.__manual.link.view());
+const at = (s, id) => s.p.evaluate(id => window.__manual.press.controlScreen(id, window.__manual.camera), id);
+async function tap(s, id) { const c = await at(s, id); if (s.touch) await s.p.touchscreen.tap(c.x, c.y); else await s.p.mouse.click(c.x, c.y); }
+async function path(s, pts) {
+  if (s.touch) { const cdp = await s.p.context().newCDPSession(s.p); const tp = ([x, y]) => [{x, y, id: 1}]; await cdp.send('Input.dispatchTouchEvent', {type: 'touchStart', touchPoints: tp(pts[0])});
+    for (const q of pts.slice(1)) { await cdp.send('Input.dispatchTouchEvent', {type: 'touchMove', touchPoints: tp(q)}); await s.p.waitForTimeout(16); } await cdp.send('Input.dispatchTouchEvent', {type: 'touchEnd', touchPoints: []}); }
+  else { await s.p.mouse.move(...pts[0]); await s.p.mouse.down(); for (const q of pts.slice(1)) { await s.p.mouse.move(...q); await s.p.waitForTimeout(16); } await s.p.mouse.up(); }
 }
-async function rateOver(p, ms) { const a = (await view(p)).pressure; await p.waitForTimeout(ms); const b = (await view(p)).pressure; const vv = await view(p); console.log('   pressure', a.toFixed(2), '->', b.toFixed(2), vv.outcome, vv.intake, vv.release, vv.stabilizer, 'zone', vv.safeLow, vv.safeHigh, 'hold', vv.holdMs); return (b - a) / (ms / 1000); }
-/** human-like controller using the same valve API the drags feed */
-async function solve(p) {
-  for (let i = 0; i < 120; i++) { const v = await view(p); if (v.outcome !== 'RUNNING') return v.outcome; const err = (v.safeLow + v.safeHigh) / 2 - v.pressure, a = Math.abs(err);
-    await p.evaluate(([inn, rel, st]) => { const l = window.__manual.link, v = l.view(); if (v.intake !== inn) l.setValve('INTAKE', inn); if (v.release !== rel) l.setValve('RELEASE', rel); if (v.stabilizer !== st) l.setValve('STABILIZER', st); },
-      [a > 12 ? (err > 0 ? 2 : 0) : a > 3 ? (err > 0 ? 1 : 0) : 1, a > 12 ? (err > 0 ? 0 : 2) : a > 3 ? (err > 0 ? 0 : 1) : 1, a > 12 ? 0 : 1]); await p.waitForTimeout(500); }
-  return (await view(p)).outcome;
-}
+/** one clockwise quarter turn of a handwheel by dragging round its hub */
+/** on-screen radius of a handwheel rim (so the drag starts on the wheel at any zoom / phone size) */
+const rimPx = (s, id) => s.p.evaluate(id => { const m = window.__manual, c = m.press.controlScreen(id, m.camera), r = m.press.controls.find(k => k.id === id).root;
+  const w = r.localToWorld(new m.camera.position.constructor(.045, 0, 0)).project(m.camera); return Math.hypot((w.x + 1) / 2 * innerWidth - c.x, (1 - w.y) / 2 * innerHeight - c.y); }, id);
+async function turn(s, id) { const c = await at(s, id), R = Math.max(14, await rimPx(s, id)), pts = []; for (let k = 0; k <= 12; k++) { const a = -Math.PI / 2 + (Math.PI / 2 + .25) * k / 12; pts.push([c.x + Math.cos(a) * R, c.y + Math.sin(a) * R]); } await path(s, pts); }
+async function settle(s, ms = 450) { await s.p.waitForTimeout(ms); return view(s); }
 
 async function mechanics(b, touch, seat, tag) {
-  const {p, errors} = await page(b, touch, seat); const online = !!seat;
-  if (online) { await p.waitForFunction(() => window.__manual.link.view()?.online, null, {timeout: 15000}); ok(`${tag}: server-authoritative puzzle attached`);
-    const st = await p.evaluate(() => { const l = window.__manual.link, v = l.view(), a = l.auth; return {p: v.pressure, ap: a.pressure + a.rate * (l.serverNow() - a.at) / 1000, v: [v.intake, v.release, v.stabilizer], av: [a.intake, a.release, a.stabilizer]}; });
-    assert.ok(Math.abs(st.p - st.ap) < 1.5, 'needle follows the server before any input: ' + JSON.stringify(st)); assert.deepEqual(st.v, st.av); ok(`${tag}: gauge and valves show the server state before the first input`); }
-  // move (via the valve API) into a measuring band on the starting side of the green zone, far enough that the
-  // later measurements can never sit in the zone long enough to complete the puzzle
-  let v = await view(p); const below = v.pressure < v.safeLow, band = below ? [v.safeLow - 34, v.safeLow - 22] : [v.safeHigh + 18, v.safeHigh + 26]; // room for ~5 PSI drift while dragging + ~10 PSI of intake, no clamp
-  for (let i = 0; i < 80; i++) { const pr = (await view(p)).pressure; if (pr > band[0] && pr < band[1]) break; await p.evaluate(hi => { const l = window.__manual.link, v = l.view(); if (hi ? v.release !== 2 : v.intake !== 2) l.setValve(hi ? 'RELEASE' : 'INTAKE', 2); if (hi ? v.intake !== 0 : v.release !== 0) l.setValve(hi ? 'INTAKE' : 'RELEASE', 0); if (v.stabilizer) l.setValve('STABILIZER', 0); }, pr >= band[1]); await p.waitForTimeout(250); }
-  await p.evaluate(() => { const l = window.__manual.link, v = l.view(); if (v.intake) l.setValve('INTAKE', 0); if (v.release) l.setValve('RELEASE', 0); });
-  await p.evaluate(() => window.__manual.setInspect(true, 'pressure')); await p.waitForTimeout(1300); await p.screenshot({path: `${out}/pressure-${tag}-close.png`});
-  // then close everything through the real UI (drags)
-  v = await view(p); for (const [i, name] of [[0, 'intake'], [1, 'release'], [2, 'stabilizer']]) if (v[name] !== 0) { await turn(p, i, v[name], 0, touch); v = await view(p); }
-  assert.deepEqual([v.intake, v.release, v.stabilizer], [0, 0, 0]); ok(`${tag}: drags close every valve`);
-  const q = () => p.evaluate(() => window.__manual.camera.quaternion.toArray()); const yaw0 = await q();
-  await turn(p, 0, 0, 2, touch); v = await view(p); assert.equal(v.intake, 2, 'red valve open'); ok(`${tag}: red valve dragged to OPEN (detent)`);
-  { const q1 = await q(); assert.ok(q1.every((x, i) => Math.abs(x - yaw0[i]) < 1e-4), 'camera did not move while turning a valve'); } ok(`${tag}: valve drag does not rotate the camera`);
-  const up = await rateOver(p, 1200); assert.ok(up > 4, 'pressure rises with intake open: ' + up); ok(`${tag}: intake raises pressure (${up.toFixed(2)} PSI/s)`);
-  await turn(p, 0, 2, 0, touch); await turn(p, 1, 0, 2, touch); v = await view(p); assert.equal(v.release, 2); const down = await rateOver(p, 1200); assert.ok(down < -4, 'pressure falls: ' + down); ok(`${tag}: release lowers pressure (${down.toFixed(2)} PSI/s)`);
-  await turn(p, 2, 0, 1, touch); v = await view(p); assert.equal(v.stabilizer, 1); const slow = await rateOver(p, 1200); assert.ok(Math.abs(slow) < Math.abs(down) * .5 && Math.abs(slow) > .2, `stabilizer slows: ${slow}`); ok(`${tag}: stabilizer slows the change (${slow.toFixed(2)} PSI/s)`);
-  const shot = await p.evaluate(() => getComputedStyle(document.getElementById('clock-num')).display); void shot;
-  const h0 = await p.evaluate(() => window.__manual.cage.height);
-  const outcome = await solve(p); assert.equal(outcome, 'STABILIZED'); ok(`${tag}: pressure held in the green zone for 2 s -> STABILIZED${online ? ' (server-confirmed)' : ''}`);
-  await p.waitForTimeout(400); const verdict = await p.evaluate(() => document.querySelector('#verdict b').textContent); assert.equal(verdict, 'Давление стабилизировано'); ok(`${tag}: "Давление стабилизировано" shown`);
-  await p.screenshot({path: `${out}/pressure-${tag}-ok.png`});
-  assert.equal(await p.evaluate(() => window.__manual.cage.height), h0, 'no drop on success'); ok(`${tag}: the car does not descend after a successful repair`);
-  if (online) { await p.waitForTimeout(1500); const r = await p.evaluate(() => window.__manual.link.repairs); if (r !== 1) console.log('DEBUG', await p.evaluate(() => JSON.stringify({a: window.__manual.link.auth, r: window.__manual.link.repairs}))); assert.equal(r, 1); ok(`${tag}: server granted the repair reward (elevatorRepairs = 1)`); }
-  await p.waitForTimeout(3200); assert.equal(await p.evaluate(() => window.__manual.kind), 'wire'); ok(`${tag}: next task is WIRE CUTTING again`);
-  assert.deepEqual(errors, []); ok(`${tag}: no page errors`); await p.close();
+  const s = await page(b, touch, seat); const online = !!seat; let v = await view(s);
+  if (online) { assert.ok(v.online); ok(`${tag}: server-authoritative machine attached`); }
+  assert.equal(v.code, '', 'fault hidden before TEST'); assert.ok(v.pressure < v.safeLow || v.pressure > v.safeHigh, 'starts outside the zone'); ok(`${tag}: starts outside the green zone, fault hidden`);
+  // TEST
+  await tap(s, 'test'); v = await settle(s, 500); assert.ok(v.diagnosing, 'relays running'); await s.p.screenshot({path: `${out}/valves-${tag}-test.png`});
+  v = await settle(s, 1400); assert.ok(CODES.includes(v.code), 'code shown: ' + v.code); const code = v.code; ok(`${tag}: TEST shows fault code ${code}`);
+  await tap(s, 'test'); v = await settle(s, 1800); assert.equal(v.code, code, 'repeat keeps the fault'); ok(`${tag}: repeated TEST keeps ${code}`);
+  // the fault's behaviour on the main line, through a real red turn (or blue when high)
+  const step = v.fine ? 2 : 10, useRed = v.pressure < 90, p0 = v.pressure; await turn(s, useRed ? 'red' : 'blue'); v = await settle(s);
+  const d = v.pressure - p0, expect = useRed ? ({'R-02': 0, 'F-01': -step}[code] ?? step) : ({'B-04': 0, 'F-01': step}[code] ?? -step);
+  assert.ok(Math.abs(d - expect) < 1.2, `${code}: ${useRed ? 'red' : 'blue'} turn changed ${d}, expected ${expect}`); ok(`${tag}: ${code} behaves as documented (${useRed ? 'red' : 'blue'} ${d >= 0 ? '+' : ''}${d.toFixed(1)} PSI)`);
+  // BYPASS and FINE levers
+  await tap(s, 'bypass'); v = await settle(s); assert.equal(v.bypass, true); assert.equal(v.safeState, true); ok(`${tag}: BYPASS thrown to AUX`);
+  const fine0 = v.fine; await tap(s, 'fine'); v = await settle(s); assert.equal(v.fine, !fine0); ok(`${tag}: FINE lever toggles (${v.fine ? 'ON' : 'OFF'})`);
+  const st = v.fine ? 2 : 10, q0 = v.pressure, dir = q0 < 60 ? 'red' : 'blue'; await turn(s, dir); v = await settle(s);
+  assert.ok(Math.abs(Math.abs(v.pressure - q0) - st) < 1.2, `after bypass a ${dir} turn moves ${st}: ${v.pressure - q0}`); ok(`${tag}: after BYPASS the ${dir} valve works normally (${(v.pressure - q0).toFixed(1)} PSI)`);
+  // EMERGENCY RELEASE once (drag the handle down)
+  const e0 = v.pressure, c = await at(s, 'emergency'); await path(s, [[c.x, c.y], [c.x, c.y + 30], [c.x, c.y + 60], [c.x, c.y + 90]]); v = await settle(s);
+  assert.ok(v.emergencyUsed); assert.ok(Math.abs(v.pressure - Math.max(0, e0 - 20)) < 1.2, `-20 PSI: ${e0} -> ${v.pressure}`); ok(`${tag}: EMERGENCY RELEASE pulled (−20 PSI)`);
+  const e1 = v.pressure; await tap(s, 'emergency'); v = await settle(s); assert.ok(Math.abs(v.pressure - e1) < 1.2, 'second pull does nothing'); ok(`${tag}: second EMERGENCY RELEASE rejected`);
+  // camera stays put while turning
+  const qa = await s.p.evaluate(() => window.__manual.camera.quaternion.toArray()); await turn(s, v.pressure < 60 ? 'red' : 'blue'); const qb = await s.p.evaluate(() => window.__manual.camera.quaternion.toArray());
+  assert.ok(qa.every((x, i) => Math.abs(x - qb[i]) < 1e-4)); ok(`${tag}: turning a valve never rotates the camera`);
+  // solve with real taps/turns: coarse, then FINE
+  const h0 = await s.p.evaluate(() => window.__manual.cage.height);
+  for (let i = 0; i < 60; i++) { v = await view(s); if (v.outcome !== 'RUNNING') break; const err = (v.safeLow + 2.5) - v.pressure, a = Math.abs(err);
+    if (a > 6) { if (v.fine) await tap(s, 'fine'); else await turn(s, err > 0 ? 'red' : 'blue'); } else if (a > 1.5) { if (!v.fine) await tap(s, 'fine'); else await tap(s, err > 0 ? 'red' : 'blue'); }
+    await s.p.waitForTimeout(450); }
+  v = await view(s); assert.equal(v.outcome, 'STABILIZED', 'solved: ' + JSON.stringify(v)); ok(`${tag}: green zone held for 1 s -> STABILIZED${online ? ' (server-confirmed)' : ''}`);
+  await s.p.waitForTimeout(300); assert.equal(await s.p.evaluate(() => document.querySelector('#verdict b').textContent), 'Давление стабилизировано'); ok(`${tag}: "Давление стабилизировано · PRESSURE STABILIZED" shown`);
+  await s.p.screenshot({path: `${out}/valves-${tag}-ok.png`});
+  assert.equal(await s.p.evaluate(() => window.__manual.cage.height), h0); ok(`${tag}: the car does not move after the repair (never rises, no drop)`);
+  if (online) { await s.p.waitForTimeout(300); assert.equal(await s.p.evaluate(() => window.__manual.link.repairs), 1); ok(`${tag}: server granted the repair reward once`); }
+  await s.p.waitForTimeout(3300); assert.equal(await s.p.evaluate(() => window.__manual.kind), 'wire'); ok(`${tag}: next task is WIRE CUTTING`);
+  assert.deepEqual(s.errors, []); ok(`${tag}: no page errors`); await s.p.close();
+}
+
+async function critical(b, seat) {
+  const s = await page(b, false, seat); await tap(s, 'bypass'); let v = await settle(s); if (v.fine) { await tap(s, 'fine'); v = await settle(s); }
+  const h0 = await s.p.evaluate(() => window.__manual.cage.height);
+  for (let i = 0; i < 14 && v.outcome === 'RUNNING'; i++) { await turn(s, 'red'); v = await settle(s, 300); }
+  assert.equal(v.outcome, 'FAILED'); assert.equal(v.failReason, 'CRITICAL'); ok('critical: 120 PSI fails the machine');
+  await s.p.waitForTimeout(1200); assert.equal(await s.p.evaluate(() => document.querySelector('#verdict b').textContent), 'Отказ системы давления'); ok('critical: "Отказ системы давления · PRESSURE SYSTEM FAILED" shown');
+  assert.ok(await s.p.evaluate(() => window.__manual.cage.height) < h0); ok('critical: existing penalty fired (the car drops)');
+  assert.equal(await s.p.evaluate(() => window.__manual.link.penalties), 1); ok('critical: server recorded exactly one penalty');
+  await turn(s, 'blue'); v = await settle(s); assert.equal(v.outcome, 'FAILED'); assert.equal(v.pressure, 120); ok('critical: controls locked after failure');
+  assert.deepEqual(s.errors, []); await s.p.close();
 }
 
 async function timeout(b, seat) {
-  const {p, errors} = await page(b, false, seat); await p.waitForFunction(() => window.__manual.link.view()?.online, null, {timeout: 15000});
-  const h0 = await p.evaluate(() => window.__manual.cage.height); const d = (await view(p)).deadline - await p.evaluate(() => performance.now());
-  assert.ok(d > 55000 && d <= 60500, 'server deadline ~60 s: ' + d); ok('timeout: server deadline is 60 s');
-  await p.waitForFunction(() => window.__manual.link.view()?.outcome === 'FAILED', null, {timeout: 75000}); ok('timeout: idle puzzle fails when the server timer expires');
-  await p.waitForTimeout(1600); assert.equal(await p.evaluate(() => document.querySelector('#verdict b').textContent), 'Отказ давления'); ok('timeout: "Отказ давления" shown');
-  assert.ok(await p.evaluate(() => window.__manual.cage.height) < h0, 'car dropped'); ok('timeout: the existing failure penalty (car drops toward the lava) fired');
-  // a valve request after the end is ignored by the server
-  await p.evaluate(() => window.__manual.link.setValve('INTAKE', 2)); await p.waitForTimeout(500); assert.equal((await view(p)).outcome, 'FAILED'); ok('timeout: inputs after the end change nothing');
-  assert.deepEqual(errors, []); await p.close();
+  const s = await page(b, false, seat); const v = await view(s), d = v.deadline - await s.p.evaluate(() => performance.now()); assert.ok(d > 40000 && d <= 45500, 'deadline ~45 s: ' + d); ok('timeout: server timer is 45 s');
+  await s.p.waitForFunction(() => window.__manual.link.view()?.outcome === 'FAILED', null, {timeout: 60000}); assert.equal((await view(s)).failReason, 'TIMEOUT'); ok('timeout: idle machine fails when the timer expires');
+  assert.equal(await s.p.evaluate(() => window.__manual.link.penalties), 1); ok('timeout: one penalty'); assert.deepEqual(s.errors, []); await s.p.close();
+}
+
+async function surge(b) {
+  const s = await page(b, false, null, '&surgeAt=5000'); const p0 = (await view(s)).pressure;
+  await s.p.waitForFunction(() => window.__manual.link.view()?.surgeWarning, null, {timeout: 8000}); const lead = 5000 - await s.p.evaluate(() => 45000 - (window.__manual.link.view().deadline - performance.now()));
+  assert.ok(lead > 1500 && lead < 2300, 'warned ~2 s ahead: ' + lead); await s.p.waitForTimeout(150); assert.ok(await s.p.evaluate(() => document.body.classList.contains('surge'))); await s.p.screenshot({path: `${out}/valves-surge-warning.png`}); ok('surge: 2 s warning with the PRESSURE SURGE tag');
+  await s.p.waitForFunction(() => window.__manual.link.view()?.surged, null, {timeout: 5000}); const v = await view(s);
+  assert.ok(Math.abs(v.pressure - Math.min(120, p0 + 10)) < 6, `+10 PSI: ${p0} -> ${v.pressure}`); await s.p.waitForTimeout(100); assert.equal(await s.p.evaluate(() => document.body.classList.contains('surge')), false); ok('surge: +10 PSI once, warning cleared');
+  assert.deepEqual(s.errors, []); await s.p.close();
 }
 
 (async () => {
   const b = await chromium.launch({executablePath: process.env.CHROME_PATH, args: ['--use-angle=metal', '--ignore-gpu-blocklist']});
   await mechanics(b, false, null, 'practice-desktop');
   await mechanics(b, true, null, 'practice-phone');
-  const room = await post('/rooms', {name: 'Pressure', maxPlayers: '4', gameMode: 'standard', password: ''});
+  await surge(b);
+  const room = await post('/rooms', {name: 'Valves', maxPlayers: '8', gameMode: 'standard', password: ''});
   const seat = async n => { const j = await post(`/rooms/${room.code}/join`, {name: n}); return {code: j.code, token: j.token, name: n}; };
   await mechanics(b, false, await seat('Desk'), 'room-desktop');
   await mechanics(b, true, await seat('Phone'), 'room-phone');
+  await critical(b, await seat('Hot'));
   await timeout(b, await seat('Idle'));
-  await b.close(); console.log('ALL PRESSURE CHECKS PASSED');
+  await b.close(); console.log('ALL BROKEN VALVES CHECKS PASSED');
 })().catch(e => { console.error(e); process.exit(1); });

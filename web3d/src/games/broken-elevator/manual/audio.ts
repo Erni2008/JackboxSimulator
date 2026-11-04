@@ -4,7 +4,7 @@
 // filtered noise and modal resonators — no placeholder files are shipped.
 // Drop real recordings into SAMPLE_URLS to override any synthesised voice.
 export const SAMPLE_URLS: Partial<Record<Voice, string>> = {pageTurn: 'audio/page_turn.wav'};
-export type Voice = 'coverOpen' | 'coverClose' | 'pageTurn' | 'pickup' | 'drop' | 'impactMetal' | 'creak' | 'snip' | 'spark' | 'good' | 'bad' | 'doorOpen' | 'doorClose' | 'button' | 'locked' | 'screech' | 'slam' | 'valveClick' | 'valveTurn' | 'alarm' | 'holdTick' | 'pipeKnock';
+export type Voice = 'coverOpen' | 'coverClose' | 'pageTurn' | 'pickup' | 'drop' | 'impactMetal' | 'creak' | 'snip' | 'spark' | 'good' | 'bad' | 'doorOpen' | 'doorClose' | 'button' | 'locked' | 'screech' | 'slam' | 'valveClick' | 'valveTurn' | 'alarm' | 'holdTick' | 'pipeKnock' | 'grind' | 'relay' | 'lever' | 'whistle' | 'surge' | 'vent' | 'burst';
 
 export class BookAudio {
   ctx: AudioContext | null = null; out!: GainNode; private buffers = new Map<Voice, AudioBuffer>(); private noise!: AudioBuffer; enabled = true;
@@ -67,6 +67,13 @@ export class BookAudio {
       case 'valveTurn': { const f = this.rustle(t, .22, 520 + Math.random() * 200, 10, .12 * Math.min(1, intensity), .03); f.frequency.linearRampToValueAtTime(380, t + .2); break; } // stem packing creak
       case 'alarm': for (let i = 0; i < 2; i++) { const o = this.ctx!.createOscillator(), g = this.ctx!.createGain(); o.type = 'square'; o.frequency.setValueAtTime(880, t + i * .32); o.frequency.setValueAtTime(660, t + i * .32 + .16); g.gain.setValueAtTime(0, t + i * .32); g.gain.linearRampToValueAtTime(.05, t + i * .32 + .01); g.gain.setValueAtTime(.05, t + i * .32 + .3); g.gain.linearRampToValueAtTime(0, t + i * .32 + .31); o.connect(g).connect(this.out); o.start(t + i * .32); o.stop(t + i * .32 + .33); } break;
       case 'holdTick': this.mode(t, 1400 + 300 * intensity, .09, .06); break; // stabilisation progress
+      case 'grind': { for (let i = 0; i < 9; i++) this.rustle(t + i * .035 + Math.random() * .02, .06, 700 + Math.random() * 900, 6, .35, .004); const f = this.rustle(t, .45, 260, 14, .3, .02); f.frequency.linearRampToValueAtTime(180, t + .4); this.mode(t + .3, 140, .2, .12); break; } // jammed stem: metal on metal
+      case 'relay': for (let i = 0; i < 6; i++) { this.rustle(t + i * .21 + Math.random() * .05, .02, 3600, 2.5, .45, .001); this.mode(t + i * .21, 1900 + Math.random() * 400, .03, .05); } break; // diagnostic relay chatter
+      case 'lever': this.rustle(t, .08, 500, 3, .7, .002); this.mode(t + .02, 210, .25, .22); this.mode(t + .02, 640, .12, .08); this.rustle(t + .06, .05, 2600, 2, .3, .001); break; // heavy lever thrown home
+      case 'whistle': { for (const [f0, g0] of [[1860, .05], [2790, .025]] as const) { const o = this.ctx!.createOscillator(), g = this.ctx!.createGain(); o.frequency.setValueAtTime(f0 * .9, t); o.frequency.linearRampToValueAtTime(f0, t + .25); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(g0, t + .15); g.gain.setValueAtTime(g0, t + 1.6); g.gain.linearRampToValueAtTime(0, t + 1.9); o.connect(g).connect(this.out); o.start(t); o.stop(t + 2); } this.rustle(t, 1.9, 3000, 3, .12, .1); break; } // steam whistle
+      case 'surge': this.rustle(t, .6, 120, .8, 1.1, .01); this.rustle(t, .5, 1600, .6, .5, .01); this.mode(t, 70, .5, .25); break; // surge thump through the pipes
+      case 'vent': this.rustle(t, .45 * intensity + .15, 2600, .6, .45 * intensity, .01); break; // release puff
+      case 'burst': this.rustle(t, 1.6, 2200, .5, .9, .01); this.rustle(t, 1.2, 600, .7, .6, .01); this.mode(t, 90, .4, .2); break; // emergency release / failure
       case 'pipeKnock': this.rustle(t, .12, 160, 1.5, .5 * Math.min(1, intensity), .002); this.mode(t, 95, .18, .12 * Math.min(1, intensity)); break; // pipe hammer under critical pressure
     }
   }

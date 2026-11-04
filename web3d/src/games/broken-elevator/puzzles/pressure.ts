@@ -1,229 +1,175 @@
-// THE BROKEN ELEVATOR — PRESSURE CONTROL apparatus.
-// A wall-mounted Victorian steam manifold: one large PSI gauge with the puzzle's green safe arc and red critical
-// arc, three physical valves (red INTAKE handwheel, blue RELEASE handwheel, yellow STABILIZER quarter-turn lever),
-// copper intake/release piping, a three-lamp stabilisation indicator, a warning lamp and restrained steam.
-// Valves are turned by dragging them (mouse or touch) and snap into mechanical detents on release.
-// Local frame: +z points into the cage, origin on the wall surface.
+// THE BROKEN ELEVATOR — THE BROKEN VALVES apparatus (wall-mounted on the cage's right-hand wall).
+// Layout (local frame, +z into the cage):
+//   left/centre: PSI gauge, surge warning lamp, 1-second stability lamps, copper manifold with RED (intake) and BLUE
+//                (release) ratchet handwheels and the YELLOW fine-control lever, vent stack + nozzle, a weeping joint (L-03)
+//   right column: fault-code window + TEST button + relay lamps, BYPASS lever (MAIN / AUX) with the auxiliary line,
+//                 EMERGENCY RELEASE pull handle under a hazard plate, OK lamp
+// The machine only renders the server's view and reports player actions; it never decides anything.
 import * as T from 'three';
-import type {PressureView} from './pressure-link';
-import {HOLD_MS, type ValveName} from './pressure-sim';
+import {materials, plate, lamp, canvasTex, QUARTER, TECH} from './pressure-parts';
+import {PressureGauge} from './pressure-gauge';
+import {Control, Wheel, Lever, PushButton, PullHandle, type Feedback} from './pressure-controls';
+import type {ValveView} from './pressure-link';
+import {VERIFY_MS, type Action} from './pressure-sim';
 
-const SERIF = "'IM Fell English SC', Georgia, serif", TECH = "'Oswald', 'Arial Narrow', sans-serif";
-const rng = (s: number) => () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
-const canvasTex = (w: number, h: number, draw: (x: CanvasRenderingContext2D) => void, srgb = true) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d')!); const t = new T.CanvasTexture(c); t.colorSpace = srgb ? T.SRGBColorSpace : T.NoColorSpace; t.anisotropy = 16; return t; };
-const A0 = -Math.PI * .75, A1 = Math.PI * .75; // 0 PSI ... 120 PSI, clockwise through the top
-const QUARTER = Math.PI / 2;
-
-interface Valve { name: ValveName; positions: number; root: T.Group; spin: T.Group; hit: T.Mesh; angle: number; target: number; pos: number; dragging: boolean; lastDetent: number }
+export interface MachineSounds extends Feedback { alarm(): void; whistle(): void; surge(): void; vent(k: number): void; burst(): void; tick(k: number): void; steam(hiss: number, rumble: number): void; knock(k: number): void }
 
 export class PressureMachine {
   group = new T.Group(); enabled = false;
-  onValve: (v: ValveName, pos: number) => void = () => {};
-  sounds: {click: () => void; turn: () => void; knock: (k: number) => void; alarm: () => void; tick: (k: number) => void; steam: (hiss: number, rumble: number) => void} | null = null;
-  private valves: Valve[] = []; private needle = new T.Group(); private needleAngle = A0; private needleVel = 0; private shown = -1;
-  private faceMat!: T.MeshStandardMaterial; private dialCanvas = document.createElement('canvas'); private dial!: T.CanvasTexture; private zone = [0, 0];
-  private lamp!: T.Mesh; private lampLight!: T.PointLight; private holdLamps: T.Mesh[] = []; private pipes = new T.Group(); private t = 0; private alarmT = 0; private knockT = 0; private lastHoldStep = 0;
-  private steam!: T.Points; private steamData!: Float32Array; private steamLife!: Float32Array; private steamCursor = 0; private steamAcc = 0; private nozzle = new T.Vector3(); private leak = new T.Vector3();
-  private drag: {v: Valve; cx: number; cy: number; last: number} | null = null;
+  onAction: (a: Action) => void = () => {};
+  sounds: MachineSounds | null = null;
+  private gauge: PressureGauge; private controls: Control[] = []; private red: Wheel; private blue: Wheel; private fine: Lever; private bypass: Lever; private test: PushButton; private emergency: PullHandle;
+  private warn: {group: T.Group; mat: T.MeshStandardMaterial}; private ok: {group: T.Group; mat: T.MeshStandardMaterial}; private aux: {group: T.Group; mat: T.MeshStandardMaterial};
+  private verify: T.MeshStandardMaterial[] = []; private relays: T.MeshStandardMaterial[] = []; private warnLight: T.PointLight; private pipes = new T.Group();
+  private codeCanvas = document.createElement('canvas'); private codeTex: T.CanvasTexture; private codeShown = '?';
+  private active: Control | null = null; private t = 0; private lastEffect = -1; private alarmT = 0; private whistleT = 0; private lastVerifyStep = 0; private lastOutcome = 'RUNNING'; private surgedSeen = false;
+  private steam: T.Points; private sp: Float32Array; private life: Float32Array; private cursor = 0; private nozzle = new T.Vector3(); private leakAt = new T.Vector3(); private ventAt = new T.Vector3(); private leakAcc = 0;
 
   constructor(hi: boolean) {
-    const r = rng(41);
-    const iron = new T.MeshStandardMaterial({roughness: .82, metalness: .45, map: canvasTex(512, 512, x => {
-      x.fillStyle = '#2b2622'; x.fillRect(0, 0, 512, 512);
-      for (let i = 0; i < 2600; i++) { x.fillStyle = `rgba(${r() < .45 ? '120,62,30' : r() < .5 ? '12,10,9' : '80,72,64'},${r() * .22})`; x.beginPath(); x.arc(r() * 512, r() * 512, 1 + r() * (r() < .05 ? 26 : 5), 0, 7); x.fill(); }
-      for (let i = 0; i < 14; i++) { const g = x.createLinearGradient(0, 0, 0, 120); g.addColorStop(0, 'rgba(110,52,20,.35)'); g.addColorStop(1, 'rgba(110,52,20,0)'); x.fillStyle = g; x.fillRect(r() * 512, r() * 400, 3 + r() * 8, 60 + r() * 120); } // rust runs
-      for (let i = 0; i < 6; i++) { x.fillStyle = `rgba(8,6,4,${.25 + r() * .25})`; x.beginPath(); x.ellipse(r() * 512, 300 + r() * 200, 20 + r() * 50, 8 + r() * 20, r(), 0, 7); x.fill(); } // oil stains
-    })});
-    iron.emissiveMap = iron.map; iron.emissive.set('#ffffff'); iron.emissiveIntensity = .12;
-    const brass = new T.MeshStandardMaterial({color: '#8d6b36', metalness: .9, roughness: .42});
-    const brassDark = new T.MeshStandardMaterial({color: '#5c4422', metalness: .85, roughness: .55});
-    const copper = new T.MeshStandardMaterial({color: '#9a5634', metalness: .85, roughness: .48});
-    const bolt = new T.MeshStandardMaterial({color: '#2a2622', metalness: .8, roughness: .6});
-    const paint = (c: string) => new T.MeshStandardMaterial({color: c, metalness: .35, roughness: .55});
+    const m = materials();
+    // ---- backplate, frame, bolts
+    const W = .92, H = .62; const back = new T.Mesh(new T.BoxGeometry(W, H, .022), m.iron); back.position.z = .011; this.group.add(back);
+    for (const [w, h, x, y] of [[W, .02, 0, H / 2 - .01], [W, .02, 0, -H / 2 + .01], [.02, H, -W / 2 + .01, 0], [.02, H, W / 2 - .01, 0], [.012, H - .04, .225, 0]] as const) { const f = new T.Mesh(new T.BoxGeometry(w, h, .01), m.brassDark); f.position.set(x, y, .026); this.group.add(f); }
+    const boltGeo = new T.CylinderGeometry(.008, .009, .008, 6); boltGeo.rotateX(QUARTER); const bolts: [number, number][] = [];
+    for (let i = 0; i <= 12; i++) bolts.push([-W / 2 + .02 + i * (W - .04) / 12, H / 2 - .01], [-W / 2 + .02 + i * (W - .04) / 12, -H / 2 + .01]); for (let i = 1; i < 8; i++) bolts.push([-W / 2 + .01, -H / 2 + i * H / 8], [W / 2 - .01, -H / 2 + i * H / 8]);
+    const bi = new T.InstancedMesh(boltGeo, m.bolt, bolts.length); const m4 = new T.Matrix4(); bolts.forEach(([x, y], i) => { m4.makeTranslation(x, y, .033); bi.setMatrixAt(i, m4); }); this.group.add(bi);
 
-    // backplate with chamfered frame and bolts (instanced)
-    const plate = new T.Mesh(new T.BoxGeometry(.64, .6, .022), iron); plate.position.z = .011; this.group.add(plate);
-    const frameMat = brassDark; for (const [w, h, x, y] of [[.64, .02, 0, .29], [.64, .02, 0, -.29], [.02, .6, -.31, 0], [.02, .6, .31, 0]] as const) { const f = new T.Mesh(new T.BoxGeometry(w, h, .01), frameMat); f.position.set(x, y, .026); this.group.add(f); }
-    const boltGeo = new T.CylinderGeometry(.008, .009, .008, 6); boltGeo.rotateX(Math.PI / 2); const bolts: [number, number][] = [];
-    for (let i = 0; i < 9; i++) { bolts.push([-.29 + i * .0725, .29], [-.29 + i * .0725, -.29]); } for (let i = 1; i < 8; i++) bolts.push([-.31, -.29 + i * .0725], [.31, -.29 + i * .0725]);
-    const bi = new T.InstancedMesh(boltGeo, bolt, bolts.length); const m4 = new T.Matrix4(); bolts.forEach(([x, y], i) => { m4.makeTranslation(x, y, .033); bi.setMatrixAt(i, m4); }); this.group.add(bi);
+    // ---- gauge + lamps
+    this.gauge = new PressureGauge(.105, m, hi); this.gauge.group.position.set(-.13, .13, 0); this.group.add(this.gauge.group);
+    this.warn = lamp(.018, '#ff6a10', m); this.warn.group.position.set(-.38, .22, .04); this.group.add(this.warn.group);
+    const wp = plate('SURGE', 'WARNING', .09, .036, 'enamel'); wp.position.set(-.38, .165, .03); this.group.add(wp);
+    this.warnLight = new T.PointLight('#ff6a10', 0, 1, 2); this.warnLight.position.set(-.38, .22, .1); this.group.add(this.warnLight);
+    const sp = plate('STABLE', '1 SEC', .08, .04, 'brass'); sp.position.set(.07, .235, .03); this.group.add(sp);
+    for (let i = 0; i < 3; i++) { const l = lamp(.012, '#4dff6a', m); l.group.position.set(.07, .175 - i * .04, .035); this.group.add(l.group); this.verify.push(l.mat); }
 
-    // ---- gauge
-    const G = new T.Group(); G.position.set(0, .135, 0); this.group.add(G); const R = .105;
-    const housing = new T.Mesh(new T.CylinderGeometry(R + .012, R + .016, .05, hi ? 64 : 40), brass); housing.rotation.x = Math.PI / 2; housing.position.z = .047; G.add(housing);
-    const bezel = new T.Mesh(new T.TorusGeometry(R + .006, .009, 12, hi ? 72 : 48), brass); bezel.position.z = .074; G.add(bezel);
-    this.dialCanvas.width = this.dialCanvas.height = 1024; this.dial = new T.CanvasTexture(this.dialCanvas); this.dial.colorSpace = T.SRGBColorSpace; this.dial.anisotropy = 16; this.drawDial(55, 65);
-    this.faceMat = new T.MeshStandardMaterial({map: this.dial, emissiveMap: this.dial, emissive: '#ffffff', emissiveIntensity: .5, roughness: .75}); const face = new T.Mesh(new T.CircleGeometry(R, hi ? 72 : 48), this.faceMat); face.position.z = .0725; G.add(face);
-    const needleMat = new T.MeshStandardMaterial({color: '#140d07', roughness: .5}); const blade = new T.Mesh(new T.BoxGeometry(.006, R * .86, .003), needleMat); blade.position.y = R * .36; this.needle.add(blade);
-    const tail = new T.Mesh(new T.BoxGeometry(.01, R * .2, .003), needleMat); tail.position.y = -R * .08; this.needle.add(tail);
-    const tip = new T.Mesh(new T.BoxGeometry(.004, R * .16, .0035), new T.MeshStandardMaterial({color: '#9e1d10', roughness: .5})); tip.position.y = R * .73; this.needle.add(tip);
-    const cap = new T.Mesh(new T.CylinderGeometry(.011, .011, .008, 24), brass); cap.rotation.x = Math.PI / 2; this.needle.add(cap); this.needle.position.z = .076; G.add(this.needle);
-    const glass = new T.Mesh(new T.CircleGeometry(R + .002, 48), new T.MeshPhysicalMaterial({color: '#ffffff', transparent: true, opacity: .1, roughness: .12, metalness: 0, depthWrite: false, roughnessMap: canvasTex(256, 256, x => { x.fillStyle = '#1a1a1a'; x.fillRect(0, 0, 256, 256); x.strokeStyle = '#cfcfcf'; for (let i = 0; i < 50; i++) { x.globalAlpha = .2 + r() * .5; x.lineWidth = .5 + r(); x.beginPath(); const a = r() * 256, b = r() * 256; x.moveTo(a, b); x.lineTo(a + (r() - .5) * 90, b + (r() - .5) * 40); x.stroke(); } }, false)}));
-    glass.position.z = .081; G.add(glass);
-    for (const a of [0, 1, 2, 3]) { const sb = new T.Mesh(new T.CylinderGeometry(.005, .005, .006, 8), brassDark); sb.rotation.x = Math.PI / 2; sb.position.set(Math.cos(a * QUARTER + Math.PI / 4) * (R + .006), Math.sin(a * QUARTER + Math.PI / 4) * (R + .006), .082); G.add(sb); }
-
-    // ---- stabilisation indicator: three lamps that light in turn while the pressure is held in the zone
-    const ind = this.plateMesh('HOLD', `${HOLD_MS / 1000} SEC`, .07, .05, 'brass'); ind.position.set(.215, .225, .03); this.group.add(ind);
-    for (let i = 0; i < 3; i++) { const l = new T.Mesh(new T.SphereGeometry(.0125, 16, 10), new T.MeshStandardMaterial({color: '#1c2a14', emissive: '#4dff6a', emissiveIntensity: 0, roughness: .25})); l.position.set(.215, .16 - i * .042, .035); this.group.add(l); this.holdLamps.push(l);
-      const ring = new T.Mesh(new T.TorusGeometry(.015, .003, 8, 24), brass); ring.position.copy(l.position); ring.position.z = .033; this.group.add(ring); }
-    // ---- warning lamp in a wire cage
-    this.lamp = new T.Mesh(new T.SphereGeometry(.018, 16, 12), new T.MeshStandardMaterial({color: '#3a0d06', emissive: '#ff2a10', emissiveIntensity: 0, roughness: .2})); this.lamp.position.set(-.215, .2, .045); this.group.add(this.lamp);
-    for (let i = 0; i < 4; i++) { const w = new T.Mesh(new T.TorusGeometry(.021, .0018, 6, 20, Math.PI), bolt); w.position.copy(this.lamp.position); w.rotation.set(0, i * Math.PI / 4, 0); this.group.add(w); }
-    const lb = new T.Mesh(new T.CylinderGeometry(.016, .02, .02, 16), brassDark); lb.rotation.x = Math.PI / 2; lb.position.set(-.215, .2, .03); this.group.add(lb);
-    this.lampLight = new T.PointLight('#ff3010', 0, .9, 2); this.lampLight.position.set(-.215, .2, .09); this.group.add(this.lampLight);
-    const warn = this.plateMesh('DANGER', '110+ PSI', .085, .04, 'enamel'); warn.position.set(-.215, .135, .03); this.group.add(warn);
-    const title = this.plateMesh('PRESSURE CONTROL', 'HARTWELL STEAM CO. · No 7', .26, .045, 'brass'); title.position.set(0, -.255, .03); this.group.add(title);
-
-    // ---- piping: horizontal manifold, intake riser (left, from below), release stack (right, up to a nozzle)
-    this.group.add(this.pipes); const mY = -.075, mZ = .07;
-    const tube = (pts: T.Vector3[], rad: number, mat: T.Material) => { const c = new T.CatmullRomCurve3(pts, false, 'catmullrom', .05); const m = new T.Mesh(new T.TubeGeometry(c, hi ? 48 : 24, rad, hi ? 14 : 10, false), mat); this.pipes.add(m); return m; };
-    const v3 = (x: number, y: number, z: number) => new T.Vector3(x, y, z);
-    tube([v3(-.3, mY, mZ), v3(.3, mY, mZ)], .016, copper);
-    tube([v3(-.27, -.32, mZ), v3(-.27, -.2, mZ), v3(-.27, -.11, mZ), v3(-.255, mY, mZ)], .017, copper);
-    tube([v3(.26, mY, mZ), v3(.275, -.04, mZ), v3(.275, .1, mZ), v3(.275, .24, mZ), v3(.29, .29, mZ + .02), v3(.3, .31, mZ + .06)], .014, copper);
-    this.nozzle.set(.3, .315, mZ + .075); this.leak.set(-.255, mY + .01, mZ + .02);
-    const flange = (x: number, y: number, z: number, rx: number, rz = 0) => { const f = new T.Mesh(new T.CylinderGeometry(.027, .027, .012, 20), brassDark); f.position.set(x, y, z); f.rotation.set(rx, 0, rz); this.pipes.add(f); for (let i = 0; i < 4; i++) { const b = new T.Mesh(new T.CylinderGeometry(.004, .004, .016, 6), bolt); b.position.set(x + Math.cos(i * QUARTER + .78) * .02 * (rz ? 0 : 1), y + (rz ? Math.cos(i * QUARTER + .78) * .02 : 0), z + Math.sin(i * QUARTER + .78) * .02); b.rotation.copy(f.rotation); this.pipes.add(b); } };
-    flange(-.27, -.2, mZ, 0); flange(.275, .1, mZ, 0); flange(-.3, mY, mZ, 0, Math.PI / 2); flange(.3, mY, mZ, 0, Math.PI / 2);
-    for (const [x, y] of [[-.27, -.28], [.275, .2], [-.12, mY], [.1, mY]] as const) { const clamp = new T.Mesh(new T.TorusGeometry(.019, .004, 8, 20, Math.PI), bolt); clamp.position.set(x, y, mZ); clamp.rotation.set(Math.abs(y - mY) < .01 ? 0 : -Math.PI / 2, Math.abs(y - mY) < .01 ? Math.PI / 2 : 0, Math.abs(y - mY) < .01 ? Math.PI / 2 : 0); this.pipes.add(clamp); }
-    const nz = new T.Mesh(new T.CylinderGeometry(.009, .015, .03, 16), brass); nz.position.copy(this.nozzle).add(v3(0, -.012, -.01)); nz.rotation.x = .9; this.pipes.add(nz);
-    const tagIn = this.plateMesh('STEAM IN', '', .07, .024, 'brass'); tagIn.position.set(-.27, -.235, mZ + .02); this.group.add(tagIn);
-    const tagOut = this.plateMesh('VENT', '', .05, .024, 'brass'); tagOut.position.set(.275, .03, mZ + .018); this.group.add(tagOut);
+    // ---- piping: intake riser (left), manifold, vent stack with a nozzle, weeping joint
+    this.group.add(this.pipes); const mY = -.085, mZ = .07, v3 = (x: number, y: number, z: number) => new T.Vector3(x, y, z);
+    const tube = (pts: T.Vector3[], rad: number, mat: T.Material) => { const c = new T.CatmullRomCurve3(pts, false, 'catmullrom', .05); const mesh = new T.Mesh(new T.TubeGeometry(c, hi ? 48 : 24, rad, hi ? 14 : 10, false), mat); this.pipes.add(mesh); return mesh; };
+    tube([v3(-.44, mY, mZ), v3(.17, mY, mZ)], .016, m.copper);
+    tube([v3(-.42, -.32, mZ), v3(-.42, -.2, mZ), v3(-.42, -.12, mZ), v3(-.405, mY, mZ)], .017, m.copper);
+    tube([v3(.16, mY, mZ), v3(.17, -.04, mZ), v3(.17, .12, mZ), v3(.17, .25, mZ), v3(.18, .29, mZ + .02), v3(.19, .3, mZ + .06)], .013, m.copper);
+    this.nozzle.set(.19, .305, mZ + .075); const nz = new T.Mesh(new T.CylinderGeometry(.009, .015, .03, 16), m.brass); nz.position.copy(this.nozzle).add(v3(0, -.012, -.01)); nz.rotation.x = .9; this.pipes.add(nz);
+    const joint = new T.Mesh(new T.CylinderGeometry(.022, .022, .03, 16), new T.MeshStandardMaterial({color: '#3a2a1c', metalness: .6, roughness: .85})); joint.rotation.z = QUARTER; joint.position.set(-.33, mY, mZ); this.pipes.add(joint); this.leakAt.set(-.33, mY + .02, mZ + .015);
+    for (const [x, y, rz] of [[-.42, -.2, 0], [.17, .1, 0], [-.44, mY, QUARTER]] as const) { const f = new T.Mesh(new T.CylinderGeometry(.027, .027, .012, 20), m.brassDark); f.position.set(x, y, mZ); f.rotation.z = rz; this.pipes.add(f); }
+    const tIn = plate('STEAM IN', '', .07, .024, 'brass'); tIn.position.set(-.42, -.25, mZ + .02); this.group.add(tIn);
 
     // ---- valves on the manifold
-    const specs: [ValveName, number, string, string, string[]][] = [['INTAKE', -.17, '#8e1c12', 'INTAKE', ['SHUT', 'HALF', 'OPEN']], ['RELEASE', .0, '#1b3f86', 'RELEASE', ['SHUT', 'HALF', 'OPEN']], ['STABILIZER', .17, '#b8901a', 'STABILIZER', ['OFF', 'ON']]];
-    for (const [name, x, color, label, marks] of specs) this.valves.push(this.buildValve(name, x, mY, mZ, color, label, marks, brass, brassDark, paint(color), bolt));
+    const valveBody = (x: number) => { const g = new T.Group(); g.position.set(x, mY, 0); const body = new T.Mesh(new T.SphereGeometry(.028, 20, 14), m.brass); body.position.z = mZ; body.scale.set(1.1, 1, 1); g.add(body);
+      const bonnet = new T.Mesh(new T.CylinderGeometry(.017, .022, .04, 16), m.brassDark); bonnet.rotation.x = QUARTER; bonnet.position.z = mZ + .04; g.add(bonnet); this.group.add(g); return g; };
+    const nameplate = (x: number, title: string, sub: string, color: string) => { const p = plate(title, sub, .14, .046, 'brass'); p.position.set(x, -.2, .03); this.group.add(p); const band = new T.Mesh(new T.BoxGeometry(.14, .008, .005), m.paint(color)); band.position.set(x, -.173, .032); this.group.add(band); };
+    this.red = new Wheel('red', '#8e1c12', m, () => this.emit('RED')); valveBody(-.25).add(this.red.root); this.red.root.position.z = mZ + .095; nameplate(-.25, 'INTAKE', '▲ +10 PSI', '#8e1c12');
+    this.blue = new Wheel('blue', '#1b3f86', m, () => this.emit('BLUE')); valveBody(-.07).add(this.blue.root); this.blue.root.position.z = mZ + .095; nameplate(-.07, 'RELEASE', '▼ −10 PSI', '#1b3f86');
+    this.fine = new Lever('fine', '#b8901a', m, [-QUARTER / 2, QUARTER / 2], p => this.emit(p ? 'FINE_ON' : 'FINE_OFF')); valveBody(.085).add(this.fine.root); this.fine.root.position.z = mZ + .095; nameplate(.085, 'FINE', 'ON = ±2 PSI', '#b8901a');
+    this.group.add(this.dialMarks(.085, mY, 'OFF', 'ON'));
 
-    // ---- steam: a small pool of soft sprites, recycled
-    const N = hi ? 90 : 48; this.steamData = new Float32Array(N * 3); this.steamLife = new Float32Array(N * 4); // life, vx, vy, vz
-    const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(this.steamData, 3)); const age = new Float32Array(N); geo.setAttribute('age', new T.BufferAttribute(age, 1));
+    // ---- right column: code window, TEST, relays
+    this.codeCanvas.width = 512; this.codeCanvas.height = 160; this.codeTex = new T.CanvasTexture(this.codeCanvas); this.codeTex.colorSpace = T.SRGBColorSpace; this.drawCode('', false);
+    const win = new T.Mesh(new T.PlaneGeometry(.17, .053), new T.MeshStandardMaterial({map: this.codeTex, emissiveMap: this.codeTex, emissive: '#ffffff', emissiveIntensity: .9, roughness: .3})); win.position.set(.33, .255, .03); this.group.add(win);
+    const frame = new T.Mesh(new T.BoxGeometry(.182, .065, .008), m.brass); frame.position.set(.33, .255, .024); this.group.add(frame);
+    const dp = plate('FAULT CODE', '', .1, .022, 'brass'); dp.position.set(.33, .212, .03); this.group.add(dp);
+    this.test = new PushButton('test', m, () => this.emit('DIAGNOSTIC')); this.test.root.position.set(.29, .15, .024); this.group.add(this.test.root);
+    const tp = plate('TEST', '', .06, .022, 'brass'); tp.position.set(.29, .102, .03); this.group.add(tp);
+    for (let i = 0; i < 3; i++) { const l = lamp(.009, '#ffb020', m); l.group.position.set(.37 + i * .028, .15, .03); this.group.add(l.group); this.relays.push(l.mat); }
+    // BYPASS lever + the auxiliary line it opens
+    this.bypass = new Lever('bypass', '#2a2622', m, [-.6, .6], p => this.emit(p ? 'BYPASS_AUX' : 'BYPASS_MAIN'), .07); this.bypass.root.position.set(.33, .005, .05); this.group.add(this.bypass.root);
+    this.group.add(this.dialMarks(.33, .005, 'MAIN', 'AUX', .6, .095));
+    const bp = plate('BYPASS', 'AUXILIARY LINE', .14, .04, 'brass'); bp.position.set(.33, -.085, .03); this.group.add(bp);
+    this.aux = lamp(.01, '#4dc4ff', m); this.aux.group.position.set(.42, .06, .03); this.group.add(this.aux.group);
+    tube([v3(-.42, -.29, .045), v3(.0, -.29, .045), v3(.2, -.29, .045), v3(.236, -.27, .045), v3(.238, -.1, .045), v3(.25, -.03, .045), v3(.3, .0, .05)], .007, m.brassDark); // auxiliary line: along the bottom, up the column edge, into the bypass hub
+    // EMERGENCY RELEASE
+    const hz = plate('EMERGENCY RELEASE', '', .17, .05, 'warning'); hz.position.set(.33, -.15, .03); this.group.add(hz);
+    this.emergency = new PullHandle('emergency', m, () => this.emit('EMERGENCY')); this.emergency.root.position.set(.33, -.215, .024); this.group.add(this.emergency.root);
+    const slot = new T.Mesh(new T.BoxGeometry(.012, .07, .006), m.bolt); slot.position.set(.33, -.24, .026); this.group.add(slot);
+    this.ventAt.set(.43, -.28, .06); const ev = new T.Mesh(new T.CylinderGeometry(.01, .016, .03, 14), m.brass); ev.position.set(.43, -.27, .05); ev.rotation.x = .6; this.group.add(ev);
+    this.ok = lamp(.016, '#3dff6a', m); this.ok.group.position.set(.42, .1, .04); this.group.add(this.ok.group);
+
+    this.controls = [this.red, this.blue, this.fine, this.bypass, this.test, this.emergency];
+
+    // ---- steam pool (vent, leak, emergency and failure bursts)
+    const N = hi ? 140 : 70; this.sp = new Float32Array(N * 3); this.life = new Float32Array(N * 5); for (let i = 0; i < N; i++) this.life[i * 5] = 1; // life, vx, vy, vz, size
+    const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(this.sp, 3)); geo.setAttribute('age', new T.BufferAttribute(new Float32Array(N), 1)); geo.setAttribute('size', new T.BufferAttribute(new Float32Array(N), 1));
     this.steam = new T.Points(geo, new T.ShaderMaterial({transparent: true, depthWrite: false, uniforms: {px: {value: Math.min(devicePixelRatio, 2)}},
-      vertexShader: 'attribute float age; uniform float px; varying float vA; void main(){ vec4 mv = modelViewMatrix * vec4(position,1.); vA = age; gl_PointSize = px * (.03 + .09 * age) * 520. / -mv.z; gl_Position = projectionMatrix * mv; }',
-      fragmentShader: 'varying float vA; void main(){ vec2 d = gl_PointCoord - .5; float r = length(d); if (vA <= 0. || r > .5) discard; float a = smoothstep(.5, .0, r) * (1. - vA) * min(1., vA * 6.) * .32; gl_FragColor = vec4(vec3(.86, .84, .8), a); }'}));
+      vertexShader: 'attribute float age; attribute float size; uniform float px; varying float vA; void main(){ vec4 mv = modelViewMatrix * vec4(position,1.); vA = age; gl_PointSize = px * size * (.35 + age) * 520. / -mv.z; gl_Position = projectionMatrix * mv; }',
+      fragmentShader: 'varying float vA; void main(){ vec2 d = gl_PointCoord - .5; float r = length(d); if (vA <= 0. || r > .5) discard; float a = smoothstep(.5, .0, r) * (1. - vA) * min(1., vA * 6.) * .34; gl_FragColor = vec4(vec3(.86, .84, .8), a); }'}));
     this.steam.frustumCulled = false; this.group.add(this.steam);
-    for (let i = 0; i < N; i++) this.steamLife[i * 4] = 1;
   }
 
-  private plateMesh(text: string, sub: string, w: number, h: number, style: 'brass' | 'enamel') {
-    const W = 512, H = Math.round(512 * h / w); const t = canvasTex(W, H, x => {
-      const g = x.createLinearGradient(0, 0, W, H); if (style === 'brass') { g.addColorStop(0, '#9a7640'); g.addColorStop(.5, '#c9a463'); g.addColorStop(1, '#7a5a2c'); } else { g.addColorStop(0, '#2a0f0a'); g.addColorStop(1, '#170806'); }
-      x.fillStyle = g; x.fillRect(0, 0, W, H); x.strokeStyle = style === 'brass' ? 'rgba(40,24,8,.75)' : '#c8a060'; x.lineWidth = Math.max(4, H * .06); x.strokeRect(H * .08, H * .08, W - H * .16, H - H * .16);
-      x.textAlign = 'center'; x.textBaseline = 'middle'; const fs = Math.min(H * (sub ? .4 : .55), W * 1.6 / Math.max(6, text.length)); x.font = `700 ${fs}px ${SERIF}`; x.fillStyle = style === 'brass' ? '#1c1107' : '#ffe9c4'; x.fillText(text, W / 2, sub ? H * .4 : H * .53);
-      if (sub) { x.font = `600 ${H * .2}px ${TECH}`; x.fillStyle = style === 'brass' ? '#2e1d0a' : '#ff8a5c'; x.fillText(sub, W / 2, H * .74); }
-    });
-    return new T.Mesh(new T.BoxGeometry(w, h, .004), [0, 0, 0, 0, 1, 0].map(i => i ? new T.MeshStandardMaterial({map: t, emissiveMap: t, emissive: '#ffffff', emissiveIntensity: .3, metalness: .5, roughness: .45}) : new T.MeshStandardMaterial({color: '#6e5129', metalness: .8, roughness: .5})));
+  private dialMarks(x: number, y: number, a: string, b: string, ang = QUARTER / 2, rad = .1) {
+    const t = canvasTex(512, 512, g => { const c = 256; g.strokeStyle = 'rgba(200,170,110,.6)'; g.lineWidth = 5; g.beginPath(); g.arc(c, c, 200, -Math.PI / 2 - ang - .2, -Math.PI / 2 + ang + .2); g.stroke();
+      ([[a, -ang], [b, ang]] as [string, number][]).forEach(([s, v]) => { const an = -Math.PI / 2 + v; g.fillStyle = '#e8cf98'; g.beginPath(); g.arc(c + Math.cos(an) * 200, c + Math.sin(an) * 200, 11, 0, 7); g.fill(); g.save(); g.translate(c + Math.cos(an) * 236, c + Math.sin(an) * 236); g.rotate(an + QUARTER); g.font = `800 40px ${TECH}`; g.fillStyle = '#f6e7c4'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(s, 0, 0); g.restore(); }); });
+    const mesh = new T.Mesh(new T.CircleGeometry(rad, 48), new T.MeshStandardMaterial({map: t, emissiveMap: t, emissive: '#ffffff', emissiveIntensity: .55, transparent: true, roughness: .8})); mesh.position.set(x, y, .024); return mesh;
   }
-
-  private buildValve(name: ValveName, x: number, y: number, z: number, color: string, label: string, marks: string[], brass: T.Material, brassDark: T.Material, paint: T.Material, bolt: T.Material): Valve {
-    const root = new T.Group(); root.position.set(x, y, 0); this.group.add(root); const positions = marks.length;
-    // globe body on the pipe, bonnet towards the player, stem
-    const body = new T.Mesh(new T.SphereGeometry(.028, 20, 14), brass); body.position.z = z; body.scale.set(1.1, 1, 1); root.add(body);
-    const bonnet = new T.Mesh(new T.CylinderGeometry(.017, .022, .04, 16), brassDark); bonnet.rotation.x = Math.PI / 2; bonnet.position.z = z + .04; root.add(bonnet);
-    const nut = new T.Mesh(new T.CylinderGeometry(.013, .013, .012, 6), brass); nut.rotation.x = Math.PI / 2; nut.position.z = z + .064; root.add(nut);
-    const stem = new T.Mesh(new T.CylinderGeometry(.005, .005, .03, 10), bolt); stem.rotation.x = Math.PI / 2; stem.position.z = z + .08; root.add(stem);
-    // position dial painted on the backplate behind the valve
-    const dial = new T.Mesh(new T.CircleGeometry(.085, 48), new T.MeshStandardMaterial({transparent: true, roughness: .8, metalness: .3, map: canvasTex(512, 512, g => {
-      const c = 256; g.strokeStyle = 'rgba(200,170,110,.6)'; g.lineWidth = 5; g.beginPath(); g.arc(c, c, 200, Math.PI - .25, Math.PI + (positions - 1) * QUARTER + .25); g.stroke();
-      marks.forEach((m, k) => { const a = Math.PI + k * QUARTER; g.save(); g.translate(c + Math.cos(a) * 200, c + Math.sin(a) * 200); g.fillStyle = '#e8cf98'; g.beginPath(); g.arc(0, 0, 11, 0, 7); g.fill(); g.restore();
-        g.save(); g.translate(c + Math.cos(a) * 228, c + Math.sin(a) * 228); g.rotate(a + Math.PI / 2); g.font = `800 34px ${TECH}`; g.fillStyle = k === positions - 1 && name !== 'STABILIZER' ? '#ffd27a' : '#f2e3c0'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(m, 0, 0); g.restore(); });
-    })})); dial.material.emissiveMap = (dial.material as T.MeshStandardMaterial).map; (dial.material as T.MeshStandardMaterial).emissive.set('#ffffff'); (dial.material as T.MeshStandardMaterial).emissiveIntensity = .55;
-    dial.position.set(0, 0, .024); dial.rotation.z = 0; root.add(dial);
-    // colour-banded name plate under the valve
-    const np = this.plateMesh(label, name === 'INTAKE' ? '▲ PRESSURE UP' : name === 'RELEASE' ? '▼ PRESSURE DOWN' : '≈ SLOWER CHANGE', .135, .045, 'brass'); np.position.set(0, -.125, .03); root.add(np);
-    const band = new T.Mesh(new T.BoxGeometry(.135, .008, .005), paint); band.position.set(0, -.1, .032); root.add(band);
-    // the turning part
-    const spin = new T.Group(); spin.position.z = z + .095; root.add(spin);
-    if (name === 'STABILIZER') { // quarter-turn lever
-      const hub = new T.Mesh(new T.CylinderGeometry(.016, .016, .016, 20), brass); hub.rotation.x = Math.PI / 2; spin.add(hub);
-      const lever = new T.Mesh(new T.BoxGeometry(.016, .085, .01), paint); lever.position.y = .045; spin.add(lever);
-      const grip = new T.Mesh(new T.CylinderGeometry(.011, .011, .03, 14), paint); grip.position.set(0, .088, 0); grip.rotation.z = Math.PI / 2; spin.add(grip);
-    } else { // handwheel: rim, four spokes, hub, a white index notch at the top
-      const rim = new T.Mesh(new T.TorusGeometry(.052, .0085, 12, 40), paint); spin.add(rim);
-      for (let k = 0; k < 4; k++) { const sp = new T.Mesh(new T.CylinderGeometry(.0045, .0045, .1, 8), paint); sp.rotation.z = k * QUARTER / 2 * 2 + Math.PI / 4; spin.add(sp); }
-      const hub = new T.Mesh(new T.CylinderGeometry(.014, .014, .02, 16), brass); hub.rotation.x = Math.PI / 2; spin.add(hub);
-      const knob = new T.Mesh(new T.CylinderGeometry(.007, .009, .03, 12), brass); knob.rotation.x = Math.PI / 2; knob.position.set(.045, .02, .014); spin.add(knob);
-    }
-    const index = new T.Mesh(new T.BoxGeometry(.008, .02, .006), new T.MeshStandardMaterial({color: '#f4ecd8', emissive: '#f4ecd8', emissiveIntensity: .35, roughness: .4})); index.position.set(0, name === 'STABILIZER' ? .1 : .061, .006); spin.add(index);
-    // generous invisible hit target (finger sized)
-    const hit = new T.Mesh(new T.CylinderGeometry(.075, .075, .08, 16), new T.MeshBasicMaterial({visible: false})); hit.rotation.x = Math.PI / 2; hit.position.z = z + .08; root.add(hit);
-    return {name, positions, root, spin, hit, angle: 0, target: 0, pos: 0, dragging: false, lastDetent: 0};
+  private drawCode(code: string, busy: boolean) {
+    const key = busy ? 'busy' + Math.floor(this.t * 12) : code; if (key === this.codeShown) return; this.codeShown = key;
+    const x = this.codeCanvas.getContext('2d')!; x.fillStyle = '#0a0705'; x.fillRect(0, 0, 512, 160); x.strokeStyle = 'rgba(255,170,60,.15)'; for (let y = 0; y < 160; y += 6) { x.beginPath(); x.moveTo(0, y); x.lineTo(512, y); x.stroke(); }
+    const txt = busy ? ['R', 'B', 'F', 'L'][Math.floor(this.t * 12) % 4] + '-0' + (1 + Math.floor(this.t * 17) % 4) : code || '– – – –';
+    x.font = `700 ${code || busy ? 112 : 70}px 'IBM Plex Mono', Menlo, monospace`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.shadowColor = '#ff9a2a'; x.shadowBlur = code ? 26 : 8; x.fillStyle = busy ? 'rgba(255,170,70,.55)' : code ? '#ffb347' : 'rgba(255,170,70,.4)'; x.fillText(txt, 256, 86);
+    this.codeTex.needsUpdate = true;
   }
-
-  /** dial artwork: ivory face, 0–120 PSI scale, the puzzle's green safe arc and the red critical arc */
-  private drawDial(low: number, high: number) {
-    if (this.zone[0] === low && this.zone[1] === high) return; this.zone = [low, high];
-    const x = this.dialCanvas.getContext('2d')!, c = 512, ang = (v: number) => -Math.PI / 2 + A0 + v / 120 * (A1 - A0);
-    const g = x.createRadialGradient(c, c, 60, c, c, 512); g.addColorStop(0, '#f1e6c8'); g.addColorStop(1, '#cdb88a'); x.fillStyle = g; x.fillRect(0, 0, 1024, 1024);
-    const r = rng(7); for (let i = 0; i < 60; i++) { x.fillStyle = `rgba(120,80,30,${r() * .12})`; x.beginPath(); x.arc(r() * 1024, r() * 1024, 4 + r() * 22, 0, 7); x.fill(); }
-    const arc = (a: number, b: number, rad: number, w: number, col: string) => { x.strokeStyle = col; x.lineWidth = w; x.beginPath(); x.arc(c, c, rad, ang(a), ang(b)); x.stroke(); };
-    arc(110, 120, 378, 52, 'rgba(176,24,10,.92)');
-    arc(low, high, 378, 64, '#1f9a3a'); arc(low, high, 410, 6, '#0f5a20'); arc(low, high, 346, 6, '#0f5a20');
-    arc(0, 120, 410, 7, '#20140a');
-    for (let v = 0; v <= 120; v += 2) { const a = ang(v), big = v % 10 === 0, len = big ? 64 : v % 5 === 0 ? 44 : 28; x.strokeStyle = '#140c05'; x.lineWidth = big ? 9 : 4; x.beginPath(); x.moveTo(c + Math.cos(a) * 404, c + Math.sin(a) * 404); x.lineTo(c + Math.cos(a) * (404 - len), c + Math.sin(a) * (404 - len)); x.stroke(); }
-    x.fillStyle = '#120a03'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = `700 70px 'Cinzel', Georgia, serif`;
-    for (let v = 0; v <= 120; v += 20) { const a = ang(v); x.fillText(String(v), c + Math.cos(a) * 285, c + Math.sin(a) * 285); }
-    x.font = `800 64px ${TECH}`; x.fillText('PSI', c, c + 170);
-    x.font = `700 40px ${TECH}`; x.fillStyle = '#0f5a20'; x.fillText(`SAFE ${low}–${high}`, c, c + 236);
-    x.fillStyle = '#3a2412'; x.font = `600 30px 'Cinzel', Georgia, serif`; x.fillText('HARTWELL · LONDON', c, c - 170);
-    this.dial.needsUpdate = true;
-  }
+  private emit(a: Action) { if (this.enabled) this.onAction(a); }
 
   center() { return new T.Vector3(0, .02, .08).applyMatrix4(this.group.matrixWorld); }
-  /** the closest valve under the ray, or -1 */
-  pick(ray: T.Raycaster) { let best = -1, d = Infinity; this.valves.forEach((v, i) => { const h = ray.intersectObject(v.hit, false)[0]; if (h && h.distance < d) { d = h.distance; best = i; } }); return best; }
   hits(ray: T.Raycaster) { return ray.intersectObject(this.group, true).find(h => h.object.type !== 'Points') || null; }
+  get dragging() { return !!this.active; }
+  /** grab the control under the ray (true = the pointer now belongs to the machine) */
+  pointerDown(ray: T.Raycaster, x: number, y: number, camera: T.Camera) {
+    if (!this.enabled) return false; let best: Control | null = null, d = Infinity;
+    for (const c of this.controls) { const h = ray.intersectObject(c.hit, false)[0]; if (h && h.distance < d) { d = h.distance; best = c; } }
+    if (!best) return false; this.active = best; best.down(x, y, camera); return true;
+  }
+  pointerMove(x: number, y: number) { this.active?.move(x, y); }
+  pointerUp(tap: boolean) { const c = this.active; this.active = null; c?.up(tap); }
+  /** screen position of a control (tests and camera framing) */
+  controlScreen(id: string, camera: T.Camera) { const c = this.controls.find(k => k.id === id)!; const v = new T.Vector3().setFromMatrixPosition(c.root.matrixWorld).project(camera); return {x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight}; }
 
-  beginDrag(i: number, x: number, y: number, camera: T.Camera) {
-    if (!this.enabled) return false; const v = this.valves[i]; const c = new T.Vector3().setFromMatrixPosition(v.spin.matrixWorld).project(camera);
-    const cx = (c.x + 1) / 2 * innerWidth, cy = (1 - c.y) / 2 * innerHeight; this.drag = {v, cx, cy, last: Math.atan2(y - cy, x - cx)}; v.dragging = true; return true;
+  update(dt: number, v: ValveView | null) {
+    this.t += dt; const fx = this.sounds;
+    for (const c of this.controls) { if (fx) c.setFeedback(fx); c.enabled = this.enabled && !!v && v.outcome === 'RUNNING'; c.update(dt); }
+    if (!v) { this.gauge.update(dt, 0, 0, false); this.drawCode('', false); this.warn.mat.emissiveIntensity = 0; this.ok.mat.emissiveIntensity = 0; this.relays.forEach(r => r.emissiveIntensity = 0); this.verify.forEach(r => r.emissiveIntensity = 0); this.aux.mat.emissiveIntensity = 0; this.emitSteam(dt); fx?.steam(0, 0); return; }
+    this.gauge.draw(v.safeLow, v.safeHigh); this.fine.set(v.fine ? 1 : 0); this.bypass.set(v.bypass ? 1 : 0); this.emergency.setUsed(v.emergencyUsed);
+    const zone = v.pressure >= v.safeLow && v.pressure <= v.safeHigh, running = v.outcome === 'RUNNING', failed = v.outcome === 'FAILED', critical = running && v.pressure >= 100;
+    this.gauge.update(dt, v.pressure, v.surgeWarning ? .6 : critical ? 1 : 0, zone && running);
+    // server-confirmed effect of the latest action (resistance, steam)
+    const e = v.effect; if (e && e.seq !== this.lastEffect) { const first = this.lastEffect < 0; this.lastEffect = e.seq; if (!first) {
+      if (e.jammed) (e.action === 'RED' ? this.red : this.blue).jam();
+      if (e.action === 'EMERGENCY') { this.burst(this.ventAt, 46, .55); fx?.burst(); }
+      else if (e.delta < 0 && (e.action === 'RED' || e.action === 'BLUE')) { this.burst(this.nozzle, e.delta <= -10 ? 16 : 5, .35); fx?.vent(e.delta <= -10 ? 1 : .4); } } }
+    // diagnostics: relay lamps chase while the code window scrolls, then the code holds
+    this.relays.forEach((m, i) => { m.emissiveIntensity = v.diagnosing ? (Math.floor(this.t * 10) % 3 === i ? 3 : .2) : v.code ? .6 : 0; });
+    this.drawCode(v.code, v.diagnosing); this.aux.mat.emissiveIntensity = v.bypass ? 2 : 0;
+    // stability lamps fill over the 1 s check
+    const k = v.verifyMs / VERIFY_MS * 3; this.verify.forEach((m, i) => { m.emissiveIntensity = v.outcome === 'STABILIZED' || k >= i + 1 ? 2.4 : k > i ? .4 + (k - i) : 0; });
+    const step = Math.floor(k); if (step > this.lastVerifyStep && running) fx?.tick(step); this.lastVerifyStep = v.verifyMs > 0 ? step : 0;
+    // warning lamp: orange flashing during a surge warning, red when high or failed, off on success
+    const flash = Math.sin(this.t * 18) > 0;
+    this.warn.mat.emissive.set(v.surgeWarning ? '#ff8a10' : '#ff2a10'); this.warn.mat.emissiveIntensity = v.surgeWarning ? (flash ? 4 : .3) : failed ? 3 + Math.sin(this.t * 9) : critical ? (Math.sin(this.t * 12) > 0 ? 3 : .3) : 0;
+    this.warnLight.color.set(v.surgeWarning ? '#ff8a10' : '#ff2a10'); this.warnLight.intensity = this.warn.mat.emissiveIntensity * .4;
+    this.ok.mat.emissiveIntensity = v.outcome === 'STABILIZED' ? 3 : 0;
+    if (v.surgeWarning) { this.whistleT -= dt; if (this.whistleT <= 0) { this.whistleT = 2.2; fx?.whistle(); } } else this.whistleT = 0;
+    if (v.surged && !this.surgedSeen) { this.surgedSeen = true; fx?.surge(); fx?.knock(1); this.burst(this.nozzle, 10, .4); }
+    if (critical || failed) { this.alarmT -= dt; if (this.alarmT <= 0) { this.alarmT = .8; if (running) fx?.alarm(); } } else this.alarmT = 0;
+    const shake = critical || v.surgeWarning; this.pipes.position.set(shake ? (Math.random() - .5) * .0016 : 0, shake ? (Math.random() - .5) * .0016 : 0, 0);
+    if (v.outcome !== this.lastOutcome) { this.lastOutcome = v.outcome; if (failed) { this.burst(this.nozzle, 40, .6); this.burst(this.leakAt, 26, .5); this.burst(this.ventAt, 26, .5); } }
+    // an uncontrolled leak weeps visibly at the damaged joint (the server publishes the unsafe state, not the fault)
+    if (running && !v.safeState) { this.leakAcc += dt * 14; while (this.leakAcc >= 1) { this.leakAcc--; this.spawn(this.leakAt, .12, .03); } }
+    fx?.steam(running && !v.safeState ? .45 : 0, running ? .2 + v.pressure / 120 * .8 : 0);
+    this.emitSteam(dt);
   }
-  moveDrag(x: number, y: number) {
-    const d = this.drag; if (!d) return; let a = Math.atan2(y - d.cy, x - d.cx), da = a - d.last; da = Math.atan2(Math.sin(da), Math.cos(da)); d.last = a;
-    // screen angle grows clockwise (y down); valve angle opens clockwise -> negative rotation
-    const v = d.v, min = -(v.positions - 1) * QUARTER; v.target = Math.max(min - .12, Math.min(.12, v.target - da));
-    const detent = Math.round(-v.target / QUARTER); if (detent !== v.lastDetent && detent >= 0 && detent < v.positions) { v.lastDetent = detent; this.sounds?.click(); this.sounds?.turn(); }
-  }
-  endDrag() {
-    const d = this.drag; if (!d) return; this.drag = null; const v = d.v; v.dragging = false;
-    const pos = Math.max(0, Math.min(v.positions - 1, Math.round(-v.target / QUARTER))); v.target = -pos * QUARTER; v.lastDetent = pos;
-    if (pos !== v.pos) { v.pos = pos; this.onValve(v.name, pos); }
-  }
-  get dragging() { return !!this.drag; }
+  /** called by the page when a new machine starts */
+  reset() { this.lastEffect = -1; this.surgedSeen = false; this.lastOutcome = 'RUNNING'; this.emergency.used = false; }
 
-  /** per frame: authoritative/predicted view in, mechanics + effects out */
-  update(dt: number, view: PressureView | null) {
-    this.t += dt;
-    if (view) this.drawDial(view.safeLow, view.safeHigh);
-    // valves follow authority unless the player is holding them
-    this.valves.forEach((v, i) => { if (view && !v.dragging) { const p = [view.intake, view.release, view.stabilizer][i]; if (p !== v.pos) { v.pos = p; v.target = -p * QUARTER; v.lastDetent = p; } }
-      v.angle += (v.target - v.angle) * (1 - Math.exp(-dt * (v.dragging ? 30 : 14))); v.spin.rotation.z = QUARTER + v.angle; });
-    // needle: critically damped follower of the continuous pressure (no jumps on network updates)
-    const psi = view ? view.pressure : 0, aim = A0 + Math.max(-1, Math.min(121, psi)) / 120 * (A1 - A0);
-    const k = 60, cdamp = 2 * Math.sqrt(k); this.needleVel += (k * (aim - this.needleAngle) - cdamp * this.needleVel) * dt; this.needleAngle += this.needleVel * dt;
-    const crit = !!view?.critical; this.needle.rotation.z = -(this.needleAngle + (crit ? Math.sin(this.t * 70) * .012 : 0));
-    // stabilisation lamps
-    const hold = view ? view.holdMs / HOLD_MS * 3 : 0; this.holdLamps.forEach((l, i) => { const m = l.material as T.MeshStandardMaterial; const on = hold >= i + 1 || view?.outcome === 'STABILIZED'; m.emissiveIntensity = on ? 2.4 : hold > i ? .35 + (hold - i) : 0; });
-    const zoneOn = !!view && view.outcome === 'RUNNING' && view.pressure >= view.safeLow && view.pressure <= view.safeHigh; this.faceMat.emissive.set(zoneOn ? '#c8ffd2' : '#ffffff'); this.faceMat.emissiveIntensity += ((zoneOn ? .85 : .5) - this.faceMat.emissiveIntensity) * Math.min(1, dt * 8);
-    const step = Math.floor(hold); if (step > this.lastHoldStep && view?.outcome === 'RUNNING') this.sounds?.tick(step); this.lastHoldStep = view && view.holdMs > 0 ? step : 0;
-    // warning lamp + pipe hammer + alarm in the critical band; amber idle glow while the puzzle is live
-    const lm = this.lamp.material as T.MeshStandardMaterial; const flash = crit && Math.sin(this.t * 14) > 0;
-    lm.emissive.set(crit ? '#ff2a10' : '#ffa21a'); lm.emissiveIntensity = crit ? (flash ? 4 : .2) : view?.outcome === 'RUNNING' ? .9 + .3 * Math.sin(this.t * 3) : 0; this.lampLight.intensity = crit ? (flash ? 1.6 : 0) : view?.outcome === 'RUNNING' ? .25 : 0;
-    this.pipes.position.set(crit ? (Math.random() - .5) * .002 : 0, crit ? (Math.random() - .5) * .002 : 0, 0);
-    if (crit) { this.alarmT -= dt; this.knockT -= dt; if (this.alarmT <= 0) { this.alarmT = .7; this.sounds?.alarm(); } if (this.knockT <= 0) { this.knockT = .35 + Math.random() * .5; this.sounds?.knock(.6 + Math.random() * .4); } } else { this.alarmT = 0; this.knockT = .2; }
-    // steam: release jet by valve position, joint leaks when critical
-    const release = view && view.outcome === 'RUNNING' ? view.release : 0, rate = [0, 16, 40][release] + (crit ? 22 : 0) + (view && view.outcome === 'RUNNING' && psi > 85 ? 4 : 0);
-    this.sounds?.steam(release / 2 * .8 + (crit ? .35 : 0), view?.outcome === 'RUNNING' ? .25 + psi / 120 * .75 : 0);
-    this.emitSteam(dt, rate, release, crit);
+  // ---------------------------------------------------------------- steam
+  private spawn(at: T.Vector3, speed: number, spread: number, size = .05) {
+    const N = this.sp.length / 3, i = this.cursor; this.cursor = (i + 1) % N; const L = this.life;
+    this.sp[i * 3] = at.x; this.sp[i * 3 + 1] = at.y; this.sp[i * 3 + 2] = at.z; L[i * 5] = 0;
+    L[i * 5 + 1] = (Math.random() - .5) * spread * 4; L[i * 5 + 2] = speed * (.6 + Math.random() * .6); L[i * 5 + 3] = .05 + Math.random() * spread * 3; L[i * 5 + 4] = size * (.7 + Math.random() * .6);
   }
-
-  private emitSteam(dt: number, rate: number, release: number, crit: boolean) {
-    const N = this.steamData.length / 3, pos = this.steamData, L = this.steamLife, age = this.steam.geometry.attributes.age as T.BufferAttribute;
-    this.steamAcc += rate * dt;
-    while (this.steamAcc >= 1) { this.steamAcc -= 1; const i = this.steamCursor; this.steamCursor = (i + 1) % N; const leak = crit && (release === 0 || Math.random() < .35); const o = leak ? this.leak : this.nozzle;
-      pos[i * 3] = o.x; pos[i * 3 + 1] = o.y; pos[i * 3 + 2] = o.z; L[i * 4] = 0; const sp = leak ? .18 : .25 + .2 * release;
-      L[i * 4 + 1] = (Math.random() - .5) * .08 + (leak ? 0 : .05); L[i * 4 + 2] = sp * (leak ? .6 : 1) + Math.random() * .05; L[i * 4 + 3] = (leak ? .14 : .12) + Math.random() * .06; }
-    for (let i = 0; i < N; i++) { let l = L[i * 4]; if (l >= 1) { age.setX(i, 0); continue; } l = Math.min(1, l + dt / 1.6); L[i * 4] = l; const drag = Math.exp(-dt * 1.4);
-      L[i * 4 + 1] *= drag; L[i * 4 + 3] *= drag; L[i * 4 + 2] = L[i * 4 + 2] * drag + .06 * dt; // buoyant, slowing, spreading
-      pos[i * 3] += L[i * 4 + 1] * dt; pos[i * 3 + 1] += L[i * 4 + 2] * dt; pos[i * 3 + 2] += L[i * 4 + 3] * dt; age.setX(i, l >= 1 ? 0 : Math.max(.001, l)); }
-    (this.steam.geometry.attributes.position as T.BufferAttribute).needsUpdate = true; age.needsUpdate = true;
+  private burst(at: T.Vector3, n: number, speed: number) { for (let i = 0; i < n; i++) this.spawn(at, speed, .08, .07); }
+  private emitSteam(dt: number) {
+    const N = this.sp.length / 3, L = this.life, age = this.steam.geometry.attributes.age as T.BufferAttribute, size = this.steam.geometry.attributes.size as T.BufferAttribute;
+    for (let i = 0; i < N; i++) { let l = L[i * 5]; if (l >= 1) { age.setX(i, 0); continue; } l = Math.min(1, l + dt / 1.5); L[i * 5] = l; const drag = Math.exp(-dt * 1.6);
+      L[i * 5 + 1] *= drag; L[i * 5 + 3] *= drag; L[i * 5 + 2] = L[i * 5 + 2] * drag + .07 * dt;
+      this.sp[i * 3] += L[i * 5 + 1] * dt; this.sp[i * 3 + 1] += L[i * 5 + 2] * dt; this.sp[i * 3 + 2] += L[i * 5 + 3] * dt; age.setX(i, l >= 1 ? 0 : Math.max(.001, l)); size.setX(i, L[i * 5 + 4]); }
+    (this.steam.geometry.attributes.position as T.BufferAttribute).needsUpdate = true; age.needsUpdate = true; size.needsUpdate = true;
   }
 }

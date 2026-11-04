@@ -236,40 +236,47 @@ function miniGauge(x: X, cx: number, cy: number, r: number, v: number, zone: [nu
   if (arrow) { const ax = cx + r * 1.32; x.strokeStyle = arrow > 0 ? '#b8231a' : '#1d4fb0'; x.lineWidth = r * .16; x.beginPath(); x.moveTo(ax, cy + arrow * r * .6); x.lineTo(ax, cy - arrow * r * .6); x.moveTo(ax - r * .3, cy - arrow * r * .25); x.lineTo(ax, cy - arrow * r * .62); x.lineTo(ax + r * .3, cy - arrow * r * .25); x.stroke(); }
 }
 function pressureHeader(x: X, side: number, page: number, title: string) {
-  x.textBaseline = 'alphabetic'; x.fillStyle = INK2; x.font = F.tech(20, 500); x.textAlign = 'left'; x.fillText('PRESSURE CONTROL \u00b7 РАЗДЕЛ IV', MX, 82);
+  x.textBaseline = 'alphabetic'; x.fillStyle = INK2; x.font = F.tech(20, 500); x.textAlign = 'left'; x.fillText('THE BROKEN VALVES \u00b7 РАЗДЕЛ IV', MX, 82);
   x.fillStyle = INK; x.font = F.display(700, 74); x.fillText(title, MX - 2, 150);
-  x.font = F.tech(36, 700); const label = '60 СЕКУНД', rw = x.measureText(label).width + 56, ry = 172, rh = 54;
+  x.font = F.tech(36, 700); const label = '45 СЕКУНД', rw = x.measureText(label).width + 56, ry = 172, rh = 54;
   x.fillStyle = '#1d6a33'; x.beginPath(); x.moveTo(MX, ry); x.lineTo(MX + rw, ry); x.lineTo(MX + rw - 16, ry + rh / 2); x.lineTo(MX + rw, ry + rh); x.lineTo(MX, ry + rh); x.closePath(); x.fill(); x.fillStyle = '#f6ead0'; x.fillText(label, MX + 18, ry + rh * .74);
   x.font = F.tech(22, 700); x.fillStyle = INK2; x.textAlign = side > 0 ? 'right' : 'left'; x.fillText(String(page), side > 0 ? W - MX : MX, H - 58);
   x.strokeStyle = INK; x.lineWidth = 3; x.beginPath(); x.moveTo(MX, 262); x.lineTo(W - MX, 262); x.stroke();
 }
-/** left: what each valve does; right: the goal (green zone, hold 3 s, 45 s). */
+/** THE BROKEN VALVES spread. Left: the four fault codes and their fix; right: what every control does + the goal. */
 export function drawPressurePage(x: X, half: 0 | 1, index: number) {
   const side = half ? 1 : -1; paper(x, index + 61, side, true);
   if (!half) {
-    pressureHeader(x, side, index + 1, 'Контроль давления');
-    const rows: ['red' | 'blue' | 'yellow', string, string, 1 | -1 | 0][] = [['red', 'КРАСНЫЙ', 'ДАВЛЕНИЕ ВВЕРХ', 1], ['blue', 'СИНИЙ', 'ДАВЛЕНИЕ ВНИЗ', -1], ['yellow', 'ЖЁЛТЫЙ', 'МЕДЛЕННЕЕ', 0]];
-    const top = 300, h = 300;
-    rows.forEach(([c, name, what, dir], i) => { const y = top + i * h, cy = y + h / 2 - 10;
-      x.fillStyle = i % 2 ? 'rgba(40,28,18,.05)' : 'rgba(40,28,18,0)'; rr(x, MX - 10, y + 8, W - 2 * MX + 20, h - 16, 16); x.fill();
-      handwheel(x, MX + 110, cy, 78, VALVE_INK[c], c === 'yellow');
-      x.fillStyle = c === 'yellow' ? '#8a6200' : VALVE_INK[c]; x.font = F.tech(30, 700); x.textAlign = 'center'; x.fillText(name, MX + 110, cy + 128);
-      x.strokeStyle = INK; x.lineWidth = 7; x.lineCap = 'round'; x.beginPath(); x.moveTo(MX + 236, cy); x.lineTo(MX + 330, cy); x.moveTo(MX + 306, cy - 22); x.lineTo(MX + 332, cy); x.lineTo(MX + 306, cy + 22); x.stroke();
-      if (dir) miniGauge(x, MX + 470, cy, 92, dir > 0 ? 95 : 25, null, dir);
-      else { miniGauge(x, MX + 470, cy, 92, 60, null, 0); x.strokeStyle = '#d9a514'; x.lineWidth = 8; x.setLineDash([3, 14]); x.beginPath(); x.arc(MX + 470, cy, 120, -2.2, -1.1); x.stroke(); x.setLineDash([]); x.fillStyle = INK; x.font = F.tech(40, 700); x.textAlign = 'center'; x.fillText('\u00d7\u00bc', MX + 470 + 150, cy - 70); }
-      x.fillStyle = INK; x.font = F.tech(38, 700); x.textAlign = 'left'; x.fillText(what, MX + 600, cy + 14); });
-    // detent legend
-    const ly = top + 3 * h + 34; x.fillStyle = INK2; x.font = F.tech(24, 700); x.textAlign = 'center';
-    ['ЗАКРЫТ', '½', 'ОТКРЫТ'].forEach((t, i) => { const px = W / 2 - 220 + i * 220; x.fillStyle = INK; x.beginPath(); x.arc(px, ly, 10 + i * 4, 0, 7); x.fill(); x.fillStyle = INK2; x.fillText(t, px, ly + 48); });
-    x.fillText('ТЯНИТЕ ВЕНТИЛЬ ПО КРУГУ', W / 2, ly + 96);
+    pressureHeader(x, side, index + 1, 'Неисправности');
+    x.fillStyle = BURGUNDY; x.font = F.tech(30, 700); x.textAlign = 'left'; x.fillText('1 · НАЖМИТЕ TEST  2 · НАЙДИТЕ КОД', MX, 316);
+    const rows: [string, string, string, (cx: number, cy: number) => void][] = [
+      ['R-02', 'КРАСНЫЙ ЗАКЛИНИЛ', 'BYPASS → AUX', (cx, cy) => { handwheel(x, cx, cy, 52, VALVE_INK.red); jamBar(cx, cy); }],
+      ['B-04', 'СИНИЙ ЗАКЛИНИЛ', 'BYPASS → AUX', (cx, cy) => { handwheel(x, cx, cy, 52, VALVE_INK.blue); jamBar(cx, cy); }],
+      ['F-01', 'ПОТОК НАОБОРОТ', 'КРАСНЫЙ ▼  СИНИЙ ▲  или BYPASS', (cx, cy) => { x.strokeStyle = INK; x.lineWidth = 7; x.lineCap = 'round'; for (const s of [-1, 1]) { x.beginPath(); x.arc(cx, cy, 44, s > 0 ? .3 : Math.PI + .3, s > 0 ? Math.PI - .3 : -.3); x.stroke(); const a = s > 0 ? Math.PI - .3 : -.3; x.beginPath(); x.moveTo(cx + Math.cos(a) * 44, cy + Math.sin(a) * 44); x.lineTo(cx + Math.cos(a) * 44 + 14 * s, cy + Math.sin(a) * 44 - 12 * s); x.stroke(); } }],
+      ['L-03', 'УТЕЧКА −1 PSI/С', 'BYPASS → AUX (ОБЯЗАТЕЛЬНО)', (cx, cy) => { x.fillStyle = '#9a5634'; x.fillRect(cx - 60, cy - 12, 120, 24); x.strokeStyle = INK; x.lineWidth = 5; x.beginPath(); x.moveTo(cx - 6, cy - 12); x.lineTo(cx + 4, cy); x.lineTo(cx - 4, cy + 12); x.stroke(); x.fillStyle = 'rgba(120,120,120,.55)'; for (let k = 0; k < 4; k++) { x.beginPath(); x.arc(cx + 6 + k * 8, cy - 26 - k * 12, 9 + k * 3, 0, 7); x.fill(); } }],
+    ];
+    function jamBar(cx: number, cy: number) { x.strokeStyle = '#b0180a'; x.lineWidth = 12; x.lineCap = 'round'; x.beginPath(); x.moveTo(cx - 58, cy + 58); x.lineTo(cx + 58, cy - 58); x.stroke(); }
+    const top = 350, h = 245;
+    rows.forEach(([code, what, fix, icon], i) => { const y = top + i * h, cy = y + h / 2 - 6;
+      x.fillStyle = i % 2 ? 'rgba(40,28,18,.05)' : 'rgba(40,28,18,0)'; rr(x, MX - 10, y + 6, W - 2 * MX + 20, h - 12, 16); x.fill();
+      x.fillStyle = '#1b1410'; rr(x, MX, cy - 44, 200, 88, 10); x.fill(); x.fillStyle = '#ffb347'; x.font = F.mono(58, 700); x.textAlign = 'center'; x.fillText(code, MX + 100, cy + 20);
+      icon(MX + 320, cy);
+      x.fillStyle = INK; x.font = F.tech(36, 700); x.textAlign = 'left'; x.fillText(what, MX + 410, cy - 8);
+      x.fillStyle = '#1d6a33'; x.font = F.tech(26, 700); x.fillText(fix, MX + 410, cy + 34); });
   } else {
-    pressureHeader(x, side, index + 1, 'Цель');
-    miniGauge(x, W / 2, 600, 270, 55, [47, 63], 0);
-    x.fillStyle = '#1d6a33'; x.font = F.tech(46, 700); x.textAlign = 'center'; x.fillText('ЗЕЛЁНАЯ ЗОНА', W / 2, 330);
-    x.fillStyle = '#b0180a'; x.font = F.tech(28, 700); x.fillText('110+ ОПАСНО', W / 2 + 250, 420);
-    const steps: [string, string][] = [['1', 'СТРЕЛКУ — В ЗЕЛЁНОЕ'], ['2', 'ДЕРЖИТЕ 2 СЕКУНДЫ'], ['3', 'У ЦЕЛИ: ЖЁЛТЫЙ ВКЛ.']];
-    steps.forEach(([n, t], i) => { const y = 930 + i * 128; x.fillStyle = i === 1 ? '#d6ecd0' : '#f1e0b0'; rr(x, MX, y, W - 2 * MX, 108, 14); x.fill(); x.strokeStyle = 'rgba(20,11,5,.35)'; x.lineWidth = 2; rr(x, MX, y, W - 2 * MX, 108, 14); x.stroke();
-      x.fillStyle = BURGUNDY; x.font = F.mono(52, 700); x.textAlign = 'left'; x.fillText(n, MX + 28, y + 74); x.fillStyle = INK; x.font = F.tech(40, 700); x.fillText(t, MX + 100, y + 70);
-      if (i === 1) for (let k = 0; k < 3; k++) { x.fillStyle = '#2c9a3f'; x.beginPath(); x.arc(W - MX - 150 + k * 50, y + 54, 16, 0, 7); x.fill(); x.strokeStyle = '#8a652a'; x.lineWidth = 4; x.stroke(); } });
+    pressureHeader(x, side, index + 1, 'Управление');
+    const ops: [string, string, (cx: number, cy: number) => void][] = [
+      ['+10 PSI', 'КРАСНЫЙ — ЧЕТВЕРТЬ ОБОРОТА', (cx, cy) => handwheel(x, cx, cy, 40, VALVE_INK.red)],
+      ['−10 PSI', 'СИНИЙ — ЧЕТВЕРТЬ ОБОРОТА', (cx, cy) => handwheel(x, cx, cy, 40, VALVE_INK.blue)],
+      ['±2 PSI', 'ЖЁЛТЫЙ ВКЛ — ТОЧНО', (cx, cy) => handwheel(x, cx, cy, 40, '#d9a514', true)],
+      ['AUX', 'BYPASS — ОБХОДНАЯ ЛИНИЯ', (cx, cy) => { x.strokeStyle = INK; x.lineWidth = 9; x.lineCap = 'round'; x.beginPath(); x.moveTo(cx, cy + 30); x.lineTo(cx + 26, cy - 30); x.stroke(); x.fillStyle = '#8a652a'; x.beginPath(); x.arc(cx, cy + 30, 12, 0, 7); x.fill(); }],
+      ['−20 PSI', 'АВАРИЙНЫЙ СБРОС · 1 РАЗ', (cx, cy) => { x.fillStyle = '#d9a514'; x.fillRect(cx - 44, cy - 22, 88, 44); x.fillStyle = '#16100a'; for (let k = -44; k < 44; k += 16) { x.beginPath(); x.moveTo(cx + k, cy + 22); x.lineTo(cx + k + 8, cy + 22); x.lineTo(cx + k + 30, cy - 22); x.lineTo(cx + k + 22, cy - 22); x.fill(); } x.fillStyle = '#a3150c'; x.fillRect(cx - 34, cy + 26, 68, 14); }],
+    ];
+    ops.forEach(([v, t, icon], i) => { const y = 296 + i * 108; icon(MX + 56, y + 50); x.fillStyle = INK; x.font = F.mono(40, 700); x.textAlign = 'left'; x.fillText(v, MX + 130, y + 64); x.font = F.tech(26, 700); x.fillStyle = INK2; x.fillText(t, MX + 330, y + 62); });
+    miniGauge(x, W / 2 - 150, 1080, 150, 62, [60, 65], 0);
+    const steps: [string, string][] = [['1', 'В ЗЕЛЁНУЮ ЗОНУ'], ['2', 'ДЕРЖИТЕ 1 СЕКУНДУ'], ['3', '45 СЕКУНД']];
+    steps.forEach(([n, t], i) => { const y = 930 + i * 100; x.fillStyle = i === 1 ? '#d6ecd0' : '#f1e0b0'; rr(x, W / 2 + 30, y, W / 2 - MX - 30, 84, 12); x.fill();
+      x.fillStyle = BURGUNDY; x.font = F.mono(40, 700); x.textAlign = 'left'; x.fillText(n, W / 2 + 50, y + 56); x.fillStyle = INK; x.font = F.tech(28, 700); x.fillText(t, W / 2 + 92, y + 54); });
+    x.fillStyle = '#b0180a'; x.font = F.tech(24, 700); x.textAlign = 'center'; x.fillText('120 PSI — ВЗРЫВ', W / 2 - 150, 1268);
   }
 }
