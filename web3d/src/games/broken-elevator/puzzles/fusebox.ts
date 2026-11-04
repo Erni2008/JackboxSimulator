@@ -51,9 +51,9 @@ export class Pliers {
 
 export class FuseBox {
   group = new T.Group(); door = new T.Group(); pickDoor: T.Object3D[] = []; wireMeshes: T.Mesh[] = []; open = false; private doorT = 0;
-  private halves: {top: T.Group; bot: T.Group; t: number}[] = []; private plate!: T.CanvasTexture; private plateCanvas = document.createElement('canvas');
+  private halves: {top: T.Group; bot: T.Group; t: number; side: number}[] = []; private plate!: T.CanvasTexture; private plateCanvas = document.createElement('canvas');
   private lamp!: T.Mesh; private lampLight!: T.PointLight; private sparks!: T.Points; private sparkVel: T.Vector3[] = []; private sparkLife = 0;
-  private braid = braid(); pliers = new Pliers(); private aim = new T.Vector3(0, -.04, .07); private aimTarget = new T.Vector3(0, -.04, .07); private snipping = 0; private reach = 0;
+  private braid = braid(); pliers = new Pliers(); private aim = new T.Vector3(0, -.04, .07); private aimTarget = new T.Vector3(0, -.04, .07); private snipping = 0; private reach = 0; private hot: {mat: T.MeshPhysicalMaterial; t: number}[] = [];
   locked = false; task: WireTask | null = null; sounds: FuseBoxSounds | null = null; onCut = (index: number) => {};
 
   constructor(hi: boolean) {
@@ -162,23 +162,25 @@ export class FuseBox {
   private cut(m: T.Mesh, at: T.Vector3) {
     const i = m.userData.wire, curve = m.userData.curve as T.CatmullRomCurve3, mat = m.userData.mat;
     const pts = curve.getSpacedPoints(80), local = this.group.worldToLocal(at.clone()); let k = 0, best = 1e9; pts.forEach((p, j) => { const d = p.distanceTo(local); if (d < best) { best = d; k = j; } }); k = T.MathUtils.clamp(k, 14, 66);
-    const copper = new T.MeshPhysicalMaterial({color: '#c46b34', metalness: 1, roughness: .32});
-    const half = (seg: T.Vector3[], pivot: T.Vector3, end: T.Vector3, dir: number) => {
+    const half = (seg: T.Vector3[], pivot: T.Vector3, end: T.Vector3, out: T.Vector3) => {
       const g = new T.Group(); g.position.copy(pivot);
       const tube = new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(seg.map(p => p.clone().sub(pivot))), 32, .0098, 14), mat); tube.castShadow = true; g.add(tube);
-      for (let s = 0; s < 7; s++) { const a = s / 7 * Math.PI * 2, st = new T.Mesh(new T.CylinderGeometry(.0011, .0011, .012 + Math.random() * .006, 5), copper); st.position.copy(end).sub(pivot); st.position.y += dir * .005; st.position.x += Math.cos(a) * .003; st.position.z += Math.sin(a) * .003; st.rotation.set(Math.sin(a) * .35, 0, Math.cos(a) * .35); g.add(st); }
+      const tip = cutEnd(mat.color as T.Color); tip.position.copy(end).sub(pivot); tip.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), out); g.add(tip); this.hot.push(tip.userData.hot);
       this.group.add(g); return g;
     };
-    const top = half(pts.slice(0, k - 1), pts[0], pts[k - 2], -1), bot = half(pts.slice(k + 1), pts[80], pts[k + 1], 1);
-    m.visible = false; this.halves.push({top, bot, t: 0});
+    const outTop = pts[k - 2].clone().sub(pts[k - 4]).normalize(), outBot = pts[k + 1].clone().sub(pts[k + 3]).normalize();
+    const top = half(pts.slice(0, k - 1), pts[0], pts[k - 2], outTop), bot = half(pts.slice(k + 1), pts[80], pts[k + 1], outBot);
+    m.visible = false; this.halves.push({top, bot, t: 0, side: i < N / 2 ? -1 : 1});
     this.burst(pts[k]); this.sounds?.snip(); setTimeout(() => this.sounds?.spark(), 40); this.onCut(i);
   }
   private burst(p: T.Vector3) { const pos = this.sparks.geometry.attributes.position as T.BufferAttribute; for (let i = 0; i < pos.count; i++) { pos.setXYZ(i, p.x, p.y, p.z); this.sparkVel[i].set((Math.random() - .5) * 1.3, Math.random(), Math.random() * .9); } pos.needsUpdate = true; this.sparkLife = .7; this.sparks.visible = true; }
 
   update(dt: number) {
     this.doorT += ((this.open ? 1 : 0) - this.doorT) * Math.min(1, dt * 5); this.door.rotation.y = -this.doorT * 1.95;
-    for (const h of this.halves) { h.t = Math.min(1, h.t + dt * 2.2); const e = 1 - (1 - h.t) ** 3, wob = Math.sin(h.t * 14) * (1 - h.t) * .15; h.top.rotation.x = (.55 + wob) * e; h.top.rotation.z = .12 * e; h.bot.rotation.x = -(.7 + wob) * e; h.bot.rotation.z = -.1 * e; }
+    for (const h of this.halves) { h.t = Math.min(1, h.t + dt * 2.2); const e = 1 - (1 - h.t) ** 3, wob = Math.sin(h.t * 14) * (1 - h.t) * .15; h.top.rotation.x = (.16 + wob * .4) * e; h.top.rotation.z = (.3 + wob) * e * h.side; h.bot.rotation.x = -(.12 + wob * .4) * e; h.bot.rotation.z = (.3 + wob) * e * h.side; }
     if (this.sparkLife > 0) { this.sparkLife -= dt; const pos = this.sparks.geometry.attributes.position as T.BufferAttribute; for (let i = 0; i < pos.count; i++) { const v = this.sparkVel[i]; v.y -= 3 * dt; pos.setXYZ(i, pos.getX(i) + v.x * dt, pos.getY(i) + v.y * dt, pos.getZ(i) + v.z * dt); } pos.needsUpdate = true; (this.sparks.material as T.PointsMaterial).opacity = Math.max(0, this.sparkLife / .7); if (this.sparkLife <= 0) this.sparks.visible = false; }
+    // freshly cut copper glows from the arc, then cools to bare metal
+    for (const h of this.hot) { h.t = Math.max(0, h.t - dt * .9); h.mat.emissive.setRGB(1, .42 - .2 * h.t, .1 - .08 * h.t); h.mat.emissiveIntensity = .1 + h.t * h.t * 2; }
     const p = this.pliers; p.group.visible = this.doorT > .6; this.aim.lerp(this.aimTarget, Math.min(1, dt * (this.snipping ? 14 : 10)));
     // jaws point into the box, handles come out toward the player (a right hand holding them).
     // The wire sits in the middle of the open jaws (never at the pivot bolt); while only aiming,
@@ -189,4 +191,31 @@ export class FuseBox {
     p.group.quaternion.setFromRotationMatrix(new T.Matrix4().makeBasis(X, Y, Z)); p.group.scale.setScalar(1.45); p.update(dt);
   }
   center() { return this.group.localToWorld(new T.Vector3(0, 0, BD)); }
+}
+
+const COPPER = new T.MeshPhysicalMaterial({color: '#c9632a', metalness: .7, roughness: .3, envMapIntensity: 1.6, clearcoat: .5, clearcoatRoughness: .2});
+const RUBBER = new T.MeshPhysicalMaterial({color: '#191512', roughness: .75, metalness: 0});
+/** Cross-section of a cut cable, built along +y from the cut face:
+ *  frayed cloth braid → black vulcanised-rubber jacket → a twisted bundle of copper strands,
+ *  slightly splayed, with bright sheared tips that glow briefly from the arc. */
+function cutEnd(sheath: T.Color) {
+  const g = new T.Group();
+  // rubber jacket protruding a little beyond the braid, capped so the cable is never hollow
+  const jacket = new T.Mesh(new T.CylinderGeometry(.0076, .0082, .0045, 18), RUBBER); jacket.position.y = .0012; g.add(jacket);
+  const face = new T.Mesh(new T.CircleGeometry(.0076, 18), RUBBER); face.rotation.x = -Math.PI / 2; face.position.y = .0035; g.add(face);
+  // frayed braid threads curling back from the cut
+  const thread = new T.MeshPhysicalMaterial({color: sheath.clone().multiplyScalar(.85), roughness: .9});
+  for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2 + Math.random() * .3, len = .003 + Math.random() * .004; const t = new T.Mesh(new T.CylinderGeometry(.0005, .0003, len, 4), thread); t.position.set(Math.cos(a) * .0094, -.0005 + len * .3, Math.sin(a) * .0094); t.rotation.set(Math.sin(a) * .9, 0, -Math.cos(a) * .9); g.add(t); }
+  // copper: 7-strand concentric lay (1 core + 6 twisted around it), splaying slightly at the tips
+  const hotMat = COPPER.clone(); hotMat.emissive = new T.Color('#ff6a1a'); hotMat.emissiveIntensity = 2.2;
+  const L = .024 + Math.random() * .004;
+  // 7-strand lay: one straight core and six around it, each splaying outward toward its sheared tip
+  for (let s = 0; s < 7; s++) {
+    const core = s === 6, a = s / 6 * Math.PI * 2, len = core ? L * 1.08 : L * (.85 + Math.random() * .25), tilt = core ? 0 : .16 + Math.random() * .12;
+    const st = new T.Mesh(new T.CylinderGeometry(.0017, .0019, len, 7), hotMat);
+    const r = core ? 0 : .0034; st.position.set(Math.cos(a) * (r + Math.sin(tilt) * len / 2), .003 + len / 2 * Math.cos(tilt), Math.sin(a) * (r + Math.sin(tilt) * len / 2));
+    st.rotation.set(Math.sin(a) * tilt, 0, -Math.cos(a) * tilt); st.castShadow = true; g.add(st);
+  }
+  g.userData.hot = {mat: hotMat, t: 1};
+  return g;
 }
