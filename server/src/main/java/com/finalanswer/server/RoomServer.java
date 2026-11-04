@@ -38,6 +38,8 @@ public final class RoomServer implements AutoCloseable {
                 ctx.header("X-Content-Type-Options","nosniff");
                 ctx.header("Referrer-Policy","no-referrer");
                 ctx.header("Content-Security-Policy","default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' ws: wss:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
+                // THE BROKEN ELEVATOR: GLTFLoader hands embedded textures over as blob: URLs; the film-grain overlay is a data: SVG
+                if(ctx.path().startsWith("/broken-elevator-manual"))ctx.header("Content-Security-Policy","default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' blob: data:; connect-src 'self' blob: ws: wss:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
                 if(Boolean.getBoolean("lastcommand.dev")&&ctx.path().startsWith("/last-command-3d"))ctx.header("Content-Security-Policy","default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; connect-src 'self' blob: ws: wss:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
                 if(!config.allowsOrigin(ctx.header("Origin"),ctx.header("Host"))) throw new RoomService.Failure(403,"ORIGIN_NOT_ALLOWED");
                 if(ctx.path().startsWith("/rooms")) {

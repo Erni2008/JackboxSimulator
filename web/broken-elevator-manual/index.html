@@ -4,72 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>The Engineer's Manual</title>
-<style>
-@font-face{font-family:'IM Fell English';src:url(fonts/fell.woff2) format('woff2');}
-@font-face{font-family:'IM Fell English';font-style:italic;src:url(fonts/fell-italic.woff2) format('woff2');}
-@font-face{font-family:'IM Fell English SC';src:url(fonts/fell-sc.woff2) format('woff2');}
-@font-face{font-family:'IM Fell DW Pica';src:url(fonts/pica.woff2) format('woff2');}
-@font-face{font-family:'Caveat';src:url(fonts/caveat.woff2) format('woff2');}
-@font-face{font-family:'Libre Caslon Text';font-weight:400;src:url(fonts/libre-caslon-text-400.woff2) format('woff2');}
-@font-face{font-family:'Libre Caslon Text';font-weight:400;font-style:italic;src:url(fonts/libre-caslon-text-400-italic.woff2) format('woff2');}
-@font-face{font-family:'Libre Caslon Text';font-weight:700;src:url(fonts/libre-caslon-text-700.woff2) format('woff2');}
-@font-face{font-family:'Barlow Condensed';font-weight:500;src:url(fonts/barlow-condensed-500.woff2) format('woff2');}
-@font-face{font-family:'Barlow Condensed';font-weight:700;src:url(fonts/barlow-condensed-700.woff2) format('woff2');}
-@font-face{font-family:'IBM Plex Mono';font-weight:600;src:url(fonts/ibm-plex-mono-600.woff2) format('woff2');}
-@font-face{font-family:'IBM Plex Mono';font-weight:700;src:url(fonts/ibm-plex-mono-700.woff2) format('woff2');}
-@font-face{font-family:'Cinzel';font-weight:600 800;src:url(fonts/cinzel-600.woff2) format('woff2');}
-@font-face{font-family:'Oswald';font-weight:500;font-style:normal;src:url(fonts/oswald-500-cyrillic.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116;}
-@font-face{font-family:'Oswald';font-weight:500;font-style:normal;src:url(fonts/oswald-500-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2190-2193,U+2212,U+2215;}
-@font-face{font-family:'Oswald';font-weight:700;font-style:normal;src:url(fonts/oswald-700-cyrillic.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116;}
-@font-face{font-family:'Oswald';font-weight:700;font-style:normal;src:url(fonts/oswald-700-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2190-2193,U+2212,U+2215;}
-@font-face{font-family:'Cormorant SC';font-weight:700;font-style:normal;src:url(fonts/cormorant-sc-700-cyrillic.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116;}
-@font-face{font-family:'Cormorant SC';font-weight:700;font-style:normal;src:url(fonts/cormorant-sc-700-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2190-2193,U+2212,U+2215;}
-@font-face{font-family:'Lora';font-weight:500;font-style:normal;src:url(fonts/lora-500-cyrillic.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116;}
-@font-face{font-family:'Lora';font-weight:500;font-style:normal;src:url(fonts/lora-500-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2190-2193,U+2212,U+2215;}
-@font-face{font-family:'Lora';font-weight:500;font-style:italic;src:url(fonts/lora-500-italic-cyrillic.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116;}
-@font-face{font-family:'Lora';font-weight:500;font-style:italic;src:url(fonts/lora-500-italic-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2190-2193,U+2212,U+2215;}
-@font-face{font-family:'IBM Plex Mono';font-weight:700;font-style:normal;src:url(fonts/ibm-plex-mono-700-cyrillic.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116;}
-@font-face{font-family:'IBM Plex Mono';font-weight:700;font-style:normal;src:url(fonts/ibm-plex-mono-700-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2190-2193,U+2212,U+2215;}
-:root{--ink:#e9dcc0;--dim:rgba(233,220,192,.6);--line:rgba(233,220,192,.22)}
-html,body{margin:0;height:100%;background:#050403;color:var(--ink);overflow:hidden;font-family:'Lora',Georgia,serif;touch-action:none;-webkit-user-select:none;user-select:none}
-[hidden]{display:none!important}
-#viewport{position:fixed;inset:0}
-canvas{display:block}
-#hint{position:fixed;left:0;right:0;top:max(16px,env(safe-area-inset-top));text-align:center;font-size:17px;letter-spacing:.04em;color:var(--dim);pointer-events:none;text-shadow:0 1px 6px #000;padding:0 16px}
-#bar{position:fixed;left:0;right:0;bottom:max(16px,env(safe-area-inset-bottom));display:flex;justify-content:center;gap:10px;flex-wrap:wrap;padding:0 16px}
-button{font:inherit;font-size:16px;letter-spacing:.06em;color:var(--ink);background:rgba(20,14,9,.72);border:1px solid var(--line);border-radius:3px;padding:10px 16px;min-height:44px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
-button:active{background:rgba(60,40,22,.85)}
-#page-label{position:fixed;right:16px;bottom:max(80px,calc(env(safe-area-inset-bottom) + 70px));font-size:14px;color:var(--dim);display:none}
-body[data-state=reading] #page-label{display:block}
-body[data-state=reading] #task,body[data-state=reading] #hint{opacity:0;transition:opacity .4s}
-#task,#hint{transition:opacity .4s}
-#btn-sound{position:fixed;left:16px;top:max(48px,calc(env(safe-area-inset-top) + 36px));font-size:13px;padding:6px 10px;min-height:32px;opacity:.7}
-#btn-cam{position:fixed;left:16px;top:max(90px,calc(env(safe-area-inset-top) + 78px));font-size:13px;padding:6px 10px;min-height:32px}
-#task{position:fixed;left:50%;transform:translateX(-50%);top:max(52px,calc(env(safe-area-inset-top) + 40px));padding:6px 22px;font:700 19px/1.2 'Cormorant SC',Georgia,serif;letter-spacing:.1em;color:#ecdcbc;background:linear-gradient(#3a2416,#22140c);border:1px solid #6b4a2a;border-radius:4px;box-shadow:0 2px 10px #000a,inset 0 1px #ffffff18}
-#clock{position:fixed;right:16px;top:max(16px,env(safe-area-inset-top));width:64px;height:64px;display:grid;place-items:center}
-#clock svg{position:absolute;inset:0;transform:rotate(-90deg)}#clock .track{fill:#120a06d0;stroke:#3a2a1e;stroke-width:5}#clock .ring{fill:none;stroke:#c23a22;stroke-width:5;stroke-dasharray:176;stroke-linecap:round}
-#clock-num{position:relative;font:700 24px Georgia,serif;color:#f1e4c8}#clock[data-urgent=true] #clock-num{color:#ff6a4a;animation:pulse .5s infinite alternate}@keyframes pulse{to{transform:scale(1.15)}}
-#verdict{position:fixed;left:50%;top:calc(87vh - 52px);top:calc(87dvh - 52px - env(safe-area-inset-bottom));transform:translate(-50%,8px);min-width:min(520px,calc(100vw - 32px));padding:12px 28px 13px;text-align:center;pointer-events:none;opacity:0;
-  background:linear-gradient(180deg,rgba(26,17,11,.9),rgba(14,9,6,.94));border:1px solid rgba(155,118,56,.55);box-shadow:0 10px 30px rgba(0,0,0,.6),inset 0 1px rgba(255,230,180,.07);clip-path:polygon(14px 0,calc(100% - 14px) 0,100% 50%,calc(100% - 14px) 100%,14px 100%,0 50%)}
-#verdict b{display:block;font:700 30px/1.1 'Cormorant SC',Georgia,serif;letter-spacing:.12em}
-#verdict span{display:block;margin-top:5px;font:500 15px/1 'Oswald',sans-serif;letter-spacing:.28em;color:rgba(233,220,192,.72)}
-#verdict i{position:absolute;left:20px;right:20px;top:6px;height:1px;background:linear-gradient(90deg,transparent,rgba(155,118,56,.8),transparent)}
-#verdict[data-tone=good] b{color:#9fc79a;text-shadow:0 0 10px rgba(110,170,110,.25)}
-#verdict[data-tone=bad] b{color:#d0503a;text-shadow:0 0 10px rgba(200,60,40,.3)}
-#verdict.show{animation:verdict 2.3s cubic-bezier(.2,.7,.2,1) forwards}
-#verdict[data-tone=bad].show b{animation:interfere 2.3s steps(1) forwards}
-@keyframes verdict{0%{opacity:0;transform:translate(-50%,10px)}10%{opacity:1;transform:translate(-50%,0)}14%{transform:translate(calc(-50% - 3px),0)}18%{transform:translate(calc(-50% + 2px),0)}22%{transform:translate(-50%,0)}82%{opacity:1}100%{opacity:0;transform:translate(-50%,-4px)}}
-@keyframes interfere{0%,9%{opacity:1}10%{opacity:.35;transform:translateX(2px)}11%{opacity:1;transform:none}24%{opacity:.6}25%{opacity:1}}
-body.jolt #viewport{animation:jolt .32s ease-out}@keyframes jolt{0%{transform:translate(0,0)}25%{transform:translate(-4px,2px)}50%{transform:translate(3px,-2px)}75%{transform:translate(-1px,1px)}100%{transform:none}}
-@media (max-width:600px){#verdict b{font-size:21px}#verdict span{font-size:13px}}
-#hint{top:max(100px,calc(env(safe-area-inset-top) + 88px))}
-/* cinematic grade: lens vignette + fine animated film grain (pure CSS, no GPU pass) */
-#grade{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse 75% 70% at 50% 46%,transparent 55%,rgba(8,3,1,.38) 82%,rgba(4,1,0,.72) 100%);mix-blend-mode:multiply}
-#grain{position:fixed;inset:-50%;pointer-events:none;opacity:.07;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");animation:grain .9s steps(6) infinite;mix-blend-mode:overlay}
-@keyframes grain{0%{transform:translate(0,0)}20%{transform:translate(-3%,2%)}40%{transform:translate(2%,-3%)}60%{transform:translate(-2%,-1%)}80%{transform:translate(3%,3%)}100%{transform:translate(0,0)}}
-@media (prefers-reduced-motion:reduce){#grain{animation:none}}
-#loading{position:fixed;inset:0;display:grid;place-items:center;background:#050403;font-size:20px;letter-spacing:.08em;color:var(--dim)}
-</style>
+<link rel="stylesheet" href="style.css?v=21">
 </head>
 <body>
 <div id="viewport"></div>
@@ -91,6 +26,6 @@ body.jolt #viewport{animation:jolt .32s ease-out}@keyframes jolt{0%{transform:tr
   <button id="btn-next" hidden>Page ›</button>
 </div>
 <div id="loading"><span id="load-text">Спуск…</span></div>
-<script type="module" src="app.js?v=20"></script>
+<script type="module" src="app.js?v=21"></script>
 </body>
 </html>
