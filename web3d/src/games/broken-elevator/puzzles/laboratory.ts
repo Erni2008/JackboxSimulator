@@ -10,7 +10,7 @@
 import * as T from 'three';
 import {materials, plate, lamp, canvasTex, QUARTER, TECH} from './pressure-parts';
 import {Control, Lever, PushButton, type Feedback} from './pressure-controls';
-import {flowMaterial, liquidMaterial, type LiquidUniforms} from './liquid';
+import {flowMaterial, liquidMaterial, glassMaterial, bubbleField, type LiquidUniforms} from './liquid';
 import {REAGENTS, COLOR, GLINT, SYMBOL, type Reagent} from './formula-sim';
 import type {LabView} from './formula-link';
 
@@ -33,10 +33,11 @@ export class Laboratory {
   private lockLamp: T.MeshStandardMaterial; private okLamp: T.MeshStandardMaterial; private badLamp: T.MeshStandardMaterial; private redLight: T.PointLight;
   private active: Control | null = null; private t = 0; private lastEvent = -1;
   private pour: {i: number; t: number} | null = null; private fill = 0; private mixT = 9; private mixKey = ''; private stirSpeed = 0; private rejectT = 9; private rejectFrom = 0; private successT = 9; private shake = 0; private stirring = false;
+  private inlets: T.Vector2[] = []; private bubbles!: ReturnType<typeof bubbleField>; private glow!: T.PointLight; private plume = 0; private successFrom = 0; private ripple = 9; private lastPour = 0;
   private steam: T.Points; private sp: Float32Array; private life: Float32Array; private cursor = 0;
 
   constructor(hi: boolean) {
-    const m = materials(); const glass = new T.MeshPhysicalMaterial({color: '#dfe8ee', transparent: true, opacity: .18, roughness: .06, metalness: 0, clearcoat: 1, clearcoatRoughness: .05, side: T.DoubleSide, depthWrite: false});
+    const m = materials(); const glass = glassMaterial('#e6f0f6', 1), tubeGlass = glassMaterial('#e6f0f6', .8);
     // ---- backplate
     const W = .96, H = .8; const back = new T.Mesh(new T.BoxGeometry(W, H, .022), m.iron); back.position.z = .011; this.group.add(back);
     for (const [w, h, x, y] of [[W, .02, 0, H / 2 - .01], [W, .02, 0, -H / 2 + .01], [.02, H, -W / 2 + .01, 0], [.02, H, W / 2 - .01, 0]] as const) { const f = new T.Mesh(new T.BoxGeometry(w, h, .01), m.brassDark); f.position.set(x, y, .026); this.group.add(f); }
@@ -52,9 +53,9 @@ export class Laboratory {
     const xs = [-.34, -.17, 0, .17, .34], v3 = (x: number, y: number, z: number) => new T.Vector3(x, y, z);
     REAGENTS.forEach((r, i) => {
       const x = xs[i], g = new T.Group(); g.position.set(x, .2, .07); this.group.add(g);
-      const body = new T.Mesh(new T.CylinderGeometry(.045, .045, .15, 32, 1, true), glass); g.add(body);
+      const body = new T.Mesh(new T.CylinderGeometry(.045, .045, .15, 32, 1, true), glass); body.renderOrder = 3; g.add(body);
       const {mat, uniforms} = liquidMaterial(hi); uniforms.uColA.value.set(COLOR[r]); uniforms.uGlintA.value.set(GLINT[r]); uniforms.uFracB.value = 0; uniforms.uBubbles.value = .08;
-      const liq = new T.Mesh(new T.CylinderGeometry(.5, .5, 1, 24), mat); liq.scale.set(.084, .11, .084); liq.position.y = -.015; g.add(liq); liq.userData.u = uniforms;
+      const liq = new T.Mesh(new T.CylinderGeometry(.5, .5, 1, 28, 1, false), mat); liq.scale.set(.084, .11, .084); liq.position.y = -.015; liq.renderOrder = 1; g.add(liq); liq.userData.u = uniforms; uniforms.uAspect.value = .11 / .084;
       for (const y of [-.078, .078]) { const ring = new T.Mesh(new T.CylinderGeometry(.051, .051, .014, 32), m.brass); ring.position.y = y; g.add(ring); }
       const cap = new T.Mesh(new T.SphereGeometry(.03, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), m.brassDark); cap.position.y = .085; g.add(cap);
       const strap = new T.Mesh(new T.TorusGeometry(.049, .004, 6, 32), m.bolt); strap.rotation.x = QUARTER; g.add(strap);
@@ -64,18 +65,21 @@ export class Laboratory {
       const pl = new PushButton('dose-' + r, m, () => this.emit('DISPENSE', r), COLOR[r], .75); pl.root.position.set(x + .072, .17, .024); this.group.add(pl.root); this.plungers.push(pl);
       // transfer tube: glass sleeve + flowing liquid slug, from the reservoir foot to an inlet on the chamber lid
       const curve = new T.CatmullRomCurve3([v3(x, .12, .07), v3(x, .065, .085), v3(x * .7, .02, .11), v3(x * .25, -.02, CH_Z), v3(x * .12, -.045, CH_Z)], false, 'catmullrom', .3);
-      const sleeve = new T.Mesh(new T.TubeGeometry(curve, hi ? 48 : 28, .008, 10, false), glass); this.group.add(sleeve);
+      const sleeve = new T.Mesh(new T.TubeGeometry(curve, hi ? 48 : 28, .008, 10, false), tubeGlass); sleeve.renderOrder = 3; this.group.add(sleeve);
       const flow = flowMaterial(new T.Color(COLOR[r])); const slug = new T.Mesh(new T.TubeGeometry(curve, hi ? 48 : 28, .0055, 8, false), flow); this.group.add(slug);
       const wheel = new T.Mesh(new T.TorusGeometry(.012, .003, 6, 16), m.brass); wheel.position.set(x, .095, .1); this.group.add(wheel);
-      this.tubes.push({flow, wheel});
+      this.tubes.push({flow, wheel}); this.inlets.push(new T.Vector2(x * .12 / (CH_R * 2 * .96), 0));
     });
 
     // ---- mixing chamber
     this.chamber.position.set(0, CH_Y, CH_Z); this.group.add(this.chamber);
-    const vessel = new T.Mesh(new T.CylinderGeometry(CH_R, CH_R, CH_H, 48, 1, true), glass); this.chamber.add(vessel);
-    const {mat, uniforms} = liquidMaterial(hi); this.lu = uniforms; this.liquid = new T.Mesh(new T.CylinderGeometry(.5, .5, 1, hi ? 48 : 32), mat); this.liquid.renderOrder = 1; this.chamber.add(this.liquid); this.liquid.visible = false;
+    const vessel = new T.Mesh(new T.CylinderGeometry(CH_R, CH_R, CH_H, 48, 1, true), glass); vessel.renderOrder = 3; this.chamber.add(vessel);
+    const inner = new T.Mesh(new T.CylinderGeometry(CH_R * .97, CH_R * .97, CH_H * .99, 48, 1, true), glassMaterial('#ffffff', .35)); inner.renderOrder = 2; this.chamber.add(inner); // inner wall: double reflections like thick glass
+    const {mat, uniforms} = liquidMaterial(hi); this.lu = uniforms; this.liquid = new T.Mesh(new T.CylinderGeometry(.5, .5, 1, hi ? 64 : 40, 1, false), mat); (this.liquid.geometry as T.BufferGeometry).computeVertexNormals(); this.liquid.renderOrder = 1; this.chamber.add(this.liquid); this.liquid.visible = false;
     for (const [y, r2, h] of [[CH_H / 2 + .008, CH_R + .012, .018], [-CH_H / 2 - .01, CH_R + .014, .022]] as const) { const ring = new T.Mesh(new T.CylinderGeometry(r2, r2, h, 48), m.brass); ring.position.y = y; this.chamber.add(ring); }
     for (let k = 0; k < 4; k++) { const rod = new T.Mesh(new T.CylinderGeometry(.004, .004, CH_H + .02, 8), m.brassDark); const a = k * QUARTER + .4; rod.position.set(Math.cos(a) * (CH_R + .012), 0, Math.sin(a) * (CH_R + .012)); this.chamber.add(rod); }
+    this.bubbles = bubbleField(hi ? 70 : 40, CH_R * .9, CH_H * .96); this.bubbles.pts.renderOrder = 2; this.chamber.add(this.bubbles.pts);
+    this.glow = new T.PointLight('#ffffff', 0, .35, 2); this.glow.position.set(0, -CH_H * .25, .06); this.chamber.add(this.glow);
     // stirrer: motor housing on the lid, shaft, paddle
     const motor = new T.Mesh(new T.CylinderGeometry(.026, .03, .05, 20), m.brassDark); motor.position.y = CH_H / 2 + .04; this.chamber.add(motor);
     const vent = new T.Mesh(new T.TorusGeometry(.03, .004, 6, 20), m.brass); vent.rotation.x = QUARTER; vent.position.y = CH_H / 2 + .05; this.chamber.add(vent);
@@ -89,11 +93,11 @@ export class Laboratory {
     // drain valve and pipe
     const dv = new T.Mesh(new T.CylinderGeometry(.016, .016, .03, 16), m.brassDark); dv.position.set(0, CH_Y - CH_H / 2 - .035, CH_Z); this.group.add(dv);
     const dcurve = new T.CatmullRomCurve3([v3(0, CH_Y - CH_H / 2 - .02, CH_Z), v3(0, -.34, CH_Z), v3(.02, -.38, .08), v3(.05, -.4, .05)]);
-    this.group.add(new T.Mesh(new T.TubeGeometry(dcurve, 20, .009, 10, false), glass)); this.drainFlow = flowMaterial(new T.Color('#6a7a20')); this.group.add(new T.Mesh(new T.TubeGeometry(dcurve, 20, .006, 8, false), this.drainFlow));
+    this.group.add(new T.Mesh(new T.TubeGeometry(dcurve, 20, .009, 10, false), tubeGlass)); this.drainFlow = flowMaterial(new T.Color('#6a7a20')); this.group.add(new T.Mesh(new T.TubeGeometry(dcurve, 20, .006, 8, false), this.drainFlow));
     const dp = plate('WASTE', '', .06, .02, 'brass'); dp.position.set(-.05, -.37, .03); this.group.add(dp);
     // output line: chamber → pump → cooling system
     const ocurve = new T.CatmullRomCurve3([v3(CH_R * .9, CH_Y - .07, CH_Z), v3(.15, -.27, .1), v3(.26, -.28, .08), v3(.4, -.28, .06), v3(.44, -.2, .05), v3(.44, .05, .05)]);
-    this.group.add(new T.Mesh(new T.TubeGeometry(ocurve, 40, .009, 10, false), glass)); this.outFlow = flowMaterial(new T.Color('#2fd0ff')); this.group.add(new T.Mesh(new T.TubeGeometry(ocurve, 40, .006, 8, false), this.outFlow));
+    this.group.add(new T.Mesh(new T.TubeGeometry(ocurve, 40, .009, 10, false), tubeGlass)); this.outFlow = flowMaterial(new T.Color('#2fd0ff')); this.group.add(new T.Mesh(new T.TubeGeometry(ocurve, 40, .006, 8, false), this.outFlow));
     const pump = new T.Mesh(new T.CylinderGeometry(.024, .024, .07, 20), m.brassDark); pump.position.set(.26, -.33, .06); this.group.add(pump);
     this.piston = new T.Mesh(new T.CylinderGeometry(.008, .008, .07, 10), m.bolt); this.piston.position.set(.26, -.28, .06); this.group.add(this.piston);
     const cp = plate('TO COOLING', '', .09, .02, 'brass'); cp.position.set(.4, -.33, .03); this.group.add(cp);
@@ -177,25 +181,30 @@ export class Laboratory {
     this.tubes.forEach((tb, i) => { const p = this.pour && this.pour.i === i ? this.pour.t : -1; const u = tb.flow.uniforms; u.uTime.value = this.t; u.uHead.value = p < 0 ? 0 : Math.min(1, p / .32); u.uTail.value = p < 0 ? 0 : Math.max(0, Math.min(1, (p - .3) / .32)); tb.wheel.rotation.z = p >= 0 && p < .6 ? tb.wheel.rotation.z + dt * 14 : tb.wheel.rotation.z; });
     const su = this.stream.uniforms; su.uTime.value = this.t;
     if (this.pour) { const p = this.pour.t; su.uColor.value.set(COLOR[REAGENTS[this.pour.i]]); su.uGlint.value.set(GLINT[REAGENTS[this.pour.i]]); su.uHead.value = Math.max(0, Math.min(1, (p - .28) / .14)) * (1 - this.fill * .9); su.uTail.value = Math.max(0, Math.min(1, (p - .55) / .12));
-      if (p >= .32 && p - dt < .32) fx?.splash(); this.pour.t += dt; if (this.pour.t > .75) this.pour = null; } else { su.uHead.value = 0; }
+      if (p >= .32 && p - dt < .32) { fx?.splash(); this.ripple = 0; } if (p >= .3) this.plume = Math.min(1, this.plume + dt * 1.6); this.lastPour = this.pour.i; this.pour.t += dt; if (this.pour.t > .75) this.pour = null; } else { su.uHead.value = 0; this.plume = Math.max(0, this.plume - dt * .45); }
+    this.ripple += dt; this.lu.uRipple.value = this.ripple; this.lu.uPlume.value = this.plume * (1 - this.lu.uMix.value * .8); this.lu.uPlumeX.value.copy(this.inlets[this.lastPour] || new T.Vector2());
     // ---- chamber contents (authoritative doses), level lags the stream
     const doses = v ? v.doses : []; const pendingPour = this.pour && this.pour.t < .4 ? 1 : 0;
     let target = Math.max(0, doses.length - pendingPour) * DOSE_H;
     if (this.rejectT < 2) { target = this.rejectT < .5 ? Math.max(target, this.rejectFrom) : this.rejectFrom * Math.max(0, 1 - (this.rejectT - .5) / 1.2); }
-    if (this.successT < 3) target = this.successT < .9 ? this.fill : Math.max(0, this.fill - dt * .7);
+    if (this.successT < 3) { if (this.successT < .9) this.successFrom = this.fill; target = this.successFrom * Math.max(0, 1 - (this.successT - .9) / 1.3); } // pumped out over 1.3 s
     this.fill += (target - this.fill) * Math.min(1, dt * 7); if (Math.abs(target - this.fill) < .002) this.fill = target;
     const colorDoses = doses.length ? doses : (this.fill > .01 && this.mixKey ? this.mixKey.split(',') as Reagent[] : []);
     if (colorDoses.length) { const a = colorDoses[0], others = colorDoses.filter(d => d !== a); this.lu.uColA.value.set(COLOR[a]); this.lu.uGlintA.value.set(GLINT[a]);
       if (others.length) { const c = new T.Color(0, 0, 0), gl = new T.Color(0, 0, 0); for (const o of others) { c.add(new T.Color(COLOR[o])); gl.add(new T.Color(GLINT[o])); } this.lu.uColB.value.copy(c.multiplyScalar(1 / others.length)); this.lu.uGlintB.value.copy(gl.multiplyScalar(1 / others.length)); }
       this.lu.uFracB.value += ((others.length / colorDoses.length) - this.lu.uFracB.value) * Math.min(1, dt * 3);
       const key = colorDoses.join(','); if (key !== this.mixKey && doses.length) { if (others.length) this.mixT = 0; this.mixKey = key; } }
-    this.mixT += dt; this.lu.uMix.value = Math.max(0, Math.min(1, (this.mixT - .35) / 2.6)); this.lu.uTime.value = this.t;
+    this.mixT += dt; this.lu.uMix.value = Math.max(0, Math.min(1, (this.mixT - .6) / 3.4)) ** 1.2; this.lu.uTime.value = this.t;
     // ---- stirrer: spins while the chamber is mixing, stops when clamped for injection
-    const wantStir = this.successT > .25 && this.lu.uFracB.value > .02 && this.mixT < 3.4 && this.fill > .05;
-    this.stirSpeed += ((wantStir ? 1 : 0) - this.stirSpeed) * Math.min(1, dt * 4); this.stirrer.rotation.y += this.stirSpeed * dt * 14; this.lu.uSwirl.value += this.stirSpeed * dt * 2.2;
+    const wantStir = this.successT > .25 && this.lu.uFracB.value > .02 && this.mixT > .5 && this.mixT < 4.6 && this.fill > .05;
+    this.stirSpeed += ((wantStir ? 1 : 0) - this.stirSpeed) * Math.min(1, dt * 2.5); this.stirrer.rotation.y += this.stirSpeed * dt * 16; this.lu.uSwirl.value += this.stirSpeed * dt * 2.6; this.lu.uStir.value = this.stirSpeed;
     if (wantStir !== this.stirring) { this.stirring = wantStir; fx?.stir(wantStir); }
     this.lu.uBubbles.value = .12 + (this.pour ? .35 : 0) + this.stirSpeed * .25;
-    this.liquid.visible = this.fill > .004; this.liquid.scale.set(CH_R * 2 * .96, Math.max(.001, this.fill * CH_H * .96), CH_R * 2 * .96); this.liquid.position.y = -CH_H / 2 * .96 + this.fill * CH_H * .96 / 2;
+    this.liquid.visible = this.fill > .004; this.liquid.scale.set(CH_R * 2 * .96, Math.max(.001, this.fill * CH_H * .96), CH_R * 2 * .96); this.liquid.position.y = -CH_H / 2 * .96 + this.fill * CH_H * .96 / 2; this.lu.uAspect.value = this.liquid.scale.y / this.liquid.scale.x;
+    // bubble sprites and the mixture's own glow through the glass
+    const mixCol = this.lu.uColA.value.clone().lerp(this.lu.uColB.value, this.lu.uFracB.value), glint = this.lu.uGlintA.value.clone().lerp(this.lu.uGlintB.value, this.lu.uFracB.value);
+    this.bubbles.u.uTime.value = this.t; this.bubbles.u.uLevel.value = this.fill; this.bubbles.u.uRate.value = Math.min(1, .15 + (this.pour ? .45 : 0) + this.stirSpeed * .35 + this.lu.uUnstable.value * .8); this.bubbles.u.uTint.value.copy(glint).lerp(new T.Color('#ffffff'), .5);
+    this.glow.color.copy(glint); this.glow.intensity = this.fill * (.012 + this.lu.uUnstable.value * .02) * (this.liquid.visible ? 1 : 0); // a faint coloured spill, not a lamp void mixCol;
     // ---- rejection: boil, vibrate, red flash, steam, drain
     this.rejectT += dt; const rj = this.rejectT >= 0 && this.rejectT < 2;
     this.lu.uUnstable.value += ((rj && this.rejectT < 1.3 ? 1 : 0) - this.lu.uUnstable.value) * Math.min(1, dt * 6);
