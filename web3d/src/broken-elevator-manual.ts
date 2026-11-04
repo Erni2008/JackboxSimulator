@@ -1,5 +1,6 @@
 // Dedicated test scene for THE ENGINEER'S MANUAL (THE BROKEN ELEVATOR, mode 5).
 import * as T from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {EngineersManual, TH} from './games/broken-elevator/manual/book';
 import {ManualInteraction, type HoldState} from './games/broken-elevator/manual/interaction';
 import {BookAudio} from './games/broken-elevator/manual/audio';
@@ -41,6 +42,10 @@ async function boot() {
   $('btn-open').onclick = () => ui.open(); $('btn-close').onclick = () => ui.close(); $('btn-drop').onclick = () => ui.drop(); $('btn-prev').onclick = () => ui.turn(-1); $('btn-next').onclick = () => ui.turn(1);
   $('btn-sound').onclick = () => { audio.unlock(); audio.enabled = !audio.enabled; $('btn-sound').textContent = audio.enabled ? 'Sound on' : 'Sound off'; };
   book.onspread = s => { $('page-label').textContent = `${2 * s + 1}–${2 * s + 2} / ${book.pages.length}`; }; book.onspread(0);
+  // free camera (?freecam=1 or key C): orbit / zoom / pan anywhere, including below the floor to the lava
+  const orbit = new OrbitControls(camera, renderer.domElement); orbit.enableDamping = true; orbit.maxDistance = 14; orbit.minDistance = .1; orbit.screenSpacePanning = true; orbit.target.set(0, .4, 0); orbit.enabled = false;
+  let free = false; const setFree = (on: boolean) => { free = on; orbit.enabled = on; $('btn-cam').textContent = on ? 'Camera: free' : 'Camera: player'; if (!on) { camera.position.set(0, 1.56, .5); camera.quaternion.copy(baseQ); } else { camera.position.set(1.2, 1.6, 1.8); orbit.target.set(0, .4, 0); orbit.update(); } };
+  $('btn-cam').onclick = () => setFree(!free); addEventListener('keydown', e => { if (e.key.toLowerCase() === 'c') setFree(!free); }); if (params.get('freecam') === '1') setFree(true);
   $('loading').hidden = true;
   // adaptive quality: drop the render resolution when frames run long
   let last = performance.now(), acc = 0, frames = 0, look = new T.Vector2();
@@ -49,7 +54,7 @@ async function boot() {
     const dt = Math.min(.05, (now - last) / 1000) * timeScale; last = now; acc += dt; frames++;
     if (acc > 2) { const ms = acc / frames * 1000; if (ms > 26 && dpr > 1) { dpr = Math.max(1, dpr - .25); renderer.setPixelRatio(dpr); resize(); } acc = 0; frames = 0; }
     // gentle head motion while looking around the cage (none while reading)
-    const still = ui.state === 'reading' || ui.state === 'held' ? 0 : 1; camera.quaternion.copy(baseQ).multiply(new T.Quaternion().setFromEuler(new T.Euler(-look.y * .12 * still, -look.x * .2 * still, 0)));
+    if (free) { orbit.update(); } else {const still = ui.state === 'reading' || ui.state === 'held' ? 0 : 1; camera.quaternion.copy(baseQ).multiply(new T.Quaternion().setFromEuler(new T.Euler(-look.y * .12 * still, -look.x * .2 * still, 0)));}
     cage.update(dt); ui.update(dt);
     const h = Math.max(0, book.root.position.y - TH / 2); shadow.position.set(book.root.position.x, .0012, book.root.position.z); shadow.rotation.z = new T.Euler().setFromQuaternion(book.root.quaternion, 'YXZ').y; (shadow.material as T.MeshBasicMaterial).opacity = .75 * Math.max(0, 1 - h / .18); shadow.visible = h < .18;
     renderer.render(scene, camera); requestAnimationFrame(loop);

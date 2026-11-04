@@ -22,6 +22,7 @@ button:active{background:rgba(60,40,22,.85)}
 #page-label{position:fixed;right:16px;bottom:max(80px,calc(env(safe-area-inset-bottom) + 70px));font-size:14px;color:var(--dim);display:none}
 body[data-state=reading] #page-label{display:block}
 #btn-sound{position:fixed;left:16px;top:max(48px,calc(env(safe-area-inset-top) + 36px));font-size:13px;padding:6px 10px;min-height:32px;opacity:.7}
+#btn-cam{position:fixed;left:16px;top:max(90px,calc(env(safe-area-inset-top) + 78px));font-size:13px;padding:6px 10px;min-height:32px}
 #loading{position:fixed;inset:0;display:grid;place-items:center;background:#050403;font-size:20px;letter-spacing:.08em;color:var(--dim)}
 </style>
 </head>
@@ -30,6 +31,7 @@ body[data-state=reading] #page-label{display:block}
 <div id="hint"></div>
 <div id="page-label"></div>
 <button id="btn-sound">Sound on</button>
+<button id="btn-cam">Camera: player</button>
 <div id="bar">
   <button id="btn-prev" hidden>‹ Page</button>
   <button id="btn-open" hidden>Open</button>
@@ -38,6 +40,6 @@ body[data-state=reading] #page-label{display:block}
   <button id="btn-next" hidden>Page ›</button>
 </div>
 <div id="loading"><span id="load-text">Loading…</span></div>
-<script type="module" src="app.js?v=1"></script>
+<script type="module" src="app.js?v=2"></script>
 </body>
 </html>
