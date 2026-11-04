@@ -22,7 +22,10 @@ export class ManualInteraction {
   get portrait() { return this.camera.aspect < .9; }
   place(p: T.Vector3, q: T.Quaternion) { this.body.pos.copy(p); this.body.quat.copy(q); this.body.vel.set(0, 0, 0); this.body.ang.set(0, 0, 0); this.body.sleeping = true; this.apply(); }
   private apply() { this.book.root.position.copy(this.body.pos); this.book.root.quaternion.copy(this.body.quat); }
-  private set(s: HoldState) { this.state = s; this.onstate(s); }
+  private set(s: HoldState) { this.state = s; if (s !== 'held' && s !== 'reading') this.lowered = false; this.onstate(s); }
+  /** book held low in one hand (still open if it was): the view and the panel stay usable */
+  lowered = false; private lowK = 0; onlower = (l: boolean) => {};
+  setLowered(l: boolean) { if (!(this.state === 'held' || this.state === 'reading') || l === this.lowered) return; this.lowered = l; this.audio.play('pickup'); this.onlower(l); }
 
   // ------------------------------------------------------------- actions
   pickUp() { if (!['rest', 'falling'].includes(this.state)) return; this.lift.t = 0; this.lift.fromP.copy(this.book.root.position); this.lift.fromQ.copy(this.book.root.quaternion); this.body.sleeping = true; this.set('lifting'); this.audio.play('pickup'); }
@@ -40,7 +43,7 @@ export class ManualInteraction {
     this.body.wake(); this.audio.play('drop'); this.set('falling');
   }
   turn(dir: number) {
-    if (this.state !== 'reading') return;
+    if (this.state !== 'reading' || this.lowered) return;
     if (this.portrait && this.zoomTarget > 1.05) { // single-page focus: move between the two pages before turning the leaf
       if (dir > 0 && this.focusSide < 0) { this.focusSide = 1; return; }
       if (dir < 0 && this.focusSide > 0) { this.focusSide = -1; return; }
@@ -71,6 +74,12 @@ export class ManualInteraction {
     this.handQ.copy(this.camera.quaternion).multiply(rot);
     const offset = new T.Vector3(-this.pan.x, 0, -this.pan.y).applyQuaternion(this.handQ);
     this.handP.set(0, -.005 * (1 - o), -dist).applyQuaternion(this.camera.quaternion).add(this.camera.position).add(offset);
+    // lowered: the book drops to the lower-left of the view, tilted toward the eyes like a book held at the hip
+    this.lowK += ((this.lowered ? 1 : 0) - this.lowK) * Math.min(1, dt * 9);
+    if (this.lowK > .001) { const k = this.lowK * this.lowK * (3 - 2 * this.lowK);
+      const low = new T.Vector3(-.2 - .08 * o, -.3, -.5).applyQuaternion(this.camera.quaternion).add(this.camera.position);
+      const lowQ = this.camera.quaternion.clone().multiply(new T.Quaternion().setFromEuler(new T.Euler(Math.PI / 2 - .95, .35, .25)));
+      this.handP.lerp(low, k); this.handQ.slerp(lowQ, k); }
   }
 
   update(dt: number) {
@@ -97,6 +106,7 @@ export class ManualInteraction {
   tap(x: number, y: number) {
     const hit = this.pick(x, y);
     if (this.state === 'rest' || this.state === 'falling') { if (hit) this.pickUp(); return; }
+    if (this.lowered) { if (hit) this.setLowered(false); return; }
     if (this.state === 'held') { if (hit) this.open(); return; }
     if (this.state === 'reading' && hit) {
       const ph = this.book.pageHit(hit); if (!ph) return;
@@ -122,7 +132,7 @@ export class ManualInteraction {
       if (Math.hypot(dx, dy) < 12 && dt < 450) this.tap(e.clientX, e.clientY);
     };
     el.addEventListener('pointerup', up); el.addEventListener('pointercancel', e => this.pointers.delete(e.pointerId));
-    el.addEventListener('wheel', e => { if (this.state !== 'reading') return; e.preventDefault(); this.zoomTarget = T.MathUtils.clamp(this.zoomTarget * Math.exp(-e.deltaY * .0015), 1, 3.2); if (this.zoomTarget > 1.05 && !this.portrait) { const hit = this.pick(e.clientX, e.clientY), ph = hit && this.book.pageHit(hit); if (ph && this.focusSide === 0) this.focusSide = ph.side; } if (this.zoomTarget <= 1.05) { this.focusSide = this.portrait ? this.focusSide : 0; this.panTarget.set(0, 0); } }, {passive: false});
+    el.addEventListener('wheel', e => { if (this.state !== 'reading' || this.lowered) return; e.preventDefault(); this.zoomTarget = T.MathUtils.clamp(this.zoomTarget * Math.exp(-e.deltaY * .0015), 1, 3.2); if (this.zoomTarget > 1.05 && !this.portrait) { const hit = this.pick(e.clientX, e.clientY), ph = hit && this.book.pageHit(hit); if (ph && this.focusSide === 0) this.focusSide = ph.side; } if (this.zoomTarget <= 1.05) { this.focusSide = this.portrait ? this.focusSide : 0; this.panTarget.set(0, 0); } }, {passive: false});
     window.addEventListener('keydown', e => {
       if (e.key === 'ArrowRight') this.turn(1); else if (e.key === 'ArrowLeft') this.turn(-1);
       else if (e.key === ' ' || e.key === 'Enter') { if (this.state === 'rest') this.pickUp(); else if (this.state === 'held') this.open(); else if (this.state === 'reading') this.close(); }

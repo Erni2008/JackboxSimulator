@@ -93,10 +93,20 @@ export async function buildGlbCage(renderer: T.WebGLRenderer, scene: T.Scene, hi
     {n: new T.Vector3(0, 0, 1), d: -nz + .03, restitution: .2, friction: .4, material: 'metal'}, {n: new T.Vector3(0, 0, -1), d: -pz + .03, restitution: .2, friction: .4, material: 'metal'},
   ];
   let t = 0;
-  return {root, mesh, planes, floorY, ceilingY, inner, eye, lamp, shelf: {group: shelf, top: shelfTop, facing: 0}, update(dt) {
+  // the car "falls" by bringing the lava up toward it: same picture from inside, no need to move the whole rig
+  let lavaY = floorY - 3.2, lavaTarget = lavaY, fallV = 0; const minGap = .55;
+  const api = {root, mesh, planes, floorY, ceilingY, inner, eye, lamp, shelf: {group: shelf, top: shelfTop, facing: 0},
+    /** fraction of the drop left before the lava (1 = top of the shaft) */
+    get height() { return (floorY - lavaY - minGap) / (3.2 - minGap); },
+    onFallStart: () => {}, onFallImpact: (_strength: number) => {},
+    /** a sudden drop of `metres` toward the lava (wrong answer) */
+    drop(metres = .8) { if (lavaTarget > lavaY + .01) return; lavaTarget = Math.min(floorY - minGap, lavaY + metres); fallV = .4; api.onFallStart(); },
+    update(dt: number) {
+    if (lavaY < lavaTarget) { fallV += 9.8 * 1.4 * dt; lavaY = Math.min(lavaTarget, lavaY + fallV * dt); lava.setY(lavaY); if (lavaY >= lavaTarget) { api.onFallImpact(Math.min(1.5, fallV / 3)); fallV = 0; } }
     t += dt; lava.update(dt);
     const f = Math.random() < .003 ? .3 : 1; lamp.intensity = 34 * (.97 + Math.sin(t * 47) * .015) * f; bulb.intensity = 2.2 * f;
   }};
+  return api;
 }
 
 /** Victorian wall shelf: riveted iron plank with a raised lip, cast scroll brackets in tarnished brass. */
