@@ -129,7 +129,7 @@ public final class CageLobbyScreen extends ScreenAdapter {
         modeHint=new Label("",new Label.LabelStyle(font,Color.valueOf("B79E7C")));modeHint.setFontScale(.62f);modeHint.setAlignment(Align.center);modeHint.setBounds(650,180,1100,28);stage.addActor(modeHint);
         modePrev=button("<",650,style,()->cycleMode(-1));modePrev.setBounds(650,205,90,56);
         modeNext=button(">",1660,style,()->cycleMode(1));modeNext.setBounds(1660,205,90,56);
-        modeStart=button("START MODE",650,style,()->{var m=modes.get(modeIndex);if(m.source()==null||!m.source().isDisabled())m.action().run();});
+        modeStart=button("START MODE",650,style,()->{var m=modes.get(modeIndex);Gdx.app.log("Lobby","start mode="+m.title()+" sourceDisabled="+(m.source()!=null&&m.source().isDisabled()));if(m.source()==null||!m.source().isDisabled())m.action().run();});
         modeStart.setText("НАЧАТЬ");modeStart.setWidth(530);
         button("MENU", 1210, style, game::showMainMenu);
         button("LEAVE ROOM", 1490, style, () -> { game.leaveRoom(); game.showMainMenu(); });

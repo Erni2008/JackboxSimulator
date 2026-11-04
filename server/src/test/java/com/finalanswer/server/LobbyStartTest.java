@@ -75,4 +75,9 @@ class LobbyStartTest {
         assertEquals(one.get("selfId"),replacement.latest().get("selfId"));
         assertEquals(one.getAsJsonArray("players").get(0).getAsJsonObject().get("characterId"),replacement.latest().getAsJsonArray("players").get(0).getAsJsonObject().get("characterId"));
     }
+    @Test void singlePlayerGameReachesTheFirstQuestion(){
+        one=join("Solo");service.attach(s(host,"code"),s(one,"token"),a,"solo");
+        command(h,"START_GAME",Map.of("introId",com.erni.finalanswer.gameplay.intro.IntroDefinition.RUSSIAN.introId()));
+        assertEquals("STARTING",s(a.latest(),"phase"));assertTrue(a.latest().has("intro"));
+    }
 }

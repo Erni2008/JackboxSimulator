@@ -226,7 +226,7 @@ public class FinalAnswerGame extends Game {
         String type=event.get("type").getAsString();
         var data=event.getAsJsonObject("payload");
         if (type.equals("ROOM_CLOSED")) { leaveRoom(); showMainMenu(); return; }
-        if (type.equals("ERROR")) { lobbyStatus=data.get("code").getAsString(); if(cageLobbyScreen!=null)cageLobbyScreen.startRejected(); return; }
+        if (type.equals("ERROR")) { Gdx.app.log("Lobby","server error "+data); lobbyStatus=data.get("code").getAsString(); if(cageLobbyScreen!=null)cageLobbyScreen.startRejected(); return; }
         if(type.equals("CURSED_ACTION_REJECTED")&&(getScreen()==cageLobbyScreen||getScreen()==networkCursedLoading)){lobbyStatus=data.get("code").getAsString();return;}
         if (!data.has("players")) return;
         activeRoom=RoomApiClient.parse(new com.badlogic.gdx.utils.JsonReader().parse(data.toString()),activeRoom.token());
