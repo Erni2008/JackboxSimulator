@@ -18,7 +18,9 @@ let quality: 'high' | 'low' = params.get('quality') === 'low' || (mobile && para
 const renderer = new T.WebGLRenderer({antialias: !mobile, powerPreference: 'high-performance', preserveDrawingBuffer: params.has('capture')});
 renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFShadowMap; renderer.shadowMap.autoUpdate = false; let frameNo = 0;
-const DPR_FLOOR = mobile ? 1.5 : 1; let dpr = Math.min(devicePixelRatio, mobile ? 2 : quality === 'high' ? 1.5 : 1.25); renderer.setPixelRatio(dpr);
+// iPhones (Apple GPU) hold 2x; Android mid-range (e.g. Poco X3 Pro, Adreno 640) starts lower and may drop further
+const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const DPR_FLOOR = mobile ? (ios ? 1.5 : 1) : 1; let dpr = Math.min(devicePixelRatio, mobile ? (ios ? 2 : 1.6) : quality === 'high' ? 1.5 : 1.25); let shadowEvery = mobile ? 3 : 1; renderer.setPixelRatio(dpr);
 $('viewport').append(renderer.domElement);
 const scene = new T.Scene(), camera = new T.PerspectiveCamera(50, 1, .03, 40);
 camera.position.set(0, 1.56, .5); camera.lookAt(0, .1, -.25);
@@ -110,7 +112,7 @@ async function boot() {
   renderer.domElement.addEventListener('pointermove', e => { if (e.pointerType !== 'mouse' || drag.size) return; hoverRay.setFromCamera(new T.Vector2(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1), camera); box.hover(hoverRay); });
   const loop = (now: number) => {
     const dt = Math.min(.05, (now - last) / 1000) * timeScale; last = now; acc += dt; frames++;
-    if (acc > 1) { const ms = acc / frames * 1000; if (ms > 19 && dpr > DPR_FLOOR) { dpr = Math.max(DPR_FLOOR, dpr - .25); renderer.setPixelRatio(dpr); resize(); } acc = 0; frames = 0; }
+    if (acc > 1) { const ms = acc / frames * 1000; if (ms > 19) { if (dpr > DPR_FLOOR) { dpr = Math.max(DPR_FLOOR, dpr - .2); renderer.setPixelRatio(dpr); resize(); } else if (shadowEvery < 15) shadowEvery = shadowEvery * 2 + 1; } acc = 0; frames = 0; }
     // gentle head motion while looking around the cage (none while reading)
     // exponential smoothing of the look (frame-rate independent): no stepping between irregular mouse events
     { const a = 1 - Math.exp(-dt * 22); yaw += (yawT - yaw) * a; pitch += (pitchT - pitch) * a; }
@@ -128,7 +130,7 @@ async function boot() {
     const surface = cage.shelf && Math.abs(book.root.position.y - TH / 2 - cage.shelf.top.y) < .2 && Math.abs(book.root.position.z - cage.shelf.top.z) < .2 ? cage.shelf.top.y : floorY; const h = Math.max(0, book.root.position.y - TH / 2 - surface); shadow.position.set(book.root.position.x, surface + .0012, book.root.position.z); shadow.rotation.z = new T.Euler().setFromQuaternion(book.root.quaternion, 'YXZ').y; (shadow.material as T.MeshBasicMaterial).opacity = .75 * Math.max(0, 1 - h / .18); shadow.visible = h < .18;
     if (shake > .002) { const a = shake * shake; camera.position.add(new T.Vector3((Math.random() - .5) * .05 * a, (Math.random() - .5) * .07 * a, (Math.random() - .5) * .03 * a)); camera.rotateZ((Math.random() - .5) * .03 * a); shake *= Math.exp(-dt * 4); }
     // shadows refresh every other frame: invisible at 60 fps, halves the shadow-pass cost
-    if ((frameNo++ & (mobile ? 3 : 1)) === 0) renderer.shadowMap.needsUpdate = true;
+    if (frameNo++ % (shadowEvery + 1) === 0) renderer.shadowMap.needsUpdate = true;
     renderer.render(scene, camera); requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
