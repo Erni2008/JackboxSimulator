@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>The Engineer's Manual</title>
+<style>
+@font-face{font-family:'IM Fell English';src:url(fonts/fell.woff2) format('woff2');}
+@font-face{font-family:'IM Fell English';font-style:italic;src:url(fonts/fell-italic.woff2) format('woff2');}
+@font-face{font-family:'IM Fell English SC';src:url(fonts/fell-sc.woff2) format('woff2');}
+@font-face{font-family:'IM Fell DW Pica';src:url(fonts/pica.woff2) format('woff2');}
+@font-face{font-family:'Caveat';src:url(fonts/caveat.woff2) format('woff2');}
+:root{--ink:#e9dcc0;--dim:rgba(233,220,192,.6);--line:rgba(233,220,192,.22)}
+html,body{margin:0;height:100%;background:#050403;color:var(--ink);overflow:hidden;font-family:'IM Fell English',Georgia,serif;touch-action:none;-webkit-user-select:none;user-select:none}
+[hidden]{display:none!important}
+#viewport{position:fixed;inset:0}
+canvas{display:block}
+#hint{position:fixed;left:0;right:0;top:max(16px,env(safe-area-inset-top));text-align:center;font-size:17px;letter-spacing:.04em;color:var(--dim);pointer-events:none;text-shadow:0 1px 6px #000;padding:0 16px}
+#bar{position:fixed;left:0;right:0;bottom:max(16px,env(safe-area-inset-bottom));display:flex;justify-content:center;gap:10px;flex-wrap:wrap;padding:0 16px}
+button{font:inherit;font-size:16px;letter-spacing:.06em;color:var(--ink);background:rgba(20,14,9,.72);border:1px solid var(--line);border-radius:3px;padding:10px 16px;min-height:44px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+button:active{background:rgba(60,40,22,.85)}
+#page-label{position:fixed;right:16px;bottom:max(80px,calc(env(safe-area-inset-bottom) + 70px));font-size:14px;color:var(--dim);display:none}
+body[data-state=reading] #page-label{display:block}
+#btn-sound{position:fixed;left:16px;top:max(48px,calc(env(safe-area-inset-top) + 36px));font-size:13px;padding:6px 10px;min-height:32px;opacity:.7}
+#loading{position:fixed;inset:0;display:grid;place-items:center;background:#050403;font-size:20px;letter-spacing:.08em;color:var(--dim)}
+</style>
+</head>
+<body>
+<div id="viewport"></div>
+<div id="hint"></div>
+<div id="page-label"></div>
+<button id="btn-sound">Sound on</button>
+<div id="bar">
+  <button id="btn-prev" hidden>‹ Page</button>
+  <button id="btn-open" hidden>Open</button>
+  <button id="btn-close" hidden>Close</button>
+  <button id="btn-drop" hidden>Drop</button>
+  <button id="btn-next" hidden>Page ›</button>
+</div>
+<div id="loading"><span id="load-text">Loading…</span></div>
+<script type="module" src="app.js?v=1"></script>
+</body>
+</html>
