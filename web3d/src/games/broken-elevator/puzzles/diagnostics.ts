@@ -42,11 +42,11 @@ export function labelPlate(text: string, w: number, h: number, _size = 44, style
     const cy = opts.sub ? H * .64 : H * .53, drawSpaced = (s: string, y: number, dx = 0) => { let px = W / 2 - width(s) / 2 + dx; for (const c of s) { x.fillText(c, px, y); px += x.measureText(c).width + track; } };
     x.textBaseline = 'middle'; x.textAlign = 'left';
     if (style === 'brass') { x.fillStyle = 'rgba(255,238,195,.45)'; drawSpaced(text, cy + size * .045, size * .03); x.fillStyle = '#1c1107'; drawSpaced(text, cy); }
-    else { x.fillStyle = 'rgba(0,0,0,.6)'; drawSpaced(text, cy + size * .04); x.fillStyle = '#efe4c8'; drawSpaced(text, cy); }
-    if (opts.sub) { const s2 = H * .17; x.font = `600 ${s2}px 'Cinzel', Georgia, serif`; x.fillStyle = style === 'brass' ? '#3a2610' : '#b8955a'; x.textAlign = 'center'; x.fillText(opts.sub, W / 2, H * .24); }
+    else { x.fillStyle = 'rgba(0,0,0,.6)'; drawSpaced(text, cy + size * .04); x.fillStyle = '#fff6dc'; drawSpaced(text, cy); }
+    if (opts.sub) { const s2 = H * .17; x.font = `600 ${s2}px 'Cinzel', Georgia, serif`; x.fillStyle = style === 'brass' ? '#1c1107' : '#e6c784'; x.textAlign = 'center'; x.fillText(opts.sub, W / 2, H * .24); }
   });
   t.generateMipmaps = true; t.minFilter = T.LinearMipmapLinearFilter;
-  const face = new T.MeshPhysicalMaterial({map: t, metalness: style === 'brass' ? .75 : .35, roughness: style === 'brass' ? .45 : .5, clearcoat: style === 'enamel' ? .5 : 0, clearcoatRoughness: .4});
+  const face = new T.MeshPhysicalMaterial({map: t, emissiveMap: t, emissive: '#ffffff', emissiveIntensity: style === 'brass' ? .25 : .5, metalness: style === 'brass' ? .75 : .35, roughness: style === 'brass' ? .45 : .5, clearcoat: style === 'enamel' ? .5 : 0, clearcoatRoughness: .4});
   const edge = style === 'brass' ? Mats().brass : Mats().iron;
   return new T.Mesh(new T.BoxGeometry(w, h, .0025), [edge, edge, edge, edge, face, edge]);
 }
@@ -61,7 +61,7 @@ export class AnalogMeter {
     const R = radius, M = Mats();
     const bezel = new T.Mesh(new T.TorusGeometry(R, R * .12, 14, 48), M.brass); bezel.castShadow = true; this.group.add(bezel);
     const cup = new T.Mesh(new T.CylinderGeometry(R * 1.02, R * 1.08, R * .35, 48, 1, true), M.bronze); cup.rotation.x = Math.PI / 2; cup.position.z = -R * .17; this.group.add(cup);
-    const dial = new T.Mesh(new T.CircleGeometry(R * .98, 64), new T.MeshStandardMaterial({map: this.dialTexture(), roughness: .8})); dial.position.z = -R * .05; this.group.add(dial);
+    const dial = new T.Mesh(new T.CircleGeometry(R * .98, 64), (() => { const d = this.dialTexture(); return new T.MeshStandardMaterial({map: d, emissiveMap: d, emissive: '#ffffff', emissiveIntensity: .55, roughness: .8}); })()); dial.position.z = -R * .05; this.group.add(dial);
     // needle with counterweight, pivoting at the dial centre
     const blade = new T.Mesh(new T.BoxGeometry(R * .025, R * .82, R * .01), new T.MeshStandardMaterial({color: '#1a0f08', roughness: .5})); blade.position.y = R * .36; this.needle.add(blade);
     const tipM = new T.Mesh(new T.BoxGeometry(R * .015, R * .14, R * .012), new T.MeshStandardMaterial({color: '#8e1b10', roughness: .5})); tipM.position.y = R * .73; this.needle.add(tipM);
@@ -83,12 +83,12 @@ export class AnalogMeter {
       for (const [a, b, col] of [[6.5, 8, 'rgba(196,140,30,.75)'], [8, 10, 'rgba(160,30,18,.85)']] as const) { x.strokeStyle = col; x.lineWidth = 26; x.beginPath(); x.arc(c, c, 178, ang(a), ang(b)); x.stroke(); }
       x.strokeStyle = '#2a1a0c'; x.lineWidth = 3; x.beginPath(); x.arc(c, c, 196, ang(0), ang(10)); x.stroke();
       for (let v = 0; v <= 10; v += .5) { const a = ang(v), big = v % 1 === 0; x.lineWidth = big ? 4 : 2; x.beginPath(); x.moveTo(c + Math.cos(a) * (big ? 164 : 178), c + Math.sin(a) * (big ? 164 : 178)); x.lineTo(c + Math.cos(a) * 196, c + Math.sin(a) * 196); x.stroke();
-        if (big) { x.font = `600 34px 'Cinzel', serif`; x.fillStyle = '#21140a'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(v), c + Math.cos(a) * 132, c + Math.sin(a) * 132); } }
-      x.textAlign = 'center'; x.fillStyle = '#21140a'; x.font = `30px ${FONT}`; x.fillText('AMPERES', c, c + 70); x.font = `20px ${FONT}`; x.fillText('HARTWELL · LONDON', c, c + 104);
+        if (big) { x.font = `700 44px 'Cinzel', serif`; x.fillStyle = '#120a03'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(v), c + Math.cos(a) * 132, c + Math.sin(a) * 132); } }
+      x.textAlign = 'center'; x.fillStyle = '#120a03'; x.font = `700 36px ${FONT}`; x.fillText('AMPERES', c, c + 70); x.font = `600 24px ${FONT}`; x.fillText('HARTWELL · LONDON', c, c + 104);
       // fault legend along the outer rim (outside the needle's sweep)
-      const arcText = (t: string, v: number, col: string) => { x.save(); x.fillStyle = col; x.font = `700 21px ${TECH}`; const a0 = ang(v), chars = [...t], step = .056; let a = a0 - (chars.length - 1) * step / 2;
+      const arcText = (t: string, v: number, col: string) => { x.save(); x.fillStyle = col; x.font = `800 25px ${TECH}`; const a0 = ang(v), chars = [...t], step = .062; let a = a0 - (chars.length - 1) * step / 2;
         for (const ch of chars) { x.save(); x.translate(c + Math.cos(a) * 232, c + Math.sin(a) * 232); x.rotate(a + Math.PI / 2); x.textAlign = 'center'; x.fillText(ch, 0, 0); x.restore(); a += step; } x.restore(); };
-      arcText('POWER FAILURE', 1.3, '#2b1a0c'); arcText('SHORT CIRCUIT', 5, '#2b1a0c'); arcText('OVERLOAD', 9, '#8e1a10');
+      arcText('POWER FAILURE', 1.3, '#120a03'); arcText('SHORT CIRCUIT', 5, '#120a03'); arcText('OVERLOAD', 9, '#b01808');
     });
   }
   private scratches() { return tex(256, 256, x => { x.fillStyle = '#1a1a1a'; x.fillRect(0, 0, 256, 256); const r = rng(31); x.strokeStyle = '#d0d0d0'; for (let i = 0; i < 70; i++) { x.globalAlpha = .2 + r() * .6; x.lineWidth = .5 + r(); x.beginPath(); const px = r() * 256, py = r() * 256, a = r() * 7, l = 10 + r() * 90; x.moveTo(px, py); x.lineTo(px + Math.cos(a) * l, py + Math.sin(a) * l); x.stroke(); } }, false); }
@@ -137,9 +137,9 @@ export class ModeSelector {
   constructor() {
     const M = Mats();
     const plate = new T.Mesh(new T.CylinderGeometry(.046, .046, .004, 40), M.bronze);
-    const face = new T.Mesh(new T.CircleGeometry(.045, 48), new T.MeshPhysicalMaterial({metalness: .75, roughness: .5, map: tex(256, 256, x => {
+    const face = new T.Mesh(new T.CircleGeometry(.045, 48), new T.MeshPhysicalMaterial({metalness: .6, roughness: .5, emissive: '#6a4a22', emissiveIntensity: .5, map: tex(256, 256, x => {
       const g = x.createRadialGradient(128, 128, 10, 128, 128, 128); g.addColorStop(0, '#b18c52'); g.addColorStop(1, '#6e5129'); x.fillStyle = g; x.fillRect(0, 0, 256, 256);
-      x.save(); x.translate(128, 128); x.fillStyle = '#1f1408'; x.font = `700 27px ${TECH}`; x.textAlign = 'center';
+      x.save(); x.translate(128, 128); x.fillStyle = '#0e0802'; x.font = `800 30px ${TECH}`; x.textAlign = 'center';
       for (const [label, a] of [['NORMAL', -Math.PI / 4], ['EMERGENCY', Math.PI / 4]] as const) { x.save(); x.rotate(a); x.fillText(label, 0, -88); x.fillRect(-2, -78, 4, 14); x.restore(); }
       x.restore(); x.strokeStyle = 'rgba(40,25,8,.8)'; x.lineWidth = 4; x.beginPath(); x.arc(128, 128, 124, 0, 7); x.stroke(); })}));
     face.position.z = .0042; this.group.add(face);
