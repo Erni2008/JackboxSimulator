@@ -4,7 +4,7 @@
 // filtered noise and modal resonators — no placeholder files are shipped.
 // Drop real recordings into SAMPLE_URLS to override any synthesised voice.
 export const SAMPLE_URLS: Partial<Record<Voice, string>> = {pageTurn: 'audio/page_turn.wav'};
-export type Voice = 'coverOpen' | 'coverClose' | 'pageTurn' | 'pickup' | 'drop' | 'impactMetal' | 'creak' | 'snip' | 'spark' | 'good' | 'bad' | 'doorOpen' | 'doorClose';
+export type Voice = 'coverOpen' | 'coverClose' | 'pageTurn' | 'pickup' | 'drop' | 'impactMetal' | 'creak' | 'snip' | 'spark' | 'good' | 'bad' | 'doorOpen' | 'doorClose' | 'button' | 'locked';
 
 export class BookAudio {
   ctx: AudioContext | null = null; out!: GainNode; private buffers = new Map<Voice, AudioBuffer>(); private noise!: AudioBuffer; enabled = true;
@@ -22,6 +22,13 @@ export class BookAudio {
     g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(gain, at + attack); g.gain.exponentialRampToValueAtTime(.0001, at + dur); s.connect(f).connect(g).connect(this.out); s.start(at, Math.random()); s.stop(at + dur + .05); return f;
   }
   private mode(at: number, freq: number, decay: number, gain: number) { const ctx = this.ctx!, o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = freq; g.gain.setValueAtTime(gain, at); g.gain.exponentialRampToValueAtTime(.0001, at + decay); o.connect(g).connect(this.out); o.start(at); o.stop(at + decay + .02); }
+  /** electrical hum for a diagnostic test: mains buzz (overload), weak dying hum (power failure) */
+  hum(kind: 'overload' | 'short' | 'power', dur = 2) {
+    if (!this.enabled || !this.ctx || this.ctx.state !== 'running') return; const ctx = this.ctx, t = ctx.currentTime, g = ctx.createGain(), f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = kind === 'overload' ? 2200 : 500;
+    const peak = kind === 'overload' ? .16 : kind === 'short' ? .07 : .06; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(peak, t + .12); if (kind === 'power') g.gain.exponentialRampToValueAtTime(.002, t + dur); else g.gain.setValueAtTime(peak, t + dur - .2); g.gain.linearRampToValueAtTime(0, t + dur);
+    for (const [mul, type, amp] of [[1, 'sawtooth', 1], [2, 'square', .35], [3, 'sine', .3]] as const) { const o = ctx.createOscillator(), og = ctx.createGain(); o.type = type; o.frequency.value = 50 * mul; if (kind === 'power') o.frequency.linearRampToValueAtTime(50 * mul * .7, t + dur); og.gain.value = amp; o.connect(og).connect(f); o.start(t); o.stop(t + dur + .05); }
+    f.connect(g).connect(this.out);
+  }
   play(v: Voice, intensity = 1) {
     if (!this.enabled || !this.ctx || this.ctx.state !== 'running') return; const t = this.ctx.currentTime;
     if (this.buffers.has(v) && this.sample(v, .8 * intensity, .92 + Math.random() * .16)) return;
@@ -43,6 +50,8 @@ export class BookAudio {
       case 'good': for (const [f, d] of [[660, 1.2], [990, 1.0], [1320, .8]]) this.mode(t + .02, f, d, .08); this.rustle(t, .25, 300, 1, .4, .002); break;
       case 'bad': { const o = this.ctx!.createOscillator(), g = this.ctx!.createGain(); o.type = 'sawtooth'; o.frequency.value = 62; g.gain.setValueAtTime(.18, t); g.gain.exponentialRampToValueAtTime(.001, t + .9); o.connect(g).connect(this.out); o.start(t); o.stop(t + .95); this.rustle(t, .5, 2500, .7, .5, .002); break; }
       case 'doorOpen': { const f = this.rustle(t, .55, 700, 7, .35, .05); f.frequency.linearRampToValueAtTime(420, t + .5); this.mode(t, 240, .3, .1); break; }
+      case 'button': this.rustle(t, .03, 2400, 1.5, .7, .001); this.mode(t, 1650, .06, .1); this.mode(t + .09, 900, .08, .08); this.rustle(t + .09, .04, 1200, 2, .4, .001); break;
+      case 'locked': this.rustle(t, .05, 800, 3, .6, .001); this.mode(t, 520, .12, .1); this.rustle(t + .07, .04, 700, 3, .4, .001); break;
       case 'doorClose': this.rustle(t, .12, 300, 1.2, .9, .002); this.mode(t, 180, .45, .2); this.mode(t, 410, .3, .1); break;
     }
   }

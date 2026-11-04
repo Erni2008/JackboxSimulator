@@ -8,7 +8,9 @@ import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js'
 import {TEX} from '../manual/materials';
 import {rng} from '../manual/page-art';
 import {WIRE_COLORS, type WireTask} from './wire-puzzle';
+import {AnalogMeter, TestButton, ModeSelector, labelPlate, type Fault, type Mode} from './diagnostics';
 
+const TERMINALS = ['A1', 'B2', 'C3', 'D4', 'E5', 'F6'];
 const BW = .46, BH = .56, BD = .15, WALL = .014, N = 6, TOP = .12, BOT = -.2, GAP = .056;
 export interface FuseBoxSounds { door(open: boolean): void; snip(): void; spark(): void; good(): void; bad(): void }
 
@@ -54,6 +56,8 @@ export class FuseBox {
   private halves: {top: T.Group; bot: T.Group; t: number; side: number}[] = []; private plate!: T.CanvasTexture; private plateCanvas = document.createElement('canvas');
   private lamp!: T.Mesh; private lampLight!: T.PointLight; private sparks!: T.Points; private sparkVel: T.Vector3[] = []; private sparkLife = 0;
   private braid = braid(); pliers = new Pliers(); private aim = new T.Vector3(0, -.04, .07); private aimTarget = new T.Vector3(0, -.04, .07); private snipping = 0; private reach = 0; private hot: {mat: T.MeshPhysicalMaterial; t: number}[] = [];
+  header = new T.Group(); meter = new AnalogMeter(.055); button = new TestButton(); selector = new ModeSelector(); latch = new T.Group(); private latchT = 0;
+  private terminals = new T.Group(); private mats: any; fault: Fault = 'power'; private fxT = 0; private hum: any = null; onTest = (f: Fault) => {};
   locked = false; task: WireTask | null = null; sounds: FuseBoxSounds | null = null; onCut = (index: number) => {};
 
   constructor(hi: boolean) {
@@ -80,41 +84,51 @@ export class FuseBox {
     const ri = new T.InstancedMesh(rivetG, brassDark, rivets.length); rivets.forEach((p, i) => ri.setMatrixAt(i, new T.Matrix4().makeTranslation(p.x, p.y, p.z))); this.group.add(ri);
     for (const [x, y] of [[-1, 1], [1, 1], [-1, -1], [1, -1]]) box(new T.CylinderGeometry(.009, .009, .008, 6), brassDark, x * (BW / 2 - .035), y * (BH / 2 - .035), WALL + .01).rotation.x = Math.PI / 2;
     for (const y of [TOP + .012, BOT - .012]) box(new RoundedBoxGeometry(BW - .07, .05, .03, 3, .008), porcelain, 0, y, WALL + .021);
-    for (let i = 0; i < N; i++) { const x = (i - (N - 1) / 2) * GAP; for (const y of [TOP + .012, BOT - .012]) {
-      const sgn = y > 0 ? -1 : 1;
-      box(new T.CylinderGeometry(.013, .013, .002, 20), brass, x, y, WALL + .037).rotation.x = Math.PI / 2;
-      box(new T.CylinderGeometry(.0105, .0105, .008, 6), brass, x, y, WALL + .042).rotation.x = Math.PI / 2;
-      box(new T.CylinderGeometry(.0065, .0072, .004, 16), brass, x, y, WALL + .048).rotation.x = Math.PI / 2;
-      box(new T.BoxGeometry(.011, .0016, .002), brassDark, x, y, WALL + .0502).rotation.z = (i * 1.3 + y * 9) % 3;
-      box(new T.CylinderGeometry(.0125, .011, .028, 16), brass, x, y + sgn * .03, WALL + .05);
-    } }
+    this.mats = {brass, brassDark};
     this.plateCanvas.width = 512; this.plateCanvas.height = 112; this.plate = new T.CanvasTexture(this.plateCanvas); this.plate.colorSpace = T.SRGBColorSpace; this.plate.anisotropy = 8;
     const plate = new T.Mesh(rb(.3, .066, .004, .0015), [brass, brass, brass, brass, new T.MeshPhysicalMaterial({map: this.plate, metalness: .75, roughness: .48}), brass]); plate.position.set(0, .215, WALL + .01); this.group.add(plate);
     this.door.position.set(-BW / 2 - .006, 0, BD + .012); this.group.add(this.door);
     const leaf = box(rb(BW + .012, BH + .012, .012, .004), doorSteel, BW / 2 + .006, 0, 0, this.door); this.pickDoor.push(leaf);
-    const handle = new T.Mesh(new T.TorusGeometry(.028, .006, 12, 24, Math.PI), brass); handle.rotation.z = -Math.PI / 2; handle.position.set(BW - .04, 0, .014); handle.castShadow = true; this.door.add(handle); this.pickDoor.push(handle);
-    for (const y of [-.028, .028]) box(new T.CylinderGeometry(.007, .007, .012, 12), brass, BW - .04, y, .008, this.door).rotation.x = Math.PI / 2;
+    // quarter-turn locking handle: escutcheon, spindle and a cast T-lever that turns before the door swings
+    const esc = box(new T.CylinderGeometry(.026, .028, .006, 24), brassDark, BW - .045, 0, .009, this.door); esc.rotation.x = Math.PI / 2; this.pickDoor.push(esc);
+    this.latch.position.set(BW - .045, 0, .02); this.door.add(this.latch);
+    const spindle = new T.Mesh(new T.CylinderGeometry(.007, .008, .02, 12), brass); spindle.rotation.x = Math.PI / 2; this.latch.add(spindle);
+    const lever = new T.Mesh(rb(.075, .014, .01, .004), brass); lever.position.z = .01; lever.castShadow = true; this.latch.add(lever);
+    for (const sx of [-1, 1]) { const knob = new T.Mesh(new T.SphereGeometry(.009, 12, 8), brass); knob.position.set(sx * .037, 0, .01); this.latch.add(knob); }
+    const keep = box(new T.BoxGeometry(.016, .03, .012), brassDark, BW / 2 + .013, 0, BD + .01); void keep;
+    this.latch.traverse(o => this.pickDoor.push(o));
     const sign = new T.Mesh(new T.PlaneGeometry(.11, .1), new T.MeshPhysicalMaterial({transparent: true, roughness: .7, metalness: .2, map: canvasTex(256, 232, x => {
       x.fillStyle = '#b5862a'; x.beginPath(); x.moveTo(128, 8); x.lineTo(250, 224); x.lineTo(6, 224); x.closePath(); x.fill(); x.lineWidth = 10; x.strokeStyle = '#1d1510'; x.lineJoin = 'round'; x.stroke();
       x.fillStyle = '#1d1510'; x.beginPath(); x.moveTo(140, 70); x.lineTo(104, 150); x.lineTo(130, 150); x.lineTo(112, 205); x.lineTo(156, 128); x.lineTo(130, 128); x.lineTo(148, 70); x.closePath(); x.fill();
       x.globalCompositeOperation = 'source-atop'; const r = rng(4); for (let i = 0; i < 500; i++) { x.fillStyle = `rgba(${r() < .6 ? '90,45,15' : '20,12,8'},${r() * .5})`; x.beginPath(); x.arc(r() * 256, r() * 232, 1 + r() * 7, 0, 7); x.fill(); } })}));
     sign.position.set(BW / 2 + .006, .14, .0068); this.door.add(sign); this.pickDoor.push(sign);
     for (const y of [BH / 2 - .07, -BH / 2 + .07]) box(new T.CylinderGeometry(.008, .008, .075, 12), brassDark, -.004, y, -.002);
-    box(new T.CylinderGeometry(.022, .026, .02, 16), brassDark, BW / 2 - .05, BH / 2 + .01, .05);
-    this.lamp = new T.Mesh(new T.SphereGeometry(.017, 16, 10), new T.MeshPhysicalMaterial({color: '#2a0806', emissive: '#000', roughness: .15, clearcoat: 1})); this.lamp.position.set(BW / 2 - .05, BH / 2 + .03, .05); this.group.add(this.lamp);
-    this.lampLight = new T.PointLight('#ff3b1f', 0, 1.2, 2); this.lampLight.position.copy(this.lamp.position); this.group.add(this.lampLight);
+    // ---------------- instrument header above the door: meter, TEST CIRCUIT, mode selector, warning lamp
+    const HH = .2, hy = BH / 2 + HH / 2 + .004; this.header.position.set(0, hy, 0); this.group.add(this.header);
+    box(rb(BW + .02, HH, .075, .005), steel, 0, 0, .0375, this.header);
+    box(rb(BW - .02, HH - .03, .006, .003), new T.MeshPhysicalMaterial({color: '#1a1512', roughness: .7, metalness: .3, map: steel.map}), 0, 0, .077, this.header);
+    for (const [x, y] of [[-1, 1], [1, 1], [-1, -1], [1, -1]]) { const b = box(new T.CylinderGeometry(.006, .006, .006, 6), brassDark, x * (BW / 2 - .01), y * (HH / 2 - .012), .079, this.header); b.rotation.x = Math.PI / 2; }
+    this.meter.group.position.set(-.13, .006, .096); this.header.add(this.meter.group);
+    this.button.group.position.set(.035, .018, .08); this.header.add(this.button.group);
+    this.selector.group.position.set(.15, .018, .08); this.header.add(this.selector.group);
+    const lampBase = box(new T.CylinderGeometry(.016, .019, .014, 16), brassDark, -.13, HH / 2 + .008, .045, this.header); void lampBase;
+    // caged warning lamp on top of the header
+    this.lamp = new T.Mesh(new T.SphereGeometry(.015, 16, 10), new T.MeshPhysicalMaterial({color: '#3a0d06', emissive: '#000', roughness: .2, clearcoat: 1})); this.lamp.position.set(-.13, HH / 2 + .03, .045); this.header.add(this.lamp);
+    for (let k = 0; k < 4; k++) { const wire = new T.Mesh(new T.TorusGeometry(.017, .0012, 6, 16, Math.PI), brassDark); wire.position.copy(this.lamp.position); wire.rotation.y = k * Math.PI / 4; this.header.add(wire); }
+    this.lampLight = new T.PointLight('#ff3b1f', 0, 1.2, 2); this.lampLight.position.copy(this.lamp.position); this.header.add(this.lampLight);
     const work = new T.SpotLight('#ffe6c8', 5, 1.6, .75, .6, 1.5); work.position.set(0, BH / 2 + .12, .45); work.target.position.set(0, -.02, .04); this.group.add(work, work.target);
     const sg = new T.BufferGeometry(); sg.setAttribute('position', new T.BufferAttribute(new Float32Array(56 * 3), 3)); for (let i = 0; i < 56; i++) this.sparkVel.push(new T.Vector3());
     this.sparks = new T.Points(sg, new T.PointsMaterial({color: '#ffc46b', size: .007, transparent: true, blending: T.AdditiveBlending, depthWrite: false})); this.sparks.visible = false; this.sparks.frustumCulled = false; this.group.add(this.sparks);
-    this.group.add(this.pliers.group); void hi;
+    this.group.add(this.pliers.group, this.terminals); void hi;
   }
 
   setTask(task: WireTask) {
     this.task = task; this.locked = false; this.drawPlate(task.serial); this.setLamp('off');
     for (const m of this.wireMeshes) { m.geometry.dispose(); m.removeFromParent(); } for (const h of this.halves) { h.top.removeFromParent(); h.bot.removeFromParent(); }
-    this.wireMeshes = []; this.halves = [];
+    this.wireMeshes = []; this.halves = []; this.buildTerminals(task.wires.length);
+    const n = task.wires.length;
     task.wires.forEach((c, i) => {
-      const x = (i - (N - 1) / 2) * GAP, r = rng(i * 31 + task.serial.charCodeAt(5)), z0 = WALL + .05, sag = .02 + r() * .035, side = (r() - .5) * .022;
+      const x = (i - (n - 1) / 2) * GAP, r = rng(i * 31 + task.serial.charCodeAt(5)), z0 = WALL + .05, sag = .02 + r() * .035, side = (r() - .5) * .022;
       const y0 = TOP + .012 - .044, y1 = BOT - .012 + .044;
       const curve = new T.CatmullRomCurve3([new T.Vector3(x, y0, z0), new T.Vector3(x, y0 - .03, z0 + .01), new T.Vector3(x + side * .6, y0 - .1, z0 + sag * .8), new T.Vector3(x + side, (y0 + y1) / 2, z0 + sag), new T.Vector3(x + side * .5, y1 + .1, z0 + sag * .7), new T.Vector3(x, y1 + .03, z0 + .01), new T.Vector3(x, y1, z0)]);
       const map = this.braid.map.clone(), bump = this.braid.bump.clone(); map.wrapS = map.wrapT = bump.wrapS = bump.wrapT = T.RepeatWrapping; bump.repeat.set(9, 1); map.needsUpdate = bump.needsUpdate = true;
@@ -122,6 +136,28 @@ export class FuseBox {
       const m = new T.Mesh(new T.TubeGeometry(curve, 64, .0098, 14), mat); m.castShadow = true; m.userData = {wire: i, curve, mat}; this.group.add(m); this.wireMeshes.push(m);
     });
   }
+
+  /** brass terminal hardware and engraved tags (A1, B2 ...) at the real connection points */
+  private buildTerminals(n: number) {
+    for (const c of [...this.terminals.children]) { c.removeFromParent(); (c as any).geometry?.dispose?.(); }
+    const {brass, brassDark} = this.mats, add = (geo: T.BufferGeometry, m: T.Material | T.Material[], x: number, y: number, z: number) => { const o = new T.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = true; this.terminals.add(o); return o; };
+    for (let i = 0; i < n; i++) { const x = (i - (n - 1) / 2) * GAP; for (const y of [TOP + .012, BOT - .012]) {
+      const sgn = y > 0 ? -1 : 1;
+      add(new T.CylinderGeometry(.013, .013, .002, 20), brass, x, y, WALL + .037).rotation.x = Math.PI / 2;
+      add(new T.CylinderGeometry(.0105, .0105, .008, 6), brass, x, y, WALL + .042).rotation.x = Math.PI / 2;
+      add(new T.CylinderGeometry(.0065, .0072, .004, 16), brass, x, y, WALL + .048).rotation.x = Math.PI / 2;
+      add(new T.BoxGeometry(.011, .0016, .002), brassDark, x, y, WALL + .0502).rotation.z = (i * 1.3 + y * 9) % 3;
+      add(new T.CylinderGeometry(.0125, .011, .028, 16), brass, x, y + sgn * .03, WALL + .05);
+    }
+      // engraved tag riveted to the porcelain block just above the upper terminal
+      const tag = labelPlate(TERMINALS[i], .036, .016, 150); tag.position.set(x, TOP + .036, WALL + .037); this.terminals.add(tag);
+    }
+  }
+  /** externally supplied fault and mode (dev config now, puzzle later) */
+  configure(fault: Fault, mode: Mode) { this.fault = fault; this.meter.setState(fault); this.selector.setMode(mode); }
+  /** press TEST CIRCUIT: same fault every time; meter + effects follow it for ~2 s */
+  runTest() { if (this.meter.testing) return false; this.button.push(); this.meter.test(2); this.fxT = 2; this.onTest(this.fault); return true; }
+  get testing() { return this.meter.testing; }
 
   private drawPlate(serial: string) {
     const c = this.plateCanvas, x = c.getContext('2d')!; const g = x.createLinearGradient(0, 0, 512, 112); g.addColorStop(0, '#8f6e3a'); g.addColorStop(.45, '#bb975c'); g.addColorStop(1, '#7a5c2b'); x.fillStyle = g; x.fillRect(0, 0, 512, 112);
@@ -145,8 +181,11 @@ export class FuseBox {
   }
 
   tap(ray: T.Raycaster) {
-    const hits = ray.intersectObjects([...this.pickDoor, ...this.wireMeshes], false); if (!hits.length) return null; const o = hits[0].object;
-    if (this.pickDoor.includes(o)) { if (!this.snipping) this.toggleDoor(); return 'door'; }
+    const hits = ray.intersectObjects([...this.pickDoor, ...this.wireMeshes, ...this.button.pick, ...this.selector.pick, this.header], true); if (!hits.length) return null; const o = hits[0].object;
+    if (this.button.pick.includes(o)) { this.runTest(); return 'test'; }
+    if (this.selector.pick.includes(o)) { this.selector.tryTurn(); this.sounds?.door(false); return 'selector'; }
+    if (o.parent === this.header || this.header.children.includes(o) || this.meter.group.getObjectById(o.id)) return 'panel';
+    if (this.pickDoor.includes(o) || this.latch.getObjectById(o.id)) { if (!this.snipping) this.toggleDoor(); return 'door'; }
     if (o.userData.wire !== undefined && this.open && !this.locked && !this.snipping) { this.snip(o as T.Mesh, hits[0].point); return 'wire'; }
     return 'box';
   }
@@ -170,13 +209,15 @@ export class FuseBox {
     };
     const outTop = pts[k - 2].clone().sub(pts[k - 4]).normalize(), outBot = pts[k + 1].clone().sub(pts[k + 3]).normalize();
     const top = half(pts.slice(0, k - 1), pts[0], pts[k - 2], outTop), bot = half(pts.slice(k + 1), pts[80], pts[k + 1], outBot);
-    m.visible = false; this.halves.push({top, bot, t: 0, side: i < N / 2 ? -1 : 1});
+    m.visible = false; this.halves.push({top, bot, t: 0, side: i < this.wireMeshes.length / 2 ? -1 : 1});
     this.burst(pts[k]); this.sounds?.snip(); setTimeout(() => this.sounds?.spark(), 40); this.onCut(i);
   }
   private burst(p: T.Vector3) { const pos = this.sparks.geometry.attributes.position as T.BufferAttribute; for (let i = 0; i < pos.count; i++) { pos.setXYZ(i, p.x, p.y, p.z); this.sparkVel[i].set((Math.random() - .5) * 1.3, Math.random(), Math.random() * .9); } pos.needsUpdate = true; this.sparkLife = .7; this.sparks.visible = true; }
 
   update(dt: number) {
-    this.doorT += ((this.open ? 1 : 0) - this.doorT) * Math.min(1, dt * 5); this.door.rotation.y = -this.doorT * 1.95;
+    this.latchT += ((this.open ? 1 : 0) - this.latchT) * Math.min(1, dt * 9); this.latch.rotation.z = -this.latchT * Math.PI / 2;
+    const swing = this.open ? (this.latchT > .85 ? 1 : 0) : 0; this.doorT += (swing - this.doorT) * Math.min(1, dt * 5); this.door.rotation.y = -this.doorT * 1.95;
+    this.meter.update(dt); this.button.update(dt); this.selector.update(dt); this.diagnosticFx(dt);
     for (const h of this.halves) { h.t = Math.min(1, h.t + dt * 2.2); const e = 1 - (1 - h.t) ** 3, wob = Math.sin(h.t * 14) * (1 - h.t) * .15; h.top.rotation.x = (.16 + wob * .4) * e; h.top.rotation.z = (.3 + wob) * e * h.side; h.bot.rotation.x = -(.12 + wob * .4) * e; h.bot.rotation.z = (.3 + wob) * e * h.side; }
     if (this.sparkLife > 0) { this.sparkLife -= dt; const pos = this.sparks.geometry.attributes.position as T.BufferAttribute; for (let i = 0; i < pos.count; i++) { const v = this.sparkVel[i]; v.y -= 3 * dt; pos.setXYZ(i, pos.getX(i) + v.x * dt, pos.getY(i) + v.y * dt, pos.getZ(i) + v.z * dt); } pos.needsUpdate = true; (this.sparks.material as T.PointsMaterial).opacity = Math.max(0, this.sparkLife / .7); if (this.sparkLife <= 0) this.sparks.visible = false; }
     // freshly cut copper glows from the arc, then cools to bare metal
@@ -190,7 +231,23 @@ export class FuseBox {
     const back = .034 * 1.45 + (1 - this.reach) * .075; p.group.position.copy(this.aim).addScaledVector(X, -back);
     p.group.quaternion.setFromRotationMatrix(new T.Matrix4().makeBasis(X, Y, Z)); p.group.scale.setScalar(1.45); p.update(dt);
   }
-  center() { return this.group.localToWorld(new T.Vector3(0, 0, BD)); }
+  center() { return this.group.localToWorld(new T.Vector3(0, .07, BD)); }
+  /** effects bound to the configured fault, only while a test is running */
+  private diagnosticFx(dt: number) {
+    const m = this.lamp.material as T.MeshPhysicalMaterial;
+    if (this.fxT <= 0) { this.header.position.x = 0; return; }
+    this.fxT -= dt; const t = performance.now() / 1000, on = this.fxT > 0;
+    if (this.fault === 'overload') { // hard amber flicker, cabinet buzz-vibration
+      const f = Math.sin(t * 60) > 0 ? 1 : .25; m.emissive.set('#ffa21a'); m.emissiveIntensity = on ? 3.2 * f : 0; this.lampLight.color.set('#ffa21a'); this.lampLight.intensity = on ? 1.4 * f : 0;
+      this.header.position.x = on ? Math.sin(t * 190) * .0006 : 0;
+    } else if (this.fault === 'short') { // erratic red stutter and sparks jumping off a terminal
+      const f = Math.sin(t * 23) * Math.sin(t * 57) > .1 ? 1 : 0; m.emissive.set('#ff2a14'); m.emissiveIntensity = on ? 3 * f : 0; this.lampLight.color.set('#ff2a14'); this.lampLight.intensity = on ? f : 0;
+      if (on && Math.random() < dt * 5 && this.wireMeshes.length) { const w = this.wireMeshes[Math.floor(Math.random() * this.wireMeshes.length)], c = (w.userData.curve as T.CatmullRomCurve3).getPoint(Math.random() < .5 ? .03 : .97); this.burst(c); this.sounds?.spark(); }
+    } else { // power failure: a weak, dying glow
+      m.emissive.set('#ff4a1a'); m.emissiveIntensity = on ? .35 * (1 - (2 - this.fxT) / 2) + .05 : 0; this.lampLight.color.set('#ff4a1a'); this.lampLight.intensity = on ? .15 : 0;
+    }
+    if (!on) { m.emissiveIntensity = 0; this.lampLight.intensity = 0; this.header.position.x = 0; }
+  }
 }
 
 const COPPER = new T.MeshPhysicalMaterial({color: '#c9632a', metalness: .7, roughness: .3, envMapIntensity: 1.6, clearcoat: .5, clearcoatRoughness: .2});

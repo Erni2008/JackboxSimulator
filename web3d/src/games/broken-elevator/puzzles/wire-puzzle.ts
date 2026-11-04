@@ -22,10 +22,10 @@ export function solve(rules: WireRules, serial: string, wires: WireColor[]) {
   return i;
 }
 
-export function makeTask(rules: WireRules, seed: number): WireTask {
+export function makeTask(rules: WireRules, seed: number, count = 6): WireTask {
   const r = rng(seed * 7919 + 3), L = 'ABEFKRUXHU';
   const serial = `EV-${1 + Math.floor(r() * 9)}${L[Math.floor(r() * L.length)]}${Math.floor(r() * 10)}${Math.floor(r() * 10)}`;
-  const wires = shuffle(ALL, r); return {serial, wires, answer: solve(rules, serial, wires)};
+  const wires = shuffle(ALL, r).slice(0, Math.max(4, Math.min(6, count))); return {serial, wires, answer: Math.max(0, solve(rules, serial, wires))};
 }
 
 const cap = (c: string) => c[0].toUpperCase() + c.slice(1);

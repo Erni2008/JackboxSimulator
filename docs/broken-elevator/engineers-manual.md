@@ -17,3 +17,10 @@ Mode 5 has no elevator scene yet, so the manual is an isolated, reusable Three.j
 - Book sits on a wall shelf (iron plank, brass brackets). Whole-page taps turn pages (right = forward, left = back), swipes too; no navigation buttons.
 - Server rules: `?rules=<url>` loads ManualContent JSON (`loadManualContent`).
 - Check: `tools/checks/check_broken_elevator_manual.cjs` (desktop + phone, real clicks/taps).
+
+## Phase 1 — diagnostic panel
+- `web3d/src/games/broken-elevator/puzzles/diagnostics.ts`: `AnalogMeter` (`setState(fault)`, `test(seconds)`), `TestButton`, `ModeSelector` (`setMode`, read-only `tryTurn`), `labelPlate`.
+- `fusebox.ts`: instrument header (meter, TEST CIRCUIT, mode selector, caged warning lamp), quarter-turn latch, terminal tags A1–F6 at the upper terminals, 4–6 wires, `configure(fault, mode)`, `runTest()`, fault-bound effects (overload: amber flicker + vibration + mains buzz; short: sparks at terminals + crackle; power: dying glow + weak hum).
+- Dev-only config: `?fault=overload|short|power&mode=normal|emergency&wires=4..6`. No production generation, rules or validation yet (phases 2–5).
+- Tap the panel for the close-up; Back/Esc returns.
+- Check: `tools/checks/check_broken_elevator_panel.cjs`.
