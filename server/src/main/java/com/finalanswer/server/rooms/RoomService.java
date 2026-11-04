@@ -145,6 +145,7 @@ public final class RoomService {
             peer.send(Protocol.event("STATE",message.requestId(),snapshot(room,member,false))); return;
         }
         if(message.type().equals("LEAVE_ROOM")) { leave(room.code,member.token); return; }
+        if(message.type().equals("FORMULA_START")||message.type().equals("FORMULA_ACTION")){formulaCommand(room,member,peer,message);return;}
         if(message.type().equals("PRESSURE_START")||message.type().equals("PRESSURE_ACTION")){pressureCommand(room,member,peer,message);return;}
         if(message.type().equals("OPEN_WEB_GAME")){
             requireHost(member);String id=Protocol.string(data,"game");
@@ -560,6 +561,51 @@ public final class RoomService {
         var e=p.lastEffect();if(e!=null)v.put("effect",Map.of("seq",e.seq(),"action",e.action().name(),"delta",e.delta(),"jammed",e.jammed()));
         return v;
     }
+    /** THE BROKEN ELEVATOR — THE UNSTABLE FORMULA: one independent laboratory per player; the recipe never leaves the server. */
+    private void formulaCommand(Room room,Member member,Peer peer,Message message){
+        JsonObject data=message.payload();
+        if(member.host)throw new Failure(403,"NOT_A_PLAYER");
+        if(message.type().equals("FORMULA_START")){
+            if(!Set.of("roomCode").containsAll(data.keySet()))throw new Failure(400,"INVALID_FORMULA_ACTION");
+            var current=room.formula.get(member.id);
+            if(current==null||current.outcome()!=com.erni.finalanswer.gameplay.elevator.FormulaPuzzle.Outcome.RUNNING)
+                room.formula.put(member.id,new com.erni.finalanswer.gameplay.elevator.FormulaPuzzle(com.erni.finalanswer.gameplay.elevator.FormulaGenerator.generate(random.nextLong()),now()));
+            reply(peer,room,member,message);return;
+        }
+        var keys=new HashSet<>(data.keySet());keys.remove("roomCode");
+        if(!keys.equals(Set.of("action","seq"))&&!keys.equals(Set.of("action","seq","reagent")))throw new Failure(400,"INVALID_FORMULA_ACTION");
+        var puzzle=room.formula.get(member.id);if(puzzle==null)throw new Failure(409,"NO_FORMULA_PUZZLE");
+        com.erni.finalanswer.gameplay.elevator.FormulaPuzzle.Action action;com.erni.finalanswer.gameplay.elevator.Formula.Reagent reagent=null;long seq;
+        try{action=com.erni.finalanswer.gameplay.elevator.FormulaPuzzle.Action.valueOf(Protocol.string(data,"action"));seq=data.get("seq").getAsLong();
+            if(data.has("reagent"))reagent=com.erni.finalanswer.gameplay.elevator.Formula.Reagent.valueOf(Protocol.string(data,"reagent"));}
+        catch(RuntimeException e){throw new Failure(400,"INVALID_FORMULA_ACTION");}
+        if((action==com.erni.finalanswer.gameplay.elevator.FormulaPuzzle.Action.DISPENSE)!=(reagent!=null))throw new Failure(400,"INVALID_FORMULA_ACTION");
+        puzzle.apply(action,reagent,seq,now());formulaOutcome(member,puzzle);
+        reply(peer,room,member,message);
+    }
+    private void formulaOutcome(Member member,com.erni.finalanswer.gameplay.elevator.FormulaPuzzle p){
+        if(p.rewarded)return;
+        if(p.outcome()==com.erni.finalanswer.gameplay.elevator.FormulaPuzzle.Outcome.STABILIZED){p.rewarded=true;member.elevatorRepairs++;}
+        else if(p.outcome()==com.erni.finalanswer.gameplay.elevator.FormulaPuzzle.Outcome.FAILED){p.rewarded=true;member.elevatorPenalties++;}
+    }
+    private Map<String,Object> formulaView(com.erni.finalanswer.gameplay.elevator.FormulaPuzzle p){
+        var s=p.sample();Map<String,Object> v=new LinkedHashMap<>();
+        v.put("sampleId",s.id());v.put("family",s.family().name());v.put("symbol",s.family().symbol);v.put("cls",s.cls());v.put("reaction",s.reaction().name());
+        v.put("polarity",s.polarity().name());v.put("concentration",s.concentration().name());v.put("unstable",s.unstable()==null?"":s.unstable().name());
+        v.put("doses",p.doses().stream().map(Enum::name).toList());v.put("lock",p.lock());v.put("busyUntil",p.busyUntil());v.put("drainUntil",p.drainUntil());
+        v.put("rejections",p.rejections());v.put("startedAt",p.startedAt());v.put("deadline",p.deadline());v.put("outcome",p.outcome().name());v.put("failReason",p.failReason());
+        v.put("finishedAt",p.finishedAt());v.put("lastSeq",p.lastSeq());v.put("puzzleId",s.id()+"@"+p.startedAt());
+        var e=p.lastEvent();if(e!=null)v.put("event",Map.of("seq",e.seq(),"type",e.type(),"reagent",e.reagent()==null?"":e.reagent().name(),"reason",e.reason()));
+        return v; // the recipe is deliberately absent: it is derived from the sample with THE ALCHEMIST'S JOURNAL
+    }
+    private void tickFormula(Room room){
+        for(var e:room.formula.entrySet()){
+            var p=e.getValue();boolean wasDraining=p.draining();boolean changed=p.advance(now());
+            Member m=room.members.values().stream().filter(x->x.id.equals(e.getKey())).findFirst().orElse(null);if(m==null)continue;
+            formulaOutcome(m,p);
+            if((changed||wasDraining&&!p.draining()||p.outcome()==com.erni.finalanswer.gameplay.elevator.FormulaPuzzle.Outcome.RUNNING&&now()-p.sentAt>=1000)&&m.peer!=null){p.sentAt=now();m.peer.send(Protocol.event("FORMULA_UPDATED","",snapshot(room,m,false)));}
+        }
+    }
     private void tickPressure(Room room){
         for(var e:room.pressure.entrySet()){
             var puzzle=e.getValue();boolean changed=puzzle.advance(now());Member m=room.members.values().stream().filter(x->x.id.equals(e.getKey())).findFirst().orElse(null);if(m==null)continue;
@@ -573,7 +619,7 @@ public final class RoomService {
         }
     }
     private void tickRoom(Room room) {
-        tickPressure(room);
+        tickPressure(room); tickFormula(room);
         if(room.cursed!=null&&room.cursed.tick(now(),room.members.values().stream().filter(m->m.left).map(m->m.id).collect(java.util.stream.Collectors.toSet())))broadcast(room,"CURSED_BOXES_UPDATED");
         if(room.impostor!=null) {
             var mini=room.impostor;
@@ -645,7 +691,7 @@ public final class RoomService {
         value.put("impostorSettings",room.impostorSettings);value.put("impostorWordCategories",List.of("DEFAULT"));
         value.put("lobbyId",room.lobbyId);
         if(!room.webGameId.isEmpty()){value.put("webGame",room.webGame);value.put("webGameId",room.webGameId);}
-        if(self!=null&&!self.host){var pz=room.pressure.get(self.id);if(pz!=null)value.put("elevatorPressure",pressureView(pz));value.put("elevatorRepairs",self.elevatorRepairs);value.put("elevatorPenalties",self.elevatorPenalties);}
+        if(self!=null&&!self.host){var pz=room.pressure.get(self.id);if(pz!=null)value.put("elevatorPressure",pressureView(pz));var fz=room.formula.get(self.id);if(fz!=null)value.put("elevatorFormula",formulaView(fz));value.put("elevatorRepairs",self.elevatorRepairs);value.put("elevatorPenalties",self.elevatorPenalties);}
         if(room.impostor==null && !room.impostorRoster.isEmpty())value.put("impostorLobby",Map.of("sessionId",room.lobbyId,"participantIds",room.impostorRoster));
         List<Map<String,Object>> players=new ArrayList<>();
         for(Member member:room.members.values()) {
@@ -785,6 +831,7 @@ public final class RoomService {
         final int maxPlayers,questionCount; final byte[] salt,passwordHash;
         String webGame="",webGameId="";
         final Map<String,com.erni.finalanswer.gameplay.elevator.PressurePuzzle> pressure=new LinkedHashMap<>();
+        final Map<String,com.erni.finalanswer.gameplay.elevator.FormulaPuzzle> formula=new LinkedHashMap<>();
         String lobbyId=UUID.randomUUID().toString();List<String> impostorRoster=List.of();
         com.erni.finalanswer.gameplay.impostor.ImpostorSettings impostorSettings=com.erni.finalanswer.gameplay.impostor.ImpostorSettings.defaults();
         com.erni.finalanswer.gameplay.impostor.ImpostorMatchResult lastImpostorResult;

@@ -33,7 +33,7 @@ export interface ManualPage {
   caption?: string;
   notes?: Annotation[];
   /** title-page / contents layouts */
-  layout?: 'title' | 'contents' | 'standard' | 'endpaper' | 'rules' | 'guide' | 'pressure';
+  layout?: 'title' | 'contents' | 'standard' | 'endpaper' | 'rules' | 'guide' | 'pressure' | 'journal';
   /** rules layout: section index into RULES and which half (0 = rules 01–04, 1 = 05–08) */
   section?: number; half?: 0 | 1;
 }
@@ -164,4 +164,9 @@ export function diagnosticsManual(): ManualContent {
     {layout: 'rules', section: 2, half: 0}, {layout: 'rules', section: 2, half: 1},
     {layout: 'pressure', half: 0} as any, {layout: 'pressure', half: 1} as any,
   ]};
+}
+
+/** THE ALCHEMIST'S JOURNAL: exactly three instructional spreads (six pages) for THE UNSTABLE FORMULA. */
+export function alchemistJournal(): ManualContent {
+  return {edition: 'Journal', specimen: false, sections: [], layoutPages: [0, 1, 2, 3, 4, 5].map(page => ({layout: 'journal', page}) as any)};
 }

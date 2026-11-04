@@ -22,13 +22,15 @@ export class ManualInteraction {
   get portrait() { return this.camera.aspect < .9; }
   place(p: T.Vector3, q: T.Quaternion) { this.body.pos.copy(p); this.body.quat.copy(q); this.body.vel.set(0, 0, 0); this.body.ang.set(0, 0, 0); this.body.sleeping = true; this.apply(); }
   private apply() { this.book.root.position.copy(this.body.pos); this.book.root.quaternion.copy(this.body.quat); }
-  private set(s: HoldState) { this.state = s; if (s !== 'held' && s !== 'reading') this.lowered = false; this.onstate(s); }
+  private set(s: HoldState) { this.state = s; if ((s === 'rest' || s === 'falling') && ManualInteraction.holder === this) ManualInteraction.holder = null; if (s !== 'held' && s !== 'reading') this.lowered = false; this.onstate(s); }
   /** book held low in one hand (still open if it was): the view and the panel stay usable */
   lowered = false; private lowK = 0; onlower = (l: boolean) => {};
   setLowered(l: boolean) { if (!(this.state === 'held' || this.state === 'reading') || l === this.lowered) return; this.lowered = l; this.audio.play('pickup'); this.onlower(l); }
 
   // ------------------------------------------------------------- actions
-  pickUp() { if (!['rest', 'falling'].includes(this.state)) return; this.lift.t = 0; this.lift.fromP.copy(this.book.root.position); this.lift.fromQ.copy(this.book.root.quaternion); this.body.sleeping = true; this.set('lifting'); this.audio.play('pickup'); }
+  /** only one book in hand: the engineering manual and the alchemist's journal never leave the shelf together */
+  static holder: ManualInteraction | null = null; disabled = false;
+  pickUp() { if (!['rest', 'falling'].includes(this.state) || this.disabled || (ManualInteraction.holder && ManualInteraction.holder !== this)) return; ManualInteraction.holder = this; this.lift.t = 0; this.lift.fromP.copy(this.book.root.position); this.lift.fromQ.copy(this.book.root.quaternion); this.body.sleeping = true; this.set('lifting'); this.audio.play('pickup'); }
   open() { if (this.state !== 'held' || this.book.busy) return; this.book.open(); this.set('reading'); this.focusSide = this.portrait ? 1 : 0; this.zoomTarget = 1; this.pan.set(0, 0); }
   close() { if (this.state !== 'reading') return; this.book.close(); this.zoomTarget = 1; this.focusSide = 0; this.set('held'); }
   drop() {

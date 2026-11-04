@@ -66,7 +66,7 @@ async function mechanics(b, touch, seat, tag) {
   await s.p.screenshot({path: `${out}/valves-${tag}-ok.png`});
   assert.equal(await s.p.evaluate(() => window.__manual.cage.height), h0); ok(`${tag}: the car does not move after the repair (never rises, no drop)`);
   if (online) { await s.p.waitForTimeout(300); assert.equal(await s.p.evaluate(() => window.__manual.link.repairs), 1); ok(`${tag}: server granted the repair reward once`); }
-  await s.p.waitForTimeout(3300); assert.equal(await s.p.evaluate(() => window.__manual.kind), 'wire'); ok(`${tag}: next task is WIRE CUTTING`);
+  await s.p.waitForTimeout(3300); assert.equal(await s.p.evaluate(() => window.__manual.kind), 'formula'); ok(`${tag}: next task is THE UNSTABLE FORMULA`);
   assert.deepEqual(s.errors, []); ok(`${tag}: no page errors`); await s.p.close();
 }
 

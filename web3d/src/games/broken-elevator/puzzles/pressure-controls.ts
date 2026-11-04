@@ -72,10 +72,10 @@ export class Lever extends Control {
 /** spring-return push button with a brass collar */
 export class PushButton extends Control {
   cap: T.Mesh; private depth = 0;
-  constructor(id: string, mats: Mats, private onPress: () => void) {
-    super(id); const collar = new T.Mesh(new T.CylinderGeometry(.03, .034, .016, 28), mats.brassDark); collar.rotation.x = QUARTER; collar.position.z = .008; this.root.add(collar);
-    this.cap = new T.Mesh(new T.SphereGeometry(.024, 28, 14, 0, Math.PI * 2, 0, Math.PI / 2), new T.MeshStandardMaterial({color: '#7a1a10', metalness: .3, roughness: .35, emissive: '#ff3a1a', emissiveIntensity: .12})); this.cap.rotation.x = QUARTER; this.cap.position.z = .016; this.root.add(this.cap);
-    this.hit = hitDisc(.045, .06); this.hit.position.z = .02; this.root.add(this.hit);
+  constructor(id: string, mats: Mats, private onPress: () => void, color = '#7a1a10', scale = 1) {
+    super(id); const collar = new T.Mesh(new T.CylinderGeometry(.03 * scale, .034 * scale, .016, 28), mats.brassDark); collar.rotation.x = QUARTER; collar.position.z = .008; this.root.add(collar);
+    this.cap = new T.Mesh(new T.SphereGeometry(.024 * scale, 28, 14, 0, Math.PI * 2, 0, Math.PI / 2), new T.MeshStandardMaterial({color, metalness: .3, roughness: .35, emissive: color, emissiveIntensity: .25})); this.cap.rotation.x = QUARTER; this.cap.position.z = .016; this.root.add(this.cap);
+    this.hit = hitDisc(.045 * Math.max(1, scale * .9), .06); this.hit.position.z = .02; this.root.add(this.hit);
   }
   down() {} move() {}
   up(tap: boolean) { if (!tap || !this.enabled) return; this.depth = 1; this.fx?.press(); this.onPress(); }

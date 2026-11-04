@@ -4,6 +4,7 @@
 //   pressure, timer, verification, surge and outcome; the fault stays hidden until a TEST completes, so the client does
 //   not predict valve effects — it only extrapolates the published leak drift between updates.
 // local mode: no room on this device -> a practice machine simulated in the page with the same rules.
+import {RoomSocket} from './room-socket';
 import {ValveSim, generate, MAX_PSI, LIMIT_MS, type Action, type Outcome} from './pressure-sim';
 
 export interface Effect { seq: number; action: Action; delta: number; jammed: boolean }
@@ -15,28 +16,18 @@ export interface ValveView {
 export class PressureLink {
   mode: 'room' | 'local'; repairs = 0; penalties = 0;
   onOutcome: (o: Outcome, reason: string) => void = () => {}; onStatus: (text: string) => void = () => {}; onRejected: (code: string) => void = () => {};
-  private creds: {code: string; token: string} | null = null; private ws: WebSocket | null = null; private retry = 0; private ping: any = 0; private authed = false;
-  private offset = 0; private seq = Date.now(); private wantStart = false; private reported = '';
+  private sock = RoomSocket.shared(); private seq = Date.now(); private wantStart = false; private reported = '';
   private auth: any = null; private local: ValveSim | null = null;
 
   constructor() {
-    try { const c = JSON.parse(sessionStorage.getItem('finalanswer-session') || 'null'); if (c?.code && c?.token) this.creds = {code: c.code, token: c.token}; } catch {}
-    this.mode = this.creds ? 'room' : 'local'; if (this.creds) this.connect();
+    this.mode = this.sock ? 'room' : 'local';
+    if (this.sock) { this.sock.listen(ev => this.handle(ev)); this.sock.onAuth(() => { if (this.wantStart) this.send('PRESSURE_START', {}); }); this.sock.onStatus = t => this.onStatus(t); }
   }
-  serverNow() { return Date.now() + this.offset; }
-
-  private connect() {
-    const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`); this.ws = ws; this.authed = false;
-    ws.onopen = () => { this.send('AUTH', {roomCode: this.creds!.code, token: this.creds!.token}); clearInterval(this.ping); this.ping = setInterval(() => this.send('PING', {}), 5000); };
-    ws.onmessage = e => { try { this.handle(JSON.parse(e.data)); } catch {} };
-    ws.onclose = e => { clearInterval(this.ping); if (this.ws !== ws) return; if (e.code === 4001 || e.code === 4002) { this.onStatus('Сеанс комнаты завершён'); return; }
-      this.onStatus('Связь с сервером… восстанавливаем'); setTimeout(() => this.connect(), Math.min(5000, 400 * 2 ** this.retry++)); };
-  }
-  private send(type: string, payload: any) { if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify({type, requestId: Math.random().toString(36).slice(2), payload})); }
+  serverNow() { return this.sock ? this.sock.serverNow() : Date.now(); }
+  private send(type: string, payload: any) { this.sock?.send(type, payload); }
   private handle(ev: any) {
-    const p = ev.payload || {}; if (typeof p.serverTime === 'number') this.offset = p.serverTime - Date.now();
-    if (!this.authed && (ev.type === 'AUTHENTICATED' || ev.type === 'STATE' || p.roomCode)) { this.authed = true; this.retry = 0; this.onStatus(''); if (this.wantStart) this.send('PRESSURE_START', {}); }
-    if (ev.type === 'ERROR') { if (p.code === 'NO_PRESSURE_PUZZLE' && this.wantStart) this.send('PRESSURE_START', {}); else { this.onRejected(p.code); this.send('SYNC', {}); } }
+    const p = ev.payload || {};
+    if (ev.type === 'ERROR' && this.wantStart !== undefined && (p.code === 'NO_PRESSURE_PUZZLE' || p.code === 'EMERGENCY_USED' || String(p.code).startsWith('INVALID_PRESSURE'))) { if (p.code === 'NO_PRESSURE_PUZZLE' && this.wantStart) this.send('PRESSURE_START', {}); else { this.onRejected(p.code); this.send('SYNC', {}); } }
     if (typeof p.elevatorRepairs === 'number') this.repairs = p.elevatorRepairs; if (typeof p.elevatorPenalties === 'number') this.penalties = p.elevatorPenalties;
     const v = p.elevatorPressure; if (!v) return; this.auth = v;
     if (v.outcome !== 'RUNNING' && this.reported !== v.puzzleId + v.outcome) { this.reported = v.puzzleId + v.outcome; this.wantStart = false; this.onOutcome(v.outcome, v.failReason); }
@@ -45,7 +36,7 @@ export class PressureLink {
   /** begin (or, after a reconnect, resume) this player's machine */
   start() {
     if (this.mode === 'local') { const c = generate((Math.random() * 2 ** 31) | 0); const q = new URLSearchParams(location.search).get('surgeAt'); if (q) c.surgeAt = +q; /* practice-only QA hook */ this.local = new ValveSim(c, Date.now()); this.reported = ''; return; }
-    this.auth = null; this.wantStart = true; this.reported = ''; if (this.authed) this.send('PRESSURE_START', {});
+    this.auth = null; this.wantStart = true; this.reported = ''; if (this.sock?.authed) this.send('PRESSURE_START', {});
   }
   stop() { this.local = null; this.auth = null; this.wantStart = false; }
   act(action: Action) {
@@ -57,7 +48,7 @@ export class PressureLink {
   view(): ValveView | null {
     const nowP = performance.now();
     if (this.mode === 'local') {
-      const s = this.local; if (!s) return null; if (s.advance(Date.now()) && s.outcome !== 'RUNNING') this.onOutcome(s.outcome, s.failReason);
+      const s = this.local; if (!s) return null; s.advance(Date.now()); if (s.outcome !== 'RUNNING' && this.reported !== 'L' + s.startedAt) { this.reported = 'L' + s.startedAt; this.onOutcome(s.outcome, s.failReason); } // outcomes from actions (critical) and from time
       return {pressure: s.pressure, safeLow: s.config.safeLow, safeHigh: s.safeHigh, fine: s.fine, bypass: s.bypass, emergencyUsed: s.emergencyUsed, diagnosing: s.diagnosing, code: s.code,
         surgeWarning: s.surgeWarning(), surged: s.surged, clamped: s.clamped, noiseAt: s.lastNoiseAt < 0 ? -1 : s.startedAt + s.lastNoiseAt, noise: s.lastNoise, verifyMs: s.verifyMs, safeState: s.safeState(), deadline: s.startedAt + LIMIT_MS - Date.now() + nowP, outcome: s.outcome, failReason: s.failReason, effect: s.effect, online: false};
     }

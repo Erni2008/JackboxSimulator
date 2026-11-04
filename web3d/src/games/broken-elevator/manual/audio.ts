@@ -4,7 +4,7 @@
 // filtered noise and modal resonators — no placeholder files are shipped.
 // Drop real recordings into SAMPLE_URLS to override any synthesised voice.
 export const SAMPLE_URLS: Partial<Record<Voice, string>> = {pageTurn: 'audio/page_turn.wav'};
-export type Voice = 'coverOpen' | 'coverClose' | 'pageTurn' | 'pickup' | 'drop' | 'impactMetal' | 'creak' | 'snip' | 'spark' | 'good' | 'bad' | 'doorOpen' | 'doorClose' | 'button' | 'locked' | 'screech' | 'slam' | 'valveClick' | 'valveTurn' | 'alarm' | 'holdTick' | 'pipeKnock' | 'grind' | 'relay' | 'lever' | 'whistle' | 'surge' | 'vent' | 'burst' | 'explosion';
+export type Voice = 'coverOpen' | 'coverClose' | 'pageTurn' | 'pickup' | 'drop' | 'impactMetal' | 'creak' | 'snip' | 'spark' | 'good' | 'bad' | 'doorOpen' | 'doorClose' | 'button' | 'locked' | 'screech' | 'slam' | 'valveClick' | 'valveTurn' | 'alarm' | 'holdTick' | 'pipeKnock' | 'grind' | 'relay' | 'lever' | 'whistle' | 'surge' | 'vent' | 'burst' | 'explosion' | 'pour' | 'splash' | 'stir' | 'pump' | 'boil' | 'gurgle' | 'labOk';
 
 export class BookAudio {
   ctx: AudioContext | null = null; out!: GainNode; private buffers = new Map<Voice, AudioBuffer>(); private noise!: AudioBuffer; enabled = true;
@@ -76,6 +76,14 @@ export class BookAudio {
       case 'explosion': { const k = 1.6; this.rustle(t, 1.2, 70, .7, 2.2 * k, .002); this.rustle(t, .6, 260, .8, 1.2 * k, .002); this.rustle(t, .25, 3200, .5, 1.1, .001); this.mode(t, 48, .9, .5); this.mode(t, 110, .5, .3); // boom
         for (let i = 0; i < 14; i++) this.rustle(t + .05 + Math.random() * .7, .05, 2500 + Math.random() * 4000, 2, .4 * Math.random() + .15, .001); // glass and shrapnel
         this.rustle(t + .1, 2.6, 2000, .45, .7, .05); break; } // steam roar
+      // THE UNSTABLE FORMULA (synthesised)
+      case 'pour': { const f = this.rustle(t, .5, 900, 3, .22, .02); f.frequency.linearRampToValueAtTime(1500, t + .45); for (let i = 0; i < 4; i++) this.mode(t + .05 + i * .1, 420 + Math.random() * 260, .07, .05); break; } // valve open + liquid in the tube
+      case 'splash': for (let i = 0; i < 5; i++) { this.mode(t + i * .05 + Math.random() * .03, 600 + Math.random() * 900, .06, .07); } this.rustle(t, .25, 2200, 1, .18, .005); break; // drops into the chamber
+      case 'stir': { const o = this.ctx!.createOscillator(), g = this.ctx!.createGain(); o.type = 'sawtooth'; o.frequency.setValueAtTime(70, t); o.frequency.linearRampToValueAtTime(95, t + .4); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.035, t + .2); g.gain.setValueAtTime(.035, t + 2.2); g.gain.linearRampToValueAtTime(0, t + 2.8); const lp = this.ctx!.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 600; o.connect(lp).connect(g).connect(this.out); o.start(t); o.stop(t + 2.9); this.rustle(t, 2.6, 300, 2, .05, .2); break; } // stirrer motor
+      case 'pump': for (let i = 0; i < 6; i++) { this.rustle(t + i * .3, .12, 180, 1.4, .6, .003); this.mode(t + i * .3, 110, .15, .14); this.rustle(t + i * .3 + .14, .18, 1800, .8, .15, .01); } break; // piston strokes
+      case 'boil': for (let i = 0; i < 26; i++) this.mode(t + Math.random() * 1.2, 180 + Math.random() * 500, .05 + Math.random() * .06, .09); this.rustle(t, 1.3, 400, .8, .3, .05); break; // violent bubbling
+      case 'gurgle': for (let i = 0; i < 12; i++) { const f = this.rustle(t + i * .1 + Math.random() * .04, .12, 300 + Math.random() * 200, 6, .25, .01); f.frequency.linearRampToValueAtTime(140, t + i * .1 + .12); } break; // drain
+      case 'labOk': for (const [f, d] of [[523, 1.4], [784, 1.2], [1046, 1]]) this.mode(t + .03, f, d, .07); this.rustle(t, .8, 2800, .5, .25, .05); break; // cooling restored
       case 'burst': this.rustle(t, 1.6, 2200, .5, .9, .01); this.rustle(t, 1.2, 600, .7, .6, .01); this.mode(t, 90, .4, .2); break; // emergency release / failure
       case 'pipeKnock': this.rustle(t, .12, 160, 1.5, .5 * Math.min(1, intensity), .002); this.mode(t, 95, .18, .12 * Math.min(1, intensity)); break; // pipe hammer under critical pressure
     }

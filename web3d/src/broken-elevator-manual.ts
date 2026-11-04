@@ -4,7 +4,10 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {EngineersManual, TH} from './games/broken-elevator/manual/book';
 import {ManualInteraction, type HoldState} from './games/broken-elevator/manual/interaction';
 import {BookAudio} from './games/broken-elevator/manual/audio';
-import {SAMPLE_MANUAL, loadManualContent, diagnosticsManual} from './games/broken-elevator/manual/content';
+import {SAMPLE_MANUAL, loadManualContent, diagnosticsManual, alchemistJournal} from './games/broken-elevator/manual/content';
+import {Laboratory} from './games/broken-elevator/puzzles/laboratory';
+import {FormulaLink} from './games/broken-elevator/puzzles/formula-link';
+import {LIMIT_MS as FORMULA_LIMIT_MS} from './games/broken-elevator/puzzles/formula-sim';
 import {buildCage, contactShadow} from './games/broken-elevator/manual/test-scene';
 import {FuseBox} from './games/broken-elevator/puzzles/fusebox';
 import {makeRules, makeTask, manualRows} from './games/broken-elevator/puzzles/wire-puzzle';
@@ -47,18 +50,22 @@ async function boot() {
   // cage and book load in parallel (network + GPU upload overlap)
   performance.mark('cage0'); performance.mark('book0');
   const cageP: Promise<any> = procedural ? buildCage(renderer, scene, quality === 'high') : buildGlbCage(renderer, scene, quality === 'high');
-  const [cage, book] = await Promise.all([cageP.then(c => { performance.measure('cage', 'cage0'); return c; }), EngineersManual.create(renderer, content, quality).then(b => { performance.measure('book', 'book0'); return b; })]);
+  const [cage, book, journal] = await Promise.all([cageP.then(c => { performance.measure('cage', 'cage0'); return c; }), EngineersManual.create(renderer, content, quality).then(b => { performance.measure('book', 'book0'); return b; }),
+    EngineersManual.create(renderer, alchemistJournal(), quality, 'journal')]);
   const floorY: number = cage.floorY ?? 0, eye: T.Vector3 = cage.eye ?? new T.Vector3(0, 1.56, .5);
   camera.position.copy(eye); let yaw = 0, pitch = -.5, yawT = 0, pitchT = -.5; const hoverRay = new T.Raycaster();
-  book.sounds = {coverOpen: () => audio.play('coverOpen'), coverClose: () => audio.play('coverClose'), pageTurn: s => audio.play('pageTurn', s), creak: a => audio.play('creak', a)};
-  scene.add(book.root);
+  book.sounds = journal.sounds = {coverOpen: () => audio.play('coverOpen'), coverClose: () => audio.play('coverClose'), pageTurn: s => audio.play('pageTurn', s), creak: a => audio.play('creak', a)};
+  scene.add(book.root, journal.root);
   const shadow = contactShadow(); scene.add(shadow);
   const ui = new ManualInteraction(book, camera, renderer.domElement, audio, cage.planes);
+  // THE ALCHEMIST'S JOURNAL: a second, independent book (only one of the two can be in hand at a time)
+  const jui = new ManualInteraction(journal, camera, renderer.domElement, audio, cage.planes);
+  const cur = () => ManualInteraction.holder ?? ui;
   if (cage.shelf) { ui.place(cage.shelf.top.clone().add(new T.Vector3(0, TH / 2, 0)), new T.Quaternion().setFromEuler(new T.Euler(0, .04, 0))); const d = cage.shelf.top.clone().sub(eye); yaw = yawT = Math.atan2(-d.x, -d.z); pitch = pitchT = Math.atan2(d.y, Math.hypot(d.x, d.z)); }
   else ui.place(new T.Vector3(.06, TH / 2, -.22), new T.Quaternion().setFromEuler(new T.Euler(0, .5, 0)));
-  const hints: Record<HoldState, string> = {rest: mobile ? 'Ведите пальцем, чтобы осмотреться · нажмите на книгу, щиток или вентили' : 'Тяните мышью, чтобы осмотреться · кликните по книге, щитку или вентилям', lifting: '', held: mobile ? 'Нажмите на обложку, чтобы открыть' : 'Кликните по обложке, чтобы открыть', reading: mobile ? 'Правая страница — вперёд, левая — назад · свайп · щипок для зума' : 'Правая страница — вперёд, левая — назад · колесо для зума', releasing: '', falling: ''};
-  const sync = (s: HoldState) => { $('hint').textContent = ui.lowered ? (mobile ? 'Книга опущена · нажмите на неё, чтобы поднять' : 'Книга опущена · кликните по ней, чтобы поднять') : hints[s]; $('btn-lower').hidden = !['held', 'reading'].includes(s); $('btn-lower').textContent = ui.lowered ? 'Поднять' : 'Опустить'; $('btn-open').hidden = s !== 'held'; $('btn-close').hidden = s !== 'reading'; $('btn-drop').hidden = !['held', 'reading'].includes(s); document.body.dataset.state = s; };
-  ui.onstate = sync; sync('rest'); ui.onlower = () => sync(ui.state); $('btn-lower').onclick = () => ui.setLowered(!ui.lowered);
+  const hints: Record<HoldState, string> = {rest: mobile ? 'Ведите пальцем, чтобы осмотреться · нажмите на книгу, щиток, вентили или лабораторию' : 'Тяните мышью, чтобы осмотреться · кликните по книгам, щитку, вентилям или лаборатории', lifting: '', held: mobile ? 'Нажмите на обложку, чтобы открыть' : 'Кликните по обложке, чтобы открыть', reading: mobile ? 'Правая страница — вперёд, левая — назад · свайп · щипок для зума' : 'Правая страница — вперёд, левая — назад · колесо для зума', releasing: '', falling: ''};
+  const sync = (s: HoldState) => { if (ManualInteraction.holder && cur().state !== s) s = cur().state; $('hint').textContent = cur().lowered ? (mobile ? 'Книга опущена · нажмите на неё, чтобы поднять' : 'Книга опущена · кликните по ней, чтобы поднять') : hints[s]; $('btn-lower').hidden = !['held', 'reading'].includes(s); $('btn-lower').textContent = cur().lowered ? 'Поднять' : 'Опустить'; $('btn-open').hidden = s !== 'held'; $('btn-close').hidden = s !== 'reading'; $('btn-drop').hidden = !['held', 'reading'].includes(s); document.body.dataset.state = s; };
+  ui.onstate = jui.onstate = sync; sync('rest'); ui.onlower = jui.onlower = () => sync(cur().state); $('btn-lower').onclick = () => cur().setLowered(!cur().lowered);
   // junction box on the back wall, left of the shelf
   const box = new FuseBox(quality === 'high'); const ci = cage.inner as T.Box3 | undefined;
   if (ci) box.group.position.set(ci.min.x * .45, floorY + 1.3, ci.min.z + .008); else box.group.position.set(-.45, 1.3, -.79);
@@ -73,22 +80,39 @@ async function boot() {
   const link = new PressureLink(); press.onAction = a => link.act(a);
   link.onRejected = code => { if (code === 'EMERGENCY_USED') { $('hint').textContent = 'Аварийный сброс уже использован'; $('hint').style.opacity = '1'; } };
   link.onStatus = t => { if (t) $('hint').textContent = t; };
+  // THE UNSTABLE FORMULA: laboratory on the left-hand wall; the journal rests on its ledge
+  const lab = new Laboratory(quality === 'high');
+  if (ci) lab.group.position.set(ci.min.x + .006, floorY + 1.3, .36); else lab.group.position.set(-.96, 1.3, .36);
+  lab.group.rotation.y = Math.PI / 2; scene.add(lab.group); lab.group.updateMatrixWorld(true);
+  jui.place(lab.ledgeTop.clone().add(new T.Vector3(0, TH / 2, 0)).applyMatrix4(lab.group.matrixWorld), new T.Quaternion().setFromEuler(new T.Euler(0, Math.PI / 2 + .06, 0)));
+  lab.sounds = {click: () => audio.play('valveClick'), turn: () => audio.play('valveTurn'), grind: () => audio.play('grind'), lever: () => audio.play('lever'), press: () => audio.play('button'), pull: () => audio.play('lever'),
+    pour: () => audio.play('pour'), splash: () => audio.play('splash'), stir: on => { if (on) audio.play('stir'); }, inject: () => { audio.play('button'); audio.play('relay'); }, pump: () => audio.play('pump'), accepted: () => audio.play('labOk'), unstable: () => audio.play('boil'), steam: () => audio.play('vent', .8), drain: () => audio.play('gurgle'), bubble: () => audio.play('splash')};
+  const flink = new FormulaLink(); lab.onAction = (a, r) => flink.act(a, r);
+  lab.onEvent = e => { if (e.type === 'REJECTED') verdict(false, e.reason === 'UNSTABLE_UNPROTECTED' ? 'UNSTABLE · ЗАМОК ОХЛАЖДЕНИЯ НЕ ВКЛЮЧЁН' : 'FORMULA REJECTED · СЛИВ, ПОПРОБУЙТЕ СНОВА', e.reason === 'UNSTABLE_UNPROTECTED' ? 'Нестабильная реакция' : 'Формула отвергнута'); };
   let valvePointer: number | null = null;
-  let focusTo: [number, number] | null = null, inspecting = false, inspectK = 0, inspectTarget: 'box' | 'pressure' = 'box';
+  let focusTo: [number, number] | null = null, inspecting = false, inspectK = 0, inspectTarget: 'box' | 'pressure' | 'lab' = 'box';
   const TOTAL = 12, LIMIT = 60; let taskNo = 1, deadline = 0, taskSeed = seed, pending: any = 0;
-  // task kinds alternate: odd = wire cutting, even = pressure control (?task=pressure starts with pressure)
-  const firstPressure = params.get('task') === 'pressure'; const kindOf = (n: number) => ((n % 2 === 0) !== firstPressure) ? 'pressure' : 'wire';
-  let kind: 'wire' | 'pressure' = kindOf(1);
-  const hud = () => { $('task').textContent = `ЗАДАНИЕ ${taskNo} / ${TOTAL} · ${kind === 'pressure' ? 'КЛАПАНЫ' : 'ПРОВОДА'}`; };
+  // task kinds cycle: wire cutting -> broken valves -> unstable formula (?task=pressure|formula picks the first)
+  type Kind = 'wire' | 'pressure' | 'formula'; const ORDER: Kind[] = ['wire', 'pressure', 'formula']; const start0 = Math.max(0, ORDER.indexOf((params.get('task') || 'wire') as Kind));
+  const kindOf = (n: number): Kind => ORDER[(start0 + n - 1) % 3];
+  let kind: Kind = kindOf(1);
+  const hud = () => { $('task').textContent = `ЗАДАНИЕ ${taskNo} / ${TOTAL} · ${kind === 'pressure' ? 'КЛАПАНЫ' : kind === 'formula' ? 'ФОРМУЛА' : 'ПРОВОДА'}`; };
   // result card: low on screen (≈85 % of the viewport), fades in, a small mechanical jolt, holds, fades out (~2 s)
   let verdictTimer: any = 0;
   const verdict = (ok: boolean, sub: string, title?: string) => { const v = $('verdict'); v.querySelector('b')!.textContent = title ?? (ok ? 'Цепь стабилизирована' : 'Критическая ошибка'); v.querySelector('span')!.textContent = sub; v.dataset.tone = ok ? 'good' : 'bad';
     v.classList.remove('show'); void v.offsetWidth; v.classList.add('show'); clearTimeout(verdictTimer); verdictTimer = setTimeout(() => v.classList.remove('show'), 2300); if (!ok) { document.body.classList.remove('jolt'); void document.body.offsetWidth; document.body.classList.add('jolt'); } };
   const newTask = (advance: boolean) => { if (advance) taskNo = Math.min(TOTAL, taskNo + 1); taskSeed++; kind = kindOf(taskNo);
     const t = makeTask(wireRules, taskSeed, wireCount || 4 + Math.floor(Math.random() * 3), fixed); box.setTask(t); box.configure(t.fault, t.mode); deadline = 0;
-    if (kind === 'pressure') { box.locked = true; press.enabled = true; press.reset(); link.start(); pressureDone = false; if (ui.state === 'rest' || ui.state === 'falling') { const d = press.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } }
+    if (kind === 'pressure') { box.locked = true; press.enabled = true; press.reset(); link.start(); pressureDone = false; if (cur().state === 'rest' || cur().state === 'falling') { const d = press.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } }
     else { press.enabled = false; link.stop(); }
+    if (kind === 'formula') { box.locked = true; lab.enabled = true; lab.reset(); flink.start(); formulaDone = false; if (cur().state === 'rest' || cur().state === 'falling') { const d = lab.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } }
+    else { lab.enabled = false; flink.stop(); }
     hud(); };
+  let formulaDone = false;
+  flink.onOutcome = (o, reason) => { if (kind !== 'formula' || formulaDone) return; formulaDone = true; lab.enabled = false; const ok = o === 'STABILIZED'; void reason;
+    if (!ok) audio.play('bad');
+    verdict(ok, ok ? 'COOLING SYSTEM RESTORED · СПУСК ОСТАНОВЛЕН' : 'COOLING SYSTEM FAILED · ВРЕМЯ ВЫШЛО', ok ? 'Система охлаждения восстановлена' : 'Отказ системы охлаждения'); if (!ok) setTimeout(() => cage.drop?.(.8), 350);
+    clearTimeout(pending); pending = setTimeout(() => { if (inspecting && inspectTarget === 'lab') setInspect(false); setTimeout(() => newTask(ok), 400); }, ok ? 3300 : 2600); };
   // PRESSURE CONTROL outcome: decided by the server in a room (locally in practice); the client only reacts
   let pressureDone = false;
   // one penalty / reward per machine: pressureDone guards against repeated server pushes
@@ -119,15 +143,19 @@ async function boot() {
   renderer.domElement.addEventListener('pointerup', e => { const s = tapStart.get(e.pointerId); tapStart.delete(e.pointerId); if (!s || Math.hypot(e.clientX - s.x, e.clientY - s.y) > 12 || performance.now() - s.t > 450) return;
     ray.setFromCamera(new T.Vector2(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1), camera);
     if (valvePointer === e.pointerId) return;
+    const jb = ray.intersectObject(journal.root, true)[0], lh = lab.hits(ray); if (jb && (!lh || jb.distance <= lh.distance + .05)) return; // the journal handles its own taps
+    if (lh && !inspecting && (cur().state === 'rest' || cur().state === 'falling' || cur().lowered)) { const bh0 = ray.intersectObject(book.root, true)[0]; if (!bh0 || lh.distance < bh0.distance) { setInspect(true, 'lab'); return; } }
     const b = ray.intersectObject(book.root, true)[0], hit = ray.intersectObject(box.group, true)[0], ph = press.hits(ray); if (b && (!hit || b.distance < hit.distance) && (!ph || b.distance < ph.distance)) return;
-    if (ph && (!hit || ph.distance < hit.distance)) { if (!inspecting && (ui.state === 'rest' || ui.state === 'falling' || ui.lowered)) setInspect(true, 'pressure'); return; }
-    if ((ui.state === 'reading' || ui.state === 'held') && !ui.lowered) { if (!hit) return; }
-    const r = box.tap(ray); (window as any).__lastTap = r; if (r && (r !== 'door' || box.open) && !inspecting && (ui.state === 'rest' || ui.state === 'falling' || ui.lowered)) { setInspect(true); if (r !== 'test') return; } if (r === 'door' && box.open) { if (!deadline && !box.locked) deadline = performance.now() + LIMIT * 1000; if (ui.state === 'rest' || ui.state === 'falling') { const d = box.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } } });
-  const setInspect = (on: boolean, target: 'box' | 'pressure' = 'box') => { if (on) inspectTarget = target; inspecting = on; $('btn-back').hidden = !on; $('hint').style.opacity = on ? '0' : ''; $('task').style.opacity = on && innerWidth > 700 ? '0' : ''; if (on) { focusTo = null; if (target === 'box' && !box.open) box.toggleDoor(); } };
+    if (ph && (!hit || ph.distance < hit.distance)) { if (!inspecting && (cur().state === 'rest' || cur().state === 'falling' || cur().lowered)) setInspect(true, 'pressure'); return; }
+    if ((cur().state === 'reading' || cur().state === 'held') && !cur().lowered) { if (!hit) return; }
+    const r = box.tap(ray); (window as any).__lastTap = r; if (r && (r !== 'door' || box.open) && !inspecting && (cur().state === 'rest' || cur().state === 'falling' || cur().lowered)) { setInspect(true); if (r !== 'test') return; } if (r === 'door' && box.open) { if (!deadline && !box.locked) deadline = performance.now() + LIMIT * 1000; if (cur().state === 'rest' || cur().state === 'falling') { const d = box.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } } });
+  const setInspect = (on: boolean, target: 'box' | 'pressure' | 'lab' = 'box') => { if (on) inspectTarget = target; inspecting = on; $('btn-back').hidden = !on; $('hint').style.opacity = on ? '0' : ''; $('task').style.opacity = on && innerWidth > 700 ? '0' : ''; if (on) { focusTo = null; if (target === 'box' && !box.open) box.toggleDoor(); } };
   $('btn-back').onclick = () => setInspect(false); addEventListener('keydown', e => { if (e.key === 'Escape' && inspecting) setInspect(false); });
-  $('btn-open').onclick = () => ui.open(); $('btn-close').onclick = () => ui.close(); $('btn-drop').onclick = () => ui.drop();
+  $('btn-open').onclick = () => cur().open(); $('btn-close').onclick = () => cur().close(); $('btn-drop').onclick = () => cur().drop();
   $('btn-sound').onclick = () => { audio.unlock(); audio.enabled = !audio.enabled; $('btn-sound').textContent = audio.enabled ? 'Звук: вкл.' : 'Звук: выкл.'; };
   book.onspread = s => { $('page-label').textContent = `${2 * s + 1}–${2 * s + 2} / ${book.pages.length}`; }; book.onspread(0);
+  journal.onspread = s => { $('page-label').textContent = `${2 * s + 1}–${2 * s + 2} / ${journal.pages.length}`; };
+  jui.onstate = s => { sync(s); if (s === 'reading') journal.onspread(journal.spread); else if (s === 'rest') book.onspread(book.spread); };
   // free camera (?freecam=1 or key C): orbit / zoom / pan anywhere, including below the floor to the lava
   const orbit = new OrbitControls(camera, renderer.domElement); orbit.enableDamping = true; orbit.maxDistance = 14; orbit.minDistance = .1; orbit.screenSpacePanning = true; orbit.target.set(0, .4, 0); orbit.enabled = false;
   let free = false; const setFree = (on: boolean) => { free = on; orbit.enabled = on; $('btn-cam').textContent = on ? 'Камера: свободная' : 'Камера: игрок'; if (!on) { camera.position.copy(eye); } else { camera.position.set(eye.x + .3, eye.y + .3, eye.z + 1.6); orbit.target.set(0, floorY + 1, 0); orbit.update(); } };
@@ -150,17 +178,20 @@ async function boot() {
     if (req && !standalone && params.get('capture') === null) addEventListener('pointerup', function go() { removeEventListener('pointerup', go); try { const r = req.call(el, {navigationUI: 'hide'}); r?.catch?.(() => {}); } catch {} });
     if (mobile && !req && !standalone && /iPhone|iPod/.test(navigator.userAgent)) { const h = document.createElement('div'); h.id = 'fs-tip'; h.textContent = 'Полный экран: «Поделиться» → «На экран Домой», затем открыть с иконки'; h.onclick = () => h.remove(); document.body.append(h); setTimeout(() => h.remove(), 9000); } }
   // adaptive quality: drop the render resolution when frames run long
-  let last = performance.now(), acc = 0, frames = 0;
+  let last = performance.now(), acc = 0, frames = 0, frozenLeft = 45;
   // 360° look-around from the player's spot: drag to turn the head. Disabled while the book is in hand so page taps never rotate the view.
-  const drag = new Map<number, {x: number; y: number}>(); const canLook = () => !free && !inspecting && valvePointer === null && (ui.state === 'rest' || ui.state === 'falling' || ui.lowered);
+  const drag = new Map<number, {x: number; y: number}>(); const canLook = () => !free && !inspecting && valvePointer === null && (cur().state === 'rest' || cur().state === 'falling' || cur().lowered);
   // machine controls grab the pointer before look-around and tap logic; a short, still press counts as a tap
   let valveStart = {x: 0, y: 0, t: 0};
-  renderer.domElement.addEventListener('pointerdown', e => { if (valvePointer !== null || free || !press.enabled || ((ui.state === 'reading' || ui.state === 'held') && !ui.lowered)) return;
+  // the device whose controls the pointer grabs: the machine in close-up (pressure apparatus or laboratory)
+  let device: {enabled: boolean; hits(r: T.Raycaster): any; pointerDown(r: T.Raycaster, x: number, y: number, c: T.Camera): boolean; pointerMove(x: number, y: number): void; pointerUp(tap: boolean): void} = press;
+  renderer.domElement.addEventListener('pointerdown', e => { if (valvePointer !== null || free || ((cur().state === 'reading' || cur().state === 'held') && !cur().lowered)) return;
     ray.setFromCamera(new T.Vector2(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1), camera);
-    if (!inspecting) { if (press.hits(ray)) return; } // first tap on the machine only opens the close-up
-    if (press.pointerDown(ray, e.clientX, e.clientY, camera)) { valvePointer = e.pointerId; valveStart = {x: e.clientX, y: e.clientY, t: performance.now()}; try { renderer.domElement.setPointerCapture(e.pointerId); } catch {} } });
-  addEventListener('pointermove', e => { if (e.pointerId === valvePointer) press.pointerMove(e.clientX, e.clientY); });
-  const endValve = (e: PointerEvent) => { if (e.pointerId !== valvePointer) return; press.pointerUp(e.type === 'pointerup' && Math.hypot(e.clientX - valveStart.x, e.clientY - valveStart.y) < 10 && performance.now() - valveStart.t < 450); setTimeout(() => { valvePointer = null; }, 0); };
+    if (!inspecting || (inspectTarget !== 'pressure' && inspectTarget !== 'lab')) { if (press.hits(ray) || lab.hits(ray)) return; } // first tap only opens the close-up
+    device = inspectTarget === 'lab' ? lab : press; if (!device.enabled) return;
+    if (device.pointerDown(ray, e.clientX, e.clientY, camera)) { valvePointer = e.pointerId; valveStart = {x: e.clientX, y: e.clientY, t: performance.now()}; try { renderer.domElement.setPointerCapture(e.pointerId); } catch {} } });
+  addEventListener('pointermove', e => { if (e.pointerId === valvePointer) device.pointerMove(e.clientX, e.clientY); });
+  const endValve = (e: PointerEvent) => { if (e.pointerId !== valvePointer) return; device.pointerUp(e.type === 'pointerup' && Math.hypot(e.clientX - valveStart.x, e.clientY - valveStart.y) < 10 && performance.now() - valveStart.t < 450); setTimeout(() => { valvePointer = null; }, 0); };
   addEventListener('pointerup', endValve); addEventListener('pointercancel', endValve);
   renderer.domElement.addEventListener('pointerdown', e => drag.set(e.pointerId, {x: e.clientX, y: e.clientY}));
   addEventListener('pointerup', e => drag.delete(e.pointerId)); addEventListener('pointercancel', e => drag.delete(e.pointerId));
@@ -175,15 +206,17 @@ async function boot() {
     inspectK += ((inspecting ? 1 : 0) - inspectK) * (1 - Math.exp(-dt * 6));
     if (free) orbit.update(); else if (inspectK > .001) {
       // close-up: stand ~55 cm in front of the panel (still inside the cage), framing meter + wires
-      const P = inspectTarget === 'pressure', tg = P ? press.group : box.group, c = P ? press.center() : box.center(), n = new T.Vector3(0, 0, 1).applyQuaternion(tg.getWorldQuaternion(new T.Quaternion())), at = c.clone().add(new T.Vector3(0, P ? 0 : .05, 0)), from = c.clone().addScaledVector(n, P ? (camera.aspect < .9 ? 1.75 : 1.05) : camera.aspect < .9 ? 1.3 : 1.12).add(new T.Vector3(0, P ? .06 : .09, 0));
+      const P = inspectTarget === 'pressure', L = inspectTarget === 'lab', tg = P ? press.group : L ? lab.group : box.group, c = P ? press.center() : L ? lab.center() : box.center(), n = new T.Vector3(0, 0, 1).applyQuaternion(tg.getWorldQuaternion(new T.Quaternion())), at = c.clone().add(new T.Vector3(0, P || L ? 0 : .05, 0)), from = c.clone().addScaledVector(n, L ? (camera.aspect < .9 ? 1.95 : 1.12) : P ? (camera.aspect < .9 ? 1.75 : 1.05) : camera.aspect < .9 ? 1.3 : 1.12).add(new T.Vector3(0, P ? .06 : L ? .04 : .09, 0));
       const look = new T.Quaternion().setFromRotationMatrix(new T.Matrix4().lookAt(from, at, new T.Vector3(0, 1, 0))), base = new T.Quaternion().setFromEuler(new T.Euler(pitch, yaw, 0, 'YXZ'));
       camera.position.copy(eye).lerp(from, inspectK); camera.quaternion.copy(base).slerp(look, inspectK);
       if (!inspecting && inspectK < .002) inspectK = 0;
     } else { camera.position.copy(eye); camera.quaternion.setFromEuler(new T.Euler(pitch, yaw, 0, 'YXZ')); }
-    cage.update(dt); ui.update(dt); box.update(dt); press.update(dt, link.view());
+    cage.update(dt); ui.update(dt); jui.update(dt); box.update(dt); press.update(dt, link.view()); lab.update(dt, flink.view());
     if (focusTo) { let dy = focusTo[0] - yawT; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yawT += dy * Math.min(1, dt * 5); pitchT += (focusTo[1] - pitchT) * Math.min(1, dt * 5); if (Math.abs(dy) < .002 && Math.abs(focusTo[1] - pitchT) < .002) focusTo = null; }
     document.body.classList.toggle('surge', kind === 'pressure' && !!link.view()?.surgeWarning);
-    if (kind === 'pressure') { const v = link.view(), lim = PRESSURE_LIMIT_MS / 1000, left = v ? (v.outcome === 'RUNNING' ? Math.max(0, (v.deadline - performance.now()) / 1000) : 0) : lim;
+    if (kind === 'formula') { const v = flink.view(), lim = FORMULA_LIMIT_MS / 1000, left = v ? (v.outcome === 'RUNNING' ? (frozenLeft = Math.max(0, (v.deadline - performance.now()) / 1000)) : v.outcome === 'STABILIZED' ? frozenLeft : 0) : lim;
+      $('clock-num').textContent = String(Math.ceil(left)); ($('clock-ring') as any).style.strokeDashoffset = String(176 * (1 - left / lim)); $('clock').dataset.urgent = String(!!v && v.outcome === 'RUNNING' && left < 10); }
+    else if (kind === 'pressure') { const v = link.view(), lim = PRESSURE_LIMIT_MS / 1000, left = v ? (v.outcome === 'RUNNING' ? (frozenLeft = Math.max(0, (v.deadline - performance.now()) / 1000)) : v.outcome === 'STABILIZED' ? frozenLeft : 0) : lim;
       $('clock-num').textContent = String(Math.ceil(left)); ($('clock-ring') as any).style.strokeDashoffset = String(176 * (1 - left / lim)); $('clock').dataset.urgent = String(!!v && v.outcome === 'RUNNING' && left < 10); }
     else { const left = deadline ? Math.max(0, (deadline - performance.now()) / 1000) : LIMIT; $('clock-num').textContent = String(Math.ceil(left)); ($('clock-ring') as any).style.strokeDashoffset = String(176 * (1 - left / LIMIT)); $('clock').dataset.urgent = String(!!deadline && left < 10); if (deadline && left <= 0 && !box.locked) { finish(false, 'ВРЕМЯ ВЫШЛО'); setTimeout(() => cage.drop?.(.8), 350); } }
     const surface = cage.shelf && Math.abs(book.root.position.y - TH / 2 - cage.shelf.top.y) < .2 && Math.abs(book.root.position.z - cage.shelf.top.z) < .2 ? cage.shelf.top.y : floorY; const h = Math.max(0, book.root.position.y - TH / 2 - surface); shadow.position.set(book.root.position.x, surface + .0012, book.root.position.z); shadow.rotation.z = new T.Euler().setFromQuaternion(book.root.quaternion, 'YXZ').y; (shadow.material as T.MeshBasicMaterial).opacity = .75 * Math.max(0, 1 - h / .18); shadow.visible = h < .18;
@@ -200,6 +233,6 @@ async function boot() {
     renderer.render(scene, camera); requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
-  (window as any).__manual = {book, ui, renderer, scene, camera, get state() { return ui.state; }, get info() { return renderer.info.render; }, box, press, link, get kind() { return kind; }, setInspect, cage, get shake() { return shake; }, look(y: number, p: number) { yaw = yawT = y; pitch = pitchT = p; }, setFree, set timeScale(v: number) { timeScale = v; }, step(sec: number) { for (let i = 0; i < Math.round(sec * 60); i++) { cage.update(1 / 60); ui.update(1 / 60); } }};
+  (window as any).__manual = {book, ui, renderer, scene, camera, get state() { return ui.state; }, get info() { return renderer.info.render; }, box, press, link, lab, flink, journal, jui, get kind() { return kind; }, setInspect, cage, get shake() { return shake; }, look(y: number, p: number) { yaw = yawT = y; pitch = pitchT = p; }, setFree, set timeScale(v: number) { timeScale = v; }, step(sec: number) { for (let i = 0; i < Math.round(sec * 60); i++) { cage.update(1 / 60); ui.update(1 / 60); jui.update(1 / 60); } }};
 }
 boot().catch(e => { $('load-text').textContent = 'Failed: ' + (e?.message || e); console.error(e); });

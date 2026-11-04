@@ -33,7 +33,7 @@ export interface LeatherOptions {
 /** Builds albedo, normal and ORM (R=AO, G=roughness, B=metalness) textures for a leather surface. */
 /** baked JPEGs when available, otherwise the procedural composite below */
 export async function leatherMapsCached(src: () => Promise<LeatherSources>, o: LeatherOptions, aniso: number, key: string) {
-  const b = await loadBaked([`${key}-map`, `${key}-normal`, `${key}-orm`], {srgb: [true, false, false], flipY: true, aniso});
+  const b = key.startsWith('journal') ? null : await loadBaked([`${key}-map`, `${key}-normal`, `${key}-orm`], {srgb: [true, false, false], flipY: true, aniso}); // the journal has no baked set
   if (b) return {map: b[0], normalMap: b[1], orm: b[2]};
   const m = leatherMaps(await src(), o, aniso); register(`${key}-map`, m.map); register(`${key}-normal`, m.normalMap); register(`${key}-orm`, m.orm); return m;
 }
@@ -151,15 +151,29 @@ export function frontTooling(ctx: CanvasRenderingContext2D, w: number, h: number
   for (const [cx, cy] of [[m + 70, m + 70], [w - m - 70, m + 70], [m + 70, h - m - 70], [w - m - 70, h - m - 70]]) { ctx.save(); ctx.translate(cx, cy); ctx.fillStyle = '#888'; for (let i = 0; i < 4; i++) { ctx.rotate(Math.PI / 2); ctx.beginPath(); ctx.ellipse(0, -14, 6, 14, 0, 0, 7); ctx.fill(); } ctx.restore(); }
 }
 
+/** THE ALCHEMIST'S JOURNAL front: single gilt frame, alembic emblem, gilt title */
+export function journalTooling(ctx: CanvasRenderingContext2D, w: number, h: number) {
+  const m = w * .08; ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.strokeRect(m, m, w - m * 2, h - m * 2); ctx.strokeStyle = '#888'; ctx.lineWidth = 2.5; ctx.strokeRect(m + 16, m + 16, w - m * 2 - 32, h - m * 2 - 32);
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+  ctx.font = `${w * .05}px 'IM Fell English SC', serif`; ctx.fillText('THE', w / 2, h * .22);
+  ctx.font = `${w * .1}px 'IM Fell DW Pica', serif`; ctx.fillText('ALCHEMIST’S', w / 2, h * .31); ctx.fillText('JOURNAL', w / 2, h * .4);
+  ctx.lineWidth = 3; ctx.strokeStyle = '#fff'; ctx.beginPath(); ctx.moveTo(w * .32, h * .44); ctx.lineTo(w * .68, h * .44); ctx.stroke();
+  // alembic flask emblem
+  ctx.save(); ctx.translate(w / 2, h * .64); ctx.strokeStyle = '#fff'; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(-w * .03, -w * .13); ctx.lineTo(-w * .03, -w * .05); ctx.lineTo(-w * .1, w * .07); ctx.quadraticCurveTo(-w * .11, w * .1, -w * .07, w * .1); ctx.lineTo(w * .07, w * .1); ctx.quadraticCurveTo(w * .11, w * .1, w * .1, w * .07); ctx.lineTo(w * .03, -w * .05); ctx.lineTo(w * .03, -w * .13); ctx.stroke();
+  ctx.strokeStyle = '#888'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0, 0, w * .17, 0, 7); ctx.stroke(); ctx.fillStyle = '#888'; for (const [a, s] of [[0, '☾'], [1, '☀'], [2, '◆'], [3, '✚']] as const) { const an = -Math.PI / 2 + a * Math.PI / 2; ctx.font = `${w * .05}px serif`; ctx.fillText(s, Math.cos(an) * w * .21, Math.sin(an) * w * .21 + w * .018); }
+  ctx.restore();
+  ctx.fillStyle = '#fff'; ctx.font = `${w * .034}px 'IM Fell English', serif`; ctx.fillText('Cooling Formulae · Car No 7', w / 2, h * .86);
+}
+
 export function backTooling(ctx: CanvasRenderingContext2D, w: number, h: number) { const m = w * .07; ctx.strokeStyle = '#888'; ctx.lineWidth = 6; ctx.strokeRect(m, m, w - m * 2, h - m * 2); ctx.lineWidth = 2.5; ctx.strokeRect(m + 18, m + 18, w - m * 2 - 36, h - m * 2 - 36); }
 
 /** Spine: u runs across the rounded back (0 = back-board joint, 1 = front-board joint), v along the height. */
-export function spineTooling(bands: number[]) {
+export function spineTooling(bands: number[], title = 'ENGINEER’S MANUAL', mark = 'VII') {
   return (ctx: CanvasRenderingContext2D, w: number, h: number) => {
     ctx.fillStyle = '#fff'; ctx.strokeStyle = '#fff';
     for (const b of bands) { const y = b * h; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(w * .12, y - 22); ctx.lineTo(w * .88, y - 22); ctx.moveTo(w * .12, y + 22); ctx.lineTo(w * .88, y + 22); ctx.stroke(); }
-    ctx.save(); ctx.translate(w / 2, h * .36); ctx.rotate(Math.PI / 2); ctx.font = `${w * .2}px 'IM Fell DW Pica', serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('ENGINEER’S MANUAL', 0, 0); ctx.restore();
-    ctx.save(); ctx.translate(w / 2, h * .72); ctx.font = `${w * .2}px 'IM Fell DW Pica', serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('VII', 0, 0); ctx.restore();
+    ctx.save(); ctx.translate(w / 2, h * .36); ctx.rotate(Math.PI / 2); ctx.font = `${w * .2}px 'IM Fell DW Pica', serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(title, 0, 0); ctx.restore();
+    ctx.save(); ctx.translate(w / 2, h * .72); ctx.font = `${w * .2}px 'IM Fell DW Pica', serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(mark, 0, 0); ctx.restore();
     // stitched joints: blind-tooled holes along both hinges
     ctx.fillStyle = '#888'; for (let y = 16; y < h; y += 26) { for (const u of [.05, .95]) { ctx.beginPath(); ctx.ellipse(u * w, y, 3.2, 8, 0, 0, 7); ctx.fill(); } }
   };

@@ -10,7 +10,7 @@ import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js'
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {PAGE_W as PW0, PAGE_H as PH0, renderPage, edgeTexture} from './page-art';
 import {paginate, type ManualContent, type ManualPage} from './content';
-import {loadLeather, leatherMapsCached, leatherMaterial, brassMaterial, endpaperTexture, frontTooling, backTooling, spineTooling} from './materials';
+import {loadLeather, leatherMapsCached, leatherMaterial, brassMaterial, endpaperTexture, frontTooling, backTooling, spineTooling, journalTooling} from './materials';
 
 export const W = .18, H = .25, TH = .04, C = .0036; // board width, height, total thickness, board thickness
 const PW = W - .0058, PH = H - .0075, P = TH - 2 * C; // page block width/height and total paper thickness
@@ -68,17 +68,20 @@ export class EngineersManual {
   /** fired whenever a spread becomes fully visible (for puzzle telemetry / hints) */
   onspread = (spread: number) => {};
 
-  static async create(renderer: T.WebGLRenderer, content: ManualContent, quality: 'high' | 'low') {
-    const b = new EngineersManual(); b.quality = quality; await document.fonts.load("30px 'IM Fell English'").catch(() => {}); await Promise.all(["30px 'IM Fell English SC'", "30px 'IM Fell DW Pica'", "30px 'Caveat'", "italic 30px 'IM Fell English'", "400 30px 'Libre Caslon Text'", "italic 400 30px 'Libre Caslon Text'", "700 30px 'Libre Caslon Text'", "500 30px 'Barlow Condensed'", "700 30px 'Barlow Condensed'", "700 30px 'IBM Plex Mono'", "600 30px 'IBM Plex Mono'", "600 30px 'Cinzel'", "800 30px 'Cinzel'"].map(f => document.fonts.load(f).catch(() => {})));
+  /** 'journal' = THE ALCHEMIST'S JOURNAL: same articulated book, burgundy leather and its own tooling */
+  variant: 'manual' | 'journal' = 'manual';
+  static async create(renderer: T.WebGLRenderer, content: ManualContent, quality: 'high' | 'low', variant: 'manual' | 'journal' = 'manual') {
+    const b = new EngineersManual(); b.quality = quality; b.variant = variant; await document.fonts.load("30px 'IM Fell English'").catch(() => {}); await Promise.all(["30px 'IM Fell English SC'", "30px 'IM Fell DW Pica'", "30px 'Caveat'", "italic 30px 'IM Fell English'", "400 30px 'Libre Caslon Text'", "italic 400 30px 'Libre Caslon Text'", "700 30px 'Libre Caslon Text'", "500 30px 'Barlow Condensed'", "700 30px 'Barlow Condensed'", "700 30px 'IBM Plex Mono'", "600 30px 'IBM Plex Mono'", "600 30px 'Cinzel'", "800 30px 'Cinzel'"].map(f => document.fonts.load(f).catch(() => {})));
     await b.build(renderer, content); return b;
   }
 
   private async build(renderer: T.WebGLRenderer, content: ManualContent) {
     const aniso = renderer.capabilities.getMaxAnisotropy(), hi = this.quality === 'high'; const k = Math.min(hi ? 1.5 : 1.25, renderer.capabilities.maxTextureSize / PH0); PAGE_W = Math.round(PW0 * k); PAGE_H = Math.round(PH0 * k); let lp: Promise<any> | null = null; const leather = () => lp ||= loadLeather();
     const cw = hi ? 1024 : 640, ch = Math.round(cw * H / W);
-    const [fm, bm, sm] = await Promise.all([leatherMapsCached(leather, {w: cw, h: ch, seed: 11, tiles: 2, tooling: frontTooling}, aniso, 'leather-front'), leatherMapsCached(leather, {w: cw, h: ch, seed: 29, tiles: 2, tooling: backTooling}, aniso, 'leather-back'), leatherMapsCached(leather, {w: hi ? 256 : 160, h: hi ? 1408 : 880, seed: 47, tiles: .5, tooling: spineTooling(BANDS), edgeWear: .5}, aniso, 'leather-spine')]);
+    const [fm, bm, sm] = await Promise.all([leatherMapsCached(leather, {w: cw, h: ch, seed: 11, tiles: 2, tooling: this.variant === 'journal' ? journalTooling : frontTooling}, aniso, this.variant === 'journal' ? 'journal-front' : 'leather-front'), leatherMapsCached(leather, {w: cw, h: ch, seed: 29, tiles: 2, tooling: backTooling}, aniso, this.variant === 'journal' ? 'journal-back' : 'leather-back'), leatherMapsCached(leather, {w: hi ? 256 : 160, h: hi ? 1408 : 880, seed: 47, tiles: .5, tooling: this.variant === 'journal' ? spineTooling(BANDS, 'ALCHEMIST’S JOURNAL', '☾') : spineTooling(BANDS), edgeWear: .5}, aniso, this.variant === 'journal' ? 'journal-spine' : 'leather-spine')]);
     const front = leatherMaterial(fm), back = leatherMaterial(bm);
     const spineMat = leatherMaterial(sm); spineMat.side = T.DoubleSide;
+    if (this.variant === 'journal') for (const m of [front, back, spineMat]) { m.color.set('#b0444e'); (m as any).sheenColor?.set?.('#5a1a22'); } // dark burgundy leather
     const brass = brassMaterial(aniso);
     this.scratch.width = PAGE_W; this.scratch.height = PAGE_H;
     const pageTex = () => { const c = document.createElement('canvas'); c.width = PAGE_W; c.height = PAGE_H; const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.anisotropy = aniso; t.minFilter = T.LinearMipmapLinearFilter; return t; };
