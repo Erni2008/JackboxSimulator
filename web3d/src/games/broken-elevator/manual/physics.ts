@@ -21,21 +21,22 @@ export class BookBody {
     const qi = this.quat.clone().invert(); out.copy(v).applyQuaternion(qi).multiply(this.invInertiaLocal).applyQuaternion(this.quat); return out;
   }
   step(dt: number) {
-    if (this.sleeping) return; const sub = 4, h = dt / sub;
+    if (this.sleeping) return; const sub = 8, h = dt / sub;
     for (let s = 0; s < sub; s++) this.substep(h);
     const e = this.vel.lengthSq() + this.ang.lengthSq() * .02;
-    this.still = e < .0009 ? this.still + dt : 0; if (this.still > .45) { this.sleeping = true; this.vel.set(0, 0, 0); this.ang.set(0, 0, 0); }
+    this.still = e < .004 ? this.still + dt : 0; if (this.still > .3) { this.sleeping = true; this.vel.set(0, 0, 0); this.ang.set(0, 0, 0); }
   }
   private substep(h: number) {
     this.time += h; this.vel.y -= 9.81 * h;
     // light air drag so a spinning book does not look like it is in vacuum
     this.vel.multiplyScalar(1 - .05 * h); this.ang.multiplyScalar(1 - .2 * h);
     const corner = new T.Vector3(), r = new T.Vector3(), vp = new T.Vector3(), tmp = new T.Vector3(), tmp2 = new T.Vector3(), t = new T.Vector3();
-    for (let iter = 0; iter < 3; iter++) for (let pi = 0; pi < this.planes.length; pi++) {
+    let touching = false;
+    for (let iter = 0; iter < 4; iter++) for (let pi = 0; pi < this.planes.length; pi++) {
       const pl = this.planes[pi];
       for (let c = 0; c < 8; c++) {
         corner.set(c & 1 ? this.half.x : -this.half.x, c & 2 ? this.half.y : -this.half.y, c & 4 ? this.half.z : -this.half.z).applyQuaternion(this.quat).add(this.pos);
-        const depth = pl.d - corner.dot(pl.n); if (depth < 0) continue;
+        const depth = pl.d - corner.dot(pl.n); if (depth < 0) continue; touching = true;
         r.subVectors(corner, this.pos); vp.copy(this.ang).cross(r).add(this.vel); const vn = vp.dot(pl.n);
         // positional correction (split impulse style, no energy gain)
         this.pos.addScaledVector(pl.n, depth * .35);
@@ -49,6 +50,8 @@ export class BookBody {
         if (vtl > 1e-6) { const dir = vt.divideScalar(vtl), rt = tmp.copy(r).cross(dir), kt = this.invMass + this.invI(rt, tmp2).cross(r).dot(dir); const jt = Math.min(vtl / kt, pl.friction * jn); this.applyImpulse(dir.multiplyScalar(-jt), r); }
       }
     }
+    // rolling/contact friction: a book resting on steel does not keep rocking
+    if (touching) { this.ang.multiplyScalar(1 - Math.min(1, 6 * h)); if (this.vel.lengthSq() < .01) this.vel.multiplyScalar(1 - Math.min(1, 4 * h)); }
     this.pos.addScaledVector(this.vel, h);
     const w = this.ang, dq = new T.Quaternion(w.x * h * .5, w.y * h * .5, w.z * h * .5, 0).multiply(this.quat); this.quat.x += dq.x; this.quat.y += dq.y; this.quat.z += dq.z; this.quat.w += dq.w; this.quat.normalize();
   }

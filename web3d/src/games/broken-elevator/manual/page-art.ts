@@ -111,7 +111,7 @@ export function drawPage(ctx: CanvasRenderingContext2D, page: ManualPage, index:
       ctx.textAlign = 'left'; letterpress(ctx, () => ctx.fillText(title, x0 + 92, y), r);
       const pg = String(3 + i * 2), tw = ctx.measureText(title).width; ctx.textAlign = 'right'; letterpress(ctx, () => ctx.fillText(pg, x1, y), r);
       ctx.fillStyle = INK_SOFT; for (let dx = x0 + 104 + tw; dx < x1 - ctx.measureText(pg).width - 14; dx += 14) ctx.fillRect(dx, y - 4, 2.4, 2.4); ctx.fillStyle = INK;
-      y += 92;
+      y += 80;
     });
     y += 20; ornament(ctx, PAGE_W / 2, y, .8); y += 70; ctx.font = `italic 26px ${ITAL}`; ctx.textAlign = 'center'; ctx.fillStyle = INK_SOFT;
     for (const l of wrap(ctx, 'Every operator of the car is required to carry this manual and to read the relevant section in full before touching any mechanism.', width - 60)) { letterpress(ctx, () => ctx.fillText(l, PAGE_W / 2, y), r); y += 38; }

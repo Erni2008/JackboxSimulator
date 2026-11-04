@@ -43,7 +43,10 @@ export interface ManualContent { edition: string; specimen: boolean; sections: M
 /** Implemented by the future puzzle generator. Must be deterministic for a round seed. */
 export interface ManualRuleSource { manual(): ManualContent }
 
-export const SECTION_IDS = ['wiring', 'cutting', 'pressure', 'power', 'mechanical', 'symbols', 'emergency'] as const;
+export const SECTION_IDS = ['wiring', 'cutting', 'pressure', 'circuits', 'codes', 'power', 'mechanical', 'emergency'] as const;
+
+/** Content can come from the Java server as JSON (same shape as ManualContent). */
+export async function loadManualContent(url: string): Promise<ManualContent> { const r = await fetch(url); if (!r.ok) throw new Error(`Manual rules ${r.status}`); const c = await r.json(); if (!Array.isArray(c?.sections)) throw new Error('Manual rules: sections missing'); return c; }
 
 /** Flattens content into physical pages: title, contents, then section pages; padded to even count. */
 export function paginate(content: ManualContent): ManualPage[] {
@@ -97,7 +100,33 @@ export const SAMPLE_MANUAL: ManualContent = {
       {heading: 'Fig. 3 — Buffer Gauge', diagram: {type: 'gauge', min: 0, max: 120, unit: 'lb / sq. in.', safeFrom: 45, safeTo: 75, needle: 88},
         caption: 'The shaded arc marks the safe band.'},
     ]},
-    {id: 'power', numeral: 'IV', title: 'Emergency Power Systems', pages: [
+    {id: 'circuits', numeral: 'IV', title: 'Electrical Circuits', pages: [
+      {heading: 'Reading a Circuit Plate', paragraphs: [
+        'Every panel of the car carries a plate showing its circuit. Lamps are drawn as circles, switches as hinged lines, fuses as small rectangles.',
+        'A circuit is complete only when every switch upon its path is closed. The operator shall trace the path with a finger from the source to the lamp before throwing any switch.',
+      ], steps: ['Find the source marked +.', 'Follow the line to each switch in turn.', 'Close only the switches that lie upon the path.', 'Leave all others open.'],
+      notes: [{text: 'dead ends are traps', x: .6, y: .9, angle: -4, ink: 'red'}]},
+      {heading: 'Plate IV \u2014 Warning Marks', diagram: {type: 'symbols', symbols: [
+        {glyph: 'bolt', meaning: 'Live conductor'}, {glyph: 'flame', meaning: 'Heat / vent'},
+        {glyph: 'gear', meaning: 'Moving parts'}, {glyph: 'drop', meaning: 'Hydraulic fluid'},
+        {glyph: 'skull', meaning: 'Fatal \u2014 do not touch'}, {glyph: 'eye', meaning: 'Observe only'},
+        {glyph: 'hand', meaning: 'Operate by hand'}, {glyph: 'triangle', meaning: 'General hazard'}]},
+        caption: 'Where two marks appear together, the upper governs.'},
+    ]},
+    {id: 'codes', numeral: 'V', title: 'Emergency Access Codes', pages: [
+      {heading: 'Deriving the Access Code', paragraphs: [
+        'The emergency hatch is sealed by a four-figure combination. The combination is never written down; it is derived afresh from the instruments of the car.',
+        'Take the figures in order from the plates named below. Where a plate shows no figure, use the number of rivets upon it.',
+      ], steps: ['First figure: the floor indicator, last digit.', 'Second: the number of lamps lit.', 'Third: the gauge reading, first digit.', 'Fourth: the sum of the first three, last digit.'],
+      notes: [{text: 'specimen rule \u2014 live rule changes each descent', x: .5, y: .92, angle: -2, ink: 'pencil', size: .8}]},
+      {heading: 'Table V \u2014 Code Corrections', diagram: {type: 'cutting', rows: [
+        {condition: 'If any figure is 0', action: 'read it as 9'},
+        {condition: 'If two figures are equal', action: 'add one to the later'},
+        {condition: 'If the bell has rung', action: 'reverse the order'},
+        {condition: 'Otherwise', action: 'enter as derived'}]},
+        caption: 'Apply corrections from top to bottom.'},
+    ]},
+    {id: 'power', numeral: 'VI', title: 'Power Restoration', pages: [
       {heading: 'Emergency Accumulators', paragraphs: [
         'When the main supply fails the car may be lowered upon its own accumulator bank. The bank holds sufficient charge for a single descent of not more than three floors.',
         'Cells are to be engaged in sequence from the left. A cell engaged out of turn will discharge the whole bank.',
@@ -105,28 +134,17 @@ export const SAMPLE_MANUAL: ManualContent = {
       {heading: 'Fig. 4 — Accumulator Bank', diagram: {type: 'power', cells: 6, label: 'To brake solenoid'},
         notes: [{text: 'cell 4 cracked — skip?', x: .58, y: .74, angle: 5, ink: 'red'}]},
     ]},
-    {id: 'mechanical', numeral: 'V', title: 'Mechanical Failures', pages: [
+    {id: 'mechanical', numeral: 'VII', title: 'Mechanical Repair', pages: [
       {heading: 'Failure of the Winding Gear', paragraphs: [
         'A slipping car is most often caused by a stripped pinion. Listen for an irregular knocking: one knock for each missing tooth.',
         'The governor will trip only when the car exceeds its rated speed by one half. Do not rely upon it.',
       ], notes: [{text: 'it did not trip for us', x: .18, y: .88, angle: -3, ink: 'pencil'}]},
       {heading: 'Fig. 5 — Gear Train', diagram: {type: 'gears', teeth: [24, 12, 18]}, caption: 'Driving wheel, pinion and governor wheel.'},
     ]},
-    {id: 'symbols', numeral: 'VI', title: 'Warning Symbols', pages: [
-      {heading: 'Plate VI — Warning Marks', diagram: {type: 'symbols', symbols: [
-        {glyph: 'bolt', meaning: 'Live conductor'}, {glyph: 'flame', meaning: 'Heat / vent'},
-        {glyph: 'gear', meaning: 'Moving parts'}, {glyph: 'drop', meaning: 'Hydraulic fluid'},
-        {glyph: 'skull', meaning: 'Fatal — do not touch'}, {glyph: 'eye', meaning: 'Observe only'},
-        {glyph: 'hand', meaning: 'Operate by hand'}, {glyph: 'triangle', meaning: 'General hazard'}]}},
-      {heading: 'Reading the Marks', paragraphs: [
-        'Marks are stamped upon every panel of the car. Where two marks appear together, the upper governs.',
-        'A mark scratched through by hand has been countermanded by the chief engineer and is to be ignored.',
-      ], notes: [{text: 'who scratched these out?', x: .5, y: .7, angle: -5, ink: 'red', size: 1.15}]},
-    ]},
-    {id: 'emergency', numeral: 'VII', title: 'Emergency Procedures', pages: [
+    {id: 'emergency', numeral: 'VIII', title: 'Emergency Procedures', pages: [
       {heading: 'In the Event of Arrest Between Floors', diagram: {type: 'checklist', items: [
         'Remain calm. Do not force the gate.', 'Sound the bell three times.', 'Isolate the main supply.',
-        'Inspect the junction box (Sect. I).', 'Regulate the buffer (Sect. III).', 'Engage accumulators (Sect. IV).', 'Release the brake by hand.']}},
+        'Inspect the junction box (Sect. I).', 'Regulate the buffer (Sect. III).', 'Derive the hatch code (Sect. V).', 'Restore power (Sect. VI).', 'Release the brake by hand.']}},
       {heading: 'Final Note', paragraphs: [
         'If these procedures fail, the operator shall record the hour and the names of all persons within the car upon the last page of this manual.',
       ], notes: [{text: 'the last page is full', x: .5, y: .62, angle: -8, ink: 'red', size: 1.4}]},

@@ -100,15 +100,15 @@ export class ManualInteraction {
     if (this.state === 'held') { if (hit) this.open(); return; }
     if (this.state === 'reading' && hit) {
       const ph = this.book.pageHit(hit); if (!ph) return;
-      // desktop corner zones: outer third of a page, top or bottom fifth -> turn
-      const corner = ph.u > .62 && (ph.v < .24 || ph.v > .76);
-      if (corner && !this.portrait) this.turn(ph.side);
-      else if (this.portrait && ph.u > .7) this.turn(ph.side);
+      // the whole page is the control: right page forward, left page back.
+      // portrait single-page view shows one page, so its right/left half decides.
+      if (this.portrait && this.zoomTarget > 1.05) { const r = this.dom.getBoundingClientRect(); this.turn(x - r.left > r.width / 2 ? 1 : -1); }
+      else this.turn(ph.side);
     }
   }
   private bind() {
     const el = this.dom;
-    el.addEventListener('pointerdown', e => { el.setPointerCapture?.(e.pointerId); this.audio.unlock(); this.pointers.set(e.pointerId, {x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: performance.now()}); if (this.pointers.size === 2) { const [a, b] = [...this.pointers.values()]; this.pinch0 = Math.hypot(a.x - b.x, a.y - b.y); this.zoom0 = this.zoomTarget; } });
+    el.addEventListener("pointerdown", e => { try { el.setPointerCapture?.(e.pointerId); } catch {} this.audio.unlock(); this.pointers.set(e.pointerId, {x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: performance.now()}); if (this.pointers.size === 2) { const [a, b] = [...this.pointers.values()]; this.pinch0 = Math.hypot(a.x - b.x, a.y - b.y); this.zoom0 = this.zoomTarget; } });
     el.addEventListener('pointermove', e => {
       const p = this.pointers.get(e.pointerId); if (!p) { this.hover(e.clientX, e.clientY); return; } const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
       if (this.pointers.size === 2 && this.state === 'reading') { const [a, b] = [...this.pointers.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); this.zoomTarget = T.MathUtils.clamp(this.zoom0 * d / Math.max(20, this.pinch0), 1, 3.2); return; }
@@ -119,7 +119,7 @@ export class ManualInteraction {
       const p = this.pointers.get(e.pointerId); if (!p) return; const wasPinch = this.pointers.size > 1; this.pointers.delete(e.pointerId); if (wasPinch) return;
       const dx = e.clientX - p.sx, dy = e.clientY - p.sy, dt = performance.now() - p.t;
       if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.3 && dt < 700) { if (this.state === 'reading' && (this.zoomTarget <= 1.05 || this.portrait)) this.turn(dx < 0 ? 1 : -1); return; }
-      if (Math.hypot(dx, dy) < 10 && dt < 400) { const now = performance.now(); if (this.state === 'reading' && now - this.lastTap < 300) { this.toggleZoom(e.clientX, e.clientY); this.lastTap = 0; return; } this.lastTap = now; this.tap(e.clientX, e.clientY); }
+      if (Math.hypot(dx, dy) < 12 && dt < 450) this.tap(e.clientX, e.clientY);
     };
     el.addEventListener('pointerup', up); el.addEventListener('pointercancel', e => this.pointers.delete(e.pointerId));
     el.addEventListener('wheel', e => { if (this.state !== 'reading') return; e.preventDefault(); this.zoomTarget = T.MathUtils.clamp(this.zoomTarget * Math.exp(-e.deltaY * .0015), 1, 3.2); if (this.zoomTarget > 1.05 && !this.portrait) { const hit = this.pick(e.clientX, e.clientY), ph = hit && this.book.pageHit(hit); if (ph && this.focusSide === 0) this.focusSide = ph.side; } if (this.zoomTarget <= 1.05) { this.focusSide = this.portrait ? this.focusSide : 0; this.panTarget.set(0, 0); } }, {passive: false});
@@ -136,5 +136,5 @@ export class ManualInteraction {
     this.panTarget.set(0, (ph.v - .5) * H * (this.portrait ? 1 : .6));
   }
   private metersPerPixel() { const d = this.book.root.position.distanceTo(this.camera.position); return 2 * d * Math.tan(T.MathUtils.degToRad(this.camera.fov) / 2) / this.dom.clientHeight; }
-  private hover(x: number, y: number) { const hit = this.pick(x, y); let cursor = 'default'; if (hit) { if (this.state === 'rest' || this.state === 'held' || this.state === 'falling') cursor = 'pointer'; else if (this.state === 'reading') { const ph = this.book.pageHit(hit); if (ph && ph.u > .62 && (ph.v < .24 || ph.v > .76) && this.book.canTurn(ph.side)) cursor = ph.side > 0 ? 'e-resize' : 'w-resize'; } } this.dom.style.cursor = cursor; }
+  private hover(x: number, y: number) { const hit = this.pick(x, y); let cursor = 'default'; if (hit) { if (this.state === 'rest' || this.state === 'held' || this.state === 'falling') cursor = 'pointer'; else if (this.state === 'reading') { const ph = this.book.pageHit(hit); if (ph && this.book.canTurn(ph.side)) cursor = ph.side > 0 ? 'e-resize' : 'w-resize'; } } this.dom.style.cursor = cursor; }
 }
