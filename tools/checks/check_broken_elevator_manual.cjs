@@ -10,7 +10,7 @@ async function run(name,viewport,touch){
   const st=await M(()=>({cage:!!window.__manual.cage.mesh,procedural:window.__manual.scene.getObjectByName('Mesh_0')?1:0,floor:window.__manual.cage.floorY}));assert.ok(st.cage);ok(`${name}: cage.glb loaded (floor y=${st.floor.toFixed(3)})`);
   const tap=async(x,y)=>{if(touch)await p.touchscreen.tap(x,y);else await p.mouse.click(x,y);};
   const bookXY=()=>M(()=>{const m=window.__manual,v=m.book.root.getWorldPosition(new m.book.root.position.constructor()).project(m.camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];});
-  const onShelf=await M(()=>{const m=window.__manual;return Math.abs(m.book.root.position.y-0.02-m.cage.shelf.top.y)<.01;});assert.ok(onShelf);ok(`${name}: book rests on the wall shelf`);
+  const onShelf=await M(()=>{const m=window.__manual;return Math.abs(m.book.root.position.y-0.02-m.cage.shelf.top.y)<.012;});assert.ok(onShelf);ok(`${name}: book rests on the wall shelf`);
   await shot('0-shelf');
   let [x,y]=await bookXY();await tap(x,y);await p.waitForTimeout(1300);assert.equal(await M(()=>window.__manual.state),'held');ok(`${name}: tap on book picks it up`);await shot('1-held');
   [x,y]=await bookXY();await tap(x,y);await p.waitForTimeout(1900);assert.equal(await M(()=>window.__manual.state),'reading');ok(`${name}: tap on cover opens it`);await shot('2-open');

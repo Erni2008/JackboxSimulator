@@ -41,7 +41,7 @@ async function boot() {
   scene.add(book.root);
   const shadow = contactShadow(); scene.add(shadow);
   const ui = new ManualInteraction(book, camera, renderer.domElement, audio, cage.planes);
-  if (cage.shelf) { ui.place(cage.shelf.top.clone().add(new T.Vector3(0, TH / 2, 0)), new T.Quaternion().setFromEuler(new T.Euler(0, .12, 0))); const d = cage.shelf.top.clone().sub(eye); yaw = Math.atan2(-d.x, -d.z); pitch = Math.atan2(d.y, Math.hypot(d.x, d.z)); }
+  if (cage.shelf) { ui.place(cage.shelf.top.clone().add(new T.Vector3(0, TH / 2, 0)), new T.Quaternion().setFromEuler(new T.Euler(0, .04, 0))); const d = cage.shelf.top.clone().sub(eye); yaw = Math.atan2(-d.x, -d.z); pitch = Math.atan2(d.y, Math.hypot(d.x, d.z)); }
   else ui.place(new T.Vector3(.06, TH / 2, -.22), new T.Quaternion().setFromEuler(new T.Euler(0, .5, 0)));
   const hints: Record<HoldState, string> = {rest: mobile ? 'Drag to look around · tap the manual to pick it up' : 'Drag to look around · click the manual to pick it up', lifting: '', held: mobile ? 'Tap the cover to open' : 'Click the cover to open', reading: mobile ? 'Tap the right page to turn forward, the left page to go back · swipe · pinch to zoom' : 'Click the right page to turn forward, the left page to go back · scroll to zoom', releasing: '', falling: ''};
   const sync = (s: HoldState) => { $('hint').textContent = hints[s]; $('btn-open').hidden = s !== 'held'; $('btn-close').hidden = s !== 'reading'; $('btn-drop').hidden = !['held', 'reading'].includes(s); document.body.dataset.state = s; };

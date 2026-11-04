@@ -84,7 +84,7 @@ export async function buildGlbCage(renderer: T.WebGLRenderer, scene: T.Scene, hi
   scene.add(new T.HemisphereLight('#8a7058', '#5a2008', .8));
   // wall shelf: weathered iron plank on two aged-brass brackets, on the back wall (−z), off-centre so it clears the doors
   const shelf = buildShelf(); const shelfY = floorY + 1.02, shelfX = Math.min(px, nx) * .35; shelf.position.set(shelfX, shelfY, -nz + .005); scene.add(shelf);
-  const shelfTop = new T.Vector3(shelfX, shelfY + .012, -nz + .005 + .13);
+  const shelfTop = new T.Vector3(shelfX, shelfY + .007, -nz + .005 + .165);
   const planes: Plane[] = [
     {n: new T.Vector3(0, 1, 0), d: floorY, restitution: .16, friction: .6, material: 'metal'},
     {n: new T.Vector3(1, 0, 0), d: -nx + .03, restitution: .2, friction: .4, material: 'metal'}, {n: new T.Vector3(-1, 0, 0), d: -px + .03, restitution: .2, friction: .4, material: 'metal'},
@@ -102,10 +102,10 @@ function buildShelf() {
   const g = new T.Group();
   const iron = new T.MeshPhysicalMaterial({color: '#2a2420', roughness: .78, metalness: .7, envMapIntensity: .5});
   const brass = new T.MeshPhysicalMaterial({color: '#6e5530', roughness: .55, metalness: .85, envMapIntensity: .6});
-  const plank = new T.Mesh(new T.BoxGeometry(.42, .012, .26), iron); plank.position.set(0, 0, .13); g.add(plank);
-  const lip = new T.Mesh(new T.BoxGeometry(.42, .03, .008), iron); lip.position.set(0, .015, .256); g.add(lip);
+  const plank = new T.Mesh(new T.BoxGeometry(.42, .012, .33), iron); plank.position.set(0, 0, .165); g.add(plank);
+  const lip = new T.Mesh(new T.BoxGeometry(.42, .03, .008), iron); lip.position.set(0, .015, .326); g.add(lip);
   const back = new T.Mesh(new T.BoxGeometry(.44, .07, .01), iron); back.position.set(0, -.02, .005); g.add(back);
-  const scroll = new T.Shape(); scroll.moveTo(0, 0); scroll.lineTo(.2, 0); scroll.quadraticCurveTo(.05, -.03, 0, -.2); scroll.lineTo(0, 0);
+  const scroll = new T.Shape(); scroll.moveTo(0, 0); scroll.lineTo(.26, 0); scroll.quadraticCurveTo(.06, -.03, 0, -.22); scroll.lineTo(0, 0);
   const hole = new T.Path(); hole.absarc(.045, -.045, .025, 0, Math.PI * 2, true); scroll.holes.push(hole);
   const bracketGeo = new T.ExtrudeGeometry(scroll, {depth: .008, bevelEnabled: true, bevelSize: .002, bevelThickness: .002, bevelSegments: 2});
   for (const x of [-.16, .16]) { const b = new T.Mesh(bracketGeo, brass); b.rotation.y = -Math.PI / 2; b.position.set(x - .004, -.006, .01); g.add(b); }
