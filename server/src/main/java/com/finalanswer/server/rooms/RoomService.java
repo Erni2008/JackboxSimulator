@@ -145,6 +145,11 @@ public final class RoomService {
             peer.send(Protocol.event("STATE",message.requestId(),snapshot(room,member,false))); return;
         }
         if(message.type().equals("LEAVE_ROOM")) { leave(room.code,member.token); return; }
+        if(message.type().equals("OPEN_WEB_GAME")){
+            requireHost(member);String id=Protocol.string(data,"game");
+            if(!Set.of("broken-elevator").contains(id))throw new Failure(400,"INVALID_WEB_GAME");
+            room.webGame=id;room.webGameId=UUID.randomUUID().toString();broadcast(room,"WEB_GAME_OPENED");reply(peer,room,member,message);return;
+        }
         if(Set.of("START_LAST_COMMAND","LAST_COMMAND_ACTION","END_LAST_COMMAND").contains(message.type())){lastCommandCommand(room,member,peer,message);return;}
         if(Set.of("START_CARDS","CARDS_DRAW","CARDS_SHUFFLE","CARDS_VOTE","END_CARDS").contains(message.type())){cardsCommand(room,member,peer,message);return;}
         if(room.cards!=null)throw new Failure(409,"CARDS_IN_PROGRESS");
@@ -588,6 +593,7 @@ public final class RoomService {
         value.put("canStart",game==null && room.impostor==null && room.cursed==null && room.lastCommand==null&&room.cards==null && room.host.peer!=null && !room.members.isEmpty() && room.members.values().stream().allMatch(m->m.peer!=null&&!m.left));
         value.put("impostorSettings",room.impostorSettings);value.put("impostorWordCategories",List.of("DEFAULT"));
         value.put("lobbyId",room.lobbyId);
+        if(!room.webGameId.isEmpty()){value.put("webGame",room.webGame);value.put("webGameId",room.webGameId);}
         if(room.impostor==null && !room.impostorRoster.isEmpty())value.put("impostorLobby",Map.of("sessionId",room.lobbyId,"participantIds",room.impostorRoster));
         List<Map<String,Object>> players=new ArrayList<>();
         for(Member member:room.members.values()) {
@@ -725,6 +731,7 @@ public final class RoomService {
     private static final class Room {
         final String id=UUID.randomUUID().toString(), name,mode; String code;
         final int maxPlayers,questionCount; final byte[] salt,passwordHash;
+        String webGame="",webGameId="";
         String lobbyId=UUID.randomUUID().toString();List<String> impostorRoster=List.of();
         com.erni.finalanswer.gameplay.impostor.ImpostorSettings impostorSettings=com.erni.finalanswer.gameplay.impostor.ImpostorSettings.defaults();
         com.erni.finalanswer.gameplay.impostor.ImpostorMatchResult lastImpostorResult;

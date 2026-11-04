@@ -124,7 +124,7 @@ public final class CageLobbyScreen extends ScreenAdapter {
         modes.add(new Mode("CURSED BOXES","от 2 игроков",cursed,game::startCursedBoxesMultiplayer));
         modes.add(new Mode("THE LAST COMMAND","от 1 игрока",lastCommand,game::startLastCommand));
         modes.add(new Mode("THE CURSED CARDS","4–6 игроков",cards,game::startCursedCards));
-        modes.add(new Mode("THE BROKEN ELEVATOR","тест в браузере · открыть на телефоне: /broken-elevator-manual/",null,()->Gdx.net.openURI(game.getHosting().apiUrl().replaceAll("/+$","")+"/broken-elevator-manual/")));
+        modes.add(new Mode("THE BROKEN ELEVATOR","телефоны переключатся в лифт · на ПК откроется браузер",null,()->{var rt=game.getRealtime();if(rt!=null&&rt.connected())rt.send("OPEN_WEB_GAME",java.util.Map.of("game","broken-elevator"));Gdx.net.openURI(game.getHosting().apiUrl().replaceAll("/+$","")+"/broken-elevator-manual/");}));
         modeName=new Label("",new Label.LabelStyle(modeFont,Color.valueOf("F2E2C4")));modeName.setAlignment(Align.center);modeName.setBounds(650,210,1100,46);stage.addActor(modeName);
         modeHint=new Label("",new Label.LabelStyle(font,Color.valueOf("B79E7C")));modeHint.setFontScale(.62f);modeHint.setAlignment(Align.center);modeHint.setBounds(650,180,1100,28);stage.addActor(modeHint);
         modePrev=button("<",650,style,()->cycleMode(-1));modePrev.setBounds(650,205,90,56);

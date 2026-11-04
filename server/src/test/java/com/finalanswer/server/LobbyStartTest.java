@@ -80,4 +80,10 @@ class LobbyStartTest {
         command(h,"START_GAME",Map.of("introId",com.erni.finalanswer.gameplay.intro.IntroDefinition.RUSSIAN.introId()));
         assertEquals("STARTING",s(a.latest(),"phase"));assertTrue(a.latest().has("intro"));
     }
+    @Test void hostSendsPhonesToTheBrokenElevator(){
+        one=join("Solo");service.attach(s(host,"code"),s(one,"token"),a,"solo");
+        failure("HOST_ONLY",()->command(a,"OPEN_WEB_GAME",Map.of("game","broken-elevator")));
+        command(h,"OPEN_WEB_GAME",Map.of("game","broken-elevator"));
+        assertEquals("broken-elevator",s(a.latest(),"webGame"));assertFalse(s(a.latest(),"webGameId").isEmpty());
+    }
 }
