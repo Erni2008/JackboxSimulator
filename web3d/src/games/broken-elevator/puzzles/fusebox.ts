@@ -15,7 +15,7 @@ const TERMINALS = ['A1', 'B2', 'C3', 'D4', 'E5', 'F6'];
 const BW = .46, BH = .56, BD = .15, WALL = .014, N = 6, TOP = .12, BOT = -.2, GAP = .056;
 export interface FuseBoxSounds { door(open: boolean): void; snip(): void; spark(): void; good(): void; bad(): void }
 
-const canvasTex = (w: number, h: number, draw: (x: CanvasRenderingContext2D) => void, srgb = true) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d')!); const t = new T.CanvasTexture(c); t.colorSpace = srgb ? T.SRGBColorSpace : T.NoColorSpace; t.anisotropy = 8; return t; };
+const canvasTex = (w: number, h: number, draw: (x: CanvasRenderingContext2D) => void, srgb = true) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d')!); const t = new T.CanvasTexture(c); t.colorSpace = srgb ? T.SRGBColorSpace : T.NoColorSpace; t.anisotropy = 16; return t; };
 
 /** Cloth braid: diagonal over/under weave, grime toward the ends. One map for colour, one for bump. */
 function braid() {
@@ -87,7 +87,7 @@ export class FuseBox {
     for (const [x, y] of [[-1, 1], [1, 1], [-1, -1], [1, -1]]) box(new T.CylinderGeometry(.009, .009, .008, 6), brassDark, x * (BW / 2 - .035), y * (BH / 2 - .035), WALL + .01).rotation.x = Math.PI / 2;
     for (const y of [TOP + .012, BOT - .012]) box(new RoundedBoxGeometry(BW - .07, .05, .03, 3, .008), porcelain, 0, y, WALL + .021);
     this.mats = {brass, brassDark};
-    this.plateCanvas.width = 1040; this.plateCanvas.height = 360; this.plate = new T.CanvasTexture(this.plateCanvas); this.plate.colorSpace = T.SRGBColorSpace; this.plate.anisotropy = 8;
+    this.plateCanvas.width = 1040; this.plateCanvas.height = 360; this.plate = new T.CanvasTexture(this.plateCanvas); this.plate.colorSpace = T.SRGBColorSpace; this.plate.anisotropy = 16;
     const plate = new T.Mesh(rb(.26, .09, .004, .0015), [brass, brass, brass, brass, new T.MeshPhysicalMaterial({map: this.plate, emissiveMap: this.plate, emissive: '#ffffff', emissiveIntensity: .45, metalness: .45, roughness: .45, clearcoat: .4, clearcoatRoughness: .35}), brass]); plate.position.set(0, .229, WALL + .01); this.group.add(plate);
     this.door.position.set(-BW / 2 - .006, 0, BD + .012); this.group.add(this.door);
     const leaf = box(rb(BW + .012, BH + .012, .012, .004), doorSteel, BW / 2 + .006, 0, 0, this.door); this.pickDoor.push(leaf);

@@ -62,3 +62,6 @@ body.jolt #viewport{animation:jolt .32s ease-out}@keyframes jolt{0%{transform:tr
 @keyframes grain{0%{transform:translate(0,0)}20%{transform:translate(-3%,2%)}40%{transform:translate(2%,-3%)}60%{transform:translate(-2%,-1%)}80%{transform:translate(3%,3%)}100%{transform:translate(0,0)}}
 @media (prefers-reduced-motion:reduce){#grain{animation:none}}
 #loading{position:fixed;inset:0;display:grid;place-items:center;background:#050403;font-size:20px;letter-spacing:.08em;color:var(--dim)}
+/* phones: no per-frame backdrop blur or blended full-screen grain over the WebGL canvas (major iOS compositor cost) */
+@media (pointer:coarse){button{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(20,14,9,.86)}#grain{display:none}#grade{mix-blend-mode:normal;background:radial-gradient(ellipse 75% 70% at 50% 46%,transparent 58%,rgba(6,2,0,.3) 84%,rgba(3,1,0,.6) 100%)}}
+#fs-tip{position:fixed;left:50%;top:max(12px,env(safe-area-inset-top));transform:translateX(-50%);z-index:20;max-width:min(92vw,520px);padding:10px 14px;font-size:14px;line-height:1.35;text-align:center;color:#f1e4c8;background:rgba(20,14,9,.92);border:1px solid rgba(220,190,140,.45);border-radius:4px}

@@ -15,10 +15,10 @@ const params = new URLSearchParams(location.search);
 const mobile = matchMedia('(pointer: coarse)').matches || Math.min(screen.width, screen.height) < 600;
 let quality: 'high' | 'low' = params.get('quality') === 'low' || (mobile && params.get('quality') !== 'high') ? 'low' : 'high';
 
-const renderer = new T.WebGLRenderer({antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: params.has('capture')});
+const renderer = new T.WebGLRenderer({antialias: !mobile, powerPreference: 'high-performance', preserveDrawingBuffer: params.has('capture')});
 renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFShadowMap; renderer.shadowMap.autoUpdate = false; let frameNo = 0;
-let dpr = Math.min(devicePixelRatio, quality === 'high' ? 1.5 : 1.25); renderer.setPixelRatio(dpr);
+const DPR_FLOOR = mobile ? 1.5 : 1; let dpr = Math.min(devicePixelRatio, mobile ? 2 : quality === 'high' ? 1.5 : 1.25); renderer.setPixelRatio(dpr);
 $('viewport').append(renderer.domElement);
 const scene = new T.Scene(), camera = new T.PerspectiveCamera(50, 1, .03, 40);
 camera.position.set(0, 1.56, .5); camera.lookAt(0, .1, -.25);
@@ -95,6 +95,11 @@ async function boot() {
   let free = false; const setFree = (on: boolean) => { free = on; orbit.enabled = on; $('btn-cam').textContent = on ? 'Камера: свободная' : 'Камера: игрок'; if (!on) { camera.position.copy(eye); } else { camera.position.set(eye.x + .3, eye.y + .3, eye.z + 1.6); orbit.target.set(0, floorY + 1, 0); orbit.update(); } };
   $('btn-cam').onclick = () => setFree(!free); addEventListener('keydown', e => { if (e.key.toLowerCase() === 'c') setFree(!free); }); if (params.get('freecam') === '1') setFree(true);
   $('loading').hidden = true;
+  // fullscreen on the first touch where the browser allows it (Android, iPad, desktop). iPhone Safari has no page fullscreen:
+  // there the page runs fullscreen when opened from the Home Screen (manifest + apple-mobile-web-app-capable).
+  { const el = document.documentElement as any, req = el.requestFullscreen || el.webkitRequestFullscreen; const standalone = matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || (navigator as any).standalone;
+    if (req && !standalone && params.get('capture') === null) addEventListener('pointerup', function go() { removeEventListener('pointerup', go); try { const r = req.call(el, {navigationUI: 'hide'}); r?.catch?.(() => {}); } catch {} });
+    if (mobile && !req && !standalone && /iPhone|iPod/.test(navigator.userAgent)) { const h = document.createElement('div'); h.id = 'fs-tip'; h.textContent = 'Полный экран: «Поделиться» → «На экран Домой», затем открыть с иконки'; h.onclick = () => h.remove(); document.body.append(h); setTimeout(() => h.remove(), 9000); } }
   // adaptive quality: drop the render resolution when frames run long
   let last = performance.now(), acc = 0, frames = 0;
   // 360° look-around from the player's spot: drag to turn the head. Disabled while the book is in hand so page taps never rotate the view.
@@ -105,7 +110,7 @@ async function boot() {
   renderer.domElement.addEventListener('pointermove', e => { if (e.pointerType !== 'mouse' || drag.size) return; hoverRay.setFromCamera(new T.Vector2(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1), camera); box.hover(hoverRay); });
   const loop = (now: number) => {
     const dt = Math.min(.05, (now - last) / 1000) * timeScale; last = now; acc += dt; frames++;
-    if (acc > 1) { const ms = acc / frames * 1000; if (ms > 19 && dpr > 1) { dpr = Math.max(1, dpr - .25); renderer.setPixelRatio(dpr); resize(); } acc = 0; frames = 0; }
+    if (acc > 1) { const ms = acc / frames * 1000; if (ms > 19 && dpr > DPR_FLOOR) { dpr = Math.max(DPR_FLOOR, dpr - .25); renderer.setPixelRatio(dpr); resize(); } acc = 0; frames = 0; }
     // gentle head motion while looking around the cage (none while reading)
     // exponential smoothing of the look (frame-rate independent): no stepping between irregular mouse events
     { const a = 1 - Math.exp(-dt * 22); yaw += (yawT - yaw) * a; pitch += (pitchT - pitch) * a; }
@@ -123,7 +128,7 @@ async function boot() {
     const surface = cage.shelf && Math.abs(book.root.position.y - TH / 2 - cage.shelf.top.y) < .2 && Math.abs(book.root.position.z - cage.shelf.top.z) < .2 ? cage.shelf.top.y : floorY; const h = Math.max(0, book.root.position.y - TH / 2 - surface); shadow.position.set(book.root.position.x, surface + .0012, book.root.position.z); shadow.rotation.z = new T.Euler().setFromQuaternion(book.root.quaternion, 'YXZ').y; (shadow.material as T.MeshBasicMaterial).opacity = .75 * Math.max(0, 1 - h / .18); shadow.visible = h < .18;
     if (shake > .002) { const a = shake * shake; camera.position.add(new T.Vector3((Math.random() - .5) * .05 * a, (Math.random() - .5) * .07 * a, (Math.random() - .5) * .03 * a)); camera.rotateZ((Math.random() - .5) * .03 * a); shake *= Math.exp(-dt * 4); }
     // shadows refresh every other frame: invisible at 60 fps, halves the shadow-pass cost
-    if ((frameNo++ & 1) === 0) renderer.shadowMap.needsUpdate = true;
+    if ((frameNo++ & (mobile ? 3 : 1)) === 0) renderer.shadowMap.needsUpdate = true;
     renderer.render(scene, camera); requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
