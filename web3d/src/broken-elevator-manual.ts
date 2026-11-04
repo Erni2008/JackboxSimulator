@@ -4,7 +4,7 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {EngineersManual, TH} from './games/broken-elevator/manual/book';
 import {ManualInteraction, type HoldState} from './games/broken-elevator/manual/interaction';
 import {BookAudio} from './games/broken-elevator/manual/audio';
-import {SAMPLE_MANUAL, loadManualContent} from './games/broken-elevator/manual/content';
+import {SAMPLE_MANUAL, loadManualContent, diagnosticsManual} from './games/broken-elevator/manual/content';
 import {buildCage, contactShadow} from './games/broken-elevator/manual/test-scene';
 import {FuseBox} from './games/broken-elevator/puzzles/fusebox';
 import {makeRules, makeTask, manualRows} from './games/broken-elevator/puzzles/wire-puzzle';
@@ -37,10 +37,8 @@ async function boot() {
   const rules = params.get('rules') ? await loadManualContent(params.get('rules')!).catch(e => { console.warn(e); return SAMPLE_MANUAL; }) : SAMPLE_MANUAL;
   // wire puzzle: the manual prints the cutting RULES for this session; the box shows serial + wires
   const seed = +(params.get('seed') || Date.now() % 100000), wireRules = makeRules(seed);
-  const content = structuredClone(rules); const cut = content.sections.find((s: any) => s.id === 'cutting');
-  if (cut && !params.get('rules')) cut.pages = [
-    {heading: 'Severing a Conductor', paragraphs: ['Open the junction box and read the serial stamped upon its brass plate. The last figure of the serial decides which wire is to be cut; consult the table opposite.', 'Should the serial bear a vowel, the wire named is NOT to be cut: take instead the next wire to its right. Beyond the rightmost wire, return to the leftmost.'], steps: ['Read the serial.', 'Find its last figure in Table II.', 'Check the serial for vowels.', 'Cut once. A wrong cut cannot be undone.'], notes: [{text: 'count from the LEFT', x: .62, y: .9, angle: -3, ink: 'red'}]},
-    {heading: 'Table II \u2014 Order of Cutting', diagram: {type: 'cutting', rows: manualRows(wireRules)}, caption: 'Wires are counted left to right as you face the box.'}];
+  // INDUSTRIAL EMERGENCY DIAGNOSTICS: the 24-rule handbook (?rules=<url> still overrides for server-supplied content)
+  const content = params.get('rules') ? rules : diagnosticsManual();
   // cage and book load in parallel (network + GPU upload overlap)
   performance.mark('cage0'); performance.mark('book0');
   const cageP: Promise<any> = procedural ? buildCage(renderer, scene, quality === 'high') : buildGlbCage(renderer, scene, quality === 'high');
@@ -62,14 +60,18 @@ async function boot() {
   scene.add(box.group);
   box.sounds = {door: o => audio.play(o ? 'doorOpen' : 'doorClose'), snip: () => audio.play('snip'), spark: () => audio.play('spark'), good: () => audio.play('good'), bad: () => audio.play('bad')};
   const TOTAL = 12, LIMIT = 45; let taskNo = 1, deadline = 0, taskSeed = seed, pending: any = 0;
-  const hud = (msg = '', tone = '') => { $('task').textContent = `TASK ${taskNo} / ${TOTAL}`; $('verdict').textContent = msg; $('verdict').dataset.tone = tone; };
-  const newTask = (advance: boolean) => { if (advance) taskNo = Math.min(TOTAL, taskNo + 1); taskSeed++; box.setTask(makeTask(wireRules, taskSeed, wireCount)); deadline = 0; hud(); };
-  const finish = (ok: boolean, why: string) => { box.locked = true; box.setLamp(ok ? 'good' : 'bad'); audio.play(ok ? 'good' : 'bad'); hud(ok ? 'CIRCUIT RESTORED' : why, ok ? 'good' : 'bad'); deadline = 0; clearTimeout(pending); pending = setTimeout(() => { if (box.open) box.toggleDoor(); setTimeout(() => newTask(ok), 500); }, 2400); };
-  box.onCut = i => finish(i === box.task!.answer, 'WRONG WIRE');
+  const hud = () => { $('task').textContent = `TASK ${taskNo} / ${TOTAL}`; };
+  // result card: low on screen (≈85 % of the viewport), fades in, a small mechanical jolt, holds, fades out (~2 s)
+  let verdictTimer: any = 0;
+  const verdict = (ok: boolean, sub: string) => { const v = $('verdict'); v.querySelector('b')!.textContent = ok ? 'CIRCUIT STABILIZED' : 'CRITICAL ERROR'; v.querySelector('span')!.textContent = sub; v.dataset.tone = ok ? 'good' : 'bad';
+    v.classList.remove('show'); void v.offsetWidth; v.classList.add('show'); clearTimeout(verdictTimer); verdictTimer = setTimeout(() => v.classList.remove('show'), 2300); if (!ok) { document.body.classList.remove('jolt'); void document.body.offsetWidth; document.body.classList.add('jolt'); } };
+  const newTask = (advance: boolean) => { if (advance) taskNo = Math.min(TOTAL, taskNo + 1); taskSeed++; const t = makeTask(wireRules, taskSeed, wireCount || 4 + Math.floor(Math.random() * 3), fixed); box.setTask(t); box.configure(t.fault, t.mode); deadline = 0; hud(); };
+  const finish = (ok: boolean, why: string) => { box.locked = true; box.setLamp(ok ? 'good' : 'bad'); audio.play(ok ? 'good' : 'bad'); verdict(ok, ok ? 'REPAIR SUCCESSFUL' : why); hud(); deadline = 0; clearTimeout(pending); pending = setTimeout(() => { if (box.open) box.toggleDoor(); setTimeout(() => newTask(ok), 500); }, 2400); };
+  box.onCut = i => finish(i === box.task!.answer, 'INCORRECT WIRE');
   // PHASE 1 dev configuration: ?fault=overload|short|power&mode=normal|emergency&wires=4..6 (no production generation yet)
-  const fault = (['overload', 'short', 'power'].includes(params.get('fault') || '') ? params.get('fault') : 'overload') as any, mode = params.get('mode') === 'emergency' ? 'emergency' : 'normal';
-  const wireCount = Math.max(4, Math.min(6, +(params.get('wires') || 6)));
-  box.configure(fault, mode as any);
+  // dev overrides: ?fault=overload|short|power&mode=normal|emergency&wires=4..6 (otherwise each task varies)
+  const fixed: any = {}; if (['overload', 'short', 'power'].includes(params.get('fault') || '')) fixed.fault = params.get('fault'); if (['normal', 'emergency'].includes(params.get('mode') || '')) fixed.mode = params.get('mode');
+  const wireCount = params.get('wires') ? Math.max(4, Math.min(6, +params.get('wires')!)) : 0;
   box.onTest = f => { audio.play('button'); setTimeout(() => audio.hum(f, 2), 60); if (f === 'short') for (let k = 0; k < 6; k++) setTimeout(() => audio.play('spark'), 150 + k * 280 + Math.random() * 120); };
   newTask(false);
   // taps that miss the book go to the box; opening the door turns the head toward it
@@ -81,7 +83,7 @@ async function boot() {
     if (ui.state === 'reading' || ui.state === 'held') { if (!hit) return; }
     const r = box.tap(ray); (window as any).__lastTap = r; if (r && (r !== 'door' || box.open) && !inspecting && (ui.state === 'rest' || ui.state === 'falling')) { setInspect(true); if (r !== 'test') return; } if (r === 'door' && box.open) { if (!deadline && !box.locked) deadline = performance.now() + LIMIT * 1000; if (ui.state === 'rest' || ui.state === 'falling') { const d = box.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } } });
   let focusTo: [number, number] | null = null, inspecting = false, inspectK = 0;
-  const setInspect = (on: boolean) => { inspecting = on; $('btn-back').hidden = !on; $('hint').style.opacity = on ? '0' : ''; if (on) { focusTo = null; if (!box.open) box.toggleDoor(); } };
+  const setInspect = (on: boolean) => { inspecting = on; $('btn-back').hidden = !on; $('hint').style.opacity = on ? '0' : ''; $('task').style.opacity = on && innerWidth > 700 ? '0' : ''; if (on) { focusTo = null; if (!box.open) box.toggleDoor(); } };
   $('btn-back').onclick = () => setInspect(false); addEventListener('keydown', e => { if (e.key === 'Escape' && inspecting) setInspect(false); });
   $('btn-open').onclick = () => ui.open(); $('btn-close').onclick = () => ui.close(); $('btn-drop').onclick = () => ui.drop();
   $('btn-sound').onclick = () => { audio.unlock(); audio.enabled = !audio.enabled; $('btn-sound').textContent = audio.enabled ? 'Sound on' : 'Sound off'; };
@@ -108,14 +110,14 @@ async function boot() {
     inspectK += ((inspecting ? 1 : 0) - inspectK) * (1 - Math.exp(-dt * 6));
     if (free) orbit.update(); else if (inspectK > .001) {
       // close-up: stand ~55 cm in front of the panel (still inside the cage), framing meter + wires
-      const c = box.center(), n = new T.Vector3(0, 0, 1).applyQuaternion(box.group.getWorldQuaternion(new T.Quaternion())), at = c.clone().add(new T.Vector3(0, .1, 0)), from = c.clone().addScaledVector(n, camera.aspect < .9 ? 1.3 : .86).add(new T.Vector3(0, .14, 0));
+      const c = box.center(), n = new T.Vector3(0, 0, 1).applyQuaternion(box.group.getWorldQuaternion(new T.Quaternion())), at = c.clone().add(new T.Vector3(0, .05, 0)), from = c.clone().addScaledVector(n, camera.aspect < .9 ? 1.3 : 1.12).add(new T.Vector3(0, .09, 0));
       const look = new T.Quaternion().setFromRotationMatrix(new T.Matrix4().lookAt(from, at, new T.Vector3(0, 1, 0))), base = new T.Quaternion().setFromEuler(new T.Euler(pitch, yaw, 0, 'YXZ'));
       camera.position.copy(eye).lerp(from, inspectK); camera.quaternion.copy(base).slerp(look, inspectK);
       if (!inspecting && inspectK < .002) inspectK = 0;
     } else { camera.position.copy(eye); camera.quaternion.setFromEuler(new T.Euler(pitch, yaw, 0, 'YXZ')); }
     cage.update(dt); ui.update(dt); box.update(dt);
     if (focusTo) { let dy = focusTo[0] - yawT; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yawT += dy * Math.min(1, dt * 5); pitchT += (focusTo[1] - pitchT) * Math.min(1, dt * 5); if (Math.abs(dy) < .002 && Math.abs(focusTo[1] - pitchT) < .002) focusTo = null; }
-    { const left = deadline ? Math.max(0, (deadline - performance.now()) / 1000) : LIMIT; $('clock-num').textContent = String(Math.ceil(left)); ($('clock-ring') as any).style.strokeDashoffset = String(176 * (1 - left / LIMIT)); $('clock').dataset.urgent = String(!!deadline && left < 10); if (deadline && left <= 0 && !box.locked) finish(false, 'TIME RAN OUT'); }
+    { const left = deadline ? Math.max(0, (deadline - performance.now()) / 1000) : LIMIT; $('clock-num').textContent = String(Math.ceil(left)); ($('clock-ring') as any).style.strokeDashoffset = String(176 * (1 - left / LIMIT)); $('clock').dataset.urgent = String(!!deadline && left < 10); if (deadline && left <= 0 && !box.locked) finish(false, 'TIME EXPIRED'); }
     const surface = cage.shelf && Math.abs(book.root.position.y - TH / 2 - cage.shelf.top.y) < .2 && Math.abs(book.root.position.z - cage.shelf.top.z) < .2 ? cage.shelf.top.y : floorY; const h = Math.max(0, book.root.position.y - TH / 2 - surface); shadow.position.set(book.root.position.x, surface + .0012, book.root.position.z); shadow.rotation.z = new T.Euler().setFromQuaternion(book.root.quaternion, 'YXZ').y; (shadow.material as T.MeshBasicMaterial).opacity = .75 * Math.max(0, 1 - h / .18); shadow.visible = h < .18;
     // shadows refresh every other frame: invisible at 60 fps, halves the shadow-pass cost
     if ((frameNo++ & 1) === 0) renderer.shadowMap.needsUpdate = true;

@@ -24,3 +24,10 @@ Mode 5 has no elevator scene yet, so the manual is an isolated, reusable Three.j
 - Dev-only config: `?fault=overload|short|power&mode=normal|emergency&wires=4..6`. No production generation, rules or validation yet (phases 2–5).
 - Tap the panel for the close-up; Back/Esc returns.
 - Check: `tools/checks/check_broken_elevator_panel.cjs`.
+
+## Visual redesign — Industrial Emergency Diagnostics
+- Rules: `web3d/src/games/broken-elevator/puzzles/rules24.ts` — 3 sections × 8 rules; one table drives both the printed manual and the cut validation (`resolve`). Browser-side; the server can import the same table later.
+- Manual: `manual/rule-pages.ts` (procedure page, one spread per wire count, rule blocks: number → condition → burgundy CUT badge), `content.diagnosticsManual()`; page textures 1.5× (desktop) / 1.25× (phone) of the 1024-px layout, matte paper material for contrast.
+- Fonts (OFL, bundled): Cinzel, Libre Caslon Text, Barlow Condensed, IBM Plex Mono.
+- Panel: enamel/brass `labelPlate`, SERIAL NO. plate (look-alike-free alphabet), A1–F6 enamel tags, meter fault legend, MODE window plate.
+- Result card at ~87 % viewport height: CIRCUIT STABILIZED / CRITICAL ERROR with ~2.3 s motion.

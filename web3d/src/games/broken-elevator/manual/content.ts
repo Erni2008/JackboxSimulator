@@ -33,12 +33,14 @@ export interface ManualPage {
   caption?: string;
   notes?: Annotation[];
   /** title-page / contents layouts */
-  layout?: 'title' | 'contents' | 'standard' | 'endpaper';
+  layout?: 'title' | 'contents' | 'standard' | 'endpaper' | 'rules' | 'guide';
+  /** rules layout: section index into RULES and which half (0 = rules 01–04, 1 = 05–08) */
+  section?: number; half?: 0 | 1;
 }
 
 export interface ManualSection { id: string; numeral: string; title: string; pages: ManualPage[] }
 
-export interface ManualContent { edition: string; specimen: boolean; sections: ManualSection[] }
+export interface ManualContent { edition: string; specimen: boolean; sections: ManualSection[]; /** explicit physical page order (overrides the default title/contents/sections flow) */ layoutPages?: ManualPage[] }
 
 /** Implemented by the future puzzle generator. Must be deterministic for a round seed. */
 export interface ManualRuleSource { manual(): ManualContent }
@@ -50,6 +52,7 @@ export async function loadManualContent(url: string): Promise<ManualContent> { c
 
 /** Flattens content into physical pages: title, contents, then section pages; padded to even count. */
 export function paginate(content: ManualContent): ManualPage[] {
+  if (content.layoutPages) return content.layoutPages.length % 2 ? [...content.layoutPages, {layout: 'endpaper'}] : content.layoutPages;
   const pages: ManualPage[] = [
     {layout: 'title'},
     {layout: 'contents', heading: 'Contents', paragraphs: content.sections.map(s => `${s.numeral} ${s.title}`)},
@@ -151,3 +154,13 @@ export const SAMPLE_MANUAL: ManualContent = {
     ]},
   ],
 };
+
+/** INDUSTRIAL EMERGENCY DIAGNOSTICS: title + procedure, then one spread per wire count (I four, II five, III six). */
+export function diagnosticsManual(): ManualContent {
+  return {edition: 'Form VII', specimen: false, sections: [], layoutPages: [
+    {layout: 'title'}, {layout: 'guide'},
+    {layout: 'rules', section: 0, half: 0}, {layout: 'rules', section: 0, half: 1},
+    {layout: 'rules', section: 1, half: 0}, {layout: 'rules', section: 1, half: 1},
+    {layout: 'rules', section: 2, half: 0}, {layout: 'rules', section: 2, half: 1},
+  ]};
+}

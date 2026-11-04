@@ -19,15 +19,36 @@ export const Mats = (() => {
 })();
 const FONT = "'IM Fell English SC', Georgia, serif", PICA = "'IM Fell DW Pica', Georgia, serif";
 
-/** Engraved brass label plate (text cut into metal, darkened). */
-export function labelPlate(text: string, w: number, h: number, size = 44) {
-  const t = tex(512, Math.round(512 * h / w), x => {
-    const W = x.canvas.width, H = x.canvas.height, g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#8b6a36'); g.addColorStop(.5, '#b18c52'); g.addColorStop(1, '#6f5228'); x.fillStyle = g; x.fillRect(0, 0, W, H);
-    const r = rng(text.length * 7); for (let i = 0; i < 500; i++) { x.fillStyle = `rgba(${r() < .6 ? '50,32,10' : '240,220,170'},${r() * .14})`; x.fillRect(r() * W, r() * H, 2 + r() * 12, 1); }
-    x.font = `bold ${size}px ${FONT}`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = 'rgba(255,240,200,.35)'; x.fillText(text, W / 2 + 1.5, H / 2 + 2); x.fillStyle = '#1f1408'; x.fillText(text, W / 2, H / 2);
-    x.strokeStyle = 'rgba(40,25,8,.7)'; x.lineWidth = 3; x.strokeRect(5, 5, W - 10, H - 10);
+export type PlateStyle = 'brass' | 'enamel';
+const TECH = "'Barlow Condensed', 'Arial Narrow', sans-serif", MONO = "'IBM Plex Mono', Menlo, monospace";
+/** Industrial label plate. brass: text cut into tarnished brass and filled dark. enamel: ivory
+ *  lettering on black-enamelled iron with a brass rim. Texture is rendered at 8 px/mm. */
+export function labelPlate(text: string, w: number, h: number, _size = 44, style: PlateStyle = 'brass', opts: {mono?: boolean; screws?: boolean; sub?: string} = {}) {
+  const pxw = Math.min(1024, Math.round(w * 8000)), pxh = Math.max(32, Math.round(pxw * h / w));
+  const t = tex(pxw, pxh, x => {
+    const W = x.canvas.width, H = x.canvas.height, r = rng(text.length * 7 + W);
+    if (style === 'brass') { const g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#8b6a36'); g.addColorStop(.5, '#b8945a'); g.addColorStop(1, '#6f5228'); x.fillStyle = g; }
+    else { const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#1d1814'); g.addColorStop(1, '#0f0c0a'); x.fillStyle = g; }
+    x.fillRect(0, 0, W, H);
+    for (let i = 0; i < W * H / 260; i++) { x.fillStyle = `rgba(${r() < .6 ? '40,26,10' : '240,220,170'},${r() * (style === 'brass' ? .13 : .05)})`; x.fillRect(r() * W, r() * H, 2 + r() * 14, 1); }
+    // rim: brass bevel line + worn corners
+    const rim = Math.max(3, H * .07); x.strokeStyle = style === 'brass' ? 'rgba(40,25,8,.7)' : '#9b7638'; x.lineWidth = rim * .6; x.strokeRect(rim, rim, W - rim * 2, H - rim * 2);
+    const screws = opts.screws ?? W / H > 3.2;
+    if (screws) for (const sx of [rim * 3.4, W - rim * 3.4]) { const sr = H * .12, sy = H / 2; const sg = x.createRadialGradient(sx - sr * .3, sy - sr * .3, 1, sx, sy, sr); sg.addColorStop(0, '#d8b77a'); sg.addColorStop(1, '#5a4222'); x.fillStyle = sg; x.beginPath(); x.arc(sx, sy, sr, 0, 7); x.fill(); x.strokeStyle = '#2a1a08'; x.lineWidth = sr * .25; x.beginPath(); x.moveTo(sx - sr * .7, sy - sr * .3); x.lineTo(sx + sr * .7, sy + sr * .3); x.stroke(); }
+    const inset = screws ? rim * 6.4 : rim * 2.4, avail = W - inset * 2;
+    const main = opts.sub ? H * .5 : H * .62; let size = main; x.font = `${opts.mono ? 700 : 700} ${size}px ${opts.mono ? MONO : TECH}`;
+    const track = opts.mono ? size * .06 : size * .1; const width = (s: string) => [...s].reduce((a, c) => a + x.measureText(c).width + track, -track);
+    while (width(text) > avail && size > 6) { size *= .94; x.font = `700 ${size}px ${opts.mono ? MONO : TECH}`; }
+    const cy = opts.sub ? H * .64 : H * .53, drawSpaced = (s: string, y: number, dx = 0) => { let px = W / 2 - width(s) / 2 + dx; for (const c of s) { x.fillText(c, px, y); px += x.measureText(c).width + track; } };
+    x.textBaseline = 'middle'; x.textAlign = 'left';
+    if (style === 'brass') { x.fillStyle = 'rgba(255,238,195,.45)'; drawSpaced(text, cy + size * .045, size * .03); x.fillStyle = '#1c1107'; drawSpaced(text, cy); }
+    else { x.fillStyle = 'rgba(0,0,0,.6)'; drawSpaced(text, cy + size * .04); x.fillStyle = '#efe4c8'; drawSpaced(text, cy); }
+    if (opts.sub) { const s2 = H * .17; x.font = `600 ${s2}px 'Cinzel', Georgia, serif`; x.fillStyle = style === 'brass' ? '#3a2610' : '#b8955a'; x.textAlign = 'center'; x.fillText(opts.sub, W / 2, H * .24); }
   });
-  const m = new T.Mesh(new T.BoxGeometry(w, h, .002), [Mats().brass, Mats().brass, Mats().brass, Mats().brass, new T.MeshPhysicalMaterial({map: t, metalness: .75, roughness: .5}), Mats().brass]); return m;
+  t.generateMipmaps = true; t.minFilter = T.LinearMipmapLinearFilter;
+  const face = new T.MeshPhysicalMaterial({map: t, metalness: style === 'brass' ? .75 : .35, roughness: style === 'brass' ? .45 : .5, clearcoat: style === 'enamel' ? .5 : 0, clearcoatRoughness: .4});
+  const edge = style === 'brass' ? Mats().brass : Mats().iron;
+  return new T.Mesh(new T.BoxGeometry(w, h, .0025), [edge, edge, edge, edge, face, edge]);
 }
 
 // ------------------------------------------------------------------ meter
@@ -54,17 +75,20 @@ export class AnalogMeter {
     this.setAngle(0);
   }
   private dialTexture() {
-    return tex(512, 512, x => {
-      const c = 256; const g = x.createRadialGradient(c, c, 40, c, c, 256); g.addColorStop(0, '#ece0bd'); g.addColorStop(1, '#c8b383'); x.fillStyle = g; x.fillRect(0, 0, 512, 512);
+    return tex(1024, 1024, x => {
+      x.scale(2, 2); const c = 256; const g = x.createRadialGradient(c, c, 40, c, c, 256); g.addColorStop(0, '#ece0bd'); g.addColorStop(1, '#c8b383'); x.fillStyle = g; x.fillRect(0, 0, 512, 512);
       const r = rng(77); for (let i = 0; i < 40; i++) { x.fillStyle = `rgba(120,80,30,${r() * .2})`; x.beginPath(); x.arc(r() * 512, r() * 512, 2 + r() * 12, 0, 7); x.fill(); }
       const ang = (v: number) => -Math.PI / 2 + AnalogMeter.A0 + (v / 10) * (AnalogMeter.A1 - AnalogMeter.A0);
       // warning zones: amber 6.5-8, red 8-10 (as painted arcs)
-      for (const [a, b, col] of [[6.5, 8, 'rgba(196,140,30,.75)'], [8, 10, 'rgba(160,30,18,.85)']] as const) { x.strokeStyle = col; x.lineWidth = 26; x.beginPath(); x.arc(c, c, 190, ang(a), ang(b)); x.stroke(); }
-      x.strokeStyle = '#2a1a0c'; x.lineWidth = 3; x.beginPath(); x.arc(c, c, 205, ang(0), ang(10)); x.stroke();
-      for (let v = 0; v <= 10; v += .5) { const a = ang(v), big = v % 1 === 0; x.lineWidth = big ? 4 : 2; x.beginPath(); x.moveTo(c + Math.cos(a) * (big ? 172 : 186), c + Math.sin(a) * (big ? 172 : 186)); x.lineTo(c + Math.cos(a) * 205, c + Math.sin(a) * 205); x.stroke();
-        if (big) { x.font = `38px ${PICA}`; x.fillStyle = '#21140a'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(v), c + Math.cos(a) * 140, c + Math.sin(a) * 140); } }
+      for (const [a, b, col] of [[6.5, 8, 'rgba(196,140,30,.75)'], [8, 10, 'rgba(160,30,18,.85)']] as const) { x.strokeStyle = col; x.lineWidth = 26; x.beginPath(); x.arc(c, c, 178, ang(a), ang(b)); x.stroke(); }
+      x.strokeStyle = '#2a1a0c'; x.lineWidth = 3; x.beginPath(); x.arc(c, c, 196, ang(0), ang(10)); x.stroke();
+      for (let v = 0; v <= 10; v += .5) { const a = ang(v), big = v % 1 === 0; x.lineWidth = big ? 4 : 2; x.beginPath(); x.moveTo(c + Math.cos(a) * (big ? 164 : 178), c + Math.sin(a) * (big ? 164 : 178)); x.lineTo(c + Math.cos(a) * 196, c + Math.sin(a) * 196); x.stroke();
+        if (big) { x.font = `600 34px 'Cinzel', serif`; x.fillStyle = '#21140a'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(v), c + Math.cos(a) * 132, c + Math.sin(a) * 132); } }
       x.textAlign = 'center'; x.fillStyle = '#21140a'; x.font = `30px ${FONT}`; x.fillText('AMPERES', c, c + 70); x.font = `20px ${FONT}`; x.fillText('HARTWELL · LONDON', c, c + 104);
-      x.fillStyle = 'rgba(150,30,18,.9)'; x.font = `22px ${FONT}`; x.fillText('DANGER', c + 120, c - 150);
+      // fault legend along the outer rim (outside the needle's sweep)
+      const arcText = (t: string, v: number, col: string) => { x.save(); x.fillStyle = col; x.font = `700 21px ${TECH}`; const a0 = ang(v), chars = [...t], step = .056; let a = a0 - (chars.length - 1) * step / 2;
+        for (const ch of chars) { x.save(); x.translate(c + Math.cos(a) * 232, c + Math.sin(a) * 232); x.rotate(a + Math.PI / 2); x.textAlign = 'center'; x.fillText(ch, 0, 0); x.restore(); a += step; } x.restore(); };
+      arcText('POWER FAILURE', 1.3, '#2b1a0c'); arcText('SHORT CIRCUIT', 5, '#2b1a0c'); arcText('OVERLOAD', 9, '#8e1a10');
     });
   }
   private scratches() { return tex(256, 256, x => { x.fillStyle = '#1a1a1a'; x.fillRect(0, 0, 256, 256); const r = rng(31); x.strokeStyle = '#d0d0d0'; for (let i = 0; i < 70; i++) { x.globalAlpha = .2 + r() * .6; x.lineWidth = .5 + r(); x.beginPath(); const px = r() * 256, py = r() * 256, a = r() * 7, l = 10 + r() * 90; x.moveTo(px, py); x.lineTo(px + Math.cos(a) * l, py + Math.sin(a) * l); x.stroke(); } }, false); }
@@ -100,7 +124,7 @@ export class TestButton {
     const ring = new T.Mesh(new T.TorusGeometry(.024, .004, 10, 32), M.brass); ring.position.z = .013; this.group.add(ring);
     this.cap = new T.Mesh(new T.SphereGeometry(.02, 32, 12, 0, Math.PI * 2, 0, Math.PI / 2), new T.MeshPhysicalMaterial({color: '#9a7740', metalness: .92, roughness: .32, clearcoat: .2}));
     this.cap.rotation.x = Math.PI / 2; this.cap.scale.set(1, .55, 1); this.cap.position.z = .014; this.cap.castShadow = true; this.group.add(this.cap);
-    const plate = labelPlate('TEST CIRCUIT', .085, .02, 46); plate.position.set(0, -.048, .002); this.group.add(plate);
+    const plate = labelPlate('TEST CIRCUIT', .1, .026, 46, 'enamel', {screws: true}); plate.position.set(0, -.05, .002); this.group.add(plate);
     this.pick.push(this.cap, bezel, ring, plate);
   }
   push() { this.pressT = .22; }
@@ -109,13 +133,13 @@ export class TestButton {
 
 // ------------------------------------------------------------------ selector
 export class ModeSelector {
-  group = new T.Group(); private knob = new T.Group(); private angle = 0; private target = 0; private shake = 0; pick: T.Object3D[] = []; mode: Mode = 'normal';
+  group = new T.Group(); private knob = new T.Group(); window = new T.Mesh(); private angle = 0; private target = 0; private shake = 0; pick: T.Object3D[] = []; mode: Mode = 'normal';
   constructor() {
     const M = Mats();
     const plate = new T.Mesh(new T.CylinderGeometry(.046, .046, .004, 40), M.bronze);
     const face = new T.Mesh(new T.CircleGeometry(.045, 48), new T.MeshPhysicalMaterial({metalness: .75, roughness: .5, map: tex(256, 256, x => {
       const g = x.createRadialGradient(128, 128, 10, 128, 128, 128); g.addColorStop(0, '#b18c52'); g.addColorStop(1, '#6e5129'); x.fillStyle = g; x.fillRect(0, 0, 256, 256);
-      x.save(); x.translate(128, 128); x.fillStyle = '#1f1408'; x.font = `bold 25px ${FONT}`; x.textAlign = 'center';
+      x.save(); x.translate(128, 128); x.fillStyle = '#1f1408'; x.font = `700 27px ${TECH}`; x.textAlign = 'center';
       for (const [label, a] of [['NORMAL', -Math.PI / 4], ['EMERGENCY', Math.PI / 4]] as const) { x.save(); x.rotate(a); x.fillText(label, 0, -88); x.fillRect(-2, -78, 4, 14); x.restore(); }
       x.restore(); x.strokeStyle = 'rgba(40,25,8,.8)'; x.lineWidth = 4; x.beginPath(); x.arc(128, 128, 124, 0, 7); x.stroke(); })}));
     face.position.z = .0042; this.group.add(face);
@@ -125,11 +149,14 @@ export class ModeSelector {
     const bar = new T.Mesh(new T.BoxGeometry(.01, .05, .012), M.brass); bar.position.z = .022; this.knob.add(bar);
     const tip = new T.Mesh(new T.ConeGeometry(.006, .012, 3), M.brass); tip.position.set(0, .03, .022); this.knob.add(tip);
     this.knob.traverse(o => { (o as T.Mesh).castShadow = true; }); this.group.add(this.knob);
-    const lock = labelPlate('MODE', .05, .014, 52); lock.position.set(0, -.058, .002); this.group.add(lock);
-    this.pick.push(plate, face, body, bar, tip);
+    this.window.position.set(0, -.062, .002); this.group.add(this.window);
+    this.pick.push(plate, face, body, bar, tip, this.window);
   }
   /** set by the puzzle configuration only */
-  setMode(m: Mode) { this.mode = m; this.target = m === 'normal' ? Math.PI / 4 : -Math.PI / 4; }
+  /** set by the puzzle configuration only; the window plate spells the mode out (not colour-only) */
+  setMode(m: Mode) { this.mode = m; this.target = m === 'normal' ? Math.PI / 4 : -Math.PI / 4;
+    const plate = labelPlate(m === 'normal' ? 'NORMAL' : 'EMERGENCY', .09, .026, 40, 'enamel', {sub: 'MODE', screws: false});
+    (this.window.geometry as any)?.dispose?.(); this.window.geometry = plate.geometry; this.window.material = plate.material; }
   /** the player can try it: it is locked, so it only judders against its detent */
   tryTurn() { this.shake = .35; }
   update(dt: number) { this.angle += (this.target - this.angle) * Math.min(1, dt * 8); this.shake = Math.max(0, this.shake - dt); this.knob.rotation.z = this.angle + Math.sin(this.shake * 70) * this.shake * .12; }

@@ -8,12 +8,14 @@
 import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
-import {PAGE_W, PAGE_H, renderPage, edgeTexture} from './page-art';
+import {PAGE_W as PW0, PAGE_H as PH0, renderPage, edgeTexture} from './page-art';
 import {paginate, type ManualContent, type ManualPage} from './content';
 import {loadLeather, leatherMapsCached, leatherMaterial, brassMaterial, endpaperTexture, frontTooling, backTooling, spineTooling} from './materials';
 
 export const W = .18, H = .25, TH = .04, C = .0036; // board width, height, total thickness, board thickness
 const PW = W - .0058, PH = H - .0075, P = TH - 2 * C; // page block width/height and total paper thickness
+/** page textures are rendered above the 1024-px logical size for crisp type: 1.5× on desktop, 1.25× on phones */
+let PAGE_W = PW0, PAGE_H = PH0;
 const BANDS = [.1, .22, .56, .66, .88];
 const ease = (t: number) => t < .5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
 const smooth = (a: number, b: number, x: number) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -67,12 +69,12 @@ export class EngineersManual {
   onspread = (spread: number) => {};
 
   static async create(renderer: T.WebGLRenderer, content: ManualContent, quality: 'high' | 'low') {
-    const b = new EngineersManual(); b.quality = quality; await document.fonts.load("30px 'IM Fell English'").catch(() => {}); await Promise.all(["30px 'IM Fell English SC'", "30px 'IM Fell DW Pica'", "30px 'Caveat'", "italic 30px 'IM Fell English'"].map(f => document.fonts.load(f).catch(() => {})));
+    const b = new EngineersManual(); b.quality = quality; await document.fonts.load("30px 'IM Fell English'").catch(() => {}); await Promise.all(["30px 'IM Fell English SC'", "30px 'IM Fell DW Pica'", "30px 'Caveat'", "italic 30px 'IM Fell English'", "400 30px 'Libre Caslon Text'", "italic 400 30px 'Libre Caslon Text'", "700 30px 'Libre Caslon Text'", "500 30px 'Barlow Condensed'", "700 30px 'Barlow Condensed'", "700 30px 'IBM Plex Mono'", "600 30px 'IBM Plex Mono'", "600 30px 'Cinzel'", "800 30px 'Cinzel'"].map(f => document.fonts.load(f).catch(() => {})));
     await b.build(renderer, content); return b;
   }
 
   private async build(renderer: T.WebGLRenderer, content: ManualContent) {
-    const aniso = renderer.capabilities.getMaxAnisotropy(), hi = this.quality === 'high'; let lp: Promise<any> | null = null; const leather = () => lp ||= loadLeather();
+    const aniso = renderer.capabilities.getMaxAnisotropy(), hi = this.quality === 'high'; const k = Math.min(hi ? 1.5 : 1.25, renderer.capabilities.maxTextureSize / PH0); PAGE_W = Math.round(PW0 * k); PAGE_H = Math.round(PH0 * k); let lp: Promise<any> | null = null; const leather = () => lp ||= loadLeather();
     const cw = hi ? 1024 : 640, ch = Math.round(cw * H / W);
     const [fm, bm, sm] = await Promise.all([leatherMapsCached(leather, {w: cw, h: ch, seed: 11, tiles: 2, tooling: frontTooling}, aniso, 'leather-front'), leatherMapsCached(leather, {w: cw, h: ch, seed: 29, tiles: 2, tooling: backTooling}, aniso, 'leather-back'), leatherMapsCached(leather, {w: hi ? 256 : 160, h: hi ? 1408 : 880, seed: 47, tiles: .5, tooling: spineTooling(BANDS), edgeWear: .5}, aniso, 'leather-spine')]);
     const front = leatherMaterial(fm), back = leatherMaterial(bm);
@@ -83,7 +85,8 @@ export class EngineersManual {
     this.texL = pageTex(); this.texR = pageTex(); this.texFront = pageTex(); this.texBack = pageTex();
     // back face of the leaf sees mirrored UVs; flip the texture instead of duplicating geometry
     this.texBack.wrapS = T.RepeatWrapping; this.texBack.repeat.x = -1; this.texBack.offset.x = 1;
-    const paperMat = (map: T.Texture, side: T.Side) => new T.MeshPhysicalMaterial({map, side, roughness: .86, metalness: 0, sheen: .25, sheenRoughness: .8, sheenColor: new T.Color('#fff2d0'), envMapIntensity: .55});
+    // paper albedo slightly below white so the lamp never blows the ink out
+    const paperMat = (map: T.Texture, side: T.Side) => new T.MeshStandardMaterial({map, side, color: new T.Color('#cfc6b4'), roughness: .95, metalness: 0, envMapIntensity: .15});
     const edgeT = new T.CanvasTexture(edgeTexture()); edgeT.colorSpace = T.SRGBColorSpace; edgeT.anisotropy = aniso;
     const edgeMat = new T.MeshStandardMaterial({map: edgeT, roughness: .92, metalness: 0, envMapIntensity: .4, side: T.DoubleSide});
     this.left = new Block(paperMat(this.texL, T.FrontSide), edgeMat, true); this.right = new Block(paperMat(this.texR, T.FrontSide), edgeMat, false);

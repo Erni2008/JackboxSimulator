@@ -86,8 +86,8 @@ export class FuseBox {
     for (const [x, y] of [[-1, 1], [1, 1], [-1, -1], [1, -1]]) box(new T.CylinderGeometry(.009, .009, .008, 6), brassDark, x * (BW / 2 - .035), y * (BH / 2 - .035), WALL + .01).rotation.x = Math.PI / 2;
     for (const y of [TOP + .012, BOT - .012]) box(new RoundedBoxGeometry(BW - .07, .05, .03, 3, .008), porcelain, 0, y, WALL + .021);
     this.mats = {brass, brassDark};
-    this.plateCanvas.width = 512; this.plateCanvas.height = 112; this.plate = new T.CanvasTexture(this.plateCanvas); this.plate.colorSpace = T.SRGBColorSpace; this.plate.anisotropy = 8;
-    const plate = new T.Mesh(rb(.3, .066, .004, .0015), [brass, brass, brass, brass, new T.MeshPhysicalMaterial({map: this.plate, metalness: .75, roughness: .48}), brass]); plate.position.set(0, .215, WALL + .01); this.group.add(plate);
+    this.plateCanvas.width = 1040; this.plateCanvas.height = 360; this.plate = new T.CanvasTexture(this.plateCanvas); this.plate.colorSpace = T.SRGBColorSpace; this.plate.anisotropy = 8;
+    const plate = new T.Mesh(rb(.26, .09, .004, .0015), [brass, brass, brass, brass, new T.MeshPhysicalMaterial({map: this.plate, metalness: .45, roughness: .45, clearcoat: .4, clearcoatRoughness: .35}), brass]); plate.position.set(0, .229, WALL + .01); this.group.add(plate);
     this.door.position.set(-BW / 2 - .006, 0, BD + .012); this.group.add(this.door);
     const leaf = box(rb(BW + .012, BH + .012, .012, .004), doorSteel, BW / 2 + .006, 0, 0, this.door); this.pickDoor.push(leaf);
     // quarter-turn locking handle: escutcheon, spindle and a cast T-lever that turns before the door swings
@@ -153,7 +153,7 @@ export class FuseBox {
       add(new T.CylinderGeometry(.0125, .011, .028, 16), brass, x, y + sgn * .03, WALL + .05);
     }
       // engraved tag riveted to the porcelain block just above the upper terminal
-      const tag = labelPlate(TERMINALS[i], .036, .016, 150); tag.position.set(x, TOP + .036, WALL + .037); this.terminals.add(tag);
+      const tag = labelPlate(TERMINALS[i], .044, .024, 150, 'enamel', {mono: true, screws: false}); tag.position.set(x, TOP + .05, WALL + .026); this.terminals.add(tag);
     }
     mergeStatic(this.terminals, new Set(), false);
   }
@@ -163,13 +163,18 @@ export class FuseBox {
   runTest() { if (this.meter.testing) return false; this.button.push(); this.meter.test(2); this.fxT = 2; this.onTest(this.fault); return true; }
   get testing() { return this.meter.testing; }
 
+  /** SERIAL NO. plate: black enamel field, brass rim and screws, large Plex Mono characters (0/O, 1/I, 5/S never collide) */
   private drawPlate(serial: string) {
-    const c = this.plateCanvas, x = c.getContext('2d')!; const g = x.createLinearGradient(0, 0, 512, 112); g.addColorStop(0, '#8f6e3a'); g.addColorStop(.45, '#bb975c'); g.addColorStop(1, '#7a5c2b'); x.fillStyle = g; x.fillRect(0, 0, 512, 112);
-    const r = rng(serial.charCodeAt(4) * 13); for (let i = 0; i < 1400; i++) { x.fillStyle = `rgba(${r() < .55 ? '55,35,12' : '235,215,165'},${r() * .14})`; x.fillRect(r() * 512, r() * 112, 2 + r() * 10, 1); }
-    for (let i = 0; i < 30; i++) { x.fillStyle = `rgba(60,90,60,${r() * .25})`; x.beginPath(); x.arc(r() * 512, r() * 112, 2 + r() * 10, 0, 7); x.fill(); }
-    x.strokeStyle = 'rgba(45,28,10,.85)'; x.lineWidth = 4; x.strokeRect(9, 9, 494, 94); x.font = "bold 56px 'IM Fell DW Pica', Georgia, serif"; x.textAlign = 'center'; x.textBaseline = 'middle';
-    x.fillStyle = 'rgba(255,240,200,.4)'; x.fillText(`SERIAL: ${serial}`, 257.5, 60); x.fillStyle = '#24160a'; x.fillText(`SERIAL: ${serial}`, 256, 58);
-    for (const [px, py] of [[26, 26], [486, 26], [26, 86], [486, 86]]) { x.fillStyle = '#4e3718'; x.beginPath(); x.arc(px, py, 8, 0, 7); x.fill(); x.strokeStyle = '#2a1a08'; x.lineWidth = 2; x.beginPath(); x.moveTo(px - 6, py); x.lineTo(px + 6, py); x.stroke(); }
+    const c = this.plateCanvas, x = c.getContext('2d')!, W = c.width, H = c.height, r = rng(serial.charCodeAt(1) * 13);
+    const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#1e1915'); g.addColorStop(1, '#0e0b09'); x.fillStyle = g; x.fillRect(0, 0, W, H);
+    for (let i = 0; i < 1500; i++) { x.fillStyle = `rgba(${r() < .5 ? '255,240,210' : '0,0,0'},${r() * .05})`; x.fillRect(r() * W, r() * H, 2 + r() * 20, 1); }
+    x.strokeStyle = '#a17c3e'; x.lineWidth = 14; x.strokeRect(7, 7, W - 14, H - 14); x.strokeStyle = 'rgba(40,25,8,.8)'; x.lineWidth = 3; x.strokeRect(22, 22, W - 44, H - 44);
+    for (const [px, py] of [[48, 48], [W - 48, 48], [48, H - 48], [W - 48, H - 48]]) { const sg = x.createRadialGradient(px - 5, py - 5, 1, px, py, 17); sg.addColorStop(0, '#d8b77a'); sg.addColorStop(1, '#5a4222'); x.fillStyle = sg; x.beginPath(); x.arc(px, py, 17, 0, 7); x.fill(); x.strokeStyle = '#2a1a08'; x.lineWidth = 4; x.beginPath(); x.moveTo(px - 11, py + 4); x.lineTo(px + 11, py - 4); x.stroke(); }
+    x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#b8955a'; x.font = "600 46px 'Cinzel', Georgia, serif";
+    { const t = 'SERIAL NO.'; let w = 0; const sp = 10; for (const ch of t) w += x.measureText(ch).width + sp; let px = W / 2 - w / 2 + sp / 2; x.textAlign = 'left'; for (const ch of t) { x.fillText(ch, px, 92); px += x.measureText(ch).width + sp; } }
+    x.strokeStyle = 'rgba(184,149,90,.5)'; x.lineWidth = 2; x.beginPath(); x.moveTo(170, 128); x.lineTo(W - 170, 128); x.stroke();
+    x.font = "700 170px 'IBM Plex Mono', Menlo, monospace"; const sp = 18; let tw = 0; for (const ch of serial) tw += x.measureText(ch).width + sp; tw -= sp; let px = W / 2 - tw / 2;
+    for (const ch of serial) { x.fillStyle = 'rgba(0,0,0,.7)'; x.fillText(ch, px + 3, 246); x.fillStyle = '#f0e5c9'; x.fillText(ch, px, 242); px += x.measureText(ch).width + sp; }
     this.plate.needsUpdate = true;
   }
 

@@ -1,6 +1,7 @@
 // Programmatic page rendering: paper, letterpress text, engraved diagrams and
 // handwritten notes are all drawn here. Nothing is baked into image files.
 import type {ManualPage, ManualContent, Diagram, Annotation, SymbolGlyph} from './content';
+import {drawRulePage, drawGuidePage} from './rule-pages';
 
 export const PAGE_W = 1024, PAGE_H = 1408;
 const INK = '#24180f', INK_SOFT = 'rgba(36,24,15,.78)', RED = '#8a1f14', PENCIL = 'rgba(70,66,62,.82)';
@@ -9,9 +10,10 @@ const BODY = "'IM Fell English', Georgia, serif", ITAL = "'IM Fell English', Geo
 export function rng(seed: number) { let s = seed >>> 0 || 1; return () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return (s >>> 0) / 4294967296; }; }
 
 /** Aged paper: base tone, fibres, foxing, water stain, edge and gutter darkening. side=-1 left page (gutter on right), 1 right page. */
-export function paper(ctx: CanvasRenderingContext2D, seed: number, side: number) {
+export function paper(ctx: CanvasRenderingContext2D, seed: number, side: number, ivory = false) {
   const r = rng(seed * 7919 + 13), w = PAGE_W, h = PAGE_H;
-  ctx.fillStyle = '#d9c597'; ctx.fillRect(0, 0, w, h);
+  // ivory: the typeset rule pages use a lighter, cleaner stock so dense text keeps its contrast
+  ctx.fillStyle = ivory ? '#e9dcbc' : '#d9c597'; ctx.fillRect(0, 0, w, h);
   let g = ctx.createRadialGradient(w * .5, h * .45, 80, w * .5, h * .5, w * .95);
   g.addColorStop(0, 'rgba(240,226,190,.55)'); g.addColorStop(1, 'rgba(120,86,40,.35)');
   ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
@@ -91,9 +93,11 @@ const M = {l: 104, r: 104, t: 120, b: 128};
 
 export function drawPage(ctx: CanvasRenderingContext2D, page: ManualPage, index: number, content: ManualContent) {
   const side = index % 2 ? 1 : -1, r = rng(index * 31 + 5);
-  paper(ctx, index + 1, side);
+  if (page.layout !== 'rules' && page.layout !== 'guide') paper(ctx, index + 1, side);
   const inner = side > 0 ? M.l + 24 : M.l, x0 = inner, x1 = PAGE_W - (side > 0 ? M.r : M.r + 24), width = x1 - x0;
   ctx.textBaseline = 'alphabetic'; ctx.fillStyle = INK;
+  if (page.layout === 'rules') return drawRulePage(ctx, page as any, index);
+  if (page.layout === 'guide') return drawGuidePage(ctx, index);
   if (page.layout === 'title') return titlePage(ctx, content, r);
   if (page.layout === 'endpaper') { ctx.font = `italic 30px ${ITAL}`; ctx.textAlign = 'center'; ctx.fillStyle = INK_SOFT; ctx.fillText('Notes', PAGE_W / 2, 220); for (let y = 300; y < PAGE_H - 160; y += 64) { ctx.strokeStyle = 'rgba(60,40,20,.25)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke(); } return; }
   // running head
@@ -282,15 +286,17 @@ function glyph(ctx: CanvasRenderingContext2D, g: SymbolGlyph, x: number, y: numb
 
 /** Renders a page, with a faint mirrored show-through of its reverse side as real thin paper has. */
 export function renderPage(target: HTMLCanvasElement, pages: ManualPage[], index: number, content: ManualContent, scratch: HTMLCanvasElement) {
-  const ctx = target.getContext('2d')!;
+  // logical page space stays 1024×1408; the canvas may be larger (high-DPI texture) and is scaled to fit
+  const ctx = target.getContext('2d')!, k = target.width / PAGE_W; ctx.setTransform(k, 0, 0, k, 0, 0); ctx.imageSmoothingQuality = 'high';
   drawPage(ctx, pages[index], index, content);
   const reverse = index % 2 ? index + 1 : index - 1;
   if (reverse >= 0 && reverse < pages.length && pages[reverse].layout !== 'endpaper') {
-    const s = scratch.getContext('2d')!; s.clearRect(0, 0, PAGE_W, PAGE_H); s.save(); s.globalCompositeOperation = 'source-over';
+    const s = scratch.getContext('2d')!; s.setTransform(1, 0, 0, 1, 0, 0); s.clearRect(0, 0, PAGE_W, PAGE_H); s.save(); s.globalCompositeOperation = 'source-over';
     // ink only: draw reverse page then knock out the paper by luminance threshold is too slow; instead draw it multiplied at low alpha
     drawPage(s, pages[reverse], reverse, content); s.restore();
-    ctx.save(); ctx.globalAlpha = .07; ctx.globalCompositeOperation = 'multiply'; ctx.translate(PAGE_W, 0); ctx.scale(-1, 1); ctx.drawImage(scratch, 0, 0); ctx.restore();
+    ctx.save(); ctx.globalAlpha = .045; ctx.globalCompositeOperation = 'multiply'; ctx.translate(PAGE_W, 0); ctx.scale(-1, 1); ctx.drawImage(scratch, 0, 0); ctx.restore();
   }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 
 /** Page-edge texture for the sides of the text block: hundreds of fine sheet lines. */

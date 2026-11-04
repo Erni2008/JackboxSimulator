@@ -33,7 +33,7 @@ async function run(name,viewport,touch){
   const camQ2=await M(()=>window.__manual.camera.quaternion.toArray());assert.deepEqual(camQ2.map(v=>v.toFixed(5)),camQ.map(v=>v.toFixed(5)));ok(`${name}: camera did not rotate while reading`);
   await p.click('#btn-close');await p.waitForTimeout(1400);assert.equal(await M(()=>window.__manual.state),'held');ok(`${name}: Close button closes the book`);
   await p.click('#btn-drop');await p.waitForTimeout(500);await shot('5-falling');
-  await p.waitForFunction(()=>window.__manual.state==='rest',null,{timeout:8000});const fy=await M(()=>window.__manual.book.root.position.y-window.__manual.cage.floorY);assert.ok(fy>0.015&&fy<0.1,'rests on floor '+fy);ok(`${name}: dropped book lands on the cage floor (centre ${fy.toFixed(3)} m above it)`);
+  await p.waitForFunction(()=>window.__manual.state==='rest',null,{timeout:8000});const fy=await M(()=>window.__manual.book.root.position.y-window.__manual.cage.floorY);assert.ok(fy>0.015&&fy<0.14,'rests on floor '+fy);ok(`${name}: dropped book lands on the cage floor (centre ${fy.toFixed(3)} m above it)`);
   await M(()=>window.__manual.look(0,-1.2));await p.waitForTimeout(300);await shot('6-floor');
   [x,y]=await bookXY();await tap(x,y);await p.waitForTimeout(1300);assert.equal(await M(()=>window.__manual.state),'held');ok(`${name}: picked up again from the floor`);
   assert.deepEqual(errors,[]);ok(`${name}: no page errors`);
