@@ -86,10 +86,14 @@ export class EngineersManual {
     // back face of the leaf sees mirrored UVs; flip the texture instead of duplicating geometry
     this.texBack.wrapS = T.RepeatWrapping; this.texBack.repeat.x = -1; this.texBack.offset.x = 1;
     // paper albedo slightly below white so the lamp never blows the ink out
-    const paperMat = (map: T.Texture, side: T.Side) => new T.MeshStandardMaterial({map, side, color: new T.Color('#cfc6b4'), roughness: .95, metalness: 0, envMapIntensity: .15});
+    const paperMat = (map: T.Texture, side: T.Side, gutter = -1) => { const m = new T.MeshStandardMaterial({map, side, color: new T.Color('#cfc6b4'), roughness: .95, metalness: 0, envMapIntensity: .15});
+      // bound-book gutter: paper rolls into the binding, so it darkens softly toward the spine with a faint highlight on the roll
+      if (gutter >= 0) m.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+        { float g = abs(vMapUv.x - ${gutter.toFixed(1)}); diffuseColor.rgb *= mix(.42, 1., smoothstep(.0, .075, g)) * (1. + .07 * smoothstep(.06, .1, g) * (1. - smoothstep(.1, .16, g))); }`); };
+      return m; };
     const edgeT = new T.CanvasTexture(edgeTexture()); edgeT.colorSpace = T.SRGBColorSpace; edgeT.anisotropy = aniso;
     const edgeMat = new T.MeshStandardMaterial({map: edgeT, roughness: .92, metalness: 0, envMapIntensity: .4, side: T.DoubleSide});
-    this.left = new Block(paperMat(this.texL, T.FrontSide), edgeMat, true); this.right = new Block(paperMat(this.texR, T.FrontSide), edgeMat, false);
+    this.left = new Block(paperMat(this.texL, T.FrontSide, 1), edgeMat, true); this.right = new Block(paperMat(this.texR, T.FrontSide, 0), edgeMat, false);
 
     // boards: canonical frame x∈[0,W], y∈[-C,0] (outer face y=0), z∈[-H/2,H/2]
     const boardGeo = new RoundedBoxGeometry(W, C, H, 3, .0011); boardGeo.translate(W / 2, -C / 2, 0);
@@ -177,8 +181,9 @@ export class EngineersManual {
     this.frontBoard.position.set(S.x, S.y, 0); this.frontBoard.rotation.set(0, 0, th);
     // blocks slide toward the gutter as the spine flattens, and sag into it
     const slide = o * TH / 2;
-    this.right.build(R, dip, PW + slide); this.right.mesh.position.x = .0012 - slide * 1.04;
-    this.left.build(L, dip, PW + slide); this.left.mesh.position.x = .0012 - slide * 1.04;
+    const even = (v: number) => v + ((L + R) / 2 - v) * smooth(.4, 1, o) * .75, meet = slide * (1.04 + .05 * smooth(.6, 1, o));
+    this.right.build(even(R), dip, PW + slide); this.right.mesh.position.x = .0012 - meet;
+    this.left.build(even(L), dip, PW + slide); this.left.mesh.position.x = .0012 - meet;
     this.sweepSpine(A, S, o);
     // keep the book centred on whatever is its visual middle (closed: board centre, open: gutter)
     this.inner.position.set(-(W / 2) * (1 - o) + (TH / 2) * o, -(TH / 2) * (1 - o) - C * o, 0);

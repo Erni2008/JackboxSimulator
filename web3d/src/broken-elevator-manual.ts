@@ -61,7 +61,7 @@ async function boot() {
   if (ci) box.group.position.set(ci.min.x * .45, floorY + 1.3, ci.min.z + .008); else box.group.position.set(-.45, 1.3, -.79);
   scene.add(box.group);
   box.sounds = {door: o => audio.play(o ? 'doorOpen' : 'doorClose'), snip: () => audio.play('snip'), spark: () => audio.play('spark'), good: () => audio.play('good'), bad: () => audio.play('bad')};
-  const TOTAL = 12, LIMIT = 45; let taskNo = 1, deadline = 0, taskSeed = seed, pending: any = 0;
+  const TOTAL = 12, LIMIT = 60; let taskNo = 1, deadline = 0, taskSeed = seed, pending: any = 0;
   const hud = () => { $('task').textContent = `ЗАДАНИЕ ${taskNo} / ${TOTAL}`; };
   // result card: low on screen (≈85 % of the viewport), fades in, a small mechanical jolt, holds, fades out (~2 s)
   let verdictTimer: any = 0;
@@ -71,11 +71,12 @@ async function boot() {
   const finish = (ok: boolean, why: string) => { box.locked = true; box.setLamp(ok ? 'good' : 'bad'); audio.play(ok ? 'good' : 'bad'); verdict(ok, ok ? 'РЕМОНТ УСПЕШЕН' : why); hud(); deadline = 0; clearTimeout(pending); pending = setTimeout(() => { if (box.open) box.toggleDoor(); setTimeout(() => newTask(ok), 500); }, 2400); };
   box.onCut = i => { const ok = i === box.task!.answer; finish(ok, 'НЕВЕРНЫЙ ПРОВОД'); if (!ok) setTimeout(() => cage.drop?.(.8), 350); };
   // the car lurches down toward the lava: screech + rattle while falling, a slam and a hard shake on the catch
-  let shake = 0, falling = false, fallTimer: any = 0; const fov0 = camera.fov;
-  // wrong answer: leave the close-up, snap the view down at the lava, alarm overlay + speed streaks + FOV punch while the car drops
-  cage.onFallStart = () => { audio.play('screech'); shake = Math.max(shake, .6); falling = true; clearTimeout(fallTimer); if (inspecting) setInspect(false); focusTo = [yawT, -.42];
-    document.body.classList.remove('falling', 'landed'); void document.body.offsetWidth; document.body.classList.add('falling'); };
-  cage.onFallImpact = (k: number) => { audio.play('slam', k); shake = .9 * k + .6; falling = false; fallTimer = setTimeout(() => { document.body.classList.add('landed'); fallTimer = setTimeout(() => document.body.classList.remove('falling', 'landed'), 1300); }, 1100); };
+  // wrong answer: the brake lets go. Mains power cuts, the red emergency beacon spins up, the head floats in free fall
+  // and the view tips toward the shaft; on the catch: a hard slam, the body compresses, power sputters back.
+  let shake = 0, falling = false, fallT = -1, landT = -1, headY = 0, headV = 0; const fov0 = camera.fov;
+  cage.onFallStart = () => { audio.play('screech'); shake = Math.max(shake, .5); falling = true; fallT = 0; landT = -1; if (inspecting) setInspect(false); focusTo = [yawT, -.42];
+    const tag = $('fall'); tag.classList.remove('show'); void tag.offsetWidth; tag.classList.add('show'); document.body.classList.add('falling'); };
+  cage.onFallImpact = (k: number) => { audio.play('slam', k); shake = .9 * k + .6; falling = false; landT = 0; headV = -1.6 * k; setTimeout(() => { $('fall').classList.remove('show'); document.body.classList.remove('falling'); }, 2400); };
   // PHASE 1 dev configuration: ?fault=overload|short|power&mode=normal|emergency&wires=4..6 (no production generation yet)
   // dev overrides: ?fault=overload|short|power&mode=normal|emergency&wires=4..6 (otherwise each task varies)
   const fixed: any = {}; if (['overload', 'short', 'power'].includes(params.get('fault') || '')) fixed.fault = params.get('fault'); if (['normal', 'emergency'].includes(params.get('mode') || '')) fixed.mode = params.get('mode');
@@ -143,7 +144,13 @@ async function boot() {
     if (focusTo) { let dy = focusTo[0] - yawT; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yawT += dy * Math.min(1, dt * 5); pitchT += (focusTo[1] - pitchT) * Math.min(1, dt * 5); if (Math.abs(dy) < .002 && Math.abs(focusTo[1] - pitchT) < .002) focusTo = null; }
     { const left = deadline ? Math.max(0, (deadline - performance.now()) / 1000) : LIMIT; $('clock-num').textContent = String(Math.ceil(left)); ($('clock-ring') as any).style.strokeDashoffset = String(176 * (1 - left / LIMIT)); $('clock').dataset.urgent = String(!!deadline && left < 10); if (deadline && left <= 0 && !box.locked) { finish(false, 'ВРЕМЯ ВЫШЛО'); setTimeout(() => cage.drop?.(.8), 350); } }
     const surface = cage.shelf && Math.abs(book.root.position.y - TH / 2 - cage.shelf.top.y) < .2 && Math.abs(book.root.position.z - cage.shelf.top.z) < .2 ? cage.shelf.top.y : floorY; const h = Math.max(0, book.root.position.y - TH / 2 - surface); shadow.position.set(book.root.position.x, surface + .0012, book.root.position.z); shadow.rotation.z = new T.Euler().setFromQuaternion(book.root.quaternion, 'YXZ').y; (shadow.material as T.MeshBasicMaterial).opacity = .75 * Math.max(0, 1 - h / .18); shadow.visible = h < .18;
-    { const f = camera.fov, target = falling ? fov0 + 16 : fov0; if (Math.abs(f - target) > .05) { camera.fov += (target - f) * (1 - Math.exp(-dt * (falling ? 9 : 3))); camera.updateProjectionMatrix(); } if (falling) shake = Math.max(shake, .45); }
+    { // fall choreography (runs on top of the normal camera pose)
+      if (fallT >= 0) fallT += dt; if (landT >= 0) landT += dt;
+      const target = falling ? fov0 + 9 : fov0; if (Math.abs(camera.fov - target) > .05) { camera.fov += (target - camera.fov) * (1 - Math.exp(-dt * (falling ? 7 : 2.5))); camera.updateProjectionMatrix(); }
+      if (falling) { shake = Math.max(shake, .35); cage.power = Math.random() < .25 ? .35 : .08; cage.alarmLevel = Math.min(1, fallT * 6); headV += (1.2 - headV) * Math.min(1, dt * 6); }
+      else if (landT >= 0) { cage.power = landT < .25 ? .05 : landT < 1.4 ? (Math.random() < .5 ? .25 : .9) * Math.min(1, landT) : Math.min(1, cage.power + dt); cage.alarmLevel = Math.max(0, 1 - Math.max(0, landT - 1.2) / 1.6); if (landT > 3) { landT = -1; fallT = -1; cage.power = 1; cage.alarmLevel = 0; } }
+      // head: floats up a little in free fall, compresses on the catch, springs back
+      headV += (-headY * 90 - headV * 12) * dt; headY += headV * dt; if (Math.abs(headY) > 1e-4 || falling || landT >= 0) camera.position.y += headY * .05; }
     if (shake > .002) { const a = shake * shake; camera.position.add(new T.Vector3((Math.random() - .5) * .05 * a, (Math.random() - .5) * .07 * a, (Math.random() - .5) * .03 * a)); camera.rotateZ((Math.random() - .5) * .03 * a); shake *= Math.exp(-dt * 4); }
     // shadows refresh every other frame: invisible at 60 fps, halves the shadow-pass cost
     if (frameNo++ % (shadowEvery + 1) === 0) renderer.shadowMap.needsUpdate = true;

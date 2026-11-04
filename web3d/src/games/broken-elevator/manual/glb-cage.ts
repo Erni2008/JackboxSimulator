@@ -95,7 +95,11 @@ export async function buildGlbCage(renderer: T.WebGLRenderer, scene: T.Scene, hi
   let t = 0;
   // the car "falls" by bringing the lava up toward it: same picture from inside, no need to move the whole rig
   let lavaY = floorY - 3.2, lavaTarget = lavaY, fallV = 0; const minGap = .55;
-  const api = {root, mesh, planes, floorY, ceilingY, inner, eye, lamp, shelf: {group: shelf, top: shelfTop, facing: 0},
+  // emergency beacon under the ceiling: dark until the car drops
+  const alarm = new T.PointLight('#ff2a10', 0, 6, 1.6); alarm.position.set(0, ceilingY - .25, 0); scene.add(alarm);
+  const api = {root, mesh, planes, floorY, ceilingY, inner, eye, lamp, alarm,
+    /** 0..1 mains power to the car lamp (the fall cuts it, the catch brings it back) */
+    power: 1, alarmLevel: 0, shelf: {group: shelf, top: shelfTop, facing: 0},
     /** fraction of the drop left before the lava (1 = top of the shaft) */
     get height() { return (floorY - lavaY - minGap) / (3.2 - minGap); },
     onFallStart: () => {}, onFallImpact: (_strength: number) => {},
@@ -104,7 +108,8 @@ export async function buildGlbCage(renderer: T.WebGLRenderer, scene: T.Scene, hi
     update(dt: number) {
     if (lavaY < lavaTarget) { fallV += 9.8 * 1.4 * dt; lavaY = Math.min(lavaTarget, lavaY + fallV * dt); lava.setY(lavaY); if (lavaY >= lavaTarget) { api.onFallImpact(Math.min(1.5, fallV / 3)); fallV = 0; } }
     t += dt; lava.update(dt);
-    const f = Math.random() < .003 ? .3 : 1; lamp.intensity = 34 * (.97 + Math.sin(t * 47) * .015) * f; bulb.intensity = 2.2 * f;
+    const f = Math.random() < .003 ? .3 : 1; lamp.intensity = 34 * (.97 + Math.sin(t * 47) * .015) * f * api.power; bulb.intensity = 2.2 * f * api.power;
+    alarm.intensity = api.alarmLevel * 9 * (.55 + .45 * Math.max(0, Math.sin(t * 9)));
   }};
   return api;
 }
