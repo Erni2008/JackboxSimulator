@@ -6,6 +6,7 @@ import {canvasTex, rng, TECH, type Mats} from './pressure-parts';
 const A0 = -Math.PI * .75, A1 = Math.PI * .75;
 
 export class PressureGauge {
+  broken = false; private glass!: T.Mesh;
   group = new T.Group(); private needle = new T.Group(); private angle = A0; private vel = 0; private t = 0;
   private canvas = document.createElement('canvas'); private dial: T.CanvasTexture; private face: T.MeshStandardMaterial; private zone = [0, 0];
 
@@ -22,7 +23,7 @@ export class PressureGauge {
     const tip = new T.Mesh(new T.BoxGeometry(.004, R2 * .16, .0035), new T.MeshStandardMaterial({color: '#9e1d10', roughness: .5})); tip.position.y = R2 * .73; this.needle.add(tip);
     const cap = new T.Mesh(new T.CylinderGeometry(.011, .011, .008, 24), mats.brass); cap.rotation.x = Math.PI / 2; this.needle.add(cap); this.needle.position.z = .076; this.group.add(this.needle);
     const glass = new T.Mesh(new T.CircleGeometry(R2 + .002, 48), new T.MeshPhysicalMaterial({color: '#ffffff', transparent: true, opacity: .1, roughness: .12, metalness: 0, depthWrite: false, roughnessMap: canvasTex(256, 256, x => { x.fillStyle = '#1a1a1a'; x.fillRect(0, 0, 256, 256); x.strokeStyle = '#cfcfcf'; for (let i = 0; i < 50; i++) { x.globalAlpha = .2 + r() * .5; x.lineWidth = .5 + r(); x.beginPath(); const a = r() * 256, b = r() * 256; x.moveTo(a, b); x.lineTo(a + (r() - .5) * 90, b + (r() - .5) * 40); x.stroke(); } }, false)}));
-    glass.position.z = .081; this.group.add(glass);
+    glass.position.z = .081; this.group.add(glass); this.glass = glass;
     for (let k = 0; k < 4; k++) { const sb = new T.Mesh(new T.CylinderGeometry(.005, .005, .006, 8), mats.brassDark); sb.rotation.x = Math.PI / 2; const a = k * Math.PI / 2 + Math.PI / 4; sb.position.set(Math.cos(a) * (R2 + .006), Math.sin(a) * (R2 + .006), .082); this.group.add(sb); }
   }
 
@@ -47,9 +48,12 @@ export class PressureGauge {
 
   /** a line-noise knock: the needle jerks with the kick and settles through its inertia */
   kick(d: number) { this.vel += d * .09; }
+  /** 120 PSI: the glass blows out and the needle tears past the stop */
+  shatter() { this.broken = true; this.glass.visible = false; this.vel += 9; }
+  repair() { this.broken = false; this.glass.visible = true; }
   /** psi: target pressure; jitter: 0..1 vibration (surge warning / critical); zone: needle inside the green arc */
   update(dt: number, psi: number, jitter: number, zone: boolean) {
-    this.t += dt; const aim = A0 + Math.max(-1, Math.min(121, psi)) / 120 * (A1 - A0);
+    this.t += dt; const aim = this.broken ? A1 + .55 : A0 + Math.max(-1, Math.min(121, psi)) / 120 * (A1 - A0);
     const k = 70, damp = 2 * Math.sqrt(k) * .8; this.vel += (k * (aim - this.angle) - damp * this.vel) * dt; this.angle += this.vel * dt; // slightly under-damped: visible inertia
     this.needle.rotation.z = -(this.angle + Math.sin(this.t * 63) * .014 * jitter + Math.sin(this.t * 41) * .008 * jitter);
     this.face.emissive.set(zone ? '#c8ffd2' : '#ffffff'); this.face.emissiveIntensity += ((zone ? .85 : .5) - this.face.emissiveIntensity) * Math.min(1, dt * 8);

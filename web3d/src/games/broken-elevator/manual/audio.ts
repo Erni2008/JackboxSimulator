@@ -4,7 +4,7 @@
 // filtered noise and modal resonators — no placeholder files are shipped.
 // Drop real recordings into SAMPLE_URLS to override any synthesised voice.
 export const SAMPLE_URLS: Partial<Record<Voice, string>> = {pageTurn: 'audio/page_turn.wav'};
-export type Voice = 'coverOpen' | 'coverClose' | 'pageTurn' | 'pickup' | 'drop' | 'impactMetal' | 'creak' | 'snip' | 'spark' | 'good' | 'bad' | 'doorOpen' | 'doorClose' | 'button' | 'locked' | 'screech' | 'slam' | 'valveClick' | 'valveTurn' | 'alarm' | 'holdTick' | 'pipeKnock' | 'grind' | 'relay' | 'lever' | 'whistle' | 'surge' | 'vent' | 'burst';
+export type Voice = 'coverOpen' | 'coverClose' | 'pageTurn' | 'pickup' | 'drop' | 'impactMetal' | 'creak' | 'snip' | 'spark' | 'good' | 'bad' | 'doorOpen' | 'doorClose' | 'button' | 'locked' | 'screech' | 'slam' | 'valveClick' | 'valveTurn' | 'alarm' | 'holdTick' | 'pipeKnock' | 'grind' | 'relay' | 'lever' | 'whistle' | 'surge' | 'vent' | 'burst' | 'explosion';
 
 export class BookAudio {
   ctx: AudioContext | null = null; out!: GainNode; private buffers = new Map<Voice, AudioBuffer>(); private noise!: AudioBuffer; enabled = true;
@@ -73,6 +73,9 @@ export class BookAudio {
       case 'whistle': { for (const [f0, g0] of [[1860, .05], [2790, .025]] as const) { const o = this.ctx!.createOscillator(), g = this.ctx!.createGain(); o.frequency.setValueAtTime(f0 * .9, t); o.frequency.linearRampToValueAtTime(f0, t + .25); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(g0, t + .15); g.gain.setValueAtTime(g0, t + 1.6); g.gain.linearRampToValueAtTime(0, t + 1.9); o.connect(g).connect(this.out); o.start(t); o.stop(t + 2); } this.rustle(t, 1.9, 3000, 3, .12, .1); break; } // steam whistle
       case 'surge': this.rustle(t, .6, 120, .8, 1.1, .01); this.rustle(t, .5, 1600, .6, .5, .01); this.mode(t, 70, .5, .25); break; // surge thump through the pipes
       case 'vent': this.rustle(t, .45 * intensity + .15, 2600, .6, .45 * intensity, .01); break; // release puff
+      case 'explosion': { const k = 1.6; this.rustle(t, 1.2, 70, .7, 2.2 * k, .002); this.rustle(t, .6, 260, .8, 1.2 * k, .002); this.rustle(t, .25, 3200, .5, 1.1, .001); this.mode(t, 48, .9, .5); this.mode(t, 110, .5, .3); // boom
+        for (let i = 0; i < 14; i++) this.rustle(t + .05 + Math.random() * .7, .05, 2500 + Math.random() * 4000, 2, .4 * Math.random() + .15, .001); // glass and shrapnel
+        this.rustle(t + .1, 2.6, 2000, .45, .7, .05); break; } // steam roar
       case 'burst': this.rustle(t, 1.6, 2200, .5, .9, .01); this.rustle(t, 1.2, 600, .7, .6, .01); this.mode(t, 90, .4, .2); break; // emergency release / failure
       case 'pipeKnock': this.rustle(t, .12, 160, 1.5, .5 * Math.min(1, intensity), .002); this.mode(t, 95, .18, .12 * Math.min(1, intensity)); break; // pipe hammer under critical pressure
     }

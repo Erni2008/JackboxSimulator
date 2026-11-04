@@ -74,11 +74,13 @@ async function critical(b, seat) {
   const s = await page(b, false, seat); await tap(s, 'bypass'); let v = await settle(s); if (v.fine) { await tap(s, 'fine'); v = await settle(s); }
   const h0 = await s.p.evaluate(() => window.__manual.cage.height);
   for (let i = 0; i < 14 && v.outcome === 'RUNNING'; i++) { await turn(s, 'red'); v = await settle(s, 300); }
+  await s.p.waitForTimeout(60); await s.p.screenshot({path: `${out}/valves-explosion.png`});
   assert.equal(v.outcome, 'FAILED'); assert.equal(v.failReason, 'CRITICAL'); ok('critical: 120 PSI fails the machine');
-  await s.p.waitForTimeout(1200); assert.equal(await s.p.evaluate(() => document.querySelector('#verdict b').textContent), 'Отказ системы давления'); ok('critical: "Отказ системы давления · PRESSURE SYSTEM FAILED" shown');
+  await turn(s, 'blue'); v = await settle(s, 250); assert.equal(v.outcome, 'FAILED'); assert.equal(v.pressure, 120); ok('critical: controls locked after the explosion');
+  await s.p.waitForTimeout(1200); assert.equal(await s.p.evaluate(() => document.querySelector('#verdict b').textContent), 'Взрыв системы давления'); ok('critical: "Взрыв системы давления · PRESSURE SYSTEM FAILED" shown');
+  assert.ok(await s.p.evaluate(() => window.__manual.press.gauge.broken)); ok('critical: the gauge glass blew out (system explosion)');
   assert.ok(await s.p.evaluate(() => window.__manual.cage.height) < h0); ok('critical: existing penalty fired (the car drops)');
   assert.equal(await s.p.evaluate(() => window.__manual.link.penalties), 1); ok('critical: server recorded exactly one penalty');
-  await turn(s, 'blue'); v = await settle(s); assert.equal(v.outcome, 'FAILED'); assert.equal(v.pressure, 120); ok('critical: controls locked after failure');
   assert.deepEqual(s.errors, []); await s.p.close();
 }
 

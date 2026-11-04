@@ -69,7 +69,7 @@ async function boot() {
   if (ci) press.group.position.set(ci.max.x - .006, floorY + 1.28, .12); else press.group.position.set(1.2, 1.3, .1);
   press.group.rotation.y = -Math.PI / 2; scene.add(press.group); press.group.updateMatrixWorld(true);
   press.sounds = {click: () => audio.play('valveClick'), turn: () => audio.play('valveTurn'), grind: () => audio.play('grind'), lever: () => audio.play('lever'), press: () => { audio.play('button'); audio.play('relay'); }, pull: () => audio.play('lever'),
-    knock: k => audio.play('pipeKnock', k), alarm: () => audio.play('alarm'), whistle: () => audio.play('whistle'), surge: () => audio.play('surge'), vent: k => audio.play('vent', k), burst: () => audio.play('burst'), tick: k => audio.play('holdTick', k), steam: (h, r) => audio.steam(h, r)};
+    knock: k => audio.play('pipeKnock', k), alarm: () => audio.play('alarm'), whistle: () => audio.play('whistle'), surge: () => audio.play('surge'), vent: k => audio.play('vent', k), burst: () => audio.play('burst'), explosion: () => audio.play('explosion'), tick: k => audio.play('holdTick', k), steam: (h, r) => audio.steam(h, r)};
   const link = new PressureLink(); press.onAction = a => link.act(a);
   link.onRejected = code => { if (code === 'EMERGENCY_USED') { $('hint').textContent = 'Аварийный сброс уже использован'; $('hint').style.opacity = '1'; } };
   link.onStatus = t => { if (t) $('hint').textContent = t; };
@@ -93,8 +93,10 @@ async function boot() {
   let pressureDone = false;
   // one penalty / reward per machine: pressureDone guards against repeated server pushes
   link.onOutcome = (o, reason) => { if (kind !== 'pressure' || pressureDone) return; pressureDone = true; press.enabled = false; const ok = o === 'STABILIZED';
-    audio.play(ok ? 'good' : 'bad'); if (!ok) audio.play('burst');
-    verdict(ok, ok ? 'PRESSURE STABILIZED · СПУСК ОСТАНОВЛЕН' : 'PRESSURE SYSTEM FAILED · ' + (reason === 'CRITICAL' ? 'КРИТИЧЕСКОЕ ДАВЛЕНИЕ 120 PSI' : 'ВРЕМЯ ВЫШЛО'), ok ? 'Давление стабилизировано' : 'Отказ системы давления'); if (!ok) setTimeout(() => cage.drop?.(.8), 350);
+    const blast = !ok && reason === 'CRITICAL';
+    audio.play(ok ? 'good' : 'bad'); if (!ok && !blast) audio.play('burst');
+    if (blast) { shake = 1.7; const f = $('blast'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); document.body.classList.remove('jolt'); void document.body.offsetWidth; document.body.classList.add('jolt'); }
+    verdict(ok, ok ? 'PRESSURE STABILIZED · СПУСК ОСТАНОВЛЕН' : 'PRESSURE SYSTEM FAILED · ' + (reason === 'CRITICAL' ? '120 PSI' : 'ВРЕМЯ ВЫШЛО'), ok ? 'Давление стабилизировано' : blast ? 'Взрыв системы давления' : 'Отказ системы давления'); if (!ok) setTimeout(() => cage.drop?.(.8), blast ? 650 : 350);
     clearTimeout(pending); pending = setTimeout(() => { if (inspecting && inspectTarget === 'pressure') setInspect(false); setTimeout(() => newTask(ok), 400); }, 2600); };
   const finish = (ok: boolean, why: string) => { box.locked = true; box.setLamp(ok ? 'good' : 'bad'); audio.play(ok ? 'good' : 'bad'); verdict(ok, ok ? 'РЕМОНТ УСПЕШЕН' : why); hud(); deadline = 0; clearTimeout(pending); pending = setTimeout(() => { if (box.open) box.toggleDoor(); setTimeout(() => newTask(ok), 500); }, 2400); };
   box.onCut = i => { const ok = i === box.task!.answer; finish(ok, 'НЕВЕРНЫЙ ПРОВОД'); if (!ok) setTimeout(() => cage.drop?.(.8), 350); };

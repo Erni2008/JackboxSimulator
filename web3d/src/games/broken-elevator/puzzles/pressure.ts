@@ -12,7 +12,7 @@ import {Control, Wheel, Lever, PushButton, PullHandle, PipeClamp, type Feedback}
 import type {ValveView} from './pressure-link';
 import {VERIFY_MS, type Action} from './pressure-sim';
 
-export interface MachineSounds extends Feedback { alarm(): void; whistle(): void; surge(): void; vent(k: number): void; burst(): void; tick(k: number): void; steam(hiss: number, rumble: number): void; knock(k: number): void }
+export interface MachineSounds extends Feedback { explosion?(): void; alarm(): void; whistle(): void; surge(): void; vent(k: number): void; burst(): void; tick(k: number): void; steam(hiss: number, rumble: number): void; knock(k: number): void }
 
 export class PressureMachine {
   group = new T.Group(); enabled = false;
@@ -23,6 +23,7 @@ export class PressureMachine {
   private verify: T.MeshStandardMaterial[] = []; private relays: T.MeshStandardMaterial[] = []; private warnLight: T.PointLight; private pipes = new T.Group();
   private codeCanvas = document.createElement('canvas'); private codeTex: T.CanvasTexture; private codeShown = '?';
   private active: Control | null = null; private t = 0; private lastEffect = -1; private alarmT = 0; private whistleT = 0; private lastVerifyStep = 0; private lastOutcome = 'RUNNING'; private surgedSeen = false;
+  private debris: {m: T.Mesh; v: T.Vector3; w: T.Vector3; life: number}[] = []; private sparks!: T.Points; private sparkV!: Float32Array; private sparkT = 9; private flash!: T.PointLight; private blastT = 9; private stack!: T.Mesh;
   private steam: T.Points; private sp: Float32Array; private life: Float32Array; private cursor = 0; private nozzle = new T.Vector3(); private leakAt = new T.Vector3(); private ventAt = new T.Vector3(); private leakAcc = 0;
 
   constructor(hi: boolean) {
@@ -47,7 +48,7 @@ export class PressureMachine {
     const tube = (pts: T.Vector3[], rad: number, mat: T.Material) => { const c = new T.CatmullRomCurve3(pts, false, 'catmullrom', .05); const mesh = new T.Mesh(new T.TubeGeometry(c, hi ? 48 : 24, rad, hi ? 14 : 10, false), mat); this.pipes.add(mesh); return mesh; };
     tube([v3(-.44, mY, mZ), v3(.17, mY, mZ)], .016, m.copper);
     tube([v3(-.42, -.32, mZ), v3(-.42, -.2, mZ), v3(-.42, -.12, mZ), v3(-.405, mY, mZ)], .017, m.copper);
-    tube([v3(.16, mY, mZ), v3(.17, -.04, mZ), v3(.17, .12, mZ), v3(.17, .25, mZ), v3(.18, .29, mZ + .02), v3(.19, .3, mZ + .06)], .013, m.copper);
+    this.stack = tube([v3(.16, mY, mZ), v3(.17, -.04, mZ), v3(.17, .12, mZ), v3(.17, .25, mZ), v3(.18, .29, mZ + .02), v3(.19, .3, mZ + .06)], .013, m.copper);
     this.nozzle.set(.19, .305, mZ + .075); const nz = new T.Mesh(new T.CylinderGeometry(.009, .015, .03, 16), m.brass); nz.position.copy(this.nozzle).add(v3(0, -.012, -.01)); nz.rotation.x = .9; this.pipes.add(nz);
     const joint = new T.Mesh(new T.CylinderGeometry(.022, .022, .03, 16), new T.MeshStandardMaterial({color: '#3a2a1c', metalness: .6, roughness: .85})); joint.rotation.z = QUARTER; joint.position.set(-.37, mY, mZ); this.pipes.add(joint); this.leakAt.set(-.37, mY + .02, mZ + .015);
     for (const [x, y, rz] of [[-.42, -.2, 0], [.17, .1, 0], [-.44, mY, QUARTER]] as const) { const f = new T.Mesh(new T.CylinderGeometry(.027, .027, .012, 20), m.brassDark); f.position.set(x, y, mZ); f.rotation.z = rz; this.pipes.add(f); }
@@ -95,6 +96,27 @@ export class PressureMachine {
       vertexShader: 'attribute float age; attribute float size; uniform float px; varying float vA; void main(){ vec4 mv = modelViewMatrix * vec4(position,1.); vA = age; gl_PointSize = px * size * (.35 + age) * 520. / -mv.z; gl_Position = projectionMatrix * mv; }',
       fragmentShader: 'varying float vA; void main(){ vec2 d = gl_PointCoord - .5; float r = length(d); if (vA <= 0. || r > .5) discard; float a = smoothstep(.5, .0, r) * (1. - vA) * min(1., vA * 6.) * .34; gl_FragColor = vec4(vec3(.86, .84, .8), a); }'}));
     this.steam.frustumCulled = false; this.group.add(this.steam);
+    // explosion kit: glass shards, sparks, a blast light
+    const glassMat = new T.MeshPhysicalMaterial({color: '#e8f0ff', transparent: true, opacity: .55, roughness: .05, metalness: 0, side: T.DoubleSide});
+    for (let i = 0; i < 16; i++) { const g = new T.BufferGeometry(); const a = .006 + Math.random() * .02; g.setAttribute('position', new T.Float32BufferAttribute([0, 0, 0, a, a * .3, 0, a * .2, a * (.6 + Math.random()), 0], 3)); g.computeVertexNormals();
+      const sh = new T.Mesh(g, i % 4 ? glassMat : m.brassDark); sh.visible = false; this.group.add(sh); this.debris.push({m: sh, v: new T.Vector3(), w: new T.Vector3(), life: 0}); }
+    const SN = 60; this.sparkV = new Float32Array(SN * 3); const sg = new T.BufferGeometry(); sg.setAttribute('position', new T.BufferAttribute(new Float32Array(SN * 3), 3));
+    this.sparks = new T.Points(sg, new T.PointsMaterial({color: '#ffb35a', size: .012, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false})); this.sparks.frustumCulled = false; this.group.add(this.sparks);
+    this.flash = new T.PointLight('#ffb070', 0, 4, 1.6); this.flash.position.set(-.13, .13, .25); this.group.add(this.flash);
+  }
+  /** 120 PSI: the system bursts — gauge glass blows out, the needle tears, steam and sparks everywhere, the vent stack kinks */
+  explode() {
+    const c = this.gauge.group.position; this.gauge.shatter(); this.blastT = 0; this.sparkT = 0;
+    this.debris.forEach(d => { d.m.visible = true; d.m.position.set(c.x + (Math.random() - .5) * .12, c.y + (Math.random() - .5) * .12, .085); d.v.set((Math.random() - .5) * 1.6, Math.random() * 1.2 + .2, .6 + Math.random() * 1.4); d.w.set(Math.random() * 20, Math.random() * 20, Math.random() * 20); d.life = 2.2; });
+    const sp = this.sparks.geometry.attributes.position as T.BufferAttribute; for (let i = 0; i < sp.count; i++) { const o = i % 2 ? this.nozzle : new T.Vector3(c.x, c.y, .09); sp.setXYZ(i, o.x, o.y, o.z); this.sparkV.set([(Math.random() - .5) * 2.4, Math.random() * 1.8, .4 + Math.random() * 1.6], i * 3); } sp.needsUpdate = true;
+    for (const at of [this.nozzle, this.leakAt, this.ventAt, new T.Vector3(c.x, c.y, .09)]) this.burst(at, 34, .9);
+    this.stack.rotation.z = -.05; this.stack.position.set(.012, -.008, .004); this.sounds?.explosion?.();
+  }
+  private updateBlast(dt: number) {
+    this.blastT += dt; this.flash.intensity = this.blastT < 1.2 ? 26 * Math.exp(-this.blastT * 5) * (.7 + .3 * Math.random()) : 0;
+    for (const d of this.debris) { if (d.life <= 0) continue; d.life -= dt; d.v.y -= 3.2 * dt; d.m.position.addScaledVector(d.v, dt); d.m.rotation.x += d.w.x * dt; d.m.rotation.y += d.w.y * dt; if (d.life <= 0) d.m.visible = false; }
+    this.sparkT += dt; const mat = this.sparks.material as T.PointsMaterial; mat.opacity = this.sparkT < 1.4 ? Math.max(0, 1 - this.sparkT / 1.4) : 0;
+    if (mat.opacity > 0) { const sp = this.sparks.geometry.attributes.position as T.BufferAttribute; for (let i = 0; i < sp.count; i++) { this.sparkV[i * 3 + 1] -= 3.5 * dt; sp.setXYZ(i, sp.getX(i) + this.sparkV[i * 3] * dt, sp.getY(i) + this.sparkV[i * 3 + 1] * dt, sp.getZ(i) + this.sparkV[i * 3 + 2] * dt); } sp.needsUpdate = true; }
   }
 
   private dialMarks(x: number, y: number, a: string, b: string, ang = QUARTER / 2, rad = .1) {
@@ -153,14 +175,14 @@ export class PressureMachine {
     if (v.surged && !this.surgedSeen) { this.surgedSeen = true; fx?.surge(); fx?.knock(1); this.burst(this.nozzle, 10, .4); }
     if (critical || failed) { this.alarmT -= dt; if (this.alarmT <= 0) { this.alarmT = .8; if (running) fx?.alarm(); } } else this.alarmT = 0;
     const shake = critical || v.surgeWarning; this.pipes.position.set(shake ? (Math.random() - .5) * .0016 : 0, shake ? (Math.random() - .5) * .0016 : 0, 0);
-    if (v.outcome !== this.lastOutcome) { this.lastOutcome = v.outcome; if (failed) { this.burst(this.nozzle, 40, .6); this.burst(this.leakAt, 26, .5); this.burst(this.ventAt, 26, .5); } }
+    if (v.outcome !== this.lastOutcome) { this.lastOutcome = v.outcome; if (failed) { if (v.failReason === 'CRITICAL') this.explode(); else { this.burst(this.nozzle, 40, .6); this.burst(this.leakAt, 26, .5); this.burst(this.ventAt, 26, .5); } } }
     // an uncontrolled leak weeps visibly at the damaged joint (the server publishes the unsafe state, not the fault)
     if (running && !v.safeState) { this.leakAcc += dt * 14; while (this.leakAcc >= 1) { this.leakAcc--; this.spawn(this.leakAt, .12, .03); } }
     fx?.steam(running && !v.safeState ? .45 : 0, running ? .2 + v.pressure / 120 * .8 : 0);
-    this.emitSteam(dt);
+    this.emitSteam(dt); this.updateBlast(dt);
   }
   /** called by the page when a new machine starts */
-  reset() { this.lastNoiseAt = -1; this.clamp.fitted = false; this.lastEffect = -1; this.surgedSeen = false; this.lastOutcome = 'RUNNING'; this.emergency.used = false; }
+  reset() { this.gauge.repair(); this.stack.rotation.z = 0; this.stack.position.set(0, 0, 0); this.lastNoiseAt = -1; this.clamp.fitted = false; this.lastEffect = -1; this.surgedSeen = false; this.lastOutcome = 'RUNNING'; this.emergency.used = false; }
 
   // ---------------------------------------------------------------- steam
   private spawn(at: T.Vector3, speed: number, spread: number, size = .05) {

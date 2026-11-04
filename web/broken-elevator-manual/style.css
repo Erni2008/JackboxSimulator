@@ -84,3 +84,9 @@ body.falling #hint{opacity:0!important;transition:opacity .1s}
 #surge-tag b{font:700 13px/1.1 Georgia,serif;letter-spacing:.24em;color:#ffe2b8;white-space:nowrap}
 #surge-tag span{font:600 12px/1.1 Georgia,serif;letter-spacing:.1em;color:#ffb05c;white-space:nowrap}
 body.surge #surge-tag{opacity:1;transform:translate(-50%,0)}
+
+/* 120 PSI blow-out: white-hot flash fading through orange, then a smoky vignette */
+#blast{position:fixed;inset:0;z-index:6;pointer-events:none;opacity:0;background:radial-gradient(ellipse 80% 70% at 62% 45%,rgba(255,250,235,1) 0%,rgba(255,190,110,.9) 30%,rgba(140,40,10,.6) 70%,rgba(20,6,2,.85) 100%)}
+#blast.on{animation:blast 1.6s cubic-bezier(.1,.8,.3,1) forwards}
+@keyframes blast{0%{opacity:0}4%{opacity:1}22%{opacity:.75}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){#blast.on{animation-duration:.6s}}
