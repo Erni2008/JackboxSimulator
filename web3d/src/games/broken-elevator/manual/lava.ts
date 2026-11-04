@@ -6,7 +6,7 @@
 import * as T from 'three';
 
 const frag = (hi: boolean) => `
-#define OCT ${hi ? 5 : 3}
+#define OCT ${hi ? 5 : 2}
 uniform float time; varying vec3 vW;
 float h1(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 vec2 h2(vec2 p){ return fract(sin(vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)))) * 43758.5453); }
@@ -27,11 +27,11 @@ void main(){
   vec2 v = vor(w * 1.15, t);
   float seam = 1. - smoothstep(.0, .09 + .06 * molten, v.y - v.x);
   float crustMask = smoothstep(.56, .44, molten);   // 1 = crusted, 0 = open pool
-  float crustTex = fbm(w * 6.) ;
+  float crustTex = ${hi ? 'fbm(w * 6.)' : 'n2(w * 6.)'};
   vec3 crust = vec3(.035, .025, .022) * (.6 + .8 * crustTex) + heat(.25) * .25 * smoothstep(.35, 0., v.x) * 0.;
   // the crust glows dimly where it is thin (near seams) and from below
   crust += heat(.3) * .35 * pow(1. - smoothstep(.0, .35, v.y - v.x), 2.);
-  float poolHeat = .32 + .5 * pow(fbm(w * 2.3 - t * .08), 1.6);
+  float poolHeat = .32 + .5 * pow(${hi ? 'fbm' : 'n2'}(w * 2.3 - t * .08), 1.6);
   vec3 col = mix(heat(poolHeat), crust, crustMask);
   col += heat(.55 + .3 * molten) * seam * crustMask * .9;
   // bubbles: one per cell, swelling then bursting into a ring; mostly in open pools
@@ -58,7 +58,7 @@ export function createLava(scene: T.Scene, y: number, hi: boolean) {
   const mat = new T.ShaderMaterial({uniforms: {time: {value: 0}}, fog: false, vertexShader: 'varying vec3 vW;void main(){vec4 w=modelMatrix*vec4(position,1.);vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}', fragmentShader: frag(hi)});
   const lake = new T.Mesh(new T.CircleGeometry(26, 40), mat); lake.rotation.x = -Math.PI / 2; lake.position.y = y; scene.add(lake);
   // embers: rising, drifting, cooling; positions computed in the vertex shader
-  const N = hi ? 260 : 90, seed = new Float32Array(N * 4); for (let i = 0; i < N * 4; i++) seed[i] = Math.random();
+  const N = hi ? 260 : 55, seed = new Float32Array(N * 4); for (let i = 0; i < N * 4; i++) seed[i] = Math.random();
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(new Float32Array(N * 3), 3)); g.setAttribute('seed', new T.BufferAttribute(seed, 4));
   const emat = new T.ShaderMaterial({uniforms: {time: {value: 0}, base: {value: y}, px: {value: Math.min(devicePixelRatio, 2)}}, transparent: true, depthWrite: false, blending: T.AdditiveBlending,
     vertexShader: `uniform float time, base, px; attribute vec4 seed; varying float vA;

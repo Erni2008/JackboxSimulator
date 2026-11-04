@@ -71,7 +71,11 @@ async function boot() {
   const finish = (ok: boolean, why: string) => { box.locked = true; box.setLamp(ok ? 'good' : 'bad'); audio.play(ok ? 'good' : 'bad'); verdict(ok, ok ? 'РЕМОНТ УСПЕШЕН' : why); hud(); deadline = 0; clearTimeout(pending); pending = setTimeout(() => { if (box.open) box.toggleDoor(); setTimeout(() => newTask(ok), 500); }, 2400); };
   box.onCut = i => { const ok = i === box.task!.answer; finish(ok, 'НЕВЕРНЫЙ ПРОВОД'); if (!ok) setTimeout(() => cage.drop?.(.8), 350); };
   // the car lurches down toward the lava: screech + rattle while falling, a slam and a hard shake on the catch
-  let shake = 0; cage.onFallStart = () => { audio.play('screech'); shake = Math.max(shake, .25); }; cage.onFallImpact = (k: number) => { audio.play('slam', k); shake = .9 * k + .4; };
+  let shake = 0, falling = false, fallTimer: any = 0; const fov0 = camera.fov;
+  // wrong answer: leave the close-up, snap the view down at the lava, alarm overlay + speed streaks + FOV punch while the car drops
+  cage.onFallStart = () => { audio.play('screech'); shake = Math.max(shake, .6); falling = true; clearTimeout(fallTimer); if (inspecting) setInspect(false); focusTo = [yawT, -.42];
+    document.body.classList.remove('falling', 'landed'); void document.body.offsetWidth; document.body.classList.add('falling'); };
+  cage.onFallImpact = (k: number) => { audio.play('slam', k); shake = .9 * k + .6; falling = false; fallTimer = setTimeout(() => { document.body.classList.add('landed'); fallTimer = setTimeout(() => document.body.classList.remove('falling', 'landed'), 1300); }, 1100); };
   // PHASE 1 dev configuration: ?fault=overload|short|power&mode=normal|emergency&wires=4..6 (no production generation yet)
   // dev overrides: ?fault=overload|short|power&mode=normal|emergency&wires=4..6 (otherwise each task varies)
   const fixed: any = {}; if (['overload', 'short', 'power'].includes(params.get('fault') || '')) fixed.fault = params.get('fault'); if (['normal', 'emergency'].includes(params.get('mode') || '')) fixed.mode = params.get('mode');
@@ -105,6 +109,8 @@ async function boot() {
   try { await (renderer as any).compileAsync?.(scene, camera); } catch {}
   scene.traverse((o: any) => { const ms = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []; for (const m of ms) for (const k of ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap', 'bumpMap', 'aoMap', 'alphaMap']) if (m[k]) renderer.initTexture(m[k]); });
   { const q0 = camera.quaternion.clone(); for (let i = 0; i < 8; i++) { camera.quaternion.setFromEuler(new T.Euler(0, i * Math.PI / 4, 0)); renderer.shadowMap.needsUpdate = true; renderer.render(scene, camera); await new Promise(r => requestAnimationFrame(r)); } camera.quaternion.copy(q0); }
+  // came from a room on this phone: one tap back to the room controller (same seat, the session is kept)
+  { let inRoom = false; try { inRoom = !!sessionStorage.getItem('finalanswer-session'); } catch {} const b = $('btn-room'); b.hidden = !inRoom; b.onclick = () => { location.href = '/'; }; }
   $('loading').hidden = true;
   // fullscreen on the first touch where the browser allows it (Android, iPad, desktop). iPhone Safari has no page fullscreen:
   // there the page runs fullscreen when opened from the Home Screen (manifest + apple-mobile-web-app-capable).
@@ -137,6 +143,7 @@ async function boot() {
     if (focusTo) { let dy = focusTo[0] - yawT; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yawT += dy * Math.min(1, dt * 5); pitchT += (focusTo[1] - pitchT) * Math.min(1, dt * 5); if (Math.abs(dy) < .002 && Math.abs(focusTo[1] - pitchT) < .002) focusTo = null; }
     { const left = deadline ? Math.max(0, (deadline - performance.now()) / 1000) : LIMIT; $('clock-num').textContent = String(Math.ceil(left)); ($('clock-ring') as any).style.strokeDashoffset = String(176 * (1 - left / LIMIT)); $('clock').dataset.urgent = String(!!deadline && left < 10); if (deadline && left <= 0 && !box.locked) { finish(false, 'ВРЕМЯ ВЫШЛО'); setTimeout(() => cage.drop?.(.8), 350); } }
     const surface = cage.shelf && Math.abs(book.root.position.y - TH / 2 - cage.shelf.top.y) < .2 && Math.abs(book.root.position.z - cage.shelf.top.z) < .2 ? cage.shelf.top.y : floorY; const h = Math.max(0, book.root.position.y - TH / 2 - surface); shadow.position.set(book.root.position.x, surface + .0012, book.root.position.z); shadow.rotation.z = new T.Euler().setFromQuaternion(book.root.quaternion, 'YXZ').y; (shadow.material as T.MeshBasicMaterial).opacity = .75 * Math.max(0, 1 - h / .18); shadow.visible = h < .18;
+    { const f = camera.fov, target = falling ? fov0 + 16 : fov0; if (Math.abs(f - target) > .05) { camera.fov += (target - f) * (1 - Math.exp(-dt * (falling ? 9 : 3))); camera.updateProjectionMatrix(); } if (falling) shake = Math.max(shake, .45); }
     if (shake > .002) { const a = shake * shake; camera.position.add(new T.Vector3((Math.random() - .5) * .05 * a, (Math.random() - .5) * .07 * a, (Math.random() - .5) * .03 * a)); camera.rotateZ((Math.random() - .5) * .03 * a); shake *= Math.exp(-dt * 4); }
     // shadows refresh every other frame: invisible at 60 fps, halves the shadow-pass cost
     if (frameNo++ % (shadowEvery + 1) === 0) renderer.shadowMap.needsUpdate = true;
