@@ -9,12 +9,16 @@ export type Voice = 'coverOpen' | 'coverClose' | 'pageTurn' | 'pickup' | 'drop' 
 export class BookAudio {
   ctx: AudioContext | null = null; out!: GainNode; private buffers = new Map<Voice, AudioBuffer>(); private noise!: AudioBuffer; enabled = true;
   unlock() {
-    if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
-    const C = (window as any).AudioContext || (window as any).webkitAudioContext; if (!C) return; this.ctx = new C(); const ctx = this.ctx!;
+    // iOS: play through the ringer/silent switch (Web Audio is otherwise muted on silent, incl. Home Screen apps)
+    try { const s = (navigator as any).audioSession; if (s && s.type !== 'playback') s.type = 'playback'; } catch {}
+    if (this.ctx) { if (this.ctx.state !== 'running') this.ctx.resume().catch(() => {}); this.tick(); return; }
+    const C = (window as any).AudioContext || (window as any).webkitAudioContext; if (!C) return; this.ctx = new C(); const ctx = this.ctx!; this.tick();
     this.out = ctx.createGain(); this.out.gain.value = .9; const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; this.out.connect(comp).connect(ctx.destination);
     this.noise = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate); const d = this.noise.getChannelData(0); let b = 0; for (let i = 0; i < d.length; i++) { const w = Math.random() * 2 - 1; b = .985 * b + .015 * w; d[i] = w * .6 + b * 4; }
     for (const [k, url] of Object.entries(SAMPLE_URLS)) fetch(url!).then(r => r.arrayBuffer()).then(a => ctx.decodeAudioData(a)).then(buf => this.buffers.set(k as Voice, buf)).catch(() => {});
   }
+  /** a silent one-sample buffer started inside the gesture: the reliable WebKit unlock */
+  private tick() { const ctx = this.ctx; if (!ctx) return; try { const s = ctx.createBufferSource(); s.buffer = ctx.createBuffer(1, 1, 22050); s.connect(ctx.destination); s.start(0); } catch {} }
   private sample(v: Voice, gain: number, rate = 1) { const b = this.buffers.get(v); if (!b || !this.ctx) return false; const s = this.ctx.createBufferSource(); s.buffer = b; s.playbackRate.value = rate; const g = this.ctx.createGain(); g.gain.value = gain; s.connect(g).connect(this.out); s.start(); return true; }
   /** shaped band-passed noise burst */
   private rustle(at: number, dur: number, freq: number, q: number, gain: number, attack = .01) {

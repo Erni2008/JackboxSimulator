@@ -96,6 +96,15 @@ async function boot() {
   const orbit = new OrbitControls(camera, renderer.domElement); orbit.enableDamping = true; orbit.maxDistance = 14; orbit.minDistance = .1; orbit.screenSpacePanning = true; orbit.target.set(0, .4, 0); orbit.enabled = false;
   let free = false; const setFree = (on: boolean) => { free = on; orbit.enabled = on; $('btn-cam').textContent = on ? 'Камера: свободная' : 'Камера: игрок'; if (!on) { camera.position.copy(eye); } else { camera.position.set(eye.x + .3, eye.y + .3, eye.z + 1.6); orbit.target.set(0, floorY + 1, 0); orbit.update(); } };
   $('btn-cam').onclick = () => setFree(!free); addEventListener('keydown', e => { if (e.key.toLowerCase() === 'c') setFree(!free); }); if (params.get('freecam') === '1') setFree(true);
+  // unlock audio on every kind of gesture WebKit counts (pointerdown alone is not enough in iOS Home Screen apps)
+  for (const ev of ['pointerup', 'touchend', 'click', 'keydown']) addEventListener(ev, () => audio.unlock(), {passive: true});
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && audio.ctx && audio.ctx.state !== 'running') audio.ctx.resume().catch(() => {}); });
+  // warm-up behind the loading screen: compile every shader, upload every texture and render a few frames,
+  // so the first seconds of play do not hitch on first-use GPU work
+  $('load-text').textContent = 'Подготовка…';
+  try { await (renderer as any).compileAsync?.(scene, camera); } catch {}
+  scene.traverse((o: any) => { const ms = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []; for (const m of ms) for (const k of ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap', 'bumpMap', 'aoMap', 'alphaMap']) if (m[k]) renderer.initTexture(m[k]); });
+  { const q0 = camera.quaternion.clone(); for (let i = 0; i < 8; i++) { camera.quaternion.setFromEuler(new T.Euler(0, i * Math.PI / 4, 0)); renderer.shadowMap.needsUpdate = true; renderer.render(scene, camera); await new Promise(r => requestAnimationFrame(r)); } camera.quaternion.copy(q0); }
   $('loading').hidden = true;
   // fullscreen on the first touch where the browser allows it (Android, iPad, desktop). iPhone Safari has no page fullscreen:
   // there the page runs fullscreen when opened from the Home Screen (manifest + apple-mobile-web-app-capable).
