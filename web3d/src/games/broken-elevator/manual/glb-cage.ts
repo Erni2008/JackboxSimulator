@@ -40,7 +40,9 @@ function matteMaps(base: HTMLImageElement | ImageBitmap, orig: HTMLImageElement 
     const oil = Math.max(0, v1 - .78) * 4 * (1 - rust); rough -= oil * .18;
     out.data[i] = 255; out.data[i + 1] = Math.min(1, Math.max(.42, rough)) * 255; out.data[i + 2] = Math.min(1, Math.max(.05, metal)) * 255; out.data[i + 3] = 255;
     // keep the authored albedo; only a touch of soot and oil darkening
-    const k = 1 - oil * .25 - (1 - v2) * .06; col.data[i] = B.data[i] * k; col.data[i + 1] = B.data[i + 1] * k; col.data[i + 2] = B.data[i + 2] * k; col.data[i + 3] = 255;
+    // near-black texels in the asset read as holes: lift them to weathered iron (still dark, never void)
+    const lift = Math.max(0, .2 - lum) / .2, ir = 74 + v2 * 30, ig = 62 + v2 * 22, ib = 54 + v2 * 16;
+    const k = 1 - oil * .2 - (1 - v2) * .05; col.data[i] = (B.data[i] + (ir - B.data[i]) * lift * .75) * k; col.data[i + 1] = (B.data[i + 1] + (ig - B.data[i + 1]) * lift * .75) * k; col.data[i + 2] = (B.data[i + 2] + (ib - B.data[i + 2]) * lift * .75) * k; col.data[i + 3] = 255;
   }
   const tex = (d: ImageData, srgb: boolean) => { const cc = document.createElement('canvas'); cc.width = cc.height = size; cc.getContext('2d')!.putImageData(d, 0, 0); const t = new T.CanvasTexture(cc); t.flipY = false; t.colorSpace = srgb ? T.SRGBColorSpace : T.NoColorSpace; t.anisotropy = 8; return t; };
   return {orm: tex(out, false), map: tex(col, true)};
@@ -77,6 +79,8 @@ export async function buildGlbCage(renderer: T.WebGLRenderer, scene: T.Scene, hi
   const bulb = new T.PointLight('#ff9a4a', 2.2, 4, 1.6); bulb.position.copy(lamp.position); scene.add(bulb);
   const glow = new T.Mesh(new T.SphereGeometry(.03, 16, 10), new T.MeshBasicMaterial({color: '#ffcf96'})); glow.position.copy(lamp.position).y -= .02; scene.add(glow);
   const lava = createLava(scene, floorY - 3.2, hi);
+  // soft bounce fill so corners and the far walls never fall to pure black (no shadows: cheap on phones)
+  for (const [x, yy, z, c, k] of [[-.6, .55, .6, '#ffc79a', 1.0], [.6, .55, -.6, '#ffc79a', 1.0], [0, .2, 0, '#ff7a3a', .8]] as const) { const f = new T.PointLight(c, k, 4.5, 1.5); f.position.set(x * (px + nx) / 2, floorY + yy * (ceilingY - floorY), z * (pz + nz) / 2); scene.add(f); }
   scene.add(new T.HemisphereLight('#8a7058', '#5a2008', .8));
   // wall shelf: weathered iron plank on two aged-brass brackets, on the back wall (−z), off-centre so it clears the doors
   const shelf = buildShelf(); const shelfY = floorY + 1.02, shelfX = Math.min(px, nx) * .35; shelf.position.set(shelfX, shelfY, -nz + .005); scene.add(shelf);

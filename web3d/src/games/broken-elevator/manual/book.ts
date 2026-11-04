@@ -13,7 +13,7 @@ import {paginate, type ManualContent, type ManualPage} from './content';
 import {loadLeather, leatherMaps, leatherMaterial, brassMaterial, endpaperTexture, frontTooling, backTooling, spineTooling} from './materials';
 
 export const W = .18, H = .25, TH = .04, C = .0036; // board width, height, total thickness, board thickness
-const PW = W - .0075, PH = H - .0095, P = TH - 2 * C; // page block width/height and total paper thickness
+const PW = W - .0058, PH = H - .0075, P = TH - 2 * C; // page block width/height and total paper thickness
 const BANDS = [.1, .22, .56, .66, .88];
 const ease = (t: number) => t < .5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
 const smooth = (a: number, b: number, x: number) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -85,7 +85,7 @@ export class EngineersManual {
     this.texBack.wrapS = T.RepeatWrapping; this.texBack.repeat.x = -1; this.texBack.offset.x = 1;
     const paperMat = (map: T.Texture, side: T.Side) => new T.MeshPhysicalMaterial({map, side, roughness: .86, metalness: 0, sheen: .25, sheenRoughness: .8, sheenColor: new T.Color('#fff2d0'), envMapIntensity: .55});
     const edgeT = new T.CanvasTexture(edgeTexture()); edgeT.colorSpace = T.SRGBColorSpace; edgeT.anisotropy = aniso;
-    const edgeMat = new T.MeshStandardMaterial({map: edgeT, roughness: .92, metalness: 0, envMapIntensity: .4});
+    const edgeMat = new T.MeshStandardMaterial({map: edgeT, roughness: .92, metalness: 0, envMapIntensity: .4, side: T.DoubleSide});
     this.left = new Block(paperMat(this.texL, T.FrontSide), edgeMat, true); this.right = new Block(paperMat(this.texR, T.FrontSide), edgeMat, false);
 
     // boards: canonical frame x∈[0,W], y∈[-C,0] (outer face y=0), z∈[-H/2,H/2]
@@ -103,8 +103,8 @@ export class EngineersManual {
     this.backBoard.scale.z = -1; // undo z flip so the back cover's head matches the front's
     this.frontBoard.add(this.left.mesh);
     this.backBoard.add(this.right.mesh);
-    this.right.mesh.scale.y = -1; this.right.mesh.position.set(.0025, -C, 0); // backBoard frame is flipped: -y local == +y book
-    this.left.mesh.scale.y = -1; this.left.mesh.position.set(.0025, -C, 0);
+    this.right.mesh.scale.y = -1; this.right.mesh.position.set(.002, -C, 0); // backBoard frame is flipped: -y local == +y book
+    this.left.mesh.scale.y = -1; this.left.mesh.position.set(.002, -C, 0);
     // spine
     this.spine = new T.Mesh(new T.BufferGeometry(), spineMat); this.spine.castShadow = this.spine.receiveShadow = true; this.initSpine(); this.pickables.push(this.spine);
     // turning leaf: one subdivided sheet, two materials (recto / verso) on the same vertices
