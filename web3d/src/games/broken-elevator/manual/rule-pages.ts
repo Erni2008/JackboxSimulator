@@ -216,3 +216,60 @@ export function drawGuidePage(x: X, index: number) {
   x.fillStyle = BURGUNDY; x.font = F.tech(30, 700); x.textAlign = 'center'; x.fillText('У ВАС 45 СЕКУНД. ОШИБКА — И КАБИНА СОРВЁТСЯ.', W / 2, sy + 160);
   x.font = F.tech(22, 700); x.fillStyle = INK2; x.textAlign = 'right'; x.fillText(String(index + 1), W - MX, H - 58);
 }
+
+
+// ------------------------------------------------------------------ PRESSURE CONTROL spread (visual-first)
+const VALVE_INK: Record<'red' | 'blue' | 'yellow', string> = {red: '#b8231a', blue: '#1d4fb0', yellow: '#d9a514'};
+function handwheel(x: X, cx: number, cy: number, r: number, col: string, lever = false) {
+  x.save(); x.translate(cx, cy); x.lineCap = 'round';
+  if (lever) { x.fillStyle = '#8a652a'; x.beginPath(); x.arc(0, 0, r * .3, 0, 7); x.fill(); x.strokeStyle = col; x.lineWidth = r * .32; x.beginPath(); x.moveTo(0, 0); x.lineTo(0, -r * 1.05); x.stroke(); x.fillStyle = col; x.beginPath(); x.arc(0, -r * 1.05, r * .26, 0, 7); x.fill(); }
+  else { x.strokeStyle = col; x.lineWidth = r * .22; x.beginPath(); x.arc(0, 0, r, 0, 7); x.stroke(); x.lineWidth = r * .12; for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2 + Math.PI / 4; x.beginPath(); x.moveTo(0, 0); x.lineTo(Math.cos(a) * r, Math.sin(a) * r); x.stroke(); } x.fillStyle = '#8a652a'; x.beginPath(); x.arc(0, 0, r * .26, 0, 7); x.fill(); }
+  x.fillStyle = '#f6ead0'; x.fillRect(-r * .07, -r * (lever ? 1.2 : 1.12), r * .14, r * .26); x.restore();
+}
+function miniGauge(x: X, cx: number, cy: number, r: number, v: number, zone: [number, number] | null, arrow: 1 | -1 | 0) {
+  const ang = (p: number) => -Math.PI / 2 - Math.PI * .75 + p / 120 * Math.PI * 1.5;
+  x.fillStyle = '#efe2c2'; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill(); x.strokeStyle = '#8a652a'; x.lineWidth = r * .12; x.stroke();
+  if (zone) { x.strokeStyle = '#1f9a3a'; x.lineWidth = r * .2; x.beginPath(); x.arc(cx, cy, r * .74, ang(zone[0]), ang(zone[1])); x.stroke(); }
+  x.strokeStyle = '#b0180a'; x.lineWidth = r * .14; x.beginPath(); x.arc(cx, cy, r * .74, ang(110), ang(120)); x.stroke();
+  x.strokeStyle = INK; x.lineWidth = Math.max(2, r * .045); for (let p = 0; p <= 120; p += 20) { const a = ang(p); x.beginPath(); x.moveTo(cx + Math.cos(a) * r * .88, cy + Math.sin(a) * r * .88); x.lineTo(cx + Math.cos(a) * r * .66, cy + Math.sin(a) * r * .66); x.stroke(); }
+  const a = ang(v); x.strokeStyle = '#140b05'; x.lineWidth = Math.max(3, r * .07); x.lineCap = 'round'; x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.cos(a) * r * .78, cy + Math.sin(a) * r * .78); x.stroke(); x.fillStyle = '#8a652a'; x.beginPath(); x.arc(cx, cy, r * .1, 0, 7); x.fill();
+  if (arrow) { const ax = cx + r * 1.32; x.strokeStyle = arrow > 0 ? '#b8231a' : '#1d4fb0'; x.lineWidth = r * .16; x.beginPath(); x.moveTo(ax, cy + arrow * r * .6); x.lineTo(ax, cy - arrow * r * .6); x.moveTo(ax - r * .3, cy - arrow * r * .25); x.lineTo(ax, cy - arrow * r * .62); x.lineTo(ax + r * .3, cy - arrow * r * .25); x.stroke(); }
+}
+function pressureHeader(x: X, side: number, page: number, title: string) {
+  x.textBaseline = 'alphabetic'; x.fillStyle = INK2; x.font = F.tech(20, 500); x.textAlign = 'left'; x.fillText('PRESSURE CONTROL \u00b7 РАЗДЕЛ IV', MX, 82);
+  x.fillStyle = INK; x.font = F.display(700, 74); x.fillText(title, MX - 2, 150);
+  x.font = F.tech(36, 700); const label = '45 СЕКУНД', rw = x.measureText(label).width + 56, ry = 172, rh = 54;
+  x.fillStyle = '#1d6a33'; x.beginPath(); x.moveTo(MX, ry); x.lineTo(MX + rw, ry); x.lineTo(MX + rw - 16, ry + rh / 2); x.lineTo(MX + rw, ry + rh); x.lineTo(MX, ry + rh); x.closePath(); x.fill(); x.fillStyle = '#f6ead0'; x.fillText(label, MX + 18, ry + rh * .74);
+  x.font = F.tech(22, 700); x.fillStyle = INK2; x.textAlign = side > 0 ? 'right' : 'left'; x.fillText(String(page), side > 0 ? W - MX : MX, H - 58);
+  x.strokeStyle = INK; x.lineWidth = 3; x.beginPath(); x.moveTo(MX, 262); x.lineTo(W - MX, 262); x.stroke();
+}
+/** left: what each valve does; right: the goal (green zone, hold 3 s, 45 s). */
+export function drawPressurePage(x: X, half: 0 | 1, index: number) {
+  const side = half ? 1 : -1; paper(x, index + 61, side, true);
+  if (!half) {
+    pressureHeader(x, side, index + 1, 'Контроль давления');
+    const rows: ['red' | 'blue' | 'yellow', string, string, 1 | -1 | 0][] = [['red', 'КРАСНЫЙ', 'ДАВЛЕНИЕ ВВЕРХ', 1], ['blue', 'СИНИЙ', 'ДАВЛЕНИЕ ВНИЗ', -1], ['yellow', 'ЖЁЛТЫЙ', 'МЕДЛЕННЕЕ', 0]];
+    const top = 300, h = 300;
+    rows.forEach(([c, name, what, dir], i) => { const y = top + i * h, cy = y + h / 2 - 10;
+      x.fillStyle = i % 2 ? 'rgba(40,28,18,.05)' : 'rgba(40,28,18,0)'; rr(x, MX - 10, y + 8, W - 2 * MX + 20, h - 16, 16); x.fill();
+      handwheel(x, MX + 110, cy, 78, VALVE_INK[c], c === 'yellow');
+      x.fillStyle = c === 'yellow' ? '#8a6200' : VALVE_INK[c]; x.font = F.tech(30, 700); x.textAlign = 'center'; x.fillText(name, MX + 110, cy + 128);
+      x.strokeStyle = INK; x.lineWidth = 7; x.lineCap = 'round'; x.beginPath(); x.moveTo(MX + 236, cy); x.lineTo(MX + 330, cy); x.moveTo(MX + 306, cy - 22); x.lineTo(MX + 332, cy); x.lineTo(MX + 306, cy + 22); x.stroke();
+      if (dir) miniGauge(x, MX + 470, cy, 92, dir > 0 ? 95 : 25, null, dir);
+      else { miniGauge(x, MX + 470, cy, 92, 60, null, 0); x.strokeStyle = '#d9a514'; x.lineWidth = 8; x.setLineDash([3, 14]); x.beginPath(); x.arc(MX + 470, cy, 120, -2.2, -1.1); x.stroke(); x.setLineDash([]); x.fillStyle = INK; x.font = F.tech(40, 700); x.textAlign = 'center'; x.fillText('\u00d7\u00bc', MX + 470 + 150, cy - 70); }
+      x.fillStyle = INK; x.font = F.tech(38, 700); x.textAlign = 'left'; x.fillText(what, MX + 600, cy + 14); });
+    // detent legend
+    const ly = top + 3 * h + 34; x.fillStyle = INK2; x.font = F.tech(24, 700); x.textAlign = 'center';
+    ['ЗАКРЫТ', '½', 'ОТКРЫТ'].forEach((t, i) => { const px = W / 2 - 220 + i * 220; x.fillStyle = INK; x.beginPath(); x.arc(px, ly, 10 + i * 4, 0, 7); x.fill(); x.fillStyle = INK2; x.fillText(t, px, ly + 48); });
+    x.fillText('ТЯНИТЕ ВЕНТИЛЬ ПО КРУГУ', W / 2, ly + 96);
+  } else {
+    pressureHeader(x, side, index + 1, 'Цель');
+    miniGauge(x, W / 2, 600, 270, 60, [55, 65], 0);
+    x.fillStyle = '#1d6a33'; x.font = F.tech(46, 700); x.textAlign = 'center'; x.fillText('ЗЕЛЁНАЯ ЗОНА', W / 2, 330);
+    x.fillStyle = '#b0180a'; x.font = F.tech(28, 700); x.fillText('110+ ОПАСНО', W / 2 + 250, 420);
+    const steps: [string, string][] = [['1', 'ВВЕДИТЕ СТРЕЛКУ В ЗЕЛЁНОЕ'], ['2', 'ДЕРЖИТЕ 3 СЕКУНДЫ'], ['3', 'ЛИМИТ — 45 СЕКУНД']];
+    steps.forEach(([n, t], i) => { const y = 930 + i * 128; x.fillStyle = i === 1 ? '#d6ecd0' : '#f1e0b0'; rr(x, MX, y, W - 2 * MX, 108, 14); x.fill(); x.strokeStyle = 'rgba(20,11,5,.35)'; x.lineWidth = 2; rr(x, MX, y, W - 2 * MX, 108, 14); x.stroke();
+      x.fillStyle = BURGUNDY; x.font = F.mono(52, 700); x.textAlign = 'left'; x.fillText(n, MX + 28, y + 74); x.fillStyle = INK; x.font = F.tech(40, 700); x.fillText(t, MX + 100, y + 70);
+      if (i === 1) for (let k = 0; k < 3; k++) { x.fillStyle = '#2c9a3f'; x.beginPath(); x.arc(W - MX - 150 + k * 50, y + 54, 16, 0, 7); x.fill(); x.strokeStyle = '#8a652a'; x.lineWidth = 4; x.stroke(); } });
+  }
+}

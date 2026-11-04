@@ -145,6 +145,7 @@ public final class RoomService {
             peer.send(Protocol.event("STATE",message.requestId(),snapshot(room,member,false))); return;
         }
         if(message.type().equals("LEAVE_ROOM")) { leave(room.code,member.token); return; }
+        if(message.type().equals("PRESSURE_START")||message.type().equals("PRESSURE_VALVE")){pressureCommand(room,member,peer,message);return;}
         if(message.type().equals("OPEN_WEB_GAME")){
             requireHost(member);String id=Protocol.string(data,"game");
             if(!Set.of("broken-elevator").contains(id))throw new Failure(400,"INVALID_WEB_GAME");
@@ -522,7 +523,47 @@ public final class RoomService {
             tickRoom(room);
         }
     }
+    /** THE BROKEN ELEVATOR — PRESSURE CONTROL: one independent, server-authoritative puzzle per player. */
+    private void pressureCommand(Room room,Member member,Peer peer,Message message){
+        JsonObject data=message.payload();
+        if(member.host)throw new Failure(403,"NOT_A_PLAYER");
+        if(message.type().equals("PRESSURE_START")){
+            if(!Set.of("roomCode").containsAll(data.keySet()))throw new Failure(400,"INVALID_PRESSURE_ACTION");
+            var current=room.pressure.get(member.id);
+            if(current==null||current.outcome()!=com.erni.finalanswer.gameplay.elevator.PressurePuzzle.Outcome.RUNNING)
+                room.pressure.put(member.id,new com.erni.finalanswer.gameplay.elevator.PressurePuzzle(com.erni.finalanswer.gameplay.elevator.PressurePuzzle.generate(random.nextLong()),now()));
+            reply(peer,room,member,message);return;
+        }
+        // only a valve request: the client can never send pressure, time or an outcome
+        if(!data.keySet().equals(Set.of("valve","position","seq"))&&!data.keySet().equals(Set.of("roomCode","valve","position","seq")))throw new Failure(400,"INVALID_PRESSURE_ACTION");
+        var puzzle=room.pressure.get(member.id);if(puzzle==null)throw new Failure(409,"NO_PRESSURE_PUZZLE");
+        com.erni.finalanswer.gameplay.elevator.PressurePuzzle.Valve valve;int position;long seq;
+        try{valve=com.erni.finalanswer.gameplay.elevator.PressurePuzzle.Valve.valueOf(Protocol.string(data,"valve"));position=data.get("position").getAsInt();seq=data.get("seq").getAsLong();}
+        catch(RuntimeException e){throw new Failure(400,"INVALID_PRESSURE_ACTION");}
+        try{puzzle.set(valve,position,seq,now());pressureOutcome(room,member,puzzle);}catch(IllegalArgumentException e){throw new Failure(400,"INVALID_VALVE_POSITION");}
+        reply(peer,room,member,message);
+    }
+    private void pressureOutcome(Room room,Member member,com.erni.finalanswer.gameplay.elevator.PressurePuzzle puzzle){
+        if(puzzle.outcome()==com.erni.finalanswer.gameplay.elevator.PressurePuzzle.Outcome.STABILIZED&&!puzzle.rewarded){puzzle.rewarded=true;member.elevatorRepairs++;}
+    }
+    private Map<String,Object> pressureView(com.erni.finalanswer.gameplay.elevator.PressurePuzzle p){
+        var c=p.config();Map<String,Object> v=new LinkedHashMap<>();
+        v.put("pressure",p.pressure());v.put("at",p.startedAt()+p.elapsed());v.put("rate",p.rate());v.put("safeLow",c.safeLow());v.put("safeHigh",c.safeHigh());
+        v.put("intake",p.position(com.erni.finalanswer.gameplay.elevator.PressurePuzzle.Valve.INTAKE));v.put("release",p.position(com.erni.finalanswer.gameplay.elevator.PressurePuzzle.Valve.RELEASE));v.put("stabilizer",p.position(com.erni.finalanswer.gameplay.elevator.PressurePuzzle.Valve.STABILIZER));
+        v.put("holdMs",p.holdMs());v.put("startedAt",p.startedAt());v.put("deadline",p.deadline());v.put("outcome",p.outcome().name());v.put("finishedAt",p.finishedAt());v.put("lastSeq",p.lastSeq());v.put("puzzleId",Long.toString(c.seed()));
+        return v;
+    }
+    private void tickPressure(Room room){
+        for(var e:room.pressure.entrySet()){
+            var puzzle=e.getValue();boolean changed=puzzle.advance(now());Member m=room.members.values().stream().filter(x->x.id.equals(e.getKey())).findFirst().orElse(null);if(m==null)continue;
+            pressureOutcome(room,m,puzzle);
+            // outcome changes go out at once; running puzzles get a light 1 s authoritative resync
+            boolean resync=puzzle.outcome()==com.erni.finalanswer.gameplay.elevator.PressurePuzzle.Outcome.RUNNING&&now()-puzzle.sentAt>=1000;
+            if((changed||resync)&&m.peer!=null){puzzle.sentAt=now();m.peer.send(Protocol.event("PRESSURE_UPDATED","",snapshot(room,m,false)));}
+        }
+    }
     private void tickRoom(Room room) {
+        tickPressure(room);
         if(room.cursed!=null&&room.cursed.tick(now(),room.members.values().stream().filter(m->m.left).map(m->m.id).collect(java.util.stream.Collectors.toSet())))broadcast(room,"CURSED_BOXES_UPDATED");
         if(room.impostor!=null) {
             var mini=room.impostor;
@@ -594,6 +635,7 @@ public final class RoomService {
         value.put("impostorSettings",room.impostorSettings);value.put("impostorWordCategories",List.of("DEFAULT"));
         value.put("lobbyId",room.lobbyId);
         if(!room.webGameId.isEmpty()){value.put("webGame",room.webGame);value.put("webGameId",room.webGameId);}
+        if(self!=null&&!self.host){var pz=room.pressure.get(self.id);if(pz!=null)value.put("elevatorPressure",pressureView(pz));value.put("elevatorRepairs",self.elevatorRepairs);}
         if(room.impostor==null && !room.impostorRoster.isEmpty())value.put("impostorLobby",Map.of("sessionId",room.lobbyId,"participantIds",room.impostorRoster));
         List<Map<String,Object>> players=new ArrayList<>();
         for(Member member:room.members.values()) {
@@ -732,6 +774,7 @@ public final class RoomService {
         final String id=UUID.randomUUID().toString(), name,mode; String code;
         final int maxPlayers,questionCount; final byte[] salt,passwordHash;
         String webGame="",webGameId="";
+        final Map<String,com.erni.finalanswer.gameplay.elevator.PressurePuzzle> pressure=new LinkedHashMap<>();
         String lobbyId=UUID.randomUUID().toString();List<String> impostorRoster=List.of();
         com.erni.finalanswer.gameplay.impostor.ImpostorSettings impostorSettings=com.erni.finalanswer.gameplay.impostor.ImpostorSettings.defaults();
         com.erni.finalanswer.gameplay.impostor.ImpostorMatchResult lastImpostorResult;
@@ -742,7 +785,7 @@ public final class RoomService {
     }
     private static final class Member {
         final String id=UUID.randomUUID().toString(),name,token; final boolean host;
-        String characterId="host"; boolean alive=true,left,everConnected; int score; long seen; Peer peer;
+        String characterId="host"; boolean alive=true,left,everConnected; int score,elevatorRepairs; long seen; Peer peer;
         Member(String name,boolean host,String token,long now){this.name=name;this.host=host;this.token=token;seen=now;}
     }
     public static final class Failure extends RuntimeException {

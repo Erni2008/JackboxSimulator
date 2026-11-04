@@ -4,7 +4,7 @@
 // filtered noise and modal resonators — no placeholder files are shipped.
 // Drop real recordings into SAMPLE_URLS to override any synthesised voice.
 export const SAMPLE_URLS: Partial<Record<Voice, string>> = {pageTurn: 'audio/page_turn.wav'};
-export type Voice = 'coverOpen' | 'coverClose' | 'pageTurn' | 'pickup' | 'drop' | 'impactMetal' | 'creak' | 'snip' | 'spark' | 'good' | 'bad' | 'doorOpen' | 'doorClose' | 'button' | 'locked' | 'screech' | 'slam';
+export type Voice = 'coverOpen' | 'coverClose' | 'pageTurn' | 'pickup' | 'drop' | 'impactMetal' | 'creak' | 'snip' | 'spark' | 'good' | 'bad' | 'doorOpen' | 'doorClose' | 'button' | 'locked' | 'screech' | 'slam' | 'valveClick' | 'valveTurn' | 'alarm' | 'holdTick' | 'pipeKnock';
 
 export class BookAudio {
   ctx: AudioContext | null = null; out!: GainNode; private buffers = new Map<Voice, AudioBuffer>(); private noise!: AudioBuffer; enabled = true;
@@ -62,6 +62,21 @@ export class BookAudio {
       case 'slam': { const k = Math.min(1.5, intensity); this.rustle(t, .5, 90, .9, 1.4 * k, .002); this.rustle(t, .25, 400, 1, .7 * k, .002);
         for (const [fq, d, g] of [[62, 1.2, .3], [131, .9, .2], [277, .7, .12], [521, .5, .08], [1013, .3, .05]]) this.mode(t + .003, fq, d, g * k); break; }
       case 'doorClose': this.rustle(t, .12, 300, 1.2, .9, .002); this.mode(t, 180, .45, .2); this.mode(t, 410, .3, .1); break;
+      // PRESSURE CONTROL (synthesised like every other voice here)
+      case 'valveClick': this.rustle(t, .025, 3200, 2, .55, .001); this.mode(t, 1180, .05, .09); this.mode(t + .004, 2350, .03, .05); break; // detent pawl dropping into a notch
+      case 'valveTurn': { const f = this.rustle(t, .22, 520 + Math.random() * 200, 10, .12 * Math.min(1, intensity), .03); f.frequency.linearRampToValueAtTime(380, t + .2); break; } // stem packing creak
+      case 'alarm': for (let i = 0; i < 2; i++) { const o = this.ctx!.createOscillator(), g = this.ctx!.createGain(); o.type = 'square'; o.frequency.setValueAtTime(880, t + i * .32); o.frequency.setValueAtTime(660, t + i * .32 + .16); g.gain.setValueAtTime(0, t + i * .32); g.gain.linearRampToValueAtTime(.05, t + i * .32 + .01); g.gain.setValueAtTime(.05, t + i * .32 + .3); g.gain.linearRampToValueAtTime(0, t + i * .32 + .31); o.connect(g).connect(this.out); o.start(t + i * .32); o.stop(t + i * .32 + .33); } break;
+      case 'holdTick': this.mode(t, 1400 + 300 * intensity, .09, .06); break; // stabilisation progress
+      case 'pipeKnock': this.rustle(t, .12, 160, 1.5, .5 * Math.min(1, intensity), .002); this.mode(t, 95, .18, .12 * Math.min(1, intensity)); break; // pipe hammer under critical pressure
     }
+  }
+  private bed: {src: AudioBufferSourceNode; f: BiquadFilterNode; g: GainNode; rumble: GainNode} | null = null;
+  /** continuous steam bed: `hiss` 0..1 (release jet), `rumble` 0..1 (pressure in the pipes); call every frame */
+  steam(hiss: number, rumble: number) {
+    const ctx = this.ctx; if (!ctx || ctx.state !== 'running') return; const on = this.enabled;
+    if (!this.bed) { const src = ctx.createBufferSource(); src.buffer = this.noise; src.loop = true; const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 2400; const g = ctx.createGain(); g.gain.value = 0;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 140; const rumbleG = ctx.createGain(); rumbleG.gain.value = 0;
+      src.connect(f).connect(g).connect(this.out); src.connect(lp).connect(rumbleG).connect(this.out); src.start(); this.bed = {src, f, g, rumble: rumbleG}; }
+    const t = ctx.currentTime; this.bed.g.gain.setTargetAtTime(on ? .09 * hiss : 0, t, .12); this.bed.f.frequency.setTargetAtTime(1800 + 2200 * hiss, t, .2); this.bed.rumble.gain.setTargetAtTime(on ? .5 * rumble : 0, t, .3);
   }
 }

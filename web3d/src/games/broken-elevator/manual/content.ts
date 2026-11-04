@@ -33,7 +33,7 @@ export interface ManualPage {
   caption?: string;
   notes?: Annotation[];
   /** title-page / contents layouts */
-  layout?: 'title' | 'contents' | 'standard' | 'endpaper' | 'rules' | 'guide';
+  layout?: 'title' | 'contents' | 'standard' | 'endpaper' | 'rules' | 'guide' | 'pressure';
   /** rules layout: section index into RULES and which half (0 = rules 01–04, 1 = 05–08) */
   section?: number; half?: 0 | 1;
 }
@@ -162,5 +162,6 @@ export function diagnosticsManual(): ManualContent {
     {layout: 'rules', section: 0, half: 0}, {layout: 'rules', section: 0, half: 1},
     {layout: 'rules', section: 1, half: 0}, {layout: 'rules', section: 1, half: 1},
     {layout: 'rules', section: 2, half: 0}, {layout: 'rules', section: 2, half: 1},
+    {layout: 'pressure', half: 0} as any, {layout: 'pressure', half: 1} as any,
   ]};
 }
