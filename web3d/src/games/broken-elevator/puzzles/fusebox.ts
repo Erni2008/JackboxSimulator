@@ -5,6 +5,7 @@
 // close on the wire. Cut ends fray into copper strands with sparks.
 import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {TEX} from '../manual/materials';
 import {rng} from '../manual/page-art';
 import {WIRE_COLORS, type WireTask} from './wire-puzzle';
@@ -120,6 +121,8 @@ export class FuseBox {
     const sg = new T.BufferGeometry(); sg.setAttribute('position', new T.BufferAttribute(new Float32Array(56 * 3), 3)); for (let i = 0; i < 56; i++) this.sparkVel.push(new T.Vector3());
     this.sparks = new T.Points(sg, new T.PointsMaterial({color: '#ffc46b', size: .007, transparent: true, blending: T.AdditiveBlending, depthWrite: false})); this.sparks.visible = false; this.sparks.frustumCulled = false; this.group.add(this.sparks);
     this.group.add(this.pliers.group, this.terminals); void hi;
+    // static hardware → one mesh per material (draw calls drop from ~300 to well under 100)
+    mergeStatic(this.group, new Set([this.lamp])); mergeStatic(this.header, new Set([this.lamp]));
   }
 
   setTask(task: WireTask) {
@@ -152,6 +155,7 @@ export class FuseBox {
       // engraved tag riveted to the porcelain block just above the upper terminal
       const tag = labelPlate(TERMINALS[i], .036, .016, 150); tag.position.set(x, TOP + .036, WALL + .037); this.terminals.add(tag);
     }
+    mergeStatic(this.terminals, new Set(), false);
   }
   /** externally supplied fault and mode (dev config now, puzzle later) */
   configure(fault: Fault, mode: Mode) { this.fault = fault; this.meter.setState(fault); this.selector.setMode(mode); }
@@ -275,4 +279,23 @@ function cutEnd(sheath: T.Color) {
   }
   g.userData.hot = {mat: hotMat, t: 1};
   return g;
+}
+
+/** Bakes plain static meshes directly under `parent` into one geometry per material.
+ *  Skips groups, instanced/multi-material meshes and anything in `skip`. Small parts stop casting shadows. */
+function mergeStatic(parent: T.Object3D, skip: Set<T.Object3D>, castShadow = true) {
+  parent.updateMatrix(); const byMat = new Map<T.Material, {geos: T.BufferGeometry[]; meshes: T.Mesh[]}>();
+  for (const o of [...parent.children]) {
+    const m = o as T.Mesh; if (!m.isMesh || (m as any).isInstancedMesh || Array.isArray(m.material) || skip.has(m) || m.children.length) continue;
+    m.updateMatrix(); const g = (m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone()).applyMatrix4(m.matrix);
+    for (const k of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(k)) g.deleteAttribute(k);
+    if (!g.attributes.uv) g.setAttribute('uv', new T.Float32BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2));
+    const e = byMat.get(m.material as T.Material) || {geos: [], meshes: []}; e.geos.push(g); e.meshes.push(m); byMat.set(m.material as T.Material, e);
+  }
+  for (const [mat, e] of byMat) {
+    if (e.geos.length < 2) continue; const merged = mergeGeometries(e.geos); if (!merged) continue;
+    for (const m of e.meshes) { m.removeFromParent(); m.geometry.dispose(); }
+    const big = e.meshes.some(m => { m.geometry.computeBoundingSphere?.(); return (m.geometry.boundingSphere?.radius || 0) > .12; });
+    const out = new T.Mesh(merged, mat); out.castShadow = castShadow && big; out.receiveShadow = true; parent.add(out);
+  }
 }

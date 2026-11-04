@@ -9,6 +9,7 @@ import {HDRLoader} from 'three/addons/loaders/HDRLoader.js';
 import {TEX} from './materials';
 import {rng} from './page-art';
 import type {Plane} from './physics';
+import {loadBaked, register} from './baked';
 import {createLava} from './lava';
 
 /** Interior height the model is scaled to (asset units are arbitrary: ~0.8 tall). */
@@ -58,7 +59,8 @@ export async function buildGlbCage(renderer: T.WebGLRenderer, scene: T.Scene, hi
   box = new T.Box3().setFromObject(root); const c = box.getCenter(new T.Vector3()); root.position.set(-c.x, -box.min.y, -c.z); root.updateMatrixWorld(true); box.setFromObject(root);
   // materials
   const m = mesh.material as T.MeshPhysicalMaterial, img = m.map!.image, ormImg = m.roughnessMap?.image || null, sz = hi ? 2048 : 1024;
-  const maps = matteMaps(img, ormImg, sz);
+  const baked = await loadBaked(['cage-map', 'cage-orm'], {srgb: [true, false], flipY: false, aniso: 8});
+  const maps = baked ? {map: baked[0], orm: baked[1]} : matteMaps(img, ormImg, sz); if (!baked) { register('cage-map', maps.map); register('cage-orm', maps.orm); }
   const mat = new T.MeshPhysicalMaterial({map: maps.map, normalMap: m.normalMap, normalScale: new T.Vector2(1.6, 1.6), roughnessMap: maps.orm, metalnessMap: maps.orm, roughness: 1, metalness: 1,
     specularIntensity: .5, specularColor: new T.Color(1, 1, 1), envMapIntensity: .6, side: T.DoubleSide});
   await triplanarDetail(mat);

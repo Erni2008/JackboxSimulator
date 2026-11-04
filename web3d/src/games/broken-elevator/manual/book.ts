@@ -10,7 +10,7 @@ import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js'
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {PAGE_W, PAGE_H, renderPage, edgeTexture} from './page-art';
 import {paginate, type ManualContent, type ManualPage} from './content';
-import {loadLeather, leatherMaps, leatherMaterial, brassMaterial, endpaperTexture, frontTooling, backTooling, spineTooling} from './materials';
+import {loadLeather, leatherMapsCached, leatherMaterial, brassMaterial, endpaperTexture, frontTooling, backTooling, spineTooling} from './materials';
 
 export const W = .18, H = .25, TH = .04, C = .0036; // board width, height, total thickness, board thickness
 const PW = W - .0058, PH = H - .0075, P = TH - 2 * C; // page block width/height and total paper thickness
@@ -72,11 +72,11 @@ export class EngineersManual {
   }
 
   private async build(renderer: T.WebGLRenderer, content: ManualContent) {
-    const aniso = renderer.capabilities.getMaxAnisotropy(), hi = this.quality === 'high', leather = await loadLeather();
+    const aniso = renderer.capabilities.getMaxAnisotropy(), hi = this.quality === 'high'; let lp: Promise<any> | null = null; const leather = () => lp ||= loadLeather();
     const cw = hi ? 1024 : 640, ch = Math.round(cw * H / W);
-    const front = leatherMaterial(leatherMaps(leather, {w: cw, h: ch, seed: 11, tiles: 2, tooling: frontTooling}, aniso));
-    const back = leatherMaterial(leatherMaps(leather, {w: cw, h: ch, seed: 29, tiles: 2, tooling: backTooling}, aniso));
-    const spineMat = leatherMaterial(leatherMaps(leather, {w: hi ? 256 : 160, h: hi ? 1408 : 880, seed: 47, tiles: .5, tooling: spineTooling(BANDS), edgeWear: .5}, aniso)); spineMat.side = T.DoubleSide;
+    const [fm, bm, sm] = await Promise.all([leatherMapsCached(leather, {w: cw, h: ch, seed: 11, tiles: 2, tooling: frontTooling}, aniso, 'leather-front'), leatherMapsCached(leather, {w: cw, h: ch, seed: 29, tiles: 2, tooling: backTooling}, aniso, 'leather-back'), leatherMapsCached(leather, {w: hi ? 256 : 160, h: hi ? 1408 : 880, seed: 47, tiles: .5, tooling: spineTooling(BANDS), edgeWear: .5}, aniso, 'leather-spine')]);
+    const front = leatherMaterial(fm), back = leatherMaterial(bm);
+    const spineMat = leatherMaterial(sm); spineMat.side = T.DoubleSide;
     const brass = brassMaterial(aniso);
     this.scratch.width = PAGE_W; this.scratch.height = PAGE_H;
     const pageTex = () => { const c = document.createElement('canvas'); c.width = PAGE_W; c.height = PAGE_H; const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.anisotropy = aniso; t.minFilter = T.LinearMipmapLinearFilter; return t; };

@@ -3,6 +3,7 @@
 // at load time so every map stays physically consistent (albedo/normal/ORM).
 import * as T from 'three';
 import {rng} from './page-art';
+import {loadBaked, register} from './baked';
 
 export const TEX = 'textures/';
 
@@ -30,6 +31,12 @@ export interface LeatherOptions {
 }
 
 /** Builds albedo, normal and ORM (R=AO, G=roughness, B=metalness) textures for a leather surface. */
+/** baked JPEGs when available, otherwise the procedural composite below */
+export async function leatherMapsCached(src: () => Promise<LeatherSources>, o: LeatherOptions, aniso: number, key: string) {
+  const b = await loadBaked([`${key}-map`, `${key}-normal`, `${key}-orm`], {srgb: [true, false, false], flipY: true, aniso});
+  if (b) return {map: b[0], normalMap: b[1], orm: b[2]};
+  const m = leatherMaps(await src(), o, aniso); register(`${key}-map`, m.map); register(`${key}-normal`, m.normalMap); register(`${key}-orm`, m.orm); return m;
+}
 export function leatherMaps(src: LeatherSources, o: LeatherOptions, maxAniso: number) {
   const {w, h} = o, r = rng(o.seed);
   const A = pixels(src.albedo, w, h, o.tiles), N = pixels(src.normal, w, h, o.tiles), R = pixels(src.rough, w, h, o.tiles);

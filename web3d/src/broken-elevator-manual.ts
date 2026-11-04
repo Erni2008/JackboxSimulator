@@ -17,7 +17,7 @@ let quality: 'high' | 'low' = params.get('quality') === 'low' || (mobile && para
 
 const renderer = new T.WebGLRenderer({antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: params.has('capture')});
 renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.AgXToneMapping; renderer.toneMappingExposure = 1.15;
-renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFShadowMap;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFShadowMap; renderer.shadowMap.autoUpdate = false; let frameNo = 0;
 let dpr = Math.min(devicePixelRatio, quality === 'high' ? 1.5 : 1.25); renderer.setPixelRatio(dpr);
 $('viewport').append(renderer.domElement);
 const scene = new T.Scene(), camera = new T.PerspectiveCamera(50, 1, .03, 40);
@@ -29,12 +29,9 @@ addEventListener('resize', resize); resize();
 const audio = new BookAudio();
 let timeScale = 1; // test hook: 0 freezes animation for frame-exact captures
 async function boot() {
-  $('load-text').textContent = 'Lighting the cage…';
+  $('load-text').textContent = 'Descending…';
   // cage.glb is the elevator; the old procedural cage stays available with ?cage=procedural
   const procedural = params.get('cage') === 'procedural';
-  const cage: any = procedural ? await buildCage(renderer, scene, quality === 'high') : await buildGlbCage(renderer, scene, quality === 'high');
-  const floorY: number = cage.floorY ?? 0, eye: T.Vector3 = cage.eye ?? new T.Vector3(0, 1.56, .5);
-  camera.position.copy(eye); let yaw = 0, pitch = -.5, yawT = 0, pitchT = -.5; const hoverRay = new T.Raycaster();
   $('load-text').textContent = 'Binding the manual…';
   // ?rules=<url> lets the server supply real puzzle rules (ManualContent JSON); otherwise the specimen
   const rules = params.get('rules') ? await loadManualContent(params.get('rules')!).catch(e => { console.warn(e); return SAMPLE_MANUAL; }) : SAMPLE_MANUAL;
@@ -44,7 +41,12 @@ async function boot() {
   if (cut && !params.get('rules')) cut.pages = [
     {heading: 'Severing a Conductor', paragraphs: ['Open the junction box and read the serial stamped upon its brass plate. The last figure of the serial decides which wire is to be cut; consult the table opposite.', 'Should the serial bear a vowel, the wire named is NOT to be cut: take instead the next wire to its right. Beyond the rightmost wire, return to the leftmost.'], steps: ['Read the serial.', 'Find its last figure in Table II.', 'Check the serial for vowels.', 'Cut once. A wrong cut cannot be undone.'], notes: [{text: 'count from the LEFT', x: .62, y: .9, angle: -3, ink: 'red'}]},
     {heading: 'Table II \u2014 Order of Cutting', diagram: {type: 'cutting', rows: manualRows(wireRules)}, caption: 'Wires are counted left to right as you face the box.'}];
-  const book = await EngineersManual.create(renderer, content, quality);
+  // cage and book load in parallel (network + GPU upload overlap)
+  performance.mark('cage0'); performance.mark('book0');
+  const cageP: Promise<any> = procedural ? buildCage(renderer, scene, quality === 'high') : buildGlbCage(renderer, scene, quality === 'high');
+  const [cage, book] = await Promise.all([cageP.then(c => { performance.measure('cage', 'cage0'); return c; }), EngineersManual.create(renderer, content, quality).then(b => { performance.measure('book', 'book0'); return b; })]);
+  const floorY: number = cage.floorY ?? 0, eye: T.Vector3 = cage.eye ?? new T.Vector3(0, 1.56, .5);
+  camera.position.copy(eye); let yaw = 0, pitch = -.5, yawT = 0, pitchT = -.5; const hoverRay = new T.Raycaster();
   book.sounds = {coverOpen: () => audio.play('coverOpen'), coverClose: () => audio.play('coverClose'), pageTurn: s => audio.play('pageTurn', s), creak: a => audio.play('creak', a)};
   scene.add(book.root);
   const shadow = contactShadow(); scene.add(shadow);
@@ -115,6 +117,8 @@ async function boot() {
     if (focusTo) { let dy = focusTo[0] - yawT; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yawT += dy * Math.min(1, dt * 5); pitchT += (focusTo[1] - pitchT) * Math.min(1, dt * 5); if (Math.abs(dy) < .002 && Math.abs(focusTo[1] - pitchT) < .002) focusTo = null; }
     { const left = deadline ? Math.max(0, (deadline - performance.now()) / 1000) : LIMIT; $('clock-num').textContent = String(Math.ceil(left)); ($('clock-ring') as any).style.strokeDashoffset = String(176 * (1 - left / LIMIT)); $('clock').dataset.urgent = String(!!deadline && left < 10); if (deadline && left <= 0 && !box.locked) finish(false, 'TIME RAN OUT'); }
     const surface = cage.shelf && Math.abs(book.root.position.y - TH / 2 - cage.shelf.top.y) < .2 && Math.abs(book.root.position.z - cage.shelf.top.z) < .2 ? cage.shelf.top.y : floorY; const h = Math.max(0, book.root.position.y - TH / 2 - surface); shadow.position.set(book.root.position.x, surface + .0012, book.root.position.z); shadow.rotation.z = new T.Euler().setFromQuaternion(book.root.quaternion, 'YXZ').y; (shadow.material as T.MeshBasicMaterial).opacity = .75 * Math.max(0, 1 - h / .18); shadow.visible = h < .18;
+    // shadows refresh every other frame: invisible at 60 fps, halves the shadow-pass cost
+    if ((frameNo++ & 1) === 0) renderer.shadowMap.needsUpdate = true;
     renderer.render(scene, camera); requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
