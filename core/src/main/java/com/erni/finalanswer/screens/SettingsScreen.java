@@ -30,7 +30,7 @@ public final class SettingsScreen extends ScreenAdapter {
     private final Map<String, Label> captions = new LinkedHashMap<>();
     private final java.util.List<Actor> focusOrder = new ArrayList<>();
     private final SelectBox<String> language, resolution, fps, masterVolume, musicVolume, sfxVolume;
-    private final CheckBox fullscreen, vsync, motion;
+    private final CheckBox fullscreen, vsync, motion, hostPlays;
     private final TextButton apply, back, defaults;
     private final Label status;
     private final ScrollPane scroll;
@@ -82,6 +82,7 @@ public final class SettingsScreen extends ScreenAdapter {
         fullscreen = check("settingsFullscreen");
         vsync = check("settingsVsync");
         motion = check("settingsReducedMotion");
+        hostPlays = check("settingsHostPlays");
         String[] volumes=new String[21];for(int i=0;i<volumes.length;i++)volumes[i]=(i*5)+"%";
         masterVolume=select("settingsMasterVolume",volumes);musicVolume=select("settingsMusicVolume",volumes);sfxVolume=select("settingsSfxVolume",volumes);
         section(content, "settings.language_section");
@@ -97,6 +98,8 @@ public final class SettingsScreen extends ScreenAdapter {
         row(content,"settings.sfx_volume",null,sfxVolume);
         section(content, "settings.comfort_section");
         row(content, "settings.reduced_motion", "settings.motion_hint", motion);
+        section(content, "settings.stream_section");
+        row(content, "settings.host_plays", "settings.host_plays_hint", hostPlays);
         Table footer = new Table();
         footer.defaults().height(64).padTop(18);
         back = button("settingsBack");
@@ -135,7 +138,7 @@ public final class SettingsScreen extends ScreenAdapter {
                         changedSetting();
                     }
                 });
-        for (Actor control : java.util.List.of(fullscreen, resolution, vsync, fps, motion,masterVolume,musicVolume,sfxVolume))
+        for (Actor control : java.util.List.of(fullscreen, resolution, vsync, fps, motion, hostPlays,masterVolume,musicVolume,sfxVolume))
             control.addListener(
                     new ChangeListener() {
                         @Override
@@ -342,7 +345,7 @@ public final class SettingsScreen extends ScreenAdapter {
     }
 
     private void refreshChecks() {
-        for (CheckBox check : java.util.List.of(fullscreen, vsync, motion))
+        for (CheckBox check : java.util.List.of(fullscreen, vsync, motion, hostPlays))
             check.setText(game.getTexts().get(check.isChecked() ? "settings.on" : "settings.off"));
         resolution.setDisabled(fullscreen.isChecked());
     }
@@ -368,7 +371,8 @@ public final class SettingsScreen extends ScreenAdapter {
                 size[1],
                 vsync.isChecked(),
                 FPS[fps.getSelectedIndex()],
-                motion.isChecked());
+                motion.isChecked(),
+                hostPlays.isChecked());
     }
 
     private void loadValues(GameSettings settings) {
@@ -381,6 +385,7 @@ public final class SettingsScreen extends ScreenAdapter {
         fullscreen.setChecked(settings.fullscreen());
         vsync.setChecked(settings.vsync());
         motion.setChecked(settings.reducedMotion());
+        hostPlays.setChecked(settings.hostPlays());
         for (int i = 0; i < SIZES.length; i++)
             if (SIZES[i][0] == settings.width() && SIZES[i][1] == settings.height())
                 resolution.setSelectedIndex(i);

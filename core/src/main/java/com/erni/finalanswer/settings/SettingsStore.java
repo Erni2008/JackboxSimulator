@@ -25,7 +25,8 @@ public final class SettingsStore {
                     preferences.getInteger("height", defaults.height()),
                     preferences.getBoolean("vsync", defaults.vsync()),
                     preferences.getInteger("fpsLimit", defaults.fpsLimit()),
-                    preferences.getBoolean("reducedMotion", defaults.reducedMotion()));
+                    preferences.getBoolean("reducedMotion", defaults.reducedMotion()),
+                    preferences.getBoolean("hostPlays", defaults.hostPlays()));
         } catch (IllegalArgumentException error) {
             return defaults;
         }
@@ -40,6 +41,7 @@ public final class SettingsStore {
                 .putBoolean("vsync", settings.vsync())
                 .putInteger("fpsLimit", settings.fpsLimit())
                 .putBoolean("reducedMotion", settings.reducedMotion())
+                .putBoolean("hostPlays", settings.hostPlays())
                 .flush();
     }
 }

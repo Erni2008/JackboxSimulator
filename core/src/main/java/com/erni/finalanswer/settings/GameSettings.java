@@ -10,7 +10,9 @@ public record GameSettings(
         int height,
         boolean vsync,
         int fpsLimit,
-        boolean reducedMotion) {
+        boolean reducedMotion,
+        /** Streamer/host also plays from this PC: a browser window joins the room as a player. Off by default. */
+        boolean hostPlays) {
     public GameSettings {
         if (!Set.of("en", "ru").contains(language))
             throw new IllegalArgumentException("Unsupported language");
@@ -21,10 +23,10 @@ public record GameSettings(
     }
 
     public static GameSettings defaults() {
-        return new GameSettings("en", false, 1280, 720, true, 60, false);
+        return new GameSettings("en", false, 1280, 720, true, 60, false, false);
     }
 
     public GameSettings withFullscreen(boolean value) {
-        return new GameSettings(language, value, width, height, vsync, fpsLimit, reducedMotion);
+        return new GameSettings(language, value, width, height, vsync, fpsLimit, reducedMotion, hostPlays);
     }
 }

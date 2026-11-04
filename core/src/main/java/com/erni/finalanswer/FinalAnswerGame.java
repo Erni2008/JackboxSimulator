@@ -250,7 +250,21 @@ public class FinalAnswerGame extends Game {
         if (activeRoom.host() && data.has("question") && (type.equals("QUESTION_STARTED") || type.equals("AUTHENTICATED") || getScreen()==cageLobbyScreen)) openNetworkPlay();
     }
 
+    private RoomSession hostSeat;
+    /** Settings → "Host plays from this PC": seat the host as a player and open the controller in the browser, already joined. */
+    private void openHostSeat(RoomSession room,String password){
+        if(hostSeat!=null){roomApi.leave(hostSeat);hostSeat=null;}
+        String name=settings.language().equals("ru")?"Ведущий":"Host";
+        roomApi.join(room.code(),name,password==null?"":password,seat->{
+            if(activeRoom==null||!activeRoom.code().equals(room.code())){roomApi.leave(seat);return;}
+            hostSeat=seat;var json=new com.google.gson.JsonObject();json.addProperty("code",seat.code());json.addProperty("token",seat.token());json.addProperty("name",name);
+            String blob=java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(json.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            Gdx.net.openURI(roomApi.baseUrl().replaceAll("/+$","")+"/#seat="+blob);
+        },error->{lobbyStatus=error;Gdx.app.log("Lobby","host seat failed: "+error);});
+    }
+
     public void activateRoom(RoomSession room) {
+        String hostPassword=pendingConfiguration==null?"":pendingConfiguration.password();
         releaseNetworkCursed();releaseImpostor();
         if (activeRoom != null && !activeRoom.token().equals(room.token()))
             roomApi.leave(activeRoom);
@@ -261,9 +275,11 @@ public class FinalAnswerGame extends Game {
         pendingConfiguration = null;
         lobbyStatus = "lobby.waiting";
         showRoomLobby();
+        if(room.host()&&settings.hostPlays())openHostSeat(room,hostPassword);
     }
 
     public void leaveRoom() {
+        if(hostSeat!=null){roomApi.leave(hostSeat);hostSeat=null;}
         releaseNetworkCursed();releaseImpostor();
         roomApi.leave(activeRoom);
         if (realtime != null) { realtime.close(); realtime=null; }
