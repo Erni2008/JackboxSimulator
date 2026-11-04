@@ -46,14 +46,14 @@ export class Pliers {
     const slot = new T.Mesh(new T.BoxGeometry(.011, .0015, .002), dark); slot.position.y = .0082; this.group.add(slot);
     this.group.visible = false;
   }
-  update(dt: number) { this.close += (this.target - this.close) * Math.min(1, dt * 28); const open = .32 * (1 - this.close); this.a.rotation.y = open; this.b.rotation.y = -open; }
+  update(dt: number) { this.close += (this.target - this.close) * Math.min(1, dt * 28); const open = .42 * (1 - this.close); this.a.rotation.y = open; this.b.rotation.y = -open; }
 }
 
 export class FuseBox {
   group = new T.Group(); door = new T.Group(); pickDoor: T.Object3D[] = []; wireMeshes: T.Mesh[] = []; open = false; private doorT = 0;
   private halves: {top: T.Group; bot: T.Group; t: number}[] = []; private plate!: T.CanvasTexture; private plateCanvas = document.createElement('canvas');
   private lamp!: T.Mesh; private lampLight!: T.PointLight; private sparks!: T.Points; private sparkVel: T.Vector3[] = []; private sparkLife = 0;
-  private braid = braid(); pliers = new Pliers(); private aim = new T.Vector3(0, -.04, .07); private aimTarget = new T.Vector3(0, -.04, .07); private snipping = 0;
+  private braid = braid(); pliers = new Pliers(); private aim = new T.Vector3(0, -.04, .07); private aimTarget = new T.Vector3(0, -.04, .07); private snipping = 0; private reach = 0;
   locked = false; task: WireTask | null = null; sounds: FuseBoxSounds | null = null; onCut = (index: number) => {};
 
   constructor(hi: boolean) {
@@ -180,9 +180,12 @@ export class FuseBox {
     for (const h of this.halves) { h.t = Math.min(1, h.t + dt * 2.2); const e = 1 - (1 - h.t) ** 3, wob = Math.sin(h.t * 14) * (1 - h.t) * .15; h.top.rotation.x = (.55 + wob) * e; h.top.rotation.z = .12 * e; h.bot.rotation.x = -(.7 + wob) * e; h.bot.rotation.z = -.1 * e; }
     if (this.sparkLife > 0) { this.sparkLife -= dt; const pos = this.sparks.geometry.attributes.position as T.BufferAttribute; for (let i = 0; i < pos.count; i++) { const v = this.sparkVel[i]; v.y -= 3 * dt; pos.setXYZ(i, pos.getX(i) + v.x * dt, pos.getY(i) + v.y * dt, pos.getZ(i) + v.z * dt); } pos.needsUpdate = true; (this.sparks.material as T.PointsMaterial).opacity = Math.max(0, this.sparkLife / .7); if (this.sparkLife <= 0) this.sparks.visible = false; }
     const p = this.pliers; p.group.visible = this.doorT > .6; this.aim.lerp(this.aimTarget, Math.min(1, dt * (this.snipping ? 14 : 10)));
-    p.group.position.copy(this.aim).add(new T.Vector3(0, 0, .012));
-    // jaws point into the box, handles come out toward the player and down-right (a right hand holding them)
-    const X = new T.Vector3(-.35, .32, -.88).normalize(), Y = new T.Vector3(0, 1, 0).addScaledVector(X, -X.y).normalize(), Z = new T.Vector3().crossVectors(X, Y);
+    // jaws point into the box, handles come out toward the player (a right hand holding them).
+    // The wire sits in the middle of the open jaws (never at the pivot bolt); while only aiming,
+    // the pliers hover a few centimetres in front of the wires so nothing intersects.
+    const X = new T.Vector3(-.3, .22, -.93).normalize(), Y = new T.Vector3(0, 1, 0).addScaledVector(X, -X.y).normalize(), Z = new T.Vector3().crossVectors(X, Y);
+    this.reach += ((this.snipping ? 1 : 0) - this.reach) * Math.min(1, dt * 16);
+    const back = .034 * 1.45 + (1 - this.reach) * .075; p.group.position.copy(this.aim).addScaledVector(X, -back);
     p.group.quaternion.setFromRotationMatrix(new T.Matrix4().makeBasis(X, Y, Z)); p.group.scale.setScalar(1.45); p.update(dt);
   }
   center() { return this.group.localToWorld(new T.Vector3(0, 0, BD)); }
