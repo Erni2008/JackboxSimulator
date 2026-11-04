@@ -35,7 +35,13 @@ public final class CageLobbyScreen extends ScreenAdapter {
     private final CageLobby cages = new CageLobby();
     private final ConnectionPanel phone;
     private final Label code, roomName, playerCount, connectedCount, status;
-    private final TextButton play, impostor, cursed, cards;
+    private final TextButton play, impostor, cursed, cards, lastCommand, modePrev, modeNext, modeStart;
+    private final Label modeName, modeHint;
+    private final BitmapFont modeFont=UiFonts.body(30);
+    /** Lobby mode selector: one entry per room mode, cycled with the arrows and started with one button. */
+    private record Mode(String title,String hint,TextButton source,Runnable action){}
+    private final java.util.List<Mode> modes=new java.util.ArrayList<>();
+    private int modeIndex;
     private RoomSession displayed;
     private boolean disposed,starting,pendingStart,preloadQueued;
     private float pendingSeconds;
@@ -101,16 +107,30 @@ public final class CageLobbyScreen extends ScreenAdapter {
         style.up = solid.tint(new Color(.08f, .055f, .05f, .88f));
         style.over = solid.tint(Color.valueOf("604131")); style.down = solid.tint(Color.valueOf("38241D"));
         style.disabledFontColor = Color.GRAY;
-        phone = new ConnectionPanel(game.getHosting(), font, style); phone.setBounds(650, 145, 1100, 130); stage.addActor(phone);
+        phone = new ConnectionPanel(game.getHosting(), font, style); phone.setBounds(650, 290, 1100, 130); stage.addActor(phone);
         status = new Label("", new Label.LabelStyle(font, Color.valueOf("CFB998")));
-        status.setFontScale(.75f); status.setWrap(true); status.setBounds(650, 280, 1100, 32); stage.addActor(status);
+        status.setFontScale(.75f); status.setWrap(true); status.setBounds(650, 140, 1100, 32); stage.addActor(status);
         play = button("PLAY", 650, style, game::showPlayScreen);
         play.setText(game.getTexts().get("lobby.start_game"));
         impostor = button("THE IMPOSTOR", 930, style, game::showImpostorLobby);
         cursed=button("CURSED BOXES",60,style,game::startCursedBoxesMultiplayer);cursed.setWidth(390);
-        var lastCommand=button("THE LAST COMMAND (3D PREVIEW)",60,style,game::startLastCommand);
+        lastCommand=button("THE LAST COMMAND (3D PREVIEW)",60,style,game::startLastCommand);
         lastCommand.setBounds(60,145,520,54);lastCommand.getLabel().setFontScale(.68f);
         cards=button("THE CURSED CARDS",60,style,game::startCursedCards);cards.setBounds(60,210,520,54);cards.getLabel().setFontScale(.68f);
+        // Individual mode buttons stay as the enable/disable source of truth; the selector drives them.
+        for(var b:new TextButton[]{play,impostor,cursed,lastCommand,cards})b.setVisible(false);
+        modes.add(new Mode("ВОПРОСЫ (ОСНОВНАЯ ИГРА)","от 1 игрока",play,game::showPlayScreen));
+        modes.add(new Mode("THE IMPOSTOR","от 3 игроков",impostor,game::showImpostorLobby));
+        modes.add(new Mode("CURSED BOXES","от 2 игроков",cursed,game::startCursedBoxesMultiplayer));
+        modes.add(new Mode("THE LAST COMMAND","от 1 игрока",lastCommand,game::startLastCommand));
+        modes.add(new Mode("THE CURSED CARDS","4–6 игроков",cards,game::startCursedCards));
+        modes.add(new Mode("THE BROKEN ELEVATOR","тест в браузере · открыть на телефоне: /broken-elevator-manual/",null,()->Gdx.net.openURI(game.getHosting().apiUrl().replaceAll("/+$","")+"/broken-elevator-manual/")));
+        modeName=new Label("",new Label.LabelStyle(modeFont,Color.valueOf("F2E2C4")));modeName.setAlignment(Align.center);modeName.setBounds(650,210,1100,46);stage.addActor(modeName);
+        modeHint=new Label("",new Label.LabelStyle(font,Color.valueOf("B79E7C")));modeHint.setFontScale(.62f);modeHint.setAlignment(Align.center);modeHint.setBounds(650,180,1100,28);stage.addActor(modeHint);
+        modePrev=button("<",650,style,()->cycleMode(-1));modePrev.setBounds(650,205,90,56);
+        modeNext=button(">",1660,style,()->cycleMode(1));modeNext.setBounds(1660,205,90,56);
+        modeStart=button("START MODE",650,style,()->{var m=modes.get(modeIndex);if(m.source()==null||!m.source().isDisabled())m.action().run();});
+        modeStart.setText("НАЧАТЬ");modeStart.setWidth(530);
         button("MENU", 1210, style, game::showMainMenu);
         button("LEAVE ROOM", 1490, style, () -> { game.leaveRoom(); game.showMainMenu(); });
         blackout=new Image(solid);blackout.setBounds(0,0,1920,1080);blackout.setColor(0,0,0,0);blackout.setTouchable(com.badlogic.gdx.scenes.scene2d.Touchable.disabled);stage.addActor(blackout);
@@ -128,6 +148,9 @@ public final class CageLobbyScreen extends ScreenAdapter {
         for(var actor:stage.getActors())if(actor!=cages&&actor!=posterShade&&actor!=scene)cinematicHidden.add(actor);
         intro=new com.erni.finalanswer.intro.BasementIntro(game,pixel,font,style);stage.addActor(intro);
     }
+    private void cycleMode(int step){modeIndex=Math.floorMod(modeIndex+step,modes.size());refreshMode();}
+    private void refreshMode(){var m=modes.get(modeIndex);modeName.setText((modeIndex+1)+" / "+modes.size()+"   "+m.title());modeHint.setText(m.hint());
+        modeStart.setDisabled(starting||pendingStart||m.source()!=null&&m.source().isDisabled());}
     private void cinematicUi(){if(!introActive())return;for(var actor:cinematicHidden)actor.setVisible(false);posterShade.setVisible(true);intro.toFront();}
     /** Explicit development preview; production always enters through an authorized server snapshot. */
     public void previewIntro(RoomSession room,Runnable complete){synchronize(room,"");starting=true;intro.begin("preview-"+java.util.UUID.randomUUID(),0,true,event->{if(event.equals("INTRO_READY")||event.equals("SKIP_INTRO"))Gdx.app.postRunnable(complete);});cinematicUi();}
@@ -156,17 +179,19 @@ public final class CageLobbyScreen extends ScreenAdapter {
         }
         phone.setVisible(room != null && room.host()&&!introActive());
         boolean host = room != null && room.host();
-        boolean ready=host && room.players().size()>=2 && room.players().stream().allMatch(p->"ONLINE".equals(p.connectionStatus()));
+        boolean ready=host && room.players().size()>=1 && room.players().stream().allMatch(p->"ONLINE".equals(p.connectionStatus()));
         lockButtons(starting||pendingStart);
-        cursed.setDisabled(starting||pendingStart||!ready);
+        cursed.setDisabled(starting||pendingStart||!ready||room.players().size()<2);
+        lastCommand.setDisabled(starting||pendingStart||!host);
         // THE CURSED CARDS needs 4–6 players; with more it is not offered (nobody is dropped to fit).
         cards.setDisabled(starting||pendingStart||!host||!com.erni.finalanswer.gameplay.cursedcards.CursedDeck.eligible(room.players().size()));
         play.setDisabled(starting||pendingStart||!ready||introAborted); impostor.setDisabled(starting||pendingStart||!host || room.players().size() < 3);
         String notice=connectionStatus;
         if(host&&!starting&&!pendingStart&&!ready){
-            notice+=" · "+game.getTexts().error(room.players().size()<2?"NOT_ENOUGH_PLAYERS":"PLAYER_OFFLINE");
+            notice+=" · "+game.getTexts().error(room.players().isEmpty()?"NOT_ENOUGH_PLAYERS":"PLAYER_OFFLINE");
         }
         if(host&&ready&&!starting&&!pendingStart)notice+=" · "+game.getTexts().get("lobby.ready_to_start");
+        refreshMode();
         status.setText(introAborted?"INTRO INTERRUPTED — RETURN TO MENU":notice);
         cages.reducedMotion(game.getSettings().reducedMotion());
     }
@@ -205,6 +230,6 @@ public final class CageLobbyScreen extends ScreenAdapter {
     private void introSignal(String event){var client=game.getRealtime();if(client==null||!client.connected())return;var state=client.snapshot();if(state!=null&&state.has("intro"))client.send(event,java.util.Map.of("gameId",state.get("gameId").getAsString(),"introId",state.getAsJsonObject("intro").get("introId").getAsString()));}
     @Override public void dispose() {
         if (disposed) return; disposed = true; hide();
-        stage.dispose(); cages.dispose(); phone.dispose(); font.dispose(); codeFont.dispose(); titleFont.dispose(); pixel.dispose(); background.dispose();
+        stage.dispose(); cages.dispose(); phone.dispose(); font.dispose(); codeFont.dispose(); titleFont.dispose(); modeFont.dispose(); pixel.dispose(); background.dispose();
     }
 }

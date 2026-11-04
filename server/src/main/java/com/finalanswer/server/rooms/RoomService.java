@@ -212,7 +212,7 @@ public final class RoomService {
             if(room.game!=null || room.cursed!=null || room.impostor!=null&&room.impostor.result()==null) throw new Failure(409,"GAME_ALREADY_STARTED");
             Set<String> participants=new LinkedHashSet<>();
             room.members.values().stream().filter(m->m.peer!=null&&!m.left).forEach(m->participants.add(m.id));
-            if(room.members.size()<2) throw new Failure(409,"NOT_ENOUGH_PLAYERS");
+            if(room.members.isEmpty()) throw new Failure(409,"NOT_ENOUGH_PLAYERS");
             if(room.members.values().stream().anyMatch(m->m.peer==null||m.left))throw new Failure(409,"PLAYER_OFFLINE");
             if(room.members.values().stream().map(m->m.characterId).distinct().count()!=participants.size())throw new Failure(409,"CHARACTER_IN_USE");
             if(room.impostor!=null){room.lastImpostorResult=room.impostor.result();room.impostor.close();room.impostor=null;}
@@ -585,7 +585,7 @@ public final class RoomService {
         value.put("phase",phase.name()); value.put("revision",room.revision); value.put("serverTime",now()); value.put("publicUrl",publicUrl);
         value.put("hostConnected",room.host.peer!=null);
         value.put("availableCharacters",CHARACTERS.stream().filter(c->room.members.values().stream().noneMatch(m->m.characterId.equals(c))).toList());
-        value.put("canStart",game==null && room.impostor==null && room.cursed==null && room.lastCommand==null&&room.cards==null && room.host.peer!=null && room.members.size()>=2 && room.members.values().stream().allMatch(m->m.peer!=null&&!m.left));
+        value.put("canStart",game==null && room.impostor==null && room.cursed==null && room.lastCommand==null&&room.cards==null && room.host.peer!=null && !room.members.isEmpty() && room.members.values().stream().allMatch(m->m.peer!=null&&!m.left));
         value.put("impostorSettings",room.impostorSettings);value.put("impostorWordCategories",List.of("DEFAULT"));
         value.put("lobbyId",room.lobbyId);
         if(room.impostor==null && !room.impostorRoster.isEmpty())value.put("impostorLobby",Map.of("sessionId",room.lobbyId,"participantIds",room.impostorRoster));

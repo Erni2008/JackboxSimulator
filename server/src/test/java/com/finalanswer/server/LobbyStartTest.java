@@ -41,9 +41,10 @@ class LobbyStartTest {
         assertEquals(8,ids.size());assertEquals(8,characters.size());assertEquals(0,state.getAsJsonArray("availableCharacters").size());
         failure("ROOM_IS_FULL",()->service.join(code,Map.of("name","Ninth")));
     }
-    @Test void onePlayerCannotStartAndOfflineMemberBlocksStart(){
-        one=join("One");service.attach(s(host,"code"),s(one,"token"),a,"one");
+    @Test void onePlayerCanStartAndOfflineMemberBlocksStart(){
         failure("NOT_ENOUGH_PLAYERS",()->command(h,"START_GAME",Map.of()));
+        one=join("One");service.attach(s(host,"code"),s(one,"token"),a,"one");
+        assertTrue(h.latest().get("canStart").getAsBoolean());
         two=join("Two");service.attach(s(host,"code"),s(two,"token"),b,"two");
         service.detach(b.id());assertFalse(h.latest().get("canStart").getAsBoolean());
         failure("PLAYER_OFFLINE",()->command(h,"START_GAME",Map.of()));
