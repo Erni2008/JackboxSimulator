@@ -238,7 +238,7 @@ function miniGauge(x: X, cx: number, cy: number, r: number, v: number, zone: [nu
 function pressureHeader(x: X, side: number, page: number, title: string) {
   x.textBaseline = 'alphabetic'; x.fillStyle = INK2; x.font = F.tech(20, 500); x.textAlign = 'left'; x.fillText('PRESSURE CONTROL \u00b7 РАЗДЕЛ IV', MX, 82);
   x.fillStyle = INK; x.font = F.display(700, 74); x.fillText(title, MX - 2, 150);
-  x.font = F.tech(36, 700); const label = '45 СЕКУНД', rw = x.measureText(label).width + 56, ry = 172, rh = 54;
+  x.font = F.tech(36, 700); const label = '60 СЕКУНД', rw = x.measureText(label).width + 56, ry = 172, rh = 54;
   x.fillStyle = '#1d6a33'; x.beginPath(); x.moveTo(MX, ry); x.lineTo(MX + rw, ry); x.lineTo(MX + rw - 16, ry + rh / 2); x.lineTo(MX + rw, ry + rh); x.lineTo(MX, ry + rh); x.closePath(); x.fill(); x.fillStyle = '#f6ead0'; x.fillText(label, MX + 18, ry + rh * .74);
   x.font = F.tech(22, 700); x.fillStyle = INK2; x.textAlign = side > 0 ? 'right' : 'left'; x.fillText(String(page), side > 0 ? W - MX : MX, H - 58);
   x.strokeStyle = INK; x.lineWidth = 3; x.beginPath(); x.moveTo(MX, 262); x.lineTo(W - MX, 262); x.stroke();
@@ -264,10 +264,10 @@ export function drawPressurePage(x: X, half: 0 | 1, index: number) {
     x.fillText('ТЯНИТЕ ВЕНТИЛЬ ПО КРУГУ', W / 2, ly + 96);
   } else {
     pressureHeader(x, side, index + 1, 'Цель');
-    miniGauge(x, W / 2, 600, 270, 60, [55, 65], 0);
+    miniGauge(x, W / 2, 600, 270, 55, [47, 63], 0);
     x.fillStyle = '#1d6a33'; x.font = F.tech(46, 700); x.textAlign = 'center'; x.fillText('ЗЕЛЁНАЯ ЗОНА', W / 2, 330);
     x.fillStyle = '#b0180a'; x.font = F.tech(28, 700); x.fillText('110+ ОПАСНО', W / 2 + 250, 420);
-    const steps: [string, string][] = [['1', 'ВВЕДИТЕ СТРЕЛКУ В ЗЕЛЁНОЕ'], ['2', 'ДЕРЖИТЕ 3 СЕКУНДЫ'], ['3', 'ЛИМИТ — 45 СЕКУНД']];
+    const steps: [string, string][] = [['1', 'СТРЕЛКУ — В ЗЕЛЁНОЕ'], ['2', 'ДЕРЖИТЕ 2 СЕКУНДЫ'], ['3', 'У ЦЕЛИ: ЖЁЛТЫЙ ВКЛ.']];
     steps.forEach(([n, t], i) => { const y = 930 + i * 128; x.fillStyle = i === 1 ? '#d6ecd0' : '#f1e0b0'; rr(x, MX, y, W - 2 * MX, 108, 14); x.fill(); x.strokeStyle = 'rgba(20,11,5,.35)'; x.lineWidth = 2; rr(x, MX, y, W - 2 * MX, 108, 14); x.stroke();
       x.fillStyle = BURGUNDY; x.font = F.mono(52, 700); x.textAlign = 'left'; x.fillText(n, MX + 28, y + 74); x.fillStyle = INK; x.font = F.tech(40, 700); x.fillText(t, MX + 100, y + 70);
       if (i === 1) for (let k = 0; k < 3; k++) { x.fillStyle = '#2c9a3f'; x.beginPath(); x.arc(W - MX - 150 + k * 50, y + 54, 16, 0, 7); x.fill(); x.strokeStyle = '#8a652a'; x.lineWidth = 4; x.stroke(); } });

@@ -7,18 +7,18 @@ import java.util.Random;
  *
  * <p>Pressure changes linearly at {@code (drift + intake + release) × stabilizer} PSI/s and is clamped to 0–120.
  * Time advances in fixed 10 ms quanta, so the result is identical however often {@link #advance(long)} is called
- * (frame-rate / tick-rate independent). Holding the pressure inside the safe zone for 3 continuous seconds wins;
- * the 45 s limit loses. There are no hidden rules, sequences or attempt limits.
+ * (frame-rate / tick-rate independent). Holding the pressure inside the safe zone for 2 continuous seconds wins;
+ * the 60 s limit loses. There are no hidden rules, sequences or attempt limits.
  */
 public final class PressurePuzzle {
     public static final double MAX_PSI = 120, CRITICAL_PSI = 110;
-    public static final long LIMIT_MS = 45_000, HOLD_MS = 3_000, QUANTUM_MS = 10;
+    public static final long LIMIT_MS = 60_000, HOLD_MS = 2_000, QUANTUM_MS = 10;
     /** PSI/s by valve position: intake CLOSED/HALF/OPEN, release CLOSED/HALF/OPEN. */
     static final double[] INTAKE = {0, 3, 7}, RELEASE = {0, -3, -7};
     public static final double STABILIZED_FACTOR = .25;
-    static final double[] DRIFTS = {-1.5, -.75, .75, 1.5};
-    static final int[] SAFE_LOW = {45, 50, 55, 60};
-    public static final int SAFE_WIDTH = 10;
+    static final double[] DRIFTS = {-1, -.5, .5, 1};
+    static final int[] SAFE_LOW = {42, 47, 52, 57};
+    public static final int SAFE_WIDTH = 16;
 
     public enum Valve { INTAKE(3), RELEASE(3), STABILIZER(2); public final int positions; Valve(int p) { positions = p; } }
     public enum Outcome { RUNNING, STABILIZED, FAILED }
@@ -59,7 +59,7 @@ public final class PressurePuzzle {
         if (c.startPsi() >= c.safeLow() && c.startPsi() <= c.safeHigh()) return false;
         PressurePuzzle idle = new PressurePuzzle(c, 0); idle.advance(LIMIT_MS);
         if (idle.outcome() == Outcome.STABILIZED) return false;
-        return solveTime(c, 600) <= 30_000;
+        return solveTime(c, 600) <= 35_000;
     }
 
     /** Time a simple human-like controller (reacting every {@code reactionMs}) needs to stabilize; MAX on failure. */

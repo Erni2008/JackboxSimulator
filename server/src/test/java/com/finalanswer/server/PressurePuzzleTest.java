@@ -47,20 +47,20 @@ class PressurePuzzleTest {
         p.advance(3000); assertFalse(p.inZone()); assertEquals(0, p.holdMs(), "hold resets after leaving");
         assertEquals(Outcome.RUNNING, p.outcome());
     }
-    @Test void threeContinuousSecondsSucceed() {
+    @Test void continuousHoldSucceeds() {
         // 54 PSI + 0.75*0.25 PSI/s: enters at ~1.33 s (stabilizer on) ... use a balanced setup
         var p = new PressurePuzzle(new Config(1, 50, 55, 65, .75, 0, 0, 0), 0);
         p.set(Valve.INTAKE, 2, 1, 0); p.advance(1100); // ~58.4 PSI, inside
         p.set(Valve.RELEASE, 2, 2, 1100); p.set(Valve.STABILIZER, 1, 3, 1100); // net +0.1875 PSI/s
-        p.advance(3600); assertEquals(Outcome.RUNNING, p.outcome());
-        p.advance(3700); assertEquals(Outcome.STABILIZED, p.outcome());
-        assertTrue(p.finishedAt() >= 3000);
+        p.advance(2600); assertEquals(Outcome.RUNNING, p.outcome());
+        p.advance(2700); assertEquals(Outcome.STABILIZED, p.outcome());
+        assertTrue(p.finishedAt() >= PressurePuzzle.HOLD_MS);
         assertFalse(p.set(Valve.INTAKE, 0, 9, 5000), "no input after the end");
     }
     @Test void timerExpiryFails() {
-        var p = new PressurePuzzle(cfg(20, -1.5), 1_000); p.advance(45_999); assertEquals(Outcome.RUNNING, p.outcome());
-        assertTrue(p.advance(46_000)); assertEquals(Outcome.FAILED, p.outcome()); assertEquals(46_000, p.finishedAt());
-        assertFalse(p.set(Valve.INTAKE, 2, 1, 47_000));
+        var p = new PressurePuzzle(cfg(20, -1.5), 1_000); long end = 1_000 + PressurePuzzle.LIMIT_MS; p.advance(end - 1); assertEquals(Outcome.RUNNING, p.outcome());
+        assertTrue(p.advance(end)); assertEquals(Outcome.FAILED, p.outcome()); assertEquals(end, p.finishedAt());
+        assertFalse(p.set(Valve.INTAKE, 2, 1, end + 1000));
     }
     @Test void thousandGeneratedPuzzlesAreValidAndSolvable() {
         int slowest = 0;
@@ -69,7 +69,7 @@ class PressurePuzzleTest {
             assertFalse(c.startPsi() >= c.safeLow() && c.startPsi() <= c.safeHigh(), "starts outside the zone");
             assertTrue(c.startPsi() >= 20 && c.startPsi() <= 100);
             var idle = new PressurePuzzle(c, 0); idle.advance(PressurePuzzle.LIMIT_MS); assertNotEquals(Outcome.STABILIZED, idle.outcome(), "cannot win idle, seed " + seed);
-            long t = PressurePuzzle.solveTime(c, 600); assertTrue(t <= 30_000, "solvable in time, seed " + seed + ": " + t);
+            long t = PressurePuzzle.solveTime(c, 600); assertTrue(t <= 35_000, "solvable in time, seed " + seed + ": " + t);
             assertTrue(PressurePuzzle.solveTime(c, 1200) <= PressurePuzzle.LIMIT_MS, "solvable even with slow reactions, seed " + seed);
             slowest = (int) Math.max(slowest, t);
         }

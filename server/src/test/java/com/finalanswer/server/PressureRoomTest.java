@@ -21,7 +21,8 @@ class PressureRoomTest {
     void command(TestPeer peer, String type, Map<String, ?> fields) { service.command(peer, Protocol.decode(Protocol.event(type, UUID.randomUUID().toString(), fields))); }
     void failure(String code, Runnable action) { assertEquals(code, assertThrows(com.finalanswer.server.rooms.RoomService.Failure.class, action::run).getMessage()); }
     com.google.gson.JsonObject pz(TestPeer p) { return p.latest().getAsJsonObject("elevatorPressure"); }
-    void tick(long ms) { for (long t = 0; t < ms; t += 25) { clock.addAndGet(25); service.tick(); } }
+    /** advances server time; the players' pages keep their PING heartbeat (as the elevator page does every 5 s) */
+    void tick(long ms) { for (long t = 0; t < ms; t += 25) { clock.addAndGet(25); service.tick(); if (clock.get() % 5000 == 0) { command(a, "PING", Map.of()); command(b, "PING", Map.of()); } } }
 
     @Test void eachPlayerHasAnIndependentPuzzle() {
         command(a, "PRESSURE_START", Map.of()); command(b, "PRESSURE_START", Map.of());
@@ -53,7 +54,7 @@ class PressureRoomTest {
         command(a, "PRESSURE_START", Map.of()); long deadline = pz(a).get("deadline").getAsLong(), id = pz(a).get("puzzleId").getAsLong();
         tick(10_000); command(a, "PRESSURE_START", Map.of());
         assertEquals(deadline, pz(a).get("deadline").getAsLong(), "a running puzzle cannot be restarted to reset the timer"); assertEquals(id, pz(a).get("puzzleId").getAsLong());
-        tick(36_000);
+        tick(51_000);
         // pressure may have been won by chance only if valves were touched; idle puzzles are generated unwinnable
         assertEquals("FAILED", pz(a).get("outcome").getAsString());
         assertEquals(0, a.latest().get("elevatorRepairs").getAsInt());
@@ -80,10 +81,11 @@ class PressureRoomTest {
         // steer with requests, then stop touching the valves once inside the zone: the tick alone must finish it
         for (int step = 0; step < 200; step++) {
             var v = pz(a); double p = v.get("pressure").getAsDouble(), mid = (v.get("safeLow").getAsInt() + v.get("safeHigh").getAsInt()) / 2.0, err = mid - p;
-            if (Math.abs(err) <= 3) { command(a, "PRESSURE_VALVE", Map.of("valve", "INTAKE", "position", 1, "seq", seq++)); command(a, "PRESSURE_VALVE", Map.of("valve", "RELEASE", "position", 1, "seq", seq++)); command(a, "PRESSURE_VALVE", Map.of("valve", "STABILIZER", "position", 1, "seq", seq++)); break; }
+            if (p >= v.get("safeLow").getAsInt() && p <= v.get("safeHigh").getAsInt()) { assertEquals("RUNNING", v.get("outcome").getAsString()); boolean low = err > 0; // drift inward slowly: >= 0.5 PSI/s toward the middle, <= 2 PSI/s
+                command(a, "PRESSURE_VALVE", Map.of("valve", "INTAKE", "position", low ? 1 : 0, "seq", seq++)); command(a, "PRESSURE_VALVE", Map.of("valve", "RELEASE", "position", low ? 0 : 1, "seq", seq++)); command(a, "PRESSURE_VALVE", Map.of("valve", "STABILIZER", "position", 1, "seq", seq++)); break; }
             int in = err > 0 ? (Math.abs(err) > 12 ? 2 : 1) : 0, out = err < 0 ? (Math.abs(err) > 12 ? 2 : 1) : 0;
             command(a, "PRESSURE_VALVE", Map.of("valve", "INTAKE", "position", in, "seq", seq++)); command(a, "PRESSURE_VALVE", Map.of("valve", "RELEASE", "position", out, "seq", seq++)); command(a, "PRESSURE_VALVE", Map.of("valve", "STABILIZER", "position", Math.abs(err) > 12 ? 0 : 1, "seq", seq++));
-            tick(200);
+            tick(50);
         }
         int before = a.events.size(); tick(4000);
         assertEquals("STABILIZED", pz(a).get("outcome").getAsString(), "finished by the server tick, no request needed");

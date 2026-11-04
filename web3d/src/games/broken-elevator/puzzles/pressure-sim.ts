@@ -2,8 +2,8 @@
 // In a room the Java server is authoritative and this is only used to predict the needle between updates.
 // Without a room (practice / development) it runs the puzzle locally with the exact same rules.
 
-export const MAX_PSI = 120, CRITICAL_PSI = 110, LIMIT_MS = 45_000, HOLD_MS = 3_000, QUANTUM_MS = 10, STAB = .25, SAFE_WIDTH = 10;
-const INTAKE = [0, 3, 7], RELEASE = [0, -3, -7], DRIFTS = [-1.5, -.75, .75, 1.5], SAFE_LOW = [45, 50, 55, 60];
+export const MAX_PSI = 120, CRITICAL_PSI = 110, LIMIT_MS = 60_000, HOLD_MS = 2_000, QUANTUM_MS = 10, STAB = .25, SAFE_WIDTH = 16;
+const INTAKE = [0, 3, 7], RELEASE = [0, -3, -7], DRIFTS = [-1, -.5, .5, 1], SAFE_LOW = [42, 47, 52, 57];
 export type ValveName = 'INTAKE' | 'RELEASE' | 'STABILIZER';
 export const POSITIONS: Record<ValveName, number> = {INTAKE: 3, RELEASE: 3, STABILIZER: 2};
 export type Outcome = 'RUNNING' | 'STABILIZED' | 'FAILED';
@@ -45,7 +45,7 @@ export function generatePressure(seed: number): PressureConfig {
     const p = new PressureSim(c, 0); let t = 0;
     while (p.outcome === 'RUNNING' && t < LIMIT_MS) { const err = (safeLow + safeHigh) / 2 - p.pressure, a = Math.abs(err);
       p.set('INTAKE', a > 12 ? (err > 0 ? 2 : 0) : a > 3 ? (err > 0 ? 1 : 0) : 1, t); p.set('RELEASE', a > 12 ? (err > 0 ? 0 : 2) : a > 3 ? (err > 0 ? 0 : 1) : 1, t); p.set('STABILIZER', a > 12 ? 0 : 1, t); t += 600; p.advance(t); }
-    if (p.outcome === 'STABILIZED' && p.finishedAt <= 30_000) return c;
+    if (p.outcome === 'STABILIZED' && p.finishedAt <= 35_000) return c;
   }
   return {startPsi: 30, safeLow: 55, safeHigh: 65, drift: -.75, intake: 0, release: 1, stabilizer: 0};
 }

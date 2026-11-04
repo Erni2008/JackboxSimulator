@@ -24,7 +24,7 @@ async function turn(p, i, from, to, touch) {
   else { await p.mouse.move(...pts[0]); await p.mouse.down(); for (const q of pts.slice(1)) { await p.mouse.move(...q); await p.waitForTimeout(16); } await p.mouse.up(); }
   await p.waitForTimeout(500);
 }
-async function rateOver(p, ms) { const a = (await view(p)).pressure; await p.waitForTimeout(ms); const b = (await view(p)).pressure; console.log('   pressure', a.toFixed(2), '->', b.toFixed(2)); return (b - a) / (ms / 1000); }
+async function rateOver(p, ms) { const a = (await view(p)).pressure; await p.waitForTimeout(ms); const b = (await view(p)).pressure; const vv = await view(p); console.log('   pressure', a.toFixed(2), '->', b.toFixed(2), vv.outcome, vv.intake, vv.release, vv.stabilizer, 'zone', vv.safeLow, vv.safeHigh, 'hold', vv.holdMs); return (b - a) / (ms / 1000); }
 /** human-like controller using the same valve API the drags feed */
 async function solve(p) {
   for (let i = 0; i < 120; i++) { const v = await view(p); if (v.outcome !== 'RUNNING') return v.outcome; const err = (v.safeLow + v.safeHigh) / 2 - v.pressure, a = Math.abs(err);
@@ -35,16 +35,18 @@ async function solve(p) {
 
 async function mechanics(b, touch, seat, tag) {
   const {p, errors} = await page(b, touch, seat); const online = !!seat;
-  if (online) { await p.waitForFunction(() => window.__manual.link.view()?.online, null, {timeout: 15000}); ok(`${tag}: server-authoritative puzzle attached`); }
+  if (online) { await p.waitForFunction(() => window.__manual.link.view()?.online, null, {timeout: 15000}); ok(`${tag}: server-authoritative puzzle attached`);
+    const st = await p.evaluate(() => { const l = window.__manual.link, v = l.view(), a = l.auth; return {p: v.pressure, ap: a.pressure + a.rate * (l.serverNow() - a.at) / 1000, v: [v.intake, v.release, v.stabilizer], av: [a.intake, a.release, a.stabilizer]}; });
+    assert.ok(Math.abs(st.p - st.ap) < 1.5, 'needle follows the server before any input: ' + JSON.stringify(st)); assert.deepEqual(st.v, st.av); ok(`${tag}: gauge and valves show the server state before the first input`); }
+  // move (via the valve API) into a measuring band on the starting side of the green zone, far enough that the
+  // later measurements can never sit in the zone long enough to complete the puzzle
+  let v = await view(p); const below = v.pressure < v.safeLow, band = below ? [v.safeLow - 34, v.safeLow - 22] : [v.safeHigh + 18, v.safeHigh + 26]; // room for ~5 PSI drift while dragging + ~10 PSI of intake, no clamp
+  for (let i = 0; i < 80; i++) { const pr = (await view(p)).pressure; if (pr > band[0] && pr < band[1]) break; await p.evaluate(hi => { const l = window.__manual.link, v = l.view(); if (hi ? v.release !== 2 : v.intake !== 2) l.setValve(hi ? 'RELEASE' : 'INTAKE', 2); if (hi ? v.intake !== 0 : v.release !== 0) l.setValve(hi ? 'INTAKE' : 'RELEASE', 0); if (v.stabilizer) l.setValve('STABILIZER', 0); }, pr >= band[1]); await p.waitForTimeout(250); }
+  await p.evaluate(() => { const l = window.__manual.link, v = l.view(); if (v.intake) l.setValve('INTAKE', 0); if (v.release) l.setValve('RELEASE', 0); });
   await p.evaluate(() => window.__manual.setInspect(true, 'pressure')); await p.waitForTimeout(1300); await p.screenshot({path: `${out}/pressure-${tag}-close.png`});
-  // start from a known state through the real UI: everything shut, stabilizer off
-  let v = await view(p); for (const [i, name] of [[0, 'intake'], [1, 'release'], [2, 'stabilizer']]) if (v[name] !== 0) { await turn(p, i, v[name], 0, touch); v = await view(p); }
+  // then close everything through the real UI (drags)
+  v = await view(p); for (const [i, name] of [[0, 'intake'], [1, 'release'], [2, 'stabilizer']]) if (v[name] !== 0) { await turn(p, i, v[name], 0, touch); v = await view(p); }
   assert.deepEqual([v.intake, v.release, v.stabilizer], [0, 0, 0]); ok(`${tag}: drags close every valve`);
-  // measure away from the 0/120 clamps: vent or feed (through the same valve API) into a band, then shut again
-  // (and well outside the green zone, so the puzzle cannot complete while we measure)
-  const band = v.safeLow >= 50 ? [12, 32] : [72, 92];
-  for (let i = 0; i < 60; i++) { const pr = (await view(p)).pressure; if (pr > band[0] && pr < band[1]) break; await p.evaluate(hi => { const l = window.__manual.link; l.setValve(hi ? 'RELEASE' : 'INTAKE', 2); l.setValve(hi ? 'INTAKE' : 'RELEASE', 0); }, pr >= band[1]); await p.waitForTimeout(250); }
-  await p.evaluate(() => { const l = window.__manual.link; l.setValve('INTAKE', 0); l.setValve('RELEASE', 0); }); await p.waitForTimeout(400); v = await view(p);
   const q = () => p.evaluate(() => window.__manual.camera.quaternion.toArray()); const yaw0 = await q();
   await turn(p, 0, 0, 2, touch); v = await view(p); assert.equal(v.intake, 2, 'red valve open'); ok(`${tag}: red valve dragged to OPEN (detent)`);
   { const q1 = await q(); assert.ok(q1.every((x, i) => Math.abs(x - yaw0[i]) < 1e-4), 'camera did not move while turning a valve'); } ok(`${tag}: valve drag does not rotate the camera`);
@@ -53,7 +55,7 @@ async function mechanics(b, touch, seat, tag) {
   await turn(p, 2, 0, 1, touch); v = await view(p); assert.equal(v.stabilizer, 1); const slow = await rateOver(p, 1200); assert.ok(Math.abs(slow) < Math.abs(down) * .5 && Math.abs(slow) > .2, `stabilizer slows: ${slow}`); ok(`${tag}: stabilizer slows the change (${slow.toFixed(2)} PSI/s)`);
   const shot = await p.evaluate(() => getComputedStyle(document.getElementById('clock-num')).display); void shot;
   const h0 = await p.evaluate(() => window.__manual.cage.height);
-  const outcome = await solve(p); assert.equal(outcome, 'STABILIZED'); ok(`${tag}: pressure held in the green zone for 3 s -> STABILIZED${online ? ' (server-confirmed)' : ''}`);
+  const outcome = await solve(p); assert.equal(outcome, 'STABILIZED'); ok(`${tag}: pressure held in the green zone for 2 s -> STABILIZED${online ? ' (server-confirmed)' : ''}`);
   await p.waitForTimeout(400); const verdict = await p.evaluate(() => document.querySelector('#verdict b').textContent); assert.equal(verdict, 'Давление стабилизировано'); ok(`${tag}: "Давление стабилизировано" shown`);
   await p.screenshot({path: `${out}/pressure-${tag}-ok.png`});
   assert.equal(await p.evaluate(() => window.__manual.cage.height), h0, 'no drop on success'); ok(`${tag}: the car does not descend after a successful repair`);
@@ -65,8 +67,8 @@ async function mechanics(b, touch, seat, tag) {
 async function timeout(b, seat) {
   const {p, errors} = await page(b, false, seat); await p.waitForFunction(() => window.__manual.link.view()?.online, null, {timeout: 15000});
   const h0 = await p.evaluate(() => window.__manual.cage.height); const d = (await view(p)).deadline - await p.evaluate(() => performance.now());
-  assert.ok(d > 40000 && d <= 45500, 'server deadline ~45 s: ' + d); ok('timeout: server deadline is 45 s');
-  await p.waitForFunction(() => window.__manual.link.view()?.outcome === 'FAILED', null, {timeout: 60000}); ok('timeout: idle puzzle fails when the server timer expires');
+  assert.ok(d > 55000 && d <= 60500, 'server deadline ~60 s: ' + d); ok('timeout: server deadline is 60 s');
+  await p.waitForFunction(() => window.__manual.link.view()?.outcome === 'FAILED', null, {timeout: 75000}); ok('timeout: idle puzzle fails when the server timer expires');
   await p.waitForTimeout(1600); assert.equal(await p.evaluate(() => document.querySelector('#verdict b').textContent), 'Отказ давления'); ok('timeout: "Отказ давления" shown');
   assert.ok(await p.evaluate(() => window.__manual.cage.height) < h0, 'car dropped'); ok('timeout: the existing failure penalty (car drops toward the lava) fired');
   // a valve request after the end is ignored by the server

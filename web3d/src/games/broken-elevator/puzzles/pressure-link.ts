@@ -3,7 +3,7 @@
 //   server over the existing /ws protocol: PRESSURE_START and PRESSURE_VALVE{valve,position,seq} only. The server owns
 //   pressure, timer, stabilisation and the outcome; this class only predicts the needle between updates.
 // local mode: no room on this device -> practice puzzle simulated in the page with the same rules.
-import {PressureSim, generatePressure, rateOf, MAX_PSI, CRITICAL_PSI, ValveName, Outcome} from './pressure-sim';
+import {PressureSim, generatePressure, rateOf, MAX_PSI, CRITICAL_PSI, HOLD_MS, ValveName, Outcome} from './pressure-sim';
 
 export interface PressureView { pressure: number; safeLow: number; safeHigh: number; intake: number; release: number; stabilizer: number; holdMs: number; deadline: number; outcome: Outcome; critical: boolean; online: boolean }
 const INTAKE = [0, 3, 7], RELEASE = [0, -3, -7];
@@ -13,7 +13,7 @@ export class PressureLink {
   private creds: {code: string; token: string} | null = null; private ws: WebSocket | null = null; private retry = 0; private ping: any = 0; private authed = false;
   private offset = 0; private seq = Date.now(); private wantStart = false; private reported = '';
   // authoritative snapshot + local prediction
-  private auth: any = null; private predP = 0; private predAt = 0; private predRate = 0; private valves = [0, 0, 0]; private pendingSeq = 0;
+  private auth: any = null; private predP = 0; private predAt = 0; private predRate = 0; private valves = [0, 0, 0]; private pendingSeq = -Infinity;
   private local: PressureSim | null = null;
 
   constructor() {
@@ -36,6 +36,8 @@ export class PressureLink {
     const p = ev.payload || {}; if (typeof p.serverTime === 'number') this.offset = p.serverTime - Date.now();
     if (!this.authed && (ev.type === 'AUTHENTICATED' || ev.type === 'STATE' || p.roomCode)) { this.authed = true; this.retry = 0; this.onStatus(''); if (this.wantStart) this.send('PRESSURE_START', {}); }
     if (ev.type === 'ERROR' && p.code === 'NO_PRESSURE_PUZZLE' && this.wantStart) this.send('PRESSURE_START', {});
+    // a rejected request (rate limit, stale, invalid): drop the prediction and take the server's valves again
+    if (ev.type === 'ERROR' && this.pendingSeq > -Infinity) { this.pendingSeq = -Infinity; this.send('SYNC', {}); }
     if (typeof p.elevatorRepairs === 'number') this.repairs = p.elevatorRepairs;
     const v = p.elevatorPressure; if (!v) return;
     // a reply that predates our latest valve request does not overwrite the predicted valves
@@ -48,7 +50,7 @@ export class PressureLink {
   /** begin (or, after a reconnect, resume) this player's puzzle */
   start() {
     if (this.mode === 'local') { this.local = new PressureSim(generatePressure((Math.random() * 2 ** 31) | 0), Date.now()); this.reported = ''; return; }
-    this.auth = null; this.wantStart = true; this.reported = ''; if (this.authed) this.send('PRESSURE_START', {});
+    this.auth = null; this.pendingSeq = -Infinity; this.wantStart = true; this.reported = ''; if (this.authed) this.send('PRESSURE_START', {});
   }
   stop() { this.local = null; this.auth = null; this.wantStart = false; }
   setValve(valve: ValveName, position: number) {
@@ -70,7 +72,7 @@ export class PressureLink {
     }
     const v = this.auth; if (!v) return null; const now = this.serverNow(), end = v.outcome === 'RUNNING' ? Math.min(now, v.deadline) : v.at;
     const pressure = v.outcome === 'RUNNING' ? this.extrapolate(end) : v.pressure, inZone = pressure >= v.safeLow && pressure <= v.safeHigh;
-    const holdMs = v.outcome === 'STABILIZED' ? 3000 : inZone ? Math.min(2990, v.holdMs + (v.lastSeq >= this.pendingSeq && v.holdMs > 0 ? Math.max(0, now - v.at) : 0)) : 0;
+    const holdMs = v.outcome === 'STABILIZED' ? HOLD_MS : inZone ? Math.min(HOLD_MS - 10, v.holdMs + (v.lastSeq >= this.pendingSeq && v.holdMs > 0 ? Math.max(0, now - v.at) : 0)) : 0;
     return {pressure, safeLow: v.safeLow, safeHigh: v.safeHigh, intake: this.valves[0], release: this.valves[1], stabilizer: this.valves[2], holdMs, deadline: v.deadline - now + performance.now(), outcome: v.outcome, critical: pressure >= CRITICAL_PSI, online: true};
   }
 }

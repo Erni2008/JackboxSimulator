@@ -6,7 +6,7 @@
 // Local frame: +z points into the cage, origin on the wall surface.
 import * as T from 'three';
 import type {PressureView} from './pressure-link';
-import type {ValveName} from './pressure-sim';
+import {HOLD_MS, type ValveName} from './pressure-sim';
 
 const SERIF = "'IM Fell English SC', Georgia, serif", TECH = "'Oswald', 'Arial Narrow', sans-serif";
 const rng = (s: number) => () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
@@ -21,7 +21,7 @@ export class PressureMachine {
   onValve: (v: ValveName, pos: number) => void = () => {};
   sounds: {click: () => void; turn: () => void; knock: (k: number) => void; alarm: () => void; tick: (k: number) => void; steam: (hiss: number, rumble: number) => void} | null = null;
   private valves: Valve[] = []; private needle = new T.Group(); private needleAngle = A0; private needleVel = 0; private shown = -1;
-  private dialCanvas = document.createElement('canvas'); private dial!: T.CanvasTexture; private zone = [0, 0];
+  private faceMat!: T.MeshStandardMaterial; private dialCanvas = document.createElement('canvas'); private dial!: T.CanvasTexture; private zone = [0, 0];
   private lamp!: T.Mesh; private lampLight!: T.PointLight; private holdLamps: T.Mesh[] = []; private pipes = new T.Group(); private t = 0; private alarmT = 0; private knockT = 0; private lastHoldStep = 0;
   private steam!: T.Points; private steamData!: Float32Array; private steamLife!: Float32Array; private steamCursor = 0; private steamAcc = 0; private nozzle = new T.Vector3(); private leak = new T.Vector3();
   private drag: {v: Valve; cx: number; cy: number; last: number} | null = null;
@@ -53,7 +53,7 @@ export class PressureMachine {
     const housing = new T.Mesh(new T.CylinderGeometry(R + .012, R + .016, .05, hi ? 64 : 40), brass); housing.rotation.x = Math.PI / 2; housing.position.z = .047; G.add(housing);
     const bezel = new T.Mesh(new T.TorusGeometry(R + .006, .009, 12, hi ? 72 : 48), brass); bezel.position.z = .074; G.add(bezel);
     this.dialCanvas.width = this.dialCanvas.height = 1024; this.dial = new T.CanvasTexture(this.dialCanvas); this.dial.colorSpace = T.SRGBColorSpace; this.dial.anisotropy = 16; this.drawDial(55, 65);
-    const face = new T.Mesh(new T.CircleGeometry(R, hi ? 72 : 48), new T.MeshStandardMaterial({map: this.dial, emissiveMap: this.dial, emissive: '#ffffff', emissiveIntensity: .5, roughness: .75})); face.position.z = .0725; G.add(face);
+    this.faceMat = new T.MeshStandardMaterial({map: this.dial, emissiveMap: this.dial, emissive: '#ffffff', emissiveIntensity: .5, roughness: .75}); const face = new T.Mesh(new T.CircleGeometry(R, hi ? 72 : 48), this.faceMat); face.position.z = .0725; G.add(face);
     const needleMat = new T.MeshStandardMaterial({color: '#140d07', roughness: .5}); const blade = new T.Mesh(new T.BoxGeometry(.006, R * .86, .003), needleMat); blade.position.y = R * .36; this.needle.add(blade);
     const tail = new T.Mesh(new T.BoxGeometry(.01, R * .2, .003), needleMat); tail.position.y = -R * .08; this.needle.add(tail);
     const tip = new T.Mesh(new T.BoxGeometry(.004, R * .16, .0035), new T.MeshStandardMaterial({color: '#9e1d10', roughness: .5})); tip.position.y = R * .73; this.needle.add(tip);
@@ -63,7 +63,7 @@ export class PressureMachine {
     for (const a of [0, 1, 2, 3]) { const sb = new T.Mesh(new T.CylinderGeometry(.005, .005, .006, 8), brassDark); sb.rotation.x = Math.PI / 2; sb.position.set(Math.cos(a * QUARTER + Math.PI / 4) * (R + .006), Math.sin(a * QUARTER + Math.PI / 4) * (R + .006), .082); G.add(sb); }
 
     // ---- stabilisation indicator: three lamps that light in turn while the pressure is held in the zone
-    const ind = this.plateMesh('HOLD', '3 SEC', .07, .05, 'brass'); ind.position.set(.215, .225, .03); this.group.add(ind);
+    const ind = this.plateMesh('HOLD', `${HOLD_MS / 1000} SEC`, .07, .05, 'brass'); ind.position.set(.215, .225, .03); this.group.add(ind);
     for (let i = 0; i < 3; i++) { const l = new T.Mesh(new T.SphereGeometry(.0125, 16, 10), new T.MeshStandardMaterial({color: '#1c2a14', emissive: '#4dff6a', emissiveIntensity: 0, roughness: .25})); l.position.set(.215, .16 - i * .042, .035); this.group.add(l); this.holdLamps.push(l);
       const ring = new T.Mesh(new T.TorusGeometry(.015, .003, 8, 24), brass); ring.position.copy(l.position); ring.position.z = .033; this.group.add(ring); }
     // ---- warning lamp in a wire cage
@@ -201,7 +201,8 @@ export class PressureMachine {
     const k = 60, cdamp = 2 * Math.sqrt(k); this.needleVel += (k * (aim - this.needleAngle) - cdamp * this.needleVel) * dt; this.needleAngle += this.needleVel * dt;
     const crit = !!view?.critical; this.needle.rotation.z = -(this.needleAngle + (crit ? Math.sin(this.t * 70) * .012 : 0));
     // stabilisation lamps
-    const hold = view ? view.holdMs / 1000 : 0; this.holdLamps.forEach((l, i) => { const m = l.material as T.MeshStandardMaterial; const on = hold > i + .02 || view?.outcome === 'STABILIZED'; const partial = !on && hold > i ? 1 : 0; m.emissiveIntensity = on ? 2.4 : partial; });
+    const hold = view ? view.holdMs / HOLD_MS * 3 : 0; this.holdLamps.forEach((l, i) => { const m = l.material as T.MeshStandardMaterial; const on = hold >= i + 1 || view?.outcome === 'STABILIZED'; m.emissiveIntensity = on ? 2.4 : hold > i ? .35 + (hold - i) : 0; });
+    const zoneOn = !!view && view.outcome === 'RUNNING' && view.pressure >= view.safeLow && view.pressure <= view.safeHigh; this.faceMat.emissive.set(zoneOn ? '#c8ffd2' : '#ffffff'); this.faceMat.emissiveIntensity += ((zoneOn ? .85 : .5) - this.faceMat.emissiveIntensity) * Math.min(1, dt * 8);
     const step = Math.floor(hold); if (step > this.lastHoldStep && view?.outcome === 'RUNNING') this.sounds?.tick(step); this.lastHoldStep = view && view.holdMs > 0 ? step : 0;
     // warning lamp + pipe hammer + alarm in the critical band; amber idle glow while the puzzle is live
     const lm = this.lamp.material as T.MeshStandardMaterial; const flash = crit && Math.sin(this.t * 14) > 0;
