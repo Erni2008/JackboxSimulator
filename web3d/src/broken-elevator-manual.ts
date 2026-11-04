@@ -6,6 +6,8 @@ import {ManualInteraction, type HoldState} from './games/broken-elevator/manual/
 import {BookAudio} from './games/broken-elevator/manual/audio';
 import {SAMPLE_MANUAL, loadManualContent} from './games/broken-elevator/manual/content';
 import {buildCage, contactShadow} from './games/broken-elevator/manual/test-scene';
+import {FuseBox} from './games/broken-elevator/puzzles/fusebox';
+import {makeRules, makeTask, manualRows} from './games/broken-elevator/puzzles/wire-puzzle';
 import {buildGlbCage} from './games/broken-elevator/manual/glb-cage';
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
@@ -36,7 +38,13 @@ async function boot() {
   $('load-text').textContent = 'Binding the manual…';
   // ?rules=<url> lets the server supply real puzzle rules (ManualContent JSON); otherwise the specimen
   const rules = params.get('rules') ? await loadManualContent(params.get('rules')!).catch(e => { console.warn(e); return SAMPLE_MANUAL; }) : SAMPLE_MANUAL;
-  const book = await EngineersManual.create(renderer, rules, quality);
+  // wire puzzle: the manual prints the cutting RULES for this session; the box shows serial + wires
+  const seed = +(params.get('seed') || Date.now() % 100000), wireRules = makeRules(seed);
+  const content = structuredClone(rules); const cut = content.sections.find((s: any) => s.id === 'cutting');
+  if (cut && !params.get('rules')) cut.pages = [
+    {heading: 'Severing a Conductor', paragraphs: ['Open the junction box and read the serial stamped upon its brass plate. The last figure of the serial decides which wire is to be cut; consult the table opposite.', 'Should the serial bear a vowel, the wire named is NOT to be cut: take instead the next wire to its right. Beyond the rightmost wire, return to the leftmost.'], steps: ['Read the serial.', 'Find its last figure in Table II.', 'Check the serial for vowels.', 'Cut once. A wrong cut cannot be undone.'], notes: [{text: 'count from the LEFT', x: .62, y: .9, angle: -3, ink: 'red'}]},
+    {heading: 'Table II \u2014 Order of Cutting', diagram: {type: 'cutting', rows: manualRows(wireRules)}, caption: 'Wires are counted left to right as you face the box.'}];
+  const book = await EngineersManual.create(renderer, content, quality);
   book.sounds = {coverOpen: () => audio.play('coverOpen'), coverClose: () => audio.play('coverClose'), pageTurn: s => audio.play('pageTurn', s), creak: a => audio.play('creak', a)};
   scene.add(book.root);
   const shadow = contactShadow(); scene.add(shadow);
@@ -46,6 +54,26 @@ async function boot() {
   const hints: Record<HoldState, string> = {rest: mobile ? 'Drag to look around · tap the manual to pick it up' : 'Drag to look around · click the manual to pick it up', lifting: '', held: mobile ? 'Tap the cover to open' : 'Click the cover to open', reading: mobile ? 'Tap the right page to turn forward, the left page to go back · swipe · pinch to zoom' : 'Click the right page to turn forward, the left page to go back · scroll to zoom', releasing: '', falling: ''};
   const sync = (s: HoldState) => { $('hint').textContent = hints[s]; $('btn-open').hidden = s !== 'held'; $('btn-close').hidden = s !== 'reading'; $('btn-drop').hidden = !['held', 'reading'].includes(s); document.body.dataset.state = s; };
   ui.onstate = sync; sync('rest');
+  // junction box on the back wall, left of the shelf
+  const box = new FuseBox(quality === 'high'); const ci = cage.inner as T.Box3 | undefined;
+  if (ci) box.group.position.set(ci.min.x * .45, floorY + 1.3, ci.min.z + .008); else box.group.position.set(-.45, 1.3, -.79);
+  scene.add(box.group);
+  box.sounds = {door: o => audio.play(o ? 'doorOpen' : 'doorClose'), snip: () => audio.play('snip'), spark: () => audio.play('spark'), good: () => audio.play('good'), bad: () => audio.play('bad')};
+  const TOTAL = 12, LIMIT = 45; let taskNo = 1, deadline = 0, taskSeed = seed, pending: any = 0;
+  const hud = (msg = '', tone = '') => { $('task').textContent = `TASK ${taskNo} / ${TOTAL}`; $('verdict').textContent = msg; $('verdict').dataset.tone = tone; };
+  const newTask = (advance: boolean) => { if (advance) taskNo = Math.min(TOTAL, taskNo + 1); taskSeed++; box.setTask(makeTask(wireRules, taskSeed)); deadline = 0; hud(); };
+  const finish = (ok: boolean, why: string) => { box.locked = true; box.setLamp(ok ? 'good' : 'bad'); audio.play(ok ? 'good' : 'bad'); hud(ok ? 'CIRCUIT RESTORED' : why, ok ? 'good' : 'bad'); deadline = 0; clearTimeout(pending); pending = setTimeout(() => { if (box.open) box.toggleDoor(); setTimeout(() => newTask(ok), 500); }, 2400); };
+  box.onCut = i => finish(i === box.task!.answer, 'WRONG WIRE');
+  newTask(false);
+  // taps that miss the book go to the box; opening the door turns the head toward it
+  const tapStart = new Map<number, {x: number; y: number; t: number}>(), ray = new T.Raycaster();
+  renderer.domElement.addEventListener('pointerdown', e => tapStart.set(e.pointerId, {x: e.clientX, y: e.clientY, t: performance.now()}));
+  renderer.domElement.addEventListener('pointerup', e => { const s = tapStart.get(e.pointerId); tapStart.delete(e.pointerId); if (!s || Math.hypot(e.clientX - s.x, e.clientY - s.y) > 12 || performance.now() - s.t > 450) return;
+    ray.setFromCamera(new T.Vector2(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1), camera);
+    const b = ray.intersectObject(book.root, true)[0], hit = ray.intersectObjects(box.pickables(), false)[0]; if (b && (!hit || b.distance < hit.distance)) return;
+    if (ui.state === 'reading' || ui.state === 'held') { if (!hit) return; }
+    const r = box.tap(ray); if (r === 'door' && box.open) { if (!deadline && !box.locked) deadline = performance.now() + LIMIT * 1000; if (ui.state === 'rest' || ui.state === 'falling') { const d = box.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } } });
+  let focusTo: [number, number] | null = null;
   $('btn-open').onclick = () => ui.open(); $('btn-close').onclick = () => ui.close(); $('btn-drop').onclick = () => ui.drop();
   $('btn-sound').onclick = () => { audio.unlock(); audio.enabled = !audio.enabled; $('btn-sound').textContent = audio.enabled ? 'Sound on' : 'Sound off'; };
   book.onspread = s => { $('page-label').textContent = `${2 * s + 1}–${2 * s + 2} / ${book.pages.length}`; }; book.onspread(0);
@@ -66,11 +94,13 @@ async function boot() {
     if (acc > 2) { const ms = acc / frames * 1000; if (ms > 26 && dpr > 1) { dpr = Math.max(1, dpr - .25); renderer.setPixelRatio(dpr); resize(); } acc = 0; frames = 0; }
     // gentle head motion while looking around the cage (none while reading)
     if (free) orbit.update(); else { camera.position.copy(eye); camera.quaternion.setFromEuler(new T.Euler(pitch, yaw, 0, 'YXZ')); }
-    cage.update(dt); ui.update(dt);
+    cage.update(dt); ui.update(dt); box.update(dt);
+    if (focusTo) { let dy = focusTo[0] - yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yaw += dy * Math.min(1, dt * 5); pitch += (focusTo[1] - pitch) * Math.min(1, dt * 5); if (Math.abs(dy) < .002 && Math.abs(focusTo[1] - pitch) < .002) focusTo = null; }
+    { const left = deadline ? Math.max(0, (deadline - performance.now()) / 1000) : LIMIT; $('clock-num').textContent = String(Math.ceil(left)); ($('clock-ring') as any).style.strokeDashoffset = String(176 * (1 - left / LIMIT)); $('clock').dataset.urgent = String(!!deadline && left < 10); if (deadline && left <= 0 && !box.locked) finish(false, 'TIME RAN OUT'); }
     const surface = cage.shelf && Math.abs(book.root.position.y - TH / 2 - cage.shelf.top.y) < .2 && Math.abs(book.root.position.z - cage.shelf.top.z) < .2 ? cage.shelf.top.y : floorY; const h = Math.max(0, book.root.position.y - TH / 2 - surface); shadow.position.set(book.root.position.x, surface + .0012, book.root.position.z); shadow.rotation.z = new T.Euler().setFromQuaternion(book.root.quaternion, 'YXZ').y; (shadow.material as T.MeshBasicMaterial).opacity = .75 * Math.max(0, 1 - h / .18); shadow.visible = h < .18;
     renderer.render(scene, camera); requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
-  (window as any).__manual = {book, ui, renderer, scene, camera, get state() { return ui.state; }, get info() { return renderer.info.render; }, cage, look(y: number, p: number) { yaw = y; pitch = p; }, setFree, set timeScale(v: number) { timeScale = v; }, step(sec: number) { for (let i = 0; i < Math.round(sec * 60); i++) { cage.update(1 / 60); ui.update(1 / 60); } }};
+  (window as any).__manual = {book, ui, renderer, scene, camera, get state() { return ui.state; }, get info() { return renderer.info.render; }, box, cage, look(y: number, p: number) { yaw = y; pitch = p; }, setFree, set timeScale(v: number) { timeScale = v; }, step(sec: number) { for (let i = 0; i < Math.round(sec * 60); i++) { cage.update(1 / 60); ui.update(1 / 60); } }};
 }
 boot().catch(e => { $('load-text').textContent = 'Failed: ' + (e?.message || e); console.error(e); });

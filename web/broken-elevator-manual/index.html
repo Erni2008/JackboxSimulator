@@ -23,6 +23,12 @@ button:active{background:rgba(60,40,22,.85)}
 body[data-state=reading] #page-label{display:block}
 #btn-sound{position:fixed;left:16px;top:max(48px,calc(env(safe-area-inset-top) + 36px));font-size:13px;padding:6px 10px;min-height:32px;opacity:.7}
 #btn-cam{position:fixed;left:16px;top:max(90px,calc(env(safe-area-inset-top) + 78px));font-size:13px;padding:6px 10px;min-height:32px}
+#task{position:fixed;left:50%;transform:translateX(-50%);top:max(52px,calc(env(safe-area-inset-top) + 40px));padding:6px 22px;font:600 18px/1.2 'IM Fell English SC',Georgia,serif;letter-spacing:.12em;color:#ecdcbc;background:linear-gradient(#3a2416,#22140c);border:1px solid #6b4a2a;border-radius:4px;box-shadow:0 2px 10px #000a,inset 0 1px #ffffff18}
+#clock{position:fixed;right:16px;top:max(16px,env(safe-area-inset-top));width:64px;height:64px;display:grid;place-items:center}
+#clock svg{position:absolute;inset:0;transform:rotate(-90deg)}#clock .track{fill:#120a06d0;stroke:#3a2a1e;stroke-width:5}#clock .ring{fill:none;stroke:#c23a22;stroke-width:5;stroke-dasharray:176;stroke-linecap:round}
+#clock-num{position:relative;font:700 24px Georgia,serif;color:#f1e4c8}#clock[data-urgent=true] #clock-num{color:#ff6a4a;animation:pulse .5s infinite alternate}@keyframes pulse{to{transform:scale(1.15)}}
+#verdict{position:fixed;left:0;right:0;top:42%;text-align:center;font:700 34px 'IM Fell English SC',Georgia,serif;letter-spacing:.1em;pointer-events:none;text-shadow:0 2px 14px #000}#verdict[data-tone=good]{color:#8dff9a}#verdict[data-tone=bad]{color:#ff5a3c}
+#hint{top:max(100px,calc(env(safe-area-inset-top) + 88px))}
 #loading{position:fixed;inset:0;display:grid;place-items:center;background:#050403;font-size:20px;letter-spacing:.08em;color:var(--dim)}
 </style>
 </head>
@@ -30,6 +36,9 @@ body[data-state=reading] #page-label{display:block}
 <div id="viewport"></div>
 <div id="hint"></div>
 <div id="page-label"></div>
+<div id="task">TASK 1 / 12</div>
+<div id="clock"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" class="track"/><circle id="clock-ring" cx="32" cy="32" r="28" class="ring"/></svg><span id="clock-num">45</span></div>
+<div id="verdict"></div>
 <button id="btn-sound">Sound on</button>
 <button id="btn-cam">Camera: player</button>
 <div id="bar">
@@ -40,6 +49,6 @@ body[data-state=reading] #page-label{display:block}
   <button id="btn-next" hidden>Page ›</button>
 </div>
 <div id="loading"><span id="load-text">Loading…</span></div>
-<script type="module" src="app.js?v=6"></script>
+<script type="module" src="app.js?v=7"></script>
 </body>
 </html>

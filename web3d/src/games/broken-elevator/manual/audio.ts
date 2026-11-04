@@ -4,7 +4,7 @@
 // filtered noise and modal resonators — no placeholder files are shipped.
 // Drop real recordings into SAMPLE_URLS to override any synthesised voice.
 export const SAMPLE_URLS: Partial<Record<Voice, string>> = {pageTurn: 'audio/page_turn.wav'};
-export type Voice = 'coverOpen' | 'coverClose' | 'pageTurn' | 'pickup' | 'drop' | 'impactMetal' | 'creak';
+export type Voice = 'coverOpen' | 'coverClose' | 'pageTurn' | 'pickup' | 'drop' | 'impactMetal' | 'creak' | 'snip' | 'spark' | 'good' | 'bad' | 'doorOpen' | 'doorClose';
 
 export class BookAudio {
   ctx: AudioContext | null = null; out!: GainNode; private buffers = new Map<Voice, AudioBuffer>(); private noise!: AudioBuffer; enabled = true;
@@ -38,6 +38,12 @@ export class BookAudio {
         const k = Math.min(1, intensity); this.rustle(t, .14, 180, 1.2, 1.1 * k, .002); this.rustle(t, .05, 2400, .6, .3 * k, .001);
         for (const [f, d, g] of [[186, .55, .16], [412, .4, .1], [733, .3, .07], [1290, .22, .04], [2210, .15, .02]]) this.mode(t + .002, f * (.97 + Math.random() * .06), d * (.6 + k * .6), g * k);
         break; }
+      case 'snip': this.rustle(t, .05, 5200, .9, .9, .001); this.mode(t, 2900, .09, .12); this.mode(t, 4400, .06, .07); this.rustle(t + .01, .08, 900, 2, .3, .002); break;
+      case 'spark': for (let i = 0; i < 7; i++) this.rustle(t + i * .028 + Math.random() * .02, .04, 3000 + Math.random() * 4000, .8, .5 * Math.random() + .2, .001); break;
+      case 'good': for (const [f, d] of [[660, 1.2], [990, 1.0], [1320, .8]]) this.mode(t + .02, f, d, .08); this.rustle(t, .25, 300, 1, .4, .002); break;
+      case 'bad': { const o = this.ctx!.createOscillator(), g = this.ctx!.createGain(); o.type = 'sawtooth'; o.frequency.value = 62; g.gain.setValueAtTime(.18, t); g.gain.exponentialRampToValueAtTime(.001, t + .9); o.connect(g).connect(this.out); o.start(t); o.stop(t + .95); this.rustle(t, .5, 2500, .7, .5, .002); break; }
+      case 'doorOpen': { const f = this.rustle(t, .55, 700, 7, .35, .05); f.frequency.linearRampToValueAtTime(420, t + .5); this.mode(t, 240, .3, .1); break; }
+      case 'doorClose': this.rustle(t, .12, 300, 1.2, .9, .002); this.mode(t, 180, .45, .2); this.mode(t, 410, .3, .1); break;
     }
   }
 }
