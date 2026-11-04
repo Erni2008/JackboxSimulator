@@ -18,7 +18,7 @@ let quality: 'high' | 'low' = params.get('quality') === 'low' || (mobile && para
 const renderer = new T.WebGLRenderer({antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: params.has('capture')});
 renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.AgXToneMapping; renderer.toneMappingExposure = 1.15;
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFShadowMap;
-let dpr = Math.min(devicePixelRatio, quality === 'high' ? 2 : 1.75); renderer.setPixelRatio(dpr);
+let dpr = Math.min(devicePixelRatio, quality === 'high' ? 1.5 : 1.25); renderer.setPixelRatio(dpr);
 $('viewport').append(renderer.domElement);
 const scene = new T.Scene(), camera = new T.PerspectiveCamera(50, 1, .03, 40);
 camera.position.set(0, 1.56, .5); camera.lookAt(0, .1, -.25);
@@ -34,7 +34,7 @@ async function boot() {
   const procedural = params.get('cage') === 'procedural';
   const cage: any = procedural ? await buildCage(renderer, scene, quality === 'high') : await buildGlbCage(renderer, scene, quality === 'high');
   const floorY: number = cage.floorY ?? 0, eye: T.Vector3 = cage.eye ?? new T.Vector3(0, 1.56, .5);
-  camera.position.copy(eye); let yaw = 0, pitch = -.5;
+  camera.position.copy(eye); let yaw = 0, pitch = -.5, yawT = 0, pitchT = -.5; const hoverRay = new T.Raycaster();
   $('load-text').textContent = 'Binding the manual…';
   // ?rules=<url> lets the server supply real puzzle rules (ManualContent JSON); otherwise the specimen
   const rules = params.get('rules') ? await loadManualContent(params.get('rules')!).catch(e => { console.warn(e); return SAMPLE_MANUAL; }) : SAMPLE_MANUAL;
@@ -49,7 +49,7 @@ async function boot() {
   scene.add(book.root);
   const shadow = contactShadow(); scene.add(shadow);
   const ui = new ManualInteraction(book, camera, renderer.domElement, audio, cage.planes);
-  if (cage.shelf) { ui.place(cage.shelf.top.clone().add(new T.Vector3(0, TH / 2, 0)), new T.Quaternion().setFromEuler(new T.Euler(0, .04, 0))); const d = cage.shelf.top.clone().sub(eye); yaw = Math.atan2(-d.x, -d.z); pitch = Math.atan2(d.y, Math.hypot(d.x, d.z)); }
+  if (cage.shelf) { ui.place(cage.shelf.top.clone().add(new T.Vector3(0, TH / 2, 0)), new T.Quaternion().setFromEuler(new T.Euler(0, .04, 0))); const d = cage.shelf.top.clone().sub(eye); yaw = yawT = Math.atan2(-d.x, -d.z); pitch = pitchT = Math.atan2(d.y, Math.hypot(d.x, d.z)); }
   else ui.place(new T.Vector3(.06, TH / 2, -.22), new T.Quaternion().setFromEuler(new T.Euler(0, .5, 0)));
   const hints: Record<HoldState, string> = {rest: mobile ? 'Drag to look around · tap the manual to pick it up' : 'Drag to look around · click the manual to pick it up', lifting: '', held: mobile ? 'Tap the cover to open' : 'Click the cover to open', reading: mobile ? 'Tap the right page to turn forward, the left page to go back · swipe · pinch to zoom' : 'Click the right page to turn forward, the left page to go back · scroll to zoom', releasing: '', falling: ''};
   const sync = (s: HoldState) => { $('hint').textContent = hints[s]; $('btn-open').hidden = s !== 'held'; $('btn-close').hidden = s !== 'reading'; $('btn-drop').hidden = !['held', 'reading'].includes(s); document.body.dataset.state = s; };
@@ -88,19 +88,22 @@ async function boot() {
   const drag = new Map<number, {x: number; y: number}>(); const canLook = () => !free && (ui.state === 'rest' || ui.state === 'falling');
   renderer.domElement.addEventListener('pointerdown', e => drag.set(e.pointerId, {x: e.clientX, y: e.clientY}));
   addEventListener('pointerup', e => drag.delete(e.pointerId)); addEventListener('pointercancel', e => drag.delete(e.pointerId));
-  renderer.domElement.addEventListener('pointermove', e => { const p = drag.get(e.pointerId); if (!p || drag.size > 1) return; const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY; if (!canLook()) return; const k = 2.6 / Math.max(innerHeight, 400); yaw += dx * k; pitch = T.MathUtils.clamp(pitch + dy * k, -1.45, 1.35); });
+  renderer.domElement.addEventListener('pointermove', e => { const p = drag.get(e.pointerId); if (!p || drag.size > 1) return; const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY; if (!canLook()) return; const k = 2.6 / Math.max(innerHeight, 400); yawT += dx * k; pitchT = T.MathUtils.clamp(pitchT + dy * k, -1.45, 1.35); focusTo = null; });
+  renderer.domElement.addEventListener('pointermove', e => { if (e.pointerType !== 'mouse' || drag.size) return; hoverRay.setFromCamera(new T.Vector2(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1), camera); box.hover(hoverRay); });
   const loop = (now: number) => {
     const dt = Math.min(.05, (now - last) / 1000) * timeScale; last = now; acc += dt; frames++;
-    if (acc > 2) { const ms = acc / frames * 1000; if (ms > 26 && dpr > 1) { dpr = Math.max(1, dpr - .25); renderer.setPixelRatio(dpr); resize(); } acc = 0; frames = 0; }
+    if (acc > 1) { const ms = acc / frames * 1000; if (ms > 19 && dpr > 1) { dpr = Math.max(1, dpr - .25); renderer.setPixelRatio(dpr); resize(); } acc = 0; frames = 0; }
     // gentle head motion while looking around the cage (none while reading)
+    // exponential smoothing of the look (frame-rate independent): no stepping between irregular mouse events
+    { const a = 1 - Math.exp(-dt * 22); yaw += (yawT - yaw) * a; pitch += (pitchT - pitch) * a; }
     if (free) orbit.update(); else { camera.position.copy(eye); camera.quaternion.setFromEuler(new T.Euler(pitch, yaw, 0, 'YXZ')); }
     cage.update(dt); ui.update(dt); box.update(dt);
-    if (focusTo) { let dy = focusTo[0] - yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yaw += dy * Math.min(1, dt * 5); pitch += (focusTo[1] - pitch) * Math.min(1, dt * 5); if (Math.abs(dy) < .002 && Math.abs(focusTo[1] - pitch) < .002) focusTo = null; }
+    if (focusTo) { let dy = focusTo[0] - yawT; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yawT += dy * Math.min(1, dt * 5); pitchT += (focusTo[1] - pitchT) * Math.min(1, dt * 5); if (Math.abs(dy) < .002 && Math.abs(focusTo[1] - pitchT) < .002) focusTo = null; }
     { const left = deadline ? Math.max(0, (deadline - performance.now()) / 1000) : LIMIT; $('clock-num').textContent = String(Math.ceil(left)); ($('clock-ring') as any).style.strokeDashoffset = String(176 * (1 - left / LIMIT)); $('clock').dataset.urgent = String(!!deadline && left < 10); if (deadline && left <= 0 && !box.locked) finish(false, 'TIME RAN OUT'); }
     const surface = cage.shelf && Math.abs(book.root.position.y - TH / 2 - cage.shelf.top.y) < .2 && Math.abs(book.root.position.z - cage.shelf.top.z) < .2 ? cage.shelf.top.y : floorY; const h = Math.max(0, book.root.position.y - TH / 2 - surface); shadow.position.set(book.root.position.x, surface + .0012, book.root.position.z); shadow.rotation.z = new T.Euler().setFromQuaternion(book.root.quaternion, 'YXZ').y; (shadow.material as T.MeshBasicMaterial).opacity = .75 * Math.max(0, 1 - h / .18); shadow.visible = h < .18;
     renderer.render(scene, camera); requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
-  (window as any).__manual = {book, ui, renderer, scene, camera, get state() { return ui.state; }, get info() { return renderer.info.render; }, box, cage, look(y: number, p: number) { yaw = y; pitch = p; }, setFree, set timeScale(v: number) { timeScale = v; }, step(sec: number) { for (let i = 0; i < Math.round(sec * 60); i++) { cage.update(1 / 60); ui.update(1 / 60); } }};
+  (window as any).__manual = {book, ui, renderer, scene, camera, get state() { return ui.state; }, get info() { return renderer.info.render; }, box, cage, look(y: number, p: number) { yaw = yawT = y; pitch = pitchT = p; }, setFree, set timeScale(v: number) { timeScale = v; }, step(sec: number) { for (let i = 0; i < Math.round(sec * 60); i++) { cage.update(1 / 60); ui.update(1 / 60); } }};
 }
 boot().catch(e => { $('load-text').textContent = 'Failed: ' + (e?.message || e); console.error(e); });

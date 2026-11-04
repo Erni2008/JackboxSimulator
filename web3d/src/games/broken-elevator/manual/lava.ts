@@ -68,7 +68,7 @@ export function createLava(scene: T.Scene, y: number, hi: boolean) {
     fragmentShader: `varying float vA; void main(){ float d = length(gl_PointCoord - .5); float a = smoothstep(.5, .0, d) * vA; gl_FragColor = vec4(vec3(1., .45, .12) * a * 1.4, a); }`});
   const embers = new T.Points(g, emat); embers.frustumCulled = false; scene.add(embers);
   // the lake lights the shaft and the cage underside; flicker follows the burst rhythm
-  const lights: T.PointLight[] = []; for (const [x, z] of [[-1.8, .5], [1.7, -.6], [0, 1.9]]) { const l = new T.PointLight('#ff5a12', 6, 12, 1.3); l.position.set(x, y + .9, z); scene.add(l); lights.push(l); }
+  const lights: T.PointLight[] = []; for (const [x, z] of [[0, 0]]) { const l = new T.PointLight('#ff5a12', 14, 14, 1.2); l.position.set(x, y + .9, z); scene.add(l); lights.push(l); }
   let t = 0;
-  return {lake, update(dt: number) { t += dt; mat.uniforms.time.value = t; emat.uniforms.time.value = t; lights.forEach((l, i) => { l.intensity = 6 + Math.sin(t * 1.3 + i * 2.1) * 1.2 + Math.sin(t * 5.7 + i) * .5 + Math.max(0, Math.sin(t * 2.9 + i * 4)) ** 12 * 3; }); }};
+  return {lake, update(dt: number) { t += dt; mat.uniforms.time.value = t; emat.uniforms.time.value = t; lights.forEach((l, i) => { l.intensity = 14 + 2 * Math.sin(t * 1.3 + i * 2.1) * 1.2 + Math.sin(t * 5.7 + i) * .5 + Math.max(0, Math.sin(t * 2.9 + i * 4)) ** 12 * 3; }); }};
 }

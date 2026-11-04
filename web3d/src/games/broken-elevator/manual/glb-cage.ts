@@ -76,11 +76,11 @@ export async function buildGlbCage(renderer: T.WebGLRenderer, scene: T.Scene, hi
   const lamp = new T.SpotLight('#ffb870', 34, 9, 1.2, .75, 1.3); lamp.position.set(0, ceilingY - .12, 0); lamp.target.position.set(0, floorY, 0); lamp.castShadow = true;
   lamp.shadow.mapSize.set(hi ? 2048 : 1024, hi ? 2048 : 1024); lamp.shadow.bias = -.0002; lamp.shadow.normalBias = .02; lamp.shadow.camera.near = .1; lamp.shadow.camera.far = 8;
   scene.add(lamp, lamp.target);
-  const bulb = new T.PointLight('#ff9a4a', 2.2, 4, 1.6); bulb.position.copy(lamp.position); scene.add(bulb);
+  const bulb = {intensity: 0};
   const glow = new T.Mesh(new T.SphereGeometry(.03, 16, 10), new T.MeshBasicMaterial({color: '#ffcf96'})); glow.position.copy(lamp.position).y -= .02; scene.add(glow);
   const lava = createLava(scene, floorY - 3.2, hi);
   // soft bounce fill so corners and the far walls never fall to pure black (no shadows: cheap on phones)
-  for (const [x, yy, z, c, k] of [[-.6, .55, .6, '#ffc79a', 1.0], [.6, .55, -.6, '#ffc79a', 1.0], [0, .2, 0, '#ff7a3a', .8]] as const) { const f = new T.PointLight(c, k, 4.5, 1.5); f.position.set(x * (px + nx) / 2, floorY + yy * (ceilingY - floorY), z * (pz + nz) / 2); scene.add(f); }
+  for (const [x, yy, z, c, k] of [[0, .5, 0, '#ffc79a', 1.8]] as const) { const f = new T.PointLight(c, k, 4.5, 1.5); f.position.set(x * (px + nx) / 2, floorY + yy * (ceilingY - floorY), z * (pz + nz) / 2); scene.add(f); }
   scene.add(new T.HemisphereLight('#8a7058', '#5a2008', .8));
   // wall shelf: weathered iron plank on two aged-brass brackets, on the back wall (−z), off-centre so it clears the doors
   const shelf = buildShelf(); const shelfY = floorY + 1.02, shelfX = Math.min(px, nx) * .35; shelf.position.set(shelfX, shelfY, -nz + .005); scene.add(shelf);
