@@ -16,7 +16,7 @@ const mobile = matchMedia('(pointer: coarse)').matches || Math.min(screen.width,
 let quality: 'high' | 'low' = params.get('quality') === 'low' || (mobile && params.get('quality') !== 'high') ? 'low' : 'high';
 
 const renderer = new T.WebGLRenderer({antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: params.has('capture')});
-renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.AgXToneMapping; renderer.toneMappingExposure = 1.15;
+renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFShadowMap; renderer.shadowMap.autoUpdate = false; let frameNo = 0;
 let dpr = Math.min(devicePixelRatio, quality === 'high' ? 1.5 : 1.25); renderer.setPixelRatio(dpr);
 $('viewport').append(renderer.domElement);
@@ -29,7 +29,7 @@ addEventListener('resize', resize); resize();
 const audio = new BookAudio();
 let timeScale = 1; // test hook: 0 freezes animation for frame-exact captures
 async function boot() {
-  $('load-text').textContent = 'Descending…';
+  $('load-text').textContent = 'Спуск…';
   // cage.glb is the elevator; the old procedural cage stays available with ?cage=procedural
   const procedural = params.get('cage') === 'procedural';
   $('load-text').textContent = 'Binding the manual…';
@@ -51,7 +51,7 @@ async function boot() {
   const ui = new ManualInteraction(book, camera, renderer.domElement, audio, cage.planes);
   if (cage.shelf) { ui.place(cage.shelf.top.clone().add(new T.Vector3(0, TH / 2, 0)), new T.Quaternion().setFromEuler(new T.Euler(0, .04, 0))); const d = cage.shelf.top.clone().sub(eye); yaw = yawT = Math.atan2(-d.x, -d.z); pitch = pitchT = Math.atan2(d.y, Math.hypot(d.x, d.z)); }
   else ui.place(new T.Vector3(.06, TH / 2, -.22), new T.Quaternion().setFromEuler(new T.Euler(0, .5, 0)));
-  const hints: Record<HoldState, string> = {rest: mobile ? 'Drag to look around · tap the manual to pick it up' : 'Drag to look around · click the manual to pick it up', lifting: '', held: mobile ? 'Tap the cover to open' : 'Click the cover to open', reading: mobile ? 'Tap the right page to turn forward, the left page to go back · swipe · pinch to zoom' : 'Click the right page to turn forward, the left page to go back · scroll to zoom', releasing: '', falling: ''};
+  const hints: Record<HoldState, string> = {rest: mobile ? 'Ведите пальцем, чтобы осмотреться · нажмите на книгу или щиток' : 'Тяните мышью, чтобы осмотреться · кликните по книге или щитку', lifting: '', held: mobile ? 'Нажмите на обложку, чтобы открыть' : 'Кликните по обложке, чтобы открыть', reading: mobile ? 'Правая страница — вперёд, левая — назад · свайп · щипок для зума' : 'Правая страница — вперёд, левая — назад · колесо для зума', releasing: '', falling: ''};
   const sync = (s: HoldState) => { $('hint').textContent = hints[s]; $('btn-open').hidden = s !== 'held'; $('btn-close').hidden = s !== 'reading'; $('btn-drop').hidden = !['held', 'reading'].includes(s); document.body.dataset.state = s; };
   ui.onstate = sync; sync('rest');
   // junction box on the back wall, left of the shelf
@@ -60,14 +60,14 @@ async function boot() {
   scene.add(box.group);
   box.sounds = {door: o => audio.play(o ? 'doorOpen' : 'doorClose'), snip: () => audio.play('snip'), spark: () => audio.play('spark'), good: () => audio.play('good'), bad: () => audio.play('bad')};
   const TOTAL = 12, LIMIT = 45; let taskNo = 1, deadline = 0, taskSeed = seed, pending: any = 0;
-  const hud = () => { $('task').textContent = `TASK ${taskNo} / ${TOTAL}`; };
+  const hud = () => { $('task').textContent = `ЗАДАНИЕ ${taskNo} / ${TOTAL}`; };
   // result card: low on screen (≈85 % of the viewport), fades in, a small mechanical jolt, holds, fades out (~2 s)
   let verdictTimer: any = 0;
-  const verdict = (ok: boolean, sub: string) => { const v = $('verdict'); v.querySelector('b')!.textContent = ok ? 'CIRCUIT STABILIZED' : 'CRITICAL ERROR'; v.querySelector('span')!.textContent = sub; v.dataset.tone = ok ? 'good' : 'bad';
+  const verdict = (ok: boolean, sub: string) => { const v = $('verdict'); v.querySelector('b')!.textContent = ok ? 'Цепь стабилизирована' : 'Критическая ошибка'; v.querySelector('span')!.textContent = sub; v.dataset.tone = ok ? 'good' : 'bad';
     v.classList.remove('show'); void v.offsetWidth; v.classList.add('show'); clearTimeout(verdictTimer); verdictTimer = setTimeout(() => v.classList.remove('show'), 2300); if (!ok) { document.body.classList.remove('jolt'); void document.body.offsetWidth; document.body.classList.add('jolt'); } };
   const newTask = (advance: boolean) => { if (advance) taskNo = Math.min(TOTAL, taskNo + 1); taskSeed++; const t = makeTask(wireRules, taskSeed, wireCount || 4 + Math.floor(Math.random() * 3), fixed); box.setTask(t); box.configure(t.fault, t.mode); deadline = 0; hud(); };
-  const finish = (ok: boolean, why: string) => { box.locked = true; box.setLamp(ok ? 'good' : 'bad'); audio.play(ok ? 'good' : 'bad'); verdict(ok, ok ? 'REPAIR SUCCESSFUL' : why); hud(); deadline = 0; clearTimeout(pending); pending = setTimeout(() => { if (box.open) box.toggleDoor(); setTimeout(() => newTask(ok), 500); }, 2400); };
-  box.onCut = i => finish(i === box.task!.answer, 'INCORRECT WIRE');
+  const finish = (ok: boolean, why: string) => { box.locked = true; box.setLamp(ok ? 'good' : 'bad'); audio.play(ok ? 'good' : 'bad'); verdict(ok, ok ? 'РЕМОНТ УСПЕШЕН' : why); hud(); deadline = 0; clearTimeout(pending); pending = setTimeout(() => { if (box.open) box.toggleDoor(); setTimeout(() => newTask(ok), 500); }, 2400); };
+  box.onCut = i => finish(i === box.task!.answer, 'НЕВЕРНЫЙ ПРОВОД');
   // PHASE 1 dev configuration: ?fault=overload|short|power&mode=normal|emergency&wires=4..6 (no production generation yet)
   // dev overrides: ?fault=overload|short|power&mode=normal|emergency&wires=4..6 (otherwise each task varies)
   const fixed: any = {}; if (['overload', 'short', 'power'].includes(params.get('fault') || '')) fixed.fault = params.get('fault'); if (['normal', 'emergency'].includes(params.get('mode') || '')) fixed.mode = params.get('mode');
@@ -86,11 +86,11 @@ async function boot() {
   const setInspect = (on: boolean) => { inspecting = on; $('btn-back').hidden = !on; $('hint').style.opacity = on ? '0' : ''; $('task').style.opacity = on && innerWidth > 700 ? '0' : ''; if (on) { focusTo = null; if (!box.open) box.toggleDoor(); } };
   $('btn-back').onclick = () => setInspect(false); addEventListener('keydown', e => { if (e.key === 'Escape' && inspecting) setInspect(false); });
   $('btn-open').onclick = () => ui.open(); $('btn-close').onclick = () => ui.close(); $('btn-drop').onclick = () => ui.drop();
-  $('btn-sound').onclick = () => { audio.unlock(); audio.enabled = !audio.enabled; $('btn-sound').textContent = audio.enabled ? 'Sound on' : 'Sound off'; };
+  $('btn-sound').onclick = () => { audio.unlock(); audio.enabled = !audio.enabled; $('btn-sound').textContent = audio.enabled ? 'Звук: вкл.' : 'Звук: выкл.'; };
   book.onspread = s => { $('page-label').textContent = `${2 * s + 1}–${2 * s + 2} / ${book.pages.length}`; }; book.onspread(0);
   // free camera (?freecam=1 or key C): orbit / zoom / pan anywhere, including below the floor to the lava
   const orbit = new OrbitControls(camera, renderer.domElement); orbit.enableDamping = true; orbit.maxDistance = 14; orbit.minDistance = .1; orbit.screenSpacePanning = true; orbit.target.set(0, .4, 0); orbit.enabled = false;
-  let free = false; const setFree = (on: boolean) => { free = on; orbit.enabled = on; $('btn-cam').textContent = on ? 'Camera: free' : 'Camera: player'; if (!on) { camera.position.copy(eye); } else { camera.position.set(eye.x + .3, eye.y + .3, eye.z + 1.6); orbit.target.set(0, floorY + 1, 0); orbit.update(); } };
+  let free = false; const setFree = (on: boolean) => { free = on; orbit.enabled = on; $('btn-cam').textContent = on ? 'Камера: свободная' : 'Камера: игрок'; if (!on) { camera.position.copy(eye); } else { camera.position.set(eye.x + .3, eye.y + .3, eye.z + 1.6); orbit.target.set(0, floorY + 1, 0); orbit.update(); } };
   $('btn-cam').onclick = () => setFree(!free); addEventListener('keydown', e => { if (e.key.toLowerCase() === 'c') setFree(!free); }); if (params.get('freecam') === '1') setFree(true);
   $('loading').hidden = true;
   // adaptive quality: drop the render resolution when frames run long
@@ -117,7 +117,7 @@ async function boot() {
     } else { camera.position.copy(eye); camera.quaternion.setFromEuler(new T.Euler(pitch, yaw, 0, 'YXZ')); }
     cage.update(dt); ui.update(dt); box.update(dt);
     if (focusTo) { let dy = focusTo[0] - yawT; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yawT += dy * Math.min(1, dt * 5); pitchT += (focusTo[1] - pitchT) * Math.min(1, dt * 5); if (Math.abs(dy) < .002 && Math.abs(focusTo[1] - pitchT) < .002) focusTo = null; }
-    { const left = deadline ? Math.max(0, (deadline - performance.now()) / 1000) : LIMIT; $('clock-num').textContent = String(Math.ceil(left)); ($('clock-ring') as any).style.strokeDashoffset = String(176 * (1 - left / LIMIT)); $('clock').dataset.urgent = String(!!deadline && left < 10); if (deadline && left <= 0 && !box.locked) finish(false, 'TIME EXPIRED'); }
+    { const left = deadline ? Math.max(0, (deadline - performance.now()) / 1000) : LIMIT; $('clock-num').textContent = String(Math.ceil(left)); ($('clock-ring') as any).style.strokeDashoffset = String(176 * (1 - left / LIMIT)); $('clock').dataset.urgent = String(!!deadline && left < 10); if (deadline && left <= 0 && !box.locked) finish(false, 'ВРЕМЯ ВЫШЛО'); }
     const surface = cage.shelf && Math.abs(book.root.position.y - TH / 2 - cage.shelf.top.y) < .2 && Math.abs(book.root.position.z - cage.shelf.top.z) < .2 ? cage.shelf.top.y : floorY; const h = Math.max(0, book.root.position.y - TH / 2 - surface); shadow.position.set(book.root.position.x, surface + .0012, book.root.position.z); shadow.rotation.z = new T.Euler().setFromQuaternion(book.root.quaternion, 'YXZ').y; (shadow.material as T.MeshBasicMaterial).opacity = .75 * Math.max(0, 1 - h / .18); shadow.visible = h < .18;
     // shadows refresh every other frame: invisible at 60 fps, halves the shadow-pass cost
     if ((frameNo++ & 1) === 0) renderer.shadowMap.needsUpdate = true;

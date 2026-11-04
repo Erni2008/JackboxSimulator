@@ -8,15 +8,21 @@ import {WIRE_COLORS, type WireColor} from '../puzzles/wire-puzzle';
 import {paper} from './page-art';
 
 export const INK = '#140b05', INK2 = 'rgba(20,11,5,.7)', BURGUNDY = '#6a1013', RULE_LINE = 'rgba(20,11,5,.22)', BRASS = '#8a652a';
+// Cyrillic-capable faces (OFL): Cormorant SC display, Oswald labels, Lora text, IBM Plex Mono ids
 export const F = {
-  display: (w: number, px: number) => `${w} ${px}px 'Cinzel', Georgia, serif`,
-  body: (px: number, w = 400, it = false) => `${it ? 'italic ' : ''}${w} ${px}px 'Libre Caslon Text', Georgia, serif`,
-  tech: (px: number, w = 700) => `${w} ${px}px 'Barlow Condensed', 'Arial Narrow', sans-serif`,
+  display: (w: number, px: number) => `700 ${px}px 'Cormorant SC', 'Cinzel', Georgia, serif`,
+  body: (px: number, w = 500, it = false) => `${it ? 'italic ' : ''}500 ${px}px 'Lora', Georgia, serif`,
+  tech: (px: number, w = 700) => `${w >= 600 ? 700 : 500} ${px}px 'Oswald', 'Arial Narrow', sans-serif`,
   mono: (px: number, w = 700) => `${w} ${px}px 'IBM Plex Mono', Menlo, monospace`,
 };
 const W = 1024, H = 1408, MX = 84;
 // wire colours on paper: same hues as the panel, tuned to read on ivory under warm light
-const INKED: Record<WireColor, string> = {red: '#b3221a', yellow: '#d9a514', blue: '#1f4fa8', green: '#2f7d32', purple: '#6b2f93', white: '#f4f0e6'};
+const INKED: Record<WireColor, string> = {red: '#c8231a', yellow: '#f0b20f', blue: '#1d55c4', green: '#2c8f33', purple: '#7a2fae', white: '#f7f3ea'};
+// Russian labels (nominative / genitive) — the manual is printed in Russian; panel engravings stay as on the hardware
+const RU: Record<WireColor, [string, string]> = {red: ['КРАСНЫЙ', 'КРАСНОГО'], yellow: ['ЖЁЛТЫЙ', 'ЖЁЛТОГО'], blue: ['СИНИЙ', 'СИНЕГО'], green: ['ЗЕЛЁНЫЙ', 'ЗЕЛЁНОГО'], purple: ['ФИОЛЕТ.', 'ФИОЛЕТ.'], white: ['БЕЛЫЙ', 'БЕЛОГО']};
+// category tints make the condition type readable at a glance
+const TINT: Record<string, string> = {fault: '#f7d6c4', mode: '#d3e0f0', serial: '#f1e0b0', wire: '#d6ecd0', else: '#e9e2d4'};
+const tintOf = (c: Cond) => c.k === 'fault' ? TINT.fault : c.k === 'mode' ? TINT.mode : c.k === 'odd' || c.k === 'even' || c.k === 'vowel' ? TINT.serial : c.k === 'else' ? TINT.else : TINT.wire;
 void WIRE_COLORS;
 
 export interface RulePage { layout: 'rules'; section: number; half: 0 | 1 }
@@ -60,7 +66,7 @@ function iconFault(x: X, v: 'overload' | 'short' | 'power', cx: number, cy: numb
     x.strokeStyle = 'rgba(20,11,5,.55)'; x.lineWidth = 3; x.beginPath(); x.moveTo(-10, -4); x.lineTo(-4, -18); x.lineTo(4, -4); x.lineTo(10, -18); x.stroke();
     x.strokeStyle = '#b3221a'; x.lineWidth = 6; x.lineCap = 'round'; x.beginPath(); x.moveTo(52, -34); x.lineTo(52, 10); x.moveTo(40, -2); x.lineTo(52, 12); x.lineTo(64, -2); x.stroke();
   }
-  x.restore(); label(x, v === 'overload' ? 'OVERLOAD' : v === 'short' ? 'SHORT' : 'NO POWER', cx, cy + S / 2 - 4, 25, BURGUNDY);
+  x.restore(); label(x, v === 'overload' ? 'ПЕРЕГРУЗКА' : v === 'short' ? 'ЗАМЫКАНИЕ' : 'НЕТ ПИТАНИЯ', cx, cy + S / 2 - 4, 24, BURGUNDY);
 }
 function iconMode(x: X, v: 'normal' | 'emergency', cx: number, cy: number) {
   x.save(); x.translate(cx, cy - 14); const r = 46;
@@ -69,7 +75,7 @@ function iconMode(x: X, v: 'normal' | 'emergency', cx: number, cy: number) {
   for (const [t, a] of [['N', -Math.PI * .75], ['E', -Math.PI * .25]] as const) { const on = (t === 'N') === (v === 'normal'); x.fillStyle = on ? INK : 'rgba(20,11,5,.3)'; x.fillText(t, Math.cos(a) * (r + 18), Math.sin(a) * (r + 18)); }
   const a = v === 'normal' ? -Math.PI * .75 : -Math.PI * .25; x.rotate(a + Math.PI / 2);
   x.fillStyle = INK; rr(x, -9, -r + 6, 18, r * 2 - 12, 8); x.fill(); x.fillStyle = '#b3221a'; x.beginPath(); x.moveTo(0, -r + 2); x.lineTo(-9, -r + 18); x.lineTo(9, -r + 18); x.closePath(); x.fill();
-  x.restore(); label(x, v === 'normal' ? 'NORMAL' : 'EMERGENCY', cx, cy + S / 2 - 4, 25);
+  x.restore(); label(x, v === 'normal' ? 'РЕЖИМ N' : 'РЕЖИМ E', cx, cy + S / 2 - 4, 25);
 }
 function plate(x: X, cx: number, cy: number, chars: string, hl: number[], w = 128) {
   const h = 54; x.fillStyle = '#1c1612'; rr(x, cx - w / 2, cy - h / 2, w, h, 6); x.fill(); x.strokeStyle = BRASS; x.lineWidth = 4; rr(x, cx - w / 2, cy - h / 2, w, h, 6); x.stroke();
@@ -77,34 +83,34 @@ function plate(x: X, cx: number, cy: number, chars: string, hl: number[], w = 12
   [...chars].forEach((c, i) => { const px = cx - w / 2 + 11 + step * (i + .5); if (hl.includes(i)) { x.fillStyle = '#b3221a'; rr(x, px - step / 2 + 2, cy - 19, step - 4, 38, 4); x.fill(); x.fillStyle = '#f5ecd6'; } else x.fillStyle = 'rgba(240,229,201,.5)'; x.fillText(c, px, cy + 1); });
 }
 function iconSerial(x: X, k: 'odd' | 'even' | 'vowel', cx: number, cy: number) {
-  if (k === 'vowel') { plate(x, cx, cy - 26, 'A E U', [0, 2, 4]); label(x, 'VOWEL IN', cx, cy + 32, 24); label(x, 'SERIAL', cx, cy + 58, 24); return; }
+  if (k === 'vowel') { plate(x, cx, cy - 26, 'A E U', [0, 2, 4]); label(x, 'ГЛАСНАЯ', cx, cy + 32, 24); label(x, 'В НОМЕРЕ', cx, cy + 58, 24); return; }
   plate(x, cx, cy - 26, '••••' + (k === 'odd' ? '7' : '4'), [4]);
-  label(x, k === 'odd' ? 'LAST DIGIT' : 'LAST DIGIT', cx, cy + 32, 24); label(x, k === 'odd' ? 'ODD' : 'EVEN', cx, cy + 60, 28, BURGUNDY);
+  label(x, 'ПОСЛ. ЦИФРА', cx, cy + 32, 22); label(x, k === 'odd' ? 'НЕЧЁТНАЯ' : 'ЧЁТНАЯ', cx, cy + 60, 26, BURGUNDY);
 }
-const ORD = ['1ST', '2ND', '3RD', '4TH', '5TH', '6TH'];
+const ORD = ['1-Й', '2-Й', '3-Й', '4-Й', '5-Й', '6-Й'];
 function iconPos(x: X, c: Extract<Cond, {k: 'pos'}>, n: number, cx: number, cy: number) {
   const i = c.at === 'last' ? n - 1 : c.at; strip(x, cx, cy - 16, n, i, c.color, n > 5 ? 22 : 25);
-  label(x, `${c.at === 'last' ? 'LAST' : ORD[c.at]} = ${c.color.toUpperCase()}`, cx, cy + S / 2 - 4, 24);
+  label(x, `${c.at === 'last' ? 'ПОСЛ.' : ORD[c.at]} = ${RU[c.color][0]}`, cx, cy + S / 2 - 4, 22);
 }
 function iconNone(x: X, color: WireColor, cx: number, cy: number) {
   wire(x, cx, cy - 58, cy + 22, color, 20);
   x.strokeStyle = '#b3221a'; x.lineWidth = 7; x.beginPath(); x.arc(cx, cy - 18, 46, 0, 7); x.stroke(); x.beginPath(); x.moveTo(cx - 32, cy + 14); x.lineTo(cx + 32, cy - 50); x.stroke();
-  label(x, `NO ${color.toUpperCase()}`, cx, cy + S / 2 - 4, 25);
+  label(x, `НЕТ ${RU[color][1]}`, cx, cy + S / 2 - 4, 23);
 }
 function iconHas(x: X, color: WireColor, cx: number, cy: number) {
   wire(x, cx, cy - 58, cy + 22, color, 20);
   x.strokeStyle = '#2f6b33'; x.lineWidth = 6; x.beginPath(); x.arc(cx + 34, cy - 50, 16, 0, 7); x.stroke(); x.beginPath(); x.moveTo(cx + 26, cy - 50); x.lineTo(cx + 32, cy - 43); x.lineTo(cx + 43, cy - 58); x.stroke();
-  label(x, `ANY ${color.toUpperCase()}`, cx, cy + S / 2 - 4, 25);
+  label(x, `ЕСТЬ ${RU[color][0]}`, cx, cy + S / 2 - 4, 23);
 }
 function iconLeftOf(x: X, a: WireColor, b: WireColor, cx: number, cy: number) {
   wire(x, cx - 40, cy - 58, cy + 18, a, 18); wire(x, cx + 40, cy - 58, cy + 18, b, 18);
   x.fillStyle = INK; x.font = F.tech(34, 700); x.textAlign = 'center'; x.fillText('…', cx, cy - 10);
-  label(x, `${a.toUpperCase()} BEFORE ${b.toUpperCase()}`, cx, cy + S / 2 - 4, 22);
+  label(x, `${RU[a][0]} ЛЕВЕЕ ${RU[b][1]}`, cx, cy + S / 2 - 4, 19);
 }
 function iconElse(x: X, cx: number, cy: number) {
   x.strokeStyle = INK; x.lineWidth = 3; x.setLineDash([8, 6]); rr(x, cx - 66, cy - 58, 132, 92, 10); x.stroke(); x.setLineDash([]);
-  x.fillStyle = INK; x.font = F.tech(46, 700); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('ELSE', cx, cy - 12); x.textBaseline = 'alphabetic';
-  label(x, 'NO RULE ABOVE', cx, cy + S / 2 - 4, 22, INK2);
+  x.fillStyle = INK; x.font = F.tech(46, 700); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('ИНАЧЕ', cx, cy - 12); x.textBaseline = 'alphabetic';
+  label(x, 'НИЧЕГО ВЫШЕ', cx, cy + S / 2 - 4, 22, INK2);
 }
 export function drawCond(x: X, c: Cond, n: number, cx: number, cy: number) {
   switch (c.k) {
@@ -128,37 +134,43 @@ function target(x: X, t: number, n: number, cx: number, cy: number) {
   x.fillStyle = '#1c1612'; rr(x, cx - 30, cy - 70, 104, 64, 8); x.fill(); x.strokeStyle = BURGUNDY; x.lineWidth = 5; rr(x, cx - 30, cy - 70, 104, 64, 8); x.stroke();
   x.fillStyle = '#f5ecd6'; x.font = F.mono(44, 700); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(TERMINALS[t], cx + 22, cy - 37); x.textBaseline = 'alphabetic';
   const sw = 16, w = n * sw; for (let i = 0; i < n; i++) { const px = cx - w / 2 + sw * (i + .5) + 2; x.fillStyle = i === t ? BURGUNDY : 'rgba(20,11,5,.25)'; x.fillRect(px - 4, cy + 4, 8, i === t ? 34 : 24); }
-  label(x, `${ORD[t]} WIRE`, cx + 2, cy + 64, 22, BURGUNDY);
+  label(x, `${ORD[t]} ПРОВОД`, cx + 2, cy + 64, 22, BURGUNDY);
 }
 
 // ------------------------------------------------------------------ page
+const plural = (n: number) => n === 4 ? 'ПРОВОДА' : 'ПРОВОДОВ';
 function header(x: X, sec: RuleSection, side: number, page: number, cont: boolean) {
   x.textBaseline = 'alphabetic';
-  x.fillStyle = INK; x.font = F.display(800, cont ? 46 : 74); x.textAlign = 'left'; x.fillText('WIRE MODULE', MX, cont ? 118 : 150);
-  x.fillStyle = BURGUNDY; x.font = F.tech(cont ? 40 : 52, 700); x.fillText(`${sec.wires} WIRES`, MX + 2, cont ? 168 : 218);
-  // small diagram of the module: n wires between two rails
-  const n = sec.wires, w = n * 30, cx = W - MX - w / 2 - 10, top = cont ? 78 : 104, h = cont ? 92 : 120;
+  x.fillStyle = INK2; x.font = F.tech(20, 500); x.textAlign = 'left'; x.fillText('WIRE MODULE \u00b7 РАЗДЕЛ ' + sec.numeral, MX, cont ? 70 : 82);
+  x.fillStyle = INK; x.font = F.display(700, cont ? 52 : 78); x.fillText('Модуль проводов', MX - 2, cont ? 118 : 150);
+  // burgundy ribbon carrying the wire count
+  const ry = cont ? 136 : 172, rh = cont ? 44 : 56, label = `${sec.wires} ${plural(sec.wires)}`; x.font = F.tech(cont ? 30 : 38, 700); const rw = x.measureText(label).width + 56;
+  x.fillStyle = BURGUNDY; x.beginPath(); x.moveTo(MX, ry); x.lineTo(MX + rw, ry); x.lineTo(MX + rw - 16, ry + rh / 2); x.lineTo(MX + rw, ry + rh); x.lineTo(MX, ry + rh); x.closePath(); x.fill();
+  x.fillStyle = '#f6ead0'; x.fillText(label, MX + 18, ry + rh * .74);
+  const n = sec.wires, w = n * 30, cx = W - MX - w / 2 - 10, top = cont ? 70 : 92, h = cont ? 100 : 128;
+  x.fillStyle = 'rgba(40,28,18,.08)'; rr(x, cx - w / 2 - 22, top - 34, w + 44, h + 50, 10); x.fill();
   x.strokeStyle = INK; x.lineWidth = 4; x.beginPath(); x.moveTo(cx - w / 2 - 12, top); x.lineTo(cx + w / 2 + 12, top); x.moveTo(cx - w / 2 - 12, top + h); x.lineTo(cx + w / 2 + 12, top + h); x.stroke();
   const cols: WireColor[] = ['red', 'yellow', 'blue', 'green', 'purple', 'white'];
   for (let i = 0; i < n; i++) { const px = cx - w / 2 + 30 * (i + .5); wire(x, px, top + 12, top + h - 12, cols[i], 12); x.fillStyle = INK; x.font = F.mono(17, 700); x.textAlign = 'center'; x.fillText(TERMINALS[i], px, top - 10); }
   x.font = F.tech(22, 700); x.fillStyle = INK2; x.textAlign = side > 0 ? 'right' : 'left'; x.fillText(String(page), side > 0 ? W - MX : MX, H - 58);
-  const y = cont ? 200 : 256; x.strokeStyle = INK; x.lineWidth = 3; x.beginPath(); x.moveTo(MX, y); x.lineTo(W - MX, y); x.stroke();
-  if (!cont) { // priority: one line + a downward arrow
-    x.fillStyle = BURGUNDY; x.font = F.tech(36, 700); x.textAlign = 'left'; x.fillText('FIRST MATCH WINS', MX + 54, y + 52);
+  const y = cont ? 206 : 262; x.strokeStyle = INK; x.lineWidth = 3; x.beginPath(); x.moveTo(MX, y); x.lineTo(W - MX, y); x.stroke();
+  if (!cont) {
+    x.fillStyle = BURGUNDY; x.font = F.tech(29, 700); x.textAlign = 'left'; x.fillText('ПЕРВОЕ СОВПАДЕНИЕ — ВЕРНОЕ', MX + 54, y + 52);
     x.strokeStyle = BURGUNDY; x.lineWidth = 6; x.lineCap = 'round'; x.beginPath(); x.moveTo(MX + 20, y + 20); x.lineTo(MX + 20, y + 58); x.moveTo(MX + 8, y + 46); x.lineTo(MX + 20, y + 60); x.lineTo(MX + 32, y + 46); x.stroke();
-    x.fillStyle = INK2; x.font = F.tech(26, 500); x.fillText('COUNT WIRES LEFT → RIGHT', MX + 330, y + 52);
+    x.fillStyle = INK2; x.font = F.tech(20, 500); x.textAlign = 'right'; x.fillText('СЧЁТ СЛЕВА \u2192 НАПРАВО', W - MX, y + 50);
   }
   return cont ? y + 14 : y + 84;
 }
 
 function ruleRow(x: X, num: number, cond: Cond[], cut: number, n: number, y: number, h: number) {
   const cy = y + h / 2 + 8;
-  x.fillStyle = INK; x.font = F.display(800, 70); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(num).padStart(2, '0'), MX + 52, y + h / 2); x.textBaseline = 'alphabetic';
+  x.fillStyle = INK; x.beginPath(); x.arc(MX + 50, y + h / 2, 46, 0, 7); x.fill(); x.strokeStyle = BRASS; x.lineWidth = 4; x.beginPath(); x.arc(MX + 50, y + h / 2, 40, 0, 7); x.stroke();
+  x.fillStyle = '#f3e6c8'; x.font = F.mono(46, 700); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(num).padStart(2, '0'), MX + 50, y + h / 2 + 2); x.textBaseline = 'alphabetic';
   // condition cells (1 or 2), "+" between them
   const c0 = MX + 130, cell = 168;
   cond.forEach((c, i) => {
     const cx = c0 + cell / 2 + i * (cell + 44);
-    x.fillStyle = 'rgba(255,250,235,.55)'; rr(x, cx - cell / 2, y + 14, cell, h - 28, 12); x.fill(); x.strokeStyle = 'rgba(20,11,5,.35)'; x.lineWidth = 2; rr(x, cx - cell / 2, y + 14, cell, h - 28, 12); x.stroke();
+    x.fillStyle = tintOf(c); rr(x, cx - cell / 2, y + 14, cell, h - 28, 12); x.fill(); x.strokeStyle = 'rgba(20,11,5,.35)'; x.lineWidth = 2; rr(x, cx - cell / 2, y + 14, cell, h - 28, 12); x.stroke();
     drawCond(x, c, n, cx, cy);
     if (i < cond.length - 1) { x.fillStyle = INK; x.font = F.tech(54, 700); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('+', cx + cell / 2 + 22, y + h / 2); x.textBaseline = 'alphabetic'; }
   });
@@ -174,19 +186,33 @@ export function drawRulePage(x: X, p: RulePage, index: number) {
   sec.rules.slice(p.half * 4, p.half * 4 + 4).forEach((r, i) => ruleRow(x, p.half * 4 + i + 1, r.cond, r.cut, sec.wires, top + i * h, h));
 }
 
-/** SYMBOL KEY page: every icon once, with its meaning (replaces the old prose procedure) */
+/** Introduction to the game: a short in-world briefing with an engraving of the cage over the lava. */
 export function drawGuidePage(x: X, index: number) {
   paper(x, index + 31, 1, true); x.textBaseline = 'alphabetic';
-  x.fillStyle = INK; x.font = F.display(800, 66); x.textAlign = 'left'; x.fillText('SYMBOL KEY', MX, 140);
-  x.strokeStyle = INK; x.lineWidth = 3; x.beginPath(); x.moveTo(MX, 172); x.lineTo(W - MX, 172); x.stroke();
-  const cells: [Cond, string][] = [
-    [{k: 'fault', v: 'overload'}, 'needle in the red'], [{k: 'fault', v: 'short'}, 'needle jumps'], [{k: 'fault', v: 'power'}, 'needle sinks to 0'],
-    [{k: 'mode', v: 'normal'}, 'selector on N'], [{k: 'mode', v: 'emergency'}, 'selector on E'], [{k: 'vowel'}, 'A, E or U anywhere'],
-    [{k: 'odd'}, '1 3 5 7 9'], [{k: 'even'}, '0 2 4 6 8'], [{k: 'pos', at: 0, color: 'red'}, 'wire position'],
-  ];
-  const cw = (W - 2 * MX) / 3, ch = 300;
-  cells.forEach(([c, note], i) => { const cx = MX + cw * (i % 3 + .5), cy = 300 + Math.floor(i / 3) * ch; drawCond(x, c, 4, cx, cy); x.fillStyle = INK2; x.font = F.body(22, 400, true); x.textAlign = 'center'; x.fillText(note, cx, cy + 112); });
-  const y = 300 + 3 * ch - 90; x.strokeStyle = RULE_LINE; x.lineWidth = 2; x.beginPath(); x.moveTo(MX, y); x.lineTo(W - MX, y); x.stroke();
-  target(x, 1, 4, W / 2 + 120, y + 130); x.fillStyle = INK; x.font = F.tech(34, 700); x.textAlign = 'left'; x.fillText('CUT THIS', MX + 20, y + 110); x.fillText('TERMINAL', MX + 20, y + 150);
+  x.fillStyle = INK2; x.font = F.tech(22, 500); x.textAlign = 'center'; x.fillText('FINAL ANSWER \u00b7 THE BROKEN ELEVATOR', W / 2, 92);
+  x.fillStyle = INK; x.font = F.display(700, 84); x.fillText('Сломанный лифт', W / 2, 176);
+  x.strokeStyle = BRASS; x.lineWidth = 2; x.beginPath(); x.moveTo(W / 2 - 220, 204); x.lineTo(W / 2 + 220, 204); x.stroke();
+  // illustration: chains, the cage, a gauge-like halo, the lava lake glowing below
+  const cx = W / 2, top = 236, ih = 520;
+  const sky = x.createLinearGradient(0, top, 0, top + ih); sky.addColorStop(0, '#2a1d16'); sky.addColorStop(.62, '#4a2014'); sky.addColorStop(1, '#c2451a');
+  x.fillStyle = sky; rr(x, MX, top, W - 2 * MX, ih, 14); x.fill(); x.save(); rr(x, MX, top, W - 2 * MX, ih, 14); x.clip();
+  for (let i = 0; i < 9; i++) { const ly = top + ih - 90 + i * 12; const g = x.createLinearGradient(0, ly, 0, ly + 14); g.addColorStop(0, i % 2 ? '#ff8a2a' : '#ffb23e'); g.addColorStop(1, '#8a1d0c'); x.fillStyle = g; x.beginPath(); x.moveTo(MX, ly); for (let px = MX; px <= W - MX; px += 18) x.lineTo(px, ly + Math.sin(px * .045 + i) * 6); x.lineTo(W - MX, ly + 20); x.lineTo(MX, ly + 20); x.fill(); }
+  for (let i = 0; i < 26; i++) { x.fillStyle = `rgba(255,${150 + (i * 37) % 80},60,${.4 + (i % 5) * .1})`; x.beginPath(); x.arc(MX + 40 + (i * 131) % (W - 2 * MX - 80), top + ih - 120 - (i * 53) % 220, 2 + i % 3, 0, 7); x.fill(); }
+  x.strokeStyle = '#1b120d'; x.lineWidth = 5; for (const dx of [-60, 60]) { x.beginPath(); x.moveTo(cx + dx, top); x.lineTo(cx + dx * .55, top + 110); x.stroke(); }
+  const bw = 200, bh = 250, by = top + 110; x.fillStyle = '#1b120d'; x.fillRect(cx - bw / 2 - 12, by - 22, bw + 24, 26); x.beginPath(); x.moveTo(cx - bw / 2 - 20, by - 22); x.lineTo(cx, by - 70); x.lineTo(cx + bw / 2 + 20, by - 22); x.fill();
+  x.fillStyle = 'rgba(255,190,110,.18)'; x.fillRect(cx - bw / 2, by, bw, bh); x.strokeStyle = '#1b120d'; x.lineWidth = 9; x.strokeRect(cx - bw / 2, by, bw, bh);
+  x.lineWidth = 5; for (let i = 1; i < 7; i++) { const px = cx - bw / 2 + i * bw / 7; x.beginPath(); x.moveTo(px, by); x.lineTo(px, by + bh); x.stroke(); } x.beginPath(); x.moveTo(cx - bw / 2, by + bh * .5); x.lineTo(cx + bw / 2, by + bh * .5); x.stroke();
+  x.fillStyle = '#ffd27a'; x.beginPath(); x.arc(cx, by + 30, 9, 0, 7); x.fill(); const glow = x.createRadialGradient(cx, by + 30, 4, cx, by + 30, 90); glow.addColorStop(0, 'rgba(255,210,122,.5)'); glow.addColorStop(1, 'rgba(255,210,122,0)'); x.fillStyle = glow; x.fillRect(cx - 100, by - 70, 200, 200);
+  x.restore(); x.strokeStyle = INK; x.lineWidth = 3; rr(x, MX, top, W - 2 * MX, ih, 14); x.stroke();
+  // briefing
+  x.fillStyle = INK; x.font = F.body(28); x.textAlign = 'center';
+  const lines = ['Кабина застряла над шахтой, полной лавы.', 'Цепи держат её из последних сил.', 'Починить лифт можно только по этой книге.'];
+  lines.forEach((l, i) => x.fillText(l, W / 2, top + ih + 62 + i * 40));
+  // three quick steps with tinted chips
+  const steps: [string, string][] = [['Откройте щиток', TINT.wire], ['Нажмите TEST CIRCUIT', TINT.fault], ['Найдите правило — режьте', TINT.serial]];
+  const sy = top + ih + 210, sw = (W - 2 * MX - 40) / 3;
+  steps.forEach(([t, c], i) => { const sx = MX + i * (sw + 20); x.fillStyle = c; rr(x, sx, sy, sw, 96, 12); x.fill(); x.strokeStyle = 'rgba(20,11,5,.35)'; x.lineWidth = 2; rr(x, sx, sy, sw, 96, 12); x.stroke();
+    x.fillStyle = BURGUNDY; x.font = F.mono(34, 700); x.textAlign = 'left'; x.fillText(String(i + 1), sx + 16, sy + 58); x.fillStyle = INK; x.font = F.tech(23, 700); const words = t.split(' '); let l1 = '', l2 = ''; for (const w of words) { if (x.measureText(l1 + ' ' + w).width < sw - 70 && !l2) l1 = (l1 ? l1 + ' ' : '') + w; else l2 = (l2 ? l2 + ' ' : '') + w; } x.fillText(l1, sx + 52, sy + (l2 ? 44 : 58)); if (l2) x.fillText(l2, sx + 52, sy + 74); });
+  x.fillStyle = BURGUNDY; x.font = F.tech(30, 700); x.textAlign = 'center'; x.fillText('У ВАС 45 СЕКУНД. ОШИБКА — И КАБИНА СОРВЁТСЯ.', W / 2, sy + 160);
   x.font = F.tech(22, 700); x.fillStyle = INK2; x.textAlign = 'right'; x.fillText(String(index + 1), W - MX, H - 58);
 }

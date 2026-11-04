@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -18,8 +18,20 @@
 @font-face{font-family:'IBM Plex Mono';font-weight:600;src:url(fonts/ibm-plex-mono-600.woff2) format('woff2');}
 @font-face{font-family:'IBM Plex Mono';font-weight:700;src:url(fonts/ibm-plex-mono-700.woff2) format('woff2');}
 @font-face{font-family:'Cinzel';font-weight:600 800;src:url(fonts/cinzel-600.woff2) format('woff2');}
+@font-face{font-family:'Oswald';font-weight:500;font-style:normal;src:url(fonts/oswald-500-cyrillic.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116;}
+@font-face{font-family:'Oswald';font-weight:500;font-style:normal;src:url(fonts/oswald-500-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2190-2193,U+2212,U+2215;}
+@font-face{font-family:'Oswald';font-weight:700;font-style:normal;src:url(fonts/oswald-700-cyrillic.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116;}
+@font-face{font-family:'Oswald';font-weight:700;font-style:normal;src:url(fonts/oswald-700-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2190-2193,U+2212,U+2215;}
+@font-face{font-family:'Cormorant SC';font-weight:700;font-style:normal;src:url(fonts/cormorant-sc-700-cyrillic.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116;}
+@font-face{font-family:'Cormorant SC';font-weight:700;font-style:normal;src:url(fonts/cormorant-sc-700-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2190-2193,U+2212,U+2215;}
+@font-face{font-family:'Lora';font-weight:500;font-style:normal;src:url(fonts/lora-500-cyrillic.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116;}
+@font-face{font-family:'Lora';font-weight:500;font-style:normal;src:url(fonts/lora-500-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2190-2193,U+2212,U+2215;}
+@font-face{font-family:'Lora';font-weight:500;font-style:italic;src:url(fonts/lora-500-italic-cyrillic.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116;}
+@font-face{font-family:'Lora';font-weight:500;font-style:italic;src:url(fonts/lora-500-italic-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2190-2193,U+2212,U+2215;}
+@font-face{font-family:'IBM Plex Mono';font-weight:700;font-style:normal;src:url(fonts/ibm-plex-mono-700-cyrillic.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116;}
+@font-face{font-family:'IBM Plex Mono';font-weight:700;font-style:normal;src:url(fonts/ibm-plex-mono-700-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2190-2193,U+2212,U+2215;}
 :root{--ink:#e9dcc0;--dim:rgba(233,220,192,.6);--line:rgba(233,220,192,.22)}
-html,body{margin:0;height:100%;background:#050403;color:var(--ink);overflow:hidden;font-family:'IM Fell English',Georgia,serif;touch-action:none;-webkit-user-select:none;user-select:none}
+html,body{margin:0;height:100%;background:#050403;color:var(--ink);overflow:hidden;font-family:'Lora',Georgia,serif;touch-action:none;-webkit-user-select:none;user-select:none}
 [hidden]{display:none!important}
 #viewport{position:fixed;inset:0}
 canvas{display:block}
@@ -33,14 +45,14 @@ body[data-state=reading] #task,body[data-state=reading] #hint{opacity:0;transiti
 #task,#hint{transition:opacity .4s}
 #btn-sound{position:fixed;left:16px;top:max(48px,calc(env(safe-area-inset-top) + 36px));font-size:13px;padding:6px 10px;min-height:32px;opacity:.7}
 #btn-cam{position:fixed;left:16px;top:max(90px,calc(env(safe-area-inset-top) + 78px));font-size:13px;padding:6px 10px;min-height:32px}
-#task{position:fixed;left:50%;transform:translateX(-50%);top:max(52px,calc(env(safe-area-inset-top) + 40px));padding:6px 22px;font:600 18px/1.2 'IM Fell English SC',Georgia,serif;letter-spacing:.12em;color:#ecdcbc;background:linear-gradient(#3a2416,#22140c);border:1px solid #6b4a2a;border-radius:4px;box-shadow:0 2px 10px #000a,inset 0 1px #ffffff18}
+#task{position:fixed;left:50%;transform:translateX(-50%);top:max(52px,calc(env(safe-area-inset-top) + 40px));padding:6px 22px;font:700 19px/1.2 'Cormorant SC',Georgia,serif;letter-spacing:.1em;color:#ecdcbc;background:linear-gradient(#3a2416,#22140c);border:1px solid #6b4a2a;border-radius:4px;box-shadow:0 2px 10px #000a,inset 0 1px #ffffff18}
 #clock{position:fixed;right:16px;top:max(16px,env(safe-area-inset-top));width:64px;height:64px;display:grid;place-items:center}
 #clock svg{position:absolute;inset:0;transform:rotate(-90deg)}#clock .track{fill:#120a06d0;stroke:#3a2a1e;stroke-width:5}#clock .ring{fill:none;stroke:#c23a22;stroke-width:5;stroke-dasharray:176;stroke-linecap:round}
 #clock-num{position:relative;font:700 24px Georgia,serif;color:#f1e4c8}#clock[data-urgent=true] #clock-num{color:#ff6a4a;animation:pulse .5s infinite alternate}@keyframes pulse{to{transform:scale(1.15)}}
 #verdict{position:fixed;left:50%;top:calc(87vh - 52px);top:calc(87dvh - 52px - env(safe-area-inset-bottom));transform:translate(-50%,8px);min-width:min(520px,calc(100vw - 32px));padding:12px 28px 13px;text-align:center;pointer-events:none;opacity:0;
   background:linear-gradient(180deg,rgba(26,17,11,.9),rgba(14,9,6,.94));border:1px solid rgba(155,118,56,.55);box-shadow:0 10px 30px rgba(0,0,0,.6),inset 0 1px rgba(255,230,180,.07);clip-path:polygon(14px 0,calc(100% - 14px) 0,100% 50%,calc(100% - 14px) 100%,14px 100%,0 50%)}
-#verdict b{display:block;font:800 27px/1.1 'Cinzel',Georgia,serif;letter-spacing:.16em}
-#verdict span{display:block;margin-top:5px;font:700 15px/1 'Barlow Condensed',sans-serif;letter-spacing:.32em;color:rgba(233,220,192,.72)}
+#verdict b{display:block;font:700 30px/1.1 'Cormorant SC',Georgia,serif;letter-spacing:.12em}
+#verdict span{display:block;margin-top:5px;font:500 15px/1 'Oswald',sans-serif;letter-spacing:.28em;color:rgba(233,220,192,.72)}
 #verdict i{position:absolute;left:20px;right:20px;top:6px;height:1px;background:linear-gradient(90deg,transparent,rgba(155,118,56,.8),transparent)}
 #verdict[data-tone=good] b{color:#9fc79a;text-shadow:0 0 10px rgba(110,170,110,.25)}
 #verdict[data-tone=bad] b{color:#d0503a;text-shadow:0 0 10px rgba(200,60,40,.3)}
@@ -64,20 +76,20 @@ body.jolt #viewport{animation:jolt .32s ease-out}@keyframes jolt{0%{transform:tr
 <div id="grade"></div><div id="grain"></div>
 <div id="hint"></div>
 <div id="page-label"></div>
-<div id="task">TASK 1 / 12</div>
+<div id="task">ЗАДАНИЕ 1 / 12</div>
 <div id="clock"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" class="track"/><circle id="clock-ring" cx="32" cy="32" r="28" class="ring"/></svg><span id="clock-num">45</span></div>
 <div id="verdict" role="status" aria-live="assertive"><i></i><b></b><span></span></div>
-<button id="btn-sound">Sound on</button>
-<button id="btn-cam">Camera: player</button>
+<button id="btn-sound">Звук: вкл.</button>
+<button id="btn-cam">Камера: игрок</button>
 <div id="bar">
   <button id="btn-prev" hidden>‹ Page</button>
-  <button id="btn-open" hidden>Open</button>
-  <button id="btn-close" hidden>Close</button>
-  <button id="btn-drop" hidden>Drop</button>
-  <button id="btn-back" hidden>Back</button>
+  <button id="btn-open" hidden>Открыть</button>
+  <button id="btn-close" hidden>Закрыть</button>
+  <button id="btn-drop" hidden>Бросить</button>
+  <button id="btn-back" hidden>Назад</button>
   <button id="btn-next" hidden>Page ›</button>
 </div>
-<div id="loading"><span id="load-text">Loading…</span></div>
-<script type="module" src="app.js?v=18"></script>
+<div id="loading"><span id="load-text">Спуск…</span></div>
+<script type="module" src="app.js?v=19"></script>
 </body>
 </html>
