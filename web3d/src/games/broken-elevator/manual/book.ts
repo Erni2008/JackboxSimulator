@@ -188,17 +188,17 @@ export class EngineersManual {
     // keep the book centred on whatever is its visual middle (closed: board centre, open: gutter)
     this.inner.position.set(-(W / 2) * (1 - o) + (TH / 2) * o, -(TH / 2) * (1 - o) - C * o, 0);
     // the loose leaf only exists while a page is actually turning in a fully open book
-    if (this.turning && o > .98) this.poseLeaf(R, L, dip, slide); else this.leaf.visible = false;
+    if (this.turning && o > .98) this.poseLeaf(even(R), even(L), dip, slide, meet); else this.leaf.visible = false;
   }
 
   /** Bends the turning leaf: each row along the height is integrated from the gutter outward. */
-  private poseLeaf(R: number, L: number, dip: number, slide: number) {
+  private poseLeaf(R: number, L: number, dip: number, slide: number, meet = slide * 1.04) {
     const tr = this.turning; let p = tr ? (tr.dir > 0 ? tr.t : 1 - tr.t) : 0; const dirSign = tr ? tr.dir : 1;
     if (!tr && this.flutter <= 0) return; this.leaf.visible = true;
     if (!tr) { this.show(this.texFront, 2 * this.spread + 1); this.show(this.texBack, 2 * this.spread + 2); }
     const pos = this.leafGeo.attributes.position as T.BufferAttribute, nx = this.leafSegX, nz = this.leafSegZ, LW = PW + slide, ds = LW / nx;
     // gutter position in book space
-    const gxR = -slide * 1.04 + .0012, gxL = -TH * this.openness + slide * 1.04 - .0012, surfR = (u: number) => C + R - dip * (1 - u) ** 2.4, surfL = (u: number) => C + L - dip * (1 - u) ** 2.4;
+    const gxR = -meet + .0012, gxL = -TH * this.openness + meet - .0012, surfR = (u: number) => C + R - dip * (1 - u) ** 2.4, surfL = (u: number) => C + L - dip * (1 - u) ** 2.4;
     const slopeR = (u: number) => Math.atan2(surfR(Math.min(1, u + .01)) - surfR(u), LW * .01), slopeL = (u: number) => Math.atan2(surfL(Math.min(1, u + .01)) - surfL(u), LW * .01);
     const eased = p < .5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2;
     const settle = Math.exp(-this.settle * 5) * Math.sin(this.settle * 17) * .06 * this.settleAmp;
