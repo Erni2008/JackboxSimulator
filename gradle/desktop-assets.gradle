@@ -35,7 +35,7 @@ tasks.register('stageDesktopAssets', Sync) {
                 throw new GradleException("Missing prepared desktop texture: ${path}")
         }
         ['cursed_boxes/shotgun/shotgun_bolt.glb', 'cursed_boxes/shotgun/shotgun_shell.glb',
-         'sounds/questions/runtime/background_music2.wav'].each { path ->
+         'sounds/questions/runtime/background_music2.ogg'].each { path ->
             if (!new File(sourceAssets, path).isFile()) throw new GradleException("Missing runtime replacement: ${path}")
         }
     }

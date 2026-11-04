@@ -6,8 +6,8 @@
 
 | Ресурс относительно `assets/` | API | Событие |
 | --- | --- | --- |
-| `sounds/questions/background_music.wav` | Music | Первый вопрос, далее через вопрос |
-| `sounds/questions/runtime/background_music2.wav` | Music | Второй вопрос, далее через вопрос |
+| `sounds/questions/background_music.ogg` | Music | Первый вопрос, далее через вопрос |
+| `sounds/questions/runtime/background_music2.ogg` | Music | Второй вопрос, далее через вопрос |
 | `sounds/questions/clock_ticks.wav` | Music, loop | Фактическая фаза ANSWERING, пока deadline ещё не достигнут |
 | `sounds/questions/door_lock(done).wav` | Sound | Переход из наблюдавшейся ANSWERING в авторитетную фазу блокировки |
 

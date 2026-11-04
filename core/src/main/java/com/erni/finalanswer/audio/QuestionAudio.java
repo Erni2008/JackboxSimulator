@@ -7,7 +7,7 @@ import java.util.function.Consumer;
 
 /** Question presentation channel owned and updated by GameAudio, including screen-exit fades and lock tails. */
 public final class QuestionAudio implements AutoCloseable {
-    public static final String FIRST="sounds/questions/background_music.wav",SECOND="sounds/questions/runtime/background_music2.wav",
+    public static final String FIRST="sounds/questions/background_music.ogg",SECOND="sounds/questions/runtime/background_music2.ogg",
         CLOCK="sounds/questions/clock_ticks.wav",LOCK="sounds/questions/door_lock(done).wav";
     public float musicLevel=.35f,tickLevel=.55f,lockLevel=.85f;
     private final Music[] tracks=new Music[2];
