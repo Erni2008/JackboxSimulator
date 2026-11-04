@@ -148,8 +148,10 @@ export class EngineersManual {
   private splitFor(spread: number) { return .1 + .8 * (this.spreads > 1 ? spread / (this.spreads - 1) : .5); }
   canTurn(dir: number) { const s = this.spread + dir; return this.isOpen && !this.turning && s >= 0 && s < this.spreads; }
   turn(dir: number, speed = 1) {
+    // fast flipping: a new turn while a leaf is still in the air lands that leaf at once and turns the next one quicker
+    let rush = false; if (this.turning && this.isOpen) { this.finishTurn(); rush = true; }
     if (!this.canTurn(dir)) return false;
-    const s = this.spread; this.turning = {dir, t: 0, dur: (dir > 0 ? .95 : .95) / speed, from: s};
+    const s = this.spread; this.turning = {dir, t: 0, dur: (rush ? .3 : .45) / speed, from: s};
     if (dir > 0) { this.show(this.texFront, 2 * s + 1); this.show(this.texBack, 2 * s + 2); this.show(this.texR, 2 * s + 3); }
     else { this.show(this.texFront, 2 * s - 1); this.show(this.texBack, 2 * s); this.show(this.texL, 2 * s - 2); }
     this.leaf.visible = true; this.sounds?.pageTurn(speed); return true;

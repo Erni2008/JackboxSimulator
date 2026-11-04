@@ -8,7 +8,7 @@
 import * as T from 'three';
 import {materials, plate, lamp, canvasTex, QUARTER, TECH} from './pressure-parts';
 import {PressureGauge} from './pressure-gauge';
-import {Control, Wheel, Lever, PushButton, PullHandle, type Feedback} from './pressure-controls';
+import {Control, Wheel, Lever, PushButton, PullHandle, PipeClamp, type Feedback} from './pressure-controls';
 import type {ValveView} from './pressure-link';
 import {VERIFY_MS, type Action} from './pressure-sim';
 
@@ -18,7 +18,7 @@ export class PressureMachine {
   group = new T.Group(); enabled = false;
   onAction: (a: Action) => void = () => {};
   sounds: MachineSounds | null = null;
-  private gauge: PressureGauge; private controls: Control[] = []; private red: Wheel; private blue: Wheel; private fine: Lever; private bypass: Lever; private test: PushButton; private emergency: PullHandle;
+  private gauge: PressureGauge; private controls: Control[] = []; private red: Wheel; private blue: Wheel; private fine: Lever; private bypass: Lever; private test: PushButton; private emergency: PullHandle; private clamp: PipeClamp; private lastNoiseAt = -1;
   private warn: {group: T.Group; mat: T.MeshStandardMaterial}; private ok: {group: T.Group; mat: T.MeshStandardMaterial}; private aux: {group: T.Group; mat: T.MeshStandardMaterial};
   private verify: T.MeshStandardMaterial[] = []; private relays: T.MeshStandardMaterial[] = []; private warnLight: T.PointLight; private pipes = new T.Group();
   private codeCanvas = document.createElement('canvas'); private codeTex: T.CanvasTexture; private codeShown = '?';
@@ -49,8 +49,11 @@ export class PressureMachine {
     tube([v3(-.42, -.32, mZ), v3(-.42, -.2, mZ), v3(-.42, -.12, mZ), v3(-.405, mY, mZ)], .017, m.copper);
     tube([v3(.16, mY, mZ), v3(.17, -.04, mZ), v3(.17, .12, mZ), v3(.17, .25, mZ), v3(.18, .29, mZ + .02), v3(.19, .3, mZ + .06)], .013, m.copper);
     this.nozzle.set(.19, .305, mZ + .075); const nz = new T.Mesh(new T.CylinderGeometry(.009, .015, .03, 16), m.brass); nz.position.copy(this.nozzle).add(v3(0, -.012, -.01)); nz.rotation.x = .9; this.pipes.add(nz);
-    const joint = new T.Mesh(new T.CylinderGeometry(.022, .022, .03, 16), new T.MeshStandardMaterial({color: '#3a2a1c', metalness: .6, roughness: .85})); joint.rotation.z = QUARTER; joint.position.set(-.33, mY, mZ); this.pipes.add(joint); this.leakAt.set(-.33, mY + .02, mZ + .015);
+    const joint = new T.Mesh(new T.CylinderGeometry(.022, .022, .03, 16), new T.MeshStandardMaterial({color: '#3a2a1c', metalness: .6, roughness: .85})); joint.rotation.z = QUARTER; joint.position.set(-.37, mY, mZ); this.pipes.add(joint); this.leakAt.set(-.37, mY + .02, mZ + .015);
     for (const [x, y, rz] of [[-.42, -.2, 0], [.17, .1, 0], [-.44, mY, QUARTER]] as const) { const f = new T.Mesh(new T.CylinderGeometry(.027, .027, .012, 20), m.brassDark); f.position.set(x, y, mZ); f.rotation.z = rz; this.pipes.add(f); }
+    // the CLAMP: tap the cracked coupling to bolt a split clamp over it
+    this.clamp = new PipeClamp('clamp', m, () => this.emit('CLAMP')); this.clamp.root.position.set(-.37, mY, mZ); this.group.add(this.clamp.root);
+    const cp = plate('CLAMP', 'TAP JOINT', .07, .03, 'brass'); cp.position.set(-.37, -.02, .03); this.group.add(cp);
     const tIn = plate('STEAM IN', '', .07, .024, 'brass'); tIn.position.set(-.42, -.25, mZ + .02); this.group.add(tIn);
 
     // ---- valves on the manifold
@@ -83,7 +86,7 @@ export class PressureMachine {
     this.ventAt.set(.43, -.28, .06); const ev = new T.Mesh(new T.CylinderGeometry(.01, .016, .03, 14), m.brass); ev.position.set(.43, -.27, .05); ev.rotation.x = .6; this.group.add(ev);
     this.ok = lamp(.016, '#3dff6a', m); this.ok.group.position.set(.42, .1, .04); this.group.add(this.ok.group);
 
-    this.controls = [this.red, this.blue, this.fine, this.bypass, this.test, this.emergency];
+    this.controls = [this.red, this.blue, this.fine, this.bypass, this.test, this.emergency, this.clamp];
 
     // ---- steam pool (vent, leak, emergency and failure bursts)
     const N = hi ? 140 : 70; this.sp = new Float32Array(N * 3); this.life = new Float32Array(N * 5); for (let i = 0; i < N; i++) this.life[i * 5] = 1; // life, vx, vy, vz, size
@@ -103,7 +106,7 @@ export class PressureMachine {
     const key = busy ? 'busy' + Math.floor(this.t * 12) : code; if (key === this.codeShown) return; this.codeShown = key;
     const x = this.codeCanvas.getContext('2d')!; x.fillStyle = '#0a0705'; x.fillRect(0, 0, 512, 160); x.strokeStyle = 'rgba(255,170,60,.15)'; for (let y = 0; y < 160; y += 6) { x.beginPath(); x.moveTo(0, y); x.lineTo(512, y); x.stroke(); }
     const txt = busy ? ['R', 'B', 'F', 'L'][Math.floor(this.t * 12) % 4] + '-0' + (1 + Math.floor(this.t * 17) % 4) : code || '– – – –';
-    x.font = `700 ${code || busy ? 112 : 70}px 'IBM Plex Mono', Menlo, monospace`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.shadowColor = '#ff9a2a'; x.shadowBlur = code ? 26 : 8; x.fillStyle = busy ? 'rgba(255,170,70,.55)' : code ? '#ffb347' : 'rgba(255,170,70,.4)'; x.fillText(txt, 256, 86);
+    x.font = `700 ${code.includes('+') ? 64 : code || busy ? 112 : 70}px 'IBM Plex Mono', Menlo, monospace`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.shadowColor = '#ff9a2a'; x.shadowBlur = code ? 26 : 8; x.fillStyle = busy ? 'rgba(255,170,70,.55)' : code ? '#ffb347' : 'rgba(255,170,70,.4)'; x.fillText(txt, 256, 86);
     this.codeTex.needsUpdate = true;
   }
   private emit(a: Action) { if (this.enabled) this.onAction(a); }
@@ -126,7 +129,8 @@ export class PressureMachine {
     this.t += dt; const fx = this.sounds;
     for (const c of this.controls) { if (fx) c.setFeedback(fx); c.enabled = this.enabled && !!v && v.outcome === 'RUNNING'; c.update(dt); }
     if (!v) { this.gauge.update(dt, 0, 0, false); this.drawCode('', false); this.warn.mat.emissiveIntensity = 0; this.ok.mat.emissiveIntensity = 0; this.relays.forEach(r => r.emissiveIntensity = 0); this.verify.forEach(r => r.emissiveIntensity = 0); this.aux.mat.emissiveIntensity = 0; this.emitSteam(dt); fx?.steam(0, 0); return; }
-    this.gauge.draw(v.safeLow, v.safeHigh); this.fine.set(v.fine ? 1 : 0); this.bypass.set(v.bypass ? 1 : 0); this.emergency.setUsed(v.emergencyUsed);
+    this.gauge.draw(v.safeLow, v.safeHigh); this.fine.set(v.fine ? 1 : 0); this.bypass.set(v.bypass ? 1 : 0); this.emergency.setUsed(v.emergencyUsed); this.clamp.set(v.clamped);
+    if (v.noiseAt > 0 && v.noiseAt !== this.lastNoiseAt) { if (this.lastNoiseAt > 0) { this.gauge.kick(v.noise); fx?.knock(.25 + Math.abs(v.noise) * .1); } this.lastNoiseAt = v.noiseAt; }
     const zone = v.pressure >= v.safeLow && v.pressure <= v.safeHigh, running = v.outcome === 'RUNNING', failed = v.outcome === 'FAILED', critical = running && v.pressure >= 100;
     this.gauge.update(dt, v.pressure, v.surgeWarning ? .6 : critical ? 1 : 0, zone && running);
     // server-confirmed effect of the latest action (resistance, steam)
@@ -156,7 +160,7 @@ export class PressureMachine {
     this.emitSteam(dt);
   }
   /** called by the page when a new machine starts */
-  reset() { this.lastEffect = -1; this.surgedSeen = false; this.lastOutcome = 'RUNNING'; this.emergency.used = false; }
+  reset() { this.lastNoiseAt = -1; this.clamp.fitted = false; this.lastEffect = -1; this.surgedSeen = false; this.lastOutcome = 'RUNNING'; this.emergency.used = false; }
 
   // ---------------------------------------------------------------- steam
   private spawn(at: T.Vector3, speed: number, spread: number, size = .05) {

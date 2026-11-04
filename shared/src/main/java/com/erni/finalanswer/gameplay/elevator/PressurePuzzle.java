@@ -4,8 +4,9 @@ package com.erni.finalanswer.gameplay.elevator;
  * THE BROKEN ELEVATOR — THE BROKEN VALVES. Server-authoritative state and simulation of one player's machine.
  *
  * <p>Discrete controls: one red / blue turn changes pressure by 10 PSI (2 PSI with FINE CONTROL on), filtered through
- * the puzzle's {@link Malfunction} and the BYPASS lever; EMERGENCY RELEASE drops 20 PSI once; TEST reveals the fault code
- * after 1.5 s. Continuous effects (the L-03 leak) and the optional, telegraphed +10 PSI surge advance in fixed 10 ms quanta,
+ * the mechanical fault and the BYPASS lever; the CLAMP stops the L-03 leak; EMERGENCY RELEASE drops 20 PSI once; TEST
+ * reveals every fault code after 1.5 s. Line noise kicks the pressure by 1–2 PSI every 0.5–2 s (seeded, so the server
+ * and the solvability checker see the same kicks). Continuous effects (the L-03 leak) and the optional, telegraphed +10 PSI surge advance in fixed 10 ms quanta,
  * so the result never depends on how often {@link #advance(long)} is called. Success: pressure inside the 5 PSI green zone
  * for 1 continuous second while the system is in a safe state. Failure: 45 s timer, or 120 PSI.
  */
@@ -14,20 +15,26 @@ public final class PressurePuzzle {
     public static final long LIMIT_MS = 45_000, VERIFY_MS = 1_000, DIAGNOSTIC_MS = 1_500, SURGE_WARNING_MS = 2_000, QUANTUM_MS = 10;
 
     public enum Outcome { RUNNING, STABILIZED, FAILED }
-    public enum Action { RED, BLUE, FINE_ON, FINE_OFF, BYPASS_AUX, BYPASS_MAIN, DIAGNOSTIC, EMERGENCY }
+    public enum Action { RED, BLUE, FINE_ON, FINE_OFF, BYPASS_AUX, BYPASS_MAIN, DIAGNOSTIC, EMERGENCY, CLAMP }
     /** what an accepted action physically did (for valve resistance / steam feedback on the client) */
     public record Effect(long seq, Action action, double delta, boolean jammed) {}
 
-    /** surgeAt &lt; 0: no surge in this puzzle */
-    public record Config(long seed, int startPsi, int safeLow, Malfunction fault, boolean fine, long surgeAt) {
+    /** surgeAt &lt; 0: no surge; second: null or the other half of a fault pair; noise: line-noise kicks on/off */
+    public record Config(long seed, int startPsi, int safeLow, Malfunction fault, Malfunction second, boolean fine, long surgeAt, boolean noise) {
+        public Config(long seed, int startPsi, int safeLow, Malfunction fault, boolean fine, long surgeAt) { this(seed, startPsi, safeLow, fault, null, fine, surgeAt, false); }
         public int safeHigh() { return safeLow + 5; }
+        public boolean has(Malfunction m) { return fault == m || second == m; }
+        public Malfunction mechanical() { return fault.mechanical() ? fault : second != null && second.mechanical() ? second : null; }
+        public String codes() { return java.util.stream.Stream.of(Malfunction.values()).filter(this::has).map(m -> m.code).collect(java.util.stream.Collectors.joining(" + ")); }
     }
+    public static final long NOISE_MIN_MS = 500, NOISE_MAX_MS = 2_000;
 
     private final Config config;
     private final long startedAt;
     private long elapsed, verifyMs, finishedAt = -1, diagnosticAt = -1, lastSeq = -1;
     private double pressure;
-    private boolean fine, bypass, emergencyUsed, diagnosed, surged;
+    private boolean fine, bypass, emergencyUsed, diagnosed, surged, clamped;
+    private final java.util.Random noise; private long nextNoise = -1, lastNoiseAt = -1; private double lastNoise;
     private Outcome outcome = Outcome.RUNNING;
     private String failReason = "";
     private Effect lastEffect;
@@ -36,12 +43,18 @@ public final class PressurePuzzle {
 
     public PressurePuzzle(Config config, long startedAt) {
         this.config = config; this.startedAt = startedAt; pressure = config.startPsi(); fine = config.fine();
+        noise = new java.util.Random(config.seed() * 31 + 7); if (config.noise()) nextNoise = noiseGap();
     }
 
     // ------------------------------------------------------------------ simulation
+    private long noiseGap() { return NOISE_MIN_MS + noise.nextInt((int) ((NOISE_MAX_MS - NOISE_MIN_MS) / QUANTUM_MS) + 1) * QUANTUM_MS; }
     public boolean inZone() { return pressure >= config.safeLow() && pressure <= config.safeHigh(); }
-    public boolean safeState() { return config.fault().safe(bypass); }
-    public double drift() { return config.fault().drift(bypass); }
+    public boolean leaking() { return config.has(Malfunction.L03) && !clamped; }
+    public boolean safeState() { return !leaking(); }
+    public double drift() { return leaking() ? -Malfunction.LEAK_PSI_PER_S : 0; }
+    private double red(double step) { var m = config.mechanical(); return m == Malfunction.R02 ? (bypass ? step : 0) : m == Malfunction.F01 ? (bypass ? step : -step) : step; }
+    private double blue(double step) { var m = config.mechanical(); return m == Malfunction.B04 ? (bypass ? -step : 0) : m == Malfunction.F01 ? (bypass ? -step : step) : -step; }
+    private boolean jammed(boolean red) { var m = config.mechanical(); return !bypass && m == (red ? Malfunction.R02 : Malfunction.B04); }
     public boolean surgeWarning() { return config.surgeAt() >= 0 && !surged && outcome == Outcome.RUNNING && elapsed >= config.surgeAt() - SURGE_WARNING_MS; }
 
     /** Advances to absolute time {@code now}; true if the outcome changed. */
@@ -52,6 +65,7 @@ public final class PressurePuzzle {
             elapsed += QUANTUM_MS;
             pressure = Math.max(0, pressure + drift() * QUANTUM_MS / 1000.0);
             if (!surged && config.surgeAt() >= 0 && elapsed >= config.surgeAt()) { surged = true; pressure += SURGE; if (critical()) return true; }
+            if (nextNoise >= 0 && elapsed >= nextNoise) { lastNoise = (noise.nextBoolean() ? 1 : -1) * (1 + noise.nextInt(2)); pressure = Math.max(0, pressure + lastNoise); lastNoiseAt = elapsed; nextNoise = elapsed + noiseGap(); if (critical()) return true; }
             if (diagnosticAt >= 0 && elapsed >= diagnosticAt + DIAGNOSTIC_MS) diagnosed = true;
             verifyMs = inZone() && safeState() ? verifyMs + QUANTUM_MS : 0;
             if (verifyMs >= VERIFY_MS) { outcome = Outcome.STABILIZED; finishedAt = startedAt + elapsed; return true; }
@@ -75,8 +89,9 @@ public final class PressurePuzzle {
         lastSeq = seq;
         double step = fine ? FINE : COARSE, before = pressure; boolean jam = false;
         switch (action) {
-            case RED -> { jam = config.fault().jammed(true, bypass); pressure += config.fault().red(step, bypass); }
-            case BLUE -> { jam = config.fault().jammed(false, bypass); pressure += config.fault().blue(step, bypass); }
+            case RED -> { jam = jammed(true); pressure += red(step); }
+            case BLUE -> { jam = jammed(false); pressure += blue(step); }
+            case CLAMP -> clamped = true;
             case FINE_ON -> fine = true;
             case FINE_OFF -> fine = false;
             case BYPASS_AUX -> bypass = true;
@@ -108,7 +123,11 @@ public final class PressurePuzzle {
     public boolean diagnosing() { return diagnosticAt >= 0 && elapsed < diagnosticAt + DIAGNOSTIC_MS; }
     public long diagnosticReadyAt() { return diagnosticAt < 0 ? -1 : startedAt + diagnosticAt + DIAGNOSTIC_MS; }
     /** the fault code — only once a TEST has completed */
-    public String code() { return diagnosed ? config.fault().code : ""; }
+    public String code() { return diagnosed ? config.codes() : ""; }
+    public boolean clamped() { return clamped; }
+    /** absolute time of the latest line-noise kick (-1 none) and its size */
+    public long lastNoiseAt() { return lastNoiseAt < 0 ? -1 : startedAt + lastNoiseAt; }
+    public double lastNoise() { return lastNoise; }
     public boolean surged() { return surged; }
     /** absolute time of the pending surge, -1 when none is pending */
     public long surgeAt() { return config.surgeAt() < 0 || surged || outcome != Outcome.RUNNING ? -1 : startedAt + config.surgeAt(); }

@@ -9,7 +9,7 @@ import {ValveSim, generate, MAX_PSI, LIMIT_MS, type Action, type Outcome} from '
 export interface Effect { seq: number; action: Action; delta: number; jammed: boolean }
 export interface ValveView {
   pressure: number; safeLow: number; safeHigh: number; fine: boolean; bypass: boolean; emergencyUsed: boolean; diagnosing: boolean; code: string;
-  surgeWarning: boolean; surged: boolean; verifyMs: number; safeState: boolean; deadline: number; outcome: Outcome; failReason: string; effect: Effect | null; online: boolean;
+  surgeWarning: boolean; surged: boolean; clamped: boolean; noiseAt: number; noise: number; verifyMs: number; safeState: boolean; deadline: number; outcome: Outcome; failReason: string; effect: Effect | null; online: boolean;
 }
 
 export class PressureLink {
@@ -59,12 +59,12 @@ export class PressureLink {
     if (this.mode === 'local') {
       const s = this.local; if (!s) return null; if (s.advance(Date.now()) && s.outcome !== 'RUNNING') this.onOutcome(s.outcome, s.failReason);
       return {pressure: s.pressure, safeLow: s.config.safeLow, safeHigh: s.safeHigh, fine: s.fine, bypass: s.bypass, emergencyUsed: s.emergencyUsed, diagnosing: s.diagnosing, code: s.code,
-        surgeWarning: s.surgeWarning(), surged: s.surged, verifyMs: s.verifyMs, safeState: s.safeState(), deadline: s.startedAt + LIMIT_MS - Date.now() + nowP, outcome: s.outcome, failReason: s.failReason, effect: s.effect, online: false};
+        surgeWarning: s.surgeWarning(), surged: s.surged, clamped: s.clamped, noiseAt: s.lastNoiseAt < 0 ? -1 : s.startedAt + s.lastNoiseAt, noise: s.lastNoise, verifyMs: s.verifyMs, safeState: s.safeState(), deadline: s.startedAt + LIMIT_MS - Date.now() + nowP, outcome: s.outcome, failReason: s.failReason, effect: s.effect, online: false};
     }
     const v = this.auth; if (!v) return null; const now = this.serverNow();
     const pressure = v.outcome === 'RUNNING' ? Math.max(0, Math.min(MAX_PSI, v.pressure + v.drift * Math.max(0, Math.min(now, v.deadline) - v.at) / 1000)) : v.pressure;
     const inZone = pressure >= v.safeLow && pressure <= v.safeHigh, verify = v.outcome === 'STABILIZED' ? 1000 : inZone && v.safeState && v.verifyMs > 0 ? Math.min(990, v.verifyMs + Math.max(0, now - v.at)) : 0;
     return {pressure, safeLow: v.safeLow, safeHigh: v.safeHigh, fine: v.fine, bypass: v.bypass, emergencyUsed: v.emergencyUsed, diagnosing: v.diagnosing || (v.diagnosticReadyAt > 0 && now < v.diagnosticReadyAt), code: v.code,
-      surgeWarning: v.surgeWarning || (v.surgeAt > 0 && now >= v.surgeAt - 2000 && now < v.surgeAt), surged: v.surged, verifyMs: verify, safeState: v.safeState, deadline: v.deadline - now + nowP, outcome: v.outcome, failReason: v.failReason, effect: v.effect || null, online: true};
+      surgeWarning: v.surgeWarning || (v.surgeAt > 0 && now >= v.surgeAt - 2000 && now < v.surgeAt), surged: v.surged, clamped: v.clamped, noiseAt: v.noiseAt, noise: v.noise, verifyMs: verify, safeState: v.safeState, deadline: v.deadline - now + nowP, outcome: v.outcome, failReason: v.failReason, effect: v.effect || null, online: true};
   }
 }

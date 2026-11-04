@@ -15,8 +15,10 @@ public final class PressureGenerator {
             int low = SAFE_LOW[r.nextInt(SAFE_LOW.length)], start;
             do start = 10 + r.nextInt(91); while (start > low - 6 && start < low + 5 + 6);
             Malfunction fault = Malfunction.values()[r.nextInt(4)];
+            // half the machines carry a fault pair: one mechanical fault + the leak
+            Malfunction second = r.nextBoolean() ? (fault == Malfunction.L03 ? Malfunction.values()[r.nextInt(3)] : Malfunction.L03) : null;
             long surge = r.nextInt(10) < 6 ? 15_000 + r.nextInt(1001) * 10L : -1;
-            Config c = new Config(seed, start, low, fault, r.nextBoolean(), surge);
+            Config c = new Config(seed * 1_000 + attempt, start, low, fault, second, r.nextBoolean(), surge, true);
             if (validate(c)) return c;
         }
         throw new IllegalStateException("no valid pressure puzzle for seed " + seed);
@@ -31,7 +33,7 @@ public final class PressureGenerator {
 
     /**
      * Time a human-like player needs: presses TEST, waits for the code plus {@code readMs} to look it up in the manual,
-     * throws BYPASS, then steers with coarse and fine turns, one action every {@code reactionMs}. MAX on failure.
+     * throws BYPASS for a mechanical fault, fits the CLAMP for a leak, then steers with coarse and fine turns, one action every {@code reactionMs}. MAX on failure.
      */
     public static long solveTime(Config c, long reactionMs, long readMs) {
         PressurePuzzle p = new PressurePuzzle(c, 0); long t = 0, seq = 0;
@@ -40,7 +42,8 @@ public final class PressureGenerator {
         while (p.outcome() == Outcome.RUNNING && t < PressurePuzzle.LIMIT_MS) {
             t += reactionMs; p.advance(t); if (p.outcome() != Outcome.RUNNING) break;
             if (t < readyAt) continue;
-            if (!p.bypass()) { p.apply(Action.BYPASS_AUX, seq++, t); continue; }
+            if (c.mechanical() != null && !p.bypass()) { p.apply(Action.BYPASS_AUX, seq++, t); continue; }
+            if (c.has(Malfunction.L03) && !p.clamped()) { p.apply(Action.CLAMP, seq++, t); continue; }
             double mid = c.safeLow() + 2.5, err = mid - p.pressure(), a = Math.abs(err);
             Action next = null;
             if (a > 6) next = p.fine() ? Action.FINE_OFF : err > 0 ? Action.RED : Action.BLUE;

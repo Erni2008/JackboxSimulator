@@ -45,6 +45,8 @@ export class PressureGauge {
     this.dial.needsUpdate = true;
   }
 
+  /** a line-noise knock: the needle jerks with the kick and settles through its inertia */
+  kick(d: number) { this.vel += d * .09; }
   /** psi: target pressure; jitter: 0..1 vibration (surge warning / critical); zone: needle inside the green arc */
   update(dt: number, psi: number, jitter: number, zone: boolean) {
     this.t += dt; const aim = A0 + Math.max(-1, Math.min(121, psi)) / 120 * (A1 - A0);

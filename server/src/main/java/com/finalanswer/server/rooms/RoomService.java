@@ -554,6 +554,7 @@ public final class RoomService {
         v.put("safeLow",c.safeLow());v.put("safeHigh",c.safeHigh());v.put("fine",p.fine());v.put("bypass",p.bypass());v.put("emergencyUsed",p.emergencyUsed());
         v.put("diagnosing",p.diagnosing());v.put("diagnosticReadyAt",p.diagnosticReadyAt());v.put("code",p.code()); // the fault itself is never sent before a TEST
         v.put("surgeWarning",p.surgeWarning());v.put("surgeAt",p.surgeAt());v.put("surged",p.surged());
+        v.put("clamped",p.clamped());v.put("noiseAt",p.lastNoiseAt());v.put("noise",p.lastNoise());v.put("faults",p.diagnosed()?(p.config().second()==null?1:2):0);
         v.put("verifyMs",p.verifyMs());v.put("safeState",p.safeState());v.put("startedAt",p.startedAt());v.put("deadline",p.deadline());
         v.put("outcome",p.outcome().name());v.put("failReason",p.failReason());v.put("finishedAt",p.finishedAt());v.put("lastSeq",p.lastSeq());
         var e=p.lastEffect();if(e!=null)v.put("effect",Map.of("seq",e.seq(),"action",e.action().name(),"delta",e.delta(),"jammed",e.jammed()));
@@ -567,7 +568,7 @@ public final class RoomService {
             boolean running=puzzle.outcome()==com.erni.finalanswer.gameplay.elevator.PressurePuzzle.Outcome.RUNNING,resync=running&&(now()-puzzle.sentAt>=1000||puzzle.surgeWarning()&&now()-puzzle.sentAt>=250||puzzle.diagnosing()&&now()-puzzle.sentAt>=250);
             // discrete events (code revealed, surge fired) go out on the tick they happen
             long ready=puzzle.diagnosticReadyAt(),surge=puzzle.surged()?puzzle.startedAt()+puzzle.config().surgeAt():-1;
-            if(running&&(ready>0&&now()>=ready&&puzzle.sentAt<ready||surge>0&&puzzle.sentAt<surge))resync=true;
+            if(running&&(ready>0&&now()>=ready&&puzzle.sentAt<ready||surge>0&&puzzle.sentAt<surge||puzzle.lastNoiseAt()>0&&puzzle.sentAt<puzzle.lastNoiseAt()))resync=true;
             if((changed||resync)&&m.peer!=null){puzzle.sentAt=now();m.peer.send(Protocol.event("PRESSURE_UPDATED","",snapshot(room,m,false)));}
         }
     }

@@ -32,7 +32,7 @@ class PressureRoomTest {
         assertEquals("", pz(a).get("code").getAsString(), "no fault before TEST"); assertFalse(pz(a).toString().matches(".*\\b(R02|B04|F01|L03)\\b.*"));
         double bBefore = pz(b).get("pressure").getAsDouble(); boolean bBypass = pz(b).get("bypass").getAsBoolean();
         act(a, "BYPASS_AUX"); act(a, "DIAGNOSTIC"); tick(1600);
-        assertTrue(pz(a).get("bypass").getAsBoolean()); assertTrue(Set.of("R-02", "B-04", "F-01", "L-03").contains(pz(a).get("code").getAsString()));
+        assertTrue(pz(a).get("bypass").getAsBoolean()); assertTrue(pz(a).get("code").getAsString().matches("(R-02|B-04|F-01|L-03)( \\+ L-03)?"), pz(a).get("code").getAsString());
         command(b, "SYNC", Map.of()); assertEquals(bBypass, pz(b).get("bypass").getAsBoolean(), "A's lever never touches B"); assertEquals("", pz(b).get("code").getAsString());
         assertTrue(Math.abs(pz(b).get("pressure").getAsDouble() - bBefore) <= 10.5, "B only changed by its own leak/surge");
         assertFalse(h.latest().has("elevatorPressure"), "host sees no private machine");
@@ -67,7 +67,7 @@ class PressureRoomTest {
     }
     /** a player who reads the code, throws BYPASS and steers: success is decided and pushed by the server */
     @Test void solvingGrantsTheRepairOnceAndSurvivesReconnect() {
-        command(a, "PRESSURE_START", Map.of()); act(a, "DIAGNOSTIC"); tick(1600); act(a, "BYPASS_AUX");
+        command(a, "PRESSURE_START", Map.of()); act(a, "DIAGNOSTIC"); tick(1600); act(a, "BYPASS_AUX"); act(a, "CLAMP");
         for (int i = 0; i < 120 && pz(a).get("outcome").getAsString().equals("RUNNING"); i++) {
             var v = pz(a); double err = v.get("safeLow").getAsInt() + 2.5 - v.get("pressure").getAsDouble(), m = Math.abs(err); boolean fine = v.get("fine").getAsBoolean();
             if (m > 6) act(a, fine ? "FINE_OFF" : err > 0 ? "RED" : "BLUE"); else if (m > 1.5) act(a, !fine ? "FINE_ON" : err > 0 ? "RED" : "BLUE");

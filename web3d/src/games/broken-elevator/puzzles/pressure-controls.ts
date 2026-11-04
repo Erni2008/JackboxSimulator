@@ -32,7 +32,7 @@ export class Wheel extends Control {
     const hub = new T.Mesh(new T.CylinderGeometry(.014, .014, .02, 16), mats.brass); hub.rotation.x = Math.PI / 2; this.spin.add(hub);
     const knob = new T.Mesh(new T.CylinderGeometry(.007, .009, .03, 12), mats.brass); knob.rotation.x = Math.PI / 2; knob.position.set(.045, .02, .014); this.spin.add(knob);
     const idx = new T.Mesh(new T.BoxGeometry(.008, .02, .006), new T.MeshStandardMaterial({color: '#f4ecd8', emissive: '#f4ecd8', emissiveIntensity: .35})); idx.position.set(0, .061, .006); this.spin.add(idx);
-    this.root.add(this.spin); this.hit = hitDisc(.075, .08); this.root.add(this.hit);
+    this.root.add(this.spin); this.hit = hitDisc(.064, .08); this.root.add(this.hit);
   }
   down(x: number, y: number, camera: T.Camera) { const c = screen(this.spin, camera); this.cx = c.x; this.cy = c.y; this.last = Math.atan2(y - c.y, x - c.x); this.drag = 0; this.dragging = true; }
   move(x: number, y: number) {
@@ -98,4 +98,21 @@ export class PullHandle extends Control {
   up(tap: boolean) { if (!this.dragging) return; this.dragging = false; if (!this.enabled || this.used) { this.pull = 0; return; }
     if (tap || this.pull > .6) { this.used = true; this.fx?.pull(); this.onPull(); } else this.pull = 0; }
   update(dt: number) { const target = this.used ? 1 : this.pull; const cur = -this.slide.position.y / .05; const next = cur + (target - cur) * (1 - Math.exp(-dt * 18)); this.slide.position.y = -.05 * next; this.slide.rotation.x = next * .25; }
+}
+
+/** pipe CLAMP for the cracked coupling: tap the joint to bolt a split brass clamp around it (stays fitted) */
+export class PipeClamp extends Control {
+  band = new T.Group(); fitted = false; private k = 0;
+  constructor(id: string, mats: Mats, private onFit: () => void) {
+    super(id);
+    for (const s of [-1, 1]) { const half = new T.Mesh(new T.CylinderGeometry(.028, .028, .036, 20, 1, true, s > 0 ? 0 : Math.PI, Math.PI), mats.brass); half.rotation.z = QUARTER; this.band.add(half);
+      const lug = new T.Mesh(new T.BoxGeometry(.012, .03, .016), mats.brassDark); lug.position.set(0, s * .03, 0); this.band.add(lug);
+      const bolt = new T.Mesh(new T.CylinderGeometry(.004, .004, .03, 8), mats.bolt); bolt.position.set(0, s * .03, 0); bolt.rotation.x = QUARTER; this.band.add(bolt); }
+    this.band.scale.setScalar(.001); this.band.visible = false; this.root.add(this.band);
+    this.hit = new T.Mesh(new T.SphereGeometry(.042, 12, 8), new T.MeshBasicMaterial({visible: false})); this.root.add(this.hit);
+  }
+  set(fitted: boolean) { if (fitted) this.fitted = true; }
+  down() {} move() {}
+  up(tap: boolean) { if (!tap || !this.enabled || this.fitted) return; this.fitted = true; this.fx?.lever(); this.onFit(); }
+  update(dt: number) { this.k += ((this.fitted ? 1 : 0) - this.k) * (1 - Math.exp(-dt * 10)); this.band.visible = this.k > .01; this.band.scale.setScalar(Math.max(.001, .6 + .4 * this.k)); this.band.rotation.x = (1 - this.k) * 1.2; }
 }

@@ -5,7 +5,7 @@
 const assert = require('node:assert/strict'); const {chromium} = require(process.env.PLAYWRIGHT_MODULE);
 const url = process.env.URL, base = process.env.BASE, out = process.env.OUT; const ok = m => console.log('PASS ' + m);
 const post = async (path, form) => { const r = await fetch(base + path, {method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: new URLSearchParams(form)}); const j = await r.json(); if (!r.ok) throw new Error(path + ' ' + JSON.stringify(j)); return j; };
-const CODES = ['R-02', 'B-04', 'F-01', 'L-03'];
+const CODE_RE = /^(R-02|B-04|F-01|L-03)( \+ L-03)?$/; const TOL = 2.6; // line noise kicks up to ±2 PSI, the leak bleeds 1 PSI/s
 
 async function page(b, touch, seat, extra = '') {
   const p = await b.newPage({viewport: touch ? {width: 844, height: 390} : {width: 1280, height: 800}, deviceScaleFactor: touch ? 2 : 1, hasTouch: touch, isMobile: touch});
@@ -36,27 +36,29 @@ async function mechanics(b, touch, seat, tag) {
   assert.equal(v.code, '', 'fault hidden before TEST'); assert.ok(v.pressure < v.safeLow || v.pressure > v.safeHigh, 'starts outside the zone'); ok(`${tag}: starts outside the green zone, fault hidden`);
   // TEST
   await tap(s, 'test'); v = await settle(s, 500); assert.ok(v.diagnosing, 'relays running'); await s.p.screenshot({path: `${out}/valves-${tag}-test.png`});
-  v = await settle(s, 1400); assert.ok(CODES.includes(v.code), 'code shown: ' + v.code); const code = v.code; ok(`${tag}: TEST shows fault code ${code}`);
+  v = await settle(s, 1400); assert.ok(CODE_RE.test(v.code), 'code shown: ' + v.code); const code = v.code, leak = code.includes('L-03'), mech = code.split(' + ').find(c => c !== 'L-03') || ''; ok(`${tag}: TEST shows fault code ${code}`);
   await tap(s, 'test'); v = await settle(s, 1800); assert.equal(v.code, code, 'repeat keeps the fault'); ok(`${tag}: repeated TEST keeps ${code}`);
   // the fault's behaviour on the main line, through a real red turn (or blue when high)
-  const step = v.fine ? 2 : 10, useRed = v.pressure < 90, p0 = v.pressure; await turn(s, useRed ? 'red' : 'blue'); v = await settle(s);
-  const d = v.pressure - p0, expect = useRed ? ({'R-02': 0, 'F-01': -step}[code] ?? step) : ({'B-04': 0, 'F-01': step}[code] ?? -step);
-  assert.ok(Math.abs(d - expect) < 1.2, `${code}: ${useRed ? 'red' : 'blue'} turn changed ${d}, expected ${expect}`); ok(`${tag}: ${code} behaves as documented (${useRed ? 'red' : 'blue'} ${d >= 0 ? '+' : ''}${d.toFixed(1)} PSI)`);
+  if (v.fine) { await tap(s, 'fine'); v = await settle(s); assert.equal(v.fine, false); }
+  const step = 10, useRed = v.pressure < 90, p0 = v.pressure; await turn(s, useRed ? 'red' : 'blue'); v = await settle(s);
+  assert.equal(v.effect.action, useRed ? 'RED' : 'BLUE'); const d = v.effect.delta; void p0; const expect = useRed ? ({'R-02': 0, 'F-01': -step}[mech] ?? step) : ({'B-04': 0, 'F-01': step}[mech] ?? -step);
+  assert.ok(Math.abs(d - expect) < 1e-6 && v.effect.jammed === (expect === 0), `${code}: ${useRed ? 'red' : 'blue'} turn changed ${d}, expected ${expect}`); ok(`${tag}: ${code} behaves as documented (${useRed ? 'red' : 'blue'} ${d >= 0 ? '+' : ''}${d.toFixed(1)} PSI)`);
   // BYPASS and FINE levers
-  await tap(s, 'bypass'); v = await settle(s); assert.equal(v.bypass, true); assert.equal(v.safeState, true); ok(`${tag}: BYPASS thrown to AUX`);
+  await tap(s, 'bypass'); v = await settle(s); assert.equal(v.bypass, true); assert.equal(v.safeState, !leak, 'BYPASS alone never cures a leak'); ok(`${tag}: BYPASS thrown to AUX`);
+  if (leak) { await tap(s, 'clamp'); v = await settle(s); assert.equal(v.clamped, true); assert.equal(v.safeState, true); ok(`${tag}: CLAMP fitted on the cracked coupling — leak stopped (${code})`); }
   const fine0 = v.fine; await tap(s, 'fine'); v = await settle(s); assert.equal(v.fine, !fine0); ok(`${tag}: FINE lever toggles (${v.fine ? 'ON' : 'OFF'})`);
   const st = v.fine ? 2 : 10, q0 = v.pressure, dir = q0 < 60 ? 'red' : 'blue'; await turn(s, dir); v = await settle(s);
-  assert.ok(Math.abs(Math.abs(v.pressure - q0) - st) < 1.2, `after bypass a ${dir} turn moves ${st}: ${v.pressure - q0}`); ok(`${tag}: after BYPASS the ${dir} valve works normally (${(v.pressure - q0).toFixed(1)} PSI)`);
+  void q0; assert.equal(v.effect.action, dir.toUpperCase()); assert.ok(Math.abs(v.effect.delta - (dir === 'red' ? st : -st)) < 1e-6 || (dir === 'blue' && v.pressure === 0), `after bypass a ${dir} turn moves ${st}: ${v.effect.delta}`); ok(`${tag}: after BYPASS the ${dir} valve works normally (${v.effect.delta > 0 ? '+' : ''}${v.effect.delta} PSI)`);
   // EMERGENCY RELEASE once (drag the handle down)
   const e0 = v.pressure, c = await at(s, 'emergency'); await path(s, [[c.x, c.y], [c.x, c.y + 30], [c.x, c.y + 60], [c.x, c.y + 90]]); v = await settle(s);
-  assert.ok(v.emergencyUsed); assert.ok(Math.abs(v.pressure - Math.max(0, e0 - 20)) < 1.2, `-20 PSI: ${e0} -> ${v.pressure}`); ok(`${tag}: EMERGENCY RELEASE pulled (−20 PSI)`);
-  const e1 = v.pressure; await tap(s, 'emergency'); v = await settle(s); assert.ok(Math.abs(v.pressure - e1) < 1.2, 'second pull does nothing'); ok(`${tag}: second EMERGENCY RELEASE rejected`);
+  assert.ok(v.emergencyUsed); assert.equal(v.effect.action, 'EMERGENCY'); assert.ok(Math.abs(v.effect.delta + Math.min(20, e0)) < TOL, `-20 PSI: ${v.effect.delta}`); ok(`${tag}: EMERGENCY RELEASE pulled (−20 PSI)`);
+  const eSeq = v.effect.seq; await tap(s, 'emergency'); v = await settle(s); assert.equal(v.effect.seq, eSeq, 'second pull changes nothing'); assert.equal(v.emergencyUsed, true); ok(`${tag}: second EMERGENCY RELEASE rejected`);
   // camera stays put while turning
   const qa = await s.p.evaluate(() => window.__manual.camera.quaternion.toArray()); await turn(s, v.pressure < 60 ? 'red' : 'blue'); const qb = await s.p.evaluate(() => window.__manual.camera.quaternion.toArray());
   assert.ok(qa.every((x, i) => Math.abs(x - qb[i]) < 1e-4)); ok(`${tag}: turning a valve never rotates the camera`);
   // solve with real taps/turns: coarse, then FINE
   const h0 = await s.p.evaluate(() => window.__manual.cage.height);
-  for (let i = 0; i < 60; i++) { v = await view(s); if (v.outcome !== 'RUNNING') break; const err = (v.safeLow + 2.5) - v.pressure, a = Math.abs(err);
+  for (let i = 0; i < 90; i++) { v = await view(s); if (v.outcome !== 'RUNNING') break; const err = (v.safeLow + 2.5) - v.pressure, a = Math.abs(err);
     if (a > 6) { if (v.fine) await tap(s, 'fine'); else await turn(s, err > 0 ? 'red' : 'blue'); } else if (a > 1.5) { if (!v.fine) await tap(s, 'fine'); else await tap(s, err > 0 ? 'red' : 'blue'); }
     await s.p.waitForTimeout(450); }
   v = await view(s); assert.equal(v.outcome, 'STABILIZED', 'solved: ' + JSON.stringify(v)); ok(`${tag}: green zone held for 1 s -> STABILIZED${online ? ' (server-confirmed)' : ''}`);
@@ -82,7 +84,7 @@ async function critical(b, seat) {
 
 async function timeout(b, seat) {
   const s = await page(b, false, seat); const v = await view(s), d = v.deadline - await s.p.evaluate(() => performance.now()); assert.ok(d > 40000 && d <= 45500, 'deadline ~45 s: ' + d); ok('timeout: server timer is 45 s');
-  await s.p.waitForFunction(() => window.__manual.link.view()?.outcome === 'FAILED', null, {timeout: 60000}); assert.equal((await view(s)).failReason, 'TIMEOUT'); ok('timeout: idle machine fails when the timer expires');
+  await s.p.waitForFunction(() => window.__manual.link.view()?.outcome === 'FAILED', null, {timeout: 60000}); const why = (await view(s)).failReason; assert.ok(['TIMEOUT', 'CRITICAL'].includes(why)); ok(`timeout: idle machine fails (${why === 'TIMEOUT' ? 'timer expired' : 'line noise + surge drove it to 120 PSI first'})`);
   assert.equal(await s.p.evaluate(() => window.__manual.link.penalties), 1); ok('timeout: one penalty'); assert.deepEqual(s.errors, []); await s.p.close();
 }
 

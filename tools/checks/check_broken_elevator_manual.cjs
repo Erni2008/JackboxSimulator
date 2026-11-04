@@ -25,9 +25,10 @@ async function run(name,viewport,touch){
   const before=await M(()=>window.__manual.book.spread);
   for(let i=0;i<3&&await M(()=>window.__manual.book.spread)>=before;i++){await tap(W*.22,H*.5);await p.waitForTimeout(1400);}
   assert.ok(await M(()=>window.__manual.book.spread)<before);ok(`${name}: tapping the left page turns back`);
-  // no double turns: two quick taps start only one leaf
-  const s0=await M(()=>window.__manual.book.spread);await tap(W*.78,H*.5);await tap(W*.78,H*.5);await p.waitForTimeout(80);assert.ok(await M(()=>!!window.__manual.book.turning||true));await p.waitForTimeout(1500);
-  assert.ok(await M(()=>window.__manual.book.spread)-s0<=1);ok(`${name}: rapid taps never run two turns at once`);
+  // fast flipping: a second tap lands the leaf in the air and turns the next one (one leaf moving at a time, both taps honoured)
+  const s0=await M(()=>window.__manual.book.spread);await tap(W*.78,H*.5);await tap(W*.78,H*.5);await p.waitForTimeout(80);assert.ok(await M(()=>window.__manual.book.leaf.visible!==undefined));await p.waitForTimeout(900);
+  {const d=await M(()=>window.__manual.book.spread)-s0;assert.ok(d>=1&&d<=2,'advanced '+d);ok(`${name}: rapid taps flip page after page (+${d}), one leaf at a time`);}
+  await M(()=>{const b=window.__manual.book;while(b.spread>1&&!b.turning){b.turn(-1);b.turning&&(b.turning.t=1);window.__manual.step(.05);}});
   if(touch){const sw=async dx=>{await p.evaluate(dx=>{const c=window.__manual.renderer.domElement,o={pointerId:7,pointerType:'touch',isPrimary:true,bubbles:true};c.dispatchEvent(new PointerEvent('pointerdown',{...o,clientX:200,clientY:400}));c.dispatchEvent(new PointerEvent('pointermove',{...o,clientX:200+dx/2,clientY:402}));c.dispatchEvent(new PointerEvent('pointerup',{...o,clientX:200+dx,clientY:404}));},dx);await p.waitForTimeout(1400);};
     const a=await M(()=>window.__manual.book.spread+':'+window.__manual.ui.focusSide);await sw(-150);await sw(-150);const b2=await M(()=>window.__manual.book.spread+':'+window.__manual.ui.focusSide);assert.notEqual(a,b2);ok(`${name}: swipe left advances (${a} -> ${b2})`);}
   const camQ2=await M(()=>window.__manual.camera.quaternion.toArray());assert.deepEqual(camQ2.map(v=>v.toFixed(5)),camQ.map(v=>v.toFixed(5)));ok(`${name}: camera did not rotate while reading`);
