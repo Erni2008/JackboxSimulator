@@ -19,7 +19,7 @@ class CageShiftTest {
     }
     @Test void cagesSinkOnlyWhileBrokenAndStopWhenRepaired() {
         var s = shift("a", "b"); toRound(s, 0); double h0 = s.cages.get("a").height;
-        run(s, s.roundLimit() / 2); assertEquals(h0 - 10, s.cages.get("a").height, .3, "half a round = 10 m");
+        run(s, s.roundLimit() / 2); assertEquals(h0 - 7.5, s.cages.get("a").height, .3, "half a round = 7.5 m");
         assertTrue(s.report("a", s.kind(), true, t)); double held = s.cages.get("a").height;
         run(s, 3000); assertEquals(held, s.cages.get("a").height, 1e-9, "repaired cage holds");
         assertTrue(s.cages.get("b").height < held, "the other keeps sinking");
@@ -28,7 +28,7 @@ class CageShiftTest {
     }
     @Test void firstFailureIsSurvivableEvenWithSlowRepairs() {
         var s = shift("a"); for (int r = 0; r < 3; r++) { toRound(s, r); if (r == 0) assertTrue(s.report("a", s.kind(), false, t)); else { run(s, s.roundLimit() - 300); assertTrue(s.report("a", s.kind(), true, t)); } }
-        var c = s.cages.get("a"); assertFalse(c.dead); assertTrue(c.height > 10 && c.height < 20, "about 15 m left: " + c.height);
+        var c = s.cages.get("a"); assertFalse(c.dead); assertTrue(c.height > 25 && c.height < 35, "about 30 m left: " + c.height);
     }
     @Test void secondFailureNearlyAlwaysKillsAndThirdAlways() {
         int died = 0, trials = 20;

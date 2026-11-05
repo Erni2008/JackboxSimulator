@@ -14,15 +14,15 @@ import java.util.*;
  *   <li>a repaired machine stops the cage until the next round starts;</li>
  *   <li>1st failure (wrong answer, explosion or time out): a hard drop of {@link #FIRST_DROP_M} m — survivable;</li>
  *   <li>2nd failure: the brake lets go down to {@link #SECOND_FLOOR_M} m and the cage keeps sinking until the round ends —
- *       survives only if it happened in the last ~15 % of the round (about 9 in 10 die);</li>
+ *       survives only if it happened in the last ~13 % of the round (about 9 in 10 die);</li>
  *   <li>3rd failure: instant death. A cage that reaches 0 m burns.</li>
  * </ul>
- * Worst survivable path: three slow repairs plus one failure = 100 − 3·20 − 25 = 15 m left.
+ * Worst path with one failure: three slow rounds plus the drop = 100 − 3·15 − 25 = 30 m left.
  */
 public final class CageShift {
     public static final List<String> POOL = List.of("wire", "pressure", "formula"); // + two more mini-games to come
     public static final int ROUNDS = 3;
-    public static final double START_M = 100, ROUND_DESCENT_M = 20, FIRST_DROP_M = 25, SECOND_FLOOR_M = 3;
+    public static final double START_M = 100, ROUND_DESCENT_M = 15, FIRST_DROP_M = 25, SECOND_FLOOR_M = 2;
     public static final long INTRO_MS = 9_000, BREAK_MS = 6_000, GRACE_MS = 2_500;
 
     public enum Phase { INTRO, ROUND, BREAK, END }

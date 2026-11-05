@@ -8,6 +8,7 @@ import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
 const params = new URLSearchParams(location.search), hash = new URLSearchParams(location.hash.slice(1));
@@ -17,17 +18,30 @@ const TEX = '../broken-elevator-manual/textures/';
 const CHARS = ['skeleton', 'pumpkin', 'plague_doctor', 'dracula', 'ghost', 'voodoo', 'zombie', 'puppeteer'];
 
 // ------------------------------------------------------------------ rules of the descent (host-side presentation)
-// the server's CageShift decides every height (100 m start, 20 m per broken round, 1st fail −25 m, 2nd → 3 m, 3rd = death)
+// the server's CageShift decides every height (100 m start, 15 m per broken round, 1st fail −25 m, 2nd → 2 m, 3rd = death)
 let START_M = 100;
 
 // ------------------------------------------------------------------ renderer / scene
 const renderer = new T.WebGLRenderer({antialias: true, powerPreference: 'high-performance'});
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap; renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
 $('view').append(renderer.domElement);
 const scene = new T.Scene(); scene.background = new T.Color('#0a0507'); scene.fog = new T.FogExp2('#1a0806', .018);
 const camera = new T.PerspectiveCamera(36, 16 / 9, .1, 200);
 const composer = new EffectComposer(renderer); composer.addPass(new RenderPass(scene, camera));
 const bloom = new UnrealBloomPass(new T.Vector2(512, 512), .55, .5, .8); composer.addPass(bloom); composer.addPass(new OutputPass());
+// film finish: heat shimmer rising off the lava (strongest at the bottom of the frame), slight lens fringing, grain, vignette
+const finish = new ShaderPass({uniforms: {tDiffuse: {value: null}, t: {value: 0}, shake: {value: 0}},
+  vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); }`,
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float t, shake; varying vec2 vUv;
+    float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898,78.233))) * 43758.5453); }
+    void main(){ vec2 uv = vUv; float heat = pow(1. - uv.y, 2.2) * .0045;
+      uv.x += sin(uv.y*90. + t*3.1) * heat + sin(uv.y*37. - t*2.3) * heat*.6; uv.y += cos(uv.x*70. + t*2.7) * heat*.5;
+      vec2 d = uv - .5; float ca = .0012 + shake * .004;
+      vec3 c = vec3(texture2D(tDiffuse, uv + d*ca).r, texture2D(tDiffuse, uv).g, texture2D(tDiffuse, uv - d*ca).b);
+      c *= 1. - smoothstep(.45, 1.05, length(d * vec2(1.25, 1.))) * .55;
+      c += (h(uv*vec2(1920.,1080.) + fract(t)*91.) - .5) * .035;
+      gl_FragColor = vec4(c, 1.); }`});
+composer.addPass(finish);
 new RGBELoader().load(TEX + 'boiler_room_1k.hdr', t => { t.mapping = T.EquirectangularReflectionMapping; const pm = new T.PMREMGenerator(renderer); scene.environment = pm.fromEquirectangular(t).texture; scene.environmentIntensity = .35; t.dispose(); });
 
 const loader = new T.TextureLoader(), tex = (f: string, srgb: boolean, rep = 1) => { const t = loader.load(f); t.colorSpace = srgb ? T.SRGBColorSpace : T.NoColorSpace; t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(rep, rep); t.anisotropy = 8; return t; };
@@ -39,14 +53,17 @@ const glowTex = canvasTex(128, 128, x => { const g = x.createRadialGradient(64, 
 
 // ---- lights: cold moonlight from the window, hot lava from below, two wall lanterns
 scene.add(new T.HemisphereLight('#4a5a80', '#5a1a08', .6));
-const moon = new T.SpotLight('#9fb6ff', 120, 60, .35, .8, 1.2); moon.position.set(0, 22, -14); moon.target.position.set(0, -2, 2); scene.add(moon, moon.target);
+const moon = new T.SpotLight('#9fb6ff', 120, 60, .35, .8, 1.2); moon.position.set(0, 22, -14); moon.target.position.set(0, -2, 2); moon.castShadow = true; moon.shadow.mapSize.set(2048, 2048); moon.shadow.bias = -.0004; moon.shadow.radius = 4; scene.add(moon, moon.target);
 const lavaLight = new T.PointLight('#ff5a14', 200, 26, 1.6); lavaLight.position.set(0, -5.5, 2); scene.add(lavaLight);
 const lavaLight2 = new T.PointLight('#ff7a20', 120, 18, 1.6); lavaLight2.position.set(-8, -5, 4); scene.add(lavaLight2);
 const lavaLight3 = new T.PointLight('#ff7a20', 120, 18, 1.6); lavaLight3.position.set(8, -5, 4); scene.add(lavaLight3);
 const lanterns: {light: T.PointLight; flame: T.Sprite}[] = [];
 
 // ---- back wall: rusted iron panels, pillars, the arched moon window and its light shaft
-const wall = new T.Mesh(new T.PlaneGeometry(80, 40), rusty(6, '#4a3a36', .6, .8)); wall.position.set(0, 4, -10); scene.add(wall);
+const wall = new T.Mesh(new T.PlaneGeometry(80, 40), rusty(6, '#4a3a36', .6, .8)); wall.position.set(0, 4, -10); wall.receiveShadow = true; scene.add(wall);
+// the lava's glow climbing the foot of the wall hides the seam where the pit meets it
+const footTex = canvasTex(8, 256, x => { const g = x.createLinearGradient(0, 0, 0, 256); g.addColorStop(0, 'rgba(255,90,20,0)'); g.addColorStop(.7, 'rgba(255,90,20,.55)'); g.addColorStop(1, 'rgba(255,150,60,.9)'); x.fillStyle = g; x.fillRect(0, 0, 8, 256); });
+const foot = new T.Mesh(new T.PlaneGeometry(80, 5), new T.MeshBasicMaterial({map: footTex, transparent: true, blending: T.AdditiveBlending, depthWrite: false, fog: false})); foot.position.set(0, -4.2 + 2.3, -9.7); scene.add(foot);
 const pillarMat = rusty(2, '#3a2e2a', .7, .7);
 for (const x of [-16, -9.5, 9.5, 16]) { const p = new T.Mesh(new T.BoxGeometry(1.2, 30, 1.2), pillarMat); p.position.set(x, 4, -9); scene.add(p); }
 const windowTex = canvasTex(512, 640, x => {
@@ -95,15 +112,21 @@ const embers = new T.Points(emberGeo, new T.ShaderMaterial({transparent: true, d
   fragmentShader: `uniform sampler2D map; varying float vL; void main(){ vec4 c = texture2D(map, gl_PointCoord); vec3 col = mix(vec3(1.,.62,.18), vec3(.9,.16,.02), vL); gl_FragColor = vec4(col*1.15, c.a * (1.-vL) * .9); }`}));
 scene.add(embers);
 const smokeTex = canvasTex(256, 256, x => { for (let i = 0; i < 26; i++) { const px = 60 + Math.random() * 136, py = 60 + Math.random() * 136, r = 30 + Math.random() * 70, g = x.createRadialGradient(px, py, 0, px, py, r); g.addColorStop(0, 'rgba(255,255,255,.18)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 256, 256); } });
+const mistTex = canvasTex(512, 128, x => { for (let i = 0; i < 70; i++) { const px = Math.random() * 512, py = 30 + Math.random() * 70, r = 20 + Math.random() * 60, g = x.createRadialGradient(px, py, 0, px, py, r); g.addColorStop(0, 'rgba(255,255,255,.22)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 512, 128); }
+  const f = x.createLinearGradient(0, 0, 0, 128); f.addColorStop(0, 'rgba(0,0,0,1)'); f.addColorStop(.45, 'rgba(0,0,0,0)'); f.addColorStop(.6, 'rgba(0,0,0,0)'); f.addColorStop(1, 'rgba(0,0,0,1)'); x.globalCompositeOperation = 'destination-out'; x.fillStyle = f; x.fillRect(0, 0, 512, 128); });
+mistTex.wrapS = T.RepeatWrapping; const mists: T.Mesh[] = [];
+for (let i = 0; i < 4; i++) { const t2 = mistTex.clone(); t2.needsUpdate = true; t2.wrapS = T.RepeatWrapping; t2.repeat.set(2, 1); const m = new T.Mesh(new T.PlaneGeometry(60, 3.2), new T.MeshBasicMaterial({map: t2, color: i % 2 ? '#ff6a20' : '#ff9a40', transparent: true, opacity: .32 - i * .05, blending: T.AdditiveBlending, depthWrite: false, fog: false}));
+  m.position.set(0, LAVA_Y + .9 + i * .55, 5 - i * 3.5); m.userData.v = (i % 2 ? -1 : 1) * (.006 + i * .003); scene.add(m); mists.push(m); }
 const smoke: T.Sprite[] = [];
 for (let i = 0; i < 22; i++) { const s = new T.Sprite(new T.SpriteMaterial({map: smokeTex, color: i % 3 ? '#7a2a14' : '#3a2420', transparent: true, opacity: .5, depthWrite: false})); s.position.set((Math.random() - .5) * 36, LAVA_Y + .6 + Math.random() * 2.5, -2 + Math.random() * 9); s.scale.setScalar(5 + Math.random() * 6); s.userData.v = (Math.random() - .5) * .25; scene.add(s); smoke.push(s); }
 
 // ------------------------------------------------------------------ the cage
 const metal = rusty(1.5, '#8a7a70', .9, .5), metalDark = rusty(1.5, '#4a4038', .9, .6), brass = new T.MeshStandardMaterial({color: '#b08a4a', metalness: .95, roughness: .35});
+const grateTex = canvasTex(256, 256, x => { x.fillStyle = '#000'; x.fillRect(0, 0, 256, 256); x.strokeStyle = '#fff'; x.lineWidth = 7; for (let i = -256; i < 512; i += 26) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i + 256, 256); x.stroke(); x.beginPath(); x.moveTo(i + 256, 0); x.lineTo(i, 256); x.stroke(); } });
 const hazard = canvasTex(1024, 64, x => { x.fillStyle = '#d9a514'; x.fillRect(0, 0, 1024, 64); x.fillStyle = '#16100a'; for (let i = -64; i < 1024; i += 64) { x.beginPath(); x.moveTo(i, 64); x.lineTo(i + 32, 64); x.lineTo(i + 96, 0); x.lineTo(i + 64, 0); x.fill(); } x.fillStyle = 'rgba(40,20,5,.35)'; for (let k = 0; k < 900; k++) x.fillRect(Math.random() * 1024, Math.random() * 64, 2 + Math.random() * 6, 1 + Math.random() * 2); });
 hazard.wrapS = T.RepeatWrapping; hazard.repeat.set(3, 1);
 const R = .82, CAGE_H = 2.1;
-const barGeo = new T.CylinderGeometry(.022, .022, CAGE_H - .2, 6), linkGeo = new T.TorusGeometry(.085, .022, 6, 12);
+const barGeo = new T.CylinderGeometry(.02, .024, CAGE_H - .2, 8), linkGeo = new T.TorusGeometry(.07, .024, 8, 16); linkGeo.scale(1, 1.7, 1);
 
 interface Cage { id: string; root: T.Group; body: T.Group; lamp: T.MeshStandardMaterial; lampGlow: T.Sprite; under: T.Sprite; portrait: T.Mesh; label: HTMLElement; bars: T.MeshStandardMaterial; flames: T.Sprite[];
   y: number; vy: number; targetY: number; x: number; tx: number; sway: number; swayV: number; flash: number; dead: boolean; penalties: number; repairs: number; okFlash: number; seen: boolean; burnT: number; survived: boolean }
@@ -118,7 +141,7 @@ function burnMaterial(map: T.Texture) { return new T.ShaderMaterial({transparent
       float nz = n(vUv*9. + vec2(0., t*.6))*.6 + n(vUv*23.)*.4; float edge = vUv.y*.75 + nz*.35;   // fire climbs from the feet
       float th = burn * 1.25 - .05; if (edge < th) discard;
       float rim = 1. - smoothstep(0., .06, edge - th), char = 1. - smoothstep(0., .2, edge - th);
-      vec3 col = c.rgb * .82 * (1. - heat*.35) + vec3(1.,.35,.08) * heat * .25;   // lit by the lava, reddening as it heats
+      vec3 col = c.rgb * (.62 + .28*vUv.y) * (1. - heat*.35); col += c.rgb * vec3(1.,.45,.15) * pow(1.-vUv.y, 2.) * .55; col += vec3(1.,.35,.08) * heat * .25;   // lava light from below, darker at the top   // lit by the lava, reddening as it heats
       col = mix(col, vec3(.08,.04,.03), char * step(.001, burn));
       col += vec3(1.,.55,.15) * rim * 3.2 * step(.001, burn);
       gl_FragColor = vec4(col, c.a); }`}); }
@@ -141,6 +164,9 @@ function buildCage(id: string, name: string, character: string): Cage {
   const bars = new T.InstancedMesh(barGeo, barMat, 18), m4 = new T.Matrix4();
   for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2; m4.makeTranslation(Math.cos(a) * R, CAGE_H / 2 + .05, Math.sin(a) * R); bars.setMatrixAt(i, m4); } body.add(bars);
   add(new T.TorusGeometry(R, .03, 8, 32), metal, 1.2, Math.PI / 2);
+  for (let i = 0; i < 4; i++) { const a = i / 4 * Math.PI * 2 + Math.PI / 4, st = new T.Mesh(new T.BoxGeometry(.075, CAGE_H - .1, .02), metalDark); st.position.set(Math.cos(a) * (R + .015), CAGE_H / 2 + .05, Math.sin(a) * (R + .015)); st.rotation.y = -a + Math.PI / 2; body.add(st);
+    for (let k = 0; k < 7; k++) { const rv = new T.Mesh(new T.SphereGeometry(.014, 8, 6), brass); rv.position.set(Math.cos(a) * (R + .03), .2 + k * .3, Math.sin(a) * (R + .03)); body.add(rv); } }
+  const grate = new T.Mesh(new T.CircleGeometry(R - .02, 32), new T.MeshStandardMaterial({map: grateTex, alphaMap: grateTex, transparent: true, alphaTest: .4, metalness: .8, roughness: .6, color: '#5a4a40'})); grate.rotation.x = -Math.PI / 2; grate.position.y = .085; body.add(grate);
   add(new T.TorusGeometry(R + .02, .05, 8, 32), metal, CAGE_H, Math.PI / 2);
   // dome, collar, hook
   add(new T.CylinderGeometry(R * .55, R + .06, .42, 28), metalDark, CAGE_H + .2);
@@ -157,7 +183,8 @@ function buildCage(id: string, name: string, character: string): Cage {
   pm.position.set(0, .2 + .65, 0); body.add(pm);
   // chain up into the dark
   const chain = new T.InstancedMesh(linkGeo, metalDark, 70);
-  for (let i = 0; i < 70; i++) { m4.makeRotationY(i % 2 ? Math.PI / 2 : 0); m4.setPosition(0, CAGE_H + 1.05 + i * .15, 0); chain.setMatrixAt(i, m4); } root.add(chain);
+  for (let i = 0; i < 70; i++) { m4.makeRotationY(i % 2 ? Math.PI / 2 : 0); m4.setPosition(0, CAGE_H + 1.15 + i * .2, 0); chain.setMatrixAt(i, m4); } chain.castShadow = true; root.add(chain);
+  root.traverse((o: any) => { if (o.isMesh && !(o.material as any).transparent) { o.castShadow = true; o.receiveShadow = true; } });
   scene.add(root);
   const label = document.createElement('div'); label.className = 'tag'; label.innerHTML = `<b></b><span class="m"></span><span class="s"></span>`; $('tags').append(label); label.querySelector('b')!.textContent = name;
   const flames: T.Sprite[] = []; for (let i = 0; i < 9; i++) { const f = new T.Sprite(new T.SpriteMaterial({map: flameTex, color: i % 3 ? '#ff7a20' : '#ffd070', blending: T.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0}));
@@ -200,17 +227,18 @@ async function poll() {
 }
 // demo shift: the same rules as the server's CageShift, played by six sample prisoners
 function demo() {
+  for (const c of cages.values()) { scene.remove(c.root); c.label.remove(); } cages.clear(); // a fresh shift: new cages
   const names = ['Skelly', 'Тыква', 'Доктор', 'Граф', 'Призрак', 'Вуду'], LIMIT = 24_000, INTRO = 4000, BREAK = 4000;
   players = names.map((n, i) => ({id: 'p' + i, name: n, characterId: CHARS[i], online: true, kind: '', cage: {height: 100, fails: 0, repairs: 0, outcome: 'RUNNING', dead: false}}));
   const kinds = ['wire', 'pressure', 'formula'].sort(() => Math.random() - .5); let t0 = Date.now(); const plan = new Map<string, {at: number; ok: boolean}>();
   shift = {phase: 'INTRO', round: -1, rounds: 3, kind: '', kinds, phaseStart: t0, phaseEnd: t0 + INTRO, roundLimit: LIMIT, startM: 100, difficulty: 'NORMAL'};
-  const fail = (c: CageCell) => { c.outcome = 'FAIL'; c.fails++; c.height = c.fails === 1 ? c.height - 25 : c.fails === 2 ? Math.min(c.height - 25, 3) : 0; if (c.height <= 0) { c.height = 0; c.dead = true; } };
+  const fail = (c: CageCell) => { c.outcome = 'FAIL'; c.fails++; c.height = c.fails === 1 ? c.height - 25 : c.fails === 2 ? Math.min(c.height - 25, 2) : 0; if (c.height <= 0) { c.height = 0; c.dead = true; } };
   let last = Date.now();
   setInterval(() => { const now = Date.now(), dt = now - last; last = now; const sh = shift!;
     if (sh.phase === 'ROUND') { for (const p of players) { const c = p.cage!; if (c.dead) continue; const pl = plan.get(p.id)!;
-        if (c.outcome !== 'OK' && now < sh.phaseStart + LIMIT) { c.height -= 20 / LIMIT * dt; if (c.height <= 0) { c.height = 0; c.dead = true; } }
+        if (c.outcome !== 'OK' && now < sh.phaseStart + LIMIT) { c.height -= 15 / LIMIT * dt; if (c.height <= 0) { c.height = 0; c.dead = true; } }
         if (c.outcome === 'RUNNING' && now >= pl.at) { if (pl.ok) { c.outcome = 'OK'; c.repairs++; } else fail(c); } }
-      if (now >= sh.phaseEnd || players.every(p => p.cage!.dead || p.cage!.outcome !== 'RUNNING')) { for (const p of players) { const c = p.cage!; if (!c.dead && c.outcome === 'RUNNING') fail(c); if (!c.dead && c.outcome === 'FAIL') { c.height -= 20 / LIMIT * Math.max(0, sh.phaseStart + LIMIT - now); if (c.height <= 0) { c.height = 0; c.dead = true; } } }
+      if (now >= sh.phaseEnd || players.every(p => p.cage!.dead || p.cage!.outcome !== 'RUNNING')) { for (const p of players) { const c = p.cage!; if (!c.dead && c.outcome === 'RUNNING') fail(c); if (!c.dead && c.outcome === 'FAIL') { c.height -= 15 / LIMIT * Math.max(0, sh.phaseStart + LIMIT - now); if (c.height <= 0) { c.height = 0; c.dead = true; } } }
         Object.assign(sh, {phase: sh.round + 1 >= 3 ? 'END' : 'BREAK', phaseStart: now, phaseEnd: sh.round + 1 >= 3 ? -1 : now + BREAK}); } }
     else if (sh.phase !== 'END' && now >= sh.phaseEnd) { sh.round++; Object.assign(sh, {phase: 'ROUND', kind: kinds[sh.round], phaseStart: now, phaseEnd: now + LIMIT + 1500});
       for (const p of players) { p.kind = sh.kind; p.cage!.outcome = 'RUNNING'; plan.set(p.id, {at: now + 5000 + Math.random() * 20000, ok: Math.random() < .78}); } }
@@ -296,7 +324,7 @@ function loop(now: number) {
   for (const [k, l] of lanterns.entries()) { const f = .85 + Math.sin(time * 13 + k) * .08 + Math.random() * .07; l.light.intensity = 30 * f; l.flame.scale.setScalar(1.5 * f); }
   for (let k = sparks.length - 1; k >= 0; k--) { const s = sparks[k], a = s.p.geometry.attributes.position as T.BufferAttribute; s.t += dt; for (let i = 0; i < a.count; i++) { s.v[i * 3 + 1] -= 9 * dt; a.array[i * 3] += s.v[i * 3] * dt; a.array[i * 3 + 1] += s.v[i * 3 + 1] * dt; a.array[i * 3 + 2] += s.v[i * 3 + 2] * dt; } a.needsUpdate = true;
     (s.p.material as T.PointsMaterial).opacity = Math.max(0, 1 - s.t / 1.2); if (s.t > 1.2) { scene.remove(s.p); s.p.geometry.dispose(); sparks.splice(k, 1); } }
-  bloom.strength = .55 + shake * .5;
+  bloom.strength = .55 + shake * .5; finish.uniforms.t.value = time; finish.uniforms.shake.value = shake; for (const m of mists) (m.material as T.MeshBasicMaterial).map!.offset.x += m.userData.v * dt;
   composer.render(); requestAnimationFrame(loop);
 }
 function texts() { document.title = L('Адская клетка · ведущий', 'The Hell Cage · host'); document.documentElement.lang = LANG;
