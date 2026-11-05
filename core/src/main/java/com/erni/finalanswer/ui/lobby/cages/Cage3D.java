@@ -84,7 +84,7 @@ public final class Cage3D implements Disposable {
         // ---------------- DOOR: the front bars between ±DOOR_HALF and two cross bars
         mb.begin();
         b = mb.part("door", GL20.GL_TRIANGLES, attrs, metal);
-        for (int i = 0; i < 5; i++) { if (i == 1 || i == 3) continue; /* the two pry-able bars are separate (halfBar) */ float a = MathUtils.PI / 2 + (i - 2) / 2f * DOOR_HALF * .9f; cyl(b, MathUtils.cos(a) * (R + 3), 10, MathUtils.sin(a) * (R + 3), 3.4f, TOP - 14); }
+        for (int i = 0; i < 5; i++) { if (i == 0 || i == 4) continue; /* the two door-edge bars the prisoner grips are separate (halfBar) */ float a = MathUtils.PI / 2 + (i - 2) / 2f * DOOR_HALF * .9f; cyl(b, MathUtils.cos(a) * (R + 3), 10, MathUtils.sin(a) * (R + 3), 3.4f, TOP - 14); }
         arc(b, R + 3, 46, MathUtils.PI / 2 - DOOR_HALF, MathUtils.PI / 2 + DOOR_HALF, 3.2f, 14); arc(b, R + 3, TOP - 30, MathUtils.PI / 2 - DOOR_HALF, MathUtils.PI / 2 + DOOR_HALF, 3.2f, 14);
         scroll(b, MathUtils.PI / 2, R + 3, TOP - 30, 20, 1.6f, false); scroll(b, MathUtils.PI / 2, R + 3, TOP - 30, 20, 1.6f, true);
         b = mb.part("lock", GL20.GL_TRIANGLES, attrs, brass); box(b, 0, 30, R + 6, 14, 18, 6, 0); sphere(b, 0, 30, R + 9.5f, 3);
@@ -123,7 +123,7 @@ public final class Cage3D implements Disposable {
     /** the door: {@code jx/jy} rattle offsets, {@code pry} bends the two inner bars apart (radians) */
     public void door(Matrix4 world, float yaw, float tilt, float drop, float jx, float jy, float pry) {
         tmp.set(world).translate(CX + jx, BASE_Y + drop + jy, 0).rotate(Vector3.X, tilt).rotate(Vector3.Y, yaw); doorI.transform.set(tmp); batch.render(doorI);
-        for (int side = -1; side <= 1; side += 2) { float a = MathUtils.PI / 2 + side * .5f * DOOR_HALF * .9f, x = MathUtils.cos(a) * (R + 3), z = MathUtils.sin(a) * (R + 3), deg = pry * MathUtils.radiansToDegrees * (x < 0 ? 1 : -1);
+        for (int side = -1; side <= 1; side += 2) { float a = MathUtils.PI / 2 + side * DOOR_HALF * .9f, x = MathUtils.cos(a) * (R + 3), z = MathUtils.sin(a) * (R + 3), deg = pry * MathUtils.radiansToDegrees * (x < 0 ? 1 : -1);
             batch.render(halfAt(halfA, x, 10, z, deg)); batch.render(halfAt(halfA, x, 10 + 2 * HALF_BAR, z, 180 - deg)); }
     }
     private ModelInstance halfAt(ModelInstance m, float x, float y, float z, float rotZ) { m.transform.set(tmp).translate(x, y, z).rotate(Vector3.Z, rotZ); return m; }
