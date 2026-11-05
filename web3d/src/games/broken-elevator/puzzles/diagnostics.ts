@@ -1,3 +1,4 @@
+import {hiCanvas, ctx2d, textTex, SS} from './sharp';
 // PHASE 1 diagnostic instruments for the junction box: analog meter, TEST CIRCUIT
 // push-button and the read-only NORMAL / EMERGENCY mode selector. The fault shown
 // is never decided here — it is supplied from outside (dev config now, puzzle later).
@@ -9,7 +10,7 @@ import {rng} from '../manual/page-art';
 export type Fault = 'overload' | 'short' | 'power';
 export type Mode = 'normal' | 'emergency';
 
-const tex = (w: number, h: number, draw: (x: CanvasRenderingContext2D) => void, srgb = true) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d')!); const t = new T.CanvasTexture(c); t.colorSpace = srgb ? T.SRGBColorSpace : T.NoColorSpace; t.anisotropy = 16; return t; };
+const tex = (w: number, h: number, draw: (x: CanvasRenderingContext2D) => void, srgb = true) => { const c = hiCanvas(w, h); draw(ctx2d(c)); return textTex(c, srgb); };
 export const Mats = (() => {
   let m: any = null;
   return () => m ||= {
@@ -28,7 +29,7 @@ const TECH = "'Barlow Condensed', 'Arial Narrow', sans-serif", MONO = "'IBM Plex
 export function labelPlate(text: string, w: number, h: number, _size = 44, style: PlateStyle = 'brass', opts: {mono?: boolean; screws?: boolean; sub?: string} = {}) {
   const pxw = Math.min(1024, Math.round(w * 8000)), pxh = Math.max(32, Math.round(pxw * h / w));
   const t = tex(pxw, pxh, x => {
-    const W = x.canvas.width, H = x.canvas.height, r = rng(text.length * 7 + W);
+    const W = pxw, H = pxh, r = rng(text.length * 7 + W);
     if (style === 'brass') { const g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#8b6a36'); g.addColorStop(.5, '#b8945a'); g.addColorStop(1, '#6f5228'); x.fillStyle = g; }
     else { const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#1d1814'); g.addColorStop(1, '#0f0c0a'); x.fillStyle = g; }
     x.fillRect(0, 0, W, H);
@@ -126,7 +127,7 @@ export class TestButton {
     const ring = new T.Mesh(new T.TorusGeometry(.024, .004, 10, 32), M.brass); ring.position.z = .013; this.group.add(ring);
     this.cap = new T.Mesh(new T.SphereGeometry(.02, 32, 12, 0, Math.PI * 2, 0, Math.PI / 2), new T.MeshPhysicalMaterial({color: '#9a7740', metalness: .92, roughness: .32, clearcoat: .2}));
     this.cap.rotation.x = Math.PI / 2; this.cap.scale.set(1, .55, 1); this.cap.position.z = .014; this.cap.castShadow = true; this.group.add(this.cap);
-    const plate = labelPlate(tr('ТЕСТ ЦЕПИ', 'TEST CIRCUIT'), .1, .026, 46, 'enamel', {screws: true}); plate.position.set(0, -.05, .002); this.group.add(plate);
+    const plate = labelPlate(tr('ТЕСТ ЦЕПИ', 'TEST CIRCUIT'), .1, .022, 46, 'enamel', {screws: true}); plate.position.set(0, -.043, .012); this.group.add(plate);
     this.pick.push(this.cap, bezel, ring, plate);
   }
   push() { this.pressT = .22; }
@@ -151,13 +152,13 @@ export class ModeSelector {
     const bar = new T.Mesh(new T.BoxGeometry(.01, .05, .012), M.brass); bar.position.z = .022; this.knob.add(bar);
     const tip = new T.Mesh(new T.ConeGeometry(.006, .012, 3), M.brass); tip.position.set(0, .03, .022); this.knob.add(tip);
     this.knob.traverse(o => { (o as T.Mesh).castShadow = true; }); this.group.add(this.knob);
-    this.window.position.set(0, -.062, .002); this.group.add(this.window);
+    this.window.position.set(0, -.045, .012); this.group.add(this.window);
     this.pick.push(plate, face, body, bar, tip, this.window);
   }
   /** set by the puzzle configuration only */
   /** set by the puzzle configuration only; the window plate spells the mode out (not colour-only) */
   setMode(m: Mode) { this.mode = m; this.target = m === 'normal' ? Math.PI / 4 : -Math.PI / 4;
-    const plate = labelPlate(m === 'normal' ? tr('НОРМА', 'NORMAL') : tr('АВАРИЯ', 'EMERGENCY'), .09, .026, 40, 'enamel', {sub: tr('РЕЖИМ', 'MODE'), screws: false});
+    const plate = labelPlate(m === 'normal' ? tr('НОРМА', 'NORMAL') : tr('АВАРИЯ', 'EMERGENCY'), .09, .026, 40, 'enamel', {sub: tr('РЕЖИМ', 'MODE'), screws: false}); plate.scale.setScalar(.92);
     (this.window.geometry as any)?.dispose?.(); this.window.geometry = plate.geometry; this.window.material = plate.material; }
   /** the player can try it: it is locked, so it only judders against its detent */
   tryTurn() { this.shake = .35; }

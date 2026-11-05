@@ -1,3 +1,4 @@
+import {ctx2d, textTex, SS} from './sharp';
 // THE BROKEN ELEVATOR — THE UNSTABLE FORMULA apparatus (wall-mounted on the cage's left-hand wall).
 // Local frame: +z into the cage, origin on the wall. Layout:
 //   top      status window; five glass reservoirs (CRIMSON AZURE VERDANT AMBER VIOLET) with labels and coloured
@@ -47,7 +48,7 @@ export class Laboratory {
     const bi = new T.InstancedMesh(boltGeo, m.bolt, bolts.length); const m4 = new T.Matrix4(); bolts.forEach(([x, y], i) => { m4.makeTranslation(x, y, .033); bi.setMatrixAt(i, m4); }); this.group.add(bi);
     const title = plate(tr('ФОРМУЛА ОХЛАЖДЕНИЯ', 'COOLING FORMULA'), tr('ЛАБОРАТОРИЯ ХАРТВЕЛЛА · № 7', 'HARTWELL LABORATORY · No 7'), .3, .045, 'brass'); title.position.set(-.3, .36, .03); this.group.add(title);
     // ---- status window
-    this.statusCanvas.width = 1024; this.statusCanvas.height = 140; this.statusTex = new T.CanvasTexture(this.statusCanvas); this.statusTex.colorSpace = T.SRGBColorSpace; this.drawStatus(tr('ГОТОВ', 'READY'), '#ffb347');
+    this.statusCanvas.width = 1024 * SS; this.statusCanvas.height = 140 * SS; this.statusTex = textTex(this.statusCanvas); this.drawStatus(tr('ГОТОВ', 'READY'), '#ffb347');
     const sw = new T.Mesh(new T.PlaneGeometry(.38, .052), new T.MeshStandardMaterial({map: this.statusTex, emissiveMap: this.statusTex, emissive: '#ffffff', emissiveIntensity: .9})); sw.position.set(.2, .36, .03); this.group.add(sw);
     const sf = new T.Mesh(new T.BoxGeometry(.395, .066, .008), m.brass); sf.position.set(.2, .36, .024); this.group.add(sf);
 
@@ -105,7 +106,7 @@ export class Laboratory {
     const cp = plate(tr('В ОХЛАЖДЕНИЕ', 'TO COOLING'), '', .09, .02, 'brass'); cp.position.set(.4, -.33, .03); this.group.add(cp);
 
     // ---- analyzer (left)
-    this.anCanvas.width = 560; this.anCanvas.height = 480; this.anTex = new T.CanvasTexture(this.anCanvas); this.anTex.colorSpace = T.SRGBColorSpace; this.anTex.anisotropy = 16;
+    this.anCanvas.width = 560 * SS; this.anCanvas.height = 480 * SS; this.anTex = textTex(this.anCanvas); this.anTex.anisotropy = 16;
     const an = new T.Mesh(new T.PlaneGeometry(.24, .206), new T.MeshStandardMaterial({map: this.anTex, emissiveMap: this.anTex, emissive: '#ffffff', emissiveIntensity: .9})); an.position.set(-.3, -.15, .03); this.group.add(an);
     const af = new T.Mesh(new T.BoxGeometry(.256, .222, .01), m.brass); af.position.set(-.3, -.15, .024); this.group.add(af);
     const ap = plate(tr('АНАЛИЗАТОР ОБРАЗЦА', 'SAMPLE ANALYZER'), '', .16, .022, 'brass'); ap.position.set(-.3, -.03, .03); this.group.add(ap);
@@ -142,13 +143,13 @@ export class Laboratory {
 
   private emit(a: 'DISPENSE' | 'LOCK_ON' | 'LOCK_OFF' | 'INJECT', r?: Reagent) { if (this.enabled) this.onAction(a, r); }
   private drawStatus(text: string, color: string) {
-    if (text + color === this.statusShown) return; this.statusShown = text + color; const x = this.statusCanvas.getContext('2d')!;
+    if (text + color === this.statusShown) return; this.statusShown = text + color; const x = ctx2d(this.statusCanvas);
     x.fillStyle = '#0a0705'; x.fillRect(0, 0, 1024, 140); x.strokeStyle = 'rgba(255,170,60,.12)'; for (let y = 0; y < 140; y += 6) { x.beginPath(); x.moveTo(0, y); x.lineTo(1024, y); x.stroke(); }
     let fs = 74; do { x.font = `700 ${fs}px 'IBM Plex Mono', Menlo, monospace`; fs -= 3; } while (x.measureText(text).width > 960 && fs > 30); x.textAlign = 'center'; x.textBaseline = 'middle'; x.shadowColor = color; x.shadowBlur = 24; x.fillStyle = color; x.fillText(text, 512, 74); this.statusTex.needsUpdate = true;
   }
   private drawAnalyzer(v: LabView | null) {
     const key = v ? [v.sampleId, v.family, v.cls, v.reaction, v.polarity, v.concentration, v.unstable].join('|') : '-'; if (key === this.anShown) return; this.anShown = key;
-    const x = this.anCanvas.getContext('2d')!; const g = x.createLinearGradient(0, 0, 0, 480); g.addColorStop(0, '#0d1410'); g.addColorStop(1, '#060a08'); x.fillStyle = g; x.fillRect(0, 0, 560, 480);
+    const x = ctx2d(this.anCanvas); const g = x.createLinearGradient(0, 0, 0, 480); g.addColorStop(0, '#0d1410'); g.addColorStop(1, '#060a08'); x.fillStyle = g; x.fillRect(0, 0, 560, 480);
     x.strokeStyle = 'rgba(120,255,170,.08)'; for (let y = 0; y < 480; y += 5) { x.beginPath(); x.moveTo(0, y); x.lineTo(560, y); x.stroke(); }
     const C = '#8dffb4'; x.shadowColor = C; x.shadowBlur = 10; x.textBaseline = 'middle';
     if (!v) { x.fillStyle = 'rgba(141,255,180,.5)'; x.font = `700 40px 'IBM Plex Mono', monospace`; x.textAlign = 'center'; x.fillText(tr('НЕТ ОБРАЗЦА', 'NO SAMPLE'), 280, 240); this.anTex.needsUpdate = true; return; }

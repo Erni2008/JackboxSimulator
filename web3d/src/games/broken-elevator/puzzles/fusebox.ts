@@ -1,3 +1,4 @@
+import {hiCanvas, ctx2d, textTex, SS} from './sharp';
 // Wall-mounted junction box: riveted steel cabinet with a framed opening and hinged
 // door, ebonite back panel with a stencilled warning, porcelain insulator blocks with
 // brass terminals (washer, hex nut, slotted screw), six cloth-braided conductors with
@@ -17,7 +18,7 @@ const TERMINALS = ['A1', 'B2', 'C3', 'D4', 'E5', 'F6'];
 const BW = .46, BH = .56, BD = .15, WALL = .014, N = 6, TOP = .12, BOT = -.2, GAP = .056;
 export interface FuseBoxSounds { door(open: boolean): void; snip(): void; spark(): void; good(): void; bad(): void }
 
-const canvasTex = (w: number, h: number, draw: (x: CanvasRenderingContext2D) => void, srgb = true) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d')!); const t = new T.CanvasTexture(c); t.colorSpace = srgb ? T.SRGBColorSpace : T.NoColorSpace; t.anisotropy = 16; return t; };
+const canvasTex = (w: number, h: number, draw: (x: CanvasRenderingContext2D) => void, srgb = true) => { const c = hiCanvas(w, h); draw(ctx2d(c)); return textTex(c, srgb); };
 
 /** Cloth braid: diagonal over/under weave, grime toward the ends. One map for colour, one for bump. */
 function braid() {
@@ -89,7 +90,7 @@ export class FuseBox {
     for (const [x, y] of [[-1, 1], [1, 1], [-1, -1], [1, -1]]) box(new T.CylinderGeometry(.009, .009, .008, 6), brassDark, x * (BW / 2 - .035), y * (BH / 2 - .035), WALL + .01).rotation.x = Math.PI / 2;
     for (const y of [TOP + .012, BOT - .012]) box(new RoundedBoxGeometry(BW - .07, .05, .03, 3, .008), porcelain, 0, y, WALL + .021);
     this.mats = {brass, brassDark};
-    this.plateCanvas.width = 1040; this.plateCanvas.height = 360; this.plate = new T.CanvasTexture(this.plateCanvas); this.plate.colorSpace = T.SRGBColorSpace; this.plate.anisotropy = 16;
+    this.plateCanvas.width = 1040 * SS; this.plateCanvas.height = 360 * SS; this.plate = new T.CanvasTexture(this.plateCanvas); this.plate.colorSpace = T.SRGBColorSpace; this.plate.anisotropy = 16;
     const plate = new T.Mesh(rb(.26, .09, .004, .0015), [brass, brass, brass, brass, new T.MeshPhysicalMaterial({map: this.plate, emissiveMap: this.plate, emissive: '#ffffff', emissiveIntensity: .45, metalness: .45, roughness: .45, clearcoat: .4, clearcoatRoughness: .35}), brass]); plate.position.set(0, .229, WALL + .01); this.group.add(plate);
     this.door.position.set(-BW / 2 - .006, 0, BD + .012); this.group.add(this.door);
     const leaf = box(rb(BW + .012, BH + .012, .012, .004), doorSteel, BW / 2 + .006, 0, 0, this.door); this.pickDoor.push(leaf);
@@ -113,8 +114,8 @@ export class FuseBox {
     box(rb(BW - .02, HH - .03, .006, .003), new T.MeshPhysicalMaterial({color: '#1a1512', roughness: .7, metalness: .3, map: steel.map}), 0, 0, .077, this.header);
     for (const [x, y] of [[-1, 1], [1, 1], [-1, -1], [1, -1]]) { const b = box(new T.CylinderGeometry(.006, .006, .006, 6), brassDark, x * (BW / 2 - .01), y * (HH / 2 - .012), .079, this.header); b.rotation.x = Math.PI / 2; }
     this.meter.group.position.set(-.13, .006, .096); this.header.add(this.meter.group);
-    this.button.group.position.set(.035, .018, .08); this.header.add(this.button.group);
-    this.selector.group.position.set(.15, .018, .08); this.header.add(this.selector.group);
+    this.button.group.position.set(.035, .032, .08); this.header.add(this.button.group);
+    this.selector.group.position.set(.15, .032, .08); this.header.add(this.selector.group);
     const lampBase = box(new T.CylinderGeometry(.016, .019, .014, 16), brassDark, -.13, HH / 2 + .008, .045, this.header); void lampBase;
     // caged warning lamp on top of the header
     this.lamp = new T.Mesh(new T.SphereGeometry(.015, 16, 10), new T.MeshPhysicalMaterial({color: '#3a0d06', emissive: '#000', roughness: .2, clearcoat: 1})); this.lamp.position.set(-.13, HH / 2 + .03, .045); this.header.add(this.lamp);
@@ -156,7 +157,7 @@ export class FuseBox {
       add(new T.CylinderGeometry(.0125, .011, .028, 16), brass, x, y + sgn * .03, WALL + .05);
     }
       // engraved tag riveted to the porcelain block just above the upper terminal
-      const tag = labelPlate(TERMINALS[i], .044, .024, 150, 'enamel', {mono: true, screws: false}); tag.position.set(x, TOP + .05, WALL + .026); this.terminals.add(tag);
+      const tag = labelPlate(TERMINALS[i], .044, .024, 150, 'enamel', {mono: true, screws: false}); tag.position.set(x, TOP + .056, WALL + .062); this.terminals.add(tag);
     }
     mergeStatic(this.terminals, new Set(), false);
   }
@@ -168,7 +169,7 @@ export class FuseBox {
 
   /** SERIAL NO. plate: black enamel field, brass rim and screws, large Plex Mono characters (0/O, 1/I, 5/S never collide) */
   private drawPlate(serial: string) {
-    const c = this.plateCanvas, x = c.getContext('2d')!, W = c.width, H = c.height, r = rng(serial.charCodeAt(1) * 13);
+    const c = this.plateCanvas, x = ctx2d(c), W = 1040, H = 360, r = rng(serial.charCodeAt(1) * 13);
     const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#1e1915'); g.addColorStop(1, '#0e0b09'); x.fillStyle = g; x.fillRect(0, 0, W, H);
     for (let i = 0; i < 1500; i++) { x.fillStyle = `rgba(${r() < .5 ? '255,240,210' : '0,0,0'},${r() * .05})`; x.fillRect(r() * W, r() * H, 2 + r() * 20, 1); }
     x.strokeStyle = '#a17c3e'; x.lineWidth = 14; x.strokeRect(7, 7, W - 14, H - 14); x.strokeStyle = 'rgba(40,25,8,.8)'; x.lineWidth = 3; x.strokeRect(22, 22, W - 44, H - 44);

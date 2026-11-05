@@ -1,3 +1,4 @@
+import {ctx2d, textTex, SS} from './sharp';
 // THE BROKEN ELEVATOR — THE BROKEN VALVES apparatus (wall-mounted on the cage's right-hand wall).
 // Layout (local frame, +z into the cage):
 //   left/centre: PSI gauge, surge warning lamp, 1-second stability lamps, copper manifold with RED (intake) and BLUE
@@ -69,7 +70,7 @@ export class PressureMachine {
     this.group.add(this.dialMarks(.085, mY, tr('ВЫКЛ', 'OFF'), tr('ВКЛ', 'ON')));
 
     // ---- right column: code window, TEST, relays
-    this.codeCanvas.width = 512; this.codeCanvas.height = 160; this.codeTex = new T.CanvasTexture(this.codeCanvas); this.codeTex.colorSpace = T.SRGBColorSpace; this.drawCode('', false);
+    this.codeCanvas.width = 512 * SS; this.codeCanvas.height = 160 * SS; this.codeTex = textTex(this.codeCanvas); this.drawCode('', false);
     const win = new T.Mesh(new T.PlaneGeometry(.17, .053), new T.MeshStandardMaterial({map: this.codeTex, emissiveMap: this.codeTex, emissive: '#ffffff', emissiveIntensity: .9, roughness: .3})); win.position.set(.33, .255, .03); this.group.add(win);
     const frame = new T.Mesh(new T.BoxGeometry(.182, .065, .008), m.brass); frame.position.set(.33, .255, .024); this.group.add(frame);
     const dp = plate(tr('КОД НЕИСПРАВНОСТИ', 'FAULT CODE'), '', .1, .022, 'brass'); dp.position.set(.33, .212, .03); this.group.add(dp);
@@ -132,7 +133,7 @@ export class PressureMachine {
   }
   private drawCode(code: string, busy: boolean) {
     const key = busy ? 'busy' + Math.floor(this.t * 12) : code; if (key === this.codeShown) return; this.codeShown = key;
-    const x = this.codeCanvas.getContext('2d')!; x.fillStyle = '#0a0705'; x.fillRect(0, 0, 512, 160); x.strokeStyle = 'rgba(255,170,60,.15)'; for (let y = 0; y < 160; y += 6) { x.beginPath(); x.moveTo(0, y); x.lineTo(512, y); x.stroke(); }
+    const x = ctx2d(this.codeCanvas); x.fillStyle = '#0a0705'; x.fillRect(0, 0, 512, 160); x.strokeStyle = 'rgba(255,170,60,.15)'; for (let y = 0; y < 160; y += 6) { x.beginPath(); x.moveTo(0, y); x.lineTo(512, y); x.stroke(); }
     const txt = busy ? ['R', 'B', 'F', 'L'][Math.floor(this.t * 12) % 4] + '-0' + (1 + Math.floor(this.t * 17) % 4) : code || '– – – –';
     x.font = `700 ${code.includes('+') ? 64 : code || busy ? 112 : 70}px 'IBM Plex Mono', Menlo, monospace`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.shadowColor = '#ff9a2a'; x.shadowBlur = code ? 26 : 8; x.fillStyle = busy ? 'rgba(255,170,70,.55)' : code ? '#ffb347' : 'rgba(255,170,70,.4)'; x.fillText(txt, 256, 86);
     this.codeTex.needsUpdate = true;
