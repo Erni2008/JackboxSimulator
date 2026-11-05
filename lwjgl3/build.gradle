@@ -527,6 +527,17 @@ tasks.register('draculaLobbyCheck', JavaExec) {
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
 
+tasks.register('lobbyJoinDemo', JavaExec) {
+    group = 'application'
+    description = 'Dev demo: the eight characters join the waiting room one by one, looping.'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.LobbyJoinDemo'
+    workingDir = rootProject.file('assets')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
 tasks.register('characterLightingShot', JavaExec) {
     group = 'verification'
     description = 'Dev capture of the 8-character lobby: -PshotOut=file.png [-Plighting=false]'
