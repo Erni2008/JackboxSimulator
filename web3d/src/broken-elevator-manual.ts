@@ -105,10 +105,12 @@ async function boot() {
   lab.onEvent = e => { if (e.type === 'REJECTED') { haptic('bad'); voice.say('fail', 2); } if (e.type === 'REJECTED') verdict(false, e.reason === 'UNSTABLE_UNPROTECTED' ? L('НЕСТАБИЛЬНО · ЗАМОК ОХЛАЖДЕНИЯ НЕ ВКЛЮЧЁН', 'UNSTABLE · COOLING LOCK WAS OFF') : L('ФОРМУЛА ОТВЕРГНУТА · СЛИВ, ПОПРОБУЙТЕ СНОВА', 'ФОРМУЛА ОТВЕРГНУТА · DRAINED, TRY AGAIN'), e.reason === 'UNSTABLE_UNPROTECTED' ? L('Нестабильная реакция', 'Unstable reaction') : L('Формула отвергнута', 'Formula rejected')); };
   let valvePointer: number | null = null;
   let focusTo: [number, number] | null = null, inspecting = false, inspectK = 0, inspectTarget: 'box' | 'pressure' | 'lab' = 'box';
-  const TOTAL = 12; const LIMITW = () => limitMs('wire') / 1000; let taskNo = 1, deadline = 0, taskSeed = seed, pending: any = 0;
+  let TOTAL = 3; const LIMITW = () => roundLimitS || limitMs('wire') / 1000; let taskNo = 1, deadline = 0, taskSeed = seed, pending: any = 0;
   // task kinds cycle: wire cutting -> broken valves -> unstable formula (?task=pressure|formula picks the first)
   type Kind = 'wire' | 'pressure' | 'formula'; const ORDER: Kind[] = ['wire', 'pressure', 'formula']; const start0 = Math.max(0, ORDER.indexOf((params.get('task') || 'wire') as Kind));
-  const kindOf = (n: number): Kind => ORDER[(start0 + n - 1) % 3];
+  const kindOf = (n: number): Kind => serverKind ?? ORDER[(start0 + n - 1) % 3];
+  // АДСКАЯ КЛЕТКА room mode: the server runs the shift (3 rounds, shared timer); the phone only plays the round it is given
+  let IN_ROOM = false; /* true once the server runs a shift for this room */ let serverKind: Kind | null = null, curRound = -1, roundLimitS = 0, roundDeadlineAt = 0, shiftV: any = null;
   let kind: Kind = kindOf(1);
   const hud = () => { $('task').textContent = `${L('ЗАДАНИЕ', 'TASK')} ${taskNo} / ${TOTAL} · ${kind === 'pressure' ? L('КЛАПАНЫ', 'VALVES') : kind === 'formula' ? L('ФОРМУЛА', 'FORMULA') : L('ПРОВОДА', 'WIRES')} · ${diffName().toUpperCase()}`; };
   // result card: low on screen (≈85 % of the viewport), fades in, a small mechanical jolt, holds, fades out (~2 s)
@@ -118,10 +120,11 @@ async function boot() {
   const newTask = (advance: boolean) => { if (advance) taskNo = Math.min(TOTAL, taskNo + 1); taskSeed++; kind = kindOf(taskNo);
     const t = makeTask(wireRules, taskSeed, wireCount || 4 + Math.floor(Math.random() * 3), fixed); box.setTask(t); box.configure(t.fault, t.mode); deadline = 0;
     const k0 = kind, myGen = ++taskGen; box.locked = true; press.enabled = false; lab.enabled = false; link.stop(); flink.stop(); hud();
+    if (IN_ROOM && serverKind === null) return; // wait for the server's first round
     briefOpen = true; (params.get('tutorial') === '1' ? briefing(k0, Math.round(limitMs(k0) / 1000)) : Promise.resolve()).then(() => { briefOpen = false; if (myGen !== taskGen) return; startedAt = performance.now(); mistakes = 0; RoomSocket.shared()?.send('CAGE_REPORT', {kind: k0, task: taskNo}); /* host screen: which machine */
     // the host's voice: welcome once, then a short spoken instruction at the start of every task (no text card)
     if (!introSaid) { introSaid = true; tellPending = 'intro:' + k0; } else tellPending = k0;
-    if (k0 === 'wire') box.locked = false;
+    if (k0 === 'wire') { box.locked = false; if (IN_ROOM && roundDeadlineAt) deadline = roundDeadlineAt; }
     if (kind === 'pressure') { box.locked = true; press.enabled = true; press.reset(); link.start(); pressureDone = false; if (cur().state === 'rest' || cur().state === 'falling') { const d = press.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } }
     else { press.enabled = false; link.stop(); }
     if (kind === 'formula') { box.locked = true; lab.enabled = true; lab.reset(); flink.start(); formulaDone = false; if (cur().state === 'rest' || cur().state === 'falling') { const d = lab.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } }
@@ -132,9 +135,28 @@ async function boot() {
   const record = (ok: boolean, why: string, extra = 0) => { const k = kind, sec = k === 'wire' ? (deadline ? limitMs('wire') / 1000 - Math.max(0, (deadline - performance.now()) / 1000) : 0) : (performance.now() - startedAt) / 1000;
     rows.push({n: taskNo, kind: k, ok, seconds: Math.max(0, sec), mistakes: mistakes + extra + (ok ? 0 : 1), why}); warned10 = false; surgeSaid = false;
     haptic(ok ? 'good' : why === 'CRITICAL' ? 'blast' : 'bad'); voice.say(ok ? 'success' : why === 'CRITICAL' ? 'explosion' : why === 'TIMEOUT' ? 'timeout' : 'fail', 4, 0); };
-  const next = (ok: boolean) => { if (ok && taskNo >= TOTAL) { const fails = rows.filter(r => !r.ok).length; setTimeout(() => voice.say(fails ? 'results' : 'perfect', 5, 0), 300);
+  const next = (ok: boolean) => { if (IN_ROOM) { pending = 0; shiftOverlay(); return; } /* the server decides what comes next */ if (ok && taskNo >= TOTAL) { const fails = rows.filter(r => !r.ok).length; setTimeout(() => voice.say(fails ? 'results' : 'perfect', 5, 0), 300);
       report(rows).then(a => { if (a === 'room') { location.href = '/'; return; } rows.length = 0; taskNo = 1; newTask(false); }); return; } newTask(ok); };
   onDiff(() => hud());
+  // ---- the shift as the server runs it
+  const sock = RoomSocket.shared();
+  const shiftOverlay = () => { const v = shiftV, el = $('shift'); if (!v || !IN_ROOM) { el.hidden = true; return; } const me = v.me || {}, now = sock!.serverNow(), left = v.phaseEnd > 0 ? Math.max(0, Math.ceil((v.phaseEnd - now) / 1000)) : 0;
+    const h = Math.max(0, Math.round(me.height ?? 100)); $('hgt').textContent = me.dead ? '☠' : `${h} ${L('м', 'm')}`; $('hgt').dataset.low = String(h < 25);
+    let title = '', sub = '';
+    if (me.dead) { title = L('Вы сгорели', 'You burned'); sub = L('Смотрите на экран ведущего', 'Watch the host screen'); }
+    else if (v.phase === 'INTRO') { title = L('Смена начинается', 'The shift begins'); sub = `${left} ${L('с', 's')} · ${L('до лавы', 'to the lava')} ${h} ${L('м', 'm')}`; }
+    else if (v.phase === 'BREAK') { title = `${L('Раунд', 'Round')} ${v.round + 2} ${L('из', 'of')} ${v.rounds}`; sub = `${L('через', 'in')} ${left} ${L('с', 's')} · ${L('до лавы', 'to the lava')} ${h} ${L('м', 'm')}`; }
+    else if (v.phase === 'END') { title = L('Вы выжили!', 'You survived!'); sub = `${L('до лавы осталось', 'left above the lava')} ${h} ${L('м', 'm')} · ✓${me.repairs ?? 0} ✗${me.fails ?? 0}`; }
+    else if (v.phase === 'ROUND' && me.outcome === 'OK') { title = L('Клетка остановлена', 'Cage holding'); sub = L('Ждём остальных…', 'Waiting for the others…'); }
+    else if (v.phase === 'ROUND' && me.outcome === 'FAIL') { title = me.fails >= 2 ? L('Тормоз сорван!', 'The brake is gone!') : L('Клетка падает', 'The cage is falling'); sub = L('Ждём конца раунда…', 'Waiting for the round to end…'); }
+    el.hidden = !title || !!pending && v.phase === 'ROUND' && !me.dead; $('shift-t').textContent = title; $('shift-s').textContent = sub; el.dataset.tone = me.dead ? 'dead' : v.phase === 'END' ? 'good' : me.outcome === 'FAIL' ? 'bad' : ''; };
+  sock?.listen(ev => { const v = ev.payload?.cage; if (!v) return; shiftV = v;
+    if (!IN_ROOM) { IN_ROOM = true; $('hgt').hidden = false; setInterval(shiftOverlay, 500); if (v.phase !== 'ROUND') { serverKind = null; newTask(false); } }
+    if (v.phase === 'ROUND' && v.round !== curRound && !v.me?.dead) { curRound = v.round; serverKind = v.kind; TOTAL = v.rounds; taskNo = v.round + 1; roundLimitS = v.roundLimit / 1000;
+      roundDeadlineAt = performance.now() + (v.phaseStart + v.roundLimit - sock!.serverNow()); clearTimeout(pending); pending = 0; if (inspecting) setInspect(false); newTask(false); }
+    if (v.me?.dead) { box.locked = true; press.enabled = false; lab.enabled = false; }
+    shiftOverlay(); });
+
   let formulaDone = false;
   flink.onOutcome = (o, reason) => { if (kind !== 'formula' || formulaDone) return; formulaDone = true; lab.enabled = false; const ok = o === 'STABILIZED'; record(ok, reason, flink.view()?.rejections ?? 0);
     if (!ok) audio.play('bad');
@@ -175,7 +197,7 @@ async function boot() {
     const b = ray.intersectObject(book.root, true)[0], hit = ray.intersectObject(box.group, true)[0], ph = press.hits(ray); if (b && (!hit || b.distance < hit.distance) && (!ph || b.distance < ph.distance)) return;
     if (ph && (!hit || ph.distance < hit.distance)) { if (!inspecting && (cur().state === 'rest' || cur().state === 'falling' || cur().lowered)) setInspect(true, 'pressure'); return; }
     if ((cur().state === 'reading' || cur().state === 'held') && !cur().lowered) { if (!hit) return; }
-    const r = box.tap(ray); (window as any).__lastTap = r; if (r && (r !== 'door' || box.open) && !inspecting && (cur().state === 'rest' || cur().state === 'falling' || cur().lowered)) { setInspect(true); if (r !== 'test') return; } if (r === 'door' && box.open) { if (!deadline && !box.locked) deadline = performance.now() + LIMITW() * 1000; if (cur().state === 'rest' || cur().state === 'falling') { const d = box.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } } });
+    const r = box.tap(ray); (window as any).__lastTap = r; if (r && (r !== 'door' || box.open) && !inspecting && (cur().state === 'rest' || cur().state === 'falling' || cur().lowered)) { setInspect(true); if (r !== 'test') return; } if (r === 'door' && box.open) { if (!deadline && !box.locked && !IN_ROOM) deadline = performance.now() + LIMITW() * 1000; if (cur().state === 'rest' || cur().state === 'falling') { const d = box.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } } });
   const setInspect = (on: boolean, target: 'box' | 'pressure' | 'lab' = 'box') => { if (on) inspectTarget = target; inspecting = on; $('btn-back').hidden = !on; $('hint').style.opacity = on ? '0' : ''; $('task').style.opacity = on && innerWidth > 700 ? '0' : ''; if (on) { focusTo = null; if (target === 'box' && !box.open) box.toggleDoor(); } };
   $('btn-back').onclick = () => setInspect(false); addEventListener('keydown', e => { if (e.key === 'Escape' && inspecting) setInspect(false); });
   $('btn-open').onclick = () => cur().open(); $('btn-close').onclick = () => cur().close(); $('btn-drop').onclick = () => cur().drop();

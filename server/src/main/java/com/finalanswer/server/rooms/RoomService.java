@@ -153,7 +153,7 @@ public final class RoomService {
             requireHost(member);String id=Protocol.string(data,"game");
             if(!Set.of("broken-elevator").contains(id))throw new Failure(400,"INVALID_WEB_GAME");
             if(data.has("difficulty")){String d=Protocol.string(data,"difficulty");if(!Set.of("EASY","NORMAL","HARD").contains(d))throw new Failure(400,"INVALID_DIFFICULTY");room.difficulty=com.erni.finalanswer.gameplay.elevator.Difficulty.valueOf(d);}
-            room.pressure.clear();room.formula.clear();room.webGameAt=now();for(var m:room.members.values()){m.elevatorRepairs=0;m.elevatorPenalties=0;m.cageKind="";m.cageTask=0;m.cageFailAt=0;}
+            room.pressure.clear();room.formula.clear();room.webGameAt=now();room.shift=new com.erni.finalanswer.gameplay.elevator.CageShift(room.difficulty,room.members.values().stream().filter(m->!m.left).map(m->m.id).toList(),random.nextLong(),now());for(var m:room.members.values()){m.elevatorRepairs=0;m.elevatorPenalties=0;m.cageKind="";m.cageTask=0;m.cageFailAt=0;}
             room.webGame=id;room.webGameId=UUID.randomUUID().toString();broadcast(room,"WEB_GAME_OPENED");reply(peer,room,member,message);return;
         }
         if(Set.of("START_LAST_COMMAND","LAST_COMMAND_ACTION","END_LAST_COMMAND").contains(message.type())){lastCommandCommand(room,member,peer,message);return;}
@@ -550,8 +550,8 @@ public final class RoomService {
         reply(peer,room,member,message);
     }
     private void pressureOutcome(Room room,Member member,com.erni.finalanswer.gameplay.elevator.PressurePuzzle puzzle){
-        if(puzzle.outcome()==com.erni.finalanswer.gameplay.elevator.PressurePuzzle.Outcome.STABILIZED&&!puzzle.rewarded){puzzle.rewarded=true;member.elevatorRepairs++;}
-        if(puzzle.outcome()==com.erni.finalanswer.gameplay.elevator.PressurePuzzle.Outcome.FAILED&&!puzzle.rewarded){puzzle.rewarded=true;member.elevatorPenalties++;member.cageFailAt=now();}
+        if(puzzle.outcome()==com.erni.finalanswer.gameplay.elevator.PressurePuzzle.Outcome.STABILIZED&&!puzzle.rewarded){puzzle.rewarded=true;member.elevatorRepairs++;cageResult(room,member,"pressure",true);}
+        if(puzzle.outcome()==com.erni.finalanswer.gameplay.elevator.PressurePuzzle.Outcome.FAILED&&!puzzle.rewarded){puzzle.rewarded=true;member.elevatorPenalties++;member.cageFailAt=now();cageResult(room,member,"pressure",false);}
     }
     private Map<String,Object> pressureView(com.erni.finalanswer.gameplay.elevator.PressurePuzzle p){
         var c=p.config();Map<String,Object> v=new LinkedHashMap<>();
@@ -584,13 +584,13 @@ public final class RoomService {
             if(data.has("reagent"))reagent=com.erni.finalanswer.gameplay.elevator.Formula.Reagent.valueOf(Protocol.string(data,"reagent"));}
         catch(RuntimeException e){throw new Failure(400,"INVALID_FORMULA_ACTION");}
         if((action==com.erni.finalanswer.gameplay.elevator.FormulaPuzzle.Action.DISPENSE)!=(reagent!=null))throw new Failure(400,"INVALID_FORMULA_ACTION");
-        puzzle.apply(action,reagent,seq,now());formulaOutcome(member,puzzle);
+        puzzle.apply(action,reagent,seq,now());formulaOutcome(room,member,puzzle);
         reply(peer,room,member,message);
     }
-    private void formulaOutcome(Member member,com.erni.finalanswer.gameplay.elevator.FormulaPuzzle p){
+    private void formulaOutcome(Room room,Member member,com.erni.finalanswer.gameplay.elevator.FormulaPuzzle p){
         if(p.rewarded)return;
-        if(p.outcome()==com.erni.finalanswer.gameplay.elevator.FormulaPuzzle.Outcome.STABILIZED){p.rewarded=true;member.elevatorRepairs++;}
-        else if(p.outcome()==com.erni.finalanswer.gameplay.elevator.FormulaPuzzle.Outcome.FAILED){p.rewarded=true;member.elevatorPenalties++;member.cageFailAt=now();}
+        if(p.outcome()==com.erni.finalanswer.gameplay.elevator.FormulaPuzzle.Outcome.STABILIZED){p.rewarded=true;member.elevatorRepairs++;cageResult(room,member,"formula",true);}
+        else if(p.outcome()==com.erni.finalanswer.gameplay.elevator.FormulaPuzzle.Outcome.FAILED){p.rewarded=true;member.elevatorPenalties++;member.cageFailAt=now();cageResult(room,member,"formula",false);}
     }
     /** THE HELL CAGE: the phone tells the room which machine it is on; the wire panel (client-side rules) also reports its result */
     private void cageReport(Room room,Member member,Peer peer,Message message){
@@ -598,11 +598,17 @@ public final class RoomService {
         String kind=data.has("kind")?Protocol.string(data,"kind"):"";if(!Set.of("wire","pressure","formula").contains(kind))throw new Failure(400,"INVALID_CAGE_REPORT");
         int task=data.has("task")?Math.max(1,Math.min(99,data.get("task").getAsInt())):1; member.cageKind=kind; member.cageTask=task;
         String result=data.has("result")?Protocol.string(data,"result"):"";
-        if(kind.equals("wire")&&result.equals("OK"))member.elevatorRepairs++;
-        else if(kind.equals("wire")&&result.equals("FAIL")){member.elevatorPenalties++;member.cageFailAt=now();}
+        if(kind.equals("wire")&&result.equals("OK")){member.elevatorRepairs++;cageResult(room,member,"wire",true);}
+        else if(kind.equals("wire")&&result.equals("FAIL")){member.elevatorPenalties++;member.cageFailAt=now();cageResult(room,member,"wire",false);}
         else if(!result.isEmpty())throw new Failure(400,"INVALID_CAGE_REPORT");
         reply(peer,room,member,message);
     }
+    private void cageResult(Room room,Member member,String kind,boolean ok){ if(room.shift!=null&&room.shift.report(member.id,kind,ok,now()))broadcast(room,"CAGE_UPDATE"); }
+    private Map<String,Object> cageCell(com.erni.finalanswer.gameplay.elevator.CageShift.Cage c){
+        return Map.of("height",Math.round(c.height*10)/10.0,"fails",c.fails,"repairs",c.repairs,"outcome",c.outcome.name(),"dead",c.dead,"deadAt",c.deadAt,"failAt",c.failAt); }
+    private Map<String,Object> cageShiftView(Room room){ var sh=room.shift; Map<String,Object> v=new LinkedHashMap<>();
+        v.put("phase",sh.phase().name());v.put("round",sh.round());v.put("rounds",sh.kinds.size());v.put("kind",sh.kind());v.put("kinds",sh.kinds);v.put("phaseStart",sh.phaseStart());v.put("phaseEnd",sh.phaseEnd()==Long.MAX_VALUE?-1:sh.phaseEnd());
+        v.put("roundLimit",sh.roundLimit());v.put("startM",com.erni.finalanswer.gameplay.elevator.CageShift.START_M);v.put("difficulty",sh.difficulty.name()); return v; }
     /** read-only feed for the host's HELL CAGE screen (HTTP poll with the host token; never touches the host's socket) */
     public synchronized String cageView(String code,String token){
         Room room=find(code); if(token==null||!room.host.token.equals(token))throw new Failure(403,"NOT_HOST");
@@ -613,8 +619,9 @@ public final class RoomService {
             p.put("id",m.id);p.put("name",m.name);p.put("characterId",m.characterId);p.put("online",m.peer!=null);p.put("repairs",m.elevatorRepairs);p.put("penalties",m.elevatorPenalties);
             p.put("kind",m.cageKind);p.put("task",m.cageTask);p.put("failAt",m.cageFailAt);
             var pz=room.pressure.get(m.id); if(pz!=null&&m.cageKind.equals("pressure"))p.put("psi",Math.round(pz.pressure()));
+            if(room.shift!=null){room.shift.add(m.id);p.put("cage",cageCell(room.shift.cages.get(m.id)));}
             ps.add(p);}
-        v.put("players",ps); return json(v);
+        if(room.shift!=null){room.shift.advance(now);v.put("shift",cageShiftView(room));} v.put("players",ps); return json(v);
     }
     private Map<String,Object> formulaView(com.erni.finalanswer.gameplay.elevator.FormulaPuzzle p){
         var s=p.sample();Map<String,Object> v=new LinkedHashMap<>();
@@ -630,7 +637,7 @@ public final class RoomService {
         for(var e:room.formula.entrySet()){
             var p=e.getValue();boolean wasDraining=p.draining();boolean changed=p.advance(now());
             Member m=room.members.values().stream().filter(x->x.id.equals(e.getKey())).findFirst().orElse(null);if(m==null)continue;
-            formulaOutcome(m,p);
+            formulaOutcome(room,m,p);
             if((changed||wasDraining&&!p.draining()||p.outcome()==com.erni.finalanswer.gameplay.elevator.FormulaPuzzle.Outcome.RUNNING&&now()-p.sentAt>=1000)&&m.peer!=null){p.sentAt=now();m.peer.send(Protocol.event("FORMULA_UPDATED","",snapshot(room,m,false)));}
         }
     }
@@ -647,7 +654,7 @@ public final class RoomService {
         }
     }
     private void tickRoom(Room room) {
-        tickPressure(room); tickFormula(room);
+        tickPressure(room); tickFormula(room); if(room.shift!=null&&room.webGame.equals("broken-elevator")&&room.shift.advance(now()))broadcast(room,"CAGE_UPDATE");
         if(room.cursed!=null&&room.cursed.tick(now(),room.members.values().stream().filter(m->m.left).map(m->m.id).collect(java.util.stream.Collectors.toSet())))broadcast(room,"CURSED_BOXES_UPDATED");
         if(room.impostor!=null) {
             var mini=room.impostor;
@@ -719,7 +726,7 @@ public final class RoomService {
         value.put("impostorSettings",room.impostorSettings);value.put("impostorWordCategories",List.of("DEFAULT"));
         value.put("lobbyId",room.lobbyId); value.put("language",room.language); value.put("elevatorDifficulty",room.difficulty.name());
         if(!room.webGameId.isEmpty()){value.put("webGame",room.webGame);value.put("webGameId",room.webGameId);}
-        if(self!=null&&!self.host){var pz=room.pressure.get(self.id);if(pz!=null)value.put("elevatorPressure",pressureView(pz));var fz=room.formula.get(self.id);if(fz!=null)value.put("elevatorFormula",formulaView(fz));value.put("elevatorRepairs",self.elevatorRepairs);value.put("elevatorPenalties",self.elevatorPenalties);}
+        if(self!=null&&!self.host){var pz=room.pressure.get(self.id);if(pz!=null)value.put("elevatorPressure",pressureView(pz));var fz=room.formula.get(self.id);if(fz!=null)value.put("elevatorFormula",formulaView(fz));value.put("elevatorRepairs",self.elevatorRepairs);if(room.shift!=null){room.shift.add(self.id);var cv=cageShiftView(room);cv.put("me",cageCell(room.shift.cages.get(self.id)));value.put("cage",cv);}value.put("elevatorPenalties",self.elevatorPenalties);}
         if(room.impostor==null && !room.impostorRoster.isEmpty())value.put("impostorLobby",Map.of("sessionId",room.lobbyId,"participantIds",room.impostorRoster));
         List<Map<String,Object>> players=new ArrayList<>();
         for(Member member:room.members.values()) {
@@ -857,7 +864,7 @@ public final class RoomService {
     private static final class Room {
         final String id=UUID.randomUUID().toString(), name,mode; String code;
         final int maxPlayers,questionCount; final byte[] salt,passwordHash;
-        String webGame="",webGameId="",language="en"; long webGameAt; com.erni.finalanswer.gameplay.elevator.Difficulty difficulty=com.erni.finalanswer.gameplay.elevator.Difficulty.NORMAL;
+        String webGame="",webGameId="",language="en"; long webGameAt; com.erni.finalanswer.gameplay.elevator.CageShift shift; com.erni.finalanswer.gameplay.elevator.Difficulty difficulty=com.erni.finalanswer.gameplay.elevator.Difficulty.NORMAL;
         final Map<String,com.erni.finalanswer.gameplay.elevator.PressurePuzzle> pressure=new LinkedHashMap<>();
         final Map<String,com.erni.finalanswer.gameplay.elevator.FormulaPuzzle> formula=new LinkedHashMap<>();
         String lobbyId=UUID.randomUUID().toString();List<String> impostorRoster=List.of();

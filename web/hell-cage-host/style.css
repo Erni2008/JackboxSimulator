@@ -29,3 +29,9 @@ html,body{margin:0;height:100%;overflow:hidden;background:#0a0507;color:#f3e3c4;
 #status{position:fixed;left:50%;bottom:2vh;transform:translateX(-50%);color:#ff8a6a;font-size:1.6vh;letter-spacing:.1em}
 #sound{position:fixed;right:1.2vw;bottom:1.6vh;width:46px;height:46px;border-radius:50%;border:1.5px solid #8a6a40;background:rgba(20,12,8,.85);color:#fff;font-size:20px;cursor:pointer;opacity:.85}
 #sound.on{opacity:.25}
+
+.tag.ok{border-color:#5aff9a}.tag.ok .s{color:#8dffb4}
+.tag.bad{border-color:#ff3a20;animation:tagpulse .8s ease-in-out infinite}.tag.bad .m{color:#ff5a3a}
+@keyframes tagpulse{50%{box-shadow:0 0 22px rgba(255,40,20,.7),0 6px 24px rgba(0,0,0,.55)}}
+body.urgent .hud.right{border-color:#ff3a20;animation:tagpulse .9s infinite}
+body.urgent #vignette{background:radial-gradient(ellipse at 50% 45%,transparent 50%,rgba(120,0,0,.55) 100%)}
