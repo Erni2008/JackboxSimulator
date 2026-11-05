@@ -9,6 +9,9 @@ import com.badlogic.gdx.math.Matrix4;
 
 /** Existing cage character contract, grounded IK and parent-local costume/head hierarchy. */
 public final class PumpkinCharacter implements CageCharacter {
+    /** escape attempt: how far each arm is raised toward the bars (degrees, 0 = rest) */
+    private float gripL, gripR;
+    @Override public void grip(float left, float right) { gripL = left; gripR = right; }
     public static final float HEAD_SCALE=.05f, BODY_SCALE=.052f, STEM_SCALE=.05f;
     private final PumpkinAssets assets;
     private final PumpkinAnimator animator;
@@ -43,8 +46,8 @@ public final class PumpkinCharacter implements CageCharacter {
         leftLeg.draw(batch,p.hipX-8,hip,-15,8,1);rightLeg.draw(batch,p.hipX+8,hip,15,8,-1);
         torso.set(root).translate(p.hipX,hip,0).rotate(0,0,1,p.bodyAngle).scale(p.bodyScale,p.bodyScale,1);
         batch.setTransformMatrix(torso);
-        part(batch,assets.leftArm,-20,34,1100,150,.03f,p.leftArm);
-        part(batch,assets.rightArm,20,34,220,150,.03f,p.rightArm);
+        part(batch,assets.leftArm,-20,34,1100,150,.03f,p.leftArm-gripL);
+        part(batch,assets.rightArm,20,34,220,150,.03f,p.rightArm+gripR);
         part(batch,assets.body,0,0,630,1100,BODY_SCALE,0);
         headRoot.set(torso).translate(0,40,0).rotate(0,0,1,p.headAngle).scale(p.headScale,p.headScale,1);
         batch.setTransformMatrix(headRoot);

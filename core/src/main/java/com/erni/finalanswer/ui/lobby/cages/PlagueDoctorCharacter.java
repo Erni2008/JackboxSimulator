@@ -9,6 +9,9 @@ import com.badlogic.gdx.math.Matrix4;
 
 /** Nine-part rig in the existing cage Batch: fixed feet, neck-parented hat, hand-parented lantern. */
 public final class PlagueDoctorCharacter implements CageCharacter {
+    /** escape attempt: how far each arm is raised toward the bars (degrees, 0 = rest) */
+    private float gripL, gripR;
+    @Override public void grip(float left, float right) { gripL = left; gripR = right; }
     private static final float LOBBY_SCALE=1.32f;
     /** Base material exposure; readability is calibrated separately for mask, cloth and hat. Lantern intensity is independent. */
     public static float plagueDoctorBrightness=.65f;
@@ -57,9 +60,9 @@ public final class PlagueDoctorCharacter implements CageCharacter {
         opacity=color.a*alpha;
         float hip=PlagueDoctorRig.HIP_HEIGHT+p.hipY;
         torso.set(root).translate(p.hipX,hip,0).rotate(0,0,1,p.bodyAngle).scale(p.bodyScale,p.bodyScale,1);
-        rightArm.set(torso).translate(PlagueDoctorRig.RIGHT_SHOULDER_X,PlagueDoctorRig.RIGHT_SHOULDER_Y,0).rotate(0,0,1,p.rightArm);
+        rightArm.set(torso).translate(PlagueDoctorRig.RIGHT_SHOULDER_X,PlagueDoctorRig.RIGHT_SHOULDER_Y,0).rotate(0,0,1,p.rightArm+gripR);
         lantern.set(rightArm).translate(PlagueDoctorRig.GRIP_X,PlagueDoctorRig.GRIP_Y,0)
-            .rotate(0,0,1,p.lanternAngle-p.bodyAngle-p.rightArm);
+            .rotate(0,0,1,p.lanternAngle-p.bodyAngle-p.rightArm-gripR);
         // Derive illumination from the exact rendering transform, including parent rotation and scale.
         relative.set(inverseRoot).mul(lantern);
         float fx=(PlagueDoctorRig.FLAME_X-PlagueDoctorRig.RING_X)*PlagueDoctorRig.LANTERN_SCALE;

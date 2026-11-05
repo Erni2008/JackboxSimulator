@@ -7,6 +7,9 @@ import com.badlogic.gdx.math.Matrix4;
 
 /** Same Batch hierarchy and grounded two-bone legs as the skeleton; no private rendering engine. */
 public final class ZombieCharacter implements CageCharacter {
+    /** escape attempt: how far each arm is raised toward the bars (degrees, 0 = rest) */
+    private float gripL, gripR;
+    @Override public void grip(float left, float right) { gripL = left; gripR = right; }
     // Lobby-only presentation scale; the complete rig grows uniformly around its existing anchor.
     private static final float LOBBY_SCALE = 1.07f;
     private final ZombieAssets assets;
@@ -49,8 +52,8 @@ public final class ZombieCharacter implements CageCharacter {
         torso.set(root).translate(hipX,hipY,0).rotate(0,0,1,p.bodyAngle).scale(p.bodyScale,p.bodyScale,1);
         batch.setTransformMatrix(torso);
         // Shoulder caps and hip roots overlap behind the torso; head covers the open neck.
-        part(batch,assets.leftArm,-16,32+p.leftLift,615,105,930,1691,.033f,p.leftArm);
-        part(batch,assets.rightArm,16,33+p.rightLift,405,110,930,1691,.033f,p.rightArm);
+        part(batch,assets.leftArm,-16,32+p.leftLift,615,105,930,1691,.033f,p.leftArm-gripL);
+        part(batch,assets.rightArm,16,33+p.rightLift,405,110,930,1691,.033f,p.rightArm+gripR);
         part(batch,assets.body,0,0,520,1190,1024,1536,.043f,0);
         part(batch,assets.head,1,40,650,1110,1286,1223,.043f,p.headAngle);
         batch.setTransformMatrix(saved); batch.setColor(color);

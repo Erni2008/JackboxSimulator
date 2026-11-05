@@ -10,4 +10,6 @@ public interface CageCharacter {
         update(time, phase, reducedMotion);
     }
     void draw(Batch batch, float alpha);
+    /** escape attempts: raise the arms toward the cage bars (degrees per arm, 0 = the character's own pose) */
+    default void grip(float left, float right) {}
 }

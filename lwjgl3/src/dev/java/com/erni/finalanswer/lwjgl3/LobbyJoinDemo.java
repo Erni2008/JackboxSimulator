@@ -23,7 +23,10 @@ public final class LobbyJoinDemo {
             @Override public void render() { float d = com.badlogic.gdx.Gdx.graphics.getDeltaTime(); t += d;
                 int want = (int) Math.min(8, t / 2.5f); if (t > 2.5f * 8 + 25) { t = 0; want = 0; }
                 if (want != shown) { shown = want; rooms[want] = room(want); }
-                lobby.synchronize(rooms[shown], ""); lobby.draw(d); }
+                long t0 = System.nanoTime(); lobby.synchronize(rooms[shown], ""); lobby.draw(d); com.badlogic.gdx.Gdx.gl.glFinish(); cpu += (System.nanoTime() - t0) / 1e6; frames++;
+                if ((sec += d) >= 1) { System.out.printf("FPS %d  frame %.1f ms  players %d%n", com.badlogic.gdx.Gdx.graphics.getFramesPerSecond(), cpu / frames, shown); sec = 0; cpu = 0; frames = 0; }
+                if (limit > 0 && t > limit) com.badlogic.gdx.Gdx.app.exit(); }
+            float sec, limit = Float.parseFloat(System.getProperty("demo.seconds", "0")); double cpu; int frames;
         }, config);
     }
 }

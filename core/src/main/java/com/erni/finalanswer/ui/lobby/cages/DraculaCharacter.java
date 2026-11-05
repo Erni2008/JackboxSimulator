@@ -8,6 +8,9 @@ import com.badlogic.gdx.math.Matrix4;
 
 /** Existing cage Batch hierarchy, grounded skeleton IK, and ghost-style low-resolution cloth. */
 public final class DraculaCharacter implements CageCharacter {
+    /** escape attempt: how far each arm is raised toward the bars (degrees, 0 = rest) */
+    private float gripL, gripR;
+    @Override public void grip(float left, float right) { gripL = left; gripR = right; }
     // Lobby-only presentation scale; the complete rig grows uniformly around its existing anchor.
     private static final float LOBBY_SCALE = 1.14f;
     public static final float CAPE_SCALE=.072f, CAPE_WAVE=1.05f;
@@ -57,12 +60,12 @@ public final class DraculaCharacter implements CageCharacter {
         rightLeg.draw(batch,p.hipX+7,hipY,13,3,1);
         batch.setTransformMatrix(torso);
         // Shoulder roots sit underneath the waistcoat; body collar is the single visible collar.
-        part(batch,assets.leftArm,-16,25,220,0,1015,440,.033f,p.leftArm);
-        part(batch,assets.rightArm,16,25,890,0,1050,440,.033f,p.rightArm);
+        part(batch,assets.leftArm,-16,25,220,0,1015,440,.033f,p.leftArm-gripL);
+        part(batch,assets.rightArm,16,25,890,0,1050,440,.033f,p.rightArm+gripR);
         part(batch,assets.body,0,0,660,1050,1261,1247,.047f,0);
         // Forearms share the exact shoulder transform, but appear in front of the waistcoat.
-        part(batch,assets.leftForearm,-16,25,220,-440,1015,749,.033f,p.leftArm);
-        part(batch,assets.rightForearm,16,25,890,-440,1050,698,.033f,p.rightArm);
+        part(batch,assets.leftForearm,-16,25,220,-440,1015,749,.033f,p.leftArm-gripL);
+        part(batch,assets.rightForearm,16,25,890,-440,1050,698,.033f,p.rightArm+gripR);
         part(batch,assets.head,p.headX,40,760,1045,1354,1161,.057f,p.headAngle);
         batch.setTransformMatrix(saved);batch.setColor(color);
     }

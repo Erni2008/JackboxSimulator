@@ -38,7 +38,7 @@ public final class GameAudio implements AutoCloseable {
     public QuestionAudio questions(){if(closed)throw new IllegalStateException("Audio disposed");if(questions==null)questions=new QuestionAudio(backend,mix,warning,QuestionAudio.clockPeriod(),QuestionAudio.lockDuration());return questions;}
     private final boolean[] warned=new boolean[CUES.length];
     private final Sound[] sounds=new Sound[CUES.length];
-    private final Voice[] voices=new Voice[8];
+    private final Voice[] voices=new Voice[16];
     private final long[] starts=new long[CUES.length];
     private final float[] angle=new float[8],velocity=new float[8],cageCooldown=new float[8],gateCooldown=new float[8];
     private final boolean[] moving=new boolean[8],observed=new boolean[8];
@@ -58,14 +58,15 @@ public final class GameAudio implements AutoCloseable {
     public void uiGain(float value){uiScopeGain=AudioMix.unit(value);}
     private float level(Cue cue){return (cue.category==UI?uiScopeGain:cue.category==CAGES?cageScopeGain:1)*AudioMix.unit(switch(cue){case HOVER->levels.hover;case PRESS->levels.press;case GATE->levels.gate;case GATE_LOCK->levels.lock;default->levels.chain;});}
     private void stop(Voice voice){if(voice.id>=0)try{voice.sound.stop(voice.id);}catch(RuntimeException e){warn(voice.cue,"Cannot stop "+voice.cue.path+": "+e.getMessage());}voice.id=-1;}
-    private void play(Cue cue,float strength,float pan){
+    private void play(Cue cue,float strength,float pan){play(cue,strength,pan,1);}
+    private void play(Cue cue,float strength,float pan,float pitch){
         Sound sound=sounds[cue.ordinal()];if(closed||paused||sound==null)return;
         float volume=AudioMix.unit(strength)*level(cue)*mix.gain(cue.category);if(volume<=0)return;
         boolean chain=cue==Cue.CHAIN_1||cue==Cue.CHAIN_2;int count=0;Voice free=null,oldest=null;
         for(Voice voice:voices){if(voice.id<0){if(free==null)free=voice;continue;}boolean same=chain?(voice.cue==Cue.CHAIN_1||voice.cue==Cue.CHAIN_2):voice.cue==cue;if(same){count++;if(oldest==null||voice.age>oldest.age)oldest=voice;}}
-        int limit=chain?2:cue==Cue.GATE?3:1;Voice voice=count>=limit?oldest:free;
+        int limit=chain?8:cue==Cue.GATE?6:1; /* chains from several cages layer instead of cutting each other off */ Voice voice=count>=limit?oldest:free;
         if(voice==null)return;stop(voice);
-        try{voice.id=sound.play(volume,1,Math.max(-.65f,Math.min(.65f,pan)));if(voice.id<0){warn(cue,"No playback voice: "+cue.path);return;}voice.sound=sound;voice.cue=cue;voice.age=0;voice.level=AudioMix.unit(strength);voice.pan=pan;voice.duration=cue==Cue.GATE_LOCK?lockDuration:chain?1.1f:cue==Cue.GATE?1.3f:cue==Cue.HOVER?.49f:.24f;starts[cue.ordinal()]++;}
+        try{voice.id=sound.play(volume,pitch,Math.max(-.65f,Math.min(.65f,pan)));if(voice.id<0){warn(cue,"No playback voice: "+cue.path);return;}voice.sound=sound;voice.cue=cue;voice.age=0;voice.level=AudioMix.unit(strength);voice.pan=pan;voice.duration=cue==Cue.GATE_LOCK?lockDuration:chain?1.1f:cue==Cue.GATE?1.3f:cue==Cue.HOVER?.49f:.24f;starts[cue.ordinal()]++;}
         catch(RuntimeException e){voice.id=-1;warn(cue,"Cannot play "+cue.path+": "+e.getMessage());}
     }
     public enum CommandCue { BUTTON, SWITCH, LEVER, VALVE, METAL, ELECTRICAL, CIRCUIT, RADIO_STATIC, TUNING, STEAM, WARNING, CORRECT, INCORRECT, MEMORY, TRANSITION, SHUTDOWN, SIGNAL, VOICE_RED, VOICE_GREEN, VOICE_BLUE, VOICE_YELLOW }
@@ -80,6 +81,11 @@ public final class GameAudio implements AutoCloseable {
 
     public void hover(){if(hoverCooldown>0)return;hoverCooldown=.085f;play(Cue.HOVER,1,0);}
     public void press(){if(pressCooldown>0)return;pressCooldown=.025f;play(Cue.PRESS,1,0);}
+    /** a prisoner yanks the gate / forces the bars: two chain voices at slightly different pitches plus the gate's clank */
+    public void struggle(int slot,float pan,float strength){if(slot<0||slot>=8||closed||paused)return;float s=Math.max(.2f,Math.min(1,strength));
+        chainVariant=1-chainVariant;play(chainVariant==0?Cue.CHAIN_1:Cue.CHAIN_2,.45f+.55f*s,pan,.9f+(float)Math.random()*.22f);
+        play(chainVariant==0?Cue.CHAIN_2:Cue.CHAIN_1,.25f+.3f*s,pan,1.08f+(float)Math.random()*.15f);
+        if(gateCooldown[slot]<=0){gateCooldown[slot]=.3f;play(Cue.GATE,.35f+.4f*s,pan,1.1f+(float)Math.random()*.2f);}}
     public void gate(int slot,float pan){if(slot<0||slot>=8||gateCooldown[slot]>0)return;gateCooldown[slot]=.65f;play(Cue.GATE,1,pan);}
     /** One full key recording covers overlapping cage locks without stacking identical tails. */
     public void lock(int slot,float pan){

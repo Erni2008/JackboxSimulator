@@ -23,9 +23,11 @@ public final class HangingCage extends Group {
     private final Color saved = new Color();
     private final Vector2 endpoint = new Vector2(), ceiling = new Vector2(); private final com.badlogic.gdx.math.Matrix4 charWorld = new com.badlogic.gdx.math.Matrix4();
     private final float phase; private float idle;
-    // escape attempts: 0 none, 1 rattle the door, 2 pry the bars apart, 3 throw the cage about on its chain
+    // escape attempts: 0 none, 1 rattle the door, 2 pry the bars apart, 3 throw the cage about on its chain, 4 force the head between the bars
     private int struggle; private float struggleT, nextStruggle = 6, strength; private final java.util.Random rng;
-    private float doorJx, doorJy, pry, charJx, charJy, charSx = 1, charSy = 1, swing;
+    private float doorJx, doorJy, pry, charJx, charJy, charSx = 1, charSy = 1, swing, gripL, gripR, lastPull;
+    private java.util.function.Consumer<Float> struggleCue = s -> {};
+    public void setStruggleCue(java.util.function.Consumer<Float> cue) { struggleCue = java.util.Objects.requireNonNull(cue); }
     private CageCharacter character;
     private String playerId, nickname = "", characterId = "";
     private float ceilingX, ceilingY;
@@ -113,28 +115,43 @@ public final class HangingCage extends Group {
         }
         resetTransform(batch); batch.setColor(saved);
     }
-    private static final float[] STRUGGLE_LEN = {0, 1.7f, 2.4f, 1.6f};
+    private static final float[] STRUGGLE_LEN = {0, 1.7f, 2.4f, 1.6f, 2.8f};
     private void updateStruggle(float delta) {
         boolean locked = animation.occupied() && animation.time() > CageAnimator.LOCKED_AT + 1 && character != null && !cinematic && !reducedMotion;
-        if (!locked) { struggle = 0; doorJx = doorJy = pry = charJx = charJy = swing = 0; charSx = charSy = 1; return; }
+        if (!locked) { struggle = 0; doorJx = doorJy = pry = charJx = charJy = swing = gripL = gripR = 0; charSx = charSy = 1; if (character != null) character.grip(0, 0); return; }
         int forced = Integer.getInteger("cage.struggle", 0); if (forced > 0 && struggle == 0) { struggle = forced; struggleT = 0; strength = 1; }
-        if (struggle == 0) { nextStruggle -= delta; if (nextStruggle <= 0) { struggle = 1 + rng.nextInt(3); struggleT = 0; strength = .7f + rng.nextFloat() * .5f; } }
+        if (struggle == 0) { nextStruggle -= delta; if (nextStruggle <= 0) { struggle = 1 + rng.nextInt(4); struggleT = 0; strength = .7f + rng.nextFloat() * .5f; } }
         doorJx = doorJy = pry = charJx = charJy = swing = 0; charSx = charSy = 1;
-        if (struggle == 0) return;
+        // arms ease back to the character's own pose between attempts
+        float relax = 1 - (float) Math.exp(-delta * 5); gripL += (0 - gripL) * relax; gripR += (0 - gripR) * relax;
+        if (struggle == 0) { character.grip(gripL, gripR); return; }
         struggleT += delta; float len = STRUGGLE_LEN[struggle], t = struggleT / len;
-        if (t >= 1) { struggle = 0; nextStruggle = 6 + rng.nextFloat() * 10; return; }
+        if (t >= 1) { struggle = 0; nextStruggle = 6 + rng.nextFloat() * 10; character.grip(gripL, gripR); return; }
+        float gl = 0, gr = 0;
         float env = Math.min(1, t * 6) * Math.min(1, (1 - t) * 4) * strength, k = struggleT;
         switch (struggle) {
             case 1 -> { // grabs the door and yanks it: the gate rattles in its frame, the prisoner lunges with each pull
                 float pull = (float) Math.pow(Math.max(0, Math.sin(k * 15)), 3);
                 doorJx = (float) Math.sin(k * 47) * 1.6f * env; doorJy = pull * 2.4f * env; charJy = 0; charJx = (float) Math.sin(k * 15) * 2.5f * env;
-                charSx = 1 + .05f * pull * env; charSy = 1 - .03f * pull * env; swing = (float) Math.sin(k * 15) * .35f * env; }
+                charSx = 1 + .05f * pull * env; charSy = 1 - .03f * pull * env; swing = (float) Math.sin(k * 15) * .35f * env;
+                gl = gr = 118 - 22 * pull;   // both hands on the gate, yanking it back with each pull
+                if (pull > .7f && lastPull <= .7f) struggleCue.accept(.55f + .45f * env); lastPull = pull; }
             case 2 -> { // pries two bars apart: they bow out slowly, hold, spring back; the body strains wide
                 float bend = (float) Math.sin(Math.min(1, t * 1.6f) * Math.PI * .5) * (t > .7f ? (1 - (t - .7f) / .3f) : 1);
-                pry = .13f * bend * strength; charSx = 1 + .07f * bend * env; charSy = 1 - .025f * bend * env; charJx = (float) Math.sin(k * 31) * .9f * bend * env; doorJx = (float) Math.sin(k * 39) * .5f * bend; }
+                pry = .13f * bend * strength; charSx = 1 + .07f * bend * env; charSy = 1 - .025f * bend * env; charJx = (float) Math.sin(k * 31) * .9f * bend * env; doorJx = (float) Math.sin(k * 39) * .5f * bend;
+                gl = gr = 96 + 40 * bend;   // hands on two bars, forcing them apart
+                if (bend > .95f && lastPull < .95f) struggleCue.accept(.7f); lastPull = bend; }
             case 3 -> { // throws itself against the bars: the cage swings hard on its chain
-                swing = (float) Math.sin(k * 6.5f) * 2.6f * env; charJx = (float) Math.sin(k * 6.5f - .6f) * 6 * env; charSx = 1 + .03f * Math.abs((float) Math.sin(k * 13)) * env; }
+                swing = (float) Math.sin(k * 6.5f) * 2.6f * env; charJx = (float) Math.sin(k * 6.5f - .6f) * 6 * env; charSx = 1 + .03f * Math.abs((float) Math.sin(k * 13)) * env;
+                float sw = (float) Math.sin(k * 6.5f); gl = 105 + 30 * sw; gr = 105 - 30 * sw;   // hand over hand, throwing the weight side to side
+                if (Math.abs(sw) > .95f && Math.abs(lastPull) <= .95f) struggleCue.accept(.8f * env + .2f); lastPull = sw; }
+            case 4 -> { // presses the face into the gap: hands widen two bars, the body pushes forward and up, then shoves in jerks
+                float push = (float) Math.sin(Math.min(1, t * 1.4f) * Math.PI * .5) * (t > .78f ? (1 - (t - .78f) / .22f) : 1), jerk = (float) Math.pow(Math.max(0, Math.sin(k * 9)), 4);
+                pry = .07f * push * strength; charSx = charSy = 1 + (.1f + .03f * jerk) * push; charJy = (10 + 3 * jerk) * push; charJx = (float) Math.sin(k * 23) * .8f * push;
+                gl = gr = 82 + 22 * push; doorJx = (float) Math.sin(k * 41) * .6f * jerk * push;
+                if (jerk > .8f && lastPull <= .8f) struggleCue.accept(.45f + .3f * push); lastPull = jerk; }
         }
+        float follow = 1 - (float) Math.exp(-delta * 14); gripL += (gl * env / Math.max(.001f, strength) - gripL) * follow; gripR += (gr * env / Math.max(.001f, strength) - gripR) * follow; character.grip(gripL, gripR);
     }
     private void drawKey(Batch batch, float alpha) {
         float p = (animation.time() - CageAnimator.KEY_AT) / CageAnimator.KEY;

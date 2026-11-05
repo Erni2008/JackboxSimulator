@@ -8,6 +8,9 @@ import com.badlogic.gdx.math.Matrix4;
 
 /** Fixed proportions, connected elbow/knee joints, planted feet and a separate spine/head hierarchy. */
 public final class SkeletonCharacter implements CageCharacter {
+    /** escape attempt: how far each arm is raised toward the bars (degrees, 0 = rest) */
+    private float gripL, gripR;
+    @Override public void grip(float left, float right) { gripL = left; gripR = right; }
     private static final float SIZE = 1.05f, FLOOR_Y = 64;
     private final CageAssets assets;
     private final TextureRegion chest, pelvis;
@@ -43,8 +46,12 @@ public final class SkeletonCharacter implements CageCharacter {
         affine.setToTrnRotScl(0, 3.6f + pose.chestSink, pose.bodyAngle, 1, 1);
         torso.set(affine).mulLeft(root); batch.setTransformMatrix(torso);
         float wristX = 32 - 15 * pose.handsRest, wristY = -1.6f + 23 * pose.handsRest + pose.handLift;
-        leftArm.setPose(-28, 33.4f - 2 * pose.slump, -wristX, wristY, -1);
-        rightArm.setPose(28, 33.4f - 2 * pose.slump, wristX, wristY, 1);
+        // escape attempt: the wrists swing up and out toward the bars (IK keeps the elbows natural)
+        float sy = 33.4f - 2 * pose.slump, reach = 36, gl = Math.min(1, gripL / 25f), gr = Math.min(1, gripR / 25f);
+        float lx = -28 - reach * (float) Math.sin(Math.toRadians(gripL)), ly = sy - reach * (float) Math.cos(Math.toRadians(gripL));
+        float rx = 28 + reach * (float) Math.sin(Math.toRadians(gripR)), ry = sy - reach * (float) Math.cos(Math.toRadians(gripR));
+        leftArm.setPose(-28, sy, -wristX + (lx + wristX) * gl, wristY + (ly - wristY) * gl, -1);
+        rightArm.setPose(28, sy, wristX + (rx - wristX) * gr, wristY + (ry - wristY) * gr, 1);
         // Shoulder caps are behind the ribs; forearms/hands are in front so they can rest on the lap.
         leftArm.drawUpper(batch); rightArm.drawUpper(batch);
         batch.draw(chest, -31.75f, -.75f, 63.5f, 50.8333f);

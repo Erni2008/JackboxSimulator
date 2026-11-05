@@ -533,6 +533,7 @@ tasks.register('lobbyJoinDemo', JavaExec) {
     dependsOn devClasses
     classpath = sourceSets.dev.runtimeClasspath
     mainClass = 'com.erni.finalanswer.lwjgl3.LobbyJoinDemo'
+    systemProperty 'demo.seconds', providers.gradleProperty('seconds').getOrElse('0')
     workingDir = rootProject.file('assets')
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'

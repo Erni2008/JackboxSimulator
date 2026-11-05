@@ -10,6 +10,9 @@ import java.util.*;
 
 /** Configured local rig using the existing cage Batch. Detached parts use analytic, seeded 2D motion. */
 public final class VoodooCharacter implements CageCharacter {
+    /** escape attempt: how far each arm is raised toward the bars (degrees, 0 = rest) */
+    private float gripL, gripR;
+    @Override public void grip(float left, float right) { gripL = left; gripR = right; }
     public static final class Part {
         public final VoodooConfig.Part config;public final TextureRegion region;
         public final Matrix4 world=new Matrix4();
@@ -85,7 +88,7 @@ public final class VoodooCharacter implements CageCharacter {
         poseRoot.idt().translate(a.rootX,a.rootY,0).rotate(0,0,1,a.rootAngle).scale(a.rootScale,a.rootScale,1);
         Part body=named.get("body");body.positionY+=a.bodyY;body.rotation+=a.bodyAngle;body.scaleX*=a.bodySX;body.scaleY*=a.bodySY;
         Part head=named.get("head");head.rotation+=a.headAngle;head.positionY+=a.headY;
-        named.get("leftArm").rotation+=a.leftArm;named.get("rightArm").rotation+=a.rightArm;
+        named.get("leftArm").rotation+=a.leftArm-gripL;named.get("rightArm").rotation+=a.rightArm+gripR;
         named.get("leftLeg").rotation+=a.leftLeg;named.get("rightLeg").rotation+=a.rightLeg;
         named.get("heart").scaleX*=a.heartScale;named.get("heart").scaleY*=a.heartScale;
         for(int i=0;i<4;i++){needles[i].rotation+=a.needles[i];Part thread=threads[i];if(thread!=null)thread.rotation+=a.threads[i];}

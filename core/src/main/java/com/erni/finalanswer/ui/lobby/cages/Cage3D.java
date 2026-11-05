@@ -54,7 +54,7 @@ public final class Cage3D implements Disposable {
         MeshPartBuilder b = mb.part("floor", GL20.GL_TRIANGLES, attrs, dark);
         lathe(b, new float[][]{{0, -16}, {R + 10, -16}, {R + 14, -8}, {R + 12, 4}, {R + 4, 8}, {0, 8}}, 40);
         b = mb.part("glow", GL20.GL_TRIANGLES, attrs, glow);
-        for (int i = 0; i < 8; i++) { float a = i / 8f * MathUtils.PI2; box(b, MathUtils.cos(a) * (R - 6), -19, MathUtils.sin(a) * (R - 6), 14, 4, 6, -a); }
+        for (int i = 0; i < 8; i++) { float a = i / 8f * MathUtils.PI2; box(b, qx(a) * (R - 6), -19, qz(a) * (R - 6), 14, 4, 6, -a); }
         b = mb.part("bandBack", GL20.GL_TRIANGLES, attrs, dark); bandArc(b, R + 4, 8, 20, MathUtils.PI, MathUtils.PI2, 20);
         b = mb.part("trimBack", GL20.GL_TRIANGLES, attrs, brass); arc(b, R + 4.5f, 8, MathUtils.PI, MathUtils.PI2, 1.6f, 24); arc(b, R + 4.5f, 20, MathUtils.PI, MathUtils.PI2, 1.6f, 24);
         b = mb.part("ornamentBack", GL20.GL_TRIANGLES, attrs, metal); ornaments(b, true);
@@ -74,7 +74,8 @@ public final class Cage3D implements Disposable {
         b = mb.part("strapsFront", GL20.GL_TRIANGLES, attrs, dark); straps(b, false);
         b = mb.part("rivetsFront", GL20.GL_TRIANGLES, attrs, brass); rivets(b, false);
         b = mb.part("dome", GL20.GL_TRIANGLES, attrs, dark);
-        lathe(b, new float[][]{{R + 8, TOP - 2}, {R + 9, TOP + 6}, {R * .78f, TOP + 22}, {R * .5f, TOP + 34}, {R * .44f, TOP + 40}, {R * .3f, TOP + 46}, {R * .22f, TOP + 50}, {0, TOP + 52}}, 40);
+        lathe(b, new float[][]{{R + 10, TOP - 2}, {R + 12, TOP + 5}, {R * .62f, TOP + 26}, {R * .2f, TOP + 48}, {0, TOP + 52}}, 64);
+        finials(b);
         b = mb.part("collar", GL20.GL_TRIANGLES, attrs, metal);
         lathe(b, new float[][]{{16, TOP + 48}, {18, TOP + 54}, {11, TOP + 58}, {9, TOP + 62}, {0, TOP + 62}}, 20);
         b = mb.part("shackle", GL20.GL_TRIANGLES, attrs, brass);
@@ -84,7 +85,7 @@ public final class Cage3D implements Disposable {
         // ---------------- DOOR: the front bars between ±DOOR_HALF and two cross bars
         mb.begin();
         b = mb.part("door", GL20.GL_TRIANGLES, attrs, metal);
-        for (int i = 0; i < 5; i++) { if (i == 1 || i == 3) continue; /* the two pry-able bars are separate (halfBar) */ float a = MathUtils.PI / 2 + (i - 2) / 2f * DOOR_HALF * .9f; cyl(b, MathUtils.cos(a) * (R + 3), 10, MathUtils.sin(a) * (R + 3), 3.4f, TOP - 14); }
+        for (int i = 0; i < 5; i++) { if (i == 1 || i == 3) continue; /* the two pry-able bars are separate (halfBar) */ float a = MathUtils.PI / 2 + (i - 2) / 2f * DOOR_HALF * .9f; cyl(b, qx(a) * (R + 3), 10, qz(a) * (R + 3), 3.4f, TOP - 14); }
         arc(b, R + 3, 46, MathUtils.PI / 2 - DOOR_HALF, MathUtils.PI / 2 + DOOR_HALF, 3.2f, 14); arc(b, R + 3, TOP - 30, MathUtils.PI / 2 - DOOR_HALF, MathUtils.PI / 2 + DOOR_HALF, 3.2f, 14);
         scroll(b, MathUtils.PI / 2, R + 3, TOP - 30, 20, 1.6f, false); scroll(b, MathUtils.PI / 2, R + 3, TOP - 30, 20, 1.6f, true);
         b = mb.part("lock", GL20.GL_TRIANGLES, attrs, brass); box(b, 0, 30, R + 6, 14, 18, 6, 0); sphere(b, 0, 30, R + 9.5f, 3);
@@ -123,7 +124,7 @@ public final class Cage3D implements Disposable {
     /** the door: {@code jx/jy} rattle offsets, {@code pry} bends the two inner bars apart (radians) */
     public void door(Matrix4 world, float yaw, float tilt, float drop, float jx, float jy, float pry) {
         tmp.set(world).translate(CX + jx, BASE_Y + drop + jy, 0).rotate(Vector3.X, tilt).rotate(Vector3.Y, yaw); doorI.transform.set(tmp); batch.render(doorI);
-        for (int side = -1; side <= 1; side += 2) { float a = MathUtils.PI / 2 + side * .5f * DOOR_HALF * .9f, x = MathUtils.cos(a) * (R + 3), z = MathUtils.sin(a) * (R + 3), deg = pry * MathUtils.radiansToDegrees * (x < 0 ? 1 : -1);
+        for (int side = -1; side <= 1; side += 2) { float a = MathUtils.PI / 2 + side * .5f * DOOR_HALF * .9f, x = qx(a) * (R + 3), z = qz(a) * (R + 3), deg = pry * MathUtils.radiansToDegrees * (x < 0 ? 1 : -1);
             batch.render(halfAt(halfA, x, 10, z, deg)); batch.render(halfAt(halfA, x, 10 + 2 * HALF_BAR, z, 180 - deg)); }
     }
     private ModelInstance halfAt(ModelInstance m, float x, float y, float z, float rotZ) { m.transform.set(tmp).translate(x, y, z).rotate(Vector3.Z, rotZ); return m; }
@@ -137,14 +138,21 @@ public final class Cage3D implements Disposable {
     public void bracket(float x, float y) { bracketI.transform.idt().translate(x, y, 0).rotate(Vector3.X, 8); batch.render(bracketI); }
 
     // ---------------------------------------------------------------- geometry helpers
+    /** the cage's footprint is a superellipse (|x|^8 + |z|^8 = 1): a square gothic cage with softly forged corners */
+    private static final float SQ = 8f;
+    private static float sp(float v) { return Math.signum(v) * (float) Math.pow(Math.abs(v), 2 / SQ); }
+    static float qx(float a) { return sp(MathUtils.cos(a)); }
+    static float qz(float a) { return sp(MathUtils.sin(a)); }
+    private static float nqx(float a) { float x = qx(a), z = qz(a), gx = Math.signum(x) * (float) Math.pow(Math.abs(x), SQ - 1), gz = Math.signum(z) * (float) Math.pow(Math.abs(z), SQ - 1); return gx / (float) Math.sqrt(gx * gx + gz * gz + 1e-9f); }
+    private static float nqz(float a) { float x = qx(a), z = qz(a), gx = Math.signum(x) * (float) Math.pow(Math.abs(x), SQ - 1), gz = Math.signum(z) * (float) Math.pow(Math.abs(z), SQ - 1); return gz / (float) Math.sqrt(gx * gx + gz * gz + 1e-9f); }
     private final MeshPartBuilder.VertexInfo v1 = new MeshPartBuilder.VertexInfo();
     private short vtx(MeshPartBuilder b, float x, float y, float z, float nx, float ny, float nz, float u, float v) { return b.vertex(v1.set(null, null, null, null).setPos(x, y, z).setNor(nx, ny, nz).setUV(u, v)); }
     /** surface of revolution through (radius, height) points */
     private void lathe(MeshPartBuilder b, float[][] pr, int seg) {
         for (int k = 0; k < pr.length - 1; k++) { float r0 = pr[k][0], y0 = pr[k][1], r1 = pr[k + 1][0], y1 = pr[k + 1][1], ny = r0 - r1, nr = y1 - y0, l = (float) Math.sqrt(ny * ny + nr * nr); ny /= l; nr /= l;
-            for (int i = 0; i < seg; i++) { float a0 = i / (float) seg * MathUtils.PI2, a1 = (i + 1) / (float) seg * MathUtils.PI2, c0 = MathUtils.cos(a0), s0 = MathUtils.sin(a0), c1 = MathUtils.cos(a1), s1 = MathUtils.sin(a1);
-                short p00 = vtx(b, c0 * r0, y0, s0 * r0, c0 * nr, ny, s0 * nr, i / (float) seg * 4, k * .5f), p10 = vtx(b, c1 * r0, y0, s1 * r0, c1 * nr, ny, s1 * nr, (i + 1) / (float) seg * 4, k * .5f);
-                short p11 = vtx(b, c1 * r1, y1, s1 * r1, c1 * nr, ny, s1 * nr, (i + 1) / (float) seg * 4, k * .5f + .5f), p01 = vtx(b, c0 * r1, y1, s0 * r1, c0 * nr, ny, s0 * nr, i / (float) seg * 4, k * .5f + .5f);
+            for (int i = 0; i < seg; i++) { float a0 = i / (float) seg * MathUtils.PI2, a1 = (i + 1) / (float) seg * MathUtils.PI2, c0 = qx(a0), s0 = qz(a0), c1 = qx(a1), s1 = qz(a1), n0 = nqx(a0), m0 = nqz(a0), n1 = nqx(a1), m1 = nqz(a1);
+                short p00 = vtx(b, c0 * r0, y0, s0 * r0, n0 * nr, ny, m0 * nr, i / (float) seg * 4, k * .5f), p10 = vtx(b, c1 * r0, y0, s1 * r0, n1 * nr, ny, m1 * nr, (i + 1) / (float) seg * 4, k * .5f);
+                short p11 = vtx(b, c1 * r1, y1, s1 * r1, n1 * nr, ny, m1 * nr, (i + 1) / (float) seg * 4, k * .5f + .5f), p01 = vtx(b, c0 * r1, y1, s0 * r1, n0 * nr, ny, m0 * nr, i / (float) seg * 4, k * .5f + .5f);
                 b.rect(p00, p01, p11, p10); } }
     }
     private final Matrix4 xf = new Matrix4();
@@ -155,8 +163,8 @@ public final class Cage3D implements Disposable {
     private void arc(MeshPartBuilder b, float radius, float y, float a0, float a1, float tube, int seg) {
         int sides = 8; for (int i = 0; i < seg; i++) for (int j = 0; j < sides; j++) {
             int[][] ij = {{i, j}, {i + 1, j}, {i + 1, j + 1}, {i, j + 1}};
-            short[] id = new short[4]; for (int k = 0; k < 4; k++) { float a = a0 + (a1 - a0) * ij[k][0] / seg, t = ij[k][1] / (float) sides * MathUtils.PI2, ca = MathUtils.cos(a), sa = MathUtils.sin(a), ct = MathUtils.cos(t), st = MathUtils.sin(t);
-                float rr = radius + tube * ct; id[k] = vtx(b, ca * rr, y + tube * st, sa * rr, ca * ct, st, sa * ct, ij[k][0] / (float) seg, ij[k][1] / (float) sides); }
+            short[] id = new short[4]; for (int k = 0; k < 4; k++) { float a = a0 + (a1 - a0) * ij[k][0] / seg, t = ij[k][1] / (float) sides * MathUtils.PI2, ca = qx(a), sa = qz(a), na = nqx(a), ma = nqz(a), ct = MathUtils.cos(t), st = MathUtils.sin(t);
+                id[k] = vtx(b, ca * radius + na * tube * ct, y + tube * st, sa * radius + ma * tube * ct, na * ct, st, ma * ct, ij[k][0] / (float) seg, ij[k][1] / (float) sides); }
             b.rect(id[0], id[3], id[2], id[1]); }
     }
     private void torus(MeshPartBuilder b, float x, float y, float z, float radius, float tube, float rotY, int seg, int sides) {
@@ -188,7 +196,7 @@ public final class Cage3D implements Disposable {
     private void scroll(MeshPartBuilder b, float a, float radius, float y, float size, float r, boolean mirror) {
         int n = 34; Vector3[] p = new Vector3[n]; float dir = mirror ? -1 : 1;
         for (int i = 0; i < n; i++) { float t = i / (n - 1f), ang = t * MathUtils.PI2 * 1.35f, rr = size * (1 - t * .78f), u = dir * (size * .55f + MathUtils.cos(ang) * rr * .55f), v = MathUtils.sin(ang) * rr * .55f;
-            float aa = a + u / radius; p[i] = new Vector3(MathUtils.cos(aa) * (radius + 1.5f), y + v, MathUtils.sin(aa) * (radius + 1.5f)); }
+            float aa = a + u / radius; p[i] = new Vector3(qx(aa) * radius + nqx(aa) * 1.5f, y + v, qz(aa) * radius + nqz(aa) * 1.5f); }
         tube(b, p, r);
     }
     /** scrollwork band under the top hoop: a pair of C-scrolls in every other gap between the bars */
@@ -198,14 +206,20 @@ public final class Cage3D implements Disposable {
     }
     /** eight curved ribs over the dome down to the collar */
     private void ribs(MeshPartBuilder b) {
-        float[][] pr = {{R + 9, TOP + 6}, {R * .78f, TOP + 22}, {R * .5f, TOP + 34}, {R * .3f, TOP + 46}, {R * .2f, TOP + 50}};
-        for (int i = 0; i < 8; i++) { float a = i / 8f * MathUtils.PI2 + MathUtils.PI / 8; Vector3[] p = new Vector3[pr.length];
-            for (int k = 0; k < pr.length; k++) p[k] = new Vector3(MathUtils.cos(a) * (pr[k][0] + 2), pr[k][1] + 1.5f, MathUtils.sin(a) * (pr[k][0] + 2)); tube(b, p, 2.6f); }
+        float[][] pr = {{R + 12, TOP + 6}, {R * .62f, TOP + 27}, {R * .2f, TOP + 49}};
+        for (int i = 0; i < 4; i++) { float a = i / 4f * MathUtils.PI2 + MathUtils.PI / 4; Vector3[] p = new Vector3[pr.length]; /* hip ridges of the roof */
+            for (int k = 0; k < pr.length; k++) p[k] = new Vector3(qx(a) * (pr[k][0] + 2), pr[k][1] + 1.5f, qz(a) * (pr[k][0] + 2)); tube(b, p, 2.6f); }
+    }
+    /** spiked finials on the four corner posts */
+    private void finials(MeshPartBuilder b) {
+        for (int i = 0; i < 4; i++) { float a = i / 4f * MathUtils.PI2 + MathUtils.PI / 4, x = qx(a) * (R + 4), z = qz(a) * (R + 4);
+            b.setVertexTransform(xf.idt().translate(x, TOP + 8, z)); b.sphere(14, 14, 14, 10, 8);
+            b.setVertexTransform(xf.idt().translate(x, TOP + 24, z)); b.cone(9, 26, 9, 10); b.setVertexTransform(null); }
     }
     private boolean side(float a, boolean backHalf) { return backHalf ? MathUtils.sin(a) < 0 : MathUtils.sin(a) >= 0; }
     private void bars(MeshPartBuilder b, boolean backHalf) {
         for (int i = 0; i < BARS; i++) { float a = (i + .5f) / BARS * MathUtils.PI2; if (!side(a, backHalf)) continue; if (!backHalf && Math.abs(a - MathUtils.PI / 2) < DOOR_HALF) continue; // the door has its own bars
-            cyl(b, MathUtils.cos(a) * R, 8, MathUtils.sin(a) * R, 3 + (i % 3) * .25f, TOP - 4); }
+            cyl(b, qx(a) * R, 8, qz(a) * R, 3 + (i % 3) * .25f, TOP - 4); }
     }
     private void hoops(MeshPartBuilder b, boolean backHalf) {
         float a0 = backHalf ? MathUtils.PI : 0, a1 = backHalf ? MathUtils.PI2 : MathUtils.PI;
@@ -213,17 +227,17 @@ public final class Cage3D implements Disposable {
     }
     private void straps(MeshPartBuilder b, boolean backHalf) {
         for (int i = 0; i < 4; i++) { float a = i / 4f * MathUtils.PI2 + MathUtils.PI / 4; if (!side(a, backHalf)) continue;
-            b.setVertexTransform(xf.idt().translate(MathUtils.cos(a) * (R + 2.5f), 8 + (TOP - 4) / 2, MathUtils.sin(a) * (R + 2.5f)).rotateRad(Vector3.Y, -a)); b.box(4, TOP - 4, 11); b.setVertexTransform(null); }
+            b.setVertexTransform(xf.idt().translate(qx(a) * (R + 4), 4 + (TOP + 4) / 2, qz(a) * (R + 4)).rotateRad(Vector3.Y, -a)); b.box(13, TOP + 4, 13); /* square corner post */ b.setVertexTransform(null); }
     }
     private void rivets(MeshPartBuilder b, boolean backHalf) {
         for (int i = 0; i < 4; i++) { float a = i / 4f * MathUtils.PI2 + MathUtils.PI / 4; if (!side(a, backHalf)) continue;
-            for (int k = 0; k < 7; k++) sphere(b, MathUtils.cos(a) * (R + 5), 22 + k * 30, MathUtils.sin(a) * (R + 5), 2.4f); }
-        for (int i = 0; i < 16; i++) { float a = (i + .5f) / 16 * MathUtils.PI2; if (!side(a, backHalf)) continue; sphere(b, MathUtils.cos(a) * (R + 13), -4, MathUtils.sin(a) * (R + 13), 2.2f); }
+            for (int k = 0; k < 7; k++) sphere(b, qx(a) * (R + 4) + nqx(a) * 7, 22 + k * 30, qz(a) * (R + 4) + nqz(a) * 7, 2.4f); }
+        for (int i = 0; i < 16; i++) { float a = (i + .5f) / 16 * MathUtils.PI2; if (!side(a, backHalf)) continue; sphere(b, qx(a) * (R + 13), -4, qz(a) * (R + 13), 2.2f); }
     }
     private void bandArc(MeshPartBuilder b, float radius, float y0, float y1, float a0, float a1, int seg) {
         for (int i = 0; i < seg; i++) { float u0 = (float) i / seg, u1 = (float) (i + 1) / seg, aa = a0 + (a1 - a0) * u0, ab = a0 + (a1 - a0) * u1;
-            short p0 = vtx(b, MathUtils.cos(aa) * radius, y0, MathUtils.sin(aa) * radius, MathUtils.cos(aa), 0, MathUtils.sin(aa), u0 * 6, 1), p1 = vtx(b, MathUtils.cos(ab) * radius, y0, MathUtils.sin(ab) * radius, MathUtils.cos(ab), 0, MathUtils.sin(ab), u1 * 6, 1);
-            short p2 = vtx(b, MathUtils.cos(ab) * radius, y1, MathUtils.sin(ab) * radius, MathUtils.cos(ab), 0, MathUtils.sin(ab), u1 * 6, 0), p3 = vtx(b, MathUtils.cos(aa) * radius, y1, MathUtils.sin(aa) * radius, MathUtils.cos(aa), 0, MathUtils.sin(aa), u0 * 6, 0);
+            short p0 = vtx(b, qx(aa) * radius, y0, qz(aa) * radius, nqx(aa), 0, nqz(aa), u0 * 6, 1), p1 = vtx(b, qx(ab) * radius, y0, qz(ab) * radius, nqx(ab), 0, nqz(ab), u1 * 6, 1);
+            short p2 = vtx(b, qx(ab) * radius, y1, qz(ab) * radius, nqx(ab), 0, nqz(ab), u1 * 6, 0), p3 = vtx(b, qx(aa) * radius, y1, qz(aa) * radius, nqx(aa), 0, nqz(aa), u0 * 6, 0);
             b.rect(p0, p3, p2, p1); }
     }
 

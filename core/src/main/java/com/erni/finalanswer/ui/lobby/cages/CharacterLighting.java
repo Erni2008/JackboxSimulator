@@ -44,6 +44,10 @@ final class CharacterLighting {
         for (int i = 0; i < 4; i++) { v.set(pivotX + (i % 2 == 0 ? -230 : 230), pivotY + (i < 2 ? -140 : 520), 0).prj(combined);
             float sx = (v.x * .5f + .5f) * W, sy = (v.y * .5f + .5f) * H; minX = Math.min(minX, sx); maxX = Math.max(maxX, sx); minY = Math.min(minY, sy); maxY = Math.max(maxY, sy); }
         int pad = 24, x0 = Math.max(0, (int) minX - pad), y0 = Math.max(0, (int) minY - pad), x1 = Math.min(W, (int) maxX + pad), y1 = Math.min(H, (int) maxY + pad);
+        // the caller's clip (e.g. the cage interior) bounds what can be seen: light only that, plus a margin for the shadow
+        var clip = com.badlogic.gdx.scenes.scene2d.utils.ScissorStack.peekScissors();
+        if (clip != null) { float kx = (float) W / Gdx.graphics.getWidth(), ky = (float) H / Gdx.graphics.getHeight(); int m = 16; // the stack holds logical (window) pixels; the buffer is in back-buffer pixels (2x on Retina)
+            x0 = Math.max(x0, (int) (clip.x * kx) - m); y0 = Math.max(y0, (int) (clip.y * ky) - m); x1 = Math.min(x1, (int) ((clip.x + clip.width) * kx) + m); y1 = Math.min(y1, (int) ((clip.y + clip.height) * ky) + m); }
         if (x1 - x0 < 4 || y1 - y0 < 4) return true; // off screen: nothing to draw
         float pxScale = Math.max(.6f, Math.min(3f, (y1 - y0) / 520f)); // effect radii follow the figure's on-screen size
 
@@ -96,16 +100,15 @@ final class CharacterLighting {
             vec4 c = texture2D(u_texture, v_uv);                     // premultiplied figure
             // drop shadow: blurred silhouette offset down-right
             float sh = 0.;
-            sh += A(vec2(-7., 9.)) + A(vec2(-3., 9.)) + A(vec2(-11., 9.)) + A(vec2(-7., 13.)) + A(vec2(-7., 5.));
-            sh += .6 * (A(vec2(-13., 15.)) + A(vec2(-1., 15.)) + A(vec2(-13., 3.)) + A(vec2(-1., 3.)));
-            sh = clamp(sh / 7.4, 0., 1.) * .5;
+            sh = A(vec2(-4., 7.)) + A(vec2(-10., 7.)) + A(vec2(-7., 11.)) + A(vec2(-7., 3.));   // 4-tap soft drop shadow
+            sh = clamp(sh * .25, 0., 1.) * .5;
             if (c.a < .003) { gl_FragColor = vec4(0., 0., 0., sh) * v_color.a; return; }
             vec3 rgb = c.rgb / c.a;
             // silhouette normal (two radii) and how deep inside the figure this pixel is
-            vec2 g = vec2(A(vec2(2.,0.)) - A(vec2(-2.,0.)), A(vec2(0.,2.)) - A(vec2(0.,-2.)))
-                   + .7 * vec2(A(vec2(6.,0.)) - A(vec2(-6.,0.)), A(vec2(0.,6.)) - A(vec2(0.,-6.)));
+            float ax = A(vec2(4.,0.)), bx = A(vec2(-4.,0.)), ay = A(vec2(0.,4.)), by = A(vec2(0.,-4.));
+            vec2 g = 1.7 * vec2(ax - bx, ay - by);
             float edge = clamp(length(g) * .6, 0., 1.); vec2 n = length(g) > .001 ? -normalize(g) : vec2(0.);
-            float inner = (A(vec2(9.,0.)) + A(vec2(-9.,0.)) + A(vec2(0.,9.)) + A(vec2(0.,-9.)) + A(vec2(7.,7.)) + A(vec2(-7.,-7.)) + A(vec2(7.,-7.)) + A(vec2(-7.,7.))) * .125;
+            float inner = (A(vec2(8.,8.)) + A(vec2(-8.,-8.)) + A(vec2(8.,-8.)) + A(vec2(-8.,8.)) + ax + bx + ay + by) * .125;
             // clarity: gentle unsharp mask against the 4-neighbour average
             vec4 nb = (T(vec2(1.4,0.)) + T(vec2(-1.4,0.)) + T(vec2(0.,1.4)) + T(vec2(0.,-1.4))) * .25;
             vec3 blur = nb.a > .001 ? nb.rgb / nb.a : rgb; rgb = clamp(rgb + (rgb - blur) * .65, 0., 1.);

@@ -9,6 +9,9 @@ import com.badlogic.gdx.math.Matrix4;
 
 /** Four original images, one parent transform, shoulder pivots and a pinned cloth strip mesh. */
 public final class GhostCharacter implements CageCharacter {
+    /** escape attempt: how far each arm is raised toward the bars (degrees, 0 = rest) */
+    private float gripL, gripR;
+    @Override public void grip(float left, float right) { gripL = left; gripR = right; }
     // Lobby-only presentation scale; the complete rig grows uniformly around its existing anchor.
     private static final float LOBBY_SCALE = 1.06f;
     private final GhostAssets assets;
@@ -45,8 +48,8 @@ public final class GhostCharacter implements CageCharacter {
         float opacity=alpha*color.a*animator.spawnAlpha();
         batch.setColor(color.r,color.g,color.b,opacity*p.tailAlpha); drawTail(batch);
         batch.setColor(color.r,color.g,color.b,opacity*p.bodyAlpha);
-        part(batch,assets.leftArm,-30+shoulderInset-p.detach,3,950,300,.045f,p.leftArm);
-        part(batch,assets.rightArm,30-shoulderInset+p.detach,0,400,300,.045f,p.rightArm);
+        part(batch,assets.leftArm,-30+shoulderInset-p.detach,3,950,300,.045f,p.leftArm-gripL);
+        part(batch,assets.rightArm,30-shoulderInset+p.detach,0,400,300,.045f,p.rightArm+gripR);
         part(batch,assets.body,0,0,690,700,.095f,0);
         int src=batch.getBlendSrcFunc(),dst=batch.getBlendDstFunc(),srcA=batch.getBlendSrcFuncAlpha(),dstA=batch.getBlendDstFuncAlpha();
         batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
