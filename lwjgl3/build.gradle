@@ -536,6 +536,8 @@ tasks.register('characterLightingShot', JavaExec) {
     workingDir = rootProject.file('assets')
     systemProperty 'shot.out', providers.gradleProperty('shotOut').getOrElse(rootProject.file('generated/character-lighting.png').absolutePath)
     systemProperty 'finalanswer.characterLighting', providers.gradleProperty('lighting').getOrElse('true')
+    systemProperty 'cage.struggle', providers.gradleProperty('struggle').getOrElse('0')
+    systemProperty 'shot.at', providers.gradleProperty('shotAt').getOrElse('9')
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }

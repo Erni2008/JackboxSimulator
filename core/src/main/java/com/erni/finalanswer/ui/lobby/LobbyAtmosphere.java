@@ -15,8 +15,10 @@ import com.badlogic.gdx.utils.Disposable;
 public final class LobbyAtmosphere implements Disposable {
     public enum Layer { BACK, FRONT }
     // painted positions (stage space): window centres / bottoms, candle flames
-    private static final float[][] WINDOWS = {{822, 952, 120}, {1122, 968, 180}, {1443, 968, 150}};
-    private static final float[][] CANDLES = {{12, 566}, {42, 548}, {1888, 632}, {1894, 428}, {96, 158}, {482, 216}, {1398, 458}, {1846, 214}};
+    // background_dungeon.png: three barred windows (centre x, bottom y, half width) and the wall candle (+ its floor reflection)
+    private static final float[][] WINDOWS = {{780, 846, 96}, {1140, 846, 100}, {1548, 852, 96}};
+    private static final float[][] CANDLES = {{267, 755}};
+    private static final float[][] REFLECTIONS = {{262, 104}};
     private final Texture glow, beam, fog, grain, vignette; private float time; private boolean reduced;
     private final float[] mx = new float[260], my = new float[260], mv = new float[260], ms = new float[260], mp = new float[260];
 
@@ -40,7 +42,7 @@ public final class LobbyAtmosphere implements Disposable {
         for (float[] w : WINDOWS) { float k = cloud(w[0]);
             batch.setColor(.62f, .74f, 1f, .32f * k * alpha); batch.draw(glow, w[0] - w[2], w[1] - w[2] * .2f, w[2] * 2, w[2] * 1.6f);
             for (int s = 0; s < 3; s++) { float spread = (s - 1) * w[2] * .32f, len = 940, width = w[2] * (.55f + .15f * s), lean = 9 + s * 2.5f;
-                batch.setColor(.55f, .68f, 1f, (.075f + .02f * s) * k * alpha);
+                batch.setColor(.55f, .68f, 1f, (.04f + .012f * s) * k * alpha);
                 batch.draw(beam, w[0] + spread - width / 2, w[1] - len, width / 2, len, width, len, 1, 1, lean, 0, 0, beam.getWidth(), beam.getHeight(), false, false); } }
         // dust: drifting slowly, sparkling when it crosses a beam
         for (int i = 0; i < mx.length; i++) { float y = (my[i] + time * mv[i]) % 1000 + 40, x = mx[i] + (float) Math.sin(time * .3f + mp[i]) * 22;
@@ -52,6 +54,8 @@ public final class LobbyAtmosphere implements Disposable {
             batch.setColor(1f, .55f, .22f, .16f * f * alpha); batch.draw(glow, c[0] - 120 * f, c[1] - 110 * f, 240 * f, 240 * f);
             batch.setColor(1f, .72f, .36f, .38f * f * alpha); batch.draw(glow, c[0] - 34 * f, c[1] - 30 * f, 68 * f, 72 * f);
             batch.setColor(1f, .93f, .75f, .8f * f * alpha); batch.draw(glow, c[0] - 6, c[1] - 6 + 2 * f, 12, 18 * f); }
+        for (int i = 0; i < REFLECTIONS.length; i++) { float[] c = REFLECTIONS[i]; float f = .8f + .12f * (float) Math.sin(time * 11 + i) + .08f * (float) Math.sin(time * 23);
+            batch.setColor(1f, .6f, .25f, .22f * f * alpha); batch.draw(glow, c[0] - 26, c[1] - 60, 52, 120); }
         batch.setBlendFunction(src, dst); batch.setColor(saved);
     }
 

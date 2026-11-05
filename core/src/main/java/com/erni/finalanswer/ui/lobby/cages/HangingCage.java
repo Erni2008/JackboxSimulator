@@ -14,15 +14,18 @@ public final class HangingCage extends Group {
     // pivot = the shackle on top of the code-built cage (Cage3D)
     private static final float RING_X = Cage3D.CX, RING_Y = Cage3D.BASE_Y + Cage3D.TOP + 70;
     // Centre of the existing gate keyhole, calibrated from the source PNG.
-    private static final float KEYHOLE_X = Cage3D.CX + 10, KEYHOLE_Y = Cage3D.BASE_Y + 34;
+    private static final float KEYHOLE_X = Cage3D.CX + 10, KEYHOLE_Y = Cage3D.BASE_Y + 30;
     private static final float TILT = -6;
     private final CageAssets assets;
     private final CageNameplate nameplate;
     private final CageCharacterPresentation presentation=new CageCharacterPresentation();
     private final CageAnimator animation = new CageAnimator();
     private final Color saved = new Color();
-    private final Vector2 endpoint = new Vector2(), ceiling = new Vector2();
+    private final Vector2 endpoint = new Vector2(), ceiling = new Vector2(); private final com.badlogic.gdx.math.Matrix4 charWorld = new com.badlogic.gdx.math.Matrix4();
     private final float phase; private float idle;
+    // escape attempts: 0 none, 1 rattle the door, 2 pry the bars apart, 3 throw the cage about on its chain
+    private int struggle; private float struggleT, nextStruggle = 6, strength; private final java.util.Random rng;
+    private float doorJx, doorJy, pry, charJx, charJy, charSx = 1, charSy = 1, swing;
     private CageCharacter character;
     private String playerId, nickname = "", characterId = "";
     private float ceilingX, ceilingY;
@@ -36,7 +39,7 @@ public final class HangingCage extends Group {
 
     public HangingCage(CageAssets assets, BitmapFont font, int slot) {
         this.assets = assets; nameplate = new CageNameplate(font);
-        phase = slot * 2.39996f;
+        phase = slot * 2.39996f; rng = new java.util.Random(slot * 7919L + 13); nextStruggle = 5 + rng.nextFloat() * 8;
         setSize(WIDTH, HEIGHT); setOrigin(RING_X, RING_Y);
         setTouchable(Touchable.disabled);
     }
@@ -73,7 +76,8 @@ public final class HangingCage extends Group {
         if (animation.impact()) impactCue.run();
         if (animation.locked()) lockCue.run();
         // idle: each cage drifts on its chain in its own slow rhythm (two incommensurate swings, under a degree)
-        idle+=delta; float drift=animation.occupied()||playerId==null?(float)(Math.sin(idle*.62f+phase)*.55+Math.sin(idle*1.13f+phase*1.7f)*.25):0;
+        updateStruggle(delta);
+        idle+=delta; float drift=swing+(animation.occupied()||playerId==null?(float)(Math.sin(idle*.62f+phase)*.55+Math.sin(idle*1.13f+phase*1.7f)*.25):0);
         setRotation(reducedMotion||cinematic ? 0 : animation.impactRotation()+departureRotation+drift);
         if (character != null) character.update(delta, animation.time(), phase, reducedMotion);
     }
@@ -85,8 +89,10 @@ public final class HangingCage extends Group {
         float yaw = reducedMotion ? 0 : (float) Math.sin(idle * .32f + phase) * 13 + animation.impactRotation() * 6;
         // pass 1 (3D): ceiling bracket, chain, the cage half behind the prisoner
         batch.end(); c3.begin(camera); c3.bracket(ceiling.x, ceiling.y - 8); c3.chain(ceiling.x, ceiling.y - 26, endpoint.x, endpoint.y + 4); c3.cage(world, yaw, TILT, false); c3.end(); batch.begin();
-        applyTransform(batch, world);
-        // pass 2 (2D): the prisoner, standing inside
+        charWorld.set(world).translate(Cage3D.CX + charJx, Cage3D.BASE_Y + 8 + charJy, 0).scale(charSx, charSy, 1).translate(-Cage3D.CX, -(Cage3D.BASE_Y + 8), 0);
+        applyTransform(batch, charWorld);
+        // pass 2 (2D): a soft contact shadow on the cage floor, then the prisoner standing inside
+        if (character != null) { batch.setColor(0, 0, 0, .55f * parentAlpha); batch.draw(assets.softDot, Cage3D.CX - 62, Cage3D.BASE_Y + 1, 124, 16); batch.setColor(1, 1, 1, parentAlpha); }
         if (character != null && clipBegin(Cage3D.CX - Cage3D.R + 6, Cage3D.BASE_Y + 6, Cage3D.R * 2 - 12, Cage3D.TOP - 8)) {
             presentation.drawInCage(batch, character, assets.presentation.profile(characterId), parentAlpha, animation.time());
             batch.flush(); clipEnd();
@@ -97,7 +103,7 @@ public final class HangingCage extends Group {
         c3.flush(); // the dome and front bars must not be clipped by the door's scissor
         if (animation.occupied() && animation.gate() > 0) { applyTransform(batch, world);
             boolean clipped = clipBegin(Cage3D.CX - Cage3D.R - 14, Cage3D.BASE_Y, Cage3D.R * 2 + 28, Cage3D.TOP + 4);
-            c3.door(world, yaw, TILT, (1 - animation.gate()) * Cage3D.TOP); c3.end(); if (clipped) clipEnd(); resetTransform(batch); }
+            c3.door(world, yaw, TILT, (1 - animation.gate()) * Cage3D.TOP, doorJx, doorJy, pry); c3.end(); if (clipped) clipEnd(); resetTransform(batch); }
         else c3.end();
         batch.begin(); applyTransform(batch, world);
         drawKey(batch, parentAlpha);
@@ -106,6 +112,29 @@ public final class HangingCage extends Group {
             batch.flush(); if (clipBegin(CageNameplate.X, CageNameplate.Y, CageNameplate.WIDTH, CageNameplate.HEIGHT)) { nameplate.draw(batch, parentAlpha); batch.flush(); clipEnd(); }
         }
         resetTransform(batch); batch.setColor(saved);
+    }
+    private static final float[] STRUGGLE_LEN = {0, 1.7f, 2.4f, 1.6f};
+    private void updateStruggle(float delta) {
+        boolean locked = animation.occupied() && animation.time() > CageAnimator.LOCKED_AT + 1 && character != null && !cinematic && !reducedMotion;
+        if (!locked) { struggle = 0; doorJx = doorJy = pry = charJx = charJy = swing = 0; charSx = charSy = 1; return; }
+        int forced = Integer.getInteger("cage.struggle", 0); if (forced > 0 && struggle == 0) { struggle = forced; struggleT = 0; strength = 1; }
+        if (struggle == 0) { nextStruggle -= delta; if (nextStruggle <= 0) { struggle = 1 + rng.nextInt(3); struggleT = 0; strength = .7f + rng.nextFloat() * .5f; } }
+        doorJx = doorJy = pry = charJx = charJy = swing = 0; charSx = charSy = 1;
+        if (struggle == 0) return;
+        struggleT += delta; float len = STRUGGLE_LEN[struggle], t = struggleT / len;
+        if (t >= 1) { struggle = 0; nextStruggle = 6 + rng.nextFloat() * 10; return; }
+        float env = Math.min(1, t * 6) * Math.min(1, (1 - t) * 4) * strength, k = struggleT;
+        switch (struggle) {
+            case 1 -> { // grabs the door and yanks it: the gate rattles in its frame, the prisoner lunges with each pull
+                float pull = (float) Math.pow(Math.max(0, Math.sin(k * 15)), 3);
+                doorJx = (float) Math.sin(k * 47) * 1.6f * env; doorJy = pull * 2.4f * env; charJy = 0; charJx = (float) Math.sin(k * 15) * 2.5f * env;
+                charSx = 1 + .05f * pull * env; charSy = 1 - .03f * pull * env; swing = (float) Math.sin(k * 15) * .35f * env; }
+            case 2 -> { // pries two bars apart: they bow out slowly, hold, spring back; the body strains wide
+                float bend = (float) Math.sin(Math.min(1, t * 1.6f) * Math.PI * .5) * (t > .7f ? (1 - (t - .7f) / .3f) : 1);
+                pry = .13f * bend * strength; charSx = 1 + .07f * bend * env; charSy = 1 - .025f * bend * env; charJx = (float) Math.sin(k * 31) * .9f * bend * env; doorJx = (float) Math.sin(k * 39) * .5f * bend; }
+            case 3 -> { // throws itself against the bars: the cage swings hard on its chain
+                swing = (float) Math.sin(k * 6.5f) * 2.6f * env; charJx = (float) Math.sin(k * 6.5f - .6f) * 6 * env; charSx = 1 + .03f * Math.abs((float) Math.sin(k * 13)) * env; }
+        }
     }
     private void drawKey(Batch batch, float alpha) {
         float p = (animation.time() - CageAnimator.KEY_AT) / CageAnimator.KEY;

@@ -29,8 +29,8 @@ public final class CageLobbyScreen extends ScreenAdapter {
     private final FinalAnswerGame game;
     private final FitViewport viewport = new FitViewport(1920, 1080);
     private final Stage stage = new Stage(viewport);
-    private final Texture background = RuntimeTextures.load("lobby/background_cages.png");
-    private final BitmapFont font = UiFonts.body(26), codeFont = UiFonts.code(66), titleFont=UiFonts.question(48);
+    private final Texture background = RuntimeTextures.load("lobby/background_dungeon.png");
+    private final BitmapFont font = UiFonts.body(26), codeFont = UiFonts.code(66), titleFont=UiFonts.question(48), titleBig=UiFonts.horror(104);
     private final Texture pixel;
     private final CageLobby cages = new CageLobby();
     private final com.erni.finalanswer.ui.lobby.LobbyAtmosphere atmosphere = new com.erni.finalanswer.ui.lobby.LobbyAtmosphere();
@@ -94,15 +94,21 @@ public final class CageLobbyScreen extends ScreenAdapter {
         stage.addActor(atmosphere.layer(com.erni.finalanswer.ui.lobby.LobbyAtmosphere.Layer.BACK));
         stage.addActor(cages);
         stage.addActor(atmosphere.layer(com.erni.finalanswer.ui.lobby.LobbyAtmosphere.Layer.FRONT));
-        // The background's original logo and parchment remain visible, with the code inside its ink field.
-        code = new Label("", new Label.LabelStyle(codeFont, Color.valueOf("392014")));
-        code.setAlignment(Align.center); code.setBounds(128, 503, 216, 94); stage.addActor(code);
-        roomName = new Label("", new Label.LabelStyle(font, Color.valueOf("E9D8BE")));
-        roomName.setWrap(true); roomName.setAlignment(Align.center); roomName.setBounds(60, 310, 390, 50); stage.addActor(roomName);
+        // Left column on the dungeon background: the title, the room-code plaque, the QR plaque (the wall candle stays visible)
+        Label title = new Label("FINAL ANSWER", new Label.LabelStyle(titleBig, Color.valueOf("C42318"))); title.setAlignment(Align.left); title.setBounds(44, 958, 760, 104);
+        Label titleShadow = new Label("FINAL ANSWER", new Label.LabelStyle(titleBig, new Color(0, 0, 0, .85f))); titleShadow.setAlignment(Align.left); titleShadow.setBounds(49, 952, 760, 104);
+        stage.addActor(titleShadow); stage.addActor(title);
+        roomName = new Label("", new Label.LabelStyle(font, Color.valueOf("D9C4A0")));
+        roomName.setAlignment(Align.left); roomName.setFontScale(.9f); roomName.setBounds(52, 918, 600, 40); stage.addActor(roomName);
+        Image codePlaque = new Image(com.erni.finalanswer.ui.lobby.LobbyPlaque.drawable()); codePlaque.setBounds(36, 448, 452, 228); stage.addActor(codePlaque);
+        Label codeCaption = new Label("КОД КОМНАТЫ", new Label.LabelStyle(font, Color.valueOf("C9A46A"))); codeCaption.setFontScale(.78f); codeCaption.setAlignment(Align.center); codeCaption.setBounds(36, 616, 452, 36); stage.addActor(codeCaption);
+        code = new Label("", new Label.LabelStyle(codeFont, Color.valueOf("F6E2B8")));
+        code.setAlignment(Align.center); code.setFontScale(1.25f); code.setBounds(36, 522, 452, 100); stage.addActor(code);
         playerCount=new Label("",new Label.LabelStyle(font,Color.valueOf("E9D8BE")));
-        playerCount.setFontScale(1.25f);playerCount.setAlignment(Align.center);playerCount.setBounds(60,255,390,50);stage.addActor(playerCount);
-        connectedCount=new Label("",new Label.LabelStyle(font,Color.valueOf("CFB998")));
-        connectedCount.setFontScale(.72f);connectedCount.setAlignment(Align.center);connectedCount.setBounds(60,215,390,35);stage.addActor(connectedCount);
+        playerCount.setFontScale(.82f);playerCount.setAlignment(Align.center);playerCount.setBounds(52,474,210,40);stage.addActor(playerCount);
+        connectedCount=new Label("",new Label.LabelStyle(font,Color.valueOf("9FD39A")));
+        connectedCount.setFontScale(.7f);connectedCount.setAlignment(Align.center);connectedCount.setBounds(262,474,210,40);stage.addActor(connectedCount);
+        Image qrPlaque = new Image(com.erni.finalanswer.ui.lobby.LobbyPlaque.drawable()); qrPlaque.setBounds(36, 24, 452, 404); stage.addActor(qrPlaque);
         Pixmap p = new Pixmap(1, 1, Pixmap.Format.RGBA8888); p.setColor(Color.WHITE); p.fill();
         pixel = new Texture(p); p.dispose();
         var solid = new TextureRegionDrawable(pixel);
@@ -110,7 +116,7 @@ public final class CageLobbyScreen extends ScreenAdapter {
         style.up = solid.tint(new Color(.08f, .055f, .05f, .88f));
         style.over = solid.tint(Color.valueOf("604131")); style.down = solid.tint(Color.valueOf("38241D"));
         style.disabledFontColor = Color.GRAY;
-        phone = new ConnectionPanel(game.getHosting(), font, style); phone.setBounds(650, 290, 1100, 130); stage.addActor(phone);
+        phone = new ConnectionPanel(game.getHosting(), font, style); phone.setBounds(58, 40, 408, 372); stage.addActor(phone);
         status = new Label("", new Label.LabelStyle(font, Color.valueOf("CFB998")));
         status.setFontScale(.75f); status.setWrap(true); status.setBounds(650, 140, 1100, 32); stage.addActor(status);
         play = button("PLAY", 650, style, game::showPlayScreen);
@@ -234,6 +240,6 @@ public final class CageLobbyScreen extends ScreenAdapter {
     private void introSignal(String event){var client=game.getRealtime();if(client==null||!client.connected())return;var state=client.snapshot();if(state!=null&&state.has("intro"))client.send(event,java.util.Map.of("gameId",state.get("gameId").getAsString(),"introId",state.getAsJsonObject("intro").get("introId").getAsString()));}
     @Override public void dispose() {
         if (disposed) return; disposed = true; hide();
-        stage.dispose(); cages.dispose(); atmosphere.dispose(); phone.dispose(); font.dispose(); codeFont.dispose(); titleFont.dispose(); modeFont.dispose(); pixel.dispose(); background.dispose();
+        stage.dispose(); cages.dispose(); atmosphere.dispose(); phone.dispose(); font.dispose(); codeFont.dispose(); titleFont.dispose(); modeFont.dispose(); titleBig.dispose(); pixel.dispose(); background.dispose();
     }
 }

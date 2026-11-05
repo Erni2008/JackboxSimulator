@@ -28,8 +28,10 @@ public final class ConnectionPanel extends Table implements Disposable {
         details=new Label("",new Label.LabelStyle(font,Color.valueOf("BFA9A4")));details.setFontScale(.48f);details.setWrap(true);
         choose=new TextButton("NETWORK / REFRESH",style);choose.getLabel().setFontScale(.55f);choose.setName("chooseNetwork");
         choose.addListener(new ClickListener(){public void clicked(InputEvent e,float x,float y){hosting.refresh();if(!choices.isEmpty())selected=(selected+1)%choices.size();refresh();}});
-        add(qr).size(126).padRight(14);
-        Table text=new Table();text.add(address).growX().height(34).row();text.add(details).growX().height(62).row();text.add(choose).left().width(270).height(34);add(text).growX();
+        // vertical plaque layout: caption, a large QR, the URL, network details and the network switch
+        Label caption=new Label("НАВЕДИ КАМЕРУ ТЕЛЕФОНА",new Label.LabelStyle(font,Color.valueOf("C9A46A")));caption.setFontScale(.62f);caption.setAlignment(com.badlogic.gdx.utils.Align.center);
+        address.setAlignment(com.badlogic.gdx.utils.Align.center);details.setAlignment(com.badlogic.gdx.utils.Align.center);
+        add(caption).growX().height(26).row();add(qr).size(214).padTop(4).padBottom(6).row();add(address).growX().height(30).row();add(details).growX().height(40).row();add(choose).width(270).height(32);
     }
     public void room(String code){if(!room.equals(code)){room=code;refresh();}}
     @Override public void act(float delta){super.act(delta);elapsed+=Math.max(0,delta);if(elapsed>=1){elapsed=0;refresh();}}

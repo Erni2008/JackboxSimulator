@@ -16,6 +16,7 @@ public final class CageAssets implements Disposable {
     /** the cage, chain and bracket are built in code (Cage3D); the nameplate plate is procedural too */
     public final Cage3D cage3d = new Cage3D();
     public final com.badlogic.gdx.graphics.Texture plate = plateTexture();
+    public final com.badlogic.gdx.graphics.Texture softDot = softDot();
     public final TextureRegion head, body, leftArm, rightArm, leftLeg, rightLeg;
 
     public CageAssets() {
@@ -41,6 +42,9 @@ public final class CageAssets implements Disposable {
     }
 
     /** brass nameplate: bevelled edge, brushed face, two screws */
+    private static com.badlogic.gdx.graphics.Texture softDot() { int n = 64; var p = new com.badlogic.gdx.graphics.Pixmap(n, n, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888); p.setBlending(com.badlogic.gdx.graphics.Pixmap.Blending.None);
+        for (int y = 0; y < n; y++) for (int x = 0; x < n; x++) { float d = (float) Math.hypot(x - n / 2f + .5f, y - n / 2f + .5f) / (n / 2f), a = Math.max(0, 1 - d); p.drawPixel(x, y, com.badlogic.gdx.graphics.Color.rgba8888(1, 1, 1, a * a)); }
+        var t = new com.badlogic.gdx.graphics.Texture(p); p.dispose(); t.setFilter(com.badlogic.gdx.graphics.Texture.TextureFilter.Linear, com.badlogic.gdx.graphics.Texture.TextureFilter.Linear); return t; }
     private static com.badlogic.gdx.graphics.Texture plateTexture() {
         int w = 256, h = 56; var p = new com.badlogic.gdx.graphics.Pixmap(w, h, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888); var r = new java.util.Random(9);
         for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) { float e = Math.min(Math.min(x, w - 1 - x), Math.min(y, h - 1 - y)), bevel = e < 3 ? .55f + (y < h / 2 ? .35f : -.1f) : 1;
@@ -53,5 +57,5 @@ public final class CageAssets implements Disposable {
         return RuntimeTextures.region(source.getTexture(), x, y, w, h);
     }
 
-    @Override public void dispose() { presentation.dispose(); cage3d.dispose(); plate.dispose(); for (Texture texture : owned) texture.dispose(); owned.clear(); }
+    @Override public void dispose() { presentation.dispose(); cage3d.dispose(); plate.dispose(); softDot.dispose(); for (Texture texture : owned) texture.dispose(); owned.clear(); }
 }

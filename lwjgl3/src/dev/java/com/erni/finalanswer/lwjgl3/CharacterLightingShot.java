@@ -19,7 +19,7 @@ public final class CharacterLightingShot {
             @Override public void create() { super.create(); preview = new CageLobbyScreen(this); setScreen(preview);
                 String[] ids = {"skeleton", "ghost", "zombie", "dracula", "plague_doctor", "pumpkin", "puppeteer", "voodoo"}; var players = new ArrayList<RoomSession.Player>();
                 for (int i = 0; i < 8; i++) players.add(new RoomSession.Player("p" + i, ids[i], false, ids[i], "ONLINE", false, 0));
-                room = new RoomSession("ABC123", "THE WAITING ROOM", 8, "standard", "preview", false, players); preview.synchronize(room, ""); }
+                room = new RoomSession("ABC123", "THE WAITING ROOM", 8, "standard", "preview", true, players); preview.synchronize(room, ""); }
             @Override public void render() { if (done) return; elapsed += 1f / 60; preview.synchronize(room, ""); preview.draw(1f / 60);
                 if (elapsed > Float.parseFloat(System.getProperty("shot.at", "9"))) { done = true;
                     int w = Gdx.graphics.getBackBufferWidth(), h = Gdx.graphics.getBackBufferHeight(); Pixmap p = Pixmap.createFromFrameBuffer(0, 0, w, h);

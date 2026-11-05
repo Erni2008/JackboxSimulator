@@ -79,7 +79,8 @@ public final class CageCharacterPresentation {
         framed.set(saved).translate(p.pivotX+p.x*amount,p.pivotY+p.y*amount,0).scale(scale,scale,1).translate(-p.pivotX,-p.pivotY,0);
         try{ShaderProgram correction=p.shader(cage);batch.setShader(correction);if(correction!=null){batch.flush();correction.setUniformf("u_brightness",p.exposure(cage));correction.setUniformf("u_contrast",p.contrast(cage));}batch.enableBlending();batch.setBlendFunctionSeparate(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA,GL20.GL_ONE,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.setTransformMatrix(framed);batch.setColor(color.r*p.brightness,color.g*p.brightness,color.b*p.brightness,color.a);
             // whole-figure lighting (shadow, volume, rim, clarity); falls back to the plain draw
-            if(!CharacterLighting.draw(batch,framed,p.pivotX,p.pivotY,()->character.draw(batch,alpha)))character.draw(batch,alpha);}
+            CharacterLighting.insideCage=cage&&Cage3D.ACTIVE?1:0;
+            try{if(!CharacterLighting.draw(batch,framed,p.pivotX,p.pivotY,()->character.draw(batch,alpha)))character.draw(batch,alpha);}finally{CharacterLighting.insideCage=0;}}
         finally{batch.setShader(shader);batch.setBlendFunctionSeparate(src,dst,srcA,dstA);if(blending)batch.enableBlending();else batch.disableBlending();batch.setTransformMatrix(saved);batch.setColor(color);}
     }
 }

@@ -27,6 +27,8 @@ final class CharacterLighting {
     private static FrameBuffer fbo; private static ShaderProgram shader; private static boolean broken;
     private static final Matrix4 combined = new Matrix4(), screen = new Matrix4(), savedProj = new Matrix4(), savedTrans = new Matrix4();
     private static final Vector3 v = new Vector3(); private static final java.nio.IntBuffer bound = BufferUtils.newIntBuffer(16);
+    /** set by the caller for a prisoner inside a cage: moonlight bar shadows + interior shade (0 = open air) */
+    static float insideCage;
     /** off with -Dfinalanswer.characterLighting=false */
     static final boolean ENABLED = !"false".equals(System.getProperty("finalanswer.characterLighting"));
 
@@ -57,6 +59,7 @@ final class CharacterLighting {
             batch.setShader(shader); batch.setBlendFunctionSeparate(GL20.GL_ONE, GL20.GL_ONE_MINUS_SRC_ALPHA, GL20.GL_ONE, GL20.GL_ONE_MINUS_SRC_ALPHA);
             batch.setProjectionMatrix(screen.setToOrtho2D(0, 0, W, H)); batch.setTransformMatrix(screen.idt()); batch.setColor(1, 1, 1, 1);
             shader.setUniformf("u_px", 1f / W, 1f / H); shader.setUniformf("u_r", pxScale);
+            float localPx = (x1 - x0 - 2 * pad) / 460f; shader.setUniformf("u_inside", insideCage); shader.setUniformf("u_bar", Math.max(6f, 28.9f * localPx * 1.15f), x0);
             Texture t = fbo.getColorBufferTexture();
             batch.draw(t, x0, y0, x1 - x0, y1 - y0, (float) x0 / W, (float) y0 / H, (float) x1 / W, (float) y1 / H);
             batch.flush();
@@ -86,7 +89,7 @@ final class CharacterLighting {
         #ifdef GL_ES
         precision mediump float;
         #endif
-        varying vec4 v_color; varying vec2 v_uv; uniform sampler2D u_texture; uniform vec2 u_px; uniform float u_r;
+        varying vec4 v_color; varying vec2 v_uv; uniform sampler2D u_texture; uniform vec2 u_px; uniform float u_r; uniform float u_inside; uniform vec2 u_bar;
         float A(vec2 o){ return texture2D(u_texture, v_uv + o * u_px * u_r).a; }
         vec4 T(vec2 o){ return texture2D(u_texture, v_uv + o * u_px * u_r); }
         void main(){
@@ -113,6 +116,10 @@ final class CharacterLighting {
             rgb += vec3(.78, .88, 1.) * edge * key * .5 + vec3(1., .62, .32) * edge * bounce * .22;   // cool moonlight from above, warm candle bounce from below
             // gentle filmic contrast
             rgb = mix(rgb, rgb * rgb * (3. - 2. * rgb), .28);
+            // inside a cage: cooler, dimmer interior and slanted moonlight shadows of the front bars across the body
+            if (u_inside > 0.) { vec2 sp = v_uv / u_px; float ph = fract((sp.x + sp.y * .32 - u_bar.y) / u_bar.x);
+                float bar = smoothstep(.0, .12, ph) * (1. - smoothstep(.2, .34, ph));
+                rgb *= mix(vec3(1.), vec3(.82, .86, .95), u_inside); rgb *= 1. - bar * .42 * u_inside; }
             vec4 lit = vec4(rgb * c.a, c.a);
             gl_FragColor = (lit + vec4(0., 0., 0., sh) * (1. - c.a)) * v_color.a;
         }
