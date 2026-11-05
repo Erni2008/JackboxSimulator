@@ -119,10 +119,8 @@ async function boot() {
     const t = makeTask(wireRules, taskSeed, wireCount || 4 + Math.floor(Math.random() * 3), fixed); box.setTask(t); box.configure(t.fault, t.mode); deadline = 0;
     const k0 = kind, myGen = ++taskGen; box.locked = true; press.enabled = false; lab.enabled = false; link.stop(); flink.stop(); hud();
     briefOpen = true; (params.get('tutorial') === '1' ? briefing(k0, Math.round(limitMs(k0) / 1000)) : Promise.resolve()).then(() => { briefOpen = false; if (myGen !== taskGen) return; startedAt = performance.now(); mistakes = 0;
-    // spoken briefing by the host: the first time this device meets each machine, then a short cue
-    const told = (() => { try { return new Set(JSON.parse(localStorage.getItem('finalanswer-elevator-told') || '[]')); } catch { return new Set(); } })();
-    if (!told.has(k0)) tellPending = k0; // spoken as soon as the voice is loaded and unlocked (see the loop)
-    else if (!introSaid) voice.say('intro', 2, 0); else voice.say(('task_' + k0) as any, 1, 0); introSaid = true;
+    // the host's voice: welcome once, then a short spoken instruction at the start of every task (no text card)
+    if (!introSaid) { introSaid = true; tellPending = 'intro:' + k0; } else tellPending = k0;
     if (k0 === 'wire') box.locked = false;
     if (kind === 'pressure') { box.locked = true; press.enabled = true; press.reset(); link.start(); pressureDone = false; if (cur().state === 'rest' || cur().state === 'falling') { const d = press.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } }
     else { press.enabled = false; link.stop(); }
@@ -241,7 +239,7 @@ async function boot() {
       if (!inspecting && inspectK < .002) inspectK = 0;
     } else { camera.position.copy(eye); camera.quaternion.setFromEuler(new T.Euler(pitch, yaw, 0, 'YXZ')); }
     if (kind === 'formula' && (flink.view()?.doses.length ?? 0) > 0 && Math.random() < dt * 1.6) audio.play('blub', .6);
-    if (tellPending && frameNo % 30 === 0) { if (tellPending !== kind) tellPending = null; else if (voice.say(('tutorial_' + kind) as any, 3, 0)) { try { const t = new Set(JSON.parse(localStorage.getItem('finalanswer-elevator-told') || '[]')); t.add(kind); localStorage.setItem('finalanswer-elevator-told', JSON.stringify([...t])); } catch {} tellPending = null; } }
+    if (tellPending && frameNo % 30 === 0) { const intro = tellPending.startsWith('intro:'), want = intro ? tellPending.slice(6) : tellPending; if (want !== kind) tellPending = null; else if (intro ? voice.say('intro', 3, 0) : voice.say(('tutorial_' + kind) as any, 3, 0)) tellPending = intro ? kind : null; }
     cage.update(dt); ui.update(dt); jui.update(dt); box.update(dt); press.update(dt, link.view()); lab.update(dt, flink.view());
     if (focusTo) { let dy = focusTo[0] - yawT; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yawT += dy * Math.min(1, dt * 5); pitchT += (focusTo[1] - pitchT) * Math.min(1, dt * 5); if (Math.abs(dy) < .002 && Math.abs(focusTo[1] - pitchT) < .002) focusTo = null; }
     { const sw = kind === 'pressure' && !!link.view()?.surgeWarning; document.body.classList.toggle('surge', sw); if (sw && !surgeSaid) { surgeSaid = true; voice.say('surge', 3, 0); haptic('tap'); } }
