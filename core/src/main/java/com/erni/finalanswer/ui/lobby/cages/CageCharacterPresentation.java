@@ -77,7 +77,9 @@ public final class CageCharacterPresentation {
         float amount=p.growDuration>0?CageAnimator.smooth(CageAnimator.progress(time,p.growAt,p.growDuration)):1;
         float scale=1+(p.scale-1)*amount;
         framed.set(saved).translate(p.pivotX+p.x*amount,p.pivotY+p.y*amount,0).scale(scale,scale,1).translate(-p.pivotX,-p.pivotY,0);
-        try{ShaderProgram correction=p.shader(cage);batch.setShader(correction);if(correction!=null){batch.flush();correction.setUniformf("u_brightness",p.exposure(cage));correction.setUniformf("u_contrast",p.contrast(cage));}batch.enableBlending();batch.setBlendFunctionSeparate(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA,GL20.GL_ONE,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.setTransformMatrix(framed);batch.setColor(color.r*p.brightness,color.g*p.brightness,color.b*p.brightness,color.a);character.draw(batch,alpha);}
+        try{ShaderProgram correction=p.shader(cage);batch.setShader(correction);if(correction!=null){batch.flush();correction.setUniformf("u_brightness",p.exposure(cage));correction.setUniformf("u_contrast",p.contrast(cage));}batch.enableBlending();batch.setBlendFunctionSeparate(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA,GL20.GL_ONE,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.setTransformMatrix(framed);batch.setColor(color.r*p.brightness,color.g*p.brightness,color.b*p.brightness,color.a);
+            // whole-figure lighting (shadow, volume, rim, clarity); falls back to the plain draw
+            if(!CharacterLighting.draw(batch,framed,p.pivotX,p.pivotY,()->character.draw(batch,alpha)))character.draw(batch,alpha);}
         finally{batch.setShader(shader);batch.setBlendFunctionSeparate(src,dst,srcA,dstA);if(blending)batch.enableBlending();else batch.disableBlending();batch.setTransformMatrix(saved);batch.setColor(color);}
     }
 }

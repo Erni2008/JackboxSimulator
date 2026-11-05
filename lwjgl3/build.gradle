@@ -527,6 +527,19 @@ tasks.register('draculaLobbyCheck', JavaExec) {
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
 
+tasks.register('characterLightingShot', JavaExec) {
+    group = 'verification'
+    description = 'Dev capture of the 8-character lobby: -PshotOut=file.png [-Plighting=false]'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.CharacterLightingShot'
+    workingDir = rootProject.file('assets')
+    systemProperty 'shot.out', providers.gradleProperty('shotOut').getOrElse(rootProject.file('generated/character-lighting.png').absolutePath)
+    systemProperty 'finalanswer.characterLighting', providers.gradleProperty('lighting').getOrElse('true')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
 tasks.register('pumpkinStudio', JavaExec) {
     group = 'application'
     dependsOn devClasses
