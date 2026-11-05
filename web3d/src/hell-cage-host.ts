@@ -23,29 +23,30 @@ let START_M = 100;
 
 // ------------------------------------------------------------------ renderer / scene
 const renderer = new T.WebGLRenderer({antialias: true, powerPreference: 'high-performance'});
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap; renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap; renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
 $('view').append(renderer.domElement);
-const scene = new T.Scene(); scene.background = new T.Color('#0a0507'); scene.fog = new T.FogExp2('#1a0806', .018);
+const scene = new T.Scene(); scene.background = new T.Color('#0a0507'); scene.fog = new T.FogExp2('#1a0806', .01);
 const camera = new T.PerspectiveCamera(36, 16 / 9, .1, 200);
-const composer = new EffectComposer(renderer); composer.addPass(new RenderPass(scene, camera));
+// multisampled post chain: thin bars and chain links stay crisp and stable (the default chain has no MSAA)
+const composer = new EffectComposer(renderer, new T.WebGLRenderTarget(1, 1, {type: T.HalfFloatType, samples: 4})); composer.addPass(new RenderPass(scene, camera));
 const bloom = new UnrealBloomPass(new T.Vector2(512, 512), .55, .5, .8); composer.addPass(bloom); composer.addPass(new OutputPass());
 // film finish: heat shimmer rising off the lava (strongest at the bottom of the frame), slight lens fringing, grain, vignette
 const finish = new ShaderPass({uniforms: {tDiffuse: {value: null}, t: {value: 0}, shake: {value: 0}},
   vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); }`,
   fragmentShader: `uniform sampler2D tDiffuse; uniform float t, shake; varying vec2 vUv;
     float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898,78.233))) * 43758.5453); }
-    void main(){ vec2 uv = vUv; float heat = pow(1. - uv.y, 2.2) * .0045;
+    void main(){ vec2 uv = vUv; float heat = pow(max(0., .3 - uv.y) / .3, 2.) * .0018;   // shimmer only over the lava, never over the cages
       uv.x += sin(uv.y*90. + t*3.1) * heat + sin(uv.y*37. - t*2.3) * heat*.6; uv.y += cos(uv.x*70. + t*2.7) * heat*.5;
-      vec2 d = uv - .5; float ca = .0012 + shake * .004;
+      vec2 d = uv - .5; float ca = shake * .003;   // no fringing at rest: the cages stay sharp
       vec3 c = vec3(texture2D(tDiffuse, uv + d*ca).r, texture2D(tDiffuse, uv).g, texture2D(tDiffuse, uv - d*ca).b);
       c *= 1. - smoothstep(.45, 1.05, length(d * vec2(1.25, 1.))) * .55;
-      c += (h(uv*vec2(1920.,1080.) + fract(t)*91.) - .5) * .035;
+      c += (h(uv*vec2(1920.,1080.) + fract(t)*91.) - .5) * .012;
       gl_FragColor = vec4(c, 1.); }`});
 composer.addPass(finish);
 new RGBELoader().load(TEX + 'boiler_room_1k.hdr', t => { t.mapping = T.EquirectangularReflectionMapping; const pm = new T.PMREMGenerator(renderer); scene.environment = pm.fromEquirectangular(t).texture; scene.environmentIntensity = .35; t.dispose(); });
 
-const loader = new T.TextureLoader(), tex = (f: string, srgb: boolean, rep = 1) => { const t = loader.load(f); t.colorSpace = srgb ? T.SRGBColorSpace : T.NoColorSpace; t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(rep, rep); t.anisotropy = 8; return t; };
-const canvasTex = (w: number, h: number, draw: (x: CanvasRenderingContext2D) => void) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d')!); const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.anisotropy = 8; return t; };
+const loader = new T.TextureLoader(), tex = (f: string, srgb: boolean, rep = 1) => { const t = loader.load(f); t.colorSpace = srgb ? T.SRGBColorSpace : T.NoColorSpace; t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(rep, rep); t.anisotropy = 16; return t; };
+const canvasTex = (w: number, h: number, draw: (x: CanvasRenderingContext2D) => void) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d')!); const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.anisotropy = 16; return t; };
 const rusty = (rep: number, tint: string, metal = .85, rough = .55) => new T.MeshStandardMaterial({color: tint, map: tex(TEX + 'rusty_metal_05_diff_1k.jpg', true, rep), normalMap: tex(TEX + 'rusty_metal_05_nor_gl_1k.jpg', false, rep), roughnessMap: tex(TEX + 'rusty_metal_05_rough_1k.jpg', false, rep), metalness: metal, roughness: rough, envMapIntensity: 1});
 const flameTex = canvasTex(64, 128, x => { const g = x.createRadialGradient(32, 92, 2, 32, 80, 60); g.addColorStop(0, 'rgba(255,255,230,1)'); g.addColorStop(.25, 'rgba(255,200,90,.85)'); g.addColorStop(.6, 'rgba(255,90,20,.35)'); g.addColorStop(1, 'rgba(255,40,0,0)');
   x.fillStyle = g; x.beginPath(); x.moveTo(32, 2); x.bezierCurveTo(58, 50, 60, 100, 32, 126); x.bezierCurveTo(4, 100, 6, 50, 32, 2); x.fill(); });
@@ -165,7 +166,7 @@ const figures = new Map<string, Figure>();
 /** loads a character, finds its silhouette bounds (so it can stand full-height on the floor) */
 const figure = (id: string): Figure => { const k = CHARS.includes(id) ? id : CHARS[Math.abs([...id].reduce((a, c) => a * 31 + c.charCodeAt(0), 7)) % CHARS.length];
   let f = figures.get(k); if (f) return f;
-  const tex = new T.Texture(); tex.colorSpace = T.SRGBColorSpace; tex.anisotropy = 8; f = {tex, ready: false, uvr: new T.Vector4(0, 0, 1, 1), aspect: 1, texel: new T.Vector2(1 / 512, 1 / 512), waiters: []}; figures.set(k, f);
+  const tex = new T.Texture(); tex.colorSpace = T.SRGBColorSpace; tex.anisotropy = 16; f = {tex, ready: false, uvr: new T.Vector4(0, 0, 1, 1), aspect: 1, texel: new T.Vector2(1 / 512, 1 / 512), waiters: []}; figures.set(k, f);
   const img = new Image(); img.onload = () => { const w = img.naturalWidth, h = img.naturalHeight, cv = document.createElement('canvas'); cv.width = w; cv.height = h; const x = cv.getContext('2d', {willReadFrequently: true})!; x.drawImage(img, 0, 0);
     const a = x.getImageData(0, 0, w, h).data; let x0 = w, y0 = h, x1 = 0, y1 = 0; for (let y = 0; y < h; y += 2) for (let xx = 0; xx < w; xx += 2) if (a[(y * w + xx) * 4 + 3] > 24) { if (xx < x0) x0 = xx; if (xx > x1) x1 = xx; if (y < y0) y0 = y; if (y > y1) y1 = y; }
     const pad = 6; x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad); x1 = Math.min(w, x1 + pad); y1 = Math.min(h, y1 + pad);
