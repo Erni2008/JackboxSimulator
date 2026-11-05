@@ -1,3 +1,4 @@
+import {L, LANG} from '../i18n';
 // THE ALCHEMIST'S JOURNAL — three visual-first spreads (six pages). Every table is drawn from formula-sim's data, the
 // same tables the Java rules use, so the book cannot drift from the server logic.
 // 1 IDENTIFICATION  (families | class I/II -> base)   2 COMPATIBILITY (bases | reaction A/B/C -> additive, ✕)
@@ -8,7 +9,7 @@ import {REAGENTS, FAMILIES, SYMBOL, BASE, ADDITIVE, DOSES, COLOR, GLINT, RU, inc
 
 type X = CanvasRenderingContext2D;
 const W = 1024, H = 1408, MX = 88, INK = '#2a1309', INK2 = 'rgba(42,19,9,.72)', OX = '#7a1518', HAND = "'Caveat', cursive";
-const FAM_RU: Record<string, string> = {LUNAR: 'ЛУННОЕ', SOLAR: 'СОЛНЕЧНОЕ', CRYSTAL: 'КРИСТАЛЛ', ORGANIC: 'ОРГАНИКА'};
+const FAM_RU: Record<string, string> = LANG === 'ru' ? {LUNAR: 'ЛУННОЕ', SOLAR: 'СОЛНЕЧНОЕ', CRYSTAL: 'КРИСТАЛЛ', ORGANIC: 'ОРГАНИКА'} : {LUNAR: 'OF THE MOON', SOLAR: 'OF THE SUN', CRYSTAL: 'MINERAL', ORGANIC: 'LIVING MATTER'};
 
 function rr(x: X, px: number, py: number, w: number, h: number, r: number) { x.beginPath(); x.moveTo(px + r, py); x.arcTo(px + w, py, px + w, py + h, r); x.arcTo(px + w, py + h, px, py + h, r); x.arcTo(px, py + h, px, py, r); x.arcTo(px, py, px + w, py, r); x.closePath(); }
 /** older, yellower laboratory paper with ink blots */
@@ -40,58 +41,59 @@ function glyph(x: X, cx: number, cy: number, rad: number, fam: string) {
   x.fillStyle = OX; x.font = `${Math.round(rad * 1.15)}px 'Apple Symbols', 'Segoe UI Symbol', 'Noto Sans Symbols 2', serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(SYMBOL[fam as keyof typeof SYMBOL], cx, cy + rad * .06);
 }
 function arrow(x: X, x0: number, y0: number, x1: number, y1: number, w = 6, col = INK) { const a = Math.atan2(y1 - y0, x1 - x0); x.strokeStyle = col; x.lineWidth = w; x.lineCap = 'round'; x.beginPath(); x.moveTo(x0, y0); x.lineTo(x1, y1); x.moveTo(x1 - Math.cos(a - .5) * 22, y1 - Math.sin(a - .5) * 22); x.lineTo(x1, y1); x.lineTo(x1 - Math.cos(a + .5) * 22, y1 - Math.sin(a + .5) * 22); x.stroke(); }
+function fit(x: X, t: string, maxW: number, px: number, w = 700) { let f = px; x.font = F.tech(f, w); while (x.measureText(t).width > maxW && f > 14) { f -= 1; x.font = F.tech(f, w); } }
 function chip(x: X, px: number, py: number, w: number, h: number, fill: string) { x.fillStyle = fill; rr(x, px, py, w, h, 14); x.fill(); x.strokeStyle = 'rgba(42,19,9,.35)'; x.lineWidth = 2; rr(x, px, py, w, h, 14); x.stroke(); }
 
 export function drawJournalPage(x: X, page: number, index: number) {
   const side = page % 2 ? 1 : -1; journalPaper(x, page, side); x.textBaseline = 'alphabetic';
   if (page === 0) { // SPREAD 1 left: families
-    header(x, 'I · IDENTIFICATION', 'Семейства', index + 1, side);
-    x.fillStyle = OX; x.font = F.tech(30, 700); x.textAlign = 'left'; x.fillText('СИМВОЛ НА АНАЛИЗАТОРЕ → СЕМЕЙСТВО', MX, 250);
+    header(x, L('I · ОПРЕДЕЛЕНИЕ', 'I · IDENTIFICATION'), L('Семейства', 'Families'), index + 1, side);
+    x.fillStyle = OX; x.font = F.tech(30, 700); x.textAlign = 'left'; x.fillText(L('СИМВОЛ НА АНАЛИЗАТОРЕ → СЕМЕЙСТВО', 'ANALYZER SYMBOL → FAMILY'), MX, 250);
     FAMILIES.forEach((f, i) => { const cy = 380 + i * 250; glyph(x, MX + 110, cy, 92, f); x.fillStyle = INK; x.font = F.display(700, 64); x.textAlign = 'left'; x.fillText(f, MX + 250, cy + 6); x.fillStyle = INK2; x.font = F.tech(30, 600); x.fillText(FAM_RU[f], MX + 252, cy + 50); });
   } else if (page === 1) { // SPREAD 1 right: class -> base
-    header(x, 'FAMILY + CLASS → BASE', 'Основа', index + 1, side);
-    const c0 = MX + 230, c1 = MX + 560; x.fillStyle = INK; x.font = F.display(700, 54); x.textAlign = 'center'; x.fillText('CLASS I', c0 + 60, 260); x.fillText('CLASS II', c1 + 60, 260);
+    header(x, L('СЕМЕЙСТВО + КЛАСС → ОСНОВА', 'FAMILY + CLASS → BASE'), L('Основа', 'Base'), index + 1, side);
+    const c0 = MX + 230, c1 = MX + 560; x.fillStyle = INK; x.font = F.display(700, 54); x.textAlign = 'center'; x.fillText(L('КЛАСС I', 'CLASS I'), c0 + 60, 260); x.fillText(L('КЛАСС II', 'CLASS II'), c1 + 60, 260);
     FAMILIES.forEach((f, i) => { const cy = 400 + i * 245; glyph(x, MX + 70, cy, 62, f);
       BASE[f].forEach((r, k) => { const cx = (k ? c1 : c0) + 60; flask(x, cx - 80, cy - 10, 150, r, false); x.fillStyle = INK; x.font = F.tech(32, 700); x.textAlign = 'left'; x.fillText(r, cx - 10, cy - 4); x.fillStyle = INK2; x.font = F.tech(22, 500); x.fillText(RU[r], cx - 10, cy + 28); });
       x.strokeStyle = 'rgba(42,19,9,.18)'; x.lineWidth = 2; x.beginPath(); x.moveTo(MX, cy + 118); x.lineTo(W - MX, cy + 118); x.stroke(); });
   } else if (page === 2) { // SPREAD 2 left: the five bases
-    header(x, 'II · COMPATIBILITY', 'Пять основ', index + 1, side);
-    x.fillStyle = OX; x.font = F.tech(30, 700); x.textAlign = 'left'; x.fillText('НАЙДИТЕ ОСНОВУ → СМОТРИТЕ СПРАВА', MX, 250);
+    header(x, L('II · СОВМЕСТИМОСТЬ', 'II · COMPATIBILITY'), L('Пять основ', 'Five Bases'), index + 1, side);
+    x.fillStyle = OX; x.font = F.tech(30, 700); x.textAlign = 'left'; x.fillText(L('НАЙДИТЕ ОСНОВУ → СМОТРИТЕ СПРАВА', 'FIND THE BASE → LOOK RIGHT'), MX, 250);
     REAGENTS.forEach((r, i) => { const col = i % 2, row = Math.floor(i / 2), cx = i === 4 ? W / 2 : MX + 200 + col * 430, cy = 440 + row * 330; flask(x, cx, cy, 210, r); x.fillStyle = INK2; x.font = F.tech(28, 600); x.textAlign = 'center'; x.fillText(RU[r], cx, cy + 128); });
   } else if (page === 3) { // SPREAD 2 right: base + reaction -> additive, ✕ incompatible
-    header(x, 'BASE + REACTION → ADDITIVE', 'Добавка', index + 1, side);
+    header(x, L('ОСНОВА + РЕАКЦИЯ → ДОБАВКА', 'BASE + REACTION → ADDITIVE'), L('Добавка', 'Additive'), index + 1, side);
     const cols = [MX + 230, MX + 400, MX + 570, MX + 740]; x.fillStyle = INK; x.font = F.display(700, 58); x.textAlign = 'center'; ['A', 'B', 'C'].forEach((c, i) => x.fillText(c, cols[i], 262)); x.fillStyle = OX; x.fillText('✕', cols[3], 262);
     REAGENTS.forEach((b, i) => { const cy = 380 + i * 196; flask(x, MX + 62, cy, 120, b, false); x.fillStyle = INK; x.font = F.tech(24, 700); x.textAlign = 'center'; x.fillText(b, MX + 62, cy + 86);
       ADDITIVE[b].forEach((a, k) => { flask(x, cols[k], cy - 6, 104, a, false); x.fillStyle = INK2; x.font = F.tech(20, 700); x.fillText(a, cols[k], cy + 70); });
       const bad = incompatible(b); flask(x, cols[3], cy - 6, 104, bad, false); x.strokeStyle = OX; x.lineWidth = 9; x.beginPath(); x.moveTo(cols[3] - 44, cy - 50); x.lineTo(cols[3] + 44, cy + 38); x.moveTo(cols[3] + 44, cy - 50); x.lineTo(cols[3] - 44, cy + 38); x.stroke();
       x.strokeStyle = 'rgba(42,19,9,.18)'; x.lineWidth = 2; x.beginPath(); x.moveTo(MX, cy + 98); x.lineTo(W - MX, cy + 98); x.stroke(); });
-    x.fillStyle = OX; x.font = F.tech(26, 700); x.textAlign = 'center'; x.fillText('✕ НИКОГДА НЕ СМЕШИВАТЬ С ЭТОЙ ОСНОВОЙ', W / 2, H - 112);
+    x.fillStyle = OX; x.font = F.tech(26, 700); x.textAlign = 'center'; x.fillText(L('✕ НИКОГДА НЕ СМЕШИВАТЬ С ЭТОЙ ОСНОВОЙ', '✕ NEVER MIX WITH THIS BASE'), W / 2, H - 112);
   } else if (page === 4) { // SPREAD 3 left: polarity + concentration
-    header(x, 'III · PROCEDURE', 'Порядок и дозы', index + 1, side);
+    header(x, L('III · ПРОЦЕДУРА', 'III · PROCEDURE'), L('Порядок и дозы', 'Order & Doses'), index + 1, side);
     const pol = (y: number, sign: string, name: string, firstBase: boolean) => { chip(x, MX, y, W - 2 * MX, 190, firstBase ? '#f1dcae' : '#d9e3ee');
-      x.fillStyle = OX; x.font = F.display(700, 92); x.textAlign = 'center'; x.fillText(sign, MX + 70, y + 125); x.fillStyle = INK; x.font = F.tech(34, 700); x.textAlign = 'left'; x.fillText(name, MX + 140, y + 62);
-      const a = firstBase ? 'ОСНОВА' : 'ДОБАВКА', b2 = firstBase ? 'ДОБАВКА' : 'ОСНОВА'; x.font = F.tech(30, 700); x.fillText(`1 · ${a}`, MX + 140, y + 116); x.fillStyle = INK2; x.fillText(`2 · ${b2}`, MX + 140, y + 160);
+      x.fillStyle = OX; x.font = F.display(700, 92); x.textAlign = 'center'; x.fillText(sign, MX + 70, y + 125); x.fillStyle = INK; x.textAlign = 'left'; fit(x, name, W - MX - 330 - (MX + 140), 34); x.fillText(name, MX + 140, y + 62);
+      const a = firstBase ? L('ОСНОВА', 'BASE') : L('ДОБАВКА', 'ADDITIVE'), b2 = firstBase ? L('ДОБАВКА', 'ADDITIVE') : L('ОСНОВА', 'BASE'); x.font = F.tech(30, 700); x.fillText(`1 · ${a}`, MX + 140, y + 116); x.fillStyle = INK2; x.fillText(`2 · ${b2}`, MX + 140, y + 160);
       flask(x, W - MX - 250, y + 105, 120, firstBase ? 'VIOLET' : 'VERDANT', false); arrow(x, W - MX - 190, y + 105, W - MX - 130, y + 105); flask(x, W - MX - 70, y + 105, 120, firstBase ? 'VERDANT' : 'VIOLET', false); };
-    pol(230, '+', 'POSITIVE → BASE FIRST', true); pol(440, '−', 'NEGATIVE → ADDITIVE FIRST', false);
-    x.fillStyle = INK; x.font = F.display(700, 50); x.textAlign = 'left'; x.fillText('CONCENTRATION', MX, 740);
-    (Object.keys(DOSES) as (keyof typeof DOSES)[]).forEach((c, i) => { const y = 780 + i * 170; chip(x, MX, y, W - 2 * MX, 150, i === 1 ? '#efe2c4' : '#f6ead0'); x.fillStyle = INK; x.font = F.tech(38, 700); x.fillText(c, MX + 28, y + 90);
-      const [nb, na] = DOSES[c]; x.font = F.tech(28, 700); x.fillText('ОСНОВА', MX + 250, y + 62); x.fillText('ДОБАВКА', MX + 520, y + 62);
+    pol(230, '+', L('ПОЛОЖИТ. → СНАЧАЛА ОСНОВА', 'POSITIVE → BASE FIRST'), true); pol(440, '−', L('ОТРИЦАТ. → СНАЧАЛА ДОБАВКА', 'NEGATIVE → ADDITIVE FIRST'), false);
+    x.fillStyle = INK; x.font = F.display(700, 50); x.textAlign = 'left'; x.fillText(L('КОНЦЕНТРАЦИЯ', 'CONCENTRATION'), MX, 740);
+    (Object.keys(DOSES) as (keyof typeof DOSES)[]).forEach((c, i) => { const y = 780 + i * 170; chip(x, MX, y, W - 2 * MX, 150, i === 1 ? '#efe2c4' : '#f6ead0'); x.fillStyle = INK; x.font = F.tech(38, 700); x.fillText(c === 'LOW' ? L('НИЗКАЯ', 'LOW') : c === 'MEDIUM' ? L('СРЕДНЯЯ', 'MEDIUM') : L('ВЫСОКАЯ', 'HIGH'), MX + 28, y + 90);
+      const [nb, na] = DOSES[c]; x.font = F.tech(28, 700); x.fillText(L('ОСНОВА', 'BASE'), MX + 250, y + 62); x.fillText(L('ДОБАВКА', 'ADDITIVE'), MX + 520, y + 62);
       for (let k = 0; k < nb; k++) { x.fillStyle = OX; x.beginPath(); x.arc(MX + 275 + k * 46, y + 104, 17, 0, 7); x.fill(); }
       for (let k = 0; k < na; k++) { x.fillStyle = '#1d5a8a'; x.beginPath(); x.arc(MX + 545 + k * 46, y + 104, 17, 0, 7); x.fill(); }
       x.fillStyle = INK; x.font = F.mono(40, 700); x.textAlign = 'right'; x.fillText(`×${nb} / ×${na}`, W - MX - 24, y + 96); x.textAlign = 'left'; });
   } else { // SPREAD 3 right: unstable, inject, 45 s, workflow
-    header(x, 'SAFETY · INJECTION', 'Защита и впрыск', index + 1, side);
-    chip(x, MX, 230, W - 2 * MX, 250, '#f3d0c4'); x.fillStyle = OX; x.font = F.tech(36, 700); x.textAlign = 'left'; x.fillText('UNSTABLE → COOLING LOCK FIRST', MX + 30, 290);
-    x.fillStyle = INK; x.font = F.tech(28, 600); x.fillText('ВКЛЮЧИТЕ ЗАМОК ОХЛАЖДЕНИЯ', MX + 30, 336); x.fillText('ДО ПЕРВОЙ ДОЗЫ НЕСТАБИЛЬНОГО', MX + 30, 374);
+    header(x, L('ЗАЩИТА · ВПРЫСК', 'SAFETY · INJECTION'), L('Защита и впрыск', 'Safety & Injection'), index + 1, side);
+    chip(x, MX, 230, W - 2 * MX, 250, '#f3d0c4'); x.fillStyle = OX; x.textAlign = 'left'; { const t = L('НЕСТАБИЛЕН → СНАЧАЛА ЗАМОК', 'UNSTABLE → COOLING LOCK FIRST'); fit(x, t, W - MX - 220 - (MX + 30), 36); x.fillText(t, MX + 30, 290); }
+    x.fillStyle = INK; x.font = F.tech(28, 600); x.fillText(L('ВКЛЮЧИТЕ ЗАМОК ОХЛАЖДЕНИЯ', 'ENGAGE THE COOLING LOCK'), MX + 30, 336); x.fillText(L('ДО ПЕРВОЙ ДОЗЫ НЕСТАБИЛЬНОГО', 'BEFORE THE FIRST UNSTABLE DOSE'), MX + 30, 374);
     // lever + snowflake
     const lx = W - MX - 150, ly = 380; x.strokeStyle = INK; x.lineWidth = 12; x.lineCap = 'round'; x.beginPath(); x.moveTo(lx, ly); x.lineTo(lx + 50, ly - 90); x.stroke(); x.fillStyle = '#8a652a'; x.beginPath(); x.arc(lx, ly, 20, 0, 7); x.fill();
     x.strokeStyle = '#1d6aa0'; x.lineWidth = 6; for (let k = 0; k < 3; k++) { const a = k * Math.PI / 3; x.beginPath(); x.moveTo(lx + 100 - Math.cos(a) * 40, ly - 60 - Math.sin(a) * 40); x.lineTo(lx + 100 + Math.cos(a) * 40, ly - 60 + Math.sin(a) * 40); x.stroke(); }
-    x.fillStyle = OX; x.font = `700 32px ${HAND}`; x.fillText('без замка — смесь вскипит и сольётся!', MX + 30, 448);
+    x.fillStyle = OX; x.font = `700 32px ${HAND}`; x.fillText(L('без замка — смесь вскипит и сольётся!', 'without it the mixture boils and drains!'), MX + 30, 448);
     chip(x, MX, 520, W - 2 * MX, 170, '#dfe9d2'); x.fillStyle = '#7a1a10'; x.beginPath(); x.arc(MX + 95, 605, 52, 0, 7); x.fill(); x.strokeStyle = '#3a2410'; x.lineWidth = 8; x.stroke();
-    x.fillStyle = INK; x.font = F.tech(36, 700); x.fillText('INJECT → CONFIRM FORMULA', MX + 180, 590); x.font = F.tech(26, 600); x.fillStyle = INK2; x.fillText('НЕВЕРНО → СЛИВ, ПОВТОРИТЕ', MX + 180, 632);
+    x.fillStyle = INK; x.font = F.tech(36, 700); x.fillText(L('ВПРЫСК → ПОДТВЕРДИТЬ ФОРМУЛУ', 'INJECT → CONFIRM FORMULA'), MX + 180, 590); x.font = F.tech(26, 600); x.fillStyle = INK2; x.fillText(L('НЕВЕРНО → СЛИВ, ПОВТОРИТЕ', 'WRONG → DRAIN, TRY AGAIN'), MX + 180, 632);
     // 45 s ribbon
-    x.font = F.tech(46, 700); const label = '45 СЕКУНД', rw = x.measureText(label).width + 70; x.fillStyle = OX; x.beginPath(); x.moveTo(MX, 730); x.lineTo(MX + rw, 730); x.lineTo(MX + rw - 20, 765); x.lineTo(MX + rw, 800); x.lineTo(MX, 800); x.closePath(); x.fill(); x.fillStyle = '#f6ead0'; x.fillText(label, MX + 22, 783);
-    const steps = ['СИМВОЛ + CLASS → ОСНОВА', 'REACTION → ДОБАВКА', 'POLARITY → ПОРЯДОК', 'CONCENTRATION → ДОЗЫ', 'ЗАМОК (если UNSTABLE) → ДОЗЫ → INJECT'];
+    x.font = F.tech(46, 700); const label = L('45 СЕКУНД', '45 SECONDS'), rw = x.measureText(label).width + 70; x.fillStyle = OX; x.beginPath(); x.moveTo(MX, 730); x.lineTo(MX + rw, 730); x.lineTo(MX + rw - 20, 765); x.lineTo(MX + rw, 800); x.lineTo(MX, 800); x.closePath(); x.fill(); x.fillStyle = '#f6ead0'; x.fillText(label, MX + 22, 783);
+    const steps = LANG === 'ru' ? ['СИМВОЛ + КЛАСС → ОСНОВА', 'РЕАКЦИЯ → ДОБАВКА', 'ПОЛЯРНОСТЬ → ПОРЯДОК', 'КОНЦЕНТРАЦИЯ → ДОЗЫ', 'ЗАМОК (если НЕСТАБИЛЕН) → ДОЗЫ → ВПРЫСК'] : ['SYMBOL + CLASS → BASE', 'REACTION → ADDITIVE', 'POLARITY → ORDER', 'CONCENTRATION → DOSES', 'LOCK (if UNSTABLE) → DOSES → INJECT'];
     steps.forEach((t, i) => { const y = 850 + i * 92; chip(x, MX, y, W - 2 * MX, 76, i % 2 ? '#f6ead0' : '#efdfba'); x.fillStyle = OX; x.font = F.mono(40, 700); x.fillText(String(i + 1), MX + 22, y + 53); x.fillStyle = INK; x.font = F.tech(30, 700); x.fillText(t, MX + 80, y + 50); });
   }
 }

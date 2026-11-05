@@ -81,7 +81,7 @@ function handle(event){const payload=event.payload||{};heartbeatWatch.acknowledg
   if(state&&payload.revision<state.revision)return;
   const previousMatch=state?.impostor?.sessionId;
   const oldPhase=state?.impostor?.phase;
-  state=payload;
+  state=payload; if(payload.language==='ru'||payload.language==='en'){try{sessionStorage.setItem('finalanswer-lang',payload.language);localStorage.setItem('finalanswer-lang',payload.language);}catch{}}
   impostorPhoneAudio.sync(state,event.type);
   const settings=state.impostorSettings;
   document.body.dataset.reducedMotion=String(!!settings?.reducedMotion);

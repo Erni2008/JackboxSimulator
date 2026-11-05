@@ -31,8 +31,8 @@ export function plate(text: string, sub: string, w: number, h: number, style: 'b
     x.strokeStyle = style === 'enamel' ? '#c8a060' : 'rgba(40,24,8,.75)'; x.lineWidth = Math.max(4, H * .06); x.strokeRect(H * .08, H * .08, W - H * .16, H - H * .16);
     x.textAlign = 'center'; x.textBaseline = 'middle'; const fs = Math.min(H * (sub ? .4 : .55), W * 1.6 / Math.max(6, text.length));
     if (style === 'warning') { x.fillStyle = 'rgba(217,165,20,.95)'; x.fillRect(W * .04, H * .34, W * .92, H * .32); }
-    x.font = `700 ${style === 'warning' ? fs * .62 : fs}px ${SERIF}`; x.fillStyle = style === 'enamel' ? '#ffe9c4' : '#1c1107'; x.fillText(text, W / 2, style === 'warning' ? H * .51 : sub ? H * .4 : H * .53);
-    if (sub && style !== 'warning') { x.font = `600 ${H * .2}px ${TECH}`; x.fillStyle = style === 'brass' ? '#2e1d0a' : '#ff8a5c'; x.fillText(sub, W / 2, H * .74); }
+    let f1 = style === 'warning' ? fs * .62 : fs; x.font = `700 ${f1}px ${SERIF}`; while (x.measureText(text).width > W * (style === 'warning' ? .86 : .88) && f1 > 8) { f1 *= .93; x.font = `700 ${f1}px ${SERIF}`; } /* fit any language */ x.fillStyle = style === 'enamel' ? '#ffe9c4' : '#1c1107'; x.fillText(text, W / 2, style === 'warning' ? H * .51 : sub ? H * .4 : H * .53);
+    if (sub && style !== 'warning') { let f2 = H * .2; x.font = `600 ${f2}px ${TECH}`; while (x.measureText(sub).width > W * .88 && f2 > 6) { f2 *= .93; x.font = `600 ${f2}px ${TECH}`; } x.fillStyle = style === 'brass' ? '#2e1d0a' : '#ff8a5c'; x.fillText(sub, W / 2, H * .74); }
   });
   const face = new T.MeshStandardMaterial({map: t, emissiveMap: t, emissive: '#ffffff', emissiveIntensity: .3, metalness: .5, roughness: .45}), edge = new T.MeshStandardMaterial({color: '#6e5129', metalness: .8, roughness: .5});
   return new T.Mesh(new T.BoxGeometry(w, h, .004), [edge, edge, edge, edge, face, edge]);

@@ -1,3 +1,4 @@
+import {L} from '../i18n';
 // Programmatic page rendering: paper, letterpress text, engraved diagrams and
 // handwritten notes are all drawn here. Nothing is baked into image files.
 import type {ManualPage, ManualContent, Diagram, Annotation, SymbolGlyph} from './content';
@@ -163,7 +164,7 @@ function titlePage(ctx: CanvasRenderingContext2D, content: ManualContent, r: () 
   ctx.font = `44px ${PICA}`; letterpress(ctx, () => ctx.fillText('THE', cx, 420), r);
   ctx.font = `96px ${PICA}`; letterpress(ctx, () => ctx.fillText('ENGINEER’S', cx, 530), r); letterpress(ctx, () => ctx.fillText('MANUAL', cx, 640), r);
   ctx.font = `italic 32px ${ITAL}`; letterpress(ctx, () => ctx.fillText('for the Safe Operation & Repair', cx, 720), r); letterpress(ctx, () => ctx.fillText('of the Passenger Car', cx, 762), r);
-  ctx.fillStyle = '#6a1013'; ctx.font = "italic 500 30px 'Lora', Georgia, serif"; letterpress(ctx, () => ctx.fillText('Руководство инженера \u00b7 издание для кабины № 7', cx, 818), r); ctx.fillStyle = INK;
+  ctx.fillStyle = '#6a1013'; ctx.font = "italic 500 30px 'Lora', Georgia, serif"; letterpress(ctx, () => ctx.fillText(L('Руководство инженера \u00b7 издание для кабины № 7', 'Engineer’s manual \u00b7 edition for car No 7'), cx, 818), r); ctx.fillStyle = INK;
   // engraved emblem: cog with lift car
   ctx.save(); ctx.translate(cx, 950); ctx.lineWidth = 2.2;
   for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2; ctx.save(); ctx.rotate(a); ctx.fillRect(-7, -118, 14, 20); ctx.restore(); }

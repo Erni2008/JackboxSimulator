@@ -2,6 +2,7 @@
 // push-button and the read-only NORMAL / EMERGENCY mode selector. The fault shown
 // is never decided here — it is supplied from outside (dev config now, puzzle later).
 import * as T from 'three';
+import {L as tr} from '../i18n';
 import {metal} from './surface';
 import {rng} from '../manual/page-art';
 
@@ -85,11 +86,11 @@ export class AnalogMeter {
       x.strokeStyle = '#2a1a0c'; x.lineWidth = 3; x.beginPath(); x.arc(c, c, 196, ang(0), ang(10)); x.stroke();
       for (let v = 0; v <= 10; v += .5) { const a = ang(v), big = v % 1 === 0; x.lineWidth = big ? 4 : 2; x.beginPath(); x.moveTo(c + Math.cos(a) * (big ? 164 : 178), c + Math.sin(a) * (big ? 164 : 178)); x.lineTo(c + Math.cos(a) * 196, c + Math.sin(a) * 196); x.stroke();
         if (big) { x.font = `700 44px 'Cinzel', serif`; x.fillStyle = '#120a03'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(v), c + Math.cos(a) * 132, c + Math.sin(a) * 132); } }
-      x.textAlign = 'center'; x.fillStyle = '#120a03'; x.font = `700 36px ${FONT}`; x.fillText('AMPERES', c, c + 70); x.font = `600 24px ${FONT}`; x.fillText('HARTWELL · LONDON', c, c + 104);
+      x.textAlign = 'center'; x.fillStyle = '#120a03'; x.font = `700 36px ${FONT}`; x.fillText(tr('АМПЕРЫ', 'AMPERES'), c, c + 70); x.font = `600 24px ${FONT}`; x.fillText('HARTWELL · LONDON', c, c + 104);
       // fault legend along the outer rim (outside the needle's sweep)
       const arcText = (t: string, v: number, col: string) => { x.save(); x.fillStyle = col; x.font = `800 25px ${TECH}`; const a0 = ang(v), chars = [...t], step = .062; let a = a0 - (chars.length - 1) * step / 2;
         for (const ch of chars) { x.save(); x.translate(c + Math.cos(a) * 232, c + Math.sin(a) * 232); x.rotate(a + Math.PI / 2); x.textAlign = 'center'; x.fillText(ch, 0, 0); x.restore(); a += step; } x.restore(); };
-      arcText('POWER FAILURE', 1.3, '#120a03'); arcText('SHORT CIRCUIT', 5, '#120a03'); arcText('OVERLOAD', 9, '#b01808');
+      arcText(tr('НЕТ ПИТАНИЯ', 'POWER FAILURE'), 1.3, '#120a03'); arcText(tr('ЗАМЫКАНИЕ', 'SHORT CIRCUIT'), 5, '#120a03'); arcText(tr('ПЕРЕГРУЗКА', 'OVERLOAD'), 9, '#b01808');
     });
   }
   private scratches() { return tex(256, 256, x => { x.fillStyle = '#1a1a1a'; x.fillRect(0, 0, 256, 256); const r = rng(31); x.strokeStyle = '#d0d0d0'; for (let i = 0; i < 70; i++) { x.globalAlpha = .2 + r() * .6; x.lineWidth = .5 + r(); x.beginPath(); const px = r() * 256, py = r() * 256, a = r() * 7, l = 10 + r() * 90; x.moveTo(px, py); x.lineTo(px + Math.cos(a) * l, py + Math.sin(a) * l); x.stroke(); } }, false); }
@@ -125,7 +126,7 @@ export class TestButton {
     const ring = new T.Mesh(new T.TorusGeometry(.024, .004, 10, 32), M.brass); ring.position.z = .013; this.group.add(ring);
     this.cap = new T.Mesh(new T.SphereGeometry(.02, 32, 12, 0, Math.PI * 2, 0, Math.PI / 2), new T.MeshPhysicalMaterial({color: '#9a7740', metalness: .92, roughness: .32, clearcoat: .2}));
     this.cap.rotation.x = Math.PI / 2; this.cap.scale.set(1, .55, 1); this.cap.position.z = .014; this.cap.castShadow = true; this.group.add(this.cap);
-    const plate = labelPlate('TEST CIRCUIT', .1, .026, 46, 'enamel', {screws: true}); plate.position.set(0, -.05, .002); this.group.add(plate);
+    const plate = labelPlate(tr('ТЕСТ ЦЕПИ', 'TEST CIRCUIT'), .1, .026, 46, 'enamel', {screws: true}); plate.position.set(0, -.05, .002); this.group.add(plate);
     this.pick.push(this.cap, bezel, ring, plate);
   }
   push() { this.pressT = .22; }
@@ -141,7 +142,7 @@ export class ModeSelector {
     const face = new T.Mesh(new T.CircleGeometry(.045, 48), new T.MeshPhysicalMaterial({metalness: .6, roughness: .5, emissive: '#6a4a22', emissiveIntensity: .5, map: tex(256, 256, x => {
       const g = x.createRadialGradient(128, 128, 10, 128, 128, 128); g.addColorStop(0, '#b18c52'); g.addColorStop(1, '#6e5129'); x.fillStyle = g; x.fillRect(0, 0, 256, 256);
       x.save(); x.translate(128, 128); x.fillStyle = '#0e0802'; x.font = `800 30px ${TECH}`; x.textAlign = 'center';
-      for (const [label, a] of [['NORMAL', -Math.PI / 4], ['EMERGENCY', Math.PI / 4]] as const) { x.save(); x.rotate(a); x.fillText(label, 0, -88); x.fillRect(-2, -78, 4, 14); x.restore(); }
+      for (const [label, a] of [[tr('НОРМА', 'NORMAL'), -Math.PI / 4], [tr('АВАРИЯ', 'EMERGENCY'), Math.PI / 4]] as const) { x.save(); x.rotate(a); x.fillText(label, 0, -88); x.fillRect(-2, -78, 4, 14); x.restore(); }
       x.restore(); x.strokeStyle = 'rgba(40,25,8,.8)'; x.lineWidth = 4; x.beginPath(); x.arc(128, 128, 124, 0, 7); x.stroke(); })}));
     face.position.z = .0042; this.group.add(face);
     plate.rotation.x = Math.PI / 2; plate.position.z = .002; this.group.add(plate);
@@ -156,7 +157,7 @@ export class ModeSelector {
   /** set by the puzzle configuration only */
   /** set by the puzzle configuration only; the window plate spells the mode out (not colour-only) */
   setMode(m: Mode) { this.mode = m; this.target = m === 'normal' ? Math.PI / 4 : -Math.PI / 4;
-    const plate = labelPlate(m === 'normal' ? 'NORMAL' : 'EMERGENCY', .09, .026, 40, 'enamel', {sub: 'MODE', screws: false});
+    const plate = labelPlate(m === 'normal' ? tr('НОРМА', 'NORMAL') : tr('АВАРИЯ', 'EMERGENCY'), .09, .026, 40, 'enamel', {sub: tr('РЕЖИМ', 'MODE'), screws: false});
     (this.window.geometry as any)?.dispose?.(); this.window.geometry = plate.geometry; this.window.material = plate.material; }
   /** the player can try it: it is locked, so it only judders against its detent */
   tryTurn() { this.shake = .35; }

@@ -54,11 +54,14 @@ public class FinalAnswerGame extends Game {
         displayManager.apply(settings);
     }
 
+    /** push the game language to the room (host only, when connected) */
+    private void shareLanguage(){ if(activeRoom!=null&&activeRoom.host()&&realtime!=null&&realtime.connected()&&settings!=null) realtime.send("SET_LANGUAGE",java.util.Map.of("language",settings.language())); }
+
     public void commitSettings(GameSettings candidate) {
         displayManager.apply(candidate);
         settingsStore.save(candidate);
         settings = candidate;
-        previewLanguage(candidate.language());
+        previewLanguage(candidate.language()); shareLanguage();
         refreshMotion();
     }
 
@@ -226,6 +229,8 @@ public class FinalAnswerGame extends Game {
         String type=event.get("type").getAsString();
         var data=event.getAsJsonObject("payload");
         if (type.equals("ROOM_CLOSED")) { leaveRoom(); showMainMenu(); return; }
+        // the host tells the room which language the game runs in (phones and THE BROKEN ELEVATOR follow it)
+        if (activeRoom.host() && type.equals("AUTHENTICATED")) shareLanguage();
         if (type.equals("ERROR")) { Gdx.app.log("Lobby","server error "+data); lobbyStatus=data.get("code").getAsString(); if(cageLobbyScreen!=null)cageLobbyScreen.startRejected(); return; }
         if(type.equals("CURSED_ACTION_REJECTED")&&(getScreen()==cageLobbyScreen||getScreen()==networkCursedLoading)){lobbyStatus=data.get("code").getAsString();return;}
         if (!data.has("players")) return;

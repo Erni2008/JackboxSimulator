@@ -8,6 +8,7 @@
 //   bottom   piston pump + output tube to the cooling line, waste drain, and a brass ledge holding THE ALCHEMIST'S JOURNAL
 // The apparatus renders the server's view and reports actions; it never decides anything.
 import * as T from 'three';
+import {L as tr} from '../i18n';
 import {materials, plate, lamp, canvasTex, QUARTER, TECH} from './pressure-parts';
 import {Control, Lever, PushButton, type Feedback} from './pressure-controls';
 import {flowMaterial, liquidMaterial, glassMaterial, bubbleField, type LiquidUniforms} from './liquid';
@@ -44,9 +45,9 @@ export class Laboratory {
     for (const [w, h, x, y] of [[W, .02, 0, H / 2 - .01], [W, .02, 0, -H / 2 + .01], [.02, H, -W / 2 + .01, 0], [.02, H, W / 2 - .01, 0]] as const) { const f = new T.Mesh(new T.BoxGeometry(w, h, .01), m.brassDark); f.position.set(x, y, .026); this.group.add(f); }
     const boltGeo = new T.CylinderGeometry(.008, .009, .008, 6); boltGeo.rotateX(QUARTER); const bolts: [number, number][] = []; for (let i = 0; i <= 12; i++) bolts.push([-W / 2 + .02 + i * (W - .04) / 12, H / 2 - .01], [-W / 2 + .02 + i * (W - .04) / 12, -H / 2 + .01]);
     const bi = new T.InstancedMesh(boltGeo, m.bolt, bolts.length); const m4 = new T.Matrix4(); bolts.forEach(([x, y], i) => { m4.makeTranslation(x, y, .033); bi.setMatrixAt(i, m4); }); this.group.add(bi);
-    const title = plate('COOLING FORMULA', 'HARTWELL LABORATORY · No 7', .3, .045, 'brass'); title.position.set(-.3, .36, .03); this.group.add(title);
+    const title = plate(tr('ФОРМУЛА ОХЛАЖДЕНИЯ', 'COOLING FORMULA'), tr('ЛАБОРАТОРИЯ ХАРТВЕЛЛА · № 7', 'HARTWELL LABORATORY · No 7'), .3, .045, 'brass'); title.position.set(-.3, .36, .03); this.group.add(title);
     // ---- status window
-    this.statusCanvas.width = 1024; this.statusCanvas.height = 140; this.statusTex = new T.CanvasTexture(this.statusCanvas); this.statusTex.colorSpace = T.SRGBColorSpace; this.drawStatus('READY', '#ffb347');
+    this.statusCanvas.width = 1024; this.statusCanvas.height = 140; this.statusTex = new T.CanvasTexture(this.statusCanvas); this.statusTex.colorSpace = T.SRGBColorSpace; this.drawStatus(tr('ГОТОВ', 'READY'), '#ffb347');
     const sw = new T.Mesh(new T.PlaneGeometry(.38, .052), new T.MeshStandardMaterial({map: this.statusTex, emissiveMap: this.statusTex, emissive: '#ffffff', emissiveIntensity: .9})); sw.position.set(.2, .36, .03); this.group.add(sw);
     const sf = new T.Mesh(new T.BoxGeometry(.395, .066, .008), m.brass); sf.position.set(.2, .36, .024); this.group.add(sf);
 
@@ -95,27 +96,27 @@ export class Laboratory {
     const dv = new T.Mesh(new T.CylinderGeometry(.016, .016, .03, 16), m.brassDark); dv.position.set(0, CH_Y - CH_H / 2 - .035, CH_Z); this.group.add(dv);
     const dcurve = new T.CatmullRomCurve3([v3(0, CH_Y - CH_H / 2 - .02, CH_Z), v3(0, -.34, CH_Z), v3(.02, -.38, .08), v3(.05, -.4, .05)]);
     this.group.add(new T.Mesh(new T.TubeGeometry(dcurve, 20, .009, 10, false), tubeGlass)); this.drainFlow = flowMaterial(new T.Color('#6a7a20')); this.group.add(new T.Mesh(new T.TubeGeometry(dcurve, 20, .006, 8, false), this.drainFlow));
-    const dp = plate('WASTE', '', .06, .02, 'brass'); dp.position.set(-.05, -.37, .03); this.group.add(dp);
+    const dp = plate(tr('СЛИВ', 'WASTE'), '', .06, .02, 'brass'); dp.position.set(-.05, -.37, .03); this.group.add(dp);
     // output line: chamber → pump → cooling system
     const ocurve = new T.CatmullRomCurve3([v3(CH_R * .9, CH_Y - .07, CH_Z), v3(.15, -.27, .1), v3(.26, -.28, .08), v3(.4, -.28, .06), v3(.44, -.2, .05), v3(.44, .05, .05)]);
     this.group.add(new T.Mesh(new T.TubeGeometry(ocurve, 40, .009, 10, false), tubeGlass)); this.outFlow = flowMaterial(new T.Color('#2fd0ff')); this.group.add(new T.Mesh(new T.TubeGeometry(ocurve, 40, .006, 8, false), this.outFlow));
     const pump = new T.Mesh(new T.CylinderGeometry(.024, .024, .07, 20), m.brassDark); pump.position.set(.26, -.33, .06); this.group.add(pump);
     this.piston = new T.Mesh(new T.CylinderGeometry(.008, .008, .07, 10), m.bolt); this.piston.position.set(.26, -.28, .06); this.group.add(this.piston);
-    const cp = plate('TO COOLING', '', .09, .02, 'brass'); cp.position.set(.4, -.33, .03); this.group.add(cp);
+    const cp = plate(tr('В ОХЛАЖДЕНИЕ', 'TO COOLING'), '', .09, .02, 'brass'); cp.position.set(.4, -.33, .03); this.group.add(cp);
 
     // ---- analyzer (left)
     this.anCanvas.width = 560; this.anCanvas.height = 480; this.anTex = new T.CanvasTexture(this.anCanvas); this.anTex.colorSpace = T.SRGBColorSpace; this.anTex.anisotropy = 16;
     const an = new T.Mesh(new T.PlaneGeometry(.24, .206), new T.MeshStandardMaterial({map: this.anTex, emissiveMap: this.anTex, emissive: '#ffffff', emissiveIntensity: .9})); an.position.set(-.3, -.15, .03); this.group.add(an);
     const af = new T.Mesh(new T.BoxGeometry(.256, .222, .01), m.brass); af.position.set(-.3, -.15, .024); this.group.add(af);
-    const ap = plate('SAMPLE ANALYZER', '', .16, .022, 'brass'); ap.position.set(-.3, -.03, .03); this.group.add(ap);
+    const ap = plate(tr('АНАЛИЗАТОР ОБРАЗЦА', 'SAMPLE ANALYZER'), '', .16, .022, 'brass'); ap.position.set(-.3, -.03, .03); this.group.add(ap);
 
     // ---- cooling lock + INJECT (right)
     this.lockLever = new Lever('lock', '#1d4f7a', m, [-.6, .6], p => this.emit(p ? 'LOCK_ON' : 'LOCK_OFF'), .07); this.lockLever.root.position.set(.25, -.1, .05); this.group.add(this.lockLever.root);
-    const lp = plate('COOLING LOCK', 'OFF · ON', .14, .036, 'brass'); lp.position.set(.25, -.19, .03); this.group.add(lp);
+    const lp = plate(tr('ЗАМОК ОХЛАЖДЕНИЯ', 'COOLING LOCK'), tr('ВЫКЛ · ВКЛ', 'OFF · ON'), .14, .036, 'brass'); lp.position.set(.25, -.19, .03); this.group.add(lp);
     const ll = lamp(.012, '#4dc4ff', m); ll.group.position.set(.32, -.03, .03); this.group.add(ll.group); this.lockLamp = ll.mat;
     const guard = new T.Mesh(new T.TorusGeometry(.05, .008, 10, 32), m.brass); guard.position.set(.38, -.25, .05); this.group.add(guard);
     this.inject = new PushButton('inject', m, () => this.emit('INJECT'), '#8a1408', 1.6); this.inject.root.position.set(.38, -.25, .024); this.group.add(this.inject.root);
-    const ip = plate('INJECT', '', .08, .024, 'warning'); ip.position.set(.38, -.175, .03); this.group.add(ip);
+    const ip = plate(tr('ВПРЫСК', 'INJECT'), '', .08, .024, 'warning'); ip.position.set(.38, -.175, .03); this.group.add(ip);
     const ok = lamp(.012, '#3dff6a', m); ok.group.position.set(.36, .3, .03); this.group.add(ok.group); this.okLamp = ok.mat;
     const bad = lamp(.012, '#ff2a10', m); bad.group.position.set(.42, .3, .03); this.group.add(bad.group); this.badLamp = bad.mat;
     this.redLight = new T.PointLight('#ff3010', 0, 1.2, 2); this.redLight.position.set(0, CH_Y, .3); this.group.add(this.redLight);
@@ -143,28 +144,30 @@ export class Laboratory {
   private drawStatus(text: string, color: string) {
     if (text + color === this.statusShown) return; this.statusShown = text + color; const x = this.statusCanvas.getContext('2d')!;
     x.fillStyle = '#0a0705'; x.fillRect(0, 0, 1024, 140); x.strokeStyle = 'rgba(255,170,60,.12)'; for (let y = 0; y < 140; y += 6) { x.beginPath(); x.moveTo(0, y); x.lineTo(1024, y); x.stroke(); }
-    x.font = `700 74px 'IBM Plex Mono', Menlo, monospace`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.shadowColor = color; x.shadowBlur = 24; x.fillStyle = color; x.fillText(text, 512, 74); this.statusTex.needsUpdate = true;
+    let fs = 74; do { x.font = `700 ${fs}px 'IBM Plex Mono', Menlo, monospace`; fs -= 3; } while (x.measureText(text).width > 960 && fs > 30); x.textAlign = 'center'; x.textBaseline = 'middle'; x.shadowColor = color; x.shadowBlur = 24; x.fillStyle = color; x.fillText(text, 512, 74); this.statusTex.needsUpdate = true;
   }
   private drawAnalyzer(v: LabView | null) {
     const key = v ? [v.sampleId, v.family, v.cls, v.reaction, v.polarity, v.concentration, v.unstable].join('|') : '-'; if (key === this.anShown) return; this.anShown = key;
     const x = this.anCanvas.getContext('2d')!; const g = x.createLinearGradient(0, 0, 0, 480); g.addColorStop(0, '#0d1410'); g.addColorStop(1, '#060a08'); x.fillStyle = g; x.fillRect(0, 0, 560, 480);
     x.strokeStyle = 'rgba(120,255,170,.08)'; for (let y = 0; y < 480; y += 5) { x.beginPath(); x.moveTo(0, y); x.lineTo(560, y); x.stroke(); }
     const C = '#8dffb4'; x.shadowColor = C; x.shadowBlur = 10; x.textBaseline = 'middle';
-    if (!v) { x.fillStyle = 'rgba(141,255,180,.5)'; x.font = `700 40px 'IBM Plex Mono', monospace`; x.textAlign = 'center'; x.fillText('NO SAMPLE', 280, 240); this.anTex.needsUpdate = true; return; }
+    if (!v) { x.fillStyle = 'rgba(141,255,180,.5)'; x.font = `700 40px 'IBM Plex Mono', monospace`; x.textAlign = 'center'; x.fillText(tr('НЕТ ОБРАЗЦА', 'NO SAMPLE'), 280, 240); this.anTex.needsUpdate = true; return; }
     const row = (label: string, value: string, y: number, big = false, col = C) => { x.textAlign = 'left'; x.fillStyle = 'rgba(141,255,180,.6)'; x.font = `600 28px ${TECH}`; x.fillText(label, 26, y); x.textAlign = 'right'; x.fillStyle = col; x.font = `700 ${big ? 54 : 40}px 'IBM Plex Mono', 'Apple Symbols', monospace`; x.fillText(value, 534, y); };
-    row('SAMPLE', v.sampleId, 46); x.strokeStyle = 'rgba(141,255,180,.35)'; x.beginPath(); x.moveTo(26, 78); x.lineTo(534, 78); x.stroke();
-    x.textAlign = 'left'; x.fillStyle = 'rgba(141,255,180,.6)'; x.font = `600 28px ${TECH}`; x.fillText('FAMILY', 26, 124); x.textAlign = 'right'; x.fillStyle = C; x.font = `84px 'Apple Symbols', 'Segoe UI Symbol', 'Noto Sans Symbols 2', serif`; x.fillText(SYMBOL[v.family], 534, 128);
-    row('CLASS', v.cls === 1 ? 'I' : 'II', 190, true); row('REACTION', v.reaction, 246, true); row('POLARITY', v.polarity === 'POSITIVE' ? '+ POSITIVE' : '− NEGATIVE', 302); row('CONCENTR.', v.concentration, 356);
-    if (v.unstable) { x.fillStyle = 'rgba(255,60,40,.18)'; x.fillRect(14, 388, 532, 76); row('UNSTABLE', v.unstable, 426, false, '#ff7a5a'); } else row('UNSTABLE', '—', 426);
+    row(tr('ОБРАЗЕЦ', 'SAMPLE'), v.sampleId, 46); x.strokeStyle = 'rgba(141,255,180,.35)'; x.beginPath(); x.moveTo(26, 78); x.lineTo(534, 78); x.stroke();
+    x.textAlign = 'left'; x.fillStyle = 'rgba(141,255,180,.6)'; x.font = `600 28px ${TECH}`; x.fillText(tr('СЕМЕЙСТВО', 'FAMILY'), 26, 124); x.textAlign = 'right'; x.fillStyle = C; x.font = `84px 'Apple Symbols', 'Segoe UI Symbol', 'Noto Sans Symbols 2', serif`; x.fillText(SYMBOL[v.family], 534, 128);
+    row(tr('КЛАСС', 'CLASS'), v.cls === 1 ? 'I' : 'II', 190, true); row(tr('РЕАКЦИЯ', 'REACTION'), v.reaction, 246, true); row(tr('ПОЛЯРНОСТЬ', 'POLARITY'), v.polarity === 'POSITIVE' ? tr('+ ПОЛОЖИТ.', '+ POSITIVE') : tr('− ОТРИЦАТ.', '− NEGATIVE'), 302); row(tr('КОНЦЕНТР.', 'CONCENTR.'), v.concentration === 'LOW' ? tr('НИЗКАЯ', 'LOW') : v.concentration === 'MEDIUM' ? tr('СРЕДНЯЯ', 'MEDIUM') : tr('ВЫСОКАЯ', 'HIGH'), 356);
+    if (v.unstable) { x.fillStyle = 'rgba(255,60,40,.18)'; x.fillRect(14, 388, 532, 76); row(tr('НЕСТАБИЛЕН', 'UNSTABLE'), v.unstable, 426, false, '#ff7a5a'); } else row(tr('НЕСТАБИЛЕН', 'UNSTABLE'), '—', 426);
     this.anTex.needsUpdate = true;
   }
 
   center() { return new T.Vector3(0, -.02, .1).applyMatrix4(this.group.matrixWorld); }
   hits(ray: T.Raycaster) { return ray.intersectObject(this.group, true).find(h => h.object.type !== 'Points') || null; }
   get dragging() { return !!this.active; }
-  pointerDown(ray: T.Raycaster, x: number, y: number, camera: T.Camera) { if (!this.enabled) return false; let best: Control | null = null, d = Infinity; for (const c of this.controls) { const h = ray.intersectObject(c.hit, false)[0]; if (h && h.distance < d) { d = h.distance; best = c; } } if (!best) return false; this.active = best; best.down(x, y, camera); return true; }
+  /** live gate checked at the moment of input (not one frame late) */
+  canAct: () => boolean = () => true;
+  pointerDown(ray: T.Raycaster, x: number, y: number, camera: T.Camera) { const live = this.enabled && this.canAct(); for (const c of this.controls) c.enabled = live; if (!this.enabled) return false; let best: Control | null = null, d = Infinity; for (const c of this.controls) { const h = ray.intersectObject(c.hit, false)[0]; if (h && h.distance < d) { d = h.distance; best = c; } } if (!best) return false; this.active = best; best.down(x, y, camera); return true; }
   pointerMove(x: number, y: number) { this.active?.move(x, y); }
-  pointerUp(tap: boolean) { const c = this.active; this.active = null; c?.up(tap); }
+  pointerUp(tap: boolean) { const c = this.active; this.active = null; if (c) c.enabled = this.enabled && this.canAct(); c?.up(tap); }
   controlScreen(id: string, camera: T.Camera) { const c = this.controls.find(k => k.id === id)!; const v = new T.Vector3().setFromMatrixPosition(c.root.matrixWorld).project(camera); return {x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight}; }
   reset() { this.lastEvent = -1; this.pour = null; this.fill = 0; this.mixKey = ''; this.rejectT = 9; this.successT = 9; this.clamps.forEach(c => c.position.x = c.userData.s * (CH_R + .03)); }
 
@@ -225,8 +228,8 @@ export class Laboratory {
     if (ok && this.successT >= 2.2 && this.successT - dt < 2.2) fx?.accepted();
     this.okLamp.emissiveIntensity = ok && this.successT > 2 ? 3 : 0;
     // ---- status window
-    const status: [string, string] = !v ? ['STANDBY', '#776655'] : ok ? (this.successT < 2 ? ['FORMULA ACCEPTED', '#8dffb4'] : ['COOLING SYSTEM RESTORED', '#8dffb4']) : v.outcome === 'FAILED' ? ['COOLING SYSTEM FAILED', '#ff5a3a']
-      : rj ? (v.event?.reason === 'UNSTABLE_UNPROTECTED' ? ['UNSTABLE', '#ff5a3a'] : ['FORMULA REJECTED', '#ff5a3a']) : this.pour || (this.stirSpeed > .2 && this.fill > .05) ? ['MIXING', '#ffd27a'] : ['READY', '#ffb347'];
+    const status: [string, string] = !v ? [tr('ОЖИДАНИЕ', 'STANDBY'), '#776655'] : ok ? (this.successT < 2 ? [tr('ФОРМУЛА ПРИНЯТА', 'FORMULA ACCEPTED'), '#8dffb4'] : [tr('ОХЛАЖДЕНИЕ ВОССТАНОВЛЕНО', 'COOLING SYSTEM RESTORED'), '#8dffb4']) : v.outcome === 'FAILED' ? [tr('ОТКАЗ ОХЛАЖДЕНИЯ', 'COOLING SYSTEM FAILED'), '#ff5a3a']
+      : rj ? (v.event?.reason === 'UNSTABLE_UNPROTECTED' ? [tr('НЕСТАБИЛЬНО', 'UNSTABLE'), '#ff5a3a'] : [tr('ФОРМУЛА ОТВЕРГНУТА', 'FORMULA REJECTED'), '#ff5a3a']) : this.pour || (this.stirSpeed > .2 && this.fill > .05) ? [tr('СМЕШИВАНИЕ', 'MIXING'), '#ffd27a'] : [tr('ГОТОВ', 'READY'), '#ffb347'];
     this.drawStatus(status[0], status[1]);
     this.emitSteam(dt);
   }

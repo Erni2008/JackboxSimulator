@@ -1,5 +1,7 @@
 // Dedicated test scene for THE ENGINEER'S MANUAL (THE BROKEN ELEVATOR, mode 5).
 import * as T from 'three';
+import {L, LANG, translateDom, followRoomLanguage} from './games/broken-elevator/i18n';
+import {RoomSocket} from './games/broken-elevator/puzzles/room-socket';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {EngineersManual, TH} from './games/broken-elevator/manual/book';
 import {ManualInteraction, type HoldState} from './games/broken-elevator/manual/interaction';
@@ -37,10 +39,11 @@ addEventListener('resize', resize); resize();
 const audio = new BookAudio();
 let timeScale = 1; // test hook: 0 freezes animation for frame-exact captures
 async function boot() {
-  $('load-text').textContent = 'Спуск…';
+  translateDom(); $('load-text').textContent = L('Спуск…', 'Descending…');
+  RoomSocket.shared()?.listen(ev => followRoomLanguage(ev.payload?.language));
   // cage.glb is the elevator; the old procedural cage stays available with ?cage=procedural
   const procedural = params.get('cage') === 'procedural';
-  $('load-text').textContent = 'Binding the manual…';
+  $('load-text').textContent = L('Переплетаем руководство…', 'Binding the manual…');
   // ?rules=<url> lets the server supply real puzzle rules (ManualContent JSON); otherwise the specimen
   const rules = params.get('rules') ? await loadManualContent(params.get('rules')!).catch(e => { console.warn(e); return SAMPLE_MANUAL; }) : SAMPLE_MANUAL;
   // wire puzzle: the manual prints the cutting RULES for this session; the box shows serial + wires
@@ -63,8 +66,8 @@ async function boot() {
   const cur = () => ManualInteraction.holder ?? ui;
   if (cage.shelf) { ui.place(cage.shelf.top.clone().add(new T.Vector3(0, TH / 2, 0)), new T.Quaternion().setFromEuler(new T.Euler(0, .04, 0))); const d = cage.shelf.top.clone().sub(eye); yaw = yawT = Math.atan2(-d.x, -d.z); pitch = pitchT = Math.atan2(d.y, Math.hypot(d.x, d.z)); }
   else ui.place(new T.Vector3(.06, TH / 2, -.22), new T.Quaternion().setFromEuler(new T.Euler(0, .5, 0)));
-  const hints: Record<HoldState, string> = {rest: mobile ? 'Ведите пальцем, чтобы осмотреться · нажмите на книгу, щиток, вентили или лабораторию' : 'Тяните мышью, чтобы осмотреться · кликните по книгам, щитку, вентилям или лаборатории', lifting: '', held: mobile ? 'Нажмите на обложку, чтобы открыть' : 'Кликните по обложке, чтобы открыть', reading: mobile ? 'Правая страница — вперёд, левая — назад · свайп · щипок для зума' : 'Правая страница — вперёд, левая — назад · колесо для зума', releasing: '', falling: ''};
-  const sync = (s: HoldState) => { if (ManualInteraction.holder && cur().state !== s) s = cur().state; $('hint').textContent = cur().lowered ? (mobile ? 'Книга опущена · нажмите на неё, чтобы поднять' : 'Книга опущена · кликните по ней, чтобы поднять') : hints[s]; $('btn-lower').hidden = !['held', 'reading'].includes(s); $('btn-lower').textContent = cur().lowered ? 'Поднять' : 'Опустить'; $('btn-open').hidden = s !== 'held'; $('btn-close').hidden = s !== 'reading'; $('btn-drop').hidden = !['held', 'reading'].includes(s); document.body.dataset.state = s; };
+  const hints: Record<HoldState, string> = {rest: mobile ? L('Ведите пальцем, чтобы осмотреться · нажмите на книгу, щиток, вентили или лабораторию', 'Drag to look around · tap a book, the fuse box, the valves or the laboratory') : L('Тяните мышью, чтобы осмотреться · кликните по книгам, щитку, вентилям или лаборатории', 'Drag to look around · click a book, the fuse box, the valves or the laboratory'), lifting: '', held: mobile ? L('Нажмите на обложку, чтобы открыть', 'Tap the cover to open') : L('Кликните по обложке, чтобы открыть', 'Click the cover to open'), reading: mobile ? L('Правая страница — вперёд, левая — назад · свайп · щипок для зума', 'Right page forward, left page back · swipe · pinch to zoom') : L('Правая страница — вперёд, левая — назад · колесо для зума', 'Right page forward, left page back · wheel to zoom'), releasing: '', falling: ''};
+  const sync = (s: HoldState) => { if (ManualInteraction.holder && cur().state !== s) s = cur().state; $('hint').textContent = cur().lowered ? (mobile ? L('Книга опущена · нажмите на неё, чтобы поднять', 'Book lowered · tap it to raise') : L('Книга опущена · кликните по ней, чтобы поднять', 'Book lowered · click it to raise')) : hints[s]; $('btn-lower').hidden = !['held', 'reading'].includes(s); $('btn-lower').textContent = cur().lowered ? L('Поднять', 'Raise') : L('Опустить', 'Lower'); $('btn-open').hidden = s !== 'held'; $('btn-close').hidden = s !== 'reading'; $('btn-drop').hidden = !['held', 'reading'].includes(s); document.body.dataset.state = s; };
   ui.onstate = jui.onstate = sync; sync('rest'); ui.onlower = jui.onlower = () => sync(cur().state); $('btn-lower').onclick = () => cur().setLowered(!cur().lowered);
   // junction box on the back wall, left of the shelf
   const box = new FuseBox(quality === 'high'); const ci = cage.inner as T.Box3 | undefined;
@@ -78,7 +81,8 @@ async function boot() {
   press.sounds = {click: () => audio.play('valveClick'), turn: () => audio.play('valveTurn'), grind: () => audio.play('grind'), lever: () => audio.play('lever'), press: () => { audio.play('button'); audio.play('relay'); }, pull: () => audio.play('lever'),
     knock: k => audio.play('pipeKnock', k), alarm: () => audio.play('alarm'), whistle: () => audio.play('whistle'), surge: () => audio.play('surge'), vent: k => audio.play('vent', k), burst: () => audio.play('burst'), explosion: () => audio.play('explosion'), tick: k => audio.play('holdTick', k), steam: (h, r) => audio.steam(h, r)};
   const link = new PressureLink(); press.onAction = a => link.act(a);
-  link.onRejected = code => { if (code === 'EMERGENCY_USED') { $('hint').textContent = 'Аварийный сброс уже использован'; $('hint').style.opacity = '1'; } };
+  press.canAct = () => link.view()?.outcome === 'RUNNING';
+  link.onRejected = code => { if (code === 'EMERGENCY_USED') { $('hint').textContent = L('Аварийный сброс уже использован', 'Emergency release already used'); $('hint').style.opacity = '1'; } };
   link.onStatus = t => { if (t) $('hint').textContent = t; };
   // THE UNSTABLE FORMULA: laboratory on the left-hand wall; the journal rests on its ledge
   const lab = new Laboratory(quality === 'high');
@@ -88,7 +92,8 @@ async function boot() {
   lab.sounds = {click: () => audio.play('valveClick'), turn: () => audio.play('valveTurn'), grind: () => audio.play('grind'), lever: () => audio.play('lever'), press: () => audio.play('button'), pull: () => audio.play('lever'),
     pour: () => audio.play('pour'), splash: () => audio.play('splash'), stir: on => { if (on) audio.play('stir'); }, inject: () => { audio.play('button'); audio.play('relay'); }, pump: () => audio.play('pump'), accepted: () => audio.play('labOk'), unstable: () => audio.play('boil'), steam: () => audio.play('vent', .8), drain: () => audio.play('gurgle'), bubble: () => audio.play('splash')};
   const flink = new FormulaLink(); lab.onAction = (a, r) => flink.act(a, r);
-  lab.onEvent = e => { if (e.type === 'REJECTED') verdict(false, e.reason === 'UNSTABLE_UNPROTECTED' ? 'UNSTABLE · ЗАМОК ОХЛАЖДЕНИЯ НЕ ВКЛЮЧЁН' : 'FORMULA REJECTED · СЛИВ, ПОПРОБУЙТЕ СНОВА', e.reason === 'UNSTABLE_UNPROTECTED' ? 'Нестабильная реакция' : 'Формула отвергнута'); };
+  lab.canAct = () => { const v = flink.view(); return !!v && v.outcome === 'RUNNING' && !v.draining; };
+  lab.onEvent = e => { if (e.type === 'REJECTED') verdict(false, e.reason === 'UNSTABLE_UNPROTECTED' ? L('UNSTABLE · ЗАМОК ОХЛАЖДЕНИЯ НЕ ВКЛЮЧЁН', 'UNSTABLE · COOLING LOCK WAS OFF') : L('FORMULA REJECTED · СЛИВ, ПОПРОБУЙТЕ СНОВА', 'FORMULA REJECTED · DRAINED, TRY AGAIN'), e.reason === 'UNSTABLE_UNPROTECTED' ? L('Нестабильная реакция', 'Unstable reaction') : L('Формула отвергнута', 'Formula rejected')); };
   let valvePointer: number | null = null;
   let focusTo: [number, number] | null = null, inspecting = false, inspectK = 0, inspectTarget: 'box' | 'pressure' | 'lab' = 'box';
   const TOTAL = 12, LIMIT = 60; let taskNo = 1, deadline = 0, taskSeed = seed, pending: any = 0;
@@ -96,10 +101,10 @@ async function boot() {
   type Kind = 'wire' | 'pressure' | 'formula'; const ORDER: Kind[] = ['wire', 'pressure', 'formula']; const start0 = Math.max(0, ORDER.indexOf((params.get('task') || 'wire') as Kind));
   const kindOf = (n: number): Kind => ORDER[(start0 + n - 1) % 3];
   let kind: Kind = kindOf(1);
-  const hud = () => { $('task').textContent = `ЗАДАНИЕ ${taskNo} / ${TOTAL} · ${kind === 'pressure' ? 'КЛАПАНЫ' : kind === 'formula' ? 'ФОРМУЛА' : 'ПРОВОДА'}`; };
+  const hud = () => { $('task').textContent = `${L('ЗАДАНИЕ', 'TASK')} ${taskNo} / ${TOTAL} · ${kind === 'pressure' ? L('КЛАПАНЫ', 'VALVES') : kind === 'formula' ? L('ФОРМУЛА', 'FORMULA') : L('ПРОВОДА', 'WIRES')}`; };
   // result card: low on screen (≈85 % of the viewport), fades in, a small mechanical jolt, holds, fades out (~2 s)
   let verdictTimer: any = 0;
-  const verdict = (ok: boolean, sub: string, title?: string) => { const v = $('verdict'); v.querySelector('b')!.textContent = title ?? (ok ? 'Цепь стабилизирована' : 'Критическая ошибка'); v.querySelector('span')!.textContent = sub; v.dataset.tone = ok ? 'good' : 'bad';
+  const verdict = (ok: boolean, sub: string, title?: string) => { const v = $('verdict'); v.querySelector('b')!.textContent = title ?? (ok ? L('Цепь стабилизирована', 'Circuit stabilised') : L('Критическая ошибка', 'Critical error')); v.querySelector('span')!.textContent = sub; v.dataset.tone = ok ? 'good' : 'bad';
     v.classList.remove('show'); void v.offsetWidth; v.classList.add('show'); clearTimeout(verdictTimer); verdictTimer = setTimeout(() => v.classList.remove('show'), 2300); if (!ok) { document.body.classList.remove('jolt'); void document.body.offsetWidth; document.body.classList.add('jolt'); } };
   const newTask = (advance: boolean) => { if (advance) taskNo = Math.min(TOTAL, taskNo + 1); taskSeed++; kind = kindOf(taskNo);
     const t = makeTask(wireRules, taskSeed, wireCount || 4 + Math.floor(Math.random() * 3), fixed); box.setTask(t); box.configure(t.fault, t.mode); deadline = 0;
@@ -111,7 +116,7 @@ async function boot() {
   let formulaDone = false;
   flink.onOutcome = (o, reason) => { if (kind !== 'formula' || formulaDone) return; formulaDone = true; lab.enabled = false; const ok = o === 'STABILIZED'; void reason;
     if (!ok) audio.play('bad');
-    verdict(ok, ok ? 'COOLING SYSTEM RESTORED · СПУСК ОСТАНОВЛЕН' : 'COOLING SYSTEM FAILED · ВРЕМЯ ВЫШЛО', ok ? 'Система охлаждения восстановлена' : 'Отказ системы охлаждения'); if (!ok) setTimeout(() => cage.drop?.(.8), 350);
+    verdict(ok, ok ? L('COOLING SYSTEM RESTORED · СПУСК ОСТАНОВЛЕН', 'DESCENT HALTED') : L('COOLING SYSTEM FAILED · ВРЕМЯ ВЫШЛО', 'TIME RAN OUT'), ok ? L('Система охлаждения восстановлена', 'Cooling system restored') : L('Отказ системы охлаждения', 'Cooling system failed')); if (!ok) setTimeout(() => cage.drop?.(.8), 350);
     clearTimeout(pending); pending = setTimeout(() => { if (inspecting && inspectTarget === 'lab') setInspect(false); setTimeout(() => newTask(ok), 400); }, ok ? 3300 : 2600); };
   // PRESSURE CONTROL outcome: decided by the server in a room (locally in practice); the client only reacts
   let pressureDone = false;
@@ -120,10 +125,10 @@ async function boot() {
     const blast = !ok && reason === 'CRITICAL';
     audio.play(ok ? 'good' : 'bad'); if (!ok && !blast) audio.play('burst');
     if (blast) { shake = 1.7; const f = $('blast'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); document.body.classList.remove('jolt'); void document.body.offsetWidth; document.body.classList.add('jolt'); }
-    verdict(ok, ok ? 'PRESSURE STABILIZED · СПУСК ОСТАНОВЛЕН' : 'PRESSURE SYSTEM FAILED · ' + (reason === 'CRITICAL' ? '120 PSI' : 'ВРЕМЯ ВЫШЛО'), ok ? 'Давление стабилизировано' : blast ? 'Взрыв системы давления' : 'Отказ системы давления'); if (!ok) setTimeout(() => cage.drop?.(.8), blast ? 650 : 350);
+    verdict(ok, ok ? L('PRESSURE STABILIZED · СПУСК ОСТАНОВЛЕН', 'DESCENT HALTED') : (reason === 'CRITICAL' ? '120 PSI' : L('PRESSURE SYSTEM FAILED · ВРЕМЯ ВЫШЛО', 'TIME RAN OUT')), ok ? L('Давление стабилизировано', 'Pressure stabilised') : blast ? L('Взрыв системы давления', 'Pressure system exploded') : L('Отказ системы давления', 'Pressure system failed')); if (!ok) setTimeout(() => cage.drop?.(.8), blast ? 650 : 350);
     clearTimeout(pending); pending = setTimeout(() => { if (inspecting && inspectTarget === 'pressure') setInspect(false); setTimeout(() => newTask(ok), 400); }, 2600); };
-  const finish = (ok: boolean, why: string) => { box.locked = true; box.setLamp(ok ? 'good' : 'bad'); audio.play(ok ? 'good' : 'bad'); verdict(ok, ok ? 'РЕМОНТ УСПЕШЕН' : why); hud(); deadline = 0; clearTimeout(pending); pending = setTimeout(() => { if (box.open) box.toggleDoor(); setTimeout(() => newTask(ok), 500); }, 2400); };
-  box.onCut = i => { const ok = i === box.task!.answer; finish(ok, 'НЕВЕРНЫЙ ПРОВОД'); if (!ok) setTimeout(() => cage.drop?.(.8), 350); };
+  const finish = (ok: boolean, why: string) => { box.locked = true; box.setLamp(ok ? 'good' : 'bad'); audio.play(ok ? 'good' : 'bad'); verdict(ok, ok ? L('РЕМОНТ УСПЕШЕН', 'REPAIR SUCCESSFUL') : why); hud(); deadline = 0; clearTimeout(pending); pending = setTimeout(() => { if (box.open) box.toggleDoor(); setTimeout(() => newTask(ok), 500); }, 2400); };
+  box.onCut = i => { const ok = i === box.task!.answer; finish(ok, L('НЕВЕРНЫЙ ПРОВОД', 'WRONG WIRE')); if (!ok) setTimeout(() => cage.drop?.(.8), 350); };
   // the car lurches down toward the lava: screech + rattle while falling, a slam and a hard shake on the catch
   // wrong answer: the brake lets go. Mains power cuts, the red emergency beacon spins up, the head floats in free fall
   // and the view tips toward the shaft; on the catch: a hard slam, the body compresses, power sputters back.
@@ -152,20 +157,20 @@ async function boot() {
   const setInspect = (on: boolean, target: 'box' | 'pressure' | 'lab' = 'box') => { if (on) inspectTarget = target; inspecting = on; $('btn-back').hidden = !on; $('hint').style.opacity = on ? '0' : ''; $('task').style.opacity = on && innerWidth > 700 ? '0' : ''; if (on) { focusTo = null; if (target === 'box' && !box.open) box.toggleDoor(); } };
   $('btn-back').onclick = () => setInspect(false); addEventListener('keydown', e => { if (e.key === 'Escape' && inspecting) setInspect(false); });
   $('btn-open').onclick = () => cur().open(); $('btn-close').onclick = () => cur().close(); $('btn-drop').onclick = () => cur().drop();
-  $('btn-sound').onclick = () => { audio.unlock(); audio.enabled = !audio.enabled; $('btn-sound').textContent = audio.enabled ? 'Звук: вкл.' : 'Звук: выкл.'; };
+  $('btn-sound').onclick = () => { audio.unlock(); audio.enabled = !audio.enabled; $('btn-sound').textContent = audio.enabled ? L('Звук: вкл.', 'Sound: on') : L('Звук: выкл.', 'Sound: off'); };
   book.onspread = s => { $('page-label').textContent = `${2 * s + 1}–${2 * s + 2} / ${book.pages.length}`; }; book.onspread(0);
   journal.onspread = s => { $('page-label').textContent = `${2 * s + 1}–${2 * s + 2} / ${journal.pages.length}`; };
   jui.onstate = s => { sync(s); if (s === 'reading') journal.onspread(journal.spread); else if (s === 'rest') book.onspread(book.spread); };
   // free camera (?freecam=1 or key C): orbit / zoom / pan anywhere, including below the floor to the lava
   const orbit = new OrbitControls(camera, renderer.domElement); orbit.enableDamping = true; orbit.maxDistance = 14; orbit.minDistance = .1; orbit.screenSpacePanning = true; orbit.target.set(0, .4, 0); orbit.enabled = false;
-  let free = false; const setFree = (on: boolean) => { free = on; orbit.enabled = on; $('btn-cam').textContent = on ? 'Камера: свободная' : 'Камера: игрок'; if (!on) { camera.position.copy(eye); } else { camera.position.set(eye.x + .3, eye.y + .3, eye.z + 1.6); orbit.target.set(0, floorY + 1, 0); orbit.update(); } };
+  let free = false; const setFree = (on: boolean) => { free = on; orbit.enabled = on; $('btn-cam').textContent = on ? L('Камера: свободная', 'Camera: free') : L('Камера: игрок', 'Camera: player'); if (!on) { camera.position.copy(eye); } else { camera.position.set(eye.x + .3, eye.y + .3, eye.z + 1.6); orbit.target.set(0, floorY + 1, 0); orbit.update(); } };
   $('btn-cam').onclick = () => setFree(!free); addEventListener('keydown', e => { if (e.key.toLowerCase() === 'c') setFree(!free); }); if (params.get('freecam') === '1') setFree(true);
   // unlock audio on every kind of gesture WebKit counts (pointerdown alone is not enough in iOS Home Screen apps)
   for (const ev of ['pointerup', 'touchend', 'click', 'keydown']) addEventListener(ev, () => audio.unlock(), {passive: true});
   document.addEventListener('visibilitychange', () => { if (!document.hidden && audio.ctx && audio.ctx.state !== 'running') audio.ctx.resume().catch(() => {}); });
   // warm-up behind the loading screen: compile every shader, upload every texture and render a few frames,
   // so the first seconds of play do not hitch on first-use GPU work
-  $('load-text').textContent = 'Подготовка…';
+  $('load-text').textContent = L('Подготовка…', 'Preparing…');
   try { await (renderer as any).compileAsync?.(scene, camera); } catch {}
   scene.traverse((o: any) => { const ms = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []; for (const m of ms) for (const k of ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap', 'bumpMap', 'aoMap', 'alphaMap']) if (m[k]) renderer.initTexture(m[k]); });
   { const q0 = camera.quaternion.clone(); for (let i = 0; i < 8; i++) { camera.quaternion.setFromEuler(new T.Euler(0, i * Math.PI / 4, 0)); renderer.shadowMap.needsUpdate = true; renderer.render(scene, camera); await new Promise(r => requestAnimationFrame(r)); } camera.quaternion.copy(q0); }
@@ -176,7 +181,7 @@ async function boot() {
   // there the page runs fullscreen when opened from the Home Screen (manifest + apple-mobile-web-app-capable).
   { const el = document.documentElement as any, req = el.requestFullscreen || el.webkitRequestFullscreen; const standalone = matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || (navigator as any).standalone;
     if (req && !standalone && params.get('capture') === null) addEventListener('pointerup', function go() { removeEventListener('pointerup', go); try { const r = req.call(el, {navigationUI: 'hide'}); r?.catch?.(() => {}); } catch {} });
-    if (mobile && !req && !standalone && /iPhone|iPod/.test(navigator.userAgent)) { const h = document.createElement('div'); h.id = 'fs-tip'; h.textContent = 'Полный экран: «Поделиться» → «На экран Домой», затем открыть с иконки'; h.onclick = () => h.remove(); document.body.append(h); setTimeout(() => h.remove(), 9000); } }
+    if (mobile && !req && !standalone && /iPhone|iPod/.test(navigator.userAgent)) { const h = document.createElement('div'); h.id = 'fs-tip'; h.textContent = L('Полный экран: «Поделиться» → «На экран Домой», затем открыть с иконки', 'Full screen: Share → Add to Home Screen, then open from the icon'); h.onclick = () => h.remove(); document.body.append(h); setTimeout(() => h.remove(), 9000); } }
   // adaptive quality: drop the render resolution when frames run long
   let last = performance.now(), acc = 0, frames = 0, frozenLeft = 45;
   // 360° look-around from the player's spot: drag to turn the head. Disabled while the book is in hand so page taps never rotate the view.
@@ -191,7 +196,7 @@ async function boot() {
     device = inspectTarget === 'lab' ? lab : press; if (!device.enabled) return;
     if (device.pointerDown(ray, e.clientX, e.clientY, camera)) { valvePointer = e.pointerId; valveStart = {x: e.clientX, y: e.clientY, t: performance.now()}; try { renderer.domElement.setPointerCapture(e.pointerId); } catch {} } });
   addEventListener('pointermove', e => { if (e.pointerId === valvePointer) device.pointerMove(e.clientX, e.clientY); });
-  const endValve = (e: PointerEvent) => { if (e.pointerId !== valvePointer) return; device.pointerUp(e.type === 'pointerup' && Math.hypot(e.clientX - valveStart.x, e.clientY - valveStart.y) < 10 && performance.now() - valveStart.t < 450); setTimeout(() => { valvePointer = null; }, 0); };
+  const endValve = (e: PointerEvent) => { if (e.pointerId !== valvePointer) return; device.pointerUp(e.type === 'pointerup' && Math.hypot(e.clientX - valveStart.x, e.clientY - valveStart.y) < 10); /* a still press counts as a tap, however long it is held */ setTimeout(() => { valvePointer = null; }, 0); };
   addEventListener('pointerup', endValve); addEventListener('pointercancel', endValve);
   renderer.domElement.addEventListener('pointerdown', e => drag.set(e.pointerId, {x: e.clientX, y: e.clientY}));
   addEventListener('pointerup', e => drag.delete(e.pointerId)); addEventListener('pointercancel', e => drag.delete(e.pointerId));
@@ -218,7 +223,7 @@ async function boot() {
       $('clock-num').textContent = String(Math.ceil(left)); ($('clock-ring') as any).style.strokeDashoffset = String(176 * (1 - left / lim)); $('clock').dataset.urgent = String(!!v && v.outcome === 'RUNNING' && left < 10); }
     else if (kind === 'pressure') { const v = link.view(), lim = PRESSURE_LIMIT_MS / 1000, left = v ? (v.outcome === 'RUNNING' ? (frozenLeft = Math.max(0, (v.deadline - performance.now()) / 1000)) : v.outcome === 'STABILIZED' ? frozenLeft : 0) : lim;
       $('clock-num').textContent = String(Math.ceil(left)); ($('clock-ring') as any).style.strokeDashoffset = String(176 * (1 - left / lim)); $('clock').dataset.urgent = String(!!v && v.outcome === 'RUNNING' && left < 10); }
-    else { const left = deadline ? Math.max(0, (deadline - performance.now()) / 1000) : LIMIT; $('clock-num').textContent = String(Math.ceil(left)); ($('clock-ring') as any).style.strokeDashoffset = String(176 * (1 - left / LIMIT)); $('clock').dataset.urgent = String(!!deadline && left < 10); if (deadline && left <= 0 && !box.locked) { finish(false, 'ВРЕМЯ ВЫШЛО'); setTimeout(() => cage.drop?.(.8), 350); } }
+    else { const left = deadline ? Math.max(0, (deadline - performance.now()) / 1000) : LIMIT; $('clock-num').textContent = String(Math.ceil(left)); ($('clock-ring') as any).style.strokeDashoffset = String(176 * (1 - left / LIMIT)); $('clock').dataset.urgent = String(!!deadline && left < 10); if (deadline && left <= 0 && !box.locked) { finish(false, L('ВРЕМЯ ВЫШЛО', 'TIME RAN OUT')); setTimeout(() => cage.drop?.(.8), 350); } }
     const surface = cage.shelf && Math.abs(book.root.position.y - TH / 2 - cage.shelf.top.y) < .2 && Math.abs(book.root.position.z - cage.shelf.top.z) < .2 ? cage.shelf.top.y : floorY; const h = Math.max(0, book.root.position.y - TH / 2 - surface); shadow.position.set(book.root.position.x, surface + .0012, book.root.position.z); shadow.rotation.z = new T.Euler().setFromQuaternion(book.root.quaternion, 'YXZ').y; (shadow.material as T.MeshBasicMaterial).opacity = .75 * Math.max(0, 1 - h / .18); shadow.visible = h < .18;
     { // fall choreography (runs on top of the normal camera pose)
       if (fallT >= 0) fallT += dt; if (landT >= 0) landT += dt;

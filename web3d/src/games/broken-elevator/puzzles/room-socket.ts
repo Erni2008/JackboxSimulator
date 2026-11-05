@@ -1,3 +1,4 @@
+import {L} from '../i18n';
 // One authenticated room connection per elevator page, shared by every server-authoritative repair puzzle.
 // (A second socket with the same seat would replace the first one on the server.)
 type Listener = (ev: any) => void;
@@ -25,7 +26,7 @@ export class RoomSocket {
     ws.onmessage = e => { let ev: any; try { ev = JSON.parse(e.data); } catch { return; } const p = ev.payload || {}; if (typeof p.serverTime === 'number') this.offset = p.serverTime - Date.now();
       if (!this.authed && (ev.type === 'AUTHENTICATED' || ev.type === 'STATE' || p.roomCode)) { this.authed = true; this.retry = 0; this.onStatus(''); for (const f of this.authListeners) f(); }
       for (const f of this.listeners) f(ev); };
-    ws.onclose = e => { clearInterval(this.ping); if (this.ws !== ws) return; this.authed = false; if (e.code === 4001 || e.code === 4002) { this.onStatus('Сеанс комнаты завершён'); return; }
-      this.onStatus('Связь с сервером… восстанавливаем'); setTimeout(() => this.connect(), Math.min(5000, 400 * 2 ** this.retry++)); };
+    ws.onclose = e => { clearInterval(this.ping); if (this.ws !== ws) return; this.authed = false; if (e.code === 4001 || e.code === 4002) { this.onStatus(L('Сеанс комнаты завершён', 'Room session ended')); return; }
+      this.onStatus(L('Связь с сервером… восстанавливаем', 'Connection lost… reconnecting')); setTimeout(() => this.connect(), Math.min(5000, 400 * 2 ** this.retry++)); };
   }
 }

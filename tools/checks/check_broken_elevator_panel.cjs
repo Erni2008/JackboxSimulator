@@ -5,7 +5,7 @@ const ok=m=>console.log('PASS '+m);
 async function run(fault,mode,wires,touch){
   const b=await chromium.launch({executablePath:process.env.CHROME_PATH,args:['--use-angle=metal','--ignore-gpu-blocklist']});
   const vp=touch?{width:390,height:844}:{width:1280,height:800};const p=await b.newPage({viewport:vp,deviceScaleFactor:touch?2:1,hasTouch:touch,isMobile:touch});const errors=[];p.on('pageerror',e=>errors.push(e.message));
-  await p.goto(`${url}?capture=1&seed=7&fault=${fault}&mode=${mode}&wires=${wires}&quality=${touch?'low':'high'}`);await p.waitForFunction(()=>window.__manual,null,{timeout:120000});await p.waitForTimeout(1200);
+  await p.goto(`${url}?capture=1&lang=ru&seed=7&fault=${fault}&mode=${mode}&wires=${wires}&quality=${touch?'low':'high'}`);await p.waitForFunction(()=>window.__manual,null,{timeout:120000});await p.waitForTimeout(1200);
   const M=f=>p.evaluate(f),tag=`${fault}/${mode}/${wires}${touch?'/touch':''}`;const tap=async(x,y)=>touch?p.touchscreen.tap(x,y):p.mouse.click(x,y);
   const scr=o=>p.evaluate(o=>{const m=window.__manual,b=m.box,t=o==='button'?b.button.cap:o==='selector'?b.selector.group:b.header;const v=t.getWorldPosition(new m.camera.position.constructor()).project(m.camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];},o);
   // face the panel, tap it -> close-up inspection

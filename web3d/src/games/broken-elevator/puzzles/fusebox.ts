@@ -4,6 +4,7 @@
 // natural slack, and insulated cutting pliers that follow the pointer and actually
 // close on the wire. Cut ends fray into copper strands with sparks.
 import * as T from 'three';
+import {L as tr} from '../i18n';
 import {metal} from './surface';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
@@ -71,7 +72,7 @@ export class FuseBox {
     const porcelain = new T.MeshPhysicalMaterial({color: '#b8ad98', roughness: .22, metalness: 0, clearcoat: .8, clearcoatRoughness: .2, map: canvasTex(256, 64, x => { x.fillStyle = '#eee8dc'; x.fillRect(0, 0, 256, 64); const r = rng(3); for (let i = 0; i < 120; i++) { x.fillStyle = `rgba(60,45,30,${r() * .25})`; x.fillRect(r() * 256, r() * 64, 2 + r() * 20, 1 + r() * 3); } x.strokeStyle = 'rgba(80,60,40,.35)'; x.lineWidth = 1; for (let i = 0; i < 6; i++) { x.beginPath(); let px = r() * 256, py = r() * 64; x.moveTo(px, py); for (let k = 0; k < 6; k++) { px += (r() - .5) * 30; py += (r() - .5) * 12; x.lineTo(px, py); } x.stroke(); } })});
     const panel = new T.MeshPhysicalMaterial({roughness: .62, metalness: 0, map: canvasTex(512, 640, x => {
       x.fillStyle = '#0e0b09'; x.fillRect(0, 0, 512, 640); const r = rng(9); for (let i = 0; i < 2000; i++) { x.fillStyle = `rgba(${r() < .5 ? '70,60,50' : '0,0,0'},${r() * .2})`; x.fillRect(r() * 512, r() * 640, 1 + r() * 6, 1 + r() * 2); }
-      x.font = "bold 42px 'IM Fell English SC', Georgia, serif"; x.textAlign = 'center'; x.fillStyle = '#ff5a3a'; x.fillText('DANGER', 256, 300); x.font = "bold 24px 'IM Fell English SC', Georgia, serif"; x.fillStyle = '#f4ead4'; x.fillText('220 VOLTS · ISOLATE BEFORE WORK', 256, 334);
+      x.textAlign = 'center'; x.fillStyle = '#ff5a3a'; { let f = 42; do { x.font = `bold ${f}px 'IM Fell English SC', Georgia, serif`; f -= 2; } while (x.measureText(tr('ОПАСНО', 'DANGER')).width > 380 && f > 16); } x.fillText(tr('ОПАСНО', 'DANGER'), 256, 300); x.fillStyle = '#f4ead4'; { let f = 24; do { x.font = `bold ${f}px 'IM Fell English SC', Georgia, serif`; f -= 1; } while (x.measureText(tr('220 В · ОБЕСТОЧЬТЕ ПЕРЕД РАБОТОЙ', '220 VOLTS · ISOLATE BEFORE WORK')).width > 460 && f > 10); } x.fillText(tr('220 В · ОБЕСТОЧЬТЕ ПЕРЕД РАБОТОЙ', '220 VOLTS · ISOLATE BEFORE WORK'), 256, 334);
       const g = x.createRadialGradient(256, 330, 50, 256, 330, 360); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.4)'); x.fillStyle = g; x.fillRect(0, 0, 512, 640); })});
     panel.emissiveMap = panel.map; panel.emissive.set('#ffffff'); panel.emissiveIntensity = .45;
     const box = (geo: T.BufferGeometry, m: T.Material | T.Material[], x: number, y: number, z: number, parent: T.Object3D = this.group) => { const b = new T.Mesh(geo, m); b.position.set(x, y, z); b.castShadow = b.receiveShadow = true; parent.add(b); return b; };
@@ -173,7 +174,7 @@ export class FuseBox {
     x.strokeStyle = '#a17c3e'; x.lineWidth = 14; x.strokeRect(7, 7, W - 14, H - 14); x.strokeStyle = 'rgba(40,25,8,.8)'; x.lineWidth = 3; x.strokeRect(22, 22, W - 44, H - 44);
     for (const [px, py] of [[48, 48], [W - 48, 48], [48, H - 48], [W - 48, H - 48]]) { const sg = x.createRadialGradient(px - 5, py - 5, 1, px, py, 17); sg.addColorStop(0, '#d8b77a'); sg.addColorStop(1, '#5a4222'); x.fillStyle = sg; x.beginPath(); x.arc(px, py, 17, 0, 7); x.fill(); x.strokeStyle = '#2a1a08'; x.lineWidth = 4; x.beginPath(); x.moveTo(px - 11, py + 4); x.lineTo(px + 11, py - 4); x.stroke(); }
     x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#f0d396'; x.font = "700 48px 'Cinzel', Georgia, serif";
-    { const t = 'SERIAL NO.'; let w = 0; const sp = 10; for (const ch of t) w += x.measureText(ch).width + sp; let px = W / 2 - w / 2 + sp / 2; x.textAlign = 'left'; for (const ch of t) { x.fillText(ch, px, 92); px += x.measureText(ch).width + sp; } }
+    { const t = tr('СЕРИЙНЫЙ №', 'SERIAL NO.'); let w = 0; const sp = 10; for (const ch of t) w += x.measureText(ch).width + sp; let px = W / 2 - w / 2 + sp / 2; x.textAlign = 'left'; for (const ch of t) { x.fillText(ch, px, 92); px += x.measureText(ch).width + sp; } }
     x.strokeStyle = 'rgba(184,149,90,.5)'; x.lineWidth = 2; x.beginPath(); x.moveTo(170, 128); x.lineTo(W - 170, 128); x.stroke();
     x.font = "700 170px 'IBM Plex Mono', Menlo, monospace"; const sp = 18; let tw = 0; for (const ch of serial) tw += x.measureText(ch).width + sp; tw -= sp; let px = W / 2 - tw / 2;
     for (const ch of serial) { x.fillStyle = 'rgba(0,0,0,.7)'; x.fillText(ch, px + 3, 246); x.fillStyle = '#fffaea'; x.fillText(ch, px, 242); px += x.measureText(ch).width + sp; }

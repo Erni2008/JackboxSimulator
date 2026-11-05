@@ -86,4 +86,11 @@ class LobbyStartTest {
         command(h,"OPEN_WEB_GAME",Map.of("game","broken-elevator"));
         assertEquals("broken-elevator",s(a.latest(),"webGame"));assertFalse(s(a.latest(),"webGameId").isEmpty());
     }
+    @Test void hostSharesTheGameLanguageWithTheRoom(){
+        one=join("One");service.attach(s(host,"code"),s(one,"token"),a,"one");
+        assertEquals("en",s(a.latest(),"language"));
+        command(h,"SET_LANGUAGE",Map.of("language","ru")); assertEquals("ru",s(a.latest(),"language"),"players see the host's language");
+        failure("HOST_ONLY",()->command(a,"SET_LANGUAGE",Map.of("language","en")));
+        failure("INVALID_LANGUAGE",()->command(h,"SET_LANGUAGE",Map.of("language","de")));
+    }
 }

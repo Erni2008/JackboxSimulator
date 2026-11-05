@@ -1,3 +1,4 @@
+import {LANG} from '../i18n';
 // THE UNSTABLE FORMULA — client mirror of shared/.../gameplay/elevator/{Formula,FormulaPuzzle,FormulaGenerator}.java.
 // In a room the Java server is authoritative (and never sends the recipe); this file powers the offline practice lab
 // and the journal artwork, so the printed tables come from the same data the rules use.
@@ -15,7 +16,8 @@ export const incompatible = (b: Reagent) => REAGENTS.find(r => r !== b && !ADDIT
 /** display colours (liquid shader uses these as the reagent's body colour) */
 export const COLOR: Record<Reagent, string> = {CRIMSON: '#9e0f1e', AZURE: '#123f9a', VERDANT: '#0f8a3c', AMBER: '#e0a215', VIOLET: '#5e1a8c'};
 export const GLINT: Record<Reagent, string> = {CRIMSON: '#ff6a4a', AZURE: '#4ad8ff', VERDANT: '#7dff9a', AMBER: '#ffe08a', VIOLET: '#ff5ae0'};
-export const RU: Record<Reagent, string> = {CRIMSON: 'КРАСНЫЙ', AZURE: 'СИНИЙ', VERDANT: 'ЗЕЛЁНЫЙ', AMBER: 'ЖЁЛТЫЙ', VIOLET: 'ФИОЛЕТОВЫЙ'};
+/** the colour word under a reagent name, in the page language */
+export const RU: Record<Reagent, string> = LANG === 'ru' ? {CRIMSON: 'КРАСНЫЙ', AZURE: 'СИНИЙ', VERDANT: 'ЗЕЛЁНЫЙ', AMBER: 'ЖЁЛТЫЙ', VIOLET: 'ФИОЛЕТОВЫЙ'} : {CRIMSON: 'RED', AZURE: 'BLUE', VERDANT: 'GREEN', AMBER: 'YELLOW', VIOLET: 'PURPLE'};
 
 export interface Sample { sampleId: string; family: Family; cls: 1 | 2; reaction: 'A' | 'B' | 'C'; polarity: 'POSITIVE' | 'NEGATIVE'; concentration: 'LOW' | 'MEDIUM' | 'HIGH'; unstable: Reagent | '' }
 export function solve(s: Sample) {

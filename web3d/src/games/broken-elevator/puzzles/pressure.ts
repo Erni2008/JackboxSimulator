@@ -6,6 +6,7 @@
 //                 EMERGENCY RELEASE pull handle under a hazard plate, OK lamp
 // The machine only renders the server's view and reports player actions; it never decides anything.
 import * as T from 'three';
+import {L as tr} from '../i18n';
 import {materials, plate, lamp, canvasTex, QUARTER, TECH} from './pressure-parts';
 import {PressureGauge} from './pressure-gauge';
 import {Control, Wheel, Lever, PushButton, PullHandle, PipeClamp, type Feedback} from './pressure-controls';
@@ -39,9 +40,9 @@ export class PressureMachine {
     // ---- gauge + lamps
     this.gauge = new PressureGauge(.105, m, hi); this.gauge.group.position.set(-.13, .13, 0); this.group.add(this.gauge.group);
     this.warn = lamp(.018, '#ff6a10', m); this.warn.group.position.set(-.38, .22, .04); this.group.add(this.warn.group);
-    const wp = plate('SURGE', 'WARNING', .09, .036, 'enamel'); wp.position.set(-.38, .165, .03); this.group.add(wp);
+    const wp = plate(tr('СКАЧОК', 'SURGE'), tr('ПРЕДУПРЕЖДЕНИЕ', 'WARNING'), .09, .036, 'enamel'); wp.position.set(-.38, .165, .03); this.group.add(wp);
     this.warnLight = new T.PointLight('#ff6a10', 0, 1, 2); this.warnLight.position.set(-.38, .22, .1); this.group.add(this.warnLight);
-    const sp = plate('STABLE', '1 SEC', .08, .04, 'brass'); sp.position.set(.07, .235, .03); this.group.add(sp);
+    const sp = plate(tr('СТАБИЛЬНО', 'STABLE'), tr('1 СЕК', '1 SEC'), .08, .04, 'brass'); sp.position.set(.07, .235, .03); this.group.add(sp);
     for (let i = 0; i < 3; i++) { const l = lamp(.012, '#4dff6a', m); l.group.position.set(.07, .175 - i * .04, .035); this.group.add(l.group); this.verify.push(l.mat); }
 
     // ---- piping: intake riser (left), manifold, vent stack with a nozzle, weeping joint
@@ -55,34 +56,34 @@ export class PressureMachine {
     for (const [x, y, rz] of [[-.42, -.2, 0], [.17, .1, 0], [-.44, mY, QUARTER]] as const) { const f = new T.Mesh(new T.CylinderGeometry(.027, .027, .012, 20), m.brassDark); f.position.set(x, y, mZ); f.rotation.z = rz; this.pipes.add(f); }
     // the CLAMP: tap the cracked coupling to bolt a split clamp over it
     this.clamp = new PipeClamp('clamp', m, () => this.emit('CLAMP')); this.clamp.root.position.set(-.37, mY, mZ); this.group.add(this.clamp.root);
-    const cp = plate('CLAMP', 'TAP JOINT', .07, .03, 'brass'); cp.position.set(-.37, -.02, .03); this.group.add(cp);
-    const tIn = plate('STEAM IN', '', .07, .024, 'brass'); tIn.position.set(-.42, -.25, mZ + .02); this.group.add(tIn);
+    const cp = plate(tr('ЗАЖИМ', 'CLAMP'), tr('НАЖМИТЕ МУФТУ', 'TAP JOINT'), .07, .03, 'brass'); cp.position.set(-.37, -.02, .03); this.group.add(cp);
+    const tIn = plate(tr('ВХОД ПАРА', 'STEAM IN'), '', .07, .024, 'brass'); tIn.position.set(-.42, -.25, mZ + .02); this.group.add(tIn);
 
     // ---- valves on the manifold
     const valveBody = (x: number) => { const g = new T.Group(); g.position.set(x, mY, 0); const body = new T.Mesh(new T.SphereGeometry(.028, 20, 14), m.brass); body.position.z = mZ; body.scale.set(1.1, 1, 1); g.add(body);
       const bonnet = new T.Mesh(new T.CylinderGeometry(.017, .022, .04, 16), m.brassDark); bonnet.rotation.x = QUARTER; bonnet.position.z = mZ + .04; g.add(bonnet); this.group.add(g); return g; };
     const nameplate = (x: number, title: string, sub: string, color: string) => { const p = plate(title, sub, .14, .046, 'brass'); p.position.set(x, -.2, .03); this.group.add(p); const band = new T.Mesh(new T.BoxGeometry(.14, .008, .005), m.paint(color)); band.position.set(x, -.173, .032); this.group.add(band); };
-    this.red = new Wheel('red', '#8e1c12', m, () => this.emit('RED')); valveBody(-.25).add(this.red.root); this.red.root.position.z = mZ + .095; nameplate(-.25, 'INTAKE', '▲ +10 PSI', '#8e1c12');
-    this.blue = new Wheel('blue', '#1b3f86', m, () => this.emit('BLUE')); valveBody(-.07).add(this.blue.root); this.blue.root.position.z = mZ + .095; nameplate(-.07, 'RELEASE', '▼ −10 PSI', '#1b3f86');
-    this.fine = new Lever('fine', '#b8901a', m, [-QUARTER / 2, QUARTER / 2], p => this.emit(p ? 'FINE_ON' : 'FINE_OFF')); valveBody(.085).add(this.fine.root); this.fine.root.position.z = mZ + .095; nameplate(.085, 'FINE', 'ON = ±2 PSI', '#b8901a');
-    this.group.add(this.dialMarks(.085, mY, 'OFF', 'ON'));
+    this.red = new Wheel('red', '#8e1c12', m, () => this.emit('RED')); valveBody(-.25).add(this.red.root); this.red.root.position.z = mZ + .095; nameplate(-.25, tr('ПОДАЧА', 'INTAKE'), '▲ +10 PSI', '#8e1c12');
+    this.blue = new Wheel('blue', '#1b3f86', m, () => this.emit('BLUE')); valveBody(-.07).add(this.blue.root); this.blue.root.position.z = mZ + .095; nameplate(-.07, tr('СБРОС', 'RELEASE'), '▼ −10 PSI', '#1b3f86');
+    this.fine = new Lever('fine', '#b8901a', m, [-QUARTER / 2, QUARTER / 2], p => this.emit(p ? 'FINE_ON' : 'FINE_OFF')); valveBody(.085).add(this.fine.root); this.fine.root.position.z = mZ + .095; nameplate(.085, tr('ТОЧНО', 'FINE'), tr('ВКЛ = ±2 PSI', 'ON = ±2 PSI'), '#b8901a');
+    this.group.add(this.dialMarks(.085, mY, tr('ВЫКЛ', 'OFF'), tr('ВКЛ', 'ON')));
 
     // ---- right column: code window, TEST, relays
     this.codeCanvas.width = 512; this.codeCanvas.height = 160; this.codeTex = new T.CanvasTexture(this.codeCanvas); this.codeTex.colorSpace = T.SRGBColorSpace; this.drawCode('', false);
     const win = new T.Mesh(new T.PlaneGeometry(.17, .053), new T.MeshStandardMaterial({map: this.codeTex, emissiveMap: this.codeTex, emissive: '#ffffff', emissiveIntensity: .9, roughness: .3})); win.position.set(.33, .255, .03); this.group.add(win);
     const frame = new T.Mesh(new T.BoxGeometry(.182, .065, .008), m.brass); frame.position.set(.33, .255, .024); this.group.add(frame);
-    const dp = plate('FAULT CODE', '', .1, .022, 'brass'); dp.position.set(.33, .212, .03); this.group.add(dp);
+    const dp = plate(tr('КОД НЕИСПРАВНОСТИ', 'FAULT CODE'), '', .1, .022, 'brass'); dp.position.set(.33, .212, .03); this.group.add(dp);
     this.test = new PushButton('test', m, () => this.emit('DIAGNOSTIC')); this.test.root.position.set(.29, .15, .024); this.group.add(this.test.root);
-    const tp = plate('TEST', '', .06, .022, 'brass'); tp.position.set(.29, .102, .03); this.group.add(tp);
+    const tp = plate(tr('ТЕСТ', 'TEST'), '', .06, .022, 'brass'); tp.position.set(.29, .102, .03); this.group.add(tp);
     for (let i = 0; i < 3; i++) { const l = lamp(.009, '#ffb020', m); l.group.position.set(.37 + i * .028, .15, .03); this.group.add(l.group); this.relays.push(l.mat); }
     // BYPASS lever + the auxiliary line it opens
     this.bypass = new Lever('bypass', '#2a2622', m, [-.6, .6], p => this.emit(p ? 'BYPASS_AUX' : 'BYPASS_MAIN'), .07); this.bypass.root.position.set(.33, .005, .05); this.group.add(this.bypass.root);
-    this.group.add(this.dialMarks(.33, .005, 'MAIN', 'AUX', .6, .095));
-    const bp = plate('BYPASS', 'AUXILIARY LINE', .14, .04, 'brass'); bp.position.set(.33, -.085, .03); this.group.add(bp);
+    this.group.add(this.dialMarks(.33, .005, tr('ОСН.', 'MAIN'), tr('ВСПОМ.', 'AUX'), .6, .095));
+    const bp = plate(tr('ОБХОД', 'BYPASS'), tr('ОБХОДНАЯ ЛИНИЯ', 'AUXILIARY LINE'), .14, .04, 'brass'); bp.position.set(.33, -.085, .03); this.group.add(bp);
     this.aux = lamp(.01, '#4dc4ff', m); this.aux.group.position.set(.42, .06, .03); this.group.add(this.aux.group);
     tube([v3(-.42, -.29, .045), v3(.0, -.29, .045), v3(.2, -.29, .045), v3(.236, -.27, .045), v3(.238, -.1, .045), v3(.25, -.03, .045), v3(.3, .0, .05)], .007, m.brassDark); // auxiliary line: along the bottom, up the column edge, into the bypass hub
     // EMERGENCY RELEASE
-    const hz = plate('EMERGENCY RELEASE', '', .17, .05, 'warning'); hz.position.set(.33, -.15, .03); this.group.add(hz);
+    const hz = plate(tr('АВАРИЙНЫЙ СБРОС', 'EMERGENCY RELEASE'), '', .17, .05, 'warning'); hz.position.set(.33, -.15, .03); this.group.add(hz);
     this.emergency = new PullHandle('emergency', m, () => this.emit('EMERGENCY')); this.emergency.root.position.set(.33, -.215, .024); this.group.add(this.emergency.root);
     const slot = new T.Mesh(new T.BoxGeometry(.012, .07, .006), m.bolt); slot.position.set(.33, -.24, .026); this.group.add(slot);
     this.ventAt.set(.43, -.28, .06); const ev = new T.Mesh(new T.CylinderGeometry(.01, .016, .03, 14), m.brass); ev.position.set(.43, -.27, .05); ev.rotation.x = .6; this.group.add(ev);
@@ -142,13 +143,15 @@ export class PressureMachine {
   hits(ray: T.Raycaster) { return ray.intersectObject(this.group, true).find(h => h.object.type !== 'Points') || null; }
   get dragging() { return !!this.active; }
   /** grab the control under the ray (true = the pointer now belongs to the machine) */
-  pointerDown(ray: T.Raycaster, x: number, y: number, camera: T.Camera) {
+  /** live gate checked at the moment of input (not one frame late) */
+  canAct: () => boolean = () => true;
+  pointerDown(ray: T.Raycaster, x: number, y: number, camera: T.Camera) { const live = this.enabled && this.canAct(); for (const c of this.controls) c.enabled = live;
     if (!this.enabled) return false; let best: Control | null = null, d = Infinity;
     for (const c of this.controls) { const h = ray.intersectObject(c.hit, false)[0]; if (h && h.distance < d) { d = h.distance; best = c; } }
     if (!best) return false; this.active = best; best.down(x, y, camera); return true;
   }
   pointerMove(x: number, y: number) { this.active?.move(x, y); }
-  pointerUp(tap: boolean) { const c = this.active; this.active = null; c?.up(tap); }
+  pointerUp(tap: boolean) { const c = this.active; this.active = null; if (c) c.enabled = this.enabled && this.canAct(); c?.up(tap); }
   /** screen position of a control (tests and camera framing) */
   controlScreen(id: string, camera: T.Camera) { const c = this.controls.find(k => k.id === id)!; const v = new T.Vector3().setFromMatrixPosition(c.root.matrixWorld).project(camera); return {x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight}; }
 
