@@ -1,5 +1,6 @@
 // THE BROKEN VALVES — shared materials, engraved plates and small helpers for the pressure apparatus.
 import * as T from 'three';
+import {metal, enamel, ironPlate} from './surface';
 
 export const SERIF = "'IM Fell English SC', Georgia, serif", TECH = "'Oswald', 'Arial Narrow', sans-serif";
 export const QUARTER = Math.PI / 2;
@@ -8,21 +9,14 @@ export const canvasTex = (w: number, h: number, draw: (x: CanvasRenderingContext
 
 /** one set of materials per machine (shared by every part) */
 export function materials() {
-  const r = rng(41);
-  const iron = new T.MeshStandardMaterial({roughness: .82, metalness: .45, map: canvasTex(512, 512, x => {
-    x.fillStyle = '#2b2622'; x.fillRect(0, 0, 512, 512);
-    for (let i = 0; i < 2600; i++) { x.fillStyle = `rgba(${r() < .45 ? '120,62,30' : r() < .5 ? '12,10,9' : '80,72,64'},${r() * .22})`; x.beginPath(); x.arc(r() * 512, r() * 512, 1 + r() * (r() < .05 ? 26 : 5), 0, 7); x.fill(); }
-    for (let i = 0; i < 14; i++) { const g = x.createLinearGradient(0, 0, 0, 120); g.addColorStop(0, 'rgba(110,52,20,.35)'); g.addColorStop(1, 'rgba(110,52,20,0)'); x.fillStyle = g; x.fillRect(r() * 512, r() * 400, 3 + r() * 8, 60 + r() * 120); }
-    for (let i = 0; i < 6; i++) { x.fillStyle = `rgba(8,6,4,${.25 + r() * .25})`; x.beginPath(); x.ellipse(r() * 512, 300 + r() * 200, 20 + r() * 50, 8 + r() * 20, r(), 0, 7); x.fill(); }
-  })});
-  iron.emissiveMap = iron.map; iron.emissive.set('#ffffff'); iron.emissiveIntensity = .12;
+  // realistic worn metals (procedural scratches / dimples / patina) over the cage's real rusty-iron PBR set
   return {
-    iron,
-    brass: new T.MeshStandardMaterial({color: '#8d6b36', metalness: .9, roughness: .42}),
-    brassDark: new T.MeshStandardMaterial({color: '#5c4422', metalness: .85, roughness: .55}),
-    copper: new T.MeshStandardMaterial({color: '#9a5634', metalness: .85, roughness: .48}),
-    bolt: new T.MeshStandardMaterial({color: '#2a2622', metalness: .8, roughness: .6}),
-    paint: (c: string) => new T.MeshStandardMaterial({color: c, metalness: .35, roughness: .55}),
+    iron: ironPlate(1.3),
+    brass: metal('#b08a4a', {rough: .42}),
+    brassDark: metal('#6e5130', {rough: .55, repeat: 3}),
+    copper: metal('#b0623a', {rough: .4, repeat: 3}),
+    bolt: metal('#3a3632', {rough: .6, metalness: .85, patina: false, repeat: 4}),
+    paint: (c: string) => enamel(c),
   };
 }
 export type Mats = ReturnType<typeof materials>;

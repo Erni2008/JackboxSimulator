@@ -13,6 +13,7 @@ import {Control, Lever, PushButton, type Feedback} from './pressure-controls';
 import {flowMaterial, liquidMaterial, glassMaterial, bubbleField, type LiquidUniforms} from './liquid';
 import {REAGENTS, COLOR, GLINT, SYMBOL, type Reagent} from './formula-sim';
 import type {LabView} from './formula-link';
+import {contactShadow, enableShadows} from './surface';
 
 export interface LabSounds extends Feedback { pour(): void; splash(): void; stir(on: boolean): void; inject(): void; pump(): void; accepted(): void; unstable(): void; steam(): void; drain(): void; bubble(): void }
 const CH_R = .085, CH_H = .22, CH_Y = -.17, CH_Z = .12, DOSE_H = 1 / 6; // chamber holds 6 doses
@@ -132,6 +133,9 @@ export class Laboratory {
       vertexShader: 'attribute float age; uniform float px; varying float vA; void main(){ vec4 mv = modelViewMatrix * vec4(position,1.); vA = age; gl_PointSize = px * (.03 + .1 * age) * 520. / -mv.z; gl_Position = projectionMatrix * mv; }',
       fragmentShader: 'varying float vA; void main(){ vec2 d = gl_PointCoord - .5; float r = length(d); if (vA <= 0. || r > .5) discard; gl_FragColor = vec4(vec3(.85, .86, .8), smoothstep(.5, .0, r) * (1. - vA) * min(1., vA * 6.) * .32); }'}));
     this.steam.frustumCulled = false; this.group.add(this.steam);
+    for (const x of xs) this.group.add(contactShadow(x, .2, .13, .24));
+    for (const [x, y, w, h] of [[0, CH_Y, .26, .34], [-.3, -.15, .3, .26], [.25, -.1, .14, .14], [.38, -.25, .14, .14], [.26, -.31, .08, .14], [-.28, -.42, .38, .06], [.44, -.1, .05, .4]] as const) this.group.add(contactShadow(x, y, w, h));
+    enableShadows(this.group);
     this.drawAnalyzer(null);
   }
 

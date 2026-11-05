@@ -11,6 +11,7 @@ import {PressureGauge} from './pressure-gauge';
 import {Control, Wheel, Lever, PushButton, PullHandle, PipeClamp, type Feedback} from './pressure-controls';
 import type {ValveView} from './pressure-link';
 import {VERIFY_MS, type Action} from './pressure-sim';
+import {contactShadow, enableShadows} from './surface';
 
 export interface MachineSounds extends Feedback { explosion?(): void; alarm(): void; whistle(): void; surge(): void; vent(k: number): void; burst(): void; tick(k: number): void; steam(hiss: number, rumble: number): void; knock(k: number): void }
 
@@ -96,6 +97,10 @@ export class PressureMachine {
       vertexShader: 'attribute float age; attribute float size; uniform float px; varying float vA; void main(){ vec4 mv = modelViewMatrix * vec4(position,1.); vA = age; gl_PointSize = px * size * (.35 + age) * 520. / -mv.z; gl_Position = projectionMatrix * mv; }',
       fragmentShader: 'varying float vA; void main(){ vec2 d = gl_PointCoord - .5; float r = length(d); if (vA <= 0. || r > .5) discard; float a = smoothstep(.5, .0, r) * (1. - vA) * min(1., vA * 6.) * .34; gl_FragColor = vec4(vec3(.86, .84, .8), a); }'}));
     this.steam.frustumCulled = false; this.group.add(this.steam);
+    // grounding: soft contact shadows on the iron behind every heavy part, and real shadow casting
+    for (const [x, y, w, h] of [[-.13, .12, .3, .3], [-.25, -.085, .16, .16], [-.07, -.085, .16, .16], [.085, -.085, .14, .14], [.33, .25, .22, .1], [.29, .15, .09, .09], [.33, .005, .15, .15], [.33, -.2, .16, .14], [-.42, -.2, .07, .3], [.17, .1, .06, .42], [-.37, -.085, .08, .08]] as const) this.group.add(contactShadow(x, y, w, h));
+    this.group.add(contactShadow(-.15, -.085, .66, .07, .0234, .55)); // under the manifold
+    enableShadows(this.group);
     // explosion kit: glass shards, sparks, a blast light
     const glassMat = new T.MeshPhysicalMaterial({color: '#e8f0ff', transparent: true, opacity: .55, roughness: .05, metalness: 0, side: T.DoubleSide});
     for (let i = 0; i < 16; i++) { const g = new T.BufferGeometry(); const a = .006 + Math.random() * .02; g.setAttribute('position', new T.Float32BufferAttribute([0, 0, 0, a, a * .3, 0, a * .2, a * (.6 + Math.random()), 0], 3)); g.computeVertexNormals();

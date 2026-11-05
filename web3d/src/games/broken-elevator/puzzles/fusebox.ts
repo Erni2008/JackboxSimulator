@@ -4,6 +4,7 @@
 // natural slack, and insulated cutting pliers that follow the pointer and actually
 // close on the wire. Cut ends fray into copper strands with sparks.
 import * as T from 'three';
+import {metal} from './surface';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {TEX} from '../manual/materials';
@@ -65,8 +66,8 @@ export class FuseBox {
     const L = new T.TextureLoader(), tex = (f: string, srgb: boolean, rep = 1, off = 0) => { const t = L.load(TEX + f); t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(rep, rep); t.offset.set(off, off * .7); t.colorSpace = srgb ? T.SRGBColorSpace : T.NoColorSpace; t.anisotropy = 4; return t; };
     const steelMat = (off: number) => new T.MeshPhysicalMaterial({map: tex('rusty_metal_05_diff_1k.jpg', true, .55, off), normalMap: tex('rusty_metal_05_nor_gl_1k.jpg', false, .55, off), roughnessMap: tex('rusty_metal_05_rough_1k.jpg', false, .55, off), color: '#4f453e', metalness: .6, roughness: 1, envMapIntensity: .55});
     const steel = steelMat(0), doorSteel = steelMat(.37);
-    const brass = new T.MeshPhysicalMaterial({color: '#8a6a36', metalness: .9, roughness: .42, envMapIntensity: .9});
-    const brassDark = new T.MeshPhysicalMaterial({color: '#5e4624', metalness: .85, roughness: .55});
+    const brass = metal('#b08a4a', {rough: .42});
+    const brassDark = metal('#6e5130', {rough: .55, repeat: 3});
     const porcelain = new T.MeshPhysicalMaterial({color: '#b8ad98', roughness: .22, metalness: 0, clearcoat: .8, clearcoatRoughness: .2, map: canvasTex(256, 64, x => { x.fillStyle = '#eee8dc'; x.fillRect(0, 0, 256, 64); const r = rng(3); for (let i = 0; i < 120; i++) { x.fillStyle = `rgba(60,45,30,${r() * .25})`; x.fillRect(r() * 256, r() * 64, 2 + r() * 20, 1 + r() * 3); } x.strokeStyle = 'rgba(80,60,40,.35)'; x.lineWidth = 1; for (let i = 0; i < 6; i++) { x.beginPath(); let px = r() * 256, py = r() * 64; x.moveTo(px, py); for (let k = 0; k < 6; k++) { px += (r() - .5) * 30; py += (r() - .5) * 12; x.lineTo(px, py); } x.stroke(); } })});
     const panel = new T.MeshPhysicalMaterial({roughness: .62, metalness: 0, map: canvasTex(512, 640, x => {
       x.fillStyle = '#0e0b09'; x.fillRect(0, 0, 512, 640); const r = rng(9); for (let i = 0; i < 2000; i++) { x.fillStyle = `rgba(${r() < .5 ? '70,60,50' : '0,0,0'},${r() * .2})`; x.fillRect(r() * 512, r() * 640, 1 + r() * 6, 1 + r() * 2); }

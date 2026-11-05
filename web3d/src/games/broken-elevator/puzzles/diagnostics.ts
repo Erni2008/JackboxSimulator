@@ -2,6 +2,7 @@
 // push-button and the read-only NORMAL / EMERGENCY mode selector. The fault shown
 // is never decided here — it is supplied from outside (dev config now, puzzle later).
 import * as T from 'three';
+import {metal} from './surface';
 import {rng} from '../manual/page-art';
 
 export type Fault = 'overload' | 'short' | 'power';
@@ -11,9 +12,9 @@ const tex = (w: number, h: number, draw: (x: CanvasRenderingContext2D) => void, 
 export const Mats = (() => {
   let m: any = null;
   return () => m ||= {
-    brass: new T.MeshPhysicalMaterial({color: '#8a6a36', metalness: .9, roughness: .45, envMapIntensity: .9}),
-    bronze: new T.MeshPhysicalMaterial({color: '#5a4026', metalness: .85, roughness: .55}),
-    iron: new T.MeshPhysicalMaterial({color: '#2e2925', metalness: .7, roughness: .72, envMapIntensity: .5}),
+    brass: metal('#b08a4a', {rough: .42}),
+    bronze: metal('#6e5130', {rough: .55, repeat: 3}),
+    iron: metal('#36302b', {rough: .72, metalness: .75, patina: false, repeat: 3}),
     black: new T.MeshPhysicalMaterial({color: '#141210', metalness: .2, roughness: .6}),
   };
 })();
