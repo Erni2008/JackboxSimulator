@@ -1,7 +1,7 @@
 // THE UNSTABLE FORMULA transport: room mode talks FORMULA_START / FORMULA_ACTION{action, seq, reagent?} over the shared
 // room socket (the server keeps the recipe); local mode runs a practice lab in the page with the same rules.
 import {RoomSocket} from './room-socket';
-import {LabSim, generateSample, solve, LIMIT_MS, type Reagent, type Outcome, type Sample, type FormulaEvent} from './formula-sim';
+import {LabSim, generateSample, solve, type Reagent, type Outcome, type Sample, type FormulaEvent} from './formula-sim';
 
 export interface LabView extends Sample { doses: Reagent[]; lock: boolean; dispensing: boolean; draining: boolean; drainLeft: number; rejections: number; deadline: number; outcome: Outcome; failReason: string; event: FormulaEvent | null; online: boolean }
 
@@ -30,7 +30,7 @@ export class FormulaLink {
   view(): LabView | null {
     const nowP = performance.now();
     if (this.mode === 'local') { const s = this.local; if (!s) return null; s.advance(Date.now()); if (s.outcome !== 'RUNNING' && this.reported !== s.sample.sampleId + s.startedAt) { this.reported = s.sample.sampleId + s.startedAt; this.onOutcome(s.outcome, s.failReason); }
-      return {...s.sample, doses: [...s.doses], lock: s.lock, dispensing: s.elapsed < s.busyUntil, draining: s.drainUntil >= 0, drainLeft: s.drainUntil >= 0 ? s.drainUntil - s.elapsed : 0, rejections: s.rejections, deadline: s.startedAt + LIMIT_MS - Date.now() + nowP, outcome: s.outcome, failReason: s.failReason, event: s.event, online: false}; }
+      return {...s.sample, doses: [...s.doses], lock: s.lock, dispensing: s.elapsed < s.busyUntil, draining: s.drainUntil >= 0, drainLeft: s.drainUntil >= 0 ? s.drainUntil - s.elapsed : 0, rejections: s.rejections, deadline: s.startedAt + s.limit - Date.now() + nowP, outcome: s.outcome, failReason: s.failReason, event: s.event, online: false}; }
     const v = this.auth; if (!v) return null; const now = this.sock!.serverNow();
     return {sampleId: v.sampleId, family: v.family, cls: v.cls, reaction: v.reaction, polarity: v.polarity, concentration: v.concentration, unstable: v.unstable, doses: v.doses, lock: v.lock,
       dispensing: now < v.busyUntil, draining: v.drainUntil > 0 && now < v.drainUntil, drainLeft: v.drainUntil > 0 ? Math.max(0, v.drainUntil - now) : 0, rejections: v.rejections, deadline: v.deadline - now + nowP, outcome: v.outcome, failReason: v.failReason, event: v.event || null, online: true};

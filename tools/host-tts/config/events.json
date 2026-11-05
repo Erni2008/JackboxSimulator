@@ -130,6 +130,86 @@
       "id": "PRESS_YELLOW",
       "text": "Нажми жёлтую",
       "emotion": "NEUTRAL"
+    },
+    {
+      "id": "elevator_intro",
+      "text": "Добро пожаловать в сломанный лифт. Кабина висит над лавой, и спасти её можете только вы.",
+      "emotion": "DRAMATIC"
+    },
+    {
+      "id": "elevator_tutorial_wire",
+      "text": "Перед вами щиток. Откройте дверцу, нажмите тест, найдите неисправность в руководстве инженера и перережьте нужный провод.",
+      "emotion": "NEUTRAL"
+    },
+    {
+      "id": "elevator_tutorial_pressure",
+      "text": "Сломанные клапаны. Нажмите тест, найдите код поломки в руководстве и выведите стрелку в зелёную зону. Выше ста двадцати — взрыв.",
+      "emotion": "NEUTRAL"
+    },
+    {
+      "id": "elevator_tutorial_formula",
+      "text": "Нестабильная формула. Изучите пробу, найдите рецепт в журнале алхимика и введите реагенты по порядку. Нестабильный реагент — только с замком охлаждения.",
+      "emotion": "NEUTRAL"
+    },
+    {
+      "id": "elevator_task_wire",
+      "text": "Щиток искрит. Действуйте.",
+      "emotion": "SINISTER"
+    },
+    {
+      "id": "elevator_task_pressure",
+      "text": "Давление растёт. Займитесь клапанами.",
+      "emotion": "SINISTER"
+    },
+    {
+      "id": "elevator_task_formula",
+      "text": "Охлаждение отказывает. Пора в лабораторию.",
+      "emotion": "SINISTER"
+    },
+    {
+      "id": "elevator_success_1",
+      "text": "Отлично. Лифт держится.",
+      "emotion": "SARCASTIC"
+    },
+    {
+      "id": "elevator_success_2",
+      "text": "Неплохо. Похоже, вы ещё поживёте.",
+      "emotion": "SARCASTIC"
+    },
+    {
+      "id": "elevator_fail_1",
+      "text": "Неверно! Лифт падает!",
+      "emotion": "DRAMATIC"
+    },
+    {
+      "id": "elevator_fail_2",
+      "text": "Ошибка. Держитесь крепче.",
+      "emotion": "SINISTER"
+    },
+    {
+      "id": "elevator_explosion",
+      "text": "Система давления взорвалась!",
+      "emotion": "DRAMATIC"
+    },
+    {
+      "id": "elevator_timeout",
+      "text": "Время вышло.",
+      "emotion": "SINISTER"
+    },
+    {
+      "id": "elevator_ten_seconds",
+      "text": "Десять секунд!",
+      "emotion": "DRAMATIC"
+    },
+    {
+      "id": "elevator_surge",
+      "text": "Внимание! Скачок давления!",
+      "emotion": "DRAMATIC"
+    },
+    {
+      "id": "elevator_results",
+      "text": "Все двенадцать заданий позади. Посмотрим, чего вы стоите.",
+      "emotion": "NEUTRAL"
     }
   ]
 }

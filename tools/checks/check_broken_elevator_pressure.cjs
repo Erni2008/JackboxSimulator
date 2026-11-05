@@ -11,7 +11,7 @@ async function page(b, touch, seat, extra = '') {
   const p = await b.newPage({viewport: touch ? {width: 844, height: 390} : {width: 1280, height: 800}, deviceScaleFactor: touch ? 2 : 1, hasTouch: touch, isMobile: touch});
   const errors = []; p.on('pageerror', e => errors.push(String(e)));
   if (seat) await p.addInitScript(s => sessionStorage.setItem('finalanswer-session', s), JSON.stringify(seat));
-  await p.goto(`${url}?capture=1&lang=ru&seed=11&task=pressure&quality=${touch ? 'low' : 'high'}${extra}`); await p.waitForFunction(() => window.__manual, null, {timeout: 120000});
+  await p.goto(`${url}?capture=1&lang=ru&tutorial=0&seed=11&task=pressure&quality=${touch ? 'low' : 'high'}${extra}`); await p.waitForFunction(() => window.__manual, null, {timeout: 120000});
   await p.waitForFunction(() => window.__manual.link.view(), null, {timeout: 20000});
   await p.evaluate(() => window.__manual.setInspect(true, 'pressure')); await p.waitForTimeout(1400); return {p, errors, touch};
 }

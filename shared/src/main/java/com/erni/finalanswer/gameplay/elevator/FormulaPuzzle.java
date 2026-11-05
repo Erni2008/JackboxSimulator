@@ -17,19 +17,20 @@ public final class FormulaPuzzle {
     /** what the last accepted action caused (client animation cue) */
     public record Event(long seq, String type, Reagent reagent, String reason) {}
 
-    private final Sample sample; private final Recipe recipe; private final long startedAt;
+    private final Sample sample; private final Recipe recipe; private final long startedAt, limitMs;
     private long elapsed, busyUntil, drainUntil = -1, finishedAt = -1, lastSeq = -1;
     private final List<Reagent> doses = new ArrayList<>();
     private boolean lock; private int rejections; private Outcome outcome = Outcome.RUNNING; private String failReason = ""; private Event last;
     public boolean rewarded; public long sentAt;
 
-    public FormulaPuzzle(Sample sample, long startedAt) { this.sample = sample; this.recipe = Formula.solve(sample); this.startedAt = startedAt; }
+    public FormulaPuzzle(Sample sample, long startedAt) { this(sample, startedAt, LIMIT_MS); }
+    public FormulaPuzzle(Sample sample, long startedAt, long limitMs) { this.sample = sample; this.recipe = Formula.solve(sample); this.startedAt = startedAt; this.limitMs = limitMs; }
 
     public boolean advance(long now) {
         if (outcome != Outcome.RUNNING) return false;
-        elapsed = Math.min(Math.max(elapsed, now - startedAt), LIMIT_MS);
+        elapsed = Math.min(Math.max(elapsed, now - startedAt), limitMs);
         if (drainUntil >= 0 && elapsed >= drainUntil) { doses.clear(); drainUntil = -1; }
-        if (elapsed >= LIMIT_MS) { outcome = Outcome.FAILED; failReason = "TIMEOUT"; finishedAt = startedAt + LIMIT_MS; return true; }
+        if (elapsed >= limitMs) { outcome = Outcome.FAILED; failReason = "TIMEOUT"; finishedAt = startedAt + limitMs; return true; }
         return false;
     }
     public boolean draining() { return drainUntil >= 0; }
@@ -68,7 +69,8 @@ public final class FormulaPuzzle {
     public int rejections() { return rejections; }
     public long startedAt() { return startedAt; }
     public long elapsed() { return elapsed; }
-    public long deadline() { return startedAt + LIMIT_MS; }
+    public long deadline() { return startedAt + limitMs; }
+    public long limitMs() { return limitMs; }
     public long busyUntil() { return startedAt + busyUntil; }
     public long drainUntil() { return drainUntil < 0 ? -1 : startedAt + drainUntil; }
     public long finishedAt() { return finishedAt; }

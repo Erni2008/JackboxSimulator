@@ -151,6 +151,8 @@ public final class RoomService {
         if(message.type().equals("OPEN_WEB_GAME")){
             requireHost(member);String id=Protocol.string(data,"game");
             if(!Set.of("broken-elevator").contains(id))throw new Failure(400,"INVALID_WEB_GAME");
+            if(data.has("difficulty")){String d=Protocol.string(data,"difficulty");if(!Set.of("EASY","NORMAL","HARD").contains(d))throw new Failure(400,"INVALID_DIFFICULTY");room.difficulty=com.erni.finalanswer.gameplay.elevator.Difficulty.valueOf(d);}
+            room.pressure.clear();room.formula.clear();for(var m:room.members.values()){m.elevatorRepairs=0;m.elevatorPenalties=0;}
             room.webGame=id;room.webGameId=UUID.randomUUID().toString();broadcast(room,"WEB_GAME_OPENED");reply(peer,room,member,message);return;
         }
         if(Set.of("START_LAST_COMMAND","LAST_COMMAND_ACTION","END_LAST_COMMAND").contains(message.type())){lastCommandCommand(room,member,peer,message);return;}
@@ -533,7 +535,7 @@ public final class RoomService {
             if(!Set.of("roomCode").containsAll(data.keySet()))throw new Failure(400,"INVALID_PRESSURE_ACTION");
             var current=room.pressure.get(member.id);
             if(current==null||current.outcome()!=com.erni.finalanswer.gameplay.elevator.PressurePuzzle.Outcome.RUNNING)
-                room.pressure.put(member.id,new com.erni.finalanswer.gameplay.elevator.PressurePuzzle(com.erni.finalanswer.gameplay.elevator.PressureGenerator.generate(random.nextLong()),now()));
+                room.pressure.put(member.id,new com.erni.finalanswer.gameplay.elevator.PressurePuzzle(com.erni.finalanswer.gameplay.elevator.PressureGenerator.generate(random.nextLong(),room.difficulty),now(),room.difficulty.pressureMs));
             reply(peer,room,member,message);return;
         }
         // actions only: the client can never send pressure, time, a fault or an outcome
@@ -570,7 +572,7 @@ public final class RoomService {
             if(!Set.of("roomCode").containsAll(data.keySet()))throw new Failure(400,"INVALID_FORMULA_ACTION");
             var current=room.formula.get(member.id);
             if(current==null||current.outcome()!=com.erni.finalanswer.gameplay.elevator.FormulaPuzzle.Outcome.RUNNING)
-                room.formula.put(member.id,new com.erni.finalanswer.gameplay.elevator.FormulaPuzzle(com.erni.finalanswer.gameplay.elevator.FormulaGenerator.generate(random.nextLong()),now()));
+                room.formula.put(member.id,new com.erni.finalanswer.gameplay.elevator.FormulaPuzzle(com.erni.finalanswer.gameplay.elevator.FormulaGenerator.generate(random.nextLong(),room.difficulty),now(),room.difficulty.formulaMs));
             reply(peer,room,member,message);return;
         }
         var keys=new HashSet<>(data.keySet());keys.remove("roomCode");
@@ -690,7 +692,7 @@ public final class RoomService {
         value.put("availableCharacters",CHARACTERS.stream().filter(c->room.members.values().stream().noneMatch(m->m.characterId.equals(c))).toList());
         value.put("canStart",game==null && room.impostor==null && room.cursed==null && room.lastCommand==null&&room.cards==null && room.host.peer!=null && !room.members.isEmpty() && room.members.values().stream().allMatch(m->m.peer!=null&&!m.left));
         value.put("impostorSettings",room.impostorSettings);value.put("impostorWordCategories",List.of("DEFAULT"));
-        value.put("lobbyId",room.lobbyId); value.put("language",room.language);
+        value.put("lobbyId",room.lobbyId); value.put("language",room.language); value.put("elevatorDifficulty",room.difficulty.name());
         if(!room.webGameId.isEmpty()){value.put("webGame",room.webGame);value.put("webGameId",room.webGameId);}
         if(self!=null&&!self.host){var pz=room.pressure.get(self.id);if(pz!=null)value.put("elevatorPressure",pressureView(pz));var fz=room.formula.get(self.id);if(fz!=null)value.put("elevatorFormula",formulaView(fz));value.put("elevatorRepairs",self.elevatorRepairs);value.put("elevatorPenalties",self.elevatorPenalties);}
         if(room.impostor==null && !room.impostorRoster.isEmpty())value.put("impostorLobby",Map.of("sessionId",room.lobbyId,"participantIds",room.impostorRoster));
@@ -830,7 +832,7 @@ public final class RoomService {
     private static final class Room {
         final String id=UUID.randomUUID().toString(), name,mode; String code;
         final int maxPlayers,questionCount; final byte[] salt,passwordHash;
-        String webGame="",webGameId="",language="en";
+        String webGame="",webGameId="",language="en"; com.erni.finalanswer.gameplay.elevator.Difficulty difficulty=com.erni.finalanswer.gameplay.elevator.Difficulty.NORMAL;
         final Map<String,com.erni.finalanswer.gameplay.elevator.PressurePuzzle> pressure=new LinkedHashMap<>();
         final Map<String,com.erni.finalanswer.gameplay.elevator.FormulaPuzzle> formula=new LinkedHashMap<>();
         String lobbyId=UUID.randomUUID().toString();List<String> impostorRoster=List.of();

@@ -30,7 +30,7 @@ public final class PressurePuzzle {
     public static final long NOISE_MIN_MS = 500, NOISE_MAX_MS = 2_000;
 
     private final Config config;
-    private final long startedAt;
+    private final long startedAt, limitMs;
     private long elapsed, verifyMs, finishedAt = -1, diagnosticAt = -1, lastSeq = -1;
     private double pressure;
     private boolean fine, bypass, emergencyUsed, diagnosed, surged, clamped;
@@ -41,8 +41,9 @@ public final class PressurePuzzle {
     /** server bookkeeping: repair reward granted once; last push time */
     public boolean rewarded; public long sentAt;
 
-    public PressurePuzzle(Config config, long startedAt) {
-        this.config = config; this.startedAt = startedAt; pressure = config.startPsi(); fine = config.fine();
+    public PressurePuzzle(Config config, long startedAt) { this(config, startedAt, LIMIT_MS); }
+    public PressurePuzzle(Config config, long startedAt, long limitMs) {
+        this.config = config; this.startedAt = startedAt; this.limitMs = limitMs; pressure = config.startPsi(); fine = config.fine();
         noise = new java.util.Random(config.seed() * 31 + 7); if (config.noise()) nextNoise = noiseGap();
     }
 
@@ -60,7 +61,7 @@ public final class PressurePuzzle {
     /** Advances to absolute time {@code now}; true if the outcome changed. */
     public boolean advance(long now) {
         if (outcome != Outcome.RUNNING) return false;
-        long target = Math.min(now - startedAt, LIMIT_MS);
+        long target = Math.min(now - startedAt, limitMs);
         while (elapsed + QUANTUM_MS <= target && outcome == Outcome.RUNNING) {
             elapsed += QUANTUM_MS;
             pressure = Math.max(0, pressure + drift() * QUANTUM_MS / 1000.0);
@@ -70,7 +71,7 @@ public final class PressurePuzzle {
             verifyMs = inZone() && safeState() ? verifyMs + QUANTUM_MS : 0;
             if (verifyMs >= VERIFY_MS) { outcome = Outcome.STABILIZED; finishedAt = startedAt + elapsed; return true; }
         }
-        if (elapsed >= LIMIT_MS && outcome == Outcome.RUNNING) { outcome = Outcome.FAILED; failReason = "TIMEOUT"; finishedAt = startedAt + LIMIT_MS; return true; }
+        if (elapsed >= limitMs && outcome == Outcome.RUNNING) { outcome = Outcome.FAILED; failReason = "TIMEOUT"; finishedAt = startedAt + limitMs; return true; }
         return false;
     }
     private boolean critical() {
@@ -111,7 +112,8 @@ public final class PressurePuzzle {
     public double pressure() { return pressure; }
     public long elapsed() { return elapsed; }
     public long startedAt() { return startedAt; }
-    public long deadline() { return startedAt + LIMIT_MS; }
+    public long deadline() { return startedAt + limitMs; }
+    public long limitMs() { return limitMs; }
     public long finishedAt() { return finishedAt; }
     public long verifyMs() { return verifyMs; }
     public long lastSeq() { return lastSeq; }

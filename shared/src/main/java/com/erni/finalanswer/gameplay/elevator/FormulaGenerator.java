@@ -7,14 +7,15 @@ import java.util.Random;
 public final class FormulaGenerator {
     private FormulaGenerator() {}
 
-    public static Sample generate(long seed) {
+    public static Sample generate(long seed) { return generate(seed, Difficulty.NORMAL); }
+    public static Sample generate(long seed, Difficulty d) {
         Random r = new Random(seed * 0x9E3779B97F4A7C15L + 0x632BE59BD9B4E019L); // scrambled: consecutive seeds must not correlate
         for (int attempt = 0; attempt < 100; attempt++) {
             Family f = Family.values()[r.nextInt(4)]; int cls = 1 + r.nextInt(2); Reaction re = Reaction.values()[r.nextInt(3)];
             Polarity p = Polarity.values()[r.nextInt(2)]; Concentration c = Concentration.values()[r.nextInt(3)];
             Reagent base = Formula.base(f, cls), add = Formula.additive(base, re);
             // 40 %: one of the two recipe reagents is unstable (needs the cooling lock)
-            Reagent unstable = r.nextInt(10) < 4 ? (r.nextBoolean() ? base : add) : null;
+            Reagent unstable = r.nextInt(10) < (d == Difficulty.EASY ? 0 : d == Difficulty.HARD ? 8 : 4) ? (r.nextBoolean() ? base : add) : null;
             String id = "X-" + (10 + r.nextInt(90)) + (char) ('A' + r.nextInt(6));
             Sample s = new Sample(id, f, cls, re, p, c, unstable);
             if (validate(s)) return s;

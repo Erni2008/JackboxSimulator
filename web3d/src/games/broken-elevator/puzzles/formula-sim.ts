@@ -1,3 +1,4 @@
+import {DIFF, limitMs} from '../difficulty';
 import {LANG} from '../i18n';
 // THE UNSTABLE FORMULA — client mirror of shared/.../gameplay/elevator/{Formula,FormulaPuzzle,FormulaGenerator}.java.
 // In a room the Java server is authoritative (and never sends the recipe); this file powers the offline practice lab
@@ -31,12 +32,12 @@ export function solve(s: Sample) {
 export type Outcome = 'RUNNING' | 'STABILIZED' | 'FAILED';
 export interface FormulaEvent { seq: number; type: 'DOSE' | 'REJECTED' | 'ACCEPTED' | 'LOCK' | 'FULL'; reagent: Reagent | ''; reason: string }
 export class LabSim {
-  doses: Reagent[] = []; lock = false; rejections = 0; outcome: Outcome = 'RUNNING'; failReason = ''; elapsed = 0; busyUntil = 0; drainUntil = -1; finishedAt = -1; lastSeq = -1; event: FormulaEvent | null = null;
+  limit = limitMs('formula'); doses: Reagent[] = []; lock = false; rejections = 0; outcome: Outcome = 'RUNNING'; failReason = ''; elapsed = 0; busyUntil = 0; drainUntil = -1; finishedAt = -1; lastSeq = -1; event: FormulaEvent | null = null;
   private recipe: Reagent[];
   constructor(public sample: Sample, public startedAt: number) { this.recipe = solve(sample).sequence; }
-  advance(now: number) { if (this.outcome !== 'RUNNING') return false; this.elapsed = Math.min(Math.max(this.elapsed, now - this.startedAt), LIMIT_MS);
+  advance(now: number) { if (this.outcome !== 'RUNNING') return false; this.elapsed = Math.min(Math.max(this.elapsed, now - this.startedAt), this.limit);
     if (this.drainUntil >= 0 && this.elapsed >= this.drainUntil) { this.doses = []; this.drainUntil = -1; }
-    if (this.elapsed >= LIMIT_MS) { this.outcome = 'FAILED'; this.failReason = 'TIMEOUT'; this.finishedAt = this.startedAt + LIMIT_MS; return true; } return false; }
+    if (this.elapsed >= this.limit) { this.outcome = 'FAILED'; this.failReason = 'TIMEOUT'; this.finishedAt = this.startedAt + this.limit; return true; } return false; }
   apply(a: 'DISPENSE' | 'LOCK_ON' | 'LOCK_OFF' | 'INJECT', r: Reagent | null, seq: number, now: number) {
     this.advance(now); if (this.outcome !== 'RUNNING' || seq <= this.lastSeq) return false;
     if (a !== 'LOCK_ON' && a !== 'LOCK_OFF' && (this.elapsed < this.busyUntil || this.drainUntil >= 0)) return false; this.lastSeq = seq;
@@ -54,5 +55,5 @@ export function generateSample(seed: number): Sample {
   const r = rng(seed), pick = <X>(a: readonly X[]) => a[Math.floor(r() * a.length)];
   const family = pick(FAMILIES), cls = (1 + Math.floor(r() * 2)) as 1 | 2, reaction = pick(['A', 'B', 'C'] as const), polarity = pick(['POSITIVE', 'NEGATIVE'] as const), concentration = pick(['LOW', 'MEDIUM', 'HIGH'] as const);
   const s: Sample = {sampleId: `X-${10 + Math.floor(r() * 90)}${'ABCDEF'[Math.floor(r() * 6)]}`, family, cls, reaction, polarity, concentration, unstable: ''};
-  const {base, add} = solve(s); if (r() < .4) s.unstable = r() < .5 ? base : add; return s;
+  const {base, add} = solve(s); if (r() < (DIFF() === 'EASY' ? 0 : DIFF() === 'HARD' ? .8 : .4)) s.unstable = r() < .5 ? base : add; return s;
 }

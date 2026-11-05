@@ -5,7 +5,7 @@ const url=process.env.URL,out=process.env.OUT;const log=[];const ok=m=>{log.push
 async function run(name,viewport,touch){
   const b=await chromium.launch({executablePath:process.env.CHROME_PATH,args:['--use-angle=metal','--ignore-gpu-blocklist']});
   const p=await b.newPage({viewport,deviceScaleFactor:touch?2:1,hasTouch:touch,isMobile:touch});const errors=[];p.on('pageerror',e=>errors.push(e.message));
-  await p.goto(url+'?capture=1&lang=ru&quality='+(touch?'low':'high'));await p.waitForFunction(()=>window.__manual,null,{timeout:120000});await p.waitForTimeout(1500);
+  await p.goto(url+'?capture=1&lang=ru&tutorial=0&quality='+(touch?'low':'high'));await p.waitForFunction(()=>window.__manual,null,{timeout:120000});await p.waitForTimeout(1500);
   const M=f=>p.evaluate(f);const shot=n=>p.screenshot({path:`${out}/${name}-${n}.png`});
   const st=await M(()=>({cage:!!window.__manual.cage.mesh,procedural:window.__manual.scene.getObjectByName('Mesh_0')?1:0,floor:window.__manual.cage.floorY}));assert.ok(st.cage);ok(`${name}: cage.glb loaded (floor y=${st.floor.toFixed(3)})`);
   const tap=async(x,y)=>{if(touch)await p.touchscreen.tap(x,y);else await p.mouse.click(x,y);};

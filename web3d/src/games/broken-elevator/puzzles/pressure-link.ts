@@ -5,7 +5,7 @@
 //   not predict valve effects — it only extrapolates the published leak drift between updates.
 // local mode: no room on this device -> a practice machine simulated in the page with the same rules.
 import {RoomSocket} from './room-socket';
-import {ValveSim, generate, MAX_PSI, LIMIT_MS, type Action, type Outcome} from './pressure-sim';
+import {ValveSim, generate, MAX_PSI, type Action, type Outcome} from './pressure-sim';
 
 export interface Effect { seq: number; action: Action; delta: number; jammed: boolean }
 export interface ValveView {
@@ -50,7 +50,7 @@ export class PressureLink {
     if (this.mode === 'local') {
       const s = this.local; if (!s) return null; s.advance(Date.now()); if (s.outcome !== 'RUNNING' && this.reported !== 'L' + s.startedAt) { this.reported = 'L' + s.startedAt; this.onOutcome(s.outcome, s.failReason); } // outcomes from actions (critical) and from time
       return {pressure: s.pressure, safeLow: s.config.safeLow, safeHigh: s.safeHigh, fine: s.fine, bypass: s.bypass, emergencyUsed: s.emergencyUsed, diagnosing: s.diagnosing, code: s.code,
-        surgeWarning: s.surgeWarning(), surged: s.surged, clamped: s.clamped, noiseAt: s.lastNoiseAt < 0 ? -1 : s.startedAt + s.lastNoiseAt, noise: s.lastNoise, verifyMs: s.verifyMs, safeState: s.safeState(), deadline: s.startedAt + LIMIT_MS - Date.now() + nowP, outcome: s.outcome, failReason: s.failReason, effect: s.effect, online: false};
+        surgeWarning: s.surgeWarning(), surged: s.surged, clamped: s.clamped, noiseAt: s.lastNoiseAt < 0 ? -1 : s.startedAt + s.lastNoiseAt, noise: s.lastNoise, verifyMs: s.verifyMs, safeState: s.safeState(), deadline: s.startedAt + s.limit - Date.now() + nowP, outcome: s.outcome, failReason: s.failReason, effect: s.effect, online: false};
     }
     const v = this.auth; if (!v) return null; const now = this.serverNow();
     const pressure = v.outcome === 'RUNNING' ? Math.max(0, Math.min(MAX_PSI, v.pressure + v.drift * Math.max(0, Math.min(now, v.deadline) - v.at) / 1000)) : v.pressure;
