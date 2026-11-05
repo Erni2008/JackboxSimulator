@@ -192,8 +192,8 @@ export function drawRulePage(x: X, p: RulePage, index: number) {
 /** Introduction to the game: a short in-world briefing with an engraving of the cage over the lava. */
 export function drawGuidePage(x: X, index: number) {
   paper(x, index + 31, 1, true); x.textBaseline = 'alphabetic';
-  x.fillStyle = INK2; x.font = F.tech(22, 500); x.textAlign = 'center'; x.fillText(L('FINAL ANSWER \u00b7 СЛОМАННЫЙ ЛИФТ', 'FINAL ANSWER \u00b7 THE BROKEN ELEVATOR'), W / 2, 92);
-  x.fillStyle = INK; x.font = F.display(700, 84); x.fillText(L('Сломанный лифт', 'The Broken Elevator'), W / 2, 176);
+  x.fillStyle = INK2; x.font = F.tech(22, 500); x.textAlign = 'center'; x.fillText(L('FINAL ANSWER \u00b7 АДСКАЯ КЛЕТКА', 'FINAL ANSWER \u00b7 THE HELL CAGE'), W / 2, 92);
+  x.fillStyle = INK; x.font = F.display(700, 84); x.fillText(L('Адская клетка', 'The Hell Cage'), W / 2, 176);
   x.strokeStyle = BRASS; x.lineWidth = 2; x.beginPath(); x.moveTo(W / 2 - 220, 204); x.lineTo(W / 2 + 220, 204); x.stroke();
   // illustration: chains, the cage, a gauge-like halo, the lava lake glowing below
   const cx = W / 2, top = 236, ih = 520;

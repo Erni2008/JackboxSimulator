@@ -125,7 +125,7 @@ public final class CageLobbyScreen extends ScreenAdapter {
         modes.add(new Mode("THE LAST COMMAND","от 1 игрока",lastCommand,game::startLastCommand));
         modes.add(new Mode("THE CURSED CARDS","4–6 игроков",cards,game::startCursedCards));
         for(String[] d:new String[][]{{"EASY","ЛЁГКИЙ","90 / 60 / 60 с · одна поломка · без помех"},{"NORMAL","СРЕДНИЙ","60 / 45 / 45 с · стандартные правила"},{"HARD","СЛОЖНЫЙ","45 / 35 / 35 с · двойные поломки · всегда скачок"}})
-            modes.add(new Mode("THE BROKEN ELEVATOR · "+d[1],d[2]+" · телефоны переключатся в лифт",null,()->{var rt=game.getRealtime();if(rt!=null&&rt.connected())rt.send("OPEN_WEB_GAME",java.util.Map.of("game","broken-elevator","difficulty",d[0]));Gdx.net.openURI(game.getHosting().apiUrl().replaceAll("/+$","")+"/broken-elevator-manual/?diff="+d[0].toLowerCase());}));
+            modes.add(new Mode("АДСКАЯ КЛЕТКА · "+d[1],d[2]+" · телефоны переключатся в клетку",null,()->{var rt=game.getRealtime();if(rt!=null&&rt.connected())rt.send("OPEN_WEB_GAME",java.util.Map.of("game","broken-elevator","difficulty",d[0]));Gdx.net.openURI(game.getHosting().apiUrl().replaceAll("/+$","")+"/broken-elevator-manual/?diff="+d[0].toLowerCase());}));
         modeName=new Label("",new Label.LabelStyle(modeFont,Color.valueOf("F2E2C4")));modeName.setAlignment(Align.center);modeName.setBounds(650,210,1100,46);stage.addActor(modeName);
         modeHint=new Label("",new Label.LabelStyle(font,Color.valueOf("B79E7C")));modeHint.setFontScale(.62f);modeHint.setAlignment(Align.center);modeHint.setBounds(650,180,1100,28);stage.addActor(modeHint);
         modePrev=button("<",650,style,()->cycleMode(-1));modePrev.setBounds(650,205,90,56);
