@@ -13,7 +13,7 @@ import java.util.ArrayList;
 public final class CharacterLightingShot {
     public static void main(String[] args) {
         if (StartupHelper.startNewJvmIfRequired()) return;
-        var config = new Lwjgl3ApplicationConfiguration(); config.setTitle("Character lighting"); config.setWindowedMode(1600, 900); config.disableAudio(true); config.setForegroundFPS(60);
+        var config = new Lwjgl3ApplicationConfiguration(); config.setTitle("Character lighting"); config.setWindowedMode(1600, 900); config.disableAudio(true); config.setForegroundFPS(60); config.setBackBufferConfig(8, 8, 8, 8, 24, 0, 4);
         new Lwjgl3Application(new FinalAnswerGame() {
             CageLobbyScreen preview; RoomSession room; float elapsed; boolean done;
             @Override public void create() { super.create(); preview = new CageLobbyScreen(this); setScreen(preview);

@@ -13,6 +13,9 @@ public final class CageAssets implements Disposable {
     public final CageCharacterPresentation.Settings presentation=CageCharacterPresentation.Settings.load();
     private final List<Texture> owned = new ArrayList<>();
     public final TextureRegion cage, gate, key, chain, hook;
+    /** the cage, chain and bracket are built in code (Cage3D); the nameplate plate is procedural too */
+    public final Cage3D cage3d = new Cage3D();
+    public final com.badlogic.gdx.graphics.Texture plate = plateTexture();
     public final TextureRegion head, body, leftArm, rightArm, leftLeg, rightLeg;
 
     public CageAssets() {
@@ -37,9 +40,18 @@ public final class CageAssets implements Disposable {
         return new TextureRegion(texture);
     }
 
+    /** brass nameplate: bevelled edge, brushed face, two screws */
+    private static com.badlogic.gdx.graphics.Texture plateTexture() {
+        int w = 256, h = 56; var p = new com.badlogic.gdx.graphics.Pixmap(w, h, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888); var r = new java.util.Random(9);
+        for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) { float e = Math.min(Math.min(x, w - 1 - x), Math.min(y, h - 1 - y)), bevel = e < 3 ? .55f + (y < h / 2 ? .35f : -.1f) : 1;
+            float g = .9f + .1f * (float) Math.sin(y * .9 + r.nextFloat() * .6) - (float) y / h * .18f, n = r.nextFloat() * .05f;
+            float cr = (.78f * g - n) * bevel, cg = (.6f * g - n) * bevel, cb = (.3f * g - n) * bevel; boolean screw = Math.hypot(x - 14, y - h / 2f) < 5 || Math.hypot(x - (w - 15), y - h / 2f) < 5;
+            if (screw) { cr *= .55f; cg *= .5f; cb *= .45f; } p.drawPixel(x, y, com.badlogic.gdx.graphics.Color.rgba8888(Math.min(1, cr), Math.min(1, cg), Math.min(1, cb), e < 1 ? .7f : 1)); }
+        var t = new com.badlogic.gdx.graphics.Texture(p); p.dispose(); t.setFilter(com.badlogic.gdx.graphics.Texture.TextureFilter.Linear, com.badlogic.gdx.graphics.Texture.TextureFilter.Linear); return t; }
+
     private static TextureRegion crop(TextureRegion source, int x, int y, int w, int h) {
         return RuntimeTextures.region(source.getTexture(), x, y, w, h);
     }
 
-    @Override public void dispose() { presentation.dispose(); for (Texture texture : owned) texture.dispose(); owned.clear(); }
+    @Override public void dispose() { presentation.dispose(); cage3d.dispose(); plate.dispose(); for (Texture texture : owned) texture.dispose(); owned.clear(); }
 }

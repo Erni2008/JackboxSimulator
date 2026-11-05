@@ -11,15 +11,17 @@ import com.badlogic.gdx.scenes.scene2d.Touchable;
 /** A complete suspended assembly. Chain endpoints are computed from the transformed upper ring. */
 public final class HangingCage extends Group {
     public static final float WIDTH = 300, HEIGHT = 333;
-    private static final float RING_X = 149, RING_Y = 324;
+    // pivot = the shackle on top of the code-built cage (Cage3D)
+    private static final float RING_X = Cage3D.CX, RING_Y = Cage3D.BASE_Y + Cage3D.TOP + 70;
     // Centre of the existing gate keyhole, calibrated from the source PNG.
-    private static final float KEYHOLE_X = 226.4f, KEYHOLE_Y = 67.7f;
+    private static final float KEYHOLE_X = Cage3D.CX + 10, KEYHOLE_Y = Cage3D.BASE_Y + 34;
+    private static final float TILT = -6;
     private final CageAssets assets;
     private final CageNameplate nameplate;
     private final CageCharacterPresentation presentation=new CageCharacterPresentation();
     private final CageAnimator animation = new CageAnimator();
     private final Color saved = new Color();
-    private final Vector2 endpoint = new Vector2();
+    private final Vector2 endpoint = new Vector2(), ceiling = new Vector2();
     private final float phase; private float idle;
     private CageCharacter character;
     private String playerId, nickname = "", characterId = "";
@@ -77,31 +79,31 @@ public final class HangingCage extends Group {
     }
     @Override public void draw(Batch batch, float parentAlpha) {
         saved.set(batch.getColor());
-        // Hook is drawn in parent space and never rotates. The chain follows the actual transformed ring.
-        endpoint.set(RING_X, RING_Y); localToParentCoordinates(endpoint);
-        batch.setColor(1, 1, 1, parentAlpha);
-        float hookWidth = 25, hookHeight = 23;
-        batch.draw(assets.hook, ceilingX - hookWidth / 2, ceilingY - hookHeight, hookWidth, hookHeight);
-        drawChain(batch, ceilingX, ceilingY - 20, endpoint.x, endpoint.y);
-        applyTransform(batch, computeTransform());
-        batch.draw(assets.cage, 0, 0, WIDTH, HEIGHT);
-        // Both character and sliding bars are confined to the front opening. The opening's iron posts
-        // cover the edges; the gate has its own clip so no bars float above the cage during entry.
-        batch.flush();
-        if (character != null && clipBegin(108, 62, 140, 163)) {
+        endpoint.set(RING_X, RING_Y); localToStageCoordinates(endpoint); // the 3D pass draws in stage space
+        ceiling.set(ceilingX, ceilingY); if (getParent() != null) getParent().localToStageCoordinates(ceiling);
+        var c3 = assets.cage3d; var camera = getStage().getCamera(); var world = computeTransform();
+        float yaw = reducedMotion ? 0 : (float) Math.sin(idle * .32f + phase) * 13 + animation.impactRotation() * 6;
+        // pass 1 (3D): ceiling bracket, chain, the cage half behind the prisoner
+        batch.end(); c3.begin(camera); c3.bracket(ceiling.x, ceiling.y - 8); c3.chain(ceiling.x, ceiling.y - 26, endpoint.x, endpoint.y + 4); c3.cage(world, yaw, TILT, false); c3.end(); batch.begin();
+        applyTransform(batch, world);
+        // pass 2 (2D): the prisoner, standing inside
+        if (character != null && clipBegin(Cage3D.CX - Cage3D.R + 6, Cage3D.BASE_Y + 6, Cage3D.R * 2 - 12, Cage3D.TOP - 8)) {
             presentation.drawInCage(batch, character, assets.presentation.profile(characterId), parentAlpha, animation.time());
             batch.flush(); clipEnd();
         }
-        if (animation.occupied() && animation.gate() > 0 && clipBegin(91, 58, 177, 179)) {
-            float height = 215.68f;
-            batch.draw(assets.gate, 104.5f, 42.1f + (1 - animation.gate()) * height, 146.88f, height);
-            batch.flush(); clipEnd();
-        }
+        resetTransform(batch);
+        // pass 3 (3D): front bars, dome, shackle, and the door dropping into place
+        batch.end(); c3.begin(camera); c3.cage(world, yaw, TILT, true);
+        c3.flush(); // the dome and front bars must not be clipped by the door's scissor
+        if (animation.occupied() && animation.gate() > 0) { applyTransform(batch, world);
+            boolean clipped = clipBegin(Cage3D.CX - Cage3D.R - 14, Cage3D.BASE_Y, Cage3D.R * 2 + 28, Cage3D.TOP + 4);
+            c3.door(world, yaw, TILT, (1 - animation.gate()) * Cage3D.TOP); c3.end(); if (clipped) clipEnd(); resetTransform(batch); }
+        else c3.end();
+        batch.begin(); applyTransform(batch, world);
         drawKey(batch, parentAlpha);
-        batch.flush();
-        if (playerId != null && clipBegin(CageNameplate.X, CageNameplate.Y, CageNameplate.WIDTH, CageNameplate.HEIGHT)) {
-            if(!cinematic)nameplate.draw(batch, parentAlpha);
-            batch.flush(); clipEnd();
+        if (playerId != null && !cinematic) {
+            batch.setColor(1, 1, 1, parentAlpha); batch.draw(assets.plate, CageNameplate.X - 12, CageNameplate.Y - 7, CageNameplate.WIDTH + 24, CageNameplate.HEIGHT + 14);
+            batch.flush(); if (clipBegin(CageNameplate.X, CageNameplate.Y, CageNameplate.WIDTH, CageNameplate.HEIGHT)) { nameplate.draw(batch, parentAlpha); batch.flush(); clipEnd(); }
         }
         resetTransform(batch); batch.setColor(saved);
     }

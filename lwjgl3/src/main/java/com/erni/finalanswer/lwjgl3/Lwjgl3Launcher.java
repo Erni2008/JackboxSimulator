@@ -68,6 +68,9 @@ public class Lwjgl3Launcher {
         // Enable vertical synchronization
         configuration.useVsync(true);
 
+        // 4x MSAA + depth: crisp code-built 3D cages and chains in the waiting room
+        configuration.setBackBufferConfig(8, 8, 8, 8, 24, 0, 4);
+
         // Target maximum FPS
         configuration.setForegroundFPS(60);
 
