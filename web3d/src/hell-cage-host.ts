@@ -122,14 +122,17 @@ const smoke: T.Sprite[] = [];
 for (let i = 0; i < 22; i++) { const s = new T.Sprite(new T.SpriteMaterial({map: smokeTex, color: i % 3 ? '#7a2a14' : '#3a2420', transparent: true, opacity: .5, depthWrite: false})); s.position.set((Math.random() - .5) * 36, LAVA_Y + .6 + Math.random() * 2.5, -2 + Math.random() * 9); s.scale.setScalar(5 + Math.random() * 6); s.userData.v = (Math.random() - .5) * .25; scene.add(s); smoke.push(s); }
 
 // ------------------------------------------------------------------ the cage
+// forged chain steel: brighter and glossier than the cage so it reads against the dark hall
+const chainMat = new T.MeshStandardMaterial({color: '#b8a898', metalness: .95, roughness: .32, envMapIntensity: 2.2, map: tex(TEX + 'rusty_metal_05_diff_1k.jpg', true, .5), emissive: '#3a1608', emissiveIntensity: .35});
 const metal = rusty(1.5, '#8a7a70', .9, .5), metalDark = rusty(1.5, '#4a4038', .9, .6), brass = new T.MeshStandardMaterial({color: '#b08a4a', metalness: .95, roughness: .35});
 const grateTex = canvasTex(256, 256, x => { x.fillStyle = '#000'; x.fillRect(0, 0, 256, 256); x.strokeStyle = '#fff'; x.lineWidth = 7; for (let i = -256; i < 512; i += 26) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i + 256, 256); x.stroke(); x.beginPath(); x.moveTo(i + 256, 0); x.lineTo(i, 256); x.stroke(); } });
 const hazard = canvasTex(1024, 64, x => { x.fillStyle = '#d9a514'; x.fillRect(0, 0, 1024, 64); x.fillStyle = '#16100a'; for (let i = -64; i < 1024; i += 64) { x.beginPath(); x.moveTo(i, 64); x.lineTo(i + 32, 64); x.lineTo(i + 96, 0); x.lineTo(i + 64, 0); x.fill(); } x.fillStyle = 'rgba(40,20,5,.35)'; for (let k = 0; k < 900; k++) x.fillRect(Math.random() * 1024, Math.random() * 64, 2 + Math.random() * 6, 1 + Math.random() * 2); });
 hazard.wrapS = T.RepeatWrapping; hazard.repeat.set(3, 1);
 const R = .82, CAGE_H = 2.1;
-const barGeo = new T.CylinderGeometry(.02, .024, CAGE_H - .2, 8), linkGeo = new T.TorusGeometry(.07, .024, 8, 16); linkGeo.scale(1, 1.7, 1);
+const ANCHOR_Y = 15, LINK = .2, MAX_LINKS = 130; // the chains hang from the ceiling, far above the frame
+const barGeo = new T.CylinderGeometry(.02, .024, CAGE_H - .2, 8), linkGeo = new T.TorusGeometry(.075, .028, 10, 18); linkGeo.scale(1, 1.7, 1);
 
-interface Cage { id: string; root: T.Group; body: T.Group; lamp: T.MeshStandardMaterial; lampGlow: T.Sprite; under: T.Sprite; portrait: T.Mesh; label: HTMLElement; bars: T.MeshStandardMaterial; flames: T.Sprite[];
+interface Cage { id: string; root: T.Group; hang: T.Group; chain: T.InstancedMesh; wx: number; wy: number; body: T.Group; lamp: T.MeshStandardMaterial; lampGlow: T.Sprite; under: T.Sprite; portrait: T.Mesh; label: HTMLElement; bars: T.MeshStandardMaterial; flames: T.Sprite[];
   y: number; vy: number; targetY: number; x: number; tx: number; sway: number; swayV: number; flash: number; dead: boolean; penalties: number; repairs: number; okFlash: number; seen: boolean; burnT: number; survived: boolean; hop: number; squash: number; ph: number }
 const cages = new Map<string, Cage>();
 // The prisoner: a cut-out figure made to read as a lit 3D body.
@@ -174,7 +177,8 @@ const figure = (id: string): Figure => { const k = CHARS.includes(id) ? id : CHA
   img.src = `chars/${k}.png`; return f; };
 
 function buildCage(id: string, name: string, character: string): Cage {
-  const root = new T.Group(), body = new T.Group(); root.add(body);
+  // pendulum: root = the ceiling anchor; hang = the cage below it on a chain of variable length; body = the cage itself
+  const root = new T.Group(), hang = new T.Group(), body = new T.Group(); root.add(hang); hang.add(body);
   const add = (g: T.BufferGeometry, m: T.Material, y: number, rx = 0) => { const o = new T.Mesh(g, m); o.position.y = y; o.rotation.x = rx; body.add(o); return o; };
   // floor: heavy plate, rim, hazard band and the hot underglow
   add(new T.CylinderGeometry(R + .08, R + .02, .16, 28), metalDark, 0);
@@ -210,15 +214,17 @@ function buildCage(id: string, name: string, character: string): Cage {
   if (fg.ready) fit(); else { pm.visible = false; fg.waiters.push(() => { fit(); pm.visible = true; }); }
   pm.position.set(0, .09, .05); body.add(pm);
   const foot = new T.Mesh(new T.CircleGeometry(.42, 24), new T.MeshBasicMaterial({map: glowTex, color: '#000000', transparent: true, opacity: .55, depthWrite: false})); foot.rotation.x = -Math.PI / 2; foot.scale.set(1, .55, 1); foot.position.set(0, .095, .05); body.add(foot);
-  // chain up into the dark
-  const chain = new T.InstancedMesh(linkGeo, metalDark, 70);
-  for (let i = 0; i < 70; i++) { m4.makeRotationY(i % 2 ? Math.PI / 2 : 0); m4.setPosition(0, CAGE_H + 1.15 + i * .2, 0); chain.setMatrixAt(i, m4); } chain.castShadow = true; root.add(chain);
+  // shackle on the dome: a forged ring the last chain link passes through
+  const shackle = new T.Mesh(new T.TorusGeometry(.1, .026, 10, 20), metal); shackle.position.y = CAGE_H + 1.1; body.add(shackle);
+  const pin = new T.Mesh(new T.CylinderGeometry(.03, .03, .26, 10), brass); pin.rotation.z = Math.PI / 2; pin.position.y = CAGE_H + 1.02; body.add(pin);
+  // chain from the shackle up to the anchor: links are laid out every frame for the current length
+  const chain = new T.InstancedMesh(linkGeo, chainMat, MAX_LINKS); chain.count = 0; chain.castShadow = true; chain.frustumCulled = false; root.add(chain);
   root.traverse((o: any) => { if (o.isMesh && !(o.material as any).transparent) { o.castShadow = true; o.receiveShadow = true; } });
   scene.add(root);
   const label = document.createElement('div'); label.className = 'tag'; label.innerHTML = `<b></b><span class="m"></span><span class="s"></span>`; $('tags').append(label); label.querySelector('b')!.textContent = name;
   const flames: T.Sprite[] = []; for (let i = 0; i < 9; i++) { const f = new T.Sprite(new T.SpriteMaterial({map: flameTex, color: i % 3 ? '#ff7a20' : '#ffd070', blending: T.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0}));
     f.position.set((Math.random() - .5) * 1.1, .3, (Math.random() - .5) * .8); f.userData.ph = Math.random() * 6; body.add(f); flames.push(f); }
-  return {id, root, body, lamp, lampGlow, under, portrait: pm, label, bars: barMat, flames, y: worldY(START_M) + 6, vy: 0, targetY: 1.2, x: 0, tx: 0, sway: (Math.random() - .5) * .04, swayV: 0, flash: 0, dead: false, penalties: 0, repairs: 0, okFlash: 0, seen: false, burnT: -1, survived: false, hop: 0, squash: 0, ph: Math.random() * 6};
+  return {id, root, hang, chain, wx: 0, wy: 0, body, lamp, lampGlow, under, portrait: pm, label, bars: barMat, flames, y: worldY(START_M) + 6, vy: 0, targetY: 1.2, x: 0, tx: 0, sway: (Math.random() - .5) * .04, swayV: 0, flash: 0, dead: false, penalties: 0, repairs: 0, okFlash: 0, seen: false, burnT: -1, survived: false, hop: 0, squash: 0, ph: Math.random() * 6};
 }
 
 // world height for a height in metres: the visible shaft spans the top 500 m down to the lava
@@ -309,7 +315,12 @@ function sync() {
 const diffLabel = () => diff === 'EASY' ? L('ЛЁГКИЙ', 'EASY') : diff === 'HARD' ? L('СЛОЖНЫЙ', 'HARD') : L('СРЕДНИЙ', 'NORMAL');
 // sparks when a brake lets go
 const sparks: {p: T.Points; v: Float32Array; t: number}[] = [];
-function spark(c: Cage, low = 0) { const n = 60, pos = new Float32Array(n * 3), v = new Float32Array(n * 3); for (let i = 0; i < n; i++) { pos[i * 3] = c.x + (Math.random() - .5) * .3; pos[i * 3 + 1] = low ? c.y + low : c.y + CAGE_H + 1; pos[i * 3 + 2] = (Math.random() - .5) * .3; v[i * 3] = (Math.random() - .5) * 5; v[i * 3 + 1] = Math.random() * 4; v[i * 3 + 2] = (Math.random() - .5) * 4; }
+const tmpV = new T.Vector3(), linkM = new T.Matrix4(), linkQ = new T.Quaternion(), linkS = new T.Vector3(1, 1, 1), linkP = new T.Vector3(), Y_AXIS = new T.Vector3(0, 1, 0);
+/** lay the links from the shackle up to the anchor; the lowest link threads the shackle, each next one is turned 90° */
+function layChain(c: Cage) { const bottom = c.hang.position.y + CAGE_H + 1.2, n = Math.min(MAX_LINKS, Math.ceil(-bottom / LINK) + 1);
+  for (let i = 0; i < n; i++) { linkQ.setFromAxisAngle(Y_AXIS, i % 2 ? Math.PI / 2 : 0); linkP.set(0, bottom + i * LINK, 0); linkM.compose(linkP, linkQ, linkS); c.chain.setMatrixAt(i, linkM); }
+  c.chain.count = n; c.chain.instanceMatrix.needsUpdate = true; }
+function spark(c: Cage, low = 0) { const n = 60, pos = new Float32Array(n * 3), v = new Float32Array(n * 3); for (let i = 0; i < n; i++) { pos[i * 3] = c.wx + (Math.random() - .5) * .3; pos[i * 3 + 1] = low ? c.wy + low : c.wy + CAGE_H + 1; pos[i * 3 + 2] = (Math.random() - .5) * .3; v[i * 3] = (Math.random() - .5) * 5; v[i * 3 + 1] = Math.random() * 4; v[i * 3 + 2] = (Math.random() - .5) * 4; }
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3)); const p = new T.Points(g, new T.PointsMaterial({map: glowTex, color: '#ffc060', size: .14, transparent: true, blending: T.AdditiveBlending, depthWrite: false})); scene.add(p); sparks.push({p, v, t: 0}); }
 
 function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h); composer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); }
@@ -336,7 +347,10 @@ function loop(now: number) {
     if (c.y > c.targetY + .02) { if (c.vy < -.5) c.vy -= 22 * dt; else c.vy += ((c.targetY - c.y) * 2 - c.vy * 2) * dt; } else c.vy += ((c.targetY - c.y) * 60 - c.vy * 7) * dt;
     c.y += c.vy * dt; if (c.y < c.targetY && c.vy < -1) { c.squash = Math.min(1, -c.vy / 10); c.vy = -c.vy * .28; c.swayV += (Math.random() - .5) * .35; shake = Math.max(shake, .3); }
     c.swayV += (-c.sway * 3 - c.swayV * .6) * dt + Math.sin(time * .9 + c.x) * .002; c.sway += c.swayV * dt;
-    c.root.position.set(c.x, c.y, 0); c.body.rotation.z = c.sway; c.body.rotation.y = Math.sin(time * .3 + c.x) * .08;
+    // the cage swings as a pendulum from its ceiling anchor; chain and cage move as one rigid piece
+    c.root.position.set(c.x, ANCHOR_Y, 0); c.root.rotation.z = c.sway * .1; c.hang.position.y = c.y - ANCHOR_Y; c.body.rotation.y = Math.sin(time * .3 + c.x) * .08;
+    layChain(c);
+    { const wp = c.body.getWorldPosition(tmpV); c.wx = wp.x; c.wy = wp.y; }
     { // the prisoner: breathes, shifts weight, trembles near the lava, is thrown and squashed by a drop, hops on a repair, writhes while burning
       const fig = c.portrait, base = fig.userData.base as T.Vector3 | undefined, mat = fig.material as T.ShaderMaterial;
       if (base) { const near = (c.y - Y_BOTTOM) / (Y_TOP - Y_BOTTOM), fear = c.dead ? 0 : Math.min(1, (c.penalties >= 2 ? .8 : c.penalties * .25) + Math.max(0, .3 - near) * 2.5);
@@ -346,7 +360,7 @@ function loop(now: number) {
         fig.scale.set(base.x * (1 + .1 * sq - .006 * breath), base.y * (1 - .14 * sq + .012 * breath + (c.hop > .85 ? -.06 : 0)), 1);
         fig.position.y = .09 + hopY + (sq < 0 ? -sq * .35 : 0);
         const tremble = fear * (Math.sin(time * 37 + c.ph) * .012 + Math.sin(time * 23) * .008), writhe = heatK > 0 ? Math.sin(time * 13 + c.ph) * .09 * heatK : 0;
-        fig.rotation.z = Math.sin(time * .8 + c.ph) * .03 + tremble + writhe - c.sway * .6; fig.rotation.y = -c.body.rotation.y * .8;
+        fig.rotation.z = Math.sin(time * .8 + c.ph) * .03 + tremble + writhe - c.sway * .06; fig.rotation.y = -c.body.rotation.y * .8;
         fig.position.x = Math.sin(time * .5 + c.ph) * .03 + tremble * 2;
         mat.uniforms.fear.value = fear; mat.uniforms.flash.value = c.flash > 0 ? ((time * 8 | 0) % 2) : 0; } }
     // lamp: green when steady, amber when deep, red strobe after a drop, green pulse on a repair
@@ -355,7 +369,7 @@ function loop(now: number) {
     c.lamp.emissive.set(col); c.lamp.emissiveIntensity = 2.4 + c.okFlash * 4; (c.lampGlow.material as T.SpriteMaterial).color.set(col);
     (c.under.material as T.SpriteMaterial).opacity = .35 + (1 - m) * .6 + Math.sin(time * 6 + c.x) * .05;
     // the name plate follows the cage on screen
-    proj.set(c.x, c.y - .25, R).project(camera); c.label.style.transform = `translate(-50%,0) translate(${(proj.x * .5 + .5) * innerWidth}px,${Math.min(innerHeight - c.label.offsetHeight - 14, (-proj.y * .5 + .5) * innerHeight)}px)`;
+    proj.set(c.wx, c.wy - .25, R).project(camera); c.label.style.transform = `translate(-50%,0) translate(${(proj.x * .5 + .5) * innerWidth}px,${Math.min(innerHeight - c.label.offsetHeight - 14, (-proj.y * .5 + .5) * innerHeight)}px)`;
   }
   // embers, smoke, lava, lanterns, sparks
   for (let i = 0; i < EMBERS; i++) { el[i] += dt * (.12 + (i % 7) * .02); ep[i * 3] += (ev[i * 3] + Math.sin(time + i) * .3) * dt; ep[i * 3 + 1] += ev[i * 3 + 1] * dt; ep[i * 3 + 2] += ev[i * 3 + 2] * dt; if (el[i] >= 1) resetEmber(i); }
