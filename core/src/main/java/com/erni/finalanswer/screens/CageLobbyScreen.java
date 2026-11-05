@@ -30,7 +30,8 @@ public final class CageLobbyScreen extends ScreenAdapter {
     private final FitViewport viewport = new FitViewport(1920, 1080);
     private final Stage stage = new Stage(viewport);
     private final Texture background = RuntimeTextures.load("lobby/background_dungeon.png");
-    private final BitmapFont font = UiFonts.body(26), codeFont = UiFonts.code(66), titleFont=UiFonts.question(48), titleBig=UiFonts.horror(104);
+    private final BitmapFont font = UiFonts.body(26), codeFont = UiFonts.code(66), titleFont=UiFonts.question(48), titleBig=UiFonts.horror(104), buttonFont=UiFonts.nameplate(30);
+    private final com.erni.finalanswer.ui.lobby.LobbyStyle lobbyStyle = new com.erni.finalanswer.ui.lobby.LobbyStyle(buttonFont);
     private final Texture pixel;
     private final CageLobby cages = new CageLobby();
     private final com.erni.finalanswer.ui.lobby.LobbyAtmosphere atmosphere = new com.erni.finalanswer.ui.lobby.LobbyAtmosphere();
@@ -101,7 +102,7 @@ public final class CageLobbyScreen extends ScreenAdapter {
         roomName = new Label("", new Label.LabelStyle(font, Color.valueOf("D9C4A0")));
         roomName.setAlignment(Align.left); roomName.setFontScale(.9f); roomName.setBounds(52, 918, 600, 40); stage.addActor(roomName);
         Image codePlaque = new Image(com.erni.finalanswer.ui.lobby.LobbyPlaque.drawable()); codePlaque.setBounds(36, 448, 452, 228); stage.addActor(codePlaque);
-        Label codeCaption = new Label("КОД КОМНАТЫ", new Label.LabelStyle(font, Color.valueOf("C9A46A"))); codeCaption.setFontScale(.78f); codeCaption.setAlignment(Align.center); codeCaption.setBounds(36, 616, 452, 36); stage.addActor(codeCaption);
+        Label codeCaption = new Label(game.getTexts().get("lobby.code"), new Label.LabelStyle(font, Color.valueOf("C9A46A"))); codeCaption.setFontScale(.78f); codeCaption.setAlignment(Align.center); codeCaption.setBounds(36, 616, 452, 36); stage.addActor(codeCaption);
         code = new Label("", new Label.LabelStyle(codeFont, Color.valueOf("F6E2B8")));
         code.setAlignment(Align.center); code.setFontScale(1.25f); code.setBounds(36, 522, 452, 100); stage.addActor(code);
         playerCount=new Label("",new Label.LabelStyle(font,Color.valueOf("E9D8BE")));
@@ -112,11 +113,8 @@ public final class CageLobbyScreen extends ScreenAdapter {
         Pixmap p = new Pixmap(1, 1, Pixmap.Format.RGBA8888); p.setColor(Color.WHITE); p.fill();
         pixel = new Texture(p); p.dispose();
         var solid = new TextureRegionDrawable(pixel);
-        var style = new TextButton.TextButtonStyle(); style.font = font; style.fontColor = Color.valueOf("EBDCC6");
-        style.up = solid.tint(new Color(.08f, .055f, .05f, .88f));
-        style.over = solid.tint(Color.valueOf("604131")); style.down = solid.tint(Color.valueOf("38241D"));
-        style.disabledFontColor = Color.GRAY;
-        phone = new ConnectionPanel(game.getHosting(), font, style); phone.setBounds(58, 40, 408, 372); stage.addActor(phone);
+        var style = lobbyStyle.normal; // forged-iron buttons (LobbyStyle)
+        phone = new ConnectionPanel(game.getHosting(), font, style); phone.setBounds(58, 40, 408, 372); phone.caption(game.getTexts().get("lobby.scan_qr")); stage.addActor(phone);
         status = new Label("", new Label.LabelStyle(font, Color.valueOf("CFB998")));
         status.setFontScale(.75f); status.setWrap(true); status.setBounds(650, 140, 1100, 32); stage.addActor(status);
         play = button("PLAY", 650, style, game::showPlayScreen);
@@ -135,14 +133,15 @@ public final class CageLobbyScreen extends ScreenAdapter {
         modes.add(new Mode("THE CURSED CARDS","4–6 игроков",cards,game::startCursedCards));
         for(String[] d:new String[][]{{"EASY","ЛЁГКИЙ","90 / 60 / 60 с · одна поломка · без помех"},{"NORMAL","СРЕДНИЙ","60 / 45 / 45 с · стандартные правила"},{"HARD","СЛОЖНЫЙ","45 / 35 / 35 с · двойные поломки · всегда скачок"}})
             modes.add(new Mode("АДСКАЯ КЛЕТКА · "+d[1],d[2]+" · телефоны переключатся в клетку",null,()->{var rt=game.getRealtime();if(rt!=null&&rt.connected())rt.send("OPEN_WEB_GAME",java.util.Map.of("game","broken-elevator","difficulty",d[0]));var room=game.getActiveRoom();String base=game.getHosting().apiUrl().replaceAll("/+$","");Gdx.net.openURI(room!=null?base+"/hell-cage-host/?room="+room.code()+"#token="+room.token():base+"/broken-elevator-manual/?diff="+d[0].toLowerCase());}));
+        Image modePlaque = new Image(com.erni.finalanswer.ui.lobby.LobbyPlaque.drawable()); modePlaque.setBounds(630, 166, 1140, 104); stage.addActor(modePlaque);
         modeName=new Label("",new Label.LabelStyle(modeFont,Color.valueOf("F2E2C4")));modeName.setAlignment(Align.center);modeName.setBounds(650,210,1100,46);stage.addActor(modeName);
         modeHint=new Label("",new Label.LabelStyle(font,Color.valueOf("B79E7C")));modeHint.setFontScale(.62f);modeHint.setAlignment(Align.center);modeHint.setBounds(650,180,1100,28);stage.addActor(modeHint);
         modePrev=button("<",650,style,()->cycleMode(-1));modePrev.setBounds(650,205,90,56);
         modeNext=button(">",1660,style,()->cycleMode(1));modeNext.setBounds(1660,205,90,56);
         modeStart=button("START MODE",650,style,()->{var m=modes.get(modeIndex);Gdx.app.log("Lobby","start mode="+m.title()+" sourceDisabled="+(m.source()!=null&&m.source().isDisabled()));if(m.source()==null||!m.source().isDisabled())m.action().run();});
-        modeStart.setText("НАЧАТЬ");modeStart.setWidth(530);
-        button("MENU", 1210, style, game::showMainMenu);
-        button("LEAVE ROOM", 1490, style, () -> { game.leaveRoom(); game.showMainMenu(); });
+        modeStart.setText(game.getTexts().get("lobby.start_mode"));modeStart.setWidth(530);modeStart.setStyle(lobbyStyle.primary);
+        button(game.getTexts().get("lobby.menu"), 1210, style, game::showMainMenu).setName("cageLobbyMENU");
+        button(game.getTexts().get("lobby.leave"), 1490, style, () -> { game.leaveRoom(); game.showMainMenu(); }).setName("cageLobbyLEAVEROOM");
         blackout=new Image(solid);blackout.setBounds(0,0,1920,1080);blackout.setColor(0,0,0,0);blackout.setTouchable(com.badlogic.gdx.scenes.scene2d.Touchable.disabled);stage.addActor(blackout);
         roundTitle=new Label("",new Label.LabelStyle(titleFont,Color.valueOf("DCC9AE")));
         roundTitle.setFontScale(1);roundTitle.setAlignment(Align.center);roundTitle.setBounds(220,440,1480,160);roundTitle.setVisible(false);stage.addActor(roundTitle);
@@ -240,6 +239,6 @@ public final class CageLobbyScreen extends ScreenAdapter {
     private void introSignal(String event){var client=game.getRealtime();if(client==null||!client.connected())return;var state=client.snapshot();if(state!=null&&state.has("intro"))client.send(event,java.util.Map.of("gameId",state.get("gameId").getAsString(),"introId",state.getAsJsonObject("intro").get("introId").getAsString()));}
     @Override public void dispose() {
         if (disposed) return; disposed = true; hide();
-        stage.dispose(); cages.dispose(); atmosphere.dispose(); phone.dispose(); font.dispose(); codeFont.dispose(); titleFont.dispose(); modeFont.dispose(); titleBig.dispose(); pixel.dispose(); background.dispose();
+        stage.dispose(); cages.dispose(); atmosphere.dispose(); phone.dispose(); font.dispose(); codeFont.dispose(); titleFont.dispose(); modeFont.dispose(); titleBig.dispose(); lobbyStyle.dispose(); buttonFont.dispose(); pixel.dispose(); background.dispose();
     }
 }
