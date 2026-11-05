@@ -193,6 +193,8 @@ async function boot() {
   // warm-up behind the loading screen: compile every shader, upload every texture and render a few frames,
   // so the first seconds of play do not hitch on first-use GPU work
   $('load-text').textContent = L('Подготовка…', 'Preparing…');
+  // phones: bolts, screws, rivets and tags (< 2.5 cm) stop casting shadows — invisible at that size, but each one is a shadow-pass draw
+  if (mobile) { const sp = new T.Sphere(), sc = new T.Vector3(); scene.updateMatrixWorld(true); scene.traverse((o: any) => { if (!o.isMesh || !o.castShadow || !o.geometry) return; if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere(); o.getWorldScale(sc); if (o.geometry.boundingSphere.radius * Math.max(sc.x, sc.y, sc.z) < .025) o.castShadow = false; }); void sp; }
   try { await (renderer as any).compileAsync?.(scene, camera); } catch {}
   scene.traverse((o: any) => { const ms = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []; for (const m of ms) for (const k of ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap', 'bumpMap', 'aoMap', 'alphaMap']) if (m[k]) renderer.initTexture(m[k]); });
   { const q0 = camera.quaternion.clone(); for (let i = 0; i < 8; i++) { camera.quaternion.setFromEuler(new T.Euler(0, i * Math.PI / 4, 0)); renderer.shadowMap.needsUpdate = true; renderer.render(scene, camera); await new Promise(r => requestAnimationFrame(r)); } camera.quaternion.copy(q0); }

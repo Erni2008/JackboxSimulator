@@ -32,10 +32,13 @@ public final class RoomServer implements AutoCloseable {
                 factory.setMaxBinaryMessageSize(1);
                 factory.setIdleTimeout(Duration.ofSeconds(35));
             });
-            c.staticFiles.add("/web");
+            // static files: heavy, rarely changing assets (textures, models, fonts) are cached by the phone for a day,
+            // everything else revalidates by ETag on each load (code, pages, voice lines)
+            c.staticFiles.add(sf->{sf.hostedPath="/";sf.directory="/web";sf.location=io.javalin.http.staticfiles.Location.CLASSPATH;sf.headers=java.util.Map.of();});
             if(Boolean.getBoolean("lastcommand.dev"))LastCommandDevRoutes.install(c,rooms);
             c.routes.before(ctx->{
                 ctx.header("X-Content-Type-Options","nosniff");
+                { String pth=ctx.path(); ctx.header("Cache-Control",pth.matches(".*/(textures|models|fonts)/.*")?"public, max-age=86400":"no-cache"); }
                 ctx.header("Referrer-Policy","no-referrer");
                 ctx.header("Content-Security-Policy","default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' ws: wss:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
                 // THE BROKEN ELEVATOR: GLTFLoader hands embedded textures over as blob: URLs; the film-grain overlay is a data: SVG
