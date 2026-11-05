@@ -26,7 +26,7 @@ export class Voice {
     const ctx = this.ctx; if (!this.enabled || !ctx || !this.out || ctx.state !== 'running') return false;
     const now = performance.now(); if (now - (this.lastAt.get(line) ?? -1e9) < cooldownMs) return false;
     const opts = FILES[line].map(f => this.bufs.get(f)).filter((b): b is AudioBuffer => !!b); if (!opts.length) return false;
-    if (this.cur) { if (priority <= this.curPri) return false; try { this.cur.stop(); } catch {} }
+    if (this.cur) return false; // never cut the host off mid-sentence: the next line waits its turn
     const s = ctx.createBufferSource(); s.buffer = opts[Math.floor(Math.random() * opts.length)]; s.connect(this.out); s.start(); this.lastAt.set(line, now);
     this.cur = s; this.curPri = priority; s.onended = () => { if (this.cur === s) this.cur = null; }; return true;
   }
