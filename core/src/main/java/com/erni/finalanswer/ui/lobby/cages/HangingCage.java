@@ -20,7 +20,7 @@ public final class HangingCage extends Group {
     private final CageAnimator animation = new CageAnimator();
     private final Color saved = new Color();
     private final Vector2 endpoint = new Vector2();
-    private final float phase;
+    private final float phase; private float idle;
     private CageCharacter character;
     private String playerId, nickname = "", characterId = "";
     private float ceilingX, ceilingY;
@@ -70,7 +70,9 @@ public final class HangingCage extends Group {
         animation.update(delta);
         if (animation.impact()) impactCue.run();
         if (animation.locked()) lockCue.run();
-        setRotation(reducedMotion||cinematic ? 0 : animation.impactRotation()+departureRotation);
+        // idle: each cage drifts on its chain in its own slow rhythm (two incommensurate swings, under a degree)
+        idle+=delta; float drift=animation.occupied()||playerId==null?(float)(Math.sin(idle*.62f+phase)*.55+Math.sin(idle*1.13f+phase*1.7f)*.25):0;
+        setRotation(reducedMotion||cinematic ? 0 : animation.impactRotation()+departureRotation+drift);
         if (character != null) character.update(delta, animation.time(), phase, reducedMotion);
     }
     @Override public void draw(Batch batch, float parentAlpha) {

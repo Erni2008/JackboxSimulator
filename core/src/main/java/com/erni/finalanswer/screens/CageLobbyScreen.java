@@ -33,6 +33,7 @@ public final class CageLobbyScreen extends ScreenAdapter {
     private final BitmapFont font = UiFonts.body(26), codeFont = UiFonts.code(66), titleFont=UiFonts.question(48);
     private final Texture pixel;
     private final CageLobby cages = new CageLobby();
+    private final com.erni.finalanswer.ui.lobby.LobbyAtmosphere atmosphere = new com.erni.finalanswer.ui.lobby.LobbyAtmosphere();
     private final ConnectionPanel phone;
     private final Label code, roomName, playerCount, connectedCount, status;
     private final TextButton play, impostor, cursed, cards, lastCommand, modePrev, modeNext, modeStart;
@@ -90,7 +91,9 @@ public final class CageLobbyScreen extends ScreenAdapter {
     public CageLobbyScreen(FinalAnswerGame game) {
         this.game = game;cages.audio(game.getAudio());
         Image scene = new Image(background); scene.setBounds(0, 0, 1920, 1080); stage.addActor(scene);
+        stage.addActor(atmosphere.layer(com.erni.finalanswer.ui.lobby.LobbyAtmosphere.Layer.BACK));
         stage.addActor(cages);
+        stage.addActor(atmosphere.layer(com.erni.finalanswer.ui.lobby.LobbyAtmosphere.Layer.FRONT));
         // The background's original logo and parchment remain visible, with the code inside its ink field.
         code = new Label("", new Label.LabelStyle(codeFont, Color.valueOf("392014")));
         code.setAlignment(Align.center); code.setBounds(128, 503, 216, 94); stage.addActor(code);
@@ -194,7 +197,7 @@ public final class CageLobbyScreen extends ScreenAdapter {
         if(host&&ready&&!starting&&!pendingStart)notice+=" · "+game.getTexts().get("lobby.ready_to_start");
         refreshMode();
         status.setText(introAborted?"INTRO INTERRUPTED — RETURN TO MENU":notice);
-        cages.reducedMotion(game.getSettings().reducedMotion());
+        cages.reducedMotion(game.getSettings().reducedMotion()); atmosphere.reducedMotion(game.getSettings().reducedMotion());
     }
     @Override public void show() { Gdx.input.setInputProcessor(stage); }
     @Override public void hide() { if(introActive())resetTransition();cages.stopAudio(); if (Gdx.input.getInputProcessor() == stage) Gdx.input.setInputProcessor(null); }
@@ -231,6 +234,6 @@ public final class CageLobbyScreen extends ScreenAdapter {
     private void introSignal(String event){var client=game.getRealtime();if(client==null||!client.connected())return;var state=client.snapshot();if(state!=null&&state.has("intro"))client.send(event,java.util.Map.of("gameId",state.get("gameId").getAsString(),"introId",state.getAsJsonObject("intro").get("introId").getAsString()));}
     @Override public void dispose() {
         if (disposed) return; disposed = true; hide();
-        stage.dispose(); cages.dispose(); phone.dispose(); font.dispose(); codeFont.dispose(); titleFont.dispose(); modeFont.dispose(); pixel.dispose(); background.dispose();
+        stage.dispose(); cages.dispose(); atmosphere.dispose(); phone.dispose(); font.dispose(); codeFont.dispose(); titleFont.dispose(); modeFont.dispose(); pixel.dispose(); background.dispose();
     }
 }
