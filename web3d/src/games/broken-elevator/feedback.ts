@@ -22,13 +22,13 @@ export class Voice {
     for (const f of new Set(Object.values(FILES).flat())) fetch(`voice/${f}.m4a`).then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(a => ctx.decodeAudioData(a)).then(b => this.bufs.set(f, b)).catch(() => this.bufs.set(f, null));
   }
   /** speak a line. priority: a higher one interrupts a lower one; equal or lower waits its turn (dropped if busy) */
-  say(line: Line, priority = 1, cooldownMs = 4000) {
-    const ctx = this.ctx; if (!this.enabled || !ctx || !this.out || ctx.state !== 'running') return;
-    const now = performance.now(); if (now - (this.lastAt.get(line) ?? -1e9) < cooldownMs) return;
-    const opts = FILES[line].map(f => this.bufs.get(f)).filter((b): b is AudioBuffer => !!b); if (!opts.length) return;
-    if (this.cur) { if (priority <= this.curPri) return; try { this.cur.stop(); } catch {} }
+  say(line: Line, priority = 1, cooldownMs = 4000): boolean {
+    const ctx = this.ctx; if (!this.enabled || !ctx || !this.out || ctx.state !== 'running') return false;
+    const now = performance.now(); if (now - (this.lastAt.get(line) ?? -1e9) < cooldownMs) return false;
+    const opts = FILES[line].map(f => this.bufs.get(f)).filter((b): b is AudioBuffer => !!b); if (!opts.length) return false;
+    if (this.cur) { if (priority <= this.curPri) return false; try { this.cur.stop(); } catch {} }
     const s = ctx.createBufferSource(); s.buffer = opts[Math.floor(Math.random() * opts.length)]; s.connect(this.out); s.start(); this.lastAt.set(line, now);
-    this.cur = s; this.curPri = priority; s.onended = () => { if (this.cur === s) this.cur = null; };
+    this.cur = s; this.curPri = priority; s.onended = () => { if (this.cur === s) this.cur = null; }; return true;
   }
   get speaking() { return !!this.cur; }
 }

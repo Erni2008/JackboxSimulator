@@ -33,12 +33,12 @@ renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.ACESFilmi
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFShadowMap; renderer.shadowMap.autoUpdate = false; let frameNo = 0;
 // iPhones (Apple GPU) hold 2x; Android mid-range (e.g. Poco X3 Pro, Adreno 640) starts lower and may drop further
 const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-const DPR_FLOOR = mobile ? (ios ? 1.5 : 1.25) : 1.25; let dpr = Math.min(devicePixelRatio, mobile ? (ios ? 2 : 1.6) : quality === 'high' ? 2 : 1.5); let shadowEvery = mobile ? 3 : 1; renderer.setPixelRatio(dpr);
+const DPR_FLOOR = mobile ? (ios ? 1.5 : 1) : 1; let dpr = Math.min(devicePixelRatio, mobile ? (ios ? 2 : 1.6) : quality === 'high' ? 1.5 : 1.25); let shadowEvery = mobile ? 3 : 1; renderer.setPixelRatio(dpr);
 $('viewport').append(renderer.domElement);
 const scene = new T.Scene(), camera = new T.PerspectiveCamera(50, 1, .03, 40);
 camera.position.set(0, 1.56, .5); camera.lookAt(0, .1, -.25);
 // film-style glow on lamps, gauge faces, sparks and lava: desktop / high quality only (phones keep the direct path for frame rate)
-const bloomOn = params.get('bloom') !== '0' && quality === 'high' && !mobile;
+const bloomOn = params.get('bloom') === '1'; // off by default: too costly and washes out the labels
 const composer = bloomOn ? new EffectComposer(renderer) : null; const bloom = new UnrealBloomPass(new T.Vector2(256, 256), .42, .5, .9);
 if (composer) { composer.addPass(new RenderPass(scene, camera)); composer.addPass(bloom); composer.addPass(new OutputPass()); }
 
@@ -118,8 +118,11 @@ async function boot() {
   const newTask = (advance: boolean) => { if (advance) taskNo = Math.min(TOTAL, taskNo + 1); taskSeed++; kind = kindOf(taskNo);
     const t = makeTask(wireRules, taskSeed, wireCount || 4 + Math.floor(Math.random() * 3), fixed); box.setTask(t); box.configure(t.fault, t.mode); deadline = 0;
     const k0 = kind, myGen = ++taskGen; box.locked = true; press.enabled = false; lab.enabled = false; link.stop(); flink.stop(); hud();
-    briefOpen = true; briefing(k0, Math.round(limitMs(k0) / 1000), () => voice.say(('tutorial_' + k0) as any, 3, 0)).then(() => { briefOpen = false; if (myGen !== taskGen) return; startedAt = performance.now(); mistakes = 0;
-    if (!introSaid) { introSaid = true; voice.say('intro', 2, 0); } else voice.say(('task_' + k0) as any, 1, 0);
+    briefOpen = true; (params.get('tutorial') === '1' ? briefing(k0, Math.round(limitMs(k0) / 1000)) : Promise.resolve()).then(() => { briefOpen = false; if (myGen !== taskGen) return; startedAt = performance.now(); mistakes = 0;
+    // spoken briefing by the host: the first time this device meets each machine, then a short cue
+    const told = (() => { try { return new Set(JSON.parse(localStorage.getItem('finalanswer-elevator-told') || '[]')); } catch { return new Set(); } })();
+    if (!told.has(k0)) tellPending = k0; // spoken as soon as the voice is loaded and unlocked (see the loop)
+    else if (!introSaid) voice.say('intro', 2, 0); else voice.say(('task_' + k0) as any, 1, 0); introSaid = true;
     if (k0 === 'wire') box.locked = false;
     if (kind === 'pressure') { box.locked = true; press.enabled = true; press.reset(); link.start(); pressureDone = false; if (cur().state === 'rest' || cur().state === 'falling') { const d = press.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } }
     else { press.enabled = false; link.stop(); }
@@ -127,7 +130,7 @@ async function boot() {
     else { lab.enabled = false; flink.stop(); }
     hud(); }); };
   // run log for the end-of-shift report
-  let taskGen = 0, briefOpen = false, introSaid = false, startedAt = performance.now(), mistakes = 0, warned10 = false, surgeSaid = false; const rows: TaskRecord[] = [];
+  let tellPending: string | null = null; let taskGen = 0, briefOpen = false, introSaid = false, startedAt = performance.now(), mistakes = 0, warned10 = false, surgeSaid = false; const rows: TaskRecord[] = [];
   const record = (ok: boolean, why: string, extra = 0) => { const k = kind, sec = k === 'wire' ? (deadline ? limitMs('wire') / 1000 - Math.max(0, (deadline - performance.now()) / 1000) : 0) : (performance.now() - startedAt) / 1000;
     rows.push({n: taskNo, kind: k, ok, seconds: Math.max(0, sec), mistakes: mistakes + extra + (ok ? 0 : 1), why}); warned10 = false; surgeSaid = false;
     haptic(ok ? 'good' : why === 'CRITICAL' ? 'blast' : 'bad'); voice.say(ok ? 'success' : why === 'CRITICAL' ? 'explosion' : why === 'TIMEOUT' ? 'timeout' : 'fail', 4, 0); };
@@ -238,6 +241,7 @@ async function boot() {
       if (!inspecting && inspectK < .002) inspectK = 0;
     } else { camera.position.copy(eye); camera.quaternion.setFromEuler(new T.Euler(pitch, yaw, 0, 'YXZ')); }
     if (kind === 'formula' && (flink.view()?.doses.length ?? 0) > 0 && Math.random() < dt * 1.6) audio.play('blub', .6);
+    if (tellPending && frameNo % 30 === 0) { if (tellPending !== kind) tellPending = null; else if (voice.say(('tutorial_' + kind) as any, 3, 0)) { try { const t = new Set(JSON.parse(localStorage.getItem('finalanswer-elevator-told') || '[]')); t.add(kind); localStorage.setItem('finalanswer-elevator-told', JSON.stringify([...t])); } catch {} tellPending = null; } }
     cage.update(dt); ui.update(dt); jui.update(dt); box.update(dt); press.update(dt, link.view()); lab.update(dt, flink.view());
     if (focusTo) { let dy = focusTo[0] - yawT; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yawT += dy * Math.min(1, dt * 5); pitchT += (focusTo[1] - pitchT) * Math.min(1, dt * 5); if (Math.abs(dy) < .002 && Math.abs(focusTo[1] - pitchT) < .002) focusTo = null; }
     { const sw = kind === 'pressure' && !!link.view()?.surgeWarning; document.body.classList.toggle('surge', sw); if (sw && !surgeSaid) { surgeSaid = true; voice.say('surge', 3, 0); haptic('tap'); } }
