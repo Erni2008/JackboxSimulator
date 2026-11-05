@@ -3,6 +3,10 @@ import * as T from 'three';
 import {L, LANG, translateDom, followRoomLanguage} from './games/broken-elevator/i18n';
 import {RoomSocket} from './games/broken-elevator/puzzles/room-socket';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {EngineersManual, TH} from './games/broken-elevator/manual/book';
 import {ManualInteraction, type HoldState} from './games/broken-elevator/manual/interaction';
 import {BookAudio} from './games/broken-elevator/manual/audio';
@@ -33,8 +37,12 @@ const DPR_FLOOR = mobile ? (ios ? 1.5 : 1) : 1; let dpr = Math.min(devicePixelRa
 $('viewport').append(renderer.domElement);
 const scene = new T.Scene(), camera = new T.PerspectiveCamera(50, 1, .03, 40);
 camera.position.set(0, 1.56, .5); camera.lookAt(0, .1, -.25);
+// film-style glow on lamps, gauge faces, sparks and lava: desktop / high quality only (phones keep the direct path for frame rate)
+const bloomOn = params.get('bloom') !== '0' && quality === 'high' && !mobile;
+const composer = bloomOn ? new EffectComposer(renderer) : null; const bloom = new UnrealBloomPass(new T.Vector2(256, 256), .42, .5, .9);
+if (composer) { composer.addPass(new RenderPass(scene, camera)); composer.addPass(bloom); composer.addPass(new OutputPass()); }
 
-function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); renderer.domElement.style.width = w + 'px'; renderer.domElement.style.height = h + 'px'; camera.aspect = w / h; camera.fov = camera.aspect < .9 ? 58 : 46; camera.updateProjectionMatrix(); }
+function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); renderer.domElement.style.width = w + 'px'; renderer.domElement.style.height = h + 'px'; composer?.setSize(w, h); composer?.setPixelRatio(renderer.getPixelRatio()); camera.aspect = w / h; camera.fov = camera.aspect < .9 ? 58 : 46; camera.updateProjectionMatrix(); }
 addEventListener('resize', resize); resize();
 
 const audio = new BookAudio(), voice = new Voice();
@@ -251,7 +259,7 @@ async function boot() {
     if (shake > .002) { const a = shake * shake; camera.position.add(new T.Vector3((Math.random() - .5) * .05 * a, (Math.random() - .5) * .07 * a, (Math.random() - .5) * .03 * a)); camera.rotateZ((Math.random() - .5) * .03 * a); shake *= Math.exp(-dt * 4); }
     // shadows refresh every other frame: invisible at 60 fps, halves the shadow-pass cost
     if (frameNo++ % (shadowEvery + 1) === 0) renderer.shadowMap.needsUpdate = true;
-    renderer.render(scene, camera); requestAnimationFrame(loop);
+    bloom.strength = .42 + (falling ? .25 : 0) + (shake > .8 ? .4 : 0); if (composer) composer.render(); else renderer.render(scene, camera); requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
   (window as any).__manual = {book, ui, renderer, scene, camera, get state() { return ui.state; }, get info() { return renderer.info.render; }, box, press, link, lab, flink, journal, jui, get kind() { return kind; }, rows, endRun() { taskNo = TOTAL; next(true); }, setInspect, cage, get shake() { return shake; }, look(y: number, p: number) { yaw = yawT = y; pitch = pitchT = p; }, setFree, set timeScale(v: number) { timeScale = v; }, step(sec: number) { for (let i = 0; i < Math.round(sec * 60); i++) { cage.update(1 / 60); ui.update(1 / 60); jui.update(1 / 60); } }};
