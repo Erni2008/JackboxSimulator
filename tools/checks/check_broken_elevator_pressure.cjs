@@ -47,7 +47,7 @@ async function mechanics(b, touch, seat, tag) {
   await tap(s, 'bypass'); v = await settle(s); assert.equal(v.bypass, true); assert.equal(v.safeState, !leak, 'BYPASS alone never cures a leak'); ok(`${tag}: BYPASS thrown to AUX`);
   if (leak) { await tap(s, 'clamp'); v = await settle(s); assert.equal(v.clamped, true); assert.equal(v.safeState, true); ok(`${tag}: CLAMP fitted on the cracked coupling — leak stopped (${code})`); }
   const fine0 = v.fine; await tap(s, 'fine'); v = await settle(s); assert.equal(v.fine, !fine0); ok(`${tag}: FINE lever toggles (${v.fine ? 'ON' : 'OFF'})`);
-  const st = v.fine ? 2 : 10, q0 = v.pressure, dir = q0 < 60 ? 'red' : 'blue'; await turn(s, dir); v = await settle(s);
+  const st = v.fine ? 2 : 10, q0 = v.pressure, dir = q0 < 60 ? 'red' : 'blue'; for (let k = 0; k < 3; k++) { await turn(s, dir); v = await settle(s); if (v.effect.action === dir.toUpperCase()) break; await s.p.waitForTimeout(400); } /* a turn started while the lever still swings is ignored by design: try again */
   void q0; assert.equal(v.effect.action, dir.toUpperCase()); assert.ok(Math.abs(v.effect.delta - (dir === 'red' ? st : -st)) < 1e-6 || (dir === 'blue' && v.pressure === 0), `after bypass a ${dir} turn moves ${st}: ${v.effect.delta}`); ok(`${tag}: after BYPASS the ${dir} valve works normally (${v.effect.delta > 0 ? '+' : ''}${v.effect.delta} PSI)`);
   // EMERGENCY RELEASE once (drag the handle down)
   const e0 = v.pressure, c = await at(s, 'emergency'); await path(s, [[c.x, c.y], [c.x, c.y + 30], [c.x, c.y + 60], [c.x, c.y + 90]]); v = await settle(s);
