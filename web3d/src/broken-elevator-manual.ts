@@ -118,7 +118,7 @@ async function boot() {
   const newTask = (advance: boolean) => { if (advance) taskNo = Math.min(TOTAL, taskNo + 1); taskSeed++; kind = kindOf(taskNo);
     const t = makeTask(wireRules, taskSeed, wireCount || 4 + Math.floor(Math.random() * 3), fixed); box.setTask(t); box.configure(t.fault, t.mode); deadline = 0;
     const k0 = kind, myGen = ++taskGen; box.locked = true; press.enabled = false; lab.enabled = false; link.stop(); flink.stop(); hud();
-    briefOpen = true; (params.get('tutorial') === '1' ? briefing(k0, Math.round(limitMs(k0) / 1000)) : Promise.resolve()).then(() => { briefOpen = false; if (myGen !== taskGen) return; startedAt = performance.now(); mistakes = 0;
+    briefOpen = true; (params.get('tutorial') === '1' ? briefing(k0, Math.round(limitMs(k0) / 1000)) : Promise.resolve()).then(() => { briefOpen = false; if (myGen !== taskGen) return; startedAt = performance.now(); mistakes = 0; RoomSocket.shared()?.send('CAGE_REPORT', {kind: k0, task: taskNo}); /* host screen: which machine */
     // the host's voice: welcome once, then a short spoken instruction at the start of every task (no text card)
     if (!introSaid) { introSaid = true; tellPending = 'intro:' + k0; } else tellPending = k0;
     if (k0 === 'wire') box.locked = false;
@@ -149,7 +149,7 @@ async function boot() {
     if (blast) { shake = 1.7; const f = $('blast'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); document.body.classList.remove('jolt'); void document.body.offsetWidth; document.body.classList.add('jolt'); }
     verdict(ok, ok ? L('ДАВЛЕНИЕ СТАБИЛИЗИРОВАНО · СПУСК ОСТАНОВЛЕН', 'DESCENT HALTED') : (reason === 'CRITICAL' ? '120 PSI' : L('СИСТЕМА ДАВЛЕНИЯ ОТКАЗАЛА · ВРЕМЯ ВЫШЛО', 'TIME RAN OUT')), ok ? L('Давление стабилизировано', 'Pressure stabilised') : blast ? L('Взрыв системы давления', 'Pressure system exploded') : L('Отказ системы давления', 'Pressure system failed')); if (!ok) setTimeout(() => cage.drop?.(.8), blast ? 650 : 350);
     clearTimeout(pending); pending = setTimeout(() => { if (inspecting && inspectTarget === 'pressure') setInspect(false); setTimeout(() => next(ok), 400); }, 2600); };
-  const finish = (ok: boolean, why: string) => { record(ok, why === L('ВРЕМЯ ВЫШЛО', 'TIME RAN OUT') ? 'TIMEOUT' : 'WRONG'); box.locked = true; box.setLamp(ok ? 'good' : 'bad'); audio.play(ok ? 'good' : 'bad'); verdict(ok, ok ? L('РЕМОНТ УСПЕШЕН', 'REPAIR SUCCESSFUL') : why); hud(); deadline = 0; clearTimeout(pending); pending = setTimeout(() => { if (box.open) box.toggleDoor(); setTimeout(() => next(ok), 500); }, 2400); };
+  const finish = (ok: boolean, why: string) => { RoomSocket.shared()?.send('CAGE_REPORT', {kind: 'wire', task: taskNo, result: ok ? 'OK' : 'FAIL'}); record(ok, why === L('ВРЕМЯ ВЫШЛО', 'TIME RAN OUT') ? 'TIMEOUT' : 'WRONG'); box.locked = true; box.setLamp(ok ? 'good' : 'bad'); audio.play(ok ? 'good' : 'bad'); verdict(ok, ok ? L('РЕМОНТ УСПЕШЕН', 'REPAIR SUCCESSFUL') : why); hud(); deadline = 0; clearTimeout(pending); pending = setTimeout(() => { if (box.open) box.toggleDoor(); setTimeout(() => next(ok), 500); }, 2400); };
   box.onCut = i => { const ok = i === box.task!.answer; finish(ok, L('НЕВЕРНЫЙ ПРОВОД', 'WRONG WIRE')); if (!ok) setTimeout(() => cage.drop?.(.8), 350); };
   // the car lurches down toward the lava: screech + rattle while falling, a slam and a hard shake on the catch
   // wrong answer: the brake lets go. Mains power cuts, the red emergency beacon spins up, the head floats in free fall

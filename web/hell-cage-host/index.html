@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Адская клетка · ведущий</title>
+<link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+<div id="view"></div>
+<div id="vignette"></div>
+<div id="tags"></div>
+<div class="hud left"><svg viewBox="0 0 40 64" class="gauge"><rect x="12" y="4" width="16" height="56" rx="3"/><path d="M20 10 l-6 8 h12z M20 54 l-6 -8 h12z"/><line x1="20" y1="18" x2="20" y2="46"/></svg><div><span id="depth-cap" class="cap"></span><b id="depth">500 м</b></div></div>
+<div class="hud right"><svg viewBox="0 0 64 64" class="clock"><circle cx="32" cy="32" r="28" class="track"/><circle id="ring" cx="32" cy="32" r="28" class="ring"/></svg><div><span id="clock-cap" class="cap"></span><b id="clock">00:00</b></div></div>
+<div id="banner"><b id="title"></b><span id="diff"></span></div>
+<div id="idle" hidden></div>
+<div id="status"></div>
+<button id="sound" title="Звук">🔊</button>
+<script type="module" src="app.js?v=1"></script>
+</body>
+</html>

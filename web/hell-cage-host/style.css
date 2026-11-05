@@ -1,0 +1,31 @@
+@font-face{font-family:'Cinzel';font-weight:600 800;src:url(../broken-elevator-manual/fonts/cinzel-600.woff2) format('woff2');}
+@font-face{font-family:'Oswald';font-weight:700;src:url(../broken-elevator-manual/fonts/oswald-700-cyrillic.woff2) format('woff2');unicode-range:U+0400-045F,U+2116;}
+@font-face{font-family:'Oswald';font-weight:700;src:url(../broken-elevator-manual/fonts/oswald-700-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+2000-206F;}
+@font-face{font-family:'Cormorant SC';font-weight:700;src:url(../broken-elevator-manual/fonts/cormorant-sc-700-cyrillic.woff2) format('woff2');unicode-range:U+0400-045F;}
+@font-face{font-family:'Cormorant SC';font-weight:700;src:url(../broken-elevator-manual/fonts/cormorant-sc-700-latin.woff2) format('woff2');unicode-range:U+0000-00FF;}
+html,body{margin:0;height:100%;overflow:hidden;background:#0a0507;color:#f3e3c4;font-family:'Oswald','Arial Narrow',sans-serif}
+#view canvas{display:block}
+#vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,transparent 55%,rgba(0,0,0,.65) 100%)}
+.hud{position:fixed;top:2.2vh;display:flex;align-items:center;gap:1vw;padding:1.1vh 1.6vw 1.1vh 1.2vw;min-width:13vw;
+  background:linear-gradient(180deg,rgba(28,18,14,.92),rgba(12,8,6,.92));border:2px solid #8a6a40;border-radius:14px;
+  box-shadow:0 0 0 4px rgba(10,6,4,.85),0 0 0 6px #5a4228,0 10px 40px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,220,160,.15)}
+.hud.left{left:2.2vw}.hud.right{right:2.2vw;flex-direction:row}
+.hud .cap{display:block;font-size:1.25vh;letter-spacing:.3em;color:#c99a5a}
+.hud b{display:block;font:700 4.6vh/1 'Cinzel',Georgia,serif;color:#ffe9c4;text-shadow:0 0 18px rgba(255,150,60,.35);font-variant-numeric:tabular-nums}
+.gauge{height:6vh}.gauge rect{fill:#1a120c;stroke:#d79a2a;stroke-width:2.5}.gauge path{fill:#ffb02a}.gauge line{stroke:#ffb02a;stroke-width:2;stroke-dasharray:3 3}
+.clock{height:6vh;transform:rotate(-90deg)}.clock .track{fill:none;stroke:#3a1a12;stroke-width:6}.clock .ring{fill:none;stroke:#ff3020;stroke-width:6;stroke-linecap:round;stroke-dasharray:176;filter:drop-shadow(0 0 6px #ff3020)}
+#banner{position:fixed;top:2.6vh;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none}
+#banner b{display:block;font:700 3.6vh/1 'Cormorant SC','Cinzel',serif;letter-spacing:.18em;color:#ffd9a0;text-shadow:0 0 24px rgba(255,90,30,.6),0 2px 0 #000}
+#banner span{display:inline-block;margin-top:.6vh;padding:.3vh 1vw;font-size:1.4vh;letter-spacing:.3em;color:#1c1107;background:linear-gradient(180deg,#f0c77a,#c4893a);border-radius:20px}
+#tags{position:fixed;inset:0;pointer-events:none}
+.tag{position:absolute;left:0;top:0;min-width:8.5vw;padding:.7vh .9vw;text-align:center;border-radius:10px;white-space:nowrap;
+  background:linear-gradient(180deg,rgba(30,18,12,.88),rgba(14,8,6,.88));border:1.5px solid rgba(214,170,98,.55);box-shadow:0 6px 24px rgba(0,0,0,.55);transition:opacity .4s,filter .4s}
+.tag b{display:block;font:700 2vh/1.1 'Cinzel',Georgia,serif;color:#ffe9c4}
+.tag .m{display:block;font:700 2.6vh/1.1 'Oswald',sans-serif;color:#ffb85c;font-variant-numeric:tabular-nums;text-shadow:0 0 12px rgba(255,140,40,.5)}
+.tag .s{display:block;margin-top:.2vh;font-size:1.35vh;letter-spacing:.06em;color:#d8c09a}
+.tag.dead{border-color:#ff3a20;filter:saturate(.4)}.tag.dead .m{color:#ff4a30}
+.tag.off{opacity:.45}
+#idle{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);font:700 4vh 'Cinzel',serif;color:#ffd9a0;text-shadow:0 0 30px rgba(255,90,30,.6)}
+#status{position:fixed;left:50%;bottom:2vh;transform:translateX(-50%);color:#ff8a6a;font-size:1.6vh;letter-spacing:.1em}
+#sound{position:fixed;right:1.2vw;bottom:1.6vh;width:46px;height:46px;border-radius:50%;border:1.5px solid #8a6a40;background:rgba(20,12,8,.85);color:#fff;font-size:20px;cursor:pointer;opacity:.85}
+#sound.on{opacity:.25}
