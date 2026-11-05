@@ -129,24 +129,48 @@ const R = .82, CAGE_H = 2.1;
 const barGeo = new T.CylinderGeometry(.02, .024, CAGE_H - .2, 8), linkGeo = new T.TorusGeometry(.07, .024, 8, 16); linkGeo.scale(1, 1.7, 1);
 
 interface Cage { id: string; root: T.Group; body: T.Group; lamp: T.MeshStandardMaterial; lampGlow: T.Sprite; under: T.Sprite; portrait: T.Mesh; label: HTMLElement; bars: T.MeshStandardMaterial; flames: T.Sprite[];
-  y: number; vy: number; targetY: number; x: number; tx: number; sway: number; swayV: number; flash: number; dead: boolean; penalties: number; repairs: number; okFlash: number; seen: boolean; burnT: number; survived: boolean }
+  y: number; vy: number; targetY: number; x: number; tx: number; sway: number; swayV: number; flash: number; dead: boolean; penalties: number; repairs: number; okFlash: number; seen: boolean; burnT: number; survived: boolean; hop: number; squash: number; ph: number }
 const cages = new Map<string, Cage>();
-// the prisoner's portrait burns away from the bottom up: noisy threshold, white-hot rim, charred band, then gone
-function burnMaterial(map: T.Texture) { return new T.ShaderMaterial({transparent: true, depthWrite: true, uniforms: {map: {value: map}, burn: {value: 0}, heat: {value: 0}, t: {value: 0}},
+// The prisoner: a cut-out figure made to read as a lit 3D body.
+//  · cropped to its own silhouette and stood on the cage floor at full height (feet at the pivot)
+//  · pseudo-normals from the alpha gradient: warm lava rim from below, cold moon rim from above, soft occlusion inward
+//  · burns away from the feet up: noisy threshold, white-hot rim, charred band
+function burnMaterial(map: T.Texture) { return new T.ShaderMaterial({transparent: true, depthWrite: true, uniforms: {map: {value: map}, uvr: {value: new T.Vector4(0, 0, 1, 1)}, texel: {value: new T.Vector2(1 / 512, 1 / 512)},
+    burn: {value: 0}, heat: {value: 0}, t: {value: 0}, fear: {value: 0}, flash: {value: 0}},
   vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); }`,
-  fragmentShader: `uniform sampler2D map; uniform float burn, heat, t; varying vec2 vUv;
+  fragmentShader: `uniform sampler2D map; uniform vec4 uvr; uniform vec2 texel; uniform float burn, heat, t, fear, flash; varying vec2 vUv;
     float h(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
     float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f); return mix(mix(h(i),h(i+vec2(1,0)),f.x), mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x), f.y); }
-    void main(){ vec4 c = texture2D(map, vUv); if (c.a < .05) discard;
-      float nz = n(vUv*9. + vec2(0., t*.6))*.6 + n(vUv*23.)*.4; float edge = vUv.y*.75 + nz*.35;   // fire climbs from the feet
-      float th = burn * 1.25 - .05; if (edge < th) discard;
-      float rim = 1. - smoothstep(0., .06, edge - th), char = 1. - smoothstep(0., .2, edge - th);
-      vec3 col = c.rgb * (.62 + .28*vUv.y) * (1. - heat*.35); col += c.rgb * vec3(1.,.45,.15) * pow(1.-vUv.y, 2.) * .55; col += vec3(1.,.35,.08) * heat * .25;   // lava light from below, darker at the top   // lit by the lava, reddening as it heats
-      col = mix(col, vec3(.08,.04,.03), char * step(.001, burn));
-      col += vec3(1.,.55,.15) * rim * 3.2 * step(.001, burn);
+    float A(vec2 u){ return texture2D(map, u).a; }
+    void main(){ vec2 tu = uvr.xy + vUv * uvr.zw; vec4 c = texture2D(map, tu); if (c.a < .05) discard;
+      // silhouette normal: blur-ish alpha gradient at two radii
+      vec2 d1 = texel * 4., d2 = texel * 11.;
+      vec2 g = vec2(A(tu + vec2(d1.x,0.)) - A(tu - vec2(d1.x,0.)), A(tu + vec2(0.,d1.y)) - A(tu - vec2(0.,d1.y)))
+             + .6 * vec2(A(tu + vec2(d2.x,0.)) - A(tu - vec2(d2.x,0.)), A(tu + vec2(0.,d2.y)) - A(tu - vec2(0.,d2.y)));
+      float edge = clamp(length(g) * .7, 0., 1.) * .8; vec2 nrm = length(g) > .001 ? -normalize(g) : vec2(0.);
+      float inner = (A(tu + vec2(d2.x*2.,0.)) + A(tu - vec2(d2.x*2.,0.)) + A(tu + vec2(0.,d2.y*2.)) + A(tu - vec2(0.,d2.y*2.))) * .25;   // 1 deep inside, lower near the outline
+      vec3 col = c.rgb * (.55 + .3*vUv.y);                                                          // key: dimmer toward the top, away from the lava
+      col *= .78 + .22 * inner;                                                                     // soft volume: edges roll off
+      col += c.rgb * vec3(1.,.45,.15) * pow(1.-vUv.y, 2.) * .6;                                    // lava bounce from below
+      col += vec3(1.,.42,.12) * edge * max(0., dot(nrm, vec2(0.,-1.)) * .8 + .35) * (.55 + .45*(1.-vUv.y)) * .55;   // warm rim (sides and underside)
+      col += vec3(.55,.65,1.) * edge * max(0., dot(nrm, vec2(0.,1.))) * .28 * vUv.y;              // cold moon rim on top
+      col *= 1. - heat*.3; col += vec3(1.,.35,.08) * heat * .25; col = mix(col, col * vec3(1.35,.55,.45), flash * .45);   // red alarm strobe tints, never floods
+      // burning
+      float nz = n(vUv*9. + vec2(0., t*.6))*.6 + n(vUv*23.)*.4, e = vUv.y*.75 + nz*.35, th = burn * 1.25 - .05; if (e < th) discard;
+      float rim = 1. - smoothstep(0., .06, e - th), ch = 1. - smoothstep(0., .2, e - th);
+      col = mix(col, vec3(.08,.04,.03), ch * step(.001, burn)); col += vec3(1.,.55,.15) * rim * 3.2 * step(.001, burn);
       gl_FragColor = vec4(col, c.a); }`}); }
-const portraits = new Map<string, T.Texture>();
-const portrait = (id: string) => { const k = CHARS.includes(id) ? id : CHARS[Math.abs([...id].reduce((a, c) => a * 31 + c.charCodeAt(0), 7)) % CHARS.length]; if (!portraits.has(k)) { const t = loader.load(`chars/${k}.png`); t.colorSpace = T.SRGBColorSpace; t.anisotropy = 8; portraits.set(k, t); } return portraits.get(k)!; };
+interface Figure { tex: T.Texture; ready: boolean; uvr: T.Vector4; aspect: number; texel: T.Vector2; waiters: (() => void)[] }
+const figures = new Map<string, Figure>();
+/** loads a character, finds its silhouette bounds (so it can stand full-height on the floor) */
+const figure = (id: string): Figure => { const k = CHARS.includes(id) ? id : CHARS[Math.abs([...id].reduce((a, c) => a * 31 + c.charCodeAt(0), 7)) % CHARS.length];
+  let f = figures.get(k); if (f) return f;
+  const tex = new T.Texture(); tex.colorSpace = T.SRGBColorSpace; tex.anisotropy = 8; f = {tex, ready: false, uvr: new T.Vector4(0, 0, 1, 1), aspect: 1, texel: new T.Vector2(1 / 512, 1 / 512), waiters: []}; figures.set(k, f);
+  const img = new Image(); img.onload = () => { const w = img.naturalWidth, h = img.naturalHeight, cv = document.createElement('canvas'); cv.width = w; cv.height = h; const x = cv.getContext('2d', {willReadFrequently: true})!; x.drawImage(img, 0, 0);
+    const a = x.getImageData(0, 0, w, h).data; let x0 = w, y0 = h, x1 = 0, y1 = 0; for (let y = 0; y < h; y += 2) for (let xx = 0; xx < w; xx += 2) if (a[(y * w + xx) * 4 + 3] > 24) { if (xx < x0) x0 = xx; if (xx > x1) x1 = xx; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    const pad = 6; x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad); x1 = Math.min(w, x1 + pad); y1 = Math.min(h, y1 + pad);
+    tex.image = img; tex.needsUpdate = true; f!.uvr.set(x0 / w, 1 - y1 / h, (x1 - x0) / w, (y1 - y0) / h); f!.aspect = (x1 - x0) / (y1 - y0); f!.texel.set(1 / w, 1 / h); f!.ready = true; for (const cb of f!.waiters) cb(); f!.waiters = []; };
+  img.src = `chars/${k}.png`; return f; };
 
 function buildCage(id: string, name: string, character: string): Cage {
   const root = new T.Group(), body = new T.Group(); root.add(body);
@@ -179,8 +203,12 @@ function buildCage(id: string, name: string, character: string): Cage {
   const frame = new T.Mesh(new T.BoxGeometry(.52, .2, .04), metalDark); frame.position.set(0, CAGE_H + .24, R * .76); frame.rotation.x = -.35; body.add(frame);
   const lampGlow = new T.Sprite(new T.SpriteMaterial({map: glowTex, color: '#40ff70', blending: T.AdditiveBlending, depthWrite: false, transparent: true, opacity: .8})); lampGlow.scale.set(1.1, .5, 1); lampGlow.position.set(0, CAGE_H + .26, R * .85); body.add(lampGlow);
   // the prisoner
-  const pt = portrait(character), pm = new T.Mesh(new T.PlaneGeometry(1.3, 1.3), burnMaterial(pt));
-  pm.position.set(0, .2 + .65, 0); body.add(pm);
+  // the prisoner stands on the grate: pivot at the feet, full cage height, a soft shadow under the feet
+  const fg = figure(character), pg = new T.PlaneGeometry(1, 1); pg.translate(0, .5, 0); const pmat = burnMaterial(fg.tex), pm = new T.Mesh(pg, pmat);
+  const fit = () => { pmat.uniforms.uvr.value.copy(fg.uvr); pmat.uniforms.texel.value.copy(fg.texel); const H = 1.82, W = Math.min(1.45, H * fg.aspect); pm.scale.set(W, W / fg.aspect, 1); pm.userData.base = pm.scale.clone(); };
+  if (fg.ready) fit(); else { pm.visible = false; fg.waiters.push(() => { fit(); pm.visible = true; }); }
+  pm.position.set(0, .09, .05); body.add(pm);
+  const foot = new T.Mesh(new T.CircleGeometry(.42, 24), new T.MeshBasicMaterial({map: glowTex, color: '#000000', transparent: true, opacity: .55, depthWrite: false})); foot.rotation.x = -Math.PI / 2; foot.scale.set(1, .55, 1); foot.position.set(0, .095, .05); body.add(foot);
   // chain up into the dark
   const chain = new T.InstancedMesh(linkGeo, metalDark, 70);
   for (let i = 0; i < 70; i++) { m4.makeRotationY(i % 2 ? Math.PI / 2 : 0); m4.setPosition(0, CAGE_H + 1.15 + i * .2, 0); chain.setMatrixAt(i, m4); } chain.castShadow = true; root.add(chain);
@@ -189,7 +217,7 @@ function buildCage(id: string, name: string, character: string): Cage {
   const label = document.createElement('div'); label.className = 'tag'; label.innerHTML = `<b></b><span class="m"></span><span class="s"></span>`; $('tags').append(label); label.querySelector('b')!.textContent = name;
   const flames: T.Sprite[] = []; for (let i = 0; i < 9; i++) { const f = new T.Sprite(new T.SpriteMaterial({map: flameTex, color: i % 3 ? '#ff7a20' : '#ffd070', blending: T.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0}));
     f.position.set((Math.random() - .5) * 1.1, .3, (Math.random() - .5) * .8); f.userData.ph = Math.random() * 6; body.add(f); flames.push(f); }
-  return {id, root, body, lamp, lampGlow, under, portrait: pm, label, bars: barMat, flames, y: worldY(START_M) + 6, vy: 0, targetY: 1.2, x: 0, tx: 0, sway: (Math.random() - .5) * .04, swayV: 0, flash: 0, dead: false, penalties: 0, repairs: 0, okFlash: 0, seen: false, burnT: -1, survived: false};
+  return {id, root, body, lamp, lampGlow, under, portrait: pm, label, bars: barMat, flames, y: worldY(START_M) + 6, vy: 0, targetY: 1.2, x: 0, tx: 0, sway: (Math.random() - .5) * .04, swayV: 0, flash: 0, dead: false, penalties: 0, repairs: 0, okFlash: 0, seen: false, burnT: -1, survived: false, hop: 0, squash: 0, ph: Math.random() * 6};
 }
 
 // world height for a height in metres: the visible shaft spans the top 500 m down to the lava
@@ -255,8 +283,8 @@ function sync() {
   players.forEach((p, i) => { let c = cages.get(p.id); if (!c) { c = buildCage(p.id, p.name, p.characterId); c.x = c.tx = (i - (n - 1) / 2) * gap; cages.set(p.id, c); }
     const cell = p.cage ?? {height: START_M, fails: 0, repairs: 0, outcome: 'RUNNING', dead: false};
     c.tx = (i - (n - 1) / 2) * gap; const m = cell.height; c.targetY = worldY(m);
-    if (c.seen && cell.fails > c.penalties) { c.vy = -9 - cell.fails * 3; c.flash = 1.6; c.swayV += (Math.random() - .5) * .6; shake = Math.max(shake, .45 + cell.fails * .15); sfx.drop(); spark(c); }
-    if (c.seen && cell.repairs > c.repairs) { c.okFlash = 1; sfx.ok(); }
+    if (c.seen && cell.fails > c.penalties) { c.squash = -.6; /* thrown up as the floor drops away */ c.vy = -9 - cell.fails * 3; c.flash = 1.6; c.swayV += (Math.random() - .5) * .6; shake = Math.max(shake, .45 + cell.fails * .15); sfx.drop(); spark(c); }
+    if (c.seen && cell.repairs > c.repairs) { c.okFlash = 1; c.hop = 1; sfx.ok(); }
     if (!c.dead && cell.dead) { c.dead = true; }
     c.penalties = cell.fails; c.repairs = cell.repairs; c.seen = true; c.survived = !!sh && sh.phase === 'END' && !cell.dead; if (c.survived) c.targetY += .6;
     const [ic, kn] = KIND()[sh?.kind || p.kind] ?? ['…', L('Ожидание', 'Waiting')];
@@ -305,9 +333,21 @@ function loop(now: number) {
       const fl = c.burnT < 1.2 ? 0 : c.burnT < 2 ? (c.burnT - 1.2) / .8 : c.burnT < 4.6 ? 1 : Math.max(0, 1 - (c.burnT - 4.6) / 2.5);
       for (const f of c.flames) { const ph = f.userData.ph; (f.material as T.SpriteMaterial).opacity = fl * (.65 + Math.sin(time * 11 + ph) * .25); f.scale.set(.5 + fl * .35, (.9 + Math.sin(time * 8 + ph) * .25) * (.5 + fl), 1); f.position.y = .25 + fl * .4 + Math.sin(time * 6 + ph) * .05; } }
     if (c.y > c.targetY + .02) { if (c.vy < -.5) c.vy -= 22 * dt; else c.vy += ((c.targetY - c.y) * 2 - c.vy * 2) * dt; } else c.vy += ((c.targetY - c.y) * 60 - c.vy * 7) * dt;
-    c.y += c.vy * dt; if (c.y < c.targetY && c.vy < -1) { c.vy = -c.vy * .28; c.swayV += (Math.random() - .5) * .35; shake = Math.max(shake, .3); }
+    c.y += c.vy * dt; if (c.y < c.targetY && c.vy < -1) { c.squash = Math.min(1, -c.vy / 10); c.vy = -c.vy * .28; c.swayV += (Math.random() - .5) * .35; shake = Math.max(shake, .3); }
     c.swayV += (-c.sway * 3 - c.swayV * .6) * dt + Math.sin(time * .9 + c.x) * .002; c.sway += c.swayV * dt;
     c.root.position.set(c.x, c.y, 0); c.body.rotation.z = c.sway; c.body.rotation.y = Math.sin(time * .3 + c.x) * .08;
+    { // the prisoner: breathes, shifts weight, trembles near the lava, is thrown and squashed by a drop, hops on a repair, writhes while burning
+      const fig = c.portrait, base = fig.userData.base as T.Vector3 | undefined, mat = fig.material as T.ShaderMaterial;
+      if (base) { const near = (c.y - Y_BOTTOM) / (Y_TOP - Y_BOTTOM), fear = c.dead ? 0 : Math.min(1, (c.penalties >= 2 ? .8 : c.penalties * .25) + Math.max(0, .3 - near) * 2.5);
+        const heatK = mat.uniforms.heat.value as number, breath = Math.sin(time * (2 + fear * 3) + c.ph);
+        c.squash += (0 - c.squash) * (1 - Math.exp(-dt * 7)); c.hop = Math.max(0, c.hop - dt * 1.6);
+        const hopY = c.hop > 0 ? Math.sin((1 - c.hop) * Math.PI) * .28 : 0, sq = c.squash;
+        fig.scale.set(base.x * (1 + .1 * sq - .006 * breath), base.y * (1 - .14 * sq + .012 * breath + (c.hop > .85 ? -.06 : 0)), 1);
+        fig.position.y = .09 + hopY + (sq < 0 ? -sq * .35 : 0);
+        const tremble = fear * (Math.sin(time * 37 + c.ph) * .012 + Math.sin(time * 23) * .008), writhe = heatK > 0 ? Math.sin(time * 13 + c.ph) * .09 * heatK : 0;
+        fig.rotation.z = Math.sin(time * .8 + c.ph) * .03 + tremble + writhe - c.sway * .6; fig.rotation.y = -c.body.rotation.y * .8;
+        fig.position.x = Math.sin(time * .5 + c.ph) * .03 + tremble * 2;
+        mat.uniforms.fear.value = fear; mat.uniforms.flash.value = c.flash > 0 ? ((time * 8 | 0) % 2) : 0; } }
     // lamp: green when steady, amber when deep, red strobe after a drop, green pulse on a repair
     const m = (c.y - Y_BOTTOM) / (Y_TOP - Y_BOTTOM); c.flash = Math.max(0, c.flash - dt * .5); c.okFlash = Math.max(0, c.okFlash - dt * 1.2);
     const col = c.dead ? '#000000' : c.flash > 0 ? ((time * 8 | 0) % 2 ? '#ff1a10' : '#400000') : c.penalties >= 2 ? ((time * 3 | 0) % 2 ? '#ff2a10' : '#801000') : m < .25 ? '#ffa020' : '#30ff60';
