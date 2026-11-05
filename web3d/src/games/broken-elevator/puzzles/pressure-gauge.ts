@@ -43,7 +43,7 @@ export class PressureGauge {
     for (let v = 0; v <= 120; v += 20) { const a = ang(v); x.fillText(String(v), c + Math.cos(a) * 285, c + Math.sin(a) * 285); }
     x.font = `800 64px ${TECH}`; x.fillText('PSI', c, c + 170);
     x.font = `800 46px ${TECH}`; x.fillStyle = '#0f5a20'; x.fillText(`${tr('НОРМА', 'SAFE')} ${low}–${high}`, c, c + 236);
-    x.fillStyle = '#3a2412'; x.font = `600 30px 'Cinzel', Georgia, serif`; x.fillText('HARTWELL · LONDON', c, c - 170);
+    x.fillStyle = '#3a2412'; x.font = `600 30px 'Cinzel', Georgia, serif`; x.fillText(tr('ХАРТВЕЛЛ · ЛОНДОН', 'HARTWELL · LONDON'), c, c - 170);
     this.dial.needsUpdate = true;
   }
 

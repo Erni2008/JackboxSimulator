@@ -1,4 +1,4 @@
-import {L} from '../i18n';
+import {L, LANG} from '../i18n';
 // Programmatic page rendering: paper, letterpress text, engraved diagrams and
 // handwritten notes are all drawn here. Nothing is baked into image files.
 import type {ManualPage, ManualContent, Diagram, Annotation, SymbolGlyph} from './content';
@@ -106,7 +106,7 @@ export function drawPage(ctx: CanvasRenderingContext2D, page: ManualPage, index:
   if (page.layout === 'endpaper') { ctx.font = `italic 30px ${ITAL}`; ctx.textAlign = 'center'; ctx.fillStyle = INK_SOFT; ctx.fillText('Notes', PAGE_W / 2, 220); for (let y = 300; y < PAGE_H - 160; y += 64) { ctx.strokeStyle = 'rgba(60,40,20,.25)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke(); } return; }
   // running head
   ctx.font = `24px ${SC}`; ctx.fillStyle = INK_SOFT; ctx.textAlign = side > 0 ? 'right' : 'left';
-  letterpress(ctx, () => ctx.fillText(side > 0 ? 'The Engineer’s Manual' : (page.kicker || 'Contents'), side > 0 ? x1 : x0, 78), r);
+  letterpress(ctx, () => ctx.fillText(side > 0 ? L('Руководство инженера', 'The Engineer’s Manual') : (page.kicker || L('Содержание', 'Contents')), side > 0 ? x1 : x0, 78), r);
   ctx.textAlign = side > 0 ? 'left' : 'right';
   letterpress(ctx, () => ctx.fillText(String(index + 1), side > 0 ? x0 : x1, 78), r);
   ctx.strokeStyle = INK_SOFT; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(x0, 92); ctx.lineTo(x1, 92); ctx.stroke();
@@ -159,12 +159,13 @@ export function drawPage(ctx: CanvasRenderingContext2D, page: ManualPage, index:
 function titlePage(ctx: CanvasRenderingContext2D, content: ManualContent, r: () => number) {
   const cx = PAGE_W / 2 - 12; ctx.textAlign = 'center'; ctx.fillStyle = INK;
   ctx.strokeStyle = INK; ctx.lineWidth = 3; ctx.strokeRect(96, 110, PAGE_W - 220, PAGE_H - 230); ctx.lineWidth = 1; ctx.strokeRect(108, 122, PAGE_W - 244, PAGE_H - 254);
-  ctx.font = `30px ${SC}`; letterpress(ctx, () => ctx.fillText('The Hartwell Lift & Hoist Company', cx, 230), r);
+  ctx.font = `30px ${SC}`; letterpress(ctx, () => ctx.fillText(L('Компания лифтов и подъёмников Хартвелла', 'The Hartwell Lift & Hoist Company'), cx, 230), r);
   ornament(ctx, cx, 290);
-  ctx.font = `44px ${PICA}`; letterpress(ctx, () => ctx.fillText('THE', cx, 420), r);
+  if (LANG === 'ru') { ctx.font = `88px ${PICA}`; letterpress(ctx, () => ctx.fillText('РУКОВОДСТВО', cx, 500), r); letterpress(ctx, () => ctx.fillText('ИНЖЕНЕРА', cx, 610), r); ctx.font = `italic 32px ${ITAL}`; letterpress(ctx, () => ctx.fillText('по безопасной эксплуатации и ремонту', cx, 700), r); letterpress(ctx, () => ctx.fillText('пассажирской кабины', cx, 742), r); }
+  else { ctx.font = `44px ${PICA}`; letterpress(ctx, () => ctx.fillText('THE', cx, 420), r);
   ctx.font = `96px ${PICA}`; letterpress(ctx, () => ctx.fillText('ENGINEER’S', cx, 530), r); letterpress(ctx, () => ctx.fillText('MANUAL', cx, 640), r);
-  ctx.font = `italic 32px ${ITAL}`; letterpress(ctx, () => ctx.fillText('for the Safe Operation & Repair', cx, 720), r); letterpress(ctx, () => ctx.fillText('of the Passenger Car', cx, 762), r);
-  ctx.fillStyle = '#6a1013'; ctx.font = "italic 500 30px 'Lora', Georgia, serif"; letterpress(ctx, () => ctx.fillText(L('Руководство инженера \u00b7 издание для кабины № 7', 'Engineer’s manual \u00b7 edition for car No 7'), cx, 818), r); ctx.fillStyle = INK;
+  ctx.font = `italic 32px ${ITAL}`; letterpress(ctx, () => ctx.fillText('for the Safe Operation & Repair', cx, 720), r); letterpress(ctx, () => ctx.fillText('of the Passenger Car', cx, 762), r); }
+  ctx.fillStyle = '#6a1013'; ctx.font = "italic 500 30px 'Lora', Georgia, serif"; letterpress(ctx, () => ctx.fillText(L('издание для кабины № 7', 'Engineer’s manual \u00b7 edition for car No 7'), cx, 818), r); ctx.fillStyle = INK;
   // engraved emblem: cog with lift car
   ctx.save(); ctx.translate(cx, 950); ctx.lineWidth = 2.2;
   for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2; ctx.save(); ctx.rotate(a); ctx.fillRect(-7, -118, 14, 20); ctx.restore(); }
@@ -172,9 +173,9 @@ function titlePage(ctx: CanvasRenderingContext2D, content: ManualContent, r: () 
   for (let i = -70; i < 70; i += 7) { ctx.lineWidth = .8; ctx.beginPath(); ctx.moveTo(i, -Math.sqrt(86 * 86 - i * i)); ctx.lineTo(i, Math.sqrt(86 * 86 - i * i)); ctx.globalAlpha = .35; ctx.stroke(); ctx.globalAlpha = 1; }
   ctx.fillStyle = '#d9c597'; ctx.fillRect(-36, -54, 72, 108); ctx.lineWidth = 3; ctx.strokeRect(-36, -54, 72, 108); for (let x = -28; x <= 28; x += 14) { ctx.beginPath(); ctx.moveTo(x, -46); ctx.lineTo(x, 46); ctx.stroke(); }
   ctx.beginPath(); ctx.moveTo(0, -54); ctx.lineTo(0, -86); ctx.stroke(); ctx.restore();
-  ctx.fillStyle = INK; ctx.font = `28px ${SC}`; letterpress(ctx, () => ctx.fillText('Seventh Edition · Revised', cx, 1160), r);
-  ctx.font = `italic 26px ${ITAL}`; letterpress(ctx, () => ctx.fillText('London · MDCCCLXXXIX', cx, 1200), r);
-  notes(ctx, [{text: 'property of car no. 7', x: .66, y: .085, angle: -3, ink: 'pencil'}], -1);
+  ctx.fillStyle = INK; ctx.font = `28px ${SC}`; letterpress(ctx, () => ctx.fillText(L('Седьмое издание · исправленное', 'Seventh Edition · Revised'), cx, 1160), r);
+  ctx.font = `italic 26px ${ITAL}`; letterpress(ctx, () => ctx.fillText(L('Лондон · MDCCCLXXXIX', 'London · MDCCCLXXXIX'), cx, 1200), r);
+  notes(ctx, [{text: L('собственность кабины № 7', 'property of car no. 7'), x: .66, y: .085, angle: -3, ink: 'pencil'}], -1);
 }
 
 function notes(ctx: CanvasRenderingContext2D, list: Annotation[] | undefined, side: number) {

@@ -93,7 +93,7 @@ async function boot() {
     pour: () => audio.play('pour'), splash: () => audio.play('splash'), stir: on => { if (on) audio.play('stir'); }, inject: () => { audio.play('button'); audio.play('relay'); }, pump: () => audio.play('pump'), accepted: () => audio.play('labOk'), unstable: () => audio.play('boil'), steam: () => audio.play('vent', .8), drain: () => audio.play('gurgle'), bubble: () => audio.play('splash')};
   const flink = new FormulaLink(); lab.onAction = (a, r) => flink.act(a, r);
   lab.canAct = () => { const v = flink.view(); return !!v && v.outcome === 'RUNNING' && !v.draining; };
-  lab.onEvent = e => { if (e.type === 'REJECTED') verdict(false, e.reason === 'UNSTABLE_UNPROTECTED' ? L('UNSTABLE · ЗАМОК ОХЛАЖДЕНИЯ НЕ ВКЛЮЧЁН', 'UNSTABLE · COOLING LOCK WAS OFF') : L('FORMULA REJECTED · СЛИВ, ПОПРОБУЙТЕ СНОВА', 'FORMULA REJECTED · DRAINED, TRY AGAIN'), e.reason === 'UNSTABLE_UNPROTECTED' ? L('Нестабильная реакция', 'Unstable reaction') : L('Формула отвергнута', 'Formula rejected')); };
+  lab.onEvent = e => { if (e.type === 'REJECTED') verdict(false, e.reason === 'UNSTABLE_UNPROTECTED' ? L('НЕСТАБИЛЬНО · ЗАМОК ОХЛАЖДЕНИЯ НЕ ВКЛЮЧЁН', 'UNSTABLE · COOLING LOCK WAS OFF') : L('ФОРМУЛА ОТВЕРГНУТА · СЛИВ, ПОПРОБУЙТЕ СНОВА', 'ФОРМУЛА ОТВЕРГНУТА · DRAINED, TRY AGAIN'), e.reason === 'UNSTABLE_UNPROTECTED' ? L('Нестабильная реакция', 'Unstable reaction') : L('Формула отвергнута', 'Formula rejected')); };
   let valvePointer: number | null = null;
   let focusTo: [number, number] | null = null, inspecting = false, inspectK = 0, inspectTarget: 'box' | 'pressure' | 'lab' = 'box';
   const TOTAL = 12, LIMIT = 60; let taskNo = 1, deadline = 0, taskSeed = seed, pending: any = 0;
@@ -116,7 +116,7 @@ async function boot() {
   let formulaDone = false;
   flink.onOutcome = (o, reason) => { if (kind !== 'formula' || formulaDone) return; formulaDone = true; lab.enabled = false; const ok = o === 'STABILIZED'; void reason;
     if (!ok) audio.play('bad');
-    verdict(ok, ok ? L('COOLING SYSTEM RESTORED · СПУСК ОСТАНОВЛЕН', 'DESCENT HALTED') : L('COOLING SYSTEM FAILED · ВРЕМЯ ВЫШЛО', 'TIME RAN OUT'), ok ? L('Система охлаждения восстановлена', 'Cooling system restored') : L('Отказ системы охлаждения', 'Cooling system failed')); if (!ok) setTimeout(() => cage.drop?.(.8), 350);
+    verdict(ok, ok ? L('ОХЛАЖДЕНИЕ ВОССТАНОВЛЕНО · СПУСК ОСТАНОВЛЕН', 'DESCENT HALTED') : L('ОХЛАЖДЕНИЕ НЕ ВОССТАНОВЛЕНО · ВРЕМЯ ВЫШЛО', 'TIME RAN OUT'), ok ? L('Система охлаждения восстановлена', 'Cooling system restored') : L('Отказ системы охлаждения', 'Cooling system failed')); if (!ok) setTimeout(() => cage.drop?.(.8), 350);
     clearTimeout(pending); pending = setTimeout(() => { if (inspecting && inspectTarget === 'lab') setInspect(false); setTimeout(() => newTask(ok), 400); }, ok ? 3300 : 2600); };
   // PRESSURE CONTROL outcome: decided by the server in a room (locally in practice); the client only reacts
   let pressureDone = false;
@@ -125,7 +125,7 @@ async function boot() {
     const blast = !ok && reason === 'CRITICAL';
     audio.play(ok ? 'good' : 'bad'); if (!ok && !blast) audio.play('burst');
     if (blast) { shake = 1.7; const f = $('blast'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); document.body.classList.remove('jolt'); void document.body.offsetWidth; document.body.classList.add('jolt'); }
-    verdict(ok, ok ? L('PRESSURE STABILIZED · СПУСК ОСТАНОВЛЕН', 'DESCENT HALTED') : (reason === 'CRITICAL' ? '120 PSI' : L('PRESSURE SYSTEM FAILED · ВРЕМЯ ВЫШЛО', 'TIME RAN OUT')), ok ? L('Давление стабилизировано', 'Pressure stabilised') : blast ? L('Взрыв системы давления', 'Pressure system exploded') : L('Отказ системы давления', 'Pressure system failed')); if (!ok) setTimeout(() => cage.drop?.(.8), blast ? 650 : 350);
+    verdict(ok, ok ? L('ДАВЛЕНИЕ СТАБИЛИЗИРОВАНО · СПУСК ОСТАНОВЛЕН', 'DESCENT HALTED') : (reason === 'CRITICAL' ? '120 PSI' : L('СИСТЕМА ДАВЛЕНИЯ ОТКАЗАЛА · ВРЕМЯ ВЫШЛО', 'TIME RAN OUT')), ok ? L('Давление стабилизировано', 'Pressure stabilised') : blast ? L('Взрыв системы давления', 'Pressure system exploded') : L('Отказ системы давления', 'Pressure system failed')); if (!ok) setTimeout(() => cage.drop?.(.8), blast ? 650 : 350);
     clearTimeout(pending); pending = setTimeout(() => { if (inspecting && inspectTarget === 'pressure') setInspect(false); setTimeout(() => newTask(ok), 400); }, 2600); };
   const finish = (ok: boolean, why: string) => { box.locked = true; box.setLamp(ok ? 'good' : 'bad'); audio.play(ok ? 'good' : 'bad'); verdict(ok, ok ? L('РЕМОНТ УСПЕШЕН', 'REPAIR SUCCESSFUL') : why); hud(); deadline = 0; clearTimeout(pending); pending = setTimeout(() => { if (box.open) box.toggleDoor(); setTimeout(() => newTask(ok), 500); }, 2400); };
   box.onCut = i => { const ok = i === box.task!.answer; finish(ok, L('НЕВЕРНЫЙ ПРОВОД', 'WRONG WIRE')); if (!ok) setTimeout(() => cage.drop?.(.8), 350); };

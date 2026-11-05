@@ -12,7 +12,7 @@ import {L as tr} from '../i18n';
 import {materials, plate, lamp, canvasTex, QUARTER, TECH} from './pressure-parts';
 import {Control, Lever, PushButton, type Feedback} from './pressure-controls';
 import {flowMaterial, liquidMaterial, glassMaterial, bubbleField, type LiquidUniforms} from './liquid';
-import {REAGENTS, COLOR, GLINT, SYMBOL, type Reagent} from './formula-sim';
+import {REAGENTS, COLOR, GLINT, SYMBOL, NAME, type Reagent} from './formula-sim';
 import type {LabView} from './formula-link';
 import {contactShadow, enableShadows} from './surface';
 
@@ -63,7 +63,7 @@ export class Laboratory {
       const strap = new T.Mesh(new T.TorusGeometry(.049, .004, 6, 32), m.bolt); strap.rotation.x = QUARTER; g.add(strap);
       const bracket = new T.Mesh(new T.BoxGeometry(.012, .1, .06), m.brassDark); bracket.position.set(0, 0, -.045); g.add(bracket);
       // paper label on the glass, with the reagent's colour band
-      const lab = plate(r, '', .082, .026, 'brass'); lab.position.set(0, -.01, .049); g.add(lab); const band = new T.Mesh(new T.BoxGeometry(.082, .006, .003), m.paint(COLOR[r])); band.position.set(0, .007, .051); g.add(band);
+      const lab = plate(NAME[r], '', .082, .026, 'brass'); lab.position.set(0, -.01, .049); g.add(lab); const band = new T.Mesh(new T.BoxGeometry(.082, .006, .003), m.paint(COLOR[r])); band.position.set(0, .007, .051); g.add(band);
       const pl = new PushButton('dose-' + r, m, () => this.emit('DISPENSE', r), COLOR[r], .75); pl.root.position.set(x + .072, .17, .024); this.group.add(pl.root); this.plungers.push(pl);
       // transfer tube: glass sleeve + flowing liquid slug, from the reservoir foot to an inlet on the chamber lid
       const curve = new T.CatmullRomCurve3([v3(x, .12, .07), v3(x, .065, .085), v3(x * .7, .02, .11), v3(x * .25, -.02, CH_Z), v3(x * .12, -.045, CH_Z)], false, 'catmullrom', .3);
@@ -156,7 +156,7 @@ export class Laboratory {
     row(tr('ОБРАЗЕЦ', 'SAMPLE'), v.sampleId, 46); x.strokeStyle = 'rgba(141,255,180,.35)'; x.beginPath(); x.moveTo(26, 78); x.lineTo(534, 78); x.stroke();
     x.textAlign = 'left'; x.fillStyle = 'rgba(141,255,180,.6)'; x.font = `600 28px ${TECH}`; x.fillText(tr('СЕМЕЙСТВО', 'FAMILY'), 26, 124); x.textAlign = 'right'; x.fillStyle = C; x.font = `84px 'Apple Symbols', 'Segoe UI Symbol', 'Noto Sans Symbols 2', serif`; x.fillText(SYMBOL[v.family], 534, 128);
     row(tr('КЛАСС', 'CLASS'), v.cls === 1 ? 'I' : 'II', 190, true); row(tr('РЕАКЦИЯ', 'REACTION'), v.reaction, 246, true); row(tr('ПОЛЯРНОСТЬ', 'POLARITY'), v.polarity === 'POSITIVE' ? tr('+ ПОЛОЖИТ.', '+ POSITIVE') : tr('− ОТРИЦАТ.', '− NEGATIVE'), 302); row(tr('КОНЦЕНТР.', 'CONCENTR.'), v.concentration === 'LOW' ? tr('НИЗКАЯ', 'LOW') : v.concentration === 'MEDIUM' ? tr('СРЕДНЯЯ', 'MEDIUM') : tr('ВЫСОКАЯ', 'HIGH'), 356);
-    if (v.unstable) { x.fillStyle = 'rgba(255,60,40,.18)'; x.fillRect(14, 388, 532, 76); row(tr('НЕСТАБИЛЕН', 'UNSTABLE'), v.unstable, 426, false, '#ff7a5a'); } else row(tr('НЕСТАБИЛЕН', 'UNSTABLE'), '—', 426);
+    if (v.unstable) { x.fillStyle = 'rgba(255,60,40,.18)'; x.fillRect(14, 388, 532, 76); row(tr('НЕСТАБИЛЕН', 'UNSTABLE'), NAME[v.unstable as Reagent], 426, false, '#ff7a5a'); } else row(tr('НЕСТАБИЛЕН', 'UNSTABLE'), '—', 426);
     this.anTex.needsUpdate = true;
   }
 

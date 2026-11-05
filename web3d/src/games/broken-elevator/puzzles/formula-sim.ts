@@ -16,6 +16,8 @@ export const incompatible = (b: Reagent) => REAGENTS.find(r => r !== b && !ADDIT
 /** display colours (liquid shader uses these as the reagent's body colour) */
 export const COLOR: Record<Reagent, string> = {CRIMSON: '#9e0f1e', AZURE: '#123f9a', VERDANT: '#0f8a3c', AMBER: '#e0a215', VIOLET: '#5e1a8c'};
 export const GLINT: Record<Reagent, string> = {CRIMSON: '#ff6a4a', AZURE: '#4ad8ff', VERDANT: '#7dff9a', AMBER: '#ffe08a', VIOLET: '#ff5ae0'};
+/** reagent name as engraved / printed in the page language (the protocol keeps the English ids) */
+export const NAME: Record<Reagent, string> = LANG === 'ru' ? {CRIMSON: 'БАГРЕЦ', AZURE: 'ЛАЗУРЬ', VERDANT: 'ИЗУМРУД', AMBER: 'ЯНТАРЬ', VIOLET: 'ФИАЛКА'} : {CRIMSON: 'CRIMSON', AZURE: 'AZURE', VERDANT: 'VERDANT', AMBER: 'AMBER', VIOLET: 'VIOLET'};
 /** the colour word under a reagent name, in the page language */
 export const RU: Record<Reagent, string> = LANG === 'ru' ? {CRIMSON: 'КРАСНЫЙ', AZURE: 'СИНИЙ', VERDANT: 'ЗЕЛЁНЫЙ', AMBER: 'ЖЁЛТЫЙ', VIOLET: 'ФИОЛЕТОВЫЙ'} : {CRIMSON: 'RED', AZURE: 'BLUE', VERDANT: 'GREEN', AMBER: 'YELLOW', VIOLET: 'PURPLE'};
 

@@ -144,7 +144,7 @@ function target(x: X, t: number, n: number, cx: number, cy: number) {
 const plural = (n: number) => L(n === 4 ? 'ПРОВОДА' : 'ПРОВОДОВ', 'WIRES');
 function header(x: X, sec: RuleSection, side: number, page: number, cont: boolean) {
   x.textBaseline = 'alphabetic';
-  x.fillStyle = INK2; x.font = F.tech(20, 500); x.textAlign = 'left'; x.fillText(L('WIRE MODULE \u00b7 РАЗДЕЛ ', 'WIRE MODULE \u00b7 SECTION ') + sec.numeral, MX, cont ? 70 : 82);
+  x.fillStyle = INK2; x.font = F.tech(20, 500); x.textAlign = 'left'; x.fillText(L('МОДУЛЬ ПРОВОДОВ \u00b7 РАЗДЕЛ ', 'WIRE MODULE \u00b7 SECTION ') + sec.numeral, MX, cont ? 70 : 82);
   x.fillStyle = INK; x.font = F.display(700, cont ? 52 : 78); x.fillText(L('Модуль проводов', 'Wire Module'), MX - 2, cont ? 118 : 150);
   // burgundy ribbon carrying the wire count
   const ry = cont ? 136 : 172, rh = cont ? 44 : 56, label = `${sec.wires} ${plural(sec.wires)}`; x.font = F.tech(cont ? 30 : 38, 700); const rw = x.measureText(label).width + 56;
@@ -192,7 +192,7 @@ export function drawRulePage(x: X, p: RulePage, index: number) {
 /** Introduction to the game: a short in-world briefing with an engraving of the cage over the lava. */
 export function drawGuidePage(x: X, index: number) {
   paper(x, index + 31, 1, true); x.textBaseline = 'alphabetic';
-  x.fillStyle = INK2; x.font = F.tech(22, 500); x.textAlign = 'center'; x.fillText('FINAL ANSWER \u00b7 THE BROKEN ELEVATOR', W / 2, 92);
+  x.fillStyle = INK2; x.font = F.tech(22, 500); x.textAlign = 'center'; x.fillText(L('FINAL ANSWER \u00b7 СЛОМАННЫЙ ЛИФТ', 'FINAL ANSWER \u00b7 THE BROKEN ELEVATOR'), W / 2, 92);
   x.fillStyle = INK; x.font = F.display(700, 84); x.fillText(L('Сломанный лифт', 'The Broken Elevator'), W / 2, 176);
   x.strokeStyle = BRASS; x.lineWidth = 2; x.beginPath(); x.moveTo(W / 2 - 220, 204); x.lineTo(W / 2 + 220, 204); x.stroke();
   // illustration: chains, the cage, a gauge-like halo, the lava lake glowing below
@@ -239,7 +239,7 @@ function miniGauge(x: X, cx: number, cy: number, r: number, v: number, zone: [nu
   if (arrow) { const ax = cx + r * 1.32; x.strokeStyle = arrow > 0 ? '#b8231a' : '#1d4fb0'; x.lineWidth = r * .16; x.beginPath(); x.moveTo(ax, cy + arrow * r * .6); x.lineTo(ax, cy - arrow * r * .6); x.moveTo(ax - r * .3, cy - arrow * r * .25); x.lineTo(ax, cy - arrow * r * .62); x.lineTo(ax + r * .3, cy - arrow * r * .25); x.stroke(); }
 }
 function pressureHeader(x: X, side: number, page: number, title: string) {
-  x.textBaseline = 'alphabetic'; x.fillStyle = INK2; x.font = F.tech(20, 500); x.textAlign = 'left'; x.fillText(L('THE BROKEN VALVES \u00b7 РАЗДЕЛ IV', 'THE BROKEN VALVES \u00b7 SECTION IV'), MX, 82);
+  x.textBaseline = 'alphabetic'; x.fillStyle = INK2; x.font = F.tech(20, 500); x.textAlign = 'left'; x.fillText(L('СЛОМАННЫЕ КЛАПАНЫ \u00b7 РАЗДЕЛ IV', 'THE BROKEN VALVES \u00b7 SECTION IV'), MX, 82);
   x.fillStyle = INK; x.font = F.display(700, 74); x.fillText(title, MX - 2, 150);
   x.font = F.tech(36, 700); const label = L('45 СЕКУНД', '45 SECONDS'), rw = x.measureText(label).width + 56, ry = 172, rh = 54;
   x.fillStyle = '#1d6a33'; x.beginPath(); x.moveTo(MX, ry); x.lineTo(MX + rw, ry); x.lineTo(MX + rw - 16, ry + rh / 2); x.lineTo(MX + rw, ry + rh); x.lineTo(MX, ry + rh); x.closePath(); x.fill(); x.fillStyle = '#f6ead0'; x.fillText(label, MX + 18, ry + rh * .74);

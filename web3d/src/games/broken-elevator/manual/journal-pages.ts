@@ -5,7 +5,7 @@ import {L, LANG} from '../i18n';
 // 3 PROCEDURE        (polarity, concentration | unstable -> cooling lock, inject, 45 s)
 import {paper, rng} from './page-art';
 import {F} from './rule-pages';
-import {REAGENTS, FAMILIES, SYMBOL, BASE, ADDITIVE, DOSES, COLOR, GLINT, RU, incompatible, type Reagent} from '../puzzles/formula-sim';
+import {REAGENTS, FAMILIES, SYMBOL, BASE, ADDITIVE, DOSES, COLOR, GLINT, RU, NAME, incompatible, type Reagent} from '../puzzles/formula-sim';
 
 type X = CanvasRenderingContext2D;
 const W = 1024, H = 1408, MX = 88, INK = '#2a1309', INK2 = 'rgba(42,19,9,.72)', OX = '#7a1518', HAND = "'Caveat', cursive";
@@ -33,7 +33,7 @@ export function flask(x: X, cx: number, cy: number, s: number, r: Reagent, label
   x.strokeStyle = INK; x.lineWidth = Math.max(2.5, s * .035); x.stroke();
   x.fillStyle = 'rgba(255,255,255,.55)'; x.beginPath(); x.ellipse(-body * .45, s * .12, s * .05, s * .14, -.3, 0, 7); x.fill();
   x.fillStyle = '#6b4520'; x.fillRect(-neck * .65, -s * .66, neck * 1.3, s * .12); x.strokeRect(-neck * .65, -s * .66, neck * 1.3, s * .12);
-  if (label) { x.fillStyle = '#efe0bd'; rr(x, -s * .34, s * .14, s * .68, s * .17, 4); x.fill(); x.strokeStyle = INK2; x.lineWidth = 1.5; x.stroke(); x.fillStyle = INK; x.font = `700 ${Math.round(s * .1)}px 'Oswald', sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(r, 0, s * .228); }
+  if (label) { x.fillStyle = '#efe0bd'; rr(x, -s * .34, s * .14, s * .68, s * .17, 4); x.fill(); x.strokeStyle = INK2; x.lineWidth = 1.5; x.stroke(); x.fillStyle = INK; x.font = `700 ${Math.round(s * .1)}px 'Oswald', sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(NAME[r], 0, s * .228); }
   x.restore();
 }
 function glyph(x: X, cx: number, cy: number, rad: number, fam: string) {
@@ -54,7 +54,7 @@ export function drawJournalPage(x: X, page: number, index: number) {
     header(x, L('СЕМЕЙСТВО + КЛАСС → ОСНОВА', 'FAMILY + CLASS → BASE'), L('Основа', 'Base'), index + 1, side);
     const c0 = MX + 230, c1 = MX + 560; x.fillStyle = INK; x.font = F.display(700, 54); x.textAlign = 'center'; x.fillText(L('КЛАСС I', 'CLASS I'), c0 + 60, 260); x.fillText(L('КЛАСС II', 'CLASS II'), c1 + 60, 260);
     FAMILIES.forEach((f, i) => { const cy = 400 + i * 245; glyph(x, MX + 70, cy, 62, f);
-      BASE[f].forEach((r, k) => { const cx = (k ? c1 : c0) + 60; flask(x, cx - 80, cy - 10, 150, r, false); x.fillStyle = INK; x.font = F.tech(32, 700); x.textAlign = 'left'; x.fillText(r, cx - 10, cy - 4); x.fillStyle = INK2; x.font = F.tech(22, 500); x.fillText(RU[r], cx - 10, cy + 28); });
+      BASE[f].forEach((r, k) => { const cx = (k ? c1 : c0) + 60; flask(x, cx - 80, cy - 10, 150, r, false); x.fillStyle = INK; x.font = F.tech(32, 700); x.textAlign = 'left'; x.fillText(NAME[r], cx - 10, cy - 4); if (LANG !== 'ru') { x.fillStyle = INK2; x.font = F.tech(22, 500); x.fillText(RU[r], cx - 10, cy + 28); } });
       x.strokeStyle = 'rgba(42,19,9,.18)'; x.lineWidth = 2; x.beginPath(); x.moveTo(MX, cy + 118); x.lineTo(W - MX, cy + 118); x.stroke(); });
   } else if (page === 2) { // SPREAD 2 left: the five bases
     header(x, L('II · СОВМЕСТИМОСТЬ', 'II · COMPATIBILITY'), L('Пять основ', 'Five Bases'), index + 1, side);
@@ -63,8 +63,8 @@ export function drawJournalPage(x: X, page: number, index: number) {
   } else if (page === 3) { // SPREAD 2 right: base + reaction -> additive, ✕ incompatible
     header(x, L('ОСНОВА + РЕАКЦИЯ → ДОБАВКА', 'BASE + REACTION → ADDITIVE'), L('Добавка', 'Additive'), index + 1, side);
     const cols = [MX + 230, MX + 400, MX + 570, MX + 740]; x.fillStyle = INK; x.font = F.display(700, 58); x.textAlign = 'center'; ['A', 'B', 'C'].forEach((c, i) => x.fillText(c, cols[i], 262)); x.fillStyle = OX; x.fillText('✕', cols[3], 262);
-    REAGENTS.forEach((b, i) => { const cy = 380 + i * 196; flask(x, MX + 62, cy, 120, b, false); x.fillStyle = INK; x.font = F.tech(24, 700); x.textAlign = 'center'; x.fillText(b, MX + 62, cy + 86);
-      ADDITIVE[b].forEach((a, k) => { flask(x, cols[k], cy - 6, 104, a, false); x.fillStyle = INK2; x.font = F.tech(20, 700); x.fillText(a, cols[k], cy + 70); });
+    REAGENTS.forEach((b, i) => { const cy = 380 + i * 196; flask(x, MX + 62, cy, 120, b, false); x.fillStyle = INK; x.font = F.tech(24, 700); x.textAlign = 'center'; x.fillText(NAME[b], MX + 62, cy + 86);
+      ADDITIVE[b].forEach((a, k) => { flask(x, cols[k], cy - 6, 104, a, false); x.fillStyle = INK2; x.font = F.tech(20, 700); x.fillText(NAME[a], cols[k], cy + 70); });
       const bad = incompatible(b); flask(x, cols[3], cy - 6, 104, bad, false); x.strokeStyle = OX; x.lineWidth = 9; x.beginPath(); x.moveTo(cols[3] - 44, cy - 50); x.lineTo(cols[3] + 44, cy + 38); x.moveTo(cols[3] + 44, cy - 50); x.lineTo(cols[3] - 44, cy + 38); x.stroke();
       x.strokeStyle = 'rgba(42,19,9,.18)'; x.lineWidth = 2; x.beginPath(); x.moveTo(MX, cy + 98); x.lineTo(W - MX, cy + 98); x.stroke(); });
     x.fillStyle = OX; x.font = F.tech(26, 700); x.textAlign = 'center'; x.fillText(L('✕ НИКОГДА НЕ СМЕШИВАТЬ С ЭТОЙ ОСНОВОЙ', '✕ NEVER MIX WITH THIS BASE'), W / 2, H - 112);

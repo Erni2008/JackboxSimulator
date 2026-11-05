@@ -1,3 +1,4 @@
+import {L} from '../i18n';
 // THE ENGINEER'S MANUAL — articulated book.
 //
 // Book space: x across the width (spine joint at x=0), y through the thickness
@@ -78,7 +79,7 @@ export class EngineersManual {
   private async build(renderer: T.WebGLRenderer, content: ManualContent) {
     const aniso = renderer.capabilities.getMaxAnisotropy(), hi = this.quality === 'high'; const k = Math.min(hi ? 1.5 : 1.25, renderer.capabilities.maxTextureSize / PH0); PAGE_W = Math.round(PW0 * k); PAGE_H = Math.round(PH0 * k); let lp: Promise<any> | null = null; const leather = () => lp ||= loadLeather();
     const cw = hi ? 1024 : 640, ch = Math.round(cw * H / W);
-    const [fm, bm, sm] = await Promise.all([leatherMapsCached(leather, {w: cw, h: ch, seed: 11, tiles: 2, tooling: this.variant === 'journal' ? journalTooling : frontTooling}, aniso, this.variant === 'journal' ? 'journal-front' : 'leather-front'), leatherMapsCached(leather, {w: cw, h: ch, seed: 29, tiles: 2, tooling: backTooling}, aniso, this.variant === 'journal' ? 'journal-back' : 'leather-back'), leatherMapsCached(leather, {w: hi ? 256 : 160, h: hi ? 1408 : 880, seed: 47, tiles: .5, tooling: this.variant === 'journal' ? spineTooling(BANDS, 'ALCHEMIST’S JOURNAL', '☾') : spineTooling(BANDS), edgeWear: .5}, aniso, this.variant === 'journal' ? 'journal-spine' : 'leather-spine')]);
+    const [fm, bm, sm] = await Promise.all([leatherMapsCached(leather, {w: cw, h: ch, seed: 11, tiles: 2, tooling: this.variant === 'journal' ? journalTooling : frontTooling}, aniso, this.variant === 'journal' ? 'journal-front' : 'leather-front'), leatherMapsCached(leather, {w: cw, h: ch, seed: 29, tiles: 2, tooling: backTooling}, aniso, this.variant === 'journal' ? 'journal-back' : 'leather-back'), leatherMapsCached(leather, {w: hi ? 256 : 160, h: hi ? 1408 : 880, seed: 47, tiles: .5, tooling: this.variant === 'journal' ? spineTooling(BANDS, L('ЖУРНАЛ АЛХИМИКА', 'ALCHEMIST’S JOURNAL'), '☾') : spineTooling(BANDS, L('РУКОВОДСТВО ИНЖЕНЕРА', 'ENGINEER’S MANUAL')), edgeWear: .5}, aniso, this.variant === 'journal' ? 'journal-spine' : 'leather-spine')]);
     const front = leatherMaterial(fm), back = leatherMaterial(bm);
     const spineMat = leatherMaterial(sm); spineMat.side = T.DoubleSide;
     if (this.variant === 'journal') for (const m of [front, back, spineMat]) { m.color.set('#b0444e'); (m as any).sheenColor?.set?.('#5a1a22'); } // dark burgundy leather

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>The Engineer's Manual</title>
-<link rel="stylesheet" href="style.css?v=57">
+<link rel="stylesheet" href="style.css?v=58">
 <link rel="manifest" href="/manifest.json">
 <link rel="apple-touch-icon" href="/icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -21,7 +21,7 @@
 <div id="task"></div>
 <div id="clock"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" class="track"/><circle id="clock-ring" cx="32" cy="32" r="28" class="ring"/></svg><span id="clock-num">60</span></div>
 <div id="blast" aria-hidden="true"></div>
-<div id="surge-tag" role="status"><i></i><b>PRESSURE SURGE</b><span data-ru="СКАЧОК ДАВЛЕНИЯ +10" data-en="+10 PSI INCOMING">СКАЧОК ДАВЛЕНИЯ +10</span></div>
+<div id="surge-tag" role="status"><i></i><b data-ru="СКАЧОК ДАВЛЕНИЯ" data-en="PRESSURE SURGE">СКАЧОК ДАВЛЕНИЯ</b><span data-ru="+10 PSI НАДВИГАЕТСЯ" data-en="+10 PSI INCOMING">СКАЧОК ДАВЛЕНИЯ +10</span></div>
 <div id="fall" role="status"><i></i><b data-ru="АВАРИЙНЫЙ СПУСК" data-en="EMERGENCY DESCENT">АВАРИЙНЫЙ СПУСК</b><span data-ru="▼ ТОРМОЗ СОРВАН" data-en="▼ BRAKE FAILED">▼ ТОРМОЗ СОРВАН</span></div>
 <div id="verdict" role="status" aria-live="assertive"><i></i><b></b><span></span></div>
 <button id="btn-sound" data-ru="Звук: вкл." data-en="Sound: on">Звук: вкл.</button>
@@ -37,6 +37,6 @@
   <button id="btn-next" hidden>Page ›</button>
 </div>
 <div id="loading"><span id="load-text"></span></div>
-<script type="module" src="app.js?v=57"></script>
+<script type="module" src="app.js?v=58"></script>
 </body>
 </html>
