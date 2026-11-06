@@ -89,7 +89,15 @@ export class Suitcase {
     for (const x of [W / 2, -W / 2]) for (const z of [lz + D / 2, lz - D / 2]) edgeY(x, z, HL, HL / 2, this.lid);
     for (const x of [1, -1]) for (const z of [1, -1]) box(.03, .03, .03, brass, x * (W / 2 - .01), HL - .012, lz + z * (D / 2 - .01), this.lid);
     // lid top: two leather straps riveted across, a stencilled warning
-    for (const x of [-.12, .12]) { box(.035, .003, D + .006, dark, x, HL + .001, lz, this.lid); }
+    for (const x of [-.12, .12]) { box(.035, .003, D + .006, dark, x, HL + .001, lz, this.lid);
+      // brass buckle where each strap meets the front edge: frame, bar and tongue
+      for (const [bx, bz, bw, bd] of [[0, -.012, .04, .0035], [0, .012, .04, .0035], [-.0185, 0, .0035, .027], [.0185, 0, .0035, .027], [0, 0, .036, .0022]] as const) box(bw, .0035, bd, brass, x + bx, HL + .0035, lz + D / 2 - .035 + bz, this.lid);
+      box(.004, .0025, .016, brass, x, HL + .005, lz + D / 2 - .035 - .004, this.lid); }
+    // contrast saddle stitching around the lid top, 9 mm in from the edge
+    { const c = document.createElement('canvas'); c.width = 256; c.height = 16; const x = c.getContext('2d')!; for (let i = 0; i < 8; i++) { x.fillStyle = '#c9a77a'; x.beginPath(); x.ellipse(16 + i * 32, 8, 10, 2.6, -.12, 0, 7); x.fill(); x.fillStyle = 'rgba(0,0,0,.45)'; x.beginPath(); x.arc(4 + i * 32, 8, 2, 0, 7); x.fill(); }
+      const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.wrapS = T.RepeatWrapping; const sm = (len: number) => { const tt = t.clone(); tt.repeat.set(len / .02, 1); tt.needsUpdate = true; return new T.MeshStandardMaterial({map: tt, transparent: true, roughness: .8, depthWrite: false}); };
+      const inset = .009; for (const [len, px, pz, ry] of [[W - 2 * inset, 0, lz - D / 2 + inset, 0], [W - 2 * inset, 0, lz + D / 2 - inset, 0], [D - 2 * inset, -W / 2 + inset, lz, Math.PI / 2], [D - 2 * inset, W / 2 - inset, lz, Math.PI / 2]] as const) {
+        const st = new T.Mesh(new T.PlaneGeometry(len, .0026), sm(len)); st.rotation.set(-Math.PI / 2, 0, ry); st.position.set(px, HL + .0007, pz); st.userData.stitch = true; this.lid.add(st); } }
     const stencil = new T.Mesh(new T.PlaneGeometry(.2, .07), new T.MeshStandardMaterial({map: plateTex([{t: L('НЕ ОТКРЫВАТЬ', 'DO NOT OPEN'), font: 'bold 64px Oswald, sans-serif', y: .38, color: '#c8b48a'}, {t: L('собственность ведущего', "property of the host"), font: 'italic 34px "IM Fell English", serif', y: .76, color: '#c8b48a'}], 512, 180, 'rgba(0,0,0,0)', false, 9), transparent: true, roughness: .8, depthWrite: false}));
     stencil.rotation.x = -Math.PI / 2; stencil.position.set(0, HL + .0035, lz + .04); this.lid.add(stencil);
     // inside of the lid: a steel plate with the countdown and a worn warning card (faces the player once the lid stands open)
@@ -128,7 +136,10 @@ export class Suitcase {
 
     // ---- interior tray with the five bays
     this.interior.position.y = seamY - .028; this.body.add(this.interior);
-    const tray = new T.Mesh(new T.BoxGeometry(W - 2 * WALL, .004, D - 2 * WALL), new T.MeshStandardMaterial({color: '#2a2622', metalness: .75, roughness: .5, map: this.grime(31)})); tray.receiveShadow = true; this.interior.add(tray);
+    const TW = W - 2 * WALL, TD = D - 2 * WALL, ao = (() => { const c = document.createElement('canvas'); c.width = 512; c.height = 360; const x = c.getContext('2d')!; x.drawImage(this.grime(31).image as HTMLCanvasElement, 0, 0, 512, 360);
+      x.filter = 'blur(10px)'; x.fillStyle = 'rgba(0,0,0,.75)'; for (const [bx, bz, bw, bd] of [[-.145, -.068, .15, .15], [0, -.068, .125, .13], [.145, -.068, .13, .13], [-.085, .072, .25, .12], [.14, .072, .15, .12]]) x.fillRect((bx - bw / 2 + TW / 2) / TW * 512 - 4, (bz - bd / 2 + TD / 2) / TD * 360 - 4, bw / TW * 512 + 8, bd / TD * 360 + 8);
+      x.filter = 'blur(18px)'; x.strokeStyle = 'rgba(0,0,0,.6)'; x.lineWidth = 30; x.strokeRect(0, 0, 512, 360); const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t; })();
+    const tray = new T.Mesh(new T.BoxGeometry(TW, .004, TD), new T.MeshStandardMaterial({color: '#4a4440', metalness: .7, roughness: .55, map: ao})); tray.receiveShadow = true; this.interior.add(tray);
     // the quilted lining shows on the walls between the tray and the rim
     const wallH = .028; for (const [x, z, w, ry] of [[0, D / 2 - WALL - .0006, W - 2 * WALL, Math.PI], [0, -D / 2 + WALL + .0006, W - 2 * WALL, 0], [W / 2 - WALL - .0006, 0, D - 2 * WALL, -Math.PI / 2], [-W / 2 + WALL + .0006, 0, D - 2 * WALL, Math.PI / 2]] as const) {
       const pl = new T.Mesh(new T.PlaneGeometry(w, wallH), lining); pl.position.set(x, wallH / 2, z); pl.rotation.y = ry; this.interior.add(pl); }
@@ -144,10 +155,27 @@ export class Suitcase {
       const lamp = new T.MeshStandardMaterial({color: '#2a0806', emissive: '#ff1e0a', emissiveIntensity: 0, roughness: .3}); const lb = new T.Mesh(new T.SphereGeometry(.0055, 14, 10), lamp); lb.position.set(w / 2 - .012, .006, d / 2 - .012); g.add(lb);
       const ring = new T.Mesh(new T.TorusGeometry(.0068, .0016, 6, 16), brass); ring.rotation.x = Math.PI / 2; ring.position.copy(lb.position); g.add(ring);
       const mount = new T.Group(); mount.position.y = .003; g.add(mount); this.bays[m] = {group: g, mount, lamp, size: [w, d]}; });
+    // telescopic lid stays on both sides: an outer tube pinned to the base wall, a rod pinned to the lid wall
+    const stayM = new T.MeshStandardMaterial({color: '#9a948a', metalness: 1, roughness: .28}), tubeG = new T.CylinderGeometry(.0024, .0024, 1, 10), rodG = new T.CylinderGeometry(.0014, .0014, 1, 8), pinG = new T.SphereGeometry(.0032, 10, 8);
+    for (const sx of [-1, 1]) { const xIn = sx * (W / 2 - WALL - .005); const tube = new T.Mesh(tubeG, stayM), rod = new T.Mesh(rodG, stayM), pa = new T.Mesh(pinG, brass), pb = new T.Mesh(pinG, brass);
+      for (const o of [tube, rod, pa, pb]) { o.userData.stay = true; this.body.add(o); } this.stays.push({tube, rod, pa, pb, a: new T.Vector3(xIn, seamY - .022, -D / 2 + .07), b: new T.Vector3(xIn, HL - WALL - .008, .07)}); }
+    // coiled cable from the countdown down to the tray's back corner
+    this.coilM = new T.MeshStandardMaterial({color: '#1c1a18', roughness: .55, metalness: .1});
     for (const x of [-W / 2, W / 2]) for (const z of [-D / 2, D / 2]) { for (const y of [baseY0, seamY]) this.hullBody.push(new T.Vector3(x, y, z)); for (const y of [0, HL]) this.hullLid.push(new T.Vector3(x, y, z + D / 2)); }
     this.drawTimer(0); mergeStatic(this.root);
   }
   private leatherMeshes: T.Mesh[] = [];
+  private stays: {tube: T.Mesh; rod: T.Mesh; pa: T.Mesh; pb: T.Mesh; a: T.Vector3; b: T.Vector3}[] = []; private coil: T.Mesh | null = null; private coilM!: T.MeshStandardMaterial; private coilAt = -1;
+  /** places a cylinder of unit height between two points (body space) */
+  private span(m: T.Mesh, a: T.Vector3, b: T.Vector3) { const d = b.clone().sub(a), len = d.length(); m.position.copy(a).addScaledVector(d, .5); m.scale.set(1, Math.max(1e-4, len), 1); m.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), d.normalize()); }
+  private updateStays() { this.lid.updateMatrix(); for (const st of this.stays) { const b = st.b.clone().applyMatrix4(this.lid.matrix), dir = b.clone().sub(st.a), len = dir.length(), u = dir.clone().normalize();
+      const tubeEnd = st.a.clone().addScaledVector(u, Math.min(len, .085)), rodStart = b.clone().addScaledVector(u, -Math.min(len, .09)); this.span(st.tube, st.a, tubeEnd); this.span(st.rod, rodStart, b); st.pa.position.copy(st.a); st.pb.position.copy(b);
+      const show = this.lidT > .02; st.tube.visible = st.rod.visible = st.pa.visible = st.pb.visible = show; }
+    // the coil is rebuilt only while the lid moves (a few frames), then left alone
+    const key = Math.round(this.lidT * 40); if (key === this.coilAt) return; this.coilAt = key; if (this.coil) { this.body.remove(this.coil); this.coil.geometry.dispose(); this.coil = null; } if (this.lidT < .05) return;
+    const a = new T.Vector3(.07, HL - WALL - .008, D / 2 + .02).applyMatrix4(this.lid.matrix), b = new T.Vector3(W / 2 - WALL - .03, this.interior.position.y + .006, -D / 2 + WALL + .02), axis = b.clone().sub(a), n = new T.Vector3(1, 0, 0).cross(axis).normalize(), m2 = axis.clone().cross(n).normalize();
+    const curve = new (class extends T.Curve<T.Vector3> { getPoint(t: number) { const sag = Math.sin(t * Math.PI) * .02, ang = t * Math.PI * 2 * 26, r = .0042 * Math.min(1, Math.min(t, 1 - t) * 14); return a.clone().lerp(b, t).addScaledVector(n, Math.cos(ang) * r + sag).addScaledVector(m2, Math.sin(ang) * r); } })();
+    this.coil = new T.Mesh(new T.TubeGeometry(curve, 420, .0011, 5, false), this.coilM); this.coil.userData.coil = true; this.body.add(this.coil); }
   /** quilted oxblood velvet with buttons (colour + bump from one drawing), shared by every case */
   private static liningM: T.MeshStandardMaterial | null = null;
   static lining() { if (Suitcase.liningM) return Suitcase.liningM; const S = 512, c = document.createElement('canvas'); c.width = c.height = S; const x = c.getContext('2d')!, h = document.createElement('canvas'); h.width = h.height = S; const y = h.getContext('2d')!;
@@ -233,7 +261,7 @@ export class Suitcase {
     // latches flip up, then the lid swings (eased, with a slight overshoot at the stop)
     for (let i = 0; i < 2; i++) { const l = this.latches[i]; l.t += ((this.latchOpen[i] ? 1 : 0) - l.t) * (1 - Math.exp(-dt * 14)); l.clasp.rotation.x = -l.t * 2.1; }
     if (this.lidTarget > this.lidT) { const was = this.lidT; this.lidT = Math.min(1, this.lidT + dt * .85); if (was < 1 && this.lidT >= 1) this.onEvent('LID_OPENED'); }
-    const s = this.lidT, ease = s < .5 ? 4 * s * s * s : 1 - Math.pow(-2 * s + 2, 3) / 2; this.lid.rotation.x = -ease * 1.92 + (s >= 1 ? 0 : 0) - Math.sin(this.rattle * 30) * this.rattle * .02; this.rattle = Math.max(0, this.rattle - dt * 2.5);
+    const s = this.lidT, ease = s < .5 ? 4 * s * s * s : 1 - Math.pow(-2 * s + 2, 3) / 2; this.lid.rotation.x = -ease * 1.92 + (s >= 1 ? 0 : 0) - Math.sin(this.rattle * 30) * this.rattle * .02; this.updateStays(); this.rattle = Math.max(0, this.rattle - dt * 2.5);
     // lamps: the armed bay burns red with a heartbeat, faster as the fuse runs down
     const beat = 1.4 + this.urgency * 5; for (const m of MECHANISMS) { const safe = this.armed.includes(m) && this.neutral.has(m), lamp = this.bays[m].lamp; lamp.emissive.set(safe ? '#38ff6a' : '#ff1e0a'); if (safe) { lamp.emissiveIntensity = 1.1; continue; }
       const on = this.armed.includes(m) && this.enabled; lamp.emissiveIntensity = on ? 1.2 + 1.6 * Math.max(0, Math.sin(this.time * beat * Math.PI)) ** 3 : 0; }
