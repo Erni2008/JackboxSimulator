@@ -2,7 +2,7 @@
 import {L} from './i18n';
 import {diffName} from './difficulty';
 
-export type Kind = "wire" | "pressure" | "formula" | "lock";
+export type Kind = "wire" | "pressure" | "formula" | "lock" | "bomb";
 const KEY = 'finalanswer-elevator-tutorial';
 const seen = (): Set<string> => { try { return new Set(JSON.parse(localStorage.getItem(KEY) || '[]')); } catch { return new Set(); } };
 const mark = (k: Kind) => { try { const s = seen(); s.add(k); localStorage.setItem(KEY, JSON.stringify([...s])); } catch {} };

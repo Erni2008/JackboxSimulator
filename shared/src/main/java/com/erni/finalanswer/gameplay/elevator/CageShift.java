@@ -20,7 +20,9 @@ import java.util.*;
  * Worst path with one failure: three slow rounds plus the drop = 100 − 3·15 − 25 = 30 m left.
  */
 public final class CageShift {
-    public static final List<String> POOL = List.of("wire", "pressure", "formula", "lock"); // + one more mini-game to come
+    public static final List<String> POOL = List.of("wire", "pressure", "formula", "lock");
+    /** the host's "gift": after two machines the last round is always the bomb suitcase (false = plain machines only) */
+    public static final boolean BOMB_FINALE = false; /* switched on once the suitcase is playable end to end */ public static final String BOMB = "bomb";
     public static final int ROUNDS = 3;
     public static final double START_M = 100, ROUND_DESCENT_M = 15, FIRST_DROP_M = 25, SECOND_FLOOR_M = 2;
     public static final long INTRO_MS = 9_000, BREAK_MS = 6_000, GRACE_MS = 2_500;
@@ -36,8 +38,10 @@ public final class CageShift {
     public final Difficulty difficulty; public final List<String> kinds; public final Map<String, Cage> cages = new LinkedHashMap<>();
     private Phase phase = Phase.INTRO; private int round = -1; private long phaseStart, phaseEnd, roundLimit, last;
 
-    public CageShift(Difficulty d, Collection<String> playerIds, long seed, long now) {
-        difficulty = d; List<String> pool = new ArrayList<>(POOL); Collections.shuffle(pool, new Random(seed)); kinds = List.copyOf(pool.subList(0, Math.min(ROUNDS, pool.size())));
+    public CageShift(Difficulty d, Collection<String> playerIds, long seed, long now) { this(d, playerIds, seed, now, BOMB_FINALE); }
+    public CageShift(Difficulty d, Collection<String> playerIds, long seed, long now, boolean bombFinale) {
+        difficulty = d; List<String> pool = new ArrayList<>(POOL); Collections.shuffle(pool, new Random(seed));
+        List<String> k = new ArrayList<>(pool.subList(0, Math.min(bombFinale ? ROUNDS - 1 : ROUNDS, pool.size()))); if (bombFinale) k.add(BOMB); kinds = List.copyOf(k);
         for (String id : playerIds) cages.put(id, new Cage(id));
         phaseStart = last = now; phaseEnd = now + INTRO_MS;
     }
@@ -49,7 +53,7 @@ public final class CageShift {
     public long phaseEnd() { return phaseEnd; }
     /** the machine's own time limit for the current round (the server waits {@link #GRACE_MS} more for late reports) */
     public long roundLimit() { return roundLimit; }
-    public static long limitFor(Difficulty d, String kind) { return switch (kind) { case "pressure" -> d.pressureMs; case "formula" -> d.formulaMs; case "lock" -> d.lockMs; default -> d.wireMs; }; }
+    public static long limitFor(Difficulty d, String kind) { return switch (kind) { case "pressure" -> d.pressureMs; case "formula" -> d.formulaMs; case "lock" -> d.lockMs; case BOMB -> d.bombMs; default -> d.wireMs; }; }
     /** metres per millisecond while a machine is broken */
     double rate() { return ROUND_DESCENT_M / Math.max(1, roundLimit); }
 

@@ -7,11 +7,12 @@
 import {LANG} from './i18n';
 
 export type Line = 'intro' | 'tutorial_wire' | 'tutorial_pressure' | 'tutorial_formula' | 'tutorial_lock' | 'task_wire' | 'task_pressure' | 'task_formula'
-  | 'success' | 'fail' | 'explosion' | 'timeout' | 'ten_seconds' | 'surge' | 'results' | 'perfect';
+  | 'success' | 'fail' | 'explosion' | 'timeout' | 'ten_seconds' | 'surge' | 'results' | 'perfect' | 'bomb_intro' | 'bomb_warning';
 /** files that may exist for each line (variants are picked at random) */
 const FILES: Record<Line, string[]> = {intro: ['intro'], tutorial_wire: ['tutorial_wire'], tutorial_pressure: ['tutorial_pressure'], tutorial_formula: ['tutorial_formula'], tutorial_lock: ['tutorial_lock'],
   task_wire: ['task_wire'], task_pressure: ['task_pressure'], task_formula: ['task_formula'], success: ['success_1', 'success_2'], fail: ['fail_1', 'fail_2'],
-  explosion: ['explosion'], timeout: ['timeout'], ten_seconds: ['ten_seconds'], surge: ['surge'], results: ['results'], perfect: ['perfect']};
+  explosion: ['explosion'], timeout: ['timeout'], ten_seconds: ['ten_seconds'], surge: ['surge'], results: ['results'], perfect: ['perfect'],
+  /* THE HOST'S SUITCASE: voice/bomb_intro.m4a, voice/bomb_warning.m4a (not recorded yet; subtitles carry the line until then) */ bomb_intro: ['bomb_intro'], bomb_warning: ['bomb_warning']};
 
 export class Voice {
   enabled = LANG === 'ru'; private ctx: AudioContext | null = null; private out: GainNode | null = null; private bufs = new Map<string, AudioBuffer | null>();

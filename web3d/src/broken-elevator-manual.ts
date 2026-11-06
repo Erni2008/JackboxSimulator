@@ -115,14 +115,14 @@ async function boot() {
   lab.onEvent = e => { if (e.type === 'REJECTED') { haptic('bad'); voice.say('fail', 2); } if (e.type === 'REJECTED') verdict(false, e.reason === 'UNSTABLE_UNPROTECTED' ? L('НЕСТАБИЛЬНО · ЗАМОК ОХЛАЖДЕНИЯ НЕ ВКЛЮЧЁН', 'UNSTABLE · COOLING LOCK WAS OFF') : L('ФОРМУЛА ОТВЕРГНУТА · СЛИВ, ПОПРОБУЙТЕ СНОВА', 'ФОРМУЛА ОТВЕРГНУТА · DRAINED, TRY AGAIN'), e.reason === 'UNSTABLE_UNPROTECTED' ? L('Нестабильная реакция', 'Unstable reaction') : L('Формула отвергнута', 'Formula rejected')); };
   let valvePointer: number | null = null;
   let focusTo: [number, number] | null = null, inspecting = false, inspectK = 0, inspectTarget: "box" | "pressure" | "lab" | "lock" | "notes" = "box";
-  let TOTAL = 4; const LIMITW = () => roundLimitS || limitMs(kind === "lock" ? "lock" : "wire") / 1000; let taskNo = 1, deadline = 0, taskSeed = seed, pending: any = 0;
+  let TOTAL = 4; const LIMITW = () => roundLimitS || limitMs(kind === "lock" || kind === "bomb" ? kind : "wire") / 1000; let taskNo = 1, deadline = 0, taskSeed = seed, pending: any = 0;
   // task kinds cycle: wire cutting -> broken valves -> unstable formula (?task=pressure|formula picks the first)
-  type Kind = "wire" | "pressure" | "formula" | "lock"; const ORDER: Kind[] = ["wire", "pressure", "formula", "lock"]; const start0 = Math.max(0, ORDER.indexOf((params.get('task') || 'wire') as Kind));
-  const kindOf = (n: number): Kind => serverKind ?? ORDER[(start0 + n - 1) % ORDER.length];
+  type Kind = "wire" | "pressure" | "formula" | "lock" | "bomb"; const ORDER: Kind[] = ["wire", "pressure", "formula", "lock"]; /* the bomb is not a machine in the cycle: the server deals it after two (or ?task=bomb) */ const start0 = Math.max(0, ORDER.indexOf((params.get('task') || 'wire') as Kind));
+  const kindOf = (n: number): Kind => serverKind ?? (params.get('task') === 'bomb' ? 'bomb' : ORDER[(start0 + n - 1) % ORDER.length]);
   // АДСКАЯ КЛЕТКА room mode: the server runs the shift (3 rounds, shared timer); the phone only plays the round it is given
   let IN_ROOM = false; /* true once the server runs a shift for this room */ let serverKind: Kind | null = null, curRound = -1, roundLimitS = 0, roundDeadlineAt = 0, shiftV: any = null;
   let kind: Kind = kindOf(1);
-  const hud = () => { $('task').textContent = `${L('ЗАДАНИЕ', 'TASK')} ${taskNo} / ${TOTAL} · ${kind === 'pressure' ? L('КЛАПАНЫ', 'VALVES') : kind === "formula" ? L("ФОРМУЛА", "FORMULA") : kind === "lock" ? L("ЗАМОК", "LOCK") : L("ПРОВОДА", "WIRES")} · ${diffName().toUpperCase()}`; };
+  const hud = () => { $('task').textContent = `${L('ЗАДАНИЕ', 'TASK')} ${taskNo} / ${TOTAL} · ${kind === 'pressure' ? L('КЛАПАНЫ', 'VALVES') : kind === "formula" ? L("ФОРМУЛА", "FORMULA") : kind === "lock" ? L("ЗАМОК", "LOCK") : kind === "bomb" ? L("БОМБА", "BOMB") : L("ПРОВОДА", "WIRES")} · ${diffName().toUpperCase()}`; };
   // result card: low on screen (≈85 % of the viewport), fades in, a small mechanical jolt, holds, fades out (~2 s)
   let verdictTimer: any = 0;
   const verdict = (ok: boolean, sub: string, title?: string) => { const v = $('verdict'); v.querySelector('b')!.textContent = title ?? (ok ? L('Цепь стабилизирована', 'Circuit stabilised') : L('Критическая ошибка', 'Critical error')); v.querySelector('span')!.textContent = sub; v.dataset.tone = ok ? 'good' : 'bad';
@@ -131,9 +131,9 @@ async function boot() {
     const t = makeTask(wireRules, taskSeed, wireCount || 4 + Math.floor(Math.random() * 3), fixed); box.setTask(t); box.configure(t.fault, t.mode); deadline = 0;
     const k0 = kind, myGen = ++taskGen; box.locked = true; press.enabled = false; lab.enabled = false; lock.enabled = false; link.stop(); flink.stop(); hud();
     if (IN_ROOM && serverKind === null) return; // wait for the server's first round
-    briefOpen = true; (params.get('tutorial') === '1' ? briefing(k0, Math.round(limitMs(k0) / 1000)) : Promise.resolve()).then(() => { briefOpen = false; if (myGen !== taskGen) return; startedAt = performance.now(); mistakes = 0; RoomSocket.shared()?.send('CAGE_REPORT', {kind: k0, task: taskNo}); /* host screen: which machine */
+    briefOpen = true; (params.get('tutorial') === '1' && k0 !== 'bomb' ? briefing(k0, Math.round(limitMs(k0) / 1000)) : Promise.resolve()).then(() => { briefOpen = false; if (myGen !== taskGen) return; startedAt = performance.now(); mistakes = 0; RoomSocket.shared()?.send('CAGE_REPORT', {kind: k0, task: taskNo}); /* host screen: which machine */
     // the host's voice: welcome once, then a short spoken instruction at the start of every task (no text card)
-    if (!introSaid) { introSaid = true; tellPending = 'intro:' + k0; } else tellPending = k0;
+    if (k0 === 'bomb') { introSaid = true; tellPending = null; bombIntro(); } else if (!introSaid) { introSaid = true; tellPending = 'intro:' + k0; } else tellPending = k0;
     if (k0 === 'wire') { box.locked = false; if (IN_ROOM && roundDeadlineAt) deadline = roundDeadlineAt; }
     if (kind === 'pressure') { box.locked = true; press.enabled = true; press.reset(); link.start(); pressureDone = false; if (cur().state === 'rest' || cur().state === 'falling') { const d = press.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } }
     else { press.enabled = false; link.stop(); }
@@ -143,7 +143,23 @@ async function boot() {
       $("hint").textContent = L("Взломайте замок на двери отмычкой. Как это сделать — на листках на стене у двери.", "Pick the door lock. How to do it is on the sheets on the wall by the door."); $("hint").style.opacity = "1";
       if (cur().state === "rest" || cur().state === "falling") { const d = lock.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } }
     else lock.enabled = false;
+    if (k0 === 'bomb') { box.locked = true; bombWarned = false; bombDone = false; deadline = IN_ROOM && roundDeadlineAt ? roundDeadlineAt : performance.now() + limitMs('bomb'); RoomSocket.shared()?.send('BOMB_START', params.get('module') ? {module: params.get('module')} : {}); }
     hud(); }); };
+  // ---- THE HOST'S SUITCASE: the announcement (voice when recorded, subtitles always), the critical-time warning
+  const BOMB_INTRO_RU = ['О, вы справились с двумя заданиями! Превосходно!', 'Хотя, признаться, это было слишком просто.', 'Поэтому, пока вы были заняты, я незаметно оставил в вашей клетке небольшой подарочек.', 'Чемоданчик. С бомбой.',
+    'Ах да, чуть не забыл! Я также оставил вам блокнот с инструкциями по обезвреживанию.', 'Найдите чемоданчик, откройте его и постарайтесь следовать инструкциям.', 'И советую поторопиться.', 'Всё-таки… время идёт.'];
+  const BOMB_INTRO_EN = ['Oh, you managed two tasks! Splendid!', 'Although, I confess, that was far too easy.', 'So while you were busy, I quietly left a little present in your cage.', 'A suitcase. With a bomb.',
+    'Oh yes, I almost forgot! I also left you a notebook with defusal instructions.', 'Find the suitcase, open it and try to follow the instructions.', 'And I advise you to hurry.', 'After all… time is ticking.'];
+  let bombWarned = false, bombDone = false, subGen = 0;
+  /** the suitcase's result. In a room only the server's verdict (BOMB_UPDATED) counts; practice decides locally. */
+  const bombFinish = (ok: boolean, why: 'DEFUSED' | 'WRONG' | 'TIMEOUT') => { if (kind !== 'bomb' || bombDone) return; if (IN_ROOM && why === 'TIMEOUT') { deadline = 0; return; } /* wait for the server */
+    bombDone = true; deadline = 0; record(ok, why === 'DEFUSED' ? 'OK' : why); audio.play(ok ? 'good' : 'bad'); haptic(ok ? 'good' : 'blast'); shake = Math.max(shake, ok ? .2 : 1);
+    verdict(ok, ok ? L('МЕХАНИЗМ ОБЕЗВРЕЖЕН', 'MECHANISM NEUTRALISED') : why === 'TIMEOUT' ? L('ВРЕМЯ ВЫШЛО', 'TIME RAN OUT') : L('НЕВЕРНОЕ ДЕЙСТВИЕ', 'WRONG MOVE'), ok ? L('Бомба обезврежена', 'Bomb defused') : L('ВЗРЫВ', 'DETONATION'));
+    voice.say(ok ? 'success' : 'explosion', 4, 0); if (!ok) setTimeout(() => cage.drop?.(.8), 350); clearTimeout(pending); pending = setTimeout(() => next(ok), ok ? 3000 : 2600); };
+  RoomSocket.shared()?.listen(ev => { const b = ev.payload?.elevatorBomb; if (!b || kind !== 'bomb' || bombDone) return; if (b.outcome === 'DEFUSED') bombFinish(true, 'DEFUSED'); else if (b.outcome === 'DETONATED') bombFinish(false, b.failReason === 'TIMEOUT' ? 'TIMEOUT' : 'WRONG'); });
+  const subtitles = (lines: string[], msPerChar = 62) => { const el = $('host-say'), gen = ++subGen; let t = 0;
+    lines.forEach((ln, i) => { setTimeout(() => { if (gen !== subGen) return; el.textContent = ln; el.classList.add('show'); }, t); t += Math.max(1600, ln.length * msPerChar); if (i === lines.length - 1) setTimeout(() => { if (gen === subGen) el.classList.remove('show'); }, t); }); };
+  const bombIntro = () => { voice.say('bomb_intro', 5, 0); subtitles(LANG === 'ru' ? BOMB_INTRO_RU : BOMB_INTRO_EN); };
   // run log for the end-of-shift report
   let tellPending: string | null = null; let taskGen = 0, briefOpen = false, introSaid = false, startedAt = performance.now(), mistakes = 0, warned10 = false, surgeSaid = false; const rows: TaskRecord[] = [];
   const record = (ok: boolean, why: string, extra = 0) => { const k = kind, sec = k === 'wire' ? (deadline ? limitMs('wire') / 1000 - Math.max(0, (deadline - performance.now()) / 1000) : 0) : (performance.now() - startedAt) / 1000;
@@ -305,13 +321,13 @@ async function boot() {
     cage.update(dt); ui.update(dt); jui.update(dt); if (kind === "wire" || inspectTarget === "box") box.update(dt); if (kind === "pressure" || inspectTarget === "pressure") press.update(dt, link.view()); if (kind === "formula" || inspectTarget === "lab") lab.update(dt, flink.view()); if (kind === "lock" || inspectTarget === "lock") lock.update(dt); /* only the machine in play animates */
     if (focusTo) { let dy = focusTo[0] - yawT; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yawT += dy * Math.min(1, dt * 5); pitchT += (focusTo[1] - pitchT) * Math.min(1, dt * 5); if (Math.abs(dy) < .002 && Math.abs(focusTo[1] - pitchT) < .002) focusTo = null; }
     { const sw = kind === 'pressure' && !!link.view()?.surgeWarning; document.body.classList.toggle('surge', sw); if (sw && !surgeSaid) { surgeSaid = true; voice.say('surge', 3, 0); haptic('tap'); } }
-    { const n = +$('clock-num').textContent!, run = $('clock').dataset.urgent === 'true'; document.body.classList.toggle('urgent', run); if (run && !warned10) { warned10 = true; voice.say('ten_seconds', 2, 0); }
+    { const n = +$('clock-num').textContent!, run = $('clock').dataset.urgent === 'true'; document.body.classList.toggle('urgent', run); if (run && !warned10) { warned10 = true; voice.say(kind === 'bomb' ? 'bomb_warning' : 'ten_seconds', 2, 0); if (kind === 'bomb' && !bombWarned) { bombWarned = true; subtitles([L('Тик-так. Десять секунд.', 'Tick-tock. Ten seconds.')]); } }
       if (run && n !== lastTick) { lastTick = n; audio.play('clockTick'); } }
     if (kind === 'formula') { const v = flink.view(), lim = limitMs('formula') / 1000, left = v ? (v.outcome === 'RUNNING' ? (frozenLeft = Math.max(0, (v.deadline - performance.now()) / 1000)) : v.outcome === 'STABILIZED' ? frozenLeft : 0) : lim;
       $('clock-num').textContent = String(Math.ceil(left)); ($('clock-ring') as any).style.strokeDashoffset = String(176 * (1 - left / lim)); $('clock').dataset.urgent = String(!!v && v.outcome === 'RUNNING' && left < 10); }
     else if (kind === 'pressure') { const v = link.view(), lim = limitMs('pressure') / 1000, left = v ? (v.outcome === 'RUNNING' ? (frozenLeft = Math.max(0, (v.deadline - performance.now()) / 1000)) : v.outcome === 'STABILIZED' ? frozenLeft : 0) : lim;
       $('clock-num').textContent = String(Math.ceil(left)); ($('clock-ring') as any).style.strokeDashoffset = String(176 * (1 - left / lim)); $('clock').dataset.urgent = String(!!v && v.outcome === 'RUNNING' && left < 10); }
-    else { const left = deadline ? Math.max(0, (deadline - performance.now()) / 1000) : LIMITW(); $('clock-num').textContent = String(Math.ceil(left)); ($('clock-ring') as any).style.strokeDashoffset = String(176 * (1 - left / LIMITW())); $('clock').dataset.urgent = String(!!deadline && left < 10); if (kind === "lock" && deadline && left <= 0 && !lockDone) { lock.expire(); lockFinish(false, "TIMEOUT"); } else if (kind !== "lock" && deadline && left <= 0 && !box.locked) { finish(false, L('ВРЕМЯ ВЫШЛО', 'TIME RAN OUT')); setTimeout(() => cage.drop?.(.8), 350); } }
+    else { const left = deadline ? Math.max(0, (deadline - performance.now()) / 1000) : LIMITW(); $('clock-num').textContent = String(Math.ceil(left)); ($('clock-ring') as any).style.strokeDashoffset = String(176 * (1 - left / LIMITW())); $('clock').dataset.urgent = String(!!deadline && left < 10); if (kind === "bomb" && deadline && left <= 0 && !bombDone) { bombFinish(false, "TIMEOUT"); } else if (kind === "lock" && deadline && left <= 0 && !lockDone) { lock.expire(); lockFinish(false, "TIMEOUT"); } else if (kind !== "lock" && deadline && left <= 0 && !box.locked) { finish(false, L('ВРЕМЯ ВЫШЛО', 'TIME RAN OUT')); setTimeout(() => cage.drop?.(.8), 350); } }
     const surface = cage.shelf && Math.abs(book.root.position.y - TH / 2 - cage.shelf.top.y) < .2 && Math.abs(book.root.position.z - cage.shelf.top.z) < .2 ? cage.shelf.top.y : floorY; const h = Math.max(0, book.root.position.y - TH / 2 - surface); shadow.position.set(book.root.position.x, surface + .0012, book.root.position.z); shadow.rotation.z = new T.Euler().setFromQuaternion(book.root.quaternion, 'YXZ').y; (shadow.material as T.MeshBasicMaterial).opacity = .75 * Math.max(0, 1 - h / .18); shadow.visible = h < .18;
     { // fall choreography (runs on top of the normal camera pose)
       if (fallT >= 0) fallT += dt; if (landT >= 0) landT += dt;
