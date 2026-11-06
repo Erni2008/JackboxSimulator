@@ -595,7 +595,7 @@ public final class RoomService {
     /** THE HELL CAGE: the phone tells the room which machine it is on; the wire panel (client-side rules) also reports its result */
     private void cageReport(Room room,Member member,Peer peer,Message message){
         JsonObject data=message.payload(); if(member.host)throw new Failure(403,"NOT_A_PLAYER");
-        String kind=data.has("kind")?Protocol.string(data,"kind"):"";if(!Set.of("wire","pressure","formula").contains(kind))throw new Failure(400,"INVALID_CAGE_REPORT");
+        String kind=data.has("kind")?Protocol.string(data,"kind"):"";if(!Set.of("wire","pressure","formula","lock").contains(kind))throw new Failure(400,"INVALID_CAGE_REPORT");
         int task=data.has("task")?Math.max(1,Math.min(99,data.get("task").getAsInt())):1; member.cageKind=kind; member.cageTask=task;
         String result=data.has("result")?Protocol.string(data,"result"):"";
         if(kind.equals("wire")&&result.equals("OK")){member.elevatorRepairs++;cageResult(room,member,"wire",true);}

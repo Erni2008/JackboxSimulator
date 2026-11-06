@@ -22,6 +22,8 @@ import {makeRules, makeTask, manualRows} from './games/broken-elevator/puzzles/w
 import {buildGlbCage} from './games/broken-elevator/manual/glb-cage';
 import {PressureMachine} from './games/broken-elevator/puzzles/pressure';
 import {PressureLink} from './games/broken-elevator/puzzles/pressure-link';
+import {CodeLock, makeLockTask} from "./games/broken-elevator/puzzles/code-lock";
+import {DIFF} from "./games/broken-elevator/difficulty";
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
 const params = new URLSearchParams(location.search);
@@ -99,6 +101,9 @@ async function boot() {
   lab.group.rotation.y = Math.PI / 2; scene.add(lab.group); lab.group.updateMatrixWorld(true);
   // performance: clear-coat and sheen add two extra lighting lobes on every metal pixel; at cage scale they are invisible
   scene.traverse((o: any) => { const ms = Array.isArray(o.material) ? o.material : o.material ? [o.material] : []; for (const m of ms) if (m.isMeshPhysicalMaterial && (m.clearcoat > 0 || m.sheen > 0)) { m.clearcoat = 0; m.sheen = 0; m.needsUpdate = true; } });
+  // THE CAGE LOCK: a combination padlock on the barred door over the lava; its clues are hidden around the cage
+  const lock = new CodeLock(quality === "high"); lock.place(ci, floorY); scene.add(lock.group, lock.clues); lock.group.updateMatrixWorld(true);
+  lock.sounds = {click: () => audio.play("valveClick"), turn: () => audio.play("button"), lever: () => audio.play("lever"), unlock: () => { audio.play("locked"); audio.play("doorOpen"); }, jam: () => audio.play("grind")};
   jui.place(lab.ledgeTop.clone().add(new T.Vector3(0, TH / 2, 0)).applyMatrix4(lab.group.matrixWorld), new T.Quaternion().setFromEuler(new T.Euler(0, Math.PI / 2 + .06, 0)));
   lab.sounds = {click: () => audio.play('valveClick'), turn: () => audio.play('valveTurn'), grind: () => audio.play('grind'), lever: () => audio.play('lever'), press: () => audio.play('button'), pull: () => audio.play('lever'),
     pour: () => audio.play('pour'), splash: () => audio.play('splash'), stir: on => { if (on) audio.play('stir'); }, inject: () => { audio.play('button'); audio.play('relay'); }, pump: () => audio.play('pump'), accepted: () => audio.play('labOk'), unstable: () => audio.play('boil'), steam: () => audio.play('vent', .8), drain: () => audio.play('gurgle'), bubble: () => audio.play('splash')};
@@ -106,22 +111,22 @@ async function boot() {
   lab.canAct = () => { const v = flink.view(); return !!v && v.outcome === 'RUNNING' && !v.draining; };
   lab.onEvent = e => { if (e.type === 'REJECTED') { haptic('bad'); voice.say('fail', 2); } if (e.type === 'REJECTED') verdict(false, e.reason === 'UNSTABLE_UNPROTECTED' ? L('НЕСТАБИЛЬНО · ЗАМОК ОХЛАЖДЕНИЯ НЕ ВКЛЮЧЁН', 'UNSTABLE · COOLING LOCK WAS OFF') : L('ФОРМУЛА ОТВЕРГНУТА · СЛИВ, ПОПРОБУЙТЕ СНОВА', 'ФОРМУЛА ОТВЕРГНУТА · DRAINED, TRY AGAIN'), e.reason === 'UNSTABLE_UNPROTECTED' ? L('Нестабильная реакция', 'Unstable reaction') : L('Формула отвергнута', 'Formula rejected')); };
   let valvePointer: number | null = null;
-  let focusTo: [number, number] | null = null, inspecting = false, inspectK = 0, inspectTarget: 'box' | 'pressure' | 'lab' = 'box';
-  let TOTAL = 3; const LIMITW = () => roundLimitS || limitMs('wire') / 1000; let taskNo = 1, deadline = 0, taskSeed = seed, pending: any = 0;
+  let focusTo: [number, number] | null = null, inspecting = false, inspectK = 0, inspectTarget: "box" | "pressure" | "lab" | "lock" = "box";
+  let TOTAL = 4; const LIMITW = () => roundLimitS || limitMs(kind === "lock" ? "lock" : "wire") / 1000; let taskNo = 1, deadline = 0, taskSeed = seed, pending: any = 0;
   // task kinds cycle: wire cutting -> broken valves -> unstable formula (?task=pressure|formula picks the first)
-  type Kind = 'wire' | 'pressure' | 'formula'; const ORDER: Kind[] = ['wire', 'pressure', 'formula']; const start0 = Math.max(0, ORDER.indexOf((params.get('task') || 'wire') as Kind));
-  const kindOf = (n: number): Kind => serverKind ?? ORDER[(start0 + n - 1) % 3];
+  type Kind = "wire" | "pressure" | "formula" | "lock"; const ORDER: Kind[] = ["wire", "pressure", "formula", "lock"]; const start0 = Math.max(0, ORDER.indexOf((params.get('task') || 'wire') as Kind));
+  const kindOf = (n: number): Kind => serverKind ?? ORDER[(start0 + n - 1) % ORDER.length];
   // АДСКАЯ КЛЕТКА room mode: the server runs the shift (3 rounds, shared timer); the phone only plays the round it is given
   let IN_ROOM = false; /* true once the server runs a shift for this room */ let serverKind: Kind | null = null, curRound = -1, roundLimitS = 0, roundDeadlineAt = 0, shiftV: any = null;
   let kind: Kind = kindOf(1);
-  const hud = () => { $('task').textContent = `${L('ЗАДАНИЕ', 'TASK')} ${taskNo} / ${TOTAL} · ${kind === 'pressure' ? L('КЛАПАНЫ', 'VALVES') : kind === 'formula' ? L('ФОРМУЛА', 'FORMULA') : L('ПРОВОДА', 'WIRES')} · ${diffName().toUpperCase()}`; };
+  const hud = () => { $('task').textContent = `${L('ЗАДАНИЕ', 'TASK')} ${taskNo} / ${TOTAL} · ${kind === 'pressure' ? L('КЛАПАНЫ', 'VALVES') : kind === "formula" ? L("ФОРМУЛА", "FORMULA") : kind === "lock" ? L("ЗАМОК", "LOCK") : L("ПРОВОДА", "WIRES")} · ${diffName().toUpperCase()}`; };
   // result card: low on screen (≈85 % of the viewport), fades in, a small mechanical jolt, holds, fades out (~2 s)
   let verdictTimer: any = 0;
   const verdict = (ok: boolean, sub: string, title?: string) => { const v = $('verdict'); v.querySelector('b')!.textContent = title ?? (ok ? L('Цепь стабилизирована', 'Circuit stabilised') : L('Критическая ошибка', 'Critical error')); v.querySelector('span')!.textContent = sub; v.dataset.tone = ok ? 'good' : 'bad';
     v.classList.remove('show'); void v.offsetWidth; v.classList.add('show'); clearTimeout(verdictTimer); verdictTimer = setTimeout(() => v.classList.remove('show'), 2300); if (!ok) { document.body.classList.remove('jolt'); void document.body.offsetWidth; document.body.classList.add('jolt'); } };
   const newTask = (advance: boolean) => { if (advance) taskNo = Math.min(TOTAL, taskNo + 1); taskSeed++; kind = kindOf(taskNo);
     const t = makeTask(wireRules, taskSeed, wireCount || 4 + Math.floor(Math.random() * 3), fixed); box.setTask(t); box.configure(t.fault, t.mode); deadline = 0;
-    const k0 = kind, myGen = ++taskGen; box.locked = true; press.enabled = false; lab.enabled = false; link.stop(); flink.stop(); hud();
+    const k0 = kind, myGen = ++taskGen; box.locked = true; press.enabled = false; lab.enabled = false; lock.enabled = false; link.stop(); flink.stop(); hud();
     if (IN_ROOM && serverKind === null) return; // wait for the server's first round
     briefOpen = true; (params.get('tutorial') === '1' ? briefing(k0, Math.round(limitMs(k0) / 1000)) : Promise.resolve()).then(() => { briefOpen = false; if (myGen !== taskGen) return; startedAt = performance.now(); mistakes = 0; RoomSocket.shared()?.send('CAGE_REPORT', {kind: k0, task: taskNo}); /* host screen: which machine */
     // the host's voice: welcome once, then a short spoken instruction at the start of every task (no text card)
@@ -131,6 +136,10 @@ async function boot() {
     else { press.enabled = false; link.stop(); }
     if (kind === 'formula') { box.locked = true; lab.enabled = true; lab.reset(); flink.start(); formulaDone = false; if (cur().state === 'rest' || cur().state === 'falling') { const d = lab.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } }
     else { lab.enabled = false; flink.stop(); }
+    if (kind === "lock") { box.locked = true; lockDone = false; lock.setTask(makeLockTask(taskSeed, DIFF()), taskSeed); lock.enabled = true; deadline = IN_ROOM && roundDeadlineAt ? roundDeadlineAt : performance.now() + limitMs("lock");
+      $("hint").textContent = L("Найдите в клетке три знака с номерами I, II, III — и наберите код на замке двери. Зачёркнутые знаки — ложные.", "Find the three signs numbered I, II, III in the cage and dial them on the door lock. Crossed-out signs are false."); $("hint").style.opacity = "1";
+      if (cur().state === "rest" || cur().state === "falling") { const d = lock.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } }
+    else lock.enabled = false;
     hud(); }); };
   // run log for the end-of-shift report
   let tellPending: string | null = null; let taskGen = 0, briefOpen = false, introSaid = false, startedAt = performance.now(), mistakes = 0, warned10 = false, surgeSaid = false; const rows: TaskRecord[] = [];
@@ -156,9 +165,17 @@ async function boot() {
     if (!IN_ROOM) { IN_ROOM = true; $('hgt').hidden = false; setInterval(shiftOverlay, 500); if (v.phase !== 'ROUND') { serverKind = null; newTask(false); } }
     if (v.phase === 'ROUND' && v.round !== curRound && !v.me?.dead) { curRound = v.round; serverKind = v.kind; TOTAL = v.rounds; taskNo = v.round + 1; roundLimitS = v.roundLimit / 1000;
       roundDeadlineAt = performance.now() + (v.phaseStart + v.roundLimit - sock!.serverNow()); clearTimeout(pending); pending = 0; if (inspecting) setInspect(false); newTask(false); }
-    if (v.me?.dead) { box.locked = true; press.enabled = false; lab.enabled = false; }
+    if (v.me?.dead) { box.locked = true; press.enabled = false; lab.enabled = false; lock.enabled = false; }
     shiftOverlay(); });
 
+  // THE CAGE LOCK outcome (reported like the wire panel: the phone decides, the server moves the cage)
+  let lockDone = false;
+  const lockFinish = (ok: boolean, why: "OK" | "WRONG" | "TIMEOUT") => { if (kind !== "lock" || lockDone) return; lockDone = true; lock.enabled = false; deadline = 0;
+    RoomSocket.shared()?.send("CAGE_REPORT", {kind: "lock", task: taskNo, result: ok ? "OK" : "FAIL"}); record(ok, why); audio.play(ok ? "good" : "bad");
+    verdict(ok, ok ? L("ДУЖКА ОТКРЫТА · СПУСК ОСТАНОВЛЕН", "SHACKLE OPEN · DESCENT HALTED") : why === "TIMEOUT" ? L("ЗАМОК НЕ ОТКРЫТ · ВРЕМЯ ВЫШЛО", "TIME RAN OUT") : L("ЗАМОК ЗАКЛИНИЛО · ПОПЫТКИ КОНЧИЛИСЬ", "LOCK JAMMED · NO TRIES LEFT"), ok ? L("Замок открыт", "Lock open") : L("Замок не поддался", "The lock held"));
+    if (!ok) setTimeout(() => cage.drop?.(.8), 350); clearTimeout(pending); pending = setTimeout(() => { if (inspecting && inspectTarget === "lock") setInspect(false); setTimeout(() => next(ok), 400); }, ok ? 3000 : 2600); };
+  lock.onResult = ok => lockFinish(ok, ok ? "OK" : "WRONG");
+  lock.onWrong = left => { haptic("bad"); mistakes++; verdict(false, left === 1 ? L("ОСТАЛАСЬ ПОСЛЕДНЯЯ ПОПЫТКА", "ONE TRY LEFT") : L(`ОСТАЛОСЬ ПОПЫТОК: ${left}`, `TRIES LEFT: ${left}`), L("Неверный код", "Wrong code")); };
   let formulaDone = false;
   flink.onOutcome = (o, reason) => { if (kind !== 'formula' || formulaDone) return; formulaDone = true; lab.enabled = false; const ok = o === 'STABILIZED'; record(ok, reason, flink.view()?.rejections ?? 0);
     if (!ok) audio.play('bad');
@@ -194,13 +211,15 @@ async function boot() {
   renderer.domElement.addEventListener('pointerup', e => { const s = tapStart.get(e.pointerId); tapStart.delete(e.pointerId); if (!s || Math.hypot(e.clientX - s.x, e.clientY - s.y) > 12 || performance.now() - s.t > 450) return;
     ray.setFromCamera(new T.Vector2(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1), camera);
     if (valvePointer === e.pointerId) return;
+    { const kh = lock.hits(ray); if (kh) { const bh = ray.intersectObject(book.root, true)[0]; if (!bh || kh.distance < bh.distance) { if (inspecting && inspectTarget === "lock") { const id = lock.tap(ray); if (id && id !== "body") haptic("tap"); return; }
+      if (!inspecting && (cur().state === "rest" || cur().state === "falling" || cur().lowered)) { setInspect(true, "lock"); return; } } } }
     const jb = ray.intersectObject(journal.root, true)[0], lh = lab.hits(ray); if (jb && (!lh || jb.distance <= lh.distance + .05)) return; // the journal handles its own taps
     if (lh && !inspecting && (cur().state === 'rest' || cur().state === 'falling' || cur().lowered)) { const bh0 = ray.intersectObject(book.root, true)[0]; if (!bh0 || lh.distance < bh0.distance) { setInspect(true, 'lab'); return; } }
     const b = ray.intersectObject(book.root, true)[0], hit = ray.intersectObject(box.group, true)[0], ph = press.hits(ray); if (b && (!hit || b.distance < hit.distance) && (!ph || b.distance < ph.distance)) return;
     if (ph && (!hit || ph.distance < hit.distance)) { if (!inspecting && (cur().state === 'rest' || cur().state === 'falling' || cur().lowered)) setInspect(true, 'pressure'); return; }
     if ((cur().state === 'reading' || cur().state === 'held') && !cur().lowered) { if (!hit) return; }
     const r = box.tap(ray); (window as any).__lastTap = r; if (r && (r !== 'door' || box.open) && !inspecting && (cur().state === 'rest' || cur().state === 'falling' || cur().lowered)) { setInspect(true); if (r !== 'test') return; } if (r === 'door' && box.open) { if (!deadline && !box.locked && !IN_ROOM) deadline = performance.now() + LIMITW() * 1000; if (cur().state === 'rest' || cur().state === 'falling') { const d = box.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } } });
-  const setInspect = (on: boolean, target: 'box' | 'pressure' | 'lab' = 'box') => { if (on) inspectTarget = target; inspecting = on; $('btn-back').hidden = !on; $('hint').style.opacity = on ? '0' : ''; $('task').style.opacity = on && innerWidth > 700 ? '0' : ''; if (on) { focusTo = null; if (target === 'box' && !box.open) box.toggleDoor(); } };
+  const setInspect = (on: boolean, target: "box" | "pressure" | "lab" | "lock" = "box") => { if (on) inspectTarget = target; inspecting = on; $('btn-back').hidden = !on; $('hint').style.opacity = on ? '0' : ''; $('task').style.opacity = on && innerWidth > 700 ? '0' : ''; if (on) { focusTo = null; if (target === 'box' && !box.open) box.toggleDoor(); } };
   $('btn-back').onclick = () => setInspect(false); addEventListener('keydown', e => { if (e.key === 'Escape' && inspecting) setInspect(false); });
   $('btn-open').onclick = () => cur().open(); $('btn-close').onclick = () => cur().close(); $('btn-drop').onclick = () => cur().drop();
   $('btn-sound').onclick = () => { audio.unlock(); audio.enabled = !audio.enabled; $('btn-sound').textContent = audio.enabled ? L('Звук: вкл.', 'Sound: on') : L('Звук: выкл.', 'Sound: off'); };
@@ -259,14 +278,14 @@ async function boot() {
     inspectK += ((inspecting ? 1 : 0) - inspectK) * (1 - Math.exp(-dt * 6));
     if (free) orbit.update(); else if (inspectK > .001) {
       // close-up: stand ~55 cm in front of the panel (still inside the cage), framing meter + wires
-      const P = inspectTarget === 'pressure', L = inspectTarget === 'lab', tg = P ? press.group : L ? lab.group : box.group, c = P ? press.center() : L ? lab.center() : box.center(), n = new T.Vector3(0, 0, 1).applyQuaternion(tg.getWorldQuaternion(new T.Quaternion())), at = c.clone().add(new T.Vector3(0, P || L ? 0 : .05, 0)), from = c.clone().addScaledVector(n, L ? (camera.aspect < .9 ? 1.95 : 1.12) : P ? (camera.aspect < .9 ? 1.75 : 1.05) : camera.aspect < .9 ? 1.3 : 1.12).add(new T.Vector3(0, P ? .06 : L ? .04 : .09, 0));
+      const P = inspectTarget === "pressure", L = inspectTarget === "lab", K = inspectTarget === "lock", tg = K ? lock.group : P ? press.group : L ? lab.group : box.group, c = K ? lock.center() : P ? press.center() : L ? lab.center() : box.center(), n = new T.Vector3(0, 0, 1).applyQuaternion(tg.getWorldQuaternion(new T.Quaternion())), at = c.clone().add(new T.Vector3(0, K ? (mobile ? -.045 : -.015) : P || L ? 0 : .05, 0)), from = c.clone().addScaledVector(n, K ? (camera.aspect < .9 ? .66 : mobile ? .5 : .44) : L ? (camera.aspect < .9 ? 1.95 : 1.12) : P ? (camera.aspect < .9 ? 1.75 : 1.05) : camera.aspect < .9 ? 1.3 : 1.12).add(new T.Vector3(0, P ? .06 : L ? .04 : .09, 0));
       const look = new T.Quaternion().setFromRotationMatrix(new T.Matrix4().lookAt(from, at, new T.Vector3(0, 1, 0))), base = new T.Quaternion().setFromEuler(new T.Euler(pitch, yaw, 0, 'YXZ'));
       camera.position.copy(eye).lerp(from, inspectK); camera.quaternion.copy(base).slerp(look, inspectK);
       if (!inspecting && inspectK < .002) inspectK = 0;
     } else { camera.position.copy(eye); camera.quaternion.setFromEuler(new T.Euler(pitch, yaw, 0, 'YXZ')); }
     if (kind === 'formula' && (flink.view()?.doses.length ?? 0) > 0 && Math.random() < dt * 1.6) audio.play('blub', .6);
     if (tellPending && frameNo % 30 === 0) { const intro = tellPending.startsWith('intro:'), want = intro ? tellPending.slice(6) : tellPending; if (want !== kind) tellPending = null; else if (intro ? voice.say('intro', 3, 0) : voice.say(('tutorial_' + kind) as any, 3, 0)) tellPending = intro ? kind : null; }
-    cage.update(dt); ui.update(dt); jui.update(dt); if (kind === "wire" || inspectTarget === "box") box.update(dt); if (kind === "pressure" || inspectTarget === "pressure") press.update(dt, link.view()); if (kind === "formula" || inspectTarget === "lab") lab.update(dt, flink.view()); /* only the machine in play animates */
+    cage.update(dt); ui.update(dt); jui.update(dt); if (kind === "wire" || inspectTarget === "box") box.update(dt); if (kind === "pressure" || inspectTarget === "pressure") press.update(dt, link.view()); if (kind === "formula" || inspectTarget === "lab") lab.update(dt, flink.view()); if (kind === "lock" || inspectTarget === "lock") lock.update(dt); /* only the machine in play animates */
     if (focusTo) { let dy = focusTo[0] - yawT; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yawT += dy * Math.min(1, dt * 5); pitchT += (focusTo[1] - pitchT) * Math.min(1, dt * 5); if (Math.abs(dy) < .002 && Math.abs(focusTo[1] - pitchT) < .002) focusTo = null; }
     { const sw = kind === 'pressure' && !!link.view()?.surgeWarning; document.body.classList.toggle('surge', sw); if (sw && !surgeSaid) { surgeSaid = true; voice.say('surge', 3, 0); haptic('tap'); } }
     { const n = +$('clock-num').textContent!, run = $('clock').dataset.urgent === 'true'; document.body.classList.toggle('urgent', run); if (run && !warned10) { warned10 = true; voice.say('ten_seconds', 2, 0); }
@@ -275,7 +294,7 @@ async function boot() {
       $('clock-num').textContent = String(Math.ceil(left)); ($('clock-ring') as any).style.strokeDashoffset = String(176 * (1 - left / lim)); $('clock').dataset.urgent = String(!!v && v.outcome === 'RUNNING' && left < 10); }
     else if (kind === 'pressure') { const v = link.view(), lim = limitMs('pressure') / 1000, left = v ? (v.outcome === 'RUNNING' ? (frozenLeft = Math.max(0, (v.deadline - performance.now()) / 1000)) : v.outcome === 'STABILIZED' ? frozenLeft : 0) : lim;
       $('clock-num').textContent = String(Math.ceil(left)); ($('clock-ring') as any).style.strokeDashoffset = String(176 * (1 - left / lim)); $('clock').dataset.urgent = String(!!v && v.outcome === 'RUNNING' && left < 10); }
-    else { const left = deadline ? Math.max(0, (deadline - performance.now()) / 1000) : LIMITW(); $('clock-num').textContent = String(Math.ceil(left)); ($('clock-ring') as any).style.strokeDashoffset = String(176 * (1 - left / LIMITW())); $('clock').dataset.urgent = String(!!deadline && left < 10); if (deadline && left <= 0 && !box.locked) { finish(false, L('ВРЕМЯ ВЫШЛО', 'TIME RAN OUT')); setTimeout(() => cage.drop?.(.8), 350); } }
+    else { const left = deadline ? Math.max(0, (deadline - performance.now()) / 1000) : LIMITW(); $('clock-num').textContent = String(Math.ceil(left)); ($('clock-ring') as any).style.strokeDashoffset = String(176 * (1 - left / LIMITW())); $('clock').dataset.urgent = String(!!deadline && left < 10); if (kind === "lock" && deadline && left <= 0 && !lockDone) { lock.expire(); lockFinish(false, "TIMEOUT"); } else if (kind !== "lock" && deadline && left <= 0 && !box.locked) { finish(false, L('ВРЕМЯ ВЫШЛО', 'TIME RAN OUT')); setTimeout(() => cage.drop?.(.8), 350); } }
     const surface = cage.shelf && Math.abs(book.root.position.y - TH / 2 - cage.shelf.top.y) < .2 && Math.abs(book.root.position.z - cage.shelf.top.z) < .2 ? cage.shelf.top.y : floorY; const h = Math.max(0, book.root.position.y - TH / 2 - surface); shadow.position.set(book.root.position.x, surface + .0012, book.root.position.z); shadow.rotation.z = new T.Euler().setFromQuaternion(book.root.quaternion, 'YXZ').y; (shadow.material as T.MeshBasicMaterial).opacity = .75 * Math.max(0, 1 - h / .18); shadow.visible = h < .18;
     { // fall choreography (runs on top of the normal camera pose)
       if (fallT >= 0) fallT += dt; if (landT >= 0) landT += dt;
@@ -290,6 +309,6 @@ async function boot() {
     bloom.strength = .42 + (falling ? .25 : 0) + (shake > .8 ? .4 : 0); if (composer) composer.render(); else renderer.render(scene, camera); requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
-  (window as any).__manual = {book, ui, renderer, scene, camera, get state() { return ui.state; }, get info() { return renderer.info.render; }, box, press, link, lab, flink, journal, jui, get kind() { return kind; }, rows, endRun() { taskNo = TOTAL; next(true); }, setInspect, cage, get shake() { return shake; }, look(y: number, p: number) { yaw = yawT = y; pitch = pitchT = p; }, setFree, set timeScale(v: number) { timeScale = v; }, step(sec: number) { for (let i = 0; i < Math.round(sec * 60); i++) { cage.update(1 / 60); ui.update(1 / 60); jui.update(1 / 60); } }};
+  (window as any).__manual = {book, ui, renderer, scene, camera, get state() { return ui.state; }, get info() { return renderer.info.render; }, box, press, link, lab, flink, journal, jui, get kind() { return kind; }, lock, rows, endRun() { taskNo = TOTAL; next(true); }, setInspect, cage, get shake() { return shake; }, look(y: number, p: number) { yaw = yawT = y; pitch = pitchT = p; }, setFree, set timeScale(v: number) { timeScale = v; }, step(sec: number) { for (let i = 0; i < Math.round(sec * 60); i++) { cage.update(1 / 60); ui.update(1 / 60); jui.update(1 / 60); } }};
 }
 boot().catch(e => { $('load-text').textContent = 'Failed: ' + (e?.message || e); console.error(e); });

@@ -251,7 +251,7 @@ interface P { id: string; name: string; characterId: string; online: boolean; ki
 interface Shift { phase: string; round: number; rounds: number; kind: string; kinds: string[]; phaseStart: number; phaseEnd: number; roundLimit: number; startM: number; difficulty: string }
 let players: P[] = [], shift: Shift | null = null, diff = 'NORMAL', active = true, clockOffset = 0;
 const serverNow = () => Date.now() + clockOffset;
-const KIND = (): Record<string, [string, string]> => ({wire: ['⚡', L('Щиток', 'Wires')], pressure: ['◉', L('Клапаны', 'Valves')], formula: ['⚗', L('Лаборатория', 'Lab')]});
+const KIND = (): Record<string, [string, string]> => ({wire: ['⚡', L('Щиток', 'Wires')], pressure: ['◉', L('Клапаны', 'Valves')], formula: ['⚗', L('Лаборатория', 'Lab')], lock: ['🔒', L('Замок', 'Lock')]});
 
 async function poll() {
   try { const r = await fetch(`/rooms/${encodeURIComponent(ROOM!)}/cage?token=${encodeURIComponent(TOKEN || '')}`, {cache: 'no-store'}); if (!r.ok) throw new Error(String(r.status)); const v = await r.json();
@@ -265,7 +265,7 @@ function demo() {
   for (const c of cages.values()) { scene.remove(c.root); c.label.remove(); } cages.clear(); // a fresh shift: new cages
   const names = ['Skelly', 'Тыква', 'Доктор', 'Граф', 'Призрак', 'Вуду'], LIMIT = 24_000, INTRO = 4000, BREAK = 4000;
   players = names.map((n, i) => ({id: 'p' + i, name: n, characterId: CHARS[i], online: true, kind: '', cage: {height: 100, fails: 0, repairs: 0, outcome: 'RUNNING', dead: false}}));
-  const kinds = ['wire', 'pressure', 'formula'].sort(() => Math.random() - .5); let t0 = Date.now(); const plan = new Map<string, {at: number; ok: boolean}>();
+  const kinds = ['wire', 'pressure', 'formula', 'lock'].sort(() => Math.random() - .5).slice(0, 3); let t0 = Date.now(); const plan = new Map<string, {at: number; ok: boolean}>();
   shift = {phase: 'INTRO', round: -1, rounds: 3, kind: '', kinds, phaseStart: t0, phaseEnd: t0 + INTRO, roundLimit: LIMIT, startM: 100, difficulty: 'NORMAL'};
   const fail = (c: CageCell) => { c.outcome = 'FAIL'; c.fails++; c.height = c.fails === 1 ? c.height - 25 : c.fails === 2 ? Math.min(c.height - 25, 2) : 0; if (c.height <= 0) { c.height = 0; c.dead = true; } };
   let last = Date.now();

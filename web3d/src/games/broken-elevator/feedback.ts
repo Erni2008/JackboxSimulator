@@ -6,10 +6,10 @@
 // system tap haptic; outside a gesture iOS gives no haptic and this is a no-op.
 import {LANG} from './i18n';
 
-export type Line = 'intro' | 'tutorial_wire' | 'tutorial_pressure' | 'tutorial_formula' | 'task_wire' | 'task_pressure' | 'task_formula'
+export type Line = 'intro' | 'tutorial_wire' | 'tutorial_pressure' | 'tutorial_formula' | 'tutorial_lock' | 'task_wire' | 'task_pressure' | 'task_formula'
   | 'success' | 'fail' | 'explosion' | 'timeout' | 'ten_seconds' | 'surge' | 'results' | 'perfect';
 /** files that may exist for each line (variants are picked at random) */
-const FILES: Record<Line, string[]> = {intro: ['intro'], tutorial_wire: ['tutorial_wire'], tutorial_pressure: ['tutorial_pressure'], tutorial_formula: ['tutorial_formula'],
+const FILES: Record<Line, string[]> = {intro: ['intro'], tutorial_wire: ['tutorial_wire'], tutorial_pressure: ['tutorial_pressure'], tutorial_formula: ['tutorial_formula'], tutorial_lock: ['tutorial_lock'],
   task_wire: ['task_wire'], task_pressure: ['task_pressure'], task_formula: ['task_formula'], success: ['success_1', 'success_2'], fail: ['fail_1', 'fail_2'],
   explosion: ['explosion'], timeout: ['timeout'], ten_seconds: ['ten_seconds'], surge: ['surge'], results: ['results'], perfect: ['perfect']};
 

@@ -2,7 +2,7 @@
 import {L} from './i18n';
 import {diffName} from './difficulty';
 
-export type Kind = 'wire' | 'pressure' | 'formula';
+export type Kind = "wire" | "pressure" | "formula" | "lock";
 const KEY = 'finalanswer-elevator-tutorial';
 const seen = (): Set<string> => { try { return new Set(JSON.parse(localStorage.getItem(KEY) || '[]')); } catch { return new Set(); } };
 const mark = (k: Kind) => { try { const s = seen(); s.add(k); localStorage.setItem(KEY, JSON.stringify([...s])); } catch {} };
@@ -21,8 +21,14 @@ const BRIEF = (k: Kind, seconds: number): Brief => k === 'wire' ? {
     ['②', L('Устраните поломку: рычаг обхода или хомут на течь.', 'Fix it: bypass lever or the clamp for a leak.')],
     ['③', L('Красный вентиль поднимает давление, синий снижает. «Точно» — мелкий шаг.', 'Red valve raises pressure, blue lowers it. FINE gives small steps.')]],
   tip: L('120 PSI — взрыв. Следите за скачками давления.', '120 PSI means an explosion. Watch for surges.')}
+  : k === "lock" ? {
+  icon: "🔒", title: L("Замок клетки", "The cage lock"), goal: L(`Откройте замок на двери клетки. Время: ${seconds} с.`, `Open the lock on the cage door. Time: ${seconds} s.`),
+  steps: [["①", L("Осмотрите клетку: стены, пол, решётку. Ищите знаки с номерами I, II, III.", "Search the cage: walls, floor, bars. Look for signs numbered I, II, III.")],
+    ["②", L("Зачёркнутые знаки — ложные, не верьте им.", "Crossed-out signs are false.")],
+    ["③", L("Наберите знаки на барабанах замка и дёрните рычаг.", "Dial the signs on the drums and pull the lever.")]],
+  tip: L("Попытки ограничены — неверный код заклинит замок.", "Tries are limited: a wrong code jams the lock.")}
   : {
-  icon: '⚗', title: L('Нестабильная формула', 'The unstable formula'), goal: L(`Приготовьте охлаждающую формулу и введите её. Время: ${seconds} с.`, `Prepare the cooling formula and inject it. Time: ${seconds} s.`),
+  icon: "⚗", title: L('Нестабильная формула', 'The unstable formula'), goal: L(`Приготовьте охлаждающую формулу и введите её. Время: ${seconds} с.`, `Prepare the cooling formula and inject it. Time: ${seconds} s.`),
   steps: [['①', L('Прочитайте пробу на анализаторе: семейство, класс, реакция…', 'Read the sample on the analyzer: family, class, reaction…')],
     ['②', L('В «Журнале алхимика» найдите основу, добавку и порядок доз.', 'In the Alchemist’s Journal find base, additive and dose order.')],
     ['③', L('Наберите дозы по порядку и нажмите ВПРЫСК.', 'Dispense the doses in order and press INJECT.')]],
