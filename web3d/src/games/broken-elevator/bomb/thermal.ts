@@ -50,7 +50,7 @@ export class ThermalView {
   /** the scope's own screen (on its handle) */
   readout(t: string) { if (t === this.rdText) return; this.rdText = t; const x = this.rdCtx; x.fillStyle = '#140806'; x.fillRect(0, 0, 256, 96); x.font = 'bold 54px "IBM Plex Mono", monospace'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.shadowColor = '#ff8a3a'; x.shadowBlur = 12; x.fillStyle = '#ffb070'; x.fillText(t, 128, 52); x.shadowBlur = 0; this.rdTex.needsUpdate = true; }
   build(l: ThermalLayout) {
-    this.clear(); this.layout = l; this.head.on = false; this.head.group.visible = false; this.group.add(this.head.group);
+    this.clear(); this.head.setRest(-BW / 2 + .004, -BD / 2 + .004, .5); this.layout = l; this.group.add(this.head.group);
     const c = document.createElement('canvas'); c.width = 640; c.height = 500; const x = c.getContext('2d')!; x.fillStyle = '#211e1b'; x.fillRect(0, 0, 640, 500); x.strokeStyle = 'rgba(200,170,110,.3)'; x.lineWidth = 3; x.strokeRect(10, 10, 620, 480);
     x.fillStyle = '#c9a25a'; x.beginPath(); x.arc(585, 55, 40, 0, 7); x.strokeStyle = '#c9a25a'; x.stroke(); drawSeal(x, l.stamp, 585, 55, 24); x.font = 'bold 20px Oswald, sans-serif'; x.textAlign = 'center'; x.fillStyle = '#8a7650'; x.fillText(L('ПЕЧАТЬ', 'SEAL'), 585, 112);
     const pos = (i: number) => new T.Vector3(-BW / 2 + .018 + (i % 3) * .036 + LEN / 2 - .006, .0035 + R, -BD / 2 + .03 + Math.floor(i / 3) * .05);

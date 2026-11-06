@@ -90,7 +90,7 @@ const contacts: Draw = x => {
 const xray: Draw = x => {
   head(x, 'III', L('Рентген', 'X-ray'), L('запаянные банки', 'sealed canisters'));
   let y = 310; y = step(x, 1, L('Посмотри букву в кружке на отсеке.', 'Look at the letter in the circle on the bay.'), y);
-  y = step(x, 2, L('Веди сканер над банками и сравни с рисунком.', 'Sweep the scanner and compare with the picture.'), y);
+  y = step(x, 2, L('Возьми сканер из угла отсека, веди над банками, сравни с рисунком.', 'Take the scanner from the bay corner, sweep it, compare with the picture.'), y);
   Object.entries(XRAY_TABLE).forEach(([k, ins], i) => { const col = i % 2, row = Math.floor(i / 2), cx = M + col * 410, cy = y + row * 170;
     x.fillStyle = RED; x.beginPath(); x.arc(cx + 34, cy + 56, 30, 0, 7); x.fill(); font(x, 38, SERIF, 'bold'); x.fillStyle = '#f6ead2'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(k, cx + 34, cy + 58); x.textAlign = 'left'; x.textBaseline = 'alphabetic';
     sketch(x, ins, cx + 230, cy + 56, 290); });
@@ -108,7 +108,7 @@ const laser: Draw = x => {
 };
 const heat: Draw = x => {
   head(x, 'V', L('Тепло', 'Heat'), L('тепловая угроза', 'thermal threat'));
-  let y = 300; y = step(x, 1, L('Печать на отсеке → строка таблицы.', 'Seal on the bay → its table row.'), y);
+  let y = 300; y = step(x, 1, L('Возьми тепловизор из угла отсека. Печать на отсеке → строка таблицы.', 'Take the scope from the bay corner. Seal on the bay → its table row.'), y);
   font(x, 20, CAPS, 'bold'); x.fillStyle = RED; x.fillText(L('ПЕЧАТЬ', 'SEAL'), M + 10, y); x.fillText(L('РИСУНОК', 'PATTERN'), M + 140, y); x.fillText('°C', PW - M - 80, y); y += 12;
   SEALS.forEach((sl, i) => { const sg = THERMAL_TABLE[sl], ry = y + i * 74; if (i % 2 === 0) { x.fillStyle = 'rgba(42,29,18,.05)'; x.fillRect(M, ry, PW - 2 * M, 74); }
     x.fillStyle = INK; drawSeal(x, sl, M + 44, ry + 37, 24); heatIcon(x, sg.pattern, M + 210, ry + 37); font(x, 26); x.fillStyle = INK; x.fillText(PAT_NAME[sg.pattern](), M + 290, ry + 46);

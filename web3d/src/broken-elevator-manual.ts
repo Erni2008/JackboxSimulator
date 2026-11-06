@@ -161,7 +161,7 @@ async function boot() {
     nbook = nb; startDefusalBook();
     maze = new WireMazeView(); suitcase.bays.WIRE_MAZE.mount.add(maze.group); links = new LinksView(); suitcase.bays.HIDDEN_CONNECTIONS.mount.add(links.group);
     xrayV = new XrayView(); suitcase.bays.XRAY.mount.add(xrayV.group); laserV = new LaserView(); suitcase.bays.LASER.mount.add(laserV.group); thermalV = new ThermalView(); suitcase.bays.THERMAL.mount.add(thermalV.group);
-    let scanSound = 0; suitcase.onGrab = rc => { const f = suitcase!.focus; const v = f === 'XRAY' ? xrayV : f === 'THERMAL' ? thermalV : null; if (!v || kind !== 'bomb' || bombDone || !live(f!)) return null;
+    let scanSound = 0; suitcase.onGrab = rc => { const f = suitcase!.focus; const v = f === 'XRAY' ? xrayV : f === 'THERMAL' ? thermalV : null; if (!v || kind !== 'bomb' || bombDone || !live(f!) || !v.head.held) return null; // the instrument must be in hand // dragging the instrument moves it; a still tap on it (handled as a tap) puts it back
       if ((f === 'XRAY' ? xrayV!.leverAt(rc) : thermalV!.valveAt(rc)) >= 0) return null; // a tap on a lever / valve stays a tap
       if (!v.dragTo(rc)) return null; return r2 => { v.dragTo(r2); if (performance.now() - scanSound > 260) { scanSound = performance.now(); audio.play(f === 'XRAY' ? 'scanHum' : 'thermo', .8); } }; };
     suitcase.onTap = rc => { const f = suitcase!.focus; if (kind !== 'bomb' || bombDone || !f || !live(f)) return false;
@@ -171,6 +171,9 @@ async function boot() {
         maze.sever(h.wire, h.t); audio.play('snip'); haptic('tap');
         if (IN_ROOM) RoomSocket.shared()?.send('BOMB_ACTION', {action: 'CUT', arg: h.wire, seq: ++bombSeq}); else judge('WIRE_MAZE', !!wireLayout && h.wire === solveWires(wireLayout), L('Неверный провод', 'Wrong wire'));
         return true; }
+      { const v = f === 'XRAY' ? xrayV : f === 'THERMAL' ? thermalV : null; // take the instrument from its clip / put it back
+        const control = f === 'XRAY' ? (xrayV?.leverAt(rc) ?? -1) : f === 'THERMAL' ? (thermalV?.valveAt(rc) ?? -1) : -1; // levers and valves come first
+        if (v && control < 0 && v.head.scannerAt(rc)) { if (v.head.held) v.head.putBack(); else v.head.take(0, 0); audio.play('pickup', .7); audio.play(f === 'XRAY' ? 'scanHum' : 'thermo', .6); haptic('tap'); return true; } }
       if (f === 'XRAY' && xrayV) { const i = xrayV.leverAt(rc); if (i < 0) return false; xrayV.throw(i); audio.play('lever'); haptic('tap');
         if (IN_ROOM) RoomSocket.shared()?.send('BOMB_ACTION', {action: 'ISOLATE', arg: i, seq: ++bombSeq}); else judge('XRAY', !!xrayL && i === solveXray(xrayL), L('Не та банка', 'Wrong canister')); return true; }
       if (f === 'LASER' && laserV && laserV.confirmAt(rc)) { laserV.pressConfirm(); confirmBeam(); return true; }
@@ -186,7 +189,8 @@ async function boot() {
     // a tap that misses the case: raise the lowered notebook if it was tapped, step back out of a bay, or set the case down
     suitcase.onMiss = rc => { if (dui && dbook && dui.lowered && rc.intersectObject(dbook.root, true).length) { nb.show(); return; }
       if (suitcase!.focus) { suitcase!.focusOn(null); if (!bombDone) coach(nbook?.taken ? 'bays' : 'notebook'); return; } setInspect(false); };
-    suitcase.onEvent = e => { if (e === 'UNFOCUS' && !bombDone) coach(nbook?.taken ? 'bays' : 'notebook'); if (e === 'PICKUP' && !suitcase!.open) coach('latches'); if (e === 'LID_OPENED') coach(nbook?.taken ? 'bays' : 'notebook'); if (e === 'FOCUS') { const f = suitcase!.focus!; coach(!armed.includes(f) ? 'dead' : neutral.has(f) ? 'safe' : nbook?.taken ? 'tool' : 'notebook'); }
+    suitcase.onEvent = e => { if (e === 'UNFOCUS' && !bombDone) coach(nbook?.taken ? 'bays' : 'notebook'); if (e === 'PICKUP' && !suitcase!.open) coach('latches'); if (e === 'LID_OPENED') coach(nbook?.taken ? 'bays' : 'notebook'); if (e === 'FOCUS' && (suitcase!.focus === 'XRAY' || suitcase!.focus === 'THERMAL') && live(suitcase!.focus)) setTimeout(() => toast(suitcase!.focus === 'XRAY' ? L('Рентген лежит в углу отсека — возьмите его', 'The X-ray scanner lies in the bay corner — take it') : L('Тепловизор лежит в углу отсека — возьмите его', 'The thermal scope lies in the bay corner — take it')), 700);
+      if (e === 'FOCUS') { const f = suitcase!.focus!; coach(!armed.includes(f) ? 'dead' : neutral.has(f) ? 'safe' : nbook?.taken ? 'tool' : 'notebook'); }
       if (e === 'PICKUP') { audio.play('pickup'); haptic('tap'); bombAct('FOUND'); } if (e === 'PUTDOWN') audio.play('drop', .5); if (e === 'LATCH') { audio.play('lever'); audio.play('valveClick'); haptic('tap'); }
       if (e === 'LOCKED') { audio.play('locked'); haptic('bad'); } if (e === 'LID_OPEN') { audio.play('creak', .8); audio.play('coverOpen'); bombAct('OPEN'); } if (e === 'FOCUS') { audio.play('button', .5); haptic('tap'); } if (e === 'LID_OPENED') { audio.play('impactMetal', .4); audio.play('alarm', .25); shake = Math.max(shake, .12); } };
   };

@@ -31,7 +31,7 @@ export class XrayView {
   private levers: {g: T.Group; t: number; on: boolean}[] = []; private slots: T.Vector3[] = []; private flash = 0; private shells: T.MeshStandardMaterial[] = []; private tags: T.Texture[] = [];
   constructor() { this.head = new ScanHead(.021, '#7ad8ff', this.u); }
   build(l: XrayLayout) {
-    this.clear(); this.head.on = false; this.head.group.visible = false; this.group.add(this.head.group);
+    this.clear(); this.head.setRest(-BW / 2 + .004, -BD / 2 + .006, .5); this.group.add(this.head.group);
     const c = document.createElement('canvas'); c.width = c.height = 512; const x = c.getContext('2d')!; x.fillStyle = '#211f1c'; x.fillRect(0, 0, 512, 512);
     x.strokeStyle = 'rgba(200,170,110,.3)'; x.lineWidth = 3; x.strokeRect(12, 12, 488, 488); x.fillStyle = '#c9a25a'; x.font = 'bold 84px "Libre Caslon Text", Georgia, serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
     x.beginPath(); x.arc(452, 60, 44, 0, 7); x.strokeStyle = '#c9a25a'; x.stroke(); x.fillText(l.stamp, 452, 64); x.font = 'bold 22px Oswald, sans-serif'; x.fillStyle = '#8a7650'; x.fillText(L('КЛЕЙМО', 'STAMP'), 452, 124);
