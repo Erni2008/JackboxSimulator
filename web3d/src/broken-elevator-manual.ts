@@ -289,10 +289,14 @@ async function boot() {
     // exponential smoothing of the look (frame-rate independent): no stepping between irregular mouse events
     { const a = 1 - Math.exp(-dt * 22); yaw += (yawT - yaw) * a; pitch += (pitchT - pitch) * a; }
     inspectK += ((inspecting ? 1 : 0) - inspectK) * (1 - Math.exp(-dt * 6));
+    // the cage lock comes to the player and grows (the camera stays put)
+    const lockDist = camera.aspect < .9 ? .62 : mobile ? .52 : .5, lockScale = lockDist / (camera.aspect < .9 ? .66 : mobile ? .5 : .44), lockLift = mobile && camera.aspect >= .9 ? .03 : 0;
+    lock.present(inspectTarget === "lock" ? inspectK : 0, eye, lockDist, lockScale, lockLift);
     if (free) orbit.update(); else if (inspectK > .001) {
       // close-up: stand ~55 cm in front of the panel (still inside the cage), framing meter + wires
       const P = inspectTarget === "pressure", L = inspectTarget === "lab", K = inspectTarget === "lock", N = inspectTarget === "notes", tg = N ? notes.group : K ? lock.group : P ? press.group : L ? lab.group : box.group, c = N ? notes.center() : K ? lock.center() : P ? press.center() : L ? lab.center() : box.center(), n = new T.Vector3(0, 0, 1).applyQuaternion(tg.getWorldQuaternion(new T.Quaternion())), at = c.clone().add(new T.Vector3(0, N ? (mobile ? -.02 : 0) : K ? (mobile ? -.045 : -.015) * CodeLock.SCALE : P || L ? 0 : .05, 0)), from = c.clone().addScaledVector(n, N ? (camera.aspect < .9 ? 1.45 : mobile ? .62 : .72) : K ? (camera.aspect < .9 ? .66 : mobile ? .5 : .44) * CodeLock.SCALE : L ? (camera.aspect < .9 ? 1.95 : 1.12) : P ? (camera.aspect < .9 ? 1.75 : 1.05) : camera.aspect < .9 ? 1.3 : 1.12).add(new T.Vector3(0, N ? 0 : K ? .09 * CodeLock.SCALE : P ? .06 : L ? .04 : .09, 0));
       const look = new T.Quaternion().setFromRotationMatrix(new T.Matrix4().lookAt(from, at, new T.Vector3(0, 1, 0))), base = new T.Quaternion().setFromEuler(new T.Euler(pitch, yaw, 0, 'YXZ'));
+      if (K) { from.copy(eye); at.copy(lock.presentedCenter(eye, lockDist, lockLift)).add(new T.Vector3(0, mobile ? -.04 : -.012, 0)); look.setFromRotationMatrix(new T.Matrix4().lookAt(from, at, new T.Vector3(0, 1, 0))); }
       camera.position.copy(eye).lerp(from, inspectK); camera.quaternion.copy(base).slerp(look, inspectK);
       if (!inspecting && inspectK < .002) inspectK = 0;
     } else { camera.position.copy(eye); camera.quaternion.setFromEuler(new T.Euler(pitch, yaw, 0, 'YXZ')); }
