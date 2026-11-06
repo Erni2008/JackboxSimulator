@@ -54,7 +54,8 @@ export class Suitcase {
   /** overlay: the scene drawn after the cage with a cleared depth buffer (the case in hand is never clipped by bars) */
   constructor(overlay: T.Scene, hq: boolean) {
     this.overlay = overlay; this.root.add(this.body); this.root.name = 'suitcase';
-    const steel = this.steel(hq), brass = brassMaterial(8), dark = new T.MeshStandardMaterial({color: '#1d1b19', metalness: .7, roughness: .55});
+    const bp = brassMaterial(8) as T.MeshPhysicalMaterial; // the standard model is plenty for small brass parts (the physical shader costs more per pixel)
+    const steel = this.steel(hq), brass = new T.MeshStandardMaterial({map: bp.map, roughnessMap: bp.roughnessMap, metalnessMap: bp.metalnessMap, roughness: 1, metalness: 1, envMapIntensity: 1.1}); bp.dispose(); const dark = new T.MeshStandardMaterial({color: '#1d1b19', metalness: .7, roughness: .55});
     brass.emissive = new T.Color('#ff8a3a'); brass.emissiveIntensity = 0; this.glowMats.push(brass as unknown as T.MeshStandardMaterial);
     const leather = new T.MeshStandardMaterial({color: '#3a2618', roughness: .72, metalness: 0}); // swapped for the scanned leather once it loads
     { // fine-grained dark saddle leather straight from the scan (no composited cracks: at case scale they read as stone)
@@ -165,6 +166,9 @@ export class Suitcase {
     this.coilM = new T.MeshStandardMaterial({color: '#1c1a18', roughness: .55, metalness: .1});
     for (const x of [-W / 2, W / 2]) for (const z of [-D / 2, D / 2]) { for (const y of [baseY0, seamY]) this.hullBody.push(new T.Vector3(x, y, z)); for (const y of [0, HL]) this.hullLid.push(new T.Vector3(x, y, z + D / 2)); }
     this.drawTimer(0); mergeStatic(this.root);
+    // one shadow for the whole case: an invisible box (shadow passes ignore colour writes) instead of every part casting its own
+    this.root.traverse(o => { o.castShadow = false; });
+    const proxy = new T.Mesh(new T.BoxGeometry(W, HB + HL, D), new T.MeshBasicMaterial({colorWrite: false, depthWrite: false})); proxy.castShadow = true; proxy.raycast = () => {}; proxy.userData.shadowProxy = true; this.body.add(proxy);
   }
   private leatherMeshes: T.Mesh[] = []; private halos = new Map<Mechanism, T.Sprite>(); private timerHalo: T.Sprite | null = null;
   private static haloT: T.Texture | null = null;

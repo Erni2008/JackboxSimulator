@@ -118,6 +118,7 @@ async function boot() {
   { // studio-like lighting for the case in hand: warm key, cold rim from behind, lava bounce from below (lights follow the camera)
     const rig = new T.Group(); overlay.add(rig); const key = new T.DirectionalLight('#ffe0bc', 2.1); key.position.set(.5, .9, .5); const rim = new T.DirectionalLight('#9cb8ff', .75); rim.position.set(-.4, .7, -1); const lv = new T.DirectionalLight('#ff6a24', .9); lv.position.set(.2, -1, .3);
     for (const l of [key, rim, lv]) { rig.add(l); rig.add(l.target); } overlay.userData.rig = rig; }
+  let bgRT: T.WebGLRenderTarget | null = null, bgAge = 99; const bgScene = new T.Scene(), bgCam = new T.OrthographicCamera(-1, 1, 1, -1, 0, 1), bgQuad = new T.Mesh(new T.PlaneGeometry(2, 2), new T.MeshBasicMaterial({depthTest: false, depthWrite: false})); bgScene.add(bgQuad);
   let suitcase: Suitcase | null = null, nbook: Notebook | null = null, bombSeq = 0, bombView: any = null, maze: WireMazeView | null = null, links: LinksView | null = null, cutters = false, strikes = 0;
   let xrayV: XrayView | null = null, laserV: LaserView | null = null, thermalV: ThermalView | null = null, xrayL: XrayLayout | null = null, laserL: LaserLayout | null = null, thermalL: ThermalLayout | null = null;
   let wireLayout: WireLayout | null = null, linksModel: LinksModel | null = null, armed: Mechanism[] = [], neutral = new Set<Mechanism>(), probeSel: 0 | 1 = 0;
@@ -185,6 +186,8 @@ async function boot() {
     laserL = armed.includes('LASER') ? (sv?.laser ?? makeLaser(taskSeed, DIFF())) : null; laserV!.build(laserL ?? makeLaser(taskSeed + 77, DIFF()));
     thermalL = armed.includes('THERMAL') ? (sv?.thermal ?? makeThermal(taskSeed, DIFF())) : null; thermalV!.build(thermalL ?? makeThermal(taskSeed + 77, DIFF()));
     strikes = sv?.strikes ?? 0;
+    // compile the in-hand shader variants now (overlay lights differ from the cage's), not on the first pick-up
+    if (suitcase!.state === 'floor') { const home = suitcase!.root.parent; overlay.attach(suitcase!.root); overlay.environment = scene.environment; try { renderer.compile(overlay, camera); } catch {} home?.attach(suitcase!.root); }
     if (sv?.stage === 'OPEN' && !suitcase!.open) { suitcase!.latchOpen = [true, true]; suitcase!.lidTarget = 1; suitcase!.lidT = .999; } if (sv?.stage && sv.stage !== 'HIDDEN') suitcase!.found = true; if (typeof sv?.lastSeq === 'number') bombSeq = Math.max(bombSeq, sv.lastSeq); };
   lock.sounds = {click: () => audio.play("valveClick"), turn: () => audio.play("button"), lever: () => { audio.play("button"); audio.play("relay"); }, unlock: () => { audio.play("locked"); audio.play("doorOpen"); }, jam: () => audio.play("grind")};
   jui.place(lab.ledgeTop.clone().add(new T.Vector3(0, TH / 2, 0)).applyMatrix4(lab.group.matrixWorld), new T.Quaternion().setFromEuler(new T.Euler(0, Math.PI / 2 + .06, 0)));
@@ -471,9 +474,13 @@ async function boot() {
       headV += (-headY * 90 - headV * 12) * dt; headY += headV * dt; if (Math.abs(headY) > 1e-4 || falling || landT >= 0) camera.position.y += headY * .05; }
     if (shake > .002) { const a = shake * shake; camera.position.add(new T.Vector3((Math.random() - .5) * .05 * a, (Math.random() - .5) * .07 * a, (Math.random() - .5) * .03 * a)); camera.rotateZ((Math.random() - .5) * .03 * a); shake *= Math.exp(-dt * 4); }
     // shadows refresh every other frame: invisible at 60 fps, halves the shadow-pass cost
-    if (frameNo++ % (shadowEvery + 1) === 0) renderer.shadowMap.needsUpdate = true;
+    if (frameNo++ % ((inspecting && inspectTarget === 'bomb' ? Math.max(shadowEvery, 6) : shadowEvery) + 1) === 0) renderer.shadowMap.needsUpdate = true; // the case in hand covers the view: the cage's shadows can lag a little
     notes.update(dt, camera);
-    bloom.strength = .42 + (falling ? .25 : 0) + (shake > .8 ? .4 : 0); if (composer) composer.render(); else renderer.render(scene, camera);
+    bloom.strength = .42 + (falling ? .25 : 0) + (shake > .8 ? .4 : 0); // the case in hand: the camera stands still, so the cage behind it is rendered into a texture every few frames and reused in between
+    const still = !composer && suitcase && suitcase.state === 'held' && inspecting && inspectTarget === 'bomb' && inspectK > .995 && shake < .02 && !falling && !nbook?.open;
+    if (still) { const w = renderer.domElement.width, h = renderer.domElement.height; if (!bgRT || bgRT.width !== w || bgRT.height !== h) { bgRT?.dispose(); bgRT = new T.WebGLRenderTarget(w, h, {type: T.HalfFloatType}); bgQuad.material.map = bgRT.texture; bgQuad.material.needsUpdate = true; bgAge = 99; }
+      if (bgAge++ >= 5) { bgAge = 0; renderer.setRenderTarget(bgRT); renderer.render(scene, camera); renderer.setRenderTarget(null); } renderer.render(bgScene, bgCam); }
+    else { bgAge = 99; if (composer) composer.render(); else renderer.render(scene, camera); }
     if (suitcase && suitcase.state !== 'floor' && suitcase.root.visible) { const rig = overlay.userData.rig as T.Group; rig.position.copy(camera.position); rig.quaternion.copy(camera.quaternion); rig.updateMatrixWorld(true); renderer.autoClear = false; renderer.clearDepth(); renderer.render(overlay, camera); renderer.autoClear = true; } requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
