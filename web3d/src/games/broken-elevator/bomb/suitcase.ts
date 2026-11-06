@@ -15,7 +15,7 @@ export const MECHANISMS: Mechanism[] = ['WIRE_MAZE', 'HIDDEN_CONNECTIONS', 'XRAY
 export const MECH_NAME: Record<Mechanism, () => string> = {WIRE_MAZE: () => L('Лабиринт проводов', 'Wire maze'), HIDDEN_CONNECTIONS: () => L('Скрытые соединения', 'Hidden connections'),
   XRAY: () => L('Рентген', 'X-ray inspection'), LASER: () => L('Лазерный контур', 'Laser routing'), THERMAL: () => L('Тепловая угроза', 'Thermal threat')};
 export const ROMAN = ['I', 'II', 'III', 'IV', 'V'];
-export type CaseEvent = 'PICKUP' | 'PUTDOWN' | 'LATCH' | 'LOCKED' | 'LID_OPEN' | 'LID_OPENED' | 'FOCUS';
+export type CaseEvent = 'PICKUP' | 'PUTDOWN' | 'LATCH' | 'LOCKED' | 'LID_OPEN' | 'LID_OPENED' | 'FOCUS' | 'UNFOCUS';
 
 // outer size (m): a doctor's-bag sized instrument case lying flat
 const W = .46, D = .32, HB = .095, HL = .05, WALL = .007;
@@ -36,7 +36,8 @@ export class Suitcase {
   readonly root = new T.Group(); /** user rotation pivot (centre of the case) */ readonly body = new T.Group(); readonly lid = new T.Group(); readonly interior = new T.Group();
   readonly bays = {} as Record<Mechanism, {group: T.Group; mount: T.Group; lamp: T.MeshStandardMaterial; size: [number, number]}>;
   onEvent: (e: CaseEvent) => void = () => {};
-  /** taps inside the open case go to the armed mechanism first (true = handled) */ onTap: ((r: T.Raycaster) => boolean) | null = null; private downRay = new T.Ray();
+  /** taps inside the open case go to the armed mechanism first (true = handled) */ onTap: ((r: T.Raycaster) => boolean) | null = null;
+  /** a tap that misses the case altogether (the page decides: back out of a bay, set the case down, raise the notebook) */ onMiss: ((r: T.Raycaster) => void) | null = null; private downRay = new T.Ray();
   /** a drag that starts on a tool (a scanner) moves the tool instead of turning the case */ onGrab: ((r: T.Raycaster) => ((r: T.Raycaster) => void) | null) | null = null;
   private grab: ((r: T.Raycaster) => void) | null = null; private cam: T.Camera | null = null; private grabMoved = false;
   /** the armed mechanisms (3 of 5) and the ones already neutralised (their lamps go out) */ armed: Mechanism[] = []; neutral = new Set<Mechanism>();
@@ -146,7 +147,7 @@ export class Suitcase {
     const wallH = .028; for (const [x, z, w, ry] of [[0, D / 2 - WALL - .0006, W - 2 * WALL, Math.PI], [0, -D / 2 + WALL + .0006, W - 2 * WALL, 0], [W / 2 - WALL - .0006, 0, D - 2 * WALL, -Math.PI / 2], [-W / 2 + WALL + .0006, 0, D - 2 * WALL, Math.PI / 2]] as const) {
       const pl = new T.Mesh(new T.PlaneGeometry(w, wallH), lining); pl.position.set(x, wallH / 2, z); pl.rotation.y = ry; this.interior.add(pl); }
     const brushed = Suitcase.brushed(), screwM = new T.MeshStandardMaterial({color: '#8c8478', metalness: 1, roughness: .32}), screwG = new T.CylinderGeometry(.0022, .0022, .0012, 12);
-    const frameM = new T.MeshStandardMaterial({color: '#6e5430', metalness: .9, roughness: .48, map: this.grime(57)}); // darker, worn brass for the bay frames
+    const frameM = new T.MeshStandardMaterial({color: '#6e5430', metalness: .9, roughness: .48, map: this.grime(57)}); this.frameMat = frameM; // darker, worn brass for the bay frames (a tap on a frame steps back to the whole case)
     const layout: [Mechanism, number, number, number, number][] = [['WIRE_MAZE', -.145, -.068, .15, .15], ['HIDDEN_CONNECTIONS', 0, -.068, .125, .13], ['XRAY', .145, -.068, .13, .13], ['LASER', -.085, .072, .25, .12], ['THERMAL', .14, .072, .15, .12]];
     layout.forEach(([m, x, z, w, d], i) => { const g = new T.Group(); g.position.set(x, .002, z); this.interior.add(g);
       const plate = new T.Mesh(new T.BoxGeometry(w, .003, d), brushed); plate.position.y = .0015; g.add(plate);
@@ -170,7 +171,7 @@ export class Suitcase {
     this.root.traverse(o => { o.castShadow = false; });
     const proxy = new T.Mesh(new T.BoxGeometry(W, HB + HL, D), new T.MeshBasicMaterial({colorWrite: false, depthWrite: false})); proxy.castShadow = true; proxy.raycast = () => {}; proxy.userData.shadowProxy = true; this.body.add(proxy);
   }
-  private leatherMeshes: T.Mesh[] = []; private halos = new Map<Mechanism, T.Sprite>(); private timerHalo: T.Sprite | null = null;
+  private leatherMeshes: T.Mesh[] = []; private frameMat: T.Material | null = null; private focusZoom = 0; private halos = new Map<Mechanism, T.Sprite>(); private timerHalo: T.Sprite | null = null;
   private static haloT: T.Texture | null = null;
   static haloTex() { if (Suitcase.haloT) return Suitcase.haloT; const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d')!, g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
     g.addColorStop(0, 'rgba(255,255,255,.95)'); g.addColorStop(.18, 'rgba(255,255,255,.55)'); g.addColorStop(.5, 'rgba(255,255,255,.12)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return Suitcase.haloT = new T.CanvasTexture(c); }
@@ -221,7 +222,7 @@ export class Suitcase {
   /** set the armed mechanism for this event */
   arm(list: Mechanism[], done: Set<Mechanism>) { this.armed = [...list]; this.neutral = done; }
   /** bring a bay up to fill the view (the case turns its tray to the player); null returns to the whole case */
-  focusOn(m: Mechanism | null) { this.focus = m; this.focusT = m ? 1.1 : 0; if (m) { this.aim = {yaw: 0, pitch: 1.42}; } else { this.aim = {yaw: 0, pitch: .95}; this.zoom = 1; this.off.set(0, 0); } }
+  focusOn(m: Mechanism | null) { this.focus = m; this.focusT = m ? 1.1 : 0; this.focusZoom = 0; if (m) { this.aim = {yaw: 0, pitch: 1.42}; } else { this.aim = {yaw: 0, pitch: .95}; this.zoom = 1; this.off.set(0, 0); } }
   reset() { if (this.shattered) { for (const sv of this.saved) { sv.parent.add(sv.o); sv.o.position.copy(sv.p); sv.o.quaternion.copy(sv.q); sv.o.visible = sv.vis; } this.saved = []; this.debris = []; this.shattered = false; for (const h of this.halos.values()) h.visible = true; if (this.timerHalo) this.timerHalo.visible = true; }
     this.focus = null; this.frozen = false; this.shownSec = -1; this.latchOpen = [false, false]; this.lidT = this.lidTarget = 0; this.found = false; for (const l of this.latches) { l.t = 0; l.clasp.rotation.x = 0; } this.lid.rotation.x = 0; this.yaw = 0; this.pitch = .62; this.zoom = 1; this.off.set(0, 0); this.urgency = 0; }
   get open() { return this.lidT > .97; }
@@ -238,10 +239,12 @@ export class Suitcase {
   pointerMove(x: number, y: number) { if (this.grab && this.cam) { if (Math.hypot(x - this.last.x, y - this.last.y) > 3) this.grabMoved = true; const rc = new T.Raycaster(); rc.setFromCamera(new T.Vector2(x / innerWidth * 2 - 1, -y / innerHeight * 2 + 1), this.cam); this.grab(rc); return; }
     if (!this.dragging) return; const k = 3.2 / Math.max(innerHeight, 420), dx = (x - this.last.x) * k, dy = (y - this.last.y) * k, now = performance.now(), dt = Math.max(1, now - this.last.t) / 1000;
     this.yaw += dx; this.pitch = Math.max(-1.45, Math.min(1.45, this.pitch + dy)); this.vYaw = this.vYaw * .5 + dx / dt * .5; this.vPitch = this.vPitch * .5 + dy / dt * .5; this.last = {x, y, t: now}; }
-  pointerUp(tap: boolean) { if (this.grab) { this.grab = null; if (tap) { const rc = new T.Raycaster(); rc.ray.copy(this.downRay); this.onTap?.(rc); } return; } this.dragging = false; if (performance.now() - this.last.t > 80) this.vYaw = this.vPitch = 0; if (tap) { this.vYaw = this.vPitch = 0; const rc = new T.Raycaster(); rc.ray.copy(this.downRay); if (!(this.open && this.onTap?.(rc))) this.tapPart(this.downHit); } this.downHit = null; }
+  pointerUp(tap: boolean) { if (this.grab) { this.grab = null; if (tap) { const rc = new T.Raycaster(); rc.ray.copy(this.downRay); this.onTap?.(rc); } return; } this.dragging = false; if (performance.now() - this.last.t > 80) this.vYaw = this.vPitch = 0; if (tap) { this.vYaw = this.vPitch = 0; const rc = new T.Raycaster(); rc.ray.copy(this.downRay); if (!(this.open && this.onTap?.(rc))) this.tapPart(this.downHit, rc); } this.downHit = null; }
   /** pinch / wheel: k > 1 brings the case closer; (nx, ny) is the finger / cursor in NDC, which stays over the same spot */
   zoomBy(k: number, nx: number, ny: number, camera: T.PerspectiveCamera) {
-    this.focusT = 0; const z0 = this.zoom, z1 = Math.max(.75, Math.min(this.focus ? 9 : 4, z0 * k)); if (z1 === z0) return; const d0 = this.dist / z0, d1 = this.dist / z1, ty = Math.tan(T.MathUtils.degToRad(camera.fov / 2)), tx = ty * camera.aspect;
+    this.focusT = 0; const z0 = this.zoom, z1 = Math.max(.75, Math.min(this.focus ? 9 : 4, z0 * k));
+    // pinching / wheeling out of a close bay returns to the whole case
+    if (this.focus && k < 1 && this.focusZoom > 0 && z0 * k < this.focusZoom * .6) { this.focusOn(null); this.onEvent('UNFOCUS'); return; } if (z1 === z0) return; const d0 = this.dist / z0, d1 = this.dist / z1, ty = Math.tan(T.MathUtils.degToRad(camera.fov / 2)), tx = ty * camera.aspect;
     // keep the point under the finger: O' = O + u·(d1 − d0), u = the finger's direction per metre of depth
     this.off.x = this.clampOff(this.off.x + nx * tx * (d1 - d0), tx * d1); this.off.y = this.clampOff(this.off.y + ny * ty * (d1 - d0), ty * d1); this.zoom = z1;
   }
@@ -250,11 +253,13 @@ export class Suitcase {
   pan(dx: number, dy: number, camera: T.PerspectiveCamera) { const d = this.dist / this.zoom, ty = Math.tan(T.MathUtils.degToRad(camera.fov / 2)), s = 2 * ty * d / Math.max(innerHeight, 1);
     this.off.x = this.clampOff(this.off.x + dx * s, ty * camera.aspect * d); this.off.y = this.clampOff(this.off.y - dy * s, ty * d); }
 
-  private tapPart(h: T.Intersection | null) {
-    if (!h) return; const ud = h.object.userData;
+  private tapPart(h: T.Intersection | null, rc?: T.Raycaster) {
+    if (!h) { if (rc) this.onMiss?.(rc); return; } const ud = h.object.userData;
     if (ud.part === 'latch') { const i = ud.latch as number; if (!this.latchOpen[i]) { this.latchOpen[i] = true; this.onEvent('LATCH'); } return; }
     // tap a bay to bring it close; while one is close, tapping a neighbour moves straight to it
-    if (this.open) { for (const m of MECHANISMS) { let o: T.Object3D | null = h.object; while (o && o !== this.bays[m].group) o = o.parent; if (o && m !== this.focus) { this.focusOn(m); this.onEvent('FOCUS'); return; } } }
+    if (this.open) { for (const m of MECHANISMS) { let o: T.Object3D | null = h.object; while (o && o !== this.bays[m].group) o = o.parent; if (o && m !== this.focus) { this.focusOn(m); this.onEvent('FOCUS'); return; } if (o) { if (this.focus && (h.object as T.Mesh).material === this.frameMat) { this.focusOn(null); this.onEvent('UNFOCUS'); } return; } }
+      // a tap on the case but outside any bay (tray, frame, lid) while a bay is close: step back to the whole case
+      if (this.focus) { this.focusOn(null); this.onEvent('UNFOCUS'); return; } }
     if (ud.part === 'lid' && this.lidTarget === 0) { if (this.latchOpen.every(Boolean)) { this.lidTarget = 1; this.onEvent('LID_OPEN'); this.aim = {yaw: 0, pitch: .95}; this.off.set(0, 0); } else { this.rattle = 1; this.onEvent('LOCKED'); } }
   }
   /** the mechanism under a ray (for stage 4 tools), when the lid is open */
@@ -318,6 +323,7 @@ export class Suitcase {
     // in hand: distance that frames the whole case (width and height, any aspect), then the user's zoom
     const ty = Math.tan(T.MathUtils.degToRad(camera.fov / 2)), tx = ty * camera.aspect, R = this.lidT > .2 ? .37 : .26; this.dist = Math.max(R / (tx * .82), R / (ty * .9), R + .08);
     // a focused bay: centre it and size it to ~88 % of the shorter view side (eases in, then the player is free to zoom / turn)
+    if (this.focus && this.focusT <= 0 && !this.focusZoom) this.focusZoom = this.zoom;
     if (this.focus && this.focusT > 0) { this.focusT -= dt; const b = this.bays[this.focus], q = new T.Quaternion().setFromEuler(new T.Euler(this.pitch, this.yaw, 0, 'XYZ'));
       const bp = b.group.position.clone().add(this.interior.position).applyQuaternion(q), half = Math.max(b.size[0], b.size[1]) / 2 * 1.08, dBay = half / (Math.min(tx, ty) * .88);
       const kz = 1 - Math.exp(-dt * 5); this.off.x += (-bp.x - this.off.x) * kz; this.off.y += (-bp.y - this.off.y) * kz; this.zoom += (this.dist / Math.max(.05, dBay + bp.z) - this.zoom) * kz; }

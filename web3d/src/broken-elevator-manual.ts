@@ -141,7 +141,7 @@ async function boot() {
   let wireLayout: WireLayout | null = null, linksModel: LinksModel | null = null, armed: Mechanism[] = [], neutral = new Set<Mechanism>(), probeSel: 0 | 1 = 0;
   const STRIKES = () => ({EASY: 3, NORMAL: 2, HARD: 1} as Record<string, number>)[DIFF()] ?? 2; let toastT: any = 0;
   const toast = (t: string) => { const pr = $('prompt'); pr.textContent = t; pr.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => { pr.classList.remove('show'); toastT = 0; }, 1800); };
-  const setCutters = (on: boolean) => { cutters = on; $('btn-cut').classList.toggle('on', on); document.body.classList.toggle('cutters', on); };
+  const setCutters = (on: boolean) => { cutters = on; maze?.setCutters(on); $('btn-cut').classList.toggle('on', on); document.body.classList.toggle('cutters', on); };
   const live = (m: Mechanism) => armed.includes(m) && !neutral.has(m);
   /** a wrong defusal move: the bomb flinches (server-judged in a room, locally in practice) */
   const TAUNT_STRIKE = [L('Осторожнее. Я бы не хотел собирать вас по частям.', 'Careful. I would hate to collect you in pieces.'), L('Ай-ай-ай. Блокнот же прямо у вас в руках.', 'Tut-tut. The notebook is right there in your hands.'), L('Ещё одна такая ошибка — и нам понадобится новая клетка.', 'One more like that and we will need a new cage.')];
@@ -153,8 +153,8 @@ async function boot() {
     if (left === 1) setTimeout(() => taunt([L('Неплохо. Но последний — самый коварный.', 'Not bad. But the last one is the trickiest.'), L('Два из трёх. Не расслабляйтесь.', 'Two out of three. Do not relax.')]), 2400);
     if (left > 0) { audio.play('labOk'); audio.play('relay'); haptic('good'); verdict(true, L(`Осталось механизмов: ${left}`, `Mechanisms left: ${left}`), L('Механизм обезврежен', 'Mechanism neutralised')); setTimeout(() => { if (suitcase?.focus === m) suitcase.focusOn(null); }, 1100); } };
   const judge = (m: Mechanism, ok: boolean, what: string) => { if (ok) { neutralFx(m); if (armed.every(x => neutral.has(x))) bombFinish(true, 'DEFUSED'); } else { mistakes++; strikes++; if (strikes > STRIKES()) bombFinish(false, 'WRONG'); /* the fatal mistake is the blast itself */ else strikeFx(what); } };
-  const setLcd = (t: string) => { const el = $('t-lcd'); el.textContent = t; el.classList.remove('blink'); void el.offsetWidth; el.classList.add('blink'); audio.play('button', .4); audio.play(t === 'OL' || t === '—' ? 'beepLo' : 'beepHi'); };
-  const measure = () => { if (!links || links.red < 0 || links.black < 0) return; if (IN_ROOM) { $('t-lcd').textContent = '…'; RoomSocket.shared()?.send('BOMB_ACTION', {action: 'PROBE', arg: links.red * 32 + links.black, seq: ++bombSeq}); } else if (linksModel) setLcd(linksModel.read(links.red, links.black)); };
+  const setLcd = (t: string) => { links?.setReading(t); const el = $('t-lcd'); el.textContent = t; el.classList.remove('blink'); void el.offsetWidth; el.classList.add('blink'); audio.play('button', .4); audio.play(t === 'OL' || t === '—' ? 'beepLo' : 'beepHi'); };
+  const measure = () => { if (!links || links.red < 0 || links.black < 0) return; if (IN_ROOM) { $('t-lcd').textContent = '…'; links.setReading('…'); RoomSocket.shared()?.send('BOMB_ACTION', {action: 'PROBE', arg: links.red * 32 + links.black, seq: ++bombSeq}); } else if (linksModel) setLcd(linksModel.read(links.red, links.black)); };
   const ensureBomb = () => { if (suitcase && nbook) return;
     suitcase = new Suitcase(overlay, quality === 'high'); suitcase.place(ci, floorY); scene.add(suitcase.root); suitcase.place(ci, floorY);
     nbook = nb; startDefusalBook();
@@ -164,21 +164,29 @@ async function boot() {
       if ((f === 'XRAY' ? xrayV!.leverAt(rc) : thermalV!.valveAt(rc)) >= 0) return null; // a tap on a lever / valve stays a tap
       if (!v.dragTo(rc)) return null; return r2 => { v.dragTo(r2); if (performance.now() - scanSound > 260) { scanSound = performance.now(); audio.play(f === 'XRAY' ? 'scanHum' : 'thermo', .8); } }; };
     suitcase.onTap = rc => { const f = suitcase!.focus; if (kind !== 'bomb' || bombDone || !f || !live(f)) return false;
-      if (f === 'WIRE_MAZE' && maze) { const h = maze.wireAt(rc); if (!h) return false;
-        if (!cutters) { toast(L('Сначала возьмите кусачки', 'Take the cutters first')); haptic('tap'); return true; }
+      if (f === 'WIRE_MAZE' && maze) { if (maze.cuttersAt(rc)) { setCutters(!cutters); audio.play('valveClick'); audio.play('pickup', .6); haptic('tap'); return true; }
+        const h = maze.wireAt(rc); if (!h) return false;
+        if (!cutters) { toast(L('Сначала возьмите кусачки — они лежат в углу отсека', 'Take the cutters first — they lie in the bay corner')); haptic('tap'); return true; }
         if (!h.mid) { toast(L('Режьте посередине провода', 'Cut in the middle of the wire')); haptic('tap'); return true; }
         maze.sever(h.wire, h.t); audio.play('snip'); haptic('tap');
         if (IN_ROOM) RoomSocket.shared()?.send('BOMB_ACTION', {action: 'CUT', arg: h.wire, seq: ++bombSeq}); else judge('WIRE_MAZE', !!wireLayout && h.wire === solveWires(wireLayout), L('Неверный провод', 'Wrong wire'));
         return true; }
       if (f === 'XRAY' && xrayV) { const i = xrayV.leverAt(rc); if (i < 0) return false; xrayV.throw(i); audio.play('lever'); haptic('tap');
         if (IN_ROOM) RoomSocket.shared()?.send('BOMB_ACTION', {action: 'ISOLATE', arg: i, seq: ++bombSeq}); else judge('XRAY', !!xrayL && i === solveXray(xrayL), L('Не та банка', 'Wrong canister')); return true; }
+      if (f === 'LASER' && laserV && laserV.confirmAt(rc)) { laserV.pressConfirm(); confirmBeam(); return true; }
       if (f === 'LASER' && laserV) { const i = laserV.mirrorAt(rc); if (i < 0) return false; laserV.rotate(i); if (laserV.hit) setTimeout(() => audio.play('ping', .8), 120); audio.play('valveClick'); audio.play('grind', .3); haptic('tap');
         if (IN_ROOM) RoomSocket.shared()?.send('BOMB_ACTION', {action: 'ROTATE', arg: i, seq: ++bombSeq}); return true; }
       if (f === 'THERMAL' && thermalV) { const i = thermalV.valveAt(rc); if (i < 0) return false; thermalV.vent(i); audio.play('valveTurn'); audio.play('vent', .6); haptic('tap');
         if (IN_ROOM) RoomSocket.shared()?.send('BOMB_ACTION', {action: 'VENT', arg: i, seq: ++bombSeq}); else judge('THERMAL', !!thermalL && i === solveThermal(thermalL), L('Не та капсула', 'Wrong capsule')); return true; }
-      if (f === 'HIDDEN_CONNECTIONS' && links) { const id = links.contactAt(rc); if (id < 0) return false; links.place(probeSel, id); audio.play('valveClick'); haptic('tap'); probeSel = probeSel ? 0 : 1; syncTester(); measure(); return true; }
+      if (f === 'HIDDEN_CONNECTIONS' && links) { const tool = links.toolAt(rc);
+        if (tool?.kind === 'break') { links.pressBreak(); breakLink(); return true; }
+        if (tool?.kind === 'probe') { probeSel = tool.i; links.selected = probeSel; audio.play('pickup', .5); haptic('tap'); return true; }
+        const id = links.contactAt(rc); if (id < 0) return false; links.place(probeSel, id); audio.play('valveClick'); haptic('tap'); probeSel = probeSel ? 0 : 1; links.selected = probeSel; syncTester(); measure(); return true; }
       return false; };
-    suitcase.onEvent = e => { if (e === 'PICKUP' && !suitcase!.open) coach('latches'); if (e === 'LID_OPENED') coach(nbook?.taken ? 'bays' : 'notebook'); if (e === 'FOCUS') { const f = suitcase!.focus!; coach(!armed.includes(f) ? 'dead' : neutral.has(f) ? 'safe' : nbook?.taken ? 'tool' : 'notebook'); }
+    // a tap that misses the case: raise the lowered notebook if it was tapped, step back out of a bay, or set the case down
+    suitcase.onMiss = rc => { if (dui && dbook && dui.lowered && rc.intersectObject(dbook.root, true).length) { nb.show(); return; }
+      if (suitcase!.focus) { suitcase!.focusOn(null); if (!bombDone) coach(nbook?.taken ? 'bays' : 'notebook'); return; } setInspect(false); };
+    suitcase.onEvent = e => { if (e === 'UNFOCUS' && !bombDone) coach(nbook?.taken ? 'bays' : 'notebook'); if (e === 'PICKUP' && !suitcase!.open) coach('latches'); if (e === 'LID_OPENED') coach(nbook?.taken ? 'bays' : 'notebook'); if (e === 'FOCUS') { const f = suitcase!.focus!; coach(!armed.includes(f) ? 'dead' : neutral.has(f) ? 'safe' : nbook?.taken ? 'tool' : 'notebook'); }
       if (e === 'PICKUP') { audio.play('pickup'); haptic('tap'); bombAct('FOUND'); } if (e === 'PUTDOWN') audio.play('drop', .5); if (e === 'LATCH') { audio.play('lever'); audio.play('valveClick'); haptic('tap'); }
       if (e === 'LOCKED') { audio.play('locked'); haptic('bad'); } if (e === 'LID_OPEN') { audio.play('creak', .8); audio.play('coverOpen'); bombAct('OPEN'); } if (e === 'FOCUS') { audio.play('button', .5); haptic('tap'); } if (e === 'LID_OPENED') { audio.play('impactMetal', .4); audio.play('alarm', .25); shake = Math.max(shake, .12); } };
   };
@@ -186,8 +194,9 @@ async function boot() {
   const coach = (step: 'find' | 'latches' | 'bays' | 'notebook' | 'tool' | 'dead' | 'safe' | 'off') => { const el = $('bomb-coach'); const t: Record<string, string> = {
       find: L('Найдите в клетке чемоданчик и блокнот', 'Find the suitcase and the notebook in the cage'), latches: L('Поверните чемодан · откиньте обе защёлки спереди · поднимите крышку', 'Turn the case · flip both front latches · lift the lid'),
       bays: L('Красные лампы — заряженные отсеки. Нажмите на отсек, чтобы приблизить', 'Red lamps mark the armed bays. Tap a bay to bring it close'), notebook: L('Нужны правила — блокнот лежит где-то в клетке', 'You need the rules — the notebook is somewhere in the cage'),
+      back: L('Коснитесь пустого места рядом — вернуться ко всему чемодану', 'Tap empty space beside it to return to the whole case'),
       dead: L('Этот отсек не заряжен — лампа не горит. Ищите отсеки с красной лампой', 'This bay is not armed — its lamp is dark. Look for the red lamps'), safe: L('Этот механизм уже обезврежен — лампа зелёная', 'This mechanism is already neutralised — the lamp is green'),
-      tool: L('Откройте главу этого отсека в блокноте · «Назад» — ко всему чемодану', 'Open this bay\'s chapter in the notebook · "Back" returns to the whole case'), off: ''};
+      tool: L('Сверьтесь с главой этого отсека в блокноте · латунная рамка или отдаление — ко всему чемодану', 'Check this bay\'s chapter in the notebook · tap its brass frame or zoom out for the whole case'), off: ''};
     el.textContent = t[step]; el.classList.toggle('show', step !== 'off'); };
   const syncTester = () => { $('t-red').classList.toggle('on', probeSel === 0); $('t-black').classList.toggle('on', probeSel === 1); };
   const bombAct = (action: 'FOUND' | 'OPEN') => RoomSocket.shared()?.send('BOMB_ACTION', {action, seq: ++bombSeq});
@@ -427,6 +436,9 @@ async function boot() {
   const bombUp = (e: PointerEvent) => { bombPtrs.delete(e.pointerId); if (bombPtrs.size < 2) pinchD = 0; }; addEventListener('pointerup', bombUp); addEventListener('pointercancel', bombUp);
   renderer.domElement.addEventListener('wheel', e => { if (!bombHeld()) return; e.preventDefault(); suitcase!.zoomBy(Math.exp(-e.deltaY * .0015), e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1, camera); }, {passive: false});
   $('t-red').onclick = () => { probeSel = 0; syncTester(); haptic('tap'); }; $('t-black').onclick = () => { probeSel = 1; syncTester(); haptic('tap'); };
+  const confirmBeam = () => { if (!laserV || kind !== 'bomb' || bombDone || !live('LASER')) return; audio.play('button'); audio.play('relay');
+    if (IN_ROOM) RoomSocket.shared()?.send('BOMB_ACTION', {action: 'CONFIRM', seq: ++bombSeq}); else { const ok = !!laserL && laserV.hit === laserL.target; if (ok) laserV.done = true; judge('LASER', ok, L('Луч не на гасящем датчике', 'The beam is not on the quench sensor')); } };
+  const breakLink = () => $('t-break').onclick?.(new MouseEvent('click'));
   $('t-break').onclick = () => { if (!links || kind !== 'bomb' || bombDone || !live('HIDDEN_CONNECTIONS')) return; if (links.red < 0 || links.black < 0 || links.red === links.black) { toast(L('Поставьте оба щупа на пару контактов', 'Put both probes on a pair of contacts')); return; }
     audio.play('lever'); audio.play('spark', .5); if (IN_ROOM) RoomSocket.shared()?.send('BOMB_ACTION', {action: 'BREAK', arg: links.red * 32 + links.black, seq: ++bombSeq}); else judge('HIDDEN_CONNECTIONS', !!linksModel?.isFiring(links.red, links.black), L('Не та пара', 'Wrong pair')); };
   $('btn-laser').onclick = () => { if (!laserV || kind !== 'bomb' || bombDone || !live('LASER')) return; audio.play('button'); audio.play('relay');
@@ -466,7 +478,9 @@ async function boot() {
       if (liveK) { $('hint').style.opacity = '0'; $('bomb-coach').style.opacity = cur().state !== 'rest' && !cur().lowered ? '0' : ''; }
       if (liveK && !bombDone) $('btn-cut').hidden = !(inspecting && inspectTarget === 'bomb' && suitcase.open && live('WIRE_MAZE') && suitcase.focus === 'WIRE_MAZE' && !nbook.open); maze?.update(dt); links?.update(dt); xrayV?.update(dt); laserV?.update(dt); thermalV?.update(dt);
       const fb = (m: Mechanism) => liveK && !bombDone && inspecting && inspectTarget === 'bomb' && suitcase.open && suitcase.focus === m && live(m) && !nbook.open;
-      $('btn-laser').hidden = !fb('LASER'); $('scope').hidden = !fb('THERMAL'); if (!$('scope').hidden && thermalV && thermalL) { const i = thermalV.under(); $('sc-lcd').textContent = i >= 0 ? `${thermalL.caps[i].temp} °C · №${i + 1}` : '— °C'; }
+      $('btn-laser').hidden = !fb('LASER'); $('scope').hidden = !fb('THERMAL'); if (fb('THERMAL') && thermalV && thermalL) { const i = thermalV.under(), t = i >= 0 ? `${thermalL.caps[i].temp}°C №${i + 1}` : '— °C'; thermalV.readout(t); $('sc-lcd').textContent = t; }
+      // defusal is done with the objects alone: no on-screen buttons while the case is in hand
+      document.body.classList.toggle('bomb-objects', liveK && inspecting && inspectTarget === 'bomb');
       document.body.classList.toggle('tool-open', !$('tester').hidden || !$('scope').hidden);
       $('tester').hidden = !(liveK && !bombDone && inspecting && inspectTarget === 'bomb' && suitcase.open && suitcase.focus === 'HIDDEN_CONNECTIONS' && armed.includes('HIDDEN_CONNECTIONS') && !neutral.has('HIDDEN_CONNECTIONS') && !nbook.open);
       const pr = $('prompt'); if (inspecting && !toastT) pr.classList.remove('show'); if (!inspecting) pr.textContent = gs ? L('ОСМОТРЕТЬ ЧЕМОДАНЧИК', 'INSPECT THE SUITCASE') : gn ? L('ВЗЯТЬ БЛОКНОТ', 'TAKE THE NOTEBOOK') : pr.textContent; if (!inspecting) pr.classList.toggle('show', gs || gn);

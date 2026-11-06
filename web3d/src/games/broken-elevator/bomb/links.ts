@@ -37,8 +37,7 @@ export class LinksView {
     x.fillStyle = '#e8d4a6'; x.textAlign = 'center'; x.textBaseline = 'middle';
     for (let i = 0; i < n; i++) { const px = (i + .5) / n * 768; x.font = 'bold 64px "Libre Caslon Text", Georgia, serif'; x.fillText(LETTERS[i], px, 120); x.font = 'bold 60px "IBM Plex Mono", monospace'; x.fillText(String(i + 1), px, 690); }
     // engraved "sealed" plate between the rows: the links run under it
-    x.fillStyle = '#1c1a17'; x.fillRect(60, 300, 648, 200); x.strokeStyle = '#7a6438'; x.strokeRect(60, 300, 648, 200); x.font = 'bold 34px Oswald, sans-serif'; x.fillStyle = '#9a8458'; x.fillText(L('ПЛОМБА · НЕ ВСКРЫВАТЬ', 'SEALED · DO NOT OPEN'), 384, 400);
-    for (let k = 0; k < 8; k++) { x.beginPath(); x.arc(80 + k * 87, 320, 6, 0, 7); x.arc(80 + k * 87, 480, 6, 0, 7); x.fillStyle = '#5a4a32'; x.fill(); }
+    x.fillStyle = '#1c1a17'; x.fillRect(40, 300, 688, 200); x.strokeStyle = '#7a6438'; x.strokeRect(40, 300, 688, 200); x.font = 'bold 22px Oswald, sans-serif'; x.fillStyle = '#9a8458'; x.fillText(L('ТЕСТЕР', 'TESTER'), 384, 324); x.fillText(L('РАЗОМКНУТЬ', 'BREAK'), 662, 476); x.fillText(L('ЩУПЫ', 'PROBES'), 106, 476);
     this.tex = new T.CanvasTexture(plate); this.tex.colorSpace = T.SRGBColorSpace; this.tex.anisotropy = 8;
     const face = new T.Mesh(this.g(new T.PlaneGeometry(W, D)), this.m(new T.MeshStandardMaterial({map: this.tex, metalness: .5, roughness: .55}))); face.rotation.x = -Math.PI / 2; face.position.y = .0034; this.group.add(face);
     const brass = this.m(new T.MeshStandardMaterial({color: '#c09450', metalness: 1, roughness: .3})), dome = this.g(new T.SphereGeometry(.0052, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2)), ring = this.g(new T.TorusGeometry(.0058, .0011, 6, 20)), dark = this.m(new T.MeshStandardMaterial({color: '#141210', metalness: .6, roughness: .5}));
@@ -50,7 +49,17 @@ export class LinksView {
       const needle = new T.Mesh(this.g(new T.ConeGeometry(.0011, .012, 8)), sm); needle.rotation.x = Math.PI; needle.position.y = .006; g.add(needle);
       const handle = new T.Mesh(this.g(new T.CylinderGeometry(.0028, .0032, .03, 12)), hm); handle.position.y = .027; g.add(handle);
       const guard = new T.Mesh(this.g(new T.CylinderGeometry(.0045, .0045, .002, 14)), hm); guard.position.y = .013; g.add(guard);
-      g.rotation.z = col === '#151515' ? -.35 : .35; g.visible = false; this.group.add(g); this.probes.push({g, at: -1, y: 0}); }
+      g.rotation.z = col === '#151515' ? -.35 : .35; this.group.add(g); this.probes.push({g, at: -1, y: 0}); g.traverse(o => { if ((o as T.Mesh).isMesh) o.userData.probe = this.probes.length - 1; }); }
+    // the tester's screen sits where the seal was; probe holders on the left, a red break button on the right
+    const lc = document.createElement('canvas'); lc.width = 512; lc.height = 128; this.lcdCtx = lc.getContext('2d')!; this.lcdTex = new T.CanvasTexture(lc); this.lcdTex.colorSpace = T.SRGBColorSpace;
+    const lcd = new T.Mesh(this.g(new T.PlaneGeometry(.05, .0125)), this.m(new T.MeshBasicMaterial({map: this.lcdTex, toneMapped: false}))); lcd.rotation.x = -Math.PI / 2; lcd.position.set(0, .0042, .0005); this.group.add(lcd); this.setReading('— — —');
+    const bez = new T.Mesh(this.g(new T.BoxGeometry(.054, .0016, .0165)), this.m(new T.MeshStandardMaterial({color: '#0c0b0a', metalness: .4, roughness: .5}))); bez.position.set(0, .0029, .0005); this.group.add(bez);
+    this.breakM = this.m(new T.MeshStandardMaterial({color: '#c01c10', emissive: '#ff2a10', emissiveIntensity: .25, roughness: .35}));
+    const btn = new T.Mesh(this.g(new T.CylinderGeometry(.0042, .0046, .004, 18)), this.breakM); btn.position.set(.042, .0055, -.001); btn.userData.breakBtn = true; this.group.add(btn); this.breakBtn = btn;
+    const bRing = new T.Mesh(this.g(new T.TorusGeometry(.005, .0009, 6, 18)), brass); bRing.rotation.x = Math.PI / 2; bRing.position.set(.042, .0038, -.001); this.group.add(bRing);
+    this.holderM = [0, 1].map(i => this.m(new T.MeshStandardMaterial({color: '#2a2622', emissive: i ? '#dddddd' : '#ff3a20', emissiveIntensity: 0, metalness: .6, roughness: .4})));
+    [0, 1].forEach(i => { const h = new T.Mesh(this.g(new T.CylinderGeometry(.0034, .0034, .005, 12)), this.holderM[i]); h.position.set(-.046 + i * .009, .0058, -.001); h.userData.holder = i; this.group.add(h); this.holders.push(h); });
+    this.place(0, -1); this.place(1, -1);
     this.geos.push(...mergeStatic(this.group));
   }
   private g<G extends T.BufferGeometry>(g: G) { this.geos.push(g); return g; }
@@ -58,14 +67,20 @@ export class LinksView {
   contactAt(ray: T.Raycaster): number { const h = ray.intersectObjects(this.contacts, false)[0]; if (h) return h.object.userData.contact;
     // forgiving touch: the nearest contact within 9 mm of the hit on the plate
     const p = ray.intersectObject(this.group, true)[0]; if (!p) return -1; const lp = this.group.worldToLocal(p.point.clone()); let best = -1, bd = .009 ** 2; for (const c of this.contacts) { const d = (c.position.x - lp.x) ** 2 + (c.position.z - lp.z) ** 2; if (d < bd) { bd = d; best = c.userData.contact; } } return best; }
-  place(probe: 0 | 1, id: number) { if (probe === 0) this.red = id; else this.black = id; const pr = this.probes[probe]; pr.at = id; pr.y = .02; pr.g.visible = id >= 0; }
+  private lcdCtx!: CanvasRenderingContext2D; private lcdTex: T.CanvasTexture | null = null; private breakM!: T.MeshStandardMaterial; private breakBtn: T.Mesh | null = null; private press = 0; private holderM: T.MeshStandardMaterial[] = []; private holders: T.Mesh[] = []; selected: 0 | 1 = 0;
+  setReading(t: string) { const x = this.lcdCtx; x.fillStyle = '#0d170c'; x.fillRect(0, 0, 512, 128); x.font = 'bold 84px "IBM Plex Mono", monospace'; x.textAlign = 'right'; x.textBaseline = 'middle'; x.shadowColor = '#7aff6a'; x.shadowBlur = 14; x.fillStyle = '#a8f090'; x.fillText(t, 490, 68); x.shadowBlur = 0; if (this.lcdTex) this.lcdTex.needsUpdate = true; }
+  /** what a tap on the panel means: a contact, the break button, a probe (or its holder) to pick up */
+  toolAt(ray: T.Raycaster): {kind: 'break'} | {kind: 'probe'; i: 0 | 1} | null { for (const h of ray.intersectObject(this.group, true)) { const u = h.object.userData; if (u.breakBtn) return {kind: 'break'}; if (u.holder !== undefined) return {kind: 'probe', i: u.holder}; if (u.probe !== undefined) return {kind: 'probe', i: u.probe}; } return null; }
+  pressBreak() { this.press = 1; }
+  place(probe: 0 | 1, id: number) { if (probe === 0) this.red = id; else this.black = id; const pr = this.probes[probe]; pr.at = id; pr.y = .02; }
   warn() { this.flash = 1; }
   update(dt: number) {
-    for (const p of this.probes) { if (p.at < 0) continue; const c = this.contacts[p.at]; p.y = Math.max(0, p.y - dt * .12); p.g.position.set(c.position.x, c.position.y + .004 + p.y, c.position.z); }
+    this.probes.forEach((p, i) => { p.y = Math.max(0, p.y - dt * .12); if (p.at < 0) { const h = this.holders[i]; if (h) p.g.position.set(h.position.x, .006 + p.y + (this.selected === i ? .006 : 0), h.position.z); } else { const c = this.contacts[p.at]; p.g.position.set(c.position.x, c.position.y + .004 + p.y + (this.selected === i ? .003 : 0), c.position.z); } });
+    this.holderM.forEach((m, i) => { m.emissiveIntensity = this.selected === i ? .8 : 0; }); this.press = Math.max(0, this.press - dt * 5); if (this.breakBtn) this.breakBtn.position.y = .0055 - this.press * .0018; if (this.breakM) this.breakM.emissiveIntensity = .25 + this.press * 1.5;
     this.flash = Math.max(0, this.flash - dt * 1.6);
     this.contacts.forEach(c => { const m = c.material as T.MeshStandardMaterial, id = c.userData.contact, sel = id === this.red || id === this.black; m.emissive.set(this.flash > 0 ? '#ff1a00' : '#ffb060'); m.emissiveIntensity = this.flash > 0 ? this.flash * (Math.sin(this.flash * 40) > 0 ? .9 : .2) : sel ? .35 : 0; });
   }
-  clear() { for (const o of [...this.group.children]) this.group.remove(o); for (const g of this.geos) g.dispose(); for (const m of this.mats) m.dispose(); this.tex?.dispose(); this.geos = []; this.mats = []; this.contacts = []; this.probes = []; }
+  clear() { for (const o of [...this.group.children]) this.group.remove(o); for (const g of this.geos) g.dispose(); for (const m of this.mats) m.dispose(); this.tex?.dispose(); this.lcdTex?.dispose(); this.lcdTex = null; this.geos = []; this.mats = []; this.contacts = []; this.probes = []; this.holders = []; this.holderM = []; this.breakBtn = null; }
 }
 
 // ---------------------------------------------------------------------------------------------- chapter II
@@ -83,6 +98,6 @@ chapters.HIDDEN_CONNECTIONS.push((x: CanvasRenderingContext2D, ink: Ink) => {
     [L('СРЕДНИЙ', 'NORMAL'), L('Диодов два. Пусковой — тот, что проводит от НОМЕРА к БУКВЕ (красный щуп на номере, чёрный на букве → 0.62▶).', 'Two diodes. The firing one conducts from the NUMBER to the LETTER (red on the number, black on the letter → 0.62▶).')],
     [L('СЛОЖНЫЙ', 'HARD'), L('Диодов три. Из тех, что проводят от номера к букве, пусковой — с БОЛЬШИМ номером.', 'Three diodes. Of those conducting number→letter, the firing one has the LARGER number.')]];
   let y = 320; for (const [h, t] of rows) { ink.print(h, 100, y, 32, {bold: true, color: '#7a1408'}); y = ink.para(t, 100, y + 46, PW - 200, 31) + 26; }
-  y = ink.para(L('Разомкнуть: поставь оба щупа на пусковую пару (порядок не важен) и нажми «Разомкнуть». Чужая пара — удар по взрывателю.', 'To break it: put both probes on the firing pair (either order) and press "Break". Any other pair is a strike on the fuse.'), 100, y + 10, PW - 200, 31);
+  y = ink.para(L('Разомкнуть: поставь оба щупа на пусковую пару (порядок не важен) и нажми красную кнопку «РАЗОМКНУТЬ» справа на панели. Щупы лежат в гнёздах слева: коснись щупа, чтобы взять именно его. Чужая пара — удар по взрывателю.', 'To break it: put both probes on the firing pair (either order) and press the red BREAK button on the right of the panel. The probes rest in holders on the left: tap a probe to take that one. Any other pair is a strike on the fuse.'), 100, y + 10, PW - 200, 31);
   ink.hand(L('Красный — откуда, чёрный — куда.', 'Red is from, black is to.'), 140, y + 80, 44, '#6a2a1a', -.03); void x;
 });

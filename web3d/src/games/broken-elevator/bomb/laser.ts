@@ -70,7 +70,11 @@ export class LaserView {
     void pl;
     this.beamM = this.m(new T.MeshBasicMaterial({color: '#ff2a12', transparent: true, opacity: .95, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false}));
     this.glowM = this.m(new T.MeshBasicMaterial({color: '#ff5a30', transparent: true, opacity: .25, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false}));
-    this.geos.push(...mergeStatic(this.group)); this.group.add(this.beam);
+    this.geos.push(...mergeStatic(this.group));
+    // a brass push-button beside the bed: press to confirm the beam
+    this.btnM = this.m(new T.MeshStandardMaterial({color: '#c09450', metalness: 1, roughness: .28, emissive: '#ffb050', emissiveIntensity: 0})); const bb = new T.Mesh(this.g(new T.CylinderGeometry(.0048, .0052, .004, 20)), this.btnM); bb.position.set(.116, .0058, -.028); bb.userData.confirm = true; this.group.add(bb); this.btn = bb;
+    const bbase = new T.Mesh(this.g(new T.CylinderGeometry(.0068, .0072, .0024, 20)), iron); bbase.position.set(.116, .0042, -.028); this.group.add(bbase);
+    this.group.add(this.beam);
     // lens flare at the emitter and dust drifting through the beam (sprites, one draw call each)
     const glow = (() => { const c2 = document.createElement('canvas'); c2.width = c2.height = 64; const g2 = c2.getContext('2d')!, gr = g2.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,240,230,1)'); gr.addColorStop(.25, 'rgba(255,90,60,.7)'); gr.addColorStop(1, 'rgba(255,40,20,0)'); g2.fillStyle = gr; g2.fillRect(0, 0, 64, 64); const t = new T.CanvasTexture(c2); this.texs.push(t); return t; })();
     const flare = new T.Sprite(this.m(new T.SpriteMaterial({map: glow, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false}))); flare.scale.setScalar(.014); flare.position.copy(this.cell(-1, l.emitter)).setY(.0085).add(new T.Vector3(CELL * .3 + .011, 0, 0)); flare.raycast = () => {}; this.group.add(flare); this.flare = flare;
@@ -79,6 +83,9 @@ export class LaserView {
   }
   private g<G extends T.BufferGeometry>(g: G) { this.geos.push(g); return g; }
   private m<M extends T.Material>(m: M) { this.mats.push(m); return m; }
+  private btn: T.Mesh | null = null; private btnM!: T.MeshStandardMaterial; private press = 0;
+  confirmAt(ray: T.Raycaster) { return ray.intersectObject(this.group, true).some(h => h.object.userData.confirm); }
+  pressConfirm() { this.press = 1; }
   mirrorAt(ray: T.Raycaster) { for (const h of ray.intersectObject(this.group, true)) if (h.object.userData.mirror !== undefined) return h.object.userData.mirror as number; return -1; }
   rotate(i: number) { if (!this.layout) return; this.layout.state[i] ^= 1; this.retrace(); }
   setState(st: number[]) { if (!this.layout || st.join() === this.layout.state.join()) return; this.layout.state = [...st]; this.retrace(); }
@@ -89,7 +96,7 @@ export class LaserView {
     this.layout.state.forEach((s, i) => { this.mirrors[i].ang = s === 0 ? Math.PI / 4 : -Math.PI / 4; }); }
   warn() { this.flash = 1; }
   private texs: T.Texture[] = []; private flare: T.Sprite | null = null; private dust: T.Points | null = null; private dustSeed: number[][] = []; private path: T.Vector3[] = [];
-  update(dt: number) { this.t += dt; if (this.flare) this.flare.scale.setScalar(.013 + Math.sin(this.t * 23) * .0012);
+  update(dt: number) { this.t += dt; this.press = Math.max(0, this.press - dt * 5); if (this.btn) { this.btn.position.y = .0058 - this.press * .0016; this.btnM.emissiveIntensity = this.press * .8; } if (this.flare) this.flare.scale.setScalar(.013 + Math.sin(this.t * 23) * .0012);
     // dust motes ride the beam path, each lit only near it (they drift slowly sideways)
     if (this.dust && this.path.length > 1) { const a = (this.dust.geometry.attributes.position as T.BufferAttribute), segs = this.path.length - 1;
       this.dustSeed.forEach((s, i) => { const u = (s[0] + this.t * .02 * (.5 + s[1])) % 1, k = Math.min(segs - 1, Math.floor(u * segs)), f = u * segs - k, p = this.path[k].clone().lerp(this.path[k + 1], f);
@@ -110,7 +117,7 @@ chapters.LASER.push((x: CanvasRenderingContext2D, ink: Ink) => {
 });
 chapters.LASER.push((x: CanvasRenderingContext2D, ink: Ink) => {
   ink.title(L('IV. Как вести луч', 'IV. Steering the beam'));
-  let y = ink.para(L('Нажатие на зеркало поворачивает его на четверть: «/» ↔ «\\». Луч отражается сразу. Заслонка луч гасит. Когда луч горит точно на гасящем датчике — нажми «Подтвердить». Луч на другом датчике или в никуда — удар по взрывателю.', 'Tapping a mirror turns it a quarter: "/" ↔ "\\". The beam reflects at once. A baffle stops it. When the beam rests exactly on the quench sensor, press "Confirm". A beam on another sensor or nowhere is a strike on the fuse.'), 100, 320, PW - 200, 31) + 30;
+  let y = ink.para(L('Нажатие на зеркало поворачивает его на четверть: «/» ↔ «\\». Луч отражается сразу. Заслонка луч гасит. Когда луч горит точно на гасящем датчике — нажми латунную кнопку справа от поля. Луч на другом датчике или в никуда — удар по взрывателю.', 'Tapping a mirror turns it a quarter: "/" ↔ "\\". The beam reflects at once. A baffle stops it. When the beam rests exactly on the quench sensor, press the brass button to the right of the bed. A beam on another sensor or nowhere is a strike on the fuse.'), 100, 320, PW - 200, 31) + 30;
   // diagram of the two mirror positions
   const d = (cx: number, cy: number, slash: boolean) => { x.strokeStyle = '#2a1c10'; x.lineWidth = 3; x.strokeRect(cx - 70, cy - 70, 140, 140); x.lineWidth = 8; x.beginPath(); x.moveTo(cx + (slash ? -45 : -45), cy + (slash ? 45 : -45)); x.lineTo(cx + 45, cy + (slash ? -45 : 45)); x.stroke();
     x.strokeStyle = '#a8261a'; x.lineWidth = 4; x.beginPath(); x.moveTo(cx - 130, cy); x.lineTo(cx, cy); x.lineTo(cx, cy + (slash ? -130 : 130)); x.stroke(); };

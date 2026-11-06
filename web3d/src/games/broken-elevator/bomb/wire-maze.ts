@@ -88,8 +88,18 @@ export class WireMazeView {
       for (const [t0, t1] of [[0, .07], [.93, 1]]) { const pts: T.Vector3[] = []; for (let k = 0; k <= 6; k++) pts.push(curve.getPoint(t0 + (t1 - t0) * k / 6)); const sl = new T.Mesh(this.g(new T.TubeGeometry(new T.CatmullRomCurve3(pts), 8, .0016, 7, false)), sleeveM); this.group.add(sl); }
       const sc = new T.CatmullRomCurve3(curve.getPoints(60).map(p => new T.Vector3(p.x + .0006, .0032, p.z + .0006))), shadow = new T.Mesh(this.g(new T.TubeGeometry(sc, 60, .0016, 4, false)), shadowM); shadow.scale.y = .2; this.group.add(shadow);
       this.wires.push({mesh, shadow, curve, h}); if (this.cut.has(i)) this.sever(i, .5, false); }
-    this.geos.push(...mergeStatic(this.group));
+    this.geos.push(...mergeStatic(this.group)); this.buildCutters();
   }
+  /** wire cutters lying in the bay corner: tap to take them (they rise and hover over the panel), tap again to put them down */
+  private cutters = new T.Group(); cuttersOn = false; private cutK = 0;
+  private buildCutters() { const c = this.cutters; c.clear(); const steel = this.m2(new T.MeshStandardMaterial({color: '#9c968c', metalness: 1, roughness: .3})), grip = this.m2(new T.MeshStandardMaterial({color: '#b02418', roughness: .5})), hitM = this.m2(new T.MeshBasicMaterial({visible: false}));
+    for (const s of [-1, 1]) { const h = new T.Mesh(this.g(new T.CapsuleGeometry(.0024, .022, 4, 8)), grip); h.rotation.z = Math.PI / 2; h.rotation.y = s * .16; h.position.set(-.012, 0, s * .0028); c.add(h);
+      const jaw = new T.Mesh(this.g(new T.BoxGeometry(.012, .0022, .0026)), steel); jaw.position.set(.011, 0, s * .0012); jaw.rotation.y = -s * .12; c.add(jaw); }
+    const pin = new T.Mesh(this.g(new T.CylinderGeometry(.0022, .0022, .0034, 10)), steel); pin.position.set(.004, 0, 0); c.add(pin);
+    const hit = new T.Mesh(this.g(new T.BoxGeometry(.05, .014, .02)), hitM); hit.userData.cutters = true; c.add(hit);
+    c.position.set(-.052, .0105, -.058); c.rotation.y = -Math.PI / 4; this.group.add(c); this.cutK = 0; this.cuttersOn = false; }
+  cuttersAt(ray: T.Raycaster) { return ray.intersectObject(this.cutters, true).some(h => h.object.userData.cutters); }
+  setCutters(on: boolean) { this.cuttersOn = on; }
   private g<G extends T.BufferGeometry>(g: G) { this.geos.push(g); return g; }
   private m2<M extends T.Material>(m: M) { this.mats.push(m); return m; }
   /** the wire under a ray, only in its middle stretch (cutting at a terminal is not allowed: trace it first) */
@@ -107,7 +117,8 @@ export class WireMazeView {
       if (fx) for (let s = 0; s < 6; s++) { const sp = new T.Mesh(this.g(new T.SphereGeometry(.0005, 4, 3)), new T.MeshBasicMaterial({color: '#ffcf7a'})); sp.position.copy(end); this.group.add(sp); this.sparks.push({m: sp, v: new T.Vector3((Math.random() - .5) * .08, .05 + Math.random() * .06, (Math.random() - .5) * .08), t: .5}); } } }
   /** a wrong cut: the whole panel flashes red for a moment */
   warn() { this.flash = 1; }
-  update(dt: number) { for (const s of this.sparks) { s.t -= dt; s.v.y -= .3 * dt; s.m.position.addScaledVector(s.v, dt); s.m.visible = s.t > 0; } this.sparks = this.sparks.filter(s => { if (s.t > 0) return true; this.group.remove(s.m); return false; });
+  update(dt: number) { this.cutK += ((this.cuttersOn ? 1 : 0) - this.cutK) * (1 - Math.exp(-dt * 10)); this.cutters.position.y = .0105 + this.cutK * .022; this.cutters.rotation.z = this.cutK * .5; this.cutters.rotation.x = this.cutK * -.35;
+    for (const s of this.sparks) { s.t -= dt; s.v.y -= .3 * dt; s.m.position.addScaledVector(s.v, dt); s.m.visible = s.t > 0; } this.sparks = this.sparks.filter(s => { if (s.t > 0) return true; this.group.remove(s.m); return false; });
     if (this.flash > 0) { this.flash = Math.max(0, this.flash - dt * 1.6); } for (const w of this.wires) { const m = w.mesh.material as T.MeshStandardMaterial; m.emissive?.set('#ff1a00'); m.emissiveIntensity = this.flash * .9 * (Math.sin(this.flash * 40) > 0 ? 1 : .3); } }
   clear() { for (const o of [...this.group.children]) this.group.remove(o); for (const g of this.geos) g.dispose(); for (const m of this.mats) m.dispose(); this.faceTex?.dispose(); this.sealTex?.dispose(); this.geos = []; this.mats = []; this.wires = []; this.sparks = []; this.layout = null; }
 }
@@ -123,7 +134,7 @@ chapters.WIRE_MAZE.push((x: CanvasRenderingContext2D, ink: Ink) => {
 chapters.WIRE_MAZE.push((x: CanvasRenderingContext2D, ink: Ink) => {
   ink.title(L('I. Перенос и рез', 'I. Transfer and the cut'));
   let y = ink.para(L('Правило II — только средний и сложный режим. Проследи найденный провод до нижней клеммы. Если её номер делится на 3 (3, 6, 9, 12), пусковым становится ДРУГОЙ провод — тот, что приходит в следующую клемму (номер + 1). Проследи его обратно вверх.', 'Rule II — normal and hard only. Trace the wire you found down to its bottom terminal. If that number divides by 3 (3, 6, 9, 12), the firing wire is ANOTHER one: the wire arriving at the next terminal (number + 1). Trace it back up.'), 100, 320, PW - 200, 31) + 26;
-  y = ink.para(L('Как резать. Возьми кусачки (кнопка «Кусачки»). Режь только посередине провода, внутри пунктирного круга — у клемм лезвие не встанет. Провод, идущий поверх другого, с ним не соединён.', 'How to cut. Take the cutters (the "Cutters" button). Cut only in the middle of the wire, inside the dotted circle — the blade will not fit at a terminal. A wire lying over another is not joined to it.'), 100, y, PW - 200, 31) + 26;
+  y = ink.para(L('Как резать. Возьми кусачки — они лежат в углу отсека I (коснись их; ещё раз — положить). Режь только посередине провода, внутри пунктирного круга — у клемм лезвие не встанет. Провод, идущий поверх другого, с ним не соединён.', 'How to cut. Take the cutters — they lie in the corner of bay I (tap them; tap again to put them down). Cut only in the middle of the wire, inside the dotted circle — the blade will not fit at a terminal. A wire lying over another is not joined to it.'), 100, y, PW - 200, 31) + 26;
   y = ink.para(L('Цвет ничего не значит: одинаковых проводов несколько.', 'Colour means nothing: several wires share it.'), 100, y, PW - 200, 31) + 10;
   // worked example sketch
   const ox = 200, oy = y + 30; x.strokeStyle = '#2a1c10'; x.lineWidth = 3; x.beginPath(); x.arc(ox + 300, oy + 200, 190, 0, 7); x.stroke();

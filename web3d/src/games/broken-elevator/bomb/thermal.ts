@@ -42,7 +42,13 @@ float pat(vec2 p) { float r = length(p);
 export class ThermalView {
   readonly group = new T.Group(); readonly head: ScanHead; private u = makeScanUniforms(.02); private geos: T.BufferGeometry[] = []; private mats: T.Material[] = []; private texs: T.Texture[] = [];
   private valves: {g: T.Group; t: number; on: boolean}[] = []; centers: T.Vector3[] = []; layout: ThermalLayout | null = null; private flash = 0; private shells: T.MeshStandardMaterial[] = [];
-  constructor() { this.head = new ScanHead(.02, '#ff8a3a', this.u); }
+  private rdCtx: CanvasRenderingContext2D; private rdTex: T.CanvasTexture; private rdText = '';
+  constructor() { this.head = new ScanHead(.02, '#ff8a3a', this.u);
+    const c = document.createElement('canvas'); c.width = 256; c.height = 96; this.rdCtx = c.getContext('2d')!; this.rdTex = new T.CanvasTexture(c); this.rdTex.colorSpace = T.SRGBColorSpace;
+    const lcd = new T.Mesh(new T.PlaneGeometry(.026, .0098), new T.MeshBasicMaterial({map: this.rdTex, toneMapped: false})); lcd.rotation.x = -Math.PI / 2; lcd.position.set(.02 * 1.95, .0058, 0); lcd.raycast = () => {}; this.head.group.add(lcd);
+    const box = new T.Mesh(new T.BoxGeometry(.029, .007, .0118), new T.MeshStandardMaterial({color: '#1a1614', metalness: .5, roughness: .5})); box.position.set(.02 * 1.95, .002, 0); box.raycast = () => {}; this.head.group.add(box); this.readout('— °C'); }
+  /** the scope's own screen (on its handle) */
+  readout(t: string) { if (t === this.rdText) return; this.rdText = t; const x = this.rdCtx; x.fillStyle = '#140806'; x.fillRect(0, 0, 256, 96); x.font = 'bold 54px "IBM Plex Mono", monospace'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.shadowColor = '#ff8a3a'; x.shadowBlur = 12; x.fillStyle = '#ffb070'; x.fillText(t, 128, 52); x.shadowBlur = 0; this.rdTex.needsUpdate = true; }
   build(l: ThermalLayout) {
     this.clear(); this.layout = l; this.head.on = false; this.head.group.visible = false; this.group.add(this.head.group);
     const c = document.createElement('canvas'); c.width = 640; c.height = 500; const x = c.getContext('2d')!; x.fillStyle = '#211e1b'; x.fillRect(0, 0, 640, 500); x.strokeStyle = 'rgba(200,170,110,.3)'; x.lineWidth = 3; x.strokeRect(10, 10, 620, 480);

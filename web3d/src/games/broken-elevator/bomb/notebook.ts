@@ -150,7 +150,7 @@ function procedurePage(x: CanvasRenderingContext2D, ink: Ink) {
     const steps = [L('Найди чемодан. Подними его и осмотри со всех сторон.', 'Find the case. Pick it up and look at it from every side.'),
       L('Отстегни обе защёлки спереди. Затем подними крышку.', 'Release both front latches. Then lift the lid.'),
       L('Внутри пять отсеков (I–V). Заряжены ТРИ — у них горят КРАСНЫЕ лампы. Остальные два мертвы — их не трогай.', 'Inside are five bays (I–V). THREE are armed — their lamps burn RED. The other two are dead — leave them.'),
-      L('Обезвредь все три, в любом порядке. Нажми на отсек — он приблизится. Для каждого открой главу с его номером.', 'Neutralise all three, in any order. Tap a bay to bring it close. For each, open the chapter with its number.'),
+      L('Обезвредь все три, в любом порядке. Коснись отсека — он приблизится; коснись пустого места рядом — снова весь чемодан. Для каждого открой главу с его номером.', 'Neutralise all three, in any order. Tap a bay to bring it close. For each, open the chapter with its number.'),
       L('Каждое неверное действие — удар по взрывателю. Лёгкий режим прощает три, средний — два, сложный — один.', 'Every wrong move is a strike on the fuse. Easy forgives three, normal two, hard one.'),
       L('Таймер — на внутренней стороне крышки. Когда он покраснеет, времени почти нет.', 'The timer is inside the lid. When it turns red, time is nearly up.')];
     let y = 320; steps.forEach((s, i) => { ink.print(`${i + 1}.`, 110, y, 36, {bold: true}); y = ink.para(s, 165, y, PW - 270, 31) + 22; });
