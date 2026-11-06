@@ -138,7 +138,8 @@ export class CodeLock {
   group = new T.Group(); clues = new T.Group(); enabled = false; task: LockTask | null = null;
   sounds: {click?: () => void; turn?: () => void; lever?: () => void; unlock?: () => void; jam?: () => void} = {};
   onResult: (ok: boolean, why: 'WRONG' | 'OK') => void = () => {}; onWrong: (left: number, why: 'ORDER' | 'TRAP' | 'STUCK') => void = () => {};
-  onNote: (what: 'STUCK' | 'EASED' | 'DROPPED' | 'SET') => void = () => {};
+  onNote: (what: 'STUCK' | 'EASED' | 'DROPPED' | 'SET' | 'OVERSET' | 'OPEN') => void = () => {};
+  overset = -1; private sparks!: T.Points; private sparkV = new Float32Array(48 * 3); private sparkLife = 0;
   set: boolean[] = []; stuck = -1; eased = false; private step = 0;
   private body = new T.Group(); private shackle = new T.Group(); private pins = new T.Group(); private pick = new T.Group(); private wheel = new T.Group();
   private lever = new T.Group(); private hook!: T.Mesh; private hookTip!: T.Mesh; private bolt = new T.Group(); private boltSpring!: T.Mesh;
@@ -208,7 +209,11 @@ export class CodeLock {
     this.shackle.position.set(0, IN.y1 + .045, -.014); this.body.add(this.shackle);
     for (const s of [-1, 1]) { const strap = new T.Mesh(new T.TorusGeometry(.022, .004, 8, 20), frame); strap.rotation.y = Math.PI / 2; strap.position.set(s * .085, .2, -.03); this.group.add(strap); }
     enableShadows(this.group);
+    const sg = new T.BufferGeometry(); sg.setAttribute('position', new T.BufferAttribute(new Float32Array(48 * 3), 3));
+    this.sparks = new T.Points(sg, new T.PointsMaterial({color: '#ffd38a', size: .0022, transparent: true, opacity: 0, depthWrite: false, blending: T.AdditiveBlending})); this.sparks.frustumCulled = false; this.body.add(this.sparks);
   }
+  private spit(x0: number, n = 48) { const p = this.sparks.geometry.attributes.position as T.BufferAttribute; for (let k = 0; k < n; k++) { p.setXYZ(k, x0 + (Math.random() - .5) * .012, SHEAR, CH + .01);
+    const a = Math.random() * Math.PI, v = .08 + Math.random() * .22; this.sparkV.set([Math.cos(a) * v, Math.sin(a) * v * .8 + .05, (Math.random() * .6) * v], k * 3); } p.needsUpdate = true; this.sparkLife = 1; }
 
   /** world placement: the lock hangs on the cage door, facing in */
   place(ci: T.Box3 | undefined, floorY: number) { const maxZ = ci?.max.z ?? 1.18; this.group.position.set(.12, floorY + 1.24, maxZ - .05); this.group.rotation.y = Math.PI; }
@@ -258,7 +263,7 @@ export class CodeLock {
   }
 
   setTask(t: LockTask, _seed?: number) {
-    this.task = t; this.tries = t.tries; this.done = false; this.open = 0; this.jam = 0; this.stuck = -1; this.eased = false; this.step = 0; this.set = t.pins.map(() => false); this.turn = 0;
+    this.task = t; this.tries = t.tries; this.done = false; this.open = 0; this.jam = 0; this.stuck = -1; this.eased = false; this.step = 0; this.set = t.pins.map(() => false); this.turn = 0; this.overset = -1;
     this.stampMat.map?.dispose(); this.stampMat.map = stampTexture(t); this.stampMat.needsUpdate = true;
     this.shackle.position.y = IN.y1 + .045; this.shackle.rotation.y = 0; this.body.rotation.z = 0; this.pickX = PLUG_X0 + .012; this.pickLift = this.liftT = 0; this.under = -1;
     this.buildPins(t); this.paintTokens();
@@ -292,11 +297,13 @@ export class CodeLock {
     if (this.liftT < .15) { const lo = PLUG_X0 + .008, hi = this.pinX(this.task!.pins.length - 1) + .012; this.pickX = Math.max(lo, Math.min(hi, this.pickX + dx * 1.25));
       const u = this.pinUnder(this.pickX); if (u !== this.under) { this.under = u; if (u >= 0) this.sounds.click?.(); } }
     // upward: raise the hook; lifting the pin under it all the way to the shear line commits it
-    this.liftT = Math.max(0, Math.min(1, this.liftT + dy / .006));
+    this.liftT = Math.max(0, Math.min(1.7, this.liftT + dy / .016));
     const u = this.pinUnder(this.pickX);
     if (u >= 0 && this.liftT > .22 && this.liftT < .92 && this.probe !== u) { this.probe = u; const t = this.task!; if (t.method === 'bind' && !this.set[u]) { if (u === t.order[this.step] && this.stuck < 0) { this.sounds.click?.(); this.tremble = 1; } else this.sounds.turn?.(); } }
     if (this.liftT < .1) this.probe = -2;
-    if (u >= 0 && this.liftT > .92 && this.stroke !== u) { this.stroke = u; this.pickPush = 1; this.liftPin(u); }
+    if (u >= 0 && this.liftT > .92 && this.stroke !== u && this.overset < 0) { this.stroke = u; this.pickPush = 1; this.liftPin(u); }
+    // pushed on past the click: the key pin rides over the shear line and jams the plug (not on EASY)
+    if (u >= 0 && this.stroke === u && this.set[u] && this.liftT > 1.55 && this.overset < 0 && this.task!.diff !== 'EASY' && !this.done) { this.overset = u; this.shudder = 1; this.sounds.jam?.(); this.onNote('OVERSET'); }
   }
   pointerUp(tap: boolean) {
     const d = this.drag; this.drag = null; this.liftT = 0; this.stroke = -2; if (!d) return;
@@ -314,11 +321,12 @@ export class CodeLock {
   }
   private easeWheel() {
     this.ease = 1; this.sounds.lever?.();
+    if (this.overset >= 0) { this.overset = -1; this.dropAll(); this.onNote('DROPPED'); return; }
     if (this.stuck >= 0) { this.eased = true; this.onNote('EASED'); return; }
     if (this.set.some(Boolean)) { this.dropAll(); this.onNote('DROPPED'); } // torque let go for nothing: the set pins fall (no try lost)
   }
   private liftPin(i: number) {
-    const t = this.task!, p = t.pins[i]; this.bump[i] = 1;
+    const t = this.task!, p = t.pins[i]; this.bump[i] = 1; if (this.overset >= 0) return;
     if (this.set[i]) return;
     if (p.color === 'black') return this.fail('TRAP');
     if (this.stuck >= 0) { if (i === this.stuck && this.eased) { this.stuck = -1; this.eased = false; return this.setPin(i); } return this.fail('STUCK'); }
@@ -327,8 +335,8 @@ export class CodeLock {
     this.setPin(i);
   }
   private setPin(i: number) {
-    this.set[i] = true; this.step++; this.flash[i] = 1; setTimeout(() => this.sounds.click?.(), 110); this.onNote('SET');
-    if (this.step >= this.task!.order.length) { this.done = true; this.enabled = false; setTimeout(() => { this.open = .001; this.sounds.unlock?.(); this.paintTokens(); this.onResult(true, 'OK'); }, 420); }
+    this.set[i] = true; this.step++; this.flash[i] = 1; this.spit(this.pinX(i), 22); setTimeout(() => this.sounds.click?.(), 110); this.onNote('SET');
+    if (this.step >= this.task!.order.length) { this.done = true; this.enabled = false; setTimeout(() => { this.open = .001; this.spit(PX0, 48); this.sounds.unlock?.(); this.paintTokens(); this.onNote('OPEN'); this.onResult(true, 'OK'); }, 420); }
   }
   private dropAll() { this.set = this.set.map(() => false); this.step = 0; this.stuck = -1; this.eased = false; setTimeout(() => this.sounds.jam?.(), 120); }
   private fail(why: 'ORDER' | 'TRAP' | 'STUCK') {
@@ -344,10 +352,11 @@ export class CodeLock {
     for (let i = 0; i < this.drivers.length; i++) {
       const len = this.keys[i].userData.len as number, rest = KEY_TIP + len;
       // the driver sits on its key pin, just above the shear line once set, or caught on its waist (a stuck spool)
-      const target = this.set[i] ? SHEAR + .0007 : this.stuck === i ? SHEAR - .0062 : rest; this.lift[i] += (target - this.lift[i]) * k;
+      const target = this.overset === i ? SHEAR + .0036 : this.set[i] ? SHEAR + .0007 : this.stuck === i ? SHEAR - .0062 : rest; this.lift[i] += (target - this.lift[i]) * k;
       this.bump[i] = Math.max(0, this.bump[i] - dt * 4.2); const onHook = this.pinUnder(this.pick.position.x) === i ? this.pickLift : 0;
       const b = Math.max(Math.sin(this.bump[i] * Math.PI) * .35, onHook) * (SHEAR - rest + .0018);
-      const keyTop = Math.max(rest + b, this.stuck === i ? this.lift[i] : rest); this.keys[i].position.y = keyTop - len;
+      const keyTop = this.overset === i ? SHEAR + .0032 : Math.max(rest + b, this.stuck === i ? this.lift[i] : rest); this.keys[i].position.y = keyTop - len;
+      if (this.overset === i) { this.lift[i] = Math.max(this.lift[i], keyTop); this.drvMats[i].emissive.set('#ff3a20'); this.flash[i] = Math.max(this.flash[i], .6 + .3 * Math.sin(this.t * 10)); } else this.drvMats[i]?.emissive.set('#ffb04a');
       const drvBottom = Math.max(keyTop, this.lift[i]), dg = this.drivers[i];
       dg.position.y = drvBottom + DRV_H / 2; const tr = this.task.method === 'bind' && i === this.task.order[this.step] && !this.set[i] && this.pinUnder(this.pick.position.x) === i && this.pickLift > .2 ? this.tremble * (this.task.diff === 'HARD' ? .45 : 1) : 0;
       dg.rotation.z = this.stuck === i ? .08 + Math.sin(this.t * 40) * .03 * this.shudder : Math.sin(this.t * 70) * .05 * tr; dg.position.x = this.pinX(i) + Math.sin(this.t * 90) * .0005 * tr;
@@ -364,6 +373,9 @@ export class CodeLock {
     // cam → lever → bolt: the bolt draws back as the plug turns
     const draw = Math.max(0, Math.min(1, this.turn / (Math.PI / 2))); this.lever.rotation.z = draw * .55; this.bolt.position.x = -draw * .028; this.boltSpring.scale.set(1, .036 * (1 - draw * .5), 1);
     if (this.open > 0) { this.open = Math.min(1, this.open + dt * 1.2); const e = Math.max(0, (this.open - .4) / .6), ee = 1 - Math.pow(1 - e, 3); this.shackle.position.y = IN.y1 + .045 + .045 * ee; this.shackle.rotation.y = ee * 1.2; }
+    if (this.sparkLife > 0) { this.sparkLife = Math.max(0, this.sparkLife - dt * 1.6); const p = this.sparks.geometry.attributes.position as T.BufferAttribute, v = this.sparkV;
+      for (let k = 0; k < p.count; k++) { v[k * 3 + 1] -= 1.4 * dt; p.setXYZ(k, p.getX(k) + v[k * 3] * dt, p.getY(k) + v[k * 3 + 1] * dt, p.getZ(k) + v[k * 3 + 2] * dt); } p.needsUpdate = true; }
+    (this.sparks.material as T.PointsMaterial).opacity = this.sparkLife * this.sparkLife;
     if (this.jam > 0) { this.jam = Math.max(0, this.jam - dt * 2); this.body.position.x = Math.sin(this.jam * 60) * .004 * this.jam; }
   }
 }

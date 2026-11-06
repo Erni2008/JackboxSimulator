@@ -184,7 +184,8 @@ async function boot() {
     if (!ok) setTimeout(() => cage.drop?.(.8), 350); clearTimeout(pending); pending = setTimeout(() => { if (inspecting && inspectTarget === "lock") setInspect(false); setTimeout(() => next(ok), 400); }, ok ? 3000 : 2600); };
   lock.onResult = ok => lockFinish(ok, ok ? "OK" : "WRONG");
   lock.onWrong = (left, why) => { haptic("bad"); mistakes++; verdict(false, left === 1 ? L("ОСТАЛАСЬ ПОСЛЕДНЯЯ ПОПЫТКА", "ONE TRY LEFT") : L(`ОСТАЛОСЬ ПОПЫТОК: ${left}`, `TRIES LEFT: ${left}`), why === "TRAP" ? L("Ловушка! Штифты упали", "Trap! The pins dropped") : why === "STUCK" ? L("Штифт заело — штифты упали", "A pin was stuck: they dropped") : L("Не тот штифт — штифты упали", "Wrong pin: the pins dropped")); };
-  lock.onNote = w => { if (w === "SET") haptic("good"); if (w === "STUCK") haptic("bad"); if (w === "EASED") haptic("tap"); };
+  lock.onNote = w => { if (w === "SET") { haptic("good"); shake = Math.max(shake, .16); } if (w === "STUCK") haptic("bad"); if (w === "EASED") haptic("tap"); if (w === "OPEN") shake = Math.max(shake, .4);
+    if (w === "OVERSET") { haptic("bad"); shake = Math.max(shake, .3); verdict(false, L("Коснитесь колеса — штифты упадут, попытка цела", "Tap the wheel: the pins drop, no try lost"), L("Перебор! Штифт заклинило", "Overset! A pin jammed")); } };
   let formulaDone = false;
   flink.onOutcome = (o, reason) => { if (kind !== 'formula' || formulaDone) return; formulaDone = true; lab.enabled = false; const ok = o === 'STABILIZED'; record(ok, reason, flink.view()?.rejections ?? 0);
     if (!ok) audio.play('bad');
