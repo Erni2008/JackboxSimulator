@@ -28,7 +28,7 @@ export const solveXray = (l: XrayLayout) => l.cans.findIndex(c => same(c, XRAY_T
 const BW = .118, BD = .118;
 export class XrayView {
   readonly group = new T.Group(); readonly head: ScanHead; private u = makeScanUniforms(.021); private geos: T.BufferGeometry[] = []; private mats: T.Material[] = []; private tex: T.CanvasTexture | null = null;
-  private levers: {g: T.Group; t: number; on: boolean}[] = []; private slots: T.Vector3[] = []; private flash = 0; private shells: T.MeshStandardMaterial[] = [];
+  private levers: {g: T.Group; t: number; on: boolean}[] = []; private slots: T.Vector3[] = []; private flash = 0; private shells: T.MeshStandardMaterial[] = []; private tags: T.Texture[] = [];
   constructor() { this.head = new ScanHead(.021, '#7ad8ff', this.u); }
   build(l: XrayLayout) {
     this.clear(); this.head.on = false; this.head.group.visible = false; this.group.add(this.head.group);
@@ -40,11 +40,17 @@ export class XrayView {
     const back = this.m(new T.MeshBasicMaterial({color: '#06121c'})); cutaway(back, this.u, true);
     const shellShared = this.m(new T.MeshStandardMaterial({color: '#6a6660', metalness: .9, roughness: .38})); cutaway(shellShared, this.u, false); this.shells.push(shellShared);
     const capM = this.m(new T.MeshStandardMaterial({color: '#a8844a', metalness: 1, roughness: .3})), baseM = this.m(new T.MeshStandardMaterial({color: '#1a1816', metalness: .7, roughness: .5})), stickM = this.m(new T.MeshStandardMaterial({color: '#bbb', metalness: 1, roughness: .25})), knobM = this.m(new T.MeshStandardMaterial({color: '#a01a10', roughness: .4})), hitM = this.m(new T.MeshBasicMaterial({visible: false}));
+    const seamM = this.m(new T.MeshStandardMaterial({color: '#5a554e', metalness: .9, roughness: .6}));
     const cols = 2, rows = Math.ceil(l.cans.length / cols), LEN = .044, R = .0085;
     l.cans.forEach((ins, i) => { const col = i % cols, row = Math.floor(i / cols), px = -BW / 2 + .012 + (col + .5) * (BW - .03) / cols - .006, pz = -BD / 2 + .02 + (row + .5) * (BD - .03) / rows; const p = new T.Vector3(px, .0035 + R, pz); this.slots.push(p);
       const shellM = shellShared;
       const shell = new T.Mesh(this.g(new T.CylinderGeometry(R, R, LEN, 24)), shellM); shell.rotation.z = Math.PI / 2; shell.position.copy(p); this.group.add(shell);
-      for (const e of [-1, 1]) { const cap = new T.Mesh(this.g(new T.CylinderGeometry(R * 1.08, R * 1.08, .003, 24)), capM); cap.rotation.z = Math.PI / 2; cap.position.copy(p).add(new T.Vector3(e * LEN / 2, 0, 0)); this.group.add(cap); }
+      for (const e of [-1, 1]) { const cap = new T.Mesh(this.g(new T.CylinderGeometry(R * 1.08, R * 1.08, .003, 24)), capM); cap.rotation.z = Math.PI / 2; cap.position.copy(p).add(new T.Vector3(e * LEN / 2, 0, 0)); this.group.add(cap);
+        const bolt = new T.Mesh(this.g(new T.CylinderGeometry(R * .28, R * .28, .002, 6)), capM); bolt.rotation.z = Math.PI / 2; bolt.position.copy(p).add(new T.Vector3(e * (LEN / 2 + .0022), 0, 0)); this.group.add(bolt); }
+      // weld seam around the middle and an engraved tag with the canister's number
+      const seam = new T.Mesh(this.g(new T.TorusGeometry(R * 1.005, R * .07, 6, 28)), seamM); seam.rotation.y = Math.PI / 2; seam.position.copy(p).add(new T.Vector3(LEN * .18, 0, 0)); this.group.add(seam);
+      const tagC = document.createElement('canvas'); tagC.width = 128; tagC.height = 48; const tx = tagC.getContext('2d')!; tx.fillStyle = '#a8864a'; tx.fillRect(0, 0, 128, 48); tx.strokeStyle = '#4a3418'; tx.lineWidth = 3; tx.strokeRect(3, 3, 122, 42); tx.fillStyle = '#2a1a08'; tx.font = 'bold 30px "IBM Plex Mono", monospace'; tx.textAlign = 'center'; tx.textBaseline = 'middle'; tx.fillText(`К-${i + 1}`, 64, 26);
+      const tagT = new T.CanvasTexture(tagC); tagT.colorSpace = T.SRGBColorSpace; this.tags.push(tagT); const tag = new T.Mesh(this.g(new T.PlaneGeometry(.012, .0045)), this.m(new T.MeshStandardMaterial({map: tagT, metalness: .8, roughness: .4}))); tag.rotation.x = -Math.PI / 2; tag.position.copy(p).setY(.0036).add(new T.Vector3(-LEN / 2 + .006, 0, R + .0035)); this.group.add(tag);
       const bk = new T.Mesh(this.g(new T.PlaneGeometry(LEN, R * 2)), back); bk.rotation.x = -Math.PI / 2; bk.position.copy(p).setY(.0036); this.group.add(bk);
       // the inside (only seen through the window)
       const core = ins.core === 'BALL' ? new T.Mesh(this.g(new T.SphereGeometry(R * .55, 16, 12)), xr) : ins.core === 'ROD' ? new T.Mesh(this.g(new T.CylinderGeometry(R * .22, R * .22, LEN * .5, 10)), xr) : new T.Mesh(this.g(new T.TubeGeometry(new (class extends T.Curve<T.Vector3> { getPoint(t: number) { const a = t * Math.PI * 12; return new T.Vector3(Math.cos(a) * R * .45, (t - .5) * LEN * .5, Math.sin(a) * R * .45); } })(), 80, R * .08, 5, false)), xr);
@@ -69,7 +75,7 @@ export class XrayView {
   warn() { this.flash = 1; }
   update(dt: number) { this.head.update(dt, this.group); for (const l of this.levers) { l.t += ((l.on ? 1 : 0) - l.t) * (1 - Math.exp(-dt * 12)); l.g.rotation.x = -.5 + l.t; }
     this.flash = Math.max(0, this.flash - dt * 1.6); for (const s of this.shells) { s.emissive.set('#ff1a00'); s.emissiveIntensity = this.flash * (Math.sin(this.flash * 40) > 0 ? .8 : .2); } }
-  clear() { for (const o of [...this.group.children]) this.group.remove(o); for (const g of this.geos) g.dispose(); for (const m of this.mats) m.dispose(); this.tex?.dispose(); this.geos = []; this.mats = []; this.levers = []; this.slots = []; this.shells = []; }
+  clear() { for (const o of [...this.group.children]) this.group.remove(o); for (const g of this.geos) g.dispose(); for (const m of this.mats) m.dispose(); this.tex?.dispose(); for (const t of this.tags) t.dispose(); this.tags = []; this.geos = []; this.mats = []; this.levers = []; this.slots = []; this.shells = []; }
 }
 
 // ---------------------------------------------------------------------------------------------- chapter III

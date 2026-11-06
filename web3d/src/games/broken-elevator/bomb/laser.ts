@@ -57,18 +57,25 @@ export class LaserView {
       const hit = new T.Mesh(this.g(new T.CylinderGeometry(CELL * .5, CELL * .5, .016, 12)), this.m(new T.MeshBasicMaterial({visible: false}))); hit.position.y = .008; hit.userData.mirror = i; g.add(hit);
       const ang = l.state[i] === 0 ? Math.PI / 4 : -Math.PI / 4; g.rotation.y = ang; this.mirrors.push({g, ang}); });
     // sensors (numbered) where the beam can leave the bed
+    const domeG = this.g(new T.SphereGeometry(.0058, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2)), domeM = this.m(new T.MeshStandardMaterial({color: '#ffffff', metalness: .2, roughness: .05, transparent: true, opacity: .22, envMapIntensity: 2, depthWrite: false}));
     const pl = document.createElement('canvas'); pl.width = 64; pl.height = 64;
     l.sensors.forEach((s, i) => { const p = s[0] === 1 ? this.cell(COLS, s[1]) : s[0] === 0 ? this.cell(s[1], -1) : this.cell(s[1], ROWS); p.lerp(s[0] === 1 ? this.cell(COLS - 1, s[1]) : s[0] === 0 ? this.cell(s[1], 0) : this.cell(s[1], ROWS - 1), .42);
       const lamp = this.m(new T.MeshStandardMaterial({color: '#2a1a08', emissive: '#ffb040', emissiveIntensity: 0, roughness: .3})); this.sensorLamps.push(lamp);
       const body = new T.Mesh(this.g(new T.CylinderGeometry(.0055, .0055, .007, 16)), iron); body.position.copy(p).setY(.0068); this.group.add(body);
       const eye = new T.Mesh(this.g(new T.SphereGeometry(.0042, 14, 8)), lamp); eye.position.copy(p).setY(.0105); this.group.add(eye);
+      const dome = new T.Mesh(domeG, domeM); dome.position.copy(p).setY(.0102); this.group.add(dome);
       const nc = document.createElement('canvas'); nc.width = nc.height = 64; const nx = nc.getContext('2d')!; nx.fillStyle = '#e6d3a4'; nx.font = 'bold 52px "IBM Plex Mono", monospace'; nx.textAlign = 'center'; nx.textBaseline = 'middle'; nx.fillText(String(i + 1), 32, 34);
       const nt = new T.CanvasTexture(nc); nt.colorSpace = T.SRGBColorSpace; const lab = new T.Mesh(this.g(new T.PlaneGeometry(.011, .011)), this.m(new T.MeshBasicMaterial({map: nt, transparent: true, toneMapped: false}))); (lab.material as any).__tex = nt;
       const off = s[0] === 1 ? new T.Vector3(.0105, 0, 0) : s[0] === 0 ? new T.Vector3(0, 0, -.0105) : new T.Vector3(0, 0, .0105); lab.rotation.x = -Math.PI / 2; lab.position.copy(p).add(off).setY(.0036); this.group.add(lab); });
     void pl;
     this.beamM = this.m(new T.MeshBasicMaterial({color: '#ff2a12', transparent: true, opacity: .95, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false}));
     this.glowM = this.m(new T.MeshBasicMaterial({color: '#ff5a30', transparent: true, opacity: .25, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false}));
-    this.geos.push(...mergeStatic(this.group)); this.group.add(this.beam); this.retrace();
+    this.geos.push(...mergeStatic(this.group)); this.group.add(this.beam);
+    // lens flare at the emitter and dust drifting through the beam (sprites, one draw call each)
+    const glow = (() => { const c2 = document.createElement('canvas'); c2.width = c2.height = 64; const g2 = c2.getContext('2d')!, gr = g2.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,240,230,1)'); gr.addColorStop(.25, 'rgba(255,90,60,.7)'); gr.addColorStop(1, 'rgba(255,40,20,0)'); g2.fillStyle = gr; g2.fillRect(0, 0, 64, 64); const t = new T.CanvasTexture(c2); this.texs.push(t); return t; })();
+    const flare = new T.Sprite(this.m(new T.SpriteMaterial({map: glow, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false}))); flare.scale.setScalar(.014); flare.position.copy(this.cell(-1, l.emitter)).setY(.0085).add(new T.Vector3(CELL * .3 + .011, 0, 0)); flare.raycast = () => {}; this.group.add(flare); this.flare = flare;
+    const N = 70, pos = new Float32Array(N * 3); this.dust = new T.Points(this.g(new T.BufferGeometry().setAttribute('position', new T.BufferAttribute(pos, 3))), this.m(new T.PointsMaterial({map: glow, size: .0016, transparent: true, opacity: .55, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false})));
+    this.dust.frustumCulled = false; this.dust.raycast = () => {}; this.dustSeed = Array.from({length: N}, () => [Math.random(), Math.random(), Math.random()]); this.group.add(this.dust); this.retrace();
   }
   private g<G extends T.BufferGeometry>(g: G) { this.geos.push(g); return g; }
   private m<M extends T.Material>(m: M) { this.mats.push(m); return m; }
@@ -76,15 +83,20 @@ export class LaserView {
   rotate(i: number) { if (!this.layout) return; this.layout.state[i] ^= 1; this.retrace(); }
   setState(st: number[]) { if (!this.layout || st.join() === this.layout.state.join()) return; this.layout.state = [...st]; this.retrace(); }
   retrace() { if (!this.layout) return; for (const o of [...this.beam.children]) { this.beam.remove(o); (o as T.Mesh).geometry.dispose(); }
-    const {pts, hit} = trace(this.layout); this.hit = hit; const y = .0085;
+    const {pts, hit} = trace(this.layout); this.hit = hit; const y = .0085; this.path = pts.map(q => this.cell(q[0], q[1]).setY(y));
     for (let i = 0; i + 1 < pts.length; i++) { const a = this.cell(pts[i][0], pts[i][1]).setY(y), b = this.cell(pts[i + 1][0], pts[i + 1][1]).setY(y), len = a.distanceTo(b); if (len < 1e-5) continue;
       for (const [w, m] of [[.0011, this.beamM], [.0036, this.glowM]] as const) { const seg = new T.Mesh(new T.CylinderGeometry(w, w, len, 6, 1, true), m); seg.position.copy(a).lerp(b, .5); seg.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), b.clone().sub(a).normalize()); this.beam.add(seg); } }
     this.layout.state.forEach((s, i) => { this.mirrors[i].ang = s === 0 ? Math.PI / 4 : -Math.PI / 4; }); }
   warn() { this.flash = 1; }
-  update(dt: number) { this.t += dt; for (const m of this.mirrors) m.g.rotation.y += (m.ang - m.g.rotation.y) * (1 - Math.exp(-dt * 14));
+  private texs: T.Texture[] = []; private flare: T.Sprite | null = null; private dust: T.Points | null = null; private dustSeed: number[][] = []; private path: T.Vector3[] = [];
+  update(dt: number) { this.t += dt; if (this.flare) this.flare.scale.setScalar(.013 + Math.sin(this.t * 23) * .0012);
+    // dust motes ride the beam path, each lit only near it (they drift slowly sideways)
+    if (this.dust && this.path.length > 1) { const a = (this.dust.geometry.attributes.position as T.BufferAttribute), segs = this.path.length - 1;
+      this.dustSeed.forEach((s, i) => { const u = (s[0] + this.t * .02 * (.5 + s[1])) % 1, k = Math.min(segs - 1, Math.floor(u * segs)), f = u * segs - k, p = this.path[k].clone().lerp(this.path[k + 1], f);
+        a.setXYZ(i, p.x + Math.sin(this.t * .7 + s[2] * 9) * .0018, p.y + Math.cos(this.t * .5 + s[1] * 7) * .0016, p.z + Math.sin(this.t * .6 + s[0] * 5) * .0018); }); a.needsUpdate = true; } for (const m of this.mirrors) m.g.rotation.y += (m.ang - m.g.rotation.y) * (1 - Math.exp(-dt * 14));
     this.flash = Math.max(0, this.flash - dt * 1.6); this.beamM.opacity = .8 + .2 * Math.sin(this.t * 40); this.glowM.opacity = .2 + .06 * Math.sin(this.t * 7);
     this.sensorLamps.forEach((l, i) => { const on = this.hit === i + 1; l.emissive.set(this.done && on ? '#5aff7a' : this.flash > 0 ? '#ff1a00' : '#ffb040'); l.emissiveIntensity = on ? 2.2 + Math.sin(this.t * 12) * .4 : this.flash * 1.5; }); }
-  clear() { for (const o of [...this.beam.children]) (o as T.Mesh).geometry.dispose(); this.beam.clear(); for (const o of [...this.group.children]) this.group.remove(o); for (const m of this.mats) { (m as any).map?.dispose?.(); m.dispose(); } for (const g of this.geos) g.dispose(); this.tex?.dispose(); this.geos = []; this.mats = []; this.mirrors = []; this.sensorLamps = []; }
+  clear() { for (const o of [...this.beam.children]) (o as T.Mesh).geometry.dispose(); this.beam.clear(); for (const o of [...this.group.children]) this.group.remove(o); for (const m of this.mats) { (m as any).map?.dispose?.(); m.dispose(); } for (const g of this.geos) g.dispose(); this.tex?.dispose(); for (const t of this.texs) t.dispose(); this.texs = []; this.flare = null; this.dust = null; this.path = []; this.geos = []; this.mats = []; this.mirrors = []; this.sensorLamps = []; }
 }
 
 // ---------------------------------------------------------------------------------------------- chapter IV

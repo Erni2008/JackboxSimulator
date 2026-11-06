@@ -71,8 +71,10 @@ export class WireMazeView {
     this.sealTex = new T.CanvasTexture(sealC); this.sealTex.colorSpace = T.SRGBColorSpace; const bossTop = new T.MeshStandardMaterial({map: this.sealTex, metalness: .85, roughness: .35}); this.mats.push(bossTop);
     const boss = new T.Mesh(this.g(new T.CylinderGeometry(PR * .15, PR * .17, .019, 32)), [brass, bossTop, brass]); boss.position.y = .0125; this.group.add(boss);
     // terminal posts
-    const post = this.g(new T.CylinderGeometry(.0028, .0032, .005, 10));
-    for (let i = 0; i < l.n; i++) for (const a of [slotAng(i, l.n), endAng(i + 1, l.n)]) { const p = new T.Mesh(post, brass); p.position.set(Math.cos(a) * PR * .75, .0055, -Math.sin(a) * PR * .75); this.group.add(p); }
+    const post = this.g(new T.CylinderGeometry(.0028, .0032, .005, 10)), washerG = this.g(new T.CylinderGeometry(.0033, .0033, .0005, 14)), nutG = this.g(new T.CylinderGeometry(.0022, .0022, .0016, 6)), steelM = this.m2(new T.MeshStandardMaterial({color: '#b8b2a8', metalness: 1, roughness: .3})), sleeveM = this.m2(new T.MeshStandardMaterial({color: '#141210', roughness: .35}));
+    for (let i = 0; i < l.n; i++) for (const a of [slotAng(i, l.n), endAng(i + 1, l.n)]) { const px = Math.cos(a) * PR * .75, pz = -Math.sin(a) * PR * .75; const p = new T.Mesh(post, brass); p.position.set(px, .0055, pz); this.group.add(p);
+      // screw terminal: a washer and a hex nut clamping the wire
+      const w = new T.Mesh(washerG, steelM); w.position.set(px, .0082, pz); this.group.add(w); const nut = new T.Mesh(nutG, steelM); nut.position.set(px, .0092, pz); nut.rotation.y = a * 3; this.group.add(nut); }
     // wires: each on its own layer; a soft contact shadow under each so crossings read as over / under
     const shadowM = new T.MeshBasicMaterial({color: '#000', transparent: true, opacity: .4, depthWrite: false}); this.mats.push(shadowM);
     for (let i = 0; i < l.n; i++) { const h = .0052 + l.layer[i] * .00085, a0 = slotAng(i, l.n), a1 = endAng(l.end[i], l.n), R0 = PR * .75;
@@ -82,11 +84,14 @@ export class WireMazeView {
       const curve = new T.CatmullRomCurve3([p0, lift0, q(b[0], b[1]), q(b[2], b[3]), lift1, p1], false, 'centripetal', .5);
       const mat = new T.MeshStandardMaterial({color: WIRE_COLORS[l.color[i]], roughness: .48, metalness: .05}); this.mats.push(mat);
       const mesh = new T.Mesh(this.g(new T.TubeGeometry(curve, 90, .00125, 7, false)), mat); mesh.userData.wire = i; this.group.add(mesh);
+      // black heat-shrink sleeves where the wire enters each terminal
+      for (const [t0, t1] of [[0, .07], [.93, 1]]) { const pts: T.Vector3[] = []; for (let k = 0; k <= 6; k++) pts.push(curve.getPoint(t0 + (t1 - t0) * k / 6)); const sl = new T.Mesh(this.g(new T.TubeGeometry(new T.CatmullRomCurve3(pts), 8, .0016, 7, false)), sleeveM); this.group.add(sl); }
       const sc = new T.CatmullRomCurve3(curve.getPoints(60).map(p => new T.Vector3(p.x + .0006, .0032, p.z + .0006))), shadow = new T.Mesh(this.g(new T.TubeGeometry(sc, 60, .0016, 4, false)), shadowM); shadow.scale.y = .2; this.group.add(shadow);
       this.wires.push({mesh, shadow, curve, h}); if (this.cut.has(i)) this.sever(i, .5, false); }
     this.geos.push(...mergeStatic(this.group));
   }
   private g<G extends T.BufferGeometry>(g: G) { this.geos.push(g); return g; }
+  private m2<M extends T.Material>(m: M) { this.mats.push(m); return m; }
   /** the wire under a ray, only in its middle stretch (cutting at a terminal is not allowed: trace it first) */
   wireAt(ray: T.Raycaster): {wire: number; t: number; mid: boolean} | null {
     const hit = ray.intersectObjects(this.wires.map(w => w.mesh), false)[0]; if (!hit) return null; const i = hit.object.userData.wire as number, w = this.wires[i]; if (this.cut.has(i)) return null;
