@@ -223,8 +223,11 @@ async function boot() {
       $("hint").textContent = L("Взломайте замок на двери отмычкой. Как это сделать — на листках на стене у двери.", "Pick the door lock. How to do it is on the sheets on the wall by the door."); $("hint").style.opacity = "1";
       if (cur().state === "rest" || cur().state === "falling") { const d = lock.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } }
     else lock.enabled = false;
-    if (k0 === 'bomb') { said30 = false; coach('find'); ensureBomb(); suitcase!.reset(); nbook!.reset(); $('btn-nb').hidden = true; strikes = 0; setCutters(false); $('btn-cut').hidden = true; armBomb(); suitcase!.enabled = true; box.locked = true; bombWarned = false; bombDone = false;
-      $('hint').textContent = L('Где-то в клетке — чемоданчик и блокнот. Осмотритесь.', 'Somewhere in the cage: a suitcase and a notebook. Look around.'); $('hint').style.opacity = '1'; deadline = IN_ROOM && roundDeadlineAt ? roundDeadlineAt : performance.now() + limitMs('bomb'); RoomSocket.shared()?.send('BOMB_START', params.get('module') ? {module: params.get('module')} : {}); }
+    if (k0 === 'bomb') { said30 = false; coach('find'); ensureBomb(); suitcase!.reset(); nbook!.reset();
+      { // hide the case and the notebook somewhere new (?spot=N pins the case for tests); never side by side
+        const cs = params.get('spot') ? +params.get('spot')! : Math.abs(taskSeed * 7 + 1) % Suitcase.HIDE.length; suitcase!.place(ci, floorY, cs); let ns = Math.abs(taskSeed * 3 + 2) % Notebook.HIDE.length;
+        for (let k = 0; k < Notebook.HIDE.length; k++) { nbook!.place(ci, floorY, ns); if (nbook!.root.position.distanceTo(new T.Vector3(suitcase!.center().x, nbook!.root.position.y, suitcase!.center().z)) > .5) break; ns = (ns + 1) % Notebook.HIDE.length; } } $('btn-nb').hidden = true; strikes = 0; setCutters(false); $('btn-cut').hidden = true; armBomb(); suitcase!.enabled = true; box.locked = true; bombWarned = false; bombDone = false;
+      $('hint').textContent = ''; /* the step coach line speaks for the bomb */ deadline = IN_ROOM && roundDeadlineAt ? roundDeadlineAt : performance.now() + limitMs('bomb'); RoomSocket.shared()?.send('BOMB_START', params.get('module') ? {module: params.get('module')} : {}); }
     hud(); }); };
   // ---- THE HOST'S SUITCASE: the announcement (voice when recorded, subtitles always), the critical-time warning
   const BOMB_INTRO_RU = ['О, вы справились с двумя заданиями! Превосходно!', 'Хотя, признаться, это было слишком просто.', 'Поэтому, пока вы были заняты, я незаметно оставил в вашей клетке небольшой подарочек.', 'Чемоданчик. С бомбой.',
@@ -332,6 +335,7 @@ async function boot() {
   renderer.domElement.addEventListener('pointerup', e => { const s = tapStart.get(e.pointerId); tapStart.delete(e.pointerId); if (!s || Math.hypot(e.clientX - s.x, e.clientY - s.y) > 12 || performance.now() - s.t > 450) return;
     ray.setFromCamera(new T.Vector2(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1), camera);
     if (valvePointer === e.pointerId) return;
+    if (inspecting && inspectTarget === 'bomb' && !nbook?.open) return; // the case in hand handles its own taps (device); nothing behind it reacts
     if (kind === 'bomb' && suitcase?.enabled && !inspecting && (cur().state === 'rest' || cur().state === 'falling' || cur().lowered)) { const sh = suitcase.hits(ray), nh = nbook!.hits(ray), bh = ray.intersectObject(book.root, true)[0];
       if (nh && (!sh || nh.distance < sh.distance) && (!bh || nh.distance < bh.distance)) { nbook!.take(); $('btn-nb').hidden = false; coach(suitcase.open ? 'bays' : suitcase.found ? 'latches' : 'find'); return; }
       if (sh && (!bh || sh.distance < bh.distance)) { setInspect(true, 'bomb'); suitcase.pickUp(); $('hint').style.opacity = '0'; return; } }
@@ -387,7 +391,7 @@ async function boot() {
   let device: {enabled: boolean; hits(r: T.Raycaster): any; pointerDown(r: T.Raycaster, x: number, y: number, c: T.Camera): boolean; pointerMove(x: number, y: number): void; pointerUp(tap: boolean): void} = press;
   renderer.domElement.addEventListener('pointerdown', e => { if (valvePointer !== null || free || ((cur().state === 'reading' || cur().state === 'held') && !cur().lowered)) return;
     ray.setFromCamera(new T.Vector2(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1), camera);
-    if (!inspecting || (inspectTarget !== 'pressure' && inspectTarget !== 'lab' && inspectTarget !== 'lock')) { if (press.hits(ray) || lab.hits(ray)) return; } // first tap only opens the close-up
+    if (!inspecting || (inspectTarget !== 'pressure' && inspectTarget !== 'lab' && inspectTarget !== 'lock' && inspectTarget !== 'bomb')) { if (press.hits(ray) || lab.hits(ray)) return; } // first tap only opens the close-up (the case in hand is drawn over the cage: cage objects behind it never take its taps)
     if (notes.heldHit(ray) || notes.reading) return; // the sheet in hand takes its own taps
     if (!inspecting && inspectTarget !== 'lock' && lock.hits(ray)) return;
     if (inspecting && inspectTarget === 'bomb') { if (!suitcase || bombPtrs.size > 1) return; device = suitcase as any; } else

@@ -204,9 +204,14 @@ export class Suitcase {
   }
 
   /** lies on the cage floor: a dark corner by the back wall (the first place nobody looks) */
-  place(ci: T.Box3 | undefined, floorY: number) {
-    const x = ci ? ci.max.x - .3 : .8, z = ci ? ci.min.z + .24 : -.6; this.root.position.set(x, floorY + (HB + HL) / 2 + .004, z); this.root.rotation.set(0, -.35, 0);
-    this.root.updateMatrixWorld(true); this.floorPos.copy(this.root.position); this.floorQuat.copy(this.root.quaternion); this.home = this.root.parent ?? this.root;
+  /** hiding places on the cage floor (offsets from the inner walls) — a different one each event */
+  /** [wall side x (+1 right / −1 left), x offset, wall side z (−1 back / +1 door / 0 middle), z offset, yaw] */
+  static readonly HIDE: [number, number, number, number, number][] = [[1, -.3, -1, .24, -.35], [-1, .3, -1, .26, .4], [1, -.28, 1, -.32, .3], [-1, .26, 0, .05, 1.35], [1, -.24, 0, -.1, -1.45]];
+  place(ci: T.Box3 | undefined, floorY: number, spot = 0) {
+    const sp = Suitcase.HIDE[spot % Suitcase.HIDE.length], x = ci ? (sp[0] > 0 ? ci.max.x : ci.min.x) + sp[1] : .8, z = ci ? (sp[2] < 0 ? ci.min.z : sp[2] > 0 ? ci.max.z : 0) + sp[3] : -.6;
+    this.floorPos.set(x, floorY + (HB + HL) / 2 + .004, z); this.floorQuat.setFromEuler(new T.Euler(0, sp[4], 0));
+    // a case still in hand keeps flying; it lands on the new spot when it is put down
+    if (this.state === 'floor') { this.root.position.copy(this.floorPos); this.root.quaternion.copy(this.floorQuat); this.root.updateMatrixWorld(true); if (this.root.parent) this.home = this.root.parent; }
   }
   center() { return this.root.getWorldPosition(new T.Vector3()); }
   /** set the armed mechanism for this event */

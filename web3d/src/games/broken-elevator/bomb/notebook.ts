@@ -73,7 +73,9 @@ export class Notebook {
     this.buildDom();
   }
   /** on the floor by the door, half under the bench rail: the opposite corner from the case */
-  place(ci: T.Box3 | undefined, floorY: number) { const x = ci ? ci.min.x + .2 : -.8, z = ci ? ci.max.z - .22 : .9; this.root.position.set(x, floorY + .002, z); this.root.rotation.set(0, .6, 0); this.floorPos.copy(this.root.position); }
+  /** [wall x side, x offset, wall z side, z offset, yaw] — the notebook never lies where the case does */
+  static readonly HIDE: [number, number, number, number, number][] = [[-1, .2, 1, -.22, .6], [1, -.22, 1, -.2, -.5], [-1, .22, -1, .2, 2.4], [1, -.2, -1, .16, -2.2], [-1, .18, 0, -.25, 1.1]];
+  place(ci: T.Box3 | undefined, floorY: number, spot = 0) { const sp = Notebook.HIDE[spot % Notebook.HIDE.length], x = ci ? (sp[0] > 0 ? ci.max.x : ci.min.x) + sp[1] : -.8, z = ci ? (sp[2] < 0 ? ci.min.z : sp[2] > 0 ? ci.max.z : 0) + sp[3] : .9; this.root.position.set(x, floorY + .002, z); this.root.rotation.set(0, sp[4], 0); this.floorPos.copy(this.root.position); }
   hits(ray: T.Raycaster) { return this.root.visible ? ray.intersectObject(this.root, true)[0] ?? null : null; }
   reset() { this.taken = false; this.root.visible = true; this.page = 0; this.close(); }
   take() { if (this.taken) return; this.taken = true; this.root.visible = false; this.onEvent('TAKE'); this.show(); }

@@ -207,3 +207,4 @@ body.tool-open #host-say { bottom: auto; top: max(18vh, 120px); }
 #notebook .nb-book { background: repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 3px), repeating-linear-gradient(0deg, rgba(0,0,0,.25) 0 1px, transparent 1px 3px), radial-gradient(120% 90% at 30% 20%, #2c2a28, #151413 70%, #0c0b0a); }
 #notebook .nb-book::before { border-color: rgba(190,40,28,.7); }
 #notebook .nb-book::after { content: ''; position: absolute; right: 4px; top: 4px; width: 22px; height: 22px; border-top: 4px solid #b08a48; border-right: 4px solid #b08a48; border-radius: 0 6px 0 0; pointer-events: none; }
+@media (min-width: 701px) { #bomb-coach { top: calc(max(12px, env(safe-area-inset-top)) + 92px); } }
