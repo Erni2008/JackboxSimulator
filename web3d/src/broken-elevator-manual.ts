@@ -114,7 +114,10 @@ async function boot() {
   // THE LOCKSMITH'S NOTES: how to work the pick, on sheets nailed to the wall by the door (the order stays in the handbook)
   const notes = new LockNotes(quality === "high"); notes.place(ci, floorY); scene.add(notes.group); notes.group.updateMatrixWorld(true);
   // THE HOST'S SUITCASE (5th assignment): built on first use; the case in hand is drawn in its own pass over the cage
-  const overlay = new T.Scene(); overlay.add(new T.HemisphereLight('#a8907a', '#5a2410', .85)); { const k = new T.DirectionalLight('#ffe2c0', 1.7); k.position.set(.4, 1, .6); overlay.add(k, k.target); const lv = new T.PointLight('#ff6a24', 1.4, 0, 0); lv.position.set(0, -1.2, .4); overlay.add(lv); }
+  const overlay = new T.Scene(); overlay.add(new T.HemisphereLight('#a8907a', '#4a1c0c', .6));
+  { // studio-like lighting for the case in hand: warm key, cold rim from behind, lava bounce from below (lights follow the camera)
+    const rig = new T.Group(); overlay.add(rig); const key = new T.DirectionalLight('#ffe0bc', 2.1); key.position.set(.5, .9, .5); const rim = new T.DirectionalLight('#9cb8ff', .75); rim.position.set(-.4, .7, -1); const lv = new T.DirectionalLight('#ff6a24', .9); lv.position.set(.2, -1, .3);
+    for (const l of [key, rim, lv]) { rig.add(l); rig.add(l.target); } overlay.userData.rig = rig; }
   let suitcase: Suitcase | null = null, nbook: Notebook | null = null, bombSeq = 0, bombView: any = null, maze: WireMazeView | null = null, links: LinksView | null = null, cutters = false, strikes = 0;
   let xrayV: XrayView | null = null, laserV: LaserView | null = null, thermalV: ThermalView | null = null, xrayL: XrayLayout | null = null, laserL: LaserLayout | null = null, thermalL: ThermalLayout | null = null;
   let wireLayout: WireLayout | null = null, linksModel: LinksModel | null = null, armed: Mechanism[] = [], neutral = new Set<Mechanism>(), probeSel: 0 | 1 = 0;
@@ -446,7 +449,7 @@ async function boot() {
     if (frameNo++ % (shadowEvery + 1) === 0) renderer.shadowMap.needsUpdate = true;
     notes.update(dt, camera);
     bloom.strength = .42 + (falling ? .25 : 0) + (shake > .8 ? .4 : 0); if (composer) composer.render(); else renderer.render(scene, camera);
-    if (suitcase && suitcase.state !== 'floor' && suitcase.root.visible) { renderer.autoClear = false; renderer.clearDepth(); renderer.render(overlay, camera); renderer.autoClear = true; } requestAnimationFrame(loop);
+    if (suitcase && suitcase.state !== 'floor' && suitcase.root.visible) { const rig = overlay.userData.rig as T.Group; rig.position.copy(camera.position); rig.quaternion.copy(camera.quaternion); rig.updateMatrixWorld(true); renderer.autoClear = false; renderer.clearDepth(); renderer.render(overlay, camera); renderer.autoClear = true; } requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
   (window as any).__manual = {book, ui, renderer, scene, camera, get state() { return ui.state; }, get info() { return renderer.info.render; }, box, press, link, lab, flink, journal, jui, get kind() { return kind; }, lock, notes, rows, get suitcase() { return suitcase; }, get maze() { return maze; }, get links() { return links; }, get linksModel() { return linksModel; }, get armed() { return armed; }, get xrayV() { return xrayV; }, get laserV() { return laserV; }, get thermalV() { return thermalV; }, get xrayL() { return xrayL; }, get laserL() { return laserL; }, get thermalL() { return thermalL; }, solveXray, solveThermal, laserTrace, get bombLayout() { return wireLayout; }, solveWires, pickWire(x: number, y: number) { const rc = new T.Raycaster(); rc.setFromCamera(new T.Vector2(x / innerWidth * 2 - 1, -y / innerHeight * 2 + 1), camera); return maze?.wireAt(rc) ?? null; }, get nbook() { return nbook; }, endRun() { taskNo = TOTAL; next(true); }, setInspect, cage, get shake() { return shake; }, look(y: number, p: number) { yaw = yawT = y; pitch = pitchT = p; }, setFree, set timeScale(v: number) { timeScale = v; }, step(sec: number) { for (let i = 0; i < Math.round(sec * 60); i++) { cage.update(1 / 60); ui.update(1 / 60); jui.update(1 / 60); } }};

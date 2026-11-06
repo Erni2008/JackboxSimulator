@@ -5,9 +5,10 @@
 // Inside: five mechanism bays (I–V). One is armed for this event (its lamp burns red); the rest are dead decoration.
 // The bays expose `bays[m].mount` for the mechanisms themselves (stage 4). Fictional device, invented for the game.
 import * as T from 'three';
-import {loadLeather, leatherMaps, leatherMaterial, brassMaterial, TEX} from '../manual/materials';
+import {brassMaterial, TEX} from '../manual/materials';
 import {L} from '../i18n';
 import {mergeStatic} from './merge';
+import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 
 export type Mechanism = 'WIRE_MAZE' | 'HIDDEN_CONNECTIONS' | 'XRAY' | 'LASER' | 'THERMAL';
 export const MECHANISMS: Mechanism[] = ['WIRE_MAZE', 'HIDDEN_CONNECTIONS', 'XRAY', 'LASER', 'THERMAL'];
@@ -56,8 +57,12 @@ export class Suitcase {
     const steel = this.steel(hq), brass = brassMaterial(8), dark = new T.MeshStandardMaterial({color: '#1d1b19', metalness: .7, roughness: .55});
     brass.emissive = new T.Color('#ff8a3a'); brass.emissiveIntensity = 0; this.glowMats.push(brass as unknown as T.MeshStandardMaterial);
     const leather = new T.MeshStandardMaterial({color: '#3a2618', roughness: .72, metalness: 0}); // swapped for the scanned leather once it loads
-    loadLeather().then(src => { const m = leatherMaterial(leatherMaps(src, {w: 512, h: 512, seed: 77, tiles: 2, edgeWear: .6}, 8)); m.color = new T.Color('#8a6448'); m.normalScale.set(.7, .7); this.root.traverse(o => { if ((o as T.Mesh).material === leather) (o as T.Mesh).material = m; }); }).catch(() => {});
-    const box = (w: number, h: number, d: number, m: T.Material, x: number, y: number, z: number, parent: T.Object3D = this.body) => { const k = new T.Mesh(new T.BoxGeometry(w, h, d), m); k.position.set(x, y, z); k.castShadow = k.receiveShadow = true; parent.add(k); return k; };
+    { // fine-grained dark saddle leather straight from the scan (no composited cracks: at case scale they read as stone)
+      const ld = new T.TextureLoader(), tx = (f: string, srgb: boolean) => { const t = ld.load(TEX + f); t.colorSpace = srgb ? T.SRGBColorSpace : T.NoColorSpace; t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(3, 3); t.anisotropy = 8; return t; };
+      leather.map = tx('brown_leather_albedo_1k.jpg', true); leather.normalMap = tx('brown_leather_nor_gl_1k.jpg', false); leather.normalScale.set(.8, .8);
+      leather.color.set('#6e4630'); leather.roughness = .82; leather.envMapIntensity = .3; leather.needsUpdate = true; }
+    // every part has softly rounded edges (catches a highlight like real pressed steel and stitched leather)
+    const box = (w: number, h: number, d: number, m: T.Material, x: number, y: number, z: number, parent: T.Object3D = this.body) => { const k = new T.Mesh(new RoundedBoxGeometry(w, h, d, 2, Math.min(w, h, d) * .42), m); k.position.set(x, y, z); k.castShadow = k.receiveShadow = true; parent.add(k); return k; };
 
     // ---- base shell (open top): leather panels with steel angle trim
     const baseY0 = -(HB + HL) / 2, seamY = baseY0 + HB;
@@ -88,10 +93,13 @@ export class Suitcase {
     const stencil = new T.Mesh(new T.PlaneGeometry(.2, .07), new T.MeshStandardMaterial({map: plateTex([{t: L('НЕ ОТКРЫВАТЬ', 'DO NOT OPEN'), font: 'bold 64px Oswald, sans-serif', y: .38, color: '#c8b48a'}, {t: L('собственность ведущего', "property of the host"), font: 'italic 34px "IM Fell English", serif', y: .76, color: '#c8b48a'}], 512, 180, 'rgba(0,0,0,0)', false, 9), transparent: true, roughness: .8, depthWrite: false}));
     stencil.rotation.x = -Math.PI / 2; stencil.position.set(0, HL + .0035, lz + .04); this.lid.add(stencil);
     // inside of the lid: a steel plate with the countdown and a worn warning card (faces the player once the lid stands open)
-    const inner = box(W - .03, .003, D - .03, dark, 0, HL - WALL - .002, lz, this.lid); inner.castShadow = false;
+    const lining = Suitcase.lining(); const inner = box(W - .016, .003, D - .016, lining, 0, HL - WALL - .002, lz, this.lid); inner.castShadow = false;
     this.timerCtx = document.createElement('canvas').getContext('2d')!; this.timerCtx.canvas.width = 512; this.timerCtx.canvas.height = 192; this.timerTex = new T.CanvasTexture(this.timerCtx.canvas); this.timerTex.colorSpace = T.SRGBColorSpace;
     const tm = new T.Mesh(new T.PlaneGeometry(.15, .056), new T.MeshBasicMaterial({map: this.timerTex, toneMapped: false})); tm.rotation.x = Math.PI / 2; tm.position.set(0, HL - WALL - .0045, lz + .02); this.lid.add(tm);
     box(.165, .006, .07, brass, 0, HL - WALL - .0025, lz + .02, this.lid); tm.position.y -= .002;
+    // a thin glass over the countdown: catches the lamp and the lava glow
+    const glass = new T.Mesh(new T.PlaneGeometry(.152, .058), new T.MeshStandardMaterial({color: '#ffffff', metalness: .9, roughness: .06, transparent: true, opacity: .16, envMapIntensity: 2.2, depthWrite: false}));
+    glass.rotation.x = Math.PI / 2; glass.position.set(0, HL - WALL - .0068, lz + .02); this.lid.add(glass);
     const card = new T.Mesh(new T.PlaneGeometry(.2, .085), new T.MeshStandardMaterial({map: plateTex([{t: L('ВНИМАНИЕ', 'WARNING'), font: 'bold 70px Oswald, sans-serif', y: .26, color: '#7a1408'}, {t: L('Красная лампа — заряженный механизм.', 'A red lamp marks the armed mechanism.'), font: '34px "IM Fell English", serif', y: .58}, {t: L('Сверяйся с блокнотом. Ошибок не прощаю.', 'Use the notebook. I do not forgive mistakes.'), font: 'italic 32px "IM Fell English", serif', y: .82}], 768, 300, '#cdbb92', true, 5), roughness: .9}));
     card.rotation.x = Math.PI / 2; card.position.set(0, HL - WALL - .0045, lz + .1); this.lid.add(card);
     this.timerLamp = new T.MeshStandardMaterial({color: '#300', emissive: '#ff2a10', emissiveIntensity: 0}); const tl = new T.Mesh(new T.SphereGeometry(.006, 12, 8), this.timerLamp); tl.position.set(.095, HL - WALL - .006, lz + .02); this.lid.add(tl);
@@ -121,12 +129,17 @@ export class Suitcase {
     // ---- interior tray with the five bays
     this.interior.position.y = seamY - .028; this.body.add(this.interior);
     const tray = new T.Mesh(new T.BoxGeometry(W - 2 * WALL, .004, D - 2 * WALL), new T.MeshStandardMaterial({color: '#2a2622', metalness: .75, roughness: .5, map: this.grime(31)})); tray.receiveShadow = true; this.interior.add(tray);
+    // the quilted lining shows on the walls between the tray and the rim
+    const wallH = .028; for (const [x, z, w, ry] of [[0, D / 2 - WALL - .0006, W - 2 * WALL, Math.PI], [0, -D / 2 + WALL + .0006, W - 2 * WALL, 0], [W / 2 - WALL - .0006, 0, D - 2 * WALL, -Math.PI / 2], [-W / 2 + WALL + .0006, 0, D - 2 * WALL, Math.PI / 2]] as const) {
+      const pl = new T.Mesh(new T.PlaneGeometry(w, wallH), lining); pl.position.set(x, wallH / 2, z); pl.rotation.y = ry; this.interior.add(pl); }
+    const brushed = Suitcase.brushed(), screwM = new T.MeshStandardMaterial({color: '#8c8478', metalness: 1, roughness: .32}), screwG = new T.CylinderGeometry(.0022, .0022, .0012, 12);
     const frameM = new T.MeshStandardMaterial({color: '#6e5430', metalness: .9, roughness: .48, map: this.grime(57)}); // darker, worn brass for the bay frames
     const layout: [Mechanism, number, number, number, number][] = [['WIRE_MAZE', -.145, -.068, .15, .15], ['HIDDEN_CONNECTIONS', 0, -.068, .125, .13], ['XRAY', .145, -.068, .13, .13], ['LASER', -.085, .072, .25, .12], ['THERMAL', .14, .072, .15, .12]];
     layout.forEach(([m, x, z, w, d], i) => { const g = new T.Group(); g.position.set(x, .002, z); this.interior.add(g);
-      const plate = new T.Mesh(new T.BoxGeometry(w, .003, d), new T.MeshStandardMaterial({color: '#191715', metalness: .6, roughness: .6})); plate.position.y = .0015; g.add(plate);
+      const plate = new T.Mesh(new T.BoxGeometry(w, .003, d), brushed); plate.position.y = .0015; g.add(plate);
+      for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const sc = new T.Mesh(screwG, screwM); sc.position.set(sx * (w / 2 - .007), .0036, sz * (d / 2 - .007)); g.add(sc); }
       for (const [fx, fz, fw, fd] of [[0, -d / 2, w + .006, .005], [0, d / 2, w + .006, .005], [-w / 2, 0, .005, d], [w / 2, 0, .005, d]] as const) box(fw, .007, fd, frameM, fx, .0035, fz, g);
-      const tag = new T.Mesh(new T.PlaneGeometry(.06, .013), new T.MeshStandardMaterial({map: plateTex([{t: `${ROMAN[i]} · ${MECH_NAME[m]().toUpperCase()}`, font: 'bold 40px Oswald, sans-serif', y: .54, color: '#1a120a'}], 512, 110, '#bfa774', false, 20 + i), roughness: .6, metalness: .3}));
+      const tag = new T.Mesh(new T.PlaneGeometry(.06, .013), new T.MeshStandardMaterial({map: plateTex([{t: `${ROMAN[i]} · ${MECH_NAME[m]().toUpperCase()}`, font: 'bold 40px Oswald, sans-serif', y: .54, color: '#24170a'}], 512, 110, '#b8924c', true, 20 + i), roughness: .38, metalness: .85})); // engraved brass
       tag.rotation.x = -Math.PI / 2; tag.position.set(-w / 2 + .034, .0075, d / 2 - .0095); g.add(tag);
       const lamp = new T.MeshStandardMaterial({color: '#2a0806', emissive: '#ff1e0a', emissiveIntensity: 0, roughness: .3}); const lb = new T.Mesh(new T.SphereGeometry(.0055, 14, 10), lamp); lb.position.set(w / 2 - .012, .006, d / 2 - .012); g.add(lb);
       const ring = new T.Mesh(new T.TorusGeometry(.0068, .0016, 6, 16), brass); ring.rotation.x = Math.PI / 2; ring.position.copy(lb.position); g.add(ring);
@@ -135,6 +148,22 @@ export class Suitcase {
     this.drawTimer(0); mergeStatic(this.root);
   }
   private leatherMeshes: T.Mesh[] = [];
+  /** quilted oxblood velvet with buttons (colour + bump from one drawing), shared by every case */
+  private static liningM: T.MeshStandardMaterial | null = null;
+  static lining() { if (Suitcase.liningM) return Suitcase.liningM; const S = 512, c = document.createElement('canvas'); c.width = c.height = S; const x = c.getContext('2d')!, h = document.createElement('canvas'); h.width = h.height = S; const y = h.getContext('2d')!;
+    x.fillStyle = '#3c0c10'; x.fillRect(0, 0, S, S); y.fillStyle = '#808080'; y.fillRect(0, 0, S, S); const step = S / 4;
+    for (let i = -1; i <= 4; i++) for (let j = -1; j <= 4; j++) { const cx = i * step + (j % 2 ? step / 2 : 0), cy = j * step / 2;
+      const g = x.createRadialGradient(cx, cy, 2, cx, cy, step * .55); g.addColorStop(0, 'rgba(120,40,40,.55)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.beginPath(); x.moveTo(cx, cy - step / 2); x.lineTo(cx + step / 2, cy); x.lineTo(cx, cy + step / 2); x.lineTo(cx - step / 2, cy); x.fill();
+      const gh = y.createRadialGradient(cx, cy, 2, cx, cy, step * .5); gh.addColorStop(0, '#e8e8e8'); gh.addColorStop(1, '#606060'); y.fillStyle = gh; y.beginPath(); y.moveTo(cx, cy - step / 2); y.lineTo(cx + step / 2, cy); y.lineTo(cx, cy + step / 2); y.lineTo(cx - step / 2, cy); y.fill(); }
+    x.strokeStyle = 'rgba(10,0,0,.7)'; y.strokeStyle = '#202020'; for (const ctx of [x, y]) { ctx.lineWidth = 3; for (let k = -S; k < 2 * S; k += step) { ctx.beginPath(); ctx.moveTo(k, 0); ctx.lineTo(k + S, S); ctx.stroke(); ctx.beginPath(); ctx.moveTo(k + S, 0); ctx.lineTo(k, S); ctx.stroke(); } }
+    for (let i = 0; i <= 4; i++) for (let j = 0; j <= 8; j++) { const cx = i * step + (j % 2 ? step / 2 : 0), cy = j * step / 2; x.fillStyle = '#1a0406'; x.beginPath(); x.arc(cx, cy, 7, 0, 7); x.fill(); x.fillStyle = 'rgba(200,120,110,.35)'; x.beginPath(); x.arc(cx - 2, cy - 2, 3, 0, 7); x.fill(); y.fillStyle = '#101010'; y.beginPath(); y.arc(cx, cy, 8, 0, 7); y.fill(); }
+    const t = new T.CanvasTexture(c), b = new T.CanvasTexture(h); t.colorSpace = T.SRGBColorSpace; for (const k of [t, b]) { k.wrapS = k.wrapT = T.RepeatWrapping; k.repeat.set(2.4, 1.8); k.anisotropy = 8; }
+    return Suitcase.liningM = new T.MeshStandardMaterial({map: t, bumpMap: b, bumpScale: 2.2, roughness: .95, metalness: 0, color: '#d8b0b0'}); }
+  /** brushed dark steel for the bay plates */
+  private static brushedM: T.MeshStandardMaterial | null = null;
+  static brushed() { if (Suitcase.brushedM) return Suitcase.brushedM; const S = 256, c = document.createElement('canvas'); c.width = c.height = S; const x = c.getContext('2d')!; x.fillStyle = '#6a6660'; x.fillRect(0, 0, S, S);
+    for (let i = 0; i < 1400; i++) { const yy = Math.random() * S, l = 20 + Math.random() * 140, v = 80 + Math.random() * 90; x.strokeStyle = `rgba(${v},${v},${v},.22)`; x.lineWidth = .6 + Math.random(); x.beginPath(); const xx = Math.random() * S; x.moveTo(xx, yy); x.lineTo(xx + l, yy); x.stroke(); }
+    const t = new T.CanvasTexture(c); t.wrapS = t.wrapT = T.RepeatWrapping; return Suitcase.brushedM = new T.MeshStandardMaterial({color: '#3a3733', metalness: .82, roughness: .42, roughnessMap: t, map: t}); }
   private grime(seed: number) { return canvasTex(256, 256, x => { const r = rnd(seed); x.fillStyle = '#b8b2aa'; x.fillRect(0, 0, 256, 256); for (let i = 0; i < 900; i++) { x.fillStyle = `rgba(${r() < .3 ? '90,50,20' : '20,18,16'},${r() * .12})`; x.fillRect(r() * 256, r() * 256, 1 + r() * 10, 1 + r() * 3); } }); }
   private steel(hq: boolean) {
     const ld = new T.TextureLoader(), tx = (f: string, srgb: boolean) => { const t = ld.load(TEX + f); t.colorSpace = srgb ? T.SRGBColorSpace : T.NoColorSpace; t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(3, 3); return t; };
