@@ -126,10 +126,13 @@ async function boot() {
   const setCutters = (on: boolean) => { cutters = on; $('btn-cut').classList.toggle('on', on); document.body.classList.toggle('cutters', on); };
   const live = (m: Mechanism) => armed.includes(m) && !neutral.has(m);
   /** a wrong defusal move: the bomb flinches (server-judged in a room, locally in practice) */
-  const strikeFx = (what: string) => { maze?.warn(); links?.warn(); xrayV?.warn(); laserV?.warn(); thermalV?.warn(); audio.play('alarm', .8); audio.play('spark'); haptic('bad'); shake = Math.max(shake, .35); const left = STRIKES() - strikes;
+  const TAUNT_STRIKE = [L('Осторожнее. Я бы не хотел собирать вас по частям.', 'Careful. I would hate to collect you in pieces.'), L('Ай-ай-ай. Блокнот же прямо у вас в руках.', 'Tut-tut. The notebook is right there in your hands.'), L('Ещё одна такая ошибка — и нам понадобится новая клетка.', 'One more like that and we will need a new cage.')];
+  const taunt = (lines: string[]) => subtitles([lines[Math.floor(Math.random() * lines.length)]]);
+  const strikeFx = (what: string) => { setTimeout(() => taunt(TAUNT_STRIKE), 2400); maze?.warn(); links?.warn(); xrayV?.warn(); laserV?.warn(); thermalV?.warn(); audio.play('alarm', .8); audio.play('spark'); haptic('bad'); shake = Math.max(shake, .35); const left = STRIKES() - strikes;
     verdict(false, left >= 0 ? L(`Удар по взрывателю · осталось ошибок: ${left}`, `Strike on the fuse · mistakes left: ${left}`) : '', what); };
   /** one armed mechanism done: its lamp goes out; the bomb is defused when all three are */
   const neutralFx = (m: Mechanism) => { if (neutral.has(m)) return; neutral.add(m); suitcase?.neutral.add(m); if (m === 'WIRE_MAZE') setCutters(false); const left = armed.filter(x => !neutral.has(x)).length;
+    if (left === 1) setTimeout(() => taunt([L('Неплохо. Но последний — самый коварный.', 'Not bad. But the last one is the trickiest.'), L('Два из трёх. Не расслабляйтесь.', 'Two out of three. Do not relax.')]), 2400);
     if (left > 0) { audio.play('labOk'); audio.play('relay'); haptic('good'); verdict(true, L(`Осталось механизмов: ${left}`, `Mechanisms left: ${left}`), L('Механизм обезврежен', 'Mechanism neutralised')); setTimeout(() => { if (suitcase?.focus === m) suitcase.focusOn(null); }, 1100); } };
   const judge = (m: Mechanism, ok: boolean, what: string) => { if (ok) { neutralFx(m); if (armed.every(x => neutral.has(x))) bombFinish(true, 'DEFUSED'); } else { mistakes++; strikes++; strikeFx(what); if (strikes > STRIKES()) setTimeout(() => bombFinish(false, 'WRONG'), 500); } };
   const setLcd = (t: string) => { const el = $('t-lcd'); el.textContent = t; el.classList.remove('blink'); void el.offsetWidth; el.classList.add('blink'); audio.play(t === 'OL' || t === '—' ? 'button' : 'relay', .6); };
@@ -157,9 +160,16 @@ async function boot() {
         if (IN_ROOM) RoomSocket.shared()?.send('BOMB_ACTION', {action: 'VENT', arg: i, seq: ++bombSeq}); else judge('THERMAL', !!thermalL && i === solveThermal(thermalL), L('Не та капсула', 'Wrong capsule')); return true; }
       if (f === 'HIDDEN_CONNECTIONS' && links) { const id = links.contactAt(rc); if (id < 0) return false; links.place(probeSel, id); audio.play('valveClick'); haptic('tap'); probeSel = probeSel ? 0 : 1; syncTester(); measure(); return true; }
       return false; };
-    suitcase.onEvent = e => { if (e === 'PICKUP') { audio.play('pickup'); haptic('tap'); bombAct('FOUND'); } if (e === 'PUTDOWN') audio.play('drop', .5); if (e === 'LATCH') { audio.play('lever'); audio.play('valveClick'); haptic('tap'); }
+    suitcase.onEvent = e => { if (e === 'PICKUP' && !suitcase!.open) coach('latches'); if (e === 'LID_OPENED') coach(nbook?.taken ? 'bays' : 'notebook'); if (e === 'FOCUS') coach(nbook?.taken ? 'tool' : 'notebook');
+      if (e === 'PICKUP') { audio.play('pickup'); haptic('tap'); bombAct('FOUND'); } if (e === 'PUTDOWN') audio.play('drop', .5); if (e === 'LATCH') { audio.play('lever'); audio.play('valveClick'); haptic('tap'); }
       if (e === 'LOCKED') { audio.play('locked'); haptic('bad'); } if (e === 'LID_OPEN') { audio.play('creak', .8); audio.play('coverOpen'); bombAct('OPEN'); } if (e === 'FOCUS') { audio.play('button', .5); haptic('tap'); } if (e === 'LID_OPENED') { audio.play('impactMetal', .4); audio.play('alarm', .25); shake = Math.max(shake, .12); } };
     nbook.onEvent = e => { if (e === 'TAKE') { audio.play('pickup'); haptic('tap'); } if (e === 'TURN' || e === 'OPEN') audio.play('pageTurn', 1); if (e === 'CLOSE') audio.play('coverClose', .5); $('btn-nb').hidden = !nbook!.taken; }; };
+  /** one line at the top that always says what to do next (visible during the close-up too) */
+  const coach = (step: 'find' | 'latches' | 'bays' | 'notebook' | 'tool' | 'off') => { const el = $('bomb-coach'); const t: Record<string, string> = {
+      find: L('Найдите в клетке чемоданчик и блокнот', 'Find the suitcase and the notebook in the cage'), latches: L('Поверните чемодан · откиньте обе защёлки спереди · поднимите крышку', 'Turn the case · flip both front latches · lift the lid'),
+      bays: L('Красные лампы — заряженные отсеки. Нажмите на отсек, чтобы приблизить', 'Red lamps mark the armed bays. Tap a bay to bring it close'), notebook: L('Нужны правила — блокнот лежит где-то в клетке', 'You need the rules — the notebook is somewhere in the cage'),
+      tool: L('Откройте главу этого отсека в блокноте · «Назад» — ко всему чемодану', 'Open this bay\'s chapter in the notebook · "Back" returns to the whole case'), off: ''};
+    el.textContent = t[step]; el.classList.toggle('show', step !== 'off'); };
   const syncTester = () => { $('t-red').classList.toggle('on', probeSel === 0); $('t-black').classList.toggle('on', probeSel === 1); };
   const bombAct = (action: 'FOUND' | 'OPEN') => RoomSocket.shared()?.send('BOMB_ACTION', {action, seq: ++bombSeq});
   /** practice: three of five from the seed (?module=A,B forces a set) */
@@ -191,12 +201,12 @@ async function boot() {
   // АДСКАЯ КЛЕТКА room mode: the server runs the shift (3 rounds, shared timer); the phone only plays the round it is given
   let IN_ROOM = false; /* true once the server runs a shift for this room */ let serverKind: Kind | null = null, curRound = -1, roundLimitS = 0, roundDeadlineAt = 0, shiftV: any = null;
   let kind: Kind = kindOf(1);
-  const hud = () => { $('task').textContent = `${L('ЗАДАНИЕ', 'TASK')} ${taskNo} / ${TOTAL} · ${kind === 'pressure' ? L('КЛАПАНЫ', 'VALVES') : kind === "formula" ? L("ФОРМУЛА", "FORMULA") : kind === "lock" ? L("ЗАМОК", "LOCK") : kind === "bomb" ? L("БОМБА", "BOMB") : L("ПРОВОДА", "WIRES")} · ${diffName().toUpperCase()}`; };
+  const hud = () => { $('task').textContent = `${innerWidth < 520 ? '' : L('ЗАДАНИЕ', 'TASK') + ' '}${taskNo} / ${TOTAL} · ${kind === 'pressure' ? L('КЛАПАНЫ', 'VALVES') : kind === "formula" ? L("ФОРМУЛА", "FORMULA") : kind === "lock" ? L("ЗАМОК", "LOCK") : kind === "bomb" ? L("БОМБА", "BOMB") : L("ПРОВОДА", "WIRES")} · ${diffName().toUpperCase()}`; };
   // result card: low on screen (≈85 % of the viewport), fades in, a small mechanical jolt, holds, fades out (~2 s)
   let verdictTimer: any = 0;
   const verdict = (ok: boolean, sub: string, title?: string) => { $('host-say').classList.remove('show'); const v = $('verdict'); v.querySelector('b')!.textContent = title ?? (ok ? L('Цепь стабилизирована', 'Circuit stabilised') : L('Критическая ошибка', 'Critical error')); v.querySelector('span')!.textContent = sub; v.dataset.tone = ok ? 'good' : 'bad';
     v.classList.remove('show'); void v.offsetWidth; v.classList.add('show'); clearTimeout(verdictTimer); verdictTimer = setTimeout(() => v.classList.remove('show'), 2300); if (!ok) { document.body.classList.remove('jolt'); void document.body.offsetWidth; document.body.classList.add('jolt'); } };
-  const newTask = (advance: boolean) => { if (advance) taskNo = Math.min(TOTAL, taskNo + 1); taskSeed++; kind = kindOf(taskNo); if (kind !== 'bomb' && suitcase) { suitcase.enabled = false; if (inspectTarget === 'bomb' && inspecting) setInspect(false); nbook!.close(); $('btn-nb').hidden = true; }
+  const newTask = (advance: boolean) => { if (advance) taskNo = Math.min(TOTAL, taskNo + 1); taskSeed++; kind = kindOf(taskNo); if (kind !== 'bomb') coach('off'); if (kind !== 'bomb' && suitcase) { suitcase.enabled = false; if (inspectTarget === 'bomb' && inspecting) setInspect(false); nbook!.close(); $('btn-nb').hidden = true; }
     const t = makeTask(wireRules, taskSeed, wireCount || 4 + Math.floor(Math.random() * 3), fixed); box.setTask(t); box.configure(t.fault, t.mode); deadline = 0;
     const k0 = kind, myGen = ++taskGen; box.locked = true; press.enabled = false; lab.enabled = false; lock.enabled = false; link.stop(); flink.stop(); hud();
     if (IN_ROOM && serverKind === null) return; // wait for the server's first round
@@ -212,7 +222,7 @@ async function boot() {
       $("hint").textContent = L("Взломайте замок на двери отмычкой. Как это сделать — на листках на стене у двери.", "Pick the door lock. How to do it is on the sheets on the wall by the door."); $("hint").style.opacity = "1";
       if (cur().state === "rest" || cur().state === "falling") { const d = lock.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } }
     else lock.enabled = false;
-    if (k0 === 'bomb') { ensureBomb(); suitcase!.reset(); nbook!.reset(); $('btn-nb').hidden = true; strikes = 0; setCutters(false); $('btn-cut').hidden = true; armBomb(); suitcase!.enabled = true; box.locked = true; bombWarned = false; bombDone = false;
+    if (k0 === 'bomb') { said30 = false; coach('find'); ensureBomb(); suitcase!.reset(); nbook!.reset(); $('btn-nb').hidden = true; strikes = 0; setCutters(false); $('btn-cut').hidden = true; armBomb(); suitcase!.enabled = true; box.locked = true; bombWarned = false; bombDone = false;
       $('hint').textContent = L('Где-то в клетке — чемоданчик и блокнот. Осмотритесь.', 'Somewhere in the cage: a suitcase and a notebook. Look around.'); $('hint').style.opacity = '1'; deadline = IN_ROOM && roundDeadlineAt ? roundDeadlineAt : performance.now() + limitMs('bomb'); RoomSocket.shared()?.send('BOMB_START', params.get('module') ? {module: params.get('module')} : {}); }
     hud(); }); };
   // ---- THE HOST'S SUITCASE: the announcement (voice when recorded, subtitles always), the critical-time warning
@@ -220,11 +230,16 @@ async function boot() {
     'Ах да, чуть не забыл! Я также оставил вам блокнот с инструкциями по обезвреживанию.', 'Найдите чемоданчик, откройте его и постарайтесь следовать инструкциям.', 'И советую поторопиться.', 'Всё-таки… время идёт.'];
   const BOMB_INTRO_EN = ['Oh, you managed two tasks! Splendid!', 'Although, I confess, that was far too easy.', 'So while you were busy, I quietly left a little present in your cage.', 'A suitcase. With a bomb.',
     'Oh yes, I almost forgot! I also left you a notebook with defusal instructions.', 'Find the suitcase, open it and try to follow the instructions.', 'And I advise you to hurry.', 'After all… time is ticking.'];
-  let tickHalf = -1; let bombWarned = false, bombDone = false, subGen = 0;
+  let tickHalf = -1, said30 = false; let bombWarned = false, bombDone = false, subGen = 0;
   /** the suitcase's result. In a room only the server's verdict (BOMB_UPDATED) counts; practice decides locally. */
   const bombFinish = (ok: boolean, why: 'DEFUSED' | 'WRONG' | 'TIMEOUT') => { if (kind !== 'bomb' || bombDone) return; if (IN_ROOM && why === 'TIMEOUT') { deadline = 0; return; } /* wait for the server */
-    bombDone = true; deadline = 0; suitcase?.freezeTimer(ok); setCutters(false); $('btn-cut').hidden = true; if (suitcase) suitcase.enabled = false; record(ok, why === 'DEFUSED' ? 'OK' : why); audio.play(ok ? 'good' : 'bad'); haptic(ok ? 'good' : 'blast'); shake = Math.max(shake, ok ? .2 : 1);
-    verdict(ok, ok ? L('МЕХАНИЗМ ОБЕЗВРЕЖЕН', 'MECHANISM NEUTRALISED') : why === 'TIMEOUT' ? L('ВРЕМЯ ВЫШЛО', 'TIME RAN OUT') : L('НЕВЕРНОЕ ДЕЙСТВИЕ', 'WRONG MOVE'), ok ? L('Бомба обезврежена', 'Bomb defused') : L('ВЗРЫВ', 'DETONATION'));
+    bombDone = true; deadline = 0; coach('off'); suitcase?.freezeTimer(ok); setCutters(false); $('btn-cut').hidden = true; if (suitcase) suitcase.enabled = false; record(ok, why === 'DEFUSED' ? 'OK' : why); audio.play(ok ? 'good' : 'bad'); haptic(ok ? 'good' : 'blast'); shake = Math.max(shake, ok ? .2 : 1);
+    let score = ''; if (ok) { const row = rows.at(-1)!, lim = limitMs('bomb') / 1000, sec = row.seconds, clean = row.mistakes === 0;
+      const stars = clean && sec < lim * .5 ? 3 : row.mistakes <= 1 ? 2 : 1, key = 'finalanswer-bomb-best-' + DIFF(); let best = 0; try { best = +(localStorage.getItem(key) || 0); } catch {}
+      const rec = !best || sec < best; if (rec) try { localStorage.setItem(key, sec.toFixed(1)); } catch {}
+      const mmss = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+      score = `${'★'.repeat(stars)}${'☆'.repeat(3 - stars)} · ${mmss(sec)}` + (rec ? L(' · НОВЫЙ РЕКОРД!', ' · NEW RECORD!') : L(` · рекорд ${mmss(best)}`, ` · best ${mmss(best)}`)); }
+    verdict(ok, ok ? score : why === 'TIMEOUT' ? L('ВРЕМЯ ВЫШЛО', 'TIME RAN OUT') : L('НЕВЕРНОЕ ДЕЙСТВИЕ', 'WRONG MOVE'), ok ? L('Бомба обезврежена', 'Bomb defused') : L('ВЗРЫВ', 'DETONATION'));
     voice.say(ok ? 'success' : 'explosion', 4, 0);
     if (!ok) { audio.play('explosion'); audio.play('burst'); shake = 1.7; const f = $('blast'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); document.body.classList.remove('jolt'); void document.body.offsetWidth; document.body.classList.add('jolt'); nbook?.close(); if (suitcase?.focus) suitcase.focusOn(null); }
     else { audio.play('labOk'); if (suitcase?.focus) suitcase.focusOn(null); }
@@ -317,7 +332,7 @@ async function boot() {
     ray.setFromCamera(new T.Vector2(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1), camera);
     if (valvePointer === e.pointerId) return;
     if (kind === 'bomb' && suitcase?.enabled && !inspecting && (cur().state === 'rest' || cur().state === 'falling' || cur().lowered)) { const sh = suitcase.hits(ray), nh = nbook!.hits(ray), bh = ray.intersectObject(book.root, true)[0];
-      if (nh && (!sh || nh.distance < sh.distance) && (!bh || nh.distance < bh.distance)) { nbook!.take(); $('btn-nb').hidden = false; return; }
+      if (nh && (!sh || nh.distance < sh.distance) && (!bh || nh.distance < bh.distance)) { nbook!.take(); $('btn-nb').hidden = false; coach(suitcase.open ? 'bays' : suitcase.found ? 'latches' : 'find'); return; }
       if (sh && (!bh || sh.distance < bh.distance)) { setInspect(true, 'bomb'); suitcase.pickUp(); $('hint').style.opacity = '0'; return; } }
     if (notes.heldHit(ray) || notes.reading) { notes.toggleRead(); haptic("tap"); audio.play("pageTurn", 1); return; } // a tap anywhere lowers a sheet being read
     { const nh = notes.hits(ray); if (nh && !(inspecting && inspectTarget === "lock")) { const bh = ray.intersectObject(book.root, true)[0]; if (!bh || nh.distance < bh.distance) {
@@ -332,7 +347,7 @@ async function boot() {
     const r = box.tap(ray); (window as any).__lastTap = r; if (r && (r !== 'door' || box.open) && !inspecting && (cur().state === 'rest' || cur().state === 'falling' || cur().lowered)) { setInspect(true); if (r !== 'test') return; } if (r === 'door' && box.open) { if (!deadline && !box.locked && !IN_ROOM) deadline = performance.now() + LIMITW() * 1000; if (cur().state === 'rest' || cur().state === 'falling') { const d = box.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } } });
   const setInspect = (on: boolean, target: "box" | "pressure" | "lab" | "lock" | "notes" | "bomb" = "box") => { if (!on && inspectTarget === 'bomb') { suitcase?.putDown(); nbook?.close(); } if (on) inspectTarget = target; inspecting = on; $('btn-back').hidden = !on; $('hint').style.opacity = on ? '0' : ''; $('task').style.opacity = on && innerWidth > 700 ? '0' : ''; if (on) { focusTo = null; if (target === 'box' && !box.open) box.toggleDoor(); } };
   $('btn-sheet').onclick = () => { notes.putBack(); $('btn-sheet').hidden = true; audio.play('pageTurn', 1); };
-  $('btn-back').onclick = () => { if (inspecting && inspectTarget === 'bomb' && suitcase?.focus) { suitcase.focusOn(null); return; } setInspect(false); }; addEventListener('keydown', e => { if (e.key === 'Escape' && inspecting) setInspect(false); });
+  $('btn-back').onclick = () => { if (inspecting && inspectTarget === 'bomb' && suitcase?.focus) { suitcase.focusOn(null); if (!bombDone) coach(nbook?.taken ? 'bays' : 'notebook'); return; } setInspect(false); }; addEventListener('keydown', e => { if (e.key === 'Escape' && inspecting) setInspect(false); });
   $('btn-open').onclick = () => cur().open(); $('btn-close').onclick = () => cur().close(); $('btn-drop').onclick = () => cur().drop();
   $('btn-sound').onclick = () => { audio.unlock(); audio.enabled = !audio.enabled; $('btn-sound').textContent = audio.enabled ? L('Звук: вкл.', 'Sound: on') : L('Звук: выкл.', 'Sound: off'); };
   book.onspread = s => { $('page-label').textContent = `${2 * s + 1}–${2 * s + 2} / ${book.pages.length}`; }; book.onspread(0);
@@ -428,6 +443,7 @@ async function boot() {
       const pr = $('prompt'); if (inspecting && !toastT) pr.classList.remove('show'); if (!inspecting) pr.textContent = gs ? L('ОСМОТРЕТЬ ЧЕМОДАНЧИК', 'INSPECT THE SUITCASE') : gn ? L('ВЗЯТЬ БЛОКНОТ', 'TAKE THE NOTEBOOK') : pr.textContent; if (!inspecting) pr.classList.toggle('show', gs || gn);
       if (liveK) { const left = deadline ? Math.max(0, (deadline - performance.now()) / 1000) : LIMITW(); suitcase.setTimer(left, LIMITW());
         // the fuse ticks: once a second, louder and twice as often in the last ten
+        if (deadline && !bombDone && left < 30 && left > 29 && !said30) { said30 = true; taunt([L('Тридцать секунд. Я начинаю волноваться… за вас.', 'Thirty seconds. I am getting worried… for you.')]); }
         if (deadline && !bombDone && suitcase.found) { const half = left < 10 ? Math.floor(left * 2) : Math.floor(left) * 2; if (half !== tickHalf) { tickHalf = half; audio.play('clockTick', left < 10 ? .95 : left < 30 ? .55 : .3); } } } overlay.environment = scene.environment; suitcase.update(dt, camera, gs); nbook.update(dt, gn); }
     if (focusTo) { let dy = focusTo[0] - yawT; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yawT += dy * Math.min(1, dt * 5); pitchT += (focusTo[1] - pitchT) * Math.min(1, dt * 5); if (Math.abs(dy) < .002 && Math.abs(focusTo[1] - pitchT) < .002) focusTo = null; }
     { const sw = kind === 'pressure' && !!link.view()?.surgeWarning; document.body.classList.toggle('surge', sw); if (sw && !surgeSaid) { surgeSaid = true; voice.say('surge', 3, 0); haptic('tap'); } }
