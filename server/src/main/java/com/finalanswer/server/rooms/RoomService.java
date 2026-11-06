@@ -615,9 +615,9 @@ public final class RoomService {
                 room.bomb.put(member.id,new com.erni.finalanswer.gameplay.elevator.BombPuzzle(random.nextLong(),room.difficulty,forced,now(),limit));}
             reply(peer,room,member,message);return;
         }
-        var keys=new HashSet<>(data.keySet());keys.remove("roomCode"); if(!keys.equals(Set.of("action","seq")))throw new Failure(400,"INVALID_BOMB_ACTION");
+        var keys=new HashSet<>(data.keySet());keys.remove("roomCode"); if(!keys.equals(Set.of("action","seq"))&&!keys.equals(Set.of("action","seq","arg")))throw new Failure(400,"INVALID_BOMB_ACTION");
         var p=room.bomb.get(member.id);if(p==null)throw new Failure(409,"NO_BOMB_PUZZLE");
-        try{p.apply(Protocol.string(data,"action"),data.get("seq").getAsLong(),now());}catch(RuntimeException e){throw new Failure(400,"INVALID_BOMB_ACTION");}
+        try{p.apply(Protocol.string(data,"action"),data.has("arg")?data.get("arg").getAsInt():-1,data.get("seq").getAsLong(),now());}catch(RuntimeException e){throw new Failure(400,"INVALID_BOMB_ACTION");}
         bombOutcome(room,member,p); reply(peer,room,member,message);
     }
     private void bombOutcome(Room room,Member member,com.erni.finalanswer.gameplay.elevator.BombPuzzle p){
@@ -627,7 +627,8 @@ public final class RoomService {
     }
     private Map<String,Object> bombView(com.erni.finalanswer.gameplay.elevator.BombPuzzle p){ Map<String,Object> v=new LinkedHashMap<>();
         v.put("module",p.module.name());v.put("stage",p.stage().name());v.put("strikes",p.strikes());v.put("strikesAllowed",p.strikesAllowed());v.put("startedAt",p.startedAt());v.put("deadline",p.deadline());
-        v.put("outcome",p.outcome().name());v.put("failReason",p.failReason());v.put("finishedAt",p.finishedAt());v.put("lastSeq",p.lastSeq());v.put("puzzleId",Long.toHexString(p.seed));
+        v.put("outcome",p.outcome().name());v.put("failReason",p.failReason());v.put("finishedAt",p.finishedAt());v.put("lastSeq",p.lastSeq());v.put("puzzleId",Long.toHexString(p.seed));v.put("cut",List.copyOf(p.cut()));
+        if(p.wires!=null){var w=p.wires;Map<String,Object> m=new LinkedHashMap<>();m.put("n",w.n);m.put("seal",w.seal.name());m.put("redirect",w.redirect);m.put("letters",w.letters);m.put("end",w.end);m.put("color",w.color);m.put("layer",w.layer);m.put("bends",w.bends);v.put("wires",m);}
         var e=p.lastEvent();if(e!=null)v.put("event",Map.of("seq",e.seq(),"type",e.type(),"detail",e.detail()));
         return v; } // the solution never leaves the server
     private void tickBomb(Room room){

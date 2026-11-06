@@ -25,10 +25,13 @@ public final class BombPuzzle {
     private final long startedAt, limitMs; private Outcome outcome = Outcome.RUNNING; private Stage stage = Stage.HIDDEN;
     private int strikes; private long finishedAt = -1, lastSeq = -1; private String failReason = ""; private Event lastEvent;
     public boolean rewarded; public long sentAt;
+    /** the armed mechanism's generated layout (null for the others: they are dead decoration) */
+    public final WireMaze wires; private final Set<Integer> cut = new TreeSet<>();
 
     public BombPuzzle(long seed, Difficulty d, Mechanism forced, long now) { this(seed, d, forced, now, d.bombMs); }
     public BombPuzzle(long seed, Difficulty d, Mechanism forced, long now, long limitMs) {
         this.seed = seed; this.difficulty = d; this.module = forced != null ? forced : pick(seed); this.startedAt = now; this.limitMs = limitMs;
+        this.wires = module == Mechanism.WIRE_MAZE ? WireMaze.generate(seed, d) : null;
     }
     /** random but reproducible from the seed */
     public static Mechanism pick(long seed) { Mechanism[] all = Mechanism.values(); return all[new Random(seed ^ 0x5EEDB0B5L).nextInt(all.length)]; }
@@ -38,11 +41,16 @@ public final class BombPuzzle {
     public boolean advance(long now) { if (outcome != Outcome.RUNNING || now < startedAt + limitMs) return false; detonate(now, "TIMEOUT"); return true; }
 
     /** the player's actions that every module shares; module actions arrive in their own apply calls. Old/duplicate seq are ignored. */
-    public boolean apply(String action, long seq, long now) {
+    public boolean apply(String action, long seq, long now) { return apply(action, -1, seq, now); }
+    /** arg: the wire (start slot) for CUT */
+    public boolean apply(String action, int arg, long seq, long now) {
         advance(now); if (outcome != Outcome.RUNNING || seq <= lastSeq) return false; lastSeq = seq;
         switch (action) {
             case "FOUND" -> { if (stage == Stage.HIDDEN) stage = Stage.FOUND; }
             case "OPEN" -> stage = Stage.OPEN;
+            case "CUT" -> { if (wires == null || stage != Stage.OPEN || arg < 0 || arg >= wires.n) throw new IllegalArgumentException("INVALID_CUT");
+                if (!cut.add(arg)) return false; lastEvent = new Event(seq, "CUT", String.valueOf(arg));
+                if (arg == wires.solution()) defuse(seq, now); else strike(seq, now, "WIRE " + arg); return true; }
             default -> throw new IllegalArgumentException("UNKNOWN_BOMB_ACTION");
         }
         lastEvent = new Event(seq, action, ""); return true;
@@ -53,6 +61,7 @@ public final class BombPuzzle {
     void defuse(long seq, long now) { outcome = Outcome.DEFUSED; finishedAt = now; lastEvent = new Event(seq, "DEFUSED", module.name()); }
     private void detonate(long now, String why) { outcome = Outcome.DETONATED; finishedAt = now; failReason = why; lastEvent = new Event(lastSeq, "DETONATED", why); }
 
+    public Set<Integer> cut() { return Collections.unmodifiableSet(cut); }
     public Outcome outcome() { return outcome; }
     public Stage stage() { return stage; }
     public int strikes() { return strikes; }

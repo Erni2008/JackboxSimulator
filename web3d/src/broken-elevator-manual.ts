@@ -26,6 +26,7 @@ import {CodeLock, makeLockTask} from "./games/broken-elevator/puzzles/code-lock"
 import {LockNotes} from "./games/broken-elevator/puzzles/lock-notes";
 import {DIFF} from "./games/broken-elevator/difficulty";
 import {Suitcase, MECHANISMS, type Mechanism} from "./games/broken-elevator/bomb/suitcase";
+import {WireMazeView, makeWireLayout, solveWires, type WireLayout} from "./games/broken-elevator/bomb/wire-maze";
 import {Notebook} from "./games/broken-elevator/bomb/notebook";
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
@@ -110,15 +111,31 @@ async function boot() {
   const notes = new LockNotes(quality === "high"); notes.place(ci, floorY); scene.add(notes.group); notes.group.updateMatrixWorld(true);
   // THE HOST'S SUITCASE (5th assignment): built on first use; the case in hand is drawn in its own pass over the cage
   const overlay = new T.Scene(); overlay.add(new T.HemisphereLight('#a8907a', '#5a2410', .85)); { const k = new T.DirectionalLight('#ffe2c0', 1.7); k.position.set(.4, 1, .6); overlay.add(k, k.target); const lv = new T.PointLight('#ff6a24', 1.4, 0, 0); lv.position.set(0, -1.2, .4); overlay.add(lv); }
-  let suitcase: Suitcase | null = null, nbook: Notebook | null = null, bombSeq = 0, bombView: any = null;
+  let suitcase: Suitcase | null = null, nbook: Notebook | null = null, bombSeq = 0, bombView: any = null, maze: WireMazeView | null = null, cutters = false, strikes = 0, bombLayout: WireLayout | null = null;
+  const STRIKES = () => ({EASY: 3, NORMAL: 2, HARD: 1} as Record<string, number>)[DIFF()] ?? 2; let toastT: any = 0;
+  const toast = (t: string) => { const pr = $('prompt'); pr.textContent = t; pr.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => { pr.classList.remove('show'); toastT = 0; }, 1800); };
+  const setCutters = (on: boolean) => { cutters = on; $('btn-cut').classList.toggle('on', on); document.body.classList.toggle('cutters', on); };
+  /** a wrong defusal move: the bomb flinches (server-judged in a room, locally in practice) */
+  const strikeFx = () => { maze?.warn(); audio.play('alarm', .8); audio.play('spark'); haptic('bad'); shake = Math.max(shake, .35); const left = STRIKES() + 1 - strikes;
+    verdict(false, left > 0 ? L(`Удар по взрывателю · осталось ошибок: ${left - 1}`, `Strike on the fuse · mistakes left: ${left - 1}`) : '', L('Неверный провод', 'Wrong wire')); };
   const ensureBomb = () => { if (suitcase && nbook) return;
     suitcase = new Suitcase(overlay, quality === 'high'); suitcase.place(ci, floorY); scene.add(suitcase.root); suitcase.place(ci, floorY);
     nbook = new Notebook(); nbook.place(ci, floorY); scene.add(nbook.root);
+    maze = new WireMazeView(); suitcase.bays.WIRE_MAZE.mount.add(maze.group);
+    suitcase.onTap = rc => { if (!maze || kind !== 'bomb' || bombDone || suitcase!.active !== 'WIRE_MAZE' || suitcase!.focus !== 'WIRE_MAZE') return false; const h = maze.wireAt(rc); if (!h) return false;
+      if (!cutters) { toast(L('Сначала возьмите кусачки', 'Take the cutters first')); haptic('tap'); return true; }
+      if (!h.mid) { toast(L('Режьте посередине провода', 'Cut in the middle of the wire')); haptic('tap'); return true; }
+      maze.sever(h.wire, h.t); audio.play('snip'); haptic('tap'); mistakes++;
+      if (IN_ROOM) RoomSocket.shared()?.send('BOMB_ACTION', {action: 'CUT', arg: h.wire, seq: ++bombSeq});
+      else if (bombLayout && h.wire === solveWires(bombLayout)) { mistakes--; bombFinish(true, 'DEFUSED'); } else { strikes++; strikeFx(); if (strikes > STRIKES()) setTimeout(() => bombFinish(false, 'WRONG'), 500); }
+      return true; };
     suitcase.onEvent = e => { if (e === 'PICKUP') { audio.play('pickup'); haptic('tap'); bombAct('FOUND'); } if (e === 'PUTDOWN') audio.play('drop', .5); if (e === 'LATCH') { audio.play('lever'); audio.play('valveClick'); haptic('tap'); }
-      if (e === 'LOCKED') { audio.play('locked'); haptic('bad'); } if (e === 'LID_OPEN') { audio.play('creak', .8); audio.play('coverOpen'); bombAct('OPEN'); } if (e === 'LID_OPENED') { audio.play('impactMetal', .4); audio.play('alarm', .25); shake = Math.max(shake, .12); } };
+      if (e === 'LOCKED') { audio.play('locked'); haptic('bad'); } if (e === 'LID_OPEN') { audio.play('creak', .8); audio.play('coverOpen'); bombAct('OPEN'); } if (e === 'FOCUS') { audio.play('button', .5); haptic('tap'); } if (e === 'LID_OPENED') { audio.play('impactMetal', .4); audio.play('alarm', .25); shake = Math.max(shake, .12); } };
     nbook.onEvent = e => { if (e === 'TAKE') { audio.play('pickup'); haptic('tap'); } if (e === 'TURN' || e === 'OPEN') audio.play('pageTurn', 1); if (e === 'CLOSE') audio.play('coverClose', .5); $('btn-nb').hidden = !nbook!.taken; }; };
   const bombAct = (action: 'FOUND' | 'OPEN') => RoomSocket.shared()?.send('BOMB_ACTION', {action, seq: ++bombSeq});
   const armBomb = () => { ensureBomb(); const sv = bombView, m = (sv?.module || params.get('module') || '').toUpperCase(); suitcase!.arm((MECHANISMS as string[]).includes(m) ? m as Mechanism : MECHANISMS[Math.abs(taskSeed * 7 + 3) % 5]);
+    // every bay shows its mechanism; only the armed one is live (dead ones get a decorative layout)
+    bombLayout = suitcase!.active === 'WIRE_MAZE' ? (sv?.wires ?? makeWireLayout(taskSeed, DIFF())) : null; maze!.build(bombLayout ?? makeWireLayout(taskSeed + 991, DIFF()), sv?.cut ?? []); strikes = sv?.strikes ?? 0;
     if (sv?.stage === 'OPEN' && !suitcase!.open) { suitcase!.latchOpen = [true, true]; suitcase!.lidTarget = 1; suitcase!.lidT = .999; } if (sv?.stage && sv.stage !== 'HIDDEN') suitcase!.found = true; if (typeof sv?.lastSeq === 'number') bombSeq = Math.max(bombSeq, sv.lastSeq); };
   lock.sounds = {click: () => audio.play("valveClick"), turn: () => audio.play("button"), lever: () => { audio.play("button"); audio.play("relay"); }, unlock: () => { audio.play("locked"); audio.play("doorOpen"); }, jam: () => audio.play("grind")};
   jui.place(lab.ledgeTop.clone().add(new T.Vector3(0, TH / 2, 0)).applyMatrix4(lab.group.matrixWorld), new T.Quaternion().setFromEuler(new T.Euler(0, Math.PI / 2 + .06, 0)));
@@ -139,7 +156,7 @@ async function boot() {
   const hud = () => { $('task').textContent = `${L('ЗАДАНИЕ', 'TASK')} ${taskNo} / ${TOTAL} · ${kind === 'pressure' ? L('КЛАПАНЫ', 'VALVES') : kind === "formula" ? L("ФОРМУЛА", "FORMULA") : kind === "lock" ? L("ЗАМОК", "LOCK") : kind === "bomb" ? L("БОМБА", "BOMB") : L("ПРОВОДА", "WIRES")} · ${diffName().toUpperCase()}`; };
   // result card: low on screen (≈85 % of the viewport), fades in, a small mechanical jolt, holds, fades out (~2 s)
   let verdictTimer: any = 0;
-  const verdict = (ok: boolean, sub: string, title?: string) => { const v = $('verdict'); v.querySelector('b')!.textContent = title ?? (ok ? L('Цепь стабилизирована', 'Circuit stabilised') : L('Критическая ошибка', 'Critical error')); v.querySelector('span')!.textContent = sub; v.dataset.tone = ok ? 'good' : 'bad';
+  const verdict = (ok: boolean, sub: string, title?: string) => { $('host-say').classList.remove('show'); const v = $('verdict'); v.querySelector('b')!.textContent = title ?? (ok ? L('Цепь стабилизирована', 'Circuit stabilised') : L('Критическая ошибка', 'Critical error')); v.querySelector('span')!.textContent = sub; v.dataset.tone = ok ? 'good' : 'bad';
     v.classList.remove('show'); void v.offsetWidth; v.classList.add('show'); clearTimeout(verdictTimer); verdictTimer = setTimeout(() => v.classList.remove('show'), 2300); if (!ok) { document.body.classList.remove('jolt'); void document.body.offsetWidth; document.body.classList.add('jolt'); } };
   const newTask = (advance: boolean) => { if (advance) taskNo = Math.min(TOTAL, taskNo + 1); taskSeed++; kind = kindOf(taskNo); if (kind !== 'bomb' && suitcase) { suitcase.enabled = false; if (inspectTarget === 'bomb' && inspecting) setInspect(false); nbook!.close(); $('btn-nb').hidden = true; }
     const t = makeTask(wireRules, taskSeed, wireCount || 4 + Math.floor(Math.random() * 3), fixed); box.setTask(t); box.configure(t.fault, t.mode); deadline = 0;
@@ -157,7 +174,7 @@ async function boot() {
       $("hint").textContent = L("Взломайте замок на двери отмычкой. Как это сделать — на листках на стене у двери.", "Pick the door lock. How to do it is on the sheets on the wall by the door."); $("hint").style.opacity = "1";
       if (cur().state === "rest" || cur().state === "falling") { const d = lock.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } }
     else lock.enabled = false;
-    if (k0 === 'bomb') { ensureBomb(); suitcase!.reset(); nbook!.reset(); $('btn-nb').hidden = true; armBomb(); suitcase!.enabled = true; box.locked = true; bombWarned = false; bombDone = false;
+    if (k0 === 'bomb') { ensureBomb(); suitcase!.reset(); nbook!.reset(); $('btn-nb').hidden = true; strikes = 0; setCutters(false); $('btn-cut').hidden = true; armBomb(); suitcase!.enabled = true; box.locked = true; bombWarned = false; bombDone = false;
       $('hint').textContent = L('Где-то в клетке — чемоданчик и блокнот. Осмотритесь.', 'Somewhere in the cage: a suitcase and a notebook. Look around.'); $('hint').style.opacity = '1'; deadline = IN_ROOM && roundDeadlineAt ? roundDeadlineAt : performance.now() + limitMs('bomb'); RoomSocket.shared()?.send('BOMB_START', params.get('module') ? {module: params.get('module')} : {}); }
     hud(); }); };
   // ---- THE HOST'S SUITCASE: the announcement (voice when recorded, subtitles always), the critical-time warning
@@ -168,10 +185,11 @@ async function boot() {
   let bombWarned = false, bombDone = false, subGen = 0;
   /** the suitcase's result. In a room only the server's verdict (BOMB_UPDATED) counts; practice decides locally. */
   const bombFinish = (ok: boolean, why: 'DEFUSED' | 'WRONG' | 'TIMEOUT') => { if (kind !== 'bomb' || bombDone) return; if (IN_ROOM && why === 'TIMEOUT') { deadline = 0; return; } /* wait for the server */
-    bombDone = true; deadline = 0; record(ok, why === 'DEFUSED' ? 'OK' : why); audio.play(ok ? 'good' : 'bad'); haptic(ok ? 'good' : 'blast'); shake = Math.max(shake, ok ? .2 : 1);
+    bombDone = true; deadline = 0; setCutters(false); $('btn-cut').hidden = true; if (suitcase) suitcase.enabled = false; record(ok, why === 'DEFUSED' ? 'OK' : why); audio.play(ok ? 'good' : 'bad'); haptic(ok ? 'good' : 'blast'); shake = Math.max(shake, ok ? .2 : 1);
     verdict(ok, ok ? L('МЕХАНИЗМ ОБЕЗВРЕЖЕН', 'MECHANISM NEUTRALISED') : why === 'TIMEOUT' ? L('ВРЕМЯ ВЫШЛО', 'TIME RAN OUT') : L('НЕВЕРНОЕ ДЕЙСТВИЕ', 'WRONG MOVE'), ok ? L('Бомба обезврежена', 'Bomb defused') : L('ВЗРЫВ', 'DETONATION'));
     voice.say(ok ? 'success' : 'explosion', 4, 0); if (!ok) setTimeout(() => cage.drop?.(.8), 350); clearTimeout(pending); pending = setTimeout(() => next(ok), ok ? 3000 : 2600); };
-  RoomSocket.shared()?.listen(ev => { const b = ev.payload?.elevatorBomb; if (!b) return; const first = !bombView || bombView.puzzleId !== b.puzzleId; bombView = b; if (first && kind === 'bomb' && suitcase) armBomb(); if (kind !== 'bomb' || bombDone) return; if (b.outcome === 'DEFUSED') bombFinish(true, 'DEFUSED'); else if (b.outcome === 'DETONATED') bombFinish(false, b.failReason === 'TIMEOUT' ? 'TIMEOUT' : 'WRONG'); });
+  RoomSocket.shared()?.listen(ev => { const b = ev.payload?.elevatorBomb; if (!b) return; const first = !bombView || bombView.puzzleId !== b.puzzleId; bombView = b; if (first && kind === 'bomb' && suitcase) armBomb(); if (kind !== 'bomb' || bombDone) return;
+    if (!first && maze && bombLayout) for (const c of b.cut ?? []) if (!maze.cut.has(c)) maze.sever(c, .5); if ((b.strikes ?? 0) > strikes) { strikes = b.strikes; if (b.outcome === 'RUNNING') strikeFx(); } if (b.outcome === 'DEFUSED') bombFinish(true, 'DEFUSED'); else if (b.outcome === 'DETONATED') bombFinish(false, b.failReason === 'TIMEOUT' ? 'TIMEOUT' : 'WRONG'); });
   const subtitles = (lines: string[], msPerChar = 62) => { const el = $('host-say'), gen = ++subGen; let t = 0;
     lines.forEach((ln, i) => { setTimeout(() => { if (gen !== subGen) return; el.textContent = ln; el.classList.add('show'); }, t); t += Math.max(1600, ln.length * msPerChar); if (i === lines.length - 1) setTimeout(() => { if (gen === subGen) el.classList.remove('show'); }, t); }); };
   const bombIntro = () => { voice.say('bomb_intro', 5, 0); subtitles(LANG === 'ru' ? BOMB_INTRO_RU : BOMB_INTRO_EN); };
@@ -268,7 +286,7 @@ async function boot() {
     const r = box.tap(ray); (window as any).__lastTap = r; if (r && (r !== 'door' || box.open) && !inspecting && (cur().state === 'rest' || cur().state === 'falling' || cur().lowered)) { setInspect(true); if (r !== 'test') return; } if (r === 'door' && box.open) { if (!deadline && !box.locked && !IN_ROOM) deadline = performance.now() + LIMITW() * 1000; if (cur().state === 'rest' || cur().state === 'falling') { const d = box.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } } });
   const setInspect = (on: boolean, target: "box" | "pressure" | "lab" | "lock" | "notes" | "bomb" = "box") => { if (!on && inspectTarget === 'bomb') { suitcase?.putDown(); nbook?.close(); } if (on) inspectTarget = target; inspecting = on; $('btn-back').hidden = !on; $('hint').style.opacity = on ? '0' : ''; $('task').style.opacity = on && innerWidth > 700 ? '0' : ''; if (on) { focusTo = null; if (target === 'box' && !box.open) box.toggleDoor(); } };
   $('btn-sheet').onclick = () => { notes.putBack(); $('btn-sheet').hidden = true; audio.play('pageTurn', 1); };
-  $('btn-back').onclick = () => setInspect(false); addEventListener('keydown', e => { if (e.key === 'Escape' && inspecting) setInspect(false); });
+  $('btn-back').onclick = () => { if (inspecting && inspectTarget === 'bomb' && suitcase?.focus) { suitcase.focusOn(null); return; } setInspect(false); }; addEventListener('keydown', e => { if (e.key === 'Escape' && inspecting) setInspect(false); });
   $('btn-open').onclick = () => cur().open(); $('btn-close').onclick = () => cur().close(); $('btn-drop').onclick = () => cur().drop();
   $('btn-sound').onclick = () => { audio.unlock(); audio.enabled = !audio.enabled; $('btn-sound').textContent = audio.enabled ? L('Звук: вкл.', 'Sound: on') : L('Звук: выкл.', 'Sound: off'); };
   book.onspread = s => { $('page-label').textContent = `${2 * s + 1}–${2 * s + 2} / ${book.pages.length}`; }; book.onspread(0);
@@ -322,6 +340,7 @@ async function boot() {
     suitcase!.zoomBy(d / pinchD, c.x / innerWidth * 2 - 1, -c.y / innerHeight * 2 + 1, camera); suitcase!.pan(c.x - pinchC.x, c.y - pinchC.y, camera); pinchD = d; pinchC = c; });
   const bombUp = (e: PointerEvent) => { bombPtrs.delete(e.pointerId); if (bombPtrs.size < 2) pinchD = 0; }; addEventListener('pointerup', bombUp); addEventListener('pointercancel', bombUp);
   renderer.domElement.addEventListener('wheel', e => { if (!bombHeld()) return; e.preventDefault(); suitcase!.zoomBy(Math.exp(-e.deltaY * .0015), e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1, camera); }, {passive: false});
+  $('btn-cut').onclick = () => { setCutters(!cutters); audio.play('valveClick'); haptic('tap'); };
   $('btn-nb').onclick = () => { if (!nbook) return; if (nbook.open) nbook.close(); else { const m = suitcase?.open ? suitcase.active : null; nbook.show(m && nbook.page < 2 ? nbook.chapterPage(m) : undefined); } };
   const endValve = (e: PointerEvent) => { if (e.pointerId !== valvePointer) return; device.pointerUp(e.type === 'pointerup' && Math.hypot(e.clientX - valveStart.x, e.clientY - valveStart.y) < 10); /* a still press counts as a tap, however long it is held */ setTimeout(() => { valvePointer = null; }, 0); };
   addEventListener('pointerup', endValve); addEventListener('pointercancel', endValve);
@@ -350,7 +369,8 @@ async function boot() {
     cage.update(dt); ui.update(dt); jui.update(dt); if (kind === "wire" || inspectTarget === "box") box.update(dt); if (kind === "pressure" || inspectTarget === "pressure") press.update(dt, link.view()); if (kind === "formula" || inspectTarget === "lab") lab.update(dt, flink.view()); if (kind === "lock" || inspectTarget === "lock") lock.update(dt); /* only the machine in play animates */
     if (suitcase && nbook) { const live = kind === 'bomb'; suitcase.root.visible = live; nbook.root.visible = live && !nbook.taken; let gs = false, gn = false;
       if (live && !inspecting) { hoverRay.setFromCamera(new T.Vector2(0, 0), camera); const a = suitcase.hits(hoverRay), b = nbook.hits(hoverRay); gs = !!a && a.distance < 2.2 && (!b || a.distance < b.distance); gn = !!b && b.distance < 2.2 && !gs; }
-      const pr = $('prompt'); pr.textContent = gs ? L('ОСМОТРЕТЬ ЧЕМОДАНЧИК', 'INSPECT THE SUITCASE') : gn ? L('ВЗЯТЬ БЛОКНОТ', 'TAKE THE NOTEBOOK') : pr.textContent; pr.classList.toggle('show', gs || gn);
+      if (live && !bombDone) $('btn-cut').hidden = !(inspecting && inspectTarget === 'bomb' && suitcase.open && suitcase.active === 'WIRE_MAZE' && suitcase.focus === 'WIRE_MAZE' && !nbook.open); maze?.update(dt);
+      const pr = $('prompt'); if (inspecting && !toastT) pr.classList.remove('show'); if (!inspecting) pr.textContent = gs ? L('ОСМОТРЕТЬ ЧЕМОДАНЧИК', 'INSPECT THE SUITCASE') : gn ? L('ВЗЯТЬ БЛОКНОТ', 'TAKE THE NOTEBOOK') : pr.textContent; if (!inspecting) pr.classList.toggle('show', gs || gn);
       if (live) { suitcase.setTimer(deadline ? Math.max(0, (deadline - performance.now()) / 1000) : LIMITW(), LIMITW()); } overlay.environment = scene.environment; suitcase.update(dt, camera, gs); nbook.update(dt, gn); }
     if (focusTo) { let dy = focusTo[0] - yawT; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yawT += dy * Math.min(1, dt * 5); pitchT += (focusTo[1] - pitchT) * Math.min(1, dt * 5); if (Math.abs(dy) < .002 && Math.abs(focusTo[1] - pitchT) < .002) focusTo = null; }
     { const sw = kind === 'pressure' && !!link.view()?.surgeWarning; document.body.classList.toggle('surge', sw); if (sw && !surgeSaid) { surgeSaid = true; voice.say('surge', 3, 0); haptic('tap'); } }
@@ -377,6 +397,6 @@ async function boot() {
     if (suitcase && suitcase.state !== 'floor' && suitcase.root.visible) { renderer.autoClear = false; renderer.clearDepth(); renderer.render(overlay, camera); renderer.autoClear = true; } requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
-  (window as any).__manual = {book, ui, renderer, scene, camera, get state() { return ui.state; }, get info() { return renderer.info.render; }, box, press, link, lab, flink, journal, jui, get kind() { return kind; }, lock, notes, rows, get suitcase() { return suitcase; }, get nbook() { return nbook; }, endRun() { taskNo = TOTAL; next(true); }, setInspect, cage, get shake() { return shake; }, look(y: number, p: number) { yaw = yawT = y; pitch = pitchT = p; }, setFree, set timeScale(v: number) { timeScale = v; }, step(sec: number) { for (let i = 0; i < Math.round(sec * 60); i++) { cage.update(1 / 60); ui.update(1 / 60); jui.update(1 / 60); } }};
+  (window as any).__manual = {book, ui, renderer, scene, camera, get state() { return ui.state; }, get info() { return renderer.info.render; }, box, press, link, lab, flink, journal, jui, get kind() { return kind; }, lock, notes, rows, get suitcase() { return suitcase; }, get maze() { return maze; }, get bombLayout() { return bombLayout; }, solveWires, pickWire(x: number, y: number) { const rc = new T.Raycaster(); rc.setFromCamera(new T.Vector2(x / innerWidth * 2 - 1, -y / innerHeight * 2 + 1), camera); return maze?.wireAt(rc) ?? null; }, get nbook() { return nbook; }, endRun() { taskNo = TOTAL; next(true); }, setInspect, cage, get shake() { return shake; }, look(y: number, p: number) { yaw = yawT = y; pitch = pitchT = p; }, setFree, set timeScale(v: number) { timeScale = v; }, step(sec: number) { for (let i = 0; i < Math.round(sec * 60); i++) { cage.update(1 / 60); ui.update(1 / 60); jui.update(1 / 60); } }};
 }
 boot().catch(e => { $('load-text').textContent = 'Failed: ' + (e?.message || e); console.error(e); });

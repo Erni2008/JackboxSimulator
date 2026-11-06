@@ -158,3 +158,6 @@ body.urgent::after{content:'';position:fixed;inset:0;pointer-events:none;z-index
 #prompt { position: fixed; left: 50%; top: 58%; transform: translate(-50%, 6px); pointer-events: none; z-index: 20; font: 600 15px/1 'IM Fell English SC', Georgia, serif; letter-spacing: .18em; color: #e8d6ae;
   padding: 8px 14px; border-top: 1px solid rgba(232,214,174,.35); border-bottom: 1px solid rgba(232,214,174,.35); background: linear-gradient(90deg, transparent, rgba(10,5,3,.55), transparent); text-shadow: 0 1px 4px #000; opacity: 0; transition: opacity .3s, transform .3s; }
 #prompt.show { opacity: .92; transform: translate(-50%, 0); }
+
+#btn-cut.on { background: linear-gradient(#8a2a18, #5a1a0e); border-color: #c8743a; color: #fff3d8; box-shadow: 0 0 12px rgba(255,90,40,.45); }
+body.cutters canvas { cursor: crosshair; }
