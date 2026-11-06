@@ -23,7 +23,9 @@ export interface Pin { color: PinColor; notches: number; len: number }
 export type LockMethod = 'maker' | 'serial' | 'bind';
 /** the three lock SYSTEMS, named on the lock's plate; the notes on the wall explain each one */
 export const METHODS: Record<LockMethod, [string, string]> = {maker: ['КЛЕЙМО', 'STAMP'], serial: ['НОМЕР', 'NUMBER'], bind: ['НАТЯГ', 'BINDING']};
-export interface LockTask { maker: number; method: LockMethod; pins: Pin[]; order: number[]; tries: number; worn: boolean; serial: string; wornDigit: number; diff: LockDiff }
+/** three finishes of the lock body: blued steel, old iron, cast brass */
+export const FINISHES = [{housing: '#40434a', frame: '#2d3036', back: '#1f2125'}, {housing: '#5b4a3b', frame: '#43362b', back: '#2a221b'}, {housing: '#8a6c3a', frame: '#5f4826', back: '#33270f'}];
+export interface LockTask { finish: number; maker: number; method: LockMethod; pins: Pin[]; order: number[]; tries: number; worn: boolean; serial: string; wornDigit: number; diff: LockDiff }
 export const MAKERS: [string, string][] = [['ГРИФФИН И СЫН', 'GRIFFIN & SON'], ['ХАРТВЕЛЛ', 'HARTWELL'], ['МОРТОН', 'MORTON']];
 export const PIN_INK: Record<PinColor, string> = {steel: '#b9bec6', brass: '#d4a845', copper: '#c0683a', black: '#1c1816'};
 
@@ -57,7 +59,7 @@ export function makeLockTask(seed: number, d: LockDiff, force?: string | null): 
   else { order = pins.map((_, i) => i).filter(i => pins[i].color !== 'black'); for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; } }
   const serial = method === 'serial' ? order.map(i => i + 1).join('') : String(1000 + Math.floor(r() * 8999));
   const wornDigit = method === 'serial' && d === 'HARD' ? Math.floor(r() * order.length) : -1;
-  return {maker, method, pins, order, tries: d === 'HARD' ? 2 : 3, worn: d === 'HARD', serial, wornDigit, diff: d};
+  return {finish: Math.floor(r() * 3), maker, method, pins, order, tries: d === 'HARD' ? 2 : 3, worn: d === 'HARD', serial, wornDigit, diff: d};
 }
 
 /** the maker's emblem, shared by the lock's stamp and the handbook page */
@@ -144,10 +146,11 @@ export class CodeLock {
   private tokens: T.Mesh[] = []; private controls: {id: string; root: T.Object3D}[] = []; private open = 0; private jam = 0; private tries = 3; private done = false; private t = 0;
   private stampMat: T.MeshStandardMaterial; private pickX = 0; private pickPush = 0; private pickLift = 0; private liftT = 0; private stroke = -2; private drag: {x: number; y: number; ppmX: number; ppmY: number; wheel: boolean} | null = null; private under = -1; private probe = -2; private tremble = 0; private ease = 0; private shudder = 0; private turn = 0;
   private mats: Record<PinColor, T.Material>; private ringMat: T.Material; private ringMatB: T.Material; private hi: boolean;
+  private housingMat!: T.MeshStandardMaterial; private frameMat!: T.MeshStandardMaterial; private flash: number[] = []; private drvMats: T.MeshStandardMaterial[] = [];
   private steel: T.Material; private brass: T.Material; private dark: T.Material; private tokenOn: T.Material; private tokenOff: T.Material;
   constructor(hi: boolean) {
     this.hi = hi;
-    const housing = mat('#4b4a47', .46), frame = mat('#3a3937', .5, 1.5); this.steel = mat('#9a958c', .3); this.brass = mat('#b8914a', .32); this.dark = new T.MeshStandardMaterial({color: '#0a0806', roughness: 1});
+    const housing = mat('#4b4a47', .46), frame = mat('#3a3937', .5, 1.5); this.housingMat = housing; this.frameMat = frame; frame.map = null; frame.roughness = .4; frame.metalness = .95; this.steel = mat('#9a958c', .3); this.brass = mat('#b8914a', .32); this.dark = new T.MeshStandardMaterial({color: '#0a0806', roughness: 1});
     this.mats = {steel: mat('#c9c6bf', .24), brass: mat('#c99d4c', .28), copper: mat('#c0693d', .3), black: mat('#24201d', .38)};
     this.ringMat = new T.MeshStandardMaterial({color: '#140c06', roughness: .8}); this.ringMatB = new T.MeshStandardMaterial({color: '#d8ae4e', roughness: .4, metalness: 1});
     this.tokenOn = mat('#d0a858', .25); this.tokenOff = mat('#2a2420', .7);
@@ -156,6 +159,7 @@ export class CodeLock {
     const backP = new T.Mesh(new RoundedBoxGeometry(.31, .25, .012, 3, .005), housing); backP.position.set(0, -.006, -.026); this.body.add(backP);
     const bar = (w: number, h: number, x: number, y: number) => { const b = new T.Mesh(new RoundedBoxGeometry(w, h, .04, 3, .004), frame); b.position.set(x, y, -.01); this.body.add(b); };
     bar(.31, .02, 0, IN.y1 + .01); bar(.31, .052, 0, IN.y0 - .026); bar(.02, IN.y1 - IN.y0, IN.x0 - .01, (IN.y0 + IN.y1) / 2); bar(.02, IN.y1 - IN.y0, IN.x1 + .01, (IN.y0 + IN.y1) / 2);
+    { const lip = mat('#b9b4aa', .22); for (const [w, h, x0, y0] of [[IN.x1 - IN.x0, .0016, 0, IN.y1], [IN.x1 - IN.x0, .0016, 0, IN.y0], [.0016, IN.y1 - IN.y0, IN.x0, (IN.y0 + IN.y1) / 2], [.0016, IN.y1 - IN.y0, IN.x1, (IN.y0 + IN.y1) / 2]]) { const e = new T.Mesh(new T.BoxGeometry(w, h, .0016), lip); e.position.set(x0, y0, .0098); this.body.add(e); } }
     for (const [sx, sy] of [[-1, 1], [1, 1], [-1, -1], [1, -1]]) { const s = screw(this.steel, this.dark, .0062); s.position.set(sx * .145, sy > 0 ? IN.y1 + .01 : IN.y0 - .026, .0105); this.body.add(s); }
     // the maker's plate on the lower bar, the try tokens beside it
     this.stampMat = new T.MeshStandardMaterial({map: stampTexture(null), metalness: .85, roughness: .38, envMapIntensity: 1.2});
@@ -194,7 +198,9 @@ export class CodeLock {
     const blade = new T.Mesh(new T.BoxGeometry(.2, .0018, .0032), this.steel); blade.position.x = -.1; this.pick.add(blade);
     const hook = new T.Mesh(new T.BoxGeometry(.0026, 1, .0032), this.steel); hook.scale.y = .0045; hook.position.set(-.0012, .0031, 0); this.pick.add(hook); this.hook = hook;
     const tipCap = new T.Mesh(new T.SphereGeometry(.0016, 12, 8), this.steel); this.pick.add(tipCap); this.hookTip = tipCap;
-    const grip = new T.Mesh(new RoundedBoxGeometry(.06, .012, .009, 2, .004), mat('#3a1d14', .7)); grip.position.x = -.225; this.pick.add(grip);
+    const grip = new T.Mesh(new T.CylinderGeometry(.0062, .0068, .064, 20), mat('#3a1d14', .75)); grip.rotation.z = Math.PI / 2; grip.position.x = -.232; this.pick.add(grip);
+    const cord = mat('#1e1612', .9); for (let k = 0; k < 10; k++) { const r = new T.Mesh(new T.TorusGeometry(.0066, .0011, 6, 20), cord); r.rotation.y = Math.PI / 2; r.position.x = -.256 + k * .005; this.pick.add(r); }
+    const fer = new T.Mesh(new T.CylinderGeometry(.0058, .0064, .01, 20), this.brass); fer.rotation.z = Math.PI / 2; fer.position.x = -.196; this.pick.add(fer);
     this.pick.position.set(0, PC - .001, CH); this.body.add(this.pick);
     // shackle
     const u = new T.Mesh(new T.TorusGeometry(.085, .011, 16, 48, Math.PI), this.steel); this.shackle.add(u);
@@ -209,10 +215,11 @@ export class CodeLock {
 
   private buildPins(t: LockTask) {
     for (const o of [...this.pins.children]) { this.pins.remove(o); o.traverse(k => (k as T.Mesh).geometry?.dispose()); }
-    this.drivers = []; this.keys = []; this.springs = []; this.controls = this.controls.filter(c => !c.id.startsWith('pin'));
+    this.drivers = []; this.keys = []; this.springs = []; this.drvMats.forEach(m => m.dispose()); this.drvMats = []; this.controls = this.controls.filter(c => !c.id.startsWith('pin'));
     const n = t.pins.length, P = pitch(n), xs = t.pins.map((_, i) => PX0 + (i - (n - 1) / 2) * P), CW = .0205, seg = this.hi ? 140 : 80;
     const springGeo = new T.TubeGeometry(new Helix(.0066, 9), seg, .00085, 6, false), springMat = mat('#aeaaa2', .28);
-    const housing = mat('#52504c', .44), back = mat('#2a2927', .6), plugCut = mat('#c29548', .3);
+    const F = FINISHES[t.finish] ?? FINISHES[0], housing = mat(F.housing, t.finish === 2 ? .34 : .44), back = mat(F.back, .6), plugCut = mat('#c29548', .3);
+    this.housingMat.color.set(F.housing); this.frameMat.color.set(F.frame);
     // the channel block: ribs between the channels, the back wall of each channel, machined chamfers
     const edges = [xs[0] - P / 2 - .008, ...xs.flatMap(x => [x - CW / 2, x + CW / 2]), xs[n - 1] + P / 2 + .008];
     for (let k = 0; k < edges.length; k += 2) { const w = edges[k + 1] - edges[k]; if (w <= 0) continue;
@@ -236,7 +243,8 @@ export class CodeLock {
       const dg = new T.Group(); dg.position.set(cx, 0, CH); this.pins.add(dg); const H = DRV_H / 2, R = PIN_R;
       const prof = p.color === 'copper' ? [[0, -H], [R * .9, -H], [R, -H + .0008], [R, -H + .004], [R * .6, -H + .0068], [R * .6, H - .0098], [R, H - .007], [R, H - .0042], [R * .8, H - .0036], [R * .8, H], [0, H]]
         : [[0, -H], [R * .9, -H], [R, -H + .0009], [R, H - .0042], [R * .8, H - .0036], [R * .8, H], [0, H]];
-      dg.add(new T.Mesh(new T.LatheGeometry(prof.map(([a, b]) => new T.Vector2(a, b)), 44), this.mats[p.color]));
+      const dm = (this.mats[p.color] as T.MeshStandardMaterial).clone(); dm.emissive = new T.Color('#ffb04a'); dm.emissiveIntensity = 0; this.drvMats.push(dm);
+      dg.add(new T.Mesh(new T.LatheGeometry(prof.map(([a, b]) => new T.Vector2(a, b)), 44), dm));
       for (let k = 0; k < p.notches; k++) { const ring = new T.Mesh(new T.TorusGeometry(R * 1.01, .00085, 6, 36), p.color === 'black' ? this.ringMatB : this.ringMat); ring.rotation.x = Math.PI / 2;
         ring.position.y = H - .0062 - k * .0024; if (p.color === 'copper' && k > 0) ring.scale.setScalar(.6); dg.add(ring); }
       this.drivers.push(dg);
@@ -246,7 +254,7 @@ export class CodeLock {
       const sp = new T.Mesh(springGeo, springMat); sp.position.set(cx, 0, CH); this.pins.add(sp); this.springs.push(sp);
       const hit = new T.Mesh(new T.BoxGeometry(P * .95, TOPB - PC + .01, .04), new T.MeshBasicMaterial({visible: false})); hit.position.set(cx, (TOPB + PC) / 2, .004); hit.userData.id = `pin${i}`; this.pins.add(hit);
       this.controls.push({id: `pin${i}`, root: dg}); });
-    this.lift = this.keys.map(k => KEY_TIP + k.userData.len); this.bump = t.pins.map(() => 0);
+    this.lift = this.keys.map(k => KEY_TIP + k.userData.len); this.flash = t.pins.map(() => 0); this.bump = t.pins.map(() => 0);
   }
 
   setTask(t: LockTask, _seed?: number) {
@@ -319,7 +327,7 @@ export class CodeLock {
     this.setPin(i);
   }
   private setPin(i: number) {
-    this.set[i] = true; this.step++; setTimeout(() => this.sounds.click?.(), 110); this.onNote('SET');
+    this.set[i] = true; this.step++; this.flash[i] = 1; setTimeout(() => this.sounds.click?.(), 110); this.onNote('SET');
     if (this.step >= this.task!.order.length) { this.done = true; this.enabled = false; setTimeout(() => { this.open = .001; this.sounds.unlock?.(); this.paintTokens(); this.onResult(true, 'OK'); }, 420); }
   }
   private dropAll() { this.set = this.set.map(() => false); this.step = 0; this.stuck = -1; this.eased = false; setTimeout(() => this.sounds.jam?.(), 120); }
@@ -349,8 +357,8 @@ export class CodeLock {
     this.pickPush = Math.max(0, this.pickPush - dt * 5); this.pickLift += (this.liftT - this.pickLift) * (1 - Math.exp(-dt * 30)); this.pick.position.y = PC - .001 + this.pickLift * .0022;
     { const u = this.pinUnder(this.pick.position.x), kb = u >= 0 ? this.keys[u].position.y - this.pick.position.y : .0045 + .0008, h = Math.max(.0045, kb - .0008); this.hook.scale.y = h; this.hook.position.y = .0008 + h / 2; this.hookTip.position.set(-.0012, .0008 + h, 0); } this.pick.position.x += (this.pickX - this.pick.position.x) * (1 - Math.exp(-dt * 22)); this.pick.rotation.z = Math.sin(this.pickPush * Math.PI) * .03;
     // torque on the wheel: a slight lean while picking, a twitch when eased, a full quarter turn when open
-    this.ease = Math.max(0, this.ease - dt * 2.5); if (this.pickLift < .15) this.tremble = 0; this.shudder = Math.max(0, this.shudder - dt * 1.5);
-    const tq = this.open > 0 ? Math.PI / 2 * (1 - Math.pow(1 - Math.min(1, this.open * 1.4), 3)) : this.eased ? -.02 : .05;
+    this.ease = Math.max(0, this.ease - dt * 2.5); for (let i = 0; i < this.drvMats.length; i++) { this.flash[i] = Math.max(0, (this.flash[i] ?? 0) - dt * 2.2); this.drvMats[i].emissiveIntensity = this.flash[i] * this.flash[i] * 1.4; } if (this.pickLift < .15) this.tremble = 0; this.shudder = Math.max(0, this.shudder - dt * 1.5);
+    const tq = this.open > 0 ? Math.PI / 2 * (1 - Math.pow(1 - Math.min(1, this.open * 1.4), 3)) : this.eased ? -.02 : .05 + .04 * this.step;
     this.turn += (tq - Math.sin(this.ease * Math.PI) * .18 + Math.sin(this.t * 50) * .015 * this.shudder - this.turn) * (1 - Math.exp(-dt * (this.open > 0 ? 30 : 14)));
     this.wheel.rotation.x = this.turn;
     // cam → lever → bolt: the bolt draws back as the plug turns

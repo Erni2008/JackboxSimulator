@@ -175,7 +175,12 @@ async function boot() {
   let lockDone = false;
   const lockFinish = (ok: boolean, why: "OK" | "WRONG" | "TIMEOUT") => { if (kind !== "lock" || lockDone) return; lockDone = true; lock.enabled = false; deadline = 0;
     RoomSocket.shared()?.send("CAGE_REPORT", {kind: "lock", task: taskNo, result: ok ? "OK" : "FAIL"}); record(ok, why); audio.play(ok ? "good" : "bad");
-    verdict(ok, ok ? L("ДУЖКА ОТКРЫТА · СПУСК ОСТАНОВЛЕН", "SHACKLE OPEN · DESCENT HALTED") : why === "TIMEOUT" ? L("ЗАМОК НЕ ОТКРЫТ · ВРЕМЯ ВЫШЛО", "TIME RAN OUT") : L("ЗАМОК ЗАКЛИНИЛО · ПОПЫТКИ КОНЧИЛИСЬ", "LOCK JAMMED · NO TRIES LEFT"), ok ? L("Замок открыт", "Lock open") : L("Замок не поддался", "The lock held"));
+    // a score worth chasing: stars for a clean, fast pick and a personal best per difficulty
+    let score = ""; if (ok) { const row = rows.at(-1)!, lim = limitMs("lock") / 1000, sec = row.seconds, clean = row.mistakes === 0;
+      const stars = clean && sec < lim * .45 ? 3 : row.mistakes <= 1 ? 2 : 1, key = "finalanswer-lock-best-" + DIFF(); let best = 0; try { best = +(localStorage.getItem(key) || 0); } catch {}
+      const rec = !best || sec < best; if (rec) try { localStorage.setItem(key, sec.toFixed(1)); } catch {}
+      score = `${"★".repeat(stars)}${"☆".repeat(3 - stars)} · ${sec.toFixed(1)} ${L("с", "s")}` + (rec ? L(" · НОВЫЙ РЕКОРД!", " · NEW RECORD!") : L(` · рекорд ${best.toFixed(1)} с`, ` · best ${best.toFixed(1)} s`)); }
+    verdict(ok, ok ? score : why === "TIMEOUT" ? L("ЗАМОК НЕ ОТКРЫТ · ВРЕМЯ ВЫШЛО", "TIME RAN OUT") : L("ЗАМОК ЗАКЛИНИЛО · ПОПЫТКИ КОНЧИЛИСЬ", "LOCK JAMMED · NO TRIES LEFT"), ok ? L("Замок открыт", "Lock open") : L("Замок не поддался", "The lock held"));
     if (!ok) setTimeout(() => cage.drop?.(.8), 350); clearTimeout(pending); pending = setTimeout(() => { if (inspecting && inspectTarget === "lock") setInspect(false); setTimeout(() => next(ok), 400); }, ok ? 3000 : 2600); };
   lock.onResult = ok => lockFinish(ok, ok ? "OK" : "WRONG");
   lock.onWrong = (left, why) => { haptic("bad"); mistakes++; verdict(false, left === 1 ? L("ОСТАЛАСЬ ПОСЛЕДНЯЯ ПОПЫТКА", "ONE TRY LEFT") : L(`ОСТАЛОСЬ ПОПЫТОК: ${left}`, `TRIES LEFT: ${left}`), why === "TRAP" ? L("Ловушка! Штифты упали", "Trap! The pins dropped") : why === "STUCK" ? L("Штифт заело — штифты упали", "A pin was stuck: they dropped") : L("Не тот штифт — штифты упали", "Wrong pin: the pins dropped")); };
