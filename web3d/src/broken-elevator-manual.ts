@@ -25,6 +25,8 @@ import {PressureLink} from './games/broken-elevator/puzzles/pressure-link';
 import {CodeLock, makeLockTask} from "./games/broken-elevator/puzzles/code-lock";
 import {LockNotes} from "./games/broken-elevator/puzzles/lock-notes";
 import {DIFF} from "./games/broken-elevator/difficulty";
+import {Suitcase, MECHANISMS, type Mechanism} from "./games/broken-elevator/bomb/suitcase";
+import {Notebook} from "./games/broken-elevator/bomb/notebook";
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
 const params = new URLSearchParams(location.search);
@@ -106,6 +108,18 @@ async function boot() {
   const lock = new CodeLock(quality === "high"); lock.place(ci, floorY); scene.add(lock.group, lock.clues); lock.group.updateMatrixWorld(true);
   // THE LOCKSMITH'S NOTES: how to work the pick, on sheets nailed to the wall by the door (the order stays in the handbook)
   const notes = new LockNotes(quality === "high"); notes.place(ci, floorY); scene.add(notes.group); notes.group.updateMatrixWorld(true);
+  // THE HOST'S SUITCASE (5th assignment): built on first use; the case in hand is drawn in its own pass over the cage
+  const overlay = new T.Scene(); overlay.add(new T.HemisphereLight('#a8907a', '#5a2410', .85)); { const k = new T.DirectionalLight('#ffe2c0', 1.7); k.position.set(.4, 1, .6); overlay.add(k, k.target); const lv = new T.PointLight('#ff6a24', 1.4, 0, 0); lv.position.set(0, -1.2, .4); overlay.add(lv); }
+  let suitcase: Suitcase | null = null, nbook: Notebook | null = null, bombSeq = 0, bombView: any = null;
+  const ensureBomb = () => { if (suitcase && nbook) return;
+    suitcase = new Suitcase(overlay, quality === 'high'); suitcase.place(ci, floorY); scene.add(suitcase.root); suitcase.place(ci, floorY);
+    nbook = new Notebook(); nbook.place(ci, floorY); scene.add(nbook.root);
+    suitcase.onEvent = e => { if (e === 'PICKUP') { audio.play('pickup'); haptic('tap'); bombAct('FOUND'); } if (e === 'PUTDOWN') audio.play('drop', .5); if (e === 'LATCH') { audio.play('lever'); audio.play('valveClick'); haptic('tap'); }
+      if (e === 'LOCKED') { audio.play('locked'); haptic('bad'); } if (e === 'LID_OPEN') { audio.play('creak', .8); audio.play('coverOpen'); bombAct('OPEN'); } if (e === 'LID_OPENED') { audio.play('impactMetal', .4); audio.play('alarm', .25); shake = Math.max(shake, .12); } };
+    nbook.onEvent = e => { if (e === 'TAKE') { audio.play('pickup'); haptic('tap'); } if (e === 'TURN' || e === 'OPEN') audio.play('pageTurn', 1); if (e === 'CLOSE') audio.play('coverClose', .5); $('btn-nb').hidden = !nbook!.taken; }; };
+  const bombAct = (action: 'FOUND' | 'OPEN') => RoomSocket.shared()?.send('BOMB_ACTION', {action, seq: ++bombSeq});
+  const armBomb = () => { ensureBomb(); const sv = bombView, m = (sv?.module || params.get('module') || '').toUpperCase(); suitcase!.arm((MECHANISMS as string[]).includes(m) ? m as Mechanism : MECHANISMS[Math.abs(taskSeed * 7 + 3) % 5]);
+    if (sv?.stage === 'OPEN' && !suitcase!.open) { suitcase!.latchOpen = [true, true]; suitcase!.lidTarget = 1; suitcase!.lidT = .999; } if (sv?.stage && sv.stage !== 'HIDDEN') suitcase!.found = true; if (typeof sv?.lastSeq === 'number') bombSeq = Math.max(bombSeq, sv.lastSeq); };
   lock.sounds = {click: () => audio.play("valveClick"), turn: () => audio.play("button"), lever: () => { audio.play("button"); audio.play("relay"); }, unlock: () => { audio.play("locked"); audio.play("doorOpen"); }, jam: () => audio.play("grind")};
   jui.place(lab.ledgeTop.clone().add(new T.Vector3(0, TH / 2, 0)).applyMatrix4(lab.group.matrixWorld), new T.Quaternion().setFromEuler(new T.Euler(0, Math.PI / 2 + .06, 0)));
   lab.sounds = {click: () => audio.play('valveClick'), turn: () => audio.play('valveTurn'), grind: () => audio.play('grind'), lever: () => audio.play('lever'), press: () => audio.play('button'), pull: () => audio.play('lever'),
@@ -114,7 +128,7 @@ async function boot() {
   lab.canAct = () => { const v = flink.view(); return !!v && v.outcome === 'RUNNING' && !v.draining; };
   lab.onEvent = e => { if (e.type === 'REJECTED') { haptic('bad'); voice.say('fail', 2); } if (e.type === 'REJECTED') verdict(false, e.reason === 'UNSTABLE_UNPROTECTED' ? L('НЕСТАБИЛЬНО · ЗАМОК ОХЛАЖДЕНИЯ НЕ ВКЛЮЧЁН', 'UNSTABLE · COOLING LOCK WAS OFF') : L('ФОРМУЛА ОТВЕРГНУТА · СЛИВ, ПОПРОБУЙТЕ СНОВА', 'ФОРМУЛА ОТВЕРГНУТА · DRAINED, TRY AGAIN'), e.reason === 'UNSTABLE_UNPROTECTED' ? L('Нестабильная реакция', 'Unstable reaction') : L('Формула отвергнута', 'Formula rejected')); };
   let valvePointer: number | null = null;
-  let focusTo: [number, number] | null = null, inspecting = false, inspectK = 0, inspectTarget: "box" | "pressure" | "lab" | "lock" | "notes" = "box";
+  let focusTo: [number, number] | null = null, inspecting = false, inspectK = 0, inspectTarget: "box" | "pressure" | "lab" | "lock" | "notes" | "bomb" = "box";
   let TOTAL = 4; const LIMITW = () => roundLimitS || limitMs(kind === "lock" || kind === "bomb" ? kind : "wire") / 1000; let taskNo = 1, deadline = 0, taskSeed = seed, pending: any = 0;
   // task kinds cycle: wire cutting -> broken valves -> unstable formula (?task=pressure|formula picks the first)
   type Kind = "wire" | "pressure" | "formula" | "lock" | "bomb"; const ORDER: Kind[] = ["wire", "pressure", "formula", "lock"]; /* the bomb is not a machine in the cycle: the server deals it after two (or ?task=bomb) */ const start0 = Math.max(0, ORDER.indexOf((params.get('task') || 'wire') as Kind));
@@ -127,7 +141,7 @@ async function boot() {
   let verdictTimer: any = 0;
   const verdict = (ok: boolean, sub: string, title?: string) => { const v = $('verdict'); v.querySelector('b')!.textContent = title ?? (ok ? L('Цепь стабилизирована', 'Circuit stabilised') : L('Критическая ошибка', 'Critical error')); v.querySelector('span')!.textContent = sub; v.dataset.tone = ok ? 'good' : 'bad';
     v.classList.remove('show'); void v.offsetWidth; v.classList.add('show'); clearTimeout(verdictTimer); verdictTimer = setTimeout(() => v.classList.remove('show'), 2300); if (!ok) { document.body.classList.remove('jolt'); void document.body.offsetWidth; document.body.classList.add('jolt'); } };
-  const newTask = (advance: boolean) => { if (advance) taskNo = Math.min(TOTAL, taskNo + 1); taskSeed++; kind = kindOf(taskNo);
+  const newTask = (advance: boolean) => { if (advance) taskNo = Math.min(TOTAL, taskNo + 1); taskSeed++; kind = kindOf(taskNo); if (kind !== 'bomb' && suitcase) { suitcase.enabled = false; if (inspectTarget === 'bomb' && inspecting) setInspect(false); nbook!.close(); $('btn-nb').hidden = true; }
     const t = makeTask(wireRules, taskSeed, wireCount || 4 + Math.floor(Math.random() * 3), fixed); box.setTask(t); box.configure(t.fault, t.mode); deadline = 0;
     const k0 = kind, myGen = ++taskGen; box.locked = true; press.enabled = false; lab.enabled = false; lock.enabled = false; link.stop(); flink.stop(); hud();
     if (IN_ROOM && serverKind === null) return; // wait for the server's first round
@@ -143,7 +157,8 @@ async function boot() {
       $("hint").textContent = L("Взломайте замок на двери отмычкой. Как это сделать — на листках на стене у двери.", "Pick the door lock. How to do it is on the sheets on the wall by the door."); $("hint").style.opacity = "1";
       if (cur().state === "rest" || cur().state === "falling") { const d = lock.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } }
     else lock.enabled = false;
-    if (k0 === 'bomb') { box.locked = true; bombWarned = false; bombDone = false; deadline = IN_ROOM && roundDeadlineAt ? roundDeadlineAt : performance.now() + limitMs('bomb'); RoomSocket.shared()?.send('BOMB_START', params.get('module') ? {module: params.get('module')} : {}); }
+    if (k0 === 'bomb') { ensureBomb(); suitcase!.reset(); nbook!.reset(); $('btn-nb').hidden = true; armBomb(); suitcase!.enabled = true; box.locked = true; bombWarned = false; bombDone = false;
+      $('hint').textContent = L('Где-то в клетке — чемоданчик и блокнот. Осмотритесь.', 'Somewhere in the cage: a suitcase and a notebook. Look around.'); $('hint').style.opacity = '1'; deadline = IN_ROOM && roundDeadlineAt ? roundDeadlineAt : performance.now() + limitMs('bomb'); RoomSocket.shared()?.send('BOMB_START', params.get('module') ? {module: params.get('module')} : {}); }
     hud(); }); };
   // ---- THE HOST'S SUITCASE: the announcement (voice when recorded, subtitles always), the critical-time warning
   const BOMB_INTRO_RU = ['О, вы справились с двумя заданиями! Превосходно!', 'Хотя, признаться, это было слишком просто.', 'Поэтому, пока вы были заняты, я незаметно оставил в вашей клетке небольшой подарочек.', 'Чемоданчик. С бомбой.',
@@ -156,7 +171,7 @@ async function boot() {
     bombDone = true; deadline = 0; record(ok, why === 'DEFUSED' ? 'OK' : why); audio.play(ok ? 'good' : 'bad'); haptic(ok ? 'good' : 'blast'); shake = Math.max(shake, ok ? .2 : 1);
     verdict(ok, ok ? L('МЕХАНИЗМ ОБЕЗВРЕЖЕН', 'MECHANISM NEUTRALISED') : why === 'TIMEOUT' ? L('ВРЕМЯ ВЫШЛО', 'TIME RAN OUT') : L('НЕВЕРНОЕ ДЕЙСТВИЕ', 'WRONG MOVE'), ok ? L('Бомба обезврежена', 'Bomb defused') : L('ВЗРЫВ', 'DETONATION'));
     voice.say(ok ? 'success' : 'explosion', 4, 0); if (!ok) setTimeout(() => cage.drop?.(.8), 350); clearTimeout(pending); pending = setTimeout(() => next(ok), ok ? 3000 : 2600); };
-  RoomSocket.shared()?.listen(ev => { const b = ev.payload?.elevatorBomb; if (!b || kind !== 'bomb' || bombDone) return; if (b.outcome === 'DEFUSED') bombFinish(true, 'DEFUSED'); else if (b.outcome === 'DETONATED') bombFinish(false, b.failReason === 'TIMEOUT' ? 'TIMEOUT' : 'WRONG'); });
+  RoomSocket.shared()?.listen(ev => { const b = ev.payload?.elevatorBomb; if (!b) return; const first = !bombView || bombView.puzzleId !== b.puzzleId; bombView = b; if (first && kind === 'bomb' && suitcase) armBomb(); if (kind !== 'bomb' || bombDone) return; if (b.outcome === 'DEFUSED') bombFinish(true, 'DEFUSED'); else if (b.outcome === 'DETONATED') bombFinish(false, b.failReason === 'TIMEOUT' ? 'TIMEOUT' : 'WRONG'); });
   const subtitles = (lines: string[], msPerChar = 62) => { const el = $('host-say'), gen = ++subGen; let t = 0;
     lines.forEach((ln, i) => { setTimeout(() => { if (gen !== subGen) return; el.textContent = ln; el.classList.add('show'); }, t); t += Math.max(1600, ln.length * msPerChar); if (i === lines.length - 1) setTimeout(() => { if (gen === subGen) el.classList.remove('show'); }, t); }); };
   const bombIntro = () => { voice.say('bomb_intro', 5, 0); subtitles(LANG === 'ru' ? BOMB_INTRO_RU : BOMB_INTRO_EN); };
@@ -237,6 +252,9 @@ async function boot() {
   renderer.domElement.addEventListener('pointerup', e => { const s = tapStart.get(e.pointerId); tapStart.delete(e.pointerId); if (!s || Math.hypot(e.clientX - s.x, e.clientY - s.y) > 12 || performance.now() - s.t > 450) return;
     ray.setFromCamera(new T.Vector2(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1), camera);
     if (valvePointer === e.pointerId) return;
+    if (kind === 'bomb' && suitcase?.enabled && !inspecting && (cur().state === 'rest' || cur().state === 'falling' || cur().lowered)) { const sh = suitcase.hits(ray), nh = nbook!.hits(ray), bh = ray.intersectObject(book.root, true)[0];
+      if (nh && (!sh || nh.distance < sh.distance) && (!bh || nh.distance < bh.distance)) { nbook!.take(); $('btn-nb').hidden = false; return; }
+      if (sh && (!bh || sh.distance < bh.distance)) { setInspect(true, 'bomb'); suitcase.pickUp(); $('hint').style.opacity = '0'; return; } }
     if (notes.heldHit(ray) || notes.reading) { notes.toggleRead(); haptic("tap"); audio.play("pageTurn", 1); return; } // a tap anywhere lowers a sheet being read
     { const nh = notes.hits(ray); if (nh && !(inspecting && inspectTarget === "lock")) { const bh = ray.intersectObject(book.root, true)[0]; if (!bh || nh.distance < bh.distance) {
       if (cur().state === "rest" || cur().state === "falling" || cur().lowered) { notes.take(nh.object.userData.sheet, scene); $("btn-sheet").hidden = false; haptic("tap"); audio.play("pageTurn", 1); return; } } } }
@@ -248,7 +266,7 @@ async function boot() {
     if (ph && (!hit || ph.distance < hit.distance)) { if (!inspecting && (cur().state === 'rest' || cur().state === 'falling' || cur().lowered)) setInspect(true, 'pressure'); return; }
     if ((cur().state === 'reading' || cur().state === 'held') && !cur().lowered) { if (!hit) return; }
     const r = box.tap(ray); (window as any).__lastTap = r; if (r && (r !== 'door' || box.open) && !inspecting && (cur().state === 'rest' || cur().state === 'falling' || cur().lowered)) { setInspect(true); if (r !== 'test') return; } if (r === 'door' && box.open) { if (!deadline && !box.locked && !IN_ROOM) deadline = performance.now() + LIMITW() * 1000; if (cur().state === 'rest' || cur().state === 'falling') { const d = box.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } } });
-  const setInspect = (on: boolean, target: "box" | "pressure" | "lab" | "lock" | "notes" = "box") => { if (on) inspectTarget = target; inspecting = on; $('btn-back').hidden = !on; $('hint').style.opacity = on ? '0' : ''; $('task').style.opacity = on && innerWidth > 700 ? '0' : ''; if (on) { focusTo = null; if (target === 'box' && !box.open) box.toggleDoor(); } };
+  const setInspect = (on: boolean, target: "box" | "pressure" | "lab" | "lock" | "notes" | "bomb" = "box") => { if (!on && inspectTarget === 'bomb') { suitcase?.putDown(); nbook?.close(); } if (on) inspectTarget = target; inspecting = on; $('btn-back').hidden = !on; $('hint').style.opacity = on ? '0' : ''; $('task').style.opacity = on && innerWidth > 700 ? '0' : ''; if (on) { focusTo = null; if (target === 'box' && !box.open) box.toggleDoor(); } };
   $('btn-sheet').onclick = () => { notes.putBack(); $('btn-sheet').hidden = true; audio.play('pageTurn', 1); };
   $('btn-back').onclick = () => setInspect(false); addEventListener('keydown', e => { if (e.key === 'Escape' && inspecting) setInspect(false); });
   $('btn-open').onclick = () => cur().open(); $('btn-close').onclick = () => cur().close(); $('btn-drop').onclick = () => cur().drop();
@@ -292,9 +310,19 @@ async function boot() {
     if (!inspecting || (inspectTarget !== 'pressure' && inspectTarget !== 'lab' && inspectTarget !== 'lock')) { if (press.hits(ray) || lab.hits(ray)) return; } // first tap only opens the close-up
     if (notes.heldHit(ray) || notes.reading) return; // the sheet in hand takes its own taps
     if (!inspecting && inspectTarget !== 'lock' && lock.hits(ray)) return;
+    if (inspecting && inspectTarget === 'bomb') { if (!suitcase || bombPtrs.size > 1) return; device = suitcase as any; } else
     device = inspectTarget === 'lab' ? lab : inspectTarget === 'lock' && inspecting ? lock : press; if (!device.enabled) return;
     if (device.pointerDown(ray, e.clientX, e.clientY, camera)) { haptic('tap'); valvePointer = e.pointerId; valveStart = {x: e.clientX, y: e.clientY, t: performance.now()}; try { renderer.domElement.setPointerCapture(e.pointerId); } catch {} } });
   addEventListener('pointermove', e => { if (e.pointerId === valvePointer) device.pointerMove(e.clientX, e.clientY); });
+  // the case in hand: pinch to zoom toward the fingers (two fingers also pan), wheel zooms toward the cursor
+  const bombPtrs = new Map<number, {x: number; y: number}>(); let pinchD = 0, pinchC = {x: 0, y: 0};
+  const bombHeld = () => inspecting && inspectTarget === 'bomb' && !!suitcase && suitcase.state === 'held' && !nbook?.open;
+  renderer.domElement.addEventListener('pointerdown', e => { bombPtrs.set(e.pointerId, {x: e.clientX, y: e.clientY}); if (bombPtrs.size === 2 && bombHeld()) { suitcase!.pointerUp(false); valvePointer = null; const [a, b] = [...bombPtrs.values()]; pinchD = Math.hypot(a.x - b.x, a.y - b.y); pinchC = {x: (a.x + b.x) / 2, y: (a.y + b.y) / 2}; } }, true);
+  addEventListener('pointermove', e => { const p = bombPtrs.get(e.pointerId); if (!p) return; p.x = e.clientX; p.y = e.clientY; if (bombPtrs.size !== 2 || !bombHeld() || !pinchD) return; const [a, b] = [...bombPtrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y), c = {x: (a.x + b.x) / 2, y: (a.y + b.y) / 2};
+    suitcase!.zoomBy(d / pinchD, c.x / innerWidth * 2 - 1, -c.y / innerHeight * 2 + 1, camera); suitcase!.pan(c.x - pinchC.x, c.y - pinchC.y, camera); pinchD = d; pinchC = c; });
+  const bombUp = (e: PointerEvent) => { bombPtrs.delete(e.pointerId); if (bombPtrs.size < 2) pinchD = 0; }; addEventListener('pointerup', bombUp); addEventListener('pointercancel', bombUp);
+  renderer.domElement.addEventListener('wheel', e => { if (!bombHeld()) return; e.preventDefault(); suitcase!.zoomBy(Math.exp(-e.deltaY * .0015), e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1, camera); }, {passive: false});
+  $('btn-nb').onclick = () => { if (!nbook) return; if (nbook.open) nbook.close(); else { const m = suitcase?.open ? suitcase.active : null; nbook.show(m && nbook.page < 2 ? nbook.chapterPage(m) : undefined); } };
   const endValve = (e: PointerEvent) => { if (e.pointerId !== valvePointer) return; device.pointerUp(e.type === 'pointerup' && Math.hypot(e.clientX - valveStart.x, e.clientY - valveStart.y) < 10); /* a still press counts as a tap, however long it is held */ setTimeout(() => { valvePointer = null; }, 0); };
   addEventListener('pointerup', endValve); addEventListener('pointercancel', endValve);
   renderer.domElement.addEventListener('pointerdown', e => drag.set(e.pointerId, {x: e.clientX, y: e.clientY}));
@@ -312,6 +340,7 @@ async function boot() {
       // close-up: stand ~55 cm in front of the panel (still inside the cage), framing meter + wires
       const P = inspectTarget === "pressure", L = inspectTarget === "lab", K = inspectTarget === "lock", N = inspectTarget === "notes", tg = N ? notes.group : K ? lock.group : P ? press.group : L ? lab.group : box.group, c = N ? notes.center() : K ? lock.center() : P ? press.center() : L ? lab.center() : box.center(), n = new T.Vector3(0, 0, 1).applyQuaternion(tg.getWorldQuaternion(new T.Quaternion())), at = c.clone().add(new T.Vector3(0, N ? (mobile ? -.02 : 0) : K ? (mobile ? -.045 : -.015) * CodeLock.SCALE : P || L ? 0 : .05, 0)), from = c.clone().addScaledVector(n, N ? (camera.aspect < .9 ? 1.45 : mobile ? .62 : .72) : K ? (camera.aspect < .9 ? .66 : mobile ? .5 : .44) * CodeLock.SCALE : L ? (camera.aspect < .9 ? 1.95 : 1.12) : P ? (camera.aspect < .9 ? 1.75 : 1.05) : camera.aspect < .9 ? 1.3 : 1.12).add(new T.Vector3(0, N ? 0 : K ? .09 * CodeLock.SCALE : P ? .06 : L ? .04 : .09, 0));
       const look = new T.Quaternion().setFromRotationMatrix(new T.Matrix4().lookAt(from, at, new T.Vector3(0, 1, 0))), base = new T.Quaternion().setFromEuler(new T.Euler(pitch, yaw, 0, 'YXZ'));
+      if (inspectTarget === 'bomb') { from.copy(eye); look.copy(base); }
       if (K) { from.copy(eye); at.copy(lock.center()).add(new T.Vector3(0, mobile ? -.012 : -.004, 0)); look.setFromRotationMatrix(new T.Matrix4().lookAt(from, at, new T.Vector3(0, 1, 0))); }
       camera.position.copy(eye).lerp(from, inspectK); camera.quaternion.copy(base).slerp(look, inspectK);
       if (!inspecting && inspectK < .002) inspectK = 0;
@@ -319,6 +348,10 @@ async function boot() {
     if (kind === 'formula' && (flink.view()?.doses.length ?? 0) > 0 && Math.random() < dt * 1.6) audio.play('blub', .6);
     if (tellPending && frameNo % 30 === 0) { const intro = tellPending.startsWith('intro:'), want = intro ? tellPending.slice(6) : tellPending; if (want !== kind) tellPending = null; else if (intro ? voice.say('intro', 3, 0) : voice.say(('tutorial_' + kind) as any, 3, 0)) tellPending = intro ? kind : null; }
     cage.update(dt); ui.update(dt); jui.update(dt); if (kind === "wire" || inspectTarget === "box") box.update(dt); if (kind === "pressure" || inspectTarget === "pressure") press.update(dt, link.view()); if (kind === "formula" || inspectTarget === "lab") lab.update(dt, flink.view()); if (kind === "lock" || inspectTarget === "lock") lock.update(dt); /* only the machine in play animates */
+    if (suitcase && nbook) { const live = kind === 'bomb'; suitcase.root.visible = live; nbook.root.visible = live && !nbook.taken; let gs = false, gn = false;
+      if (live && !inspecting) { hoverRay.setFromCamera(new T.Vector2(0, 0), camera); const a = suitcase.hits(hoverRay), b = nbook.hits(hoverRay); gs = !!a && a.distance < 2.2 && (!b || a.distance < b.distance); gn = !!b && b.distance < 2.2 && !gs; }
+      const pr = $('prompt'); pr.textContent = gs ? L('ОСМОТРЕТЬ ЧЕМОДАНЧИК', 'INSPECT THE SUITCASE') : gn ? L('ВЗЯТЬ БЛОКНОТ', 'TAKE THE NOTEBOOK') : pr.textContent; pr.classList.toggle('show', gs || gn);
+      if (live) { suitcase.setTimer(deadline ? Math.max(0, (deadline - performance.now()) / 1000) : LIMITW(), LIMITW()); } overlay.environment = scene.environment; suitcase.update(dt, camera, gs); nbook.update(dt, gn); }
     if (focusTo) { let dy = focusTo[0] - yawT; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yawT += dy * Math.min(1, dt * 5); pitchT += (focusTo[1] - pitchT) * Math.min(1, dt * 5); if (Math.abs(dy) < .002 && Math.abs(focusTo[1] - pitchT) < .002) focusTo = null; }
     { const sw = kind === 'pressure' && !!link.view()?.surgeWarning; document.body.classList.toggle('surge', sw); if (sw && !surgeSaid) { surgeSaid = true; voice.say('surge', 3, 0); haptic('tap'); } }
     { const n = +$('clock-num').textContent!, run = $('clock').dataset.urgent === 'true'; document.body.classList.toggle('urgent', run); if (run && !warned10) { warned10 = true; voice.say(kind === 'bomb' ? 'bomb_warning' : 'ten_seconds', 2, 0); if (kind === 'bomb' && !bombWarned) { bombWarned = true; subtitles([L('Тик-так. Десять секунд.', 'Tick-tock. Ten seconds.')]); } }
@@ -340,9 +373,10 @@ async function boot() {
     // shadows refresh every other frame: invisible at 60 fps, halves the shadow-pass cost
     if (frameNo++ % (shadowEvery + 1) === 0) renderer.shadowMap.needsUpdate = true;
     notes.update(dt, camera);
-    bloom.strength = .42 + (falling ? .25 : 0) + (shake > .8 ? .4 : 0); if (composer) composer.render(); else renderer.render(scene, camera); requestAnimationFrame(loop);
+    bloom.strength = .42 + (falling ? .25 : 0) + (shake > .8 ? .4 : 0); if (composer) composer.render(); else renderer.render(scene, camera);
+    if (suitcase && suitcase.state !== 'floor' && suitcase.root.visible) { renderer.autoClear = false; renderer.clearDepth(); renderer.render(overlay, camera); renderer.autoClear = true; } requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
-  (window as any).__manual = {book, ui, renderer, scene, camera, get state() { return ui.state; }, get info() { return renderer.info.render; }, box, press, link, lab, flink, journal, jui, get kind() { return kind; }, lock, notes, rows, endRun() { taskNo = TOTAL; next(true); }, setInspect, cage, get shake() { return shake; }, look(y: number, p: number) { yaw = yawT = y; pitch = pitchT = p; }, setFree, set timeScale(v: number) { timeScale = v; }, step(sec: number) { for (let i = 0; i < Math.round(sec * 60); i++) { cage.update(1 / 60); ui.update(1 / 60); jui.update(1 / 60); } }};
+  (window as any).__manual = {book, ui, renderer, scene, camera, get state() { return ui.state; }, get info() { return renderer.info.render; }, box, press, link, lab, flink, journal, jui, get kind() { return kind; }, lock, notes, rows, get suitcase() { return suitcase; }, get nbook() { return nbook; }, endRun() { taskNo = TOTAL; next(true); }, setInspect, cage, get shake() { return shake; }, look(y: number, p: number) { yaw = yawT = y; pitch = pitchT = p; }, setFree, set timeScale(v: number) { timeScale = v; }, step(sec: number) { for (let i = 0; i < Math.round(sec * 60); i++) { cage.update(1 / 60); ui.update(1 / 60); jui.update(1 / 60); } }};
 }
 boot().catch(e => { $('load-text').textContent = 'Failed: ' + (e?.message || e); console.error(e); });

@@ -139,3 +139,22 @@ body.urgent::after{content:'';position:fixed;inset:0;pointer-events:none;z-index
   font: 600 clamp(15px, 2.1vw, 21px)/1.35 Georgia, 'Times New Roman', serif; color: #f1e3c4; letter-spacing: .01em; text-shadow: 0 2px 6px #000, 0 0 18px rgba(0,0,0,.9);
   opacity: 0; transition: opacity .35s ease, transform .35s ease; }
 #host-say.show { opacity: 1; transform: translate(-50%, 0); }
+/* THE HOST'S SUITCASE — defusal notebook reader */
+#notebook { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: max(10px, env(safe-area-inset-top)) 16px max(12px, env(safe-area-inset-bottom));
+  background: radial-gradient(ellipse at center, rgba(20,10,6,.78), rgba(4,2,1,.94)); opacity: 0; transition: opacity .25s ease; touch-action: none; }
+#notebook.show { opacity: 1; }
+#notebook .nb-tabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+#notebook .nb-tabs button, #notebook .nb-bar button { font: 600 17px 'IM Fell English SC', Georgia, serif; color: #e9dcbc; background: linear-gradient(#3a2818, #24180e); border: 1px solid #6b5230; border-radius: 6px; min-width: 44px; min-height: 40px; padding: 4px 12px; cursor: pointer; }
+#notebook .nb-tabs button.on { background: linear-gradient(#8a2a18, #5a1a0e); border-color: #c8743a; color: #fff3d8; }
+#notebook .nb-stage { position: relative; flex: 1 1 auto; min-height: 0; width: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; touch-action: none; }
+#notebook canvas { height: 100%; max-height: 100%; max-width: 100%; aspect-ratio: 1000 / 1400; object-fit: contain; border-radius: 3px; box-shadow: 0 12px 40px rgba(0,0,0,.8), 0 0 0 1px rgba(60,40,20,.6); transform-origin: center; will-change: transform; }
+#notebook canvas.flip-l { animation: nbFlipL .32s ease; } #notebook canvas.flip-r { animation: nbFlipR .32s ease; }
+@keyframes nbFlipL { from { opacity: .2; clip-path: inset(0 0 0 60%); } to { opacity: 1; clip-path: inset(0 0 0 0); } }
+@keyframes nbFlipR { from { opacity: .2; clip-path: inset(0 60% 0 0); } to { opacity: 1; clip-path: inset(0 0 0 0); } }
+#notebook .nb-bar { display: flex; gap: 10px; align-items: center; }
+#notebook .nb-label { color: #cdb98e; font: 16px 'IM Fell English', serif; min-width: 64px; text-align: center; }
+#notebook .nb-close { background: linear-gradient(#5a1a0e, #3a1008) !important; }
+/* restrained interaction prompt (looked-at object) */
+#prompt { position: fixed; left: 50%; top: 58%; transform: translate(-50%, 6px); pointer-events: none; z-index: 20; font: 600 15px/1 'IM Fell English SC', Georgia, serif; letter-spacing: .18em; color: #e8d6ae;
+  padding: 8px 14px; border-top: 1px solid rgba(232,214,174,.35); border-bottom: 1px solid rgba(232,214,174,.35); background: linear-gradient(90deg, transparent, rgba(10,5,3,.55), transparent); text-shadow: 0 1px 4px #000; opacity: 0; transition: opacity .3s, transform .3s; }
+#prompt.show { opacity: .92; transform: translate(-50%, 0); }
