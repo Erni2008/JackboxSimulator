@@ -23,9 +23,9 @@ const BRIEF = (k: Kind, seconds: number): Brief => k === 'wire' ? {
   tip: L('120 PSI — взрыв. Следите за скачками давления.', '120 PSI means an explosion. Watch for surges.')}
   : k === "lock" ? {
   icon: "🔒", title: L("Замок клетки", "The cage lock"), goal: L(`Откройте замок на двери клетки. Время: ${seconds} с.`, `Open the lock on the cage door. Time: ${seconds} s.`),
-  steps: [["①", L("Прочтите листки на стене у двери — как работать отмычкой. В справочнике, раздел V, найдите мастера по табличке на замке.", "Read the sheets by the door (how to work the pick). In the handbook, section V, find the maker from the lock's plate.")],
-    ["②", L("Ведите отмычку пальцем под нужный штифт и тяните вверх до щелчка — по порядку мастера.", "Slide the pick under the right pin and drag up to the click, in the maker's order.")],
-    ["③", L("Медный заело — нажмите на латунное колесо и поднимите его снова. Чёрный не трогать!", "Copper stuck: tap the brass wheel, lift it again. Never touch black!")]],
+  steps: [["①", L("Прочтите листки на стене у двери — там всё по шагам.", "Read the sheets on the wall by the door: it is all there, step by step.")],
+    ["②", L("Табличка на замке называет СИСТЕМУ: «Клеймо» — порядок в книге, «Номер» — цифры номера, «Натяг» — ищите дрожащий штифт.", "The lock's plate names its SYSTEM: Stamp (order in the book), Number (the digits), Binding (find the trembling pin).")],
+    ["③", L("Палец на замке: ведите вбок под штифт, потом вверх до щелчка. По порядку.", "Finger on the lock: slide under a pin, then up to the click. In order.")]],
   tip: L("Не тот штифт — все штифты падают и сгорает попытка.", "A wrong pin drops them all and costs a try.")}
   : {
   icon: "⚗", title: L('Нестабильная формула', 'The unstable formula'), goal: L(`Приготовьте охлаждающую формулу и введите её. Время: ${seconds} с.`, `Prepare the cooling formula and inject it. Time: ${seconds} s.`),

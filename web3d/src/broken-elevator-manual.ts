@@ -139,8 +139,8 @@ async function boot() {
     else { press.enabled = false; link.stop(); }
     if (kind === 'formula') { box.locked = true; lab.enabled = true; lab.reset(); flink.start(); formulaDone = false; if (cur().state === 'rest' || cur().state === 'falling') { const d = lab.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } }
     else { lab.enabled = false; flink.stop(); }
-    if (kind === "lock") { box.locked = true; lockDone = false; lock.setTask(makeLockTask(taskSeed, DIFF()), taskSeed); lock.enabled = true; deadline = IN_ROOM && roundDeadlineAt ? roundDeadlineAt : performance.now() + limitMs("lock");
-      $("hint").textContent = L("Взломайте замок на двери отмычкой: как работать — на листках у двери, порядок штифтов — в справочнике, раздел V.", "Pick the door lock: how to work the pick is on the sheets by the door, the pin order is in the handbook, section V."); $("hint").style.opacity = "1";
+    if (kind === "lock") { box.locked = true; lockDone = false; lock.setTask(makeLockTask(taskSeed, DIFF(), params.get("method")), taskSeed); lock.enabled = true; deadline = IN_ROOM && roundDeadlineAt ? roundDeadlineAt : performance.now() + limitMs("lock");
+      $("hint").textContent = L("Взломайте замок на двери отмычкой. Как это сделать — на листках на стене у двери.", "Pick the door lock. How to do it is on the sheets on the wall by the door."); $("hint").style.opacity = "1";
       if (cur().state === "rest" || cur().state === "falling") { const d = lock.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } }
     else lock.enabled = false;
     hud(); }); };

@@ -310,8 +310,8 @@ export function drawLockPage(x: X, half: 0 | 1, index: number) {
   if (!half) {
     lockHeader(x, side, index + 1, L('Клеймо мастера', "The maker's stamp"));
     x.fillStyle = INK; x.font = F.body(27); x.textAlign = 'left';
-    x.fillText(L('Найдите латунную табличку мастера внизу замка.', "Find the maker's brass plate at the bottom of the lock."), MX, 300);
-    x.fillText(L('Мастер решает, в каком порядке поднимать штифты.', 'The maker decides the order the pins are lifted in.'), MX, 338);
+    x.fillText(L('Для замков СИСТЕМЫ «КЛЕЙМО» (см. табличку внизу замка).', 'For locks of the STAMP system (see the plate on the lock).'), MX, 300);
+    x.fillText(L('Мастер решает, в каком порядке поднимать штифты. Номер 1 — левый штифт.', 'The maker sets the order the pins are lifted in. Pin 1 is the left one.'), MX, 338);
     const rows: [number, string, (cx: number, cy: number) => void][] = [
       [0, L('СПРАВА НАЛЕВО — от дальнего штифта к ближнему', 'RIGHT TO LEFT — from the far pin to the near one'), (cx, cy) => { const cols: PinColor[] = ['steel', 'brass', 'steel', 'copper', 'brass']; cols.forEach((c, i) => { lockPin(x, cx + (i - 2) * 44, cy, c, 0, .62); x.fillStyle = BURGUNDY; x.font = F.mono(24, 700); x.textAlign = 'center'; x.fillText(String(5 - i), cx + (i - 2) * 44, cy + 56); }); arrow(cx + 100, cy - 46, cx - 100, cy - 46); }],
       [1, L('МЕДЬ → ЛАТУНЬ → СТАЛЬ · один цвет — слева направо', 'COPPER → BRASS → STEEL · same colour: left to right'), (cx, cy) => { const cols: PinColor[] = ['copper', 'brass', 'steel']; cols.forEach((c, i) => { lockPin(x, cx + (i - 1) * 74, cy, c, 0, .62); if (i < 2) { x.fillStyle = INK; x.font = F.tech(30, 700); x.textAlign = 'center'; x.fillText('→', cx + (i - .5) * 74, cy + 10); } x.fillStyle = BURGUNDY; x.font = F.mono(24, 700); x.textAlign = 'center'; x.fillText(String(i + 1), cx + (i - 1) * 74, cy + 56); }); }],
