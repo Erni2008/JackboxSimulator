@@ -204,14 +204,14 @@ async function boot() {
   /** practice: three of five from the seed (?module=A,B forces a set) */
   const practiceArmed = (): Mechanism[] => { const forced = (params.get('module') || '').toUpperCase().split(',').filter(m => (MECHANISMS as string[]).includes(m)) as Mechanism[]; if (forced.length) return forced;
     const all = [...MECHANISMS]; let x = Math.abs(taskSeed * 2654435761) % 2147483647 || 1; for (let i = all.length - 1; i > 0; i--) { x = x * 48271 % 2147483647; const j = x % (i + 1); [all[i], all[j]] = [all[j], all[i]]; } return MECHANISMS.filter(m => all.slice(0, 3).includes(m)); };
-  const armBomb = () => { ensureBomb(); const sv = bombView; armed = sv?.armed ?? practiceArmed(); neutral = new Set(sv?.neutralised ?? []); suitcase!.arm(armed, neutral);
+  const armBomb = () => { ensureBomb(); const sv = bombView; armed = sv?.armed ?? practiceArmed(); neutral = new Set(sv?.neutralised ?? []); suitcase!.arm(armed, neutral, bombView?.puzzleId ? parseInt(String(bombView.puzzleId).slice(-6), 16) : taskSeed);
     // every bay shows its mechanism; only the armed ones are live (the others get a decorative layout)
-    wireLayout = armed.includes('WIRE_MAZE') ? (sv?.wires ?? makeWireLayout(taskSeed, DIFF())) : null; maze!.build(wireLayout ?? makeWireLayout(taskSeed + 991, DIFF()), sv?.cut ?? []);
-    linksModel = !IN_ROOM && armed.includes('HIDDEN_CONNECTIONS') ? makeLinks(taskSeed, DIFF()) : null; links!.build(sv?.links?.n ?? (DIFF() === 'EASY' ? 4 : DIFF() === 'NORMAL' ? 5 : 6)); probeSel = 0; $('t-lcd').textContent = '— — —';
+    wireLayout = armed.includes('WIRE_MAZE') ? (sv?.wires ?? makeWireLayout(taskSeed, DIFF())) : null; if (wireLayout) maze!.build(wireLayout, sv?.cut ?? []); else maze!.clear();
+    linksModel = !IN_ROOM && armed.includes('HIDDEN_CONNECTIONS') ? makeLinks(taskSeed, DIFF()) : null; if (armed.includes('HIDDEN_CONNECTIONS')) links!.build(sv?.links?.n ?? (DIFF() === 'EASY' ? 4 : DIFF() === 'NORMAL' ? 5 : 6)); else links!.clear(); probeSel = 0; $('t-lcd').textContent = '— — —';
     if (sv?.links && sv.links.red >= 0) { links!.place(0, sv.links.red); links!.place(1, sv.links.black); $('t-lcd').textContent = sv.links.reading || '— — —'; }
-    xrayL = armed.includes('XRAY') ? (sv?.xray ?? makeXray(taskSeed, DIFF())) : null; xrayV!.build(xrayL ?? makeXray(taskSeed + 77, DIFF()));
-    laserL = armed.includes('LASER') ? (sv?.laser ?? makeLaser(taskSeed, DIFF())) : null; laserV!.build(laserL ?? makeLaser(taskSeed + 77, DIFF()));
-    thermalL = armed.includes('THERMAL') ? (sv?.thermal ?? makeThermal(taskSeed, DIFF())) : null; thermalV!.build(thermalL ?? makeThermal(taskSeed + 77, DIFF()));
+    xrayL = armed.includes('XRAY') ? (sv?.xray ?? makeXray(taskSeed, DIFF())) : null; if (xrayL) xrayV!.build(xrayL); else xrayV!.clear();
+    laserL = armed.includes('LASER') ? (sv?.laser ?? makeLaser(taskSeed, DIFF())) : null; if (laserL) laserV!.build(laserL); else laserV!.clear();
+    thermalL = armed.includes('THERMAL') ? (sv?.thermal ?? makeThermal(taskSeed, DIFF())) : null; if (thermalL) thermalV!.build(thermalL); else thermalV!.clear();
     strikes = sv?.strikes ?? 0;
     // compile the in-hand shader variants now (overlay lights differ from the cage's), not on the first pick-up
     if (suitcase!.state === 'floor') { const home = suitcase!.root.parent; overlay.attach(suitcase!.root); overlay.environment = scene.environment; try { renderer.compile(overlay, camera); } catch {} home?.attach(suitcase!.root); }

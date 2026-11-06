@@ -49,7 +49,7 @@ export function drawSeal(x: CanvasRenderingContext2D, s: Seal, cx: number, cy: n
 const PR = .066; // panel radius (m) inside bay I
 export class WireMazeView {
   readonly group = new T.Group(); layout: WireLayout | null = null; cut = new Set<number>(); neutral = false;
-  private wires: {mesh: T.Mesh; shadow: T.Mesh; curve: T.CatmullRomCurve3; h: number}[] = []; private mats: T.Material[] = []; private geos: T.BufferGeometry[] = []; private faceTex: T.CanvasTexture | null = null; private sealTex: T.CanvasTexture | null = null;
+  private wires: {mesh: T.Mesh; shadow: T.Mesh; curve: T.CatmullRomCurve3; h: number}[] = []; private mats: T.Material[] = []; private geos: T.BufferGeometry[] = []; private faceTex: T.CanvasTexture | null = null; private sealTex: T.CanvasTexture | null = null; private texs: T.Texture[] = [];
   private flash = 0; private sparks: {m: T.Mesh; v: T.Vector3; t: number}[] = [];
   build(l: WireLayout, cut: number[] = []) {
     this.clear(); this.layout = l; this.cut = new Set(cut); this.neutral = false;
@@ -77,16 +77,32 @@ export class WireMazeView {
       const w = new T.Mesh(washerG, steelM); w.position.set(px, .0082, pz); this.group.add(w); const nut = new T.Mesh(nutG, steelM); nut.position.set(px, .0092, pz); nut.rotation.y = a * 3; this.group.add(nut); }
     // wires: each on its own layer; a soft contact shadow under each so crossings read as over / under
     const shadowM = new T.MeshBasicMaterial({color: '#000', transparent: true, opacity: .4, depthWrite: false}); this.mats.push(shadowM);
-    for (let i = 0; i < l.n; i++) { const h = .0052 + l.layer[i] * .00085, a0 = slotAng(i, l.n), a1 = endAng(l.end[i], l.n), R0 = PR * .75;
-      const p0 = new T.Vector3(Math.cos(a0) * R0, .0062, -Math.sin(a0) * R0), p1 = new T.Vector3(Math.cos(a1) * R0, .0062, -Math.sin(a1) * R0);
-      const b = l.bends[i], q = (bx: number, by: number) => new T.Vector3(bx * PR * .82, h, -by * PR * .82);
-      const lift0 = p0.clone().multiplyScalar(.9).setY(h), lift1 = p1.clone().multiplyScalar(.9).setY(h);
-      const curve = new T.CatmullRomCurve3([p0, lift0, q(b[0], b[1]), q(b[2], b[3]), lift1, p1], false, 'centripetal', .5);
-      const mat = new T.MeshStandardMaterial({color: WIRE_COLORS[l.color[i]], roughness: .48, metalness: .05}); this.mats.push(mat);
-      const mesh = new T.Mesh(this.g(new T.TubeGeometry(curve, 90, .00125, 7, false)), mat); mesh.userData.wire = i; this.group.add(mesh);
+    // ---- a real harness: wires lie flat on the panel and hop only where they cross over a lower wire (no clipping, no loops)
+    const N = 96, R0 = PR * .75, RAD = .0012, BASE = .0034 + RAD, TOP = .0086, paths: T.Vector2[][] = [];
+    for (let i = 0; i < l.n; i++) { const a0 = slotAng(i, l.n), a1 = endAng(l.end[i], l.n), b = l.bends[i];
+      const p0 = new T.Vector2(Math.cos(a0) * R0, -Math.sin(a0) * R0), p1 = new T.Vector2(Math.cos(a1) * R0, -Math.sin(a1) * R0);
+      // leave each terminal straight toward the centre, then sweep through two calm waypoints kept off the hub
+      const clampR = (x: number, y: number) => { const v = new T.Vector2(x * PR * .62, -y * PR * .62), r = v.length(), lo = PR * .2; return r < lo ? v.multiplyScalar(lo / Math.max(r, 1e-5)) : v; };
+      const ctrl = [p0, p0.clone().multiplyScalar(.82), clampR(b[0], b[1]), clampR(b[2], b[3]), p1.clone().multiplyScalar(.82), p1].map(v => new T.Vector3(v.x, 0, v.y));
+      const c2 = new T.CatmullRomCurve3(ctrl, false, 'centripetal', .5); paths.push(c2.getSpacedPoints(N).map(v => new T.Vector2(v.x, v.z))); }
+    const H: number[][] = paths.map(() => new Array(N + 1).fill(BASE)), order = [...Array(l.n).keys()].sort((x, y) => l.layer[x] - l.layer[y]);
+    const cross = (a: T.Vector2, b2: T.Vector2, c: T.Vector2, d: T.Vector2) => { const r = b2.clone().sub(a), q = d.clone().sub(c), den = r.x * q.y - r.y * q.x; if (Math.abs(den) < 1e-12) return -1; const t = ((c.x - a.x) * q.y - (c.y - a.y) * q.x) / den, u = ((c.x - a.x) * r.y - (c.y - a.y) * r.x) / den; return t >= 0 && t <= 1 && u >= 0 && u <= 1 ? u : -1; };
+    order.forEach((i, oi) => { for (let k = 0; k <= N; k++) { const e = Math.min(k, N - k); if (e < 6) H[i][k] = Math.max(H[i][k], TOP - (TOP - BASE) * (e / 6) ** 1.5); } // rise into the terminal clamp
+      for (let oj = 0; oj < oi; oj++) { const j = order[oj];
+        for (let k = 0; k < N; k++) for (let m = 0; m < N; m++) { const u = cross(paths[i][k], paths[i][k + 1], paths[j][m], paths[j][m + 1]); if (u < 0) continue;
+          const need = H[j][m] + (H[j][m + 1] - H[j][m]) * u + 2 * RAD + .0003; // clear the wire below
+          for (let kk = Math.max(0, k - 7); kk <= Math.min(N, k + 8); kk++) { const f = Math.cos(Math.min(1, Math.abs(kk - k - .5) / 7.5) * Math.PI / 2) ** 2; H[i][kk] = Math.max(H[i][kk], BASE + (need - BASE) * f); } } } });
+    // insulation with a thin tracer stripe in a second colour; one material per colour pair
+    const stripeOf = (c: number) => WIRE_COLORS[(c + 2) % WIRE_COLORS.length], insul = new Map<string, T.MeshStandardMaterial>();
+    const insulation = (base: string, stripe: string) => { const key = base + stripe; let m = insul.get(key); if (m) return m; const c = document.createElement('canvas'); c.width = 8; c.height = 64; const x = c.getContext('2d')!;
+      x.fillStyle = base; x.fillRect(0, 0, 8, 64); x.fillStyle = stripe; x.fillRect(0, 10, 8, 7); const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(1, 1); this.texs.push(t);
+      m = this.m2(new T.MeshStandardMaterial({map: t, roughness: .32, metalness: 0, envMapIntensity: 1.3})); insul.set(key, m); return m; };
+    for (let i = 0; i < l.n; i++) { const pts = paths[i].map((v, k) => new T.Vector3(v.x, H[i][k], v.y)), curve = new T.CatmullRomCurve3(pts, false, 'centripetal', .5), h = BASE;
+      const mesh = new T.Mesh(this.g(new T.TubeGeometry(curve, 160, RAD, 10, false)), insulation(WIRE_COLORS[l.color[i]], stripeOf(l.color[i]))); mesh.userData.wire = i; this.group.add(mesh);
       // black heat-shrink sleeves where the wire enters each terminal
-      for (const [t0, t1] of [[0, .07], [.93, 1]]) { const pts: T.Vector3[] = []; for (let k = 0; k <= 6; k++) pts.push(curve.getPoint(t0 + (t1 - t0) * k / 6)); const sl = new T.Mesh(this.g(new T.TubeGeometry(new T.CatmullRomCurve3(pts), 8, .0016, 7, false)), sleeveM); this.group.add(sl); }
-      const sc = new T.CatmullRomCurve3(curve.getPoints(60).map(p => new T.Vector3(p.x + .0006, .0032, p.z + .0006))), shadow = new T.Mesh(this.g(new T.TubeGeometry(sc, 60, .0016, 4, false)), shadowM); shadow.scale.y = .2; this.group.add(shadow);
+      for (const [t0, t1] of [[0, .06], [.94, 1]]) { const sp: T.Vector3[] = []; for (let k = 0; k <= 6; k++) sp.push(curve.getPoint(t0 + (t1 - t0) * k / 6)); this.group.add(new T.Mesh(this.g(new T.TubeGeometry(new T.CatmullRomCurve3(sp), 8, RAD * 1.3, 10, false)), sleeveM)); }
+      // a soft contact shadow on the panel, darker where the wire lies on it
+      const sc = new T.CatmullRomCurve3(paths[i].map(v => new T.Vector3(v.x + .0005, .0032, v.y + .0005))), shadow = new T.Mesh(this.g(new T.TubeGeometry(sc, 80, RAD * 1.35, 4, false)), shadowM); shadow.scale.y = .2; this.group.add(shadow);
       this.wires.push({mesh, shadow, curve, h}); if (this.cut.has(i)) this.sever(i, .5, false); }
     this.geos.push(...mergeStatic(this.group)); this.buildCutters();
   }
@@ -120,7 +136,7 @@ export class WireMazeView {
   update(dt: number) { this.cutK += ((this.cuttersOn ? 1 : 0) - this.cutK) * (1 - Math.exp(-dt * 10)); this.cutters.position.y = .0105 + this.cutK * .022; this.cutters.rotation.z = this.cutK * .5; this.cutters.rotation.x = this.cutK * -.35;
     for (const s of this.sparks) { s.t -= dt; s.v.y -= .3 * dt; s.m.position.addScaledVector(s.v, dt); s.m.visible = s.t > 0; } this.sparks = this.sparks.filter(s => { if (s.t > 0) return true; this.group.remove(s.m); return false; });
     if (this.flash > 0) { this.flash = Math.max(0, this.flash - dt * 1.6); } for (const w of this.wires) { const m = w.mesh.material as T.MeshStandardMaterial; m.emissive?.set('#ff1a00'); m.emissiveIntensity = this.flash * .9 * (Math.sin(this.flash * 40) > 0 ? 1 : .3); } }
-  clear() { for (const o of [...this.group.children]) this.group.remove(o); for (const g of this.geos) g.dispose(); for (const m of this.mats) m.dispose(); this.faceTex?.dispose(); this.sealTex?.dispose(); this.geos = []; this.mats = []; this.wires = []; this.sparks = []; this.layout = null; }
+  clear() { for (const o of [...this.group.children]) this.group.remove(o); for (const g of this.geos) g.dispose(); for (const m of this.mats) m.dispose(); this.faceTex?.dispose(); this.sealTex?.dispose(); for (const t of this.texs) t.dispose(); this.texs = []; this.geos = []; this.mats = []; this.wires = []; this.sparks = []; this.layout = null; }
 }
 
 // ---------------------------------------------------------------------------------------------- chapter I

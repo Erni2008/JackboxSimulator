@@ -139,9 +139,7 @@ export class Suitcase {
 
     // ---- interior tray with the five bays
     this.interior.position.y = seamY - .028; this.body.add(this.interior);
-    const TW = W - 2 * WALL, TD = D - 2 * WALL, ao = (() => { const c = document.createElement('canvas'); c.width = 512; c.height = 360; const x = c.getContext('2d')!; x.drawImage(this.grime(31).image as HTMLCanvasElement, 0, 0, 512, 360);
-      x.filter = 'blur(10px)'; x.fillStyle = 'rgba(0,0,0,.75)'; for (const [bx, bz, bw, bd] of [[-.145, -.068, .15, .15], [0, -.068, .125, .13], [.145, -.068, .13, .13], [-.085, .072, .25, .12], [.14, .072, .15, .12]]) x.fillRect((bx - bw / 2 + TW / 2) / TW * 512 - 4, (bz - bd / 2 + TD / 2) / TD * 360 - 4, bw / TW * 512 + 8, bd / TD * 360 + 8);
-      x.filter = 'blur(18px)'; x.strokeStyle = 'rgba(0,0,0,.6)'; x.lineWidth = 30; x.strokeRect(0, 0, 512, 360); const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t; })();
+    const TW = W - 2 * WALL, TD = D - 2 * WALL; this.aoCanvas.width = 512; this.aoCanvas.height = 360; this.aoGrime = this.grime(31).image as HTMLCanvasElement; const ao = this.aoTex = new T.CanvasTexture(this.aoCanvas); ao.colorSpace = T.SRGBColorSpace; this.drawAO([]);
     const tray = new T.Mesh(new T.BoxGeometry(TW, .004, TD), new T.MeshStandardMaterial({color: '#4a4440', metalness: .7, roughness: .55, map: ao})); tray.receiveShadow = true; this.interior.add(tray);
     // the quilted lining shows on the walls between the tray and the rim
     const wallH = .028; for (const [x, z, w, ry] of [[0, D / 2 - WALL - .0006, W - 2 * WALL, Math.PI], [0, -D / 2 + WALL + .0006, W - 2 * WALL, 0], [W / 2 - WALL - .0006, 0, D - 2 * WALL, -Math.PI / 2], [-W / 2 + WALL + .0006, 0, D - 2 * WALL, Math.PI / 2]] as const) {
@@ -220,7 +218,19 @@ export class Suitcase {
   }
   center() { return this.root.getWorldPosition(new T.Vector3()); }
   /** set the armed mechanism for this event */
-  arm(list: Mechanism[], done: Set<Mechanism>) { this.armed = [...list]; this.neutral = done; }
+  /** only the armed mechanisms are in the case (the others are not there at all); their places in the tray are shuffled every event */
+  arm(list: Mechanism[], done: Set<Mechanism>, seed = 1) { this.armed = [...list]; this.neutral = done; this.focus = null;
+    const r = rnd(Math.abs(Math.floor(seed * 7919 + 31)) % 2147483646 + 1);
+    for (const m of MECHANISMS) { const g = this.bays[m].group; if (this.armed.includes(m)) { if (g.parent !== this.interior) this.interior.add(g); } else if (g.parent) g.parent.remove(g); }
+    const wide = this.armed.includes('LASER') ? 'LASER' as Mechanism : null, rest = this.armed.filter(m => m !== wide).sort(() => r() - .5);
+    const top = rest.slice(0, 2), bottom = wide ?? rest[2];
+    top.forEach((m, i) => this.bays[m].group.position.set((i ? 1 : -1) * (.1 + r() * .012) * (top.length > 1 ? 1 : 0), .002, -.07 + (r() - .5) * .008));
+    if (bottom) this.bays[bottom].group.position.set(wide ? (r() - .5) * .03 : (r() - .5) * .17, .002, .08);
+    this.drawAO(this.armed.map(m => { const b = this.bays[m]; return [b.group.position.x, b.group.position.z, b.size[0], b.size[1]] as [number, number, number, number]; })); }
+  private aoCanvas = document.createElement('canvas'); private aoGrime: HTMLCanvasElement | null = null; private aoTex: T.CanvasTexture | null = null;
+  private drawAO(rects: [number, number, number, number][]) { const x = this.aoCanvas.getContext('2d')!, TW = W - 2 * WALL, TD = D - 2 * WALL; x.filter = 'none'; if (this.aoGrime) x.drawImage(this.aoGrime, 0, 0, 512, 360);
+    x.filter = 'blur(10px)'; x.fillStyle = 'rgba(0,0,0,.75)'; for (const [bx, bz, bw, bd] of rects) x.fillRect((bx - bw / 2 + TW / 2) / TW * 512 - 4, (bz - bd / 2 + TD / 2) / TD * 360 - 4, bw / TW * 512 + 8, bd / TD * 360 + 8);
+    x.filter = 'blur(18px)'; x.strokeStyle = 'rgba(0,0,0,.6)'; x.lineWidth = 30; x.strokeRect(0, 0, 512, 360); x.filter = 'none'; if (this.aoTex) this.aoTex.needsUpdate = true; }
   /** bring a bay up to fill the view (the case turns its tray to the player); null returns to the whole case */
   focusOn(m: Mechanism | null) { this.focus = m; this.focusT = m ? 1.1 : 0; this.focusZoom = 0; if (m) { this.aim = {yaw: 0, pitch: 1.42}; } else { this.aim = {yaw: 0, pitch: .95}; this.zoom = 1; this.off.set(0, 0); } }
   reset() { if (this.shattered) { for (const sv of this.saved) { sv.parent.add(sv.o); sv.o.position.copy(sv.p); sv.o.quaternion.copy(sv.q); sv.o.visible = sv.vis; } this.saved = []; this.debris = []; this.shattered = false; for (const h of this.halos.values()) h.visible = true; if (this.timerHalo) this.timerHalo.visible = true; }
@@ -272,7 +282,7 @@ export class Suitcase {
   private debris: {o: T.Object3D; v: T.Vector3; w: T.Vector3}[] = []; private saved: {o: T.Object3D; parent: T.Object3D; p: T.Vector3; q: T.Quaternion; vis: boolean}[] = []; shattered = false; private shatterT = 0;
   shatter() { if (this.shattered) return; this.shattered = true; this.shatterT = 0; this.focus = null;
     // break the bays out of the tray so each flies on its own
-    for (const m of MECHANISMS) { const g = this.bays[m].group; this.saved.push({o: g, parent: g.parent!, p: g.position.clone(), q: g.quaternion.clone(), vis: g.visible}); this.body.attach(g); }
+    for (const m of MECHANISMS) { const g = this.bays[m].group; if (!g.parent) continue; this.saved.push({o: g, parent: g.parent!, p: g.position.clone(), q: g.quaternion.clone(), vis: g.visible}); this.body.attach(g); }
     for (const o of [...this.body.children]) { if (o.userData.shadowProxy) continue; if (!this.saved.some(s2 => s2.o === o)) this.saved.push({o, parent: o.parent!, p: o.position.clone(), q: o.quaternion.clone(), vis: o.visible});
       if (o.userData.stay || o.userData.coil) { o.visible = false; continue; }
       const out = o.position.clone().setY(0); if (out.lengthSq() < 1e-6) out.set(Math.random() - .5, 0, Math.random() - .5); out.normalize();

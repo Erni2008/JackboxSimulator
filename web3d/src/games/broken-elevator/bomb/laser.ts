@@ -96,14 +96,14 @@ export class LaserView {
     this.layout.state.forEach((s, i) => { this.mirrors[i].ang = s === 0 ? Math.PI / 4 : -Math.PI / 4; }); }
   warn() { this.flash = 1; }
   private texs: T.Texture[] = []; private flare: T.Sprite | null = null; private dust: T.Points | null = null; private dustSeed: number[][] = []; private path: T.Vector3[] = [];
-  update(dt: number) { this.t += dt; this.press = Math.max(0, this.press - dt * 5); if (this.btn) { this.btn.position.y = .0058 - this.press * .0016; this.btnM.emissiveIntensity = this.press * .8; } if (this.flare) this.flare.scale.setScalar(.013 + Math.sin(this.t * 23) * .0012);
+  update(dt: number) { if (!this.layout || !this.beamM) return; /* not in this case */ this.t += dt; this.press = Math.max(0, this.press - dt * 5); if (this.btn) { this.btn.position.y = .0058 - this.press * .0016; this.btnM.emissiveIntensity = this.press * .8; } if (this.flare) this.flare.scale.setScalar(.013 + Math.sin(this.t * 23) * .0012);
     // dust motes ride the beam path, each lit only near it (they drift slowly sideways)
     if (this.dust && this.path.length > 1) { const a = (this.dust.geometry.attributes.position as T.BufferAttribute), segs = this.path.length - 1;
       this.dustSeed.forEach((s, i) => { const u = (s[0] + this.t * .02 * (.5 + s[1])) % 1, k = Math.min(segs - 1, Math.floor(u * segs)), f = u * segs - k, p = this.path[k].clone().lerp(this.path[k + 1], f);
         a.setXYZ(i, p.x + Math.sin(this.t * .7 + s[2] * 9) * .0018, p.y + Math.cos(this.t * .5 + s[1] * 7) * .0016, p.z + Math.sin(this.t * .6 + s[0] * 5) * .0018); }); a.needsUpdate = true; } for (const m of this.mirrors) m.g.rotation.y += (m.ang - m.g.rotation.y) * (1 - Math.exp(-dt * 14));
     this.flash = Math.max(0, this.flash - dt * 1.6); this.beamM.opacity = .8 + .2 * Math.sin(this.t * 40); this.glowM.opacity = .2 + .06 * Math.sin(this.t * 7);
     this.sensorLamps.forEach((l, i) => { const on = this.hit === i + 1; l.emissive.set(this.done && on ? '#5aff7a' : this.flash > 0 ? '#ff1a00' : '#ffb040'); l.emissiveIntensity = on ? 2.2 + Math.sin(this.t * 12) * .4 : this.flash * 1.5; }); }
-  clear() { for (const o of [...this.beam.children]) (o as T.Mesh).geometry.dispose(); this.beam.clear(); for (const o of [...this.group.children]) this.group.remove(o); for (const m of this.mats) { (m as any).map?.dispose?.(); m.dispose(); } for (const g of this.geos) g.dispose(); this.tex?.dispose(); for (const t of this.texs) t.dispose(); this.texs = []; this.flare = null; this.dust = null; this.path = []; this.geos = []; this.mats = []; this.mirrors = []; this.sensorLamps = []; }
+  clear() { for (const o of [...this.beam.children]) (o as T.Mesh).geometry.dispose(); this.beam.clear(); for (const o of [...this.group.children]) this.group.remove(o); for (const m of this.mats) { (m as any).map?.dispose?.(); m.dispose(); } for (const g of this.geos) g.dispose(); this.layout = null; this.tex?.dispose(); for (const t of this.texs) t.dispose(); this.texs = []; this.flare = null; this.dust = null; this.path = []; this.geos = []; this.mats = []; this.mirrors = []; this.sensorLamps = []; }
 }
 
 // ---------------------------------------------------------------------------------------------- chapter IV

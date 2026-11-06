@@ -15,14 +15,12 @@ const tag = (x: CanvasRenderingContext2D, ink: Ink, t: string, y: number, red = 
 const memo: Draw = (x, ink) => {
   ink.print(L('ПАМЯТКА', 'MEMO'), PW / 2, 160, 76, {bold: true, align: 'center', font: '"IM Fell English SC", Georgia, serif'}); ink.rule(200);
   let y = 300; y = step(ink, '1', L('Открой 2 защёлки, потом крышку.', 'Flip both latches, then the lid.'), y);
-  y = step(ink, '2', L('Красная лампа = заряжен. Их ТРИ.', 'Red lamp = armed. There are THREE.'), y);
+  y = step(ink, '2', L('В чемодане 3 отсека — все заряжены.', 'The case holds 3 bays — all armed.'), y);
   y = step(ink, '3', L('Коснись отсека → его страница здесь.', 'Tap a bay → its page in here.'), y);
   y = step(ink, '4', L('Ошибка = удар. Лёгкий 3 · средний 2 · сложный 1.', 'Mistake = strike. Easy 3 · normal 2 · hard 1.'), y);
-  // tray map with page numbers
-  const ox = 170, oy = y + 40, w = 660, h = 360; x.strokeStyle = '#2a1c10'; x.lineWidth = 3; x.strokeRect(ox, oy, w, h);
-  const bay = (bx: number, by: number, bw: number, bh: number, n: string) => { x.strokeRect(ox + bx * w, oy + by * h, bw * w, bh * h); ink.print(n, ox + (bx + bw / 2) * w, oy + (by + bh / 2) * h + 22, 64, {bold: true, align: 'center'}); };
-  bay(.03, .05, .31, .44, 'I'); bay(.37, .05, .26, .44, 'II'); bay(.66, .05, .31, .44, 'III'); bay(.03, .55, .52, .4, 'IV'); bay(.6, .55, .37, .4, 'V');
-  ink.hand(L('стр. 2 · 3 · 4 · 5 · 6', 'p. 2 · 3 · 4 · 5 · 6'), ox + 160, oy + h + 70, 46, '#2a3a6a', -.02);
+  // three bays, placed differently every time: the roman numeral on the bay's plate is the page
+  y += 30; ink.print(L('Номер на табличке отсека → страница:', 'The numeral on the bay plate → page:'), 100, y, 36, {bold: true}); y += 80;
+  [['I', 2], ['II', 3], ['III', 4], ['IV', 5], ['V', 6]].forEach(([n, pg], i) => { const cx = 150 + (i % 3) * 270, cy = y + Math.floor(i / 3) * 110; x.strokeStyle = '#2a1c10'; x.lineWidth = 3; x.strokeRect(cx - 60, cy - 60, 120, 80); ink.print(String(n), cx, cy, 52, {bold: true, align: 'center'}); ink.print(`→ ${L('стр.', 'p.')} ${pg}`, cx + 76, cy - 4, 34); });
 };
 const wires: Draw = (x, ink) => {
   head(ink, 'I', L('Провода', 'Wires'));
