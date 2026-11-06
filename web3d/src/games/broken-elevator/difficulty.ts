@@ -5,7 +5,7 @@ import {L} from './i18n';
 export type Diff = 'EASY' | 'NORMAL' | 'HARD';
 const KEY = 'finalanswer-elevator-diff';
 const LIMITS: Record<Diff, {wire: number; pressure: number; formula: number; lock: number; bomb: number}> = {
-  EASY: {wire: 90_000, pressure: 60_000, formula: 60_000, lock: 90_000, bomb: 240_000}, NORMAL: {wire: 60_000, pressure: 45_000, formula: 45_000, lock: 70_000, bomb: 180_000}, HARD: {wire: 45_000, pressure: 35_000, formula: 35_000, lock: 55_000, bomb: 150_000}};
+  EASY: {wire: 90_000, pressure: 60_000, formula: 60_000, lock: 90_000, bomb: 210_000}, NORMAL: {wire: 60_000, pressure: 45_000, formula: 45_000, lock: 70_000, bomb: 180_000}, HARD: {wire: 45_000, pressure: 35_000, formula: 35_000, lock: 55_000, bomb: 150_000}};
 const valid = (d: unknown): d is Diff => d === 'EASY' || d === 'NORMAL' || d === 'HARD';
 let current: Diff = (() => { const q = new URLSearchParams(location.search).get('diff')?.toUpperCase(); if (valid(q)) return q;
   try { const s = localStorage.getItem(KEY); if (valid(s)) return s; } catch {} return 'NORMAL'; })();
