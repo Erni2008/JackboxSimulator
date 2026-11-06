@@ -29,12 +29,16 @@ public final class BombPuzzle {
     /** generated layouts of the armed mechanisms (null for the others: they are dead decoration) */
     public final WireMaze wires; private final Set<Integer> cut = new TreeSet<>();
     public final HiddenLinks links; private int[] probe = {-1, -1}; private String reading = "";
+    public final XrayCans xray; public final LaserGrid laser; public final ThermalCaps thermal;
 
     public BombPuzzle(long seed, Difficulty d, List<Mechanism> forced, long now) { this(seed, d, forced, now, d.bombMs); }
     public BombPuzzle(long seed, Difficulty d, List<Mechanism> forced, long now, long limitMs) {
         this.seed = seed; this.difficulty = d; this.armed = forced != null && !forced.isEmpty() ? List.copyOf(new LinkedHashSet<>(forced)) : pick(seed); this.startedAt = now; this.limitMs = limitMs;
         this.wires = armed.contains(Mechanism.WIRE_MAZE) ? WireMaze.generate(seed, d) : null;
         this.links = armed.contains(Mechanism.HIDDEN_CONNECTIONS) ? HiddenLinks.generate(seed, d) : null;
+        this.xray = armed.contains(Mechanism.XRAY) ? XrayCans.generate(seed, d) : null;
+        this.laser = armed.contains(Mechanism.LASER) ? LaserGrid.generate(seed, d) : null;
+        this.thermal = armed.contains(Mechanism.THERMAL) ? ThermalCaps.generate(seed, d) : null;
     }
     /** three distinct mechanisms, random but reproducible from the seed, in bay order */
     public static List<Mechanism> pick(long seed) { List<Mechanism> all = new ArrayList<>(List.of(Mechanism.values())); Collections.shuffle(all, new Random(seed ^ 0x5EEDB0B5L));
@@ -60,6 +64,13 @@ public final class BombPuzzle {
                 probe = new int[]{red, black}; reading = links.read(red, black); lastEvent = new Event(seq, "PROBE", reading); return true; }
             case "BREAK" -> { live(Mechanism.HIDDEN_CONNECTIONS); int a = arg / 32, b = arg % 32; if (arg < 0 || a >= 2 * links.n || b >= 2 * links.n || a == b) throw new IllegalArgumentException("INVALID_BREAK");
                 lastEvent = new Event(seq, "BREAK", a + "-" + b); if (links.isFiring(a, b)) neutralise(Mechanism.HIDDEN_CONNECTIONS, seq, now); else strike(seq, now, "LINK " + a + "-" + b); return true; }
+            case "ISOLATE" -> { live(Mechanism.XRAY); if (arg < 0 || arg >= xray.cans.size()) throw new IllegalArgumentException("INVALID_ISOLATE"); lastEvent = new Event(seq, "ISOLATE", String.valueOf(arg));
+                if (arg == xray.solution()) neutralise(Mechanism.XRAY, seq, now); else strike(seq, now, "CAN " + arg); return true; }
+            case "ROTATE" -> { live(Mechanism.LASER); if (arg < 0 || arg >= laser.mirrors.length) throw new IllegalArgumentException("INVALID_MIRROR"); laser.rotate(arg); lastEvent = new Event(seq, "ROTATE", String.valueOf(arg)); return true; }
+            case "CONFIRM" -> { live(Mechanism.LASER); lastEvent = new Event(seq, "CONFIRM", String.valueOf(laser.hit(laser.state())));
+                if (laser.onTarget()) neutralise(Mechanism.LASER, seq, now); else strike(seq, now, "BEAM " + laser.hit(laser.state())); return true; }
+            case "VENT" -> { live(Mechanism.THERMAL); if (arg < 0 || arg >= thermal.caps.size()) throw new IllegalArgumentException("INVALID_VENT"); lastEvent = new Event(seq, "VENT", String.valueOf(arg));
+                if (arg == thermal.solution()) neutralise(Mechanism.THERMAL, seq, now); else strike(seq, now, "CAPSULE " + arg); return true; }
             default -> throw new IllegalArgumentException("UNKNOWN_BOMB_ACTION");
         }
         lastEvent = new Event(seq, action, ""); return true;

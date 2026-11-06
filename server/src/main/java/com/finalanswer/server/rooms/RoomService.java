@@ -630,6 +630,9 @@ public final class RoomService {
         v.put("outcome",p.outcome().name());v.put("failReason",p.failReason());v.put("finishedAt",p.finishedAt());v.put("lastSeq",p.lastSeq());v.put("puzzleId",Long.toHexString(p.seed));v.put("cut",List.copyOf(p.cut()));
         if(p.wires!=null){var w=p.wires;Map<String,Object> m=new LinkedHashMap<>();m.put("n",w.n);m.put("seal",w.seal.name());m.put("redirect",w.redirect);m.put("letters",w.letters);m.put("end",w.end);m.put("color",w.color);m.put("layer",w.layer);m.put("bends",w.bends);v.put("wires",m);}
         if(p.links!=null){v.put("links",Map.of("n",p.links.n,"red",p.probe()[0],"black",p.probe()[1],"reading",p.reading()));} // the hidden graph itself never leaves the server
+        if(p.xray!=null)v.put("xray",Map.of("stamp",p.xray.stamp,"cans",p.xray.cans.stream().map(c->Map.of("core",c.core().name(),"needles",c.needles(),"ring",c.ring())).toList()));
+        if(p.laser!=null){var g=p.laser;v.put("laser",Map.of("emitter",g.emitterRow,"mirrors",g.mirrors,"baffles",g.baffles,"sensors",g.sensors.stream().map(e->List.of(e.side(),e.index())).toList(),"state",g.state(),"hit",g.hit(g.state())));}
+        if(p.thermal!=null)v.put("thermal",Map.of("stamp",p.thermal.stamp.name(),"caps",p.thermal.caps.stream().map(c->Map.of("temp",c.temp(),"pattern",c.pattern().name(),"symbol",c.symbol().name())).toList()));
         var e=p.lastEvent();if(e!=null)v.put("event",Map.of("seq",e.seq(),"type",e.type(),"detail",e.detail()));
         return v; } // the solution never leaves the server
     private void tickBomb(Room room){

@@ -94,5 +94,29 @@ class BombPuzzleTest {
         void_(bad2);
     }
     static void void_(int x) {}
+    @Test void xrayHasOneDangerousCanisterAndHardHasNearMisses() {
+        for (Difficulty d : Difficulty.values()) for (long seed = 0; seed < 400; seed++) { var x = XrayCans.generate(seed, d); assertEquals(XrayCans.count(d), x.cans.size());
+            var bad = XrayCans.TABLE.get(x.stamp); assertEquals(1, Collections.frequency(x.cans, bad), "exactly one matches the chapter"); assertEquals(x.cans.indexOf(bad), x.solution());
+            assertEquals(x.cans.size(), new HashSet<>(x.cans).size(), "no two canisters alike");
+            long near = x.cans.stream().filter(c -> XrayCans.diff(c, bad) == 1).count(); assertTrue(near >= (d == Difficulty.HARD ? 2 : d == Difficulty.NORMAL ? 1 : 0)); }
+    }
+    @Test void laserIsSolvableNotPresolvedAndJudgedByTheServer() {
+        for (Difficulty d : Difficulty.values()) for (long seed = 0; seed < 300; seed++) { var g = LaserGrid.generate(seed, d); int[] c = LaserGrid.counts(d);
+            assertEquals(c[0], g.mirrors.length); assertEquals(c[1], g.baffles.length); assertEquals(c[2], g.sensors.size()); assertEquals(LaserGrid.quench(d, c[0], c[1], c[2]), g.target);
+            assertFalse(g.onTarget(), "not solved at the start"); boolean ok = false;
+            for (int mask = 0; mask < 1 << c[0]; mask++) { int[] st = new int[c[0]]; for (int i = 0; i < c[0]; i++) st[i] = mask >> i & 1; ok |= g.hit(st) == g.target; } assertTrue(ok, "some setting reaches the quench sensor"); }
+        var p = new BombPuzzle(8, Difficulty.NORMAL, List.of(Mechanism.LASER), 0); p.apply("OPEN", 1, 1); long seq = 2;
+        assertTrue(p.apply("CONFIRM", -1, seq++, 2)); assertEquals(1, p.strikes(), "confirming a wrong beam is a strike");
+        int[] st = p.laser.state(); for (int mask = 0; mask < 1 << st.length; mask++) { int[] want = new int[st.length]; for (int i = 0; i < st.length; i++) want[i] = mask >> i & 1; if (p.laser.hit(want) != p.laser.target) continue;
+            for (int i = 0; i < st.length; i++) if (p.laser.state()[i] != want[i]) p.apply("ROTATE", i, seq++, 3); break; }
+        assertTrue(p.laser.onTarget()); p.apply("CONFIRM", -1, seq, 4); assertEquals(Outcome.DEFUSED, p.outcome());
+    }
+    @Test void thermalNeedsMoreThanTheHottestAndHasOneAnswer() {
+        for (Difficulty d : Difficulty.values()) for (long seed = 0; seed < 400; seed++) { var t = ThermalCaps.generate(seed, d); assertEquals(6, t.caps.size()); var sig = ThermalCaps.TABLE.get(t.stamp);
+            var fit = new ArrayList<Integer>(); for (int i = 0; i < 6; i++) { var c = t.caps.get(i); if (c.pattern() == sig.pattern() && c.temp() >= sig.lo() && c.temp() <= sig.hi()) fit.add(i); }
+            int ans = fit.size() == 1 ? fit.get(0) : fit.stream().filter(i -> !ThermalCaps.round(t.caps.get(i).symbol())).findFirst().orElse(-1);
+            assertEquals(d == Difficulty.EASY ? 1 : 2, fit.size()); assertEquals(ans, t.solution());
+            int hottest = 0; for (int i = 1; i < 6; i++) if (t.caps.get(i).temp() > t.caps.get(hottest).temp()) hottest = i; assertNotEquals(hottest, t.solution(), "the hottest is never the one"); }
+    }
     static String bomb(TestPeer p) { for (int i = p.events.size() - 1; i >= 0; i--) { var pl = p.events.get(i).getAsJsonObject("payload"); if (pl != null && pl.has("elevatorBomb")) return pl.get("elevatorBomb").toString(); } return ""; }
 }

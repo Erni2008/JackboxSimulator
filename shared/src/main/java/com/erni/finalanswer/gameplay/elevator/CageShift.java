@@ -22,7 +22,7 @@ import java.util.*;
 public final class CageShift {
     public static final String BOMB = "bomb";
     /** the bomb suitcase is the 5th assignment of the pool; it joins the live draw once all five mechanisms are playable */
-    public static final boolean BOMB_LIVE = false;
+    public static final boolean BOMB_LIVE = true;
     public static final List<String> POOL = BOMB_LIVE ? List.of("wire", "pressure", "formula", "lock", BOMB) : List.of("wire", "pressure", "formula", "lock");
     public static final List<String> FULL_POOL = List.of("wire", "pressure", "formula", "lock", BOMB);
     public static final int ROUNDS = 3;

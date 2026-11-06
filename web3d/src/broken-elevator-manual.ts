@@ -28,6 +28,9 @@ import {DIFF} from "./games/broken-elevator/difficulty";
 import {Suitcase, MECHANISMS, type Mechanism} from "./games/broken-elevator/bomb/suitcase";
 import {WireMazeView, makeWireLayout, solveWires, type WireLayout} from "./games/broken-elevator/bomb/wire-maze";
 import {LinksView, makeLinks, type LinksModel} from "./games/broken-elevator/bomb/links";
+import {XrayView, makeXray, solveXray, type XrayLayout} from "./games/broken-elevator/bomb/xray";
+import {LaserView, makeLaser, trace as laserTrace, type LaserLayout} from "./games/broken-elevator/bomb/laser";
+import {ThermalView, makeThermal, solveThermal, type ThermalLayout} from "./games/broken-elevator/bomb/thermal";
 import {Notebook} from "./games/broken-elevator/bomb/notebook";
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
@@ -113,13 +116,14 @@ async function boot() {
   // THE HOST'S SUITCASE (5th assignment): built on first use; the case in hand is drawn in its own pass over the cage
   const overlay = new T.Scene(); overlay.add(new T.HemisphereLight('#a8907a', '#5a2410', .85)); { const k = new T.DirectionalLight('#ffe2c0', 1.7); k.position.set(.4, 1, .6); overlay.add(k, k.target); const lv = new T.PointLight('#ff6a24', 1.4, 0, 0); lv.position.set(0, -1.2, .4); overlay.add(lv); }
   let suitcase: Suitcase | null = null, nbook: Notebook | null = null, bombSeq = 0, bombView: any = null, maze: WireMazeView | null = null, links: LinksView | null = null, cutters = false, strikes = 0;
+  let xrayV: XrayView | null = null, laserV: LaserView | null = null, thermalV: ThermalView | null = null, xrayL: XrayLayout | null = null, laserL: LaserLayout | null = null, thermalL: ThermalLayout | null = null;
   let wireLayout: WireLayout | null = null, linksModel: LinksModel | null = null, armed: Mechanism[] = [], neutral = new Set<Mechanism>(), probeSel: 0 | 1 = 0;
   const STRIKES = () => ({EASY: 3, NORMAL: 2, HARD: 1} as Record<string, number>)[DIFF()] ?? 2; let toastT: any = 0;
   const toast = (t: string) => { const pr = $('prompt'); pr.textContent = t; pr.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => { pr.classList.remove('show'); toastT = 0; }, 1800); };
   const setCutters = (on: boolean) => { cutters = on; $('btn-cut').classList.toggle('on', on); document.body.classList.toggle('cutters', on); };
   const live = (m: Mechanism) => armed.includes(m) && !neutral.has(m);
   /** a wrong defusal move: the bomb flinches (server-judged in a room, locally in practice) */
-  const strikeFx = (what: string) => { maze?.warn(); links?.warn(); audio.play('alarm', .8); audio.play('spark'); haptic('bad'); shake = Math.max(shake, .35); const left = STRIKES() - strikes;
+  const strikeFx = (what: string) => { maze?.warn(); links?.warn(); xrayV?.warn(); laserV?.warn(); thermalV?.warn(); audio.play('alarm', .8); audio.play('spark'); haptic('bad'); shake = Math.max(shake, .35); const left = STRIKES() - strikes;
     verdict(false, left >= 0 ? L(`Удар по взрывателю · осталось ошибок: ${left}`, `Strike on the fuse · mistakes left: ${left}`) : '', what); };
   /** one armed mechanism done: its lamp goes out; the bomb is defused when all three are */
   const neutralFx = (m: Mechanism) => { if (neutral.has(m)) return; neutral.add(m); suitcase?.neutral.add(m); if (m === 'WIRE_MAZE') setCutters(false); const left = armed.filter(x => !neutral.has(x)).length;
@@ -131,6 +135,10 @@ async function boot() {
     suitcase = new Suitcase(overlay, quality === 'high'); suitcase.place(ci, floorY); scene.add(suitcase.root); suitcase.place(ci, floorY);
     nbook = new Notebook(); nbook.place(ci, floorY); scene.add(nbook.root);
     maze = new WireMazeView(); suitcase.bays.WIRE_MAZE.mount.add(maze.group); links = new LinksView(); suitcase.bays.HIDDEN_CONNECTIONS.mount.add(links.group);
+    xrayV = new XrayView(); suitcase.bays.XRAY.mount.add(xrayV.group); laserV = new LaserView(); suitcase.bays.LASER.mount.add(laserV.group); thermalV = new ThermalView(); suitcase.bays.THERMAL.mount.add(thermalV.group);
+    let scanSound = 0; suitcase.onGrab = rc => { const f = suitcase!.focus; const v = f === 'XRAY' ? xrayV : f === 'THERMAL' ? thermalV : null; if (!v || kind !== 'bomb' || bombDone || !live(f!)) return null;
+      if ((f === 'XRAY' ? xrayV!.leverAt(rc) : thermalV!.valveAt(rc)) >= 0) return null; // a tap on a lever / valve stays a tap
+      if (!v.dragTo(rc)) return null; return r2 => { v.dragTo(r2); if (performance.now() - scanSound > 260) { scanSound = performance.now(); audio.play(f === 'XRAY' ? 'holdTick' : 'vent', .35); } }; };
     suitcase.onTap = rc => { const f = suitcase!.focus; if (kind !== 'bomb' || bombDone || !f || !live(f)) return false;
       if (f === 'WIRE_MAZE' && maze) { const h = maze.wireAt(rc); if (!h) return false;
         if (!cutters) { toast(L('Сначала возьмите кусачки', 'Take the cutters first')); haptic('tap'); return true; }
@@ -138,6 +146,12 @@ async function boot() {
         maze.sever(h.wire, h.t); audio.play('snip'); haptic('tap');
         if (IN_ROOM) RoomSocket.shared()?.send('BOMB_ACTION', {action: 'CUT', arg: h.wire, seq: ++bombSeq}); else judge('WIRE_MAZE', !!wireLayout && h.wire === solveWires(wireLayout), L('Неверный провод', 'Wrong wire'));
         return true; }
+      if (f === 'XRAY' && xrayV) { const i = xrayV.leverAt(rc); if (i < 0) return false; xrayV.throw(i); audio.play('lever'); haptic('tap');
+        if (IN_ROOM) RoomSocket.shared()?.send('BOMB_ACTION', {action: 'ISOLATE', arg: i, seq: ++bombSeq}); else judge('XRAY', !!xrayL && i === solveXray(xrayL), L('Не та банка', 'Wrong canister')); return true; }
+      if (f === 'LASER' && laserV) { const i = laserV.mirrorAt(rc); if (i < 0) return false; laserV.rotate(i); audio.play('valveClick'); audio.play('grind', .3); haptic('tap');
+        if (IN_ROOM) RoomSocket.shared()?.send('BOMB_ACTION', {action: 'ROTATE', arg: i, seq: ++bombSeq}); return true; }
+      if (f === 'THERMAL' && thermalV) { const i = thermalV.valveAt(rc); if (i < 0) return false; thermalV.vent(i); audio.play('valveTurn'); audio.play('vent', .6); haptic('tap');
+        if (IN_ROOM) RoomSocket.shared()?.send('BOMB_ACTION', {action: 'VENT', arg: i, seq: ++bombSeq}); else judge('THERMAL', !!thermalL && i === solveThermal(thermalL), L('Не та капсула', 'Wrong capsule')); return true; }
       if (f === 'HIDDEN_CONNECTIONS' && links) { const id = links.contactAt(rc); if (id < 0) return false; links.place(probeSel, id); audio.play('valveClick'); haptic('tap'); probeSel = probeSel ? 0 : 1; syncTester(); measure(); return true; }
       return false; };
     suitcase.onEvent = e => { if (e === 'PICKUP') { audio.play('pickup'); haptic('tap'); bombAct('FOUND'); } if (e === 'PUTDOWN') audio.play('drop', .5); if (e === 'LATCH') { audio.play('lever'); audio.play('valveClick'); haptic('tap'); }
@@ -153,6 +167,9 @@ async function boot() {
     wireLayout = armed.includes('WIRE_MAZE') ? (sv?.wires ?? makeWireLayout(taskSeed, DIFF())) : null; maze!.build(wireLayout ?? makeWireLayout(taskSeed + 991, DIFF()), sv?.cut ?? []);
     linksModel = !IN_ROOM && armed.includes('HIDDEN_CONNECTIONS') ? makeLinks(taskSeed, DIFF()) : null; links!.build(sv?.links?.n ?? (DIFF() === 'EASY' ? 4 : DIFF() === 'NORMAL' ? 5 : 6)); probeSel = 0; $('t-lcd').textContent = '— — —';
     if (sv?.links && sv.links.red >= 0) { links!.place(0, sv.links.red); links!.place(1, sv.links.black); $('t-lcd').textContent = sv.links.reading || '— — —'; }
+    xrayL = armed.includes('XRAY') ? (sv?.xray ?? makeXray(taskSeed, DIFF())) : null; xrayV!.build(xrayL ?? makeXray(taskSeed + 77, DIFF()));
+    laserL = armed.includes('LASER') ? (sv?.laser ?? makeLaser(taskSeed, DIFF())) : null; laserV!.build(laserL ?? makeLaser(taskSeed + 77, DIFF()));
+    thermalL = armed.includes('THERMAL') ? (sv?.thermal ?? makeThermal(taskSeed, DIFF())) : null; thermalV!.build(thermalL ?? makeThermal(taskSeed + 77, DIFF()));
     strikes = sv?.strikes ?? 0;
     if (sv?.stage === 'OPEN' && !suitcase!.open) { suitcase!.latchOpen = [true, true]; suitcase!.lidTarget = 1; suitcase!.lidT = .999; } if (sv?.stage && sv.stage !== 'HIDDEN') suitcase!.found = true; if (typeof sv?.lastSeq === 'number') bombSeq = Math.max(bombSeq, sv.lastSeq); };
   lock.sounds = {click: () => audio.play("valveClick"), turn: () => audio.play("button"), lever: () => { audio.play("button"); audio.play("relay"); }, unlock: () => { audio.play("locked"); audio.play("doorOpen"); }, jam: () => audio.play("grind")};
@@ -209,10 +226,11 @@ async function boot() {
   RoomSocket.shared()?.listen(ev => { const b = ev.payload?.elevatorBomb; if (!b) return; const first = !bombView || bombView.puzzleId !== b.puzzleId; bombView = b; if (first && kind === 'bomb' && suitcase) armBomb(); if (kind !== 'bomb' || bombDone) return;
     if (!first && maze && wireLayout) for (const c of b.cut ?? []) if (!maze.cut.has(c)) maze.sever(c, .5);
     if (b.links && links && b.event?.type === 'PROBE' && b.links.red === links.red && b.links.black === links.black) setLcd(b.links.reading);
-    for (const m of b.neutralised ?? []) neutralFx(m);
-    if ((b.strikes ?? 0) > strikes) { strikes = b.strikes; const d = String(b.event?.detail ?? ''); if (b.outcome === 'RUNNING') strikeFx(d.startsWith('LINK') ? L('Не та пара', 'Wrong pair') : L('Неверный провод', 'Wrong wire')); } if (b.outcome === 'DEFUSED') bombFinish(true, 'DEFUSED'); else if (b.outcome === 'DETONATED') bombFinish(false, b.failReason === 'TIMEOUT' ? 'TIMEOUT' : 'WRONG'); });
+    if (b.laser && laserV && b.event?.type !== 'ROTATE') laserV.setState(b.laser.state);
+    for (const m of b.neutralised ?? []) { if (m === 'LASER' && laserV) laserV.done = true; neutralFx(m); }
+    if ((b.strikes ?? 0) > strikes) { strikes = b.strikes; const d = String(b.event?.detail ?? ''); if (b.outcome === 'RUNNING') strikeFx(d.startsWith('LINK') ? L('Не та пара', 'Wrong pair') : d.startsWith('CAN') ? L('Не та банка', 'Wrong canister') : d.startsWith('BEAM') ? L('Луч не на гасящем датчике', 'The beam is not on the quench sensor') : d.startsWith('CAPSULE') ? L('Не та капсула', 'Wrong capsule') : L('Неверный провод', 'Wrong wire')); } if (b.outcome === 'DEFUSED') bombFinish(true, 'DEFUSED'); else if (b.outcome === 'DETONATED') bombFinish(false, b.failReason === 'TIMEOUT' ? 'TIMEOUT' : 'WRONG'); });
   const subtitles = (lines: string[], msPerChar = 62) => { const el = $('host-say'), gen = ++subGen; let t = 0;
-    lines.forEach((ln, i) => { setTimeout(() => { if (gen !== subGen) return; el.textContent = ln; el.classList.add('show'); }, t); t += Math.max(1600, ln.length * msPerChar); if (i === lines.length - 1) setTimeout(() => { if (gen === subGen) el.classList.remove('show'); }, t); }); };
+    lines.forEach((ln, i) => { setTimeout(() => { if (gen !== subGen || $('verdict').classList.contains('show')) return; el.textContent = ln; el.classList.add('show'); }, t); t += Math.max(1600, ln.length * msPerChar); if (i === lines.length - 1) setTimeout(() => { if (gen === subGen) el.classList.remove('show'); }, t); }); };
   /** the full line praises two finished tasks, so it is used only when the bomb comes after two; earlier it starts at "Хотя…" */
   const bombIntro = () => { const afterTwo = taskNo >= 3; if (afterTwo) voice.say('bomb_intro', 5, 0); const t = LANG === 'ru' ? BOMB_INTRO_RU : BOMB_INTRO_EN; subtitles(afterTwo ? t : [L('Ну что ж. Пока вы осматривались, я оставил в вашей клетке небольшой подарочек.', 'Well then. While you were looking around, I left a little present in your cage.'), ...t.slice(3)]); };
   // run log for the end-of-shift report
@@ -365,6 +383,8 @@ async function boot() {
   $('t-red').onclick = () => { probeSel = 0; syncTester(); haptic('tap'); }; $('t-black').onclick = () => { probeSel = 1; syncTester(); haptic('tap'); };
   $('t-break').onclick = () => { if (!links || kind !== 'bomb' || bombDone || !live('HIDDEN_CONNECTIONS')) return; if (links.red < 0 || links.black < 0 || links.red === links.black) { toast(L('Поставьте оба щупа на пару контактов', 'Put both probes on a pair of contacts')); return; }
     audio.play('lever'); audio.play('spark', .5); if (IN_ROOM) RoomSocket.shared()?.send('BOMB_ACTION', {action: 'BREAK', arg: links.red * 32 + links.black, seq: ++bombSeq}); else judge('HIDDEN_CONNECTIONS', !!linksModel?.isFiring(links.red, links.black), L('Не та пара', 'Wrong pair')); };
+  $('btn-laser').onclick = () => { if (!laserV || kind !== 'bomb' || bombDone || !live('LASER')) return; audio.play('button'); audio.play('relay');
+    if (IN_ROOM) RoomSocket.shared()?.send('BOMB_ACTION', {action: 'CONFIRM', seq: ++bombSeq}); else { const ok = !!laserL && laserV.hit === laserL.target; if (ok) laserV.done = true; judge('LASER', ok, L('Луч не на гасящем датчике', 'The beam is not on the quench sensor')); } };
   $('btn-cut').onclick = () => { setCutters(!cutters); audio.play('valveClick'); haptic('tap'); };
   $('btn-nb').onclick = () => { if (!nbook) return; if (nbook.open) nbook.close(); else { const m = suitcase?.open ? (suitcase.focus ?? armed.find(live) ?? null) : null; nbook.show(m && nbook.page < 2 ? nbook.chapterPage(m) : undefined); } };
   const endValve = (e: PointerEvent) => { if (e.pointerId !== valvePointer) return; device.pointerUp(e.type === 'pointerup' && Math.hypot(e.clientX - valveStart.x, e.clientY - valveStart.y) < 10); /* a still press counts as a tap, however long it is held */ setTimeout(() => { valvePointer = null; }, 0); };
@@ -394,8 +414,10 @@ async function boot() {
     cage.update(dt); ui.update(dt); jui.update(dt); if (kind === "wire" || inspectTarget === "box") box.update(dt); if (kind === "pressure" || inspectTarget === "pressure") press.update(dt, link.view()); if (kind === "formula" || inspectTarget === "lab") lab.update(dt, flink.view()); if (kind === "lock" || inspectTarget === "lock") lock.update(dt); /* only the machine in play animates */
     if (suitcase && nbook) { const liveK = kind === 'bomb'; suitcase.root.visible = liveK; nbook.root.visible = liveK && !nbook.taken; let gs = false, gn = false;
       if (liveK && !inspecting) { hoverRay.setFromCamera(new T.Vector2(0, 0), camera); const a = suitcase.hits(hoverRay), b = nbook.hits(hoverRay); gs = !!a && a.distance < 2.2 && (!b || a.distance < b.distance); gn = !!b && b.distance < 2.2 && !gs; }
-      if (liveK && !bombDone) $('btn-cut').hidden = !(inspecting && inspectTarget === 'bomb' && suitcase.open && live('WIRE_MAZE') && suitcase.focus === 'WIRE_MAZE' && !nbook.open); maze?.update(dt); links?.update(dt);
-      document.body.classList.toggle('tool-open', !$('tester').hidden);
+      if (liveK && !bombDone) $('btn-cut').hidden = !(inspecting && inspectTarget === 'bomb' && suitcase.open && live('WIRE_MAZE') && suitcase.focus === 'WIRE_MAZE' && !nbook.open); maze?.update(dt); links?.update(dt); xrayV?.update(dt); laserV?.update(dt); thermalV?.update(dt);
+      const fb = (m: Mechanism) => liveK && !bombDone && inspecting && inspectTarget === 'bomb' && suitcase.open && suitcase.focus === m && live(m) && !nbook.open;
+      $('btn-laser').hidden = !fb('LASER'); $('scope').hidden = !fb('THERMAL'); if (!$('scope').hidden && thermalV && thermalL) { const i = thermalV.under(); $('sc-lcd').textContent = i >= 0 ? `${thermalL.caps[i].temp} °C · №${i + 1}` : '— °C'; }
+      document.body.classList.toggle('tool-open', !$('tester').hidden || !$('scope').hidden);
       $('tester').hidden = !(liveK && !bombDone && inspecting && inspectTarget === 'bomb' && suitcase.open && suitcase.focus === 'HIDDEN_CONNECTIONS' && armed.includes('HIDDEN_CONNECTIONS') && !neutral.has('HIDDEN_CONNECTIONS') && !nbook.open);
       const pr = $('prompt'); if (inspecting && !toastT) pr.classList.remove('show'); if (!inspecting) pr.textContent = gs ? L('ОСМОТРЕТЬ ЧЕМОДАНЧИК', 'INSPECT THE SUITCASE') : gn ? L('ВЗЯТЬ БЛОКНОТ', 'TAKE THE NOTEBOOK') : pr.textContent; if (!inspecting) pr.classList.toggle('show', gs || gn);
       if (liveK) { suitcase.setTimer(deadline ? Math.max(0, (deadline - performance.now()) / 1000) : LIMITW(), LIMITW()); } overlay.environment = scene.environment; suitcase.update(dt, camera, gs); nbook.update(dt, gn); }
@@ -424,6 +446,6 @@ async function boot() {
     if (suitcase && suitcase.state !== 'floor' && suitcase.root.visible) { renderer.autoClear = false; renderer.clearDepth(); renderer.render(overlay, camera); renderer.autoClear = true; } requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
-  (window as any).__manual = {book, ui, renderer, scene, camera, get state() { return ui.state; }, get info() { return renderer.info.render; }, box, press, link, lab, flink, journal, jui, get kind() { return kind; }, lock, notes, rows, get suitcase() { return suitcase; }, get maze() { return maze; }, get links() { return links; }, get linksModel() { return linksModel; }, get armed() { return armed; }, get bombLayout() { return wireLayout; }, solveWires, pickWire(x: number, y: number) { const rc = new T.Raycaster(); rc.setFromCamera(new T.Vector2(x / innerWidth * 2 - 1, -y / innerHeight * 2 + 1), camera); return maze?.wireAt(rc) ?? null; }, get nbook() { return nbook; }, endRun() { taskNo = TOTAL; next(true); }, setInspect, cage, get shake() { return shake; }, look(y: number, p: number) { yaw = yawT = y; pitch = pitchT = p; }, setFree, set timeScale(v: number) { timeScale = v; }, step(sec: number) { for (let i = 0; i < Math.round(sec * 60); i++) { cage.update(1 / 60); ui.update(1 / 60); jui.update(1 / 60); } }};
+  (window as any).__manual = {book, ui, renderer, scene, camera, get state() { return ui.state; }, get info() { return renderer.info.render; }, box, press, link, lab, flink, journal, jui, get kind() { return kind; }, lock, notes, rows, get suitcase() { return suitcase; }, get maze() { return maze; }, get links() { return links; }, get linksModel() { return linksModel; }, get armed() { return armed; }, get xrayV() { return xrayV; }, get laserV() { return laserV; }, get thermalV() { return thermalV; }, get xrayL() { return xrayL; }, get laserL() { return laserL; }, get thermalL() { return thermalL; }, solveXray, solveThermal, laserTrace, get bombLayout() { return wireLayout; }, solveWires, pickWire(x: number, y: number) { const rc = new T.Raycaster(); rc.setFromCamera(new T.Vector2(x / innerWidth * 2 - 1, -y / innerHeight * 2 + 1), camera); return maze?.wireAt(rc) ?? null; }, get nbook() { return nbook; }, endRun() { taskNo = TOTAL; next(true); }, setInspect, cage, get shake() { return shake; }, look(y: number, p: number) { yaw = yawT = y; pitch = pitchT = p; }, setFree, set timeScale(v: number) { timeScale = v; }, step(sec: number) { for (let i = 0; i < Math.round(sec * 60); i++) { cage.update(1 / 60); ui.update(1 / 60); jui.update(1 / 60); } }};
 }
 boot().catch(e => { $('load-text').textContent = 'Failed: ' + (e?.message || e); console.error(e); });
