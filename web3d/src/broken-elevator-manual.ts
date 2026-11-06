@@ -23,6 +23,7 @@ import {buildGlbCage} from './games/broken-elevator/manual/glb-cage';
 import {PressureMachine} from './games/broken-elevator/puzzles/pressure';
 import {PressureLink} from './games/broken-elevator/puzzles/pressure-link';
 import {CodeLock, makeLockTask} from "./games/broken-elevator/puzzles/code-lock";
+import {LockNotes} from "./games/broken-elevator/puzzles/lock-notes";
 import {DIFF} from "./games/broken-elevator/difficulty";
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
@@ -103,6 +104,8 @@ async function boot() {
   scene.traverse((o: any) => { const ms = Array.isArray(o.material) ? o.material : o.material ? [o.material] : []; for (const m of ms) if (m.isMeshPhysicalMaterial && (m.clearcoat > 0 || m.sheen > 0)) { m.clearcoat = 0; m.sheen = 0; m.needsUpdate = true; } });
   // THE CAGE LOCK: a combination padlock on the barred door over the lava; its clues are hidden around the cage
   const lock = new CodeLock(quality === "high"); lock.place(ci, floorY); scene.add(lock.group, lock.clues); lock.group.updateMatrixWorld(true);
+  // THE LOCKSMITH'S NOTES: how to work the pick, on sheets nailed to the wall by the door (the order stays in the handbook)
+  const notes = new LockNotes(quality === "high"); notes.place(ci, floorY); scene.add(notes.group); notes.group.updateMatrixWorld(true);
   lock.sounds = {click: () => audio.play("valveClick"), turn: () => audio.play("button"), lever: () => { audio.play("button"); audio.play("relay"); }, unlock: () => { audio.play("locked"); audio.play("doorOpen"); }, jam: () => audio.play("grind")};
   jui.place(lab.ledgeTop.clone().add(new T.Vector3(0, TH / 2, 0)).applyMatrix4(lab.group.matrixWorld), new T.Quaternion().setFromEuler(new T.Euler(0, Math.PI / 2 + .06, 0)));
   lab.sounds = {click: () => audio.play('valveClick'), turn: () => audio.play('valveTurn'), grind: () => audio.play('grind'), lever: () => audio.play('lever'), press: () => audio.play('button'), pull: () => audio.play('lever'),
@@ -111,7 +114,7 @@ async function boot() {
   lab.canAct = () => { const v = flink.view(); return !!v && v.outcome === 'RUNNING' && !v.draining; };
   lab.onEvent = e => { if (e.type === 'REJECTED') { haptic('bad'); voice.say('fail', 2); } if (e.type === 'REJECTED') verdict(false, e.reason === 'UNSTABLE_UNPROTECTED' ? L('НЕСТАБИЛЬНО · ЗАМОК ОХЛАЖДЕНИЯ НЕ ВКЛЮЧЁН', 'UNSTABLE · COOLING LOCK WAS OFF') : L('ФОРМУЛА ОТВЕРГНУТА · СЛИВ, ПОПРОБУЙТЕ СНОВА', 'ФОРМУЛА ОТВЕРГНУТА · DRAINED, TRY AGAIN'), e.reason === 'UNSTABLE_UNPROTECTED' ? L('Нестабильная реакция', 'Unstable reaction') : L('Формула отвергнута', 'Formula rejected')); };
   let valvePointer: number | null = null;
-  let focusTo: [number, number] | null = null, inspecting = false, inspectK = 0, inspectTarget: "box" | "pressure" | "lab" | "lock" = "box";
+  let focusTo: [number, number] | null = null, inspecting = false, inspectK = 0, inspectTarget: "box" | "pressure" | "lab" | "lock" | "notes" = "box";
   let TOTAL = 4; const LIMITW = () => roundLimitS || limitMs(kind === "lock" ? "lock" : "wire") / 1000; let taskNo = 1, deadline = 0, taskSeed = seed, pending: any = 0;
   // task kinds cycle: wire cutting -> broken valves -> unstable formula (?task=pressure|formula picks the first)
   type Kind = "wire" | "pressure" | "formula" | "lock"; const ORDER: Kind[] = ["wire", "pressure", "formula", "lock"]; const start0 = Math.max(0, ORDER.indexOf((params.get('task') || 'wire') as Kind));
@@ -137,7 +140,7 @@ async function boot() {
     if (kind === 'formula') { box.locked = true; lab.enabled = true; lab.reset(); flink.start(); formulaDone = false; if (cur().state === 'rest' || cur().state === 'falling') { const d = lab.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } }
     else { lab.enabled = false; flink.stop(); }
     if (kind === "lock") { box.locked = true; lockDone = false; lock.setTask(makeLockTask(taskSeed, DIFF()), taskSeed); lock.enabled = true; deadline = IN_ROOM && roundDeadlineAt ? roundDeadlineAt : performance.now() + limitMs("lock");
-      $("hint").textContent = L("Взломайте замок на двери: поднимайте штифты отмычкой. Порядок — в справочнике на полке, раздел V «Взлом замка».", "Pick the door lock: lift the pins with the pick. The order is in the handbook on the shelf, section V."); $("hint").style.opacity = "1";
+      $("hint").textContent = L("Взломайте замок на двери отмычкой: как работать — на листках у двери, порядок штифтов — в справочнике, раздел V.", "Pick the door lock: how to work the pick is on the sheets by the door, the pin order is in the handbook, section V."); $("hint").style.opacity = "1";
       if (cur().state === "rest" || cur().state === "falling") { const d = lock.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } }
     else lock.enabled = false;
     hud(); }); };
@@ -176,7 +179,7 @@ async function boot() {
     if (!ok) setTimeout(() => cage.drop?.(.8), 350); clearTimeout(pending); pending = setTimeout(() => { if (inspecting && inspectTarget === "lock") setInspect(false); setTimeout(() => next(ok), 400); }, ok ? 3000 : 2600); };
   lock.onResult = ok => lockFinish(ok, ok ? "OK" : "WRONG");
   lock.onWrong = (left, why) => { haptic("bad"); mistakes++; verdict(false, left === 1 ? L("ОСТАЛАСЬ ПОСЛЕДНЯЯ ПОПЫТКА", "ONE TRY LEFT") : L(`ОСТАЛОСЬ ПОПЫТОК: ${left}`, `TRIES LEFT: ${left}`), why === "TRAP" ? L("Ловушка! Штифты упали", "Trap! The pins dropped") : why === "STUCK" ? L("Штифт заело — штифты упали", "A pin was stuck: they dropped") : L("Не тот штифт — штифты упали", "Wrong pin: the pins dropped")); };
-  lock.onNote = w => { if (w === "SET") haptic("tap"); if (w === "STUCK") haptic("bad"); };
+  lock.onNote = w => { if (w === "SET") haptic("good"); if (w === "STUCK") haptic("bad"); if (w === "EASED") haptic("tap"); };
   let formulaDone = false;
   flink.onOutcome = (o, reason) => { if (kind !== 'formula' || formulaDone) return; formulaDone = true; lab.enabled = false; const ok = o === 'STABILIZED'; record(ok, reason, flink.view()?.rejections ?? 0);
     if (!ok) audio.play('bad');
@@ -212,7 +215,9 @@ async function boot() {
   renderer.domElement.addEventListener('pointerup', e => { const s = tapStart.get(e.pointerId); tapStart.delete(e.pointerId); if (!s || Math.hypot(e.clientX - s.x, e.clientY - s.y) > 12 || performance.now() - s.t > 450) return;
     ray.setFromCamera(new T.Vector2(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1), camera);
     if (valvePointer === e.pointerId) return;
-    { const kh = lock.hits(ray); if (kh) { const bh = ray.intersectObject(book.root, true)[0]; if (!bh || kh.distance < bh.distance) { if (inspecting && inspectTarget === "lock") { const id = lock.tap(ray); if (id && id !== "body") haptic("tap"); return; }
+    { const nh = notes.hits(ray); if (nh && !(inspecting && inspectTarget === "lock")) { const bh = ray.intersectObject(book.root, true)[0]; if (!bh || nh.distance < bh.distance) { if (inspecting && inspectTarget === "notes") return;
+      if (!inspecting && (cur().state === "rest" || cur().state === "falling" || cur().lowered)) { setInspect(true, "notes"); return; } } } }
+    { const kh = lock.hits(ray); if (kh) { const bh = ray.intersectObject(book.root, true)[0]; if (!bh || kh.distance < bh.distance) { if (inspecting && inspectTarget === "lock") return; /* the pick is worked by drags (device) */
       if (!inspecting && (cur().state === "rest" || cur().state === "falling" || cur().lowered)) { setInspect(true, "lock"); return; } } } }
     const jb = ray.intersectObject(journal.root, true)[0], lh = lab.hits(ray); if (jb && (!lh || jb.distance <= lh.distance + .05)) return; // the journal handles its own taps
     if (lh && !inspecting && (cur().state === 'rest' || cur().state === 'falling' || cur().lowered)) { const bh0 = ray.intersectObject(book.root, true)[0]; if (!bh0 || lh.distance < bh0.distance) { setInspect(true, 'lab'); return; } }
@@ -220,7 +225,7 @@ async function boot() {
     if (ph && (!hit || ph.distance < hit.distance)) { if (!inspecting && (cur().state === 'rest' || cur().state === 'falling' || cur().lowered)) setInspect(true, 'pressure'); return; }
     if ((cur().state === 'reading' || cur().state === 'held') && !cur().lowered) { if (!hit) return; }
     const r = box.tap(ray); (window as any).__lastTap = r; if (r && (r !== 'door' || box.open) && !inspecting && (cur().state === 'rest' || cur().state === 'falling' || cur().lowered)) { setInspect(true); if (r !== 'test') return; } if (r === 'door' && box.open) { if (!deadline && !box.locked && !IN_ROOM) deadline = performance.now() + LIMITW() * 1000; if (cur().state === 'rest' || cur().state === 'falling') { const d = box.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } } });
-  const setInspect = (on: boolean, target: "box" | "pressure" | "lab" | "lock" = "box") => { if (on) inspectTarget = target; inspecting = on; $('btn-back').hidden = !on; $('hint').style.opacity = on ? '0' : ''; $('task').style.opacity = on && innerWidth > 700 ? '0' : ''; if (on) { focusTo = null; if (target === 'box' && !box.open) box.toggleDoor(); } };
+  const setInspect = (on: boolean, target: "box" | "pressure" | "lab" | "lock" | "notes" = "box") => { if (on) inspectTarget = target; inspecting = on; $('btn-back').hidden = !on; $('hint').style.opacity = on ? '0' : ''; $('task').style.opacity = on && innerWidth > 700 ? '0' : ''; if (on) { focusTo = null; if (target === 'box' && !box.open) box.toggleDoor(); } };
   $('btn-back').onclick = () => setInspect(false); addEventListener('keydown', e => { if (e.key === 'Escape' && inspecting) setInspect(false); });
   $('btn-open').onclick = () => cur().open(); $('btn-close').onclick = () => cur().close(); $('btn-drop').onclick = () => cur().drop();
   $('btn-sound').onclick = () => { audio.unlock(); audio.enabled = !audio.enabled; $('btn-sound').textContent = audio.enabled ? L('Звук: вкл.', 'Sound: on') : L('Звук: выкл.', 'Sound: off'); };
@@ -260,8 +265,9 @@ async function boot() {
   let device: {enabled: boolean; hits(r: T.Raycaster): any; pointerDown(r: T.Raycaster, x: number, y: number, c: T.Camera): boolean; pointerMove(x: number, y: number): void; pointerUp(tap: boolean): void} = press;
   renderer.domElement.addEventListener('pointerdown', e => { if (valvePointer !== null || free || ((cur().state === 'reading' || cur().state === 'held') && !cur().lowered)) return;
     ray.setFromCamera(new T.Vector2(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1), camera);
-    if (!inspecting || (inspectTarget !== 'pressure' && inspectTarget !== 'lab')) { if (press.hits(ray) || lab.hits(ray)) return; } // first tap only opens the close-up
-    device = inspectTarget === 'lab' ? lab : press; if (!device.enabled) return;
+    if (!inspecting || (inspectTarget !== 'pressure' && inspectTarget !== 'lab' && inspectTarget !== 'lock')) { if (press.hits(ray) || lab.hits(ray)) return; } // first tap only opens the close-up
+    if (!inspecting && inspectTarget !== 'lock' && lock.hits(ray)) return;
+    device = inspectTarget === 'lab' ? lab : inspectTarget === 'lock' && inspecting ? lock : press; if (!device.enabled) return;
     if (device.pointerDown(ray, e.clientX, e.clientY, camera)) { haptic('tap'); valvePointer = e.pointerId; valveStart = {x: e.clientX, y: e.clientY, t: performance.now()}; try { renderer.domElement.setPointerCapture(e.pointerId); } catch {} } });
   addEventListener('pointermove', e => { if (e.pointerId === valvePointer) device.pointerMove(e.clientX, e.clientY); });
   const endValve = (e: PointerEvent) => { if (e.pointerId !== valvePointer) return; device.pointerUp(e.type === 'pointerup' && Math.hypot(e.clientX - valveStart.x, e.clientY - valveStart.y) < 10); /* a still press counts as a tap, however long it is held */ setTimeout(() => { valvePointer = null; }, 0); };
@@ -279,7 +285,7 @@ async function boot() {
     inspectK += ((inspecting ? 1 : 0) - inspectK) * (1 - Math.exp(-dt * 6));
     if (free) orbit.update(); else if (inspectK > .001) {
       // close-up: stand ~55 cm in front of the panel (still inside the cage), framing meter + wires
-      const P = inspectTarget === "pressure", L = inspectTarget === "lab", K = inspectTarget === "lock", tg = K ? lock.group : P ? press.group : L ? lab.group : box.group, c = K ? lock.center() : P ? press.center() : L ? lab.center() : box.center(), n = new T.Vector3(0, 0, 1).applyQuaternion(tg.getWorldQuaternion(new T.Quaternion())), at = c.clone().add(new T.Vector3(0, K ? (mobile ? -.045 : -.015) : P || L ? 0 : .05, 0)), from = c.clone().addScaledVector(n, K ? (camera.aspect < .9 ? .66 : mobile ? .5 : .44) : L ? (camera.aspect < .9 ? 1.95 : 1.12) : P ? (camera.aspect < .9 ? 1.75 : 1.05) : camera.aspect < .9 ? 1.3 : 1.12).add(new T.Vector3(0, P ? .06 : L ? .04 : .09, 0));
+      const P = inspectTarget === "pressure", L = inspectTarget === "lab", K = inspectTarget === "lock", N = inspectTarget === "notes", tg = N ? notes.group : K ? lock.group : P ? press.group : L ? lab.group : box.group, c = N ? notes.center() : K ? lock.center() : P ? press.center() : L ? lab.center() : box.center(), n = new T.Vector3(0, 0, 1).applyQuaternion(tg.getWorldQuaternion(new T.Quaternion())), at = c.clone().add(new T.Vector3(0, N ? (mobile ? -.02 : 0) : K ? (mobile ? -.045 : -.015) : P || L ? 0 : .05, 0)), from = c.clone().addScaledVector(n, N ? (camera.aspect < .9 ? 1.45 : mobile ? .62 : .72) : K ? (camera.aspect < .9 ? .66 : mobile ? .5 : .44) : L ? (camera.aspect < .9 ? 1.95 : 1.12) : P ? (camera.aspect < .9 ? 1.75 : 1.05) : camera.aspect < .9 ? 1.3 : 1.12).add(new T.Vector3(0, N ? 0 : P ? .06 : L ? .04 : .09, 0));
       const look = new T.Quaternion().setFromRotationMatrix(new T.Matrix4().lookAt(from, at, new T.Vector3(0, 1, 0))), base = new T.Quaternion().setFromEuler(new T.Euler(pitch, yaw, 0, 'YXZ'));
       camera.position.copy(eye).lerp(from, inspectK); camera.quaternion.copy(base).slerp(look, inspectK);
       if (!inspecting && inspectK < .002) inspectK = 0;
@@ -310,6 +316,6 @@ async function boot() {
     bloom.strength = .42 + (falling ? .25 : 0) + (shake > .8 ? .4 : 0); if (composer) composer.render(); else renderer.render(scene, camera); requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
-  (window as any).__manual = {book, ui, renderer, scene, camera, get state() { return ui.state; }, get info() { return renderer.info.render; }, box, press, link, lab, flink, journal, jui, get kind() { return kind; }, lock, rows, endRun() { taskNo = TOTAL; next(true); }, setInspect, cage, get shake() { return shake; }, look(y: number, p: number) { yaw = yawT = y; pitch = pitchT = p; }, setFree, set timeScale(v: number) { timeScale = v; }, step(sec: number) { for (let i = 0; i < Math.round(sec * 60); i++) { cage.update(1 / 60); ui.update(1 / 60); jui.update(1 / 60); } }};
+  (window as any).__manual = {book, ui, renderer, scene, camera, get state() { return ui.state; }, get info() { return renderer.info.render; }, box, press, link, lab, flink, journal, jui, get kind() { return kind; }, lock, notes, rows, endRun() { taskNo = TOTAL; next(true); }, setInspect, cage, get shake() { return shake; }, look(y: number, p: number) { yaw = yawT = y; pitch = pitchT = p; }, setFree, set timeScale(v: number) { timeScale = v; }, step(sec: number) { for (let i = 0; i < Math.round(sec * 60); i++) { cage.update(1 / 60); ui.update(1 / 60); jui.update(1 / 60); } }};
 }
 boot().catch(e => { $('load-text').textContent = 'Failed: ' + (e?.message || e); console.error(e); });

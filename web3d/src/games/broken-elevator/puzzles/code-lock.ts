@@ -120,10 +120,10 @@ export class CodeLock {
   onNote: (what: 'STUCK' | 'EASED' | 'DROPPED' | 'SET') => void = () => {};
   set: boolean[] = []; stuck = -1; eased = false; private step = 0;
   private body = new T.Group(); private shackle = new T.Group(); private pins = new T.Group(); private pick = new T.Group(); private wheel = new T.Group();
-  private lever = new T.Group(); private bolt = new T.Group(); private boltSpring!: T.Mesh;
+  private lever = new T.Group(); private hook!: T.Mesh; private hookTip!: T.Mesh; private bolt = new T.Group(); private boltSpring!: T.Mesh;
   private drivers: T.Group[] = []; private keys: T.Mesh[] = []; private springs: T.Mesh[] = []; private lift: number[] = []; private bump: number[] = [];
   private tokens: T.Mesh[] = []; private controls: {id: string; root: T.Object3D}[] = []; private open = 0; private jam = 0; private tries = 3; private done = false; private t = 0;
-  private stampMat: T.MeshStandardMaterial; private pickX = 0; private pickPush = 0; private ease = 0; private shudder = 0; private turn = 0;
+  private stampMat: T.MeshStandardMaterial; private pickX = 0; private pickPush = 0; private pickLift = 0; private liftT = 0; private stroke = -2; private drag: {x: number; y: number; ppmX: number; ppmY: number; wheel: boolean} | null = null; private under = -1; private ease = 0; private shudder = 0; private turn = 0;
   private mats: Record<PinColor, T.Material>; private ringMat: T.Material; private ringMatB: T.Material; private hi: boolean;
   private steel: T.Material; private brass: T.Material; private dark: T.Material; private tokenOn: T.Material; private tokenOff: T.Material;
   constructor(hi: boolean) {
@@ -173,7 +173,8 @@ export class CodeLock {
     for (const [sx, sy] of [[-.112, .066], [.118, .03]]) { const s = screw(this.steel, this.dark, .0075); s.position.set(sx, sy, -.019); this.body.add(s); }
     // the hook pick: a long blade through the wheel's keyway, its grip out to the left
     const blade = new T.Mesh(new T.BoxGeometry(.2, .0018, .0032), this.steel); blade.position.x = -.1; this.pick.add(blade);
-    const hook = new T.Mesh(new T.BoxGeometry(.0026, .006, .0032), this.steel); hook.position.set(-.0012, .0036, 0); hook.rotation.z = -.25; this.pick.add(hook);
+    const hook = new T.Mesh(new T.BoxGeometry(.0026, 1, .0032), this.steel); hook.scale.y = .0045; hook.position.set(-.0012, .0031, 0); this.pick.add(hook); this.hook = hook;
+    const tipCap = new T.Mesh(new T.SphereGeometry(.0016, 12, 8), this.steel); this.pick.add(tipCap); this.hookTip = tipCap;
     const grip = new T.Mesh(new RoundedBoxGeometry(.06, .012, .009, 2, .004), mat('#3a1d14', .7)); grip.position.x = -.225; this.pick.add(grip);
     this.pick.position.set(0, PC - .001, CH); this.body.add(this.pick);
     // shackle
@@ -227,7 +228,7 @@ export class CodeLock {
   setTask(t: LockTask, _seed?: number) {
     this.task = t; this.tries = t.tries; this.done = false; this.open = 0; this.jam = 0; this.stuck = -1; this.eased = false; this.step = 0; this.set = t.pins.map(() => false); this.turn = 0;
     this.stampMat.map?.dispose(); this.stampMat.map = stampTexture(t); this.stampMat.needsUpdate = true;
-    this.shackle.position.y = IN.y1 + .045; this.shackle.rotation.y = 0; this.body.rotation.z = 0; this.pickX = PX0;
+    this.shackle.position.y = IN.y1 + .045; this.shackle.rotation.y = 0; this.body.rotation.z = 0; this.pickX = PLUG_X0 + .012; this.pickLift = this.liftT = 0; this.under = -1;
     this.buildPins(t); this.paintTokens();
   }
   reset() { if (this.task) this.setTask(this.task); }
@@ -238,11 +239,42 @@ export class CodeLock {
   controlScreen(id: string, camera: T.Camera) { const c = this.controls.find(k => k.id === id)!; const v = new T.Vector3().setFromMatrixPosition(c.root.matrixWorld).project(camera); return {x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight}; }
   get triesLeft() { return this.tries; }
 
+  // ---------------------------------------------------------------- the pick in the player's hand
+  // Drag sideways to slide the pick along the keyway under a pin; drag up to lift that pin. A stroke that brings the pin
+  // to the shear line "sets" it (or sticks, traps, drops: the handbook rules); the pick falls back when let go.
+  // A still tap on the wheel eases the torque; a tap elsewhere only shows where the pick has to go.
+  private pinX(i: number) { const n = this.task!.pins.length; return PX0 + (i - (n - 1) / 2) * pitch(n); }
+  private pinUnder(x: number) { if (!this.task) return -1; const n = this.task.pins.length, h = pitch(n) * .32; for (let i = 0; i < n; i++) if (Math.abs(x - this.pinX(i)) < h) return i; return -1; }
+  private ppm(camera: T.Camera) { const a = new T.Vector3(0, PC, CH), b = new T.Vector3(.01, PC, CH), c = new T.Vector3(0, PC + .01, CH);
+    const sp = (v: T.Vector3) => { this.body.localToWorld(v); v.project(camera); return new T.Vector2((v.x + 1) / 2 * innerWidth, (1 - v.y) / 2 * innerHeight); };
+    const A = sp(a), B = sp(b), C = sp(c); return {x: (B.x - A.x) / .01, y: (C.y - A.y) / .01}; }
+  hitsWheel(ray: T.Raycaster) { return !!ray.intersectObject(this.group, true).find(k => k.object.userData.id === 'ease'); }
+  pointerDown(ray: T.Raycaster, x: number, y: number, camera: T.Camera) {
+    if (!this.enabled || this.done || !this.task || !this.hits(ray)) return false;
+    const m = this.ppm(camera); this.drag = {x, y, ppmX: m.x, ppmY: m.y, wheel: this.hitsWheel(ray)}; this.stroke = -2; return true;
+  }
+  pointerMove(x: number, y: number) {
+    const d = this.drag; if (!d || d.wheel || this.done) return;
+    const dx = (x - d.x) / d.ppmX, dy = -(y - d.y) / Math.abs(d.ppmY); d.x = x; d.y = y;
+    // sideways: slide along the keyway (only while the pick is down)
+    if (this.liftT < .15) { const lo = PLUG_X0 + .008, hi = this.pinX(this.task!.pins.length - 1) + .012; this.pickX = Math.max(lo, Math.min(hi, this.pickX + dx * 1.25));
+      const u = this.pinUnder(this.pickX); if (u !== this.under) { this.under = u; if (u >= 0) this.sounds.click?.(); } }
+    // upward: raise the hook; lifting the pin under it all the way to the shear line commits it
+    this.liftT = Math.max(0, Math.min(1, this.liftT + dy / .006));
+    const u = this.pinUnder(this.pickX); if (u >= 0 && this.liftT > .92 && this.stroke !== u) { this.stroke = u; this.pickPush = 1; this.liftPin(u); }
+  }
+  pointerUp(tap: boolean) {
+    const d = this.drag; this.drag = null; this.liftT = 0; this.stroke = -2; if (!d) return;
+    if (tap && d.wheel && this.enabled && !this.done) this.easeWheel();
+  }
+  /** a lifted pin the hook is under (for the HUD) */
+  get pickUnder() { return this.under; }
+
   /** a tap on the lock; returns the control id or null */
   tap(ray: T.Raycaster): string | null {
     const all = ray.intersectObject(this.group, true), id = all.find(k => k.object.userData.id)?.object.userData.id as string | undefined; if (!id) return all[0] ? 'body' : null;
     if (!this.enabled || this.done || !this.task) { this.sounds.jam?.(); return id; }
-    if (id === 'ease') this.easeWheel(); else this.liftPin(+id.slice(3));
+    if (id === 'ease') this.easeWheel();
     return id;
   }
   private easeWheel() {
@@ -251,7 +283,7 @@ export class CodeLock {
     if (this.set.some(Boolean)) { this.dropAll(); this.onNote('DROPPED'); } // torque let go for nothing: the set pins fall (no try lost)
   }
   private liftPin(i: number) {
-    const t = this.task!, p = t.pins[i], n = t.pins.length; this.pickX = PX0 + (i - (n - 1) / 2) * pitch(n); this.pickPush = 1; this.bump[i] = 1; this.sounds.turn?.();
+    const t = this.task!, p = t.pins[i]; this.bump[i] = 1;
     if (this.set[i]) return;
     if (p.color === 'black') return this.fail('TRAP');
     if (this.stuck >= 0) { if (i === this.stuck && this.eased) { this.stuck = -1; this.eased = false; return this.setPin(i); } return this.fail('STUCK'); }
@@ -278,14 +310,16 @@ export class CodeLock {
       const len = this.keys[i].userData.len as number, rest = KEY_TIP + len;
       // the driver sits on its key pin, just above the shear line once set, or caught on its waist (a stuck spool)
       const target = this.set[i] ? SHEAR + .0007 : this.stuck === i ? SHEAR - .0062 : rest; this.lift[i] += (target - this.lift[i]) * k;
-      this.bump[i] = Math.max(0, this.bump[i] - dt * 4.2); const b = Math.sin(this.bump[i] * Math.PI) * (SHEAR - rest + .0018);
+      this.bump[i] = Math.max(0, this.bump[i] - dt * 4.2); const onHook = this.pinUnder(this.pick.position.x) === i ? this.pickLift : 0;
+      const b = Math.max(Math.sin(this.bump[i] * Math.PI) * .35, onHook) * (SHEAR - rest + .0018);
       const keyTop = Math.max(rest + b, this.stuck === i ? this.lift[i] : rest); this.keys[i].position.y = keyTop - len;
       const drvBottom = Math.max(keyTop, this.lift[i]), dg = this.drivers[i];
       dg.position.y = drvBottom + DRV_H / 2; dg.rotation.z = this.stuck === i ? .08 + Math.sin(this.t * 40) * .03 * this.shudder : 0;
       const sp = this.springs[i], s0 = drvBottom + DRV_H; sp.position.y = s0; sp.scale.y = Math.max(.002, TOPB - s0);
     }
     // the pick slides under the chosen pin and flicks up
-    this.pickPush = Math.max(0, this.pickPush - dt * 5); this.pick.position.x += (this.pickX - this.pick.position.x) * (1 - Math.exp(-dt * 22)); this.pick.rotation.z = Math.sin(this.pickPush * Math.PI) * .03;
+    this.pickPush = Math.max(0, this.pickPush - dt * 5); this.pickLift += (this.liftT - this.pickLift) * (1 - Math.exp(-dt * 30)); this.pick.position.y = PC - .001 + this.pickLift * .0022;
+    { const u = this.pinUnder(this.pick.position.x), kb = u >= 0 ? this.keys[u].position.y - this.pick.position.y : .0045 + .0008, h = Math.max(.0045, kb - .0008); this.hook.scale.y = h; this.hook.position.y = .0008 + h / 2; this.hookTip.position.set(-.0012, .0008 + h, 0); } this.pick.position.x += (this.pickX - this.pick.position.x) * (1 - Math.exp(-dt * 22)); this.pick.rotation.z = Math.sin(this.pickPush * Math.PI) * .03;
     // torque on the wheel: a slight lean while picking, a twitch when eased, a full quarter turn when open
     this.ease = Math.max(0, this.ease - dt * 2.5); this.shudder = Math.max(0, this.shudder - dt * 1.5);
     const tq = this.open > 0 ? Math.PI / 2 * (1 - Math.pow(1 - Math.min(1, this.open * 1.4), 3)) : this.eased ? -.02 : .05;

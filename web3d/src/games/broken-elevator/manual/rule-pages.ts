@@ -347,7 +347,7 @@ export function drawLockPage(x: X, half: 0 | 1, index: number) {
       x.fillText(l1, MX + 170, y + 146); if (l2) x.fillText(l2, MX + 170, y + 178); });
     // the procedure and the penalties
     const py = top + 3 * h + 20; x.fillStyle = '#f1e0b0'; rr(x, MX, py, W - 2 * MX, 300, 14); x.fill(); x.strokeStyle = 'rgba(20,11,5,.35)'; x.lineWidth = 2; rr(x, MX, py, W - 2 * MX, 300, 14); x.stroke();
-    const steps = [L('1  Прочтите клеймо — узнайте порядок.', '1  Read the stamp: learn the order.'), L('2  Нажимайте на штифты по порядку.', '2  Tap the pins in that order.'), L('3  Последний штифт встал — замок открыт.', '3  Last pin set: the lock opens.')];
+    const steps = [L('1  Табличка мастера — узнайте порядок.', "1  The maker's plate gives the order."), L('2  Отмычкой поднимайте штифты по порядку.', '2  Pick the pins in that order.'), L('3  Как держать отмычку — листки у двери.', '3  How to hold the pick: sheets by the door.')];
     x.fillStyle = INK; x.font = F.tech(28, 700); x.textAlign = 'left'; steps.forEach((s, i) => x.fillText(s, MX + 26, py + 54 + i * 46));
     x.fillStyle = BURGUNDY; x.font = F.tech(24, 700);
     x.fillText(L('НЕ ТОТ ШТИФТ — все падают, попытка сгорает.', 'WRONG PIN: all pins drop, a try is lost.'), MX + 26, py + 222);
