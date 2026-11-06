@@ -17,12 +17,17 @@ export function cutaway<M extends T.Material>(m: M, u: ScanUniforms, inside: boo
 
 /** the scanner head: a brass ring with a tinted glass, hovering a little above the bay */
 export class ScanHead {
-  readonly group = new T.Group(); private glass: T.MeshBasicMaterial; private lamp: T.MeshBasicMaterial; private geos: T.BufferGeometry[] = []; private mats: T.Material[] = [];
+  readonly group = new T.Group(); private glass: T.MeshBasicMaterial; private lamp: T.MeshBasicMaterial; private geos: T.BufferGeometry[] = []; private mats: T.Material[] = []; private texs: T.Texture[] = [];
   /** local position on the bay plane (x, z) */ x = 0; z = 0; on = false; private hover = 0;
   constructor(readonly r: number, tint: string, readonly u: ScanUniforms, readonly lift = .028) {
     const ring = new T.Mesh(this.g(new T.TorusGeometry(r, r * .12, 10, 48)), this.m(new T.MeshStandardMaterial({color: '#b08a48', metalness: 1, roughness: .3}))); ring.rotation.x = Math.PI / 2; this.group.add(ring);
     this.glass = this.m(new T.MeshBasicMaterial({color: tint, transparent: true, opacity: .16, depthWrite: false, blending: T.AdditiveBlending})); const g = new T.Mesh(this.g(new T.CircleGeometry(r, 40)), this.glass); g.rotation.x = -Math.PI / 2; this.group.add(g);
     const handle = new T.Mesh(this.g(new T.CylinderGeometry(r * .16, r * .2, r * 1.6, 10)), this.m(new T.MeshStandardMaterial({color: '#2a2622', metalness: .6, roughness: .5}))); handle.rotation.z = Math.PI / 2; handle.position.set(r * 1.85, 0, 0); this.group.add(handle);
+    // reticle etched into the glass: crosshair with a scale and a dashed ring at half radius
+    { const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d')!; x.strokeStyle = 'rgba(255,255,255,.55)'; x.lineWidth = 2; x.beginPath(); x.moveTo(128, 18); x.lineTo(128, 238); x.moveTo(18, 128); x.lineTo(238, 128); x.stroke();
+      for (let k = -100; k <= 100; k += 12.5) { const l = k % 50 === 0 ? 10 : 5; x.beginPath(); x.moveTo(128 + k, 128 - l); x.lineTo(128 + k, 128 + l); x.moveTo(128 - l, 128 + k); x.lineTo(128 + l, 128 + k); x.stroke(); }
+      x.setLineDash([6, 6]); x.beginPath(); x.arc(128, 128, 60, 0, 7); x.stroke(); const t = new T.CanvasTexture(c); this.texs.push(t);
+      const ret = new T.Mesh(this.g(new T.CircleGeometry(r * .98, 40)), this.m(new T.MeshBasicMaterial({map: t, color: tint, transparent: true, opacity: .5, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false}))); ret.rotation.x = -Math.PI / 2; ret.position.y = .0004; ret.raycast = () => {}; this.group.add(ret); }
     this.lamp = this.m(new T.MeshBasicMaterial({color: tint})); const l = new T.Mesh(this.g(new T.SphereGeometry(r * .1, 8, 6)), this.lamp); l.position.set(r * 1.2, r * .1, 0); this.group.add(l);
     this.group.visible = false;
   }
@@ -37,5 +42,5 @@ export class ScanHead {
     parent.updateMatrixWorld(); this.u.uScanP.value.set(this.x, 0, this.z).applyMatrix4(parent.matrixWorld); this.u.uScanN.value.set(0, 1, 0).transformDirection(parent.matrixWorld);
     this.u.uScanR.value = this.r * new T.Vector3().setFromMatrixScale(parent.matrixWorld).x; this.glass.opacity = .14 + .04 * Math.sin(this.hover * 9);
   }
-  dispose() { for (const g of this.geos) g.dispose(); for (const m of this.mats) m.dispose(); }
+  dispose() { for (const g of this.geos) g.dispose(); for (const m of this.mats) m.dispose(); for (const t of this.texs) t.dispose(); }
 }

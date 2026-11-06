@@ -111,6 +111,7 @@ export class Suitcase {
     const card = new T.Mesh(new T.PlaneGeometry(.2, .085), new T.MeshStandardMaterial({map: plateTex([{t: L('ВНИМАНИЕ', 'WARNING'), font: 'bold 70px Oswald, sans-serif', y: .26, color: '#7a1408'}, {t: L('Красная лампа — заряженный механизм.', 'A red lamp marks the armed mechanism.'), font: '34px "IM Fell English", serif', y: .58}, {t: L('Сверяйся с блокнотом. Ошибок не прощаю.', 'Use the notebook. I do not forgive mistakes.'), font: 'italic 32px "IM Fell English", serif', y: .82}], 768, 300, '#cdbb92', true, 5), roughness: .9}));
     card.rotation.x = Math.PI / 2; card.position.set(0, HL - WALL - .0045, lz + .1); this.lid.add(card);
     this.timerLamp = new T.MeshStandardMaterial({color: '#300', emissive: '#ff2a10', emissiveIntensity: 0}); const tl = new T.Mesh(new T.SphereGeometry(.006, 12, 8), this.timerLamp); tl.position.set(.095, HL - WALL - .006, lz + .02); this.lid.add(tl);
+    this.timerHalo = new T.Sprite(new T.SpriteMaterial({map: Suitcase.haloTex(), color: '#ff3a18', transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false})); this.timerHalo.raycast = () => {}; this.timerHalo.position.set(.095, HL - WALL - .012, lz + .02); this.timerHalo.scale.setScalar(.034); this.timerHalo.userData.halo = true; this.lid.add(this.timerHalo);
     this.lidHit = box(W, HL, D, new T.MeshBasicMaterial({visible: false}), 0, HL / 2, lz, this.lid); this.lidHit.castShadow = false; this.lidHit.userData.part = 'lid'; this.hitMeshes.push(this.lidHit);
 
     // hinges on the back seam
@@ -154,7 +155,8 @@ export class Suitcase {
       tag.rotation.x = -Math.PI / 2; tag.position.set(-w / 2 + .034, .0075, d / 2 - .0095); g.add(tag);
       const lamp = new T.MeshStandardMaterial({color: '#2a0806', emissive: '#ff1e0a', emissiveIntensity: 0, roughness: .3}); const lb = new T.Mesh(new T.SphereGeometry(.0055, 14, 10), lamp); lb.position.set(w / 2 - .012, .006, d / 2 - .012); g.add(lb);
       const ring = new T.Mesh(new T.TorusGeometry(.0068, .0016, 6, 16), brass); ring.rotation.x = Math.PI / 2; ring.position.copy(lb.position); g.add(ring);
-      const mount = new T.Group(); mount.position.y = .003; g.add(mount); this.bays[m] = {group: g, mount, lamp, size: [w, d]}; });
+      const mount = new T.Group(); mount.position.y = .003; g.add(mount); this.bays[m] = {group: g, mount, lamp, size: [w, d]};
+      const halo = new T.Sprite(new T.SpriteMaterial({map: Suitcase.haloTex(), color: '#ff2a10', transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false})); halo.raycast = () => {}; halo.position.copy(lb.position).setY(.009); halo.scale.setScalar(.03); halo.userData.halo = true; g.add(halo); this.halos.set(m, halo); });
     // telescopic lid stays on both sides: an outer tube pinned to the base wall, a rod pinned to the lid wall
     const stayM = new T.MeshStandardMaterial({color: '#9a948a', metalness: 1, roughness: .28}), tubeG = new T.CylinderGeometry(.0024, .0024, 1, 10), rodG = new T.CylinderGeometry(.0014, .0014, 1, 8), pinG = new T.SphereGeometry(.0032, 10, 8);
     for (const sx of [-1, 1]) { const xIn = sx * (W / 2 - WALL - .005); const tube = new T.Mesh(tubeG, stayM), rod = new T.Mesh(rodG, stayM), pa = new T.Mesh(pinG, brass), pb = new T.Mesh(pinG, brass);
@@ -164,7 +166,10 @@ export class Suitcase {
     for (const x of [-W / 2, W / 2]) for (const z of [-D / 2, D / 2]) { for (const y of [baseY0, seamY]) this.hullBody.push(new T.Vector3(x, y, z)); for (const y of [0, HL]) this.hullLid.push(new T.Vector3(x, y, z + D / 2)); }
     this.drawTimer(0); mergeStatic(this.root);
   }
-  private leatherMeshes: T.Mesh[] = [];
+  private leatherMeshes: T.Mesh[] = []; private halos = new Map<Mechanism, T.Sprite>(); private timerHalo: T.Sprite | null = null;
+  private static haloT: T.Texture | null = null;
+  static haloTex() { if (Suitcase.haloT) return Suitcase.haloT; const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d')!, g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, 'rgba(255,255,255,.95)'); g.addColorStop(.18, 'rgba(255,255,255,.55)'); g.addColorStop(.5, 'rgba(255,255,255,.12)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return Suitcase.haloT = new T.CanvasTexture(c); }
   private stays: {tube: T.Mesh; rod: T.Mesh; pa: T.Mesh; pb: T.Mesh; a: T.Vector3; b: T.Vector3}[] = []; private coil: T.Mesh | null = null; private coilM!: T.MeshStandardMaterial; private coilAt = -1;
   /** places a cylinder of unit height between two points (body space) */
   private span(m: T.Mesh, a: T.Vector3, b: T.Vector3) { const d = b.clone().sub(a), len = d.length(); m.position.copy(a).addScaledVector(d, .5); m.scale.set(1, Math.max(1e-4, len), 1); m.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), d.normalize()); }
@@ -279,6 +284,8 @@ export class Suitcase {
     // lamps: the armed bay burns red with a heartbeat, faster as the fuse runs down
     const beat = 1.4 + this.urgency * 5; for (const m of MECHANISMS) { const safe = this.armed.includes(m) && this.neutral.has(m), lamp = this.bays[m].lamp; lamp.emissive.set(safe ? '#38ff6a' : '#ff1e0a'); if (safe) { lamp.emissiveIntensity = 1.1; continue; }
       const on = this.armed.includes(m) && this.enabled; lamp.emissiveIntensity = on ? 1.2 + 1.6 * Math.max(0, Math.sin(this.time * beat * Math.PI)) ** 3 : 0; }
+    for (const m of MECHANISMS) { const h = this.halos.get(m); if (!h) continue; const l = this.bays[m].lamp, mat = h.material as T.SpriteMaterial; mat.color.copy(l.emissive); mat.opacity = Math.min(.9, l.emissiveIntensity * .3) * (this.lidT > .3 ? 1 : 0); h.scale.setScalar(.022 + l.emissiveIntensity * .006); }
+    if (this.timerHalo) (this.timerHalo.material as T.SpriteMaterial).opacity = this.timerLamp.emissiveIntensity > 1 && this.lidT > .3 ? .7 : 0;
     this.timerLamp.emissiveIntensity = this.enabled ? (Math.sin(this.time * Math.PI * 2 * (1 + this.urgency * 2)) > 0 ? 2.5 : .2) : 0;
     // orientation: inertia while free, an eased swing when a view is requested (lid opened)
     if (this.aim) { this.yaw += Math.atan2(Math.sin(this.aim.yaw - this.yaw), Math.cos(this.aim.yaw - this.yaw)) * (1 - Math.exp(-dt * 3)); this.pitch += (this.aim.pitch - this.pitch) * (1 - Math.exp(-dt * 3)); if (Math.abs(this.aim.pitch - this.pitch) < .003) this.aim = null; }

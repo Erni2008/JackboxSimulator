@@ -186,3 +186,4 @@ body.tool-open #host-say { bottom: auto; top: max(18vh, 120px); }
 @media (max-width: 700px) { #bomb-coach { top: calc(max(12px, env(safe-area-inset-top)) + 150px); } }
 /* phones: the task plate sits between the corner buttons and the clock instead of over them */
 @media (max-width: 520px) { #task { left: 148px; right: 92px; transform: none; padding: 5px 8px; font-size: 14px; letter-spacing: .06em; text-align: center; white-space: normal; } }
+#bomb-coach { padding: 6px 16px; border-radius: 999px; width: auto; max-width: min(92vw, 640px); background: linear-gradient(90deg, transparent, rgba(10,5,3,.62) 18%, rgba(10,5,3,.62) 82%, transparent); }
