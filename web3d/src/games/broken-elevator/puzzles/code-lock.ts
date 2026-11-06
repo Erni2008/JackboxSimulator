@@ -19,7 +19,7 @@ import {L} from '../i18n';
 
 export type LockDiff = 'EASY' | 'NORMAL' | 'HARD';
 export type PinColor = 'steel' | 'brass' | 'copper' | 'black';
-export interface Pin { color: PinColor; notches: number }
+export interface Pin { color: PinColor; notches: number; len: number }
 export interface LockTask { maker: number; pins: Pin[]; order: number[]; tries: number; worn: boolean; serial: string }
 export const MAKERS: [string, string][] = [['ГРИФФИН И СЫН', 'GRIFFIN & SON'], ['ХАРТВЕЛЛ', 'HARTWELL'], ['МОРТОН', 'MORTON']];
 export const PIN_INK: Record<PinColor, string> = {steel: '#b9bec6', brass: '#d4a845', copper: '#c0683a', black: '#1c1816'};
@@ -40,7 +40,7 @@ export function makeLockTask(seed: number, d: LockDiff): LockTask {
   if (!copper) colors[Math.floor(r() * n)] = 'copper';
   if (d !== 'EASY') { const one = colors.filter(k => k === 'copper').length === 1, free = colors.map((c, i) => one && c === 'copper' ? -1 : i).filter(i => i >= 0); colors[free[Math.floor(r() * free.length)]] = 'black'; }
   const notch = Array.from({length: n}, (_, i) => i + 1); for (let i = n - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [notch[i], notch[j]] = [notch[j], notch[i]]; }
-  const pins = colors.map((color, i) => ({color, notches: notch[i]}));
+  const pins = colors.map((color, i) => ({color, notches: notch[i], len: .0085 + Math.floor(r() * 6) * .002}));
   return {maker, pins, order: bindingOrder(maker, pins), tries: d === 'HARD' ? 2 : 3, worn: d === 'HARD', serial: String(1000 + Math.floor(r() * 8999))};
 }
 
@@ -65,7 +65,7 @@ export function makerEmblem(x: CanvasRenderingContext2D, maker: number, cx: numb
 const PW = .28, PH = .2;                     // brass face
 const WIN = {x0: -.112, x1: .112, y0: -.044, y1: .06}; // inspection window
 const SHEAR = -.008, PLUG_Y0 = -.04, KEYWAY = -.032;
-const DRV_H = .026, KEY_H = .017, PIN_R = .0058, SET_LIFT = .0046, STUCK_LIFT = .0028;
+const DRV_H = .022, KEY_TIP = -.0296, BORE_TOP = .058, PIN_R = .0058;
 const pitch = (n: number) => n === 4 ? .042 : .036;
 
 function plateTexture(t: LockTask | null) {
@@ -94,6 +94,14 @@ function plateTexture(t: LockTask | null) {
   return textTex(cv);
 }
 
+/** machined metal: fine horizontal brushing on a clean base (no patina), shared by every cut face */
+let brushedTex: T.Texture | null = null;
+function brushed() {
+  if (brushedTex) return brushedTex; const W = 512, H = 128, cv = hiCanvas(W, H), x = ctx2d(cv), r = rng(7); x.fillStyle = '#d8d8d8'; x.fillRect(0, 0, W, H);
+  for (let i = 0; i < 900; i++) { const v = 150 + Math.floor(r() * 105); x.fillStyle = `rgba(${v},${v},${v},${.25 + r() * .35})`; x.fillRect(r() * W - 60, r() * H, 40 + r() * 260, .6 + r() * .8); }
+  brushedTex = textTex(cv); brushedTex.wrapS = brushedTex.wrapT = T.RepeatWrapping; brushedTex.colorSpace = T.SRGBColorSpace; return brushedTex;
+}
+const machined = (color: string, rough = .3) => new T.MeshStandardMaterial({color, map: brushed(), metalness: 1, roughness: rough, envMapIntensity: 1.25});
 /** a helical spring of unit height (scaled in y every frame) */
 class Helix extends T.Curve<T.Vector3> { constructor(private r: number, private turns: number) { super(); }
   getPoint(t: number, o = new T.Vector3()) { const a = t * this.turns * Math.PI * 2; return o.set(Math.cos(a) * this.r, t, Math.sin(a) * this.r); } }
@@ -121,20 +129,17 @@ export class CodeLock {
     for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const b = new T.Mesh(new T.SphereGeometry(.0065, 12, 8), brass); b.position.set(sx * .128, sy * .088, .033); b.scale.z = .5; this.body.add(b); }
     // the cutaway behind the window: dark chambers, the brass plug with its keyway, a sheet of glass
     const ww = WIN.x1 - WIN.x0, wh = WIN.y1 - WIN.y0, wcx = (WIN.x0 + WIN.x1) / 2;
-    const back = new T.Mesh(new T.PlaneGeometry(ww, wh), new T.MeshStandardMaterial({color: '#2a2018', roughness: .7, metalness: .5})); back.position.set(wcx, (WIN.y0 + WIN.y1) / 2, .0135); this.body.add(back);
-    const plug = new T.Mesh(new T.BoxGeometry(ww, SHEAR - PLUG_Y0, .012), metal('#a8843f', {rough: .35, metalness: 1})); plug.position.set(wcx, (SHEAR + PLUG_Y0) / 2, .02); this.body.add(plug);
-    const kw = new T.Mesh(new T.BoxGeometry(ww, .0075, .013), new T.MeshStandardMaterial({color: '#0a0705', roughness: 1})); kw.position.set(wcx, KEYWAY, .0205); this.body.add(kw);
-    const shear = new T.Mesh(new T.BoxGeometry(ww, .0007, .002), new T.MeshStandardMaterial({color: '#ffcf70', emissive: '#7a4a10', emissiveIntensity: .6, roughness: .5})); shear.position.set(wcx, SHEAR, .0275); this.body.add(shear);
+    const back = new T.Mesh(new T.PlaneGeometry(ww, wh), new T.MeshStandardMaterial({color: '#0c0907', roughness: 1})); back.position.set(wcx, (WIN.y0 + WIN.y1) / 2, .0135); this.body.add(back);
     const glass = new T.Mesh(new T.PlaneGeometry(ww, wh), new T.MeshStandardMaterial({color: '#ffffff', transparent: true, opacity: .06, roughness: .04, metalness: .1, envMapIntensity: 2, depthWrite: false}));
     glass.position.set(wcx, (WIN.y0 + WIN.y1) / 2, .029); glass.renderOrder = 3; this.body.add(glass);
     this.pins.position.z = .021; this.body.add(this.pins);
     // a bezel closes the gap between the case and the raised face
     for (const [w, h, x0, y0] of [[PW, .008, 0, PH / 2 - .004], [PW, .008, 0, -PH / 2 + .004], [.008, PH, PW / 2 - .004, 0], [.008, PH, -PW / 2 + .004, 0]]) { const f = new T.Mesh(new T.BoxGeometry(w, h, .018), brass); f.position.set(x0, y0, .0215); this.body.add(f); }
     // the hook pick: a long blade in the keyway, its grip out of the right flank
-    const blade = new T.Mesh(new T.BoxGeometry(.2, .0022, .004), steel); blade.position.x = .1; this.pick.add(blade);
+    const blade = new T.Mesh(new T.BoxGeometry(.2, .0016, .0035), steel); blade.position.x = .1; this.pick.add(blade);
     const hook = new T.Mesh(new T.BoxGeometry(.0024, .0055, .004), steel); hook.position.set(.001, .0034, 0); this.pick.add(hook);
     const grip = new T.Mesh(new RoundedBoxGeometry(.07, .011, .009, 2, .004), metal('#2a1612', {rough: .7, metalness: .1})); grip.position.x = .23; this.pick.add(grip);
-    this.pick.position.set(0, KEYWAY - .0006, .021); this.body.add(this.pick);
+    this.pick.position.set(0, KEYWAY - .0022, .021); this.body.add(this.pick);
     // the tension wrench: a short L at the left mouth of the keyway; tapping it eases the tension
     const wa = new T.Mesh(new T.BoxGeometry(.03, .0028, .0045), steel); wa.position.set(.015, 0, 0); this.wrench.add(wa);
     const wb = new T.Mesh(new T.BoxGeometry(.0045, .06, .0045), steel); wb.position.set(0, -.03, .004); this.wrench.add(wb);
@@ -158,24 +163,42 @@ export class CodeLock {
     for (const o of [...this.pins.children]) { this.pins.remove(o); o.traverse(k => (k as T.Mesh).geometry?.dispose()); }
     this.drivers = []; this.keys = []; this.springs = []; this.controls = this.controls.filter(c => !c.id.startsWith('pin'));
     const n = t.pins.length, P = pitch(n), seg = this.hi ? 120 : 70, springGeo = new T.TubeGeometry(new Helix(PIN_R * .78, 7), seg, .00075, 5, false);
-    const springMat = metal('#9a9893', {rough: .35, metalness: 1}), keyMat = metal('#d8ae4e', {rough: .3, metalness: 1}), chMat = new T.MeshStandardMaterial({color: '#0b0806', roughness: 1});
-    t.pins.forEach((p, i) => { const cx = (i - (n - 1) / 2) * P;
-      const ch = new T.Mesh(new T.BoxGeometry(PIN_R * 2.7, WIN.y1 - SHEAR, .002), chMat); ch.position.set(cx, (WIN.y1 + SHEAR) / 2, -.0068); this.pins.add(ch);
+    const springMat = metal('#a9a7a2', {rough: .3, metalness: 1}), keyMat = metal('#d9ab4c', {rough: .26, metalness: 1});
+    const nickel = machined('#c9c4b8', .28), plugM = machined('#d29c42', .3), boreM = machined('#77726a', .4), dark = new T.MeshStandardMaterial({color: '#070504', roughness: 1});
+    (boreM as T.MeshStandardMaterial).side = T.DoubleSide;
+    const BW = PIN_R * 2.24, FZ = .0062, ww = WIN.x1 - WIN.x0, xs = t.pins.map((_, i) => (i - (n - 1) / 2) * P);
+    const face = (m: T.Material, x0: number, x1: number, y0: number, y1: number) => { if (x1 - x0 < 1e-4 || y1 - y0 < 1e-4) return; const f = new T.Mesh(new T.PlaneGeometry(x1 - x0, y1 - y0), m); f.position.set((x0 + x1) / 2, (y0 + y1) / 2, FZ); this.pins.add(f);
+      // a bright machined lip along the cut edge
+      const lip = new T.Mesh(new T.BoxGeometry(x1 - x0, .0005, .0012), m); lip.position.set((x0 + x1) / 2, y0 + .00025, FZ - .0006); this.pins.add(lip); };
+    // cut faces of the housing (above the shear line) and of the plug (below it), drilled through by the pin bores
+    const edges = [WIN.x0 - .004, ...xs.flatMap(x => [x - BW / 2, x + BW / 2]), WIN.x1 + .004];
+    for (let k = 0; k < edges.length; k += 2) { face(nickel, edges[k], edges[k + 1], SHEAR + .0005, BORE_TOP + .004); face(plugM, edges[k], edges[k + 1], KEYWAY + .004, SHEAR - .0005); }
+    face(plugM, WIN.x0 - .004, WIN.x1 + .004, PLUG_Y0, KEYWAY - .004); face(nickel, WIN.x0 - .004, WIN.x1 + .004, WIN.y0 - .004, PLUG_Y0 - .0006);
+    face(nickel, WIN.x0 - .004, WIN.x1 + .004, BORE_TOP, WIN.y1 + .004);
+    // the keyway: a dark channel with its warded profile edges
+    const kwy = new T.Mesh(new T.BoxGeometry(ww + .008, .008, .012), dark); kwy.position.set(0, KEYWAY, 0); this.pins.add(kwy);
+    for (const [y, h] of [[KEYWAY + .0032, .0012], [KEYWAY - .0034, .001]] as const) { const w = new T.Mesh(new T.BoxGeometry(ww + .008, h, .004), plugM); w.position.set(0, y, FZ - .004); this.pins.add(w); }
+    // spring caps along the top of the bores
+    const capM = metal('#8a8579', {rough: .35, metalness: 1});
+    t.pins.forEach((p, i) => { const cx = xs[i];
+      // the bore: the back half of a drilled hole, through housing and plug
+      for (const [y0, y1] of [[SHEAR, BORE_TOP], [KEYWAY + .0036, SHEAR]] as const) { const bore = new T.Mesh(new T.CylinderGeometry(BW / 2, BW / 2, y1 - y0, 28, 1, true, Math.PI / 2, Math.PI), y1 > SHEAR ? boreM : boreM); bore.position.set(cx, (y0 + y1) / 2, 0); this.pins.add(bore); }
+      const cap = new T.Mesh(new T.CylinderGeometry(BW / 2, BW / 2, .002, 24), capM); cap.position.set(cx, BORE_TOP - .001, 0); this.pins.add(cap);
       // driver pin: coloured, with its notches; a copper spool is waisted
       const dg = new T.Group(); dg.position.set(cx, 0, 0); this.pins.add(dg);
-      const prof = p.color === 'copper' ? [[0, -DRV_H / 2], [PIN_R, -DRV_H / 2], [PIN_R, -DRV_H / 2 + .004], [PIN_R * .62, -DRV_H / 2 + .007], [PIN_R * .62, DRV_H / 2 - .009], [PIN_R, DRV_H / 2 - .006], [PIN_R, DRV_H / 2], [0, DRV_H / 2]]
-        : [[0, -DRV_H / 2], [PIN_R * .9, -DRV_H / 2], [PIN_R, -DRV_H / 2 + .001], [PIN_R, DRV_H / 2 - .001], [PIN_R * .9, DRV_H / 2], [0, DRV_H / 2]];
-      dg.add(new T.Mesh(new T.LatheGeometry(prof.map(([a, b]) => new T.Vector2(a, b)), 32), this.mats[p.color]));
-      for (let k = 0; k < p.notches; k++) { const ring = new T.Mesh(new T.TorusGeometry(PIN_R * 1.02, .0009, 6, 28), p.color === 'black' ? this.ringMatB : this.ringMat); ring.rotation.x = Math.PI / 2;
-        ring.position.y = DRV_H / 2 - .0022 - k * .0026 + (p.color === 'copper' ? .0002 : 0); if (p.color === 'copper' && k > 1) ring.scale.setScalar(.62); dg.add(ring); }
+      const H = DRV_H / 2, prof = p.color === 'copper' ? [[0, -H], [PIN_R * .9, -H], [PIN_R, -H + .0008], [PIN_R, -H + .0035], [PIN_R * .6, -H + .0062], [PIN_R * .6, H - .0085], [PIN_R, H - .0058], [PIN_R, H - .0008], [PIN_R * .9, H], [0, H]]
+        : [[0, -H], [PIN_R * .88, -H], [PIN_R, -H + .0009], [PIN_R, H - .0009], [PIN_R * .88, H], [0, H]];
+      dg.add(new T.Mesh(new T.LatheGeometry(prof.map(([a, b]) => new T.Vector2(a, b)), 40), this.mats[p.color]));
+      for (let k = 0; k < p.notches; k++) { const ring = new T.Mesh(new T.TorusGeometry(PIN_R * 1.02, .0009, 6, 32), p.color === 'black' ? this.ringMatB : this.ringMat); ring.rotation.x = Math.PI / 2;
+        ring.position.y = H - .002 - k * .0024; if (p.color === 'copper' && k > 1) ring.scale.setScalar(.6); dg.add(ring); }
       this.drivers.push(dg);
-      // key pin: brass, pointed into the keyway
-      const kp = new T.Mesh(new T.LatheGeometry([[0, -KEY_H / 2], [PIN_R * .35, -KEY_H / 2 + .001], [PIN_R, -KEY_H / 2 + .005], [PIN_R, KEY_H / 2 - .0008], [PIN_R * .9, KEY_H / 2], [0, KEY_H / 2]].map(([a, b]) => new T.Vector2(a, b)), 28), keyMat);
-      kp.position.set(cx, 0, 0); this.pins.add(kp); this.keys.push(kp);
+      // key pin: its own length (the bitting), a rounded crown and a bullet nose into the keyway
+      const Lk = p.len; const kp = new T.Mesh(new T.LatheGeometry([[0, 0], [PIN_R * .3, .0004], [PIN_R * .8, .0022], [PIN_R, .0042], [PIN_R, Lk - .0007], [PIN_R * .86, Lk], [0, Lk]].map(([a, b]) => new T.Vector2(a, b)), 36), keyMat);
+      kp.position.set(cx, KEY_TIP, 0); this.pins.add(kp); this.keys.push(kp);
       const sp = new T.Mesh(springGeo, springMat); sp.position.set(cx, 0, 0); this.pins.add(sp); this.springs.push(sp);
       const hit = new T.Mesh(new T.BoxGeometry(P * .92, WIN.y1 - WIN.y0, .03), new T.MeshBasicMaterial({visible: false})); hit.position.set(cx, (WIN.y0 + WIN.y1) / 2, .012); hit.userData.id = `pin${i}`; this.pins.add(hit);
       this.controls.push({id: `pin${i}`, root: dg}); });
-    this.lift = t.pins.map(() => 0); this.bump = t.pins.map(() => 0);
+    this.lift = t.pins.map(p => KEY_TIP + p.len); this.bump = t.pins.map(() => 0);
   }
 
   setTask(t: LockTask, _seed?: number) {
@@ -230,12 +253,14 @@ export class CodeLock {
     this.t += dt; if (!this.task) return;
     const k = 1 - Math.exp(-dt * 18);
     for (let i = 0; i < this.drivers.length; i++) {
-      const target = this.set[i] ? SET_LIFT : this.stuck === i ? STUCK_LIFT : 0; this.lift[i] += (target - this.lift[i]) * k;
-      this.bump[i] = Math.max(0, this.bump[i] - dt * 5); const b = Math.sin(this.bump[i] * Math.PI) * .006;
-      const keyTop = SHEAR - .0004 + b + (this.stuck === i ? STUCK_LIFT : 0); this.keys[i].position.y = keyTop - KEY_H / 2;
-      const drvBottom = Math.max(keyTop, SHEAR - .0004 + this.lift[i]), dg = this.drivers[i];
-      dg.position.y = drvBottom + DRV_H / 2; dg.rotation.z = this.stuck === i ? .1 + Math.sin(this.t * 40) * .03 * this.shudder : 0;
-      const sp = this.springs[i], s0 = drvBottom + DRV_H; sp.position.y = s0; sp.scale.y = Math.max(.002, WIN.y1 + .002 - s0);
+      const len = this.task.pins[i].len, rest = KEY_TIP + len;
+      // where the driver should sit: on its key pin, just above the shear line (set), or caught on its waist (stuck spool)
+      const target = this.set[i] ? SHEAR + .0006 : this.stuck === i ? SHEAR - .0052 : rest; this.lift[i] += (target - this.lift[i]) * k;
+      this.bump[i] = Math.max(0, this.bump[i] - dt * 4.2); const b = Math.sin(this.bump[i] * Math.PI) * (SHEAR - rest + .0016);
+      const keyTop = Math.max(rest + b, this.stuck === i ? this.lift[i] : rest); this.keys[i].position.y = keyTop - len;
+      const drvBottom = Math.max(keyTop, this.lift[i]), dg = this.drivers[i];
+      dg.position.y = drvBottom + DRV_H / 2; dg.rotation.z = this.stuck === i ? .09 + Math.sin(this.t * 40) * .03 * this.shudder : 0;
+      const sp = this.springs[i], s0 = drvBottom + DRV_H; sp.position.y = s0; sp.scale.y = Math.max(.002, BORE_TOP - .002 - s0);
     }
     // the pick slides under the chosen pin and flicks up; the wrench leans under tension and relaxes when eased
     this.pickPush = Math.max(0, this.pickPush - dt * 5); this.pick.position.x += (this.pickX - this.pick.position.x) * (1 - Math.exp(-dt * 22)); this.pick.rotation.z = -Math.sin(this.pickPush * Math.PI) * .045;
