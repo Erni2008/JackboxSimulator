@@ -72,6 +72,7 @@ export class Notebook {
   update(dt: number, gazed: boolean) { this.time += dt; const g = this.root.visible && !this.taken ? (gazed ? .35 : .05 + .04 * Math.sin(this.time * 2.4 + 1)) : 0; this.glow.emissiveIntensity += (g - this.glow.emissiveIntensity) * (1 - Math.exp(-dt * 6)); }
   /** pages a mechanism contributes after construction (stage 4) */
   rebuildPages() { const keep = this.pages.slice(0, 2); this.pages = keep; MECHANISMS.forEach((m, i) => { this.pages.push({chapter: i, draw: (x, ink) => this.drawOpener(x, ink, m, i)}); for (const d of chapters[m]) this.pages.push({chapter: i, draw: d}); }); this.cache.clear(); }
+  chapterOf(page: number) { return this.pages[page]?.chapter ?? -1; }
   chapterPage(m: Mechanism) { return this.pages.findIndex(p => p.chapter === MECHANISMS.indexOf(m)); }
 
   show(page?: number) { if (page !== undefined) this.page = page; this.open = true; this.el.hidden = false; requestAnimationFrame(() => this.el.classList.add('show')); this.render(); this.onEvent('OPEN'); }

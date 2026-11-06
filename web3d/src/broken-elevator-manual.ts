@@ -160,14 +160,15 @@ async function boot() {
         if (IN_ROOM) RoomSocket.shared()?.send('BOMB_ACTION', {action: 'VENT', arg: i, seq: ++bombSeq}); else judge('THERMAL', !!thermalL && i === solveThermal(thermalL), L('Не та капсула', 'Wrong capsule')); return true; }
       if (f === 'HIDDEN_CONNECTIONS' && links) { const id = links.contactAt(rc); if (id < 0) return false; links.place(probeSel, id); audio.play('valveClick'); haptic('tap'); probeSel = probeSel ? 0 : 1; syncTester(); measure(); return true; }
       return false; };
-    suitcase.onEvent = e => { if (e === 'PICKUP' && !suitcase!.open) coach('latches'); if (e === 'LID_OPENED') coach(nbook?.taken ? 'bays' : 'notebook'); if (e === 'FOCUS') coach(nbook?.taken ? 'tool' : 'notebook');
+    suitcase.onEvent = e => { if (e === 'PICKUP' && !suitcase!.open) coach('latches'); if (e === 'LID_OPENED') coach(nbook?.taken ? 'bays' : 'notebook'); if (e === 'FOCUS') { const f = suitcase!.focus!; coach(!armed.includes(f) ? 'dead' : neutral.has(f) ? 'safe' : nbook?.taken ? 'tool' : 'notebook'); }
       if (e === 'PICKUP') { audio.play('pickup'); haptic('tap'); bombAct('FOUND'); } if (e === 'PUTDOWN') audio.play('drop', .5); if (e === 'LATCH') { audio.play('lever'); audio.play('valveClick'); haptic('tap'); }
       if (e === 'LOCKED') { audio.play('locked'); haptic('bad'); } if (e === 'LID_OPEN') { audio.play('creak', .8); audio.play('coverOpen'); bombAct('OPEN'); } if (e === 'FOCUS') { audio.play('button', .5); haptic('tap'); } if (e === 'LID_OPENED') { audio.play('impactMetal', .4); audio.play('alarm', .25); shake = Math.max(shake, .12); } };
     nbook.onEvent = e => { if (e === 'TAKE') { audio.play('pickup'); haptic('tap'); } if (e === 'TURN' || e === 'OPEN') audio.play('pageTurn', 1); if (e === 'CLOSE') audio.play('coverClose', .5); $('btn-nb').hidden = !nbook!.taken; }; };
   /** one line at the top that always says what to do next (visible during the close-up too) */
-  const coach = (step: 'find' | 'latches' | 'bays' | 'notebook' | 'tool' | 'off') => { const el = $('bomb-coach'); const t: Record<string, string> = {
+  const coach = (step: 'find' | 'latches' | 'bays' | 'notebook' | 'tool' | 'dead' | 'safe' | 'off') => { const el = $('bomb-coach'); const t: Record<string, string> = {
       find: L('Найдите в клетке чемоданчик и блокнот', 'Find the suitcase and the notebook in the cage'), latches: L('Поверните чемодан · откиньте обе защёлки спереди · поднимите крышку', 'Turn the case · flip both front latches · lift the lid'),
       bays: L('Красные лампы — заряженные отсеки. Нажмите на отсек, чтобы приблизить', 'Red lamps mark the armed bays. Tap a bay to bring it close'), notebook: L('Нужны правила — блокнот лежит где-то в клетке', 'You need the rules — the notebook is somewhere in the cage'),
+      dead: L('Этот отсек не заряжен — лампа не горит. Ищите отсеки с красной лампой', 'This bay is not armed — its lamp is dark. Look for the red lamps'), safe: L('Этот механизм уже обезврежен — лампа зелёная', 'This mechanism is already neutralised — the lamp is green'),
       tool: L('Откройте главу этого отсека в блокноте · «Назад» — ко всему чемодану', 'Open this bay\'s chapter in the notebook · "Back" returns to the whole case'), off: ''};
     el.textContent = t[step]; el.classList.toggle('show', step !== 'off'); };
   const syncTester = () => { $('t-red').classList.toggle('on', probeSel === 0); $('t-black').classList.toggle('on', probeSel === 1); };
@@ -407,7 +408,9 @@ async function boot() {
   $('btn-laser').onclick = () => { if (!laserV || kind !== 'bomb' || bombDone || !live('LASER')) return; audio.play('button'); audio.play('relay');
     if (IN_ROOM) RoomSocket.shared()?.send('BOMB_ACTION', {action: 'CONFIRM', seq: ++bombSeq}); else { const ok = !!laserL && laserV.hit === laserL.target; if (ok) laserV.done = true; judge('LASER', ok, L('Луч не на гасящем датчике', 'The beam is not on the quench sensor')); } };
   $('btn-cut').onclick = () => { setCutters(!cutters); audio.play('valveClick'); haptic('tap'); };
-  $('btn-nb').onclick = () => { if (!nbook) return; if (nbook.open) nbook.close(); else { const m = suitcase?.open ? (suitcase.focus ?? armed.find(live) ?? null) : null; nbook.show(m && nbook.page < 2 ? nbook.chapterPage(m) : undefined); } };
+  $('btn-nb').onclick = () => { if (!nbook) return; if (nbook.open) nbook.close(); else { const m = suitcase?.open ? (suitcase.focus ?? armed.find(live) ?? null) : null; const ch = m ? MECHANISMS.indexOf(m) : -1;
+    // open at the chapter of the bay in front of the player (unless already reading that chapter)
+    nbook.show(m && nbook.chapterOf(nbook.page) !== ch ? nbook.chapterPage(m) : undefined); } };
   const endValve = (e: PointerEvent) => { if (e.pointerId !== valvePointer) return; device.pointerUp(e.type === 'pointerup' && Math.hypot(e.clientX - valveStart.x, e.clientY - valveStart.y) < 10); /* a still press counts as a tap, however long it is held */ setTimeout(() => { valvePointer = null; }, 0); };
   addEventListener('pointerup', endValve); addEventListener('pointercancel', endValve);
   renderer.domElement.addEventListener('pointerdown', e => drag.set(e.pointerId, {x: e.clientX, y: e.clientY}));

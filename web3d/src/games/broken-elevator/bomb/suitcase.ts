@@ -238,7 +238,8 @@ export class Suitcase {
   private tapPart(h: T.Intersection | null) {
     if (!h) return; const ud = h.object.userData;
     if (ud.part === 'latch') { const i = ud.latch as number; if (!this.latchOpen[i]) { this.latchOpen[i] = true; this.onEvent('LATCH'); } return; }
-    if (this.open && !this.focus) { for (const m of MECHANISMS) { let o: T.Object3D | null = h.object; while (o && o !== this.bays[m].group) o = o.parent; if (o) { this.focusOn(m); this.onEvent('FOCUS'); return; } } }
+    // tap a bay to bring it close; while one is close, tapping a neighbour moves straight to it
+    if (this.open) { for (const m of MECHANISMS) { let o: T.Object3D | null = h.object; while (o && o !== this.bays[m].group) o = o.parent; if (o && m !== this.focus) { this.focusOn(m); this.onEvent('FOCUS'); return; } } }
     if (ud.part === 'lid' && this.lidTarget === 0) { if (this.latchOpen.every(Boolean)) { this.lidTarget = 1; this.onEvent('LID_OPEN'); this.aim = {yaw: 0, pitch: .95}; this.off.set(0, 0); } else { this.rattle = 1; this.onEvent('LOCKED'); } }
   }
   /** the mechanism under a ray (for stage 4 tools), when the lid is open */
