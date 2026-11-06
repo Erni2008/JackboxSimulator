@@ -28,7 +28,7 @@ const wires: Draw = (x, ink) => {
   y = step(ink, '2', L('Режь провод, который ВЫХОДИТ из этой буквы.', 'Cut the wire LEAVING that letter.'), y);
   tag(x, ink, L('Ср./слож.: конец 3·6·9·12 → провод в номер +1', 'Normal/hard: ends 3·6·9·12 → the wire into +1'), y + 30, true); y += 110;
   SEALS.forEach((sl, i) => { const cx = 170 + (i % 4) * 200, cy = y + 70 + Math.floor(i / 4) * 170; x.fillStyle = '#2a1c10'; drawSeal(x, sl, cx, cy, 46); ink.print(SEAL_LETTER[sl], cx, cy + 110, 56, {bold: true, align: 'center'}); });
-  ink.hand(L('Кусачки — в углу отсека. Режь посередине провода.', 'Cutters lie in the bay corner. Cut mid-wire.'), 110, y + 470, 40, '#2a3a6a', -.02);
+  ink.hand(L('Кусачки — в углу отсека.', 'The cutters lie in the bay corner.'), 110, y + 470, 40, '#2a3a6a', -.02);
 };
 const contacts: Draw = (x, ink) => {
   head(ink, 'II', L('Контакты', 'Contacts'));

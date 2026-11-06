@@ -168,7 +168,6 @@ async function boot() {
       if (f === 'WIRE_MAZE' && maze) { if (maze.cuttersAt(rc)) { setCutters(!cutters); audio.play('valveClick'); audio.play('pickup', .6); haptic('tap'); return true; }
         const h = maze.wireAt(rc); if (!h) return false;
         if (!cutters) { toast(L('Сначала возьмите кусачки — они лежат в углу отсека', 'Take the cutters first — they lie in the bay corner')); haptic('tap'); return true; }
-        if (!h.mid) { toast(L('Режьте посередине провода', 'Cut in the middle of the wire')); haptic('tap'); return true; }
         maze.sever(h.wire, h.t); audio.play('snip'); haptic('tap');
         if (IN_ROOM) RoomSocket.shared()?.send('BOMB_ACTION', {action: 'CUT', arg: h.wire, seq: ++bombSeq}); else judge('WIRE_MAZE', !!wireLayout && h.wire === solveWires(wireLayout), L('Неверный провод', 'Wrong wire'));
         return true; }
