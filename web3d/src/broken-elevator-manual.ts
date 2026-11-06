@@ -222,7 +222,10 @@ async function boot() {
   const bombFinish = (ok: boolean, why: 'DEFUSED' | 'WRONG' | 'TIMEOUT') => { if (kind !== 'bomb' || bombDone) return; if (IN_ROOM && why === 'TIMEOUT') { deadline = 0; return; } /* wait for the server */
     bombDone = true; deadline = 0; setCutters(false); $('btn-cut').hidden = true; if (suitcase) suitcase.enabled = false; record(ok, why === 'DEFUSED' ? 'OK' : why); audio.play(ok ? 'good' : 'bad'); haptic(ok ? 'good' : 'blast'); shake = Math.max(shake, ok ? .2 : 1);
     verdict(ok, ok ? L('МЕХАНИЗМ ОБЕЗВРЕЖЕН', 'MECHANISM NEUTRALISED') : why === 'TIMEOUT' ? L('ВРЕМЯ ВЫШЛО', 'TIME RAN OUT') : L('НЕВЕРНОЕ ДЕЙСТВИЕ', 'WRONG MOVE'), ok ? L('Бомба обезврежена', 'Bomb defused') : L('ВЗРЫВ', 'DETONATION'));
-    voice.say(ok ? 'success' : 'explosion', 4, 0); if (!ok) setTimeout(() => cage.drop?.(.8), 350); clearTimeout(pending); pending = setTimeout(() => next(ok), ok ? 3000 : 2600); };
+    voice.say(ok ? 'success' : 'explosion', 4, 0);
+    if (!ok) { audio.play('explosion'); audio.play('burst'); shake = 1.7; const f = $('blast'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); document.body.classList.remove('jolt'); void document.body.offsetWidth; document.body.classList.add('jolt'); nbook?.close(); if (suitcase?.focus) suitcase.focusOn(null); }
+    else { audio.play('labOk'); if (suitcase?.focus) suitcase.focusOn(null); }
+    if (!ok) setTimeout(() => cage.drop?.(.8), 350); clearTimeout(pending); pending = setTimeout(() => next(ok), ok ? 3000 : 2600); };
   RoomSocket.shared()?.listen(ev => { const b = ev.payload?.elevatorBomb; if (!b) return; const first = !bombView || bombView.puzzleId !== b.puzzleId; bombView = b; if (first && kind === 'bomb' && suitcase) armBomb(); if (kind !== 'bomb' || bombDone) return;
     if (!first && maze && wireLayout) for (const c of b.cut ?? []) if (!maze.cut.has(c)) maze.sever(c, .5);
     if (b.links && links && b.event?.type === 'PROBE' && b.links.red === links.red && b.links.black === links.black) setLcd(b.links.reading);

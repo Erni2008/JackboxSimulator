@@ -120,10 +120,11 @@ export class Suitcase {
     // ---- interior tray with the five bays
     this.interior.position.y = seamY - .028; this.body.add(this.interior);
     const tray = new T.Mesh(new T.BoxGeometry(W - 2 * WALL, .004, D - 2 * WALL), new T.MeshStandardMaterial({color: '#2a2622', metalness: .75, roughness: .5, map: this.grime(31)})); tray.receiveShadow = true; this.interior.add(tray);
+    const frameM = new T.MeshStandardMaterial({color: '#6e5430', metalness: .9, roughness: .48, map: this.grime(57)}); // darker, worn brass for the bay frames
     const layout: [Mechanism, number, number, number, number][] = [['WIRE_MAZE', -.145, -.068, .15, .15], ['HIDDEN_CONNECTIONS', 0, -.068, .125, .13], ['XRAY', .145, -.068, .13, .13], ['LASER', -.085, .072, .25, .12], ['THERMAL', .14, .072, .15, .12]];
     layout.forEach(([m, x, z, w, d], i) => { const g = new T.Group(); g.position.set(x, .002, z); this.interior.add(g);
       const plate = new T.Mesh(new T.BoxGeometry(w, .003, d), new T.MeshStandardMaterial({color: '#191715', metalness: .6, roughness: .6})); plate.position.y = .0015; g.add(plate);
-      for (const [fx, fz, fw, fd] of [[0, -d / 2, w + .006, .005], [0, d / 2, w + .006, .005], [-w / 2, 0, .005, d], [w / 2, 0, .005, d]] as const) box(fw, .007, fd, brass, fx, .0035, fz, g);
+      for (const [fx, fz, fw, fd] of [[0, -d / 2, w + .006, .005], [0, d / 2, w + .006, .005], [-w / 2, 0, .005, d], [w / 2, 0, .005, d]] as const) box(fw, .007, fd, frameM, fx, .0035, fz, g);
       const tag = new T.Mesh(new T.PlaneGeometry(.06, .013), new T.MeshStandardMaterial({map: plateTex([{t: `${ROMAN[i]} · ${MECH_NAME[m]().toUpperCase()}`, font: 'bold 40px Oswald, sans-serif', y: .54, color: '#1a120a'}], 512, 110, '#bfa774', false, 20 + i), roughness: .6, metalness: .3}));
       tag.rotation.x = -Math.PI / 2; tag.position.set(-w / 2 + .034, .0075, d / 2 - .0095); g.add(tag);
       const lamp = new T.MeshStandardMaterial({color: '#2a0806', emissive: '#ff1e0a', emissiveIntensity: 0, roughness: .3}); const lb = new T.Mesh(new T.SphereGeometry(.0055, 14, 10), lamp); lb.position.set(w / 2 - .012, .006, d / 2 - .012); g.add(lb);
