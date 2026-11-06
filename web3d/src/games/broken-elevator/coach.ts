@@ -23,9 +23,9 @@ const BRIEF = (k: Kind, seconds: number): Brief => k === 'wire' ? {
   tip: L('120 PSI — взрыв. Следите за скачками давления.', '120 PSI means an explosion. Watch for surges.')}
   : k === "lock" ? {
   icon: "🔒", title: L("Замок клетки", "The cage lock"), goal: L(`Откройте замок на двери клетки. Время: ${seconds} с.`, `Open the lock on the cage door. Time: ${seconds} s.`),
-  steps: [["①", L("Осмотрите клетку: стены, пол, решётку. Ищите знаки с номерами I, II, III.", "Search the cage: walls, floor, bars. Look for signs numbered I, II, III.")],
-    ["②", L("Зачёркнутые знаки — ложные, не верьте им.", "Crossed-out signs are false.")],
-    ["③", L("Наберите знаки на барабанах замка и дёрните рычаг.", "Dial the signs on the drums and pull the lever.")]],
+  steps: [["①", L("Осмотрите клетку: стены, пол, решётку. Знак в круге — часть кода; точки над кругом — номер барабана.", "Search the cage. A sign in a ring is part of the code; the dots above it name the drum.")],
+    ["②", L("Разорванный круг — ложный знак, не верьте ему.", "A broken ring marks a false sign.")],
+    ["③", L("Наберите знаки на барабанах и нажмите красную кнопку.", "Dial the signs and press the red button.")]],
   tip: L("Попытки ограничены — неверный код заклинит замок.", "Tries are limited: a wrong code jams the lock.")}
   : {
   icon: "⚗", title: L('Нестабильная формула', 'The unstable formula'), goal: L(`Приготовьте охлаждающую формулу и введите её. Время: ${seconds} с.`, `Prepare the cooling formula and inject it. Time: ${seconds} s.`),

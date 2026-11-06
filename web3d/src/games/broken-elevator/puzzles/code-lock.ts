@@ -2,9 +2,10 @@
 // An old three-drum combination padlock hangs on the cage door (the barred front, over the lava). Each drum carries eight
 // occult signs. The code is hidden in the cage itself: signs scratched into the iron, chalked on a wall, burnt in soot,
 // drawn in the dust of the floor and inked on a paper tag tied to the bars. Every real clue carries its drum number
-// (I / II / III — on HARD as tally scratches); false clues are crossed out. Set the drums, throw the lever.
-// EASY: 3 clues, 3 tries. NORMAL: + 2 crossed-out decoys, 3 tries. HARD: + 3 decoys, tally numerals, 2 tries.
+// as one, two or three dots over its ring; false clues have a broken ring. One real clue is always scratched into the wall.
+// Set the drums, press the release button. EASY: 3 clues, 3 tries. NORMAL: + 2 rubbed-out decoys. HARD: + 3 decoys, 2 tries.
 import * as T from 'three';
+import {RoundedBoxGeometry} from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import {metal, ironPlate, enableShadows} from './surface';
 import {hiCanvas, ctx2d, textTex} from './sharp';
 import {L} from '../i18n';
@@ -23,7 +24,8 @@ const SLOTS = 6;
 export function makeLockTask(seed: number, d: LockDiff): LockTask {
   const r = rng(seed * 7919 + 17), pick = <X>(a: X[]) => a.splice(Math.floor(r() * a.length), 1)[0];
   const signs = GLYPHS.map((_, i) => i), code = [pick(signs), pick(signs), pick(signs)];
-  const slots = Array.from({length: SLOTS}, (_, i) => i), clues: Clue[] = code.map((g, pos) => ({pos, glyph: g, fake: false, slot: pick(slots)}));
+  const slots = Array.from({length: SLOTS - 1}, (_, i) => i + 1), wall = Math.floor(r() * 3); // slot 0, the prisoner's scratched wall, always holds a real clue
+  const clues: Clue[] = code.map((g, pos) => ({pos, glyph: g, fake: false, slot: pos === wall ? 0 : pick(slots)}));
   const decoys = d === 'EASY' ? 0 : d === 'NORMAL' ? 2 : 3;
   for (let k = 0; k < decoys; k++) { const pos = Math.floor(r() * 3); let g = Math.floor(r() * 8); if (g === code[pos]) g = (g + 1 + Math.floor(r() * 7)) % 8; clues.push({pos, glyph: g, fake: true, slot: pick(slots)}); }
   return {code, clues, tries: d === 'HARD' ? 2 : 3, tally: d === 'HARD'};
@@ -48,36 +50,63 @@ export function glyphPath(x: CanvasRenderingContext2D, g: Glyph, cx: number, cy:
 const ROMAN = ['I', 'II', 'III'];
 
 // ------------------------------------------------------------------ clue decals
-/** one clue in a carrier's hand: scratched iron, chalk, soot, a finger in the dust, ink on a tag */
+// A clue is never labelled. Each sign sits in a ring; the drum it belongs to is told by punched dots above the ring
+// (one, two or three; the plate shows the same dots by each drum). A false clue has a broken ring and, below HARD,
+// its sign is half rubbed out. Every carrier also holds unrelated marks, so the signs have to be found and read.
+const STYLE_INK = {scratch: [236, 226, 208], chalk: [238, 234, 224], soot: [214, 160, 78], dust: [150, 128, 104], tag: [46, 22, 14]} as const;
 function clueCanvas(style: Style, c: Clue, tally: boolean, seed: number) {
-  const W = 256, H = 256, cv = hiCanvas(W, H), x = ctx2d(cv), r = rng(seed);
-  const ink = {scratch: 'rgba(232,214,190,', chalk: 'rgba(236,232,222,', soot: "rgba(222,176,96,", dust: 'rgba(150,128,104,', tag: 'rgba(40,20,14,'}[style];
-  if (style === 'tag') { // aged paper tag with a reinforced eyelet
-    x.fillStyle = '#c9b38a'; x.beginPath(); x.moveTo(40, 30); x.lineTo(216, 30); x.lineTo(216, 236); x.lineTo(40, 236); x.lineTo(40, 70); x.closePath(); x.fill();
-    const g = x.createRadialGradient(128, 130, 20, 128, 130, 160); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(90,50,20,.45)'); x.fillStyle = g; x.fill();
-    for (let i = 0; i < 300; i++) { x.fillStyle = `rgba(80,50,20,${r() * .12})`; x.fillRect(40 + r() * 176, 30 + r() * 206, 2 + r() * 4, 1 + r() * 3); }
-    x.strokeStyle = '#7a6040'; x.lineWidth = 3; x.beginPath(); x.arc(128, 54, 11, 0, 7); x.stroke(); x.fillStyle = '#1a120c'; x.beginPath(); x.arc(128, 54, 6, 0, 7); x.fill();
+  const W = 512, H = 512, cv = hiCanvas(W, H), x = ctx2d(cv), r = rng(seed), [ir, ig, ib] = STYLE_INK[style];
+  const ink = (a: number) => `rgba(${ir},${ig},${ib},${a})`;
+  const big = style === 'scratch';
+  const cx = 256, cy = big ? 290 : 268, R = big ? 96 : 124, gs = R * .54;
+  // carrier backgrounds
+  if (style === 'tag') { // aged card tag with a brass eyelet, foxing and a wax seal
+    x.save(); x.translate(256, 256); x.rotate(-.04); x.translate(-256, -256);
+    x.beginPath(); x.moveTo(110, 40); x.lineTo(402, 40); x.lineTo(430, 70); x.lineTo(430, 480); x.lineTo(82, 480); x.lineTo(82, 70); x.closePath();
+    const pg = x.createLinearGradient(0, 40, 0, 480); pg.addColorStop(0, '#d8c49a'); pg.addColorStop(1, '#b89c6c'); x.fillStyle = pg; x.fill(); x.save(); x.clip();
+    for (let i = 0; i < 40; i++) { const fx = 82 + r() * 348, fy = 40 + r() * 440, fr = 4 + r() * 22, g = x.createRadialGradient(fx, fy, 0, fx, fy, fr); g.addColorStop(0, `rgba(120,70,30,${.06 + r() * .14})`); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(fx - fr, fy - fr, fr * 2, fr * 2); }
+    const ed = x.createRadialGradient(256, 260, 120, 256, 260, 330); ed.addColorStop(0, 'rgba(0,0,0,0)'); ed.addColorStop(1, 'rgba(70,36,12,.55)'); x.fillStyle = ed; x.fillRect(0, 0, W, H);
+    x.restore();
+    x.fillStyle = '#8a6a3a'; x.beginPath(); x.arc(256, 84, 22, 0, 7); x.fill(); x.fillStyle = '#c9a868'; x.beginPath(); x.arc(256, 84, 16, 0, 7); x.fill(); x.fillStyle = '#120a06'; x.beginPath(); x.arc(256, 84, 10, 0, 7); x.fill();
+    x.fillStyle = '#6e0d0a'; x.beginPath(); for (let k = 0; k < 14; k++) { const a = k / 14 * Math.PI * 2, rr = 26 + (k % 2 ? 4 : 0) + r() * 3; x.lineTo(380 + Math.cos(a) * rr, 440 + Math.sin(a) * rr); } x.closePath(); x.fill();
+    x.strokeStyle = 'rgba(255,140,120,.35)'; x.lineWidth = 3; x.beginPath(); x.arc(380, 440, 15, 0, 7); x.stroke(); x.restore();
   }
-  if (style === 'dust') { const g = x.createRadialGradient(128, 128, 10, 128, 128, 128); g.addColorStop(0, 'rgba(70,58,48,.55)'); g.addColorStop(1, 'rgba(70,58,48,0)'); x.fillStyle = g; x.fillRect(0, 0, W, H); }
-  if (style === "soot") { x.save(); x.strokeStyle = "rgba(222,176,96,.35)"; x.lineWidth = 3; for (let i = 0; i < 7; i++) { const dx = 60 + r() * 136, dy = 120 + r() * 60; x.beginPath(); x.moveTo(dx, dy); x.lineTo(dx + (r() - .5) * 2, dy + 30 + r() * 70); x.stroke(); } x.restore(); } /* old ochre paint: drips under the sign */
-  // a style-specific stroke: scratches are several thin, jittered passes; chalk is broken and powdery
-  const stroke = (path: () => void, w: number) => {
-    const passes = style === 'scratch' ? 4 : style === 'chalk' ? 3 : style === 'dust' ? 2 : 1;
-    for (let p = 0; p < passes; p++) { x.save(); x.translate((r() - .5) * (style === 'tag' ? 0 : 3), (r() - .5) * (style === 'tag' ? 0 : 3));
-      x.lineWidth = style === 'scratch' ? w * .32 : style === 'dust' ? w * 1.25 : style === 'chalk' ? w * .7 : w; x.lineCap = x.lineJoin = 'round';
-      x.strokeStyle = ink + (style === 'scratch' ? .5 : style === 'chalk' ? .45 : style === 'soot' ? .85 : style === 'dust' ? .7 : .9) + ')';
-      if (style === 'chalk') x.setLineDash([10 + r() * 14, 2 + r() * 4]); path(); x.stroke(); x.restore(); }
+  if (style === 'dust') { for (let i = 0; i < 26; i++) { const dx = r() * W, dy = r() * H, dr = 30 + r() * 120, g = x.createRadialGradient(dx, dy, 0, dx, dy, dr); g.addColorStop(0, `rgba(78,66,54,${.15 + r() * .25})`); g.addColorStop(1, 'rgba(78,66,54,0)'); x.fillStyle = g; x.fillRect(dx - dr, dy - dr, dr * 2, dr * 2); }
+    x.strokeStyle = 'rgba(30,24,20,.22)'; x.lineCap = 'round'; for (let i = 0; i < 3; i++) { x.lineWidth = 14 + r() * 10; x.beginPath(); const sx = r() * W; x.moveTo(sx, 0); x.bezierCurveTo(sx + 80, 160, sx - 60, 340, sx + 40, H); x.stroke(); } }
+  if (style === 'chalk') { for (let i = 0; i < 8; i++) { const dx = r() * W, dy = r() * H, dr = 40 + r() * 90, g = x.createRadialGradient(dx, dy, 0, dx, dy, dr); g.addColorStop(0, `rgba(230,226,216,${.04 + r() * .07})`); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(dx - dr, dy - dr, dr * 2, dr * 2); } }
+  if (style === 'soot') { x.lineCap = 'round'; for (let i = 0; i < 8; i++) { const dx = cx - R + r() * R * 2, dy = cy + R * .7 + r() * 20, l = 40 + r() * 100; x.strokeStyle = ink(.25 + r() * .3); x.lineWidth = 3 + r() * 5; x.beginPath(); x.moveTo(dx, dy); x.lineTo(dx + (r() - .5) * 3, dy + l); x.stroke();
+    x.fillStyle = ink(.4); x.beginPath(); x.arc(dx, dy + l, 3.5, 0, 7); x.fill(); } }
+  // the hand: a scratch is a groove (dark cut + bright lip), chalk is broken and powdery, paint is wet, dust is a finger, ink is a nib
+  const stroke = (path: () => void, w: number, a = 1) => {
+    x.lineCap = x.lineJoin = 'round';
+    if (style === 'scratch') { for (let p = 0; p < 3; p++) { const jx = (r() - .5) * 2.4, jy = (r() - .5) * 2.4;
+        x.save(); x.translate(jx + 1.4, jy + 2); x.lineWidth = w * .34; x.strokeStyle = `rgba(250,240,222,${.42 * a})`; path(); x.stroke(); x.restore();
+        x.save(); x.translate(jx, jy); x.lineWidth = w * .26; x.strokeStyle = `rgba(14,10,8,${.75 * a})`; path(); x.stroke(); x.restore(); } return; }
+    const passes = style === 'chalk' ? 3 : style === 'dust' ? 2 : 1;
+    for (let p = 0; p < passes; p++) { x.save(); if (style !== 'tag') x.translate((r() - .5) * 4, (r() - .5) * 4);
+      x.lineWidth = style === 'dust' ? w * 1.3 : style === 'chalk' ? w * .7 : style === 'tag' ? w * .55 : w; x.strokeStyle = ink((style === 'chalk' ? .42 : style === 'soot' ? .82 : style === 'dust' ? .62 : .9) * a);
+      if (style === 'chalk') x.setLineDash([14 + r() * 20, 3 + r() * 5]); path(); x.stroke(); x.restore(); }
+    if (style === 'dust') { x.save(); x.translate(-2, -3); x.lineWidth = w * .5; x.strokeStyle = `rgba(190,170,145,${.3 * a})`; path(); x.stroke(); x.restore(); }
   };
-  const top = style === 'tag' ? 96 : 70, glyphY = style === 'tag' ? 172 : 160;
-  // drum number
-  if (tally) stroke(() => { x.beginPath(); for (let k = 0; k <= c.pos; k++) { const xx = 128 + (k - c.pos / 2) * 20; x.moveTo(xx, top - 26); x.lineTo(xx + 3, top + 22); } }, 9);
-  else { x.save(); x.font = `700 ${style === 'tag' ? 50 : 58}px Georgia, 'Times New Roman', serif`; x.textAlign = 'center'; x.textBaseline = 'middle';
-    for (let p = 0; p < (style === 'scratch' ? 3 : 1); p++) { x.lineWidth = style === 'scratch' ? 2.2 : style === 'dust' ? 9 : 4; x.strokeStyle = ink + (style === 'soot' ? .85 : style === 'tag' ? .95 : .6) + ')';
-      if (style === 'tag' || style === 'soot') { x.fillStyle = ink + '.9)'; x.fillText(ROMAN[c.pos], 128, top); } else x.strokeText(ROMAN[c.pos], 128 + (r() - .5) * 2, top + (r() - .5) * 2); } x.restore(); }
-  // the sign
-  stroke(() => glyphPath(x, GLYPHS[c.glyph], 128, glyphY, 54), 11);
-  // a false clue is struck out
-  if (c.fake) stroke(() => { x.beginPath(); x.moveTo(50, top - 40); x.lineTo(206, glyphY + 62); x.moveTo(206, top - 40); x.lineTo(50, glyphY + 62); }, 12);
+  // unrelated marks around the sign
+  if (style === 'scratch') { // a prisoner's wall: days counted in fives, stray gouges, a date
+    for (let g = 0; g < 5; g++) { const tx = 34 + g * 94 + r() * 10, ty = 34 + r() * 14; stroke(() => { x.beginPath(); for (let k = 0; k < 4; k++) { x.moveTo(tx + k * 14, ty); x.lineTo(tx + k * 14 + 2, ty + 62); } x.moveTo(tx - 8, ty + 46); x.lineTo(tx + 52, ty + 14); }, 9, .8); }
+    for (let i = 0; i < 8; i++) { const sx = r() * W, sy = 150 + r() * 340, a = r() * Math.PI, l = 20 + r() * 60; if (Math.hypot(sx - cx, sy - cy) < R + 40) continue; stroke(() => { x.beginPath(); x.moveTo(sx, sy); x.lineTo(sx + Math.cos(a) * l, sy + Math.sin(a) * l); }, 6, .55); }
+    x.save(); x.font = `italic 600 30px Georgia, serif`; x.textAlign = 'left'; x.lineWidth = 2.2; x.strokeStyle = 'rgba(14,10,8,.6)'; x.strokeText(r() < .5 ? 'MCMXII' : 'НЕ ВЫЙТИ', 26, 494); x.restore();
+  } else if (style === 'chalk') { for (let i = 0; i < 3; i++) { const sx = 60 + r() * 390, sy = 420 + r() * 60; stroke(() => { x.beginPath(); x.arc(sx, sy, 10 + r() * 14, 0, Math.PI * (1 + r())); }, 6, .6); } }
+  // the ring, its dots, the sign
+  const broken = c.fake, dots = c.pos + 1;
+  stroke(() => { x.beginPath(); if (broken) { const g0 = r() * Math.PI * 2; x.arc(cx, cy, R, g0 + .75, g0 + Math.PI * 2 - .2); } else x.arc(cx, cy, R, 0, Math.PI * 2); }, big ? 11 : 13);
+  stroke(() => { x.beginPath(); x.arc(cx, cy, R * .84, Math.PI * .15, Math.PI * .85); }, big ? 5 : 6, .55);
+  const dr = R + (big ? 22 : 28);
+  for (let k = 0; k < dots; k++) { const a = -Math.PI / 2 + (k - (dots - 1) / 2) * (big ? .3 : .26), dx = cx + Math.cos(a) * dr, dy = cy + Math.sin(a) * dr;
+    stroke(() => { x.beginPath(); x.arc(dx, dy, big ? 5 : 6, 0, Math.PI * 2); }, big ? 10 : 11); if (style !== 'scratch') { x.fillStyle = ink(.85); x.beginPath(); x.arc(dx, dy, 6, 0, 7); x.fill(); } }
+  stroke(() => glyphPath(x, GLYPHS[c.glyph], cx, cy, gs), big ? 15 : 18);
+  if (broken && !tally) { // rubbed out: a smeared hatch across the sign
+    x.save(); x.globalCompositeOperation = 'destination-out'; x.lineCap = 'round';
+    for (let i = 0; i < 7; i++) { x.lineWidth = 6 + r() * 6; x.strokeStyle = `rgba(0,0,0,${.35 + r() * .3})`; const y0 = cy - gs + i * gs * .33; x.beginPath(); x.moveTo(cx - gs * 1.2, y0 + gs * .3); x.lineTo(cx + gs * 1.2, y0 - gs * .3); x.stroke(); } x.restore(); }
+  if (style !== 'tag') { // soft edge: nothing on the carrier ends in a hard square
+    x.save(); x.globalCompositeOperation = 'destination-in'; const m = x.createRadialGradient(256, 256, 170, 256, 256, 256); m.addColorStop(0, '#000'); m.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = m; x.fillRect(0, 0, W, H); x.restore(); }
   return textTex(cv);
 }
 
@@ -92,6 +121,10 @@ function drumTexture() {
     glyphPath(x, GLYPHS[i], 0, 1.5, 36); x.lineWidth = 9; x.strokeStyle = 'rgba(255,236,190,.55)'; x.stroke();
     glyphPath(x, GLYPHS[i], 0, 0, 36); x.lineWidth = 8; x.strokeStyle = '#1c1208'; x.stroke(); x.restore(); }
   const t = textTex(cv); t.wrapS = T.RepeatWrapping; return t;
+}
+function labelTex() {
+  const cv = hiCanvas(256, 72), x = ctx2d(cv); x.fillStyle = '#9c7a3e'; x.fillRect(0, 0, 256, 72); x.strokeStyle = '#24170a'; x.lineWidth = 3; x.strokeRect(4, 4, 248, 64);
+  x.font = `700 34px Georgia, serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = 'rgba(255,230,170,.5)'; x.fillText(L('ОТКРЫТЬ', 'OPEN'), 128, 39); x.fillStyle = '#24170a'; x.fillText(L('ОТКРЫТЬ', 'OPEN'), 128, 37); return textTex(cv);
 }
 function plateTexture(tries: number) {
   const W = 512, H = 360, cv = hiCanvas(W, H), x = ctx2d(cv), r = rng(42);
@@ -109,7 +142,7 @@ function plateTexture(tries: number) {
   // title on a ribbon cartouche
   cut(() => { x.beginPath(); x.moveTo(120, 34); x.lineTo(392, 34); x.lineTo(408, 52); x.lineTo(392, 70); x.lineTo(120, 70); x.lineTo(104, 52); x.closePath(); x.stroke(); }, 2);
   x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = `700 27px Georgia, 'Times New Roman', serif`; cut(() => x.fillText(L('ЗАМОК КЛЕТКИ', 'CAGE LOCK'), W / 2, 53), 1);
-  x.font = `700 22px Georgia, serif`; for (let i = 0; i < 3; i++) cut(() => x.fillText(ROMAN[i], W / 2 + (i - 1) * 135 - 50, 92), 1);
+  x.font = `700 22px Georgia, serif`; for (let i = 0; i < 3; i++) { const lx = W / 2 + (i - 1) * 135 - 50; cut(() => x.fillText(ROMAN[i], lx, 92), 1); for (let k = 0; k <= i; k++) cut(() => { x.beginPath(); x.arc(lx + (k - i / 2) * 12, 114, 4, 0, 7); x.fill(); }, 1); }
   // drum windows: recessed dark wells with a chamfer
   for (let i = 0; i < 3; i++) { const wx = W / 2 + (i - 1) * 135, wy = 187; x.fillStyle = 'rgba(8,5,2,.85)'; x.fillRect(wx - 52, wy - 40, 104, 80); cut(() => x.strokeRect(wx - 56, wy - 44, 112, 88), 2.2); }
   // keyhole escutcheon (decorative: the lock has no key, only the code)
@@ -125,12 +158,12 @@ export class CodeLock {
   onResult: (ok: boolean, why: 'WRONG' | 'OK') => void = () => {}; onWrong: (left: number) => void = () => {};
   dials = [0, 0, 0]; private shown = [0, 0, 0]; private drums: T.Mesh[] = []; private shackle = new T.Group(); private body = new T.Group(); private lever = new T.Group();
   private lamps: T.Mesh[] = []; private controls: {id: string; root: T.Object3D}[] = []; private open = 0; private jam = 0; private pull = 0; private tries = 3; private done = false;
-  private plateMat: T.MeshStandardMaterial; private press = new Map<string, number>();
+  private plateMat: T.MeshStandardMaterial; private btnMat!: T.MeshPhysicalMaterial; private t = 0; private press = new Map<string, number>();
   constructor(hi: boolean) {
     const brass = metal('#8a6a36', {rough: .38, metalness: .9, repeat: 2}), dark = metal('#2b2420', {rough: .6, metalness: .8}), steel = metal('#8d8a85', {rough: .3, metalness: 1});
     this.group.add(this.body);
     // body: heavy case with a brass face
-    const caseM = new T.Mesh(new T.BoxGeometry(.3, .22, .05, 1, 1, 1), ironPlate(.6, '#5a4c40')); caseM.position.z = -.012; this.body.add(caseM);
+    const caseM = new T.Mesh(new RoundedBoxGeometry(.3, .22, .05, 4, .014), ironPlate(.6, '#4a3e34')); caseM.position.z = -.012; this.body.add(caseM);
     this.plateMat = new T.MeshStandardMaterial({map: plateTexture(3), roughness: .42, metalness: .78, envMapIntensity: 1.1});
     const face = new T.Mesh(new T.PlaneGeometry(.28, .2), this.plateMat); face.position.z = .0135; this.body.add(face);
     for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const b = new T.Mesh(new T.SphereGeometry(.0065, 12, 8), brass); b.position.set(sx * .128, sy * .088, .016); b.scale.z = .5; this.body.add(b); }
@@ -144,20 +177,25 @@ export class CodeLock {
       for (const s of [-1, 1]) { const sh = new T.Mesh(new T.BoxGeometry(DRUM_W + .014, .016, .02), dark); sh.position.set(x0, -.004 + s * .0215, .026); this.body.add(sh); }
       // arrow buttons: up above, down below
       for (const [dir, y] of [[1, .05], [-1, -.058]] as const) { const btn = new T.Group(); btn.position.set(x0, y, .02); this.body.add(btn);
-        const cap = new T.Mesh(new T.ConeGeometry(.012, .016, 3), brass); cap.rotation.z = dir > 0 ? 0 : Math.PI; cap.rotation.y = Math.PI / 6 * 0; btn.add(cap);
-        const base = new T.Mesh(new T.CylinderGeometry(.015, .016, .006, 20), dark); base.rotation.x = Math.PI / 2; base.position.z = -.006; btn.add(base);
+        const base = new T.Mesh(new T.CylinderGeometry(.0165, .0175, .006, 28), dark); base.rotation.x = Math.PI / 2; base.position.z = -.005; btn.add(base);
+        const cap = new T.Mesh(new T.CylinderGeometry(.0125, .0135, .009, 28), brass); cap.rotation.x = Math.PI / 2; btn.add(cap);
+        const tri = new T.Shape(); tri.moveTo(0, .0065 * dir); tri.lineTo(-.0062, -.0042 * dir); tri.lineTo(.0062, -.0042 * dir); tri.closePath();
+        const ar = new T.Mesh(new T.ShapeGeometry(tri), new T.MeshStandardMaterial({color: '#1a0f06', roughness: .7, metalness: .2})); ar.position.z = .0047; btn.add(ar);
         const hit = new T.Mesh(new T.CircleGeometry(.024, 12), new T.MeshBasicMaterial({visible: false})); hit.position.z = .004; btn.add(hit);
         const id = `${dir > 0 ? 'up' : 'down'}${i}`; hit.userData.id = id; this.controls.push({id, root: btn}); } }
     // the shackle: a thick steel U whose legs drop into the case
     const u = new T.Mesh(new T.TorusGeometry(.085, .011, 14, 40, Math.PI), steel); this.shackle.add(u);
     for (const s of [-1, 1]) { const leg = new T.Mesh(new T.CylinderGeometry(.011, .011, .07, 16), steel); leg.position.set(s * .085, -.035, 0); this.shackle.add(leg); }
     this.shackle.position.set(0, .11, -.012); this.body.add(this.shackle);
-    // the release lever on the right flank
-    this.lever.position.set(.168, -.02, .0); this.body.add(this.lever);
-    const hub = new T.Mesh(new T.CylinderGeometry(.016, .016, .02, 20), dark); hub.rotation.z = Math.PI / 2; this.lever.add(hub);
-    const arm = new T.Mesh(new T.CylinderGeometry(.006, .007, .085, 12), steel); arm.position.y = -.04; this.lever.add(arm);
-    const knob = new T.Mesh(new T.SphereGeometry(.016, 20, 14), metal('#5e0b07', {rough: .45, metalness: .3})); knob.position.y = -.085; this.lever.add(knob);
-    const lhit = new T.Mesh(new T.BoxGeometry(.05, .13, .05), new T.MeshBasicMaterial({visible: false})); lhit.position.y = -.05; lhit.userData.id = 'pull'; this.lever.add(lhit); this.controls.push({id: 'pull', root: knob});
+    // the release button: a red enamel push button in a brass bezel, on a side housing
+    const hous = new T.Mesh(new RoundedBoxGeometry(.06, .1, .05, 3, .01), ironPlate(.6, '#4a3e34')); hous.position.set(.168, -.012, -.012); this.body.add(hous);
+    const bez = new T.Mesh(new T.CylinderGeometry(.024, .026, .01, 40), brass); bez.rotation.x = Math.PI / 2; bez.position.set(.168, -.012, .016); this.body.add(bez);
+    const well = new T.Mesh(new T.CylinderGeometry(.019, .019, .011, 40), dark); well.rotation.x = Math.PI / 2; well.position.set(.168, -.012, .0165); this.body.add(well);
+    this.lever.position.set(.168, -.012, .02); this.body.add(this.lever);
+    this.btnMat = new T.MeshPhysicalMaterial({color: '#8c0d08', roughness: .22, metalness: 0, clearcoat: 1, clearcoatRoughness: .15, emissive: '#ff2a10', emissiveIntensity: .15});
+    const capG = new T.SphereGeometry(.0175, 32, 16, 0, Math.PI * 2, 0, Math.PI * .42); capG.rotateX(Math.PI / 2); const capB = new T.Mesh(capG, this.btnMat); capB.scale.z = .7; capB.position.z = -.008; this.lever.add(capB);
+    const lhit = new T.Mesh(new T.CircleGeometry(.03, 16), new T.MeshBasicMaterial({visible: false})); lhit.position.z = .01; lhit.userData.id = 'pull'; this.lever.add(lhit); this.controls.push({id: 'pull', root: this.lever});
+    const lab = new T.Mesh(new T.PlaneGeometry(.05, .014), new T.MeshStandardMaterial({map: labelTex(), transparent: true, roughness: .5, metalness: .6})); lab.position.set(.168, .026, .0135); this.body.add(lab);
     // attempt lamps
     for (let k = 0; k < 3; k++) { const lm = new T.Mesh(new T.SphereGeometry(.0075, 16, 10), new T.MeshStandardMaterial({color: '#2a1608', emissive: '#ff9a30', emissiveIntensity: 2, roughness: .3}));
       lm.position.set(.03 + k * .024, -.081, .016); this.body.add(lm); this.lamps.push(lm); }
@@ -171,12 +209,12 @@ export class CodeLock {
     const minX = ci?.min.x ?? -1, maxX = ci?.max.x ?? 1.2, minZ = ci?.min.z ?? -.86, maxZ = ci?.max.z ?? 1.18;
     this.group.position.set(.12, floorY + 1.24, maxZ - .05); this.group.rotation.y = Math.PI;
     this.slotPose = [
-      {style: 'scratch', p: new T.Vector3(.85, floorY + 1.78, minZ + .012), r: new T.Euler(0, 0, 0), s: .2},              // back wall, right of the shelf
-      {style: 'chalk', p: new T.Vector3(minX + .012, floorY + 2.02, -.55), r: new T.Euler(0, Math.PI / 2, 0), s: .24},      // left wall, behind the laboratory
+      {style: 'scratch', p: new T.Vector3(.8, floorY + 1.72, minZ + .012), r: new T.Euler(0, 0, -.03), s: .42},              // back wall, right of the shelf
+      {style: 'chalk', p: new T.Vector3(minX + .012, floorY + 2.02, -.55), r: new T.Euler(0, Math.PI / 2, 0), s: .26},      // left wall, behind the laboratory
       {style: 'soot', p: new T.Vector3(maxX - .012, floorY + 1.95, .86), r: new T.Euler(0, -Math.PI / 2, 0), s: .22},       // right wall, by the door
       {style: 'dust', p: new T.Vector3(-.5, floorY + .006, .78), r: new T.Euler(-Math.PI / 2, 0, .4), s: .34},              // floor, front-left corner
-      {style: 'tag', p: new T.Vector3(-.42, floorY + 1.5, maxZ - .045), r: new T.Euler(0, Math.PI, .12), s: .13},           // paper tag on the door bars
-      {style: 'scratch', p: new T.Vector3(-.12, floorY + 2.28, minZ + .012), r: new T.Euler(0, 0, -.08), s: .18}];         // back wall, high above the fuse box
+      {style: 'tag', p: new T.Vector3(-.42, floorY + 1.5, maxZ - .045), r: new T.Euler(0, Math.PI, .12), s: .15},           // paper tag on the door bars
+      {style: 'scratch', p: new T.Vector3(-.12, floorY + 2.28, minZ + .012), r: new T.Euler(0, 0, -.08), s: .3}];         // back wall, high above the fuse box
   }
   private slotPose: {style: Style; p: T.Vector3; r: T.Euler; s: number}[] = [];
 
@@ -220,8 +258,9 @@ export class CodeLock {
     for (let i = 0; i < 3; i++) { // drums turn the short way to their detent with a little overshoot
       let d = this.dials[i] - this.shown[i]; if (d > 4) d -= 8; if (d < -4) d += 8; this.shown[i] += d * (1 - Math.exp(-dt * 16)); this.shown[i] = (this.shown[i] + 8) % 8;
       this.drums[i].rotation.x = (this.shown[i] - 3.5) * STEP + Math.PI; }
-    for (const [id, k] of this.press) { const c = this.controls.find(x => x.id === id)!; const v = Math.max(0, k - dt * 6); c.root.scale.setScalar(1 - .18 * Math.sin(v * Math.PI)); if (v <= 0) this.press.delete(id); else this.press.set(id, v); }
-    this.pull = Math.max(0, this.pull - dt * 2.2); this.lever.rotation.x = -Math.sin(this.pull * Math.PI) * .9;
+    for (const [id, k] of this.press) { if (id === 'pull') { this.press.delete(id); continue; } const c = this.controls.find(x => x.id === id)!; const v = Math.max(0, k - dt * 6); c.root.scale.setScalar(1 - .18 * Math.sin(v * Math.PI)); if (v <= 0) this.press.delete(id); else this.press.set(id, v); }
+    this.pull = Math.max(0, this.pull - dt * 3); this.lever.position.z = .02 - Math.sin(this.pull * Math.PI) * .007; this.t += dt;
+    this.btnMat.emissiveIntensity = this.enabled && !this.done ? .25 + .2 * Math.sin(this.t * 3.2) : this.done && this.open > 0 ? 0 : .1;
     if (this.open > 0) { this.open = Math.min(1, this.open + dt * 1.6); const e = 1 - Math.pow(1 - this.open, 3); this.shackle.position.y = .11 + .045 * e; this.shackle.rotation.y = e * 1.2; this.body.rotation.z = Math.sin(this.open * 9) * .05 * (1 - this.open); }
     if (this.jam > 0) { this.jam = Math.max(0, this.jam - dt * 2); this.body.position.x = Math.sin(this.jam * 60) * .004 * this.jam; this.shackle.position.y = .11 + Math.abs(Math.sin(this.jam * 40)) * .006 * this.jam; }
   }

@@ -103,7 +103,7 @@ async function boot() {
   scene.traverse((o: any) => { const ms = Array.isArray(o.material) ? o.material : o.material ? [o.material] : []; for (const m of ms) if (m.isMeshPhysicalMaterial && (m.clearcoat > 0 || m.sheen > 0)) { m.clearcoat = 0; m.sheen = 0; m.needsUpdate = true; } });
   // THE CAGE LOCK: a combination padlock on the barred door over the lava; its clues are hidden around the cage
   const lock = new CodeLock(quality === "high"); lock.place(ci, floorY); scene.add(lock.group, lock.clues); lock.group.updateMatrixWorld(true);
-  lock.sounds = {click: () => audio.play("valveClick"), turn: () => audio.play("button"), lever: () => audio.play("lever"), unlock: () => { audio.play("locked"); audio.play("doorOpen"); }, jam: () => audio.play("grind")};
+  lock.sounds = {click: () => audio.play("valveClick"), turn: () => audio.play("button"), lever: () => { audio.play("button"); audio.play("relay"); }, unlock: () => { audio.play("locked"); audio.play("doorOpen"); }, jam: () => audio.play("grind")};
   jui.place(lab.ledgeTop.clone().add(new T.Vector3(0, TH / 2, 0)).applyMatrix4(lab.group.matrixWorld), new T.Quaternion().setFromEuler(new T.Euler(0, Math.PI / 2 + .06, 0)));
   lab.sounds = {click: () => audio.play('valveClick'), turn: () => audio.play('valveTurn'), grind: () => audio.play('grind'), lever: () => audio.play('lever'), press: () => audio.play('button'), pull: () => audio.play('lever'),
     pour: () => audio.play('pour'), splash: () => audio.play('splash'), stir: on => { if (on) audio.play('stir'); }, inject: () => { audio.play('button'); audio.play('relay'); }, pump: () => audio.play('pump'), accepted: () => audio.play('labOk'), unstable: () => audio.play('boil'), steam: () => audio.play('vent', .8), drain: () => audio.play('gurgle'), bubble: () => audio.play('splash')};
@@ -137,7 +137,7 @@ async function boot() {
     if (kind === 'formula') { box.locked = true; lab.enabled = true; lab.reset(); flink.start(); formulaDone = false; if (cur().state === 'rest' || cur().state === 'falling') { const d = lab.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } }
     else { lab.enabled = false; flink.stop(); }
     if (kind === "lock") { box.locked = true; lockDone = false; lock.setTask(makeLockTask(taskSeed, DIFF()), taskSeed); lock.enabled = true; deadline = IN_ROOM && roundDeadlineAt ? roundDeadlineAt : performance.now() + limitMs("lock");
-      $("hint").textContent = L("Найдите в клетке три знака с номерами I, II, III — и наберите код на замке двери. Зачёркнутые знаки — ложные.", "Find the three signs numbered I, II, III in the cage and dial them on the door lock. Crossed-out signs are false."); $("hint").style.opacity = "1";
+      $("hint").textContent = L("Код спрятан в клетке: знак в круге, точки над ним — номер барабана. Разорванный круг — ложь. Одна подсказка выцарапана на стене.", "The code is hidden in the cage: a sign in a ring, the dots above it name the drum. A broken ring lies. One clue is scratched into the wall."); $("hint").style.opacity = "1";
       if (cur().state === "rest" || cur().state === "falling") { const d = lock.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } }
     else lock.enabled = false;
     hud(); }); };
