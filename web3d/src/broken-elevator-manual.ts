@@ -137,7 +137,7 @@ async function boot() {
     if (kind === 'formula') { box.locked = true; lab.enabled = true; lab.reset(); flink.start(); formulaDone = false; if (cur().state === 'rest' || cur().state === 'falling') { const d = lab.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } }
     else { lab.enabled = false; flink.stop(); }
     if (kind === "lock") { box.locked = true; lockDone = false; lock.setTask(makeLockTask(taskSeed, DIFF()), taskSeed); lock.enabled = true; deadline = IN_ROOM && roundDeadlineAt ? roundDeadlineAt : performance.now() + limitMs("lock");
-      $("hint").textContent = L("Код спрятан в клетке: знак в круге, точки над ним — номер барабана. Разорванный круг — ложь. Одна подсказка выцарапана на стене.", "The code is hidden in the cage: a sign in a ring, the dots above it name the drum. A broken ring lies. One clue is scratched into the wall."); $("hint").style.opacity = "1";
+      $("hint").textContent = L("Взломайте замок на двери: поднимайте штифты отмычкой. Порядок — в справочнике на полке, раздел V «Взлом замка».", "Pick the door lock: lift the pins with the pick. The order is in the handbook on the shelf, section V."); $("hint").style.opacity = "1";
       if (cur().state === "rest" || cur().state === "falling") { const d = lock.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } }
     else lock.enabled = false;
     hud(); }); };
@@ -175,7 +175,8 @@ async function boot() {
     verdict(ok, ok ? L("ДУЖКА ОТКРЫТА · СПУСК ОСТАНОВЛЕН", "SHACKLE OPEN · DESCENT HALTED") : why === "TIMEOUT" ? L("ЗАМОК НЕ ОТКРЫТ · ВРЕМЯ ВЫШЛО", "TIME RAN OUT") : L("ЗАМОК ЗАКЛИНИЛО · ПОПЫТКИ КОНЧИЛИСЬ", "LOCK JAMMED · NO TRIES LEFT"), ok ? L("Замок открыт", "Lock open") : L("Замок не поддался", "The lock held"));
     if (!ok) setTimeout(() => cage.drop?.(.8), 350); clearTimeout(pending); pending = setTimeout(() => { if (inspecting && inspectTarget === "lock") setInspect(false); setTimeout(() => next(ok), 400); }, ok ? 3000 : 2600); };
   lock.onResult = ok => lockFinish(ok, ok ? "OK" : "WRONG");
-  lock.onWrong = left => { haptic("bad"); mistakes++; verdict(false, left === 1 ? L("ОСТАЛАСЬ ПОСЛЕДНЯЯ ПОПЫТКА", "ONE TRY LEFT") : L(`ОСТАЛОСЬ ПОПЫТОК: ${left}`, `TRIES LEFT: ${left}`), L("Неверный код", "Wrong code")); };
+  lock.onWrong = (left, why) => { haptic("bad"); mistakes++; verdict(false, left === 1 ? L("ОСТАЛАСЬ ПОСЛЕДНЯЯ ПОПЫТКА", "ONE TRY LEFT") : L(`ОСТАЛОСЬ ПОПЫТОК: ${left}`, `TRIES LEFT: ${left}`), why === "TRAP" ? L("Ловушка! Штифты упали", "Trap! The pins dropped") : why === "STUCK" ? L("Штифт заело — штифты упали", "A pin was stuck: they dropped") : L("Не тот штифт — штифты упали", "Wrong pin: the pins dropped")); };
+  lock.onNote = w => { if (w === "SET") haptic("tap"); if (w === "STUCK") haptic("bad"); };
   let formulaDone = false;
   flink.onOutcome = (o, reason) => { if (kind !== 'formula' || formulaDone) return; formulaDone = true; lab.enabled = false; const ok = o === 'STABILIZED'; record(ok, reason, flink.view()?.rejections ?? 0);
     if (!ok) audio.play('bad');

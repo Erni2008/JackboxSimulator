@@ -2,7 +2,7 @@ import {L, LANG} from '../i18n';
 // Programmatic page rendering: paper, letterpress text, engraved diagrams and
 // handwritten notes are all drawn here. Nothing is baked into image files.
 import type {ManualPage, ManualContent, Diagram, Annotation, SymbolGlyph} from './content';
-import {drawRulePage, drawGuidePage, drawPressurePage} from './rule-pages';
+import {drawRulePage, drawGuidePage, drawPressurePage, drawLockPage} from './rule-pages';
 import {drawJournalPage} from './journal-pages';
 
 export const PAGE_W = 1024, PAGE_H = 1408;
@@ -102,6 +102,7 @@ export function drawPage(ctx: CanvasRenderingContext2D, page: ManualPage, index:
   if (page.layout === 'guide') return drawGuidePage(ctx, index);
   if (page.layout === 'journal') return drawJournalPage(ctx, (page as any).page, index);
   if (page.layout === 'pressure') return drawPressurePage(ctx, (page as any).half, index);
+  if ((page.layout as string) === 'lockpick') return drawLockPage(ctx, (page as any).half, index);
   if (page.layout === 'title') return titlePage(ctx, content, r);
   if (page.layout === 'endpaper') { ctx.font = `italic 30px ${ITAL}`; ctx.textAlign = 'center'; ctx.fillStyle = INK_SOFT; ctx.fillText('Notes', PAGE_W / 2, 220); for (let y = 300; y < PAGE_H - 160; y += 64) { ctx.strokeStyle = 'rgba(60,40,20,.25)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke(); } return; }
   // running head

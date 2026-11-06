@@ -7,6 +7,7 @@ import {L, LANG} from '../i18n';
 import {RULES, TERMINALS, type Cond, type RuleSection} from '../puzzles/rules24';
 import {WIRE_COLORS, type WireColor} from '../puzzles/wire-puzzle';
 import {paper} from './page-art';
+import {makerEmblem, MAKERS, PIN_INK, type PinColor} from '../puzzles/code-lock';
 
 export const INK = '#140b05', INK2 = 'rgba(20,11,5,.7)', BURGUNDY = '#6a1013', RULE_LINE = 'rgba(20,11,5,.22)', BRASS = '#8a652a';
 // Cyrillic-capable faces (OFL): Cormorant SC display, Oswald labels, Lora text, IBM Plex Mono ids
@@ -282,5 +283,74 @@ export function drawPressurePage(x: X, half: 0 | 1, index: number) {
     steps.forEach(([n, t], i) => { const y = 930 + i * 100; x.fillStyle = i === 1 ? '#d6ecd0' : '#f1e0b0'; rr(x, W / 2 + 30, y, W / 2 - MX - 30, 84, 12); x.fill();
       x.fillStyle = BURGUNDY; x.font = F.mono(40, 700); x.textAlign = 'left'; x.fillText(n, W / 2 + 50, y + 56); x.fillStyle = INK; x.font = F.tech(28, 700); x.fillText(t, W / 2 + 92, y + 54); });
     x.fillStyle = '#b0180a'; x.font = F.tech(24, 700); x.textAlign = 'center'; x.fillText(L('120 PSI — ВЗРЫВ', '120 PSI — EXPLOSION'), W / 2 - 150, 1268);
+  }
+}
+
+// ------------------------------------------------------------------ PICKING THE LOCK spread (section V)
+// Left: the maker's stamp decides the binding order. Right: what each pin colour does and what to do about it.
+function lockHeader(x: X, side: number, page: number, title: string) {
+  x.textBaseline = 'alphabetic'; x.fillStyle = INK2; x.font = F.tech(20, 500); x.textAlign = 'left'; x.fillText(L('ЗАМОК КЛЕТКИ · РАЗДЕЛ V', 'THE CAGE LOCK · SECTION V'), MX, 82);
+  x.fillStyle = INK; x.font = F.display(700, 74); x.fillText(title, MX - 2, 150);
+  x.font = F.tech(30, 700); const label = L('ВЗЛОМ БЕЗ КЛЮЧА', 'PICK IT, NO KEY'), rw = x.measureText(label).width + 56, ry = 172, rh = 50;
+  x.fillStyle = BURGUNDY; x.beginPath(); x.moveTo(MX, ry); x.lineTo(MX + rw, ry); x.lineTo(MX + rw - 16, ry + rh / 2); x.lineTo(MX + rw, ry + rh); x.lineTo(MX, ry + rh); x.closePath(); x.fill(); x.fillStyle = '#f6ead0'; x.fillText(label, MX + 18, ry + rh * .74);
+  x.font = F.tech(22, 700); x.fillStyle = INK2; x.textAlign = side > 0 ? 'right' : 'left'; x.fillText(String(page), side > 0 ? W - MX : MX, H - 58);
+  x.strokeStyle = INK; x.lineWidth = 3; x.beginPath(); x.moveTo(MX, 252); x.lineTo(W - MX, 252); x.stroke();
+}
+/** a driver pin as drawn in the handbook: colour, notches, a waist for the copper spool */
+function lockPin(x: X, cx: number, cy: number, col: PinColor, notches: number, s = 1) {
+  const w = 30 * s, h = 92 * s; x.save(); x.translate(cx, cy);
+  x.fillStyle = PIN_INK[col]; x.strokeStyle = INK; x.lineWidth = 3 * s;
+  x.beginPath(); if (col === 'copper') { x.moveTo(-w / 2, -h / 2); x.lineTo(w / 2, -h / 2); x.lineTo(w / 2, -h / 2 + 18 * s); x.lineTo(w * .28, -h / 2 + 30 * s); x.lineTo(w * .28, h / 2 - 30 * s); x.lineTo(w / 2, h / 2 - 18 * s); x.lineTo(w / 2, h / 2); x.lineTo(-w / 2, h / 2); x.lineTo(-w / 2, h / 2 - 18 * s); x.lineTo(-w * .28, h / 2 - 30 * s); x.lineTo(-w * .28, -h / 2 + 30 * s); x.lineTo(-w / 2, -h / 2 + 18 * s); x.closePath(); }
+  else rr(x, -w / 2, -h / 2, w, h, 6 * s); x.fill(); x.stroke();
+  x.strokeStyle = col === 'black' ? '#d4a845' : INK; x.lineWidth = 3 * s; for (let k = 0; k < notches; k++) { const y = -h / 2 + 9 * s + k * 9 * s, ww = col === 'copper' && k > 0 ? w * .28 : w / 2; x.beginPath(); x.moveTo(-ww, y); x.lineTo(ww, y); x.stroke(); }
+  x.restore();
+}
+export function drawLockPage(x: X, half: 0 | 1, index: number) {
+  const side = half ? 1 : -1; paper(x, index + 71, side, true);
+  if (!half) {
+    lockHeader(x, side, index + 1, L('Клеймо мастера', "The maker's stamp"));
+    x.fillStyle = INK; x.font = F.body(27); x.textAlign = 'left';
+    x.fillText(L('Найдите клеймо в левом нижнем углу замка.', 'Find the stamp at the lower left of the lock.'), MX, 300);
+    x.fillText(L('Мастер решает, в каком порядке поднимать штифты.', 'The maker decides the order the pins are lifted in.'), MX, 338);
+    const rows: [number, string, (cx: number, cy: number) => void][] = [
+      [0, L('СПРАВА НАЛЕВО — от дальнего штифта к ближнему', 'RIGHT TO LEFT — from the far pin to the near one'), (cx, cy) => { const cols: PinColor[] = ['steel', 'brass', 'steel', 'copper', 'brass']; cols.forEach((c, i) => { lockPin(x, cx + (i - 2) * 44, cy, c, 0, .62); x.fillStyle = BURGUNDY; x.font = F.mono(24, 700); x.textAlign = 'center'; x.fillText(String(5 - i), cx + (i - 2) * 44, cy + 56); }); arrow(cx + 100, cy - 46, cx - 100, cy - 46); }],
+      [1, L('МЕДЬ → ЛАТУНЬ → СТАЛЬ · один цвет — слева направо', 'COPPER → BRASS → STEEL · same colour: left to right'), (cx, cy) => { const cols: PinColor[] = ['copper', 'brass', 'steel']; cols.forEach((c, i) => { lockPin(x, cx + (i - 1) * 74, cy, c, 0, .62); if (i < 2) { x.fillStyle = INK; x.font = F.tech(30, 700); x.textAlign = 'center'; x.fillText('→', cx + (i - .5) * 74, cy + 10); } x.fillStyle = BURGUNDY; x.font = F.mono(24, 700); x.textAlign = 'center'; x.fillText(String(i + 1), cx + (i - 1) * 74, cy + 56); }); }],
+      [2, L('ПО НАСЕЧКАМ — сначала штифт с одной насечкой, потом с двумя…', 'BY NOTCHES — first the pin with one notch, then two…'), (cx, cy) => { [3, 1, 2].forEach((nn, i) => { lockPin(x, cx + (i - 1) * 74, cy, i === 1 ? 'brass' : 'steel', nn, .62); x.fillStyle = BURGUNDY; x.font = F.mono(24, 700); x.textAlign = 'center'; x.fillText(String(nn), cx + (i - 1) * 74, cy + 56); }); }],
+    ];
+    function arrow(x0: number, y0: number, x1: number, y1: number) { x.strokeStyle = BURGUNDY; x.lineWidth = 4; x.beginPath(); x.moveTo(x0, y0); x.lineTo(x1, y1); x.stroke(); x.beginPath(); x.moveTo(x1, y1); x.lineTo(x1 + 14, y1 - 9); x.lineTo(x1 + 14, y1 + 9); x.closePath(); x.fillStyle = BURGUNDY; x.fill(); }
+    const top = 380, h = 270;
+    rows.forEach(([m, rule, pic], i) => { const y = top + i * h;
+      x.fillStyle = i % 2 ? 'rgba(40,28,18,.05)' : 'rgba(138,101,42,.09)'; rr(x, MX - 10, y + 8, W - 2 * MX + 20, h - 16, 16); x.fill();
+      // the stamp, as struck on the lock
+      const sx = MX + 82, sy = y + 112; x.fillStyle = '#8a652a'; x.beginPath(); x.arc(sx, sy, 66, 0, 7); x.fill(); x.strokeStyle = INK; x.lineWidth = 4; x.stroke(); x.beginPath(); x.arc(sx, sy, 56, 0, 7); x.lineWidth = 2; x.stroke();
+      x.strokeStyle = '#1b120d'; x.lineWidth = 5; makerEmblem(x, m, sx, sy, 34);
+      x.fillStyle = INK; x.font = F.display(700, 46); x.textAlign = 'left'; x.fillText(L(MAKERS[m][0], MAKERS[m][1]), MX + 176, y + 74);
+      x.fillStyle = '#1d6a33'; x.font = F.tech(24, 700); const words = rule.split(' '); let l1 = '', l2 = ''; for (const w of words) { if (!l2 && x.measureText(l1 + ' ' + w).width < 380) l1 = (l1 ? l1 + ' ' : '') + w; else l2 = (l2 ? l2 + ' ' : '') + w; }
+      x.fillText(l1, MX + 176, y + 118); if (l2) x.fillText(l2, MX + 176, y + 150);
+      pic(W - MX - 150, y + 132); });
+    x.fillStyle = BURGUNDY; x.font = F.tech(24, 700); x.textAlign = 'center'; x.fillText(L('КЛЕЙМО СТЁРТО? УЗНАЙТЕ МАСТЕРА ПО ЗНАКУ.', 'STAMP WORN? KNOW THE MAKER BY THE EMBLEM.'), W / 2, top + 3 * h + 34);
+  } else {
+    lockHeader(x, side, index + 1, L('Штифты', 'The pins'));
+    const rows: [PinColor, string, string, string][] = [
+      ['steel', L('СТАЛЬ · ЛАТУНЬ', 'STEEL · BRASS'), L('Щелчок — штифт встал на срез.', 'Click: the pin sets at the shear line.'), L('Переходите к следующему.', 'Go on to the next one.')],
+      ['copper', L('МЕДЬ · КАТУШКА', 'COPPER · SPOOL'), L('В свою очередь — ЗАЕДАЕТ, перекос.', 'In its turn it STICKS, tilted.'), L('Ослабьте натяжитель (красная ручка), поднимите медный ещё раз.', 'Ease the wrench (red grip), then lift the copper again.')],
+      ['black', L('ЧЁРНЫЙ · ЛОВУШКА', 'BLACK · TRAP'), L('Не поднимать никогда.', 'Never lift it.'), L('Его нет в порядке — пропускайте.', 'It is not in the order: skip it.')],
+    ];
+    const top = 290, h = 214;
+    rows.forEach(([c, name, what, todo], i) => { const y = top + i * h;
+      x.fillStyle = i % 2 ? 'rgba(40,28,18,.05)' : 'rgba(40,28,18,0)'; rr(x, MX - 10, y + 6, W - 2 * MX + 20, h - 12, 16); x.fill();
+      if (c === 'steel') { lockPin(x, MX + 50, y + h / 2, 'steel', 2, .9); lockPin(x, MX + 104, y + h / 2, 'brass', 1, .9); } else lockPin(x, MX + 76, y + h / 2, c, c === 'black' ? 3 : 2, .9);
+      if (c === 'black') { x.strokeStyle = '#b0180a'; x.lineWidth = 9; x.lineCap = 'round'; x.beginPath(); x.moveTo(MX + 36, y + h / 2 - 50); x.lineTo(MX + 116, y + h / 2 + 50); x.moveTo(MX + 116, y + h / 2 - 50); x.lineTo(MX + 36, y + h / 2 + 50); x.stroke(); }
+      x.fillStyle = INK; x.font = F.tech(34, 700); x.textAlign = 'left'; x.fillText(name, MX + 170, y + 62);
+      x.font = F.body(26); x.fillText(what, MX + 170, y + 104);
+      x.fillStyle = '#1d6a33'; x.font = F.tech(24, 700); const words = todo.split(' '); let l1 = '', l2 = ''; for (const w of words) { if (!l2 && x.measureText(l1 + ' ' + w).width < W - 2 * MX - 190) l1 = (l1 ? l1 + ' ' : '') + w; else l2 = (l2 ? l2 + ' ' : '') + w; }
+      x.fillText(l1, MX + 170, y + 146); if (l2) x.fillText(l2, MX + 170, y + 178); });
+    // the procedure and the penalties
+    const py = top + 3 * h + 20; x.fillStyle = '#f1e0b0'; rr(x, MX, py, W - 2 * MX, 300, 14); x.fill(); x.strokeStyle = 'rgba(20,11,5,.35)'; x.lineWidth = 2; rr(x, MX, py, W - 2 * MX, 300, 14); x.stroke();
+    const steps = [L('1  Прочтите клеймо — узнайте порядок.', '1  Read the stamp: learn the order.'), L('2  Нажимайте на штифты по порядку.', '2  Tap the pins in that order.'), L('3  Последний штифт встал — замок открыт.', '3  Last pin set: the lock opens.')];
+    x.fillStyle = INK; x.font = F.tech(28, 700); x.textAlign = 'left'; steps.forEach((s, i) => x.fillText(s, MX + 26, py + 54 + i * 46));
+    x.fillStyle = BURGUNDY; x.font = F.tech(24, 700);
+    x.fillText(L('НЕ ТОТ ШТИФТ — все падают, попытка сгорает.', 'WRONG PIN: all pins drop, a try is lost.'), MX + 26, py + 222);
+    x.fillText(L('НАТЯЖИТЕЛЬ БЕЗ ПРИЧИНЫ — все падают (попытка цела).', 'WRENCH FOR NOTHING: all drop (no try lost).'), MX + 26, py + 262);
   }
 }
