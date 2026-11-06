@@ -134,7 +134,7 @@ async function boot() {
     close() { if (dui && this.open) dui.setLowered(true); },
     update() { if (!dui) return; if (!this.taken && dui.state !== 'rest' && dui.state !== 'falling') { this.taken = true; audio.play('pickup'); haptic('tap'); coach(suitcase?.open ? 'bays' : suitcase?.found ? 'latches' : 'find'); }
       if (this.wantOpen && dui.state === 'held') { this.wantOpen = false; dui.open(); } }};
-  const startDefusalBook = () => { if (dbookP) return; dbookP = EngineersManual.create(renderer, defusalContent(memoPages()), quality, 'defusal').then(b => { dbook = b; b.sounds = book.sounds; scene.add(b.root);
+  const startDefusalBook = () => { if (dbookP) return; dbookP = EngineersManual.create(renderer, defusalContent(memoPages(DIFF())), quality, 'defusal').then(b => { dbook = b; b.sounds = book.sounds; scene.add(b.root);
     dui = new ManualInteraction(b, camera, renderer.domElement, audio, cage.planes); dui.onstate = s => { sync(s); if (s === 'reading') b.onspread(b.spread); else if (s === 'rest') book.onspread(book.spread); }; dui.onlower = () => sync(cur().state);
     b.onspread = sp => { $('page-label').textContent = `${2 * sp + 1}–${2 * sp + 2} / ${b.pages.length}`; }; nb.home(); }).catch(e => console.warn('defusal notebook', e)); };
   let suitcase: Suitcase | null = null, nbook: typeof nb | null = null, bombSeq = 0, bombView: any = null, maze: WireMazeView | null = null, links: LinksView | null = null, cutters = false, strikes = 0;
@@ -294,7 +294,7 @@ async function boot() {
     haptic(ok ? 'good' : why === 'CRITICAL' ? 'blast' : 'bad'); voice.say(ok ? 'success' : why === 'CRITICAL' ? 'explosion' : why === 'TIMEOUT' ? 'timeout' : 'fail', 4, 0); };
   const next = (ok: boolean) => { if (IN_ROOM) { pending = 0; shiftOverlay(); return; } /* the server decides what comes next */ if (ok && taskNo >= TOTAL) { const fails = rows.filter(r => !r.ok).length; setTimeout(() => voice.say(fails ? 'results' : 'perfect', 5, 0), 300);
       report(rows).then(a => { if (a === 'room') { location.href = '/'; return; } rows.length = 0; taskNo = 1; newTask(false); }); return; } newTask(ok); };
-  onDiff(() => hud());
+  onDiff(() => { hud(); dbook?.setContent(defusalContent(memoPages(DIFF()))); }); // the notebook prints only the host's chosen difficulty
   // ---- the shift as the server runs it
   const sock = RoomSocket.shared();
   const shiftOverlay = () => { const v = shiftV, el = $('shift'); if (!v || !IN_ROOM) { el.hidden = true; return; } const me = v.me || {}, now = sock!.serverNow(), left = v.phaseEnd > 0 ? Math.max(0, Math.ceil((v.phaseEnd - now) / 1000)) : 0;
