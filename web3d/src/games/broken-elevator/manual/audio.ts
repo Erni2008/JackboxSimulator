@@ -4,7 +4,7 @@
 // filtered noise and modal resonators — no placeholder files are shipped.
 // Drop real recordings into SAMPLE_URLS to override any synthesised voice.
 export const SAMPLE_URLS: Partial<Record<Voice, string>> = {pageTurn: 'audio/page_turn.wav'};
-export type Voice = 'coverOpen' | 'coverClose' | 'pageTurn' | 'pickup' | 'drop' | 'impactMetal' | 'creak' | 'snip' | 'spark' | 'good' | 'bad' | 'doorOpen' | 'doorClose' | 'button' | 'locked' | 'screech' | 'slam' | 'clockTick' | 'blub' | 'valveClick' | 'valveTurn' | 'alarm' | 'holdTick' | 'pipeKnock' | 'grind' | 'relay' | 'lever' | 'whistle' | 'surge' | 'vent' | 'burst' | 'explosion' | 'pour' | 'splash' | 'stir' | 'pump' | 'boil' | 'gurgle' | 'labOk';
+export type Voice = 'coverOpen' | 'coverClose' | 'pageTurn' | 'pickup' | 'drop' | 'impactMetal' | 'creak' | 'snip' | 'spark' | 'good' | 'bad' | 'doorOpen' | 'doorClose' | 'button' | 'locked' | 'screech' | 'slam' | 'clockTick' | 'blub' | 'valveClick' | 'valveTurn' | 'alarm' | 'holdTick' | 'pipeKnock' | 'grind' | 'relay' | 'lever' | 'whistle' | 'surge' | 'vent' | 'burst' | 'explosion' | 'pour' | 'splash' | 'stir' | 'pump' | 'boil' | 'gurgle' | 'labOk' | 'beepHi' | 'beepLo' | 'scanHum' | 'thermo' | 'ping';
 
 export class BookAudio {
   ctx: AudioContext | null = null; out!: GainNode; private buffers = new Map<Voice, AudioBuffer>(); private noise!: AudioBuffer; enabled = true;
@@ -69,6 +69,13 @@ export class BookAudio {
       case 'clockTick': this.rustle(t, .025, 3800, 4, .28, .001); this.mode(t, 2100, .05, .05); this.mode(t + .11, 1500, .04, .03); break; // escapement tick-tock
       case 'blub': { const o = this.ctx!.createOscillator(), g = this.ctx!.createGain(), f0 = 220 + Math.random() * 260; o.type = 'sine'; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f0 * 2.4, t + .07); // a bubble popping in the chamber
         g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.05 * intensity, t + .008); g.gain.exponentialRampToValueAtTime(.0001, t + .09); o.connect(g).connect(this.out); o.start(t); o.stop(t + .1); break; }
+      // THE HOST'S SUITCASE instruments
+      case 'beepHi': { const o = this.ctx!.createOscillator(), g = this.ctx!.createGain(); o.type = 'square'; o.frequency.value = 2350; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.05 * intensity, t + .004); g.gain.setValueAtTime(.05 * intensity, t + .085); g.gain.linearRampToValueAtTime(0, t + .1); o.connect(g).connect(this.out); o.start(t); o.stop(t + .12); break; }
+      case 'beepLo': { const o = this.ctx!.createOscillator(), g = this.ctx!.createGain(); o.type = 'square'; o.frequency.value = 520; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.045 * intensity, t + .006); g.gain.setValueAtTime(.045 * intensity, t + .2); g.gain.linearRampToValueAtTime(0, t + .24); o.connect(g).connect(this.out); o.start(t); o.stop(t + .26); break; }
+      case 'scanHum': { const o = this.ctx!.createOscillator(), o2 = this.ctx!.createOscillator(), g = this.ctx!.createGain(); o.type = 'sawtooth'; o.frequency.value = 98; o2.type = 'sine'; o2.frequency.value = 1960 + Math.random() * 80;
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.035 * intensity, t + .03); g.gain.linearRampToValueAtTime(0, t + .3); o.connect(g); o2.connect(g); g.connect(this.out); o.start(t); o2.start(t); o.stop(t + .32); o2.stop(t + .32); this.rustle(t, .25, 5200, 3, .06 * intensity, .02); break; }
+      case 'thermo': for (let i = 0; i < 4; i++) this.rustle(t + i * .05 + Math.random() * .03, .03, 1800 + Math.random() * 1600, 1.6, .12 * intensity, .002); this.rustle(t, .3, 600, .7, .05 * intensity, .05); break;
+      case 'ping': this.mode(t, 1760, .55, .09 * intensity); this.mode(t + .002, 2640, .4, .05 * intensity); this.mode(t + .004, 3520, .25, .03 * intensity); break;
       case 'holdTick': this.mode(t, 1400 + 300 * intensity, .09, .06); break; // stabilisation progress
       case 'grind': { for (let i = 0; i < 9; i++) this.rustle(t + i * .035 + Math.random() * .02, .06, 700 + Math.random() * 900, 6, .35, .004); const f = this.rustle(t, .45, 260, 14, .3, .02); f.frequency.linearRampToValueAtTime(180, t + .4); this.mode(t + .3, 140, .2, .12); break; } // jammed stem: metal on metal
       case 'relay': for (let i = 0; i < 6; i++) { this.rustle(t + i * .21 + Math.random() * .05, .02, 3600, 2.5, .45, .001); this.mode(t + i * .21, 1900 + Math.random() * 400, .03, .05); } break; // diagnostic relay chatter

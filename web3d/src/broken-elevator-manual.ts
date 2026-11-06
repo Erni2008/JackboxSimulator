@@ -135,7 +135,7 @@ async function boot() {
     if (left === 1) setTimeout(() => taunt([L('Неплохо. Но последний — самый коварный.', 'Not bad. But the last one is the trickiest.'), L('Два из трёх. Не расслабляйтесь.', 'Two out of three. Do not relax.')]), 2400);
     if (left > 0) { audio.play('labOk'); audio.play('relay'); haptic('good'); verdict(true, L(`Осталось механизмов: ${left}`, `Mechanisms left: ${left}`), L('Механизм обезврежен', 'Mechanism neutralised')); setTimeout(() => { if (suitcase?.focus === m) suitcase.focusOn(null); }, 1100); } };
   const judge = (m: Mechanism, ok: boolean, what: string) => { if (ok) { neutralFx(m); if (armed.every(x => neutral.has(x))) bombFinish(true, 'DEFUSED'); } else { mistakes++; strikes++; strikeFx(what); if (strikes > STRIKES()) setTimeout(() => bombFinish(false, 'WRONG'), 500); } };
-  const setLcd = (t: string) => { const el = $('t-lcd'); el.textContent = t; el.classList.remove('blink'); void el.offsetWidth; el.classList.add('blink'); audio.play(t === 'OL' || t === '—' ? 'button' : 'relay', .6); };
+  const setLcd = (t: string) => { const el = $('t-lcd'); el.textContent = t; el.classList.remove('blink'); void el.offsetWidth; el.classList.add('blink'); audio.play('button', .4); audio.play(t === 'OL' || t === '—' ? 'beepLo' : 'beepHi'); };
   const measure = () => { if (!links || links.red < 0 || links.black < 0) return; if (IN_ROOM) { $('t-lcd').textContent = '…'; RoomSocket.shared()?.send('BOMB_ACTION', {action: 'PROBE', arg: links.red * 32 + links.black, seq: ++bombSeq}); } else if (linksModel) setLcd(linksModel.read(links.red, links.black)); };
   const ensureBomb = () => { if (suitcase && nbook) return;
     suitcase = new Suitcase(overlay, quality === 'high'); suitcase.place(ci, floorY); scene.add(suitcase.root); suitcase.place(ci, floorY);
@@ -144,7 +144,7 @@ async function boot() {
     xrayV = new XrayView(); suitcase.bays.XRAY.mount.add(xrayV.group); laserV = new LaserView(); suitcase.bays.LASER.mount.add(laserV.group); thermalV = new ThermalView(); suitcase.bays.THERMAL.mount.add(thermalV.group);
     let scanSound = 0; suitcase.onGrab = rc => { const f = suitcase!.focus; const v = f === 'XRAY' ? xrayV : f === 'THERMAL' ? thermalV : null; if (!v || kind !== 'bomb' || bombDone || !live(f!)) return null;
       if ((f === 'XRAY' ? xrayV!.leverAt(rc) : thermalV!.valveAt(rc)) >= 0) return null; // a tap on a lever / valve stays a tap
-      if (!v.dragTo(rc)) return null; return r2 => { v.dragTo(r2); if (performance.now() - scanSound > 260) { scanSound = performance.now(); audio.play(f === 'XRAY' ? 'holdTick' : 'vent', .35); } }; };
+      if (!v.dragTo(rc)) return null; return r2 => { v.dragTo(r2); if (performance.now() - scanSound > 260) { scanSound = performance.now(); audio.play(f === 'XRAY' ? 'scanHum' : 'thermo', .8); } }; };
     suitcase.onTap = rc => { const f = suitcase!.focus; if (kind !== 'bomb' || bombDone || !f || !live(f)) return false;
       if (f === 'WIRE_MAZE' && maze) { const h = maze.wireAt(rc); if (!h) return false;
         if (!cutters) { toast(L('Сначала возьмите кусачки', 'Take the cutters first')); haptic('tap'); return true; }
@@ -154,7 +154,7 @@ async function boot() {
         return true; }
       if (f === 'XRAY' && xrayV) { const i = xrayV.leverAt(rc); if (i < 0) return false; xrayV.throw(i); audio.play('lever'); haptic('tap');
         if (IN_ROOM) RoomSocket.shared()?.send('BOMB_ACTION', {action: 'ISOLATE', arg: i, seq: ++bombSeq}); else judge('XRAY', !!xrayL && i === solveXray(xrayL), L('Не та банка', 'Wrong canister')); return true; }
-      if (f === 'LASER' && laserV) { const i = laserV.mirrorAt(rc); if (i < 0) return false; laserV.rotate(i); audio.play('valveClick'); audio.play('grind', .3); haptic('tap');
+      if (f === 'LASER' && laserV) { const i = laserV.mirrorAt(rc); if (i < 0) return false; laserV.rotate(i); if (laserV.hit) setTimeout(() => audio.play('ping', .8), 120); audio.play('valveClick'); audio.play('grind', .3); haptic('tap');
         if (IN_ROOM) RoomSocket.shared()?.send('BOMB_ACTION', {action: 'ROTATE', arg: i, seq: ++bombSeq}); return true; }
       if (f === 'THERMAL' && thermalV) { const i = thermalV.valveAt(rc); if (i < 0) return false; thermalV.vent(i); audio.play('valveTurn'); audio.play('vent', .6); haptic('tap');
         if (IN_ROOM) RoomSocket.shared()?.send('BOMB_ACTION', {action: 'VENT', arg: i, seq: ++bombSeq}); else judge('THERMAL', !!thermalL && i === solveThermal(thermalL), L('Не та капсула', 'Wrong capsule')); return true; }
@@ -241,7 +241,7 @@ async function boot() {
       score = `${'★'.repeat(stars)}${'☆'.repeat(3 - stars)} · ${mmss(sec)}` + (rec ? L(' · НОВЫЙ РЕКОРД!', ' · NEW RECORD!') : L(` · рекорд ${mmss(best)}`, ` · best ${mmss(best)}`)); }
     verdict(ok, ok ? score : why === 'TIMEOUT' ? L('ВРЕМЯ ВЫШЛО', 'TIME RAN OUT') : L('НЕВЕРНОЕ ДЕЙСТВИЕ', 'WRONG MOVE'), ok ? L('Бомба обезврежена', 'Bomb defused') : L('ВЗРЫВ', 'DETONATION'));
     voice.say(ok ? 'success' : 'explosion', 4, 0);
-    if (!ok) { audio.play('explosion'); audio.play('burst'); shake = 1.7; const f = $('blast'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); document.body.classList.remove('jolt'); void document.body.offsetWidth; document.body.classList.add('jolt'); nbook?.close(); if (suitcase?.focus) suitcase.focusOn(null); }
+    if (!ok) { suitcase?.blast(); audio.play('explosion'); audio.play('burst'); shake = 1.7; const f = $('blast'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); document.body.classList.remove('jolt'); void document.body.offsetWidth; document.body.classList.add('jolt'); nbook?.close(); if (suitcase?.focus) suitcase.focusOn(null); }
     else { audio.play('labOk'); if (suitcase?.focus) suitcase.focusOn(null); }
     if (!ok) setTimeout(() => cage.drop?.(.8), 350); clearTimeout(pending); pending = setTimeout(() => next(ok), ok ? 3000 : 2600); };
   RoomSocket.shared()?.listen(ev => { const b = ev.payload?.elevatorBomb; if (!b) return; const first = !bombView || bombView.puzzleId !== b.puzzleId; bombView = b; if (first && kind === 'bomb' && suitcase) armBomb(); if (kind !== 'bomb' || bombDone) return;
@@ -434,7 +434,7 @@ async function boot() {
     if (tellPending && frameNo % 30 === 0) { const intro = tellPending.startsWith('intro:'), want = intro ? tellPending.slice(6) : tellPending; if (want !== kind) tellPending = null; else if (intro ? voice.say('intro', 3, 0) : voice.say(('tutorial_' + kind) as any, 3, 0)) tellPending = intro ? kind : null; }
     cage.update(dt); ui.update(dt); jui.update(dt); if (kind === "wire" || inspectTarget === "box") box.update(dt); if (kind === "pressure" || inspectTarget === "pressure") press.update(dt, link.view()); if (kind === "formula" || inspectTarget === "lab") lab.update(dt, flink.view()); if (kind === "lock" || inspectTarget === "lock") lock.update(dt); /* only the machine in play animates */
     if (suitcase && nbook) { const liveK = kind === 'bomb'; suitcase.root.visible = liveK; nbook.root.visible = liveK && !nbook.taken; let gs = false, gn = false;
-      if (liveK && !inspecting) { hoverRay.setFromCamera(new T.Vector2(0, 0), camera); const a = suitcase.hits(hoverRay), b = nbook.hits(hoverRay); gs = !!a && a.distance < 2.2 && (!b || a.distance < b.distance); gn = !!b && b.distance < 2.2 && !gs; }
+      if (liveK && !inspecting && suitcase.enabled) { hoverRay.setFromCamera(new T.Vector2(0, 0), camera); const a = suitcase.hits(hoverRay), b = nbook.hits(hoverRay); gs = !!a && a.distance < 2.2 && (!b || a.distance < b.distance); gn = !!b && b.distance < 2.2 && !gs; }
       if (liveK && !bombDone) $('btn-cut').hidden = !(inspecting && inspectTarget === 'bomb' && suitcase.open && live('WIRE_MAZE') && suitcase.focus === 'WIRE_MAZE' && !nbook.open); maze?.update(dt); links?.update(dt); xrayV?.update(dt); laserV?.update(dt); thermalV?.update(dt);
       const fb = (m: Mechanism) => liveK && !bombDone && inspecting && inspectTarget === 'bomb' && suitcase.open && suitcase.focus === m && live(m) && !nbook.open;
       $('btn-laser').hidden = !fb('LASER'); $('scope').hidden = !fb('THERMAL'); if (!$('scope').hidden && thermalV && thermalL) { const i = thermalV.under(); $('sc-lcd').textContent = i >= 0 ? `${thermalL.caps[i].temp} °C · №${i + 1}` : '— °C'; }

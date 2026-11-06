@@ -245,6 +245,19 @@ export class Suitcase {
   bayHit(ray: T.Raycaster): Mechanism | null { if (!this.open) return null; for (const m of MECHANISMS) if (ray.intersectObject(this.bays[m].group, true).length) return m; return null; }
 
   setTimer(sec: number, limit: number) { if (this.frozen) return; const s = Math.max(0, Math.ceil(sec)); this.urgency = limit > 0 ? Math.max(0, 1 - sec / Math.min(15, limit * .3)) : 0; if (s !== this.shownSec) this.drawTimer(s); }
+  /** detonation: sparks burst out, thick smoke rolls up, the lid is thrown open (stylised, fictional) */
+  private fx: {pts: T.Points; vel: Float32Array; life: number; max: number; smoke: boolean}[] = []; private static soft: T.Texture | null = null;
+  blast() { this.latchOpen = [true, true]; this.lidTarget = 1; this.lidT = Math.max(this.lidT, .6); this.rattle = 1;
+    if (!Suitcase.soft) { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d')!, g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(.4, 'rgba(255,255,255,.45)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); Suitcase.soft = new T.CanvasTexture(c); }
+    const make = (n: number, smoke: boolean) => { const pos = new Float32Array(n * 3), vel = new Float32Array(n * 3); for (let i = 0; i < n; i++) { pos[i * 3] = (Math.random() - .5) * .3; pos[i * 3 + 1] = .02 + Math.random() * .03; pos[i * 3 + 2] = (Math.random() - .5) * .2;
+        const a = Math.random() * Math.PI * 2, sp = smoke ? .05 + Math.random() * .1 : .5 + Math.random() * 1.1; vel[i * 3] = Math.cos(a) * sp; vel[i * 3 + 1] = smoke ? .12 + Math.random() * .18 : .6 + Math.random() * 1.2; vel[i * 3 + 2] = Math.sin(a) * sp; }
+      const geo = new T.BufferGeometry().setAttribute('position', new T.BufferAttribute(pos, 3)); const m = new T.PointsMaterial({map: Suitcase.soft, size: smoke ? .16 : .018, color: smoke ? '#2a2420' : '#ffb35a', transparent: true, opacity: smoke ? .75 : 1, depthWrite: false, blending: smoke ? T.NormalBlending : T.AdditiveBlending, toneMapped: !smoke ? false : true});
+      const pts = new T.Points(geo, m); pts.frustumCulled = false; pts.raycast = () => {}; this.body.add(pts); this.fx.push({pts, vel, life: 0, max: smoke ? 3.2 : 1.3, smoke}); };
+    make(120, false); make(40, true); }
+  private updateFx(dt: number) { for (const f of this.fx) { f.life += dt; const a = f.pts.geometry.attributes.position as T.BufferAttribute, p = a.array as Float32Array;
+      for (let i = 0; i < p.length; i += 3) { if (!f.smoke) f.vel[i + 1] -= 1.6 * dt; else { f.vel[i] *= .985; f.vel[i + 2] *= .985; } p[i] += f.vel[i] * dt; p[i + 1] += f.vel[i + 1] * dt; p[i + 2] += f.vel[i + 2] * dt; } a.needsUpdate = true;
+      const k = f.life / f.max, m = f.pts.material as T.PointsMaterial; m.opacity = f.smoke ? .75 * (1 - k) * Math.min(1, f.life * 4) : 1 - k; if (f.smoke) m.size = .16 + k * .35; }
+    this.fx = this.fx.filter(f => { if (f.life < f.max) return true; this.body.remove(f.pts); f.pts.geometry.dispose(); (f.pts.material as T.Material).dispose(); return false; }); }
   /** the countdown's last word: a green STOP when defused, a dead 0:00 after the blast */
   freezeTimer(ok: boolean) { const x = this.timerCtx, w = 512, h = 192; x.fillStyle = '#0c0705'; x.fillRect(0, 0, w, h); x.textAlign = 'center'; x.textBaseline = 'middle';
     x.font = `bold ${ok ? 112 : 150}px "IBM Plex Mono", monospace`; x.shadowColor = ok ? '#2aff6a' : '#000'; x.shadowBlur = ok ? 26 : 0; x.fillStyle = ok ? '#7affa0' : '#3a1a10'; x.fillText(ok ? L('СТОП', 'SAFE') : '0:00', w / 2, h / 2 + 6); x.shadowBlur = 0; this.timerTex.needsUpdate = true; this.shownSec = -2; this.frozen = true; }
@@ -255,7 +268,7 @@ export class Suitcase {
     this.timerTex.needsUpdate = true; }
 
   update(dt: number, camera: T.PerspectiveCamera, gazed: boolean) {
-    this.time += dt; this.cam = camera; const e = 1 - Math.exp(-dt * 7);
+    this.time += dt; this.cam = camera; if (this.fx.length) this.updateFx(dt); const e = 1 - Math.exp(-dt * 7);
     // restrained "something is here" cue: brass catches a slow warm glint until the case has been found; brighter while looked at
     const glow = this.state === 'floor' && this.enabled ? (this.found ? (gazed ? .25 : 0) : (gazed ? .55 : .1 + .08 * Math.sin(this.time * 2.2))) : 0; for (const m of this.glowMats) m.emissiveIntensity += (glow - m.emissiveIntensity) * e;
     // latches flip up, then the lid swings (eased, with a slight overshoot at the stop)
