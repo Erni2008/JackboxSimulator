@@ -51,12 +51,20 @@ export class Notebook {
   private floorPos = new T.Vector3(); private glow!: T.MeshStandardMaterial; private time = 0;
 
   constructor() {
-    // ---- the object: leather notebook with an elastic band, a pencil tucked under it
-    const cover = new T.MeshStandardMaterial({color: '#3b2a1c', roughness: .75}), paperM = new T.MeshStandardMaterial({color: '#d8c79e', roughness: .95}), band = new T.MeshStandardMaterial({color: '#141210', roughness: .6});
+    // ---- the object: a black oilcloth field notebook (unlike the brown manual and the burgundy journal): red elastic, brass corners, a stencilled label
+    const weave = (() => { const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d')!; x.fillStyle = '#1b1a19'; x.fillRect(0, 0, 256, 256);
+      for (let i = 0; i < 256; i += 3) { x.fillStyle = `rgba(255,255,255,${.035 + Math.random() * .03})`; x.fillRect(i, 0, 1, 256); x.fillStyle = `rgba(0,0,0,${.2 + Math.random() * .1})`; x.fillRect(0, i, 256, 1); }
+      for (let i = 0; i < 40; i++) { x.strokeStyle = `rgba(180,170,150,${.05 + Math.random() * .08})`; x.lineWidth = .5 + Math.random(); x.beginPath(); const px = Math.random() * 256, py = Math.random() * 256; x.moveTo(px, py); x.lineTo(px + (Math.random() - .5) * 60, py + (Math.random() - .5) * 20); x.stroke(); }
+      const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(2, 2); return t; })();
+    const cover = new T.MeshStandardMaterial({map: weave, color: '#ffffff', roughness: .42, metalness: .05}), paperM = new T.MeshStandardMaterial({color: '#e2d7bc', roughness: .95}), band = new T.MeshStandardMaterial({color: '#9a1a12', roughness: .55}), brassC = new T.MeshStandardMaterial({color: '#b08a48', metalness: 1, roughness: .3});
     const b = (w: number, h: number, d: number, m: T.Material, x: number, y: number, z: number) => { const k = new T.Mesh(new T.BoxGeometry(w, h, d), m); k.position.set(x, y, z); k.castShadow = k.receiveShadow = true; this.root.add(k); return k; };
     b(.112, .003, .152, cover, 0, .0015, 0); b(.104, .012, .146, paperM, .002, .009, 0); b(.112, .003, .152, cover, 0, .0165, 0); b(.004, .018, .152, cover, -.056, .009, 0); b(.006, .0185, .152, band, .038, .009, 0);
-    const label = new T.Mesh(new T.PlaneGeometry(.06, .03), new T.MeshStandardMaterial({map: (() => { const c = document.createElement('canvas'); c.width = 256; c.height = 128; const x = c.getContext('2d')!; x.fillStyle = '#d8c79e'; x.fillRect(0, 0, 256, 128); x.strokeStyle = '#3a2a1a'; x.lineWidth = 4; x.strokeRect(8, 8, 240, 112); x.font = '44px Caveat, cursive'; x.fillStyle = '#2a3a6a'; x.textAlign = 'center'; x.fillText(L('Обезвреживание', 'Defusal'), 128, 76); const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t; })(), roughness: .9}));
-    label.rotation.x = -Math.PI / 2; label.position.set(0, .0182, -.03); this.root.add(label);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) if (sx > 0) { b(.014, .0035, .004, brassC, sx * .05, .0168, sz * .074); b(.004, .0035, .014, brassC, sx * .0545, .0168, sz * .07); }
+    const label = new T.Mesh(new T.PlaneGeometry(.064, .036), new T.MeshStandardMaterial({map: (() => { const c = document.createElement('canvas'); c.width = 320; c.height = 180; const x = c.getContext('2d')!;
+      x.fillStyle = '#e4d9bc'; x.fillRect(0, 0, 320, 180); x.strokeStyle = '#2a2622'; x.lineWidth = 5; x.strokeRect(10, 10, 300, 160); x.font = 'bold 40px Oswald, sans-serif'; x.fillStyle = '#1a1816'; x.textAlign = 'center'; x.fillText(L('ОБЕЗВРЕЖИВАНИЕ', 'DEFUSAL'), 160, 70);
+      x.font = '22px "IBM Plex Mono", monospace'; x.fillText(L('ПОЛЕВОЙ БЛОКНОТ · № 0451', 'FIELD NOTEBOOK · No 0451'), 160, 108); x.save(); x.translate(236, 138); x.rotate(-.18); x.strokeStyle = 'rgba(170,25,15,.85)'; x.lineWidth = 4; x.strokeRect(-62, -20, 124, 40); x.fillStyle = 'rgba(170,25,15,.85)'; x.font = 'bold 28px Oswald, sans-serif'; x.fillText(L('ОПАСНО', 'DANGER'), 0, 10); x.restore();
+      const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t; })(), roughness: .9}));
+    label.rotation.x = -Math.PI / 2; label.position.set(-.008, .0182, -.03); this.root.add(label);
     const pencil = new T.Mesh(new T.CylinderGeometry(.0035, .0035, .13, 6), new T.MeshStandardMaterial({color: '#7a5a20', roughness: .6})); pencil.rotation.z = Math.PI / 2; pencil.rotation.y = .3; pencil.position.set(.01, .0045, .085); this.root.add(pencil);
     this.glow = paperM; paperM.emissive = new T.Color('#ffb070'); paperM.emissiveIntensity = 0;
     // ---- pages
