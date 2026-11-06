@@ -33,7 +33,7 @@ renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.ACESFilmi
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFShadowMap; renderer.shadowMap.autoUpdate = false; let frameNo = 0;
 // iPhones (Apple GPU) hold 2x; Android mid-range (e.g. Poco X3 Pro, Adreno 640) starts lower and may drop further
 const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-const DPR_FLOOR = mobile ? (ios ? 1.5 : 1) : 1; let dpr = Math.min(devicePixelRatio, mobile ? (ios ? 2 : 1.6) : quality === 'high' ? 1.5 : 1.25); let shadowEvery = mobile ? 3 : 1; renderer.setPixelRatio(dpr);
+const DPR_FLOOR = mobile ? (ios ? 1.5 : 1) : 1; let dpr = Math.min(devicePixelRatio, mobile ? (ios ? 2 : 1.6) : quality === "high" ? 1.25 : 1); let shadowEvery = mobile ? 3 : 1; renderer.setPixelRatio(dpr);
 $('viewport').append(renderer.domElement);
 const scene = new T.Scene(), camera = new T.PerspectiveCamera(50, 1, .03, 40);
 camera.position.set(0, 1.56, .5); camera.lookAt(0, .1, -.25);
@@ -97,6 +97,8 @@ async function boot() {
   const lab = new Laboratory(quality === 'high');
   if (ci) lab.group.position.set(ci.min.x + .006, floorY + 1.3, .36); else lab.group.position.set(-.96, 1.3, .36);
   lab.group.rotation.y = Math.PI / 2; scene.add(lab.group); lab.group.updateMatrixWorld(true);
+  // performance: clear-coat and sheen add two extra lighting lobes on every metal pixel; at cage scale they are invisible
+  scene.traverse((o: any) => { const ms = Array.isArray(o.material) ? o.material : o.material ? [o.material] : []; for (const m of ms) if (m.isMeshPhysicalMaterial && (m.clearcoat > 0 || m.sheen > 0)) { m.clearcoat = 0; m.sheen = 0; m.needsUpdate = true; } });
   jui.place(lab.ledgeTop.clone().add(new T.Vector3(0, TH / 2, 0)).applyMatrix4(lab.group.matrixWorld), new T.Quaternion().setFromEuler(new T.Euler(0, Math.PI / 2 + .06, 0)));
   lab.sounds = {click: () => audio.play('valveClick'), turn: () => audio.play('valveTurn'), grind: () => audio.play('grind'), lever: () => audio.play('lever'), press: () => audio.play('button'), pull: () => audio.play('lever'),
     pour: () => audio.play('pour'), splash: () => audio.play('splash'), stir: on => { if (on) audio.play('stir'); }, inject: () => { audio.play('button'); audio.play('relay'); }, pump: () => audio.play('pump'), accepted: () => audio.play('labOk'), unstable: () => audio.play('boil'), steam: () => audio.play('vent', .8), drain: () => audio.play('gurgle'), bubble: () => audio.play('splash')};
@@ -264,7 +266,7 @@ async function boot() {
     } else { camera.position.copy(eye); camera.quaternion.setFromEuler(new T.Euler(pitch, yaw, 0, 'YXZ')); }
     if (kind === 'formula' && (flink.view()?.doses.length ?? 0) > 0 && Math.random() < dt * 1.6) audio.play('blub', .6);
     if (tellPending && frameNo % 30 === 0) { const intro = tellPending.startsWith('intro:'), want = intro ? tellPending.slice(6) : tellPending; if (want !== kind) tellPending = null; else if (intro ? voice.say('intro', 3, 0) : voice.say(('tutorial_' + kind) as any, 3, 0)) tellPending = intro ? kind : null; }
-    cage.update(dt); ui.update(dt); jui.update(dt); box.update(dt); press.update(dt, link.view()); lab.update(dt, flink.view());
+    cage.update(dt); ui.update(dt); jui.update(dt); if (kind === "wire" || inspectTarget === "box") box.update(dt); if (kind === "pressure" || inspectTarget === "pressure") press.update(dt, link.view()); if (kind === "formula" || inspectTarget === "lab") lab.update(dt, flink.view()); /* only the machine in play animates */
     if (focusTo) { let dy = focusTo[0] - yawT; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yawT += dy * Math.min(1, dt * 5); pitchT += (focusTo[1] - pitchT) * Math.min(1, dt * 5); if (Math.abs(dy) < .002 && Math.abs(focusTo[1] - pitchT) < .002) focusTo = null; }
     { const sw = kind === 'pressure' && !!link.view()?.surgeWarning; document.body.classList.toggle('surge', sw); if (sw && !surgeSaid) { surgeSaid = true; voice.say('surge', 3, 0); haptic('tap'); } }
     { const n = +$('clock-num').textContent!, run = $('clock').dataset.urgent === 'true'; document.body.classList.toggle('urgent', run); if (run && !warned10) { warned10 = true; voice.say('ten_seconds', 2, 0); }
