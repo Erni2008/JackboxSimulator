@@ -220,10 +220,10 @@ async function boot() {
     'Ах да, чуть не забыл! Я также оставил вам блокнот с инструкциями по обезвреживанию.', 'Найдите чемоданчик, откройте его и постарайтесь следовать инструкциям.', 'И советую поторопиться.', 'Всё-таки… время идёт.'];
   const BOMB_INTRO_EN = ['Oh, you managed two tasks! Splendid!', 'Although, I confess, that was far too easy.', 'So while you were busy, I quietly left a little present in your cage.', 'A suitcase. With a bomb.',
     'Oh yes, I almost forgot! I also left you a notebook with defusal instructions.', 'Find the suitcase, open it and try to follow the instructions.', 'And I advise you to hurry.', 'After all… time is ticking.'];
-  let bombWarned = false, bombDone = false, subGen = 0;
+  let tickHalf = -1; let bombWarned = false, bombDone = false, subGen = 0;
   /** the suitcase's result. In a room only the server's verdict (BOMB_UPDATED) counts; practice decides locally. */
   const bombFinish = (ok: boolean, why: 'DEFUSED' | 'WRONG' | 'TIMEOUT') => { if (kind !== 'bomb' || bombDone) return; if (IN_ROOM && why === 'TIMEOUT') { deadline = 0; return; } /* wait for the server */
-    bombDone = true; deadline = 0; setCutters(false); $('btn-cut').hidden = true; if (suitcase) suitcase.enabled = false; record(ok, why === 'DEFUSED' ? 'OK' : why); audio.play(ok ? 'good' : 'bad'); haptic(ok ? 'good' : 'blast'); shake = Math.max(shake, ok ? .2 : 1);
+    bombDone = true; deadline = 0; suitcase?.freezeTimer(ok); setCutters(false); $('btn-cut').hidden = true; if (suitcase) suitcase.enabled = false; record(ok, why === 'DEFUSED' ? 'OK' : why); audio.play(ok ? 'good' : 'bad'); haptic(ok ? 'good' : 'blast'); shake = Math.max(shake, ok ? .2 : 1);
     verdict(ok, ok ? L('МЕХАНИЗМ ОБЕЗВРЕЖЕН', 'MECHANISM NEUTRALISED') : why === 'TIMEOUT' ? L('ВРЕМЯ ВЫШЛО', 'TIME RAN OUT') : L('НЕВЕРНОЕ ДЕЙСТВИЕ', 'WRONG MOVE'), ok ? L('Бомба обезврежена', 'Bomb defused') : L('ВЗРЫВ', 'DETONATION'));
     voice.say(ok ? 'success' : 'explosion', 4, 0);
     if (!ok) { audio.play('explosion'); audio.play('burst'); shake = 1.7; const f = $('blast'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); document.body.classList.remove('jolt'); void document.body.offsetWidth; document.body.classList.add('jolt'); nbook?.close(); if (suitcase?.focus) suitcase.focusOn(null); }
@@ -426,7 +426,9 @@ async function boot() {
       document.body.classList.toggle('tool-open', !$('tester').hidden || !$('scope').hidden);
       $('tester').hidden = !(liveK && !bombDone && inspecting && inspectTarget === 'bomb' && suitcase.open && suitcase.focus === 'HIDDEN_CONNECTIONS' && armed.includes('HIDDEN_CONNECTIONS') && !neutral.has('HIDDEN_CONNECTIONS') && !nbook.open);
       const pr = $('prompt'); if (inspecting && !toastT) pr.classList.remove('show'); if (!inspecting) pr.textContent = gs ? L('ОСМОТРЕТЬ ЧЕМОДАНЧИК', 'INSPECT THE SUITCASE') : gn ? L('ВЗЯТЬ БЛОКНОТ', 'TAKE THE NOTEBOOK') : pr.textContent; if (!inspecting) pr.classList.toggle('show', gs || gn);
-      if (liveK) { suitcase.setTimer(deadline ? Math.max(0, (deadline - performance.now()) / 1000) : LIMITW(), LIMITW()); } overlay.environment = scene.environment; suitcase.update(dt, camera, gs); nbook.update(dt, gn); }
+      if (liveK) { const left = deadline ? Math.max(0, (deadline - performance.now()) / 1000) : LIMITW(); suitcase.setTimer(left, LIMITW());
+        // the fuse ticks: once a second, louder and twice as often in the last ten
+        if (deadline && !bombDone && suitcase.found) { const half = left < 10 ? Math.floor(left * 2) : Math.floor(left) * 2; if (half !== tickHalf) { tickHalf = half; audio.play('clockTick', left < 10 ? .95 : left < 30 ? .55 : .3); } } } overlay.environment = scene.environment; suitcase.update(dt, camera, gs); nbook.update(dt, gn); }
     if (focusTo) { let dy = focusTo[0] - yawT; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yawT += dy * Math.min(1, dt * 5); pitchT += (focusTo[1] - pitchT) * Math.min(1, dt * 5); if (Math.abs(dy) < .002 && Math.abs(focusTo[1] - pitchT) < .002) focusTo = null; }
     { const sw = kind === 'pressure' && !!link.view()?.surgeWarning; document.body.classList.toggle('surge', sw); if (sw && !surgeSaid) { surgeSaid = true; voice.say('surge', 3, 0); haptic('tap'); } }
     { const n = +$('clock-num').textContent!, run = $('clock').dataset.urgent === 'true'; document.body.classList.toggle('urgent', run); if (run && !warned10) { warned10 = true; voice.say(kind === 'bomb' ? 'bomb_warning' : 'ten_seconds', 2, 0); if (kind === 'bomb' && !bombWarned) { bombWarned = true; subtitles([L('Тик-так. Десять секунд.', 'Tick-tock. Ten seconds.')]); } }

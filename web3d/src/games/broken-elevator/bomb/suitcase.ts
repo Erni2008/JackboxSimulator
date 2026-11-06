@@ -180,7 +180,7 @@ export class Suitcase {
   arm(list: Mechanism[], done: Set<Mechanism>) { this.armed = [...list]; this.neutral = done; }
   /** bring a bay up to fill the view (the case turns its tray to the player); null returns to the whole case */
   focusOn(m: Mechanism | null) { this.focus = m; this.focusT = m ? 1.1 : 0; if (m) { this.aim = {yaw: 0, pitch: 1.42}; } else { this.aim = {yaw: 0, pitch: .95}; this.zoom = 1; this.off.set(0, 0); } }
-  reset() { this.focus = null; this.latchOpen = [false, false]; this.lidT = this.lidTarget = 0; this.found = false; for (const l of this.latches) { l.t = 0; l.clasp.rotation.x = 0; } this.lid.rotation.x = 0; this.yaw = 0; this.pitch = .62; this.zoom = 1; this.off.set(0, 0); this.urgency = 0; }
+  reset() { this.focus = null; this.frozen = false; this.shownSec = -1; this.latchOpen = [false, false]; this.lidT = this.lidTarget = 0; this.found = false; for (const l of this.latches) { l.t = 0; l.clasp.rotation.x = 0; } this.lid.rotation.x = 0; this.yaw = 0; this.pitch = .62; this.zoom = 1; this.off.set(0, 0); this.urgency = 0; }
   get open() { return this.lidT > .97; }
   get held() { return this.state === 'held' || this.state === 'lifting'; }
 
@@ -216,7 +216,11 @@ export class Suitcase {
   /** the mechanism under a ray (for stage 4 tools), when the lid is open */
   bayHit(ray: T.Raycaster): Mechanism | null { if (!this.open) return null; for (const m of MECHANISMS) if (ray.intersectObject(this.bays[m].group, true).length) return m; return null; }
 
-  setTimer(sec: number, limit: number) { const s = Math.max(0, Math.ceil(sec)); this.urgency = limit > 0 ? Math.max(0, 1 - sec / Math.min(15, limit * .3)) : 0; if (s !== this.shownSec) this.drawTimer(s); }
+  setTimer(sec: number, limit: number) { if (this.frozen) return; const s = Math.max(0, Math.ceil(sec)); this.urgency = limit > 0 ? Math.max(0, 1 - sec / Math.min(15, limit * .3)) : 0; if (s !== this.shownSec) this.drawTimer(s); }
+  /** the countdown's last word: a green STOP when defused, a dead 0:00 after the blast */
+  freezeTimer(ok: boolean) { const x = this.timerCtx, w = 512, h = 192; x.fillStyle = '#0c0705'; x.fillRect(0, 0, w, h); x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.font = `bold ${ok ? 112 : 150}px "IBM Plex Mono", monospace`; x.shadowColor = ok ? '#2aff6a' : '#000'; x.shadowBlur = ok ? 26 : 0; x.fillStyle = ok ? '#7affa0' : '#3a1a10'; x.fillText(ok ? L('СТОП', 'SAFE') : '0:00', w / 2, h / 2 + 6); x.shadowBlur = 0; this.timerTex.needsUpdate = true; this.shownSec = -2; this.frozen = true; }
+  private frozen = false;
   private drawTimer(s: number) { this.shownSec = s; const x = this.timerCtx, w = 512, h = 192; x.fillStyle = '#0c0705'; x.fillRect(0, 0, w, h);
     const txt = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; x.font = 'bold 150px "IBM Plex Mono", monospace'; x.textAlign = 'center'; x.textBaseline = 'middle';
     x.fillStyle = 'rgba(255,90,40,.08)'; x.fillText('8:88', w / 2, h / 2 + 6); x.shadowColor = s <= 10 ? '#ff2a10' : '#ff7a2a'; x.shadowBlur = 24; x.fillStyle = s <= 10 ? '#ff4a2a' : '#ffae5a'; x.fillText(txt, w / 2, h / 2 + 6); x.shadowBlur = 0;
@@ -231,7 +235,8 @@ export class Suitcase {
     if (this.lidTarget > this.lidT) { const was = this.lidT; this.lidT = Math.min(1, this.lidT + dt * .85); if (was < 1 && this.lidT >= 1) this.onEvent('LID_OPENED'); }
     const s = this.lidT, ease = s < .5 ? 4 * s * s * s : 1 - Math.pow(-2 * s + 2, 3) / 2; this.lid.rotation.x = -ease * 1.92 + (s >= 1 ? 0 : 0) - Math.sin(this.rattle * 30) * this.rattle * .02; this.rattle = Math.max(0, this.rattle - dt * 2.5);
     // lamps: the armed bay burns red with a heartbeat, faster as the fuse runs down
-    const beat = 1.4 + this.urgency * 5; for (const m of MECHANISMS) { const on = this.armed.includes(m) && !this.neutral.has(m) && this.enabled; this.bays[m].lamp.emissiveIntensity = on ? 1.2 + 1.6 * Math.max(0, Math.sin(this.time * beat * Math.PI)) ** 3 : 0; }
+    const beat = 1.4 + this.urgency * 5; for (const m of MECHANISMS) { const safe = this.armed.includes(m) && this.neutral.has(m), lamp = this.bays[m].lamp; lamp.emissive.set(safe ? '#38ff6a' : '#ff1e0a'); if (safe) { lamp.emissiveIntensity = 1.1; continue; }
+      const on = this.armed.includes(m) && this.enabled; lamp.emissiveIntensity = on ? 1.2 + 1.6 * Math.max(0, Math.sin(this.time * beat * Math.PI)) ** 3 : 0; }
     this.timerLamp.emissiveIntensity = this.enabled ? (Math.sin(this.time * Math.PI * 2 * (1 + this.urgency * 2)) > 0 ? 2.5 : .2) : 0;
     // orientation: inertia while free, an eased swing when a view is requested (lid opened)
     if (this.aim) { this.yaw += Math.atan2(Math.sin(this.aim.yaw - this.yaw), Math.cos(this.aim.yaw - this.yaw)) * (1 - Math.exp(-dt * 3)); this.pitch += (this.aim.pitch - this.pitch) * (1 - Math.exp(-dt * 3)); if (Math.abs(this.aim.pitch - this.pitch) < .003) this.aim = null; }
