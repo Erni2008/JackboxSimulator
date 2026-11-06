@@ -135,6 +135,8 @@ function screw(m: T.Material, dark: T.Material, r: number) {
 }
 
 export class CodeLock {
+  /** the lock is small on the door; the close-up camera comes nearer by the same factor, so the mechanism fills the screen as before */
+  static SCALE = .5;
   group = new T.Group(); clues = new T.Group(); enabled = false; task: LockTask | null = null;
   sounds: {click?: () => void; turn?: () => void; lever?: () => void; unlock?: () => void; jam?: () => void} = {};
   onResult: (ok: boolean, why: 'WRONG' | 'OK') => void = () => {}; onWrong: (left: number, why: 'ORDER' | 'TRAP' | 'STUCK') => void = () => {};
@@ -216,7 +218,7 @@ export class CodeLock {
     const a = Math.random() * Math.PI, v = .08 + Math.random() * .22; this.sparkV.set([Math.cos(a) * v, Math.sin(a) * v * .8 + .05, (Math.random() * .6) * v], k * 3); } p.needsUpdate = true; this.sparkLife = 1; }
 
   /** world placement: the lock hangs on the cage door, facing in */
-  place(ci: T.Box3 | undefined, floorY: number) { const maxZ = ci?.max.z ?? 1.18; this.group.position.set(.12, floorY + 1.24, maxZ - .05); this.group.rotation.y = Math.PI; }
+  place(ci: T.Box3 | undefined, floorY: number) { const maxZ = ci?.max.z ?? 1.18; this.group.position.set(.12, floorY + 1.3, maxZ - .035); this.group.rotation.y = Math.PI; this.group.scale.setScalar(CodeLock.SCALE); }
 
   private buildPins(t: LockTask) {
     for (const o of [...this.pins.children]) { this.pins.remove(o); o.traverse(k => (k as T.Mesh).geometry?.dispose()); }
@@ -372,7 +374,7 @@ export class CodeLock {
     this.wheel.rotation.x = this.turn;
     // cam → lever → bolt: the bolt draws back as the plug turns
     const draw = Math.max(0, Math.min(1, this.turn / (Math.PI / 2))); this.lever.rotation.z = draw * .55; this.bolt.position.x = -draw * .028; this.boltSpring.scale.set(1, .036 * (1 - draw * .5), 1);
-    if (this.open > 0) { this.open = Math.min(1, this.open + dt * 1.2); const e = Math.max(0, (this.open - .4) / .6), ee = 1 - Math.pow(1 - e, 3); this.shackle.position.y = IN.y1 + .045 + .045 * ee; this.shackle.rotation.y = ee * 1.2; }
+    if (this.open > 0) { this.open = Math.min(1, this.open + dt * .7); const e = Math.max(0, (this.open - .25) / .75), ee = 1 - Math.pow(1 - e, 3), sw = Math.max(0, (e - .35) / .65); this.shackle.position.y = IN.y1 + .045 + .07 * Math.min(1, e * 2.2); this.shackle.rotation.y = (1 - Math.pow(1 - sw, 3)) * 2.2; this.body.rotation.z = Math.sin(e * 14) * .06 * (1 - e) + ee * .12; /* the body, freed, hangs off one leg */ }
     if (this.sparkLife > 0) { this.sparkLife = Math.max(0, this.sparkLife - dt * 1.6); const p = this.sparks.geometry.attributes.position as T.BufferAttribute, v = this.sparkV;
       for (let k = 0; k < p.count; k++) { v[k * 3 + 1] -= 1.4 * dt; p.setXYZ(k, p.getX(k) + v[k * 3] * dt, p.getY(k) + v[k * 3 + 1] * dt, p.getZ(k) + v[k * 3 + 2] * dt); } p.needsUpdate = true; }
     (this.sparks.material as T.PointsMaterial).opacity = this.sparkLife * this.sparkLife;
