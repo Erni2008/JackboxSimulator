@@ -35,7 +35,7 @@ export class Suitcase {
   readonly bays = {} as Record<Mechanism, {group: T.Group; mount: T.Group; lamp: T.MeshStandardMaterial; size: [number, number]}>;
   onEvent: (e: CaseEvent) => void = () => {};
   /** taps inside the open case go to the armed mechanism first (true = handled) */ onTap: ((r: T.Raycaster) => boolean) | null = null; private downRay = new T.Ray();
-  active: Mechanism = 'WIRE_MAZE';
+  /** the armed mechanisms (3 of 5) and the ones already neutralised (their lamps go out) */ armed: Mechanism[] = []; neutral = new Set<Mechanism>();
   /** floor | lifting | held | returning */ state: 'floor' | 'lifting' | 'held' | 'returning' = 'floor';
   latchOpen = [false, false]; lidT = 0; lidTarget = 0; found = false; enabled = false;
   private latches: {g: T.Group; clasp: T.Group; t: number}[] = []; private hitMeshes: T.Object3D[] = []; private lidHit!: T.Mesh;
@@ -144,7 +144,7 @@ export class Suitcase {
   }
   center() { return this.root.getWorldPosition(new T.Vector3()); }
   /** set the armed mechanism for this event */
-  arm(m: Mechanism) { this.active = m; }
+  arm(list: Mechanism[], done: Set<Mechanism>) { this.armed = [...list]; this.neutral = done; }
   /** bring a bay up to fill the view (the case turns its tray to the player); null returns to the whole case */
   focusOn(m: Mechanism | null) { this.focus = m; this.focusT = m ? 1.1 : 0; if (m) { this.aim = {yaw: 0, pitch: 1.18}; } else { this.aim = {yaw: 0, pitch: .95}; this.zoom = 1; this.off.set(0, 0); } }
   reset() { this.focus = null; this.latchOpen = [false, false]; this.lidT = this.lidTarget = 0; this.found = false; for (const l of this.latches) { l.t = 0; l.clasp.rotation.x = 0; } this.lid.rotation.x = 0; this.yaw = 0; this.pitch = .62; this.zoom = 1; this.off.set(0, 0); this.urgency = 0; }
@@ -196,7 +196,7 @@ export class Suitcase {
     if (this.lidTarget > this.lidT) { const was = this.lidT; this.lidT = Math.min(1, this.lidT + dt * .85); if (was < 1 && this.lidT >= 1) this.onEvent('LID_OPENED'); }
     const s = this.lidT, ease = s < .5 ? 4 * s * s * s : 1 - Math.pow(-2 * s + 2, 3) / 2; this.lid.rotation.x = -ease * 1.92 + (s >= 1 ? 0 : 0) - Math.sin(this.rattle * 30) * this.rattle * .02; this.rattle = Math.max(0, this.rattle - dt * 2.5);
     // lamps: the armed bay burns red with a heartbeat, faster as the fuse runs down
-    const beat = 1.4 + this.urgency * 5; for (const m of MECHANISMS) { const on = m === this.active && this.enabled; this.bays[m].lamp.emissiveIntensity = on ? 1.2 + 1.6 * Math.max(0, Math.sin(this.time * beat * Math.PI)) ** 3 : 0; }
+    const beat = 1.4 + this.urgency * 5; for (const m of MECHANISMS) { const on = this.armed.includes(m) && !this.neutral.has(m) && this.enabled; this.bays[m].lamp.emissiveIntensity = on ? 1.2 + 1.6 * Math.max(0, Math.sin(this.time * beat * Math.PI)) ** 3 : 0; }
     this.timerLamp.emissiveIntensity = this.enabled ? (Math.sin(this.time * Math.PI * 2 * (1 + this.urgency * 2)) > 0 ? 2.5 : .2) : 0;
     // orientation: inertia while free, an eased swing when a view is requested (lid opened)
     if (this.aim) { this.yaw += Math.atan2(Math.sin(this.aim.yaw - this.yaw), Math.cos(this.aim.yaw - this.yaw)) * (1 - Math.exp(-dt * 3)); this.pitch += (this.aim.pitch - this.pitch) * (1 - Math.exp(-dt * 3)); if (Math.abs(this.aim.pitch - this.pitch) < .003) this.aim = null; }

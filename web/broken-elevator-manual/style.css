@@ -161,3 +161,14 @@ body.urgent::after{content:'';position:fixed;inset:0;pointer-events:none;z-index
 
 #btn-cut.on { background: linear-gradient(#8a2a18, #5a1a0e); border-color: #c8743a; color: #fff3d8; box-shadow: 0 0 12px rgba(255,90,40,.45); }
 body.cutters canvas { cursor: crosshair; }
+
+/* THE HOST'S SUITCASE — the tester for mechanism II */
+#tester { position: fixed; left: 50%; bottom: calc(76px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 25; width: min(92vw, 420px); padding: 10px; border-radius: 12px;
+  background: linear-gradient(#3a2a1a, #22180e); border: 2px solid #6b5230; box-shadow: 0 10px 30px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,220,160,.15); }
+#tester .lcd { font: 700 34px/1 'IBM Plex Mono', monospace; color: #a8f090; background: linear-gradient(#0f1a0e, #172414); border: 2px solid #050805; border-radius: 6px; padding: 10px 14px; text-align: right; text-shadow: 0 0 10px rgba(140,255,120,.45); letter-spacing: .06em; }
+#tester .lcd.blink { animation: lcdBlink .25s ease; } @keyframes lcdBlink { from { opacity: .2; } to { opacity: 1; } }
+#tester .t-row { display: flex; gap: 8px; margin-top: 8px; }
+#tester button { flex: 1; min-height: 44px; font: 600 15px 'IM Fell English SC', Georgia, serif; color: #f1e3c4; border-radius: 8px; border: 1px solid #6b5230; background: linear-gradient(#3a2818, #24180e); }
+#tester #t-red.on { background: linear-gradient(#b02a1a, #6a120a); border-color: #ff7a5a; } #tester #t-black.on { background: linear-gradient(#3a3a3a, #111); border-color: #ddd; }
+#tester #t-break { background: linear-gradient(#7a5a1a, #4a3008); border-color: #d8a84a; }
+body.tool-open #host-say { bottom: auto; top: max(18vh, 120px); }

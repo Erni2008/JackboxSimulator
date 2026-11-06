@@ -120,15 +120,15 @@ export class Notebook {
     ink.title(L('Порядок действий', 'Procedure'));
     const steps = [L('Найди чемодан. Подними его и осмотри со всех сторон.', 'Find the case. Pick it up and look at it from every side.'),
       L('Отстегни обе защёлки спереди. Затем подними крышку.', 'Release both front latches. Then lift the lid.'),
-      L('Внутри пять отсеков (I–V). Заряжен только тот, где горит КРАСНАЯ лампа. Остальные мертвы — их не трогай.', 'Inside are five bays (I–V). Only the one with the RED lamp is armed. The others are dead — leave them.'),
-      L('Открой главу с номером этого отсека. Выполни её правила по порядку.', 'Open the chapter with that bay\'s number. Follow its rules in order.'),
+      L('Внутри пять отсеков (I–V). Заряжены ТРИ — у них горят КРАСНЫЕ лампы. Остальные два мертвы — их не трогай.', 'Inside are five bays (I–V). THREE are armed — their lamps burn RED. The other two are dead — leave them.'),
+      L('Обезвредь все три, в любом порядке. Нажми на отсек — он приблизится. Для каждого открой главу с его номером.', 'Neutralise all three, in any order. Tap a bay to bring it close. For each, open the chapter with its number.'),
       L('Каждое неверное действие — удар по взрывателю. Лёгкий режим прощает три, средний — два, сложный — один.', 'Every wrong move is a strike on the fuse. Easy forgives three, normal two, hard one.'),
       L('Таймер — на внутренней стороне крышки. Когда он покраснеет, времени почти нет.', 'The timer is inside the lid. When it turns red, time is nearly up.')];
     let y = 320; steps.forEach((s, i) => { ink.print(`${i + 1}.`, 110, y, 36, {bold: true}); y = ink.para(s, 165, y, PW - 270, 31) + 22; });
     // little diagram: the tray from above, bays numbered
     const ox = 210, oy = y + 20, w = 580, h = 330; x.strokeStyle = '#2a1c10'; x.lineWidth = 3; x.strokeRect(ox, oy, w, h);
     const bay = (bx: number, by: number, bw: number, bh: number, n: string, red: boolean) => { x.strokeRect(ox + bx * w, oy + by * h, bw * w, bh * h); ink.print(n, ox + (bx + .05) * w, oy + (by + bh - .06) * h, 34, {bold: true}); x.beginPath(); x.arc(ox + (bx + bw - .05) * w, oy + (by + bh - .1) * h, 9, 0, 7); x.fillStyle = red ? '#a8261a' : 'rgba(0,0,0,0)'; x.fill(); x.stroke(); };
-    bay(.04, .06, .3, .44, 'I', false); bay(.37, .06, .26, .44, 'II', true); bay(.66, .06, .3, .44, 'III', false); bay(.04, .56, .5, .38, 'IV', false); bay(.6, .56, .36, .38, 'V', false);
+    bay(.04, .06, .3, .44, 'I', true); bay(.37, .06, .26, .44, 'II', true); bay(.66, .06, .3, .44, 'III', false); bay(.04, .56, .5, .38, 'IV', true); bay(.6, .56, .36, .38, 'V', false);
     ink.hand(L('(пример) горит = заряжен', '(example) lit = armed'), ox + w * .4, oy - 18, 38, '#a8261a', -.03);
   };
   private drawOpener(x: CanvasRenderingContext2D, ink: Ink, m: Mechanism, i: number) {

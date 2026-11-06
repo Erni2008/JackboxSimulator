@@ -14,8 +14,7 @@ class CageShiftTest {
     void toRound(CageShift s, int r) { for (int i = 0; i < 400_000 && !(s.phase() == Phase.ROUND && s.round() == r); i++) s.advance(t += 25); assertEquals(Phase.ROUND, s.phase(), "reached round " + r); }
 
     @Test void threeDistinctMachinesFromThePool() {
-        var s = shift("a"); assertEquals(3, s.kinds.size()); assertEquals(3, new HashSet<>(s.kinds).size()); assertTrue(CageShift.POOL.containsAll(s.kinds.subList(0, 2)));
-        var b = new CageShift(Difficulty.NORMAL, List.of("a"), 7, 0, true); assertTrue(CageShift.POOL.containsAll(b.kinds.subList(0, 2))); assertEquals(CageShift.BOMB, b.kinds.get(2), "after two machines comes the suitcase"); assertEquals(Difficulty.NORMAL.bombMs, CageShift.limitFor(Difficulty.NORMAL, "bomb"));
+        var s = shift("a"); assertEquals(3, s.kinds.size()); assertEquals(3, new HashSet<>(s.kinds).size()); assertTrue(CageShift.POOL.containsAll(s.kinds)); assertEquals(Difficulty.NORMAL.bombMs, CageShift.limitFor(Difficulty.NORMAL, "bomb"));
         assertEquals(Phase.INTRO, s.phase()); toRound(s, 0); assertFalse(s.kind().isEmpty());
     }
     @Test void cagesSinkOnlyWhileBrokenAndStopWhenRepaired() {

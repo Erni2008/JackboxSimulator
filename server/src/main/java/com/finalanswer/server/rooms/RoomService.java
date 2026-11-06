@@ -611,7 +611,7 @@ public final class RoomService {
             if(!Set.of("roomCode","module").containsAll(data.keySet()))throw new Failure(400,"INVALID_BOMB_ACTION");
             var current=room.bomb.get(member.id);
             if(current==null||current.outcome()!=com.erni.finalanswer.gameplay.elevator.BombPuzzle.Outcome.RUNNING&&room.shift==null){
-                var forced=data.has("module")?com.erni.finalanswer.gameplay.elevator.BombPuzzle.parse(Protocol.string(data,"module")):null; long limit=room.shift!=null&&room.shift.kind().equals("bomb")?room.shift.roundLimit():room.difficulty.bombMs;
+                var forced=data.has("module")?com.erni.finalanswer.gameplay.elevator.BombPuzzle.parseList(Protocol.string(data,"module")):null; long limit=room.shift!=null&&room.shift.kind().equals("bomb")?room.shift.roundLimit():room.difficulty.bombMs;
                 room.bomb.put(member.id,new com.erni.finalanswer.gameplay.elevator.BombPuzzle(random.nextLong(),room.difficulty,forced,now(),limit));}
             reply(peer,room,member,message);return;
         }
@@ -626,9 +626,10 @@ public final class RoomService {
         else if(p.outcome()==com.erni.finalanswer.gameplay.elevator.BombPuzzle.Outcome.DETONATED){p.rewarded=true;member.elevatorPenalties++;member.cageFailAt=now();cageResult(room,member,"bomb",false);}
     }
     private Map<String,Object> bombView(com.erni.finalanswer.gameplay.elevator.BombPuzzle p){ Map<String,Object> v=new LinkedHashMap<>();
-        v.put("module",p.module.name());v.put("stage",p.stage().name());v.put("strikes",p.strikes());v.put("strikesAllowed",p.strikesAllowed());v.put("startedAt",p.startedAt());v.put("deadline",p.deadline());
+        v.put("armed",p.armed.stream().map(Enum::name).toList());v.put("neutralised",p.neutralised().stream().map(Enum::name).toList());v.put("stage",p.stage().name());v.put("strikes",p.strikes());v.put("strikesAllowed",p.strikesAllowed());v.put("startedAt",p.startedAt());v.put("deadline",p.deadline());
         v.put("outcome",p.outcome().name());v.put("failReason",p.failReason());v.put("finishedAt",p.finishedAt());v.put("lastSeq",p.lastSeq());v.put("puzzleId",Long.toHexString(p.seed));v.put("cut",List.copyOf(p.cut()));
         if(p.wires!=null){var w=p.wires;Map<String,Object> m=new LinkedHashMap<>();m.put("n",w.n);m.put("seal",w.seal.name());m.put("redirect",w.redirect);m.put("letters",w.letters);m.put("end",w.end);m.put("color",w.color);m.put("layer",w.layer);m.put("bends",w.bends);v.put("wires",m);}
+        if(p.links!=null){v.put("links",Map.of("n",p.links.n,"red",p.probe()[0],"black",p.probe()[1],"reading",p.reading()));} // the hidden graph itself never leaves the server
         var e=p.lastEvent();if(e!=null)v.put("event",Map.of("seq",e.seq(),"type",e.type(),"detail",e.detail()));
         return v; } // the solution never leaves the server
     private void tickBomb(Room room){

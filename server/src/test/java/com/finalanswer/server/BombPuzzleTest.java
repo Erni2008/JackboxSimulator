@@ -10,17 +10,42 @@ import static com.finalanswer.server.RoomServiceTest.*;
 
 /** THE HOST'S SUITCASE: module choice, fuse, progress, and the room keeps the same suitcase across reconnects. */
 class BombPuzzleTest {
-    @Test void moduleChoiceIsReproducibleCoversAllFiveAndCanBeForced() {
-        Set<Mechanism> seen = EnumSet.noneOf(Mechanism.class);
-        for (long s = 0; s < 200; s++) { assertEquals(BombPuzzle.pick(s), BombPuzzle.pick(s)); seen.add(BombPuzzle.pick(s)); }
-        assertEquals(EnumSet.allOf(Mechanism.class), seen, "every mechanism can come up");
-        assertEquals(Mechanism.LASER, new BombPuzzle(1, Difficulty.EASY, Mechanism.LASER, 0).module);
-        assertEquals(Mechanism.THERMAL, BombPuzzle.parse("thermal")); assertNull(BombPuzzle.parse("lava"));
+    static final List<Mechanism> WM = List.of(Mechanism.WIRE_MAZE), HC = List.of(Mechanism.HIDDEN_CONNECTIONS);
+    @Test void alwaysThreeOfFiveReproducibleAndForcible() {
+        Set<Set<Mechanism>> combos = new HashSet<>();
+        for (long s = 0; s < 400; s++) { var a = BombPuzzle.pick(s); assertEquals(a, BombPuzzle.pick(s)); assertEquals(3, a.size()); assertEquals(3, new HashSet<>(a).size()); combos.add(EnumSet.copyOf(a)); }
+        assertEquals(10, combos.size(), "all ten 3-of-5 combinations come up");
+        assertEquals(List.of(Mechanism.LASER), new BombPuzzle(1, Difficulty.EASY, List.of(Mechanism.LASER), 0).armed);
+        assertEquals(List.of(Mechanism.WIRE_MAZE, Mechanism.THERMAL), BombPuzzle.parseList("wire_maze,thermal,lava")); assertNull(BombPuzzle.parse("lava"));
+        assertTrue(CageShift.FULL_POOL.contains("bomb"), "the bomb is the fifth assignment");
+        Set<String> drawn = new HashSet<>(); for (long s = 0; s < 60; s++) drawn.addAll(new CageShift(Difficulty.NORMAL, List.of("a"), s, 0, CageShift.FULL_POOL).kinds); assertTrue(drawn.contains("bomb"), "drawn at random like any machine");
+    }
+    @Test void allArmedMechanismsMustBeNeutralised() {
+        var p = new BombPuzzle(5, Difficulty.EASY, List.of(Mechanism.WIRE_MAZE, Mechanism.HIDDEN_CONNECTIONS), 0); p.apply("OPEN", 1, 1);
+        p.apply("CUT", p.wires.solution(), 2, 2); assertEquals(Outcome.RUNNING, p.outcome(), "one of two is not enough"); assertEquals(Set.of(Mechanism.WIRE_MAZE), p.neutralised());
+        assertThrows(IllegalArgumentException.class, () -> p.apply("CUT", 0, 3, 3), "a neutralised mechanism is dead");
+        int L = p.links.solutionLetter(), N = p.links.n + p.links.solutionNumber(); assertTrue(p.apply("BREAK", N * 32 + L, 4, 4)); assertEquals(Outcome.DEFUSED, p.outcome());
+        assertThrows(IllegalArgumentException.class, () -> new BombPuzzle(5, Difficulty.EASY, WM, 0).apply("PROBE", 1, 1, 1), "an unarmed mechanism is decoration");
+    }
+    @Test void hiddenLinksReadConsistentlyAndHaveOneFiringLink() {
+        for (Difficulty d : Difficulty.values()) for (long seed = 0; seed < 400; seed++) { var h = HiddenLinks.generate(seed, d); int n = h.n; assertEquals(HiddenLinks.pairs(d), n);
+            int firing = 0, diodes = 0;
+            for (int a = 0; a < n; a++) for (int b = n; b < 2 * n; b++) { String f = h.read(a, b), back = h.read(b, a);
+                if (h.isFiring(a, b)) { firing++; assertEquals(h.isFiring(b, a), true); }
+                if (f.equals("0.62▶") || back.equals("0.62▶")) { diodes++; assertNotEquals(f, back, "a diode conducts one way only"); }
+                else assertEquals(f, back, "jumpers, resistors and open pairs read the same both ways");
+                assertEquals(f, h.read(a, b), "readings never change"); }
+            for (int a = 0; a < n; a++) for (int b = 0; b < n; b++) assertEquals(a == b ? "—" : "OL", h.read(a, b), "letter to letter is never linked");
+            assertEquals(1, firing, "exactly one firing link"); assertEquals(d == Difficulty.EASY ? 1 : d == Difficulty.NORMAL ? 2 : 3, diodes);
+            // independent reading of chapter II from tester readings alone
+            int ans = -1; for (int a = 0; a < n; a++) for (int b = n; b < 2 * n; b++) { boolean numToLetter = h.read(b, a).equals("0.62▶"), letToNum = h.read(a, b).equals("0.62▶"); if (!numToLetter && !letToNum) continue;
+                if (d == Difficulty.EASY || (numToLetter && (ans < 0 || d == Difficulty.HARD && b > ans % 100))) ans = a * 100 + b; }
+            assertTrue(h.isFiring(ans / 100, ans % 100), d + " seed " + seed); }
     }
     @Test void timersComeFromDifficultyAndTheFuseDetonates() {
-        assertEquals(90_000, Difficulty.EASY.bombMs); assertEquals(60_000, Difficulty.NORMAL.bombMs); assertEquals(45_000, Difficulty.HARD.bombMs);
-        var p = new BombPuzzle(3, Difficulty.HARD, null, 1000); assertFalse(p.advance(1000 + 44_999)); assertEquals(Outcome.RUNNING, p.outcome());
-        assertTrue(p.advance(1000 + 45_000)); assertEquals(Outcome.DETONATED, p.outcome()); assertEquals("TIMEOUT", p.failReason());
+        assertTrue(Difficulty.EASY.bombMs > Difficulty.NORMAL.bombMs && Difficulty.NORMAL.bombMs > Difficulty.HARD.bombMs);
+        var p = new BombPuzzle(3, Difficulty.HARD, null, 1000); assertFalse(p.advance(1000 + Difficulty.HARD.bombMs - 1)); assertEquals(Outcome.RUNNING, p.outcome());
+        assertTrue(p.advance(1000 + Difficulty.HARD.bombMs)); assertEquals(Outcome.DETONATED, p.outcome()); assertEquals("TIMEOUT", p.failReason());
         assertFalse(p.apply("OPEN", 1, 50_000), "nothing works after the bang");
     }
     @Test void progressIsOrderedAndDuplicatesIgnored() {
@@ -36,10 +61,10 @@ class BombPuzzleTest {
         var one = obj(service.join(s(host, "code"), Map.of("name", "One"))); service.attach(s(host, "code"), s(one, "token"), a, "a");
         java.util.function.BiConsumer<TestPeer, Object[]> cmd = (peer, kv) -> { Map<String, Object> m = new LinkedHashMap<>(); for (int i = 1; i < kv.length; i += 2) m.put((String) kv[i], kv[i + 1]); service.command(peer, Protocol.decode(Protocol.event((String) kv[0], UUID.randomUUID().toString(), m))); };
         cmd.accept(h, new Object[]{"OPEN_WEB_GAME", "game", "broken-elevator", "difficulty", "NORMAL"});
-        cmd.accept(a, new Object[]{"BOMB_START", "module", "WIRE_MAZE"}); cmd.accept(a, new Object[]{"BOMB_ACTION", "action", "OPEN", "seq", 1});
-        String before = bomb(a); assertTrue(before.contains("\"module\":\"WIRE_MAZE\"") && before.contains("\"stage\":\"OPEN\""), before);
+        cmd.accept(a, new Object[]{"BOMB_START", "module", "WIRE_MAZE,HIDDEN_CONNECTIONS"}); cmd.accept(a, new Object[]{"BOMB_ACTION", "action", "OPEN", "seq", 1});
+        String before = bomb(a); assertTrue(before.contains("\"armed\":[\"WIRE_MAZE\",\"HIDDEN_CONNECTIONS\"]") && before.contains("\"stage\":\"OPEN\""), before);
         service.attach(s(host, "code"), s(one, "token"), a2, "a2"); cmd.accept(a2, new Object[]{"BOMB_START", "module", "LASER"});
-        String after = bomb(a2); assertTrue(after.contains("\"module\":\"WIRE_MAZE\"") && after.contains("\"stage\":\"OPEN\""), "same suitcase, same progress: " + after);
+        String after = bomb(a2); assertTrue(after.contains("\"armed\":[\"WIRE_MAZE\",\"HIDDEN_CONNECTIONS\"]") && after.contains("\"stage\":\"OPEN\""), "same suitcase, same progress: " + after);
         assertEquals(before.replaceAll(".*\"puzzleId\":\"([0-9a-f]+)\".*", "$1"), after.replaceAll(".*\"puzzleId\":\"([0-9a-f]+)\".*", "$1"));
         assertThrows(com.finalanswer.server.rooms.RoomService.Failure.class, () -> cmd.accept(a2, new Object[]{"BOMB_ACTION", "action", "DEFUSE", "seq", 2}));
     }
@@ -58,13 +83,13 @@ class BombPuzzleTest {
             assertEquals(WireMaze.generate(42, d).solution(), WireMaze.generate(42, d).solution(), "reproducible"); }
     }
     @Test void cuttingIsValidatedOnTheServer() {
-        var p = new BombPuzzle(9, Difficulty.NORMAL, Mechanism.WIRE_MAZE, 0); int ok = p.wires.solution(), bad = (ok + 1) % p.wires.n, bad2 = (ok + 2) % p.wires.n;
+        var p = new BombPuzzle(9, Difficulty.NORMAL, WM, 0); int ok = p.wires.solution(), bad = (ok + 1) % p.wires.n, bad2 = (ok + 2) % p.wires.n;
         assertThrows(IllegalArgumentException.class, () -> p.apply("CUT", ok, 1, 10), "the lid must be open first");
         p.apply("OPEN", 2, 20); assertThrows(IllegalArgumentException.class, () -> p.apply("CUT", 99, 3, 30));
         assertTrue(p.apply("CUT", bad, 4, 40)); assertEquals(1, p.strikes()); assertEquals(Outcome.RUNNING, p.outcome());
         assertFalse(p.apply("CUT", bad, 5, 50), "a cut wire stays cut"); assertEquals(1, p.strikes());
         assertTrue(p.apply("CUT", ok, 6, 60)); assertEquals(Outcome.DEFUSED, p.outcome()); assertEquals(Set.of(bad, ok), p.cut());
-        var h = new BombPuzzle(9, Difficulty.HARD, Mechanism.WIRE_MAZE, 0); h.apply("OPEN", 1, 1); int s = h.wires.solution();
+        var h = new BombPuzzle(9, Difficulty.HARD, WM, 0); h.apply("OPEN", 1, 1); int s = h.wires.solution();
         h.apply("CUT", (s + 1) % h.wires.n, 2, 2); assertEquals(Outcome.RUNNING, h.outcome(), "hard forgives one"); h.apply("CUT", (s + 2) % h.wires.n, 3, 3); assertEquals(Outcome.DETONATED, h.outcome()); assertEquals("WRONG", h.failReason());
         void_(bad2);
     }

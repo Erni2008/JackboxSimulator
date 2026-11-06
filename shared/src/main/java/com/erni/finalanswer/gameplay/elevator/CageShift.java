@@ -20,9 +20,11 @@ import java.util.*;
  * Worst path with one failure: three slow rounds plus the drop = 100 − 3·15 − 25 = 30 m left.
  */
 public final class CageShift {
-    public static final List<String> POOL = List.of("wire", "pressure", "formula", "lock");
-    /** the host's "gift": after two machines the last round is always the bomb suitcase (false = plain machines only) */
-    public static final boolean BOMB_FINALE = false; /* switched on once the suitcase is playable end to end */ public static final String BOMB = "bomb";
+    public static final String BOMB = "bomb";
+    /** the bomb suitcase is the 5th assignment of the pool; it joins the live draw once all five mechanisms are playable */
+    public static final boolean BOMB_LIVE = false;
+    public static final List<String> POOL = BOMB_LIVE ? List.of("wire", "pressure", "formula", "lock", BOMB) : List.of("wire", "pressure", "formula", "lock");
+    public static final List<String> FULL_POOL = List.of("wire", "pressure", "formula", "lock", BOMB);
     public static final int ROUNDS = 3;
     public static final double START_M = 100, ROUND_DESCENT_M = 15, FIRST_DROP_M = 25, SECOND_FLOOR_M = 2;
     public static final long INTRO_MS = 9_000, BREAK_MS = 6_000, GRACE_MS = 2_500;
@@ -38,10 +40,9 @@ public final class CageShift {
     public final Difficulty difficulty; public final List<String> kinds; public final Map<String, Cage> cages = new LinkedHashMap<>();
     private Phase phase = Phase.INTRO; private int round = -1; private long phaseStart, phaseEnd, roundLimit, last;
 
-    public CageShift(Difficulty d, Collection<String> playerIds, long seed, long now) { this(d, playerIds, seed, now, BOMB_FINALE); }
-    public CageShift(Difficulty d, Collection<String> playerIds, long seed, long now, boolean bombFinale) {
-        difficulty = d; List<String> pool = new ArrayList<>(POOL); Collections.shuffle(pool, new Random(seed));
-        List<String> k = new ArrayList<>(pool.subList(0, Math.min(bombFinale ? ROUNDS - 1 : ROUNDS, pool.size()))); if (bombFinale) k.add(BOMB); kinds = List.copyOf(k);
+    public CageShift(Difficulty d, Collection<String> playerIds, long seed, long now) { this(d, playerIds, seed, now, POOL); }
+    public CageShift(Difficulty d, Collection<String> playerIds, long seed, long now, List<String> machines) {
+        difficulty = d; List<String> pool = new ArrayList<>(machines); Collections.shuffle(pool, new Random(seed)); kinds = List.copyOf(pool.subList(0, Math.min(ROUNDS, pool.size())));
         for (String id : playerIds) cages.put(id, new Cage(id));
         phaseStart = last = now; phaseEnd = now + INTRO_MS;
     }
