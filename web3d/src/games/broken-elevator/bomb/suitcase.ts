@@ -222,7 +222,8 @@ export class Suitcase {
   arm(list: Mechanism[], done: Set<Mechanism>) { this.armed = [...list]; this.neutral = done; }
   /** bring a bay up to fill the view (the case turns its tray to the player); null returns to the whole case */
   focusOn(m: Mechanism | null) { this.focus = m; this.focusT = m ? 1.1 : 0; if (m) { this.aim = {yaw: 0, pitch: 1.42}; } else { this.aim = {yaw: 0, pitch: .95}; this.zoom = 1; this.off.set(0, 0); } }
-  reset() { this.focus = null; this.frozen = false; this.shownSec = -1; this.latchOpen = [false, false]; this.lidT = this.lidTarget = 0; this.found = false; for (const l of this.latches) { l.t = 0; l.clasp.rotation.x = 0; } this.lid.rotation.x = 0; this.yaw = 0; this.pitch = .62; this.zoom = 1; this.off.set(0, 0); this.urgency = 0; }
+  reset() { if (this.shattered) { for (const sv of this.saved) { sv.parent.add(sv.o); sv.o.position.copy(sv.p); sv.o.quaternion.copy(sv.q); sv.o.visible = sv.vis; } this.saved = []; this.debris = []; this.shattered = false; for (const h of this.halos.values()) h.visible = true; if (this.timerHalo) this.timerHalo.visible = true; }
+    this.focus = null; this.frozen = false; this.shownSec = -1; this.latchOpen = [false, false]; this.lidT = this.lidTarget = 0; this.found = false; for (const l of this.latches) { l.t = 0; l.clasp.rotation.x = 0; } this.lid.rotation.x = 0; this.yaw = 0; this.pitch = .62; this.zoom = 1; this.off.set(0, 0); this.urgency = 0; }
   get open() { return this.lidT > .97; }
   get held() { return this.state === 'held' || this.state === 'lifting'; }
 
@@ -262,6 +263,20 @@ export class Suitcase {
   setTimer(sec: number, limit: number) { if (this.frozen) return; const s = Math.max(0, Math.ceil(sec)); this.urgency = limit > 0 ? Math.max(0, 1 - sec / Math.min(15, limit * .3)) : 0; if (s !== this.shownSec) this.drawTimer(s); }
   /** detonation: sparks burst out, thick smoke rolls up, the lid is thrown open (stylised, fictional) */
   private fx: {pts: T.Points; vel: Float32Array; life: number; max: number; smoke: boolean}[] = []; private static soft: T.Texture | null = null;
+  /** the case itself comes apart: lid, walls, trim, bays and mechanisms fly off, tumble and fall (restored by reset) */
+  private debris: {o: T.Object3D; v: T.Vector3; w: T.Vector3}[] = []; private saved: {o: T.Object3D; parent: T.Object3D; p: T.Vector3; q: T.Quaternion; vis: boolean}[] = []; shattered = false; private shatterT = 0;
+  shatter() { if (this.shattered) return; this.shattered = true; this.shatterT = 0; this.focus = null;
+    // break the bays out of the tray so each flies on its own
+    for (const m of MECHANISMS) { const g = this.bays[m].group; this.saved.push({o: g, parent: g.parent!, p: g.position.clone(), q: g.quaternion.clone(), vis: g.visible}); this.body.attach(g); }
+    for (const o of [...this.body.children]) { if (o.userData.shadowProxy) continue; if (!this.saved.some(s2 => s2.o === o)) this.saved.push({o, parent: o.parent!, p: o.position.clone(), q: o.quaternion.clone(), vis: o.visible});
+      if (o.userData.stay || o.userData.coil) { o.visible = false; continue; }
+      const out = o.position.clone().setY(0); if (out.lengthSq() < 1e-6) out.set(Math.random() - .5, 0, Math.random() - .5); out.normalize();
+      const up = o === this.lid ? 1.6 : .5 + Math.random() * 1.1, sp = o === this.lid ? .5 : .5 + Math.random() * 1.2;
+      this.debris.push({o, v: out.multiplyScalar(sp).add(new T.Vector3(0, up, 0)), w: new T.Vector3((Math.random() - .5) * 14, (Math.random() - .5) * 10, (Math.random() - .5) * 14)}); }
+    for (const h of this.halos.values()) h.visible = false; if (this.timerHalo) this.timerHalo.visible = false; this.blast(); }
+  private updateDebris(dt: number) { this.shatterT += dt; this.root.updateMatrixWorld(); const inv = new T.Quaternion().copy(this.body.getWorldQuaternion(new T.Quaternion())).invert(), g = new T.Vector3(0, -2.4, 0).applyQuaternion(inv);
+    for (const d of this.debris) { d.v.addScaledVector(g, dt); d.v.multiplyScalar(1 - dt * .4); d.o.position.addScaledVector(d.v, dt); const e = new T.Euler(d.w.x * dt, d.w.y * dt, d.w.z * dt); d.o.quaternion.multiply(new T.Quaternion().setFromEuler(e)); d.w.multiplyScalar(1 - dt * .6);
+      if (this.shatterT > 2.6) d.o.visible = false; } }
   blast() { this.latchOpen = [true, true]; this.lidTarget = 1; this.lidT = Math.max(this.lidT, .6); this.rattle = 1;
     if (!Suitcase.soft) { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d')!, g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(.4, 'rgba(255,255,255,.45)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); Suitcase.soft = new T.CanvasTexture(c); }
     const make = (n: number, smoke: boolean) => { const pos = new Float32Array(n * 3), vel = new Float32Array(n * 3); for (let i = 0; i < n; i++) { pos[i * 3] = (Math.random() - .5) * .3; pos[i * 3 + 1] = .02 + Math.random() * .03; pos[i * 3 + 2] = (Math.random() - .5) * .2;
@@ -289,7 +304,8 @@ export class Suitcase {
     // latches flip up, then the lid swings (eased, with a slight overshoot at the stop)
     for (let i = 0; i < 2; i++) { const l = this.latches[i]; l.t += ((this.latchOpen[i] ? 1 : 0) - l.t) * (1 - Math.exp(-dt * 14)); l.clasp.rotation.x = -l.t * 2.1; }
     if (this.lidTarget > this.lidT) { const was = this.lidT; this.lidT = Math.min(1, this.lidT + dt * .85); if (was < 1 && this.lidT >= 1) this.onEvent('LID_OPENED'); }
-    const s = this.lidT, ease = s < .5 ? 4 * s * s * s : 1 - Math.pow(-2 * s + 2, 3) / 2; this.lid.rotation.x = -ease * 1.92 + (s >= 1 ? 0 : 0) - Math.sin(this.rattle * 30) * this.rattle * .02; this.updateStays(); this.rattle = Math.max(0, this.rattle - dt * 2.5);
+    if (this.shattered) { this.updateDebris(dt); }
+    const s = this.lidT, ease = s < .5 ? 4 * s * s * s : 1 - Math.pow(-2 * s + 2, 3) / 2; if (!this.shattered) this.lid.rotation.x = -ease * 1.92 + (s >= 1 ? 0 : 0) - Math.sin(this.rattle * 30) * this.rattle * .02; if (!this.shattered) this.updateStays(); this.rattle = Math.max(0, this.rattle - dt * 2.5);
     // lamps: the armed bay burns red with a heartbeat, faster as the fuse runs down
     const beat = 1.4 + this.urgency * 5; for (const m of MECHANISMS) { const safe = this.armed.includes(m) && this.neutral.has(m), lamp = this.bays[m].lamp; lamp.emissive.set(safe ? '#38ff6a' : '#ff1e0a'); if (safe) { lamp.emissiveIntensity = 1.1; continue; }
       const on = this.armed.includes(m) && this.enabled; lamp.emissiveIntensity = on ? 1.2 + 1.6 * Math.max(0, Math.sin(this.time * beat * Math.PI)) ** 3 : 0; }

@@ -135,7 +135,7 @@ async function boot() {
   const neutralFx = (m: Mechanism) => { if (neutral.has(m)) return; neutral.add(m); suitcase?.neutral.add(m); if (m === 'WIRE_MAZE') setCutters(false); const left = armed.filter(x => !neutral.has(x)).length;
     if (left === 1) setTimeout(() => taunt([L('Неплохо. Но последний — самый коварный.', 'Not bad. But the last one is the trickiest.'), L('Два из трёх. Не расслабляйтесь.', 'Two out of three. Do not relax.')]), 2400);
     if (left > 0) { audio.play('labOk'); audio.play('relay'); haptic('good'); verdict(true, L(`Осталось механизмов: ${left}`, `Mechanisms left: ${left}`), L('Механизм обезврежен', 'Mechanism neutralised')); setTimeout(() => { if (suitcase?.focus === m) suitcase.focusOn(null); }, 1100); } };
-  const judge = (m: Mechanism, ok: boolean, what: string) => { if (ok) { neutralFx(m); if (armed.every(x => neutral.has(x))) bombFinish(true, 'DEFUSED'); } else { mistakes++; strikes++; strikeFx(what); if (strikes > STRIKES()) setTimeout(() => bombFinish(false, 'WRONG'), 500); } };
+  const judge = (m: Mechanism, ok: boolean, what: string) => { if (ok) { neutralFx(m); if (armed.every(x => neutral.has(x))) bombFinish(true, 'DEFUSED'); } else { mistakes++; strikes++; if (strikes > STRIKES()) bombFinish(false, 'WRONG'); /* the fatal mistake is the blast itself */ else strikeFx(what); } };
   const setLcd = (t: string) => { const el = $('t-lcd'); el.textContent = t; el.classList.remove('blink'); void el.offsetWidth; el.classList.add('blink'); audio.play('button', .4); audio.play(t === 'OL' || t === '—' ? 'beepLo' : 'beepHi'); };
   const measure = () => { if (!links || links.red < 0 || links.black < 0) return; if (IN_ROOM) { $('t-lcd').textContent = '…'; RoomSocket.shared()?.send('BOMB_ACTION', {action: 'PROBE', arg: links.red * 32 + links.black, seq: ++bombSeq}); } else if (linksModel) setLcd(linksModel.read(links.red, links.black)); };
   const ensureBomb = () => { if (suitcase && nbook) return;
@@ -248,9 +248,9 @@ async function boot() {
       score = `${'★'.repeat(stars)}${'☆'.repeat(3 - stars)} · ${mmss(sec)}` + (rec ? L(' · НОВЫЙ РЕКОРД!', ' · NEW RECORD!') : L(` · рекорд ${mmss(best)}`, ` · best ${mmss(best)}`)); }
     verdict(ok, ok ? score : why === 'TIMEOUT' ? L('ВРЕМЯ ВЫШЛО', 'TIME RAN OUT') : L('НЕВЕРНОЕ ДЕЙСТВИЕ', 'WRONG MOVE'), ok ? L('Бомба обезврежена', 'Bomb defused') : L('ВЗРЫВ', 'DETONATION'));
     voice.say(ok ? 'success' : 'explosion', 4, 0);
-    if (!ok) { suitcase?.blast(); audio.play('explosion'); audio.play('burst'); shake = 1.7; const f = $('blast'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); document.body.classList.remove('jolt'); void document.body.offsetWidth; document.body.classList.add('jolt'); nbook?.close(); if (suitcase?.focus) suitcase.focusOn(null); }
+    if (!ok) { suitcase?.shatter(); cage.drop?.(.8); /* the cage gives way at the blast itself */ audio.play('explosion'); audio.play('burst'); shake = 1.7; const f = $('blast'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); document.body.classList.remove('jolt'); void document.body.offsetWidth; document.body.classList.add('jolt'); nbook?.close(); if (suitcase?.focus) suitcase.focusOn(null); }
     else { audio.play('labOk'); if (suitcase?.focus) suitcase.focusOn(null); }
-    if (!ok) setTimeout(() => cage.drop?.(.8), 350); clearTimeout(pending); pending = setTimeout(() => next(ok), ok ? 3000 : 2600); };
+    clearTimeout(pending); pending = setTimeout(() => next(ok), ok ? 3000 : 2600); };
   RoomSocket.shared()?.listen(ev => { const b = ev.payload?.elevatorBomb; if (!b) return; const first = !bombView || bombView.puzzleId !== b.puzzleId; bombView = b; if (first && kind === 'bomb' && suitcase) armBomb(); if (kind !== 'bomb' || bombDone) return;
     if (!first && maze && wireLayout) for (const c of b.cut ?? []) if (!maze.cut.has(c)) maze.sever(c, .5);
     if (b.links && links && b.event?.type === 'PROBE' && b.links.red === links.red && b.links.black === links.black) setLcd(b.links.reading);
