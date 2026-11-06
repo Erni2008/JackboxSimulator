@@ -171,3 +171,8 @@ export function diagnosticsManual(): ManualContent {
 export function alchemistJournal(): ManualContent {
   return {edition: 'Journal', specimen: false, sections: [], layoutPages: [0, 1, 2, 3, 4, 5].map(page => ({layout: 'journal', page}) as any)};
 }
+
+/** THE HOST'S SUITCASE — the defusal field notebook as a real book (pages drawn by the bomb module) */
+export function defusalContent(draws: ((x: CanvasRenderingContext2D) => void)[]): ManualContent {
+  return {edition: '0451', specimen: false, sections: [], layoutPages: draws.map(draw => ({layout: 'standard', draw}) as any)};
+}

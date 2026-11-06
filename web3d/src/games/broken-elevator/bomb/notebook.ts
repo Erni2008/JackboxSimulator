@@ -119,15 +119,33 @@ export class Notebook {
   }
 
   // ---- built-in pages
-  private drawContents = (x: CanvasRenderingContext2D, ink: Ink) => {
+  private drawContents = (x: CanvasRenderingContext2D, ink: Ink) => contentsPage.call(this, x, ink);
+  private drawProcedure = (x: CanvasRenderingContext2D, ink: Ink) => procedurePage.call(this, x, ink);
+  private drawOpener(x: CanvasRenderingContext2D, ink: Ink, m: Mechanism, i: number) {
+    ink.print(L('Глава', 'Chapter') + ' ' + ROMAN[i], PW / 2, 190, 40, {align: 'center', font: '"IM Fell English SC", serif'}); ink.print(MECH_NAME[m](), PW / 2, 270, 64, {align: 'center', bold: true, font: '"IM Fell English SC", serif'}); ink.rule(310);
+    let y = ink.para(CHAPTER_BLURB[m](), 110, 400, PW - 220, 33);
+    ink.hand(L('Сначала убедись, что лампа этого отсека горит.', 'First make sure this bay\'s lamp is lit.'), 120, y + 70, 40, '#6a2a1a', -.03); void x;
+  }
+}
+
+/** the defusal notebook's pages for the 3D book (each draws its own paper; page space 1000×1400) */
+export function defusalPageDraws(): ((x: CanvasRenderingContext2D) => void)[] {
+  const proto = Notebook.prototype as any, list: {chapter: number; draw: PageDraw}[] = [];
+  const self: any = {chapterPage: (m: Mechanism) => list.findIndex(q => q.chapter === MECHANISMS.indexOf(m))};
+  list.push({chapter: -1, draw: (x, ink) => contentsPage.call(self, x, ink)}, {chapter: -1, draw: (x, ink) => procedurePage.call(self, x, ink)});
+  MECHANISMS.forEach((m, i) => { list.push({chapter: i, draw: (x, ink) => proto.drawOpener.call(self, x, ink, m, i)}); for (const d of chapters[m]) list.push({chapter: i, draw: d}); });
+  return list.map((pg, i) => (x: CanvasRenderingContext2D) => { paper(x, 100 + i); pg.draw(x, inkFor(x, 500 + i)); x.font = '26px "IM Fell English", serif'; x.fillStyle = 'rgba(36,26,16,.7)'; x.textAlign = 'center'; x.fillText(`— ${i + 1} —`, PW / 2, PH - 50); });
+}
+
+function contentsPage(this: {chapterPage(m: Mechanism): number}, x: CanvasRenderingContext2D, ink: Ink) {
     ink.title(L('Блокнот обезвреживания', 'Defusal notebook'), L('Чемодан мастерской «Финал», № 0451', 'Case from the "Final" workshop, No. 0451'));
     let y = 330; ink.print(L('Содержание', 'Contents'), 120, y, 40, {bold: true}); y += 70;
     ink.print(L('Порядок действий', 'Procedure'), 140, y, 34); ink.print('2', PW - 130, y, 34, {align: 'right'}); y += 62;
     MECHANISMS.forEach((m, i) => { ink.print(`${ROMAN[i]}.  ${MECH_NAME[m]()}`, 140, y, 34); ink.print(String(this.chapterPage(m) + 1), PW - 130, y, 34, {align: 'right'}); x.setLineDash([3, 9]); x.strokeStyle = 'rgba(36,26,16,.5)'; x.beginPath(); x.moveTo(560, y - 8); x.lineTo(PW - 170, y - 8); x.stroke(); x.setLineDash([]); y += 62; });
     ink.hand(L('Читай целиком. Не угадывай.', 'Read it all. Do not guess.'), 150, y + 90, 52, '#2a3a6a', -.04);
     ink.hand(L('— тот, кто собирал', '— the one who built it'), 420, y + 160, 40, '#2a3a6a', -.04);
-  };
-  private drawProcedure = (x: CanvasRenderingContext2D, ink: Ink) => {
+  }
+function procedurePage(x: CanvasRenderingContext2D, ink: Ink) {
     ink.title(L('Порядок действий', 'Procedure'));
     const steps = [L('Найди чемодан. Подними его и осмотри со всех сторон.', 'Find the case. Pick it up and look at it from every side.'),
       L('Отстегни обе защёлки спереди. Затем подними крышку.', 'Release both front latches. Then lift the lid.'),
@@ -141,10 +159,4 @@ export class Notebook {
     const bay = (bx: number, by: number, bw: number, bh: number, n: string, red: boolean) => { x.strokeRect(ox + bx * w, oy + by * h, bw * w, bh * h); ink.print(n, ox + (bx + .05) * w, oy + (by + bh - .06) * h, 34, {bold: true}); x.beginPath(); x.arc(ox + (bx + bw - .05) * w, oy + (by + bh - .1) * h, 9, 0, 7); x.fillStyle = red ? '#a8261a' : 'rgba(0,0,0,0)'; x.fill(); x.stroke(); };
     bay(.04, .06, .3, .44, 'I', true); bay(.37, .06, .26, .44, 'II', true); bay(.66, .06, .3, .44, 'III', false); bay(.04, .56, .5, .38, 'IV', true); bay(.6, .56, .36, .38, 'V', false);
     ink.hand(L('(пример) горит = заряжен', '(example) lit = armed'), ox + w * .4, oy - 18, 38, '#a8261a', -.03);
-  };
-  private drawOpener(x: CanvasRenderingContext2D, ink: Ink, m: Mechanism, i: number) {
-    ink.print(L('Глава', 'Chapter') + ' ' + ROMAN[i], PW / 2, 190, 40, {align: 'center', font: '"IM Fell English SC", serif'}); ink.print(MECH_NAME[m](), PW / 2, 270, 64, {align: 'center', bold: true, font: '"IM Fell English SC", serif'}); ink.rule(310);
-    let y = ink.para(CHAPTER_BLURB[m](), 110, 400, PW - 220, 33);
-    ink.hand(L('Сначала убедись, что лампа этого отсека горит.', 'First make sure this bay\'s lamp is lit.'), 120, y + 70, 40, '#6a2a1a', -.03); void x;
   }
-}

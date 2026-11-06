@@ -94,6 +94,8 @@ function ornament(ctx: CanvasRenderingContext2D, cx: number, y: number, s = 1) {
 const M = {l: 104, r: 104, t: 120, b: 128};
 
 export function drawPage(ctx: CanvasRenderingContext2D, page: ManualPage, index: number, content: ManualContent) {
+  // a page drawn by its own function (the bomb's defusal notebook): its 1000×1400 drawing fills the page
+  const draw = (page as any).draw as ((x: CanvasRenderingContext2D) => void) | undefined; if (draw) { ctx.save(); ctx.scale(PAGE_W / 1000, PAGE_H / 1400); draw(ctx); ctx.restore(); return; }
   const side = index % 2 ? 1 : -1, r = rng(index * 31 + 5);
   if (page.layout !== 'rules' && page.layout !== 'guide') paper(ctx, index + 1, side);
   const inner = side > 0 ? M.l + 24 : M.l, x0 = inner, x1 = PAGE_W - (side > 0 ? M.r : M.r + 24), width = x1 - x0;

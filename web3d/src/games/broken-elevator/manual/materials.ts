@@ -35,7 +35,7 @@ export interface LeatherOptions {
 /** baked JPEGs when available, otherwise the procedural composite below */
 export async function leatherMapsCached(src: () => Promise<LeatherSources>, o: LeatherOptions, aniso: number, key: string) {
   if (LANG === 'ru') key = 'ru-' + key; // Russian tooling: build procedurally (the baked set carries the English title)
-  const b = key.startsWith('journal') || key.startsWith('ru-') ? null : await loadBaked([`${key}-map`, `${key}-normal`, `${key}-orm`], {srgb: [true, false, false], flipY: true, aniso}); // the journal has no baked set
+  const b = key.startsWith('journal') || key.startsWith('defusal') || key.startsWith('ru-') ? null : await loadBaked([`${key}-map`, `${key}-normal`, `${key}-orm`], {srgb: [true, false, false], flipY: true, aniso}); // the journal has no baked set
   if (b) return {map: b[0], normalMap: b[1], orm: b[2]};
   const m = leatherMaps(await src(), o, aniso); register(`${key}-map`, m.map); register(`${key}-normal`, m.normalMap); register(`${key}-orm`, m.orm); return m;
 }
@@ -155,6 +155,15 @@ export function frontTooling(ctx: CanvasRenderingContext2D, w: number, h: number
 }
 
 /** THE ALCHEMIST'S JOURNAL front: single gilt frame, alembic emblem, gilt title */
+/** the bomb's field notebook: a stencilled title in a plain blind frame, a 'danger' lozenge, no gilt flourishes */
+export function defusalTooling(ctx: CanvasRenderingContext2D, w: number, h: number) {
+  const m = w * .07; ctx.strokeStyle = '#888'; ctx.lineWidth = 5; ctx.strokeRect(m, m, w - m * 2, h - m * 2);
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = `bold ${w * .085}px Oswald, sans-serif`;
+  if (LANG === 'ru') { ctx.fillText('ОБЕЗВРЕЖИВАНИЕ', w / 2, h * .32); ctx.font = `${w * .045}px 'IBM Plex Mono', monospace`; ctx.fillText('ПОЛЕВОЙ БЛОКНОТ № 0451', w / 2, h * .38); }
+  else { ctx.fillText('DEFUSAL', w / 2, h * .32); ctx.font = `${w * .045}px 'IBM Plex Mono', monospace`; ctx.fillText('FIELD NOTEBOOK No 0451', w / 2, h * .38); }
+  ctx.save(); ctx.translate(w / 2, h * .6); ctx.rotate(Math.PI / 4); ctx.strokeStyle = '#fff'; ctx.lineWidth = 7; ctx.strokeRect(-w * .1, -w * .1, w * .2, w * .2); ctx.restore();
+  ctx.font = `bold ${w * .13}px Oswald, sans-serif`; ctx.fillText('!', w / 2, h * .6 + w * .045);
+}
 export function journalTooling(ctx: CanvasRenderingContext2D, w: number, h: number) {
   const m = w * .08; ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.strokeRect(m, m, w - m * 2, h - m * 2); ctx.strokeStyle = '#888'; ctx.lineWidth = 2.5; ctx.strokeRect(m + 16, m + 16, w - m * 2 - 32, h - m * 2 - 32);
   ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
