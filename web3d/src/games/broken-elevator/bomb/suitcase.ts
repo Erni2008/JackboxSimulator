@@ -108,7 +108,7 @@ export class Suitcase {
     const tm = new T.Mesh(new T.PlaneGeometry(.15, .056), new T.MeshBasicMaterial({map: this.timerTex, toneMapped: false})); tm.rotation.x = Math.PI / 2; tm.position.set(0, HL - WALL - .0045, lz + .02); this.lid.add(tm);
     box(.165, .006, .07, brass, 0, HL - WALL - .0025, lz + .02, this.lid); tm.position.y -= .002;
     // a thin glass over the countdown: catches the lamp and the lava glow
-    const glass = new T.Mesh(new T.PlaneGeometry(.152, .058), new T.MeshStandardMaterial({color: '#ffffff', metalness: .9, roughness: .06, transparent: true, opacity: .16, envMapIntensity: 2.2, depthWrite: false}));
+    const glass = new T.Mesh(new T.PlaneGeometry(.152, .058), new T.MeshBasicMaterial({color: '#fff4e0', transparent: true, opacity: .07, blending: T.AdditiveBlending, depthWrite: false}) /* a glint that only adds light (a reflective glass went black on the floor) */);
     glass.rotation.x = Math.PI / 2; glass.position.set(0, HL - WALL - .0068, lz + .02); this.lid.add(glass);
     const card = new T.Mesh(new T.PlaneGeometry(.2, .085), new T.MeshStandardMaterial({map: plateTex([{t: L('ВНИМАНИЕ', 'WARNING'), font: 'bold 70px Oswald, sans-serif', y: .26, color: '#7a1408'}, {t: L('Красная лампа — заряженный механизм.', 'A red lamp marks the armed mechanism.'), font: '34px "IM Fell English", serif', y: .58}, {t: L('Сверяйся с блокнотом. Ошибок не прощаю.', 'Use the notebook. I do not forgive mistakes.'), font: 'italic 32px "IM Fell English", serif', y: .82}], 768, 300, '#cdbb92', true, 5), roughness: .9}));
     card.rotation.x = Math.PI / 2; card.position.set(0, HL - WALL - .0045, lz + .1); this.lid.add(card);
@@ -168,10 +168,10 @@ export class Suitcase {
     for (const x of [-W / 2, W / 2]) for (const z of [-D / 2, D / 2]) { for (const y of [baseY0, seamY]) this.hullBody.push(new T.Vector3(x, y, z)); for (const y of [0, HL]) this.hullLid.push(new T.Vector3(x, y, z + D / 2)); }
     this.drawTimer(0); mergeStatic(this.root);
     // one shadow for the whole case: an invisible box (shadow passes ignore colour writes) instead of every part casting its own
-    this.root.traverse(o => { o.castShadow = false; });
+    this.root.traverse(o => { o.castShadow = false; o.receiveShadow = false; }); // the case's own shadow box must not darken the case itself
     const proxy = new T.Mesh(new T.BoxGeometry(W, HB + HL, D), new T.MeshBasicMaterial({colorWrite: false, depthWrite: false})); proxy.castShadow = true; proxy.raycast = () => {}; proxy.userData.shadowProxy = true; this.body.add(proxy);
   }
-  private leatherMeshes: T.Mesh[] = []; private frameMat: T.Material | null = null; private focusZoom = 0; private halos = new Map<Mechanism, T.Sprite>(); private timerHalo: T.Sprite | null = null;
+  private leatherMeshes: T.Mesh[] = []; private frameMat: T.Material | null = null; private focusZoom = 0; private lidMax = 1.55; private halos = new Map<Mechanism, T.Sprite>(); private timerHalo: T.Sprite | null = null;
   private static haloT: T.Texture | null = null;
   static haloTex() { if (Suitcase.haloT) return Suitcase.haloT; const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d')!, g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
     g.addColorStop(0, 'rgba(255,255,255,.95)'); g.addColorStop(.18, 'rgba(255,255,255,.55)'); g.addColorStop(.5, 'rgba(255,255,255,.12)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return Suitcase.haloT = new T.CanvasTexture(c); }
@@ -182,7 +182,7 @@ export class Suitcase {
       const tubeEnd = st.a.clone().addScaledVector(u, Math.min(len, .085)), rodStart = b.clone().addScaledVector(u, -Math.min(len, .09)); this.span(st.tube, st.a, tubeEnd); this.span(st.rod, rodStart, b); st.pa.position.copy(st.a); st.pb.position.copy(b);
       const show = this.lidT > .02; st.tube.visible = st.rod.visible = st.pa.visible = st.pb.visible = show; }
     // the coil is rebuilt only while the lid moves (a few frames), then left alone
-    const key = Math.round(this.lidT * 40); if (key === this.coilAt) return; this.coilAt = key; if (this.coil) { this.body.remove(this.coil); this.coil.geometry.dispose(); this.coil = null; } if (this.lidT < .05) return;
+    const key = Math.round(this.lidT * 40) * 1000 + Math.round(this.lidMax * 60); if (key === this.coilAt) return; /* the lid's angle changes with its progress and when it is set down upright */ this.coilAt = key; if (this.coil) { this.body.remove(this.coil); this.coil.geometry.dispose(); this.coil = null; } if (this.lidT < .05) return;
     const a = new T.Vector3(.07, HL - WALL - .008, D / 2 + .02).applyMatrix4(this.lid.matrix), b = new T.Vector3(W / 2 - WALL - .03, this.interior.position.y + .006, -D / 2 + WALL + .02), axis = b.clone().sub(a), n = new T.Vector3(1, 0, 0).cross(axis).normalize(), m2 = axis.clone().cross(n).normalize();
     const curve = new (class extends T.Curve<T.Vector3> { getPoint(t: number) { const sag = Math.sin(t * Math.PI) * .02, ang = t * Math.PI * 2 * 26, r = .0042 * Math.min(1, Math.min(t, 1 - t) * 14); return a.clone().lerp(b, t).addScaledVector(n, Math.cos(ang) * r + sag).addScaledVector(m2, Math.sin(ang) * r); } })();
     this.coil = new T.Mesh(new T.TubeGeometry(curve, 420, .0011, 5, false), this.coilM); this.coil.userData.coil = true; this.body.add(this.coil); }
@@ -211,7 +211,7 @@ export class Suitcase {
   /** lies on the cage floor: a dark corner by the back wall (the first place nobody looks) */
   /** hiding places on the cage floor (offsets from the inner walls) — a different one each event */
   /** [wall side x (+1 right / −1 left), x offset, wall side z (−1 back / +1 door / 0 middle), z offset, yaw] */
-  static readonly HIDE: [number, number, number, number, number][] = [[1, -.3, -1, .24, -.35], [-1, .3, -1, .26, .4], [1, -.28, 1, -.32, .3], [-1, .26, 0, .05, 1.35], [1, -.24, 0, -.1, -1.45]];
+  static readonly HIDE: [number, number, number, number, number][] = [[1, -.42, -1, .36, -.3], [-1, .3, -1, .26, .4], [1, -.28, 1, -.32, .3], [-1, .26, 0, .05, 1.35], [1, -.24, 0, -.1, -1.45]];
   place(ci: T.Box3 | undefined, floorY: number, spot = 0) {
     const sp = Suitcase.HIDE[spot % Suitcase.HIDE.length], x = ci ? (sp[0] > 0 ? ci.max.x : ci.min.x) + sp[1] : .8, z = ci ? (sp[2] < 0 ? ci.min.z : sp[2] > 0 ? ci.max.z : 0) + sp[3] : -.6;
     this.floorPos.set(x, floorY + (HB + HL) / 2 + .004, z); this.floorQuat.setFromEuler(new T.Euler(0, sp[4], 0));
@@ -310,7 +310,9 @@ export class Suitcase {
     for (let i = 0; i < 2; i++) { const l = this.latches[i]; l.t += ((this.latchOpen[i] ? 1 : 0) - l.t) * (1 - Math.exp(-dt * 14)); l.clasp.rotation.x = -l.t * 2.1; }
     if (this.lidTarget > this.lidT) { const was = this.lidT; this.lidT = Math.min(1, this.lidT + dt * .85); if (was < 1 && this.lidT >= 1) this.onEvent('LID_OPENED'); }
     if (this.shattered) { this.updateDebris(dt); }
-    const s = this.lidT, ease = s < .5 ? 4 * s * s * s : 1 - Math.pow(-2 * s + 2, 3) / 2; if (!this.shattered) this.lid.rotation.x = -ease * 1.92 + (s >= 1 ? 0 : 0) - Math.sin(this.rattle * 30) * this.rattle * .02; if (!this.shattered) this.updateStays(); this.rattle = Math.max(0, this.rattle - dt * 2.5);
+    const s = this.lidT, ease = s < .5 ? 4 * s * s * s : 1 - Math.pow(-2 * s + 2, 3) / 2; // on the floor the open lid stands upright (90°) so it never swings into a wall; in hand it falls back to 110°
+    this.lidMax += ((this.state === 'floor' || this.state === 'returning' ? 1.55 : 1.92) - this.lidMax) * (1 - Math.exp(-dt * 4));
+    if (!this.shattered) this.lid.rotation.x = -ease * this.lidMax + (s >= 1 ? 0 : 0) - Math.sin(this.rattle * 30) * this.rattle * .02; if (!this.shattered) this.updateStays(); this.rattle = Math.max(0, this.rattle - dt * 2.5);
     // lamps: the armed bay burns red with a heartbeat, faster as the fuse runs down
     const beat = 1.4 + this.urgency * 5; for (const m of MECHANISMS) { const safe = this.armed.includes(m) && this.neutral.has(m), lamp = this.bays[m].lamp; lamp.emissive.set(safe ? '#38ff6a' : '#ff1e0a'); if (safe) { lamp.emissiveIntensity = 1.1; continue; }
       const on = this.armed.includes(m) && this.enabled; lamp.emissiveIntensity = on ? 1.2 + 1.6 * Math.max(0, Math.sin(this.time * beat * Math.PI)) ** 3 : 0; }

@@ -31,7 +31,8 @@ import {LinksView, makeLinks, type LinksModel} from "./games/broken-elevator/bom
 import {XrayView, makeXray, solveXray, type XrayLayout} from "./games/broken-elevator/bomb/xray";
 import {LaserView, makeLaser, trace as laserTrace, type LaserLayout} from "./games/broken-elevator/bomb/laser";
 import {ThermalView, makeThermal, solveThermal, type ThermalLayout} from "./games/broken-elevator/bomb/thermal";
-import {Notebook, defusalPageDraws} from "./games/broken-elevator/bomb/notebook";
+import {Notebook} from "./games/broken-elevator/bomb/notebook";
+import {memoPages} from "./games/broken-elevator/bomb/memo";
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
 const params = new URLSearchParams(location.search);
@@ -133,7 +134,7 @@ async function boot() {
     close() { if (dui && this.open) dui.setLowered(true); },
     update() { if (!dui) return; if (!this.taken && dui.state !== 'rest' && dui.state !== 'falling') { this.taken = true; audio.play('pickup'); haptic('tap'); coach(suitcase?.open ? 'bays' : suitcase?.found ? 'latches' : 'find'); }
       if (this.wantOpen && dui.state === 'held') { this.wantOpen = false; dui.open(); } }};
-  const startDefusalBook = () => { if (dbookP) return; dbookP = EngineersManual.create(renderer, defusalContent(defusalPageDraws()), quality, 'defusal').then(b => { dbook = b; b.sounds = book.sounds; scene.add(b.root);
+  const startDefusalBook = () => { if (dbookP) return; dbookP = EngineersManual.create(renderer, defusalContent(memoPages()), quality, 'defusal').then(b => { dbook = b; b.sounds = book.sounds; scene.add(b.root);
     dui = new ManualInteraction(b, camera, renderer.domElement, audio, cage.planes); dui.onstate = s => { sync(s); if (s === 'reading') b.onspread(b.spread); else if (s === 'rest') book.onspread(book.spread); }; dui.onlower = () => sync(cur().state);
     b.onspread = sp => { $('page-label').textContent = `${2 * sp + 1}–${2 * sp + 2} / ${b.pages.length}`; }; nb.home(); }).catch(e => console.warn('defusal notebook', e)); };
   let suitcase: Suitcase | null = null, nbook: typeof nb | null = null, bombSeq = 0, bombView: any = null, maze: WireMazeView | null = null, links: LinksView | null = null, cutters = false, strikes = 0;

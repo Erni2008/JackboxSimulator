@@ -21,8 +21,8 @@ export const CHAPTER_BLURB: Record<Mechanism, () => string> = {
   LASER: () => L('Оптический отсек: излучатель, поворотные зеркала, датчики и заслонки. Глава скажет, какой датчик — гасящий. Поворачивай зеркала, пока луч не ляжет точно на него, и подтверди.', 'An optical bay: emitter, turning mirrors, sensors and baffles. The chapter tells you which sensor is the quench. Turn the mirrors until the beam lands on it, then confirm.'),
   THERMAL: () => L('Шесть запаянных капсул. Тепловизор показывает температуру и рисунок нагрева каждой. Самая горячая — не обязательно опасная. Сверь все признаки с таблицей и изолируй одну.', 'Six sealed capsules. The thermal scope shows each one\'s temperature and heat pattern. The hottest is not necessarily the dangerous one. Match every sign against the table and isolate one.')};
 
-const rnd = (s: number) => () => (s = (s * 16807) % 2147483647) / 2147483647;
-function inkFor(x: CanvasRenderingContext2D, seed: number): Ink {
+export const rnd = (s: number) => () => (s = (s * 16807) % 2147483647) / 2147483647;
+export function inkFor(x: CanvasRenderingContext2D, seed: number): Ink {
   const r = rnd(seed);
   const ink: Ink = {r,
     hand: (t, px, py, size = 40, color = '#2a3a6a', rot = 0) => { x.save(); x.translate(px, py); x.rotate(rot); x.font = `${size}px Caveat, cursive`; x.fillStyle = color; x.textAlign = 'left'; x.textBaseline = 'alphabetic'; x.fillText(t, 0, 0); x.restore(); },
@@ -34,7 +34,7 @@ function inkFor(x: CanvasRenderingContext2D, seed: number): Ink {
   return ink;
 }
 /** yellowed, foxed paper with a faint ruled grid and a torn binding edge */
-function paper(x: CanvasRenderingContext2D, seed: number) {
+export function paper(x: CanvasRenderingContext2D, seed: number) {
   const r = rnd(seed); const g = x.createRadialGradient(PW / 2, PH / 2, PH * .2, PW / 2, PH / 2, PH * .75); g.addColorStop(0, '#e8dcbc'); g.addColorStop(1, '#cdb88a'); x.fillStyle = g; x.fillRect(0, 0, PW, PH);
   for (let i = 0; i < 46; i++) { const px = r() * PW, py = r() * PH, rad = 6 + r() * 40, f = x.createRadialGradient(px, py, 0, px, py, rad); f.addColorStop(0, `rgba(140,90,40,${.05 + r() * .12})`); f.addColorStop(1, 'rgba(140,90,40,0)'); x.fillStyle = f; x.fillRect(px - rad, py - rad, rad * 2, rad * 2); }
   x.strokeStyle = 'rgba(70,100,140,.12)'; x.lineWidth = 1; for (let y = 300; y < PH - 60; y += 44) { x.beginPath(); x.moveTo(60, y); x.lineTo(PW - 50, y); x.stroke(); }

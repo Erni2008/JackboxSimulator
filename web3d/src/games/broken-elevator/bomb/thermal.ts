@@ -90,8 +90,8 @@ export class ThermalView {
 }
 
 // ---------------------------------------------------------------------------------------------- chapter V
-const PAT_NAME: Record<Pattern, () => string> = {CENTER: () => L('пятно в центре', 'central hotspot'), TWO: () => L('два пятна', 'two hotspots'), RING: () => L('кольцо', 'ring'), COLD_CENTER: () => L('холодный центр', 'cold centre'), ASYM: () => L('пятно сбоку', 'off-centre')};
-function heatIcon(x: CanvasRenderingContext2D, p: Pattern, cx: number, cy: number) { const w = 120, h = 46; x.save(); x.beginPath(); x.roundRect(cx - w / 2, cy - h / 2, w, h, h / 2); x.clip(); x.fillStyle = '#d8c79e'; x.fillRect(cx - w / 2, cy - h / 2, w, h);
+export const PAT_NAME: Record<Pattern, () => string> = {CENTER: () => L('пятно в центре', 'central hotspot'), TWO: () => L('два пятна', 'two hotspots'), RING: () => L('кольцо', 'ring'), COLD_CENTER: () => L('холодный центр', 'cold centre'), ASYM: () => L('пятно сбоку', 'off-centre')};
+export function heatIcon(x: CanvasRenderingContext2D, p: Pattern, cx: number, cy: number) { const w = 120, h = 46; x.save(); x.beginPath(); x.roundRect(cx - w / 2, cy - h / 2, w, h, h / 2); x.clip(); x.fillStyle = '#d8c79e'; x.fillRect(cx - w / 2, cy - h / 2, w, h);
   const spot = (sx: number, sy: number, r: number) => { const g = x.createRadialGradient(sx, sy, 0, sx, sy, r); g.addColorStop(0, '#5a1a0a'); g.addColorStop(1, 'rgba(90,26,10,0)'); x.fillStyle = g; x.fillRect(cx - w / 2, cy - h / 2, w, h); };
   if (p === 'CENTER') spot(cx, cy, 30); else if (p === 'TWO') { spot(cx - 32, cy, 20); spot(cx + 32, cy, 20); } else if (p === 'RING') { x.strokeStyle = '#5a1a0a'; x.lineWidth = 9; x.beginPath(); x.ellipse(cx, cy, 34, 14, 0, 0, 7); x.stroke(); }
   else if (p === 'COLD_CENTER') { x.fillStyle = '#5a1a0a'; x.fillRect(cx - w / 2, cy - h / 2, w, h); const g = x.createRadialGradient(cx, cy, 0, cx, cy, 34); g.addColorStop(0, '#e8dcbc'); g.addColorStop(1, 'rgba(232,220,188,0)'); x.fillStyle = g; x.fillRect(cx - w / 2, cy - h / 2, w, h); } else spot(cx + 30, cy + 8, 26);

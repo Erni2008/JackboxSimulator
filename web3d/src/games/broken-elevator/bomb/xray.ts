@@ -79,7 +79,7 @@ export class XrayView {
 }
 
 // ---------------------------------------------------------------------------------------------- chapter III
-function sketch(x: CanvasRenderingContext2D, ins: Inside, cx: number, cy: number, w: number) {
+export function sketch(x: CanvasRenderingContext2D, ins: Inside, cx: number, cy: number, w: number) {
   const h = w * .36; x.strokeStyle = '#2a1c10'; x.lineWidth = 3; x.strokeRect(cx - w / 2, cy - h / 2, w, h); x.fillStyle = '#2a1c10'; x.strokeStyle = '#2a1c10';
   if (ins.core === 'BALL') { x.beginPath(); x.arc(cx, cy, h * .3, 0, 7); x.fill(); } else if (ins.core === 'ROD') x.fillRect(cx - w * .25, cy - h * .09, w * .5, h * .18); else { x.lineWidth = 3; x.beginPath(); for (let i = 0; i <= 60; i++) { const t = i / 60, px = cx - w * .25 + t * w * .5, py = cy + Math.sin(t * Math.PI * 12) * h * .25; i ? x.lineTo(px, py) : x.moveTo(px, py); } x.stroke(); }
   for (let n = 0; n < ins.needles; n++) { const e = n === 0 ? -1 : 1, bx = cx + e * w * .44; x.beginPath(); x.moveTo(bx, cy - h * .06); x.lineTo(cx + e * w * .3, cy); x.lineTo(bx, cy + h * .06); x.closePath(); x.fill(); }
