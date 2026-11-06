@@ -155,12 +155,12 @@ export class CodeLock {
     // housing: back plate, a heavy frame with a machined front rim, corner screws
     const backP = new T.Mesh(new RoundedBoxGeometry(.31, .25, .012, 3, .005), housing); backP.position.set(0, -.006, -.026); this.body.add(backP);
     const bar = (w: number, h: number, x: number, y: number) => { const b = new T.Mesh(new RoundedBoxGeometry(w, h, .04, 3, .004), frame); b.position.set(x, y, -.01); this.body.add(b); };
-    bar(.31, .02, 0, IN.y1 + .01); bar(.31, .032, 0, IN.y0 - .016); bar(.02, IN.y1 - IN.y0, IN.x0 - .01, (IN.y0 + IN.y1) / 2); bar(.02, IN.y1 - IN.y0, IN.x1 + .01, (IN.y0 + IN.y1) / 2);
-    for (const [sx, sy] of [[-1, 1], [1, 1], [-1, -1], [1, -1]]) { const s = screw(this.steel, this.dark, .0062); s.position.set(sx * .145, sy > 0 ? IN.y1 + .01 : IN.y0 - .016, .0105); this.body.add(s); }
+    bar(.31, .02, 0, IN.y1 + .01); bar(.31, .052, 0, IN.y0 - .026); bar(.02, IN.y1 - IN.y0, IN.x0 - .01, (IN.y0 + IN.y1) / 2); bar(.02, IN.y1 - IN.y0, IN.x1 + .01, (IN.y0 + IN.y1) / 2);
+    for (const [sx, sy] of [[-1, 1], [1, 1], [-1, -1], [1, -1]]) { const s = screw(this.steel, this.dark, .0062); s.position.set(sx * .145, sy > 0 ? IN.y1 + .01 : IN.y0 - .026, .0105); this.body.add(s); }
     // the maker's plate on the lower bar, the try tokens beside it
     this.stampMat = new T.MeshStandardMaterial({map: stampTexture(null), metalness: .85, roughness: .38, envMapIntensity: 1.2});
-    const stamp = new T.Mesh(new T.PlaneGeometry(.122, .0276), this.stampMat); stamp.position.set(-.064, IN.y0 - .016, .0103); this.body.add(stamp);
-    for (let k = 0; k < 3; k++) { const tk = new T.Mesh(new T.CylinderGeometry(.0058, .0062, .004, 24), this.tokenOn); tk.rotation.x = Math.PI / 2; tk.position.set(.07 + k * .02, IN.y0 - .016, .0118); this.body.add(tk); this.tokens.push(tk); }
+    const stamp = new T.Mesh(new T.PlaneGeometry(.172, .039), this.stampMat); stamp.position.set(-.043, IN.y0 - .026, .0103); this.body.add(stamp);
+    for (let k = 0; k < 3; k++) { const tk = new T.Mesh(new T.CylinderGeometry(.0058, .0062, .004, 24), this.tokenOn); tk.rotation.x = Math.PI / 2; tk.position.set(.075 + k * .02, IN.y0 - .026, .0118); this.body.add(tk); this.tokens.push(tk); }
     // the channel block: a cap bar over the pin channels (the ribs come with the pins)
     const cap = new T.Mesh(new T.BoxGeometry(.2, IN.y1 - TOPB, .024), housing); cap.position.set(PX0 + .005, (IN.y1 + TOPB) / 2, -.009); this.body.add(cap);
     // the plug: the back half of a brass cylinder; its cut face is built with the pin bores in buildPins
