@@ -135,7 +135,7 @@ function screw(m: T.Material, dark: T.Material, r: number) {
 }
 
 export class CodeLock {
-  /** the lock is small on the door; the close-up camera comes nearer by the same factor, so the mechanism fills the screen as before */
+  /** the lock is small on the door; tapping it zooms the view in a little (the camera stays where the player stands) */
   static SCALE = .5;
   group = new T.Group(); clues = new T.Group(); enabled = false; task: LockTask | null = null;
   sounds: {click?: () => void; turn?: () => void; lever?: () => void; unlock?: () => void; jam?: () => void} = {};
@@ -218,22 +218,7 @@ export class CodeLock {
     const a = Math.random() * Math.PI, v = .08 + Math.random() * .22; this.sparkV.set([Math.cos(a) * v, Math.sin(a) * v * .8 + .05, (Math.random() * .6) * v], k * 3); } p.needsUpdate = true; this.sparkLife = 1; }
 
   /** world placement: the lock hangs on the cage door, facing in */
-  place(ci: T.Box3 | undefined, floorY: number) { const maxZ = ci?.max.z ?? 1.18; this.group.position.set(.12, floorY + 1.3, maxZ - .035); this.group.rotation.y = Math.PI; this.group.scale.setScalar(CodeLock.SCALE);
-    this.home.p.copy(this.group.position); this.home.q.copy(this.group.quaternion); this.home.s = CodeLock.SCALE; }
-  private home = {p: new T.Vector3(), q: new T.Quaternion(), s: 1}; private tq = new T.Quaternion(); private tp = new T.Vector3(); private m4 = new T.Matrix4();
-  /**
-   * Bring the lock up to the player: k = 0 hangs on the door, k = 1 floats `dist` in front of the eye, facing it, grown to `scale`.
-   * The camera never moves; the mechanism itself grows.
-   */
-  present(k: number, eye: T.Vector3, dist: number, scale: number, lift = 0) {
-    const e = k * k * (3 - 2 * k), dir = this.tp.copy(this.home.p).sub(eye).normalize();
-    const target = eye.clone().addScaledVector(dir, dist); target.y = eye.y - .06 + lift;
-    this.m4.lookAt(eye, target, new T.Vector3(0, 1, 0)); this.tq.setFromRotationMatrix(this.m4); // +z of the lock toward the eye
-    this.group.position.copy(this.home.p).lerp(target, e); this.group.quaternion.copy(this.home.q).slerp(this.tq, e);
-    this.group.scale.setScalar(this.home.s + (scale - this.home.s) * e);
-  }
-  /** where the presented lock's centre will be (for the camera to look at) */
-  presentedCenter(eye: T.Vector3, dist: number, lift = 0) { const dir = this.tp.copy(this.home.p).sub(eye).normalize(), t = eye.clone().addScaledVector(dir, dist); t.y = eye.y - .06 + lift; return t; }
+  place(ci: T.Box3 | undefined, floorY: number) { const maxZ = ci?.max.z ?? 1.18; this.group.position.set(.12, floorY + 1.3, maxZ - .035); this.group.rotation.y = Math.PI; this.group.scale.setScalar(CodeLock.SCALE); }
 
   private buildPins(t: LockTask) {
     for (const o of [...this.pins.children]) { this.pins.remove(o); o.traverse(k => (k as T.Mesh).geometry?.dispose()); }

@@ -155,17 +155,51 @@ function sheetGeo(w: number, h: number, seed: number) {
 }
 
 export class LockNotes {
-  group = new T.Group(); private sheets: T.Mesh[] = [];
+  group = new T.Group(); private sheets: T.Mesh[] = []; private homes: {p: T.Vector3; q: T.Quaternion}[] = [];
+  /** the sheet in the player's right hand (-1: none) and whether it is raised to read */
+  held = -1; reading = false; private k = 0; private rk = 0; private scene: T.Object3D | null = null;
+  private tmpP = new T.Vector3(); private tmpQ = new T.Quaternion(); private tmpS = new T.Vector3();
   constructor(_hi: boolean) {
     const nailM = new T.MeshStandardMaterial({color: '#3a332c', metalness: .9, roughness: .5}), sw = .21, sh = sw * H / W;
     [sheet1, sheet2, sheet3].forEach((draw, i) => {
       const tex = textTex(draw()); const m = new T.Mesh(sheetGeo(sw, sh, i * 13 + 5), new T.MeshStandardMaterial({map: tex, roughness: .92, metalness: 0, side: T.DoubleSide}));
-      m.position.set((i - 1) * (sw + .02), (i === 1 ? .012 : -.004), 0); m.rotation.z = [.025, -.012, .03][i]; m.userData.id = 'notes'; this.group.add(m); this.sheets.push(m);
+      m.position.set((i - 1) * (sw + .02), (i === 1 ? .012 : -.004), 0); m.rotation.z = [.025, -.012, .03][i]; m.userData.id = 'notes'; m.userData.sheet = i; this.group.add(m); this.sheets.push(m);
+      this.homes.push({p: m.position.clone(), q: m.quaternion.clone()});
       const nail = new T.Mesh(new T.CylinderGeometry(.0045, .0045, .006, 14), nailM); nail.rotation.x = Math.PI / 2; nail.position.set(m.position.x + (i - 1) * .002, m.position.y + sh / 2 - .016, .006); this.group.add(nail);
       m.castShadow = false; m.receiveShadow = true; });
   }
   /** the right-hand wall beside the door, facing into the cage */
   place(ci: T.Box3 | undefined, floorY: number) { const maxX = ci?.max.x ?? 1.22; this.group.position.set(maxX - .014, floorY + 1.8, .79); this.group.rotation.y = -Math.PI / 2; }
   center() { return new T.Vector3().setFromMatrixPosition(this.group.matrixWorld); }
-  hits(ray: T.Raycaster) { return ray.intersectObjects(this.sheets, false)[0] || null; }
+  /** a sheet still on the wall */
+  hits(ray: T.Raycaster) { return ray.intersectObjects(this.sheets.filter((_, i) => i !== this.held), false)[0] || null; }
+  /** the sheet in hand */
+  heldHit(ray: T.Raycaster) { return this.held >= 0 ? ray.intersectObject(this.sheets[this.held], false)[0] || null : null; }
+  /** take sheet i off its nail into the right hand (a sheet already in hand goes back to the wall) */
+  take(i: number, scene: T.Object3D) { if (this.held === i) return; if (this.held >= 0) this.putBack(); this.scene = scene; this.held = i; this.reading = false; this.k = 0; this.rk = 0;
+    const m = this.sheets[i]; scene.attach(m); this.wallMat = m.material as T.Material;
+    // in hand the sheet is evenly lit (no cage light washing it out) and drawn over everything
+    m.material = new T.MeshBasicMaterial({map: (this.wallMat as T.MeshStandardMaterial).map, color: '#d6c8aa', side: T.DoubleSide, depthTest: false, toneMapped: false}); m.renderOrder = 20; }
+  private wallMat: T.Material | null = null;
+  putBack() { const i = this.held; if (i < 0) return; const m = this.sheets[i]; this.group.attach(m); (m.material as T.Material).dispose(); if (this.wallMat) m.material = this.wallMat; m.renderOrder = 0; this.held = -1; this.reading = false; this.returning.push(i); }
+  private returning: number[] = [];
+  toggleRead() { if (this.held >= 0) this.reading = !this.reading; }
+  /** every frame: the held sheet rides in the right hand (or is raised in front to read); a returned one flies back to its nail */
+  update(dt: number, camera: T.PerspectiveCamera) {
+    const a = 1 - Math.exp(-dt * 9);
+    for (const i of [...this.returning]) { const m = this.sheets[i], h = this.homes[i]; m.position.lerp(h.p, a); m.quaternion.slerp(h.q, a); m.scale.lerp(new T.Vector3(1, 1, 1), a);
+      if (m.position.distanceTo(h.p) < .002) { m.position.copy(h.p); m.quaternion.copy(h.q); m.scale.set(1, 1, 1); this.returning.splice(this.returning.indexOf(i), 1); } }
+    if (this.held < 0) return;
+    this.k += (1 - this.k) * a; this.rk += ((this.reading ? 1 : 0) - this.rk) * a;
+    // a pose in camera space that keeps its on-screen size whatever the zoom: depth follows tan(fov/2)
+    const t = Math.tan(T.MathUtils.degToRad(camera.fov / 2)), d = .3, hh = d * t, hw = hh * camera.aspect, sheetH = .21 * H / W;
+    const portrait = camera.aspect < .9;
+    const handScale = (portrait ? .32 : .56) * 2 * hh / sheetH, readScale = .9 * 2 * hh / sheetH, sw = .21 * handScale, shh = sheetH * handScale;
+    const hand = new T.Vector3(hw - sw / 2 - .14 * hh, -hh + shh / 2 + .16 * hh, -d), handRot = new T.Euler(.05, -.22, -.07);
+    const read = new T.Vector3(0, 0, -d), readRot = new T.Euler(0, 0, 0);
+    const lp = hand.clone().lerp(read, this.rk), lq = new T.Quaternion().setFromEuler(handRot).slerp(new T.Quaternion().setFromEuler(readRot), this.rk), ls = handScale + (readScale - handScale) * this.rk;
+    camera.updateMatrixWorld(); const wp = lp.applyMatrix4(camera.matrixWorld), wq = camera.getWorldQuaternion(this.tmpQ).multiply(lq);
+    const m = this.sheets[this.held]; m.position.lerp(wp, this.k > .98 ? 1 : a); m.quaternion.slerp(wq, this.k > .98 ? 1 : a); m.scale.lerp(this.tmpS.set(ls, ls, ls), this.k > .98 ? 1 : a);
+    void this.scene; void this.tmpP;
+  }
 }

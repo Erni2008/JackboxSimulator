@@ -221,8 +221,9 @@ async function boot() {
   renderer.domElement.addEventListener('pointerup', e => { const s = tapStart.get(e.pointerId); tapStart.delete(e.pointerId); if (!s || Math.hypot(e.clientX - s.x, e.clientY - s.y) > 12 || performance.now() - s.t > 450) return;
     ray.setFromCamera(new T.Vector2(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1), camera);
     if (valvePointer === e.pointerId) return;
-    { const nh = notes.hits(ray); if (nh && !(inspecting && inspectTarget === "lock")) { const bh = ray.intersectObject(book.root, true)[0]; if (!bh || nh.distance < bh.distance) { if (inspecting && inspectTarget === "notes") return;
-      if (!inspecting && (cur().state === "rest" || cur().state === "falling" || cur().lowered)) { setInspect(true, "notes"); return; } } } }
+    if (notes.heldHit(ray) || notes.reading) { notes.toggleRead(); haptic("tap"); audio.play("pageTurn", 1); return; } // a tap anywhere lowers a sheet being read
+    { const nh = notes.hits(ray); if (nh && !(inspecting && inspectTarget === "lock")) { const bh = ray.intersectObject(book.root, true)[0]; if (!bh || nh.distance < bh.distance) {
+      if (cur().state === "rest" || cur().state === "falling" || cur().lowered) { notes.take(nh.object.userData.sheet, scene); $("btn-sheet").hidden = false; haptic("tap"); audio.play("pageTurn", 1); return; } } } }
     { const kh = lock.hits(ray); if (kh) { const bh = ray.intersectObject(book.root, true)[0]; if (!bh || kh.distance < bh.distance) { if (inspecting && inspectTarget === "lock") return; /* the pick is worked by drags (device) */
       if (!inspecting && (cur().state === "rest" || cur().state === "falling" || cur().lowered)) { setInspect(true, "lock"); return; } } } }
     const jb = ray.intersectObject(journal.root, true)[0], lh = lab.hits(ray); if (jb && (!lh || jb.distance <= lh.distance + .05)) return; // the journal handles its own taps
@@ -232,6 +233,7 @@ async function boot() {
     if ((cur().state === 'reading' || cur().state === 'held') && !cur().lowered) { if (!hit) return; }
     const r = box.tap(ray); (window as any).__lastTap = r; if (r && (r !== 'door' || box.open) && !inspecting && (cur().state === 'rest' || cur().state === 'falling' || cur().lowered)) { setInspect(true); if (r !== 'test') return; } if (r === 'door' && box.open) { if (!deadline && !box.locked && !IN_ROOM) deadline = performance.now() + LIMITW() * 1000; if (cur().state === 'rest' || cur().state === 'falling') { const d = box.center().sub(eye); focusTo = [Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z))]; } } });
   const setInspect = (on: boolean, target: "box" | "pressure" | "lab" | "lock" | "notes" = "box") => { if (on) inspectTarget = target; inspecting = on; $('btn-back').hidden = !on; $('hint').style.opacity = on ? '0' : ''; $('task').style.opacity = on && innerWidth > 700 ? '0' : ''; if (on) { focusTo = null; if (target === 'box' && !box.open) box.toggleDoor(); } };
+  $('btn-sheet').onclick = () => { notes.putBack(); $('btn-sheet').hidden = true; audio.play('pageTurn', 1); };
   $('btn-back').onclick = () => setInspect(false); addEventListener('keydown', e => { if (e.key === 'Escape' && inspecting) setInspect(false); });
   $('btn-open').onclick = () => cur().open(); $('btn-close').onclick = () => cur().close(); $('btn-drop').onclick = () => cur().drop();
   $('btn-sound').onclick = () => { audio.unlock(); audio.enabled = !audio.enabled; $('btn-sound').textContent = audio.enabled ? L('Звук: вкл.', 'Sound: on') : L('Звук: выкл.', 'Sound: off'); };
@@ -272,6 +274,7 @@ async function boot() {
   renderer.domElement.addEventListener('pointerdown', e => { if (valvePointer !== null || free || ((cur().state === 'reading' || cur().state === 'held') && !cur().lowered)) return;
     ray.setFromCamera(new T.Vector2(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1), camera);
     if (!inspecting || (inspectTarget !== 'pressure' && inspectTarget !== 'lab' && inspectTarget !== 'lock')) { if (press.hits(ray) || lab.hits(ray)) return; } // first tap only opens the close-up
+    if (notes.heldHit(ray) || notes.reading) return; // the sheet in hand takes its own taps
     if (!inspecting && inspectTarget !== 'lock' && lock.hits(ray)) return;
     device = inspectTarget === 'lab' ? lab : inspectTarget === 'lock' && inspecting ? lock : press; if (!device.enabled) return;
     if (device.pointerDown(ray, e.clientX, e.clientY, camera)) { haptic('tap'); valvePointer = e.pointerId; valveStart = {x: e.clientX, y: e.clientY, t: performance.now()}; try { renderer.domElement.setPointerCapture(e.pointerId); } catch {} } });
@@ -289,14 +292,11 @@ async function boot() {
     // exponential smoothing of the look (frame-rate independent): no stepping between irregular mouse events
     { const a = 1 - Math.exp(-dt * 22); yaw += (yawT - yaw) * a; pitch += (pitchT - pitch) * a; }
     inspectK += ((inspecting ? 1 : 0) - inspectK) * (1 - Math.exp(-dt * 6));
-    // the cage lock comes to the player and grows (the camera stays put)
-    const lockDist = camera.aspect < .9 ? .62 : mobile ? .52 : .5, lockScale = lockDist / (camera.aspect < .9 ? .66 : mobile ? .5 : .44), lockLift = mobile && camera.aspect >= .9 ? .03 : 0;
-    lock.present(inspectTarget === "lock" ? inspectK : 0, eye, lockDist, lockScale, lockLift);
     if (free) orbit.update(); else if (inspectK > .001) {
       // close-up: stand ~55 cm in front of the panel (still inside the cage), framing meter + wires
       const P = inspectTarget === "pressure", L = inspectTarget === "lab", K = inspectTarget === "lock", N = inspectTarget === "notes", tg = N ? notes.group : K ? lock.group : P ? press.group : L ? lab.group : box.group, c = N ? notes.center() : K ? lock.center() : P ? press.center() : L ? lab.center() : box.center(), n = new T.Vector3(0, 0, 1).applyQuaternion(tg.getWorldQuaternion(new T.Quaternion())), at = c.clone().add(new T.Vector3(0, N ? (mobile ? -.02 : 0) : K ? (mobile ? -.045 : -.015) * CodeLock.SCALE : P || L ? 0 : .05, 0)), from = c.clone().addScaledVector(n, N ? (camera.aspect < .9 ? 1.45 : mobile ? .62 : .72) : K ? (camera.aspect < .9 ? .66 : mobile ? .5 : .44) * CodeLock.SCALE : L ? (camera.aspect < .9 ? 1.95 : 1.12) : P ? (camera.aspect < .9 ? 1.75 : 1.05) : camera.aspect < .9 ? 1.3 : 1.12).add(new T.Vector3(0, N ? 0 : K ? .09 * CodeLock.SCALE : P ? .06 : L ? .04 : .09, 0));
       const look = new T.Quaternion().setFromRotationMatrix(new T.Matrix4().lookAt(from, at, new T.Vector3(0, 1, 0))), base = new T.Quaternion().setFromEuler(new T.Euler(pitch, yaw, 0, 'YXZ'));
-      if (K) { from.copy(eye); at.copy(lock.presentedCenter(eye, lockDist, lockLift)).add(new T.Vector3(0, mobile ? -.04 : -.012, 0)); look.setFromRotationMatrix(new T.Matrix4().lookAt(from, at, new T.Vector3(0, 1, 0))); }
+      if (K) { from.copy(eye); at.copy(lock.center()).add(new T.Vector3(0, mobile ? -.012 : -.004, 0)); look.setFromRotationMatrix(new T.Matrix4().lookAt(from, at, new T.Vector3(0, 1, 0))); }
       camera.position.copy(eye).lerp(from, inspectK); camera.quaternion.copy(base).slerp(look, inspectK);
       if (!inspecting && inspectK < .002) inspectK = 0;
     } else { camera.position.copy(eye); camera.quaternion.setFromEuler(new T.Euler(pitch, yaw, 0, 'YXZ')); }
@@ -315,7 +315,7 @@ async function boot() {
     const surface = cage.shelf && Math.abs(book.root.position.y - TH / 2 - cage.shelf.top.y) < .2 && Math.abs(book.root.position.z - cage.shelf.top.z) < .2 ? cage.shelf.top.y : floorY; const h = Math.max(0, book.root.position.y - TH / 2 - surface); shadow.position.set(book.root.position.x, surface + .0012, book.root.position.z); shadow.rotation.z = new T.Euler().setFromQuaternion(book.root.quaternion, 'YXZ').y; (shadow.material as T.MeshBasicMaterial).opacity = .75 * Math.max(0, 1 - h / .18); shadow.visible = h < .18;
     { // fall choreography (runs on top of the normal camera pose)
       if (fallT >= 0) fallT += dt; if (landT >= 0) landT += dt;
-      const target = falling ? fov0 + 9 : fov0; if (Math.abs(camera.fov - target) > .05) { camera.fov += (target - camera.fov) * (1 - Math.exp(-dt * (falling ? 7 : 2.5))); camera.updateProjectionMatrix(); }
+      const lockZoom = inspectTarget === 'lock' && inspecting, target = falling ? fov0 + 9 : lockZoom ? (camera.aspect < .9 ? 26 : mobile ? 15 : 17) : fov0; if (Math.abs(camera.fov - target) > .05) { camera.fov += (target - camera.fov) * (1 - Math.exp(-dt * (falling ? 7 : lockZoom || camera.fov < fov0 - .5 ? 6 : 2.5))); camera.updateProjectionMatrix(); }
       if (falling) { shake = Math.max(shake, .35); cage.power = Math.random() < .25 ? .35 : .08; cage.alarmLevel = Math.min(1, fallT * 6); headV += (1.2 - headV) * Math.min(1, dt * 6); }
       else if (landT >= 0) { cage.power = landT < .25 ? .05 : landT < 1.4 ? (Math.random() < .5 ? .25 : .9) * Math.min(1, landT) : Math.min(1, cage.power + dt); cage.alarmLevel = Math.max(0, 1 - Math.max(0, landT - 1.2) / 1.6); if (landT > 3) { landT = -1; fallT = -1; cage.power = 1; cage.alarmLevel = 0; } }
       // head: floats up a little in free fall, compresses on the catch, springs back
@@ -323,6 +323,7 @@ async function boot() {
     if (shake > .002) { const a = shake * shake; camera.position.add(new T.Vector3((Math.random() - .5) * .05 * a, (Math.random() - .5) * .07 * a, (Math.random() - .5) * .03 * a)); camera.rotateZ((Math.random() - .5) * .03 * a); shake *= Math.exp(-dt * 4); }
     // shadows refresh every other frame: invisible at 60 fps, halves the shadow-pass cost
     if (frameNo++ % (shadowEvery + 1) === 0) renderer.shadowMap.needsUpdate = true;
+    notes.update(dt, camera);
     bloom.strength = .42 + (falling ? .25 : 0) + (shake > .8 ? .4 : 0); if (composer) composer.render(); else renderer.render(scene, camera); requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
