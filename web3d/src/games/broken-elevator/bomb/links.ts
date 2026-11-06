@@ -6,6 +6,8 @@ import * as T from 'three';
 import {L} from '../i18n';
 import {chapters, PW, type Ink} from './notebook';
 import type {Diff} from './wire-maze';
+import {mergeStatic} from './merge';
+
 
 export const LETTERS = 'ABCDEF'.split('');
 type Part = 'JUMPER' | 'RESISTOR' | 'DIODE';
@@ -49,6 +51,7 @@ export class LinksView {
       const handle = new T.Mesh(this.g(new T.CylinderGeometry(.0028, .0032, .03, 12)), hm); handle.position.y = .027; g.add(handle);
       const guard = new T.Mesh(this.g(new T.CylinderGeometry(.0045, .0045, .002, 14)), hm); guard.position.y = .013; g.add(guard);
       g.rotation.z = col === '#151515' ? -.35 : .35; g.visible = false; this.group.add(g); this.probes.push({g, at: -1, y: 0}); }
+    this.geos.push(...mergeStatic(this.group));
   }
   private g<G extends T.BufferGeometry>(g: G) { this.geos.push(g); return g; }
   private m<M extends T.Material>(m: M) { this.mats.push(m); return m; }

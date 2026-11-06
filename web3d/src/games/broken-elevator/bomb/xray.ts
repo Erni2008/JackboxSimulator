@@ -6,6 +6,8 @@ import {L} from '../i18n';
 import {chapters, PW, type Ink} from './notebook';
 import {cutaway, makeScanUniforms, ScanHead} from './scan';
 import type {Diff} from './wire-maze';
+import {mergeStatic} from './merge';
+
 
 export type Core = 'BALL' | 'COIL' | 'ROD';
 export interface Inside { core: Core; needles: number; ring: boolean }
@@ -36,11 +38,13 @@ export class XrayView {
     this.tex = new T.CanvasTexture(c); this.tex.colorSpace = T.SRGBColorSpace; const face = new T.Mesh(this.g(new T.PlaneGeometry(BW, BD)), this.m(new T.MeshStandardMaterial({map: this.tex, metalness: .4, roughness: .6}))); face.rotation.x = -Math.PI / 2; face.position.y = .0033; this.group.add(face);
     const xr = this.m(new T.MeshBasicMaterial({color: '#bdeeff', toneMapped: false})), xr2 = this.m(new T.MeshBasicMaterial({color: '#5ab8e8', toneMapped: false})); cutaway(xr, this.u, true); cutaway(xr2, this.u, true);
     const back = this.m(new T.MeshBasicMaterial({color: '#06121c'})); cutaway(back, this.u, true);
+    const shellShared = this.m(new T.MeshStandardMaterial({color: '#6a6660', metalness: .9, roughness: .38})); cutaway(shellShared, this.u, false); this.shells.push(shellShared);
+    const capM = this.m(new T.MeshStandardMaterial({color: '#a8844a', metalness: 1, roughness: .3})), baseM = this.m(new T.MeshStandardMaterial({color: '#1a1816', metalness: .7, roughness: .5})), stickM = this.m(new T.MeshStandardMaterial({color: '#bbb', metalness: 1, roughness: .25})), knobM = this.m(new T.MeshStandardMaterial({color: '#a01a10', roughness: .4})), hitM = this.m(new T.MeshBasicMaterial({visible: false}));
     const cols = 2, rows = Math.ceil(l.cans.length / cols), LEN = .044, R = .0085;
     l.cans.forEach((ins, i) => { const col = i % cols, row = Math.floor(i / cols), px = -BW / 2 + .012 + (col + .5) * (BW - .03) / cols - .006, pz = -BD / 2 + .02 + (row + .5) * (BD - .03) / rows; const p = new T.Vector3(px, .0035 + R, pz); this.slots.push(p);
-      const shellM = this.m(new T.MeshStandardMaterial({color: '#6a6660', metalness: .9, roughness: .38})); cutaway(shellM, this.u, false); this.shells.push(shellM);
+      const shellM = shellShared;
       const shell = new T.Mesh(this.g(new T.CylinderGeometry(R, R, LEN, 24)), shellM); shell.rotation.z = Math.PI / 2; shell.position.copy(p); this.group.add(shell);
-      for (const e of [-1, 1]) { const cap = new T.Mesh(this.g(new T.CylinderGeometry(R * 1.08, R * 1.08, .003, 24)), this.m(new T.MeshStandardMaterial({color: '#a8844a', metalness: 1, roughness: .3}))); cap.rotation.z = Math.PI / 2; cap.position.copy(p).add(new T.Vector3(e * LEN / 2, 0, 0)); this.group.add(cap); }
+      for (const e of [-1, 1]) { const cap = new T.Mesh(this.g(new T.CylinderGeometry(R * 1.08, R * 1.08, .003, 24)), capM); cap.rotation.z = Math.PI / 2; cap.position.copy(p).add(new T.Vector3(e * LEN / 2, 0, 0)); this.group.add(cap); }
       const bk = new T.Mesh(this.g(new T.PlaneGeometry(LEN, R * 2)), back); bk.rotation.x = -Math.PI / 2; bk.position.copy(p).setY(.0036); this.group.add(bk);
       // the inside (only seen through the window)
       const core = ins.core === 'BALL' ? new T.Mesh(this.g(new T.SphereGeometry(R * .55, 16, 12)), xr) : ins.core === 'ROD' ? new T.Mesh(this.g(new T.CylinderGeometry(R * .22, R * .22, LEN * .5, 10)), xr) : new T.Mesh(this.g(new T.TubeGeometry(new (class extends T.Curve<T.Vector3> { getPoint(t: number) { const a = t * Math.PI * 12; return new T.Vector3(Math.cos(a) * R * .45, (t - .5) * LEN * .5, Math.sin(a) * R * .45); } })(), 80, R * .08, 5, false)), xr);
@@ -49,10 +53,11 @@ export class XrayView {
       if (ins.ring) { const rg = new T.Mesh(this.g(new T.TorusGeometry(R * .7, R * .1, 6, 20)), xr2); rg.rotation.y = Math.PI / 2; rg.position.copy(p).add(new T.Vector3(-LEN * .12, 0, 0)); this.group.add(rg); }
       // isolation lever beside the canister
       const lg = new T.Group(); lg.position.set(px + LEN / 2 + .011, .0035, pz); this.group.add(lg);
-      const base = new T.Mesh(this.g(new T.BoxGeometry(.008, .003, .012)), this.m(new T.MeshStandardMaterial({color: '#1a1816', metalness: .7, roughness: .5}))); base.position.y = .0015; lg.add(base);
-      const arm = new T.Group(); arm.position.y = .003; lg.add(arm); const stick = new T.Mesh(this.g(new T.CylinderGeometry(.0012, .0012, .014, 6)), this.m(new T.MeshStandardMaterial({color: '#bbb', metalness: 1, roughness: .25}))); stick.position.y = .007; arm.add(stick);
-      const knob = new T.Mesh(this.g(new T.SphereGeometry(.0028, 10, 8)), this.m(new T.MeshStandardMaterial({color: '#a01a10', roughness: .4}))); knob.position.y = .014; arm.add(knob); arm.rotation.x = -.5;
-      const hit = new T.Mesh(this.g(new T.BoxGeometry(.014, .02, .018)), this.m(new T.MeshBasicMaterial({visible: false}))); hit.position.y = .008; hit.userData.lever = i; lg.add(hit); this.levers.push({g: arm, t: 0, on: false}); });
+      const base = new T.Mesh(this.g(new T.BoxGeometry(.008, .003, .012)), baseM); base.position.y = .0015; lg.add(base);
+      const arm = new T.Group(); arm.position.y = .003; lg.add(arm); const stick = new T.Mesh(this.g(new T.CylinderGeometry(.0012, .0012, .014, 6)), stickM); stick.position.y = .007; arm.add(stick);
+      const knob = new T.Mesh(this.g(new T.SphereGeometry(.0028, 10, 8)), knobM); knob.position.y = .014; arm.add(knob); arm.rotation.x = -.5;
+      const hit = new T.Mesh(this.g(new T.BoxGeometry(.014, .02, .018)), hitM); hit.position.y = .008; hit.userData.lever = i; lg.add(hit); this.levers.push({g: arm, t: 0, on: false}); });
+    this.geos.push(...mergeStatic(this.group));
   }
   private g<G extends T.BufferGeometry>(g: G) { this.geos.push(g); return g; }
   private m<M extends T.Material>(m: M) { this.mats.push(m); return m; }

@@ -247,11 +247,11 @@ $('sound').onclick = () => { audioOn(); actx?.resume(); };
 
 // ------------------------------------------------------------------ data
 interface CageCell { height: number; fails: number; repairs: number; outcome: string; dead: boolean }
-interface P { id: string; name: string; characterId: string; online: boolean; kind: string; psi?: number; cage?: CageCell }
+interface P { id: string; name: string; characterId: string; online: boolean; kind: string; psi?: number; bomb?: string; cage?: CageCell }
 interface Shift { phase: string; round: number; rounds: number; kind: string; kinds: string[]; phaseStart: number; phaseEnd: number; roundLimit: number; startM: number; difficulty: string }
 let players: P[] = [], shift: Shift | null = null, diff = 'NORMAL', active = true, clockOffset = 0;
 const serverNow = () => Date.now() + clockOffset;
-const KIND = (): Record<string, [string, string]> => ({wire: ['⚡', L('Щиток', 'Wires')], pressure: ['◉', L('Клапаны', 'Valves')], formula: ['⚗', L('Лаборатория', 'Lab')], lock: ['🔒', L('Замок', 'Lock')]});
+const KIND = (): Record<string, [string, string]> => ({wire: ['⚡', L('Щиток', 'Wires')], pressure: ['◉', L('Клапаны', 'Valves')], formula: ['⚗', L('Лаборатория', 'Lab')], lock: ['🔒', L('Замок', 'Lock')], bomb: ['💣', L('Бомба', 'Bomb')]});
 
 async function poll() {
   try { const r = await fetch(`/rooms/${encodeURIComponent(ROOM!)}/cage?token=${encodeURIComponent(TOKEN || '')}`, {cache: 'no-store'}); if (!r.ok) throw new Error(String(r.status)); const v = await r.json();
@@ -265,7 +265,7 @@ function demo() {
   for (const c of cages.values()) { scene.remove(c.root); c.label.remove(); } cages.clear(); // a fresh shift: new cages
   const names = ['Skelly', 'Тыква', 'Доктор', 'Граф', 'Призрак', 'Вуду'], LIMIT = 24_000, INTRO = 4000, BREAK = 4000;
   players = names.map((n, i) => ({id: 'p' + i, name: n, characterId: CHARS[i], online: true, kind: '', cage: {height: 100, fails: 0, repairs: 0, outcome: 'RUNNING', dead: false}}));
-  const kinds = ['wire', 'pressure', 'formula', 'lock'].sort(() => Math.random() - .5).slice(0, 3); let t0 = Date.now(); const plan = new Map<string, {at: number; ok: boolean}>();
+  const kinds = ['wire', 'pressure', 'formula', 'lock', 'bomb'].sort(() => Math.random() - .5).slice(0, 3); let t0 = Date.now(); const plan = new Map<string, {at: number; ok: boolean}>();
   shift = {phase: 'INTRO', round: -1, rounds: 3, kind: '', kinds, phaseStart: t0, phaseEnd: t0 + INTRO, roundLimit: LIMIT, startM: 100, difficulty: 'NORMAL'};
   const fail = (c: CageCell) => { c.outcome = 'FAIL'; c.fails++; c.height = c.fails === 1 ? c.height - 25 : c.fails === 2 ? Math.min(c.height - 25, 2) : 0; if (c.height <= 0) { c.height = 0; c.dead = true; } };
   let last = Date.now();
@@ -297,7 +297,7 @@ function sync() {
     const [ic, kn] = KIND()[sh?.kind || p.kind] ?? ['…', L('Ожидание', 'Waiting')];
     const state = c.dead ? L('СГОРЕЛ', 'BURNED') : c.survived ? L('ВЫЖИЛ', 'SURVIVED') : cell.outcome === 'OK' && sh?.phase === 'ROUND' ? L('✓ починил', '✓ repaired') : cell.outcome === 'FAIL' && sh?.phase === 'ROUND' ? L('✗ сорвался', '✗ dropped') : `${ic} ${kn}`;
     c.label.querySelector('.m')!.textContent = c.dead ? '☠' : `${m.toFixed(m < 10 ? 1 : 0)} ${L('м', 'm')}`;
-    c.label.querySelector('.s')!.textContent = `${state}${p.psi != null && sh?.kind === 'pressure' && cell.outcome === 'RUNNING' ? ' · ' + p.psi + ' PSI' : ''}  ${'✗'.repeat(cell.fails)}${'·'.repeat(Math.max(0, 3 - cell.fails))}`;
+    c.label.querySelector('.s')!.textContent = `${state}${p.psi != null && sh?.kind === 'pressure' && cell.outcome === 'RUNNING' ? ' · ' + p.psi + ' PSI' : ''}${p.bomb && sh?.kind === 'bomb' && cell.outcome === 'RUNNING' ? ' · ' + p.bomb : ''}  ${'✗'.repeat(cell.fails)}${'·'.repeat(Math.max(0, 3 - cell.fails))}`;
     c.label.classList.toggle('dead', c.dead); c.label.classList.toggle('ok', cell.outcome === 'OK' && sh?.phase === 'ROUND' || c.survived); c.label.classList.toggle('bad', !c.dead && cell.fails >= 2);
     c.label.classList.toggle('off', !p.online && !DEMO); });
   // HUD: the cage closest to the lava, the phase clock, the round banner

@@ -6,6 +6,8 @@ import {L} from '../i18n';
 import {chapters, PW, type Ink} from './notebook';
 import {cutaway, makeScanUniforms, ScanHead} from './scan';
 import {drawSeal, SEALS, type Seal, type Diff} from './wire-maze';
+import {mergeStatic} from './merge';
+
 
 export type Pattern = 'CENTER' | 'TWO' | 'RING' | 'COLD_CENTER' | 'ASYM';
 export const PATTERNS: Pattern[] = ['CENTER', 'TWO', 'RING', 'COLD_CENTER', 'ASYM'];
@@ -49,9 +51,10 @@ export class ThermalView {
     l.caps.forEach((cp, i) => { const p = pos(i), u = (p.x + BW / 2) / BW * 640, v = (p.z + BD / 2) / BD * 500; x.fillStyle = '#e6d3a4'; x.font = 'bold 30px "IBM Plex Mono", monospace'; x.fillText(String(i + 1), u - 70, v + 4);
       x.fillStyle = '#d8b46a'; drawSeal(x, cp.symbol, u, v + 58, 14); });
     const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; this.texs.push(t); const face = new T.Mesh(this.g(new T.PlaneGeometry(BW, BD)), this.m(new T.MeshStandardMaterial({map: t, metalness: .4, roughness: .6}))); face.rotation.x = -Math.PI / 2; face.position.y = .0033; this.group.add(face);
-    const geo = this.g(new T.CapsuleGeometry(R, LEN - 2 * R, 6, 18));
+    const geo = this.g(new T.CapsuleGeometry(R, LEN - 2 * R, 6, 18)); const shellShared = this.m(new T.MeshStandardMaterial({color: '#8a8478', metalness: .85, roughness: .35})); cutaway(shellShared, this.u, false); this.shells.push(shellShared);
+    const stemM = this.m(new T.MeshStandardMaterial({color: '#999', metalness: 1, roughness: .3})), redM = this.m(new T.MeshStandardMaterial({color: '#a01a10', roughness: .4})), hitM = this.m(new T.MeshBasicMaterial({visible: false}));
     l.caps.forEach((cp, i) => { const p = pos(i); this.centers.push(p);
-      const shellM = this.m(new T.MeshStandardMaterial({color: '#8a8478', metalness: .85, roughness: .35})); cutaway(shellM, this.u, false); this.shells.push(shellM);
+      const shellM = shellShared;
       const shell = new T.Mesh(geo, shellM); shell.rotation.z = Math.PI / 2; shell.position.copy(p); this.group.add(shell);
       // heat skin (only inside the scope's window)
       // the window test is built in (a hand-written shader has no chunks for the cutaway patch to hook)
@@ -60,10 +63,11 @@ export class ThermalView {
         fragmentShader: `${HEAT_GLSL}\nvarying vec3 vW; uniform vec3 uScanP; uniform vec3 uScanN; uniform float uScanR;\nvoid main() { vec3 sd = vW - uScanP; sd -= dot(sd, uScanN) * uScanN; if (length(sd) > uScanR) discard; vec2 p = vec2(vLoc.y / ${(LEN / 2).toFixed(4)}, vLoc.z / ${R.toFixed(4)}); float h = pat(p) * mix(.35, 1., uTemp) + uTemp * .18; gl_FragColor = vec4(ironbow(h), 1.); }`})); const skin = new T.Mesh(geo, hm); skin.rotation.z = Math.PI / 2; skin.position.copy(p); skin.scale.setScalar(1.002); this.group.add(skin);
       // vent valve: a small red wheel beside the capsule
       const vg = new T.Group(); vg.position.set(p.x + LEN / 2 + .007, .0035, p.z); this.group.add(vg);
-      const stem = new T.Mesh(this.g(new T.CylinderGeometry(.0012, .0012, .007, 6)), this.m(new T.MeshStandardMaterial({color: '#999', metalness: 1, roughness: .3}))); stem.position.y = .0035; vg.add(stem);
-      const wheel = new T.Group(); wheel.position.y = .0075; vg.add(wheel); const rim = new T.Mesh(this.g(new T.TorusGeometry(.0042, .0011, 6, 16)), this.m(new T.MeshStandardMaterial({color: '#a01a10', roughness: .4}))); rim.rotation.x = Math.PI / 2; wheel.add(rim);
-      for (const a of [0, Math.PI / 2]) { const sp = new T.Mesh(this.g(new T.BoxGeometry(.008, .0009, .0009)), this.m(new T.MeshStandardMaterial({color: '#a01a10'}))); sp.rotation.y = a; wheel.add(sp); }
-      const hit = new T.Mesh(this.g(new T.CylinderGeometry(.007, .007, .012, 8)), this.m(new T.MeshBasicMaterial({visible: false}))); hit.position.y = .006; hit.userData.valve = i; vg.add(hit); this.valves.push({g: wheel, t: 0, on: false}); });
+      const stem = new T.Mesh(this.g(new T.CylinderGeometry(.0012, .0012, .007, 6)), stemM); stem.position.y = .0035; vg.add(stem);
+      const wheel = new T.Group(); wheel.position.y = .0075; vg.add(wheel); const rim = new T.Mesh(this.g(new T.TorusGeometry(.0042, .0011, 6, 16)), redM); rim.rotation.x = Math.PI / 2; wheel.add(rim);
+      for (const a of [0, Math.PI / 2]) { const sp = new T.Mesh(this.g(new T.BoxGeometry(.008, .0009, .0009)), redM); sp.rotation.y = a; wheel.add(sp); }
+      const hit = new T.Mesh(this.g(new T.CylinderGeometry(.007, .007, .012, 8)), hitM); hit.position.y = .006; hit.userData.valve = i; vg.add(hit); this.valves.push({g: wheel, t: 0, on: false}); });
+    this.geos.push(...mergeStatic(this.group));
   }
   private g<G extends T.BufferGeometry>(g: G) { this.geos.push(g); return g; }
   private m<M extends T.Material>(m: M) { this.mats.push(m); return m; }

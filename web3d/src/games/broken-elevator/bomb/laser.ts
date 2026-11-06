@@ -6,6 +6,8 @@ import * as T from 'three';
 import {L} from '../i18n';
 import {chapters, PW, type Ink} from './notebook';
 import type {Diff} from './wire-maze';
+import {mergeStatic} from './merge';
+
 
 export const COLS = 8, ROWS = 4;
 export interface LaserLayout { emitter: number; mirrors: number[][]; baffles: number[][]; sensors: number[][]; state: number[]; target?: number }
@@ -66,7 +68,7 @@ export class LaserView {
     void pl;
     this.beamM = this.m(new T.MeshBasicMaterial({color: '#ff2a12', transparent: true, opacity: .95, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false}));
     this.glowM = this.m(new T.MeshBasicMaterial({color: '#ff5a30', transparent: true, opacity: .25, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false}));
-    this.group.add(this.beam); this.retrace();
+    this.geos.push(...mergeStatic(this.group)); this.group.add(this.beam); this.retrace();
   }
   private g<G extends T.BufferGeometry>(g: G) { this.geos.push(g); return g; }
   private m<M extends T.Material>(m: M) { this.mats.push(m); return m; }

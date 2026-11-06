@@ -7,6 +7,7 @@
 import * as T from 'three';
 import {loadLeather, leatherMaps, leatherMaterial, brassMaterial, TEX} from '../manual/materials';
 import {L} from '../i18n';
+import {mergeStatic} from './merge';
 
 export type Mechanism = 'WIRE_MAZE' | 'HIDDEN_CONNECTIONS' | 'XRAY' | 'LASER' | 'THERMAL';
 export const MECHANISMS: Mechanism[] = ['WIRE_MAZE', 'HIDDEN_CONNECTIONS', 'XRAY', 'LASER', 'THERMAL'];
@@ -55,7 +56,7 @@ export class Suitcase {
     const steel = this.steel(hq), brass = brassMaterial(8), dark = new T.MeshStandardMaterial({color: '#1d1b19', metalness: .7, roughness: .55});
     brass.emissive = new T.Color('#ff8a3a'); brass.emissiveIntensity = 0; this.glowMats.push(brass as unknown as T.MeshStandardMaterial);
     const leather = new T.MeshStandardMaterial({color: '#3a2618', roughness: .72, metalness: 0}); // swapped for the scanned leather once it loads
-    loadLeather().then(src => { const m = leatherMaterial(leatherMaps(src, {w: 512, h: 512, seed: 77, tiles: 2, edgeWear: .6}, 8)); m.color = new T.Color('#8a6448'); m.normalScale.set(.7, .7); for (const o of this.leatherMeshes) o.material = m; }).catch(() => {});
+    loadLeather().then(src => { const m = leatherMaterial(leatherMaps(src, {w: 512, h: 512, seed: 77, tiles: 2, edgeWear: .6}, 8)); m.color = new T.Color('#8a6448'); m.normalScale.set(.7, .7); this.root.traverse(o => { if ((o as T.Mesh).material === leather) (o as T.Mesh).material = m; }); }).catch(() => {});
     const box = (w: number, h: number, d: number, m: T.Material, x: number, y: number, z: number, parent: T.Object3D = this.body) => { const k = new T.Mesh(new T.BoxGeometry(w, h, d), m); k.position.set(x, y, z); k.castShadow = k.receiveShadow = true; parent.add(k); return k; };
 
     // ---- base shell (open top): leather panels with steel angle trim
@@ -131,7 +132,7 @@ export class Suitcase {
       const ring = new T.Mesh(new T.TorusGeometry(.0068, .0016, 6, 16), brass); ring.rotation.x = Math.PI / 2; ring.position.copy(lb.position); g.add(ring);
       const mount = new T.Group(); mount.position.y = .003; g.add(mount); this.bays[m] = {group: g, mount, lamp, size: [w, d]}; });
     for (const x of [-W / 2, W / 2]) for (const z of [-D / 2, D / 2]) { for (const y of [baseY0, seamY]) this.hullBody.push(new T.Vector3(x, y, z)); for (const y of [0, HL]) this.hullLid.push(new T.Vector3(x, y, z + D / 2)); }
-    this.drawTimer(0);
+    this.drawTimer(0); mergeStatic(this.root);
   }
   private leatherMeshes: T.Mesh[] = [];
   private grime(seed: number) { return canvasTex(256, 256, x => { const r = rnd(seed); x.fillStyle = '#b8b2aa'; x.fillRect(0, 0, 256, 256); for (let i = 0; i < 900; i++) { x.fillStyle = `rgba(${r() < .3 ? '90,50,20' : '20,18,16'},${r() * .12})`; x.fillRect(r() * 256, r() * 256, 1 + r() * 10, 1 + r() * 3); } }); }

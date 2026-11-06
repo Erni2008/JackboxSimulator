@@ -4,6 +4,8 @@
 import * as T from 'three';
 import {L} from '../i18n';
 import {chapters, PW, type Ink} from './notebook';
+import {mergeStatic} from './merge';
+
 
 export type Seal = 'CIRCLE' | 'TRIANGLE' | 'SQUARE' | 'DIAMOND' | 'CROSS' | 'STAR' | 'CRESCENT' | 'HEXAGON';
 export const SEALS: Seal[] = ['CIRCLE', 'TRIANGLE', 'SQUARE', 'DIAMOND', 'CROSS', 'STAR', 'CRESCENT', 'HEXAGON'];
@@ -82,6 +84,7 @@ export class WireMazeView {
       const mesh = new T.Mesh(this.g(new T.TubeGeometry(curve, 90, .00125, 7, false)), mat); mesh.userData.wire = i; this.group.add(mesh);
       const sc = new T.CatmullRomCurve3(curve.getPoints(60).map(p => new T.Vector3(p.x + .0006, .0032, p.z + .0006))), shadow = new T.Mesh(this.g(new T.TubeGeometry(sc, 60, .0016, 4, false)), shadowM); shadow.scale.y = .2; this.group.add(shadow);
       this.wires.push({mesh, shadow, curve, h}); if (this.cut.has(i)) this.sever(i, .5, false); }
+    this.geos.push(...mergeStatic(this.group));
   }
   private g<G extends T.BufferGeometry>(g: G) { this.geos.push(g); return g; }
   /** the wire under a ray, only in its middle stretch (cutting at a terminal is not allowed: trace it first) */
