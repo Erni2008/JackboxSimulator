@@ -310,7 +310,7 @@ export function drawLockPage(x: X, half: 0 | 1, index: number) {
   if (!half) {
     lockHeader(x, side, index + 1, L('Клеймо мастера', "The maker's stamp"));
     x.fillStyle = INK; x.font = F.body(27); x.textAlign = 'left';
-    x.fillText(L('Найдите клеймо в левом нижнем углу замка.', 'Find the stamp at the lower left of the lock.'), MX, 300);
+    x.fillText(L('Найдите латунную табличку мастера внизу замка.', "Find the maker's brass plate at the bottom of the lock."), MX, 300);
     x.fillText(L('Мастер решает, в каком порядке поднимать штифты.', 'The maker decides the order the pins are lifted in.'), MX, 338);
     const rows: [number, string, (cx: number, cy: number) => void][] = [
       [0, L('СПРАВА НАЛЕВО — от дальнего штифта к ближнему', 'RIGHT TO LEFT — from the far pin to the near one'), (cx, cy) => { const cols: PinColor[] = ['steel', 'brass', 'steel', 'copper', 'brass']; cols.forEach((c, i) => { lockPin(x, cx + (i - 2) * 44, cy, c, 0, .62); x.fillStyle = BURGUNDY; x.font = F.mono(24, 700); x.textAlign = 'center'; x.fillText(String(5 - i), cx + (i - 2) * 44, cy + 56); }); arrow(cx + 100, cy - 46, cx - 100, cy - 46); }],
@@ -333,7 +333,7 @@ export function drawLockPage(x: X, half: 0 | 1, index: number) {
     lockHeader(x, side, index + 1, L('Штифты', 'The pins'));
     const rows: [PinColor, string, string, string][] = [
       ['steel', L('СТАЛЬ · ЛАТУНЬ', 'STEEL · BRASS'), L('Щелчок — штифт встал на срез.', 'Click: the pin sets at the shear line.'), L('Переходите к следующему.', 'Go on to the next one.')],
-      ['copper', L('МЕДЬ · КАТУШКА', 'COPPER · SPOOL'), L('В свою очередь — ЗАЕДАЕТ, перекос.', 'In its turn it STICKS, tilted.'), L('Ослабьте натяжитель (красная ручка), поднимите медный ещё раз.', 'Ease the wrench (red grip), then lift the copper again.')],
+      ['copper', L('МЕДЬ · КАТУШКА', 'COPPER · SPOOL'), L('В свою очередь — ЗАЕДАЕТ, перекос.', 'In its turn it STICKS, tilted.'), L('Нажмите на латунное колесо (ослабить), поднимите медный ещё раз.', 'Tap the brass wheel to ease it, then lift the copper again.')],
       ['black', L('ЧЁРНЫЙ · ЛОВУШКА', 'BLACK · TRAP'), L('Не поднимать никогда.', 'Never lift it.'), L('Его нет в порядке — пропускайте.', 'It is not in the order: skip it.')],
     ];
     const top = 290, h = 214;
@@ -351,6 +351,6 @@ export function drawLockPage(x: X, half: 0 | 1, index: number) {
     x.fillStyle = INK; x.font = F.tech(28, 700); x.textAlign = 'left'; steps.forEach((s, i) => x.fillText(s, MX + 26, py + 54 + i * 46));
     x.fillStyle = BURGUNDY; x.font = F.tech(24, 700);
     x.fillText(L('НЕ ТОТ ШТИФТ — все падают, попытка сгорает.', 'WRONG PIN: all pins drop, a try is lost.'), MX + 26, py + 222);
-    x.fillText(L('НАТЯЖИТЕЛЬ БЕЗ ПРИЧИНЫ — все падают (попытка цела).', 'WRENCH FOR NOTHING: all drop (no try lost).'), MX + 26, py + 262);
+    x.fillText(L('КОЛЕСО БЕЗ ПРИЧИНЫ — все падают (попытка цела).', 'WHEEL FOR NOTHING: all drop (no try lost).'), MX + 26, py + 262);
   }
 }

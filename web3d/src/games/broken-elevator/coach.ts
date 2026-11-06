@@ -25,7 +25,7 @@ const BRIEF = (k: Kind, seconds: number): Brief => k === 'wire' ? {
   icon: "🔒", title: L("Замок клетки", "The cage lock"), goal: L(`Откройте замок на двери клетки. Время: ${seconds} с.`, `Open the lock on the cage door. Time: ${seconds} s.`),
   steps: [["①", L("Откройте справочник, раздел V «Взлом замка». Посмотрите клеймо мастера на замке.", "Open the handbook, section V. Read the maker's stamp on the lock.")],
     ["②", L("Клеймо говорит, в каком порядке поднимать штифты. Нажимайте на штифты по порядку.", "The stamp gives the order. Tap the pins in that order.")],
-    ["③", L("Медный заело — нажмите красную ручку натяжителя и поднимите его снова. Чёрный не трогать!", "Copper stuck: tap the red wrench grip, lift it again. Never touch black!")]],
+    ["③", L("Медный заело — нажмите на латунное колесо и поднимите его снова. Чёрный не трогать!", "Copper stuck: tap the brass wheel, lift it again. Never touch black!")]],
   tip: L("Не тот штифт — все штифты падают и сгорает попытка.", "A wrong pin drops them all and costs a try.")}
   : {
   icon: "⚗", title: L('Нестабильная формула', 'The unstable formula'), goal: L(`Приготовьте охлаждающую формулу и введите её. Время: ${seconds} с.`, `Prepare the cooling formula and inject it. Time: ${seconds} s.`),
