@@ -336,8 +336,9 @@ export class Suitcase {
     // orientation: inertia while free, an eased swing when a view is requested (lid opened)
     if (this.aim) { this.yaw += Math.atan2(Math.sin(this.aim.yaw - this.yaw), Math.cos(this.aim.yaw - this.yaw)) * (1 - Math.exp(-dt * 3)); this.pitch += (this.aim.pitch - this.pitch) * (1 - Math.exp(-dt * 3)); if (Math.abs(this.aim.pitch - this.pitch) < .003) this.aim = null; }
     else if (!this.dragging) { this.yaw += this.vYaw * dt; this.pitch = Math.max(-1.45, Math.min(1.45, this.pitch + this.vPitch * dt)); const d = Math.exp(-dt * 4.5); this.vYaw *= d; this.vPitch *= d; }
+    this.sideK += ((this.sideOn ? 1 : 0) - this.sideK) * (1 - Math.exp(-dt * 7));
     // in hand: distance that frames the whole case (width and height, any aspect), then the user's zoom
-    const ty = Math.tan(T.MathUtils.degToRad(camera.fov / 2)), tx = ty * camera.aspect, R = this.lidT > .2 ? .37 : .26; this.dist = Math.max(R / (tx * .82), R / (ty * .9), R + .08);
+    const ty = Math.tan(T.MathUtils.degToRad(camera.fov / 2)), tx = ty * camera.aspect * (1 - .5 * this.sideK), R = this.lidT > .2 ? .37 : .26; this.dist = Math.max(R / (tx * .82), R / (ty * .9), R + .08);
     // a focused bay: centre it and size it to ~88 % of the shorter view side (eases in, then the player is free to zoom / turn)
     if (this.focus && this.focusT <= 0 && !this.focusZoom) this.focusZoom = this.zoom;
     if (this.focus && this.focusT > 0) { this.focusT -= dt; const b = this.bays[this.focus], q = new T.Quaternion().setFromEuler(new T.Euler(this.pitch, this.yaw, 0, 'XYZ'));
@@ -345,7 +346,7 @@ export class Suitcase {
       const kz = 1 - Math.exp(-dt * 5); this.off.x += (-bp.x - this.off.x) * kz; this.off.y += (-bp.y - this.off.y) * kz; this.zoom += (this.dist / Math.max(.05, dBay + bp.z) - this.zoom) * kz; }
     let d = this.dist / this.zoom;
     // split view (the notebook open beside it): the case keeps to the right half of the screen
-    this.sideK += ((this.sideOn ? 1 : 0) - this.sideK) * (1 - Math.exp(-dt * 7)); d *= 1 + this.sideK * .55; const sideX = d * tx * .5 * this.sideK;
+    const sideX = d * ty * camera.aspect * .5 * this.sideK;
     const hand = camera.position.clone().add(new T.Vector3(this.off.x + sideX, this.off.y - (this.focus ? 0 : this.lidT > .2 ? .035 * this.lidT : .01), -d).applyQuaternion(camera.quaternion));
     const handQ = camera.quaternion.clone().multiply(new T.Quaternion().setFromEuler(new T.Euler(this.pitch, this.yaw, 0, 'XYZ')));
     if (this.state === 'lifting' || this.state === 'held') { this.liftK = Math.min(1, this.liftK + dt * 2.2); if (this.liftK >= 1) this.state = 'held'; }

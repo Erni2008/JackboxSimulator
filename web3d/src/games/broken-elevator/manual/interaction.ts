@@ -19,7 +19,8 @@ export class ManualInteraction {
     this.body.onimpact = i => this.audio.play('impactMetal', i.speed / 2.2);
     this.bind();
   }
-  get portrait() { return this.camera.aspect < .9; }
+  get portrait() { return this.splitOn || this.camera.aspect < .9; }
+  private get aspect() { return this.camera.aspect * (1 - .5 * this.splitK); }
   place(p: T.Vector3, q: T.Quaternion) { this.body.pos.copy(p); this.body.quat.copy(q); this.body.vel.set(0, 0, 0); this.body.ang.set(0, 0, 0); this.body.sleeping = true; this.apply(); }
   private apply() { this.book.root.position.copy(this.body.pos); this.book.root.quaternion.copy(this.body.quat); }
   private set(s: HoldState) { this.state = s; if ((s === 'rest' || s === 'falling') && ManualInteraction.holder === this) ManualInteraction.holder = null; if (s !== 'held' && s !== 'reading') this.lowered = false; this.onstate(s); }
@@ -30,7 +31,7 @@ export class ManualInteraction {
   // ------------------------------------------------------------- actions
   /** only one book in hand: the engineering manual and the alchemist's journal never leave the shelf together */
   static holder: ManualInteraction | null = null; disabled = false;
-  /** split view: the book keeps to the left half of the screen and only listens there */ splitOn = false; private splitK = 0;
+  /** split view: the book keeps to the left half of the screen and only listens there */ splitOn = false; private splitK = 0; private wasSplit = false;
   pickUp() { if (!['rest', 'falling'].includes(this.state) || this.disabled || (ManualInteraction.holder && ManualInteraction.holder !== this)) return; ManualInteraction.holder = this; this.lift.t = 0; this.lift.fromP.copy(this.book.root.position); this.lift.fromQ.copy(this.book.root.quaternion); this.body.sleeping = true; this.set('lifting'); this.audio.play('pickup'); }
   open() { if (this.state !== 'held' || this.book.busy) return; this.book.open(); this.set('reading'); this.focusSide = this.portrait ? 1 : 0; this.zoomTarget = 1; this.pan.set(0, 0); }
   close() { if (this.state !== 'reading') return; this.book.close(); this.zoomTarget = 1; this.focusSide = 0; this.set('held'); }
@@ -59,10 +60,14 @@ export class ManualInteraction {
   private readingRot = new T.Quaternion().setFromEuler(new T.Euler(Math.PI / 2 - .16, 0, 0));
   private heldRot = new T.Quaternion().setFromEuler(new T.Euler(Math.PI / 2 - .22, -.12, -.04));
   /** distance at which a w×h rectangle fits the view with a margin */
-  private fit(w: number, h: number, margin: number) { const v = T.MathUtils.degToRad(this.camera.fov) / 2, hv = Math.atan(Math.tan(v) * this.camera.aspect); return Math.max(h / 2 / Math.tan(v), w / 2 / Math.tan(hv)) * margin; }
+  private fit(w: number, h: number, margin: number) { const v = T.MathUtils.degToRad(this.camera.fov) / 2, hv = Math.atan(Math.tan(v) * this.aspect); return Math.max(h / 2 / Math.tan(v), w / 2 / Math.tan(hv)) * margin; }
   /** zoom that makes a single page fill the view */
   pageZoom() { const both = this.fit(2 * W + TH, H, 1.08), one = this.fit(W, H, 1.06); return Math.max(1, both / one); }
   private hand(dt: number) {
+    if (this.splitOn && !this.wasSplit && this.state === 'reading') { if (this.focusSide === 0) this.focusSide = 1; this.zoomTarget = Math.max(this.zoomTarget, this.pageZoom()); this.panTarget.set(0, 0); }
+    if (!this.splitOn && this.wasSplit && this.camera.aspect >= .9) { this.focusSide = 0; this.zoomTarget = 1; this.panTarget.set(0, 0); }
+    if (this.splitOn && this.state === 'reading' && !this.pointers.size) { if (this.focusSide === 0) this.focusSide = 1; this.zoomTarget = Math.max(this.zoomTarget, this.pageZoom()); }
+    this.wasSplit = this.splitOn; this.splitK += ((this.splitOn ? 1 : 0) - this.splitK) * Math.min(1, dt * 7);
     const o = this.book.openness, readingFit = this.fit(2 * W + TH, H, 1.1), closedFit = Math.max(this.fit(W, H, 1.5), .34);
     // portrait: default to one page at a time so text stays readable
     if (this.state === 'reading' && this.portrait && this.focusSide !== 0 && this.zoomTarget < this.pageZoom() * .98 && !this.pointers.size) this.zoomTarget = Math.max(this.zoomTarget, this.pageZoom());
@@ -77,7 +82,7 @@ export class ManualInteraction {
     this.handQ.copy(this.camera.quaternion).multiply(rot);
     const offset = new T.Vector3(-this.pan.x, 0, -this.pan.y).applyQuaternion(this.handQ);
     // split view (the bomb's notebook beside the case): the book shrinks into the left half of the screen
-    this.splitK += ((this.splitOn ? 1 : 0) - this.splitK) * Math.min(1, dt * 7); const sd = dist * (1 + this.splitK * 1.15), half = sd * Math.tan(T.MathUtils.degToRad(this.camera.fov) / 2) * this.camera.aspect;
+    const sd = dist, half = sd * Math.tan(T.MathUtils.degToRad(this.camera.fov) / 2) * this.camera.aspect;
     this.handP.set(-half * .5 * this.splitK, -.005 * (1 - o), -sd).applyQuaternion(this.camera.quaternion).add(this.camera.position).add(offset);
     // lowered: the book drops to the lower-left of the view, tilted toward the eyes like a book held at the hip
     this.lowK += ((this.lowered ? 1 : 0) - this.lowK) * Math.min(1, dt * 9);
