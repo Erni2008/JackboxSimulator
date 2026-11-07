@@ -284,10 +284,14 @@ async function boot() {
       const mmss = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
       score = `${'★'.repeat(stars)}${'☆'.repeat(3 - stars)} · ${mmss(sec)}` + (rec ? L(' · НОВЫЙ РЕКОРД!', ' · NEW RECORD!') : L(` · рекорд ${mmss(best)}`, ` · best ${mmss(best)}`)); }
     verdict(ok, ok ? score : why === 'TIMEOUT' ? L('ВРЕМЯ ВЫШЛО', 'TIME RAN OUT') : L('НЕВЕРНОЕ ДЕЙСТВИЕ', 'WRONG MOVE'), ok ? L('Бомба обезврежена', 'Bomb defused') : L('ВЗРЫВ', 'DETONATION'));
-    voice.say(ok ? 'success' : 'explosion', 4, 0);
+    { // the host's last word on the bomb (voice + subtitle), after the blast has rung out
+      const DEF = [L('Браво. Вы обезвредили мою бомбу. Я почти разочарован.', 'Bravo. You defused my bomb. I am almost disappointed.'), L('Тишина... Значит, вы справились. Неплохо, очень неплохо.', 'Silence... So you made it. Not bad, not bad at all.')];
+      const BLAST = [L('Ну вот. А я ведь предупреждал.', 'There. And I did warn you.'), L('Какой красивый взрыв. Жаль только вашу клетку.', 'What a beautiful blast. Pity about your cage.')];
+      const i = Math.floor(Math.random() * 2), line = ok ? 'bomb_defused_' + (i + 1) : why === 'TIMEOUT' ? 'bomb_timeout' : 'bomb_blast_' + (i + 1), text = ok ? DEF[i] : why === 'TIMEOUT' ? L('Время вышло. Тик-так закончился.', 'Time is up. The tick-tock is over.') : BLAST[i];
+      setTimeout(() => { voice.say(line as any, 5, 0); subtitles([text]); }, ok ? 500 : 1100); }
     if (!ok) { suitcase?.shatter(); cage.drop?.(.8); /* the cage gives way at the blast itself */ audio.play('explosion'); audio.play('burst'); shake = 1.7; const f = $('blast'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); document.body.classList.remove('jolt'); void document.body.offsetWidth; document.body.classList.add('jolt'); nbook?.close(); if (suitcase?.focus) suitcase.focusOn(null); }
     else { audio.play('labOk'); if (suitcase?.focus) suitcase.focusOn(null); }
-    clearTimeout(pending); pending = setTimeout(() => next(ok), ok ? 3000 : 2600); };
+    clearTimeout(pending); pending = setTimeout(() => next(ok), ok ? 5200 : 4600); /* time for the host's last word */ };
   RoomSocket.shared()?.listen(ev => { const b = ev.payload?.elevatorBomb; if (!b) return; const first = !bombView || bombView.puzzleId !== b.puzzleId; bombView = b; if (first && kind === 'bomb' && suitcase) armBomb(); if (kind !== 'bomb' || bombDone) return;
     if (!first && maze && wireLayout) for (const c of b.cut ?? []) if (!maze.cut.has(c)) maze.sever(c, .5);
     if (b.links && links && b.event?.type === 'PROBE' && b.links.red === links.red && b.links.black === links.black) setLcd(b.links.reading);

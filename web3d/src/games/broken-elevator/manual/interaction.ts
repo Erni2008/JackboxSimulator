@@ -66,7 +66,7 @@ export class ManualInteraction {
   private hand(dt: number) {
     if (this.splitOn && !this.wasSplit && this.state === 'reading') { if (this.focusSide === 0) this.focusSide = 1; this.zoomTarget = Math.max(this.zoomTarget, this.pageZoom()); this.panTarget.set(0, 0); }
     if (!this.splitOn && this.wasSplit && this.camera.aspect >= .9) { this.focusSide = 0; this.zoomTarget = 1; this.panTarget.set(0, 0); }
-    if (this.splitOn && this.state === 'reading' && !this.pointers.size) { if (this.focusSide === 0) this.focusSide = 1; this.zoomTarget = Math.max(this.zoomTarget, this.pageZoom()); }
+    if (this.splitOn && this.state === 'reading' && !this.pointers.size) { if (this.focusSide === 0) this.focusSide = 1; this.zoomTarget = Math.max(this.zoomTarget, this.pageZoom() * 1.07); /* a touch closer: the neighbour page's edge stays out of the half */ }
     this.wasSplit = this.splitOn; this.splitK += ((this.splitOn ? 1 : 0) - this.splitK) * Math.min(1, dt * 7);
     const o = this.book.openness, readingFit = this.fit(2 * W + TH, H, 1.1), closedFit = Math.max(this.fit(W, H, 1.5), .34);
     // portrait: default to one page at a time so text stays readable
