@@ -121,12 +121,12 @@ export class ManualInteraction {
     if (this.state === 'rest' || this.state === 'falling') { if (hit) this.pickUp(); return; }
     if (this.lowered) { if (hit) this.setLowered(false); return; }
     if (this.state === 'held') { if (hit) this.open(); return; }
-    if (this.state === 'reading' && hit) {
-      const ph = this.book.pageHit(hit); if (!ph) return;
+    if (this.state === 'reading' && (hit || this.splitOn)) { // split: a tap anywhere in the book's half turns, not only on the paper
+      const ph = hit ? this.book.pageHit(hit) : null; if (!ph && !this.splitOn) return;
       // the whole page is the control: right page forward, left page back.
       // portrait single-page view shows one page, so its right/left half decides.
       if (this.portrait && (this.splitOn || this.zoomTarget > 1.05)) { const r = this.dom.getBoundingClientRect(), mid = this.splitOn && !this.vsplit ? r.width / 4 : r.width / 2; /* split: the page sits in the left half */ this.turn(x - r.left > mid ? 1 : -1); }
-      else this.turn(ph.side);
+      else if (ph) this.turn(ph.side);
     }
   }
   private bind() {
@@ -141,7 +141,7 @@ export class ManualInteraction {
     const up = (e: PointerEvent) => {
       const p = this.pointers.get(e.pointerId); if (!p) return; const wasPinch = this.pointers.size > 1; this.pointers.delete(e.pointerId); if (wasPinch) return;
       const dx = e.clientX - p.sx, dy = e.clientY - p.sy, dt = performance.now() - p.t;
-      if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.3 && dt < 700) { if (this.state === 'reading' && (this.zoomTarget <= 1.05 || this.portrait)) this.turn(dx < 0 ? 1 : -1); return; }
+      if (Math.abs(dx) > (this.splitOn ? 30 : 48) && Math.abs(dx) > Math.abs(dy) * 1.2 && dt < 800) { if (this.state === 'reading' && (this.zoomTarget <= 1.05 || this.portrait)) this.turn(dx < 0 ? 1 : -1); return; }
       if (Math.hypot(dx, dy) < 12 && dt < 450) this.tap(e.clientX, e.clientY);
     };
     el.addEventListener('pointerup', up); el.addEventListener('pointercancel', e => this.pointers.delete(e.pointerId));

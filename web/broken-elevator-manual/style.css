@@ -254,3 +254,12 @@ body.vsplit #split-ui .sp-l .sp-tag { display: none; }
 #lava-death.on b { opacity: 1; transform: none; } #lava-death.on span { opacity: .85; }
 body.lava-death #verdict, body.lava-death #host-say { z-index: 61; }
 @keyframes lavaflow { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(4%, -5%) scale(1.08); } 100% { transform: translate(-3%, -9%) scale(.96); } }
+
+/* split: big page-turn arrows at the book half's edges (a click or tap anywhere on the book turns too) */
+#split-ui .sp-turn { position: absolute; top: 50%; width: 54px; height: 86px; margin-top: -43px; display: grid; place-items: center; font: 400 52px/1 Georgia, serif; color: #f3e2bd; background: rgba(12,6,3,.58); border: 1px solid rgba(217,180,106,.45); border-radius: 12px; box-shadow: 0 4px 18px rgba(0,0,0,.6); text-shadow: 0 1px 3px #000; cursor: pointer; pointer-events: none; opacity: .8; transition: opacity .2s, transform .12s, background .2s; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+body.split #split-ui .sp-turn { pointer-events: auto; }
+#split-ui .sp-turn:hover { opacity: 1; background: rgba(60,32,10,.75); }
+#split-ui .sp-turn:active { transform: scale(.92); }
+#split-ui .sp-prev { left: 12px; } #split-ui .sp-next { left: calc(50% - 66px); }
+body.vsplit #split-ui .sp-turn { top: 25%; width: 44px; height: 70px; margin-top: -35px; font-size: 42px; }
+body.vsplit #split-ui .sp-next { left: auto; right: 10px; }
