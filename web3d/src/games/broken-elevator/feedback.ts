@@ -6,13 +6,13 @@
 // system tap haptic; outside a gesture iOS gives no haptic and this is a no-op.
 import {LANG} from './i18n';
 
-export type Line = 'intro' | 'tutorial_wire' | 'tutorial_pressure' | 'tutorial_formula' | 'tutorial_lock' | 'task_wire' | 'task_pressure' | 'task_formula'
+export type Line = 'intro' | 'tutorial_wire' | 'tutorial_pressure' | 'tutorial_formula' | 'tutorial_lock' | 'task_lock' | 'task_wire' | 'task_pressure' | 'task_formula'
   | 'success' | 'fail' | 'explosion' | 'timeout' | 'ten_seconds' | 'surge' | 'results' | 'perfect' | 'bomb_intro' | 'bomb_intro_early' | 'bomb_warning'
   | 'bomb_first_1' | 'bomb_first_2' | 'bomb_taunt_1' | 'bomb_taunt_2' | 'bomb_taunt_3'
   | 'bomb_defused_1' | 'bomb_defused_2' | 'bomb_blast_1' | 'bomb_blast_2' | 'bomb_timeout';
 /** files that may exist for each line (variants are picked at random) */
 const FILES: Record<Line, string[]> = {intro: ['intro'], tutorial_wire: ['tutorial_wire'], tutorial_pressure: ['tutorial_pressure'], tutorial_formula: ['tutorial_formula'], tutorial_lock: ['tutorial_lock'],
-  task_wire: ['task_wire'], task_pressure: ['task_pressure'], task_formula: ['task_formula'], success: ['success_1', 'success_2'], fail: ['fail_1', 'fail_2'],
+  task_wire: ['task_wire'], task_pressure: ['task_pressure'], task_formula: ['task_formula'], task_lock: ['task_lock'], success: ['success_1', 'success_2'], fail: ['fail_1', 'fail_2'],
   explosion: ['explosion'], timeout: ['timeout'], ten_seconds: ['ten_seconds'], surge: ['surge'], results: ['results'], perfect: ['perfect'],
   /* THE HOST'S SUITCASE (recorded in the approved host voice, 2026-11-07) */ bomb_intro: ['bomb_intro'], bomb_intro_early: ['bomb_intro_early'], bomb_warning: ['bomb_warning'],
   bomb_first_1: ['bomb_first_1'], bomb_first_2: ['bomb_first_2'], bomb_taunt_1: ['bomb_taunt_1'], bomb_taunt_2: ['bomb_taunt_2'], bomb_taunt_3: ['bomb_taunt_3'],
