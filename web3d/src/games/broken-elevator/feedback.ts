@@ -13,18 +13,19 @@ export type Line = 'intro' | 'tutorial_wire' | 'tutorial_pressure' | 'tutorial_f
 /** files that may exist for each line (variants are picked at random) */
 const FILES: Record<Line, string[]> = {intro: ['intro'], tutorial_wire: ['tutorial_wire'], tutorial_pressure: ['tutorial_pressure'], tutorial_formula: ['tutorial_formula'], tutorial_lock: ['tutorial_lock'],
   task_wire: ['task_wire'], task_pressure: ['task_pressure'], task_formula: ['task_formula'], task_lock: ['task_lock'], success: ['success_1', 'success_2'], fail: ['fail_1', 'fail_2'],
-  explosion: ['explosion'], timeout: ['timeout'], ten_seconds: ['ten_seconds'], surge: ['surge'], results: ['results'], perfect: ['perfect'],
+  explosion: ['explosion'], timeout: ['timeout'], ten_seconds: ['ten_seconds'], surge: ['surge'], results: [], perfect: ['perfect'],
   /* THE HOST'S SUITCASE (recorded in the approved host voice, 2026-11-07) */ bomb_intro: ['bomb_intro'], bomb_intro_early: ['bomb_intro_early'], bomb_warning: ['bomb_warning'],
   bomb_first_1: ['bomb_first_1'], bomb_first_2: ['bomb_first_2'], bomb_taunt_1: ['bomb_taunt_1'], bomb_taunt_2: ['bomb_taunt_2'], bomb_taunt_3: ['bomb_taunt_3'],
   bomb_defused_1: ['bomb_defused_1'], bomb_defused_2: ['bomb_defused_2'], bomb_blast_1: ['bomb_blast_1'], bomb_blast_2: ['bomb_blast_2'], bomb_timeout: ['bomb_timeout']};
 
 export class Voice {
+  constructor(private base = 'voice/') {}
   enabled = LANG === 'ru'; private ctx: AudioContext | null = null; private out: GainNode | null = null; private bufs = new Map<string, AudioBuffer | null>();
   private cur: AudioBufferSourceNode | null = null; private curPri = 0; private lastAt = new Map<Line, number>();
   /** attach to the page's (already unlocked) audio context; starts loading every line */
   attach(ctx: AudioContext | null) {
     if (!ctx || this.ctx || !this.enabled) return; this.ctx = ctx; this.out = ctx.createGain(); this.out.gain.value = 1.15; this.out.connect(ctx.destination);
-    for (const f of new Set(Object.values(FILES).flat())) fetch(`voice/${f}.m4a`).then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(a => ctx.decodeAudioData(a)).then(b => this.bufs.set(f, b)).catch(() => this.bufs.set(f, null));
+    for (const f of new Set(Object.values(FILES).flat())) fetch(`${this.base}${f}.m4a`).then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(a => ctx.decodeAudioData(a)).then(b => this.bufs.set(f, b)).catch(() => this.bufs.set(f, null));
   }
   /** speak a line. priority: a higher one interrupts a lower one; equal or lower waits its turn (dropped if busy) */
   say(line: Line, priority = 1, cooldownMs = 4000): boolean {

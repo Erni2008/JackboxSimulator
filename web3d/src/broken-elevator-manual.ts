@@ -288,7 +288,7 @@ async function boot() {
       score = `${'★'.repeat(stars)}${'☆'.repeat(3 - stars)} · ${mmss(sec)}` + (rec ? L(' · НОВЫЙ РЕКОРД!', ' · NEW RECORD!') : L(` · рекорд ${mmss(best)}`, ` · best ${mmss(best)}`)); }
     verdict(ok, ok ? score : why === 'TIMEOUT' ? L('ВРЕМЯ ВЫШЛО', 'TIME RAN OUT') : L('НЕВЕРНОЕ ДЕЙСТВИЕ', 'WRONG MOVE'), ok ? L('Бомба обезврежена', 'Bomb defused') : L('ВЗРЫВ', 'DETONATION'));
     { // the host's last word on the bomb (voice + subtitle), after the blast has rung out
-      const DEF = [L('Браво. Вы обезвредили мою бомбу. Я почти разочарован.', 'Bravo. You defused my bomb. I am almost disappointed.'), L('Бомба молчит. Значит, вы справились. Неплохо, очень неплохо.', 'Silence... So you made it. Not bad, not bad at all.')];
+      const DEF = [L('Браво. Вы обезвредили мою бомбу. Я почти разочарован.', 'Bravo. You defused my bomb. I am almost disappointed.'), L('Бомба обезврежена. Признаюсь, я впечатлён.', 'Bomb defused. I admit, I am impressed.')];
       const BLAST = [L('Ну вот. А я ведь предупреждал.', 'There. And I did warn you.'), L('Какой красивый взрыв. Жаль только вашу клетку.', 'What a beautiful blast. Pity about your cage.')];
       const i = Math.floor(Math.random() * 2), line = ok ? 'bomb_defused_' + (i + 1) : why === 'TIMEOUT' ? 'bomb_timeout' : 'bomb_blast_' + (i + 1), text = ok ? DEF[i] : why === 'TIMEOUT' ? L('Время вышло. Бомба ждать не стала.', 'Time is up. The tick-tock is over.') : BLAST[i];
       setTimeout(() => { voice.say(line as any, 5, 0); subtitles([text]); }, ok ? 500 : 1100); }

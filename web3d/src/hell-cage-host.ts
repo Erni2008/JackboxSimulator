@@ -3,6 +3,7 @@
 // Data: read-only HTTP feed /rooms/{code}/cage?token=<host token> (never touches the host's own socket).
 // Without ?room the page runs a demo shift with sample players (for previews and rehearsals).
 import * as T from 'three';
+import {Voice} from './games/broken-elevator/feedback';
 import {RGBELoader} from 'three/addons/loaders/RGBELoader.js';
 import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
@@ -233,13 +234,24 @@ const worldY = (m: number) => Y_BOTTOM + (Y_TOP - Y_BOTTOM) * Math.pow(m / START
 
 // ------------------------------------------------------------------ sound (synthesised; starts after the first click)
 let actx: AudioContext | null = null, master: GainNode;
-function audioOn() { if (actx) return; actx = new AudioContext(); master = actx.createGain(); master.gain.value = .8; master.connect(actx.destination);
+function audioOn() { if (actx) return; actx = new AudioContext(); master = actx.createGain(); master.gain.value = .8; master.connect(actx.destination); voice.attach(actx);
   const n = actx.createBuffer(1, actx.sampleRate * 3, actx.sampleRate), d = n.getChannelData(0); let b = 0; for (let i = 0; i < d.length; i++) { b = .98 * b + .02 * (Math.random() * 2 - 1); d[i] = b * 6; }
   const s = actx.createBufferSource(); s.buffer = n; s.loop = true; const f = actx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 160; const g = actx.createGain(); g.gain.value = .5; s.connect(f).connect(g).connect(master); s.start(); // lava rumble
   $('sound').classList.add('on'); }
 function noise(dur: number, freq: number, q: number, gain: number, at = 0) { if (!actx) return; const t = actx.currentTime + at, s = actx.createBufferSource(), len = Math.ceil(actx.sampleRate * dur), buf = actx.createBuffer(1, len, actx.sampleRate), d = buf.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
   s.buffer = buf; const f = actx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q; const g = actx.createGain(); g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(.001, t + dur); s.connect(f).connect(g).connect(master); s.start(t); }
 function tone(f0: number, f1: number, dur: number, gain: number, type: OscillatorType = 'sawtooth', at = 0) { if (!actx) return; const t = actx.currentTime + at, o = actx.createOscillator(), g = actx.createGain(); o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur); g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(.001, t + dur); o.connect(g).connect(master); o.start(t); o.stop(t + dur); }
+// the host's voice on the big screen (the same approved recordings as the players' phones): the intro, each round's
+// briefing (full the first time a machine comes up, short on a repeat), the bomb, the ten-second warning, a flawless finish
+const voice = new Voice('../broken-elevator-manual/voice/'); let vKey = '', vWarn = '', vPending: string | null = null; const vTold = new Set<string>();
+function hostVoice(sh: Shift | null, left: number, alive: number) {
+  if (!sh) return; const key = sh.phase + ':' + sh.round;
+  if (key !== vKey) { vKey = key; vPending = null;
+    if (sh.phase === 'INTRO') { vTold.clear(); vPending = 'intro'; }
+    else if (sh.phase === 'ROUND') vPending = sh.kind === 'bomb' ? (sh.round >= 2 ? 'bomb_intro' : 'bomb_intro_early') : (vTold.has(sh.kind) ? 'task_' : 'tutorial_') + sh.kind, vTold.add(sh.kind);
+    else if (sh.phase === 'END' && alive === players.length && alive > 0) vPending = 'perfect'; }
+  if (vPending && voice.say(vPending as any, 3, 0)) vPending = null;
+  if (sh.phase === 'ROUND' && left > 0 && left < 10_000 && vWarn !== key) { vWarn = key; voice.say(sh.kind === 'bomb' ? 'bomb_warning' : 'ten_seconds', 2, 0); } }
 const sfx = {drop() { tone(900, 120, .7, .12); noise(.8, 2400, 3, .5); noise(.35, 700, 1, .7, .55); tone(70, 35, .6, .5, 'sine', .55); for (let i = 0; i < 8; i++) noise(.06, 3000 + Math.random() * 2000, 4, .25, .1 + i * .07); },
   ok() { tone(523, 523, .5, .08, 'triangle'); tone(784, 784, .6, .07, 'triangle', .12); },
   blast() { noise(1.6, 1800, 6, 1); noise(2.4, 260, .4, 1, .05); tone(90, 25, 1.8, .8, 'sine'); for (let i = 0; i < 10; i++) noise(.08, 2500 + Math.random() * 3000, 4, .3, .15 + i * .09); },
@@ -298,8 +310,8 @@ function sync() {
     if (c.seen && cell.fails > c.penalties) { c.squash = -.6; /* thrown up as the floor drops away */ c.vy = -9 - cell.fails * 3; c.flash = 1.6; c.swayV += (Math.random() - .5) * .6; shake = Math.max(shake, .45 + cell.fails * .15); sfx.drop(); spark(c); }
     // the bomb: defused → a green-gold burst of light; blown → a fireball, the cage drops (the fail above) and the blast rocks every other cage
     if (c.seen && p.bombState && p.bombState !== c.bombSeen && p.bombState !== 'RUNNING') {
-      if (p.bombState === 'DEFUSED') { c.okFlash = 1.6; c.hop = 1.2; spark(c, CAGE_H * .5, '#7dffb0', 90, 1.3); spark(c, CAGE_H * .5, '#ffd76a', 60, 1.1); sfx.ok(); setTimeout(() => sfx.ok(), 180); }
-      else { c.flash = 2.4; shake = Math.max(shake, 1.2); spark(c, CAGE_H * .5, '#ff7a1a', 140, 2.2); spark(c, CAGE_H * .5, '#ffe2a0', 80, 1.6); sfx.blast();
+      if (p.bombState === 'DEFUSED') { c.okFlash = 1.6; c.hop = 1.2; spark(c, CAGE_H * .5, '#7dffb0', 90, 1.3); spark(c, CAGE_H * .5, '#ffd76a', 60, 1.1); sfx.ok(); setTimeout(() => sfx.ok(), 180); voice.say(('bomb_defused_' + (1 + Math.floor(Math.random() * 2))) as any, 4, 6000); }
+      else { c.flash = 2.4; shake = Math.max(shake, 1.2); spark(c, CAGE_H * .5, '#ff7a1a', 140, 2.2); spark(c, CAGE_H * .5, '#ffe2a0', 80, 1.6); sfx.blast(); setTimeout(() => voice.say(('bomb_blast_' + (1 + Math.floor(Math.random() * 2))) as any, 4, 6000), 1100);
         for (const o of cages.values()) if (o !== c && !o.dead) { const d = Math.max(1, Math.abs(o.x - c.x)); o.swayV += (o.x > c.x ? 1 : -1) * 1.4 / d + (Math.random() - .5) * .3; o.flash = Math.max(o.flash, .5 / d); } } }
     if (p.bombState) c.bombSeen = p.bombState; else c.bombSeen = '';
     if (c.seen && cell.repairs > c.repairs) { c.okFlash = 1; c.hop = 1; sfx.ok(); }
@@ -328,7 +340,7 @@ function sync() {
   const now = serverNow(), left = sh && sh.phaseEnd > 0 ? sh.phaseEnd - now - (sh.phase === 'ROUND' ? 1500 : 0) : 0, span = sh?.phase === 'ROUND' ? sh.roundLimit : sh?.phase === 'INTRO' ? 9000 : 6000;
   $('clock').textContent = sh && sh.phase !== 'END' ? fmt(left) : '—'; ($('ring') as any).style.strokeDashoffset = String(176 * (1 - Math.max(0, Math.min(1, left / span))));
   $('clock-cap').textContent = sh?.phase === 'ROUND' ? L('ДО КОНЦА РАУНДА', 'ROUND ENDS IN') : sh?.phase === 'BREAK' ? L('СЛЕДУЮЩИЙ РАУНД', 'NEXT ROUND') : sh?.phase === 'INTRO' ? L('СТАРТ ЧЕРЕЗ', 'STARTS IN') : L('СМЕНА ОКОНЧЕНА', 'SHIFT OVER');
-  document.body.classList.toggle('urgent', sh?.phase === 'ROUND' && left < 10_000 && left > 0);
+  document.body.classList.toggle('urgent', sh?.phase === 'ROUND' && left < 10_000 && left > 0); hostVoice(sh, left, alive.length);
   const kindName = (k: string) => KIND()[k]?.[1] ?? '';
   $('diff').textContent = !sh ? '' : sh.phase === 'ROUND' ? `${L('РАУНД', 'ROUND')} ${sh.round + 1} / ${sh.rounds} · ${kindName(sh.kind).toUpperCase()}` : sh.phase === 'BREAK' ? `${L('ДАЛЕЕ', 'NEXT')}: ${kindName(sh.kinds[sh.round + 1]).toUpperCase()}`
     : sh.phase === 'INTRO' ? `${diffLabel()} · ${L('3 РАУНДА', '3 ROUNDS')}` : `${L('ВЫЖИЛИ', 'SURVIVORS')}: ${alive.length} / ${players.length}`;
