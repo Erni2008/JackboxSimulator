@@ -35,7 +35,7 @@ export class Voice {
   /** speak a line. priority: a higher one interrupts a lower one; equal or lower waits its turn (dropped if busy) */
   say(line: Line, priority = 1, cooldownMs = 4000): boolean {
     if (this.hostSpeaks && /^(intro|tutorial_|task_|ten_seconds|bomb_intro|bomb_warning|perfect|results)/.test(line)) return false;
-    const ctx = this.ctx; if (!this.enabled || !ctx || !this.out || ctx.state !== 'running') return false;
+    const ctx = this.ctx; if (!this.enabled) return false; if (!ctx || !this.out || ctx.state !== 'running') { if (priority >= 3) this.queued = {line, priority, at: performance.now()}; return false; }
     const now = performance.now(); if (now - (this.lastAt.get(line) ?? -1e9) < cooldownMs) return false;
     const ready = FILES[line].filter(f => this.bufs.get(f)); if (!ready.length) return false; const fresh = ready.length > 1 ? ready.filter(f => f !== this.lastFile.get(line)) : ready;
     if (this.cur) return false; // never cut the host off mid-sentence: the next line waits its turn
@@ -43,6 +43,11 @@ export class Voice {
     const s = ctx.createBufferSource(); s.buffer = this.bufs.get(file)!; s.connect(this.out); s.start(); this.lastAt.set(line, now);
     this.cur = s; this.curPri = priority; s.onended = () => { if (this.cur === s) this.cur = null; }; return true;
   }
+  /** a line asked for before the browser allowed sound (no tap yet): spoken right after the first tap, once its file is loaded */
+  private queued: {line: Line; priority: number; at: number} | null = null;
+  flush(tries = 12) { const q = this.queued; if (!q) return; if (performance.now() - q.at > 45000) { this.queued = null; return; }
+    if (this.ctx?.state === 'running' && FILES[q.line].some(f => this.bufs.get(f))) { this.queued = null; this.say(q.line, q.priority, 0); return; }
+    if (tries > 0) setTimeout(() => this.flush(tries - 1), 400); }
   get speaking() { return !!this.cur; }
 }
 
