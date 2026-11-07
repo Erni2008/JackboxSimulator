@@ -95,7 +95,7 @@ const wires: Draw = x => {
   y += 2 * 116 + 28;
   y = section(x, L('ЧТО РЕЗАТЬ', 'WHAT TO CUT'), y);
   y = rule(x, D === 'EASY' ? L('Режь провод, который ВЫХОДИТ из этой буквы.', 'Cut the wire LEAVING that letter.') : L('Провод из буквы пришёл в 3, 6, 9 или 12? Режь тот, что приходит в номер +1. Иначе — его самого.', 'Does the letter\'s wire end on 3, 6, 9 or 12? Then cut the wire ending on number +1. Otherwise cut that one.'), y - 14);
-  y = example(x, D === 'EASY' ? L('Печать → буква B. Из B выходит синий → режь синий.', 'Seal → letter B. Blue leaves B → cut blue.') : L('B → пришёл в 6 → режь провод в 7. B → пришёл в 5 → режь его.', 'Letter B, its wire ends on 6 → cut the wire ending on 7. Ends on 5 → cut it.'), y);
+  y = example(x, D === 'EASY' ? L('Печать ▲ → буква Δ. Из Δ выходит синий провод → режь синий.', 'Seal ▲ → letter Δ. The blue wire leaves Δ → cut blue.') : L('Печать ▲ → Δ. Провод из Δ пришёл в 6 → режь провод, что приходит в 7. Пришёл в 5 → режь его.', 'Seal ▲ → Δ. Its wire ends on 6 → cut the wire ending on 7. Ends on 5 → cut it.'), y);
   y = section(x, L('ДЕЙСТВИЕ', 'ACTION'), y + 4);
   step(x, 2, L('Коснись кусачек в углу отсека, затем нужного провода.', 'Tap the cutters in the bay corner, then the wire.'), y);
   warn(x);

@@ -247,6 +247,23 @@ function tone(f0: number, f1: number, dur: number, gain: number, type: Oscillato
 const voice = new Voice('../broken-elevator-manual/voice/'); let vKey = '', vWarn = '', vPending: string | null = null; const vTold = new Set<string>();
 /** the host's words on the big screen while he speaks (a caption under the cages) */
 let sayT: any = 0; function say(id: string) { const el = document.getElementById('host-say'); const t = VOICE_TEXT[voice.spoken] || ''; if (!el || !t) return; el.textContent = t; el.classList.add('on'); clearTimeout(sayT); sayT = setTimeout(() => el.classList.remove('on'), Math.max(3500, t.length * 75)); }
+// the end of the shift: a results board over the cages (who repaired what, the bomb, who made it) with a few awards
+const bombOut = new Map<string, string>(); let boardKey = '';
+function results(sh: Shift | null) {
+  for (const p of players) if (p.bombState === 'DEFUSED' || p.bombState === 'DETONATED') bombOut.set(p.id, p.bombState);
+  const el = document.getElementById('results'); if (!el) return;
+  if (!sh || sh.phase !== 'END') { if (sh?.phase === 'INTRO') bombOut.clear(); el.classList.remove('on'); boardKey = ''; return; }
+  if (serverNow() - sh.phaseStart < 3500) return; const key = sh.phaseStart + ':' + players.length; if (boardKey === key) return; boardKey = key;
+  const esc = (t: string) => t.replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]!));
+  const top = Math.max(0, ...players.map(p => p.cage?.repairs ?? 0));
+  const rows = [...players].sort((a, b) => (+!!a.cage?.dead - +!!b.cage?.dead) || ((b.cage?.repairs ?? 0) - (a.cage?.repairs ?? 0)) || ((a.cage?.fails ?? 0) - (b.cage?.fails ?? 0))).map((p, i) => { const c = p.cage!, b = bombOut.get(p.id);
+    const st = c.dead ? (c.blown ? L('💥 ВЗОРВАЛСЯ', '💥 BLOWN UP') : L('🔥 СГОРЕЛ', '🔥 BURNED')) : L('✓ ВЫЖИЛ', '✓ SURVIVED');
+    const aw = [b === 'DEFUSED' ? L('💣 Сапёр', '💣 Sapper') : '', !c.dead && c.fails === 0 ? L('🧊 Хладнокровный', '🧊 Ice cold') : '', top > 0 && c.repairs === top ? L('🔧 Мастер', '🔧 Master') : ''].filter(Boolean).map(t => `<i>${t}</i>`).join('');
+    return `<tr class="${c.dead ? 'dead' : 'ok'}"><td>${i + 1}</td><td class="n">${esc(p.name)}</td><td>${c.repairs}</td><td>${c.fails}</td><td>${b === 'DEFUSED' ? '✓' : b === 'DETONATED' ? '💥' : '—'}</td><td class="s">${st}</td><td class="a">${aw}</td></tr>`; }).join('');
+  const alive = players.filter(p => !p.cage?.dead).length;
+  el.innerHTML = `<h2>${L('СМЕНА ОКОНЧЕНА', 'SHIFT OVER')}</h2><p>${L('Выжили', 'Survivors')}: <b>${alive} / ${players.length}</b></p><table><thead><tr><th>#</th><th>${L('Узник', 'Prisoner')}</th><th>${L('Починил', 'Repaired')}</th><th>${L('Ошибки', 'Mistakes')}</th><th>${L('Бомба', 'Bomb')}</th><th>${L('Итог', 'Result')}</th><th>${L('Награды', 'Awards')}</th></tr></thead><tbody>${rows}</tbody></table>`;
+  el.classList.add('on');
+}
 function hostVoice(sh: Shift | null, left: number, alive: number) {
   if (!sh) return; const key = sh.phase + ':' + sh.round;
   if (key !== vKey) { vKey = key; vPending = null;
@@ -343,7 +360,7 @@ function sync() {
   const now = serverNow(), left = sh && sh.phaseEnd > 0 ? sh.phaseEnd - now - (sh.phase === 'ROUND' ? 1500 : 0) : 0, span = sh?.phase === 'ROUND' ? sh.roundLimit : sh?.phase === 'INTRO' ? 9000 : 6000;
   $('clock').textContent = sh && sh.phase !== 'END' ? fmt(left) : '—'; ($('ring') as any).style.strokeDashoffset = String(176 * (1 - Math.max(0, Math.min(1, left / span))));
   $('clock-cap').textContent = sh?.phase === 'ROUND' ? L('ДО КОНЦА РАУНДА', 'ROUND ENDS IN') : sh?.phase === 'BREAK' ? L('СЛЕДУЮЩИЙ РАУНД', 'NEXT ROUND') : sh?.phase === 'INTRO' ? L('СТАРТ ЧЕРЕЗ', 'STARTS IN') : L('СМЕНА ОКОНЧЕНА', 'SHIFT OVER');
-  document.body.classList.toggle('urgent', sh?.phase === 'ROUND' && left < 10_000 && left > 0); hostVoice(sh, left, alive.length);
+  document.body.classList.toggle('urgent', sh?.phase === 'ROUND' && left < 10_000 && left > 0); hostVoice(sh, left, alive.length); results(sh);
   const kindName = (k: string) => KIND()[k]?.[1] ?? '';
   $('diff').textContent = !sh ? '' : sh.phase === 'ROUND' ? `${L('РАУНД', 'ROUND')} ${sh.round + 1} / ${sh.rounds} · ${kindName(sh.kind).toUpperCase()}` : sh.phase === 'BREAK' ? `${L('ДАЛЕЕ', 'NEXT')}: ${kindName(sh.kinds[sh.round + 1]).toUpperCase()}`
     : sh.phase === 'INTRO' ? `${diffLabel()} · ${L('3 РАУНДА', '3 ROUNDS')}` : `${L('ВЫЖИЛИ', 'SURVIVORS')}: ${alive.length} / ${players.length}`;
@@ -463,4 +480,4 @@ texts();
 if (DEMO) demo(); else poll();
 requestAnimationFrame(loop);
 (window as any).__host = {get cages() { return cages; }, get players() { return players; }, scene, renderer};
-(window as any).__host = {get dpr() { return DPR; }, get slow() { return slow; }, get fast() { return fast; }};
+(window as any).__host = {get dpr() { return DPR; }, get slow() { return slow; }, get fast() { return fast; }, get players() { return players; }, get shift() { return shift; }};
