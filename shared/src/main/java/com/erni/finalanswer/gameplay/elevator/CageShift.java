@@ -33,7 +33,7 @@ public final class CageShift {
     public enum Outcome { RUNNING, OK, FAIL }
 
     public static final class Cage {
-        public final String id; public double height = START_M; public int fails, repairs; public Outcome outcome = Outcome.RUNNING; public boolean dead; public long deadAt = -1, failAt = -1;
+        public final String id; public double height = START_M; public int fails, repairs; public Outcome outcome = Outcome.RUNNING; public boolean dead, blown; public long deadAt = -1, failAt = -1;
         Cage(String id) { this.id = id; }
     }
 
@@ -93,6 +93,8 @@ public final class CageShift {
     }
     private void fail(Cage c, long now) {
         c.outcome = Outcome.FAIL; c.fails++; c.failAt = now;
+        // a blown bomb (wrong move or the fuse ran out) snaps the chain: the cage goes straight into the lava
+        if (BOMB.equals(kind())) { c.blown = true; c.height = 0; kill(c, now); return; }
         if (c.fails == 1) c.height -= FIRST_DROP_M;
         else if (c.fails == 2) c.height = Math.min(c.height - FIRST_DROP_M, SECOND_FLOOR_M);
         else c.height = 0;

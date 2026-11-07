@@ -641,7 +641,7 @@ public final class RoomService {
     }
     private void cageResult(Room room,Member member,String kind,boolean ok){ if(room.shift!=null&&room.shift.report(member.id,kind,ok,now()))broadcast(room,"CAGE_UPDATE"); }
     private Map<String,Object> cageCell(com.erni.finalanswer.gameplay.elevator.CageShift.Cage c){
-        return Map.of("height",Math.round(c.height*10)/10.0,"fails",c.fails,"repairs",c.repairs,"outcome",c.outcome.name(),"dead",c.dead,"deadAt",c.deadAt,"failAt",c.failAt); }
+        return Map.of("height",Math.round(c.height*10)/10.0,"fails",c.fails,"repairs",c.repairs,"outcome",c.outcome.name(),"dead",c.dead,"deadAt",c.deadAt,"failAt",c.failAt,"blown",c.blown); }
     private Map<String,Object> cageShiftView(Room room){ var sh=room.shift; Map<String,Object> v=new LinkedHashMap<>();
         v.put("phase",sh.phase().name());v.put("round",sh.round());v.put("rounds",sh.kinds.size());v.put("kind",sh.kind());v.put("kinds",sh.kinds);v.put("phaseStart",sh.phaseStart());v.put("phaseEnd",sh.phaseEnd()==Long.MAX_VALUE?-1:sh.phaseEnd());
         v.put("roundLimit",sh.roundLimit());v.put("startM",com.erni.finalanswer.gameplay.elevator.CageShift.START_M);v.put("difficulty",sh.difficulty.name()); return v; }

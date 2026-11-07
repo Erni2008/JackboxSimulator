@@ -133,7 +133,7 @@ const ANCHOR_Y = 15, LINK = .2, MAX_LINKS = 130; // the chains hang from the cei
 const barGeo = new T.CylinderGeometry(.02, .024, CAGE_H - .2, 8), linkGeo = new T.TorusGeometry(.075, .028, 10, 18); linkGeo.scale(1, 1.7, 1);
 
 interface Cage { id: string; root: T.Group; hang: T.Group; chain: T.InstancedMesh; wx: number; wy: number; body: T.Group; lamp: T.MeshStandardMaterial; lampGlow: T.Sprite; under: T.Sprite; portrait: T.Mesh; label: HTMLElement; bars: T.MeshStandardMaterial; flames: T.Sprite[];
-  y: number; vy: number; targetY: number; x: number; tx: number; sway: number; swayV: number; flash: number; dead: boolean; penalties: number; repairs: number; okFlash: number; seen: boolean; bombSeen: string; burnT: number; survived: boolean; hop: number; squash: number; ph: number }
+  y: number; vy: number; targetY: number; x: number; tx: number; sway: number; swayV: number; flash: number; dead: boolean; penalties: number; repairs: number; okFlash: number; seen: boolean; bombSeen: string; blown: boolean; spin: number; tilt: number; cutY: number; splashed: boolean; burnT: number; survived: boolean; hop: number; squash: number; ph: number }
 const cages = new Map<string, Cage>();
 // The prisoner: a cut-out figure made to read as a lit 3D body.
 //  · cropped to its own silhouette and stood on the cage floor at full height (feet at the pivot)
@@ -224,7 +224,7 @@ function buildCage(id: string, name: string, character: string): Cage {
   const label = document.createElement('div'); label.className = 'tag'; label.innerHTML = `<b></b><span class="m"></span><span class="s"></span><span class="bb"><i class="bt"></i><i class="bh"></i><i class="bm"></i></span>`; $('tags').append(label); label.querySelector('b')!.textContent = name;
   const flames: T.Sprite[] = []; for (let i = 0; i < 9; i++) { const f = new T.Sprite(new T.SpriteMaterial({map: flameTex, color: i % 3 ? '#ff7a20' : '#ffd070', blending: T.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0}));
     f.position.set((Math.random() - .5) * 1.1, .3, (Math.random() - .5) * .8); f.userData.ph = Math.random() * 6; body.add(f); flames.push(f); }
-  return {id, root, hang, chain, wx: 0, wy: 0, body, lamp, lampGlow, under, portrait: pm, label, bars: barMat, flames, y: worldY(START_M) + 6, vy: 0, targetY: 1.2, x: 0, tx: 0, sway: (Math.random() - .5) * .04, swayV: 0, flash: 0, dead: false, penalties: 0, repairs: 0, okFlash: 0, seen: false, bombSeen: '', burnT: -1, survived: false, hop: 0, squash: 0, ph: Math.random() * 6};
+  return {id, root, hang, chain, wx: 0, wy: 0, body, lamp, lampGlow, under, portrait: pm, label, bars: barMat, flames, y: worldY(START_M) + 6, vy: 0, targetY: 1.2, x: 0, tx: 0, sway: (Math.random() - .5) * .04, swayV: 0, flash: 0, dead: false, penalties: 0, repairs: 0, okFlash: 0, seen: false, bombSeen: '', blown: false, spin: 0, tilt: 0, cutY: 0, splashed: false, burnT: -1, survived: false, hop: 0, squash: 0, ph: Math.random() * 6};
 }
 
 // world height for a height in metres: the visible shaft spans the top 500 m down to the lava
@@ -243,11 +243,13 @@ function tone(f0: number, f1: number, dur: number, gain: number, type: Oscillato
 const sfx = {drop() { tone(900, 120, .7, .12); noise(.8, 2400, 3, .5); noise(.35, 700, 1, .7, .55); tone(70, 35, .6, .5, 'sine', .55); for (let i = 0; i < 8; i++) noise(.06, 3000 + Math.random() * 2000, 4, .25, .1 + i * .07); },
   ok() { tone(523, 523, .5, .08, 'triangle'); tone(784, 784, .6, .07, 'triangle', .12); },
   blast() { noise(1.6, 1800, 6, 1); noise(2.4, 260, .4, 1, .05); tone(90, 25, 1.8, .8, 'sine'); for (let i = 0; i < 10; i++) noise(.08, 2500 + Math.random() * 3000, 4, .3, .15 + i * .09); },
+  snap() { tone(1400, 300, .25, .35, 'square'); noise(.3, 4000, 6, .6); },
+  splash() { noise(1.8, 500, .6, 1); noise(.5, 1500, 3, .7, .05); tone(80, 30, 1.5, .7, 'sine'); for (let i = 0; i < 12; i++) noise(.1, 800 + Math.random() * 1500, 2, .35, .2 + i * .12); },
   burn() { noise(2.5, 300, .5, .9); tone(120, 30, 2.5, .4, 'sine'); }};
 $('sound').onclick = () => { audioOn(); actx?.resume(); };
 
 // ------------------------------------------------------------------ data
-interface CageCell { height: number; fails: number; repairs: number; outcome: string; dead: boolean }
+interface CageCell { height: number; fails: number; repairs: number; outcome: string; dead: boolean; blown?: boolean }
 interface P { id: string; name: string; characterId: string; online: boolean; kind: string; psi?: number; bomb?: string; bombEnd?: number; bombTries?: number; bombState?: string; cage?: CageCell }
 interface Shift { phase: string; round: number; rounds: number; kind: string; kinds: string[]; phaseStart: number; phaseEnd: number; roundLimit: number; startM: number; difficulty: string }
 let players: P[] = [], shift: Shift | null = null, diff = 'NORMAL', active = true, clockOffset = 0;
@@ -262,16 +264,17 @@ async function poll() {
   setTimeout(poll, 250);
 }
 // demo shift: the same rules as the server's CageShift, played by six sample prisoners
-function demo() {
+let demoTimer: any = 0;
+function demo() { clearInterval(demoTimer); /* a fresh shift: the previous one's ticker must stop */
   for (const c of cages.values()) { scene.remove(c.root); c.label.remove(); } cages.clear(); // a fresh shift: new cages
   const names = ['Skelly', 'Тыква', 'Доктор', 'Граф', 'Призрак', 'Вуду'], LIMIT = 24_000, INTRO = 4000, BREAK = 4000;
   players = names.map((n, i) => ({id: 'p' + i, name: n, characterId: CHARS[i], online: true, kind: '', cage: {height: 100, fails: 0, repairs: 0, outcome: 'RUNNING', dead: false}}));
   const kinds = ['wire', 'pressure', 'formula', 'lock'].sort(() => Math.random() - .5).slice(0, 2); kinds.splice(1 + Math.floor(Math.random() * 2), 0, 'bomb'); let t0 = Date.now(); const plan = new Map<string, {at: number; ok: boolean}>();
   shift = {phase: 'INTRO', round: -1, rounds: 3, kind: '', kinds, phaseStart: t0, phaseEnd: t0 + INTRO, roundLimit: LIMIT, startM: 100, difficulty: 'NORMAL'};
-  const fail = (c: CageCell) => { c.outcome = 'FAIL'; c.fails++; c.height = c.fails === 1 ? c.height - 25 : c.fails === 2 ? Math.min(c.height - 25, 2) : 0; if (c.height <= 0) { c.height = 0; c.dead = true; } };
+  const fail = (c: CageCell) => { c.outcome = 'FAIL'; c.fails++; if (shift?.kind === 'bomb') { c.blown = true; c.height = 0; c.dead = true; return; } c.height = c.fails === 1 ? c.height - 25 : c.fails === 2 ? Math.min(c.height - 25, 2) : 0; if (c.height <= 0) { c.height = 0; c.dead = true; } };
   let last = Date.now();
-  setInterval(() => { const now = Date.now(), dt = now - last; last = now; const sh = shift!;
-    if (sh.phase === 'ROUND') { for (const p of players) { const c = p.cage!; if (c.dead) continue; const pl = plan.get(p.id)!;
+  demoTimer = setInterval(() => { const now = Date.now(), dt = now - last; last = now; const sh = shift!;
+    if (sh.phase === 'ROUND') { for (const p of players) { const c = p.cage!; if (c.dead) continue; const pl = plan.get(p.id); if (!pl) continue;
         if (c.outcome !== 'OK' && now < sh.phaseStart + LIMIT) { c.height -= 15 / LIMIT * dt; if (c.height <= 0) { c.height = 0; c.dead = true; } }
         if (c.outcome === 'RUNNING' && now >= pl.at) { if (pl.ok) { c.outcome = 'OK'; c.repairs++; } else fail(c); if (sh.kind === 'bomb') p.bombState = pl.ok ? 'DEFUSED' : 'DETONATED'; }
         if (sh.kind === 'bomb' && c.outcome === 'RUNNING') { p.bombState = 'RUNNING'; p.bombEnd = sh.phaseStart + LIMIT; p.bomb = `${Math.min(2, Math.floor((now - sh.phaseStart) / 8000))}/3`; p.bombTries = Math.max(0, 2 - Math.floor((now - sh.phaseStart) / 9000)); } }
@@ -300,10 +303,13 @@ function sync() {
         for (const o of cages.values()) if (o !== c && !o.dead) { const d = Math.max(1, Math.abs(o.x - c.x)); o.swayV += (o.x > c.x ? 1 : -1) * 1.4 / d + (Math.random() - .5) * .3; o.flash = Math.max(o.flash, .5 / d); } } }
     if (p.bombState) c.bombSeen = p.bombState; else c.bombSeen = '';
     if (c.seen && cell.repairs > c.repairs) { c.okFlash = 1; c.hop = 1; sfx.ok(); }
+    // a blown bomb: the blast throws the cage up, the chain snaps (its stub keeps hanging), the cage tumbles into the lava
+    if (cell.blown && !c.blown) { c.blown = true; c.cutY = c.hang.position.y; c.spin = (Math.random() < .5 ? -1 : 1) * (1.1 + Math.random() * .6);
+      if (c.seen) { c.vy = 4.5; c.squash = -.5; c.flash = 2.6; sfx.snap(); } else { c.y = LAVA_Y - .95; c.splashed = true; c.tilt = c.spin * .3; } }
     if (!c.dead && cell.dead) { c.dead = true; }
     c.penalties = cell.fails; c.repairs = cell.repairs; c.seen = true; c.survived = !!sh && sh.phase === 'END' && !cell.dead; if (c.survived) c.targetY += .6;
     const [ic, kn] = KIND()[sh?.kind || p.kind] ?? ['…', L('Ожидание', 'Waiting')];
-    const state = c.dead ? L('СГОРЕЛ', 'BURNED') : c.survived ? L('ВЫЖИЛ', 'SURVIVED') : cell.outcome === 'OK' && sh?.phase === 'ROUND' ? (sh.kind === 'bomb' ? L('✓ обезвредил', '✓ defused') : L('✓ починил', '✓ repaired')) : cell.outcome === 'FAIL' && sh?.phase === 'ROUND' ? (sh.kind === 'bomb' ? L('💥 взорвался', '💥 blown up') : L('✗ сорвался', '✗ dropped')) : `${ic} ${kn}`;
+    const state = c.dead ? (c.blown ? L('💥 ВЗОРВАЛСЯ', '💥 BLOWN UP') : L('СГОРЕЛ', 'BURNED')) : c.survived ? L('ВЫЖИЛ', 'SURVIVED') : cell.outcome === 'OK' && sh?.phase === 'ROUND' ? (sh.kind === 'bomb' ? L('✓ обезвредил', '✓ defused') : L('✓ починил', '✓ repaired')) : cell.outcome === 'FAIL' && sh?.phase === 'ROUND' ? (sh.kind === 'bomb' ? L('💥 взорвался', '💥 blown up') : L('✗ сорвался', '✗ dropped')) : `${ic} ${kn}`;
     { // the bomb panel under the cage: fuse timer, tries left as hearts, mechanisms defused
       const live = !!p.bomb && sh?.kind === 'bomb' && cell.outcome === 'RUNNING' && p.bombState === 'RUNNING' && !c.dead, bb = c.label.querySelector('.bb') as HTMLElement; c.label.classList.toggle('bomb', live);
       if (live) { const left = (p.bombEnd ?? 0) - serverNow(), tries = p.bombTries ?? 0, [dn, all] = (p.bomb ?? '0/3').split('/').map(Number);
@@ -358,12 +364,16 @@ function loop(now: number) {
       c.bars.emissiveIntensity = Math.min(2.2, c.burnT * .9) * (.85 + Math.sin(time * 9 + c.x) * .15);
       const fl = c.burnT < 1.2 ? 0 : c.burnT < 2 ? (c.burnT - 1.2) / .8 : c.burnT < 4.6 ? 1 : Math.max(0, 1 - (c.burnT - 4.6) / 2.5);
       for (const f of c.flames) { const ph = f.userData.ph; (f.material as T.SpriteMaterial).opacity = fl * (.65 + Math.sin(time * 11 + ph) * .25); f.scale.set(.5 + fl * .35, (.9 + Math.sin(time * 8 + ph) * .25) * (.5 + fl), 1); f.position.y = .25 + fl * .4 + Math.sin(time * 6 + ph) * .05; } }
-    if (c.y > c.targetY + .02) { if (c.vy < -.5) c.vy -= 22 * dt; else c.vy += ((c.targetY - c.y) * 2 - c.vy * 2) * dt; } else c.vy += ((c.targetY - c.y) * 60 - c.vy * 7) * dt;
-    c.y += c.vy * dt; if (c.y < c.targetY && c.vy < -1) { c.squash = Math.min(1, -c.vy / 10); c.vy = -c.vy * .28; c.swayV += (Math.random() - .5) * .35; shake = Math.max(shake, .3); }
+    if (c.blown) { // free fall, no catch: straight through the lava surface, then a slow sink
+      if (c.y > LAVA_Y - .95) { c.vy -= 20 * dt; c.y += c.vy * dt; c.tilt += c.spin * dt * (c.splashed ? .15 : 1); } else { c.y = LAVA_Y - .95; c.vy = 0; }
+      c.tilt = Math.max(-.55, Math.min(.55, c.tilt));
+      if (!c.splashed && c.y < LAVA_Y + .3) { c.splashed = true; c.vy *= .25; c.spin *= .3; shake = Math.max(shake, .9); sfx.splash(); spark(c, LAVA_Y + .25 - c.wy, '#ff6a10', 170, 2.6); spark(c, LAVA_Y + .25 - c.wy, '#ffd27a', 90, 1.8); spark(c, LAVA_Y + .25 - c.wy, '#5a1a08', 60, 1.2); } }
+    else if (c.y > c.targetY + .02) { if (c.vy < -.5) c.vy -= 22 * dt; else c.vy += ((c.targetY - c.y) * 2 - c.vy * 2) * dt; } else c.vy += ((c.targetY - c.y) * 60 - c.vy * 7) * dt;
+    if (!c.blown) c.y += c.vy * dt; if (!c.blown && c.y < c.targetY && c.vy < -1) { c.squash = Math.min(1, -c.vy / 10); c.vy = -c.vy * .28; c.swayV += (Math.random() - .5) * .35; shake = Math.max(shake, .3); }
     c.swayV += (-c.sway * 3 - c.swayV * .6) * dt + Math.sin(time * .9 + c.x) * .002; c.sway += c.swayV * dt;
     // the cage swings as a pendulum from its ceiling anchor; chain and cage move as one rigid piece
-    c.root.position.set(c.x, ANCHOR_Y, 0); c.root.rotation.z = c.sway * .1; c.hang.position.y = c.y - ANCHOR_Y; c.body.rotation.y = Math.sin(time * .3 + c.x) * .08;
-    layChain(c);
+    c.root.position.set(c.x, ANCHOR_Y, 0); c.root.rotation.z = c.sway * .1; c.hang.position.y = c.y - ANCHOR_Y; c.body.rotation.y = Math.sin(time * .3 + c.x) * .08; c.hang.rotation.z = c.tilt;
+    if (c.blown) { const y = c.hang.position.y; c.hang.position.y = c.cutY; layChain(c); c.hang.position.y = y; } else layChain(c);
     { const wp = c.body.getWorldPosition(tmpV); c.wx = wp.x; c.wy = wp.y; }
     { // the prisoner: breathes, shifts weight, trembles near the lava, is thrown and squashed by a drop, hops on a repair, writhes while burning
       const fig = c.portrait, base = fig.userData.base as T.Vector3 | undefined, mat = fig.material as T.ShaderMaterial;
