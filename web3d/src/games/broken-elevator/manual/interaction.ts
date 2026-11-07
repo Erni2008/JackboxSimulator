@@ -30,6 +30,7 @@ export class ManualInteraction {
   // ------------------------------------------------------------- actions
   /** only one book in hand: the engineering manual and the alchemist's journal never leave the shelf together */
   static holder: ManualInteraction | null = null; disabled = false;
+  /** split view: the book keeps to the left half of the screen and only listens there */ splitOn = false; private splitK = 0;
   pickUp() { if (!['rest', 'falling'].includes(this.state) || this.disabled || (ManualInteraction.holder && ManualInteraction.holder !== this)) return; ManualInteraction.holder = this; this.lift.t = 0; this.lift.fromP.copy(this.book.root.position); this.lift.fromQ.copy(this.book.root.quaternion); this.body.sleeping = true; this.set('lifting'); this.audio.play('pickup'); }
   open() { if (this.state !== 'held' || this.book.busy) return; this.book.open(); this.set('reading'); this.focusSide = this.portrait ? 1 : 0; this.zoomTarget = 1; this.pan.set(0, 0); }
   close() { if (this.state !== 'reading') return; this.book.close(); this.zoomTarget = 1; this.focusSide = 0; this.set('held'); }
@@ -75,7 +76,9 @@ export class ManualInteraction {
     const rot = this.heldRot.clone().slerp(this.readingRot, o).multiply(new T.Quaternion().setFromEuler(breath));
     this.handQ.copy(this.camera.quaternion).multiply(rot);
     const offset = new T.Vector3(-this.pan.x, 0, -this.pan.y).applyQuaternion(this.handQ);
-    this.handP.set(0, -.005 * (1 - o), -dist).applyQuaternion(this.camera.quaternion).add(this.camera.position).add(offset);
+    // split view (the bomb's notebook beside the case): the book shrinks into the left half of the screen
+    this.splitK += ((this.splitOn ? 1 : 0) - this.splitK) * Math.min(1, dt * 7); const sd = dist * (1 + this.splitK * 1.15), half = sd * Math.tan(T.MathUtils.degToRad(this.camera.fov) / 2) * this.camera.aspect;
+    this.handP.set(-half * .5 * this.splitK, -.005 * (1 - o), -sd).applyQuaternion(this.camera.quaternion).add(this.camera.position).add(offset);
     // lowered: the book drops to the lower-left of the view, tilted toward the eyes like a book held at the hip
     this.lowK += ((this.lowered ? 1 : 0) - this.lowK) * Math.min(1, dt * 9);
     if (this.lowK > .001) { const k = this.lowK * this.lowK * (3 - 2 * this.lowK);
@@ -120,7 +123,7 @@ export class ManualInteraction {
   }
   private bind() {
     const el = this.dom;
-    el.addEventListener("pointerdown", e => { try { el.setPointerCapture?.(e.pointerId); } catch {} this.audio.unlock(); this.pointers.set(e.pointerId, {x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: performance.now()}); if (this.pointers.size === 2) { const [a, b] = [...this.pointers.values()]; this.pinch0 = Math.hypot(a.x - b.x, a.y - b.y); this.zoom0 = this.zoomTarget; } });
+    el.addEventListener("pointerdown", e => { if (this.splitOn && e.clientX > innerWidth * .5) return; try { el.setPointerCapture?.(e.pointerId); } catch {} this.audio.unlock(); this.pointers.set(e.pointerId, {x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: performance.now()}); if (this.pointers.size === 2) { const [a, b] = [...this.pointers.values()]; this.pinch0 = Math.hypot(a.x - b.x, a.y - b.y); this.zoom0 = this.zoomTarget; } });
     el.addEventListener('pointermove', e => {
       const p = this.pointers.get(e.pointerId); if (!p) { this.hover(e.clientX, e.clientY); return; } const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
       if (this.pointers.size === 2 && this.state === 'reading') { const [a, b] = [...this.pointers.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); this.zoomTarget = T.MathUtils.clamp(this.zoom0 * d / Math.max(20, this.pinch0), 1, 3.2); return; }
@@ -134,7 +137,7 @@ export class ManualInteraction {
       if (Math.hypot(dx, dy) < 12 && dt < 450) this.tap(e.clientX, e.clientY);
     };
     el.addEventListener('pointerup', up); el.addEventListener('pointercancel', e => this.pointers.delete(e.pointerId));
-    el.addEventListener('wheel', e => { if (this.state !== 'reading' || this.lowered) return; e.preventDefault(); this.zoomTarget = T.MathUtils.clamp(this.zoomTarget * Math.exp(-e.deltaY * .0015), 1, 3.2); if (this.zoomTarget > 1.05 && !this.portrait) { const hit = this.pick(e.clientX, e.clientY), ph = hit && this.book.pageHit(hit); if (ph && this.focusSide === 0) this.focusSide = ph.side; } if (this.zoomTarget <= 1.05) { this.focusSide = this.portrait ? this.focusSide : 0; this.panTarget.set(0, 0); } }, {passive: false});
+    el.addEventListener('wheel', e => { if (this.state !== 'reading' || this.lowered || (this.splitOn && e.clientX > innerWidth * .5)) return; e.preventDefault(); this.zoomTarget = T.MathUtils.clamp(this.zoomTarget * Math.exp(-e.deltaY * .0015), 1, 3.2); if (this.zoomTarget > 1.05 && !this.portrait) { const hit = this.pick(e.clientX, e.clientY), ph = hit && this.book.pageHit(hit); if (ph && this.focusSide === 0) this.focusSide = ph.side; } if (this.zoomTarget <= 1.05) { this.focusSide = this.portrait ? this.focusSide : 0; this.panTarget.set(0, 0); } }, {passive: false});
     window.addEventListener('keydown', e => {
       if (e.key === 'ArrowRight') this.turn(1); else if (e.key === 'ArrowLeft') this.turn(-1);
       else if (e.key === ' ' || e.key === 'Enter') { if (this.state === 'rest') this.pickUp(); else if (this.state === 'held') this.open(); else if (this.state === 'reading') this.close(); }

@@ -169,7 +169,7 @@ export class Suitcase {
     this.root.traverse(o => { o.castShadow = false; o.receiveShadow = false; }); // the case's own shadow box must not darken the case itself
     const proxy = new T.Mesh(new T.BoxGeometry(W, HB + HL, D), new T.MeshBasicMaterial({colorWrite: false, depthWrite: false})); proxy.castShadow = true; this.proxy = proxy; /* also the cheap hit box while the case lies on the floor */ proxy.userData.shadowProxy = true; this.body.add(proxy);
   }
-  private leatherMeshes: T.Mesh[] = []; private frameMat: T.Material | null = null; private focusZoom = 0; private lidMax = 1.55; private halos = new Map<Mechanism, T.Sprite>(); private timerHalo: T.Sprite | null = null;
+  private leatherMeshes: T.Mesh[] = []; private frameMat: T.Material | null = null; private focusZoom = 0; private lidMax = 1.55; /** split view with the notebook */ sideOn = false; private sideK = 0; private halos = new Map<Mechanism, T.Sprite>(); private timerHalo: T.Sprite | null = null;
   private static haloT: T.Texture | null = null;
   static haloTex() { if (Suitcase.haloT) return Suitcase.haloT; const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d')!, g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
     g.addColorStop(0, 'rgba(255,255,255,.95)'); g.addColorStop(.18, 'rgba(255,255,255,.55)'); g.addColorStop(.5, 'rgba(255,255,255,.12)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return Suitcase.haloT = new T.CanvasTexture(c); }
@@ -344,7 +344,9 @@ export class Suitcase {
       const bp = b.group.position.clone().add(this.interior.position).applyQuaternion(q), half = Math.max(b.size[0], b.size[1]) / 2 * 1.08, dBay = half / (Math.min(tx, ty) * .88);
       const kz = 1 - Math.exp(-dt * 5); this.off.x += (-bp.x - this.off.x) * kz; this.off.y += (-bp.y - this.off.y) * kz; this.zoom += (this.dist / Math.max(.05, dBay + bp.z) - this.zoom) * kz; }
     let d = this.dist / this.zoom;
-    const hand = camera.position.clone().add(new T.Vector3(this.off.x, this.off.y - (this.focus ? 0 : this.lidT > .2 ? .035 * this.lidT : .01), -d).applyQuaternion(camera.quaternion));
+    // split view (the notebook open beside it): the case keeps to the right half of the screen
+    this.sideK += ((this.sideOn ? 1 : 0) - this.sideK) * (1 - Math.exp(-dt * 7)); d *= 1 + this.sideK * .55; const sideX = d * tx * .5 * this.sideK;
+    const hand = camera.position.clone().add(new T.Vector3(this.off.x + sideX, this.off.y - (this.focus ? 0 : this.lidT > .2 ? .035 * this.lidT : .01), -d).applyQuaternion(camera.quaternion));
     const handQ = camera.quaternion.clone().multiply(new T.Quaternion().setFromEuler(new T.Euler(this.pitch, this.yaw, 0, 'XYZ')));
     if (this.state === 'lifting' || this.state === 'held') { this.liftK = Math.min(1, this.liftK + dt * 2.2); if (this.liftK >= 1) this.state = 'held'; }
     else if (this.state === 'returning') { this.liftK = Math.max(0, this.liftK - dt * 2.2); if (this.liftK <= 0) { this.state = 'floor'; this.home.attach(this.root); this.root.position.copy(this.floorPos); this.root.quaternion.copy(this.floorQuat); this.zoom = 1; this.off.set(0, 0); } }
