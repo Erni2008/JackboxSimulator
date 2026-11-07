@@ -42,7 +42,10 @@ public final class CageShift {
 
     public CageShift(Difficulty d, Collection<String> playerIds, long seed, long now) { this(d, playerIds, seed, now, POOL); }
     public CageShift(Difficulty d, Collection<String> playerIds, long seed, long now, List<String> machines) {
-        difficulty = d; List<String> pool = new ArrayList<>(machines); Collections.shuffle(pool, new Random(seed)); kinds = List.copyOf(pool.subList(0, Math.min(ROUNDS, pool.size())));
+        difficulty = d; Random rnd = new Random(seed); List<String> pool = new ArrayList<>(machines); boolean bomb = pool.remove(BOMB); Collections.shuffle(pool, rnd);
+        List<String> pick = new ArrayList<>(pool.subList(0, Math.min(bomb ? ROUNDS - 1 : ROUNDS, pool.size())));
+        // the bomb is always in the shift, as the 2nd or the 3rd round (never the opener: the players learn the cage first)
+        if (bomb) pick.add(Math.min(pick.size(), 1 + rnd.nextInt(2)), BOMB); kinds = List.copyOf(pick);
         for (String id : playerIds) cages.put(id, new Cage(id));
         phaseStart = last = now; phaseEnd = now + INTRO_MS;
     }

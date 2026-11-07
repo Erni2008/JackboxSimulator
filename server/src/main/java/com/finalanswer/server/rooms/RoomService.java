@@ -655,7 +655,7 @@ public final class RoomService {
             p.put("id",m.id);p.put("name",m.name);p.put("characterId",m.characterId);p.put("online",m.peer!=null);p.put("repairs",m.elevatorRepairs);p.put("penalties",m.elevatorPenalties);
             p.put("kind",m.cageKind);p.put("task",m.cageTask);p.put("failAt",m.cageFailAt);
             var pz=room.pressure.get(m.id); if(pz!=null&&m.cageKind.equals("pressure"))p.put("psi",Math.round(pz.pressure()));
-            var bz=room.bomb.get(m.id); if(bz!=null&&m.cageKind.equals("bomb"))p.put("bomb",bz.neutralised().size()+"/"+bz.armed.size()); // host screen: mechanisms defused
+            var bz=room.bomb.get(m.id); if(bz!=null&&m.cageKind.equals("bomb")){p.put("bomb",bz.neutralised().size()+"/"+bz.armed.size());p.put("bombEnd",bz.deadline());p.put("bombTries",Math.max(0,bz.strikesAllowed()-bz.strikes()));p.put("bombState",bz.outcome().name());} // host screen: mechanisms defused
             if(room.shift!=null){room.shift.add(m.id);p.put("cage",cageCell(room.shift.cages.get(m.id)));}
             ps.add(p);}
         if(room.shift!=null){room.shift.advance(now);v.put("shift",cageShiftView(room));} v.put("players",ps); return json(v);

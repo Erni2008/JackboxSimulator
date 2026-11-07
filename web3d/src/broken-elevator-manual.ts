@@ -147,7 +147,10 @@ async function boot() {
   /** a wrong defusal move: the bomb flinches (server-judged in a room, locally in practice) */
   const TAUNT_STRIKE = [L('Осторожнее. Я бы не хотел собирать вас по частям.', 'Careful. I would hate to collect you in pieces.'), L('Ай-ай-ай. Блокнот же прямо у вас в руках.', 'Tut-tut. The notebook is right there in your hands.'), L('Ещё одна такая ошибка — и нам понадобится новая клетка.', 'One more like that and we will need a new cage.')];
   const taunt = (lines: string[]) => subtitles([lines[Math.floor(Math.random() * lines.length)]]);
-  const strikeFx = (what: string) => { setTimeout(() => taunt(TAUNT_STRIKE), 2400); maze?.warn(); links?.warn(); xrayV?.warn(); laserV?.warn(); thermalV?.warn(); audio.play('alarm', .8); audio.play('spark'); haptic('bad'); shake = Math.max(shake, .35); const left = STRIKES() - strikes;
+  /** the first wrong move on a bomb: one of two host lines, never the same one twice in a row */
+  const FIRST_STRIKE = [L('Бах! Это был только взрыватель. Следующий раз будет громче.', 'Bang! That was only the fuse. Next time it will be louder.'), L('Слышали щелчок? Это бомба запомнила вашу ошибку.', 'Hear that click? The bomb just remembered your mistake.')];
+  const firstStrikeLine = () => { let i = 0; try { i = (+(localStorage.getItem('hc-first-strike') ?? '-1') + 1) % 2; localStorage.setItem('hc-first-strike', String(i)); } catch { i = Math.floor(Math.random() * 2); } return FIRST_STRIKE[i]; };
+  const strikeFx = (what: string) => { const firstLine = strikes === 1 ? firstStrikeLine() : null; setTimeout(() => firstLine ? subtitles([firstLine]) : taunt(TAUNT_STRIKE), firstLine ? 900 : 2400); maze?.warn(); links?.warn(); xrayV?.warn(); laserV?.warn(); thermalV?.warn(); audio.play('alarm', .8); audio.play('spark'); haptic('bad'); shake = Math.max(shake, .35); const left = STRIKES() - strikes;
     verdict(false, left >= 0 ? L(`Удар по взрывателю · осталось ошибок: ${left}`, `Strike on the fuse · mistakes left: ${left}`) : '', what); };
   /** one armed mechanism done: its lamp goes out; the bomb is defused when all three are */
   const neutralFx = (m: Mechanism) => { if (neutral.has(m)) return; neutral.add(m); suitcase?.neutral.add(m); if (m === 'WIRE_MAZE') setCutters(false); const left = armed.filter(x => !neutral.has(x)).length;
@@ -432,18 +435,20 @@ async function boot() {
     if (!inspecting || (inspectTarget !== 'pressure' && inspectTarget !== 'lab' && inspectTarget !== 'lock' && inspectTarget !== 'bomb')) { if (press.hits(ray) || lab.hits(ray)) return; } // first tap only opens the close-up (the case in hand is drawn over the cage: cage objects behind it never take its taps)
     if (notes.heldHit(ray) || notes.reading) return; // the sheet in hand takes its own taps
     if (!inspecting && inspectTarget !== 'lock' && lock.hits(ray)) return;
+    // the lowered notebook sits in the lower-left corner even while the case is zoomed in over it: a tap there always raises it (split view)
+    if (inspecting && inspectTarget === 'bomb' && dui?.lowered && nbook?.taken && e.clientX < innerWidth * .3 && e.clientY > innerHeight * .6) { nbook.show(); return; }
     if (inspecting && inspectTarget === 'bomb') { if (!suitcase || bombPtrs.size > 1) return; device = suitcase as any; } else
     device = inspectTarget === 'lab' ? lab : inspectTarget === 'lock' && inspecting ? lock : press; if (!device.enabled) return;
     if (device.pointerDown(ray, e.clientX, e.clientY, camera)) { haptic('tap'); valvePointer = e.pointerId; valveStart = {x: e.clientX, y: e.clientY, t: performance.now()}; try { renderer.domElement.setPointerCapture(e.pointerId); } catch {} } });
   addEventListener('pointermove', e => { if (e.pointerId === valvePointer) device.pointerMove(e.clientX, e.clientY); });
   // the case in hand: pinch to zoom toward the fingers (two fingers also pan), wheel zooms toward the cursor
   const bombPtrs = new Map<number, {x: number; y: number}>(); let pinchD = 0, pinchC = {x: 0, y: 0};
-  const bombHeld = () => inspecting && inspectTarget === 'bomb' && !!suitcase && suitcase.state === 'held' && !nbook?.open;
-  renderer.domElement.addEventListener('pointerdown', e => { bombPtrs.set(e.pointerId, {x: e.clientX, y: e.clientY}); if (bombPtrs.size === 2 && bombHeld()) { suitcase!.pointerUp(false); valvePointer = null; const [a, b] = [...bombPtrs.values()]; pinchD = Math.hypot(a.x - b.x, a.y - b.y); pinchC = {x: (a.x + b.x) / 2, y: (a.y + b.y) / 2}; } }, true);
+  const bombHeld = () => inspecting && inspectTarget === 'bomb' && !!suitcase && suitcase.state === 'held' && (!nbook?.open || suitcase.sideOn);
+  renderer.domElement.addEventListener('pointerdown', e => { bombPtrs.set(e.pointerId, {x: e.clientX, y: e.clientY}); if (bombPtrs.size === 2 && bombHeld() && !(suitcase!.sideOn && [...bombPtrs.values()].some(q => q.x < innerWidth * .5))) { suitcase!.pointerUp(false); valvePointer = null; const [a, b] = [...bombPtrs.values()]; pinchD = Math.hypot(a.x - b.x, a.y - b.y); pinchC = {x: (a.x + b.x) / 2, y: (a.y + b.y) / 2}; } }, true);
   addEventListener('pointermove', e => { const p = bombPtrs.get(e.pointerId); if (!p) return; p.x = e.clientX; p.y = e.clientY; if (bombPtrs.size !== 2 || !bombHeld() || !pinchD) return; const [a, b] = [...bombPtrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y), c = {x: (a.x + b.x) / 2, y: (a.y + b.y) / 2};
     suitcase!.zoomBy(d / pinchD, c.x / innerWidth * 2 - 1, -c.y / innerHeight * 2 + 1, camera); suitcase!.pan(c.x - pinchC.x, c.y - pinchC.y, camera); pinchD = d; pinchC = c; });
   const bombUp = (e: PointerEvent) => { bombPtrs.delete(e.pointerId); if (bombPtrs.size < 2) pinchD = 0; }; addEventListener('pointerup', bombUp); addEventListener('pointercancel', bombUp);
-  renderer.domElement.addEventListener('wheel', e => { if (!bombHeld()) return; e.preventDefault(); suitcase!.zoomBy(Math.exp(-e.deltaY * .0015), e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1, camera); }, {passive: false});
+  renderer.domElement.addEventListener('wheel', e => { if (!bombHeld() || (suitcase!.sideOn && e.clientX < innerWidth * .5)) return; e.preventDefault(); suitcase!.zoomBy(Math.exp(-e.deltaY * .0015), e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1, camera); }, {passive: false});
   $('t-red').onclick = () => { probeSel = 0; syncTester(); haptic('tap'); }; $('t-black').onclick = () => { probeSel = 1; syncTester(); haptic('tap'); };
   const confirmBeam = () => { if (!laserV || kind !== 'bomb' || bombDone || !live('LASER')) return; audio.play('button'); audio.play('relay');
     if (IN_ROOM) RoomSocket.shared()?.send('BOMB_ACTION', {action: 'CONFIRM', seq: ++bombSeq}); else { const ok = !!laserL && laserV.hit === laserL.target; if (ok) laserV.done = true; judge('LASER', ok, L('Луч не на гасящем датчике', 'The beam is not on the quench sensor')); } };
