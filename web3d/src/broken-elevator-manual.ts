@@ -15,6 +15,7 @@ import {Laboratory} from './games/broken-elevator/puzzles/laboratory';
 import {FormulaLink} from './games/broken-elevator/puzzles/formula-link';
 import {limitMs, setDiff, diffName, onDiff} from './games/broken-elevator/difficulty';
 import {Voice, haptic} from './games/broken-elevator/feedback';
+import {VOICE_TEXT} from './games/broken-elevator/voice-text';
 import {briefing, report, type TaskRecord} from './games/broken-elevator/coach';
 import {buildCage, contactShadow} from './games/broken-elevator/manual/test-scene';
 import {FuseBox} from './games/broken-elevator/puzzles/fusebox';
@@ -146,7 +147,7 @@ async function boot() {
   const live = (m: Mechanism) => armed.includes(m) && !neutral.has(m);
   /** a wrong defusal move: the bomb flinches (server-judged in a room, locally in practice) */
   const TAUNT_STRIKE = [L('Осторожнее. Я бы не хотел собирать вас по частям.', 'Careful. I would hate to collect you in pieces.'), L('Не торопитесь. Сначала загляните в блокнот.', 'Tut-tut. The notebook is right there in your hands.'), L('Ещё одна такая ошибка — и нам понадобится новая клетка.', 'One more like that and we will need a new cage.')];
-  const taunt = (lines: string[]) => { const i = Math.floor(Math.random() * lines.length); voice.say(('bomb_taunt_' + (i + 1)) as any, 3, 0); subtitles([lines[i]]); };
+  const taunt = (lines: string[]) => { subtitles([voice.say('bomb_taunt', 3, 0) && VOICE_TEXT[voice.spoken] || lines[Math.floor(Math.random() * lines.length)]]); };
   /** the first wrong move on a bomb: one of two host lines, never the same one twice in a row */
   const FIRST_STRIKE = [L('Бах! Это был только взрыватель. Следующий раз будет громче.', 'Bang! That was only the fuse. Next time it will be louder.'), L('Слышали щелчок? Это бомба запомнила вашу ошибку.', 'Hear that click? The bomb just remembered your mistake.')];
   const firstStrikeLine = () => { let i = 0; try { i = (+(localStorage.getItem('hc-first-strike') ?? '-1') + 1) % 2; localStorage.setItem('hc-first-strike', String(i)); } catch { i = Math.floor(Math.random() * 2); } return i; };
@@ -290,8 +291,8 @@ async function boot() {
     { // the host's last word on the bomb (voice + subtitle), after the blast has rung out
       const DEF = [L('Браво. Вы обезвредили мою бомбу. Я почти разочарован.', 'Bravo. You defused my bomb. I am almost disappointed.'), L('Бомба обезврежена. Признаюсь, я впечатлён.', 'Bomb defused. I admit, I am impressed.')];
       const BLAST = [L('Ну вот. А я ведь предупреждал.', 'There. And I did warn you.'), L('Какой красивый взрыв. Жаль только вашу клетку.', 'What a beautiful blast. Pity about your cage.')];
-      const i = Math.floor(Math.random() * 2), line = ok ? 'bomb_defused_' + (i + 1) : why === 'TIMEOUT' ? 'bomb_timeout' : 'bomb_blast_' + (i + 1), text = ok ? DEF[i] : why === 'TIMEOUT' ? L('Время вышло. Бомба ждать не стала.', 'Time is up. The tick-tock is over.') : BLAST[i];
-      setTimeout(() => { voice.say(line as any, 5, 0); subtitles([text]); }, ok ? 500 : 1100); }
+      const i = Math.floor(Math.random() * 2), line = ok ? 'bomb_defused' : why === 'TIMEOUT' ? 'bomb_timeout' : 'bomb_blast', text = ok ? DEF[i] : why === 'TIMEOUT' ? L('Время вышло. Бомба ждать не стала.', 'Time is up. The tick-tock is over.') : BLAST[i];
+      setTimeout(() => { subtitles([voice.say(line, 5, 0) && VOICE_TEXT[voice.spoken] || text]); }, ok ? 500 : 1100); }
     if (!ok) { suitcase?.shatter(); if (cage.plunge) setTimeout(() => lavaDeath(), 900); else cage.drop?.(.8); /* the blast snaps the chain: the cage goes into the lava */ audio.play('explosion'); audio.play('burst'); shake = 1.7; const f = $('blast'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); document.body.classList.remove('jolt'); void document.body.offsetWidth; document.body.classList.add('jolt'); nbook?.close(); if (suitcase?.focus) suitcase.focusOn(null); }
     else { audio.play('labOk'); if (suitcase?.focus) suitcase.focusOn(null); }
     clearTimeout(pending); pending = setTimeout(() => next(ok), ok ? 5200 : cage.plunge ? 8500 : 4600); /* time for the host's last word (and the plunge into the lava) */ };

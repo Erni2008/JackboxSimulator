@@ -9,19 +9,22 @@ import {LANG} from './i18n';
 export type Line = 'intro' | 'tutorial_wire' | 'tutorial_pressure' | 'tutorial_formula' | 'tutorial_lock' | 'task_lock' | 'task_wire' | 'task_pressure' | 'task_formula'
   | 'success' | 'fail' | 'explosion' | 'timeout' | 'ten_seconds' | 'surge' | 'results' | 'perfect' | 'bomb_intro' | 'bomb_intro_early' | 'bomb_warning'
   | 'bomb_first_1' | 'bomb_first_2' | 'bomb_taunt_1' | 'bomb_taunt_2' | 'bomb_taunt_3'
-  | 'bomb_defused_1' | 'bomb_defused_2' | 'bomb_blast_1' | 'bomb_blast_2' | 'bomb_timeout';
+  | 'bomb_defused_1' | 'bomb_defused_2' | 'bomb_blast_1' | 'bomb_blast_2' | 'bomb_timeout' | 'bomb_taunt' | 'bomb_defused' | 'bomb_blast';
 /** files that may exist for each line (variants are picked at random) */
 const FILES: Record<Line, string[]> = {intro: ['intro'], tutorial_wire: ['tutorial_wire'], tutorial_pressure: ['tutorial_pressure'], tutorial_formula: ['tutorial_formula'], tutorial_lock: ['tutorial_lock'],
   task_wire: ['task_wire'], task_pressure: ['task_pressure'], task_formula: ['task_formula'], task_lock: ['task_lock'], success: ['success_1', 'success_2'], fail: ['fail_1', 'fail_2'],
   explosion: ['explosion'], timeout: ['timeout'], ten_seconds: ['ten_seconds'], surge: ['surge'], results: [], perfect: ['perfect'],
   /* THE HOST'S SUITCASE (recorded in the approved host voice, 2026-11-07) */ bomb_intro: ['bomb_intro'], bomb_intro_early: ['bomb_intro_early'], bomb_warning: ['bomb_warning'],
   bomb_first_1: ['bomb_first_1'], bomb_first_2: ['bomb_first_2'], bomb_taunt_1: ['bomb_taunt_1'], bomb_taunt_2: ['bomb_taunt_2'], bomb_taunt_3: ['bomb_taunt_3'],
-  bomb_defused_1: ['bomb_defused_1'], bomb_defused_2: ['bomb_defused_2'], bomb_blast_1: ['bomb_blast_1'], bomb_blast_2: ['bomb_blast_2'], bomb_timeout: ['bomb_timeout']};
+  bomb_defused_1: ['bomb_defused_1'], bomb_defused_2: ['bomb_defused_2'], bomb_blast_1: ['bomb_blast_1'], bomb_blast_2: ['bomb_blast_2'], bomb_timeout: ['bomb_timeout'],
+  /* variants: one is picked at random, never the same twice in a row */ bomb_taunt: ["bomb_taunt_1", "bomb_taunt_2", "bomb_taunt_3", "bomb_taunt_4", "bomb_taunt_5", "bomb_taunt_6", "bomb_taunt_7", "bomb_taunt_8"], bomb_defused: ["bomb_defused_1", "bomb_defused_2", "bomb_defused_3", "bomb_defused_4", "bomb_defused_5", "bomb_defused_6"], bomb_blast: ["bomb_blast_1", "bomb_blast_2", "bomb_blast_3", "bomb_blast_4", "bomb_blast_5", "bomb_blast_6"]};
+for (const [k, v] of Object.entries({"success": ["success_1", "success_2", "success_3", "success_4", "success_5", "success_6", "success_7", "success_8", "success_9", "success_10"], "fail": ["fail_1", "fail_2", "fail_3", "fail_4", "fail_5", "fail_6", "fail_7", "fail_8", "fail_9", "fail_10"], "explosion": ["explosion", "explosion_2", "explosion_3", "explosion_4", "explosion_5"], "timeout": ["timeout", "timeout_2", "timeout_3", "timeout_4", "timeout_5"], "ten_seconds": ["ten_seconds", "ten_seconds_2", "ten_seconds_3", "ten_seconds_4", "ten_seconds_5"], "surge": ["surge", "surge_2", "surge_3", "surge_4"], "perfect": ["perfect", "perfect_2", "perfect_3", "perfect_4"], "task_wire": ["task_wire", "task_wire_2", "task_wire_3", "task_wire_4"], "task_pressure": ["task_pressure", "task_pressure_2", "task_pressure_3", "task_pressure_4"], "task_formula": ["task_formula", "task_formula_2", "task_formula_3", "task_formula_4"], "task_lock": ["task_lock", "task_lock_2", "task_lock_3", "task_lock_4"], "bomb_warning": ["bomb_warning", "bomb_warning_2", "bomb_warning_3", "bomb_warning_4"], "bomb_timeout": ["bomb_timeout", "bomb_timeout_2", "bomb_timeout_3", "bomb_timeout_4"]})) FILES[k as Line] = v;
 
 export class Voice {
   constructor(private base = 'voice/') {}
   /** in a room the host screen speaks the shared lines (intro, briefings, warnings, bomb, finale); the phone keeps the player's own */
   hostSpeaks = false;
+  /** the file of the line spoken last (its text: VOICE_TEXT) */ spoken = ''; private lastFile = new Map<Line, string>();
   enabled = LANG === 'ru'; private ctx: AudioContext | null = null; private out: GainNode | null = null; private bufs = new Map<string, AudioBuffer | null>();
   private cur: AudioBufferSourceNode | null = null; private curPri = 0; private lastAt = new Map<Line, number>();
   /** attach to the page's (already unlocked) audio context; starts loading every line */
@@ -34,9 +37,10 @@ export class Voice {
     if (this.hostSpeaks && /^(intro|tutorial_|task_|ten_seconds|bomb_intro|bomb_warning|perfect|results)/.test(line)) return false;
     const ctx = this.ctx; if (!this.enabled || !ctx || !this.out || ctx.state !== 'running') return false;
     const now = performance.now(); if (now - (this.lastAt.get(line) ?? -1e9) < cooldownMs) return false;
-    const opts = FILES[line].map(f => this.bufs.get(f)).filter((b): b is AudioBuffer => !!b); if (!opts.length) return false;
+    const ready = FILES[line].filter(f => this.bufs.get(f)); if (!ready.length) return false; const fresh = ready.length > 1 ? ready.filter(f => f !== this.lastFile.get(line)) : ready;
     if (this.cur) return false; // never cut the host off mid-sentence: the next line waits its turn
-    const s = ctx.createBufferSource(); s.buffer = opts[Math.floor(Math.random() * opts.length)]; s.connect(this.out); s.start(); this.lastAt.set(line, now);
+    const file = fresh[Math.floor(Math.random() * fresh.length)]; this.lastFile.set(line, file); this.spoken = file;
+    const s = ctx.createBufferSource(); s.buffer = this.bufs.get(file)!; s.connect(this.out); s.start(); this.lastAt.set(line, now);
     this.cur = s; this.curPri = priority; s.onended = () => { if (this.cur === s) this.cur = null; }; return true;
   }
   get speaking() { return !!this.cur; }
