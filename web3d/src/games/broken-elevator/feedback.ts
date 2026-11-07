@@ -20,6 +20,8 @@ const FILES: Record<Line, string[]> = {intro: ['intro'], tutorial_wire: ['tutori
 
 export class Voice {
   constructor(private base = 'voice/') {}
+  /** in a room the host screen speaks the shared lines (intro, briefings, warnings, bomb, finale); the phone keeps the player's own */
+  hostSpeaks = false;
   enabled = LANG === 'ru'; private ctx: AudioContext | null = null; private out: GainNode | null = null; private bufs = new Map<string, AudioBuffer | null>();
   private cur: AudioBufferSourceNode | null = null; private curPri = 0; private lastAt = new Map<Line, number>();
   /** attach to the page's (already unlocked) audio context; starts loading every line */
@@ -29,6 +31,7 @@ export class Voice {
   }
   /** speak a line. priority: a higher one interrupts a lower one; equal or lower waits its turn (dropped if busy) */
   say(line: Line, priority = 1, cooldownMs = 4000): boolean {
+    if (this.hostSpeaks && /^(intro|tutorial_|task_|ten_seconds|bomb_intro|bomb_warning|perfect|results)/.test(line)) return false;
     const ctx = this.ctx; if (!this.enabled || !ctx || !this.out || ctx.state !== 'running') return false;
     const now = performance.now(); if (now - (this.lastAt.get(line) ?? -1e9) < cooldownMs) return false;
     const opts = FILES[line].map(f => this.bufs.get(f)).filter((b): b is AudioBuffer => !!b); if (!opts.length) return false;

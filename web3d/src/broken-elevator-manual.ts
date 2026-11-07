@@ -326,7 +326,7 @@ async function boot() {
     else if (v.phase === 'ROUND' && me.outcome === 'FAIL') { title = me.fails >= 2 ? L('Тормоз сорван!', 'The brake is gone!') : L('Клетка падает', 'The cage is falling'); sub = L('Ждём конца раунда…', 'Waiting for the round to end…'); }
     el.hidden = !title || !!pending && v.phase === 'ROUND' && !me.dead; $('shift-t').textContent = title; $('shift-s').textContent = sub; el.dataset.tone = me.dead ? 'dead' : v.phase === 'END' ? 'good' : me.outcome === 'FAIL' ? 'bad' : ''; };
   sock?.listen(ev => { const v = ev.payload?.cage; if (!v) return; shiftV = v;
-    if (!IN_ROOM) { IN_ROOM = true; $('hgt').hidden = false; setInterval(shiftOverlay, 500); if (v.phase !== 'ROUND') { serverKind = null; newTask(false); } }
+    if (!IN_ROOM) { IN_ROOM = true; voice.hostSpeaks = true; $('hgt').hidden = false; setInterval(shiftOverlay, 500); if (v.phase !== 'ROUND') { serverKind = null; newTask(false); } }
     if (v.phase === 'ROUND' && v.round !== curRound && !v.me?.dead) { curRound = v.round; serverKind = v.kind; TOTAL = v.rounds; taskNo = v.round + 1; roundLimitS = v.roundLimit / 1000;
       roundDeadlineAt = performance.now() + (v.phaseStart + v.roundLimit - sock!.serverNow()); clearTimeout(pending); pending = 0; if (inspecting) setInspect(false); newTask(false); }
     if (v.me?.dead) { box.locked = true; press.enabled = false; lab.enabled = false; lock.enabled = false; }
