@@ -145,7 +145,7 @@ async function boot() {
   const setCutters = (on: boolean) => { cutters = on; maze?.setCutters(on); $('btn-cut').classList.toggle('on', on); document.body.classList.toggle('cutters', on); };
   const live = (m: Mechanism) => armed.includes(m) && !neutral.has(m);
   /** a wrong defusal move: the bomb flinches (server-judged in a room, locally in practice) */
-  const TAUNT_STRIKE = [L('Осторожнее. Я бы не хотел собирать вас по частям.', 'Careful. I would hate to collect you in pieces.'), L('Ай-ай-ай. Блокнот же прямо у вас в руках.', 'Tut-tut. The notebook is right there in your hands.'), L('Ещё одна такая ошибка — и нам понадобится новая клетка.', 'One more like that and we will need a new cage.')];
+  const TAUNT_STRIKE = [L('Осторожнее. Я бы не хотел собирать вас по частям.', 'Careful. I would hate to collect you in pieces.'), L('Не торопитесь. Сначала загляните в блокнот.', 'Tut-tut. The notebook is right there in your hands.'), L('Ещё одна такая ошибка — и нам понадобится новая клетка.', 'One more like that and we will need a new cage.')];
   const taunt = (lines: string[]) => { const i = Math.floor(Math.random() * lines.length); voice.say(('bomb_taunt_' + (i + 1)) as any, 3, 0); subtitles([lines[i]]); };
   /** the first wrong move on a bomb: one of two host lines, never the same one twice in a row */
   const FIRST_STRIKE = [L('Бах! Это был только взрыватель. Следующий раз будет громче.', 'Bang! That was only the fuse. Next time it will be louder.'), L('Слышали щелчок? Это бомба запомнила вашу ошибку.', 'Hear that click? The bomb just remembered your mistake.')];
@@ -271,7 +271,7 @@ async function boot() {
     hud(); }); };
   // ---- THE HOST'S SUITCASE: the announcement (voice when recorded, subtitles always), the critical-time warning
   const BOMB_INTRO_RU = ['О, вы справились с двумя заданиями! Превосходно!', 'Хотя, признаться, это было слишком просто.', 'Поэтому, пока вы были заняты, я незаметно оставил в вашей клетке небольшой подарочек.', 'Чемоданчик. С бомбой.',
-    'Ах да, чуть не забыл! Я также оставил вам блокнот с инструкциями по обезвреживанию.', 'Найдите чемоданчик, откройте его и постарайтесь следовать инструкциям.', 'И советую поторопиться.', 'Всё-таки… время идёт.'];
+    'А чтобы всё было честно, рядом лежит блокнот с инструкциями по обезвреживанию.', 'Найдите чемоданчик, откройте его и постарайтесь следовать инструкциям.', 'И советую поторопиться.', 'Всё-таки… время идёт.'];
   const BOMB_INTRO_EN = ['Oh, you managed two tasks! Splendid!', 'Although, I confess, that was far too easy.', 'So while you were busy, I quietly left a little present in your cage.', 'A suitcase. With a bomb.',
     'Oh yes, I almost forgot! I also left you a notebook with defusal instructions.', 'Find the suitcase, open it and try to follow the instructions.', 'And I advise you to hurry.', 'After all… time is ticking.'];
   let gazeS = false, gazeN = false; let tickHalf = -1, said30 = false; let bombWarned = false, bombDone = false, subGen = 0;
@@ -288,9 +288,9 @@ async function boot() {
       score = `${'★'.repeat(stars)}${'☆'.repeat(3 - stars)} · ${mmss(sec)}` + (rec ? L(' · НОВЫЙ РЕКОРД!', ' · NEW RECORD!') : L(` · рекорд ${mmss(best)}`, ` · best ${mmss(best)}`)); }
     verdict(ok, ok ? score : why === 'TIMEOUT' ? L('ВРЕМЯ ВЫШЛО', 'TIME RAN OUT') : L('НЕВЕРНОЕ ДЕЙСТВИЕ', 'WRONG MOVE'), ok ? L('Бомба обезврежена', 'Bomb defused') : L('ВЗРЫВ', 'DETONATION'));
     { // the host's last word on the bomb (voice + subtitle), after the blast has rung out
-      const DEF = [L('Браво. Вы обезвредили мою бомбу. Я почти разочарован.', 'Bravo. You defused my bomb. I am almost disappointed.'), L('Тишина... Значит, вы справились. Неплохо, очень неплохо.', 'Silence... So you made it. Not bad, not bad at all.')];
+      const DEF = [L('Браво. Вы обезвредили мою бомбу. Я почти разочарован.', 'Bravo. You defused my bomb. I am almost disappointed.'), L('Бомба молчит. Значит, вы справились. Неплохо, очень неплохо.', 'Silence... So you made it. Not bad, not bad at all.')];
       const BLAST = [L('Ну вот. А я ведь предупреждал.', 'There. And I did warn you.'), L('Какой красивый взрыв. Жаль только вашу клетку.', 'What a beautiful blast. Pity about your cage.')];
-      const i = Math.floor(Math.random() * 2), line = ok ? 'bomb_defused_' + (i + 1) : why === 'TIMEOUT' ? 'bomb_timeout' : 'bomb_blast_' + (i + 1), text = ok ? DEF[i] : why === 'TIMEOUT' ? L('Время вышло. Тик-так закончился.', 'Time is up. The tick-tock is over.') : BLAST[i];
+      const i = Math.floor(Math.random() * 2), line = ok ? 'bomb_defused_' + (i + 1) : why === 'TIMEOUT' ? 'bomb_timeout' : 'bomb_blast_' + (i + 1), text = ok ? DEF[i] : why === 'TIMEOUT' ? L('Время вышло. Бомба ждать не стала.', 'Time is up. The tick-tock is over.') : BLAST[i];
       setTimeout(() => { voice.say(line as any, 5, 0); subtitles([text]); }, ok ? 500 : 1100); }
     if (!ok) { suitcase?.shatter(); if (cage.plunge) setTimeout(() => lavaDeath(), 900); else cage.drop?.(.8); /* the blast snaps the chain: the cage goes into the lava */ audio.play('explosion'); audio.play('burst'); shake = 1.7; const f = $('blast'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); document.body.classList.remove('jolt'); void document.body.offsetWidth; document.body.classList.add('jolt'); nbook?.close(); if (suitcase?.focus) suitcase.focusOn(null); }
     else { audio.play('labOk'); if (suitcase?.focus) suitcase.focusOn(null); }
