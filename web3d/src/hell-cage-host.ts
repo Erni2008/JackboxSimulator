@@ -23,12 +23,12 @@ let START_M = 100;
 
 // ------------------------------------------------------------------ renderer / scene
 const renderer = new T.WebGLRenderer({antialias: false, powerPreference: 'high-performance'});
-let DPR = Math.min(devicePixelRatio, 1.25); renderer.setPixelRatio(DPR); renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFShadowMap; renderer.shadowMap.autoUpdate = false; renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+const DPR_MAX = Math.min(devicePixelRatio, 2), DPR_MIN = Math.min(devicePixelRatio, 1); let DPR = DPR_MAX; /* sharp cages on a Retina / 4K host screen */ renderer.setPixelRatio(DPR); renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFShadowMap; renderer.shadowMap.autoUpdate = false; renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
 $('view').append(renderer.domElement);
 const scene = new T.Scene(); scene.background = new T.Color('#0a0507'); scene.fog = new T.FogExp2('#1a0806', .01);
 const camera = new T.PerspectiveCamera(36, 16 / 9, .1, 200);
 // multisampled post chain: thin bars and chain links stay crisp and stable (the default chain has no MSAA)
-const composer = new EffectComposer(renderer, new T.WebGLRenderTarget(1, 1, {type: T.HalfFloatType, samples: 2})) ; composer.addPass(new RenderPass(scene, camera));
+const composer = new EffectComposer(renderer, new T.WebGLRenderTarget(1, 1, {type: T.HalfFloatType, samples: 4})) ; composer.addPass(new RenderPass(scene, camera));
 const bloom = new UnrealBloomPass(new T.Vector2(512, 512), .55, .5, .8); composer.addPass(bloom); composer.addPass(new OutputPass());
 // film finish: heat shimmer rising off the lava (strongest at the bottom of the frame), slight lens fringing, grain, vignette
 const finish = new ShaderPass({uniforms: {tDiffuse: {value: null}, t: {value: 0}, shake: {value: 0}},
@@ -369,7 +369,7 @@ function layChain(c: Cage) { const bottom = c.hang.position.y + CAGE_H + 1.2, n 
 function spark(c: Cage, low = 0, color = '#ffc060', n = 60, power = 1) { const pos = new Float32Array(n * 3), v = new Float32Array(n * 3); for (let i = 0; i < n; i++) { pos[i * 3] = c.wx + (Math.random() - .5) * .3; pos[i * 3 + 1] = low ? c.wy + low : c.wy + CAGE_H + 1; pos[i * 3 + 2] = (Math.random() - .5) * .3; v[i * 3] = (Math.random() - .5) * 5 * power; v[i * 3 + 1] = Math.random() * 4 * power; v[i * 3 + 2] = (Math.random() - .5) * 4 * power; }
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3)); const p = new T.Points(g, new T.PointsMaterial({map: glowTex, color, size: .14, transparent: true, blending: T.AdditiveBlending, depthWrite: false})); scene.add(p); sparks.push({p, v, t: 0}); }
 
-function resize() { const w = innerWidth, h = innerHeight; renderer.setPixelRatio(DPR); composer.setPixelRatio(DPR); renderer.setSize(w, h); composer.setSize(w, h); bloom.setSize(w * DPR / 2, h * DPR / 2); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+function resize() { const w = innerWidth, h = innerHeight; renderer.setPixelRatio(DPR); composer.setPixelRatio(DPR); renderer.setSize(w, h); composer.setSize(w, h); bloom.setSize(w / 2, h / 2); /* glow needs no Retina detail */ camera.aspect = w / h; camera.updateProjectionMatrix(); }
 addEventListener('resize', resize); resize();
 const proj = new T.Vector3(); let last = performance.now(), time = 0, syncT = 0;
 function loop(now: number) {
@@ -437,11 +437,15 @@ function loop(now: number) {
 }
 // adaptive resolution: drop the render scale while frames run long, recover when there is headroom
 let frameNo = 0, slow = 0, fast = 0;
-function perf(dt: number) { if (dt > 1 / 40) { slow++; fast = 0; } else if (dt < 1 / 58) { fast++; slow = 0; }
-  if (slow > 30 && DPR > .7) { DPR = Math.max(.7, DPR - .15); slow = 0; resize(); } else if (fast > 240 && DPR < Math.min(devicePixelRatio, 1.25)) { DPR = Math.min(Math.min(devicePixelRatio, 1.25), DPR + .1); fast = 0; resize(); } }
+let dtAvg = 1 / 60;
+function perf(dt: number) { dtAvg += (dt - dtAvg) * .08; /* smoothed: frames alternate long/short when the GPU is borderline */ if (dtAvg > 1 / 50) { slow++; fast = 0; } else if (dtAvg < 1 / 57) { fast++; slow = 0; }
+  /* only a sustained slowdown lowers the scale (never below native 1×), and it comes back after ~2 s of smooth frames */
+  if (slow > 45 && DPR > DPR_MIN) { DPR = Math.max(DPR_MIN, DPR - .15); dprCeil = DPR; slow = 0; resize(); } else if (fast > 120 && DPR < dprCeil) { DPR = Math.min(dprCeil, DPR + .15); fast = 0; resize(); } }
+/* a scale that ran slow is not tried again (no resolution pumping) */ let dprCeil = DPR_MAX;
 function texts() { document.title = L('Адская клетка · ведущий', 'The Hell Cage · host'); document.documentElement.lang = LANG;
   $('title').textContent = L('АДСКАЯ КЛЕТКА', 'THE HELL CAGE'); $('depth-cap').textContent = L('ГЛУБЖЕ ВСЕХ', 'DEEPEST'); $('clock-cap').textContent = L('СМЕНА', 'SHIFT'); $('idle').textContent = L('Ждём игроков…', 'Waiting for players…'); }
 texts();
 if (DEMO) demo(); else poll();
 requestAnimationFrame(loop);
 (window as any).__host = {get cages() { return cages; }, get players() { return players; }, scene, renderer};
+(window as any).__host = {get dpr() { return DPR; }, get slow() { return slow; }, get fast() { return fast; }};
