@@ -535,10 +535,14 @@ async function boot() {
     bloom.strength = .42 + (falling ? .25 : 0) + (shake > .8 ? .4 : 0); // the case in hand: the camera stands still, so the cage behind it is rendered into a texture every few frames and reused in between
     const still = !composer && suitcase && suitcase.state === 'held' && inspecting && inspectTarget === 'bomb' && inspectK > .995 && shake < .02 && !falling && (!nbook?.open || suitcase.sideOn);
     if (still) { const w = renderer.domElement.width, h = renderer.domElement.height; if (!bgRT || bgRT.width !== w || bgRT.height !== h) { bgRT?.dispose(); bgRT = new T.WebGLRenderTarget(w, h, {type: T.HalfFloatType}); bgQuad.material.map = bgRT.texture; bgQuad.material.needsUpdate = true; bgAge = 99; }
-      if (bgAge++ >= 5) { bgAge = 0; renderer.setRenderTarget(bgRT); renderer.render(scene, camera); renderer.setRenderTarget(null); } renderer.render(bgScene, bgCam);
+      if (bgAge++ >= 5) { bgAge = 0; const nb = suitcase!.sideOn ? nbook?.root : null, was = nb?.visible; if (nb) nb.visible = false; /* the case's half must not show the book behind it */ renderer.setRenderTarget(bgRT); renderer.render(scene, camera); renderer.setRenderTarget(null); if (nb) nb.visible = !!was; } renderer.render(bgScene, bgCam);
       // split view: only the book's half is live (the page turns, the book breathes); the case's half keeps the cached cage
       if (suitcase!.sideOn) { const v = innerWidth / innerHeight < .9; renderer.setScissorTest(true); if (v) renderer.setScissor(0, innerHeight / 2, innerWidth, innerHeight / 2); else renderer.setScissor(0, 0, innerWidth / 2, innerHeight); renderer.render(scene, camera); renderer.setScissorTest(false); } }
-    else { bgAge = 99; if (composer) composer.render(); else renderer.render(scene, camera); }
+    else { bgAge = 99; const nb = suitcase?.sideOn ? nbook?.root : null;
+      if (nb && nb.visible) { // split: the whole frame without the book, then the book live in its own half only (it must never show behind the case)
+        nb.visible = false; if (composer) composer.render(); else renderer.render(scene, camera); nb.visible = true;
+        renderer.setScissorTest(true); if (innerWidth / innerHeight < .9) renderer.setScissor(0, innerHeight / 2, innerWidth, innerHeight / 2); else renderer.setScissor(0, 0, innerWidth / 2, innerHeight); renderer.render(scene, camera); renderer.setScissorTest(false); }
+      else if (composer) composer.render(); else renderer.render(scene, camera); }
     if (suitcase && suitcase.state !== 'floor' && suitcase.root.visible) { const rig = overlay.userData.rig as T.Group; rig.position.copy(camera.position); rig.quaternion.copy(camera.quaternion); rig.updateMatrixWorld(true); renderer.autoClear = false; renderer.clearDepth(); const sc = suitcase.sideOn; if (sc) { renderer.setScissorTest(true); if (innerWidth / innerHeight < .9) renderer.setScissor(0, 0, innerWidth, innerHeight / 2); else renderer.setScissor(innerWidth / 2, 0, innerWidth / 2, innerHeight); } renderer.render(overlay, camera); if (sc) renderer.setScissorTest(false); renderer.autoClear = true; } requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
