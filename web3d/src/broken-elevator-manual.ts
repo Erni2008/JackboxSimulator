@@ -436,7 +436,7 @@ async function boot() {
     if (notes.heldHit(ray) || notes.reading) return; // the sheet in hand takes its own taps
     if (!inspecting && inspectTarget !== 'lock' && lock.hits(ray)) return;
     // the lowered notebook sits in the lower-left corner even while the case is zoomed in over it: a tap there always raises it (split view)
-    if (inspecting && inspectTarget === 'bomb' && dui?.lowered && nbook?.taken && e.clientX < innerWidth * .3 && e.clientY > innerHeight * .6) { nbook.show(); return; }
+    if (inspecting && inspectTarget === 'bomb' && dui?.lowered && nbook?.taken && e.clientX < Math.min(150, innerWidth * .18) && e.clientY > innerHeight - Math.min(150, innerHeight * .22)) { nbook.show(); return; }
     if (inspecting && inspectTarget === 'bomb') { if (!suitcase || bombPtrs.size > 1) return; device = suitcase as any; } else
     device = inspectTarget === 'lab' ? lab : inspectTarget === 'lock' && inspecting ? lock : press; if (!device.enabled) return;
     if (device.pointerDown(ray, e.clientX, e.clientY, camera)) { haptic('tap'); valvePointer = e.pointerId; valveStart = {x: e.clientX, y: e.clientY, t: performance.now()}; try { renderer.domElement.setPointerCapture(e.pointerId); } catch {} } });

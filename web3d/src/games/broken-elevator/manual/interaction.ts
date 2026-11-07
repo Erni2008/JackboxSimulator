@@ -122,7 +122,7 @@ export class ManualInteraction {
       const ph = this.book.pageHit(hit); if (!ph) return;
       // the whole page is the control: right page forward, left page back.
       // portrait single-page view shows one page, so its right/left half decides.
-      if (this.portrait && this.zoomTarget > 1.05) { const r = this.dom.getBoundingClientRect(); this.turn(x - r.left > r.width / 2 ? 1 : -1); }
+      if (this.portrait && this.zoomTarget > 1.05) { const r = this.dom.getBoundingClientRect(), mid = this.splitOn ? r.width / 4 : r.width / 2; /* split: the page sits in the left half */ this.turn(x - r.left > mid ? 1 : -1); }
       else this.turn(ph.side);
     }
   }
