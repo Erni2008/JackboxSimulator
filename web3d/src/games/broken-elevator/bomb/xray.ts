@@ -60,6 +60,9 @@ export class XrayView {
       // isolation lever beside the canister
       const lg = new T.Group(); lg.position.set(px + LEN / 2 + .011, .0035, pz); this.group.add(lg);
       const base = new T.Mesh(this.g(new T.BoxGeometry(.008, .003, .012)), baseM); base.position.y = .0015; lg.add(base);
+      const plate = new T.Mesh(this.g(new T.BoxGeometry(.0105, .0008, .016)), capM); plate.position.y = .0004; lg.add(plate);
+      for (const sz of [-1, 1]) { const sc = new T.Mesh(this.g(new T.CylinderGeometry(.0009, .0009, .0007, 8)), stickM); sc.position.set(0, .0011, sz * .0068); lg.add(sc); }
+      const slot = new T.Mesh(this.g(new T.BoxGeometry(.0016, .0031, .007)), this.m(new T.MeshStandardMaterial({color: '#050403', roughness: .9}))); slot.position.y = .0016; lg.add(slot);
       const arm = new T.Group(); arm.position.y = .003; lg.add(arm); const stick = new T.Mesh(this.g(new T.CylinderGeometry(.0012, .0012, .014, 6)), stickM); stick.position.y = .007; arm.add(stick);
       const knob = new T.Mesh(this.g(new T.SphereGeometry(.0028, 10, 8)), knobM); knob.position.y = .014; arm.add(knob); arm.rotation.x = -.5;
       const hit = new T.Mesh(this.g(new T.BoxGeometry(.014, .02, .018)), hitM); hit.position.y = .008; hit.userData.lever = i; lg.add(hit); this.levers.push({g: arm, t: 0, on: false}); });

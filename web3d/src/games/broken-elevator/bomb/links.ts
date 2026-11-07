@@ -47,8 +47,13 @@ export class LinksView {
     // the two probes: lacquered handle, steel needle, a cable trailing off the bay
     for (const col of ['#b01e14', '#151515']) { const g = new T.Group(); const hm = this.m(new T.MeshStandardMaterial({color: col, roughness: .35, metalness: .1})), sm = this.m(new T.MeshStandardMaterial({color: '#c8c8c8', metalness: 1, roughness: .2}));
       const needle = new T.Mesh(this.g(new T.ConeGeometry(.0011, .012, 8)), sm); needle.rotation.x = Math.PI; needle.position.y = .006; g.add(needle);
-      const handle = new T.Mesh(this.g(new T.CylinderGeometry(.0028, .0032, .03, 12)), hm); handle.position.y = .027; g.add(handle);
-      const guard = new T.Mesh(this.g(new T.CylinderGeometry(.0045, .0045, .002, 14)), hm); guard.position.y = .013; g.add(guard);
+      const handle = new T.Mesh(this.g(new T.CylinderGeometry(.0026, .003, .03, 14)), hm); handle.position.y = .027; g.add(handle);
+      const guard = new T.Mesh(this.g(new T.CylinderGeometry(.0046, .0046, .0018, 16)), hm); guard.position.y = .0128; g.add(guard);
+      // knurled grip bands, a chrome ferrule at the tip, a strain relief and a cable leaving the cap
+      const knurl = this.m(new T.MeshStandardMaterial({color: col === '#151515' ? '#2a2a2a' : '#7a120c', roughness: .85})); for (let k = 0; k < 4; k++) { const b = new T.Mesh(this.g(new T.TorusGeometry(.0029, .0004, 5, 16)), knurl); b.rotation.x = Math.PI / 2; b.position.y = .02 + k * .004; g.add(b); }
+      const ferrule = new T.Mesh(this.g(new T.CylinderGeometry(.0016, .0021, .004, 12)), sm); ferrule.position.y = .0105; g.add(ferrule);
+      const relief = new T.Mesh(this.g(new T.CylinderGeometry(.0012, .0019, .008, 10)), hm); relief.position.y = .046; g.add(relief);
+      const cab = new T.Mesh(this.g(new T.TubeGeometry(new T.CatmullRomCurve3([new T.Vector3(0, .05, 0), new T.Vector3(0, .058, .004), new T.Vector3(col === '#151515' ? .01 : -.01, .056, .016), new T.Vector3(col === '#151515' ? .014 : -.014, .04, .028)]), 16, .0009, 6, false)), hm); g.add(cab);
       g.rotation.z = col === '#151515' ? -.35 : .35; this.group.add(g); this.probes.push({g, at: -1, y: 0}); g.traverse(o => { if ((o as T.Mesh).isMesh) o.userData.probe = this.probes.length - 1; }); }
     // the tester's screen sits where the seal was; probe holders on the left, a red break button on the right
     const lc = document.createElement('canvas'); lc.width = 512; lc.height = 128; this.lcdCtx = lc.getContext('2d')!; this.lcdTex = new T.CanvasTexture(lc); this.lcdTex.colorSpace = T.SRGBColorSpace;

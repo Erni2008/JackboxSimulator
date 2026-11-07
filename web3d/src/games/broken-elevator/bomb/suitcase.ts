@@ -167,7 +167,7 @@ export class Suitcase {
     this.drawTimer(0); mergeStatic(this.root);
     // one shadow for the whole case: an invisible box (shadow passes ignore colour writes) instead of every part casting its own
     this.root.traverse(o => { o.castShadow = false; o.receiveShadow = false; }); // the case's own shadow box must not darken the case itself
-    const proxy = new T.Mesh(new T.BoxGeometry(W, HB + HL, D), new T.MeshBasicMaterial({colorWrite: false, depthWrite: false})); proxy.castShadow = true; proxy.raycast = () => {}; proxy.userData.shadowProxy = true; this.body.add(proxy);
+    const proxy = new T.Mesh(new T.BoxGeometry(W, HB + HL, D), new T.MeshBasicMaterial({colorWrite: false, depthWrite: false})); proxy.castShadow = true; this.proxy = proxy; /* also the cheap hit box while the case lies on the floor */ proxy.userData.shadowProxy = true; this.body.add(proxy);
   }
   private leatherMeshes: T.Mesh[] = []; private frameMat: T.Material | null = null; private focusZoom = 0; private lidMax = 1.55; private halos = new Map<Mechanism, T.Sprite>(); private timerHalo: T.Sprite | null = null;
   private static haloT: T.Texture | null = null;
@@ -238,14 +238,16 @@ export class Suitcase {
   get open() { return this.lidT > .97; }
   get held() { return this.state === 'held' || this.state === 'lifting'; }
 
-  hits(ray: T.Raycaster) { return ray.intersectObject(this.root, true)[0] ?? null; }
+  private proxy: T.Mesh | null = null;
+  /** on the floor one box is enough (the gaze test runs often); in hand every part counts */
+  hits(ray: T.Raycaster) { if (this.state === 'floor' && this.proxy) return ray.intersectObject(this.proxy, false)[0] ?? null; return ray.intersectObject(this.root, true).find(h => !h.object.userData.shadowProxy) ?? null; }
   /** pick up: hand the case to the overlay pass and fly it into view */
   pickUp() { if (this.held) return; this.overlay.attach(this.root); this.state = 'lifting'; this.liftK = 0; if (!this.found) { this.found = true; this.yaw = -.35; } this.onEvent('PICKUP'); }
   putDown() { if (!this.held) return; this.state = 'returning'; this.onEvent('PUTDOWN'); }
 
   // ---------------------------------------------------------------- input (device contract of the cage page)
   pointerDown(ray: T.Raycaster, x: number, y: number) { if (this.state !== 'held') return false; this.downRay.copy(ray.ray);
-    this.grab = this.open && this.focus && this.onGrab ? this.onGrab(ray) : null; this.grabMoved = false; if (this.grab) { this.last = {x, y, t: performance.now()}; this.downHit = null; return true; } this.downHit = ray.intersectObjects(this.hitMeshes.concat(this.interior), true)[0] ?? null; this.dragging = true; this.last = {x, y, t: performance.now()}; this.vYaw = this.vPitch = 0; this.aim = null; return true; }
+    this.grab = this.open && this.focus && this.onGrab ? this.onGrab(ray) : null; this.grabMoved = false; if (this.grab) { this.last = {x, y, t: performance.now()}; this.downHit = null; return true; } this.downHit = ray.intersectObjects(this.hitMeshes.concat(this.interior), true).find(h => !h.object.userData.shadowProxy) ?? null; this.dragging = true; this.last = {x, y, t: performance.now()}; this.vYaw = this.vPitch = 0; this.aim = null; return true; }
   pointerMove(x: number, y: number) { if (this.grab && this.cam) { if (Math.hypot(x - this.last.x, y - this.last.y) > 3) this.grabMoved = true; const rc = new T.Raycaster(); rc.setFromCamera(new T.Vector2(x / innerWidth * 2 - 1, -y / innerHeight * 2 + 1), this.cam); this.grab(rc); return; }
     if (!this.dragging) return; const k = 3.2 / Math.max(innerHeight, 420), dx = (x - this.last.x) * k, dy = (y - this.last.y) * k, now = performance.now(), dt = Math.max(1, now - this.last.t) / 1000;
     this.yaw += dx; this.pitch = Math.max(-1.45, Math.min(1.45, this.pitch + dy)); this.vYaw = this.vYaw * .5 + dx / dt * .5; this.vPitch = this.vPitch * .5 + dy / dt * .5; this.last = {x, y, t: now}; }
@@ -320,6 +322,8 @@ export class Suitcase {
     for (let i = 0; i < 2; i++) { const l = this.latches[i]; l.t += ((this.latchOpen[i] ? 1 : 0) - l.t) * (1 - Math.exp(-dt * 14)); l.clasp.rotation.x = -l.t * 2.1; }
     if (this.lidTarget > this.lidT) { const was = this.lidT; this.lidT = Math.min(1, this.lidT + dt * .85); if (was < 1 && this.lidT >= 1) this.onEvent('LID_OPENED'); }
     if (this.shattered) { this.updateDebris(dt); }
+    // the mechanisms are invisible behind a shut lid: do not draw them (hundreds of thousands of triangles)
+    this.interior.visible = this.lidT > .01 || this.shattered;
     const s = this.lidT, ease = s < .5 ? 4 * s * s * s : 1 - Math.pow(-2 * s + 2, 3) / 2; // on the floor the open lid stands upright (90°) so it never swings into a wall; in hand it falls back to 110°
     this.lidMax += ((this.state === 'floor' || this.state === 'returning' ? 1.55 : 1.92) - this.lidMax) * (1 - Math.exp(-dt * 4));
     if (!this.shattered) this.lid.rotation.x = -ease * this.lidMax + (s >= 1 ? 0 : 0) - Math.sin(this.rattle * 30) * this.rattle * .02; if (!this.shattered) this.updateStays(); this.rattle = Math.max(0, this.rattle - dt * 2.5);

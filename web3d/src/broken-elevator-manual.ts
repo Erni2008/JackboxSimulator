@@ -217,7 +217,7 @@ async function boot() {
     thermalL = armed.includes('THERMAL') ? (sv?.thermal ?? makeThermal(taskSeed, DIFF())) : null; if (thermalL) thermalV!.build(thermalL); else thermalV!.clear();
     strikes = sv?.strikes ?? 0;
     // compile the in-hand shader variants now (overlay lights differ from the cage's), not on the first pick-up
-    if (suitcase!.state === 'floor') { const home = suitcase!.root.parent; overlay.attach(suitcase!.root); overlay.environment = scene.environment; try { renderer.compile(overlay, camera); } catch {} home?.attach(suitcase!.root); }
+    if (suitcase!.state === 'floor') { const home = suitcase!.root.parent; overlay.attach(suitcase!.root); overlay.environment = scene.environment; suitcase!.interior.visible = true; /* compile the mechanisms too (hidden while the lid is shut) */ try { renderer.compile(overlay, camera); } catch {} home?.attach(suitcase!.root); }
     if (sv?.stage === 'OPEN' && !suitcase!.open) { suitcase!.latchOpen = [true, true]; suitcase!.lidTarget = 1; suitcase!.lidT = .999; } if (sv?.stage && sv.stage !== 'HIDDEN') suitcase!.found = true; if (typeof sv?.lastSeq === 'number') bombSeq = Math.max(bombSeq, sv.lastSeq); };
   lock.sounds = {click: () => audio.play("valveClick"), turn: () => audio.play("button"), lever: () => { audio.play("button"); audio.play("relay"); }, unlock: () => { audio.play("locked"); audio.play("doorOpen"); }, jam: () => audio.play("grind")};
   jui.place(lab.ledgeTop.clone().add(new T.Vector3(0, TH / 2, 0)).applyMatrix4(lab.group.matrixWorld), new T.Quaternion().setFromEuler(new T.Euler(0, Math.PI / 2 + .06, 0)));
