@@ -221,7 +221,7 @@ function buildCage(id: string, name: string, character: string): Cage {
   const chain = new T.InstancedMesh(linkGeo, chainMat, MAX_LINKS); chain.count = 0; chain.castShadow = true; chain.frustumCulled = false; root.add(chain);
   root.traverse((o: any) => { if (o.isMesh && !(o.material as any).transparent) { o.castShadow = true; o.receiveShadow = true; } });
   scene.add(root);
-  const label = document.createElement('div'); label.className = 'tag'; label.innerHTML = `<b></b><span class="m"></span><span class="s"></span>`; $('tags').append(label); label.querySelector('b')!.textContent = name;
+  const label = document.createElement('div'); label.className = 'tag'; label.innerHTML = `<b></b><span class="m"></span><span class="s"></span><span class="bb"><i class="bt"></i><i class="bh"></i><i class="bm"></i></span>`; $('tags').append(label); label.querySelector('b')!.textContent = name;
   const flames: T.Sprite[] = []; for (let i = 0; i < 9; i++) { const f = new T.Sprite(new T.SpriteMaterial({map: flameTex, color: i % 3 ? '#ff7a20' : '#ffd070', blending: T.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0}));
     f.position.set((Math.random() - .5) * 1.1, .3, (Math.random() - .5) * .8); f.userData.ph = Math.random() * 6; body.add(f); flames.push(f); }
   return {id, root, hang, chain, wx: 0, wy: 0, body, lamp, lampGlow, under, portrait: pm, label, bars: barMat, flames, y: worldY(START_M) + 6, vy: 0, targetY: 1.2, x: 0, tx: 0, sway: (Math.random() - .5) * .04, swayV: 0, flash: 0, dead: false, penalties: 0, repairs: 0, okFlash: 0, seen: false, bombSeen: '', burnT: -1, survived: false, hop: 0, squash: 0, ph: Math.random() * 6};
@@ -303,9 +303,15 @@ function sync() {
     if (!c.dead && cell.dead) { c.dead = true; }
     c.penalties = cell.fails; c.repairs = cell.repairs; c.seen = true; c.survived = !!sh && sh.phase === 'END' && !cell.dead; if (c.survived) c.targetY += .6;
     const [ic, kn] = KIND()[sh?.kind || p.kind] ?? ['…', L('Ожидание', 'Waiting')];
-    const state = c.dead ? L('СГОРЕЛ', 'BURNED') : c.survived ? L('ВЫЖИЛ', 'SURVIVED') : cell.outcome === 'OK' && sh?.phase === 'ROUND' ? L('✓ починил', '✓ repaired') : cell.outcome === 'FAIL' && sh?.phase === 'ROUND' ? L('✗ сорвался', '✗ dropped') : `${ic} ${kn}`;
+    const state = c.dead ? L('СГОРЕЛ', 'BURNED') : c.survived ? L('ВЫЖИЛ', 'SURVIVED') : cell.outcome === 'OK' && sh?.phase === 'ROUND' ? (sh.kind === 'bomb' ? L('✓ обезвредил', '✓ defused') : L('✓ починил', '✓ repaired')) : cell.outcome === 'FAIL' && sh?.phase === 'ROUND' ? (sh.kind === 'bomb' ? L('💥 взорвался', '💥 blown up') : L('✗ сорвался', '✗ dropped')) : `${ic} ${kn}`;
+    { // the bomb panel under the cage: fuse timer, tries left as hearts, mechanisms defused
+      const live = !!p.bomb && sh?.kind === 'bomb' && cell.outcome === 'RUNNING' && p.bombState === 'RUNNING' && !c.dead, bb = c.label.querySelector('.bb') as HTMLElement; c.label.classList.toggle('bomb', live);
+      if (live) { const left = (p.bombEnd ?? 0) - serverNow(), tries = p.bombTries ?? 0, [dn, all] = (p.bomb ?? '0/3').split('/').map(Number);
+        (bb.querySelector('.bt') as HTMLElement).textContent = '⏱ ' + fmt(left); bb.classList.toggle('hot', left < 30_000);
+        (bb.querySelector('.bh') as HTMLElement).textContent = '♥'.repeat(tries) + '♡'.repeat(Math.max(0, (({EASY: 3, NORMAL: 2, HARD: 1} as any)[diff] ?? 2) - tries));
+        (bb.querySelector('.bm') as HTMLElement).textContent = '●'.repeat(dn) + '○'.repeat(Math.max(0, all - dn)); bb.title = L('обезврежено механизмов', 'mechanisms defused'); } }
     c.label.querySelector('.m')!.textContent = c.dead ? '☠' : `${m.toFixed(m < 10 ? 1 : 0)} ${L('м', 'm')}`;
-    c.label.querySelector('.s')!.textContent = `${state}${p.psi != null && sh?.kind === 'pressure' && cell.outcome === 'RUNNING' ? ' · ' + p.psi + ' PSI' : ''}${p.bomb && sh?.kind === 'bomb' && cell.outcome === 'RUNNING' && p.bombState === 'RUNNING' ? ` · ${p.bomb} · ⏱ ${fmt((p.bombEnd ?? 0) - serverNow())} · ${L('попыток', 'tries')}: ${p.bombTries ?? 0}` : ''}  ${'✗'.repeat(cell.fails)}${'·'.repeat(Math.max(0, 3 - cell.fails))}`;
+    c.label.querySelector('.s')!.textContent = `${state}${p.psi != null && sh?.kind === 'pressure' && cell.outcome === 'RUNNING' ? ' · ' + p.psi + ' PSI' : ''}  ${'✗'.repeat(cell.fails)}${'·'.repeat(Math.max(0, 3 - cell.fails))}`;
     c.label.classList.toggle('dead', c.dead); c.label.classList.toggle('ok', cell.outcome === 'OK' && sh?.phase === 'ROUND' || c.survived); c.label.classList.toggle('bad', !c.dead && cell.fails >= 2);
     c.label.classList.toggle('off', !p.online && !DEMO); });
   // HUD: the cage closest to the lava, the phase clock, the round banner

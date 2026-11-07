@@ -35,3 +35,14 @@ html,body{margin:0;height:100%;overflow:hidden;background:#0a0507;color:#f3e3c4;
 @keyframes tagpulse{50%{box-shadow:0 0 22px rgba(255,40,20,.7),0 6px 24px rgba(0,0,0,.55)}}
 body.urgent .hud.right{border-color:#ff3a20;animation:tagpulse .9s infinite}
 body.urgent #vignette{background:radial-gradient(ellipse at 50% 45%,transparent 50%,rgba(120,0,0,.55) 100%)}
+
+/* the bomb panel under a cage while its suitcase ticks */
+.tag .bb{display:none;margin-top:.5vh;padding:.45vh .5vw;border-radius:6px;background:rgba(20,6,2,.75);border:1px solid rgba(255,90,40,.45);gap:.6vw;align-items:center;justify-content:center;font-style:normal}
+.tag.bomb .bb{display:flex}
+.tag .bb i{font-style:normal}
+.tag .bt{font:700 2.3vh/1 'Oswald',sans-serif;color:#ffd27a;font-variant-numeric:tabular-nums;text-shadow:0 0 10px rgba(255,160,60,.55)}
+.tag .bb.hot .bt{color:#ff4a2a;animation:bombhot 1s steps(2) infinite}
+.tag .bh{font-size:1.9vh;color:#ff4a4a;letter-spacing:.08em;text-shadow:0 0 8px rgba(255,60,60,.6)}
+.tag .bm{font-size:1.5vh;color:#7dffb0;letter-spacing:.12em}
+.tag.bomb{border-color:rgba(255,110,50,.7);box-shadow:0 0 18px rgba(255,80,30,.25)}
+@keyframes bombhot{50%{opacity:.45}}
