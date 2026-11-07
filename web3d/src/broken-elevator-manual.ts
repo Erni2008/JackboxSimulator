@@ -189,7 +189,9 @@ async function boot() {
     // a tap that misses the case: raise the lowered notebook if it was tapped, step back out of a bay, or set the case down
     suitcase.onMiss = rc => { // the lowered notebook sits low in the lower-left corner: a tap there (or on the book) raises it
       const nd = camera.position.clone().add(rc.ray.direction).project(camera);
-      if (dui && dbook && dui.lowered && (rc.intersectObject(dbook.root, true).length || (nd.x < -.2 && nd.y < -.25))) { nb.show(); return; }
+      const onBook = !!dbook && rc.intersectObject(dbook.root, true).length > 0, inCorner = nd.x < -.2 && nd.y < -.25;
+      // the book may already have raised itself on this tap (its own handler runs first): either way the case stays in hand
+      if (dui && (onBook || (inCorner && (dui.lowered || nb.open)))) { if (dui.lowered) nb.show(); return; }
       if (suitcase!.focus) { suitcase!.focusOn(null); if (!bombDone) coach(nbook?.taken ? 'bays' : 'notebook'); return; } setInspect(false); };
     suitcase.onEvent = e => { if (e === 'UNFOCUS' && !bombDone) coach(nbook?.taken ? 'bays' : 'notebook'); if (e === 'PICKUP' && !suitcase!.open) coach('latches'); if (e === 'LID_OPENED') coach(nbook?.taken ? 'bays' : 'notebook'); if (e === 'FOCUS' && (suitcase!.focus === 'XRAY' || suitcase!.focus === 'THERMAL') && live(suitcase!.focus)) setTimeout(() => toast(suitcase!.focus === 'XRAY' ? L('Рентген лежит в углу отсека — возьмите его', 'The X-ray scanner lies in the bay corner — take it') : L('Тепловизор лежит в углу отсека — возьмите его', 'The thermal scope lies in the bay corner — take it')), 700);
       if (e === 'FOCUS') { const f = suitcase!.focus!; coach(!armed.includes(f) ? 'dead' : neutral.has(f) ? 'safe' : nbook?.taken ? 'tool' : 'notebook'); }
