@@ -66,7 +66,7 @@ export class ManualInteraction {
   private hand(dt: number) {
     if (this.splitOn && !this.wasSplit && this.state === 'reading') { if (this.focusSide === 0) this.focusSide = 1; this.zoomTarget = Math.max(this.zoomTarget, this.pageZoom()); this.panTarget.set(0, 0); }
     if (!this.splitOn && this.wasSplit && this.camera.aspect >= .9) { this.focusSide = 0; this.zoomTarget = 1; this.panTarget.set(0, 0); }
-    if (this.splitOn && this.state === 'reading' && !this.pointers.size) { if (this.focusSide === 0) this.focusSide = 1; this.zoomTarget = Math.max(this.zoomTarget, this.pageZoom() * 1.07); /* a touch closer: the neighbour page's edge stays out of the half */ }
+    if (this.splitOn && this.state === 'reading' && !this.pointers.size) { if (this.focusSide === 0) this.focusSide = 1; this.zoomTarget = Math.max(this.zoomTarget, this.pageZoom() * .92); /* the whole page inside the half, with room for the buttons below */ }
     this.wasSplit = this.splitOn; this.splitK += ((this.splitOn ? 1 : 0) - this.splitK) * Math.min(1, dt * 7);
     const o = this.book.openness, readingFit = this.fit(2 * W + TH, H, 1.1), closedFit = Math.max(this.fit(W, H, 1.5), .34);
     // portrait: default to one page at a time so text stays readable
@@ -83,7 +83,7 @@ export class ManualInteraction {
     const offset = new T.Vector3(-this.pan.x, 0, -this.pan.y).applyQuaternion(this.handQ);
     // split view (the bomb's notebook beside the case): the book shrinks into the left half of the screen
     const sd = dist, half = sd * Math.tan(T.MathUtils.degToRad(this.camera.fov) / 2) * this.camera.aspect;
-    this.handP.set(-half * .5 * this.splitK, -.005 * (1 - o), -sd).applyQuaternion(this.camera.quaternion).add(this.camera.position).add(offset);
+    this.handP.set(-half * .44 * this.splitK, -.005 * (1 - o) + sd * Math.tan(T.MathUtils.degToRad(this.camera.fov) / 2) * .075 * this.splitK, -sd).applyQuaternion(this.camera.quaternion).add(this.camera.position).add(offset);
     // lowered: the book drops to the lower-left of the view, tilted toward the eyes like a book held at the hip
     this.lowK += ((this.lowered ? 1 : 0) - this.lowK) * Math.min(1, dt * 9);
     if (this.lowK > .001) { const k = this.lowK * this.lowK * (3 - 2 * this.lowK);
