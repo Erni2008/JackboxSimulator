@@ -228,3 +228,16 @@ body.split #bomb-coach { left: 75%; max-width: min(46vw, 560px); top: calc(max(1
 body.split #verdict { left: 75%; min-width: min(420px, 46vw); }
 body.split #btn-cam, body.split #btn-sound { display: none; }
 @media (max-width: 700px) { #split-ui .sp-tag { font-size: 9px; letter-spacing: .22em; } body.split #bar button { padding-left: 10px; padding-right: 10px; } }
+
+/* portrait phones: the manual on top, the suitcase below, a horizontal brass seam */
+body.vsplit #split-ui .sp-frame { width: auto; left: 0; right: 0; height: 50%; }
+body.vsplit #split-ui .sp-l { top: 0; bottom: auto; background: linear-gradient(180deg, rgba(6,3,2,.5), transparent 8%, transparent 92%, rgba(6,3,2,.85)); }
+body.vsplit #split-ui .sp-r { top: auto; bottom: 0; }
+body.vsplit #split-ui .sp-seam { left: 0; right: 0; top: 50%; bottom: auto; width: auto; height: 4px; transform: translateY(-50%); background: linear-gradient(90deg, transparent, #6b4e24 8%, #d9b46a 50%, #6b4e24 92%, transparent); }
+body.vsplit #split-ui .sp-seam::before { top: 50%; left: 50%; }
+body.vsplit #split-ui .sp-r .sp-tag { top: 8px; }
+body.vsplit #bar { right: 0; bottom: calc(50% + 8px); }
+body.vsplit #page-label { right: 16px; bottom: calc(50% + 56px); }
+body.vsplit #host-say, body.vsplit #bomb-coach, body.vsplit #verdict { left: 50%; width: min(92vw, 520px); max-width: 92vw; }
+body.vsplit #bomb-coach { top: calc(50% + 34px); }
+body.vsplit #split-ui .sp-l .sp-tag { display: none; }
