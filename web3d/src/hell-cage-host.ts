@@ -133,7 +133,7 @@ const ANCHOR_Y = 15, LINK = .2, MAX_LINKS = 130; // the chains hang from the cei
 const barGeo = new T.CylinderGeometry(.02, .024, CAGE_H - .2, 8), linkGeo = new T.TorusGeometry(.075, .028, 10, 18); linkGeo.scale(1, 1.7, 1);
 
 interface Cage { id: string; root: T.Group; hang: T.Group; chain: T.InstancedMesh; wx: number; wy: number; body: T.Group; lamp: T.MeshStandardMaterial; lampGlow: T.Sprite; under: T.Sprite; portrait: T.Mesh; label: HTMLElement; bars: T.MeshStandardMaterial; flames: T.Sprite[];
-  y: number; vy: number; targetY: number; x: number; tx: number; sway: number; swayV: number; flash: number; dead: boolean; penalties: number; repairs: number; okFlash: number; seen: boolean; bombSeen: string; blown: boolean; spin: number; tilt: number; cutY: number; splashed: boolean; burnT: number; survived: boolean; hop: number; squash: number; ph: number }
+  y: number; vy: number; targetY: number; x: number; tx: number; sway: number; swayV: number; flash: number; dead: boolean; penalties: number; repairs: number; okFlash: number; seen: boolean; bombSeen: string; blown: boolean; spin: number; tilt: number; cutY: number; splashed: boolean; shattered: boolean; burnT: number; survived: boolean; hop: number; squash: number; ph: number }
 const cages = new Map<string, Cage>();
 // The prisoner: a cut-out figure made to read as a lit 3D body.
 //  · cropped to its own silhouette and stood on the cage floor at full height (feet at the pivot)
@@ -224,7 +224,7 @@ function buildCage(id: string, name: string, character: string): Cage {
   const label = document.createElement('div'); label.className = 'tag'; label.innerHTML = `<b></b><span class="m"></span><span class="s"></span><span class="bb"><i class="bt"></i><i class="bh"></i><i class="bm"></i></span>`; $('tags').append(label); label.querySelector('b')!.textContent = name;
   const flames: T.Sprite[] = []; for (let i = 0; i < 9; i++) { const f = new T.Sprite(new T.SpriteMaterial({map: flameTex, color: i % 3 ? '#ff7a20' : '#ffd070', blending: T.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0}));
     f.position.set((Math.random() - .5) * 1.1, .3, (Math.random() - .5) * .8); f.userData.ph = Math.random() * 6; body.add(f); flames.push(f); }
-  return {id, root, hang, chain, wx: 0, wy: 0, body, lamp, lampGlow, under, portrait: pm, label, bars: barMat, flames, y: worldY(START_M) + 6, vy: 0, targetY: 1.2, x: 0, tx: 0, sway: (Math.random() - .5) * .04, swayV: 0, flash: 0, dead: false, penalties: 0, repairs: 0, okFlash: 0, seen: false, bombSeen: '', blown: false, spin: 0, tilt: 0, cutY: 0, splashed: false, burnT: -1, survived: false, hop: 0, squash: 0, ph: Math.random() * 6};
+  return {id, root, hang, chain, wx: 0, wy: 0, body, lamp, lampGlow, under, portrait: pm, label, bars: barMat, flames, y: worldY(START_M) + 6, vy: 0, targetY: 1.2, x: 0, tx: 0, sway: (Math.random() - .5) * .04, swayV: 0, flash: 0, dead: false, penalties: 0, repairs: 0, okFlash: 0, seen: false, bombSeen: '', blown: false, spin: 0, tilt: 0, cutY: 0, splashed: false, shattered: false, burnT: -1, survived: false, hop: 0, squash: 0, ph: Math.random() * 6};
 }
 
 // world height for a height in metres: the visible shaft spans the top 500 m down to the lava
@@ -305,7 +305,9 @@ function sync() {
     if (c.seen && cell.repairs > c.repairs) { c.okFlash = 1; c.hop = 1; sfx.ok(); }
     // a blown bomb: the blast throws the cage up, the chain snaps (its stub keeps hanging), the cage tumbles into the lava
     if (cell.blown && !c.blown) { c.blown = true; c.cutY = c.hang.position.y; c.spin = (Math.random() < .5 ? -1 : 1) * (1.1 + Math.random() * .6);
-      if (c.seen) { c.vy = 4.5; c.squash = -.5; c.flash = 2.6; sfx.snap(); } else { c.y = LAVA_Y - .95; c.splashed = true; c.tilt = c.spin * .3; } }
+      if (c.seen && (params.get('blast') ? params.get('blast') === 'shatter' : Math.random() < .5)) { c.shattered = true; shatterCage(c); } // 50/50: blown apart in the air …
+      else if (c.seen) { c.vy = 4.5; c.squash = -.5; c.flash = 2.6; sfx.snap(); } // … or torn off its chain into the lava
+      else { c.y = LAVA_Y - .95; c.splashed = true; c.tilt = c.spin * .3; } }
     if (!c.dead && cell.dead) { c.dead = true; }
     c.penalties = cell.fails; c.repairs = cell.repairs; c.seen = true; c.survived = !!sh && sh.phase === 'END' && !cell.dead; if (c.survived) c.targetY += .6;
     const [ic, kn] = KIND()[sh?.kind || p.kind] ?? ['…', L('Ожидание', 'Waiting')];
@@ -333,6 +335,30 @@ function sync() {
   $('idle').hidden = active || DEMO || players.length > 0;
 }
 const diffLabel = () => diff === 'EASY' ? L('ЛЁГКИЙ', 'EASY') : diff === 'HARD' ? L('СЛОЖНЫЙ', 'HARD') : L('СРЕДНИЙ', 'NORMAL');
+// a cage blown apart: every part becomes a free piece (bars one by one), thrown out of a fireball, raining into the lava
+const debris: {m: T.Mesh; v: T.Vector3; w: T.Vector3; t: number; splashed: boolean}[] = [];
+const fireballs: {s: T.Sprite; t: number}[] = [];
+function shatterCage(c: Cage) {
+  c.root.updateMatrixWorld(true); const centre = c.body.localToWorld(new T.Vector3(0, CAGE_H / 2, 0)), mw = new T.Matrix4(), im = new T.Matrix4();
+  const add = (geo: T.BufferGeometry, mat: T.Material | T.Material[], world: T.Matrix4, heavy: boolean) => { const m = new T.Mesh(geo, mat); world.decompose(m.position, m.quaternion, m.scale); scene.add(m);
+    const dir = m.position.clone().sub(centre); dir.y += .35 + Math.random() * .4; if (dir.lengthSq() < 1e-4) dir.set(Math.random() - .5, 1, Math.random() - .5); dir.normalize();
+    debris.push({m, v: dir.multiplyScalar((heavy ? 4 : 6) + Math.random() * 5), w: new T.Vector3((Math.random() - .5) * 9, (Math.random() - .5) * 9, (Math.random() - .5) * 9), t: 0, splashed: false}); };
+  c.body.traverse(o => { const m = o as T.Mesh; if (!m.isMesh || !m.visible) return; const mat = m.material as T.Material; if ((mat as any).transparent && (mat as T.MeshBasicMaterial).isMeshBasicMaterial) return;
+    if ((m as any).isInstancedMesh) { const im2 = m as unknown as T.InstancedMesh; for (let i = 0; i < im2.count; i++) { im2.getMatrixAt(i, im); add(m.geometry, m.material, mw.multiplyMatrices(m.matrixWorld, im), true); } }
+    else add(m.geometry, m.material, m.matrixWorld.clone(), m.geometry.boundingSphere ? m.geometry.boundingSphere.radius > .3 : false); });
+  const pm = c.portrait.material as T.ShaderMaterial; if (pm.uniforms?.heat) pm.uniforms.heat.value = 1; // the prisoner is flung out scorched
+  c.body.visible = false; c.flash = 2.6; shake = Math.max(shake, 1.5); sfx.blast();
+  const fb = new T.Sprite(new T.SpriteMaterial({map: glowTex, color: '#ffb048', blending: T.AdditiveBlending, depthWrite: false, transparent: true})); fb.position.copy(centre); fb.scale.setScalar(.1); scene.add(fb); fireballs.push({s: fb, t: 0});
+  const at = {wx: centre.x, wy: centre.y - CAGE_H - 1} as Cage; spark(at, 0, '#ffd27a', 160, 3); spark(at, 0, '#ff5a10', 140, 2.4); spark(at, 0, '#3a1408', 80, 1.6);
+}
+function updateDebris(dt: number) {
+  for (let k = debris.length - 1; k >= 0; k--) { const d = debris[k]; d.t += dt;
+    if (!d.splashed) { d.v.y -= 14 * dt; d.m.position.addScaledVector(d.v, dt); d.m.rotation.x += d.w.x * dt; d.m.rotation.y += d.w.y * dt; d.m.rotation.z += d.w.z * dt;
+      if (d.m.position.y < LAVA_Y) { d.splashed = true; d.v.multiplyScalar(.08); if (k % 4 === 0) spark({wx: d.m.position.x, wy: LAVA_Y - CAGE_H - .8} as Cage, 0, '#ff7a1a', 24, 1); } }
+    else { d.m.position.y -= .35 * dt; d.m.position.addScaledVector(d.v, dt); }
+    if (d.t > 6 || d.m.position.y < LAVA_Y - 1.5) { scene.remove(d.m); debris.splice(k, 1); } }
+  for (let k = fireballs.length - 1; k >= 0; k--) { const f = fireballs[k]; f.t += dt; f.s.scale.setScalar(.5 + Math.min(1, f.t / .35) * 7); (f.s.material as T.SpriteMaterial).opacity = Math.max(0, 1 - f.t / 1.1); if (f.t > 1.1) { scene.remove(f.s); f.s.material.dispose(); fireballs.splice(k, 1); } }
+}
 // sparks when a brake lets go
 const sparks: {p: T.Points; v: Float32Array; t: number}[] = [];
 const tmpV = new T.Vector3(), linkM = new T.Matrix4(), linkQ = new T.Quaternion(), linkS = new T.Vector3(1, 1, 1), linkP = new T.Vector3(), Y_AXIS = new T.Vector3(0, 1, 0);
@@ -364,7 +390,8 @@ function loop(now: number) {
       c.bars.emissiveIntensity = Math.min(2.2, c.burnT * .9) * (.85 + Math.sin(time * 9 + c.x) * .15);
       const fl = c.burnT < 1.2 ? 0 : c.burnT < 2 ? (c.burnT - 1.2) / .8 : c.burnT < 4.6 ? 1 : Math.max(0, 1 - (c.burnT - 4.6) / 2.5);
       for (const f of c.flames) { const ph = f.userData.ph; (f.material as T.SpriteMaterial).opacity = fl * (.65 + Math.sin(time * 11 + ph) * .25); f.scale.set(.5 + fl * .35, (.9 + Math.sin(time * 8 + ph) * .25) * (.5 + fl), 1); f.position.y = .25 + fl * .4 + Math.sin(time * 6 + ph) * .05; } }
-    if (c.blown) { // free fall, no catch: straight through the lava surface, then a slow sink
+    if (c.shattered) { /* the pieces fly on their own (debris) */ }
+    else if (c.blown) { // free fall, no catch: straight through the lava surface, then a slow sink
       if (c.y > LAVA_Y - .95) { c.vy -= 20 * dt; c.y += c.vy * dt; c.tilt += c.spin * dt * (c.splashed ? .15 : 1); } else { c.y = LAVA_Y - .95; c.vy = 0; }
       c.tilt = Math.max(-.55, Math.min(.55, c.tilt));
       if (!c.splashed && c.y < LAVA_Y + .3) { c.splashed = true; c.vy *= .25; c.spin *= .3; shake = Math.max(shake, .9); sfx.splash(); spark(c, LAVA_Y + .25 - c.wy, '#ff6a10', 170, 2.6); spark(c, LAVA_Y + .25 - c.wy, '#ffd27a', 90, 1.8); spark(c, LAVA_Y + .25 - c.wy, '#5a1a08', 60, 1.2); } }
@@ -401,6 +428,7 @@ function loop(now: number) {
   for (const s of smoke) { s.position.x += s.userData.v * dt; if (Math.abs(s.position.x) > 20) s.userData.v *= -1; s.material.rotation += dt * .03; }
   lavaMat.uniforms.t.value = time; lavaLight.intensity = 300 + Math.sin(time * 1.7) * 30 + Math.sin(time * 4.3) * 15;
   for (const [k, l] of lanterns.entries()) { const f = .85 + Math.sin(time * 13 + k) * .08 + Math.random() * .07; l.light.intensity = 30 * f; l.flame.scale.setScalar(1.5 * f); }
+  updateDebris(dt);
   for (let k = sparks.length - 1; k >= 0; k--) { const s = sparks[k], a = s.p.geometry.attributes.position as T.BufferAttribute; s.t += dt; for (let i = 0; i < a.count; i++) { s.v[i * 3 + 1] -= 9 * dt; a.array[i * 3] += s.v[i * 3] * dt; a.array[i * 3 + 1] += s.v[i * 3 + 1] * dt; a.array[i * 3 + 2] += s.v[i * 3 + 2] * dt; } a.needsUpdate = true;
     (s.p.material as T.PointsMaterial).opacity = Math.max(0, 1 - s.t / 1.2); if (s.t > 1.2) { scene.remove(s.p); s.p.geometry.dispose(); sparks.splice(k, 1); } }
   bloom.strength = .55 + shake * .5; finish.uniforms.t.value = time; finish.uniforms.shake.value = shake; for (const m of mists) (m.material as T.MeshBasicMaterial).map!.offset.x += m.userData.v * dt;

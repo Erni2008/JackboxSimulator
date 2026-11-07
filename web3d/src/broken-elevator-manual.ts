@@ -137,7 +137,7 @@ async function boot() {
   const startDefusalBook = () => { if (dbookP) return; dbookP = EngineersManual.create(renderer, defusalContent(memoPages(DIFF())), quality, 'defusal').then(b => { dbook = b; b.sounds = book.sounds; scene.add(b.root);
     dui = new ManualInteraction(b, camera, renderer.domElement, audio, cage.planes); dui.onstate = s => { sync(s); if (s === 'reading') b.onspread(b.spread); else if (s === 'rest') book.onspread(book.spread); }; dui.onlower = () => sync(cur().state);
     b.onspread = sp => { $('page-label').textContent = `${2 * sp + 1}–${2 * sp + 2} / ${b.pages.length}`; }; nb.home(); }).catch(e => console.warn('defusal notebook', e)); };
-  let suitcase: Suitcase | null = null, nbook: typeof nb | null = null, bombSeq = 0, bombView: any = null, maze: WireMazeView | null = null, links: LinksView | null = null, cutters = false, strikes = 0;
+  let lavaDead = false; let suitcase: Suitcase | null = null, nbook: typeof nb | null = null, bombSeq = 0, bombView: any = null, maze: WireMazeView | null = null, links: LinksView | null = null, cutters = false, strikes = 0;
   let xrayV: XrayView | null = null, laserV: LaserView | null = null, thermalV: ThermalView | null = null, xrayL: XrayLayout | null = null, laserL: LaserLayout | null = null, thermalL: ThermalLayout | null = null;
   let wireLayout: WireLayout | null = null, linksModel: LinksModel | null = null, armed: Mechanism[] = [], neutral = new Set<Mechanism>(), probeSel: 0 | 1 = 0;
   const STRIKES = () => ({EASY: 3, NORMAL: 2, HARD: 1} as Record<string, number>)[DIFF()] ?? 2; let toastT: any = 0;
@@ -247,7 +247,7 @@ async function boot() {
   let verdictTimer: any = 0;
   const verdict = (ok: boolean, sub: string, title?: string) => { $('host-say').classList.remove('show'); const v = $('verdict'); v.querySelector('b')!.textContent = title ?? (ok ? L('Цепь стабилизирована', 'Circuit stabilised') : L('Критическая ошибка', 'Critical error')); v.querySelector('span')!.textContent = sub; v.dataset.tone = ok ? 'good' : 'bad';
     v.classList.remove('show'); void v.offsetWidth; v.classList.add('show'); clearTimeout(verdictTimer); verdictTimer = setTimeout(() => v.classList.remove('show'), 2300); if (!ok) { document.body.classList.remove('jolt'); void document.body.offsetWidth; document.body.classList.add('jolt'); } };
-  const newTask = (advance: boolean) => { if (advance) taskNo = Math.min(TOTAL, taskNo + 1); taskSeed++; kind = kindOf(taskNo); if (kind !== 'bomb') coach('off'); if (kind !== 'bomb' && suitcase) { suitcase.enabled = false; if (inspectTarget === 'bomb' && inspecting) setInspect(false); nbook!.close(); $('btn-nb').hidden = true; }
+  const newTask = (advance: boolean) => { if (lavaDead && !IN_ROOM) { lavaDead = false; cage.restore?.(); document.body.classList.remove('lava-death'); $('lava-death').classList.remove('on'); } if (advance) taskNo = Math.min(TOTAL, taskNo + 1); taskSeed++; kind = kindOf(taskNo); if (kind !== 'bomb') coach('off'); if (kind !== 'bomb' && suitcase) { suitcase.enabled = false; if (inspectTarget === 'bomb' && inspecting) setInspect(false); nbook!.close(); $('btn-nb').hidden = true; }
     const t = makeTask(wireRules, taskSeed, wireCount || 4 + Math.floor(Math.random() * 3), fixed); box.setTask(t); box.configure(t.fault, t.mode); deadline = 0;
     const k0 = kind, myGen = ++taskGen; box.locked = true; press.enabled = false; lab.enabled = false; lock.enabled = false; link.stop(); flink.stop(); hud();
     if (IN_ROOM && serverKind === null) return; // wait for the server's first round
@@ -276,6 +276,9 @@ async function boot() {
     'Oh yes, I almost forgot! I also left you a notebook with defusal instructions.', 'Find the suitcase, open it and try to follow the instructions.', 'And I advise you to hurry.', 'After all… time is ticking.'];
   let gazeS = false, gazeN = false; let tickHalf = -1, said30 = false; let bombWarned = false, bombDone = false, subGen = 0;
   /** the suitcase's result. In a room only the server's verdict (BOMB_UPDATED) counts; practice decides locally. */
+  /** the player's end when the bomb blows: the car free-falls, the lights die, the lava floods in, the screen burns out */
+  const lavaDeath = () => { if (lavaDead) return; lavaDead = true; cage.plunge?.(); audio.play('screech'); setTimeout(() => { audio.play('splash'); audio.play('boil'); }, 1100); haptic('blast'); shake = Math.max(shake, 1.2); document.body.classList.add('lava-death');
+    const t0 = performance.now(); const tick = () => { const k = (performance.now() - t0) / 1000; shake = Math.max(shake, .5 * Math.max(0, 1 - k / 3)); if (cage.plunged || k > 3.4) { setTimeout(() => { if (lavaDead) { $('lava-death').classList.add('on'); haptic('bad'); } }, 1500); /* the lava floods the car first, then the view burns out */ } else requestAnimationFrame(tick); }; requestAnimationFrame(tick); };
   const bombFinish = (ok: boolean, why: 'DEFUSED' | 'WRONG' | 'TIMEOUT') => { if (kind !== 'bomb' || bombDone) return; if (IN_ROOM && why === 'TIMEOUT') { deadline = 0; return; } /* wait for the server */
     bombDone = true; deadline = 0; coach('off'); suitcase?.freezeTimer(ok); setCutters(false); $('btn-cut').hidden = true; if (suitcase) suitcase.enabled = false; record(ok, why === 'DEFUSED' ? 'OK' : why); audio.play(ok ? 'good' : 'bad'); haptic(ok ? 'good' : 'blast'); shake = Math.max(shake, ok ? .2 : 1);
     let score = ''; if (ok) { const row = rows.at(-1)!, lim = limitMs('bomb') / 1000, sec = row.seconds, clean = row.mistakes === 0;
@@ -289,9 +292,9 @@ async function boot() {
       const BLAST = [L('Ну вот. А я ведь предупреждал.', 'There. And I did warn you.'), L('Какой красивый взрыв. Жаль только вашу клетку.', 'What a beautiful blast. Pity about your cage.')];
       const i = Math.floor(Math.random() * 2), line = ok ? 'bomb_defused_' + (i + 1) : why === 'TIMEOUT' ? 'bomb_timeout' : 'bomb_blast_' + (i + 1), text = ok ? DEF[i] : why === 'TIMEOUT' ? L('Время вышло. Тик-так закончился.', 'Time is up. The tick-tock is over.') : BLAST[i];
       setTimeout(() => { voice.say(line as any, 5, 0); subtitles([text]); }, ok ? 500 : 1100); }
-    if (!ok) { suitcase?.shatter(); cage.drop?.(.8); /* the cage gives way at the blast itself */ audio.play('explosion'); audio.play('burst'); shake = 1.7; const f = $('blast'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); document.body.classList.remove('jolt'); void document.body.offsetWidth; document.body.classList.add('jolt'); nbook?.close(); if (suitcase?.focus) suitcase.focusOn(null); }
+    if (!ok) { suitcase?.shatter(); if (cage.plunge) setTimeout(() => lavaDeath(), 900); else cage.drop?.(.8); /* the blast snaps the chain: the cage goes into the lava */ audio.play('explosion'); audio.play('burst'); shake = 1.7; const f = $('blast'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); document.body.classList.remove('jolt'); void document.body.offsetWidth; document.body.classList.add('jolt'); nbook?.close(); if (suitcase?.focus) suitcase.focusOn(null); }
     else { audio.play('labOk'); if (suitcase?.focus) suitcase.focusOn(null); }
-    clearTimeout(pending); pending = setTimeout(() => next(ok), ok ? 5200 : 4600); /* time for the host's last word */ };
+    clearTimeout(pending); pending = setTimeout(() => next(ok), ok ? 5200 : cage.plunge ? 8500 : 4600); /* time for the host's last word (and the plunge into the lava) */ };
   RoomSocket.shared()?.listen(ev => { const b = ev.payload?.elevatorBomb; if (!b) return; const first = !bombView || bombView.puzzleId !== b.puzzleId; bombView = b; if (first && kind === 'bomb' && suitcase) armBomb(); if (kind !== 'bomb' || bombDone) return;
     if (!first && maze && wireLayout) for (const c of b.cut ?? []) if (!maze.cut.has(c)) maze.sever(c, .5);
     if (b.links && links && b.event?.type === 'PROBE' && b.links.red === links.red && b.links.black === links.black) setLcd(b.links.reading);
@@ -315,7 +318,7 @@ async function boot() {
   const shiftOverlay = () => { const v = shiftV, el = $('shift'); if (!v || !IN_ROOM) { el.hidden = true; return; } const me = v.me || {}, now = sock!.serverNow(), left = v.phaseEnd > 0 ? Math.max(0, Math.ceil((v.phaseEnd - now) / 1000)) : 0;
     const h = Math.max(0, Math.round(me.height ?? 100)); $('hgt').textContent = me.dead ? '☠' : `${h} ${L('м', 'm')}`; $('hgt').dataset.low = String(h < 25);
     let title = '', sub = '';
-    if (me.dead) { title = L('Вы сгорели', 'You burned'); sub = L('Смотрите на экран ведущего', 'Watch the host screen'); }
+    if (me.dead) { title = me.blown ? L('Клетка в лаве', 'The cage is in the lava') : L('Вы сгорели', 'You burned'); if (me.blown) lavaDeath(); sub = L('Смотрите на экран ведущего', 'Watch the host screen'); }
     else if (v.phase === 'INTRO') { title = L('Смена начинается', 'The shift begins'); sub = `${left} ${L('с', 's')} · ${L('до лавы', 'to the lava')} ${h} ${L('м', 'm')}`; }
     else if (v.phase === 'BREAK') { title = `${L('Раунд', 'Round')} ${v.round + 2} ${L('из', 'of')} ${v.rounds}`; sub = `${L('через', 'in')} ${left} ${L('с', 's')} · ${L('до лавы', 'to the lava')} ${h} ${L('м', 'm')}`; }
     else if (v.phase === 'END') { title = L('Вы выжили!', 'You survived!'); sub = `${L('до лавы осталось', 'left above the lava')} ${h} ${L('м', 'm')} · ✓${me.repairs ?? 0} ✗${me.fails ?? 0}`; }

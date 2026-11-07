@@ -94,7 +94,7 @@ export async function buildGlbCage(renderer: T.WebGLRenderer, scene: T.Scene, hi
   ];
   let t = 0;
   // the car "falls" by bringing the lava up toward it: same picture from inside, no need to move the whole rig
-  let lavaY = floorY - 3.2, lavaTarget = lavaY, fallV = 0; const minGap = .55;
+  let lavaY = floorY - 3.2, lavaTarget = lavaY, fallV = 0, plunging = false; const minGap = .55;
   // emergency beacon under the ceiling: dark until the car drops
   const alarm = new T.PointLight('#ff2a10', 0, 6, 1.6); alarm.position.set(0, ceilingY - .25, 0); scene.add(alarm);
   const api = {root, mesh, planes, floorY, ceilingY, inner, eye, lamp, alarm,
@@ -105,8 +105,14 @@ export async function buildGlbCage(renderer: T.WebGLRenderer, scene: T.Scene, hi
     onFallStart: () => {}, onFallImpact: (_strength: number) => {},
     /** a sudden drop of `metres` toward the lava (wrong answer) */
     drop(metres = .8) { if (lavaTarget > lavaY + .01) return; lavaTarget = Math.min(floorY - minGap, lavaY + metres); fallV = .4; api.onFallStart(); },
+    /** the bomb blew: the chain is gone — a free fall, and the lava floods in over the floor (no catch) */
+    plunge() { lavaTarget = floorY + 1.15; fallV = Math.max(fallV, 1.2); api.power = 0; api.alarmLevel = 1; plunging = true; api.onFallStart(); },
+    /** back to a hanging car (practice mode moves on after a blast) */
+    restore() { plunging = false; lavaY = lavaTarget = floorY - 3.2; fallV = 0; lava.setY(lavaY); api.power = 1; api.alarmLevel = 0; },
+    get plunged() { return plunging && lavaY >= floorY - .02; },
     update(dt: number) {
-    if (lavaY < lavaTarget) { fallV += 9.8 * 1.4 * dt; lavaY = Math.min(lavaTarget, lavaY + fallV * dt); lava.setY(lavaY); if (lavaY >= lavaTarget) { api.onFallImpact(Math.min(1.5, fallV / 3)); fallV = 0; } }
+    if (plunging && lavaY < lavaTarget) { fallV += 9.8 * (lavaY < floorY ? 1.6 : .08) * dt; if (lavaY >= floorY) fallV = Math.min(fallV, .35); lavaY = Math.min(lavaTarget, lavaY + fallV * dt); lava.setY(lavaY); }
+    else if (lavaY < lavaTarget) { fallV += 9.8 * 1.4 * dt; lavaY = Math.min(lavaTarget, lavaY + fallV * dt); lava.setY(lavaY); if (lavaY >= lavaTarget) { api.onFallImpact(Math.min(1.5, fallV / 3)); fallV = 0; } }
     t += dt; lava.update(dt);
     const f = Math.random() < .003 ? .3 : 1; lamp.intensity = 34 * (.97 + Math.sin(t * 47) * .015) * f * api.power; bulb.intensity = 2.2 * f * api.power;
     alarm.intensity = api.alarmLevel * 9 * (.55 + .45 * Math.max(0, Math.sin(t * 9)));
