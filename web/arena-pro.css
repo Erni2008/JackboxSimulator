@@ -212,3 +212,7 @@ body.g-on #question-life-roster,body.g-on #question-life-status,body.g-on #resul
 body.g-on #result-screen .verdict-card>.eyebrow{display:none}
 body.g-on .masthead::after{content:"";position:absolute;left:50%;top:50%;width:340px;height:220px;transform:translate(-50%,-50%);z-index:-1;background:radial-gradient(closest-side,#000d,#0008 60%,transparent)}
 body.g-on .masthead p{color:#c98a80}
+/* no seal on the sealed answer / ghost screens; no LEAVE ROOM during the game screens */
+body.g-on #result-screen .verdict-seal,body.g-on #ghost-screen .ghost-seal{display:none!important}
+body[data-view=question] #leave,body[data-view=result] #leave,body[data-view=ghost] #leave{display:none!important}
+body[data-view=question] #session-footer,body[data-view=result] #session-footer,body[data-view=ghost] #session-footer{justify-content:center}
