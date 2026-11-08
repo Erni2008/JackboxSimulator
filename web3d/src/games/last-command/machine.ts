@@ -2,6 +2,7 @@ import {PowerLighting} from './power-lighting';
 import {createCrtGlass} from './crt-glass';
 import {calibrateBody} from './body-material';
 import {buildComputer} from './computer-body';
+import {buildControlPart} from './controls-parts';
 import {drawStandby} from './standby';
 import '../../../../web/command-ru.js';
 import '../../../../web/command-touch.js';
@@ -36,7 +37,8 @@ export class Machine implements InteractiveSceneModule {
     // so nothing inside it could be seen. Mount it as a surface-fixed armoured box: push it out along its normal.
     for(const h of m.hatches||[])if(h.id==='back')h.position={x:h.position.x+h.normal.x*BACK_HATCH_OUTSET,y:h.position.y+h.normal.y*BACK_HATCH_OUTSET,z:h.position.z+h.normal.z*BACK_HATCH_OUTSET};
     // Two concurrent decodes limit transient memory while retaining one load per GLB.
-    const sources:any[]=[];for(let i=0;i<files.length;i+=2)await Promise.all(files.slice(i,i+2).map(async(name,j)=>{if(name==='computer'){sources[i+j]=this.cabinet(a.body);return;}sources[i+j]=(await this.assets.load(`/last-command-3d/models/${name==='computer'?this.quality.toLowerCase():this.quality==='LOW'?(this.baseline?'low':'mobile'):this.quality.toLowerCase()}/${name}.glb`)).scene;}));
+    // Nothing is downloaded: the cabinet and every control part are built in code, in the frames of the models they replaced.
+    const sources:any[]=files.map(name=>name==='computer'?this.cabinet(a.body):buildControlPart(name,this.quality));
     const create=(source:number,mount:any,id?:string)=>{
       const group=new T.Group(),content=sources[source].clone(true);group.add(content);group.position.copy(vec(mount.position));group.quaternion.copy(quaternion(mount.rotation));group.scale.copy(mount.scale?vec(mount.scale):new T.Vector3(1,1,1));content.position.sub(vec(mount.pivot));
       const c:any={id,group,content,pivot:vec(mount.pivot),mount,restPosition:group.position.clone(),restQuaternion:group.quaternion.clone(),amount:0,target:0,motionTarget:0,start:0,elapsed:1,duration:.2,uniforms:[]};

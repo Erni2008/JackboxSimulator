@@ -8,6 +8,7 @@
 import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import type {PowerLighting} from './power-lighting';
+import {bakeByMaterial} from './bake';
 
 const rng = (seed: number) => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 
@@ -119,6 +120,5 @@ export function buildComputer(power: PowerLighting, quality: string) {
     const rv = new T.InstancedMesh(new T.SphereGeometry(.0038, 8, 5, 0, Math.PI * 2, 0, Math.PI / 2), steel, pts.length), mtx = new T.Matrix4(), q = new T.Quaternion().setFromEuler(new T.Euler(Math.PI / 2, 0, 0));
     pts.forEach((p, i) => { mtx.compose(new T.Vector3(...p), q, new T.Vector3(1, 1, .6)); rv.setMatrixAt(i, mtx); }); root.add(rv); }
 
-  root.traverse(o => { if ((o as T.Mesh).isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-  return root;
+  const baked = bakeByMaterial(root); baked.name = root.name; return baked;
 }
