@@ -264,3 +264,10 @@ body.split #split-ui .sp-turn { pointer-events: auto; }
 body.vsplit #split-ui .sp-turn { top: 25%; width: 44px; height: 70px; margin-top: -35px; font-size: 42px; }
 body.vsplit #split-ui .sp-next { left: auto; right: 10px; }
 #split-ui .sp-turn.on { background: rgba(120,70,20,.8); border-color: #e9c27a; opacity: 1; }
+/* layout fixes: the verdict sits above the button bar (its second line was hidden under the buttons);
+   the task hint keeps clear of the Sound / Camera buttons on the left */
+#verdict{top:auto!important;bottom:calc(max(16px,env(safe-area-inset-bottom)) + 70px)}
+#hint{padding:0 210px}
+@media (max-width:900px){#hint{padding:0 16px;top:max(140px,calc(env(safe-area-inset-top) + 128px))}}
+body.split #hint{padding:0 16px}
+@media (max-height:520px){#verdict{bottom:auto!important;top:max(8px,env(safe-area-inset-top))!important}}

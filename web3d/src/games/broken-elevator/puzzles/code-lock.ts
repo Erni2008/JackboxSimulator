@@ -149,6 +149,17 @@ function gear(r: number, teeth: number, depth: number, m: T.Material, hub: T.Mat
   const g = new T.Group(), body = new T.Mesh(new T.ExtrudeGeometry(sh, {depth, bevelEnabled: true, bevelSize: depth * .25, bevelThickness: depth * .25, bevelSegments: 2, curveSegments: 6}), m); body.position.z = -depth / 2; g.add(body);
   const h = new T.Mesh(new T.CylinderGeometry(r * .2, r * .2, depth * 1.8, 24), hub); h.rotation.x = Math.PI / 2; g.add(h); return g;
 }
+
+/** reflections on the window: two soft diagonal streaks and a bright edge, drawn once */
+let glassTex: T.Texture | null = null;
+function glassStreaks() {
+  if (glassTex) return glassTex; const W = 512, H = 400, cv = hiCanvas(W, H), x = ctx2d(cv); x.clearRect(0, 0, W, H);
+  const streak = (x0: number, w: number, a: number) => { const g = x.createLinearGradient(x0, 0, x0 + w, 0); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(.5, `rgba(255,255,255,${a})`); g.addColorStop(1, 'rgba(255,255,255,0)');
+    x.save(); x.translate(W / 2, H / 2); x.rotate(-.5); x.translate(-W / 2, -H / 2); x.fillStyle = g; x.fillRect(x0, -H, w, H * 3); x.restore(); };
+  streak(60, 70, .22); streak(150, 22, .3); streak(380, 40, .12);
+  const e = x.createLinearGradient(0, 0, 0, 14); e.addColorStop(0, 'rgba(255,255,255,.35)'); e.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = e; x.fillRect(0, 0, W, 14);
+  glassTex = textTex(cv); return glassTex;
+}
 /** the maker's plate riveted to the frame: emblem, name (gone on HARD), serial */
 function stampTexture(t: LockTask | null) {
   const W = 512, H = 116, cv = hiCanvas(W, H), x = ctx2d(cv), r = rng(42);
@@ -189,7 +200,7 @@ export class CodeLock {
   overset = -1; private sparks!: T.Points; private sparkV = new Float32Array(48 * 3); private sparkLife = 0;
   set: boolean[] = []; stuck = -1; eased = false; private step = 0;
   private body = new T.Group(); private shackle = new T.Group(); private pins = new T.Group(); private pick = new T.Group(); private wheel = new T.Group();
-  private lever = new T.Group(); private gearA = new T.Group(); private gearB = new T.Group(); private hook!: T.Mesh; private hookTip!: T.Mesh; private bolt = new T.Group(); private boltSpring!: T.Mesh;
+  private lever = new T.Group(); private glass: T.Mesh | null = null; private gearA = new T.Group(); private gearB = new T.Group(); private hook!: T.Mesh; private hookTip!: T.Mesh; private bolt = new T.Group(); private boltSpring!: T.Mesh;
   private drivers: T.Group[] = []; private keys: T.Mesh[] = []; private springs: T.Mesh[] = []; private lift: number[] = []; private bump: number[] = [];
   private tokens: T.Mesh[] = []; private controls: {id: string; root: T.Object3D}[] = []; private open = 0; private jam = 0; private tries = 3; private done = false; private t = 0;
   private stampMat: T.MeshStandardMaterial; private pickX = 0; private pickPush = 0; private pickLift = 0; private liftT = 0; private stroke = -2; private drag: {x: number; y: number; ppmX: number; ppmY: number; wheel: boolean} | null = null; private under = -1; private probe = -2; private tremble = 0; private ease = 0; private shudder = 0; private turn = 0;
@@ -270,6 +281,17 @@ export class CodeLock {
     for (const s of [-1, 1]) { const leg = new T.Mesh(new T.CylinderGeometry(.015, .015, .07, 28), chrome); leg.position.set(s * .085, -.035, 0); this.shackle.add(leg); }
     this.shackle.position.set(0, IN.y1 + .045, -.014); this.body.add(this.shackle);
     for (const s of [-1, 1]) { const strap = new T.Mesh(new T.TorusGeometry(.022, .004, 8, 20), frame); strap.rotation.y = Math.PI / 2; strap.position.set(s * .085, .2, -.03); this.group.add(strap); }
+    // a heavy cast case behind the frame: the lock reads as one solid padlock, not a set of bars
+    { const caseMat = new T.MeshStandardMaterial({color: '#1d1f23', metalness: 1, roughness: .38, envMapIntensity: 1.3});
+      const c = new T.Mesh(new RoundedBoxGeometry(.33, .27, .03, 6, .012), caseMat); c.position.set(0, -.006, -.048); /* behind the back plate: it must never cover the mechanism */ this.body.add(c); }
+    // a thick window of clear glass over the mechanism: faint tint, sharp reflections, a bevelled edge; clicks pass through it
+    { const win = new T.Mesh(new T.PlaneGeometry(IN.x1 - IN.x0, IN.y1 - IN.y0), new T.MeshPhysicalMaterial({color: '#dfe8ee', metalness: 0, roughness: .04, transparent: true, opacity: .07, clearcoat: 1, clearcoatRoughness: .03, envMapIntensity: 2.2, depthWrite: false}));
+      win.position.set((IN.x0 + IN.x1) / 2, (IN.y0 + IN.y1) / 2, .0132); win.raycast = () => {}; win.renderOrder = 3; this.body.add(win);
+      const refl = new T.Mesh(new T.PlaneGeometry(IN.x1 - IN.x0, IN.y1 - IN.y0), new T.MeshBasicMaterial({map: glassStreaks(), transparent: true, depthWrite: false, blending: T.AdditiveBlending, opacity: .55}));
+      refl.position.copy(win.position); refl.position.z += .0002; refl.raycast = () => {}; refl.renderOrder = 4; this.body.add(refl); this.glass = refl;
+      const bevel = new T.MeshStandardMaterial({color: '#c9d4da', metalness: .2, roughness: .1, transparent: true, opacity: .35, depthWrite: false});
+      for (const [w, h, x0, y0] of [[IN.x1 - IN.x0, .0022, (IN.x0 + IN.x1) / 2, IN.y1 - .0011], [IN.x1 - IN.x0, .0022, (IN.x0 + IN.x1) / 2, IN.y0 + .0011], [.0022, IN.y1 - IN.y0, IN.x0 + .0011, (IN.y0 + IN.y1) / 2], [.0022, IN.y1 - IN.y0, IN.x1 - .0011, (IN.y0 + IN.y1) / 2]]) {
+        const b = new T.Mesh(new T.BoxGeometry(w, h, .003), bevel); b.position.set(x0, y0, .012); b.raycast = () => {}; this.body.add(b); } }
     // depth: the walls of the open cavity shade the parts inside
     { const sh = new T.Mesh(new T.PlaneGeometry(IN.x1 - IN.x0, IN.y1 - IN.y0), new T.MeshBasicMaterial({map: cavity(), transparent: true, depthWrite: false})); sh.position.set((IN.x0 + IN.x1) / 2, (IN.y0 + IN.y1) / 2, .0085); sh.renderOrder = 2; this.body.add(sh); }
     // its own light, so steel reads as steel and brass as brass against the lava glow: a warm-white key, a cool fill, a rim from behind
@@ -442,6 +464,7 @@ export class CodeLock {
     // cam → lever → bolt: the bolt draws back as the plug turns
     const draw = Math.max(0, Math.min(1, this.turn / (Math.PI / 2))); this.lever.rotation.z = draw * .55; this.gearA.rotation.z = -this.turn * 1.6; this.gearB.rotation.z = this.turn * 1.6 * 18 / 11 + .14; this.bolt.position.x = -draw * .028; this.boltSpring.scale.set(1, .036 * (1 - draw * .5), 1);
     if (this.open > 0) { this.open = Math.min(1, this.open + dt * .7); const e = Math.max(0, (this.open - .25) / .75), ee = 1 - Math.pow(1 - e, 3), sw = Math.max(0, (e - .35) / .65); this.shackle.position.y = IN.y1 + .045 + .07 * Math.min(1, e * 2.2); this.shackle.rotation.y = (1 - Math.pow(1 - sw, 3)) * 2.2; this.body.rotation.z = Math.sin(e * 14) * .06 * (1 - e) + ee * .12; /* the body, freed, hangs off one leg */ }
+    if (this.glass) { const m = this.glass.material as T.MeshBasicMaterial; m.map!.offset.x = Math.sin(this.t * .25) * .03; }
     if (this.sparkLife > 0) { this.sparkLife = Math.max(0, this.sparkLife - dt * 1.6); const p = this.sparks.geometry.attributes.position as T.BufferAttribute, v = this.sparkV;
       for (let k = 0; k < p.count; k++) { v[k * 3 + 1] -= 1.4 * dt; p.setXYZ(k, p.getX(k) + v[k * 3] * dt, p.getY(k) + v[k * 3 + 1] * dt, p.getZ(k) + v[k * 3 + 2] * dt); } p.needsUpdate = true; }
     (this.sparks.material as T.PointsMaterial).opacity = this.sparkLife * this.sparkLife;
