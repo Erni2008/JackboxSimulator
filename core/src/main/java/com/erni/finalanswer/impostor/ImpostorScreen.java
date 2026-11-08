@@ -73,6 +73,9 @@ public final class ImpostorScreen extends ScreenAdapter {
     private final BitmapFont timerFont = UiFonts.horror(52);
     private final BitmapFont participantFont = UiFonts.body(24);
     private final BitmapFont nicknameFont = UiFonts.nameplate(28);
+    private final BitmapFont roundFont = UiFonts.question(112);
+    private com.badlogic.gdx.graphics.Texture bandPixel;
+    private com.badlogic.gdx.scenes.scene2d.ui.Image roundBand,roundRuleTop,roundRuleBottom;
     private final Function<RoomSession.Player, Actor> avatarFactory;
     private List<ImpostorParticipant> participants = List.of();
     private Group playerLayer;
@@ -476,9 +479,13 @@ public final class ImpostorScreen extends ScreenAdapter {
         addText("impostorTimerValue", "—", timerFont,
                 Color.valueOf("B43742"), ImpostorLayout.TIMER_VALUE);
         veil=new ImpostorAtmosphere(transition,true);stage.addActor(veil);
-        introduction=new Label("",new Label.LabelStyle(participantFont,Color.valueOf("E7D5B5")));introduction.setName("impostorRoundIntro");introduction.setBounds(700,680,520,60);introduction.setFontScale(1.45f);introduction.setAlignment(Align.center);introduction.setTouchable(Touchable.disabled);stage.addActor(introduction);
+        {var map=new com.badlogic.gdx.graphics.Pixmap(1,4,com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);map.setBlending(com.badlogic.gdx.graphics.Pixmap.Blending.None);map.drawPixel(0,0,0x00000000);map.drawPixel(0,1,0xFFFFFFFF);map.drawPixel(0,2,0xFFFFFFFF);map.drawPixel(0,3,0x00000000);bandPixel=new com.badlogic.gdx.graphics.Texture(map);bandPixel.setFilter(com.badlogic.gdx.graphics.Texture.TextureFilter.Linear,com.badlogic.gdx.graphics.Texture.TextureFilter.Linear);map.dispose();}
+        roundBand=new com.badlogic.gdx.scenes.scene2d.ui.Image(bandPixel);roundBand.setName("impostorRoundBand");roundBand.setBounds(0,380,1920,350);roundBand.setColor(.02f,.008f,.012f,0);roundBand.setTouchable(Touchable.disabled);stage.addActor(roundBand);
+        roundRuleTop=new com.badlogic.gdx.scenes.scene2d.ui.Image(bandPixel);roundRuleTop.setBounds(660,748,600,3);roundRuleTop.setColor(.85f,.68f,.42f,0);roundRuleTop.setTouchable(Touchable.disabled);stage.addActor(roundRuleTop);
+        roundRuleBottom=new com.badlogic.gdx.scenes.scene2d.ui.Image(bandPixel);roundRuleBottom.setBounds(660,588,600,3);roundRuleBottom.setColor(.85f,.68f,.42f,0);roundRuleBottom.setTouchable(Touchable.disabled);stage.addActor(roundRuleBottom);
+        introduction=new Label("",new Label.LabelStyle(roundFont,Color.valueOf("EEDDBC")));introduction.setName("impostorRoundIntro");introduction.setBounds(460,540,1000,110);introduction.setFontScale(1f);introduction.setAlignment(Align.center);introduction.setTouchable(Touchable.disabled);stage.addActor(introduction);
         roundInstruction=new Label("ОДНО СЛОВО. НИКАКИХ ОБЪЯСНЕНИЙ.",new Label.LabelStyle(participantFont,Color.valueOf("D8B88D")));
-        roundInstruction.setName("impostorRoundInstruction");roundInstruction.setAlignment(Align.center);roundInstruction.setBounds(530,610,860,45);roundInstruction.setVisible(false);roundInstruction.setTouchable(Touchable.disabled);stage.addActor(roundInstruction);
+        roundInstruction.setName("impostorRoundInstruction");roundInstruction.setAlignment(Align.center);roundInstruction.setFontScale(1.08f);roundInstruction.setBounds(460,470,1000,45);roundInstruction.setVisible(false);roundInstruction.setTouchable(Touchable.disabled);stage.addActor(roundInstruction);
         roleInstruction=new RoleSubtitles();stage.addActor(roleInstruction);
         localSettings=new ImpostorPresentationSettings(participantFont,game.getTexts().get("impostor.vote.options"),game.getTexts().get("impostor.vote.close"));stage.addActor(localSettings);
         addAudioControl("impostorSoundToggle",1510,85,()->audio.muted()?"ЗВУК: ВЫКЛ.":"ЗВУК: ВКЛ.",this::toggleLocalSound);
@@ -580,7 +587,7 @@ public final class ImpostorScreen extends ScreenAdapter {
                 else{float[] original=normalPlayerPositions.get(i);view.setPosition(original[0],original[1]);view.setScale(original[2]);}
             }
         }
-        if(ceremony){transition.cancel();roundInstruction.setVisible(false);introduction.setVisible(false);}
+        if(ceremony){transition.cancel();roundInstruction.setVisible(false);introduction.setVisible(false);roundBand.setVisible(false);roundRuleTop.setVisible(false);roundRuleBottom.setVisible(false);}
         for(var view:participantViews)view.ready(liveRound&&!ceremony?readyIds.contains(view.playerId()):null);
         evidenceBoard.setVisible(evidenceBoard.hasClues()&&finalSnapshot!=null&&(finalSnapshot.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.EVIDENCE_REVIEW||finalSnapshot.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.FINAL_VOTING));
         game.getAudio().hostVoice().scopeGain(uiAudioGain());
@@ -605,7 +612,9 @@ public final class ImpostorScreen extends ScreenAdapter {
         introduction.setVisible(!ceremony&&transition.active()&&!introduction.getText().isEmpty());
         introduction.getColor().a=(float)Math.sin(Math.PI*transition.progress());
         roundInstruction.setVisible(introduction.isVisible());roundInstruction.getColor().a=introduction.getColor().a;
-        introduction.setOrigin(260,27);introduction.setScale(1+.015f*(1-transition.progress()));
+        introduction.setOrigin(500,55);introduction.setScale(1+.03f*(1-transition.progress()));
+        {float a=introduction.isVisible()?introduction.getColor().a:0;roundBand.setVisible(a>0);roundBand.getColor().a=Math.min(.9f,1.4f*a);roundRuleTop.setVisible(a>0);roundRuleTop.getColor().a=.75f*a;roundRuleBottom.setVisible(a>0);roundRuleBottom.getColor().a=.75f*a;
+         float w=600*(reduced?1:Math.min(1,transition.progress()*3));roundRuleTop.setBounds(960-w/2,662,w,2);roundRuleBottom.setBounds(960-w/2,456,w,2);}
         float warning=1;
         long clockNow=roundServerTime+(System.nanoTime()-roundReceivedNano)/1_000_000;
         long clockDeadline=liveRound?roundDeadline:finalSnapshot==null?0:finalSnapshot.deadline();
@@ -675,7 +684,7 @@ public final class ImpostorScreen extends ScreenAdapter {
         if(roleInstruction!=null)roleInstruction.close();if(evidenceBoard!=null)evidenceBoard.close();
         if(votingNarration!=null)votingNarration.close();
         if(finalPresentation!=null)finalPresentation.close();if(localSettings!=null)localSettings.close();
-        labelFont.dispose();
+        labelFont.dispose();roundFont.dispose();if(bandPixel!=null)bandPixel.dispose();
         timerFont.dispose();audio.close();if(roomSettings!=null)roomSettings.dispose();if(dust!=null)dust.dispose();if(veil!=null)veil.dispose();
         participantFont.dispose();nicknameFont.dispose();
         assets.dispose();
