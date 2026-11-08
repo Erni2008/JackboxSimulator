@@ -279,7 +279,7 @@ export class CodeLock {
     const knob = new T.Mesh(new T.SphereGeometry(.0135, 24, 14), lacquer); knob.position.x = -.2625; this.pick.add(knob);
     for (const bx of [-.183, -.2, -.248]) { const band = new T.Mesh(new T.CylinderGeometry(.0142, .0142, .004, 28), this.brass); band.rotation.z = Math.PI / 2; band.position.x = bx; this.pick.add(band); }
     const fer = new T.Mesh(new T.CylinderGeometry(.007, .0115, .016, 24), this.brass); fer.rotation.z = Math.PI / 2; fer.position.x = -.17; this.pick.add(fer);
-    this.pick.position.set(0, PC - .001, CH + .004); this.body.add(this.pick);
+    this.pick.position.set(0, PC - .001, .0148); /* the whole pick, handle to hook, in front of the frame and the glass */ this.body.add(this.pick);
     // the tension wrench: an L of spring steel in the bottom of the keyway, its arm hanging down out of the wheel
     { const w = new T.Group(); const a = new T.Mesh(new T.BoxGeometry(.03, .0034, .004), polished); a.position.x = .0; w.add(a);
       const b = new T.Mesh(new T.BoxGeometry(.0028, .07, .0035), polished); b.position.set(-.03, -.035, 0); w.add(b);
