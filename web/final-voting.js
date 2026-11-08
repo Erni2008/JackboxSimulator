@@ -32,7 +32,7 @@ function createFinalVotingController({getState,isAuthenticated,send,now,makeId})
   function tick(){const s=mini();if(!s)return;if(impostorPhoneBlackout(getState())){blackout();return;}
     const timed=s.phase==='EVIDENCE_REVIEW'||s.phase==='FINAL_VOTING';
     el('final-timer').classList.toggle('timer-warning',timed&&s.deadline-now()>0&&s.deadline-now()<=5000);
-    text(el('final-timer'),timed?`ОСТАЛОСЬ: ${clockText(Math.max(0,Math.ceil((s.deadline-now())/1000)))}`:'');
+    {const st=getState().impostorSettings||{},dur=(s.phase==='EVIDENCE_REVIEW'?st.discussionSeconds:st.votingSeconds)*1000;el('final-timer').style.setProperty('--left',timed&&dur>0?String(Math.max(0,Math.min(1,(s.deadline-now())/dur))):'1');}text(el('final-timer'),timed?`ОСТАЛОСЬ: ${clockText(Math.max(0,Math.ceil((s.deadline-now())/1000)))}`:'');
     const waitingForName=s.phase==='IMPOSTOR_REVEAL'&&now()-s.finalPhaseStartedAt<2000;
     el('final-announcement').hidden=waitingForName;
     for(const card of el('final-cards').children)disabled(card,!canVote(card.dataset.id));
@@ -74,7 +74,7 @@ function createFinalVotingController({getState,isAuthenticated,send,now,makeId})
     if(s.phase==='FINAL_VOTING')for(const p of s.participants){
       const card=document.createElement('button');card.type='button';card.className='suspect-card final-vote-card';card.dataset.id=p.id;
       card.title=p.name;card.setAttribute('aria-label',p.name+(p.id===getState().selfId?' · вы':''));
-      card.textContent=p.name+(p.id===getState().selfId?' · ВЫ':'');
+      card.dataset.initial=(Array.from(p.name.trim())[0]||'?').toUpperCase();if(p.id===getState().selfId)card.dataset.self='true';card.textContent=p.name;
       // Existing appearance IDs have no corresponding portrait textures; do not invent avatar URLs.
       const selected=(s.ownFinalVote||selection)===p.id;card.classList.toggle('selected',selected);card.setAttribute('aria-pressed',String(selected));
       card.addEventListener('click',()=>{if(canVote(p.id)){selection=p.id;render();}});el('final-cards').append(card);

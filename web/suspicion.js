@@ -44,7 +44,7 @@ function createSuspicionController({getState,isAuthenticated,send,now,explain,ma
     for(const participant of s.participants){
       const button=document.createElement('button');button.type='button';button.className='suspect-card';
       button.title=participant.name;button.setAttribute('aria-label',participant.name+(participant.id===getState().selfId?' · вы':''));
-      button.dataset.id=participant.id;button.textContent=participant.name+(participant.id===getState().selfId?' · ВЫ':'');
+      button.dataset.id=participant.id;button.dataset.initial=(Array.from(participant.name.trim())[0]||'?').toUpperCase();if(participant.id===getState().selfId)button.dataset.self='true';button.textContent=participant.name;
       const selected=participant.id===s.selectedSuspectId;
       button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));
       button.addEventListener('click',()=>submit(participant.id));el('suspect-cards').append(button);

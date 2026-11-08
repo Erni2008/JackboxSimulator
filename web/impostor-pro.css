@@ -1,0 +1,166 @@
+/* THE IMPOSTOR — phone presentation layer (2026-11-08).
+   A noir "case file" look: frameless stage, warm lamp light, ink-and-wax accents.
+   Visual only: every rule is scoped to the impostor controller and changes no behaviour. */
+body[data-mode=impostor]{
+  --ip-ink:#f1e2c6;--ip-dim:#b9a58b;--ip-mute:#8d7b69;--ip-gold:#d7b27a;--ip-gold-2:#a8834f;
+  --ip-blood:#b8323d;--ip-blood-2:#7e1c26;--ip-ok:#9fbf8a;--ip-line:#d7b27a2b;--ip-card:#1a1114cc;
+  background:#060506;
+}
+/* lamp light over the table instead of a boxed panel */
+body[data-mode=impostor]::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(ellipse 90% 55% at 50% 0%,#5a2a1e3d,transparent 70%),
+             radial-gradient(ellipse 120% 80% at 50% 120%,#000 30%,transparent 75%),
+             url('/art/impostor/backgrounds/background1.png') center top/cover;filter:saturate(.85) brightness(.55)}
+body[data-mode=impostor] .ambient{display:none}
+body[data-mode=impostor] main{background:linear-gradient(180deg,#0d080bcc,#0a0709e6 40%,#0a0709f0);border:0;border-radius:0;
+  box-shadow:0 0 0 1px #d7b27a14,0 30px 80px #000c;padding-top:14px;position:relative}
+body[data-mode=impostor] main::before{content:'';position:absolute;left:0;right:0;top:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--ip-gold-2) 20%,var(--ip-gold) 50%,var(--ip-gold-2) 80%,transparent)}
+
+/* header: mode name + a slim three-stage progress line (role → words → verdict) */
+body[data-mode=impostor] .controller-director{border-bottom:0;padding:4px 0 0;margin-bottom:16px}
+body[data-mode=impostor] .director-top{font:700 12px/1 Body,sans-serif;letter-spacing:.32em;color:var(--ip-gold);align-items:center}
+body[data-mode=impostor] .director-top::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--ip-blood);
+  box-shadow:0 0 10px var(--ip-blood);margin-right:10px;flex:none}
+body[data-mode=impostor] .director-top>span:first-child{flex:1}
+body[data-mode=impostor] .director-steps{display:grid!important;margin:12px 0 0;gap:4px}
+body[data-mode=impostor] .director-step{font-size:0;border-top:2px solid #ffffff14;padding:0;height:0}
+body[data-mode=impostor] .director-step::before{content:none}
+body[data-mode=impostor] .director-step[data-state=done]{border-color:var(--ip-gold-2)}
+body[data-mode=impostor] .director-step[data-state=current]{border-color:var(--ip-gold);box-shadow:0 0 8px #d7b27a88}
+
+/* type */
+body[data-mode=impostor] .eyebrow{font:700 10px/1.4 Body,sans-serif!important;letter-spacing:.26em!important;color:var(--ip-dim)!important;text-transform:uppercase}
+#impostor-round{display:flex;align-items:center;gap:10px;margin:0 0 4px}
+#impostor-round::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--ip-line),transparent)}
+
+/* role card: lit from above, coloured by the role */
+#impostor-screen .role-panel{position:relative;isolation:isolate}
+#impostor-screen .role-panel::before{content:'';position:absolute;inset:-6% -8% -14%;z-index:-1;border-radius:50%;
+  background:radial-gradient(closest-side,#e0a85a33,transparent);filter:blur(6px)}
+#impostor-screen[data-role=IMPOSTOR] .role-panel::before{background:radial-gradient(closest-side,#d1283a55,transparent)}
+#impostor-screen[data-phase=ROLE_REVEAL] .role-parchment{filter:drop-shadow(0 18px 22px #000d) drop-shadow(0 0 1px #0008)}
+#impostor-screen[data-phase=ROLE_REVEAL][data-role=IMPOSTOR] .role-panel::before{animation:ip-pulse 2.4s ease-in-out infinite}
+#impostor-screen[data-phase=ROLE_REVEAL] #impostor-role-note{max-width:30ch;margin:14px auto 0;text-align:center;color:var(--ip-dim);font-size:13px;line-height:1.55}
+#impostor-screen[data-phase=ROLE_REVEAL][data-role=IMPOSTOR] #impostor-role-note{color:#e6a8a6}
+@keyframes ip-pulse{50%{opacity:.55;transform:scale(.96)}}
+
+/* compact role reminder while writing: a case-file tag */
+#impostor-screen:not([data-phase=ROLE_REVEAL]) .role-panel{background:linear-gradient(100deg,#2a1a17e6,#150e10e6)!important;
+  border:1px solid var(--ip-line)!important;border-left:3px solid var(--ip-gold)!important;border-radius:4px;padding:10px 14px!important;
+  box-shadow:inset 0 1px #ffffff08,0 8px 20px #0006}
+#impostor-screen[data-role=IMPOSTOR]:not([data-phase=ROLE_REVEAL]) .role-panel{border-left-color:var(--ip-blood)!important;background:linear-gradient(100deg,#3a1418e6,#150e10e6)!important}
+#impostor-screen:not([data-phase=ROLE_REVEAL]) #impostor-role{font:700 9px/1.4 Body,sans-serif;letter-spacing:.24em;color:var(--ip-dim);margin:0 0 2px;text-align:left}
+#impostor-screen:not([data-phase=ROLE_REVEAL]) .secret-word{font:400 clamp(26px,8vw,34px)/1.15 ParchmentHand,Body,sans-serif;color:var(--ip-ink);
+  letter-spacing:.02em;text-align:left;margin:0;text-shadow:0 2px 10px #000}
+
+/* timer: number + a draining line */
+#impostor-countdown,#final-timer{position:relative;display:flex;justify-content:flex-end;align-items:baseline;gap:8px;border:0!important;
+  padding:10px 0 12px!important;margin:6px 0 4px;font:700 13px/1 Body,sans-serif!important;letter-spacing:.18em!important;color:var(--ip-gold)!important}
+#impostor-countdown::after,#final-timer::after{content:'';position:absolute;left:0;right:0;bottom:0;height:3px;border-radius:2px;
+  background:linear-gradient(90deg,var(--ip-gold) calc(var(--left,1)*100%),#ffffff12 0)}
+#impostor-countdown.timer-warning,#final-timer.timer-warning{color:#ff8a86!important;animation:ip-blink .5s steps(2) infinite}
+#impostor-countdown.timer-warning::after,#final-timer.timer-warning::after{background:linear-gradient(90deg,var(--ip-blood) calc(var(--left,1)*100%),#ffffff12 0);box-shadow:0 0 10px #b8323d88}
+#final-timer:empty,#impostor-countdown:empty{display:none}
+@keyframes ip-blink{50%{opacity:.6}}
+
+/* writing */
+#impostor-screen .parchment-surface{filter:drop-shadow(0 22px 26px #000c)}
+#impostor-screen .clue-compose-meta{justify-content:center}
+#clue-length{color:var(--ip-dim)!important;letter-spacing:.14em}
+#clue-length.over-limit{color:#ff9a96!important}
+
+/* "word accepted": a sealed envelope with a wax stamp */
+#clue-confirmation{position:relative;overflow:hidden;border:1px solid var(--ip-line)!important;border-radius:6px;padding:26px 18px 22px!important;
+  background:radial-gradient(ellipse at 50% -20%,#d7b27a22,transparent 60%),linear-gradient(180deg,#22171a,#140e10)!important;box-shadow:0 18px 40px #000a,inset 0 1px #ffffff0a}
+#clue-confirmation h2{font:700 11px/1.4 Body,sans-serif!important;letter-spacing:.3em;color:var(--ip-ok)!important;margin:0 0 8px!important}
+#clue-confirmation h2::before{content:'✓';display:inline-grid;place-items:center;width:20px;height:20px;margin-right:10px;border-radius:50%;
+  border:1px solid var(--ip-ok);font-size:11px;letter-spacing:0;vertical-align:1px}
+#clue-confirmed-value{font:400 clamp(38px,12vw,54px)/1.15 ParchmentHand,Body,sans-serif!important;color:var(--ip-ink)!important;border:0!important;margin:4px 0 0!important;padding:4px 0!important;text-shadow:0 3px 14px #000}
+#clue-confirmation::after{content:'ПРИНЯТО';position:absolute;right:12px;top:12px;padding:4px 8px;border:2px solid #b8323dcc;border-radius:3px;
+  color:#d2434e;font:800 10px/1 Body,sans-serif;letter-spacing:.18em;transform:rotate(9deg);opacity:.85}
+body[data-cinematic=true] #clue-confirmation:not([hidden]){animation:ip-seal .55s cubic-bezier(.2,.8,.2,1.2) both}
+@keyframes ip-seal{from{opacity:0;transform:translateY(14px) scale(.96)}}
+
+/* room readiness: one dot per player */
+#clue-room-progress{display:flex;flex-direction:column;align-items:center;gap:8px;margin:16px 0 4px}
+#clue-room-progress .rp-dots{display:flex;gap:8px}
+#clue-room-progress .rp-dots i{width:10px;height:10px;border-radius:50%;border:1px solid #d7b27a66;background:#0006}
+#clue-room-progress .rp-dots i.on{background:var(--ip-gold);border-color:var(--ip-gold);box-shadow:0 0 8px #d7b27a99}
+#clue-room-progress .rp-text{font:700 10px/1 Body,sans-serif;letter-spacing:.24em;color:var(--ip-mute)}
+
+/* status lines */
+body[data-mode=impostor] #clue-status,body[data-mode=impostor] #final-status,body[data-mode=impostor] #suspicion-status{border:0!important;border-radius:4px;
+  background:#ffffff07!important;padding:12px 14px!important;color:var(--ip-dim)!important;font-size:13px!important;text-align:center}
+#clue-status.confirmed,#final-status.confirmed{color:var(--ip-ok)!important}
+
+/* titles in the final act */
+#final-title,#suspicion-title{overflow-wrap:normal!important;word-break:normal;hyphens:none;font:400 clamp(26px,7.6vw,38px)/1.05 RoadRage,Body,sans-serif!important;letter-spacing:.03em;color:var(--ip-ink)!important;
+  margin:6px 0 10px!important;text-shadow:0 3px 18px #000,0 0 30px #b8323d33}
+#suspicion-screen .round-top{align-items:center}
+#suspicion-timer{font:700 14px/1 Body,sans-serif!important;letter-spacing:.12em;color:var(--ip-gold)!important;padding:6px 10px;border:1px solid var(--ip-line);border-radius:999px}
+#suspicion-progress{font:700 10px/1.4 Body,sans-serif;letter-spacing:.22em;color:var(--ip-mute)!important}
+
+/* leading suspects: a typed telegram strip instead of a crowded parchment */
+#final-screen #final-announcement{background:linear-gradient(180deg,#e9d6b0,#d6bd8f)!important;color:#3a2016!important;border-radius:2px;
+  font:700 clamp(15px,4.6vw,19px)/1.35 Body,sans-serif!important;letter-spacing:.04em;text-transform:none;padding:12px 16px!important;margin:6px 0 10px!important;
+  box-shadow:0 10px 24px #000b;transform:rotate(-.6deg);text-align:center;-webkit-text-stroke:0}
+#final-screen #final-announcement::before{content:'ПОД ПОДОЗРЕНИЕМ';display:block;font:800 9px/1 Body,sans-serif;letter-spacing:.3em;color:#8b2a2a;margin-bottom:6px}
+#final-screen #final-announcement:empty{display:none}
+#final-screen #final-announcement img,#final-screen #final-announcement::after{display:none}
+#final-progress{font:700 10px/1.4 Body,sans-serif;letter-spacing:.22em;color:var(--ip-mute)}
+
+/* suspects: dossier cards with an inked monogram */
+body[data-mode=impostor] .suspect-cards{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:12px!important;margin-top:16px}
+@media(max-width:350px){body[data-mode=impostor] .suspect-cards{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+body[data-mode=impostor] .fa-button.suspect-card{min-height:0!important;aspect-ratio:1162/1500!important;padding:0 8px 19% !important;align-items:flex-end;
+  font:700 clamp(12px,3.5vw,15px)/1.2 Body,sans-serif!important;color:#3a2318!important;transition:transform .18s ease,filter .18s ease}
+body[data-mode=impostor] .fa-button.suspect-card .fa-label{position:relative;z-index:2;font-size:inherit!important}
+body[data-mode=impostor] .fa-button.suspect-card[data-initial]::before{content:attr(data-initial);position:absolute;z-index:2;left:50%;top:38%;
+  transform:translate(-50%,-50%) rotate(-4deg);width:48%;aspect-ratio:1;display:grid;place-items:center;border-radius:50%;
+  border:2px solid #5b3322aa;box-shadow:inset 0 0 0 4px #5b33221f;color:#4b2a1c;font:400 clamp(26px,9vw,40px)/1 ParchmentHand,serif;opacity:.85}
+body[data-mode=impostor] .fa-button.suspect-card[data-self=true]{filter:grayscale(1) brightness(.55)!important}
+body[data-mode=impostor] .fa-button.suspect-card[data-self=true]::after{content:'ВЫ';position:absolute;z-index:3;top:9%;right:-4px;padding:3px 8px;
+  background:#1b1214;color:var(--ip-dim);border:1px solid #ffffff22;font:800 9px/1 Body,sans-serif;letter-spacing:.2em}
+body[data-mode=impostor] .fa-button.suspect-card[aria-pressed=true]{outline:0!important;transform:translateY(-6px) rotate(-1.5deg)!important;
+  filter:drop-shadow(0 0 0 #0000) drop-shadow(0 12px 14px #000c) drop-shadow(0 0 14px #b8323daa)!important}
+body[data-mode=impostor] .fa-button.suspect-card[aria-pressed=true]::before{border-color:#a3222ecc;color:#a3222e;box-shadow:inset 0 0 0 4px #a3222e22;opacity:1}
+body[data-mode=impostor] .fa-button.suspect-card[aria-pressed=true]::after{content:'ПОДОЗРЕВАЕМЫЙ';position:absolute;z-index:3;left:50%;top:66%;transform:translateX(-50%) rotate(-8deg);
+  padding:3px 6px;border:2px solid #b8323d;color:#b8323d;background:#f3e3c4cc;font:800 clamp(7px,2vw,9px)/1 Body,sans-serif;letter-spacing:.12em;white-space:nowrap}
+body[data-mode=impostor] .fa-button.suspect-card:disabled:not([data-self=true]):not([aria-pressed=true]){filter:brightness(.8) saturate(.8)!important}
+
+/* the chosen suspect before confirming */
+body[data-mode=impostor] .vote-draft,body[data-mode=impostor] #vote-receipt{border:1px solid #b8323d55!important;border-left:3px solid var(--ip-blood)!important;border-radius:4px;
+  background:linear-gradient(100deg,#3a1418,#150e10)!important}
+body[data-mode=impostor] .vote-draft strong,#vote-receipt-value{font:400 clamp(28px,8vw,36px)/1.1 ParchmentHand,Body,sans-serif!important;color:var(--ip-ink)!important}
+
+/* clue history: the case file */
+body[data-mode=impostor] .clue-history{border:1px solid var(--ip-line)!important;border-radius:4px;background:#140e10e6!important;box-shadow:0 10px 30px #0008}
+body[data-mode=impostor] .clue-history summary{list-style:none;display:flex;justify-content:space-between;align-items:center;letter-spacing:.24em!important;color:var(--ip-gold)!important;font-size:10px!important}
+body[data-mode=impostor] .clue-history summary::-webkit-details-marker{display:none}
+body[data-mode=impostor] .clue-history summary::after{content:'＋';font-size:14px;color:var(--ip-dim)}
+body[data-mode=impostor] .clue-history[open] summary::after{content:'－'}
+body[data-mode=impostor] .clue-history table{font:400 13px/1.4 Body,sans-serif!important}
+body[data-mode=impostor] .clue-history thead th{font:800 9px/1.3 Body,sans-serif!important;letter-spacing:.16em;color:var(--ip-mute)!important;border-top:0!important}
+body[data-mode=impostor] .clue-history tbody th{color:var(--ip-gold)!important;font-weight:700}
+body[data-mode=impostor] .clue-history td{font:400 19px/1.2 ParchmentHand,Body,sans-serif!important;color:var(--ip-ink)!important}
+body[data-mode=impostor] .clue-history tbody tr:nth-child(odd){background:#ffffff05}
+
+/* help + footer step back */
+body[data-mode=impostor] .role-guide{border:0!important;background:none!important;padding:0!important;margin-top:22px}
+body[data-mode=impostor] .role-guide summary{font:700 10px/1 Body,sans-serif;letter-spacing:.24em;color:var(--ip-mute);display:inline-flex;align-items:center;gap:8px;cursor:pointer;list-style:none}
+body[data-mode=impostor] .role-guide summary::-webkit-details-marker{display:none}
+body[data-mode=impostor] .role-guide summary::before{content:'?';display:grid;place-items:center;width:18px;height:18px;border-radius:50%;border:1px solid var(--ip-mute);font-size:10px;letter-spacing:0}
+body[data-mode=impostor] .role-guide[open]{background:#ffffff06!important;padding:12px 14px!important;border-radius:4px}
+body[data-mode=impostor] #session-footer{border-top:1px solid #ffffff0d;opacity:.75}
+
+body[data-reduced-motion=true] #impostor-screen .role-panel::before,body[data-effects=false] #impostor-screen .role-panel::before,
+body[data-reduced-motion=true] #clue-confirmation,body[data-effects=false] #clue-confirmation,
+body[data-reduced-motion=true] #impostor-countdown,body[data-reduced-motion=true] #final-timer{animation:none!important}
+
+/* phone blackout during the reveal: still dark, but no longer looks frozen */
+#blackout-screen{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:max(48px,env(safe-area-inset-bottom))}
+#blackout-screen::before{content:'';width:6px;height:6px;border-radius:50%;background:#b8323d;box-shadow:0 0 12px #b8323d;margin-bottom:14px;animation:ip-breathe 2.8s ease-in-out infinite}
+#blackout-screen::after{content:'СМОТРИТЕ НА ОБЩИЙ ЭКРАН';font:700 10px/1 Body,sans-serif;letter-spacing:.32em;color:#ffffff38}
+@keyframes ip-breathe{50%{opacity:.25}}
+body[data-reduced-motion=true] #blackout-screen::before{animation:none}
