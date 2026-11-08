@@ -35,8 +35,8 @@ export function buildComputer(power: PowerLighting, quality: string) {
   // the two tube lamps glow with the machine's power (same uniforms the old body used)
   const tube = mark(new T.MeshStandardMaterial({color: '#2a1608', emissive: '#ffffff', emissiveIntensity: 1, roughness: .12, metalness: 0, transparent: true, opacity: .92}));
   tube.onBeforeCompile = s => { s.uniforms.lcPowerColor = power.lampColor; s.uniforms.lcPowerStrength = power.lampPower;
-    s.fragmentShader = 'uniform vec3 lcPowerColor;uniform float lcPowerStrength;\n' + s.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance = lcPowerColor * lcPowerStrength * 0.55;'); };
-  tube.customProgramCacheKey = () => 'lc-cabinet-tube-v1';
+    s.fragmentShader = 'uniform vec3 lcPowerColor;uniform float lcPowerStrength;\n' + s.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance = lcPowerColor * vec3(1.0, 0.42, 0.16) * lcPowerStrength * 0.42;'); };
+  tube.customProgramCacheKey = () => 'lc-cabinet-tube-v2';
 
   const add = (g: T.BufferGeometry, m: T.Material, x: number, y: number, z: number, rx = 0, ry = 0, rz = 0) => { const o = new T.Mesh(g, m); o.position.set(x, y, z); o.rotation.set(rx, ry, rz); root.add(o); return o; };
   const rbox = (w: number, h: number, d: number, r: number, m: T.Material, x: number, y: number, z: number) => add(new RoundedBoxGeometry(w, h, d, 3, r), m, x, y, z);
@@ -94,7 +94,7 @@ export function buildComputer(power: PowerLighting, quality: string) {
     box(.006, h + .02, w + .02, trim, x, yc, zc); box(.004, h, w, black, x + side * .001, yc, zc);
     const n = Math.max(3, Math.round(h / .022)); for (let k = 0; k < n; k++) add(new T.BoxGeometry(.012, .004, w - .006), paintDark, x + side * .004, y0 + (k + .5) * h / n, zc, 0, 0, side * .6);
   };
-  vent(-1, .45, .64, -.2, .04); vent(1, .47, .64, -.2, .04); vent(-1, .12, .2, -.2, .04);
+  vent(-1, .45, .64, -.2, .04);
 
   // the back: two copper risers and a manifold, clear of the card tray, panels and hatch in the middle
   for (const sx of [-.235, .245]) { cyl(.013, .63, copper, sx, .4, Z0 - .016); for (const y of [.15, .4, .65]) cyl(.018, .012, brass, sx, y, Z0 - .016); }
@@ -130,6 +130,72 @@ export function buildComputer(power: PowerLighting, quality: string) {
   { const groove = mark(new T.MeshStandardMaterial({color: '#050606', roughness: .9}));
     const frame = (x0: number, x1: number, y0: number, y1: number) => { box(x1 - x0, .0018, .002, groove, (x0 + x1) / 2, y0, .1441); box(x1 - x0, .0018, .002, groove, (x0 + x1) / 2, y1, .1441); box(.0018, y1 - y0, .002, groove, x0, (y0 + y1) / 2, .1441); box(.0018, y1 - y0, .002, groove, x1, (y0 + y1) / 2, .1441); };
     frame(-.25, .244, .598, .692); frame(FX0 + .016, FX1 - .016, FY0 + .016, .392); }
+  // ------------------------------------------------------------------ steampunk dressing (kept clear of every working zone)
+  const bronze = L.bronze, lights: {color: number; x: number; y: number; z: number; i: number; d: number}[] = [];
+  const glow = (hex: string, k: number) => { const m = mark(new T.MeshStandardMaterial({color: '#120402', emissive: '#ffffff', roughness: .2, metalness: 0})); const c = new T.Color(hex);
+    m.onBeforeCompile = sh => { sh.uniforms.lcPowerStrength = power.lampPower; sh.uniforms.lcGlow = {value: c}; sh.fragmentShader = 'uniform float lcPowerStrength;uniform vec3 lcGlow;\n' + sh.fragmentShader.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>\ntotalEmissiveRadiance = lcGlow * lcPowerStrength * ${k.toFixed(2)};`); };
+    m.customProgramCacheKey = () => 'lc-glow-' + hex + k; return m; };
+  const red = glow('#ff1a04', .45), amber = glow('#ff6a08', .42), filament = glow('#ffb04a', .9);
+  /** a pipe along a polyline with rounded elbows and a flange at every joint */
+  const pipe = (pts: number[][], r: number, m: T.Material, flanges = true) => { const v = pts.map(p => new T.Vector3(p[0], p[1], p[2])), path = new T.CurvePath<T.Vector3>();
+    for (let i = 0; i < v.length - 1; i++) { const a0 = v[i], a1 = v[i + 1]; if (i < v.length - 2) { const b = v[i + 2], e = Math.min(r * 3, a0.distanceTo(a1) / 2, a1.distanceTo(b) / 2), p1 = a1.clone().addScaledVector(a0.clone().sub(a1).normalize(), e), p2 = a1.clone().addScaledVector(b.clone().sub(a1).normalize(), e);
+        path.add(new T.LineCurve3(i ? (path.curves[path.curves.length - 1] as any).v2 ?? a0 : a0, p1)); path.add(new T.QuadraticBezierCurve3(p1, a1, p2)); v[i + 1] = p2; } else path.add(new T.LineCurve3(i ? (path.curves[path.curves.length - 1] as any).v2 ?? a0 : a0, a1)); }
+    add(new T.TubeGeometry(path, Math.max(16, pts.length * 14), r, hi ? 14 : 10, false), m, 0, 0, 0);
+    if (flanges) for (const p of [pts[0], pts[pts.length - 1]]) { const f = add(new T.CylinderGeometry(r * 1.6, r * 1.6, r * 1.1, 12), bronze, p[0], p[1], p[2]); f.lookAt(new T.Vector3(...p).add(new T.Vector3(0, 1, 0))); } };
+  /** a glowing radio valve in a cage: glass bulb with a bright filament, bronze base and cap */
+  const valve = (x: number, y: number, z: number, h: number, r: number, glass: T.Material, light = false) => {
+    cyl(r * 1.35, h * .14, bronze, x, y + h * .07, z); cyl(r * 1.1, h * .06, black, x, y + h * .17, z);
+    add(new T.CylinderGeometry(r, r, h * .62, seg), glass, x, y + h * .51, z); add(new T.SphereGeometry(r, seg, 8, 0, Math.PI * 2, 0, Math.PI / 2), glass, x, y + h * .82, z);
+    cyl(r * .16, h * .5, filament, x, y + h * .5, z); cyl(r * 1.3, h * .05, bronze, x, y + h * .9, z); cyl(r * .3, h * .08, bronze, x, y + h * .96, z);
+    for (let k = 0; k < 4; k++) { const a = k / 4 * Math.PI * 2 + .4; cyl(r * .07, h * .78, bronze, x + Math.cos(a) * r * 1.25, y + h * .52, z + Math.sin(a) * r * 1.25); }
+    for (const yy of [.35, .68]) add(new T.TorusGeometry(r * 1.25, r * .06, 6, seg), bronze, x, y + h * yy, z, Math.PI / 2);
+    if (light) lights.push({color: glass === red ? 0xff4a1a : 0xff8a2a, x, y: y + h * .5, z, i: .5, d: .5}); };
+  /** a spur gear on an axle */
+  const gear = (x: number, y: number, z: number, r: number, teeth: number, axis: 'x' | 'z', m: T.Material) => { const sh = new T.Shape(), n = teeth * 4, ri = r * .84;
+    for (let k = 0; k <= n; k++) { const a = k / n * Math.PI * 2, q = k % 4, rr = q === 1 || q === 2 ? r : ri; k ? sh.lineTo(Math.cos(a) * rr, Math.sin(a) * rr) : sh.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); }
+    for (let w = 0; w < 5; w++) { const a0 = w / 5 * Math.PI * 2, hole = new T.Path(); hole.absarc(Math.cos(a0) * r * .52, Math.sin(a0) * r * .52, r * .17, 0, Math.PI * 2, true); sh.holes.push(hole); }
+    const g = add(new T.ExtrudeGeometry(sh, {depth: r * .16, bevelEnabled: true, bevelSize: r * .03, bevelThickness: r * .03, bevelSegments: 1, curveSegments: 4}), m, x, y, z, 0, axis === 'x' ? Math.PI / 2 : 0, 0);
+    cyl(r * .2, r * .4, steel, x, y, z, axis === 'x' ? 'x' : 'z'); return g; };
+  /** a valve hand-wheel: rim, five spokes, hub */
+  const handwheel = (x: number, y: number, z: number, r: number) => { add(new T.TorusGeometry(r, r * .1, 10, seg * 2), bronze, x, y, z, 0, Math.PI / 2);
+    for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2, sp = add(new T.CylinderGeometry(r * .05, r * .05, r, 8), bronze, x, y + Math.sin(a) * r / 2, z + Math.cos(a) * r / 2); sp.rotation.x = -a; }
+    cyl(r * .22, r * .3, steel, x, y, z, 'x'); cyl(r * .12, r * .9, steel, x - r * .4, y, z, 'x'); };
+  /** a pressure gauge facing `dir` */
+  const gauge = (x: number, y: number, z: number, r: number, ry: number, rx = 0) => { const g = new T.Group(); g.position.set(x, y, z); g.rotation.set(rx, ry, 0); root.add(g);
+    const body = new T.Mesh(new T.CylinderGeometry(r, r, r * .45, seg * 2), bronze); body.rotation.x = Math.PI / 2; g.add(body);
+    const face = new T.Mesh(new T.CircleGeometry(r * .84, seg * 2), mark(new T.MeshStandardMaterial({color: '#d8ccb0', roughness: .6}))); face.position.z = r * .23; g.add(face);
+    for (let k = 0; k <= 8; k++) { const a = -2.2 + k * .55, t = new T.Mesh(new T.BoxGeometry(r * .04, r * (k % 4 ? .12 : .2), r * .02), black); t.position.set(Math.sin(a) * r * .68, Math.cos(a) * r * .68, r * .24); t.rotation.z = -a; g.add(t); }
+    const nd = new T.Mesh(new T.BoxGeometry(r * .05, r * .62, r * .02), mark(new T.MeshStandardMaterial({color: '#a3241c'}))); nd.geometry.translate(0, r * .3, 0); nd.position.z = r * .26; nd.rotation.z = -.4 - Math.random() * .8; g.add(nd);
+    const ring = new T.Mesh(new T.TorusGeometry(r * .9, r * .09, 8, seg * 2), bronze); ring.position.z = r * .23; g.add(ring); };
+
+  // a heavy riveted frame cage at the corners (posts and brackets), the silhouette of the concept
+  for (const [px, pz] of [[X0 - .016, Z0 + .02], [X1 + .016, Z0 + .02], [X0 - .016, ZF - .02], [X1 + .016, ZF - .02]]) { box(.024, Y1 - .07, .024, paintDark, px, (Y1 + .07) / 2, pz); for (const y of [.12, .4, .68]) box(.034, .03, .034, bronze, px, y, pz); }
+  // top: two red valve towers at the front corners, an amber pair at the back, a pipe loop joining the stacks
+  valve(-.24, .748, .04, .13, .016, red, !hi ? false : true); valve(.255, .748, .04, .13, .016, red, true);
+  valve(-.06, .748, -.19, .1, .013, amber); valve(.09, .748, -.19, .1, .013, amber);
+  pipe([[-.17, .805, -.15], [-.17, .86, -.15], [.18, .86, -.15], [.18, .805, -.15]], .011, copper);
+  pipe([[-.28, .74, -.08], [-.31, .74, -.08], [-.31, .58, -.08]], .009, copper, false);
+  // an articulated lamp on top that throws a warm pool onto the machine
+  { const bx = -.19, bz = -.05; cyl(.03, .02, bronze, bx, .743, bz); cyl(.008, .14, L.darkSteel, bx, .82, bz); add(new T.SphereGeometry(.012, 12, 8), bronze, bx, .89, bz);
+    add(new T.CylinderGeometry(.007, .007, .16, 10), L.darkSteel, bx + .05, .93, bz + .03, 0, 0, -1.0); add(new T.SphereGeometry(.011, 12, 8), bronze, bx + .118, .968, bz + .07);
+    const shade = add(new T.ConeGeometry(.04, .05, seg, 1, true), bronze, bx + .14, .94, bz + .1, 2.3, 0, -.5); (shade.material as any).side = T.DoubleSide;
+    add(new T.SphereGeometry(.016, 12, 8), filament, bx + .148, .93, bz + .11); lights.push({color: 0xffc27a, x: bx + .15, y: .93, z: bz + .12, i: 1.2, d: .9}); }
+  // left side: a tall amber valve at the front corner, gauge pair low, pipes up the back edge
+  valve(-.302, .44, .06, .17, .018, amber, true); gauge(X0 - .012, .14, -.08, .028, -Math.PI / 2); gauge(X0 - .012, .14, -.02, .02, -Math.PI / 2);
+  pipe([[X0 - .02, .09, -.21], [X0 - .02, .7, -.21], [-.2, .74, -.21]], .012, copper); pipe([[X0 - .03, .1, -.15], [X0 - .03, .42, -.15], [X0 - .03, .42, -.18]], .008, copper, false);
+  // right side: the vent gives way to a hand-wheel, a gear train and a gauge (the hatch zone y .22–.35 stays clear)
+  handwheel(X1 + .03, .52, -.06, .065); gear(X1 + .012, .64, -.17, .045, 16, 'x', bronze); gear(X1 + .016, .6, -.1, .028, 10, 'x', bronze);
+  valve(.316, .44, .06, .17, .018, red, false); gauge(X1 + .012, .13, -.05, .03, Math.PI / 2);
+  pipe([[X1 + .02, .09, -.22], [X1 + .02, .7, -.22], [.2, .74, -.22]], .012, copper);
+  // back: horizontal manifolds with valves at the sides (the card tray, panels and back hatch zones in the middle stay clear)
+  for (const y of [.2, .58]) { pipe([[-.27, y, Z0 - .02], [-.17, y, Z0 - .02]], .01, copper); pipe([[.18, y, Z0 - .02], [.28, y, Z0 - .02]], .01, copper); }
+  for (const sx of [-.2, .21]) { handwheel(sx, .66, Z0 - .04, .03); }
+  valve(-.25, .748, -.2, .1, .014, red); valve(.26, .748, -.2, .1, .014, red);
+  // front: pipes up both facade edges, arching over the screen with flanges, and a short manifold above the deck
+  pipe([[FX0 - .012, .1, .135], [FX0 - .012, .72, .135], [-.12, .72, .135]], .01, copper); pipe([[FX1 + .012, .1, .135], [FX1 + .012, .72, .135], [.12, .72, .135]], .01, copper);
+  pipe([[-.12, .72, .135], [.12, .72, .135]], .01, copper, false); for (const x of [-.12, 0, .12]) cyl(.016, .012, bronze, x, .72, .135, 'x');
+  for (const x of [FX0 - .012, FX1 + .012]) for (const y of [.2, .4, .6]) cyl(.016, .012, bronze, x, y, .135);
+  root.userData.lights = lights;
   // panel seams on the sides
   for (const sx of [X0 - .0006, X1 + .0006]) { box(.0016, .003, ZF - Z0 - .03, mark(new T.MeshStandardMaterial({color: '#0c0e0d', roughness: .9})), sx, .42, (Z0 + ZF) / 2); }
   // two flexible cables dropping from the cap down the right back corner

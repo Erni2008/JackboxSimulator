@@ -87,6 +87,7 @@ export class Machine implements InteractiveSceneModule {
   cabinet(mount:any){const wrap=new T.Group(),s=mount.scale?.x||1,t=vec(mount.position);wrap.scale.setScalar(1/s);wrap.position.copy(t).multiplyScalar(-1/s);const body=buildComputer(this.power,this.quality);wrap.add(body);
     body.traverse((o:any)=>{if(o.geometry)this.detailGeometries.add(o.geometry);});
     // hero lighting: two rim lights from behind draw the silhouette and put highlights on every bevel
+    for(const l of (body.userData.lights||[]).slice(0,this.quality==='LOW'?1:this.quality==='MEDIUM'?4:6)){const p=new T.PointLight(l.color,l.i,l.d,2);p.position.set(l.x,l.y,l.z);this.root.add(p);}
     if(!this.root.getObjectByName('lc-rim')){const cool=new T.DirectionalLight(0x9fc2ff,1.6);cool.name='lc-rim';cool.position.set(-1.6,2.2,-2.4);const warm=new T.DirectionalLight(0xffcf98,1.1);warm.position.set(1.8,1.4,-2.2);const top=new T.SpotLight(0xfff1dc,6,3,.5,.6,2);top.position.set(.2,1.8,.9);top.target.position.set(0,.4,0);this.root.add(cool,warm,top,top.target);}
     return wrap;}
   weather(material:any,part:number,style:any){const surface=part===0?style.body:part===2?style.cap:style.base;material.onBeforeCompile=(shader:any)=>{

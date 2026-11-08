@@ -51,6 +51,16 @@ function brushed(n: number, seed: number, tint: [number, number, number], patina
   const rough = fill(n, (i, j) => { const k = j * n + i, v = 75 + lines[k] * 18 + (patina ? Math.max(0, blot[k] - .65) * 200 : blot[k] * 20); return [v, v, v]; });
   return {map: tex(col.c, true), normalMap: tex(normalFrom(h, n, .35), false), roughnessMap: tex(rough.c, false)};
 }
+/** aged iron: near-black brown steel, orange rust blooms and streaks, pitting, worn bright edges */
+function rusty(n: number): Set {
+  const big = fbm(n, 71, 8), mid = fbm(n, 72, 24, 4), fine = fbm(n, 73, 64, 3), streak = fbm(n, 74, 10, 3);
+  const col = fill(n, (i, j) => { const k = j * n + i, rust = Math.max(0, mid[k] * .7 + big[k] * .5 - .78) * 2.2 + Math.max(0, streak[k] - .78) * (j / n) * 1.0, dark = .42 + fine[k] * .22 + big[k] * .14;
+    const r = Math.min(1, rust); return [ (62 * dark) * (1 - r) + 150 * r * (.7 + fine[k] * .3), (48 * dark) * (1 - r) + 72 * r * (.7 + fine[k] * .3), (40 * dark) * (1 - r) + 34 * r ]; });
+  scratches(col.x, n, 75, 60, 'rgba(190,160,120,.25)', .7);
+  const h = new Float32Array(n * n); for (let k = 0; k < h.length; k++) h[k] = fine[k] * .5 + mid[k] * .5;
+  const rough = fill(n, (i, j) => { const k = j * n + i, v = 150 + mid[k] * 70 - fine[k] * 30; return [v, v, v]; }); scratches(rough.x, n, 75, 60, 'rgba(80,80,80,.9)', .7);
+  return {map: tex(col.c, true), normalMap: tex(normalFrom(h, n, .9), false), roughnessMap: tex(rough.c, false)};
+}
 function bakelite(n: number): Set {
   const f = fbm(n, 31, 24, 3), b = fbm(n, 32, 4);
   const col = fill(n, (i, j) => { const k = j * n + i, v = 18 + f[k] * 10 + b[k] * 6; return [v + 4, v + 2, v]; });
@@ -60,7 +70,7 @@ function bakelite(n: number): Set {
 }
 function get(kind: string, quality: string) {
   const n = quality === 'HIGH' ? 512 : quality === 'MEDIUM' ? 384 : 256, key = kind + n; let s = cache.get(key); if (s) return s;
-  s = kind === 'paint' ? painted(n) : kind === 'steel' ? brushed(n, 41, [190, 194, 196], false) : kind === 'brass' ? brushed(n, 51, [214, 170, 98], true) : kind === 'copper' ? brushed(n, 61, [200, 120, 78], true) : bakelite(n);
+  s = kind === 'rust' ? rusty(n) : kind === 'bronze' ? brushed(n, 81, [150, 104, 58], true) : kind === 'paint' ? painted(n) : kind === 'steel' ? brushed(n, 41, [190, 194, 196], false) : kind === 'brass' ? brushed(n, 51, [214, 170, 98], true) : kind === 'copper' ? brushed(n, 61, [200, 120, 78], true) : bakelite(n);
   cache.set(key, s); return s;
 }
 
@@ -68,10 +78,11 @@ function get(kind: string, quality: string) {
 export function lcMaterials(quality: string, custom = false) {
   const mk = (kind: string, o: T.MeshPhysicalMaterialParameters) => { const s = get(kind, quality); const m = new T.MeshPhysicalMaterial({...s, ...o}); m.normalScale.setScalar(o.normalScale ? (o.normalScale as any).x : 1); if (custom) m.userData.lcCustom = true; return m; };
   return {
-    paint: mk('paint', {color: '#2c3135', metalness: .45, roughness: .85, clearcoat: .7, clearcoatRoughness: .28}),
-    paintDark: mk('paint', {color: '#16181a', metalness: .5, roughness: .9, clearcoat: .5, clearcoatRoughness: .32}),
+    paint: mk('rust', {color: '#ffffff', metalness: .7, roughness: 1}),
+    paintDark: mk('rust', {color: '#8a7f78', metalness: .75, roughness: 1}),
+    bronze: mk('bronze', {color: '#ffffff', metalness: 1, roughness: 1}),
     steel: mk('steel', {color: '#ffffff', metalness: 1, roughness: 1}),
-    darkSteel: mk('steel', {color: '#3a3e42', metalness: 1, roughness: 1}),
+    darkSteel: mk('bronze', {color: '#6b5a48', metalness: 1, roughness: 1}),
     brass: mk('brass', {color: '#ffffff', metalness: 1, roughness: 1}),
     copper: mk('copper', {color: '#ffffff', metalness: 1, roughness: 1}),
     bakelite: mk('bakelite', {color: '#ffffff', metalness: 0, roughness: 1, clearcoat: .6, clearcoatRoughness: .2}),
