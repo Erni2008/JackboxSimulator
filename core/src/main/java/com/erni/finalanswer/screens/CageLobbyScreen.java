@@ -37,6 +37,8 @@ public final class CageLobbyScreen extends ScreenAdapter {
     private final com.erni.finalanswer.ui.lobby.LobbyAtmosphere atmosphere = new com.erni.finalanswer.ui.lobby.LobbyAtmosphere();
     private final ConnectionPanel phone;
     private final Label code, roomName, playerCount, connectedCount, status;
+    /** THE LAST COMMAND is hidden from the mode selector until it is reworked (its code and logic stay). */
+    public static final boolean LAST_COMMAND_ENABLED = false;
     private final TextButton play, impostor, cursed, cards, lastCommand, modePrev, modeNext, modeStart;
     private final Label modeName, modeHint;
     private final BitmapFont modeFont=UiFonts.body(30);
@@ -129,7 +131,8 @@ public final class CageLobbyScreen extends ScreenAdapter {
         modes.add(new Mode("ВОПРОСЫ (ОСНОВНАЯ ИГРА)","от 1 игрока",play,game::showPlayScreen));
         modes.add(new Mode("THE IMPOSTOR","от 3 игроков",impostor,game::showImpostorLobby));
         modes.add(new Mode("CURSED BOXES","от 2 игроков",cursed,game::startCursedBoxesMultiplayer));
-        modes.add(new Mode("THE LAST COMMAND","от 1 игрока",lastCommand,game::startLastCommand));
+        // THE LAST COMMAND is parked (2026-11-08): it will come back with a new interpretation; its code stays.
+        if(LAST_COMMAND_ENABLED)modes.add(new Mode("THE LAST COMMAND","от 1 игрока",lastCommand,game::startLastCommand));
         modes.add(new Mode("THE CURSED CARDS","4–6 игроков",cards,game::startCursedCards));
         for(String[] d:new String[][]{{"EASY","ЛЁГКИЙ","90 / 60 / 60 с · одна поломка · без помех"},{"NORMAL","СРЕДНИЙ","60 / 45 / 45 с · стандартные правила"},{"HARD","СЛОЖНЫЙ","45 / 35 / 35 с · двойные поломки · всегда скачок"}})
             modes.add(new Mode("АДСКАЯ КЛЕТКА · "+d[1],d[2]+" · телефоны переключатся в клетку",null,()->{var rt=game.getRealtime();if(rt!=null&&rt.connected())rt.send("OPEN_WEB_GAME",java.util.Map.of("game","broken-elevator","difficulty",d[0]));var room=game.getActiveRoom();String base=game.getHosting().apiUrl().replaceAll("/+$","");Gdx.net.openURI(room!=null?base+"/hell-cage-host/?room="+room.code()+"#token="+room.token():base+"/broken-elevator-manual/?diff="+d[0].toLowerCase());}));
