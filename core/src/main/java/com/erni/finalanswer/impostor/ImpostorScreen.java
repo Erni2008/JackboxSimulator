@@ -31,6 +31,7 @@ public final class ImpostorScreen extends ScreenAdapter {
     private final com.erni.finalanswer.presentation.PhaseTransition transition=new com.erni.finalanswer.presentation.PhaseTransition();
     private final com.erni.finalanswer.audio.PresentationAudio audio=new com.erni.finalanswer.audio.PresentationAudio(com.erni.finalanswer.audio.PresentationAudio.GDX);
     private ImpostorAtmosphere dust,veil;
+    private float tensionLevel;
     private ImpostorSettingsPanel roomSettings;
     private com.erni.finalanswer.gameplay.impostor.ImpostorSettings authoritativeSettings=com.erni.finalanswer.gameplay.impostor.ImpostorSettings.defaults();
     private boolean settingsSoundMuted,previousLocalMute;
@@ -570,6 +571,7 @@ public final class ImpostorScreen extends ScreenAdapter {
             for(var entry:audioControlLabels.entrySet())entry.getKey().setText(entry.getValue().get());
         }
         if (background != null) background.update(paused ? 0 : delta, reducedMotion());
+        if (background != null) { float goal=finalSnapshot==null?0:VotingLayout.ceremony(finalSnapshot.phase())?1f:.6f; tensionLevel+=(goal-tensionLevel)*Math.min(1,(paused?0:delta)*1.5f); background.tension(tensionLevel); }
         finalPresentation.paused(paused);
         paperReveal.update(paused ? 0 : delta);
         presentPapers();
@@ -684,6 +686,7 @@ public final class ImpostorScreen extends ScreenAdapter {
         if(roleInstruction!=null)roleInstruction.close();if(evidenceBoard!=null)evidenceBoard.close();
         if(votingNarration!=null)votingNarration.close();
         if(finalPresentation!=null)finalPresentation.close();if(localSettings!=null)localSettings.close();
+        if(background!=null)background.dispose();
         labelFont.dispose();roundFont.dispose();if(bandPixel!=null)bandPixel.dispose();
         timerFont.dispose();audio.close();if(roomSettings!=null)roomSettings.dispose();if(dust!=null)dust.dispose();if(veil!=null)veil.dispose();
         participantFont.dispose();nicknameFont.dispose();
