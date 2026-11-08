@@ -1,6 +1,6 @@
 // АДСКАЯ КЛЕТКА — THE LOCKSMITH'S NOTES: three aged sheets nailed to the cage wall beside the door.
 // They teach HOW to pick the cage lock (the anatomy, the pick technique, what to do when it goes wrong);
-// WHICH pin to lift first stays in the handbook (section V), so both have to be read.
+// Everything is on the sheets (the book holds nothing about the lock).
 //   I   — how to pick it, step by step (tap the lock, read the plate, drag sideways, drag up, all in order)
 //   II  — the pin ORDER for each system, written out in full: the three makers' rules, the number, the feel
 //   III — trouble: a copper pin sticks (ease the wheel), a black pin is a trap, a wrong pin drops them all

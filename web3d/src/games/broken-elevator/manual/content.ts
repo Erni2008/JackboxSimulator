@@ -163,7 +163,7 @@ export function diagnosticsManual(): ManualContent {
     {layout: 'rules', section: 1, half: 0}, {layout: 'rules', section: 1, half: 1},
     {layout: 'rules', section: 2, half: 0}, {layout: 'rules', section: 2, half: 1},
     {layout: 'pressure', half: 0} as any, {layout: 'pressure', half: 1} as any,
-    {layout: 'lockpick', half: 0} as any, {layout: 'lockpick', half: 1} as any,
+    // the cage lock is NOT in the book: everything about it is on the sheets on the cage wall
   ]};
 }
 

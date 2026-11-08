@@ -2,7 +2,7 @@
 // A heavy Victorian prison lock hangs on the cage door with its cover off: five pin stacks in machined channels
 // (spring, coloured driver with engraved notches, steel key pin), the brass plug under them with its thumb-wheel,
 // a cam lever and a sliding bolt. A hook pick sits in the keyway; tapping a pin lifts it, tapping the wheel eases the torque.
-// The handbook (section V, "Picking the lock") holds everything else:
+// The sheets on the cage wall (LockNotes) hold everything else:
 //   1. the maker's stamp on the lock decides the ORDER the pins bind in
 //        GRIFFIN & SON — right to left · HARTWELL — copper, then brass, then steel (left to right inside a colour)
 //        MORTON — by the notches on the pin, fewest first
@@ -40,7 +40,7 @@ export function bindingOrder(maker: number, pins: Pin[]) {
 }
 /**
  * A new lock. The SYSTEM (method) decides where the pin order comes from:
- *   maker  — the maker's plate + the handbook, section V (each maker has his own rule)
+ *   maker  — the maker's plate + sheet II on the wall (each maker has his own rule)
  *   serial — the digits of the plate's number ARE the order (pin 1 is the left one)
  *   bind   — nothing written: probe each pin with a small lift; the binding pin trembles, the loose ones spring
  * Difficulty: EASY 4 plain pins, 3 tries · NORMAL 5 pins with a copper spool, 3 tries ·
