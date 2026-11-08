@@ -200,7 +200,7 @@ export class CodeLock {
   overset = -1; private sparks!: T.Points; private sparkV = new Float32Array(48 * 3); private sparkLife = 0;
   set: boolean[] = []; stuck = -1; eased = false; private step = 0;
   private body = new T.Group(); private shackle = new T.Group(); private pins = new T.Group(); private pick = new T.Group(); private wheel = new T.Group();
-  private lever = new T.Group(); private glass: T.Mesh | null = null; private gearA = new T.Group(); private gearB = new T.Group(); private hook!: T.Mesh; private hookTip!: T.Mesh; private bolt = new T.Group(); private boltSpring!: T.Mesh;
+  private lever = new T.Group(); private glass: T.Mesh | null = null; private wrench: T.Group | null = null; private gearA = new T.Group(); private gearB = new T.Group(); private hook!: T.Mesh; private hookTip!: T.Mesh; private bolt = new T.Group(); private boltSpring!: T.Mesh;
   private drivers: T.Group[] = []; private keys: T.Mesh[] = []; private springs: T.Mesh[] = []; private lift: number[] = []; private bump: number[] = [];
   private tokens: T.Mesh[] = []; private controls: {id: string; root: T.Object3D}[] = []; private open = 0; private jam = 0; private tries = 3; private done = false; private t = 0;
   private stampMat: T.MeshStandardMaterial; private pickX = 0; private pickPush = 0; private pickLift = 0; private liftT = 0; private stroke = -2; private drag: {x: number; y: number; ppmX: number; ppmY: number; wheel: boolean} | null = null; private under = -1; private probe = -2; private tremble = 0; private ease = 0; private shudder = 0; private turn = 0;
@@ -269,13 +269,22 @@ export class CodeLock {
     for (const dx of [0, .004]) { const ring = new T.Mesh(new T.TorusGeometry(PR + .0006, .0007, 8, 48, Math.PI), this.steel); ring.rotation.y = Math.PI / 2; ring.rotation.z = Math.PI / 2; ring.position.set(PLUG_X1 - .003 - dx, PC, CH); this.body.add(ring); }
     for (const [sx, sy] of [[-.112, .066]]) { const s = screw(this.steel, this.dark, .0075); s.position.set(sx, sy, -.019); this.body.add(s); }
     // the hook pick: a long blade through the wheel's keyway, its grip out to the left
-    const blade = new T.Mesh(new T.BoxGeometry(.2, .0018, .0032), this.steel); blade.position.x = -.1; this.pick.add(blade);
-    const hook = new T.Mesh(new T.BoxGeometry(.0026, 1, .0032), this.steel); hook.scale.y = .0045; hook.position.set(-.0012, .0031, 0); this.pick.add(hook); this.hook = hook;
-    const tipCap = new T.Mesh(new T.SphereGeometry(.0016, 12, 8), this.steel); this.pick.add(tipCap); this.hookTip = tipCap;
-    const grip = new T.Mesh(new T.CylinderGeometry(.0062, .0068, .064, 20), mat('#3a1d14', .75)); grip.rotation.z = Math.PI / 2; grip.position.x = -.232; this.pick.add(grip);
-    const cord = mat('#1e1612', .9); for (let k = 0; k < 10; k++) { const r = new T.Mesh(new T.TorusGeometry(.0066, .0011, 6, 20), cord); r.rotation.y = Math.PI / 2; r.position.x = -.256 + k * .005; this.pick.add(r); }
-    const fer = new T.Mesh(new T.CylinderGeometry(.0058, .0064, .01, 20), this.brass); fer.rotation.z = Math.PI / 2; fer.position.x = -.196; this.pick.add(fer);
-    this.pick.position.set(0, PC - .001, CH); this.body.add(this.pick);
+    const polished = new T.MeshStandardMaterial({color: '#e4e7ec', metalness: 1, roughness: .12, envMapIntensity: 2});
+    const blade = new T.Mesh(new T.BoxGeometry(.17, .0042, .0045), polished); blade.position.x = -.085; this.pick.add(blade);
+    const hook = new T.Mesh(new T.BoxGeometry(.0034, 1, .004), polished); hook.scale.y = .0045; hook.position.set(-.0014, .0031, 0); this.pick.add(hook); this.hook = hook;
+    const tipCap = new T.Mesh(new T.SphereGeometry(.0021, 14, 10), polished); this.pick.add(tipCap); this.hookTip = tipCap;
+    // a red-lacquered handle with brass bands: easy to see against the dark cage
+    const lacquer = new T.MeshPhysicalMaterial({color: '#b3241c', roughness: .25, metalness: .1, clearcoat: 1});
+    const grip = new T.Mesh(new T.CylinderGeometry(.0125, .014, .085, 28), lacquer); grip.rotation.z = Math.PI / 2; grip.position.x = -.22; this.pick.add(grip);
+    const knob = new T.Mesh(new T.SphereGeometry(.0135, 24, 14), lacquer); knob.position.x = -.2625; this.pick.add(knob);
+    for (const bx of [-.183, -.2, -.248]) { const band = new T.Mesh(new T.CylinderGeometry(.0142, .0142, .004, 28), this.brass); band.rotation.z = Math.PI / 2; band.position.x = bx; this.pick.add(band); }
+    const fer = new T.Mesh(new T.CylinderGeometry(.007, .0115, .016, 24), this.brass); fer.rotation.z = Math.PI / 2; fer.position.x = -.17; this.pick.add(fer);
+    this.pick.position.set(0, PC - .001, CH + .004); this.body.add(this.pick);
+    // the tension wrench: an L of spring steel in the bottom of the keyway, its arm hanging down out of the wheel
+    { const w = new T.Group(); const a = new T.Mesh(new T.BoxGeometry(.03, .0034, .004), polished); a.position.x = .0; w.add(a);
+      const b = new T.Mesh(new T.BoxGeometry(.0028, .07, .0035), polished); b.position.set(-.03, -.035, 0); w.add(b);
+      const tip = new T.Mesh(new T.CylinderGeometry(.004, .004, .02, 16), lacquer); tip.position.set(-.03, -.075, 0); w.add(tip);
+      w.position.set(PLUG_X0 - .028, PC - .006, .016); /* in front of the frame, so it is seen hanging out of the wheel */ w.rotation.z = -.12; this.body.add(w); this.wrench = w; }
     // shackle
     const chrome = new T.MeshStandardMaterial({color: '#d6d8dc', metalness: 1, roughness: .16, envMapIntensity: 1.8}); const u = new T.Mesh(new T.TorusGeometry(.085, .015, 24, 64, Math.PI), chrome); this.shackle.add(u);
     for (const s of [-1, 1]) { const leg = new T.Mesh(new T.CylinderGeometry(.015, .015, .07, 28), chrome); leg.position.set(s * .085, -.035, 0); this.shackle.add(leg); }
@@ -460,7 +469,7 @@ export class CodeLock {
     this.ease = Math.max(0, this.ease - dt * 2.5); for (let i = 0; i < this.drvMats.length; i++) { this.flash[i] = Math.max(0, (this.flash[i] ?? 0) - dt * 2.2); this.drvMats[i].emissiveIntensity = this.flash[i] * this.flash[i] * 1.4; } if (this.pickLift < .15) this.tremble = 0; this.shudder = Math.max(0, this.shudder - dt * 1.5);
     const tq = this.open > 0 ? Math.PI / 2 * (1 - Math.pow(1 - Math.min(1, this.open * 1.4), 3)) : this.eased ? -.02 : .05 + .04 * this.step;
     this.turn += (tq - Math.sin(this.ease * Math.PI) * .18 + Math.sin(this.t * 50) * .015 * this.shudder - this.turn) * (1 - Math.exp(-dt * (this.open > 0 ? 30 : 14)));
-    this.wheel.rotation.x = this.turn;
+    this.wheel.rotation.x = this.turn; if (this.wrench) this.wrench.rotation.z = -.12 - this.turn * .35;
     // cam → lever → bolt: the bolt draws back as the plug turns
     const draw = Math.max(0, Math.min(1, this.turn / (Math.PI / 2))); this.lever.rotation.z = draw * .55; this.gearA.rotation.z = -this.turn * 1.6; this.gearB.rotation.z = this.turn * 1.6 * 18 / 11 + .14; this.bolt.position.x = -draw * .028; this.boltSpring.scale.set(1, .036 * (1 - draw * .5), 1);
     if (this.open > 0) { this.open = Math.min(1, this.open + dt * .7); const e = Math.max(0, (this.open - .25) / .75), ee = 1 - Math.pow(1 - e, 3), sw = Math.max(0, (e - .35) / .65); this.shackle.position.y = IN.y1 + .045 + .07 * Math.min(1, e * 2.2); this.shackle.rotation.y = (1 - Math.pow(1 - sw, 3)) * 2.2; this.body.rotation.z = Math.sin(e * 14) * .06 * (1 - e) + ee * .12; /* the body, freed, hangs off one leg */ }

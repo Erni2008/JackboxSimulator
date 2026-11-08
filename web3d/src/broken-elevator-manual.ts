@@ -57,7 +57,7 @@ if (composer) { composer.addPass(new RenderPass(scene, camera)); composer.addPas
 function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); renderer.domElement.style.width = w + 'px'; renderer.domElement.style.height = h + 'px'; composer?.setSize(w, h); composer?.setPixelRatio(renderer.getPixelRatio()); camera.aspect = w / h; camera.fov = camera.aspect < .9 ? 58 : 46; camera.updateProjectionMatrix(); }
 addEventListener('resize', resize); resize();
 
-const audio = new BookAudio(), voice = new Voice();
+const audio = new BookAudio(), voice = new Voice(); voice.enabled = false; /* no host voice on the player's page (subtitles stay); the host screen speaks */
 let timeScale = 1; // test hook: 0 freezes animation for frame-exact captures
 async function boot() {
   translateDom(); $('load-text').textContent = L('Спуск…', 'Descending…');
@@ -494,6 +494,7 @@ async function boot() {
     } else { camera.position.copy(eye); camera.quaternion.setFromEuler(new T.Euler(pitch, yaw, 0, 'YXZ')); }
     if (kind === 'formula' && (flink.view()?.doses.length ?? 0) > 0 && Math.random() < dt * 1.6) audio.play('blub', .6);
     if (tellPending && frameNo % 30 === 0) { const intro = tellPending.startsWith('intro:'), want = intro ? tellPending.slice(6) : tellPending; if (want !== kind) tellPending = null; else if (intro ? voice.say('intro', 3, 0) : (told.has(kind) && ['wire','pressure','formula','lock'].includes(kind) ? voice.say(('task_' + kind) as any, 3, 0) : voice.say(('tutorial_' + kind) as any, 3, 0) && !!told.add(kind))) tellPending = intro ? kind : null; }
+    { const up = (['held', 'reading', 'lifting'].includes(cur().state) && !cur().lowered) || notes.held >= 0 || nb.open; if (document.body.classList.contains('paper-up') !== up) document.body.classList.toggle('paper-up', up); } // a book or sheet in front of the eyes: the task text steps aside
     cage.update(dt); ui.update(dt); jui.update(dt); if (kind === "wire" || inspectTarget === "box") box.update(dt); if (kind === "pressure" || inspectTarget === "pressure") press.update(dt, link.view()); if (kind === "formula" || inspectTarget === "lab") lab.update(dt, flink.view()); if (kind === "lock" || inspectTarget === "lock") lock.update(dt); /* only the machine in play animates */
     if (suitcase && nbook) { const liveK = kind === 'bomb'; suitcase.root.visible = liveK; if (nbook.root) nbook.root.visible = liveK; nbook.update();
       { const split = liveK && inspecting && inspectTarget === 'bomb' && suitcase.state === 'held' && nbook.open; suitcase.sideOn = split; if (dui) dui.splitOn = split; if (dbook && dui && suitcase.focus !== bookFocus) { bookFocus = suitcase.focus; const i = bookFocus ? (['WIRE_MAZE', 'HIDDEN_CONNECTIONS', 'XRAY', 'LASER', 'THERMAL'] as string[]).indexOf(bookFocus) : -1; bookGoal = i >= 0 ? {spread: Math.floor((i + 1) / 2), side: i % 2 === 0 ? 1 : -1} : null; }
