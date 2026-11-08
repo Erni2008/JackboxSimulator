@@ -1,0 +1,134 @@
+/* ARENA PRO — the gamer layer for every phone screen except the Hell Cage and the Impostor (it has its own noir layer).
+   Only transform / opacity / filter animations: cheap on the Poco X3 Pro. Honours prefers-reduced-motion. */
+:root{--ap-gold:#f0c770;--ap-gold2:#a9782f;--ap-blood:#e0384c;--ap-ok:#4fe39a;--ap-bad:#ff4d5e;--ap-ice:#8fd8ff;--ap-panel:#140c10ee;--ap-line:#ffffff14}
+@keyframes ap-in{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes ap-pulse{0%,100%{opacity:.55}50%{opacity:1}}
+@keyframes ap-sweep{from{transform:translateX(-120%)}to{transform:translateX(220%)}}
+@keyframes ap-pop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.12);opacity:1}100%{transform:scale(1)}}
+@keyframes ap-shake{0%,100%{transform:none}20%{transform:translateX(-9px) rotate(-1deg)}40%{transform:translateX(8px) rotate(1deg)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+@keyframes ap-flash{from{opacity:.75}to{opacity:0}}
+@keyframes ap-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes ap-beat{0%,100%{transform:scale(1)}15%{transform:scale(1.08)}30%{transform:scale(1)}}
+@keyframes ap-ember{from{transform:translateY(0);opacity:0}15%{opacity:.8}to{transform:translateY(-110vh);opacity:0}}
+@keyframes ap-crosshair{to{transform:rotate(360deg)}}
+
+/* ---------- arena atmosphere (embers + scanline + edge glow) ---------- */
+.ap-fx{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.ap-fx i{position:absolute;bottom:-10px;width:3px;height:3px;border-radius:50%;background:#ffb35c;box-shadow:0 0 6px #ff7a2a;animation:ap-ember linear infinite;will-change:transform,opacity}
+.ap-fx::after{content:"";position:absolute;inset:0;box-shadow:inset 0 0 90px #000c,inset 0 0 18px #ff2a3a22}
+body[data-view=question] .ap-fx::after{box-shadow:inset 0 0 90px #000c,inset 0 0 24px #ffb35c22}
+body[data-urgent=true] .ap-fx::after{box-shadow:inset 0 0 90px #000c,inset 0 0 50px #ff1e3a77;animation:ap-pulse .5s infinite}
+main{position:relative;z-index:1}
+.ap-flash{position:fixed;inset:0;z-index:50;pointer-events:none;opacity:0}
+.ap-flash.ok{background:radial-gradient(circle at 50% 40%,#4fe39a88,#0a3a2200 70%);animation:ap-flash .9s ease-out}
+.ap-flash.bad{background:radial-gradient(circle at 50% 40%,#ff2a3a99,#3a0a1000 70%);animation:ap-flash .9s ease-out}
+
+/* ---------- shared HUD frame ---------- */
+body:not([data-view=impostor]):not([data-view=suspicion]):not([data-view=final]) main{border:1px solid #6b3a40;border-radius:14px;background:linear-gradient(160deg,#1b0f14f2,#0b080bf2 60%);box-shadow:0 20px 60px #000a,inset 0 1px #ffffff12,inset 0 0 60px #7a1a2a1c}
+.screen:not([hidden]){animation:ap-in .35s cubic-bezier(.2,.8,.2,1)}
+.connection{border-radius:999px;text-align:center;letter-spacing:.2em}
+
+/* ---------- join ---------- */
+body[data-view=join] #join-screen h1{font-size:clamp(38px,10vw,50px);color:#f6d488;text-shadow:0 3px 0 #000,0 0 24px #f0c77055}
+.join-steps li{position:relative;border-radius:8px;background:#ffffff08;border:1px solid var(--ap-line);padding:8px!important}
+#join-form select{border-radius:10px;background:#130d11;border:1px solid #805456;color:#fff2df;height:56px;font-size:17px}
+#join-button{position:relative;overflow:hidden;border-radius:12px;background:linear-gradient(180deg,#e0384c,#8c1426);border:1px solid #ff8a96;box-shadow:0 6px 0 #4a0912,0 10px 24px #e0384c55;font-size:20px;letter-spacing:.14em;min-height:62px;transition:transform .08s}
+#join-button:active{transform:translateY(4px);box-shadow:0 2px 0 #4a0912}
+#join-button::after{content:"";position:absolute;inset:0;width:40%;background:linear-gradient(100deg,transparent,#ffffff40,transparent);animation:ap-sweep 2.6s ease-in-out infinite}
+
+/* ---------- lobby (waiting) ---------- */
+body[data-view=waiting] #waiting-title{font-size:clamp(34px,9vw,46px)}
+body[data-view=waiting] .identity{border-radius:14px;border:1px solid #f0c77055;background:linear-gradient(120deg,#2a1a12,#120c0f);box-shadow:0 0 0 1px #000,0 0 26px #f0c77022 inset}
+body[data-view=waiting] .identity .seal{animation:ap-float 3.4s ease-in-out infinite}
+.room-capacity{height:10px;border-radius:999px;overflow:hidden;appearance:none;-webkit-appearance:none;background:#2a1a1f;border:0}
+.room-capacity::-webkit-progress-bar{background:#2a1a1f}.room-capacity::-webkit-progress-value{background:linear-gradient(90deg,#a9782f,#f0c770);box-shadow:0 0 10px #f0c770}
+.room-capacity::-moz-progress-bar{background:linear-gradient(90deg,#a9782f,#f0c770)}
+#players{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#players li{position:relative;border-radius:10px;padding:12px 10px 10px 34px!important;background:linear-gradient(160deg,#24151b,#140d11);border:1px solid #ffffff12;animation:ap-in .4s both;flex-direction:column;align-items:flex-start!important;gap:4px}
+#players li::before{content:attr(data-slot);position:absolute;left:8px;top:11px;width:20px;height:20px;border-radius:5px;display:grid;place-items:center;font:700 11px Body,sans-serif;color:#1b0f14;background:var(--ap-gold)}
+#players li[data-connection=ONLINE]::after{content:"";position:absolute;right:9px;top:12px;width:8px;height:8px;border-radius:50%;background:var(--ap-ok);box-shadow:0 0 8px var(--ap-ok);animation:ap-pulse 1.6s infinite}
+#players li[data-connection=OFFLINE]{opacity:.6}
+#players li.is-self{border-color:#f0c770aa;box-shadow:0 0 18px #f0c77033}
+#players .guest-connection{font-size:9px;letter-spacing:.14em}
+#players li.ap-empty{border-style:dashed;background:transparent;color:#ffffff40;font-size:11px;letter-spacing:.2em;padding-left:12px!important;justify-content:center}
+#players li.ap-empty::before,#players li.ap-empty::after{display:none}
+
+/* ---------- question: HUD + timer ring + answer pads ---------- */
+.ap-ring{--f:1;position:relative;width:64px;height:64px;flex:none}
+.ap-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ap-ring circle{fill:none;stroke-width:7}
+.ap-ring .bg{stroke:#ffffff14}.ap-ring .fg{stroke:var(--ap-gold);stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:calc(100 - var(--f)*100);filter:drop-shadow(0 0 5px #f0c770aa);transition:stroke-dashoffset .25s linear,stroke .3s}
+.ap-ring b{position:absolute;inset:0;display:grid;place-items:center;font:400 24px RoadRage,Horror,sans-serif;color:#fff2d6;text-shadow:0 2px 0 #000}
+body[data-urgent=true] .ap-ring .fg{stroke:var(--ap-bad);filter:drop-shadow(0 0 7px #ff4d5e)}
+body[data-urgent=true] .ap-ring{animation:ap-beat 1s infinite}
+body[data-view=question] #timer{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+body[data-view=question] .round-top{align-items:center}
+body[data-view=question] #question-number{font-size:12px;letter-spacing:.24em;color:var(--ap-gold)}
+.question-progress{height:6px;border-radius:999px}
+body[data-view=question] .personal-life,body[data-view=result] .personal-life{padding:8px 12px!important;border-radius:999px;display:flex;align-items:center;gap:10px}
+body[data-view=question] .personal-life p,body[data-view=result] .personal-life p{display:none}
+body[data-view=question] #question-text{font-size:clamp(28px,7.6vw,38px);text-align:center;margin:18px 0 10px;text-shadow:0 3px 0 #000,0 0 22px #f0c77022}
+body[data-view=question] .answer-clock-track{display:none}
+#answers{display:grid;gap:12px}
+#answers .answer{--c:#f0c770;position:relative;overflow:hidden;min-height:64px;border-radius:14px!important;border:1px solid color-mix(in srgb,var(--c) 45%,#000)!important;background:linear-gradient(180deg,color-mix(in srgb,var(--c) 16%,#1a1015),#120b0f)!important;box-shadow:0 5px 0 #050304,0 0 0 1px #000,inset 0 1px #ffffff18!important;font-size:19px!important;transition:transform .08s,box-shadow .08s,filter .2s;animation:ap-in .35s both}
+#answers .answer:nth-child(1){--c:#ff5a6a;animation-delay:.05s}#answers .answer:nth-child(2){--c:#5fb8ff;animation-delay:.1s}#answers .answer:nth-child(3){--c:#ffc24a;animation-delay:.15s}#answers .answer:nth-child(4){--c:#5be39b;animation-delay:.2s}
+#answers .answer .number{display:grid!important;place-items:center;width:38px!important;height:38px!important;border-radius:10px!important;background:var(--c)!important;color:#140a0d!important;font:400 0/1 RoadRage,Horror,sans-serif!important;border:0!important;box-shadow:0 3px 0 #0008}
+#answers .answer:nth-child(1) .number::after{content:"A"}#answers .answer:nth-child(2) .number::after{content:"B"}#answers .answer:nth-child(3) .number::after{content:"C"}#answers .answer:nth-child(4) .number::after{content:"D"}
+#answers .answer .number::after{font-size:24px}
+#answers .answer:not(:disabled):active{transform:translateY(4px);box-shadow:0 1px 0 #050304!important}
+#answers .answer.selected{border-color:var(--c)!important;box-shadow:0 0 0 2px var(--c),0 0 26px color-mix(in srgb,var(--c) 55%,transparent)!important;filter:brightness(1.15)}
+#answers .answer.selected::after{content:"";position:absolute;inset:0;width:35%;background:linear-gradient(100deg,transparent,#ffffff30,transparent);animation:ap-sweep 1.4s ease-in-out infinite}
+#answers .answer:disabled:not(.selected){filter:saturate(.35) brightness(.7)}
+.choice-receipt{border-radius:14px!important;border:1px solid #f0c770aa!important;background:linear-gradient(120deg,#2b1d10,#140d0c)!important;animation:ap-pop .45s both}
+.choice-receipt .receipt-label{color:var(--ap-gold)!important;letter-spacing:.3em}
+.life-roster{border-radius:14px!important}
+
+/* ---------- result: big animated verdict ---------- */
+body[data-view=result] .verdict-card{border:0!important;background:none!important}
+body[data-view=result] .verdict-seal{animation:ap-pop .6s .1s both;transform-origin:center}
+body[data-view=result] .verdict-seal svg{width:110px!important;height:110px!important}
+body[data-view=result] #result-title{font-size:clamp(44px,12vw,62px)!important;animation:ap-pop .55s .25s both}
+#result-screen[data-outcome=correct] #result-title{color:var(--ap-ok)!important;text-shadow:0 4px 0 #062a17,0 0 30px #4fe39a88!important}
+#result-screen[data-outcome=correct] .verdict-seal svg{filter:drop-shadow(0 0 16px #4fe39a)}
+#result-screen[data-outcome=incorrect] #result-title,#result-screen[data-outcome=timeout] #result-title{color:var(--ap-bad)!important;text-shadow:0 4px 0 #2a0610,0 0 30px #ff4d5e88!important}
+#result-screen[data-outcome=incorrect] .verdict-card,#result-screen[data-outcome=timeout] .verdict-card{animation:ap-shake .5s .35s both}
+#result-screen[data-outcome=incorrect] .verdict-seal svg{filter:drop-shadow(0 0 16px #ff4d5e)}
+#result-screen .answer-reveal{border-radius:14px;overflow:hidden}
+#result-screen .correct-answer{border-radius:12px!important;border-color:#4fe39a66!important;color:#dfffe9!important;box-shadow:inset 0 0 22px #4fe39a22}
+.ap-danger{display:none;margin:4px 0 12px;padding:10px 12px;border-radius:12px;text-align:center;font:700 14px Body,sans-serif;letter-spacing:.16em;color:#ffd6da;background:repeating-linear-gradient(-45deg,#3a0a12,#3a0a12 10px,#24060b 10px,#24060b 20px);border:1px solid #ff4d5e88;animation:ap-pulse 1.2s infinite}
+#result-screen[data-outcome=incorrect] .ap-danger,#result-screen[data-outcome=timeout] .ap-danger{display:block}
+.ap-score{display:flex;justify-content:center;gap:10px;margin:10px 0}
+.ap-score span{padding:8px 14px;border-radius:999px;background:#ffffff0a;border:1px solid #f0c77055;color:var(--ap-gold);font:600 12px Body,sans-serif;letter-spacing:.18em}
+
+/* ---------- ghost ---------- */
+body[data-view=ghost] .ghost-seal{animation:ap-float 3s ease-in-out infinite;color:var(--ap-ice)!important;box-shadow:0 0 30px #8fd8ff44!important;border-color:#8fd8ff66!important}
+body[data-view=ghost] #ghost-screen h1{color:#dff4ff!important;text-shadow:0 0 24px #8fd8ff99,0 3px 0 #000!important}
+body[data-view=ghost] .ap-fx i{background:#bfe9ff;box-shadow:0 0 8px #8fd8ff}
+
+/* ---------- finished: podium ---------- */
+body[data-view=finished] #final-score{font:400 clamp(40px,11vw,56px) RoadRage,Horror,sans-serif!important;text-align:center;color:var(--ap-gold)!important;border:0!important;text-shadow:0 4px 0 #000,0 0 26px #f0c77077;animation:ap-pop .6s both}
+#final-standings li{border-radius:12px!important;animation:ap-in .4s both}
+#final-standings li:nth-child(1){border-color:#f0c770!important;background:linear-gradient(120deg,#3a2810,#140d0c)!important;box-shadow:0 0 22px #f0c77044}
+#final-standings li:nth-child(2){border-color:#cfd6e0aa!important}#final-standings li:nth-child(3){border-color:#c98a5aaa!important}
+#final-standings li:nth-child(1) .standing-rank::before{content:"👑 "}
+#final-standings .standing-rank{font:400 26px RoadRage,Horror,sans-serif!important;color:var(--ap-gold)}
+#final-standings li:nth-child(2){animation-delay:.08s}#final-standings li:nth-child(3){animation-delay:.16s}#final-standings li:nth-child(4){animation-delay:.24s}
+
+/* ---------- cursed boxes: crates, crosshair, trigger ---------- */
+.cursed-box{border-radius:10px!important;transition:transform .1s,filter .2s;overflow:visible!important}
+.cursed-box:not(:disabled):active{transform:scale(.94)}
+.cursed-box.selected{transform:scale(1.04);z-index:2;box-shadow:0 0 0 2px var(--ap-blood),0 0 22px #e0384caa!important}
+.cursed-box.selected::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px dashed #ff6070;pointer-events:none;animation:ap-crosshair 6s linear infinite}
+#cursed-screen[data-role=HIDING] .cursed-box.selected{box-shadow:0 0 0 2px var(--ap-ice),0 0 22px #8fd8ffaa!important}
+#cursed-screen[data-role=HIDING] .cursed-box.selected::after{border-color:#8fd8ff;border-style:solid;border-radius:12px;animation:ap-pulse 1.2s infinite}
+.cursed-box.destroyed{filter:grayscale(.7) brightness(.55)}
+.cursed-fire{border-radius:14px!important;transition:transform .08s}
+.cursed-fire:not(:disabled){animation:ap-beat 1.4s infinite}
+.cursed-fire:not(:disabled):active{transform:translateY(4px) scale(.98);animation:none}
+#cursed-screen:not(.waiting-turn) .cursed-turn{color:var(--ap-gold)}
+#cursed-screen .cursed-result{border-radius:14px;animation:ap-pop .45s both}
+
+/* ---------- cursed cards: subtle extras on its own layout ---------- */
+#cards-screen[data-mode=pick] .cc-banner h2{animation:ap-beat 1.3s infinite;color:var(--ap-gold)}
+
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.ap-fx{display:none}}
