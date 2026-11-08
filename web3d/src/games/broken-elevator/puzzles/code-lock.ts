@@ -201,7 +201,7 @@ export class CodeLock {
   set: boolean[] = []; stuck = -1; eased = false; private step = 0;
   private body = new T.Group(); private shackle = new T.Group(); private pins = new T.Group(); private pick = new T.Group(); private wheel = new T.Group();
   private lever = new T.Group(); private glass: T.Mesh | null = null; private wrench: T.Group | null = null; private gearA = new T.Group(); private gearB = new T.Group(); private hook!: T.Mesh; private hookTip!: T.Mesh; private bolt = new T.Group(); private boltSpring!: T.Mesh;
-  private drivers: T.Group[] = []; private keys: T.Mesh[] = []; private springs: T.Mesh[] = []; private lift: number[] = []; private bump: number[] = [];
+  private drivers: T.Group[] = []; private beads: T.Mesh[] = []; private beadOn!: T.MeshStandardMaterial; private beadOff!: T.MeshStandardMaterial; private keys: T.Mesh[] = []; private springs: T.Mesh[] = []; private lift: number[] = []; private bump: number[] = [];
   private tokens: T.Mesh[] = []; private controls: {id: string; root: T.Object3D}[] = []; private open = 0; private jam = 0; private tries = 3; private done = false; private t = 0;
   private stampMat: T.MeshStandardMaterial; private pickX = 0; private pickPush = 0; private pickLift = 0; private liftT = 0; private stroke = -2; private drag: {x: number; y: number; ppmX: number; ppmY: number; wheel: boolean} | null = null; private under = -1; private probe = -2; private tremble = 0; private ease = 0; private shudder = 0; private turn = 0;
   private mats: Record<PinColor, T.Material>; private ringMat: T.Material; private ringMatB: T.Material; private hi: boolean;
@@ -359,6 +359,9 @@ export class CodeLock {
       const sp = new T.Mesh(springGeo, springMat); sp.position.set(cx, 0, CH); this.pins.add(sp); this.springs.push(sp);
       const hit = new T.Mesh(new T.BoxGeometry(P * .95, TOPB - PC + .01, .04), new T.MeshBasicMaterial({visible: false})); hit.position.set(cx, (TOPB + PC) / 2, .004); hit.userData.id = `pin${i}`; this.pins.add(hit);
       this.controls.push({id: `pin${i}`, root: dg}); });
+    // a progress bead for each pin on the frame under the plug: dark until that pin is set, then green
+    this.beadOn ??= new T.MeshStandardMaterial({color: '#2bd26a', emissive: '#18c95a', emissiveIntensity: 1.2, roughness: .2}); this.beadOff ??= new T.MeshStandardMaterial({color: '#151816', roughness: .35, metalness: .3});
+    this.beads = xs.map(px => { const b = new T.Mesh(new T.SphereGeometry(.0034, 16, 10), this.beadOff); b.scale.z = .6; b.position.set(px, IN.y0 + .0035, .0135); this.pins.add(b); return b; });
     this.lift = this.keys.map(k => KEY_TIP + k.userData.len); this.flash = t.pins.map(() => 0); this.bump = t.pins.map(() => 0);
   }
 
@@ -466,7 +469,7 @@ export class CodeLock {
     this.pickPush = Math.max(0, this.pickPush - dt * 5); this.pickLift += (this.liftT - this.pickLift) * (1 - Math.exp(-dt * 30)); this.pick.position.y = PC - .001 + this.pickLift * .0022;
     { const u = this.pinUnder(this.pick.position.x), kb = u >= 0 ? this.keys[u].position.y - this.pick.position.y : .0045 + .0008, h = Math.max(.0045, kb - .0008); this.hook.scale.y = h; this.hook.position.y = .0008 + h / 2; this.hookTip.position.set(-.0012, .0008 + h, 0); } this.pick.position.x += (this.pickX - this.pick.position.x) * (1 - Math.exp(-dt * 22)); this.pick.rotation.z = Math.sin(this.pickPush * Math.PI) * .03;
     // torque on the wheel: a slight lean while picking, a twitch when eased, a full quarter turn when open
-    this.ease = Math.max(0, this.ease - dt * 2.5); for (let i = 0; i < this.drvMats.length; i++) { this.flash[i] = Math.max(0, (this.flash[i] ?? 0) - dt * 2.2); this.drvMats[i].emissiveIntensity = this.flash[i] * this.flash[i] * 1.4; } if (this.pickLift < .15) this.tremble = 0; this.shudder = Math.max(0, this.shudder - dt * 1.5);
+    this.ease = Math.max(0, this.ease - dt * 2.5); { const hov = this.enabled && !this.done ? this.pinUnder(this.pick.position.x) : -1; for (let i = 0; i < this.drvMats.length; i++) { this.flash[i] = Math.max(0, (this.flash[i] ?? 0) - dt * 2.2); this.drvMats[i].emissiveIntensity = Math.max(this.flash[i] * this.flash[i] * 1.4, i === hov && !this.set[i] ? .32 + .1 * Math.sin(this.t * 6) : 0); /* the pin under the pick glows softly */ if (this.beads[i]) this.beads[i].material = this.set[i] ? this.beadOn : this.beadOff; } } if (this.pickLift < .15) this.tremble = 0; this.shudder = Math.max(0, this.shudder - dt * 1.5);
     const tq = this.open > 0 ? Math.PI / 2 * (1 - Math.pow(1 - Math.min(1, this.open * 1.4), 3)) : this.eased ? -.02 : .05 + .04 * this.step;
     this.turn += (tq - Math.sin(this.ease * Math.PI) * .18 + Math.sin(this.t * 50) * .015 * this.shudder - this.turn) * (1 - Math.exp(-dt * (this.open > 0 ? 30 : 14)));
     this.wheel.rotation.x = this.turn; if (this.wrench) this.wrench.rotation.z = -.12 - this.turn * .35;

@@ -205,9 +205,9 @@ export class LockNotes {
     // a pose in camera space that keeps its on-screen size whatever the zoom: depth follows tan(fov/2)
     const t = Math.tan(T.MathUtils.degToRad(camera.fov / 2)), d = .3, hh = d * t, hw = hh * camera.aspect, sheetH = .21 * H / W;
     const portrait = camera.aspect < .9;
-    const handScale = (portrait ? .32 : .56) * 2 * hh / sheetH, readScale = .9 * 2 * hh / sheetH, sw = .21 * handScale, shh = sheetH * handScale;
+    const handScale = (portrait ? .32 : .56) * 2 * hh / sheetH, readScale = .8 * 2 * hh / sheetH, sw = .21 * handScale, shh = sheetH * handScale;
     const hand = new T.Vector3(hw - sw / 2 - .14 * hh, -hh + shh / 2 + .16 * hh, -d), handRot = new T.Euler(.05, -.22, -.07);
-    const read = new T.Vector3(0, 0, -d), readRot = new T.Euler(0, 0, 0);
+    const read = new T.Vector3(0, .085 * hh, -d) /* a little up and smaller, clear of the button bar */, readRot = new T.Euler(0, 0, 0);
     const lp = hand.clone().lerp(read, this.rk), lq = new T.Quaternion().setFromEuler(handRot).slerp(new T.Quaternion().setFromEuler(readRot), this.rk), ls = handScale + (readScale - handScale) * this.rk;
     camera.updateMatrixWorld(); const wp = lp.applyMatrix4(camera.matrixWorld), wq = camera.getWorldQuaternion(this.tmpQ).multiply(lq);
     const m = this.sheets[this.held]; m.position.lerp(wp, this.k > .98 ? 1 : a); m.quaternion.slerp(wq, this.k > .98 ? 1 : a); m.scale.lerp(this.tmpS.set(ls, ls, ls), this.k > .98 ? 1 : a);
