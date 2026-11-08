@@ -1,6 +1,7 @@
 import {PowerLighting} from './power-lighting';
 import {createCrtGlass} from './crt-glass';
 import {calibrateBody} from './body-material';
+import {buildComputer} from './computer-body';
 import {drawStandby} from './standby';
 import '../../../../web/command-ru.js';
 import '../../../../web/command-touch.js';
@@ -35,11 +36,11 @@ export class Machine implements InteractiveSceneModule {
     // so nothing inside it could be seen. Mount it as a surface-fixed armoured box: push it out along its normal.
     for(const h of m.hatches||[])if(h.id==='back')h.position={x:h.position.x+h.normal.x*BACK_HATCH_OUTSET,y:h.position.y+h.normal.y*BACK_HATCH_OUTSET,z:h.position.z+h.normal.z*BACK_HATCH_OUTSET};
     // Two concurrent decodes limit transient memory while retaining one load per GLB.
-    const sources:any[]=[];for(let i=0;i<files.length;i+=2)await Promise.all(files.slice(i,i+2).map(async(name,j)=>{sources[i+j]=(await this.assets.load(`/last-command-3d/models/${name==='computer'?this.quality.toLowerCase():this.quality==='LOW'?(this.baseline?'low':'mobile'):this.quality.toLowerCase()}/${name}.glb`)).scene;}));
+    const sources:any[]=[];for(let i=0;i<files.length;i+=2)await Promise.all(files.slice(i,i+2).map(async(name,j)=>{if(name==='computer'){sources[i+j]=this.cabinet(a.body);return;}sources[i+j]=(await this.assets.load(`/last-command-3d/models/${name==='computer'?this.quality.toLowerCase():this.quality==='LOW'?(this.baseline?'low':'mobile'):this.quality.toLowerCase()}/${name}.glb`)).scene;}));
     const create=(source:number,mount:any,id?:string)=>{
       const group=new T.Group(),content=sources[source].clone(true);group.add(content);group.position.copy(vec(mount.position));group.quaternion.copy(quaternion(mount.rotation));group.scale.copy(mount.scale?vec(mount.scale):new T.Vector3(1,1,1));content.position.sub(vec(mount.pivot));
       const c:any={id,group,content,pivot:vec(mount.pivot),mount,restPosition:group.position.clone(),restQuaternion:group.quaternion.clone(),amount:0,target:0,motionTarget:0,start:0,elapsed:1,duration:.2,uniforms:[]};
-      content.traverse((o:any)=>{if(!o.isMesh)return;o.castShadow=true;o.receiveShadow=true;o.frustumCulled=true;o.userData.control=c;o.material=Array.isArray(o.material)?o.material.map((x:any)=>x.clone()):o.material.clone();for(const material of Array.isArray(o.material)?o.material:[o.material]){for(const key of ["map","normalMap","roughnessMap","metalnessMap"]){const texture=material[key];if(texture)texture.anisotropy=8;}this.clonedMaterials.add(material);if(material.specularColor)for(const channel of ["r","g","b"])material.specularColor[channel]=T.MathUtils.clamp(material.specularColor[channel],0,1);if(material.roughness!==undefined)material.roughness=T.MathUtils.clamp(material.roughness,.24,.9);if(material.normalScale)material.normalScale.multiplyScalar(source===0?.18:.08);if(material.bumpScale!==undefined)material.bumpScale*=.2;if(source===0)calibrateBody(material,this.power);if(source>0&&source<5)this.weather(material,source===0?0:source===2?2:1,style);}});
+      content.traverse((o:any)=>{if(!o.isMesh)return;o.castShadow=true;o.receiveShadow=true;o.frustumCulled=true;o.userData.control=c;if((Array.isArray(o.material)?o.material[0]:o.material).userData?.lcCustom){for(const material of Array.isArray(o.material)?o.material:[o.material])this.clonedMaterials.add(material);return;}o.material=Array.isArray(o.material)?o.material.map((x:any)=>x.clone()):o.material.clone();for(const material of Array.isArray(o.material)?o.material:[o.material]){for(const key of ["map","normalMap","roughnessMap","metalnessMap"]){const texture=material[key];if(texture)texture.anisotropy=8;}this.clonedMaterials.add(material);if(material.specularColor)for(const channel of ["r","g","b"])material.specularColor[channel]=T.MathUtils.clamp(material.specularColor[channel],0,1);if(material.roughness!==undefined)material.roughness=T.MathUtils.clamp(material.roughness,.24,.9);if(material.normalScale)material.normalScale.multiplyScalar(source===0?.18:.08);if(material.bumpScale!==undefined)material.bumpScale*=.2;if(source===0)calibrateBody(material,this.power);if(source>0&&source<5)this.weather(material,source===0?0:source===2?2:1,style);}});
       this.root.add(group);this.instances.push(c);if(id)this.controls.set(id,c);return c;
     };
     create(0,a.body);const buttonBase=create(1,a.base);const big=create(2,a.cap,'BIG_BUTTON');big.press=true;big.axis=vec(a.pressAxis).applyQuaternion(big.restQuaternion).multiplyScalar(a.travel*a.cap.scale.y);big.pickMin=a.capPickMinY;
@@ -80,6 +81,9 @@ export class Machine implements InteractiveSceneModule {
     for(const [id,surface] of [['ANIMAL_PANEL',this.animalCanvas],['SYMBOL_PANEL',this.symbolCanvas],['SIGNAL_PANEL',this.signalCanvas]] as any){back.remove(surface.mesh);surface.mesh.position.applyMatrix4(back.matrixWorld);this.root.add(surface.mesh);surface.mesh.position.set(0,id==='SIGNAL_PANEL'?.125:.25,-.28);surface.mesh.rotation.y=Math.PI;this.deployment.add(id,[surface.mesh],n(0,0,-1));}
     this.signalCanvas.art=this.art['panel_lamps.png'];this.clueCanvas.art=this.art['hole1.png'];this.loaded=true;this.root.updateMatrixWorld(true);this.apply(this.state);this.drawPanels();return this;
   }
+  /** the cabinet built in code, wrapped so the body mount's scale/offset land it in machine space */
+  cabinet(mount:any){const wrap=new T.Group(),s=mount.scale?.x||1,t=vec(mount.position);wrap.scale.setScalar(1/s);wrap.position.copy(t).multiplyScalar(-1/s);const body=buildComputer(this.power,this.quality);wrap.add(body);
+    body.traverse((o:any)=>{if(o.geometry)this.detailGeometries.add(o.geometry);});return wrap;}
   weather(material:any,part:number,style:any){const surface=part===0?style.body:part===2?style.cap:style.base;material.onBeforeCompile=(shader:any)=>{
     shader.uniforms.u_weather={value:new T.Vector4(surface.coverage*.35,surface.relief*.3,Math.min(surface.roughness,.65),part)};
     shader.vertexShader='varying vec3 v_weatherPosition;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nv_weatherPosition=(modelMatrix*vec4(position,0.0)).xyz;');
