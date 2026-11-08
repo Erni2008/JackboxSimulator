@@ -194,13 +194,13 @@ export class CodeLock {
   /** the lock is small on the door; tapping it zooms the view in a little (the camera stays where the player stands) */
   static SCALE = .5;
   group = new T.Group(); clues = new T.Group(); enabled = false; task: LockTask | null = null;
-  sounds: {click?: () => void; turn?: () => void; lever?: () => void; unlock?: () => void; jam?: () => void} = {};
+  sounds: {thud?: (k: number) => void; click?: () => void; turn?: () => void; lever?: () => void; unlock?: () => void; jam?: () => void} = {};
   onResult: (ok: boolean, why: 'WRONG' | 'OK') => void = () => {}; onWrong: (left: number, why: 'ORDER' | 'TRAP' | 'STUCK') => void = () => {};
   onNote: (what: 'STUCK' | 'EASED' | 'DROPPED' | 'SET' | 'OVERSET' | 'OPEN') => void = () => {};
   overset = -1; private sparks!: T.Points; private sparkV = new Float32Array(48 * 3); private sparkLife = 0;
   set: boolean[] = []; stuck = -1; eased = false; private step = 0;
   private body = new T.Group(); private shackle = new T.Group(); private pins = new T.Group(); private pick = new T.Group(); private wheel = new T.Group();
-  private lever = new T.Group(); private glass: T.Mesh | null = null; private wrench: T.Group | null = null; private gearA = new T.Group(); private gearB = new T.Group(); private hook!: T.Mesh; private hookTip!: T.Mesh; private bolt = new T.Group(); private boltSpring!: T.Mesh;
+  private lever = new T.Group(); private glass: T.Mesh | null = null; private fallT = 0; private fallV = 0; private fallZ = 0; private bounces = 0; private wrench: T.Group | null = null; private gearA = new T.Group(); private gearB = new T.Group(); private hook!: T.Mesh; private hookTip!: T.Mesh; private bolt = new T.Group(); private boltSpring!: T.Mesh;
   private drivers: T.Group[] = []; private beads: T.Mesh[] = []; private beadOn!: T.MeshStandardMaterial; private beadOff!: T.MeshStandardMaterial; private keys: T.Mesh[] = []; private springs: T.Mesh[] = []; private lift: number[] = []; private bump: number[] = [];
   private tokens: T.Mesh[] = []; private controls: {id: string; root: T.Object3D}[] = []; private open = 0; private jam = 0; private tries = 3; private done = false; private t = 0;
   private stampMat: T.MeshStandardMaterial; private pickX = 0; private pickPush = 0; private pickLift = 0; private liftT = 0; private stroke = -2; private drag: {x: number; y: number; ppmX: number; ppmY: number; wheel: boolean} | null = null; private under = -1; private probe = -2; private tremble = 0; private ease = 0; private shudder = 0; private turn = 0;
@@ -368,7 +368,7 @@ export class CodeLock {
   setTask(t: LockTask, _seed?: number) {
     this.task = t; this.tries = t.tries; this.done = false; this.open = 0; this.jam = 0; this.stuck = -1; this.eased = false; this.step = 0; this.set = t.pins.map(() => false); this.turn = 0; this.overset = -1;
     this.stampMat.map?.dispose(); this.stampMat.map = stampTexture(t); this.stampMat.needsUpdate = true;
-    this.shackle.position.y = IN.y1 + .045; this.shackle.rotation.y = 0; this.body.rotation.z = 0; this.pickX = PLUG_X0 + .012; this.pickLift = this.liftT = 0; this.under = -1;
+    this.shackle.position.y = IN.y1 + .045; this.shackle.rotation.y = 0; this.body.rotation.z = 0; this.body.position.set(0, 0, 0); this.body.rotation.set(0, 0, 0); this.fallT = 0; this.fallV = 0; this.fallZ = 0; this.bounces = 0; this.pickX = PLUG_X0 + .012; this.pickLift = this.liftT = 0; this.under = -1;
     this.buildPins(t); this.paintTokens();
   }
   reset() { if (this.task) this.setTask(this.task); }
@@ -475,7 +475,16 @@ export class CodeLock {
     this.wheel.rotation.x = this.turn; if (this.wrench) this.wrench.rotation.z = -.12 - this.turn * .35;
     // cam → lever → bolt: the bolt draws back as the plug turns
     const draw = Math.max(0, Math.min(1, this.turn / (Math.PI / 2))); this.lever.rotation.z = draw * .55; this.gearA.rotation.z = -this.turn * 1.6; this.gearB.rotation.z = this.turn * 1.6 * 18 / 11 + .14; this.bolt.position.x = -draw * .028; this.boltSpring.scale.set(1, .036 * (1 - draw * .5), 1);
-    if (this.open > 0) { this.open = Math.min(1, this.open + dt * .7); const e = Math.max(0, (this.open - .25) / .75), ee = 1 - Math.pow(1 - e, 3), sw = Math.max(0, (e - .35) / .65); this.shackle.position.y = IN.y1 + .045 + .07 * Math.min(1, e * 2.2); this.shackle.rotation.y = (1 - Math.pow(1 - sw, 3)) * 2.2; this.body.rotation.z = Math.sin(e * 14) * .06 * (1 - e) + ee * .12; /* the body, freed, hangs off one leg */ }
+    if (this.open > 0) { this.open = Math.min(1, this.open + dt * .7); const e = Math.max(0, (this.open - .25) / .75), ee = 1 - Math.pow(1 - e, 3), sw = Math.max(0, (e - .35) / .65);
+      // the shackle springs up with a little recoil, then swings out
+      const pop = Math.min(1, e * 2.2), recoil = e > .45 ? Math.sin((e - .45) * 18) * Math.exp(-(e - .45) * 6) * .012 : 0;
+      this.shackle.position.y = IN.y1 + .045 + .07 * (1 - Math.pow(1 - pop, 3)) + recoil; this.shackle.rotation.y = (1 - Math.pow(1 - sw, 3)) * 2.2;
+      if (this.fallT <= 0) this.body.rotation.z = Math.sin(e * 14) * .06 * (1 - e) + ee * .12; /* the body, freed, hangs off one leg */
+      // then it slips off the door and drops to the cage floor: tumbles, hits, bounces once, lies on its side
+      if (this.open >= 1) { this.fallT += dt; const hang = .85, rest = -2.55, s0 = this.fallT - hang;
+        if (s0 > 0 && this.bounces < 3) { this.fallV -= 13 * dt; this.body.position.y += this.fallV * dt; this.fallZ = Math.min(.32, this.fallZ + dt * .5); this.body.position.z = this.fallZ;
+          this.body.rotation.z += dt * (this.bounces ? 1.2 : 3.2); this.body.rotation.x = Math.min(Math.PI / 2, this.body.rotation.x + dt * (this.bounces ? 2.2 : 1.6));
+          if (this.body.position.y <= rest) { this.body.position.y = rest; const k = Math.min(1, -this.fallV / 6); this.sounds.thud?.(k); this.fallV = -this.fallV * .28; this.bounces++; if (this.fallV < .6) { this.bounces = 3; this.body.rotation.x = Math.PI / 2; } } } } }
     if (this.glass) { const m = this.glass.material as T.MeshBasicMaterial; m.map!.offset.x = Math.sin(this.t * .25) * .03; }
     if (this.sparkLife > 0) { this.sparkLife = Math.max(0, this.sparkLife - dt * 1.6); const p = this.sparks.geometry.attributes.position as T.BufferAttribute, v = this.sparkV;
       for (let k = 0; k < p.count; k++) { v[k * 3 + 1] -= 1.4 * dt; p.setXYZ(k, p.getX(k) + v[k * 3] * dt, p.getY(k) + v[k * 3 + 1] * dt, p.getZ(k) + v[k * 3 + 2] * dt); } p.needsUpdate = true; }
