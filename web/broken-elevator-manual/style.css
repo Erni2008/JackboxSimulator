@@ -268,7 +268,9 @@ body.vsplit #split-ui .sp-next { left: auto; right: 10px; }
    the task hint keeps clear of the Sound / Camera buttons on the left */
 #verdict{top:auto!important;bottom:calc(max(16px,env(safe-area-inset-bottom)) + 70px)}
 #hint{padding:0 210px}
-@media (max-width:900px){#hint{padding:0 16px;top:max(140px,calc(env(safe-area-inset-top) + 128px))}}
+@media (max-width:900px){#hint{padding:0 150px}}
+@media (max-height:520px){#hint{top:max(96px,calc(env(safe-area-inset-top) + 88px));padding:0 160px;font-size:13px;line-height:1.25}}
+@media (max-width:600px){#hint{padding:0 16px;top:max(140px,calc(env(safe-area-inset-top) + 128px))}}
 body.split #hint{padding:0 16px}
 @media (max-height:520px){#verdict{bottom:auto!important;top:max(8px,env(safe-area-inset-top))!important}}
 /* a book, a sheet or the notebook in front of the eyes: the task text and the host subtitle step aside instead of covering it */
