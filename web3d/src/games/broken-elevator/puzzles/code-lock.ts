@@ -130,6 +130,25 @@ function cavity() {
   edge(0, 0, 0, 36); edge(0, H, 0, H - 30); edge(0, 0, 30, 0); edge(W, 0, W - 30, 0);
   cavityTex = textTex(cv); return cavityTex;
 }
+
+/** perlage: overlapping swirled circles ground into the back plate, the way fine watch movements are finished */
+let perlageTex: T.Texture | null = null;
+function perlage() {
+  if (perlageTex) return perlageTex; const W = 512, cv = hiCanvas(W, W), x = ctx2d(cv); x.fillStyle = '#6a6c70'; x.fillRect(0, 0, W, W); const R = 22;
+  for (let row = 0; row < W / (R * .8) + 2; row++) for (let col = 0; col < W / (R * .9) + 2; col++) {
+    const cx = col * R * .9 + (row % 2) * R * .45, cy = row * R * .8, g = x.createRadialGradient(cx - R * .3, cy - R * .3, 1, cx, cy, R);
+    g.addColorStop(0, '#9a9da2'); g.addColorStop(.55, '#6e7176'); g.addColorStop(1, '#4b4d52'); x.fillStyle = g; x.beginPath(); x.arc(cx, cy, R, 0, 7); x.fill();
+    x.strokeStyle = 'rgba(255,255,255,.08)'; x.lineWidth = .6; for (let k = 4; k < R; k += 3) { x.beginPath(); x.arc(cx, cy, k, 0, 7); x.stroke(); } }
+  perlageTex = textTex(cv); perlageTex.wrapS = perlageTex.wrapT = T.RepeatWrapping; perlageTex.colorSpace = T.SRGBColorSpace; return perlageTex;
+}
+/** a spur gear facing +z */
+function gear(r: number, teeth: number, depth: number, m: T.Material, hub: T.Material) {
+  const sh = new T.Shape(), ri = r * .86, n = teeth * 4;
+  for (let k = 0; k <= n; k++) { const a = k / n * Math.PI * 2, q = k % 4, rr = q === 1 || q === 2 ? r : ri; k ? sh.lineTo(Math.cos(a) * rr, Math.sin(a) * rr) : sh.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); }
+  for (let w = 0; w < 4; w++) { const a0 = w / 4 * Math.PI * 2 + .25, hole = new T.Path(); hole.absarc(Math.cos(a0 + .4) * r * .5, Math.sin(a0 + .4) * r * .5, r * .2, 0, Math.PI * 2, true); sh.holes.push(hole); }
+  const g = new T.Group(), body = new T.Mesh(new T.ExtrudeGeometry(sh, {depth, bevelEnabled: true, bevelSize: depth * .25, bevelThickness: depth * .25, bevelSegments: 2, curveSegments: 6}), m); body.position.z = -depth / 2; g.add(body);
+  const h = new T.Mesh(new T.CylinderGeometry(r * .2, r * .2, depth * 1.8, 24), hub); h.rotation.x = Math.PI / 2; g.add(h); return g;
+}
 /** the maker's plate riveted to the frame: emblem, name (gone on HARD), serial */
 function stampTexture(t: LockTask | null) {
   const W = 512, H = 116, cv = hiCanvas(W, H), x = ctx2d(cv), r = rng(42);
@@ -170,7 +189,7 @@ export class CodeLock {
   overset = -1; private sparks!: T.Points; private sparkV = new Float32Array(48 * 3); private sparkLife = 0;
   set: boolean[] = []; stuck = -1; eased = false; private step = 0;
   private body = new T.Group(); private shackle = new T.Group(); private pins = new T.Group(); private pick = new T.Group(); private wheel = new T.Group();
-  private lever = new T.Group(); private hook!: T.Mesh; private hookTip!: T.Mesh; private bolt = new T.Group(); private boltSpring!: T.Mesh;
+  private lever = new T.Group(); private gearA = new T.Group(); private gearB = new T.Group(); private hook!: T.Mesh; private hookTip!: T.Mesh; private bolt = new T.Group(); private boltSpring!: T.Mesh;
   private drivers: T.Group[] = []; private keys: T.Mesh[] = []; private springs: T.Mesh[] = []; private lift: number[] = []; private bump: number[] = [];
   private tokens: T.Mesh[] = []; private controls: {id: string; root: T.Object3D}[] = []; private open = 0; private jam = 0; private tries = 3; private done = false; private t = 0;
   private stampMat: T.MeshStandardMaterial; private pickX = 0; private pickPush = 0; private pickLift = 0; private liftT = 0; private stroke = -2; private drag: {x: number; y: number; ppmX: number; ppmY: number; wheel: boolean} | null = null; private under = -1; private probe = -2; private tremble = 0; private ease = 0; private shudder = 0; private turn = 0;
@@ -185,7 +204,7 @@ export class CodeLock {
     this.tokenOn = new T.MeshStandardMaterial({color: '#8a0d08', emissive: '#e01a0c', emissiveIntensity: .7, roughness: .15, metalness: .1}); this.tokenOff = new T.MeshStandardMaterial({color: '#1a1414', roughness: .3, metalness: .2});
     this.group.add(this.body);
     // housing: back plate, a heavy frame with a machined front rim, corner screws
-    const backP = new T.Mesh(new RoundedBoxGeometry(.31, .25, .012, 3, .005), housing); backP.position.set(0, -.006, -.026); this.body.add(backP);
+    const backP = new T.Mesh(new RoundedBoxGeometry(.31, .25, .012, 3, .005), (() => { const m = new T.MeshStandardMaterial({map: perlage(), metalness: 1, roughness: .32, envMapIntensity: 1.4}); m.map!.repeat.set(3, 2.4); return m; })()); backP.position.set(0, -.006, -.026); this.body.add(backP);
     const bar = (w: number, h: number, x: number, y: number) => { const b = new T.Mesh(new RoundedBoxGeometry(w, h, .04, 3, .004), frame); b.position.set(x, y, -.01); this.body.add(b); };
     bar(.31, .02, 0, IN.y1 + .01); bar(.31, .052, 0, IN.y0 - .026); bar(.02, IN.y1 - IN.y0, IN.x0 - .01, (IN.y0 + IN.y1) / 2); bar(.02, IN.y1 - IN.y0, IN.x1 + .01, (IN.y0 + IN.y1) / 2);
     { const lip = mat('#b9b4aa', .22); for (const [w, h, x0, y0] of [[IN.x1 - IN.x0, .0016, 0, IN.y1], [IN.x1 - IN.x0, .0016, 0, IN.y0], [.0016, IN.y1 - IN.y0, IN.x0, (IN.y0 + IN.y1) / 2], [.0016, IN.y1 - IN.y0, IN.x1, (IN.y0 + IN.y1) / 2]]) { const e = new T.Mesh(new T.BoxGeometry(w, h, .0016), lip); e.position.set(x0, y0, .0098); this.body.add(e); } }
@@ -193,8 +212,8 @@ export class CodeLock {
     // the maker's plate on the lower bar, the try tokens beside it
     this.stampMat = new T.MeshStandardMaterial({map: stampTexture(null), metalness: .85, roughness: .38, envMapIntensity: 1.2});
     const stamp = new T.Mesh(new T.PlaneGeometry(.172, .039), this.stampMat); stamp.position.set(-.043, IN.y0 - .026, .0103); this.body.add(stamp);
-    for (let k = 0; k < 3; k++) { const bez = new T.Mesh(new T.TorusGeometry(.0068, .0016, 10, 32), this.brass); bez.position.set(.075 + k * .02, IN.y0 - .026, .0112); this.body.add(bez);
-      const tk = new T.Mesh(new T.IcosahedronGeometry(.0058, 1), this.tokenOn); tk.scale.z = .55; tk.position.set(.075 + k * .02, IN.y0 - .026, .0122); this.body.add(tk); this.tokens.push(tk); }
+    for (let k = 0; k < 3; k++) { const bez = new T.Mesh(new T.TorusGeometry(.0068, .0016, 10, 32), this.brass); bez.position.set(.064 + k * .019, IN.y0 - .026, .0112); this.body.add(bez);
+      const tk = new T.Mesh(new T.IcosahedronGeometry(.0058, 1), this.tokenOn); tk.scale.z = .55; tk.position.set(.064 + k * .019, IN.y0 - .026, .0122); this.body.add(tk); this.tokens.push(tk); }
     // the channel block: a cap bar over the pin channels (the ribs come with the pins)
     const cap = new T.Mesh(new T.BoxGeometry(.2, IN.y1 - TOPB, .024), housing); cap.position.set(PX0 + .005, (IN.y1 + TOPB) / 2, -.009); this.body.add(cap);
     // the plug: the back half of a brass cylinder; its cut face is built with the pin bores in buildPins
@@ -223,7 +242,21 @@ export class CodeLock {
     this.bolt.position.set(0, IN.y0 + .0125, -.008); this.body.add(this.bolt);
     this.boltSpring = new T.Mesh(new T.TubeGeometry(new Helix(.0062, 8), hi ? 140 : 80, .0015, 6, false), this.steel); this.boltSpring.rotation.z = -Math.PI / 2; this.boltSpring.position.set(.087, IN.y0 + .0125, -.008); this.body.add(this.boltSpring);
     this.body.add(this.pins);
-    for (const [sx, sy] of [[-.112, .066], [.118, .03]]) { const s = screw(this.steel, this.dark, .0075); s.position.set(sx, sy, -.019); this.body.add(s); }
+    // gear train in the right bay, driven by the plug: it twitches with the torque and spins when the lock opens
+    { const ga = gear(.021, 18, .004, this.brass, this.steel), gb = gear(.0125, 11, .004, this.steel, this.brass); this.gearA.add(ga); this.gearB.add(gb);
+      this.gearA.position.set(.104, .046, -.012); this.gearB.position.set(.1, .0115, -.012); this.body.add(this.gearA, this.gearB);
+      for (const g of [this.gearA, this.gearB]) { const sc = screw(this.steel, this.dark, .0035); sc.position.set(g.position.x, g.position.y, -.008); this.body.add(sc); } }
+    // brass corner brackets riveted over the frame
+    { const br = new T.MeshStandardMaterial({color: '#b8904a', metalness: 1, roughness: .28, envMapIntensity: 1.5});
+      for (const [sx, sy] of [[-1, 1], [1, 1], [-1, -1], [1, -1]]) { const cy = sy > 0 ? IN.y1 + .01 : IN.y0 - .026, cx = sx * .145;
+        const h = new T.Mesh(new RoundedBoxGeometry(.034, .012, .003, 2, .0012), br), v = new T.Mesh(new RoundedBoxGeometry(.012, .034, .003, 2, .0012), br);
+        h.position.set(cx - sx * .011, cy, .0118); v.position.set(cx, cy - sy * .011, .0118); this.body.add(h, v);
+        for (const [rx, ry] of [[cx - sx * .024, cy], [cx, cy - sy * .024]]) { const rv = new T.Mesh(new T.SphereGeometry(.0022, 12, 8), br); rv.scale.z = .5; rv.position.set(rx, ry, .0134); this.body.add(rv); } } }
+    // turned brass collars where the shackle enters the case; machined rings on the plug's tail
+    for (const sx of [-1, 1]) { const c = new T.Mesh(new T.CylinderGeometry(.021, .023, .012, 32), this.brass); c.position.set(sx * .085, IN.y1 + .026, -.014); this.body.add(c);
+      const r = new T.Mesh(new T.TorusGeometry(.0215, .0015, 8, 32), this.steel); r.rotation.x = Math.PI / 2; r.position.set(sx * .085, IN.y1 + .032, -.014); this.body.add(r); }
+    for (const dx of [0, .004]) { const ring = new T.Mesh(new T.TorusGeometry(PR + .0006, .0007, 8, 48, Math.PI), this.steel); ring.rotation.y = Math.PI / 2; ring.rotation.z = Math.PI / 2; ring.position.set(PLUG_X1 - .003 - dx, PC, CH); this.body.add(ring); }
+    for (const [sx, sy] of [[-.112, .066]]) { const s = screw(this.steel, this.dark, .0075); s.position.set(sx, sy, -.019); this.body.add(s); }
     // the hook pick: a long blade through the wheel's keyway, its grip out to the left
     const blade = new T.Mesh(new T.BoxGeometry(.2, .0018, .0032), this.steel); blade.position.x = -.1; this.pick.add(blade);
     const hook = new T.Mesh(new T.BoxGeometry(.0026, 1, .0032), this.steel); hook.scale.y = .0045; hook.position.set(-.0012, .0031, 0); this.pick.add(hook); this.hook = hook;
@@ -258,12 +291,13 @@ export class CodeLock {
     this.drivers = []; this.keys = []; this.springs = []; this.drvMats.forEach(m => m.dispose()); this.drvMats = []; this.controls = this.controls.filter(c => !c.id.startsWith('pin'));
     const n = t.pins.length, P = pitch(n), xs = t.pins.map((_, i) => PX0 + (i - (n - 1) / 2) * P), CW = .0205, seg = this.hi ? 140 : 80;
     const springGeo = new T.TubeGeometry(new Helix(.0066, 9), seg, .00085, 6, false), springMat = mat('#aeaaa2', .28);
-    const F = FINISHES[t.finish] ?? FINISHES[0], housing = mat(F.housing, t.finish === 2 ? .34 : .44), back = mat(F.back, .6), plugCut = mat('#c9a050', .22); plugCut.map = null; /* clean turned brass, not grimy planks */
+    const F = FINISHES[t.finish] ?? FINISHES[0], housing = mat(F.housing, t.finish === 2 ? .34 : .44), back = (() => { const m = new T.MeshStandardMaterial({map: perlage(), color: '#8c8f96', metalness: 1, roughness: .36, envMapIntensity: 1.2}); return m; })(), plugCut = mat('#c9a050', .22); plugCut.map = null; /* clean turned brass, not grimy planks */
     this.housingMat.color.set(F.housing); this.frameMat.color.set(F.frame);
     // the channel block: ribs between the channels, the back wall of each channel, machined chamfers
     const edges = [xs[0] - P / 2 - .008, ...xs.flatMap(x => [x - CW / 2, x + CW / 2]), xs[n - 1] + P / 2 + .008];
+    const ribMat = new T.MeshStandardMaterial({color: t.finish === 2 ? '#6b5530' : '#2f3238', metalness: 1, roughness: .26, envMapIntensity: 1.5});
     for (let k = 0; k < edges.length; k += 2) { const w = edges[k + 1] - edges[k]; if (w <= 0) continue;
-      const rib = new T.Mesh(new T.BoxGeometry(w, TOPB - SHEAR - .0012, .024), housing); rib.position.set((edges[k] + edges[k + 1]) / 2, (TOPB + SHEAR + .0012) / 2, -.009); this.pins.add(rib);
+      const rib = new T.Mesh(new T.BoxGeometry(w, TOPB - SHEAR - .0012, .024), ribMat); rib.position.set((edges[k] + edges[k + 1]) / 2, (TOPB + SHEAR + .0012) / 2, -.009); this.pins.add(rib);
       const ch = new T.Mesh(new T.BoxGeometry(w, .0012, .0012), mat('#8d877d', .25)); ch.position.set((edges[k] + edges[k + 1]) / 2, SHEAR + .0018, .0033); this.pins.add(ch); }
     for (const x of xs) { const bw = new T.Mesh(new T.PlaneGeometry(CW, TOPB - SHEAR), back); bw.position.set(x, (TOPB + SHEAR) / 2, CH - PIN_R - .0015); this.pins.add(bw); }
     // pin numbers struck into the channel cap (pin 1 is the left one)
@@ -406,7 +440,7 @@ export class CodeLock {
     this.turn += (tq - Math.sin(this.ease * Math.PI) * .18 + Math.sin(this.t * 50) * .015 * this.shudder - this.turn) * (1 - Math.exp(-dt * (this.open > 0 ? 30 : 14)));
     this.wheel.rotation.x = this.turn;
     // cam → lever → bolt: the bolt draws back as the plug turns
-    const draw = Math.max(0, Math.min(1, this.turn / (Math.PI / 2))); this.lever.rotation.z = draw * .55; this.bolt.position.x = -draw * .028; this.boltSpring.scale.set(1, .036 * (1 - draw * .5), 1);
+    const draw = Math.max(0, Math.min(1, this.turn / (Math.PI / 2))); this.lever.rotation.z = draw * .55; this.gearA.rotation.z = -this.turn * 1.6; this.gearB.rotation.z = this.turn * 1.6 * 18 / 11 + .14; this.bolt.position.x = -draw * .028; this.boltSpring.scale.set(1, .036 * (1 - draw * .5), 1);
     if (this.open > 0) { this.open = Math.min(1, this.open + dt * .7); const e = Math.max(0, (this.open - .25) / .75), ee = 1 - Math.pow(1 - e, 3), sw = Math.max(0, (e - .35) / .65); this.shackle.position.y = IN.y1 + .045 + .07 * Math.min(1, e * 2.2); this.shackle.rotation.y = (1 - Math.pow(1 - sw, 3)) * 2.2; this.body.rotation.z = Math.sin(e * 14) * .06 * (1 - e) + ee * .12; /* the body, freed, hangs off one leg */ }
     if (this.sparkLife > 0) { this.sparkLife = Math.max(0, this.sparkLife - dt * 1.6); const p = this.sparks.geometry.attributes.position as T.BufferAttribute, v = this.sparkV;
       for (let k = 0; k < p.count; k++) { v[k * 3 + 1] -= 1.4 * dt; p.setXYZ(k, p.getX(k) + v[k * 3] * dt, p.getY(k) + v[k * 3 + 1] * dt, p.getZ(k) + v[k * 3 + 2] * dt); } p.needsUpdate = true; }
