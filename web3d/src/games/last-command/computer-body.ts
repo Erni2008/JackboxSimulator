@@ -9,6 +9,7 @@ import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import type {PowerLighting} from './power-lighting';
 import {bakeByMaterial} from './bake';
+import {lcMaterials, decal} from './lc-materials';
 
 const rng = (seed: number) => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 
@@ -26,13 +27,9 @@ function paintTexture() {
 export function buildComputer(power: PowerLighting, quality: string) {
   const hi = quality === 'HIGH', seg = hi ? 24 : quality === 'MEDIUM' ? 18 : 12;
   const root = new T.Group(); root.name = 'lc-cabinet';
-  const tex = paintTexture();
+  const tex = null;
   const mark = <M extends T.Material>(m: M) => { m.userData.lcCustom = true; return m; };
-  const paint = mark(new T.MeshStandardMaterial({color: '#3a4844', map: tex, metalness: .55, roughness: .52}));
-  const paintDark = mark(new T.MeshStandardMaterial({color: '#232b29', map: tex, metalness: .6, roughness: .5}));
-  const brass = mark(new T.MeshStandardMaterial({color: '#b08a4c', metalness: 1, roughness: .3}));
-  const copper = mark(new T.MeshStandardMaterial({color: '#a8653a', metalness: 1, roughness: .34}));
-  const steel = mark(new T.MeshStandardMaterial({color: '#8b918e', metalness: 1, roughness: .28}));
+  const L = lcMaterials(quality, true), paint = L.paint, paintDark = L.paintDark, brass = L.brass, copper = L.copper, steel = L.steel, trim = L.darkSteel; void tex;
   const black = mark(new T.MeshStandardMaterial({color: '#0b0d0d', metalness: .3, roughness: .7}));
   const rubber = mark(new T.MeshStandardMaterial({color: '#141615', metalness: 0, roughness: .9}));
   // the two tube lamps glow with the machine's power (same uniforms the old body used)
@@ -48,7 +45,7 @@ export function buildComputer(power: PowerLighting, quality: string) {
 
   // plinth with a brass top band and a dark vent strip in front
   rbox(.64, .075, .5, .012, paintDark, .0065, .0375, -.035);
-  box(.628, .007, .488, brass, .0065, .078, -.035);
+  box(.628, .007, .488, trim, .0065, .078, -.035);
   for (let i = 0; i < 9; i++) box(.05, .012, .004, black, -.24 + i * .06 + .0065, .036, .216);
 
   // the cabinet core
@@ -78,11 +75,11 @@ export function buildComputer(power: PowerLighting, quality: string) {
   }
 
   // a brass frame around the control deck under the screen (open in the middle: the big button sits in the facade)
-  for (const [w, h, x, y] of [[.5, .006, -.003, .372], [.5, .006, -.003, .138], [.006, .23, -.255, .255], [.006, .23, .249, .255]] as [number, number, number, number][]) box(w, h, .01, brass, x, y, .149);
+  for (const [w, h, x, y] of [[.5, .006, -.003, .372], [.5, .006, -.003, .138], [.006, .23, -.255, .255], [.006, .23, .249, .255]] as [number, number, number, number][]) box(w, h, .01, trim, x, y, .149);
 
   // top: a rounded cap with a brass rim, two exhaust stacks and a pressure gauge
   rbox(.6, .036, .39, .012, paintDark, cx, Y1 + .016, -.075);
-  box(.59, .006, .38, brass, cx, Y1 - .002, -.075);
+  box(.59, .006, .38, trim, cx, Y1 - .002, -.075);
   for (const sx of [-.17, .18]) { cyl(.024, .075, copper, sx, .77, -.15); cyl(.03, .012, brass, sx, .81, -.15); cyl(.028, .006, black, sx, .818, -.15); cyl(.03, .01, brass, sx, .738, -.15); }
   { const g = new T.Group(); g.position.set(.0, .772, -.02); g.rotation.x = -.35; root.add(g);
     const face = new T.Mesh(new T.CylinderGeometry(.034, .034, .012, seg * 2), brass); face.rotation.x = Math.PI / 2; g.add(face);
@@ -94,7 +91,7 @@ export function buildComputer(power: PowerLighting, quality: string) {
   // louvred vents on the sides (clear of the lever on the left and the hatch on the right)
   const vent = (side: number, y0: number, y1: number, z0: number, z1: number) => {
     const x = side < 0 ? X0 - .004 : X1 + .004, w = z1 - z0, h = y1 - y0, zc = (z0 + z1) / 2, yc = (y0 + y1) / 2;
-    box(.006, h + .02, w + .02, brass, x, yc, zc); box(.004, h, w, black, x + side * .001, yc, zc);
+    box(.006, h + .02, w + .02, trim, x, yc, zc); box(.004, h, w, black, x + side * .001, yc, zc);
     const n = Math.max(3, Math.round(h / .022)); for (let k = 0; k < n; k++) add(new T.BoxGeometry(.012, .004, w - .006), paintDark, x + side * .004, y0 + (k + .5) * h / n, zc, 0, 0, side * .6);
   };
   vent(-1, .45, .64, -.2, .04); vent(1, .47, .64, -.2, .04); vent(-1, .12, .2, -.2, .04);
@@ -104,7 +101,7 @@ export function buildComputer(power: PowerLighting, quality: string) {
   cyl(.013, .48, copper, .005, .715, Z0 - .016, 'x'); for (const sx of [-.235, .245]) add(new T.SphereGeometry(.017, seg, 8), brass, sx, .715, Z0 - .016);
   // the back: a service panel in a brass frame with rivets (the card tray, panels and back hatch mount in front of it)
   rbox(.42, .58, .008, .006, paint, .005, .4, Z0 - .004);
-  for (const [w, h, x, y] of [[.43, .007, .005, .692], [.43, .007, .005, .108], [.007, .58, -.21, .4], [.007, .58, .22, .4]] as [number, number, number, number][]) box(w, h, .008, brass, x, y, Z0 - .008);
+  for (const [w, h, x, y] of [[.43, .007, .005, .692], [.43, .007, .005, .108], [.007, .58, -.21, .4], [.007, .58, .22, .4]] as [number, number, number, number][]) box(w, h, .008, trim, x, y, Z0 - .008);
   { const pts: [number, number, number][] = []; for (let u = -.19; u <= .2; u += .039) pts.push([u, .68, Z0 - .009], [u, .12, Z0 - .009]); for (let v = .16; v <= .64; v += .048) pts.push([-.198, v, Z0 - .009], [.208, v, Z0 - .009]);
     const rv = new T.InstancedMesh(new T.SphereGeometry(.0034, 8, 5, 0, Math.PI * 2, 0, Math.PI / 2), steel, pts.length), mtx = new T.Matrix4(), q = new T.Quaternion().setFromEuler(new T.Euler(-Math.PI / 2, 0, 0));
     pts.forEach((p, i) => { mtx.compose(new T.Vector3(...p), q, new T.Vector3(1, 1, .6)); rv.setMatrixAt(i, mtx); }); root.add(rv); }
@@ -112,7 +109,7 @@ export function buildComputer(power: PowerLighting, quality: string) {
   for (let k = 0; k < 3; k++) cyl(.006, .5, k === 1 ? mark(new T.MeshStandardMaterial({color: '#7a1e17', roughness: .6})) : rubber, X1 - .02 + k * .011, .36, Z0 + .01 - k * .002);
 
   // front corner trims and a row of rivets along every facade edge (one instanced mesh)
-  for (const sx of [FX0 - .002, FX1 + .002]) rbox(.012, FY1 - FY0, .05, .004, brass, sx, (FY0 + FY1) / 2, FZ);
+  for (const sx of [FX0 - .002, FX1 + .002]) rbox(.012, FY1 - FY0, .05, .004, trim, sx, (FY0 + FY1) / 2, FZ);
   { const pts: [number, number, number][] = [];
     for (let u = FX0 + .02; u < FX1 - .01; u += .045) { pts.push([u, FY1 - .012, .1445], [u, FY0 + .012, .1445]); }
     for (let v = FY0 + .04; v < FY1 - .03; v += .05) { if (v > WY0 - .02 && v < WY1 + .02) continue; pts.push([FX0 + .012, v, .1445], [FX1 - .012, v, .1445]); }
@@ -120,5 +117,18 @@ export function buildComputer(power: PowerLighting, quality: string) {
     const rv = new T.InstancedMesh(new T.SphereGeometry(.0038, 8, 5, 0, Math.PI * 2, 0, Math.PI / 2), steel, pts.length), mtx = new T.Matrix4(), q = new T.Quaternion().setFromEuler(new T.Euler(Math.PI / 2, 0, 0));
     pts.forEach((p, i) => { mtx.compose(new T.Vector3(...p), q, new T.Vector3(1, 1, .6)); rv.setMatrixAt(i, mtx); }); root.add(rv); }
 
-  const baked = bakeByMaterial(root); baked.name = root.name; return baked;
+  // panel seams on the sides
+  for (const sx of [X0 - .0006, X1 + .0006]) { box(.0016, .003, ZF - Z0 - .03, mark(new T.MeshStandardMaterial({color: '#0c0e0d', roughness: .9})), sx, .42, (Z0 + ZF) / 2); }
+  // two flexible cables dropping from the cap down the right back corner
+  for (const [k, m] of [[0, rubber], [1, mark(new T.MeshStandardMaterial({color: '#6e1b15', roughness: .55}))]] as [number, T.Material][]) {
+    const c = new T.CatmullRomCurve3([new T.Vector3(X1 - .05 - k * .02, Y1 + .03, Z0 + .04), new T.Vector3(X1 + .015, Y1 - .02, Z0 + .01 - k * .01), new T.Vector3(X1 + .02 + k * .006, .5, Z0 - .005), new T.Vector3(X1 + .012, .25, Z0 + .005), new T.Vector3(X1 - .01, .09, Z0 + .02)]);
+    add(new T.TubeGeometry(c, hi ? 64 : 32, .0065 - k * .0015, 8, false), m, 0, 0, 0); }
+  // printed and stencilled markings (kept as separate transparent planes)
+  const put = (d: T.Mesh, x: number, y: number, z: number, ry = 0) => { d.position.set(x, y, z); d.rotation.y = ry; d.userData.keep = true; root.add(d); };
+  put(decal(.085, .07, (x, W, H) => { x.fillStyle = '#e1b52a'; x.fillRect(0, 0, W, H); x.fillStyle = '#121212'; x.lineWidth = W * .03; x.strokeRect(W * .03, H * .04, W * .94, H * .92);
+    x.beginPath(); x.moveTo(W * .5, H * .1); x.lineTo(W * .32, H * .5); x.lineTo(W * .48, H * .5); x.lineTo(W * .4, H * .72); x.lineTo(W * .66, H * .38); x.lineTo(W * .5, H * .38); x.lineTo(W * .6, H * .1); x.closePath(); x.fill();
+    x.font = `900 ${H * .14}px Arial, sans-serif`; x.textAlign = 'center'; x.fillText('ОПАСНО · 380 V', W / 2, H * .9); }), X0 - .0012, .27, .09, -Math.PI / 2);
+  [['1', -.212, .249], ['2', -.212, .185], ['3', .206, .249], ['4', .206, .185]].forEach(([t, x, y]) => put(decal(.018, .018, (c, W, H) => { c.fillStyle = '#d9d6c8'; c.font = `700 ${H * .8}px 'Courier New', monospace`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(t as string, W / 2, H * .55); c.strokeStyle = '#d9d6c8'; c.lineWidth = W * .05; c.beginPath(); c.arc(W / 2, H / 2, W * .44, 0, 7); c.stroke(); }, true, 128), x as number, y as number, .1446));
+  put(decal(.3, .03, (x, W, H) => { x.fillStyle = '#d4cdb4'; x.font = `700 ${H * .62}px 'Courier New', monospace`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('СЕРВИСНАЯ ПАНЕЛЬ · ТОЛЬКО ПЕРСОНАЛ', W / 2, H / 2); }), .005, .655, Z0 - .0105, Math.PI);
+  const baked = bakeByMaterial(root, 5); baked.name = root.name; return baked;
 }

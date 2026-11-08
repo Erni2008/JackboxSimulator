@@ -9,22 +9,19 @@
 import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import {bakeByMaterial} from './bake';
+import {lcMaterials} from './lc-materials';
 
 type M = T.Material;
 const S = (q: string) => q === 'HIGH' ? 40 : q === 'MEDIUM' ? 28 : 20;
 
 function kit(quality: string) {
-  const seg = S(quality), g = new T.Group();
+  const seg = S(quality), g = new T.Group(), L = lcMaterials(quality);
   const mat = {
-    steel: new T.MeshStandardMaterial({color: '#9aa09c', metalness: 1, roughness: .3}),
-    dark: new T.MeshStandardMaterial({color: '#2b302e', metalness: .8, roughness: .45}),
-    brass: new T.MeshStandardMaterial({color: '#b08a4c', metalness: 1, roughness: .3}),
-    bakelite: new T.MeshStandardMaterial({color: '#141210', metalness: .1, roughness: .38}),
-    enamel: new T.MeshStandardMaterial({color: '#b81616', metalness: .05, roughness: .28}),
-    paint: new T.MeshStandardMaterial({color: '#3a4844', metalness: .55, roughness: .52}),
+    steel: L.steel, dark: L.darkSteel, brass: L.brass, bakelite: L.bakelite, paint: L.paint,
+    enamel: new T.MeshPhysicalMaterial({color: '#b81616', metalness: 0, roughness: .32, clearcoat: 1, clearcoatRoughness: .08}),
     black: new T.MeshStandardMaterial({color: '#0a0b0b', metalness: .2, roughness: .8}),
-    glass: new T.MeshStandardMaterial({color: '#d8dcd6', metalness: 0, roughness: .12, emissive: '#000000'}),
-    redKnob: new T.MeshStandardMaterial({color: '#8e1410', metalness: .1, roughness: .25}),
+    glass: new T.MeshPhysicalMaterial({color: '#d8dcd6', metalness: 0, roughness: .06, clearcoat: 1, clearcoatRoughness: .03, emissive: '#000000'}),
+    redKnob: new T.MeshPhysicalMaterial({color: '#8e1410', metalness: 0, roughness: .22, clearcoat: 1, clearcoatRoughness: .06}),
     hazard: new T.MeshStandardMaterial({color: '#c9a227', metalness: .2, roughness: .6}),
   };
   const add = (geo: T.BufferGeometry, m: M, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0) => { const o = new T.Mesh(geo, m); o.position.set(x, y, z); o.rotation.set(rx, ry, rz); g.add(o); return o; };
@@ -114,5 +111,5 @@ function cardTray(q: string) { const k = kit(q), m = k.mat;
 export function buildControlPart(name: string, quality: string): T.Group {
   const make: Record<string, (q: string) => T.Group> = {hole_final: bigBase, button, adjuster, light, level_handler: leverBase, lever: leverHandle, secret_hole: hatchFrame, door, code_display: codeDisplay, animal_panel: cardTray};
   const g = make[name](quality); g.name = 'lc-part-' + name;
-  const baked = bakeByMaterial(g); baked.name = g.name; return baked;
+  const baked = bakeByMaterial(g, 1.2); baked.name = g.name; return baked;
 }
