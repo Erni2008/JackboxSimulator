@@ -35,6 +35,13 @@ class CageShiftTest {
         t = 0; var s = new CageShift(Difficulty.NORMAL, List.of("a", "b"), 3, t, List.of("wire", CageShift.BOMB)); int r = s.kinds.indexOf(CageShift.BOMB); toRound(s, r);
         var c = s.cages.get("a"); assertFalse(c.dead); assertTrue(c.height > 30, "alive and high before the blast: " + c.height); assertTrue(s.report("a", CageShift.BOMB, false, t)); assertTrue(c.dead && c.blown, "the blast snaps the chain"); assertEquals(0, c.height);
     }
+    @Test void bombComesOncePerThreeShiftsAndNeverTwiceInARow() {
+        var bag = new CageShift.BombBag(); var rnd = new java.util.Random(5); boolean prev = false; int bombs = 0;
+        for (int cycle = 0; cycle < 200; cycle++) { int inCycle = 0; for (int k = 0; k < CageShift.BOMB_EVERY; k++) { boolean b = bag.draw(rnd); if (b) inCycle++; assertFalse(prev && b, "two bomb shifts in a row"); prev = b; } assertEquals(1, inCycle); bombs += inCycle; }
+        assertEquals(200, bombs);
+        assertFalse(new CageShift(Difficulty.NORMAL, List.of("a"), 1, 0, false).kinds.contains(CageShift.BOMB));
+        assertTrue(new CageShift(Difficulty.NORMAL, List.of("a"), 1, 0, true).kinds.contains(CageShift.BOMB));
+    }
     @Test void secondFailureNearlyAlwaysKillsAndThirdAlways() {
         int died = 0, trials = 20;
         for (int k = 0; k < trials; k++) { t = 0; var s = new CageShift(Difficulty.NORMAL, List.of("a", "b"), 7, t, List.of("wire", "pressure", "formula", "lock")); /* machines only: a blown bomb always kills */ toRound(s, 0); s.report("a", s.kind(), false, t); s.report("b", s.kind(), true, t);

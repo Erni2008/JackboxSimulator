@@ -26,6 +26,21 @@ public final class CageShift {
     public static final List<String> POOL = BOMB_LIVE ? List.of("wire", "pressure", "formula", "lock", BOMB) : List.of("wire", "pressure", "formula", "lock");
     public static final List<String> FULL_POOL = List.of("wire", "pressure", "formula", "lock", BOMB);
     public static final int ROUNDS = 3;
+    /** the bomb is a rare event: exactly one shift in every {@link #BOMB_EVERY} played in a room carries it (random which) */
+    public static final int BOMB_EVERY = 3;
+
+    /** per-room deck of upcoming shifts: one bomb shift per {@value #BOMB_EVERY}, reshuffled each cycle, never two bomb shifts in a row across cycles */
+    public static final class BombBag {
+        private final Deque<Boolean> next = new ArrayDeque<>(); private boolean lastWasBomb;
+        public synchronized boolean draw(Random rnd) {
+            if (next.isEmpty()) {
+                List<Boolean> deck = new ArrayList<>(); for (int i = 0; i < BOMB_EVERY; i++) deck.add(i == 0);
+                do Collections.shuffle(deck, rnd); while (lastWasBomb && deck.get(0) && BOMB_EVERY > 1);
+                next.addAll(deck);
+            }
+            return lastWasBomb = next.poll();
+        }
+    }
     public static final double START_M = 100, ROUND_DESCENT_M = 15, FIRST_DROP_M = 25, SECOND_FLOOR_M = 2;
     public static final long INTRO_MS = 9_000, BREAK_MS = 6_000, GRACE_MS = 2_500;
 
@@ -41,10 +56,12 @@ public final class CageShift {
     private Phase phase = Phase.INTRO; private int round = -1; private long phaseStart, phaseEnd, roundLimit, last;
 
     public CageShift(Difficulty d, Collection<String> playerIds, long seed, long now) { this(d, playerIds, seed, now, POOL); }
+    /** a shift with or without the bomb, as the room's {@link BombBag} decides */
+    public CageShift(Difficulty d, Collection<String> playerIds, long seed, long now, boolean withBomb) { this(d, playerIds, seed, now, withBomb ? POOL : POOL.stream().filter(k -> !BOMB.equals(k)).toList()); }
     public CageShift(Difficulty d, Collection<String> playerIds, long seed, long now, List<String> machines) {
         difficulty = d; Random rnd = new Random(seed); List<String> pool = new ArrayList<>(machines); boolean bomb = pool.remove(BOMB); Collections.shuffle(pool, rnd);
         List<String> pick = new ArrayList<>(pool.subList(0, Math.min(bomb ? ROUNDS - 1 : ROUNDS, pool.size())));
-        // the bomb is always in the shift, as the 2nd or the 3rd round (never the opener: the players learn the cage first)
+        // when the shift carries the bomb it comes the 2nd or the 3rd round (never the opener: the players learn the cage first)
         if (bomb) pick.add(Math.min(pick.size(), 1 + rnd.nextInt(2)), BOMB); kinds = List.copyOf(pick);
         for (String id : playerIds) cages.put(id, new Cage(id));
         phaseStart = last = now; phaseEnd = now + INTRO_MS;
