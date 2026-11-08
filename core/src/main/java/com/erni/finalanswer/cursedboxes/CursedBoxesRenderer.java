@@ -90,6 +90,7 @@ public final class CursedBoxesRenderer implements Disposable {
         }
         // Color-only pass. Keep gallery pixels out of the 3D depth buffer.
         Gdx.gl.glDisable(GL20.GL_DEPTH_TEST);Gdx.gl.glDepthMask(false);
+        background.reducedMotion=com.badlogic.gdx.Gdx.app.getApplicationListener() instanceof com.erni.finalanswer.FinalAnswerGame g0&&g0.getSettings().reducedMotion();background.lowQuality=debris.lowQuality;
         background.update(delta);background.draw(ui,Gdx.graphics.getWidth(),Gdx.graphics.getHeight());
         atmosphere.draw(ui,Gdx.graphics.getWidth(),Gdx.graphics.getHeight(),time,debris.lowQuality);
         Gdx.gl.glDepthMask(true);

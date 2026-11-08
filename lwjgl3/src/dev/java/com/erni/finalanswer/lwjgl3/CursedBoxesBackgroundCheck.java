@@ -34,7 +34,7 @@ public final class CursedBoxesBackgroundCheck {
             int draw(FrameBuffer fbo,SpriteBatch batch,CursedBoxesAssets assets,int width,int height,float time){
                 fbo.begin();Gdx.gl.glDisable(GL20.GL_DEPTH_TEST);Gdx.gl.glClearColor(1,0,1,1);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
                 var camera=new OrthographicCamera();camera.setToOrtho(false,width,height);batch.setProjectionMatrix(camera.combined);
-                var bg=new CursedBoxesBackground(assets.backgrounds,assets.lighting,new CursedBoxesBackground.Settings());bg.update(time);bg.draw(batch,width,height);bg.dispose();int color=color();
+                var bg=new CursedBoxesBackground(assets.backgrounds,assets.lighting,new CursedBoxesBackground.Settings());bg.reducedMotion=true;/* the living-room effects are frozen so only the lighting crossfade is measured */bg.update(time);bg.draw(batch,width,height);bg.dispose();int color=color();
                 for(int x:new int[]{1,width-2})for(int y:new int[]{1,height-2}){pixel.clear();Gdx.gl.glReadPixels(x,y,1,1,GL20.GL_RGBA,GL20.GL_UNSIGNED_BYTE,pixel);if((pixel.get(0)&255)==255&&(pixel.get(1)&255)==0&&(pixel.get(2)&255)==255)throw new AssertionError("Uncovered background corner");}
                 fbo.end();return color;
             }
