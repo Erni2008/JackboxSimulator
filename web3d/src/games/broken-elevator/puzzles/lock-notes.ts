@@ -2,11 +2,12 @@
 // They teach HOW to pick the cage lock (the anatomy, the pick technique, what to do when it goes wrong);
 // WHICH pin to lift first stays in the handbook (section V), so both have to be read.
 //   I   — how to pick it, step by step (tap the lock, read the plate, drag sideways, drag up, all in order)
-//   II  — the three lock SYSTEMS and where each takes its pin order from (book / number / feel)
+//   II  — the pin ORDER for each system, written out in full: the three makers' rules, the number, the feel
 //   III — trouble: a copper pin sticks (ease the wheel), a black pin is a trap, a wrong pin drops them all
 import * as T from 'three';
 import {hiCanvas, ctx2d, textTex} from './sharp';
 import {L} from '../i18n';
+import {makerEmblem} from './code-lock';
 
 const W = 600, H = 820; // logical page size (px)
 const INK = '#1c120a', INK2 = 'rgba(28,18,10,.72)', RED = '#8a1410', BRASS = '#a07a34', STEEL = '#8e8b85', PAPER = '#d9c7a0';
@@ -115,17 +116,27 @@ function sheet1() {
 }
 function sheet2() {
   const cv = hiCanvas(W, H), x = ctx2d(cv); paper(x, 23);
-  header(x, 'II', L('Три системы замков', 'Three lock systems'), L('откуда взять порядок штифтов', 'where the pin order comes from'));
+  header(x, 'II', L('Порядок штифтов', 'The pin order'), L('смотрите СИСТЕМУ на табличке замка', "read the SYSTEM on the lock's plate"));
   const block = (y: number, h: number, name: string, lines: string[], pic: (cx: number, cy: number) => void) => {
     x.fillStyle = 'rgba(60,40,20,.06)'; rr(x, 34, y, W - 68, h, 12); x.fill(); x.strokeStyle = 'rgba(28,18,10,.35)'; x.lineWidth = 1.5; rr(x, 34, y, W - 68, h, 12); x.stroke();
     x.fillStyle = '#2a1a0c'; rr(x, 48, y + 14, 196, 40, 6); x.fill(); x.fillStyle = '#f2dcae'; x.font = tech(22); x.textAlign = 'center'; x.fillText(L('СИСТЕМА', 'SYSTEM') + ' «' + name + '»', 146, y + 42);
     pic(150, y + 60 + (h - 60) / 2);
     x.textAlign = 'left'; x.fillStyle = INK; let yy = y + 36; for (const [k, t] of lines.entries()) { x.font = k === 0 ? tech(19) : body(16); x.fillStyle = k === 0 ? INK : INK2; yy = wrap(x, t, 262, yy, W - 300, 21) + (k === 0 ? 26 : 23); } };
-  block(194, 180, L('КЛЕЙМО', 'STAMP'), [L('Порядок задаёт мастер.', 'The maker sets the order.'), L('Найдите мастера по эмблеме на табличке в КНИГЕ, раздел V «Взлом замка», — там его правило.', "Find the maker by the plate's emblem in the BOOK, section V: his rule is there.")],
-    (cx, cy) => { x.fillStyle = '#7a1a14'; rr(x, cx - 40, cy - 46, 80, 96, 6); x.fill(); x.fillStyle = '#e8cf98'; x.font = serif(16); x.textAlign = 'center'; x.fillText(L('КНИГА', 'BOOK'), cx, cy - 6); x.font = tech(14); x.fillText(L('РАЗДЕЛ V', 'SECTION V'), cx, cy + 16); });
-  block(386, 214, L('НОМЕР', 'NUMBER'), [L('Цифры номера — это порядок.', "The number's digits are the order."), L('Над каналами штифты пронумерованы: 1 — левый. № 3 1 5 2 4 → сначала 3-й, потом 1-й, 5-й, 2-й, 4-й.', 'The pins are numbered over the channels, 1 on the left. No. 3 1 5 2 4: the 3rd, then 1st, 5th, 2nd, 4th.'), L('Цифра стёрта? Это штифт, которого нет среди остальных.', 'A digit worn off? It is the pin missing from the rest.')],
+  // STAMP: every maker's rule spelled out, beside his emblem (the plate shows the emblem; on hard locks the name is worn off)
+  { const y = 192, h = 262; x.fillStyle = 'rgba(60,40,20,.06)'; rr(x, 34, y, W - 68, h, 12); x.fill(); x.strokeStyle = 'rgba(28,18,10,.35)'; x.lineWidth = 1.5; rr(x, 34, y, W - 68, h, 12); x.stroke();
+    x.fillStyle = '#2a1a0c'; rr(x, 48, y + 12, 220, 38, 6); x.fill(); x.fillStyle = '#f2dcae'; x.font = tech(21); x.textAlign = 'center'; x.fillText(L('СИСТЕМА', 'SYSTEM') + ' «' + L('КЛЕЙМО', 'STAMP') + '»', 158, y + 39);
+    x.textAlign = 'left'; x.fillStyle = INK2; x.font = body(15, true); x.fillText(L('эмблема на табличке = мастер', "the plate's emblem = the maker"), 282, y + 37);
+    const rows: [number, string, string][] = [
+      [0, L('ГРИФФИН И СЫН', 'GRIFFIN & SON'), L('Справа налево: 5 → 4 → 3 → 2 → 1', 'Right to left: 5 → 4 → 3 → 2 → 1')],
+      [1, L('ХАРТВЕЛЛ', 'HARTWELL'), L('Медь → латунь → сталь; цвет один — слева направо', 'Copper → brass → steel; same colour: left to right')],
+      [2, L('МОРТОН', 'MORTON'), L('Меньше насечек на штифте — раньше', 'Fewest notches on the pin first')]];
+    rows.forEach(([m, name, rule], i) => { const ry = y + 64 + i * 64;
+      x.strokeStyle = INK; x.lineWidth = 3; makerEmblem(x, m, 84, ry + 24, 20);
+      x.fillStyle = INK; x.font = tech(19); x.fillText(name, 124, ry + 16); x.fillStyle = INK2; x.font = body(16); wrap(x, rule, 124, ry + 40, W - 170, 20);
+      if (i < 2) { x.strokeStyle = 'rgba(28,18,10,.18)'; x.lineWidth = 1; x.beginPath(); x.moveTo(60, ry + 60); x.lineTo(W - 60, ry + 60); x.stroke(); } }); }
+  block(466, 170, L('НОМЕР', 'NUMBER'), [L('Цифры номера — это порядок.', "The number's digits are the order."), L('1 — левый штифт. № 3 1 5 2 4 → 3-й, 1-й, 5-й, 2-й, 4-й.', '1 is the left pin. No. 3 1 5 2 4: 3rd, 1st, 5th, 2nd, 4th.'), L('Цифра стёрта — это штифт, которого нет в номере.', 'A digit worn off: the pin missing from the number.')],
     (cx, cy) => { for (let i = 0; i < 5; i++) { const px = cx - 48 + i * 24; x.fillStyle = '#26221f'; x.fillRect(px - 8, cy - 40, 16, 56); x.fillStyle = '#c9a24c'; x.fillRect(px - 6, cy - 6, 12, 20); x.fillStyle = INK; x.font = tech(15); x.textAlign = 'center'; x.fillText(String(i + 1), px, cy - 46); } x.fillStyle = RED; x.font = tech(15); x.fillText('3 → 1 → 5 → 2 → 4', cx, cy + 40); });
-  block(612, 186, L('НАТЯГ', 'BINDING'), [L('Порядок нигде не написан — его чувствуют.', 'The order is written nowhere: you feel it.'), L('Приподнимите штифт до половины. ТУГОЙ дрожит и щёлкает — доводите его до конца. СВОБОДНЫЙ мягко пружинит — отпустите и пробуйте другой.', 'Lift a pin halfway. The BINDING one trembles and ticks: take it all the way. A LOOSE one just springs: let go, try another.')],
+  block(648, 160, L('НАТЯГ', 'BINDING'), [L('Порядок не написан — его чувствуют.', 'Not written: you feel it.'), L('Поднимите штифт наполовину: ТУГОЙ дрожит — доводите до щелчка; СВОБОДНЫЙ пружинит — берите другой.', 'Lift a pin halfway: the BINDING one trembles, take it to the click; a LOOSE one springs, try another.')],
     (cx, cy) => { stack(x, cx - 28, cy + 30, 30, 18, {s: .5}); x.strokeStyle = '#1d5a2c'; x.lineWidth = 2; for (const d of [-1, 1]) for (let k = 0; k < 3; k++) { x.beginPath(); x.moveTo(cx - 28 + d * (12 + k * 5), cy - 6 - k * 4); x.lineTo(cx - 28 + d * (12 + k * 5), cy + 6 + k * 4); x.stroke(); }
       stack(x, cx + 30, cy + 30, 30, 6, {s: .5}); arrow(x, cx + 50, cy - 20, cx + 50, cy + 10, RED, 2); x.font = tech(12); x.textAlign = 'center'; x.fillStyle = '#1d5a2c'; x.fillText(L('ТУГОЙ', 'BINDS'), cx - 28, cy + 58); x.fillStyle = RED; x.fillText(L('СВОБОДНЫЙ', 'LOOSE'), cx + 30, cy + 58); });
   return cv;
@@ -142,7 +153,7 @@ function sheet3() {
     () => { stack(x, 110, 536, 40, 0, {driver: '#1c1816', s: .9}); x.strokeStyle = RED; x.lineWidth = 8; x.lineCap = 'round'; x.beginPath(); x.moveTo(70, 400); x.lineTo(150, 560); x.moveTo(150, 400); x.lineTo(70, 560); x.stroke(); });
   row(608, L('ПЕРЕБОР · ВСЁ УПАЛО', 'OVERSET · ALL DROPPED'), L('Протянули выше щелчка — штифт заклинит и загорится красным. Не тот штифт — падают все, гаснет жетон.', 'Pushed past the click: the pin jams and glows red. A wrong pin drops them all and a token goes dark.'), L('→ При переборе коснитесь колеса: штифты упадут, попытка цела.', '→ On an overset tap the wheel: the pins drop, no try lost.'),
     () => { x.fillStyle = '#d0a858'; for (let k = 0; k < 3; k++) { x.fillStyle = k < 2 ? '#c9a24c' : '#2a2420'; x.beginPath(); x.arc(80 + k * 36, 700, 14, 0, 7); x.fill(); x.strokeStyle = INK; x.lineWidth = 2; x.stroke(); } });
-  note(x, L('тише… и только по книге', 'easy… and only by the book'), 330, 800, -.05, INK2);
+  note(x, L('тише… по порядку с листа II', 'easy… in the order from sheet II'), 300, 800, -.05, INK2);
   return cv;
 }
 
