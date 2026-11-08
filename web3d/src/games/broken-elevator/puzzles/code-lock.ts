@@ -104,6 +104,32 @@ function grime() {
 }
 const mat = (color: string, rough: number, rep = 1) => { const m = new T.MeshStandardMaterial({color, map: grime(), metalness: 1, roughness: rough, envMapIntensity: 1.3}); if (rep !== 1) { m.map = grime().clone(); m.map.repeat.set(rep, rep); m.map.needsUpdate = true; } return m; };
 
+
+/** the cast faceplate: a Victorian border engraved into blued steel, scrollwork in the corners, rivets */
+let plateTex: T.Texture | null = null;
+function faceplate() {
+  if (plateTex) return plateTex; const W = 1024, H = 832, cv = hiCanvas(W, H), x = ctx2d(cv), r = rng(77);
+  const g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#5d6068'); g.addColorStop(.5, '#3c3f46'); g.addColorStop(1, '#2a2c31'); x.fillStyle = g; x.fillRect(0, 0, W, H);
+  x.globalAlpha = .08; for (let i = 0; i < 900; i++) { x.fillStyle = r() < .5 ? '#fff' : '#000'; x.fillRect(0, r() * H, W, .6 + r()); } x.globalAlpha = 1;  // brushing
+  for (let i = 0; i < 50; i++) { const gx = r() * W, gy = r() * H, gr = 10 + r() * 60, rg = x.createRadialGradient(gx, gy, 0, gx, gy, gr); rg.addColorStop(0, `rgba(90,60,30,${.08 + r() * .15})`); rg.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = rg; x.fillRect(gx - gr, gy - gr, gr * 2, gr * 2); }
+  const engrave = (draw: () => void, w: number) => { x.save(); x.translate(1.5, 1.5); x.strokeStyle = 'rgba(255,240,210,.28)'; x.lineWidth = w; draw(); x.restore(); x.save(); x.strokeStyle = 'rgba(8,8,10,.85)'; x.lineWidth = w; draw(); x.restore(); };
+  engrave(() => { x.strokeRect(22, 22, W - 44, H - 44); x.strokeRect(38, 38, W - 76, H - 76); }, 3);
+  // scrollwork in each corner
+  for (const [cx, cy, sx, sy] of [[60, 60, 1, 1], [W - 60, 60, -1, 1], [60, H - 60, 1, -1], [W - 60, H - 60, -1, -1]]) engrave(() => {
+    x.beginPath(); for (let k = 0; k < 3; k++) { const rr = 18 + k * 16; x.moveTo(cx + sx * rr, cy); x.quadraticCurveTo(cx + sx * rr, cy + sy * rr, cx, cy + sy * rr); }
+    x.moveTo(cx + sx * 70, cy + sy * 6); x.bezierCurveTo(cx + sx * 120, cy + sy * 2, cx + sx * 140, cy + sy * 30, cx + sx * 110, cy + sy * 40); x.moveTo(cx + sx * 6, cy + sy * 70); x.bezierCurveTo(cx + sx * 2, cy + sy * 120, cx + sx * 30, cy + sy * 140, cx + sx * 40, cy + sy * 110); x.stroke(); }, 2.2);
+  // a running vine along the long edges
+  engrave(() => { x.beginPath(); for (let u = 160; u < W - 160; u += 40) { x.moveTo(u, 30); x.quadraticCurveTo(u + 10, 22, u + 20, 30); x.quadraticCurveTo(u + 30, 38, u + 40, 30); x.moveTo(u, H - 30); x.quadraticCurveTo(u + 10, H - 22, u + 20, H - 30); x.quadraticCurveTo(u + 30, H - 38, u + 40, H - 30); } x.stroke(); }, 1.6);
+  plateTex = textTex(cv); plateTex.colorSpace = T.SRGBColorSpace; return plateTex;
+}
+/** soft darkness creeping in from the walls of the open cavity (depth without real AO) */
+let cavityTex: T.Texture | null = null;
+function cavity() {
+  if (cavityTex) return cavityTex; const W = 256, H = 200, cv = hiCanvas(W, H), x = ctx2d(cv); x.clearRect(0, 0, W, H);
+  const edge = (x0: number, y0: number, x1: number, y1: number) => { const g = x.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, 'rgba(0,0,0,.85)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(0, 0, W, H); };
+  edge(0, 0, 0, 36); edge(0, H, 0, H - 30); edge(0, 0, 30, 0); edge(W, 0, W - 30, 0);
+  cavityTex = textTex(cv); return cavityTex;
+}
 /** the maker's plate riveted to the frame: emblem, name (gone on HARD), serial */
 function stampTexture(t: LockTask | null) {
   const W = 512, H = 116, cv = hiCanvas(W, H), x = ctx2d(cv), r = rng(42);
@@ -153,10 +179,10 @@ export class CodeLock {
   private steel: T.Material; private brass: T.Material; private dark: T.Material; private tokenOn: T.Material; private tokenOff: T.Material;
   constructor(hi: boolean) {
     this.hi = hi;
-    const housing = mat('#4b4a47', .46), frame = mat('#3a3937', .5, 1.5); this.housingMat = housing; this.frameMat = frame; frame.map = null; frame.roughness = .4; frame.metalness = .95; this.steel = mat('#9a958c', .3); this.brass = mat('#b8914a', .32); this.dark = new T.MeshStandardMaterial({color: '#0a0806', roughness: 1});
+    const housing = mat('#4b4a47', .46), frame = mat('#3a3937', .5, 1.5); this.housingMat = housing; this.frameMat = frame; frame.map = faceplate(); frame.roughness = .34; frame.metalness = .9; frame.envMapIntensity = 1.6; this.steel = mat('#9a958c', .3); this.brass = mat('#b8914a', .32); this.dark = new T.MeshStandardMaterial({color: '#0a0806', roughness: 1});
     this.mats = {steel: mat('#c9c6bf', .24), brass: mat('#c99d4c', .28), copper: mat('#c0693d', .3), black: mat('#24201d', .38)};
     this.ringMat = new T.MeshStandardMaterial({color: '#140c06', roughness: .8}); this.ringMatB = new T.MeshStandardMaterial({color: '#d8ae4e', roughness: .4, metalness: 1});
-    this.tokenOn = mat('#d0a858', .25); this.tokenOff = mat('#2a2420', .7);
+    this.tokenOn = new T.MeshStandardMaterial({color: '#8a0d08', emissive: '#e01a0c', emissiveIntensity: .7, roughness: .15, metalness: .1}); this.tokenOff = new T.MeshStandardMaterial({color: '#1a1414', roughness: .3, metalness: .2});
     this.group.add(this.body);
     // housing: back plate, a heavy frame with a machined front rim, corner screws
     const backP = new T.Mesh(new RoundedBoxGeometry(.31, .25, .012, 3, .005), housing); backP.position.set(0, -.006, -.026); this.body.add(backP);
@@ -167,7 +193,8 @@ export class CodeLock {
     // the maker's plate on the lower bar, the try tokens beside it
     this.stampMat = new T.MeshStandardMaterial({map: stampTexture(null), metalness: .85, roughness: .38, envMapIntensity: 1.2});
     const stamp = new T.Mesh(new T.PlaneGeometry(.172, .039), this.stampMat); stamp.position.set(-.043, IN.y0 - .026, .0103); this.body.add(stamp);
-    for (let k = 0; k < 3; k++) { const tk = new T.Mesh(new T.CylinderGeometry(.0058, .0062, .004, 24), this.tokenOn); tk.rotation.x = Math.PI / 2; tk.position.set(.075 + k * .02, IN.y0 - .026, .0118); this.body.add(tk); this.tokens.push(tk); }
+    for (let k = 0; k < 3; k++) { const bez = new T.Mesh(new T.TorusGeometry(.0068, .0016, 10, 32), this.brass); bez.position.set(.075 + k * .02, IN.y0 - .026, .0112); this.body.add(bez);
+      const tk = new T.Mesh(new T.IcosahedronGeometry(.0058, 1), this.tokenOn); tk.scale.z = .55; tk.position.set(.075 + k * .02, IN.y0 - .026, .0122); this.body.add(tk); this.tokens.push(tk); }
     // the channel block: a cap bar over the pin channels (the ribs come with the pins)
     const cap = new T.Mesh(new T.BoxGeometry(.2, IN.y1 - TOPB, .024), housing); cap.position.set(PX0 + .005, (IN.y1 + TOPB) / 2, -.009); this.body.add(cap);
     // the plug: the back half of a brass cylinder; its cut face is built with the pin bores in buildPins
@@ -206,10 +233,16 @@ export class CodeLock {
     const fer = new T.Mesh(new T.CylinderGeometry(.0058, .0064, .01, 20), this.brass); fer.rotation.z = Math.PI / 2; fer.position.x = -.196; this.pick.add(fer);
     this.pick.position.set(0, PC - .001, CH); this.body.add(this.pick);
     // shackle
-    const u = new T.Mesh(new T.TorusGeometry(.085, .011, 16, 48, Math.PI), this.steel); this.shackle.add(u);
-    for (const s of [-1, 1]) { const leg = new T.Mesh(new T.CylinderGeometry(.011, .011, .07, 20), this.steel); leg.position.set(s * .085, -.035, 0); this.shackle.add(leg); }
+    const chrome = new T.MeshStandardMaterial({color: '#d6d8dc', metalness: 1, roughness: .16, envMapIntensity: 1.8}); const u = new T.Mesh(new T.TorusGeometry(.085, .015, 24, 64, Math.PI), chrome); this.shackle.add(u);
+    for (const s of [-1, 1]) { const leg = new T.Mesh(new T.CylinderGeometry(.015, .015, .07, 28), chrome); leg.position.set(s * .085, -.035, 0); this.shackle.add(leg); }
     this.shackle.position.set(0, IN.y1 + .045, -.014); this.body.add(this.shackle);
     for (const s of [-1, 1]) { const strap = new T.Mesh(new T.TorusGeometry(.022, .004, 8, 20), frame); strap.rotation.y = Math.PI / 2; strap.position.set(s * .085, .2, -.03); this.group.add(strap); }
+    // depth: the walls of the open cavity shade the parts inside
+    { const sh = new T.Mesh(new T.PlaneGeometry(IN.x1 - IN.x0, IN.y1 - IN.y0), new T.MeshBasicMaterial({map: cavity(), transparent: true, depthWrite: false})); sh.position.set((IN.x0 + IN.x1) / 2, (IN.y0 + IN.y1) / 2, .0085); sh.renderOrder = 2; this.body.add(sh); }
+    // its own light, so steel reads as steel and brass as brass against the lava glow: a warm-white key, a cool fill, a rim from behind
+    { const key = new T.PointLight('#fff2de', .5, .32, 2); key.position.set(-.12, .16, .26); this.body.add(key);
+      const fill = new T.PointLight('#a9c2ff', .2, .32, 2); fill.position.set(.2, -.04, .2); this.body.add(fill);
+      const rim = new T.PointLight('#ffd9a8', .3, .28, 2); rim.position.set(.05, .22, -.1); this.body.add(rim); }
     enableShadows(this.group);
     const sg = new T.BufferGeometry(); sg.setAttribute('position', new T.BufferAttribute(new Float32Array(48 * 3), 3));
     this.sparks = new T.Points(sg, new T.PointsMaterial({color: '#ffd38a', size: .0022, transparent: true, opacity: 0, depthWrite: false, blending: T.AdditiveBlending})); this.sparks.frustumCulled = false; this.body.add(this.sparks);
@@ -225,7 +258,7 @@ export class CodeLock {
     this.drivers = []; this.keys = []; this.springs = []; this.drvMats.forEach(m => m.dispose()); this.drvMats = []; this.controls = this.controls.filter(c => !c.id.startsWith('pin'));
     const n = t.pins.length, P = pitch(n), xs = t.pins.map((_, i) => PX0 + (i - (n - 1) / 2) * P), CW = .0205, seg = this.hi ? 140 : 80;
     const springGeo = new T.TubeGeometry(new Helix(.0066, 9), seg, .00085, 6, false), springMat = mat('#aeaaa2', .28);
-    const F = FINISHES[t.finish] ?? FINISHES[0], housing = mat(F.housing, t.finish === 2 ? .34 : .44), back = mat(F.back, .6), plugCut = mat('#c29548', .3);
+    const F = FINISHES[t.finish] ?? FINISHES[0], housing = mat(F.housing, t.finish === 2 ? .34 : .44), back = mat(F.back, .6), plugCut = mat('#c9a050', .22); plugCut.map = null; /* clean turned brass, not grimy planks */
     this.housingMat.color.set(F.housing); this.frameMat.color.set(F.frame);
     // the channel block: ribs between the channels, the back wall of each channel, machined chamfers
     const edges = [xs[0] - P / 2 - .008, ...xs.flatMap(x => [x - CW / 2, x + CW / 2]), xs[n - 1] + P / 2 + .008];
