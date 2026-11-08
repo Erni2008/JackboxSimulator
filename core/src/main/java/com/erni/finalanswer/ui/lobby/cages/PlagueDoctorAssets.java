@@ -30,11 +30,9 @@ public final class PlagueDoctorAssets implements Disposable {
                 upper.setBlending(Pixmap.Blending.None);lower.setBlending(Pixmap.Blending.None);hand.setBlending(Pixmap.Blending.None);
                 for(int y=0;y<arm.getHeight();y++) for(int x=0;x<arm.getWidth();x++) {
                     int pixel=arm.getPixel(x,y),a=pixel&255;
-                    float d=x-720;
-                    float upperMask=1-smooth((d-50)/35),lowerMask=smooth((d+85)/35);
-                    upper.drawPixel(x,y,(pixel&0xffffff00)|Math.round(a*upperMask));
+                    // one rigid sleeve (shoulder to cuff) and the hand; no elbow cut, so no kink and no doubled rags
                     if(x>=1100) hand.drawPixel(x-1100,y,pixel);
-                    else lower.drawPixel(x,y,(pixel&0xffffff00)|Math.round(a*lowerMask));
+                    else upper.drawPixel(x,y,pixel);
                 }
                 freeUpper=part(texture(upper),arm.getWidth(),arm.getHeight());
                 freeLower=part(texture(lower),arm.getWidth(),arm.getHeight());

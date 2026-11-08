@@ -23,6 +23,8 @@ public final class PlagueDoctorCharacter implements CageCharacter {
     private static final float FREE_SCALE=.038f;
     private static final float UPPER_LENGTH=(float)Math.hypot(420,280)*FREE_SCALE;
     private static final float LOWER_LENGTH=(float)Math.hypot(440,100)*FREE_SCALE;
+    /** shoulder pivot (300,260) to the cuff (1100,520) in the source, mirrored */
+    private static final float ARM_REST=MathUtils.atan2(260,800)*MathUtils.radiansToDegrees;
     private static final float UPPER_REST=MathUtils.atan2(280,420)*MathUtils.radiansToDegrees;
     private static final float LOWER_REST=MathUtils.atan2(-100,440)*MathUtils.radiansToDegrees;
     private final PlagueDoctorAssets assets;
@@ -84,13 +86,9 @@ public final class PlagueDoctorCharacter implements CageCharacter {
         part(batch,assets.rightArm,0,0,PlagueDoctorRig.RIGHT_PIVOT_X,PlagueDoctorRig.RIGHT_PIVOT_Y,PlagueDoctorRig.ARM_SCALE,0);
         batch.setTransformMatrix(torso);
         float shoulderY=25+6*p.hatAdjust;
-        freePose.solve(-16,shoulderY,p.freeX,p.freeY,UPPER_LENGTH,LOWER_LENGTH,-1);
-        float upperAngle=MathUtils.atan2(freePose.jointY-shoulderY,freePose.jointX+16)*MathUtils.radiansToDegrees
-            -UPPER_REST;
-        float lowerAngle=MathUtils.atan2(freePose.endY-freePose.jointY,freePose.endX-freePose.jointX)*MathUtils.radiansToDegrees
-            -LOWER_REST;
-        flipped(batch,assets.freeLower,freePose.jointX,freePose.jointY,720,540,FREE_SCALE,lowerAngle);
-        flipped(batch,assets.freeUpper,-16,shoulderY,300,260,FREE_SCALE,upperAngle);
+        // rigid arm: it only turns at the shoulder toward the animated hand target
+        float armAngle=MathUtils.atan2(p.freeY-shoulderY,p.freeX+16)*MathUtils.radiansToDegrees-ARM_REST;
+        flipped(batch,assets.freeUpper,-16,shoulderY,300,260,FREE_SCALE,armAngle);
         part(batch,assets.body,0,0,600,780,BODY_SCALE,0);
         head.set(torso).translate(PlagueDoctorRig.NECK_X+p.headX,PlagueDoctorRig.NECK_Y,0).rotate(0,0,1,p.headAngle);
         batch.setTransformMatrix(head);
@@ -101,7 +99,7 @@ public final class PlagueDoctorCharacter implements CageCharacter {
         characterTint(batch,plagueDoctorClothReadability,opacity*p.alpha);
         part(batch,assets.collar,0,0,600,780,BODY_SCALE,0);
         // Wrist/hand stay on the same forearm bone. Only the hand passes in front of the portrait.
-        flipped(batch,assets.freeHand,freePose.jointX,freePose.jointY,720,540,FREE_SCALE,lowerAngle);
+        flipped(batch,assets.freeHand,-16,shoulderY,300,260,FREE_SCALE,armAngle);
         batch.setTransformMatrix(head);
         characterTint(batch,plagueDoctorMetalReadability,opacity*p.alpha);
         part(batch,assets.hat,0,40,780,850,HAT_SCALE,p.hatAngle);
