@@ -179,7 +179,7 @@ export class LockNotes {
   take(i: number, scene: T.Object3D) { if (this.held === i) return; if (this.held >= 0) this.putBack(); this.scene = scene; this.held = i; this.reading = false; this.k = 0; this.rk = 0;
     const m = this.sheets[i]; scene.attach(m); this.wallMat = m.material as T.Material;
     // in hand the sheet is evenly lit (no cage light washing it out) and drawn over everything
-    m.material = new T.MeshBasicMaterial({map: (this.wallMat as T.MeshStandardMaterial).map, color: '#d6c8aa', side: T.DoubleSide, depthTest: false, toneMapped: false}); m.renderOrder = 20; }
+    m.material = new T.MeshBasicMaterial({map: (this.wallMat as T.MeshStandardMaterial).map, color: '#d6c8aa', side: T.DoubleSide, depthTest: false, depthWrite: false, transparent: true, toneMapped: false}); m.renderOrder = 999; /* last of all, after the lock's glass and pick */ }
   private wallMat: T.Material | null = null;
   putBack() { const i = this.held; if (i < 0) return; const m = this.sheets[i]; this.group.attach(m); (m.material as T.Material).dispose(); if (this.wallMat) m.material = this.wallMat; m.renderOrder = 0; this.held = -1; this.reading = false; this.returning.push(i); }
   private returning: number[] = [];
