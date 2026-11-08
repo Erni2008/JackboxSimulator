@@ -16,13 +16,13 @@
 @keyframes g-spin{to{transform:rotate(360deg)}}
 
 /* ---------- the stage: velvet, two lanterns, dust ---------- */
-body.g-on{background:#0b0708;font-family:Body,sans-serif}
-body.g-on .ambient{background:
+body.g-on{background:#0b0708 url('/portraits/stage.webp') center top/cover fixed;font-family:Body,sans-serif}
+body.g-on .ambient{display:none;background:
   radial-gradient(120% 70% at 50% 0%,#3a0d12 0%,#1a0709 45%,#0b0607 75%),
   repeating-linear-gradient(90deg,#00000000 0 26px,#0000004d 26px 34px,#00000000 34px 60px);
   box-shadow:inset 0 0 140px #000}
 .g-stage{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
-.g-stage .lamp{position:absolute;top:120px;width:26px;height:44px;border-radius:6px 6px 10px 10px;background:radial-gradient(circle at 50% 60%,#ffd27a,#ff8a2a 45%,#6a2a0a 80%);box-shadow:0 0 18px #ff9a3a,0 0 60px #ff7a2a88;animation:g-flicker 4.2s infinite}
+.g-stage .lamp{display:none;position:absolute;top:120px;width:26px;height:44px;border-radius:6px 6px 10px 10px;background:radial-gradient(circle at 50% 60%,#ffd27a,#ff8a2a 45%,#6a2a0a 80%);box-shadow:0 0 18px #ff9a3a,0 0 60px #ff7a2a88;animation:g-flicker 4.2s infinite}
 .g-stage .lamp::before{content:"";position:absolute;left:50%;top:-18px;width:2px;height:18px;background:#2a2220;transform:translateX(-50%)}
 .g-stage .lamp::after{content:"";position:absolute;left:50%;top:50%;width:260px;height:260px;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,#ff8a3a2a,#ff8a3a00 65%)}
 .g-stage .lamp.l{left:10px}.g-stage .lamp.r{right:10px;animation-delay:-1.7s}
@@ -197,3 +197,18 @@ body.g-on .standing-rank{white-space:nowrap;min-width:40px}
 .g-cage .who{width:80%!important;transform:translate(-50%,-50%)!important;filter:drop-shadow(0 6px 8px #000) brightness(1.18) contrast(1.05)!important}
 .g-cage .halo{inset:10% 4% 14%!important;background:radial-gradient(circle,#ff8a4a55,#c8323c22 45%,transparent 70%)!important}
 .g-cage .bars{opacity:.9}
+
+/* ---------- background art + host-only information ---------- */
+body.g-on::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;background:linear-gradient(180deg,#0000 0%,#0006 30%,#000a 60%,#0008 100%)}
+body.g-on #join-form label[for=character],body.g-on #character,body.g-on .g-picker{display:none!important}
+body.g-on #question-life-roster,body.g-on #question-life-status,body.g-on #result-life-status,body.g-on .answer-reveal,body.g-on #result-screen .whisper{display:none!important}
+#result-screen[data-outcome=sealed] .verdict-seal path{display:none}
+#result-screen[data-outcome=sealed] .verdict-seal{position:relative}
+#result-screen[data-outcome=sealed] .verdict-seal::after{content:"✦";position:absolute;inset:0;display:grid;place-items:center;font-size:44px;color:#e0706c;text-shadow:0 0 14px #c8323c}
+#result-screen[data-outcome=sealed] #result-title{color:#efe4d2!important;text-shadow:0 3px 0 #000,0 0 22px #c8323c55!important}
+#result-screen[data-outcome=timeout] #result-title{color:#efe4d2!important}
+#result-screen[data-outcome=timeout] .verdict-card{animation:none!important}
+.g-danger{display:none!important}
+body.g-on #result-screen .verdict-card>.eyebrow{display:none}
+body.g-on .masthead::after{content:"";position:absolute;left:50%;top:50%;width:340px;height:220px;transform:translate(-50%,-50%);z-index:-1;background:radial-gradient(closest-side,#000d,#0008 60%,transparent)}
+body.g-on .masthead p{color:#c98a80}

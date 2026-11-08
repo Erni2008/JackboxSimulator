@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class RoomServiceTest {
     final AtomicLong clock=new AtomicLong(1_000_000);
-    final RoomService service=new RoomService(clock::get,1000,"https://play.example.test");
+    final RoomService service=new RoomService(clock::get,1000,"https://play.example.test"); { service.randomCharacters=false; }
     JsonObject host,one,two;
     TestPeer h=new TestPeer(),a=new TestPeer(),b=new TestPeer();
     @BeforeEach void setup(){host=create(Map.of());service.attach(s(host,"code"),s(host,"token"),h,"h");}
@@ -165,7 +165,7 @@ class RoomServiceTest {
     @Test void concurrentSubmissionsAreAtomic() throws Exception {answering();var executor=Executors.newFixedThreadPool(2);var barrier=new CyclicBarrier(2);var accepted=new AtomicLong();try{var tasks=new ArrayList<Future<?>>();for(int i=0;i<2;i++)tasks.add(executor.submit(()->{try{barrier.await();submit(a,1);accepted.incrementAndGet();}catch(RoomService.Failure e){assertEquals("ANSWER_ALREADY_SUBMITTED",e.getMessage());}catch(Exception e){throw new RuntimeException(e);}}));for(var t:tasks)t.get();assertEquals(1,accepted.get());}finally{executor.shutdownNow();}}
     @Test void earlyCompletionPolicyIsExplicit(){var game=new GameSession(1,Set.of("a","b"),Protocol.EndPolicy.ALL_SUBMITTED_OR_TIMEOUT,clock.get());game.next(clock.get());game.beginAnswers(clock.get());game.submitted.put("a",0);assertFalse(game.allSubmitted());game.submitted.put("b",1);assertTrue(game.allSubmitted());assertEquals(Protocol.EndPolicy.ALL_SUBMITTED_OR_TIMEOUT,game.endPolicy);}
     @Test void allSubmittedPolicyActuallyEndsBeforeDeadline(){
-        var early=new RoomService(clock::get,10,"",Protocol.EndPolicy.ALL_SUBMITTED_OR_TIMEOUT);
+        var early=new RoomService(clock::get,10,"",Protocol.EndPolicy.ALL_SUBMITTED_OR_TIMEOUT);early.randomCharacters=false;
         var room=obj(early.create(Map.of("name","Early")));
         var player=obj(early.join(s(room,"code"),Map.of("name","Player")));
         var second=obj(early.join(s(room,"code"),Map.of("name","Second")));var secondPeer=new TestPeer();

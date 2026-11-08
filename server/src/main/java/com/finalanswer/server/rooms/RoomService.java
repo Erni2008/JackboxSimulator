@@ -27,6 +27,8 @@ public final class RoomService {
     private final String publicUrl;
     private final EndPolicy endPolicy;
     private final WordSource impostorWords;
+    /** false only in tests and fixtures that need a named character; the live game always deals characters at random */
+    public boolean randomCharacters=true;
     public RoomService() { this(monotonicTime(),1000,""); }
     public RoomService(LongSupplier time,int maxRooms,String publicUrl) { this(time,maxRooms,publicUrl,EndPolicy.TIME_ONLY); }
     /** Server-selected policy; players cannot choose it in protocol messages. */
@@ -79,11 +81,17 @@ public final class RoomService {
             throw new Failure(403,"INVALID_PASSWORD");
         if(room.members.size()>=room.maxPlayers) throw new Failure(409,"ROOM_IS_FULL");
         if(room.members.values().stream().anyMatch(m->m.name.equalsIgnoreCase(name))) throw new Failure(409,"NICKNAME_IN_USE");
-        String character=data.getOrDefault("characterId", "");
-        if(!character.isEmpty() && !CHARACTERS.contains(character))throw new Failure(400,"INVALID_CHARACTER");
+        // characters are dealt at random (they will carry different abilities): a phone's own choice is ignored
         Set<String> taken=new HashSet<>();room.members.values().forEach(m->taken.add(m.characterId));
-        if(character.isEmpty())character=CHARACTERS.stream().filter(c->!taken.contains(c)).findFirst().orElseThrow(()->new Failure(409,"ROOM_IS_FULL"));
-        if(taken.contains(character))throw new Failure(409,"CHARACTER_IN_USE");
+        List<String> free=new ArrayList<>(CHARACTERS.stream().filter(c->!taken.contains(c)).toList());
+        if(free.isEmpty())throw new Failure(409,"ROOM_IS_FULL");
+        String character=free.get(random.nextInt(free.size()));
+        String asked=data.getOrDefault("characterId","");
+        if(!randomCharacters&&!asked.isEmpty()){ // test fixtures only: a named seat
+            if(!CHARACTERS.contains(asked))throw new Failure(400,"INVALID_CHARACTER");
+            if(taken.contains(asked))throw new Failure(409,"CHARACTER_IN_USE");
+            character=asked;
+        }
         Member member=new Member(name,false,token(),now());
         member.characterId=character;
         room.members.put(member.token,member);

@@ -10,7 +10,7 @@ import static com.finalanswer.server.RoomServiceTest.*;
 /** Authoritative ownership and start barrier regressions, using the production room service. */
 class LobbyStartTest {
     final java.util.concurrent.atomic.AtomicLong clock=new java.util.concurrent.atomic.AtomicLong(1_000_000);
-    final com.finalanswer.server.rooms.RoomService service=new com.finalanswer.server.rooms.RoomService(clock::get,1000,"");
+    final com.finalanswer.server.rooms.RoomService service=new com.finalanswer.server.rooms.RoomService(clock::get,1000,""); { service.randomCharacters=false; }
     com.google.gson.JsonObject host,one,two;
     TestPeer h=new TestPeer(),a=new TestPeer(),b=new TestPeer();
     @org.junit.jupiter.api.BeforeEach void setup(){host=create(Map.of());service.attach(s(host,"code"),s(host,"token"),h,"host");}
@@ -92,5 +92,15 @@ class LobbyStartTest {
         command(h,"SET_LANGUAGE",Map.of("language","ru")); assertEquals("ru",s(a.latest(),"language"),"players see the host's language");
         failure("HOST_ONLY",()->command(a,"SET_LANGUAGE",Map.of("language","en")));
         failure("INVALID_LANGUAGE",()->command(h,"SET_LANGUAGE",Map.of("language","de")));
+    }
+    @Test void liveRoomsDealCharactersAtRandomAndIgnoreThePhonesChoice() {
+        var live=new com.finalanswer.server.rooms.RoomService(clock::get,1000,"");
+        java.util.Set<String> seen=new java.util.HashSet<>();
+        for(int k=0;k<40;k++){var room=com.google.gson.JsonParser.parseString(live.create(java.util.Map.of("name","R"+k,"maxPlayers","8"))).getAsJsonObject();String code=room.get("code").getAsString();
+            java.util.Set<String> inRoom=new java.util.HashSet<>();
+            for(int p=0;p<8;p++){var j=com.google.gson.JsonParser.parseString(live.join(code,java.util.Map.of("name","P"+p,"characterId","skeleton"))).getAsJsonObject();
+                String self=j.get("selfId").getAsString();String ch=null;for(var e:j.getAsJsonArray("players")){var o=e.getAsJsonObject();if(o.get("id").getAsString().equals(self))ch=o.get("characterId").getAsString();}
+                assertTrue(inRoom.add(ch),"each character only once per room");if(p==0)seen.add(ch);}}
+        assertTrue(seen.size()>3,"the first seat is random, not the requested skeleton: "+seen);
     }
 }

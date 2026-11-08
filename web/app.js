@@ -141,9 +141,11 @@ function render(){
     $('ghost-question').textContent=state.question?.text||'Watch the shared screen.';return;
   }
   if(state.phase==='RESULTS'){
-    show('result');const result=state.results.find(r=>r.playerId===state.selfId);$('result-screen').dataset.outcome=!result?.answeredInTime?'timeout':result.isCorrect?'correct':'incorrect';$('result-title').textContent=!result?.answeredInTime?"Time's up!":result.isCorrect?'Correct!':'Wrong answer!';
-    $('result-detail').textContent=!result?.answeredInTime?'The clock ran out before an answer was received.':result.isCorrect?'Your answer was correct. Points have been recorded.':'Your answer was incorrect. Watch the shared screen for the next stage.';
-    $('correct-answer').textContent=`${state.question.correctAnswerIndex+1}. ${state.question.answers[state.question.correctAnswerIndex]}`;$('result-score').textContent=`${self?.score||0} POINTS · ${state.questionNumber} / ${state.questionCount} QUESTIONS`;return;
+    // the verdict belongs to the host's screen: a phone never learns here whether it was right or how the others did
+    show('result');const result=state.results.find(r=>r.playerId===state.selfId);$('result-screen').dataset.outcome=result?.answeredInTime?'sealed':'timeout';
+    $('result-title').textContent=result?.answeredInTime?'Answer sealed':"Time's up";
+    $('result-detail').textContent=result?.answeredInTime?'The host reveals the truth. Watch the shared screen.':'No answer reached the host in time. Watch the shared screen.';
+    $('correct-answer').textContent='';$('result-score').textContent=`QUESTION ${state.questionNumber} / ${state.questionCount}`;return;
   }
   show('question');const q=state.question,key=state.gameId+':'+state.questionNumber+':'+q.id;
   if(questionKey!==key){questionKey=key;pending=null;clearTimeout(pendingTimer);$('question-text').textContent=q.text;$('answers').replaceChildren();q.answers.forEach((answer,index)=>{const button=document.createElement('button'),number=document.createElement('span'),text=document.createElement('span');button.type='button';button.className='answer';button.dataset.index=String(index);number.className='number';number.textContent=String(index+1);text.textContent=answer;button.append(number,text);button.addEventListener('click',()=>submit(index));$('answers').append(button);});}

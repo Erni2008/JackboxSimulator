@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /** Real authenticated room commands plus focused authoritative survival cases. */
 class CursedBoxesTest {
     final AtomicLong clock=new AtomicLong(1_000_000);
-    final RoomService rooms=new RoomService(clock::get,10,"");
+    final RoomService rooms=new RoomService(clock::get,10,""); { rooms.randomCharacters=false; }
     final RoomServiceTest.TestPeer h=new RoomServiceTest.TestPeer(),a=new RoomServiceTest.TestPeer(),b=new RoomServiceTest.TestPeer();
     JsonObject host,one,two;String code,session;
     @BeforeEach void setup(){
