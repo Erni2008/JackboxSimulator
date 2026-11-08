@@ -308,6 +308,7 @@ tasks.register('impostorPreview', JavaExec) {
     classpath = sourceSets.dev.runtimeClasspath
     mainClass = 'com.erni.finalanswer.lwjgl3.ImpostorPreviewLauncher'
     systemProperty 'impostor.connection', providers.gradleProperty('impostorConnection').getOrElse('')
+    systemProperty 'impostor.preview.prewarm', providers.gradleProperty('impostorPrewarm').getOrElse('false')
     workingDir = rootProject.file('assets')
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'

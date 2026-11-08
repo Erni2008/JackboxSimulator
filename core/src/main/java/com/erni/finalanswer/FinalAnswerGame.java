@@ -216,6 +216,7 @@ public class FinalAnswerGame extends Game {
     public void showRoomLobby() {
         if (activeRoom == null) { showMainMenu(); return; }
         if (cageLobbyScreen == null) cageLobbyScreen = new com.erni.finalanswer.screens.CageLobbyScreen(this);
+        if (activeRoom.host()) com.erni.finalanswer.impostor.ImpostorAssets.prewarm(); // THE IMPOSTOR is the heaviest mode to open: decode its art while the host waits
         if(getScreen()!=cageLobbyScreen)setScreen(cageLobbyScreen);
     }
     public void showImpostorLobby(){

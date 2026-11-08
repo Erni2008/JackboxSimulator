@@ -17,6 +17,26 @@ public final class RuntimeTextures {
 
     private RuntimeTextures() {}
 
+    /** Images decoded ahead of time on a background thread; consumed (and freed) by the first load of that path. */
+    private static final java.util.concurrent.ConcurrentHashMap<String, com.badlogic.gdx.graphics.Pixmap> PREPARED = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.Set<String> QUEUED = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private static final java.util.concurrent.ExecutorService DECODER = java.util.concurrent.Executors.newSingleThreadExecutor(task -> {
+        Thread thread = new Thread(task, "texture-prewarm"); thread.setDaemon(true); thread.setPriority(Thread.MIN_PRIORITY); return thread; });
+
+    /** Starts decoding these images in the background (CPU only, no GL), so a later load only uploads them. */
+    public static void prewarm(Iterable<String> paths) {
+        initialize();
+        for (String path : paths) {
+            if (!QUEUED.add(path)) continue;
+            String size = SIZES.getProperty(path);
+            var file = Gdx.files.internal(size == null ? path : "runtime/" + path);
+            DECODER.execute(() -> {
+                try { if (file.exists()) PREPARED.put(path, new com.badlogic.gdx.graphics.Pixmap(file)); }
+                catch (RuntimeException ignored) { /* the normal load reports the problem */ }
+            });
+        }
+    }
+
     private static void initialize() {
         if (!initialized) {
             if (Gdx.files.internal("runtime/sizes.properties").exists()) {
@@ -42,7 +62,10 @@ public final class RuntimeTextures {
     public static Texture load(String path) {
         initialize();
         String size = SIZES.getProperty(path);
-        Texture texture = new Texture(Gdx.files.internal(size == null ? path : "runtime/" + path));
+        com.badlogic.gdx.graphics.Pixmap prepared = PREPARED.remove(path);
+        Texture texture;
+        if (prepared != null) { QUEUED.remove(path); try { texture = new Texture(prepared); } finally { prepared.dispose(); } }
+        else texture = new Texture(Gdx.files.internal(size == null ? path : "runtime/" + path));
         texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         if (size != null) {
             String[] dimensions = size.split(",");

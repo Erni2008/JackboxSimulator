@@ -35,7 +35,7 @@ public final class ImpostorPreviewLauncher {
             @Override public void create() {
                 String marker=System.getProperty("impostor.preview.readyFile","");
                 if(!marker.isBlank())com.badlogic.gdx.Gdx.files.absolute(marker).delete();
-                startupAt=System.nanoTime();super.create();previewLanguage("ru");
+                startupAt=System.nanoTime();super.create();if(Boolean.getBoolean("impostor.preview.prewarm"))com.erni.finalanswer.impostor.ImpostorAssets.prewarm();previewLanguage("ru");
                 loading=new PreviewLoading();setScreen(loading);
             }
             private void prepareStep(){

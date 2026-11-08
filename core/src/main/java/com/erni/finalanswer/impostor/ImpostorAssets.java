@@ -16,11 +16,19 @@ public final class ImpostorAssets implements Disposable {
     private boolean loaded;
     private boolean disposed;
 
+    /** Decode every Impostor image in the background ahead of time (called while the host waits in the room). */
+    public static void prewarm() {
+        java.util.List<String> paths = new java.util.ArrayList<>();
+        for (ImpostorAsset asset : ImpostorAsset.values()) paths.add(asset.path());
+        RuntimeTextures.prewarm(paths);
+    }
+
     /** Loads once per owner; a bad or missing PNG does not prevent other assets from loading. */
     public void load() {
         if (disposed) throw new IllegalStateException("Impostor assets already disposed");
         if (loaded) return;
         loaded = true;
+        long started = System.nanoTime();
         for (ImpostorAsset asset : ImpostorAsset.values()) {
             try {
                 if (!RuntimeTextures.exists(asset.path())) {
@@ -33,7 +41,7 @@ public final class ImpostorAssets implements Disposable {
             }
         }
         Gdx.app.log("THE IMPOSTOR", "Loaded " + textures.size() + "/"
-                + ImpostorAsset.values().length + " textures");
+                + ImpostorAsset.values().length + " textures in " + (System.nanoTime() - started) / 1_000_000 + " ms");
     }
 
     private void report(ImpostorAsset asset, String reason) {
