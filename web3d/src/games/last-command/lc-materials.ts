@@ -68,10 +68,10 @@ function get(kind: string, quality: string) {
 export function lcMaterials(quality: string, custom = false) {
   const mk = (kind: string, o: T.MeshPhysicalMaterialParameters) => { const s = get(kind, quality); const m = new T.MeshPhysicalMaterial({...s, ...o}); m.normalScale.setScalar(o.normalScale ? (o.normalScale as any).x : 1); if (custom) m.userData.lcCustom = true; return m; };
   return {
-    paint: mk('paint', {color: '#46514b', metalness: .35, roughness: 1, clearcoat: .35, clearcoatRoughness: .45}),
-    paintDark: mk('paint', {color: '#2c3431', metalness: .4, roughness: 1, clearcoat: .25, clearcoatRoughness: .5}),
+    paint: mk('paint', {color: '#2c3135', metalness: .45, roughness: .85, clearcoat: .7, clearcoatRoughness: .28}),
+    paintDark: mk('paint', {color: '#16181a', metalness: .5, roughness: .9, clearcoat: .5, clearcoatRoughness: .32}),
     steel: mk('steel', {color: '#ffffff', metalness: 1, roughness: 1}),
-    darkSteel: mk('steel', {color: '#4a4f52', metalness: 1, roughness: 1}),
+    darkSteel: mk('steel', {color: '#3a3e42', metalness: 1, roughness: 1}),
     brass: mk('brass', {color: '#ffffff', metalness: 1, roughness: 1}),
     copper: mk('copper', {color: '#ffffff', metalness: 1, roughness: 1}),
     bakelite: mk('bakelite', {color: '#ffffff', metalness: 0, roughness: 1, clearcoat: .6, clearcoatRoughness: .2}),

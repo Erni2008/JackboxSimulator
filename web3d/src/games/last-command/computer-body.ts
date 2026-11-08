@@ -50,12 +50,12 @@ export function buildComputer(power: PowerLighting, quality: string) {
 
   // the cabinet core
   const X0 = -.276, X1 = .289, Y0 = .081, Y1 = .715, Z0 = -.25, ZF = .10, cx = (X0 + X1) / 2;
-  rbox(X1 - X0, Y1 - Y0, ZF - Z0, .022, paint, cx, (Y0 + Y1) / 2, (Z0 + ZF) / 2);
+  rbox(X1 - X0, Y1 - Y0, ZF - Z0, .03, paint, cx, (Y0 + Y1) / 2, (Z0 + ZF) / 2);
 
   // the facade around the screen window, its face at z .143
   const WX0 = -.142, WX1 = .136, WY0 = .4125, WY1 = .5775, FZ = .1215, FD = .043, FX0 = -.272, FX1 = .285, FY0 = .09, FY1 = .705;
-  rbox(FX1 - FX0, WY0 - FY0, FD, .01, paint, (FX0 + FX1) / 2, (FY0 + WY0) / 2, FZ);
-  rbox(FX1 - FX0, FY1 - WY1, FD, .01, paint, (FX0 + FX1) / 2, (WY1 + FY1) / 2, FZ);
+  rbox(FX1 - FX0, WY0 - FY0, FD, .014, paint, (FX0 + FX1) / 2, (FY0 + WY0) / 2, FZ);
+  rbox(FX1 - FX0, FY1 - WY1, FD, .014, paint, (FX0 + FX1) / 2, (WY1 + FY1) / 2, FZ);
   rbox(WX0 - FX0, WY1 - WY0 + .02, FD, .006, paint, (FX0 + WX0) / 2, (WY0 + WY1) / 2, FZ);
   rbox(FX1 - WX1, WY1 - WY0 + .02, FD, .006, paint, (WX1 + FX1) / 2, (WY0 + WY1) / 2, FZ);
   // the screen tunnel (dark walls between the glass at .114 and the face) and a heavy bezel
@@ -117,6 +117,19 @@ export function buildComputer(power: PowerLighting, quality: string) {
     const rv = new T.InstancedMesh(new T.SphereGeometry(.0038, 8, 5, 0, Math.PI * 2, 0, Math.PI / 2), steel, pts.length), mtx = new T.Matrix4(), q = new T.Quaternion().setFromEuler(new T.Euler(Math.PI / 2, 0, 0));
     pts.forEach((p, i) => { mtx.compose(new T.Vector3(...p), q, new T.Vector3(1, 1, .6)); rv.setMatrixAt(i, mtx); }); root.add(rv); }
 
+  // amber light strips fed by the machine's power: along the plinth and under the facade
+  const led = mark(new T.MeshStandardMaterial({color: '#1a0e04', emissive: '#ffffff', roughness: .3}));
+  led.onBeforeCompile = sh => { sh.uniforms.lcPowerColor = power.lampColor; sh.uniforms.lcPowerStrength = power.lampPower; sh.fragmentShader = 'uniform vec3 lcPowerColor;uniform float lcPowerStrength;\n' + sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance = lcPowerColor * lcPowerStrength * 0.7;'); };
+  led.customProgramCacheKey = () => 'lc-cabinet-led-v1';
+  box(.6, .0035, .003, led, .0065, .0705, .2155); box(FX1 - FX0 - .04, .003, .003, led, (FX0 + FX1) / 2, FY0 + .004, .1445);
+  for (const sx of [X0 - .0015, X1 + .0015]) box(.003, .0035, .44, led, sx, .0705, -.035);
+  // a faint green spill of the screen on the inside of its tunnel
+  { const spill = mark(new T.MeshBasicMaterial({color: '#2f6e52', transparent: true, opacity: .35, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false}));
+    for (const [w, h, x, y] of [[tw, .0015, tcx, WY1 - .001], [tw, .0015, tcx, WY0 + .001], [.0015, th, WX0 + .001, tcy], [.0015, th, WX1 - .001, tcy]] as number[][]) { const m = box(w, h, .026, spill, x, y, .129); m.userData.keep = true; m.raycast = () => {}; } }
+  // milled grooves framing the nameplate zone and the lower facade panels
+  { const groove = mark(new T.MeshStandardMaterial({color: '#050606', roughness: .9}));
+    const frame = (x0: number, x1: number, y0: number, y1: number) => { box(x1 - x0, .0018, .002, groove, (x0 + x1) / 2, y0, .1441); box(x1 - x0, .0018, .002, groove, (x0 + x1) / 2, y1, .1441); box(.0018, y1 - y0, .002, groove, x0, (y0 + y1) / 2, .1441); box(.0018, y1 - y0, .002, groove, x1, (y0 + y1) / 2, .1441); };
+    frame(-.25, .244, .598, .692); frame(FX0 + .016, FX1 - .016, FY0 + .016, .392); }
   // panel seams on the sides
   for (const sx of [X0 - .0006, X1 + .0006]) { box(.0016, .003, ZF - Z0 - .03, mark(new T.MeshStandardMaterial({color: '#0c0e0d', roughness: .9})), sx, .42, (Z0 + ZF) / 2); }
   // two flexible cables dropping from the cap down the right back corner

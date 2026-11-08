@@ -85,7 +85,10 @@ export class Machine implements InteractiveSceneModule {
   }
   /** the cabinet built in code, wrapped so the body mount's scale/offset land it in machine space */
   cabinet(mount:any){const wrap=new T.Group(),s=mount.scale?.x||1,t=vec(mount.position);wrap.scale.setScalar(1/s);wrap.position.copy(t).multiplyScalar(-1/s);const body=buildComputer(this.power,this.quality);wrap.add(body);
-    body.traverse((o:any)=>{if(o.geometry)this.detailGeometries.add(o.geometry);});return wrap;}
+    body.traverse((o:any)=>{if(o.geometry)this.detailGeometries.add(o.geometry);});
+    // hero lighting: two rim lights from behind draw the silhouette and put highlights on every bevel
+    if(!this.root.getObjectByName('lc-rim')){const cool=new T.DirectionalLight(0x9fc2ff,1.6);cool.name='lc-rim';cool.position.set(-1.6,2.2,-2.4);const warm=new T.DirectionalLight(0xffcf98,1.1);warm.position.set(1.8,1.4,-2.2);const top=new T.SpotLight(0xfff1dc,6,3,.5,.6,2);top.position.set(.2,1.8,.9);top.target.position.set(0,.4,0);this.root.add(cool,warm,top,top.target);}
+    return wrap;}
   weather(material:any,part:number,style:any){const surface=part===0?style.body:part===2?style.cap:style.base;material.onBeforeCompile=(shader:any)=>{
     shader.uniforms.u_weather={value:new T.Vector4(surface.coverage*.35,surface.relief*.3,Math.min(surface.roughness,.65),part)};
     shader.vertexShader='varying vec3 v_weatherPosition;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nv_weatherPosition=(modelMatrix*vec4(position,0.0)).xyz;');
