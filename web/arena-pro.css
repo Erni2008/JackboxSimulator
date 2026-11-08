@@ -216,3 +216,23 @@ body.g-on .masthead p{color:#c98a80}
 body.g-on #result-screen .verdict-seal,body.g-on #ghost-screen .ghost-seal{display:none!important}
 body[data-view=question] #leave,body[data-view=result] #leave,body[data-view=ghost] #leave{display:none!important}
 body[data-view=question] #session-footer,body[data-view=result] #session-footer,body[data-view=ghost] #session-footer{justify-content:center}
+/* ---------- after a question: only "Ответ отправлен", centred on the stage ---------- */
+body[data-view=result] .connection,body[data-view=result] #session-footer,body[data-view=result] .page-footer,
+body[data-view=result] #result-score,body[data-view=result] .verdict-detail,body[data-view=result] #result-screen hr,
+body[data-view=result] .verdict-card::before,body[data-view=result] .verdict-card::after{display:none!important}
+body[data-view=result] #result-screen{min-height:calc(100svh - 40px);display:flex!important;flex-direction:column;align-items:center;justify-content:center}
+body[data-view=result] #result-screen[hidden]{display:none!important}
+body[data-view=result] .verdict-card{padding:0!important;margin:0!important;text-align:center}
+body[data-view=result] .verdict-card *:not(#result-title){display:none!important}
+body[data-view=result] #result-title{margin:0!important;font-size:clamp(42px,12vw,58px)!important;line-height:1.05!important;color:#f3e8d6!important;text-shadow:0 3px 0 #000,0 0 30px #c8323c66!important;animation:g-pop .5s .05s both}
+body[data-view=result] #result-title::after{content:"";display:block;width:140px;height:9px;margin:18px auto 0;background:linear-gradient(90deg,transparent,#a8323a 30%,#a8323a 70%,transparent) center/100% 1px no-repeat,radial-gradient(circle,#e0403c 0 3px,transparent 3.5px) center/9px 9px no-repeat;filter:drop-shadow(0 0 6px #e0403c)}
+body[data-view=result] .verdict-card{border:0!important;border-block:0!important;box-shadow:none!important;background:none!important}
+body[data-view=result] #result-title{border:0!important;background:radial-gradient(ellipse,#5a141c55,transparent 70%)!important;padding:24px 12px!important}
+/* ---------- ghost: only "Ты призрак" + "Ещё не всё кончено" ---------- */
+body[data-view=ghost] .connection,body[data-view=ghost] #session-footer,body[data-view=ghost] .page-footer{display:none!important}
+body[data-view=ghost] #ghost-screen>*:not(h1):not(.ghost-assurance){display:none!important}
+body[data-view=ghost] #ghost-screen{min-height:calc(100svh - 40px);display:flex!important;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+body[data-view=ghost] #ghost-screen[hidden]{display:none!important}
+body[data-view=ghost] #ghost-screen h1{margin:0!important;font-size:clamp(46px,13vw,62px)!important;line-height:1.05;color:#e8f6ff!important;text-shadow:0 3px 0 #000,0 0 30px #8fd8ffaa!important;animation:g-pop .5s .05s both}
+body[data-view=ghost] .ghost-assurance{margin:14px 0 0!important;font:700 clamp(22px,6.4vw,28px) Gothic,Georgia,serif!important;color:#bfe3f5!important;letter-spacing:.04em;text-shadow:0 2px 0 #000;animation:g-in .6s .35s both}
+body[data-view=ghost] .ghost-assurance::after{content:"";display:block;width:140px;height:9px;margin:18px auto 0;background:linear-gradient(90deg,transparent,#5a9ab8 30%,#5a9ab8 70%,transparent) center/100% 1px no-repeat,radial-gradient(circle,#8fd8ff 0 3px,transparent 3.5px) center/9px 9px no-repeat;filter:drop-shadow(0 0 6px #8fd8ff)}

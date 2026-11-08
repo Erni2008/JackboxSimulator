@@ -143,7 +143,7 @@ function render(){
   if(state.phase==='RESULTS'){
     // the verdict belongs to the host's screen: a phone never learns here whether it was right or how the others did
     show('result');const result=state.results.find(r=>r.playerId===state.selfId);$('result-screen').dataset.outcome=result?.answeredInTime?'sealed':'timeout';
-    $('result-title').textContent=result?.answeredInTime?'Answer sealed':"Time's up";
+    $('result-title').textContent=result?.answeredInTime?'Ответ отправлен':'Время вышло';
     $('result-detail').textContent=result?.answeredInTime?'The host reveals the truth. Watch the shared screen.':'No answer reached the host in time. Watch the shared screen.';
     $('correct-answer').textContent='';$('result-score').textContent=`QUESTION ${state.questionNumber} / ${state.questionCount}`;return;
   }
