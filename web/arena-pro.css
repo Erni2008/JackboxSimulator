@@ -372,3 +372,11 @@ body.g-on .cursed-fire{border:1.5px solid transparent!important;background:radia
 body.g-on .choice-receipt p#answer-receipt-value,body.g-on .choice-receipt p#vote-receipt-value{display:block!important;margin:6px 0 0}
 body.g-on #answer-receipt>span{display:none!important}
 body[data-view=result] .connection,body[data-view=ghost] .connection,body[data-view=finished] .connection,body[data-view=join] .connection{display:none!important}
+/* ---------- finished: no scores or standings on phones — only "Шоу окончено" ---------- */
+body[data-view=finished] .masthead,body[data-view=finished] .connection,body[data-view=finished] #session-footer,body[data-view=finished] .page-footer,
+body[data-view=finished] #finished-screen>*{display:none!important}
+body[data-view=finished] #finished-screen{position:relative;min-height:calc(100svh - 40px);display:flex!important;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+body[data-view=finished] #finished-screen[hidden]{display:none!important}
+body[data-view=finished] #finished-screen::before{content:"Шоу окончено";font:700 clamp(44px,12.5vw,60px)/1.05 Gothic,Georgia,serif;color:#f6dfae;text-shadow:0 3px 0 #1a0c04,0 0 28px #e0a84a55;animation:g-pop .5s .05s both}
+body[data-view=finished] #finished-screen::after{content:"Смотри на общий экран";margin-top:20px;padding-top:24px;font:600 15px Gothic,Georgia,serif;letter-spacing:.3em;text-transform:uppercase;color:#cdb48a;
+  background:linear-gradient(90deg,transparent,#c99a4a 25%,#f0d08a 50%,#c99a4a 75%,transparent) top center/200px 1px no-repeat;animation:l-breathe 2.6s ease-in-out infinite}
