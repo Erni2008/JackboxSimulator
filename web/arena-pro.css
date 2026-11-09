@@ -331,3 +331,5 @@ body[data-view=ghost] #ghost-screen h1{background:linear-gradient(180deg,#ffffff
 body.g-on #final-standings li:nth-child(1){background:radial-gradient(120% 140% at 50% 0%,#3e2a10,#140d08 70%) padding-box,var(--l-gold) border-box!important;box-shadow:0 0 0 3px #e0a84a33,0 0 26px #e0a84a44,0 10px 24px -8px #000!important}
 body.g-on #final-score{background:var(--l-gold-v)!important;-webkit-background-clip:text!important;background-clip:text!important;-webkit-text-fill-color:transparent;text-shadow:none!important;filter:drop-shadow(0 3px 0 #1a0c04)}
 body[data-view=result] #result-title{background:radial-gradient(ellipse,#5a141c44,transparent 70%)!important;-webkit-text-fill-color:#f6dfae;color:#f6dfae!important;filter:none;text-shadow:0 3px 0 #1a0c04,0 0 26px #e0a84a55!important}
+/* no question number on phones */
+body.g-on #question-number,body.g-on #result-score{display:none!important}
