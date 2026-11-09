@@ -380,3 +380,30 @@ body[data-view=finished] #finished-screen[hidden]{display:none!important}
 body[data-view=finished] #finished-screen::before{content:"Шоу окончено";font:700 clamp(44px,12.5vw,60px)/1.05 Gothic,Georgia,serif;color:#f6dfae;text-shadow:0 3px 0 #1a0c04,0 0 28px #e0a84a55;animation:g-pop .5s .05s both}
 body[data-view=finished] #finished-screen::after{content:"Смотри на общий экран";margin-top:20px;padding-top:24px;font:600 15px Gothic,Georgia,serif;letter-spacing:.3em;text-transform:uppercase;color:#cdb48a;
   background:linear-gradient(90deg,transparent,#c99a4a 25%,#f0d08a 50%,#c99a4a 75%,transparent) top center/200px 1px no-repeat;animation:l-breathe 2.6s ease-in-out infinite}
+/* ---------- minimal finales: one title, a gilt crest, a breathing halo ---------- */
+body[data-view=result] #result-screen::after{content:none!important}
+body[data-view=finished] #finished-screen::after{content:""!important;width:220px;height:14px;margin-top:22px;padding:0;animation:none;
+  background:linear-gradient(90deg,transparent,#c99a4a 25%,#f0d08a 50%,#c99a4a 75%,transparent) center/100% 1px no-repeat,
+  linear-gradient(45deg,transparent 38%,#f0d08a 38% 62%,transparent 62%) center/12px 12px no-repeat;filter:drop-shadow(0 0 6px #e0a84a)}
+/* crest above every finale title: a small gilt diamond between two flourishes */
+body[data-view=result] .verdict-card::before,body[data-view=ghost] #ghost-screen h1::before,body[data-view=finished] .g-crest{display:none}
+body[data-view=result] #result-title::before,body[data-view=ghost] #ghost-screen h1::before{content:"";display:block!important;width:120px;height:16px;margin:0 auto 22px;
+  background:linear-gradient(90deg,transparent,#c99a4a) left center/46px 1px no-repeat,linear-gradient(-90deg,transparent,#c99a4a) right center/46px 1px no-repeat,
+  linear-gradient(45deg,transparent 30%,#f0d08a 30% 70%,transparent 70%) center/14px 14px no-repeat;-webkit-text-fill-color:initial;filter:drop-shadow(0 0 6px #e0a84a99)}
+body[data-view=ghost] #ghost-screen h1::before{background:linear-gradient(90deg,transparent,#7fb6d4) left center/46px 1px no-repeat,linear-gradient(-90deg,transparent,#7fb6d4) right center/46px 1px no-repeat,linear-gradient(45deg,transparent 30%,#cdeeff 30% 70%,transparent 70%) center/14px 14px no-repeat;filter:drop-shadow(0 0 6px #8fd8ff)}
+/* breathing halo behind the title (opacity only) */
+body[data-view=result] #result-screen::before,body[data-view=finished] #finished-screen>.g-halo{animation:l-breathe 3.2s ease-in-out infinite}
+body[data-view=result] #result-screen::before{background:radial-gradient(closest-side,#7a3a1488,#2a0a0866 50%,transparent)!important}
+body[data-view=ghost] #ghost-screen::before{background:radial-gradient(closest-side,#1a3a5a88,#0a142066 50%,transparent)!important;animation:l-breathe 3.6s ease-in-out infinite}
+/* finale: the halo sits on the html stage */
+body[data-view=finished]::after{content:"";position:fixed;left:50%;top:50%;width:min(96vw,420px);aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;pointer-events:none;z-index:0;background:radial-gradient(closest-side,#7a5a1888,#2a1a0866 50%,transparent);animation:l-breathe 3.2s ease-in-out infinite}
+body[data-view=finished] #finished-screen::before{font-size:clamp(48px,13.5vw,64px)}
+/* crisp diamonds: a glyph instead of a gradient */
+body[data-view=result] #result-title::before,body[data-view=ghost] #ghost-screen h1::before{content:"◆"!important;height:auto;font:13px/1 serif;text-align:center;color:#f0d08a;-webkit-text-fill-color:#f0d08a;text-shadow:none;
+  background:linear-gradient(90deg,transparent,#c99a4a) left center/46px 1px no-repeat,linear-gradient(-90deg,transparent,#c99a4a) right center/46px 1px no-repeat!important}
+body[data-view=ghost] #ghost-screen h1::before{color:#cdeeff;-webkit-text-fill-color:#cdeeff;background:linear-gradient(90deg,transparent,#7fb6d4) left center/46px 1px no-repeat,linear-gradient(-90deg,transparent,#7fb6d4) right center/46px 1px no-repeat!important}
+body[data-view=result] #result-title::after,body[data-view=ghost] .ghost-assurance::after{content:"◆";width:200px;height:auto;margin:20px auto 0;font:9px/1 serif;color:#f0d08a;-webkit-text-fill-color:#f0d08a;text-shadow:none;text-align:center;
+  background:linear-gradient(90deg,transparent,#c99a4a 40%,transparent 46%,transparent 54%,#c99a4a 60%,transparent) center/100% 1px no-repeat!important}
+body[data-view=ghost] .ghost-assurance::after{color:#8fd8ff;-webkit-text-fill-color:#8fd8ff;background:linear-gradient(90deg,transparent,#5a9ab8 40%,transparent 46%,transparent 54%,#5a9ab8 60%,transparent) center/100% 1px no-repeat!important}
+body[data-view=finished] #finished-screen::after{content:"◆"!important;height:auto;font:9px/1 serif;color:#f0d08a;text-align:center;
+  background:linear-gradient(90deg,transparent,#c99a4a 40%,transparent 46%,transparent 54%,#c99a4a 60%,transparent) center/100% 1px no-repeat!important}
