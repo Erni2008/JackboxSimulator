@@ -336,3 +336,39 @@ body.g-on #question-number,body.g-on #result-score{display:none!important}
 /* lobby: only the room, the caged character and "waiting for host" */
 body[data-view=waiting] #waiting-screen>*:not(#g-room):not(.g-cage):not(.g-wait),
 body[data-view=waiting] #session-footer,body[data-view=waiting] .page-footer{display:none!important}
+
+/* ---------- LUXE II: gilt screen frame, cleaner game screens ---------- */
+/* a thin gold frame around the whole phone with ornamental corners */
+body.g-on>.g-stage::before{content:"";position:absolute;inset:max(10px,env(safe-area-inset-top)) 10px max(10px,env(safe-area-inset-bottom));border:1px solid #c99a4a55;border-radius:14px;
+  box-shadow:inset 0 0 0 4px #00000000,inset 0 0 0 5px #c99a4a22;background:
+  linear-gradient(45deg,transparent 40%,#e9c27a 40% 60%,transparent 60%) 0 0/10px 10px no-repeat,
+  linear-gradient(-45deg,transparent 40%,#e9c27a 40% 60%,transparent 60%) 0 0/10px 10px no-repeat,
+  linear-gradient(45deg,transparent 40%,#e9c27a 40% 60%,transparent 60%) 100% 0/10px 10px no-repeat,
+  linear-gradient(-45deg,transparent 40%,#e9c27a 40% 60%,transparent 60%) 100% 0/10px 10px no-repeat,
+  linear-gradient(45deg,transparent 40%,#e9c27a 40% 60%,transparent 60%) 0 100%/10px 10px no-repeat,
+  linear-gradient(-45deg,transparent 40%,#e9c27a 40% 60%,transparent 60%) 0 100%/10px 10px no-repeat,
+  linear-gradient(45deg,transparent 40%,#e9c27a 40% 60%,transparent 60%) 100% 100%/10px 10px no-repeat,
+  linear-gradient(-45deg,transparent 40%,#e9c27a 40% 60%,transparent 60%) 100% 100%/10px 10px no-repeat;z-index:2}
+/* the connection line becomes a small centred gilt status */
+body.g-on .connection{display:flex!important;justify-content:center;margin:4px auto 0!important;font:600 11px Gothic,Georgia,serif!important;letter-spacing:.3em!important;color:#b89a6a!important;opacity:.85}
+body[data-view=question] .connection,body[data-view=waiting] .connection{display:none!important}
+/* masthead subtitle on one line */
+body.g-on .masthead p{letter-spacing:.3em;font-size:10px;white-space:nowrap}
+/* question / locked: no room code, no footer, no English hint */
+body[data-view=question] #session-footer,body[data-view=question] .page-footer,body[data-view=finished] .page-footer,body[data-view=join] .page-footer{display:none!important}
+body.g-on .choice-receipt p:not(.receipt-label),body.g-on .choice-receipt small{display:none!important}
+body.g-on .choice-receipt{padding:20px 18px!important;background:radial-gradient(130% 150% at 50% 0%,#5a141c,#22080b 60%,#120607) padding-box,var(--l-gold) border-box!important;box-shadow:0 0 0 3px #e0a84a22,0 0 30px #c8323c55,0 10px 24px -8px #000!important}
+body.g-on .choice-receipt .receipt-label{color:#e9c98a!important;letter-spacing:.34em}
+body.g-on #answer-receipt-value{font-size:30px;color:#fff3dc;text-shadow:0 2px 0 #000,0 0 18px #e0403c66}
+/* finished: centred, gilded */
+body[data-view=finished] #finished-screen>h1,body[data-view=finished] #finished-screen>h2{text-align:center}
+body[data-view=finished] #finished-screen>p:not(#final-score){text-align:center;color:#c9b8a6}
+body.g-on #final-standings{display:grid;gap:10px}
+body.g-on #final-standings li:nth-child(2),body.g-on #final-standings li:nth-child(3){box-shadow:0 0 0 2px #c0c0c022,0 10px 24px -8px #000!important}
+/* cursed boxes header plate in the same gilt */
+body.g-on #cursed-screen .cursed-hud,body.g-on #cursed-screen .cursed-status{border:1.5px solid transparent!important;border-radius:10px!important;background:var(--l-ink) padding-box,var(--l-gold) border-box!important}
+body.g-on #cursed-screen h1{background:var(--l-gold-v);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-shadow:none!important;filter:drop-shadow(0 2px 0 #1a0c04)}
+body.g-on .cursed-fire{border:1.5px solid transparent!important;background:radial-gradient(130% 120% at 50% -10%,#e2434b,#a61c27 45%,#5a0a12) padding-box,var(--l-gold) border-box!important;color:#fff4e2!important;letter-spacing:.2em}
+body.g-on .choice-receipt p#answer-receipt-value,body.g-on .choice-receipt p#vote-receipt-value{display:block!important;margin:6px 0 0}
+body.g-on #answer-receipt>span{display:none!important}
+body[data-view=result] .connection,body[data-view=ghost] .connection,body[data-view=finished] .connection,body[data-view=join] .connection{display:none!important}
