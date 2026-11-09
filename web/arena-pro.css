@@ -407,3 +407,49 @@ body[data-view=result] #result-title::after,body[data-view=ghost] .ghost-assuran
 body[data-view=ghost] .ghost-assurance::after{color:#8fd8ff;-webkit-text-fill-color:#8fd8ff;background:linear-gradient(90deg,transparent,#5a9ab8 40%,transparent 46%,transparent 54%,#5a9ab8 60%,transparent) center/100% 1px no-repeat!important}
 body[data-view=finished] #finished-screen::after{content:"◆"!important;height:auto;font:9px/1 serif;color:#f0d08a;text-align:center;
   background:linear-gradient(90deg,transparent,#c99a4a 40%,transparent 46%,transparent 54%,#c99a4a 60%,transparent) center/100% 1px no-repeat!important}
+
+/* =====================================================================
+   CURSED BOXES — minimal, premium: gilt title + role, the 16 crates, one button
+   ===================================================================== */
+body[data-view=cursed] .connection,body[data-view=cursed] #controller-director,body[data-view=cursed] .masthead,
+body[data-view=cursed] #session-footer,body[data-view=cursed] .page-footer,
+body.g-on #cursed-screen .cursed-brand,body.g-on #cursed-screen .cursed-identity,body.g-on #cursed-briefing,
+body.g-on #cursed-current-player,body.g-on #cursed-selected,body.g-on #cursed-status{display:none!important}
+body.g-on #cursed-screen{padding-top:18px}
+body.g-on #cursed-screen .cursed-heading{display:block!important;text-align:center;border:0!important;padding:0!important;margin:6px 0 4px!important}
+body.g-on #cursed-screen h1{font-size:clamp(36px,10.5vw,46px)!important;letter-spacing:.06em;margin:0!important;line-height:1}
+body.g-on #cursed-screen .cursed-heading::after{display:block;margin:10px auto 0;width:200px;font:9px/1 serif;color:#f0d08a;content:"◆";
+  background:linear-gradient(90deg,transparent,#c99a4a 40%,transparent 46%,transparent 54%,#c99a4a 60%,transparent) center/100% 1px no-repeat}
+/* the role as one gilt line under the title */
+body.g-on #cursed-screen .cursed-turn{display:flex!important;justify-content:center;border:0!important;margin:14px 0 18px!important;padding:0!important}
+body.g-on #cursed-shot-counter{padding:7px 18px;border:1.5px solid transparent;border-radius:999px;font:700 14px Gothic,Georgia,serif;letter-spacing:.26em;color:#f3dcae;
+  background:var(--l-ink) padding-box,var(--l-gold) border-box;box-shadow:0 0 18px #e0a84a22}
+body.g-on #cursed-screen[data-role=HIDING] #cursed-shot-counter{color:#cdeeff;background:linear-gradient(180deg,#0e1a24,#070c12) padding-box,linear-gradient(135deg,#d8f2ff,#4a7a98 40%,#bfe6fa 60%,#3a6280) border-box;box-shadow:0 0 18px #8fd8ff33}
+/* the gallery of crates: no frame, no captions — a gilt numeral in the corner */
+body.g-on #cursed-grid{counter-reset:crate;gap:10px!important;padding:0!important;border:0!important;background:none!important;box-shadow:none!important}
+body.g-on .cursed-box{counter-increment:crate;border:1.5px solid transparent!important;border-radius:10px!important;
+  background-origin:border-box;box-shadow:inset 0 0 0 1px #000,inset 0 -18px 22px #000a,0 6px 14px -4px #000!important;outline:1px solid #c99a4a55;outline-offset:-1px}
+body.g-on .cursed-box-plate,body.g-on .cursed-box-state{display:none!important}
+body.g-on .cursed-box::before{content:counter(crate);position:absolute;left:7px;bottom:5px;font:700 18px/1 Gothic,Georgia,serif;color:#f3dcae;text-shadow:0 2px 0 #000,0 0 8px #000}
+body.g-on .cursed-box.destroyed{filter:grayscale(1) brightness(.35)!important;outline-color:#3a2a2a}
+body.g-on .cursed-box.destroyed::after{content:"";position:absolute;inset:22%;background:linear-gradient(45deg,transparent 46%,#c8323c 46% 54%,transparent 54%),linear-gradient(-45deg,transparent 46%,#c8323c 46% 54%,transparent 54%);filter:none;opacity:.9;animation:none;border:0;border-radius:0}
+body.g-on .cursed-box.destroyed::before{color:#6a5a50}
+/* chosen crate: gilt frame + soft glow (no dashed circle) */
+body.g-on .cursed-box.selected{transform:scale(1.06);outline:2px solid #f0d08a!important;outline-offset:1px;box-shadow:0 0 0 4px #e0a84a33,0 0 26px #e0a84aaa,0 8px 18px -4px #000!important;filter:brightness(1.15)}
+body.g-on .cursed-box.selected::after{content:"";position:absolute;inset:0;border:0;border-radius:10px;animation:l-breathe 1.6s ease-in-out infinite;background:radial-gradient(circle,#ffd27a33,transparent 70%)}
+body.g-on .cursed-box.selected::before{color:#fff2c8;text-shadow:0 0 10px #f0d08a,0 2px 0 #000}
+body.g-on #cursed-screen[data-role=HIDING] .cursed-box.selected{outline-color:#cdeeff!important;box-shadow:0 0 0 4px #8fd8ff33,0 0 26px #8fd8ffaa!important}
+body.g-on #cursed-screen[data-role=HIDING] .cursed-box.selected::after{background:radial-gradient(circle,#8fd8ff33,transparent 70%);border:0}
+/* controls: no plate, just the button */
+body.g-on .cursed-controls{border:0!important;background:none!important;box-shadow:none!important;padding:0!important;margin-top:20px!important}
+body.g-on .cursed-controls::before{display:none!important}
+body.g-on .cursed-fire{width:100%;min-height:66px;border-radius:12px!important;font:700 clamp(20px,6vw,30px) Gothic,Georgia,serif!important;letter-spacing:.14em!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 12px!important;
+  box-shadow:inset 0 1px 0 #ffb0a066,inset 0 -10px 18px #2a0006aa,0 6px 0 #2a0a06,0 14px 30px -6px #c8323c88!important}
+body.g-on .cursed-fire:disabled{filter:saturate(.35) brightness(.6);animation:none!important}
+body.g-on .cursed-fire[data-action=hide]{background:linear-gradient(180deg,#2a5a78,#14324a 55%,#0a1a28) padding-box,linear-gradient(135deg,#d8f2ff,#4a7a98 40%,#bfe6fa 60%,#3a6280) border-box!important;box-shadow:inset 0 1px 0 #bfe6fa55,0 6px 0 #04121e,0 14px 30px -6px #4aa8e088!important}
+/* result banner */
+body.g-on .cursed-result{text-align:center;padding:16px!important}
+body.g-on #cursed-result-title{font:700 28px Gothic,Georgia,serif!important;color:#f6dfae!important;letter-spacing:.06em}
+body.g-on #cursed-result-detail{font:600 16px Gothic,Georgia,serif;color:#cdb48a;letter-spacing:.1em}
+body[data-view=cursed] #leave{display:none!important}
+body.g-on .cursed-fire{letter-spacing:.24em!important}

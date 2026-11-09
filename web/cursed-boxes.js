@@ -33,7 +33,7 @@ function createCursedBoxesController({getState,isAuthenticated,send,makeId,expla
     if(hiding&&(s.hidingConfirmed||s.phase!=='HIDING_SELECTION'))draft=null;
     el('cursed-screen').dataset.role=s.role;
     el('cursed-screen').dataset.phase=s.phase;
-    el('cursed-shot-counter').textContent=spectator?'SPECTATING':grouped&&!hiding?(s.targetConfirmed?'TARGET CONFIRMED':'CHOOSE YOUR SECRET TARGET'):s.role==='HIDING'?(s.hidingConfirmed?'HIDING PLACE CONFIRMED':'CHOOSE YOUR HIDING PLACE'):s.shotsRemaining===0?'NO SHOTS REMAINING':`SHOT ${s.shotLimit+1-s.shotsRemaining} / ${s.shotLimit}`;
+    el('cursed-shot-counter').textContent=spectator?'НАБЛЮДАЙ':grouped&&!hiding?(s.targetConfirmed?'ЦЕЛЬ ВЫБРАНА':'ВЫБЕРИ ЦЕЛЬ'):s.role==='HIDING'?(s.hidingConfirmed?'ТЫ СПРЯТАН':'ВЫБЕРИ УКРЫТИЕ'):s.shotsRemaining===0?'ВЫСТРЕЛОВ НЕТ':`ВЫСТРЕЛ ${s.shotLimit+1-s.shotsRemaining} / ${s.shotLimit}`;
     el('cursed-current-player').textContent=s.phase==='ELIMINATION'?'THE FALLEN BECOME GHOSTS':s.phase==='REVEALING'?'SURVIVORS ARE EMERGING':s.phase==='FINISHED'?'ALL TURNS COMPLETE':s.phase==='HIDING_SELECTION'?(hiding?'YOUR CHOICE IS SECRET':'WAITING FOR HIDING PLAYERS'):s.phase==='TARGET_SELECTION'?`${s.confirmedTargetCount} / ${s.targetPlayerCount} TARGETS CONFIRMED`:`CURRENT PLAYER: ${s.activePlayerName||'WAITING FOR HOST'}`;
     const selected=draft??(hiding?s.hidingBoxId:s.selectedCrateId);
     for(const button of grid.children){
@@ -50,7 +50,7 @@ function createCursedBoxesController({getState,isAuthenticated,send,makeId,expla
     const fire=el('cursed-fire');
     fire.hidden=spectator;
     fire.dataset.action=hiding?'hide':'fire';
-    fire.textContent=grouped&&!hiding&&!spectator?(s.targetConfirmed?'TARGET LOCKED':'CONFIRM TARGET'):spectator?'WATCH THE SHARED SCREEN':hiding?(s.hidingConfirmed?'HIDING PLACE LOCKED':'CONFIRM HIDING PLACE'):'FIRE';
+    fire.textContent=grouped&&!hiding&&!spectator?(s.targetConfirmed?'ЦЕЛЬ ВЫБРАНА':'В ЦЕЛЬ'):spectator?'СМОТРИ НА ЭКРАН':hiding?(s.hidingConfirmed?'ТЫ СПРЯТАН':'СПРЯТАТЬСЯ'):'ОГОНЬ';
     fire.disabled=!allowed()||selectionRequest!==null||selected<0||(!hiding&&selected!==s.selectedCrateId)||s.boxes?.find(box=>box.id===selected)?.state!=='AVAILABLE';
     const ours=s.pendingShot?.playerId===root.selfId;
     fire.classList.toggle('firing',ours);el('cursed-screen').classList.toggle('waiting-turn',!s.canAct);
