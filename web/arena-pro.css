@@ -333,3 +333,6 @@ body.g-on #final-score{background:var(--l-gold-v)!important;-webkit-background-c
 body[data-view=result] #result-title{background:radial-gradient(ellipse,#5a141c44,transparent 70%)!important;-webkit-text-fill-color:#f6dfae;color:#f6dfae!important;filter:none;text-shadow:0 3px 0 #1a0c04,0 0 26px #e0a84a55!important}
 /* no question number on phones */
 body.g-on #question-number,body.g-on #result-score{display:none!important}
+/* lobby: only the room, the caged character and "waiting for host" */
+body[data-view=waiting] #waiting-screen>*:not(#g-room):not(.g-cage):not(.g-wait),
+body[data-view=waiting] #session-footer,body[data-view=waiting] .page-footer{display:none!important}
