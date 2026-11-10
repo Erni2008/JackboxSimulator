@@ -22,7 +22,7 @@ public final class ForgottenRoomPreview {
         boolean capture=Boolean.getBoolean("room.capture");String out=System.getProperty("room.output","/tmp");
         long seed=Long.getLong("room.seed",11);RoomDifficulty difficulty=RoomDifficulty.parse(System.getProperty("room.difficulty","MEDIUM"));
         new Lwjgl3Application(new Game(){
-            final RoomGenerator.Round round=RoomGenerator.generate(seed,difficulty);
+            final RoomGenerator.Round round=System.getProperty("room.layout","").isEmpty()?RoomGenerator.generate(seed,difficulty):RoomGenerator.generate(seed,difficulty,RoomCatalog.layout(System.getProperty("room.layout")));
             final String[] phases={"INTRO","OBSERVATION","BLACKOUT","CHANGED_ROOM","ANSWER_PHASE","REVEAL","RESULTS"};
             final long[] durations={4500,10000,1200,1500,20000,2500+4500L*round.changes().size(),-1};
             long now=0,phaseStart=0;int phase=0;ForgottenRoomScreen screen;int shot;

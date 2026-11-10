@@ -86,8 +86,34 @@ public final class RoomCatalog {
             Map.entry("skull",List.of("shelf_4","shelf_2","sideboard_2","table_4")),
             Map.entry("telescope",List.of("floor_3","floor_2","sill_2"))));
 
+    /** Room 2: sunlit library (arched window, bookcase, two sconces, old door, desk, sunlit floor). */
+    public static final Layout LIBRARY=new Layout("library","forgotten_room/rooms/room_02.jpg","Солнечная библиотека",List.of(
+        s("sill_1",.125f,.588f,WS,"Подоконник, слева"), s("sill_2",.205f,.588f,WS,"Подоконник, центр"), s("sill_3",.290f,.588f,WS,"Подоконник, справа"),
+        s("shelf_1",.495f,.418f,SH,"Полка шкафа, между книгами"),
+        s("table_1",.055f,.805f,T,"Стол, слева"), s("table_2",.150f,.795f,T,"Стол, центр"), s("table_3",.245f,.790f,T,"Стол, край"),
+        s("floor_1",.385f,.800f,F,"Пол у шторы"), s("floor_2",.520f,.900f,F,"Пол в солнечном пятне"), s("floor_3",.690f,.850f,F,"Пол посередине"),
+        s("floor_4",.860f,.910f,F,"Пол у двери"), s("floor_5",.600f,.775f,F,"Пол у шкафа"), s("floor_6",.960f,.800f,F,"Пол в углу"),
+        s("wall_1",.625f,.450f,W,"Стена под левым бра"), s("wall_2",.915f,.440f,W,"Стена под правым бра")),
+        Map.ofEntries(
+            Map.entry("scrolls",List.of("table_1","table_2","sill_1")),
+            Map.entry("butterfly",List.of("wall_1","wall_2")),
+            Map.entry("compass",List.of("table_2","table_3","sill_2","shelf_1")),
+            Map.entry("inkwell",List.of("table_1","table_3","sill_3")),
+            Map.entry("flask",List.of("sill_1","sill_2","shelf_1")),
+            Map.entry("hand_mirror",List.of("table_2","sill_3","shelf_1")),
+            Map.entry("oil_lamp",List.of("floor_1","sill_3","floor_6")),
+            Map.entry("magnifier",List.of("table_1","table_3","sill_2")),
+            Map.entry("jester_mask",List.of("wall_1","wall_2","table_2")),
+            Map.entry("camera",List.of("table_3","sill_1","table_1")),
+            Map.entry("hourglass2",List.of("sill_2","shelf_1","table_2")),
+            Map.entry("scales",List.of("table_1","sill_3","table_3")),
+            Map.entry("skull2",List.of("shelf_1","sill_1","table_2")),
+            Map.entry("dagger",List.of("table_2","table_1","floor_2")),
+            Map.entry("goblet",List.of("table_3","sill_2")),
+            Map.entry("violin",List.of("floor_5","floor_3","floor_4","floor_6"))));
+
     /** All rooms; a round picks one by seed. Add new backgrounds here. */
-    public static final List<Layout> LAYOUTS=List.of(STUDY);
+    public static final List<Layout> LAYOUTS=List.of(STUDY,LIBRARY);
     public static Layout layout(String id){for(Layout l:LAYOUTS)if(l.id().equals(id))return l;throw new IllegalArgumentException("Unknown room "+id);}
 
     /**
@@ -108,7 +134,24 @@ public final class RoomCatalog {
         o("key","Связка ключей",'f',Size.SMALL,Set.of(T,D,SH),Turn.NONE,""),
         o("skull","Череп",'m',Size.MEDIUM,Set.of(SH,T,D,Surface.SEAT),Turn.FLIP,""),
         o("telescope","Телескоп",'m',Size.LARGE,Set.of(F,WS),Turn.NONE,""),
-        o("ivy","Плющ",'m',Size.LARGE,Set.of(Surface.HANG),Turn.NONE,""));
+        o("ivy","Плющ",'m',Size.LARGE,Set.of(Surface.HANG),Turn.NONE,""),
+        // room 2 — sunlit library
+        o("scrolls","Древние свитки",'p',Size.MEDIUM,Set.of(T,WS,SH),Turn.NONE,""),
+        o("butterfly","Бабочка в рамке",'f',Size.MEDIUM,Set.of(W),Turn.NONE,""),
+        o("compass","Компас",'m',Size.SMALL,Set.of(T,WS,SH),Turn.FLIP,""),
+        o("inkwell","Чернильница с пером",'f',Size.SMALL,Set.of(T,WS),Turn.FLIP,""),
+        o("flask","Стеклянная колба",'f',Size.MEDIUM,Set.of(WS,SH,T),Turn.TOPPLE,""),
+        o("hand_mirror","Ручное зеркальце",'n',Size.MEDIUM,Set.of(T,WS,SH),Turn.NONE,""),
+        light("oil_lamp","Керосиновая лампа",'f',Size.MEDIUM,Set.of(F,WS,SH),false),
+        o("magnifier","Лупа",'f',Size.SMALL,Set.of(T,WS),Turn.FLIP,""),
+        o("jester_mask","Маска шута",'f',Size.MEDIUM,Set.of(W,T),Turn.FLIP,""),
+        o("camera","Старый фотоаппарат",'m',Size.MEDIUM,Set.of(T,WS),Turn.FLIP,""),
+        o("hourglass2","Песочные часы",'p',Size.MEDIUM,Set.of(WS,SH,T),Turn.TOPPLE,""),
+        o("scales","Весы",'p',Size.MEDIUM,Set.of(T,WS),Turn.NONE,""),
+        o("skull2","Череп",'m',Size.MEDIUM,Set.of(SH,WS,T),Turn.FLIP,""),
+        o("dagger","Кинжал",'m',Size.MEDIUM,Set.of(T,F),Turn.FLIP,""),
+        o("goblet","Кубок",'m',Size.MEDIUM,Set.of(T,WS,SH),Turn.NONE,""),
+        o("violin","Скрипка",'f',Size.LARGE,Set.of(F),Turn.TOPPLE,""));
 
 
     private static final Map<String,ObjectDef> OBJECT_BY_ID=new HashMap<>();

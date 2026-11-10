@@ -37,7 +37,7 @@ function createForgottenRoomController({getState,isAuthenticated,send,makeId,now
   function box(o,place){
     const x=place.x*W,yb=place.y*H;
     if(place.surface==='FRAME')return {x0:x-142,x1:x+142,y0:yb-139,y1:yb+139};
-    const h=height(o.size,place.surface,place.y),w=h*(ratio.get(art(o))||.8);
+    let h=height(o.size,place.surface,place.y),w=h*(ratio.get(art(o))||.8);const maxW=(o.size==='LARGE'||o.size==='TALL')?260:170;if(w>maxW){h*=maxW/w;w=maxW;}
     if(place.surface==='HANG')return {x0:x-w/2,x1:x+w/2,y0:yb,y1:yb+h};
     if(o.turn==='TOPPLE'&&o.rotated)return {x0:x-h/2,x1:x+h/2,y0:yb-w,y1:yb,w,h,lying:true};
     return {x0:x-w/2,x1:x+w/2,y0:yb-h,y1:yb};

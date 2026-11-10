@@ -13,7 +13,7 @@ class ForgottenRoomTest {
         for(RoomDifficulty d:RoomDifficulty.values())for(long seed=0;seed<400;seed++){
             var round=RoomGenerator.generate(seed,d);
             // a small art library caps the room: every placed object needs art, and two stay in reserve for «appeared»
-            int library=(int)RoomCatalog.OBJECTS.stream().filter(o->d.sizes.contains(o.size())).count();
+            int library=(int)RoomCatalog.OBJECTS.stream().filter(o->d.sizes.contains(o.size())&&!round.layout().spots(o.id()).isEmpty()).count();
             int expectedMin=Math.min(d.minObjects,Math.min(round.layout().slots().size()-6,library-2));
             assertTrue(round.original().size()>=expectedMin&&round.original().size()<=d.maxObjects,d+" objects "+round.original().size());
             assertTrue(round.changes().size()>=d.minChanges&&round.changes().size()<=d.maxChanges,d+" changes");

@@ -1151,6 +1151,7 @@ tasks.register('forgottenRoomPreview', JavaExec) {
     systemProperty 'room.output', providers.gradleProperty('room.output').getOrElse('/tmp')
     systemProperty 'room.seed', providers.gradleProperty('room.seed').getOrElse('11')
     systemProperty 'room.difficulty', providers.gradleProperty('room.difficulty').getOrElse('MEDIUM')
+    systemProperty 'room.layout', providers.gradleProperty('room.layout').getOrElse('')
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }

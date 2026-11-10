@@ -27,6 +27,10 @@ final class ForgottenRoomRenderer {
         for(int i=0;i<FLAKES;i++){fx[i]=r.nextFloat();fy[i]=r.nextFloat();fd[i]=r.nextFloat();fs[i]=.6f+r.nextFloat()*.8f;fp[i]=r.nextFloat()*6.28f;}
     }
     void update(float dt){time+=dt;}
+    /** Background file name without folder and extension, e.g. room_01; selects the room's own light. */
+    private static String roomKey(ForgottenRoomModel m){String b=m.background;if(b.contains("/"))b=b.substring(b.lastIndexOf('/')+1);return b.contains(".")?b.substring(0,b.lastIndexOf('.')):b;}
+    /** Daylight rooms (warm sun through the window) versus night rooms (moon and candles). */
+    private boolean day;
     float flicker(float seed){return .86f+.08f*MathUtils.sin(time*7.3f+seed)+.05f*MathUtils.sin(time*13.1f+seed*2)+.03f*MathUtils.sin(time*23f+seed*3);}
 
     /** Background, moon haze, objects and ambient light. {@code objects} is null in darkness. */
@@ -39,10 +43,18 @@ final class ForgottenRoomRenderer {
         snow(b,m);
         // cold moonlight through the window and the warm sconce on the right wall
         b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
-        b.setColor(.45f,.58f,.9f,.10f);b.draw(art.soft,120,330,620,620);
-        moonRays(b);
-        float f=flicker(1.7f);b.setColor(1f,.62f,.28f,.16f*f);b.draw(art.soft,1590,610,420,420);
-        b.setColor(1f,.7f,.36f,.10f*f);b.draw(art.soft,1360,380,700,700);
+        day=roomKey(m).equals("room_02");
+        if(day){ // sunlit library: warm window bloom, sun shafts, two sconces by the door
+            b.setColor(1f,.86f,.58f,.14f);b.draw(art.soft,60,420,700,700);
+            sunRays(b);
+            float f=flicker(2.3f);
+            b.setColor(1f,.72f,.40f,.16f*f);b.draw(art.soft,.625f*W-170,(1-.27f)*H-170,340,340);
+            b.setColor(1f,.72f,.40f,.16f*flicker(4.1f));b.draw(art.soft,.905f*W-170,(1-.24f)*H-170,340,340);
+        }else{
+            b.setColor(.45f,.58f,.9f,.10f);b.draw(art.soft,120,330,620,620);
+            moonRays(b);
+            float f=flicker(1.7f);b.setColor(1f,.62f,.28f,.16f*f);b.draw(art.soft,1590,610,420,420);
+            b.setColor(1f,.7f,.36f,.10f*f);b.draw(art.soft,1360,380,700,700);}
         b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
         if(objects!=null)for(var o:objects)drawObject(b,m,o,1,false);
         drawMotes(b);
@@ -63,7 +75,9 @@ final class ForgottenRoomRenderer {
         if(frame){w=284;h=277;}
         else{h=height(o.size(),place.surface(),place.y());
             if(placeholder){tex=o.size().equals("SMALL")?art.plaqueSmall:art.plaque;}
-            w=h*tex.getWidth()/(float)tex.getHeight();}
+            w=h*tex.getWidth()/(float)tex.getHeight();
+            float maxW=o.size().equals("LARGE")||o.size().equals("TALL")?260:170; // long flat things (a dagger) stay object-sized
+            if(w>maxW){h*=maxW/w;w=maxW;}}
         if(frame&&placeholder)tex=art.frameCanvas;
         float y=frame?base-h/2:hang?base-h:base;
         if(!frame&&!hang&&!ghost){ // soft contact shadow
@@ -77,7 +91,7 @@ final class ForgottenRoomRenderer {
         else if(placeholder&&o.light()&&!o.lit())b.setColor(.62f,.58f,.56f,alpha);
         else if(glow)b.setColor(1,.97f,.92f,alpha);
         else{ // settle the art into the room's light: cold by the moonlit window, warm by the sconce, dim in between
-            float mx=place.x(),cold=MathUtils.clamp(1-mx/.4f,0,1),warm=MathUtils.clamp((mx-.62f)/.38f,0,1),depth=.08f*(1-place.y());
+            float mx=place.x(),cold=day?0:MathUtils.clamp(1-mx/.4f,0,1),warm=day?.8f:MathUtils.clamp((mx-.62f)/.38f,0,1),depth=.08f*(1-place.y());
             b.setColor(.92f-depth+.08f*warm-.04f*cold,.87f-depth+.03f*warm-.01f*cold,.83f-depth-.03f*warm+.08f*cold,alpha);}
         float sx=1,rot=0,cy=y+h/2;
         if(o.turn().equals("FLIP"))sx=MathUtils.cos(MathUtils.PI*turned);
@@ -105,7 +119,7 @@ final class ForgottenRoomRenderer {
         for(int i=0;i<MOTES;i++){
             float x=560+mx[i]*520+MathUtils.sin(time*.13f*ms[i]+mp[i])*26,y=280+my[i]*420+MathUtils.sin(time*.09f*ms[i]+mp[i]*1.7f)*18;
             float a=.07f*(.5f+.5f*MathUtils.sin(time*.8f*ms[i]+mp[i]));
-            if(a<=.004f)continue;b.setColor(.80f,.84f,.95f,a);float sz=1.2f+ms[i]*1.4f;b.draw(art.soft,x-sz,y-sz,sz*2,sz*2);}
+            if(a<=.004f)continue;if(day)b.setColor(1f,.88f,.6f,a*1.6f);else b.setColor(.80f,.84f,.95f,a);float sz=1.2f+ms[i]*1.4f;b.draw(art.soft,x-sz,y-sz,sz*2,sz*2);}
         b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
     }
     /** Snow falling outside the window, behind the glazing bars (the room's frame overlay is drawn over it). */
@@ -131,6 +145,16 @@ final class ForgottenRoomRenderer {
         if(frame!=null){b.setColor(1,1,1,1);b.draw(frame,x0,bot,w,h);}
     }
     /** Volumetric moonlight: long soft shafts from the window down across the room, slowly breathing. */
+    /** Warm sun shafts from the arched window down across the floor, gently shimmering. */
+    private void sunRays(SpriteBatch b){
+        b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
+        float ox=.22f*W,oy=(1-.32f)*H;
+        for(int i=0;i<7;i++){float ang=-24-i*3.6f,len=1150+i*60,wid=60+i*20;
+            float a=(.05f+.014f*MathUtils.sin(time*.3f+i*1.3f))*(1-i*.07f);
+            b.setColor(1f,.84f,.56f,a);
+            b.draw(art.soft,ox,oy-wid/2,0,wid/2,len,wid,1,1,ang,0,0,art.soft.getWidth(),art.soft.getHeight(),false,false);}
+        b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
+    }
     private void moonRays(SpriteBatch b){
         b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
         float ox=330,oy=H-260;
@@ -144,7 +168,7 @@ final class ForgottenRoomRenderer {
     private void floorFog(SpriteBatch b){
         b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
         for(int i=0;i<5;i++){float x=((time*(9+i*3)+i*430)%2600)-700,y=-60+i*22;
-            b.setColor(.55f,.6f,.72f,.05f);b.draw(art.soft,x,y,1100,260);}
+            if(day)b.setColor(1f,.82f,.6f,.035f);else b.setColor(.55f,.6f,.72f,.05f);b.draw(art.soft,x,y,1100,260);}
         b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
     }
     /** Full-screen darkness with alpha {@code a} (blackout, reveal dimming). */
