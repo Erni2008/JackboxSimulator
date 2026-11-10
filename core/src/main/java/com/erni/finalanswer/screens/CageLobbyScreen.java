@@ -39,6 +39,8 @@ public final class CageLobbyScreen extends ScreenAdapter {
     private final Label code, roomName, playerCount, connectedCount, status;
     /** THE LAST COMMAND is hidden from the mode selector until it is reworked (its code and logic stay). */
     public static final boolean LAST_COMMAND_ENABLED = false;
+    /** THE FORGOTTEN ROOM is parked (2026-11-11) until its objects can look right; all its code stays. */
+    public static final boolean FORGOTTEN_ROOM_ENABLED = false;
     private final TextButton play, impostor, cursed, cards, lastCommand, modePrev, modeNext, modeStart;
     private final Label modeName, modeHint;
     private final BitmapFont modeFont=UiFonts.body(30);
@@ -134,7 +136,7 @@ public final class CageLobbyScreen extends ScreenAdapter {
         // THE LAST COMMAND is parked (2026-11-08): it will come back with a new interpretation; its code stays.
         if(LAST_COMMAND_ENABLED)modes.add(new Mode("THE LAST COMMAND","от 1 игрока",lastCommand,game::startLastCommand));
         modes.add(new Mode("THE CURSED CARDS","4–6 игроков",cards,game::startCursedCards));
-        for(String[] d:new String[][]{{"EASY","ЛЁГКИЙ","8–10 предметов · 2 изменения"},{"MEDIUM","СРЕДНИЙ","12–15 предметов · 3 изменения"},{"HARD","СЛОЖНЫЙ","16–18 предметов · 4–5 изменений"}})
+        if(FORGOTTEN_ROOM_ENABLED)for(String[] d:new String[][]{{"EASY","ЛЁГКИЙ","8–10 предметов · 2 изменения"},{"MEDIUM","СРЕДНИЙ","12–15 предметов · 3 изменения"},{"HARD","СЛОЖНЫЙ","16–18 предметов · 4–5 изменений"}})
             modes.add(new Mode("THE FORGOTTEN ROOM · "+d[1],"2–8 игроков · "+d[2]+" · только очки",null,()->game.startForgottenRoom(d[0])));
         for(String[] d:new String[][]{{"EASY","ЛЁГКИЙ","90 / 60 / 60 с · одна поломка · без помех"},{"NORMAL","СРЕДНИЙ","60 / 45 / 45 с · стандартные правила"},{"HARD","СЛОЖНЫЙ","45 / 35 / 35 с · двойные поломки · всегда скачок"}})
             modes.add(new Mode("АДСКАЯ КЛЕТКА · "+d[1],d[2]+" · телефоны переключатся в клетку",null,()->{var rt=game.getRealtime();if(rt!=null&&rt.connected())rt.send("OPEN_WEB_GAME",java.util.Map.of("game","broken-elevator","difficulty",d[0]));var room=game.getActiveRoom();String base=game.getHosting().apiUrl().replaceAll("/+$","");Gdx.net.openURI(room!=null?base+"/hell-cage-host/?room="+room.code()+"#token="+room.token():base+"/broken-elevator-manual/?diff="+d[0].toLowerCase());}));
