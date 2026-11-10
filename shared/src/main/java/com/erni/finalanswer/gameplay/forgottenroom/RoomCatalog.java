@@ -68,7 +68,7 @@ public final class RoomCatalog {
     /** 26 objects. Each id is unique in a room, so answers never depend on telling twins apart. */
     public static final List<ObjectDef> OBJECTS=List.of(
         o("painting","Картина",Size.LARGE,Set.of(Surface.FRAME),3,true,false,"другой сюжет"),
-        o("mirror","Зеркало",Size.LARGE,Set.of(W,Surface.FRAME),2,false,false,"другое отражение"),
+        o("mirror","Зеркало",Size.LARGE,Set.of(W),2,false,false,"другое отражение"),
         o("clock","Старинные часы",Size.LARGE,Set.of(M,W),3,false,false,"другое время"),
         o("mask","Маска",Size.MEDIUM,Set.of(W),2,true,false,"другое лицо"),
         o("crucifix","Распятие",Size.MEDIUM,Set.of(W),1,true,false,""),
