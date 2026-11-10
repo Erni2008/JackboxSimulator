@@ -17,26 +17,26 @@ import com.badlogic.gdx.utils.JsonValue;
 public final class FinalSecondScene implements Disposable {
     public static final float W=1920,H=1080;
     private final Texture plate,cap,soft;private final float sx,sy;private final float[] capR,glass,plaque;
-    private final SevenSegment seg=new SevenSegment();private final BitmapFont title,big;private final GlyphLayout layout=new GlyphLayout();
-    private float time,press,pressV,shake,flash;
+    private final SevenSegment seg=new SevenSegment();private Texture lip;private float[] lipR;private final BitmapFont title,big;private final GlyphLayout layout=new GlyphLayout();
+    private float time,press,pressV,shake,flash,pressT=-1;
 
     public FinalSecondScene(){
         plate=tex("final_second/machine_plate.png");cap=tex("final_second/button_cap.png");soft=softTex(128);
         JsonValue j=new JsonReader().parse(Gdx.files.internal("final_second/layout.json"));
         sx=W/j.get("size").getInt(0);sy=H/j.get("size").getInt(1);
-        capR=rect(j.get("cap"));glass=rect(j.get("glass"));plaque=rect(j.get("plaque"));
+        capR=rect(j.get("cap"));lipR=rect(j.get("lip"));lip=tex("final_second/collar_front.png");glass=rect(j.get("glass"));plaque=rect(j.get("plaque"));
         title=com.erni.finalanswer.ui.UiFonts.gothic(46);big=com.erni.finalanswer.ui.UiFonts.gothic(84);
     }
     /** Painting px rect (top-left origin) → world rect {x,y,w,h} with bottom-left origin. */
     private float[] rect(JsonValue r){float x=r.getFloat(0)*sx,w=r.getFloat(2)*sx,h=r.getFloat(3)*sy,y=H-r.getFloat(1)*sy-h;return new float[]{x,y,w,h};}
 
     /** Press the big red button (visual): the cap travels down, glows, the machine shudders. */
-    public void press(){pressV=9f;shake=1;flash=1;}
+    public void press(){pressT=0;shake=1;flash=1;}
     public void update(float dt){
         time+=dt;
         // spring for the cap: driven down quickly, eases back with a slight mechanical settle
-        press+=pressV*dt;if(press>=1){press=1;pressV=-2.6f;}if(press<=0&&pressV<0){press=0;pressV=0;}
-        shake=Math.max(0,shake-dt*3.2f);flash=Math.max(0,flash-dt*2.2f);
+        if(pressT>=0){pressT+=dt;if(pressT>1)pressT=-1;}
+        shake=Math.max(0,shake-dt*4.5f);flash=Math.max(0,flash-dt*2.6f);
     }
 
     /**
@@ -98,21 +98,38 @@ public final class FinalSecondScene implements Disposable {
         b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);b.setColor(Color.WHITE);
     }
 
+    /**
+     * The photographed cap, pressed like a real switch: it sinks into the brass collar (the collar's front lip is drawn
+     * over it, so its skirt disappears behind the ring), compresses slightly, loses the light from above as it goes in,
+     * and its internal red light flares; on release it springs back with a small overshoot and settles.
+     */
     private void button(SpriteBatch b,float jx,float jy){
-        float e=press*press*(3-2*press),travel=16*e;
-        float x=capR[0]+jx,y=capR[1]+jy-travel,w=capR[2],h=capR[3]*(1-.05f*e);
-        float glow=.55f+.25f*MathUtils.sin(time*2.2f)+flash*1.2f;
+        float e=pressCurve();
+        float travel=capR[3]*.16f*e,squash=1-.035f*e;
+        float x=capR[0]+jx,w=capR[2],h=capR[3]*squash,y=capR[1]+jy-travel+(capR[3]-h);
+        float glow=.55f+.25f*MathUtils.sin(time*2.2f)+flash*1.4f;
         b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
-        b.setColor(1f,.1f,.06f,.18f*glow);b.draw(soft,x-w*.25f,y-h*.35f,w*1.5f,h*1.5f);
+        b.setColor(1f,.1f,.06f,.16f*glow);b.draw(soft,x-w*.25f,capR[1]+jy-capR[3]*.4f,w*1.5f,capR[3]*1.6f);
         b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
-        float k=1+.25f*flash;b.setColor(Math.min(1,k),Math.min(1,.92f*k),Math.min(1,.92f*k),1);b.draw(cap,x,y,w,h);
-        if(flash>0){b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);b.setColor(1f,.25f,.18f,.35f*flash);b.draw(cap,x,y,w,h);b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
+        float shade=1-.28f*Math.max(0,e);                       // deeper in the collar = less light from above
+        b.setColor(shade,shade*.96f,shade*.96f,1);b.draw(cap,x,y,w,h);
+        if(flash>0){b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);b.setColor(1f,.2f,.12f,.45f*flash);b.draw(cap,x,y,w,h);b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
+        // the collar's front lip in front of the cap
+        b.setColor(1,1,1,1);b.draw(lip,lipR[0]+jx,lipR[1]+jy,lipR[2],lipR[3]);
+        if(flash>0){b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);b.setColor(1f,.55f,.3f,.25f*flash);b.draw(lip,lipR[0]+jx,lipR[1]+jy,lipR[2],lipR[3]);b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
         b.setColor(Color.WHITE);
     }
-
+    /** 0 at rest, 1 fully down: a fast hard stroke (≈70 ms), a short hold, then a spring return with overshoot. */
+    private float pressCurve(){
+        float t=pressT;if(t<0)return 0;
+        if(t<.07f){float k=t/.07f;return 1-(1-k)*(1-k)*(1-k);}
+        if(t<.16f)return 1;
+        float r=(t-.16f)/.42f;if(r>=1)return 0;
+        return (float)(Math.exp(-5*r)*Math.cos(r*MathUtils.PI*1.6f))*(1-r*.15f);   // springs up, overshoots a hair, settles
+    }
     private static Texture tex(String p){Texture t=new Texture(Gdx.files.internal(p),true);t.setFilter(Texture.TextureFilter.MipMapLinearLinear,Texture.TextureFilter.Linear);return t;}
     private static Texture softTex(int n){Pixmap p=new Pixmap(n,n,Pixmap.Format.RGBA8888);p.setBlending(Pixmap.Blending.None);float c=(n-1)/2f;
         for(int y=0;y<n;y++)for(int x=0;x<n;x++){float d=(float)Math.hypot(x-c,y-c)/c;float a=d>=1?0:(1-d);a=a*a*(3-2*a);p.drawPixel(x,y,Color.rgba8888(1,1,1,a));}
         Texture t=new Texture(p);t.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();return t;}
-    @Override public void dispose(){plate.dispose();cap.dispose();soft.dispose();seg.dispose();title.dispose();big.dispose();}
+    @Override public void dispose(){plate.dispose();cap.dispose();lip.dispose();soft.dispose();seg.dispose();title.dispose();big.dispose();}
 }

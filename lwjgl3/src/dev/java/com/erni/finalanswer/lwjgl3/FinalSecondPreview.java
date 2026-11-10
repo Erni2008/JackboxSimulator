@@ -25,7 +25,7 @@ public final class FinalSecondPreview {
             @Override public void resize(int w,int h){vp.update(w,h,true);}
             float elapsed(){return (System.nanoTime()-start)/1e9f;}
             @Override public void render(){
-                float dt=Gdx.graphics.getDeltaTime();wall+=dt;scene.update(dt);post.update(dt);
+                float dt=Math.min(Gdx.graphics.getDeltaTime(),1/30f);wall+=dt;scene.update(dt);post.update(dt);
                 if(Gdx.input.isKeyJustPressed(Input.Keys.SPACE)&&stopped<0){stopped=elapsed();scene.press();}
                 if(stopped>=0&&elapsed()-stopped>4||elapsed()>14){start=System.nanoTime();stopped=-1;}
                 float t=stopped>=0?stopped:elapsed();
@@ -35,7 +35,7 @@ public final class FinalSecondPreview {
                 if(!cap.isEmpty()){
                     if(shot==0&&wall>1.9f){grab("1-visible");shot++;}
                     else if(shot==1&&wall>5f){grab("2-hidden");shot++;stopped=6.98f;scene.press();}
-                    else if(shot==2&&wall>5.07f){grab("3-pressing");shot++;}
+                    else if(shot==2&&wall>5.1f){grab("3-pressing");shot++;}
                     else if(shot==3&&wall>6.5f){grab("4-stopped");Gdx.app.exit();}}
             }
             String fmt(float s){int cs=Math.min(9999,Math.round(s*100));return String.format("%02d,%02d",cs/100,cs%100);}
