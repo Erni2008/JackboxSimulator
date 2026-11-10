@@ -17,10 +17,11 @@ const seat=(code,token,name)=>Buffer.from(JSON.stringify({code,token,name})).toS
   const you=await post(`/rooms/${code}/join`,{name:'Ты'}),bot=await post(`/rooms/${code}/join`,{name:'Борис'});
   const b=await socket(code,bot.token,'bot');
   if(!process.env.NO_HOST){const root=path.resolve(__dirname,'../..');
-    const host=spawn(path.join(root,'gradlew'),['-q',':lwjgl3:forgottenRoomHost',`-Proom.url=${base}`,`-Proom.code=${code}`,`-Proom.token=${room.token}`,`-Proom.difficulty=${difficulty}`],{cwd:root,stdio:'ignore'});
+    const host=spawn(path.join(root,'gradlew'),['-q',':lwjgl3:forgottenRoomHost',`-Proom.url=${base}`,`-Proom.code=${code}`,`-Proom.token=${room.token}`,`-Proom.difficulty=${difficulty}`],{cwd:root,stdio:['ignore',require('fs').openSync(process.env.HOST_LOG||'/dev/null','a'),require('fs').openSync(process.env.HOST_LOG||'/dev/null','a')]});
+    host.on('exit',code=>console.log('host window closed',code));
     process.on('exit',()=>host.kill());}
   const link=`${base}/#seat=${seat(code,you.token,'Ты')}`;
-  console.log('ROOM',code);console.log('OPEN',link);if(lan)console.log('PHONE',`${lan}/#seat=${seat(code,you.token,'Ты')}`);
+  console.log('ROOM',code);console.log('HOST_TOKEN',room.token);console.log('OPEN',link);if(lan)console.log('PHONE',`${lan}/#seat=${seat(code,you.token,'Ты')}`);
   if(process.platform==='darwin')spawn('open',[link]);
   const youId=you.selfId;let answered='',reported='';
   for(;;){
