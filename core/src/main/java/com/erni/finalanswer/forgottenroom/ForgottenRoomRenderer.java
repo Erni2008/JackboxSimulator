@@ -33,6 +33,9 @@ final class ForgottenRoomRenderer {
     void drawRoom(SpriteBatch b,ForgottenRoomModel m,List<ForgottenRoomModel.Obj> objects,float roomAlpha){
         Texture bg=art.background(m.background);
         b.setColor(1,1,1,1);if(bg!=null)b.draw(bg,0,0,W,H);else{b.setColor(.06f,.04f,.05f,1);b.draw(art.pixel,0,0,W,H);}
+        if(bg!=null){ // brighten the painted room ~40%: the art is very dark for a shared screen across a living room
+            b.setBlendFunction(GL20.GL_ONE,GL20.GL_ONE);b.setColor(.42f,.41f,.40f,1);b.draw(bg,0,0,W,H);
+            b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);b.setColor(1,1,1,1);}
         snow(b,m);
         // cold moonlight through the window and the warm sconce on the right wall
         b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
@@ -44,7 +47,7 @@ final class ForgottenRoomRenderer {
         if(objects!=null)for(var o:objects)drawObject(b,m,o,1,false);
         drawMotes(b);
         floorFog(b);
-        b.setColor(1,1,1,.8f);b.draw(art.vignette,0,0,W,H);b.setColor(1,1,1,1);
+        b.setColor(1,1,1,.45f);b.draw(art.vignette,0,0,W,H);b.setColor(1,1,1,1);
     }
 
     /** One object at its place. {@code ghost} draws a cold translucent echo (reveal of what used to be there). */
@@ -75,7 +78,7 @@ final class ForgottenRoomRenderer {
         else if(glow)b.setColor(1,.97f,.92f,alpha);
         else{ // settle the art into the room's light: cold by the moonlit window, warm by the sconce, dim in between
             float mx=place.x(),cold=MathUtils.clamp(1-mx/.4f,0,1),warm=MathUtils.clamp((mx-.62f)/.38f,0,1),depth=.08f*(1-place.y());
-            b.setColor(.74f-depth+.10f*warm-.05f*cold,.68f-depth+.03f*warm-.01f*cold,.64f-depth-.04f*warm+.10f*cold,alpha);}
+            b.setColor(.92f-depth+.08f*warm-.04f*cold,.87f-depth+.03f*warm-.01f*cold,.83f-depth-.03f*warm+.08f*cold,alpha);}
         float sx=1,rot=0,cy=y+h/2;
         if(o.turn().equals("FLIP"))sx=MathUtils.cos(MathUtils.PI*turned);
         else if(o.turn().equals("TOPPLE")){rot=90*turned;cy=MathUtils.lerp(y+h/2,y+w/2,turned);}
