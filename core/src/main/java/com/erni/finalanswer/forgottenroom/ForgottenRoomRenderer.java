@@ -16,10 +16,15 @@ final class ForgottenRoomRenderer {
     private static final int MOTES=46;
     private final float[] mx=new float[MOTES],my=new float[MOTES],ms=new float[MOTES],mp=new float[MOTES];
     private float time;
+    /** Snow outside: each room with a window lists its glass rectangle (normalised, top-left origin) and a frame overlay. */
+    private static final Map<String,float[]> WINDOWS=Map.of("room_01",new float[]{.10646f,.03826f,.23445f,.57386f});
+    private static final int FLAKES=150;
+    private final float[] fx=new float[FLAKES],fy=new float[FLAKES],fs=new float[FLAKES],fp=new float[FLAKES],fd=new float[FLAKES];
 
     ForgottenRoomRenderer(ForgottenRoomArt art,BitmapFont label){
         this.art=art;this.label=label;Random r=new Random(7);
         for(int i=0;i<MOTES;i++){mx[i]=r.nextFloat();my[i]=r.nextFloat();ms[i]=.4f+r.nextFloat()*.9f;mp[i]=r.nextFloat()*6.28f;}
+        for(int i=0;i<FLAKES;i++){fx[i]=r.nextFloat();fy[i]=r.nextFloat();fd[i]=r.nextFloat();fs[i]=.6f+r.nextFloat()*.8f;fp[i]=r.nextFloat()*6.28f;}
     }
     void update(float dt){time+=dt;}
     float flicker(float seed){return .86f+.08f*MathUtils.sin(time*7.3f+seed)+.05f*MathUtils.sin(time*13.1f+seed*2)+.03f*MathUtils.sin(time*23f+seed*3);}
@@ -28,6 +33,7 @@ final class ForgottenRoomRenderer {
     void drawRoom(SpriteBatch b,ForgottenRoomModel m,List<ForgottenRoomModel.Obj> objects,float roomAlpha){
         Texture bg=art.background(m.background);
         b.setColor(1,1,1,1);if(bg!=null)b.draw(bg,0,0,W,H);else{b.setColor(.06f,.04f,.05f,1);b.draw(art.pixel,0,0,W,H);}
+        snow(b,m);
         // cold moonlight through the window and the warm sconce on the right wall
         b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
         b.setColor(.45f,.58f,.9f,.10f);b.draw(art.soft,120,330,620,620);
@@ -98,6 +104,25 @@ final class ForgottenRoomRenderer {
             float a=.20f*(.5f+.5f*MathUtils.sin(time*1.3f+mp[i]))*(1-Math.abs(u-.5f)*1.6f);
             if(a<=0)continue;b.setColor(.82f,.88f,1f,a);float s=3+ms[i]*3;b.draw(art.soft,x-s,y-s,s*2,s*2);}
         b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
+    }
+    /** Snow falling outside the window, behind the glazing bars (the room's frame overlay is drawn over it). */
+    private void snow(SpriteBatch b,ForgottenRoomModel m){
+        String base=m.background.contains("/")?m.background.substring(m.background.lastIndexOf('/')+1):m.background;
+        if(base.contains("."))base=base.substring(0,base.lastIndexOf('.'));
+        float[] r=WINDOWS.get(base);if(r==null)return;
+        float x0=r[0]*W,x1=r[2]*W,top=(1-r[1])*H,bot=(1-r[3])*H,w=x1-x0,h=top-bot;
+        b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
+        float wind=MathUtils.sin(time*.23f)*.5f+.6f;
+        for(int i=0;i<FLAKES;i++){
+            float depth=fd[i],speed=(.035f+.09f*depth)*fs[i];             // far flakes slow and small, near ones fast and big
+            float v=(fy[i]+time*speed)%1f,u=(fx[i]+time*speed*.35f*wind+MathUtils.sin(time*(.7f+depth)+fp[i])*.012f)%1f;
+            float x=x0+u*w,y=top-v*h,size=1.4f+depth*3.4f*fs[i];
+            float edge=Math.min(Math.min(u,1-u),Math.min(v,1-v))*14f;float a=(.28f+.5f*depth)*Math.min(1,edge);
+            if(a<=0)continue;b.setColor(.86f,.9f,1f,a);b.draw(art.soft,x-size,y-size,size*2,size*2);
+        }
+        b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
+        Texture frame=art.background(m.background.substring(0,m.background.lastIndexOf('.'))+"_window.png");
+        if(frame!=null){b.setColor(1,1,1,1);b.draw(frame,x0,bot,w,h);}
     }
     /** Volumetric moonlight: long soft shafts from the window down across the room, slowly breathing. */
     private void moonRays(SpriteBatch b){
