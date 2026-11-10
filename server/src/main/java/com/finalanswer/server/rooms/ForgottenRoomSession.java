@@ -106,7 +106,7 @@ final class ForgottenRoomSession {
         List<Map<String,Object>> out=new ArrayList<>();
         for(var p:state.bySlot().values()){var def=RoomCatalog.object(p.objectId());
             Map<String,Object> o=new LinkedHashMap<>();o.put("id",p.objectId());o.put("name",def.nameRu());o.put("slot",p.slotId());
-            o.put("rotated",p.rotated());o.put("variant",p.variant());o.put("lit",p.lit());o.put("light",def.light());o.put("rotatable",def.rotatable());o.put("variants",def.variants());
+            o.put("size",def.size().name());o.put("rotated",p.rotated());o.put("variant",p.variant());o.put("lit",p.lit());o.put("light",def.light());o.put("rotatable",def.rotatable());o.put("variants",def.variants());
             out.add(o);}
         return out;
     }

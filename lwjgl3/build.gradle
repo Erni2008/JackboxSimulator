@@ -1139,3 +1139,18 @@ tasks.register('cursedCardsHostCheck', JavaExec) {
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED', '-Xmx3g'
 }
+
+// THE FORGOTTEN ROOM host screen without a server: -Proom.capture=true writes one PNG per phase to -Proom.output.
+tasks.register('forgottenRoomPreview', JavaExec) {
+    group = 'application'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.ForgottenRoomPreview'
+    workingDir = rootProject.file('assets')
+    systemProperty 'room.capture', providers.gradleProperty('room.capture').getOrElse('false')
+    systemProperty 'room.output', providers.gradleProperty('room.output').getOrElse('/tmp')
+    systemProperty 'room.seed', providers.gradleProperty('room.seed').getOrElse('11')
+    systemProperty 'room.difficulty', providers.gradleProperty('room.difficulty').getOrElse('MEDIUM')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}

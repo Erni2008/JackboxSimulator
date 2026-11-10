@@ -112,4 +112,18 @@ public final class UiFonts {
             generator.dispose();
         }
     }
+
+    /** Gothic small-caps serif (Cormorant SC Bold, OFL) with Cyrillic: premium titles that must read in Russian. */
+    public static BitmapFont gothic(int size) {
+        FreeTypeFontGenerator generator=new FreeTypeFontGenerator(Gdx.files.internal("ui/fonts/CormorantSC-Bold.ttf"));
+        try {
+            var parameters=new FreeTypeFontGenerator.FreeTypeFontParameter();
+            parameters.size=size;parameters.kerning=true;
+            StringBuilder characters=new StringBuilder(FreeTypeFontGenerator.DEFAULT_CHARS);
+            for(char c='\u0400';c<='\u04ff';c++)characters.append(c);
+            parameters.characters=characters.append("\u2013\u2014\u2018\u2019\u201c\u201d\u00ab\u00bb").toString();
+            parameters.minFilter=Texture.TextureFilter.Linear;parameters.magFilter=Texture.TextureFilter.Linear;
+            return generator.generateFont(parameters);
+        } finally { generator.dispose(); }
+    }
 }
