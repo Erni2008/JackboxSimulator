@@ -425,7 +425,7 @@ public final class RoomService {
     private boolean tickForgotten(Room room){
         var f=room.forgotten;boolean wasScored=f.scored();boolean changed=f.tick(now());
         if(!changed&&f.phase()==ForgottenRoomSession.Phase.ANSWER_PHASE)changed=f.everyoneAnswered(room.members.values().stream().filter(m->m.peer!=null&&!m.left).map(m->m.id).toList(),now());
-        if(!wasScored&&f.scored())for(var e:f.results().entrySet()){Member m=room.members.get(e.getKey());if(m!=null)m.score+=e.getValue().points();}
+        if(!wasScored&&f.scored())for(Member m:room.members.values()){var r=f.results().get(m.id);if(r!=null)m.score+=r.points();}
         return changed;
     }
     private static void requireCards(Room room,JsonObject data){if(room.cards==null||!room.cards.id.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_CARDS_SESSION");}
