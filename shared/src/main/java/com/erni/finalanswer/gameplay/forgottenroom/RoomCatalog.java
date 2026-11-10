@@ -40,8 +40,13 @@ public final class RoomCatalog {
      * A room = one painted background + the places on its furniture. Every background brings its own places, so new
      * rooms are data only. Coordinates point at the base of an object in the 16:9 picture (top-left origin, 0–1).
      */
-    public record Layout(String id,String background,String nameRu,List<Slot> slots){
-        public Layout{slots=List.copyOf(slots);Set<String> ids=new HashSet<>();for(Slot s:slots)if(!ids.add(s.id()))throw new IllegalStateException("Duplicate slot "+s.id()+" in "+id);}
+    public record Layout(String id,String background,String nameRu,List<Slot> slots,Map<String,List<String>> staging){
+        public Layout{slots=List.copyOf(slots);Set<String> ids=new HashSet<>();for(Slot s:slots)if(!ids.add(s.id()))throw new IllegalStateException("Duplicate slot "+s.id()+" in "+id);
+            Map<String,List<String>> copy=new LinkedHashMap<>();
+            for(var e:staging.entrySet()){for(String slot:e.getValue())if(!ids.contains(slot))throw new IllegalStateException("Staging "+e.getKey()+" → unknown slot "+slot);copy.put(e.getKey(),List.copyOf(e.getValue()));}
+            staging=Collections.unmodifiableMap(copy);}
+        /** The places an art director chose for this object in this room (empty = the object doesn't belong here). */
+        public List<String> spots(String objectId){return staging.getOrDefault(objectId,List.of());}
         public Slot slot(String slotId){for(Slot s:slots)if(s.id().equals(slotId))return s;throw new IllegalArgumentException("Unknown slot "+slotId+" in "+id);}
         public boolean hasSlot(String slotId){for(Slot s:slots)if(s.id().equals(slotId))return true;return false;}
     }
@@ -58,9 +63,26 @@ public final class RoomCatalog {
         s("table_1",.15f,.80f,T,"Стол, ближний край"), s("table_2",.25f,.76f,T,"Стол, слева"),
         s("table_3",.35f,.74f,T,"Стол, на скатерти"), s("table_4",.465f,.73f,T,"Стол, дальний край"),
         s("armchair",.875f,.768f,Surface.SEAT,"Кресло"),
-        s("hang_1",.497f,.135f,Surface.HANG,"Свисает с карниза шкафа"), s("hang_2",.19f,.035f,Surface.HANG,"Свисает над окном"),
+        s("hang_1",.70f,.02f,Surface.HANG,"Свисает над рамой"), s("hang_2",.19f,.035f,Surface.HANG,"Свисает над окном"),
         s("floor_1",.605f,.835f,F,"Пол у часов"), s("floor_2",.53f,.955f,F,"Ковёр, слева"),
-        s("floor_3",.66f,.95f,F,"Ковёр, центр"), s("floor_4",.78f,.945f,F,"Ковёр, справа")));
+        s("floor_3",.66f,.95f,F,"Ковёр, центр"), s("floor_4",.78f,.945f,F,"Ковёр, справа")),
+        // Set dressing: every object gets a few places where it looks deliberate in this study. Rounds only use these,
+        // so the room always reads as a lived-in collector's study, never a pile; moves go between such places.
+        Map.ofEntries(
+            Map.entry("painting",List.of("frame")),
+            Map.entry("ivy",List.of("hang_1","hang_2")),
+            Map.entry("books",List.of("shelf_1","shelf_3","shelf_5","cabinet_1","table_1")),
+            Map.entry("open_book",List.of("table_2","table_3","armchair")),
+            Map.entry("bust",List.of("cabinet_2","sideboard_1","shelf_2")),
+            Map.entry("candelabra",List.of("table_3","sideboard_2","sill_1")),
+            Map.entry("chest",List.of("floor_1","floor_2")),
+            Map.entry("clock",List.of("floor_4","floor_1")),
+            Map.entry("doll",List.of("armchair","shelf_6","shelf_4")),
+            Map.entry("globe",List.of("sideboard_3","cabinet_1","table_4")),
+            Map.entry("hourglass",List.of("shelf_6","shelf_3","sideboard_1","table_4")),
+            Map.entry("key",List.of("table_1","shelf_5","sideboard_3","cabinet_2")),
+            Map.entry("skull",List.of("shelf_4","shelf_2","sideboard_2","table_4")),
+            Map.entry("telescope",List.of("floor_3","floor_2","sill_2"))));
 
     /** All rooms; a round picks one by seed. Add new backgrounds here. */
     public static final List<Layout> LAYOUTS=List.of(STUDY);

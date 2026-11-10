@@ -33,7 +33,7 @@ public final class RoomGenerator {
 
     private static Round tryGenerate(long seed,RoomDifficulty d,Layout layout,Random random){
         int objectCount=d.minObjects+random.nextInt(d.maxObjects-d.minObjects+1);
-        List<ObjectDef> pool=new ArrayList<>(RoomCatalog.OBJECTS.stream().filter(o->d.sizes.contains(o.size())).toList());
+        List<ObjectDef> pool=new ArrayList<>(RoomCatalog.OBJECTS.stream().filter(o->d.sizes.contains(o.size())&&!layout.spots(o.id()).isEmpty()).toList());
         // keep empty places and at least two objects in reserve, so «appeared» stays possible with a small library
         objectCount=Math.min(objectCount,Math.min(layout.slots().size()-MIN_EMPTY_SLOTS,pool.size()-2));
         Collections.shuffle(pool,random);
@@ -41,7 +41,8 @@ public final class RoomGenerator {
         Map<String,Placed> room=new LinkedHashMap<>();List<ObjectDef> absent=new ArrayList<>();
         for(ObjectDef def:pool){
             if(room.size()>=objectCount){absent.add(def);continue;}
-            Slot slot=free.stream().filter(s->def.surfaces().contains(s.surface())).findFirst().orElse(null);
+            List<String> spots=new ArrayList<>(layout.spots(def.id()));Collections.shuffle(spots,random);
+            Slot slot=spots.stream().map(layout::slot).filter(free::contains).findFirst().orElse(null);
             if(slot==null){absent.add(def);continue;}
             free.remove(slot);
             room.put(slot.id(),new Placed(def.id(),slot.id(),false,def.variants()>1?random.nextInt(def.variants()):0,def.light()&&(!def.toggles()||random.nextInt(3)!=0)));
@@ -100,11 +101,11 @@ public final class RoomGenerator {
         return null;
     }
 
-    /** A free place for {@code def}: empty now, untouched by other changes, not just vacated, and far enough from {@code from}. */
+    /** One of {@code def}'s staged places that is empty now, untouched by other changes, not just vacated, and far enough from {@code from}. */
     private static Slot emptySlot(Layout layout,Random random,ObjectDef def,Map<String,Placed> now,Set<String> touched,Set<String> vacated,Slot from,float minDistance){
         List<Slot> options=new ArrayList<>();
-        for(Slot s:layout.slots())if(def.surfaces().contains(s.surface())&&!now.containsKey(s.id())&&!touched.contains(s.id())&&!vacated.contains(s.id())
-            &&(from==null||RoomCatalog.distance(from,s)>=minDistance))options.add(s);
+        for(String spot:layout.spots(def.id())){Slot s=layout.slot(spot);if(!now.containsKey(s.id())&&!touched.contains(s.id())&&!vacated.contains(s.id())
+            &&(from==null||RoomCatalog.distance(from,s)>=minDistance))options.add(s);}
         return options.isEmpty()?null:options.get(random.nextInt(options.size()));
     }
 }

@@ -106,6 +106,14 @@ class ForgottenRoomTest {
         assertTrue(sawGone&&sawNew);
     }
 
+    @Test void objectsOnlyStandWhereTheSetDresserPutThem(){
+        for(var l:RoomCatalog.LAYOUTS)for(var e:l.staging().entrySet())for(String spot:e.getValue())
+            assertTrue(RoomCatalog.object(e.getKey()).surfaces().contains(l.slot(spot).surface()),e.getKey()+" cannot stand on "+spot);
+        for(RoomDifficulty d:RoomDifficulty.values())for(long seed=0;seed<300;seed++){var round=RoomGenerator.generate(seed,d);
+            for(var st:List.of(round.original(),round.changed()))for(var p:st.bySlot().values())
+                assertTrue(round.layout().spots(p.objectId()).contains(p.slotId()),p.objectId()+" dumped on "+p.slotId());}
+    }
+
     @Test void everyObjectInRoundsHasArt(){
         for(var def:RoomCatalog.OBJECTS){
             boolean art=new java.io.File("../assets/forgotten_room/objects/"+def.id()+".png").exists()||new java.io.File("../assets/forgotten_room/objects/"+def.id()+"_v0.png").exists();
