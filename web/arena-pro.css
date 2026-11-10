@@ -453,3 +453,16 @@ body.g-on #cursed-result-title{font:700 28px Gothic,Georgia,serif!important;colo
 body.g-on #cursed-result-detail{font:600 16px Gothic,Georgia,serif;color:#cdb48a;letter-spacing:.1em}
 body[data-view=cursed] #leave{display:none!important}
 body.g-on .cursed-fire{letter-spacing:.24em!important}
+/* Cursed Boxes polish: fill the phone, taller crates, a lit vitrine behind the grid */
+body[data-view=cursed] #cursed-screen{min-height:calc(100svh - 30px);display:flex!important;flex-direction:column;justify-content:center}
+body[data-view=cursed] #cursed-screen[hidden]{display:none!important}
+body.g-on #cursed-grid{position:relative;gap:12px!important;padding:14px!important;border-radius:16px!important;
+  background:radial-gradient(120% 80% at 50% 0%,#3a1a0e66,#0a060700 70%),linear-gradient(180deg,#0d0809cc,#070405ee)!important;
+  box-shadow:inset 0 0 0 1px #c99a4a44,inset 0 0 40px #000,0 20px 40px -14px #000!important}
+body.g-on #cursed-grid::before{content:"";position:absolute;left:12%;right:12%;top:-1px;height:2px;background:linear-gradient(90deg,transparent,#f0d08a,transparent);filter:drop-shadow(0 0 6px #f0d08a)}
+body.g-on .cursed-box{aspect-ratio:1/1!important;min-height:0!important;transition:transform .12s,box-shadow .2s}
+body.g-on .cursed-box::before{font-size:20px;left:8px;bottom:6px}
+body.g-on .cursed-fire:not(:disabled){animation:l-glow 1.8s ease-in-out infinite!important}
+@keyframes l-glow{0%,100%{box-shadow:inset 0 1px 0 #ffb0a066,0 6px 0 #2a0a06,0 14px 30px -6px #c8323c66}50%{box-shadow:inset 0 1px 0 #ffb0a066,0 6px 0 #2a0a06,0 14px 40px -2px #ff3a3acc}}
+body.g-on .cursed-fire[data-action=hide]:not(:disabled){animation:none!important}
+body.g-on #cursed-screen .cursed-turn{margin:16px 0 20px!important}
