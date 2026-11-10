@@ -1183,3 +1183,15 @@ tasks.register('gameLookShots', JavaExec) {
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
+
+// THE FORGOTTEN ROOM 3D (milestone 1): -Proom3d.capture=dir writes a frame and exits.
+tasks.register('forgottenRoom3D', JavaExec) {
+    group = 'application'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.ForgottenRoom3DPreview'
+    workingDir = rootProject.file('assets')
+    systemProperty 'room3d.capture', providers.gradleProperty('room3d.capture').getOrElse('')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}

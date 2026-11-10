@@ -109,7 +109,7 @@ public final class CinematicPost implements Disposable {
         active=false;if(!ok||frameActive||!ENABLED)return;
         int w=Gdx.graphics.getBackBufferWidth(),h=Gdx.graphics.getBackBufferHeight();if(w<16||h<16)return;
         ensure(w,h);if(!ok)return;
-        scene.begin();Gdx.gl.glClearColor(0,0,0,1);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        scene.begin();Gdx.gl.glClearColor(0,0,0,1);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT|GL20.GL_DEPTH_BUFFER_BIT);
         savedDefault=Default.get();Default.set(scene.getFramebufferHandle());
         active=true;frameActive=true;
     }
@@ -124,7 +124,7 @@ public final class CinematicPost implements Disposable {
     private void ensure(int w,int h){
         if(w==width&&h==height&&scene!=null)return;
         disposeBuffers();width=w;height=h;
-        try{scene=buffer(w,h);small=buffer(Math.max(8,w/4),Math.max(8,h/4));smallB=buffer(small.getWidth(),small.getHeight());
+        try{scene=new FrameBuffer(Pixmap.Format.RGBA8888,w,h,true);scene.getColorBufferTexture().setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);small=buffer(Math.max(8,w/4),Math.max(8,h/4));smallB=buffer(small.getWidth(),small.getHeight());
             tiny=buffer(Math.max(4,w/10),Math.max(4,h/10));tinyB=buffer(tiny.getWidth(),tiny.getHeight());}
         catch(RuntimeException e){Gdx.app.error("CinematicPost","frame buffer: "+e.getMessage());ok=false;disposeBuffers();}
     }
