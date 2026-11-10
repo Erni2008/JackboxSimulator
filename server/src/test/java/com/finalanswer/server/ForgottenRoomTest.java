@@ -127,6 +127,8 @@ class ForgottenRoomTest {
         var lit=new RoomChange(ChangeType.TOGGLED,"candelabra",new RoomState.Placed("candelabra","table_1",false,0,false),new RoomState.Placed("candelabra","table_1",false,0,true));
         assertEquals("КАНДЕЛЯБР ЗАЖЁГСЯ САМ",lit.captionRu());
         var doll=new RoomChange(ChangeType.ROTATED,"doll",new RoomState.Placed("doll","shelf_1",false,0,false),new RoomState.Placed("doll","shelf_1",true,0,false));
-        assertEquals("ЖУТКАЯ КУКЛА ПЕРЕВЕРНУЛАСЬ",doll.captionRu());
+        assertEquals("ЖУТКАЯ КУКЛА УПАЛА НА БОК",doll.captionRu());
+        var skull=new RoomChange(ChangeType.ROTATED,"skull",new RoomState.Placed("skull","shelf_2",false,0,false),new RoomState.Placed("skull","shelf_2",true,0,false));
+        assertEquals("ЧЕРЕП ОТВЕРНУЛСЯ",skull.captionRu());
     }
 }

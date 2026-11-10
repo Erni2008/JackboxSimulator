@@ -93,7 +93,8 @@ public final class ForgottenRoomScreen extends ScreenAdapter {
             case "DISAPPEARED"->{room.drawObject(batch,model,c.before(),before,true);}
             case "APPEARED"->{float pulse=.75f+.25f*MathUtils.sin(phaseClock*6);room.drawObject(batch,model,c.after(),ForgottenRoomHud.ease((u-.2f)/.3f)*pulse+.25f,false);}
             case "MOVED"->{room.drawObject(batch,model,c.before(),before,true);trail(c,ForgottenRoomHud.ease((u-.3f)/.35f));room.drawObject(batch,model,c.after(),1,false);}
-            case "ROTATED"->{float k=ForgottenRoomHud.ease((u-.2f)/.45f);float from=c.before().rotated()?180:0,to=c.after().rotated()?180:0;
+            case "ROTATED"->{float k=ForgottenRoomHud.ease((u-.2f)/.45f);float from=c.before().rotated()?1:0,to=c.after().rotated()?1:0;
+                // play the original pose first, then turn into the new one
                 room.drawObject(batch,model,c.after(),1,false,MathUtils.lerp(from,to,k));}
             case "CHANGED"->{float k=ForgottenRoomHud.ease((u-.25f)/.4f);room.drawObject(batch,model,c.before(),1-k,false);room.drawObject(batch,model,c.after(),k,false);}
             case "TOGGLED"->{boolean show=u<.25f||u>.62f||((int)(u*28))%2==0;room.drawObject(batch,model,show&&u>.25f?c.after():c.before(),1,false);}

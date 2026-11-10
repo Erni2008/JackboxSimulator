@@ -20,20 +20,22 @@ public final class RoomCatalog {
 
     /**
      * One object of the library. {@code variants} counts its appearances (colour, clock time, painting…; 1 = none);
-     * {@code rotatable} means it can be turned (upside down / around); {@code light} means it gives light; {@code toggles} that it can also be put out (needs lit and unlit art).
+     * {@code turn} says how it can be turned (never upside down); {@code light} means it gives light; {@code toggles} that it can also be put out (needs lit and unlit art).
      */
-    public record ObjectDef(String id,String nameRu,char gender,Size size,Set<Surface> surfaces,int variants,boolean rotatable,boolean light,boolean toggles,String variantHintRu){
+    /** How an object can be turned so it still looks natural: FLIP = faces the other way, TOPPLE = lies on its side. */
+    public enum Turn {NONE,FLIP,TOPPLE}
+    public record ObjectDef(String id,String nameRu,char gender,Size size,Set<Surface> surfaces,int variants,Turn turn,boolean light,boolean toggles,String variantHintRu){
         public ObjectDef{surfaces=Set.copyOf(surfaces);if(variants<1)throw new IllegalArgumentException("variants");}
         public boolean supports(ChangeType type){return switch(type){
             case DISAPPEARED,MOVED,APPEARED->true;
-            case ROTATED->rotatable;
+            case ROTATED->turn!=Turn.NONE;
             case CHANGED->variants>1;
             case TOGGLED->light&&toggles;};}
     }
 
     private static Slot s(String id,float x,float y,Surface surface,String label){return new Slot(id,x,y,surface,label);}
-    private static ObjectDef o(String id,String name,char gender,Size size,Set<Surface> on,boolean rot,String hint){return new ObjectDef(id,name,gender,size,on,1,rot,false,false,hint);}
-    private static ObjectDef light(String id,String name,char gender,Size size,Set<Surface> on,boolean toggles){return new ObjectDef(id,name,gender,size,on,1,false,true,toggles,"");}
+    private static ObjectDef o(String id,String name,char gender,Size size,Set<Surface> on,Turn turn,String hint){return new ObjectDef(id,name,gender,size,on,1,turn,false,false,hint);}
+    private static ObjectDef light(String id,String name,char gender,Size size,Set<Surface> on,boolean toggles){return new ObjectDef(id,name,gender,size,on,1,Turn.NONE,true,toggles,"");}
     private static final Surface M=Surface.MANTEL,T=Surface.TABLE,SH=Surface.SHELF,W=Surface.WALL,F=Surface.FLOOR,WS=Surface.WINDOWSILL,D=Surface.DESK;
 
     /**
@@ -93,20 +95,20 @@ public final class RoomCatalog {
      * object here when its art exists. Each id is unique in a room, so answers never depend on telling twins apart.
      */
     public static final List<ObjectDef> OBJECTS=List.of(
-        o("painting","Картина",'f',Size.LARGE,Set.of(Surface.FRAME),false,""),
-        o("books","Стопка книг",'f',Size.MEDIUM,Set.of(SH,T,D,Surface.SEAT,F),false,""),
-        o("open_book","Раскрытая книга",'f',Size.MEDIUM,Set.of(T,D,Surface.SEAT),false,""),
-        o("bust","Мраморный бюст",'m',Size.LARGE,Set.of(D,T,SH),true,""),
+        o("painting","Картина",'f',Size.LARGE,Set.of(Surface.FRAME),Turn.NONE,""),
+        o("books","Стопка книг",'f',Size.MEDIUM,Set.of(SH,T,D,Surface.SEAT,F),Turn.NONE,""),
+        o("open_book","Раскрытая книга",'f',Size.MEDIUM,Set.of(T,D,Surface.SEAT),Turn.NONE,""),
+        o("bust","Мраморный бюст",'m',Size.LARGE,Set.of(D,T,SH),Turn.FLIP,""),
         light("candelabra","Канделябр",'m',Size.LARGE,Set.of(T,D,WS),false),
-        o("chest","Сундук",'m',Size.LARGE,Set.of(F),false,""),
-        o("clock","Напольные часы",'p',Size.TALL,Set.of(F),false,""),
-        o("doll","Жуткая кукла",'f',Size.MEDIUM,Set.of(SH,F,T,WS,Surface.SEAT),true,""),
-        o("globe","Глобус",'m',Size.LARGE,Set.of(F,D,T),true,""),
-        o("hourglass","Песочные часы",'p',Size.MEDIUM,Set.of(SH,T,D),true,""),
-        o("key","Связка ключей",'f',Size.SMALL,Set.of(T,D,SH),true,""),
-        o("skull","Череп",'m',Size.MEDIUM,Set.of(SH,T,D,Surface.SEAT),true,""),
-        o("telescope","Телескоп",'m',Size.LARGE,Set.of(F,WS),false,""),
-        o("ivy","Плющ",'m',Size.LARGE,Set.of(Surface.HANG),false,""));
+        o("chest","Сундук",'m',Size.LARGE,Set.of(F),Turn.NONE,""),
+        o("clock","Напольные часы",'p',Size.TALL,Set.of(F),Turn.NONE,""),
+        o("doll","Жуткая кукла",'f',Size.MEDIUM,Set.of(SH,F,T,WS,Surface.SEAT),Turn.TOPPLE,""),
+        o("globe","Глобус",'m',Size.LARGE,Set.of(F,D,T),Turn.NONE,""),
+        o("hourglass","Песочные часы",'p',Size.MEDIUM,Set.of(SH,T,D),Turn.TOPPLE,""),
+        o("key","Связка ключей",'f',Size.SMALL,Set.of(T,D,SH),Turn.NONE,""),
+        o("skull","Череп",'m',Size.MEDIUM,Set.of(SH,T,D,Surface.SEAT),Turn.FLIP,""),
+        o("telescope","Телескоп",'m',Size.LARGE,Set.of(F,WS),Turn.NONE,""),
+        o("ivy","Плющ",'m',Size.LARGE,Set.of(Surface.HANG),Turn.NONE,""));
 
 
     private static final Map<String,ObjectDef> OBJECT_BY_ID=new HashMap<>();

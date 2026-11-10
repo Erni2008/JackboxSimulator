@@ -72,7 +72,7 @@ public final class ForgottenRoomPreview {
                 root.add("players",ps);return root;
             }
             JsonArray objects(RoomState st){JsonArray a=new JsonArray();for(var p:st.bySlot().values()){var d=RoomCatalog.object(p.objectId());JsonObject o=new JsonObject();
-                o.addProperty("id",p.objectId());o.addProperty("name",d.nameRu());o.addProperty("slot",p.slotId());o.addProperty("size",d.size().name());o.addProperty("rotated",p.rotated());
+                o.addProperty("id",p.objectId());o.addProperty("name",d.nameRu());o.addProperty("slot",p.slotId());o.addProperty("size",d.size().name());o.addProperty("turn",d.turn().name());o.addProperty("rotated",p.rotated());
                 o.addProperty("variant",p.variant());o.addProperty("lit",p.lit());o.addProperty("light",d.light());a.add(o);}return a;}
             JsonElement placed(RoomState.Placed p){if(p==null)return JsonNull.INSTANCE;JsonObject o=new JsonObject();o.addProperty("id",p.objectId());o.addProperty("slot",p.slotId());o.addProperty("rotated",p.rotated());o.addProperty("variant",p.variant());o.addProperty("lit",p.lit());return o;}
         },c);

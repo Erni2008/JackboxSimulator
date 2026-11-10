@@ -6,7 +6,7 @@ import java.util.*;
 /** The host's read-only picture of the server's THE FORGOTTEN ROOM state (parsed once per update, never mutated by rendering). */
 public final class ForgottenRoomModel {
     record Place(String id,float x,float y,String surface,String label){}
-    record Obj(String id,String name,String slot,String size,boolean rotated,int variant,boolean lit,boolean light){}
+    record Obj(String id,String name,String slot,String size,String turn,boolean rotated,int variant,boolean lit,boolean light){}
     record Change(String type,String objectId,String name,String caption,Obj before,Obj after,List<String> slots,List<String> foundBy,List<String> closeBy){}
     record Row(String playerId,int rank,int points,int correct,int partial,boolean submitted){}
 
@@ -43,7 +43,8 @@ public final class ForgottenRoomModel {
         String id=str(o,"id");Obj known=null;for(Obj k:objects)if(k.id().equals(id))known=k;if(known==null)for(Obj k:original)if(k.id().equals(id))known=k;
         String name=o.has("name")?str(o,"name"):known!=null?known.name():id,size=o.has("size")?str(o,"size"):known!=null?known.size():"MEDIUM";
         boolean light=o.has("light")?o.get("light").getAsBoolean():known!=null&&known.light();
-        return new Obj(id,name,str(o,"slot"),size,o.get("rotated").getAsBoolean(),o.get("variant").getAsInt(),o.get("lit").getAsBoolean(),light);
+        String turn=o.has("turn")?str(o,"turn"):known!=null?known.turn():"NONE";
+        return new Obj(id,name,str(o,"slot"),size,turn,o.get("rotated").getAsBoolean(),o.get("variant").getAsInt(),o.get("lit").getAsBoolean(),light);
     }
     String name(String player){return names.getOrDefault(player,"?");}
     private static String str(JsonObject o,String k){return o.has(k)&&!o.get(k).isJsonNull()?o.get(k).getAsString():"";}

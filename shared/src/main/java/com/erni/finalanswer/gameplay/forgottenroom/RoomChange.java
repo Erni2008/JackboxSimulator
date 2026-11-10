@@ -19,7 +19,7 @@ public record RoomChange(ChangeType type,String objectId,RoomState.Placed before
             case DISAPPEARED->name+" "+verb(g,"ИСЧЕЗ","ИСЧЕЗЛА","ИСЧЕЗЛО","ИСЧЕЗЛИ");
             case APPEARED->name+" "+verb(g,"ПОЯВИЛСЯ","ПОЯВИЛАСЬ","ПОЯВИЛОСЬ","ПОЯВИЛИСЬ")+" ИЗ НИОТКУДА";
             case MOVED->name+" "+verb(g,"ПЕРЕБРАЛСЯ","ПЕРЕБРАЛАСЬ","ПЕРЕБРАЛОСЬ","ПЕРЕБРАЛИСЬ")+" НА ДРУГОЕ МЕСТО";
-            case ROTATED->name+" "+verb(g,"ПЕРЕВЕРНУЛСЯ","ПЕРЕВЕРНУЛАСЬ","ПЕРЕВЕРНУЛОСЬ","ПЕРЕВЕРНУЛИСЬ");
+            case ROTATED->def.turn()==RoomCatalog.Turn.TOPPLE?name+" "+verb(g,"УПАЛ","УПАЛА","УПАЛО","УПАЛИ")+" НА БОК":name+" "+verb(g,"ОТВЕРНУЛСЯ","ОТВЕРНУЛАСЬ","ОТВЕРНУЛОСЬ","ОТВЕРНУЛИСЬ");
             case CHANGED->name+": "+def.variantHintRu().toUpperCase(Locale.ROOT);
             case TOGGLED->name+" "+(after!=null&&after.lit()?verb(g,"ЗАЖЁГСЯ","ЗАЖГЛАСЬ","ЗАЖГЛОСЬ","ЗАЖГЛИСЬ")+" САМ"+(g=='f'?"А":g=='n'?"О":g=='p'?"И":""):verb(g,"ПОГАС","ПОГАСЛА","ПОГАСЛО","ПОГАСЛИ"));};
     }

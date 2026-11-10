@@ -40,9 +40,10 @@ final class ForgottenRoomRenderer {
 
     /** One object at its place. {@code ghost} draws a cold translucent echo (reveal of what used to be there). */
     void drawObject(SpriteBatch b,ForgottenRoomModel m,ForgottenRoomModel.Obj o,float alpha,boolean ghost){
-        drawObject(b,m,o,alpha,ghost,o.rotated()?180:0);
+        drawObject(b,m,o,alpha,ghost,o.rotated()?1:0);
     }
-    void drawObject(SpriteBatch b,ForgottenRoomModel m,ForgottenRoomModel.Obj o,float alpha,boolean ghost,float rotation){
+    /** {@code turned} 0..1: how far the object is turned — FLIP faces the other way, TOPPLE lies on its side (never upside down). */
+    void drawObject(SpriteBatch b,ForgottenRoomModel m,ForgottenRoomModel.Obj o,float alpha,boolean ghost,float turned){
         var place=m.places.get(o.slot());if(place==null||alpha<=0)return;
         float x=place.x()*W,base=(1-place.y())*H;boolean frame=place.surface().equals("FRAME"),hang=place.surface().equals("HANG");
         Texture tex=art.object(o);boolean placeholder=tex==null;
@@ -66,12 +67,16 @@ final class ForgottenRoomRenderer {
         else{ // settle the art into the room's light: cold by the moonlit window, warm by the sconce, dim in between
             float mx=place.x(),cold=MathUtils.clamp(1-mx/.4f,0,1),warm=MathUtils.clamp((mx-.62f)/.38f,0,1),depth=.08f*(1-place.y());
             b.setColor(.74f-depth+.10f*warm-.05f*cold,.68f-depth+.03f*warm-.01f*cold,.64f-depth-.04f*warm+.10f*cold,alpha);}
-        b.draw(tex,x-w/2,y,w/2,h/2,w,h,1,1,rotation,0,0,tex.getWidth(),tex.getHeight(),false,false);
+        float sx=1,rot=0,cy=y+h/2;
+        if(o.turn().equals("FLIP"))sx=MathUtils.cos(MathUtils.PI*turned);
+        else if(o.turn().equals("TOPPLE")){rot=90*turned;cy=MathUtils.lerp(y+h/2,y+w/2,turned);}
+        if(Math.abs(sx)<.06f)sx=sx<0?-.06f:.06f;
+        b.draw(tex,x-w/2,cy-h/2,w/2,h/2,w,h,sx,1,rot,0,0,tex.getWidth(),tex.getHeight(),false,false);
         if(placeholder){ // the object's name on the plaque (upside down plaques show the crest at the bottom)
             label.getData().setScale(frame?.7f:o.size().equals("SMALL")?.42f:.48f);
             label.setColor(ghost?.8f:.96f,ghost?.92f:.88f,ghost?1f:.72f,alpha);
             layout.setText(label,o.name(),label.getColor(),w*.92f,com.badlogic.gdx.utils.Align.center,true);
-            float ly=rotation>90?y+h*.78f:y+h*.42f;label.draw(b,layout,x-w*.46f,ly);label.getData().setScale(1);
+            float ly=y+h*.42f;label.draw(b,layout,x-w*.46f,ly);label.getData().setScale(1);
         }
         b.setColor(1,1,1,1);
     }
