@@ -82,8 +82,8 @@ final class ForgottenRoomRenderer {
     }
     /** Drawn height in world units: object class, what it stands on (shelves are low compartments) and depth. */
     static float height(String size,String surface,float y){
-        float base=switch(size){case "TALL"->330;case "LARGE"->150;case "SMALL"->72;default->108;};
-        float cap=switch(surface){case "SHELF"->86;case "DESK"->128;case "WINDOWSILL"->112;case "WALL"->118;case "SEAT"->116;case "TABLE"->172;case "FLOOR"->size.equals("TALL")?340:205;case "HANG"->230;default->150;};
+        float base=switch(size){case "TALL"->540;case "LARGE"->150;case "SMALL"->72;default->108;};
+        float cap=switch(surface){case "SHELF"->86;case "DESK"->128;case "WINDOWSILL"->112;case "WALL"->118;case "SEAT"->116;case "TABLE"->172;case "FLOOR"->size.equals("TALL")?580:205;case "HANG"->230;default->150;};
         return Math.min(base*(.78f+.42f*y),cap);
     }
     private void drawMotes(SpriteBatch b){

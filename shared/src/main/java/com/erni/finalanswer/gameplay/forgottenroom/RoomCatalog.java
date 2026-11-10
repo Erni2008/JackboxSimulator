@@ -78,7 +78,7 @@ public final class RoomCatalog {
             Map.entry("bust",List.of("cabinet_2","sideboard_1","shelf_2")),
             Map.entry("candelabra",List.of("table_3","sideboard_2","sill_1")),
             Map.entry("chest",List.of("floor_1","floor_2")),
-            Map.entry("clock",List.of("floor_4","floor_1")),
+            Map.entry("clock",List.of("floor_1")),
             Map.entry("doll",List.of("armchair","shelf_6","shelf_4")),
             Map.entry("globe",List.of("sideboard_3","cabinet_1","table_4")),
             Map.entry("hourglass",List.of("shelf_6","shelf_3","sideboard_1","table_4")),

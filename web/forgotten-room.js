@@ -26,8 +26,8 @@ function createForgottenRoomController({getState,isAuthenticated,send,makeId,now
 
   // ---------- geometry shared with the host renderer ----------
   function height(size,surface,y){
-    const base={TALL:330,LARGE:150,SMALL:72}[size]??108;
-    const cap={SHELF:86,DESK:128,WINDOWSILL:112,WALL:118,SEAT:116,TABLE:172,FLOOR:size==='TALL'?340:205,HANG:230}[surface]??150;
+    const base={TALL:540,LARGE:150,SMALL:72}[size]??108;
+    const cap={SHELF:86,DESK:128,WINDOWSILL:112,WALL:118,SEAT:116,TABLE:172,FLOOR:size==='TALL'?580:205,HANG:230}[surface]??150;
     return Math.min(base*(.78+.42*y),cap);
   }
   function art(o){return o.id==='painting'?`/forgotten-room/objects/painting_v${o.variant||0}.webp`:`/forgotten-room/objects/${o.id}.webp`;}
