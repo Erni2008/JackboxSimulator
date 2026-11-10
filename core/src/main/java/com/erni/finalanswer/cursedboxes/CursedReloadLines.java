@@ -15,7 +15,7 @@ public final class CursedReloadLines {
         line(7,"Зомби, не высовывайся! У тебя и так голова еле держится.",CursedCharacterType.ZOMBIE),
         line(8,"Тыква, я вижу твою улыбку сквозь доски. Перестань светиться!",CursedCharacterType.PUMPKIN),
         line(9,"Дракула, не кусай ящик изнутри, это аренда!",CursedCharacterType.DRACULA)};
-    private static Line line(int n,String text,CursedCharacterType needs){return new Line(text,String.format("cursed_boxes/voice/reload_%02d.wav",n),needs);}
+    private static Line line(int n,String text,CursedCharacterType needs){return new Line(text,String.format("cursed_boxes/voice/reload_%02d.ogg",n),needs);}
     private final java.util.Random random;private final boolean[] spent=new boolean[LINES.length];private int last=-1;
     public CursedReloadLines(long seed){random=new java.util.Random(seed);}
     /** A fresh line: every eligible line once before any repeats, never the same twice in a row. */
