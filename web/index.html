@@ -31,10 +31,10 @@
   <script src="/command-touch.js" defer></script>
   <script src="/last-command.js?v=1" defer></script>
   <link rel="stylesheet" href="/cursed-cards.css?v=4">
-  <link rel="stylesheet" href="/forgotten-room.css?v=6">
+  <link rel="stylesheet" href="/forgotten-room.css?v=7">
   <link rel="stylesheet" href="/impostor-pro.css?v=1">
   <script src="/cursed-cards.js?v=4" defer></script>
-  <script src="/forgotten-room.js?v=7" defer></script>
+  <script src="/forgotten-room.js?v=8" defer></script>
   <link rel="stylesheet" href="/arena-pro.css?v=23">
   <script src="/app.js?v=room-1" defer></script>
   <script src="/arena-pro.js?v=4" defer></script>
@@ -80,16 +80,14 @@
     <section id="room-screen" class="screen fr" hidden aria-label="The Forgotten Room phone controller">
       <div id="room-watch"><p class="fr-crest"></p><h1 id="room-watch-title">Забытая комната</h1><p id="room-watch-note">Смотри на общий экран</p></div>
       <div id="room-play" hidden>
-        <header class="fr-head"><div><p class="fr-eyebrow">THE FORGOTTEN ROOM</p><h1 id="room-title">Что изменилось?</h1></div><div id="room-ring" class="fr-ring" aria-label="Осталось секунд"><b id="room-sec"></b></div></header>
-        <div id="room-view" class="fr-view"><div id="room-stage" class="fr-stage" role="group" aria-label="Комната: нажми на предмет или на место"></div></div>
-        <p class="fr-hint">ЛИСТАЙ КОМНАТУ · НАЖМИ НА ПРЕДМЕТ ИЛИ ПУСТОЕ МЕСТО</p>
+        <div id="room-view" class="fr-view"><div id="room-stage" class="fr-stage" role="group" aria-label="Комната: нажимай на места, где что-то изменилось"></div></div>
+        <header class="fr-hud"><div class="fr-hud-title"><p class="fr-eyebrow">THE FORGOTTEN ROOM</p><h1 id="room-title">Что изменилось?</h1></div>
+          <div class="fr-hud-right"><div class="fr-counter"><span>МЕТКИ</span><b id="room-count"></b></div><div id="room-ring" class="fr-ring" aria-label="Осталось секунд"><b id="room-sec"></b></div></div></header>
         <p id="room-toast" class="fr-toast" role="status" hidden></p>
-        <div id="room-sheet" class="fr-sheet" hidden><h2 id="room-sheet-title"></h2><p id="room-sheet-place"></p><div id="room-sheet-options"></div>
-          <p id="room-sheet-full" hidden>Все ответы выбраны — убери один, чтобы выбрать здесь</p>
-          <div class="fr-sheet-row"><button id="room-sheet-remove" type="button" data-native-button hidden>Убрать ответ</button><button id="room-sheet-close" type="button" data-native-button>Закрыть</button></div></div>
-        <div class="fr-answers"><div class="fr-answers-head"><span>ТВОИ МЕТКИ</span><b id="room-count"></b></div><div id="room-list"></div></div>
-        <p id="room-error" hidden></p>
-        <button id="room-send" class="fr-send" type="button" data-native-button>Отправить метки</button>
+        <footer class="fr-dock"><p class="fr-hint">ЛИСТАЙ · НАЖМИ НА МЕСТО, ГДЕ ЧТО-ТО ИЗМЕНИЛОСЬ · ЕЩЁ РАЗ — СНЯТЬ</p>
+          <p id="room-error" hidden></p><button id="room-send" class="fr-send" type="button" data-native-button>Отправить метки</button></footer>
+        <div id="room-sheet" hidden><h2 id="room-sheet-title"></h2><p id="room-sheet-place"></p><div id="room-sheet-options"></div><p id="room-sheet-full"></p><button id="room-sheet-remove" type="button" data-native-button></button><button id="room-sheet-close" type="button" data-native-button></button></div>
+        <div class="fr-answers" hidden><div id="room-list"></div></div>
       </div>
     </section>
     <section id="cards-screen" class="screen cc" hidden aria-label="The Cursed Cards phone controller">

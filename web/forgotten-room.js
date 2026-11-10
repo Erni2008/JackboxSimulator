@@ -21,7 +21,7 @@ function createForgottenRoomController({getState,isAuthenticated,send,makeId,now
   let session='',answers=[],selected=null,sending=null,error='',stageKey='',raf=0,lastSecond=-1;
   const imgs=new Map(),ratio=new Map();
 
-  function reset(){session='';answers=[];selected=null;sending=null;error='';stageKey='';cancelAnimationFrame(raf);raf=0;}
+  function reset(){document.body.classList.remove('fr-full');session='';answers=[];selected=null;sending=null;error='';stageKey='';cancelAnimationFrame(raf);raf=0;}
   function suspend(){cancelAnimationFrame(raf);raf=0;}
 
   // ---------- geometry shared with the host renderer ----------
@@ -76,13 +76,13 @@ function createForgottenRoomController({getState,isAuthenticated,send,makeId,now
     scr.dataset.phase=m.phase;
     const answering=m.phase==='ANSWER_PHASE'&&me&&!m.myAnswers;
     // the room is also on the phone while it can be studied (read-only), so everyone can look closely
-    const viewing=m.phase==='OBSERVATION'||m.phase==='CHANGED_ROOM';
+    const viewing=false; // studying happens on the host's shared screen only
     scr.dataset.mode=answering?'answer':viewing?'view':'watch';
     el('room-watch').hidden=answering||viewing;el('room-play').hidden=!(answering||viewing);
-    if(!answering&&!viewing){watch(m,me);cancelAnimationFrame(raf);raf=0;return;}
+    if(!answering&&!viewing){document.body.classList.remove('fr-full');watch(m,me);cancelAnimationFrame(raf);raf=0;return;}
     el('room-title').textContent=m.phase==='OBSERVATION'?'Запоминай всё':m.phase==='CHANGED_ROOM'?'Свет вернулся…':'Что изменилось?';
-    document.querySelector('#room-screen .fr-hint').textContent=answering?'ЛИСТАЙ КОМНАТУ · НАЖМИ НА ПРЕДМЕТ ИЛИ ПУСТОЕ МЕСТО':'ЛИСТАЙ ВПРАВО И ВЛЕВО — РАССМОТРИ ВСЮ КОМНАТУ';
     if(!answering){selected=null;}
+    document.body.classList.toggle('fr-full',answering);
     buildStage(m);paintStage(m);paintList(m);if(!raf)tick();
   }
   function watch(m,me){
@@ -120,7 +120,7 @@ function createForgottenRoomController({getState,isAuthenticated,send,makeId,now
     el('room-sheet').hidden=true;
   }
   function paintList(m){
-    el('room-count').textContent=`${answers.length} / ${m.guessLimit}`;
+    el('room-count').textContent=`${answers.length} / ${m.guessLimit}`;el('room-count').parentElement.dataset.full=String(answers.length>=m.guessLimit);
     const list=el('room-list');list.replaceChildren();
     answers.forEach((a,i)=>{const c=document.createElement('button');c.type='button';c.className='room-chip';c.dataset.nativeButton='';c.dataset.slot=a.slot;
       const p=placeOf(m,a.slot);c.innerHTML=`<b>${i+1}</b><span>${nameAt(m,a.slot)}<small>${p?.label||''}</small></span><i aria-label="Убрать">✕</i>`;list.append(c);});
@@ -139,8 +139,9 @@ function createForgottenRoomController({getState,isAuthenticated,send,makeId,now
   // ---------- input ----------
   let toastTimer=0;
   function toast(text){const t=el('room-toast');t.textContent=text;t.hidden=false;t.classList.remove('show');void t.offsetWidth;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>{t.hidden=true;},2200);}
+  function goFull(){try{const d=document.documentElement;if(!document.fullscreenElement&&d.requestFullscreen)d.requestFullscreen({navigationUI:'hide'}).catch(()=>{});}catch{}}
   el('room-stage').addEventListener('click',e=>{
-    const m=mini();if(!m||m.phase!=='ANSWER_PHASE'||m.myAnswers||sending)return;const r=el('room-stage').getBoundingClientRect();
+    goFull();const m=mini();if(!m||m.phase!=='ANSWER_PHASE'||m.myAnswers||sending)return;const r=el('room-stage').getBoundingClientRect();
     const slot=resolve(m,(e.clientX-r.left)/r.width*W,(e.clientY-r.top)/r.height*H);
     const nudge=()=>{el('room-stage').classList.remove('miss');void el('room-stage').offsetWidth;el('room-stage').classList.add('miss');try{navigator.vibrate?.([30,30,30]);}catch{}};
     if(!slot){nudge();return;}

@@ -114,3 +114,26 @@ body[data-view=room] main{max-width:560px}
 .fr-toast.show{animation:fr-rise .2s ease-out}
 .fr-toast[hidden]{display:none}
 .room-place.sel{animation:fr-ring 1.4s ease-in-out infinite}
+
+/* ===== full-screen answering: the room fills the phone; HUD floats over it ===== */
+body.fr-full{overflow:hidden;overscroll-behavior:none}
+body.fr-full #room-play{position:fixed;inset:0;z-index:50;margin:0;padding:0;background:#000}
+body.fr-full .fr-view{position:absolute;inset:0;margin:0;border:0;box-shadow:none;overflow-x:auto;overflow-y:hidden}
+body.fr-full .fr-stage{height:100%;width:auto;aspect-ratio:16/9;min-width:100%}
+@media (orientation:landscape){body.fr-full .fr-stage{width:100%;height:auto;max-height:100%;margin:auto}body.fr-full .fr-view{display:flex;align-items:center}}
+.fr-hud{position:absolute;left:0;right:0;top:0;z-index:3;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;
+  padding:max(10px,env(safe-area-inset-top)) 14px 26px;pointer-events:none;background:linear-gradient(180deg,#000c,#0006 60%,transparent)}
+.fr-hud .fr-eyebrow{margin:0;font-size:10px}
+.fr-hud h1{font-size:24px;color:#f6dfae;text-shadow:0 2px 0 #000}
+.fr-hud-right{display:flex;align-items:center;gap:10px}
+.fr-counter{display:flex;flex-direction:column;align-items:center;padding:5px 10px;border-radius:10px;border:1px solid #c99a4a88;background:#0c0809cc}
+.fr-counter span{font-size:9px;letter-spacing:.24em;color:var(--dim)}
+.fr-counter b{font-size:20px;color:var(--ivory)}
+.fr-counter[data-full=true]{border-color:#f0d08a;box-shadow:0 0 14px #e0a84a66}
+.fr-hud .fr-ring{width:50px;height:50px}.fr-hud .fr-ring b{font-size:21px}
+.fr-dock{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:30px 14px max(12px,env(safe-area-inset-bottom));background:linear-gradient(0deg,#000d,#0008 60%,transparent)}
+.fr-dock .fr-hint{margin:0 0 8px;font-size:10px;letter-spacing:.16em;color:#d9c39a}
+.fr .fr-dock .fr-send{min-height:54px;margin:0;font-size:20px}
+body.fr-full .fr-toast{position:absolute;top:90px;left:50%;transform:translateX(-50%);z-index:4;margin:0;width:max-content;max-width:88%}
+body.fr-full .room-place{width:14px;height:14px;margin:-7px 0 0 -7px}
+body.fr-full .room-place.sel{width:76px;height:76px;margin:-38px 0 0 -38px}

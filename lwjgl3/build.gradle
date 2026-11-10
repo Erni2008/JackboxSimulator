@@ -1154,3 +1154,18 @@ tasks.register('forgottenRoomPreview', JavaExec) {
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
+
+// THE FORGOTTEN ROOM host screen connected to a live room (used by tools/dev/forgotten_room_play.cjs).
+tasks.register('forgottenRoomHost', JavaExec) {
+    group = 'application'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.ForgottenRoomHostLauncher'
+    workingDir = rootProject.file('assets')
+    systemProperty 'room.url', providers.gradleProperty('room.url').getOrElse('http://localhost:18240')
+    systemProperty 'room.code', providers.gradleProperty('room.code').getOrElse('')
+    systemProperty 'room.token', providers.gradleProperty('room.token').getOrElse('')
+    systemProperty 'room.difficulty', providers.gradleProperty('room.difficulty').getOrElse('MEDIUM')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
