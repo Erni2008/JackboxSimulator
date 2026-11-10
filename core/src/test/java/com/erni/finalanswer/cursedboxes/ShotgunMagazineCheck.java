@@ -42,6 +42,15 @@ public final class ShotgunMagazineCheck {
         ShotgunMagazine m=new ShotgunMagazine(a);a.resetShotgun();m.restore(3,6);check(m.rounds()==2&&m.canFire(),"Restore does not replay introduction");
         a.resetShotgun();m.restore(5,3);m.update(3);check(m.loadingTarget()==3,"Restore reloads remaining three");
         m.reset();m.update(9);a.update(.9f);m.reset();check(!a.isAnimating()&&!m.loading()&&!m.canFire(),"Reset interrupts a partial batch");m.update(9);check(m.loadingTarget()==5,"Interrupted introduction can restart");
-        check(true,"");System.out.println("PASS: first batch loads min(5, shots); exact refill batches for 1/2/5/6/7/8/9/10/14 shots at 10/30/60/144 FPS; cycles, no final refill, reset, restore and insertion markers");
+        {ShotgunConfig rc=ShotgunConfig.parse("{}");rc.startLoaded=false;ShotgunAnimator ra=new ShotgunAnimator(rc);ShotgunMagazine rm=new ShotgunMagazine(ra);rm.reset();int fired=0;boolean sawFirst=false,sawReload=false;
+            for(int f=0;f<6000&&fired<7;f++){ra.update(1/60f);rm.update(7-fired);if(rm.loading()&&fired==0){check(!rm.reloading(),"First batch is not a reload");sawFirst=true;}if(rm.reloading()){check(rm.loadingTarget()==2&&fired==5,"Reload brings the last two");sawReload=true;}
+                if(rm.canFire()&&!ra.isAnimating()&&ra.chamber()==ShotgunAnimator.Chamber.LIVE){ra.fire();rm.fired();fired++;}if(!ra.isAnimating()&&ra.chamber()==ShotgunAnimator.Chamber.SPENT)ra.playPumpAnimation();}
+            check(sawFirst&&sawReload&&rm.reloads()==1,"Seven shots: load five, one reload of two");}
+        {CursedReloadLines lines=new CursedReloadLines(7);CursedReloadLines.Line prev=null;java.util.Set<String> seen=new java.util.HashSet<>();
+            for(int i=0;i<60;i++){var l=lines.next(t->t==CursedCharacterType.PUMPKIN);check(l!=prev,"Never the same line twice in a row");prev=l;
+                check(l.needs()==null||l.needs()==CursedCharacterType.PUMPKIN,"Character joke only while that character is hidden and alive");seen.add(l.text());
+                check(new java.io.File("../assets/"+l.voice()).exists()||new java.io.File("assets/"+l.voice()).exists(),"Voice file "+l.voice());}
+            check(seen.size()==7,"Six general lines plus the pumpkin joke, got "+seen.size());}
+        check(true,"");System.out.println("PASS: first batch loads min(5, shots); 7 shots = 5 + reload of 2; reload lines rotate, character jokes only for living hidden characters, voice files present; exact refill batches for 1/2/5/6/7/8/9/10/14 shots at 10/30/60/144 FPS; cycles, no final refill, reset, restore and insertion markers");
     }
 }

@@ -36,7 +36,7 @@ public final class CursedBoxesRenderer implements Disposable {
     private int overlayWidth=-1,overlayHeight=-1;
     private final CursedCeremonyHud ceremonyHud=new CursedCeremonyHud();
     private final BitmapFont font=com.erni.finalanswer.ui.UiFonts.body(18);
-    private final CursedReloadLines reloadLines=new CursedReloadLines(System.nanoTime());private String reloadLine;private int spokenReload;private float reloadLineAge=9;
+    private final CursedReloadLines reloadLines=new CursedReloadLines(System.nanoTime());private String reloadLine;private final java.util.Map<String,com.badlogic.gdx.audio.Sound> reloadVoices=new java.util.HashMap<>();private int spokenReload;private float reloadLineAge=9;
     private final BitmapFont title=com.erni.finalanswer.ui.UiFonts.horror(48);
     private final GlyphLayout layout=new GlyphLayout();
     private final StringBuilder status=new StringBuilder(100);
@@ -137,7 +137,7 @@ public final class CursedBoxesRenderer implements Disposable {
             layout.setText(font,status);font.draw(ui,layout,(w-layout.width)/2,106*Math.min(w/1600f,h/900f));
         }
         // Mid-turn refill (more than five shots): the host grumbles a different line each reload.
-        if(gun.magazine.reloads()!=spokenReload){spokenReload=gun.magazine.reloads();if(spokenReload>0){reloadLine=reloadLines.next();reloadLineAge=0;}}
+        if(gun.magazine.reloads()!=spokenReload){spokenReload=gun.magazine.reloads();if(spokenReload>0){var picked=reloadLines.next(type->{for(CrateSlot slot:slots)if(slot.character==type&&slot.state!=CrateSlot.State.DESTROYED)return true;return false;});reloadLine=picked.text();reloadLineAge=0;speak(picked.voice());}}
         if(gun.magazine.reloading()||reloadLineAge<1.2f&&reloadLine!=null&&spokenReload>0){
             if(!gun.magazine.reloading())reloadLineAge+=delta;
             float k=Math.min(w/1600f,h/900f),a=gun.magazine.reloading()?1:Math.max(0,1-reloadLineAge/1.2f);
@@ -203,6 +203,10 @@ public final class CursedBoxesRenderer implements Disposable {
         return gun.aimedAt(selected)?"READY":"LIFT / AIM";
     }
     /** Submit every mesh/material/texture/effect variant, including the spent shell, before input. */
+    private void speak(String path){
+        try{var sound=reloadVoices.get(path);if(sound==null){var file=Gdx.files.internal(path);if(!file.exists())return;sound=Gdx.audio.newSound(file);reloadVoices.put(path,sound);}sound.play(.95f);}
+        catch(RuntimeException error){Gdx.app.error("CursedBoxes","Reload voice failed: "+error.getMessage());}
+    }
     public void warmup(CrateSlot[] slots,CursedCharacterController characters,DebrisSystem debris,ShotgunController gun){
         CursedBoxesTurn loadingTurn=new CursedBoxesTurn("loading");
         CursedBoxesPerformance loadingStats=new CursedBoxesPerformance();
@@ -230,5 +234,5 @@ public final class CursedBoxesRenderer implements Disposable {
             Gdx.gl.glFinish();
         }finally{gun.warmupAudio(false);loadingStats.dispose();}
     }
-    @Override public void dispose(){ceremonyHud.close();survivors.dispose();background.dispose();firing.dispose();world.dispose();shelf.dispose();decals.dispose();strategy.dispose();frame.dispose();ui.dispose();font.dispose();title.dispose();}
+    @Override public void dispose(){ceremonyHud.close();survivors.dispose();background.dispose();firing.dispose();world.dispose();shelf.dispose();decals.dispose();strategy.dispose();frame.dispose();ui.dispose();font.dispose();title.dispose();for(var v:reloadVoices.values())v.dispose();reloadVoices.clear();}
 }
