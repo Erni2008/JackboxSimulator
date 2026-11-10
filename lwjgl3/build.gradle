@@ -1169,3 +1169,16 @@ tasks.register('forgottenRoomHost', JavaExec) {
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
+
+// Look-development captures of the real game screens after the cinematic finish (-Plook.output=dir, -Pcinematic=false).
+tasks.register('gameLookShots', JavaExec) {
+    group = 'application'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.GameLookShots'
+    workingDir = rootProject.file('assets')
+    systemProperty 'look.output', providers.gradleProperty('look.output').getOrElse('/tmp')
+    systemProperty 'cinematic', providers.gradleProperty('cinematic').getOrElse('true')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}

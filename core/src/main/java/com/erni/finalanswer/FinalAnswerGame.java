@@ -393,13 +393,19 @@ public class FinalAnswerGame extends Game {
         audio.cagesGain(getScreen() instanceof com.erni.finalanswer.screens.CageLobbyScreen lobby&&lobby.introActive()?.15f:1);
         audio.update(Gdx.graphics.getDeltaTime());
         // Active lobbies use push snapshots; HTTP heartbeat is retained for the generation screen.
-        super.render();
+        // Every host screen goes through the same cinematic finish (bloom, grade, grain, vignette).
+        if(cinematic==null)cinematic=new com.erni.finalanswer.ui.effects.CinematicPost();
+        cinematic.update(Gdx.graphics.getDeltaTime());
+        cinematic.beginFrame();
+        try{super.render();}finally{cinematic.endFrame();}
     }
+    private com.erni.finalanswer.ui.effects.CinematicPost cinematic;
 
     @Override
     public void dispose() {
         // Game.dispose hides the current screen but does not dispose cached screens.
         if (realtime != null) realtime.close();
+        if (cinematic != null) cinematic.dispose();
         roomApi.close();hosting.close();
         if (getScreen() instanceof com.erni.finalanswer.lastcommand.TheLastCommandScreen preview) preview.dispose();
         super.dispose();

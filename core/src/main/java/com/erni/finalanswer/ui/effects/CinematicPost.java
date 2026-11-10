@@ -90,6 +90,35 @@ public final class CinematicPost implements Disposable {
         batch=b;
     }
     public boolean available(){return ok;}
+
+    /**
+     * True while a whole-frame pass is open: screens that carry their own post pass skip it to avoid a double grade.
+     */
+    public static volatile boolean frameActive;
+    /** Access to libGDX's "default framebuffer" so nested FrameBuffer.end() calls return into our scene, not the screen. */
+    private static final class Default extends FrameBuffer{
+        private Default(){super(Pixmap.Format.RGBA8888,1,1,false);}
+        static int get(){return defaultFramebufferHandle;}
+        static void set(int handle){defaultFramebufferHandle=handle;}
+    }
+    private int savedDefault=-1;
+    /** Wrap a whole game frame: everything drawn until {@link #endFrame()} goes through the cinematic look. */
+    /** {@code -Dcinematic=false} turns the whole-frame finish off (QA comparisons, weak GPUs). */
+    public static final boolean ENABLED=!"false".equals(System.getProperty("cinematic"));
+    public void beginFrame(){
+        active=false;if(!ok||frameActive||!ENABLED)return;
+        int w=Gdx.graphics.getBackBufferWidth(),h=Gdx.graphics.getBackBufferHeight();if(w<16||h<16)return;
+        ensure(w,h);if(!ok)return;
+        scene.begin();Gdx.gl.glClearColor(0,0,0,1);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        savedDefault=Default.get();Default.set(scene.getFramebufferHandle());
+        active=true;frameActive=true;
+    }
+    public void endFrame(){
+        if(!active)return;
+        Default.set(savedDefault);frameActive=false;
+        float k=Gdx.graphics.getWidth()<=0?1:Gdx.graphics.getBackBufferWidth()/(float)Gdx.graphics.getWidth();
+        end(0,0,Math.round(Gdx.graphics.getBackBufferWidth()/k),Math.round(Gdx.graphics.getBackBufferHeight()/k));
+    }
     public void update(float dt){time+=dt;}
 
     private void ensure(int w,int h){
@@ -107,7 +136,7 @@ public final class CinematicPost implements Disposable {
     private static float hdpi(){return Gdx.graphics.getWidth()<=0?1:Gdx.graphics.getBackBufferWidth()/(float)Gdx.graphics.getWidth();}
     /** Start drawing the scene; {@code w×h} is the size in window pixels the scene will occupy on screen. */
     public void begin(int w,int h){float k=hdpi();w=Math.round(w*k);h=Math.round(h*k);
-        active=false;if(!ok)return;ensure(Math.max(16,Math.min(w,2880)),Math.max(16,Math.min(h,1620)));if(!ok)return;
+        active=false;if(!ok||frameActive)return;ensure(Math.max(16,Math.min(w,2880)),Math.max(16,Math.min(h,1620)));if(!ok)return;
         scene.begin();Gdx.gl.glClearColor(0,0,0,1);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);active=true;
     }
     /** Finish the scene and composite it onto the back buffer rectangle {@code x,y,w,h} (pixels). */
