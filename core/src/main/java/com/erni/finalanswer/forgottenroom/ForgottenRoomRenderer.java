@@ -44,16 +44,16 @@ final class ForgottenRoomRenderer {
     }
     void drawObject(SpriteBatch b,ForgottenRoomModel m,ForgottenRoomModel.Obj o,float alpha,boolean ghost,float rotation){
         var place=m.places.get(o.slot());if(place==null||alpha<=0)return;
-        float x=place.x()*W,base=(1-place.y())*H;boolean frame=place.surface().equals("FRAME");
+        float x=place.x()*W,base=(1-place.y())*H;boolean frame=place.surface().equals("FRAME"),hang=place.surface().equals("HANG");
         Texture tex=art.object(o);boolean placeholder=tex==null;
         float h,w;
-        if(frame){w=286;h=272;}
+        if(frame){w=262;h=270;}
         else{h=height(o.size(),place.surface(),place.y());
             if(placeholder){tex=o.size().equals("SMALL")?art.plaqueSmall:art.plaque;}
             w=h*tex.getWidth()/(float)tex.getHeight();}
         if(frame&&placeholder)tex=art.frameCanvas;
-        float y=frame?base-h/2:base;
-        if(!frame&&!ghost){ // soft contact shadow
+        float y=frame?base-h/2:hang?base-h:base;
+        if(!frame&&!hang&&!ghost){ // soft contact shadow
             b.setColor(0,0,0,.55f*alpha);b.draw(art.soft,x-w*.62f,y-h*.05f,w*1.24f,h*.16f);}
         boolean glow=o.light()&&o.lit();
         if(glow&&!ghost){b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);float f=flicker(o.id().hashCode()%7);
@@ -62,7 +62,10 @@ final class ForgottenRoomRenderer {
             b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
         if(ghost)b.setColor(.62f,.82f,1f,.55f*alpha);
         else if(placeholder&&o.light()&&!o.lit())b.setColor(.62f,.58f,.56f,alpha);
-        else b.setColor(1,1,1,alpha);
+        else if(glow)b.setColor(1,.97f,.92f,alpha);
+        else{ // settle the art into the room's light: cold by the moonlit window, warm by the sconce, dim in between
+            float mx=place.x(),cold=MathUtils.clamp(1-mx/.4f,0,1),warm=MathUtils.clamp((mx-.62f)/.38f,0,1),depth=.08f*(1-place.y());
+            b.setColor(.74f-depth+.10f*warm-.05f*cold,.68f-depth+.03f*warm-.01f*cold,.64f-depth-.04f*warm+.10f*cold,alpha);}
         b.draw(tex,x-w/2,y,w/2,h/2,w,h,1,1,rotation,0,0,tex.getWidth(),tex.getHeight(),false,false);
         if(placeholder){ // the object's name on the plaque (upside down plaques show the crest at the bottom)
             label.getData().setScale(frame?.7f:o.size().equals("SMALL")?.42f:.48f);
@@ -74,8 +77,8 @@ final class ForgottenRoomRenderer {
     }
     /** Drawn height in world units: object class, what it stands on (shelves are low compartments) and depth. */
     static float height(String size,String surface,float y){
-        float base=switch(size){case "LARGE"->150;case "SMALL"->72;default->108;};
-        float cap=switch(surface){case "SHELF"->86;case "DESK"->128;case "WINDOWSILL"->112;case "WALL"->118;case "SEAT"->116;case "TABLE"->172;case "FLOOR"->205;default->150;};
+        float base=switch(size){case "TALL"->330;case "LARGE"->150;case "SMALL"->72;default->108;};
+        float cap=switch(surface){case "SHELF"->86;case "DESK"->128;case "WINDOWSILL"->112;case "WALL"->118;case "SEAT"->116;case "TABLE"->172;case "FLOOR"->size.equals("TALL")?340:205;case "HANG"->230;default->150;};
         return Math.min(base*(.78f+.42f*y),cap);
     }
     private void drawMotes(SpriteBatch b){

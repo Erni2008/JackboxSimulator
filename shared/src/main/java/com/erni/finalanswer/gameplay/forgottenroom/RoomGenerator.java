@@ -33,8 +33,9 @@ public final class RoomGenerator {
 
     private static Round tryGenerate(long seed,RoomDifficulty d,Layout layout,Random random){
         int objectCount=d.minObjects+random.nextInt(d.maxObjects-d.minObjects+1);
-        objectCount=Math.min(objectCount,layout.slots().size()-MIN_EMPTY_SLOTS);
         List<ObjectDef> pool=new ArrayList<>(RoomCatalog.OBJECTS.stream().filter(o->d.sizes.contains(o.size())).toList());
+        // keep empty places and at least two objects in reserve, so «appeared» stays possible with a small library
+        objectCount=Math.min(objectCount,Math.min(layout.slots().size()-MIN_EMPTY_SLOTS,pool.size()-2));
         Collections.shuffle(pool,random);
         List<Slot> free=new ArrayList<>(layout.slots());Collections.shuffle(free,random);
         Map<String,Placed> room=new LinkedHashMap<>();List<ObjectDef> absent=new ArrayList<>();
@@ -43,9 +44,9 @@ public final class RoomGenerator {
             Slot slot=free.stream().filter(s->def.surfaces().contains(s.surface())).findFirst().orElse(null);
             if(slot==null){absent.add(def);continue;}
             free.remove(slot);
-            room.put(slot.id(),new Placed(def.id(),slot.id(),false,def.variants()>1?random.nextInt(def.variants()):0,def.light()&&random.nextInt(3)!=0));
+            room.put(slot.id(),new Placed(def.id(),slot.id(),false,def.variants()>1?random.nextInt(def.variants()):0,def.light()&&(!def.toggles()||random.nextInt(3)!=0)));
         }
-        if(room.size()<Math.min(d.minObjects,layout.slots().size()-MIN_EMPTY_SLOTS))return null;
+        if(room.size()<Math.min(objectCount,d.minObjects))return null;
         RoomState original=new RoomState(room);
 
         int target=d.minChanges+random.nextInt(d.maxChanges-d.minChanges+1);

@@ -11,29 +11,29 @@ public final class RoomCatalog {
     private RoomCatalog(){}
 
     /** Furniture surfaces an object may stand on (or hang from). */
-    public enum Surface {MANTEL,TABLE,SHELF,WALL,FLOOR,WINDOWSILL,DESK,FRAME,SEAT}
-    /** Visual weight; easy rooms use only large and medium objects. */
-    public enum Size {LARGE,MEDIUM,SMALL}
+    public enum Surface {MANTEL,TABLE,SHELF,WALL,FLOOR,WINDOWSILL,DESK,FRAME,SEAT,HANG}
+    /** Visual weight; easy rooms skip small objects. TALL = floor-standing furniture-height pieces. */
+    public enum Size {TALL,LARGE,MEDIUM,SMALL}
 
     /** A position in the room. {@code labelRu} names the place, never the object, so empty places don't give anything away. */
     public record Slot(String id,float x,float y,Surface surface,String labelRu){}
 
     /**
      * One object of the library. {@code variants} counts its appearances (colour, clock time, painting…; 1 = none);
-     * {@code rotatable} means it can be turned (upside down / around); {@code light} means it can be lit or put out.
+     * {@code rotatable} means it can be turned (upside down / around); {@code light} means it gives light; {@code toggles} that it can also be put out (needs lit and unlit art).
      */
-    public record ObjectDef(String id,String nameRu,char gender,Size size,Set<Surface> surfaces,int variants,boolean rotatable,boolean light,String variantHintRu){
+    public record ObjectDef(String id,String nameRu,char gender,Size size,Set<Surface> surfaces,int variants,boolean rotatable,boolean light,boolean toggles,String variantHintRu){
         public ObjectDef{surfaces=Set.copyOf(surfaces);if(variants<1)throw new IllegalArgumentException("variants");}
         public boolean supports(ChangeType type){return switch(type){
             case DISAPPEARED,MOVED,APPEARED->true;
             case ROTATED->rotatable;
             case CHANGED->variants>1;
-            case TOGGLED->light;};}
+            case TOGGLED->light&&toggles;};}
     }
 
     private static Slot s(String id,float x,float y,Surface surface,String label){return new Slot(id,x,y,surface,label);}
-    private static ObjectDef o(String id,String name,Size size,Set<Surface> on,int variants,boolean rot,boolean light,String hint){return new ObjectDef(id,name,GENDER.get(id),size,on,variants,rot,light,hint);}
-    private static final Map<String,Character> GENDER=Map.ofEntries(Map.entry("painting",'f'),Map.entry("mirror",'n'),Map.entry("clock",'p'),Map.entry("mask",'f'),Map.entry("crucifix",'n'),Map.entry("portrait",'m'),Map.entry("skull",'m'),Map.entry("candlestick",'m'),Map.entry("candelabra",'m'),Map.entry("lantern",'m'),Map.entry("book",'f'),Map.entry("bottle",'f'),Map.entry("doll",'f'),Map.entry("box",'f'),Map.entry("vase",'f'),Map.entry("radio",'n'),Map.entry("key",'m'),Map.entry("pocket_watch",'p'),Map.entry("hourglass",'p'),Map.entry("music_box",'f'),Map.entry("raven",'n'),Map.entry("globe",'m'),Map.entry("teacup",'f'),Map.entry("jar",'f'),Map.entry("bell",'m'),Map.entry("chest",'m'));
+    private static ObjectDef o(String id,String name,char gender,Size size,Set<Surface> on,boolean rot,String hint){return new ObjectDef(id,name,gender,size,on,1,rot,false,false,hint);}
+    private static ObjectDef light(String id,String name,char gender,Size size,Set<Surface> on,boolean toggles){return new ObjectDef(id,name,gender,size,on,1,false,true,toggles,"");}
     private static final Surface M=Surface.MANTEL,T=Surface.TABLE,SH=Surface.SHELF,W=Surface.WALL,F=Surface.FLOOR,WS=Surface.WINDOWSILL,D=Surface.DESK;
 
     /**
@@ -54,10 +54,11 @@ public final class RoomCatalog {
         s("cabinet_1",.36f,.572f,D,"Тумба шкафа, слева"), s("cabinet_2",.455f,.572f,D,"Тумба шкафа, справа"),
         s("sill_1",.15f,.558f,WS,"Подоконник, слева"), s("sill_2",.205f,.558f,WS,"Подоконник, справа"),
         s("sideboard_1",.705f,.568f,D,"Комод, слева"), s("sideboard_2",.78f,.568f,D,"Комод, центр"), s("sideboard_3",.855f,.568f,D,"Комод, справа"),
-        s("wall_1",.69f,.36f,W,"Стена между часами и рамой"), s("frame",.82f,.235f,Surface.FRAME,"Золотая рама"),
+        s("wall_1",.69f,.36f,W,"Стена между часами и рамой"), s("frame",.804f,.233f,Surface.FRAME,"Золотая рама"),
         s("table_1",.15f,.80f,T,"Стол, ближний край"), s("table_2",.25f,.76f,T,"Стол, слева"),
         s("table_3",.35f,.74f,T,"Стол, на скатерти"), s("table_4",.465f,.73f,T,"Стол, дальний край"),
-        s("armchair",.875f,.73f,Surface.SEAT,"Кресло"),
+        s("armchair",.875f,.768f,Surface.SEAT,"Кресло"),
+        s("hang_1",.497f,.135f,Surface.HANG,"Свисает с карниза шкафа"), s("hang_2",.19f,.035f,Surface.HANG,"Свисает над окном"),
         s("floor_1",.605f,.835f,F,"Пол у часов"), s("floor_2",.53f,.955f,F,"Ковёр, слева"),
         s("floor_3",.66f,.95f,F,"Ковёр, центр"), s("floor_4",.78f,.945f,F,"Ковёр, справа")));
 
@@ -65,34 +66,26 @@ public final class RoomCatalog {
     public static final List<Layout> LAYOUTS=List.of(STUDY);
     public static Layout layout(String id){for(Layout l:LAYOUTS)if(l.id().equals(id))return l;throw new IllegalArgumentException("Unknown room "+id);}
 
-    /** 26 objects. Each id is unique in a room, so answers never depend on telling twins apart. */
+    /**
+     * Objects with finished artwork (assets/forgotten_room/objects/<id>.png). Only these appear in rounds; add an
+     * object here when its art exists. Each id is unique in a room, so answers never depend on telling twins apart.
+     */
     public static final List<ObjectDef> OBJECTS=List.of(
-        o("painting","Картина",Size.LARGE,Set.of(Surface.FRAME),3,true,false,"другой сюжет"),
-        o("mirror","Зеркало",Size.LARGE,Set.of(W),2,false,false,"другое отражение"),
-        o("clock","Старинные часы",Size.LARGE,Set.of(M,W),3,false,false,"другое время"),
-        o("mask","Маска",Size.MEDIUM,Set.of(W),2,true,false,"другое лицо"),
-        o("crucifix","Распятие",Size.MEDIUM,Set.of(W),1,true,false,""),
-        o("portrait","Маленький портрет",Size.MEDIUM,Set.of(W,D),3,true,false,"другое лицо"),
-        o("skull","Череп",Size.MEDIUM,Set.of(M,T,SH,D),1,true,false,""),
-        o("candlestick","Подсвечник",Size.MEDIUM,Set.of(M,T,SH,WS,D),1,false,true,""),
-        o("candelabra","Канделябр",Size.LARGE,Set.of(M,T,D),1,false,true,""),
-        o("lantern","Фонарь",Size.LARGE,Set.of(F,WS,T),1,false,true,""),
-        o("book","Старая книга",Size.MEDIUM,Set.of(T,SH,D,M,Surface.SEAT),3,false,false,"другой цвет"),
-        o("bottle","Бутылка",Size.MEDIUM,Set.of(T,SH,WS,D,M),3,false,false,"другой цвет"),
-        o("doll","Кукла",Size.MEDIUM,Set.of(SH,F,T,WS,Surface.SEAT),2,true,false,"другое платье"),
-        o("box","Деревянная шкатулка",Size.MEDIUM,Set.of(T,SH,D,F,Surface.SEAT),2,false,false,"открыта / закрыта"),
-        o("vase","Ваза",Size.LARGE,Set.of(M,T,F,WS),2,false,false,"разбита"),
-        o("radio","Старое радио",Size.LARGE,Set.of(D,T,SH),2,false,true,""),
-        o("key","Ржавый ключ",Size.SMALL,Set.of(T,D,SH,M),1,true,false,""),
-        o("pocket_watch","Карманные часы",Size.SMALL,Set.of(T,D,M),2,false,false,"открыты / закрыты"),
-        o("hourglass","Песочные часы",Size.MEDIUM,Set.of(M,T,SH,D),1,true,false,""),
-        o("music_box","Музыкальная шкатулка",Size.MEDIUM,Set.of(T,D,SH),2,false,false,"открыта / закрыта"),
-        o("raven","Чучело ворона",Size.MEDIUM,Set.of(SH,M,WS,D,Surface.SEAT),1,true,false,""),
-        o("globe","Глобус",Size.LARGE,Set.of(F,D,T),1,true,false,""),
-        o("teacup","Чашка",Size.SMALL,Set.of(T,D,SH,WS),2,false,false,"другой цвет"),
-        o("jar","Банка с глазом",Size.MEDIUM,Set.of(SH,D,T),2,true,false,"глаз смотрит иначе"),
-        o("bell","Колокольчик",Size.SMALL,Set.of(T,D,SH,M),1,true,false,""),
-        o("chest","Сундук",Size.LARGE,Set.of(F),2,false,false,"открыт / закрыт"));
+        o("painting","Картина",'f',Size.LARGE,Set.of(Surface.FRAME),false,""),
+        o("books","Стопка книг",'f',Size.MEDIUM,Set.of(SH,T,D,Surface.SEAT,F),false,""),
+        o("open_book","Раскрытая книга",'f',Size.MEDIUM,Set.of(T,D,Surface.SEAT),false,""),
+        o("bust","Мраморный бюст",'m',Size.LARGE,Set.of(D,T,SH),true,""),
+        light("candelabra","Канделябр",'m',Size.LARGE,Set.of(T,D,WS),false),
+        o("chest","Сундук",'m',Size.LARGE,Set.of(F),false,""),
+        o("clock","Напольные часы",'p',Size.TALL,Set.of(F),false,""),
+        o("doll","Жуткая кукла",'f',Size.MEDIUM,Set.of(SH,F,T,WS,Surface.SEAT),true,""),
+        o("globe","Глобус",'m',Size.LARGE,Set.of(F,D,T),true,""),
+        o("hourglass","Песочные часы",'p',Size.MEDIUM,Set.of(SH,T,D),true,""),
+        o("key","Связка ключей",'f',Size.SMALL,Set.of(T,D,SH),true,""),
+        o("skull","Череп",'m',Size.MEDIUM,Set.of(SH,T,D,Surface.SEAT),true,""),
+        o("telescope","Телескоп",'m',Size.LARGE,Set.of(F,WS),false,""),
+        o("ivy","Плющ",'m',Size.LARGE,Set.of(Surface.HANG),false,""));
+
 
     private static final Map<String,ObjectDef> OBJECT_BY_ID=new HashMap<>();
     static{for(ObjectDef def:OBJECTS)if(OBJECT_BY_ID.put(def.id(),def)!=null)throw new IllegalStateException("Duplicate object "+def.id());}

@@ -12,7 +12,10 @@ class ForgottenRoomTest {
     @Test void everyDifficultyGeneratesTheRightNumberOfObjectsAndChanges(){
         for(RoomDifficulty d:RoomDifficulty.values())for(long seed=0;seed<400;seed++){
             var round=RoomGenerator.generate(seed,d);
-            assertTrue(round.original().size()>=Math.min(d.minObjects,round.layout().slots().size()-6)&&round.original().size()<=d.maxObjects,d+" objects "+round.original().size());
+            // a small art library caps the room: every placed object needs art, and two stay in reserve for «appeared»
+            int library=(int)RoomCatalog.OBJECTS.stream().filter(o->d.sizes.contains(o.size())).count();
+            int expectedMin=Math.min(d.minObjects,Math.min(round.layout().slots().size()-6,library-2));
+            assertTrue(round.original().size()>=expectedMin&&round.original().size()<=d.maxObjects,d+" objects "+round.original().size());
             assertTrue(round.changes().size()>=d.minChanges&&round.changes().size()<=d.maxChanges,d+" changes");
             assertEquals(round.changes().size(),round.guessLimit());
         }
@@ -103,10 +106,19 @@ class ForgottenRoomTest {
         assertTrue(sawGone&&sawNew);
     }
 
+    @Test void everyObjectInRoundsHasArt(){
+        for(var def:RoomCatalog.OBJECTS){
+            boolean art=new java.io.File("../assets/forgotten_room/objects/"+def.id()+".png").exists()||new java.io.File("../assets/forgotten_room/objects/"+def.id()+"_v0.png").exists();
+            assertTrue(art,"missing art for "+def.id());}
+        for(var l:RoomCatalog.LAYOUTS)assertTrue(new java.io.File("../assets/"+l.background()).exists(),"missing background "+l.background());
+    }
+
     @Test void captionsAreGrammatical(){
         var gone=new RoomChange(ChangeType.DISAPPEARED,"clock",new RoomState.Placed("clock","mantel_1",false,0,false),null);
-        assertEquals("СТАРИННЫЕ ЧАСЫ ИСЧЕЗЛИ",gone.captionRu());
-        var lit=new RoomChange(ChangeType.TOGGLED,"lantern",new RoomState.Placed("lantern","floor_1",false,0,false),new RoomState.Placed("lantern","floor_1",false,0,true));
-        assertEquals("ФОНАРЬ ЗАЖЁГСЯ САМ",lit.captionRu());
+        assertEquals("НАПОЛЬНЫЕ ЧАСЫ ИСЧЕЗЛИ",gone.captionRu());
+        var lit=new RoomChange(ChangeType.TOGGLED,"candelabra",new RoomState.Placed("candelabra","table_1",false,0,false),new RoomState.Placed("candelabra","table_1",false,0,true));
+        assertEquals("КАНДЕЛЯБР ЗАЖЁГСЯ САМ",lit.captionRu());
+        var doll=new RoomChange(ChangeType.ROTATED,"doll",new RoomState.Placed("doll","shelf_1",false,0,false),new RoomState.Placed("doll","shelf_1",true,0,false));
+        assertEquals("ЖУТКАЯ КУКЛА ПЕРЕВЕРНУЛАСЬ",doll.captionRu());
     }
 }

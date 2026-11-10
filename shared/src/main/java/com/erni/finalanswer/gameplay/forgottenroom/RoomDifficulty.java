@@ -7,9 +7,9 @@ import java.util.*;
  * every change stays objectively identifiable (whole objects, never pixel-level tweaks).
  */
 public enum RoomDifficulty {
-    EASY(8,10,2,2,EnumSet.of(RoomCatalog.Size.LARGE,RoomCatalog.Size.MEDIUM),
+    EASY(8,10,2,2,EnumSet.of(RoomCatalog.Size.TALL,RoomCatalog.Size.LARGE,RoomCatalog.Size.MEDIUM),
         EnumSet.of(ChangeType.DISAPPEARED,ChangeType.APPEARED,ChangeType.MOVED,ChangeType.TOGGLED),.30f),
-    MEDIUM(12,15,3,3,EnumSet.of(RoomCatalog.Size.LARGE,RoomCatalog.Size.MEDIUM,RoomCatalog.Size.SMALL),
+    MEDIUM(12,15,3,3,EnumSet.allOf(RoomCatalog.Size.class),
         EnumSet.of(ChangeType.DISAPPEARED,ChangeType.APPEARED,ChangeType.MOVED,ChangeType.TOGGLED,ChangeType.ROTATED,ChangeType.CHANGED),.24f),
     HARD(16,20,4,5,EnumSet.allOf(RoomCatalog.Size.class),EnumSet.allOf(ChangeType.class),.18f);
 
