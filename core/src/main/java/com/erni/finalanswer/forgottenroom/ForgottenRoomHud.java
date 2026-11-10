@@ -98,7 +98,7 @@ final class ForgottenRoomHud {
             plaque(b,x,y+6,w,rowH-14,ra,r.rank()==1);
             text(b,title,String.valueOf(r.rank()),x+56,y+rowH*.72f,.72f,r.rank()==1?GOLD:IVORY,ra);
             float nameX=x+120;body.getData().setScale(.78f);body.setColor(IVORY.r,IVORY.g,IVORY.b,ra);body.draw(b,m.name(r.playerId()),nameX,y+rowH*.68f);
-            body.getData().setScale(.52f);body.setColor(DIM.r,DIM.g,DIM.b,ra);body.draw(b,"ВЕРНО "+r.correct()+(r.partial()>0?"  ·  ПОЧТИ "+r.partial():"")+(r.submitted()?"":"  ·  НЕ ОТВЕТИЛ"),nameX,y+rowH*.36f);body.getData().setScale(1);
+            body.getData().setScale(.52f);body.setColor(DIM.r,DIM.g,DIM.b,ra);body.draw(b,"НАЙДЕНО ИЗМЕНЕНИЙ: "+r.correct()+" ИЗ "+m.changes.size()+(r.submitted()?"":"  ·  НЕ ОТВЕТИЛ"),nameX,y+rowH*.36f);body.getData().setScale(1);
             int shown=Math.round(r.points()*ease((t-.8f-i*.22f)/1.4f));
             text(b,title,shown+"",x+w-110,y+rowH*.72f,.72f,r.rank()==1?GOLD:IVORY,ra);}
         if(t>2.5f)text(b,body,"ENTER — ВЕРНУТЬСЯ В ЛОББИ",W/2,46,.55f,DIM,ease((t-2.5f)/.6f)*(.6f+.4f*MathUtils.sin(t*3)));

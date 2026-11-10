@@ -60,8 +60,8 @@ final class ForgottenRoomSession {
     }
 
     /**
-     * A seated player's final answers. Idempotent per request id; one submission per player; only during ANSWER_PHASE;
-     * at most one answer per place, at most as many answers as there are changes; places must exist.
+     * A seated player's marks. Idempotent per request id; one submission per player; only during ANSWER_PHASE;
+     * at most one mark per place and {@link RoomScoring#MARKS} marks in total; places must exist.
      */
     boolean submit(String member,String requestId,List<Guess> guesses,long now){
         if(!handled.add(requestId))return false;
@@ -69,7 +69,7 @@ final class ForgottenRoomSession {
         if(!seats.contains(member))throw new RoomService.Failure(403,"ROOM_NOT_A_PLAYER");
         if(phase!=Phase.ANSWER_PHASE)throw new RoomService.Failure(409,"ROOM_ANSWERS_CLOSED");
         if(answers.containsKey(member))throw new RoomService.Failure(409,"ROOM_ALREADY_SUBMITTED");
-        if(guesses.size()>round.guessLimit())throw new RoomService.Failure(400,"ROOM_TOO_MANY_GUESSES");
+        if(guesses.size()>RoomScoring.MARKS)throw new RoomService.Failure(400,"ROOM_TOO_MANY_GUESSES");
         Set<String> places=new HashSet<>();
         for(Guess g:guesses){if(!round.layout().hasSlot(g.slotId()))throw new RoomService.Failure(400,"ROOM_INVALID_PLACE");
             if(!places.add(g.slotId()))throw new RoomService.Failure(400,"ROOM_DUPLICATE_PLACE");}
@@ -114,7 +114,7 @@ final class ForgottenRoomSession {
         if(p==null)return null;Map<String,Object> o=new LinkedHashMap<>();
         o.put("id",p.objectId());o.put("slot",p.slotId());o.put("rotated",p.rotated());o.put("variant",p.variant());o.put("lit",p.lit());return o;}
     private static List<Map<String,Object>> guesses(List<Guess> list){
-        List<Map<String,Object>> out=new ArrayList<>();for(Guess g:list)out.add(Map.of("slot",g.slotId(),"type",g.type().name()));return out;}
+        List<Map<String,Object>> out=new ArrayList<>();for(Guess g:list)out.add(Map.of("slot",g.slotId()));return out;}
 
     Map<String,Object> snapshot(String self,boolean host,long now){
         Map<String,Object> v=new LinkedHashMap<>();
@@ -137,13 +137,13 @@ final class ForgottenRoomSession {
             for(int i=0;i<round.changes().size();i++){var c=round.changes().get(i);Map<String,Object> k=new LinkedHashMap<>();
                 k.put("type",c.type().name());k.put("object",c.objectId());k.put("name",RoomCatalog.object(c.objectId()).nameRu());k.put("caption",c.captionRu());
                 k.put("before",placed(c.before()));k.put("after",placed(c.after()));k.put("slots",List.copyOf(c.slots()));
-                List<String> found=new ArrayList<>(),close=new ArrayList<>();
-                for(String s:seats){var hit=results.get(s).perChange().get(i);if(hit==RoomScoring.Hit.EXACT)found.add(s);else if(hit==RoomScoring.Hit.PARTIAL)close.add(s);}
-                k.put("foundBy",found);k.put("closeBy",close);key.add(k);}
+                List<String> found=new ArrayList<>();
+                for(String s:seats)if(results.get(s).perChange().get(i)==RoomScoring.Hit.FOUND)found.add(s);
+                k.put("foundBy",found);k.put("closeBy",List.of());key.add(k);}
             v.put("changes",key);v.put("revealStepMs",timing.revealStepMs());v.put("revealIntroMs",timing.revealIntroMs());
             List<Map<String,Object>> table=new ArrayList<>();int rank=0;
             for(String s:ranking()){var r=results.get(s);rank++;Map<String,Object> row=new LinkedHashMap<>();
-                row.put("playerId",s);row.put("rank",rank);row.put("points",r.points());row.put("correct",r.correct());row.put("partial",r.partial());row.put("wrong",r.wrong());
+                row.put("playerId",s);row.put("rank",rank);row.put("points",r.points());row.put("correct",r.correct());row.put("partial",0);row.put("wrong",r.wrong());
                 row.put("answers",guesses(answers.getOrDefault(s,List.of())));row.put("submitted",answers.containsKey(s));table.add(row);}
             v.put("results",table);
         }

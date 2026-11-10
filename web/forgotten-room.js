@@ -3,10 +3,10 @@
  * THE FORGOTTEN ROOM phone controller.
  *
  * The server owns phases, timers, the room and the answer key. While players memorise, the phone only points at the
- * shared screen. When answers open it shows the changed room (the same art as the host) as a wide, swipeable stage:
- * tapping near an object — or near the empty place where one used to stand — selects that place (generous hit zones,
- * nearest place wins). A sheet offers only the change types that make sense there; answers become numbered gilt
- * seals on the room and chips below; one SEND posts them once. Nothing about right or wrong is ever shown here.
+ * shared screen. When answers open it shows the changed room (the same art as the host) as a wide, swipeable stage.
+ * A tap drops a mark on the place meant — the object under the finger, else the nearest place within a generous reach,
+ * including the empty spot where something vanished. Tapping a mark again removes it; at most five marks at once.
+ * A changed place scores a point, any other place nothing (decided on the server). Nothing about right or wrong here.
  */
 function createForgottenRoomController({getState,isAuthenticated,send,makeId,now,explain}){
   const el=id=>document.getElementById(id);
@@ -30,12 +30,13 @@ function createForgottenRoomController({getState,isAuthenticated,send,makeId,now
     const cap={SHELF:86,DESK:128,WINDOWSILL:112,WALL:118,SEAT:116,TABLE:172,FLOOR:size==='TALL'?580:205,HANG:230}[surface]??150;
     return Math.min(base*(.78+.42*y),cap);
   }
-  function art(o){return o.id==='painting'?`/forgotten-room/objects/painting_v${o.variant||0}.webp`:`/forgotten-room/objects/${o.id}.webp`;}
-  function bg(m){const name=(m.background||'').split('/').pop().replace(/\.(jpg|png)$/,'');return `/forgotten-room/rooms/${name}.webp`;}
+  let roomBase='';
+  function art(o){return o.id==='painting'?`/forgotten-room/rooms/${roomBase}_painting_v${o.variant||0}.webp`:`/forgotten-room/objects/${o.id}.webp`;}
+  function bg(m){const name=(m.background||'').split('/').pop().replace(/\.(jpg|png)$/,'');roomBase=name;return `/forgotten-room/rooms/${name}.webp`;}
   /** Box of an object in room units {x0,y0,x1,y1} (y down), matching the host's placement. */
   function box(o,place){
     const x=place.x*W,yb=place.y*H;
-    if(place.surface==='FRAME')return {x0:x-131,x1:x+131,y0:yb-135,y1:yb+135};
+    if(place.surface==='FRAME')return {x0:x-142,x1:x+142,y0:yb-139,y1:yb+139};
     const h=height(o.size,place.surface,place.y),w=h*(ratio.get(art(o))||.8);
     if(place.surface==='HANG')return {x0:x-w/2,x1:x+w/2,y0:yb,y1:yb+h};
     if(o.turn==='TOPPLE'&&o.rotated)return {x0:x-h/2,x1:x+h/2,y0:yb-w,y1:yb,w,h,lying:true};
@@ -113,26 +114,18 @@ function createForgottenRoomController({getState,isAuthenticated,send,makeId,now
     i.style.transform=o.turn==='FLIP'&&o.rotated?'scaleX(-1)':'';}
   function paintStage(m){
     const stage=el('room-stage');
-    stage.querySelectorAll('.room-place').forEach(d=>{const s=d.dataset.slot;d.classList.toggle('sel',s===selected);
-      const n=answers.findIndex(a=>a.slot===s);d.dataset.n=n>=0?String(n+1):'';d.classList.toggle('chosen',n>=0);});
-    stage.querySelectorAll('.room-obj').forEach(i=>{i.classList.toggle('sel',i.dataset.slot===selected);i.classList.toggle('chosen',answers.some(a=>a.slot===i.dataset.slot));});
-    const sheet=el('room-sheet');sheet.hidden=!selected;
-    if(selected){const p=placeOf(m,selected),o=objectAt(m,selected);
-      el('room-sheet-title').textContent=o?o.name:'Пустое место';el('room-sheet-place').textContent=p?.label||'';
-      const box=el('room-sheet-options');box.replaceChildren();const current=answers.find(a=>a.slot===selected);
-      for(const t of optionsFor(m,selected)){const b=document.createElement('button');b.type='button';b.className='room-opt';b.dataset.nativeButton='';b.dataset.type=t;
-        b.innerHTML=`<strong>${T[t]}</strong><small>${HINT[t]}</small>`;if(current?.type===t)b.classList.add('on');
-        b.disabled=!current&&answers.length>=m.guessLimit;box.append(b);}
-      el('room-sheet-remove').hidden=!current;
-      el('room-sheet-full').hidden=!!current||answers.length<m.guessLimit;}
+    stage.querySelectorAll('.room-place').forEach(d=>{const s=d.dataset.slot;const n=answers.findIndex(a=>a.slot===s);
+      d.dataset.n=n>=0?String(n+1):'';d.classList.toggle('chosen',n>=0);d.classList.toggle('sel',n>=0);});
+    stage.querySelectorAll('.room-obj').forEach(i=>i.classList.toggle('sel',answers.some(a=>a.slot===i.dataset.slot)));
+    el('room-sheet').hidden=true;
   }
   function paintList(m){
     el('room-count').textContent=`${answers.length} / ${m.guessLimit}`;
     const list=el('room-list');list.replaceChildren();
     answers.forEach((a,i)=>{const c=document.createElement('button');c.type='button';c.className='room-chip';c.dataset.nativeButton='';c.dataset.slot=a.slot;
-      c.innerHTML=`<b>${i+1}</b><span>${nameAt(m,a.slot)}<small>${T[a.type]}</small></span><i aria-label="Убрать">✕</i>`;list.append(c);});
-    if(!answers.length){const e=document.createElement('p');e.className='room-empty';e.textContent='Нажми на предмет или на место, где он был';list.append(e);}
-    const go=el('room-send');go.disabled=!!sending||!isAuthenticated();go.textContent=sending?'Отправляю…':answers.length?'Отправить ответ':'Отправить без ответа';
+      const p=placeOf(m,a.slot);c.innerHTML=`<b>${i+1}</b><span>${nameAt(m,a.slot)}<small>${p?.label||''}</small></span><i aria-label="Убрать">✕</i>`;list.append(c);});
+    if(!answers.length){const e=document.createElement('p');e.className='room-empty';e.textContent='Нажимай на места, где что-то изменилось. До 5 меток; нажми на метку ещё раз, чтобы снять';list.append(e);}
+    const go=el('room-send');go.disabled=!!sending||!isAuthenticated();go.textContent=sending?'Отправляю…':answers.length?'Отправить метки':'Отправить без меток';
     el('room-error').textContent=error;el('room-error').hidden=!error;
   }
   function tick(){
@@ -144,23 +137,24 @@ function createForgottenRoomController({getState,isAuthenticated,send,makeId,now
   }
 
   // ---------- input ----------
+  let toastTimer=0;
+  function toast(text){const t=el('room-toast');t.textContent=text;t.hidden=false;t.classList.remove('show');void t.offsetWidth;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>{t.hidden=true;},2200);}
   el('room-stage').addEventListener('click',e=>{
-    const m=mini();if(!m||m.phase!=='ANSWER_PHASE')return;const r=el('room-stage').getBoundingClientRect();
+    const m=mini();if(!m||m.phase!=='ANSWER_PHASE'||m.myAnswers||sending)return;const r=el('room-stage').getBoundingClientRect();
     const slot=resolve(m,(e.clientX-r.left)/r.width*W,(e.clientY-r.top)/r.height*H);
-    if(!slot){el('room-stage').classList.remove('miss');void el('room-stage').offsetWidth;el('room-stage').classList.add('miss');return;}
-    selected=selected===slot?null:slot;try{navigator.vibrate?.(10);}catch{}paintStage(m);
+    const nudge=()=>{el('room-stage').classList.remove('miss');void el('room-stage').offsetWidth;el('room-stage').classList.add('miss');try{navigator.vibrate?.([30,30,30]);}catch{}};
+    if(!slot){nudge();return;}
+    const i=answers.findIndex(a=>a.slot===slot);
+    if(i>=0){answers.splice(i,1);try{navigator.vibrate?.(8);}catch{}}
+    else if(answers.length>=m.guessLimit){nudge();toast('Максимум '+m.guessLimit+' меток — нажми на свою метку, чтобы снять');return;}
+    else{answers.push({slot});try{navigator.vibrate?.(14);}catch{}}
+    error='';paintStage(m);paintList(m);
   });
-  el('room-sheet-options').addEventListener('click',e=>{const b=e.target.closest('.room-opt');const m=mini();if(!b||b.disabled||!selected||!m)return;
-    const t=b.dataset.type,i=answers.findIndex(a=>a.slot===selected);
-    if(i>=0)answers[i]={slot:selected,type:t};else if(answers.length<m.guessLimit)answers.push({slot:selected,type:t});
-    selected=null;error='';try{navigator.vibrate?.(14);}catch{}paintStage(m);paintList(m);});
-  el('room-sheet-remove').addEventListener('click',()=>{const m=mini();answers=answers.filter(a=>a.slot!==selected);selected=null;paintStage(m);paintList(m);});
-  el('room-sheet-close').addEventListener('click',()=>{selected=null;paintStage(mini());});
   el('room-list').addEventListener('click',e=>{const c=e.target.closest('.room-chip');if(!c)return;const m=mini();
-    if(e.target.closest('i')){answers=answers.filter(a=>a.slot!==c.dataset.slot);}else{selected=c.dataset.slot;const img=imgs.get(selected);img?.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});}
+    if(e.target.closest('i')){answers=answers.filter(a=>a.slot!==c.dataset.slot);}else{const p=placeOf(m,c.dataset.slot);const v=el('room-view');if(p)v.scrollTo({left:v.scrollWidth*p.x-v.clientWidth/2,behavior:'smooth'});}
     paintStage(m);paintList(m);});
   el('room-send').addEventListener('click',()=>{const m=mini();if(!m||sending||!isAuthenticated())return;
-    sending=makeId();send('ROOM_SUBMIT',{roomCode:getState().code,sessionId:m.sessionId,answers},sending);paintList(m);try{navigator.vibrate?.([20,40,30]);}catch{}});
+    sending=makeId();send('ROOM_SUBMIT',{roomCode:getState().code,sessionId:m.sessionId,answers:answers.map(a=>({slot:a.slot}))},sending);paintList(m);try{navigator.vibrate?.([20,40,30]);}catch{}});
 
   function event(ev){
     if(!sending)return;

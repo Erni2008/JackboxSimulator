@@ -107,3 +107,10 @@ body[data-view=room] main{max-width:560px}
 .fr[data-mode=view] .fr-answers,.fr[data-mode=view] #room-send,.fr[data-mode=view] #room-sheet,.fr[data-mode=view] .room-place{display:none!important}
 .fr[data-mode=view] .fr-stage{pointer-events:none}
 .fr[data-phase=CHANGED_ROOM] .fr-ring{opacity:.4}
+
+/* marks */
+.fr-toast{position:sticky;top:8px;z-index:5;margin:-4px auto 10px;max-width:92%;padding:10px 14px;border-radius:12px;text-align:center;font:600 14px Body,system-ui,sans-serif;
+  color:#ffe6c8;background:#2a0c0eee;box-shadow:0 0 0 1px #c8323c88,0 8px 20px #000a}
+.fr-toast.show{animation:fr-rise .2s ease-out}
+.fr-toast[hidden]{display:none}
+.room-place.sel{animation:fr-ring 1.4s ease-in-out infinite}

@@ -63,9 +63,9 @@ public final class ForgottenRoomPreview {
                 if(phase>=5){f.add("original",objects(round.original()));JsonArray key=new JsonArray();int i=0;
                     for(var ch:round.changes()){JsonObject k=new JsonObject();k.addProperty("type",ch.type().name());k.addProperty("object",ch.objectId());k.addProperty("name",RoomCatalog.object(ch.objectId()).nameRu());
                         k.addProperty("caption",ch.captionRu());k.add("before",placed(ch.before()));k.add("after",placed(ch.after()));JsonArray sl=new JsonArray();ch.slots().forEach(sl::add);k.add("slots",sl);
-                        JsonArray found=new JsonArray(),close=new JsonArray();if(i%2==0){found.add("p1");found.add("p3");}else close.add("p0");k.add("foundBy",found);k.add("closeBy",close);key.add(k);i++;}
-                    f.add("changes",key);JsonArray rows=new JsonArray();int[] pts={300,225,100,0};String[] order={"p1","p3","p0","p2"};
-                    for(int r=0;r<4;r++){JsonObject o=new JsonObject();o.addProperty("playerId",order[r]);o.addProperty("rank",r+1);o.addProperty("points",pts[r]);o.addProperty("correct",pts[r]/100);o.addProperty("partial",pts[r]%100==25?1:0);o.addProperty("wrong",0);o.addProperty("submitted",true);rows.add(o);}
+                        JsonArray found=new JsonArray(),close=new JsonArray();if(i%2==0){found.add("p1");found.add("p3");}k.add("foundBy",found);k.add("closeBy",close);key.add(k);i++;}
+                    f.add("changes",key);JsonArray rows=new JsonArray();int[] pts={3,2,1,0};String[] order={"p1","p3","p0","p2"};
+                    for(int r=0;r<4;r++){JsonObject o=new JsonObject();o.addProperty("playerId",order[r]);o.addProperty("rank",r+1);o.addProperty("points",pts[r]);o.addProperty("correct",pts[r]);o.addProperty("partial",0);o.addProperty("wrong",0);o.addProperty("submitted",true);rows.add(o);}
                     f.add("results",rows);}
                 JsonObject root=new JsonObject();root.add("forgottenRoom",f);root.addProperty("code","PREVIEW");
                 JsonArray ps=new JsonArray();String[] names={"Алиса","Борис","Вика","Гоша"};for(int i=0;i<4;i++){JsonObject o=new JsonObject();o.addProperty("id",players[i]);o.addProperty("name",names[i]);o.addProperty("characterId","ghost");ps.add(o);}

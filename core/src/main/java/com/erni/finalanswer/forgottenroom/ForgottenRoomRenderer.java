@@ -46,9 +46,9 @@ final class ForgottenRoomRenderer {
     void drawObject(SpriteBatch b,ForgottenRoomModel m,ForgottenRoomModel.Obj o,float alpha,boolean ghost,float turned){
         var place=m.places.get(o.slot());if(place==null||alpha<=0)return;
         float x=place.x()*W,base=(1-place.y())*H;boolean frame=place.surface().equals("FRAME"),hang=place.surface().equals("HANG");
-        Texture tex=art.object(o);boolean placeholder=tex==null;
+        Texture tex=art.object(m,o,frame);boolean placeholder=tex==null;
         float h,w;
-        if(frame){w=262;h=270;}
+        if(frame){w=284;h=277;}
         else{h=height(o.size(),place.surface(),place.y());
             if(placeholder){tex=o.size().equals("SMALL")?art.plaqueSmall:art.plaque;}
             w=h*tex.getWidth()/(float)tex.getHeight();}

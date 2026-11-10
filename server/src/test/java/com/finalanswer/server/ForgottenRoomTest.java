@@ -17,7 +17,7 @@ class ForgottenRoomTest {
             int expectedMin=Math.min(d.minObjects,Math.min(round.layout().slots().size()-6,library-2));
             assertTrue(round.original().size()>=expectedMin&&round.original().size()<=d.maxObjects,d+" objects "+round.original().size());
             assertTrue(round.changes().size()>=d.minChanges&&round.changes().size()<=d.maxChanges,d+" changes");
-            assertEquals(round.changes().size(),round.guessLimit());
+            assertEquals(RoomScoring.MARKS,round.guessLimit());
         }
     }
 
@@ -68,30 +68,27 @@ class ForgottenRoomTest {
         }
     }
 
-    @Test void exactPartialWrongAndNoDuplicateCredit(){
+    @Test void aMarkOnAChangedPlaceScoresOneAndAnywhereElseNothing(){
         var round=RoomGenerator.generate(7,RoomDifficulty.HARD);var changes=round.changes();var first=changes.get(0);
         String place=first.slots().iterator().next();
-        var exact=RoomScoring.score(changes,List.of(new Guess(place,first.type())),R);
-        assertEquals(100,exact.points());assertEquals(1,exact.correct());
-        ChangeType other=Arrays.stream(ChangeType.values()).filter(t->t!=first.type()).findFirst().orElseThrow();
-        var partial=RoomScoring.score(changes,List.of(new Guess(place,other)),R);
-        assertEquals(25,partial.points());assertEquals(1,partial.partial());
-        // The same place twice never counts twice: only the first answer for a place is read.
-        assertEquals(100,RoomScoring.score(changes,List.of(new Guess(place,first.type()),new Guess(place,first.type())),R).points());
-        assertEquals(25,RoomScoring.score(changes,List.of(new Guess(place,other),new Guess(place,first.type())),R).points());
+        var hit=RoomScoring.score(changes,List.of(new Guess(place)),R);
+        assertEquals(1,hit.points());assertEquals(1,hit.correct());
+        assertEquals(1,RoomScoring.score(changes,List.of(new Guess(place),new Guess(place)),R).points(),"the same place twice counts once");
         String untouched=round.layout().slots().stream().map(RoomCatalog.Slot::id).filter(s->changes.stream().noneMatch(c->c.slots().contains(s))).findFirst().orElseThrow();
-        var wrong=RoomScoring.score(changes,List.of(new Guess(untouched,ChangeType.MOVED)),R);
-        assertEquals(0,wrong.points());assertEquals(1,wrong.wrong());
+        var miss=RoomScoring.score(changes,List.of(new Guess(untouched)),R);
+        assertEquals(0,miss.points());assertEquals(1,miss.wrong());
         assertEquals(0,RoomScoring.score(changes,List.of(),R).points());
+        List<Guess> all=changes.stream().map(c->new Guess(c.slots().iterator().next())).toList();
+        assertEquals(changes.size(),RoomScoring.score(changes,all,R).points(),"every change found = one point each");
     }
 
     @Test void moveCountsFromEitherEndButOnlyOnce(){
         RoomGenerator.Round round=null;RoomChange move=null;
         for(long s=0;move==null;s++){round=RoomGenerator.generate(s,RoomDifficulty.EASY);move=round.changes().stream().filter(c->c.type()==ChangeType.MOVED).findFirst().orElse(null);}
         var c=round.changes();
-        assertEquals(100,RoomScoring.score(c,List.of(new Guess(move.before().slotId(),ChangeType.MOVED)),R).points());
-        assertEquals(100,RoomScoring.score(c,List.of(new Guess(move.after().slotId(),ChangeType.MOVED)),R).points());
-        assertEquals(100,RoomScoring.score(c,List.of(new Guess(move.before().slotId(),ChangeType.MOVED),new Guess(move.after().slotId(),ChangeType.MOVED)),R).points());
+        assertEquals(1,RoomScoring.score(c,List.of(new Guess(move.before().slotId())),R).points());
+        assertEquals(1,RoomScoring.score(c,List.of(new Guess(move.after().slotId())),R).points());
+        assertEquals(1,RoomScoring.score(c,List.of(new Guess(move.before().slotId()),new Guess(move.after().slotId())),R).points());
     }
 
     @Test void missingAndNewObjectsAreSelectableByTheirPlaces(){
@@ -99,9 +96,9 @@ class ForgottenRoomTest {
         for(long s=0;s<200&&!(sawGone&&sawNew);s++){var round=RoomGenerator.generate(s,RoomDifficulty.MEDIUM);
             for(RoomChange c:round.changes()){
                 if(c.type()==ChangeType.DISAPPEARED){sawGone=true;assertFalse(round.changed().occupied(c.before().slotId()));
-                    assertEquals(100,RoomScoring.score(round.changes(),List.of(new Guess(c.before().slotId(),ChangeType.DISAPPEARED)),R).points());}
+                    assertEquals(1,RoomScoring.score(round.changes(),List.of(new Guess(c.before().slotId())),R).points());}
                 if(c.type()==ChangeType.APPEARED){sawNew=true;assertFalse(round.original().occupied(c.after().slotId()));
-                    assertEquals(100,RoomScoring.score(round.changes(),List.of(new Guess(c.after().slotId(),ChangeType.APPEARED)),R).points());}
+                    assertEquals(1,RoomScoring.score(round.changes(),List.of(new Guess(c.after().slotId())),R).points());}
             }}
         assertTrue(sawGone&&sawNew);
     }

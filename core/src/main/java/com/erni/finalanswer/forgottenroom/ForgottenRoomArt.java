@@ -19,6 +19,11 @@ final class ForgottenRoomArt implements AutoCloseable {
     }
     Texture background(String path){return load(path);}
     /** Real artwork for this look of the object, or null while it hasn't been made yet. */
+    /** Art for an object in a room: a picture in the room's own frame is pre-warped to that frame's perspective. */
+    Texture object(ForgottenRoomModel m,ForgottenRoomModel.Obj o,boolean inFrame){
+        if(inFrame&&m.background.contains(".")){Texture t=load(m.background.substring(0,m.background.lastIndexOf('.'))+"_"+o.id()+"_v"+o.variant()+".png");if(t!=null)return t;}
+        return object(o);
+    }
     Texture object(ForgottenRoomModel.Obj o){
         if(o.light()){Texture t=load("forgotten_room/objects/"+o.id()+(o.lit()?"_on":"_off")+".png");if(t!=null)return t;}
         Texture t=load("forgotten_room/objects/"+o.id()+"_v"+o.variant()+".png");if(t!=null)return t;
@@ -27,7 +32,7 @@ final class ForgottenRoomArt implements AutoCloseable {
     /** Preload every look a round can show, so the blackout never stalls on disk reads. */
     void preload(ForgottenRoomModel m){
         background(m.background);
-        for(var list:List.of(m.objects,m.original))for(var o:list)object(o);
+        for(var list:List.of(m.objects,m.original))for(var o:list){object(o);object(m,o,true);}
         for(var c:m.changes){if(c.before()!=null)object(c.before());if(c.after()!=null)object(c.after());}
     }
     private Texture load(String path){

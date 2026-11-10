@@ -29,9 +29,9 @@ class ForgottenRoomServiceTest {
         advance(4_600+10_000+1_300+1_600);assertEquals("ANSWER_PHASE",s(room(a),"phase"));
         assertFalse(room(h).has("changes"),"the host doesn't get the key while players answer");
         String session=s(room(a),"sessionId");String place=room(a).getAsJsonArray("places").get(0).getAsJsonObject().get("id").getAsString();
-        command(a,"ROOM_SUBMIT",Map.of("sessionId",session,"answers",List.of(Map.of("slot",place,"type","MOVED"))));
+        command(a,"ROOM_SUBMIT",Map.of("sessionId",session,"answers",List.of(Map.of("slot",place))));
         assertTrue(room(a).has("myAnswers"));assertFalse(room(b).has("myAnswers"));
-        assertThrows(com.finalanswer.server.rooms.RoomService.Failure.class,()->command(b,"ROOM_SUBMIT",Map.of("sessionId",session,"answers",List.of(Map.of("slot",place,"type","NOPE")))));
+        assertThrows(com.finalanswer.server.rooms.RoomService.Failure.class,()->command(b,"ROOM_SUBMIT",Map.of("sessionId",session,"answers",List.of(Map.of("nope",place)))));
         // Reconnect: a fresh socket for player one still shows their own answers.
         TestPeer again=new TestPeer();service.attach(s(host,"code"),s(one,"token"),again,"one");assertTrue(room(again).has("myAnswers"));
         command(b,"ROOM_SUBMIT",Map.of("sessionId",session,"answers",List.of()));

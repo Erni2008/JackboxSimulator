@@ -14,7 +14,7 @@ public final class RoomGenerator {
     /** A generated round: the room before and after the blackout, and the explicit answer key. */
     public record Round(long seed,RoomDifficulty difficulty,Layout layout,RoomState original,RoomState changed,List<RoomChange> changes){
         public Round{changes=List.copyOf(changes);}
-        public int guessLimit(){return changes.size();}
+        public int guessLimit(){return RoomScoring.MARKS;}
     }
     /** Places left empty in every original room. */
     static final int MIN_EMPTY_SLOTS=6;

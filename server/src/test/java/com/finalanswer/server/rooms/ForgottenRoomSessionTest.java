@@ -11,7 +11,7 @@ class ForgottenRoomSessionTest {
     private static List<String> players(int n){List<String> out=new ArrayList<>();for(int i=0;i<n;i++)out.add("p"+i);return out;}
     private static long answeringAt(){return T.introMs()+T.observationMs()+T.blackoutMs()+T.changedMs()+1;}
     private static ForgottenRoomSession atAnswers(int players,RoomDifficulty d){var s=new ForgottenRoomSession(players(players),d,99,0);s.tick(answeringAt());assertEquals(ForgottenRoomSession.Phase.ANSWER_PHASE,s.phase());return s;}
-    private static List<Guess> perfect(ForgottenRoomSession s){return s.round().changes().stream().map(c->new Guess(c.slots().iterator().next(),c.type())).toList();}
+    private static List<Guess> perfect(ForgottenRoomSession s){return s.round().changes().stream().map(c->new Guess(c.slots().iterator().next())).toList();}
     @SuppressWarnings("unchecked") private static List<Map<String,Object>> list(Map<String,Object> v,String k){return (List<Map<String,Object>>)v.get(k);}
     private static RoomService.Failure fails(Runnable r){return assertThrows(RoomService.Failure.class,r::run);}
 
@@ -28,7 +28,7 @@ class ForgottenRoomSessionTest {
         assertEquals(409,fails(()->new ForgottenRoomSession(players(9),RoomDifficulty.EASY,1,0)).status);
         for(int n:new int[]{2,8}){var s=atAnswers(n,RoomDifficulty.HARD);for(String p:players(n))assertTrue(s.submit(p,"r"+p,perfect(s),answeringAt()+5));
             s.tick(answeringAt()+T.earlyCloseMs()+10);assertEquals(ForgottenRoomSession.Phase.REVEAL,s.phase());
-            for(String p:players(n))assertEquals(100*s.round().changes().size(),s.results().get(p).points());}
+            for(String p:players(n))assertEquals(s.round().changes().size(),s.results().get(p).points());}
     }
 
     @Test void theChangedRoomAndTheKeyNeverLeakEarly(){
@@ -51,11 +51,11 @@ class ForgottenRoomSessionTest {
     @Test void submissionsAreValidatedOnTheServer(){
         var s=atAnswers(3,RoomDifficulty.EASY);long now=answeringAt()+10;var key=s.round().changes();
         assertEquals(403,fails(()->s.submit("intruder","x1",List.of(),now)).status);
-        List<Guess> tooMany=new ArrayList<>();for(var slot:s.round().layout().slots().subList(0,key.size()+1))tooMany.add(new Guess(slot.id(),ChangeType.MOVED));
+        List<Guess> tooMany=new ArrayList<>();for(var slot:s.round().layout().slots().subList(0,RoomScoring.MARKS+1))tooMany.add(new Guess(slot.id()));
         assertEquals(400,fails(()->s.submit("p0","x2",tooMany,now)).status);
-        assertEquals(400,fails(()->s.submit("p0","x3",List.of(new Guess("nowhere",ChangeType.MOVED)),now)).status);
+        assertEquals(400,fails(()->s.submit("p0","x3",List.of(new Guess("nowhere")),now)).status);
         String place=s.round().layout().slots().get(0).id();
-        assertEquals(400,fails(()->s.submit("p0","x4",List.of(new Guess(place,ChangeType.MOVED),new Guess(place,ChangeType.ROTATED)),now)).status);
+        assertEquals(400,fails(()->s.submit("p0","x4",List.of(new Guess(place),new Guess(place)),now)).status);
         assertTrue(s.submit("p0","ok",perfect(s),now));
         assertFalse(s.submit("p0","ok",perfect(s),now),"a resent request is ignored, not double counted");
         assertEquals(409,fails(()->s.submit("p0","again",List.of(),now)).status);
@@ -67,7 +67,7 @@ class ForgottenRoomSessionTest {
         assertTrue(s.submit("p0","a",perfect(s),answeringAt()+100));
         assertEquals(409,fails(()->s.submit("p1","b",perfect(s),late)).status);
         assertEquals(ForgottenRoomSession.Phase.REVEAL,s.phase());
-        assertEquals(100*s.round().changes().size(),s.results().get("p0").points());
+        assertEquals(s.round().changes().size(),s.results().get("p0").points());
         assertEquals(0,s.results().get("p1").points());
     }
 
@@ -82,19 +82,20 @@ class ForgottenRoomSessionTest {
 
     @Test void revealCarriesTheKeyWhoFoundWhatAndARanking(){
         var s=atAnswers(3,RoomDifficulty.MEDIUM);long now=answeringAt()+10;var key=s.round().changes();
-        var first=key.get(0);String place=first.slots().iterator().next();
-        ChangeType wrongType=Arrays.stream(ChangeType.values()).filter(t->t!=first.type()).findFirst().orElseThrow();
-        s.submit("p2","c",List.of(new Guess(place,wrongType)),now);      // 25, first
-        s.submit("p0","a",perfect(s),now+500);                          // all exact
-        s.submit("p1","b",List.of(new Guess(place,first.type())),now+900); // 100
+        String place=key.get(0).slots().iterator().next();
+        String empty=s.round().layout().slots().stream().map(RoomCatalog.Slot::id).filter(x->key.stream().noneMatch(c->c.slots().contains(x))).findFirst().orElseThrow();
+        s.submit("p2","c",List.of(new Guess(empty)),now);            // 0
+        s.submit("p0","a",perfect(s),now+500);                       // all
+        s.submit("p1","b",List.of(new Guess(place)),now+900);        // 1
         s.tick(now+5_000);
         var v=s.snapshot("p1",false,now+5_000);var changes=list(v,"changes");
         assertEquals(key.size(),changes.size());
-        assertEquals(List.of("p0","p1"),changes.get(0).get("foundBy"));assertEquals(List.of("p2"),changes.get(0).get("closeBy"));
-        assertEquals(first.captionRu(),changes.get(0).get("caption"));
+        assertEquals(List.of("p0","p1"),changes.get(0).get("foundBy"));
+        assertEquals(key.get(0).captionRu(),changes.get(0).get("caption"));
         var table=list(v,"results");
         assertEquals(List.of("p0","p1","p2"),table.stream().map(r->r.get("playerId")).toList());
         assertEquals(List.of(1,2,3),table.stream().map(r->r.get("rank")).toList());
+        assertEquals(key.size(),table.get(0).get("points"));
     }
 
     @Test void equalScoresBreakTiesByEarlierSubmission(){

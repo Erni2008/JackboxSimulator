@@ -30,9 +30,8 @@ const seat=(code,token,name)=>Buffer.from(JSON.stringify({code,token,name})).toS
     while(f()&&f().phase!=='RESULTS'){
       const bs=b.state?.forgottenRoom;
       if(bs&&bs.phase==='ANSWER_PHASE'&&answered!==bs.sessionId){answered=bs.sessionId;await sleep(4000+Math.random()*6000);
-        const pl=[...bs.places].sort(()=>Math.random()-.5).slice(0,Math.max(1,bs.guessLimit-1));
-        const types=['DISAPPEARED','MOVED','APPEARED','ROTATED'];
-        send(b,'ROOM_SUBMIT',{roomCode:code,sessionId:bs.sessionId,answers:pl.map(p=>({slot:p.id,type:types[Math.floor(Math.random()*types.length)]}))});console.log('bot answered');}
+        const pl=[...bs.places].sort(()=>Math.random()-.5).slice(0,bs.guessLimit);
+        send(b,'ROOM_SUBMIT',{roomCode:code,sessionId:bs.sessionId,answers:pl.map(p=>({slot:p.id}))});console.log('bot answered');}
       await sleep(250);}
     const r=f();if(r){console.log('results',JSON.stringify(r.results.map(x=>[x.rank,x.playerId===youId?'Ты':'Борис',x.points])));
       for(const c of r.changes)console.log('  ',c.caption,'— нашли:',c.foundBy.map(id=>id===youId?'Ты':'Борис').join(', ')||'никто');}

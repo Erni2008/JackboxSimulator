@@ -411,7 +411,7 @@ public final class RoomService {
             case "ROOM_SUBMIT"->{requireForgotten(room,data);
                 List<com.erni.finalanswer.gameplay.forgottenroom.RoomScoring.Guess> guesses=new ArrayList<>();
                 try{for(JsonElement e:data.getAsJsonArray("answers")){var o=e.getAsJsonObject();
-                    guesses.add(new com.erni.finalanswer.gameplay.forgottenroom.RoomScoring.Guess(o.get("slot").getAsString(),com.erni.finalanswer.gameplay.forgottenroom.ChangeType.valueOf(o.get("type").getAsString())));}}
+                    guesses.add(new com.erni.finalanswer.gameplay.forgottenroom.RoomScoring.Guess(o.get("slot").getAsString()));}}
                 catch(RuntimeException e){throw new Failure(400,"ROOM_INVALID_ANSWERS");}
                 if(room.forgotten.submit(member.id,message.requestId(),guesses,now())){
                     room.forgotten.everyoneAnswered(room.members.values().stream().filter(m->m.peer!=null&&!m.left).map(m->m.id).toList(),now());

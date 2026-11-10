@@ -3,34 +3,33 @@ package com.erni.finalanswer.gameplay.forgottenroom;
 import java.util.*;
 
 /**
- * Transparent scoring. A player points at a place and names a change type. Each real change is credited at most once
- * per player: the best guess touching any of its places wins (exact type beats partial). No negative points.
+ * Scoring by marks. A player drops up to {@link #MARKS} marks on places in the changed room. Every real change that has
+ * at least one mark on one of its places scores one point (a move counts once even if both ends are marked); a mark on
+ * an unchanged place scores nothing. No negative points.
  */
 public final class RoomScoring {
-    /** Point values; change them here only. */
-    public record Rules(int exact,int partial){public static final Rules DEFAULT=new Rules(100,25);}
-    /** One answer: a place in the room and the change the player believes happened there. */
-    public record Guess(String slotId,ChangeType type){public Guess{Objects.requireNonNull(slotId);Objects.requireNonNull(type);}}
-    /** How one change was read by one player. */
-    public enum Hit {EXACT,PARTIAL,MISSED}
-    public record Result(int points,int correct,int partial,int wrong,List<Hit> perChange){public Result{perChange=List.copyOf(perChange);}}
+    /** How many marks a player may hold at once. */
+    public static final int MARKS=5;
+    /** Points per change found; change it here only. */
+    public record Rules(int perChange){public static final Rules DEFAULT=new Rules(1);}
+    /** One mark on one place. */
+    public record Guess(String slotId){public Guess{Objects.requireNonNull(slotId);}}
+    /** Whether one change was found by one player. */
+    public enum Hit {FOUND,MISSED}
+    public record Result(int points,int correct,int wrong,List<Hit> perChange){public Result{perChange=List.copyOf(perChange);}}
 
     private RoomScoring(){}
 
-    public static Result score(List<RoomChange> changes,List<Guess> guesses,Rules rules){
+    public static Result score(List<RoomChange> changes,List<Guess> marks,Rules rules){
         Hit[] hits=new Hit[changes.size()];Arrays.fill(hits,Hit.MISSED);
-        Set<String> seenSlots=new HashSet<>();int wrong=0;
-        for(Guess guess:guesses){
-            if(!seenSlots.add(guess.slotId())){continue;} // the same place twice never counts twice
+        Set<String> seen=new HashSet<>();int wrong=0;
+        for(Guess mark:marks){
+            if(!seen.add(mark.slotId()))continue; // the same place twice never counts twice
             boolean matched=false;
-            for(int i=0;i<changes.size();i++){
-                RoomChange change=changes.get(i);if(!change.slots().contains(guess.slotId()))continue;
-                matched=true;Hit hit=change.type()==guess.type()?Hit.EXACT:Hit.PARTIAL;
-                if(hit==Hit.EXACT||hits[i]==Hit.MISSED)hits[i]=hit;
-            }
+            for(int i=0;i<changes.size();i++)if(changes.get(i).slots().contains(mark.slotId())){hits[i]=Hit.FOUND;matched=true;}
             if(!matched)wrong++;
         }
-        int correct=0,partial=0;for(Hit hit:hits){if(hit==Hit.EXACT)correct++;else if(hit==Hit.PARTIAL)partial++;}
-        return new Result(correct*rules.exact()+partial*rules.partial(),correct,partial,wrong,Arrays.asList(hits));
+        int correct=0;for(Hit h:hits)if(h==Hit.FOUND)correct++;
+        return new Result(correct*rules.perChange(),correct,wrong,Arrays.asList(hits));
     }
 }
