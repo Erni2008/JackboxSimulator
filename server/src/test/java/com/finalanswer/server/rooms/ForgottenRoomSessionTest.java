@@ -51,10 +51,10 @@ class ForgottenRoomSessionTest {
     @Test void submissionsAreValidatedOnTheServer(){
         var s=atAnswers(3,RoomDifficulty.EASY);long now=answeringAt()+10;var key=s.round().changes();
         assertEquals(403,fails(()->s.submit("intruder","x1",List.of(),now)).status);
-        List<Guess> tooMany=new ArrayList<>();for(var slot:RoomCatalog.SLOTS.subList(0,key.size()+1))tooMany.add(new Guess(slot.id(),ChangeType.MOVED));
+        List<Guess> tooMany=new ArrayList<>();for(var slot:s.round().layout().slots().subList(0,key.size()+1))tooMany.add(new Guess(slot.id(),ChangeType.MOVED));
         assertEquals(400,fails(()->s.submit("p0","x2",tooMany,now)).status);
         assertEquals(400,fails(()->s.submit("p0","x3",List.of(new Guess("nowhere",ChangeType.MOVED)),now)).status);
-        String place=RoomCatalog.SLOTS.get(0).id();
+        String place=s.round().layout().slots().get(0).id();
         assertEquals(400,fails(()->s.submit("p0","x4",List.of(new Guess(place,ChangeType.MOVED),new Guess(place,ChangeType.ROTATED)),now)).status);
         assertTrue(s.submit("p0","ok",perfect(s),now));
         assertFalse(s.submit("p0","ok",perfect(s),now),"a resent request is ignored, not double counted");

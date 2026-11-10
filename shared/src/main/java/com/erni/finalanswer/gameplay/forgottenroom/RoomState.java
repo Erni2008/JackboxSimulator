@@ -14,7 +14,6 @@ public record RoomState(Map<String,Placed> bySlot){
     public RoomState{bySlot=Collections.unmodifiableMap(new LinkedHashMap<>(bySlot));
         Set<String> seen=new HashSet<>();
         for(var e:bySlot.entrySet()){if(!e.getKey().equals(e.getValue().slotId()))throw new IllegalArgumentException("Slot mismatch "+e.getKey());
-            if(!RoomCatalog.hasSlot(e.getKey()))throw new IllegalArgumentException("Unknown slot "+e.getKey());
             if(!seen.add(e.getValue().objectId()))throw new IllegalArgumentException("Object twice "+e.getValue().objectId());}}
     public Placed at(String slot){return bySlot.get(slot);}
     public Optional<Placed> find(String objectId){return bySlot.values().stream().filter(p->p.objectId().equals(objectId)).findFirst();}

@@ -71,7 +71,7 @@ final class ForgottenRoomSession {
         if(answers.containsKey(member))throw new RoomService.Failure(409,"ROOM_ALREADY_SUBMITTED");
         if(guesses.size()>round.guessLimit())throw new RoomService.Failure(400,"ROOM_TOO_MANY_GUESSES");
         Set<String> places=new HashSet<>();
-        for(Guess g:guesses){if(!RoomCatalog.hasSlot(g.slotId()))throw new RoomService.Failure(400,"ROOM_INVALID_PLACE");
+        for(Guess g:guesses){if(!round.layout().hasSlot(g.slotId()))throw new RoomService.Failure(400,"ROOM_INVALID_PLACE");
             if(!places.add(g.slotId()))throw new RoomService.Failure(400,"ROOM_DUPLICATE_PLACE");}
         answers.put(member,List.copyOf(guesses));submittedAt.put(member,now);
         if(answers.keySet().containsAll(seats))phaseEnds=Math.min(phaseEnds,now+timing.earlyCloseMs());
@@ -97,9 +97,9 @@ final class ForgottenRoomSession {
     }
 
     // ---------- per-viewer snapshots ----------
-    private static List<Map<String,Object>> places(){
+    private List<Map<String,Object>> places(){
         List<Map<String,Object>> out=new ArrayList<>();
-        for(var s:RoomCatalog.SLOTS)out.add(Map.of("id",s.id(),"x",s.x(),"y",s.y(),"surface",s.surface().name(),"label",s.labelRu()));
+        for(var s:round.layout().slots())out.add(Map.of("id",s.id(),"x",s.x(),"y",s.y(),"surface",s.surface().name(),"label",s.labelRu()));
         return out;
     }
     private static List<Map<String,Object>> objects(RoomState state){
@@ -120,6 +120,7 @@ final class ForgottenRoomSession {
         Map<String,Object> v=new LinkedHashMap<>();
         v.put("sessionId",id);v.put("phase",phase.name());v.put("serverTime",now);v.put("phaseStartedAt",phaseStarted);
         v.put("phaseEndsAt",phaseEnds==Long.MAX_VALUE?-1:phaseEnds);v.put("difficulty",round.difficulty().name());
+        v.put("room",round.layout().id());v.put("background",round.layout().background());v.put("roomName",round.layout().nameRu());
         v.put("seats",seats);v.put("guessLimit",round.guessLimit());v.put("places",places());
         int me=seats.indexOf(self);v.put("role",host?"HOST":me>=0?"PLAYER":"SPECTATOR");
         v.put("submitted",seats.stream().filter(answers::containsKey).toList());

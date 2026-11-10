@@ -12,7 +12,7 @@ class ForgottenRoomTest {
     @Test void everyDifficultyGeneratesTheRightNumberOfObjectsAndChanges(){
         for(RoomDifficulty d:RoomDifficulty.values())for(long seed=0;seed<400;seed++){
             var round=RoomGenerator.generate(seed,d);
-            assertTrue(round.original().size()>=d.minObjects&&round.original().size()<=d.maxObjects,d+" objects "+round.original().size());
+            assertTrue(round.original().size()>=Math.min(d.minObjects,round.layout().slots().size()-6)&&round.original().size()<=d.maxObjects,d+" objects "+round.original().size());
             assertTrue(round.changes().size()>=d.minChanges&&round.changes().size()<=d.maxChanges,d+" changes");
             assertEquals(round.changes().size(),round.guessLimit());
         }
@@ -38,7 +38,7 @@ class ForgottenRoomTest {
                 if(c.after()!=null)assertEquals(c.after(),round.changed().at(c.after().slotId()));
                 else assertTrue(round.changed().find(c.objectId()).isEmpty(),"vanished object still there");
                 switch(c.type()){
-                    case MOVED->assertTrue(RoomCatalog.distance(RoomCatalog.slot(c.before().slotId()),RoomCatalog.slot(c.after().slotId()))>=d.minMove);
+                    case MOVED->assertTrue(RoomCatalog.distance(round.layout().slot(c.before().slotId()),round.layout().slot(c.after().slotId()))>=d.minMove);
                     case ROTATED->assertNotEquals(c.before().rotated(),c.after().rotated());
                     case CHANGED->assertNotEquals(c.before().variant(),c.after().variant());
                     case TOGGLED->assertNotEquals(c.before().lit(),c.after().lit());
@@ -55,12 +55,12 @@ class ForgottenRoomTest {
         for(RoomDifficulty d:RoomDifficulty.values())for(long seed=0;seed<300;seed++){
             var round=RoomGenerator.generate(seed,d);
             for(var state:List.of(round.original(),round.changed())){
-                for(var p:state.bySlot().values()){var slot=RoomCatalog.slot(p.slotId());var def=RoomCatalog.object(p.objectId());
+                for(var p:state.bySlot().values()){var slot=round.layout().slot(p.slotId());var def=RoomCatalog.object(p.objectId());
                     assertTrue(def.surfaces().contains(slot.surface()),def.id()+" on "+slot.surface());
                     assertTrue(slot.x()>0&&slot.x()<1&&slot.y()>0&&slot.y()<1);
-                    assertTrue(d.sizes.contains(def.size()));
+                    assertTrue(d.sizes.contains(def.size()));assertTrue(round.layout().hasSlot(p.slotId()));
                     assertTrue(p.variant()>=0&&p.variant()<def.variants());}
-                assertTrue(RoomCatalog.SLOTS.size()-state.size()>=5,"an empty place must never betray a disappearance");
+                assertTrue(round.layout().slots().size()-state.size()>=5,"an empty place must never betray a disappearance");
             }
         }
     }
@@ -76,7 +76,7 @@ class ForgottenRoomTest {
         // The same place twice never counts twice: only the first answer for a place is read.
         assertEquals(100,RoomScoring.score(changes,List.of(new Guess(place,first.type()),new Guess(place,first.type())),R).points());
         assertEquals(25,RoomScoring.score(changes,List.of(new Guess(place,other),new Guess(place,first.type())),R).points());
-        String untouched=RoomCatalog.SLOTS.stream().map(RoomCatalog.Slot::id).filter(s->changes.stream().noneMatch(c->c.slots().contains(s))).findFirst().orElseThrow();
+        String untouched=round.layout().slots().stream().map(RoomCatalog.Slot::id).filter(s->changes.stream().noneMatch(c->c.slots().contains(s))).findFirst().orElseThrow();
         var wrong=RoomScoring.score(changes,List.of(new Guess(untouched,ChangeType.MOVED)),R);
         assertEquals(0,wrong.points());assertEquals(1,wrong.wrong());
         assertEquals(0,RoomScoring.score(changes,List.of(),R).points());
