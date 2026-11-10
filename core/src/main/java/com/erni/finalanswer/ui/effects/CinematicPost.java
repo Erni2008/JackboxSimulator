@@ -17,7 +17,7 @@ import com.badlogic.gdx.utils.Disposable;
 public final class CinematicPost implements Disposable {
     /** Tunable look; defaults suit dark candle-lit interiors. */
     public static final class Look {
-        public float bloom=.85f,threshold=.62f,grain=.045f,vignette=.42f,fringe=.0012f,contrast=1.08f,saturation=1.06f,exposure=1f;
+        public float bloom=.42f,threshold=.74f,grain=.035f,vignette=.38f,fringe=0f,contrast=1.06f,saturation=1.04f,exposure=.97f;
         /** Cool tint added to shadows and warm tint added to highlights. */
         public final float[] shadows={-.012f,.0f,.022f},highlights={.035f,.012f,-.03f};
     }

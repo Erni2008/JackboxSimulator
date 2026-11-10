@@ -112,13 +112,16 @@ final class ForgottenRoomRenderer {
         float[] r=WINDOWS.get(base);if(r==null)return;
         float x0=r[0]*W,x1=r[2]*W,top=(1-r[1])*H,bot=(1-r[3])*H,w=x1-x0,h=top-bot;
         b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
-        float wind=MathUtils.sin(time*.23f)*.5f+.6f;
+        float gust=.5f+.5f*MathUtils.sin(time*.11f)*MathUtils.sin(time*.07f+1.3f);
         for(int i=0;i<FLAKES;i++){
-            float depth=fd[i],speed=(.035f+.09f*depth)*fs[i];             // far flakes slow and small, near ones fast and big
-            float v=(fy[i]+time*speed)%1f,u=(fx[i]+time*speed*.35f*wind+MathUtils.sin(time*(.7f+depth)+fp[i])*.012f)%1f;
-            float x=x0+u*w,y=top-v*h,size=1.4f+depth*3.4f*fs[i];
-            float edge=Math.min(Math.min(u,1-u),Math.min(v,1-v))*14f;float a=(.28f+.5f*depth)*Math.min(1,edge);
-            if(a<=0)continue;b.setColor(.86f,.9f,1f,a);b.draw(art.soft,x-size,y-size,size*2,size*2);
+            // most flakes are far away: tiny, faint and slow; a few near ones are larger and fall a little faster
+            float depth=fd[i]*fd[i],fall=(.018f+.045f*depth)*fs[i];
+            float v=(fy[i]+time*fall)%1f;
+            float drift=time*fall*(.18f+.25f*gust)+MathUtils.sin(time*(.35f+.4f*depth)+fp[i])*(.006f+.01f*depth);
+            float u=((fx[i]+drift)%1f+1f)%1f;
+            float x=x0+u*w,y=top-v*h,size=.7f+depth*2.2f*fs[i];
+            float edge=Math.min(Math.min(u,1-u),Math.min(v,1-v))*20f;float a=(.10f+.30f*depth)*Math.min(1,edge);
+            if(a<=0)continue;b.setColor(.80f,.85f,.95f,a);b.draw(art.soft,x-size,y-size*1.7f,size*2,size*3.4f); // a touch of motion blur
         }
         b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
         Texture frame=art.background(m.background.substring(0,m.background.lastIndexOf('.'))+"_window.png");
@@ -146,7 +149,7 @@ final class ForgottenRoomRenderer {
     /** Additive warm pool of light around a place, for the reveal spotlight. */
     void spotlight(SpriteBatch b,ForgottenRoomModel m,String slot,float strength){
         var p=m.places.get(slot);if(p==null||strength<=0)return;float x=p.x()*W,y=(1-p.y())*H+70;
-        b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);b.setColor(1f,.78f,.48f,.55f*strength);b.draw(art.soft,x-230,y-230,460,460);
-        b.setColor(1f,.9f,.7f,.35f*strength);b.draw(art.soft,x-110,y-110,220,220);b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);b.setColor(1,1,1,1);
+        b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);b.setColor(1f,.78f,.48f,.34f*strength);b.draw(art.soft,x-240,y-240,480,480);
+        b.setColor(1f,.86f,.62f,.16f*strength);b.draw(art.soft,x-120,y-120,240,240);b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);b.setColor(1,1,1,1);
     }
 }
