@@ -44,7 +44,10 @@ final class ForgottenRoomArt implements AutoCloseable {
     Texture portrait(String characterId){return characterId==null||characterId.isEmpty()?null:load("forgotten_room/portraits/"+characterId+".png");}
     /** Real artwork for this look of the object, or null while it hasn't been made yet. */
     /** Art for an object in a room: a picture in the room's own frame is pre-warped to that frame's perspective. */
+    private final Prop3DRenderer props=new Prop3DRenderer();
+    private static String room(ForgottenRoomModel m){String b=m.background;if(b.contains("/"))b=b.substring(b.lastIndexOf('/')+1);return b.contains(".")?b.substring(0,b.lastIndexOf('.')):b;}
     Texture object(ForgottenRoomModel m,ForgottenRoomModel.Obj o,boolean inFrame){
+        if(!inFrame&&!Boolean.getBoolean("forgotten.noProps3d")){Texture t=props.get(o.id(),room(m));if(t!=null)return t;}
         if(inFrame&&m.background.contains(".")){Texture t=load(m.background.substring(0,m.background.lastIndexOf('.'))+"_"+o.id()+"_v"+o.variant()+".png");if(t!=null)return t;}
         return object(o);
     }
@@ -147,5 +150,5 @@ final class ForgottenRoomArt implements AutoCloseable {
         for(int y=-rad;y<=rad;y++)for(int x=-rad;x<=rad;x++)if(Math.abs(x)+Math.abs(y)<=rad)p.drawPixel(cx+x,cy+y,Color.rgba8888(.93f,.78f,.47f,Math.abs(x)+Math.abs(y)<=rad-2?1:.6f));
         Texture t=new Texture(p);t.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();return t;
     }
-    @Override public void close(){for(Texture t:cache.values())t.dispose();cache.clear();soft.dispose();pixel.dispose();plaque.dispose();plaqueSmall.dispose();frameCanvas.dispose();vignette.dispose();dial.dispose();medal.dispose();}
+    @Override public void close(){for(Texture t:cache.values())t.dispose();cache.clear();soft.dispose();pixel.dispose();plaque.dispose();plaqueSmall.dispose();frameCanvas.dispose();vignette.dispose();dial.dispose();medal.dispose();props.dispose();}
 }
