@@ -3,16 +3,14 @@ package com.erni.finalanswer.cursedboxes;
 /** What the host says while refilling the shotgun mid-turn (more than five shots). Never the same line twice in a row. */
 public final class CursedReloadLines {
     public static final String[] LINES={
-        "Пять патронов?! Кто вообще так считает выстрелы...",
-        "Минуточку! Дробовик не резиновый!",
         "Не расходимся, я перезаряжаюсь!",
-        "Так... где-то тут были ещё патроны...",
-        "Эти ящики сами себя не прострелят.",
+        "Эти ящики сами себя не прострелят... щас только перезаряжусь.",
         "Я слышу, как вы там дышите.",
-        "Скелет, хватит хихикать в ящике!",
-        "Ещё чуть-чуть, и я тебя найду.",
-        "Кто спрятал мои патроны? Признавайтесь!",
-        "Патроны кончились. Терпение — нет."};
+        "Патроны кончились. Терпение — нет.",
+        "Кто-то в ящике только что икнул. Я запомнил.",
+        "Спокойно, это не промах. Это разминка.",
+        "Сидите тихо. Я уже почти чувствую запах страха.",
+        "Ещё пара патронов — и кто-то станет призраком."};
     private final int[] order=new int[LINES.length];private final java.util.Random random;private int used=LINES.length,last=-1;
     public CursedReloadLines(long seed){random=new java.util.Random(seed);for(int i=0;i<order.length;i++)order[i]=i;}
     /** Next line from a shuffled deck; a new deck never starts with the line just spoken. */
