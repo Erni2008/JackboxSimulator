@@ -31,6 +31,19 @@ final class ForgottenRoomRenderer {
     private static String roomKey(ForgottenRoomModel m){String b=m.background;if(b.contains("/"))b=b.substring(b.lastIndexOf('/')+1);return b.contains(".")?b.substring(0,b.lastIndexOf('.')):b;}
     /** Daylight rooms (warm sun through the window) versus night rooms (moon and candles). */
     private boolean day;
+    private final float[] amb=new float[3],quad=new float[20];
+    /** Main light of each room (normalised): where cast shadows fall away from, and which side gets the rim light. */
+    private float lightX(){return day?.20f:.17f;}
+    /** Draws {@code tex} into an arbitrary quad (corners bottom-left, bottom-right, top-right, top-left) with one tint. */
+    private void quad(SpriteBatch b,Texture tex,float x1,float y1,float x2,float y2,float x3,float y3,float x4,float y4,boolean flipX,float color){
+        float u0=flipX?1:0,u1=flipX?0:1;
+        float[] q=quad;
+        q[0]=x1;q[1]=y1;q[2]=color;q[3]=u0;q[4]=1;
+        q[5]=x4;q[6]=y4;q[7]=color;q[8]=u0;q[9]=0;
+        q[10]=x3;q[11]=y3;q[12]=color;q[13]=u1;q[14]=0;
+        q[15]=x2;q[16]=y2;q[17]=color;q[18]=u1;q[19]=1;
+        b.draw(tex,q,0,20);
+    }
     float flicker(float seed){return .86f+.08f*MathUtils.sin(time*7.3f+seed)+.05f*MathUtils.sin(time*13.1f+seed*2)+.03f*MathUtils.sin(time*23f+seed*3);}
 
     /** Background, moon haze, objects and ambient light. {@code objects} is null in darkness. */
@@ -80,8 +93,17 @@ final class ForgottenRoomRenderer {
             if(w>maxW){h*=maxW/w;w=maxW;}}
         if(frame&&placeholder)tex=art.frameCanvas;
         float y=frame?base-h/2:hang?base-h:base;
-        if(!frame&&!hang&&!ghost){ // soft contact shadow
-            b.setColor(0,0,0,.55f*alpha);b.draw(art.soft,x-w*.62f,y-h*.05f,w*1.24f,h*.16f);}
+        boolean standing=!frame&&!hang&&!place.surface().equals("WALL");
+        float side=Math.signum(place.x()-lightX());if(side==0)side=1;     // shadows fall away from the window
+        if(standing&&!ghost&&!placeholder&&!(o.turn().equals("TOPPLE")&&turned>.01f)){
+            // cast shadow: the object's own silhouette laid down on the surface, stretched away from the light, fading out
+            float len=h*(day?.55f:.42f),lean=side*len*(day?1.1f:.8f),flat=len*.32f;
+            boolean flip=o.turn().equals("FLIP")&&o.rotated();
+            float sc=Color.toFloatBits(0,0,0,(day?.42f:.34f)*alpha);
+            quad(b,tex,x-w/2,y,x+w/2,y,x+w/2+lean,y+flat,x-w/2+lean,y+flat,flip,sc);
+        }
+        if(!frame&&!hang&&!ghost){ // tight contact shadow right under the base
+            b.setColor(0,0,0,.6f*alpha);b.draw(art.soft,x-w*.5f,y-h*.04f,w,h*.1f);}
         boolean glow=o.light()&&o.lit();
         if(glow&&!ghost){b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);float f=flicker(o.id().hashCode()%7);
             b.setColor(1f,.66f,.3f,.42f*f*alpha);b.draw(art.soft,x-h*.95f,y+h*.15f,h*1.9f,h*1.9f);
@@ -93,10 +115,21 @@ final class ForgottenRoomRenderer {
         else{ // settle the art into the room's light: cold by the moonlit window, warm by the sconce, dim in between
             float mx=place.x(),cold=day?0:MathUtils.clamp(1-mx/.4f,0,1),warm=day?.8f:MathUtils.clamp((mx-.62f)/.38f,0,1),depth=.08f*(1-place.y());
             b.setColor(.92f-depth+.08f*warm-.04f*cold,.87f-depth+.03f*warm-.01f*cold,.83f-depth-.03f*warm+.08f*cold,alpha);}
+        if(!ghost&&!placeholder&&!glow){ // match the patch of room the object stands in (colour and brightness)
+            art.ambient(m.background,place.x(),place.y()-(frame?0:.04f),amb);
+            float lum=.3f*amb[0]+.59f*amb[1]+.11f*amb[2],mx2=Math.max(.01f,Math.max(amb[0],Math.max(amb[1],amb[2])));
+            float k=MathUtils.clamp(.62f+lum*1.25f,.62f,1.08f);Color c=b.getColor();
+            b.setColor(MathUtils.lerp(c.r,k*amb[0]/mx2,.55f),MathUtils.lerp(c.g,k*amb[1]/mx2,.55f),MathUtils.lerp(c.b,k*amb[2]/mx2,.55f),alpha);}
         float sx=1,rot=0,cy=y+h/2;
         if(o.turn().equals("FLIP"))sx=MathUtils.cos(MathUtils.PI*turned);
         else if(o.turn().equals("TOPPLE")){rot=90*turned;cy=MathUtils.lerp(y+h/2,y+w/2,turned);}
         if(Math.abs(sx)<.06f)sx=sx<0?-.06f:.06f;
+        if(!ghost&&!placeholder&&!frame){ // rim light: a warm sliver along the edge that faces the main light
+            Color keep=new Color(b.getColor());b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
+            float off=Math.max(1.5f,w*.012f)*-Math.signum(place.x()-lightX());
+            b.setColor(day?1f:.7f,day?.86f:.8f,day?.6f:1f,(day?.22f:.14f)*alpha);
+            b.draw(tex,x-w/2+off,cy-h/2+off*.4f,w/2,h/2,w,h,sx,1,rot,0,0,tex.getWidth(),tex.getHeight(),false,false);
+            b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);b.setColor(keep);}
         b.draw(tex,x-w/2,cy-h/2,w/2,h/2,w,h,sx,1,rot,0,0,tex.getWidth(),tex.getHeight(),false,false);
         if(placeholder){ // the object's name on the plaque (upside down plaques show the crest at the bottom)
             label.getData().setScale(frame?.7f:o.size().equals("SMALL")?.42f:.48f);

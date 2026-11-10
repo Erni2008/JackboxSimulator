@@ -18,6 +18,28 @@ final class ForgottenRoomArt implements AutoCloseable {
         soft=radial(256);pixel=solid();plaque=placeholder(220,320,false);plaqueSmall=placeholder(200,200,false);frameCanvas=placeholder(320,300,true);vignette=vignette(512,288);dial=dial(512);medal=medal(256);
     }
     Texture background(String path){return load(path);}
+    private final Map<String,float[]> grids=new HashMap<>();
+    private static final int GW=48,GH=27;
+    /**
+     * The room's average colour around a point (normalised, top-left origin), from a coarse grid of the painted
+     * background, so each object can be lit like the patch of room it stands in. Returns {r,g,b}.
+     */
+    float[] ambient(String path,float u,float v,float[] out){
+        float[] g=grids.computeIfAbsent(path,this::grid);
+        if(g==null){out[0]=out[1]=out[2]=.5f;return out;}
+        int x=Math.max(0,Math.min(GW-1,(int)(u*GW))),y=Math.max(0,Math.min(GH-1,(int)(v*GH)));
+        float r=0,gg=0,b=0;int n=0;
+        for(int dy=-1;dy<=1;dy++)for(int dx=-1;dx<=1;dx++){int xx=Math.max(0,Math.min(GW-1,x+dx)),yy=Math.max(0,Math.min(GH-1,y+dy));int i=(yy*GW+xx)*3;r+=g[i];gg+=g[i+1];b+=g[i+2];n++;}
+        out[0]=r/n;out[1]=gg/n;out[2]=b/n;return out;
+    }
+    private float[] grid(String path){
+        var f=Gdx.files.internal(path);if(!f.exists())return null;
+        Pixmap src=new Pixmap(f);float[] g=new float[GW*GH*3];int sw=src.getWidth(),sh=src.getHeight();Color c=new Color();
+        for(int y=0;y<GH;y++)for(int x=0;x<GW;x++){float r=0,gg=0,b=0;int n=0;
+            for(int k=0;k<16;k++){int px=(int)((x+(k%4+.5f)/4f)*sw/GW),py=(int)((y+(k/4+.5f)/4f)*sh/GH);Color.rgba8888ToColor(c,src.getPixel(px,py));r+=c.r;gg+=c.g;b+=c.b;n++;}
+            int i=(y*GW+x)*3;g[i]=r/n;g[i+1]=gg/n;g[i+2]=b/n;}
+        src.dispose();return g;
+    }
     /** A player's character face, baked round on dark velvet (forgotten_room/portraits/<id>.png); null if unknown. */
     Texture portrait(String characterId){return characterId==null||characterId.isEmpty()?null:load("forgotten_room/portraits/"+characterId+".png");}
     /** Real artwork for this look of the object, or null while it hasn't been made yet. */
@@ -33,7 +55,7 @@ final class ForgottenRoomArt implements AutoCloseable {
     }
     /** Preload every look a round can show, so the blackout never stalls on disk reads. */
     void preload(ForgottenRoomModel m){
-        background(m.background);
+        background(m.background);ambient(m.background,.5f,.5f,new float[3]);
         for(var list:List.of(m.objects,m.original))for(var o:list){object(o);object(m,o,true);}
         for(String id:m.characters.values())portrait(id);
         for(var c:m.changes){if(c.before()!=null)object(c.before());if(c.after()!=null)object(c.after());}
