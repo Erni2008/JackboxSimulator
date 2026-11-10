@@ -96,13 +96,13 @@ final class ForgottenRoomRenderer {
         return Math.min(base*(.78f+.42f*y),cap);
     }
     private void drawMotes(SpriteBatch b){
+        // dust hangs in the moonbeam inside the room: tiny, faint, hovering (never falling like snow), and kept off the
+        // window and its sill so it can't be mistaken for the snow outside
         b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
         for(int i=0;i<MOTES;i++){
-            // dust lives in the moonbeam (window → floor), clear of the object rows
-            float u=(mx[i]+time*.004f*ms[i])%1f,v=(my[i]+time*.011f*ms[i])%1f;
-            float x=210+u*520+v*260+MathUtils.sin(time*.6f+mp[i])*14,y=H-(250+v*560);
-            float a=.20f*(.5f+.5f*MathUtils.sin(time*1.3f+mp[i]))*(1-Math.abs(u-.5f)*1.6f);
-            if(a<=0)continue;b.setColor(.82f,.88f,1f,a);float s=3+ms[i]*3;b.draw(art.soft,x-s,y-s,s*2,s*2);}
+            float x=560+mx[i]*520+MathUtils.sin(time*.13f*ms[i]+mp[i])*26,y=280+my[i]*420+MathUtils.sin(time*.09f*ms[i]+mp[i]*1.7f)*18;
+            float a=.07f*(.5f+.5f*MathUtils.sin(time*.8f*ms[i]+mp[i]));
+            if(a<=.004f)continue;b.setColor(.80f,.84f,.95f,a);float sz=1.2f+ms[i]*1.4f;b.draw(art.soft,x-sz,y-sz,sz*2,sz*2);}
         b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
     }
     /** Snow falling outside the window, behind the glazing bars (the room's frame overlay is drawn over it). */
