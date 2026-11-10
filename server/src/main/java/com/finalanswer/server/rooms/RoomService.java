@@ -76,7 +76,7 @@ public final class RoomService {
     public synchronized String join(String code,Map<String,String> data) {return joinInternal(code,data,false);}
     private String joinInternal(String code,Map<String,String> data,boolean developmentJoin) {
         Room room=find(code);
-        if(room.game!=null || room.impostor!=null || room.cursed!=null || (room.lastCommand!=null&&!developmentJoin||room.cards!=null)) throw new Failure(409,"GAME_ALREADY_STARTED");
+        if(room.game!=null || room.impostor!=null || room.cursed!=null || (room.lastCommand!=null&&!developmentJoin||room.cards!=null||room.forgotten!=null)) throw new Failure(409,"GAME_ALREADY_STARTED");
         String name=text(data.get("name"),MAX_NICKNAME,"INVALID_NICKNAME");
         String password=data.getOrDefault("password","");
         if(password.length()>64 || room.passwordHash!=null&&!MessageDigest.isEqual(room.passwordHash,hash(password,room.salt)))
@@ -107,7 +107,7 @@ public final class RoomService {
     public synchronized String view(String code) { return json(snapshot(find(code),null,false)); }
     public synchronized String reroll(String code,Map<String,String> data) {
         Room room=find(code); Member host=authenticate(room,data.getOrDefault("token","")); requireHost(host);
-        if(room.game!=null || room.impostor!=null || room.cursed!=null || (room.lastCommand!=null||room.cards!=null) || !room.members.isEmpty()) throw new Failure(409,"ROOM_NOT_EMPTY");
+        if(room.game!=null || room.impostor!=null || room.cursed!=null || (room.lastCommand!=null||room.cards!=null||room.forgotten!=null) || !room.members.isEmpty()) throw new Failure(409,"ROOM_NOT_EMPTY");
         // Generate while the old code is still reserved, so reroll always changes it.
         String replacement=code();
         rooms.remove(room.code); room.code=replacement; rooms.put(room.code,room); host.seen=now();
@@ -169,14 +169,16 @@ public final class RoomService {
         }
         if(Set.of("START_LAST_COMMAND","LAST_COMMAND_ACTION","END_LAST_COMMAND").contains(message.type())){lastCommandCommand(room,member,peer,message);return;}
         if(Set.of("START_CARDS","CARDS_DRAW","CARDS_SHUFFLE","CARDS_VOTE","END_CARDS").contains(message.type())){cardsCommand(room,member,peer,message);return;}
+        if(Set.of("START_FORGOTTEN_ROOM","ROOM_SUBMIT","END_FORGOTTEN_ROOM").contains(message.type())){forgottenCommand(room,member,peer,message);return;}
         if(room.cards!=null)throw new Failure(409,"CARDS_IN_PROGRESS");
+        if(room.forgotten!=null)throw new Failure(409,"FORGOTTEN_ROOM_IN_PROGRESS");
         if(room.lastCommand!=null)throw new Failure(409,"LAST_COMMAND_IN_PROGRESS");
         if(message.type().startsWith("CURSED_") || message.type().equals("START_CURSED_BOXES")){
             cursedCommand(room,member,peer,message);return;
         }
         if(message.type().equals("UPDATE_IMPOSTOR_SETTINGS")) {
             requireHost(member);
-            if(room.game!=null || room.impostor!=null || room.cursed!=null || (room.lastCommand!=null||room.cards!=null))throw new Failure(409,"SETTINGS_LOCKED");
+            if(room.game!=null || room.impostor!=null || room.cursed!=null || (room.lastCommand!=null||room.cards!=null||room.forgotten!=null))throw new Failure(409,"SETTINGS_LOCKED");
             if(!data.keySet().equals(Set.of("roomCode","sessionId","settings")) || suppliedCode.isBlank()
                     || !room.lobbyId.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_IMPOSTOR_SESSION");
             try {
@@ -368,7 +370,7 @@ public final class RoomService {
         switch(message.type()){
             case "START_CARDS"->{
                 requireHost(member);
-                if(room.game!=null||room.impostor!=null||room.cursed!=null||room.lastCommand!=null||room.cards!=null)throw new Failure(409,"GAME_ALREADY_STARTED");
+                if(room.game!=null||room.impostor!=null||room.cursed!=null||room.lastCommand!=null||room.cards!=null||room.forgotten!=null)throw new Failure(409,"GAME_ALREADY_STARTED");
                 if(!room.lobbyId.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_CARDS_SESSION");
                 List<String> online=room.members.values().stream().filter(m->m.peer!=null&&!m.left).map(m->m.id).toList();
                 List<String> seats;
@@ -391,13 +393,48 @@ public final class RoomService {
             default->throw new Failure(400,"UNKNOWN_COMMAND");
         }
     }
+    /** THE FORGOTTEN ROOM: host starts/ends; seated players submit once. Score-only: points are added to each player's score once. */
+    private void forgottenCommand(Room room,Member member,Peer peer,Message message){
+        JsonObject data=message.payload();
+        switch(message.type()){
+            case "START_FORGOTTEN_ROOM"->{
+                requireHost(member);
+                if(room.game!=null||room.impostor!=null||room.cursed!=null||room.lastCommand!=null||room.cards!=null||room.forgotten!=null)throw new Failure(409,"GAME_ALREADY_STARTED");
+                if(!room.lobbyId.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_ROOM_SESSION");
+                var difficulty=com.erni.finalanswer.gameplay.forgottenroom.RoomDifficulty.parse(data.has("difficulty")?data.get("difficulty").getAsString():null);
+                List<String> seats=room.members.values().stream().filter(m->m.peer!=null&&!m.left).map(m->m.id).toList();
+                room.forgotten=new ForgottenRoomSession(seats,difficulty,random.nextLong(),now());
+                System.out.println("[forgotten-room] start room="+room.code+" seats="+seats.size()+" difficulty="+difficulty);
+                broadcast(room,"FORGOTTEN_ROOM_STARTED");
+            }
+            case "END_FORGOTTEN_ROOM"->{requireHost(member);requireForgotten(room,data);room.forgotten=null;room.lobbyId=UUID.randomUUID().toString();broadcast(room,"FORGOTTEN_ROOM_ENDED");}
+            case "ROOM_SUBMIT"->{requireForgotten(room,data);
+                List<com.erni.finalanswer.gameplay.forgottenroom.RoomScoring.Guess> guesses=new ArrayList<>();
+                try{for(JsonElement e:data.getAsJsonArray("answers")){var o=e.getAsJsonObject();
+                    guesses.add(new com.erni.finalanswer.gameplay.forgottenroom.RoomScoring.Guess(o.get("slot").getAsString(),com.erni.finalanswer.gameplay.forgottenroom.ChangeType.valueOf(o.get("type").getAsString())));}}
+                catch(RuntimeException e){throw new Failure(400,"ROOM_INVALID_ANSWERS");}
+                if(room.forgotten.submit(member.id,message.requestId(),guesses,now())){
+                    room.forgotten.everyoneAnswered(room.members.values().stream().filter(m->m.peer!=null&&!m.left).map(m->m.id).toList(),now());
+                    broadcast(room,"FORGOTTEN_ROOM_UPDATED");}
+                else reply(peer,room,member,message);}
+            default->throw new Failure(400,"UNKNOWN_COMMAND");
+        }
+    }
+    private static void requireForgotten(Room room,JsonObject data){if(room.forgotten==null||!room.forgotten.id.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_ROOM_SESSION");}
+    /** Advance the forgotten room; on the first scored tick add each player's points to their room score. */
+    private boolean tickForgotten(Room room){
+        var f=room.forgotten;boolean wasScored=f.scored();boolean changed=f.tick(now());
+        if(!changed&&f.phase()==ForgottenRoomSession.Phase.ANSWER_PHASE)changed=f.everyoneAnswered(room.members.values().stream().filter(m->m.peer!=null&&!m.left).map(m->m.id).toList(),now());
+        if(!wasScored&&f.scored())for(var e:f.results().entrySet()){Member m=room.members.get(e.getKey());if(m!=null)m.score+=e.getValue().points();}
+        return changed;
+    }
     private static void requireCards(Room room,JsonObject data){if(room.cards==null||!room.cards.id.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_CARDS_SESSION");}
     private void lastCommandCommand(Room room,Member member,Peer peer,Message message){
         JsonObject data=message.payload();requireRoomCode(room,data);
         if(message.type().equals("START_LAST_COMMAND")){
             requireHost(member);
             if(!data.keySet().equals(Set.of("roomCode","sessionId","seed"))||!room.lobbyId.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_LAST_COMMAND_SESSION");
-            if(room.game!=null||room.impostor!=null||room.cursed!=null||(room.lastCommand!=null||room.cards!=null))throw new Failure(409,"GAME_ALREADY_STARTED");
+            if(room.game!=null||room.impostor!=null||room.cursed!=null||(room.lastCommand!=null||room.cards!=null||room.forgotten!=null))throw new Failure(409,"GAME_ALREADY_STARTED");
             if(room.members.isEmpty())throw new Failure(409,"NOT_ENOUGH_PLAYERS");
             if(room.members.values().stream().anyMatch(m->m.peer==null||m.left))throw new Failure(409,"PLAYER_OFFLINE");
             long seed;try{seed=Long.parseLong(Protocol.string(data,"seed"));}catch(NumberFormatException e){throw new Failure(400,"INVALID_LAST_COMMAND_SEED");}
@@ -470,7 +507,7 @@ public final class RoomService {
     /** Server-only assignment hook. No wire command or automatic participant-selection policy. */
     public synchronized String installImpostorSession(String code,List<String> activeIds) {
         Room room=find(code);
-        if(room.game!=null || room.impostor!=null || room.cursed!=null || (room.lastCommand!=null||room.cards!=null))throw new Failure(409,"GAME_ALREADY_STARTED");
+        if(room.game!=null || room.impostor!=null || room.cursed!=null || (room.lastCommand!=null||room.cards!=null||room.forgotten!=null))throw new Failure(409,"GAME_ALREADY_STARTED");
         Set<String> available=new HashSet<>();
         room.members.values().stream().filter(m->m.peer!=null&&!m.left).forEach(m->available.add(m.id));
         if(!available.containsAll(activeIds))throw new Failure(400,"INVALID_IMPOSTOR_PARTICIPANTS");
@@ -482,7 +519,7 @@ public final class RoomService {
     public synchronized String startImpostorGame(String code,List<String> activeIds) {
         // Prepare hidden state before installation, so invalid word configuration cannot strand a room.
         Room room=find(code);
-        if(room.game!=null || room.impostor!=null || room.cursed!=null || (room.lastCommand!=null||room.cards!=null))throw new Failure(409,"GAME_ALREADY_STARTED");
+        if(room.game!=null || room.impostor!=null || room.cursed!=null || (room.lastCommand!=null||room.cards!=null||room.forgotten!=null))throw new Failure(409,"GAME_ALREADY_STARTED");
         Set<String> available=new HashSet<>();
         room.members.values().stream().filter(m->m.peer!=null&&!m.left).forEach(m->available.add(m.id));
         if(!available.containsAll(activeIds))throw new Failure(400,"INVALID_IMPOSTOR_PARTICIPANTS");
@@ -524,15 +561,16 @@ public final class RoomService {
     public synchronized void tick() {
         for(Room room:rooms.values())if(room.lastCommand!=null&&room.lastCommand.timeout(now()))broadcast(room,"LAST_COMMAND_UPDATED");
         for(Room room:rooms.values())if(room.cards!=null&&room.cards.tick(now()))broadcast(room,"CARDS_UPDATED");
+        for(Room room:rooms.values())if(room.forgotten!=null&&tickForgotten(room))broadcast(room,"FORGOTTEN_ROOM_UPDATED");
         for(Room room:new ArrayList<>(rooms.values())) {
             // Detect half-open sockets even when the transport has not reported a close.
-            for(Member member:allMembers(room))if(room.game==null && room.impostor==null && room.cursed==null && room.lastCommand==null&&room.cards==null && member.peer!=null && now()-member.seen>45_000){
+            for(Member member:allMembers(room))if(room.game==null && room.impostor==null && room.cursed==null && room.lastCommand==null&&room.cards==null&&room.forgotten==null && member.peer!=null && now()-member.seen>45_000){
                 disconnectMember(member,"CONNECTION_LOST");broadcast(room,"PLAYER_LEFT");
             }
             // Host heartbeat keeps an unconfirmed CREATE -> GENERATE room alive too.
             if(room.host.peer==null && now()-room.host.seen>120_000) { closeRoom(room,"HOST_DISCONNECTED"); continue; }
             for(Member member:new ArrayList<>(room.members.values())) {
-                if(room.game==null && room.impostor==null && room.cursed==null && room.lastCommand==null&&room.cards==null && member.peer==null && now()-member.seen>600_000) {
+                if(room.game==null && room.impostor==null && room.cursed==null && room.lastCommand==null&&room.cards==null&&room.forgotten==null && member.peer==null && now()-member.seen>600_000) {
                     room.members.remove(member.token); broadcast(room,"PLAYER_LEFT");
                 }
             }
@@ -765,11 +803,11 @@ public final class RoomService {
         value.put("protocolVersion",Protocol.VERSION); value.put("roomId",room.id); value.put("code",room.code); value.put("roomCode",room.code);
         value.put("name",room.name); value.put("maxPlayers",room.maxPlayers); value.put("gameMode",room.mode); value.put("questionCount",room.questionCount);
         value.put("roomSettings",Map.of("name",room.name,"maxPlayers",room.maxPlayers,"gameMode",room.mode,"questionCount",room.questionCount,"passwordRequired",room.passwordHash!=null));
-        value.put("roomStatus",(room.lastCommand!=null||room.cards!=null)?"IN_GAME":room.cursed!=null?room.cursed.finished()?"GAME_FINISHED":"IN_GAME":game==null?"LOBBY":phase==Phase.GAME_FINISHED?"GAME_FINISHED":"IN_GAME");
+        value.put("roomStatus",(room.lastCommand!=null||room.cards!=null||room.forgotten!=null)?"IN_GAME":room.cursed!=null?room.cursed.finished()?"GAME_FINISHED":"IN_GAME":game==null?"LOBBY":phase==Phase.GAME_FINISHED?"GAME_FINISHED":"IN_GAME");
         value.put("phase",phase.name()); value.put("revision",room.revision); value.put("serverTime",now()); value.put("publicUrl",publicUrl);
         value.put("hostConnected",room.host.peer!=null);
         value.put("availableCharacters",CHARACTERS.stream().filter(c->room.members.values().stream().noneMatch(m->m.characterId.equals(c))).toList());
-        value.put("canStart",game==null && room.impostor==null && room.cursed==null && room.lastCommand==null&&room.cards==null && room.host.peer!=null && !room.members.isEmpty() && room.members.values().stream().allMatch(m->m.peer!=null&&!m.left));
+        value.put("canStart",game==null && room.impostor==null && room.cursed==null && room.lastCommand==null&&room.cards==null&&room.forgotten==null && room.host.peer!=null && !room.members.isEmpty() && room.members.values().stream().allMatch(m->m.peer!=null&&!m.left));
         value.put("impostorSettings",room.impostorSettings);value.put("impostorWordCategories",List.of("DEFAULT"));
         value.put("lobbyId",room.lobbyId); value.put("language",room.language); value.put("elevatorDifficulty",room.difficulty.name());
         if(!room.webGameId.isEmpty()){value.put("webGame",room.webGame);value.put("webGameId",room.webGameId);}
@@ -795,6 +833,7 @@ public final class RoomService {
         }
         if(room.lastCommand!=null)value.put("lastCommand",room.lastCommand.snapshot(self==null?"":self.id,now()));
         if(room.cards!=null)value.put("cursedCards",room.cards.snapshot(self==null?"":self.id,self!=null&&self.host,now()));
+        if(room.forgotten!=null)value.put("forgottenRoom",room.forgotten.snapshot(self==null?"":self.id,self!=null&&self.host,now()));
         if(room.cursed!=null){
             Set<String> online=room.members.values().stream().filter(m->m.peer!=null&&!m.left).map(m->m.id).collect(java.util.stream.Collectors.toSet());
             value.put("cursedBoxes",room.cursed.snapshot(self==null?"":self.id,self!=null&&self.host,room.host.peer!=null,online,now()));
@@ -918,7 +957,7 @@ public final class RoomService {
         String lobbyId=UUID.randomUUID().toString();List<String> impostorRoster=List.of();
         com.erni.finalanswer.gameplay.impostor.ImpostorSettings impostorSettings=com.erni.finalanswer.gameplay.impostor.ImpostorSettings.defaults();
         com.erni.finalanswer.gameplay.impostor.ImpostorMatchResult lastImpostorResult;
-        final Map<String,Member> members=new LinkedHashMap<>(); Member host; GameSession game; ImpostorSession impostor; CursedBoxesSession cursed; LastCommandSession lastCommand; CursedCardsSession cards; long revision;
+        final Map<String,Member> members=new LinkedHashMap<>(); Member host; GameSession game; ImpostorSession impostor; CursedBoxesSession cursed; LastCommandSession lastCommand; CursedCardsSession cards; ForgottenRoomSession forgotten; long revision;
         Room(String code,String name,int max,String mode,int questions,byte[] salt,byte[] hash) {
             this.code=code;this.name=name;maxPlayers=max;this.mode=mode;questionCount=questions;this.salt=salt;passwordHash=hash;
         }
