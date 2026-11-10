@@ -31,11 +31,14 @@ final class ForgottenRoomRenderer {
         // cold moonlight through the window and the warm sconce on the right wall
         b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
         b.setColor(.45f,.58f,.9f,.10f);b.draw(art.soft,120,330,620,620);
+        moonRays(b);
         float f=flicker(1.7f);b.setColor(1f,.62f,.28f,.16f*f);b.draw(art.soft,1590,610,420,420);
+        b.setColor(1f,.7f,.36f,.10f*f);b.draw(art.soft,1360,380,700,700);
         b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
         if(objects!=null)for(var o:objects)drawObject(b,m,o,1,false);
         drawMotes(b);
-        b.setColor(1,1,1,1);b.draw(art.vignette,0,0,W,H);
+        floorFog(b);
+        b.setColor(1,1,1,.8f);b.draw(art.vignette,0,0,W,H);b.setColor(1,1,1,1);
     }
 
     /** One object at its place. {@code ghost} draws a cold translucent echo (reveal of what used to be there). */
@@ -94,6 +97,23 @@ final class ForgottenRoomRenderer {
             float x=210+u*520+v*260+MathUtils.sin(time*.6f+mp[i])*14,y=H-(250+v*560);
             float a=.20f*(.5f+.5f*MathUtils.sin(time*1.3f+mp[i]))*(1-Math.abs(u-.5f)*1.6f);
             if(a<=0)continue;b.setColor(.82f,.88f,1f,a);float s=3+ms[i]*3;b.draw(art.soft,x-s,y-s,s*2,s*2);}
+        b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
+    }
+    /** Volumetric moonlight: long soft shafts from the window down across the room, slowly breathing. */
+    private void moonRays(SpriteBatch b){
+        b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
+        float ox=330,oy=H-260;
+        for(int i=0;i<6;i++){float ang=-38-i*4.2f,len=980+i*70,wid=46+i*16;
+            float a=(.045f+.012f*MathUtils.sin(time*.35f+i*1.7f))*(1-i*.08f);
+            b.setColor(.62f,.74f,1f,a);
+            b.draw(art.soft,ox,oy-wid/2,0,wid/2,len,wid,1,1,ang,0,0,art.soft.getWidth(),art.soft.getHeight(),false,false);}
+        b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
+    }
+    /** Low cold mist drifting over the floor, below the furniture tops. */
+    private void floorFog(SpriteBatch b){
+        b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
+        for(int i=0;i<5;i++){float x=((time*(9+i*3)+i*430)%2600)-700,y=-60+i*22;
+            b.setColor(.55f,.6f,.72f,.05f);b.draw(art.soft,x,y,1100,260);}
         b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
     }
     /** Full-screen darkness with alpha {@code a} (blackout, reveal dimming). */

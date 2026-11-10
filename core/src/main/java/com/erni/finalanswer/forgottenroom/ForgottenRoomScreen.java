@@ -23,7 +23,7 @@ public final class ForgottenRoomScreen extends ScreenAdapter {
     private SpriteBatch batch;private ForgottenRoomArt art;private ForgottenRoomRenderer room;private ForgottenRoomHud hud;private BitmapFont title,body,label;
     private ForgottenRoomModel model;private final LongSupplier serverNow;private final Consumer<ForgottenRoomModel> onEnd;
     private String lastPhase="";private float phaseClock;private final Map<String,Sound> sounds=new HashMap<>();private Music ambience;
-    private boolean created;private int lastSecond=-1,lastRevealStep=-1;
+    private com.erni.finalanswer.ui.effects.CinematicPost post;private boolean created;private int lastSecond=-1,lastRevealStep=-1;
     private final List<ForgottenRoomModel.Obj> empty=List.of();
 
     /** @param serverNow the room server's clock (ms); @param onEnd called when the host leaves the results. */
@@ -38,7 +38,7 @@ public final class ForgottenRoomScreen extends ScreenAdapter {
     @Override public void show(){
         if(!created){created=true;batch=new SpriteBatch();art=new ForgottenRoomArt();
             title=com.erni.finalanswer.ui.UiFonts.gothic(72);body=com.erni.finalanswer.ui.UiFonts.gothic(38);label=com.erni.finalanswer.ui.UiFonts.nameplate(26);
-            room=new ForgottenRoomRenderer(art,label);hud=new ForgottenRoomHud(art,title,body);art.preload(model);loadAudio();}
+            room=new ForgottenRoomRenderer(art,label);post=new com.erni.finalanswer.ui.effects.CinematicPost();hud=new ForgottenRoomHud(art,title,body);art.preload(model);loadAudio();}
         Gdx.input.setInputProcessor(new InputAdapter(){@Override public boolean keyDown(int k){
             if((k==Input.Keys.ENTER||k==Input.Keys.ESCAPE)&&model.phase.equals("RESULTS")){onEnd.accept(model);return true;}return false;}});
         if(ambience!=null){ambience.setLooping(true);ambience.setVolume(.55f*AudioMix.GLOBAL.gain(AudioMix.Category.ENVIRONMENT));ambience.play();}
@@ -53,8 +53,8 @@ public final class ForgottenRoomScreen extends ScreenAdapter {
 
     @Override public void render(float delta){
         if(!model.phase.equals(lastPhase)){onPhase(model.phase);lastPhase=model.phase;}
-        phaseClock+=delta;room.update(delta);AudioMix.GLOBAL.update(delta);
-        ScreenUtils.clear(0,0,0,1);viewport.apply();batch.setProjectionMatrix(camera.combined);batch.begin();
+        phaseClock+=delta;room.update(delta);post.update(delta);AudioMix.GLOBAL.update(delta);
+        ScreenUtils.clear(0,0,0,1);viewport.apply();post.begin(viewport.getScreenWidth(),viewport.getScreenHeight());batch.setProjectionMatrix(camera.combined);batch.begin();
         float t=elapsed();
         switch(model.phase){
             case "INTRO"->{room.drawRoom(batch,model,model.objects,1);room.darkness(batch,1-ForgottenRoomHud.ease(t/2.2f)*.85f);hud.intro(batch,t,model.roomName);}
@@ -67,6 +67,7 @@ public final class ForgottenRoomScreen extends ScreenAdapter {
             default->room.drawRoom(batch,model,model.objects,1);
         }
         batch.end();
+        post.end(viewport.getScreenX(),viewport.getScreenY(),viewport.getScreenWidth(),viewport.getScreenHeight());
     }
     /** Lights die with two short stutters, then total darkness. */
     private static float blackout(float t){if(t<.08f)return .85f;if(t<.14f)return .2f;if(t<.22f)return 1;if(t<.27f)return .55f;return 1;}
@@ -121,7 +122,7 @@ public final class ForgottenRoomScreen extends ScreenAdapter {
     private void play(String name){var s=sounds.get(name);if(s!=null)s.play(.8f*AudioMix.GLOBAL.gain(AudioMix.Category.SFX));}
 
     @Override public void dispose(){
-        if(!created)return;batch.dispose();art.close();title.dispose();body.dispose();label.dispose();
+        if(!created)return;batch.dispose();post.dispose();art.close();title.dispose();body.dispose();label.dispose();
         for(Sound s:sounds.values())s.dispose();sounds.clear();if(ambience!=null)ambience.dispose();
     }
 }
