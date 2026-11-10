@@ -50,7 +50,7 @@ public final class ShotgunMagazineCheck {
             for(int i=0;i<60;i++){var l=lines.next(t->t==CursedCharacterType.PUMPKIN);check(l!=prev,"Never the same line twice in a row");prev=l;
                 check(l.needs()==null||l.needs()==CursedCharacterType.PUMPKIN,"Character joke only while that character is hidden and alive");seen.add(l.text());
 }
-            check(seen.size()==7,"Six general lines plus the pumpkin joke, got "+seen.size());}
+            check(seen.size()==3,"Two general lines plus the pumpkin joke, got "+seen.size());}
         check(true,"");System.out.println("PASS: first batch loads min(5, shots); 7 shots = 5 + reload of 2; reload lines rotate, character jokes only for living hidden characters, exact refill batches for 1/2/5/6/7/8/9/10/14 shots at 10/30/60/144 FPS; cycles, no final refill, reset, restore and insertion markers");
     }
 }

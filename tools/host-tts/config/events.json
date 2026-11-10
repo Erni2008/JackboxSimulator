@@ -168,46 +168,26 @@
     },
     {
       "id": "cursed_reload_01",
-      "text": "Не расходимся, я перезаряжаюсь!",
-      "emotion": "SARCASTIC"
-    },
-    {
-      "id": "cursed_reload_02",
-      "text": "Эти ящики сами себя не прострелят... щас только перезаряжусь.",
-      "emotion": "SARCASTIC"
-    },
-    {
-      "id": "cursed_reload_03",
-      "text": "Я слышу, как вы там дышите.",
-      "emotion": "SARCASTIC"
-    },
-    {
-      "id": "cursed_reload_04",
       "text": "Патроны кончились. Терпение — нет.",
       "emotion": "SARCASTIC"
     },
     {
-      "id": "cursed_reload_05",
-      "text": "Ещё пара патронов — и кто-то станет призраком.",
-      "emotion": "SARCASTIC"
-    },
-    {
-      "id": "cursed_reload_06",
+      "id": "cursed_reload_02",
       "text": "Патроны по акции брал. Три по цене пяти.",
       "emotion": "SARCASTIC"
     },
     {
-      "id": "cursed_reload_07",
+      "id": "cursed_reload_03",
       "text": "Зомби, не высовывайся! У тебя и так голова еле держится.",
       "emotion": "SARCASTIC"
     },
     {
-      "id": "cursed_reload_08",
+      "id": "cursed_reload_04",
       "text": "Тыква, я вижу твою улыбку сквозь доски. Перестань светиться!",
       "emotion": "SARCASTIC"
     },
     {
-      "id": "cursed_reload_09",
+      "id": "cursed_reload_05",
       "text": "Дракула, не кусай ящик изнутри, это аренда!",
       "emotion": "SARCASTIC"
     }

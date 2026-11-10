@@ -6,15 +6,11 @@ import java.util.function.Predicate;
 public final class CursedReloadLines {
     public record Line(String text,String voice,CursedCharacterType needs){}
     public static final Line[] LINES={
-        line(1,"Не расходимся, я перезаряжаюсь!",null),
-        line(2,"Эти ящики сами себя не прострелят... щас только перезаряжусь.",null),
-        line(3,"Я слышу, как вы там дышите.",null),
-        line(4,"Патроны кончились. Терпение — нет.",null),
-        line(5,"Ещё пара патронов — и кто-то станет призраком.",null),
-        line(6,"Патроны по акции брал. Три по цене пяти.",null),
-        line(7,"Зомби, не высовывайся! У тебя и так голова еле держится.",CursedCharacterType.ZOMBIE),
-        line(8,"Тыква, я вижу твою улыбку сквозь доски. Перестань светиться!",CursedCharacterType.PUMPKIN),
-        line(9,"Дракула, не кусай ящик изнутри, это аренда!",CursedCharacterType.DRACULA)};
+        line(1,"Патроны кончились. Терпение — нет.",null),
+        line(2,"Патроны по акции брал. Три по цене пяти.",null),
+        line(3,"Зомби, не высовывайся! У тебя и так голова еле держится.",CursedCharacterType.ZOMBIE),
+        line(4,"Тыква, я вижу твою улыбку сквозь доски. Перестань светиться!",CursedCharacterType.PUMPKIN),
+        line(5,"Дракула, не кусай ящик изнутри, это аренда!",CursedCharacterType.DRACULA)};
     private static Line line(int n,String text,CursedCharacterType needs){return new Line(text,String.format("cursed_boxes/voice/reload_%02d.ogg",n),needs);}
     private final java.util.Random random;private final boolean[] spent=new boolean[LINES.length];private int last=-1;
     public CursedReloadLines(long seed){random=new java.util.Random(seed);}
