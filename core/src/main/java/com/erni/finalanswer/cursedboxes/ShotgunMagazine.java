@@ -7,12 +7,17 @@ public final class ShotgunMagazine {
     public static final int CAPACITY=5;
     private final ShotgunAnimator animator;
     private int rounds,loadingTarget;
-    private boolean initial=true;
+    private boolean initial=true,reloadBatch;
+    private int reloads;
     public ShotgunMagazine(ShotgunAnimator animator){this.animator=animator;}
     public int rounds(){return rounds;}
     public int loadingTarget(){return loadingTarget;}
     public boolean loading(){return loadingTarget>0;}
-    public void reset(){animator.resetShotgun();rounds=loadingTarget=0;initial=true;animator.chamber(ShotgunAnimator.Chamber.EMPTY);}
+    /** A refill after the first batch (more than five shots this turn): the host talks while reloading. */
+    public boolean reloading(){return loading()&&reloadBatch;}
+    /** How many refills have started since the last reset; picks a different host line each time. */
+    public int reloads(){return reloads;}
+    public void reset(){animator.resetShotgun();rounds=loadingTarget=0;initial=true;reloadBatch=false;animator.chamber(ShotgunAnimator.Chamber.EMPTY);}
     public void restore(int fired,int remaining){
         if(fired<0||remaining<0)throw new IllegalArgumentException("Negative shot budget");
         reset();if(fired==0)return;
@@ -32,7 +37,8 @@ public final class ShotgunMagazine {
         if(!held)return;
         if(animator.isAnimating()||animator.chamber()==ShotgunAnimator.Chamber.SPENT)return;
         if(rounds>0){if(animator.chamber()==ShotgunAnimator.Chamber.EMPTY)animator.chamber(ShotgunAnimator.Chamber.LIVE);return;}
-        int count=initial?CAPACITY:Math.min(CAPACITY,remaining);
-        if(count>0&&animator.playReloadAnimation(count))loadingTarget=count;
+        // load exactly what this turn needs: up to five now, the rest after a reload
+        int count=Math.min(CAPACITY,remaining);
+        if(count>0&&animator.playReloadAnimation(count)){loadingTarget=count;reloadBatch=!initial;if(reloadBatch)reloads++;}
     }
 }

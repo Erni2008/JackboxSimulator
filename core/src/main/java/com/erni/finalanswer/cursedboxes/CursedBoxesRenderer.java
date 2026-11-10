@@ -36,6 +36,7 @@ public final class CursedBoxesRenderer implements Disposable {
     private int overlayWidth=-1,overlayHeight=-1;
     private final CursedCeremonyHud ceremonyHud=new CursedCeremonyHud();
     private final BitmapFont font=com.erni.finalanswer.ui.UiFonts.body(18);
+    private final CursedReloadLines reloadLines=new CursedReloadLines(System.nanoTime());private String reloadLine;private int spokenReload;private float reloadLineAge=9;
     private final BitmapFont title=com.erni.finalanswer.ui.UiFonts.horror(48);
     private final GlyphLayout layout=new GlyphLayout();
     private final StringBuilder status=new StringBuilder(100);
@@ -135,7 +136,17 @@ public final class CursedBoxesRenderer implements Disposable {
             status.append("LOADING  ").append(gun.gun.animator.insertionCount()).append(" / ").append(gun.magazine.loadingTarget()).append("  SHELLS");
             layout.setText(font,status);font.draw(ui,layout,(w-layout.width)/2,106*Math.min(w/1600f,h/900f));
         }
-        String activity=gun.magazine.loading()?"LOADING THE SHOTGUN":gun.state()==ShotgunController.State.PICKUP?"LIFTING THE SHOTGUN":gun.state()==ShotgunController.State.AIMING?"TAKING AIM":networkMessage;
+        // Mid-turn refill (more than five shots): the host grumbles a different line each reload.
+        if(gun.magazine.reloads()!=spokenReload){spokenReload=gun.magazine.reloads();if(spokenReload>0){reloadLine=reloadLines.next();reloadLineAge=0;}}
+        if(gun.magazine.reloading()||reloadLineAge<1.2f&&reloadLine!=null&&spokenReload>0){
+            if(!gun.magazine.reloading())reloadLineAge+=delta;
+            float k=Math.min(w/1600f,h/900f),a=gun.magazine.reloading()?1:Math.max(0,1-reloadLineAge/1.2f);
+            title.getData().setScale(k*.62f);layout.setText(title,"«"+reloadLine+"»",0,reloadLine.length()+2,title.getColor(),w*.8f,Align.center,true,null);
+            float ty=h*.30f+layout.height;
+            ui.setColor(0,0,0,.55f*a);ui.draw(soft,w*.08f,ty-layout.height-40*k,w*.84f,layout.height+80*k);ui.setColor(Color.WHITE);
+            title.setColor(.98f,.86f,.62f,a);title.draw(ui,layout,w*.1f,ty);title.getData().setScale(1);title.setColor(Color.WHITE);
+        }
+        String activity=gun.magazine.reloading()?"RELOADING":gun.magazine.loading()?"LOADING THE SHOTGUN":gun.state()==ShotgunController.State.PICKUP?"LIFTING THE SHOTGUN":gun.state()==ShotgunController.State.AIMING?"TAKING AIM":networkMessage;
         ceremonyHud.draw(ui,font,title,w,h,networkPlayer,activity,turn.selectedCrateId(),networkPlayer==null?turn.shotsRemaining():networkRemaining,turn.shotLimit(),eliminations.active()||survivors.clock.started());
         if(eliminations.active()){
             font.getData().setScale(1);font.setColor(.72f,.83f,.86f,1);
