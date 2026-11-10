@@ -31,6 +31,15 @@ final class ForgottenRoomHud {
     void rule(SpriteBatch b,float cx,float y,float width,float alpha){
         for(int i=0;i<24;i++){float t=i/23f,a=alpha*(1-Math.abs(t-.5f)*2)*.9f;b.setColor(GOLD.r,GOLD.g,GOLD.b,a);b.draw(art.pixel,cx-width/2+t*width-width/48,y,width/24+1,1.5f);}
         diamond(b,cx,y+.75f,6,GOLD,alpha);}
+    /** A player's face in a gilt medallion (falls back to an initial on velvet). {@code lit} adds a warm glow. */
+    void medallion(SpriteBatch b,ForgottenRoomModel m,String player,float cx,float cy,float r,float alpha,boolean lit){
+        b.setColor(0,0,0,.55f*alpha);b.draw(art.soft,cx-r*1.35f,cy-r*1.5f,r*2.7f,r*2.7f);
+        if(lit){b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);b.setColor(GOLD.r,GOLD.g,GOLD.b,.28f*alpha);b.draw(art.soft,cx-r*1.7f,cy-r*1.7f,r*3.4f,r*3.4f);b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
+        Texture face=art.portrait(m.characters.get(player));
+        if(face!=null){b.setColor(lit?1:.78f,lit?1:.74f,lit?1:.72f,alpha);b.draw(face,cx-r*.86f,cy-r*.86f,r*1.72f,r*1.72f);}
+        else{b.setColor(.16f,.07f,.08f,alpha);b.draw(art.soft,cx-r*.9f,cy-r*.9f,r*1.8f,r*1.8f);String n=m.name(player);text(b,title,n.isEmpty()?"?":n.substring(0,1),cx,cy+r*.45f,r/70f,IVORY,alpha);}
+        b.setColor(1,1,1,alpha);b.draw(art.medal,cx-r,cy-r,r*2,r*2);b.setColor(1,1,1,1);
+    }
     /** Dark lacquered plaque with a double gilt border and corner diamonds. */
     void plaque(SpriteBatch b,float x,float y,float w,float h,float alpha,boolean lit){
         b.setColor(0,0,0,.45f*alpha);b.draw(art.pixel,x+5,y-7,w,h);
@@ -91,14 +100,21 @@ final class ForgottenRoomHud {
         topBand(b,1);text(b,body,"ЧТО ИЗМЕНИЛОСЬ?  ОТВЕЧАЙТЕ НА ТЕЛЕФОНАХ",W/2,H-22,.66f,GOLD,1);ring(b,W/2,H-122,66,fraction,seconds,1);
         text(b,body,m.submitted.size()+" / "+m.seats.size()+"  ОТВЕТИЛИ",W/2,H-206,.6f,IVORY,1);
         players(b,m);}
-    /** Player plaques along the bottom: a gilt seal once the answer is in (never whether it is right). */
+    /** Player plaques along the bottom: face in a medallion, name, and a gilt seal once the answer is in (never whether it is right). */
     void players(SpriteBatch b,ForgottenRoomModel m){
-        int n=m.seats.size();float pw=Math.min(210,(W-160)/n-14),ph=58,gap=14,total=n*pw+(n-1)*gap,x0=(W-total)/2,y=26;
-        b.setColor(0,0,0,.55f);b.draw(art.soft,W/2-total*.7f,-90,total*1.4f,250);
+        int n=m.seats.size();float pw=Math.min(268,(W-120)/n-18),ph=78,gap=18,total=n*pw+(n-1)*gap,x0=(W-total)/2,y=30;
+        float now=System.nanoTime()/1e9f;
+        b.setColor(0,0,0,.6f);b.draw(art.soft,W/2-total*.75f,-120,total*1.5f,300);
         for(int i=0;i<n;i++){String id=m.seats.get(i);boolean done=m.submitted.contains(id);float x=x0+i*(pw+gap);
-            plaque(b,x,y,pw,ph,done?1:.75f,done);
-            text(b,body,m.name(id),x+pw/2+(done?12:0),y+38,.62f,done?IVORY:DIM,1);
-            if(done)diamond(b,x+22,y+ph/2,9,GOLD,1);}
+            plaque(b,x,y,pw,ph,done?1:.8f,done);
+            float r=ph*.62f;medallion(b,m,id,x+r*.72f,y+ph/2,r,1,done);
+            float tx=x+r*1.9f,tw=pw-r*1.9f-12;
+            body.getData().setScale(.62f);body.setColor(done?IVORY.r:DIM.r,done?IVORY.g:DIM.g,done?IVORY.b:DIM.b,1);
+            layout.setText(body,m.name(id),body.getColor(),tw,Align.left,false);body.draw(b,layout,tx,y+ph*.74f);
+            body.getData().setScale(.42f);
+            if(done){body.setColor(GOLD.r,GOLD.g,GOLD.b,1);body.draw(b,"ОТВЕТ ПРИНЯТ",tx,y+ph*.36f);}
+            else{int dots=1+(int)(now*2.2f+i)%3;body.setColor(DIM.r,DIM.g,DIM.b,.8f);body.draw(b,"ДУМАЕТ"+".".repeat(dots),tx,y+ph*.36f);}
+            body.getData().setScale(1);}
     }
     void revealTitle(SpriteBatch b,float t){float a=ease(t/.6f);text(b,title,"WHAT DID YOU MISS?",W/2,H/2+40,1.35f,GOLD,a);rule(b,W/2,H/2-30,460,a);
         text(b,body,"ЧТО ВЫ ПРОПУСТИЛИ",W/2,H/2-60,.75f,IVORY,a*ease((t-.4f)/.6f));}
@@ -106,26 +122,38 @@ final class ForgottenRoomHud {
         float a=ease((t-.15f)/.5f)*(1-ease((t-.93f)/.07f));if(a<=0)return;
         // keep the caption away from the change: bottom band normally, top band when the change sits low in the room
         float low=0;for(String slot:c.slots()){var p=m.places.get(slot);if(p!=null)low=Math.max(low,p.y());}
-        float w=1220,h=172,x=(W-w)/2,y=low>.62f?H-h-30:26;
-        plaque(b,x,y,w,h,a,!c.foundBy().isEmpty());
-        text(b,body,"ИЗМЕНЕНИЕ "+(index+1)+" ИЗ "+m.changes.size(),W/2,y+h-20,.5f,DIM,a);
-        text(b,title,c.caption(),W/2,y+h-50,.68f,GOLD,a);
-        String found=c.foundBy().isEmpty()?"НИКТО НЕ ЗАМЕТИЛ":"ЗАМЕТИЛИ:  "+String.join(",  ",c.foundBy().stream().map(m::name).toList());
-        text(b,body,found,W/2,y+68,.72f,c.foundBy().isEmpty()?EMBER:IVORY,a*ease((t-.45f)/.3f));
-        if(!c.closeBy().isEmpty())text(b,body,"ПОЧТИ УГАДАЛИ:  "+String.join(",  ",c.closeBy().stream().map(m::name).toList()),W/2,y+36,.56f,DIM,a*ease((t-.55f)/.3f));
+        float w=1240,h=196,x=(W-w)/2,y=low>.62f?H-h-30:28;boolean found=!c.foundBy().isEmpty();
+        plaque(b,x,y,w,h,a,found);
+        text(b,body,"ИЗМЕНЕНИЕ  "+(index+1)+"  ИЗ  "+m.changes.size(),W/2,y+h-18,.48f,DIM,a);
+        text(b,title,c.caption(),W/2,y+h-44,.78f,GOLD,a);
+        rule(b,W/2,y+h-112,360,a*.8f);
+        float fa=a*ease((t-.4f)/.3f);
+        if(!found)text(b,body,"НИКТО НЕ ЗАМЕТИЛ",W/2,y+62,.82f,EMBER,fa);
+        else{ // who found it: faces in medallions with names
+            int k=c.foundBy().size();float r=26,slotW=190,sx=W/2-(k-1)*slotW/2;
+            for(int i=0;i<k;i++){String id=c.foundBy().get(i);float px=sx+i*slotW;medallion(b,m,id,px-48,y+50,r,fa,true);
+                body.getData().setScale(.6f);body.setColor(IVORY.r,IVORY.g,IVORY.b,fa);body.draw(b,m.name(id),px-14,y+64);body.getData().setScale(1);}
+            text(b,body,"ЗАМЕТИЛИ",W/2,y+104,.46f,DIM,fa);}
     }
-    /** Final table with points counting up, rows arriving one after another. */
+    /** Final table: a gilt panel, rows arrive one by one, faces in medallions, podium colours for the top three, points counting up. */
     void results(SpriteBatch b,ForgottenRoomModel m,float t){
-        float a=ease(t/.6f);b.setColor(0,0,0,.72f*a);b.draw(art.pixel,0,0,W,H);b.setColor(1,1,1,1);
-        text(b,title,"THE FORGOTTEN ROOM",W/2,H-90,1.1f,GOLD,a);rule(b,W/2,H-150,420,a);text(b,body,"ИТОГИ",W/2,H-176,.7f,IVORY,a);
-        int n=m.results.size();float rowH=Math.min(86,640f/Math.max(1,n)),w=980,x=(W-w)/2,top=H-230;
-        for(int i=0;i<n;i++){var r=m.results.get(i);float ra=ease((t-.5f-i*.22f)/.45f);if(ra<=0)continue;float y=top-(i+1)*rowH;
-            plaque(b,x,y+6,w,rowH-14,ra,r.rank()==1);
-            text(b,title,String.valueOf(r.rank()),x+56,y+rowH*.72f,.72f,r.rank()==1?GOLD:IVORY,ra);
-            float nameX=x+120;body.getData().setScale(.78f);body.setColor(IVORY.r,IVORY.g,IVORY.b,ra);body.draw(b,m.name(r.playerId()),nameX,y+rowH*.68f);
-            body.getData().setScale(.52f);body.setColor(DIM.r,DIM.g,DIM.b,ra);body.draw(b,"НАЙДЕНО ИЗМЕНЕНИЙ: "+r.correct()+" ИЗ "+m.changes.size()+(r.submitted()?"":"  ·  НЕ ОТВЕТИЛ"),nameX,y+rowH*.36f);body.getData().setScale(1);
+        float a=ease(t/.6f);b.setColor(0,0,0,.62f*a);b.draw(art.pixel,0,0,W,H);b.setColor(1,1,1,1);
+        int n=m.results.size();float rowH=Math.min(112,600f/Math.max(1,n)),w=1060,x=(W-w)/2,top=H-250,panelH=n*rowH+300;
+        plaque(b,x-40,top-n*rowH-40,w+80,panelH-60,a*.85f,false);
+        text(b,title,"THE FORGOTTEN ROOM",W/2,H-96,1.0f,GOLD,a);rule(b,W/2,H-160,460,a);text(b,body,"ИТОГИ",W/2,H-188,.62f,IVORY,a);
+        Color[] podium={GOLD,new Color(.82f,.84f,.88f,1),new Color(.80f,.52f,.30f,1)};
+        for(int i=0;i<n;i++){var r=m.results.get(i);float ra=ease((t-.5f-i*.22f)/.45f);if(ra<=0)continue;
+            float y=top-(i+1)*rowH,slide=(1-ra)*40;boolean first=r.rank()==1;Color pc=r.rank()<=3?podium[r.rank()-1]:DIM;
+            plaque(b,x+slide,y+8,w,rowH-16,ra,first);
+            float mid=y+rowH/2;
+            diamond(b,x+58+slide,mid,26,pc,ra);text(b,title,String.valueOf(r.rank()),x+58+slide,mid+24,.62f,new Color(.12f,.07f,.04f,1),ra);
+            medallion(b,m,r.playerId(),x+146+slide,mid,rowH*.36f,ra,first);
+            float nx=x+204+slide;body.getData().setScale(.92f);body.setColor(IVORY.r,IVORY.g,IVORY.b,ra);body.draw(b,m.name(r.playerId()),nx,mid+34);
+            body.getData().setScale(.5f);body.setColor(DIM.r,DIM.g,DIM.b,ra);
+            body.draw(b,(r.submitted()?"НАЙДЕНО  "+r.correct()+"  ИЗ  "+m.changes.size():"НЕ ОТВЕТИЛ"),nx,mid-8);body.getData().setScale(1);
             int shown=Math.round(r.points()*ease((t-.8f-i*.22f)/1.4f));
-            text(b,title,shown+"",x+w-110,y+rowH*.72f,.72f,r.rank()==1?GOLD:IVORY,ra);}
+            text(b,title,String.valueOf(shown),x+w-120+slide,mid+34,.9f,first?GOLD:IVORY,ra);
+            text(b,body,"ОЧК.",x+w-50+slide,mid+10,.44f,DIM,ra);}
         if(t>2.5f)text(b,body,"ENTER — ВЕРНУТЬСЯ В ЛОББИ",W/2,46,.55f,DIM,ease((t-2.5f)/.6f)*(.6f+.4f*MathUtils.sin(t*3)));
     }
 }

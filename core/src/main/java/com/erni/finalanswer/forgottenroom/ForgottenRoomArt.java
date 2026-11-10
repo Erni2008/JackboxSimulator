@@ -12,12 +12,14 @@ import java.util.*;
  */
 final class ForgottenRoomArt implements AutoCloseable {
     private final Map<String,Texture> cache=new HashMap<>();private final Set<String> missing=new HashSet<>();
-    final Texture soft,pixel,plaque,plaqueSmall,frameCanvas,vignette,dial;
+    final Texture soft,pixel,plaque,plaqueSmall,frameCanvas,vignette,dial,medal;
 
     ForgottenRoomArt(){
-        soft=radial(256);pixel=solid();plaque=placeholder(220,320,false);plaqueSmall=placeholder(200,200,false);frameCanvas=placeholder(320,300,true);vignette=vignette(512,288);dial=dial(512);
+        soft=radial(256);pixel=solid();plaque=placeholder(220,320,false);plaqueSmall=placeholder(200,200,false);frameCanvas=placeholder(320,300,true);vignette=vignette(512,288);dial=dial(512);medal=medal(256);
     }
     Texture background(String path){return load(path);}
+    /** A player's character face, baked round on dark velvet (forgotten_room/portraits/<id>.png); null if unknown. */
+    Texture portrait(String characterId){return characterId==null||characterId.isEmpty()?null:load("forgotten_room/portraits/"+characterId+".png");}
     /** Real artwork for this look of the object, or null while it hasn't been made yet. */
     /** Art for an object in a room: a picture in the room's own frame is pre-warped to that frame's perspective. */
     Texture object(ForgottenRoomModel m,ForgottenRoomModel.Obj o,boolean inFrame){
@@ -33,6 +35,7 @@ final class ForgottenRoomArt implements AutoCloseable {
     void preload(ForgottenRoomModel m){
         background(m.background);
         for(var list:List.of(m.objects,m.original))for(var o:list){object(o);object(m,o,true);}
+        for(String id:m.characters.values())portrait(id);
         for(var c:m.changes){if(c.before()!=null)object(c.before());if(c.after()!=null)object(c.after());}
     }
     private Texture load(String path){
@@ -80,6 +83,18 @@ final class ForgottenRoomArt implements AutoCloseable {
         }
         Texture t=new Texture(p,true);t.setFilter(Texture.TextureFilter.MipMapLinearLinear,Texture.TextureFilter.Linear);p.dispose();return t;
     }
+    /** A gilt medallion ring with a transparent middle, lit from the upper left; frames portraits and rank seals. */
+    private static Texture medal(int n){
+        Pixmap p=new Pixmap(n,n,Pixmap.Format.RGBA8888);p.setBlending(Pixmap.Blending.None);float c=(n-1)/2f,R=c;
+        for(int y=0;y<n;y++)for(int x=0;x<n;x++){
+            float dx=x-c,dy=y-c,d=(float)Math.sqrt(dx*dx+dy*dy)/R;if(d>1||d<.80f){p.drawPixel(x,y,0);continue;}
+            double ang=Math.atan2(dy,dx);float light=(float)(.5+.5*Math.cos(ang+2.35));float t=(d-.80f)/.20f;
+            float bevel=(float)Math.sin(t*Math.PI),k=.38f+.55f*light*bevel+.15f*bevel;
+            float r=.78f*k+.08f,g=.58f*k+.05f,b=.30f*k+.02f;if(t<.1f||t>.9f){r*=.5f;g*=.5f;b*=.5f;}
+            float a=Math.min(1,Math.min((1-d)*R/1.2f,(d-.80f)*R/1.2f));
+            p.drawPixel(x,y,Color.rgba8888(Math.min(1,r),Math.min(1,g),Math.min(1,b),a));}
+        Texture t=new Texture(p,true);t.setFilter(Texture.TextureFilter.MipMapLinearLinear,Texture.TextureFilter.Linear);p.dispose();return t;
+    }
     /** Dark edges, clear centre: a gentle cinematic vignette stretched over the whole screen. */
     private static Texture vignette(int w,int h){
         Pixmap p=new Pixmap(w,h,Pixmap.Format.RGBA8888);p.setBlending(Pixmap.Blending.None);
@@ -110,5 +125,5 @@ final class ForgottenRoomArt implements AutoCloseable {
         for(int y=-rad;y<=rad;y++)for(int x=-rad;x<=rad;x++)if(Math.abs(x)+Math.abs(y)<=rad)p.drawPixel(cx+x,cy+y,Color.rgba8888(.93f,.78f,.47f,Math.abs(x)+Math.abs(y)<=rad-2?1:.6f));
         Texture t=new Texture(p);t.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();return t;
     }
-    @Override public void close(){for(Texture t:cache.values())t.dispose();cache.clear();soft.dispose();pixel.dispose();plaque.dispose();plaqueSmall.dispose();frameCanvas.dispose();vignette.dispose();dial.dispose();}
+    @Override public void close(){for(Texture t:cache.values())t.dispose();cache.clear();soft.dispose();pixel.dispose();plaque.dispose();plaqueSmall.dispose();frameCanvas.dispose();vignette.dispose();dial.dispose();medal.dispose();}
 }

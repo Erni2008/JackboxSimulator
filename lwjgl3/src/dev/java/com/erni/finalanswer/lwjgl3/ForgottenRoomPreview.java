@@ -68,7 +68,7 @@ public final class ForgottenRoomPreview {
                     for(int r=0;r<4;r++){JsonObject o=new JsonObject();o.addProperty("playerId",order[r]);o.addProperty("rank",r+1);o.addProperty("points",pts[r]);o.addProperty("correct",pts[r]);o.addProperty("partial",0);o.addProperty("wrong",0);o.addProperty("submitted",true);rows.add(o);}
                     f.add("results",rows);}
                 JsonObject root=new JsonObject();root.add("forgottenRoom",f);root.addProperty("code","PREVIEW");
-                JsonArray ps=new JsonArray();String[] names={"Алиса","Борис","Вика","Гоша"};for(int i=0;i<4;i++){JsonObject o=new JsonObject();o.addProperty("id",players[i]);o.addProperty("name",names[i]);o.addProperty("characterId","ghost");ps.add(o);}
+                JsonArray ps=new JsonArray();String[] names={"Алиса","Борис","Вика","Гоша"};for(int i=0;i<4;i++){JsonObject o=new JsonObject();o.addProperty("id",players[i]);o.addProperty("name",names[i]);o.addProperty("characterId",new String[]{"dracula","pumpkin","ghost","skeleton"}[i]);ps.add(o);}
                 root.add("players",ps);return root;
             }
             JsonArray objects(RoomState st){JsonArray a=new JsonArray();for(var p:st.bySlot().values()){var d=RoomCatalog.object(p.objectId());JsonObject o=new JsonObject();
