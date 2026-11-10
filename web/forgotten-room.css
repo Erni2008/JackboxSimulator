@@ -102,3 +102,8 @@ body[data-view=room] main{max-width:560px}
 #room-play{position:relative;margin:0 -16px;padding:0 16px 10px;background:linear-gradient(180deg,#0b0708f2,#0b0708f7 60%,#0b0708fa)}
 .fr .room-chip{display:flex!important;flex-direction:row!important;align-items:center}
 .fr .room-opt{display:flex!important;flex-direction:column!important}
+
+/* study mode: the room only, no answering furniture */
+.fr[data-mode=view] .fr-answers,.fr[data-mode=view] #room-send,.fr[data-mode=view] #room-sheet,.fr[data-mode=view] .room-place{display:none!important}
+.fr[data-mode=view] .fr-stage{pointer-events:none}
+.fr[data-phase=CHANGED_ROOM] .fr-ring{opacity:.4}

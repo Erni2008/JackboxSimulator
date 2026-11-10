@@ -74,9 +74,15 @@ function createForgottenRoomController({getState,isAuthenticated,send,makeId,now
     const scr=el('room-screen'),me=(m.seats||[]).includes(selfId());
     scr.dataset.phase=m.phase;
     const answering=m.phase==='ANSWER_PHASE'&&me&&!m.myAnswers;
-    el('room-watch').hidden=answering;el('room-play').hidden=!answering;
-    if(!answering){watch(m,me);cancelAnimationFrame(raf);raf=0;return;}
-    buildStage(m);paintStage(m);paintList(m);tick();
+    // the room is also on the phone while it can be studied (read-only), so everyone can look closely
+    const viewing=m.phase==='OBSERVATION'||m.phase==='CHANGED_ROOM';
+    scr.dataset.mode=answering?'answer':viewing?'view':'watch';
+    el('room-watch').hidden=answering||viewing;el('room-play').hidden=!(answering||viewing);
+    if(!answering&&!viewing){watch(m,me);cancelAnimationFrame(raf);raf=0;return;}
+    el('room-title').textContent=m.phase==='OBSERVATION'?'Запоминай всё':m.phase==='CHANGED_ROOM'?'Свет вернулся…':'Что изменилось?';
+    document.querySelector('#room-screen .fr-hint').textContent=answering?'ЛИСТАЙ КОМНАТУ · НАЖМИ НА ПРЕДМЕТ ИЛИ ПУСТОЕ МЕСТО':'ЛИСТАЙ ВПРАВО И ВЛЕВО — РАССМОТРИ ВСЮ КОМНАТУ';
+    if(!answering){selected=null;}
+    buildStage(m);paintStage(m);paintList(m);if(!raf)tick();
   }
   function watch(m,me){
     const t={INTRO:['Забытая комната','Смотри на общий экран'],OBSERVATION:['Запоминай всё','Смотри на общий экран'],BLACKOUT:['Тьма','…'],
@@ -130,7 +136,7 @@ function createForgottenRoomController({getState,isAuthenticated,send,makeId,now
     el('room-error').textContent=error;el('room-error').hidden=!error;
   }
   function tick(){
-    const m=mini();if(!m||m.phase!=='ANSWER_PHASE'){raf=0;return;}
+    const m=mini();if(!m||!['ANSWER_PHASE','OBSERVATION','CHANGED_ROOM'].includes(m.phase)){raf=0;return;}
     const left=Math.max(0,(m.phaseEndsAt-now())/1000),total=Math.max(1,(m.phaseEndsAt-m.phaseStartedAt)/1000),sec=Math.ceil(left);
     const ring=el('room-ring');ring.style.setProperty('--f',(left/total).toFixed(3));ring.dataset.urgent=String(sec<=5);el('room-sec').textContent=String(sec);
     if(sec!==lastSecond){lastSecond=sec;if(sec<=5&&sec>0)try{navigator.vibrate?.(18);}catch{}}
