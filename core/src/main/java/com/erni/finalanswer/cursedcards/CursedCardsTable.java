@@ -58,7 +58,7 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
     protected CursedHud hud;protected final CursedHud.Frame hudFrame=new CursedHud.Frame();
     protected TableFx fx;protected BackdropFx backdrop;
     /** Seated FINAL ANSWER characters (layer 2) and the painted table's silhouette mask that sits them behind it. */
-    protected TableCast cast;private Texture tableFront;
+    protected TableCast cast;private final com.badlogic.gdx.math.Vector2 headTmp=new com.badlogic.gdx.math.Vector2();private Texture tableFront;
     protected DeathCinematic cine;protected TableAudio audio;private float sceneFade=1,throb,nextThrob=9;private ModelInstance redThrob;
     /** Letterbox before cinematic zoom/shake. */
     private final Rectangle baseView=new Rectangle();
@@ -491,6 +491,8 @@ public class CursedCardsTable extends ApplicationAdapter implements CursedCardsL
             // Names are pinned to the steady frame (no hand-held drift, whole pixels, fixed size) so the letters never swim.
             camera.project(tmp,baseView.x,baseView.y,baseView.width,baseView.height);f.plates[i].set(Math.round(tmp.x),Math.round(tmp.y));f.safe[i]=safe[i];
             f.plateScale[i]=Math.round(MathUtils.clamp(1.12f-(tmp.y-baseView.y)/baseView.height*.55f,.82f,1.05f)*20)/20f;}
+        // Nicknames float above the characters' heads rather than lying on the felt.
+        if(cast!=null)for(int i=0;i<seatList.size;i++)if(cast.head(i,headTmp)){f.plates[i].set(Math.round(headTmp.x),Math.round(headTmp.y+baseView.height*.035f));f.plateScale[i]=1;}
         // Neighbouring names never collide: names that would overlap step apart (static layout, so nothing swims).
         float gapX=baseView.height*.13f,gapY=baseView.height*.045f;
         for(int pass=0;pass<6;pass++)for(int a=0;a<seatList.size;a++)for(int b=a+1;b<seatList.size;b++){var pa=f.plates[a];var pb=f.plates[b];

@@ -16,6 +16,8 @@ import javax.crypto.spec.PBEKeySpec;
 
 /** One authoritative registry. Membership, phase changes, deadlines and submissions share a lock. */
 public final class RoomService {
+    /** Nicknames are short so they fit over the characters on the shared screen. */
+    public static final int MAX_NICKNAME=10;
     private static final String ALPHABET="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private static final List<String> CHARACTERS=List.of("skeleton","ghost","zombie","dracula","pumpkin","plague_doctor","voodoo","puppeteer");
     private static final Set<String> MODES=Set.of("standard","deadline","every_man_for_himself","trust_no_one","house_rules");
@@ -75,7 +77,7 @@ public final class RoomService {
     private String joinInternal(String code,Map<String,String> data,boolean developmentJoin) {
         Room room=find(code);
         if(room.game!=null || room.impostor!=null || room.cursed!=null || (room.lastCommand!=null&&!developmentJoin||room.cards!=null)) throw new Failure(409,"GAME_ALREADY_STARTED");
-        String name=text(data.get("name"),24,"INVALID_NICKNAME");
+        String name=text(data.get("name"),MAX_NICKNAME,"INVALID_NICKNAME");
         String password=data.getOrDefault("password","");
         if(password.length()>64 || room.passwordHash!=null&&!MessageDigest.isEqual(room.passwordHash,hash(password,room.salt)))
             throw new Failure(403,"INVALID_PASSWORD");

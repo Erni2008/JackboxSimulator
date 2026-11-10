@@ -63,7 +63,7 @@ class RoomServiceTest {
     }
     @Test void plagueDoctorSelectionSurvivesRosterRefreshAndReconnect() {
         String code=s(host,"code");
-        var dracula=obj(service.join(code,Map.of("name","Plague Doctor","characterId","plague_doctor")));
+        var dracula=obj(service.join(code,Map.of("name","Plague Doc","characterId","plague_doctor")));
         service.attach(code,s(dracula,"token"),a,"plague_doctor");
         assertEquals("plague_doctor",s(a.latest().getAsJsonArray("players").get(0).getAsJsonObject(),"characterId"));
         join("Other");
@@ -74,7 +74,7 @@ class RoomServiceTest {
     }
     @Test void pumpkinChoiceSurvivesRosterRefreshAndReconnect() {
         String code=s(host,"code");
-        var pumpkin=obj(service.join(code,Map.of("name","Pumpkin Head","characterId","pumpkin")));
+        var pumpkin=obj(service.join(code,Map.of("name","Pumpkin","characterId","pumpkin")));
         service.attach(code,s(pumpkin,"token"),a,"pumpkin");
         assertEquals("pumpkin",s(a.latest().getAsJsonArray("players").get(0).getAsJsonObject(),"characterId"));
         service.heartbeat(code,s(pumpkin,"token"));
@@ -145,7 +145,7 @@ class RoomServiceTest {
     }
     @Test void createsServerGeneratedUniqueCodes(){Set<String> codes=new HashSet<>();for(int i=0;i<100;i++){JsonObject room=create(Map.of("code","AAAAAA"));assertTrue(s(room,"code").matches("[A-HJ-NP-Z2-9]{6}"));assertTrue(codes.add(s(room,"code")));assertEquals(43,s(room,"token").length());assertTrue(room.has("roomId"));}}
     @Test void joinsAndCapacityExcludesHost(){players();assertEquals(2,h.latest().getAsJsonArray("players").size());failure("ROOM_IS_FULL",()->join("Third"));}
-    @Test void wrongCodeAndBadNickname(){failure("ROOM_NOT_FOUND",()->service.join("ZZZZZZ",Map.of("name","A")));failure("INVALID_NICKNAME",()->join("\n\t"));failure("INVALID_NICKNAME",()->join("x".repeat(25)));join("Test");failure("NICKNAME_IN_USE",()->join("test"));}
+    @Test void wrongCodeAndBadNickname(){failure("ROOM_NOT_FOUND",()->service.join("ZZZZZZ",Map.of("name","A")));failure("INVALID_NICKNAME",()->join("\n\t"));failure("INVALID_NICKNAME",()->join("x".repeat(11)));join("Десятьбукв");failure("NICKNAME_IN_USE",()->join("десятьбукв"));}
     @Test void passwordAndTokenPrivacy(){var locked=create(Map.of("password","secret"));String code=s(locked,"code");failure("INVALID_PASSWORD",()->service.join(code,Map.of("name","A","password","wrong")));var player=obj(service.join(code,Map.of("name","A","password","secret")));assertFalse(player.has("hostSession"));assertFalse(service.view(code).contains(s(locked,"token")));assertFalse(service.view(code).contains("secret"));}
     @Test void reconnectDoesNotDuplicateAndRevokesOldSocket(){players();var replacement=new TestPeer();service.attach(s(host,"code"),s(one,"token"),replacement,"r");assertEquals(4001,a.closed);assertEquals(2,replacement.latest().getAsJsonArray("players").size());failure("AUTH_REQUIRED",()->command(a,"PING",Map.of()));service.detach(a.id());assertEquals("ONLINE",replacement.latest().getAsJsonArray("players").get(0).getAsJsonObject().get("connectionStatus").getAsString());}
     @Test void startsSameQuestionForEveryone(){start();assertEquals(s(h.latest().getAsJsonObject("question"),"id"),s(a.latest().getAsJsonObject("question"),"id"));assertEquals(s(a.latest().getAsJsonObject("question"),"id"),s(b.latest().getAsJsonObject("question"),"id"));assertEquals("QUESTION_PRESENTATION",s(h.latest(),"phase"));assertFalse(a.latest().getAsJsonObject("question").has("correctAnswerIndex"));assertFalse(h.latest().getAsJsonObject("question").has("correctAnswerIndex"));}

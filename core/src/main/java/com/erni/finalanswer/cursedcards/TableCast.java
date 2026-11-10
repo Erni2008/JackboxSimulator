@@ -94,6 +94,8 @@ public final class TableCast implements CharacterActions,Disposable {
     public void setState(int seat,State s){if(state[seat]!=s){state[seat]=s;stateAge[seat]=0;}}
 
     /** Project each seat's anchor: sprite bottom sits at seat height behind the rim; height follows perspective. */
+    /** Screen point just above the seated character's head (last layout), for the nickname. */
+    public boolean head(int i,com.badlogic.gdx.math.Vector2 out){if(i<0||i>=seats||sh[i]<=0)return false;out.set(sx[i],sy[i]+sh[i]);return true;}
     public void layout(Array<SeatLayout.Seat> list,Camera camera,Rectangle view,int activeSeat,float dt){
         time+=dt;lastDt=dt;this.activeSeat=activeSeat;centerX=view.x+view.width*.5f;for(int i=0;i<8;i++)look[i]=MathUtils.clamp(look[i]+(activeSeat>=0?dt:-dt)*1.2f,0,1);
         for(int i=0;i<seats;i++){var st=list.get(i);
