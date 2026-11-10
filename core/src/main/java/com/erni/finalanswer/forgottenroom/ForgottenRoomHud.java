@@ -40,13 +40,38 @@ final class ForgottenRoomHud {
         b.setColor(GOLD.r,GOLD.g,GOLD.b,.35f*alpha);float i=7;b.draw(art.pixel,x+i,y+i,w-2*i,1);b.draw(art.pixel,x+i,y+h-i,w-2*i,1);b.draw(art.pixel,x+i,y+i,1,h-2*i);b.draw(art.pixel,x+w-i,y+i,1,h-2*i);
         diamond(b,x,y,6,GOLD,alpha);diamond(b,x+w,y,6,GOLD,alpha);diamond(b,x,y+h,6,GOLD,alpha);diamond(b,x+w,y+h,6,GOLD,alpha);b.setColor(1,1,1,1);}
     /** Countdown ring: gilt ticks, a draining arc (ember in the last seconds) and the seconds in the middle. */
+    /**
+     * The antique dial timer: brass bezel and enamel face (pre-rendered), a glowing arc of light that drains clockwise
+     * from twelve, a gilt hand at the leading edge, and the seconds in the centre. Turns ember red and beats softly in
+     * the last three seconds.
+     */
     void ring(SpriteBatch b,float cx,float cy,float r,float fraction,int seconds,float alpha){
-        boolean urgent=seconds<=3;float pulse=urgent?1+.06f*MathUtils.sin(System.nanoTime()/1e9f*12):1;
-        b.setColor(0,0,0,.55f*alpha);b.draw(art.soft,cx-r*1.6f,cy-r*1.6f,r*3.2f,r*3.2f);
-        for(int i=0;i<60;i++){float a=90-i*6;boolean on=i<Math.round(fraction*60);float rr=r*pulse;
-            Color c=on?(urgent?EMBER:GOLD):DIM;float len=i%5==0?11:6;b.setColor(c.r,c.g,c.b,(on?1:.35f)*alpha);
-            b.draw(dot,cx+MathUtils.cosDeg(a)*rr-1.5f,cy+MathUtils.sinDeg(a)*rr-len/2,1.5f,len/2,3,len,1,1,a-90);}
-        text(b,title,String.valueOf(seconds),cx,cy+26,.95f*pulse,urgent?EMBER:IVORY,alpha);}
+        float now=System.nanoTime()/1e9f;boolean urgent=seconds<=3&&seconds>0;
+        float beat=urgent?1+.035f*(float)Math.pow(Math.max(0,MathUtils.sin(now*MathUtils.PI2)),8):1;
+        float R=r*beat;Color glow=urgent?EMBER:GOLD;
+        // shadow and a faint halo behind the dial
+        b.setColor(0,0,0,.65f*alpha);b.draw(art.soft,cx-R*1.75f,cy-R*1.9f,R*3.5f,R*3.5f);
+        b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);b.setColor(glow.r,glow.g,glow.b,(urgent?.22f:.12f)*alpha);b.draw(art.soft,cx-R*1.6f,cy-R*1.6f,R*3.2f,R*3.2f);
+        b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
+        b.setColor(1,1,1,alpha);b.draw(art.dial,cx-R,cy-R,R*2,R*2);
+        // draining arc of light: full circle at the start, shrinking clockwise toward twelve
+        float track=R*.665f,f=MathUtils.clamp(fraction,0,1);int steps=180;
+        b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
+        for(int i=0;i<steps;i++){float s=i/(float)steps;if(s>f)break;float a=90+s*360;   // counter-clockwise from 12 = the time still left
+            float fade=.6f+.4f*Math.min(1,(f-s)*6);float x=cx+MathUtils.cosDeg(a)*track,y=cy+MathUtils.sinDeg(a)*track;
+            b.setColor(glow.r,glow.g*.92f,glow.b*.8f,.22f*fade*alpha);b.draw(art.soft,x-R*.10f,y-R*.10f,R*.20f,R*.20f);
+            b.setColor(1f,.92f,.76f,.42f*fade*alpha);b.draw(art.soft,x-R*.03f,y-R*.03f,R*.06f,R*.06f);}
+        if(f>0){float a=90+f*360,x=cx+MathUtils.cosDeg(a)*track,y=cy+MathUtils.sinDeg(a)*track;
+            float tw=.75f+.25f*MathUtils.sin(now*9);b.setColor(1f,.95f,.82f,.85f*tw*alpha);b.draw(art.soft,x-R*.14f,y-R*.14f,R*.28f,R*.28f);}
+        b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
+        // seconds, optically centred, with a small caption beneath
+        String num=String.valueOf(Math.max(0,seconds));float sc=R/62f*beat;
+        title.getData().setScale(sc);layout.setText(title,num);float nh=layout.height;title.getData().setScale(1);
+        b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);b.setColor(glow.r,glow.g,glow.b,.18f*alpha);b.draw(art.soft,cx-R*.42f,cy-R*.3f,R*.84f,R*.7f);
+        b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
+        text(b,title,num,cx,cy+nh*.5f+R*.16f,sc*.92f,urgent?EMBER:IVORY,alpha);
+        text(b,body,"СЕКУНД",cx,cy-R*.36f,R/250f,urgent?EMBER:DIM,.85f*alpha);
+        b.setColor(1,1,1,1);}
 
     // ---------- scenes ----------
     void intro(SpriteBatch b,float t,String roomName){
@@ -60,11 +85,11 @@ final class ForgottenRoomHud {
     }
     void topBand(SpriteBatch b,float alpha){b.setColor(0,0,0,.6f*alpha);b.draw(art.soft,W/2-1000,H-170,2000,340);b.setColor(1,1,1,1);}
     void observation(SpriteBatch b,float fraction,int seconds,float alpha){
-        topBand(b,alpha);text(b,body,"ЗАПОМИНАЙТЕ",W/2,H-30,.8f,GOLD,alpha);ring(b,W/2,H-100,46,fraction,seconds,alpha);}
+        topBand(b,alpha);text(b,body,"ЗАПОМИНАЙТЕ",W/2,H-22,.7f,GOLD,alpha);ring(b,W/2,H-122,66,fraction,seconds,alpha);}
     void changedRoom(SpriteBatch b,float t){float a=ease((t-.3f)/.8f);topBand(b,a);text(b,title,"СВЕТ ВЕРНУЛСЯ",W/2,H-44,.85f,GOLD,a);text(b,body,"ЧТО-ТО ИЗМЕНИЛОСЬ",W/2,H-104,.78f,IVORY,a*ease((t-.7f)/.6f));}
     void answering(SpriteBatch b,ForgottenRoomModel m,float fraction,int seconds){
-        topBand(b,1);text(b,body,"ЧТО ИЗМЕНИЛОСЬ?  ОТВЕЧАЙТЕ НА ТЕЛЕФОНАХ",W/2,H-30,.72f,GOLD,1);ring(b,W/2,H-100,46,fraction,seconds,1);
-        text(b,body,m.submitted.size()+" / "+m.seats.size()+"  ОТВЕТИЛИ",W/2,H-168,.62f,IVORY,1);
+        topBand(b,1);text(b,body,"ЧТО ИЗМЕНИЛОСЬ?  ОТВЕЧАЙТЕ НА ТЕЛЕФОНАХ",W/2,H-22,.66f,GOLD,1);ring(b,W/2,H-122,66,fraction,seconds,1);
+        text(b,body,m.submitted.size()+" / "+m.seats.size()+"  ОТВЕТИЛИ",W/2,H-206,.6f,IVORY,1);
         players(b,m);}
     /** Player plaques along the bottom: a gilt seal once the answer is in (never whether it is right). */
     void players(SpriteBatch b,ForgottenRoomModel m){

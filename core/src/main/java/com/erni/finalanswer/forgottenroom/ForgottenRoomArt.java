@@ -12,10 +12,10 @@ import java.util.*;
  */
 final class ForgottenRoomArt implements AutoCloseable {
     private final Map<String,Texture> cache=new HashMap<>();private final Set<String> missing=new HashSet<>();
-    final Texture soft,pixel,plaque,plaqueSmall,frameCanvas,vignette;
+    final Texture soft,pixel,plaque,plaqueSmall,frameCanvas,vignette,dial;
 
     ForgottenRoomArt(){
-        soft=radial(256);pixel=solid();plaque=placeholder(220,320,false);plaqueSmall=placeholder(200,200,false);frameCanvas=placeholder(320,300,true);vignette=vignette(512,288);
+        soft=radial(256);pixel=solid();plaque=placeholder(220,320,false);plaqueSmall=placeholder(200,200,false);frameCanvas=placeholder(320,300,true);vignette=vignette(512,288);dial=dial(512);
     }
     Texture background(String path){return load(path);}
     /** Real artwork for this look of the object, or null while it hasn't been made yet. */
@@ -51,6 +51,35 @@ final class ForgottenRoomArt implements AutoCloseable {
             p.drawPixel(x,y,Color.rgba8888(1,1,1,a));}
         Texture t=new Texture(p);t.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();return t;
     }
+    /**
+     * An antique timer dial: knurled brass bezel lit from the upper left, a dark groove, deep enamel face with a fine
+     * guilloché of concentric rings and a printed minute track. The live arc, hand and numerals are drawn over it.
+     */
+    private static Texture dial(int n){
+        Pixmap p=new Pixmap(n,n,Pixmap.Format.RGBA8888);p.setBlending(Pixmap.Blending.None);float c=(n-1)/2f,R=c;
+        for(int y=0;y<n;y++)for(int x=0;x<n;x++){
+            float dx=x-c,dy=y-c,d=(float)Math.sqrt(dx*dx+dy*dy)/R;if(d>1){p.drawPixel(x,y,0);continue;}
+            double ang=Math.atan2(dy,dx);float light=(float)(.5+.5*Math.cos(ang+2.35));   // brightest toward the upper left
+            float r,g,b,a=Math.min(1,(1-d)*R/1.5f);
+            if(d>.86f){ // brass bezel with knurling
+                float t=(d-.86f)/.14f;float bevel=(float)Math.sin(t*Math.PI);float knurl=(float)(.5+.5*Math.sin(ang*96))*(t>.55f?1:0);
+                float k=.42f+.5f*light*bevel+.12f*bevel-.10f*knurl;
+                r=.70f*k+.07f;g=.52f*k+.045f;b=.30f*k+.02f;
+                if(t<.08f||t>.94f){r*=.45f;g*=.45f;b*=.45f;}
+            }else if(d>.80f){ // dark groove
+                float k=.06f+.05f*light;r=k;g=k*.85f;b=k*.8f;
+            }else{ // enamel face
+                float vign=1-d*d*.55f;float guil=(float)(.5+.5*Math.sin(d*R*.9))*.018f;
+                r=(.085f+.03f*light)*vign+guil;g=(.045f+.018f*light)*vign+guil*.8f;b=(.05f+.02f*light)*vign+guil*.7f;
+                if(d>.70f&&d<.715f){r+=.20f;g+=.15f;b+=.08f;}                                      // printed track rim
+                double deg=Math.toDegrees(ang);double m=((deg%6)+6)%6;
+                boolean major=(((deg%30)+30)%30)<1.2||(((deg%30)+30)%30)>28.8;
+                if(d>.72f&&d<(major?.79f:.765f)&&(m<.9||m>5.1)){float k=major?.55f:.32f;r+=k;g+=k*.78f;b+=k*.42f;}
+            }
+            p.drawPixel(x,y,Color.rgba8888(Math.min(1,r),Math.min(1,g),Math.min(1,b),a));
+        }
+        Texture t=new Texture(p,true);t.setFilter(Texture.TextureFilter.MipMapLinearLinear,Texture.TextureFilter.Linear);p.dispose();return t;
+    }
     /** Dark edges, clear centre: a gentle cinematic vignette stretched over the whole screen. */
     private static Texture vignette(int w,int h){
         Pixmap p=new Pixmap(w,h,Pixmap.Format.RGBA8888);p.setBlending(Pixmap.Blending.None);
@@ -81,5 +110,5 @@ final class ForgottenRoomArt implements AutoCloseable {
         for(int y=-rad;y<=rad;y++)for(int x=-rad;x<=rad;x++)if(Math.abs(x)+Math.abs(y)<=rad)p.drawPixel(cx+x,cy+y,Color.rgba8888(.93f,.78f,.47f,Math.abs(x)+Math.abs(y)<=rad-2?1:.6f));
         Texture t=new Texture(p);t.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();return t;
     }
-    @Override public void close(){for(Texture t:cache.values())t.dispose();cache.clear();soft.dispose();pixel.dispose();plaque.dispose();plaqueSmall.dispose();frameCanvas.dispose();vignette.dispose();}
+    @Override public void close(){for(Texture t:cache.values())t.dispose();cache.clear();soft.dispose();pixel.dispose();plaque.dispose();plaqueSmall.dispose();frameCanvas.dispose();vignette.dispose();dial.dispose();}
 }
