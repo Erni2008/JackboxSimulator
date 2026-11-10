@@ -7,10 +7,12 @@ public final class CursedReloadLines {
         "Эти ящики сами себя не прострелят... щас только перезаряжусь.",
         "Я слышу, как вы там дышите.",
         "Патроны кончились. Терпение — нет.",
-        "Кто-то в ящике только что икнул. Я запомнил.",
-        "Спокойно, это не промах. Это разминка.",
-        "Сидите тихо. Я уже почти чувствую запах страха.",
-        "Ещё пара патронов — и кто-то станет призраком."};
+        "Ещё пара патронов — и кто-то станет призраком.",
+        "Патроны по акции брал. Три по цене пяти.",
+        "Зомби, не высовывайся! У тебя и так голова еле держится.",
+        "Тыква, я вижу твою улыбку сквозь доски. Перестань светиться!",
+        "Так, кто вместо патронов положил мне конфеты?!",
+        "Дракула, не кусай ящик изнутри, это аренда!"};
     private final int[] order=new int[LINES.length];private final java.util.Random random;private int used=LINES.length,last=-1;
     public CursedReloadLines(long seed){random=new java.util.Random(seed);for(int i=0;i<order.length;i++)order[i]=i;}
     /** Next line from a shuffled deck; a new deck never starts with the line just spoken. */
