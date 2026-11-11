@@ -32,8 +32,10 @@ public final class FinalSecondScene implements Disposable {
 
     /** Press the big red button (visual): the cap travels down, glows, the machine shudders. */
     public void press(){pressT=0;shake=1;flash=1;}
+    /** 0 = machine off (dark), 1 = fully powered; lamps flicker on as it rises. */
+    public float power=1;
     public void update(float dt){
-        time+=dt;
+        time+=dt;plaqueFade=Math.min(1,plaqueFade+dt*3.2f);
         // spring for the cap: driven down quickly, eases back with a slight mechanical settle
         if(pressT>=0){pressT+=dt;if(pressT>1)pressT=-1;}
         shake=Math.max(0,shake-dt*4.5f);flash=Math.max(0,flash-dt*2.6f);
@@ -47,16 +49,17 @@ public final class FinalSecondScene implements Disposable {
     public String rawDigits;public boolean rawComma;public float displayFlicker=1;
     public void draw(SpriteBatch b,String target,String shown,float ghost){
         float jx=shake>0?MathUtils.sin(time*95)*2.2f*shake:0,jy=shake>0?MathUtils.cos(time*83)*1.4f*shake:0;
-        b.setColor(Color.WHITE);b.draw(plate,jx,jy,W,H);
-        lamps(b,jx,jy);
+        float pw=Math.max(0,Math.min(1,power));
+        b.setColor(.25f+.75f*pw,.25f+.75f*pw,.25f+.75f*pw,1);b.draw(plate,jx,jy,W,H);b.setColor(Color.WHITE);
+        if(pw>.15f)lamps(b,jx,jy,pw<1&&MathUtils.random()<.25f*(1-pw)?.1f:pw);
         plaque(b,target,jx,jy);
         readout(b,shown,ghost,jx,jy);
         button(b,jx,jy);
     }
 
-    private void lamps(SpriteBatch b,float jx,float jy){
+    private void lamps(SpriteBatch b,float jx,float jy,float pw){
         b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
-        float f1=flick(1.3f),f2=flick(4.7f),boost=1+flash*.8f;
+        float f1=flick(1.3f)*pw,f2=flick(4.7f)*pw,boost=1+flash*.8f;
         for(float[] l:new float[][]{{309,375,f1},{1368,375,f2}}){float x=l[0]*sx+jx,y=H-l[1]*sy+jy;
             b.setColor(1f,.12f,.08f,.22f*l[2]*boost);b.draw(soft,x-150,y-170,300,340);
             b.setColor(1f,.35f,.25f,.30f*l[2]*boost);b.draw(soft,x-34,y-70,68,140);}
@@ -66,15 +69,28 @@ public final class FinalSecondScene implements Disposable {
     }
     private float flick(float s){return .82f+.10f*MathUtils.sin(time*7.1f+s)+.06f*MathUtils.sin(time*13.3f+s*2)+.04f*MathUtils.sin(time*29f+s);}
 
+    /** What the machine's plaque says: a small upper line and a big main line (red or ivory). Changes crossfade. */
+    public void plaque(String top,String main,boolean red){
+        String k=top+"|"+main+"|"+red;if(k.equals(plaqueKey))return;
+        prevTop=curTop;prevMain=curMain;prevRed=curRed;curTop=top;curMain=main;curRed=red;plaqueKey=k;plaqueFade=prevTop==null?1:0;}
+    private String plaqueKey="",curTop,curMain,prevTop,prevMain;private boolean curRed,prevRed;private float plaqueFade=1;
     private void plaque(SpriteBatch b,String target,float jx,float jy){
+        if(curTop==null)plaque("ОСТАНОВИ ТАЙМЕР НА",target+" СЕКУНД",true);
         float cx=plaque[0]+plaque[2]/2+jx,top=plaque[1]+plaque[3]+jy;
-        text(b,title,"ОСТАНОВИ ТАЙМЕР НА",cx,top-16,1.22f,new Color(.93f,.85f,.72f,1),.0f);
-        String t=target+" СЕКУНД";
-        b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);big.getData().setScale(1.3f);layout.setText(big,t);big.getData().setScale(1);
-        b.setColor(1f,.15f,.1f,.35f);b.draw(soft,cx-layout.width*.62f,top-150,layout.width*1.24f,110);
-        b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
-        text(b,big,t,cx,top-70,1.3f,new Color(1f,.26f,.2f,1),.5f);
+        float k=plaqueFade*plaqueFade*(3-2*plaqueFade);
+        if(prevTop!=null&&k<1)plaqueLines(b,prevTop,prevMain,prevRed,cx,top,1-k,-8*k);
+        plaqueLines(b,curTop,curMain,curRed,cx,top,k,8*(1-k));
     }
+    private void plaqueLines(SpriteBatch b,String t1,String t2,boolean red,float cx,float top,float a,float dy){
+        if(a<=0)return;
+        text(b,title,t1,cx,top-16+dy,1.22f,new Color(.93f,.85f,.72f,a),.0f);
+        float sc=Math.min(1.3f,1.3f*620f/Math.max(1,width(big,t2)*1.3f));
+        Color c=red?new Color(1f,.26f,.2f,a):new Color(.97f,.90f,.78f,a);
+        if(red){b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);big.getData().setScale(sc);layout.setText(big,t2);big.getData().setScale(1);
+            b.setColor(1f,.15f,.1f,.35f*a);b.draw(soft,cx-layout.width*.62f,top-150+dy,layout.width*1.24f,110);b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
+        text(b,big,t2,cx,top-70+dy,sc,c,red?.5f*a:0);
+    }
+    private float width(BitmapFont f,String s){f.getData().setScale(1);layout.setText(f,s);return layout.width;}
     private void text(SpriteBatch b,BitmapFont f,String s,float cx,float y,float scale,Color c,float glow){
         f.getData().setScale(scale);layout.setText(f,s);float x=cx-layout.width/2;
         f.setColor(0,0,0,.75f);f.draw(b,s,x+2,y-3);

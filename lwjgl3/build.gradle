@@ -1221,3 +1221,15 @@ tasks.register('finalSecondHost', JavaExec) {
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
+
+// THE FINAL SECOND host screen with a scripted round (-Pfs.capture=dir writes frames).
+tasks.register('finalSecondScreenPreview', JavaExec) {
+    group = 'application'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.FinalSecondScreenPreview'
+    workingDir = rootProject.file('assets')
+    systemProperty 'fs.capture', providers.gradleProperty('fs.capture').getOrElse('')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
