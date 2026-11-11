@@ -16,7 +16,7 @@ import {AnalogMeter, TestButton, ModeSelector, labelPlate, type Fault, type Mode
 
 const TERMINALS = ['A1', 'B2', 'C3', 'D4', 'E5', 'F6'];
 const BW = .46, BH = .56, BD = .15, WALL = .014, N = 6, TOP = .12, BOT = -.2, GAP = .056;
-export interface FuseBoxSounds { door(open: boolean): void; snip(): void; spark(): void; good(): void; bad(): void }
+export interface FuseBoxSounds { door(open: boolean): void; selector?(): void; snip(): void; spark(): void; good(): void; bad(): void }
 
 const canvasTex = (w: number, h: number, draw: (x: CanvasRenderingContext2D) => void, srgb = true) => { const c = hiCanvas(w, h); draw(ctx2d(c)); return textTex(c, srgb); };
 
@@ -56,7 +56,7 @@ export class Pliers {
 }
 
 export class FuseBox {
-  group = new T.Group(); door = new T.Group(); pickDoor: T.Object3D[] = []; wireMeshes: T.Mesh[] = []; open = false; private doorT = 0;
+  group = new T.Group(); door = new T.Group(); pickDoor: T.Object3D[] = []; wireMeshes: T.Mesh[] = []; open = false; private doorT = 0; private closeSoundPending = false; private closeTime = -1; private closeFrom = 0; private doorSettle = 0;
   private halves: {top: T.Group; bot: T.Group; t: number; side: number}[] = []; private plate!: T.CanvasTexture; private plateCanvas = document.createElement('canvas');
   private lamp!: T.Mesh; private lampLight!: T.PointLight; private sparks!: T.Points; private sparkVel: T.Vector3[] = []; private sparkLife = 0;
   private braid = braid(); pliers = new Pliers(); private aim = new T.Vector3(0, -.04, .07); private aimTarget = new T.Vector3(0, -.04, .07); private snipping = 0; private reach = 0; private hot: {mat: T.MeshPhysicalMaterial; t: number}[] = [];
@@ -183,7 +183,47 @@ export class FuseBox {
   }
 
   setLamp(s: 'off' | 'good' | 'bad') { const m = this.lamp.material as T.MeshPhysicalMaterial; const c = s === 'good' ? '#3dff6a' : s === 'bad' ? '#ff2a14' : '#000'; m.emissive.set(c); m.emissiveIntensity = s === 'off' ? 0 : 3; this.lampLight.color.set(c); this.lampLight.intensity = s === 'off' ? 0 : 1.2; }
-  toggleDoor() { this.open = !this.open; this.sounds?.door(this.open); }
+  toggleDoor() {
+    this.open = !this.open;
+    this.doorSettle = 0;
+    this.closeFrom = this.doorT;
+    this.closeTime = this.open ? -1 : 0;
+    // The impact in the recording arrives ~110 ms after playback starts.
+    this.closeSoundPending = !this.open;
+    if (this.open) this.sounds?.door(true);
+  }
+
+  private updateDoor(dt: number) {
+    dt = Math.max(0, dt);
+    if (this.open) {
+      this.latchT += (1 - this.latchT) * (1 - Math.exp(-9 * dt));
+      const swing = this.latchT > .85 ? 1 : 0;
+      this.doorT += (swing - this.doorT) * (1 - Math.exp(-5 * dt));
+    } else if (this.closeTime >= 0) {
+      this.closeTime += dt;
+      if (this.closeSoundPending && this.closeTime >= .09) {
+        this.closeSoundPending = false; this.sounds?.door(false);
+      }
+      const t = Math.min(1, this.closeTime / .2);
+      // Accelerate into the frame, with no slow easing into the closed position.
+      this.doorT = this.closeFrom * (1 - t * t);
+      this.latchT *= Math.exp(-35 * dt);
+      if (t === 1) {
+        this.doorT = 0; this.latchT = 0;
+        this.doorSettle = this.closeFrom > .05 ? .09 : 0;
+        this.closeTime = -1;
+      }
+    } else {
+      this.doorT = 0; this.latchT = 0;
+      this.doorSettle = Math.max(0, this.doorSettle - dt);
+    }
+    // Tiny damped panel vibration after contact; the latch stays shut.
+    const elapsed = .09 - this.doorSettle;
+    const vibration = !this.open && this.doorSettle > 0
+      ? Math.sin(elapsed * 140) * Math.exp(-elapsed * 48) * .006 : 0;
+    this.latch.rotation.z = -this.latchT * Math.PI / 2;
+    this.door.rotation.y = -this.doorT * 1.95 + vibration;
+  }
 
   /** mouse hover: the pliers follow the wire under the cursor */
   hover(ray: T.Raycaster) {
@@ -196,7 +236,7 @@ export class FuseBox {
   tap(ray: T.Raycaster) {
     const hits = ray.intersectObjects([...this.pickDoor, ...this.wireMeshes, ...this.button.pick, ...this.selector.pick, this.header], true); if (!hits.length) return null; const o = hits[0].object;
     if (this.button.pick.includes(o)) { this.runTest(); return 'test'; }
-    if (this.selector.pick.includes(o)) { this.selector.tryTurn(); this.sounds?.door(false); return 'selector'; }
+    if (this.selector.pick.includes(o)) { this.selector.tryTurn(); this.sounds?.selector?.(); return 'selector'; }
     if (o.parent === this.header || this.header.children.includes(o) || this.meter.group.getObjectById(o.id)) return 'panel';
     if (this.pickDoor.includes(o) || this.latch.getObjectById(o.id)) { if (!this.snipping) this.toggleDoor(); return 'door'; }
     if (o.userData.wire !== undefined && this.open && !this.locked && !this.snipping) { this.snip(o as T.Mesh, hits[0].point); return 'wire'; }
@@ -228,8 +268,7 @@ export class FuseBox {
   private burst(p: T.Vector3) { const pos = this.sparks.geometry.attributes.position as T.BufferAttribute; for (let i = 0; i < pos.count; i++) { pos.setXYZ(i, p.x, p.y, p.z); this.sparkVel[i].set((Math.random() - .5) * 1.3, Math.random(), Math.random() * .9); } pos.needsUpdate = true; this.sparkLife = .7; this.sparks.visible = true; }
 
   update(dt: number) {
-    this.latchT += ((this.open ? 1 : 0) - this.latchT) * Math.min(1, dt * 9); this.latch.rotation.z = -this.latchT * Math.PI / 2;
-    const swing = this.open ? (this.latchT > .85 ? 1 : 0) : 0; this.doorT += (swing - this.doorT) * Math.min(1, dt * 5); this.door.rotation.y = -this.doorT * 1.95;
+    this.updateDoor(dt);
     this.meter.update(dt); this.button.update(dt); this.selector.update(dt); this.diagnosticFx(dt);
     for (const h of this.halves) { h.t = Math.min(1, h.t + dt * 2.2); const e = 1 - (1 - h.t) ** 3, wob = Math.sin(h.t * 14) * (1 - h.t) * .15; h.top.rotation.x = (.16 + wob * .4) * e; h.top.rotation.z = (.3 + wob) * e * h.side; h.bot.rotation.x = -(.12 + wob * .4) * e; h.bot.rotation.z = (.3 + wob) * e * h.side; }
     if (this.sparkLife > 0) { this.sparkLife -= dt; const pos = this.sparks.geometry.attributes.position as T.BufferAttribute; for (let i = 0; i < pos.count; i++) { const v = this.sparkVel[i]; v.y -= 3 * dt; pos.setXYZ(i, pos.getX(i) + v.x * dt, pos.getY(i) + v.y * dt, pos.getZ(i) + v.z * dt); } pos.needsUpdate = true; (this.sparks.material as T.PointsMaterial).opacity = Math.max(0, this.sparkLife / .7); if (this.sparkLife <= 0) this.sparks.visible = false; }

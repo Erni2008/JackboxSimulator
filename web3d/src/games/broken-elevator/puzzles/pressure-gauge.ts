@@ -36,7 +36,7 @@ export class PressureGauge {
     for (let i = 0; i < 60; i++) { x.fillStyle = `rgba(120,80,30,${r() * .12})`; x.beginPath(); x.arc(r() * 1024, r() * 1024, 4 + r() * 22, 0, 7); x.fill(); }
     const arc = (a: number, b: number, rad: number, w: number, col: string) => { x.strokeStyle = col; x.lineWidth = w; x.beginPath(); x.arc(c, c, rad, ang(a), ang(b)); x.stroke(); };
     arc(110, 120, 378, 52, 'rgba(176,24,10,.92)');
-    arc(low - .4, high + .4, 378, 70, '#1f9a3a'); arc(low - .4, high + .4, 414, 7, '#0f5a20'); arc(low - .4, high + .4, 342, 7, '#0f5a20');
+    arc(low, high, 378, 70, '#1f9a3a'); arc(low, high, 414, 7, '#0f5a20'); arc(low, high, 342, 7, '#0f5a20');
     arc(0, 120, 410, 7, '#20140a');
     for (let v = 0; v <= 120; v += 2) { const a = ang(v), big = v % 10 === 0, len = big ? 64 : v % 5 === 0 ? 44 : 28; x.strokeStyle = '#140c05'; x.lineWidth = big ? 9 : 4; x.beginPath(); x.moveTo(c + Math.cos(a) * 404, c + Math.sin(a) * 404); x.lineTo(c + Math.cos(a) * (404 - len), c + Math.sin(a) * (404 - len)); x.stroke(); }
     x.fillStyle = '#120a03'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = `700 70px 'Cinzel', Georgia, serif`;
@@ -55,7 +55,8 @@ export class PressureGauge {
   /** psi: target pressure; jitter: 0..1 vibration (surge warning / critical); zone: needle inside the green arc */
   update(dt: number, psi: number, jitter: number, zone: boolean) {
     this.t += dt; const aim = this.broken ? A1 + .55 : A0 + Math.max(-1, Math.min(121, psi)) / 120 * (A1 - A0);
-    const k = 70, damp = 2 * Math.sqrt(k) * .8; this.vel += (k * (aim - this.angle) - damp * this.vel) * dt; this.angle += this.vel * dt; // slightly under-damped: visible inertia
+    const k = 70, damp = 2 * Math.sqrt(k) * .8; const steps = Math.max(1, Math.ceil(Math.min(dt, .1) * 120)), step = Math.min(dt, .1) / steps;
+    for (let i = 0; i < steps; i++) { this.vel += (k * (aim - this.angle) - damp * this.vel) * step; this.angle += this.vel * step; } // slightly under-damped: visible inertia
     this.needle.rotation.z = -(this.angle + Math.sin(this.t * 63) * .014 * jitter + Math.sin(this.t * 41) * .008 * jitter);
     this.face.emissive.set(zone ? '#c8ffd2' : '#ffffff'); this.face.emissiveIntensity += ((zone ? .85 : .5) - this.face.emissiveIntensity) * Math.min(1, dt * 8);
   }

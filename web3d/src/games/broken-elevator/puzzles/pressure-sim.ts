@@ -58,7 +58,7 @@ export class ValveSim {
     else if (a === 'DIAGNOSTIC') this.diagnosticAt = this.elapsed;
     else if (a === 'CLAMP') this.clamped = true;
     else if (a === 'EMERGENCY') { this.emergencyUsed = true; this.pressure -= EMERGENCY; }
-    this.pressure = Math.max(0, this.pressure); if (this.pressure !== before) this.verifyMs = 0;
+    this.pressure = Math.max(0, this.pressure); if (!this.inZone() || !this.safeState()) this.verifyMs = 0;
     this.effect = {seq, action: a, delta: this.pressure - before, jammed}; this.critical(); return true;
   }
 }

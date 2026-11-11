@@ -1,13 +1,42 @@
-// Book audio. The page turn uses the project's recorded paper sample
-// (assets/sounds/impostor/page_turn.wav). The project has no recorded leather,
-// pickup or book-impact assets, so those are synthesised at run time from
-// filtered noise and modal resonators — no placeholder files are shipped.
-// Drop real recordings into SAMPLE_URLS to override any synthesised voice.
-export const SAMPLE_URLS: Partial<Record<Voice, string>> = {pageTurn: 'audio/page_turn.wav'};
-export type Voice = 'coverOpen' | 'coverClose' | 'pageTurn' | 'pickup' | 'drop' | 'impactMetal' | 'creak' | 'snip' | 'spark' | 'good' | 'bad' | 'doorOpen' | 'doorClose' | 'button' | 'locked' | 'screech' | 'slam' | 'clockTick' | 'blub' | 'valveClick' | 'valveTurn' | 'alarm' | 'holdTick' | 'pipeKnock' | 'grind' | 'relay' | 'lever' | 'whistle' | 'surge' | 'vent' | 'burst' | 'explosion' | 'pour' | 'splash' | 'stir' | 'pump' | 'boil' | 'gurgle' | 'labOk' | 'beepHi' | 'beepLo' | 'scanHum' | 'thermo' | 'ping';
+// Recorded paper, electrical-cabinet doors and pressure-release steam.
+// Other effects retain their procedural fallback when no recording is available.
+export const SAMPLE_URLS: Partial<Record<Voice, string>> = {pageTurn: 'audio/page_turn.wav', panelOpen: 'audio/door_open.wav', panelClose1: 'audio/door_close1.wav', panelClose2: 'audio/door_close2.wav', pressureVent: 'audio/steam.wav', cageDrop: 'audio/cage_drop.wav', panelSpark: 'audio/electrick_sparks.wav', mixtureDrain: 'audio/drain_failed_mixture.wav'};
+export type Voice = 'cageDrop' | 'panelSpark' | 'mixtureDrain' | 'panelOpen' | 'panelClose1' | 'panelClose2' | 'pressureVent' | 'coverOpen' | 'coverClose' | 'pageTurn' | 'pickup' | 'drop' | 'impactMetal' | 'creak' | 'snip' | 'spark' | 'good' | 'bad' | 'doorOpen' | 'doorClose' | 'button' | 'locked' | 'screech' | 'slam' | 'clockTick' | 'blub' | 'valveClick' | 'valveTurn' | 'alarm' | 'holdTick' | 'pipeKnock' | 'grind' | 'relay' | 'lever' | 'whistle' | 'surge' | 'vent' | 'burst' | 'explosion' | 'pour' | 'splash' | 'stir' | 'pump' | 'boil' | 'gurgle' | 'labOk' | 'beepHi' | 'beepLo' | 'scanHum' | 'thermo' | 'ping';
 
 export class BookAudio {
   ctx: AudioContext | null = null; out!: GainNode; private buffers = new Map<Voice, AudioBuffer>(); private noise!: AudioBuffer; enabled = true;
+  private closeVariant = 0;
+  private recorded = new Map<string, {source: AudioBufferSourceNode; gain: GainNode}>();
+  // Fetch early so the first gesture can decode without waiting for a network request.
+  private sampleData = Object.entries(SAMPLE_URLS).map(([voice, url]) =>
+    fetch(url!).then(r => { if (!r.ok) throw new Error(url); return r.arrayBuffer(); })
+      .then(data => ({voice: voice as Voice, data})).catch(() => null));
+  panelDoor(open: boolean) {
+    this.play(open ? 'panelOpen' : (++this.closeVariant % 2 ? 'panelClose1' : 'panelClose2'));
+  }
+  private recording(v: Voice, intensity: number) {
+    const levels: Partial<Record<Voice, number>> = {panelOpen: .95, panelClose1: .74, panelClose2: .54, pressureVent: .62, cageDrop: .65, panelSpark: 1, mixtureDrain: .7};
+    const level = levels[v], buffer = this.buffers.get(v), ctx = this.ctx;
+    if (level === undefined || !buffer || !ctx) return false;
+    const group = v.startsWith('panelClose') || v === 'panelOpen' ? 'panel' : v, t = ctx.currentTime;
+    // Replace the previous action with a short crossfade; rapid input cannot pile up voices.
+    const previous = this.recorded.get(group);
+    if (previous) {
+      previous.gain.gain.cancelAndHoldAtTime(t);
+      previous.gain.gain.linearRampToValueAtTime(0, t + .035);
+      previous.source.stop(t + .04);
+    }
+    const source = ctx.createBufferSource(), gain = ctx.createGain(); source.buffer = buffer;
+    source.playbackRate.value = v.startsWith('panel') && v !== 'panelSpark' ? .99 + Math.random() * .02 : 1;
+    const duration = buffer.duration / source.playbackRate.value;
+    const volume = level * Math.max(0, Math.min(1, intensity));
+    gain.gain.setValueAtTime(0, t); gain.gain.linearRampToValueAtTime(volume, t + .004);
+    gain.gain.setValueAtTime(volume, t + Math.max(.005, duration - .045));
+    gain.gain.linearRampToValueAtTime(0, t + duration);
+    source.connect(gain).connect(this.out); this.recorded.set(group, {source, gain});
+    source.onended = () => { source.disconnect(); gain.disconnect(); if (this.recorded.get(group)?.source === source) this.recorded.delete(group); };
+    source.start(); return true;
+  }
   unlock() {
     // iOS: play through the ringer/silent switch (Web Audio is otherwise muted on silent, incl. Home Screen apps)
     try { const s = (navigator as any).audioSession; if (s && s.type !== 'playback') s.type = 'playback'; } catch {}
@@ -15,7 +44,7 @@ export class BookAudio {
     const C = (window as any).AudioContext || (window as any).webkitAudioContext; if (!C) return; this.ctx = new C(); const ctx = this.ctx!; this.tick();
     this.out = ctx.createGain(); this.out.gain.value = .9; const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; this.out.connect(comp).connect(ctx.destination);
     this.noise = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate); const d = this.noise.getChannelData(0); let b = 0; for (let i = 0; i < d.length; i++) { const w = Math.random() * 2 - 1; b = .985 * b + .015 * w; d[i] = w * .6 + b * 4; }
-    for (const [k, url] of Object.entries(SAMPLE_URLS)) fetch(url!).then(r => r.arrayBuffer()).then(a => ctx.decodeAudioData(a)).then(buf => this.buffers.set(k as Voice, buf)).catch(() => {});
+    for (const pending of this.sampleData) pending.then(async entry => { if (entry) this.buffers.set(entry.voice, await ctx.decodeAudioData(entry.data)); }).catch(() => {});
   }
   /** a silent one-sample buffer started inside the gesture: the reliable WebKit unlock */
   private tick() { const ctx = this.ctx; if (!ctx) return; try { const s = ctx.createBufferSource(); s.buffer = ctx.createBuffer(1, 1, 22050); s.connect(ctx.destination); s.start(0); } catch {} }
@@ -35,6 +64,13 @@ export class BookAudio {
   }
   play(v: Voice, intensity = 1) {
     if (!this.enabled || !this.ctx || this.ctx.state !== 'running') return; const t = this.ctx.currentTime;
+    if (this.recording(v, intensity)) return;
+    if (v === 'panelOpen') v = 'doorOpen';
+    else if (v === 'panelClose1' || v === 'panelClose2') v = 'doorClose';
+    else if (v === 'pressureVent') v = 'vent';
+    else if (v === 'cageDrop') v = 'slam';
+    else if (v === 'panelSpark') v = 'spark';
+    else if (v === 'mixtureDrain') v = 'gurgle';
     if (this.buffers.has(v) && this.sample(v, .8 * intensity, .92 + Math.random() * .16)) return;
     switch (v) {
       case 'pageTurn': this.rustle(t, .35, 2600, .7, .35 * intensity, .04); this.rustle(t + .18, .22, 4200, 1.2, .2 * intensity); break;

@@ -94,13 +94,13 @@ async function boot() {
   const box = new FuseBox(quality === 'high'); const ci = cage.inner as T.Box3 | undefined;
   if (ci) box.group.position.set(ci.min.x * .45, floorY + 1.3, ci.min.z + .008); else box.group.position.set(-.45, 1.3, -.79);
   scene.add(box.group);
-  box.sounds = {door: o => audio.play(o ? 'doorOpen' : 'doorClose'), snip: () => audio.play('snip'), spark: () => audio.play('spark'), good: () => audio.play('good'), bad: () => audio.play('bad')};
+  box.sounds = {door: o => audio.panelDoor(o), selector: () => audio.play('valveClick'), snip: () => audio.play('snip'), spark: () => audio.play('panelSpark'), good: () => audio.play('good'), bad: () => audio.play('bad')};
   // PRESSURE CONTROL: steam manifold on the right-hand wall, facing into the car
   const press = new PressureMachine(quality === 'high');
   if (ci) press.group.position.set(ci.max.x - .006, floorY + 1.28, .12); else press.group.position.set(1.2, 1.3, .1);
   press.group.rotation.y = -Math.PI / 2; scene.add(press.group); press.group.updateMatrixWorld(true);
   press.sounds = {click: () => audio.play('valveClick'), turn: () => audio.play('valveTurn'), grind: () => audio.play('grind'), lever: () => audio.play('lever'), press: () => { audio.play('button'); audio.play('relay'); }, pull: () => audio.play('lever'),
-    knock: k => audio.play('pipeKnock', k), alarm: () => audio.play('alarm'), whistle: () => audio.play('whistle'), surge: () => audio.play('surge'), vent: k => audio.play('vent', k), burst: () => audio.play('burst'), explosion: () => audio.play('explosion'), tick: k => audio.play('holdTick', k), steam: (h, r) => audio.steam(h, r)};
+    knock: k => audio.play('pipeKnock', k), alarm: () => audio.play('alarm'), whistle: () => audio.play('whistle'), surge: () => audio.play('surge'), vent: k => audio.play('pressureVent', k), burst: () => audio.play('burst'), explosion: () => audio.play('explosion'), tick: k => audio.play('holdTick', k), steam: (h, r) => audio.steam(h, r)};
   const link = new PressureLink(); press.onAction = a => link.act(a);
   press.canAct = () => link.view()?.outcome === 'RUNNING';
   link.onRejected = code => { if (code === 'EMERGENCY_USED') { $('hint').textContent = L('Аварийный сброс уже использован', 'Emergency release already used'); $('hint').style.opacity = '1'; } };
@@ -230,7 +230,7 @@ async function boot() {
   lock.sounds = {thud: (k: number) => audio.play("slam", .35 + .65 * k), click: () => audio.play("valveClick"), turn: () => audio.play("button"), lever: () => { audio.play("button"); audio.play("relay"); }, unlock: () => { audio.play("locked"); audio.play("doorOpen"); }, jam: () => audio.play("grind")};
   jui.place(lab.ledgeTop.clone().add(new T.Vector3(0, TH / 2, 0)).applyMatrix4(lab.group.matrixWorld), new T.Quaternion().setFromEuler(new T.Euler(0, Math.PI / 2 + .06, 0)));
   lab.sounds = {click: () => audio.play('valveClick'), turn: () => audio.play('valveTurn'), grind: () => audio.play('grind'), lever: () => audio.play('lever'), press: () => audio.play('button'), pull: () => audio.play('lever'),
-    pour: () => audio.play('pour'), splash: () => audio.play('splash'), stir: on => { if (on) audio.play('stir'); }, inject: () => { audio.play('button'); audio.play('relay'); }, pump: () => audio.play('pump'), accepted: () => audio.play('labOk'), unstable: () => audio.play('boil'), steam: () => audio.play('vent', .8), drain: () => audio.play('gurgle'), bubble: () => audio.play('splash')};
+    pour: () => audio.play('pour'), splash: () => audio.play('splash'), stir: on => { if (on) audio.play('stir'); }, inject: () => { audio.play('button'); audio.play('relay'); }, pump: () => audio.play('pump'), accepted: () => audio.play('labOk'), unstable: () => audio.play('boil'), steam: () => audio.play('vent', .8), drain: () => audio.play('mixtureDrain'), bubble: () => audio.play('splash')};
   const flink = new FormulaLink(); lab.onAction = (a, r) => flink.act(a, r);
   lab.canAct = () => { const v = flink.view(); return !!v && v.outcome === 'RUNNING' && !v.draining; };
   lab.onEvent = e => { if (e.type === 'REJECTED') { haptic('bad'); voice.say('fail', 2); } if (e.type === 'REJECTED') verdict(false, e.reason === 'UNSTABLE_UNPROTECTED' ? L('НЕСТАБИЛЬНО · ЗАМОК ОХЛАЖДЕНИЯ НЕ ВКЛЮЧЁН', 'UNSTABLE · COOLING LOCK WAS OFF') : L('ФОРМУЛА ОТВЕРГНУТА · СЛИВ, ПОПРОБУЙТЕ СНОВА', 'ФОРМУЛА ОТВЕРГНУТА · DRAINED, TRY AGAIN'), e.reason === 'UNSTABLE_UNPROTECTED' ? L('Нестабильная реакция', 'Unstable reaction') : L('Формула отвергнута', 'Formula rejected')); };
@@ -370,12 +370,12 @@ async function boot() {
   let shake = 0, falling = false, fallT = -1, landT = -1, headY = 0, headV = 0; const fov0 = camera.fov;
   cage.onFallStart = () => { audio.play('screech'); shake = Math.max(shake, .5); falling = true; fallT = 0; landT = -1; if (inspecting) setInspect(false); focusTo = [yawT, -.42];
     const tag = $('fall'); tag.classList.remove('show'); void tag.offsetWidth; tag.classList.add('show'); document.body.classList.add('falling'); };
-  cage.onFallImpact = (k: number) => { audio.play('slam', k); shake = .9 * k + .6; falling = false; landT = 0; headV = -1.6 * k; setTimeout(() => { $('fall').classList.remove('show'); document.body.classList.remove('falling'); }, 2400); };
+  cage.onFallImpact = (k: number) => { audio.play('cageDrop', k); shake = .9 * k + .6; falling = false; landT = 0; headV = -1.6 * k; setTimeout(() => { $('fall').classList.remove('show'); document.body.classList.remove('falling'); }, 2400); };
   // PHASE 1 dev configuration: ?fault=overload|short|power&mode=normal|emergency&wires=4..6 (no production generation yet)
   // dev overrides: ?fault=overload|short|power&mode=normal|emergency&wires=4..6 (otherwise each task varies)
   const fixed: any = {}; if (['overload', 'short', 'power'].includes(params.get('fault') || '')) fixed.fault = params.get('fault'); if (['normal', 'emergency'].includes(params.get('mode') || '')) fixed.mode = params.get('mode');
   const wireCount = params.get('wires') ? Math.max(4, Math.min(6, +params.get('wires')!)) : 0;
-  box.onTest = f => { audio.play('button'); setTimeout(() => audio.hum(f, 2), 60); if (f === 'short') for (let k = 0; k < 6; k++) setTimeout(() => audio.play('spark'), 150 + k * 280 + Math.random() * 120); };
+  box.onTest = f => { audio.play('button'); setTimeout(() => audio.hum(f, 2), 60); if (f === 'short') for (let k = 0; k < 6; k++) setTimeout(() => audio.play('panelSpark'), 150 + k * 280 + Math.random() * 120); };
   newTask(false);
   // taps that miss the book go to the box; opening the door turns the head toward it
   const tapStart = new Map<number, {x: number; y: number; t: number}>(), ray = new T.Raycaster();
@@ -520,7 +520,16 @@ async function boot() {
       if (run && n !== lastTick) { lastTick = n; audio.play('clockTick'); } }
     if (kind === 'formula') { const v = flink.view(), lim = limitMs('formula') / 1000, left = v ? (v.outcome === 'RUNNING' ? (frozenLeft = Math.max(0, (v.deadline - performance.now()) / 1000)) : v.outcome === 'STABILIZED' ? frozenLeft : 0) : lim;
       $('clock-num').textContent = String(Math.ceil(left)); ($('clock-ring') as any).style.strokeDashoffset = String(176 * (1 - left / lim)); $('clock').dataset.urgent = String(!!v && v.outcome === 'RUNNING' && left < 10); }
-    else if (kind === 'pressure') { const v = link.view(), lim = limitMs('pressure') / 1000, left = v ? (v.outcome === 'RUNNING' ? (frozenLeft = Math.max(0, (v.deadline - performance.now()) / 1000)) : v.outcome === 'STABILIZED' ? frozenLeft : 0) : lim;
+    else if (kind === 'pressure') { const v = link.view();
+      if (v && v.outcome === 'RUNNING') {
+        const inZone = v.pressure >= v.safeLow && v.pressure <= v.safeHigh;
+        const reading = `${v.pressure.toFixed(1)} PSI · ${L('НОРМА', 'SAFE')} ${v.safeLow}–${v.safeHigh}`;
+        const status = !v.safeState ? L('Утечка: нажмите муфту «ЗАЖИМ», затем удерживайте давление в норме', 'Leak: tap the CLAMP joint, then hold pressure in the safe zone')
+          : inZone ? L(`Удержание: ${(v.verifyMs / 1000).toFixed(1)} / 1,0 с`, `Holding: ${(v.verifyMs / 1000).toFixed(1)} / 1.0 s`)
+          : L('Удерживайте давление в зелёной зоне 1 секунду', 'Hold pressure in the green zone for 1 second');
+        $('hint').textContent = `${reading} · ${status}`; $('hint').style.opacity = '1';
+      }
+      const lim = limitMs('pressure') / 1000, left = v ? (v.outcome === 'RUNNING' ? (frozenLeft = Math.max(0, (v.deadline - performance.now()) / 1000)) : v.outcome === 'STABILIZED' ? frozenLeft : 0) : lim;
       $('clock-num').textContent = String(Math.ceil(left)); ($('clock-ring') as any).style.strokeDashoffset = String(176 * (1 - left / lim)); $('clock').dataset.urgent = String(!!v && v.outcome === 'RUNNING' && left < 10); }
     else { const left = deadline ? Math.max(0, (deadline - performance.now()) / 1000) : LIMITW(); $('clock-num').textContent = String(Math.ceil(left)); ($('clock-ring') as any).style.strokeDashoffset = String(176 * (1 - left / LIMITW())); $('clock').dataset.urgent = String(!!deadline && left < 10); if (kind === "bomb" && deadline && left <= 0 && !bombDone) { bombFinish(false, "TIMEOUT"); } else if (kind === "lock" && deadline && left <= 0 && !lockDone) { lock.expire(); lockFinish(false, "TIMEOUT"); } else if (kind !== "lock" && deadline && left <= 0 && !box.locked) { finish(false, L('ВРЕМЯ ВЫШЛО', 'TIME RAN OUT')); setTimeout(() => cage.drop?.(.8), 350); } }
     const surface = cage.shelf && Math.abs(book.root.position.y - TH / 2 - cage.shelf.top.y) < .2 && Math.abs(book.root.position.z - cage.shelf.top.z) < .2 ? cage.shelf.top.y : floorY; const h = Math.max(0, book.root.position.y - TH / 2 - surface); shadow.position.set(book.root.position.x, surface + .0012, book.root.position.z); shadow.rotation.z = new T.Euler().setFromQuaternion(book.root.quaternion, 'YXZ').y; (shadow.material as T.MeshBasicMaterial).opacity = .75 * Math.max(0, 1 - h / .18); shadow.visible = h < .18;

@@ -80,9 +80,17 @@ class PressurePuzzleTest {
     @Test void verificationNeedsOneContinuousSecond() {
         var p = p(50, 60, Malfunction.F01); act(p, Action.BYPASS_AUX, 0); act(p, Action.RED, 0); // 60
         p.advance(900); assertEquals(Outcome.RUNNING, p.outcome()); assertEquals(900, p.verifyMs());
-        act(p, Action.FINE_ON, 900); act(p, Action.RED, 900); assertEquals(0, p.verifyMs(), "a step restarts the check"); // 62, still inside
-        p.advance(1890); assertEquals(Outcome.RUNNING, p.outcome()); p.advance(1900); assertEquals(Outcome.STABILIZED, p.outcome());
+        act(p, Action.FINE_ON, 900); act(p, Action.RED, 900); assertEquals(900, p.verifyMs(), "fine adjustment inside the zone preserves the hold"); // 62, still inside
+        p.advance(990); assertEquals(Outcome.RUNNING, p.outcome()); p.advance(1000); assertEquals(Outcome.STABILIZED, p.outcome());
         var q = p(50, 60, Malfunction.F01); act(q, Action.BYPASS_AUX, 0); act(q, Action.RED, 0); q.advance(500); act(q, Action.RED, 500); assertEquals(70, q.pressure(), 1e-9); q.advance(3000); assertEquals(0, q.verifyMs(), "leaving resets");
+    }
+    @Test void leavingAndReenteringBetweenTicksResetsTheHold() {
+        var p = p(60, 60, Malfunction.R02);
+        act(p, Action.BYPASS_AUX, 0); p.advance(500);
+        act(p, Action.RED, 500); assertEquals(0, p.verifyMs());
+        act(p, Action.BLUE, 500); assertEquals(60, p.pressure(), 1e-9);
+        p.advance(1490); assertEquals(Outcome.RUNNING, p.outcome());
+        p.advance(1500); assertEquals(Outcome.STABILIZED, p.outcome());
     }
     @Test void jamCanBeWorkedAroundWithoutBypass() {
         var p = p(80, 60, Malfunction.R02); act(p, Action.BLUE, 0); act(p, Action.BLUE, 0); assertEquals(60, p.pressure(), 1e-9); p.advance(1000); assertEquals(Outcome.STABILIZED, p.outcome());

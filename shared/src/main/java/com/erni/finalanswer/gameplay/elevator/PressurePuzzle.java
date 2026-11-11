@@ -101,7 +101,7 @@ public final class PressurePuzzle {
             case EMERGENCY -> { emergencyUsed = true; pressure -= EMERGENCY; }
         }
         pressure = Math.max(0, pressure);
-        if (pressure != before) verifyMs = 0; // a step re-starts the stability check
+        if (!inZone() || !safeState()) verifyMs = 0; // adjustments within the safe zone preserve continuous hold
         lastEffect = new Effect(seq, action, pressure - before, jam);
         critical();
         return true;
