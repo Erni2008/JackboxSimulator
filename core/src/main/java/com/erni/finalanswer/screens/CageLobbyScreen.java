@@ -136,6 +136,7 @@ public final class CageLobbyScreen extends ScreenAdapter {
         // THE LAST COMMAND is parked (2026-11-08): it will come back with a new interpretation; its code stays.
         if(LAST_COMMAND_ENABLED)modes.add(new Mode("THE LAST COMMAND","от 1 игрока",lastCommand,game::startLastCommand));
         modes.add(new Mode("THE CURSED CARDS","4–6 игроков",cards,game::startCursedCards));
+        modes.add(new Mode("THE FINAL SECOND","2–8 игроков · останови таймер на 7,00 с вслепую",null,game::startFinalSecond));
         if(FORGOTTEN_ROOM_ENABLED)for(String[] d:new String[][]{{"EASY","ЛЁГКИЙ","8–10 предметов · 2 изменения"},{"MEDIUM","СРЕДНИЙ","12–15 предметов · 3 изменения"},{"HARD","СЛОЖНЫЙ","16–18 предметов · 4–5 изменений"}})
             modes.add(new Mode("THE FORGOTTEN ROOM · "+d[1],"2–8 игроков · "+d[2]+" · только очки",null,()->game.startForgottenRoom(d[0])));
         for(String[] d:new String[][]{{"EASY","ЛЁГКИЙ","90 / 60 / 60 с · одна поломка · без помех"},{"NORMAL","СРЕДНИЙ","60 / 45 / 45 с · стандартные правила"},{"HARD","СЛОЖНЫЙ","45 / 35 / 35 с · двойные поломки · всегда скачок"}})

@@ -19,7 +19,7 @@ public final class SevenSegment implements Disposable {
     public SevenSegment(){bar=hexBar(256,48);glow=soft(128);}
 
     /** Segment mask for a character: '0'–'9', or 0 for blank. */
-    public static int mask(char c){return c>='0'&&c<='9'?MASK[c-'0']:0;}
+    public static int mask(char c){return c>='0'&&c<='9'?MASK[c-'0']:c=='-'?0b0000001:c=='E'?0b1001111:c=='r'?0b0000101:0;}
 
     /**
      * One digit with its lower-left at (x,y), {@code w}×{@code h}. {@code lit} 0–1 scales lit segments (0 = all dark);

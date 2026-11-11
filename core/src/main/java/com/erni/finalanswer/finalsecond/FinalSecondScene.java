@@ -43,6 +43,8 @@ public final class FinalSecondScene implements Disposable {
      * Draw the machine. {@code target} e.g. "7,00"; {@code shown} the readout ("03,42"), or null for a dark display;
      * {@code ghost} how visible the unlit segments are.
      */
+    /** Display override: four characters (digits, '-', ' ', 'E', 'r') and whether the decimal comma is lit; null = normal. */
+    public String rawDigits;public boolean rawComma;public float displayFlicker=1;
     public void draw(SpriteBatch b,String target,String shown,float ghost){
         float jx=shake>0?MathUtils.sin(time*95)*2.2f*shake:0,jy=shake>0?MathUtils.cos(time*83)*1.4f*shake:0;
         b.setColor(Color.WHITE);b.draw(plate,jx,jy,W,H);
@@ -85,12 +87,13 @@ public final class FinalSecondScene implements Disposable {
         float gx=glass[0]+jx,gy=glass[1]+jy,gw=glass[2],gh=glass[3];
         float dh=gh*.84f,dw=dh*.56f,gap=dw*.26f,comma=dw*.40f;
         float total=4*dw+3*gap+comma+dw*.45f,x=gx+(gw-total)/2,y=gy+(gh-dh)/2;
-        String s=shown==null?"    ":shown.replace(",","").replace(".","");
-        float lit=shown==null?0:(.9f+.1f*flick(9))*(1+flash*.25f);
+        String s=rawDigits!=null?rawDigits:shown==null?"    ":shown.replace(",","").replace(".","");
+        boolean any=rawDigits!=null||shown!=null;
+        float lit=any?(.9f+.1f*flick(9))*(1+flash*.25f)*displayFlicker:0;
         for(int i=0;i<4;i++){
             char c=i<s.length()?s.charAt(i):' ';
             seg.digit(b,SevenSegment.mask(c),x,y,dw,dh,lit,ghost);
-            x+=dw+gap;if(i==1){seg.dot(b,x-gap*.55f,y-dh*.02f,dh*.09f,lit,ghost);x+=comma;}}
+            x+=dw+gap;if(i==1){seg.dot(b,x-gap*.55f,y-dh*.02f,dh*.09f,rawDigits!=null&&!rawComma?0:lit,ghost);x+=comma;}}
         // unit "с"
         text(b,title,"с",x+dw*.12f,y+dh*.30f,.9f,new Color(1f,.26f,.2f,shown==null?.18f:1f),shown==null?0:.4f);
         // glass sheen

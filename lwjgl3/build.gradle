@@ -1207,3 +1207,17 @@ tasks.register('finalSecondPreview', JavaExec) {
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
+
+// THE FINAL SECOND host screen against a live room (tools/dev/final_second_play.cjs).
+tasks.register('finalSecondHost', JavaExec) {
+    group = 'application'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.FinalSecondHostLauncher'
+    workingDir = rootProject.file('assets')
+    systemProperty 'room.url', providers.gradleProperty('room.url').getOrElse('http://localhost:18240')
+    systemProperty 'room.code', providers.gradleProperty('room.code').getOrElse('')
+    systemProperty 'room.token', providers.gradleProperty('room.token').getOrElse('')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}

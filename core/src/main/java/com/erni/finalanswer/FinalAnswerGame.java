@@ -95,6 +95,22 @@ public class FinalAnswerGame extends Game {
         var screen=new com.erni.finalanswer.lastcommand.TheLastCommandScreen(this,Long.parseLong(mini.get("seed").getAsString()));
         screen.connectNetwork(realtime,state);if(cameraState!=null)screen.restoreCamera(cameraState);setScreen(screen);
     }
+    private com.erni.finalanswer.finalsecond.FinalSecondScreen finalSecondScreen;
+    /** Host: start THE FINAL SECOND for every connected, living player. */
+    public void startFinalSecond(){
+        if(activeRoom==null||realtime==null||!activeRoom.host())return;
+        var snapshot=realtime.snapshot();if(snapshot==null||!snapshot.has("lobbyId"))return;
+        realtime.send("START_FINAL_SECOND",java.util.Map.of("roomCode",activeRoom.code(),"sessionId",snapshot.get("lobbyId").getAsString()));
+    }
+    private void openFinalSecond(com.google.gson.JsonObject state){
+        String session=state.getAsJsonObject("finalSecond").get("sessionId").getAsString();
+        if(finalSecondScreen!=null&&finalSecondScreen.session().equals(session)){finalSecondScreen.apply(state);if(getScreen()!=finalSecondScreen)setScreen(finalSecondScreen);return;}
+        releaseFinalSecond(false);
+        finalSecondScreen=new com.erni.finalanswer.finalsecond.FinalSecondScreen(state,realtime::serverNow,id->{
+            if(realtime!=null&&realtime.connected())realtime.send("END_FINAL_SECOND",java.util.Map.of("roomCode",activeRoom.code(),"sessionId",id));});
+        setScreen(finalSecondScreen);
+    }
+    private void releaseFinalSecond(boolean toLobby){if(finalSecondScreen==null)return;var old=finalSecondScreen;finalSecondScreen=null;if(toLobby)showRoomLobby();else if(getScreen()==old)setScreen(null);old.dispose();}
     private com.erni.finalanswer.forgottenroom.ForgottenRoomScreen forgottenScreen;
     /** Host: start THE FORGOTTEN ROOM (EASY / MEDIUM / HARD) for every connected player; score-only. */
     public void startForgottenRoom(String difficulty){
@@ -259,6 +275,8 @@ public class FinalAnswerGame extends Game {
         if(activeRoom.host()&&data.has("lastCommand")){openLastCommand(data,false);return;}
         if(activeRoom.host()&&data.has("cursedCards")){openCursedCards(data);return;}
         if(cardsScreen!=null&&!data.has("cursedCards"))releaseCursedCards(true);
+        if(activeRoom.host()&&data.has("finalSecond")){openFinalSecond(data);return;}
+        if(finalSecondScreen!=null&&!data.has("finalSecond"))releaseFinalSecond(true);
         if(activeRoom.host()&&data.has("forgottenRoom")){openForgottenRoom(data);return;}
         if(forgottenScreen!=null&&!data.has("forgottenRoom"))releaseForgottenRoom(true);
         if(!lastCommandSession.isEmpty()&&!data.has("lastCommand")){lastCommandSession="";if(getScreen() instanceof com.erni.finalanswer.lastcommand.TheLastCommandScreen)showRoomLobby();}

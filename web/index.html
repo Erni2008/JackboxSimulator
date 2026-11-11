@@ -31,12 +31,14 @@
   <script src="/command-touch.js" defer></script>
   <script src="/last-command.js?v=1" defer></script>
   <link rel="stylesheet" href="/cursed-cards.css?v=4">
+  <link rel="stylesheet" href="/final-second.css?v=1">
   <link rel="stylesheet" href="/forgotten-room.css?v=7">
   <link rel="stylesheet" href="/impostor-pro.css?v=1">
   <script src="/cursed-cards.js?v=4" defer></script>
+  <script src="/final-second.js?v=1" defer></script>
   <script src="/forgotten-room.js?v=9" defer></script>
   <link rel="stylesheet" href="/arena-pro.css?v=23">
-  <script src="/app.js?v=room-1" defer></script>
+  <script src="/app.js?v=fsec-1" defer></script>
   <script src="/arena-pro.js?v=4" defer></script>
 </head>
 <body>
@@ -76,6 +78,12 @@
       <p class="eyebrow" id="players-count">THE GUEST LIST</p><ul id="players" class="players"></ul>
       <p id="room-configuration" class="room-configuration"></p>
       <p class="whisper">Keep this page open. Watch the host's screen.</p>
+    </section>
+    <section id="fsec-screen" class="screen fsec" hidden aria-label="The Final Second phone controller">
+      <div class="fsec-head"><p class="fsec-title">THE FINAL SECOND</p><p class="fsec-target">ОСТАНОВИ НА<b><span id="fsec-target">7,00</span> С</b></p></div>
+      <div class="fsec-display"><span id="fsec-digits">––,––</span></div>
+      <p id="fsec-note" class="fsec-note"></p>
+      <button id="fsec-stop" class="fsec-stop" type="button" data-native-button aria-label="Стоп" disabled></button>
     </section>
     <section id="room-screen" class="screen fr" hidden aria-label="The Forgotten Room phone controller">
       <div id="room-watch"><p class="fr-crest"></p><h1 id="room-watch-title">Забытая комната</h1><p id="room-watch-note">Смотри на общий экран</p></div>
