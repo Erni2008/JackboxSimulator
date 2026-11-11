@@ -15,7 +15,8 @@ function createFinalSecondController({getState,isAuthenticated,send,makeId,now})
   function render(){
     const m=mini();if(!m)return;if(m.sessionId!==session){reset();session=m.sessionId;}
     const scr=el('fsec-screen'),me=(m.seats||[]).includes(getState().selfId);
-    el('fsec-target').textContent=fmt(m.targetMs);
+    el('fsec-target').textContent=fmt(m.targetMs).replace(/^0/,'');scr.dataset.blind=String(!!m.blind);
+    el('fsec-task').textContent=m.blind?'ЗАДАНИЕ 2 · ВСЛЕПУЮ':'';
     let mode='wait';
     if(!me)mode='watch';
     else if(m.phase==='COUNTDOWN')mode='count';

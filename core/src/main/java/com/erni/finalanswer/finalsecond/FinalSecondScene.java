@@ -49,12 +49,33 @@ public final class FinalSecondScene implements Disposable {
     public String rawDigits;public boolean rawComma;public float displayFlicker=1;
     public void draw(SpriteBatch b,String target,String shown,float ghost){
         float jx=shake>0?MathUtils.sin(time*95)*2.2f*shake:0,jy=shake>0?MathUtils.cos(time*83)*1.4f*shake:0;
+        // living frame: a very slow breathing push-in and drift (≤1.6 %, whole pixels never smear — mip-mapped plate)
+        float z=1.012f+.006f*MathUtils.sin(time*.11f),dx=MathUtils.sin(time*.07f)*7,dy=MathUtils.sin(time*.09f+1)*4;
+        drift.set(b.getTransformMatrix());b.setTransformMatrix(tmpM.idt().translate(W/2+dx,H/2+dy,0).scale(z,z,1).translate(-W/2,-H/2,0));
         float pw=Math.max(0,Math.min(1,power));
         b.setColor(.25f+.75f*pw,.25f+.75f*pw,.25f+.75f*pw,1);b.draw(plate,jx,jy,W,H);b.setColor(Color.WHITE);
         if(pw>.15f)lamps(b,jx,jy,pw<1&&MathUtils.random()<.25f*(1-pw)?.1f:pw);
         plaque(b,target,jx,jy);
         readout(b,shown,ghost,jx,jy);
         button(b,jx,jy);
+        atmosphere(b,pw);
+        b.setTransformMatrix(drift);
+    }
+    private final com.badlogic.gdx.math.Matrix4 drift=new com.badlogic.gdx.math.Matrix4(),tmpM=new com.badlogic.gdx.math.Matrix4();
+    private static final int MOTES=70,EMBERS=26;
+    private final float[] mx=new float[MOTES],my=new float[MOTES],mz=new float[MOTES],ex=new float[EMBERS],ep=new float[EMBERS];
+    {java.util.Random r=new java.util.Random(9);for(int i=0;i<MOTES;i++){mx[i]=r.nextFloat();my[i]=r.nextFloat();mz[i]=r.nextFloat();}for(int i=0;i<EMBERS;i++){ex[i]=r.nextFloat();ep[i]=r.nextFloat();}}
+    /** Crisp dust drifting through the red light, embers rising from the candles, a slow red pulse from the tubes on the walls. */
+    private void atmosphere(SpriteBatch b,float pw){
+        if(pw<=.05f)return;b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
+        for(int i=0;i<MOTES;i++){float d=mz[i],sp=.006f+.012f*d;
+            float x=((mx[i]+time*sp*.6f+MathUtils.sin(time*.3f+i)*.01f)%1f)*W,y=((my[i]+time*sp)%1f)*H;
+            float a=(.10f+.22f*d)*pw*(.6f+.4f*MathUtils.sin(time*1.7f+i*2.1f));float sz=1.2f+2.2f*d;
+            b.setColor(1f,.55f,.42f,a);b.draw(soft,x-sz,y-sz,sz*2,sz*2);}
+        for(int i=0;i<EMBERS;i++){float life=(time*.22f+ep[i])%1f,x=(20+ex[i]*130)*sx+MathUtils.sin(time*1.3f+i)*10*life,y=H-430*sy+life*260;
+            float a=(1-life)*(life*4>1?1:life*4)*.75f*pw;b.setColor(1f,.62f,.24f,a);b.draw(soft,x-2.5f,y-2.5f,5,5);}
+        float pulse=.5f+.5f*MathUtils.sin(time*.9f);b.setColor(1f,.08f,.05f,.05f*pulse*pw);b.draw(soft,-200,H*.15f,700,900);b.draw(soft,W-500,H*.15f,700,900);
+        b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);b.setColor(Color.WHITE);
     }
 
     private void lamps(SpriteBatch b,float jx,float jy,float pw){

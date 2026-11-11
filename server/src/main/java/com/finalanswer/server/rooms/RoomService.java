@@ -430,8 +430,8 @@ public final class RoomService {
                 if(room.game!=null||room.impostor!=null||room.cursed!=null||room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null)throw new Failure(409,"GAME_ALREADY_STARTED");
                 if(!room.lobbyId.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_FS_SESSION");
                 List<String> seats=room.members.values().stream().filter(m->m.peer!=null&&!m.left&&m.alive).map(m->m.id).toList();
-                room.finalSecond=new FinalSecondSession(seats,now());
-                System.out.println("[final-second] start room="+room.code+" seats="+seats.size());
+                room.finalSecond=new FinalSecondSession(seats,now(),room.fsTasks.draw(random));
+                System.out.println("[final-second] start room="+room.code+" seats="+seats.size()+" blind="+room.finalSecond.blind);
                 broadcast(room,"FINAL_SECOND_STARTED");
             }
             case "END_FINAL_SECOND"->{requireHost(member);requireFinalSecond(room,data);room.finalSecond=null;room.lobbyId=UUID.randomUUID().toString();broadcast(room,"FINAL_SECOND_ENDED");}
@@ -990,7 +990,7 @@ public final class RoomService {
         String lobbyId=UUID.randomUUID().toString();List<String> impostorRoster=List.of();
         com.erni.finalanswer.gameplay.impostor.ImpostorSettings impostorSettings=com.erni.finalanswer.gameplay.impostor.ImpostorSettings.defaults();
         com.erni.finalanswer.gameplay.impostor.ImpostorMatchResult lastImpostorResult;
-        final Map<String,Member> members=new LinkedHashMap<>(); Member host; GameSession game; ImpostorSession impostor; CursedBoxesSession cursed; LastCommandSession lastCommand; CursedCardsSession cards; ForgottenRoomSession forgotten; FinalSecondSession finalSecond; long revision;
+        final Map<String,Member> members=new LinkedHashMap<>(); Member host; GameSession game; ImpostorSession impostor; CursedBoxesSession cursed; LastCommandSession lastCommand; CursedCardsSession cards; ForgottenRoomSession forgotten; FinalSecondSession finalSecond; final FinalSecondSession.TaskBag fsTasks=new FinalSecondSession.TaskBag(); long revision;
         Room(String code,String name,int max,String mode,int questions,byte[] salt,byte[] hash) {
             this.code=code;this.name=name;maxPlayers=max;this.mode=mode;questionCount=questions;this.salt=salt;passwordHash=hash;
         }

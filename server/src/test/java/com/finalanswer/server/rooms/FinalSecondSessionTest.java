@@ -58,5 +58,11 @@ class FinalSecondSessionTest {
         var s=running(3);long t0=runAt();s.stop("p0","a",7000L,t0+7000);s.stop("p1","b",7000L,t0+7000);
         assertFalse(s.everyoneStopped(List.of("p0","p1","p2"),t0+7001));assertTrue(s.everyoneStopped(List.of("p0","p1"),t0+7001));
     }
+    @Test void blindTaskNeverShowsTheTimerAndIsDealtFairly(){
+        var s=new FinalSecondSession(p(2),0,true);assertEquals(0L,s.snapshot("p0",false,0).get("visibleMs"));assertEquals(true,s.snapshot("p0",false,0).get("blind"));
+        var bag=new FinalSecondSession.TaskBag();var r=new Random(3);int blind=0,run=0;Boolean prev=null;
+        for(int i=0;i<200;i++){boolean b=bag.draw(r);if(b)blind++;run=prev!=null&&prev==b?run+1:1;prev=b;assertTrue(run<=2,"never three alike in a row");}
+        assertTrue(blind>80&&blind<120,"about half of the rounds are blind");
+    }
     static Map<String,FinalSecondSession.Result> byId(FinalSecondSession s){Map<String,FinalSecondSession.Result> m=new HashMap<>();for(var r:s.results())m.put(r.playerId(),r);return m;}
 }

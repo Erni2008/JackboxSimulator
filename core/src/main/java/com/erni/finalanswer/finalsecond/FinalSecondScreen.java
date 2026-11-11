@@ -59,12 +59,12 @@ public final class FinalSecondScreen extends ScreenAdapter {
             case "INTRO"->{ // power-up: dark → lamps stutter on → segment self-test
                 scene.power=ease((t-.2f)/1.3f);scene.plaque("ДОБРО ПОЖАЛОВАТЬ В","THE FINAL SECOND",false);
                 if(t>1.5f&&t<2.4f){scene.rawDigits="8888";scene.rawComma=true;scene.displayFlicker=((int)(t*14))%2==0?1:.4f;}}
-            case "TARGET"->scene.plaque("ОСТАНОВИ ТАЙМЕР НА",typewriter(tgt+" СЕКУНД",t),true);
+            case "TARGET"->scene.plaque(blind()?"ВСЛЕПУЮ! ОСТАНОВИ НА":"ОСТАНОВИ ТАЙМЕР НА",typewriter(tgt+" СЕКУНД",t),true);
             case "COUNTDOWN"->{int n=Math.max(1,3-(int)t);float f=t%1;scene.rawDigits="  "+n+" ";scene.rawComma=false;scene.displayFlicker=f>.82f?.25f:1;
-                scene.plaque("ОСТАНОВИ ТАЙМЕР НА",tgt+" СЕКУНД",true);}
-            case "RUNNING"->{long el=now()-l("runStart");long vis=l("visibleMs");scene.plaque("ОСТАНОВИ ТАЙМЕР НА",tgt+" СЕКУНД",true);
+                scene.plaque(blind()?"ВСЛЕПУЮ! ОСТАНОВИ НА":"ОСТАНОВИ ТАЙМЕР НА",tgt+" СЕКУНД",true);}
+            case "RUNNING"->{long el=now()-l("runStart");long vis=l("visibleMs");scene.plaque(blind()?"ВСЛЕПУЮ! ОСТАНОВИ НА":"ОСТАНОВИ ТАЙМЕР НА",tgt+" СЕКУНД",true);
                 if(el<vis)shown=fmt(el);
-                else if(el<vis+420){shown=fmt(vis);scene.displayFlicker=MathUtils.random()<.55f?.08f:.9f;}}   // the digits die with a stutter
+                else if(vis>0&&el<vis+420){shown=fmt(vis);scene.displayFlicker=MathUtils.random()<.55f?.08f:.9f;}}   // the digits die with a stutter
             case "REVEAL"->shown=revealDisplay(t);
             case "RESULTS"->{scene.rawDigits="----";scene.plaque("ИТОГИ","ЦЕЛЬ "+tgt+" С",false);}
             default->{}
@@ -73,7 +73,7 @@ public final class FinalSecondScreen extends ScreenAdapter {
         scene.draw(batch,tgt,shown,phase.equals("RUNNING")?.06f:.12f);
         switch(phase){
             case "INTRO"->ribbon("СОБЕРИТЕСЬ У ЭКРАНА",t-1.2f);
-            case "TARGET"->ribbon("ПОСЛЕ ТРЁХ СЕКУНД ЦИФРЫ ПОГАСНУТ — СЧИТАЙТЕ ПРО СЕБЯ",t-.8f);
+            case "TARGET"->ribbon(blind()?"ЗАДАНИЕ 2 · ТАЙМЕР НЕ ПОКАЖЕТСЯ НИ НА СЕКУНДУ":"ПОСЛЕ ТРЁХ СЕКУНД ЦИФРЫ ПОГАСНУТ — СЧИТАЙТЕ ПРО СЕБЯ",t-.8f);
             case "COUNTDOWN"->{ribbon("КНОПКА «СТОП» — НА ВАШИХ ТЕЛЕФОНАХ",t);players(1,null,false);}
             case "RUNNING"->players(1,null,false);
             case "REVEAL"->reveal(t);
@@ -82,6 +82,7 @@ public final class FinalSecondScreen extends ScreenAdapter {
         }
         batch.end();
     }
+    private boolean blind(){return fs.has("blind")&&fs.get("blind").getAsBoolean();}
     private final Map<String,Float> lit=new HashMap<>();private float clock;
     private static String typewriter(String s,float t){int n=MathUtils.clamp((int)((t-.35f)*18),0,s.length());return n<=0?" ":s.substring(0,n);}
 

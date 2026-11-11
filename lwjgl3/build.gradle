@@ -1230,6 +1230,7 @@ tasks.register('finalSecondScreenPreview', JavaExec) {
     mainClass = 'com.erni.finalanswer.lwjgl3.FinalSecondScreenPreview'
     workingDir = rootProject.file('assets')
     systemProperty 'fs.capture', providers.gradleProperty('fs.capture').getOrElse('')
+    systemProperty 'fs.blind', providers.gradleProperty('fs.blind').getOrElse('false')
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }

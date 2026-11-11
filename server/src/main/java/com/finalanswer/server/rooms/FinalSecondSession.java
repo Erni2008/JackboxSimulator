@@ -18,6 +18,10 @@ final class FinalSecondSession {
     record Config(long targetMs,long visibleMs,long introMs,long targetRevealMs,long countdownMs,long graceAfterTargetMs,long revealStepMs,long revealIntroMs,long maxCompensationMs,int eliminate){
         static final Config DEFAULT=new Config(7000,3000,3000,3500,3000,6000,2600,2200,450,1);}
     static final int MIN_PLAYERS=2,MAX_PLAYERS=8;
+    /** Deals the two tasks fairly: each shuffled pair holds one normal and one blind round, never three alike in a row. */
+    static final class TaskBag{private final ArrayDeque<Boolean> bag=new ArrayDeque<>();private Boolean last;private int streak;
+        boolean draw(Random r){if(bag.isEmpty()){List<Boolean> b=new ArrayList<>(List.of(false,true));Collections.shuffle(b,r);bag.addAll(b);}
+            boolean v=bag.poll();if(last!=null&&v==last&&streak>=2){bag.addFirst(v);v=!v;}streak=last!=null&&v==last?streak+1:1;last=v;return v;}}
     record Result(String playerId,long stoppedMs,long errorMs,int rank,boolean stopped,boolean eliminated){}
 
     final String id=UUID.randomUUID().toString();
@@ -28,8 +32,13 @@ final class FinalSecondSession {
     /** Set by the room once eliminations have been written to the players. */
     boolean eliminationApplied;
 
-    FinalSecondSession(List<String> seats,long now){this(seats,now,Config.DEFAULT);}
-    FinalSecondSession(List<String> seats,long now,Config cfg){
+    /** Blind task: the timer is never shown at all (task 2 of the mode, dealt at random by the room). */
+    final boolean blind;
+    FinalSecondSession(List<String> seats,long now){this(seats,now,Config.DEFAULT,false);}
+    FinalSecondSession(List<String> seats,long now,boolean blind){this(seats,now,Config.DEFAULT,blind);}
+    FinalSecondSession(List<String> seats,long now,Config cfg){this(seats,now,cfg,false);}
+    FinalSecondSession(List<String> seats,long now,Config cfg,boolean blind){
+        this.blind=blind;
         if(seats.size()<MIN_PLAYERS||seats.size()>MAX_PLAYERS)throw new RoomService.Failure(409,"FS_PLAYER_COUNT");
         if(new HashSet<>(seats).size()!=seats.size())throw new RoomService.Failure(400,"FS_INVALID_ROSTER");
         this.seats=List.copyOf(seats);this.cfg=cfg;enter(Phase.INTRO,now,cfg.introMs());
@@ -94,7 +103,7 @@ final class FinalSecondSession {
     Map<String,Object> snapshot(String self,boolean host,long now){
         Map<String,Object> v=new LinkedHashMap<>();
         v.put("sessionId",id);v.put("phase",phase.name());v.put("serverTime",now);v.put("phaseStartedAt",phaseStarted);v.put("phaseEndsAt",phaseEnds==Long.MAX_VALUE?-1:phaseEnds);
-        v.put("targetMs",cfg.targetMs());v.put("visibleMs",cfg.visibleMs());v.put("seats",seats);
+        v.put("targetMs",cfg.targetMs());v.put("visibleMs",blind?0:cfg.visibleMs());v.put("blind",blind);v.put("seats",seats);
         int me=seats.indexOf(self);v.put("role",host?"HOST":me>=0?"PLAYER":"SPECTATOR");
         if(phase.ordinal()>=Phase.RUNNING.ordinal())v.put("runStart",runStart);
         v.put("stopped",seats.stream().filter(stops::containsKey).toList());
