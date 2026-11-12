@@ -7,6 +7,8 @@ import static com.erni.finalanswer.gameplay.systembreach.SystemBreachConfig.Para
 
 /** Authoritative, rendering-independent match. RoomService also holds its membership/transaction lock. */
 public final class SystemBreachSession {
+    /** Party build: a hacked computer reboots by answering one quick question. */
+    static boolean QUIZ_RECOVERY=true;
     public final String id=UUID.randomUUID().toString();
     public record ActionResult(String event,String status,Map<String,Object> details){public ActionResult{details=Map.copyOf(details);}}
     static final class Attack {
@@ -168,10 +170,11 @@ public final class SystemBreachSession {
     }
     private BreachChallenge nextRecovery(SystemBreachPlayerState p,long now){
         if(p.recoveryBag.isEmpty()){
-            var types=new ArrayList<>(List.of(RecoveryType.values()));Collections.shuffle(types,random);
+            var types=new ArrayList<>(List.of(RecoveryType.values()));types.remove(RecoveryType.QUICK_REBOOT);Collections.shuffle(types,random);
             if(types.getFirst()==p.lastRecovery)Collections.swap(types,0,1);p.recoveryBag.addAll(types);
         }
-        p.lastRecovery=p.recoveryBag.removeFirst();return factory.recovery(p.lastRecovery,now);
+        p.lastRecovery=p.recoveryBag.removeFirst();
+        return factory.recovery(QUIZ_RECOVERY?RecoveryType.QUICK_REBOOT:p.lastRecovery,now);
     }
     private void interruptAttack(SystemBreachPlayerState p,long now){
         if(p.attack==null)return;var target=players.get(p.attack.target);

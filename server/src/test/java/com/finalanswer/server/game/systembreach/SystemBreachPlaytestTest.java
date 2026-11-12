@@ -1,0 +1,18 @@
+package com.finalanswer.server.game.systembreach;
+
+import com.erni.finalanswer.gameplay.systembreach.*;
+import java.util.*;
+import org.junit.jupiter.api.Test;
+import static com.erni.finalanswer.gameplay.systembreach.SystemBreachConfig.Parameter.*;
+import static com.finalanswer.server.game.systembreach.SystemBreachSessionTest.*;
+import static org.junit.jupiter.api.Assertions.*;
+
+class SystemBreachPlaytestTest {
+    @Test void statisticsExplainEveryAPAndDoNotCountReplays(){var f=new F();f.active();var c=f.challenge("a",ChallengeType.PASSWORD_DECRYPTION);f.advance(2000);var fields=Map.of("challengeId",c.id,"answer",c.solution);f.named("a","reward","CHALLENGE_SUBMIT",fields);f.named("a","reward","CHALLENGE_SUBMIT",fields);f.act("a","FIREWALL_UPGRADE",Map.of());f.breach();SystemBreachView.Statistics a=f.p("a").statistics(),b=f.p("b").statistics();assertEquals(10,a.earned());assertEquals(30,a.defenseSpent());assertEquals(15,a.attackSpent());assertEquals(20,a.stolen());assertEquals(1,a.challengesSolved());assertEquals(2000,a.challenges().get("PASSWORD_DECRYPTION").totalMs());assertEquals(20,b.lost());assertEquals(200+a.earned()+a.stolen()-a.lost()-a.spent()-a.penalties(),f.p("a").ap());}
+    @Test void repeatedVictimGetsLongerButBoundedProtection(){var f=new F(new SystemBreachConfig().with(INITIAL_AP,1000));f.active();f.act("a","SPECIAL_ATTACK",Map.of("type","DATA_LEAK","targetId","b"));assertEquals(5000,f.p("b").immuneUntil-f.now);f.advance(15000);f.act("a","SPECIAL_ATTACK",Map.of("type","DATA_LEAK","targetId","b"));assertEquals(8000,f.p("b").immuneUntil-f.now);for(int i=0;i<5;i++){f.advance(15000);f.act("a","SPECIAL_ATTACK",Map.of("type","DATA_LEAK","targetId","b"));assertTrue(f.p("b").immuneUntil-f.now<=f.cfg.get(PRESSURE_MAX_IMMUNITY_MS));}f.advance(f.cfg.get(PRESSURE_WINDOW_MS)+1);f.act("a","SPECIAL_ATTACK",Map.of("type","DATA_LEAK","targetId","b"));assertEquals(5000,f.p("b").immuneUntil-f.now);}
+    @Test void anotherAttackerCannotBypassVictimProtection(){var ids=List.of("a","b","c");var s=new SystemBreachSession(ids,0,new SystemBreachConfig().with(INITIAL_AP,1000),new Random(4),1);var online=new HashSet<>(ids);s.tick(20000,online);s.act("a","first","SPECIAL_ATTACK",new com.google.gson.Gson().toJsonTree(Map.of("type","DATA_LEAK","targetId","c")).getAsJsonObject(),20001,online);failure("TARGET_PROTECTED",()->s.act("b","second","ATTACK_REQUEST",new com.google.gson.Gson().toJsonTree(Map.of("targetId","c")).getAsJsonObject(),20002,online));}
+    @Test void finalStatisticsAreImmutableAndSurviveCleanup(){var f=new F();f.active();var c=f.challenge("a",ChallengeType.DATA_ANALYSIS);f.act("a","CHALLENGE_SUBMIT",Map.of("challengeId",c.id,"answer",c.solution));f.advance(f.cfg.get(GAME_MS));var result=f.s.outcome(Map.of());var statistics=result.rankings().getFirst().statistics();assertEquals(15,statistics.earned());assertThrows(UnsupportedOperationException.class,()->statistics.challenges().clear());f.advance(f.cfg.get(RESULTS_MS));assertEquals(statistics,f.s.outcome(Map.of()).rankings().getFirst().statistics());}
+    @Test void spendingCategoriesAndRecoveriesAreCountedOnce(){var f=new F();f.active();f.act("a","SPECIAL_ATTACK",Map.of("type","FIREWALL_BREAKER","targetId","b"));f.breach();f.recover();assertEquals(15,f.p("a").statistics().specialSpent());assertEquals(1,f.p("b").statistics().recoveries());assertEquals(1,f.p("a").statistics().attacksSucceeded());}
+    @Test void recoveryDowntimeIncludesUnfinishedRecoveryAtRoundEnd(){var f=new F(new SystemBreachConfig().with(INITIAL_AP,200).with(GAME_MS,10000));f.active();f.breach();f.advance(10000);assertEquals(10000,f.s.outcome(Map.of()).rankings().stream().filter(r->r.playerId().equals("b")).findFirst().orElseThrow().statistics().recoveringMs());}
+
+}

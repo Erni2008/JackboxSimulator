@@ -18,7 +18,7 @@
   <script src="/final-voting.js?v=pro-1" defer></script>
   <script src="/parchment-writer.js?v=story-3" defer></script>
   <script src="/countdown-clock.js?v=story-3" defer></script>
-  <script src="/impostor.js?v=pro-1" defer></script>
+  <script src="/impostor.js?v=explicit-confirm-3" defer></script>
   <script src="/suspicion.js?v=pro-1" defer></script>
   <link rel="stylesheet" href="/cursed-boxes.css?v=1">
   <script src="/cursed-boxes.js?v=luxe-1" defer></script>
@@ -31,14 +31,17 @@
   <script src="/command-touch.js" defer></script>
   <script src="/last-command.js?v=1" defer></script>
   <link rel="stylesheet" href="/cursed-cards.css?v=4">
-  <link rel="stylesheet" href="/final-second.css?v=2">
+  <link rel="stylesheet" href="/final-second.css?v=6">
   <link rel="stylesheet" href="/forgotten-room.css?v=7">
   <link rel="stylesheet" href="/impostor-pro.css?v=1">
   <script src="/cursed-cards.js?v=4" defer></script>
-  <script src="/final-second.js?v=2" defer></script>
+  <script src="/final-second.js?v=7" defer></script>
+  <script src="/final-second-scene.js?v=2" defer></script>
   <script src="/forgotten-room.js?v=9" defer></script>
   <link rel="stylesheet" href="/arena-pro.css?v=23">
-  <script src="/app.js?v=fsec-1" defer></script>
+  <link rel="stylesheet" href="/system-breach.css?v=1">
+  <script src="/system-breach.js?v=5" defer></script>
+  <script src="/app.js?v=system-breach-2" defer></script>
   <script src="/arena-pro.js?v=4" defer></script>
 </head>
 <body>
@@ -79,11 +82,32 @@
       <p id="room-configuration" class="room-configuration"></p>
       <p class="whisper">Keep this page open. Watch the host's screen.</p>
     </section>
-    <section id="fsec-screen" class="screen fsec" hidden aria-label="The Final Second phone controller">
-      <div class="fsec-head"><p class="fsec-title">THE FINAL SECOND</p><p id="fsec-task" class="fsec-task"></p><p class="fsec-target">ОСТАНОВИ НА<b><span id="fsec-target">7,00</span> С</b></p></div>
-      <div class="fsec-display"><span id="fsec-digits">––,––</span></div>
-      <p id="fsec-note" class="fsec-note"></p>
-      <button id="fsec-stop" class="fsec-stop" type="button" data-native-button aria-label="Стоп" disabled></button>
+    <section id="breach-screen" class="screen sbx" hidden aria-label="SYSTEM BREACH — терминал">
+      <div class="sbx-room" aria-hidden="true"></div>
+      <div class="sbx-laptop">
+        <div class="sbx-lid">
+          <div class="sbx-screen" id="sbx-screen">
+            <header class="sbx-bar"><span class="sbx-dot"></span><b>SYSTEM BREACH</b><span id="sbx-clock" class="sbx-clock">--:--</span></header>
+            <div class="sbx-stats"><div class="sbx-ap"><small>ACCESS POINTS</small><strong id="sbx-ap">0</strong></div><div class="sbx-fw"><small>FIREWALL</small><strong id="sbx-fw">LV1</strong></div><div id="sbx-state" class="sbx-chip">В СЕТИ</div></div>
+            <main id="sbx-body" class="sbx-body"></main>
+            <p id="sbx-toast" class="sbx-toast" role="status"></p>
+          </div>
+        </div>
+        <div class="sbx-deck" aria-hidden="true"></div>
+      </div>
+    </section>
+    <section id="fsec-screen" class="screen fsec" hidden aria-label="The Final Second — экран игрока">
+      <header class="fsec-brand"><p class="fsec-title">THE FINAL SECOND</p><p id="fsec-task" class="fsec-task"></p></header>
+      <div class="fsec-machine">
+      <div class="fsec-lamps" aria-hidden="true"></div>
+      <div class="fsec-head"><p class="fsec-target"><span id="fsec-target-label">ОСТАНОВИ НА</span><b><span id="fsec-target">7,00</span> С</b></p></div>
+      <div class="fsec-display"><span id="fsec-digits">––,––</span><canvas id="fsec-segments" width="744" height="204" aria-hidden="true"></canvas></div>
+      <button id="fsec-stop" class="fsec-stop" type="button" data-native-button data-label="СТАРТ" aria-label="Запустить таймер" disabled></button>
+      <div id="fsec-speed-cue" class="fsec-speed-cue" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+      <div class="fsec-collar" aria-hidden="true"></div>
+      <div class="fsec-dust" aria-hidden="true"></div>
+      </div>
+      <div class="fsec-guidance"><div class="fsec-steps" aria-hidden="true"><span class="fsec-step-start">01 <b>ЗАПУСТИ</b></span><i></i><span class="fsec-step-stop">02 <b>ОСТАНОВИ</b></span></div><p id="fsec-note" class="fsec-note" aria-live="polite"></p></div>
     </section>
     <section id="room-screen" class="screen fr" hidden aria-label="The Forgotten Room phone controller">
       <div id="room-watch"><p class="fr-crest"></p><h1 id="room-watch-title">Забытая комната</h1><p id="room-watch-note">Смотри на общий экран</p></div>

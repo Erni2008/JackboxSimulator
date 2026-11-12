@@ -1,0 +1,76 @@
+/* SYSTEM BREACH — the player's laptop. The lid is the supplied photo as a 9-slice frame, so it stretches to any phone
+   height without distorting the bezel; the screen inside is a live terminal. transform/opacity animations only. */
+body[data-view=breach] .masthead,body[data-view=breach] .connection,body[data-view=breach] #controller-director,
+body[data-view=breach] #session-footer,body[data-view=breach] .page-footer,body[data-view=breach] #leave{display:none!important}
+.sbx{--w:min(96vw,470px);--s:calc(var(--w) / 1010);--g:#3dff8f;--g2:#1fbf62;--ink:#d9ffe8;--red:#ff4a3a;--amber:#ffb340;
+  position:relative;min-height:100svh;display:flex!important;flex-direction:column;align-items:center;justify-content:center;padding:10px 0 0;overflow:hidden;
+  font-family:ui-monospace,"SF Mono",Menlo,Consolas,"Roboto Mono",monospace;color:var(--ink);background:#070304}
+.sbx[hidden]{display:none!important}
+.sbx-room{position:absolute;inset:0;background:url(sb/room.jpg) center/cover;opacity:.55}
+.sbx-room::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 40%,transparent 30%,#000 95%)}
+.sbx-laptop{position:relative;width:var(--w);flex:1;display:flex;flex-direction:column;max-height:calc(100svh - 10px)}
+.sbx-lid{flex:1;min-height:0;min-width:0;display:flex;border-style:solid;border-color:transparent;
+  border-width:calc(var(--s)*60) calc(var(--s)*50) calc(var(--s)*67) calc(var(--s)*50);
+  border-image:url(sb/lid.png) 60 50 67 50 stretch;filter:drop-shadow(0 18px 30px #000)}
+.sbx-deck{flex:none;margin:-2px calc(var(--w)*-.13) 0;height:calc(var(--w)*.26);background:url(sb/deck.jpg) top center/100% auto no-repeat;
+  -webkit-mask-image:linear-gradient(#000 70%,transparent);mask-image:linear-gradient(#000 70%,transparent)}
+/* the screen */
+.sbx-screen{position:relative;flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;overflow:hidden;padding:10px 12px 12px;
+  background:repeating-linear-gradient(0deg,#3dff8f08 0 1px,transparent 1px 22px),repeating-linear-gradient(90deg,#3dff8f08 0 1px,transparent 1px 22px),
+    radial-gradient(ellipse at 50% 35%,#0f3a22 0%,#06190f 55%,#020905 100%);box-shadow:inset 0 0 0 1px #3dff8f40,inset 0 0 40px #000c}
+.sbx-screen::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,#0000 0 2px,#0000002e 2px 3px);mix-blend-mode:multiply}
+.sbx-screen[data-state=hacked]{background:repeating-linear-gradient(0deg,#ff4a3a0a 0 1px,transparent 1px 22px),repeating-linear-gradient(90deg,#ff4a3a0a 0 1px,transparent 1px 22px),radial-gradient(ellipse at 50% 35%,#3a0f0f 0%,#190606 55%,#090202 100%);box-shadow:inset 0 0 0 1px #ff4a3a60,inset 0 0 40px #000c}
+.sbx-bar{display:flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.22em;color:var(--g);padding-bottom:8px;border-bottom:1px solid #3dff8f33}
+.sbx-bar b{flex:1;font-weight:700;text-shadow:0 0 10px #3dff8f88}
+.sbx-dot{width:8px;height:8px;border-radius:50%;background:var(--g);box-shadow:0 0 10px var(--g);animation:sbx-blink 1.6s steps(2) infinite}
+.sbx-clock{font-size:18px;letter-spacing:.08em;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+.sbx-stats{display:grid;grid-template-columns:1fr auto auto;align-items:end;gap:10px;padding:10px 0 8px}
+.sbx-stats small{display:block;font-size:9px;letter-spacing:.24em;color:#8fd9ad}
+.sbx-ap strong{font-size:34px;line-height:1;color:#ffd257;text-shadow:0 0 14px #ffb40066;font-variant-numeric:tabular-nums}
+.sbx-fw strong{font-size:18px;color:#6fb2ff}
+.sbx-chip{font-size:11px;font-weight:700;letter-spacing:.14em;padding:5px 9px;border-radius:4px;color:#04140a;background:var(--g);box-shadow:0 0 14px #3dff8f66}
+.sbx-chip[data-state=hacked]{background:var(--red);color:#fff;box-shadow:0 0 16px #ff4a3a99;animation:sbx-pulse 1s ease-in-out infinite}
+.sbx-chip[data-state=attack]{background:var(--amber)}.sbx-chip[data-state=off],.sbx-chip[data-state=watch]{background:#56605a;color:#dfe;box-shadow:none}
+.sbx-body{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;justify-content:center;gap:14px;padding-top:6px;animation:sbx-in .28s ease-out}
+.sbx-head small{font-size:10px;letter-spacing:.26em;color:var(--g)}
+.sbx-head h3{margin:4px 0 0;font-size:20px;line-height:1.2;color:#fff;font-family:inherit}
+.sbx-head.alert small,.sbx-head.hack small{color:var(--red)}.sbx-head.alert h3{color:#ffd6d0}
+.sbx-note{margin:0;font-size:13px;color:#9fcfb3;line-height:1.4}
+.sbx-q{margin:2px 0;padding:14px 12px;border:1px solid #3dff8f55;border-radius:6px;background:#00000066;font-size:24px;font-weight:700;text-align:center;color:#fff;text-shadow:0 0 12px #3dff8f55}
+/* option buttons */
+.sbx-options{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.sbx-options.sbx-pass{grid-template-columns:1fr}
+.sbx-option{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:10px;min-height:66px;padding:10px 12px;border-radius:6px;cursor:pointer;-webkit-tap-highlight-color:transparent;
+  background:linear-gradient(#0d2a19,#071a0f);border:1px solid #3dff8f66;box-shadow:inset 0 1px 0 #3dff8f22;transition:transform .08s}
+.sbx-option:active:not(:disabled){transform:scale(.97)}
+.sbx-option:disabled{opacity:.5}.sbx-option.picked{opacity:1;background:linear-gradient(#1f6b3c,#0f3d22);border-color:var(--g);box-shadow:0 0 18px #3dff8f66}
+.sbx-key{flex:none;width:24px;height:24px;display:grid;place-items:center;border-radius:4px;background:#3dff8f22;color:var(--g);font-size:12px;font-weight:700}
+.sbx-val{font-size:18px;font-weight:700;color:#fff;letter-spacing:.04em;overflow-wrap:anywhere}
+.sbx-pass .sbx-val{font-size:20px;letter-spacing:.18em}
+/* timer */
+.sbx-timer{height:6px;border-radius:3px;background:#3dff8f1f;overflow:hidden}
+.sbx-timer i{display:block;height:100%;background:var(--g);transform-origin:left;box-shadow:0 0 10px var(--g)}
+.sbx-timer.low i{background:var(--red);box-shadow:0 0 10px var(--red)}
+/* command tiles */
+.sbx-tiles{display:grid;gap:10px}
+.sbx-tile{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:14px;min-height:74px;padding:12px 14px;border-radius:8px;cursor:pointer;-webkit-tap-highlight-color:transparent;
+  --c:var(--g);background:linear-gradient(90deg,color-mix(in srgb,var(--c) 18%,#04120a),#04120acc);border:1px solid color-mix(in srgb,var(--c) 70%,transparent);
+  box-shadow:inset 3px 0 0 var(--c);transition:transform .08s}
+.sbx-tile.hack{--c:var(--red)}.sbx-tile.fw{--c:#5aa8ff}
+.sbx-tile:active:not(:disabled){transform:scale(.98)}.sbx-tile:disabled{filter:saturate(.3) brightness(.6)}
+.sbx-tile-icon{flex:none;width:44px;height:44px;display:grid;place-items:center;border-radius:50%;font-size:24px;font-weight:700;color:var(--c);border:2px solid var(--c);box-shadow:0 0 14px color-mix(in srgb,var(--c) 50%,transparent)}
+.sbx-tile-text b{display:block;font-size:19px;letter-spacing:.06em;color:#fff}.sbx-tile-text small{display:block;margin-top:3px;font-size:12px;color:#a9d8bd}
+/* targets */
+.sbx-targets{display:grid;gap:8px}
+.sbx-target{all:unset;box-sizing:border-box;display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:52px;padding:10px 14px;border-radius:6px;cursor:pointer;
+  background:linear-gradient(90deg,#2a0b0b,#120505);border:1px solid #ff4a3a77;color:#fff}
+.sbx-target:disabled{opacity:.45}.sbx-target b{font-size:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sbx-cost{font-size:12px;color:#ffb0a6;white-space:nowrap}
+.sbx-back{all:unset;align-self:flex-start;padding:8px 2px;font-size:14px;color:#8fd9ad;cursor:pointer}
+/* toast */
+.sbx-toast{position:absolute;left:12px;right:12px;bottom:12px;margin:0;padding:10px 12px;border-radius:6px;background:#031009ee;border:1px solid var(--g);color:#fff;font-size:14px;text-align:center;opacity:0;transform:translateY(8px);pointer-events:none}
+.sbx-toast.on{animation:sbx-toast 2.2s ease-out}
+@keyframes sbx-toast{0%{opacity:0;transform:translateY(8px)}12%,80%{opacity:1;transform:none}100%{opacity:0}}
+@keyframes sbx-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes sbx-blink{50%{opacity:.25}}
+@keyframes sbx-pulse{50%{transform:scale(1.06)}}
+@media (prefers-reduced-motion:reduce){.sbx *{animation:none!important}}
