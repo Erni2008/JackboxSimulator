@@ -55,6 +55,12 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         batch.begin();batch.setColor(1,1,1,1);batch.draw(assets.background,0,0,W,H);
         batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);atmosphere();batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
         batch.setColor(0,0,0,.35f);batch.draw(assets.glow,W/2-1100,PANEL_Y-260,2200,700);batch.setColor(1,1,1,1);   // soft shade the line-up stands in
+        batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
+        for(int i=0;i<n;i++){var s=slots.get(i);var c=SbPaint.tone(s.status);float x=slotX(i,n),k=s.status==SystemBreachHostViewModel.Status.DISCONNECTED?.3f:1;
+            batch.setColor(.9f*k,.85f*k,.8f*k,.10f);batch.draw(assets.glow,x-150,panelTop()-40,300,420);
+            batch.setColor(c.r,c.g,c.b,.14f*k);batch.draw(assets.glow,x-120,panelTop()-30,240,200);
+            if(s.leader||s.id.equals(winner)){float pl=.75f+.25f*MathUtils.sin(time*2.4f);batch.setColor(1,.75f,.25f,.30f*pl);batch.draw(assets.glow,x-170,panelTop()-40,340,380);}}
+        batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
         for(int i=0;i<n;i++)characters.draw(batch,slots.get(i),slotX(i,n),time+i*.37f,dt,slots.get(i).id.equals(winner));
         batch.setColor(1,1,1,1);batch.end();
 
@@ -75,6 +81,11 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         for(int i=0;i<n;i++)podium.text(batch,paint,assets,slots.get(i),slotX(i,n),time);
         timer.text(batch,paint,assets,model,time);title.text(batch,paint,assets,time);log.text(batch,paint,assets,model);board.text(batch,paint,assets,model);
         toastText();
+        long left=model.remainingMs();if(model.phase().equals("ACTIVE")&&left>0&&left<=10_000){float a=(.18f+.12f*MathUtils.sin(time*6.3f))*(1-left/10_000f*.5f);
+            batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(1,.08f,.05f,a);batch.draw(assets.glow,-500,-300,900,1680);batch.draw(assets.glow,W-400,-300,900,1680);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.setColor(1,1,1,1);}
+        batch.end();
+        if(model.results()&&!model.ranking().isEmpty())winnerBanner();
+        batch.begin();
         batch.end();
     }
 
@@ -88,9 +99,17 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
     }
 
     /** Centre-stage banner: slides in with an overshoot, holds, slides out. */
-    private float toastK(){float t=model.toastAge();if(t>2.8f||model.toast().isEmpty())return 0;
-        float in=Math.min(1,t/.28f),out=t>2.4f?1-(t-2.4f)/.4f:1;float o=1+.12f*MathUtils.sin(in*MathUtils.PI);return Math.max(0,in*out)*o;}
+    private float toastK(){float t=model.toastAge();if(t>3.6f||model.toast().isEmpty())return 0;
+        float in=Math.min(1,t/.28f),out=t>3.2f?1-(t-3.2f)/.4f:1;float o=1+.12f*MathUtils.sin(in*MathUtils.PI);return Math.max(0,in*out)*o;}
     private static final float TOAST_Y=700,TOAST_H=70;
+    /** Results: the winner's plate over the line-up. */
+    private void winnerBanner(){
+        var w=model.ranking().getFirst();float k=Math.min(1,time%1000>0?1:0),cx=W/2,y=TOAST_Y-6,bw=Math.max(620,paint.width(assets.board,w.name)+360);
+        Gdx.gl.glEnable(GL20.GL_BLEND);shapes.begin(ShapeRenderer.ShapeType.Filled);
+        paint.frame(cx-bw/2,y,bw,96,24,SbPaint.GOLD,.9f);paint.crown(cx,y+100,56,SbPaint.GOLD);shapes.end();
+        batch.begin();paint.centered(batch,assets.label,"SYSTEM OWNED BY",cx,y+84,SbPaint.GOLD,k);
+        paint.centered(batch,assets.board,paint.fit(assets.board,w.name+"   "+w.ap+" AP",bw-60),cx,y+46,SbPaint.IVORY,k);batch.end();
+    }
     private void toastShape(){float k=toastK();if(k<=0)return;float w=Math.min(1040,paint.width(assets.board,model.toast())+180)*Math.min(1,k);
         var c=SbPaint.tone(model.toastTone());float x=W/2-w/2;
         shapes.setColor(0,0,0,.55f*Math.min(1,k));shapes.rect(x-10,TOAST_Y-14,w+20,TOAST_H+20);

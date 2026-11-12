@@ -62,7 +62,7 @@ public final class SystemBreachScreenPreview {
             @Override public void render(){
                 now+=capture.isEmpty()?(long)(Gdx.graphics.getDeltaTime()*1000):16;
                 if(phase.equals("ACTIVE")&&now>=next){script();next=now+1400;}
-                screen.apply(snapshot());super.render();
+                screen.apply(snapshot());if(capture.isEmpty())super.render();else screen.render(.016f);
                 if(!capture.isEmpty()){long[] at={2500,6100,9800};if(shot<at.length&&now-start>=at[shot]){grab(capture+"/sb-"+count+"-"+(++shot)+".png");if(shot==at.length)Gdx.app.exit();}}
             }
             void grab(String file){Pixmap p=ScreenUtils.getFrameBufferPixmap(0,0,Gdx.graphics.getBackBufferWidth(),Gdx.graphics.getBackBufferHeight());try{PixmapIO.writePNG(Gdx.files.absolute(file),p,-1,true);}finally{p.dispose();}}
