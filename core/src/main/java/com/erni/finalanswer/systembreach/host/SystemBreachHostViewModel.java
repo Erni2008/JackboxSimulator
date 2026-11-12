@@ -64,7 +64,7 @@ public final class SystemBreachHostViewModel {
         String session=str(sb,"sessionId");
         if(!session.equals(sessionId)){sessionId=session;slots.clear();byId.clear();log.clear();lastSequence=-1;Arrays.fill(logAge,99);}
         phase=str(sb,"phase");winnerId=str(sb,"winnerId");
-        serverTime=lng(sb,"serverTime",System.currentTimeMillis());phaseStartedAt=lng(sb,"phaseStartedAt",serverTime);deadline=lng(sb,"deadline",-1);receivedAt=System.nanoTime();
+        serverTime=lng(sb,"serverTime",System.currentTimeMillis());{long local=System.nanoTime()/1_000_000L,off=serverTime-local;if(offset==Long.MIN_VALUE||Math.abs(off-offset)>2000)offset=off;else offset+=(off-offset)/10;}phaseStartedAt=lng(sb,"phaseStartedAt",serverTime);deadline=lng(sb,"deadline",-1);receivedAt=System.nanoTime();
 
         Map<String,String> characters=new HashMap<>();List<String> seatOrder=new ArrayList<>();
         if(root.has("players"))for(var e:root.getAsJsonArray("players")){var p=e.getAsJsonObject();String id=str(p,"id");characters.put(id,str(p,"characterId"));seatOrder.add(id);}
@@ -193,7 +193,9 @@ public final class SystemBreachHostViewModel {
     public boolean finished(){return phase.equals("FINISHED");}
     public boolean results(){return phase.equals("RESULTS")||phase.equals("FINISHED");}
     /** Server time now, interpolated from the last snapshot; never runs its own countdown. */
-    public long now(){return serverTime+(System.nanoTime()-receivedAt)/1_000_000L;}
+    /** Server time on a smoothed, monotonic local clock: snapshot jitter never makes the timer jump. */
+    public long now(){long t=System.nanoTime()/1_000_000L+offset;if(t<lastNow)t=lastNow;lastNow=t;return t;}
+    private long offset=Long.MIN_VALUE,lastNow;
     public long remainingMs(){return deadline<0?0:Math.max(0,deadline-now());}
     public float remainingFraction(){long span=deadline-phaseStartedAt;return deadline<0||span<=0?0:Math.min(1,remainingMs()/(float)span);}
 

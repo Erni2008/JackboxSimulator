@@ -29,13 +29,13 @@ final class PodiumCharacters {
     void draw(SpriteBatch b,Slot s,float x,float time,float dt,boolean winner){
         float dx=0,dy=0,r=1,g=1,bl=1,a=1;float t=s.reactionAge;
         switch(s.reaction){
-            case HIT->{if(t<.7f){float k=1-t/.7f;dx=MathUtils.sin(t*60)*9*k;r=1;g=bl=1-.55f*k;}}
+            case HIT->{if(t<.7f){float k=1-t/.7f;dx=MathUtils.sin(t*22)*7*k*k;r=1;g=bl=1-.55f*k;}}
             case TRIUMPH->{if(t<.9f)dy=Math.abs(MathUtils.sin(t*MathUtils.PI*2.2f))*22*(1-t/.9f);}
             case RECOVERED,UPGRADE->{if(t<.8f)dy=MathUtils.sin(t/.8f*MathUtils.PI)*12;}
             default->{}
         }
         switch(s.status){
-            case BEING_HACKED->{dx+=MathUtils.sin(time*41)*(MathUtils.sin(time*3.1f)>.55f?2.5f:.6f);g*=.85f;bl*=.85f;}
+            case BEING_HACKED->{dx+=MathUtils.sin(time*5.5f)*3;g*=.85f;bl*=.85f;}
             case COMPROMISED->{r*=.75f;g*=.45f;bl*=.45f;}
             case RECOVERY->{bl*=.8f;}
             case DISCONNECTED->{r=g=bl=.42f;a=.6f;}

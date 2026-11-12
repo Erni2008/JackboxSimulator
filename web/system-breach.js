@@ -178,10 +178,13 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
     if(s.phase==='ACTIVE'&&s.role==='PLAYER'&&!mode&&keys<=banked&&!requests.pending()&&!me.challenge?.challengeId&&!me.recovery?.challengeId&&!me.attack?.attackId&&a.challengeTypes?.QUICK_QUESTION?.allowed&&now()-lastAsk>600){lastAsk=now();act('CHALLENGE_REQUEST',{type:'QUICK_QUESTION'});}
     const key=[s.sessionId,s.phase,s.role,me.passwordSelected,(me.passwordOptions||[]).join(),me.recovery?.challengeId,me.challenge?.challengeId,me.attack?.attackId,mode,keys>banked,keys,
       JSON.stringify(a.firewall||{}),JSON.stringify(a.multiplier||{}),JSON.stringify((a.targets||[]).map(t=>[t.playerId,t.attack?.allowed,t.attack?.cost,t.attack?.reason,t.specials?.TROJAN?.allowed])),
-      s.players.map(p=>p.nickname+p.accessPoints).join()].join('|');
+      mode?s.players.map(p=>p.nickname+p.accessPoints+(p.firewallLevel||1)).join():s.players.map(p=>p.nickname).join()].join('|');
     if(key!==viewKey){viewKey=key;build(s,me,mine);}
     tick(true);
   }
+  // the per-question timer and the clock glide at display rate instead of stepping with the 4 Hz tick
+  {const loop=()=>{requestAnimationFrame(loop);if(document.hidden||el('breach-screen').hidden)return;
+     for(const i of document.querySelectorAll('#sbx-body .sbx-timer i')){const st=+i.dataset.start,en=+i.dataset.end;const f=en>st?Math.max(0,Math.min(1,(en-now())/(en-st))):0;i.style.transform='scaleX('+f.toFixed(4)+')';i.parentElement.classList.toggle('low',f<.3);}};requestAnimationFrame(loop);}
   function tick(fromRender){
     const s=getState()?.systemBreach;if(!s)return;
     el('sbx-clock').textContent=s.deadline>0?mmss(s.deadline-now()):'--:--';
