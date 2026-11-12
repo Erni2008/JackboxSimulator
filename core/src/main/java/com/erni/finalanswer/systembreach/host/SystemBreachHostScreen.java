@@ -64,7 +64,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         for(int i=0;i<n;i++){float x=slotX(i,n)-PANEL_W/2+22;fx.scanlines(shapes,x,PANEL_Y+22,PANEL_W-44,128,.22f,time+i);}
         fx.scanlines(shapes,TIMER.x+20,TIMER.y+20,TIMER.width-40,TIMER.height-40,.12f,time);fx.scanlines(shapes,LOG.x+20,LOG.y+20,LOG.width-40,LOG.height-40,.12f,time+2);
         fx.attackLinks(shapes,model.attacks(),model,n,time);
-        timer.shapes(paint,model,time);title.shapes(paint,shapes,time);log.shapes(paint,model);board.shapes(paint,shapes,model);
+        timer.shapes(paint,model,time);title.shapes(paint,shapes,time);log.shapes(paint,model);board.shapes(paint,shapes,model);toastShape();
         shapes.end();
 
         batch.begin();batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
@@ -74,6 +74,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         for(int i=0;i<n;i++)fx.podiumCode(batch,assets,slots.get(i),i,slotX(i,n),time,SbPaint.tone(slots.get(i).status));
         for(int i=0;i<n;i++)podium.text(batch,paint,assets,slots.get(i),slotX(i,n),time);
         timer.text(batch,paint,assets,model,time);title.text(batch,paint,assets,time);log.text(batch,paint,assets,model);board.text(batch,paint,assets,model);
+        toastText();
         batch.end();
     }
 
@@ -85,6 +86,19 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         float w=.10f+.04f*MathUtils.sin(time*.7f);batch.setColor(1,.1f,.08f,w);batch.draw(assets.glow,250,560,420,420);batch.draw(assets.glow,1250,560,420,420);
         for(int i=0;i<5;i++){float x=((time*14+i*430)%2400)-240;batch.setColor(.85f,.55f,.6f,.05f);batch.draw(assets.glow,x,260+(i%3)*30,520,150);}
     }
+
+    /** Centre-stage banner: slides in with an overshoot, holds, slides out. */
+    private float toastK(){float t=model.toastAge();if(t>2.8f||model.toast().isEmpty())return 0;
+        float in=Math.min(1,t/.28f),out=t>2.4f?1-(t-2.4f)/.4f:1;float o=1+.12f*MathUtils.sin(in*MathUtils.PI);return Math.max(0,in*out)*o;}
+    private static final float TOAST_Y=700,TOAST_H=70;
+    private void toastShape(){float k=toastK();if(k<=0)return;float w=Math.min(1040,paint.width(assets.board,model.toast())+180)*Math.min(1,k);
+        var c=SbPaint.tone(model.toastTone());float x=W/2-w/2;
+        shapes.setColor(0,0,0,.55f*Math.min(1,k));shapes.rect(x-10,TOAST_Y-14,w+20,TOAST_H+20);
+        paint.plate(x,TOAST_Y-4,w,TOAST_H+8,22,SbPaint.TRIM,SbPaint.TRIM_DARK);paint.plate(x+5,TOAST_Y+1,w-10,TOAST_H-2,18,new com.badlogic.gdx.graphics.Color(c.r*.25f,c.g*.25f,c.b*.25f,.97f),new com.badlogic.gdx.graphics.Color(.02f,.02f,.02f,.97f));
+        paint.outline(x+10,TOAST_Y+6,w-20,TOAST_H-12,14,2.2f,c);
+        for(int s=-1;s<=1;s+=2){float ex=W/2+s*(w/2+26);shapes.setColor(c);shapes.triangle(ex,TOAST_Y+TOAST_H/2,ex-s*22,TOAST_Y+TOAST_H/2+16,ex-s*22,TOAST_Y+TOAST_H/2-16);}}
+    private void toastText(){float k=toastK();if(k<.6f)return;var c=SbPaint.tone(model.toastTone());
+        paint.centered(batch,assets.board,paint.fit(assets.board,model.toast(),980),W/2,TOAST_Y+TOAST_H/2+assets.board.getCapHeight()/2+2,c.r+c.g+c.b>2?SbPaint.IVORY:SbPaint.IVORY,Math.min(1,(k-.6f)/.3f));}
 
     @Override public void dispose(){batch.dispose();shapes.dispose();assets.dispose();}
 }

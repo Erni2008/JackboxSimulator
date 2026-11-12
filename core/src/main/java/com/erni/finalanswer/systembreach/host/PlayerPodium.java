@@ -68,9 +68,9 @@ final class PlayerPodium {
     void text(SpriteBatch b,SbPaint p,SystemBreachHostAssets as,Slot s,float x,float time){
         float left=x-PANEL_W/2,top=PANEL_Y+PANEL_H;Color ac=accent(s);float a=s.status==Status.DISCONNECTED?.55f:1;
         p.centered(b,as.name,p.fit(as.name,s.name,PANEL_W-34),x,top-17,SbPaint.IVORY,a);
-        p.text(b,as.ap,Math.round(s.shownAp)+" AP",left+70,top-58,SbPaint.GOLD,a);
+        float punch=1+.28f*Math.max(0,1-s.deltaAge/.35f);as.ap.getData().setScale(punch);p.text(b,as.ap,Math.round(s.shownAp)+" AP",left+70,top-58+(punch-1)*14,s.deltaAge<.35f?(s.delta>0?SbPaint.GREEN:SbPaint.RED):SbPaint.GOLD,a);as.ap.getData().setScale(1);
         String label=s.status.label;{
-            float w=p.width(as.status,label);float scale=Math.min(1,(PANEL_W-30)/w);as.status.getData().setScale(scale);
+            float w=p.width(as.status,label);float pop=1+.35f*Math.max(0,1-s.statusAge/.28f);float scale=Math.min(1,(PANEL_W-30)/w)*pop;as.status.getData().setScale(scale);
             p.centered(b,as.status,label,x,PANEL_Y+70,ac,Math.max(.55f,pulse(s,time)));as.status.getData().setScale(1);
         }
         if(s.status==Status.UPGRADING)p.centered(b,as.labelSmall,"FIREWALL LV."+s.firewall,x,PANEL_Y+42,SbPaint.BLUE,.95f);

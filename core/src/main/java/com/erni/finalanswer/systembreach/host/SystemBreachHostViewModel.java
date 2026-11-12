@@ -28,6 +28,7 @@ public final class SystemBreachHostViewModel {
     public record LogLine(long sequence,String text,Tone tone,long at){}
     public record Attack(String attackerId,String targetId,long startedAt){}
     private final List<Attack> attacks=new ArrayList<>();
+    private String toast="";private Tone toastTone=Tone.MUTED;private float toastAge=99;
 
     private static final int LOG_SIZE=4;private static final long UPGRADE_SHOW_MS=2600,ATTACK_STALE_MS=30_000;
     private final List<Slot> slots=new ArrayList<>();private final Map<String,Slot> byId=new HashMap<>();
@@ -72,7 +73,7 @@ public final class SystemBreachHostViewModel {
                 default->{}
             }
             if(seq>lastSequence){
-                if(lastSequence>=0)react(type,a,t);
+                if(lastSequence>=0){react(type,a,t);String big=headline(type,a,t,num(ev,"amount"));if(big!=null){toast=big;toastAge=0;toastTone=type.equals("FIREWALL_UPGRADED")?Tone.FIREWALL:type.startsWith("RECOVERY")||type.equals("EMERGENCY_RESTORED")?Tone.REWARD:Tone.HACK;}}
                 LogLine line=line(type,a,t,num(ev,"amount"),seq);if(line!=null)line=new LogLine(line.sequence(),line.text(),line.tone(),Math.max(0,at-phaseStartedAt));
                 if(line!=null){log.addLast(line);if(log.size()>LOG_SIZE)log.removeFirst();System.arraycopy(logAge,0,logAge,1,LOG_SIZE-1);logAge[0]=lastSequence<0?99:0;}
             }
@@ -126,13 +127,26 @@ public final class SystemBreachHostViewModel {
         };
     }
 
+    /** The big centre-stage banner: only the moments worth a cheer. */
+    private String headline(String type,String a,String t,int amount){
+        return switch(type){
+            case "ATTACK_SUCCEEDED"->who(a)+" HACKED "+who(t)+(amount>0?"   +"+amount+" AP":"");
+            case "FIREWALL_UPGRADED"->who(t)+"  FIREWALL LV."+amount;
+            case "RECOVERY_SUCCEEDED"->who(t)+" IS BACK ONLINE";
+            case "TROJAN","DATA_LEAK","SYSTEM_OVERLOAD","FIREWALL_BREAKER","TRACE_ATTACK"->type.replace('_',' ')+"!  "+who(a)+" > "+who(t);
+            default->null;
+        };
+    }
+    public String toast(){return toast;}
+    public Tone toastTone(){return toastTone;}
+    public float toastAge(){return toastAge;}
     /** Display easing only. */
     public void update(float dt){
         for(Slot s:slots){
             s.statusAge+=dt;s.deltaAge+=dt;s.reactionAge+=dt;
             float k=1-(float)Math.exp(-dt*6);s.shownAp+=(s.ap-s.shownAp)*k;if(Math.abs(s.ap-s.shownAp)<.5f)s.shownAp=s.ap;
         }
-        for(int i=0;i<LOG_SIZE;i++)logAge[i]+=dt;
+        for(int i=0;i<LOG_SIZE;i++)logAge[i]+=dt;toastAge+=dt;
         for(int i=0;i<ranking.size();i++){Slot s=ranking.get(i);if(s.boardY<0)s.boardY=i;else s.boardY+=(i-s.boardY)*(1-(float)Math.exp(-dt*7));}
     }
 

@@ -30,6 +30,7 @@ final class LeaderboardPanel {
             p.outline(ROWS_X,y,ROWS_W,ROW_H,6,i==0?2.4f:1.6f,c);
             p.outline(ROWS_X+4,y+4,78,ROW_H-8,4,1.6f,c);
             p.crown(ROWS_X+28,y+12,20,c);
+            if(i==0){float sx=ROWS_X+((System.nanoTime()/1e9f*260)%(ROWS_W+600))-300;float l=Math.max(ROWS_X+4,sx),rr=Math.min(ROWS_X+ROWS_W-4,sx+70);if(rr>l){r.setColor(1,.95f,.7f,.16f);r.rect(l,y+3,rr-l,ROW_H-6);}}
         }
     }
     void text(SpriteBatch b,SbPaint p,SystemBreachHostAssets as,SystemBreachHostViewModel vm){
