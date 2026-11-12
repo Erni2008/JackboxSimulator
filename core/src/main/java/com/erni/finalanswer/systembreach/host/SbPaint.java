@@ -15,6 +15,7 @@ final class SbPaint {
     private final float[] px=new float[8],py=new float[8];
     private final Color tmp=new Color(),tmp2=new Color(),tmp3=new Color();
     SbPaint(ShapeRenderer s){this.s=s;}
+    ShapeRenderer shapes(){return s;}
 
     static Color tone(SystemBreachHostViewModel.Status st){
         return switch(st){case ONLINE->GREEN;case BEING_HACKED,COMPROMISED->RED;case RECOVERY->AMBER;case UPGRADING->BLUE;case DISCONNECTED->GRAY;};
@@ -105,7 +106,8 @@ final class SbPaint {
     String fit(BitmapFont f,String v,float width){layout.setText(f,v);if(layout.width<=width)return v;
         while(v.length()>1){v=v.substring(0,v.offsetByCodePoints(v.length(),-1));layout.setText(f,v+"…");if(layout.width<=width)return v.stripTrailing()+"…";}return "…";}
     float width(BitmapFont f,String v){layout.setText(f,v);return layout.width;}
-    void text(SpriteBatch b,BitmapFont f,String v,float x,float y,Color c,float a){f.setColor(c.r,c.g,c.b,c.a*a);f.draw(b,v,x,y);}
+    /** Every label gets a soft drop shadow so it reads cleanly over glow and photo. */
+    void text(SpriteBatch b,BitmapFont f,String v,float x,float y,Color c,float a){float d=Math.max(1.5f,f.getCapHeight()*.07f);f.setColor(0,0,0,.65f*c.a*a);f.draw(b,v,x+d*.5f,y-d);f.setColor(c.r,c.g,c.b,c.a*a);f.draw(b,v,x,y);}
     void centered(SpriteBatch b,BitmapFont f,String v,float cx,float y,Color c,float a){layout.setText(f,v);text(b,f,v,cx-layout.width/2,y,c,a);}
     void right(SpriteBatch b,BitmapFont f,String v,float rx,float y,Color c,float a){layout.setText(f,v);text(b,f,v,rx-layout.width,y,c,a);}
 }

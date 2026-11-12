@@ -33,7 +33,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
     private final LeaderboardPanel board=new LeaderboardPanel();
     private final Consumer<String> end;
     private final HackerFx fx=new HackerFx();
-    private float time;
+    private float time;private static final com.badlogic.gdx.graphics.Color VIG=new com.badlogic.gdx.graphics.Color(0,0,0,.55f),CLEAR=new com.badlogic.gdx.graphics.Color(0,0,0,0);
 
     public SystemBreachHostScreen(JsonObject root,CageLobby roomCharacters,Consumer<String> end){
         this.end=end;characters=new PodiumCharacters(roomCharacters,assets);apply(root);
@@ -66,6 +66,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
 
         Gdx.gl.glEnable(GL20.GL_BLEND);Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
         shapes.begin(ShapeRenderer.ShapeType.Filled);
+        {var dk=VIG;var cl=CLEAR;shapes.rect(0,H-260,W,260,cl,cl,dk,dk);shapes.rect(0,0,W,220,dk,dk,cl,cl);shapes.rect(0,0,220,H,dk,cl,cl,dk);shapes.rect(W-220,0,220,H,cl,dk,dk,cl);}
         for(int i=0;i<n;i++)podium.shapes(paint,shapes,slots.get(i),slotX(i,n),time);
         for(int i=0;i<n;i++){float x=slotX(i,n)-PANEL_W/2+22;fx.scanlines(shapes,x-2,PANEL_Y+PlayerPodium.SCREEN_Y,PANEL_W-40,PlayerPodium.SCREEN_H,.22f,time+i);}
         fx.scanlines(shapes,TIMER.x+20,TIMER.y+20,TIMER.width-40,TIMER.height-40,.12f,time);fx.scanlines(shapes,LOG.x+20,LOG.y+20,LOG.width-40,LOG.height-40,.12f,time+2);

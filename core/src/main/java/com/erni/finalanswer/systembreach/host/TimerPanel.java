@@ -25,6 +25,7 @@ final class TimerPanel {
         Color c=color(vm);long s=(vm.remainingMs()+999)/1000;
         p.centered(b,as.label,label(vm),TIMER.x+TIMER.width/2,TIMER.y+TIMER.height-22,SbPaint.IVORY,.92f);
         if(s!=shownSec){shownSec=s;shown=String.format(Locale.ROOT,"%02d:%02d",s/60,s%60);}
+        as.digits.setColor(c.r,c.g,c.b,.07f);{float gx=TIMER.x+TIMER.width/2+42-p.width(as.digits,"88:88")/2;as.digits.draw(b,"88:88",gx,TIMER.y+140);}
         p.centered(b,as.digits,shown,TIMER.x+TIMER.width/2+42,TIMER.y+140,c,pulse(vm,time));
     }
 }

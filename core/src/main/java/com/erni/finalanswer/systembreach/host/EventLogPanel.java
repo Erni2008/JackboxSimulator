@@ -12,6 +12,7 @@ final class EventLogPanel {
 
     void shapes(SbPaint p,SystemBreachHostViewModel vm){
         p.frame(LOG.x,LOG.y,LOG.width,LOG.height,22,SbPaint.GREEN,.35f);
+        for(int j=1;j<4;j++){p.shapes().setColor(SbPaint.TRIM.r,SbPaint.TRIM.g,SbPaint.TRIM.b,.35f);p.shapes().rect(LOG.x+30,FIRST+8-j*ROW-2,LOG.width-60,1);}
         int i=0,n=vm.logSize();
         for(var line:vm.log()){
             float k=ease(vm.logAge(n-1-i)),x=LOG.x+42-(1-k)*30,y=row(i,n)-12;Color c=SbPaint.tone(line.tone());
