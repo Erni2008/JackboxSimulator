@@ -85,6 +85,12 @@ final class PlayerPodium {
 
     void glow(SpriteBatch b,SystemBreachHostAssets as,Slot s,float x,float time){
         Color ac=accent(s);float a=pulse(s,time),k=s.status==Status.DISCONNECTED?.25f:s.status==Status.BEING_HACKED||s.status==Status.COMPROMISED?.8f:.55f;
+        // wet-floor reflection: the plinth light smeared down the tiles, with a slow shimmer
+        {float sh=.85f+.15f*MathUtils.sin(time*2.3f+x*.01f),fy=PANEL_Y-PLINTH_H-8;
+         b.setColor(ac.r,ac.g,ac.b,.22f*k*a*sh);b.draw(as.glow,x-PANEL_W*.42f,fy-150,PANEL_W*.84f,170);
+         b.setColor(ac.r,ac.g,ac.b,.30f*k*a*sh);b.draw(as.glow,x-PANEL_W*.18f,fy-110,PANEL_W*.36f,120);}
+        // a crisp highlight along the top edge of the card, like light catching a bevel
+        b.setColor(1,1,1,.10f+.06f*a);b.draw(as.glow,x-PANEL_W*.5f,PANEL_Y+PANEL_H-10,PANEL_W,16);
         b.setColor(ac.r,ac.g,ac.b,.45f*k*a);b.draw(as.glow,x-PANEL_W*.75f,PANEL_Y-PLINTH_H-30,PANEL_W*1.5f,70);
         b.setColor(ac.r,ac.g,ac.b,.12f*k*a);b.draw(as.glow,x-PANEL_W*.7f,PANEL_Y-30,PANEL_W*1.4f,PANEL_H+60);
         b.setColor(ac.r,ac.g,ac.b,.40f*a);b.draw(as.glow,x-54,PANEL_Y+RING_Y-54,108,108);

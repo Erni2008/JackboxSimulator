@@ -58,7 +58,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);atmosphere();motes();batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
         batch.setColor(0,0,0,.35f);batch.draw(assets.glow,W/2-1100,PANEL_Y-260,2200,700);batch.setColor(1,1,1,1);   // soft shade the line-up stands in
         batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
-        for(int i=0;i<n;i++){var s=slots.get(i);var c=SbPaint.tone(s.status);float x=slotX(i,n),k=s.status==SystemBreachHostViewModel.Status.DISCONNECTED?.3f:1;
+        for(int i=0;i<n;i++){var s=slots.get(i);var c=podium.accent(s);float x=slotX(i,n),k=s.status==SystemBreachHostViewModel.Status.DISCONNECTED?.3f:1;
             batch.setColor(.9f*k,.85f*k,.8f*k,.10f);batch.draw(assets.glow,x-150,panelTop()-40,300,420);
             batch.setColor(c.r,c.g,c.b,.14f*k);batch.draw(assets.glow,x-120,panelTop()-30,240,200);
             if(s.leader||s.id.equals(winner)){float pl=.75f+.25f*MathUtils.sin(time*2.4f);batch.setColor(1,.75f,.25f,.30f*pl);batch.draw(assets.glow,x-170,panelTop()-40,340,380);}}
