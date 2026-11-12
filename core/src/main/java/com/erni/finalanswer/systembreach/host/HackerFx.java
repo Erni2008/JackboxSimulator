@@ -21,16 +21,6 @@ final class HackerFx {
         for(int i=0;i<LINES;i++){StringBuilder b=new StringBuilder();for(int w=0;w<4;w++){if(w>0)b.append(' ');for(int k=0;k<2;k++)b.append(d.charAt(r.nextInt(16)));}hex[i]=b.toString();}
     }
 
-    /** Hex dump scrolling up behind the status icon; faster and red while under attack. */
-    void podiumCode(SpriteBatch b,SystemBreachHostAssets as,SystemBreachHostViewModel.Slot s,int seat,float x,float time,Color tone){
-        if(s.status==Status.DISCONNECTED)return;
-        float speed=s.status==Status.BEING_HACKED?60:s.status==Status.RECOVERY||s.status==Status.UPGRADING?34:14,rows=6,lh=17,top=PANEL_Y+PlayerPodium.SCREEN_Y+PlayerPodium.SCREEN_H-2;
-        float scroll=(time*speed+seat*53)%lh;int first=(int)((time*speed+seat*53)/lh);
-        for(int i=0;i<rows;i++){float y=top-i*lh+scroll;if(y>top||y-lh<PANEL_Y+PlayerPodium.SCREEN_Y+4)continue;
-            float a=.09f*(1-Math.abs(i-rows/2f)/(rows/2f+1));
-            as.hex.setColor(tone.r,tone.g,tone.b,a);as.hex.draw(b,hex[(first+i+seat*9)%LINES],x-PANEL_W/2+26,y);}
-    }
-
     /** CRT scanlines across a screen rectangle (filled mode). */
     void scanlines(ShapeRenderer r,float x,float y,float w,float h,float alpha,float time){
         r.setColor(0,0,0,alpha);for(float yy=y;yy<y+h;yy+=3)r.rect(x,yy,w,1.1f);

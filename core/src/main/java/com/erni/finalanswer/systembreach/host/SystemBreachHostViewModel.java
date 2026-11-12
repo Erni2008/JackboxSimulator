@@ -27,6 +27,8 @@ public final class SystemBreachHostViewModel {
         // cached strings: rebuilt only when the shown value changes, never per frame
         private int apKey=Integer.MIN_VALUE,fwKey,deltaKey;private String apText="",fwText="",deltaText="";
         public String apText(){int v=Math.round(shownAp);if(v!=apKey){apKey=v;apText=v+" AP";}return apText;}
+        private String fwShort="";private int fwShortKey;
+        public String firewallShort(){if(fwShortKey!=firewall||fwShort.isEmpty()){fwShortKey=firewall;fwShort="LV"+firewall;}return fwShort;}
         public String firewallText(){if(fwKey!=firewall||fwText.isEmpty()){fwKey=firewall;fwText="FIREWALL LV."+firewall;}return fwText;}
         public String deltaText(){if(deltaKey!=delta||deltaText.isEmpty()){deltaKey=delta;deltaText=(delta>0?"+":"-")+Math.abs(delta)+" AP";}return deltaText;}
     }

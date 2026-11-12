@@ -13,7 +13,7 @@ import java.util.Map;
 final class SystemBreachHostAssets implements Disposable {
     final Texture background,glow,pixel;
     /** Latin terminal faces (Rajdhani) for labels/digits; Noto SemiCondensed for anything containing a nickname. */
-    final BitmapFont title,digits,hex,label,labelSmall,status,ap,name,log,board,boardAp,crest;
+    final BitmapFont icon,iconSmall,iconTiny,iconBig,title,digits,hex,label,labelSmall,status,ap,name,log,board,boardAp,crest;
     private final Map<String,Texture> portraits=new HashMap<>();
 
     SystemBreachHostAssets(){
@@ -29,6 +29,7 @@ final class SystemBreachHostAssets implements Disposable {
         name=font("NotoSans-SemiCondensedSemiBold.ttf",23,true);log=font("NotoSans-SemiCondensedSemiBold.ttf",19,true);
         board=font("NotoSans-SemiCondensedSemiBold.ttf",26,true);boardAp=font("Rajdhani-Bold.ttf",30,false);
         crest=UiFonts.gothic(40);
+        icon=icons(44);iconSmall=icons(26);iconTiny=icons(18);iconBig=icons(54);
     }
 
     /** Portrait fallback when the room's animated characters are unavailable (never in a real room). */
@@ -37,6 +38,13 @@ final class SystemBreachHostAssets implements Disposable {
             if(!f.exists())return null;Texture t=new Texture(f,true);t.setFilter(Texture.TextureFilter.MipMapLinearLinear,Texture.TextureFilter.Linear);return t;});
     }
 
+    /** Material Icons glyphs only (Apache 2.0). */
+    private static BitmapFont icons(int size){
+        var generator=new FreeTypeFontGenerator(Gdx.files.internal("ui/fonts/MaterialIcons-Regular.ttf"));
+        try{var p=new FreeTypeFontGenerator.FreeTypeFontParameter();p.size=size;p.characters=SbIcons.ALL;
+            p.minFilter=Texture.TextureFilter.Linear;p.magFilter=Texture.TextureFilter.Linear;var data=new FreeTypeFontGenerator.FreeTypeBitmapFontData();data.xChars=new char[]{SbIcons.ONLINE};data.capChars=new char[]{SbIcons.ONLINE};return generator.generateFont(p,data);}
+        finally{generator.dispose();}
+    }
     private static BitmapFont font(String file,int size,boolean cyrillic){
         var generator=new FreeTypeFontGenerator(Gdx.files.internal("ui/fonts/"+file));
         try{
@@ -51,7 +59,7 @@ final class SystemBreachHostAssets implements Disposable {
 
     @Override public void dispose(){
         background.dispose();glow.dispose();pixel.dispose();
-        for(var f:new BitmapFont[]{title,digits,hex,label,labelSmall,status,ap,name,log,board,boardAp,crest})f.dispose();
+        for(var f:new BitmapFont[]{icon,iconSmall,iconTiny,iconBig,title,digits,hex,label,labelSmall,status,ap,name,log,board,boardAp,crest})f.dispose();
         for(var t:portraits.values())if(t!=null)t.dispose();
     }
 }

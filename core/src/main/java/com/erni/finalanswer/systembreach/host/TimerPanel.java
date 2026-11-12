@@ -15,7 +15,7 @@ final class TimerPanel {
 
     void shapes(SbPaint p,SystemBreachHostViewModel vm,float time){
         Color c=color(vm);p.frame(TIMER.x,TIMER.y,TIMER.width,TIMER.height,22,c,.55f*pulse(vm,time));
-        p.clock(TIMER.x+74,TIMER.y+98,26,icon.set(c).mul(1,1,1,pulse(vm,time)));
+        
         p.bar(TIMER.x+36,TIMER.y+30,TIMER.width-72,24,vm.phase().equals("RESULTS")||vm.finished()?0:vm.remainingFraction(),c,22);
     }
     void glow(SpriteBatch b,SystemBreachHostAssets as,SystemBreachHostViewModel vm,float time){
@@ -24,6 +24,7 @@ final class TimerPanel {
     void text(SpriteBatch b,SbPaint p,SystemBreachHostAssets as,SystemBreachHostViewModel vm,float time){
         Color c=color(vm);long s=(vm.remainingMs()+999)/1000;
         p.centered(b,as.label,label(vm),TIMER.x+TIMER.width/2,TIMER.y+TIMER.height-22,SbPaint.IVORY,.92f);
+        p.icon(b,as.iconBig,SbIcons.TIMER,TIMER.x+74,TIMER.y+104,c,pulse(vm,time),1,0);
         if(s!=shownSec){shownSec=s;shown=String.format(Locale.ROOT,"%02d:%02d",s/60,s%60);}
         as.digits.setColor(c.r,c.g,c.b,.07f);{float gx=TIMER.x+TIMER.width/2+42-p.width(as.digits,"88:88")/2;as.digits.draw(b,"88:88",gx,TIMER.y+140);}
         p.centered(b,as.digits,shown,TIMER.x+TIMER.width/2+42,TIMER.y+140,c,pulse(vm,time));

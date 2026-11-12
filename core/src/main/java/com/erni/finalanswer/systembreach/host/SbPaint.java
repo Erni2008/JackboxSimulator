@@ -103,6 +103,12 @@ final class SbPaint {
     void ring(float x,float y,float r,float width){int n=28;for(int i=0;i<n;i++){float a=i*MathUtils.PI2/n,b=(i+1)*MathUtils.PI2/n;s.rectLine(x+MathUtils.cos(a)*r,y+MathUtils.sin(a)*r,x+MathUtils.cos(b)*r,y+MathUtils.sin(b)*r,width);}}
 
     // ---- text ----
+    /** A vector glyph centred on (cx,cy), with shadow, optional scale and rotation (degrees). */
+    void icon(SpriteBatch b,BitmapFont f,char ch,float cx,float cy,Color c,float a,float scale,float rotation){
+        var g=f.getData().getGlyph(ch);if(g==null)return;var t=f.getRegion(g.page).getTexture();float w=g.width*scale,h=g.height*scale;
+        b.setColor(0,0,0,.6f*a);b.draw(t,cx-w/2+1,cy-h/2-2,w/2,h/2,w,h,1,1,rotation,g.srcX,g.srcY,g.width,g.height,false,false);
+        b.setColor(c.r,c.g,c.b,c.a*a);b.draw(t,cx-w/2,cy-h/2,w/2,h/2,w,h,1,1,rotation,g.srcX,g.srcY,g.width,g.height,false,false);b.setColor(1,1,1,1);
+    }
     String fit(BitmapFont f,String v,float width){layout.setText(f,v);if(layout.width<=width)return v;
         while(v.length()>1){v=v.substring(0,v.offsetByCodePoints(v.length(),-1));layout.setText(f,v+"…");if(layout.width<=width)return v.stripTrailing()+"…";}return "…";}
     float width(BitmapFont f,String v){layout.setText(f,v);return layout.width;}

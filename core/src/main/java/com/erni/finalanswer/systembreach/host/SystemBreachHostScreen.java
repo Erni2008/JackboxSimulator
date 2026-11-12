@@ -68,8 +68,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         {var dk=VIG;var cl=CLEAR;shapes.rect(0,H-260,W,260,cl,cl,dk,dk);shapes.rect(0,0,W,220,dk,dk,cl,cl);shapes.rect(0,0,220,H,dk,cl,cl,dk);shapes.rect(W-220,0,220,H,cl,dk,dk,cl);}
         for(int i=0;i<n;i++)podium.shapes(paint,shapes,slots.get(i),slotX(i,n),time);
-        for(int i=0;i<n;i++){float x=slotX(i,n)-PANEL_W/2+22;fx.scanlines(shapes,x-2,PANEL_Y+PlayerPodium.SCREEN_Y,PANEL_W-40,PlayerPodium.SCREEN_H,.22f,time+i);}
-        fx.scanlines(shapes,TIMER.x+20,TIMER.y+20,TIMER.width-40,TIMER.height-40,.12f,time);fx.scanlines(shapes,LOG.x+20,LOG.y+20,LOG.width-40,LOG.height-40,.12f,time+2);
+                fx.scanlines(shapes,TIMER.x+20,TIMER.y+20,TIMER.width-40,TIMER.height-40,.12f,time);fx.scanlines(shapes,LOG.x+20,LOG.y+20,LOG.width-40,LOG.height-40,.12f,time+2);
         fx.attackLinks(shapes,model.attacks(),model,n,time);
         timer.shapes(paint,model,time);title.shapes(paint,shapes,time);log.shapes(paint,model);board.shapes(paint,shapes,model);toastShape();
         shapes.end();
@@ -78,7 +77,6 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         for(int i=0;i<n;i++)podium.glow(batch,assets,slots.get(i),slotX(i,n),time);
         fx.attackGlow(batch,assets,model.attacks(),model,n,time);timer.glow(batch,assets,model,time);title.glow(batch,assets,time);
         batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.setColor(1,1,1,1);
-        for(int i=0;i<n;i++)fx.podiumCode(batch,assets,slots.get(i),i,slotX(i,n),time,SbPaint.tone(slots.get(i).status));
         for(int i=0;i<n;i++)podium.text(batch,paint,assets,slots.get(i),slotX(i,n),time);
         timer.text(batch,paint,assets,model,time);title.text(batch,paint,assets,time);log.text(batch,paint,assets,model);board.text(batch,paint,assets,model);
         toastText();

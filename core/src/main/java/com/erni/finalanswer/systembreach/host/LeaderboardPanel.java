@@ -16,9 +16,6 @@ final class LeaderboardPanel {
         p.frame(BOARD.x,BOARD.y,BOARD.width,BOARD.height,26,SbPaint.GREEN,.45f);
         // trophy flanked by laurels
         float tx=BOARD.x+110,ty=BOARD.y+BOARD.height/2;Color g=SbPaint.GREEN;
-        r.setColor(g);r.triangle(tx-26,ty+34,tx+26,ty+34,tx+14,ty-2);r.triangle(tx-26,ty+34,tx+14,ty-2,tx-14,ty-2);r.arc(tx,ty+2,14,180,180,14);
-        p.ring(tx-27,ty+20,9,3.5f);p.ring(tx+27,ty+20,9,3.5f);r.rect(tx-4,ty-24,8,14);r.rect(tx-16,ty-32,32,8);r.rect(tx-20,ty-38,40,6);
-        r.setColor(1,1,1,.25f);r.triangle(tx-20,ty+32,tx-12,ty+32,tx-8,ty+4);
         // underline with hatch, as on the reference
         r.setColor(g.r,g.g,g.b,.6f);r.rect(BOARD.x+200,BOARD.y+48,300,3);for(int i=0;i<6;i++)r.triangle(BOARD.x+440+i*12,BOARD.y+42,BOARD.x+448+i*12,BOARD.y+42,BOARD.x+458+i*12,BOARD.y+56);
         r.setColor(SbPaint.TRIM.r,SbPaint.TRIM.g,SbPaint.TRIM.b,.8f);r.rect(ROWS_X-60,BOARD.y+30,2,BOARD.height-60);
@@ -35,6 +32,7 @@ final class LeaderboardPanel {
     void text(SpriteBatch b,SbPaint p,SystemBreachHostAssets as,SystemBreachHostViewModel vm){
         as.title.getData().setScale(.62f);p.text(b,as.title,vm.results()?"RESULTS":"LEADERBOARD",BOARD.x+200,BOARD.y+BOARD.height/2+as.title.getCapHeight()/2+6,SbPaint.GREEN,1);as.title.getData().setScale(1);
         if(vm.finished())p.text(b,as.labelSmall,"ENTER - BACK TO LOBBY",BOARD.x+204,BOARD.y+38,SbPaint.IVORY,.75f);
+        p.icon(b,as.iconBig,SbIcons.TROPHY,BOARD.x+110,BOARD.y+BOARD.height/2,SbPaint.GOLD,1,1.35f,0);
         var top=vm.ranking();
         for(int i=0;i<Math.min(3,top.size());i++){
             Slot s=top.get(i);float y=rowY(s)+ROW_H/2+as.board.getCapHeight()/2;Color c=PLACE[i];

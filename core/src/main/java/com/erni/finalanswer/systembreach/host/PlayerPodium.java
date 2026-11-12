@@ -9,13 +9,13 @@ import com.erni.finalanswer.systembreach.host.SystemBreachHostViewModel.Status;
 import static com.erni.finalanswer.systembreach.host.SystemBreachLayout.*;
 
 /**
- * One reusable terminal podium drawn from its {@link Slot}: a lit top cap, bronze side rails, a glass screen with
- * corner brackets and reflection, and a plinth with an LED strip that chases while the player is under attack.
+ * One reusable player card. Broadcast layout, top to bottom: name, AP, status emblem (vector icon in a lit ring),
+ * status badge; under it a plinth with an LED strip. One accent colour per state drives every lit part.
  */
 final class PlayerPodium {
-    /** Offsets inside the panel (from PANEL_Y). */
-    static final float SCREEN_Y=18,SCREEN_H=110,ICON_Y=100,STATUS_Y=62,SUB_Y=34;
-    private static final int LEDS=9;private static final Color BADGE_TEXT=new Color(.03f,.04f,.03f,1);
+    static final float RING_Y=104,RING_R=33,BADGE_Y=30,BADGE_H=28;
+    private static final int LEDS=9;
+    private static final Color BADGE_TEXT=new Color(.03f,.04f,.03f,1);
     private final Color accent=new Color(),c=new Color(),c2=new Color();
 
     float pulse(Slot s,float time){
@@ -29,6 +29,10 @@ final class PlayerPodium {
         };
     }
     Color accent(Slot s){return accent.set(s.leader&&s.status==Status.ONLINE?SbPaint.GOLD:SbPaint.tone(s.status));}
+    static char glyph(Status s){
+        return switch(s){case ONLINE->SbIcons.ONLINE;case BEING_HACKED->SbIcons.HACK;case RECOVERY->SbIcons.RECOVERY;
+            case UPGRADING->SbIcons.FIREWALL;case COMPROMISED->SbIcons.COMPROMISED;case DISCONNECTED->SbIcons.OFFLINE;};
+    }
 
     void shapes(SbPaint p,ShapeRenderer r,Slot s,float x,float time){
         float left=x-PANEL_W/2,right=x+PANEL_W/2,top=PANEL_Y+PANEL_H,a=pulse(s,time);Color ac=accent(s);
@@ -48,60 +52,52 @@ final class PlayerPodium {
                 default->.75f;};
             r.setColor(ac.r*on,ac.g*on,ac.b*on,1);r.rect(left+20+i*lw+1,py+15,lw-3,8);
         }
-        c.set(.20f,.17f,.13f,1);c2.set(.09f,.08f,.07f,1);
-        r.triangle(left-4,top,right+4,top,right-12,top+12,c,c,c2);
-        r.triangle(left-4,top,right-12,top+12,left+12,top+12,c,c2,c2);
-        r.setColor(ac.r,ac.g,ac.b,.55f*a);r.rect(left+12,top+11,PANEL_W-24,1.5f);
-        p.frame(left,PANEL_Y,PANEL_W,PANEL_H,14,ac,dim?.4f:.3f+.7f*a);
-        for(int side=-1;side<=1;side+=2){float rx=side<0?left-7:right-1;
-            r.setColor(SbPaint.TRIM_DARK);r.rect(rx,PANEL_Y+26,8,PANEL_H-52);r.setColor(SbPaint.TRIM);r.rect(rx+1,PANEL_Y+28,6,PANEL_H-56);
-            r.setColor(ac.r,ac.g,ac.b,.8f*a);r.rect(rx+3,PANEL_Y+40,2,PANEL_H-80);}
+        p.frame(left,PANEL_Y,PANEL_W,PANEL_H,14,ac,dim?.35f:.25f+.6f*a);
+        r.setColor(ac.r,ac.g,ac.b,dim?.35f:.85f);r.rect(left+22,top-9,PANEL_W-44,3);
         if(dim){r.setColor(0,0,0,.35f);r.rect(left+7,PANEL_Y+7,PANEL_W-14,PANEL_H-14);}
-        float sx=left+20,sy=PANEL_Y+SCREEN_Y,sw=PANEL_W-40;
-        c.set(ac.r*.03f,ac.g*.03f,ac.b*.03f,.95f);c2.set(ac.r*.12f,ac.g*.12f,ac.b*.12f,.95f);
-        r.rect(sx,sy,sw,SCREEN_H,c,c,c2,c2);
-        r.setColor(1,1,1,.05f);r.triangle(sx,sy+SCREEN_H,sx+sw*.55f,sy+SCREEN_H,sx,sy+SCREEN_H*.35f);
-        float bl=14;r.setColor(ac.r,ac.g,ac.b,.5f+.5f*a);
-        r.rect(sx,sy,bl,2);r.rect(sx,sy,2,bl);r.rect(sx+sw-bl,sy,bl,2);r.rect(sx+sw-2,sy,2,bl);
-        r.rect(sx,sy+SCREEN_H-2,bl,2);r.rect(sx,sy+SCREEN_H-bl,2,bl);r.rect(sx+sw-bl,sy+SCREEN_H-2,bl,2);r.rect(sx+sw-2,sy+SCREEN_H-bl,2,bl);
-        r.setColor(SbPaint.TRIM.r,SbPaint.TRIM.g,SbPaint.TRIM.b,.7f);r.rect(left+24,top-46,PANEL_W-48,1.5f);
-        r.setColor(0,0,0,.55f);r.rect(left+20,top-82,PANEL_W-40,30);r.setColor(SbPaint.GOLD.r,SbPaint.GOLD.g,SbPaint.GOLD.b,.25f);r.rect(left+20,top-53,PANEL_W-40,1);
-        p.coins(left+40,top-70,12);
-        // status badge: a filled pill in the status colour, the game's main read at a glance
-        float bw=PANEL_W-44,bx=x-bw/2,by=PANEL_Y+40;float fill=s.status==Status.DISCONNECTED?.35f:.55f+.45f*a;
-        p.plate(bx,by,bw,26,8,c.set(ac.r*fill,ac.g*fill,ac.b*fill,.95f),c2.set(ac.r*fill*.6f,ac.g*fill*.6f,ac.b*fill*.6f,.95f));
-        r.setColor(1,1,1,.22f);r.rect(bx+8,by+20,bw-16,2);
-        Color ic=c.set(ac).mul(1,1,1,Math.max(.45f,a));float iy=PANEL_Y+ICON_Y;
-        switch(s.status){
-            case ONLINE->p.monitor(x,iy,30,ic);
-            case BEING_HACKED->p.crosshair(x,iy,17+1.5f*MathUtils.sin(time*7.5f),ic);
-            case RECOVERY->p.gear(x,iy,16,ic);
-            case UPGRADING->p.shield(x,iy+3,18,ic);
-            case COMPROMISED->p.warning(x,iy,19,ic);
-            case DISCONNECTED->p.unplugged(x,iy,15,ic);
+        r.setColor(0,0,0,.5f);r.rect(left+18,top-84,PANEL_W-36,32);
+        r.setColor(SbPaint.GOLD.r,SbPaint.GOLD.g,SbPaint.GOLD.b,.22f);r.rect(left+18,top-53,PANEL_W-36,1);r.rect(left+18,top-84,PANEL_W-36,1);
+        float cy=PANEL_Y+RING_Y;
+        r.setColor(0,0,0,.65f);r.circle(x,cy,RING_R+4,40);
+        c.set(ac.r*.22f,ac.g*.22f,ac.b*.22f,1);c2.set(ac.r*.05f,ac.g*.05f,ac.b*.05f,1);
+        r.setColor(c);r.circle(x,cy,RING_R-1,40);r.setColor(c2);r.circle(x,cy-3,RING_R-6,40);
+        r.setColor(ac.r,ac.g,ac.b,.35f+.65f*a);p.ring(x,cy,RING_R,2.5f);
+        if(s.status==Status.BEING_HACKED||s.status==Status.RECOVERY||s.status==Status.UPGRADING){
+            float start=time*(s.status==Status.BEING_HACKED?260:140);r.setColor(ac.r,ac.g,ac.b,.95f);
+            for(int k=0;k<2;k++){float a0=(start+k*180)*MathUtils.degRad;for(int j=0;j<10;j++){float u=a0+j*.07f,v=u+.07f;
+                r.rectLine(x+MathUtils.cos(u)*(RING_R+6),cy+MathUtils.sin(u)*(RING_R+6),x+MathUtils.cos(v)*(RING_R+6),cy+MathUtils.sin(v)*(RING_R+6),3);}}
         }
-        if(s.status==Status.UPGRADING&&s.statusAge<1.4f){float k=s.statusAge/1.4f;r.setColor(SbPaint.BLUE.r,SbPaint.BLUE.g,SbPaint.BLUE.b,.55f*(1-k));r.rect(sx,sy+SCREEN_H*k,sw,3);}
-        if(s.leader)p.crown(x,top+14,34,SbPaint.GOLD);
+        float bw=PANEL_W-40,bx=x-bw/2,by=PANEL_Y+BADGE_Y;float fill=s.status==Status.DISCONNECTED?.35f:.6f+.4f*a;
+        p.plate(bx,by,bw,BADGE_H,9,c.set(ac.r*fill,ac.g*fill,ac.b*fill,.97f),c2.set(ac.r*fill*.6f,ac.g*fill*.6f,ac.b*fill*.6f,.97f));
+        r.setColor(1,1,1,.2f);r.rect(bx+9,by+BADGE_H-6,bw-18,2);
+        if(s.leader)p.crown(x,top+6,30,SbPaint.GOLD);
     }
 
     void glow(SpriteBatch b,SystemBreachHostAssets as,Slot s,float x,float time){
         Color ac=accent(s);float a=pulse(s,time),k=s.status==Status.DISCONNECTED?.25f:s.status==Status.BEING_HACKED||s.status==Status.COMPROMISED?.8f:.55f;
         b.setColor(ac.r,ac.g,ac.b,.45f*k*a);b.draw(as.glow,x-PANEL_W*.75f,PANEL_Y-PLINTH_H-30,PANEL_W*1.5f,70);
-        b.setColor(ac.r,ac.g,ac.b,.14f*k*a);b.draw(as.glow,x-PANEL_W*.7f,PANEL_Y-30,PANEL_W*1.4f,PANEL_H+60);
-        b.setColor(ac.r,ac.g,ac.b,.25f*a);b.draw(as.glow,x-56,PANEL_Y+SCREEN_Y,112,SCREEN_H);
-        b.setColor(ac.r,ac.g,ac.b,.30f*a);b.draw(as.glow,x-PANEL_W*.55f,PANEL_Y+PANEL_H-4,PANEL_W*1.1f,26);
+        b.setColor(ac.r,ac.g,ac.b,.12f*k*a);b.draw(as.glow,x-PANEL_W*.7f,PANEL_Y-30,PANEL_W*1.4f,PANEL_H+60);
+        b.setColor(ac.r,ac.g,ac.b,.40f*a);b.draw(as.glow,x-70,PANEL_Y+RING_Y-70,140,140);
+        b.setColor(ac.r,ac.g,ac.b,.30f*a);b.draw(as.glow,x-PANEL_W*.55f,PANEL_Y+PANEL_H-14,PANEL_W*1.1f,26);
         if(s.reaction==SystemBreachHostViewModel.Reaction.HIT&&s.reactionAge<.7f){float f=1-s.reactionAge/.7f;b.setColor(1,.15f,.1f,.5f*f);b.draw(as.glow,x-PANEL_W,PANEL_Y,PANEL_W*2,PANEL_H+240);}
     }
 
     void text(SpriteBatch b,SbPaint p,SystemBreachHostAssets as,Slot s,float x,float time){
-        float left=x-PANEL_W/2,top=PANEL_Y+PANEL_H;Color ac=accent(s);float a=s.status==Status.DISCONNECTED?.55f:1;
+        float top=PANEL_Y+PANEL_H;Color ac=accent(s);float a=s.status==Status.DISCONNECTED?.55f:1;
         p.centered(b,as.name,p.fit(as.name,s.name,PANEL_W-34),x,top-15,SbPaint.IVORY,a);
         float punch=1+.28f*Math.max(0,1-s.deltaAge/.35f);as.ap.getData().setScale(punch);
-        p.text(b,as.ap,s.apText(),left+60,top-53+(punch-1)*14,s.deltaAge<.35f?(s.delta>0?SbPaint.GREEN:SbPaint.RED):SbPaint.GOLD,a);as.ap.getData().setScale(1);
-        float w=p.width(as.status,s.status.label),pop=1+.35f*Math.max(0,1-s.statusAge/.28f);
-        as.status.getData().setScale(Math.min(1,(PANEL_W-62)/w)*pop);p.centered(b,as.status,s.status.label,x,PANEL_Y+STATUS_Y,s.status==Status.DISCONNECTED?SbPaint.IVORY:BADGE_TEXT,s.status==Status.DISCONNECTED?.7f:1);as.status.getData().setScale(1);
-        if(s.status==Status.UPGRADING)p.centered(b,as.labelSmall,s.firewallText(),x,PANEL_Y+SUB_Y,SbPaint.BLUE,.95f);
-        else if(s.firewall>1&&s.status==Status.ONLINE)p.centered(b,as.labelSmall,s.firewallText(),x,PANEL_Y+SUB_Y,c.set(ac).mul(.8f,.8f,.8f,1),.8f);
+        String ap=s.apText();float tw=p.width(as.ap,ap),gw=26,gx=x-(tw+gw+6)/2;
+        p.icon(b,as.iconSmall,SbIcons.COIN,gx+gw/2,top-68,SbPaint.GOLD,a,1,0);
+        p.text(b,as.ap,ap,gx+gw+6,top-55+(punch-1)*14,s.deltaAge<.35f?(s.delta>0?SbPaint.GREEN:SbPaint.RED):SbPaint.GOLD,a);as.ap.getData().setScale(1);
+        float pop=1+.25f*Math.max(0,1-s.statusAge/.28f);
+        p.icon(b,as.icon,glyph(s.status),x,PANEL_Y+RING_Y,ac,Math.max(.6f,pulse(s,time))*a,pop,s.status==Status.RECOVERY?-time*120:0);
+        if(s.firewall>1&&s.status!=Status.DISCONNECTED){
+            p.icon(b,as.iconTiny,SbIcons.FIREWALL,x+RING_R+22,PANEL_Y+RING_Y+12,SbPaint.BLUE,.95f,1,0);
+            p.centered(b,as.labelSmall,s.firewallShort(),x+RING_R+22,PANEL_Y+RING_Y-6,SbPaint.BLUE,.95f);}
+        float w=p.width(as.status,s.status.label);
+        as.status.getData().setScale(Math.min(1,(PANEL_W-60)/w)*(1+.2f*Math.max(0,1-s.statusAge/.28f)));
+        p.centered(b,as.status,s.status.label,x,PANEL_Y+BADGE_Y+BADGE_H/2+as.status.getCapHeight()/2,s.status==Status.DISCONNECTED?SbPaint.IVORY:BADGE_TEXT,s.status==Status.DISCONNECTED?.7f:1);
+        as.status.getData().setScale(1);
         if(s.deltaAge<1.6f&&s.delta!=0){float k=s.deltaAge/1.6f;
             p.centered(b,as.ap,s.deltaText(),x+40,top+22+k*46,s.delta>0?SbPaint.GREEN:SbPaint.RED,1-k*k);}
     }

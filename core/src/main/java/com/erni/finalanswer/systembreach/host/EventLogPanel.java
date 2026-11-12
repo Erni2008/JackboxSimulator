@@ -15,12 +15,7 @@ final class EventLogPanel {
         for(int j=1;j<4;j++){p.shapes().setColor(SbPaint.TRIM.r,SbPaint.TRIM.g,SbPaint.TRIM.b,.35f);p.shapes().rect(LOG.x+30,FIRST+8-j*ROW-2,LOG.width-60,1);}
         int i=0,n=vm.logSize();
         for(var line:vm.log()){
-            float k=ease(vm.logAge(n-1-i)),x=LOG.x+42-(1-k)*30,y=row(i,n)-12;Color c=SbPaint.tone(line.tone());
-            switch(line.tone()){
-                case HACK->p.crosshair(x,y,11,c);case RECOVERY->p.gear(x,y,11,c);case FIREWALL->p.shield(x,y+2,12,c);
-                case REWARD->p.coins(x,y,10);default->p.ring(x,y,7,2.5f);
-            }
-            i++;
+                        i++;
         }
     }
     void text(SpriteBatch b,SbPaint p,SystemBreachHostAssets as,SystemBreachHostViewModel vm){
@@ -28,7 +23,7 @@ final class EventLogPanel {
         int i=0,n=vm.logSize();
         for(var line:vm.log()){
             float k=ease(vm.logAge(n-1-i));Color c=line.tone()==SystemBreachHostViewModel.Tone.HACK?SbPaint.RED:SbPaint.IVORY;
-            float age=vm.logAge(n-1-i);String full=p.fit(as.log,line.text(),LOG.width-160);int shown=Math.min(full.length(),(int)(age*70));
+            float age=vm.logAge(n-1-i);p.icon(b,as.iconSmall,switch(line.tone()){case HACK->SbIcons.HACK;case RECOVERY->SbIcons.RECOVERY;case FIREWALL->SbIcons.FIREWALL;case REWARD->SbIcons.PAID;default->SbIcons.LINK_OFF;},LOG.x+44-(1-k)*30,row(i,n)-9,SbPaint.tone(line.tone()),k,.85f,0);String full=p.fit(as.log,line.text(),LOG.width-160);int shown=Math.min(full.length(),(int)(age*70));
             p.text(b,as.hex,line.stamp(),LOG.x+64-(1-k)*30,row(i,n)-4,SbPaint.GREEN,.55f*k);
             p.text(b,as.log,shown<full.length()?full.substring(0,shown)+"_":i==n-1&&(int)(System.nanoTime()/450_000_000L)%2==0?full+"_":full,LOG.x+118-(1-k)*30,row(i,n),c,k*(line.tone()==SystemBreachHostViewModel.Tone.MUTED?.6f:.95f));
             i++;
