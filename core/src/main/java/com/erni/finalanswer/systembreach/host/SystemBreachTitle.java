@@ -39,6 +39,7 @@ final class SystemBreachTitle {
         p.centered(b,as.crest,"FINAL ANSWER",cx,CREST_Y+16,SbPaint.GOLD,1);
         // a faint offset ghost line gives the phosphor its depth without blurring the face
         p.centered(b,as.title,"SYSTEM BREACH",cx+3,TITLE.y+TITLE.height/2+as.title.getCapHeight()/2-3,c.set(0,.08f,.03f,1),.9f);
-        p.centered(b,as.title,"SYSTEM BREACH",cx,TITLE.y+TITLE.height/2+as.title.getCapHeight()/2,SbPaint.GREEN,1);
+        float g=HackerFx.glitch(time);if(g>0){float ty=TITLE.y+TITLE.height/2+as.title.getCapHeight()/2;p.centered(b,as.title,"SYSTEM BREACH",cx-9*g,ty+2*g,c.set(1,.1f,.15f,1),.7f*g);p.centered(b,as.title,"SYSTEM BREACH",cx+9*g,ty-2*g,c.set(.1f,.9f,1,1),.6f*g);}
+        p.centered(b,as.title,"SYSTEM BREACH",cx+(g>0?MathUtils.random(-3f,3f)*g:0),TITLE.y+TITLE.height/2+as.title.getCapHeight()/2,SbPaint.GREEN,1);
     }
 }

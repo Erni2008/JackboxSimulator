@@ -32,6 +32,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
     private final EventLogPanel log=new EventLogPanel();
     private final LeaderboardPanel board=new LeaderboardPanel();
     private final Consumer<String> end;
+    private final HackerFx fx=new HackerFx();
     private float time;
 
     public SystemBreachHostScreen(JsonObject root,CageLobby roomCharacters,Consumer<String> end){
@@ -60,13 +61,17 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         Gdx.gl.glEnable(GL20.GL_BLEND);Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         for(int i=0;i<n;i++)podium.shapes(paint,shapes,slots.get(i),slotX(i,n),time);
+        for(int i=0;i<n;i++){float x=slotX(i,n)-PANEL_W/2+22;fx.scanlines(shapes,x,PANEL_Y+22,PANEL_W-44,128,.22f,time+i);}
+        fx.scanlines(shapes,TIMER.x+20,TIMER.y+20,TIMER.width-40,TIMER.height-40,.12f,time);fx.scanlines(shapes,LOG.x+20,LOG.y+20,LOG.width-40,LOG.height-40,.12f,time+2);
+        fx.attackLinks(shapes,model.attacks(),model,n,time);
         timer.shapes(paint,model,time);title.shapes(paint,shapes,time);log.shapes(paint,model);board.shapes(paint,shapes,model);
         shapes.end();
 
         batch.begin();batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
         for(int i=0;i<n;i++)podium.glow(batch,assets,slots.get(i),slotX(i,n),time);
-        timer.glow(batch,assets,model,time);title.glow(batch,assets,time);
+        fx.attackGlow(batch,assets,model.attacks(),model,n,time);timer.glow(batch,assets,model,time);title.glow(batch,assets,time);
         batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.setColor(1,1,1,1);
+        for(int i=0;i<n;i++)fx.podiumCode(batch,assets,slots.get(i),i,slotX(i,n),time,SbPaint.tone(slots.get(i).status));
         for(int i=0;i<n;i++)podium.text(batch,paint,assets,slots.get(i),slotX(i,n),time);
         timer.text(batch,paint,assets,model,time);title.text(batch,paint,assets,time);log.text(batch,paint,assets,model);board.text(batch,paint,assets,model);
         batch.end();

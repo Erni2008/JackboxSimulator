@@ -25,7 +25,9 @@ public final class SystemBreachHostViewModel {
         public float boardY=-1;                                  // eased leaderboard row position
         Slot(String id){this.id=id;}
     }
-    public record LogLine(long sequence,String text,Tone tone){}
+    public record LogLine(long sequence,String text,Tone tone,long at){}
+    public record Attack(String attackerId,String targetId,long startedAt){}
+    private final List<Attack> attacks=new ArrayList<>();
 
     private static final int LOG_SIZE=4;private static final long UPGRADE_SHOW_MS=2600,ATTACK_STALE_MS=30_000;
     private final List<Slot> slots=new ArrayList<>();private final Map<String,Slot> byId=new HashMap<>();
@@ -71,14 +73,14 @@ public final class SystemBreachHostViewModel {
             }
             if(seq>lastSequence){
                 if(lastSequence>=0)react(type,a,t);
-                LogLine line=line(type,a,t,num(ev,"amount"),seq);
+                LogLine line=line(type,a,t,num(ev,"amount"),seq);if(line!=null)line=new LogLine(line.sequence(),line.text(),line.tone(),Math.max(0,at-phaseStartedAt));
                 if(line!=null){log.addLast(line);if(log.size()>LOG_SIZE)log.removeFirst();System.arraycopy(logAge,0,logAge,1,LOG_SIZE-1);logAge[0]=lastSequence<0?99:0;}
             }
         }
         lastSequence=Math.max(lastSequence,lng(sb,"lastEventSequence",lastSequence));if(lastSequence<0)lastSequence=0;
 
-        Set<String> attacked=new HashSet<>();
-        for(var en:underAttack.entrySet())if(serverTime-en.getValue()<ATTACK_STALE_MS)attacked.add(en.getKey().substring(en.getKey().indexOf('>')+1));
+        Set<String> attacked=new HashSet<>();attacks.clear();
+        for(var en:underAttack.entrySet())if(serverTime-en.getValue()<ATTACK_STALE_MS){String k=en.getKey();int i=k.indexOf('>');attacked.add(k.substring(i+1));attacks.add(new Attack(k.substring(0,i),k.substring(i+1),en.getValue()));}
         for(var e:rows){
             var p=e.getAsJsonObject();Slot s=byId.get(str(p,"playerId"));if(s==null)continue;
             Status next=flag(p,"disconnected")?Status.DISCONNECTED:flag(p,"recovering")?Status.RECOVERY:flag(p,"compromised")?Status.COMPROMISED
@@ -104,22 +106,22 @@ public final class SystemBreachHostViewModel {
     /** Public facts only: who acted on whom and the public amount. Passwords, clues and answers never reach here. */
     private LogLine line(String type,String a,String t,int amount,long seq){
         return switch(type){
-            case "ATTACK_STARTED"->new LogLine(seq,who(t)+" is being hacked!",Tone.HACK);
-            case "ATTACK_SUCCEEDED"->new LogLine(seq,who(a)+" hacked "+who(t)+(amount>0?"  +"+amount+" AP":""),Tone.HACK);
-            case "ATTACK_FAILED"->new LogLine(seq,who(t)+" repelled "+who(a),Tone.FIREWALL);
-            case "ATTACK_EXPIRED","ATTACK_INTERRUPTED"->new LogLine(seq,who(a)+" lost the link to "+who(t),Tone.MUTED);
-            case "RECOVERY_START"->new LogLine(seq,who(t)+" started recovery",Tone.RECOVERY);
-            case "RECOVERY_RETRY"->new LogLine(seq,who(t)+" recovery failed, retrying",Tone.RECOVERY);
-            case "RECOVERY_SUCCEEDED"->new LogLine(seq,who(t)+" is back online",Tone.REWARD);
-            case "EMERGENCY_RESTORED"->new LogLine(seq,who(t)+" emergency restore",Tone.RECOVERY);
-            case "FIREWALL_UPGRADED"->new LogLine(seq,who(t)+" upgraded firewall to Lv."+amount,Tone.FIREWALL);
-            case "CHALLENGE_SOLVED"->new LogLine(seq,who(t)+" earned +"+amount+" AP",Tone.REWARD);
-            case "TROJAN"->new LogLine(seq,who(a)+" planted a Trojan in "+who(t),Tone.HACK);
-            case "DATA_LEAK"->new LogLine(seq,who(a)+" leaked data from "+who(t)+(amount>0?"  +"+amount+" AP":""),Tone.HACK);
-            case "SYSTEM_OVERLOAD"->new LogLine(seq,who(a)+" overloaded "+who(t),Tone.HACK);
-            case "FIREWALL_BREAKER"->new LogLine(seq,who(a)+" broke "+who(t)+"'s firewall",Tone.HACK);
-            case "TRACE_ATTACK"->new LogLine(seq,who(a)+" is tracing "+who(t),Tone.HACK);
-            case "RESULTS"->new LogLine(seq,"Operation complete",Tone.MUTED);
+            case "ATTACK_STARTED"->new LogLine(seq,who(t)+" is being hacked!",Tone.HACK,0);
+            case "ATTACK_SUCCEEDED"->new LogLine(seq,who(a)+" hacked "+who(t)+(amount>0?"  +"+amount+" AP":""),Tone.HACK,0);
+            case "ATTACK_FAILED"->new LogLine(seq,who(t)+" repelled "+who(a),Tone.FIREWALL,0);
+            case "ATTACK_EXPIRED","ATTACK_INTERRUPTED"->new LogLine(seq,who(a)+" lost the link to "+who(t),Tone.MUTED,0);
+            case "RECOVERY_START"->new LogLine(seq,who(t)+" started recovery",Tone.RECOVERY,0);
+            case "RECOVERY_RETRY"->new LogLine(seq,who(t)+" recovery failed, retrying",Tone.RECOVERY,0);
+            case "RECOVERY_SUCCEEDED"->new LogLine(seq,who(t)+" is back online",Tone.REWARD,0);
+            case "EMERGENCY_RESTORED"->new LogLine(seq,who(t)+" emergency restore",Tone.RECOVERY,0);
+            case "FIREWALL_UPGRADED"->new LogLine(seq,who(t)+" upgraded firewall to Lv."+amount,Tone.FIREWALL,0);
+            case "CHALLENGE_SOLVED"->new LogLine(seq,who(t)+" earned +"+amount+" AP",Tone.REWARD,0);
+            case "TROJAN"->new LogLine(seq,who(a)+" planted a Trojan in "+who(t),Tone.HACK,0);
+            case "DATA_LEAK"->new LogLine(seq,who(a)+" leaked data from "+who(t)+(amount>0?"  +"+amount+" AP":""),Tone.HACK,0);
+            case "SYSTEM_OVERLOAD"->new LogLine(seq,who(a)+" overloaded "+who(t),Tone.HACK,0);
+            case "FIREWALL_BREAKER"->new LogLine(seq,who(a)+" broke "+who(t)+"'s firewall",Tone.HACK,0);
+            case "TRACE_ATTACK"->new LogLine(seq,who(a)+" is tracing "+who(t),Tone.HACK,0);
+            case "RESULTS"->new LogLine(seq,"Operation complete",Tone.MUTED,0);
             default->null;
         };
     }
@@ -136,6 +138,9 @@ public final class SystemBreachHostViewModel {
 
     public List<Slot> slots(){return slots;}
     public List<Slot> ranking(){return ranking;}
+    /** Attacks in flight (public: who is attacking whom). */
+    public List<Attack> attacks(){return attacks;}
+    public int seat(String id){Slot s=byId.get(id);return s==null?-1:slots.indexOf(s);}
     /** Oldest first, at most four. */
     public Iterable<LogLine> log(){return log;}
     public int logSize(){return log.size();}
