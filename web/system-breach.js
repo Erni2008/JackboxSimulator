@@ -36,6 +36,8 @@ function createSystemBreachRequests({getState,isAuthenticated,send,makeId,now}){
 function createSystemBreachController({getState,isAuthenticated,send,makeId,now}){
   const el=id=>document.getElementById(id);
   {const scr=el('breach-screen');if(scr&&scr.parentElement!==document.body)document.body.append(scr);}
+  // desktop: the scene leans a few pixels toward the cursor
+  addEventListener('pointermove',e=>{if(e.pointerType!=='mouse')return;const r=document.documentElement;r.style.setProperty('--px',((e.clientX/innerWidth-.5)*2).toFixed(3));r.style.setProperty('--py',((e.clientY/innerHeight-.5)*2).toFixed(3));},{passive:true});
   const requests=createSystemBreachRequests({getState,isAuthenticated,send,makeId,now});
   let viewKey='',lastSync=0,lastReceipt='',verdict=null,mode='',banked=0,seenKeys=-1,celebrateUntil=0,lastAsk=0;
   const body=()=>el('sbx-body');
