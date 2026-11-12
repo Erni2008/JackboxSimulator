@@ -53,7 +53,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         String winner=model.results()?model.winnerId():"";
 
         batch.begin();batch.setColor(1,1,1,1);batch.draw(assets.background,0,0,W,H);
-        batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);atmosphere();batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
+        batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);atmosphere();motes();batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
         batch.setColor(0,0,0,.35f);batch.draw(assets.glow,W/2-1100,PANEL_Y-260,2200,700);batch.setColor(1,1,1,1);   // soft shade the line-up stands in
         batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
         for(int i=0;i<n;i++){var s=slots.get(i);var c=SbPaint.tone(s.status);float x=slotX(i,n),k=s.status==SystemBreachHostViewModel.Status.DISCONNECTED?.3f:1;
@@ -90,6 +90,12 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         batch.end();
     }
 
+    /** Data motes drifting up through the hall: cheap, deterministic, no allocation. */
+    private void motes(){
+        for(int i=0;i<46;i++){float sp=18+(i*37%23),x=(i*173.3f)%W+MathUtils.sin(time*.4f+i)*14,y=((time*sp+i*97)%(H+40))-20;
+            float a=.10f+.10f*MathUtils.sin(time*2+i*1.7f),sz=i%5==0?4:2.5f;
+            batch.setColor(i%7==0?1:.35f,i%7==0?.3f:.95f,i%7==0?.2f:.55f,a);batch.draw(assets.pixel,x,y,sz,sz);}
+    }
     /** Light that lives in the photo: lantern flicker, window breathing and a slow drift of floor haze. */
     private void atmosphere(){
         float f1=.8f+.12f*MathUtils.sin(time*9.1f)+.08f*MathUtils.sin(time*23.7f),f2=.8f+.12f*MathUtils.sin(time*8.3f+1.7f)+.08f*MathUtils.sin(time*19.1f);

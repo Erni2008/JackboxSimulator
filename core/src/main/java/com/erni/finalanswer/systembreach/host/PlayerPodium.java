@@ -14,8 +14,8 @@ import static com.erni.finalanswer.systembreach.host.SystemBreachLayout.*;
  */
 final class PlayerPodium {
     /** Offsets inside the panel (from PANEL_Y). */
-    static final float SCREEN_Y=18,SCREEN_H=110,ICON_Y=100,STATUS_Y=60,SUB_Y=36;
-    private static final int LEDS=9;
+    static final float SCREEN_Y=18,SCREEN_H=110,ICON_Y=100,STATUS_Y=62,SUB_Y=34;
+    private static final int LEDS=9;private static final Color BADGE_TEXT=new Color(.03f,.04f,.03f,1);
     private final Color accent=new Color(),c=new Color(),c2=new Color();
 
     float pulse(Slot s,float time){
@@ -65,7 +65,12 @@ final class PlayerPodium {
         r.rect(sx,sy,bl,2);r.rect(sx,sy,2,bl);r.rect(sx+sw-bl,sy,bl,2);r.rect(sx+sw-2,sy,2,bl);
         r.rect(sx,sy+SCREEN_H-2,bl,2);r.rect(sx,sy+SCREEN_H-bl,2,bl);r.rect(sx+sw-bl,sy+SCREEN_H-2,bl,2);r.rect(sx+sw-2,sy+SCREEN_H-bl,2,bl);
         r.setColor(SbPaint.TRIM.r,SbPaint.TRIM.g,SbPaint.TRIM.b,.7f);r.rect(left+24,top-46,PANEL_W-48,1.5f);
-        p.coins(left+44,top-70,13);
+        r.setColor(0,0,0,.55f);r.rect(left+20,top-82,PANEL_W-40,30);r.setColor(SbPaint.GOLD.r,SbPaint.GOLD.g,SbPaint.GOLD.b,.25f);r.rect(left+20,top-53,PANEL_W-40,1);
+        p.coins(left+40,top-70,12);
+        // status badge: a filled pill in the status colour, the game's main read at a glance
+        float bw=PANEL_W-44,bx=x-bw/2,by=PANEL_Y+40;float fill=s.status==Status.DISCONNECTED?.35f:.55f+.45f*a;
+        p.plate(bx,by,bw,26,8,c.set(ac.r*fill,ac.g*fill,ac.b*fill,.95f),c2.set(ac.r*fill*.6f,ac.g*fill*.6f,ac.b*fill*.6f,.95f));
+        r.setColor(1,1,1,.22f);r.rect(bx+8,by+20,bw-16,2);
         Color ic=c.set(ac).mul(1,1,1,Math.max(.45f,a));float iy=PANEL_Y+ICON_Y;
         switch(s.status){
             case ONLINE->p.monitor(x,iy,30,ic);
@@ -92,9 +97,9 @@ final class PlayerPodium {
         float left=x-PANEL_W/2,top=PANEL_Y+PANEL_H;Color ac=accent(s);float a=s.status==Status.DISCONNECTED?.55f:1;
         p.centered(b,as.name,p.fit(as.name,s.name,PANEL_W-34),x,top-15,SbPaint.IVORY,a);
         float punch=1+.28f*Math.max(0,1-s.deltaAge/.35f);as.ap.getData().setScale(punch);
-        p.text(b,as.ap,s.apText(),left+64,top-53+(punch-1)*14,s.deltaAge<.35f?(s.delta>0?SbPaint.GREEN:SbPaint.RED):SbPaint.GOLD,a);as.ap.getData().setScale(1);
+        p.text(b,as.ap,s.apText(),left+60,top-53+(punch-1)*14,s.deltaAge<.35f?(s.delta>0?SbPaint.GREEN:SbPaint.RED):SbPaint.GOLD,a);as.ap.getData().setScale(1);
         float w=p.width(as.status,s.status.label),pop=1+.35f*Math.max(0,1-s.statusAge/.28f);
-        as.status.getData().setScale(Math.min(1,(PANEL_W-34)/w)*pop);p.centered(b,as.status,s.status.label,x,PANEL_Y+STATUS_Y,ac,Math.max(.55f,pulse(s,time)));as.status.getData().setScale(1);
+        as.status.getData().setScale(Math.min(1,(PANEL_W-62)/w)*pop);p.centered(b,as.status,s.status.label,x,PANEL_Y+STATUS_Y,s.status==Status.DISCONNECTED?SbPaint.IVORY:BADGE_TEXT,s.status==Status.DISCONNECTED?.7f:1);as.status.getData().setScale(1);
         if(s.status==Status.UPGRADING)p.centered(b,as.labelSmall,s.firewallText(),x,PANEL_Y+SUB_Y,SbPaint.BLUE,.95f);
         else if(s.firewall>1&&s.status==Status.ONLINE)p.centered(b,as.labelSmall,s.firewallText(),x,PANEL_Y+SUB_Y,c.set(ac).mul(.8f,.8f,.8f,1),.8f);
         if(s.deltaAge<1.6f&&s.delta!=0){float k=s.deltaAge/1.6f;
