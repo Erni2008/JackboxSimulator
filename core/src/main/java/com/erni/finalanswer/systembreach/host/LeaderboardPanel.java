@@ -30,8 +30,8 @@ final class LeaderboardPanel {
         }
     }
     void text(SpriteBatch b,SbPaint p,SystemBreachHostAssets as,SystemBreachHostViewModel vm){
-        as.title.getData().setScale(.62f);p.text(b,as.title,vm.results()?"RESULTS":"LEADERBOARD",BOARD.x+200,BOARD.y+BOARD.height/2+as.title.getCapHeight()/2+6,SbPaint.GREEN,1);as.title.getData().setScale(1);
-        if(vm.finished())p.text(b,as.labelSmall,"ENTER - BACK TO LOBBY",BOARD.x+204,BOARD.y+38,SbPaint.IVORY,.75f);
+        p.text(b,as.heading,vm.results()?(vm.ru()?"ИТОГИ":"RESULTS"):(vm.ru()?"ЛИДЕРЫ":"LEADERBOARD"),BOARD.x+200,BOARD.y+BOARD.height/2+as.heading.getCapHeight()/2+6,SbPaint.GREEN,1);
+        if(vm.finished())p.text(b,as.labelSmall,vm.ru()?"ENTER - В ЛОББИ":"ENTER - BACK TO LOBBY",BOARD.x+204,BOARD.y+38,SbPaint.IVORY,.75f);
         p.icon(b,as.iconBig,SbIcons.TROPHY,BOARD.x+110,BOARD.y+BOARD.height/2,SbPaint.GOLD,1,1.35f,0);
         var top=vm.ranking();
         for(int i=0;i<Math.min(3,top.size());i++){

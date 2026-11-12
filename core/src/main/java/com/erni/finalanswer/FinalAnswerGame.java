@@ -101,7 +101,7 @@ public class FinalAnswerGame extends Game {
         realtime.send("SYSTEM_BREACH_START",java.util.Map.of("roomCode",activeRoom.code(),"sessionId",realtime.snapshot().get("lobbyId").getAsString()));
     }
     private void openSystemBreach(com.google.gson.JsonObject root){
-        if(breachDebug==null)breachDebug=new com.erni.finalanswer.systembreach.host.SystemBreachHostScreen(root,getRoomCharacters(),id->realtime.send("SYSTEM_BREACH_END",java.util.Map.of("roomCode",activeRoom.code(),"sessionId",id)));
+        if(breachDebug==null)breachDebug=new com.erni.finalanswer.systembreach.host.SystemBreachHostScreen(root,getRoomCharacters(),id->realtime.send("SYSTEM_BREACH_END",java.util.Map.of("roomCode",activeRoom.code(),"sessionId",id)),"ru".equals(getSettings().language()));
         else breachDebug.apply(root);if(getScreen()!=breachDebug)setScreen(breachDebug);
     }
     private void releaseSystemBreach(){if(breachDebug==null)return;var old=breachDebug;breachDebug=null;if(getScreen()==old)showRoomLobby();old.dispose();}

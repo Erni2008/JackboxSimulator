@@ -19,7 +19,7 @@ final class EventLogPanel {
         }
     }
     void text(SpriteBatch b,SbPaint p,SystemBreachHostAssets as,SystemBreachHostViewModel vm){
-        p.centered(b,as.label,"EVENT LOG",LOG.x+LOG.width/2,LOG.y+LOG.height-20,SbPaint.IVORY,.92f);
+        p.centered(b,as.label,vm.ru()?"ЖУРНАЛ СОБЫТИЙ":"EVENT LOG",LOG.x+LOG.width/2,LOG.y+LOG.height-20,SbPaint.IVORY,.92f);
         int i=0,n=vm.logSize();
         for(var line:vm.log()){
             float k=ease(vm.logAge(n-1-i));Color c=line.tone()==SystemBreachHostViewModel.Tone.HACK?SbPaint.RED:SbPaint.IVORY;
@@ -28,6 +28,6 @@ final class EventLogPanel {
             p.text(b,as.log,shown<full.length()?full.substring(0,shown)+"_":i==n-1&&(int)(System.nanoTime()/450_000_000L)%2==0?full+"_":full,LOG.x+118-(1-k)*30,row(i,n),c,k*(line.tone()==SystemBreachHostViewModel.Tone.MUTED?.6f:.95f));
             i++;
         }
-        if(n==0)p.centered(b,as.log,"Waiting for activity…",LOG.x+LOG.width/2,LOG.y+LOG.height/2+6,SbPaint.GRAY,.7f);
+        if(n==0)p.centered(b,as.log,vm.ru()?"Ожидание активности…":"Waiting for activity…",LOG.x+LOG.width/2,LOG.y+LOG.height/2+6,SbPaint.GRAY,.7f);
     }
 }

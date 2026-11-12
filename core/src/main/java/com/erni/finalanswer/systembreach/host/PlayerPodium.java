@@ -94,9 +94,9 @@ final class PlayerPodium {
         if(s.firewall>1&&s.status!=Status.DISCONNECTED){
             p.icon(b,as.iconTiny,SbIcons.FIREWALL,x+RING_R+22,PANEL_Y+RING_Y+12,SbPaint.BLUE,.95f,1,0);
             p.centered(b,as.labelSmall,s.firewallShort(),x+RING_R+22,PANEL_Y+RING_Y-6,SbPaint.BLUE,.95f);}
-        float w=p.width(as.status,s.status.label);
+        String label=s.status.label(s.russianText);float w=p.width(as.status,label);
         as.status.getData().setScale(Math.min(1,(PANEL_W-60)/w)*(1+.2f*Math.max(0,1-s.statusAge/.28f)));
-        p.centered(b,as.status,s.status.label,x,PANEL_Y+BADGE_Y+BADGE_H/2+as.status.getCapHeight()/2,s.status==Status.DISCONNECTED?SbPaint.IVORY:BADGE_TEXT,s.status==Status.DISCONNECTED?.7f:1);
+        p.centered(b,as.status,label,x,PANEL_Y+BADGE_Y+BADGE_H/2+as.status.getCapHeight()/2,s.status==Status.DISCONNECTED?SbPaint.IVORY:BADGE_TEXT,s.status==Status.DISCONNECTED?.7f:1);
         as.status.getData().setScale(1);
         if(s.deltaAge<1.6f&&s.delta!=0){float k=s.deltaAge/1.6f;
             p.centered(b,as.ap,s.deltaText(),x+40,top+22+k*46,s.delta>0?SbPaint.GREEN:SbPaint.RED,1-k*k);}

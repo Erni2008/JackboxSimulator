@@ -11,7 +11,7 @@ final class TimerPanel {
     private final Color color=new Color(),icon=new Color();private long shownSec=-1;private String shown="";
     private Color color(SystemBreachHostViewModel vm){long ms=vm.remainingMs();return color.set(!vm.phase().equals("ACTIVE")?SbPaint.GREEN:ms<=10_000?SbPaint.RED:ms<=30_000?SbPaint.AMBER:SbPaint.GREEN);}
     private float pulse(SystemBreachHostViewModel vm,float time){return vm.phase().equals("ACTIVE")&&vm.remainingMs()<=10_000&&vm.remainingMs()>0?.75f+.25f*MathUtils.sin(time*6.3f):1;}
-    private String label(SystemBreachHostViewModel vm){return switch(vm.phase()){case "INITIALIZATION"->"STARTING IN";case "ACTIVE"->"TIME LEFT";default->"OPERATION OVER";};}
+    private String label(SystemBreachHostViewModel vm){return switch(vm.phase()){case "INITIALIZATION"->vm.ru()?"СТАРТ ЧЕРЕЗ":"STARTING IN";case "ACTIVE"->vm.ru()?"ОСТАЛОСЬ":"TIME LEFT";default->vm.ru()?"ОПЕРАЦИЯ ОКОНЧЕНА":"OPERATION OVER";};}
 
     void shapes(SbPaint p,SystemBreachHostViewModel vm,float time){
         Color c=color(vm);p.frame(TIMER.x,TIMER.y,TIMER.width,TIMER.height,22,c,.55f*pulse(vm,time));

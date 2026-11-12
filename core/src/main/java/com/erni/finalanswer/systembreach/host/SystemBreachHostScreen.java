@@ -22,9 +22,9 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
     private final FitViewport viewport=new FitViewport(W,H);
     private final SpriteBatch batch=new SpriteBatch();
     private final ShapeRenderer shapes=new ShapeRenderer();
-    private final SystemBreachHostAssets assets=new SystemBreachHostAssets();
+    private final SystemBreachHostAssets assets;
     private final SbPaint paint=new SbPaint(shapes);
-    private final SystemBreachHostViewModel model=new SystemBreachHostViewModel();
+    private final SystemBreachHostViewModel model;
     private final PlayerPodium podium=new PlayerPodium();
     private final PodiumCharacters characters;
     private final TimerPanel timer=new TimerPanel();
@@ -35,8 +35,10 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
     private final HackerFx fx=new HackerFx();
     private float time;private static final com.badlogic.gdx.graphics.Color VIG=new com.badlogic.gdx.graphics.Color(0,0,0,.55f),CLEAR=new com.badlogic.gdx.graphics.Color(0,0,0,0);
 
-    public SystemBreachHostScreen(JsonObject root,CageLobby roomCharacters,Consumer<String> end){
-        this.end=end;characters=new PodiumCharacters(roomCharacters,assets);apply(root);
+    public SystemBreachHostScreen(JsonObject root,CageLobby roomCharacters,Consumer<String> end){this(root,roomCharacters,end,false);}
+    /** @param russian host language from the game settings; labels and log lines follow it. */
+    public SystemBreachHostScreen(JsonObject root,CageLobby roomCharacters,Consumer<String> end,boolean russian){
+        assets=new SystemBreachHostAssets(russian);model=new SystemBreachHostViewModel(russian);this.end=end;characters=new PodiumCharacters(roomCharacters,assets);apply(root);
     }
     /** Called on the render thread with each room snapshot. */
     public void apply(JsonObject root){model.apply(root);}
@@ -113,7 +115,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         var w=model.ranking().getFirst();float k=Math.min(1,time%1000>0?1:0),cx=W/2,y=TOAST_Y-6,bw=Math.max(620,paint.width(assets.board,w.name)+360);
         Gdx.gl.glEnable(GL20.GL_BLEND);shapes.begin(ShapeRenderer.ShapeType.Filled);
         paint.frame(cx-bw/2,y,bw,96,24,SbPaint.GOLD,.9f);paint.crown(cx,y+100,56,SbPaint.GOLD);shapes.end();
-        batch.begin();paint.centered(batch,assets.label,"SYSTEM OWNED BY",cx,y+84,SbPaint.GOLD,k);
+        batch.begin();paint.centered(batch,assets.label,model.ru()?"СИСТЕМА ЗАХВАЧЕНА":"SYSTEM OWNED BY",cx,y+84,SbPaint.GOLD,k);
         paint.centered(batch,assets.board,paint.fit(assets.board,w.name+"   "+w.ap+" AP",bw-60),cx,y+46,SbPaint.IVORY,k);batch.end();
     }
     private void toastShape(){float k=toastK();if(k<=0)return;float w=Math.min(1040,paint.width(assets.board,model.toast())+180)*Math.min(1,k);

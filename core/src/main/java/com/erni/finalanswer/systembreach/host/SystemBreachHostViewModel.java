@@ -10,8 +10,9 @@ import java.util.*;
  */
 public final class SystemBreachHostViewModel {
     public enum Status {
-        ONLINE("ONLINE"),BEING_HACKED("BEING HACKED"),RECOVERY("RECOVERY"),UPGRADING("UPGRADING"),COMPROMISED("COMPROMISED"),DISCONNECTED("DISCONNECTED");
-        public final String label;Status(String label){this.label=label;}
+        ONLINE("ONLINE","В СЕТИ"),BEING_HACKED("BEING HACKED","ИДЁТ ВЗЛОМ"),RECOVERY("RECOVERY","ВОССТАНОВКА"),UPGRADING("UPGRADING","УЛУЧШЕНИЕ"),COMPROMISED("COMPROMISED","ВЗЛОМАН"),DISCONNECTED("DISCONNECTED","НЕ В СЕТИ");
+        private final String en,ru;Status(String en,String ru){this.en=en;this.ru=ru;}
+        public String label(boolean russian){return russian?ru:en;}
     }
     public enum Reaction {NONE,HIT,TRIUMPH,RECOVERED,UPGRADE}
     public enum Tone {HACK,RECOVERY,FIREWALL,REWARD,MUTED}
@@ -23,13 +24,14 @@ public final class SystemBreachHostViewModel {
         public int delta;public float deltaAge=99;              // floating "+15 AP"
         public Reaction reaction=Reaction.NONE;public float reactionAge=99;
         public float boardY=-1;                                  // eased leaderboard row position
+        boolean russianText;
         Slot(String id){this.id=id;}
         // cached strings: rebuilt only when the shown value changes, never per frame
         private int apKey=Integer.MIN_VALUE,fwKey,deltaKey;private String apText="",fwText="",deltaText="";
         public String apText(){int v=Math.round(shownAp);if(v!=apKey){apKey=v;apText=v+" AP";}return apText;}
         private String fwShort="";private int fwShortKey;
-        public String firewallShort(){if(fwShortKey!=firewall||fwShort.isEmpty()){fwShortKey=firewall;fwShort="LV"+firewall;}return fwShort;}
-        public String firewallText(){if(fwKey!=firewall||fwText.isEmpty()){fwKey=firewall;fwText="FIREWALL LV."+firewall;}return fwText;}
+        public String firewallShort(){if(fwShortKey!=firewall||fwShort.isEmpty()){fwShortKey=firewall;fwShort=(russianText?"УР":"LV")+firewall;}return fwShort;}
+        public String firewallText(){if(fwKey!=firewall||fwText.isEmpty()){fwKey=firewall;fwText=(russianText?"ФАЕРВОЛ УР.":"FIREWALL LV.")+firewall;}return fwText;}
         public String deltaText(){if(deltaKey!=delta||deltaText.isEmpty()){deltaKey=delta;deltaText=(delta>0?"+":"-")+Math.abs(delta)+" AP";}return deltaText;}
     }
     public record LogLine(long sequence,String text,Tone tone,long at,String stamp){
@@ -37,6 +39,10 @@ public final class SystemBreachHostViewModel {
     }
     public record Attack(String attackerId,String targetId,long startedAt){}
     private final List<Attack> attacks=new ArrayList<>();
+    private final boolean ru;
+    public SystemBreachHostViewModel(boolean russian){ru=russian;}
+    public boolean ru(){return ru;}
+    private String L(String en,String ru){return this.ru?ru:en;}
     private String toast="";private Tone toastTone=Tone.MUTED;private float toastAge=99;
 
     private static final int LOG_SIZE=4;private static final long UPGRADE_SHOW_MS=2600,ATTACK_STALE_MS=30_000;
@@ -99,7 +105,7 @@ public final class SystemBreachHostViewModel {
         }
     }
 
-    private void add(String id){Slot s=new Slot(id);s.shownAp=-1;slots.add(s);byId.put(id,s);}
+    private void add(String id){Slot s=new Slot(id);s.russianText=ru;s.shownAp=-1;slots.add(s);byId.put(id,s);}
     private void react(String type,String attacker,String target){
         switch(type){
             case "ATTACK_SUCCEEDED"->{set(attacker,Reaction.TRIUMPH);set(target,Reaction.HIT);}
@@ -111,27 +117,27 @@ public final class SystemBreachHostViewModel {
         }
     }
     private void set(String id,Reaction r){Slot s=byId.get(id);if(s!=null){s.reaction=r;s.reactionAge=0;}}
-    private String who(String id){Slot s=byId.get(id);return s==null||s.name.isEmpty()?"Unknown":s.name;}
+    private String who(String id){Slot s=byId.get(id);return s==null||s.name.isEmpty()?L("Unknown","Неизвестный"):s.name;}
 
     /** Public facts only: who acted on whom and the public amount. Passwords, clues and answers never reach here. */
     private LogLine line(String type,String a,String t,int amount,long seq){
         return switch(type){
-            case "ATTACK_STARTED"->new LogLine(seq,who(t)+" is being hacked!",Tone.HACK,0);
-            case "ATTACK_SUCCEEDED"->new LogLine(seq,who(a)+" hacked "+who(t)+(amount>0?"  +"+amount+" AP":""),Tone.HACK,0);
-            case "ATTACK_FAILED"->new LogLine(seq,who(t)+" repelled "+who(a),Tone.FIREWALL,0);
-            case "ATTACK_EXPIRED","ATTACK_INTERRUPTED"->new LogLine(seq,who(a)+" lost the link to "+who(t),Tone.MUTED,0);
-            case "RECOVERY_START"->new LogLine(seq,who(t)+" started recovery",Tone.RECOVERY,0);
-            case "RECOVERY_RETRY"->new LogLine(seq,who(t)+" recovery failed, retrying",Tone.RECOVERY,0);
-            case "RECOVERY_SUCCEEDED"->new LogLine(seq,who(t)+" is back online",Tone.REWARD,0);
-            case "EMERGENCY_RESTORED"->new LogLine(seq,who(t)+" emergency restore",Tone.RECOVERY,0);
-            case "FIREWALL_UPGRADED"->new LogLine(seq,who(t)+" upgraded firewall to Lv."+amount,Tone.FIREWALL,0);
-            case "CHALLENGE_SOLVED"->new LogLine(seq,who(t)+" earned +"+amount+" AP",Tone.REWARD,0);
-            case "TROJAN"->new LogLine(seq,who(a)+" planted a Trojan in "+who(t),Tone.HACK,0);
-            case "DATA_LEAK"->new LogLine(seq,who(a)+" leaked data from "+who(t)+(amount>0?"  +"+amount+" AP":""),Tone.HACK,0);
-            case "SYSTEM_OVERLOAD"->new LogLine(seq,who(a)+" overloaded "+who(t),Tone.HACK,0);
-            case "FIREWALL_BREAKER"->new LogLine(seq,who(a)+" broke "+who(t)+"'s firewall",Tone.HACK,0);
-            case "TRACE_ATTACK"->new LogLine(seq,who(a)+" is tracing "+who(t),Tone.HACK,0);
-            case "RESULTS"->new LogLine(seq,"Operation complete",Tone.MUTED,0);
+            case "ATTACK_STARTED"->new LogLine(seq,L(who(t)+" is being hacked!","Взлом: "+who(t)+"!"),Tone.HACK,0);
+            case "ATTACK_SUCCEEDED"->new LogLine(seq,L(who(a)+" hacked "+who(t),who(a)+" взломал "+who(t))+(amount>0?"  +"+amount+" AP":""),Tone.HACK,0);
+            case "ATTACK_FAILED"->new LogLine(seq,L(who(t)+" repelled "+who(a),who(t)+" отбил атаку "+who(a)),Tone.FIREWALL,0);
+            case "ATTACK_EXPIRED","ATTACK_INTERRUPTED"->new LogLine(seq,L(who(a)+" lost the link to "+who(t),who(a)+" потерял связь с "+who(t)),Tone.MUTED,0);
+            case "RECOVERY_START"->new LogLine(seq,L(who(t)+" started recovery",who(t)+" начал восстановление"),Tone.RECOVERY,0);
+            case "RECOVERY_RETRY"->new LogLine(seq,L(who(t)+" recovery failed, retrying",who(t)+": сбой, повтор"),Tone.RECOVERY,0);
+            case "RECOVERY_SUCCEEDED"->new LogLine(seq,L(who(t)+" is back online",who(t)+" снова в сети"),Tone.REWARD,0);
+            case "EMERGENCY_RESTORED"->new LogLine(seq,L(who(t)+" emergency restore",who(t)+": аварийный откат"),Tone.RECOVERY,0);
+            case "FIREWALL_UPGRADED"->new LogLine(seq,L(who(t)+" upgraded firewall to Lv."+amount,who(t)+": фаервол ур."+amount),Tone.FIREWALL,0);
+            case "CHALLENGE_SOLVED"->new LogLine(seq,L(who(t)+" earned +"+amount+" AP",who(t)+" получил +"+amount+" AP"),Tone.REWARD,0);
+            case "TROJAN"->new LogLine(seq,L(who(a)+" planted a Trojan in "+who(t),who(a)+" внедрил троян в "+who(t)),Tone.HACK,0);
+            case "DATA_LEAK"->new LogLine(seq,L(who(a)+" leaked data from "+who(t),who(a)+" слил данные "+who(t))+(amount>0?"  +"+amount+" AP":""),Tone.HACK,0);
+            case "SYSTEM_OVERLOAD"->new LogLine(seq,L(who(a)+" overloaded "+who(t),who(a)+" перегрузил "+who(t)),Tone.HACK,0);
+            case "FIREWALL_BREAKER"->new LogLine(seq,L(who(a)+" broke "+who(t)+"'s firewall",who(a)+" пробил фаервол "+who(t)),Tone.HACK,0);
+            case "TRACE_ATTACK"->new LogLine(seq,L(who(a)+" is tracing "+who(t),who(a)+" отслеживает "+who(t)),Tone.HACK,0);
+            case "RESULTS"->new LogLine(seq,L("Operation complete","Операция завершена"),Tone.MUTED,0);
             default->null;
         };
     }
@@ -139,10 +145,10 @@ public final class SystemBreachHostViewModel {
     /** The big centre-stage banner: only the moments worth a cheer. */
     private String headline(String type,String a,String t,int amount){
         return switch(type){
-            case "ATTACK_SUCCEEDED"->who(a)+" HACKED "+who(t)+(amount>0?"   +"+amount+" AP":"");
-            case "FIREWALL_UPGRADED"->who(t)+"  FIREWALL LV."+amount;
-            case "RECOVERY_SUCCEEDED"->who(t)+" IS BACK ONLINE";
-            case "TROJAN","DATA_LEAK","SYSTEM_OVERLOAD","FIREWALL_BREAKER","TRACE_ATTACK"->type.replace('_',' ')+"!  "+who(a)+" > "+who(t);
+            case "ATTACK_SUCCEEDED"->L(who(a)+" HACKED "+who(t),who(a)+" ВЗЛОМАЛ "+who(t))+(amount>0?"   +"+amount+" AP":"");
+            case "FIREWALL_UPGRADED"->who(t)+L("  FIREWALL LV.","  ФАЕРВОЛ УР.")+amount;
+            case "RECOVERY_SUCCEEDED"->who(t)+L(" IS BACK ONLINE"," СНОВА В СЕТИ");
+            case "TROJAN","DATA_LEAK","SYSTEM_OVERLOAD","FIREWALL_BREAKER","TRACE_ATTACK"->L(type.replace('_',' '),switch(type){case "TROJAN"->"ТРОЯН";case "DATA_LEAK"->"УТЕЧКА ДАННЫХ";case "SYSTEM_OVERLOAD"->"ПЕРЕГРУЗКА";case "FIREWALL_BREAKER"->"ПРОБОЙ ФАЕРВОЛА";default->"СЛЕЖКА";})+"!  "+who(a)+" > "+who(t);
             default->null;
         };
     }

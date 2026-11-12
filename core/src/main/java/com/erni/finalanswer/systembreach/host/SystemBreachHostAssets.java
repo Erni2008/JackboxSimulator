@@ -13,10 +13,10 @@ import java.util.Map;
 final class SystemBreachHostAssets implements Disposable {
     final Texture background,glow,pixel;
     /** Latin terminal faces (Rajdhani) for labels/digits; Noto SemiCondensed for anything containing a nickname. */
-    final BitmapFont icon,iconSmall,iconTiny,iconBig,title,digits,hex,label,labelSmall,status,ap,name,log,board,boardAp,crest;
+    final BitmapFont heading,icon,iconSmall,iconTiny,iconBig,title,digits,hex,label,labelSmall,status,ap,name,log,board,boardAp,crest;
     private final Map<String,Texture> portraits=new HashMap<>();
 
-    SystemBreachHostAssets(){
+    SystemBreachHostAssets(boolean ru){
         background=new Texture(Gdx.files.internal("system_breach/background.png"),true);
         background.setFilter(Texture.TextureFilter.MipMapLinearLinear,Texture.TextureFilter.Linear);
         Pixmap g=new Pixmap(128,128,Pixmap.Format.RGBA8888);
@@ -24,8 +24,9 @@ final class SystemBreachHostAssets implements Disposable {
         glow=new Texture(g);glow.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);g.dispose();
         Pixmap p=new Pixmap(1,1,Pixmap.Format.RGBA8888);p.setColor(Color.WHITE);p.fill();pixel=new Texture(p);p.dispose();
         title=font("Rajdhani-Bold.ttf",76,false);digits=font("Rajdhani-Bold.ttf",88,false);hex=font("Rajdhani-Medium.ttf",17,false);
-        label=font("Rajdhani-SemiBold.ttf",28,false);labelSmall=font("Rajdhani-SemiBold.ttf",21,false);
-        status=font("Rajdhani-Bold.ttf",25,false);ap=font("Rajdhani-Bold.ttf",30,false);
+        String ui=ru?"NotoSans-SemiCondensedSemiBold.ttf":"Rajdhani-SemiBold.ttf",uiBold=ru?"NotoSans-SemiCondensedSemiBold.ttf":"Rajdhani-Bold.ttf";
+        label=font(ui,ru?24:28,ru);labelSmall=font(ui,ru?17:21,ru);heading=font(uiBold,ru?40:47,ru);
+        status=font(uiBold,ru?20:25,ru);ap=font("Rajdhani-Bold.ttf",30,false);
         name=font("NotoSans-SemiCondensedSemiBold.ttf",23,true);log=font("NotoSans-SemiCondensedSemiBold.ttf",19,true);
         board=font("NotoSans-SemiCondensedSemiBold.ttf",26,true);boardAp=font("Rajdhani-Bold.ttf",30,false);
         crest=UiFonts.gothic(40);
@@ -59,7 +60,7 @@ final class SystemBreachHostAssets implements Disposable {
 
     @Override public void dispose(){
         background.dispose();glow.dispose();pixel.dispose();
-        for(var f:new BitmapFont[]{icon,iconSmall,iconTiny,iconBig,title,digits,hex,label,labelSmall,status,ap,name,log,board,boardAp,crest})f.dispose();
+        for(var f:new BitmapFont[]{heading,icon,iconSmall,iconTiny,iconBig,title,digits,hex,label,labelSmall,status,ap,name,log,board,boardAp,crest})f.dispose();
         for(var t:portraits.values())if(t!=null)t.dispose();
     }
 }

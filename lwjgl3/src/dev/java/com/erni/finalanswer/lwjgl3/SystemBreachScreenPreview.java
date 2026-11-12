@@ -28,7 +28,7 @@ public final class SystemBreachScreenPreview {
             final long duration=300_000;SystemBreachHostScreen screen;CageLobby lobby;
             @Override public void create(){
                 for(int i=0;i<count;i++){ap[i]=40+((i*37)%90);fw[i]=1;}
-                lobby=new CageLobby();screen=new SystemBreachHostScreen(snapshot(),lobby,id->Gdx.app.exit());setScreen(screen);
+                lobby=new CageLobby();screen=new SystemBreachHostScreen(snapshot(),lobby,id->Gdx.app.exit(),!"en".equals(System.getProperty("sb.lang","ru")));setScreen(screen);
             }
             void event(String type,int a,int t,int amount){JsonObject e=new JsonObject();e.addProperty("sequence",++seq);e.addProperty("at",now);e.addProperty("type",type);
                 e.addProperty("attackerId",a<0?"":"p"+a);e.addProperty("targetId",t<0?"":"p"+t);e.addProperty("amount",amount);events.add(e);if(events.size()>32)events.removeFirst();}
