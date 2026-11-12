@@ -13,7 +13,7 @@ import static com.erni.finalanswer.systembreach.host.SystemBreachLayout.*;
  * status badge; under it a plinth with an LED strip. One accent colour per state drives every lit part.
  */
 final class PlayerPodium {
-    static final float RING_Y=104,RING_R=33,BADGE_Y=30,BADGE_H=28;
+    static final float RING_Y=94,RING_R=25,BADGE_Y=30,BADGE_H=28;
     private static final int LEDS=9;
     private static final Color BADGE_TEXT=new Color(.03f,.04f,.03f,1);
     private final Color accent=new Color(),c=new Color(),c2=new Color();
@@ -77,7 +77,7 @@ final class PlayerPodium {
         Color ac=accent(s);float a=pulse(s,time),k=s.status==Status.DISCONNECTED?.25f:s.status==Status.BEING_HACKED||s.status==Status.COMPROMISED?.8f:.55f;
         b.setColor(ac.r,ac.g,ac.b,.45f*k*a);b.draw(as.glow,x-PANEL_W*.75f,PANEL_Y-PLINTH_H-30,PANEL_W*1.5f,70);
         b.setColor(ac.r,ac.g,ac.b,.12f*k*a);b.draw(as.glow,x-PANEL_W*.7f,PANEL_Y-30,PANEL_W*1.4f,PANEL_H+60);
-        b.setColor(ac.r,ac.g,ac.b,.40f*a);b.draw(as.glow,x-70,PANEL_Y+RING_Y-70,140,140);
+        b.setColor(ac.r,ac.g,ac.b,.40f*a);b.draw(as.glow,x-54,PANEL_Y+RING_Y-54,108,108);
         b.setColor(ac.r,ac.g,ac.b,.30f*a);b.draw(as.glow,x-PANEL_W*.55f,PANEL_Y+PANEL_H-14,PANEL_W*1.1f,26);
         if(s.reaction==SystemBreachHostViewModel.Reaction.HIT&&s.reactionAge<.7f){float f=1-s.reactionAge/.7f;b.setColor(1,.15f,.1f,.5f*f);b.draw(as.glow,x-PANEL_W,PANEL_Y,PANEL_W*2,PANEL_H+240);}
     }
@@ -90,7 +90,7 @@ final class PlayerPodium {
         p.icon(b,as.iconSmall,SbIcons.COIN,gx+gw/2,top-68,SbPaint.GOLD,a,1,0);
         p.text(b,as.ap,ap,gx+gw+6,top-55+(punch-1)*14,s.deltaAge<.35f?(s.delta>0?SbPaint.GREEN:SbPaint.RED):SbPaint.GOLD,a);as.ap.getData().setScale(1);
         float pop=1+.25f*Math.max(0,1-s.statusAge/.28f);
-        p.icon(b,as.icon,glyph(s.status),x,PANEL_Y+RING_Y,ac,Math.max(.6f,pulse(s,time))*a,pop,s.status==Status.RECOVERY?-time*120:0);
+        p.icon(b,as.icon,glyph(s.status),x,PANEL_Y+RING_Y,ac,Math.max(.6f,pulse(s,time))*a,pop*.78f,s.status==Status.RECOVERY?-time*120:0);
         if(s.firewall>1&&s.status!=Status.DISCONNECTED){
             p.icon(b,as.iconTiny,SbIcons.FIREWALL,x+RING_R+22,PANEL_Y+RING_Y+12,SbPaint.BLUE,.95f,1,0);
             p.centered(b,as.labelSmall,s.firewallShort(),x+RING_R+22,PANEL_Y+RING_Y-6,SbPaint.BLUE,.95f);}

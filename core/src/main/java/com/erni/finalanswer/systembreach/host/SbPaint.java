@@ -51,10 +51,10 @@ final class SbPaint {
 
     void bar(float x,float y,float w,float h,float fraction,Color color,int segments){
         s.setColor(.01f,.02f,.02f,.95f);s.rect(x,y,w,h);s.setColor(TRIM.r,TRIM.g,TRIM.b,.8f);s.rect(x,y+h-1.5f,w,1.5f);s.rect(x,y,w,1.5f);
-        float gap=4,seg=(w-8-gap*(segments-1))/segments;int lit=Math.round(MathUtils.clamp(fraction,0,1)*segments);
-        for(int i=0;i<segments;i++){float sx=x+4+i*(seg+gap);
-            if(i<lit){s.setColor(color);s.rect(sx,y+4,seg,h-8);s.setColor(1,1,1,.22f);s.rect(sx,y+h-4-(h-8)*.3f,seg,(h-8)*.3f);}
-            else{s.setColor(color.r*.16f,color.g*.16f,color.b*.16f,1);s.rect(sx,y+4,seg,h-8);}}
+        float gap=4,seg=(w-8-gap*(segments-1))/segments,filled=MathUtils.clamp(fraction,0,1)*segments;
+        for(int i=0;i<segments;i++){float sx=x+4+i*(seg+gap),part=MathUtils.clamp(filled-i,0,1);
+            s.setColor(color.r*.16f,color.g*.16f,color.b*.16f,1);s.rect(sx,y+4,seg,h-8);
+            if(part>0){float pw=seg*part;s.setColor(color.r,color.g,color.b,.55f+.45f*part);s.rect(sx,y+4,pw,h-8);s.setColor(1,1,1,.22f*part);s.rect(sx,y+h-4-(h-8)*.3f,pw,(h-8)*.3f);}}
     }
 
     // ---- icons, all centred on (x,y), drawn in filled mode ----

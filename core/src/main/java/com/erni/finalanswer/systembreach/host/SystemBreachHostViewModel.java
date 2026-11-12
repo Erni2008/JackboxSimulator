@@ -88,7 +88,7 @@ public final class SystemBreachHostViewModel {
                 default->{}
             }
             if(seq>lastSequence){
-                if(lastSequence>=0){react(type,a,t);String big=headline(type,a,t,num(ev,"amount"));if(big!=null){toast=big;toastAge=0;toastTone=type.equals("FIREWALL_UPGRADED")?Tone.FIREWALL:type.startsWith("RECOVERY")||type.equals("EMERGENCY_RESTORED")?Tone.REWARD:Tone.HACK;}}
+                if(lastSequence>=0){react(type,a,t);String big=headline(type,a,t,num(ev,"amount"));if(big!=null){toast=big;toastAge=0;toastTone=type.equals("ATTACK_FAILED")||type.equals("ATTACK_EXPIRED")?Tone.RECOVERY:type.equals("FIREWALL_UPGRADED")?Tone.FIREWALL:type.startsWith("RECOVERY")||type.equals("EMERGENCY_RESTORED")?Tone.REWARD:Tone.HACK;}}
                 LogLine line=line(type,a,t,num(ev,"amount"),seq);if(line!=null)line=new LogLine(line.sequence(),line.text(),line.tone(),Math.max(0,at-phaseStartedAt));
                 if(line!=null){log.addLast(line);if(log.size()>LOG_SIZE)log.removeFirst();System.arraycopy(logAge,0,logAge,1,LOG_SIZE-1);logAge[0]=lastSequence<0?99:0;}
             }
@@ -145,7 +145,9 @@ public final class SystemBreachHostViewModel {
     /** The big centre-stage banner: only the moments worth a cheer. */
     private String headline(String type,String a,String t,int amount){
         return switch(type){
-            case "ATTACK_SUCCEEDED"->L(who(a)+" HACKED "+who(t),who(a)+" ВЗЛОМАЛ "+who(t))+(amount>0?"   +"+amount+" AP":"");
+            case "ATTACK_FAILED"->L("HACK FAILED  "+who(a)+" > "+who(t),"ПРОВАЛ ВЗЛОМА  "+who(a)+" > "+who(t));
+            case "ATTACK_EXPIRED"->L("HACK TIMED OUT  "+who(a),"ВРЕМЯ ВЗЛОМА ВЫШЛО  "+who(a));
+            case "ATTACK_SUCCEEDED"->L("HACK SUCCESS  ","ВЗЛОМ УДАЛСЯ  ")+L(who(a)+" > "+who(t),who(a)+" > "+who(t))+(amount>0?"   +"+amount+" AP":"");
             case "FIREWALL_UPGRADED"->who(t)+L("  FIREWALL LV.","  ФАЕРВОЛ УР.")+amount;
             case "RECOVERY_SUCCEEDED"->who(t)+L(" IS BACK ONLINE"," СНОВА В СЕТИ");
             case "TROJAN","DATA_LEAK","SYSTEM_OVERLOAD","FIREWALL_BREAKER","TRACE_ATTACK"->L(type.replace('_',' '),switch(type){case "TROJAN"->"ТРОЯН";case "DATA_LEAK"->"УТЕЧКА ДАННЫХ";case "SYSTEM_OVERLOAD"->"ПЕРЕГРУЗКА";case "FIREWALL_BREAKER"->"ПРОБОЙ ФАЕРВОЛА";default->"СЛЕЖКА";})+"!  "+who(a)+" > "+who(t);
