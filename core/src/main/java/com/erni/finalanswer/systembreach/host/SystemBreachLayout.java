@@ -8,8 +8,8 @@ public final class SystemBreachLayout {
     public static final float W=1920,H=1080;
 
     public static final Rectangle TIMER=new Rectangle(80,826,380,200);
-    public static final Rectangle TITLE=new Rectangle(700,880,520,100);
-    public static final float CREST_Y=1022,EMBLEM_Y=850;
+    public static final Rectangle TITLE=new Rectangle(640,852,640,124);
+    public static final float CREST_Y=1018,EMBLEM_Y=826;
     public static final Rectangle LOG=new Rectangle(1420,826,420,200);
     public static final Rectangle BOARD=new Rectangle(330,20,1260,164);
 

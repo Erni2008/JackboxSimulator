@@ -23,13 +23,13 @@ final class SystemBreachHostAssets implements Disposable {
         for(int y=0;y<128;y++)for(int x=0;x<128;x++){float dx=(x-63.5f)/63.5f,dy=(y-63.5f)/63.5f;float d=Math.min(1,(float)Math.sqrt(dx*dx+dy*dy));float a=(1-d)*(1-d);g.drawPixel(x,y,Color.rgba8888(1,1,1,a));}
         glow=new Texture(g);glow.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);g.dispose();
         Pixmap p=new Pixmap(1,1,Pixmap.Format.RGBA8888);p.setColor(Color.WHITE);p.fill();pixel=new Texture(p);p.dispose();
-        title=font("Rajdhani-Bold.ttf",76,false);digits=font("Rajdhani-Bold.ttf",88,false);hex=font("Rajdhani-Medium.ttf",17,false);
+        title=font("Rajdhani-Bold.ttf",92,false);digits=font("Rajdhani-Bold.ttf",88,false);hex=font("Rajdhani-Medium.ttf",17,false);
         String ui=ru?"RussoOne-Regular.ttf":"Rajdhani-SemiBold.ttf",uiBold=ru?"RussoOne-Regular.ttf":"Rajdhani-Bold.ttf";
         label=font(ui,ru?23:28,ru);labelSmall=font(ui,ru?15:21,ru);heading=font(uiBold,ru?40:47,ru);
         status=font(uiBold,ru?19:25,ru);ap=font("Rajdhani-Bold.ttf",30,false);
         name=font("NotoSans-SemiCondensedSemiBold.ttf",23,true);log=font("NotoSans-SemiCondensedSemiBold.ttf",19,true);
         board=font("NotoSans-SemiCondensedSemiBold.ttf",26,true);boardAp=font("Rajdhani-Bold.ttf",30,false);
-        crest=UiFonts.gothic(40);
+        crest=UiFonts.gothic(46);
         icon=icons(44);iconSmall=icons(26);iconTiny=icons(18);iconBig=icons(54);
     }
 
