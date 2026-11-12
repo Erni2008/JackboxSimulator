@@ -12,6 +12,8 @@ import java.util.*;
  */
 final class ForgottenRoomArt implements AutoCloseable {
     private final Map<String,Texture> cache=new HashMap<>();private final Set<String> missing=new HashSet<>();
+    final GreenhouseAtmosphere greenhouseAtmosphere=new GreenhouseAtmosphere();
+    final GreenhouseScene greenhouse=new GreenhouseScene(com.erni.finalanswer.gameplay.forgottenroom.RoomCatalog.GREENHOUSE_SCENE);
     final Texture soft,pixel,plaque,plaqueSmall,frameCanvas,vignette,dial,medal;
 
     ForgottenRoomArt(){
@@ -150,5 +152,5 @@ final class ForgottenRoomArt implements AutoCloseable {
         for(int y=-rad;y<=rad;y++)for(int x=-rad;x<=rad;x++)if(Math.abs(x)+Math.abs(y)<=rad)p.drawPixel(cx+x,cy+y,Color.rgba8888(.93f,.78f,.47f,Math.abs(x)+Math.abs(y)<=rad-2?1:.6f));
         Texture t=new Texture(p);t.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();return t;
     }
-    @Override public void close(){for(Texture t:cache.values())t.dispose();cache.clear();soft.dispose();pixel.dispose();plaque.dispose();plaqueSmall.dispose();frameCanvas.dispose();vignette.dispose();dial.dispose();medal.dispose();props.dispose();}
+    @Override public void close(){for(Texture t:cache.values())t.dispose();cache.clear();soft.dispose();pixel.dispose();plaque.dispose();plaqueSmall.dispose();frameCanvas.dispose();vignette.dispose();dial.dispose();medal.dispose();props.dispose();greenhouse.dispose();greenhouseAtmosphere.dispose();}
 }

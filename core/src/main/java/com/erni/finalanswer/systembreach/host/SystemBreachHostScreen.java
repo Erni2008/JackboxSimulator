@@ -85,7 +85,6 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         long left=model.remainingMs();if(model.phase().equals("ACTIVE")&&left>0&&left<=10_000){float a=(.18f+.12f*MathUtils.sin(time*6.3f))*(1-left/10_000f*.5f);
             batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(1,.08f,.05f,a);batch.draw(assets.glow,-500,-300,900,1680);batch.draw(assets.glow,W-400,-300,900,1680);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.setColor(1,1,1,1);}
         batch.end();
-        if(model.results()&&!model.ranking().isEmpty())winnerBanner();
         batch.begin();
         batch.end();
     }

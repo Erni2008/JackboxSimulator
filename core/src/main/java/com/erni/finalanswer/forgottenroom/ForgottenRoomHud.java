@@ -15,6 +15,8 @@ final class ForgottenRoomHud {
     static final Color GOLD=new Color(.93f,.80f,.53f,1),IVORY=new Color(.97f,.92f,.82f,1),DIM=new Color(.62f,.54f,.44f,1),EMBER=new Color(.92f,.32f,.27f,1);
     private final ForgottenRoomArt art;private final BitmapFont title,body;private final GlyphLayout layout=new GlyphLayout();
     private final TextureRegion dot;
+    private float clock,phaseAge;private String roomName="",phase="";
+    void update(ForgottenRoomModel model,float delta){clock+=Math.min(delta,.1f);if(!phase.equals(model.phase)){phase=model.phase;phaseAge=0;}else phaseAge+=delta;roomName=model.roomName;}
 
     ForgottenRoomHud(ForgottenRoomArt art,BitmapFont title,BitmapFont body){this.art=art;this.title=title;this.body=body;dot=new TextureRegion(art.pixel);}
 
@@ -42,12 +44,14 @@ final class ForgottenRoomHud {
     }
     /** Dark lacquered plaque with a double gilt border and corner diamonds. */
     void plaque(SpriteBatch b,float x,float y,float w,float h,float alpha,boolean lit){
-        b.setColor(0,0,0,.45f*alpha);b.draw(art.pixel,x+5,y-7,w,h);
-        b.setColor(.05f,.03f,.035f,.9f*alpha);b.draw(art.pixel,x,y,w,h);
-        for(int k=0;k<6;k++){b.setColor(lit?.34f:.16f,lit?.09f:.10f,lit?.08f:.08f,(.08f+.05f*k)*alpha);b.draw(art.pixel,x,y+h*(.45f+k*.09f),w,h*.09f+1);}
-        b.setColor(GOLD.r,GOLD.g,GOLD.b,alpha);float t=2;b.draw(art.pixel,x,y,w,t);b.draw(art.pixel,x,y+h-t,w,t);b.draw(art.pixel,x,y,t,h);b.draw(art.pixel,x+w-t,y,t,h);
-        b.setColor(GOLD.r,GOLD.g,GOLD.b,.35f*alpha);float i=7;b.draw(art.pixel,x+i,y+i,w-2*i,1);b.draw(art.pixel,x+i,y+h-i,w-2*i,1);b.draw(art.pixel,x+i,y+i,1,h-2*i);b.draw(art.pixel,x+w-i,y+i,1,h-2*i);
-        diamond(b,x,y,6,GOLD,alpha);diamond(b,x+w,y,6,GOLD,alpha);diamond(b,x,y+h,6,GOLD,alpha);diamond(b,x+w,y+h,6,GOLD,alpha);b.setColor(1,1,1,1);}
+        b.setColor(0,0,0,.28f*alpha);b.draw(art.soft,x-30,y-36,w+60,h+60);
+        b.setColor(.025f,.035f,.037f,.91f*alpha);b.draw(art.pixel,x,y,w,h);
+        b.setColor(GOLD.r,GOLD.g,GOLD.b,(lit?.65f:.24f)*alpha);
+        b.draw(art.pixel,x,y+h-1,w,1);b.draw(art.pixel,x,y,w,1);
+        b.setColor(GOLD.r,GOLD.g,GOLD.b,.12f*alpha);b.draw(art.pixel,x,y,1,h);b.draw(art.pixel,x+w-1,y,1,h);
+        if(lit){b.setColor(GOLD.r,GOLD.g,GOLD.b,.85f*alpha);b.draw(art.pixel,x,y,3,h);}
+        b.setColor(1,1,1,1);
+    }
     /** Countdown ring: gilt ticks, a draining arc (ember in the last seconds) and the seconds in the middle. */
     /**
      * The antique dial timer: brass bezel and enamel face (pre-rendered), a glowing arc of light that drains clockwise
@@ -55,7 +59,7 @@ final class ForgottenRoomHud {
      * the last three seconds.
      */
     void ring(SpriteBatch b,float cx,float cy,float r,float fraction,int seconds,float alpha){
-        float now=System.nanoTime()/1e9f;boolean urgent=seconds<=3&&seconds>0;
+        float now=clock;boolean urgent=seconds<=3&&seconds>0;
         float beat=urgent?1+.035f*(float)Math.pow(Math.max(0,MathUtils.sin(now*MathUtils.PI2)),8):1;
         float R=r*beat;Color glow=urgent?EMBER:GOLD;
         // shadow and a faint halo behind the dial
@@ -84,40 +88,70 @@ final class ForgottenRoomHud {
 
     // ---------- scenes ----------
     void intro(SpriteBatch b,float t,String roomName){
-        float a=ease(t/1.2f)*(1-ease((t-3.6f)/.9f));if(a<=0)return;
-        b.setColor(0,0,0,.55f*a);b.draw(art.soft,W/2-900,H/2-420,1800,840);b.setColor(1,1,1,1);
-        float s=1.06f-.06f*ease(t/2.5f);
-        text(b,title,"THE FORGOTTEN ROOM",W/2,H/2+90,1.55f*s,GOLD,a);
-        rule(b,W/2,H/2+8,520,a);
-        text(b,body,"REMEMBER EVERYTHING.  TRUST NOTHING.",W/2,H/2-30,.95f,IVORY,a*ease((t-.6f)/1f));
-        text(b,body,roomName.toUpperCase(Locale.ROOT),W/2,H/2-82,.7f,DIM,a*ease((t-1.2f)/1f));
+        float a=ease(t/.9f)*(1-ease((t-3.65f)/.65f));if(a<=0)return;
+        // One quiet title card; the location has priority over the game logo.
+        float lift=(1-ease(t/1.5f))*16;
+        b.setColor(.005f,.014f,.016f,.36f*a);b.draw(art.pixel,0,0,W,H);
+        b.setColor(0,0,0,.5f*a);b.draw(art.soft,160,130,1600,820);
+        text(b,body,"FINAL ANSWER  /  FORGOTTEN ROOMS",W/2,694+lift,.62f,GOLD,a);
+        rule(b,W/2,638+lift,320,a*.6f);
+        wrapped(b,title,roomName.toUpperCase(Locale.ROOT),W/2,590+lift,1500,1.03f,IVORY,a);
+        text(b,body,"Запомните комнату. Найдите то, что изменилось.",W/2,451+lift,.82f,IVORY,a*ease((t-.45f)/.7f));
+        float appear=a*ease((t-.9f)/.8f);
+        String[] steps={"01   НАБЛЮДАЙТЕ","02   ЗАПОМИНАЙТЕ","03   НАХОДИТЕ"};
+        for(int i=0;i<3;i++)text(b,body,steps[i],W/2+(i-1)*360,330,.56f,GOLD,appear*.9f);
+        b.setColor(1,1,1,1);
     }
-    void topBand(SpriteBatch b,float alpha){b.setColor(0,0,0,.6f*alpha);b.draw(art.soft,W/2-1000,H-170,2000,340);b.setColor(1,1,1,1);}
+    void topBand(SpriteBatch b,float alpha){
+        // Broad enough for text, but fades to clear before the first furniture surface.
+        for(int i=0;i<30;i++){float u=i/29f;b.setColor(.008f,.018f,.022f,.78f*(1-u)*(1-u)*alpha);b.draw(art.pixel,0,H-(i+1)*5,W,5);}
+        b.setColor(1,1,1,1);
+    }
+    private void leftText(SpriteBatch b,BitmapFont f,String text,float x,float y,float scale,Color color,float a,float maxWidth){
+        f.getData().setScale(scale);layout.setText(f,text);
+        if(layout.width>maxWidth)f.getData().setScale(scale*maxWidth/layout.width);
+        f.setColor(0,0,0,.6f*a);f.draw(b,text,x+1,y-2);f.setColor(color.r,color.g,color.b,a);f.draw(b,text,x,y);f.getData().setScale(1);
+    }
+    private void header(SpriteBatch b,String stage,String instruction,float fraction,int seconds,float alpha){
+        float a=alpha*ease((phaseAge+.12f)/.45f);topBand(b,a);
+        b.setColor(GOLD.r,GOLD.g,GOLD.b,.65f*a);b.draw(art.pixel,48,H-94,2,48);
+        leftText(b,body,"FORGOTTEN ROOMS  /  "+roomName.toUpperCase(Locale.ROOT),68,H-30,.43f,GOLD,a,1100);
+        leftText(b,body,instruction,68,H-62,.77f,IVORY,a,1260);
+        text(b,body,stage,1590,H-43,.46f,GOLD,a);
+        text(b,body,seconds<=3&&seconds>0?"ВРЕМЯ ИСТЕКАЕТ":"ОСТАЛОСЬ ВРЕМЕНИ",1590,H-70,.38f,DIM,a);
+        ring(b,W-92,H-61,44,fraction,seconds,a);
+        // A single quiet progress track across the header. The scene beneath is never dimmed by it.
+        b.setColor(1,1,1,.10f*a);b.draw(art.pixel,68,H-108,W-136,1);
+        Color accent=seconds<=3?EMBER:GOLD;b.setColor(accent.r,accent.g,accent.b,.72f*a);
+        b.draw(art.pixel,68,H-108,(W-136)*MathUtils.clamp(fraction,0,1),2);b.setColor(1,1,1,1);
+    }
     void observation(SpriteBatch b,float fraction,int seconds,float alpha){
-        topBand(b,alpha);text(b,body,"ЗАПОМИНАЙТЕ",W/2,H-22,.7f,GOLD,alpha);ring(b,W/2,H-122,66,fraction,seconds,alpha);}
-    void changedRoom(SpriteBatch b,float t){float a=ease((t-.3f)/.8f);topBand(b,a);text(b,title,"СВЕТ ВЕРНУЛСЯ",W/2,H-44,.85f,GOLD,a);text(b,body,"ЧТО-ТО ИЗМЕНИЛОСЬ",W/2,H-104,.78f,IVORY,a*ease((t-.7f)/.6f));}
+        header(b,"01 / НАБЛЮДЕНИЕ","Запомните предметы и их расположение",fraction,seconds,alpha);
+    }
+    void changedRoom(SpriteBatch b,float t){
+        float a=ease((t-.25f)/.45f);topBand(b,a);
+        leftText(b,body,"02 / КОМНАТА ИЗМЕНИЛАСЬ",68,H-32,.48f,GOLD,a,1200);
+        leftText(b,body,"Присмотритесь. Что стало иначе?",68,H-66,.8f,IVORY,a,1300);
+    }
     void answering(SpriteBatch b,ForgottenRoomModel m,float fraction,int seconds){
-        topBand(b,1);text(b,body,"ЧТО ИЗМЕНИЛОСЬ?  ОТВЕЧАЙТЕ НА ТЕЛЕФОНАХ",W/2,H-22,.66f,GOLD,1);ring(b,W/2,H-122,66,fraction,seconds,1);
-        text(b,body,m.submitted.size()+" / "+m.seats.size()+"  ОТВЕТИЛИ",W/2,H-206,.6f,IVORY,1);
-        players(b,m);}
+        header(b,"03 / РАССЛЕДОВАНИЕ","Найдите изменения · отметьте их на телефонах",fraction,seconds,1);
+        players(b,m);
+    }
     /** Player plaques along the bottom: face in a medallion, name, and a gilt seal once the answer is in (never whether it is right). */
     void players(SpriteBatch b,ForgottenRoomModel m){
-        int n=m.seats.size();float pw=Math.min(268,(W-120)/n-18),ph=78,gap=18,total=n*pw+(n-1)*gap,x0=(W-total)/2,y=30;
-        float now=System.nanoTime()/1e9f;
-        b.setColor(0,0,0,.6f);b.draw(art.soft,W/2-total*.75f,-120,total*1.5f,300);
-        for(int i=0;i<n;i++){String id=m.seats.get(i);boolean done=m.submitted.contains(id);float x=x0+i*(pw+gap);
-            plaque(b,x,y,pw,ph,done?1:.8f,done);
-            float r=ph*.62f;medallion(b,m,id,x+r*.72f,y+ph/2,r,1,done);
-            float tx=x+r*1.9f,tw=pw-r*1.9f-12;
-            body.getData().setScale(.62f);body.setColor(done?IVORY.r:DIM.r,done?IVORY.g:DIM.g,done?IVORY.b:DIM.b,1);
-            layout.setText(body,m.name(id),body.getColor(),tw,Align.left,false);body.draw(b,layout,tx,y+ph*.74f);
-            body.getData().setScale(.42f);
-            if(done){body.setColor(GOLD.r,GOLD.g,GOLD.b,1);body.draw(b,"ОТВЕТ ПРИНЯТ",tx,y+ph*.36f);}
-            else{int dots=1+(int)(now*2.2f+i)%3;body.setColor(DIM.r,DIM.g,DIM.b,.8f);body.draw(b,"ДУМАЕТ"+".".repeat(dots),tx,y+ph*.36f);}
-            body.getData().setScale(1);}
+        int n=m.seats.size();if(n==0)return;
+        float gap=12,pw=Math.min(254,(W-136-gap*(n-1))/n),ph=62,total=n*pw+(n-1)*gap,x0=(W-total)/2,y=24;
+        for(int i=0;i<n;i++){
+            String id=m.seats.get(i);boolean done=m.submitted.contains(id);float x=x0+i*(pw+gap);
+            plaque(b,x,y,pw,ph,.9f,done);
+            medallion(b,m,id,x+29,y+31,24,1,done);
+            leftText(b,body,m.name(id),x+62,y+45,.55f,done?IVORY:DIM,1,pw-76);
+            leftText(b,body,done?"ОТВЕТ ПРИНЯТ":"ИЩЕТ ИЗМЕНЕНИЯ",x+62,y+21,.32f,done?GOLD:DIM,.85f,pw-76);
+        }
+        text(b,body,m.submitted.size()+" / "+n+"  ОТВЕТОВ ПРИНЯТО",W/2,110,.4f,IVORY,.86f);
     }
-    void revealTitle(SpriteBatch b,float t){float a=ease(t/.6f);text(b,title,"WHAT DID YOU MISS?",W/2,H/2+40,1.35f,GOLD,a);rule(b,W/2,H/2-30,460,a);
-        text(b,body,"ЧТО ВЫ ПРОПУСТИЛИ",W/2,H/2-60,.75f,IVORY,a*ease((t-.4f)/.6f));}
+    void revealTitle(SpriteBatch b,float t){float a=ease(t/.6f);text(b,title,"ТАЙНЫ КОМНАТЫ",W/2,H/2+40,1.35f,GOLD,a);rule(b,W/2,H/2-30,460,a);
+        text(b,body,"Посмотрим, что изменилось",W/2,H/2-60,.75f,IVORY,a*ease((t-.4f)/.6f));}
     void revealCaption(SpriteBatch b,ForgottenRoomModel m,ForgottenRoomModel.Change c,int index,float t){
         float a=ease((t-.15f)/.5f)*(1-ease((t-.93f)/.07f));if(a<=0)return;
         // keep the caption away from the change: bottom band normally, top band when the change sits low in the room
@@ -140,7 +174,7 @@ final class ForgottenRoomHud {
         float a=ease(t/.6f);b.setColor(0,0,0,.62f*a);b.draw(art.pixel,0,0,W,H);b.setColor(1,1,1,1);
         int n=m.results.size();float rowH=Math.min(112,600f/Math.max(1,n)),w=1060,x=(W-w)/2,top=H-250,panelH=n*rowH+300;
         plaque(b,x-40,top-n*rowH-40,w+80,panelH-60,a*.85f,false);
-        text(b,title,"THE FORGOTTEN ROOM",W/2,H-96,1.0f,GOLD,a);rule(b,W/2,H-160,460,a);text(b,body,"ИТОГИ",W/2,H-188,.62f,IVORY,a);
+        text(b,title,"ИТОГИ РАССЛЕДОВАНИЯ",W/2,H-96,1.0f,GOLD,a);rule(b,W/2,H-160,460,a);text(b,body,roomName.toUpperCase(Locale.ROOT),W/2,H-188,.62f,IVORY,a);
         Color[] podium={GOLD,new Color(.82f,.84f,.88f,1),new Color(.80f,.52f,.30f,1)};
         for(int i=0;i<n;i++){var r=m.results.get(i);float ra=ease((t-.5f-i*.22f)/.45f);if(ra<=0)continue;
             float y=top-(i+1)*rowH,slide=(1-ra)*40;boolean first=r.rank()==1;Color pc=r.rank()<=3?podium[r.rank()-1]:DIM;
@@ -154,6 +188,6 @@ final class ForgottenRoomHud {
             int shown=Math.round(r.points()*ease((t-.8f-i*.22f)/1.4f));
             text(b,title,String.valueOf(shown),x+w-120+slide,mid+34,.9f,first?GOLD:IVORY,ra);
             text(b,body,"ОЧК.",x+w-50+slide,mid+10,.44f,DIM,ra);}
-        if(t>2.5f)text(b,body,"ENTER — ВЕРНУТЬСЯ В ЛОББИ",W/2,46,.55f,DIM,ease((t-2.5f)/.6f)*(.6f+.4f*MathUtils.sin(t*3)));
+        if(t>2.5f)text(b,body,"ENTER — ВЕРНУТЬСЯ В ЛОББИ",W/2,46,.55f,DIM,ease((t-2.5f)/.6f)*.85f);
     }
 }

@@ -10,13 +10,8 @@ import com.google.gson.*;
 import java.util.*;
 import java.util.function.*;
 
-/**
- * THE FINAL SECOND on the host's shared screen, driven entirely by the room server's snapshot and clock:
- * the machine powers up, the target is shown, the display counts 3·2·1, the timer runs (visible for three seconds,
- * then dark), each player's STOP thumps the big button (never revealing the time), then results are revealed one by
- * one from the worst to the best on the machine's own display — the eliminated player is swallowed by a malfunction —
- * and a final ranking. ENTER/ESC on the ranking returns to the lobby.
- */
+/** Shared host board driven by server snapshots. Player controls remain on each device.
+ * Hidden elapsed time stays hidden until the server reveals results. */
 public final class FinalSecondScreen extends ScreenAdapter {
     private final OrthographicCamera cam=new OrthographicCamera();private final FitViewport vp=new FitViewport(1920,1080,cam);
     private SpriteBatch batch;private FinalSecondScene scene;private BitmapFont title,body;private Texture soft,pixel;private final GlyphLayout gl=new GlyphLayout();
@@ -51,7 +46,7 @@ public final class FinalSecondScreen extends ScreenAdapter {
 
     @Override public void render(float dt){
         String phase=phase();if(!phase.equals(lastPhase)){lastPhase=phase;lastReveal=-1;}
-        int stops=list("stopped").size();if(stops>lastStops&&phase.equals("RUNNING")){scene.press();for(String id:list("stopped"))lit.putIfAbsent(id,0f);}lastStops=stops;
+        int stops=fs.has("pressCount")?fs.get("pressCount").getAsInt():list("stopped").size();if(stops>lastStops&&phase.equals("RUNNING")){scene.press();for(String id:list("stopped"))lit.putIfAbsent(id,0f);}lastStops=stops;
         for(var e:lit.entrySet())e.setValue(Math.min(1,e.getValue()+dt*2.5f));
         scene.update(dt);clock+=dt;
         String tgt=target(l("targetMs"));String shown=null;scene.rawDigits=null;scene.displayFlicker=1;scene.power=1;float t=since("phaseStartedAt");
@@ -59,29 +54,69 @@ public final class FinalSecondScreen extends ScreenAdapter {
             case "INTRO"->{ // power-up: dark → lamps stutter on → segment self-test
                 scene.power=ease((t-.2f)/1.3f);scene.plaque("ДОБРО ПОЖАЛОВАТЬ В","THE FINAL SECOND",false);
                 if(t>1.5f&&t<2.4f){scene.rawDigits="8888";scene.rawComma=true;scene.displayFlicker=((int)(t*14))%2==0?1:.4f;}}
-            case "TARGET"->scene.plaque(blind()?"ВСЛЕПУЮ! ОСТАНОВИ НА":"ОСТАНОВИ ТАЙМЕР НА",typewriter(tgt+" СЕКУНД",t),true);
+            case "TARGET"->scene.plaque(chain()?"ОБЩИЙ ПРЕДЕЛ":blind()?"ВСЛЕПУЮ! ОСТАНОВИ НА":"ОСТАНОВИ ТАЙМЕР НА",typewriter(tgt+" СЕКУНД",t),true);
             case "COUNTDOWN"->{int n=Math.max(1,3-(int)t);float f=t%1;scene.rawDigits="  "+n+" ";scene.rawComma=false;scene.displayFlicker=f>.82f?.25f:1;
-                scene.plaque(blind()?"ВСЛЕПУЮ! ОСТАНОВИ НА":"ОСТАНОВИ ТАЙМЕР НА",tgt+" СЕКУНД",true);}
-            case "RUNNING"->{long el=now()-l("runStart");long vis=l("visibleMs");scene.plaque(blind()?"ВСЛЕПУЮ! ОСТАНОВИ НА":"ОСТАНОВИ ТАЙМЕР НА",tgt+" СЕКУНД",true);
-                if(el<vis)shown=fmt(el);
-                else if(vis>0&&el<vis+420){shown=fmt(vis);scene.displayFlicker=MathUtils.random()<.55f?.08f:.9f;}}   // the digits die with a stutter
+                scene.plaque(chain()?"ОБЩИЙ ПРЕДЕЛ":blind()?"ВСЛЕПУЮ! ОСТАНОВИ НА":"ОСТАНОВИ ТАЙМЕР НА",tgt+" СЕКУНД",true);}
+            case "RUNNING"->{
+                if(chain())scene.plaque("ХОД: "+name(fs.get("activePlayer").getAsString()).toUpperCase(Locale.ROOT),fs.get("turnRunning").getAsBoolean()?"НАЖМИ СТОП":"НАЖМИ СТАРТ",true);
+                else{
+                    scene.plaque(blind()?"ВСЛЕПУЮ! ОСТАНОВИ НА":"ОСТАНОВИ ТАЙМЕР НА",tgt+" СЕКУНД",true);
+                    if(!manual()){long el=now()-l("runStart"),vis=l("visibleMs");if(el<vis)shown=fmt(el);else if(vis>0&&el<vis+420){shown=fmt(vis);scene.displayFlicker=MathUtils.random()<.55f?.08f:.9f;}}
+                }
+            }
             case "REVEAL"->shown=revealDisplay(t);
-            case "RESULTS"->{scene.rawDigits="----";scene.plaque("ИТОГИ","ЦЕЛЬ "+tgt+" С",false);}
+            case "RESULTS"->{scene.rawDigits="----";scene.plaque("ИТОГИ",(chain()?"ОБЩИЙ ПРЕДЕЛ ":"ЦЕЛЬ ")+tgt+" С",false);}
             default->{}
         }
         ScreenUtils.clear(0,0,0,1);vp.apply();batch.setProjectionMatrix(cam.combined);batch.begin();
-        scene.draw(batch,tgt,shown,phase.equals("RUNNING")?.06f:.12f);
+        hostBoard(phase,tgt,shown,t);
         switch(phase){
-            case "INTRO"->ribbon("СОБЕРИТЕСЬ У ЭКРАНА",t-1.2f);
-            case "TARGET"->ribbon(blind()?"ЗАДАНИЕ 2 · ТАЙМЕР НЕ ПОКАЖЕТСЯ НИ НА СЕКУНДУ":"ПОСЛЕ ТРЁХ СЕКУНД ЦИФРЫ ПОГАСНУТ — СЧИТАЙТЕ ПРО СЕБЯ",t-.8f);
-            case "COUNTDOWN"->{ribbon("КНОПКА «СТОП» — НА ВАШИХ ТЕЛЕФОНАХ",t);players(1,null,false);}
-            case "RUNNING"->players(1,null,false);
+            case "INTRO"->{players(1,null,false);ribbon("СОБЕРИТЕСЬ У ЭКРАНА",t-1.2f);}
+            case "TARGET"->ribbon(speedShift()?"СКОРОСТЬ ИЗМЕНИТСЯ ОДИН РАЗ · УСПЕЙ ОСТАНОВИТЬ ДО ПРЕДЕЛА":chain()?"ПО ОЧЕРЕДИ: СТАРТ, ЗАТЕМ СТОП · ОБЩЕЕ ВРЕМЯ СКРЫТО":blind()?"ДВА НАЖАТИЯ: СТАРТ, ЗАТЕМ СТОП · ТАЙМЕР ВСЛЕПУЮ":"СТАРТ, ЗАТЕМ СТОП · ПЕРВЫЕ ТРИ СЕКУНДЫ ВИДНЫ НА ТЕЛЕФОНЕ",t-.8f);
+            case "COUNTDOWN"->{ribbon("ПЕРВОЕ НАЖАТИЕ — СТАРТ · ВТОРОЕ — СТОП",t);players(1,null,false);}
+            case "RUNNING"->{players(1,chain()?fs.get("activePlayer").getAsString():null,false);ribbon(chain()?"ОСТАНОВИ И ПЕРЕДАЙ ХОД · ПРЕВЫСИШЬ ПРЕДЕЛ — ВЫБЫВАЕШЬ":"ТАЙМЕР НА ТЕЛЕФОНЕ · ПЕРВОЕ НАЖАТИЕ — СТАРТ, ВТОРОЕ — СТОП",t);}
             case "REVEAL"->reveal(t);
             case "RESULTS"->results(t);
             default->{}
         }
         batch.end();
     }
+    /** Shared host display: no playable button and no private elapsed time. */
+    private void hostBoard(String phase,String tgt,String shown,float t){
+        batch.setColor(.025f,.018f,.025f,1);batch.draw(pixel,0,0,1920,1080);
+        batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
+        batch.setColor(.38f,.065f,.035f,.34f);batch.draw(soft,250,60,1420,1200);
+        batch.setColor(.35f,.25f,.10f,.12f);batch.draw(soft,-300,400,1100,1000);
+        batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
+        batch.setColor(GOLD.r,GOLD.g,GOLD.b,.48f);batch.draw(pixel,100,971,1720,1);
+        text(body,"THE FINAL SECOND",960,1035,.68f,GOLD,1);
+        text(body,speedShift()?"SPEED SHIFT · ПЕРЕМЕННАЯ СКОРОСТЬ":chain()?"ЦЕПОЧКА · ОБЩИЙ СКРЫТЫЙ ТАЙМЕР":blind()?"ЛИЧНЫЙ ТАЙМЕР · ВСЛЕПУЮ":"ЛИЧНЫЙ ТАЙМЕР · НА ТОЧНОСТЬ",960,943,.5f,DIM,1);
+        String heading="",main="",detail="";
+        switch(phase){
+            case "INTRO"->{heading="ИСПЫТАНИЕ ВРЕМЕНЕМ";main="THE FINAL SECOND";detail="Приготовьте кнопку на своём устройстве";}
+            case "TARGET"->{heading=chain()?"ОБЩИЙ ПРЕДЕЛ":"ЦЕЛЬ РАУНДА";main=tgt+" СЕКУНД";detail=chain()?"Время накапливается · между ходами пауза":"Каждый запускает и останавливает свой таймер";}
+            case "COUNTDOWN"->{heading="ПРИГОТОВЬТЕСЬ";main=String.valueOf(Math.max(1,3-(int)t));detail="Первое нажатие — старт · второе — стоп";}
+            case "RUNNING"->{
+                if(chain()){boolean running=fs.get("turnRunning").getAsBoolean();heading=running?"ТАЙМЕР ИДЁТ · ВРЕМЯ СКРЫТО":"ТАЙМЕР НА ПАУЗЕ";main=name(fs.get("activePlayer").getAsString());detail=running?"Останавливает время и передаёт ход":"Следующий участник запускает общий таймер";}
+                else{heading="ИСПЫТАНИЕ ИДЁТ";main=list("stopped").size()+" / "+list("seats").size();detail=(speedShift()?"Один неожиданный сдвиг скорости · цель ":"Участников завершили попытку · цель ")+tgt+" с";}
+            }
+            case "REVEAL"->{int index=revealIndex(t);heading=chain()?"ЦЕПОЧКА ЗАВЕРШЕНА":"РАСКРЫТИЕ РЕЗУЛЬТАТОВ";
+                if(index<0){main=chain()?"ПРЕДЕЛ ДОСТИГНУТ":"КТО БЫЛ ТОЧНЕЕ?";detail=chain()?chainReason():"Результаты появляются от худшего к лучшему";}
+                else{var r=rows().get(rows().size()-1-index);main=name(r.get("playerId").getAsString());detail=(r.get("eliminated").getAsBoolean()?"ВЫБЫВАЕТ":"ПРОХОДИТ ДАЛЬШЕ")+(shown==null?"":" · "+shown+" с");}
+            }
+            case "RESULTS"->{heading="РАУНД ЗАВЕРШЁН";main="";}
+        }
+        text(body,heading,960,850,.65f,GOLD,1);
+        float scale=Math.min(1.35f,1480/Math.max(1,widthOf(title,main,1)));
+        text(title,main,960,752,scale,IVORY,1);
+        text(body,detail,960,630,Math.min(.68f,1550/Math.max(1,widthOf(body,detail,1))),DIM,1);
+        batch.setColor(GOLD.r,GOLD.g,GOLD.b,.24f);batch.draw(pixel,220,565,1480,1);
+        batch.setColor(Color.WHITE);
+    }
+    private boolean speedShift(){return fs.has("task")&&fs.get("task").getAsString().equals("SPEED_SHIFT");}
+    private boolean chain(){return fs.has("task")&&fs.get("task").getAsString().equals("CHAIN");}
+    private boolean manual(){return fs.has("manualStart")&&fs.get("manualStart").getAsBoolean();}
+    private String chainReason(){String why=fs.has("lossReason")?fs.get("lossReason").getAsString():"";return why.equals("NO_START")?"НЕ НАЧАЛ СВОЙ ХОД":why.equals("TURN_LIMIT")?"НЕ ОСТАНОВИЛ ЗА 2 СЕКУНДЫ":"ПЕРЕШЁЛ ОБЩИЙ ПРЕДЕЛ";}
     private boolean blind(){return fs.has("blind")&&fs.get("blind").getAsBoolean();}
     private final Map<String,Float> lit=new HashMap<>();private float clock;
     private static String typewriter(String s,float t){int n=MathUtils.clamp((int)((t-.35f)*18),0,s.length());return n<=0?" ":s.substring(0,n);}
@@ -101,21 +136,22 @@ public final class FinalSecondScreen extends ScreenAdapter {
      * reveal the current player's medallion grows and glows, and the eliminated one fades into the dark.
      */
     private void players(float alpha,String focus,boolean revealMode){
-        List<String> seats=list("seats");int n=seats.size(),left=(n+1)/2;
-        for(int i=0;i<n;i++){String id=seats.get(i);boolean l=i<left;int row=l?i:i-left,rows=l?left:n-left;
-            float cx=l?170:1750,cy=600+(rows-1)*112-row*224,r=80;
-            float on=lit.getOrDefault(id,0f);boolean f=id.equals(focus);
+        List<String> seats=list("seats");int n=seats.size();
+        for(int i=0;i<n;i++){String id=seats.get(i);
+            int cols=Math.min(4,n), gridRow=i/cols, col=i%cols;
+            float cx=960+(col-(Math.min(cols,n-gridRow*cols)-1)/2f)*400,cy=405-gridRow*205,r=52;
+            float on=lit.getOrDefault(id,0f);boolean f=id.equals(focus);if(chain()&&!revealMode)on=f?1:0;
             JsonObject res=revealMode?resultOf(id):null;boolean shownYet=revealMode&&revealedYet(id);boolean dead=shownYet&&res!=null&&res.get("eliminated").getAsBoolean();
-            float scale=f?1.25f:1,a=alpha*(dead?.35f:1);r*=scale;
+            float scale=f?1.12f:1,a=alpha*(dead?.35f:1);r*=scale;
             batch.setColor(0,0,0,.6f*a);batch.draw(soft,cx-r*1.7f,cy-r*1.8f,r*3.4f,r*3.4f);
             if(on>0||f){batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(f?GOLD.r:1f,f?GOLD.g*.8f:.12f,f?GOLD.b*.5f:.08f,(f?.55f:.5f*on)*a*(.85f+.15f*MathUtils.sin(clock*4+i)));
                 batch.draw(soft,cx-r*1.9f,cy-r*1.9f,r*3.8f,r*3.8f);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
             Texture face=face(character(id));
             if(face!=null){float g=dead?.45f:1;batch.setColor(g,g*(dead?.6f:1),g*(dead?.6f:1),a);batch.draw(face,cx-r*.86f,cy-r*.86f,r*1.72f,r*1.72f);}
-            ring(cx,cy,r,a,on>0&&!revealMode?new Color(1f,.2f,.14f,1):f?GOLD:new Color(.55f,.42f,.24f,1));
-            body.getData().setScale(.66f*Math.min(scale,1.1f));gl.setText(body,name(id));body.setColor(0,0,0,.8f*a);body.draw(batch,name(id),cx-gl.width/2+2,cy-r-12);
+            ring(cx,cy,r,a,f?GOLD:on>0&&!revealMode?new Color(1f,.2f,.14f,1):new Color(.55f,.42f,.24f,1));
+            body.getData().setScale(Math.min(.66f*Math.min(scale,1.1f),340/Math.max(1,widthOf(body,name(id),1))));gl.setText(body,name(id));body.setColor(0,0,0,.8f*a);body.draw(batch,name(id),cx-gl.width/2+2,cy-r-12);
             body.setColor(f?GOLD.r:IVORY.r,f?GOLD.g:IVORY.g,f?GOLD.b:IVORY.b,a);body.draw(batch,name(id),cx-gl.width/2,cy-r-10);body.getData().setScale(1);
-            if(!revealMode){String st=on>0?"ГОТОВО":"…";body.getData().setScale(.46f);gl.setText(body,st);body.setColor(on>0?1f:DIM.r,on>0?.35f:DIM.g,on>0?.28f:DIM.b,a);body.draw(batch,st,cx-gl.width/2,cy-r-56);body.getData().setScale(1);}
+            if(!revealMode){String st=chain()?(id.equals(focus)?"ИГРАЕТ СЕЙЧАС":"ЖДЁТ ОЧЕРЕДИ"):on>0?"ГОТОВО":list("started").contains(id)?"СЧИТАЕТ":"ЖДЁТ СТАРТА";body.getData().setScale(.46f);gl.setText(body,st);body.setColor(on>0?1f:DIM.r,on>0?.35f:DIM.g,on>0?.28f:DIM.b,a);body.draw(batch,st,cx-gl.width/2,cy-r-47);body.getData().setScale(1);}
         }
         batch.setColor(Color.WHITE);
     }
@@ -132,11 +168,11 @@ public final class FinalSecondScreen extends ScreenAdapter {
     /** Has this player's result already been shown (reveal goes worst → best)? */
     private boolean revealedYet(String id){var rs=rows();int i=revealIndex(since("phaseStartedAt"));for(int k=0;k<=i&&k<rs.size();k++)if(rs.get(rs.size()-1-k).get("playerId").getAsString().equals(id))return true;return false;}
     private String revealDisplay(float t){
-        int i=revealIndex(t);if(i<0){scene.plaque("РЕЗУЛЬТАТЫ","КТО БЫЛ ТОЧНЕЕ?",false);return null;}
+        int i=revealIndex(t);if(i<0){scene.plaque(chain()?"ЦЕПОЧКА ПРЕРВАНА":"РЕЗУЛЬТАТЫ",chain()?chainReason():"КТО БЫЛ ТОЧНЕЕ?",false);return null;}
         var rs=rows();var r=rs.get(rs.size()-1-i);String id=r.get("playerId").getAsString();
         float step=l("revealStepMs")/1000f,u=((t-l("revealIntroMs")/1000f)-i*step)/step;
         boolean dead=r.get("eliminated").getAsBoolean();
-        scene.plaque("МЕСТО "+r.get("rank").getAsInt(),name(id).toUpperCase(Locale.ROOT),dead&&u>.55f);
+        scene.plaque(chain()?(dead?"ВЫБЫВАЕТ":"ВЫЖИЛ"):"МЕСТО "+r.get("rank").getAsInt(),name(id).toUpperCase(Locale.ROOT),dead&&u>.55f);
         if(i!=lastReveal){lastReveal=i;scene.press();}
         if(!r.get("stopped").getAsBoolean()){scene.rawDigits="----";scene.rawComma=false;return null;}
         // the time "rolls" onto the display, then settles
@@ -148,16 +184,16 @@ public final class FinalSecondScreen extends ScreenAdapter {
         int i=revealIndex(t);String focus=null;
         if(i>=0){var rs=rows();var r=rs.get(rs.size()-1-i);focus=r.get("playerId").getAsString();
             float step=l("revealStepMs")/1000f,u=((t-l("revealIntroMs")/1000f)-i*step)/step;boolean dead=r.get("eliminated").getAsBoolean();
-            String line=r.get("stopped").getAsBoolean()?"ОШИБКА  "+fmtErr(r.get("errorMs").getAsLong())+" С":"НЕ НАЖАЛ";
+            String line=chain()?(dead?chainReason():"ПЕРЕДАЛ ХОД И ВЫЖИЛ"):r.get("stopped").getAsBoolean()?"ОШИБКА  "+fmtErr(r.get("errorMs").getAsLong())+" С":"НЕ НАЖАЛ";
             ribbon(dead&&u>.55f?line+"   ·   МАШИНА ЗАБИРАЕТ ИГРОКА":line,(u-.22f)*1.4f);
             if(dead&&u>.55f){batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(1f,.08f,.05f,.14f*MathUtils.random());batch.draw(pixel,0,0,1920,1080);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
-        }else ribbon("ОТ ХУДШЕГО К ЛУЧШЕМУ",t);
+        }else ribbon(chain()?"ОБЩИЙ ТАЙМЕР ОСТАНОВЛЕН":"ОТ ХУДШЕГО К ЛУЧШЕМУ",t);
         players(1,focus,true);
     }
     static String fmtErr(long ms){long cs=Math.round(ms/10.0);return (cs/100)+","+String.format("%02d",cs%100);}
     private void results(float t){
         var rs=rows();float a=ease(t/.5f);batch.setColor(0,0,0,.55f*a);batch.draw(pixel,0,0,1920,1080);
-        int n=rs.size();float rowH=78,w=980,h=n*rowH+60,x=960-w/2,top=760;
+        int n=rs.size();float rowH=Math.min(78,520f/Math.max(1,n)),w=980,h=n*rowH+60,x=960-w/2,top=710;
         // gilt panel
         batch.setColor(0,0,0,.6f*a);batch.draw(soft,x-160,top-h-120,w+320,h+240);
         batch.setColor(.05f,.025f,.025f,.92f*a);batch.draw(pixel,x,top-h,w,h);
@@ -172,8 +208,8 @@ public final class FinalSecondScreen extends ScreenAdapter {
             text(title,String.valueOf(r.get("rank").getAsInt()),x+52,y+rowH*.74f,.62f,rc,ra);
             Texture face=face(character(id));float fr=rowH*.4f;if(face!=null){batch.setColor(dead?.5f:1,dead?.3f:1,dead?.3f:1,ra);batch.draw(face,x+110-fr,y+rowH/2-fr,fr*2,fr*2);}ring(x+110,y+rowH/2,fr,ra,rc);
             body.getData().setScale(.72f);body.setColor(dead?RED.r:IVORY.r,dead?RED.g:IVORY.g,dead?RED.b:IVORY.b,ra);body.draw(batch,name(id),x+160,y+rowH*.68f);
-            body.getData().setScale(.42f);body.setColor(DIM.r,DIM.g,DIM.b,ra);body.draw(batch,dead?"ЗАБРАН МАШИНОЙ":r.get("stopped").getAsBoolean()?"ОСТАНОВИЛ НА "+fmt(r.get("stoppedMs").getAsLong())+" С":"НЕ НАЖАЛ",x+160,y+rowH*.34f);
-            String err=r.get("stopped").getAsBoolean()?"±"+fmtErr(r.get("errorMs").getAsLong()):"—";body.getData().setScale(.8f);gl.setText(body,err);body.setColor(rc.r,rc.g,rc.b,ra);body.draw(batch,err,x+w-40-gl.width,y+rowH*.66f);body.getData().setScale(1);}
+            body.getData().setScale(.42f);body.setColor(DIM.r,DIM.g,DIM.b,ra);body.draw(batch,chain()?(dead?chainReason():"ВЫЖИЛ В ЦЕПОЧКЕ"):dead?"ЗАБРАН МАШИНОЙ":r.get("stopped").getAsBoolean()?"ОСТАНОВИЛ НА "+fmt(r.get("stoppedMs").getAsLong())+" С":"НЕ НАЖАЛ",x+160,y+rowH*.34f);
+            String err=chain()?(dead?"ВЫБЫЛ":"ВЫЖИЛ"):r.get("stopped").getAsBoolean()?"±"+fmtErr(r.get("errorMs").getAsLong()):"—";body.getData().setScale(.8f);gl.setText(body,err);body.setColor(rc.r,rc.g,rc.b,ra);body.draw(batch,err,x+w-40-gl.width,y+rowH*.66f);body.getData().setScale(1);}
         batch.setColor(Color.WHITE);if(t>2)ribbon("ENTER — ВЕРНУТЬСЯ В ЛОББИ",(t-2)*.8f);
     }
 

@@ -37,11 +37,22 @@ public final class ForgottenRoomScreen extends ScreenAdapter {
 
     @Override public void show(){
         if(!created){created=true;batch=new SpriteBatch();art=new ForgottenRoomArt();
-            title=com.erni.finalanswer.ui.UiFonts.gothic(72);body=com.erni.finalanswer.ui.UiFonts.gothic(38);label=com.erni.finalanswer.ui.UiFonts.nameplate(26);
-            room=new ForgottenRoomRenderer(art,label);post=new com.erni.finalanswer.ui.effects.CinematicPost();hud=new ForgottenRoomHud(art,title,body);art.preload(model);loadAudio();}
+            title=com.erni.finalanswer.ui.UiFonts.gothic(72);body=interfaceFont();label=com.erni.finalanswer.ui.UiFonts.nameplate(26);
+            room=new ForgottenRoomRenderer(art,label);post=new com.erni.finalanswer.ui.effects.CinematicPost();
+            // Preserve the artwork's detail. Grain and bloom should not soften object silhouettes or text.
+            post.look.bloom=.18f;post.look.grain=.009f;post.look.vignette=.16f;post.look.contrast=1.025f;post.look.exposure=1.025f;
+            hud=new ForgottenRoomHud(art,title,body);art.preload(model);loadAudio();}
         Gdx.input.setInputProcessor(new InputAdapter(){@Override public boolean keyDown(int k){
             if((k==Input.Keys.ENTER||k==Input.Keys.ESCAPE)&&model.phase.equals("RESULTS")){onEnd.accept(model);return true;}return false;}});
         if(ambience!=null){ambience.setLooping(true);ambience.setVolume(.55f*AudioMix.GLOBAL.gain(AudioMix.Category.ENVIRONMENT));ambience.play();}
+    }
+    private static BitmapFont interfaceFont(){
+        var generator=new com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator(Gdx.files.internal("ui/fonts/NotoSans-Regular.ttf"));
+        try{var p=new com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFontParameter();p.size=38;
+            StringBuilder glyphs=new StringBuilder(com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.DEFAULT_CHARS);
+            for(char c='\u0400';c<='\u04ff';c++)glyphs.append(c);p.characters=glyphs.append("—–·«»").toString();
+            p.minFilter=Texture.TextureFilter.Linear;p.magFilter=Texture.TextureFilter.Linear;p.kerning=true;return generator.generateFont(p);
+        }finally{generator.dispose();}
     }
     @Override public void hide(){if(ambience!=null)ambience.pause();}
     @Override public void resize(int w,int h){viewport.update(w,h,true);}
@@ -53,7 +64,7 @@ public final class ForgottenRoomScreen extends ScreenAdapter {
 
     @Override public void render(float delta){
         if(!model.phase.equals(lastPhase)){onPhase(model.phase);lastPhase=model.phase;}
-        phaseClock+=delta;room.update(delta);post.update(delta);AudioMix.GLOBAL.update(delta);
+        phaseClock+=delta;room.update(delta);hud.update(model,delta);post.update(delta);AudioMix.GLOBAL.update(delta);
         ScreenUtils.clear(0,0,0,1);viewport.apply();post.begin(viewport.getScreenWidth(),viewport.getScreenHeight());batch.setProjectionMatrix(camera.combined);batch.begin();
         float t=elapsed();
         switch(model.phase){
@@ -69,10 +80,9 @@ public final class ForgottenRoomScreen extends ScreenAdapter {
         batch.end();
         post.end(viewport.getScreenX(),viewport.getScreenY(),viewport.getScreenWidth(),viewport.getScreenHeight());
     }
-    /** Lights die with two short stutters, then total darkness. */
-    private static float blackout(float t){if(t<.08f)return .85f;if(t<.14f)return .2f;if(t<.22f)return 1;if(t<.27f)return .55f;return 1;}
-    /** Lights return the same way: a flicker, then the room. */
-    private static float lightsReturn(float t){if(t<.06f)return .4f;if(t<.12f)return 1;if(t<.18f)return .25f;if(t<.26f)return .8f;return Math.max(0,.3f*(1-(t-.26f)/.5f));}
+    /** A single power-down and soft exposure recovery; no repeated full-screen strobe. */
+    private static float blackout(float t){return .92f+.08f*ForgottenRoomHud.ease(t/.22f);}
+    private static float lightsReturn(float t){return 1-ForgottenRoomHud.ease(t/.85f);}
 
     private void reveal(float t){
         float intro=model.revealIntroMs/1000f,step=Math.max(.5f,model.revealStepMs/1000f);

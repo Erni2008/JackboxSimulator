@@ -26,7 +26,7 @@ final class ForgottenRoomRenderer {
         for(int i=0;i<MOTES;i++){mx[i]=r.nextFloat();my[i]=r.nextFloat();ms[i]=.4f+r.nextFloat()*.9f;mp[i]=r.nextFloat()*6.28f;}
         for(int i=0;i<FLAKES;i++){fx[i]=r.nextFloat();fy[i]=r.nextFloat();fd[i]=r.nextFloat();fs[i]=.6f+r.nextFloat()*.8f;fp[i]=r.nextFloat()*6.28f;}
     }
-    void update(float dt){time+=dt;}
+    void update(float dt){time+=dt;art.greenhouseAtmosphere.update(dt);}
     /** Background file name without folder and extension, e.g. room_01; selects the room's own light. */
     private static String roomKey(ForgottenRoomModel m){String b=m.background;if(b.contains("/"))b=b.substring(b.lastIndexOf('/')+1);return b.contains(".")?b.substring(0,b.lastIndexOf('.')):b;}
     /** Daylight rooms (warm sun through the window) versus night rooms (moon and candles). */
@@ -49,15 +49,20 @@ final class ForgottenRoomRenderer {
     /** Background, moon haze, objects and ambient light. {@code objects} is null in darkness. */
     void drawRoom(SpriteBatch b,ForgottenRoomModel m,List<ForgottenRoomModel.Obj> objects,float roomAlpha){
         Texture bg=art.background(m.background);
-        b.setColor(1,1,1,1);if(bg!=null)b.draw(bg,0,0,W,H);else{b.setColor(.06f,.04f,.05f,1);b.draw(art.pixel,0,0,W,H);}
-        if(bg!=null){ // brighten the painted room ~40%: the art is very dark for a shared screen across a living room
+        boolean greenhouse=roomKey(m).equals("room_02");
+        b.setColor(1,1,1,1);
+        if(bg!=null){if(greenhouse)art.greenhouseAtmosphere.background(b,bg);else b.draw(bg,0,0,W,H);}
+        else{b.setColor(.06f,.04f,.05f,1);b.draw(art.pixel,0,0,W,H);}
+        if(bg!=null&&!greenhouse){ // brighten the painted room ~40%: the art is very dark for a shared screen across a living room
             b.setBlendFunction(GL20.GL_ONE,GL20.GL_ONE);b.setColor(.42f,.41f,.40f,1);b.draw(bg,0,0,W,H);
             b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);b.setColor(1,1,1,1);}
         snow(b,m);
         // cold moonlight through the window and the warm sconce on the right wall
         b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
-        day=roomKey(m).equals("room_02");
-        if(day){ // sunlit library: warm window bloom, sun shafts, two sconces by the door
+        day=false;
+        if(greenhouse){
+            art.greenhouseAtmosphere.light(b,art);
+        }else if(day){ // sunlit library: warm window bloom, sun shafts, two sconces by the door
             b.setColor(1f,.86f,.58f,.14f);b.draw(art.soft,60,420,700,700);
             sunRays(b);
             float f=flicker(2.3f);
@@ -69,10 +74,13 @@ final class ForgottenRoomRenderer {
             float f=flicker(1.7f);b.setColor(1f,.62f,.28f,.16f*f);b.draw(art.soft,1590,610,420,420);
             b.setColor(1f,.7f,.36f,.10f*f);b.draw(art.soft,1360,380,700,700);}
         b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
-        if(objects!=null)for(var o:objects)drawObject(b,m,o,1,false);
-        drawMotes(b);
-        floorFog(b);
-        b.setColor(1,1,1,.45f);b.draw(art.vignette,0,0,W,H);b.setColor(1,1,1,1);
+        if(objects!=null){
+            if(greenhouse)art.greenhouse.draw(b,objects);
+            else for(var o:objects)drawObject(b,m,o,1,false);
+        }
+        if(!greenhouse)drawMotes(b);
+        if(!greenhouse)floorFog(b);
+        b.setColor(1,1,1,greenhouse?.12f:.45f);b.draw(art.vignette,0,0,W,H);b.setColor(1,1,1,1);
     }
 
     /** One object at its place. {@code ghost} draws a cold translucent echo (reveal of what used to be there). */

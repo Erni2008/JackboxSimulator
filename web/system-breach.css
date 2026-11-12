@@ -336,3 +336,5 @@ body[data-view=breach] .g-stage,body[data-view=breach] .g-flash,body[data-view=b
   .sbx-boot{font-size:3cqh}
 }
 .sbx-rain{opacity:.28;image-rendering:auto}
+@media (min-aspect-ratio:5/4){.sbx-options.sbx-pass{grid-template-columns:repeat(auto-fit,minmax(30%,1fr))}}
+.sbx-pass .sbx-val{letter-spacing:.08em;text-transform:none;font-family:ui-monospace,"SF Mono",Menlo,monospace}

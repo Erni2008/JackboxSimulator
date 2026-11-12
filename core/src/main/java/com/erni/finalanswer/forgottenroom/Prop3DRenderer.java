@@ -38,7 +38,7 @@ final class Prop3DRenderer implements Disposable {
     record RoomLight(Color key,Vector3 dir,float keyI,Color fill,float fillI,float ambient){}
     static RoomLight light(String room){
         return room.equals("room_02")
-            ?new RoomLight(new Color(1f,.84f,.60f,1),new Vector3(.85f,-.45f,-.35f).nor(),5.5f,new Color(1f,.72f,.45f,1),1.4f,.35f)   // afternoon sun from the left window
+            ?new RoomLight(new Color(.52f,.68f,1f,1),new Vector3(-.25f,-.85f,-.5f).nor(),2.1f,new Color(1f,.59f,.26f,1),2.6f,.23f)   // greenhouse moon and warm lanterns
             :new RoomLight(new Color(.62f,.72f,1f,1),new Vector3(.85f,-.35f,-.40f).nor(),2.6f,new Color(1f,.62f,.32f,1),2.4f,.22f); // moon left, candles right
     }
     private final Map<String,Texture> cache=new HashMap<>();private final Map<String,SceneAsset> assets=new HashMap<>();

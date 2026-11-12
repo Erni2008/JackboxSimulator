@@ -239,8 +239,9 @@ public final class ImpostorScreen extends ScreenAdapter {
             }
         } else if(finalSnapshot!=null) {
             long now=finalServerTime+(System.nanoTime()-finalReceivedNano)/1_000_000;
+            if(!paused){if(votingNarration==null)votingNarration=new VotingNarration(game.getAudio().hostVoice());votingNarration.onVerdictCue(audio::play);votingNarration.update(finalSnapshot,now);}
+            if(votingNarration!=null)finalPresentation.verdictTiming(votingNarration.announcementAt(),votingNarration.identityAt());
             finalPresentation.update(now);
-            if(!paused){if(votingNarration==null)votingNarration=new VotingNarration(game.getAudio().hostVoice());votingNarration.update(finalSnapshot,now);}
             boolean timed=finalSnapshot.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.EVIDENCE_REVIEW || finalSnapshot.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.FINAL_VOTING;
             long seconds=timed?Math.max(0,(finalSnapshot.deadline()-now+999)/1000):0;
             if(seconds!=displayedSuspicionSeconds){displayedSuspicionSeconds=seconds;
@@ -285,8 +286,6 @@ public final class ImpostorScreen extends ScreenAdapter {
                 case ROUND_CLUE_INPUT -> com.erni.finalanswer.audio.PresentationAudio.Cue.ROUND_INTRO;
                 case ROUND_CLUE_REVEAL -> com.erni.finalanswer.audio.PresentationAudio.Cue.CLUE_REVEAL;
                 case FINAL_VOTING -> com.erni.finalanswer.audio.PresentationAudio.Cue.VOTING_START;
-                case SUSPECT_ANNOUNCEMENT -> com.erni.finalanswer.audio.PresentationAudio.Cue.SUSPECT;
-                case IMPOSTOR_REVEAL -> com.erni.finalanswer.audio.PresentationAudio.Cue.IMPOSTOR;
                 default -> null;
             };
             if(!restore && cue!=null)audio.play(cue);
@@ -606,7 +605,7 @@ public final class ImpostorScreen extends ScreenAdapter {
         transition.update(delta,paused,reduced);audio.writing(liveConnection!=null&&liveConnection.connected()&&liveConnection.serverNow()<writingUntil&&state.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.ROUND_CLUE_INPUT);audio.update(paused?0:delta);finalPresentation.reducedMotion(reduced);
         dust.update(paused?0:delta,reduced);veil.update(paused?0:delta,reduced);
         long verdictNow=finalServerTime+(System.nanoTime()-finalReceivedNano)/1_000_000;
-        if(!paused||finalSnapshot==null)heldEliminationAge=ImpostorElimination.age(finalSnapshot,verdictNow);
+        if(!paused||finalSnapshot==null)heldEliminationAge=finalSnapshot==null?-1:finalPresentation.eliminationAge(verdictNow);
         float eliminatedAge=heldEliminationAge;
         deathWindow.present(finalSnapshot==null?"":finalSnapshot.impostorId(),eliminatedAge,reduced);if(ceremony)deathWindow.setVisible(false);
         for(var participant:participantViews)participant.updatePortrait(paused?0:delta,reduced,finalSnapshot!=null&&participant.playerId().equals(finalSnapshot.impostorId())?eliminatedAge:-1);

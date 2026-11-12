@@ -36,11 +36,31 @@ public final class SystemBreachSession {
     public synchronized List<SystemBreachView.Event> eventsAfter(long sequence){return events.stream().filter(e->e.sequence()>sequence).toList();}
     public synchronized SystemBreachPhase phase(){return phase;}
     public synchronized boolean hasPlayer(String player){return players.containsKey(player);}
+    /** Party passwords: symbols, letters, a digit and one easy word — "#&QZ7_owl". */
+    private static final String SYM="#$%&@?*!",LET="ABCDEFGHKMNPQRSTUVWXYZ",DIG="23456789";
+    private static final String[] EASY={"cat","sun","owl","box","red","fox","sky","ice","key","map","egg","bee"};
+    private static final Map<Character,String> LOOK=Map.ofEntries(Map.entry('#',"@%"),Map.entry('@',"#&"),Map.entry('%',"#&"),Map.entry('&',"%$"),Map.entry('$',"S&"),Map.entry('?',"!7"),Map.entry('*',"#+"),Map.entry('!',"?|"),
+        Map.entry('Q',"O"),Map.entry('O',"Q"),Map.entry('M',"N"),Map.entry('N',"M"),Map.entry('B',"8"),Map.entry('S',"5"),Map.entry('Z',"2"),Map.entry('G',"C"),Map.entry('C',"G"),Map.entry('E',"F"),Map.entry('F',"E"),Map.entry('P',"R"),Map.entry('R',"P"),Map.entry('V',"U"),Map.entry('U',"V"),
+        Map.entry('6',"9"),Map.entry('9',"6"),Map.entry('5',"S"),Map.entry('8',"B"),Map.entry('2',"Z"),Map.entry('3',"8"),Map.entry('7',"1"),Map.entry('4',"A"));
+    public volatile boolean symbolPasswords;
+    private char pick(String s){return s.charAt(random.nextInt(s.length()));}
+    private String forge(){return ""+pick(SYM)+pick(SYM)+pick(LET)+pick(LET)+pick(DIG)+"_"+EASY[random.nextInt(EASY.length)];}
+    /** A decoy one look-alike away from the real password (or a neighbouring easy word). */
+    private String decoy(String real){
+        char[] c=real.toCharArray();int us=real.indexOf('_');
+        for(int tries=0;tries<20;tries++){int i=random.nextInt(us+1);
+            if(i==us){String w=EASY[random.nextInt(EASY.length)];String d=real.substring(0,us+1)+w;if(!d.equals(real))return d;continue;}
+            String alt=LOOK.getOrDefault(c[i],"");if(alt.isEmpty())continue;char[] d=c.clone();d[i]=alt.charAt(random.nextInt(alt.length()));return new String(d);}
+        return forge();
+    }
+    /** Turns on the party rules (keys and forged passwords) before anyone has chosen. */
+    public synchronized void partyMode(){keyGating=true;symbolPasswords=true;for(var p:players.values())if(p.password==null)p.passwordOptions=options(null);}
     private List<String> options(String required){
+        if(symbolPasswords){List<String> o=new ArrayList<>();if(required!=null){o.add(required);while(o.size()<4){String d=decoy(required);if(!o.contains(d))o.add(d);}}else while(o.size()<3){String f=forge();if(!o.contains(f))o.add(f);}Collections.shuffle(o,random);return List.copyOf(o);}
         var words=new ArrayList<>(ChallengeFactory.WORDS);Collections.shuffle(words,random);List<String> options=new ArrayList<>();if(required!=null)options.add(required);
         for(String word:words)if(!options.contains(word)&&options.size()<3)options.add(word);Collections.shuffle(options,random);return List.copyOf(options);
     }
-    private void rotatePassword(SystemBreachPlayerState p){String old=p.password;var choices=ChallengeFactory.WORDS.stream().filter(word->!word.equals(old)).toList();p.password=choices.get(random.nextInt(choices.size()));p.passwordVersion++;p.passwordOptions=List.of();for(var viewer:players.values())if(viewer.traceTarget.equals(p.id)){viewer.trace="";viewer.traceTarget="";}}
+    private void rotatePassword(SystemBreachPlayerState p){String old=p.password;var choices=ChallengeFactory.WORDS.stream().filter(word->!word.equals(old)).toList();p.password=symbolPasswords?forge():choices.get(random.nextInt(choices.size()));p.passwordVersion++;p.passwordOptions=List.of();for(var viewer:players.values())if(viewer.traceTarget.equals(p.id)){viewer.trace="";viewer.traceTarget="";}}
     private void enterActive(long now){for(var p:players.values())if(p.password==null){p.password=p.passwordOptions.get(random.nextInt(p.passwordOptions.size()));p.passwordOptions=List.of();p.passwordVersion++;}phase=SystemBreachPhase.ACTIVE;phaseStarted=now;activeEnds=now+cfg.get(GAME_MS);phaseEnds=activeEnds;for(var p:players.values())if(p.integrity==0||p.infection>=100)compromise(p,now);}
     private List<SystemBreachPlayerState> ranked(){var order=new ArrayList<>(players.values());order.sort(Comparator.comparingInt(SystemBreachPlayerState::ap).reversed().thenComparingInt(p->p.seat));return order;}
     private void complete(long now){
