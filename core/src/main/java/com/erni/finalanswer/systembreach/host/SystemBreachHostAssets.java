@@ -52,7 +52,7 @@ final class SystemBreachHostAssets implements Disposable {
             var p=new FreeTypeFontGenerator.FreeTypeFontParameter();p.size=size;p.kerning=true;
             StringBuilder chars=new StringBuilder(FreeTypeFontGenerator.DEFAULT_CHARS);
             if(cyrillic)for(char c='Ѐ';c<='ӿ';c++)chars.append(c);
-            p.characters=chars.append("–—…·").toString();
+            p.characters=chars.append("–—…·×№").toString();
             p.minFilter=Texture.TextureFilter.Linear;p.magFilter=Texture.TextureFilter.Linear;
             return generator.generateFont(p);
         }finally{generator.dispose();}

@@ -142,7 +142,7 @@ public final class SystemBreachSession {
                 case "CHALLENGE_REQUEST"->{fields(data,"type");requireAllowed(challengeReason(p,now));var challengeType=type(ChallengeType.class,data,"type");if(activeEnds-now<factory.minimumWindow(challengeType))throw new BreachFailure("ROUND_ENDING");p.challenge=factory.earning(challengeType,now,activeEnds);result=result("PLAYER_UPDATE","CHALLENGE_READY");}
                 case "CHALLENGE_SUBMIT"->{
                     fields(data,"challengeId","answer");ordinary(p,now);if(p.challenge==null||!p.challenge.id.equals(text(data,"challengeId")))throw new BreachFailure("STALE_CHALLENGE");
-                    if(!data.has("answer"))throw BreachFailure.invalid();boolean correct=p.challenge.validate(data.get("answer"),now);int reward=correct?p.credit(p.challenge.reward):0;if(correct)p.challengesSolved++;else p.challengeFailures++;p.recordChallenge(p.challenge,correct,now,reward);if(correct&&keyGating&&++p.keyProgress>=KEY_EVERY){p.keyProgress=0;p.keys++;event(now,"KEY_EARNED","",p.id,p.keys);}if(reward>0)event(now,"CHALLENGE_SOLVED","",p.id,reward);
+                    if(!data.has("answer"))throw BreachFailure.invalid();boolean correct=p.challenge.validate(data.get("answer"),now);int reward=correct?p.credit(p.challenge.reward*p.multiplier):0;if(correct)p.challengesSolved++;else p.challengeFailures++;p.recordChallenge(p.challenge,correct,now,reward);if(correct&&keyGating&&++p.keyProgress>=KEY_EVERY){p.keyProgress=0;p.keys++;event(now,"KEY_EARNED","",p.id,p.keys);}if(reward>0)event(now,"CHALLENGE_SOLVED","",p.id,reward);
                     p.challenge=null;p.challengeReadyAt=now+cfg.get(CHALLENGE_GAP_MS);result=new ActionResult("CHALLENGE_RESULT",correct?"SUCCESS":"FAILED",Map.of("reward",reward));
                 }
                 case "ATTACK_REQUEST"->{
@@ -158,6 +158,10 @@ public final class SystemBreachSession {
                 }
                 case "FIREWALL_UPGRADE"->{
                     fields(data);requireAllowed(firewallReason(p,now));int cost=firewallCost(p);p.spend(cost);p.defenseSpent+=cost;p.firewall++;p.firewallUpgrades++;if(keyGating)p.keys--;event(now,"FIREWALL_UPGRADED","",p.id,p.firewall);result=result("PLAYER_UPDATE","FIREWALL_UPGRADED");
+                }
+                case "MULTIPLIER_UPGRADE"->{
+                    fields(data);requireAllowed(multiplierReason(p,now));int cost=multiplierCost(p);p.spend(cost);if(keyGating)p.keys--;p.multiplier++;
+                    event(now,"MULTIPLIER_UPGRADED","",p.id,p.multiplier);result=result("PLAYER_UPDATE","MULTIPLIER_UPGRADED");
                 }
                 case "SPECIAL_ATTACK"->{
                     fields(data,"targetId","type");var target=player(text(data,"targetId"));SpecialAttackType special=type(SpecialAttackType.class,data,"type");
@@ -221,6 +225,10 @@ public final class SystemBreachSession {
     private int firewallCost(SystemBreachPlayerState p){return p.firewall==1?cfg.get(FIREWALL_2_COST):p.firewall==2?cfg.get(FIREWALL_3_COST):0;}
     private String ordinaryReason(SystemBreachPlayerState p,long now){return phase!=SystemBreachPhase.ACTIVE?"SB_NOT_ACTIVE":p.compromised?"SB_RECOVERY_REQUIRED":p.blocked(now)?"SB_TEMPORARILY_BLOCKED":"";}
     private String challengeReason(SystemBreachPlayerState p,long now){String base=ordinaryReason(p,now);return !base.isEmpty()?base:p.challenge!=null?"SB_CHALLENGE_PENDING":now<p.challengeReadyAt?"SB_CHALLENGE_COOLDOWN":"";}
+    /** Answer multiplier ×1 → ×2 → ×3: a key plus 20 / 40 AP. */
+    public static final int MAX_MULTIPLIER=3;
+    private int multiplierCost(SystemBreachPlayerState p){return p.multiplier==1?20:40;}
+    private String multiplierReason(SystemBreachPlayerState p,long now){String base=ordinaryReason(p,now);return !base.isEmpty()?base:keyGating&&p.keys<=0?"SB_NEED_KEY":p.multiplier>=MAX_MULTIPLIER?"SB_MAX_MULTIPLIER":p.ap()<multiplierCost(p)?"SB_INSUFFICIENT_AP":"";}
     private String firewallReason(SystemBreachPlayerState p,long now){String base=ordinaryReason(p,now);return !base.isEmpty()?base:keyGating&&p.keys<=0?"SB_NEED_KEY":p.firewall>=3?"SB_MAX_FIREWALL":p.ap()<firewallCost(p)?"SB_INSUFFICIENT_AP":"";}
     private String targetReason(SystemBreachPlayerState p,SystemBreachPlayerState target,long now,Set<String> online,boolean reserve){
         return p.id.equals(target.id)?"SB_SELF_ATTACK":!online.contains(target.id)?"SB_TARGET_DISCONNECTED":target.compromised||target.blocked(now)||now<target.immuneUntil?"SB_TARGET_PROTECTED":reserve&&players.values().stream().anyMatch(a->a.attack!=null&&a.attack.target.equals(target.id))?"SB_TARGET_BUSY":"";
@@ -241,7 +249,7 @@ public final class SystemBreachSession {
         Map<String,Object> challenges=new LinkedHashMap<>();for(var type:ChallengeType.values()){String reason=challengeReason(p,now);if(reason.isEmpty()&&activeEnds-now<factory.minimumWindow(type))reason="SB_ROUND_ENDING";challenges.put(type.name(),permission(reason,0,p.challengeReadyAt));}actions.put("challengeTypes",challenges);
         actions.put("answer",permission(!base.isEmpty()?base:p.challenge==null?"SB_STALE_CHALLENGE":"",0,0));
         actions.put("attackSubmit",permission(!base.isEmpty()?base:p.attack==null?"SB_STALE_ATTACK":"",0,0));
-        actions.put("firewall",permission(firewallReason(p,now),firewallCost(p),0));
+        actions.put("firewall",permission(firewallReason(p,now),firewallCost(p),0));actions.put("multiplier",permission(multiplierReason(p,now),multiplierCost(p),0));
         actions.put("recovery",permission(phase!=SystemBreachPhase.ACTIVE?"SB_NOT_ACTIVE":p.recovery==null?"SB_STALE_RECOVERY":"",0,0));
         List<Map<String,Object>> targets=new ArrayList<>();
         for(var target:players.values())if(!target.id.equals(p.id)){
@@ -254,7 +262,7 @@ public final class SystemBreachSession {
     public synchronized Map<String,Object> snapshot(String self,boolean host,long now,Set<String> online,Map<String,String> names){
         Map<String,Object> view=new LinkedHashMap<>();view.put("schemaVersion",1);view.put("lastEventSequence",eventSequence);view.put("firstEventSequence",events.isEmpty()?eventSequence+1:events.getFirst().sequence());view.put("sessionId",id);view.put("phase",phase.name());view.put("serverTime",now);view.put("phaseStartedAt",phaseStarted);view.put("deadline",phaseEnds==Long.MAX_VALUE?-1:phaseEnds);view.put("remainingMs",phaseEnds==Long.MAX_VALUE?0:Math.max(0,phaseEnds-now));
         List<SystemBreachView.Player> rows=new ArrayList<>();int rank=0;for(var p:ranked())rows.add(new SystemBreachView.Player(p.id,names.getOrDefault(p.id,p.id),p.ap(),p.firewall,p.effectiveFirewall(now),p.integrity,p.infection,p.integrity==0,p.compromised,p.recovery!=null,!online.contains(p.id),p.effect==null?"":p.effect.name(),p.effectUntil,p.attackReadyAt,++rank,p.immuneUntil,p.statistics()));
-        view.put("players",List.copyOf(rows));view.put("events",List.copyOf(events));view.put("role",host?"HOST":players.containsKey(self)?"PLAYER":"SPECTATOR");
+        view.put("players",List.copyOf(rows));{Map<String,Object> mult=new LinkedHashMap<>();for(var p:players.values())mult.put(p.id,p.multiplier);view.put("multipliers",mult);}view.put("events",List.copyOf(events));view.put("role",host?"HOST":players.containsKey(self)?"PLAYER":"SPECTATOR");
         if(results.isEmpty())view.put("winnerId","");else{var outcome=outcome(names);view.put("winnerId",outcome.winnerId());view.put("results",outcome);}
         var p=players.get(self);if(p!=null&&!closed&&phase!=SystemBreachPhase.FINISHED){
             Map<String,Object> me=new LinkedHashMap<>();me.put("passwordSelected",p.password!=null);me.put("passwordOptions",phase==SystemBreachPhase.INITIALIZATION?p.passwordOptions:List.of());

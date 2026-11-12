@@ -19,11 +19,14 @@ public final class SystemBreachHostViewModel {
 
     public static final class Slot {
         public final String id;public String name="",characterId="";
-        public int ap,firewall=1,rank;public float shownAp;public boolean leader;
+        public int ap,firewall=1,rank,multiplier=1;public float shownAp;public boolean leader;
         public Status status=Status.ONLINE;public float statusAge;
         public int delta;public float deltaAge=99;              // floating "+15 AP"
         public Reaction reaction=Reaction.NONE;public float reactionAge=99;
-        public float boardY=-1;                                  // eased leaderboard row position
+        public float boardY=-1,multAge=99,rankAge=99;public int shownRank;
+        private int rankKey=-1,multKey=-1;private String rankText="",multText="";
+        public String rankText(){if(rankKey!=rank){rankKey=rank;rankText=String.valueOf(rank);}return rankText;}
+        public String multText(){if(multKey!=multiplier){multKey=multiplier;multText="×"+multiplier;}return multText;}                                  // eased leaderboard row position
         boolean russianText;
         Slot(String id){this.id=id;}
         // cached strings: rebuilt only when the shown value changes, never per frame
@@ -75,6 +78,7 @@ public final class SystemBreachHostViewModel {
             int ap=num(p,"accessPoints");if(s.shownAp<0){s.shownAp=ap;}else if(ap!=s.ap&&s.rank>0){s.delta=ap-s.ap;s.deltaAge=0;}
             s.ap=ap;s.firewall=num(p,"firewallLevel");s.rank=num(p,"rank");ranking.add(s);
         }
+        if(sb.has("multipliers"))for(var e:sb.getAsJsonObject("multipliers").entrySet()){Slot s=byId.get(e.getKey());if(s!=null){int m=e.getValue().getAsInt();if(s.multiplier!=m)s.multAge=0;s.multiplier=m;}}
         for(int i=0;i<ranking.size();i++)ranking.get(i).leader=i==0&&ranking.get(i).ap>0;
 
         JsonArray events=sb.has("events")?sb.getAsJsonArray("events"):new JsonArray();
@@ -88,7 +92,7 @@ public final class SystemBreachHostViewModel {
                 default->{}
             }
             if(seq>lastSequence){
-                if(lastSequence>=0){react(type,a,t);String big=headline(type,a,t,num(ev,"amount"));if(big!=null){toast=big;toastAge=0;toastTone=type.equals("ATTACK_FAILED")||type.equals("ATTACK_EXPIRED")?Tone.RECOVERY:type.equals("FIREWALL_UPGRADED")?Tone.FIREWALL:type.startsWith("RECOVERY")||type.equals("EMERGENCY_RESTORED")?Tone.REWARD:Tone.HACK;}}
+                if(lastSequence>=0){react(type,a,t);String big=headline(type,a,t,num(ev,"amount"));if(big!=null){toast=big;toastAge=0;toastTone=type.equals("MULTIPLIER_UPGRADED")?Tone.REWARD:type.equals("ATTACK_FAILED")||type.equals("ATTACK_EXPIRED")?Tone.RECOVERY:type.equals("FIREWALL_UPGRADED")?Tone.FIREWALL:type.startsWith("RECOVERY")||type.equals("EMERGENCY_RESTORED")?Tone.REWARD:Tone.HACK;}}
                 LogLine line=line(type,a,t,num(ev,"amount"),seq);if(line!=null)line=new LogLine(line.sequence(),line.text(),line.tone(),Math.max(0,at-phaseStartedAt));
                 if(line!=null){log.addLast(line);if(log.size()>LOG_SIZE)log.removeFirst();System.arraycopy(logAge,0,logAge,1,LOG_SIZE-1);logAge[0]=lastSequence<0?99:0;}
             }
@@ -111,7 +115,7 @@ public final class SystemBreachHostViewModel {
             case "ATTACK_SUCCEEDED"->{set(attacker,Reaction.TRIUMPH);set(target,Reaction.HIT);}
             case "ATTACK_FAILED"->set(attacker,Reaction.HIT);
             case "RECOVERY_SUCCEEDED","EMERGENCY_RESTORED"->set(target,Reaction.RECOVERED);
-            case "FIREWALL_UPGRADED"->set(target,Reaction.UPGRADE);
+            case "FIREWALL_UPGRADED","MULTIPLIER_UPGRADED"->set(target,Reaction.UPGRADE);
             case "TROJAN","DATA_LEAK","SYSTEM_OVERLOAD","FIREWALL_BREAKER","TRACE_ATTACK"->{set(attacker,Reaction.TRIUMPH);set(target,Reaction.HIT);}
             default->{}
         }
@@ -130,6 +134,7 @@ public final class SystemBreachHostViewModel {
             case "RECOVERY_RETRY"->new LogLine(seq,L(who(t)+" recovery failed, retrying",who(t)+": сбой, повтор"),Tone.RECOVERY,0);
             case "RECOVERY_SUCCEEDED"->new LogLine(seq,L(who(t)+" is back online",who(t)+" снова в сети"),Tone.REWARD,0);
             case "EMERGENCY_RESTORED"->new LogLine(seq,L(who(t)+" emergency restore",who(t)+": аварийный откат"),Tone.RECOVERY,0);
+            case "MULTIPLIER_UPGRADED"->new LogLine(seq,L(who(t)+" multiplier ×"+amount,who(t)+": множитель ×"+amount),Tone.REWARD,0);
             case "FIREWALL_UPGRADED"->new LogLine(seq,L(who(t)+" upgraded firewall to Lv."+amount,who(t)+": фаервол ур."+amount),Tone.FIREWALL,0);
             case "CHALLENGE_SOLVED"->new LogLine(seq,L(who(t)+" earned +"+amount+" AP",who(t)+" получил +"+amount+" AP"),Tone.REWARD,0);
             case "TROJAN"->new LogLine(seq,L(who(a)+" planted a Trojan in "+who(t),who(a)+" внедрил троян в "+who(t)),Tone.HACK,0);
@@ -148,6 +153,7 @@ public final class SystemBreachHostViewModel {
             case "ATTACK_FAILED"->L("HACK FAILED  "+who(a)+" > "+who(t),"ПРОВАЛ ВЗЛОМА  "+who(a)+" > "+who(t));
             case "ATTACK_EXPIRED"->L("HACK TIMED OUT  "+who(a),"ВРЕМЯ ВЗЛОМА ВЫШЛО  "+who(a));
             case "ATTACK_SUCCEEDED"->L("HACK SUCCESS  ","ВЗЛОМ УДАЛСЯ  ")+L(who(a)+" > "+who(t),who(a)+" > "+who(t))+(amount>0?"   +"+amount+" AP":"");
+            case "MULTIPLIER_UPGRADED"->who(t)+L("  POINTS ×","  ОЧКИ ×")+amount;
             case "FIREWALL_UPGRADED"->who(t)+L("  FIREWALL LV.","  ФАЕРВОЛ УР.")+amount;
             case "RECOVERY_SUCCEEDED"->who(t)+L(" IS BACK ONLINE"," СНОВА В СЕТИ");
             case "TROJAN","DATA_LEAK","SYSTEM_OVERLOAD","FIREWALL_BREAKER","TRACE_ATTACK"->L(type.replace('_',' '),switch(type){case "TROJAN"->"ТРОЯН";case "DATA_LEAK"->"УТЕЧКА ДАННЫХ";case "SYSTEM_OVERLOAD"->"ПЕРЕГРУЗКА";case "FIREWALL_BREAKER"->"ПРОБОЙ ФАЕРВОЛА";default->"СЛЕЖКА";})+"!  "+who(a)+" > "+who(t);
@@ -160,7 +166,7 @@ public final class SystemBreachHostViewModel {
     /** Display easing only. */
     public void update(float dt){
         for(Slot s:slots){
-            s.statusAge+=dt;s.deltaAge+=dt;s.reactionAge+=dt;
+            s.statusAge+=dt;s.deltaAge+=dt;s.reactionAge+=dt;s.multAge+=dt;s.rankAge+=dt;if(s.shownRank!=s.rank){if(s.shownRank!=0)s.rankAge=0;s.shownRank=s.rank;}
             float k=1-(float)Math.exp(-dt*6);s.shownAp+=(s.ap-s.shownAp)*k;if(Math.abs(s.ap-s.shownAp)<.5f)s.shownAp=s.ap;
         }
         for(int i=0;i<LOG_SIZE;i++)logAge[i]+=dt;toastAge+=dt;

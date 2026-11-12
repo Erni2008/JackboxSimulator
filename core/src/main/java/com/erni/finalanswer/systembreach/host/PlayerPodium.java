@@ -71,6 +71,12 @@ final class PlayerPodium {
         p.plate(bx,by,bw,BADGE_H,9,c.set(ac.r*fill,ac.g*fill,ac.b*fill,.97f),c2.set(ac.r*fill*.6f,ac.g*fill*.6f,ac.b*fill*.6f,.97f));
         r.setColor(1,1,1,.2f);r.rect(bx+9,by+BADGE_H-6,bw-18,2);
         if(s.leader)p.crown(x,top+6,30,SbPaint.GOLD);
+        // place badge: hexagon on the top-left corner, podium colours for the top three
+        {Color rc=s.rank==1?SbPaint.GOLD:s.rank==2?SbPaint.SILVER:s.rank==3?SbPaint.BRONZE:c2.set(.35f,.55f,.45f,1);float hx=left+4,hy=top-4,k=1+.35f*Math.max(0,1-s.rankAge/.4f),R=17*k;
+         r.setColor(0,0,0,.6f);hex(r,hx+1,hy-2,R+3);r.setColor(rc);hex(r,hx,hy,R+1.5f);r.setColor(.05f,.05f,.05f,1);hex(r,hx,hy,R-1.5f);}
+        // multiplier chip on the top-right corner
+        if(s.multiplier>1){float k=1+.5f*Math.max(0,1-s.multAge/.5f),w=40*k,h=24*k,mx=right-w/2-2,my=top-2;
+         r.setColor(0,0,0,.6f);r.rect(mx-w/2+2,my-h/2-3,w,h);p.plate(mx-w/2,my-h/2,w,h,6,SbPaint.GOLD,c2.set(.75f,.5f,.1f,1));}
     }
 
     void glow(SpriteBatch b,SystemBreachHostAssets as,Slot s,float x,float time){
@@ -100,5 +106,8 @@ final class PlayerPodium {
         as.status.getData().setScale(1);
         if(s.deltaAge<1.6f&&s.delta!=0){float k=s.deltaAge/1.6f;
             p.centered(b,as.ap,s.deltaText(),x+40,top+22+k*46,s.delta>0?SbPaint.GREEN:SbPaint.RED,1-k*k);}
+        {Color rc=s.rank==1?SbPaint.GOLD:s.rank==2?SbPaint.SILVER:s.rank==3?SbPaint.BRONZE:SbPaint.IVORY;p.centered(b,as.status,s.rankText(),x-PANEL_W/2+4,top-4+as.status.getCapHeight()/2,rc,1);}
+        if(s.multiplier>1)p.centered(b,as.status,s.multText(),x+PANEL_W/2-22,top-2+as.status.getCapHeight()/2,c.set(.12f,.07f,0,1),1);
     }
+    private static void hex(ShapeRenderer r,float x,float y,float R){for(int i=0;i<6;i++){float a=i*60*MathUtils.degRad,b=(i+1)*60*MathUtils.degRad;r.triangle(x,y,x+MathUtils.cos(a)*R,y+MathUtils.sin(a)*R,x+MathUtils.cos(b)*R,y+MathUtils.sin(b)*R);}}
 }

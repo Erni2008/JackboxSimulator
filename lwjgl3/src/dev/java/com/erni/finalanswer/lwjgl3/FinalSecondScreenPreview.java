@@ -30,13 +30,16 @@ public final class FinalSecondScreenPreview {
             void grab(String n){Pixmap p=ScreenUtils.getFrameBufferPixmap(0,0,Gdx.graphics.getBackBufferWidth(),Gdx.graphics.getBackBufferHeight());try{PixmapIO.writePNG(Gdx.files.absolute(cap+"/"+n+".png"),p,-1,true);}finally{p.dispose();}}
             JsonObject snap(){
                 JsonObject f=new JsonObject();f.addProperty("sessionId","p");f.addProperty("phase",ph[i]);f.addProperty("phaseStartedAt",start);f.addProperty("phaseEndsAt",dur[i]<0?-1:start+dur[i]);
-                boolean blind=Boolean.getBoolean("fs.blind")||(System.getProperty("fs.capture","").isEmpty()&&(start/30000)%2==1);f.addProperty("targetMs",7000);f.addProperty("visibleMs",blind?0:3000);f.addProperty("blind",blind);f.addProperty("revealIntroMs",2200);f.addProperty("revealStepMs",2600);
+                boolean chain=Boolean.getBoolean("fs.chain");boolean blind=chain||Boolean.getBoolean("fs.blind")||(System.getProperty("fs.capture","").isEmpty()&&(start/30000)%2==1);f.addProperty("task",chain?"CHAIN":blind?"BLIND":"NORMAL");f.addProperty("manualStart",true);f.addProperty("targetMs",chain?2000:7000);f.addProperty("visibleMs",blind?0:3000);f.addProperty("blind",blind);f.addProperty("revealIntroMs",2200);f.addProperty("revealStepMs",2600);
                 String[] ids={"a","b","c","d"};JsonArray seats=new JsonArray();for(String id:ids)seats.add(id);f.add("seats",seats);
                 long runStart=3000+3500+3000;if(i>=3)f.addProperty("runStart",runStart);
+                JsonArray started=new JsonArray();if(i>=3)for(String id:ids)started.add(id);f.add("started",started);
+                long passed=Math.max(0,now-runStart);int turn=(int)(passed/1800);f.addProperty("pressCount",i>=3?turn*2+(passed%1800>600?1:0):0);
+                if(chain){f.addProperty("activePlayer",ids[turn%4]);f.addProperty("turnId",turn+1);f.addProperty("turnRunning",i==3&&passed%1800>600);f.addProperty("maxTurnMs",2000);}
                 JsonArray st=new JsonArray();long el=now-runStart;if(i>3||el>6400)st.add("b");if(i>3||el>6900)st.add("a");if(i>3||el>7500)st.add("c");if(i>3)st.add("d");f.add("stopped",st);
                 if(i>=4){JsonArray rs=new JsonArray();Object[][] r={{"a",6980,20,1,false},{"b",7050,50,2,false},{"c",7420,420,3,false},{"d",8310,1310,4,true}};
-                    for(Object[] x:r){JsonObject o=new JsonObject();o.addProperty("playerId",(String)x[0]);o.addProperty("stoppedMs",(int)x[1]);o.addProperty("errorMs",(int)x[2]);o.addProperty("rank",(int)x[3]);o.addProperty("stopped",true);o.addProperty("eliminated",(boolean)x[4]);rs.add(o);}
-                    f.add("results",rs);}
+                    for(Object[] x:r){JsonObject o=new JsonObject();o.addProperty("playerId",(String)x[0]);o.addProperty("stoppedMs",chain?((boolean)x[4]?2050:800+(int)x[3]*250):(int)x[1]);o.addProperty("errorMs",chain?((boolean)x[4]?50:0):(int)x[2]);o.addProperty("rank",chain?((boolean)x[4]?2:1):(int)x[3]);o.addProperty("stopped",true);o.addProperty("eliminated",(boolean)x[4]);rs.add(o);}
+                    if(chain){f.addProperty("chainTotalMs",2050);f.addProperty("lossReason","LIMIT");f.addProperty("loserId","d");}f.add("results",rs);}
                 JsonObject root=new JsonObject();root.add("finalSecond",f);JsonArray ps=new JsonArray();String[] n={"Алиса","Борис","Вика","Гоша"},ch={"ghost","dracula","pumpkin","skeleton"};
                 for(int k=0;k<4;k++){JsonObject o=new JsonObject();o.addProperty("id",ids[k]);o.addProperty("name",n[k]);o.addProperty("characterId",ch[k]);ps.add(o);}root.add("players",ps);return root;
             }

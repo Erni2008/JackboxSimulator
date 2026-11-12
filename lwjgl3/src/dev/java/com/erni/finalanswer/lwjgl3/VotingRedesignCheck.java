@@ -41,6 +41,19 @@ public final class VotingRedesignCheck extends FinalAnswerGame {
             var view=(FinalVotePresentation)stage().getRoot().findActor("finalAct");
             scene.setParticipants(ImpostorPreviewData.participants(8));scene.presentPhase(ImpostorPhase.IMPOSTOR_REVEAL,104000,100000);
             scene.presentFinal(new FinalActSnapshot("warm",ImpostorPhase.IMPOSTOR_REVEAL,100000,104000,90000,0,8,"warm",java.util.List.of(),Map.of(),java.util.List.of(),"preview-0","NO_CONSENSUS"),105000);scene.render(0);
+            // Narration completion controls the reveal, even if the server phase has already advanced.
+            scene.setParticipants(ImpostorPreviewData.participants(4));
+            view.accept(new FinalActSnapshot("audio-gate",ImpostorPhase.SUSPECT_ANNOUNCEMENT,100000,106000,90000,2,4,"gate",java.util.List.of("preview-1","preview-1"),Map.of("preview-1",2),java.util.List.of("preview-1"),"",""));
+            view.verdictTiming(Long.MAX_VALUE,Long.MAX_VALUE);view.update(103000);
+            check(!view.findActor("finalTitle").getParent().isVisible(),"Verdict text stays hidden while the host speaks");
+            view.verdictTiming(104000,Long.MAX_VALUE);view.update(104500);
+            check(view.findActor("finalTitle").getParent().isVisible()&&view.findActor("finalTitle").getParent().getColor().a>.9f,"Announcement fades in only after its effect starts");
+            view.accept(new FinalActSnapshot("audio-gate",ImpostorPhase.IMPOSTOR_REVEAL,106000,120000,90000,2,4,"gate",java.util.List.of("preview-1","preview-1"),Map.of("preview-1",2),java.util.List.of("preview-1"),"preview-1","IMPOSTOR_CAUGHT"));
+            view.update(110000);check(!view.findActor("impostorIdentityReveal").isVisible()&&view.eliminationAge(110000)<0,"No early identity or ghost while narration is pending");
+            view.verdictTiming(104000,110000);view.update(113399);check(!view.findActor("impostorIdentityReveal").isVisible(),"Name waits for the actual score accent");
+            view.update(113650);check(view.findActor("impostorIdentityReveal").isVisible(),"Name fades in on the score accent");
+            check(view.eliminationAge(115799)<0&&view.eliminationAge(115801)>=0,"Elimination follows the delayed name, not the old phase clock");
+            view.hidePresentation();scene.setParticipants(ImpostorPreviewData.participants(8));
             int baseline=Texture.getNumManagedTextures();
             for(int count=2;count<=8;count++){
                 var roster=ImpostorPreviewData.participants(count);scene.setParticipants(roster);var ids=roster.stream().map(p->p.player().id()).toList();

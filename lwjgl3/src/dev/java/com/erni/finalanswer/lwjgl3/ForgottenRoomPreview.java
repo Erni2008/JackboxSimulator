@@ -16,16 +16,20 @@ import java.util.*;
  * Never part of production distributions.
  */
 public final class ForgottenRoomPreview {
+    private static RoomGenerator.Round previewRound(long seed,RoomDifficulty difficulty,RoomCatalog.Layout layout){
+        if(!layout.staging().isEmpty())return RoomGenerator.generate(seed,difficulty,layout);
+        return new RoomGenerator.Round(seed,difficulty,layout,new RoomState(Map.of()),new RoomState(Map.of()),List.of());
+    }
     private static Throwable failure;
     public static void main(String[] args){
         var c=new Lwjgl3ApplicationConfiguration();c.setTitle("Final Answer / THE FORGOTTEN ROOM / Preview");c.setWindowedMode(1920,1080);c.setForegroundFPS(60);c.setBackBufferConfig(8,8,8,8,16,0,4);
         boolean capture=Boolean.getBoolean("room.capture");String out=System.getProperty("room.output","/tmp");
         long seed=Long.getLong("room.seed",11);RoomDifficulty difficulty=RoomDifficulty.parse(System.getProperty("room.difficulty","MEDIUM"));
         new Lwjgl3Application(new Game(){
-            final RoomGenerator.Round round=System.getProperty("room.layout","").isEmpty()?RoomGenerator.generate(seed,difficulty):RoomGenerator.generate(seed,difficulty,RoomCatalog.layout(System.getProperty("room.layout")));
+            final RoomGenerator.Round round=System.getProperty("room.layout","").isEmpty()?RoomGenerator.generate(seed,difficulty):previewRound(seed,difficulty,RoomCatalog.layout(System.getProperty("room.layout")));
             final String[] phases={"INTRO","OBSERVATION","BLACKOUT","CHANGED_ROOM","ANSWER_PHASE","REVEAL","RESULTS"};
             final long[] durations={4500,10000,1200,1500,20000,2500+4500L*round.changes().size(),-1};
-            long now=0,phaseStart=0;int phase=0;ForgottenRoomScreen screen;int shot;
+            long now=0,phaseStart=0;int phase=0,motionFrame=0;ForgottenRoomScreen screen;int shot;
             // capture moments: phase index, seconds into the phase, file name
             final List<Object[]> shots=new ArrayList<>();
             @Override public void create(){try{
@@ -35,6 +39,12 @@ public final class ForgottenRoomPreview {
                 shots.add(new Object[]{6,3.4f,"8-results"});
                 screen=new ForgottenRoomScreen(snapshot(),()->now,m->Gdx.app.exit());setScreen(screen);}catch(Throwable e){failure=e;Gdx.app.exit();}}
             @Override public void render(){try{
+                // Fixed observation state: captures motion without changing gameplay, countdown or object positions.
+                if(Boolean.getBoolean("room.motion")){
+                    now=8000;phase=1;phaseStart=4500;if(motionFrame==0)screen.apply(snapshot());screen.render(1f/30);
+                    if(motionFrame>=30&&motionFrame%6==0)grab(String.format(java.util.Locale.ROOT,"motion-%03d",(motionFrame-30)/6));
+                    if(++motionFrame>=150)Gdx.app.exit();return;
+                }
                 now+=capture?16:(long)(Gdx.graphics.getDeltaTime()*1000);
                 long d=durations[phase];
                 if(d>0&&now-phaseStart>=d){phaseStart+=d;phase=Math.min(phases.length-1,phase+1);screen.apply(snapshot());}
@@ -59,7 +69,7 @@ public final class ForgottenRoomPreview {
                 f.add("places",places);
                 String[] players={"p0","p1","p2","p3"};JsonArray seats=new JsonArray();for(String p:players)seats.add(p);f.add("seats",seats);
                 JsonArray submitted=new JsonArray();if(phase>4||phase==4&&now-phaseStart>4000){submitted.add("p1");submitted.add("p3");}if(phase>4){submitted.add("p0");submitted.add("p2");}f.add("submitted",submitted);
-                f.add("objects",ph.equals("BLACKOUT")?new JsonArray():objects(phase<=1?round.original():round.changed()));
+                f.add("objects",ph.equals("BLACKOUT")?new JsonArray():Boolean.getBoolean("room.props")&&round.layout().id().equals("greenhouse")?greenhouseProps():objects(phase<=1?round.original():round.changed()));
                 if(phase>=5){f.add("original",objects(round.original()));JsonArray key=new JsonArray();int i=0;
                     for(var ch:round.changes()){JsonObject k=new JsonObject();k.addProperty("type",ch.type().name());k.addProperty("object",ch.objectId());k.addProperty("name",RoomCatalog.object(ch.objectId()).nameRu());
                         k.addProperty("caption",ch.captionRu());k.add("before",placed(ch.before()));k.add("after",placed(ch.after()));JsonArray sl=new JsonArray();ch.slots().forEach(sl::add);k.add("slots",sl);
@@ -70,6 +80,25 @@ public final class ForgottenRoomPreview {
                 JsonObject root=new JsonObject();root.add("forgottenRoom",f);root.addProperty("code","PREVIEW");
                 JsonArray ps=new JsonArray();String[] names={"Алиса","Борис","Вика","Гоша"};for(int i=0;i<4;i++){JsonObject o=new JsonObject();o.addProperty("id",players[i]);o.addProperty("name",names[i]);o.addProperty("characterId",new String[]{"dracula","pumpkin","ghost","skeleton"}[i]);ps.add(o);}
                 root.add("players",ps);return root;
+            }
+            JsonArray greenhouseProps(){
+                JsonArray result=new JsonArray();
+                Map<String,String> placement=new LinkedHashMap<>();
+                placement.put("red_roses","front_table_2");placement.put("barrel_cactus","front_table_1");
+                placement.put("white_orchids","left_shelf_lower_1");
+
+                placement.put("ficus_elastica","floor_3");placement.put("column_cactus","floor_4");
+                placement.put("pink_flowers","left_shelf_upper_2");placement.put("african_violets","window_table_1");
+                placement.put("trailing_ivy","left_cabinet_1");
+                placement.put("sunflowers","rear_table_2");placement.put("white_lilies","rear_table_1");
+                placement.put("antique_bonsai","right_shelf_upper_1");
+                placement.put("lavender","front_table_3");placement.put("red_poinsettia","left_cabinet_3");
+                for(var e:placement.entrySet()){
+                    JsonObject o=new JsonObject();o.addProperty("id",e.getKey());o.addProperty("name",e.getKey());
+                    o.addProperty("slot",e.getValue());o.addProperty("size","MEDIUM");o.addProperty("turn","NONE");
+                    o.addProperty("rotated",false);o.addProperty("variant",0);o.addProperty("lit",false);o.addProperty("light",false);result.add(o);
+                }
+                return result;
             }
             JsonArray objects(RoomState st){JsonArray a=new JsonArray();for(var p:st.bySlot().values()){var d=RoomCatalog.object(p.objectId());JsonObject o=new JsonObject();
                 o.addProperty("id",p.objectId());o.addProperty("name",d.nameRu());o.addProperty("slot",p.slotId());o.addProperty("size",d.size().name());o.addProperty("turn",d.turn().name());o.addProperty("rotated",p.rotated());

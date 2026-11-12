@@ -14,7 +14,7 @@ final class SystemBreachPlayerState {
     int earned,stolen,lost,spent,penalties,challengesSolved,challengeFailures,attacksStarted,attacksSucceeded,attacksFailed,attacksInterrupted,recoveries,emergencyRecoveries,recoveryFailuresTotal,specialAttacks,firewallUpgrades;
     final ArrayDeque<Long> hostileHits=new ArrayDeque<>();
     SystemBreachView.Statistics statistics(){Map<String,SystemBreachView.ChallengeMetric> metrics=new LinkedHashMap<>();challengeMetrics.forEach((type,metric)->metrics.put(type.name(),metric));return new SystemBreachView.Statistics(earned,stolen,lost,spent,penalties,challengesSolved,challengeFailures,attacksStarted,attacksSucceeded,attacksFailed,attacksInterrupted,recoveries,emergencyRecoveries,recoveryFailuresTotal,specialAttacks,firewallUpgrades,defenseSpent,attackSpent,specialSpent,recoveringMs,metrics);}
-    int keys,keyProgress,firewall=1,integrity,infection,recoveryFailures;
+    int multiplier=1,keys,keyProgress,firewall=1,integrity,infection,recoveryFailures;
     String password;List<String> passwordOptions;long passwordVersion;
     boolean compromised;BreachChallenge challenge,recovery;
     final ArrayDeque<RecoveryType> recoveryBag=new ArrayDeque<>();RecoveryType lastRecovery;

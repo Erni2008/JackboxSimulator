@@ -57,7 +57,7 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
   const mk=(tag,cls,text,parent)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;if(tag==='button'){e.type='button';e.dataset.nativeButton='';}if(parent)parent.append(e);return e;};
   const secs=t=>Math.max(0,Math.ceil((t-now())/1000));
   const mmss=ms=>{const s=Math.max(0,Math.ceil(ms/1000));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');};
-  const REASONS={SB_INSUFFICIENT_AP:'мало AP',SB_ATTACK_COOLDOWN:'перезарядка',SB_TARGET_PROTECTED:'под защитой',SB_TARGET_BUSY:'уже атакуют',SB_TARGET_DISCONNECTED:'не в сети',SB_MAX_FIREWALL:'максимум',SB_CHALLENGE_COOLDOWN:'подожди',SB_ROUND_ENDING:'раунд кончается',SB_RECOVERY_REQUIRED:'сначала перезагрузка',SB_TEMPORARILY_BLOCKED:'система заблокирована',SB_ATTACK_PENDING:'атака уже идёт',SB_CHALLENGE_PENDING:'задание уже есть',SB_NEED_KEY:'нужен ключ'};
+  const REASONS={SB_INSUFFICIENT_AP:'мало AP',SB_ATTACK_COOLDOWN:'перезарядка',SB_TARGET_PROTECTED:'под защитой',SB_TARGET_BUSY:'уже атакуют',SB_TARGET_DISCONNECTED:'не в сети',SB_MAX_FIREWALL:'максимум',SB_CHALLENGE_COOLDOWN:'подожди',SB_ROUND_ENDING:'раунд кончается',SB_RECOVERY_REQUIRED:'сначала перезагрузка',SB_TEMPORARILY_BLOCKED:'система заблокирована',SB_ATTACK_PENDING:'атака уже идёт',SB_CHALLENGE_PENDING:'задание уже есть',SB_NEED_KEY:'нужен ключ',SB_MAX_MULTIPLIER:'максимум'};
   const reason=p=>p?.allowed?'':(REASONS[p?.reason]||'недоступно');
   function act(type,fields){const id=requests.action(type,fields);if(id){navigator.vibrate?.(12);render();}return id;}
   function say(text){const t=el('sbx-toast');t.textContent=text;t.classList.remove('on');void t.offsetWidth;t.classList.add('on');}
@@ -116,6 +116,8 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
       const anyHack=(a.targets||[]).some(t=>t.attack?.allowed),anyTrojan=(a.targets||[]).some(t=>t.specials?.TROJAN?.allowed);
       card(g,{icon:'\ue1b3',title:'Взлом',sub:anyHack?'угадай пароль — укради AP':(mine?.attackReadyAt>now()?'перезарядка '+secs(mine.attackReadyAt)+' с':'нет целей'),cls:'hack',disabled:requests.pending()||!anyHack,onClick:()=>{mode='hack';viewKey='';render();},delay:0});
       card(g,{icon:'\ue32a',title:'Фаервол',sub:a.firewall?.allowed?'LV'+(mine?.firewallLevel||1)+' → LV'+((mine?.firewallLevel||1)+1)+' · −'+a.firewall.cost+' AP':reason(a.firewall),cls:'fw',disabled:requests.pending()||!a.firewall?.allowed,onClick:()=>act('FIREWALL_UPGRADE'),delay:70});
+      const mu=a.multiplier,curM=s.multipliers?.[getState()?.selfId]||1;
+      card(g,{icon:'\ue3d2',title:'Множитель',sub:mu?.allowed?'очки ×'+curM+' → ×'+(curM+1)+' · −'+mu.cost+' AP':(mu?.reason==='SB_MAX_MULTIPLIER'?'максимум ×3':reason(mu)),cls:'mult',disabled:requests.pending()||!mu?.allowed,onClick:()=>act('MULTIPLIER_UPGRADE'),delay:105});
       card(g,{icon:'\ue868',title:'Троян',sub:anyTrojan?'заблокируй соперника':'недоступно',cls:'trojan',disabled:requests.pending()||!anyTrojan,onClick:()=>{mode='trojan';viewKey='';render();},delay:140});
       card(g,{icon:'\ue01f',title:'Копить ключ',sub:'продолжить вопросы',cls:'save',disabled:requests.pending(),onClick:()=>{banked=keys;viewKey='';render();},delay:210});
       return;
@@ -126,6 +128,8 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
   function stats(s,me,mine){
     const selfId=getState()?.selfId,img=el('sbx-avatar'),src=face(selfId);if(src&&img.getAttribute('src')!==src)img.src=src;el('sbx-name').textContent=mine?.nickname||'';
     {const ap=el('sbx-ap'),v=String(mine?mine.accessPoints:'—');if(ap.textContent!==v){if(ap.textContent!==''&&ap.textContent!=='0'||v!=='0'){ap.classList.remove('bump');void ap.offsetWidth;ap.classList.add('bump');}ap.textContent=v;}}el('sbx-fw').textContent='LV'+(mine?.firewallLevel||1);
+    {const m=s.multipliers?.[getState()?.selfId]||1,me2=el('sbx-mult');const v='×'+m;if(me2.textContent!==v){me2.textContent=v;me2.classList.remove('bump');void me2.offsetWidth;me2.classList.add('bump');}me2.parentElement.dataset.on=String(m>1);
+     const pl=el('sbx-place'),pv=mine?mine.rank+'/'+s.players.length:'—';if(pl.textContent!==pv){if(pl.textContent!=='—'){pl.classList.remove('bump');void pl.offsetWidth;pl.classList.add('bump');}pl.textContent=pv;}pl.parentElement.dataset.rank=String(mine?.rank||0);}
     const st=el('sbx-state'),scr=el('sbx-screen');
     const state=!mine?'watch':mine.disconnected?'off':mine.recovering||mine.compromised?'hacked':me.attack?.attackId?'attack':'ok';
     st.textContent={watch:'ЗРИТЕЛЬ',off:'НЕ В СЕТИ',hacked:'ВЗЛОМАН',attack:'ВЗЛОМ…',ok:'В СЕТИ'}[state];st.dataset.state=state;scr.dataset.state=state;
@@ -140,7 +144,7 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
       if(verdict.kind==='quiz')showVerdict(st==='SUCCESS',st==='SUCCESS'?'ВЕРНО  +'+amt+' AP':'НЕВЕРНО');
       else if(verdict.kind==='hack')showVerdict(st==='SUCCESS',st==='SUCCESS'?'ВЗЛОМ УДАЛСЯ'+(amt?'  +'+amt+' AP':''):'ПАРОЛЬ НЕВЕРНЫЙ');
       else showVerdict(st==='SUCCESS',st==='SUCCESS'?'СИСТЕМА ВОССТАНОВЛЕНА':st==='EMERGENCY_RESTORED'?'АВАРИЙНЫЙ ОТКАТ':'НЕВЕРНО — ЕЩЁ ВОПРОС');return;}
-    const msg={FIREWALL_UPGRADED:'Фаервол улучшен',SPECIAL_APPLIED:'Троян внедрён'}[r.status];if(msg){say(msg);flash('flash-ok');}
+    const msg={MULTIPLIER_UPGRADED:'Множитель очков повышен',FIREWALL_UPGRADED:'Фаервол улучшен',SPECIAL_APPLIED:'Троян внедрён'}[r.status];if(msg){say(msg);flash('flash-ok');}
   }
   function celebrate(keys){
     celebrateUntil=now()+1700;const b=body();b.replaceChildren();
@@ -161,7 +165,7 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
     // the stream of questions never stops on its own
     if(s.phase==='ACTIVE'&&s.role==='PLAYER'&&!mode&&keys<=banked&&!requests.pending()&&!me.challenge?.challengeId&&!me.recovery?.challengeId&&!me.attack?.attackId&&a.challengeTypes?.QUICK_QUESTION?.allowed&&now()-lastAsk>600){lastAsk=now();act('CHALLENGE_REQUEST',{type:'QUICK_QUESTION'});}
     const key=[s.sessionId,s.phase,s.role,me.passwordSelected,(me.passwordOptions||[]).join(),me.recovery?.challengeId,me.challenge?.challengeId,me.attack?.attackId,mode,keys>banked,keys,requests.pending(),
-      JSON.stringify(a.firewall||{}),JSON.stringify((a.targets||[]).map(t=>[t.playerId,t.attack?.allowed,t.attack?.cost,t.attack?.reason,t.specials?.TROJAN?.allowed])),
+      JSON.stringify(a.firewall||{}),JSON.stringify(a.multiplier||{}),JSON.stringify((a.targets||[]).map(t=>[t.playerId,t.attack?.allowed,t.attack?.cost,t.attack?.reason,t.specials?.TROJAN?.allowed])),
       s.players.map(p=>p.nickname+p.accessPoints).join()].join('|');
     if(key!==viewKey){viewKey=key;build(s,me,mine);}
     tick(true);

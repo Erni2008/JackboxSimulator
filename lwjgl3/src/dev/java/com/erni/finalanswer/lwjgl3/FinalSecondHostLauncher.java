@@ -15,7 +15,7 @@ import java.util.Map;
  */
 public final class FinalSecondHostLauncher {
     public static void main(String[] args){
-        String url=System.getProperty("room.url","http://localhost:18240"),code=System.getProperty("room.code"),token=System.getProperty("room.token"),difficulty=System.getProperty("room.difficulty","MEDIUM");
+        String url=System.getProperty("room.url","http://localhost:18240"),code=System.getProperty("room.code"),token=System.getProperty("room.token"),difficulty=System.getProperty("room.difficulty","MEDIUM"),task=System.getProperty("fs.task","");
         var c=new Lwjgl3ApplicationConfiguration();c.setTitle("Final Answer / THE FINAL SECOND / Host "+code);c.setWindowedMode(1600,900);c.setForegroundFPS(60);c.setBackBufferConfig(8,8,8,8,16,0,4);
         new Lwjgl3Application(new Game(){
             RealtimeClient client;FinalSecondScreen screen;String session="";long resultsSince;boolean asked;
@@ -35,7 +35,7 @@ public final class FinalSecondHostLauncher {
                 if(screen==null){Gdx.gl.glClearColor(.03f,.02f,.02f,1);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
                     if(s!=null&&!asked&&s.has("lobbyId")&&!s.has("finalSecond")){
                         long online=s.getAsJsonArray("players").asList().stream().filter(p->"ONLINE".equals(p.getAsJsonObject().get("connectionStatus").getAsString())).count();
-                        if(online>=2){asked=true;client.send("START_FINAL_SECOND",Map.of("roomCode",code,"sessionId",s.get("lobbyId").getAsString()));}}
+                        if(online>=2){asked=true;var request=new java.util.HashMap<String,Object>(Map.of("roomCode",code,"sessionId",s.get("lobbyId").getAsString()));if(!task.isBlank())request.put("task",task);client.send("START_FINAL_SECOND",request);}}
                 }else if("RESULTS".equals(screen.phase())){if(resultsSince==0)resultsSince=System.currentTimeMillis();else if(System.currentTimeMillis()-resultsSince>14_000){resultsSince=Long.MAX_VALUE;end();}}
                 super.render();
             }

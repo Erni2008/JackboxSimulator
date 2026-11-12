@@ -20,7 +20,7 @@ let bots_=0;function bot(code,identity,name){const tag=++bots_;
     if(me.recovery?.challengeId&&me.recovery.data?.options){send('SYSTEM_BREACH_RECOVERY_SUBMIT',{...base,challengeId:me.recovery.challengeId,answer:pick(me.recovery.data.options)});return;}
     if(me.attack?.attackId){send('SYSTEM_BREACH_ATTACK_SUBMIT',{...base,attackId:me.attack.attackId,password:pick(me.attack.options)});return;}
     if(me.challenge?.challengeId&&me.challenge.data?.options){const o=me.challenge.data.options;send('SYSTEM_BREACH_CHALLENGE_SUBMIT',{...base,challengeId:me.challenge.challengeId,answer:solve(me.challenge.data.question)??pick(o)});return;}
-    if((me.keys||0)>0){const r=Math.random(),targets=(a.targets||[]).filter(t=>t.attack?.allowed);if(r<.7&&targets.length){send('SYSTEM_BREACH_ATTACK_REQUEST',{...base,targetId:pick(targets).playerId});return;}if(a.firewall?.allowed){send('SYSTEM_BREACH_FIREWALL_UPGRADE',base);return;}}
+    if((me.keys||0)>0){const r=Math.random(),targets=(a.targets||[]).filter(t=>t.attack?.allowed);if(r<.7&&targets.length){send('SYSTEM_BREACH_ATTACK_REQUEST',{...base,targetId:pick(targets).playerId});return;}if(a.multiplier?.allowed&&Math.random()<.6){send('SYSTEM_BREACH_MULTIPLIER_UPGRADE',base);return;}if(a.firewall?.allowed){send('SYSTEM_BREACH_FIREWALL_UPGRADE',base);return;}}
     const r=Math.random(),targets=(a.targets||[]).filter(t=>t.attack?.allowed);
     if(r<.25&&targets.length){send('SYSTEM_BREACH_ATTACK_REQUEST',{...base,targetId:pick(targets).playerId});return;}
     if(r<.33&&a.firewall?.allowed){send('SYSTEM_BREACH_FIREWALL_UPGRADE',base);return;}
