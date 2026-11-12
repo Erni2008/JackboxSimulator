@@ -19,8 +19,8 @@ public final class SystemBreachHostLauncher {
         int need=Integer.getInteger("sb.players",2);boolean ru=!"en".equals(System.getProperty("sb.lang","ru"));
         var c=new Lwjgl3ApplicationConfiguration();c.setTitle("FINAL ANSWER / SYSTEM BREACH / Host "+code);c.setWindowedMode(1600,900);c.setForegroundFPS(60);c.setBackBufferConfig(8,8,8,8,16,0,4);
         new Lwjgl3Application(new Game(){
-            RealtimeClient client;SystemBreachHostScreen screen;CageLobby lobby;String session="";boolean asked;volatile JsonObject latest;
-            @Override public void create(){lobby=new CageLobby();client=new RealtimeClient(url,code,token,e->{var d=e.getAsJsonObject("payload");if(d!=null&&d.has("players"))latest=d;},s->Gdx.app.log("Host",s));}
+            RealtimeClient client;SystemBreachHostScreen screen;CageLobby lobby;String session="";boolean asked;long lastOnline=-1;volatile JsonObject latest,room;
+            @Override public void create(){lobby=new CageLobby();client=new RealtimeClient(url,code,token,e->{var d=e.getAsJsonObject("payload");if(d!=null&&d.has("players")){latest=d;room=d;}},s->Gdx.app.log("Host",s));}
             @Override public void render(){
                 JsonObject data=latest;latest=null;
                 if(data!=null){
@@ -29,10 +29,11 @@ public final class SystemBreachHostLauncher {
                         else screen.apply(data);}
                     else if(screen!=null){setScreen(null);screen.dispose();screen=null;session="";asked=false;}
                 }
-                var s=client.snapshot();
+                var s=room;
                 if(screen==null){Gdx.gl.glClearColor(.03f,.02f,.02f,1);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
                     if(s!=null&&!asked&&s.has("lobbyId")&&!s.has("systemBreach")){
-                        long online=s.getAsJsonArray("players").asList().stream().filter(p->"ONLINE".equals(p.getAsJsonObject().get("connectionStatus").getAsString())).count();
+                        long online=s.getAsJsonArray("players").asList().stream().filter(p->{var o=p.getAsJsonObject();return o.has("connectionStatus")?"ONLINE".equals(o.get("connectionStatus").getAsString()):o.has("online")&&o.get("online").getAsBoolean();}).count();
+                        if(online!=lastOnline){lastOnline=online;Gdx.app.log("Host","online "+online+"/"+need);}
                         if(online>=need){asked=true;client.send("SYSTEM_BREACH_START",Map.of("roomCode",code,"sessionId",s.get("lobbyId").getAsString()));}}}
                 super.render();
             }
