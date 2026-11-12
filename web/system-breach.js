@@ -73,6 +73,13 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
     const host=body(),r=btn?btn.getBoundingClientRect():host.getBoundingClientRect(),hr=host.getBoundingClientRect();
     const f=mk('div','sbx-pop '+(ok?'ok':'bad'),ok?'+'+amt+' AP':'МИМО',host);f.style.left=(r.left-hr.left+r.width/2)+'px';f.style.top=(r.top-hr.top)+'px';
     if(ok){for(let i=0;i<10;i++){const d=mk('i','sbx-spark',null,host);d.style.left=(r.left-hr.left+r.width/2)+'px';d.style.top=(r.top-hr.top+r.height/2)+'px';const a=Math.PI*2*i/10;d.style.setProperty('--dx',(Math.cos(a)*(40+Math.random()*30)).toFixed(0)+'px');d.style.setProperty('--dy',(Math.sin(a)*(30+Math.random()*24)-20).toFixed(0)+'px');}}
+    if(ok){// shockwave from the key, then the score flies into the AP counter
+      const w=mk('i','sbx-wave',null,host);w.style.left=f.style.left;w.style.top=(r.top-hr.top+r.height/2)+'px';
+      const ap=el('sbx-ap'),ar=ap.getBoundingClientRect();
+      setTimeout(()=>{const fl=mk('div','sbx-fly','+'+amt,host);fl.style.left=f.style.left;fl.style.top=f.style.top;
+        fl.style.setProperty('--tx',(ar.left+ar.width/2-hr.left-(r.left-hr.left+r.width/2)).toFixed(0)+'px');fl.style.setProperty('--ty',(ar.top+ar.height/2-hr.top-(r.top-hr.top)).toFixed(0)+'px');
+        setTimeout(()=>{ap.classList.remove('bump');void ap.offsetWidth;ap.classList.add('bump');},560);},520);}
+    else{const s=el('sbx-screen');s.classList.remove('glitch');void s.offsetWidth;s.classList.add('glitch');}
     flash(ok?'flash-ok':'flash-bad');
   }
   function flash(cls){const s=el('sbx-screen');s.classList.remove('flash-ok','flash-bad','flash-key');void s.offsetWidth;s.classList.add(cls);}
@@ -188,6 +195,7 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
   function tick(fromRender){
     const s=getState()?.systemBreach;if(!s)return;
     el('sbx-clock').textContent=s.deadline>0?mmss(s.deadline-now()):'--:--';
+    el('sbx-screen').classList.toggle('urgent',s.phase==='ACTIVE'&&s.deadline>0&&s.deadline-now()<30000);
     for(const i of document.querySelectorAll('#sbx-body .sbx-timer i')){const st=+i.dataset.start,en=+i.dataset.end;const f=en>st?Math.max(0,Math.min(1,(en-now())/(en-st))):0;i.style.transform='scaleX('+f.toFixed(3)+')';i.parentElement.classList.toggle('low',f<.3);}
     if(fromRender===true)return;
     if(requests.tick())render();else if(verdict||celebrateUntil||!getState()?.systemBreach?.self?.challenge?.challengeId)render();
