@@ -67,7 +67,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         Gdx.gl.glEnable(GL20.GL_BLEND);Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         for(int i=0;i<n;i++)podium.shapes(paint,shapes,slots.get(i),slotX(i,n),time);
-        for(int i=0;i<n;i++){float x=slotX(i,n)-PANEL_W/2+22;fx.scanlines(shapes,x,PANEL_Y+22,PANEL_W-44,128,.22f,time+i);}
+        for(int i=0;i<n;i++){float x=slotX(i,n)-PANEL_W/2+22;fx.scanlines(shapes,x-2,PANEL_Y+PlayerPodium.SCREEN_Y,PANEL_W-40,PlayerPodium.SCREEN_H,.22f,time+i);}
         fx.scanlines(shapes,TIMER.x+20,TIMER.y+20,TIMER.width-40,TIMER.height-40,.12f,time);fx.scanlines(shapes,LOG.x+20,LOG.y+20,LOG.width-40,LOG.height-40,.12f,time+2);
         fx.attackLinks(shapes,model.attacks(),model,n,time);
         timer.shapes(paint,model,time);title.shapes(paint,shapes,time);log.shapes(paint,model);board.shapes(paint,shapes,model);toastShape();
@@ -101,7 +101,8 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
     /** Centre-stage banner: slides in with an overshoot, holds, slides out. */
     private float toastK(){float t=model.toastAge();if(t>3.6f||model.toast().isEmpty())return 0;
         float in=Math.min(1,t/.28f),out=t>3.2f?1-(t-3.2f)/.4f:1;float o=1+.12f*MathUtils.sin(in*MathUtils.PI);return Math.max(0,in*out)*o;}
-    private static final float TOAST_Y=700,TOAST_H=70;
+    private final com.badlogic.gdx.graphics.Color toastTop=new com.badlogic.gdx.graphics.Color();private static final com.badlogic.gdx.graphics.Color TOAST_BOTTOM=new com.badlogic.gdx.graphics.Color(.02f,.02f,.02f,.97f);
+    private static final float TOAST_Y=690,TOAST_H=64;
     /** Results: the winner's plate over the line-up. */
     private void winnerBanner(){
         var w=model.ranking().getFirst();float k=Math.min(1,time%1000>0?1:0),cx=W/2,y=TOAST_Y-6,bw=Math.max(620,paint.width(assets.board,w.name)+360);
@@ -113,7 +114,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
     private void toastShape(){float k=toastK();if(k<=0)return;float w=Math.min(1040,paint.width(assets.board,model.toast())+180)*Math.min(1,k);
         var c=SbPaint.tone(model.toastTone());float x=W/2-w/2;
         shapes.setColor(0,0,0,.55f*Math.min(1,k));shapes.rect(x-10,TOAST_Y-14,w+20,TOAST_H+20);
-        paint.plate(x,TOAST_Y-4,w,TOAST_H+8,22,SbPaint.TRIM,SbPaint.TRIM_DARK);paint.plate(x+5,TOAST_Y+1,w-10,TOAST_H-2,18,new com.badlogic.gdx.graphics.Color(c.r*.25f,c.g*.25f,c.b*.25f,.97f),new com.badlogic.gdx.graphics.Color(.02f,.02f,.02f,.97f));
+        paint.plate(x,TOAST_Y-4,w,TOAST_H+8,22,SbPaint.TRIM,SbPaint.TRIM_DARK);paint.plate(x+5,TOAST_Y+1,w-10,TOAST_H-2,18,toastTop.set(c.r*.25f,c.g*.25f,c.b*.25f,.97f),TOAST_BOTTOM);
         paint.outline(x+10,TOAST_Y+6,w-20,TOAST_H-12,14,2.2f,c);
         for(int s=-1;s<=1;s+=2){float ex=W/2+s*(w/2+26);shapes.setColor(c);shapes.triangle(ex,TOAST_Y+TOAST_H/2,ex-s*22,TOAST_Y+TOAST_H/2+16,ex-s*22,TOAST_Y+TOAST_H/2-16);}}
     private void toastText(){float k=toastK();if(k<.6f)return;var c=SbPaint.tone(model.toastTone());

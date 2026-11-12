@@ -24,8 +24,15 @@ public final class SystemBreachHostViewModel {
         public Reaction reaction=Reaction.NONE;public float reactionAge=99;
         public float boardY=-1;                                  // eased leaderboard row position
         Slot(String id){this.id=id;}
+        // cached strings: rebuilt only when the shown value changes, never per frame
+        private int apKey=Integer.MIN_VALUE,fwKey,deltaKey;private String apText="",fwText="",deltaText="";
+        public String apText(){int v=Math.round(shownAp);if(v!=apKey){apKey=v;apText=v+" AP";}return apText;}
+        public String firewallText(){if(fwKey!=firewall||fwText.isEmpty()){fwKey=firewall;fwText="FIREWALL LV."+firewall;}return fwText;}
+        public String deltaText(){if(deltaKey!=delta||deltaText.isEmpty()){deltaKey=delta;deltaText=(delta>0?"+":"-")+Math.abs(delta)+" AP";}return deltaText;}
     }
-    public record LogLine(long sequence,String text,Tone tone,long at){}
+    public record LogLine(long sequence,String text,Tone tone,long at,String stamp){
+        public LogLine(long sequence,String text,Tone tone,long at){this(sequence,text,tone,at,String.format(java.util.Locale.ROOT,"%02d:%02d",at/60000,at/1000%60));}
+    }
     public record Attack(String attackerId,String targetId,long startedAt){}
     private final List<Attack> attacks=new ArrayList<>();
     private String toast="";private Tone toastTone=Tone.MUTED;private float toastAge=99;

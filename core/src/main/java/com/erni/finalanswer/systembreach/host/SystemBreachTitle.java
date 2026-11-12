@@ -8,7 +8,7 @@ import static com.erni.finalanswer.systembreach.host.SystemBreachLayout.*;
 
 /** Upper centre: crowned FINAL ANSWER crest, the iron SYSTEM BREACH plate and a skull emblem on circuit traces. */
 final class SystemBreachTitle {
-    private final Color c=new Color();
+    private final Color c=new Color();private static final Color HOLE=new Color(.02f,.05f,.03f,1);
     void shapes(SbPaint p,ShapeRenderer r,float time){
         float cx=TITLE.x+TITLE.width/2;
         p.crown(cx,CREST_Y+28,46,SbPaint.GOLD);
@@ -26,7 +26,7 @@ final class SystemBreachTitle {
             r.circle(cx+side*250,EMBLEM_Y+16,4,8);r.rectLine(cx+side*60,EMBLEM_Y-12,cx+side*160,EMBLEM_Y-12,2);r.circle(cx+side*160,EMBLEM_Y-12,3.5f,8);
         }
         r.triangle(cx-14,EMBLEM_Y-34,cx+14,EMBLEM_Y-34,cx,EMBLEM_Y-50);
-        p.skull(cx,EMBLEM_Y+2,26,c.set(SbPaint.GREEN).mul(1,1,1,glow),c.cpy().set(.02f,.05f,.03f,1));
+        p.skull(cx,EMBLEM_Y+2,26,c.set(SbPaint.GREEN).mul(1,1,1,glow),HOLE);
     }
     void glow(SpriteBatch b,SystemBreachHostAssets as,float time){
         float cx=TITLE.x+TITLE.width/2,k=.75f+.25f*MathUtils.sin(time*1.3f);

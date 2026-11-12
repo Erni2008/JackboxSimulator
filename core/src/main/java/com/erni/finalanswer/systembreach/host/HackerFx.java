@@ -24,11 +24,11 @@ final class HackerFx {
     /** Hex dump scrolling up behind the status icon; faster and red while under attack. */
     void podiumCode(SpriteBatch b,SystemBreachHostAssets as,SystemBreachHostViewModel.Slot s,int seat,float x,float time,Color tone){
         if(s.status==Status.DISCONNECTED)return;
-        float speed=s.status==Status.BEING_HACKED?60:s.status==Status.RECOVERY||s.status==Status.UPGRADING?34:14,rows=7,lh=17,top=PANEL_Y+146;
+        float speed=s.status==Status.BEING_HACKED?60:s.status==Status.RECOVERY||s.status==Status.UPGRADING?34:14,rows=6,lh=17,top=PANEL_Y+PlayerPodium.SCREEN_Y+PlayerPodium.SCREEN_H-2;
         float scroll=(time*speed+seat*53)%lh;int first=(int)((time*speed+seat*53)/lh);
-        for(int i=0;i<rows;i++){float y=top-i*lh+scroll;if(y>top||y-lh<PANEL_Y+24)continue;
+        for(int i=0;i<rows;i++){float y=top-i*lh+scroll;if(y>top||y-lh<PANEL_Y+PlayerPodium.SCREEN_Y+4)continue;
             float a=.09f*(1-Math.abs(i-rows/2f)/(rows/2f+1));
-            as.hex.setColor(tone.r,tone.g,tone.b,a);as.hex.draw(b,hex[(first+i+seat*9)%LINES],x-PANEL_W/2+30,y);}
+            as.hex.setColor(tone.r,tone.g,tone.b,a);as.hex.draw(b,hex[(first+i+seat*9)%LINES],x-PANEL_W/2+26,y);}
     }
 
     /** CRT scanlines across a screen rectangle (filled mode). */
