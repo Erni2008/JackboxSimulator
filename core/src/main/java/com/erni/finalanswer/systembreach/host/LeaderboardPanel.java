@@ -19,7 +19,6 @@ final class LeaderboardPanel {
         r.setColor(g);r.rect(tx-20,ty+4,40,30);r.arc(tx,ty+4,20,180,180,16);r.rect(tx-4,ty-28,8,16);r.rect(tx-18,ty-34,36,7);
         p.ring(tx-24,ty+20,9,3);p.ring(tx+24,ty+20,9,3);
         for(int side=-1;side<=1;side+=2)for(int i=0;i<6;i++){float a=(float)Math.toRadians(-70+i*24);float lx=tx+side*40*(float)Math.cos(a),ly=ty+4+40*(float)Math.sin(a);r.ellipse(lx-4,ly-8,8,16,6);}
-            r.ellipse(lx-5,ly-9,10,18,side*(30+i*28),10);}
         // underline with hatch, as on the reference
         r.setColor(g.r,g.g,g.b,.6f);r.rect(BOARD.x+200,BOARD.y+48,300,3);for(int i=0;i<6;i++)r.triangle(BOARD.x+440+i*12,BOARD.y+42,BOARD.x+448+i*12,BOARD.y+42,BOARD.x+458+i*12,BOARD.y+56);
         r.setColor(SbPaint.TRIM.r,SbPaint.TRIM.g,SbPaint.TRIM.b,.8f);r.rect(ROWS_X-60,BOARD.y+30,2,BOARD.height-60);
