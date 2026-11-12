@@ -77,6 +77,9 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
 
         batch.begin();batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
         for(int i=0;i<n;i++)podium.glow(batch,assets,slots.get(i),slotX(i,n),time);
+        // a glint travels along the line-up's glass every few seconds
+        {float t=(time%7f)/1.6f;if(t<1&&n>0){float x0=slotX(0,n)-PANEL_W/2,x1=slotX(n-1,n)+PANEL_W/2,gx=x0+(x1-x0)*t,a=MathUtils.sin(t*MathUtils.PI);
+            batch.setColor(1,1,1,.18f*a);batch.draw(assets.glow,gx-40,PANEL_Y+10,80,PANEL_H-20);batch.setColor(.6f,1,.8f,.12f*a);batch.draw(assets.glow,gx-110,PANEL_Y-20,220,PANEL_H+40);}}
         fx.attackGlow(batch,assets,model.attacks(),model,n,time);timer.glow(batch,assets,model,time);title.glow(batch,assets,time);
         batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.setColor(1,1,1,1);
         for(int i=0;i<n;i++)podium.text(batch,paint,assets,slots.get(i),slotX(i,n),time);
@@ -96,7 +99,18 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
             batch.setColor(i%7==0?1:.35f,i%7==0?.3f:.95f,i%7==0?.2f:.55f,a);batch.draw(assets.pixel,x,y,sz,sz);}
     }
     /** Light that lives in the photo: lantern flicker, window breathing and a slow drift of floor haze. */
+    /** Two slow light shafts falling from the arched windows, breathing out of phase. */
+    private void shafts(){
+        for(int i=0;i<2;i++){float cx=i==0?520:1400,a=.07f+.04f*MathUtils.sin(time*.6f+i*2.1f),sway=MathUtils.sin(time*.23f+i)*30;
+            for(int k=0;k<6;k++){float y=900-k*110,w=150+k*55;batch.setColor(1,.25f,.2f,a*(1-k/7f));batch.draw(assets.glow,cx+sway*(k/6f)+(i==0?k*28:-k*28)-w/2,y-80,w,200);}}
+    }
+    /** Embers rising through the hall from the floor. */
+    private void embers(){
+        for(int i=0;i<26;i++){float sp=26+(i*13%17),x=(i*211.7f)%W+MathUtils.sin(time*.8f+i*1.3f)*24,y=((time*sp+i*131)%(H*.75f));float life=y/(H*.75f),a=(1-life)*(.55f+.45f*MathUtils.sin(time*9+i));
+            float s=i%4==0?6:3.5f;batch.setColor(1,.45f+.25f*(i%3)/2f,.15f,a*.8f);batch.draw(assets.glow,x-s*2,y-s*2,s*4,s*4);batch.setColor(1,.85f,.55f,a);batch.draw(assets.pixel,x-s/4,y-s/4,s/2,s/2);}
+    }
     private void atmosphere(){
+        shafts();embers();
         float f1=.8f+.12f*MathUtils.sin(time*9.1f)+.08f*MathUtils.sin(time*23.7f),f2=.8f+.12f*MathUtils.sin(time*8.3f+1.7f)+.08f*MathUtils.sin(time*19.1f);
         batch.setColor(1,.62f,.25f,.22f*f1);batch.draw(assets.glow,153-110,736-110,220,220);
         batch.setColor(1,.62f,.25f,.22f*f2);batch.draw(assets.glow,1768-110,736-110,220,220);

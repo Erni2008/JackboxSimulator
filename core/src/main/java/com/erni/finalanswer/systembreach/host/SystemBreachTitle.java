@@ -29,6 +29,8 @@ final class SystemBreachTitle {
         p.skull(cx,EMBLEM_Y+2,26,c.set(SbPaint.GREEN).mul(1,1,1,glow),HOLE);
     }
     void glow(SpriteBatch b,SystemBreachHostAssets as,float time){
+        {float t=(time%5.5f)/1.1f;if(t<1){float sx=TITLE.x-80+(TITLE.width+160)*t,a=MathUtils.sin(t*MathUtils.PI);
+            b.setColor(.75f,1,.85f,.35f*a);b.draw(as.glow,sx-60,TITLE.y+4,120,TITLE.height-8);b.setColor(1,1,1,.25f*a);b.draw(as.glow,sx-14,TITLE.y+8,28,TITLE.height-16);}}
         float cx=TITLE.x+TITLE.width/2,k=.75f+.25f*MathUtils.sin(time*1.3f);
         b.setColor(SbPaint.GREEN.r,SbPaint.GREEN.g,SbPaint.GREEN.b,.20f*k);b.draw(as.glow,TITLE.x+30,TITLE.y-10,TITLE.width-60,TITLE.height+20);
         b.setColor(SbPaint.GREEN.r,SbPaint.GREEN.g,SbPaint.GREEN.b,.30f*k);b.draw(as.glow,cx-70,EMBLEM_Y-60,140,120);
