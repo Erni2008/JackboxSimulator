@@ -74,3 +74,44 @@ body[data-view=breach] #session-footer,body[data-view=breach] .page-footer,body[
 @keyframes sbx-blink{50%{opacity:.25}}
 @keyframes sbx-pulse{50%{transform:scale(1.06)}}
 @media (prefers-reduced-motion:reduce){.sbx *{animation:none!important}}
+/* ---- full-screen phone: the laptop owns the whole viewport, no site chrome ---- */
+body[data-view=breach]{overflow:hidden}
+body[data-view=breach] .sbx{position:fixed;inset:0;z-index:9999;min-height:0;padding:env(safe-area-inset-top) 0 0}
+body[data-view=breach] .sbx{--w:100vw}
+.sbx-laptop{max-height:none;height:100%}
+/* answer entrance, verdicts */
+.sbx-option{animation:sbx-opt .32s cubic-bezier(.2,.8,.2,1) both}
+@keyframes sbx-opt{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+.sbx-q{animation:sbx-q .4s cubic-bezier(.2,.8,.2,1) both}
+@keyframes sbx-q{from{opacity:0;transform:scale(.92);filter:blur(2px)}to{opacity:1;transform:none;filter:none}}
+.sbx-option.right{opacity:1;background:linear-gradient(#22a35a,#0f5a30);border-color:#7dffb4;box-shadow:0 0 0 2px #3dff8f,0 0 28px #3dff8fa0;animation:sbx-right .5s ease-out}
+.sbx-option.wrong{opacity:1;background:linear-gradient(#a3222a,#5a0f14);border-color:#ff8a80;box-shadow:0 0 0 2px #ff4a3a,0 0 28px #ff4a3aa0;animation:sbx-wrong .45s ease-in-out}
+.sbx-option.right .sbx-key,.sbx-option.wrong .sbx-key{background:#fff3;color:#fff}
+@keyframes sbx-right{0%{transform:scale(1)}40%{transform:scale(1.06)}100%{transform:scale(1)}}
+@keyframes sbx-wrong{0%,100%{transform:none}20%{transform:translateX(-8px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+.sbx-verdict{position:absolute;left:50%;top:50%;z-index:5;display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px 26px;border-radius:12px;pointer-events:none;
+  transform:translate(-50%,-50%);background:#020a06f0;border:2px solid var(--vc);box-shadow:0 0 40px color-mix(in srgb,var(--vc) 60%,transparent),inset 0 0 24px color-mix(in srgb,var(--vc) 25%,transparent);
+  animation:sbx-stamp 1.5s cubic-bezier(.2,.9,.2,1) both}
+.sbx-verdict.ok{--vc:#3dff8f}.sbx-verdict.bad{--vc:#ff4a3a}
+.sbx-verdict b{font-size:54px;line-height:1;color:var(--vc);text-shadow:0 0 22px var(--vc)}
+.sbx-verdict span{font-size:18px;font-weight:700;letter-spacing:.14em;color:#fff;white-space:nowrap}
+@keyframes sbx-stamp{0%{opacity:0;transform:translate(-50%,-50%) scale(1.6)}14%{opacity:1;transform:translate(-50%,-50%) scale(.94)}22%{transform:translate(-50%,-50%) scale(1)}85%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(.98)}}
+.sbx-body{position:relative}
+.sbx-screen.flash-ok::before,.sbx-screen.flash-bad::before{content:"";position:absolute;inset:0;z-index:4;pointer-events:none;animation:sbx-flash .7s ease-out both}
+.sbx-screen.flash-ok::before{background:radial-gradient(circle,#3dff8f55,transparent 70%)}.sbx-screen.flash-bad::before{background:radial-gradient(circle,#ff4a3a66,transparent 70%)}
+@keyframes sbx-flash{from{opacity:1}to{opacity:0}}
+.sbx-loader{height:4px;border-radius:2px;background:linear-gradient(90deg,transparent,var(--g),transparent);background-size:50% 100%;background-repeat:no-repeat;animation:sbx-load 1s linear infinite}
+@keyframes sbx-load{from{background-position:-50% 0}to{background-position:150% 0}}
+/* ---- desktop / landscape player: the whole laptop photo, the terminal lives inside its screen ---- */
+@media (min-aspect-ratio:5/4){
+  body[data-view=breach] .sbx{padding:0;justify-content:center}
+  .sbx-laptop{flex:none;height:auto;width:min(100vw,calc(100vh * 1671 / 941));aspect-ratio:1671/941;background:url(sb/laptop.jpg) center/100% 100% no-repeat}
+  .sbx-lid{position:absolute;left:22.62%;top:17%;width:54.46%;height:46.23%;border:0;border-image:none;filter:none}
+  .sbx-deck{display:none}
+  .sbx-screen{font-size:clamp(12px,1.05vw,18px)}
+  .sbx-room{opacity:.35}
+}
+/* the site's stage dressing never sits over the laptop */
+body[data-view=breach] #breach-screen{opacity:1!important;filter:none!important;transform:none!important;mix-blend-mode:normal!important;animation:none!important;visibility:visible!important}
+body[data-view=breach] .g-stage,body[data-view=breach] .g-flash,body[data-view=breach]::before,body[data-view=breach]::after{display:none!important}
+#breach-screen .sbx-body{padding:6px 0 0!important;margin:0!important;width:auto!important;max-width:none!important;min-height:0!important;background:none!important;border:0!important;box-shadow:none!important}

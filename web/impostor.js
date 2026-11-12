@@ -21,9 +21,9 @@ function createImpostorController({getState,isAuthenticated,send,now,makeId}) {
     text(el('role-guide-copy'),!active?'Следите за общим экраном.':s.role==='IMPOSTOR'?'Подсказка задаёт направление. Напишите одну ассоциацию и не выдайте себя.':'Напишите одну ассоциацию, не называя загаданное слово. Затем сопоставьте подсказки игроков.');
   }
   document.addEventListener('visibilitychange',()=>{if(!document.hidden&&mini())render();});
-  let key='',focusKey='',pending=null,error='',timeout,draftKey='',draft='';
+  let key='',focusKey='',pending=null,error='',composing=false,compositionEndedAt=-Infinity,timeout,draftKey='',draft='';
   const mini=()=>getState()?.impostor;
-  function reset(){typingAt=-Infinity;paintKey='';roleClock.set(0,0,false);writer.sync(false);draftKey='';draft='';key='';pending=null;error='';clearTimeout(timeout);el('clue-input').value='';el('clue-input').removeAttribute('aria-invalid');el('impostor-word').textContent='';el('clue-confirmed-value').textContent='';}
+  function reset(){composing=false;compositionEndedAt=-Infinity;typingAt=-Infinity;paintKey='';roleClock.set(0,0,false);writer.sync(false);draftKey='';draft='';key='';pending=null;error='';clearTimeout(timeout);el('clue-input').value='';el('clue-input').removeAttribute('aria-invalid');el('impostor-word').textContent='';el('clue-confirmed-value').textContent='';}
   function allowed(){const s=mini();return isAuthenticated()&&s?.phase==='ROUND_CLUE_INPUT'&&s.activeParticipant&&!s.clueSubmitted&&!pending&&now()<s.deadline;}
   function tick(){const s=mini();if(!s)return;const showingRole=s.phase==='ROLE_REVEAL';el('role-countdown-clock').hidden=!showingRole;el('impostor-countdown').hidden=showingRole||s.phase!=='ROUND_CLUE_INPUT';roleClock.set(s.deadline,(s.roleRevealDurationMillis||0)/1000,showingRole);text(el('impostor-countdown'),s.deadline?`ОСТАЛОСЬ: ${clockText(Math.max(0,Math.ceil((s.deadline-now())/1000)))}`:'');{const dur=(getState().impostorSettings?.clueSeconds||0)*1000;el('impostor-countdown').style.setProperty('--left',dur&&s.deadline?String(Math.max(0,Math.min(1,(s.deadline-now())/dur))):'1');}el('impostor-countdown').classList.toggle('timer-warning',s.phase==='ROUND_CLUE_INPUT'&&s.deadline-now()>0&&s.deadline-now()<=5000);disabled(el('clue-input'),!allowed());disabled(el('clue-submit'),!allowed()||!clueValue());text(el('clue-submit').querySelector('.fa-label')||el('clue-submit'),pending?'ОТПРАВЛЯЕМ…':'ПОДТВЕРДИТЬ СЛОВО');el('clue-form').setAttribute('aria-busy',String(!!pending));writer.sync(allowed(),getState()?.impostorSettings?.reducedMotion||getState()?.impostorSettings?.visualEffectsEnabled===false);}
   function render(){const s=mini();if(!s)return;const next=s.sessionId+':'+s.round;
@@ -52,21 +52,24 @@ function createImpostorController({getState,isAuthenticated,send,now,makeId}) {
     if(paint!==paintKey){paintKey=paint;fitWord();writer.refresh();updateLength();}tick();
     if(allowed()&&matchMedia('(hover: hover) and (pointer: fine)').matches&&focusKey!==next){focusKey=next;requestAnimationFrame(()=>{if(allowed())el('clue-input').focus({preventScroll:true});});}
   }
-  function submit(e){e.preventDefault();if(!allowed())return;
+  function submit(e){e.preventDefault();if(composing||e.submitter!==el('clue-submit')||!allowed())return;
     const value=clueValue();
     if(!/^\p{L}{1,10}$/u.test(value)){error='Введите одно слово: от 1 до 10 букв, без пробелов и цифр.';el('clue-input').setAttribute('aria-invalid','true');render();el('clue-input').focus({preventScroll:true});return;}
     error='';pending=makeId();
     const s=mini();send('SUBMIT_CLUE',{roomCode:getState().code,sessionId:s.sessionId,round:s.round,clue:value},pending);
     clearTimeout(timeout);timeout=setTimeout(()=>{pending=null;error='Проверяем, принято ли слово…';send('SYNC');render();},3000);render();
   }
-  el('clue-input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing&&e.keyCode!==229){e.preventDefault();el('clue-form').requestSubmit();}});
+  // Explicit Enter and the confirmation button commit; typing, key repeat and IME never do.
+  el('clue-input').addEventListener('compositionstart',()=>{composing=true;});
+  el('clue-input').addEventListener('compositionend',()=>{composing=false;compositionEndedAt=now();});
+  el('clue-input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.repeat&&!composing&&now()-compositionEndedAt>100&&!e.isComposing&&e.keyCode!==229){e.preventDefault();el('clue-form').requestSubmit(el('clue-submit'));}else if(e.key==='Enter'&&!e.isComposing)e.preventDefault();});
   el('clue-form').addEventListener('submit',submit);
   el('clue-input').addEventListener('input',()=>{
     draftKey=key;draft=el('clue-input').value;error='';el('clue-input').removeAttribute('aria-invalid');el('clue-status').textContent='НАПИШИТЕ ОДНО СЛОВО';updateLength();tick();
     if(allowed()&&draft&&now()-typingAt>=220){typingAt=now();const s=mini();send('IMPOSTOR_TYPING',{roomCode:getState().code,sessionId:s.sessionId,round:s.round});}
   });
   function suspend(){el('role-private').hidden=true;el('impostor-role').textContent='';el('impostor-role-note').textContent='';roleClock.set(0,0,false);writer.sync(false);pending=null;clearTimeout(timeout);key='';el('impostor-word').textContent='';el('clue-confirmed-value').textContent='';}
-  function event(e){if(e.type==='CLUE_REJECTED'&&e.requestId===pending){pending=null;clearTimeout(timeout);error=e.payload?.code==='INVALID_CLUE'?'Нужно новое слово: до 10 букв. Не повторяйте прежние подсказки.':'Слово не принято. Обновляем состояние раунда…';render();}
+  function event(e){if(e.type==='CLUE_REJECTED'&&e.requestId===pending){pending=null;clearTimeout(timeout);error=e.payload?.code==='INVALID_CLUE'?'Нужно новое слово: до 10 букв. Не используйте загаданное слово и не повторяйте прежние подсказки.':'Слово не принято. Обновляем состояние раунда…';render();}
     if(e.type==='CLUE_ACCEPTED'&&e.requestId===pending){if(getState().impostorSettings?.soundEnabled!==false)document.dispatchEvent(new CustomEvent('impostor:audio',{detail:{cue:'clue_submitted'}}));pending=null;error='';clearTimeout(timeout);}}
   return {render,tick,event,reset,suspend,hide:()=>{el('impostor-role').textContent='';el('impostor-word').textContent='';el('impostor-role-note').textContent='';writer.sync(false);roleClock.set(0,0,false);}};
 }

@@ -1,0 +1,1130 @@
+{
+  "schemaVersion": 1,
+  "id": "greenhouse",
+  "nameRu": "Викторианская оранжерея",
+  "background": "forgotten_room/rooms/room_02.jpg",
+  "readyForRounds": false,
+  "referenceSize": [
+    1920,
+    1080
+  ],
+  "camera": {
+    "fov": 48,
+    "position": [
+      0,
+      1.65,
+      7
+    ],
+    "target": [
+      0,
+      1.2,
+      0
+    ],
+    "near": 0.05,
+    "far": 60
+  },
+  "lighting": {
+    "moonColor": [
+      0.52,
+      0.68,
+      1
+    ],
+    "moonDirection": [
+      -0.25,
+      -0.85,
+      -0.5
+    ],
+    "moonIntensity": 2.1,
+    "warmColor": [
+      1,
+      0.59,
+      0.26
+    ],
+    "warmDirection": [
+      0.8,
+      -0.5,
+      -0.25
+    ],
+    "warmIntensity": 2.6,
+    "ambient": 0.4
+  },
+  "surfaces": [
+    {
+      "id": "front_table",
+      "kind": "TABLE",
+      "height": 0.84,
+      "position": [
+        -3,
+        0.84,
+        2.5
+      ],
+      "size": [
+        3.8,
+        1.3
+      ],
+      "yaw": 0,
+      "supportPolygon": [
+        [
+          0.003,
+          0.725
+        ],
+        [
+          0.295,
+          0.65
+        ],
+        [
+          0.452,
+          0.661
+        ],
+        [
+          0.125,
+          0.787
+        ],
+        [
+          0.003,
+          0.773
+        ]
+      ],
+      "maxObjectHeight": 1.6
+    },
+    {
+      "id": "left_shelf_upper",
+      "kind": "SHELF",
+      "height": 2.15,
+      "position": [
+        -3,
+        2.15,
+        0
+      ],
+      "size": [
+        1.7,
+        0.42
+      ],
+      "yaw": 0,
+      "supportPolygon": [
+        [
+          0.06,
+          0.318
+        ],
+        [
+          0.265,
+          0.375
+        ],
+        [
+          0.262,
+          0.388
+        ],
+        [
+          0.06,
+          0.331
+        ]
+      ],
+      "maxObjectHeight": 0.85
+    },
+    {
+      "id": "left_shelf_lower",
+      "kind": "SHELF",
+      "height": 1.4,
+      "position": [
+        -3,
+        1.4,
+        0
+      ],
+      "size": [
+        1.7,
+        0.42
+      ],
+      "yaw": 0,
+      "supportPolygon": [
+        [
+          0.05,
+          0.454
+        ],
+        [
+          0.274,
+          0.479
+        ],
+        [
+          0.274,
+          0.492
+        ],
+        [
+          0.05,
+          0.467
+        ]
+      ],
+      "maxObjectHeight": 0.64
+    },
+    {
+      "id": "left_cabinet",
+      "kind": "DESK",
+      "height": 1.0,
+      "position": [
+        -3,
+        1,
+        0
+      ],
+      "size": [
+        1.8,
+        0.65
+      ],
+      "yaw": 0,
+      "supportPolygon": [
+        [
+          0.025,
+          0.619
+        ],
+        [
+          0.279,
+          0.589
+        ],
+        [
+          0.292,
+          0.601
+        ],
+        [
+          0.035,
+          0.633
+        ]
+      ],
+      "maxObjectHeight": 0.6
+    },
+    {
+      "id": "window_table",
+      "kind": "TABLE",
+      "height": 0.86,
+      "position": [
+        -1.7,
+        0.86,
+        -1
+      ],
+      "size": [
+        1.5,
+        0.7
+      ],
+      "yaw": 0,
+      "supportPolygon": [
+        [
+          0.365,
+          0.573
+        ],
+        [
+          0.462,
+          0.563
+        ],
+        [
+          0.474,
+          0.578
+        ],
+        [
+          0.379,
+          0.59
+        ]
+      ],
+      "maxObjectHeight": 1.5
+    },
+    {
+      "id": "rear_table",
+      "kind": "TABLE",
+      "height": 0.86,
+      "position": [
+        1,
+        0.86,
+        -1
+      ],
+      "size": [
+        2.1,
+        0.85
+      ],
+      "yaw": 0,
+      "supportPolygon": [
+        [
+          0.579,
+          0.582
+        ],
+        [
+          0.74,
+          0.574
+        ],
+        [
+          0.772,
+          0.587
+        ],
+        [
+          0.614,
+          0.608
+        ]
+      ],
+      "maxObjectHeight": 1.7
+    },
+    {
+      "id": "right_shelf_upper",
+      "kind": "SHELF",
+      "height": 2.25,
+      "position": [
+        3,
+        2.25,
+        -0.5
+      ],
+      "size": [
+        1.4,
+        0.4
+      ],
+      "yaw": 0,
+      "supportPolygon": [
+        [
+          0.889,
+          0.377
+        ],
+        [
+          0.993,
+          0.34
+        ],
+        [
+          0.996,
+          0.35300000000000004
+        ],
+        [
+          0.895,
+          0.389
+        ]
+      ],
+      "maxObjectHeight": 0.55
+    },
+    {
+      "id": "right_shelf_middle",
+      "kind": "SHELF",
+      "height": 1.55,
+      "position": [
+        3,
+        1.55,
+        -0.5
+      ],
+      "size": [
+        1.4,
+        0.4
+      ],
+      "yaw": 0,
+      "supportPolygon": [
+        [
+          0.889,
+          0.455
+        ],
+        [
+          0.993,
+          0.436
+        ],
+        [
+          0.996,
+          0.446
+        ],
+        [
+          0.895,
+          0.468
+        ]
+      ],
+      "maxObjectHeight": 0.32
+    },
+    {
+      "id": "right_cabinet",
+      "kind": "DESK",
+      "height": 0.95,
+      "position": [
+        3,
+        0.95,
+        0.5
+      ],
+      "size": [
+        1.6,
+        0.75
+      ],
+      "yaw": 0,
+      "supportPolygon": [
+        [
+          0.854,
+          0.605
+        ],
+        [
+          0.997,
+          0.646
+        ],
+        [
+          0.997,
+          0.666
+        ],
+        [
+          0.846,
+          0.624
+        ]
+      ],
+      "maxObjectHeight": 0.68
+    },
+    {
+      "id": "floor",
+      "kind": "FLOOR",
+      "height": 0,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "size": [
+        9,
+        9
+      ],
+      "yaw": 0,
+      "supportPolygon": [
+        [
+          0.478,
+          0.697
+        ],
+        [
+          0.809,
+          0.692
+        ],
+        [
+          0.858,
+          0.965
+        ],
+        [
+          0.61,
+          0.997
+        ],
+        [
+          0.46,
+          0.95
+        ]
+      ],
+      "maxObjectHeight": 2.4
+    },
+    {
+      "id": "hanging",
+      "kind": "HANG",
+      "height": 2.8,
+      "position": [
+        0,
+        2.8,
+        -1
+      ],
+      "size": [
+        4,
+        0.5
+      ],
+      "yaw": 0,
+      "supportPolygon": [],
+      "maxObjectHeight": 0.8
+    }
+  ],
+  "slots": [
+    {
+      "id": "front_table_1",
+      "x": 0.16,
+      "y": 0.752,
+      "surface": "TABLE",
+      "labelRu": "Передний стол, место 1",
+      "surfaceId": "front_table"
+    },
+    {
+      "id": "front_table_2",
+      "x": 0.27,
+      "y": 0.718,
+      "surface": "TABLE",
+      "labelRu": "Передний стол, место 2",
+      "surfaceId": "front_table"
+    },
+    {
+      "id": "front_table_3",
+      "x": 0.38,
+      "y": 0.683,
+      "surface": "TABLE",
+      "labelRu": "Передний стол, место 3",
+      "surfaceId": "front_table"
+    },
+    {
+      "id": "front_table_4",
+      "x": 0.42,
+      "y": 0.668,
+      "surface": "TABLE",
+      "labelRu": "Передний стол, место 4",
+      "surfaceId": "front_table"
+    },
+    {
+      "id": "left_shelf_upper_1",
+      "x": 0.123,
+      "y": 0.348,
+      "surface": "SHELF",
+      "labelRu": "Левый шкаф, верхняя полка, место 1",
+      "surfaceId": "left_shelf_upper"
+    },
+    {
+      "id": "left_shelf_upper_2",
+      "x": 0.185,
+      "y": 0.363,
+      "surface": "SHELF",
+      "labelRu": "Левый шкаф, верхняя полка, место 2",
+      "surfaceId": "left_shelf_upper"
+    },
+    {
+      "id": "left_shelf_lower_1",
+      "x": 0.115,
+      "y": 0.466,
+      "surface": "SHELF",
+      "labelRu": "Левый шкаф, нижняя полка, место 1",
+      "surfaceId": "left_shelf_lower"
+    },
+    {
+      "id": "left_shelf_lower_2",
+      "x": 0.174,
+      "y": 0.478,
+      "surface": "SHELF",
+      "labelRu": "Левый шкаф, нижняя полка, место 2",
+      "surfaceId": "left_shelf_lower"
+    },
+    {
+      "id": "left_cabinet_1",
+      "x": 0.12,
+      "y": 0.608,
+      "surface": "DESK",
+      "labelRu": "Левая тумба, место 1",
+      "surfaceId": "left_cabinet"
+    },
+    {
+      "id": "left_cabinet_2",
+      "x": 0.21,
+      "y": 0.608,
+      "surface": "DESK",
+      "labelRu": "Левая тумба, место 2",
+      "surfaceId": "left_cabinet"
+    },
+    {
+      "id": "left_cabinet_3",
+      "x": 0.267,
+      "y": 0.6,
+      "surface": "DESK",
+      "labelRu": "Левая тумба, место 3",
+      "surfaceId": "left_cabinet"
+    },
+    {
+      "id": "window_table_1",
+      "x": 0.384,
+      "y": 0.578,
+      "surface": "TABLE",
+      "labelRu": "Стол у окна, место 1",
+      "surfaceId": "window_table"
+    },
+    {
+      "id": "window_table_2",
+      "x": 0.447,
+      "y": 0.574,
+      "surface": "TABLE",
+      "labelRu": "Стол у окна, место 2",
+      "surfaceId": "window_table"
+    },
+    {
+      "id": "rear_table_1",
+      "x": 0.603,
+      "y": 0.589,
+      "surface": "TABLE",
+      "labelRu": "Задний стол, место 1",
+      "surfaceId": "rear_table"
+    },
+    {
+      "id": "rear_table_2",
+      "x": 0.66,
+      "y": 0.59,
+      "surface": "TABLE",
+      "labelRu": "Задний стол, место 2",
+      "surfaceId": "rear_table"
+    },
+    {
+      "id": "rear_table_3",
+      "x": 0.72,
+      "y": 0.592,
+      "surface": "TABLE",
+      "labelRu": "Задний стол, место 3",
+      "surfaceId": "rear_table"
+    },
+    {
+      "id": "rear_table_4",
+      "x": 0.755,
+      "y": 0.595,
+      "surface": "TABLE",
+      "labelRu": "Задний стол, место 4",
+      "surfaceId": "rear_table"
+    },
+    {
+      "id": "right_shelf_upper_1",
+      "x": 0.925,
+      "y": 0.367,
+      "surface": "SHELF",
+      "labelRu": "Правый шкаф, верхняя полка, место 1",
+      "surfaceId": "right_shelf_upper"
+    },
+    {
+      "id": "right_shelf_upper_2",
+      "x": 0.968,
+      "y": 0.35200000000000004,
+      "surface": "SHELF",
+      "labelRu": "Правый шкаф, верхняя полка, место 2",
+      "surfaceId": "right_shelf_upper"
+    },
+    {
+      "id": "right_shelf_middle_1",
+      "x": 0.915,
+      "y": 0.46,
+      "surface": "SHELF",
+      "labelRu": "Правый шкаф, средняя полка, место 1",
+      "surfaceId": "right_shelf_middle"
+    },
+    {
+      "id": "right_shelf_middle_2",
+      "x": 0.962,
+      "y": 0.461,
+      "surface": "SHELF",
+      "labelRu": "Правый шкаф, средняя полка, место 2",
+      "surfaceId": "right_shelf_middle"
+    },
+    {
+      "id": "right_cabinet_1",
+      "x": 0.882,
+      "y": 0.612,
+      "surface": "DESK",
+      "labelRu": "Правый комод, место 1",
+      "surfaceId": "right_cabinet"
+    },
+    {
+      "id": "right_cabinet_2",
+      "x": 0.936,
+      "y": 0.633,
+      "surface": "DESK",
+      "labelRu": "Правый комод, место 2",
+      "surfaceId": "right_cabinet"
+    },
+    {
+      "id": "floor_1",
+      "x": 0.47,
+      "y": 0.94,
+      "surface": "FLOOR",
+      "labelRu": "Пол, место 1",
+      "surfaceId": "floor"
+    },
+    {
+      "id": "floor_2",
+      "x": 0.67,
+      "y": 0.94,
+      "surface": "FLOOR",
+      "labelRu": "Пол, место 2",
+      "surfaceId": "floor"
+    },
+    {
+      "id": "floor_3",
+      "x": 0.81,
+      "y": 0.78,
+      "surface": "FLOOR",
+      "labelRu": "Пол, место 3",
+      "surfaceId": "floor"
+    },
+    {
+      "id": "hanging_1",
+      "x": 0.425,
+      "y": 0.205,
+      "surface": "HANG",
+      "labelRu": "Подвес над столом, место 1",
+      "surfaceId": "hanging"
+    },
+    {
+      "id": "hanging_2",
+      "x": 0.805,
+      "y": 0.218,
+      "surface": "HANG",
+      "labelRu": "Подвес над столом, место 2",
+      "surfaceId": "hanging"
+    },
+    {
+      "id": "floor_4",
+      "x": 0.56,
+      "y": 0.73,
+      "surface": "FLOOR",
+      "labelRu": "Пол, место 4",
+      "surfaceId": "floor"
+    }
+  ],
+  "objects": [
+    {
+      "id": "red_roses",
+      "model": "forgotten_room/greenhouse/models/red_roses.glb",
+      "enabled": true,
+      "surfaceId": "front_table",
+      "slots": [
+        "front_table_1",
+        "front_table_2",
+        "front_table_3",
+        "front_table_4"
+      ],
+      "heightMeters": 1.25,
+      "yaw": 0,
+      "changes": [
+        "DISAPPEAR",
+        "APPEAR",
+        "MOVE",
+        "CHANGE"
+      ],
+      "variants": [
+        "forgotten_room/greenhouse/models/red_roses_v1.glb"
+      ]
+    },
+    {
+      "id": "african_violets",
+      "model": "forgotten_room/greenhouse/models/african_violets.glb",
+      "enabled": true,
+      "surfaceId": "window_table",
+      "slots": [
+        "window_table_1",
+        "window_table_2"
+      ],
+      "heightMeters": 0.6,
+      "yaw": 0,
+      "changes": [
+        "DISAPPEAR",
+        "APPEAR",
+        "MOVE",
+        "CHANGE"
+      ],
+      "variants": [
+        "forgotten_room/greenhouse/models/african_violets_v1.glb"
+      ]
+    },
+    {
+      "id": "white_orchids",
+      "model": "forgotten_room/greenhouse/models/white_orchids.glb",
+      "enabled": true,
+      "surfaceId": "left_shelf_lower",
+      "slots": [
+        "left_shelf_lower_1",
+        "left_shelf_lower_2"
+      ],
+      "heightMeters": 0.95,
+      "yaw": 0,
+      "changes": [
+        "DISAPPEAR",
+        "APPEAR",
+        "MOVE",
+        "CHANGE"
+      ],
+      "variants": [
+        "forgotten_room/greenhouse/models/white_orchids_v1.glb"
+      ]
+    },
+    {
+      "id": "trailing_ivy",
+      "model": "forgotten_room/greenhouse/models/trailing_ivy.glb",
+      "enabled": true,
+      "surfaceId": "front_table",
+      "slots": [
+        "front_table_1",
+        "front_table_2",
+        "front_table_3",
+        "front_table_4"
+      ],
+      "heightMeters": 0.7,
+      "yaw": 0,
+      "changes": [
+        "DISAPPEAR",
+        "APPEAR",
+        "MOVE",
+        "ROTATE"
+      ],
+      "variants": []
+    },
+    {
+      "id": "watering_can_1",
+      "model": "forgotten_room/greenhouse/models/watering_can_1.glb",
+      "enabled": true,
+      "surfaceId": "floor",
+      "slots": [
+        "floor_1",
+        "floor_2",
+        "floor_3"
+      ],
+      "heightMeters": 0.7,
+      "yaw": 0,
+      "changes": [
+        "DISAPPEAR",
+        "APPEAR",
+        "MOVE",
+        "ROTATE"
+      ],
+      "variants": []
+    },
+    {
+      "id": "watering_can_2",
+      "model": "forgotten_room/greenhouse/models/watering_can_2.glb",
+      "enabled": true,
+      "surfaceId": "floor",
+      "slots": [
+        "floor_1",
+        "floor_2",
+        "floor_3"
+      ],
+      "heightMeters": 0.8,
+      "yaw": 0,
+      "changes": [
+        "DISAPPEAR",
+        "APPEAR",
+        "MOVE",
+        "ROTATE"
+      ],
+      "variants": []
+    },
+    {
+      "id": "pink_flowers",
+      "model": "forgotten_room/greenhouse/models/pink_flowers.glb",
+      "enabled": true,
+      "surfaceId": "left_shelf_upper",
+      "slots": [
+        "left_shelf_upper_1",
+        "left_shelf_upper_2"
+      ],
+      "heightMeters": 0.75,
+      "yaw": 0,
+      "changes": [
+        "DISAPPEAR",
+        "APPEAR",
+        "MOVE"
+      ],
+      "variants": []
+    },
+    {
+      "id": "butterfly_dome",
+      "model": "forgotten_room/greenhouse/models/butterfly_dome.glb",
+      "enabled": true,
+      "surfaceId": "right_shelf_middle",
+      "slots": [
+        "right_shelf_middle_1",
+        "right_shelf_middle_2"
+      ],
+      "heightMeters": 0.65,
+      "yaw": 0,
+      "changes": [
+        "DISAPPEAR",
+        "APPEAR",
+        "MOVE"
+      ],
+      "variants": []
+    },
+    {
+      "id": "ficus_elastica",
+      "model": "forgotten_room/greenhouse/models/ficus_elastica.glb",
+      "enabled": true,
+      "surfaceId": "floor",
+      "slots": [
+        "floor_1",
+        "floor_3",
+        "floor_4"
+      ],
+      "heightMeters": 1.95,
+      "yaw": 0,
+      "changes": [
+        "DISAPPEAR",
+        "APPEAR",
+        "MOVE"
+      ],
+      "variants": []
+    },
+    {
+      "id": "botanical_decoration",
+      "model": "forgotten_room/greenhouse/models/botanical_decoration.glb",
+      "enabled": true,
+      "surfaceId": "left_cabinet",
+      "slots": [
+        "left_cabinet_1",
+        "left_cabinet_2",
+        "left_cabinet_3"
+      ],
+      "heightMeters": 0.6,
+      "yaw": 0,
+      "changes": [
+        "DISAPPEAR",
+        "APPEAR",
+        "MOVE"
+      ],
+      "variants": []
+    },
+    {
+      "id": "large_monstera",
+      "model": "forgotten_room/greenhouse/models/large_monstera.glb",
+      "enabled": true,
+      "surfaceId": "floor",
+      "slots": [
+        "floor_1",
+        "floor_2",
+        "floor_3"
+      ],
+      "heightMeters": 1.75,
+      "yaw": 0,
+      "changes": [
+        "DISAPPEAR",
+        "APPEAR",
+        "MOVE"
+      ],
+      "variants": []
+    },
+    {
+      "id": "hanging_fern",
+      "model": "forgotten_room/greenhouse/models/hanging_fern.glb",
+      "enabled": true,
+      "surfaceId": "hanging",
+      "slots": [
+        "hanging_1",
+        "hanging_2"
+      ],
+      "heightMeters": 0.85,
+      "yaw": 0,
+      "changes": [
+        "DISAPPEAR",
+        "APPEAR",
+        "MOVE"
+      ],
+      "variants": []
+    },
+    {
+      "id": "small_botanical_pot",
+      "model": "forgotten_room/greenhouse/models/small_botanical_pot.glb",
+      "enabled": true,
+      "surfaceId": "right_shelf_middle",
+      "slots": [
+        "right_shelf_middle_1",
+        "right_shelf_middle_2"
+      ],
+      "heightMeters": 0.55,
+      "yaw": 0,
+      "changes": [
+        "DISAPPEAR",
+        "APPEAR",
+        "MOVE"
+      ],
+      "variants": []
+    },
+    {
+      "id": "sunflowers",
+      "model": "forgotten_room/greenhouse/models/sunflowers.glb",
+      "enabled": true,
+      "surfaceId": "rear_table",
+      "slots": [
+        "rear_table_1",
+        "rear_table_2",
+        "rear_table_3",
+        "rear_table_4"
+      ],
+      "heightMeters": 1.5,
+      "yaw": 0,
+      "changes": [
+        "DISAPPEAR",
+        "APPEAR",
+        "MOVE"
+      ],
+      "variants": []
+    },
+    {
+      "id": "white_lilies",
+      "model": "forgotten_room/greenhouse/models/white_lilies.glb",
+      "enabled": true,
+      "surfaceId": "rear_table",
+      "slots": [
+        "rear_table_1",
+        "rear_table_2",
+        "rear_table_3",
+        "rear_table_4"
+      ],
+      "heightMeters": 1.05,
+      "yaw": 0,
+      "changes": [
+        "DISAPPEAR",
+        "APPEAR",
+        "MOVE"
+      ],
+      "variants": []
+    },
+    {
+      "id": "lavender",
+      "model": "forgotten_room/greenhouse/models/lavender.glb",
+      "enabled": true,
+      "surfaceId": "front_table",
+      "slots": [
+        "front_table_2",
+        "front_table_3",
+        "front_table_4"
+      ],
+      "heightMeters": 0.62,
+      "yaw": 0,
+      "changes": [
+        "DISAPPEAR",
+        "APPEAR",
+        "MOVE",
+        "CHANGE"
+      ],
+      "variants": [
+        "forgotten_room/greenhouse/models/lavender_v1.glb"
+      ]
+    },
+    {
+      "id": "boston_fern",
+      "model": "forgotten_room/greenhouse/models/boston_fern.glb",
+      "enabled": true,
+      "surfaceId": "rear_table",
+      "slots": [
+        "rear_table_1",
+        "rear_table_2",
+        "rear_table_3",
+        "rear_table_4"
+      ],
+      "heightMeters": 0.85,
+      "yaw": 0,
+      "changes": [
+        "DISAPPEAR",
+        "APPEAR",
+        "MOVE"
+      ],
+      "variants": []
+    },
+    {
+      "id": "barrel_cactus",
+      "model": "forgotten_room/greenhouse/models/barrel_cactus.glb",
+      "enabled": true,
+      "surfaceId": "front_table",
+      "slots": [
+        "front_table_1",
+        "front_table_2",
+        "front_table_3"
+      ],
+      "heightMeters": 0.8,
+      "yaw": 0,
+      "changes": [
+        "DISAPPEAR",
+        "APPEAR",
+        "MOVE"
+      ],
+      "variants": []
+    },
+    {
+      "id": "column_cactus",
+      "model": "forgotten_room/greenhouse/models/column_cactus.glb",
+      "enabled": true,
+      "surfaceId": "floor",
+      "slots": [
+        "floor_1",
+        "floor_3",
+        "floor_4"
+      ],
+      "heightMeters": 1.45,
+      "yaw": 0,
+      "changes": [
+        "DISAPPEAR",
+        "APPEAR",
+        "MOVE"
+      ],
+      "variants": []
+    },
+    {
+      "id": "red_poinsettia",
+      "model": "forgotten_room/greenhouse/models/red_poinsettia.glb",
+      "enabled": true,
+      "surfaceId": "left_cabinet",
+      "slots": [
+        "left_cabinet_1",
+        "left_cabinet_2",
+        "left_cabinet_3"
+      ],
+      "heightMeters": 0.6,
+      "yaw": 0,
+      "changes": [
+        "DISAPPEAR",
+        "APPEAR",
+        "MOVE"
+      ],
+      "variants": []
+    },
+    {
+      "id": "glass_terrarium",
+      "model": "forgotten_room/greenhouse/models/glass_terrarium.glb",
+      "enabled": true,
+      "surfaceId": "left_cabinet",
+      "slots": [
+        "left_cabinet_1",
+        "left_cabinet_2",
+        "left_cabinet_3"
+      ],
+      "heightMeters": 0.75,
+      "yaw": 0,
+      "changes": [
+        "DISAPPEAR",
+        "APPEAR",
+        "MOVE"
+      ],
+      "variants": []
+    },
+    {
+      "id": "antique_bonsai",
+      "model": "forgotten_room/greenhouse/models/antique_bonsai.glb",
+      "enabled": true,
+      "surfaceId": "right_shelf_upper",
+      "slots": [
+        "right_shelf_upper_1",
+        "right_shelf_upper_2"
+      ],
+      "heightMeters": 0.7,
+      "yaw": 0,
+      "changes": [
+        "DISAPPEAR",
+        "APPEAR",
+        "MOVE"
+      ],
+      "variants": []
+    },
+    {
+      "id": "botanical_bottle_1",
+      "model": "forgotten_room/greenhouse/models/botanical_bottle_1.glb",
+      "enabled": true,
+      "surfaceId": "left_cabinet",
+      "slots": [
+        "left_cabinet_1",
+        "left_cabinet_2",
+        "left_cabinet_3"
+      ],
+      "heightMeters": 0.55,
+      "yaw": 0,
+      "changes": [
+        "DISAPPEAR",
+        "APPEAR",
+        "MOVE",
+        "ROTATE"
+      ],
+      "variants": []
+    },
+    {
+      "id": "botanical_bottle_2",
+      "model": "forgotten_room/greenhouse/models/botanical_bottle_2.glb",
+      "enabled": true,
+      "surfaceId": "left_cabinet",
+      "slots": [
+        "left_cabinet_1",
+        "left_cabinet_2",
+        "left_cabinet_3"
+      ],
+      "heightMeters": 0.62,
+      "yaw": 0,
+      "changes": [
+        "DISAPPEAR",
+        "APPEAR",
+        "MOVE",
+        "ROTATE"
+      ],
+      "variants": []
+    }
+  ],
+  "occlusion": {
+    "status": "requires_model_calibration",
+    "layers": []
+  },
+  "calibrationStatus": "initial_estimate_requires_first_glb"
+}

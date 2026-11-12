@@ -23,8 +23,11 @@ public final class RoomGenerator {
 
     /** Picks the room from the seed as well. */
     public static Round generate(long seed,RoomDifficulty difficulty){
-        return generate(seed,difficulty,RoomCatalog.LAYOUTS.get(Math.floorMod(new Random(seed^0x5DEECE66DL).nextInt(),RoomCatalog.LAYOUTS.size())));}
+        List<Layout> ready=RoomCatalog.LAYOUTS.stream().filter(l->!l.staging().isEmpty()).toList();
+        if(ready.isEmpty())throw new IllegalStateException("No rooms with playable assets");
+        return generate(seed,difficulty,ready.get(Math.floorMod(new Random(seed^0x5DEECE66DL).nextInt(),ready.size())));}
     public static Round generate(long seed,RoomDifficulty difficulty,Layout layout){
+        if(layout.staging().isEmpty())throw new IllegalArgumentException("Room is awaiting playable models: "+layout.id());
         // A rare unlucky layout cannot host every requested change; retry deterministically from the same seed.
         Random random=new Random(seed);
         for(int attempt=0;attempt<64;attempt++){Round round=tryGenerate(seed,difficulty,layout,new Random(random.nextLong()));if(round!=null)return round;}

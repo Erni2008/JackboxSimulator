@@ -1,35 +1,79 @@
-/* THE FINAL SECOND — phone: industrial gothic, one huge red button. transform/opacity animations only. */
-body[data-view=fsec] .masthead,body[data-view=fsec] .connection,body[data-view=fsec] #controller-director,
-body[data-view=fsec] #session-footer,body[data-view=fsec] .page-footer,body[data-view=fsec] #leave{display:none!important}
-.fsec{min-height:calc(100svh - 24px);display:flex!important;flex-direction:column;align-items:center;justify-content:space-between;gap:14px;padding:10px 0 18px;font-family:Gothic,Georgia,serif;color:#f3e6d0}
+/* The same painted machine and moving cap as the native player preview. */
+body[data-view=fsec] .masthead,body[data-view=fsec] .connection,body[data-view=fsec] #controller-director,body[data-view=fsec] #session-footer,body[data-view=fsec] .page-footer,body[data-view=fsec] #leave{display:none!important}
+body[data-view=fsec]{padding:0;overflow:hidden;background:#080505}
+body[data-view=fsec] main{max-width:none}
+.fsec{position:fixed;inset:0;overflow:hidden;color:#f3e6d0;font-family:Gothic,Georgia,serif;background:radial-gradient(ellipse at 50% 55%,#41100c66,transparent 70%),#080505;isolation:isolate}
 .fsec[hidden]{display:none!important}
-.fsec-head{text-align:center}
-.fsec-title{margin:0;font-size:13px;letter-spacing:.36em;color:#b49d7a}
-.fsec-target{margin:6px 0 0;font-size:16px;letter-spacing:.22em;color:#d9c39a}
-.fsec-target b{display:block;margin-top:2px;font-size:44px;letter-spacing:.02em;color:#ff4a3a;text-shadow:0 0 18px #ff2a1a88,0 2px 0 #000}
-/* the display */
-.fsec-display{width:100%;max-width:420px;padding:16px 14px;border-radius:14px;
-  background:linear-gradient(180deg,#151010,#070505) padding-box,linear-gradient(135deg,#a37532,#3a2a18 40%,#c99a4a 60%,#4a3418) border-box;border:3px solid transparent;
-  box-shadow:inset 0 0 40px #000,0 10px 30px #000c}
-#fsec-digits{display:block;text-align:center;font:700 clamp(58px,19vw,92px)/1 "Courier New",monospace;letter-spacing:.06em;color:#ff3a2a;text-shadow:0 0 14px #ff2a1acc,0 0 34px #ff1a0a66;font-variant-numeric:tabular-nums}
-#fsec-digits[data-kind=count]{font-size:clamp(90px,30vw,140px);animation:fsec-pulse 1s infinite}
-.fsec[data-mode=locked] #fsec-digits,.fsec[data-mode=done] #fsec-digits,.fsec[data-mode=wait] #fsec-digits{color:#3a0d0a;text-shadow:none}
-.fsec-note{min-height:22px;margin:0;font-size:15px;letter-spacing:.26em;color:#e9c98a;text-align:center}
-/* the button */
-.fsec-stop{all:unset;box-sizing:border-box;position:relative;width:min(78vw,330px);aspect-ratio:1;border-radius:50%;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
-  background:radial-gradient(circle at 50% 50%,#2a1a0e 0 62%,#c99a4a 63% 66%,#5a3e1c 67% 70%,#e6c27a 71% 73%,#3a2810 74%);
-  box-shadow:0 18px 40px #000c,inset 0 0 0 2px #000}
-.fsec-stop::before{content:"";position:absolute;inset:13%;border-radius:50%;
-  background:radial-gradient(circle at 42% 30%,#ff8a7a 0,#e2241a 18%,#a8100c 52%,#5a0605 100%);
-  box-shadow:inset 0 -14px 26px #3a0302,inset 0 6px 10px #ff9a8a66,0 10px 0 #4a0403,0 18px 26px #000a,0 0 40px #ff2a1a55;transition:transform .07s ease-out,box-shadow .07s}
-.fsec-stop::after{content:"СТОП";position:absolute;inset:0;display:grid;place-items:center;font:700 clamp(34px,11vw,52px) Gothic,Georgia,serif;letter-spacing:.1em;color:#ffe6dc;text-shadow:0 2px 0 #5a0605,0 0 16px #ff6a5a88;pointer-events:none;transition:transform .07s}
-.fsec-stop:not(:disabled):active::before,.fsec-stop.hit::before{transform:translateY(8px) scale(.97);box-shadow:inset 0 -6px 16px #3a0302,0 2px 0 #4a0403,0 6px 12px #000a,0 0 60px #ff2a1aaa}
-.fsec-stop:not(:disabled):active::after,.fsec-stop.hit::after{transform:translateY(8px)}
-.fsec-stop:disabled{cursor:default}
-.fsec-stop:disabled::before{filter:saturate(.45) brightness(.55)}
-.fsec-stop:disabled::after{opacity:.45}
-.fsec[data-mode=run] .fsec-stop::before{animation:fsec-glow 1.6s ease-in-out infinite}
-@keyframes fsec-pulse{0%{transform:scale(1.15);opacity:0}25%{transform:scale(1);opacity:1}85%{opacity:1}100%{opacity:.2}}
-@keyframes fsec-glow{0%,100%{box-shadow:inset 0 -14px 26px #3a0302,inset 0 6px 10px #ff9a8a66,0 10px 0 #4a0403,0 18px 26px #000a,0 0 30px #ff2a1a44}50%{box-shadow:inset 0 -14px 26px #3a0302,inset 0 6px 10px #ff9a8a66,0 10px 0 #4a0403,0 18px 26px #000a,0 0 60px #ff2a1a99}}
-@media (prefers-reduced-motion:reduce){.fsec *{animation:none!important}}
-.fsec-task{margin:4px 0 0;min-height:16px;font-size:13px;letter-spacing:.3em;color:#ff5a4a;text-shadow:0 0 12px #ff2a1a88}
+.fsec-machine{position:absolute;left:50%;top:50%;width:min(100vw,177.68svh);aspect-ratio:1672/941;transform:translate(-50%,-50%);background:url('/art/final_second/machine_plate.png') center/100% 100% no-repeat;container-type:inline-size}
+.fsec-head{position:absolute;left:33.49%;top:6.59%;width:35.29%;height:15.3%;text-align:center;display:flex;flex-direction:column;justify-content:center;gap:0}
+.fsec-title,.fsec-task{position:fixed;left:0;width:100%;pointer-events:none;text-align:center;margin:0;font-size:max(10px,1cqw);letter-spacing:.16em;color:#c8ae7c;text-shadow:0 2px 4px #000}
+.fsec-title{top:.35cqw}.fsec-task{top:1.95cqw}
+.fsec-target{margin:0;font-size:1.85cqw;line-height:1.12;color:#eee0c7;text-shadow:0 2px 3px #000}
+.fsec-target b{display:block;font-size:4.3cqw;line-height:1.15;color:#ff4937;font-weight:normal;text-shadow:0 0 14px #ff281577,0 3px 2px #140300}
+.fsec-display{position:absolute;left:28.59%;top:29.54%;width:44.5%;height:21.68%}
+#fsec-digits{display:block;text-align:center;padding-top:3%;font:700 8cqw/1.2 monospace;color:#f43d27;text-shadow:0 0 14px #ff261a88;font-variant-numeric:tabular-nums}
+#fsec-segments{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.fsec-display.has-segments #fsec-digits{opacity:0}
+.fsec-stop{all:unset;box-sizing:border-box;position:absolute;left:39.65%;top:59.3%;width:21.35%;height:22%;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;background:url('/art/final_second/button_cap.png') center/100% 100% no-repeat;transform-origin:50% 100%;filter:drop-shadow(0 0 12px #f21b1633)}
+.fsec-stop::after{content:attr(data-label);position:absolute;inset:8% 0 30%;display:grid;place-items:center;font:normal 2cqw Georgia,serif;letter-spacing:.08em;color:#ffddcb;text-shadow:0 2px 3px #410500;opacity:.85}
+.fsec-stop:disabled{cursor:default;filter:brightness(.65) saturate(.65)}
+.fsec-stop:focus-visible{outline:2px solid #e4bb78;outline-offset:8px;border-radius:50%}
+.fsec-stop.hit{animation:fsec-stroke .58s both}
+.fsec-collar{position:absolute;left:39.29%;top:73.33%;width:22.07%;height:14.24%;background:url('/art/final_second/collar_front.png') center/100% 100% no-repeat;pointer-events:none}
+.fsec-note{position:absolute;left:8%;right:8%;bottom:max(18px,env(safe-area-inset-bottom));margin:0;padding:12px 18px;border-block:1px solid #a67d4666;background:#120907d9;text-align:center;font-size:clamp(12px,1.3vw,20px);letter-spacing:.1em;color:#eed3a1;text-shadow:0 2px 2px #000}
+.fsec-lamps{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 5% 17% at 18.5% 40%,#ff201448,transparent),radial-gradient(ellipse 5% 17% at 81.8% 40%,#ff201448,transparent);mix-blend-mode:screen;animation:fsec-lamps 2.7s infinite alternate}
+.fsec-dust{position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(circle,#ffb17877 1px,transparent 2px),radial-gradient(circle,#f6b29c55 1px,transparent 2px);background-size:173px 211px,277px 183px;mask-image:radial-gradient(ellipse,#0008,transparent 68%);animation:fsec-dust 24s linear infinite}
+@keyframes fsec-stroke{0%{transform:translateY(0)}12%,28%{transform:translateY(15%) scaleY(.965);filter:brightness(.8) drop-shadow(0 0 25px #ff271999)}65%{transform:translateY(-1%) scaleY(1.005)}100%{transform:translateY(0)}}
+@keyframes fsec-lamps{0%,46%,50%,100%{opacity:.85}48%{opacity:.55}80%{opacity:1}}
+@keyframes fsec-dust{to{background-position:40px -211px,-35px -183px}}
+@media(max-aspect-ratio:1/1){.fsec-machine{width:178vw}.fsec-title{top:-16cqw;font-size:2cqw}.fsec-task{top:-12cqw;font-size:1.4cqw}.fsec-note{left:5%;right:5%;bottom:max(6svh,env(safe-area-inset-bottom));font-size:13px}.fsec-target{font-size:2.3cqw}.fsec-target b{font-size:4.5cqw}}
+@media(prefers-reduced-motion:reduce){.fsec *{animation:none!important}}
+/* Cinematic framing and a separate, readable device HUD. */
+.fsec::before{content:"";position:absolute;inset:-28px;z-index:-2;background:linear-gradient(#08050588,#08050599),url('/art/final_second/machine_plate.png') center/cover;filter:blur(18px);transform:scale(1.06)}
+.fsec::after{content:"";position:absolute;inset:0;z-index:4;pointer-events:none;box-shadow:inset 0 0 12vw 2vw #0009;background:linear-gradient(#0003,transparent 24% 76%,#0005)}
+.fsec-brand{position:absolute;z-index:3;top:max(18px,env(safe-area-inset-top));left:8%;right:8%;text-align:center;pointer-events:none}
+.fsec-title,.fsec-task{position:static;width:auto;line-height:1.5;font-weight:600}
+.fsec-title{font-size:clamp(11px,1.1vw,17px);letter-spacing:.3em;color:#f1d6a3}
+.fsec-task{font-size:clamp(9px,.8vw,12px);letter-spacing:.2em;margin-top:5px;color:#a78e6e}
+.fsec-machine{width:min(100vw,164svh);will-change:transform;animation:fsec-arrival 1s ease-out both}
+.fsec-guidance{position:absolute;z-index:5;left:8%;right:8%;bottom:max(18px,env(safe-area-inset-bottom));display:grid;justify-items:center;gap:12px}
+.fsec-note{position:static;width:100%;max-width:1080px;min-height:48px;display:grid;place-items:center;padding:11px 20px;background:linear-gradient(90deg,transparent,#100906ed 15% 85%,transparent);border-color:#a67d4644;letter-spacing:.13em;font-size:clamp(11px,1.05vw,16px)}
+.fsec-steps{display:flex;align-items:center;gap:18px;font-size:10px;letter-spacing:.18em;color:#8c7964}
+.fsec-steps span{transition:color .25s,text-shadow .25s;white-space:nowrap}.fsec-steps b{font-weight:600;margin-left:7px}.fsec-steps i{width:42px;height:1px;background:#8c694650}
+.fsec[data-mode=ready] .fsec-step-start,.fsec[data-mode=run] .fsec-step-stop{color:#ffe2ae;text-shadow:0 0 14px #ff862b66}
+.fsec[data-mode=locked] .fsec-steps,.fsec[data-mode=done] .fsec-steps,.fsec[data-mode=watch] .fsec-steps{visibility:hidden}
+.fsec-stop{border-radius:48%;transition:filter .3s;filter:drop-shadow(0 0 18px #ee211c55)}
+.fsec-stop::after{font-family:Gothic,Georgia,serif;font-size:1.7cqw;font-weight:600;letter-spacing:.13em;transform:perspective(500px) rotateX(16deg);color:#ffe0cb;opacity:.88}
+.fsec[data-mode=run] .fsec-stop:not(:disabled){filter:drop-shadow(0 0 22px #ff281b88)}
+.fsec-stop:disabled{filter:brightness(.8) saturate(.72)}
+.fsec[data-mode=queue] .fsec-stop::after,.fsec[data-mode=wait] .fsec-stop::after{opacity:.4}
+.fsec-display::after{content:"";position:absolute;inset:6% 3%;pointer-events:none;background:linear-gradient(162deg,#fff3 0,transparent 20% 78%,#b84a1420);opacity:.16;border-radius:12%}
+.fsec[data-mode=locked] .fsec-note{color:#d6e0b5;border-color:#bac38355}
+.fsec[data-mode=queue] .fsec-note{color:#baa98c}
+.fsec[data-phase=COUNTDOWN] .fsec-display{animation:fsec-count 1s ease-out infinite}
+@keyframes fsec-count{0%{filter:brightness(1.4)}65%,100%{filter:brightness(1)}}
+@keyframes fsec-arrival{from{opacity:0;transform:translate(-50%,-49%) scale(1.025)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@media(max-aspect-ratio:1/1){
+ .fsec-brand{top:max(7svh,env(safe-area-inset-top));left:5%;right:5%}
+ .fsec-title{font-size:14px;letter-spacing:.24em}.fsec-task{font-size:10px;margin-top:10px;letter-spacing:.13em}
+ .fsec-machine{width:190vw;top:49%;mask-image:linear-gradient(transparent,#000 5% 94%,transparent)}
+ .fsec-guidance{left:5%;right:5%;bottom:max(5svh,env(safe-area-inset-bottom));gap:20px}
+ .fsec-note{font-size:12px;line-height:1.5;padding:14px 12px;min-height:66px}
+ .fsec-steps{font-size:9px;gap:12px}.fsec-steps i{width:28px}
+ .fsec-target{font-size:2.1cqw}.fsec-stop::after{font-size:2cqw}
+}
+@media(max-height:500px) and (min-aspect-ratio:1/1){.fsec-brand{top:8px}.fsec-task{display:none}.fsec-guidance{bottom:6px;gap:3px}.fsec-steps{display:none}.fsec-note{min-height:30px;padding:5px 12px;font-size:10px}.fsec-machine{width:min(100vw,177svh)}}
+@media(prefers-reduced-motion:reduce){.fsec-machine{will-change:auto}.fsec *{animation:none!important;transition:none!important}}
+/* SPEED SHIFT: restrained typography, one contextual cue at the actual switch. */
+.fsec[data-task=SPEED_SHIFT] .fsec-title{font-size:clamp(10px,.85vw,13px);letter-spacing:.23em}
+.fsec[data-task=SPEED_SHIFT] .fsec-task{font:600 clamp(9px,.7vw,11px)/1.4 Body,sans-serif;letter-spacing:.22em;color:#c6ad87;margin-top:7px}
+.fsec[data-task=SPEED_SHIFT] .fsec-target{font:600 1.05cqw/1.5 Body,sans-serif;letter-spacing:.2em;color:#baaa8c}
+.fsec[data-task=SPEED_SHIFT] .fsec-target b{font:600 3.25cqw/1.25 Gothic,Georgia,serif;letter-spacing:.035em;color:#f1d5ac;text-shadow:0 2px 3px #000,0 0 20px #c9914433}
+.fsec[data-task=SPEED_SHIFT] .fsec-stop::after{font:600 1.15cqw/1 Body,sans-serif;letter-spacing:.16em;opacity:.8}
+.fsec[data-task=SPEED_SHIFT] .fsec-steps{display:none}
+.fsec[data-task=SPEED_SHIFT] .fsec-note{min-height:36px;font:400 clamp(11px,.85vw,13px)/1.5 Body,sans-serif;letter-spacing:.025em;color:#cdbda3;border-color:#a67d462b;background:linear-gradient(90deg,transparent,#100906c9,transparent);padding:9px 14px}
+.fsec-speed-cue{position:absolute;z-index:3;top:52.7%;left:50%;transform:translateX(-50%);padding:.45cqw 1.3cqw;white-space:nowrap;border:1px solid #dbad6955;border-radius:4px;background:linear-gradient(135deg,#24150bf2,#110b08f5);box-shadow:0 6px 20px #0009,inset 0 1px #ffe8bc12;pointer-events:none;color:#ffe1ac;font:500 max(11px,1.05cqw)/1.35 Body,sans-serif;letter-spacing:.03em;animation:fsec-speed-in 1.8s ease both}
+.fsec-speed-cue[data-direction=slower]{color:#cde3dc;border-color:#89b0a75c;background:linear-gradient(135deg,#13221df2,#0c1310f5)}
+@keyframes fsec-speed-in{0%{opacity:0;transform:translate(-50%,5px) scale(.97)}14%,80%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(-50%,-3px) scale(1)}}
+@media(max-aspect-ratio:1/1){.fsec[data-task=SPEED_SHIFT] .fsec-title{font-size:11px}.fsec[data-task=SPEED_SHIFT] .fsec-task{font-size:10px}.fsec[data-task=SPEED_SHIFT] .fsec-target{font-size:1.55cqw}.fsec[data-task=SPEED_SHIFT] .fsec-target b{font-size:3.8cqw}.fsec[data-task=SPEED_SHIFT] .fsec-stop::after{font-size:1.65cqw}.fsec[data-task=SPEED_SHIFT] .fsec-note{font-size:11px;min-height:40px}.fsec-speed-cue{font-size:11px;padding:4px 10px;top:52.5%}}
+@media(prefers-reduced-motion:reduce){.fsec-speed-cue{animation:none}}
