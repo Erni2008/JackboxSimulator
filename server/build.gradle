@@ -48,6 +48,7 @@ tasks.register('impostorBrowserFixture', JavaExec) {
 // Public artwork allowlist stays identical. Ship prepared display copies at the same URLs.
 // Character assignments, private assets and arbitrary filesystem routes remain inaccessible.
 def publicArt = [
+    'final_second/machine_plate.png', 'final_second/button_cap.png', 'final_second/collar_front.png',
     'ui/buttons/player_count/*.png', 'ui/windows/create_room/field*.png',
     'ui/windows/generation_code/CodeField.png', 'impostor/backgrounds/background1.png',
     'impostor/papers/suspect_papper.png', 'impostor/papers/papper_player_front.png',
@@ -99,7 +100,12 @@ def votingVoiceTiming = tasks.register('generateVotingVoiceTiming') {
         long intro = bank(['intro_1','intro_2'])
         long accused = bank(['reveal_intro'])
         long announcement = Math.max(accused, Math.max(bank(['tie']),bank(['no_votes'])))
-        long identity = 0L
+        // Narrator finishes first, then the 7.6 s role-reveal score and its text accent.
+        long outcome = ['impostor_outcome_caught','impostor_outcome_escaped'].collect { id ->
+            def entry=events[id]
+            entry?.status == 'ready' && entry.duration instanceof Number && entry.duration > 0 && entry.duration <= 120 ? Math.ceil(entry.duration*1000).longValue() : 0L
+        }.max() ?: 0L
+        long identity = outcome + 4200L
         def target = output.get().asFile
         target.parentFile.mkdirs()
         target.text = "intro=${intro}\nannouncement=${announcement}\nidentity=${identity}\n"

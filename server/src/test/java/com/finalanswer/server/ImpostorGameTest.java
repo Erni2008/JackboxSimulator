@@ -63,6 +63,23 @@ class ImpostorGameTest {
     @Test void rejectsMalformedSecretRepeatedAndOversizedClues(){start(3);advance(com.finalanswer.server.game.ImpostorSession.ROLE_MILLIS);
         fail("INVALID_CLUE",()->submit(0,1,"яблоко"));fail("INVALID_CLUE",()->submit(0,1,"два слова"));submit(0,1,"свет");
     }
+    @Test void secretWordInsideClueIsRejectedForEveryRole(){
+        start(3);advance(ImpostorSession.ROLE_MILLIS);
+        for(int player=0;player<3;player++){
+            int i=player;
+            fail("INVALID_CLUE",()->submit(i,1,"этоЯбЛоКо"));
+            fail("INVALID_CLUE",()->submit(i,1,"яблокотут"));
+            assertFalse(mini(i).get("clueSubmitted").getAsBoolean());submit(i,1,"СВЕТ");
+        }
+        assertEquals("ROUND_CLUE_REVEAL",s(mini(0),"phase"));
+    }
+    @Test void typingAndDeadlineNeverCommitAnUnconfirmedDraft(){
+        start(3);advance(ImpostorSession.ROLE_MILLIS);
+        for(int i=0;i<3;i++)rooms.command(peers.get(i),Protocol.decode(Protocol.event("IMPOSTOR_TYPING","typing"+i,Map.of("roomCode",code,"sessionId",session,"round",1))));
+        for(int i=0;i<3;i++)assertFalse(mini(i).get("clueSubmitted").getAsBoolean());
+        advance(20_000);var clues=mini(0).getAsJsonArray("revealedClues").get(0).getAsJsonObject();
+        for(int i=0;i<3;i++)assertEquals("—",clues.get(pid(i)).getAsString());
+    }
     @Test void unicodeNormalization(){assertEquals("ПОЛЁТ",ImpostorSession.normalize("поле\u0308т"));
         for(String text:List.of(""," ","<script>","a\n","a-b","x".repeat(25),"🙂"))assertThrows(RoomService.Failure.class,()->ImpostorSession.normalize(text));}
     @Test void spectatorAndHostCannotSubmit(){start(3);advance(com.finalanswer.server.game.ImpostorSession.ROLE_MILLIS);fail("NOT_ELIGIBLE",()->submit(3,1,"СВЕТ"));

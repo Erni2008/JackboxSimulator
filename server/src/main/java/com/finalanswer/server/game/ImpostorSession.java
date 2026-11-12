@@ -108,7 +108,7 @@ public final class ImpostorSession {
         // Three semantic attempts per round, including invalid guesses. No secret-specific error.
         if(attempts.merge(player,1,Integer::sum)>3)throw new Failure(400,"INVALID_CLUE");
         String normalized=normalize(text);
-        if(normalized.equals(secretWord) || revealed.stream().anyMatch(r->normalized.equals(r.get(player))))
+        if(normalized.replace('Ё','Е').contains(secretWord.replace('Ё','Е')) || revealed.stream().anyMatch(r->normalized.equals(r.get(player))))
             throw new Failure(400,"INVALID_CLUE");
         clues.put(player,normalized);typing.remove(player);
         if(clues.size()==participants.size())finalizeClues(now);

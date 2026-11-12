@@ -19,8 +19,8 @@ public final class SystemBreachHostLauncher {
         int need=Integer.getInteger("sb.players",2);boolean ru=!"en".equals(System.getProperty("sb.lang","ru"));
         var c=new Lwjgl3ApplicationConfiguration();c.setTitle("FINAL ANSWER / SYSTEM BREACH / Host "+code);c.setWindowedMode(1600,900);c.setForegroundFPS(60);c.setBackBufferConfig(8,8,8,8,16,0,4);
         new Lwjgl3Application(new Game(){
-            RealtimeClient client;SystemBreachHostScreen screen;CageLobby lobby;String session="";boolean asked;long lastOnline=-1;volatile JsonObject latest,room;
-            @Override public void create(){lobby=new CageLobby();client=new RealtimeClient(url,code,token,e->{var d=e.getAsJsonObject("payload");if(d!=null&&d.has("players")){latest=d;room=d;}},s->Gdx.app.log("Host",s));}
+            RealtimeClient client;SystemBreachHostScreen screen;CageLobby lobby;String session="";boolean asked;long lastOnline=-1,waiting;com.badlogic.gdx.graphics.g2d.SpriteBatch batch;com.badlogic.gdx.graphics.g2d.BitmapFont font;com.badlogic.gdx.graphics.Texture bg;volatile JsonObject latest,room;
+            @Override public void create(){batch=new com.badlogic.gdx.graphics.g2d.SpriteBatch();font=com.erni.finalanswer.ui.UiFonts.gothic(56);bg=new com.badlogic.gdx.graphics.Texture(Gdx.files.internal("system_breach/background.png"));lobby=new CageLobby();client=new RealtimeClient(url,code,token,e->{var d=e.getAsJsonObject("payload");if(d!=null&&d.has("players")){latest=d;room=d;}},s->Gdx.app.log("Host",s));}
             @Override public void render(){
                 JsonObject data=latest;latest=null;
                 if(data!=null){
@@ -34,10 +34,12 @@ public final class SystemBreachHostLauncher {
                     if(s!=null&&!asked&&s.has("lobbyId")&&!s.has("systemBreach")){
                         long online=s.getAsJsonArray("players").asList().stream().filter(p->{var o=p.getAsJsonObject();return o.has("connectionStatus")?"ONLINE".equals(o.get("connectionStatus").getAsString()):o.has("online")&&o.get("online").getAsBoolean();}).count();
                         if(online!=lastOnline){lastOnline=online;Gdx.app.log("Host","online "+online+"/"+need);}
-                        if(online>=need){asked=true;client.send("SYSTEM_BREACH_START",Map.of("roomCode",code,"sessionId",s.get("lobbyId").getAsString()));}}}
+                        waiting=online;if(online>=need){asked=true;client.send("SYSTEM_BREACH_START",Map.of("roomCode",code,"sessionId",s.get("lobbyId").getAsString()));}}}
+                if(screen==null){float w=Gdx.graphics.getWidth(),h=Gdx.graphics.getHeight();batch.getProjectionMatrix().setToOrtho2D(0,0,w,h);batch.begin();batch.setColor(.45f,.45f,.45f,1);batch.draw(bg,0,0,w,h);batch.setColor(1,1,1,1);
+                    float pulse=.6f+.4f*(float)Math.sin(System.nanoTime()/4e8);font.setColor(.3f,1,.55f,pulse);var gl=new com.badlogic.gdx.graphics.g2d.GlyphLayout(font,"ОЖИДАНИЕ ИГРОКОВ  "+waiting+" / "+need);font.draw(batch,gl,(w-gl.width)/2,h/2+gl.height/2);batch.end();}
                 super.render();
             }
-            @Override public void dispose(){if(screen!=null)screen.dispose();lobby.dispose();client.close();}
+            @Override public void dispose(){batch.dispose();font.dispose();bg.dispose();if(screen!=null)screen.dispose();lobby.dispose();client.close();}
         },c);
     }
 }

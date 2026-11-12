@@ -11,13 +11,16 @@ let bots_=0;function bot(code,identity,name){const tag=++bots_;
   ws.onclose=e=>console.log(name,'closed',e.code);ws.onopen=()=>send('AUTH',{roomCode:code,token:identity.token});
   ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.type==='AUTHENTICATED')console.log(name,'online');if(m.payload?.systemBreach)state=m.payload.systemBreach;};
   const pick=a=>a[Math.floor(Math.random()*a.length)];
+  // bots read arithmetic like a person would; everyday questions they guess
+  const solve=q=>{const m=/^(\d+) ([+−×]) (\d+)/.exec(q||'');if(!m||Math.random()<.15)return null;const x=+m[1],y=+m[3];return String(m[2]==='+'?x+y:m[2]==='−'?x-y:x*y);};
   setInterval(()=>{
     send('SYNC',{});const s=state;if(!s||Date.now()<busyUntil)return;const me=s.self||{},a=me.actions||{},base={roomCode:code,sessionId:s.sessionId};
     if(s.phase==='INITIALIZATION'&&!me.passwordSelected&&me.passwordOptions?.length){send('SYSTEM_BREACH_PASSWORD_SELECT',{...base,password:pick(me.passwordOptions)});return;}
     if(s.phase!=='ACTIVE')return;busyUntil=Date.now()+1500+Math.random()*2500;
     if(me.recovery?.challengeId&&me.recovery.data?.options){send('SYSTEM_BREACH_RECOVERY_SUBMIT',{...base,challengeId:me.recovery.challengeId,answer:pick(me.recovery.data.options)});return;}
     if(me.attack?.attackId){send('SYSTEM_BREACH_ATTACK_SUBMIT',{...base,attackId:me.attack.attackId,password:pick(me.attack.options)});return;}
-    if(me.challenge?.challengeId&&me.challenge.data?.options){const o=me.challenge.data.options;send('SYSTEM_BREACH_CHALLENGE_SUBMIT',{...base,challengeId:me.challenge.challengeId,answer:Math.random()<.6?o[0]:pick(o)});return;}
+    if(me.challenge?.challengeId&&me.challenge.data?.options){const o=me.challenge.data.options;send('SYSTEM_BREACH_CHALLENGE_SUBMIT',{...base,challengeId:me.challenge.challengeId,answer:solve(me.challenge.data.question)??pick(o)});return;}
+    if((me.keys||0)>0){const r=Math.random(),targets=(a.targets||[]).filter(t=>t.attack?.allowed);if(r<.7&&targets.length){send('SYSTEM_BREACH_ATTACK_REQUEST',{...base,targetId:pick(targets).playerId});return;}if(a.firewall?.allowed){send('SYSTEM_BREACH_FIREWALL_UPGRADE',base);return;}}
     const r=Math.random(),targets=(a.targets||[]).filter(t=>t.attack?.allowed);
     if(r<.25&&targets.length){send('SYSTEM_BREACH_ATTACK_REQUEST',{...base,targetId:pick(targets).playerId});return;}
     if(r<.33&&a.firewall?.allowed){send('SYSTEM_BREACH_FIREWALL_UPGRADE',base);return;}

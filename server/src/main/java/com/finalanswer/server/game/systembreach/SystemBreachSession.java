@@ -9,6 +9,8 @@ import static com.erni.finalanswer.gameplay.systembreach.SystemBreachConfig.Para
 public final class SystemBreachSession {
     /** Party build: a hacked computer reboots by answering one quick question. */
     static boolean QUIZ_RECOVERY=true;
+    /** Party build: every {@link #KEY_EVERY} correct answers earn one access key; hacks, firewall and specials each spend a key. */
+    public volatile boolean keyGating;public static final int KEY_EVERY=3;
     public final String id=UUID.randomUUID().toString();
     public record ActionResult(String event,String status,Map<String,Object> details){public ActionResult{details=Map.copyOf(details);}}
     static final class Attack {
@@ -120,13 +122,13 @@ public final class SystemBreachSession {
                 case "CHALLENGE_REQUEST"->{fields(data,"type");requireAllowed(challengeReason(p,now));var challengeType=type(ChallengeType.class,data,"type");if(activeEnds-now<factory.minimumWindow(challengeType))throw new BreachFailure("ROUND_ENDING");p.challenge=factory.earning(challengeType,now,activeEnds);result=result("PLAYER_UPDATE","CHALLENGE_READY");}
                 case "CHALLENGE_SUBMIT"->{
                     fields(data,"challengeId","answer");ordinary(p,now);if(p.challenge==null||!p.challenge.id.equals(text(data,"challengeId")))throw new BreachFailure("STALE_CHALLENGE");
-                    if(!data.has("answer"))throw BreachFailure.invalid();boolean correct=p.challenge.validate(data.get("answer"),now);int reward=correct?p.credit(p.challenge.reward):0;if(correct)p.challengesSolved++;else p.challengeFailures++;p.recordChallenge(p.challenge,correct,now,reward);if(reward>0)event(now,"CHALLENGE_SOLVED","",p.id,reward);
+                    if(!data.has("answer"))throw BreachFailure.invalid();boolean correct=p.challenge.validate(data.get("answer"),now);int reward=correct?p.credit(p.challenge.reward):0;if(correct)p.challengesSolved++;else p.challengeFailures++;p.recordChallenge(p.challenge,correct,now,reward);if(correct&&keyGating&&++p.keyProgress>=KEY_EVERY){p.keyProgress=0;p.keys++;event(now,"KEY_EARNED","",p.id,p.keys);}if(reward>0)event(now,"CHALLENGE_SOLVED","",p.id,reward);
                     p.challenge=null;p.challengeReadyAt=now+cfg.get(CHALLENGE_GAP_MS);result=new ActionResult("CHALLENGE_RESULT",correct?"SUCCESS":"FAILED",Map.of("reward",reward));
                 }
                 case "ATTACK_REQUEST"->{
                     fields(data,"targetId");var target=player(text(data,"targetId"));requireAllowed(attackReason(p,target,now,online));
                     int firewall=target.effectiveFirewall(now),cost=attackCost(target,now);var attempt=new Attack(target,options(target.password),Math.min(activeEnds,now+cfg.get(ATTACK_GUESS_MS)));
-                    p.spend(cost);p.attackSpent+=cost;p.attacksStarted++;p.attack=attempt;event(now,"ATTACK_STARTED",p.id,target.id,0);p.attackReadyAt=now+cfg.get(ATTACK_COOLDOWN_MS)+(firewall-1)*cfg.get(FIREWALL_COOLDOWN_STEP_MS);result=result("PLAYER_UPDATE","ATTACK_READY");
+                    p.spend(cost);p.attackSpent+=cost;p.attacksStarted++;if(keyGating)p.keys--;p.attack=attempt;event(now,"ATTACK_STARTED",p.id,target.id,0);p.attackReadyAt=now+cfg.get(ATTACK_COOLDOWN_MS)+(firewall-1)*cfg.get(FIREWALL_COOLDOWN_STEP_MS);result=result("PLAYER_UPDATE","ATTACK_READY");
                 }
                 case "ATTACK_SUBMIT"->{
                     fields(data,"attackId","password");ordinary(p,now);if(p.attack==null||!p.attack.id.equals(text(data,"attackId")))throw new BreachFailure("STALE_ATTACK");
@@ -135,12 +137,12 @@ public final class SystemBreachSession {
                     rotatePassword(target);p.attack=null;event(now,success?"ATTACK_SUCCEEDED":"ATTACK_FAILED",p.id,target.id,transfer);result=new ActionResult("ATTACK_RESULT",success?"SUCCESS":"FAILED",Map.of("amount",transfer));
                 }
                 case "FIREWALL_UPGRADE"->{
-                    fields(data);requireAllowed(firewallReason(p,now));int cost=firewallCost(p);p.spend(cost);p.defenseSpent+=cost;p.firewall++;p.firewallUpgrades++;event(now,"FIREWALL_UPGRADED","",p.id,p.firewall);result=result("PLAYER_UPDATE","FIREWALL_UPGRADED");
+                    fields(data);requireAllowed(firewallReason(p,now));int cost=firewallCost(p);p.spend(cost);p.defenseSpent+=cost;p.firewall++;p.firewallUpgrades++;if(keyGating)p.keys--;event(now,"FIREWALL_UPGRADED","",p.id,p.firewall);result=result("PLAYER_UPDATE","FIREWALL_UPGRADED");
                 }
                 case "SPECIAL_ATTACK"->{
                     fields(data,"targetId","type");var target=player(text(data,"targetId"));SpecialAttackType special=type(SpecialAttackType.class,data,"type");
                     requireAllowed(specialReason(p,target,special,now,online));
-                    p.spend(cfg.cost(special));p.specialSpent+=cfg.cost(special);p.specialAttacks++;p.specialReadyAt=now+cfg.get(SPECIAL_COOLDOWN_MS);int amount=0;
+                    if(keyGating)p.keys--;p.spend(cfg.cost(special));p.specialSpent+=cfg.cost(special);p.specialAttacks++;p.specialReadyAt=now+cfg.get(SPECIAL_COOLDOWN_MS);int amount=0;
                     switch(special){
                         case TROJAN->{target.effect=special;target.effectUntil=now+cfg.get(TROJAN_MS);}
                         case DATA_LEAK->amount=SystemBreachPlayerState.transfer(target,p,protectedLoss(cfg.get(DATA_LEAK_AMOUNT),target,now));
@@ -199,17 +201,17 @@ public final class SystemBreachSession {
     private int firewallCost(SystemBreachPlayerState p){return p.firewall==1?cfg.get(FIREWALL_2_COST):p.firewall==2?cfg.get(FIREWALL_3_COST):0;}
     private String ordinaryReason(SystemBreachPlayerState p,long now){return phase!=SystemBreachPhase.ACTIVE?"SB_NOT_ACTIVE":p.compromised?"SB_RECOVERY_REQUIRED":p.blocked(now)?"SB_TEMPORARILY_BLOCKED":"";}
     private String challengeReason(SystemBreachPlayerState p,long now){String base=ordinaryReason(p,now);return !base.isEmpty()?base:p.challenge!=null?"SB_CHALLENGE_PENDING":now<p.challengeReadyAt?"SB_CHALLENGE_COOLDOWN":"";}
-    private String firewallReason(SystemBreachPlayerState p,long now){String base=ordinaryReason(p,now);return !base.isEmpty()?base:p.firewall>=3?"SB_MAX_FIREWALL":p.ap()<firewallCost(p)?"SB_INSUFFICIENT_AP":"";}
+    private String firewallReason(SystemBreachPlayerState p,long now){String base=ordinaryReason(p,now);return !base.isEmpty()?base:keyGating&&p.keys<=0?"SB_NEED_KEY":p.firewall>=3?"SB_MAX_FIREWALL":p.ap()<firewallCost(p)?"SB_INSUFFICIENT_AP":"";}
     private String targetReason(SystemBreachPlayerState p,SystemBreachPlayerState target,long now,Set<String> online,boolean reserve){
         return p.id.equals(target.id)?"SB_SELF_ATTACK":!online.contains(target.id)?"SB_TARGET_DISCONNECTED":target.compromised||target.blocked(now)||now<target.immuneUntil?"SB_TARGET_PROTECTED":reserve&&players.values().stream().anyMatch(a->a.attack!=null&&a.attack.target.equals(target.id))?"SB_TARGET_BUSY":"";
     }
     private String attackReason(SystemBreachPlayerState p,SystemBreachPlayerState target,long now,Set<String> online){
         String base=ordinaryReason(p,now),protection=targetReason(p,target,now,online,true);
-        return !base.isEmpty()?base:activeEnds-now<cfg.get(MIN_ACTION_WINDOW_MS)?"SB_ROUND_ENDING":p.attack!=null?"SB_ATTACK_PENDING":now<p.attackReadyAt?"SB_ATTACK_COOLDOWN":!protection.isEmpty()?protection:p.ap()<attackCost(target,now)?"SB_INSUFFICIENT_AP":"";
+        return !base.isEmpty()?base:keyGating&&p.keys<=0?"SB_NEED_KEY":activeEnds-now<cfg.get(MIN_ACTION_WINDOW_MS)?"SB_ROUND_ENDING":p.attack!=null?"SB_ATTACK_PENDING":now<p.attackReadyAt?"SB_ATTACK_COOLDOWN":!protection.isEmpty()?protection:p.ap()<attackCost(target,now)?"SB_INSUFFICIENT_AP":"";
     }
     private String specialReason(SystemBreachPlayerState p,SystemBreachPlayerState target,SpecialAttackType special,long now,Set<String> online){
         String base=ordinaryReason(p,now),protection=targetReason(p,target,now,online,true);
-        return !base.isEmpty()?base:p.attack!=null?"SB_ATTACK_PENDING":now<p.specialReadyAt||now<p.attackReadyAt?"SB_ATTACK_COOLDOWN":!protection.isEmpty()?protection:target.effect!=null&&now<target.effectUntil&&special!=SpecialAttackType.DATA_LEAK&&special!=SpecialAttackType.TRACE_ATTACK?"SB_TARGET_PROTECTED":p.ap()<cfg.cost(special)?"SB_INSUFFICIENT_AP":"";
+        return !base.isEmpty()?base:keyGating&&p.keys<=0?"SB_NEED_KEY":p.attack!=null?"SB_ATTACK_PENDING":now<p.specialReadyAt||now<p.attackReadyAt?"SB_ATTACK_COOLDOWN":!protection.isEmpty()?protection:target.effect!=null&&now<target.effectUntil&&special!=SpecialAttackType.DATA_LEAK&&special!=SpecialAttackType.TRACE_ATTACK?"SB_TARGET_PROTECTED":p.ap()<cfg.cost(special)?"SB_INSUFFICIENT_AP":"";
     }
     private Map<String,Object> permission(String reason,int cost,long readyAt){return Map.of("allowed",reason.isEmpty(),"reason",reason,"cost",cost,"readyAt",readyAt);}
     /** The UI quotes the same predicates/costs the authoritative transaction checks. */
@@ -238,7 +240,7 @@ public final class SystemBreachSession {
             Map<String,Object> me=new LinkedHashMap<>();me.put("passwordSelected",p.password!=null);me.put("passwordOptions",phase==SystemBreachPhase.INITIALIZATION?p.passwordOptions:List.of());
             me.put("challenge",p.challenge==null?Map.of():p.challenge.view(now));me.put("recovery",p.recovery==null?Map.of():p.recovery.view(now));
             me.put("attack",p.attack==null?Map.of():Map.of("attackId",p.attack.id,"targetId",p.attack.target,"options",p.attack.options,"expiresAt",p.attack.expires));
-            me.put("trace",now<p.traceUntil&&!p.trace.isEmpty()?Map.of("targetId",p.traceTarget,"clue",p.trace,"expiresAt",p.traceUntil):Map.of());me.put("specialReadyAt",p.specialReadyAt);me.put("challengeReadyAt",p.challengeReadyAt);
+            me.put("trace",now<p.traceUntil&&!p.trace.isEmpty()?Map.of("targetId",p.traceTarget,"clue",p.trace,"expiresAt",p.traceUntil):Map.of());me.put("specialReadyAt",p.specialReadyAt);me.put("keyGating",keyGating);me.put("keys",p.keys);me.put("keyProgress",p.keyProgress);me.put("keyEvery",KEY_EVERY);me.put("challengeReadyAt",p.challengeReadyAt);
             var receipt=latest.get(self);if(receipt!=null)me.put("lastAction",Map.of("requestId",receipt.requestId,"action",receipt.action,"status",receipt.result.status,"details",receipt.result.details,"appliedAt",receipt.appliedAt));
             me.put("actions",actionAvailability(p,now,online));
             view.put("self",me);

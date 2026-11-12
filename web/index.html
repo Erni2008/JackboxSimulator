@@ -39,8 +39,8 @@
   <script src="/final-second-scene.js?v=2" defer></script>
   <script src="/forgotten-room.js?v=9" defer></script>
   <link rel="stylesheet" href="/arena-pro.css?v=23">
-  <link rel="stylesheet" href="/system-breach.css?v=3">
-  <script src="/system-breach.js?v=8" defer></script>
+  <link rel="stylesheet" href="/system-breach.css?v=4">
+  <script src="/system-breach.js?v=9" defer></script>
   <script src="/app.js?v=system-breach-2" defer></script>
   <script src="/arena-pro.js?v=4" defer></script>
 </head>
@@ -83,17 +83,19 @@
       <p class="whisper">Keep this page open. Watch the host's screen.</p>
     </section>
     <section id="breach-screen" class="screen sbx" hidden aria-label="SYSTEM BREACH — терминал">
-      <div class="sbx-room" aria-hidden="true"></div>
+      <div class="sbx-room" aria-hidden="true"><i class="sbx-ember"></i><i class="sbx-ember e2"></i><i class="sbx-ember e3"></i></div>
       <div class="sbx-laptop">
         <div class="sbx-lid">
           <div class="sbx-screen" id="sbx-screen">
             <header class="sbx-bar"><span class="sbx-dot"></span><b>SYSTEM BREACH</b><span id="sbx-clock" class="sbx-clock">--:--</span></header>
             <div class="sbx-stats"><div class="sbx-ap"><small>ACCESS POINTS</small><strong id="sbx-ap">0</strong></div><div class="sbx-fw"><small>FIREWALL</small><strong id="sbx-fw">LV1</strong></div><div id="sbx-state" class="sbx-chip">В СЕТИ</div></div>
+            <div id="sbx-meter" class="sbx-meter" hidden></div>
             <main id="sbx-body" class="sbx-body"></main>
             <p id="sbx-toast" class="sbx-toast" role="status"></p>
           </div>
         </div>
         <div class="sbx-deck" aria-hidden="true"></div>
+        <div class="sbx-fx" aria-hidden="true"><i class="steam"></i><i class="steam s2"></i><i class="moon"></i><i class="led l1"></i><i class="led l2"></i><i class="led l3"></i><i class="sweep"></i></div>
       </div>
     </section>
     <section id="fsec-screen" class="screen fsec" hidden aria-label="The Final Second — экран игрока">
