@@ -1253,3 +1253,19 @@ tasks.register('systemBreachScreenPreview', JavaExec) {
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
+
+// SYSTEM BREACH developer host against a running room server (tools/dev/system_breach_live.cjs).
+tasks.register('systemBreachHost', JavaExec) {
+    group = 'application'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.SystemBreachHostLauncher'
+    workingDir = rootProject.file('assets')
+    systemProperty 'room.url', providers.gradleProperty('room.url').getOrElse('http://localhost:18240')
+    systemProperty 'room.code', providers.gradleProperty('room.code').getOrElse('')
+    systemProperty 'room.token', providers.gradleProperty('room.token').getOrElse('')
+    systemProperty 'sb.players', providers.gradleProperty('sb.players').getOrElse('2')
+    systemProperty 'sb.lang', providers.gradleProperty('sb.lang').getOrElse('ru')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
