@@ -51,10 +51,11 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
   function answer(kind,type,fields,button){const id=act(type,fields);if(id)verdict={id,kind,button,ok:null,until:Infinity,sent:now()};}
   function showVerdict(ok,text){
     const v=verdict;v.ok=ok;v.until=now()+1500;v.button?.classList.add(ok?'right':'wrong');navigator.vibrate?.(ok?[30,40,30]:[90]);
-    const st=mk('div','sbx-verdict '+(ok?'ok':'bad'),null,body());mk('b',null,ok?'✓':'✕',st);mk('span',null,text,st);flash(ok?'flash-ok':'flash-bad');
+    const st=mk('div','sbx-verdict '+(ok?'ok':'bad'),null,body());mk('b','mi',ok?'\ue5ca':'\ue5cd',st);mk('span',null,text,st);flash(ok?'flash-ok':'flash-bad');
   }
   function flash(cls){const s=el('sbx-screen');s.classList.remove('flash-ok','flash-bad','flash-key');void s.offsetWidth;s.classList.add(cls);}
 
+  function typeq(parent,text){const q=mk('p','sbx-q',null,parent);const t=mk('span',null,'',q);mk('i','sbx-caret',null,q);let i=0;const step=()=>{if(!q.isConnected)return;t.textContent=text.slice(0,++i);if(i<text.length)setTimeout(step,22);else q.classList.add('done');};step();return q;}
   function header(parent,kicker,title,cls){const h=mk('div','sbx-head '+(cls||''),null,parent);mk('small',null,kicker,h);mk('h3',null,title,h);return h;}
   function timerBar(parent,start,end){const w=mk('div','sbx-timer',null,parent);const i=mk('i',null,null,w);i.dataset.start=start;i.dataset.end=end;return w;}
   function options(parent,list,onPick,cls){const g=mk('div','sbx-options '+(cls||''),null,parent);
@@ -62,7 +63,7 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
       b.onclick=()=>{for(const x of g.children)x.disabled=true;b.classList.add('picked');onPick(o,b);};});return g;}
   function card(parent,{icon,title,sub,cls,disabled,onClick,delay}){
     const b=mk('button','sbx-card '+(cls||''),null,parent);b.disabled=!!disabled;b.style.animationDelay=(delay||0)+'ms';
-    mk('span','sbx-card-icon',icon,b);const t=mk('span','sbx-card-text',null,b);mk('b',null,title,t);mk('small',null,sub,t);b.onclick=onClick;return b;}
+    mk('span','sbx-card-icon mi',icon,b);const t=mk('span','sbx-card-text',null,b);mk('b',null,title,t);mk('small',null,sub,t);b.onclick=onClick;return b;}
   function targets(parent,s,me,kind){
     const a=me.actions||{},list=mk('div','sbx-targets',null,parent);let any=false;
     for(const t of a.targets||[]){const p=s.players.find(x=>x.playerId===t.playerId);if(!p)continue;
@@ -86,23 +87,23 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
     if(s.phase!=='ACTIVE'){header(b,'ОПЕРАЦИЯ ЗАВЕРШЕНА','Смотри на общий экран');return;}
     const rec=me.recovery?.challengeId?me.recovery:null,ch=me.challenge?.challengeId?me.challenge:null,atk=me.attack?.attackId?me.attack:null;
     if(rec){header(b,'⚠ ТЕБЯ ВЗЛОМАЛИ','Перезагрузка: ответь верно','alert');
-      if(rec.data?.question){mk('p','sbx-q',rec.data.question,b);options(b,rec.data.options||[],(o,btn)=>answer('reboot','RECOVERY_SUBMIT',{challengeId:rec.challengeId,answer:o},btn));}
+      if(rec.data?.question){typeq(b,rec.data.question);options(b,rec.data.options||[],(o,btn)=>answer('reboot','RECOVERY_SUBMIT',{challengeId:rec.challengeId,answer:o},btn));}
       timerBar(b,rec.createdAt,rec.expiresAt);return;}
     if(atk){const t=s.players.find(p=>p.playerId===atk.targetId);
       header(b,'ВЗЛОМ · ОДНА ПОПЫТКА','Угадай пароль: '+(t?.nickname||'цель'),'hack');
       options(b,atk.options||[],(o,btn)=>answer('hack','ATTACK_SUBMIT',{attackId:atk.attackId,password:o},btn),'sbx-pass');timerBar(b,now(),atk.expiresAt);return;}
     if(mode==='hack'||mode==='trojan'){header(b,mode==='hack'?'ВЗЛОМ · КЛЮЧ':'ТРОЯН · КЛЮЧ',mode==='hack'?'Чей компьютер ломаем?':'Кого заблокировать?','hack');targets(b,s,me,mode==='hack'?'ATTACK':'TROJAN');return;}
     if(ch){header(b,'ВОПРОС · +'+(s.rewards?.[ch.type]||10)+' AP','Ответь быстро');
-      if(ch.data?.question){mk('p','sbx-q',ch.data.question,b);options(b,ch.data.options||[],(o,btn)=>answer('quiz','CHALLENGE_SUBMIT',{challengeId:ch.challengeId,answer:o},btn));}
+      if(ch.data?.question){typeq(b,ch.data.question);options(b,ch.data.options||[],(o,btn)=>answer('quiz','CHALLENGE_SUBMIT',{challengeId:ch.challengeId,answer:o},btn));}
       timerBar(b,ch.createdAt,ch.expiresAt);return;}
     const keys=me.keys||0;
     if(keys>banked){
       header(b,'ДОСТУП ОТКРЫТ · КЛЮЧЕЙ: '+keys,'Используй ключ','key');const g=mk('div','sbx-cards',null,b);
       const anyHack=(a.targets||[]).some(t=>t.attack?.allowed),anyTrojan=(a.targets||[]).some(t=>t.specials?.TROJAN?.allowed);
-      card(g,{icon:'⌖',title:'Взлом',sub:anyHack?'угадай пароль — укради AP':(mine?.attackReadyAt>now()?'перезарядка '+secs(mine.attackReadyAt)+' с':'нет целей'),cls:'hack',disabled:requests.pending()||!anyHack,onClick:()=>{mode='hack';viewKey='';render();},delay:0});
-      card(g,{icon:'⛨',title:'Фаервол',sub:a.firewall?.allowed?'LV'+(mine?.firewallLevel||1)+' → LV'+((mine?.firewallLevel||1)+1)+' · −'+a.firewall.cost+' AP':reason(a.firewall),cls:'fw',disabled:requests.pending()||!a.firewall?.allowed,onClick:()=>act('FIREWALL_UPGRADE'),delay:70});
-      card(g,{icon:'☣',title:'Троян',sub:anyTrojan?'заблокируй соперника':'недоступно',cls:'trojan',disabled:requests.pending()||!anyTrojan,onClick:()=>{mode='trojan';viewKey='';render();},delay:140});
-      card(g,{icon:'»',title:'Копить ключ',sub:'продолжить вопросы',cls:'save',disabled:requests.pending(),onClick:()=>{banked=keys;viewKey='';render();},delay:210});
+      card(g,{icon:'\ue1b3',title:'Взлом',sub:anyHack?'угадай пароль — укради AP':(mine?.attackReadyAt>now()?'перезарядка '+secs(mine.attackReadyAt)+' с':'нет целей'),cls:'hack',disabled:requests.pending()||!anyHack,onClick:()=>{mode='hack';viewKey='';render();},delay:0});
+      card(g,{icon:'\ue32a',title:'Фаервол',sub:a.firewall?.allowed?'LV'+(mine?.firewallLevel||1)+' → LV'+((mine?.firewallLevel||1)+1)+' · −'+a.firewall.cost+' AP':reason(a.firewall),cls:'fw',disabled:requests.pending()||!a.firewall?.allowed,onClick:()=>act('FIREWALL_UPGRADE'),delay:70});
+      card(g,{icon:'\ue868',title:'Троян',sub:anyTrojan?'заблокируй соперника':'недоступно',cls:'trojan',disabled:requests.pending()||!anyTrojan,onClick:()=>{mode='trojan';viewKey='';render();},delay:140});
+      card(g,{icon:'\ue01f',title:'Копить ключ',sub:'продолжить вопросы',cls:'save',disabled:requests.pending(),onClick:()=>{banked=keys;viewKey='';render();},delay:210});
       return;
     }
     header(b,'ПОДКЛЮЧЕНИЕ','Следующий вопрос…');mk('div','sbx-loader',null,b);
@@ -115,8 +116,8 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
     st.textContent={watch:'ЗРИТЕЛЬ',off:'НЕ В СЕТИ',hacked:'ВЗЛОМАН',attack:'ВЗЛОМ…',ok:'В СЕТИ'}[state];st.dataset.state=state;scr.dataset.state=state;
     const meter=el('sbx-meter');meter.hidden=!me.keyGating||s.phase!=='ACTIVE';
     if(!meter.hidden){const every=me.keyEvery||3,prog=me.keyProgress||0;
-      if(meter.childElementCount!==every+2){meter.replaceChildren();mk('small',null,'КЛЮЧ ДОСТУПА',meter);for(let i=0;i<every;i++)mk('i',null,null,meter);mk('b','sbx-keys',null,meter);}
-      [...meter.querySelectorAll('i')].forEach((x,i)=>x.classList.toggle('on',i<prog));meter.querySelector('.sbx-keys').textContent='🔑 '+(me.keys||0);}
+      if(meter.childElementCount!==every+3){meter.replaceChildren();mk('small',null,'КЛЮЧ',meter);for(let i=0;i<every;i++)mk('i',null,null,meter);mk('span','sbx-keyicon mi','\ue0da',meter);mk('b','sbx-keys',null,meter);}
+      [...meter.querySelectorAll('i')].forEach((x,i)=>x.classList.toggle('on',i<prog));meter.querySelector('.sbx-keys').textContent=String(me.keys||0);}
   }
   function receipts(s){
     const r=s.self?.lastAction;if(!r||r.requestId===lastReceipt)return;lastReceipt=r.requestId;
@@ -128,7 +129,7 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
   }
   function celebrate(keys){
     celebrateUntil=now()+1700;const b=body();b.replaceChildren();
-    const c=mk('div','sbx-unlock',null,b);mk('div','sbx-unlock-key','🔑',c);mk('b',null,'КЛЮЧ ДОСТУПА ПОЛУЧЕН',c);mk('small',null,'3 верных ответа · ключей: '+keys,c);
+    const c=mk('div','sbx-unlock',null,b);mk('div','sbx-unlock-key mi','\ue0da',c);mk('b',null,'КЛЮЧ ДОСТУПА ПОЛУЧЕН',c);mk('small',null,'3 верных ответа · ключей: '+keys,c);
     flash('flash-key');navigator.vibrate?.([20,30,20,30,60]);viewKey='';
   }
   function render(){
