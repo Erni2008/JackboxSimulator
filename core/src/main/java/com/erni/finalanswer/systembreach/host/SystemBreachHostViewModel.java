@@ -1,0 +1,158 @@
+package com.erni.finalanswer.systembreach.host;
+
+import com.google.gson.*;
+import java.util.*;
+
+/**
+ * Presentation-state adapter: turns the server's public SYSTEM BREACH snapshot (players, bounded event list, phase
+ * deadline) into what the host draws. It holds no rules and never changes a value the server owns; the only local
+ * state is display easing (AP counters, entry animations) and a clock that interpolates between snapshots.
+ */
+public final class SystemBreachHostViewModel {
+    public enum Status {
+        ONLINE("ONLINE"),BEING_HACKED("BEING HACKED"),RECOVERY("RECOVERY"),UPGRADING("UPGRADING"),COMPROMISED("COMPROMISED"),DISCONNECTED("DISCONNECTED");
+        public final String label;Status(String label){this.label=label;}
+    }
+    public enum Reaction {NONE,HIT,TRIUMPH,RECOVERED,UPGRADE}
+    public enum Tone {HACK,RECOVERY,FIREWALL,REWARD,MUTED}
+
+    public static final class Slot {
+        public final String id;public String name="",characterId="";
+        public int ap,firewall=1,rank;public float shownAp;public boolean leader;
+        public Status status=Status.ONLINE;public float statusAge;
+        public int delta;public float deltaAge=99;              // floating "+15 AP"
+        public Reaction reaction=Reaction.NONE;public float reactionAge=99;
+        public float boardY=-1;                                  // eased leaderboard row position
+        Slot(String id){this.id=id;}
+    }
+    public record LogLine(long sequence,String text,Tone tone){}
+
+    private static final int LOG_SIZE=4;private static final long UPGRADE_SHOW_MS=2600,ATTACK_STALE_MS=30_000;
+    private final List<Slot> slots=new ArrayList<>();private final Map<String,Slot> byId=new HashMap<>();
+    private final ArrayDeque<LogLine> log=new ArrayDeque<>(LOG_SIZE+1);
+    private final float[] logAge=new float[LOG_SIZE];
+    private final List<Slot> ranking=new ArrayList<>();
+    private String sessionId="",phase="INITIALIZATION",winnerId="";
+    private long serverTime,phaseStartedAt,deadline=-1,receivedAt,lastSequence=-1;
+
+    public void apply(JsonObject root){
+        JsonObject sb=root.getAsJsonObject("systemBreach");if(sb==null)return;
+        String session=str(sb,"sessionId");
+        if(!session.equals(sessionId)){sessionId=session;slots.clear();byId.clear();log.clear();lastSequence=-1;Arrays.fill(logAge,99);}
+        phase=str(sb,"phase");winnerId=str(sb,"winnerId");
+        serverTime=lng(sb,"serverTime",System.currentTimeMillis());phaseStartedAt=lng(sb,"phaseStartedAt",serverTime);deadline=lng(sb,"deadline",-1);receivedAt=System.nanoTime();
+
+        Map<String,String> characters=new HashMap<>();List<String> seatOrder=new ArrayList<>();
+        if(root.has("players"))for(var e:root.getAsJsonArray("players")){var p=e.getAsJsonObject();String id=str(p,"id");characters.put(id,str(p,"characterId"));seatOrder.add(id);}
+        JsonArray rows=sb.getAsJsonArray("players");Set<String> present=new HashSet<>();
+        for(var e:rows)present.add(str(e.getAsJsonObject(),"playerId"));
+        if(slots.isEmpty()){                                     // fixed seats: lobby order, never re-sorted by score
+            for(String id:seatOrder)if(present.contains(id))add(id);
+            for(String id:present)if(!byId.containsKey(id))add(id);
+        }
+        ranking.clear();
+        for(var e:rows){
+            var p=e.getAsJsonObject();Slot s=byId.get(str(p,"playerId"));if(s==null)continue;
+            s.name=str(p,"nickname");s.characterId=characters.getOrDefault(s.id,s.characterId);
+            int ap=num(p,"accessPoints");if(s.shownAp<0){s.shownAp=ap;}else if(ap!=s.ap&&s.rank>0){s.delta=ap-s.ap;s.deltaAge=0;}
+            s.ap=ap;s.firewall=num(p,"firewallLevel");s.rank=num(p,"rank");ranking.add(s);
+        }
+        for(int i=0;i<ranking.size();i++)ranking.get(i).leader=i==0&&ranking.get(i).ap>0;
+
+        JsonArray events=sb.has("events")?sb.getAsJsonArray("events"):new JsonArray();
+        Map<String,Long> underAttack=new HashMap<>();Map<String,Long> upgradedAt=new HashMap<>();
+        for(var e:events){
+            var ev=e.getAsJsonObject();String type=str(ev,"type"),a=str(ev,"attackerId"),t=str(ev,"targetId");long at=lng(ev,"at",0),seq=lng(ev,"sequence",0);
+            switch(type){
+                case "ATTACK_STARTED"->underAttack.put(a+">"+t,at);
+                case "ATTACK_SUCCEEDED","ATTACK_FAILED","ATTACK_EXPIRED","ATTACK_INTERRUPTED"->underAttack.remove(a+">"+t);
+                case "FIREWALL_UPGRADED"->upgradedAt.put(t,at);
+                default->{}
+            }
+            if(seq>lastSequence){
+                if(lastSequence>=0)react(type,a,t);
+                LogLine line=line(type,a,t,num(ev,"amount"),seq);
+                if(line!=null){log.addLast(line);if(log.size()>LOG_SIZE)log.removeFirst();System.arraycopy(logAge,0,logAge,1,LOG_SIZE-1);logAge[0]=lastSequence<0?99:0;}
+            }
+        }
+        lastSequence=Math.max(lastSequence,lng(sb,"lastEventSequence",lastSequence));if(lastSequence<0)lastSequence=0;
+
+        Set<String> attacked=new HashSet<>();
+        for(var en:underAttack.entrySet())if(serverTime-en.getValue()<ATTACK_STALE_MS)attacked.add(en.getKey().substring(en.getKey().indexOf('>')+1));
+        for(var e:rows){
+            var p=e.getAsJsonObject();Slot s=byId.get(str(p,"playerId"));if(s==null)continue;
+            Status next=flag(p,"disconnected")?Status.DISCONNECTED:flag(p,"recovering")?Status.RECOVERY:flag(p,"compromised")?Status.COMPROMISED
+                :attacked.contains(s.id)?Status.BEING_HACKED:serverTime-upgradedAt.getOrDefault(s.id,Long.MIN_VALUE/2)<UPGRADE_SHOW_MS?Status.UPGRADING:Status.ONLINE;
+            if(next!=s.status){s.status=next;s.statusAge=0;}
+        }
+    }
+
+    private void add(String id){Slot s=new Slot(id);s.shownAp=-1;slots.add(s);byId.put(id,s);}
+    private void react(String type,String attacker,String target){
+        switch(type){
+            case "ATTACK_SUCCEEDED"->{set(attacker,Reaction.TRIUMPH);set(target,Reaction.HIT);}
+            case "ATTACK_FAILED"->set(attacker,Reaction.HIT);
+            case "RECOVERY_SUCCEEDED","EMERGENCY_RESTORED"->set(target,Reaction.RECOVERED);
+            case "FIREWALL_UPGRADED"->set(target,Reaction.UPGRADE);
+            case "TROJAN","DATA_LEAK","SYSTEM_OVERLOAD","FIREWALL_BREAKER","TRACE_ATTACK"->{set(attacker,Reaction.TRIUMPH);set(target,Reaction.HIT);}
+            default->{}
+        }
+    }
+    private void set(String id,Reaction r){Slot s=byId.get(id);if(s!=null){s.reaction=r;s.reactionAge=0;}}
+    private String who(String id){Slot s=byId.get(id);return s==null||s.name.isEmpty()?"Unknown":s.name;}
+
+    /** Public facts only: who acted on whom and the public amount. Passwords, clues and answers never reach here. */
+    private LogLine line(String type,String a,String t,int amount,long seq){
+        return switch(type){
+            case "ATTACK_STARTED"->new LogLine(seq,who(t)+" is being hacked!",Tone.HACK);
+            case "ATTACK_SUCCEEDED"->new LogLine(seq,who(a)+" hacked "+who(t)+(amount>0?"  +"+amount+" AP":""),Tone.HACK);
+            case "ATTACK_FAILED"->new LogLine(seq,who(t)+" repelled "+who(a),Tone.FIREWALL);
+            case "ATTACK_EXPIRED","ATTACK_INTERRUPTED"->new LogLine(seq,who(a)+" lost the link to "+who(t),Tone.MUTED);
+            case "RECOVERY_START"->new LogLine(seq,who(t)+" started recovery",Tone.RECOVERY);
+            case "RECOVERY_RETRY"->new LogLine(seq,who(t)+" recovery failed, retrying",Tone.RECOVERY);
+            case "RECOVERY_SUCCEEDED"->new LogLine(seq,who(t)+" is back online",Tone.REWARD);
+            case "EMERGENCY_RESTORED"->new LogLine(seq,who(t)+" emergency restore",Tone.RECOVERY);
+            case "FIREWALL_UPGRADED"->new LogLine(seq,who(t)+" upgraded firewall to Lv."+amount,Tone.FIREWALL);
+            case "CHALLENGE_SOLVED"->new LogLine(seq,who(t)+" earned +"+amount+" AP",Tone.REWARD);
+            case "TROJAN"->new LogLine(seq,who(a)+" planted a Trojan in "+who(t),Tone.HACK);
+            case "DATA_LEAK"->new LogLine(seq,who(a)+" leaked data from "+who(t)+(amount>0?"  +"+amount+" AP":""),Tone.HACK);
+            case "SYSTEM_OVERLOAD"->new LogLine(seq,who(a)+" overloaded "+who(t),Tone.HACK);
+            case "FIREWALL_BREAKER"->new LogLine(seq,who(a)+" broke "+who(t)+"'s firewall",Tone.HACK);
+            case "TRACE_ATTACK"->new LogLine(seq,who(a)+" is tracing "+who(t),Tone.HACK);
+            case "RESULTS"->new LogLine(seq,"Operation complete",Tone.MUTED);
+            default->null;
+        };
+    }
+
+    /** Display easing only. */
+    public void update(float dt){
+        for(Slot s:slots){
+            s.statusAge+=dt;s.deltaAge+=dt;s.reactionAge+=dt;
+            float k=1-(float)Math.exp(-dt*6);s.shownAp+=(s.ap-s.shownAp)*k;if(Math.abs(s.ap-s.shownAp)<.5f)s.shownAp=s.ap;
+        }
+        for(int i=0;i<LOG_SIZE;i++)logAge[i]+=dt;
+        for(int i=0;i<ranking.size();i++){Slot s=ranking.get(i);if(s.boardY<0)s.boardY=i;else s.boardY+=(i-s.boardY)*(1-(float)Math.exp(-dt*7));}
+    }
+
+    public List<Slot> slots(){return slots;}
+    public List<Slot> ranking(){return ranking;}
+    /** Oldest first, at most four. */
+    public Iterable<LogLine> log(){return log;}
+    public int logSize(){return log.size();}
+    /** Seconds since the line {@code fromNewest} (0 = newest) entered the log. */
+    public float logAge(int fromNewest){return logAge[fromNewest];}
+    public String phase(){return phase;}
+    public String sessionId(){return sessionId;}
+    public String winnerId(){return winnerId;}
+    public boolean finished(){return phase.equals("FINISHED");}
+    public boolean results(){return phase.equals("RESULTS")||phase.equals("FINISHED");}
+    /** Server time now, interpolated from the last snapshot; never runs its own countdown. */
+    public long now(){return serverTime+(System.nanoTime()-receivedAt)/1_000_000L;}
+    public long remainingMs(){return deadline<0?0:Math.max(0,deadline-now());}
+    public float remainingFraction(){long span=deadline-phaseStartedAt;return deadline<0||span<=0?0:Math.min(1,remainingMs()/(float)span);}
+
+    private static String str(JsonObject o,String k){return o.has(k)&&!o.get(k).isJsonNull()?o.get(k).getAsString():"";}
+    private static int num(JsonObject o,String k){return o.has(k)&&!o.get(k).isJsonNull()?o.get(k).getAsInt():0;}
+    private static long lng(JsonObject o,String k,long d){return o.has(k)&&!o.get(k).isJsonNull()?o.get(k).getAsLong():d;}
+    private static boolean flag(JsonObject o,String k){return o.has(k)&&!o.get(k).isJsonNull()&&o.get(k).getAsBoolean();}
+}

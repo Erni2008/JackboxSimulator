@@ -95,6 +95,16 @@ public class FinalAnswerGame extends Game {
         var screen=new com.erni.finalanswer.lastcommand.TheLastCommandScreen(this,Long.parseLong(mini.get("seed").getAsString()));
         screen.connectNetwork(realtime,state);if(cameraState!=null)screen.restoreCamera(cameraState);setScreen(screen);
     }
+    private com.erni.finalanswer.systembreach.host.SystemBreachHostScreen breachDebug;
+    public void startSystemBreach(){
+        if(activeRoom==null||!activeRoom.host()||realtime==null||realtime.snapshot()==null)return;
+        realtime.send("SYSTEM_BREACH_START",java.util.Map.of("roomCode",activeRoom.code(),"sessionId",realtime.snapshot().get("lobbyId").getAsString()));
+    }
+    private void openSystemBreach(com.google.gson.JsonObject root){
+        if(breachDebug==null)breachDebug=new com.erni.finalanswer.systembreach.host.SystemBreachHostScreen(root,getRoomCharacters(),id->realtime.send("SYSTEM_BREACH_END",java.util.Map.of("roomCode",activeRoom.code(),"sessionId",id)));
+        else breachDebug.apply(root);if(getScreen()!=breachDebug)setScreen(breachDebug);
+    }
+    private void releaseSystemBreach(){if(breachDebug==null)return;var old=breachDebug;breachDebug=null;if(getScreen()==old)showRoomLobby();old.dispose();}
     private com.erni.finalanswer.finalsecond.FinalSecondScreen finalSecondScreen;
     /** Host: start THE FINAL SECOND for every connected, living player. */
     public void startFinalSecond(){
@@ -272,6 +282,8 @@ public class FinalAnswerGame extends Game {
             cageLobbyScreen.synchronize(activeRoom, lobbyStatus);
             cageLobbyScreen.cages().onRoomEvent(data, realtime == null ? System.currentTimeMillis() : realtime.serverNow());
         }
+        if(activeRoom.host()&&data.has("systemBreach")){openSystemBreach(data);return;}
+        if(breachDebug!=null&&!data.has("systemBreach"))releaseSystemBreach();
         if(activeRoom.host()&&data.has("lastCommand")){openLastCommand(data,false);return;}
         if(activeRoom.host()&&data.has("cursedCards")){openCursedCards(data);return;}
         if(cardsScreen!=null&&!data.has("cursedCards"))releaseCursedCards(true);
@@ -423,6 +435,7 @@ public class FinalAnswerGame extends Game {
     public void dispose() {
         // Game.dispose hides the current screen but does not dispose cached screens.
         if (realtime != null) realtime.close();
+        if(breachDebug!=null){breachDebug.dispose();breachDebug=null;}
         if (cinematic != null) cinematic.dispose();
         roomApi.close();hosting.close();
         if (getScreen() instanceof com.erni.finalanswer.lastcommand.TheLastCommandScreen preview) preview.dispose();

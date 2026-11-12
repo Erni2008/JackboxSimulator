@@ -1148,10 +1148,12 @@ tasks.register('forgottenRoomPreview', JavaExec) {
     mainClass = 'com.erni.finalanswer.lwjgl3.ForgottenRoomPreview'
     workingDir = rootProject.file('assets')
     systemProperty 'room.capture', providers.gradleProperty('room.capture').getOrElse('false')
+    systemProperty 'room.motion', providers.gradleProperty('room.motion').getOrElse('false')
     systemProperty 'room.output', providers.gradleProperty('room.output').getOrElse('/tmp')
     systemProperty 'room.seed', providers.gradleProperty('room.seed').getOrElse('11')
     systemProperty 'room.difficulty', providers.gradleProperty('room.difficulty').getOrElse('MEDIUM')
     systemProperty 'room.layout', providers.gradleProperty('room.layout').getOrElse('')
+    systemProperty 'room.props', providers.gradleProperty('room.props').getOrElse('false')
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
@@ -1218,6 +1220,7 @@ tasks.register('finalSecondHost', JavaExec) {
     systemProperty 'room.url', providers.gradleProperty('room.url').getOrElse('http://localhost:18240')
     systemProperty 'room.code', providers.gradleProperty('room.code').getOrElse('')
     systemProperty 'room.token', providers.gradleProperty('room.token').getOrElse('')
+    systemProperty 'fs.task', providers.gradleProperty('fs.task').getOrElse('')
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
@@ -1231,6 +1234,22 @@ tasks.register('finalSecondScreenPreview', JavaExec) {
     workingDir = rootProject.file('assets')
     systemProperty 'fs.capture', providers.gradleProperty('fs.capture').getOrElse('')
     systemProperty 'fs.blind', providers.gradleProperty('fs.blind').getOrElse('false')
+    systemProperty 'fs.chain', providers.gradleProperty('fs.chain').getOrElse('false')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+// SYSTEM BREACH public-state host design fixture; optional screenshot for visual QA.
+tasks.register('systemBreachScreenPreview', JavaExec) {
+    group = 'application'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.SystemBreachScreenPreview'
+    workingDir = rootProject.file('assets')
+    systemProperty 'sb.capture', providers.gradleProperty('sb.capture').getOrElse('')
+    for (key in ['sb.players','sb.phase','sb.width','sb.height','sb.long']) {
+        if (providers.gradleProperty(key).isPresent()) systemProperty key, providers.gradleProperty(key).get()
+    }
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
