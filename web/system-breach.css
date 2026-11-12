@@ -338,3 +338,19 @@ body[data-view=breach] .g-stage,body[data-view=breach] .g-flash,body[data-view=b
 .sbx-rain{opacity:.28;image-rendering:auto}
 @media (min-aspect-ratio:5/4){.sbx-options.sbx-pass{grid-template-columns:repeat(auto-fit,minmax(30%,1fr))}}
 .sbx-pass .sbx-val{letter-spacing:.08em;text-transform:none;font-family:ui-monospace,"SF Mono",Menlo,monospace}
+/* ===== no cursor drift, no push-in: the scene breathes on its own ===== */
+@media (min-aspect-ratio:5/4){.sbx-laptop{transform:none!important;animation:none!important}}
+@font-face{font-family:SBHEAD;src:url(sb/fonts/RussoOne-Regular.ttf) format("truetype");font-display:swap}
+.sbx-head h3,.sbx-chip,.sbx-verdict span,.sbx-unlock b,.sbx-card-text b,.sbx-name,.sbx-boot p.ok{font-family:SBHEAD,SBUI,sans-serif;font-weight:400;letter-spacing:.04em}
+.sbx-stats small,.sbx-head small,.sbx-meter small{font-family:SBHEAD,sans-serif;font-weight:400}
+/* screen refresh between views: a terminal wipe with a short scan line */
+.sbx-body.enter{animation:sbx-wipe .42s cubic-bezier(.2,.8,.2,1) both}
+@keyframes sbx-wipe{0%{clip-path:inset(0 0 100% 0);opacity:.2;transform:translateY(6px)}60%{opacity:1}100%{clip-path:inset(0 0 0 0);opacity:1;transform:none}}
+.sbx-body.enter::after{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:var(--g);box-shadow:0 0 14px var(--g);animation:sbx-wipeline .42s cubic-bezier(.2,.8,.2,1) both;pointer-events:none}
+@keyframes sbx-wipeline{from{top:0;opacity:1}to{top:100%;opacity:0}}
+/* options rise in sequence with a soft light pass */
+.sbx-option{animation:sbx-opt2 .5s cubic-bezier(.2,.9,.25,1) both}
+@keyframes sbx-opt2{0%{opacity:0;transform:translateY(14px);filter:brightness(2.2)}60%{filter:brightness(1.3)}100%{opacity:1;transform:none;filter:none}}
+.sbx-option:not(:disabled):active{transform:scale(.97);filter:brightness(1.3)}
+.sbx-ap strong{transition:transform .25s}.sbx-ap strong.bump{animation:sbx-bump .5s ease-out}
+@keyframes sbx-bump{30%{transform:scale(1.35);color:#fff;text-shadow:0 0 22px #ffd257}}

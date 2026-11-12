@@ -36,8 +36,6 @@ function createSystemBreachRequests({getState,isAuthenticated,send,makeId,now}){
 function createSystemBreachController({getState,isAuthenticated,send,makeId,now}){
   const el=id=>document.getElementById(id);
   {const scr=el('breach-screen');if(scr&&scr.parentElement!==document.body)document.body.append(scr);}
-  // desktop: the scene leans a few pixels toward the cursor
-  addEventListener('pointermove',e=>{if(e.pointerType!=='mouse')return;const r=document.documentElement;r.style.setProperty('--px',((e.clientX/innerWidth-.5)*2).toFixed(3));r.style.setProperty('--py',((e.clientY/innerHeight-.5)*2).toFixed(3));},{passive:true});
   const requests=createSystemBreachRequests({getState,isAuthenticated,send,makeId,now});
   let viewKey='',lastSync=0,lastReceipt='',verdict=null,mode='',banked=0,seenKeys=-1,celebrateUntil=0,lastAsk=0;
   const body=()=>el('sbx-body');
@@ -93,7 +91,7 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
   }
 
   function build(s,me,mine){
-    const b=body();b.replaceChildren();const a=me.actions||{};
+    const b=body();b.replaceChildren();b.classList.remove('enter');void b.offsetWidth;b.classList.add('enter');const a=me.actions||{};
     if(s.role!=='PLAYER'){header(b,'НАБЛЮДЕНИЕ','Смотри на общий экран');return;}
     if(s.phase==='INITIALIZATION'){
       if(me.passwordSelected){header(b,'ПАРОЛЬ УСТАНОВЛЕН','Ждём остальных…');mk('div','sbx-loader',null,b);mk('p','sbx-note','Запомни пароль — его попытаются угадать.',b);return;}
@@ -127,7 +125,7 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
 
   function stats(s,me,mine){
     const selfId=getState()?.selfId,img=el('sbx-avatar'),src=face(selfId);if(src&&img.getAttribute('src')!==src)img.src=src;el('sbx-name').textContent=mine?.nickname||'';
-    el('sbx-ap').textContent=mine?mine.accessPoints:'—';el('sbx-fw').textContent='LV'+(mine?.firewallLevel||1);
+    {const ap=el('sbx-ap'),v=String(mine?mine.accessPoints:'—');if(ap.textContent!==v){if(ap.textContent!==''&&ap.textContent!=='0'||v!=='0'){ap.classList.remove('bump');void ap.offsetWidth;ap.classList.add('bump');}ap.textContent=v;}}el('sbx-fw').textContent='LV'+(mine?.firewallLevel||1);
     const st=el('sbx-state'),scr=el('sbx-screen');
     const state=!mine?'watch':mine.disconnected?'off':mine.recovering||mine.compromised?'hacked':me.attack?.attackId?'attack':'ok';
     st.textContent={watch:'ЗРИТЕЛЬ',off:'НЕ В СЕТИ',hacked:'ВЗЛОМАН',attack:'ВЗЛОМ…',ok:'В СЕТИ'}[state];st.dataset.state=state;scr.dataset.state=state;
