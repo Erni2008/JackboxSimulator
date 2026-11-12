@@ -26,13 +26,14 @@ let bots_=0;function bot(code,identity,name){const tag=++bots_;
 }
 (async()=>{
   const room=await post('/rooms',{name:'SYSTEM BREACH',maxPlayers:'8',gameMode:'standard'}),code=room.code;
-  const auto=process.env.AUTO==='1';const you=auto?null:await post(`/rooms/${code}/join`,{name:'Ты'});
+  const auto=process.env.AUTO==='1';const you=await post(`/rooms/${code}/join`,{name:'Ты'});
   const names=['Алиса','Борис','Вика','Гоша','Даша','Женя','Лёша'].slice(0,Math.max(1,Math.min(7,bots)));
   for(const name of names)bot(code,await post(`/rooms/${code}/join`,{name}),name);
   const root=path.resolve(__dirname,'../..');
-  const host=spawn(path.join(root,'gradlew'),['-q',':lwjgl3:systemBreachHost',`-Proom.url=${base}`,`-Proom.code=${code}`,`-Proom.token=${room.token}`,`-Psb.players=${names.length+(auto?0:1)}`],{cwd:root,stdio:['ignore','inherit','inherit']});
+  const host=spawn(path.join(root,'gradlew'),['-q',':lwjgl3:systemBreachHost',`-Proom.url=${base}`,`-Proom.code=${code}`,`-Proom.token=${room.token}`,`-Psb.players=${names.length+1}`],{cwd:root,stdio:['ignore','inherit','inherit']});
   host.on('exit',c=>{console.log('host window closed',c);process.exit(0);});process.on('SIGTERM',()=>{host.kill();process.exit(0);});
-  if(auto){console.log('ROOM',code,'AUTO: bots only, the match starts by itself');return;}
+  if(auto){const link=`${base}/?autoplay=1#seat=${seat(code,you.token,'Ты')}`;console.log('ROOM',code,'AUTO: your phone screen plays itself');console.log('PHONE_AUTO',link);
+    const chrome=process.env.CHROME;if(chrome)spawn(chrome,['--user-data-dir=/tmp/sbx-phone-'+code,'--window-size=430,900','--app='+link],{stdio:'ignore',detached:true}).unref();return;}
   console.log('ROOM',code);console.log('OPEN',`${base}/#seat=${seat(code,you.token,'Ты')}`);if(lan)console.log('PHONE',`${lan}/#seat=${seat(code,you.token,'Ты')}`);
   console.log('The match starts as soon as your seat is connected.');
 })().catch(e=>{console.error(e.message);process.exit(1);});

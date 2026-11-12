@@ -129,5 +129,10 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
     if(requests.tick())render();
     if(isAuthenticated()&&now()-lastSync>=1000){lastSync=now();send('SYNC',{},makeId());}
   }
+  // Dev only: '?autoplay=1' taps the visible buttons like a player, to watch the phone screen play itself.
+  if(/autoplay=1/.test(location.search)){
+    setInterval(()=>{const b=[...document.querySelectorAll('#sbx-body button:not(:disabled)')];if(!b.length)return;
+      const opts=b.filter(x=>x.classList.contains('sbx-option')),tiles=b.filter(x=>x.classList.contains('sbx-tile')||x.classList.contains('sbx-target'));
+      const pick=a=>a[Math.floor(Math.random()*a.length)];(opts.length?pick(opts):tiles.length?(Math.random()<.6&&tiles[0].classList.contains('task')?tiles[0]:pick(tiles)):pick(b)).click();},1800);}
   return {action:act,render,tick,reset(){requests.reset();picking=false;viewKey='';lastReceipt='';lastSync=0;},event(e){if(requests.event(e)){const code=requests.status();if(code&&code.startsWith('SB_'))say(REASONS[code]||'Не получилось');render();}}};
 }
