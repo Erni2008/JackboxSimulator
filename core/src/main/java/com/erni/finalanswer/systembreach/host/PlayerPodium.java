@@ -28,7 +28,11 @@ final class PlayerPodium {
             default->in*.9f;
         };
     }
-    Color accent(Slot s){return accent.set(s.leader&&s.status==Status.ONLINE?SbPaint.GOLD:SbPaint.tone(s.status));}
+    /** Podium colours for the top three while they are online: gold, silver, bronze. */
+    Color accent(Slot s){
+        if(s.status==Status.ONLINE&&s.ap>0){if(s.leader)return accent.set(SbPaint.GOLD);if(s.rank==2)return accent.set(SbPaint.SILVER);if(s.rank==3)return accent.set(SbPaint.BRONZE);}
+        return accent.set(SbPaint.tone(s.status));
+    }
     static char glyph(Status s){
         return switch(s){case ONLINE->SbIcons.ONLINE;case BEING_HACKED->SbIcons.HACK;case RECOVERY->SbIcons.RECOVERY;
             case UPGRADING->SbIcons.FIREWALL;case COMPROMISED->SbIcons.COMPROMISED;case DISCONNECTED->SbIcons.OFFLINE;};
