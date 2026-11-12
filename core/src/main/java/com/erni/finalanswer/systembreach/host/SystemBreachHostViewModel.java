@@ -19,14 +19,14 @@ public final class SystemBreachHostViewModel {
 
     public static final class Slot {
         public final String id;public String name="",characterId="";
-        public int ap,firewall=1,rank,multiplier=1;public float shownAp;public boolean leader;
+        public int ap,firewall=1,rank;public double multiplier=1;public float shownAp;public boolean leader;
         public Status status=Status.ONLINE;public float statusAge;
         public int delta;public float deltaAge=99;              // floating "+15 AP"
         public Reaction reaction=Reaction.NONE;public float reactionAge=99;
         public float boardY=-1,multAge=99,rankAge=99;public int shownRank;
-        private int rankKey=-1,multKey=-1;private String rankText="",multText="";
+        private int rankKey=-1;private double multKey=-1;private String rankText="",multText="";
         public String rankText(){if(rankKey!=rank){rankKey=rank;rankText=String.valueOf(rank);}return rankText;}
-        public String multText(){if(multKey!=multiplier){multKey=multiplier;multText="×"+multiplier;}return multText;}                                  // eased leaderboard row position
+        public String multText(){if(multKey!=multiplier){multKey=multiplier;multText="×"+fmt(multiplier);}return multText;}                                  // eased leaderboard row position
         boolean russianText;
         Slot(String id){this.id=id;}
         // cached strings: rebuilt only when the shown value changes, never per frame
@@ -46,6 +46,9 @@ public final class SystemBreachHostViewModel {
     public SystemBreachHostViewModel(boolean russian){ru=russian;}
     public boolean ru(){return ru;}
     private String L(String en,String ru){return this.ru?ru:en;}
+    /** "1.3", "2" — one decimal, no trailing zero. */
+    public static String fmt(double v){long t=Math.round(v*10);return t%10==0?String.valueOf(t/10):(t/10)+"."+(t%10);}
+    private double roundMult=1;private String roundText="×1";public double roundMult(){return roundMult;}public String roundText(){return roundText;}
     private String toast="";private Tone toastTone=Tone.MUTED;private float toastAge=99;
 
     private static final int LOG_SIZE=4;private static final long UPGRADE_SHOW_MS=2600,ATTACK_STALE_MS=30_000;
@@ -78,7 +81,8 @@ public final class SystemBreachHostViewModel {
             int ap=num(p,"accessPoints");if(s.shownAp<0){s.shownAp=ap;}else if(ap!=s.ap&&s.rank>0){s.delta=ap-s.ap;s.deltaAge=0;}
             s.ap=ap;s.firewall=num(p,"firewallLevel");s.rank=num(p,"rank");ranking.add(s);
         }
-        if(sb.has("multipliers"))for(var e:sb.getAsJsonObject("multipliers").entrySet()){Slot s=byId.get(e.getKey());if(s!=null){int m=e.getValue().getAsInt();if(s.multiplier!=m)s.multAge=0;s.multiplier=m;}}
+        {double rm=sb.has("roundMultiplier")?sb.get("roundMultiplier").getAsDouble():1;if(rm!=roundMult){if(rm>roundMult&&roundMult>=1&&lastSequence>=0&&rm>1){toast=L("ROUND BONUS  POINTS ×"+fmt(rm),"БОНУС РАУНДА  ОЧКИ ×"+fmt(rm));toastAge=0;toastTone=Tone.REWARD;}roundMult=rm;roundText="×"+fmt(rm);}}
+        if(sb.has("multipliers"))for(var e:sb.getAsJsonObject("multipliers").entrySet()){Slot s=byId.get(e.getKey());if(s!=null){double m=e.getValue().getAsDouble();if(s.multiplier!=m)s.multAge=0;s.multiplier=m;}}
         for(int i=0;i<ranking.size();i++)ranking.get(i).leader=i==0&&ranking.get(i).ap>0;
 
         JsonArray events=sb.has("events")?sb.getAsJsonArray("events"):new JsonArray();
@@ -134,7 +138,7 @@ public final class SystemBreachHostViewModel {
             case "RECOVERY_RETRY"->new LogLine(seq,L(who(t)+" recovery failed, retrying",who(t)+": сбой, повтор"),Tone.RECOVERY,0);
             case "RECOVERY_SUCCEEDED"->new LogLine(seq,L(who(t)+" is back online",who(t)+" снова в сети"),Tone.REWARD,0);
             case "EMERGENCY_RESTORED"->new LogLine(seq,L(who(t)+" emergency restore",who(t)+": аварийный откат"),Tone.RECOVERY,0);
-            case "MULTIPLIER_UPGRADED"->new LogLine(seq,L(who(t)+" multiplier ×"+amount,who(t)+": множитель ×"+amount),Tone.REWARD,0);
+            case "MULTIPLIER_UPGRADED"->new LogLine(seq,L(who(t)+" multiplier ×"+fmt(amount/10.0),who(t)+": множитель ×"+fmt(amount/10.0)),Tone.REWARD,0);
             case "FIREWALL_UPGRADED"->new LogLine(seq,L(who(t)+" upgraded firewall to Lv."+amount,who(t)+": фаервол ур."+amount),Tone.FIREWALL,0);
             case "CHALLENGE_SOLVED"->new LogLine(seq,L(who(t)+" earned +"+amount+" AP",who(t)+" получил +"+amount+" AP"),Tone.REWARD,0);
             case "TROJAN"->new LogLine(seq,L(who(a)+" planted a Trojan in "+who(t),who(a)+" внедрил троян в "+who(t)),Tone.HACK,0);
@@ -153,7 +157,7 @@ public final class SystemBreachHostViewModel {
             case "ATTACK_FAILED"->L("HACK FAILED  "+who(a)+" > "+who(t),"ПРОВАЛ ВЗЛОМА  "+who(a)+" > "+who(t));
             case "ATTACK_EXPIRED"->L("HACK TIMED OUT  "+who(a),"ВРЕМЯ ВЗЛОМА ВЫШЛО  "+who(a));
             case "ATTACK_SUCCEEDED"->L("HACK SUCCESS  ","ВЗЛОМ УДАЛСЯ  ")+L(who(a)+" > "+who(t),who(a)+" > "+who(t))+(amount>0?"   +"+amount+" AP":"");
-            case "MULTIPLIER_UPGRADED"->who(t)+L("  POINTS ×","  ОЧКИ ×")+amount;
+            case "MULTIPLIER_UPGRADED"->who(t)+L("  POINTS ×","  ОЧКИ ×")+fmt(amount/10.0);
             case "FIREWALL_UPGRADED"->who(t)+L("  FIREWALL LV.","  ФАЕРВОЛ УР.")+amount;
             case "RECOVERY_SUCCEEDED"->who(t)+L(" IS BACK ONLINE"," СНОВА В СЕТИ");
             case "TROJAN","DATA_LEAK","SYSTEM_OVERLOAD","FIREWALL_BREAKER","TRACE_ATTACK"->L(type.replace('_',' '),switch(type){case "TROJAN"->"ТРОЯН";case "DATA_LEAK"->"УТЕЧКА ДАННЫХ";case "SYSTEM_OVERLOAD"->"ПЕРЕГРУЗКА";case "FIREWALL_BREAKER"->"ПРОБОЙ ФАЕРВОЛА";default->"СЛЕЖКА";})+"!  "+who(a)+" > "+who(t);

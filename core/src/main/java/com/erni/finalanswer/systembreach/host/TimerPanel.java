@@ -24,6 +24,7 @@ final class TimerPanel {
     void text(SpriteBatch b,SbPaint p,SystemBreachHostAssets as,SystemBreachHostViewModel vm,float time){
         Color c=color(vm);long s=(vm.remainingMs()+999)/1000;
         p.centered(b,as.label,label(vm),TIMER.x+TIMER.width/2,TIMER.y+TIMER.height-22,SbPaint.IVORY,.92f);
+        if(vm.roundMult()>1){float rx=TIMER.x+TIMER.width-26;p.right(b,as.labelSmall,vm.ru()?"ОЧКИ":"POINTS",rx-p.width(as.status,vm.roundText())-8,TIMER.y+TIMER.height-28,SbPaint.GOLD,.85f);p.right(b,as.status,vm.roundText(),rx,TIMER.y+TIMER.height-26,SbPaint.GOLD,1);}
         p.icon(b,as.iconBig,SbIcons.TIMER,TIMER.x+74,TIMER.y+104,c,pulse(vm,time),1,0);
         if(s!=shownSec){shownSec=s;shown=String.format(Locale.ROOT,"%02d:%02d",s/60,s%60);}
         as.digits.setColor(c.r,c.g,c.b,.07f);{float gx=TIMER.x+TIMER.width/2+42-p.width(as.digits,"88:88")/2;as.digits.draw(b,"88:88",gx,TIMER.y+140);}

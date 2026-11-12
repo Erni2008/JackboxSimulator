@@ -54,7 +54,7 @@ public final class SystemBreachScreenPreview {
                 for(int i:order){JsonObject p=new JsonObject();p.addProperty("playerId","p"+i);p.addProperty("nickname",names[i]);p.addProperty("accessPoints",ap[i]);p.addProperty("firewallLevel",fw[i]);
                     p.addProperty("compromised",compromised[i]);p.addProperty("recovering",recovering[i]);p.addProperty("disconnected",count==8&&i==6);p.addProperty("rank",++rank);rows.add(p);}
                 if(!phase.equals("ACTIVE"))sb.addProperty("winnerId","p"+order[0]);
-                sb.add("players",rows);JsonObject mult=new JsonObject();for(int i=0;i<count;i++)mult.addProperty("p"+i,1+(i*5+(int)((now-start)/7000))%3/2+(i==count-1?1:0));sb.add("multipliers",mult);JsonArray ev=new JsonArray();for(var e:events)ev.add(e);sb.add("events",ev);
+                sb.add("players",rows);JsonObject mult=new JsonObject();for(int i=0;i<count;i++)mult.addProperty("p"+i,new double[]{1,1.3,1.5,1.8,2,2.5}[(i*5+(int)((now-start)/7000))%6]);sb.add("multipliers",mult);sb.addProperty("roundMultiplier",1+0.1*((now-start)/6000));JsonArray ev=new JsonArray();for(var e:events)ev.add(e);sb.add("events",ev);
                 JsonObject root=new JsonObject();root.add("systemBreach",sb);JsonArray players=new JsonArray();
                 for(int i=0;i<count;i++){JsonObject p=new JsonObject();p.addProperty("id","p"+i);p.addProperty("name",names[i]);p.addProperty("characterId",chars[i]);players.add(p);}
                 root.add("players",players);return root;

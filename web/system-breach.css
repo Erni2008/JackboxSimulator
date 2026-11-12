@@ -364,3 +364,27 @@ body[data-view=breach] .g-stage,body[data-view=breach] .g-flash,body[data-view=b
 .sbx-card.save{grid-column:1/-1;min-height:64px;flex-direction:row;align-items:center}
 @media (min-aspect-ratio:5/4){.sbx-place strong{font-size:7cqh}.sbx-mult strong{font-size:5cqh}
   .sbx-cards{grid-template-columns:repeat(5,minmax(0,1fr))}.sbx-card.save{grid-column:auto;flex-direction:column;align-items:flex-start;min-height:30cqh}}
+/* ===== score pop instead of a modal ===== */
+.sbx-pop{position:absolute;z-index:6;transform:translate(-50%,-10%);pointer-events:none;white-space:nowrap;font-family:SBNUM,SBHEAD,sans-serif;font-size:34px;font-weight:700;letter-spacing:.04em;animation:sbx-pop 1.4s cubic-bezier(.15,.8,.25,1) both}
+.sbx-pop.ok{color:#ffe48a;text-shadow:0 0 18px #ffb400,0 2px 0 #6a4300}
+.sbx-pop.bad{color:#ff8a80;font-size:24px;text-shadow:0 0 14px #ff2a1a}
+@keyframes sbx-pop{0%{opacity:0;transform:translate(-50%,10%) scale(.6)}15%{opacity:1;transform:translate(-50%,-40%) scale(1.15)}30%{transform:translate(-50%,-70%) scale(1)}100%{opacity:0;transform:translate(-50%,-260%) scale(.95)}}
+.sbx-spark{position:absolute;z-index:5;width:6px;height:6px;margin:-3px;border-radius:50%;background:#ffe48a;box-shadow:0 0 8px #ffb400;pointer-events:none;animation:sbx-spk .7s ease-out both}
+@keyframes sbx-spk{from{transform:translate(0,0) scale(1);opacity:1}to{transform:translate(var(--dx),var(--dy)) scale(.2);opacity:0}}
+.sbx-round{font-family:SBHEAD,sans-serif;font-size:11px;letter-spacing:.12em;padding:3px 7px;margin-right:8px;color:#1a1000;background:linear-gradient(#ffe48a,#ffb400);clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)}
+.sbx-round.bump{animation:sbx-bump .6s ease-out}
+@media (min-aspect-ratio:5/4){.sbx-pop{font-size:8cqh}.sbx-pop.bad{font-size:5cqh}.sbx-round{font-size:2.4cqh}}
+/* ===== performance: no animated filters on phones ===== */
+.sbx-lid{animation:none;filter:drop-shadow(0 18px 30px #000)}
+.sbx-ava{animation:none}
+@media (max-aspect-ratio:5/4){.sbx-card::after{animation:none}.sbx-rain{display:none}}
+/* phone stats: identity row, then four even readouts */
+@media (max-aspect-ratio:5/4){
+  .sbx-stats{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px 6px;align-items:end;padding:8px 0 6px}
+  .sbx-stats .sbx-me{grid-column:1/4;grid-row:1}.sbx-stats .sbx-chip{grid-column:4;grid-row:1;justify-self:end;align-self:center;white-space:nowrap}
+  .sbx-stats>div:not(.sbx-me):not(.sbx-chip){grid-row:2;margin:0!important;padding:6px 8px;background:#00000059;box-shadow:inset 0 0 0 1px #3dff8f22;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)}
+  .sbx-stats small{white-space:nowrap;font-size:8px;letter-spacing:.14em}
+  .sbx-ap strong{font-size:26px}.sbx-place strong{font-size:22px}.sbx-fw strong,.sbx-mult strong{font-size:20px}
+  .sbx-ava{width:46px;height:46px}
+}
+.sbx-unlock-key{color:#ffd257}
