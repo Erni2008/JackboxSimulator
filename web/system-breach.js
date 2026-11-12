@@ -41,6 +41,21 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
   const requests=createSystemBreachRequests({getState,isAuthenticated,send,makeId,now});
   let viewKey='',lastSync=0,lastReceipt='',verdict=null,mode='',banked=0,seenKeys=-1,celebrateUntil=0,lastAsk=0;
   const body=()=>el('sbx-body');
+  const face=id=>{const p=getState()?.players?.find(x=>x.id===id);return p?.characterId?'sb/portraits/'+p.characterId+'.png':'';};
+  // digital rain behind the terminal: tiny canvas at half resolution, ~20 fps, paused when hidden
+  {const c=el('sbx-rain'),g=c.getContext('2d'),glyphs='0123456789ABCDEF<>/#$%*+=';let cols=[],last=0;
+    const fit=()=>{const r=c.getBoundingClientRect();c.width=Math.max(1,r.width/2|0);c.height=Math.max(1,r.height/2|0);cols=Array.from({length:Math.ceil(c.width/9)},()=>Math.random()*c.height/10);};
+    addEventListener('resize',fit);
+    const draw=t=>{requestAnimationFrame(draw);if(document.hidden||el('breach-screen').hidden||t-last<50)return;last=t;if(!cols.length||c.width<2)fit();
+      g.fillStyle='rgba(2,9,5,.22)';g.fillRect(0,0,c.width,c.height);g.font='9px monospace';
+      const hot=el('sbx-screen').dataset.state==='hacked';
+      cols.forEach((y,i)=>{g.fillStyle=hot?'rgba(255,74,58,.55)':'rgba(61,255,143,.45)';g.fillText(glyphs[Math.random()*glyphs.length|0],i*9,y*10);cols[i]=y*10>c.height&&Math.random()>.97?0:y+1;});};
+    requestAnimationFrame(draw);}
+  let bootFor='';
+  function boot(){const scr=el('sbx-screen'),o=document.createElement('div');o.className='sbx-boot';scr.append(o);
+    const lines=['> BIOS v6.66 … OK','> mounting /dev/breach … OK','> loading exploit kit … OK','> handshake with FINAL ANSWER grid … OK','> ACCESS GRANTED'];
+    lines.forEach((t,i)=>setTimeout(()=>{const p=document.createElement('p');p.textContent=t;if(i===lines.length-1)p.className='ok';o.append(p);},180+i*330));
+    setTimeout(()=>o.classList.add('out'),2300);setTimeout(()=>o.remove(),2900);}
   const mk=(tag,cls,text,parent)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;if(tag==='button'){e.type='button';e.dataset.nativeButton='';}if(parent)parent.append(e);return e;};
   const secs=t=>Math.max(0,Math.ceil((t-now())/1000));
   const mmss=ms=>{const s=Math.max(0,Math.ceil(ms/1000));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');};
@@ -69,6 +84,7 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
     for(const t of a.targets||[]){const p=s.players.find(x=>x.playerId===t.playerId);if(!p)continue;
       const perm=kind==='TROJAN'?t.specials?.TROJAN:t.attack;any=true;
       const r=mk('button','sbx-target',null,list);r.disabled=requests.pending()||!perm?.allowed;
+      const fi=face(t.playerId);if(fi){const ph=mk('span','sbx-tface',null,r);const im=mk('img',null,null,ph);im.src=fi;im.alt='';}
       const n=mk('span','sbx-tname',null,r);mk('b',null,p.nickname,n);mk('small',null,p.accessPoints+' AP · FW'+(p.firewallLevel||1),n);
       mk('span','sbx-cost',perm?.allowed?'−'+perm.cost+' AP':reason(perm),r);
       r.onclick=()=>{mode='';kind==='TROJAN'?act('SPECIAL_ATTACK',{targetId:t.playerId,type:'TROJAN'}):act('ATTACK_REQUEST',{targetId:t.playerId});};}
@@ -110,6 +126,7 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
   }
 
   function stats(s,me,mine){
+    const selfId=getState()?.selfId,img=el('sbx-avatar'),src=face(selfId);if(src&&img.getAttribute('src')!==src)img.src=src;el('sbx-name').textContent=mine?.nickname||'';
     el('sbx-ap').textContent=mine?mine.accessPoints:'—';el('sbx-fw').textContent='LV'+(mine?.firewallLevel||1);
     const st=el('sbx-state'),scr=el('sbx-screen');
     const state=!mine?'watch':mine.disconnected?'off':mine.recovering||mine.compromised?'hacked':me.attack?.attackId?'attack':'ok';
@@ -135,6 +152,7 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
   function render(){
     const root=getState(),s=root?.systemBreach;if(!s)return;requests.reconcile();
     const me=s.self||{},mine=s.players.find(p=>p.playerId===root.selfId),a=me.actions||{};
+    if(bootFor!==s.sessionId){bootFor=s.sessionId;boot();}
     receipts(s);stats(s,me,mine);
     const keys=me.keys||0;if(keys<banked)banked=keys;
     const holding=verdict&&(verdict.ok==null?now()-verdict.sent<4000:now()<verdict.until);
