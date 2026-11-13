@@ -27,7 +27,7 @@ class SystemBreachTransportTest {
                     replacement.send("SYSTEM_BREACH_CHALLENGE_SUBMIT",Map.of("sessionId",sid,"challengeId",challengeId,"answer",List.of()));assertEquals("FAILED",replacement.await("SYSTEM_BREACH_CHALLENGE_RESULT").getAsJsonObject("systemBreachAction").get("status").getAsString());
                     replacement.send("SYSTEM_BREACH_SPECIAL_ATTACK",Map.of("sessionId",sid,"type","TROJAN","targetId",two.get("selfId").getAsString()));assertEquals("SB_NEED_KEY",replacement.await("SYSTEM_BREACH_ACTION_REJECTED").get("code").getAsString());
                     clock.addAndGet(240000);rooms.tick();assertTrue(h.await("SYSTEM_BREACH_RESULTS").getAsJsonObject("systemBreach").has("results"));
-                    clock.addAndGet(10000);rooms.tick();h.await("SYSTEM_BREACH_FINISHED");h.send("SYSTEM_BREACH_END",Map.of("sessionId",sid));
+                    clock.addAndGet(24000);rooms.tick();h.await("SYSTEM_BREACH_FINISHED");h.send("SYSTEM_BREACH_END",Map.of("sessionId",sid));
                     JsonObject ended;do{ended=h.await("SYSTEM_BREACH_FINISHED");}while(ended.has("systemBreach"));assertEquals("LOBBY",ended.get("phase").getAsString());
                 }
             }
