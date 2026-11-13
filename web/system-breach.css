@@ -571,3 +571,16 @@ button[data-sab]{all:unset;box-sizing:border-box;cursor:pointer;-webkit-tap-high
 .sbx-target.infected .sbx-cost{color:#ff8a7e;letter-spacing:.12em}
 .sbx-target.infected .sbx-tface::after{content:"";position:absolute;inset:0;background:radial-gradient(circle,#ff4a3a55,#0000 70%);animation:sab-throb 1.4s ease-in-out infinite}
 .sbx-tface{position:relative}
+
+/* password chosen by the system: decoded in front of the player */
+.sbx-pwreveal{position:absolute;inset:0;z-index:80;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.7em;text-align:center;padding:1em;
+  background:radial-gradient(circle,#06281aee,#010805f7 72%);font-family:SBUI,sans-serif;animation:sab-splash 4.8s linear both}
+.sbx-pwreveal.out{opacity:0;transition:opacity .5s}
+.sbx-pwreveal small{color:#ffb35a;letter-spacing:.3em;font-size:.8em}
+.sbx-pwreveal b{font-family:SBHEAD,SBUI,sans-serif;font-weight:400;color:#d6ffe6;font-size:1.25em;letter-spacing:.06em}
+.sbx-pwreveal p{margin:0;color:#7dffb4aa;font-size:.8em}
+.sbx-pwcode{display:flex;gap:.25em}
+.sbx-pwcode span{width:1.5em;height:1.9em;display:grid;place-items:center;font-family:SBNUM,monospace;font-size:1.7em;color:#3dff8f66;background:#3dff8f10;box-shadow:inset 0 0 0 1px #3dff8f33;transition:color .2s,background .2s,box-shadow .2s}
+.sbx-pwcode span.on{color:#eafff1;background:#3dff8f2a;box-shadow:inset 0 0 0 1px #3dff8f,0 0 14px #3dff8f88;animation:sab-hit .3s ease-out}
+.sbx-mypass{align-self:center;font-family:SBNUM,monospace;font-size:1.6em;letter-spacing:.22em;color:#eafff1;padding:.3em .7em;background:#3dff8f14;box-shadow:inset 0 0 0 1px #3dff8f66,0 0 18px #3dff8f33}
+.sbx-note.warn{color:#ffb35a}

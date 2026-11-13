@@ -130,4 +130,14 @@ class SystemBreachSabotageTest {
             assertEquals(4,o.size());assertTrue(o.contains(f.p("b").password));
             for(int i=0;i<o.size();i++)for(int j=i+1;j<o.size();j++)assertTrue(SystemBreachSession.unlike(o.get(i),o.get(j)),o.get(i)+" vs "+o.get(j));}
     }
+    @Test void unchosenPasswordIsPickedAndShownOnlyToItsOwner(){
+        var cfg=new SystemBreachConfig();var s=new SystemBreachSession(List.of("a","b"),0,cfg,new Random(3),2);s.partyMode();
+        @SuppressWarnings("unchecked") var opts=(List<String>)((Map<String,Object>)s.snapshot("a",false,0,Set.of("a","b"),Map.of()).get("self")).get("passwordOptions");
+        s.act("a","r1","PASSWORD_SELECT",new Gson().toJsonTree(Map.of("password",opts.getFirst())).getAsJsonObject(),0,Set.of("a","b"));
+        s.tick(cfg.get(INITIALIZATION_MS),Set.of("a","b"));assertEquals(SystemBreachPhase.ACTIVE,s.phase());
+        @SuppressWarnings("unchecked") var b=(Map<String,Object>)s.snapshot("b",false,cfg.get(INITIALIZATION_MS),Set.of("a","b"),Map.of()).get("self");
+        @SuppressWarnings("unchecked") var a=(Map<String,Object>)s.snapshot("a",false,cfg.get(INITIALIZATION_MS),Set.of("a","b"),Map.of()).get("self");
+        assertEquals(true,b.get("passwordAuto"));assertEquals(8,((String)b.get("myPassword")).length());assertEquals(false,a.get("passwordAuto"));assertEquals(opts.getFirst(),a.get("myPassword"));
+        assertFalse(new Gson().toJson(s.snapshot("a",false,cfg.get(INITIALIZATION_MS),Set.of("a","b"),Map.of())).contains((String)b.get("myPassword")),"never leaked to others");
+    }
 }

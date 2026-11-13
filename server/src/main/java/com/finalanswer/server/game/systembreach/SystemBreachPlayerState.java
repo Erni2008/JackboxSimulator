@@ -16,6 +16,8 @@ final class SystemBreachPlayerState {
     SystemBreachView.Statistics statistics(){Map<String,SystemBreachView.ChallengeMetric> metrics=new LinkedHashMap<>();challengeMetrics.forEach((type,metric)->metrics.put(type.name(),metric));return new SystemBreachView.Statistics(earned,stolen,lost,spent,penalties,challengesSolved,challengeFailures,attacksStarted,attacksSucceeded,attacksFailed,attacksInterrupted,recoveries,emergencyRecoveries,recoveryFailuresTotal,specialAttacks,firewallUpgrades,defenseSpent,attackSpent,specialSpent,recoveringMs,metrics);}
     int multiplier=1,keys,keyProgress,firewall=1,integrity,infection,recoveryFailures;
     String password;List<String> passwordOptions;long passwordVersion;
+    /** The server picked this password because the player did not choose one in time. */
+    boolean passwordAuto;
     boolean compromised;BreachChallenge challenge,recovery;
     final ArrayDeque<RecoveryType> recoveryBag=new ArrayDeque<>();RecoveryType lastRecovery;
     long attackReadyAt,specialReadyAt,challengeReadyAt,immuneUntil,effectUntil,traceUntil;

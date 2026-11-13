@@ -52,7 +52,14 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
       const hot=el('sbx-screen').dataset.state==='hacked';
       cols.forEach((y,i)=>{g.fillStyle=hot?'rgba(255,74,58,.55)':'rgba(61,255,143,.45)';g.fillText(glyphs[Math.random()*glyphs.length|0],i*9,y*10);cols[i]=y*10>c.height&&Math.random()>.97?0:y+1;});};
     requestAnimationFrame(draw);}
-  let bootFor='';
+  let bootFor='',revealFor='';
+  /** The server picked the password: decode it in front of the player so they know what they are defending. */
+  function revealPassword(pw){
+    const o=mk('div','sbx-pwreveal',null,el('sbx-screen'));mk('small',null,'ВРЕМЯ ВЫШЛО',o);mk('b',null,'СИСТЕМА ВЫБРАЛА ТВОЙ ПАРОЛЬ',o);
+    const code=mk('div','sbx-pwcode',null,o);const cells=[...pw].map(()=>mk('span',null,'',code));mk('p',null,'Запомни его — соперники будут его угадывать',o);
+    const noise='#$%&@?*!ABCDEFGHKMNPQRSTUVWXYZ23456789';let tick=0;
+    const iv=setInterval(()=>{tick++;cells.forEach((c,i)=>{const locked=tick>8+i*3;c.textContent=locked?pw[i]:noise[Math.random()*noise.length|0];c.classList.toggle('on',locked);});if(tick>8+pw.length*3+2)clearInterval(iv);},45);
+    navigator.vibrate?.([30,60,30]);setTimeout(()=>o.classList.add('out'),4200);setTimeout(()=>{clearInterval(iv);o.remove();},4800);}
   function boot(){const scr=el('sbx-screen'),o=document.createElement('div');o.className='sbx-boot';scr.append(o);
     const lines=['> BIOS v6.66 … OK','> mounting /dev/breach … OK','> loading exploit kit … OK','> handshake with FINAL ANSWER grid … OK','> ACCESS GRANTED'];
     lines.forEach((t,i)=>setTimeout(()=>{const p=document.createElement('p');p.textContent=t;if(i===lines.length-1)p.className='ok';o.append(p);},180+i*330));
@@ -121,9 +128,10 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
     sab.decorate(null);const b=body();b.replaceChildren();b.classList.remove('menu');b.classList.remove('enter');void b.offsetWidth;b.classList.add('enter');const a=me.actions||{};
     if(s.role!=='PLAYER'){header(b,'НАБЛЮДЕНИЕ','Смотри на общий экран');return;}
     if(s.phase==='INITIALIZATION'){
-      if(me.passwordSelected){header(b,'ПАРОЛЬ УСТАНОВЛЕН','Ждём остальных…');mk('div','sbx-loader',null,b);mk('p','sbx-note','Запомни пароль — его попытаются угадать.',b);return;}
+      if(me.passwordSelected){header(b,'ПАРОЛЬ УСТАНОВЛЕН','Ждём остальных…');if(me.myPassword)mk('div','sbx-mypass',me.myPassword,b);mk('div','sbx-loader',null,b);mk('p','sbx-note','Запомни пароль — его попытаются угадать.',b);return;}
       header(b,'ШАГ 1 · ЗАЩИТА','Выбери пароль своей системы');mk('p','sbx-note','Другие будут пытаться его угадать.',b);
-      options(b,me.passwordOptions||[],(w,btn)=>{act('PASSWORD_SELECT',{password:w});btn.classList.add('right');},'sbx-pass');return;
+      options(b,me.passwordOptions||[],(w,btn)=>{act('PASSWORD_SELECT',{password:w});btn.classList.add('right');},'sbx-pass');
+      mk('p','sbx-note warn','Не успеешь — система выберет пароль сама.',b);if(s.deadline>0)timerBar(b,s.phaseStartedAt,s.deadline);return;
     }
     if(s.phase!=='ACTIVE'){header(b,'ОПЕРАЦИЯ ЗАВЕРШЕНА','Смотри на общий экран');return;}
     const rec=me.recovery?.challengeId?me.recovery:null,ch=me.challenge?.challengeId?me.challenge:null,atk=me.attack?.attackId?me.attack:null;
@@ -185,6 +193,7 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
     const root=getState(),s=root?.systemBreach;if(!s)return;requests.reconcile();
     const me=s.self||{},mine=s.players.find(p=>p.playerId===root.selfId),a=me.actions||{};
     if(bootFor!==s.sessionId){bootFor=s.sessionId;boot();}
+    if(s.phase==='ACTIVE'&&me.passwordAuto&&me.myPassword&&revealFor!==s.sessionId){revealFor=s.sessionId;revealPassword(me.myPassword);}
     receipts(s);stats(s,me,mine);
     sab.sync(s.phase==='ACTIVE'&&s.role==='PLAYER'?me.sabotage:null);
     const keys=me.keys||0;if(keys<banked)banked=keys;
