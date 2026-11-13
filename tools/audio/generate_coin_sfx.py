@@ -1,14 +1,14 @@
-"""Money sounds for answers on the player's phone — modal coin synthesis (no samples, no downloads).
+"""Money sounds for answers on the host screen — modal coin synthesis (no samples, no downloads).
 A coin is a metal disc: a strike transient plus inharmonic partials, each with its own decay. Correct answers collect
 coins; wrong answers drop one that bounces, wobbles and rolls away. Three takes each.
-Run: python3 tools/audio/generate_coin_sfx.py  -> web/sfx/*.wav (32 kHz mono 16-bit, small for phones)."""
+Run: python3 tools/audio/generate_coin_sfx.py  -> assets/system_breach/sfx/coin_*.wav (32 kHz mono 16-bit)."""
 from pathlib import Path
 import wave
 import numpy as np
 from scipy.signal import butter, sosfilt, fftconvolve
 
 RATE = 32000
-OUT = Path(__file__).resolve().parents[2] / 'web/sfx'
+OUT = Path(__file__).resolve().parents[2] / 'assets/system_breach/sfx'
 RATIOS = [1.0, 2.32, 4.25, 6.63, 9.38, 12.1]
 def T(d): return np.arange(int(RATE * d)) / RATE
 def hp(x, f): return sosfilt(butter(2, f, btype='highpass', fs=RATE, output='sos'), x)
@@ -49,7 +49,7 @@ for v in (1, 2, 3):
     at(b, coin(rng, base, .9, 1.2, 1.1), 0, 1.0); at(b, coin(rng, base * 1.335, 1.0, 1.2, 1.2), .085, .95)
     for i in range(7): at(b, coin(rng, None, .6, .7, .8), .2 + i * rng.uniform(.03, .055) + rng.uniform(0, .015), .32 * (1 - i / 10))
     sparkle = hp(rng.standard_normal(int(RATE * .7)), 7000) * np.exp(-T(.7) / .2) * .05; at(b, sparkle, .1)
-    save(f'coin_ok_{v}', b, .72)
+    save('coin_ok' + ('' if v == 1 else f'_{v}'), b, .72)
     # wrong: a coin dropped on stone — bounces closer and closer, wobbles (Euler's disk) and rolls away, plus a dull thud
     b = buf(1.9); f0 = rng.uniform(1900, 2300); tt = .0; gap = rng.uniform(.17, .21); g = 1.0
     at(b, lp(np.sin(2 * np.pi * 80 * T(.25)) * np.exp(-T(.25) / .06), 400), 0, .55)
@@ -58,7 +58,7 @@ for v in (1, 2, 3):
     wob = T(.7); rate = np.geomspace(14, 70, len(wob)); ph = 2 * np.pi * np.cumsum(rate) / RATE
     roll = np.sin(2 * np.pi * f0 * .98 * wob) * (.5 + .5 * np.abs(np.sin(ph))) * np.exp(-wob / .25) * (1 - wob / .7)
     at(b, lp(roll, 5000), tt, .22)
-    save(f'coin_bad_{v}', lp(b, 7000), .55, .12)
+    save('coin_bad' + ('' if v == 1 else f'_{v}'), lp(b, 7000), .55, .12)
 # SOULS jackpot: a big cascade of coins pouring onto a pile, with a cash-register bell on top
 rng = np.random.default_rng(7); b = buf(2.8)
 for i in range(34): at(b, coin(rng, None, .7, .6 + rng.random() * .5, .9), .05 + (i / 34) ** 1.3 * 1.4 + rng.uniform(0, .03), .3 * (1 - i / 50))
