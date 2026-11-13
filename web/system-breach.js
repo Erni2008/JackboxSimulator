@@ -109,12 +109,12 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
       b.onclick=()=>{if(sab.blocks()&&cls!=='sbx-pass')return;for(const x of g.querySelectorAll(':scope > .sbx-option'))x.disabled=true;b.classList.add('picked');onPick(o,b);};});return g;}
   /** Hand-drawn line icons for the key menu: one stroke weight, a lit core, no font glyphs. */
   const ICONS={
-    hack:'<circle cx="24" cy="24" r="15"/><circle cx="24" cy="24" r="7" class="f"/><path d="M24 3v9M24 36v9M3 24h9M36 24h9"/><path d="M13 13l3 3M35 13l-3 3M13 35l3-3M35 35l-3-3" class="d"/>',
-    fw:'<path d="M24 4l16 6v12c0 10-7 18-16 22C15 40 8 32 8 22V10z"/><path d="M14 18h20M14 25h20M19 18v7M29 18v7M24 25v7M16 32h16" class="d"/><path d="M24 4v40" class="f0"/>',
-    mult:'<path d="M10 36l9-9 7 6 12-14"/><path d="M30 19h8v8"/><path d="M8 42h32" class="d"/><circle cx="19" cy="27" r="2.6" class="f"/><circle cx="26" cy="33" r="2.6" class="f"/>',
-    trojan:'<circle cx="24" cy="24" r="8" class="f"/><path d="M24 16V6M24 32v10M16 24H6M32 24h10M18.3 18.3l-7-7M29.7 29.7l7 7M29.7 18.3l7-7M18.3 29.7l-7 7"/><circle cx="24" cy="5" r="2.4"/><circle cx="24" cy="43" r="2.4"/><circle cx="5" cy="24" r="2.4"/><circle cx="43" cy="24" r="2.4"/><circle cx="10" cy="10" r="2.4"/><circle cx="38" cy="38" r="2.4"/><circle cx="38" cy="10" r="2.4"/><circle cx="10" cy="38" r="2.4"/>',
-    save:'<circle cx="16" cy="24" r="8"/><circle cx="16" cy="24" r="3" class="f"/><path d="M24 24h19M37 24v7M42 24v5"/><path d="M6 8h36M6 40h36" class="d"/>'};
-  function iconSvg(kind){return '<svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">'+(ICONS[kind]||'')+'</svg>';}
+    hack:'<path fill-rule="evenodd" d="M24 6a18 18 0 1 1 0 36 18 18 0 0 1 0-36zm0 6a12 12 0 1 0 0 24 12 12 0 0 0 0-24z"/><circle cx="24" cy="24" r="4.5"/><path d="M21.5 0h5v11h-5zM21.5 37h5v11h-5zM0 21.5h11v5H0zM37 21.5h11v5H37z"/>',
+    fw:'<path d="M24 3 41 9.5V22c0 11-7.2 19.6-17 23C14.2 41.6 7 33 7 22V9.5z"/><path d="m16 23.5 5.5 5.5L33 17.5" fill="none" stroke="#06100b" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>',
+    mult:'<path d="M6 38h36v5H6z"/><path d="m8 32 11-11 7 6 11-13-5.2-.1V9H45v13h-4.9v-4.6L26.6 33.1l-7.2-6.2L11.5 35z"/>',
+    trojan:'<circle cx="24" cy="24" r="10"/><g stroke="currentColor" stroke-width="4" stroke-linecap="round"><path d="M24 14V7M24 41v-7M14 24H7M41 24h-7M16.9 16.9l-5-5M36.1 36.1l-5-5M31.1 16.9l5-5M11.9 36.1l5-5"/></g><g><circle cx="24" cy="5.5" r="3.5"/><circle cx="24" cy="42.5" r="3.5"/><circle cx="5.5" cy="24" r="3.5"/><circle cx="42.5" cy="24" r="3.5"/><circle cx="10.6" cy="10.6" r="3.5"/><circle cx="37.4" cy="37.4" r="3.5"/><circle cx="37.4" cy="10.6" r="3.5"/><circle cx="10.6" cy="37.4" r="3.5"/></g><circle cx="20.5" cy="21.5" r="2.4" fill="#06100b"/><circle cx="27" cy="27" r="1.8" fill="#06100b"/>',
+    save:'<path fill-rule="evenodd" d="M15 12a12 12 0 1 1 0 24 12 12 0 0 1 0-24zm0 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10z"/><path d="M25 21.5h20v5h-3.5v7h-5v-7h-3v5h-5v-5H25z"/>'};
+  function iconSvg(kind){return '<svg viewBox="0 0 48 48" aria-hidden="true" fill="currentColor">'+(ICONS[kind]||'')+'</svg>';}
   function card(parent,{icon,title,sub,cls,disabled,onClick,delay}){
     const b=mk('button','sbx-card '+(cls||''),null,parent);b.disabled=!!disabled;b.style.animationDelay=(delay||0)+'ms';
     {const ic=mk('span','sbx-card-icon sbx-glyph',null,b);ic.innerHTML=iconSvg(cls)+'<i class="ring"></i>';}const t=mk('span','sbx-card-text',null,b);mk('b',null,title,t);mk('small',null,sub,t);b.onclick=onClick;return b;}

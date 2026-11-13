@@ -600,3 +600,13 @@ button[data-sab]{all:unset;box-sizing:border-box;cursor:pointer;-webkit-tap-high
 .sbx .sbx-buykey{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:6px;margin-top:6px;align-self:flex-start;padding:4px 10px 4px 6px;font-family:SBUI,sans-serif;font-size:.78em;letter-spacing:.12em;color:#dffffb;
   background:linear-gradient(90deg,#5ff6e62a,#5ff6e60a);box-shadow:inset 0 0 0 1px #5ff6e677;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)}
 .sbx .sbx-buykey[hidden]{display:none}.sbx .sbx-buykey img{width:18px;height:18px}.sbx .sbx-buykey b{color:#5ff6e6}.sbx .sbx-buykey:disabled{opacity:.5}
+
+/* key-menu icons v2: flat solid glyphs on a quiet tile — no hexagons, rings or heavy glow */
+.sbx-card-icon.sbx-glyph{background:none!important;box-shadow:none!important;clip-path:none!important}
+.sbx-card-icon.sbx-glyph::before,.sbx-card-icon.sbx-glyph::after,.sbx-glyph .ring{display:none!important}
+.sbx-glyph svg{width:100%;height:100%;filter:none!important;animation:none!important;color:var(--c)}
+.sbx-body.menu .sbx-card-icon.sbx-glyph{width:44px;height:44px}
+.sbx-card:not(:disabled):hover .sbx-glyph svg{transform:translateY(-2px);transition:transform .15s}
+.sbx-card:disabled .sbx-glyph svg{opacity:.45}
+.sbx-body.menu .sbx-card-text b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;font-size:22px}
+@media (min-aspect-ratio:5/4){.sbx-body.menu .sbx-card-icon.sbx-glyph{width:11cqh;height:11cqh}.sbx-body.menu .sbx-card-text b{font-size:4.2cqh}}
