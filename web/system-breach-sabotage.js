@@ -197,10 +197,10 @@ function sabFlip(grid,order,reduced){
  * One controller per laptop. sync() follows the server's view of this player's infection; decorate() is called with
  * every freshly built answer grid (or null when the screen is not a question).
  */
-function createSystemBreachSabotage({screen,submit,buzz=()=>{},reduced}){
+function createSystemBreachSabotage({screen,submit,buzz=()=>{},sound=()=>{},reduced}){
   const motionless=reduced??(typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches);
   const mk=(tag,cls,text,parent)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;if(parent)parent.append(e);return e;};
-  const btn=(cls,text,parent)=>{const b=mk('button',cls,text,parent);b.type='button';b.dataset.nativeButton='';b.dataset.sab='1';return b;};
+  const btn=(cls,text,parent)=>{const b=mk('button',cls,text,parent);b.type='button';b.dataset.nativeButton='';b.dataset.sab='1';b.addEventListener('pointerdown',()=>sound('step'),{passive:true});return b;};
   let inf=null,grid=null,gridScope=null,banner=null;
   const layer=()=>{let r=screen().querySelector(':scope > .sbx-sab');if(!r){r=mk('div','sbx-sab',null,screen());}return r;};
   function splash(cls,title,sub,ms){const r=layer(),s=mk('div','sbx-sab-splash '+cls,null,r);mk('span','mi',cls==='ok'?'':'',s);mk('b',null,title,s);if(sub)mk('small',null,sub,s);setTimeout(()=>s.remove(),ms);}
@@ -227,12 +227,12 @@ function createSystemBreachSabotage({screen,submit,buzz=()=>{},reduced}){
     const data=view.data||{},scope=sabScope(),rng=sabRng(data.seed||1);
     inf={id:view.infectionId,type:view.type,effect,data,scope,left:view.questionsLeft,panel:null,panelOpen:false,sent:null,answer:null,overlay:null,
       counter:()=>{const p=inf.ctx.progress;return view.type==='GHOST_BUTTONS'?(p.found||[]).length+'/'+(data.viruses||[]).length:view.type==='MAGNETIC_BUTTONS'?(p.caught||[]).length+'/'+(data.indicators||[]).length:'';}};
-    const ctx={data,rng,reduced:motionless,progress:{},scope,mk,btn,screen,buzz,get root(){return layer();},
+    const ctx={data,rng,reduced:motionless,progress:{},scope,mk,btn,screen,buzz:p=>{buzz(p);if(!p)sound('miss');},get root(){return layer();},
       tip(text){const t=mk('div','sbx-sab-tip',text,layer());scope.later(1300,()=>t.remove());},
       count(){paintBanner();},
       finish(answer){if(!inf||inf.answer)return;inf.answer=answer;trySubmit();}};
     inf.ctx=ctx;screen().classList.add('sab-infected');scope.undo(()=>screen().classList.remove('sab-infected'));
-    splash('bad','ЗАРАЖЕНИЕ',effect.name,SABOTAGE_CONFIG.INFECT_SPLASH_MS);buzz([40,40,40,40,120]);
+    splash('bad','ЗАРАЖЕНИЕ',effect.name,SABOTAGE_CONFIG.INFECT_SPLASH_MS);buzz([40,40,40,40,120]);sound('infected');
     makeBanner();effect.start?.(ctx);if(effect.removal==='overlay')scope.later(SABOTAGE_CONFIG.INFECT_SPLASH_MS,()=>ctx.tip(effect.task));
     if(effect.removal==='overlay'){inf.overlay=mk('div','sbx-sab-overlay '+view.type.toLowerCase(),null,layer());if(view.type!=='GHOST_BUTTONS')effect.build(ctx,inf.overlay);}
     if(effect.autoOpen)openPanel();
@@ -254,7 +254,7 @@ function createSystemBreachSabotage({screen,submit,buzz=()=>{},reduced}){
     /** view = self.sabotage from the server (empty / missing when clean). */
     sync(view){
       const id=view?.infectionId||'';
-      if(inf&&inf.id!==id){const cleared=inf.answer;cleanup();if(!id)splash('ok',cleared?'ВИРУС УДАЛЁН':'ВИРУС ВЫДОХСЯ','система чиста',SABOTAGE_CONFIG.CLEARED_SPLASH_MS);}
+      if(inf&&inf.id!==id){const cleared=inf.answer;cleanup();if(!id){splash('ok',cleared?'ВИРУС УДАЛЁН':'ВИРУС ВЫДОХСЯ','система чиста',SABOTAGE_CONFIG.CLEARED_SPLASH_MS);sound('cleared');}}
       if(!inf&&id)start(view);
       if(inf){if(inf.left!==view.questionsLeft){inf.left=view.questionsLeft;paintBanner();}trySubmit();}
     },

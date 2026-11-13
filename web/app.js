@@ -108,7 +108,7 @@ function handle(event){const payload=event.payload||{};heartbeatWatch.acknowledg
 }
 let soulsHud=null;
 function render(){
-  try{(soulsHud||=createSoulsHud()).sync(state);}catch(e){}
+  try{(soulsHud||=createSoulsHud({send})).sync(state);}catch(e){}
   if(state?.webGameId&&state.webGame==='broken-elevator'){let seen=null;try{seen=sessionStorage.getItem('finalanswer-web-game');}catch{}if(seen!==state.webGameId){try{sessionStorage.setItem('finalanswer-web-game',state.webGameId);}catch{}location.href='/broken-elevator-manual/';return;}}
   renderControllerPresentation(state);
   $('session-footer').hidden=false;$('session-code').textContent=`ROOM ${state.code}`;

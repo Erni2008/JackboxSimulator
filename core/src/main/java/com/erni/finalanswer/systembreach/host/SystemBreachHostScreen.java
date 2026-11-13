@@ -36,6 +36,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
     private final HackerFx fx=new HackerFx();
     private final ResultsCeremony ceremony=new ResultsCeremony();
     private VirusFx virus;
+    private final SbSounds sounds=new SbSounds();private long lastTickSecond=-1;private float lastToast=99;
     private float time;private static final com.badlogic.gdx.graphics.Color VIG=new com.badlogic.gdx.graphics.Color(0,0,0,.55f),CLEAR=new com.badlogic.gdx.graphics.Color(0,0,0,0);
 
     public SystemBreachHostScreen(JsonObject root,CageLobby roomCharacters,Consumer<String> end){this(root,roomCharacters,end,false);}
@@ -52,6 +53,10 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
 
     @Override public void render(float delta){
         float dt=Float.isFinite(delta)?Math.min(delta,.1f):0;time+=dt;model.update(dt);ceremony.update(model,dt);
+        for(String c:model.cues())sounds.play(c);model.cues().clear();
+        if(model.toastAge()<lastToast&&model.toastAge()<.1f)sounds.play("whoosh",.6f);lastToast=model.toastAge();
+        {long left=model.remainingMs();long sec=left/1000;if(model.phase().equals("ACTIVE")&&left>0&&left<=10_000&&sec!=lastTickSecond){lastTickSecond=sec;sounds.play("tick",.5f+.5f*(1-left/10_000f));}}
+        ceremony.sounds(sounds);
         ScreenUtils.clear(0,0,0,1,true);viewport.apply();
         batch.setProjectionMatrix(viewport.getCamera().combined);shapes.setProjectionMatrix(viewport.getCamera().combined);
         List<SystemBreachHostViewModel.Slot> slots=model.slots();int n=slots.size();
@@ -155,5 +160,5 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         float x=W/2-total/2,y=TOAST_Y+TOAST_H/2+assets.board.getCapHeight()/2+2;
         for(int i=0;i<parts.length;i++){if(parts[i].isEmpty())continue;paint.text(batch,assets.board,parts[i],x,y,colors[i],a);x+=paint.width(assets.board,parts[i]);}}
 
-    @Override public void dispose(){batch.dispose();shapes.dispose();assets.dispose();}
+    @Override public void dispose(){sounds.dispose();batch.dispose();shapes.dispose();assets.dispose();}
 }

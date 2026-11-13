@@ -66,7 +66,7 @@ public final class SystemBreachSession {
         for(var p:players.values()){p.attack=null;p.challenge=null;p.recovery=null;p.sabotage=null;}
         event(now,"RESULTS","","",0);
     }
-    private enum TimerKind {EFFECT,TRACE,CHALLENGE,ATTACK,RECOVERY_SUCCESS,RECOVERY_FAILURE}
+    private enum TimerKind {EFFECT,TRACE,CHALLENGE,ATTACK,RECOVERY_SUCCESS,RECOVERY_FAILURE,SABOTAGE}
     private record Due(long at,SystemBreachPlayerState player,TimerKind kind){}
     /** Drain deadlines chronologically before scoring, including when a tick crosses the match end. */
     private boolean advanceTimers(long horizon,long receivedAt,Set<String> online){
@@ -75,6 +75,7 @@ public final class SystemBreachSession {
             List<Due> due=new ArrayList<>();
             for(var p:players.values()){
                 if(p.effect!=null&&p.effectUntil<=horizon)due.add(new Due(p.effectUntil,p,TimerKind.EFFECT));
+                if(p.sabotage!=null&&p.sabotage.startedAt+Sabotage.Config.SABOTAGE_MAX_MS<=horizon)due.add(new Due(p.sabotage.startedAt+Sabotage.Config.SABOTAGE_MAX_MS,p,TimerKind.SABOTAGE));
                 if(!p.trace.isEmpty()&&p.traceUntil<=horizon)due.add(new Due(p.traceUntil,p,TimerKind.TRACE));
                 if(p.challenge!=null&&p.challenge.expires<=horizon)due.add(new Due(p.challenge.expires,p,TimerKind.CHALLENGE));
                 if(p.attack!=null){long at=p.attack.expires;if(receivedAt<activeEnds&&!online.contains(p.attack.target))at=Math.min(at,receivedAt);if(at<=horizon)due.add(new Due(at,p,TimerKind.ATTACK));}
@@ -90,6 +91,7 @@ public final class SystemBreachSession {
                 case ATTACK->{var target=players.get(p.attack.target);if(target.passwordVersion==p.attack.version)rotatePassword(target);int penalty=p.penalty(cfg.get(FAILED_ATTACK_PENALTY));p.attacksFailed++;event(at,"ATTACK_EXPIRED",p.id,target.id,penalty);p.attack=null;}
                 case RECOVERY_SUCCESS->finishRecovery(p,at);
                 case RECOVERY_FAILURE->failedRecovery(p,at);
+                case SABOTAGE->{event(at,"SABOTAGE_EXPIRED",p.sabotage.attacker,p.id,0);p.sabotage=null;}
             }
         }
     }
@@ -266,6 +268,9 @@ public final class SystemBreachSession {
         String base=ordinaryReason(p,now),protection=targetReason(p,target,now,online,false);
         return !base.isEmpty()?base:keyGating&&p.keys<=0?"SB_NEED_KEY":activeEnds-now<cfg.get(MIN_ACTION_WINDOW_MS)?"SB_ROUND_ENDING":p.attack!=null?"SB_ATTACK_PENDING":!protection.isEmpty()?protection:target.sabotage!=null?"SB_TARGET_INFECTED":"";
     }
+    /** SOULS shop: a key bought outside the 3-answer loop (RoomService charges the SOULS). */
+    public synchronized boolean canReceiveKey(String player,long now){return !closed&&phase==SystemBreachPhase.ACTIVE&&players.containsKey(player)&&activeEnds-now>cfg.get(MIN_ACTION_WINDOW_MS);}
+    public synchronized void grantKey(String player,long now){if(!canReceiveKey(player,now))throw new BreachFailure("NOT_ACTIVE");var p=player(player);p.keys++;event(now,"KEY_BOUGHT","",p.id,p.keys);}
     private Map<String,Object> permission(String reason,int cost,long readyAt){return Map.of("allowed",reason.isEmpty(),"reason",reason,"cost",cost,"readyAt",readyAt);}
     /** The UI quotes the same predicates/costs the authoritative transaction checks. */
     private Map<String,Object> actionAvailability(SystemBreachPlayerState p,long now,Set<String> online){

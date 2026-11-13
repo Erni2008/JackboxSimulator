@@ -21,3 +21,9 @@
 .souls-title{margin:6px 0 0;color:#e9fffd;font-weight:800;font-size:26px;letter-spacing:.12em;text-shadow:0 0 18px #5ff6e688;animation:souls-rise .5s .15s ease-out both}
 .souls-amount{margin:0;color:#5ff6e6;font-weight:800;font-size:40px;letter-spacing:.04em;font-variant-numeric:tabular-nums;text-shadow:0 0 16px #5ff6e6aa;animation:souls-rise .5s .3s ease-out both}
 @media (prefers-reduced-motion:reduce){.souls-reward *,.souls-chip{animation:none!important}}
+.souls-revive{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:9100;display:flex;align-items:center;gap:10px;padding:10px 20px 10px 12px;border:0;border-radius:14px;cursor:pointer;
+  background:linear-gradient(180deg,#0f3b3d,#062022);box-shadow:inset 0 0 0 1px #5ff6e6aa,0 0 24px #5ff6e655,0 8px 22px #000a;color:#e9fffd;font-family:system-ui,sans-serif;animation:souls-call 2.4s ease-in-out infinite}
+.souls-revive[hidden]{display:none}.souls-revive img{width:34px;height:34px}
+.souls-revive span{display:flex;flex-direction:column;align-items:flex-start;gap:2px}.souls-revive b{font-size:16px;letter-spacing:.1em}.souls-revive small{color:#5ff6e6;font-size:12px;letter-spacing:.14em}
+.souls-revive:disabled{opacity:.7;animation:none}.souls-revive.pending{opacity:.85}
+@keyframes souls-call{50%{box-shadow:inset 0 0 0 1px #5ff6e6,0 0 34px #5ff6e699,0 8px 22px #000a}}

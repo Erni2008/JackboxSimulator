@@ -25,7 +25,16 @@ final class ResultsCeremony {
     private float t=-1;private long boltSeed;
 
     boolean active(){return t>=0;}
-    void reset(){t=-1;winners.clear();loser=null;}
+    private final java.util.Set<String> fired=new java.util.HashSet<>();
+    /** Fires each ceremony cue once as its moment passes. */
+    void sounds(SbSounds s){
+        if(t<0)return;
+        for(int i=0;i<winners.size();i++){float at=revealAt(i);once(s,"roll"+i,at-1.9f,i==winners.size()-1?"drumroll":null);once(s,"rev"+i,at+.25f,"reveal");}
+        if(!winners.isEmpty())once(s,"fanfare",revealAt(0)+.5f,"fanfare");
+        if(loser!=null){float we=winnersEnd();once(s,"trial",we+.2f,"hack_start");once(s,"charge",we+TRIAL-1.1f,"drumroll");once(s,"thunder",we+TRIAL-.05f,"thunder");once(s,"ghost",we+TRIAL+.8f,"ghost");}
+    }
+    private void once(SbSounds s,String key,float at,String cue){if(cue!=null&&t>=at&&t<at+1.5f&&fired.add(key))s.play(cue);}
+    void reset(){t=-1;winners.clear();loser=null;fired.clear();}
     /** Starts once, from the final ranking. */
     void update(SystemBreachHostViewModel model,float dt){
         if(!model.results()){reset();return;}

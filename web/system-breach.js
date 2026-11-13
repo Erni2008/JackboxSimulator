@@ -14,14 +14,17 @@ function createSystemBreachRequests({getState,isAuthenticated,send,makeId,now}){
   function action(type,fields={}){
     reconcile();const root=getState(),s=root?.systemBreach;if(pending||!s||!isAuthenticated())return null;
     const payload=JSON.parse(JSON.stringify({...fields,roomCode:root.code,sessionId:s.sessionId}));
-    pending={id:makeId(),type,payload,lastSent:now(),attempts:1};status='Waiting for server…';send('SYSTEM_BREACH_'+type,payload,pending.id);return pending.id;
+    pending={id:makeId(),type,payload,lastSent:now(),firstSent:now(),attempts:1};status='Waiting for server…';send('SYSTEM_BREACH_'+type,payload,pending.id);return pending.id;
   }
   function event(e){
     if(!pending||e.requestId!==pending.id)return false;
     if(e.type==='SYSTEM_BREACH_ACTION_REJECTED'||e.type==='ERROR'){status=e.payload?.code||'Rejected';pending=null;return true;}
-    if(e.payload?.systemBreachAction){status=e.payload.systemBreachAction.status;pending=null;return true;}return false;
+    if(e.payload?.systemBreachAction){status=e.payload.systemBreachAction.status;pending=null;return true;}
+    if(e.type?.startsWith('SYSTEM_BREACH_')&&e.payload?.systemBreach){status='OK';pending=null;return true;}return false;
   }
   function tick(){
+    // a request the server never answers must not freeze the laptop: give up after 20 s and let the player act again
+    if(pending&&now()-(pending.firstSent||pending.lastSent)>=20000){pending=null;status='SB_TIMEOUT';return true;}
     const changed=reconcile();if(pending&&isAuthenticated()&&now()-pending.lastSent>=(pending.attempts<3?1500:5000)){
       pending.lastSent=now();pending.attempts++;send('SYSTEM_BREACH_'+pending.type,pending.payload,pending.id);
     }return changed;
@@ -37,10 +40,13 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
   const el=id=>document.getElementById(id);
   {const scr=el('breach-screen');if(scr&&scr.parentElement!==document.body)document.body.append(scr);}
   const requests=createSystemBreachRequests({getState,isAuthenticated,send,makeId,now});
+  const sfx=n=>{try{FA_SFX[n]?.();}catch(e){}};
   // SABOTAGE viruses ride on top of the question screen; their removal goes through its own SABOTAGE_CLEAR request
-  const sab=createSystemBreachSabotage({screen:()=>el('sbx-screen'),submit:(infectionId,answer)=>requests.action('SABOTAGE_CLEAR',{infectionId,answer}),buzz:p=>navigator.vibrate?.(p||40)});
+  const sab=createSystemBreachSabotage({screen:()=>el('sbx-screen'),submit:(infectionId,answer)=>requests.action('SABOTAGE_CLEAR',{infectionId,answer}),buzz:p=>navigator.vibrate?.(p||40),sound:sfx});
   const VIRUS={SHUFFLE_ATTACK:'Перемешка',NUMBER_HUNT:'Охота на цифры',POPUP_STORM:'Шторм окон',GHOST_BUTTONS:'Кнопки-призраки',SCREEN_GLITCH:'Глитч экрана',LOCKED_ANSWERS:'Замок',MAGNETIC_BUTTONS:'Магнитные кнопки'};
-  let viewKey='',lastSync=0,lastReceipt='',verdict=null,mode='',banked=0,seenKeys=-1,celebrateUntil=0,lastAsk=0;
+  // back from a locked screen / another app: ask for fresh state and rebuild everything
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)return;viewKey='';verdict=null;celebrateUntil=0;if(isAuthenticated()){lastSync=now();send('SYNC',{},makeId());}render();});
+  let keyLimit=false,lastTick=-1,viewKey='',lastSync=0,lastReceipt='',verdict=null,mode='',banked=0,seenKeys=-1,celebrateUntil=0,lastAsk=0;
   const body=()=>el('sbx-body');
   const face=id=>{const p=getState()?.players?.find(x=>x.id===id);return p?.characterId?'sb/portraits/'+p.characterId+'.png':'';};
   // digital rain behind the terminal: tiny canvas at half resolution, ~20 fps, paused when hidden
@@ -59,7 +65,7 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
     const o=mk('div','sbx-pwreveal',null,el('sbx-screen'));mk('small',null,'ВРЕМЯ ВЫШЛО',o);mk('b',null,'СИСТЕМА ВЫБРАЛА ТВОЙ ПАРОЛЬ',o);
     const code=mk('div','sbx-pwcode',null,o);const cells=[...pw].map(()=>mk('span',null,'',code));mk('p',null,'Запомни его — соперники будут его угадывать',o);
     const noise='#$%&@?*!ABCDEFGHKMNPQRSTUVWXYZ23456789';let tick=0;
-    const iv=setInterval(()=>{tick++;cells.forEach((c,i)=>{const locked=tick>8+i*3;c.textContent=locked?pw[i]:noise[Math.random()*noise.length|0];c.classList.toggle('on',locked);});if(tick>8+pw.length*3+2)clearInterval(iv);},45);
+    const iv=setInterval(()=>{tick++;sfx(tick%2?'decode':null);cells.forEach((c,i)=>{const locked=tick>8+i*3;if(tick===9+i*3)sfx('lock');c.textContent=locked?pw[i]:noise[Math.random()*noise.length|0];c.classList.toggle('on',locked);});if(tick>8+pw.length*3+2)clearInterval(iv);},45);
     navigator.vibrate?.([30,60,30]);setTimeout(()=>o.classList.add('out'),4200);setTimeout(()=>{clearInterval(iv);o.remove();},4800);}
   function boot(){const scr=el('sbx-screen'),o=document.createElement('div');o.className='sbx-boot';scr.append(o);
     const lines=['> BIOS v6.66 … OK','> mounting /dev/breach … OK','> loading exploit kit … OK','> handshake with FINAL ANSWER grid … OK','> ACCESS GRANTED'];
@@ -69,18 +75,18 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
   const STEPS=[1,1.3,1.5,1.8,2,2.5],fx=v=>{const t=Math.round(v*10);return t%10?(t/10).toFixed(1):String(t/10);};
   const secs=t=>Math.max(0,Math.ceil((t-now())/1000));
   const mmss=ms=>{const s=Math.max(0,Math.ceil(ms/1000));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');};
-  const REASONS={SB_INSUFFICIENT_AP:'мало AP',SB_ATTACK_COOLDOWN:'перезарядка',SB_TARGET_PROTECTED:'под защитой',SB_TARGET_BUSY:'уже атакуют',SB_TARGET_DISCONNECTED:'не в сети',SB_MAX_FIREWALL:'максимум',SB_CHALLENGE_COOLDOWN:'подожди',SB_ROUND_ENDING:'раунд кончается',SB_RECOVERY_REQUIRED:'сначала перезагрузка',SB_TEMPORARILY_BLOCKED:'система заблокирована',SB_ATTACK_PENDING:'атака уже идёт',SB_CHALLENGE_PENDING:'задание уже есть',SB_NEED_KEY:'нужен ключ',SB_MAX_MULTIPLIER:'максимум',SB_TARGET_INFECTED:'уже заражён',SB_ANSWERS_LOCKED:'ответы заблокированы',SB_STALE_SABOTAGE:'вирус уже исчез'};
+  const REASONS={SB_INSUFFICIENT_AP:'мало AP',SB_ATTACK_COOLDOWN:'перезарядка',SB_TARGET_PROTECTED:'под защитой',SB_TARGET_BUSY:'уже атакуют',SB_TARGET_DISCONNECTED:'не в сети',SB_MAX_FIREWALL:'максимум',SB_CHALLENGE_COOLDOWN:'подожди',SB_ROUND_ENDING:'раунд кончается',SB_RECOVERY_REQUIRED:'сначала перезагрузка',SB_TEMPORARILY_BLOCKED:'система заблокирована',SB_ATTACK_PENDING:'атака уже идёт',SB_CHALLENGE_PENDING:'задание уже есть',SB_NEED_KEY:'нужен ключ',SB_MAX_MULTIPLIER:'максимум',SB_TARGET_INFECTED:'уже заражён',SB_ANSWERS_LOCKED:'ответы заблокированы',SB_STALE_SABOTAGE:'вирус уже исчез',SB_TIMEOUT:'нет ответа сервера — попробуй ещё',SB_KEY_LIMIT:'максимум 2 ключа за SOULS',SB_NOT_ENOUGH_SOULS:'мало SOULS'};
   const reason=p=>p?.allowed?'':(REASONS[p?.reason]||'недоступно');
-  function act(type,fields){const id=requests.action(type,fields);if(id){navigator.vibrate?.(12);render();}return id;}
+  function act(type,fields){const id=requests.action(type,fields);if(id){navigator.vibrate?.(12);sfx('tap');render();}return id;}
   function say(text){const t=el('sbx-toast');t.textContent=text;t.classList.remove('on');void t.offsetWidth;t.classList.add('on');}
   function answer(kind,type,fields,button){const st=getState()?.systemBreach,ap=st?.players.find(p=>p.playerId===getState().selfId)?.accessPoints??0,cid=st?.self?.challenge?.challengeId;const id=act(type,fields);if(id)verdict={id,kind,button,ok:null,until:now()+1700,sent:now(),ap,cid};}
   function showVerdict(ok,text){
-    const v=verdict;v.ok=ok;v.until=now()+1500;v.button?.classList.add(ok?'right':'wrong');navigator.vibrate?.(ok?[30,40,30]:[90]);
+    sfx(verdict.kind==='hack'?(ok?'hackOk':'hackFail'):(ok?'cleared':'wrong'));const v=verdict;v.ok=ok;v.until=now()+1500;v.button?.classList.add(ok?'right':'wrong');navigator.vibrate?.(ok?[30,40,30]:[90]);
     const st=mk('div','sbx-verdict '+(ok?'ok':'bad'),null,body());mk('b','mi',ok?'\ue5ca':'\ue5cd',st);mk('span',null,text,st);flash(ok?'flash-ok':'flash-bad');
   }
   /** Right answer: the chosen key lights up and "+N AP" floats up from it and dissolves — no modal. */
   function scorePop(ok,amt){
-    const v=verdict;v.ok=ok;v.until=now()+1500;const btn=v.button;btn?.classList.add(ok?'right':'wrong');navigator.vibrate?.(ok?[25,35,25]:[80]);
+    sfx(ok?'correct':'wrong');const v=verdict;v.ok=ok;v.until=now()+1500;const btn=v.button;btn?.classList.add(ok?'right':'wrong');navigator.vibrate?.(ok?[25,35,25]:[80]);
     const host=body(),r=btn?btn.getBoundingClientRect():host.getBoundingClientRect(),hr=host.getBoundingClientRect();
     const f=mk('div','sbx-pop '+(ok?'ok':'bad'),ok?'+'+amt+' AP':'МИМО',host);f.style.left=(r.left-hr.left+r.width/2)+'px';f.style.top=(r.top-hr.top)+'px';
     if(ok){for(let i=0;i<10;i++){const d=mk('i','sbx-spark',null,host);d.style.left=(r.left-hr.left+r.width/2)+'px';d.style.top=(r.top-hr.top+r.height/2)+'px';const a=Math.PI*2*i/10;d.style.setProperty('--dx',(Math.cos(a)*(40+Math.random()*30)).toFixed(0)+'px');d.style.setProperty('--dy',(Math.sin(a)*(30+Math.random()*24)-20).toFixed(0)+'px');}}
@@ -174,6 +180,9 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
     if(!meter.hidden){const every=me.keyEvery||3,prog=me.keyProgress||0;
       if(meter.childElementCount!==every+3){meter.replaceChildren();mk('small',null,'КЛЮЧ',meter);for(let i=0;i<every;i++)mk('i',null,null,meter);mk('span','sbx-keyicon mi','\ue0da',meter);mk('b','sbx-keys',null,meter);}
       [...meter.querySelectorAll('i')].forEach((x,i)=>x.classList.toggle('on',i<prog));meter.querySelector('.sbx-keys').textContent=String(me.keys||0);}
+    // SOULS shop: buy an access key (2 000 SOULS, twice per match)
+    {let buy=el('sbx-buykey');if(!buy){buy=mk('button','sbx-buykey',null);buy.id='sbx-buykey';buy.innerHTML='<img alt="" src="/souls/soul.svg"><span>КЛЮЧ</span><b>2 000</b>';buy.onclick=()=>act('BUY_KEY');meter.after(buy);}
+     const souls=getState()?.players?.find(p=>p.id===getState().selfId)?.souls||0;buy.hidden=meter.hidden||souls<2000||keyLimit;buy.disabled=requests.pending();}
   }
   function receipts(s){
     const r=s.self?.lastAction;if(!r||r.requestId===lastReceipt)return;lastReceipt=r.requestId;
@@ -182,11 +191,11 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
       else if(verdict.kind==='hack')showVerdict(st==='SUCCESS',st==='SUCCESS'?'ВЗЛОМ УДАЛСЯ'+(amt?'  +'+amt+' AP':''):'ПАРОЛЬ НЕВЕРНЫЙ');
       else showVerdict(st==='SUCCESS',st==='SUCCESS'?'СИСТЕМА ВОССТАНОВЛЕНА':st==='EMERGENCY_RESTORED'?'АВАРИЙНЫЙ ОТКАТ':'НЕВЕРНО — ЕЩЁ ВОПРОС');return;}
     if(r.action==='SABOTAGE_CLEAR'){sab.result(r.requestId,r.status);if(r.status==='WRONG')say('Неверно — попробуй ещё');return;}
-    if(r.action==='SABOTAGE'){if(r.status==='INFECTED'){say('Вирус внедрён: '+(VIRUS[r.details?.type]||'вирус'));flash('flash-ok');}else{say('Фаервол цели отбил вирус');flash('flash-bad');}return;}
+    if(r.action==='SABOTAGE'){if(r.status==='INFECTED'){sfx('hackOk');say('Вирус внедрён: '+(VIRUS[r.details?.type]||'вирус'));flash('flash-ok');}else{sfx('hackFail');say('Фаервол цели отбил вирус');flash('flash-bad');}return;}
     const msg={MULTIPLIER_UPGRADED:'Множитель очков повышен',FIREWALL_UPGRADED:'Фаервол улучшен',SPECIAL_APPLIED:'Троян внедрён'}[r.status];if(msg){say(msg);flash('flash-ok');}
   }
   function celebrate(keys){
-    celebrateUntil=now()+1700;const b=body();b.replaceChildren();
+    celebrateUntil=now()+1700;sfx('key');const b=body();b.replaceChildren();
     const c=mk('div','sbx-unlock',null,b);mk('div','sbx-unlock-key mi','\ue0da',c);mk('b',null,'КЛЮЧ ДОСТУПА ПОЛУЧЕН',c);mk('small',null,'3 верных ответа · ключей: '+keys,c);
     flash('flash-key');navigator.vibrate?.([20,30,20,30,60]);viewKey='';
   }
@@ -220,6 +229,7 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
   function tick(fromRender){
     const s=getState()?.systemBreach;if(!s)return;
     el('sbx-clock').textContent=s.deadline>0?mmss(s.deadline-now()):'--:--';
+    {const left=s.deadline-now(),sec=Math.ceil(left/1000);if(s.phase==='ACTIVE'&&s.deadline>0&&left>0&&left<=10000&&sec!==lastTick){lastTick=sec;sfx('tick');}}
     el('sbx-screen').classList.toggle('urgent',s.phase==='ACTIVE'&&s.deadline>0&&s.deadline-now()<30000);
     for(const i of document.querySelectorAll('#sbx-body .sbx-timer i')){const st=+i.dataset.start,en=+i.dataset.end;const f=en>st?Math.max(0,Math.min(1,(en-now())/(en-st))):0;i.style.transform='scaleX('+f.toFixed(3)+')';i.parentElement.classList.toggle('low',f<.3);}
     if(fromRender===true)return;
@@ -231,5 +241,5 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
     setInterval(()=>{if(sab.active()&&Math.random()<.85&&sab.autoStep())return;const b=[...document.querySelectorAll('#sbx-body button:not(:disabled):not(.sbx-ghost)')].filter(x=>!x.dataset.sab);if(!b.length)return;
       const opts=b.filter(x=>x.classList.contains('sbx-option')),rest=b.filter(x=>!x.classList.contains('sbx-back'));
       const pick=a=>a[Math.floor(Math.random()*a.length)];const q=/^(\d+) ([+−×]) (\d+)/.exec(document.querySelector('#sbx-body .sbx-q')?.textContent||''),want=q?String(q[2]==='+'?+q[1]+ +q[3]:q[2]==='−'?q[1]-q[3]:q[1]*q[3]):'';const hit=opts.find(o=>o.querySelector('.sbx-val')?.textContent===want);(hit?hit:opts.length?pick(opts):rest.length?pick(rest):pick(b)).click();},1800);}
-  return {action:act,render,tick,reset(){sab.dispose();requests.reset();verdict=null;mode='';banked=0;seenKeys=-1;celebrateUntil=0;viewKey='';lastReceipt='';lastSync=0;},event(e){if(requests.event(e)){const code=requests.status();if(code&&code.startsWith('SB_'))sab.retry();if(code&&code.startsWith('SB_'))say(REASONS[code]||'Не получилось');render();}}};
+  return {action:act,render,tick,reset(){sab.dispose();keyLimit=false;requests.reset();verdict=null;mode='';banked=0;seenKeys=-1;celebrateUntil=0;viewKey='';lastReceipt='';lastSync=0;},event(e){if(requests.event(e)){const code=requests.status();if(code==='SB_KEY_LIMIT')keyLimit=true;if(code&&code.startsWith('SB_'))sab.retry();if(code&&code.startsWith('SB_'))say(REASONS[code]||'Не получилось');render();}}};
 }

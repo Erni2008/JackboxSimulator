@@ -105,7 +105,7 @@ public final class SystemBreachHostViewModel {
                 default->{}
             }
             if(seq>lastSequence){
-                if(lastSequence>=0){react(type,a,t);Toast big=headline(type,a,t,num(ev,"amount"));if(big!=null){toastParts=big;toast=big.line();toastAge=0;toastTone=type.equals("MULTIPLIER_UPGRADED")?Tone.REWARD:type.equals("ATTACK_FAILED")||type.equals("ATTACK_EXPIRED")?Tone.RECOVERY:type.equals("FIREWALL_UPGRADED")?Tone.FIREWALL:type.equals("SABOTAGE_BLOCKED")?Tone.FIREWALL:type.equals("SABOTAGE_CLEARED")?Tone.REWARD:type.startsWith("RECOVERY")||type.equals("EMERGENCY_RESTORED")?Tone.REWARD:Tone.HACK;}}
+                if(lastSequence>=0){react(type,a,t);{String c=SbSounds.cue(type);if(c!=null&&cues.size()<8)cues.add(c);}Toast big=headline(type,a,t,num(ev,"amount"));if(big!=null){toastParts=big;toast=big.line();toastAge=0;toastTone=type.equals("MULTIPLIER_UPGRADED")?Tone.REWARD:type.equals("ATTACK_FAILED")||type.equals("ATTACK_EXPIRED")?Tone.RECOVERY:type.equals("FIREWALL_UPGRADED")?Tone.FIREWALL:type.equals("SABOTAGE_BLOCKED")?Tone.FIREWALL:type.equals("SABOTAGE_CLEARED")||type.equals("KEY_BOUGHT")?Tone.REWARD:type.startsWith("RECOVERY")||type.equals("EMERGENCY_RESTORED")?Tone.REWARD:Tone.HACK;}}
                 LogLine line=line(type,a,t,num(ev,"amount"),seq);if(line!=null)line=new LogLine(line.sequence(),line.text(),line.tone(),Math.max(0,at-phaseStartedAt));
                 if(line!=null){log.addLast(line);if(log.size()>LOG_SIZE)log.removeFirst();System.arraycopy(logAge,0,logAge,1,LOG_SIZE-1);logAge[0]=lastSequence<0?99:0;}
             }
@@ -161,6 +161,7 @@ public final class SystemBreachHostViewModel {
             case "SABOTAGE_BLOCKED"->new LogLine(seq,who(t)+L(": firewall stopped the virus",": фаервол отбил вирус")+" « "+who(a),Tone.FIREWALL,0);
             case "SABOTAGE_CLEARED"->new LogLine(seq,who(t)+L(": virus removed",": вирус удалён"),Tone.REWARD,0);
             case "SABOTAGE_EXPIRED"->new LogLine(seq,L(who(t)+"'s virus burned out",who(t)+": вирус выдохся"),Tone.MUTED,0);
+            case "KEY_BOUGHT"->new LogLine(seq,who(t)+L(": key bought with SOULS",": ключ куплен за SOULS"),Tone.REWARD,0);
             case "RESULTS"->new LogLine(seq,L("Operation complete","Операция завершена"),Tone.MUTED,0);
             default->null;
         };
@@ -178,11 +179,15 @@ public final class SystemBreachHostViewModel {
             case "RECOVERY_SUCCEEDED"->new Toast(L("SYSTEM RESTORED","СИСТЕМА ВОССТАНОВЛЕНА"),who(t),L("is back online","снова в сети"),"","");
             case "SABOTAGE_STARTED"->new Toast(L("SABOTAGE","САБОТАЖ")+"  ·  "+virus(amount,ru),who(a),L("launches a sabotage","устраивает саботаж"),who(t),"");
             case "SABOTAGE_BLOCKED"->new Toast(L("VIRUS BLOCKED","ВИРУС ОТБИТ"),who(t),L("firewall stops the virus from","фаервол останавливает вирус от"),who(a),"");
+            case "KEY_BOUGHT"->new Toast(L("SOULS SPENT","ТРАТА SOULS"),who(t),L("buys an access key","покупает ключ доступа"),"","−2 000 SOULS");
             case "SABOTAGE_CLEARED"->new Toast(L("SYSTEM CLEAN","СИСТЕМА ОЧИЩЕНА"),who(t),L("removes the virus","удаляет вирус"),"","");
             case "TROJAN","DATA_LEAK","SYSTEM_OVERLOAD","FIREWALL_BREAKER","TRACE_ATTACK"->new Toast(L(type.replace('_',' '),switch(type){case "TROJAN"->"ТРОЯН";case "DATA_LEAK"->"УТЕЧКА ДАННЫХ";case "SYSTEM_OVERLOAD"->"ПЕРЕГРУЗКА";case "FIREWALL_BREAKER"->"ПРОБОЙ ФАЕРВОЛА";default->"СЛЕЖКА";}),who(a),L("strikes","наносит удар"),who(t),plus);
             default->null;
         };
     }
+    /** Sound cues from new events, drained by the screen each frame. */
+    private final java.util.ArrayList<String> cues=new java.util.ArrayList<>();
+    public java.util.List<String> cues(){return cues;}
     public String toast(){return toast;}
     public Tone toastTone(){return toastTone;}
     public float toastAge(){return toastAge;}

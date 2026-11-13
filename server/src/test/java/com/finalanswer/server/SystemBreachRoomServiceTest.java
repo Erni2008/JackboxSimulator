@@ -26,4 +26,21 @@ class SystemBreachRoomServiceTest {
     @Test void shutdownCleansRoomAndExpiresCredentials(){active();service.shutdown();assertThrows(RoomService.Failure.class,()->service.view(s(host,"code")));assertThrows(RoomService.Failure.class,()->command(a,"STATE",fields(a)));}
     @Test void finishedMatchReleasesExplicitlyAbandonedLobbySeats(){active();service.leave(s(host,"code"),s(one,"token"));clock.addAndGet(264000);service.tick();command(hostPeer,"END",fields(hostPeer));assertEquals(1,hostPeer.latest().getAsJsonArray("players").size());assertNotNull(service.completedSystemBreachResult(s(host,"code")));}
 
+    long souls(TestPeer peer,JsonObject who){for(var p:peer.latest().getAsJsonArray("players")){var o=p.getAsJsonObject();if(s(o,"id").equals(s(who,"selfId")))return o.get("souls").getAsLong();}return -1;}
+    @Test void finishedMatchReturnsToLobbyOnItsOwnWhenTheHostNeverEndsIt(){active();clock.addAndGet(240000+24000);service.tick();assertEquals("FINISHED",s(sb(a),"phase"));clock.addAndGet(19000);service.tick();assertTrue(a.latest().has("systemBreach"));clock.addAndGet(2000);service.tick();assertFalse(a.latest().has("systemBreach"),"room is back in the lobby");}
+    @Test void soulsBuyAtMostTwoKeysAndNeverOverspend(){active();String code=s(host,"code"),id=s(one,"selfId");
+        assertThrows(RoomService.Failure.class,()->command(a,"BUY_KEY",fields(a)),"no SOULS, no key");
+        assertEquals(5000,service.rewardPlayer(code,id,5000,"TEST","t1"));assertEquals(0,service.rewardPlayer(code,id,5000,"TEST","t1"),"idempotent");
+        command(a,"BUY_KEY",fields(a));command(a,"BUY_KEY",fields(a));assertEquals(2,sb(a).getAsJsonObject("self").get("keys").getAsInt());assertEquals(1000,souls(a,one));
+        assertEquals("SB_KEY_LIMIT",assertThrows(RoomService.Failure.class,()->command(a,"BUY_KEY",fields(a))).getMessage());assertEquals(1000,souls(a,one));
+        assertEquals(0,souls(b,two),"the other player's wallet is untouched");}
+    @Test void ghostsBuyTheirWayBackWithSouls(){active();clock.addAndGet(240000+24000);service.tick();String code=s(host,"code");
+        var ghost=a.latest().getAsJsonArray("players").asList().stream().map(JsonElement::getAsJsonObject).filter(p->!p.get("isAlive").getAsBoolean()).findFirst().orElseThrow();
+        TestPeer gp=s(ghost,"id").equals(s(one,"selfId"))?a:b;JsonObject who=gp==a?one:two;
+        clock.addAndGet(21000);service.tick();
+        assertThrows(RoomService.Failure.class,()->service.command(gp,Protocol.decode(Protocol.event("SOULS_REVIVE",UUID.randomUUID().toString(),Map.of()))),"needs 5,000 SOULS");
+        service.rewardPlayer(code,s(who,"selfId"),6000,"TEST","r1");service.command(gp,Protocol.decode(Protocol.event("SOULS_REVIVE",UUID.randomUUID().toString(),Map.of())));
+        var me=gp.latest().getAsJsonArray("players").asList().stream().map(JsonElement::getAsJsonObject).filter(p->s(p,"id").equals(s(who,"selfId"))).findFirst().orElseThrow();
+        assertTrue(me.get("isAlive").getAsBoolean());assertEquals(1000,me.get("souls").getAsLong());
+        assertThrows(RoomService.Failure.class,()->service.command(gp,Protocol.decode(Protocol.event("SOULS_REVIVE",UUID.randomUUID().toString(),Map.of()))),"the living cannot buy it again");}
 }

@@ -162,6 +162,12 @@ public final class RoomService {
         if(message.type().equals("LEAVE_ROOM")) { leave(room.code,member.token); return; }
         if(message.type().equals("SET_LANGUAGE")){ requireHost(member); String lang=Protocol.string(data,"language"); if(!Set.of("en","ru").contains(lang))throw new Failure(400,"INVALID_LANGUAGE"); if(!lang.equals(room.language)){room.language=lang;broadcast(room,"LANGUAGE_CHANGED");} reply(peer,room,member,message); return; }
         if(message.type().startsWith("SYSTEM_BREACH_")){systemBreachCommand(room,member,peer,message);return;}
+        if(message.type().equals("SOULS_REVIVE")){
+            if(member.host||member.left)throw new Failure(403,"NOT_A_PLAYER");
+            if(member.alive||member.revivalPending)throw new Failure(409,"NOT_A_GHOST");
+            if(!room.souls.spend(member.id,com.finalanswer.server.economy.SoulsPrices.REVIVAL,"REVIVAL","revive/"+member.id+"/"+message.requestId()))throw new Failure(409,"NOT_ENOUGH_SOULS");
+            member.revivalPending=true;applyRevivals(room);broadcast(room,"SOULS_UPDATED");reply(peer,room,member,message);return;
+        }
         if(room.breach!=null)throw new Failure(409,"SYSTEM_BREACH_IN_PROGRESS");
         if(message.type().equals("FORMULA_START")||message.type().equals("FORMULA_ACTION")){formulaCommand(room,member,peer,message);return;}
         if(message.type().equals("BOMB_START")||message.type().equals("BOMB_ACTION")){bombCommand(room,member,peer,message);return;}
@@ -429,6 +435,18 @@ public final class RoomService {
             default->throw new Failure(400,"UNKNOWN_COMMAND");
         }
     }
+    static final long BREACH_AUTO_END_MS=20_000;
+    private void endBreach(Room room){room.breach.close();room.breach=null;room.breachFinishedAt=0;room.breachKeysBought.clear();room.members.values().removeIf(m->m.left);room.lobbyId=UUID.randomUUID().toString();broadcast(room,"SYSTEM_BREACH_FINISHED");}
+    private boolean miniGameRunning(Room room){return room.breach!=null||room.cursed!=null||room.impostor!=null||room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null;}
+    /** A ghost who bought their way back returns at the next safe moment: in the lobby, or before the next question's answers open. */
+    private void applyRevivals(Room room){
+        if(miniGameRunning(room))return;boolean changed=false;
+        for(Member m:room.members.values()){if(!m.revivalPending||m.left)continue;
+            if(m.alive){m.revivalPending=false;continue;}
+            if(room.game==null||room.game.phase==Phase.GAME_FINISHED){m.alive=true;m.revivalPending=false;changed=true;}
+            else if(room.game.phase==Phase.QUESTION_PRESENTATION){room.game.participants.add(m.id);m.alive=true;m.revivalPending=false;changed=true;}}
+        if(changed)broadcast(room,"PLAYER_REVIVED");
+    }
     private Set<String> breachOnline(Room room){return room.members.values().stream().filter(m->m.peer!=null&&!m.left).map(m->m.id).collect(java.util.stream.Collectors.toSet());}
     private Map<String,String> breachNames(Room room){Map<String,String> names=new LinkedHashMap<>();for(Member m:room.members.values())names.put(m.id,m.name);return names;}
     private boolean tickBreach(Room room){
@@ -462,10 +480,19 @@ public final class RoomService {
         if(action.equals("END")){
             if(!Set.of("roomCode","sessionId").containsAll(data.keySet()))throw new Failure(400,"SB_INVALID_ACTION");
             requireHost(member);if(room.breach.phase()!=SystemBreachPhase.FINISHED)throw new Failure(409,"SB_NOT_FINISHED");
-            room.breach.close();room.breach=null;room.members.values().removeIf(m->m.left);room.lobbyId=UUID.randomUUID().toString();broadcast(room,"SYSTEM_BREACH_FINISHED");return;
+            endBreach(room);return;
         }
         if(action.equals("STATE")){if(!Set.of("roomCode","sessionId").containsAll(data.keySet()))throw new Failure(400,"SB_INVALID_ACTION");reply(peer,room,member,message);return;}
         if(member.host)throw new Failure(403,"SB_NOT_A_PLAYER");
+        if(action.equals("BUY_KEY")){
+            if(!Set.of("roomCode","sessionId").containsAll(data.keySet()))throw new Failure(400,"SB_INVALID_ACTION");
+            int bought=room.breachKeysBought.getOrDefault(member.id,0);
+            if(bought>=com.finalanswer.server.economy.SoulsPrices.SB_KEY_LIMIT)throw new Failure(409,"SB_KEY_LIMIT");
+            if(!room.breach.canReceiveKey(member.id,now()))throw new Failure(409,"SB_NOT_ACTIVE");
+            if(!room.souls.spend(member.id,com.finalanswer.server.economy.SoulsPrices.SB_KEY,"SB_KEY","sbkey/"+room.breach.id+"/"+message.requestId()))throw new Failure(409,"SB_NOT_ENOUGH_SOULS");
+            room.breachKeysBought.put(member.id,bought+1);room.breach.grantKey(member.id,now());
+            peer.send(Protocol.event("SYSTEM_BREACH_PLAYER_UPDATE",message.requestId(),snapshot(room,member,false)));broadcast(room,"SYSTEM_BREACH_PLAYER_UPDATE");return;
+        }
         try{
             var result=room.breach.act(member.id,message.requestId(),action,data,now(),breachOnline(room));tickBreach(room);
             Map<String,Object> reply=new LinkedHashMap<>(snapshot(room,member,false));reply.put("systemBreachAction",result);
@@ -637,6 +664,14 @@ public final class RoomService {
     }
     private void reply(Peer peer,Room room,Member member,Message message) {
         peer.send(Protocol.event("STATE",message.requestId(),snapshot(room,member,false)));
+    }
+    /**
+     * The one entry point for granting SOULS from game rules (mini-games will call it with their own amounts once
+     * decided). Idempotent per reward key. @return SOULS actually granted
+     */
+    public synchronized long rewardPlayer(String code,String playerId,long amount,String reason,String rewardKey){
+        Room room=find(code);if(room.members.values().stream().noneMatch(m->m.id.equals(playerId)&&!m.host))throw new Failure(403,"NOT_A_PLAYER");
+        long granted=room.souls.reward(playerId,amount,reason,rewardKey);if(granted>0)broadcast(room,"SOULS_UPDATED");return granted;
     }
     /** Trusted future rule hook. Restore only before an answer timer, never during a minigame/result. */
     public synchronized boolean revivePlayer(String code,String playerId){
@@ -834,6 +869,9 @@ public final class RoomService {
     }
     private void tickRoom(Room room) {
         if(room.breach!=null&&tickBreach(room))broadcast(room,"SYSTEM_BREACH_STATE");
+        // nobody is ever stuck on a finished SYSTEM BREACH: if the host never ends it, the room returns to the lobby
+        if(room.breach!=null&&room.breach.phase()==SystemBreachPhase.FINISHED){if(room.breachFinishedAt==0)room.breachFinishedAt=now();else if(now()-room.breachFinishedAt>=BREACH_AUTO_END_MS)endBreach(room);}
+        applyRevivals(room);
         tickPressure(room); tickFormula(room); tickBomb(room); if(room.shift!=null&&room.webGame.equals("broken-elevator")&&room.shift.advance(now()))broadcast(room,"CAGE_UPDATE");
         if(room.cursed!=null&&room.cursed.tick(now(),room.members.values().stream().filter(m->m.left).map(m->m.id).collect(java.util.stream.Collectors.toSet())))broadcast(room,"CURSED_BOXES_UPDATED");
         if(room.impostor!=null) {
@@ -915,7 +953,7 @@ public final class RoomService {
             p.put("id",member.id); p.put("name",member.name); p.put("nickname",member.name); p.put("host",false);
             p.put("characterId",member.characterId); p.put("connectionStatus",member.peer==null?"OFFLINE":"ONLINE");
             boolean ghost=!member.alive||room.cursed!=null&&room.cursed.isGhost(member.id);
-            p.put("isAlive",!ghost);p.put("isGhost",ghost);p.put("lifeState",ghost?"GHOST":"ALIVE");p.put("canReturn",ghost&&!member.left);p.put("score",member.score);p.put("souls",room.souls.balance(member.id));
+            p.put("isAlive",!ghost);p.put("isGhost",ghost);p.put("lifeState",ghost?"GHOST":"ALIVE");p.put("canReturn",ghost&&!member.left);p.put("score",member.score);p.put("souls",room.souls.balance(member.id));p.put("revivalPending",member.revivalPending);
             p.put("hasSubmittedAnswer",game!=null&&game.submitted.containsKey(member.id)); players.add(p);
         }
         value.put("players",players); value.put("currentPlayers",players);
@@ -1057,14 +1095,14 @@ public final class RoomService {
         String lobbyId=UUID.randomUUID().toString();List<String> impostorRoster=List.of();
         com.erni.finalanswer.gameplay.impostor.ImpostorSettings impostorSettings=com.erni.finalanswer.gameplay.impostor.ImpostorSettings.defaults();
         com.erni.finalanswer.gameplay.impostor.ImpostorMatchResult lastImpostorResult;
-        final Map<String,Member> members=new LinkedHashMap<>(); Member host; GameSession game; ImpostorSession impostor; CursedBoxesSession cursed; LastCommandSession lastCommand; CursedCardsSession cards; ForgottenRoomSession forgotten; FinalSecondSession finalSecond; SystemBreachSession breach; SystemBreachView.Outcome lastBreachResult; boolean breachScored; long breachEventSequence; String breachStartRequest=""; final FinalSecondSession.TaskBag fsTasks=new FinalSecondSession.TaskBag(); long revision;
+        final Map<String,Member> members=new LinkedHashMap<>(); Member host; GameSession game; ImpostorSession impostor; CursedBoxesSession cursed; LastCommandSession lastCommand; CursedCardsSession cards; ForgottenRoomSession forgotten; FinalSecondSession finalSecond; SystemBreachSession breach; SystemBreachView.Outcome lastBreachResult; boolean breachScored; long breachFinishedAt; final Map<String,Integer> breachKeysBought=new HashMap<>(); long breachEventSequence; String breachStartRequest=""; final FinalSecondSession.TaskBag fsTasks=new FinalSecondSession.TaskBag(); long revision;
         Room(String code,String name,int max,String mode,int questions,byte[] salt,byte[] hash) {
             this.code=code;this.name=name;maxPlayers=max;this.mode=mode;questionCount=questions;this.salt=salt;passwordHash=hash;
         }
     }
     private static final class Member {
         final String id=UUID.randomUUID().toString(),name,token; final boolean host;
-        String characterId="host"; boolean alive=true,left,everConnected; int score,elevatorRepairs,elevatorPenalties,cageTask; String cageKind=""; long cageFailAt; long seen; Peer peer;
+        String characterId="host"; boolean alive=true,left,everConnected,revivalPending; int score,elevatorRepairs,elevatorPenalties,cageTask; String cageKind=""; long cageFailAt; long seen; Peer peer;
         Member(String name,boolean host,String token,long now){this.name=name;this.host=host;this.token=token;seen=now;}
     }
     public static final class Failure extends RuntimeException {

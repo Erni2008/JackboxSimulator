@@ -15,6 +15,8 @@ final class Sabotage {
     static final class Config {
         static final int MAX_ACTIVE_SABOTAGES_PER_PLAYER=1;
         static final int SABOTAGE_DURATION_QUESTIONS=3;
+        /** Safety net: a virus never outlives this, even if its player stops answering (offline, idle, stuck). */
+        static final long SABOTAGE_MAX_MS=90_000;
         /** Chance (percent) that an infection gets through, indexed by the target's effective firewall level 1..3. */
         static final int[] SUCCESS_PERCENT_BY_FIREWALL={100,70,45};
         static final int SHUFFLE_SYMBOL_COUNT=5;
