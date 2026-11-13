@@ -1,4 +1,5 @@
-"""Host right-answer sound: "money in". Built around the reference sparkle source_assets/system_breach/correct_vedushii.wav
+"""SUPERSEDED: the host now plays the user's reference correct_vedushii.wav as-is (assets/system_breach/sfx/coin.wav).
+Kept only as an experiment. Host right-answer sound: "money in". Built around the reference sparkle source_assets/system_breach/correct_vedushii.wav
 (the bright top layer the user picked) with a cash-register "ka-ching", a little weight underneath and a few coins
 settling — a cheerful game-show payout in the spirit of party trivia games. Three takes in different keys.
 Run: python3 tools/audio/generate_cash_sfx.py  -> assets/system_breach/sfx/coin.wav, coin_2.wav, coin_3.wav"""
@@ -28,7 +29,7 @@ def coin(r, f0, d=.4):
 spark = load(ROOT / 'source_assets/system_breach/correct_vedushii.wav')
 rng = np.random.default_rng(2); n = int(RATE * .6)
 IR = lp(hp(rng.standard_normal(n) * np.exp(-np.linspace(0, 8, n)), 300), 8000); IR[:int(RATE * .01)] = 0; IR /= np.sqrt(np.sum(IR ** 2))
-for v, (f1, f2) in enumerate([(1567.98, 2093.0), (1760.0, 2349.3), (1396.9, 1864.7)]):   # G6/C7, A6/D7, F6/A#6 — a bright fourth
+for v, (f1, f2) in [] and enumerate([(1567.98, 2093.0), (1760.0, 2349.3), (1396.9, 1864.7)]):   # G6/C7, A6/D7, F6/A#6 — a bright fourth
     r = np.random.default_rng(10 + v); b = np.zeros(int(RATE * 1.3))
     at(b, bp(r.standard_normal(int(RATE * .03)), 1500, 5000) * np.exp(-T(.03) / .006), 0, .5)          # "ka": register latch
     at(b, np.sin(2 * np.pi * np.cumsum(np.geomspace(220, 110, int(RATE * .14))) / RATE) * np.exp(-T(.14) / .04), 0, .55)  # weight

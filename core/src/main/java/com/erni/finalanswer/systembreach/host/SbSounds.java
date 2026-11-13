@@ -25,7 +25,7 @@ final class SbSounds implements Disposable {
         var list=sounds.get(name);if(list==null||list.isEmpty())return;long now=System.currentTimeMillis(),gap=name.equals("coin")||name.equals("knock")?250:name.equals("solve")?1500:name.startsWith("t")&&name.length()==4?150:400;
         if(now-last.getOrDefault(name,0L)<gap)return;last.put(name,now);
         // a different take and a hair of pitch each time, so repeats never sound mechanical
-        boolean tonal=!name.equals("thunder")&&!name.equals("drumroll");float pitch=name.equals("coin")?.985f+random.nextFloat()*.03f:tonal&&list.size()>1?1:.97f+random.nextFloat()*.06f;
+        boolean tonal=!name.equals("thunder")&&!name.equals("drumroll");float pitch=name.equals("coin")?1:tonal&&list.size()>1?1:.97f+random.nextFloat()*.06f;
         list.get(random.nextInt(list.size())).play(Math.min(1,volume*AudioMix.GLOBAL.gain(AudioMix.Category.SFX)),pitch,0);
     }
     /** Event type from the server log → cue. */
