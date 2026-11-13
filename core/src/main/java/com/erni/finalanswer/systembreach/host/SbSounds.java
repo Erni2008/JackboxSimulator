@@ -13,7 +13,7 @@ import java.util.Map;
  * simply silent.
  */
 final class SbSounds implements Disposable {
-    private static final String[] NAMES={"solve","key","hack_start","hack_success","hack_fail","sabotage","clean","firewall","multiplier","tick","tock","whoosh","drumroll","reveal","fanfare","thunder","ghost","complete","sentence","charge","strike","shatter","soul","knock","coin"};
+    private static final String[] NAMES={"solve","key","hack_start","hack_success","hack_fail","sabotage","clean","firewall","multiplier","tick","tock","whoosh","drumroll","reveal","fanfare","thunder","ghost","complete","sentence","charge","strike","shatter","soul","knock","coin","wrong"};
     private final Map<String,java.util.List<Sound>> sounds=new HashMap<>();private final java.util.Random random=new java.util.Random();private final Map<String,Long> last=new HashMap<>();
     /** Loads name.wav plus its variants name_2.wav, name_3.wav when present. */
     SbSounds(){for(String n:NAMES)for(String v:new String[]{"","_2","_3"})try{var f=Gdx.files.internal("system_breach/sfx/"+n+v+".wav");if(f.exists())sounds.computeIfAbsent(n,k->new java.util.ArrayList<>()).add(Gdx.audio.newSound(f));}catch(RuntimeException ignored){}}
@@ -22,7 +22,7 @@ final class SbSounds implements Disposable {
     private String nextChime(){long now=System.currentTimeMillis();if(now-lastChime>4000)note=random.nextInt(2);else note=Math.min(7,note+1+(random.nextInt(4)==0?1:0));if(note>=7&&random.nextBoolean())note=3;lastChime=now;return "chime_"+note;}
     void play(String name){if(name.equals("knock")){play(name,.5f);return;}play(name,1);}
     void play(String name,float volume){
-        var list=sounds.get(name);if(list==null||list.isEmpty())return;long now=System.currentTimeMillis(),gap=name.equals("coin")||name.equals("knock")?250:name.equals("solve")?1500:name.startsWith("t")&&name.length()==4?150:400;
+        var list=sounds.get(name);if(list==null||list.isEmpty())return;long now=System.currentTimeMillis(),gap=name.equals("coin")||name.equals("knock")||name.equals("wrong")?250:name.equals("solve")?1500:name.startsWith("t")&&name.length()==4?150:400;
         if(now-last.getOrDefault(name,0L)<gap)return;last.put(name,now);
         // a different take and a hair of pitch each time, so repeats never sound mechanical
         boolean tonal=!name.equals("thunder")&&!name.equals("drumroll");float pitch=name.equals("coin")?1:tonal&&list.size()>1?1:.97f+random.nextFloat()*.06f;
@@ -31,7 +31,7 @@ final class SbSounds implements Disposable {
     /** Event type from the server log → cue. */
     static String cue(String type){
         return switch(type){
-            case "CHALLENGE_SOLVED"->"coin";case "CHALLENGE_FAILED"->"knock";   // dozens per match: the floating "+N AP" says it visually
+            case "CHALLENGE_SOLVED"->"coin";case "CHALLENGE_FAILED"->"wrong";   // dozens per match: the floating "+N AP" says it visually
             case "KEY_EARNED","KEY_BOUGHT"->"key";case "ATTACK_STARTED"->"hack_start";case "ATTACK_SUCCEEDED"->"hack_success";
             case "ATTACK_FAILED","ATTACK_EXPIRED"->"hack_fail";case "SABOTAGE_STARTED","TROJAN","DATA_LEAK","SYSTEM_OVERLOAD","FIREWALL_BREAKER"->"sabotage";
             case "SABOTAGE_CLEARED","RECOVERY_SUCCEEDED","EMERGENCY_RESTORED"->"clean";case "SABOTAGE_BLOCKED","FIREWALL_UPGRADED"->"firewall";
