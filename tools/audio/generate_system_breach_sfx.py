@@ -121,3 +121,44 @@ for n in ['D3', 'F3', 'A3', 'D4']: at(b, soft(D[n], 2.4, 1.1, .3), .02, .2)
 save('complete', b, .62, .35)
 b = buf(.7); at(b, swell(.6, 700, 5000, .55), 0, 1); save('whoosh', b, .25, .2)
 print('wrote', len(list(OUT.glob('*.wav'))), 'files')
+
+# ---------- execution (last place) — heavier, cinematic, synced to ResultsCeremony ----------
+BEATS = [.25, 1.05, 1.7, 2.2, 2.6, 2.9, 3.15]          # heartbeat times inside 'sentence'; the host pulses on the same beats
+def heartbeat(v=1.):
+    b = buf(.6); at(b, sub(70, 42, .25, .09), 0, v); at(b, sub(62, 40, .25, .08), .16, v * .7); return lp(b, 300)
+b = buf(3.6); t = T(3.6)
+drone = sum(np.sin(2 * np.pi * f * t + rng.random() * 6) for f in (D['D2'] / 2, D['D2'] / 2 * 1.007, D['D2'], D['D2'] * 1.498)) * .2
+drone *= np.minimum(1, t / .8) * (1 + .3 * np.sin(2 * np.pi * .7 * t)); b += lp(drone + .3 * np.tanh(drone * 3), 420)
+for i, bt in enumerate(BEATS): at(b, heartbeat(.6 + .4 * i / len(BEATS)), bt, 1.4)
+b += bp(noise(3.6), 2000, 6000) * .02 * np.minimum(1, t / 3); save('sentence', b, .62, .25)
+b = buf(1.3); t = T(1.3); f = np.geomspace(180, 2400, len(t))                     # charge: riser + tremolo + crackle
+riser = (np.sin(2 * np.pi * np.cumsum(f) / RATE) + .4 * np.sin(2 * np.pi * np.cumsum(f * 1.5) / RATE)) * (t / 1.3) ** 2 * (1 + .5 * np.sin(2 * np.pi * (6 + 30 * t) * t))
+b += lp(riser, 5000) * .4; sw = swell(1.25, 1500, 9000, .98); at(b, sw, 0, .5)
+for i in range(60):
+    p = (i / 60) ** .5 * 1.2; at(b, hp(noise(.008), 3000) * adsr(int(RATE * .008), .0003, .002), p, .25 + .5 * p)
+save('charge', b, .55, .2)
+b = buf(5.0); n = noise(5.0)                                                       # strike: zap + crack + boom + thunder tail
+zap = hp(n[:int(RATE * .45)], 1200) * (np.sin(2 * np.pi * 60 * T(.45)) > .2) * np.exp(-T(.45) / .18)
+buzz = np.tanh(4 * np.sin(2 * np.pi * 110 * T(.45))) * np.exp(-T(.45) / .2) * .5
+at(b, zap + buzz, 0, 1.0); at(b, hp(n[:int(RATE * .2)], 2500) * adsr(int(RATE * .2), .0003, .04), 0, 1.4)
+at(b, sub(160, 30, 1.6, .55), 0, 1.6); rumble = lp(noise(4.6), 150, 4) * np.exp(-T(4.6) / 1.4) * (1 + .6 * np.sin(2 * np.pi * 1.3 * T(4.6))); at(b, rumble, .12, 7)
+save('strike', b, .9, .28)
+b = buf(2.4)                                                                        # shatter: digital crumble + glass grains
+for i in range(70):
+    at_ = (i / 70) ** 1.6 * 1.1 + rng.random() * .05; fq = 2500 + rng.random() * 6000
+    g = bell(fq, .25, 2.7 + rng.random(), 1.5, .08) if i % 3 else bp(noise(.03), 1500, 9000) * adsr(int(RATE * .03), .001, .01)
+    at(b, g, at_, .25 * (1 - i / 90))
+crush = np.round(bp(noise(.6), 300, 4000) * 6) / 6 * np.exp(-T(.6) / .2); at(b, crush, 0, .5); at(b, sub(120, 50, .5, .2), 0, .6)
+save('shatter', b, .6, .3)
+b = buf(2.2); t = T(2.2); f = np.geomspace(D['D4'], D['D6'] * 1.5, len(t))         # soul rising: glissando + shimmer
+x = sum(np.sin(2 * np.pi * np.cumsum(f * h) / RATE) / h for h in (1, 2, 3)) * np.sin(np.pi * t / 2.2) ** 1.5
+b += x * .5; at(b, swell(2.0, 5000, 12000, .5), 0, .15); save('soul', b, .5, .45)
+b = buf(7.0); t = T(7.0)                                                            # ghost: v1-style choir + whispers + reverse swell
+rev = bp(noise(1.2), 400, 5000) * (T(1.2) / 1.2) ** 3; at(b, rev, 0, .35)
+for fq in [D['D4'], D['F4'], D['A4'], D['C5'], D['D5']]:
+    vib = fq * (1 + .007 * np.sin(2 * np.pi * (4.7 + fq / 400) * t))
+    voice = np.sin(2 * np.pi * np.cumsum(vib) / RATE) + .3 * np.sin(2 * np.pi * np.cumsum(vib * 2) / RATE) + .12 * np.sin(2 * np.pi * np.cumsum(vib * 3) / RATE)
+    b += voice * np.clip((t - 1.0) / 1.4, 0, 1) * np.minimum(1, (7.0 - t) / 2.2) * .2
+wh = bp(noise(7.0), 1800, 6500) * (.5 + .5 * np.sin(2 * np.pi * .9 * t) ** 2) * np.clip((t - .8) / 2, 0, 1) * np.minimum(1, (7 - t) / 2) * .06
+b += wh; save('ghost', lp(b, 6000), .55, .5)
+print('execution cues written')

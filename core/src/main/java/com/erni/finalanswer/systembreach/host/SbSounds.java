@@ -13,7 +13,7 @@ import java.util.Map;
  * simply silent.
  */
 final class SbSounds implements Disposable {
-    private static final String[] NAMES={"solve","key","hack_start","hack_success","hack_fail","sabotage","clean","firewall","multiplier","tick","tock","whoosh","drumroll","reveal","fanfare","thunder","ghost","complete"};
+    private static final String[] NAMES={"solve","key","hack_start","hack_success","hack_fail","sabotage","clean","firewall","multiplier","tick","tock","whoosh","drumroll","reveal","fanfare","thunder","ghost","complete","sentence","charge","strike","shatter","soul"};
     private final Map<String,java.util.List<Sound>> sounds=new HashMap<>();private final java.util.Random random=new java.util.Random();private final Map<String,Long> last=new HashMap<>();
     /** Loads name.wav plus its variants name_2.wav, name_3.wav when present. */
     SbSounds(){for(String n:NAMES)for(String v:new String[]{"","_2","_3"})try{var f=Gdx.files.internal("system_breach/sfx/"+n+v+".wav");if(f.exists())sounds.computeIfAbsent(n,k->new java.util.ArrayList<>()).add(Gdx.audio.newSound(f));}catch(RuntimeException ignored){}}
