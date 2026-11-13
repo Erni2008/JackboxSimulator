@@ -26,8 +26,24 @@ final class LeaderboardPanel {
             p.outline(ROWS_X,y,ROWS_W,ROW_H,6,i==0?2.4f:1.6f,c);
             p.outline(ROWS_X+4,y+4,70,ROW_H-8,4,1.6f,c);
             p.crown(ROWS_X+24,y+10,18,c);
-            if(i==0){float sx=ROWS_X+((System.nanoTime()/1e9f*260)%(ROWS_W+600))-300;float l=Math.max(ROWS_X+4,sx),rr=Math.min(ROWS_X+ROWS_W-4,sx+70);if(rr>l){r.setColor(1,.95f,.7f,.16f);r.rect(l,y+3,rr-l,ROW_H-6);}}
         }
+    }
+    /**
+     * Additive light on the leader's row, driven by frame time: a slow gold breath, and every few seconds a soft
+     * highlight that eases across the row and dissolves at its ends (no hard-edged rectangles).
+     */
+    private final com.badlogic.gdx.math.Rectangle area=new com.badlogic.gdx.math.Rectangle(),clip=new com.badlogic.gdx.math.Rectangle();
+    void glow(SpriteBatch b,SystemBreachHostAssets as,SystemBreachHostViewModel vm,float time,com.badlogic.gdx.graphics.Camera cam){
+        var top=vm.ranking();if(top.isEmpty())return;float y=rowY(top.getFirst());
+        float breath=.07f+.05f*(float)Math.sin(time*1.6f);b.setColor(1,.78f,.32f,breath);b.draw(as.glow,ROWS_X-30,y-14,ROWS_W+60,ROW_H+28);
+        float k=(time%6.5f)/1.6f;if(k>=1)return;
+        float e=k*k*(3-2*k),x=ROWS_X-60+(ROWS_W+120)*e,edge=Math.max(0,Math.min(1,Math.min(x-ROWS_X,ROWS_X+ROWS_W-x)/110f)),a=(float)Math.sin(Math.PI*k)*edge;
+        // clipped to the row, a tall glow reads as an even band of light across the row's full height
+        b.flush();area.set(ROWS_X+3,y+3,ROWS_W-6,ROW_H-6);com.badlogic.gdx.scenes.scene2d.utils.ScissorStack.calculateScissors(cam,b.getTransformMatrix(),area,clip);
+        if(!com.badlogic.gdx.scenes.scene2d.utils.ScissorStack.pushScissors(clip))return;
+        b.setColor(1,.82f,.45f,.38f*a);b.draw(as.glow,x-150,y-ROW_H*1.6f,300,ROW_H*4.2f);
+        b.setColor(1,.97f,.88f,.42f*a);b.draw(as.glow,x-30,y-ROW_H*1.6f,60,ROW_H*4.2f);
+        b.flush();com.badlogic.gdx.scenes.scene2d.utils.ScissorStack.popScissors();
     }
     void text(SpriteBatch b,SbPaint p,SystemBreachHostAssets as,SystemBreachHostViewModel vm){
         p.text(b,as.heading,vm.results()?(vm.ru()?"ИТОГИ":"RESULTS"):(vm.ru()?"ЛИДЕРЫ":"LEADERBOARD"),BOARD.x+200,BOARD.y+BOARD.height/2+as.heading.getCapHeight()/2+6,SbPaint.GREEN,1);

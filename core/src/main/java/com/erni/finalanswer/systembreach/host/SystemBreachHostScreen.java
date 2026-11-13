@@ -89,7 +89,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         // a glint travels along the line-up's glass every few seconds
         {float t=(time%7f)/1.6f;if(t<1&&n>0){float x0=slotX(0,n)-PANEL_W/2,x1=slotX(n-1,n)+PANEL_W/2,gx=x0+(x1-x0)*t,a=MathUtils.sin(t*MathUtils.PI);
             batch.setColor(1,1,1,.18f*a);batch.draw(assets.glow,gx-40,PANEL_Y+10,80,PANEL_H-20);batch.setColor(.6f,1,.8f,.12f*a);batch.draw(assets.glow,gx-110,PANEL_Y-20,220,PANEL_H+40);}}
-        fx.attackGlow(batch,assets,model.attacks(),model,n,time);timer.glow(batch,assets,model,time);title.glow(batch,assets,time);
+        fx.attackGlow(batch,assets,model.attacks(),model,n,time);timer.glow(batch,assets,model,time);title.glow(batch,assets,time);board.glow(batch,assets,model,time,viewport.getCamera());
         batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.setColor(1,1,1,1);
         for(int i=0;i<n;i++)podium.text(batch,paint,assets,slots.get(i),slotX(i,n),time);
         for(int i=0;i<n;i++)virus.text(batch,paint,assets,slots.get(i),slotX(i,n),time);
