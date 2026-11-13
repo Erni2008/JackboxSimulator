@@ -45,6 +45,13 @@ public final class SystemBreachSession {
     public volatile boolean symbolPasswords;
     private char pick(String s){return s.charAt(random.nextInt(s.length()));}
     private String forge(){return ""+pick(SYM)+pick(SYM)+pick(LET)+pick(LET)+pick(DIG)+"_"+EASY[random.nextInt(EASY.length)];}
+    /** Two passwords look nothing alike: another word, another digit, and different symbols and letters in every slot. */
+    static boolean unlike(String a,String b){
+        int ua=a.indexOf('_'),ub=b.indexOf('_');if(ua!=5||ub!=5)return !a.equals(b);
+        if(a.substring(6).equals(b.substring(6)))return false;
+        for(int i=0;i<5;i++)if(a.charAt(i)==b.charAt(i))return false;
+        return a.charAt(0)!=b.charAt(1)&&a.charAt(1)!=b.charAt(0)&&a.charAt(2)!=b.charAt(3)&&a.charAt(3)!=b.charAt(2);
+    }
     /** A decoy one look-alike away from the real password (or a neighbouring easy word). */
     private String decoy(String real){
         char[] c=real.toCharArray();int us=real.indexOf('_');
@@ -56,7 +63,7 @@ public final class SystemBreachSession {
     /** Turns on the party rules (keys and forged passwords) before anyone has chosen. */
     public synchronized void partyMode(){keyGating=true;symbolPasswords=true;for(var p:players.values())if(p.password==null)p.passwordOptions=options(null);}
     private List<String> options(String required){
-        if(symbolPasswords){List<String> o=new ArrayList<>();if(required!=null){o.add(required);while(o.size()<4){String d=decoy(required);if(!o.contains(d))o.add(d);}}else while(o.size()<3){String f=forge();if(!o.contains(f))o.add(f);}Collections.shuffle(o,random);return List.copyOf(o);}
+        if(symbolPasswords){List<String> o=new ArrayList<>();if(required!=null)o.add(required);int want=required!=null?4:3;for(int tries=0;o.size()<want&&tries<500;tries++){String f=forge();if(o.stream().allMatch(x->unlike(x,f)))o.add(f);}while(o.size()<want)o.add(forge());Collections.shuffle(o,random);return List.copyOf(o);}
         var words=new ArrayList<>(ChallengeFactory.WORDS);Collections.shuffle(words,random);List<String> options=new ArrayList<>();if(required!=null)options.add(required);
         for(String word:words)if(!options.contains(word)&&options.size()<3)options.add(word);Collections.shuffle(options,random);return List.copyOf(options);
     }

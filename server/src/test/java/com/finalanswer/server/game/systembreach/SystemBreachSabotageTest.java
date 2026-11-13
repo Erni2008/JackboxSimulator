@@ -125,4 +125,9 @@ class SystemBreachSabotageTest {
         var f=new F();f.plant("b",Sabotage.Type.SCREEN_GLITCH);f.advance(f.cfg.get(GAME_MS));assertNull(f.p("b").sabotage);
         var g=new F();g.plant("b",Sabotage.Type.MAGNETIC_BUTTONS);g.s.close();assertNull(g.p("b").sabotage);assertFalse(g.view("b").containsKey("self"));
     }
+    @Test void hackOptionsAreCompletelyDifferentPasswords(){
+        for(int seed=0;seed<40;seed++){var f=new F(seed);f.p("a").keys=1;f.act("a","ATTACK_REQUEST",Map.of("targetId","b"));var o=f.p("a").attack.options;
+            assertEquals(4,o.size());assertTrue(o.contains(f.p("b").password));
+            for(int i=0;i<o.size();i++)for(int j=i+1;j<o.size();j++)assertTrue(SystemBreachSession.unlike(o.get(i),o.get(j)),o.get(i)+" vs "+o.get(j));}
+    }
 }
