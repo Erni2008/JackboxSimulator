@@ -17,6 +17,7 @@ final class SbSounds implements Disposable {
     private final Map<String,java.util.List<Sound>> sounds=new HashMap<>();private final java.util.Random random=new java.util.Random();private final Map<String,Long> last=new HashMap<>();
     /** Loads name.wav plus its variants name_2.wav, name_3.wav when present. */
     SbSounds(){for(String n:NAMES)for(String v:new String[]{"","_2","_3"})try{var f=Gdx.files.internal("system_breach/sfx/"+n+v+".wav");if(f.exists())sounds.computeIfAbsent(n,k->new java.util.ArrayList<>()).add(Gdx.audio.newSound(f));}catch(RuntimeException ignored){}}
+    private Sound lastAnswer;private long lastAnswerId,lastAnswerAt;
     private int note=0;private long lastChime;
     /** Right answers climb a D-minor pentatonic as a melody; after a quiet spell it starts again from the bottom. */
     private String nextChime(){long now=System.currentTimeMillis();if(now-lastChime>4000)note=random.nextInt(2);else note=Math.min(7,note+1+(random.nextInt(4)==0?1:0));if(note>=7&&random.nextBoolean())note=3;lastChime=now;return "chime_"+note;}
@@ -26,7 +27,13 @@ final class SbSounds implements Disposable {
         if(now-last.getOrDefault(name,0L)<gap)return;last.put(name,now);
         // a different take and a hair of pitch each time, so repeats never sound mechanical
         boolean tonal=!name.equals("thunder")&&!name.equals("drumroll");float pitch=name.equals("coin")?1:tonal&&list.size()>1?1:.97f+random.nextFloat()*.06f;
-        list.get(random.nextInt(list.size())).play(Math.min(1,volume*AudioMix.GLOBAL.gain(AudioMix.Category.SFX)),pitch,0);
+        // the answer sounds stay clean: a key chime landing on the same coin is dropped, and an earlier coin still ringing
+        // is turned down so overlapping answers from several players never smear into a muddy wash
+        if(name.equals("key")&&now-last.getOrDefault("coin",0L)<600)return;
+        float v=Math.min(1,volume*AudioMix.GLOBAL.gain(AudioMix.Category.SFX));
+        if(name.equals("coin")||name.equals("wrong")){if(lastAnswer!=null&&now-lastAnswerAt<1100)lastAnswer.setVolume(lastAnswerId,v*.25f);}
+        Sound snd=list.get(random.nextInt(list.size()));long id=snd.play(v,pitch,0);
+        if(name.equals("coin")||name.equals("wrong")){lastAnswer=snd;lastAnswerId=id;lastAnswerAt=now;}
     }
     /** Event type from the server log → cue. */
     static String cue(String type){
