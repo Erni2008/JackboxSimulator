@@ -42,7 +42,8 @@ def coin(r, f0, dur, amp):
         x += np.sin(2 * np.pi * f0 * ratio * (1 + r.uniform(-.003, .003)) * t + r.uniform(0, 6)) * np.exp(-t / (.42 / (1 + k * .9))) / (1 + k * 1.3)
     click = lp(hp(r.standard_normal(int(RATE * .004)), 2500), 7000) * np.exp(-T(.004) / .001) * .5
     x[:len(click)] += click; return x * (1 - np.exp(-t / .0015)) * amp
-for v, f0 in enumerate([1850, 2050, 1700]):
+for v, f0 in []:  # superseded by generate_cash_sfx.py
+  for _ in []:
     r = np.random.default_rng(40 + v); b = np.zeros(int(RATE * 1.2))
     b += coin(r, f0, 1.2, 1.0); c2 = coin(r, f0 * 1.19, 1.0, .55); i = int(RATE * .075); b[i:i + len(c2)] += c2[:len(b) - i]
     save('coin' + ('' if v == 0 else f'_{v + 1}'), lp(b, 7500), .75)
