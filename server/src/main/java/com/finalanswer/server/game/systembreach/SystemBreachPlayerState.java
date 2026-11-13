@@ -21,6 +21,9 @@ final class SystemBreachPlayerState {
     long attackReadyAt,specialReadyAt,challengeReadyAt,immuneUntil,effectUntil,traceUntil;
     SpecialAttackType effect;String traceTarget="",trace="";
     SystemBreachSession.Attack attack;
+    /** At most one live sabotage virus ({@link Sabotage.Config#MAX_ACTIVE_SABOTAGES_PER_PLAYER}). */
+    Sabotage.Infection sabotage;
+    boolean answersLocked(){return sabotage!=null&&sabotage.type.blocksAnswers;}
     SystemBreachPlayerState(String id,int seat,List<String> options,SystemBreachConfig cfg){this.id=id;this.seat=seat;this.cfg=cfg;passwordOptions=List.copyOf(options);ap=cfg.get(INITIAL_AP);integrity=cfg.get(INITIAL_INTEGRITY);infection=cfg.get(INITIAL_INFECTION);}
     int ap(){return ap;}
     void spend(int amount){if(amount<0||ap<amount)throw new BreachFailure("INSUFFICIENT_AP");ap-=amount;spent+=amount;}
@@ -31,5 +34,5 @@ final class SystemBreachPlayerState {
     boolean blocked(long now){return effect==SpecialAttackType.TROJAN&&now<effectUntil;}
     boolean disrupted(long now){return compromised||effect!=null&&now<effectUntil;}
     void restore(){compromised=false;recovery=null;recoveryFailures=0;integrity=cfg.get(RECOVERY_INTEGRITY);infection=cfg.get(RECOVERY_INFECTION);}
-    void secrets(){password=null;passwordOptions=List.of();challenge=null;recovery=null;attack=null;trace="";traceTarget="";hostileHits.clear();recoveryBag.clear();lastRecovery=null;effect=null;effectUntil=0;}
+    void secrets(){password=null;passwordOptions=List.of();challenge=null;recovery=null;attack=null;trace="";traceTarget="";hostileHits.clear();recoveryBag.clear();lastRecovery=null;effect=null;effectUntil=0;sabotage=null;}
 }

@@ -67,7 +67,7 @@ public final class SystemBreachSession {
         phase=SystemBreachPhase.RESULTS;phaseStarted=now;phaseEnds=now+cfg.get(RESULTS_MS);completedAt=now;
         for(var p:players.values())closeRecoveryInterval(p,now);
         var rows=new ArrayList<SystemBreachView.Result>();int rank=0;for(var p:ranked())rows.add(new SystemBreachView.Result(p.id,"",p.ap(),++rank,rank==1,p.statistics()));results=List.copyOf(rows);
-        for(var p:players.values()){p.attack=null;p.challenge=null;p.recovery=null;}
+        for(var p:players.values()){p.attack=null;p.challenge=null;p.recovery=null;p.sabotage=null;}
         event(now,"RESULTS","","",0);
     }
     private enum TimerKind {EFFECT,TRACE,CHALLENGE,ATTACK,RECOVERY_SUCCESS,RECOVERY_FAILURE}
@@ -90,7 +90,7 @@ public final class SystemBreachSession {
             switch(next.kind){
                 case EFFECT->{p.effect=null;p.effectUntil=0;event(at,"EFFECT_EXPIRED","",p.id,0);}
                 case TRACE->{p.trace="";p.traceTarget="";}
-                case CHALLENGE->{p.challengeFailures++;p.recordChallenge(p.challenge,false,at,0);p.challenge=null;p.challengeReadyAt=at+cfg.get(CHALLENGE_GAP_MS);}
+                case CHALLENGE->{p.challengeFailures++;p.recordChallenge(p.challenge,false,at,0);p.challenge=null;p.challengeReadyAt=at+cfg.get(CHALLENGE_GAP_MS);questionResolved(p,at);}
                 case ATTACK->{var target=players.get(p.attack.target);if(target.passwordVersion==p.attack.version)rotatePassword(target);int penalty=p.penalty(cfg.get(FAILED_ATTACK_PENALTY));p.attacksFailed++;event(at,"ATTACK_EXPIRED",p.id,target.id,penalty);p.attack=null;}
                 case RECOVERY_SUCCESS->finishRecovery(p,at);
                 case RECOVERY_FAILURE->failedRecovery(p,at);
@@ -141,9 +141,9 @@ public final class SystemBreachSession {
             switch(action){
                 case "CHALLENGE_REQUEST"->{fields(data,"type");requireAllowed(challengeReason(p,now));var challengeType=type(ChallengeType.class,data,"type");if(activeEnds-now<factory.minimumWindow(challengeType))throw new BreachFailure("ROUND_ENDING");p.challenge=factory.earning(challengeType,now,activeEnds);result=result("PLAYER_UPDATE","CHALLENGE_READY");}
                 case "CHALLENGE_SUBMIT"->{
-                    fields(data,"challengeId","answer");ordinary(p,now);if(p.challenge==null||!p.challenge.id.equals(text(data,"challengeId")))throw new BreachFailure("STALE_CHALLENGE");
+                    fields(data,"challengeId","answer");ordinary(p,now);if(p.answersLocked())throw new BreachFailure("ANSWERS_LOCKED");if(p.challenge==null||!p.challenge.id.equals(text(data,"challengeId")))throw new BreachFailure("STALE_CHALLENGE");
                     if(!data.has("answer"))throw BreachFailure.invalid();boolean correct=p.challenge.validate(data.get("answer"),now);int reward=correct?p.credit(scaledReward(p,p.challenge.reward,now)):0;if(correct)p.challengesSolved++;else p.challengeFailures++;p.recordChallenge(p.challenge,correct,now,reward);if(correct&&keyGating&&++p.keyProgress>=KEY_EVERY){p.keyProgress=0;p.keys++;event(now,"KEY_EARNED","",p.id,p.keys);}if(reward>0)event(now,"CHALLENGE_SOLVED","",p.id,reward);
-                    p.challenge=null;p.challengeReadyAt=now+cfg.get(CHALLENGE_GAP_MS);result=new ActionResult("CHALLENGE_RESULT",correct?"SUCCESS":"FAILED",Map.of("reward",reward));
+                    p.challenge=null;p.challengeReadyAt=now+cfg.get(CHALLENGE_GAP_MS);questionResolved(p,now);result=new ActionResult("CHALLENGE_RESULT",correct?"SUCCESS":"FAILED",Map.of("reward",reward));
                 }
                 case "ATTACK_REQUEST"->{
                     fields(data,"targetId");var target=player(text(data,"targetId"));requireAllowed(attackReason(p,target,now,online));
@@ -176,6 +176,18 @@ public final class SystemBreachSession {
                     }
                     if(special==SpecialAttackType.DATA_LEAK||special==SpecialAttackType.TROJAN)hostileHit(target,now);event(now,special.name(),p.id,target.id,amount);result=new ActionResult("PLAYER_UPDATE","SPECIAL_APPLIED",Map.of("amount",amount));
                 }
+                case "SABOTAGE"->{
+                    fields(data,"targetId");var target=player(text(data,"targetId"));requireAllowed(sabotageReason(p,target,now,online));
+                    if(keyGating)p.keys--;p.specialAttacks++;p.specialReadyAt=now+cfg.get(SPECIAL_COOLDOWN_MS);
+                    if(Sabotage.getsThrough(target.effectiveFirewall(now),random)){var virus=new Sabotage.Infection(Sabotage.roll(random),p.id,now,random);target.sabotage=virus;
+                        event(now,"SABOTAGE_STARTED",p.id,target.id,virus.type.ordinal());result=new ActionResult("SABOTAGE_RESULT","INFECTED",Map.of("type",virus.type.name()));}
+                    else{event(now,"SABOTAGE_BLOCKED",p.id,target.id,target.effectiveFirewall(now));result=new ActionResult("SABOTAGE_RESULT","BLOCKED",Map.of("firewall",target.effectiveFirewall(now)));}
+                }
+                case "SABOTAGE_CLEAR"->{
+                    fields(data,"infectionId","answer");if(p.sabotage==null||!p.sabotage.id.equals(text(data,"infectionId")))throw new BreachFailure("STALE_SABOTAGE");
+                    if(p.sabotage.solves(data.get("answer"))){event(now,"SABOTAGE_CLEARED",p.sabotage.attacker,p.id,0);p.sabotage=null;result=result("SABOTAGE_RESULT","CLEARED");}
+                    else result=result("SABOTAGE_RESULT","WRONG");
+                }
                 case "RECOVERY_SUBMIT"->{
                     fields(data,"challengeId","answer");if(p.recovery==null||!p.recovery.id.equals(text(data,"challengeId")))throw new BreachFailure("STALE_RECOVERY");if(!data.has("answer"))throw BreachFailure.invalid();
                     boolean success=p.recovery.validate(data.get("answer"),now);
@@ -201,6 +213,10 @@ public final class SystemBreachSession {
         }
         p.lastRecovery=p.recoveryBag.removeFirst();
         return factory.recovery(QUIZ_RECOVERY?RecoveryType.QUICK_REBOOT:p.lastRecovery,now);
+    }
+    /** Each finished question (answered or timed out) wears a sabotage down; it expires after the configured count. */
+    private void questionResolved(SystemBreachPlayerState p,long at){
+        if(p.sabotage==null||--p.sabotage.questionsLeft>0)return;event(at,"SABOTAGE_EXPIRED",p.sabotage.attacker,p.id,0);p.sabotage=null;
     }
     private void interruptAttack(SystemBreachPlayerState p,long now){
         if(p.attack==null)return;var target=players.get(p.attack.target);
@@ -249,6 +265,11 @@ public final class SystemBreachSession {
         String base=ordinaryReason(p,now),protection=targetReason(p,target,now,online,true);
         return !base.isEmpty()?base:keyGating&&p.keys<=0?"SB_NEED_KEY":p.attack!=null?"SB_ATTACK_PENDING":now<p.specialReadyAt||now<p.attackReadyAt?"SB_ATTACK_COOLDOWN":!protection.isEmpty()?protection:target.effect!=null&&now<target.effectUntil&&special!=SpecialAttackType.DATA_LEAK&&special!=SpecialAttackType.TRACE_ATTACK?"SB_TARGET_PROTECTED":p.ap()<cfg.cost(special)?"SB_INSUFFICIENT_AP":"";
     }
+    /** Same gates as a hack (online, not self, not protected, a key) plus: one live virus per player, never replaced. */
+    private String sabotageReason(SystemBreachPlayerState p,SystemBreachPlayerState target,long now,Set<String> online){
+        String base=ordinaryReason(p,now),protection=targetReason(p,target,now,online,false);
+        return !base.isEmpty()?base:keyGating&&p.keys<=0?"SB_NEED_KEY":activeEnds-now<cfg.get(MIN_ACTION_WINDOW_MS)?"SB_ROUND_ENDING":p.attack!=null?"SB_ATTACK_PENDING":!protection.isEmpty()?protection:target.sabotage!=null?"SB_TARGET_INFECTED":"";
+    }
     private Map<String,Object> permission(String reason,int cost,long readyAt){return Map.of("allowed",reason.isEmpty(),"reason",reason,"cost",cost,"readyAt",readyAt);}
     /** The UI quotes the same predicates/costs the authoritative transaction checks. */
     private Map<String,Object> actionAvailability(SystemBreachPlayerState p,long now,Set<String> online){
@@ -262,7 +283,7 @@ public final class SystemBreachSession {
         List<Map<String,Object>> targets=new ArrayList<>();
         for(var target:players.values())if(!target.id.equals(p.id)){
             Map<String,Object> specials=new LinkedHashMap<>();for(var special:SpecialAttackType.values())specials.put(special.name(),permission(specialReason(p,target,special,now,online),cfg.cost(special),Math.max(p.specialReadyAt,p.attackReadyAt)));
-            targets.add(Map.of("playerId",target.id,"attack",permission(attackReason(p,target,now,online),attackCost(target,now),p.attackReadyAt),"specials",specials));
+            targets.add(Map.of("playerId",target.id,"attack",permission(attackReason(p,target,now,online),attackCost(target,now),p.attackReadyAt),"specials",specials,"sabotage",permission(sabotageReason(p,target,now,online),0,0)));
         }
         actions.put("targets",List.copyOf(targets));return actions;
     }
@@ -270,13 +291,13 @@ public final class SystemBreachSession {
     public synchronized Map<String,Object> snapshot(String self,boolean host,long now,Set<String> online,Map<String,String> names){
         Map<String,Object> view=new LinkedHashMap<>();view.put("schemaVersion",1);view.put("lastEventSequence",eventSequence);view.put("firstEventSequence",events.isEmpty()?eventSequence+1:events.getFirst().sequence());view.put("sessionId",id);view.put("phase",phase.name());view.put("serverTime",now);view.put("phaseStartedAt",phaseStarted);view.put("deadline",phaseEnds==Long.MAX_VALUE?-1:phaseEnds);view.put("remainingMs",phaseEnds==Long.MAX_VALUE?0:Math.max(0,phaseEnds-now));
         List<SystemBreachView.Player> rows=new ArrayList<>();int rank=0;for(var p:ranked())rows.add(new SystemBreachView.Player(p.id,names.getOrDefault(p.id,p.id),p.ap(),p.firewall,p.effectiveFirewall(now),p.integrity,p.infection,p.integrity==0,p.compromised,p.recovery!=null,!online.contains(p.id),p.effect==null?"":p.effect.name(),p.effectUntil,p.attackReadyAt,++rank,p.immuneUntil,p.statistics()));
-        view.put("players",List.copyOf(rows));{Map<String,Object> mult=new LinkedHashMap<>();for(var p:players.values())mult.put(p.id,MULTIPLIERS[p.multiplier-1]);view.put("multipliers",mult);view.put("roundMultiplier",roundMultiplier(now));}view.put("events",List.copyOf(events));view.put("role",host?"HOST":players.containsKey(self)?"PLAYER":"SPECTATOR");
+        view.put("players",List.copyOf(rows));{Map<String,Object> mult=new LinkedHashMap<>();for(var p:players.values())mult.put(p.id,MULTIPLIERS[p.multiplier-1]);view.put("multipliers",mult);view.put("roundMultiplier",roundMultiplier(now));Map<String,Object> infected=new LinkedHashMap<>();for(var p:players.values())if(p.sabotage!=null)infected.put(p.id,p.sabotage.type.name());view.put("sabotage",infected);}view.put("events",List.copyOf(events));view.put("role",host?"HOST":players.containsKey(self)?"PLAYER":"SPECTATOR");
         if(results.isEmpty())view.put("winnerId","");else{var outcome=outcome(names);view.put("winnerId",outcome.winnerId());view.put("results",outcome);}
         var p=players.get(self);if(p!=null&&!closed&&phase!=SystemBreachPhase.FINISHED){
             Map<String,Object> me=new LinkedHashMap<>();me.put("passwordSelected",p.password!=null);me.put("passwordOptions",phase==SystemBreachPhase.INITIALIZATION?p.passwordOptions:List.of());
             me.put("challenge",p.challenge==null?Map.of():p.challenge.view(now));me.put("recovery",p.recovery==null?Map.of():p.recovery.view(now));
             me.put("attack",p.attack==null?Map.of():Map.of("attackId",p.attack.id,"targetId",p.attack.target,"options",p.attack.options,"expiresAt",p.attack.expires));
-            me.put("trace",now<p.traceUntil&&!p.trace.isEmpty()?Map.of("targetId",p.traceTarget,"clue",p.trace,"expiresAt",p.traceUntil):Map.of());me.put("specialReadyAt",p.specialReadyAt);me.put("keyGating",keyGating);me.put("keys",p.keys);me.put("keyProgress",p.keyProgress);me.put("keyEvery",KEY_EVERY);me.put("challengeReadyAt",p.challengeReadyAt);
+            me.put("trace",now<p.traceUntil&&!p.trace.isEmpty()?Map.of("targetId",p.traceTarget,"clue",p.trace,"expiresAt",p.traceUntil):Map.of());me.put("specialReadyAt",p.specialReadyAt);me.put("keyGating",keyGating);me.put("keys",p.keys);me.put("keyProgress",p.keyProgress);me.put("keyEvery",KEY_EVERY);me.put("challengeReadyAt",p.challengeReadyAt);me.put("sabotage",p.sabotage==null?Map.of():p.sabotage.view());
             var receipt=latest.get(self);if(receipt!=null)me.put("lastAction",Map.of("requestId",receipt.requestId,"action",receipt.action,"status",receipt.result.status,"details",receipt.result.details,"appliedAt",receipt.appliedAt));
             me.put("actions",actionAvailability(p,now,online));
             view.put("self",me);

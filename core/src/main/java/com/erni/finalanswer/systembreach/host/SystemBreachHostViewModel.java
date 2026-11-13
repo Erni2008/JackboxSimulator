@@ -120,7 +120,9 @@ public final class SystemBreachHostViewModel {
             case "ATTACK_FAILED"->set(attacker,Reaction.HIT);
             case "RECOVERY_SUCCEEDED","EMERGENCY_RESTORED"->set(target,Reaction.RECOVERED);
             case "FIREWALL_UPGRADED","MULTIPLIER_UPGRADED"->set(target,Reaction.UPGRADE);
-            case "TROJAN","DATA_LEAK","SYSTEM_OVERLOAD","FIREWALL_BREAKER","TRACE_ATTACK"->{set(attacker,Reaction.TRIUMPH);set(target,Reaction.HIT);}
+            case "TROJAN","DATA_LEAK","SYSTEM_OVERLOAD","FIREWALL_BREAKER","TRACE_ATTACK","SABOTAGE_STARTED"->{set(attacker,Reaction.TRIUMPH);set(target,Reaction.HIT);}
+            case "SABOTAGE_BLOCKED"->set(target,Reaction.UPGRADE);
+            case "SABOTAGE_CLEARED"->set(target,Reaction.RECOVERED);
             default->{}
         }
     }
@@ -146,6 +148,10 @@ public final class SystemBreachHostViewModel {
             case "SYSTEM_OVERLOAD"->new LogLine(seq,L(who(a)+" overloaded "+who(t),who(a)+" перегрузил "+who(t)),Tone.HACK,0);
             case "FIREWALL_BREAKER"->new LogLine(seq,L(who(a)+" broke "+who(t)+"'s firewall",who(a)+" пробил фаервол "+who(t)),Tone.HACK,0);
             case "TRACE_ATTACK"->new LogLine(seq,L(who(a)+" is tracing "+who(t),who(a)+" отслеживает "+who(t)),Tone.HACK,0);
+            case "SABOTAGE_STARTED"->new LogLine(seq,L(who(a)+" infected "+who(t)+": "+virus(amount,false),who(a)+" заразил "+who(t)+": "+virus(amount,true)),Tone.HACK,0);
+            case "SABOTAGE_BLOCKED"->new LogLine(seq,L(who(t)+"'s firewall stopped a virus",who(t)+": фаервол отбил вирус"),Tone.FIREWALL,0);
+            case "SABOTAGE_CLEARED"->new LogLine(seq,L(who(t)+" removed the virus",who(t)+" удалил вирус"),Tone.REWARD,0);
+            case "SABOTAGE_EXPIRED"->new LogLine(seq,L(who(t)+"'s virus burned out",who(t)+": вирус выдохся"),Tone.MUTED,0);
             case "RESULTS"->new LogLine(seq,L("Operation complete","Операция завершена"),Tone.MUTED,0);
             default->null;
         };
@@ -160,6 +166,8 @@ public final class SystemBreachHostViewModel {
             case "MULTIPLIER_UPGRADED"->who(t)+L("  POINTS ×","  ОЧКИ ×")+fmt(amount/10.0);
             case "FIREWALL_UPGRADED"->who(t)+L("  FIREWALL LV.","  ФАЕРВОЛ УР.")+amount;
             case "RECOVERY_SUCCEEDED"->who(t)+L(" IS BACK ONLINE"," СНОВА В СЕТИ");
+            case "SABOTAGE_STARTED"->L("SABOTAGE!  ","САБОТАЖ!  ")+who(a)+" > "+who(t)+"   "+virus(amount,ru);
+            case "SABOTAGE_BLOCKED"->L("VIRUS BLOCKED  ","ВИРУС ОТБИТ  ")+who(t);
             case "TROJAN","DATA_LEAK","SYSTEM_OVERLOAD","FIREWALL_BREAKER","TRACE_ATTACK"->L(type.replace('_',' '),switch(type){case "TROJAN"->"ТРОЯН";case "DATA_LEAK"->"УТЕЧКА ДАННЫХ";case "SYSTEM_OVERLOAD"->"ПЕРЕГРУЗКА";case "FIREWALL_BREAKER"->"ПРОБОЙ ФАЕРВОЛА";default->"СЛЕЖКА";})+"!  "+who(a)+" > "+who(t);
             default->null;
         };
@@ -203,4 +211,7 @@ public final class SystemBreachHostViewModel {
     private static int num(JsonObject o,String k){return o.has(k)&&!o.get(k).isJsonNull()?o.get(k).getAsInt():0;}
     private static long lng(JsonObject o,String k,long d){return o.has(k)&&!o.get(k).isJsonNull()?o.get(k).getAsLong():d;}
     private static boolean flag(JsonObject o,String k){return o.has(k)&&!o.get(k).isJsonNull()&&o.get(k).getAsBoolean();}
+    /** Virus names in {@code Sabotage.Type} order on the server. */
+    private static final String[][] VIRUSES={{"SHUFFLE ATTACK","ПЕРЕМЕШКА"},{"NUMBER HUNT","ОХОТА НА ЦИФРЫ"},{"POP-UP STORM","ШТОРМ ОКОН"},{"GHOST BUTTONS","КНОПКИ-ПРИЗРАКИ"},{"SCREEN GLITCH","ГЛИТЧ ЭКРАНА"},{"LOCKED ANSWERS","ЗАМОК"},{"MAGNETIC BUTTONS","МАГНИТНЫЕ КНОПКИ"}};
+    private static String virus(int index,boolean ru){return index>=0&&index<VIRUSES.length?VIRUSES[index][ru?1:0]:"";}
 }
