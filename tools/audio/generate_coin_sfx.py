@@ -33,3 +33,17 @@ for v, f0 in enumerate([95, 88, 102]):
     x += lp(rng.standard_normal(len(t)), 900) * np.exp(-t / .02) * .25
     save('knock' + ('' if v == 0 else f'_{v + 1}'), x, .45)
 print('chimes + knocks written')
+
+# Right answer, v3: a clear but rounded coin "clink" — two coins, mid register, harsh top partials tamed.
+RATIOS = [1.0, 2.32, 4.25, 6.63]
+def coin(r, f0, dur, amp):
+    t = T(dur); x = np.zeros(len(t))
+    for k, ratio in enumerate(RATIOS):
+        x += np.sin(2 * np.pi * f0 * ratio * (1 + r.uniform(-.003, .003)) * t + r.uniform(0, 6)) * np.exp(-t / (.42 / (1 + k * .9))) / (1 + k * 1.3)
+    click = lp(hp(r.standard_normal(int(RATE * .004)), 2500), 7000) * np.exp(-T(.004) / .001) * .5
+    x[:len(click)] += click; return x * (1 - np.exp(-t / .0015)) * amp
+for v, f0 in enumerate([1850, 2050, 1700]):
+    r = np.random.default_rng(40 + v); b = np.zeros(int(RATE * 1.2))
+    b += coin(r, f0, 1.2, 1.0); c2 = coin(r, f0 * 1.19, 1.0, .55); i = int(RATE * .075); b[i:i + len(c2)] += c2[:len(b) - i]
+    save('coin' + ('' if v == 0 else f'_{v + 1}'), lp(b, 7500), .75)
+print('coins written')
