@@ -332,7 +332,8 @@ public final class RoomService {
                 if(game.phase==Phase.REVEALING) {
                     if(now()<game.endedAt+Protocol.CLOCK_EXIT_MILLIS) throw new Failure(409,"NOT_READY");
                     game.reveal(now());
-                    for(Member player:room.members.values()) if(game.submitted.getOrDefault(player.id,-1)==game.question().correctAnswerIndex()) player.score+=100;
+                    for(Member player:room.members.values()) if(game.submitted.getOrDefault(player.id,-1)==game.question().correctAnswerIndex()){ player.score+=100;
+                        room.souls.reward(player.id,com.finalanswer.server.economy.SoulsRewards.QUIZ_CORRECT_ANSWER,com.finalanswer.server.economy.SoulsRewards.REASON_QUIZ_CORRECT,"quiz/"+game.id+"/"+game.question().id()); }
                     broadcast(room,"REVEAL_STARTED"); broadcast(room,"QUESTION_RESULTS"); broadcast(room,"RESULTS_STARTED");
                 } else if(game.phase!=Phase.RESULTS) throw new Failure(409,"INVALID_PHASE");
             }
@@ -914,7 +915,7 @@ public final class RoomService {
             p.put("id",member.id); p.put("name",member.name); p.put("nickname",member.name); p.put("host",false);
             p.put("characterId",member.characterId); p.put("connectionStatus",member.peer==null?"OFFLINE":"ONLINE");
             boolean ghost=!member.alive||room.cursed!=null&&room.cursed.isGhost(member.id);
-            p.put("isAlive",!ghost);p.put("isGhost",ghost);p.put("lifeState",ghost?"GHOST":"ALIVE");p.put("canReturn",ghost&&!member.left);p.put("score",member.score);
+            p.put("isAlive",!ghost);p.put("isGhost",ghost);p.put("lifeState",ghost?"GHOST":"ALIVE");p.put("canReturn",ghost&&!member.left);p.put("score",member.score);p.put("souls",room.souls.balance(member.id));
             p.put("hasSubmittedAnswer",game!=null&&game.submitted.containsKey(member.id)); players.add(p);
         }
         value.put("players",players); value.put("currentPlayers",players);
@@ -1046,6 +1047,8 @@ public final class RoomService {
     private record Binding(Room room,Member member) {}
     private static final class Room {
         final String id=UUID.randomUUID().toString(), name,mode; String code;
+        /** SOULS balances for this room's session. */
+        final com.finalanswer.server.economy.SoulsWallet souls=new com.finalanswer.server.economy.SoulsWallet();
         final int maxPlayers,questionCount; final byte[] salt,passwordHash;
         String webGame="",webGameId="",language="en"; long webGameAt; com.erni.finalanswer.gameplay.elevator.CageShift shift; final com.erni.finalanswer.gameplay.elevator.CageShift.BombBag bombBag=new com.erni.finalanswer.gameplay.elevator.CageShift.BombBag(); com.erni.finalanswer.gameplay.elevator.Difficulty difficulty=com.erni.finalanswer.gameplay.elevator.Difficulty.NORMAL;
         final Map<String,com.erni.finalanswer.gameplay.elevator.PressurePuzzle> pressure=new LinkedHashMap<>();

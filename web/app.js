@@ -106,7 +106,9 @@ function handle(event){const payload=event.payload||{};heartbeatWatch.acknowledg
   if(event.type==='ANSWER_ACCEPTED'||state.hasSubmittedAnswer){pending=null;clearTimeout(pendingTimer);}
   if(authenticated)render();
 }
+let soulsHud=null;
 function render(){
+  try{(soulsHud||=createSoulsHud()).sync(state);}catch(e){}
   if(state?.webGameId&&state.webGame==='broken-elevator'){let seen=null;try{seen=sessionStorage.getItem('finalanswer-web-game');}catch{}if(seen!==state.webGameId){try{sessionStorage.setItem('finalanswer-web-game',state.webGameId);}catch{}location.href='/broken-elevator-manual/';return;}}
   renderControllerPresentation(state);
   $('session-footer').hidden=false;$('session-code').textContent=`ROOM ${state.code}`;

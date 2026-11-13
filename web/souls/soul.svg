@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- SOULS placeholder icon: replace this file (or point SOULS_ICON at a PNG) when the final art is ready -->
+  <defs>
+    <radialGradient id="b" cx="50%" cy="38%" r="60%"><stop offset="0" stop-color="#e9fffd"/><stop offset=".45" stop-color="#5ff6e6"/><stop offset="1" stop-color="#0b8f93"/></radialGradient>
+  </defs>
+  <path d="M32 5c-11 0-19 8.6-19 19.6V44c0 3 1.6 4.4 3.4 4.4 2 0 2.6-2.4 4.8-2.4s2.8 4.8 5.4 4.8 2.8-3.6 5.4-3.6 2.8 3.6 5.4 3.6 3.4-4.8 5.4-4.8 2.8 2.4 4.8 2.4c1.8 0 3.4-1.4 3.4-4.4V24.6C51 13.6 43 5 32 5z" fill="url(#b)"/>
+  <path d="M38 56c3 1 4 3 2 4.6M25 55c-2 1.6-1.6 4 .6 5" fill="none" stroke="#5ff6e6" stroke-width="2" stroke-linecap="round" opacity=".7"/>
+  <ellipse cx="25" cy="25" rx="3.6" ry="5" fill="#03282b"/><ellipse cx="39" cy="25" rx="3.6" ry="5" fill="#03282b"/>
+  <path d="M27 35c2.6 2.6 7.4 2.6 10 0" fill="none" stroke="#03282b" stroke-width="2.6" stroke-linecap="round"/>
+</svg>

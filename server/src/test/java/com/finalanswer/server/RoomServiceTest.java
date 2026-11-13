@@ -29,6 +29,29 @@ class RoomServiceTest {
     void ends(){clock.addAndGet(20_000);service.tick();}
     void results(){ends();clock.addAndGet(720);command(h,"REVEAL_READY");}
     void failure(String code,Runnable action){assertEquals(code,assertThrows(RoomService.Failure.class,action::run).getMessage());}
+    long souls(TestPeer peer,JsonObject who){for(var p:peer.latest().getAsJsonArray("players")){var o=p.getAsJsonObject();if(s(o,"id").equals(s(who,"selfId")))return o.has("souls")?o.get("souls").getAsLong():-1;}return -1;}
+    /** Four questions: Анна always answers A, Ben answers B on odd questions and stays silent otherwise. */
+    @Test void soulsPayExactlyOneThousandPerCorrectAnswerAndNothingElse(){
+        start();long expectA=0,expectB=0;
+        for(int q=0;q<4;q++){command(h,"PRESENTATION_READY");submit(a,0);if(q%2==1)submit(b,1);
+            var dup=new HashMap<>(fields());dup.put("answerIndex",0);try{command(a,"SUBMIT_ANSWER",dup);}catch(RoomService.Failure ignored){}
+            results();int k=h.latest().getAsJsonObject("question").get("correctAnswerIndex").getAsInt();
+            try{command(h,"REVEAL_READY");}catch(RoomService.Failure ignored){}                      // a repeated reveal pays nothing
+            if(k==0)expectA+=1000;if(q%2==1&&k==1)expectB+=1000;
+            assertEquals(expectA,souls(a,one));assertEquals(expectB,souls(b,two));assertEquals(expectA,souls(b,one),"everyone sees the same balances");
+            clock.addAndGet(3100);command(h,"NEXT_READY");}
+        assertTrue(expectA%1000==0&&expectB%1000==0);
+        // reconnecting keeps the balance
+        service.detach(a.id());var again=new TestPeer();service.attach(s(host,"code"),s(one,"token"),again,"a2");assertEquals(expectA,souls(again,one));
+    }
+    @Test void soulsWalletIsIdempotentNonNegativeAndIndependent(){
+        var w=new com.finalanswer.server.economy.SoulsWallet();
+        assertEquals(1000,w.reward("p",1000,"QUIZ","q1"));assertEquals(0,w.reward("p",1000,"QUIZ","q1"));assertEquals(1000,w.reward("x",1000,"QUIZ","q1"));
+        assertEquals(1000,w.reward("p",1000,"QUIZ","q2"));assertEquals(2000,w.balance("p"));assertEquals(1000,w.balance("x"));
+        assertEquals(0,w.reward("p",0,"QUIZ","q3"));assertEquals(0,w.reward("p",-5,"QUIZ","q4"));
+        assertFalse(w.spend("x",5000,"SHOP","s1"));assertTrue(w.spend("x",400,"SHOP","s1"));assertFalse(w.spend("x",400,"SHOP","s1"));assertEquals(600,w.balance("x"));
+        assertThrows(IllegalArgumentException.class,()->w.restore("p",-1));
+    }
     @Test void characterChoiceSurvivesReconnectAndRejectsUnknownWithoutOccupyingSeat() {
         String code=s(host,"code");
         failure("INVALID_CHARACTER",()->service.join(code,Map.of("name","Bad","characterId","unknown")));

@@ -13,27 +13,32 @@ final class SystemBreachTitle {
         float cx=TITLE.x+TITLE.width/2;
         p.crown(cx,CREST_Y+28,46,SbPaint.GOLD);
         // gilt flourishes under the crest
-        r.setColor(SbPaint.GOLD.r,SbPaint.GOLD.g,SbPaint.GOLD.b,.8f);r.rectLine(cx-150,CREST_Y-36,cx-18,CREST_Y-36,2);r.rectLine(cx+18,CREST_Y-36,cx+150,CREST_Y-36,2);
-        r.triangle(cx-12,CREST_Y-36,cx,CREST_Y-28,cx+12,CREST_Y-36);r.triangle(cx-12,CREST_Y-36,cx,CREST_Y-44,cx+12,CREST_Y-36);
+        for(int side=-1;side<=1;side+=2){r.setColor(SbPaint.GOLD.r,SbPaint.GOLD.g,SbPaint.GOLD.b,.85f);r.triangle(cx+side*16,CREST_Y-34.5f,cx+side*16,CREST_Y-37.5f,cx+side*170,CREST_Y-36);diamond(r,cx+side*112,CREST_Y-36,3.5f,SbPaint.GOLD);}
+        diamond(r,cx,CREST_Y-36,9,SbPaint.GOLD);diamond(r,cx,CREST_Y-36,4.5f,SbPaint.TRIM_DARK);
         float glow=.75f+.25f*MathUtils.sin(time*1.3f);
         p.frame(TITLE.x,TITLE.y,TITLE.width,TITLE.height,26,SbPaint.GREEN,.6f*glow);
         // side clamps
         for(int side=-1;side<=1;side+=2){float x=cx+side*(TITLE.width/2+14);p.plate(x-16,TITLE.y+TITLE.height/2-26,32,52,8,SbPaint.TRIM,SbPaint.TRIM_DARK);p.rivet(x,TITLE.y+TITLE.height/2);}
-        // circuit traces to the emblem
-        r.setColor(SbPaint.GREEN.r,SbPaint.GREEN.g,SbPaint.GREEN.b,.7f*glow);
+        // the seal: a hexagonal medallion hung from the plate, with tapered gilt filigree running out to both sides
+        float sy=TITLE.y-6;
         for(int side=-1;side<=1;side+=2){
-            r.rectLine(cx+side*44,EMBLEM_Y,cx+side*120,EMBLEM_Y,2.5f);r.rectLine(cx+side*120,EMBLEM_Y,cx+side*140,EMBLEM_Y+16,2.5f);r.rectLine(cx+side*140,EMBLEM_Y+16,cx+side*250,EMBLEM_Y+16,2.5f);
-            r.circle(cx+side*250,EMBLEM_Y+16,4,8);r.rectLine(cx+side*60,EMBLEM_Y-12,cx+side*160,EMBLEM_Y-12,2);r.circle(cx+side*160,EMBLEM_Y-12,3.5f,8);
+            r.setColor(SbPaint.GOLD.r,SbPaint.GOLD.g,SbPaint.GOLD.b,.85f);r.triangle(cx+side*46,sy+2.2f,cx+side*46,sy-2.2f,cx+side*290,sy);
+            r.setColor(SbPaint.GREEN.r,SbPaint.GREEN.g,SbPaint.GREEN.b,.55f*glow);r.triangle(cx+side*58,sy-9,cx+side*58,sy-11,cx+side*200,sy-10);
+            diamond(r,cx+side*168,sy,6,SbPaint.GOLD);diamond(r,cx+side*296,sy,3.5f,SbPaint.GOLD);diamond(r,cx+side*206,sy-10,3,c.set(SbPaint.GREEN).mul(1,1,1,glow));
         }
-        r.triangle(cx-14,EMBLEM_Y-34,cx+14,EMBLEM_Y-34,cx,EMBLEM_Y-50);
-        p.skull(cx,EMBLEM_Y+2,26,c.set(SbPaint.GREEN).mul(1,1,1,glow),HOLE);
+        hex(r,cx,sy,40,SbPaint.TRIM_LIGHT);hex(r,cx,sy,37,SbPaint.TRIM);hex(r,cx,sy,33,c.set(.03f,.06f,.045f,1));
+        r.setColor(SbPaint.GREEN.r,SbPaint.GREEN.g,SbPaint.GREEN.b,.75f*glow);hexLine(r,cx,sy,29,1.6f);
+        p.skull(cx,sy+1,19,c.set(SbPaint.GREEN).mul(1,1,1,.85f+.15f*glow),HOLE);
     }
+    private static void diamond(ShapeRenderer r,float x,float y,float s,Color col){r.setColor(col);r.triangle(x-s,y,x,y+s,x+s,y);r.triangle(x-s,y,x,y-s,x+s,y);}
+    private static void hex(ShapeRenderer r,float x,float y,float rad,Color col){r.setColor(col);for(int i=0;i<6;i++){float a=MathUtils.PI/6+i*MathUtils.PI/3,b=a+MathUtils.PI/3;r.triangle(x,y,x+MathUtils.cos(a)*rad,y+MathUtils.sin(a)*rad,x+MathUtils.cos(b)*rad,y+MathUtils.sin(b)*rad);}}
+    private static void hexLine(ShapeRenderer r,float x,float y,float rad,float w){for(int i=0;i<6;i++){float a=MathUtils.PI/6+i*MathUtils.PI/3,b=a+MathUtils.PI/3;r.rectLine(x+MathUtils.cos(a)*rad,y+MathUtils.sin(a)*rad,x+MathUtils.cos(b)*rad,y+MathUtils.sin(b)*rad,w);}}
     void glow(SpriteBatch b,SystemBreachHostAssets as,float time){
         {float t=(time%5.5f)/1.1f;if(t<1){float sx=TITLE.x-80+(TITLE.width+160)*t,a=MathUtils.sin(t*MathUtils.PI);
             b.setColor(.75f,1,.85f,.35f*a);b.draw(as.glow,sx-60,TITLE.y+4,120,TITLE.height-8);b.setColor(1,1,1,.25f*a);b.draw(as.glow,sx-14,TITLE.y+8,28,TITLE.height-16);}}
         float cx=TITLE.x+TITLE.width/2,k=.75f+.25f*MathUtils.sin(time*1.3f);
         b.setColor(SbPaint.GREEN.r,SbPaint.GREEN.g,SbPaint.GREEN.b,.20f*k);b.draw(as.glow,TITLE.x+30,TITLE.y-10,TITLE.width-60,TITLE.height+20);
-        b.setColor(SbPaint.GREEN.r,SbPaint.GREEN.g,SbPaint.GREEN.b,.30f*k);b.draw(as.glow,cx-70,EMBLEM_Y-60,140,120);
+        b.setColor(SbPaint.GREEN.r,SbPaint.GREEN.g,SbPaint.GREEN.b,.22f*k);b.draw(as.glow,cx-70,TITLE.y-66,140,120);
         b.setColor(SbPaint.GOLD.r,SbPaint.GOLD.g,SbPaint.GOLD.b,.18f);b.draw(as.glow,cx-260,CREST_Y-60,520,130);
     }
     void text(SpriteBatch b,SbPaint p,SystemBreachHostAssets as,float time){

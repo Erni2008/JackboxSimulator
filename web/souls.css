@@ -1,0 +1,23 @@
+/* SOULS: balance chip + reward moment. Transforms and opacity only; no blur filters. */
+.souls-chip{position:fixed;top:max(10px,env(safe-area-inset-top));right:12px;z-index:9000;display:flex;align-items:center;gap:6px;padding:5px 12px 5px 6px;border-radius:999px;
+  background:linear-gradient(180deg,#0b2a2ce6,#041314f0);box-shadow:inset 0 0 0 1px #5ff6e655,0 4px 14px #0009;color:#dffffb;font:600 14px/1 system-ui,sans-serif;letter-spacing:.04em;pointer-events:none}
+.souls-chip[hidden]{display:none}
+.souls-chip img{width:24px;height:24px;filter:drop-shadow(0 0 4px #5ff6e6aa)}
+.souls-chip b{font-variant-numeric:tabular-nums;font-size:15px}.souls-chip small{font-size:9px;color:#5ff6e6;letter-spacing:.2em}
+.souls-chip.gain{animation:souls-gain .7s ease-out}
+@keyframes souls-gain{30%{transform:scale(1.15);box-shadow:inset 0 0 0 1px #5ff6e6,0 0 22px #5ff6e6aa}}
+.souls-reward{position:fixed;inset:0;z-index:9500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;pointer-events:none;text-align:center;
+  background:radial-gradient(circle at 50% 45%,#06302fd9,#020909ee 62%);animation:souls-in .35s ease-out both;font-family:system-ui,sans-serif}
+.souls-reward.out{opacity:0;transition:opacity .45s}
+@keyframes souls-in{from{opacity:0}}
+.souls-orb{position:relative;width:118px;height:118px;display:grid;place-items:center;animation:souls-rise .8s cubic-bezier(.2,.9,.3,1.2) both}
+.souls-orb::before{content:"";position:absolute;inset:-26px;border-radius:50%;background:radial-gradient(circle,#5ff6e655,#0000 68%);animation:souls-breathe 1.6s ease-in-out infinite}
+.souls-orb img{position:relative;width:96px;height:96px;filter:drop-shadow(0 0 10px #5ff6e6);animation:souls-float 2.2s ease-in-out infinite}
+.souls-orb i{position:absolute;left:50%;bottom:10px;width:6px;height:6px;margin-left:-3px;border-radius:50%;background:#bffff8;box-shadow:0 0 8px #5ff6e6;opacity:0;animation:souls-wisp 1.4s ease-out forwards}
+@keyframes souls-rise{from{opacity:0;transform:translateY(40px) scale(.6)}}
+@keyframes souls-float{50%{transform:translateY(-8px)}}
+@keyframes souls-breathe{50%{transform:scale(1.12);opacity:.7}}
+@keyframes souls-wisp{0%{opacity:0;transform:translate(0,0)}20%{opacity:1}100%{opacity:0;transform:translate(var(--x),-150px)}}
+.souls-title{margin:6px 0 0;color:#e9fffd;font-weight:800;font-size:26px;letter-spacing:.12em;text-shadow:0 0 18px #5ff6e688;animation:souls-rise .5s .15s ease-out both}
+.souls-amount{margin:0;color:#5ff6e6;font-weight:800;font-size:40px;letter-spacing:.04em;font-variant-numeric:tabular-nums;text-shadow:0 0 16px #5ff6e6aa;animation:souls-rise .5s .3s ease-out both}
+@media (prefers-reduced-motion:reduce){.souls-reward *,.souls-chip{animation:none!important}}

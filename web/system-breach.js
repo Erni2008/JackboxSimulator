@@ -47,11 +47,12 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
   {const c=el('sbx-rain'),g=c.getContext('2d'),glyphs='0123456789ABCDEF<>/#$%*+=';let cols=[],last=0;
     const fit=()=>{const r=c.getBoundingClientRect();c.width=Math.max(1,r.width/2|0);c.height=Math.max(1,r.height/2|0);cols=Array.from({length:Math.ceil(c.width/9)},()=>Math.random()*c.height/10);};
     addEventListener('resize',fit);
-    const draw=t=>{requestAnimationFrame(draw);if(document.hidden||el('breach-screen').hidden||t-last<80)return;last=t;if(!cols.length||c.width<2)fit();
+    // 10 fps on a timer, and only while the canvas is actually shown (it is hidden on phones)
+    const draw=()=>{if(document.hidden||el('breach-screen').hidden||!c.offsetWidth)return;if(!cols.length||c.width<2)fit();
       g.fillStyle='rgba(2,9,5,.22)';g.fillRect(0,0,c.width,c.height);g.font='9px monospace';
       const hot=el('sbx-screen').dataset.state==='hacked';
       cols.forEach((y,i)=>{g.fillStyle=hot?'rgba(255,74,58,.55)':'rgba(61,255,143,.45)';g.fillText(glyphs[Math.random()*glyphs.length|0],i*9,y*10);cols[i]=y*10>c.height&&Math.random()>.97?0:y+1;});};
-    requestAnimationFrame(draw);}
+    setInterval(draw,100);}
   let bootFor='',revealFor='';
   /** The server picked the password: decode it in front of the player so they know what they are defending. */
   function revealPassword(pw){
@@ -213,8 +214,9 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
     tick(true);
   }
   // the per-question timer and the clock glide at display rate instead of stepping with the 4 Hz tick
-  {const loop=()=>{requestAnimationFrame(loop);if(document.hidden||el('breach-screen').hidden)return;
-     for(const i of document.querySelectorAll('#sbx-body .sbx-timer i')){const st=+i.dataset.start,en=+i.dataset.end;const f=en>st?Math.max(0,Math.min(1,(en-now())/(en-st))):0;i.style.transform='scaleX('+f.toFixed(4)+')';i.parentElement.classList.toggle('low',f<.3);}};requestAnimationFrame(loop);}
+  // timers glide at up to 30 fps, and the loop does nothing when no timer is on screen
+  {let lastFrame=0;const loop=t=>{requestAnimationFrame(loop);if(t-lastFrame<32||document.hidden||el('breach-screen').hidden)return;lastFrame=t;const bars=document.querySelectorAll('#sbx-body .sbx-timer i');if(!bars.length)return;
+     for(const i of bars){const st=+i.dataset.start,en=+i.dataset.end;const f=en>st?Math.max(0,Math.min(1,(en-now())/(en-st))):0;i.style.transform='scaleX('+f.toFixed(4)+')';i.parentElement.classList.toggle('low',f<.3);}};requestAnimationFrame(loop);}
   function tick(fromRender){
     const s=getState()?.systemBreach;if(!s)return;
     el('sbx-clock').textContent=s.deadline>0?mmss(s.deadline-now()):'--:--';

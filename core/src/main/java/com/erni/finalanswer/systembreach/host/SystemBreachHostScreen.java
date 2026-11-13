@@ -99,7 +99,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
 
     /** Data motes drifting up through the hall: cheap, deterministic, no allocation. */
     private void motes(){
-        for(int i=0;i<46;i++){float sp=18+(i*37%23),x=(i*173.3f)%W+MathUtils.sin(time*.4f+i)*14,y=((time*sp+i*97)%(H+40))-20;
+        for(int i=0;i<24;i++){float sp=18+(i*37%23),x=(i*173.3f)%W+MathUtils.sin(time*.4f+i)*14,y=((time*sp+i*97)%(H+40))-20;
             float a=.10f+.10f*MathUtils.sin(time*2+i*1.7f),sz=i%5==0?4:2.5f;
             batch.setColor(i%7==0?1:.35f,i%7==0?.3f:.95f,i%7==0?.2f:.55f,a);batch.draw(assets.pixel,x,y,sz,sz);}
     }
@@ -107,11 +107,11 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
     /** Two slow light shafts falling from the arched windows, breathing out of phase. */
     private void shafts(){
         for(int i=0;i<2;i++){float cx=i==0?520:1400,a=.07f+.04f*MathUtils.sin(time*.6f+i*2.1f),sway=MathUtils.sin(time*.23f+i)*30;
-            for(int k=0;k<6;k++){float y=900-k*110,w=150+k*55;batch.setColor(1,.25f,.2f,a*(1-k/7f));batch.draw(assets.glow,cx+sway*(k/6f)+(i==0?k*28:-k*28)-w/2,y-80,w,200);}}
+            for(int k=0;k<6;k+=2){float y=900-k*110,w=150+k*55;batch.setColor(1,.25f,.2f,a*1.6f*(1-k/7f));batch.draw(assets.glow,cx+sway*(k/6f)+(i==0?k*28:-k*28)-w/2,y-80,w,200);}}
     }
     /** Embers rising through the hall from the floor. */
     private void embers(){
-        for(int i=0;i<26;i++){float sp=26+(i*13%17),x=(i*211.7f)%W+MathUtils.sin(time*.8f+i*1.3f)*24,y=((time*sp+i*131)%(H*.75f));float life=y/(H*.75f),a=(1-life)*(.55f+.45f*MathUtils.sin(time*9+i));
+        for(int i=0;i<14;i++){float sp=26+(i*13%17),x=(i*211.7f)%W+MathUtils.sin(time*.8f+i*1.3f)*24,y=((time*sp+i*131)%(H*.75f));float life=y/(H*.75f),a=(1-life)*(.55f+.45f*MathUtils.sin(time*9+i));
             float s=i%4==0?6:3.5f;batch.setColor(1,.45f+.25f*(i%3)/2f,.15f,a*.8f);batch.draw(assets.glow,x-s*2,y-s*2,s*4,s*4);batch.setColor(1,.85f,.55f,a);batch.draw(assets.pixel,x-s/4,y-s/4,s/2,s/2);}
     }
     private void atmosphere(){
@@ -120,7 +120,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         batch.setColor(1,.62f,.25f,.22f*f1);batch.draw(assets.glow,153-110,736-110,220,220);
         batch.setColor(1,.62f,.25f,.22f*f2);batch.draw(assets.glow,1768-110,736-110,220,220);
         float w=.10f+.04f*MathUtils.sin(time*.7f);batch.setColor(1,.1f,.08f,w);batch.draw(assets.glow,250,560,420,420);batch.draw(assets.glow,1250,560,420,420);
-        for(int i=0;i<5;i++){float x=((time*14+i*430)%2400)-240;batch.setColor(.85f,.55f,.6f,.05f);batch.draw(assets.glow,x,260+(i%3)*30,520,150);}
+        for(int i=0;i<3;i++){float x=((time*14+i*717)%2400)-240;batch.setColor(.85f,.55f,.6f,.05f);batch.draw(assets.glow,x,260+(i%3)*30,520,150);}
     }
 
     /** Centre-stage banner: slides in with an overshoot, holds, slides out. */
