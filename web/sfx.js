@@ -50,8 +50,10 @@ const FA_SFX=(()=>{
   return {
     unlock,
     tap(){},                                                                     // haptic only
-    correct(){const r=pick([[N.D5,N.A5],[N.F5,N.A5],[N.A4,N.D5]]);bell(r[0],{vol:.1,dur:.7});bell(r[1],{at:.07,vol:.09,dur:.9});},
-    wrong(){thump(150,70,{vol:.22,dur:.3});bell(N.D4*.94,{at:.02,vol:.035,dur:.4,ratio:1.01,index:.4});},
+    correct(){return;  // answer sounds live on the host for now
+      const r=pick([[N.D5,N.A5],[N.F5,N.A5],[N.A4,N.D5]]);bell(r[0],{vol:.1,dur:.7});bell(r[1],{at:.07,vol:.09,dur:.9});},
+    wrong(){return;
+      thump(150,70,{vol:.22,dur:.3});bell(N.D4*.94,{at:.02,vol:.035,dur:.4,ratio:1.01,index:.4});},
     key(){[N.D5,N.F5,N.A5,N.D6].forEach((f,i)=>bell(f,{at:i*.075,vol:.07,dur:1.1}));air(.9,{at:.05,vol:.025,lo:4000,hi:10000,attack:.3});},
     hackOk(){thump(170,45,{vol:.32,dur:.6});bell(N.D5,{vol:.08,dur:1,ratio:2,index:2.4});bell(N.A5,{at:.06,vol:.05,dur:1.1});},
     hackFail(){thump(120,55,{vol:.26,dur:.45});bell(N.F3,{at:.04,vol:.04,dur:.5,ratio:1.01,index:.3});},

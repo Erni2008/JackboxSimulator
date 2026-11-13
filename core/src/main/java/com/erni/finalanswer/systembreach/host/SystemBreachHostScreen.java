@@ -35,7 +35,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
     private final Consumer<String> end;
     private final HackerFx fx=new HackerFx();
     private final ResultsCeremony ceremony=new ResultsCeremony();
-    private VirusFx virus;
+    private VirusFx virus;private final AnswerMarks marks=new AnswerMarks();
     private final SbSounds sounds=new SbSounds();private long lastTickSecond=-1;private float lastToast=99;
     private float time;private static final com.badlogic.gdx.graphics.Color VIG=new com.badlogic.gdx.graphics.Color(0,0,0,.55f),CLEAR=new com.badlogic.gdx.graphics.Color(0,0,0,0);
 
@@ -79,6 +79,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         {var dk=VIG;var cl=CLEAR;shapes.rect(0,H-260,W,260,cl,cl,dk,dk);shapes.rect(0,0,W,220,dk,dk,cl,cl);shapes.rect(0,0,220,H,dk,cl,cl,dk);shapes.rect(W-220,0,220,H,cl,dk,dk,cl);}
         for(int i=0;i<n;i++)podium.shapes(paint,shapes,slots.get(i),slotX(i,n),time);
         for(int i=0;i<n;i++)virus.shapes(paint,shapes,assets,slots.get(i),slotX(i,n),time);
+        for(int i=0;i<n;i++)marks.shapes(shapes,slots.get(i),slotX(i,n));
                 fx.scanlines(shapes,TIMER.x+20,TIMER.y+20,TIMER.width-40,TIMER.height-40,.12f,time);fx.scanlines(shapes,LOG.x+20,LOG.y+20,LOG.width-40,LOG.height-40,.12f,time+2);
         fx.attackLinks(shapes,model.attacks(),model,n,time);
         timer.shapes(paint,model,time);title.shapes(paint,shapes,time);log.shapes(paint,model);board.shapes(paint,shapes,model);toastShape();
@@ -86,6 +87,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
 
         batch.begin();batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
         for(int i=0;i<n;i++)podium.glow(batch,assets,slots.get(i),slotX(i,n),time);
+        for(int i=0;i<n;i++)marks.glow(batch,assets,slots.get(i),slotX(i,n));
         // a glint travels along the line-up's glass every few seconds
         {float t=(time%7f)/1.6f;if(t<1&&n>0){float x0=slotX(0,n)-PANEL_W/2,x1=slotX(n-1,n)+PANEL_W/2,gx=x0+(x1-x0)*t,a=MathUtils.sin(t*MathUtils.PI);
             batch.setColor(1,1,1,.18f*a);batch.draw(assets.glow,gx-40,PANEL_Y+10,80,PANEL_H-20);batch.setColor(.6f,1,.8f,.12f*a);batch.draw(assets.glow,gx-110,PANEL_Y-20,220,PANEL_H+40);}}

@@ -36,7 +36,7 @@ public final class SystemBreachScreenPreview {
             void script(){
                 int k=step++,a=k%count,t=(k*3+1)%count;if(t==a)t=(t+1)%count;
                 switch(k%7){
-                    case 0->{event("SABOTAGE_STARTED",a,t,4);}
+                    case 0->{event("CHALLENGE_SOLVED",-1,a,10);event("CHALLENGE_FAILED",-1,t,0);}
                     case 1->event("ATTACK_STARTED",a,t,0);
                     case 2->{int p=(k-1)%count,q=((k-1)*3+1)%count;if(q==p)q=(q+1)%count;int n=Math.min(20,ap[q]);ap[q]-=n;ap[p]+=n;compromised[q]=true;event("ATTACK_SUCCEEDED",p,q,n);}
                     case 3->{int q=((k-2)*3+1)%count,p=(k-2)%count;if(q==p)q=(q+1)%count;recovering[q]=true;event("RECOVERY_START",-1,q,0);}

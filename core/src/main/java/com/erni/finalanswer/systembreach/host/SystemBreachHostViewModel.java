@@ -26,6 +26,8 @@ public final class SystemBreachHostViewModel {
         public float boardY=-1,multAge=99,rankAge=99;public int shownRank;
         /** Live sabotage virus on this player (server type name, empty when clean) and how long it has been there. */
         public String virus="";public float virusAge=99;
+        /** Last answer: +1 right, -1 wrong, shown as a ✓ / ✗ badge for a moment. */
+        public int mark;public float markAge=99;
         private int rankKey=-1;private double multKey=-1;private String rankText="",multText="";
         public String rankText(){if(rankKey!=rank){rankKey=rank;rankText=String.valueOf(rank);}return rankText;}
         public String multText(){if(multKey!=multiplier){multKey=multiplier;multText="×"+fmt(multiplier);}return multText;}                                  // eased leaderboard row position
@@ -105,7 +107,7 @@ public final class SystemBreachHostViewModel {
                 default->{}
             }
             if(seq>lastSequence){
-                if(lastSequence>=0){react(type,a,t);{String c=SbSounds.cue(type);if(c!=null&&cues.size()<8)cues.add(c);}Toast big=headline(type,a,t,num(ev,"amount"));if(big!=null){toastParts=big;toast=big.line();toastAge=0;toastTone=type.equals("MULTIPLIER_UPGRADED")?Tone.REWARD:type.equals("ATTACK_FAILED")||type.equals("ATTACK_EXPIRED")?Tone.RECOVERY:type.equals("FIREWALL_UPGRADED")?Tone.FIREWALL:type.equals("SABOTAGE_BLOCKED")?Tone.FIREWALL:type.equals("SABOTAGE_CLEARED")||type.equals("KEY_BOUGHT")?Tone.REWARD:type.startsWith("RECOVERY")||type.equals("EMERGENCY_RESTORED")?Tone.REWARD:Tone.HACK;}}
+                if(lastSequence>=0){react(type,a,t);{String c=SbSounds.cue(type);if(c!=null&&cues.size()<8)cues.add(c);}if(type.equals("CHALLENGE_SOLVED")||type.equals("CHALLENGE_FAILED")){Slot ms=byId.get(t);if(ms!=null){ms.mark=type.equals("CHALLENGE_SOLVED")?1:-1;ms.markAge=0;}}Toast big=headline(type,a,t,num(ev,"amount"));if(big!=null){toastParts=big;toast=big.line();toastAge=0;toastTone=type.equals("MULTIPLIER_UPGRADED")?Tone.REWARD:type.equals("ATTACK_FAILED")||type.equals("ATTACK_EXPIRED")?Tone.RECOVERY:type.equals("FIREWALL_UPGRADED")?Tone.FIREWALL:type.equals("SABOTAGE_BLOCKED")?Tone.FIREWALL:type.equals("SABOTAGE_CLEARED")||type.equals("KEY_BOUGHT")?Tone.REWARD:type.startsWith("RECOVERY")||type.equals("EMERGENCY_RESTORED")?Tone.REWARD:Tone.HACK;}}
                 LogLine line=line(type,a,t,num(ev,"amount"),seq);if(line!=null)line=new LogLine(line.sequence(),line.text(),line.tone(),Math.max(0,at-phaseStartedAt));
                 if(line!=null){log.addLast(line);if(log.size()>LOG_SIZE)log.removeFirst();System.arraycopy(logAge,0,logAge,1,LOG_SIZE-1);logAge[0]=lastSequence<0?99:0;}
             }
@@ -194,7 +196,7 @@ public final class SystemBreachHostViewModel {
     /** Display easing only. */
     public void update(float dt){
         for(Slot s:slots){
-            s.statusAge+=dt;s.deltaAge+=dt;s.virusAge+=dt;s.reactionAge+=dt;s.multAge+=dt;s.rankAge+=dt;if(s.shownRank!=s.rank){if(s.shownRank!=0)s.rankAge=0;s.shownRank=s.rank;}
+            s.statusAge+=dt;s.deltaAge+=dt;s.virusAge+=dt;s.markAge+=dt;s.reactionAge+=dt;s.multAge+=dt;s.rankAge+=dt;if(s.shownRank!=s.rank){if(s.shownRank!=0)s.rankAge=0;s.shownRank=s.rank;}
             float k=1-(float)Math.exp(-dt*6);s.shownAp+=(s.ap-s.shownAp)*k;if(Math.abs(s.ap-s.shownAp)<.5f)s.shownAp=s.ap;
         }
         for(int i=0;i<LOG_SIZE;i++)logAge[i]+=dt;toastAge+=dt;
