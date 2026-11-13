@@ -54,8 +54,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
     @Override public void render(float delta){
         float dt=Float.isFinite(delta)?Math.min(delta,.1f):0;time+=dt;model.update(dt);ceremony.update(model,dt);
         for(String c:model.cues())sounds.play(c);model.cues().clear();
-        if(model.toastAge()<lastToast&&model.toastAge()<.1f)sounds.play("whoosh",.6f);lastToast=model.toastAge();
-        {long left=model.remainingMs();long sec=left/1000;if(model.phase().equals("ACTIVE")&&left>0&&left<=10_000&&sec!=lastTickSecond){lastTickSecond=sec;sounds.play("tick",.5f+.5f*(1-left/10_000f));}}
+        {long left=model.remainingMs();long sec=left/1000;if(model.phase().equals("ACTIVE")&&left>0&&left<=5_000&&sec!=lastTickSecond){lastTickSecond=sec;sounds.play(sec%2==0?"tick":"tock",.45f+.4f*(1-left/5_000f));}}
         ceremony.sounds(sounds);
         ScreenUtils.clear(0,0,0,1,true);viewport.apply();
         batch.setProjectionMatrix(viewport.getCamera().combined);shapes.setProjectionMatrix(viewport.getCamera().combined);

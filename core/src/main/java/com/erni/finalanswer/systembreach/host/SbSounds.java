@@ -13,23 +13,27 @@ import java.util.Map;
  * simply silent.
  */
 final class SbSounds implements Disposable {
-    private static final String[] NAMES={"solve","key","hack_start","hack_success","hack_fail","sabotage","clean","firewall","multiplier","tick","whoosh","drumroll","reveal","fanfare","thunder","ghost","complete"};
-    private final Map<String,Sound> sounds=new HashMap<>();private final Map<String,Long> last=new HashMap<>();
-    SbSounds(){for(String n:NAMES)try{var f=Gdx.files.internal("system_breach/sfx/"+n+".wav");if(f.exists())sounds.put(n,Gdx.audio.newSound(f));}catch(RuntimeException ignored){}}
+    private static final String[] NAMES={"solve","key","hack_start","hack_success","hack_fail","sabotage","clean","firewall","multiplier","tick","tock","whoosh","drumroll","reveal","fanfare","thunder","ghost","complete"};
+    private final Map<String,java.util.List<Sound>> sounds=new HashMap<>();private final java.util.Random random=new java.util.Random();private final Map<String,Long> last=new HashMap<>();
+    /** Loads name.wav plus its variants name_2.wav, name_3.wav when present. */
+    SbSounds(){for(String n:NAMES)for(String v:new String[]{"","_2","_3"})try{var f=Gdx.files.internal("system_breach/sfx/"+n+v+".wav");if(f.exists())sounds.computeIfAbsent(n,k->new java.util.ArrayList<>()).add(Gdx.audio.newSound(f));}catch(RuntimeException ignored){}}
     void play(String name){play(name,1);}
     void play(String name,float volume){
-        Sound s=sounds.get(name);if(s==null)return;long now=System.currentTimeMillis(),gap=name.equals("solve")||name.equals("tick")?180:350;
+        var list=sounds.get(name);if(list==null||list.isEmpty())return;long now=System.currentTimeMillis(),gap=name.equals("solve")?1500:name.startsWith("t")&&name.length()==4?150:400;
         if(now-last.getOrDefault(name,0L)<gap)return;last.put(name,now);
-        s.play(Math.min(1,volume*AudioMix.GLOBAL.gain(AudioMix.Category.SFX)));
+        // a different take and a hair of pitch each time, so repeats never sound mechanical
+        boolean tonal=!name.equals("thunder")&&!name.equals("drumroll");float pitch=tonal&&list.size()>1?1:.97f+random.nextFloat()*.06f;
+        list.get(random.nextInt(list.size())).play(Math.min(1,volume*AudioMix.GLOBAL.gain(AudioMix.Category.SFX)),pitch,0);
     }
     /** Event type from the server log → cue. */
     static String cue(String type){
         return switch(type){
-            case "CHALLENGE_SOLVED"->"solve";case "KEY_EARNED","KEY_BOUGHT"->"key";case "ATTACK_STARTED"->"hack_start";case "ATTACK_SUCCEEDED"->"hack_success";
+            case "CHALLENGE_SOLVED"->null;   // dozens per match: the floating "+N AP" says it visually
+            case "KEY_EARNED","KEY_BOUGHT"->"key";case "ATTACK_STARTED"->"hack_start";case "ATTACK_SUCCEEDED"->"hack_success";
             case "ATTACK_FAILED","ATTACK_EXPIRED"->"hack_fail";case "SABOTAGE_STARTED","TROJAN","DATA_LEAK","SYSTEM_OVERLOAD","FIREWALL_BREAKER"->"sabotage";
             case "SABOTAGE_CLEARED","RECOVERY_SUCCEEDED","EMERGENCY_RESTORED"->"clean";case "SABOTAGE_BLOCKED","FIREWALL_UPGRADED"->"firewall";
             case "MULTIPLIER_UPGRADED"->"multiplier";case "RESULTS"->"complete";default->null;
         };
     }
-    @Override public void dispose(){for(Sound s:sounds.values())s.dispose();sounds.clear();}
+    @Override public void dispose(){for(var l:sounds.values())for(Sound s:l)s.dispose();sounds.clear();}
 }

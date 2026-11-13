@@ -229,7 +229,7 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
   function tick(fromRender){
     const s=getState()?.systemBreach;if(!s)return;
     el('sbx-clock').textContent=s.deadline>0?mmss(s.deadline-now()):'--:--';
-    {const left=s.deadline-now(),sec=Math.ceil(left/1000);if(s.phase==='ACTIVE'&&s.deadline>0&&left>0&&left<=10000&&sec!==lastTick){lastTick=sec;sfx('tick');}}
+    {const left=s.deadline-now(),sec=Math.ceil(left/1000);if(s.phase==='ACTIVE'&&s.deadline>0&&left>0&&left<=5000&&sec!==lastTick){lastTick=sec;sfx('tick');}}
     el('sbx-screen').classList.toggle('urgent',s.phase==='ACTIVE'&&s.deadline>0&&s.deadline-now()<30000);
     for(const i of document.querySelectorAll('#sbx-body .sbx-timer i')){const st=+i.dataset.start,en=+i.dataset.end;const f=en>st?Math.max(0,Math.min(1,(en-now())/(en-st))):0;i.style.transform='scaleX('+f.toFixed(3)+')';i.parentElement.classList.toggle('low',f<.3);}
     if(fromRender===true)return;

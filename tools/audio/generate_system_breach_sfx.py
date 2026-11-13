@@ -1,102 +1,123 @@
-"""Procedural sound effects for the SYSTEM BREACH host screen (deterministic synthesis, no samples, no downloads).
+"""SYSTEM BREACH host sound design, v2 — deterministic synthesis, no samples, no downloads.
+Everything sits in D minor, uses soft timbres (FM bells, filtered noise, warm sub layers) with a shared room reverb,
+and the frequent cues come in three variants so four minutes of play never repeat the exact same sound.
 Run: python3 tools/audio/generate_system_breach_sfx.py  -> assets/system_breach/sfx/*.wav (48 kHz mono 16-bit)."""
 from pathlib import Path
 import wave
 import numpy as np
-from scipy.signal import butter, sosfilt
+from scipy.signal import butter, sosfilt, fftconvolve
 
 RATE = 48000
 OUT = Path(__file__).resolve().parents[2] / 'assets/system_breach/sfx'
-rng = np.random.default_rng(7)
+rng = np.random.default_rng(11)
+D = {'D3': 146.83, 'F3': 174.61, 'A3': 220.0, 'C4': 261.63, 'D4': 293.66, 'E4': 329.63, 'F4': 349.23, 'G4': 392.0, 'A4': 440.0,
+     'C5': 523.25, 'D5': 587.33, 'E5': 659.25, 'F5': 698.46, 'A5': 880.0, 'C6': 1046.5, 'D6': 1174.66, 'D2': 73.42, 'A2': 110.0}
 
-def t(d): return np.arange(int(RATE * d)) / RATE
-def env(n, a=.005, r=.2, d=None):
-    x = np.arange(n) / RATE; d = d or n / RATE
-    return np.minimum(1, x / max(a, 1e-4)) * np.exp(-np.maximum(0, x - a) / r)
-def band(x, lo, hi): return sosfilt(butter(2, [lo, hi], btype='bandpass', fs=RATE, output='sos'), x)
-def low(x, f): return sosfilt(butter(2, f, btype='lowpass', fs=RATE, output='sos'), x)
-def sine(f, d, ph=0):
-    f = np.broadcast_to(np.asarray(f, float), t(d).shape)
-    return np.sin(2 * np.pi * np.cumsum(f) / RATE + ph)
-def square(f, d): return np.sign(sine(f, d)) * .6
-def at(buf, sig, sec):
-    i = int(sec * RATE); j = min(len(buf), i + len(sig)); buf[i:j] += sig[:j - i]; return buf
-def reverb(x, amount=.25, length=.6):
-    ir = rng.standard_normal(int(RATE * length)) * np.exp(-np.linspace(0, 6, int(RATE * length)))
-    wet = np.convolve(x, low(ir, 5000))[:len(x) + len(ir) - 1]
-    y = np.zeros(len(wet)); y[:len(x)] += x; y += wet / np.max(np.abs(wet) + 1e-9) * np.max(np.abs(x)) * amount
-    return y
-def save(name, x, peak=.8):
-    x = x / (np.max(np.abs(x)) + 1e-9) * peak
-    fade = min(len(x), int(RATE * .01)); x[-fade:] *= np.linspace(1, 0, fade)
+def T(d): return np.arange(int(RATE * d)) / RATE
+def lp(x, f, o=2): return sosfilt(butter(o, f, btype='lowpass', fs=RATE, output='sos'), x)
+def hp(x, f, o=2): return sosfilt(butter(o, f, btype='highpass', fs=RATE, output='sos'), x)
+def bp(x, lo, hi): return sosfilt(butter(2, [lo, hi], btype='bandpass', fs=RATE, output='sos'), x)
+def adsr(n, a=.004, d=.25, s=0.0, r=.0):
+    x = np.arange(n) / RATE
+    return np.where(x < a, x / a, s + (1 - s) * np.exp(-(x - a) / max(d, 1e-4)))
+def bell(f, d, ratio=1.4, index=2.2, decay=.6, vol=1.):
+    t = T(d); mod = np.sin(2 * np.pi * f * ratio * t) * index * np.exp(-t / (decay * .5))
+    return np.sin(2 * np.pi * f * t + mod) * adsr(len(t), .002, decay) * vol
+def soft(f, d, decay=.4, bright=.25):
+    t = T(d); x = np.sin(2 * np.pi * f * t) + bright * np.sin(4 * np.pi * f * t) + bright * .4 * np.sin(6 * np.pi * f * t)
+    return x * adsr(len(t), .006, decay)
+def sub(f0, f1, d, decay=.3):
+    t = T(d); f = np.geomspace(f0, f1, len(t)); return np.sin(2 * np.pi * np.cumsum(f) / RATE) * adsr(len(t), .003, decay)
+def noise(d): return rng.standard_normal(int(RATE * d))
+def swell(d, lo, hi, peak=.7):
+    n = noise(d); e = np.sin(np.pi * np.clip(np.arange(len(n)) / len(n) / peak, 0, 1) * .5) ** 2 * np.exp(-np.maximum(0, np.arange(len(n)) / RATE - d * peak) * 6)
+    return bp(n, lo, hi) * e
+def at(buf, sig, sec, g=1.):
+    i = int(sec * RATE); j = min(len(buf), i + len(sig)); buf[i:j] += sig[:j - i] * g; return buf
+def buf(d): return np.zeros(int(RATE * d))
+_IR = None
+def room(x, wet=.22, size=1.1):
+    global _IR
+    if _IR is None:
+        n = int(RATE * size); ir = rng.standard_normal(n) * np.exp(-np.linspace(0, 7.5, n)); ir = lp(hp(ir, 180), 6500); ir[:int(RATE * .012)] = 0; _IR = ir / np.sqrt(np.sum(ir ** 2))
+    w = fftconvolve(x, _IR)[:len(x) + len(_IR)]; y = np.zeros(len(w)); y[:len(x)] = x
+    return y + w * wet * (np.max(np.abs(x)) / (np.max(np.abs(w)) + 1e-9)) * 1.6
+def master(x, peak):
+    x = np.tanh(x / (np.max(np.abs(x)) + 1e-9) * 1.3) / np.tanh(1.3)     # gentle glue
+    x = lp(x, 11000); x = hp(x, 40)
+    return x / (np.max(np.abs(x)) + 1e-9) * peak
+def save(name, x, peak=.6, wet=.22):
+    x = master(room(x, wet), peak); x = np.trim_zeros(x, 'b') if np.any(x) else x
+    fade = min(len(x), int(RATE * .02)); x[-fade:] *= np.linspace(1, 0, fade)
     with wave.open(str(OUT / f'{name}.wav'), 'wb') as w:
         w.setnchannels(1); w.setsampwidth(2); w.setframerate(RATE); w.writeframes((x * 32767).astype('<i2').tobytes())
 
-def blip(f, d=.09, kind=sine): s = kind(f, d); return s * env(len(s), .002, d / 3)
-def chord(fs, d, r=.6): return sum(sine(f, d) * env(int(RATE * d), .01, r) for f in fs) / len(fs)
-
 OUT.mkdir(parents=True, exist_ok=True)
-# soft confirmation when someone answers right (frequent: keep it quiet and short)
-save('solve', np.concatenate([blip(1320, .05), blip(1760, .08)]), .35)
-# key forged / bought: sparkling arpeggio
-k = np.zeros(int(RATE * .9))
-for i, f in enumerate([988, 1319, 1661, 1976, 2637]): at(k, blip(f, .25) * .7, i * .06)
-save('key', reverb(k, .3), .55)
-# hack starts: rising alarm sweep twice
-a = np.zeros(int(RATE * 1.0))
-for i in range(2): at(a, square(np.linspace(420, 980, int(RATE * .32)), .32) * env(int(RATE * .32), .01, .3), i * .38)
-save('hack_start', low(a, 3500), .5)
-# hack success: digital stinger down + sub hit
-s = np.zeros(int(RATE * 1.2)); at(s, square(np.linspace(1600, 300, int(RATE * .35)), .35) * env(int(RATE * .35), .002, .2), 0)
-at(s, sine(np.linspace(110, 45, int(RATE * .6)), .6) * env(int(RATE * .6), .003, .25) * 1.4, .05)
-save('hack_success', reverb(low(s, 6000), .2), .8)
-# hack failed: buzzer + descending tone
-f = np.zeros(int(RATE * .8)); at(f, square(140, .35) * env(int(RATE * .35), .005, .25), 0); at(f, sine(np.linspace(520, 260, int(RATE * .4)), .4) * env(int(RATE * .4), .01, .2) * .6, .18)
-save('hack_fail', low(f, 2500), .6)
-# sabotage: glitch burst + wobbling siren
-g = np.zeros(int(RATE * 1.4)); n = rng.standard_normal(int(RATE * .3))
-at(g, band(n, 800, 6000) * (rng.random(len(n)) > .5) * env(len(n), .001, .1), 0)
-lfo = 700 + 260 * np.sin(2 * np.pi * 7 * t(1.0))
-at(g, (sine(lfo, 1.0) + .4 * square(lfo / 2, 1.0)) * env(int(RATE), .02, .45) * .6, .12)
-save('sabotage', reverb(low(g, 5000), .25), .65)
-# virus removed: clean rising chime
-c = np.zeros(int(RATE * 1.0))
-for i, fr in enumerate([784, 988, 1175, 1568]): at(c, blip(fr, .35) * .8, i * .07)
-save('clean', reverb(c, .35), .5)
-# firewall: whoosh + metallic clang
-w = np.zeros(int(RATE * 1.0)); n = rng.standard_normal(int(RATE * .4)); at(w, band(n, 300, 3000) * np.hanning(len(n)) * .5, 0)
-at(w, (sine(620, .6) + .6 * sine(1490, .6) + .4 * sine(2310, .6)) * env(int(RATE * .6), .001, .18) * .6, .3)
-save('firewall', reverb(w, .25), .55)
-# multiplier: quick rising arpeggio
-m = np.zeros(int(RATE * .7))
-for i, fr in enumerate([523, 659, 784, 1047]): at(m, blip(fr, .14, square) * .5, i * .05)
-save('multiplier', low(reverb(m, .2), 6000), .5)
-# last-seconds clock tick
-save('tick', band(rng.standard_normal(int(RATE * .05)), 1800, 5000) * env(int(RATE * .05), .0005, .012), .45)
-# banner whoosh
-n = rng.standard_normal(int(RATE * .45)); save('whoosh', band(n, 400, 4000) * np.hanning(len(n)) ** 2, .3)
-# ceremony: drum roll, reveal impact, champion fanfare, thunder, ghost choir, operation complete
-d = np.zeros(int(RATE * 2.0))
-for i in range(int(2.0 / .045)): at(d, band(rng.standard_normal(int(RATE * .05)), 150, 2500) * env(int(RATE * .05), .001, .02) * (.4 + .6 * i / 44), i * .045)
-save('drumroll', reverb(d, .2), .55)
-r = np.zeros(int(RATE * 1.6)); at(r, sine(np.linspace(90, 40, int(RATE * .8)), .8) * env(int(RATE * .8), .002, .35) * 1.5, 0)
-at(r, band(rng.standard_normal(int(RATE * .3)), 2000, 9000) * env(int(RATE * .3), .001, .08) * .6, 0); at(r, chord([523, 659, 784], 1.2, .5) * .5, .05)
-save('reveal', reverb(r, .3), .8)
-fa = np.zeros(int(RATE * 2.4))
-for i, (fs, d0) in enumerate([([392, 494, 587], .22), ([392, 494, 587], .22), ([523, 659, 784, 1047], 1.6)]):
-    at(fa, sum(square(fq, d0 + .2) for fq in fs) / len(fs) * env(int(RATE * (d0 + .2)), .01, d0 * .7 + .15), i * .26)
-save('fanfare', reverb(low(fa, 4500), .35), .7)
-th = np.zeros(int(RATE * 3.0)); n = rng.standard_normal(len(th))
-crack = band(n[:int(RATE * .25)], 1500, 9000) * env(int(RATE * .25), .0005, .05); at(th, crack * 1.2, 0)
-rumble = low(n, 160) * env(len(th), .02, .9) * 2.5; th += rumble
-save('thunder', reverb(th, .3, .9), .9)
-gh = np.zeros(int(RATE * 4.0))
-for fq in [220, 261.6, 329.6, 392]:
-    vib = fq * (1 + .006 * np.sin(2 * np.pi * (4.7 + fq / 400) * t(4.0)))
-    gh += (sine(vib, 4.0) + .3 * sine(vib * 2, 4.0)) * np.minimum(1, t(4.0) / 1.2) * np.minimum(1, (4.0 - t(4.0)) / 1.4)
-gh += band(rng.standard_normal(len(gh)), 600, 3000) * .08 * np.minimum(1, t(4.0) / 1.2) * np.minimum(1, (4.0 - t(4.0)) / 1.4)
-save('ghost', reverb(gh, .45, 1.2), .55)
-oc = np.zeros(int(RATE * 1.6)); at(oc, sine(np.linspace(220, 55, int(RATE * 1.0)), 1.0) * env(int(RATE), .002, .5) * 1.4, 0)
-at(oc, chord([196, 247, 294], 1.4, .7) * .6, .02)
-save('complete', reverb(oc, .3), .8)
-print('wrote', sorted(p.name for p in OUT.glob('*.wav')))
+# three variants of every frequent cue, transposed within D minor
+for v, k in enumerate([1.0, 1.122, .891], 1):
+    sfx = '' if v == 1 else f'_{v}'
+    # key: glassy three-note bell rise with an air tail
+    b = buf(1.6)
+    for i, n in enumerate(['D5', 'F5', 'A5']): at(b, bell(D[n] * k, 1.2, 3.5, 1.4, .7), i * .085, .55)
+    at(b, swell(1.0, 4000, 11000, .2), .05, .08); save('key' + sfx, b, .5, .3)
+    # hack start: low pulse + rising filtered tension (not an alarm)
+    b = buf(1.4); at(b, sub(D['D2'] * k, D['D2'] * k, .9, .35), 0, .9); at(b, sub(D['D2'] * k, D['D2'] * k, .9, .35), .42, .7)
+    s = swell(1.2, 600, 3500, .9); at(b, s, 0, .35); at(b, soft(D['A3'] * k, 1.2, .5, .1), .1, .12); save('hack_start' + sfx, b, .5, .18)
+    # hack success: sub drop + bright FM hit + shimmer
+    b = buf(1.8); at(b, sub(180 * k, 42, .9, .28), 0, 1.0); at(b, bell(D['D5'] * k, 1.0, 2.0, 3.0, .35), 0, .5); at(b, bell(D['A5'] * k, 1.2, 3.5, 1.2, .8), .06, .3)
+    at(b, swell(.5, 2500, 9000, .05), 0, .25); save('hack_success' + sfx, b, .62, .25)
+    # hack failed: muted downward thump, no buzzer
+    b = buf(1.0); at(b, sub(120 * k, 55, .6, .18), 0, .9); at(b, lp(soft(D['F3'] * k, .6, .2, .5), 1200), .02, .4); at(b, soft(D['D3'] * k, .7, .25, .3), .14, .3)
+    save('hack_fail' + sfx, b, .5, .15)
+    # sabotage: glitch grains + detuned minor-second sting
+    b = buf(1.6)
+    for i in range(14): g = bp(noise(.02), 1500 + rng.random() * 5000, 9000) * adsr(int(RATE * .02), .001, .006); at(b, g, rng.random() * .3, .35)
+    st = soft(D['D4'] * k, 1.2, .5, .5) + soft(D['D4'] * k * 1.06, 1.2, .5, .5); at(b, lp(st, 2500), .08, .35); at(b, sub(90 * k, 40, .8, .3), .06, .6)
+    save('sabotage' + sfx, b, .55, .3)
+    # system clean: warm rising major-ish resolution (D -> F -> A -> D)
+    b = buf(1.8)
+    for i, n in enumerate(['D4', 'F4', 'A4', 'D5']): at(b, bell(D[n] * k, 1.3, 1.0, 1.1, .9), i * .07, .4)
+    save('clean' + sfx, b, .5, .35)
+    # firewall: airy whoosh into a soft metallic seat
+    b = buf(1.4); at(b, swell(.45, 500, 4000, .85), 0, .4); at(b, bell(D['D4'] * k, 1.0, 2.76, 1.8, .45), .38, .5); at(b, sub(110 * k, 70, .4, .15), .38, .4)
+    save('firewall' + sfx, b, .5, .25)
+    # multiplier: plucked rising fifths
+    b = buf(1.2)
+    for i, n in enumerate(['A4', 'D5', 'E5', 'A5']): at(b, bell(D[n] * k, .6, 1.0, .8, .25), i * .055, .4)
+    save('multiplier' + sfx, b, .45, .25)
+    # solve (rarely used by the host now): a single soft glint
+    b = buf(.8); at(b, bell(D['A5'] * k, .7, 3.5, .8, .35), 0, .5); save('solve' + sfx, b, .3, .3)
+# clock: wooden tick / tock pair
+for name, f in (('tick', 1900), ('tock', 1400)):
+    b = buf(.25); click = bp(noise(.03), f * .7, f * 1.6) * adsr(int(RATE * .03), .0005, .01); at(b, click, 0, 1); at(b, soft(f / 4, .12, .03, 0), 0, .25)
+    save(name, b, .4, .12)
+# ceremony
+b = buf(2.4)                                                                  # timpani-style roll with crescendo
+for i in range(int(2.2 / .055)):
+    hit = lp(soft(D['D2'] * (1 + rng.random() * .01), .25, .12, .3) + bp(noise(.25), 80, 900) * .3 * adsr(int(RATE * .25), .001, .05), 1500)
+    at(b, hit, i * .055 + rng.random() * .008, .15 + .85 * (i / 40) ** 1.6)
+save('drumroll', b, .55, .25)
+b = buf(2.4); at(b, sub(95, 38, 1.4, .45), 0, 1.0); at(b, swell(.6, 3000, 11000, .03), 0, .2)  # reveal: boom + choir-ish chord
+for n in ['D4', 'F4', 'A4', 'D5']: at(b, soft(D[n], 2.0, .9, .35), .03, .18)
+save('reveal', b, .62, .35)
+b = buf(3.2)                                                                  # fanfare: brassy (filtered saw-ish) D major-ish triumph
+def brass(f, d):
+    t = T(d); x = sum(np.sin(2 * np.pi * f * h * t) / h for h in range(1, 9)); return lp(x, 2600) * adsr(len(t), .03, d * .8, .0)
+for i, (ns, d0) in enumerate([(['A3', 'D4', 'F4'], .25), (['A3', 'D4', 'F4'], .25), (['D4', 'F4', 'A4', 'D5'], 2.2)]):
+    for n in ns: at(b, brass(D[n], d0 + .3), i * .3, .25)
+at(b, sub(73, 60, 1.6, .7), .6, .7); save('fanfare', b, .62, .35)
+b = buf(4.0); n = noise(4.0)                                                   # thunder: crack + long rolling rumble
+at(b, hp(n[:int(RATE * .3)], 1500) * adsr(int(RATE * .3), .0005, .05), 0, 1.0)
+rumble = lp(n, 140, 4) * (np.exp(-T(4.0) / 1.2) * (1 + .5 * np.sin(2 * np.pi * 1.7 * T(4.0)))); b += rumble * 6
+save('thunder', b, .8, .3)
+b = buf(5.0)                                                                  # ghost: breathy choir pad, slow vibrato
+for n in ['D4', 'F4', 'A4', 'C5']:
+    t = T(5.0); f = D[n] * (1 + .005 * np.sin(2 * np.pi * (4.5 + D[n] / 500) * t)); x = np.sin(2 * np.pi * np.cumsum(f) / RATE)
+    x += .25 * np.sin(2 * np.pi * np.cumsum(f * 2) / RATE); e = np.minimum(1, t / 1.5) * np.minimum(1, (5.0 - t) / 1.8); b += x * e * .25
+b += bp(noise(5.0), 900, 3200) * .05 * np.minimum(1, T(5.0) / 1.5) * np.minimum(1, (5.0 - T(5.0)) / 1.8)
+save('ghost', lp(b, 4500), .5, .45)
+b = buf(2.6); at(b, sub(110, 36, 1.8, .7), 0, 1.0)                              # operation complete: deep minor resolve
+for n in ['D3', 'F3', 'A3', 'D4']: at(b, soft(D[n], 2.4, 1.1, .3), .02, .2)
+save('complete', b, .62, .35)
+b = buf(.7); at(b, swell(.6, 700, 5000, .55), 0, 1); save('whoosh', b, .25, .2)
+print('wrote', len(list(OUT.glob('*.wav'))), 'files')
