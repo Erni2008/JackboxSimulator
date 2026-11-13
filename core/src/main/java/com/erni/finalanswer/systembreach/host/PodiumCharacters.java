@@ -52,7 +52,7 @@ final class PodiumCharacters {
         switch(s.virus){
             case "MAGNETIC_BUTTONS"->{dx+=MathUtils.sin(time*.9f)*12*vk;dy+=MathUtils.sin(time*1.3f)*5*vk;}
             case "SHUFFLE_ATTACK"->{int st=(int)time;float o0=off(st-1),o1=off(st),f=Math.min(1,(time-st)*5);dx+=MathUtils.lerp(o0,o1,f)*vk;}
-            case "SCREEN_GLITCH"->{if(((int)(time*9))%6==0)dx+=(((int)(time*31))%2==0?7:-7)*vk;}
+            case "SCREEN_GLITCH"->{float gb=glitchBurst(time);if(gb>0)dx+=(((int)(time*37))%2==0?9:-9)*gb*vk;}
             default->{}
         }
         float bottom=panelTop()-CHARACTER_SINK+dy;
@@ -61,6 +61,11 @@ final class PodiumCharacters {
             float cw=CHARACTER_W*sw,ch=CHARACTER_H*sh;
             actor.setBounds(x-cw/2+dx,bottom,cw,ch);actor.setColor(r,g,bl,a);actor.act(dt);actor.draw(b,1);
             if(flash>0){b.setBlendFunction(com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,com.badlogic.gdx.graphics.GL20.GL_ONE);actor.setColor(.35f,1,.55f,flash);actor.draw(b,1);b.setBlendFunction(com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA);}
+            if(s.virus.equals("SCREEN_GLITCH")){float gb=glitchBurst(time)*vk,o=3+11*gb;   // chromatic aberration: red/cyan ghosts split apart in bursts
+                b.setBlendFunction(com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,com.badlogic.gdx.graphics.GL20.GL_ONE);
+                actor.setBounds(x-cw/2+dx-o,bottom,cw,ch);actor.setColor(1,.08f,.08f,(.18f+.4f*gb)*vk);actor.draw(b,1);
+                actor.setBounds(x-cw/2+dx+o,bottom+(gb>0?2:0),cw,ch);actor.setColor(.1f,.85f,1,(.18f+.4f*gb)*vk);actor.draw(b,1);
+                b.setBlendFunction(com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA);}
             if(s.virus.equals("GHOST_BUTTONS")){actor.setBounds(x-CHARACTER_W/2+dx+MathUtils.sin(time*1.6f)*16,bottom+4,CHARACTER_W,CHARACTER_H);actor.setColor(.55f,.9f,1,.28f*vk);actor.draw(b,1);}
             b.setColor(1,1,1,1);return;
         }
@@ -75,5 +80,7 @@ final class PodiumCharacters {
         Texture portrait=assets.portrait(s.characterId);if(portrait==null)return;float ph=h*.82f,pw=ph*portrait.getWidth()/portrait.getHeight();
         b.setColor(r,g,bl,a);b.draw(portrait,cx-pw/2,bottom,pw,ph);b.setColor(1,1,1,1);
     }
+    /** 0 between bursts; short irregular bursts (~0.3 s every ~1.4 s) like a real signal dropout. */
+    static float glitchBurst(float time){float c=time%1.4f;return c<.3f?(((int)(time*24))%3==0?.35f:1f):c>.8f&&c<.86f?.5f:0;}
     private static float off(int step){float v=MathUtils.sin(step*91.7f)*437.5f;v-=(float)Math.floor(v);return (v<.33f?-1:v<.66f?0:1)*11;}
 }

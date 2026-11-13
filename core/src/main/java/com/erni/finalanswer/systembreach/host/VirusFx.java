@@ -32,9 +32,15 @@ final class VirusFx {
         String name=tag(s);float tw=paint.width(assets.labelSmall,name)+30;
         paint.plate(x-tw/2,TAG_Y,tw,24,7,tmp.set(.55f,.06f,.04f,.92f*k),DARK);paint.outline(x-tw/2+2,TAG_Y+2,tw-4,20,6,1.4f,tmp.set(RED.r,RED.g,RED.b,(.6f+.4f*MathUtils.sin(time*4))*k));
         switch(s.virus){
-            case "SCREEN_GLITCH"->{int frame=(int)(time*9);for(int i=0;i<4;i++){float r=hash(frame*7+i+s.id.hashCode());if(r<.35f)continue;
-                float y=y0+20+hash(frame*13+i)*(CHARACTER_H-40),w=50+hash(frame*3+i)*130,h=2+hash(frame*5+i)*5,bx=x-w/2+(hash(frame+i*9)-.5f)*60;
-                var c=i%2==0?RED:CYAN;sh.setColor(c.r,c.g,c.b,.30f*k);sh.rect(bx,y,w,h);}}
+            case "SCREEN_GLITCH"->{float gb=PodiumCharacters.glitchBurst(time);int frame=(int)(time*20);float top=y0+CHARACTER_H;
+                y0=panelTop()+10;float span=top-y0;
+                if(gb>0){// tearing: horizontal strips shifted sideways, with a thin bright leading edge
+                    for(int i=0;i<5;i++){float r=hash(frame*7+i+s.id.hashCode());if(r<.3f)continue;
+                        float y=y0+hash(frame*13+i)*(span-14),h=2+hash(frame*5+i)*9,w=90+hash(frame*3+i)*90,bx=x-w/2+(hash(frame+i*9)-.5f)*50;
+                        sh.setColor(.02f,.02f,.03f,.3f*gb*k);sh.rect(bx,y,w,h);var c=i%2==0?RED:CYAN;sh.setColor(c.r,c.g,c.b,.55f*gb*k);sh.rect(bx,y+h-1.2f,w,1.2f);}
+                    // block noise: small digital macro-blocks
+                    for(int i=0;i<9;i++){float r=hash(frame*31+i);if(r<.45f)continue;float bs=4+hash(frame*17+i)*8;
+                        sh.setColor(hash(i+frame)>.5f?.9f:.2f,hash(i*3+frame)>.5f?.9f:.3f,1,.35f*gb*k);sh.rect(x-80+hash(frame*11+i)*160,y0+hash(frame*19+i)*span,bs*2,bs);}}}
             case "POPUP_STORM"->{for(int i=0;i<3;i++){float ph=(time*.55f+i/3f)%1f;if(ph>.78f)continue;int cyc=(int)(time*.55f+i/3f);float a=k*Math.min(1,ph/.08f)*Math.min(1,(.78f-ph)/.1f);
                 float wx=x-90+hash(cyc*11+i)*130,wy=y0+60+hash(cyc*17+i)*150,w=58,h=36;
                 sh.setColor(0,0,0,.6f*a);sh.rect(wx+3,wy-3,w,h);sh.setColor(.10f,.02f,.02f,.92f*a);sh.rect(wx,wy,w,h);sh.setColor(.75f,.08f,.05f,a);sh.rect(wx,wy+h-9,w,9);
