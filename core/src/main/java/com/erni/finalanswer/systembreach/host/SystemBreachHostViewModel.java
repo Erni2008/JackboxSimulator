@@ -24,6 +24,8 @@ public final class SystemBreachHostViewModel {
         public int delta;public float deltaAge=99;              // floating "+15 AP"
         public Reaction reaction=Reaction.NONE;public float reactionAge=99;
         public float boardY=-1,multAge=99,rankAge=99;public int shownRank;
+        /** Live sabotage virus on this player (server type name, empty when clean) and how long it has been there. */
+        public String virus="";public float virusAge=99;
         private int rankKey=-1;private double multKey=-1;private String rankText="",multText="";
         public String rankText(){if(rankKey!=rank){rankKey=rank;rankText=String.valueOf(rank);}return rankText;}
         public String multText(){if(multKey!=multiplier){multKey=multiplier;multText="×"+fmt(multiplier);}return multText;}                                  // eased leaderboard row position
@@ -49,6 +51,11 @@ public final class SystemBreachHostViewModel {
     /** "1.3", "2" — one decimal, no trailing zero. */
     public static String fmt(double v){long t=Math.round(v*10);return t%10==0?String.valueOf(t/10):(t/10)+"."+(t%10);}
     private double roundMult=1;private String roundText="×1";public double roundMult(){return roundMult;}public String roundText(){return roundText;}
+    /** Centre-stage banner in parts: a small kicker above, then "actor verb » target  detail". */
+    public record Toast(String kicker,String actor,String verb,String target,String detail){
+        public String line(){return (actor.isEmpty()?"":actor+"  ")+verb+(target.isEmpty()?"":"  »  "+target)+(detail.isEmpty()?"":"   "+detail);}
+    }
+    private Toast toastParts=new Toast("","","","","");public Toast toastParts(){return toastParts;}
     private String toast="";private Tone toastTone=Tone.MUTED;private float toastAge=99;
 
     private static final int LOG_SIZE=4;private static final long UPGRADE_SHOW_MS=2600,ATTACK_STALE_MS=30_000;
@@ -81,9 +88,11 @@ public final class SystemBreachHostViewModel {
             int ap=num(p,"accessPoints");if(s.shownAp<0){s.shownAp=ap;}else if(ap!=s.ap&&s.rank>0){s.delta=ap-s.ap;s.deltaAge=0;}
             s.ap=ap;s.firewall=num(p,"firewallLevel");s.rank=num(p,"rank");ranking.add(s);
         }
-        {double rm=sb.has("roundMultiplier")?sb.get("roundMultiplier").getAsDouble():1;if(rm!=roundMult){if(rm>roundMult&&roundMult>=1&&lastSequence>=0&&rm>1){toast=L("ROUND BONUS  POINTS ×"+fmt(rm),"БОНУС РАУНДА  ОЧКИ ×"+fmt(rm));toastAge=0;toastTone=Tone.REWARD;}roundMult=rm;roundText="×"+fmt(rm);}}
+        {double rm=sb.has("roundMultiplier")?sb.get("roundMultiplier").getAsDouble():1;if(rm!=roundMult){if(rm>roundMult&&roundMult>=1&&lastSequence>=0&&rm>1){toastParts=new Toast(L("ROUND BONUS","БОНУС РАУНДА"),"",L("every answer is worth more","все ответы ценятся дороже"),"","×"+fmt(rm));toast=toastParts.line();toastAge=0;toastTone=Tone.REWARD;}roundMult=rm;roundText="×"+fmt(rm);}}
         if(sb.has("multipliers"))for(var e:sb.getAsJsonObject("multipliers").entrySet()){Slot s=byId.get(e.getKey());if(s!=null){double m=e.getValue().getAsDouble();if(s.multiplier!=m)s.multAge=0;s.multiplier=m;}}
         for(int i=0;i<ranking.size();i++)ranking.get(i).leader=i==0&&ranking.get(i).ap>0;
+        {JsonObject inf=sb.has("sabotage")&&sb.get("sabotage").isJsonObject()?sb.getAsJsonObject("sabotage"):new JsonObject();
+         for(Slot s:slots){String v=inf.has(s.id)?inf.get(s.id).getAsString():"";if(!v.equals(s.virus)){s.virus=v;s.virusAge=0;}}}
 
         JsonArray events=sb.has("events")?sb.getAsJsonArray("events"):new JsonArray();
         Map<String,Long> underAttack=new HashMap<>();Map<String,Long> upgradedAt=new HashMap<>();
@@ -96,7 +105,7 @@ public final class SystemBreachHostViewModel {
                 default->{}
             }
             if(seq>lastSequence){
-                if(lastSequence>=0){react(type,a,t);String big=headline(type,a,t,num(ev,"amount"));if(big!=null){toast=big;toastAge=0;toastTone=type.equals("MULTIPLIER_UPGRADED")?Tone.REWARD:type.equals("ATTACK_FAILED")||type.equals("ATTACK_EXPIRED")?Tone.RECOVERY:type.equals("FIREWALL_UPGRADED")?Tone.FIREWALL:type.startsWith("RECOVERY")||type.equals("EMERGENCY_RESTORED")?Tone.REWARD:Tone.HACK;}}
+                if(lastSequence>=0){react(type,a,t);Toast big=headline(type,a,t,num(ev,"amount"));if(big!=null){toastParts=big;toast=big.line();toastAge=0;toastTone=type.equals("MULTIPLIER_UPGRADED")?Tone.REWARD:type.equals("ATTACK_FAILED")||type.equals("ATTACK_EXPIRED")?Tone.RECOVERY:type.equals("FIREWALL_UPGRADED")?Tone.FIREWALL:type.equals("SABOTAGE_BLOCKED")?Tone.FIREWALL:type.equals("SABOTAGE_CLEARED")?Tone.REWARD:type.startsWith("RECOVERY")||type.equals("EMERGENCY_RESTORED")?Tone.REWARD:Tone.HACK;}}
                 LogLine line=line(type,a,t,num(ev,"amount"),seq);if(line!=null)line=new LogLine(line.sequence(),line.text(),line.tone(),Math.max(0,at-phaseStartedAt));
                 if(line!=null){log.addLast(line);if(log.size()>LOG_SIZE)log.removeFirst();System.arraycopy(logAge,0,logAge,1,LOG_SIZE-1);logAge[0]=lastSequence<0?99:0;}
             }
@@ -133,8 +142,8 @@ public final class SystemBreachHostViewModel {
     private LogLine line(String type,String a,String t,int amount,long seq){
         return switch(type){
             case "ATTACK_STARTED"->new LogLine(seq,L(who(t)+" is being hacked!","Взлом: "+who(t)+"!"),Tone.HACK,0);
-            case "ATTACK_SUCCEEDED"->new LogLine(seq,L(who(a)+" hacked "+who(t),who(a)+" взломал "+who(t))+(amount>0?"  +"+amount+" AP":""),Tone.HACK,0);
-            case "ATTACK_FAILED"->new LogLine(seq,L(who(t)+" repelled "+who(a),who(t)+" отбил атаку "+who(a)),Tone.FIREWALL,0);
+            case "ATTACK_SUCCEEDED"->new LogLine(seq,who(a)+" » "+who(t)+L(": hacked",": взлом")+(amount>0?"  +"+amount+" AP":""),Tone.HACK,0);
+            case "ATTACK_FAILED"->new LogLine(seq,who(t)+L(": attack repelled",": атака отражена")+" « "+who(a),Tone.FIREWALL,0);
             case "ATTACK_EXPIRED","ATTACK_INTERRUPTED"->new LogLine(seq,L(who(a)+" lost the link to "+who(t),who(a)+" потерял связь с "+who(t)),Tone.MUTED,0);
             case "RECOVERY_START"->new LogLine(seq,L(who(t)+" started recovery",who(t)+" начал восстановление"),Tone.RECOVERY,0);
             case "RECOVERY_RETRY"->new LogLine(seq,L(who(t)+" recovery failed, retrying",who(t)+": сбой, повтор"),Tone.RECOVERY,0);
@@ -148,9 +157,9 @@ public final class SystemBreachHostViewModel {
             case "SYSTEM_OVERLOAD"->new LogLine(seq,L(who(a)+" overloaded "+who(t),who(a)+" перегрузил "+who(t)),Tone.HACK,0);
             case "FIREWALL_BREAKER"->new LogLine(seq,L(who(a)+" broke "+who(t)+"'s firewall",who(a)+" пробил фаервол "+who(t)),Tone.HACK,0);
             case "TRACE_ATTACK"->new LogLine(seq,L(who(a)+" is tracing "+who(t),who(a)+" отслеживает "+who(t)),Tone.HACK,0);
-            case "SABOTAGE_STARTED"->new LogLine(seq,L(who(a)+" infected "+who(t)+": "+virus(amount,false),who(a)+" заразил "+who(t)+": "+virus(amount,true)),Tone.HACK,0);
-            case "SABOTAGE_BLOCKED"->new LogLine(seq,L(who(t)+"'s firewall stopped a virus",who(t)+": фаервол отбил вирус"),Tone.FIREWALL,0);
-            case "SABOTAGE_CLEARED"->new LogLine(seq,L(who(t)+" removed the virus",who(t)+" удалил вирус"),Tone.REWARD,0);
+            case "SABOTAGE_STARTED"->new LogLine(seq,who(a)+" » "+who(t)+L(": sabotage, ",": саботаж, ")+virus(amount,ru).toLowerCase(),Tone.HACK,0);
+            case "SABOTAGE_BLOCKED"->new LogLine(seq,who(t)+L(": firewall stopped the virus",": фаервол отбил вирус")+" « "+who(a),Tone.FIREWALL,0);
+            case "SABOTAGE_CLEARED"->new LogLine(seq,who(t)+L(": virus removed",": вирус удалён"),Tone.REWARD,0);
             case "SABOTAGE_EXPIRED"->new LogLine(seq,L(who(t)+"'s virus burned out",who(t)+": вирус выдохся"),Tone.MUTED,0);
             case "RESULTS"->new LogLine(seq,L("Operation complete","Операция завершена"),Tone.MUTED,0);
             default->null;
@@ -158,17 +167,19 @@ public final class SystemBreachHostViewModel {
     }
 
     /** The big centre-stage banner: only the moments worth a cheer. */
-    private String headline(String type,String a,String t,int amount){
+    private Toast headline(String type,String a,String t,int amount){
+        String plus=amount>0?"+"+amount+" AP":"";
         return switch(type){
-            case "ATTACK_FAILED"->L("HACK FAILED  "+who(a)+" > "+who(t),"ПРОВАЛ ВЗЛОМА  "+who(a)+" > "+who(t));
-            case "ATTACK_EXPIRED"->L("HACK TIMED OUT  "+who(a),"ВРЕМЯ ВЗЛОМА ВЫШЛО  "+who(a));
-            case "ATTACK_SUCCEEDED"->L("HACK SUCCESS  ","ВЗЛОМ УДАЛСЯ  ")+L(who(a)+" > "+who(t),who(a)+" > "+who(t))+(amount>0?"   +"+amount+" AP":"");
-            case "MULTIPLIER_UPGRADED"->who(t)+L("  POINTS ×","  ОЧКИ ×")+fmt(amount/10.0);
-            case "FIREWALL_UPGRADED"->who(t)+L("  FIREWALL LV.","  ФАЕРВОЛ УР.")+amount;
-            case "RECOVERY_SUCCEEDED"->who(t)+L(" IS BACK ONLINE"," СНОВА В СЕТИ");
-            case "SABOTAGE_STARTED"->L("SABOTAGE!  ","САБОТАЖ!  ")+who(a)+" > "+who(t)+"   "+virus(amount,ru);
-            case "SABOTAGE_BLOCKED"->L("VIRUS BLOCKED  ","ВИРУС ОТБИТ  ")+who(t);
-            case "TROJAN","DATA_LEAK","SYSTEM_OVERLOAD","FIREWALL_BREAKER","TRACE_ATTACK"->L(type.replace('_',' '),switch(type){case "TROJAN"->"ТРОЯН";case "DATA_LEAK"->"УТЕЧКА ДАННЫХ";case "SYSTEM_OVERLOAD"->"ПЕРЕГРУЗКА";case "FIREWALL_BREAKER"->"ПРОБОЙ ФАЕРВОЛА";default->"СЛЕЖКА";})+"!  "+who(a)+" > "+who(t);
+            case "ATTACK_SUCCEEDED"->new Toast(L("HACK SUCCESSFUL","ВЗЛОМ УДАЛСЯ"),who(a),L("breaks into the system","взламывает систему"),who(t),plus);
+            case "ATTACK_FAILED"->new Toast(L("HACK FAILED","ПРОВАЛ ВЗЛОМА"),who(t),L("repels the attack","отражает атаку"),who(a),"");
+            case "ATTACK_EXPIRED"->new Toast(L("HACK TIMED OUT","ВРЕМЯ ВЗЛОМА ВЫШЛО"),who(a),L("loses the connection","теряет соединение"),who(t),"");
+            case "MULTIPLIER_UPGRADED"->new Toast(L("UPGRADE","УЛУЧШЕНИЕ"),who(t),L("raises the points multiplier","повышает множитель очков"),"","×"+fmt(amount/10.0));
+            case "FIREWALL_UPGRADED"->new Toast(L("DEFENCE","ЗАЩИТА"),who(t),L("reinforces the firewall","укрепляет фаервол"),"",L("LV.","УР. ")+amount);
+            case "RECOVERY_SUCCEEDED"->new Toast(L("SYSTEM RESTORED","СИСТЕМА ВОССТАНОВЛЕНА"),who(t),L("is back online","снова в сети"),"","");
+            case "SABOTAGE_STARTED"->new Toast(L("SABOTAGE","САБОТАЖ")+"  ·  "+virus(amount,ru),who(a),L("launches a sabotage","устраивает саботаж"),who(t),"");
+            case "SABOTAGE_BLOCKED"->new Toast(L("VIRUS BLOCKED","ВИРУС ОТБИТ"),who(t),L("firewall stops the virus from","фаервол останавливает вирус от"),who(a),"");
+            case "SABOTAGE_CLEARED"->new Toast(L("SYSTEM CLEAN","СИСТЕМА ОЧИЩЕНА"),who(t),L("removes the virus","удаляет вирус"),"","");
+            case "TROJAN","DATA_LEAK","SYSTEM_OVERLOAD","FIREWALL_BREAKER","TRACE_ATTACK"->new Toast(L(type.replace('_',' '),switch(type){case "TROJAN"->"ТРОЯН";case "DATA_LEAK"->"УТЕЧКА ДАННЫХ";case "SYSTEM_OVERLOAD"->"ПЕРЕГРУЗКА";case "FIREWALL_BREAKER"->"ПРОБОЙ ФАЕРВОЛА";default->"СЛЕЖКА";}),who(a),L("strikes","наносит удар"),who(t),plus);
             default->null;
         };
     }
@@ -178,7 +189,7 @@ public final class SystemBreachHostViewModel {
     /** Display easing only. */
     public void update(float dt){
         for(Slot s:slots){
-            s.statusAge+=dt;s.deltaAge+=dt;s.reactionAge+=dt;s.multAge+=dt;s.rankAge+=dt;if(s.shownRank!=s.rank){if(s.shownRank!=0)s.rankAge=0;s.shownRank=s.rank;}
+            s.statusAge+=dt;s.deltaAge+=dt;s.virusAge+=dt;s.reactionAge+=dt;s.multAge+=dt;s.rankAge+=dt;if(s.shownRank!=s.rank){if(s.shownRank!=0)s.rankAge=0;s.shownRank=s.rank;}
             float k=1-(float)Math.exp(-dt*6);s.shownAp+=(s.ap-s.shownAp)*k;if(Math.abs(s.ap-s.shownAp)<.5f)s.shownAp=s.ap;
         }
         for(int i=0;i<LOG_SIZE;i++)logAge[i]+=dt;toastAge+=dt;
@@ -213,5 +224,7 @@ public final class SystemBreachHostViewModel {
     private static boolean flag(JsonObject o,String k){return o.has(k)&&!o.get(k).isJsonNull()&&o.get(k).getAsBoolean();}
     /** Virus names in {@code Sabotage.Type} order on the server. */
     private static final String[][] VIRUSES={{"SHUFFLE ATTACK","ПЕРЕМЕШКА"},{"NUMBER HUNT","ОХОТА НА ЦИФРЫ"},{"POP-UP STORM","ШТОРМ ОКОН"},{"GHOST BUTTONS","КНОПКИ-ПРИЗРАКИ"},{"SCREEN GLITCH","ГЛИТЧ ЭКРАНА"},{"LOCKED ANSWERS","ЗАМОК"},{"MAGNETIC BUTTONS","МАГНИТНЫЕ КНОПКИ"}};
+    /** Short virus name for a server type name. */
+    public String virusName(String type){String[] names={"SHUFFLE_ATTACK","NUMBER_HUNT","POPUP_STORM","GHOST_BUTTONS","SCREEN_GLITCH","LOCKED_ANSWERS","MAGNETIC_BUTTONS"};for(int i=0;i<names.length;i++)if(names[i].equals(type))return virus(i,ru);return "";}
     private static String virus(int index,boolean ru){return index>=0&&index<VIRUSES.length?VIRUSES[index][ru?1:0]:"";}
 }

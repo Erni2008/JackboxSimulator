@@ -1,6 +1,7 @@
 package com.erni.finalanswer.systembreach.host;
 
 import com.badlogic.gdx.*;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -34,12 +35,13 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
     private final Consumer<String> end;
     private final HackerFx fx=new HackerFx();
     private final ResultsCeremony ceremony=new ResultsCeremony();
+    private VirusFx virus;
     private float time;private static final com.badlogic.gdx.graphics.Color VIG=new com.badlogic.gdx.graphics.Color(0,0,0,.55f),CLEAR=new com.badlogic.gdx.graphics.Color(0,0,0,0);
 
     public SystemBreachHostScreen(JsonObject root,CageLobby roomCharacters,Consumer<String> end){this(root,roomCharacters,end,false);}
     /** @param russian host language from the game settings; labels and log lines follow it. */
     public SystemBreachHostScreen(JsonObject root,CageLobby roomCharacters,Consumer<String> end,boolean russian){
-        assets=new SystemBreachHostAssets(russian);model=new SystemBreachHostViewModel(russian);this.end=end;characters=new PodiumCharacters(roomCharacters,assets);apply(root);
+        assets=new SystemBreachHostAssets(russian);model=new SystemBreachHostViewModel(russian);this.end=end;characters=new PodiumCharacters(roomCharacters,assets);virus=new VirusFx().bind(model);apply(root);
     }
     /** Called on the render thread with each room snapshot. */
     public void apply(JsonObject root){model.apply(root);}
@@ -63,6 +65,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
             batch.setColor(.9f*k,.85f*k,.8f*k,.10f);batch.draw(assets.glow,x-150,panelTop()-40,300,420);
             batch.setColor(c.r,c.g,c.b,.14f*k);batch.draw(assets.glow,x-120,panelTop()-30,240,200);
             if(s.leader||s.id.equals(winner)){float pl=.75f+.25f*MathUtils.sin(time*2.4f);batch.setColor(1,.75f,.25f,.30f*pl);batch.draw(assets.glow,x-170,panelTop()-40,340,380);}}
+        for(int i=0;i<n;i++)virus.glow(batch,assets,slots.get(i),slotX(i,n),time);
         batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
         for(int i=0;i<n;i++)characters.draw(batch,slots.get(i),slotX(i,n),time+i*.37f,dt,slots.get(i).id.equals(winner));
         batch.setColor(1,1,1,1);batch.end();
@@ -71,6 +74,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         {var dk=VIG;var cl=CLEAR;shapes.rect(0,H-260,W,260,cl,cl,dk,dk);shapes.rect(0,0,W,220,dk,dk,cl,cl);shapes.rect(0,0,220,H,dk,cl,cl,dk);shapes.rect(W-220,0,220,H,cl,dk,dk,cl);}
         for(int i=0;i<n;i++)podium.shapes(paint,shapes,slots.get(i),slotX(i,n),time);
+        for(int i=0;i<n;i++)virus.shapes(paint,shapes,assets,slots.get(i),slotX(i,n),time);
                 fx.scanlines(shapes,TIMER.x+20,TIMER.y+20,TIMER.width-40,TIMER.height-40,.12f,time);fx.scanlines(shapes,LOG.x+20,LOG.y+20,LOG.width-40,LOG.height-40,.12f,time+2);
         fx.attackLinks(shapes,model.attacks(),model,n,time);
         timer.shapes(paint,model,time);title.shapes(paint,shapes,time);log.shapes(paint,model);board.shapes(paint,shapes,model);toastShape();
@@ -84,6 +88,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         fx.attackGlow(batch,assets,model.attacks(),model,n,time);timer.glow(batch,assets,model,time);title.glow(batch,assets,time);
         batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.setColor(1,1,1,1);
         for(int i=0;i<n;i++)podium.text(batch,paint,assets,slots.get(i),slotX(i,n),time);
+        for(int i=0;i<n;i++)virus.text(batch,paint,assets,slots.get(i),slotX(i,n),time);
         timer.text(batch,paint,assets,model,time);title.text(batch,paint,assets,time);log.text(batch,paint,assets,model);board.text(batch,paint,assets,model);
         toastText();
         long left=model.remainingMs();if(model.phase().equals("ACTIVE")&&left>0&&left<=10_000){float a=(.18f+.12f*MathUtils.sin(time*6.3f))*(1-left/10_000f*.5f);
@@ -131,14 +136,24 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         batch.begin();paint.centered(batch,assets.label,model.ru()?"СИСТЕМА ЗАХВАЧЕНА":"SYSTEM OWNED BY",cx,y+84,SbPaint.GOLD,k);
         paint.centered(batch,assets.board,paint.fit(assets.board,w.name+"   "+w.ap+" AP",bw-60),cx,y+46,SbPaint.IVORY,k);batch.end();
     }
-    private void toastShape(){float k=toastK();if(k<=0)return;float w=Math.min(1040,paint.width(assets.board,model.toast())+180)*Math.min(1,k);
+    private static final Color VERB=new Color(.78f,.80f,.76f,1);
+    private float toastWidth(){var t=model.toastParts();return paint.width(assets.board,t.line())+40;}
+    /** Plate with a tone-coloured kicker tab on top; the line itself is drawn in parts by {@link #toastText()}. */
+    private void toastShape(){float k=toastK();if(k<=0)return;var t=model.toastParts();float w=Math.min(1240,toastWidth()+180)*Math.min(1,k);
         var c=SbPaint.tone(model.toastTone());float x=W/2-w/2;
         shapes.setColor(0,0,0,.55f*Math.min(1,k));shapes.rect(x-10,TOAST_Y-14,w+20,TOAST_H+20);
-        paint.plate(x,TOAST_Y-4,w,TOAST_H+8,22,SbPaint.TRIM,SbPaint.TRIM_DARK);paint.plate(x+5,TOAST_Y+1,w-10,TOAST_H-2,18,toastTop.set(c.r*.25f,c.g*.25f,c.b*.25f,.97f),TOAST_BOTTOM);
+        paint.plate(x,TOAST_Y-4,w,TOAST_H+8,22,SbPaint.TRIM,SbPaint.TRIM_DARK);paint.plate(x+5,TOAST_Y+1,w-10,TOAST_H-2,18,toastTop.set(c.r*.22f,c.g*.22f,c.b*.22f,.97f),TOAST_BOTTOM);
         paint.outline(x+10,TOAST_Y+6,w-20,TOAST_H-12,14,2.2f,c);
+        // light sweep across the plate as it lands
+        float sw=Math.min(1,model.toastAge()/.9f);if(sw<1){float sx=x+w*sw;shapes.setColor(c.r,c.g,c.b,.25f*(1-sw));shapes.rect(sx-30,TOAST_Y+8,60,TOAST_H-16);}
+        if(!t.kicker().isEmpty()){float kw=paint.width(assets.labelSmall,t.kicker())+44;paint.plate(W/2-kw/2,TOAST_Y+TOAST_H-2,kw,30,9,c,toastTop.set(c.r*.7f,c.g*.7f,c.b*.7f,1));}
         for(int s=-1;s<=1;s+=2){float ex=W/2+s*(w/2+26);shapes.setColor(c);shapes.triangle(ex,TOAST_Y+TOAST_H/2,ex-s*22,TOAST_Y+TOAST_H/2+16,ex-s*22,TOAST_Y+TOAST_H/2-16);}}
-    private void toastText(){float k=toastK();if(k<.6f)return;var c=SbPaint.tone(model.toastTone());
-        paint.centered(batch,assets.board,paint.fit(assets.board,model.toast(),980),W/2,TOAST_Y+TOAST_H/2+assets.board.getCapHeight()/2+2,c.r+c.g+c.b>2?SbPaint.IVORY:SbPaint.IVORY,Math.min(1,(k-.6f)/.3f));}
+    private void toastText(){float k=toastK();if(k<.6f)return;var t=model.toastParts();var c=SbPaint.tone(model.toastTone());float a=Math.min(1,(k-.6f)/.3f);
+        if(!t.kicker().isEmpty())paint.centered(batch,assets.labelSmall,t.kicker(),W/2,TOAST_Y+TOAST_H+21,TOAST_BOTTOM,a);
+        String[] parts={t.actor().isEmpty()?"":t.actor()+"  ",t.verb(),t.target().isEmpty()?"":"  »  ",t.target(),t.detail().isEmpty()?"":"   "+t.detail()};
+        Color[] colors={SbPaint.IVORY,VERB,c,c,SbPaint.GOLD};float total=0;for(String p:parts)total+=paint.width(assets.board,p);
+        float x=W/2-total/2,y=TOAST_Y+TOAST_H/2+assets.board.getCapHeight()/2+2;
+        for(int i=0;i<parts.length;i++){if(parts[i].isEmpty())continue;paint.text(batch,assets.board,parts[i],x,y,colors[i],a);x+=paint.width(assets.board,parts[i]);}}
 
     @Override public void dispose(){batch.dispose();shapes.dispose();assets.dispose();}
 }

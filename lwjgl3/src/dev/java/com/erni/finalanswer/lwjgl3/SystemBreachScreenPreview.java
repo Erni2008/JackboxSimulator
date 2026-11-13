@@ -36,7 +36,7 @@ public final class SystemBreachScreenPreview {
             void script(){
                 int k=step++,a=k%count,t=(k*3+1)%count;if(t==a)t=(t+1)%count;
                 switch(k%7){
-                    case 0->{ap[a]+=15;event("CHALLENGE_SOLVED",-1,a,15);}
+                    case 0->{event("SABOTAGE_STARTED",a,t,4);}
                     case 1->event("ATTACK_STARTED",a,t,0);
                     case 2->{int p=(k-1)%count,q=((k-1)*3+1)%count;if(q==p)q=(q+1)%count;int n=Math.min(20,ap[q]);ap[q]-=n;ap[p]+=n;compromised[q]=true;event("ATTACK_SUCCEEDED",p,q,n);}
                     case 3->{int q=((k-2)*3+1)%count,p=(k-2)%count;if(q==p)q=(q+1)%count;recovering[q]=true;event("RECOVERY_START",-1,q,0);}
@@ -54,7 +54,7 @@ public final class SystemBreachScreenPreview {
                 for(int i:order){JsonObject p=new JsonObject();p.addProperty("playerId","p"+i);p.addProperty("nickname",names[i]);p.addProperty("accessPoints",ap[i]);p.addProperty("firewallLevel",fw[i]);
                     p.addProperty("compromised",compromised[i]);p.addProperty("recovering",recovering[i]);p.addProperty("disconnected",count==8&&i==6);p.addProperty("rank",++rank);rows.add(p);}
                 if(!phase.equals("ACTIVE"))sb.addProperty("winnerId","p"+order[0]);
-                sb.add("players",rows);JsonObject mult=new JsonObject();for(int i=0;i<count;i++)mult.addProperty("p"+i,new double[]{1,1.3,1.5,1.8,2,2.5}[(i*5+(int)((now-start)/7000))%6]);sb.add("multipliers",mult);sb.addProperty("roundMultiplier",1+0.1*((now-start)/6000));JsonArray ev=new JsonArray();for(var e:events)ev.add(e);sb.add("events",ev);
+                sb.add("players",rows);JsonObject mult=new JsonObject();for(int i=0;i<count;i++)mult.addProperty("p"+i,new double[]{1,1.3,1.5,1.8,2,2.5}[(i*5+(int)((now-start)/7000))%6]);sb.add("multipliers",mult);sb.addProperty("roundMultiplier",1+0.1*((now-start)/6000));JsonArray ev=new JsonArray();for(var e:events)ev.add(e);sb.add("events",ev);{String[] vt={"SCREEN_GLITCH","POPUP_STORM","LOCKED_ANSWERS","NUMBER_HUNT","GHOST_BUTTONS","SHUFFLE_ATTACK","MAGNETIC_BUTTONS"};JsonObject inf=new JsonObject();for(int i=0;i<count;i+=2)inf.addProperty("p"+i,vt[(i/2)%vt.length]);sb.add("sabotage",inf);}
                 JsonObject root=new JsonObject();root.add("systemBreach",sb);JsonArray players=new JsonArray();
                 for(int i=0;i<count;i++){JsonObject p=new JsonObject();p.addProperty("id","p"+i);p.addProperty("name",names[i]);p.addProperty("characterId",chars[i]);players.add(p);}
                 root.add("players",players);return root;

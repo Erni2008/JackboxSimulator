@@ -42,11 +42,20 @@ final class PodiumCharacters {
             default->{}
         }
         if(winner)dy+=Math.abs(MathUtils.sin(time*3.4f))*14;
+        // sabotage viruses, softly: drifting, stepping, jittering; a ghost after-image for GHOST BUTTONS
+        float vk=Math.min(1,s.virusAge/.6f);
+        switch(s.virus){
+            case "MAGNETIC_BUTTONS"->{dx+=MathUtils.sin(time*.9f)*12*vk;dy+=MathUtils.sin(time*1.3f)*5*vk;}
+            case "SHUFFLE_ATTACK"->{int st=(int)time;float o0=off(st-1),o1=off(st),f=Math.min(1,(time-st)*5);dx+=MathUtils.lerp(o0,o1,f)*vk;}
+            case "SCREEN_GLITCH"->{if(((int)(time*9))%6==0)dx+=(((int)(time*31))%2==0?7:-7)*vk;}
+            default->{}
+        }
         float bottom=panelTop()-CHARACTER_SINK+dy;
         var actor=actor(s);
         if(actor!=null){
             actor.setBounds(x-CHARACTER_W/2+dx,bottom,CHARACTER_W,CHARACTER_H);actor.setColor(r,g,bl,a);actor.act(dt);actor.draw(b,1);
-            return;
+            if(s.virus.equals("GHOST_BUTTONS")){actor.setBounds(x-CHARACTER_W/2+dx+MathUtils.sin(time*1.6f)*16,bottom+4,CHARACTER_W,CHARACTER_H);actor.setColor(.55f,.9f,1,.28f*vk);actor.draw(b,1);}
+            b.setColor(1,1,1,1);return;
         }
         Texture portrait=assets.portrait(s.characterId);if(portrait==null)return;   // isolated fallback, see ASSETS.md
         float h=CHARACTER_H*.82f,w=h*portrait.getWidth()/portrait.getHeight();
@@ -59,4 +68,5 @@ final class PodiumCharacters {
         Texture portrait=assets.portrait(s.characterId);if(portrait==null)return;float ph=h*.82f,pw=ph*portrait.getWidth()/portrait.getHeight();
         b.setColor(r,g,bl,a);b.draw(portrait,cx-pw/2,bottom,pw,ph);b.setColor(1,1,1,1);
     }
+    private static float off(int step){float v=MathUtils.sin(step*91.7f)*437.5f;v-=(float)Math.floor(v);return (v<.33f?-1:v<.66f?0:1)*11;}
 }

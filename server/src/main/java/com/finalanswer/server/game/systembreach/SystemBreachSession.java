@@ -36,29 +36,18 @@ public final class SystemBreachSession {
     public synchronized List<SystemBreachView.Event> eventsAfter(long sequence){return events.stream().filter(e->e.sequence()>sequence).toList();}
     public synchronized SystemBreachPhase phase(){return phase;}
     public synchronized boolean hasPlayer(String player){return players.containsKey(player);}
-    /** Party passwords: symbols, letters, a digit and one easy word — "#&QZ7_owl". */
+    /** Party password alphabet (look-alikes such as O/0 and I/1 left out). */
     private static final String SYM="#$%&@?*!",LET="ABCDEFGHKMNPQRSTUVWXYZ",DIG="23456789";
-    private static final String[] EASY={"cat","sun","owl","box","red","fox","sky","ice","key","map","egg","bee"};
-    private static final Map<Character,String> LOOK=Map.ofEntries(Map.entry('#',"@%"),Map.entry('@',"#&"),Map.entry('%',"#&"),Map.entry('&',"%$"),Map.entry('$',"S&"),Map.entry('?',"!7"),Map.entry('*',"#+"),Map.entry('!',"?|"),
-        Map.entry('Q',"O"),Map.entry('O',"Q"),Map.entry('M',"N"),Map.entry('N',"M"),Map.entry('B',"8"),Map.entry('S',"5"),Map.entry('Z',"2"),Map.entry('G',"C"),Map.entry('C',"G"),Map.entry('E',"F"),Map.entry('F',"E"),Map.entry('P',"R"),Map.entry('R',"P"),Map.entry('V',"U"),Map.entry('U',"V"),
-        Map.entry('6',"9"),Map.entry('9',"6"),Map.entry('5',"S"),Map.entry('8',"B"),Map.entry('2',"Z"),Map.entry('3',"8"),Map.entry('7',"1"),Map.entry('4',"A"));
     public volatile boolean symbolPasswords;
     private char pick(String s){return s.charAt(random.nextInt(s.length()));}
-    private String forge(){return ""+pick(SYM)+pick(SYM)+pick(LET)+pick(LET)+pick(DIG)+"_"+EASY[random.nextInt(EASY.length)];}
-    /** Two passwords look nothing alike: another word, another digit, and different symbols and letters in every slot. */
+    /** Party passwords are pure noise, no words: symbol, letter, symbol, digit, letter, symbol, digit, letter — "#Q&7Z%2K". */
+    private static final String PATTERN="SLSDLSDL";
+    private String forge(){StringBuilder b=new StringBuilder();for(char c:PATTERN.toCharArray())b.append(pick(c=='S'?SYM:c=='L'?LET:DIG));return b.toString();}
+    /** Two passwords look nothing alike: a different character in every position, and no swapped neighbours. */
     static boolean unlike(String a,String b){
-        int ua=a.indexOf('_'),ub=b.indexOf('_');if(ua!=5||ub!=5)return !a.equals(b);
-        if(a.substring(6).equals(b.substring(6)))return false;
-        for(int i=0;i<5;i++)if(a.charAt(i)==b.charAt(i))return false;
-        return a.charAt(0)!=b.charAt(1)&&a.charAt(1)!=b.charAt(0)&&a.charAt(2)!=b.charAt(3)&&a.charAt(3)!=b.charAt(2);
-    }
-    /** A decoy one look-alike away from the real password (or a neighbouring easy word). */
-    private String decoy(String real){
-        char[] c=real.toCharArray();int us=real.indexOf('_');
-        for(int tries=0;tries<20;tries++){int i=random.nextInt(us+1);
-            if(i==us){String w=EASY[random.nextInt(EASY.length)];String d=real.substring(0,us+1)+w;if(!d.equals(real))return d;continue;}
-            String alt=LOOK.getOrDefault(c[i],"");if(alt.isEmpty())continue;char[] d=c.clone();d[i]=alt.charAt(random.nextInt(alt.length()));return new String(d);}
-        return forge();
+        if(a.length()!=b.length())return !a.equals(b);
+        for(int i=0;i<a.length();i++){if(a.charAt(i)==b.charAt(i))return false;if(i+1<a.length()&&a.charAt(i)==b.charAt(i+1)&&a.charAt(i+1)==b.charAt(i))return false;}
+        return true;
     }
     /** Turns on the party rules (keys and forged passwords) before anyone has chosen. */
     public synchronized void partyMode(){keyGating=true;symbolPasswords=true;for(var p:players.values())if(p.password==null)p.passwordOptions=options(null);}
