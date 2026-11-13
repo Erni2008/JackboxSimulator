@@ -26,17 +26,7 @@ env = np.abs(flt('lowpass', 60, np.abs(out).mean(axis=1)))
 fast = np.abs(flt('lowpass', 400, np.abs(out).mean(axis=1)))
 out = out * (1 + .25 * np.clip((fast - env) / (env + 1e-4), 0, 1.5))[:, None]
 out = flt('highpass', 60, out)
-# longer, without echo: the coin's own partials keep ringing past the end of the recording and die away naturally
-N = len(out); ext = int(R * .85); out = np.vstack([out, np.zeros((ext, C))])
-win = slice(N - int(R * .5), N - int(R * .4))
-fade = int(R * .35); out[N - fade:N] *= (np.linspace(1, 0, fade) ** 1.0)[:, None]
-rng = np.random.default_rng(8); tt = np.arange(int(R * .45) + ext) / R; start = N - int(R * .45)
-for fq, q, tau in ((3075, 18, .42), (7446, 30, .3), (7553, 30, .3)):
-    for c in range(C):
-        lvl = np.sqrt(2 * np.mean(narrow(fq, q, out[:N])[win, c] ** 2))
-        ring = np.sin(2 * np.pi * fq * tt + rng.uniform(0, 6)) * lvl * np.exp(-tt / tau) * np.minimum(1, tt / .15)
-        out[start:start + len(tt), c] += ring * 1.5
-k = int(R * .2); out[-k:] *= np.linspace(1, 0, k)[:, None] ** 2            # natural decay, no echo
+fade = int(R * .45); out[-fade:] *= (np.linspace(1, 0, fade) ** 2.4)[:, None]            # natural decay, no echo
 out = out / np.abs(out).max(); out = np.tanh(out * 1.3) / np.tanh(1.3) * .93          # soft limiter: louder and denser, no clipping
 o = wave.open(str(ROOT / 'assets/system_breach/sfx/coin.wav'), 'wb'); o.setnchannels(C); o.setsampwidth(2); o.setframerate(R); o.writeframes((out * 32767).astype('<i2').tobytes())
 print('coin.wav', round(len(out) / R, 2), 's')
