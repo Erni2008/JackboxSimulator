@@ -38,8 +38,8 @@ final class ResultsCeremony {
     /** Starts once, from the final ranking. */
     void update(SystemBreachHostViewModel model,float dt){
         if(!model.results()){reset();return;}
-        if(t<0){var r=model.ranking();if(r.isEmpty())return;t=0;winners.clear();
-            int n=r.size(),k=n>=2?Math.min(3,n-1):1;for(int i=0;i<k;i++)winners.add(r.get(i));loser=n>=2?r.get(n-1):null;}
+        if(t<0){var r=model.ranking();if(r.isEmpty())return;t=0;if(Boolean.getBoolean("sb.execution"))t=-.001f;winners.clear();
+            int n=r.size(),k=n>=2?Math.min(3,n-1):1;for(int i=0;i<k;i++)winners.add(r.get(i));loser=n>=2?r.get(n-1):null;if(t<0){t=winnersEnd()-.5f;for(int i=0;i<winners.size();i++){fired.add("roll"+i);fired.add("rev"+i);}fired.add("fanfare");}}
         else t+=dt;
     }
     private float winnersEnd(){return OPEN+winners.size()*REVEAL+HOLD;}
@@ -59,7 +59,7 @@ final class ResultsCeremony {
         float dim=Math.min(.95f,t/.7f*.95f),ghostK=loser==null?0:clamp((t-we-TRIAL-2.0f)/1.4f);
         Gdx.gl.glEnable(GL20.GL_BLEND);Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
         shapes.begin(ShapeRenderer.ShapeType.Filled);
-        shapes.setColor(.01f,.01f,.015f,dim);shapes.rect(0,0,W,H);
+        shapes.setColor(.006f,.006f,.01f,Math.min(1,dim*1.05f));shapes.rect(0,0,W,H);
         if(trial>0){shapes.setColor(BLOOD.r*.22f,0,0,.6f*trial*(1-ghostK));shapes.rect(0,0,W,H);shapes.setColor(.02f,.08f,.16f,.6f*ghostK);shapes.rect(0,0,W,H);}
         // pedestals
         if(winFade>0)for(int i=0;i<winners.size();i++){var s=winners.get(i);int rank=i+1;float k=outCubic((t-revealAt(i))/.45f);if(k<=0)continue;float x=podX(rank),h=podH(rank)*k,w=300,a=winFade;var c=medal(rank);
@@ -104,7 +104,7 @@ final class ResultsCeremony {
     private float hash(int i){float v=MathUtils.sin(i*127.1f+311.7f)*43758.5453f;return v-(float)Math.floor(v);}
     private final com.badlogic.gdx.math.Rectangle area=new com.badlogic.gdx.math.Rectangle(),scissor=new com.badlogic.gdx.math.Rectangle();
     /** Camera shake right after the strike. */
-    private float shake(float struck,float time){return struck<0||struck>.7f?0:MathUtils.sin(time*83)*24*(1-struck/.7f);}
+    private float shake(float struck,float time){float s2=struck-2.65f;float stamp=s2>0&&s2<.3f?MathUtils.sin(time*90)*10*(1-s2/.3f):0;return stamp+(struck<0||struck>.7f?0:MathUtils.sin(time*83)*24*(1-struck/.7f));}
     /** Heartbeat times (s) inside sentence.wav, which starts 0.2 s into the trial — the body pulses on the same beats. */
     private static final float[] BEATS={.25f,1.05f,1.7f,2.2f,2.6f,2.9f,3.15f};
     private float beat(float tt){float k=0;for(float b:BEATS){float d=(tt-(.2f+b))/.07f;k=Math.max(k,(float)Math.exp(-d*d));}return k;}
@@ -120,7 +120,7 @@ final class ResultsCeremony {
             float charge=clamp((struck+1.3f)/1.3f);if(struck<0&&charge>0)for(int i=0;i<48;i++){float ph=(charge*1.4f+hash(i)*.4f)%1f,r=(1-ph)*480,ang=hash(i+50)*MathUtils.PI2+ph*5;
                 batch.setColor(1,.5f+.45f*ph,.35f+.5f*ph,ph*.9f*trial*charge);batch.draw(a.glow,cx+MathUtils.cos(ang)*r-7,bottom+260+MathUtils.sin(ang)*r*.7f-7,14,14);}}
         batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
-        float scale=1+.05f*hb,w=CW*scale,h=CH*scale;
+        float push=struck<0?1+.12f*outCubic(pre):1.12f,scale=push+.05f*hb,w=CW*scale,h=CH*scale;
         if(struck<1.05f){
             if(struck<0){float trem=MathUtils.sin(time*47)*(1.5f+8*pre*pre),red=.5f*pre;characters.drawAt(batch,loser,cx+trem,bottom,w,h,1,1-red,1-red,trial,0);}
             else if(struck<.7f){// electrocution: convulsing, flickering between a white-hot body and a dark x-ray negative
@@ -175,6 +175,15 @@ final class ResultsCeremony {
             batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
             characters.drawAt(batch,loser,gx,gy,gw,gh,.18f,.42f,.75f,.28f*e*(.85f+.15f*MathUtils.sin(time*3.3f)),0);
             batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);characters.drawAt(batch,loser,gx,gy,gw,gh,GHOST.r*.8f,GHOST.g,GHOST.b,.8f*e,0);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
+        // the strike column: a blinding beam from the sky that narrows away
+        if(struck>-.05f&&struck<.5f){float k=1-clamp(struck/.5f),bw=40+220*k;batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
+            batch.setColor(.75f,.88f,1,.55f*k);batch.draw(a.glow,cx-bw*2,BASE,bw*4,H);batch.setColor(1,1,1,.9f*k);batch.draw(a.pixel,cx-bw*.18f,BASE+20,bw*.36f,H);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
+        // verdict stamp: slams onto the screen as the body is gone
+        float st=struck-2.65f;if(st>0&&st<3.2f){float sk=st<.18f?2.2f-1.2f*outCubic(st/.18f):1,fa=trial*clamp(st/.08f)*clamp((3.2f-st)/.5f),sw=560*sk,sh=110*sk,sy=BASE+CH+90;
+            batch.setColor(.35f,0,0,.55f*fa);batch.draw(a.pixel,cx-sw/2,sy-sh/2,sw,sh);batch.setColor(1,.2f,.15f,fa);
+            float bt=6*sk;batch.draw(a.pixel,cx-sw/2,sy-sh/2,sw,bt);batch.draw(a.pixel,cx-sw/2,sy+sh/2-bt,sw,bt);batch.draw(a.pixel,cx-sw/2,sy-sh/2,bt,sh);batch.draw(a.pixel,cx+sw/2-bt,sy-sh/2,bt,sh);
+            a.stage.getData().setScale(sk*.8f);paint.centered(batch,a.stage,ru?"УДАЛЁН":"DELETED",cx,sy+30*sk,SbPaint.RED,fa);a.stage.getData().setScale(1);
+            if(st<.35f){float k=1-st/.35f;batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(1,.25f,.2f,.5f*k);batch.draw(a.glow,cx-sw,sy-sh*2,sw*2,sh*4);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}}
         // captions
         float la=trial*clamp((tt-.3f)/.4f);boolean ghost=form>.3f;
         paint.centered(batch,a.stageName,loser.name,W/2f+sx,BASE-6,ghost?GHOST:struck>0?SbPaint.AMBER:SbPaint.IVORY,la);
@@ -192,6 +201,13 @@ final class ResultsCeremony {
         if(struck<0){float k=clamp(tt/TRIAL),r=420-250*outCubic(k),a=.25f+.35f*k+.3f*beat(tt),cy=BASE+300;shapes.setColor(1,.2f,.15f,a);
             for(int q=0;q<4;q++){float sxn=q%2==0?-1:1,syn=q<2?-1:1,x=cx+sxn*r,y=cy+syn*r*.75f;shapes.rectLine(x,y,x-sxn*44,y,3);shapes.rectLine(x,y,x,y-syn*44,3);}
             shapes.rectLine(cx-14,cy,cx+14,cy,2);shapes.rectLine(cx,cy-14,cx,cy+14,2);}
+        if(struck<0){float k=clamp(tt/1.0f),tight=outCubic(clamp(tt/TRIAL));   // energy shackles tighten around the body
+            for(int q=0;q<3;q++){float cy=BASE+90+q*150,rx=(260-120*tight)*(1-q*.12f),ph=time*(2+q)+q;shapes.setColor(1,.25f,.18f,(.35f+.35f*beat(tt))*k);ring(shapes,cx,cy,rx,rx*.18f,3);
+                shapes.setColor(1,.85f,.75f,.9f*k);for(int d=0;d<3;d++){float a2=ph+d*MathUtils.PI2/3;shapes.circle(cx+MathUtils.cos(a2)*rx,cy+MathUtils.sin(a2)*rx*.18f,4,8);}}}
+        if(struck>0&&struck<3.5f){float k=clamp(struck/.15f)*clamp((3.5f-struck)/1.2f);var rr=new java.util.Random(77);   // scorched ground cracks
+            for(int c=0;c<9;c++){float ang=MathUtils.PI*(rr.nextFloat()),len=(140+rr.nextFloat()*260)*outCubic(clamp(struck/.25f)),x=cx,y=BASE+30;
+                for(int sgm=0;sgm<4;sgm++){float nx=x+MathUtils.cos(ang)*len/4,ny=y-MathUtils.sin(ang)*len/4*.22f;ang+=(rr.nextFloat()-.5f)*.6f;
+                    shapes.setColor(1,.45f,.15f,.75f*k*(1-sgm*.18f));shapes.rectLine(x,y,nx,ny,4-sgm*.7f);shapes.setColor(1,.9f,.6f,.6f*k*(1-sgm*.2f));shapes.rectLine(x,y,nx,ny,1.4f);x=nx;y=ny;}}}
         if(struck<0&&struck>-1.3f){float c=clamp((struck+1.3f)/1.3f);for(int k=0;k<3;k++){float ph=(c*1.6f+k/3f)%1f,r=(1-ph)*300+20;shapes.setColor(1,.3f,.2f,.35f*ph);ring(shapes,cx,hit-40,r,r*.55f,3);}}
         if(struck>-.1f&&struck<.7f&&(struck<.22f||((int)(time*14))%3!=0)){
             if(MathUtils.random()<.6f)boltSeed=MathUtils.random(1L<<30);var rnd=new java.util.Random(boltSeed);float fade=struck<0?.6f:1-Math.max(0,struck)/.8f;
