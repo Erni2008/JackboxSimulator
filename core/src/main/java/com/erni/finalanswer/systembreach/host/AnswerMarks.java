@@ -12,6 +12,7 @@ final class AnswerMarks {
     private static final float SHOW=1.5f,R=27;
     private static final Color OK=new Color(.30f,.95f,.50f,1),BAD=new Color(1f,.26f,.22f,1),DARK=new Color(.03f,.05f,.04f,1),tmp=new Color();
     private static float y0(){return panelTop()+CHARACTER_H-CHARACTER_SINK+6;}
+    private static float hash(int i){float v=MathUtils.sin(i*127.1f+311.7f)*43758.5f;return v-(float)Math.floor(v);}
     private static float clamp(float v){return Math.max(0,Math.min(1,v));}
     /** scale (pop with overshoot) and alpha for an age. */
     private static float scale(float t){float k=clamp(t/.28f);return 1+(2.2f)*(float)Math.pow(k-1,3)+1.2f*(float)Math.pow(k-1,2);}
@@ -27,5 +28,9 @@ final class AnswerMarks {
     void glow(SpriteBatch b,SystemBreachHostAssets as,Slot s,float x){
         if(s.mark==0||s.markAge>SHOW)return;float t=s.markAge,a=alpha(t),flash=Math.max(0,1-t/.4f);Color c=s.mark>0?OK:BAD;
         b.setColor(c.r,c.g,c.b,(.28f+.5f*flash)*a);b.draw(as.glow,x-70,y0()-70,140,140);
+        // burst: green sparks fountain up and fall for a right answer, red shards drop for a wrong one
+        if(t<1.1f)for(int i=0;i<16;i++){float h1=hash(i+s.id.hashCode()),h2=hash(i*7+3),ang=s.mark>0?MathUtils.PI*(.1f+.8f*h1):MathUtils.PI*(1.1f+.8f*h1),sp=s.mark>0?180+160*h2:90+90*h2;
+            float px=x+MathUtils.cos(ang)*sp*t,py=y0()+MathUtils.sin(ang)*sp*t-260*t*t,sz=(s.mark>0?7:9)*(1-t/1.1f)+2;
+            b.setColor(c.r,c.g,c.b,.9f*(1-t/1.1f));b.draw(as.glow,px-sz,py-sz,sz*2,sz*2);}
     }
 }

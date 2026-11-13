@@ -42,6 +42,11 @@ final class PodiumCharacters {
             default->{}
         }
         if(winner)dy+=Math.abs(MathUtils.sin(time*3.4f))*14;
+        // answer reactions: a springy squash-and-stretch hop on a right answer, a flinch and red flush on a wrong one
+        float sw=1,sh=1+.012f*MathUtils.sin(time*2.1f),flash=0;   // idle breathing
+        if(s.mark!=0&&s.markAge<.7f){float k=s.markAge/.7f,f=1-k;
+            if(s.mark>0){dy+=MathUtils.sin(Math.min(1,k*1.6f)*MathUtils.PI)*20;float sq=MathUtils.sin(k*MathUtils.PI2*1.5f)*.07f*f;sh+=sq;sw-=sq*.8f;flash=.45f*f*f;}
+            else{dx+=MathUtils.sin(s.markAge*42)*10*f*f;dy-=5*f;sh-=.04f*f;sw+=.03f*f;g*=1-.55f*f;bl*=1-.55f*f;}}
         // sabotage viruses, softly: drifting, stepping, jittering; a ghost after-image for GHOST BUTTONS
         float vk=Math.min(1,s.virusAge/.6f);
         switch(s.virus){
@@ -53,7 +58,9 @@ final class PodiumCharacters {
         float bottom=panelTop()-CHARACTER_SINK+dy;
         var actor=actor(s);
         if(actor!=null){
-            actor.setBounds(x-CHARACTER_W/2+dx,bottom,CHARACTER_W,CHARACTER_H);actor.setColor(r,g,bl,a);actor.act(dt);actor.draw(b,1);
+            float cw=CHARACTER_W*sw,ch=CHARACTER_H*sh;
+            actor.setBounds(x-cw/2+dx,bottom,cw,ch);actor.setColor(r,g,bl,a);actor.act(dt);actor.draw(b,1);
+            if(flash>0){b.setBlendFunction(com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,com.badlogic.gdx.graphics.GL20.GL_ONE);actor.setColor(.35f,1,.55f,flash);actor.draw(b,1);b.setBlendFunction(com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA);}
             if(s.virus.equals("GHOST_BUTTONS")){actor.setBounds(x-CHARACTER_W/2+dx+MathUtils.sin(time*1.6f)*16,bottom+4,CHARACTER_W,CHARACTER_H);actor.setColor(.55f,.9f,1,.28f*vk);actor.draw(b,1);}
             b.setColor(1,1,1,1);return;
         }

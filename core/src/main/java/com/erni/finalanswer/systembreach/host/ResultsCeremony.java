@@ -60,7 +60,7 @@ final class ResultsCeremony {
         Gdx.gl.glEnable(GL20.GL_BLEND);Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         shapes.setColor(.01f,.01f,.015f,dim);shapes.rect(0,0,W,H);
-        if(trial>0){shapes.setColor(BLOOD.r*.35f,0,0,.55f*trial*(1-ghostK));shapes.rect(0,0,W,H);shapes.setColor(.02f,.08f,.16f,.6f*ghostK);shapes.rect(0,0,W,H);}
+        if(trial>0){shapes.setColor(BLOOD.r*.22f,0,0,.6f*trial*(1-ghostK));shapes.rect(0,0,W,H);shapes.setColor(.02f,.08f,.16f,.6f*ghostK);shapes.rect(0,0,W,H);}
         // pedestals
         if(winFade>0)for(int i=0;i<winners.size();i++){var s=winners.get(i);int rank=i+1;float k=outCubic((t-revealAt(i))/.45f);if(k<=0)continue;float x=podX(rank),h=podH(rank)*k,w=300,a=winFade;var c=medal(rank);
             paint.plate(x-w/2,BASE,w,h,18,tmp.set(c.r*.32f,c.g*.32f,c.b*.32f,.97f*a),tmp2.set(.03f,.03f,.035f,.98f*a));
@@ -77,7 +77,7 @@ final class ResultsCeremony {
             batch.setColor(1,1,1,.12f*winFade*k);batch.draw(assets.glow,x-90,BASE+podH(rank)-20,180,900);
             // sparks rising from the champion's pedestal
             if(rank==1)for(int p=0;p<26;p++){float life=((time*.6f+p*.137f)%1f),px=x+MathUtils.sin(p*12.9f)*150+MathUtils.sin(time+p)*10,py=BASE+podH(1)+life*620;batch.setColor(1,.8f,.35f,(1-life)*.8f*winFade*k);batch.draw(assets.glow,px-5,py-5,10,10);}}
-        if(loser!=null&&trial>0){float tt=t-we;batch.setColor(1,.1f,.06f,(.35f+.15f*MathUtils.sin(time*7))*trial*(1-ghostK));batch.draw(assets.glow,W/2f-380,BASE-80,760,900);}
+        if(loser!=null&&trial>0){float tt=t-we;batch.setColor(1,.1f,.06f,(.14f+.06f*MathUtils.sin(time*7))*trial*(1-ghostK));batch.draw(assets.glow,W/2f-380,BASE-80,760,900);}
         batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
         // winners drop onto their pedestals
         if(winFade>0)for(int i=0;i<winners.size();i++){var s=winners.get(i);int rank=i+1;float local=t-revealAt(i)-.25f;if(local<0)continue;float k=outBack(local/.6f),x=podX(rank),top=BASE+podH(rank);
@@ -108,7 +108,8 @@ final class ResultsCeremony {
     /** Heartbeat times (s) inside sentence.wav, which starts 0.2 s into the trial — the body pulses on the same beats. */
     private static final float[] BEATS={.25f,1.05f,1.7f,2.2f,2.6f,2.9f,3.15f};
     private float beat(float tt){float k=0;for(float b:BEATS){float d=(tt-(.2f+b))/.07f;k=Math.max(k,(float)Math.exp(-d*d));}return k;}
-    private static final int SLICES=12;
+    private static final String[] PCT=new String[101];static{for(int i=0;i<=100;i++)PCT[i]=i+"%";}
+    private static final int COLS=8,ROWS=10;
     private void trial(SpriteBatch batch,SbPaint paint,SystemBreachHostAssets a,PodiumCharacters characters,boolean ru,float time,com.badlogic.gdx.graphics.Camera cam,float trial,float tt){
         float struck=tt-TRIAL,pre=clamp(tt/TRIAL),sx=shake(struck,time),lift=struck<0?outCubic(clamp((struck+1.3f)/1.3f))*38:struck<1.05f?38:0;
         float cx=W/2f+sx,bottom=BASE+30+lift,hb=struck<0?beat(tt):0;
@@ -124,17 +125,27 @@ final class ResultsCeremony {
             if(struck<0){float trem=MathUtils.sin(time*47)*(1.5f+8*pre*pre),red=.5f*pre;characters.drawAt(batch,loser,cx+trem,bottom,w,h,1,1-red,1-red,trial,0);}
             else if(struck<.7f){// electrocution: convulsing, flickering between a white-hot body and a dark x-ray negative
                 float jit=MathUtils.sin(time*130)*12*(1-struck/.7f),jy=MathUtils.sin(time*97)*6;boolean flash=((int)(time*28))%2==0;
+                if(struck<.16f){float o=22*(1-struck/.16f);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);characters.drawAt(batch,loser,cx-o,bottom,w,h,1,.1f,.1f,.8f*trial,0);characters.drawAt(batch,loser,cx+o,bottom,w,h,.1f,.9f,1,.8f*trial,0);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
                 if(flash){characters.drawAt(batch,loser,cx+jit,bottom+jy,w,h,1,1,1,trial,0);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);for(int k=0;k<3;k++)characters.drawAt(batch,loser,cx+jit,bottom+jy,w,h,.8f,.9f,1,trial,0);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
                 else characters.drawAt(batch,loser,cx+jit,bottom+jy,w,h,.08f,.1f,.16f,trial,0);}
             else{// charred: black body with embers breathing through it
-                float c=clamp((struck-.7f)/.3f);characters.drawAt(batch,loser,cx,bottom,w,h,.14f-.06f*c,.09f-.05f*c,.08f-.05f*c,trial,0);
-                batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);characters.drawAt(batch,loser,cx,bottom,w,h,1,.35f,.08f,(.25f+.2f*MathUtils.sin(time*18))*trial,0);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
-        }else if(struck<2.2f){// disintegration: the charred body splits into slices that slide apart, sink and burn out
-            for(int k=0;k<SLICES;k++){float e=clamp((struck-1.05f-k*.025f)/.95f),ee=e*e;if(e>=1)continue;float y0=bottom+k*(CH/SLICES),dir=k%2==0?1:-1;
-                batch.flush();area.set(0,y0,W,CH/SLICES+1);com.badlogic.gdx.scenes.scene2d.utils.ScissorStack.calculateScissors(cam,batch.getTransformMatrix(),area,scissor);
-                float ox=dir*ee*(90+70*hash(k)),oy=-ee*(40+60*hash(k+7));scissor.x+=0;if(!com.badlogic.gdx.scenes.scene2d.utils.ScissorStack.pushScissors(scissor))continue;
-                batch.flush();
-                characters.drawAt(batch,loser,cx+ox,bottom+oy,CW,CH,.1f+.9f*ee,.06f+.3f*ee,.05f,(1-e)*trial,0);batch.flush();com.badlogic.gdx.scenes.scene2d.utils.ScissorStack.popScissors();}
+                float c=clamp((struck-.7f)/.3f),sl=outCubic(c);h*=1-.06f*sl;w*=1+.03f*sl;characters.drawAt(batch,loser,cx,bottom-lift*sl*.5f,w,h,.14f-.06f*c,.09f-.05f*c,.08f-.05f*c,trial,0);
+                batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);characters.drawAt(batch,loser,cx,bottom-lift*sl*.5f,w,h,1,.35f,.08f,(.25f+.2f*MathUtils.sin(time*18))*trial,0);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
+        }else if(struck<2.3f){// deletion: the charred body breaks into data blocks, swept top to bottom; each block glitches,
+            // flashes cyan and is pulled into the rising soul
+            float cw=CW/COLS,chh=CH/ROWS,left=cx-CW/2,bx0=bottom-lift*.5f,sx2=cx,sy2=BASE+330;
+            for(int r=ROWS-1;r>=0;r--)for(int q=0;q<COLS;q++){int id=r*COLS+q;float st=1.05f+(ROWS-1-r)/(float)ROWS*.55f+hash(id)*.18f,e=(struck-st)/.62f;
+                float px=left+q*cw,py=bx0+r*chh,ox=0,oy=0,shrink=1,cr=.1f,cg=.06f,cb=.05f,al=trial;
+                if(e>=1)continue;
+                if(e>0){float g=clamp(e/.3f);if(e<.3f){ox=(((int)(time*40+id))%3-1)*6*g;cr=.1f+.3f*g;cg=.06f+.8f*g;cb=.05f+.95f*g;}
+                    else{float m=(e-.3f)/.7f,mm=m*m;ox=(sx2-(px+cw/2))*mm+MathUtils.sin(m*6+id)*30*m;oy=(sy2-(py+chh/2))*mm+m*40;shrink=1-m*.85f;cr=.5f;cg=.95f;cb=1;al=trial*(1-m*m);}}
+                float sw=cw*shrink,sh=chh*shrink,ax=px+(cw-sw)/2+ox,ay=py+(chh-sh)/2+oy;
+                batch.flush();area.set(ax,ay,sw,sh);com.badlogic.gdx.scenes.scene2d.utils.ScissorStack.calculateScissors(cam,batch.getTransformMatrix(),area,scissor);
+                if(!com.badlogic.gdx.scenes.scene2d.utils.ScissorStack.pushScissors(scissor))continue;
+                characters.drawAt(batch,loser,cx+ox+(cw-sw)/2*0,bx0+oy,CW,CH,cr,cg,cb,al,0);batch.flush();com.badlogic.gdx.scenes.scene2d.utils.ScissorStack.popScissors();
+                if(e>.3f){batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(.45f,.9f,1,.5f*al);batch.draw(a.glow,ax-sw*.6f,ay-sh*.6f,sw*2.2f,sh*2.2f);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}}
+            // scan line sweeping down the body as it is deleted
+            float sweep=clamp((struck-1.05f)/.75f);if(sweep<1){float ly=bx0+CH*(1-sweep);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(.5f,.95f,1,.8f*trial);batch.draw(a.pixel,cx-CW*.45f,ly-1.5f,CW*.9f,3);batch.setColor(.4f,.85f,1,.35f*trial);batch.draw(a.glow,cx-CW*.55f,ly-30,CW*1.1f,60);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
         }
         // ash and embers
         if(struck>1.0f&&struck<4f){batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
@@ -167,6 +178,10 @@ final class ResultsCeremony {
         // captions
         float la=trial*clamp((tt-.3f)/.4f);boolean ghost=form>.3f;
         paint.centered(batch,a.stageName,loser.name,W/2f+sx,BASE-6,ghost?GHOST:struck>0?SbPaint.AMBER:SbPaint.IVORY,la);
+        if(struck>1.0f&&struck<2.6f){float pr=clamp((struck-1.05f)/1.2f),bw=360,by=BASE+CH+70,fa=trial*clamp((struck-1f)/.15f)*clamp((2.6f-struck)/.3f);
+            batch.setColor(.05f,.12f,.16f,.85f*fa);batch.draw(a.pixel,cx-bw/2,by,bw,10);batch.setColor(.45f,.92f,1,fa);batch.draw(a.pixel,cx-bw/2,by,bw*pr,10);
+            paint.centered(batch,a.label,(ru?"УДАЛЕНИЕ ПОЛЬЗОВАТЕЛЯ… ":"DELETING USER… ")+PCT[(int)(pr*100)],cx,by+44,GHOST,fa);}
+        {float lb=outCubic(trial)*58;batch.setColor(0,0,0,.92f);batch.draw(a.pixel,0,H-lb,W,lb);}
         String line=ghost?(ru?"ДОСТУП АННУЛИРОВАН · "+loser.ap+" AP":"ACCESS REVOKED · "+loser.ap+" AP"):struck>0?(ru?"ПРИГОВОР ПРИВЕДЁН В ИСПОЛНЕНИЕ":"SENTENCE CARRIED OUT"):(ru?"ВИРУС ВЫНОСИТ ПРИГОВОР…":"THE VIRUS PASSES SENTENCE…");
         paint.centered(batch,a.label,line,W/2f+sx,BASE-62,ghost?GHOST:SbPaint.RED,la);
     }
