@@ -16,9 +16,16 @@ const FA_SFX=(()=>{
       const len=ctx.sampleRate*1.1,ir=ctx.createBuffer(1,len,ctx.sampleRate),d=ir.getChannelData(0);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,4);
       const verb=ctx.createConvolver();verb.buffer=ir;const wet=ctx.createGain();wet.gain.value=.22;verb.connect(wet).connect(tone);
       dry=ctx.createGain();dry.connect(tone);dry.connect(verb);
+      loadSamples();
       noiseBuf=ctx.createBuffer(1,ctx.sampleRate*.6,ctx.sampleRate);const nd=noiseBuf.getChannelData(0);for(let i=0;i<nd.length;i++)nd[i]=Math.random()*2-1;
     }catch(e){ctx=null;}
   }
+  // money sounds for answers: pre-rendered coin takes (tools/audio/generate_coin_sfx.py), decoded once
+  const samples={};
+  function loadSamples(){for(const n of ['coin_ok_1','coin_ok_2','coin_ok_3','coin_bad_1','coin_bad_2','coin_bad_3','coin_jackpot'])
+    fetch('/sfx/'+n+'.wav').then(r=>r.arrayBuffer()).then(a=>new Promise((ok,no)=>ctx.decodeAudioData(a,ok,no))).then(b=>{samples[n]=b;}).catch(()=>{});}
+  function sample(names,vol=1){if(!ready())return false;const list=names.filter(n=>samples[n]);if(!list.length)return false;
+    const s=ctx.createBufferSource(),g=ctx.createGain();s.buffer=samples[list[Math.random()*list.length|0]];s.playbackRate.value=1+(Math.random()-.5)*.04;g.gain.value=vol;s.connect(g).connect(out);s.start();return true;}
   addEventListener('pointerdown',unlock,{passive:true,capture:true});addEventListener('keydown',unlock,{capture:true});
   document.addEventListener('visibilitychange',()=>{if(!ctx)return;document.hidden?ctx.suspend():ctx.resume();});
   const ready=()=>ctx&&ctx.state==='running';
@@ -44,8 +51,8 @@ const FA_SFX=(()=>{
   return {
     unlock,
     tap(){},                                                                     // haptic only
-    correct(){const r=pick([[N.D5,N.A5],[N.F5,N.A5],[N.A4,N.D5]]);bell(r[0],{vol:.1,dur:.7});bell(r[1],{at:.07,vol:.09,dur:.9});},
-    wrong(){thump(150,70,{vol:.22,dur:.3});bell(N.D4*.94,{at:.02,vol:.035,dur:.4,ratio:1.01,index:.4});},
+    correct(){if(sample(['coin_ok_1','coin_ok_2','coin_ok_3'],.9))return;const r=pick([[N.D5,N.A5],[N.F5,N.A5],[N.A4,N.D5]]);bell(r[0],{vol:.1,dur:.7});bell(r[1],{at:.07,vol:.09,dur:.9});},
+    wrong(){if(sample(['coin_bad_1','coin_bad_2','coin_bad_3'],.85))return;thump(150,70,{vol:.22,dur:.3});bell(N.D4*.94,{at:.02,vol:.035,dur:.4,ratio:1.01,index:.4});},
     key(){[N.D5,N.F5,N.A5,N.D6].forEach((f,i)=>bell(f,{at:i*.075,vol:.07,dur:1.1}));air(.9,{at:.05,vol:.025,lo:4000,hi:10000,attack:.3});},
     hackOk(){thump(170,45,{vol:.32,dur:.6});bell(N.D5,{vol:.08,dur:1,ratio:2,index:2.4});bell(N.A5,{at:.06,vol:.05,dur:1.1});},
     hackFail(){thump(120,55,{vol:.26,dur:.45});bell(N.F3,{at:.04,vol:.04,dur:.5,ratio:1.01,index:.3});},
@@ -56,6 +63,6 @@ const FA_SFX=(()=>{
     tick(){air(.025,{vol:.08,lo:1500,hi:3800,attack:.001});},
     decode(){bell(1800+Math.random()*900,{vol:.012,dur:.05,ratio:1.5,index:.3});},
     lock(){bell(N.A5,{vol:.04,dur:.25,ratio:3.5,index:.6});},
-    souls(){[N.A4,N.D5,N.F5,N.A5].forEach((f,i)=>bell(f,{at:i*.09,vol:.065,dur:1.3,ratio:1,index:.9}));air(1.2,{at:.1,vol:.03,lo:3000,hi:9000,attack:.4});},
+    souls(){if(sample(['coin_jackpot'],.9))return;[N.A4,N.D5,N.F5,N.A5].forEach((f,i)=>bell(f,{at:i*.09,vol:.065,dur:1.3,ratio:1,index:.9}));air(1.2,{at:.1,vol:.03,lo:3000,hi:9000,attack:.4});},
   };
 })();
