@@ -31,9 +31,9 @@ final class SbSounds implements Disposable {
         // is turned down so overlapping answers from several players never smear into a muddy wash
         if(name.equals("key")&&now-last.getOrDefault("coin",0L)<600)return;
         float v=Math.min(1,volume*AudioMix.GLOBAL.gain(AudioMix.Category.SFX));
-        if(name.equals("coin")||name.equals("wrong")){if(lastAnswer!=null&&now-lastAnswerAt<1100)lastAnswer.setVolume(lastAnswerId,v*.25f);}
+        if(name.equals("coin")){if(lastAnswer!=null&&now-lastAnswerAt<1100)lastAnswer.setVolume(lastAnswerId,v*.25f);}
         Sound snd=list.get(random.nextInt(list.size()));long id=snd.play(v,pitch,0);
-        if(name.equals("coin")||name.equals("wrong")){lastAnswer=snd;lastAnswerId=id;lastAnswerAt=now;}
+        if(name.equals("coin")){lastAnswer=snd;lastAnswerId=id;lastAnswerAt=now;}
     }
     /** Event type from the server log → cue. */
     static String cue(String type){
