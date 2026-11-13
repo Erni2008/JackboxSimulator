@@ -52,4 +52,11 @@ final class PodiumCharacters {
         float h=CHARACTER_H*.82f,w=h*portrait.getWidth()/portrait.getHeight();
         b.setColor(r,g,bl,a);b.draw(portrait,x-w/2+dx,bottom+CHARACTER_SINK*.6f,w,h);b.setColor(1,1,1,1);
     }
+    /** Free placement for the results ceremony: bottom-centre at (cx,bottom), any size and tint. */
+    void drawAt(SpriteBatch b,Slot s,float cx,float bottom,float w,float h,float r,float g,float bl,float a,float dt){
+        var actor=actor(s);
+        if(actor!=null){actor.setBounds(cx-w/2,bottom,w,h);actor.setColor(r,g,bl,a);actor.act(dt);actor.draw(b,1);b.setColor(1,1,1,1);return;}
+        Texture portrait=assets.portrait(s.characterId);if(portrait==null)return;float ph=h*.82f,pw=ph*portrait.getWidth()/portrait.getHeight();
+        b.setColor(r,g,bl,a);b.draw(portrait,cx-pw/2,bottom,pw,ph);b.setColor(1,1,1,1);
+    }
 }

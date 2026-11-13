@@ -33,6 +33,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
     private final LeaderboardPanel board=new LeaderboardPanel();
     private final Consumer<String> end;
     private final HackerFx fx=new HackerFx();
+    private final ResultsCeremony ceremony=new ResultsCeremony();
     private float time;private static final com.badlogic.gdx.graphics.Color VIG=new com.badlogic.gdx.graphics.Color(0,0,0,.55f),CLEAR=new com.badlogic.gdx.graphics.Color(0,0,0,0);
 
     public SystemBreachHostScreen(JsonObject root,CageLobby roomCharacters,Consumer<String> end){this(root,roomCharacters,end,false);}
@@ -48,7 +49,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
     @Override public void resize(int width,int height){viewport.update(width,height,true);}
 
     @Override public void render(float delta){
-        float dt=Float.isFinite(delta)?Math.min(delta,.1f):0;time+=dt;model.update(dt);
+        float dt=Float.isFinite(delta)?Math.min(delta,.1f):0;time+=dt;model.update(dt);ceremony.update(model,dt);
         ScreenUtils.clear(0,0,0,1,true);viewport.apply();
         batch.setProjectionMatrix(viewport.getCamera().combined);shapes.setProjectionMatrix(viewport.getCamera().combined);
         List<SystemBreachHostViewModel.Slot> slots=model.slots();int n=slots.size();
@@ -88,8 +89,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         long left=model.remainingMs();if(model.phase().equals("ACTIVE")&&left>0&&left<=10_000){float a=(.18f+.12f*MathUtils.sin(time*6.3f))*(1-left/10_000f*.5f);
             batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(1,.08f,.05f,a);batch.draw(assets.glow,-500,-300,900,1680);batch.draw(assets.glow,W-400,-300,900,1680);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.setColor(1,1,1,1);}
         batch.end();
-        batch.begin();
-        batch.end();
+        ceremony.draw(shapes,batch,paint,assets,characters,model.ru(),time);
     }
 
     /** Data motes drifting up through the hall: cheap, deterministic, no allocation. */

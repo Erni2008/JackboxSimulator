@@ -31,7 +31,9 @@ public final class RoomService {
     private final String publicUrl;
     private final EndPolicy endPolicy;
     private final WordSource impostorWords;
-    private final SystemBreachConfig breachConfig=SystemBreachConfig.configured();
+    /** Results last long enough for the host's ceremony: winners are introduced, then the last place turns into a ghost. */
+    private final SystemBreachConfig breachConfig=withCeremony(SystemBreachConfig.configured());
+    private static SystemBreachConfig withCeremony(SystemBreachConfig c){var k=com.erni.finalanswer.gameplay.systembreach.SystemBreachConfig.Parameter.RESULTS_MS;return c.get(k)==new SystemBreachConfig().get(k)?c.with(k,24000):c;}
     /** false only in tests and fixtures that need a named character; the live game always deals characters at random */
     public boolean randomCharacters=true;
     public RoomService() { this(monotonicTime(),1000,""); }
@@ -430,7 +432,9 @@ public final class RoomService {
     private Map<String,String> breachNames(Room room){Map<String,String> names=new LinkedHashMap<>();for(Member m:room.members.values())names.put(m.id,m.name);return names;}
     private boolean tickBreach(Room room){
         var before=room.breach.phase();boolean changed=room.breach.tick(now(),breachOnline(room));var result=room.breach.outcome(breachNames(room));
-        if(result!=null&&!room.breachScored){room.breachScored=true;room.lastBreachResult=result;for(var row:result.rankings())for(Member m:room.members.values())if(m.id.equals(row.playerId()))m.score=(int)Math.min(Integer.MAX_VALUE,(long)m.score+row.accessPoints());broadcast(room,"SYSTEM_BREACH_RESULTS");changed=true;}
+        if(result!=null&&!room.breachScored){room.breachScored=true;room.lastBreachResult=result;for(var row:result.rankings())for(Member m:room.members.values())if(m.id.equals(row.playerId()))m.score=(int)Math.min(Integer.MAX_VALUE,(long)m.score+row.accessPoints());
+            // the last place among the living is executed on the host screen and becomes a ghost
+            if(result.rankings().size()>=2){String last=result.rankings().getLast().playerId();for(Member m:room.members.values())if(m.id.equals(last))m.alive=false;}broadcast(room,"SYSTEM_BREACH_RESULTS");changed=true;}
         if(before!=room.breach.phase()&&room.breach.phase()!=SystemBreachPhase.RESULTS)broadcast(room,room.breach.phase()==SystemBreachPhase.FINISHED?"SYSTEM_BREACH_FINISHED":"SYSTEM_BREACH_STATE");
         for(var event:room.breach.eventsAfter(room.breachEventSequence)){
             room.breachEventSequence=event.sequence();

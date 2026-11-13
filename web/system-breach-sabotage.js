@@ -8,7 +8,7 @@
 const SABOTAGE_CONFIG=Object.freeze({
   SHUFFLE_INTERVAL_MS:1000,SHUFFLE_ANIMATION_MS:200,
   POPUP_STAGGER_MS:320,POPUP_WIDTH_PCT:58,
-  GLITCH_BURST_MS:1500,
+  GLITCH_BURST_MS:1500,GLITCH_STORM_MS:7000,GLITCH_CALM_MS:5000,GLITCH_STORM_TICK_MS:140,
   MAGNETIC_SCALE:.82,MAGNETIC_SPEED:.0011,MAGNETIC_PUSH_RADIUS_PX:90,
   INDICATOR_SPEED:.05,            // fraction of the screen per second
   INFECT_SPLASH_MS:1400,CLEARED_SPLASH_MS:1100,
@@ -116,11 +116,16 @@ const SABOTAGE_EFFECTS={
     name:'ГЛИТЧ ЭКРАНА',hint:'Изображение искажено',removal:'panel',task:'Выставь регуляторы как в цели',
     start(ctx){
       const scr=ctx.screen();scr.classList.add('sab-glitch');ctx.scope.undo(()=>scr.classList.remove('sab-glitch','sab-shift'));
-      if(ctx.reduced)return;
-      ctx.scope.every(SABOTAGE_CONFIG.GLITCH_BURST_MS,()=>{
-        if(ctx.rng()<.55){sabPulse(scr,'sab-shift');}
-        const blk=ctx.mk('i','sbx-sab-corrupt',null,ctx.root);blk.style.left=(ctx.rng()*70).toFixed(0)+'%';blk.style.top=(15+ctx.rng()*70).toFixed(0)+'%';blk.style.width=(12+ctx.rng()*26).toFixed(0)+'%';blk.style.height=(2+ctx.rng()*6).toFixed(0)+'%';
-        ctx.scope.later(240,()=>blk.remove());
+      // a 7-second interference storm, a short calm, and again — until the virus is removed or burns out
+      let storm=false,stormSince=0,tick=0;const T=SABOTAGE_CONFIG,setStorm=on=>{storm=on;stormSince=Date.now();scr.classList.toggle('sab-storm',on);};
+      ctx.scope.undo(()=>scr.classList.remove('sab-storm'));ctx.scope.later(T.INFECT_SPLASH_MS,()=>setStorm(true));
+      ctx.scope.every(T.GLITCH_STORM_TICK_MS,()=>{
+        if(stormSince&&Date.now()-stormSince>=(storm?T.GLITCH_STORM_MS:T.GLITCH_CALM_MS))setStorm(!storm);
+        if(ctx.reduced)return;tick++;
+        if(!storm&&tick%Math.round(T.GLITCH_BURST_MS/T.GLITCH_STORM_TICK_MS))return;
+        if(ctx.rng()<(storm?.35:.55))sabPulse(scr,'sab-shift');
+        for(let k=0;k<(storm?3:1);k++){const blk=ctx.mk('i','sbx-sab-corrupt'+(storm?' big':''),null,ctx.root);blk.style.left=(ctx.rng()*(storm?55:70)).toFixed(0)+'%';blk.style.top=(ctx.rng()*90).toFixed(0)+'%';blk.style.width=((storm?30:12)+ctx.rng()*(storm?50:26)).toFixed(0)+'%';blk.style.height=((storm?3:2)+ctx.rng()*(storm?12:6)).toFixed(0)+'%';
+          ctx.scope.later(storm?160:240,()=>blk.remove());}
       });
     },
     build(ctx,box){

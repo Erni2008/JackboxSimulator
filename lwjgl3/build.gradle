@@ -1247,7 +1247,7 @@ tasks.register('systemBreachScreenPreview', JavaExec) {
     mainClass = 'com.erni.finalanswer.lwjgl3.SystemBreachScreenPreview'
     workingDir = rootProject.file('assets')
     systemProperty 'sb.capture', providers.gradleProperty('sb.capture').getOrElse('')
-    for (key in ['sb.players','sb.phase','sb.width','sb.height','sb.long','sb.lang']) {
+    for (key in ['sb.players','sb.phase','sb.width','sb.height','sb.long','sb.lang','sb.at']) {
         if (providers.gradleProperty(key).isPresent()) systemProperty key, providers.gradleProperty(key).get()
     }
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'

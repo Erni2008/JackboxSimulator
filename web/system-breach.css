@@ -522,3 +522,28 @@ button[data-sab]{all:unset;box-sizing:border-box;cursor:pointer;-webkit-tap-high
 .sbx-sab-dot.caught i{background:#3dff8f;box-shadow:0 0 22px #3dff8f;scale:1.6;opacity:0;transition:all .3s}
 @media (min-aspect-ratio:5/4){.sbx-options.sab-ghost .sbx-option{min-height:7cqh}.sbx .sbx-sab-num{width:6cqh;height:6cqh;margin:-3cqh 0 0 -3cqh;font-size:3.4cqh}}
 @media (prefers-reduced-motion:reduce){.sbx-sab *,.sbx-option.sbx-ghost,.sbx-screen.sab-glitch::after{animation:none!important;transition:none!important}}
+
+/* key menu: the five choices fill the whole laptop screen */
+.sbx-body.menu{justify-content:flex-start}
+.sbx-body.menu .sbx-cards{flex:1;min-height:0;grid-auto-rows:minmax(0,1fr);gap:10px}
+.sbx-body.menu .sbx-card{min-height:0;justify-content:center;align-items:center;text-align:center;gap:14px;padding:12px}
+.sbx-body.menu .sbx-card.save{grid-column:1/-1;flex-direction:row}
+.sbx-body.menu .sbx-card-icon{width:64px;height:64px;font-size:34px}
+.sbx-body.menu .sbx-card-text b{font-size:26px}.sbx-body.menu .sbx-card-text small{font-size:14px;margin-top:6px}
+@media (min-aspect-ratio:5/4){
+  .sbx-body.menu .sbx-cards{grid-template-columns:repeat(5,minmax(0,1fr));gap:1.4cqw}
+  .sbx-body.menu .sbx-card,.sbx-body.menu .sbx-card.save{grid-column:auto;flex-direction:column;gap:3cqh;padding:3cqh 1.2cqw}
+  .sbx-body.menu .sbx-card-icon{width:16cqh;height:16cqh;font-size:8cqh}
+  .sbx-body.menu .sbx-card-text b{font-size:5.4cqh}.sbx-body.menu .sbx-card-text small{font-size:2.8cqh;margin-top:1.2cqh}}
+.sbx-body.menu .sbx-card:not(:disabled):hover{filter:brightness(1.25)}
+
+/* SCREEN GLITCH storm: 7 s of heavy interference — tearing, RGB split, jolts, rolling bars (no white strobe) */
+.sbx-screen.sab-storm::after{background:repeating-linear-gradient(0deg,#ff4a3a38 0 3px,#0000 3px 6px),linear-gradient(180deg,#0000 30%,#ff4a3a55 45%,#2affd022 50%,#0000 65%);background-size:100% 100%,100% 220%;animation:sab-roll .7s linear infinite;opacity:1}
+.sbx-screen.sab-storm .sbx-body{animation:sab-jolt .46s steps(1) infinite}
+.sbx-screen.sab-storm .sbx-body *{text-shadow:-4px 0 #ff2a5acc,4px 0 #2affd0cc}
+.sbx-screen.sab-storm .sbx-q,.sbx-screen.sab-storm .sbx-option:nth-child(odd){animation:sab-tear 1.1s steps(1) infinite}
+.sbx-screen.sab-storm .sbx-option:nth-child(even){animation:sab-tear 1.1s steps(1) -.5s infinite}
+@keyframes sab-jolt{0%{translate:0 0}18%{translate:-10px 2px}32%{translate:8px -3px}46%{translate:0 0}60%{translate:14px 1px}74%{translate:-5px 4px}88%{translate:3px -2px}}
+@keyframes sab-tear{0%,55%,100%{clip-path:none;translate:0 0}62%{clip-path:inset(0 0 52% 0);translate:-18px 0}70%{clip-path:inset(48% 0 0 0);translate:16px 0}78%{clip-path:inset(20% 0 30% 0);translate:-8px 0}86%{clip-path:none;translate:5px 0}}
+.sbx-sab-corrupt.big{background:repeating-linear-gradient(90deg,#ff4a3a99 0 4px,#2affd055 4px 7px,#000c 7px 12px,#fff3 12px 13px)}
+@media (prefers-reduced-motion:reduce){.sbx-screen.sab-storm .sbx-body,.sbx-screen.sab-storm .sbx-q,.sbx-screen.sab-storm .sbx-option{animation:none!important}}

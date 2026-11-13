@@ -13,7 +13,7 @@ import java.util.Map;
 final class SystemBreachHostAssets implements Disposable {
     final Texture background,glow,pixel;
     /** Latin terminal faces (Rajdhani) for labels/digits; Noto SemiCondensed for anything containing a nickname. */
-    final BitmapFont heading,icon,iconSmall,iconTiny,iconBig,title,digits,hex,label,labelSmall,status,ap,name,log,board,boardAp,crest;
+    final BitmapFont heading,icon,iconSmall,iconTiny,iconBig,title,digits,hex,label,labelSmall,status,ap,name,log,board,boardAp,crest,stage,stageName;
     private final Map<String,Texture> portraits=new HashMap<>();
 
     SystemBreachHostAssets(boolean ru){
@@ -28,7 +28,7 @@ final class SystemBreachHostAssets implements Disposable {
         label=font(ui,ru?23:28,ru);labelSmall=font(ui,ru?15:21,ru);heading=font(uiBold,ru?40:47,ru);
         status=font(uiBold,ru?19:25,ru);ap=font("Rajdhani-Bold.ttf",30,false);
         name=font("NotoSans-SemiCondensedSemiBold.ttf",23,true);log=font("NotoSans-SemiCondensedSemiBold.ttf",19,true);
-        board=font("NotoSans-SemiCondensedSemiBold.ttf",26,true);boardAp=font("Rajdhani-Bold.ttf",30,false);
+        board=font("NotoSans-SemiCondensedSemiBold.ttf",26,true);stage=font(uiBold,ru?76:88,true);stageName=font("NotoSans-SemiCondensedSemiBold.ttf",54,true);boardAp=font("Rajdhani-Bold.ttf",30,false);
         crest=UiFonts.gothic(46);
         icon=icons(44);iconSmall=icons(26);iconTiny=icons(18);iconBig=icons(54);
     }
@@ -60,7 +60,7 @@ final class SystemBreachHostAssets implements Disposable {
 
     @Override public void dispose(){
         background.dispose();glow.dispose();pixel.dispose();
-        for(var f:new BitmapFont[]{heading,icon,iconSmall,iconTiny,iconBig,title,digits,hex,label,labelSmall,status,ap,name,log,board,boardAp,crest})f.dispose();
+        for(var f:new BitmapFont[]{heading,icon,iconSmall,iconTiny,iconBig,title,digits,hex,label,labelSmall,status,ap,name,log,board,boardAp,crest,stage,stageName})f.dispose();
         for(var t:portraits.values())if(t!=null)t.dispose();
     }
 }

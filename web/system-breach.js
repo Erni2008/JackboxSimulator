@@ -110,7 +110,7 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
   }
 
   function build(s,me,mine){
-    sab.decorate(null);const b=body();b.replaceChildren();b.classList.remove('enter');void b.offsetWidth;b.classList.add('enter');const a=me.actions||{};
+    sab.decorate(null);const b=body();b.replaceChildren();b.classList.remove('menu');b.classList.remove('enter');void b.offsetWidth;b.classList.add('enter');const a=me.actions||{};
     if(s.role!=='PLAYER'){header(b,'НАБЛЮДЕНИЕ','Смотри на общий экран');return;}
     if(s.phase==='INITIALIZATION'){
       if(me.passwordSelected){header(b,'ПАРОЛЬ УСТАНОВЛЕН','Ждём остальных…');mk('div','sbx-loader',null,b);mk('p','sbx-note','Запомни пароль — его попытаются угадать.',b);return;}
@@ -131,7 +131,7 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
       timerBar(b,ch.createdAt,ch.expiresAt);return;}
     const keys=me.keys||0;
     if(keys>banked){
-      header(b,'ДОСТУП ОТКРЫТ · КЛЮЧЕЙ: '+keys,'Используй ключ','key');const g=mk('div','sbx-cards',null,b);
+      b.classList.add('menu');header(b,'ДОСТУП ОТКРЫТ · КЛЮЧЕЙ: '+keys,'Используй ключ','key');const g=mk('div','sbx-cards',null,b);
       const anyHack=(a.targets||[]).some(t=>t.attack?.allowed),anySab=(a.targets||[]).some(t=>t.sabotage?.allowed);
       card(g,{icon:'\ue1b3',title:'Взлом',sub:anyHack?'угадай пароль — укради AP':(mine?.attackReadyAt>now()?'перезарядка '+secs(mine.attackReadyAt)+' с':'нет целей'),cls:'hack',disabled:requests.pending()||!anyHack,onClick:()=>{mode='hack';viewKey='';render();},delay:0});
       card(g,{icon:'\ue32a',title:'Фаервол',sub:a.firewall?.allowed?'LV'+(mine?.firewallLevel||1)+' → LV'+((mine?.firewallLevel||1)+1)+' · −'+a.firewall.cost+' AP':reason(a.firewall),cls:'fw',disabled:requests.pending()||!a.firewall?.allowed,onClick:()=>act('FIREWALL_UPGRADE'),delay:70});
