@@ -29,6 +29,9 @@
   },
   "interior": {
     "image": "elevator/interior/cabin_base.png",
+    "_view": "Cabin seen from the landing (open back wall, doorway transparent) and the shaft behind every open cabin door. view.doorway is in cabin_base pixels.",
+    "view": { "image": "elevator/interior/cabin_view_open.png", "doorway": [554, 220, 427, 435] },
+    "shaft": "elevator/interior/shaft.png",
     "size": [1536, 865],
     "doorway": [558, 224, 427, 463],
     "leftDoor":  { "image": "elevator/interior/door_left.png",  "size": [208, 463], "closedX": 558, "openX": 350, "y": 224 },

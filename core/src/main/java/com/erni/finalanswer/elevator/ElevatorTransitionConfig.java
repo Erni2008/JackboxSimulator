@@ -25,7 +25,7 @@ public final class ElevatorTransitionConfig {
     public record Sound(String file,float volume,boolean loop){}
 
     public final Map<String,Float> timing=new LinkedHashMap<>(),camera=new LinkedHashMap<>();
-    public String interiorImage;public float interiorW,interiorH;public SourceRect interiorDoorway;public Door interiorLeft,interiorRight;
+    public String interiorImage,viewImage,shaftImage;public SourceRect viewDoorway;public float interiorW,interiorH;public SourceRect interiorDoorway;public Door interiorLeft,interiorRight;
     public final List<Button> buttons=new ArrayList<>();public final List<Lamp> lamps=new ArrayList<>();
     public String needleImage;public float needleW,needleH,needlePivotX,needlePivotY,needleSpritePivotX,needleSpritePivotY;public float[] needleAngles;
     public final List<ElevatorFloorConfig> floors=new ArrayList<>();
@@ -37,7 +37,8 @@ public final class ElevatorTransitionConfig {
         for(JsonValue e=r.get("timing").child;e!=null;e=e.next)c.timing.put(e.name,e.asFloat());
         for(JsonValue e=r.get("camera").child;e!=null;e=e.next)c.camera.put(e.name,e.asFloat());
         JsonValue in=r.get("interior");c.interiorImage=in.getString("image");c.interiorW=in.get("size").getFloat(0);c.interiorH=in.get("size").getFloat(1);
-        c.interiorDoorway=rect(in.get("doorway"));c.interiorLeft=door(in.get("leftDoor"));c.interiorRight=door(in.get("rightDoor"));
+        c.interiorDoorway=rect(in.get("doorway"));
+        JsonValue view=in.get("view");if(view!=null){c.viewImage=view.getString("image");c.viewDoorway=rect(view.get("doorway"));}c.shaftImage=in.getString("shaft",null);c.interiorLeft=door(in.get("leftDoor"));c.interiorRight=door(in.get("rightDoor"));
         for(JsonValue b=in.get("buttons").child;b!=null;b=b.next)c.buttons.add(new Button(b.getInt("floor"),b.getString("image"),b.get("center").getFloat(0),b.get("center").getFloat(1),b.getFloat("size")));
         JsonValue n=in.get("needle");c.needleImage=n.getString("image");c.needleW=n.get("size").getFloat(0);c.needleH=n.get("size").getFloat(1);
         c.needlePivotX=n.get("pivot").getFloat(0);c.needlePivotY=n.get("pivot").getFloat(1);c.needleSpritePivotX=n.get("pivotInSprite").getFloat(0);c.needleSpritePivotY=n.get("pivotInSprite").getFloat(1);

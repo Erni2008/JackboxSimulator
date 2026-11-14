@@ -47,7 +47,7 @@ public final class ElevatorTransition implements Disposable {
     private final ElevatorCinematicCamera cine=new ElevatorCinematicCamera();
     private final ElevatorTransitionAudio audio;
     private final List<Texture> owned=new ArrayList<>();
-    private final Texture cabin,cabinLeft,cabinRight,needle,pixel,glow,vignette;
+    private final Texture cabin,cabinLeft,cabinRight,needle,pixel,glow,vignette,view,shaft;
     private final Texture[] buttons=new Texture[5];
     private final java.util.Map<Integer,Texture> floorTextures=new java.util.HashMap<>(),outerLeft=new java.util.HashMap<>(),outerRight=new java.util.HashMap<>(),reveals=new java.util.HashMap<>();
     private final ElevatorDoorAnimator outer,inner;
@@ -71,6 +71,7 @@ public final class ElevatorTransition implements Disposable {
     public ElevatorTransition(ElevatorTransitionConfig cfg,IntFunction<Texture> sharedFloor,SpriteBatch batch){
         this.cfg=cfg;ownsBatch=batch==null;this.batch=ownsBatch?new SpriteBatch():batch;
         cabin=load(cfg.interiorImage);cabinLeft=load(cfg.interiorLeft.image());cabinRight=load(cfg.interiorRight.image());needle=load(cfg.needleImage);
+        view=cfg.viewImage==null?null:load(cfg.viewImage);shaft=cfg.shaftImage==null?null:load(cfg.shaftImage);
         for(var b:cfg.buttons)buttons[b.floor()-1]=load(b.image());
         for(var f:cfg.floors){
             Texture t=sharedFloor==null?null:sharedFloor.apply(f.number());floorTextures.put(f.number(),t!=null?t:load(f.background()));
@@ -92,7 +93,7 @@ public final class ElevatorTransition implements Disposable {
         if(active()||!supports(fromFloor,toFloor))return false;
         from=fromFloor;to=toFloor;carFloor=from;pressed=false;totalTime=0;cine.reset();
         moveClock=0;journey++;events.planJourney(cfg.t("moving"));audio.setLoopGain(1);
-        var ex=cfg.floor(from).exterior();outer.snap(ex.startsOpen()?1:0);inner.snap(1);
+        var ex=cfg.floor(from).exterior();outer.snap(ex.startsOpen()?1:0);inner.snap(ex.startsOpen()?1:0);   // the cabin doors move with the landing doors
         var hf=cfg.floor(from);var df=cfg.floor(to);hp=place(hf.w(),hf.h());ip=place(cfg.interiorW,cfg.interiorH);dp=place(df.w(),df.h());
         go(State.PREPARING);
         if(ex.startsOpen()){outer.setDuration(Math.max(.6f,cfg.t("prepare")-.25f));}
@@ -138,8 +139,8 @@ public final class ElevatorTransition implements Disposable {
     private void enter(State s){
         switch(s){
             case PREPARING->{}
-            case OPENING_EXTERIOR_DOORS->{outer.setDuration(cfg.t("exteriorOpen"));outer.open();audio.play("exterior_doors_open");}
-            case ENTERING_ELEVATOR->{inner.snap(1);audio.play("enter");}
+            case OPENING_EXTERIOR_DOORS->{outer.setDuration(cfg.t("exteriorOpen"));outer.open();inner.setDuration(cfg.t("exteriorOpen"));inner.open();audio.play("exterior_doors_open");}
+            case ENTERING_ELEVATOR->{audio.play("enter");}
             case CLOSING_INTERIOR_DOORS->{inner.setDuration(cfg.t("interiorClose"));inner.close();audio.play("interior_doors_close");}
             case SELECTING_FLOOR->{audio.play("button");}
             case STARTING_MOVEMENT->{audio.play("motor_start");audio.play("vibration");}
@@ -168,7 +169,7 @@ public final class ElevatorTransition implements Disposable {
         outer.update(dt);inner.update(dt);cine.update(dt);
         float u=MathUtils.clamp(stateTime/Math.min(dur(state),1e6f),0,1);
         switch(state){
-            case PREPARING->{if(cfg.floor(from).exterior().startsOpen()&&stateTime>=.2f&&outer.openness()>=1&&!outer.moving()){outer.close();audio.play("exterior_doors_close");}}
+            case PREPARING->{if(cfg.floor(from).exterior().startsOpen()&&stateTime>=.2f&&outer.openness()>=1&&!outer.moving()){outer.close();inner.setDuration(outer.settled()?cfg.t("exteriorOpen"):cfg.t("exteriorOpen"));inner.close();audio.play("exterior_doors_close");}}
             case CLOSING_INTERIOR_DOORS->{if(inner.justSettled()&&inner.fullyClosed())cine.bump(2.4f);}
             case SELECTING_FLOOR->pressed=true;
             case STARTING_MOVEMENT->{cine.judder(cfg.cam("vibrationStart")*MathUtils.sin(u*MathUtils.PI));cine.hum(cfg.cam("vibrationMoving")*u);}
@@ -212,6 +213,7 @@ public final class ElevatorTransition implements Disposable {
         SourceRect hd=hall.exterior().doorway();float hdx=hp.x(hd.x()),hdy=hp.y(hd.y(),hd.h()),hdw=hd.w()*hp.k,hdh=hd.h()*hp.k,hcx=hdx+hdw/2,hcy=hdy+hdh/2;
         SourceRect cd=cfg.interiorDoorway;float cdx=ip.x(cd.x()),cdy=ip.y(cd.y(),cd.h()),cdw=cd.w()*ip.k,cdh=cd.h()*ip.k,ccx=cdx+cdw/2,ccy=cdy+cdh/2;
         float az=cfg.cam("approachZoom"),over=cfg.cam("overscan"),s0x=cx+(hcx-cx)*Z,s0y=cy+(hcy-cy)*Z;   // s0: where the gameplay zoom puts the doorway
+        float is0=hdh*Z*over/ip.h;cabinL.set(is0,cx,cy,s0x+sx,s0y+sy);      // the cabin as seen through the landing doorway (same frame the entering push starts from)
         switch(state){
             case PREPARING->{hallL.set(Z,hcx,hcy,s0x+sx,s0y+sy);drawHall(hall,hp,hd,hallL,a,0);grade(a);}
             case APPROACHING_ELEVATOR->{float e=ElevatorCinematicCamera.smoother(stateTime/dur(state));
@@ -219,7 +221,7 @@ public final class ElevatorTransition implements Disposable {
             case OPENING_EXTERIOR_DOORS->{float cu=MathUtils.clamp(stateTime/dur(state),0,1),creep=1+CREEP*cu*cu*cu;   // eases in: the camera starts drifting toward the opening doors
                 hallL.set(Z,hcx,hcy,s0x+sx,s0y+sy);drawHall(hall,hp,hd,hallL,1,.22f);grade(1);}
             case ENTERING_ELEVATOR->{float u=MathUtils.clamp(stateTime/dur(state),0,1),e=ElevatorCinematicCamera.smoother(u);   // the exit shot, played forwards
-                float h0=Z,is0=hdh*h0*over/ip.h,hEnd=h0/is0,hs=ElevatorCinematicCamera.zoom(h0,hEnd,e),is=is0*hs/h0;   // cabin rigidly attached to the doorway
+                float h0=Z,hEnd=h0/is0,hs=ElevatorCinematicCamera.zoom(h0,hEnd,e),is=is0*hs/h0;   // cabin rigidly attached to the doorway
                 float px=MathUtils.lerp(s0x,cx,e),py=MathUtils.lerp(s0y,cy,e);cabinL.set(is,cx,cy,px+sx,py+sy);hallL.set(hs,hcx,hcy,px+sx,py+sy);
                 drawCabin(ip,cd,cabinL,1,false);
                 float hallA=1-ElevatorCinematicCamera.smoother((u-.75f)/.25f);
@@ -272,7 +274,9 @@ public final class ElevatorTransition implements Disposable {
         drawFull(floorTextures.get(f.number()),p,l,alpha);
         float dx=p.x(d.x()),dy=p.y(d.y(),d.h()),dw=d.w()*p.k,dh=d.h()*p.k,o=outer.openness();
         clip(l,dx,dy,dw,dh);
-        var rv=f.exterior().reveal();if(o>0&&rv!=null){batch.setColor(1,1,1,alpha);rect(reveals.get(f.number()),p.x(rv.x()),p.y(rv.y(),rv.h()),rv.w()*p.k,rv.h()*p.k,l);}   // the open painting behind the leaves
+        var rv=f.exterior().reveal();
+        if(o>0&&view!=null)drawCabinView(ip,cabinL,alpha);
+        else if(o>0&&rv!=null){batch.setColor(1,1,1,alpha);rect(reveals.get(f.number()),p.x(rv.x()),p.y(rv.y(),rv.h()),rv.w()*p.k,rv.h()*p.k,l);}   // the open painting behind the leaves
         if(o>0){batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(1,.72f,.42f,.28f*o*alpha);rect(glow,dx-dw*.3f,dy-dh*.1f,dw*1.6f,dh*1.2f,l);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
         if(o<1)drawLeaves(f.exterior().left(),f.exterior().right(),outerLeft.get(f.number()),outerRight.get(f.number()),outer,p,l,alpha,dx,dy,dw,dh);
         unclip();
@@ -293,15 +297,30 @@ public final class ElevatorTransition implements Disposable {
     /** The cabin; behind its doorway the dark landing of the departure floor (or nothing when {@code destination} draws). */
     private void drawCabin(Place p,SourceRect d,Layer l,float alpha,boolean destinationBehind){
         float dx=p.x(d.x()),dy=p.y(d.y(),d.h()),dw=d.w()*p.k,dh=d.h()*p.k;
-        boolean shaft=state==State.STARTING_MOVEMENT||state==State.MOVING||state==State.ARRIVING;
-        if(shaft&&inner.openness()>0){clip(l,dx,dy,dw,dh);batch.setColor(.012f,.010f,.010f,alpha);rect(pixel,dx,dy,dw,dh,l);   // between floors: only the dark shaft wall
-            batch.setColor(.10f,.08f,.06f,.5f*alpha);rect(glow,dx+dw*.3f,dy+dh*.25f,dw*.4f,dh*.5f,l);unclip();}
+        if(!destinationBehind&&inner.openness()>0&&shaft!=null){clip(l,dx,dy,dw,dh);drawShaft(dx,dy,dw,dh,l,alpha);unclip();}   // the lift shaft behind the open cabin doors
         else if(!destinationBehind&&inner.openness()>0){clip(l,dx,dy,dw,dh);                              // the floor being left, seen through the open doors
             float bs=dh*cfg.cam("overscan")/hp.h;behindL.set(l.s*bs,WORLD_W/2,WORLD_H/2,l.x(dx+dw/2),l.y(dy+dh/2));
             batch.setColor(.62f,.56f,.52f,alpha);rect(floorTextures.get(from),hp.ox,hp.oy,hp.w,hp.h,behindL);
             batch.setColor(0,0,0,.25f*alpha);rect(pixel,dx,dy,dw,dh,l);
             unclip();}
         cabinFront(p,d,l,alpha);
+    }
+    /** The shaft painting covering a doorway (aspect kept, centred). */
+    private void drawShaft(float dx,float dy,float dw,float dh,Layer l,float alpha){
+        float s=Math.max(dw/shaft.getWidth(),dh/shaft.getHeight()),w=shaft.getWidth()*s,h=shaft.getHeight()*s;
+        batch.setColor(1,1,1,alpha);rect(shaft,dx+(dw-w)/2,dy+(dh-h)/2,w,h,l);
+    }
+    /** The cabin seen from the landing: shaft, the cabin doors (mapped into this painting's doorway, moving with the landing doors), the cabin painting. */
+    private void drawCabinView(Place p,Layer l,float alpha){
+        SourceRect v=cfg.viewDoorway,d=cfg.interiorDoorway;float vx=p.x(v.x()),vy=p.y(v.y(),v.h()),vw=v.w()*p.k,vh=v.h()*p.k,kx=v.w()/d.w();
+        clip(l,vx,vy,vw,vh);
+        if(shaft!=null)drawShaft(vx,vy,vw,vh,l,alpha);else{batch.setColor(0,0,0,alpha);rect(pixel,vx,vy,vw,vh,l);}
+        float o=inner.openness(),so=inner.settleOffset();var L=cfg.interiorLeft;var R=cfg.interiorRight;
+        float lx=MathUtils.lerp(L.closedX(),L.openX(),o)-so,rx=MathUtils.lerp(R.closedX(),R.openX(),o)+so;
+        batch.setColor(1,1,1,alpha);
+        if(o<1){rect(cabinLeft,vx+(lx-d.x())*kx*p.k,vy,L.w()*kx*p.k,vh,l);rect(cabinRight,vx+(rx-d.x())*kx*p.k,vy,R.w()*kx*p.k,vh,l);}
+        unclip();
+        batch.setColor(1,1,1,alpha);rect(view,p.ox,p.oy,p.w,p.h,l);
     }
     private void drawCabinWithDestination(Place ip,SourceRect d,Place dp,Layer cabinLayer,Layer destLayer,float cabinAlpha){
         float dx=ip.x(d.x()),dy=ip.y(d.y(),d.h()),dw=d.w()*ip.k,dh=d.h()*ip.k;
