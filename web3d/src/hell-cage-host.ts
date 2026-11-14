@@ -249,9 +249,11 @@ const voice = new Voice('../broken-elevator-manual/voice/'); let vKey = '', vWar
 let sayT: any = 0; function say(id: string) { const el = document.getElementById('host-say'); const t = VOICE_TEXT[voice.spoken] || ''; if (!el || !t) return; el.textContent = t; el.classList.add('on'); clearTimeout(sayT); sayT = setTimeout(() => el.classList.remove('on'), Math.max(3500, t.length * 75)); }
 // the end of the shift: a results board over the cages (who repaired what, the bomb, who made it) with a few awards
 const bombOut = new Map<string, string>(); let boardKey = '';
+const SHOW_RESULTS_BOARD = false;
 function results(sh: Shift | null) {
   for (const p of players) if (p.bombState === 'DEFUSED' || p.bombState === 'DETONATED') bombOut.set(p.id, p.bombState);
   const el = document.getElementById('results'); if (!el) return;
+  el.classList.remove('on'); if (!SHOW_RESULTS_BOARD) return; // the end-of-shift board is switched off
   if (!sh || sh.phase !== 'END') { if (sh?.phase === 'INTRO') bombOut.clear(); el.classList.remove('on'); boardKey = ''; return; }
   if (serverNow() - sh.phaseStart < 3500) return; const key = sh.phaseStart + ':' + players.length; if (boardKey === key) return; boardKey = key;
   const esc = (t: string) => t.replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]!));
