@@ -297,7 +297,7 @@ public final class ElevatorTransition implements Disposable {
     /** The cabin; behind its doorway the dark landing of the departure floor (or nothing when {@code destination} draws). */
     private void drawCabin(Place p,SourceRect d,Layer l,float alpha,boolean destinationBehind){
         float dx=p.x(d.x()),dy=p.y(d.y(),d.h()),dw=d.w()*p.k,dh=d.h()*p.k;
-        if(!destinationBehind&&inner.openness()>0&&shaft!=null){clip(l,dx,dy,dw,dh);drawShaft(dx,dy,dw,dh,l,alpha);unclip();}   // the lift shaft behind the open cabin doors
+        if(!destinationBehind&&inner.openness()>0&&shaft!=null){clip(l,dx,dy,dw,dh);drawShaft(p,l,alpha);unclip();}   // the lift shaft behind the open cabin doors
         else if(!destinationBehind&&inner.openness()>0){clip(l,dx,dy,dw,dh);                              // the floor being left, seen through the open doors
             float bs=dh*cfg.cam("overscan")/hp.h;behindL.set(l.s*bs,WORLD_W/2,WORLD_H/2,l.x(dx+dw/2),l.y(dy+dh/2));
             batch.setColor(.62f,.56f,.52f,alpha);rect(floorTextures.get(from),hp.ox,hp.oy,hp.w,hp.h,behindL);
@@ -305,16 +305,34 @@ public final class ElevatorTransition implements Disposable {
             unclip();}
         cabinFront(p,d,l,alpha);
     }
-    /** The shaft painting covering a doorway (aspect kept, centred). */
-    private void drawShaft(float dx,float dy,float dw,float dh,Layer l,float alpha){
-        float s=Math.max(dw/shaft.getWidth(),dh/shaft.getHeight()),w=shaft.getWidth()*s,h=shaft.getHeight()*s;
-        batch.setColor(1,1,1,alpha);rect(shaft,dx+(dw-w)/2,dy+(dh-h)/2,w,h,l);
+    /** Shaft lamps (x, y in shaft-painting pixels, radius) — they flicker softly and light the drifting haze. */
+    private static final float[][] SHAFT_LAMPS={{556,340,60},{1118,340,60},{620,405,26},{1053,405,26},{665,710,30},{1006,710,30}};
+    /**
+     * The shaft, placed once relative to the cabin's own doorway — so the cabin seen from the landing and the cabin
+     * we step into show exactly the same shaft — and kept alive: lamps that breathe and flicker, haze rolling
+     * over the bottom, dust drifting through the lamp light.
+     */
+    private void drawShaft(Place p,Layer l,float alpha){
+        SourceRect d=cfg.interiorDoorway;float dx=p.x(d.x()),dy=p.y(d.y(),d.h()),dw=d.w()*p.k,dh=d.h()*p.k;
+        float sw=shaft.getWidth(),sh=shaft.getHeight(),s=Math.max(dw/sw,dh/sh)*1.04f,w=sw*s,h=sh*s,x0=dx+(dw-w)/2,y0=dy+(dh-h)/2;
+        batch.setColor(1,1,1,alpha);rect(shaft,x0,y0,w,h,l);
+        batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
+        for(int i=0;i<SHAFT_LAMPS.length;i++){float[] m=SHAFT_LAMPS[i];
+            float n=noise(totalTime*2.3f+i*7.1f),f=.78f+.22f*n-(n>.93f?.35f:0);          // breathing, with a rare stutter
+            float lx=x0+m[0]*s,ly=y0+(sh-m[1])*s,r=m[2]*s*3.2f;
+            batch.setColor(1,.62f,.30f,.16f*f*alpha);rect(glow,lx-r,ly-r,r*2,r*2,l);
+            batch.setColor(1,.80f,.55f,.22f*f*alpha);rect(glow,lx-r*.3f,ly-r*.3f,r*.6f,r*.6f,l);}
+        for(int k=0;k<5;k++){float ph=(totalTime*(.018f+.006f*k)+h(k*13))%1f,fx=x0+w*(-.25f+1.5f*ph),fy=y0+h*(.03f+.07f*k),fw=w*.55f,fh=h*.22f;   // haze
+            batch.setColor(.55f,.36f,.22f,.07f*alpha*MathUtils.sin(ph*MathUtils.PI));rect(glow,fx-fw/2,fy-fh/2,fw,fh,l);}
+        for(int i=0;i<28;i++){float ph=(totalTime*.03f+h(i*5+1))%1f,mx=x0+w*(.36f+.28f*h(i*3))+MathUtils.sin(totalTime*.4f+i)*w*.01f,my=y0+h*(.1f+.8f*ph);   // dust in the lamp light
+            float sz=(1.2f+1.8f*h(i*7))*p.k*l.s/Math.max(l.s,1e-3f);batch.setColor(1,.8f,.55f,.18f*alpha*MathUtils.sin(ph*MathUtils.PI));rect(glow,mx-sz,my-sz,sz*2,sz*2,l);}
+        batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
     }
     /** The cabin seen from the landing: shaft, the cabin doors (mapped into this painting's doorway, moving with the landing doors), the cabin painting. */
     private void drawCabinView(Place p,Layer l,float alpha){
         SourceRect v=cfg.viewDoorway,d=cfg.interiorDoorway;float vx=p.x(v.x()),vy=p.y(v.y(),v.h()),vw=v.w()*p.k,vh=v.h()*p.k,kx=v.w()/d.w();
         clip(l,vx,vy,vw,vh);
-        if(shaft!=null)drawShaft(vx,vy,vw,vh,l,alpha);else{batch.setColor(0,0,0,alpha);rect(pixel,vx,vy,vw,vh,l);}
+        if(shaft!=null)drawShaft(p,l,alpha);else{batch.setColor(0,0,0,alpha);rect(pixel,vx,vy,vw,vh,l);}
         float o=inner.openness(),so=inner.settleOffset();var L=cfg.interiorLeft;var R=cfg.interiorRight;
         float lx=MathUtils.lerp(L.closedX(),L.openX(),o)-so,rx=MathUtils.lerp(R.closedX(),R.openX(),o)+so;
         batch.setColor(1,1,1,alpha);
