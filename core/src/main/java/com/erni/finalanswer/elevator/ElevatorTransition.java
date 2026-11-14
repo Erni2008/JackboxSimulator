@@ -187,10 +187,10 @@ public final class ElevatorTransition implements Disposable {
                 hallL.set(ElevatorCinematicCamera.zoom(Z,az,e),hcx,hcy,MathUtils.lerp(s0x,cx,e)+sx,MathUtils.lerp(s0y,cy,e)+sy);drawHall(hall,hp,hd,hallL,1,.22f*e);grade(1);}
             case OPENING_EXTERIOR_DOORS->{float cu=MathUtils.clamp(stateTime/dur(state),0,1),creep=1+CREEP*cu*cu*cu;   // eases in: the camera starts drifting toward the opening doors
                 hallL.set(az*creep,hcx,hcy,cx+sx,cy+sy);drawHall(hall,hp,hd,hallL,1,.22f);grade(1);}
-            case ENTERING_ELEVATOR->{float u=MathUtils.clamp(stateTime/dur(state),0,1),h0=az*(1+CREEP),hEnd=cfg.cam("enterHallZoomEnd");
+            case ENTERING_ELEVATOR->{float u=MathUtils.clamp(stateTime/dur(state),0,1),h0=az*(1+CREEP),is0=hdh*h0*over/ip.h,hEnd=h0/is0;   // the push ends exactly when the cabin fills the frame
                 float k=az*CREEP*3/dur(State.OPENING_EXTERIOR_DOORS)*dur(state)/(h0*(float)Math.log(hEnd/h0));      // match the creep's exit speed
                 float e=k*u+(3-2*k)*u*u+(k-2)*u*u*u,hs=ElevatorCinematicCamera.zoom(h0,hEnd,e);
-                float is=Math.min(1,hdh*h0*over/ip.h*(float)Math.pow(hs/h0,cfg.cam("enterParallax")));
+                float is=is0*hs/h0;   // cabin rigidly attached to the doorway: no parallax drift, it never recedes
                 float hallA=1-ElevatorCinematicCamera.smoother((u-.62f)/.23f);boolean swapped=u>=SWAP;          // the painted cabin is replaced inside a brief dip to dark
                 cabinL.set(is,cx,cy,cx+sx,cy+sy);hallL.set(hs,hcx,hcy,cx+sx,cy+sy);
                 if(hallA<1)drawCabin(ip,cd,cabinL,1,false);                                            // the cabin behind the fading hall
@@ -208,10 +208,13 @@ public final class ElevatorTransition implements Disposable {
             case OPENING_INTERIOR_DOORS->{cabinL.set(1,cx,cy,cx+sx,cy+sy);float ls=dp.h>0?cdh*over/dp.h:1;destL.set(ls,cx,cy,ccx+sx,ccy+sy);
                 drawCabinWithDestination(ip,cd,dp,cabinL,destL,1);}
             case EXITING_ELEVATOR->{float u=MathUtils.clamp(stateTime/dur(state),0,1),e=ElevatorCinematicCamera.smoother(u);
-                // the elevator stays where it is: no camera move, the cabin simply dissolves into the room
-                destL.set(Z,cx,cy,cx,cy);drawFull(floorTextures.get(to),dp,destL,1);grade(e);
-                cabinL.set(1,cx,cy,cx+sx,cy+sy);float ls=dp.h>0?cdh*over/dp.h:1;destL.set(ls,cx,cy,ccx+sx,ccy+sy);
-                drawCabinWithDestination(ip,cd,dp,cabinL,destL,1-e);}
+                // walking out: the room is rigidly attached to the doorway (one camera, no parallax drift), so nothing
+                // shrinks away or pops in — the push simply ends when the room fills the frame at the gameplay zoom
+                float l0=cdh*over/dp.h,csEnd=Z/l0,cs=ElevatorCinematicCamera.zoom(1,csEnd,e),ls=l0*cs;
+                float fx=MathUtils.lerp(ccx,cx,e),fy=MathUtils.lerp(ccy,cy,e);
+                cabinL.set(cs,ccx,ccy,fx+sx,fy+sy);destL.set(ls,cx,cy,fx+sx,fy+sy);drawFull(floorTextures.get(to),dp,destL,1);
+                drawCabinWithDestination(ip,cd,dp,cabinL,destL,1-ElevatorCinematicCamera.smoother((u-.75f)/.25f));
+                grade(e);}
             case COMPLETED->{destL.set(Z,cx,cy,cx,cy);drawFull(floorTextures.get(to),dp,destL,1);grade(1);}
             default->{}
         }
