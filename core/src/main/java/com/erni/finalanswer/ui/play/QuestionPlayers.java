@@ -41,9 +41,6 @@ public final class QuestionPlayers extends Actor implements Disposable {
     private JsonObject previous;
     private final TextureRegion uiPixel;
     private boolean reduced,choicesVisible;
-    private float marks=-1;
-    /** Seconds since the result marks began (-1 = hidden): a tick or a cross pops in under each player, one after another. */
-    public void resultMarks(float seconds){marks=seconds;}
     /** Driven by the real first answer reveal, not by question typing or timer initialization. */
     public void answersVisible(boolean visible){choicesVisible=visible;}
     public boolean shaking(String id){for(Entry e:entries)if(e.player.id.equals(id))return choicesVisible&&e.player.thinking&&!reduced;return false;}
@@ -102,30 +99,21 @@ public final class QuestionPlayers extends Actor implements Disposable {
             font.setColor(.015f,.008f,.008f,alpha*.9f);font.draw(batch,e.nickname,x+1.4f,y-1.4f);
             font.setColor(com.erni.finalanswer.ui.PlayerColors.light(e.player.characterId));font.getColor().a=alpha;font.draw(batch,e.nickname,x,y);
             font.getData().setScale(Math.min(.48f,(cell-16)/105f));
-            float pop=markPop(i,e);
-            if(pop<1){String status=e.player.ghost?"GHOST":!e.player.online?"OFFLINE":"ALIVE";
-                font.setColor(e.player.ghost?.60f:.77f,e.player.ghost?.80f:.86f,e.player.ghost?.93f:.66f,alpha*(1-Math.min(1,pop*3)));
-                e.name.setText(font,status);font.draw(batch,status,center-e.name.width/2,getY()+18);}
-            if(pop>0){drawMark(batch,center,getY()+6,pop,e.showingCorrect,alpha);batch.setColor(color);}
+            String status=e.player.ghost?"GHOST":!e.player.online?"OFFLINE":"ALIVE";
+            font.setColor(e.player.ghost?.60f:.77f,e.player.ghost?.80f:.86f,e.player.ghost?.93f:.66f,alpha);
+            e.name.setText(font,status);font.draw(batch,status,center-e.name.width/2,getY()+18);
+            if(e.showingCorrect){drawCorrect(batch,center+cell*.30f,getY()+142,alpha);batch.setColor(color);}
         }}finally{batch.setTransformMatrix(saved);batch.setColor(color);font.getData().setScale(oldScaleX,oldScaleY);font.setColor(fontSaved);}
     }
-    /** 0 = hidden … overshoot … 1 settled. Only players with a server result get a mark. */
-    private float markPop(int index,Entry e){
-        if(marks<0||e.player.resultAt<=0||!e.player.eligible)return 0;
-        float t=marks-index*(float)com.erni.finalanswer.gameplay.round.RoundTiming.MARK_STAGGER_SECONDS;if(t<=0)return 0;
-        if(reduced)return 1;
-        if(t<.14f){float k=1-t/.14f;return (1-k*k*k)*1.18f;}
-        if(t<.26f){float u=(t-.14f)/.12f;return 1.18f-.18f*u*u*(3-2*u);}
-        return 1;
-    }
-    private void drawMark(Batch batch,float x,float y,float scale,boolean correct,float alpha){
-        float s=1.05f*scale,a=alpha*Math.min(1,scale*1.5f);
+    private void drawCorrect(Batch batch,float x,float y,float alpha){
+        float size=1,first=1,second=1;
+        // Ink-dark outline plus two mint strokes, shown immediately. No added image or glow.
         for(int pass=0;pass<2;pass++){
-            if(pass==0)batch.setColor(.015f,.02f,.02f,a);
-            else if(correct)batch.setColor(.55f,.95f,.62f,a);else batch.setColor(.95f,.38f,.36f,a);
-            float width=(pass==0?7.5f:4.4f)*s;
-            if(correct){line(batch,x-13*s,y+2*s,x-4*s,y-8*s,width);line(batch,x-4*s,y-8*s,x+13*s,y+14*s,width);}
-            else{line(batch,x-10*s,y-9*s,x+10*s,y+11*s,width);line(batch,x-10*s,y+11*s,x+10*s,y-9*s,width);}
+            if(pass==0)batch.setColor(.015f,.04f,.025f,alpha);
+            else batch.setColor(.65f,.96f,.70f,alpha);
+            float width=(pass==0?7:4.2f)*size;
+            line(batch,x-13*size,y+7*size,x+(-13+9*first)*size,y+(7-10*first)*size,width);
+            if(second>0)line(batch,x-4*size,y-3*size,x+(-4+21*second)*size,y+(-3+25*second)*size,width);
         }
     }
     private void line(Batch batch,float ax,float ay,float bx,float by,float width){

@@ -14,7 +14,6 @@ import com.erni.finalanswer.FinalAnswerGame;
 import com.erni.finalanswer.gameplay.questions.*;
 import com.erni.finalanswer.gameplay.round.RoundController;
 import com.erni.finalanswer.gameplay.round.RoundPhase;
-import com.erni.finalanswer.gameplay.round.RoundTiming;
 import com.erni.finalanswer.ui.UiFonts;
 import com.erni.finalanswer.ui.play.*;
 import com.erni.finalanswer.ui.clock.ClockTimerActor;
@@ -50,9 +49,6 @@ public class PlayScreen extends ScreenAdapter {
     private com.erni.finalanswer.elevator.ElevatorTransition elevator;
     private int shownFloor;                      // floor of the last question actually presented on this screen
     private boolean roundDeferred;               // a question is waiting for the elevator to finish
-    /** The host's «Правильный ответ…» that opens every result; played once per question. */
-    private com.badlogic.gdx.audio.Sound correctLine;
-    private boolean correctLinePlayed;
 
     public PlayScreen(FinalAnswerGame game) { this(game, new DemoQuestionSource()); }
     public PlayScreen(FinalAnswerGame game, com.erni.finalanswer.network.RealtimeClient connection) {
@@ -92,8 +88,6 @@ public class PlayScreen extends ScreenAdapter {
             elevator = null;
         }
         clock = new ClockTimerActor(round.answerDurationSeconds());
-        try { correctLine = Gdx.audio == null ? null : Gdx.audio.newSound(Gdx.files.internal("audio/host/ru/lines/correct_answer_is.wav")); }
-        catch (RuntimeException error) { correctLine = null; Gdx.app.error("PlayScreen", "host result line unavailable", error); }
         heading = label("", smallFont, "AD7777");
         roster = label("", smallFont, "C9C2BD");
         roster.setWrap(true);
@@ -178,7 +172,6 @@ public class PlayScreen extends ScreenAdapter {
     private void beginRound() {
         if (startElevatorIfFloorChanges()) return;
         resultsDispatched = false;
-        correctLinePlayed = false;
         shownFloor = QuizBackground.floorOf(round.number());
         String key=network==null?audioSession+":"+round.presentation().generation():connection.snapshot().get("gameId").getAsString()+":"+round.question().id();
         questionAudio.question(key,round.number());
@@ -258,10 +251,6 @@ public class PlayScreen extends ScreenAdapter {
         round.update(step);
         if (network != null && network.synchronize()) beginRound();
         synchronizeAudio();
-        if (!correctLinePlayed && round.resultElapsedSeconds() >= 0 && round.resultElapsedSeconds() < 1) {
-            correctLinePlayed = true;
-            if (correctLine != null && !paused && !applicationPaused) correctLine.play(com.erni.finalanswer.audio.AudioMix.GLOBAL.gain(com.erni.finalanswer.audio.AudioMix.Category.SFX));
-        }
         if (network == null && round.revealComplete() && !resultsDispatched) {
             resultsDispatched = true;
             if (resultsHandler != null) {
@@ -271,7 +260,7 @@ public class PlayScreen extends ScreenAdapter {
         }
         if (elevatorActive()) { renderElevator(0); return; }   // the ride began this frame: keep the last question frame as it was
         updatePresentation();
-        if(players!=null){players.synchronize(connection.snapshot(),connection.serverNow());players.answersVisible(round.presentation().answerProgress(0)>0);players.resultMarks(round.resultElapsedSeconds()<0?-1:(float)(round.resultElapsedSeconds()-RoundTiming.MARKS_START_SECONDS));players.advance(step,game.getSettings().reducedMotion());}
+        if(players!=null){players.synchronize(connection.snapshot(),connection.serverNow());players.answersVisible(round.presentation().answerProgress(0)>0);players.advance(step,game.getSettings().reducedMotion());}
         ScreenUtils.clear(9 / 255f, 9 / 255f, 9 / 255f, 1);
         stage.getViewport().apply();
         stage.act(step);
@@ -323,7 +312,6 @@ public class PlayScreen extends ScreenAdapter {
         answers.dispose();
         smallFont.dispose();
         if(players!=null)players.dispose();
-        if (correctLine != null) correctLine.dispose();
         if (elevator != null) { elevator.cancel(); elevator.dispose(); }
     }
 }

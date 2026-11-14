@@ -71,11 +71,10 @@ public final class AnswerView extends Group {
     /** Negative resultSeconds means clocks are still running/closing/falling. No independent timers. */
     public void present(float progress, boolean correct, double resultSeconds, boolean reducedMotion) {
         float intro = Interpolation.smoother.apply(MathUtils.clamp(progress, 0, 1));
-        // wait for the host's line, fade the wrong options, then punch the correct one up
-        double t = resultSeconds < 0 ? -1 : resultSeconds - RoundTiming.HOST_LINE_SECONDS;
-        float fade = t < 0 ? 0 : Interpolation.smoother.apply((float) Math.min(1, t / RoundTiming.WRONG_FADE_SECONDS));
-        float grow = t < 0 ? 0 : reducedMotion ? Math.min(1, (float) ((t - RoundTiming.WRONG_FADE_SECONDS) / RoundTiming.PUNCH_SECONDS) > 0 ? 1 : 0)
-            : RoundTiming.punch(t - RoundTiming.WRONG_FADE_SECONDS);
+        float grow = resultSeconds < 0 ? 0 : Interpolation.smoother.apply(
+            (float) Math.min(1, resultSeconds / RoundTiming.CORRECT_GROW_SECONDS));
+        float fade = resultSeconds < 0 ? 0 : Interpolation.smoother.apply(
+            (float) Math.min(1, resultSeconds / RoundTiming.WRONG_FADE_SECONDS));
         float alpha = intro * (correct ? 1 : 1 - fade);
         getColor().a = alpha;
         setVisible(alpha > 0);
@@ -84,11 +83,10 @@ public final class AnswerView extends Group {
         setScale(scale);
         float x = centerX, y = centerY;
         if (correct && grow > 0) {
-            float move = Math.min(1, grow);
             // Keep the enlarged visual bounds within the scene and below the question.
             float halfW = extentX(CORRECT_SCALE), halfH = extentY(CORRECT_SCALE);
-            x += (MathUtils.clamp(centerX, viewportWidth * .035f + halfW, viewportWidth * .965f - halfW) - centerX) * move;
-            y += (MathUtils.clamp(centerY, viewportHeight * .09f + halfH, viewportHeight * .655f - halfH) - centerY) * move;
+            x += (MathUtils.clamp(centerX, viewportWidth * .035f + halfW, viewportWidth * .965f - halfW) - centerX) * grow;
+            y += (MathUtils.clamp(centerY, viewportHeight * .09f + halfH, viewportHeight * .655f - halfH) - centerY) * grow;
         }
         if (!reducedMotion) y -= 10 * (1 - intro) + (correct ? 0 : 9 * fade);
         setPosition(x - getWidth() / 2, y - getHeight() / 2);
