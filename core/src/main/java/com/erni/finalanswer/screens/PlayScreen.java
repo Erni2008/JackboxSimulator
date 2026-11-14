@@ -45,6 +45,10 @@ public class PlayScreen extends ScreenAdapter {
     private boolean disposed;
     private String lastStatus = "";
     private boolean paused, applicationPaused;
+    /** Cinematic elevator between floors (null when its assets are unavailable — the game then simply cuts). */
+    private com.erni.finalanswer.elevator.ElevatorTransition elevator;
+    private int shownFloor;                      // floor of the last question actually presented on this screen
+    private boolean roundDeferred;               // a question is waiting for the elevator to finish
 
     public PlayScreen(FinalAnswerGame game) { this(game, new DemoQuestionSource()); }
     public PlayScreen(FinalAnswerGame game, com.erni.finalanswer.network.RealtimeClient connection) {
@@ -76,6 +80,12 @@ public class PlayScreen extends ScreenAdapter {
         background = new QuizBackground(pixel);
         background.setBounds(0, 0, stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
         stage.addActor(background);
+        try {
+            elevator = new com.erni.finalanswer.elevator.ElevatorTransition(com.erni.finalanswer.elevator.ElevatorTransition.loadConfig(), background::floorTexture, null);
+        } catch (RuntimeException error) {
+            Gdx.app.error("Elevator", "elevator transition unavailable, floors will cut directly", error);
+            elevator = null;
+        }
         clock = new ClockTimerActor(round.answerDurationSeconds());
         heading = label("", smallFont, "AD7777");
         roster = label("", smallFont, "C9C2BD");
@@ -98,6 +108,10 @@ public class PlayScreen extends ScreenAdapter {
         stage.addActor(clock);
         stage.addListener(new InputListener() {
             @Override public boolean keyDown(InputEvent event, int key) {
+                if (elevatorActive()) {
+                    if (key == Input.Keys.ENTER) { elevator.skip(); return true; }       // host can skip the ride; the game resumes normally
+                    if (key != Input.Keys.ESCAPE) return true;                          // no gameplay input during the ride
+                }
                 if (key == Input.Keys.ESCAPE) {
                     Gdx.app.postRunnable(() -> { if (game.getScreen() == PlayScreen.this) game.showMainMenu(); });
                     return true;
@@ -130,8 +144,34 @@ public class PlayScreen extends ScreenAdapter {
         return label;
     }
 
+    private boolean elevatorActive() { return elevator != null && (elevator.active() || elevator.completed()); }
+    /**
+     * Runs the elevator when a new question belongs to the next floor. Only when the question is still in its
+     * presentation phase (the server waits for this host's PRESENTATION_READY, which is held back until the ride
+     * ends), never on reconnects mid-question. Returns true when the round start is deferred.
+     */
+    private boolean startElevatorIfFloorChanges() {
+        int floor = QuizBackground.floorOf(round.number());
+        boolean presenting = network == null || connection.snapshot() != null && connection.snapshot().has("phase")
+            && connection.snapshot().get("phase").getAsString().equals("QUESTION_PRESENTATION");
+        if (elevator == null || shownFloor <= 0 || floor != shownFloor + 1 || !presenting || !elevator.supports(shownFloor, floor)) return false;
+        if (roundDeferred || !elevator.start(shownFloor, floor)) return false;
+        roundDeferred = true;
+        game.getAudio().hostVoice().stop();
+        return true;
+    }
+    private void finishElevator() {
+        shownFloor = elevator.destination();      // the ride has delivered us: never start it again for this floor
+        elevator.reset();
+        roundDeferred = false;
+        background.showImmediately(round.number(), game.getSettings().reducedMotion());
+        beginRound();
+    }
+
     private void beginRound() {
+        if (startElevatorIfFloorChanges()) return;
         resultsDispatched = false;
+        shownFloor = QuizBackground.floorOf(round.number());
         String key=network==null?audioSession+":"+round.presentation().generation():connection.snapshot().get("gameId").getAsString()+":"+round.question().id();
         questionAudio.question(key,round.number());
         game.getAudio().hostVoice().scopeGain(1);
@@ -206,6 +246,7 @@ public class PlayScreen extends ScreenAdapter {
     @Override public void render(float delta) {
         if (disposed) return;
         float step = paused || applicationPaused ? 0 : Math.max(0, delta);
+        if (elevatorActive()) { renderElevator(step); return; }
         round.update(step);
         if (network != null && network.synchronize()) beginRound();
         synchronizeAudio();
@@ -216,6 +257,7 @@ public class PlayScreen extends ScreenAdapter {
                 if (disposed || game.getScreen() != this) return;
             } else if (round.next()) beginRound();
         }
+        if (elevatorActive()) { renderElevator(0); return; }   // the ride began this frame: keep the last question frame as it was
         updatePresentation();
         if(players!=null){players.synchronize(connection.snapshot(),connection.serverNow());players.answersVisible(round.presentation().answerProgress(0)>0);players.advance(step,game.getSettings().reducedMotion());}
         ScreenUtils.clear(9 / 255f, 9 / 255f, 9 / 255f, 1);
@@ -223,6 +265,19 @@ public class PlayScreen extends ScreenAdapter {
         stage.act(step);
         stage.draw();
         if (network != null && !applicationPaused) network.afterDraw();
+    }
+    /**
+     * The ride: the question timeline is frozen (so PRESENTATION_READY is not sent and the server keeps waiting),
+     * the question UI fades out over the first moments, then the elevator owns the frame until the hand-off.
+     */
+    private void renderElevator(float step) {
+        elevator.update(step);
+        synchronizeAudio();
+        if(players!=null&&connection!=null)players.synchronize(connection.snapshot(),connection.serverNow());
+        ScreenUtils.clear(0, 0, 0, 1);
+        if (elevator.gameplayOverlayAlpha() > 0) { stage.getViewport().apply(); stage.draw(); }
+        elevator.render();
+        if (elevator.completed()) finishElevator();
     }
     private void layoutClock() {
         float w = stage.getViewport().getWorldWidth(), h = stage.getViewport().getWorldHeight();
@@ -238,6 +293,7 @@ public class PlayScreen extends ScreenAdapter {
     }
     @Override public void resize(int width, int height) {
         stage.getViewport().update(width, height, true);
+        if (elevator != null) elevator.resize(width, height);
         layoutClock();
     }
     @Override public void pause() { applicationPaused = true;questionAudio.pause(true); }
@@ -255,5 +311,6 @@ public class PlayScreen extends ScreenAdapter {
         answers.dispose();
         smallFont.dispose();
         if(players!=null)players.dispose();
+        if (elevator != null) { elevator.cancel(); elevator.dispose(); }
     }
 }

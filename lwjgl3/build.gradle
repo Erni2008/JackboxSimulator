@@ -1254,6 +1254,20 @@ tasks.register('systemBreachScreenPreview', JavaExec) {
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
 
+// Cinematic FLOOR 1 -> FLOOR 2 elevator with the real assets; -Pel.capture=/abs/dir writes runtime screenshots + timing checks.
+tasks.register('elevatorTransitionPreview', JavaExec) {
+    group = 'application'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.ElevatorTransitionPreview'
+    workingDir = rootProject.file('assets')
+    for (key in ['el.capture','el.width','el.height']) {
+        if (providers.gradleProperty(key).isPresent()) systemProperty key, providers.gradleProperty(key).get()
+    }
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
 // Stand-alone elevator test scene (temporary art); -Pel.capture=/abs/dir writes every key state and exits.
 tasks.register('elevatorPreview', JavaExec) {
     group = 'application'
@@ -1289,7 +1303,7 @@ tasks.register('questionsHost', JavaExec) {
     classpath = sourceSets.dev.runtimeClasspath
     mainClass = 'com.erni.finalanswer.lwjgl3.QuestionsHostLauncher'
     workingDir = rootProject.file('assets')
-    for (key in ['room.url','room.code','room.token']) {
+    for (key in ['room.url','room.code','room.token','q.capture','q.every']) {
         if (providers.gradleProperty(key).isPresent()) systemProperty key, providers.gradleProperty(key).get()
     }
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'

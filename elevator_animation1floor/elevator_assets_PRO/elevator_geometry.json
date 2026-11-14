@@ -1,0 +1,44 @@
+{
+  "version": 2,
+  "coordinateSystem": "image-top-left",
+  "sourceResolution": {
+    "width": 1536,
+    "height": 865
+  },
+  "gameReferenceResolution": {
+    "width": 1920,
+    "height": 1080
+  },
+  "renderingNote": "Use image coordinates at native resolution and fit to viewport; if scaled to 1920x1080 use x*1.25, y*(1080/865), width*1.25, height*(1080/865). For libGDX bottom-left coordinates: bottomY=865-topY-height before scaling.",
+  "opening": {
+    "x": 558,
+    "y": 224,
+    "width": 427,
+    "height": 463
+  },
+  "leftDoor": {
+    "file": "door_left.png",
+    "width": 208,
+    "height": 463,
+    "closedX": 558,
+    "closedY": 224,
+    "openX": 350
+  },
+  "rightDoor": {
+    "file": "door_right.png",
+    "width": 219,
+    "height": 463,
+    "closedX": 766,
+    "closedY": 224,
+    "openX": 985
+  },
+  "mask": "doorway_mask.png",
+  "base": "elevator_base.png",
+  "doorTravelDurationSeconds": 1.8,
+  "compositingOrder": [
+    "destination_floor",
+    "elevator_base",
+    "doors_clipped_to_opening"
+  ],
+  "note": "The opaque base outside opening acts as frame; do not add a duplicate frame overlay. Door images are fully opaque rectangular sprites. Their off-opening portions must be clipped. Test floor placeholder is not final artwork."
+}

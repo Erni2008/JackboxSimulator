@@ -10,6 +10,10 @@ import com.erni.finalanswer.ui.RuntimeTextures;
 
 /** Stable room geometry with continuous localized candle lighting and restrained camera motion. */
 public final class QuizBackground extends Actor implements Disposable {
+    /** Room grading shared with the elevator transition so its last frame matches this background exactly. */
+    public static final float ZOOM = 1.02f, DIM = .31f, TOP_SHADE = .57f, TOP_SHADE_HEIGHT = .38f, BOTTOM_SHADE = .68f, BOTTOM_SHADE_HEIGHT = .22f;
+    /** Floor backgrounds: questions 1–2 are floor 1 (the Grand Hall), 3–4 floor 2 (the Library). */
+    private static final String[] FLOORS = {"backgrounds/play/questions_01_02/01.1.png", "backgrounds/play/questions_03_04/library.png"};
     private static final String VERTEX = """
         attribute vec4 a_position;
         attribute vec4 a_color;
@@ -53,7 +57,9 @@ public final class QuizBackground extends Actor implements Disposable {
             gl_FragColor = vec4(max(color,vec3(0.0)),scene.a) * v_color;
         }
         """;
-    private final Texture scene;
+    private final Texture[] scenes = new Texture[FLOORS.length];
+    private Texture scene;
+    private int floor = 1;
     private final ShaderProgram lighting;
     private final Texture pixel; // Borrowed from PlayScreen.
     private double elapsed;
@@ -65,24 +71,38 @@ public final class QuizBackground extends Actor implements Disposable {
         this.pixel = pixel;
         setName("quizBackground");
         setTouchable(Touchable.disabled);
-        Texture loaded = RuntimeTextures.load("backgrounds/play/questions_01_02/01.1.png");
+        Texture loaded = RuntimeTextures.load(FLOORS[0]);
         ShaderProgram compiled = null;
         try {
+            for (int i = 1; i < FLOORS.length; i++)
+                if (com.badlogic.gdx.Gdx.files.internal(FLOORS[i]).exists()) scenes[i] = RuntimeTextures.load(FLOORS[i]);
             compiled = new ShaderProgram(VERTEX, FRAGMENT);
             if (!compiled.isCompiled()) throw new IllegalStateException("Room lighting shader: " + compiled.getLog());
         } catch (RuntimeException error) {
             loaded.dispose();
+            for (Texture t : scenes) if (t != null) t.dispose();
             if (compiled != null) compiled.dispose();
             throw error;
         }
+        scenes[0] = loaded;
         scene = loaded;
         lighting = compiled;
     }
     public void reset() { elapsed = 0; visibility = 0; }
     public void showForQuestion(int number, boolean reducedMotion) {
-        active = number >= 1 && number <= 2;
+        int f = floorOf(number);
+        active = f >= 1 && f <= scenes.length && scenes[f - 1] != null;
+        if (active) { floor = f; scene = scenes[f - 1]; }
         this.reducedMotion = reducedMotion;
     }
+    /** Shows the floor of a question at full visibility at once (hand-off from the elevator, which drew the same frame). */
+    public void showImmediately(int number, boolean reducedMotion) {
+        showForQuestion(number, reducedMotion);
+        if (active) { visibility = 1; elapsed = 0; }
+    }
+    public static int floorOf(int questionNumber) { return questionNumber < 1 ? 0 : (questionNumber + 1) / 2; }
+    /** The loaded background of a floor (1-based), or null; shared with the elevator transition, never disposed by it. */
+    public Texture floorTexture(int floorNumber) { return floorNumber >= 1 && floorNumber <= scenes.length ? scenes[floorNumber - 1] : null; }
     public boolean isActiveForQuestion() { return active; }
     public float visibility() { return visibility; }
     public double elapsedSeconds() { return elapsed; }
@@ -104,18 +124,18 @@ public final class QuizBackground extends Actor implements Disposable {
         ShaderProgram previous = batch.getShader();
         batch.setShader(lighting);
         lighting.setUniformf("u_time", (float) elapsed);
-        lighting.setUniformf("u_motion", reducedMotion ? 0 : 1);
+        lighting.setUniformf("u_motion", reducedMotion || floor != 1 ? 0 : 1);   // the lamp glows are placed for the Grand Hall
         drawFrame(batch, scene, alpha);
         batch.setShader(previous);
         // Cached shader and borrowed pixel: no per-frame GPU resources.
-        batch.setColor(0, 0, 0, .31f * alpha);
+        batch.setColor(0, 0, 0, DIM * alpha);
         batch.draw(pixel, getX(), getY(), getWidth(), getHeight());
-        shade(batch, getX(), getY() + getHeight() * .62f, getWidth(), getHeight() * .38f, 0, .57f * alpha);
-        shade(batch, getX(), getY(), getWidth(), getHeight() * .22f, .68f * alpha, 0);
+        shade(batch, getX(), getY() + getHeight() * (1 - TOP_SHADE_HEIGHT), getWidth(), getHeight() * TOP_SHADE_HEIGHT, 0, TOP_SHADE * alpha);
+        shade(batch, getX(), getY(), getWidth(), getHeight() * BOTTOM_SHADE_HEIGHT, BOTTOM_SHADE * alpha, 0);
         batch.setPackedColor(saved);
     }
     private void drawFrame(Batch batch, Texture frame, float alpha) {
-        float zoom = reducedMotion ? 1.02f : 1.02f + .004f * (float) Math.sin(elapsed * .075);
+        float zoom = reducedMotion ? ZOOM : ZOOM + .004f * (float) Math.sin(elapsed * .075);
         float scale = Math.max(getWidth() / frame.getWidth(), getHeight() / frame.getHeight()) * zoom;
         float width = frame.getWidth() * scale, height = frame.getHeight() * scale;
         float panX = reducedMotion ? 0 : (float) Math.sin(elapsed * .055) * getWidth() * .0017f;
@@ -140,7 +160,7 @@ public final class QuizBackground extends Actor implements Disposable {
     @Override public void dispose() {
         if (disposed) return;
         disposed = true;
-        scene.dispose();
+        for (Texture t : scenes) if (t != null) t.dispose();
         lighting.dispose();
     }
 }

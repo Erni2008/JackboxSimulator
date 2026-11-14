@@ -1,0 +1,83 @@
+{
+  "_comment": "Cinematic elevator transition between floors. All rects are SOURCE-IMAGE pixels, top-left origin, exactly as measured on the files. Each image is drawn to cover the 1920x1080 world keeping its aspect ratio. Built by tools/assets/elevator/build_floor1_2.py.",
+  "timing": {
+    "prepare": 1.2,
+    "approach": 1.5,
+    "exteriorOpen": 1.8,
+    "exteriorSettle": 0.25,
+    "enter": 1.6,
+    "interiorClose": 1.8,
+    "interiorSettle": 0.35,
+    "selectFloor": 0.75,
+    "startMovement": 0.8,
+    "moving": 3.0,
+    "arriving": 1.0,
+    "doorDelay": 0.3,
+    "interiorOpen": 1.8,
+    "exit": 1.6
+  },
+  "camera": {
+    "approachZoom": 1.75,
+    "enterHallZoomEnd": 4.0,
+    "enterParallax": 0.8,
+    "exitCabinZoomEnd": 3.8,
+    "exitParallax": 0.8,
+    "overscan": 1.15,
+    "vibrationStart": 3.2,
+    "vibrationMoving": 0.9,
+    "arrivalBump": 7.0
+  },
+  "interior": {
+    "image": "elevator/interior/cabin_base.png",
+    "size": [1536, 865],
+    "doorway": [558, 224, 427, 463],
+    "leftDoor":  { "image": "elevator/interior/door_left.png",  "size": [208, 463], "closedX": 558, "openX": 350, "y": 224 },
+    "rightDoor": { "image": "elevator/interior/door_right.png", "size": [219, 463], "closedX": 766, "openX": 985, "y": 224 },
+    "buttons": [
+      { "floor": 1, "image": "elevator/interior/button_1.png", "center": [1297, 465], "size": 50 },
+      { "floor": 2, "image": "elevator/interior/button_2.png", "center": [1297, 408], "size": 50 },
+      { "floor": 3, "image": "elevator/interior/button_3.png", "center": [1297, 353], "size": 50 },
+      { "floor": 4, "image": "elevator/interior/button_4.png", "center": [1297, 297], "size": 50 },
+      { "floor": 5, "image": "elevator/interior/button_5.png", "center": [1297, 240], "size": 50 }
+    ],
+    "needle": { "image": "elevator/interior/needle.png", "size": [9, 44], "pivot": [1293, 161], "pivotInSprite": [4.5, 4], "anglesByFloor": [152, 116, 88.5, 65, 37.6] },
+    "lamps": [ [768, 44, 230], [384, 247, 110], [1138, 247, 110] ]
+  },
+  "floors": [
+    {
+      "number": 1,
+      "name": "БОЛЬШОЙ ЗАЛ",
+      "background": "backgrounds/play/questions_01_02/01.1.png",
+      "size": [1672, 941],
+      "exterior": {
+        "doorway": [723, 334, 220, 294],
+        "startsOpen": false,
+        "reveal": { "image": "elevator/floors/grand_hall/cabin_view.png", "at": [723, 334], "size": [220, 294] },
+        "leftDoor":  { "image": "elevator/floors/grand_hall/door_left.png",  "size": [111, 294], "closedX": 723, "openX": 612, "y": 334 },
+        "rightDoor": { "image": "elevator/floors/grand_hall/door_right.png", "size": [110, 294], "closedX": 833, "openX": 943, "y": 334 }
+      }
+    },
+    {
+      "number": 2,
+      "name": "БИБЛИОТЕКА",
+      "background": "backgrounds/play/questions_03_04/library.png",
+      "size": [1672, 941]
+    }
+  ],
+  "sounds": {
+    "_comment": "Existing project sounds are reused where they genuinely fit; the rest are named hook points whose files do not exist yet (they are skipped silently).",
+    "exterior_doors_close": { "file": "sounds/last_command/runtime/metal_DOOR_CLOSE.wav", "volume": 0.55 },
+    "exterior_doors_open":  { "file": "sounds/last_command/runtime/door_open.wav", "volume": 0.8 },
+    "enter":                { "file": "elevator/sfx/enter.wav", "volume": 0.6 },
+    "interior_doors_close": { "file": "sounds/last_command/runtime/metal_DOOR_CLOSE.wav", "volume": 0.85 },
+    "button":               { "file": "sounds/last_command/runtime/button_pressed.wav", "volume": 0.8 },
+    "motor_start":          { "file": "elevator/sfx/motor_start.wav", "volume": 0.8 },
+    "movement_loop":        { "file": "elevator/sfx/movement_loop.wav", "volume": 0.5, "loop": true },
+    "vibration":            { "file": "sounds/cages/runtime/chain_cage.wav", "volume": 0.35 },
+    "slowing":              { "file": "elevator/sfx/slowing.wav", "volume": 0.7 },
+    "stop":                 { "file": "elevator/sfx/stop.wav", "volume": 0.8 },
+    "bell":                 { "file": "elevator/sfx/bell.wav", "volume": 0.8 },
+    "interior_doors_open":  { "file": "sounds/last_command/runtime/door_open.wav", "volume": 0.85 },
+    "exit":                 { "file": "elevator/sfx/exit.wav", "volume": 0.6 }
+  }
+}
