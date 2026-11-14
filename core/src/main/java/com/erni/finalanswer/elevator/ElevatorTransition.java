@@ -187,23 +187,15 @@ public final class ElevatorTransition implements Disposable {
                 hallL.set(Z,hcx,hcy,s0x+sx,s0y+sy);drawHall(hall,hp,hd,hallL,1,.22f*e);grade(1);}
             case OPENING_EXTERIOR_DOORS->{float cu=MathUtils.clamp(stateTime/dur(state),0,1),creep=1+CREEP*cu*cu*cu;   // eases in: the camera starts drifting toward the opening doors
                 hallL.set(Z,hcx,hcy,s0x+sx,s0y+sy);drawHall(hall,hp,hd,hallL,1,.22f);grade(1);}
-            case ENTERING_ELEVATOR->{float u=MathUtils.clamp(stateTime/dur(state),0,1),h0=az*(1+CREEP),is0=hdh*h0*over/ip.h,hEnd=h0/is0;   // the push ends exactly when the cabin fills the frame
-                float k=az*CREEP*3/dur(State.OPENING_EXTERIOR_DOORS)*dur(state)/(h0*(float)Math.log(hEnd/h0));      // match the creep's exit speed
-                float e=k*u+(3-2*k)*u*u+(k-2)*u*u*u,hs=ElevatorCinematicCamera.zoom(h0,hEnd,e);
-                float is=is0*hs/h0;   // cabin rigidly attached to the doorway: no parallax drift, it never recedes
-                float hallA=1-ElevatorCinematicCamera.smoother((u-.62f)/.23f);boolean swapped=u>=SWAP;          // the painted cabin is replaced inside a brief dip to dark
+            case ENTERING_ELEVATOR->{float u=MathUtils.clamp(stateTime/dur(state),0,1),e=ElevatorCinematicCamera.smoother(u);   // the exit shot, played forwards
+                float h0=Z,is0=hdh*h0*over/ip.h,hEnd=h0/is0,hs=ElevatorCinematicCamera.zoom(h0,hEnd,e),is=is0*hs/h0;   // cabin rigidly attached to the doorway
                 float px=MathUtils.lerp(s0x,cx,e),py=MathUtils.lerp(s0y,cy,e);cabinL.set(is,cx,cy,px+sx,py+sy);hallL.set(hs,hcx,hcy,px+sx,py+sy);
-                if(hallA<1)drawCabin(ip,cd,cabinL,1,false);                                            // the cabin behind the fading hall
+                drawCabin(ip,cd,cabinL,1,false);
+                float hallA=1-ElevatorCinematicCamera.smoother((u-.75f)/.25f);
                 if(hallA>0){drawHall(hall,hp,hd,hallL,hallA,.22f);
-                    if(u>.08f&&u<.75f){float mb=MathUtils.sin((u-.08f)/.67f*MathUtils.PI)*.16f;        // a breath of motion blur on the push
-                        hallL.set(hs*1.018f,hcx,hcy,px+sx,py+sy);drawHall(hall,hp,hd,hallL,hallA*mb,0);hallL.set(hs,hcx,hcy,px+sx,py+sy);}
-                    // inside the hall's doorway, the cabin takes over from the painted one
-                    if(swapped){clip(hallL,hdx,hdy,hdw,hdh);drawCabin(ip,cd,cabinL,1,false);unclip();}}
-                grade(1-ElevatorCinematicCamera.smoother((u-SWAP+.06f)/.12f));                    // the room grading lifts inside the dip
-                float flare=(float)Math.exp(-Math.pow((u-SWAP)/.085f,2));                            // stepping into the warm cabin light
-                batch.setColor(.03f,.015f,0,.18f*MathUtils.sin(u*MathUtils.PI));batch.draw(pixel,-50,-50,WORLD_W+100,WORLD_H+100);
-                batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(1,.70f,.38f,.92f*flare);batch.draw(pixel,-50,-50,WORLD_W+100,WORLD_H+100);
-                batch.setColor(1,.85f,.6f,.5f*flare);batch.draw(glow,cx-900,cy-700,1800,1400);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
+                    float real=ElevatorCinematicCamera.smoother(u/.3f);                                   // the painted cabin in the doorway eases into the real one
+                    clip(hallL,hdx,hdy,hdw,hdh);drawCabin(ip,cd,cabinL,hallA*real,false);unclip();}
+                grade(1-e);}
             case CLOSING_INTERIOR_DOORS,SELECTING_FLOOR,STARTING_MOVEMENT,MOVING,ARRIVING->{cabinL.set(1,cx,cy,cx+sx,cy+sy);drawCabin(ip,cd,cabinL,1,false);}
             case OPENING_INTERIOR_DOORS->{cabinL.set(1,cx,cy,cx+sx,cy+sy);float ls=dp.h>0?cdh*over/dp.h:1;destL.set(ls,cx,cy,ccx+sx,ccy+sy);
                 drawCabinWithDestination(ip,cd,dp,cabinL,destL,1);}
