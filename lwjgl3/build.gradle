@@ -1254,6 +1254,18 @@ tasks.register('systemBreachScreenPreview', JavaExec) {
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
 
+// Stand-alone elevator test scene (temporary art); -Pel.capture=/abs/dir writes every key state and exits.
+tasks.register('elevatorPreview', JavaExec) {
+    group = 'application'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.ElevatorPreview'
+    workingDir = rootProject.file('assets')
+    if (providers.gradleProperty('el.capture').isPresent()) systemProperty 'el.capture', providers.gradleProperty('el.capture').get()
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
 // SYSTEM BREACH developer host against a running room server (tools/dev/system_breach_live.cjs).
 tasks.register('systemBreachHost', JavaExec) {
     group = 'application'
@@ -1266,6 +1278,20 @@ tasks.register('systemBreachHost', JavaExec) {
     systemProperty 'room.token', providers.gradleProperty('room.token').getOrElse('')
     systemProperty 'sb.players', providers.gradleProperty('sb.players').getOrElse('2')
     systemProperty 'sb.lang', providers.gradleProperty('sb.lang').getOrElse('ru')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+// Live production main-question flow with manual browser answers.
+tasks.register('questionsHost', JavaExec) {
+    group = 'application'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.QuestionsHostLauncher'
+    workingDir = rootProject.file('assets')
+    for (key in ['room.url','room.code','room.token']) {
+        if (providers.gradleProperty(key).isPresent()) systemProperty key, providers.gradleProperty(key).get()
+    }
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }

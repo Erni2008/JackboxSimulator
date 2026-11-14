@@ -29,6 +29,14 @@ tasks.register('clockCheck', JavaExec) {
     mainClass = 'com.erni.finalanswer.gameplay.ClockCheck'
 }
 
+tasks.register('elevatorCheck', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.elevator.ElevatorCheck'
+    workingDir = project.projectDir
+}
+
 dependencies { api project(':shared') }
 
 // Like inspector, these checks are dependency-free executables rather than JUnit suites.

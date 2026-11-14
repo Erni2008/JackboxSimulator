@@ -1,0 +1,60 @@
+{
+  "_comment": "Elevator geometry in the 1920x1080 world, origin bottom-left. Values describe the TEMPORARY placeholder art and must be re-measured when the final PNGs arrive.",
+  "world": { "w": 1920, "h": 1080 },
+  "doorway": { "x": 660, "y": 150, "w": 600, "h": 760 },
+  "doors": {
+    "seamOverlap": 2,
+    "left":  { "closedX": 660, "openX": 359,  "y": 150, "w": 301, "h": 760 },
+    "right": { "closedX": 959, "openX": 1260, "y": 150, "w": 301, "h": 760 }
+  },
+  "buttons": {
+    "sheetCols": 3,
+    "items": [
+      { "floor": 1, "x": 1520, "y": 420, "radius": 30 },
+      { "floor": 2, "x": 1520, "y": 500, "radius": 30 },
+      { "floor": 3, "x": 1520, "y": 580, "radius": 30 },
+      { "floor": 4, "x": 1520, "y": 660, "radius": 30 },
+      { "floor": 5, "x": 1520, "y": 740, "radius": 30 }
+    ]
+  },
+  "indicator": {
+    "housing": { "x": 780, "y": 925, "w": 360, "h": 140 },
+    "needle": { "pivotX": 960, "pivotY": 940, "length": 105, "width": 14, "pivotFromBottom": 7, "angleFloor1": 160, "angleFloor5": 20 }
+  },
+  "floors": [
+    { "number": 1, "id": "grand_hall",      "name": "THE GRAND HALL",      "image": "elevator/floors/floor_1_grand_hall.png",      "placeholderTint": [0.45, 0.12, 0.10] },
+    { "number": 2, "id": "library",         "name": "THE LIBRARY",         "image": "elevator/floors/floor_2_library.png",         "placeholderTint": [0.10, 0.22, 0.30] },
+    { "number": 3, "id": "broadcast_room",  "name": "THE BROADCAST ROOM",  "image": "elevator/floors/floor_3_broadcast_room.png",  "placeholderTint": [0.35, 0.10, 0.40] },
+    { "number": 4, "id": "laboratory",      "name": "THE LABORATORY",      "image": "elevator/floors/floor_4_laboratory.png",      "placeholderTint": [0.08, 0.38, 0.20] },
+    { "number": 5, "id": "final_chamber",   "name": "THE FINAL CHAMBER",   "image": "elevator/floors/floor_5_final_chamber.png",   "placeholderTint": [0.55, 0.04, 0.04] }
+  ],
+  "lights": [
+    { "x": 960, "y": 1010, "radius": 520, "color": [1.0, 0.72, 0.40], "strength": 0.55 },
+    { "x": 470, "y": 760,  "radius": 260, "color": [1.0, 0.65, 0.30], "strength": 0.45 },
+    { "x": 1450, "y": 760, "radius": 260, "color": [1.0, 0.65, 0.30], "strength": 0.45 }
+  ],
+  "images": {
+    "base": "elevator/elevator_base.png",
+    "doorLeft": "elevator/elevator_door_left.png",
+    "doorRight": "elevator/elevator_door_right.png",
+    "frameOverlay": "elevator/elevator_frame_overlay.png",
+    "buttons": "elevator/elevator_buttons.png",
+    "indicatorHousing": "elevator/elevator_indicator.png",
+    "indicatorNeedle": "elevator/elevator_needle.png"
+  },
+  "sounds": {
+    "_comment": "Hook points. Files that do not exist are skipped silently; drop the WAVs in and they play.",
+    "button": "elevator/sfx/button.wav",
+    "door_open_start": "elevator/sfx/door_open.wav",
+    "door_open_end": "elevator/sfx/door_thud.wav",
+    "door_close_start": "elevator/sfx/door_close.wav",
+    "door_close_end": "elevator/sfx/door_thud.wav",
+    "motor_start": "elevator/sfx/motor_start.wav",
+    "motor_loop": "elevator/sfx/motor_loop.wav",
+    "brake": "elevator/sfx/brake.wav",
+    "bell": "elevator/sfx/bell.wav",
+    "emergency": "elevator/sfx/emergency.wav"
+  },
+  "timing": { "doorSeconds": 1.8, "doorStartDelay": 0.25, "motorSpinUp": 0.8, "secondsPerFloor": 2.2, "arrivalBell": 0.45, "cameraExitSeconds": 1.4 },
+  "effects": { "vibrationMoving": 1.2, "vibrationJolt": 5.0, "flickerDepth": 0.18 }
+}
