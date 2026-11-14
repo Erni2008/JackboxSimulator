@@ -30,6 +30,7 @@ public final class ElevatorTransitionConfig {
     public String needleImage;public float needleW,needleH,needlePivotX,needlePivotY,needleSpritePivotX,needleSpritePivotY;public float[] needleAngles;
     public final List<ElevatorFloorConfig> floors=new ArrayList<>();
     public final Map<String,Sound> sounds=new LinkedHashMap<>();
+    public ElevatorEventConfig events=ElevatorEventConfig.defaults();
 
     public static ElevatorTransitionConfig parse(String json){
         JsonValue r=new JsonReader().parse(json);var c=new ElevatorTransitionConfig();
@@ -48,6 +49,7 @@ public final class ElevatorTransitionConfig {
             c.floors.add(new ElevatorFloorConfig(f.getInt("number"),f.getString("name",""),f.getString("background"),f.get("size").getFloat(0),f.get("size").getFloat(1),exterior));
         }
         JsonValue s=r.get("sounds");if(s!=null)for(JsonValue e=s.child;e!=null;e=e.next)if(!e.name.startsWith("_"))c.sounds.put(e.name,new Sound(e.getString("file"),e.getFloat("volume",1),e.getBoolean("loop",false)));
+        c.events=ElevatorEventConfig.parse(r.get("events"));
         c.validate();return c;
     }
     private static SourceRect rect(JsonValue v){return new SourceRect(v.getFloat(0),v.getFloat(1),v.getFloat(2),v.getFloat(3));}

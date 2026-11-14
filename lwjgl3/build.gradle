@@ -1261,7 +1261,7 @@ tasks.register('elevatorTransitionPreview', JavaExec) {
     classpath = sourceSets.dev.runtimeClasspath
     mainClass = 'com.erni.finalanswer.lwjgl3.ElevatorTransitionPreview'
     workingDir = rootProject.file('assets')
-    for (key in ['el.capture','el.width','el.height']) {
+    for (key in ['el.capture','el.width','el.height','el.event','el.events']) {
         if (providers.gradleProperty(key).isPresent()) systemProperty key, providers.gradleProperty(key).get()
     }
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'

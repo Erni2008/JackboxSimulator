@@ -78,6 +78,40 @@
     "stop":                 { "file": "elevator/sfx/stop.wav", "volume": 0.8 },
     "bell":                 { "file": "elevator/sfx/bell.wav", "volume": 0.8 },
     "interior_doors_open":  { "file": "sounds/last_command/runtime/door_open.wav", "volume": 0.85 },
-    "exit":                 { "file": "elevator/sfx/exit.wav", "volume": 0.6 }
+    "exit":                 { "file": "elevator/sfx/exit.wav", "volume": 0.6 },
+    "elevator_emergency_brake":   { "file": "sounds/last_command/runtime/machine_shutdown .wav", "volume": 0.75 },
+    "elevator_metal_creak":       { "file": "sounds/last_command/runtime/metal_cracking.wav", "volume": 0.5 },
+    "elevator_power_failure":     { "file": "sounds/last_command/runtime/failed.circuit.wav", "volume": 0.55 },
+    "elevator_electric_crackle":  { "file": "sounds/last_command/runtime/wires1.wav", "volume": 0.5 },
+    "elevator_dark_ambience":     { "file": "elevator/sfx/dark_ambience.wav", "volume": 0.6 },
+    "elevator_host_interruption": { "file": "elevator/sfx/host_interruption.wav", "volume": 0.5 },
+    "elevator_false_arrival":     { "file": "sounds/last_command/runtime/door_open.wav", "volume": 0.55 },
+    "elevator_door_interrupt":    { "file": "sounds/last_command/runtime/lever.wav", "volume": 0.85 },
+    "elevator_motor_restart":     { "file": "elevator/sfx/motor_restart.wav", "volume": 0.7 }
+  },
+  "events": {
+    "_comment": "Random horror events during the cruise. probability per eligible journey; never the same type twice in a row. phases are [min,max] seconds sampled once per event. debug.force: \"\" random, \"NONE\" never, or an event name. flashing=false keeps every event but replaces flicker with a slow soft dim.",
+    "probability": 0.3,
+    "enabled": true,
+    "flashing": true,
+    "safeDoorOpen": 0.2,
+    "doorOpenSeconds": 1.6,
+    "doorCloseSeconds": 1.3,
+    "scheduleEarliest": 0.35,
+    "scheduleLatest": 1.2,
+    "falseArrivalBeforeEnd": 0.5,
+    "hostDuck": 0.4,
+    "debug": { "force": "" },
+    "phases": {
+      "EMERGENCY_STOP":    { "brake": [0.2, 0.4], "suspense": [1.0, 1.5], "recovery": [0.8, 1.2] },
+      "SOMEONE_WATCHING":  { "fail": [0.3, 0.3], "darkness": [0.8, 1.2], "return": [0.5, 0.8] },
+      "POWER_FAILURE":     { "instability": [0.5, 0.8], "malfunction": [1.0, 1.5], "stabilize": [0.5, 0.8] },
+      "HOST_INTERRUPTION": { "dim": [0.3, 0.5], "line": [3.2, 3.6], "return": [0.5, 0.7] },
+      "FALSE_ARRIVAL":     { "decelerate": [0.6, 0.8], "open": [0.6, 0.9], "interrupt": [0.2, 0.4], "close": [0.5, 0.8], "resume": [0.6, 1.0] }
+    },
+    "voiceLines": {
+      "SOMEONE_WATCHING":  ["ELEVATOR_WATCHING_1", "ELEVATOR_WATCHING_2", "ELEVATOR_WATCHING_3", "ELEVATOR_WATCHING_4"],
+      "HOST_INTERRUPTION": ["ELEVATOR_HOST_1", "ELEVATOR_HOST_2", "ELEVATOR_HOST_3", "ELEVATOR_HOST_4", "ELEVATOR_HOST_5", "ELEVATOR_HOST_6"]
+    }
   }
 }

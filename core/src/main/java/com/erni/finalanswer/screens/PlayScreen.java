@@ -82,6 +82,7 @@ public class PlayScreen extends ScreenAdapter {
         stage.addActor(background);
         try {
             elevator = new com.erni.finalanswer.elevator.ElevatorTransition(com.erni.finalanswer.elevator.ElevatorTransition.loadConfig(), background::floorTexture, null);
+            elevator.setVoicePlayer(id -> game.getAudio().hostVoice().playLine(id));   // horror-event lines through the existing host voice
         } catch (RuntimeException error) {
             Gdx.app.error("Elevator", "elevator transition unavailable, floors will cut directly", error);
             elevator = null;

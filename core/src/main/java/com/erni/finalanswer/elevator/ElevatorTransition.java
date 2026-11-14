@@ -58,6 +58,9 @@ public final class ElevatorTransition implements Disposable {
     private State state=State.IDLE;private float stateTime,totalTime;
     private int from,to;private float carFloor;
     private boolean pressed;
+    // random horror events: real travel (moveClock) is separate from the visual needle offset and the event's own clock
+    private final ElevatorEventManager events;private ElevatorEventContext ev;private float moveClock;private int journey;
+    private java.util.function.Consumer<String> voicePlayer=id->{};
     private Place hp,ip,dp;                                  // image fits, computed once per ride (no per-frame allocation)
 
     /**
@@ -77,6 +80,7 @@ public final class ElevatorTransition implements Disposable {
         pixel=own(solid());glow=own(glowTexture());vignette=own(vignetteTexture());
         outer=new ElevatorDoorAnimator(cfg.t("exteriorOpen"),1);inner=new ElevatorDoorAnimator(cfg.t("interiorClose"),1);
         audio=new ElevatorTransitionAudio(cfg);
+        events=new ElevatorEventManager(cfg.events,new java.util.Random());ev=events.context();
         camera.position.set(WORLD_W/2,WORLD_H/2,0);
     }
     public static ElevatorTransitionConfig loadConfig(){return ElevatorTransitionConfig.parse(Gdx.files.internal("elevator/elevator_transition.json").readString("UTF-8"));}
@@ -87,6 +91,7 @@ public final class ElevatorTransition implements Disposable {
     public boolean start(int fromFloor,int toFloor){
         if(active()||!supports(fromFloor,toFloor))return false;
         from=fromFloor;to=toFloor;carFloor=from;pressed=false;totalTime=0;cine.reset();
+        moveClock=0;journey++;events.planJourney(cfg.t("moving"));audio.setLoopGain(1);
         var ex=cfg.floor(from).exterior();outer.snap(ex.startsOpen()?1:0);inner.snap(1);
         var hf=cfg.floor(from);var df=cfg.floor(to);hp=place(hf.w(),hf.h());ip=place(cfg.interiorW,cfg.interiorH);dp=place(df.w(),df.h());
         go(State.PREPARING);
@@ -99,16 +104,26 @@ public final class ElevatorTransition implements Disposable {
     public float stateTime(){return stateTime;}
     public int destination(){return to;}
     /** Jumps to the end state (skip) — the game resumes in the same valid state as after a full ride. */
-    public void skip(){if(active()){audio.stopLoop();cine.reset();carFloor=to;go(State.COMPLETED);}}
+    public void skip(){if(active()){events.cancel();audio.setLoopGain(1);audio.stopLoop();cine.reset();carFloor=to;go(State.COMPLETED);}}
     /** Abort and return to idle (e.g. the screen is leaving). */
-    public void cancel(){audio.stopLoop();cine.reset();state=State.IDLE;}
+    public void cancel(){events.cancel();audio.setLoopGain(1);audio.stopLoop();cine.reset();state=State.IDLE;}
     /** Back to idle after the caller has handed over to gameplay. */
     public void reset(){if(state==State.COMPLETED)state=State.IDLE;}
     /** How much of the gameplay screen should still show underneath (the question UI fading away at the start). */
     public float gameplayOverlayAlpha(){return state==State.PREPARING?1-ElevatorCinematicCamera.smoother(stateTime/.6f):0;}
     public java.util.Set<String> missingSounds(){return audio.missing;}
     public java.util.Set<String> playedSounds(){return audio.played;}
+    /** Logical needle angle (the car's real position). */
     public float needleAngle(){return cfg.needleAngle(carFloor);}
+    /** What the needle shows: real position plus any purely visual malfunction offset. */
+    public float displayedNeedleAngle(){return cfg.needleAngle(carFloor+ev.needleOffset);}
+    public ElevatorEventManager events(){return events;}
+    /** Host voice hook: receives a line id from {@code voiceLines}; the game routes it to HostVoiceManager. */
+    public void setVoicePlayer(java.util.function.Consumer<String> player){voicePlayer=player==null?id->{}:player;}
+    /** Development trigger: only while the car is cruising with no event running and enough travel left. */
+    public boolean triggerEvent(ElevatorEventType type){return events.trigger(type,eventSafe()&&moveClock<cfg.t("moving")-.3f);}
+    public float moveClock(){return moveClock;}
+    private boolean eventSafe(){return state==State.MOVING&&inner.fullyClosed();}
     public float carFloor(){return carFloor;}
     public float exteriorOpenness(){return outer.openness();}
     public float interiorOpenness(){return inner.openness();}
@@ -138,6 +153,7 @@ public final class ElevatorTransition implements Disposable {
     }
     /** A state is done when its time is up AND its physical condition holds (doors really at rest). */
     private boolean done(State s){
+        if(s==State.MOVING)return moveClock>=cfg.t("moving")&&!events.active()&&inner.fullyClosed();   // an event can extend the cruise, never shorten it
         if(stateTime<dur(s))return false;
         return switch(s){case OPENING_EXTERIOR_DOORS->outer.fullyOpen();case CLOSING_INTERIOR_DOORS->inner.fullyClosed();case OPENING_INTERIOR_DOORS->inner.fullyOpen();default->true;};
     }
@@ -148,6 +164,7 @@ public final class ElevatorTransition implements Disposable {
         if(state==State.IDLE)return;
         float dt=Float.isFinite(delta)?MathUtils.clamp(delta,0,.1f):0;
         stateTime+=dt;totalTime+=dt;
+        if(state!=State.MOVING&&(events.active()||ev.light!=1||ev.needleOffset!=0))ev=events.update(dt,moveClock,false);
         outer.update(dt);inner.update(dt);cine.update(dt);
         float u=MathUtils.clamp(stateTime/Math.min(dur(state),1e6f),0,1);
         switch(state){
@@ -155,14 +172,28 @@ public final class ElevatorTransition implements Disposable {
             case CLOSING_INTERIOR_DOORS->{if(inner.justSettled()&&inner.fullyClosed())cine.bump(2.4f);}
             case SELECTING_FLOOR->pressed=true;
             case STARTING_MOVEMENT->{cine.judder(cfg.cam("vibrationStart")*MathUtils.sin(u*MathUtils.PI));cine.hum(cfg.cam("vibrationMoving")*u);}
-            case MOVING->{cine.judder(0);cine.hum(cfg.cam("vibrationMoving"));}
+            case MOVING->{
+                ev=events.update(dt,moveClock,eventSafe());
+                float speed=ev.speed,moving=cfg.t("moving");
+                if(events.active()&&!events.activeType().stopsCar())speed*=MathUtils.clamp((moving-moveClock)/.8f,.12f,1);   // a long event: the car slows rather than arriving under it
+                moveClock=Math.min(moving,moveClock+dt*speed);
+                cine.judder(ev.judder);cine.hum(cfg.cam("vibrationMoving")*Math.max(speed,.08f));if(ev.bump>0)cine.bump(ev.bump);
+                audio.setLoopGain(ev.motorGain);
+                for(String snd:ev.sounds)audio.play(snd);
+                if(ev.voiceLine!=null)voicePlayer.accept(ev.voiceLine);
+                switch(ev.door){
+                    case OPEN_PARTIAL->{inner.setDuration(ev.doorSeconds);inner.moveTo(Math.min(ev.doorTarget,cfg.events.safeDoorOpen));}
+                    case PAUSE->inner.pause();
+                    case CLOSE->{inner.setDuration(ev.doorSeconds);inner.close();}
+                    default->{}
+                }}
             case ARRIVING->{cine.hum(cfg.cam("vibrationMoving")*(1-u));cine.judder(cfg.cam("vibrationStart")*.5f*MathUtils.sin(u*MathUtils.PI));}
             case OPENING_INTERIOR_DOORS->{cine.hum(0);cine.judder(0);if(stateTime>=cfg.t("doorDelay")&&!inner.moving()&&inner.openness()<1){inner.setDuration(cfg.t("interiorOpen"));inner.open();audio.play("interior_doors_open");}}
             default->{}
         }
         // car position: one eased travel across start → moving → arriving, so the needle accelerates and settles
         float ride=cfg.t("startMovement")+cfg.t("moving")+cfg.t("arriving"),rt=switch(state){
-            case STARTING_MOVEMENT->stateTime;case MOVING->cfg.t("startMovement")+stateTime;case ARRIVING->cfg.t("startMovement")+cfg.t("moving")+stateTime;default->-1;};
+            case STARTING_MOVEMENT->stateTime;case MOVING->cfg.t("startMovement")+moveClock;case ARRIVING->cfg.t("startMovement")+cfg.t("moving")+stateTime;default->-1;};
         if(rt>=0)carFloor=from+(to-from)*ElevatorCinematicCamera.smoother(rt/ride);
         else if(state.ordinal()>State.ARRIVING.ordinal())carFloor=to;
         if(done(state))go(next(state));     // at most one state change per frame
@@ -262,7 +293,10 @@ public final class ElevatorTransition implements Disposable {
     /** The cabin; behind its doorway the dark landing of the departure floor (or nothing when {@code destination} draws). */
     private void drawCabin(Place p,SourceRect d,Layer l,float alpha,boolean destinationBehind){
         float dx=p.x(d.x()),dy=p.y(d.y(),d.h()),dw=d.w()*p.k,dh=d.h()*p.k;
-        if(!destinationBehind&&inner.openness()>0){clip(l,dx,dy,dw,dh);                              // the floor being left, seen through the open doors
+        boolean shaft=state==State.STARTING_MOVEMENT||state==State.MOVING||state==State.ARRIVING;
+        if(shaft&&inner.openness()>0){clip(l,dx,dy,dw,dh);batch.setColor(.012f,.010f,.010f,alpha);rect(pixel,dx,dy,dw,dh,l);   // between floors: only the dark shaft wall
+            batch.setColor(.10f,.08f,.06f,.5f*alpha);rect(glow,dx+dw*.3f,dy+dh*.25f,dw*.4f,dh*.5f,l);unclip();}
+        else if(!destinationBehind&&inner.openness()>0){clip(l,dx,dy,dw,dh);                              // the floor being left, seen through the open doors
             float bs=dh*cfg.cam("overscan")/hp.h;behindL.set(l.s*bs,WORLD_W/2,WORLD_H/2,l.x(dx+dw/2),l.y(dy+dh/2));
             batch.setColor(.62f,.56f,.52f,alpha);rect(floorTextures.get(from),hp.ox,hp.oy,hp.w,hp.h,behindL);
             batch.setColor(0,0,0,.25f*alpha);rect(pixel,dx,dy,dw,dh,l);
@@ -280,7 +314,7 @@ public final class ElevatorTransition implements Disposable {
         float dx=p.x(d.x()),dy=p.y(d.y(),d.h()),dw=d.w()*p.k,dh=d.h()*p.k;
         if(inner.openness()<1){clip(l,dx,dy,dw,dh);drawLeaves(cfg.interiorLeft,cfg.interiorRight,cabinLeft,cabinRight,inner,p,l,alpha,dx,dy,dw,dh);unclip();}
         batch.setColor(1,1,1,alpha);rect(cabin,p.ox,p.oy,p.w,p.h,l);
-        float light=lightLevel();
+        float light=lightLevel()*ev.light;
         // floor buttons: the destination lights from the selection until the car has arrived
         for(var b:cfg.buttons){float bx=p.x(b.cx()),by=p.y(b.cy(),0),s=b.size()*p.k;boolean target=b.floor()==to&&pressed;
             float lit=target?buttonLight():0;
@@ -291,16 +325,16 @@ public final class ElevatorTransition implements Disposable {
                 batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}}
         // floor needle about its painted pivot
         float px=p.x(cfg.needlePivotX),py=p.y(cfg.needlePivotY,0),nw=cfg.needleW*p.k,nh=cfg.needleH*p.k,ox=cfg.needleSpritePivotX*p.k,oy=cfg.needleSpritePivotY*p.k;
-        float tremble=state==State.MOVING||state==State.STARTING_MOVEMENT?MathUtils.sin(totalTime*37)*.35f:0;
+        float tremble=state==State.MOVING||state==State.STARTING_MOVEMENT?MathUtils.sin(totalTime*37)*.35f*Math.max(ev.speed,.1f):0;
         float wx=l.x(px),wy=l.y(py);batch.setColor(1,1,1,alpha);
-        batch.draw(needle,wx-ox*l.s,wy-oy*l.s,ox*l.s,oy*l.s,nw*l.s,nh*l.s,1,1,needleAngle()-90+tremble,0,0,needle.getWidth(),needle.getHeight(),false,false);
+        batch.draw(needle,wx-ox*l.s,wy-oy*l.s,ox*l.s,oy*l.s,nw*l.s,nh*l.s,1,1,displayedNeedleAngle()-90+tremble,0,0,needle.getWidth(),needle.getHeight(),false,false);
         // lamps breathe with the light level
         batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
         for(var lamp:cfg.lamps){float lx=p.x(lamp.x()),ly=p.y(lamp.y(),0),r=lamp.radius()*p.k;batch.setColor(1,.70f,.40f,.16f*light*alpha);rect(glow,lx-r,ly-r,r*2,r*2,l);}
         for(int i=0;i<46;i++){float ph=(totalTime*.025f+h(i*7+3))%1f,mx=p.x(300+h(i)*940)+MathUtils.sin(totalTime*.35f+i)*14,my=p.y(70+ph*700,0);   // dust drifting in the lamp light
             float tw=.5f+.5f*MathUtils.sin(totalTime*1.3f+i*2.1f),sz=(1.5f+h(i*3)*2.5f)*p.k;batch.setColor(1,.85f,.6f,.20f*tw*light*alpha*MathUtils.sin(ph*MathUtils.PI));rect(glow,mx-sz,my-sz,sz*2,sz*2,l);}
         if(state==State.MOVING||state==State.STARTING_MOVEMENT||state==State.ARRIVING){                  // light of floors sliding past the door seam
-            float ride=cfg.t("startMovement")+cfg.t("moving")+cfg.t("arriving"),rt=(state==State.STARTING_MOVEMENT?0:state==State.MOVING?cfg.t("startMovement"):cfg.t("startMovement")+cfg.t("moving"))+stateTime;
+            float ride=cfg.t("startMovement")+cfg.t("moving")+cfg.t("arriving"),rt=state==State.STARTING_MOVEMENT?stateTime:state==State.MOVING?cfg.t("startMovement")+moveClock:cfg.t("startMovement")+cfg.t("moving")+stateTime;   // stops with the car
             float pass=(rt/ride*1.6f)%1f,band=dy+dh*(1.25f-1.5f*pass),seam=p.x(cfg.interiorLeft.closedX()+cfg.interiorLeft.w());
             clip(l,dx,dy,dw,dh);batch.setColor(1,.78f,.48f,.55f*alpha*MathUtils.sin(pass*MathUtils.PI));rect(glow,seam-10*p.k,band-70*p.k,20*p.k,140*p.k,l);
             batch.setColor(1,.7f,.4f,.10f*alpha*MathUtils.sin(pass*MathUtils.PI));rect(glow,dx-dw*.2f,band-40*p.k,dw*1.4f,80*p.k,l);unclip();}
@@ -308,6 +342,9 @@ public final class ElevatorTransition implements Disposable {
             batch.setColor(.55f,.75f,1,.14f*g*alpha);rect(glow,dx-dw*.8f,dy-dh*.55f,dw*2.6f,dh*1.0f,l);}
         batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
         if(light<1){batch.setColor(0,0,0,(1-light)*.6f*alpha);batch.draw(pixel,-50,-50,WORLD_W+100,WORLD_H+100);}
+        if(ev.dark>0){batch.setColor(0,0,0,ev.dark*alpha);batch.draw(pixel,-50,-50,WORLD_W+100,WORLD_H+100);      // blackout: only a faint outline remains
+            batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(.35f,.42f,.55f,.05f*ev.dark*alpha);rect(glow,dx-dw*.5f,dy-dh*.3f,dw*2f,dh*1.4f,l);
+            batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
     }
     private float buttonLight(){
         return switch(state){case SELECTING_FLOOR->ElevatorCinematicCamera.smoother(stateTime/.35f);case STARTING_MOVEMENT,MOVING->.9f+.1f*MathUtils.sin(totalTime*4);

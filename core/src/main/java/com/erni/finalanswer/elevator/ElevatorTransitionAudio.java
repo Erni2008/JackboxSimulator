@@ -17,7 +17,8 @@ import java.util.TreeSet;
 public final class ElevatorTransitionAudio implements Disposable {
     private final Map<String,Sound> sounds=new HashMap<>();private final Map<String,ElevatorTransitionConfig.Sound> spec;
     public final Set<String> missing=new TreeSet<>(),played=new java.util.LinkedHashSet<>();
-    private Sound loop;private long loopId=-1;
+    private Sound loop;private long loopId=-1;private float loopBase=1,loopGain=1;
+    private final Map<String,Long> lastPlay=new HashMap<>();
 
     public ElevatorTransitionAudio(ElevatorTransitionConfig config){
         spec=config.sounds;Map<String,Sound> byFile=new HashMap<>();
@@ -30,9 +31,14 @@ public final class ElevatorTransitionAudio implements Disposable {
     }
     public void play(String event){
         played.add(event);var s=sounds.get(event);if(s==null)return;var cfg=spec.get(event);
+        long now=System.nanoTime();Long prev=lastPlay.get(event);
+        if(!cfg.loop()&&prev!=null&&now-prev<250_000_000L)return;                  // the same cue twice within 250 ms would only stack loudness
+        lastPlay.put(event,now);
         float v=cfg.volume()*AudioMix.GLOBAL.gain(AudioMix.Category.SFX);
-        if(cfg.loop()){stopLoop();loop=s;loopId=s.loop(v);}else s.play(v);
+        if(cfg.loop()){stopLoop();loop=s;loopBase=v;loopId=s.loop(v*loopGain);}else s.play(v);
     }
+    /** Motor/ambience gain (events duck or cut the movement loop); restored to 1 after every event. */
+    public void setLoopGain(float g){g=Math.max(0,Math.min(1,g));if(g==loopGain)return;loopGain=g;if(loop!=null)loop.setVolume(loopId,loopBase*g);}
     public void stopLoop(){if(loop!=null){loop.stop(loopId);loop=null;loopId=-1;}}
     @Override public void dispose(){stopLoop();for(Sound s:new java.util.HashSet<>(sounds.values()))s.dispose();sounds.clear();}
 }
