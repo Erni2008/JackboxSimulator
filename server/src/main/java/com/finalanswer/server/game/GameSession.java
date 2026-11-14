@@ -12,6 +12,8 @@ public final class GameSession {
     public final EndPolicy endPolicy;
     public final Set<String> participants;
     public final Map<String, Integer> submitted = new LinkedHashMap<>();
+    /** Souls actually granted for the current question (authoritative; shown by the host reveal, never recomputed). */
+    public final Map<String, Long> awarded = new HashMap<>();
     public Phase phase = Phase.STARTING;
     public int index = -1;
     public long questionStartedAt, phaseStartedAt, deadline, answeringStartedAt, endedAt;
@@ -27,7 +29,7 @@ public final class GameSession {
     public void next(long now) {
         if(phase!=Phase.STARTING && phase!=Phase.RESULTS) throw new IllegalStateException("INVALID_PHASE");
         if(index+1>=questions.size()) { finish("COMPLETED",now); return; }
-        index++; questionStartedAt=now; submitted.clear(); deadline=answeringStartedAt=endedAt=0;
+        index++; questionStartedAt=now; submitted.clear(); awarded.clear(); deadline=answeringStartedAt=endedAt=0;
         change(Phase.QUESTION_PRESENTATION,now);
     }
     public void beginAnswers(long now) {
@@ -54,7 +56,8 @@ public final class GameSession {
         return participants.stream().sorted().map(player -> {
             int selected=submitted.getOrDefault(player,-1);
             return Map.<String,Object>of("playerId",player,"selectedAnswer",selected,
-                "isCorrect",selected==question().correctAnswerIndex(),"answeredInTime",selected>=0);
+                "isCorrect",selected==question().correctAnswerIndex(),"answeredInTime",selected>=0,
+                "soulsAwarded",awarded.getOrDefault(player,0L));
         }).toList();
     }
     private static List<Question> catalog() { return QuestionCatalog.all(); }

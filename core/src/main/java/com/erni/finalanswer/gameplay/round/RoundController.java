@@ -99,7 +99,7 @@ public final class RoundController {
         return elapsedSeconds() - revealStartsAt() - RoundTiming.CLOCK_EXIT_SECONDS;
     }
     public boolean revealComplete() {
-        return resultElapsedSeconds() >= RoundTiming.CORRECT_GROW_SECONDS + timing.revealSeconds();
+        return resultElapsedSeconds() >= RoundTiming.MARKS_START_SECONDS + timing.revealSeconds();
     }
     public float revealProgress() {
         return (float) Math.max(0, Math.min(1, resultElapsedSeconds() / RoundTiming.CORRECT_GROW_SECONDS));

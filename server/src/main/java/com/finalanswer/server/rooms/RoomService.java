@@ -339,7 +339,7 @@ public final class RoomService {
                     if(now()<game.endedAt+Protocol.CLOCK_EXIT_MILLIS) throw new Failure(409,"NOT_READY");
                     game.reveal(now());
                     for(Member player:room.members.values()) if(game.submitted.getOrDefault(player.id,-1)==game.question().correctAnswerIndex()){ player.score+=100;
-                        room.souls.reward(player.id,com.finalanswer.server.economy.SoulsRewards.QUIZ_CORRECT_ANSWER,com.finalanswer.server.economy.SoulsRewards.REASON_QUIZ_CORRECT,"quiz/"+game.id+"/"+game.question().id()); }
+                        game.awarded.put(player.id,room.souls.reward(player.id,com.finalanswer.server.economy.SoulsRewards.QUIZ_CORRECT_ANSWER,com.finalanswer.server.economy.SoulsRewards.REASON_QUIZ_CORRECT,"quiz/"+game.id+"/"+game.question().id())); }
                     broadcast(room,"REVEAL_STARTED"); broadcast(room,"QUESTION_RESULTS"); broadcast(room,"RESULTS_STARTED");
                 } else if(game.phase!=Phase.RESULTS) throw new Failure(409,"INVALID_PHASE");
             }
