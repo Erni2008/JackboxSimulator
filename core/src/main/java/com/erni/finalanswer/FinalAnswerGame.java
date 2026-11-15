@@ -104,7 +104,7 @@ public class FinalAnswerGame extends Game {
         if(breachDebug==null)breachDebug=new com.erni.finalanswer.systembreach.host.SystemBreachHostScreen(root,getRoomCharacters(),id->realtime.send("SYSTEM_BREACH_END",java.util.Map.of("roomCode",activeRoom.code(),"sessionId",id)),"ru".equals(getSettings().language()));
         else breachDebug.apply(root);if(getScreen()!=breachDebug)setScreen(breachDebug);
     }
-    private void releaseSystemBreach(){if(breachDebug==null)return;var old=breachDebug;breachDebug=null;if(getScreen()==old)showRoomLobby();old.dispose();}
+    private void releaseSystemBreach(){if(breachDebug==null)return;var old=breachDebug;breachDebug=null;if(getScreen()==old)showBalances();old.dispose();}
     private com.erni.finalanswer.finalsecond.FinalSecondScreen finalSecondScreen;
     /** Host: start THE FINAL SECOND for every connected, living player. */
     public void startFinalSecond(){
@@ -120,7 +120,7 @@ public class FinalAnswerGame extends Game {
             if(realtime!=null&&realtime.connected())realtime.send("END_FINAL_SECOND",java.util.Map.of("roomCode",activeRoom.code(),"sessionId",id));});
         setScreen(finalSecondScreen);
     }
-    private void releaseFinalSecond(boolean toLobby){if(finalSecondScreen==null)return;var old=finalSecondScreen;finalSecondScreen=null;if(toLobby)showRoomLobby();else if(getScreen()==old)setScreen(null);old.dispose();}
+    private void releaseFinalSecond(boolean toLobby){if(finalSecondScreen==null)return;var old=finalSecondScreen;finalSecondScreen=null;if(toLobby)showBalances();else if(getScreen()==old)setScreen(null);old.dispose();}
     private com.erni.finalanswer.forgottenroom.ForgottenRoomScreen forgottenScreen;
     /** Host: start THE FORGOTTEN ROOM (EASY / MEDIUM / HARD) for every connected player; score-only. */
     public void startForgottenRoom(String difficulty){
@@ -136,7 +136,7 @@ public class FinalAnswerGame extends Game {
             if(realtime!=null&&realtime.connected())realtime.send("END_FORGOTTEN_ROOM",java.util.Map.of("roomCode",activeRoom.code(),"sessionId",m.session()));});
         setScreen(forgottenScreen);
     }
-    private void releaseForgottenRoom(boolean toLobby){if(forgottenScreen==null)return;var old=forgottenScreen;forgottenScreen=null;if(toLobby)showRoomLobby();else if(getScreen()==old)setScreen(null);old.dispose();}
+    private void releaseForgottenRoom(boolean toLobby){if(forgottenScreen==null)return;var old=forgottenScreen;forgottenScreen=null;if(toLobby)showBalances();else if(getScreen()==old)setScreen(null);old.dispose();}
     private com.erni.finalanswer.cursedcards.CursedCardsScreen cardsScreen;
     /** Host: start THE CURSED CARDS for the room (server seats 4–6 connected players; the rest spectate and curse). */
     public void startCursedCards(){
@@ -149,7 +149,7 @@ public class FinalAnswerGame extends Game {
         if(cardsScreen!=null&&cardsScreen.session().equals(session)){if(getScreen()!=cardsScreen)setScreen(cardsScreen);return;}
         releaseCursedCards(false);cardsScreen=new com.erni.finalanswer.cursedcards.CursedCardsScreen(realtime,state);setScreen(cardsScreen);
     }
-    private void releaseCursedCards(boolean toLobby){if(cardsScreen==null)return;var old=cardsScreen;cardsScreen=null;if(toLobby)showRoomLobby();else if(getScreen()==old)setScreen(null);old.dispose();}
+    private void releaseCursedCards(boolean toLobby){if(cardsScreen==null)return;var old=cardsScreen;cardsScreen=null;if(toLobby)showBalances();else if(getScreen()==old)setScreen(null);old.dispose();}
     public void showTheLastCommand() {
         setScreen(new com.erni.finalanswer.lastcommand.TheLastCommandScreen(this));
     }
@@ -187,7 +187,7 @@ public class FinalAnswerGame extends Game {
         setScreen(networkCursedLoading);
     }
     private void releaseNetworkCursed(){
-        if(getScreen()==networkCursed||getScreen()==networkCursedLoading){if(activeRoom!=null)showRoomLobby();else showMainMenu();}
+        if(getScreen()==networkCursed||getScreen()==networkCursedLoading){if(activeRoom!=null)showBalances();else showMainMenu();}
         if(networkCursed!=null){networkCursed.dispose();networkCursed=null;}
         if(networkCursedLoading!=null){networkCursedLoading.dispose();networkCursedLoading=null;}
         networkCursedSession="";
@@ -261,6 +261,15 @@ public class FinalAnswerGame extends Game {
         if (activeRoom.host()) com.erni.finalanswer.impostor.ImpostorAssets.prewarm(); // THE IMPOSTOR is the heaviest mode to open: decode its art while the host waits
         if(getScreen()!=cageLobbyScreen)setScreen(cageLobbyScreen);
     }
+    private com.erni.finalanswer.screens.BalanceScreen balanceScreen;
+    /** After a mini-game: the soul balance board, then the room lobby. */
+    public void showBalances(){
+        if(activeRoom==null||!activeRoom.host()||realtime==null){showRoomLobby();return;}
+        if(balanceScreen!=null){balanceScreen.dispose();balanceScreen=null;}
+        var board=new com.erni.finalanswer.screens.BalanceScreen(realtime.snapshot(),"ru".equals(getSettings().language()),()->{
+            if(balanceScreen==null)return;var b=balanceScreen;balanceScreen=null;if(getScreen()==b)showRoomLobby();b.dispose();});
+        balanceScreen=board;setScreen(board);
+    }
     public void showImpostorLobby(){
         if(activeRoom==null || !activeRoom.host() || realtime==null || !realtime.connected())return;
         if(impostorScreen==null){impostorScreen=new com.erni.finalanswer.impostor.ImpostorScreen(this);impostorScreen.show();impostorScreen.connectSuspicion(realtime);}
@@ -291,7 +300,7 @@ public class FinalAnswerGame extends Game {
         if(finalSecondScreen!=null&&!data.has("finalSecond"))releaseFinalSecond(true);
         if(activeRoom.host()&&data.has("forgottenRoom")){openForgottenRoom(data);return;}
         if(forgottenScreen!=null&&!data.has("forgottenRoom"))releaseForgottenRoom(true);
-        if(!lastCommandSession.isEmpty()&&!data.has("lastCommand")){lastCommandSession="";if(getScreen() instanceof com.erni.finalanswer.lastcommand.TheLastCommandScreen)showRoomLobby();}
+        if(!lastCommandSession.isEmpty()&&!data.has("lastCommand")){lastCommandSession="";if(getScreen() instanceof com.erni.finalanswer.lastcommand.TheLastCommandScreen)showBalances();}
         if(activeRoom.host()&&data.has("cursedBoxes")){openNetworkCursed(data);return;}
         if(type.equals("CURSED_BOXES_ENDED")||!networkCursedSession.isEmpty()&&!data.has("cursedBoxes"))releaseNetworkCursed();
         if(activeRoom.host() && type.equals("IMPOSTOR_LOBBY_RETURNED")){showImpostorLobby();return;}

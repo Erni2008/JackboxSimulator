@@ -1309,3 +1309,15 @@ tasks.register('questionsHost', JavaExec) {
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
+
+tasks.register('balancePreview', JavaExec) {
+    group = 'application'
+    description = 'Development-only preview of the between-games soul balance board.'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.BalancePreview'
+    workingDir = rootProject.file('assets')
+    if (providers.gradleProperty('bal.capture').isPresent()) systemProperty 'bal.capture', providers.gradleProperty('bal.capture').get()
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
