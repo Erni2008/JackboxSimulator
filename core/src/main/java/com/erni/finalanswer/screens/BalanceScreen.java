@@ -76,10 +76,9 @@ public final class BalanceScreen extends ScreenAdapter {
         for(int i=0;i<rows.size();i++){Row r=rows.get(i);float a=appear(i)*out;if(a<=0)continue;
             float y=top-i*(ROW+GAP)-ROW,x=tx+(1-ease(a))*180;
             boolean lead=r.rank==1&&r.souls>0,broke=r.souls==0;
-            shapes.setColor(lead?.16f:.085f,lead?.11f:.085f,lead?.05f:.095f,.95f*a);shapes.rect(x,y,tw,ROW);
             Color bar=lead?new Color(1f,.76f,.3f,a):broke?new Color(.45f,.12f,.12f,a):new Color(.62f,.56f,.5f,.8f*a);
             shapes.setColor(bar);shapes.rect(x,y,8,ROW);
-            shapes.setColor(1,1,1,.05f*a);shapes.rect(x,y+ROW-2,tw,2);}
+            shapes.setColor(1,1,1,.08f*a);shapes.rect(x,y-GAP/2-1,tw,1);}
         float line=MathUtils.clamp((time-.15f)/.6f,0,1);
         shapes.setColor(.9f,.68f,.3f,.7f*out);float lw=520*ease(line);shapes.rect(W/2-lw/2,top+70,lw,3);
         shapes.end();
