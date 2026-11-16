@@ -475,16 +475,16 @@ public final class DeathActor implements Disposable {
         for(Part p:parts){if(p.add!=additive)continue;float k=p.age/p.life,a=p.a*alpha;
             float px=x+p.x,py=y+p.y;
             switch(p.type){
-                case SPARK->{float len=Math.max(6,(float)Math.hypot(p.vx,p.vy)*.035f)*p.size;b.setColor(p.r,p.gc,p.b,a*(1-k));b.draw(tex.pixel,px-len/2,py-1.5f,len/2,1.5f,len,3,1,1,MathUtils.atan2(p.vy,p.vx)*MathUtils.radDeg);}
+                case SPARK->{float len=Math.max(10,(float)Math.hypot(p.vx,p.vy)*.045f)*p.size;b.setColor(p.r,p.gc,p.b,a*(1-k));b.draw(tex.soft,px-len/2,py-3,len/2,3,len,6,1,1,MathUtils.atan2(p.vy,p.vx)*MathUtils.radDeg);}
                 case EMBER->{float s=(5+5*p.seed)*p.size*(1-k*.5f);float fl=.6f+.4f*MathUtils.sin(p.age*25+p.seed*40);b.setColor(p.r,p.gc,p.b,a*(1-k)*fl);b.draw(tex.soft,px-s*2,py-s*2,s*4,s*4);}
                 case SMOKE->{float s=(70+150*k)*p.size;b.setColor(p.r,p.gc,p.b,a*.75f*MathUtils.sin(k*MathUtils.PI)*(1-k*.4f));b.draw(tex.smoke,px-s/2,py-s/2,s/2,s/2,s,s,1,1,p.seed*360+p.age*20);}
                 case GLOW->{float s=120*p.size*(1+k*.3f);b.setColor(p.r,p.gc,p.b,a*.8f*(1-k)*(.8f+.2f*MathUtils.sin(p.age*30)));b.draw(tex.soft,px-s/2,py-s/2,s,s);}
                 case WISP->{float s=(26+30*p.seed)*p.size;b.setColor(p.r,p.gc,p.b,a*.8f*MathUtils.sin(k*MathUtils.PI));b.draw(tex.soft,px-s/2,py-s/2,s,s);}
                 case RING->{float s=CHAR_H*p.size*(.3f+k);b.setColor(p.r,p.gc,p.b,a*(1-k));b.draw(tex.ring,px-s/2,py-s/2,s,s);}
-                case CHUNK,SPLINTER->{float w=(p.type==P.SPLINTER?22:10+8*p.seed)*p.size,h=(p.type==P.SPLINTER?4:8+6*p.seed)*p.size;b.setColor(p.r,p.gc,p.b,a*fadeTail(k));b.draw(tex.pixel,px-w/2,py-h/2,w/2,h/2,w,h,1,1,p.rot);}
+                case CHUNK,SPLINTER->{float w=(p.type==P.SPLINTER?22:10+8*p.seed)*p.size,h=(p.type==P.SPLINTER?4:8+6*p.seed)*p.size;b.setColor(p.r,p.gc,p.b,a*fadeTail(k));b.draw(p.type==P.SPLINTER?tex.soft:tex.dot,px-w/2,py-h/2,w/2,h/2,w,h,1,1,p.rot);}
                 case DROP->{float s=(7+7*p.seed)*p.size;b.setColor(p.r,p.gc,p.b,a*fadeTail(k));b.draw(tex.dot,px-s/2,py-s/2,s,s);}
                 case SEED->{float s=(6+3*p.seed)*p.size;b.setColor(p.r,p.gc,p.b,a*fadeTail(k));b.draw(tex.dot,px-s*.8f,py-s*.45f,s*.8f,s*.45f,s*1.6f,s*.9f,1,1,p.rot);}
-                case ASH->{float s=3+4*p.seed;b.setColor(p.r,p.gc,p.b,a*(1-k));b.draw(tex.pixel,px,py,s/2,s/2,s,s,1,1,p.rot+p.age*90);}
+                case ASH->{float s=5+6*p.seed;b.setColor(p.r,p.gc,p.b,a*(1-k));b.draw(tex.dot,px,py,s/2,s/2,s,s,1,1,p.rot+p.age*90);}
                 case FEATHER->{float w=34*p.size,h=7*p.size;b.setColor(p.r,p.gc,p.b,a*fadeTail(k));b.draw(tex.dot,px-w/2,py-h/2,w/2,h/2,w,h,1,1,p.rot+MathUtils.sin(p.age*3)*30);}
                 case STRING->{float w=2,h=180*p.size;b.setColor(p.r,p.gc,p.b,a*.85f*fadeTail(k));b.draw(tex.pixel,px-w/2,py-h/2,w/2,h/2,w,h,1,1,p.rot*.15f);}
                 case PIN->{float len=70;float ang=p.g==0?p.rot:p.rot;b.setColor(.7f,.7f,.72f,a*fadeTail(k));b.draw(tex.pixel,px-len/2,py-1.5f,len/2,1.5f,len,3,1,1,ang);

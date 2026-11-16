@@ -89,7 +89,7 @@ public final class DeathPost implements Disposable {
             c+=texture2D(u_bloom,uv).rgb*.4;
             float l=dot(c,vec3(.299,.587,.114));c=mix(c,vec3(l)*vec3(1.02,.98,.95),u_desat);
             vec2 vq=(v_uv-.5)*vec2(1.25,1.05);c*=smoothstep(1.05,.32,length(vq));
-            c+=(h(v_uv*vec2(1920.0,1080.0)+fract(u_time*7.0)*100.0)-.5)*.045;
+            c+=(h(v_uv*vec2(1920.0,1080.0)+fract(u_time*7.0)*100.0)-.5)*.012;
             gl_FragColor=vec4(c,1.0);
         }
         """;

@@ -33,7 +33,7 @@ public final class DeathScreen extends ScreenAdapter {
     private final com.badlogic.gdx.graphics.OrthographicCamera camera=new com.badlogic.gdx.graphics.OrthographicCamera(W,H),fixed=new com.badlogic.gdx.graphics.OrthographicCamera(W,H);
     {fixed.position.set(W/2,H/2,0);fixed.update();}
     private final BitmapFont nameFont=UiFonts.question(84),causeFont=UiFonts.question(130),small=UiFonts.nameplate(26);
-    private final Map<DeathCause,Sound> hits=new EnumMap<>(DeathCause.class);private Sound heart;
+    private final Map<DeathCause,Sound> hits=new EnumMap<>(DeathCause.class);private Sound heart,own;
     private int index=-1;private DeathActor actor;private float t;private boolean left,soundPlayed,heartPlayed;
     private long heartId=-1;
 
@@ -50,10 +50,10 @@ public final class DeathScreen extends ScreenAdapter {
     private void next(){
         if(actor!=null){actor.dispose();actor=null;}
         if(heart!=null&&heartId>=0){heart.stop(heartId);heartId=-1;}
-        index++;t=0;soundPlayed=heartPlayed=false;
+        index++;t=0;if(own!=null){own.dispose();own=null;}soundPlayed=heartPlayed=false;
         if(index>=deaths.size()){finish();return;}
         Death d=deaths.get(index);
-        actor=new DeathActor(source.createCharacter(d.characterId()),source.presentation(d.characterId()),d.characterId(),d.cause(),(d.name()+d.characterId()).hashCode());actor.woundTex=tex.dot;actor.holeTex=tex.hole;
+        actor=new DeathActor(source.createCharacter(d.characterId()),source.presentation(d.characterId()),d.characterId(),d.cause(),(d.name()+d.characterId()).hashCode());{var dd=deaths.get(index);var sf=Gdx.files.internal("sounds/deaths/"+dd.characterId()+"_"+dd.cause().name().toLowerCase()+".wav");if(sf.exists())own=Gdx.audio.newSound(sf);}actor.woundTex=tex.dot;actor.holeTex=tex.hole;
     }
     private void finish(){if(left)return;left=true;Gdx.app.postRunnable(done);}
     private float length(){return DeathActor.duration()+TAIL;}
@@ -80,7 +80,7 @@ public final class DeathScreen extends ScreenAdapter {
         t+=dt;post.time+=real;
         float since=t-DeathActor.IMPACT;var r=actor.recipe();
         if(!heartPlayed&&heart!=null&&t>.2f){heartPlayed=true;heartId=heart.play(.55f);}
-        if(!soundPlayed&&since>=0){soundPlayed=true;if(heart!=null&&heartId>=0){heart.stop(heartId);heartId=-1;}Sound s=hits.get(r.cause);if(s!=null)s.play(.9f);}
+        if(!soundPlayed&&since>=0){soundPlayed=true;if(heart!=null&&heartId>=0){heart.stop(heartId);heartId=-1;}if(own!=null)own.play(.95f);else{Sound s=hits.get(r.cause);if(s!=null)s.play(.9f);}}
         actor.update(dt,batch);
         if(t>=length()){next();if(actor==null)return;since=t-DeathActor.IMPACT;r=actor.recipe();}
 
@@ -150,6 +150,6 @@ public final class DeathScreen extends ScreenAdapter {
     @Override public void hide(){Gdx.input.setInputProcessor(null);if(heart!=null&&heartId>=0){heart.stop(heartId);heartId=-1;}}
     @Override public void dispose(){
         if(actor!=null)actor.dispose();batch.dispose();tex.dispose();post.dispose();nameFont.dispose();causeFont.dispose();small.dispose();
-        for(Sound s:hits.values())s.dispose();if(heart!=null)heart.dispose();if(ownsSource)source.dispose();
+        for(Sound s:hits.values())s.dispose();if(heart!=null)heart.dispose();if(own!=null)own.dispose();if(ownsSource)source.dispose();
     }
 }
