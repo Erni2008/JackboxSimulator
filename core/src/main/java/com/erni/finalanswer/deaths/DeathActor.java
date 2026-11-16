@@ -40,8 +40,7 @@ public final class DeathActor implements Disposable {
     private Texture shotArt;private float artX,artY,artW,artH,holeX,holeY,artCX,artCY,artAcc,artPrevVy;private float[] artHull;private boolean artLanded;
     private com.badlogic.gdx.physics.box2d.World artWorld;private com.badlogic.gdx.physics.box2d.Body artBody;private PhysicsRagdoll phys;
     private Ragdoll.Piece woundPiece;private float woundX,woundY,dripClock;
-    private static String shotFile(String id){return switch(id){case "skeleton"->"skeleton_shot.png";case "pumpkin"->"pumpkin_dead.png";case "plague_doctor"->"doktor_shot.png";
-        case "dracula"->"drakula-shot.png";case "voodoo"->"voddoo_shoot.png";case "zombie"->"zombie_shot.png";case "puppeteer"->"pupeetee_shot.png";default->null;};}
+    private static String shotFile(String id){return switch(id){case "voodoo"->"voddoo_shoot.png";case "zombie"->"zombie_shot.png";default->null;};}
 
     // shards
     private static final class Shard{float[] v=new float[6];float cx,cy;int group;boolean free,solid,landed;float px,py,rot,vx,vy,va,ta,tv,detachAt=Float.NaN;}
