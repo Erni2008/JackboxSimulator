@@ -33,7 +33,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
     private final EventLogPanel log=new EventLogPanel();
     private final LeaderboardPanel board=new LeaderboardPanel();
     private final Consumer<String> end;
-    private final HackerFx fx=new HackerFx();
+    private final HackerFx fx=new HackerFx();private final HostHackFx hfx=new HostHackFx();
     private final ResultsCeremony ceremony=new ResultsCeremony();
     private VirusFx virus;private final AnswerMarks marks=new AnswerMarks();
     private final SbSounds sounds=new SbSounds();private long lastTickSecond=-1;private float lastToast=99;
@@ -53,7 +53,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
 
     @Override public void render(float delta){
         float dt=Float.isFinite(delta)?Math.min(delta,.1f):0;time+=dt;model.update(dt);ceremony.update(model,dt);
-        for(String c:model.cues())sounds.play(c);model.cues().clear();
+        hfx.update(dt);for(String c:model.cues()){sounds.play(c);hfx.cue(c);}model.cues().clear();
         {long left=model.remainingMs();long sec=left/1000;if(model.phase().equals("ACTIVE")&&left>0&&left<=5_000&&sec!=lastTickSecond){lastTickSecond=sec;sounds.play(sec%2==0?"tick":"tock",.45f+.4f*(1-left/5_000f));}}
         ceremony.sounds(sounds);
         ScreenUtils.clear(0,0,0,1,true);viewport.apply();
@@ -62,6 +62,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         String winner=model.results()?model.winnerId():"";
 
         batch.begin();batch.setColor(1,1,1,1);batch.draw(assets.background,0,0,W,H);
+        {long lf=model.remainingMs();hfx.rain(batch,assets.hex,time,model.phase().equals("ACTIVE")&&lf>0&&lf<=10_000);hfx.feeds(batch,assets.hex,time);}
         batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);atmosphere();motes();batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
         batch.setColor(0,0,0,.35f);batch.draw(assets.glow,W/2-1100,PANEL_Y-260,2200,700);batch.setColor(1,1,1,1);   // soft shade the line-up stands in
         batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
@@ -101,6 +102,9 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
             batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(1,.08f,.05f,a);batch.draw(assets.glow,-500,-300,900,1680);batch.draw(assets.glow,W-400,-300,900,1680);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.setColor(1,1,1,1);}
         batch.end();
         ceremony.draw(shapes,batch,paint,assets,characters,model.ru(),time,viewport.getCamera());
+        Gdx.gl.glEnable(GL20.GL_BLEND);Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
+        shapes.setProjectionMatrix(viewport.getCamera().combined);shapes.begin(ShapeRenderer.ShapeType.Filled);hfx.overlay(shapes,time);shapes.end();
+        batch.setProjectionMatrix(viewport.getCamera().combined);batch.begin();batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);hfx.flash(batch,assets);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.end();
     }
 
     /** Data motes drifting up through the hall: cheap, deterministic, no allocation. */

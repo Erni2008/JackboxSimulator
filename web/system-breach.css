@@ -610,3 +610,23 @@ button[data-sab]{all:unset;box-sizing:border-box;cursor:pointer;-webkit-tap-high
 .sbx-card:disabled .sbx-glyph svg{opacity:.45}
 .sbx-body.menu .sbx-card-text b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;font-size:22px}
 @media (min-aspect-ratio:5/4){.sbx-body.menu .sbx-card-icon.sbx-glyph{width:11cqh;height:11cqh}.sbx-body.menu .sbx-card-text b{font-size:4.2cqh}}
+/* ---- hacker layer (system-breach-fx.js) ---- */
+.sbh-crt{position:absolute;inset:0;pointer-events:none;z-index:40;background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px);mix-blend-mode:multiply}
+.sbh-crt i{position:absolute;left:0;right:0;height:14%;top:-14%;background:linear-gradient(transparent,rgba(120,255,170,.07),transparent);animation:sbh-roll 6s linear infinite;will-change:transform}
+@keyframes sbh-roll{to{transform:translateY(820%)}}
+.sbh-term{position:absolute;left:3%;bottom:1.2%;z-index:41;pointer-events:none;font:600 9px/1.25 ui-monospace,Menlo,monospace;color:rgba(80,255,150,.55);text-shadow:0 0 6px rgba(60,255,140,.5)}
+.sbh-term p{margin:0;white-space:nowrap;animation:sbh-type .5s steps(18) both;overflow:hidden}
+.sbh-term p:last-child::after{content:'▌';animation:sbx-blink 1s steps(1) infinite}
+@keyframes sbh-type{from{max-width:0}to{max-width:40ch}}
+.sbh-hud{position:absolute;right:3%;bottom:1.2%;z-index:41;pointer-events:none;display:flex;flex-direction:column;align-items:flex-end;font:600 9px/1.25 ui-monospace,Menlo,monospace;color:rgba(80,255,150,.45)}
+.sbh-glitch{position:absolute;inset:0;pointer-events:none;z-index:45;opacity:0}
+.sbh-glitch.on{opacity:1;animation:sbh-flash .6s ease-out both}
+.sbh-glitch i{position:absolute;left:0;right:0;mix-blend-mode:screen;animation:sbh-slice .38s steps(4) both;will-change:transform}
+.sbh-glitch.ok i{background:linear-gradient(90deg,rgba(60,255,150,.0),rgba(60,255,150,.45),rgba(0,220,255,.3),rgba(60,255,150,0))}
+.sbh-glitch.bad i{background:linear-gradient(90deg,rgba(255,40,40,0),rgba(255,40,40,.55),rgba(0,200,255,.35),rgba(255,40,40,0))}
+.sbh-glitch.key i{background:linear-gradient(90deg,rgba(255,200,60,0),rgba(255,200,60,.5),rgba(255,255,255,.3),rgba(255,200,60,0))}
+@keyframes sbh-slice{0%{transform:translateX(var(--dx));opacity:1}50%{transform:translateX(calc(var(--dx)*-1));opacity:.8}100%{transform:translateX(0);opacity:0}}
+@keyframes sbh-flash{0%{background:rgba(255,255,255,.08)}100%{background:transparent}}
+.sbh-glitch.bad.on{animation:sbh-flashbad .6s ease-out both}
+@keyframes sbh-flashbad{0%{background:rgba(255,30,30,.18)}100%{background:transparent}}
+@media (prefers-reduced-motion:reduce){.sbh-crt i,.sbh-glitch i,.sbh-term p{animation:none!important}}

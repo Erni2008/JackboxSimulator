@@ -99,7 +99,7 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
     else{const s=el('sbx-screen');s.classList.remove('glitch');void s.offsetWidth;s.classList.add('glitch');}
     flash(ok?'flash-ok':'flash-bad');
   }
-  function flash(cls){const s=el('sbx-screen');s.classList.remove('flash-ok','flash-bad','flash-key');void s.offsetWidth;s.classList.add(cls);}
+  function flash(cls){try{window.SBFX?.burst(cls);}catch(e){}const s=el('sbx-screen');s.classList.remove('flash-ok','flash-bad','flash-key');void s.offsetWidth;s.classList.add(cls);}
 
   function typeq(parent,text){const q=mk('p','sbx-q',null,parent);const t=mk('span',null,'',q);mk('i','sbx-caret',null,q);let i=0;const step=()=>{if(!q.isConnected)return;t.textContent=text.slice(0,++i);if(i<text.length)setTimeout(step,22);else q.classList.add('done');};step();return q;}
   function header(parent,kicker,title,cls){const h=mk('div','sbx-head '+(cls||''),null,parent);mk('small',null,kicker,h);mk('h3',null,title,h);return h;}
