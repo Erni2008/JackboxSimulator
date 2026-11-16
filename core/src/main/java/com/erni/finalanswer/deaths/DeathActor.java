@@ -62,7 +62,7 @@ public final class DeathActor implements Disposable {
         fboProj.setToOrtho2D(0,0,W,H);
         fired=new boolean[r.emits.size()];emitted=new float[r.emits.size()];
         for(int i=1;i<=240;i++)character.update(1f/30,i/30f,phase,false);
-        // (the shot-through artwork swap is switched off: the character dies in its own body)
+        if(cause==DeathCause.SHOT)loadShotArt();
         fired=new boolean[r.emits.size()];emitted=new float[r.emits.size()];
     }
     private void loadShotArt(){
@@ -81,7 +81,8 @@ public final class DeathActor implements Disposable {
             if(y>0&&!out[i-w]&&!solid[i-w]){out[i-w]=true;stack[sp++]=i-w;}if(y<h-1&&!out[i+w]&&!solid[i+w]){out[i+w]=true;stack[sp++]=i+w;}}
         long hx=0,hy=0,hn=0;for(int y=minY;y<=maxY;y++)for(int x=minX;x<=maxX;x++){int i=y*w+x;if(!solid[i]&&!out[i]){hx+=x;hy+=y;hn++;}}
         {int stp=6;float[] pts=new float[(w/stp+2)*(h/stp+2)*2];int pn=0;float kk=CHAR_H*.97f/(maxY-minY+1);float ax0=W/2f-(minX+(maxX-minX+1)/2f)*kk,ay0=FLOOR-(h-1-maxY)*kk;
-            for(int y=minY;y<=maxY;y+=stp)for(int x=minX;x<=maxX;x+=stp)if((pm.getPixel(x,y)&0xff)>110){pts[pn*2]=ax0+x*kk;pts[pn*2+1]=ay0+(h-1-y)*kk;pn++;}
+            for(int y=minY;y<=maxY;y+=stp)for(int x=minX;x<=maxX;x+=stp)if((pm.getPixel(x,y)&0xff)>110){float sx=ax0+x*kk,sy=ay0+(h-1-y)*kk;if(sy<FLOOR+CHAR_H*.22f||Math.abs(sx-W/2f)>CHAR_H*.2f)continue;pts[pn*2]=sx;pts[pn*2+1]=sy;pn++;}
+            if(pn*2+4<=pts.length){pts[pn*2]=W/2f-CHAR_H*.07f;pts[pn*2+1]=FLOOR;pn++;pts[pn*2]=W/2f+CHAR_H*.07f;pts[pn*2+1]=FLOOR;pn++;}
             artHull=PhysicsRagdoll.hull(pts,pn);}
         shotArt=new Texture(pm,true);shotArt.setFilter(Texture.TextureFilter.MipMapLinearLinear,Texture.TextureFilter.Linear);pm.dispose();
         float bw=maxX-minX+1,bh=maxY-minY+1,k=CHAR_H*.97f/bh;
@@ -192,7 +193,6 @@ public final class DeathActor implements Disposable {
             var hb=phys.body(rag.head);if(hb!=null)hb.setAngularVelocity(r.headSpin*MathUtils.degRad);}
         if(rag.head!=null&&r.head==Head.SHATTER){burst(rag.head,r.shatterPower);phys.remove(rag.head);}
         // the hit itself lands on whatever part is there (the torso is held until the body gives way)
-        if(r.cause==DeathCause.SHOT){Ragdoll.Piece w=hit!=null&&!hit.removed?hit:rag.root;if(w!=null&&!w.removed){woundPiece=w;woundX=hitX;woundY=hitY;}}
         if(hit!=null&&hit!=rag.root&&!hit.removed){float v=r.cause==DeathCause.SHOT?900:r.cause==DeathCause.EXPLODED?300:120;phys.hit(hit,hitX,hitY,v,80);}
     }
     /** Silhouette of one body part: render it alone, collect its opaque pixels, take the convex hull. */
@@ -246,7 +246,8 @@ public final class DeathActor implements Disposable {
         PhysicsRagdoll.ground(artWorld,FLOOR,24,W-24);
         artBody=PhysicsRagdoll.makeBody(artWorld,artHull,artCX,artCY,1);artBody.setAngularDamping(.4f);
         float m=artBody.getMass();
-        artBody.applyLinearImpulse(m*1.15f,m*.18f,holeX/PhysicsRagdoll.PPM,holeY/PhysicsRagdoll.PPM,true);
+        artBody.applyLinearImpulse(m*1.3f,m*.25f,holeX/PhysicsRagdoll.PPM,holeY/PhysicsRagdoll.PPM,true);
+        artBody.setAngularVelocity(artBody.getAngularVelocity()-1.6f);
     }
     private void stepShotArt(float t,float dt){
         artAcc+=dt;int g=0;while(artAcc>=1/120f&&g++<12){artAcc-=1/120f;artWorld.step(1/120f,8,4);}
