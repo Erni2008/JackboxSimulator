@@ -36,6 +36,10 @@ public final class DeathActor implements Disposable {
     private final Random rng;
     private Pixmap frozen;private float time,charTime=8;private boolean impacted;
     private final RecordingBatch rec=new RecordingBatch();private Ragdoll rag;private boolean bodyStarted;
+    // SHOT: the character's own "shot through" artwork replaces the rig on the impact
+    private Texture shotArt;private float artX,artY,artW,artH,holeX,holeY,artAng,artAngV,artOff,artOffV;private boolean artLanded;
+    private static String shotFile(String id){return switch(id){case "skeleton"->"skeleton_shot.png";case "pumpkin"->"pumpkin_dead.png";case "plague_doctor"->"doktor_shot.png";
+        case "dracula"->"drakula-shot.png";case "voodoo"->"voddoo_shoot.png";case "zombie"->"zombie_shot.png";case "puppeteer"->"pupeetee_shot.png";default->null;};}
 
     // shards
     private static final class Shard{float[] v=new float[6];float cx,cy;int group;boolean free,solid,landed;float px,py,rot,vx,vy,va,ta,tv,detachAt=Float.NaN;}
@@ -45,7 +49,7 @@ public final class DeathActor implements Disposable {
 
     // particles
     private static final class Part{P type;float x,y,vx,vy,rot,va,age,life,size,g;float r,gc,b,a;boolean add;float seed;}
-    private final List<Part> parts=new ArrayList<>();private final boolean[] fired;private final float[] emitted;
+    private final List<Part> parts=new ArrayList<>();private boolean[] fired;private float[] emitted;
 
     public DeathActor(CageCharacter character,CageCharacterPresentation.Profile profile,String characterId,DeathCause cause,long seed){
         this.character=character;this.profile=profile;id=characterId;r=DeathRecipes.of(characterId,cause);rng=new Random(seed);
@@ -56,6 +60,35 @@ public final class DeathActor implements Disposable {
         fboProj.setToOrtho2D(0,0,W,H);
         fired=new boolean[r.emits.size()];emitted=new float[r.emits.size()];
         for(int i=1;i<=240;i++)character.update(1f/30,i/30f,phase,false);
+        if(cause==DeathCause.SHOT)loadShotArt();
+        fired=new boolean[r.emits.size()];emitted=new float[r.emits.size()];
+    }
+    private void loadShotArt(){
+        String f=shotFile(id);if(f==null)return;var fh=Gdx.files.internal("cursed_boxes/characters/"+f);if(!fh.exists())return;
+        Pixmap pm=new Pixmap(fh);int w=pm.getWidth(),h=pm.getHeight();
+        int minX=w,minY=h,maxX=-1,maxY=-1;boolean[] solid=new boolean[w*h];
+        for(int y=0;y<h;y++)for(int x=0;x<w;x++){boolean a=(pm.getPixel(x,y)&0xff)>24;solid[y*w+x]=a;if(a){minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,y);maxY=Math.max(maxY,y);}}
+        if(maxX<0){pm.dispose();return;}
+        // the bullet hole: transparent pixels inside the figure that the outside can't reach
+        boolean[] out=new boolean[w*h];int[] stack=new int[w*h];int sp=0;
+        java.util.function.IntConsumer seed=i->{};
+        for(int x=0;x<w;x++)for(int i:new int[]{x,(h-1)*w+x})if(!out[i]&&!solid[i]){out[i]=true;stack[sp++]=i;}
+        for(int y=0;y<h;y++)for(int i:new int[]{y*w,y*w+w-1})if(!out[i]&&!solid[i]){out[i]=true;stack[sp++]=i;}
+        while(sp>0){int i=stack[--sp];int x=i%w,y=i/w;
+            if(x>0&&!out[i-1]&&!solid[i-1]){out[i-1]=true;stack[sp++]=i-1;}if(x<w-1&&!out[i+1]&&!solid[i+1]){out[i+1]=true;stack[sp++]=i+1;}
+            if(y>0&&!out[i-w]&&!solid[i-w]){out[i-w]=true;stack[sp++]=i-w;}if(y<h-1&&!out[i+w]&&!solid[i+w]){out[i+w]=true;stack[sp++]=i+w;}}
+        long hx=0,hy=0,hn=0;for(int y=minY;y<=maxY;y++)for(int x=minX;x<=maxX;x++){int i=y*w+x;if(!solid[i]&&!out[i]){hx+=x;hy+=y;hn++;}}
+        shotArt=new Texture(pm,true);shotArt.setFilter(Texture.TextureFilter.MipMapLinearLinear,Texture.TextureFilter.Linear);pm.dispose();
+        float bw=maxX-minX+1,bh=maxY-minY+1,k=CHAR_H*.97f/bh;
+        artW=w*k;artH=h*k;artX=W/2f-(minX+bw/2)*k;artY=FLOOR-(h-1-maxY)*k;
+        float hpx=hn>0?(float)hx/hn:(minX+bw/2),hpy=hn>0?(float)hy/hn:(minY+bh*.45f);
+        holeX=artX+hpx*k;holeY=artY+(h-1-hpy)*k;
+        // aim the shot at the hole and send everything out of it
+        r.hitX=(holeX-W/2f)/CHAR_H;r.hitY=(holeY-FLOOR)/CHAR_H;r.head=Head.NONE;
+        for(var e:r.emits)if(e.at>=0&&e.at<.3f&&Math.abs(e.y-DeathRecipes.headY(id))<.02f){e.x=r.hitX+.03f;e.y=r.hitY;}
+        r.emit(P.DROP,0,46,r.hitX+.04f,r.hitY).spread(.03f,.03f).dir(10,55).speed(620).color(0x7a0a10ff).size(1.2f);
+        r.emit(P.DROP,.05f,30,r.hitX+.04f,r.hitY).spread(.02f,.02f).dir(-10,40).speed(300).color(0x5a0508ff).over(.9f);
+        r.emit(P.SMOKE,.05f,6,r.hitX,r.hitY).spread(.01f,.01f).dir(0,60).speed(90).life(1.6f).size(.7f).color(0x8a8078aa);
     }
     public DeathRecipe recipe(){return r;}
     public float time(){return time;}
@@ -75,7 +108,8 @@ public final class DeathActor implements Disposable {
             if(e.over<=0){if(!fired[i]){fired[i]=true;spawn(e,e.count);}}
             else{float want=Math.min(1,(t-e.at)/e.over)*e.count;int n=(int)want-(int)emitted[i];if(n>0){spawn(e,n);emitted[i]+=n;}}
         }
-        if(impacted&&rag!=null){driveRagdoll(t,dt);rag.step(dt);renderRagdoll();}
+        if(impacted&&shotArt!=null){stepShotArt(t,dt);renderShotArt();}
+        else if(impacted&&rag!=null){driveRagdoll(t,dt);rag.step(dt);renderRagdoll();}
         else if(impacted)physics(dt,t);
         for(int i=parts.size()-1;i>=0;i--){Part p=parts.get(i);p.age+=dt;if(p.age>=p.life){parts.remove(i);continue;}stepPart(p,dt);}
     }
@@ -107,6 +141,7 @@ public final class DeathActor implements Disposable {
     private void impact(){
         impacted=true;
         float neckY=FLOOR+DeathRecipes.neck(id)*CHAR_H;
+        if(shotArt!=null){artOffV=520;artAngV=-30;return;}
         if(!rec.quads.isEmpty()){var rd=new Ragdoll(new ArrayList<>(rec.quads),FLOOR,24,W-24,H-12,neckY,W/2f);if(rd.root!=null){rag=rd;startRagdoll();return;}}
         if(r.body==Body.SHATTER){r.cols=Math.max(r.cols,13);r.rows=Math.max(r.rows,19);}
         float cw=(float)W/r.cols,ch=(float)H/r.rows;float[][] gx=new float[r.cols+1][r.rows+1],gy=new float[r.cols+1][r.rows+1];
@@ -174,6 +209,28 @@ public final class DeathActor implements Disposable {
             if(r.body==Body.SLUMP&&since>0&&since<.6f)rag.posture=.35f-.3f*since/.6f;
         }
     }
+    /** Knocked back by the bullet, a stagger, then a dead fall backwards onto the floor with a small bounce. */
+    private void stepShotArt(float t,float dt){
+        artOff+=artOffV*dt;artOffV*=Math.max(0,1-7*dt);
+        if(t<.45f){artAng+=artAngV*dt;artAngV*=Math.max(0,1-5*dt);return;}
+        if(!artLanded){artAngV-=(140+Math.abs(artAng)*9)*dt;artAng+=artAngV*dt;
+            if(artAng<=-84){artAng=-84;if(Math.abs(artAngV)>60){artAngV=-artAngV*.22f;dust(W/2f+artOff+CHAR_H*.45f,FLOOR,6);}else{artAngV=0;artLanded=true;}}}
+        else artAng=-84;
+    }
+    private final com.badlogic.gdx.graphics.g2d.TextureRegion artRegion=new com.badlogic.gdx.graphics.g2d.TextureRegion();
+    private void renderShotArt(){
+        fbo.begin();Gdx.gl.glClearColor(0,0,0,0);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        rec.setProjectionMatrix(fboProj);rec.setTransformMatrix(fboTransform.idt());rec.setShader(null);rec.setColor(Color.WHITE);
+        rec.setBlendFunctionSeparate(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA,GL20.GL_ONE,GL20.GL_ONE_MINUS_SRC_ALPHA);
+        artRegion.setRegion(shotArt);rec.begin();
+        // falls backwards (away from the shooter): pivot on the back heel
+        float pivotX=W/2f+CHAR_H*.12f,pivotY=FLOOR;
+        rec.draw(artRegion,artX+artOff,artY,pivotX-artX,pivotY-artY,artW,artH,1,1,artAng);
+        rec.end();rec.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);fbo.end();
+    }
+    /** Where the bullet hole is now (stage pixels). */
+    private float holeNowX(){float px=W/2f+CHAR_H*.12f,c=MathUtils.cosDeg(artAng),s=MathUtils.sinDeg(artAng);return px+(holeX-px)*c-(holeY-FLOOR)*s+artOff;}
+    private float holeNowY(){float px=W/2f+CHAR_H*.12f,c=MathUtils.cosDeg(artAng),s=MathUtils.sinDeg(artAng);return FLOOR+(holeX-px)*s+(holeY-FLOOR)*c;}
     private final float[] qv=new float[20];
     private void renderRagdoll(){
         fbo.begin();Gdx.gl.glClearColor(0,0,0,0);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
@@ -271,6 +328,10 @@ public final class DeathActor implements Disposable {
         // anticipation behind the character
         drawAnticipation(batch,tex,x,y,t,alpha,false);
         drawShadows(batch,tex,x,y,t,alpha);
+        if(shotArt!=null&&impacted&&t<.9f){float k=1-t/.9f;batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
+            batch.setColor(1,.85f,.6f,k*k*alpha);float s=150+260*(1-k);batch.draw(tex.soft,x+holeNowX()-s/2,y+holeNowY()-s/2,s,s);
+            batch.setColor(1,.25f,.1f,k*.7f*alpha);s*=2.2f;batch.draw(tex.soft,x+holeNowX()-s/2,y+holeNowY()-s/2,s,s);
+            batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.setColor(Color.WHITE);}
         batch.end();
         batch.setShader(shader);batch.setBlendFunction(GL20.GL_ONE,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.begin();
         shader.setUniformf("u_time",time);
@@ -290,7 +351,7 @@ public final class DeathActor implements Disposable {
         shader.setUniformf("u_clip",r.body==Body.SINK&&impacted?y+FLOOR-2:-1e5f);
         float fade=Float.isNaN(r.fadeAt)?1:1-smooth((t-r.fadeAt)/r.fadeDur);
         int vc=0;float packed=Color.toFloatBits(1f,1f,1f,alpha*fade);
-        if(!impacted||rag!=null){
+        if(!impacted||rag!=null||shotArt!=null){
             // live character / ragdoll frame: one quad (two triangles)
             float[] q={0,0,W,0,W,H,0,0,W,H,0,H};
             if(verts.length<30)verts=new float[30];if(tris.length<6){tris=new short[6];}
@@ -393,7 +454,7 @@ public final class DeathActor implements Disposable {
         if(impacted&&r.body==Body.SINK)body*=1-MathUtils.clamp(-oy/(CHAR_H*.6f),0,1);
         if(impacted&&r.body==Body.LIFT)body*=1-MathUtils.clamp(oy/(CHAR_H*.5f),0,.7f);
         if(rag!=null&&(r.body==Body.SHATTER||r.body==Body.COLLAPSE))body=Math.max(body,.6f*(1-burn));
-        float bx=x+W/2f+(impacted?(rag!=null?rag.centerX(rag.root)-W/2f:groups[0].ox):0);
+        float bx=x+W/2f+(impacted&&shotArt!=null?artOff+MathUtils.sinDeg(-artAng)*CHAR_H*.4f:0)+(impacted&&shotArt==null?(rag!=null?rag.centerX(rag.root)-W/2f:groups[0].ox):0);
         if(impacted&&rag==null&&r.body==Body.TOPPLE)bx+=MathUtils.sinDeg(-groups[0].ang)*CHAR_H*.3f;
         b.setColor(0,0,0,.7f*alpha*body);b.draw(tex.soft,bx-190,y+FLOOR-30,380,60);
         if(impacted&&rag!=null&&rag.head!=null&&r.head==Head.FLY){float hx=x+rag.centerX(rag.head),hh=rag.centerY(rag.head)-FLOOR;float k=MathUtils.clamp(1-hh/500,0,1);
@@ -405,5 +466,5 @@ public final class DeathActor implements Disposable {
     private static float fadeTail(float k){return k<.75f?1:1-(k-.75f)/.25f;}
     private static float smooth(float t){t=MathUtils.clamp(t,0,1);return t*t*(3-2*t);}
 
-    @Override public void dispose(){rec.dispose();fbo.dispose();if(frozen!=null)frozen.dispose();}
+    @Override public void dispose(){if(shotArt!=null)shotArt.dispose();rec.dispose();fbo.dispose();if(frozen!=null)frozen.dispose();}
 }
