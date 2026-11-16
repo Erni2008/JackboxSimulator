@@ -109,7 +109,7 @@ public final class SystemBreachHostViewModel {
                 default->{}
             }
             if(seq>lastSequence){
-                if(type.equals("DDOS_STARTED"))ddosBy.put(t,a);if(lastSequence>=0){react(type,a,t);{String c=SbSounds.cue(type);if(c!=null&&cues.size()<8)cues.add(c);}if(type.equals("CHALLENGE_SOLVED")||type.equals("CHALLENGE_FAILED")){Slot ms=byId.get(t);if(ms!=null){ms.mark=type.equals("CHALLENGE_SOLVED")?1:-1;ms.markAge=0;}}Toast big=headline(type,a,t,num(ev,"amount"));if(big!=null){toastParts=big;toast=big.line();toastAge=0;toastTone=type.equals("MULTIPLIER_UPGRADED")?Tone.REWARD:type.equals("ATTACK_FAILED")||type.equals("ATTACK_EXPIRED")?Tone.RECOVERY:type.equals("FIREWALL_UPGRADED")?Tone.FIREWALL:type.equals("SABOTAGE_BLOCKED")?Tone.FIREWALL:type.equals("SABOTAGE_CLEARED")||type.equals("KEY_BOUGHT")?Tone.REWARD:type.startsWith("RECOVERY")||type.equals("EMERGENCY_RESTORED")?Tone.REWARD:Tone.HACK;}}
+                if(type.equals("DDOS_STARTED"))ddosBy.put(t,a);if(lastSequence>=0){react(type,a,t);if(marks.size()<8)marks.add(new String[]{type,a,t});{String c=SbSounds.cue(type);if(c!=null&&cues.size()<8)cues.add(c);}if(type.equals("CHALLENGE_SOLVED")||type.equals("CHALLENGE_FAILED")){Slot ms=byId.get(t);if(ms!=null){ms.mark=type.equals("CHALLENGE_SOLVED")?1:-1;ms.markAge=0;}}Toast big=headline(type,a,t,num(ev,"amount"));if(big!=null){toastParts=big;toast=big.line();toastAge=0;toastTone=type.equals("MULTIPLIER_UPGRADED")?Tone.REWARD:type.equals("ATTACK_FAILED")||type.equals("ATTACK_EXPIRED")?Tone.RECOVERY:type.equals("FIREWALL_UPGRADED")?Tone.FIREWALL:type.equals("SABOTAGE_BLOCKED")?Tone.FIREWALL:type.equals("SABOTAGE_CLEARED")||type.equals("KEY_BOUGHT")?Tone.REWARD:type.startsWith("RECOVERY")||type.equals("EMERGENCY_RESTORED")?Tone.REWARD:Tone.HACK;}}
                 LogLine line=line(type,a,t,num(ev,"amount"),seq);if(line!=null)line=new LogLine(line.sequence(),line.text(),line.tone(),Math.max(0,at-phaseStartedAt));
                 if(line!=null){log.addLast(line);if(log.size()>LOG_SIZE)log.removeFirst();System.arraycopy(logAge,0,logAge,1,LOG_SIZE-1);logAge[0]=lastSequence<0?99:0;}
             }
@@ -217,6 +217,9 @@ public final class SystemBreachHostViewModel {
     public List<Slot> slots(){return slots;}
     public List<Slot> ranking(){return ranking;}
     /** Attacks in flight (public: who is attacking whom). */
+    private final List<String[]> marks=new java.util.ArrayList<>();
+    /** New public events this frame (type, attacker, target); the screen drains it. */
+    public List<String[]> eventMarks(){return marks;}
     public List<Attack> attacks(){return attacks;}
     private String surgeKind="";private long surgeUntil;private final java.util.Map<String,Long> ddos=new java.util.HashMap<>();
     /** "DOUBLE" / "FIREWALL_DOWN" while a system surge runs, else "". */

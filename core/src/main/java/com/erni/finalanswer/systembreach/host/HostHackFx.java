@@ -31,41 +31,56 @@ final class HostHackFx {
     /** A big event: start a glitch burst tinted by its kind. */
     void cue(String name){
         switch(name){
-            case "hack_success"->{trigger(1,.15f,.12f,.6f);stamp(0);}
-            case "sabotage"->{trigger(1,.15f,.12f,.6f);stamp(2);}
+            case "hack_success"->{trigger(1,.15f,.12f,.6f);}
+            case "sabotage"->{trigger(1,.15f,.12f,.6f);}
             case "hack_start"->trigger(1,.35f,.2f,.35f);
-            case "hack_fail"->{trigger(.3f,.7f,1,.35f);stamp(1);}
+            case "hack_fail"->{trigger(.3f,.7f,1,.35f);}
             case "firewall"->trigger(.3f,.7f,1,.35f);
             case "key","multiplier","clean"->trigger(.35f,1,.55f,.3f);
-            case "strike"->{trigger(1,.6f,.1f,.6f);stamp(4);}
+            case "strike"->{trigger(1,.6f,.1f,.6f);}
             case "thunder"->trigger(1,.85f,.3f,.8f);
             case "complete"->trigger(1,.8f,.3f,.7f);
             default->{}
         }
     }
-    private int stampKind=-1;private float stampAge=99;private final char[] buf=new char[32];
-    private static final String[][] STAMP={{"ДОСТУП РАЗРЕШЁН","ACCESS GRANTED"},{"ДОСТУП ЗАПРЕЩЁН","ACCESS DENIED"},{"ВИРУС ВНЕДРЁН","VIRUS DEPLOYED"},{"КЛЮЧ ПОЛУЧЕН","KEY ACQUIRED"},{"ЛОВУШКА!","HONEYPOT!"}};
-    private void stamp(int kind){stampKind=kind;stampAge=0;}
-    /** Big centre stamp after a hack: the letters decode out of noise, RGB-split, shake, then dissolve. */
-    private float stampIn(){return stampAge<.18f?stampAge/.18f:stampAge>1.45f?Math.max(0,1-(stampAge-1.45f)/.35f):1;}
-    private float[] stampColor(){return switch(stampKind){case 1->new float[]{.35f,.75f,1};case 2->new float[]{1,.22f,.18f};case 3->new float[]{1,.8f,.3f};case 4->new float[]{1,.55f,.12f};default->new float[]{.35f,1,.6f};};}
-    /** Cinematic band behind the stamp (filled shapes, under the text). */
-    void stampBand(ShapeRenderer r){if(stampKind<0||stampAge>1.8f)return;float k=stampIn(),e=1-(1-k)*(1-k),h=96*e,y=STAMP_Y-h/2;float[] c3=stampColor();
-        r.setColor(0,0,0,.72f*k);r.rect(0,y,W,h);r.setColor(c3[0],c3[1],c3[2],.85f*k);float lw=W*e;r.rect(W/2-lw/2,y+h-2,lw,2);r.rect(W/2-lw/2,y,lw,2);
-        float sw=(stampAge*1.4f)%1.2f;if(sw<1){r.setColor(c3[0],c3[1],c3[2],.10f*k);r.rect(W*sw-60,y+2,120,h-4);}}
-    static final float STAMP_Y=610;
-    void stamp(SpriteBatch b,BitmapFont f,boolean ru,float time){
-        if(stampKind<0||stampAge>1.9f)return;String s=STAMP[stampKind][ru?0:1];int n=Math.min(s.length(),buf.length);
-        float dec=stampAge/.55f;for(int i=0;i<n;i++){char ch=s.charAt(i);buf[i]=ch==' '||i<dec*n?ch:"#$%&@01ABCDEF".charAt(MathUtils.random(12));}
-        String txt=new String(buf,0,n);float a=stampIn(),sx=0,sy=0,y=STAMP_Y+f.getCapHeight()/2;float[] c3=stampColor();
-        float cr=c3[0],cg=c3[1],cb=c3[2];
-        float split=Math.max(0,.35f-stampAge)*40;
-        f.setColor(1,0,.1f,.45f*a*(split>0?1:0));f.draw(b,txt,sx-split,y+sy,W,1,false);
-        f.setColor(0,.9f,1,.45f*a*(split>0?1:0));f.draw(b,txt,sx+split,y+sy,W,1,false);
-        f.setColor(cr,cg,cb,a);f.draw(b,txt,sx,y+sy,W,1,false);f.setColor(1,1,1,1);
+    /** Per-podium stamps: a compact plate over the player it concerns; letters decode out of noise, then it fades. */
+    private static final int MAXP=8;private final String[] pid=new String[MAXP];private final int[] pkind=new int[MAXP];private final float[] page=new float[MAXP];
+    { java.util.Arrays.fill(page,99); }
+    private static final String[][] STAMP={{"ВЗЛОМАН","HACKED"},{"АТАКА ОТБИТА","BLOCKED"},{"ВИРУС","VIRUS"},{"КЛЮЧ","KEY"},{"ЛОВУШКА!","HONEYPOT!"},{"ЩИТ","SHIELD"}};
+    private final char[] buf=new char[24];
+    void event(String type,String a,String t){
+        int kind;String who;
+        switch(type){case "ATTACK_SUCCEEDED"->{kind=0;who=t;}case "ATTACK_FAILED","SABOTAGE_BLOCKED"->{kind=1;who=t;}case "SABOTAGE_STARTED"->{kind=2;who=t;}
+            case "HONEYPOT_TRIGGERED"->{kind=4;who=a;}case "SHIELD_BLOCKED"->{kind=5;who=t;}default->{return;}}
+        if(who==null||who.isEmpty())return;int slot=0;float oldest=-1;for(int i=0;i<MAXP;i++){if(who.equals(pid[i])){slot=i;oldest=999;break;}if(page[i]>oldest){oldest=page[i];slot=i;}}
+        pid[slot]=who;pkind[slot]=kind;page[slot]=0;
+    }
+    private static float[] col(int k){return switch(k){case 0->new float[]{1,.25f,.2f};case 1->new float[]{.35f,.75f,1};case 2->new float[]{.75f,.3f,1};case 3->new float[]{1,.8f,.3f};case 4->new float[]{1,.55f,.12f};default->new float[]{.4f,.9f,1};};}
+    private float alpha(float age){return age<.15f?age/.15f:age>2.2f?Math.max(0,1-(age-2.2f)/.4f):1;}
+    static final float PW=PANEL_W+30,PH=40;
+    private float py(float age){float e=Math.min(1,age/.25f);return PANEL_Y+PANEL_H*.40f+(1-e)*(1-e)*-24;}
+    void stampShapes(ShapeRenderer r,SystemBreachHostViewModel vm){
+        int n=vm.slots().size();
+        for(int i=0;i<MAXP;i++){if(page[i]>2.6f||pid[i]==null)continue;int seat=vm.seat(pid[i]);if(seat<0)continue;float a=alpha(page[i]),x=slotX(seat,n),y=py(page[i]);float[] c=col(pkind[i]);
+            float w=PW*Math.min(1,page[i]/.18f);r.setColor(0,0,0,.6f*a);r.rect(x-w/2-4,y-4,w+8,PH+8);
+            r.setColor(.03f,.03f,.04f,.94f*a);r.rect(x-w/2,y,w,PH);r.setColor(c[0],c[1],c[2],a);r.rect(x-w/2,y,w,2);r.rect(x-w/2,y+PH-2,w,2);r.rect(x-w/2,y,3,PH);r.rect(x+w/2-3,y,3,PH);
+            r.setColor(c[0],c[1],c[2],.18f*a);r.rect(x-w/2+3,y+2,w-6,PH-4);
+            r.triangle(x-9,y,x+9,y,x,y-10);r.setColor(c[0],c[1],c[2],a);r.triangle(x-7,y-1,x+7,y-1,x,y-8);
+            float sw=(page[i]*1.2f)%1.4f;if(sw<1){r.setColor(1,1,1,.12f*a);r.rect(x-w/2+(w-30)*sw,y+2,30,PH-4);}}
+    }
+    void stampGlow(SpriteBatch b,SystemBreachHostAssets as,SystemBreachHostViewModel vm){
+        int n=vm.slots().size();for(int i=0;i<MAXP;i++){if(page[i]>2.6f||pid[i]==null)continue;int seat=vm.seat(pid[i]);if(seat<0)continue;float[] c=col(pkind[i]);float a=alpha(page[i]),x=slotX(seat,n),y=py(page[i]);
+            b.setColor(c[0],c[1],c[2],.35f*a);b.draw(as.glow,x-PW*.8f,y-30,PW*1.6f,PH+60);}b.setColor(1,1,1,1);}
+    void stamp(SpriteBatch b,BitmapFont f,SystemBreachHostViewModel vm){
+        int n=vm.slots().size();boolean ru=vm.ru();
+        for(int i=0;i<MAXP;i++){if(page[i]>2.6f||pid[i]==null)continue;int seat=vm.seat(pid[i]);if(seat<0)continue;String s=STAMP[pkind[i]][ru?0:1];int len=Math.min(s.length(),buf.length);
+            float dec=page[i]/.45f;for(int k=0;k<len;k++){char ch=s.charAt(k);buf[k]=ch==' '||k<dec*len?ch:"#%01ABCDEF".charAt(MathUtils.random(9));}
+            float[] c=col(pkind[i]);float a=alpha(page[i]),x=slotX(seat,n),y=py(page[i]);
+            f.setColor(Math.min(1,c[0]*.4f+.6f),Math.min(1,c[1]*.4f+.6f),Math.min(1,c[2]*.4f+.6f),a);f.draw(b,new String(buf,0,len),x-PW/2,y+PH/2+f.getCapHeight()/2,PW,1,false);}
+        f.setColor(1,1,1,1);
     }
     private void trigger(float r,float g,float b,float len){burstR=r;burstG=g;burstB=b;burstLen=len;burst=len;burstSeed=MathUtils.random(9999);}
-    void update(float dt){stampAge+=dt;burst=Math.max(0,burst-dt);for(int i=0;i<COLS;i++){colY[i]-=colSpeed[i]*dt;if(colY[i]<-TRAIL*22)colY[i]=H+MathUtils.random(200f);}}
+    void update(float dt){for(int i=0;i<MAXP;i++)page[i]+=dt;burst=Math.max(0,burst-dt);for(int i=0;i<COLS;i++){colY[i]-=colSpeed[i]*dt;if(colY[i]<-TRAIL*22)colY[i]=H+MathUtils.random(200f);}}
     private float k(){return burst<=0?0:burst/burstLen;}
 
     /** Code rain behind the stage (draw with normal blending, before the characters). */
@@ -93,7 +108,7 @@ final class HostHackFx {
     void overlay(ShapeRenderer r,float time){
         r.setColor(0,0,0,.07f);for(float y=0;y<H;y+=4)r.rect(0,y,W,1.4f);
         float band=H-((time*90)%(H+200))+100;r.setColor(.6f,1,.75f,.025f);r.rect(0,band,W,70);r.setColor(1,1,1,.02f);r.rect(0,band+30,W,6);
-        stampBand(r);float k=k();if(k<=0)return;
+        float k=k();if(k<=0)return;
         var rnd=new java.util.Random(burstSeed+(int)(time*30));
         for(int i=0;i<9;i++){float y=rnd.nextFloat()*H,h=6+rnd.nextFloat()*60*k,off=(rnd.nextFloat()-.5f)*140*k;
             r.setColor(burstR,burstG,burstB,.14f*k);r.rect(off,y,W,h);
