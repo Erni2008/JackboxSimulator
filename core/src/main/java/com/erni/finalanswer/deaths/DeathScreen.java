@@ -53,7 +53,7 @@ public final class DeathScreen extends ScreenAdapter {
         index++;t=0;soundPlayed=heartPlayed=false;
         if(index>=deaths.size()){finish();return;}
         Death d=deaths.get(index);
-        actor=new DeathActor(source.createCharacter(d.characterId()),source.presentation(d.characterId()),d.characterId(),d.cause(),(d.name()+d.characterId()).hashCode());
+        actor=new DeathActor(source.createCharacter(d.characterId()),source.presentation(d.characterId()),d.characterId(),d.cause(),(d.name()+d.characterId()).hashCode());actor.woundTex=tex.dot;
     }
     private void finish(){if(left)return;left=true;Gdx.app.postRunnable(done);}
     private float length(){return DeathActor.duration()+TAIL;}

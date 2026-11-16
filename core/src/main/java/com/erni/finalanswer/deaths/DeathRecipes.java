@@ -23,7 +23,9 @@ public final class DeathRecipes {
     public static DeathRecipe of(String character,DeathCause cause){
         DeathRecipe r=new DeathRecipe();r.cause=cause;float n=neck(character),h=headY(character);
         switch(cause){
-            case SHOT->{r.hitY=h;r.flash=.35f;r.shake=14;r.emit(P.SPARK,0,14,-.02f,h).dir(170,50).speed(700).life(.35f).color(HOT);}
+            case SHOT->{r.hitY=h;r.flash=.25f;r.shake=14;r.emit(P.SPARK,0,10,-.02f,h).dir(170,50).speed(700).life(.3f).color(HOT);
+                r.emit(P.DROP,0,48,.02f,h).spread(.01f,.01f).dir(12,48).speed(720).color(0x8a0a12ff).size(1.1f);
+                r.emit(P.SMOKE,0,8,.04f,h).spread(.02f,.02f).dir(10,40).speed(260).life(.9f).size(.55f).color(0x7a0610cc);}
             case BURNED->{r.fireAt=-.6f;r.fireDur=2.6f;r.flash=.25f;r.flashColor=0xffb060ff;r.shake=6;r.shakeDur=1.2f;r.screenTint=0x6a1a00ff;
                 r.emit(P.EMBER,-.9f,30,0,.05f).spread(.25f,.02f).dir(90,30).speed(160).life(1.4f).color(FIRE).over(.9f);}
             case EXPLODED->{r.hitY=.5f;r.flash=1;r.shake=30;r.shakeDur=.7f;r.shockwave=true;

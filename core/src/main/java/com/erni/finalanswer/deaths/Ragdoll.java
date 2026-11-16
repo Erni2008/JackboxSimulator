@@ -20,10 +20,10 @@ final class Ragdoll {
         // welded pieces keep their rest offset in the parent's frame
         float angle,tx,ty; // current rigid transform: world = R(angle)*rest + (tx,ty)
     }
-    private static final class Joint{Piece a,b;float ax,ay;float[] wa=new float[3],wb=new float[3];boolean broken;}
+    static final class Joint{Piece a,b;float ax,ay;float[] wa=new float[3],wb=new float[3];boolean broken;}
 
     final List<Piece> pieces=new ArrayList<>();
-    private final List<Joint> joints=new ArrayList<>();
+    final List<Joint> joints=new ArrayList<>();
     private float[] x,y,px,py,rx,ry,inv;private int n;
     private final float floor,left,right,top;
     float gravity=1700,posture=.18f,friction=.55f,rootOffX,rootOffY,rootSpin;boolean simulate,pinRoot=true,floorOn=true;
