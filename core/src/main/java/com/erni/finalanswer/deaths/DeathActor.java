@@ -181,6 +181,9 @@ public final class DeathActor implements Disposable {
     }
     // ---------------- ragdoll ----------------
     private void startRagdoll(){
+        if(r.cause==DeathCause.SHOT){r.head=Head.NONE;r.hitY=.5f;r.hitX=0;
+            for(var e:r.emits)if(e.at>=0&&e.at<.3f&&Math.abs(e.y-DeathRecipes.headY(id))<.02f){e.y=r.hitY;e.x+=0;}
+            if(r.body==Body.STAY||r.body==Body.SLUMP)r.body=Body.TOPPLE;}
         if(r.body==Body.STAY&&r.cause==DeathCause.BURNED){r.body=Body.SLUMP;r.bodyAt=1.3f;}
         phys=new PhysicsRagdoll(rag,this::hullOf,FLOOR,24,W-24);
         float hitX=W/2f+r.hitX*CHAR_H,hitY=FLOOR+r.hitY*CHAR_H;
@@ -261,8 +264,8 @@ public final class DeathActor implements Disposable {
         rec.end();rec.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);fbo.end();
     }
     /** Where the bullet hole is now (stage pixels). */
-    private float holeNowX(){if(artBody==null)return holeX;float a=artBody.getAngle(),c=MathUtils.cos(a),s=MathUtils.sin(a);return artBody.getPosition().x*PhysicsRagdoll.PPM+(holeX-artCX)*c-(holeY-artCY)*s;}
-    private float holeNowY(){if(artBody==null)return holeY;float a=artBody.getAngle(),c=MathUtils.cos(a),s=MathUtils.sin(a);return artBody.getPosition().y*PhysicsRagdoll.PPM+(holeX-artCX)*s+(holeY-artCY)*c;}
+    private float holeNowX(){if(artBody==null)return woundPiece!=null?woundWX():holeX;float a=artBody.getAngle(),c=MathUtils.cos(a),s=MathUtils.sin(a);return artBody.getPosition().x*PhysicsRagdoll.PPM+(holeX-artCX)*c-(holeY-artCY)*s;}
+    private float holeNowY(){if(artBody==null)return woundPiece!=null?woundWY():holeY;float a=artBody.getAngle(),c=MathUtils.cos(a),s=MathUtils.sin(a);return artBody.getPosition().y*PhysicsRagdoll.PPM+(holeX-artCX)*s+(holeY-artCY)*c;}
     private final float[] qv=new float[20];
     private void renderRagdoll(){
         fbo.begin();Gdx.gl.glClearColor(0,0,0,0);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
@@ -274,18 +277,23 @@ public final class DeathActor implements Disposable {
                 for(int k=0;k<4;k++){int o=k*5;float x=q.v[o],y=q.v[o+1];qv[o]=x*c-y*s+p.tx;qv[o+1]=x*s+y*c+p.ty;qv[o+2]=q.v[o+2];qv[o+3]=q.v[o+3];qv[o+4]=q.v[o+4];}
                 rec.draw(q.texture,qv,0,20);}}
         rec.end();rec.setShader(null);
-        if(woundPiece!=null&&!woundPiece.removed&&woundTex!=null){float wx=woundWX(),wy=woundWY(),k=Math.min(1,(time-IMPACT)/.12f);
-            rec.setBlendFunctionSeparate(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA,GL20.GL_ZERO,GL20.GL_ONE);rec.begin();
-            float s=46*k;rec.setColor(.32f,0,.02f,.85f);rec.draw(woundTex,wx-s/2,wy-s/2,s,s);
-            s=26*k;rec.setColor(.12f,0,0,1);rec.draw(woundTex,wx-s/2,wy-s/2,s,s);
-            s=12*k;rec.setColor(.03f,0,0,1);rec.draw(woundTex,wx-s/2,wy-s/2,s,s);
-            float run=Math.min(1,Math.max(0,(time-IMPACT-.3f)/2f));if(run>0){rec.setColor(.3f,0,.02f,.8f);rec.draw(woundTex,wx-5,wy-70*run,10,70*run);}
+        if(woundPiece!=null&&!woundPiece.removed&&holeTex!=null){float wx=woundWX(),wy=woundWY(),k=Math.min(1,(time-IMPACT)/.05f),rot=woundPiece.angle*MathUtils.radDeg;
+            float hs=woundSize*k;
+            // torn, blood-soaked rim (only where the body is)
+            rec.setBlendFunctionSeparate(GL20.GL_DST_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA,GL20.GL_ZERO,GL20.GL_ONE);rec.begin();
+            float s1=hs*1.9f;rec.setColor(.28f,.01f,.02f,.9f);rec.draw(holeTex,wx-s1/2,wy-s1/2,s1/2,s1/2,s1,s1,1,1,rot+40);
+            float s2=hs*1.35f;rec.setColor(.09f,0,0,1);rec.draw(holeTex,wx-s2/2,wy-s2/2,s2/2,s2/2,s2,s2,1,1,rot+110);
+            float run=Math.min(1,Math.max(0,(time-IMPACT-.3f)/2.2f));if(run>0){rec.setColor(.3f,0,.02f,.85f);rec.draw(woundTex,wx-7,wy-hs*.3f-90*run,14,90*run);}
+            rec.end();
+            // the hole itself: erase the body there, the background shows through
+            rec.setBlendFunctionSeparate(GL20.GL_ZERO,GL20.GL_ONE_MINUS_SRC_ALPHA,GL20.GL_ZERO,GL20.GL_ONE_MINUS_SRC_ALPHA);rec.begin();
+            rec.setColor(1,1,1,1);rec.draw(holeTex,wx-hs/2,wy-hs/2,hs/2,hs/2,hs,hs,1,1,rot);
             rec.end();rec.setColor(Color.WHITE);}
         rec.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
         fbo.end();
     }
     /** Texture for the wound, set by the screen (a soft round dot). */
-    com.badlogic.gdx.graphics.g2d.TextureRegion woundTex;
+    com.badlogic.gdx.graphics.g2d.TextureRegion woundTex,holeTex;private float woundSize=96;
     private float woundWX(){var p=woundPiece;float c=MathUtils.cos(p.angle),s=MathUtils.sin(p.angle);return woundX*c-woundY*s+p.tx;}
     private float woundWY(){var p=woundPiece;float c=MathUtils.cos(p.angle),s=MathUtils.sin(p.angle);return woundX*s+woundY*c+p.ty;}
     private void addShard(float[][] p,float neckY){
@@ -372,7 +380,7 @@ public final class DeathActor implements Disposable {
         // anticipation behind the character
         drawAnticipation(batch,tex,x,y,t,alpha,false);
         drawShadows(batch,tex,x,y,t,alpha);
-        if(shotArt!=null&&impacted&&t<.9f){float k=1-t/.9f;batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
+        if((shotArt!=null||woundPiece!=null&&!woundPiece.removed)&&impacted&&t<.9f){float k=1-t/.9f;batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
             batch.setColor(1,.85f,.6f,k*k*alpha);float s=150+260*(1-k);batch.draw(tex.soft,x+holeNowX()-s/2,y+holeNowY()-s/2,s,s);
             batch.setColor(1,.25f,.1f,k*.7f*alpha);s*=2.2f;batch.draw(tex.soft,x+holeNowX()-s/2,y+holeNowY()-s/2,s,s);
             batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.setColor(Color.WHITE);}

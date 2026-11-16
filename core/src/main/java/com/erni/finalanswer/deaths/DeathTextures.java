@@ -8,13 +8,15 @@ import com.badlogic.gdx.utils.Disposable;
 
 /** Procedural particle sprites and the death shader, shared by every death on a screen. */
 public final class DeathTextures implements Disposable {
-    public final TextureRegion pixel,soft,dot,ring,smoke;public final ShaderProgram shader,fire;
+    public final TextureRegion pixel,soft,dot,ring,smoke,hole;public final ShaderProgram shader,fire;
     public DeathTextures(){
         Pixmap p=new Pixmap(4,4,Pixmap.Format.RGBA8888);p.setColor(1,1,1,1);p.fill();pixel=new TextureRegion(new Texture(p));p.dispose();
         soft=radial(128,(d)->{float k=Math.max(0,1-d);return k*k*(3-2*k)*k;});
         dot=radial(64,(d)->d<.82f?1:Math.max(0,1-(d-.82f)/.18f));
         ring=radial(256,(d)->{float x=Math.abs(d-.86f)/.12f;return Math.max(0,1-x*x);});
         smoke=cloud(128,7);
+        {java.util.Random r=new java.util.Random(11);float[] rad=new float[64];for(int i=0;i<64;i++)rad[i]=.72f+r.nextFloat()*.28f;
+         hole=radialA(128,(dx,dy)->{double a=Math.atan2(dy,dx);int i=(int)((a+Math.PI)/(2*Math.PI)*64)%64;float rr=rad[i]*.6f+rad[(i+1)%64]*.4f;float d=(float)Math.sqrt(dx*dx+dy*dy)/rr;return d<.92f?1:Math.max(0,1-(d-.92f)/.08f);});}
         ShaderProgram.pedantic=false;
         shader=new ShaderProgram(VERT,FRAG);
         if(!shader.isCompiled())throw new IllegalStateException("Death shader: "+shader.getLog());
@@ -22,6 +24,12 @@ public final class DeathTextures implements Disposable {
         if(!fire.isCompiled())throw new IllegalStateException("Fire shader: "+fire.getLog());
     }
     private interface F{float at(float d);}
+    private interface F2{float at(float dx,float dy);}
+    private static TextureRegion radialA(int n,F2 f){
+        Pixmap p=new Pixmap(n,n,Pixmap.Format.RGBA8888);
+        for(int y=0;y<n;y++)for(int x=0;x<n;x++){float dx=(x+.5f)/n*2-1,dy=(y+.5f)/n*2-1;float a=Math.max(0,Math.min(1,f.at(dx,dy)));p.drawPixel(x,y,0xffffff00|(int)(a*255));}
+        Texture t=new Texture(p,true);t.setFilter(Texture.TextureFilter.MipMapLinearLinear,Texture.TextureFilter.Linear);p.dispose();return new TextureRegion(t);
+    }
     private static TextureRegion radial(int n,F f){
         Pixmap p=new Pixmap(n,n,Pixmap.Format.RGBA8888);
         for(int y=0;y<n;y++)for(int x=0;x<n;x++){float dx=(x+.5f)/n*2-1,dy=(y+.5f)/n*2-1;float a=Math.max(0,Math.min(1,f.at((float)Math.sqrt(dx*dx+dy*dy))));
@@ -41,7 +49,7 @@ public final class DeathTextures implements Disposable {
     }
     private static float lerp2(float[][] g,float x,float y){int i=Math.min((int)x,g.length-2),j=Math.min((int)y,g.length-2);float fx=x-i,fy=y-j;fx=fx*fx*(3-2*fx);fy=fy*fy*(3-2*fy);
         return (g[i][j]*(1-fx)+g[i+1][j]*fx)*(1-fy)+(g[i][j+1]*(1-fx)+g[i+1][j+1]*fx)*fy;}
-    @Override public void dispose(){smoke.getTexture().dispose();fire.dispose();pixel.getTexture().dispose();soft.getTexture().dispose();dot.getTexture().dispose();ring.getTexture().dispose();shader.dispose();}
+    @Override public void dispose(){hole.getTexture().dispose();smoke.getTexture().dispose();fire.dispose();pixel.getTexture().dispose();soft.getTexture().dispose();dot.getTexture().dispose();ring.getTexture().dispose();shader.dispose();}
 
     static final String VERT="""
         attribute vec4 a_position;attribute vec4 a_color;attribute vec2 a_texCoord0;
