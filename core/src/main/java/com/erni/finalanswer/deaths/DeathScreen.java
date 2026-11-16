@@ -29,7 +29,9 @@ public final class DeathScreen extends ScreenAdapter {
     private final CageLobby source;private final boolean ownsSource;
     private final FitViewport view=new FitViewport(W,H);
     private final PolygonSpriteBatch batch=new PolygonSpriteBatch(2000);
-    private final DeathTextures tex=new DeathTextures();
+    private final DeathTextures tex=new DeathTextures();private final DeathPost post=new DeathPost();
+    private final com.badlogic.gdx.graphics.OrthographicCamera camera=new com.badlogic.gdx.graphics.OrthographicCamera(W,H),fixed=new com.badlogic.gdx.graphics.OrthographicCamera(W,H);
+    {fixed.position.set(W/2,H/2,0);fixed.update();}
     private final BitmapFont nameFont=UiFonts.question(84),causeFont=UiFonts.question(130),small=UiFonts.nameplate(26);
     private final Map<DeathCause,Sound> hits=new EnumMap<>(DeathCause.class);private Sound heart;
     private int index=-1;private DeathActor actor;private float t;private boolean left,soundPlayed,heartPlayed;
@@ -64,58 +66,90 @@ public final class DeathScreen extends ScreenAdapter {
     }
     @Override public void resize(int w,int h){view.update(w,h,true);}
 
+    /** Hit-stop on the impact, then slow motion easing back to real time. */
+    private float timeScale(float since){
+        if(since<0||since>.9f)return 1;
+        if(since<.07f)return .06f;
+        return MathUtils.lerp(.28f,1,MathUtils.clamp((since-.07f)/.83f,0,1));
+    }
     @Override public void render(float delta){
-        float dt=Math.min(delta,1/20f);
+        float real=Math.min(delta,1/20f);
         Gdx.gl.glClearColor(0,0,0,1);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         if(actor==null)return;
-        t+=dt;
+        float dt=real*timeScale(t-DeathActor.IMPACT);
+        t+=dt;post.time+=real;
         float since=t-DeathActor.IMPACT;var r=actor.recipe();
         if(!heartPlayed&&heart!=null&&t>.2f){heartPlayed=true;heartId=heart.play(.55f);}
         if(!soundPlayed&&since>=0){soundPlayed=true;if(heart!=null&&heartId>=0){heart.stop(heartId);heartId=-1;}Sound s=hits.get(r.cause);if(s!=null)s.play(.9f);}
         actor.update(dt,batch);
         if(t>=length()){next();if(actor==null)return;since=t-DeathActor.IMPACT;r=actor.recipe();}
 
-        view.apply();
-        float shake=since>=0&&since<r.shakeDur?r.shake*(1-since/r.shakeDur):0;
-        float sx=MathUtils.sin(t*71)*shake,sy=MathUtils.cos(t*63)*shake*.7f;
-        view.getCamera().position.set(W/2-sx,H/2-sy,0);view.getCamera().update();
-        batch.setProjectionMatrix(view.getCamera().combined);
         float fade=Math.min(MathUtils.clamp(t/.45f,0,1),MathUtils.clamp((length()-t)/TAIL,0,1));
         float ax=W/2-DeathActor.W/2f,ay=150;
+        float hitX=W/2+r.hitX*DeathActor.CHAR_H,hitY=ay+DeathActor.FLOOR+r.hitY*DeathActor.CHAR_H;
 
-        // stage: a cold spotlight from above and its pool on the floor
+        // camera: a slow push-in during the anticipation, a punch on the impact, a hand-held settle
+        float push=MathUtils.clamp(t/DeathActor.IMPACT,0,1);push=push*push*(3-2*push);
+        float punch=since>=0?(float)Math.exp(-since*5)*.07f:0;
+        float zoom=1/(1+.05f*push+punch-(since>0?.03f*MathUtils.clamp(since/2.5f,0,1):0));
+        float shake=since>=0&&since<r.shakeDur?r.shake*(1-since/r.shakeDur)*(1-since/r.shakeDur):0;
+        float sx=(MathUtils.sin(t*71)+.5f*MathUtils.sin(t*37))*shake,sy=(MathUtils.cos(t*63)+.5f*MathUtils.cos(t*29))*shake*.7f;
+        float drift=MathUtils.sin(post.time*.7f)*3;
+        float focusX=MathUtils.lerp(W/2,hitX,.25f*push),focusY=MathUtils.lerp(H/2,hitY,.18f*push);
+        camera.zoom=zoom;camera.position.set(focusX-sx+drift,focusY-sy,0);camera.update();
+        batch.setProjectionMatrix(camera.combined);
+
+        post.begin();
+        // stage: a cold spotlight from above, a pool of light on the floor, fire light when something burns
         batch.begin();
-        batch.setColor(.55f,.6f,.75f,.10f*fade);batch.draw(tex.soft,W/2-520,ay-40,1040,1300);
-        batch.setColor(.85f,.85f,.95f,.20f*fade);batch.draw(tex.soft,W/2-380,ay+DeathActor.FLOOR-55,760,110);
-        if(r.screenTint!=0&&since>-1){float k=MathUtils.clamp((since+1)/1f,0,1)*MathUtils.clamp((3.2f-since)/1.2f,0,1);
-            batch.setColor(((r.screenTint>>>24)&0xff)/255f,((r.screenTint>>>16)&0xff)/255f,((r.screenTint>>>8)&0xff)/255f,.55f*k*fade);batch.draw(tex.soft,W/2-1100,ay-300,2200,1500);}
+        batch.setColor(.5f,.56f,.72f,.12f*fade);batch.draw(tex.soft,W/2-560,ay-60,1120,1350);
+        batch.setColor(.8f,.82f,.92f,.22f*fade);batch.draw(tex.soft,W/2-420,ay+DeathActor.FLOOR-60,840,120);
+        batch.setColor(.08f,.08f,.1f,fade);batch.draw(tex.pixel,-400,-400,W+800,ay+DeathActor.FLOOR+400);
+        batch.setColor(.6f,.62f,.7f,.08f*fade);batch.draw(tex.soft,W/2-700,ay+DeathActor.FLOOR-90,1400,180);
+        if(r.screenTint!=0&&since>-1){float k=MathUtils.clamp(since+1,0,1)*MathUtils.clamp((3.2f-since)/1.2f,0,1);
+            batch.setColor(((r.screenTint>>>24)&0xff)/255f,((r.screenTint>>>16)&0xff)/255f,((r.screenTint>>>8)&0xff)/255f,.6f*k*fade);batch.draw(tex.soft,W/2-1100,ay-300,2200,1500);}
+        float fire=actor.fireLevel(since);
+        if(fire>0){batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);Color fc=new Color(r.fireColor);float fl=fire*(.8f+.2f*MathUtils.sin(post.time*23));
+            batch.setColor(fc.r,fc.g,fc.b,.32f*fl*fade);batch.draw(tex.soft,W/2-700,ay-200,1400,1100);
+            batch.setColor(fc.r,fc.g*.8f,fc.b*.6f,.4f*fl*fade);batch.draw(tex.soft,W/2-420,ay+DeathActor.FLOOR-80,840,160);
+            batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
         batch.setColor(Color.WHITE);batch.end();
 
         actor.draw(batch,tex.shader,tex,ax,ay,fade);
 
         batch.begin();
-        // impact flash over the whole screen
-        if(since>=0&&since<.25f){float k=1-since/.25f;Color fc=new Color(r.flashColor);batch.setColor(fc.r,fc.g,fc.b,r.flash*k*k*fade);batch.draw(tex.pixel,-50,-50,W+100,H+100);}
-        // vignette
-        batch.setColor(0,0,0,1);
+        if(since>=0&&since<.2f){float k=1-since/.2f;Color fc=new Color(r.flashColor);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
+            batch.setColor(fc.r,fc.g,fc.b,r.flash*k*k*k*fade*.45f);batch.draw(tex.soft,hitX-700,hitY-700,1400,1400);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
+        batch.setColor(Color.WHITE);batch.end();
+
+        // titles sit outside the camera move
+        batch.setProjectionMatrix(fixed.combined);batch.begin();
         Death d=deaths.get(index);
         float na=MathUtils.clamp((t-.15f)/.5f,0,1)*fade;
-        nameFont.setColor(.93f,.9f,.86f,na);
-        nameFont.draw(batch,d.name(),0,H-70,W,Align.center,false);
-        small.setColor(.6f,.58f,.55f,na*.8f);
-        small.draw(batch,(ru?"ПОГИБ  ":"DIED  ")+(index+1)+" / "+deaths.size(),0,H-175,W,Align.center,false);
-        if(since>=0){float k=MathUtils.clamp(since/.18f,0,1);float punch=1+.6f*(1-k)*(1-k);
-            causeFont.getData().setScale(punch);
+        nameFont.setColor(.93f,.9f,.86f,na);nameFont.draw(batch,d.name(),0,H-70,W,Align.center,false);
+        small.setColor(.6f,.58f,.55f,na*.8f);small.draw(batch,(ru?"ПОГИБ  ":"DIED  ")+(index+1)+" / "+deaths.size(),0,H-175,W,Align.center,false);
+        if(since>=0){float k=MathUtils.clamp(since/.22f,0,1);float sc=1+.35f*(1-k)*(1-k)*(1-k);
+            causeFont.getData().setScale(sc);
             Color cc=switch(d.cause()){case SHOT->new Color(.92f,.1f,.12f,1);case BURNED->new Color(1,.5f,.12f,1);case EXPLODED->new Color(1,.8f,.3f,1);case CURSED->new Color(.72f,.45f,1,1);};
-            causeFont.setColor(0,0,0,.7f*fade*k);causeFont.draw(batch,ru?d.cause().ru:d.cause().en,6,ay+120-6,W,Align.center,false);
-            causeFont.setColor(cc.r,cc.g,cc.b,fade*k);causeFont.draw(batch,ru?d.cause().ru:d.cause().en,0,ay+120,W,Align.center,false);
+            String word=ru?d.cause().ru:d.cause().en;float base=125+causeFont.getCapHeight()*sc*.5f;
+            causeFont.setColor(0,0,0,.75f*fade*k);causeFont.draw(batch,word,7,base-7,W,Align.center,false);
+            causeFont.setColor(cc.r,cc.g,cc.b,fade*k);causeFont.draw(batch,word,0,base,W,Align.center,false);
             causeFont.getData().setScale(1);}
         batch.setColor(Color.WHITE);batch.end();
+        post.end();
+
+        // post: shockwave, chromatic split, bloom, grain; the world drains of colour after the death
+        post.cx=(hitX-(camera.position.x-W/2*zoom))/(W*zoom);post.cy=(hitY-(camera.position.y-H/2*zoom))/(H*zoom);
+        boolean blast=r.cause==DeathCause.EXPLODED||r.shockwave;
+        post.shock=since>=0&&since<.9f?since*(blast?1.3f:.9f):-1;post.shockStrength=since>=0?(1-since/.9f)*(blast?1.2f:.45f):0;
+        post.aberration=since>=0?(float)Math.exp(-since*6)*(blast?1.0f:.6f):(since>-.5f?.25f*(since+.5f)/.5f:0);
+        post.desat=since>0?.45f*MathUtils.clamp((since-.6f)/1.6f,0,1):0;
+        view.apply();post.present(batch);
     }
 
     @Override public void hide(){Gdx.input.setInputProcessor(null);if(heart!=null&&heartId>=0){heart.stop(heartId);heartId=-1;}}
     @Override public void dispose(){
-        if(actor!=null)actor.dispose();batch.dispose();tex.dispose();nameFont.dispose();causeFont.dispose();small.dispose();
+        if(actor!=null)actor.dispose();batch.dispose();tex.dispose();post.dispose();nameFont.dispose();causeFont.dispose();small.dispose();
         for(Sound s:hits.values())s.dispose();if(heart!=null)heart.dispose();if(ownsSource)source.dispose();
     }
 }

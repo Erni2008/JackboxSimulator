@@ -24,12 +24,12 @@ public final class DeathRecipes {
         DeathRecipe r=new DeathRecipe();r.cause=cause;float n=neck(character),h=headY(character);
         switch(cause){
             case SHOT->{r.hitY=h;r.flash=.35f;r.shake=14;r.emit(P.SPARK,0,14,-.02f,h).dir(170,50).speed(700).life(.35f).color(HOT);}
-            case BURNED->{r.flash=.25f;r.flashColor=0xffb060ff;r.shake=6;r.shakeDur=1.2f;r.screenTint=0x6a1a00ff;
+            case BURNED->{r.fireAt=-.6f;r.fireDur=2.6f;r.flash=.25f;r.flashColor=0xffb060ff;r.shake=6;r.shakeDur=1.2f;r.screenTint=0x6a1a00ff;
                 r.emit(P.EMBER,-.9f,30,0,.05f).spread(.25f,.02f).dir(90,30).speed(160).life(1.4f).color(FIRE).over(.9f);}
             case EXPLODED->{r.hitY=.5f;r.flash=1;r.shake=30;r.shakeDur=.7f;r.shockwave=true;
                 r.emit(P.SPARK,0,60,0,.5f).speed(1100).life(.55f).color(HOT);
                 r.emit(P.SMOKE,.05f,18,0,.45f).spread(.12f,.12f).speed(140).life(2.4f).size(2.2f).color(SMOKE);
-                r.emit(P.GLOW,0,4,0,.5f).speed(0).life(.5f).size(5).color(FIRE);}
+                r.emit(P.GLOW,0,3,0,.5f).speed(0).life(.35f).size(3).color(FIRE);}
             case CURSED->{r.flash=.45f;r.flashColor=0x9a5bffff;r.shake=8;r.screenTint=0x1a0630ff;
                 r.emit(P.WISP,-1.1f,26,0,.1f).spread(.3f,.02f).dir(90,25).speed(120).life(1.8f).color(PURPLE).over(1.4f);}
         }
@@ -92,7 +92,7 @@ public final class DeathRecipes {
                 r.emit(P.FEATHER,0,30,0,h).speed(380).dir(40,120).life(3).color(0x5b4f60ff);
                 r.emit(P.BAT,.2f,7,0,.5f).speed(420).dir(70,70).life(2.4f).color(0x4a3d5cff);
                 r.emit(P.DROP,0,20,0,h).speed(420).dir(20,60).color(DARKRED);}
-            case BURNED->{r.burnAt=.2f;r.burnDur=2f;r.burnDir=1;r.edge=0x8dff4aff;r.charAt=-.3f;r.charDur=1.4f;r.screenTint=0x0c2a06ff;
+            case BURNED->{r.burnAt=.2f;r.burnDur=2f;r.burnDir=1;r.edge=0x8dff4aff;r.fireColor=0x7dff3aff;r.charAt=-.3f;r.charDur=1.4f;r.screenTint=0x0c2a06ff;
                 r.emit(P.EMBER,0,60,0,.45f).spread(.18f,.3f).dir(90,35).speed(220).life(1.5f).color(0x9dff4aff).over(2.2f);
                 r.emit(P.FEATHER,.4f,18,0,.6f).spread(.12f,.2f).speed(120).dir(90,90).life(2.6f).color(0x2a2a2aff);
                 r.emit(P.SMOKE,0,24,0,.5f).spread(.15f,.2f).dir(90,25).speed(110).life(2.6f).size(2).color(0x1b2614ff).over(2);}
@@ -112,7 +112,7 @@ public final class DeathRecipes {
                 r.emit(P.DROP,0,26,0,.6f).speed(460).dir(170,60).color(RED);
                 r.emit(P.ASH,1.1f,90,0,.5f).spread(.18f,.35f).speed(80).life(2.6f).color(ASH).over(.9f);
                 r.emit(P.SMOKE,1.1f,14,0,.2f).spread(.18f,.05f).speed(80).dir(90,80).life(2.2f).size(1.6f).color(0x6e6862aa);}
-            case BURNED->{r.flash=1;r.flashColor=0xfff6d0ff;r.screenTint=0x6a5a20ff;r.burnAt=0;r.burnDur=1.9f;r.burnDir=-1;r.edge=0xfff3b0ff;r.edgeWidth=.09f;
+            case BURNED->{r.flash=1;r.flashColor=0xfff6d0ff;r.screenTint=0x6a5a20ff;r.burnAt=0;r.burnDur=1.9f;r.burnDir=-1;r.edge=0xfff3b0ff;r.edgeWidth=.09f;r.fireColor=0xffe9a0ff;
                 r.emit(P.GLOW,-.5f,3,0,.6f).speed(0).life(2.4f).size(7).color(0xfff0b0ff);
                 r.emit(P.ASH,0,120,0,.5f).spread(.2f,.4f).dir(90,60).speed(130).life(2.4f).color(0x9a948eff).over(1.9f);
                 r.emit(P.SMOKE,0,22,0,.5f).spread(.18f,.3f).dir(90,25).speed(140).life(2.4f).size(1.8f).color(0x8a847cff).over(1.8f);}
@@ -131,7 +131,7 @@ public final class DeathRecipes {
             case SHOT->{r.hitY=.6f;r.waveAt=0;r.waveDur=1.3f;r.waveAmount=1.6f;r.burnAt=.6f;r.burnDur=1.4f;r.burnDir=0;r.edge=0x9ff4ffff;r.edgeWidth=.1f;
                 r.emit(P.WISP,.6f,50,0,.55f).spread(.2f,.3f).speed(200).life(1.8f).color(CYAN).over(1.2f);
                 r.emit(P.RING,0,1,0,.6f).speed(0).life(.6f).size(1.2f).color(0x9ff4ffaa);}
-            case BURNED->{r.burnAt=0;r.burnDur=1.7f;r.burnDir=1;r.edge=0x5fa8ffff;r.edgeWidth=.1f;r.flashColor=0x9ac8ffff;r.screenTint=0x061a40ff;r.waveAt=-.4f;r.waveAmount=.6f;r.waveDur=2.2f;
+            case BURNED->{r.burnAt=0;r.burnDur=1.7f;r.burnDir=1;r.edge=0x5fa8ffff;r.edgeWidth=.1f;r.fireColor=0x4f9dffff;r.flashColor=0x9ac8ffff;r.screenTint=0x061a40ff;r.waveAt=-.4f;r.waveAmount=.6f;r.waveDur=2.2f;
                 r.emit(P.EMBER,-.6f,80,0,.4f).spread(.2f,.35f).dir(90,30).speed(240).life(1.4f).color(BLUEFIRE).over(2.4f);
                 r.emit(P.WISP,.4f,30,0,.6f).spread(.2f,.2f).dir(90,40).speed(160).life(1.6f).color(CYAN).over(1.5f);}
             case EXPLODED->{r.body=Body.SHATTER;r.shatterPower=1100;r.edge=0x9ff4ffff;r.burnAt=.2f;r.burnDur=1;r.burnDir=0;

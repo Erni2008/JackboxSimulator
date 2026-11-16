@@ -10,7 +10,7 @@ import java.util.List;
 public final class DeathRecipe {
     public enum Head{NONE,FLY,SHATTER}
     public enum Body{STAY,SLUMP,TOPPLE,FLY_BACK,COLLAPSE,SHATTER,SINK,LIFT,VANISH}
-    public enum P{SPARK,EMBER,SMOKE,CHUNK,DROP,ASH,GLOW,WISP,FEATHER,BAT,PIN,STRING,SEED,SPLINTER,RING,FLY}
+    public enum P{SPARK,EMBER,SMOKE,CHUNK,DROP,ASH,GLOW,WISP,FEATHER,BAT,PIN,STRING,SEED,SPLINTER,RING,FLY,STAIN}
 
     public static final class Emit{
         public final P type;public float at,x,y,spreadX=.05f,spreadY=.05f,speed=300,angle=90,angleSpread=360,life=1.2f,size=1,gravity=Float.NaN,over;
@@ -39,6 +39,8 @@ public final class DeathRecipe {
     public float tintAt=Float.NaN,tintDur=1f;public int tint=0xffffffff;
     public float meltAt=Float.NaN,meltDur=1.6f,meltAmount=.35f;
     public float waveAt=Float.NaN,waveDur=1.2f,waveAmount=1;
+    /** real flames licking up the silhouette */
+    public float fireAt=Float.NaN,fireDur=2.4f,fireAmount=1;public int fireColor=0xff7a20ff;
     public float soulAt=Float.NaN;public int soulColor=0x9fe4ffff;
     public float fadeAt=Float.NaN,fadeDur=.8f;
     // screen

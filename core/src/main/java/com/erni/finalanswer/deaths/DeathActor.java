@@ -36,7 +36,7 @@ public final class DeathActor implements Disposable {
     private Pixmap frozen;private float time,charTime=8;private boolean impacted;
 
     // shards
-    private static final class Shard{float[] v=new float[6];float cx,cy;int group;boolean free,solid;float px,py,rot,vx,vy,va,detachAt=Float.NaN;}
+    private static final class Shard{float[] v=new float[6];float cx,cy;int group;boolean free,solid,landed;float px,py,rot,vx,vy,va,ta,tv,detachAt=Float.NaN;}
     private static final class Group{float pivotX,pivotY,ox,oy,ang,sy=1,vx,vy,va;boolean moving;}
     private final List<Shard> shards=new ArrayList<>();private final Group[] groups={new Group(),new Group()};
     private float[] verts=new float[0];private short[] tris=new short[0];
@@ -157,12 +157,12 @@ public final class DeathActor implements Disposable {
         if(r.squash>0&&r.body!=Body.SLUMP&&since>=0)b.sy=1-r.squash*MathUtils.clamp(since/1.2f,0,1);
         for(Group g:groups)if(g.moving){g.vy-=1500*dt;g.ox+=g.vx*dt;g.oy+=g.vy*dt;g.ang+=g.va*dt;
             float low=Float.MAX_VALUE;for(Shard s:shards)if(!s.free&&s.solid&&groups[s.group]==g)for(int k=0;k<3;k++)low=Math.min(low,ty(g,s.cx+(s.v[k*2]-s.cx)*.5f,s.cy+(s.v[k*2+1]-s.cy)*.5f));
-            if(low<FLOOR&&low!=Float.MAX_VALUE){g.oy+=FLOOR-low;if(g.vy<0)g.vy=-g.vy*.28f;g.vx*=.55f;g.va*=.5f;if(Math.abs(g.vy)<60){g.vy=0;g.vx*=.85f;g.va*=.8f;}}}
+            if(low<FLOOR&&low!=Float.MAX_VALUE){if(g.vy<-380)dust(tx(g,g.pivotX,g.pivotY),FLOOR,5);g.oy+=FLOOR-low;if(g.vy<0)g.vy=-g.vy*.28f;g.vx*=.55f;g.va*=.5f;if(Math.abs(g.vy)<60){g.vy=0;g.vx*=.85f;g.va*=.8f;}}}
         for(Shard s:shards){
             if(!s.free&&!Float.isNaN(s.detachAt)&&t>=s.detachAt){Group g=groups[s.group];s.free=true;
-                float wx=tx(g,s.cx,s.cy),wy=ty(g,s.cx,s.cy);s.px=wx-s.cx;s.py=wy-s.cy;s.rot=g.ang;s.vx+=g.vx;s.vy+=g.vy;}
-            if(s.free){s.vy-=1500*dt;s.px+=s.vx*dt;s.py+=s.vy*dt;s.rot+=s.va*dt;
-                float y=s.cy+s.py;if(y<FLOOR+5){s.py=FLOOR+5-s.cy;if(s.vy<0)s.vy=-s.vy*.25f;s.vx*=.6f;s.va*=.5f;if(Math.abs(s.vy)<40){s.vy=0;s.vx*=.82f;s.va*=.75f;}}}
+                float wx=tx(g,s.cx,s.cy),wy=ty(g,s.cx,s.cy);s.px=wx-s.cx;s.py=wy-s.cy;s.rot=g.ang;s.vx+=g.vx;s.vy+=g.vy;s.tv=(rng.nextFloat()-.5f)*(Math.abs(s.va)*.03f+6);}
+            if(s.free){s.vy-=1500*dt;s.px+=s.vx*dt;s.py+=s.vy*dt;s.rot+=s.va*dt;s.ta+=s.tv*dt;
+                float y=s.cy+s.py;if(y<FLOOR+5){s.py=FLOOR+5-s.cy;if(!s.landed&&s.vy<-420&&s.solid&&rng.nextFloat()<.25f)dust(s.cx+s.px,FLOOR,1);s.landed=true;if(s.vy<0)s.vy=-s.vy*.25f;s.vx*=.6f;s.va*=.5f;s.tv*=.5f;if(Math.abs(s.vy)<40){s.vy=0;s.vx*=.82f;s.va*=.75f;s.ta=Math.round(s.ta/MathUtils.PI)*MathUtils.PI;s.tv=0;}}}
         }
     }
     private float tx(Group g,float x,float y){float c=MathUtils.cosDeg(g.ang),s=MathUtils.sinDeg(g.ang);float dx=x-g.pivotX,dy=(y-g.pivotY)*g.sy;return g.pivotX+dx*c-dy*s+g.ox;}
@@ -187,6 +187,11 @@ public final class DeathActor implements Disposable {
             if(p.type==P.PIN&&e.speed>=0)p.rot=rng.nextFloat()*360;
             parts.add(p);}
     }
+    private void dust(float x,float y,int n){
+        for(int i=0;i<n;i++){Part p=new Part();p.type=P.SMOKE;p.seed=rng.nextFloat();p.x=x+(rng.nextFloat()-.5f)*60;p.y=y+6;
+            float side=rng.nextBoolean()?1:-1;p.vx=side*(80+rng.nextFloat()*160);p.vy=20+rng.nextFloat()*40;p.life=1.2f+rng.nextFloat()*.8f;p.size=.55f+rng.nextFloat()*.5f;
+            p.r=.42f;p.gc=.39f;p.b=.36f;p.a=.55f;p.g=-10;parts.add(p);}
+    }
     private void stepPart(Part p,float dt){
         p.vy-=p.g*dt;
         switch(p.type){
@@ -199,6 +204,7 @@ public final class DeathActor implements Disposable {
             default->{}
         }
         p.x+=p.vx*dt;p.y+=p.vy*dt;p.rot+=p.va*dt;
+        if(p.type==P.DROP&&p.y<FLOOR+3&&p.vy<0){p.type=P.STAIN;p.y=FLOOR+1;p.vx=p.vy=p.va=0;p.g=0;p.life=p.age+3.2f;p.size*=1.4f+p.seed;return;}
         if(p.g>500&&p.y<FLOOR+3){p.y=FLOOR+3;p.vy=-p.vy*.3f;p.vx*=.6f;p.va*=.5f;if(Math.abs(p.vy)<50)p.vy=0;}
     }
 
@@ -209,6 +215,7 @@ public final class DeathActor implements Disposable {
         batch.begin();
         // anticipation behind the character
         drawAnticipation(batch,tex,x,y,t,alpha,false);
+        drawShadows(batch,tex,x,y,t,alpha);
         batch.end();
         batch.setShader(shader);batch.setBlendFunction(GL20.GL_ONE,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.begin();
         shader.setUniformf("u_time",time);
@@ -222,7 +229,7 @@ public final class DeathActor implements Disposable {
         shader.setUniformf("u_melt",Float.isNaN(r.meltAt)?0:r.meltAmount*smooth((t-r.meltAt)/r.meltDur));
         float wave=Float.isNaN(r.waveAt)?0:r.waveAmount*MathUtils.sin(MathUtils.clamp((t-r.waveAt)/r.waveDur,0,1)*MathUtils.PI);
         shader.setUniformf("u_wave",wave);
-        shader.setUniformf("u_flash",t>=0&&t<.12f?(r.cause==DeathCause.EXPLODED?1:.6f)*(1-t/.12f):0);
+        shader.setUniformf("u_flash",t>=0&&t<.06f?(r.cause==DeathCause.EXPLODED?.45f:.25f)*(1-t/.06f):0);
         float glow=0;if(t>-.9f&&t<0&&r.cause==DeathCause.EXPLODED)glow=.5f+.5f*MathUtils.sin(time*(20+30*(t+.9f)));
         shader.setUniformf("u_glow",glow*.35f);
         shader.setUniformf("u_clip",r.body==Body.SINK&&impacted?y+FLOOR-2:-1e5f);
@@ -237,15 +244,26 @@ public final class DeathActor implements Disposable {
         }else{
             for(Shard s:shards){
                 Group g=groups[s.group];float c=MathUtils.cosDeg(s.rot),sn=MathUtils.sinDeg(s.rot);
-                float sp=packed;if(s.free&&(r.body==Body.SHATTER||s.group==1&&r.head==Head.SHATTER)){float fa=1-smooth((t-s.detachAt-1.4f)/1.1f);if(fa<=0){vc+=0;continue;}sp=Color.toFloatBits(1f,1f,1f,alpha*fade*fa);}
+                float aa=alpha*fade;if(s.free&&(r.body==Body.SHATTER||s.group==1&&r.head==Head.SHATTER)){float fa=1-smooth((t-s.detachAt-1.6f)/1.2f);if(fa<=0)continue;aa*=fa;}
+                float sp=Color.toFloatBits(1f,1f,1f,aa);
+                float tumble=s.free?MathUtils.cos(s.ta):1,shade=s.free?(tumble>=0?1:.55f):1;tumble=Math.signum(tumble==0?1:tumble)*Math.max(.18f,Math.abs(tumble));
                 for(int k=0;k<3;k++){float lx=s.v[k*2],ly=s.v[k*2+1],wx,wy;
-                    if(s.free){float dx=lx-s.cx,dy=ly-s.cy;wx=s.cx+s.px+dx*c-dy*sn;wy=s.cy+s.py+dx*sn+dy*c;}
+                    if(s.free){float dx=(lx-s.cx)*tumble,dy=ly-s.cy;wx=s.cx+s.px+dx*c-dy*sn;wy=s.cy+s.py+dx*sn+dy*c;}
                     else{wx=tx(g,lx,ly);wy=ty(g,lx,ly);}
-                    int o=vc*5;verts[o]=x+wx;verts[o+1]=y+wy;verts[o+2]=sp;verts[o+3]=lx/W;verts[o+4]=ly/H;vc++;}
+                    int o=vc*5;verts[o]=x+wx;verts[o+1]=y+wy;verts[o+2]=s.free?Color.toFloatBits(k==0?shade:0,k==1?shade:0,k==2?shade:0,aa):sp;verts[o+3]=lx/W;verts[o+4]=ly/H;vc++;}
             }
             if(vc>0)batch.draw(fbo.getColorBufferTexture(),verts,0,vc*5,tris,0,vc);
         }
         batch.end();
+        // flames licking up the silhouette
+        float fire=fireLevel(t);
+        if(fire>0){batch.setShader(tex.fire);batch.setBlendFunction(GL20.GL_ONE,GL20.GL_ONE);batch.begin();
+            tex.fire.setUniformf("u_time",time);tex.fire.setUniformf("u_fire",fire);tex.fire.setUniformf("u_burn",burn*1.08f);tex.fire.setUniformf("u_dir",r.burnDir);
+            tex.fire.setUniformf("u_offY",impacted?groups[0].oy/H:0);
+            tex.fire.setUniformf("u_col",((r.fireColor>>>24)&0xff)/255f,((r.fireColor>>>16)&0xff)/255f,((r.fireColor>>>8)&0xff)/255f);
+            float top=H*1.18f,pf=Color.toFloatBits(1f,1f,1f,alpha);float[] q={0,0,W,0,W,top,0,0,W,top,0,top};float[] fv=new float[30];
+            for(int i=0;i<6;i++){int o=i*5;fv[o]=x+q[i*2];fv[o+1]=y+q[i*2+1];fv[o+2]=pf;fv[o+3]=q[i*2]/W;fv[o+4]=q[i*2+1]/H;}
+            batch.draw(fbo.getColorBufferTexture(),fv,0,30,new short[]{0,1,2,3,4,5},0,6);batch.end();batch.setShader(shader);}
         // the soul leaves the body
         if(!Float.isNaN(r.soulAt)&&t>r.soulAt){float k=MathUtils.clamp((t-r.soulAt)/1.6f,0,1);
             batch.begin();
@@ -254,7 +272,7 @@ public final class DeathActor implements Disposable {
             shader.setUniformf("u_tint",((r.soulColor>>>24)&0xff)/255f*1.6f,((r.soulColor>>>16)&0xff)/255f*1.6f,((r.soulColor>>>8)&0xff)/255f*1.6f);
             batch.setBlendFunction(GL20.GL_ONE,GL20.GL_ONE);
             float a=alpha*.55f*MathUtils.sin(k*MathUtils.PI)*fade;float lift=CHAR_H*.55f*smooth(k),sx=1+.15f*k;
-            float p=Color.toFloatBits(a,a,a,a);float[] q={0,0,W,0,W,H,0,0,W,H,0,H};
+            float p=Color.toFloatBits(1f,1f,1f,a);float[] q={0,0,W,0,W,H,0,0,W,H,0,H};
             float[] sv=new float[30];for(int i=0;i<6;i++){int o=i*5;sv[o]=x+W/2f+(q[i*2]-W/2f)*sx;sv[o+1]=y+lift+q[i*2+1];sv[o+2]=p;sv[o+3]=q[i*2]/W;sv[o+4]=q[i*2+1]/H;}
             batch.draw(fbo.getColorBufferTexture(),sv,0,30,new short[]{0,1,2,3,4,5},0,6);
             batch.end();
@@ -290,7 +308,7 @@ public final class DeathActor implements Disposable {
             switch(p.type){
                 case SPARK->{float len=Math.max(6,(float)Math.hypot(p.vx,p.vy)*.035f)*p.size;b.setColor(p.r,p.gc,p.b,a*(1-k));b.draw(tex.pixel,px-len/2,py-1.5f,len/2,1.5f,len,3,1,1,MathUtils.atan2(p.vy,p.vx)*MathUtils.radDeg);}
                 case EMBER->{float s=(5+5*p.seed)*p.size*(1-k*.5f);float fl=.6f+.4f*MathUtils.sin(p.age*25+p.seed*40);b.setColor(p.r,p.gc,p.b,a*(1-k)*fl);b.draw(tex.soft,px-s*2,py-s*2,s*4,s*4);}
-                case SMOKE->{float s=(60+120*k)*p.size;b.setColor(p.r,p.gc,p.b,a*.55f*MathUtils.sin(k*MathUtils.PI));b.draw(tex.soft,px-s/2,py-s/2,s/2,s/2,s,s,1,1,p.seed*360+p.age*20);}
+                case SMOKE->{float s=(70+150*k)*p.size;b.setColor(p.r,p.gc,p.b,a*.75f*MathUtils.sin(k*MathUtils.PI)*(1-k*.4f));b.draw(tex.smoke,px-s/2,py-s/2,s/2,s/2,s,s,1,1,p.seed*360+p.age*20);}
                 case GLOW->{float s=120*p.size*(1+k*.3f);b.setColor(p.r,p.gc,p.b,a*.8f*(1-k)*(.8f+.2f*MathUtils.sin(p.age*30)));b.draw(tex.soft,px-s/2,py-s/2,s,s);}
                 case WISP->{float s=(26+30*p.seed)*p.size;b.setColor(p.r,p.gc,p.b,a*.8f*MathUtils.sin(k*MathUtils.PI));b.draw(tex.soft,px-s/2,py-s/2,s,s);}
                 case RING->{float s=CHAR_H*p.size*(.3f+k);b.setColor(p.r,p.gc,p.b,a*(1-k));b.draw(tex.ring,px-s/2,py-s/2,s,s);}
@@ -304,9 +322,25 @@ public final class DeathActor implements Disposable {
                     float hx=px+MathUtils.cosDeg(ang)*len/2,hy=py+MathUtils.sinDeg(ang)*len/2;b.setColor(.85f,.05f,.08f,a*fadeTail(k));b.draw(tex.dot,hx-8,hy-8,16,16);}
                 case BAT->{float flap=MathUtils.sin(p.age*28+p.seed*20)*35,s=(20+14*p.seed)*p.size;b.setColor(p.r,p.gc,p.b,a*fadeTail(k));
                     b.draw(tex.pixel,px,py,0,2,s,5,1,1,180-20-flap);b.draw(tex.pixel,px,py,0,2,s,5,1,1,20+flap);b.draw(tex.dot,px-5,py-5,10,10);}
+                case STAIN->{float s=(10+8*p.seed)*p.size,fa=Math.min(1,(p.life-p.age)/.8f);b.setColor(p.r*.75f,p.gc*.75f,p.b*.75f,a*.85f*fa);b.draw(tex.dot,px-s,py-s*.18f,s*2,s*.36f);}
                 case FLY->{b.setColor(p.r,p.gc,p.b,a*MathUtils.sin(k*MathUtils.PI));b.draw(tex.dot,px-3,py-3,6,6);}
             }
         }
+        b.setColor(Color.WHITE);
+    }
+    /** Flame strength: grows in, roars, dies down. */
+    public float fireLevel(float t){if(Float.isNaN(r.fireAt))return 0;float k=(t-r.fireAt)/r.fireDur;if(k<=0||k>=1)return 0;
+        return r.fireAmount*smooth(k/.25f)*(1-smooth((k-.7f)/.3f))*(.85f+.15f*MathUtils.sin(time*17)*MathUtils.sin(time*7.3f));}
+    private void drawShadows(PolygonSpriteBatch b,DeathTextures tex,float x,float y,float t,float alpha){
+        float burn=Float.isNaN(r.burnAt)?0:MathUtils.clamp((t-r.burnAt)/r.burnDur,0,1);
+        float body=1-burn;if(impacted&&(r.body==Body.SHATTER||r.body==Body.COLLAPSE)&&t>r.bodyAt)body*=Math.max(0,1-(t-r.bodyAt)*3);
+        if(impacted&&r.body==Body.SINK)body*=1-MathUtils.clamp(-groups[0].oy/(CHAR_H*.6f),0,1);
+        if(impacted&&r.body==Body.LIFT)body*=1-MathUtils.clamp(groups[0].oy/(CHAR_H*.5f),0,.7f);
+        float bx=x+W/2f+(impacted?groups[0].ox:0);
+        if(impacted&&r.body==Body.TOPPLE)bx+=MathUtils.sinDeg(-groups[0].ang)*CHAR_H*.3f;
+        b.setColor(0,0,0,.7f*alpha*body);b.draw(tex.soft,bx-190,y+FLOOR-30,380,60);
+        if(impacted&&r.head==Head.FLY){Group g=groups[1];float hx=x+tx(g,g.pivotX,g.pivotY),hh=ty(g,g.pivotX,g.pivotY)-FLOOR;float k=MathUtils.clamp(1-hh/500,0,1);
+            b.setColor(0,0,0,.6f*alpha*k);float w=90+60*k;b.draw(tex.soft,hx-w/2,y+FLOOR-14,w,28);}
         b.setColor(Color.WHITE);
     }
     private static float fadeTail(float k){return k<.75f?1:1-(k-.75f)/.25f;}
