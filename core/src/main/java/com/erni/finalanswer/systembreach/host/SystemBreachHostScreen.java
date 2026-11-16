@@ -82,7 +82,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         for(int i=0;i<n;i++)virus.shapes(paint,shapes,assets,slots.get(i),slotX(i,n),time);
         for(int i=0;i<n;i++)marks.shapes(shapes,slots.get(i),slotX(i,n));
                 fx.scanlines(shapes,TIMER.x+20,TIMER.y+20,TIMER.width-40,TIMER.height-40,.12f,time);fx.scanlines(shapes,LOG.x+20,LOG.y+20,LOG.width-40,LOG.height-40,.12f,time+2);
-        fx.attackLinks(shapes,model.attacks(),model,n,time);hfx.network(shapes,model,time);
+        fx.attackLinks(shapes,model.attacks(),model,n,time);hfx.network(shapes,model,time);hfx.surgeShape(paint,shapes,model,time);
         timer.shapes(paint,model,time);title.shapes(paint,shapes,time);log.shapes(paint,model);board.shapes(paint,shapes,model);toastShape();
         shapes.end();
 

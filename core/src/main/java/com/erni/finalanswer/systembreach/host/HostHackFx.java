@@ -47,15 +47,21 @@ final class HostHackFx {
     private static final String[][] STAMP={{"ДОСТУП РАЗРЕШЁН","ACCESS GRANTED"},{"ДОСТУП ЗАПРЕЩЁН","ACCESS DENIED"},{"ВИРУС ВНЕДРЁН","VIRUS DEPLOYED"},{"КЛЮЧ ПОЛУЧЕН","KEY ACQUIRED"},{"ЛОВУШКА!","HONEYPOT!"}};
     private void stamp(int kind){stampKind=kind;stampAge=0;}
     /** Big centre stamp after a hack: the letters decode out of noise, RGB-split, shake, then dissolve. */
+    private float stampIn(){return stampAge<.18f?stampAge/.18f:stampAge>1.45f?Math.max(0,1-(stampAge-1.45f)/.35f):1;}
+    private float[] stampColor(){return switch(stampKind){case 1->new float[]{.35f,.75f,1};case 2->new float[]{1,.22f,.18f};case 3->new float[]{1,.8f,.3f};case 4->new float[]{1,.55f,.12f};default->new float[]{.35f,1,.6f};};}
+    /** Cinematic band behind the stamp (filled shapes, under the text). */
+    void stampBand(ShapeRenderer r){if(stampKind<0||stampAge>1.8f)return;float k=stampIn(),e=1-(1-k)*(1-k),h=96*e,y=STAMP_Y-h/2;float[] c3=stampColor();
+        r.setColor(0,0,0,.72f*k);r.rect(0,y,W,h);r.setColor(c3[0],c3[1],c3[2],.85f*k);float lw=W*e;r.rect(W/2-lw/2,y+h-2,lw,2);r.rect(W/2-lw/2,y,lw,2);
+        float sw=(stampAge*1.4f)%1.2f;if(sw<1){r.setColor(c3[0],c3[1],c3[2],.10f*k);r.rect(W*sw-60,y+2,120,h-4);}}
+    static final float STAMP_Y=610;
     void stamp(SpriteBatch b,BitmapFont f,boolean ru,float time){
         if(stampKind<0||stampAge>1.9f)return;String s=STAMP[stampKind][ru?0:1];int n=Math.min(s.length(),buf.length);
         float dec=stampAge/.55f;for(int i=0;i<n;i++){char ch=s.charAt(i);buf[i]=ch==' '||i<dec*n?ch:"#$%&@01ABCDEF".charAt(MathUtils.random(12));}
-        String txt=new String(buf,0,n);float a=stampAge<1.5f?1:1-(stampAge-1.5f)/.4f,sh=Math.max(0,.3f-stampAge)*40;
-        float sx=MathUtils.random(-sh,sh),sy=MathUtils.random(-sh,sh),y=H*.62f;
-        float cr=stampKind==4?1:stampKind==1?.3f:stampKind==3?1:stampKind==2?1:.3f,cg=stampKind==4?.55f:stampKind==1?.7f:stampKind==3?.8f:stampKind==2?.2f:1,cb=stampKind==4?.1f:stampKind==1?1:stampKind==3?.3f:stampKind==2?.15f:.55f;
-        float split=4+Math.max(0,.5f-stampAge)*30;
-        f.setColor(1,0,.1f,.55f*a);f.draw(b,txt,sx-split,y+sy,W,1,false);
-        f.setColor(0,.9f,1,.55f*a);f.draw(b,txt,sx+split,y+sy,W,1,false);
+        String txt=new String(buf,0,n);float a=stampIn(),sx=0,sy=0,y=STAMP_Y+f.getCapHeight()/2;float[] c3=stampColor();
+        float cr=c3[0],cg=c3[1],cb=c3[2];
+        float split=Math.max(0,.35f-stampAge)*40;
+        f.setColor(1,0,.1f,.45f*a*(split>0?1:0));f.draw(b,txt,sx-split,y+sy,W,1,false);
+        f.setColor(0,.9f,1,.45f*a*(split>0?1:0));f.draw(b,txt,sx+split,y+sy,W,1,false);
         f.setColor(cr,cg,cb,a);f.draw(b,txt,sx,y+sy,W,1,false);f.setColor(1,1,1,1);
     }
     private void trigger(float r,float g,float b,float len){burstR=r;burstG=g;burstB=b;burstLen=len;burst=len;burstSeed=MathUtils.random(9999);}
@@ -87,7 +93,7 @@ final class HostHackFx {
     void overlay(ShapeRenderer r,float time){
         r.setColor(0,0,0,.07f);for(float y=0;y<H;y+=4)r.rect(0,y,W,1.4f);
         float band=H-((time*90)%(H+200))+100;r.setColor(.6f,1,.75f,.025f);r.rect(0,band,W,70);r.setColor(1,1,1,.02f);r.rect(0,band+30,W,6);
-        float k=k();if(k<=0)return;
+        stampBand(r);float k=k();if(k<=0)return;
         var rnd=new java.util.Random(burstSeed+(int)(time*30));
         for(int i=0;i<9;i++){float y=rnd.nextFloat()*H,h=6+rnd.nextFloat()*60*k,off=(rnd.nextFloat()-.5f)*140*k;
             r.setColor(burstR,burstG,burstB,.14f*k);r.rect(off,y,W,h);
@@ -95,38 +101,37 @@ final class HostHackFx {
             r.setColor(.1f,.9f,1,.10f*k);r.rect(off-12*k,y+h*.6f,W*rnd.nextFloat(),Math.max(2,h*.3f));}
         for(int i=0;i<40;i++){r.setColor(burstR,burstG,burstB,.35f*k*rnd.nextFloat());r.rect(rnd.nextFloat()*W,rnd.nextFloat()*H,4+rnd.nextFloat()*40,2+rnd.nextFloat()*5);}
     }
-    static final float NODE_Y=742,HUB_Y=806;
-    private float bez(float a,float b,float c2,float t){float u=1-t;return u*u*a+2*u*t*c2+t*t*b;}
-    /** NETWORK MAP: every laptop is a node over its owner's head, wired to the central server; packets flow along the
-     *  links, DDoS floods a link red, attacks arc node-to-node, a system surge lights the whole net. */
+    static final float BUS_Y=214;
+    /** NETWORK MAP: a fibre bus under the line-up; each laptop is a node on it beneath its podium. Packets stream
+     *  between neighbours, a DDoS floods the target's node red, a system surge lights the whole bus. */
     void network(ShapeRenderer r,SystemBreachHostViewModel vm,float time){
         var slots=vm.slots();int n=slots.size();if(n==0)return;String surge=vm.surge();
-        float hr=surge.equals("DOUBLE")?1:surge.isEmpty()?.3f:1,hg=surge.equals("DOUBLE")?.8f:surge.isEmpty()?1:.2f,hb=surge.equals("DOUBLE")?.3f:surge.isEmpty()?.6f:.15f;
-        float hx=W/2;
-        for(int i=0;i<n;i++){var sl=slots.get(i);float x=slotX(i,n);boolean dd=vm.ddosed(sl.id);float lr=dd?1:hr,lg=dd?.15f:hg,lb=dd?.1f:hb;
-            float cx=(x+hx)/2,cy=(NODE_Y+HUB_Y)/2+18,px=x,py=NODE_Y;
-            for(int k=1;k<=16;k++){float t=k/16f,qx=bez(x,hx,cx,t),qy=bez(NODE_Y,HUB_Y,cy,t);r.setColor(lr,lg,lb,.16f);r.rectLine(px,py,qx,qy,1.6f);px=qx;py=qy;}
-            int packets=dd?9:3;float sp=dd?1.8f:.45f;
-            for(int k=0;k<packets;k++){float t=((time*sp+k/(float)packets+i*.13f)%1f);if(!dd&&(k&1)==1)t=1-t;float qx=bez(x,hx,cx,t),qy=bez(NODE_Y,HUB_Y,cy,t);
-                r.setColor(lr,lg,lb,.85f);r.rect(qx-2.5f,qy-2.5f,5,5);}
-            float sz=7+5*Math.min(1,sl.ap/400f);r.setColor(0,0,0,.6f);r.circle(x,NODE_Y,sz+4,18);
-            if(sl.leader){r.setColor(1,.78f,.3f,1);}else r.setColor(lr,lg,lb,1);r.circle(x,NODE_Y,sz,18);
-            r.setColor(0,0,0,.8f);r.circle(x,NODE_Y,sz*.45f,12);}
-        for(var at:vm.attacks()){int a=vm.seat(at.attackerId()),b=vm.seat(at.targetId());if(a<0||b<0)continue;float ax=slotX(a,n),bx=slotX(b,n),cx=(ax+bx)/2,cy=NODE_Y+40+Math.abs(bx-ax)*.08f,px=ax,py=NODE_Y;
-            for(int k=1;k<=20;k++){float t=k/20f,qx=bez(ax,bx,cx,t),qy=bez(NODE_Y,NODE_Y,cy,t);r.setColor(1,.2f,.15f,.7f);r.rectLine(px,py,qx,qy,2.4f);px=qx;py=qy;}}
-        float pulse=.6f+.4f*MathUtils.sin(time*(surge.isEmpty()?2:7));
-        r.setColor(0,0,0,.7f);r.circle(hx,HUB_Y,20,24);r.setColor(hr,hg,hb,pulse);r.circle(hx,HUB_Y,16,24);r.setColor(0,0,0,.85f);r.circle(hx,HUB_Y,9,16);r.setColor(hr,hg,hb,1);r.circle(hx,HUB_Y,4,10);
+        float br=surge.equals("DOUBLE")?1:surge.isEmpty()?.35f:1,bg=surge.equals("DOUBLE")?.78f:surge.isEmpty()?1:.25f,bb=surge.equals("DOUBLE")?.3f:surge.isEmpty()?.62f:.2f;
+        float x0=slotX(0,n)-PANEL_W/2,x1=slotX(n-1,n)+PANEL_W/2;
+        r.setColor(0,0,0,.55f);r.rect(x0-6,BUS_Y-5,x1-x0+12,10);
+        r.setColor(br,bg,bb,surge.isEmpty()?.35f:.6f+.25f*MathUtils.sin(time*6));r.rect(x0,BUS_Y-1,x1-x0,2);
+        for(int k=0;k<26;k++){float t=(time*.09f+k/26f)%1f,x=x0+(x1-x0)*((k&1)==0?t:1-t);r.setColor(br,bg,bb,.9f);r.rect(x-6,BUS_Y-1,12,2);}
+        for(int i=0;i<n;i++){var sl=slots.get(i);float x=slotX(i,n);boolean dd=vm.ddosed(sl.id);
+            r.setColor(br,bg,bb,.4f);r.rect(x-.75f,BUS_Y,1.5f,PANEL_Y-BUS_Y-44);
+            if(dd)for(int k=0;k<8;k++){float t=(time*2.2f+k/8f)%1f;float side=(k&1)==0?-1:1,xx=x+side*(1-t)*SLOT_PITCH*.5f;r.setColor(1,.15f,.1f,.95f);r.rect(xx-4,BUS_Y-2,8,4);}
+            float c1=dd?1:sl.leader?1:br,c2=dd?.2f:sl.leader?.78f:bg,c3=dd?.15f:sl.leader?.3f:bb;
+            r.setColor(0,0,0,.85f);r.rect(x-11,BUS_Y-11,22,22);r.setColor(c1,c2,c3,1);r.rect(x-8,BUS_Y-8,16,16);r.setColor(0,0,0,.9f);r.rect(x-5,BUS_Y-5,10,10);
+            float blink=MathUtils.sin(time*(dd?20:3)+i*1.7f)>0?1:.25f;r.setColor(c1,c2,c3,blink);r.rect(x-2,BUS_Y-2,4,4);}
     }
     void networkGlow(SpriteBatch b,SystemBreachHostAssets as,SystemBreachHostViewModel vm,float time){
         var slots=vm.slots();int n=slots.size();if(n==0)return;String surge=vm.surge();
-        for(int i=0;i<n;i++){boolean dd=vm.ddosed(slots.get(i).id);float x=slotX(i,n);if(dd)b.setColor(1,.15f,.1f,.55f+.25f*MathUtils.sin(time*14));else b.setColor(.3f,1,.6f,.22f);b.draw(as.glow,x-34,NODE_Y-34,68,68);}
-        float a=surge.isEmpty()?.25f:.6f+.3f*MathUtils.sin(time*7);if(surge.equals("DOUBLE"))b.setColor(1,.8f,.3f,a);else if(surge.isEmpty())b.setColor(.3f,1,.6f,a);else b.setColor(1,.2f,.15f,a);
-        b.draw(as.glow,W/2-80,HUB_Y-80,160,160);b.setColor(1,1,1,1);
+        for(int i=0;i<n;i++){boolean dd=vm.ddosed(slots.get(i).id);float x=slotX(i,n);if(dd)b.setColor(1,.15f,.1f,.5f+.25f*MathUtils.sin(time*14));else b.setColor(.3f,1,.6f,.14f);b.draw(as.glow,x-40,BUS_Y-40,80,80);}
+        if(!surge.isEmpty()){float x0=slotX(0,n)-PANEL_W/2,x1=slotX(n-1,n)+PANEL_W/2,a=.25f+.12f*MathUtils.sin(time*6);if(surge.equals("DOUBLE"))b.setColor(1,.8f,.3f,a);else b.setColor(1,.2f,.15f,a);b.draw(as.glow,x0,BUS_Y-30,x1-x0,60);}
+        b.setColor(1,1,1,1);
     }
-    /** Banner under the title while a system surge runs. */
+    /** Surge plate under the timer: dark glass, coloured rim, countdown. */
+    void surgeShape(SbPaint paint,ShapeRenderer r,SystemBreachHostViewModel vm,float time){String s=vm.surge();if(s.isEmpty())return;
+        float x=TIMER.x+10,w=TIMER.width-20,y=TIMER.y-74;Color c2=s.equals("DOUBLE")?SbPaint.GOLD:new Color(1,.28f,.22f,1);
+        r.setColor(0,0,0,.75f);r.rect(x-4,y-4,w+8,62);paint.plate(x,y,w,54,12,new Color(c2.r*.25f,c2.g*.25f,c2.b*.25f,.97f),new Color(.03f,.03f,.03f,.97f));paint.outline(x+4,y+4,w-8,46,10,2f,c2);
+        float pr=vm.surgeLeftMs()/(float)20_000;r.setColor(c2.r,c2.g,c2.b,.9f);r.rect(x+12,y+6,(w-24)*pr,3);}
     void surgeText(SpriteBatch b,BitmapFont f,SystemBreachHostViewModel vm,float time){String s=vm.surge();if(s.isEmpty())return;
-        String t=(vm.ru()?(s.equals("DOUBLE")?"СБОЙ СИСТЕМЫ · ОЧКИ ×2 · ":"СБОЙ СИСТЕМЫ · ФАЕРВОЛЫ ОТКЛЮЧЕНЫ · "):(s.equals("DOUBLE")?"SYSTEM SURGE · DOUBLE POINTS · ":"SYSTEM SURGE · FIREWALLS DOWN · "))+(vm.surgeLeftMs()/1000+1);
-        float a=.75f+.25f*MathUtils.sin(time*8);if(s.equals("DOUBLE"))f.setColor(1,.85f,.35f,a);else f.setColor(1,.3f,.25f,a);f.draw(b,t,0,HUB_Y+44,W,1,false);f.setColor(1,1,1,1);}
+        String t=(vm.ru()?(s.equals("DOUBLE")?"СБОЙ · ОЧКИ ×2":"СБОЙ · ФАЕРВОЛЫ ВЫКЛ"):(s.equals("DOUBLE")?"SURGE · POINTS ×2":"SURGE · FIREWALLS OFF"))+"  "+(vm.surgeLeftMs()/1000+1);
+        float a=.85f+.15f*MathUtils.sin(time*8);if(s.equals("DOUBLE"))f.setColor(1,.88f,.45f,a);else f.setColor(1,.45f,.38f,a);f.draw(b,t,TIMER.x,TIMER.y-74+38,TIMER.width,1,false);f.setColor(1,1,1,1);}
     /** Additive flash of the burst (draw with additive blending). */
     void flash(SpriteBatch b,SystemBreachHostAssets as){float k=k();if(k<=0)return;float a=k*k;
         b.setColor(burstR,burstG,burstB,.25f*a);b.draw(as.glow,-300,-300,W+600,H+600);b.setColor(1,1,1,1);}

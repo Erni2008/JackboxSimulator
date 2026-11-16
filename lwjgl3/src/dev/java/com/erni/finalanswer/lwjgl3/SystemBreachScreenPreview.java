@@ -41,7 +41,7 @@ public final class SystemBreachScreenPreview {
                     case 2->{int p=(k-1)%count,q=((k-1)*3+1)%count;if(q==p)q=(q+1)%count;int n=Math.min(20,ap[q]);ap[q]-=n;ap[p]+=n;compromised[q]=true;event("ATTACK_SUCCEEDED",p,q,n);}
                     case 3->{int q=((k-2)*3+1)%count,p=(k-2)%count;if(q==p)q=(q+1)%count;recovering[q]=true;event("RECOVERY_START",-1,q,0);}
                     case 4->{if(fw[a]<3&&ap[a]>=30){ap[a]-=30;fw[a]++;event("FIREWALL_UPGRADED",-1,a,fw[a]);}else{ap[a]+=10;event("CHALLENGE_SOLVED",-1,a,10);}}
-                    case 5->{event("ATTACK_STARTED",a,t,0);}
+                    case 5->{event("ATTACK_STARTED",a,t,0);if(k%2==1)event("DDOS_STARTED",a,t,10);else event("HONEYPOT_TRIGGERED",a,t,25);}
                     default->{for(int i=0;i<count;i++)if(recovering[i]){recovering[i]=false;compromised[i]=false;event("RECOVERY_SUCCEEDED",-1,i,0);break;}
                         int p=(k-1)%count,q=((k-1)*3+1)%count;if(q==p)q=(q+1)%count;ap[p]=Math.max(0,ap[p]-5);event("ATTACK_FAILED",p,q,0);}
                 }
@@ -55,6 +55,8 @@ public final class SystemBreachScreenPreview {
                     p.addProperty("compromised",compromised[i]);p.addProperty("recovering",recovering[i]);p.addProperty("disconnected",count==8&&i==6);p.addProperty("rank",++rank);rows.add(p);}
                 if(!phase.equals("ACTIVE"))sb.addProperty("winnerId","p"+order[0]);
                 sb.add("players",rows);JsonObject mult=new JsonObject();for(int i=0;i<count;i++)mult.addProperty("p"+i,new double[]{1,1.3,1.5,1.8,2,2.5}[(i*5+(int)((now-start)/7000))%6]);sb.add("multipliers",mult);sb.addProperty("roundMultiplier",1+0.1*((now-start)/6000));JsonArray ev=new JsonArray();for(var e:events)ev.add(e);sb.add("events",ev);{String[] vt={"SCREEN_GLITCH","POPUP_STORM","LOCKED_ANSWERS","NUMBER_HUNT","GHOST_BUTTONS","SHUFFLE_ATTACK","MAGNETIC_BUTTONS"};JsonObject inf=new JsonObject();for(int i=0;i<count;i+=2)inf.addProperty("p"+i,vt[(i/2)%vt.length]);sb.add("sabotage",inf);}
+                {long el=now-start;JsonObject dd=new JsonObject();if(el>2000&&el<12000)dd.addProperty("p2",now+3000);sb.add("ddos",dd);
+                 JsonObject su=new JsonObject();if(el>4000&&el<24000){su.addProperty("kind",el<14000?"DOUBLE":"FIREWALL_DOWN");su.addProperty("until",start+(el<14000?14000:24000));}sb.add("surge",su);}
                 JsonObject root=new JsonObject();root.add("systemBreach",sb);JsonArray players=new JsonArray();
                 for(int i=0;i<count;i++){JsonObject p=new JsonObject();p.addProperty("id","p"+i);p.addProperty("name",names[i]);p.addProperty("characterId",chars[i]);players.add(p);}
                 root.add("players",players);return root;
