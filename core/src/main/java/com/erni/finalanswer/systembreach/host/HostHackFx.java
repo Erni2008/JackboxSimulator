@@ -31,16 +31,33 @@ final class HostHackFx {
     /** A big event: start a glitch burst tinted by its kind. */
     void cue(String name){
         switch(name){
-            case "hack_success","sabotage"->trigger(1,.15f,.12f,.6f);
+            case "hack_success"->{trigger(1,.15f,.12f,.6f);stamp(0);}
+            case "sabotage"->{trigger(1,.15f,.12f,.6f);stamp(2);}
             case "hack_start"->trigger(1,.35f,.2f,.35f);
-            case "hack_fail","firewall"->trigger(.3f,.7f,1,.35f);
+            case "hack_fail"->{trigger(.3f,.7f,1,.35f);stamp(1);}
+            case "firewall"->trigger(.3f,.7f,1,.35f);
             case "key","multiplier","clean"->trigger(.35f,1,.55f,.3f);
             case "complete"->trigger(1,.8f,.3f,.7f);
             default->{}
         }
     }
+    private int stampKind=-1;private float stampAge=99;private final char[] buf=new char[32];
+    private static final String[][] STAMP={{"ДОСТУП РАЗРЕШЁН","ACCESS GRANTED"},{"ДОСТУП ЗАПРЕЩЁН","ACCESS DENIED"},{"ВИРУС ВНЕДРЁН","VIRUS DEPLOYED"},{"КЛЮЧ ПОЛУЧЕН","KEY ACQUIRED"}};
+    private void stamp(int kind){stampKind=kind;stampAge=0;}
+    /** Big centre stamp after a hack: the letters decode out of noise, RGB-split, shake, then dissolve. */
+    void stamp(SpriteBatch b,BitmapFont f,boolean ru,float time){
+        if(stampKind<0||stampAge>1.9f)return;String s=STAMP[stampKind][ru?0:1];int n=Math.min(s.length(),buf.length);
+        float dec=stampAge/.55f;for(int i=0;i<n;i++){char ch=s.charAt(i);buf[i]=ch==' '||i<dec*n?ch:"#$%&@01ABCDEF".charAt(MathUtils.random(12));}
+        String txt=new String(buf,0,n);float a=stampAge<1.5f?1:1-(stampAge-1.5f)/.4f,sh=Math.max(0,.3f-stampAge)*40;
+        float sx=MathUtils.random(-sh,sh),sy=MathUtils.random(-sh,sh),y=H*.62f;
+        float cr=stampKind==1?.3f:stampKind==3?1:stampKind==2?1:.3f,cg=stampKind==1?.7f:stampKind==3?.8f:stampKind==2?.2f:1,cb=stampKind==1?1:stampKind==3?.3f:stampKind==2?.15f:.55f;
+        float split=4+Math.max(0,.5f-stampAge)*30;
+        f.setColor(1,0,.1f,.55f*a);f.draw(b,txt,sx-split,y+sy,W,1,false);
+        f.setColor(0,.9f,1,.55f*a);f.draw(b,txt,sx+split,y+sy,W,1,false);
+        f.setColor(cr,cg,cb,a);f.draw(b,txt,sx,y+sy,W,1,false);f.setColor(1,1,1,1);
+    }
     private void trigger(float r,float g,float b,float len){burstR=r;burstG=g;burstB=b;burstLen=len;burst=len;burstSeed=MathUtils.random(9999);}
-    void update(float dt){burst=Math.max(0,burst-dt);for(int i=0;i<COLS;i++){colY[i]-=colSpeed[i]*dt;if(colY[i]<-TRAIL*22)colY[i]=H+MathUtils.random(200f);}}
+    void update(float dt){stampAge+=dt;burst=Math.max(0,burst-dt);for(int i=0;i<COLS;i++){colY[i]-=colSpeed[i]*dt;if(colY[i]<-TRAIL*22)colY[i]=H+MathUtils.random(200f);}}
     private float k(){return burst<=0?0:burst/burstLen;}
 
     /** Code rain behind the stage (draw with normal blending, before the characters). */

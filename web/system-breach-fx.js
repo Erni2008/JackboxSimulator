@@ -25,7 +25,11 @@
       s.style.setProperty('--dx',((Math.random()-.5)*28).toFixed(1)+'%');s.style.animationDelay=(Math.random()*.12).toFixed(2)+'s';glitch.append(s);}
     clearTimeout(burst.t);burst.t=setTimeout(()=>{glitch.className='sbh-glitch';glitch.replaceChildren();},650);
   }
-  window.SBFX={burst};
+  /** Letters fall out of noise into the real text (verdicts, headers). */
+  function decode(node,text){if(!node)return;const N='#$%&@01ABCDEF<>';let f=0;const total=12;
+    const step=()=>{if(!node.isConnected)return;f++;const k=f/total;let o='';for(let i=0;i<text.length;i++){const c=text[i];o+=c===' '||i<k*text.length?c:N[Math.random()*N.length|0];}node.textContent=o;if(f<total)requestAnimationFrame(step);else node.textContent=text;};
+    step();}
+  window.SBFX={burst,decode};
   const start=()=>{mount();if(!timer)timer=setInterval(tick,900);};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })();

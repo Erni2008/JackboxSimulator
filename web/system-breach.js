@@ -82,7 +82,7 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
   function answer(kind,type,fields,button){const st=getState()?.systemBreach,ap=st?.players.find(p=>p.playerId===getState().selfId)?.accessPoints??0,cid=st?.self?.challenge?.challengeId;const id=act(type,fields);if(id)verdict={id,kind,button,ok:null,until:now()+1700,sent:now(),ap,cid};}
   function showVerdict(ok,text){
     sfx(verdict.kind==='hack'?(ok?'hackOk':'hackFail'):(ok?'cleared':'wrong'));const v=verdict;v.ok=ok;v.until=now()+1500;v.button?.classList.add(ok?'right':'wrong');navigator.vibrate?.(ok?[30,40,30]:[90]);
-    const st=mk('div','sbx-verdict '+(ok?'ok':'bad'),null,body());mk('b','mi',ok?'\ue5ca':'\ue5cd',st);mk('span',null,text,st);flash(ok?'flash-ok':'flash-bad');
+    const st=mk('div','sbx-verdict '+(ok?'ok':'bad'),null,body());mk('b','mi',ok?'\ue5ca':'\ue5cd',st);{const sp=mk('span',null,text,st);try{window.SBFX?.decode(sp,text);}catch(e){}}flash(ok?'flash-ok':'flash-bad');
   }
   /** Right answer: the chosen key lights up and "+N AP" floats up from it and dissolves — no modal. */
   function scorePop(ok,amt){
