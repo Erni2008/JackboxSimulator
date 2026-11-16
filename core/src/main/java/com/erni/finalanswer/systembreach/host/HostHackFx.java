@@ -132,6 +132,43 @@ final class HostHackFx {
     void surgeText(SpriteBatch b,BitmapFont f,SystemBreachHostViewModel vm,float time){String s=vm.surge();if(s.isEmpty())return;
         String t=(vm.ru()?(s.equals("DOUBLE")?"СБОЙ · ОЧКИ ×2":"СБОЙ · ФАЕРВОЛЫ ВЫКЛ"):(s.equals("DOUBLE")?"SURGE · POINTS ×2":"SURGE · FIREWALLS OFF"))+"  "+(vm.surgeLeftMs()/1000+1);
         float a=.85f+.15f*MathUtils.sin(time*8);if(s.equals("DOUBLE"))f.setColor(1,.88f,.45f,a);else f.setColor(1,.45f,.38f,a);f.draw(b,t,TIMER.x,TIMER.y-74+38,TIMER.width,1,false);f.setColor(1,1,1,1);}
+    /** DDoS made unmistakable: a torrent of packets from the attacker's podium into the target's, the target's screen
+     *  drowned in red interference, shock rings, and a live traffic readout with an overload bar. */
+    private float bez(float a,float b,float c2,float t){float u=1-t;return u*u*a+2*u*t*c2+t*t*b;}
+    void ddosShapes(ShapeRenderer r,SystemBreachHostViewModel vm,float time){
+        var slots=vm.slots();int n=slots.size();
+        for(int i=0;i<n;i++){var sl=slots.get(i);if(!vm.ddosed(sl.id))continue;float tx=slotX(i,n),top=panelTop();
+            int a=vm.seat(vm.ddosAttacker(sl.id));
+            if(a>=0&&a!=i){float ax=slotX(a,n),cx=(ax+tx)/2,cy=top+150+Math.abs(tx-ax)*.12f;
+                for(int k=0;k<70;k++){float ph=(k*0.618f)%1f,t=(time*1.6f+ph)%1f,jit=MathUtils.sin(k*12.9f+time*9)*10*(1-Math.abs(t-.5f)*2);
+                    float x=bez(ax,tx,cx,t),y=bez(top,top+30,cy,t)+jit;float sz=k%5==0?7:4;
+                    r.setColor(1,k%7==0?.9f:.12f,k%7==0?.8f:.08f,.9f);r.rect(x-sz/2,y-sz/2,sz*1.8f,sz);}
+                float px=ax,py=top;for(int k=1;k<=30;k++){float t=k/30f,x=bez(ax,tx,cx,t),y=bez(top,top+30,cy,t);r.setColor(1,.1f,.08f,.22f);r.rectLine(px,py,x,y,16);r.setColor(1,.35f,.3f,.5f);r.rectLine(px,py,x,y,3);px=x;py=y;}}
+            float x0=tx-PANEL_W/2,y0=PANEL_Y;var rnd=new java.util.Random((long)(time*24)+i*31);
+            r.setColor(.5f,0,0,.38f);r.rect(x0,y0,PANEL_W,PANEL_H);
+            for(int k=0;k<10;k++){float y=y0+rnd.nextFloat()*PANEL_H,h=2+rnd.nextFloat()*10,off=(rnd.nextFloat()-.5f)*24;r.setColor(1,.15f,.1f,.15f+rnd.nextFloat()*.2f);r.rect(x0+Math.max(0,off),y,PANEL_W-Math.abs(off),h*.5f);}
+            float fl=MathUtils.sin(time*22)>0?1:.35f;r.setColor(1,.15f,.1f,fl);float bw=4;r.rect(x0-bw,y0-bw,PANEL_W+bw*2,bw);r.rect(x0-bw,y0+PANEL_H,PANEL_W+bw*2,bw);r.rect(x0-bw,y0,bw,PANEL_H);r.rect(x0+PANEL_W,y0,bw,PANEL_H);
+            for(int k=0;k<3;k++){float t=(time*1.3f+k/3f)%1f,rad=40+t*170;r.setColor(1,.2f,.15f,.5f*(1-t));for(int s=0;s<40;s++){float a1=s/40f*MathUtils.PI2,a2=(s+1)/40f*MathUtils.PI2;r.rectLine(tx+MathUtils.cos(a1)*rad,y0+PANEL_H/2+MathUtils.sin(a1)*rad*.55f,tx+MathUtils.cos(a2)*rad,y0+PANEL_H/2+MathUtils.sin(a2)*rad*.55f,2.5f);}}
+            float by=PANEL_Y+14,bwid=150;float load=.82f+.16f*MathUtils.sin(time*7+i);
+            r.setColor(0,0,0,.88f);r.rect(x0+6,PANEL_Y+PANEL_H*.28f,PANEL_W-12,PANEL_H*.5f);r.setColor(1,.2f,.15f,1);r.rect(x0+6,PANEL_Y+PANEL_H*.78f,PANEL_W-12,2);r.rect(x0+6,PANEL_Y+PANEL_H*.28f,PANEL_W-12,2);
+            r.setColor(.25f,.03f,.02f,1);r.rect(tx-bwid/2,by+2,bwid,9);r.setColor(1,.25f,.15f,1);r.rect(tx-bwid/2,by+2,bwid*load,9);
+            float tl=vm.ddosLeft(sl.id)/10f;r.setColor(1,.8f,.7f,.7f);r.rect(tx-bwid/2,by-3,bwid*Math.min(1,tl),2);}
+    }
+    void ddosGlow(SpriteBatch b,SystemBreachHostAssets as,SystemBreachHostViewModel vm,float time){
+        var slots=vm.slots();int n=slots.size();
+        for(int i=0;i<n;i++){if(!vm.ddosed(slots.get(i).id))continue;float tx=slotX(i,n);float p=.55f+.35f*MathUtils.sin(time*16);
+            b.setColor(1,.1f,.06f,.5f*p);b.draw(as.glow,tx-230,PANEL_Y-120,460,PANEL_H+360);b.setColor(1,.3f,.2f,.35f);b.draw(as.glow,tx-90,panelTop()-60,180,120);}
+        b.setColor(1,1,1,1);
+    }
+    private final StringBuilder sbuf=new StringBuilder();
+    void ddosText(SpriteBatch b,BitmapFont big,BitmapFont small,SystemBreachHostViewModel vm,float time){
+        var slots=vm.slots();int n=slots.size();
+        for(int i=0;i<n;i++){var sl=slots.get(i);if(!vm.ddosed(sl.id))continue;float tx=slotX(i,n),by=PANEL_Y+PANEL_H*.36f;
+            float j=MathUtils.sin(time*40)>0?2:-2;big.setColor(1,.1f,.1f,.5f);big.draw(b,"DDoS",tx-200+j+3,by+80,400,1,false);big.setColor(1,.92f,.9f,1);big.draw(b,"DDoS",tx-200+j,by+80,400,1,false);
+            sbuf.setLength(0);int gb=(int)(80+40*MathUtils.sin(time*5+i)+MathUtils.random(9));sbuf.append("▼ ").append(gb/10).append('.').append(gb%10).append(" Gb/s  ").append((int)Math.ceil(vm.ddosLeft(sl.id))).append(vm.ru()?" с":" s");
+            small.setColor(1,.65f,.55f,1);small.draw(b,sbuf,tx-200,by+20,400,1,false);}
+        big.setColor(1,1,1,1);small.setColor(1,1,1,1);
+    }
     /** Additive flash of the burst (draw with additive blending). */
     void flash(SpriteBatch b,SystemBreachHostAssets as){float k=k();if(k<=0)return;float a=k*k;
         b.setColor(burstR,burstG,burstB,.25f*a);b.draw(as.glow,-300,-300,W+600,H+600);b.setColor(1,1,1,1);}

@@ -41,7 +41,7 @@ public final class SystemBreachScreenPreview {
                     case 2->{int p=(k-1)%count,q=((k-1)*3+1)%count;if(q==p)q=(q+1)%count;int n=Math.min(20,ap[q]);ap[q]-=n;ap[p]+=n;compromised[q]=true;event("ATTACK_SUCCEEDED",p,q,n);}
                     case 3->{int q=((k-2)*3+1)%count,p=(k-2)%count;if(q==p)q=(q+1)%count;recovering[q]=true;event("RECOVERY_START",-1,q,0);}
                     case 4->{if(fw[a]<3&&ap[a]>=30){ap[a]-=30;fw[a]++;event("FIREWALL_UPGRADED",-1,a,fw[a]);}else{ap[a]+=10;event("CHALLENGE_SOLVED",-1,a,10);}}
-                    case 5->{event("ATTACK_STARTED",a,t,0);if(k%2==1)event("DDOS_STARTED",a,t,10);else event("HONEYPOT_TRIGGERED",a,t,25);}
+                    case 5->{event("ATTACK_STARTED",a,t,0);if(k%2==1&&a!=2)event("DDOS_STARTED",a,2,10);else event("HONEYPOT_TRIGGERED",a,t,25);}
                     default->{for(int i=0;i<count;i++)if(recovering[i]){recovering[i]=false;compromised[i]=false;event("RECOVERY_SUCCEEDED",-1,i,0);break;}
                         int p=(k-1)%count,q=((k-1)*3+1)%count;if(q==p)q=(q+1)%count;ap[p]=Math.max(0,ap[p]-5);event("ATTACK_FAILED",p,q,0);}
                 }

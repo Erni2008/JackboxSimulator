@@ -103,8 +103,8 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         batch.end();
         ceremony.draw(shapes,batch,paint,assets,characters,model.ru(),time,viewport.getCamera());
         Gdx.gl.glEnable(GL20.GL_BLEND);Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
-        shapes.setProjectionMatrix(viewport.getCamera().combined);shapes.begin(ShapeRenderer.ShapeType.Filled);hfx.overlay(shapes,time);shapes.end();
-        batch.setProjectionMatrix(viewport.getCamera().combined);batch.begin();batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);hfx.flash(batch,assets);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);hfx.stamp(batch,assets.stage,model.ru(),time);batch.end();
+        shapes.setProjectionMatrix(viewport.getCamera().combined);shapes.begin(ShapeRenderer.ShapeType.Filled);hfx.ddosShapes(shapes,model,time);hfx.overlay(shapes,time);shapes.end();
+        batch.setProjectionMatrix(viewport.getCamera().combined);batch.begin();batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);hfx.ddosGlow(batch,assets,model,time);hfx.flash(batch,assets);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);hfx.ddosText(batch,assets.stageName,assets.log,model,time);hfx.stamp(batch,assets.stage,model.ru(),time);batch.end();
     }
 
     /** Data motes drifting up through the hall: cheap, deterministic, no allocation. */
