@@ -263,8 +263,32 @@ public class FinalAnswerGame extends Game {
     }
     private com.erni.finalanswer.screens.BalanceScreen balanceScreen;
     /** After a mini-game: the soul balance board, then the room lobby. */
+    // players who died during the running mini-game, in the order they died, with what killed them
+    private final java.util.Map<String,Boolean> aliveSeen=new java.util.HashMap<>();
+    private final java.util.List<com.erni.finalanswer.deaths.DeathScreen.Death> gameDeaths=new java.util.ArrayList<>();
+    private com.erni.finalanswer.deaths.DeathScreen deathScreen;
+    private static com.erni.finalanswer.deaths.DeathCause deathCause(com.google.gson.JsonObject data){
+        if(data.has("cursedBoxes"))return com.erni.finalanswer.deaths.DeathCause.SHOT;
+        if(data.has("systemBreach")||data.has("lastCommand")||data.has("finalSecond"))return com.erni.finalanswer.deaths.DeathCause.EXPLODED;
+        if(data.has("cursedCards")||data.has("forgottenRoom")||data.has("impostor"))return com.erni.finalanswer.deaths.DeathCause.CURSED;
+        return null;
+    }
+    private void trackDeaths(com.google.gson.JsonObject data){
+        var cause=deathCause(data);
+        for(var e:data.getAsJsonArray("players")){var p=e.getAsJsonObject();String id=p.get("id").getAsString();
+            boolean alive=!p.has("isAlive")||p.get("isAlive").getAsBoolean();Boolean was=aliveSeen.put(id,alive);
+            if(cause!=null&&Boolean.TRUE.equals(was)&&!alive)gameDeaths.add(new com.erni.finalanswer.deaths.DeathScreen.Death(
+                p.has("name")?p.get("name").getAsString():"?",p.has("characterId")?p.get("characterId").getAsString():"skeleton",cause));}
+    }
     public void showBalances(){
-        if(activeRoom==null||!activeRoom.host()||realtime==null){showRoomLobby();return;}
+        if(activeRoom==null||!activeRoom.host()||realtime==null){gameDeaths.clear();showRoomLobby();return;}
+        if(!gameDeaths.isEmpty()){
+            var list=java.util.List.copyOf(gameDeaths);gameDeaths.clear();
+            if(deathScreen!=null)deathScreen.dispose();
+            deathScreen=new com.erni.finalanswer.deaths.DeathScreen(list,getRoomCharacters(),"ru".equals(getSettings().language()),()->{
+                if(deathScreen==null)return;var d=deathScreen;deathScreen=null;if(getScreen()==d)showBalances();d.dispose();});
+            setScreen(deathScreen);return;
+        }
         if(balanceScreen!=null){balanceScreen.dispose();balanceScreen=null;}
         var board=new com.erni.finalanswer.screens.BalanceScreen(realtime.snapshot(),"ru".equals(getSettings().language()),()->{
             if(balanceScreen==null)return;var b=balanceScreen;balanceScreen=null;if(getScreen()==b)showRoomLobby();b.dispose();});
@@ -286,6 +310,7 @@ public class FinalAnswerGame extends Game {
         if (type.equals("ERROR")) { Gdx.app.log("Lobby","server error "+data); lobbyStatus=data.get("code").getAsString(); if(cageLobbyScreen!=null)cageLobbyScreen.startRejected(); return; }
         if(type.equals("CURSED_ACTION_REJECTED")&&(getScreen()==cageLobbyScreen||getScreen()==networkCursedLoading)){lobbyStatus=data.get("code").getAsString();return;}
         if (!data.has("players")) return;
+        trackDeaths(data);
         activeRoom=RoomApiClient.parse(new com.badlogic.gdx.utils.JsonReader().parse(data.toString()),activeRoom.token());
         if (cageLobbyScreen != null) {
             cageLobbyScreen.synchronize(activeRoom, lobbyStatus);

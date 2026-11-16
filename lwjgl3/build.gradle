@@ -1321,3 +1321,17 @@ tasks.register('balancePreview', JavaExec) {
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
+
+tasks.register('deathPreview', JavaExec) {
+    group = 'application'
+    description = 'Development-only preview of the 32 character deaths (8 characters x 4 causes).'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.DeathPreview'
+    workingDir = rootProject.file('assets')
+    for (key in ['dp.char','dp.cause','dp.capture']) {
+        if (providers.gradleProperty(key).isPresent()) systemProperty key, providers.gradleProperty(key).get()
+    }
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
