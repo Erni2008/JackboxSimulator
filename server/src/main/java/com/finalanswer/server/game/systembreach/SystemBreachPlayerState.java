@@ -25,6 +25,8 @@ final class SystemBreachPlayerState {
     SystemBreachSession.Attack attack;
     /** At most one live sabotage virus ({@link Sabotage.Config#MAX_ACTIVE_SABOTAGES_PER_PLAYER}). */
     Sabotage.Infection sabotage;
+    /** DDoS lag on this laptop, an armed honeypot, black-market shield / overclock (answers left) and items bought. */
+    long ddosUntil,honeypotUntil,firewallDownUntil;boolean shield;int overclock;final Set<String> bought=new HashSet<>();
     boolean answersLocked(){return sabotage!=null&&sabotage.type.blocksAnswers;}
     SystemBreachPlayerState(String id,int seat,List<String> options,SystemBreachConfig cfg){this.id=id;this.seat=seat;this.cfg=cfg;passwordOptions=List.copyOf(options);ap=cfg.get(INITIAL_AP);integrity=cfg.get(INITIAL_INTEGRITY);infection=cfg.get(INITIAL_INFECTION);}
     int ap(){return ap;}
@@ -32,7 +34,7 @@ final class SystemBreachPlayerState {
     int credit(int amount){int add=Math.min(Math.max(0,amount),cfg.get(MAX_AP)-ap);ap+=add;earned+=add;return add;}
     int penalty(int amount){int loss=Math.min(ap,Math.max(0,amount));ap-=loss;penalties+=loss;return loss;}
     static int transfer(SystemBreachPlayerState from,SystemBreachPlayerState to,int amount){int n=Math.min(Math.min(Math.max(0,amount),from.ap),to.cfg.get(MAX_AP)-to.ap);from.ap-=n;to.ap+=n;from.lost+=n;to.stolen+=n;return n;}
-    int effectiveFirewall(long now){return effect==SpecialAttackType.FIREWALL_BREAKER&&now<effectUntil?1:firewall;}
+    int effectiveFirewall(long now){return now<firewallDownUntil?1:effect==SpecialAttackType.FIREWALL_BREAKER&&now<effectUntil?1:firewall;}
     boolean blocked(long now){return effect==SpecialAttackType.TROJAN&&now<effectUntil;}
     boolean disrupted(long now){return compromised||effect!=null&&now<effectUntil;}
     void restore(){compromised=false;recovery=null;recoveryFailures=0;integrity=cfg.get(RECOVERY_INTEGRITY);infection=cfg.get(RECOVERY_INFECTION);}

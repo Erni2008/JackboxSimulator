@@ -93,6 +93,8 @@ public final class SystemBreachHostViewModel {
         {double rm=sb.has("roundMultiplier")?sb.get("roundMultiplier").getAsDouble():1;if(rm!=roundMult){if(rm>roundMult&&roundMult>=1&&lastSequence>=0&&rm>1){toastParts=new Toast(L("ROUND BONUS","БОНУС РАУНДА"),"",L("every answer is worth more","все ответы ценятся дороже"),"","×"+fmt(rm));toast=toastParts.line();toastAge=0;toastTone=Tone.REWARD;}roundMult=rm;roundText="×"+fmt(rm);}}
         if(sb.has("multipliers"))for(var e:sb.getAsJsonObject("multipliers").entrySet()){Slot s=byId.get(e.getKey());if(s!=null){double m=e.getValue().getAsDouble();if(s.multiplier!=m)s.multAge=0;s.multiplier=m;}}
         for(int i=0;i<ranking.size();i++)ranking.get(i).leader=i==0&&ranking.get(i).ap>0;
+        {surgeKind="";surgeUntil=0;if(sb.has("surge")&&sb.get("surge").isJsonObject()){var su=sb.getAsJsonObject("surge");if(su.has("kind")){surgeKind=su.get("kind").getAsString();surgeUntil=su.get("until").getAsLong();}}
+         ddos.clear();if(sb.has("ddos")&&sb.get("ddos").isJsonObject())for(var en:sb.getAsJsonObject("ddos").entrySet())ddos.put(en.getKey(),en.getValue().getAsLong());}
         {JsonObject inf=sb.has("sabotage")&&sb.get("sabotage").isJsonObject()?sb.getAsJsonObject("sabotage"):new JsonObject();
          for(Slot s:slots){String v=inf.has(s.id)?inf.get(s.id).getAsString():"";if(!v.equals(s.virus)){s.virus=v;s.virusAge=0;}}}
 
@@ -165,6 +167,10 @@ public final class SystemBreachHostViewModel {
             case "SABOTAGE_EXPIRED"->new LogLine(seq,L(who(t)+"'s virus burned out",who(t)+": вирус выдохся"),Tone.MUTED,0);
             case "KEY_BOUGHT"->new LogLine(seq,who(t)+L(": key bought with SOULS",": ключ куплен за SOULS"),Tone.REWARD,0);
             case "RESULTS"->new LogLine(seq,L("Operation complete","Операция завершена"),Tone.MUTED,0);
+            case "DDOS_STARTED"->new LogLine(seq,who(a)+" » "+who(t)+": DDoS",Tone.HACK,0);
+            case "HONEYPOT_TRIGGERED"->new LogLine(seq,who(a)+L(" hits the honeypot of "," в ловушке ")+who(t),Tone.FIREWALL,0);
+            case "SHIELD_BLOCKED"->new LogLine(seq,who(t)+L(": shield blocked ",": щит отбил ")+who(a),Tone.FIREWALL,0);
+            case "SURGE_DOUBLE","SURGE_FIREWALL_DOWN"->new LogLine(seq,L("SYSTEM SURGE","СБОЙ СИСТЕМЫ"),Tone.REWARD,0);
             default->null;
         };
     }
@@ -184,6 +190,11 @@ public final class SystemBreachHostViewModel {
             case "KEY_BOUGHT"->new Toast(L("SOULS SPENT","ТРАТА SOULS"),who(t),L("buys an access key","покупает ключ доступа"),"","−2 000 SOULS");
             case "SABOTAGE_CLEARED"->new Toast(L("SYSTEM CLEAN","СИСТЕМА ОЧИЩЕНА"),who(t),L("removes the virus","удаляет вирус"),"","");
             case "TROJAN","DATA_LEAK","SYSTEM_OVERLOAD","FIREWALL_BREAKER","TRACE_ATTACK"->new Toast(L(type.replace('_',' '),switch(type){case "TROJAN"->"ТРОЯН";case "DATA_LEAK"->"УТЕЧКА ДАННЫХ";case "SYSTEM_OVERLOAD"->"ПЕРЕГРУЗКА";case "FIREWALL_BREAKER"->"ПРОБОЙ ФАЕРВОЛА";default->"СЛЕЖКА";}),who(a),L("strikes","наносит удар"),who(t),plus);
+            case "DDOS_STARTED"->new Toast("DDoS",who(a),L("floods","заваливает трафиком"),who(t),amount+L(" s"," с"));
+            case "HONEYPOT_TRIGGERED"->new Toast(L("HONEYPOT!","ЛОВУШКА!"),who(a),L("walks into the trap of","попадает в ловушку"),who(t),amount>0?"−"+amount+" AP":"");
+            case "SHIELD_BLOCKED"->new Toast(L("SHIELD","ЩИТ"),who(t),L("shield burns the attack of","щитом сжигает атаку"),who(a),"");
+            case "SURGE_DOUBLE"->new Toast(L("SYSTEM SURGE","СБОЙ СИСТЕМЫ"),"",L("all answers pay double","все ответы приносят ×2"),"",amount+L(" s"," с"));
+            case "SURGE_FIREWALL_DOWN"->new Toast(L("SYSTEM SURGE","СБОЙ СИСТЕМЫ"),"",L("every firewall is down","все фаерволы отключены"),"",amount+L(" s"," с"));
             default->null;
         };
     }
@@ -207,6 +218,11 @@ public final class SystemBreachHostViewModel {
     public List<Slot> ranking(){return ranking;}
     /** Attacks in flight (public: who is attacking whom). */
     public List<Attack> attacks(){return attacks;}
+    private String surgeKind="";private long surgeUntil;private final java.util.Map<String,Long> ddos=new java.util.HashMap<>();
+    /** "DOUBLE" / "FIREWALL_DOWN" while a system surge runs, else "". */
+    public String surge(){return now()<surgeUntil?surgeKind:"";}
+    public long surgeLeftMs(){return Math.max(0,surgeUntil-now());}
+    public boolean ddosed(String id){Long u=ddos.get(id);return u!=null&&now()<u;}
     public int seat(String id){Slot s=byId.get(id);return s==null?-1:slots.indexOf(s);}
     /** Oldest first, at most four. */
     public Iterable<LogLine> log(){return log;}

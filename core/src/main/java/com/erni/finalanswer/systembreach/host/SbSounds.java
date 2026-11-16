@@ -42,7 +42,7 @@ final class SbSounds implements Disposable {
             case "KEY_EARNED","KEY_BOUGHT"->"key";case "ATTACK_STARTED"->"hack_start";case "ATTACK_SUCCEEDED"->"hack_success";
             case "ATTACK_FAILED","ATTACK_EXPIRED"->"hack_fail";case "SABOTAGE_STARTED","TROJAN","DATA_LEAK","SYSTEM_OVERLOAD","FIREWALL_BREAKER"->"sabotage";
             case "SABOTAGE_CLEARED","RECOVERY_SUCCEEDED","EMERGENCY_RESTORED"->"clean";case "SABOTAGE_BLOCKED","FIREWALL_UPGRADED"->"firewall";
-            case "MULTIPLIER_UPGRADED"->"multiplier";case "RESULTS"->"complete";default->null;
+            case "MULTIPLIER_UPGRADED"->"multiplier";case "DDOS_STARTED"->"sabotage";case "HONEYPOT_TRIGGERED"->"strike";case "SHIELD_BLOCKED"->"firewall";case "SURGE_DOUBLE","SURGE_FIREWALL_DOWN"->"thunder";case "RESULTS"->"complete";default->null;
         };
     }
     @Override public void dispose(){for(var l:sounds.values())for(Sound s:l)s.dispose();sounds.clear();}

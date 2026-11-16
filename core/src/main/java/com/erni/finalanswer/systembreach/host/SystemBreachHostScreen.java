@@ -82,7 +82,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         for(int i=0;i<n;i++)virus.shapes(paint,shapes,assets,slots.get(i),slotX(i,n),time);
         for(int i=0;i<n;i++)marks.shapes(shapes,slots.get(i),slotX(i,n));
                 fx.scanlines(shapes,TIMER.x+20,TIMER.y+20,TIMER.width-40,TIMER.height-40,.12f,time);fx.scanlines(shapes,LOG.x+20,LOG.y+20,LOG.width-40,LOG.height-40,.12f,time+2);
-        fx.attackLinks(shapes,model.attacks(),model,n,time);
+        fx.attackLinks(shapes,model.attacks(),model,n,time);hfx.network(shapes,model,time);
         timer.shapes(paint,model,time);title.shapes(paint,shapes,time);log.shapes(paint,model);board.shapes(paint,shapes,model);toastShape();
         shapes.end();
 
@@ -92,12 +92,12 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         // a glint travels along the line-up's glass every few seconds
         {float t=(time%7f)/1.6f;if(t<1&&n>0){float x0=slotX(0,n)-PANEL_W/2,x1=slotX(n-1,n)+PANEL_W/2,gx=x0+(x1-x0)*t,a=MathUtils.sin(t*MathUtils.PI);
             batch.setColor(1,1,1,.18f*a);batch.draw(assets.glow,gx-40,PANEL_Y+10,80,PANEL_H-20);batch.setColor(.6f,1,.8f,.12f*a);batch.draw(assets.glow,gx-110,PANEL_Y-20,220,PANEL_H+40);}}
-        fx.attackGlow(batch,assets,model.attacks(),model,n,time);timer.glow(batch,assets,model,time);title.glow(batch,assets,time);board.glow(batch,assets,model,time,viewport.getCamera());
+        fx.attackGlow(batch,assets,model.attacks(),model,n,time);hfx.networkGlow(batch,assets,model,time);timer.glow(batch,assets,model,time);title.glow(batch,assets,time);board.glow(batch,assets,model,time,viewport.getCamera());
         batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.setColor(1,1,1,1);
         for(int i=0;i<n;i++)podium.text(batch,paint,assets,slots.get(i),slotX(i,n),time);
         for(int i=0;i<n;i++)virus.text(batch,paint,assets,slots.get(i),slotX(i,n),time);
         timer.text(batch,paint,assets,model,time);title.text(batch,paint,assets,time);log.text(batch,paint,assets,model);board.text(batch,paint,assets,model);
-        toastText();
+        toastText();hfx.surgeText(batch,assets.board,model,time);
         long left=model.remainingMs();if(model.phase().equals("ACTIVE")&&left>0&&left<=10_000){float a=(.18f+.12f*MathUtils.sin(time*6.3f))*(1-left/10_000f*.5f);
             batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(1,.08f,.05f,a);batch.draw(assets.glow,-500,-300,900,1680);batch.draw(assets.glow,W-400,-300,900,1680);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.setColor(1,1,1,1);}
         batch.end();

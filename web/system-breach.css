@@ -630,3 +630,17 @@ button[data-sab]{all:unset;box-sizing:border-box;cursor:pointer;-webkit-tap-high
 .sbh-glitch.bad.on{animation:sbh-flashbad .6s ease-out both}
 @keyframes sbh-flashbad{0%{background:rgba(255,30,30,.18)}100%{background:transparent}}
 @media (prefers-reduced-motion:reduce){.sbh-crt i,.sbh-glitch i,.sbh-term p{animation:none!important}}
+/* ---- DDoS / surge / defence chips ---- */
+.sbx-screen.ddos::after{content:'DDoS ATTACK · LAG';position:absolute;inset:0;z-index:44;pointer-events:none;display:flex;align-items:flex-start;justify-content:center;padding-top:14%;
+  font:800 clamp(14px,4.5vw,26px)/1 ui-monospace,Menlo,monospace;letter-spacing:.2em;color:rgba(255,70,60,.85);text-shadow:0 0 12px rgba(255,40,30,.8);
+  background:repeating-linear-gradient(0deg,rgba(255,40,30,.07) 0 2px,transparent 2px 5px);animation:sbx-ddos .35s steps(3) infinite}
+@keyframes sbx-ddos{0%{transform:translateX(0)}33%{transform:translateX(-3px)}66%{transform:translateX(3px)}}
+.sbx-option.lagging{filter:saturate(.3) brightness(.8);animation:sbx-lag .9s linear both}
+@keyframes sbx-lag{0%{opacity:1}50%{opacity:.5}100%{opacity:1}}
+.sbx-surge{position:absolute;left:50%;top:1.5%;transform:translateX(-50%);z-index:46;pointer-events:none;padding:.45em 1em;border-radius:6px;white-space:nowrap;
+  font:800 clamp(10px,3.2vw,16px)/1 ui-monospace,Menlo,monospace;letter-spacing:.06em;animation:sbx-surgep 1s ease-in-out infinite}
+.sbx-surge[data-kind=DOUBLE]{color:#1b1200;background:linear-gradient(90deg,#ffcf4a,#fff1a8,#ffcf4a);box-shadow:0 0 18px rgba(255,200,60,.7)}
+.sbx-surge[data-kind=FIREWALL_DOWN]{color:#fff;background:linear-gradient(90deg,#b5121b,#ff3b3b,#b5121b);box-shadow:0 0 18px rgba(255,40,40,.7)}
+@keyframes sbx-surgep{50%{filter:brightness(1.25)}}
+.sbx-chips{position:absolute;right:3%;top:7%;z-index:42;pointer-events:none;font:700 clamp(9px,2.6vw,13px)/1 ui-monospace,Menlo,monospace;color:#9effc4;text-shadow:0 0 8px rgba(60,255,140,.6)}
+@media (prefers-reduced-motion:reduce){.sbx-screen.ddos::after,.sbx-surge{animation:none!important}}

@@ -99,7 +99,7 @@ public final class SystemBreachSession {
         if(closed)return false;boolean changed=false;
         if(phase==SystemBreachPhase.INITIALIZATION&&now>=phaseEnds){enterActive(phaseEnds);changed=true;}
         if(phase==SystemBreachPhase.ACTIVE){
-            changed=advanceTimers(Math.min(now,activeEnds),now,online)||changed;
+            changed=advanceTimers(Math.min(now,activeEnds),now,online)||changed;changed=surge(now)||changed;
             if(now>=activeEnds){complete(activeEnds);changed=true;}
         }
         if(phase==SystemBreachPhase.RESULTS&&now>=phaseEnds){phase=SystemBreachPhase.FINISHED;phaseStarted=phaseEnds;phaseEnds=Long.MAX_VALUE;for(var p:players.values())p.secrets();handled.clear();latest.clear();requests.clear();changed=true;}
@@ -140,11 +140,12 @@ public final class SystemBreachSession {
                 case "CHALLENGE_REQUEST"->{fields(data,"type");requireAllowed(challengeReason(p,now));var challengeType=type(ChallengeType.class,data,"type");if(activeEnds-now<factory.minimumWindow(challengeType))throw new BreachFailure("ROUND_ENDING");p.challenge=factory.earning(challengeType,now,activeEnds);result=result("PLAYER_UPDATE","CHALLENGE_READY");}
                 case "CHALLENGE_SUBMIT"->{
                     fields(data,"challengeId","answer");ordinary(p,now);if(p.answersLocked())throw new BreachFailure("ANSWERS_LOCKED");if(p.challenge==null||!p.challenge.id.equals(text(data,"challengeId")))throw new BreachFailure("STALE_CHALLENGE");
-                    if(!data.has("answer"))throw BreachFailure.invalid();boolean correct=p.challenge.validate(data.get("answer"),now);int reward=correct?p.credit(scaledReward(p,p.challenge.reward,now)):0;if(correct)p.challengesSolved++;else p.challengeFailures++;p.recordChallenge(p.challenge,correct,now,reward);if(correct&&keyGating&&++p.keyProgress>=KEY_EVERY){p.keyProgress=0;p.keys++;event(now,"KEY_EARNED","",p.id,p.keys);}if(reward>0)event(now,"CHALLENGE_SOLVED","",p.id,reward);else if(!correct)event(now,"CHALLENGE_FAILED","",p.id,0);
+                    if(!data.has("answer"))throw BreachFailure.invalid();boolean correct=p.challenge.validate(data.get("answer"),now);int reward=correct?p.credit(scaledReward(p,p.challenge.reward,now)*(p.overclock>0?2:1)*(surgeKind.equals("DOUBLE")&&now<surgeUntil?2:1)):0;if(correct&&p.overclock>0)p.overclock--;if(correct)p.challengesSolved++;else p.challengeFailures++;p.recordChallenge(p.challenge,correct,now,reward);if(correct&&keyGating&&++p.keyProgress>=KEY_EVERY){p.keyProgress=0;p.keys++;event(now,"KEY_EARNED","",p.id,p.keys);}if(reward>0)event(now,"CHALLENGE_SOLVED","",p.id,reward);else if(!correct)event(now,"CHALLENGE_FAILED","",p.id,0);
                     p.challenge=null;p.challengeReadyAt=now+cfg.get(CHALLENGE_GAP_MS);questionResolved(p,now);result=new ActionResult("CHALLENGE_RESULT",correct?"SUCCESS":"FAILED",Map.of("reward",reward));
                 }
                 case "ATTACK_REQUEST"->{
                     fields(data,"targetId");var target=player(text(data,"targetId"));requireAllowed(attackReason(p,target,now,online));
+                    {var trapped=trap(p,target,now);if(trapped!=null){if(keyGating)p.keys--;p.attackReadyAt=now+cfg.get(ATTACK_COOLDOWN_MS);result=trapped;break;}}
                     int firewall=target.effectiveFirewall(now),cost=attackCost(target,now);var attempt=new Attack(target,options(target.password),Math.min(activeEnds,now+cfg.get(ATTACK_GUESS_MS)));
                     p.spend(cost);p.attackSpent+=cost;p.attacksStarted++;if(keyGating)p.keys--;p.attack=attempt;event(now,"ATTACK_STARTED",p.id,target.id,0);p.attackReadyAt=now+cfg.get(ATTACK_COOLDOWN_MS)+(firewall-1)*cfg.get(FIREWALL_COOLDOWN_STEP_MS);result=result("PLAYER_UPDATE","ATTACK_READY");
                 }
@@ -164,6 +165,7 @@ public final class SystemBreachSession {
                 case "SPECIAL_ATTACK"->{
                     fields(data,"targetId","type");var target=player(text(data,"targetId"));SpecialAttackType special=type(SpecialAttackType.class,data,"type");
                     requireAllowed(specialReason(p,target,special,now,online));
+                    {var trapped=trap(p,target,now);if(trapped!=null){if(keyGating)p.keys--;p.specialReadyAt=now+cfg.get(SPECIAL_COOLDOWN_MS);result=trapped;break;}}
                     if(keyGating)p.keys--;p.spend(cfg.cost(special));p.specialSpent+=cfg.cost(special);p.specialAttacks++;p.specialReadyAt=now+cfg.get(SPECIAL_COOLDOWN_MS);int amount=0;
                     switch(special){
                         case TROJAN->{target.effect=special;target.effectUntil=now+cfg.get(TROJAN_MS);}
@@ -174,9 +176,25 @@ public final class SystemBreachSession {
                     }
                     if(special==SpecialAttackType.DATA_LEAK||special==SpecialAttackType.TROJAN)hostileHit(target,now);event(now,special.name(),p.id,target.id,amount);result=new ActionResult("PLAYER_UPDATE","SPECIAL_APPLIED",Map.of("amount",amount));
                 }
+                case "DDOS"->{
+                    fields(data,"targetId");var target=player(text(data,"targetId"));requireAllowed(ddosReason(p,target,now,online));
+                    if(keyGating)p.keys--;p.specialAttacks++;p.specialReadyAt=now+cfg.get(SPECIAL_COOLDOWN_MS);var trapped=trap(p,target,now);if(trapped!=null){result=trapped;break;}
+                    long len=Math.max(4000,DDOS_MS-(target.effectiveFirewall(now)-1)*2500L);target.ddosUntil=now+len;event(now,"DDOS_STARTED",p.id,target.id,(int)(len/1000));
+                    result=new ActionResult("DDOS_RESULT","FLOODED",Map.of("seconds",(int)(len/1000)));
+                }
+                case "HONEYPOT"->{
+                    fields(data);requireAllowed(honeypotReason(p,now));if(keyGating)p.keys--;p.honeypotUntil=now+HONEYPOT_MS;result=result("PLAYER_UPDATE","HONEYPOT_ARMED");
+                }
+                case "MARKET_BUY"->{
+                    fields(data,"item");String item=text(data,"item");requireAllowed(marketReason(p,item,now));p.spend(MARKET.get(item));p.specialSpent+=MARKET.get(item);p.bought.add(item);
+                    switch(item){case "SHIELD"->p.shield=true;case "OVERCLOCK"->p.overclock=3;case "SCANNER"->{var rich=players.values().stream().filter(o->o!=p&&o.password!=null).max(Comparator.comparingInt(SystemBreachPlayerState::ap));
+                        if(rich.isPresent()){var t=rich.get();p.traceTarget=t.id;p.trace=t.password.substring(0,2)+"… ("+t.password.length()+")";p.traceUntil=now+cfg.get(TRACE_MS)*2;}}default->{}}
+                    event(now,"MARKET_"+item,"",p.id,MARKET.get(item));result=new ActionResult("MARKET_RESULT","BOUGHT",Map.of("item",item));
+                }
                 case "SABOTAGE"->{
                     fields(data,"targetId");var target=player(text(data,"targetId"));requireAllowed(sabotageReason(p,target,now,online));
                     if(keyGating)p.keys--;p.specialAttacks++;p.specialReadyAt=now+cfg.get(SPECIAL_COOLDOWN_MS);
+                    {var trapped=trap(p,target,now);if(trapped!=null){result=trapped;break;}}
                     if(Sabotage.getsThrough(target.effectiveFirewall(now),random)){var virus=new Sabotage.Infection(Sabotage.roll(random),p.id,now,random);target.sabotage=virus;
                         event(now,"SABOTAGE_STARTED",p.id,target.id,virus.type.ordinal());result=new ActionResult("SABOTAGE_RESULT","INFECTED",Map.of("type",virus.type.name()));}
                     else{event(now,"SABOTAGE_BLOCKED",p.id,target.id,target.effectiveFirewall(now));result=new ActionResult("SABOTAGE_RESULT","BLOCKED",Map.of("firewall",target.effectiveFirewall(now)));}
@@ -268,6 +286,30 @@ public final class SystemBreachSession {
         String base=ordinaryReason(p,now),protection=targetReason(p,target,now,online,false);
         return !base.isEmpty()?base:keyGating&&p.keys<=0?"SB_NEED_KEY":activeEnds-now<cfg.get(MIN_ACTION_WINDOW_MS)?"SB_ROUND_ENDING":p.attack!=null?"SB_ATTACK_PENDING":!protection.isEmpty()?protection:target.sabotage!=null?"SB_TARGET_INFECTED":"";
     }
+    static final long DDOS_MS=10_000,HONEYPOT_MS=45_000,SURGE_MS=20_000;static final int HONEYPOT_STEAL=25;
+    static final Map<String,Integer> MARKET=Map.of("SHIELD",30,"OVERCLOCK",25,"SCANNER",20);
+    String surgeKind="";long surgeAt=-1,surgeUntil;
+    /** A hostile action meets the target's honeypot (attacker pays the target) or black-market shield (fizzles). */
+    private ActionResult trap(SystemBreachPlayerState p,SystemBreachPlayerState target,long now){
+        if(now<target.honeypotUntil){target.honeypotUntil=0;int n=SystemBreachPlayerState.transfer(p,target,HONEYPOT_STEAL);event(now,"HONEYPOT_TRIGGERED",p.id,target.id,n);return new ActionResult("TRAP_RESULT","TRAPPED",Map.of("amount",n));}
+        if(target.shield){target.shield=false;event(now,"SHIELD_BLOCKED",p.id,target.id,0);return new ActionResult("TRAP_RESULT","SHIELDED",Map.of());}
+        return null;
+    }
+    private String ddosReason(SystemBreachPlayerState p,SystemBreachPlayerState target,long now,Set<String> online){
+        String base=ordinaryReason(p,now),protection=targetReason(p,target,now,online,false);
+        return !base.isEmpty()?base:keyGating&&p.keys<=0?"SB_NEED_KEY":activeEnds-now<cfg.get(MIN_ACTION_WINDOW_MS)?"SB_ROUND_ENDING":p.attack!=null?"SB_ATTACK_PENDING":now<p.specialReadyAt?"SB_ATTACK_COOLDOWN":!protection.isEmpty()?protection:now<target.ddosUntil?"SB_TARGET_BUSY":"";
+    }
+    private String honeypotReason(SystemBreachPlayerState p,long now){String base=ordinaryReason(p,now);return !base.isEmpty()?base:keyGating&&p.keys<=0?"SB_NEED_KEY":now<p.honeypotUntil?"SB_HONEYPOT_ARMED":"";}
+    private String marketReason(SystemBreachPlayerState p,String item,long now){String base=ordinaryReason(p,now);if(!MARKET.containsKey(item))throw BreachFailure.invalid();
+        return !base.isEmpty()?base:p.bought.contains(item)?"SB_SOLD_OUT":p.ap()<MARKET.get(item)?"SB_INSUFFICIENT_AP":"";}
+    /** One SYSTEM SURGE per round, somewhere in the middle: 20 s of double rewards or every firewall down. */
+    private boolean surge(long now){
+        if(!keyGating)return false;long start=activeEnds-cfg.get(GAME_MS);
+        if(surgeAt<0)surgeAt=start+(long)(cfg.get(GAME_MS)*(.4+random.nextDouble()*.2));
+        if(surgeKind.isEmpty()&&now>=surgeAt&&activeEnds-now>SURGE_MS){surgeKind=random.nextBoolean()?"DOUBLE":"FIREWALL_DOWN";surgeUntil=now+SURGE_MS;
+            if(surgeKind.equals("FIREWALL_DOWN"))for(var p:players.values())p.firewallDownUntil=surgeUntil;event(now,"SURGE_"+surgeKind,"","",(int)(SURGE_MS/1000));return true;}
+        return false;
+    }
     /** SOULS shop: a key bought outside the 3-answer loop (RoomService charges the SOULS). */
     public synchronized boolean canReceiveKey(String player,long now){return !closed&&phase==SystemBreachPhase.ACTIVE&&players.containsKey(player)&&activeEnds-now>cfg.get(MIN_ACTION_WINDOW_MS);}
     public synchronized void grantKey(String player,long now){if(!canReceiveKey(player,now))throw new BreachFailure("NOT_ACTIVE");var p=player(player);p.keys++;event(now,"KEY_BOUGHT","",p.id,p.keys);}
@@ -284,7 +326,7 @@ public final class SystemBreachSession {
         List<Map<String,Object>> targets=new ArrayList<>();
         for(var target:players.values())if(!target.id.equals(p.id)){
             Map<String,Object> specials=new LinkedHashMap<>();for(var special:SpecialAttackType.values())specials.put(special.name(),permission(specialReason(p,target,special,now,online),cfg.cost(special),Math.max(p.specialReadyAt,p.attackReadyAt)));
-            targets.add(Map.of("playerId",target.id,"attack",permission(attackReason(p,target,now,online),attackCost(target,now),p.attackReadyAt),"specials",specials,"sabotage",permission(sabotageReason(p,target,now,online),0,0)));
+            targets.add(Map.of("playerId",target.id,"attack",permission(attackReason(p,target,now,online),attackCost(target,now),p.attackReadyAt),"specials",specials,"sabotage",permission(sabotageReason(p,target,now,online),0,0),"ddos",permission(ddosReason(p,target,now,online),0,p.specialReadyAt)));
         }
         actions.put("targets",List.copyOf(targets));return actions;
     }
@@ -292,7 +334,9 @@ public final class SystemBreachSession {
     public synchronized Map<String,Object> snapshot(String self,boolean host,long now,Set<String> online,Map<String,String> names){
         Map<String,Object> view=new LinkedHashMap<>();view.put("schemaVersion",1);view.put("lastEventSequence",eventSequence);view.put("firstEventSequence",events.isEmpty()?eventSequence+1:events.getFirst().sequence());view.put("sessionId",id);view.put("phase",phase.name());view.put("serverTime",now);view.put("phaseStartedAt",phaseStarted);view.put("deadline",phaseEnds==Long.MAX_VALUE?-1:phaseEnds);view.put("remainingMs",phaseEnds==Long.MAX_VALUE?0:Math.max(0,phaseEnds-now));
         List<SystemBreachView.Player> rows=new ArrayList<>();int rank=0;for(var p:ranked())rows.add(new SystemBreachView.Player(p.id,names.getOrDefault(p.id,p.id),p.ap(),p.firewall,p.effectiveFirewall(now),p.integrity,p.infection,p.integrity==0,p.compromised,p.recovery!=null,!online.contains(p.id),p.effect==null?"":p.effect.name(),p.effectUntil,p.attackReadyAt,++rank,p.immuneUntil,p.statistics()));
-        view.put("players",List.copyOf(rows));{Map<String,Object> mult=new LinkedHashMap<>();for(var p:players.values())mult.put(p.id,MULTIPLIERS[p.multiplier-1]);view.put("multipliers",mult);view.put("roundMultiplier",roundMultiplier(now));Map<String,Object> infected=new LinkedHashMap<>();for(var p:players.values())if(p.sabotage!=null)infected.put(p.id,p.sabotage.type.name());view.put("sabotage",infected);}view.put("events",List.copyOf(events));view.put("role",host?"HOST":players.containsKey(self)?"PLAYER":"SPECTATOR");
+        view.put("players",List.copyOf(rows));{Map<String,Object> mult=new LinkedHashMap<>();for(var p:players.values())mult.put(p.id,MULTIPLIERS[p.multiplier-1]);view.put("multipliers",mult);view.put("roundMultiplier",roundMultiplier(now));Map<String,Object> infected=new LinkedHashMap<>();for(var p:players.values())if(p.sabotage!=null)infected.put(p.id,p.sabotage.type.name());view.put("sabotage",infected);
+            Map<String,Object> ddos=new LinkedHashMap<>();for(var p:players.values())if(now<p.ddosUntil)ddos.put(p.id,p.ddosUntil);view.put("ddos",ddos);
+            view.put("surge",surgeKind.isEmpty()||now>=surgeUntil?Map.of():Map.of("kind",surgeKind,"until",surgeUntil));view.put("market",MARKET);}view.put("events",List.copyOf(events));view.put("role",host?"HOST":players.containsKey(self)?"PLAYER":"SPECTATOR");
         if(results.isEmpty())view.put("winnerId","");else{var outcome=outcome(names);view.put("winnerId",outcome.winnerId());view.put("results",outcome);}
         var p=players.get(self);if(p!=null&&!closed&&phase!=SystemBreachPhase.FINISHED){
             Map<String,Object> me=new LinkedHashMap<>();me.put("passwordSelected",p.password!=null);me.put("myPassword",p.password==null?"":p.password);me.put("passwordAuto",p.passwordAuto);me.put("passwordOptions",phase==SystemBreachPhase.INITIALIZATION?p.passwordOptions:List.of());
@@ -301,6 +345,8 @@ public final class SystemBreachSession {
             me.put("trace",now<p.traceUntil&&!p.trace.isEmpty()?Map.of("targetId",p.traceTarget,"clue",p.trace,"expiresAt",p.traceUntil):Map.of());me.put("specialReadyAt",p.specialReadyAt);me.put("keyGating",keyGating);me.put("keys",p.keys);me.put("keyProgress",p.keyProgress);me.put("keyEvery",KEY_EVERY);me.put("challengeReadyAt",p.challengeReadyAt);me.put("sabotage",p.sabotage==null?Map.of():p.sabotage.view());
             var receipt=latest.get(self);if(receipt!=null)me.put("lastAction",Map.of("requestId",receipt.requestId,"action",receipt.action,"status",receipt.result.status,"details",receipt.result.details,"appliedAt",receipt.appliedAt));
             me.put("actions",actionAvailability(p,now,online));
+            me.put("ddosUntil",p.ddosUntil);me.put("honeypotUntil",p.honeypotUntil);me.put("shield",p.shield);me.put("overclock",p.overclock);me.put("bought",List.copyOf(p.bought));
+            {Map<String,Object> extra=new LinkedHashMap<>();extra.put("honeypot",permission(honeypotReason(p,now),0,0));Map<String,Object> m=new LinkedHashMap<>();for(String it:MARKET.keySet()){String r;try{r=marketReason(p,it,now);}catch(RuntimeException e){r="SB_INVALID";}m.put(it,permission(r,MARKET.get(it),0));}extra.put("market",m);me.put("extra",extra);}
             view.put("self",me);
         }
         view.put("rewards",Map.of("PASSWORD_DECRYPTION",cfg.reward(ChallengeType.PASSWORD_DECRYPTION),"CIRCUIT_BYPASS",cfg.reward(ChallengeType.CIRCUIT_BYPASS),"SIGNAL_INTERCEPTION",cfg.reward(ChallengeType.SIGNAL_INTERCEPTION),"DATA_ANALYSIS",cfg.reward(ChallengeType.DATA_ANALYSIS),"PORT_DETECTION",cfg.reward(ChallengeType.PORT_DETECTION)));
