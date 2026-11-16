@@ -29,7 +29,7 @@ public final class DeathRecipes {
             case EXPLODED->{r.hitY=.5f;r.flash=1;r.shake=30;r.shakeDur=.7f;r.shockwave=true;
                 r.emit(P.SPARK,0,60,0,.5f).speed(1100).life(.55f).color(HOT);
                 r.emit(P.SMOKE,.05f,18,0,.45f).spread(.12f,.12f).speed(140).life(2.4f).size(2.2f).color(SMOKE);
-                r.emit(P.GLOW,0,3,0,.5f).speed(0).life(.35f).size(3).color(FIRE);}
+                r.emit(P.GLOW,0,2,0,.5f).speed(0).life(.22f).size(1.6f).color(FIRE);}
             case CURSED->{r.flash=.45f;r.flashColor=0x9a5bffff;r.shake=8;r.screenTint=0x1a0630ff;
                 r.emit(P.WISP,-1.1f,26,0,.1f).spread(.3f,.02f).dir(90,25).speed(120).life(1.8f).color(PURPLE).over(1.4f);}
         }

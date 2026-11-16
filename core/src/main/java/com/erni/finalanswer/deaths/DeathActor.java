@@ -12,6 +12,7 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import com.erni.finalanswer.deaths.DeathRecipe.Body;
 import com.erni.finalanswer.deaths.DeathRecipe.Head;
 import com.erni.finalanswer.deaths.DeathRecipe.P;
+import com.badlogic.gdx.graphics.g2d.RecordingBatch;
 import com.erni.finalanswer.ui.lobby.cages.CageCharacter;
 import com.erni.finalanswer.ui.lobby.cages.CageCharacterPresentation;
 import java.util.ArrayList;
@@ -25,7 +26,7 @@ import java.util.Random;
  * with its feet on {@link #FLOOR} inside a {@link #W}×{@link #H} canvas, drawn at (x, y) in world units, scale 1.
  */
 public final class DeathActor implements Disposable {
-    public static final int W=512,H=768;public static final float FLOOR=40,CHAR_H=600;
+    public static final int W=1100,H=1000;public static final float FLOOR=40,CHAR_H=600;
     public static final float IMPACT=1.5f; // seconds of anticipation before the impact
 
     private final CageCharacter character;private final CageCharacterPresentation.Profile profile;
@@ -34,6 +35,7 @@ public final class DeathActor implements Disposable {
     private final FrameBuffer fbo;private final Matrix4 fboProj=new Matrix4(),fboTransform=new Matrix4(),saved=new Matrix4();
     private final Random rng;
     private Pixmap frozen;private float time,charTime=8;private boolean impacted;
+    private final RecordingBatch rec=new RecordingBatch();private Ragdoll rag;private boolean bodyStarted;
 
     // shards
     private static final class Shard{float[] v=new float[6];float cx,cy;int group;boolean free,solid,landed;float px,py,rot,vx,vy,va,ta,tv,detachAt=Float.NaN;}
@@ -73,22 +75,21 @@ public final class DeathActor implements Disposable {
             if(e.over<=0){if(!fired[i]){fired[i]=true;spawn(e,e.count);}}
             else{float want=Math.min(1,(t-e.at)/e.over)*e.count;int n=(int)want-(int)emitted[i];if(n>0){spawn(e,n);emitted[i]+=n;}}
         }
-        if(impacted)physics(dt,t);
+        if(impacted&&rag!=null){driveRagdoll(t,dt);rag.step(dt);renderRagdoll();}
+        else if(impacted)physics(dt,t);
         for(int i=parts.size()-1;i>=0;i--){Part p=parts.get(i);p.age+=dt;if(p.age>=p.life){parts.remove(i);continue;}stepPart(p,dt);}
     }
     private void renderCharacter(PolygonSpriteBatch batch){
         fbo.begin();
         Gdx.gl.glClearColor(0,0,0,0);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        var oldProj=batch.getProjectionMatrix().cpy();saved.set(batch.getTransformMatrix());
-        batch.setProjectionMatrix(fboProj);
+        PolygonSpriteBatch unused=batch;var batch2=rec;rec.setProjectionMatrix(fboProj);
+        boolean recordNow=time-IMPACT>=0&&!impacted;rec.recording=recordNow;if(recordNow)rec.clearRecording();
         float shake=0,t=time-IMPACT;
         if(t>-.5f&&t<0)shake=MathUtils.sin(time*70)*4*(1+t*2);
         fboTransform.idt().translate(W/2f+shake,FLOOR,0).scale(charScale,charScale,1).translate(-174,-charFloor,0);
-        batch.setTransformMatrix(fboTransform);
-        batch.setBlendFunctionSeparate(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA,GL20.GL_ONE,GL20.GL_ONE_MINUS_SRC_ALPHA);
-        batch.setColor(Color.WHITE);batch.begin();presentation.draw(batch,character,profile,1,charTime);batch.end();
-        batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
-        batch.setTransformMatrix(saved);batch.setProjectionMatrix(oldProj);
+        batch2.setTransformMatrix(fboTransform);
+        batch2.setBlendFunctionSeparate(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA,GL20.GL_ONE,GL20.GL_ONE_MINUS_SRC_ALPHA);
+        batch2.setColor(Color.WHITE);batch2.begin();presentation.draw(batch2,character,profile,1,charTime);batch2.end();rec.recording=false;
         if(time-IMPACT>=0&&frozen==null)frozen=ScreenUtils.getFrameBufferPixmap(0,0,W,H);
         fbo.end();
     }
@@ -106,6 +107,7 @@ public final class DeathActor implements Disposable {
     private void impact(){
         impacted=true;
         float neckY=FLOOR+DeathRecipes.neck(id)*CHAR_H;
+        if(!rec.quads.isEmpty()){var rd=new Ragdoll(new ArrayList<>(rec.quads),FLOOR,24,W-24,H-12,neckY,W/2f);if(rd.root!=null){rag=rd;startRagdoll();return;}}
         if(r.body==Body.SHATTER){r.cols=Math.max(r.cols,13);r.rows=Math.max(r.rows,19);}
         float cw=(float)W/r.cols,ch=(float)H/r.rows;float[][] gx=new float[r.cols+1][r.rows+1],gy=new float[r.cols+1][r.rows+1];
         for(int i=0;i<=r.cols;i++)for(int j=0;j<=r.rows;j++){
@@ -130,6 +132,60 @@ public final class DeathActor implements Disposable {
                 if(r.body==Body.COLLAPSE){float k=1-(s.cy-FLOOR)/CHAR_H;s.detachAt=r.bodyAt+(1-k)*.35f+rng.nextFloat()*.12f;s.vx=(rng.nextFloat()-.5f)*140+(s.cx-W/2f)*.6f;s.vy=rng.nextFloat()*60;s.va=(rng.nextFloat()-.5f)*400;}
             }
         }
+    }
+    // ---------------- ragdoll ----------------
+    private void startRagdoll(){
+        if(r.body==Body.STAY&&r.cause==DeathCause.BURNED){r.body=Body.SLUMP;r.bodyAt=1.3f;r.squash=Math.max(r.squash,.2f);}
+        rag.simulate=true;rag.pinRoot=true;rag.posture=1;
+        float hitX=W/2f+r.hitX*CHAR_H,hitY=FLOOR+r.hitY*CHAR_H,dt=1/60f;
+        Ragdoll.Piece hit=rag.nearest(hitX,hitY);
+        switch(r.cause){
+            case SHOT->rag.push(hit,520+rng.nextFloat()*200,120,(rng.nextFloat()-.5f)*400,dt);
+            case EXPLODED->rag.push(hit,0,180,0,dt);
+            default->{}
+        }
+        if(rag.head!=null&&r.head==Head.FLY){rag.breakJoints(rag.head);rag.push(rag.head,r.headVx,r.headVy,r.headSpin,dt);}
+        if(rag.head!=null&&r.head==Head.SHATTER){burst(rag.head,r.shatterPower);rag.remove(rag.head);}
+    }
+    private void burst(Ragdoll.Piece p,float power){
+        float cx=rag.centerX(p),cy=rag.centerY(p);float w=p.maxX-p.minX,h=p.maxY-p.minY;
+        for(int i=0;i<60;i++){Part q=new Part();q.type=P.CHUNK;q.seed=rng.nextFloat();q.x=cx+(rng.nextFloat()-.5f)*w*.8f;q.y=cy+(rng.nextFloat()-.5f)*h*.8f;
+            float a=rng.nextFloat()*MathUtils.PI2,sp=power*(.3f+rng.nextFloat());q.vx=MathUtils.cos(a)*sp+300;q.vy=MathUtils.sin(a)*sp+250;q.va=(rng.nextFloat()-.5f)*900;
+            q.life=1.6f+rng.nextFloat();q.size=1+rng.nextFloat()*1.6f;q.g=1500;int c=colorNear(q.x,q.y);q.r=((c>>>24)&0xff)/255f;q.gc=((c>>>16)&0xff)/255f;q.b=((c>>>8)&0xff)/255f;q.a=1;parts.add(q);}
+    }
+    private void driveRagdoll(float t,float dt){
+        float since=t-r.bodyAt;
+        if(!bodyStarted&&since>=0){bodyStarted=true;
+            float hitX=W/2f+r.hitX*CHAR_H,hitY=FLOOR+r.hitY*CHAR_H;
+            switch(r.body){
+                case SLUMP->{rag.pinRoot=false;rag.posture=.35f;rag.push(rag.root,90*r.bodyDir,80,-110*r.bodyDir,dt);}
+                case TOPPLE->{rag.pinRoot=false;rag.posture=.05f;rag.push(rag.root,320*r.bodyDir,220,-260*r.bodyDir,dt);}
+                case FLY_BACK->{rag.pinRoot=false;rag.posture=.04f;rag.pushAll(560*r.bodyDir,420,dt);rag.push(rag.root,0,0,-260*r.bodyDir,dt);}
+                case COLLAPSE->{rag.pinRoot=false;rag.posture=0;rag.breakAll();for(var p:rag.pieces)rag.push(p,(rng.nextFloat()-.5f)*220,rng.nextFloat()*120,(rng.nextFloat()-.5f)*500,dt);}
+                case SHATTER->{rag.pinRoot=false;rag.posture=0;rag.breakAll();rag.blast(hitX,hitY,r.shatterPower,rng,dt);}
+                case SINK->{rag.floorOn=false;rag.posture=.25f;}
+                case LIFT->rag.posture=.08f;
+                default->{}
+            }
+        }
+        if(bodyStarted){
+            if(r.body==Body.SINK){float k=MathUtils.clamp(since/1.9f,0,1);rag.rootOffY=-CHAR_H*1.1f*k*k;rag.rootOffX=MathUtils.sin(since*36)*4*(1-k);}
+            if(r.body==Body.LIFT){float k=MathUtils.clamp(since/1.6f,0,1);rag.rootOffY=CHAR_H*.4f*k*k+MathUtils.sin(since*20)*14*(1-k);rag.rootSpin=MathUtils.sin(since*7)*10;rag.rootOffX=MathUtils.sin(since*4.3f)*20;}
+            if(r.body==Body.SLUMP&&since>0&&since<.6f)rag.posture=.35f-.3f*since/.6f;
+        }
+    }
+    private final float[] qv=new float[20];
+    private void renderRagdoll(){
+        fbo.begin();Gdx.gl.glClearColor(0,0,0,0);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        rec.setProjectionMatrix(fboProj);rec.setTransformMatrix(fboTransform.idt());rec.setColor(Color.WHITE);rec.begin();
+        for(var p:rag.pieces){if(p.removed)continue;float c=MathUtils.cos(p.angle),s=MathUtils.sin(p.angle);
+            for(var q:p.quads){
+                if(rec.getShader()!=q.shader)rec.setShader(q.shader);
+                rec.setBlendFunctionSeparate(q.src,q.dst,GL20.GL_ONE,GL20.GL_ONE_MINUS_SRC_ALPHA);
+                for(int k=0;k<4;k++){int o=k*5;float x=q.v[o],y=q.v[o+1];qv[o]=x*c-y*s+p.tx;qv[o+1]=x*s+y*c+p.ty;qv[o+2]=q.v[o+2];qv[o+3]=q.v[o+3];qv[o+4]=q.v[o+4];}
+                rec.draw(q.texture,qv,0,20);}}
+        rec.end();rec.setShader(null);rec.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
+        fbo.end();
     }
     private void addShard(float[][] p,float neckY){
         float cx=(p[0][0]+p[1][0]+p[2][0])/3,cy=(p[0][1]+p[1][1]+p[2][1])/3;
@@ -171,8 +227,7 @@ public final class DeathActor implements Disposable {
     // ---------------- particles ----------------
     private void spawn(DeathRecipe.Emit e,int n){
         float cx=W/2f+e.x*CHAR_H,cy=FLOOR+e.y*CHAR_H;
-        if(impacted&&r.body==Body.SINK){cy+=groups[0].oy;}
-        if(r.body==Body.LIFT&&impacted)cy+=groups[0].oy;
+        if(impacted&&(r.body==Body.SINK||r.body==Body.LIFT))cy+=rag!=null?rag.rootOffY:groups[0].oy;
         for(int i=0;i<n;i++){Part p=new Part();p.type=e.type;p.seed=rng.nextFloat();
             p.x=cx+(rng.nextFloat()*2-1)*e.spreadX*CHAR_H;p.y=cy+(rng.nextFloat()*2-1)*e.spreadY*CHAR_H;
             float ang=e.angle+(rng.nextFloat()-.5f)*e.angleSpread,sp=Math.abs(e.speed)*(.35f+rng.nextFloat()*.9f);
@@ -235,8 +290,8 @@ public final class DeathActor implements Disposable {
         shader.setUniformf("u_clip",r.body==Body.SINK&&impacted?y+FLOOR-2:-1e5f);
         float fade=Float.isNaN(r.fadeAt)?1:1-smooth((t-r.fadeAt)/r.fadeDur);
         int vc=0;float packed=Color.toFloatBits(1f,1f,1f,alpha*fade);
-        if(!impacted){
-            // live character: one quad (two triangles)
+        if(!impacted||rag!=null){
+            // live character / ragdoll frame: one quad (two triangles)
             float[] q={0,0,W,0,W,H,0,0,W,H,0,H};
             if(verts.length<30)verts=new float[30];if(tris.length<6){tris=new short[6];}
             for(int k=0;k<6;k++){int o=k*5;verts[o]=x+q[k*2];verts[o+1]=y+q[k*2+1];verts[o+2]=packed;verts[o+3]=q[k*2]/W;verts[o+4]=q[k*2+1]/H;}
@@ -259,7 +314,7 @@ public final class DeathActor implements Disposable {
         float fire=fireLevel(t);
         if(fire>0){batch.setShader(tex.fire);batch.setBlendFunction(GL20.GL_ONE,GL20.GL_ONE);batch.begin();
             tex.fire.setUniformf("u_time",time);tex.fire.setUniformf("u_fire",fire);tex.fire.setUniformf("u_burn",burn*1.08f);tex.fire.setUniformf("u_dir",r.burnDir);
-            tex.fire.setUniformf("u_offY",impacted?groups[0].oy/H:0);
+            tex.fire.setUniformf("u_offY",impacted&&rag==null?groups[0].oy/H:0);
             tex.fire.setUniformf("u_col",((r.fireColor>>>24)&0xff)/255f,((r.fireColor>>>16)&0xff)/255f,((r.fireColor>>>8)&0xff)/255f);
             float top=H*1.18f,pf=Color.toFloatBits(1f,1f,1f,alpha);float[] q={0,0,W,0,W,top,0,0,W,top,0,top};float[] fv=new float[30];
             for(int i=0;i<6;i++){int o=i*5;fv[o]=x+q[i*2];fv[o+1]=y+q[i*2+1];fv[o+2]=pf;fv[o+3]=q[i*2]/W;fv[o+4]=q[i*2+1]/H;}
@@ -330,21 +385,25 @@ public final class DeathActor implements Disposable {
     }
     /** Flame strength: grows in, roars, dies down. */
     public float fireLevel(float t){if(Float.isNaN(r.fireAt))return 0;float k=(t-r.fireAt)/r.fireDur;if(k<=0||k>=1)return 0;
-        return r.fireAmount*smooth(k/.25f)*(1-smooth((k-.7f)/.3f))*(.85f+.15f*MathUtils.sin(time*17)*MathUtils.sin(time*7.3f));}
+        return .72f*r.fireAmount*smooth(k/.25f)*(1-smooth((k-.7f)/.3f))*(.85f+.15f*MathUtils.sin(time*17)*MathUtils.sin(time*7.3f));}
     private void drawShadows(PolygonSpriteBatch b,DeathTextures tex,float x,float y,float t,float alpha){
         float burn=Float.isNaN(r.burnAt)?0:MathUtils.clamp((t-r.burnAt)/r.burnDur,0,1);
         float body=1-burn;if(impacted&&(r.body==Body.SHATTER||r.body==Body.COLLAPSE)&&t>r.bodyAt)body*=Math.max(0,1-(t-r.bodyAt)*3);
-        if(impacted&&r.body==Body.SINK)body*=1-MathUtils.clamp(-groups[0].oy/(CHAR_H*.6f),0,1);
-        if(impacted&&r.body==Body.LIFT)body*=1-MathUtils.clamp(groups[0].oy/(CHAR_H*.5f),0,.7f);
-        float bx=x+W/2f+(impacted?groups[0].ox:0);
-        if(impacted&&r.body==Body.TOPPLE)bx+=MathUtils.sinDeg(-groups[0].ang)*CHAR_H*.3f;
+        float oy=impacted?(rag!=null?rag.rootOffY:groups[0].oy):0;
+        if(impacted&&r.body==Body.SINK)body*=1-MathUtils.clamp(-oy/(CHAR_H*.6f),0,1);
+        if(impacted&&r.body==Body.LIFT)body*=1-MathUtils.clamp(oy/(CHAR_H*.5f),0,.7f);
+        if(rag!=null&&(r.body==Body.SHATTER||r.body==Body.COLLAPSE))body=Math.max(body,.6f*(1-burn));
+        float bx=x+W/2f+(impacted?(rag!=null?rag.centerX(rag.root)-W/2f:groups[0].ox):0);
+        if(impacted&&rag==null&&r.body==Body.TOPPLE)bx+=MathUtils.sinDeg(-groups[0].ang)*CHAR_H*.3f;
         b.setColor(0,0,0,.7f*alpha*body);b.draw(tex.soft,bx-190,y+FLOOR-30,380,60);
-        if(impacted&&r.head==Head.FLY){Group g=groups[1];float hx=x+tx(g,g.pivotX,g.pivotY),hh=ty(g,g.pivotX,g.pivotY)-FLOOR;float k=MathUtils.clamp(1-hh/500,0,1);
+        if(impacted&&rag!=null&&rag.head!=null&&r.head==Head.FLY){float hx=x+rag.centerX(rag.head),hh=rag.centerY(rag.head)-FLOOR;float k=MathUtils.clamp(1-hh/500,0,1);
+            b.setColor(0,0,0,.6f*alpha*k);float w=90+60*k;b.draw(tex.soft,hx-w/2,y+FLOOR-14,w,28);}
+        else if(impacted&&r.head==Head.FLY){Group g=groups[1];float hx=x+tx(g,g.pivotX,g.pivotY),hh=ty(g,g.pivotX,g.pivotY)-FLOOR;float k=MathUtils.clamp(1-hh/500,0,1);
             b.setColor(0,0,0,.6f*alpha*k);float w=90+60*k;b.draw(tex.soft,hx-w/2,y+FLOOR-14,w,28);}
         b.setColor(Color.WHITE);
     }
     private static float fadeTail(float k){return k<.75f?1:1-(k-.75f)/.25f;}
     private static float smooth(float t){t=MathUtils.clamp(t,0,1);return t*t*(3-2*t);}
 
-    @Override public void dispose(){fbo.dispose();if(frozen!=null)frozen.dispose();}
+    @Override public void dispose(){rec.dispose();fbo.dispose();if(frozen!=null)frozen.dispose();}
 }

@@ -86,7 +86,7 @@ public final class DeathPost implements Disposable {
             if(u_shock.x>=0.0){float x=(dist-u_shock.x)/.045;float ring=exp(-x*x)*u_shock.y;uv-=normalize(d+1e-5)*ring*.035;}
             vec2 ab=d*u_ab*.03;
             vec3 c=vec3(texture2D(u_texture,uv+ab).r,texture2D(u_texture,uv).g,texture2D(u_texture,uv-ab).b);
-            c+=texture2D(u_bloom,uv).rgb*.55;
+            c+=texture2D(u_bloom,uv).rgb*.4;
             float l=dot(c,vec3(.299,.587,.114));c=mix(c,vec3(l)*vec3(1.02,.98,.95),u_desat);
             vec2 vq=(v_uv-.5)*vec2(1.25,1.05);c*=smoothstep(1.05,.32,length(vq));
             c+=(h(v_uv*vec2(1920.0,1080.0)+fract(u_time*7.0)*100.0)-.5)*.045;
