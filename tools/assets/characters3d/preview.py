@@ -3,7 +3,7 @@ import bpy,sys,math,os
 a=sys.argv[sys.argv.index('--')+1:];D,OUT=a[0],a[1];names=a[2:] or ['skeleton','dracula','pumpkin','voodoo','ghost','zombie','plague_doctor','puppeteer']
 tiles=[]
 for n in names:
-    for ang in (0,180):
+    for ang in (0,):
         bpy.ops.wm.read_factory_settings(use_empty=True);sc=bpy.context.scene
         p=f'{D}/{n}.glb'
         if os.path.exists(p):bpy.ops.import_scene.gltf(filepath=p)

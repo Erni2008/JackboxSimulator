@@ -7,9 +7,9 @@ for n in names:
         bpy.context.view_layer.objects.active=o;o.select_set(True)
         arm=[m for m in o.modifiers if m.type=='ARMATURE']
         bpy.ops.object.mode_set(mode='EDIT');bpy.ops.mesh.select_all(action='SELECT');bpy.ops.mesh.remove_doubles(threshold=.0015);bpy.ops.mesh.normals_make_consistent(inside=False);bpy.ops.object.mode_set(mode='OBJECT')
-        sm=o.modifiers.new('ls','LAPLACIANSMOOTH');sm.iterations=4;sm.lambda_factor=.5;sm.use_volume_preserve=True;sm.use_normalized=True
+        sm=o.modifiers.new('ls','LAPLACIANSMOOTH');sm.iterations=0;sm.lambda_factor=.5;sm.use_volume_preserve=True;sm.use_normalized=True
         bpy.ops.object.modifier_move_to_index(modifier='ls',index=0);bpy.ops.object.modifier_apply(modifier='ls')
-        cs=o.modifiers.new('sm','SMOOTH');cs.iterations=2;cs.factor=.4;bpy.ops.object.modifier_move_to_index(modifier='sm',index=0);bpy.ops.object.modifier_apply(modifier='sm')
+        cs=o.modifiers.new('sm','SMOOTH');cs.iterations=0;cs.factor=.4;bpy.ops.object.modifier_move_to_index(modifier='sm',index=0);bpy.ops.object.modifier_apply(modifier='sm')
         bpy.ops.object.shade_smooth()
         for slot in o.material_slots:
             m=slot.material
