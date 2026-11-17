@@ -19,7 +19,7 @@ export class RaceApp {
   readonly renderer: THREE.WebGLRenderer; readonly scene = new THREE.Scene(); readonly camera = new THREE.PerspectiveCamera(55, 1, .3, 900);
   course: Course; readonly night: boolean; readonly manor: boolean; readonly crypt: boolean; readonly limit: number; runners: Runner[] = []; me!: Runner; clock = 0; private acc = 0;
   private sun!: THREE.DirectionalLight; private fill!: THREE.DirectionalLight; private mist: THREE.Mesh[] = []; private pollen!: THREE.Points; private puffs: {s: THREE.Sprite; t: number}[] = []; private grassMat?: THREE.Material; private looks = new Map<Runner, Look>(); private blockMeshes = new Map<Block, THREE.Mesh>();
-  private sweeperMeshes: THREE.Object3D[] = []; private cpArches: {glow: THREE.Mesh; flag: THREE.Mesh; lit: boolean}[] = []; private lastCp = 0; private pend: THREE.Object3D[] = []; private rams: THREE.Object3D[] = []; private padMeshes: THREE.Mesh[] = []; private warnPlanes = new Map<Block, THREE.Mesh>(); private belts: THREE.Texture[] = []; private composer?: EffectComposer; private lastSection = ''; private ghosts: THREE.MeshStandardMaterial[] = []; private lastTp = 0; private ray = new THREE.Raycaster(); private faded = new Set<THREE.Mesh>(); private mazeBlend = 0; private portalFx: THREE.Object3D[] = []; private boulderPool: THREE.Object3D[] = [];
+  private sweeperMeshes: THREE.Object3D[] = []; private cpArches: {glow: THREE.Mesh; flag: THREE.Mesh; lit: boolean}[] = []; private lastCp = 0; private pend: THREE.Object3D[] = []; private rams: THREE.Object3D[] = []; private padMeshes: THREE.Mesh[] = []; private warnPlanes = new Map<Block, THREE.Mesh>(); private belts: THREE.Texture[] = []; private composer?: EffectComposer; private lastSection = ''; private ghosts: THREE.MeshStandardMaterial[] = []; private lastTp = 0; private ray = new THREE.Raycaster(); private faded = new Set<THREE.Mesh>(); private soft: THREE.Mesh[] = []; private jetFx: {j: any; o: THREE.Object3D; f: THREE.Object3D}[] = []; private mazeBlend = 0; private portalFx: THREE.Object3D[] = []; private boulderPool: THREE.Object3D[] = [];
   private gltf = new GLTFLoader(); private texLoader = new THREE.TextureLoader(); private cache = new Map<string, Promise<GLTF>>();
   private camTarget = new THREE.Vector3(); private pixelRatio: number; private frameAvg = 16; private last = 0;
   private blobs = new Map<Runner, THREE.Mesh>();   private dots = new Map<Runner, HTMLElement>(); private keys = new Set<string>(); private stick = {id: -1, ox: 0, oy: 0, x: 0, y: 0}; private hud: HTMLElement;
@@ -29,7 +29,7 @@ export class RaceApp {
     const phone = matchMedia('(pointer:coarse)').matches;
     this.renderer = new THREE.WebGLRenderer({antialias: !phone || devicePixelRatio < 2, powerPreference: 'high-performance'});
     this.pixelRatio = Math.min(devicePixelRatio, phone ? 1.5 : 1.35); this.renderer.setPixelRatio(this.pixelRatio);
-    this.renderer.outputColorSpace = THREE.SRGBColorSpace; this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.05;
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace; this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.15;
     this.renderer.shadowMap.enabled = true; this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     host.appendChild(this.renderer.domElement);
     this.hud = document.getElementById('hud')!;
@@ -104,6 +104,16 @@ export class RaceApp {
       const glow = new THREE.Sprite(new THREE.SpriteMaterial({map: dotTexture(true), color: 0x44ffb0, transparent: true, opacity: .7, depthWrite: false, blending: THREE.AdditiveBlending})); glow.scale.setScalar(4.2); glow.position.y = 1.35; g.add(glow);
       const pool = new THREE.Mesh(new THREE.CircleGeometry(1.8, 24).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({map: dotTexture(true), color: 0x2affa0, transparent: true, opacity: .4, depthWrite: false, blending: THREE.AdditiveBlending})); pool.position.y = .04; g.add(pool);
       g.userData.disc = disc; this.portalFx.push(g); this.scene.add(g);}
+    // fire jets and hammers
+    for (const j of this.course.jets) {const g = new THREE.Group(); g.position.set(j.x, j.y, j.z);
+      if (j.kind === 'fire') {const grate = new THREE.Mesh(new THREE.CylinderGeometry(.75, .8, .08, 20), new THREE.MeshStandardMaterial({color: 0x1b1714, metalness: .8, roughness: .5, emissive: 0xff3a00, emissiveIntensity: 0})); grate.position.y = .04; g.add(grate);
+        const fl = new THREE.Group(); for (let k = 0; k < 3; k++) {const sp = new THREE.Sprite(new THREE.SpriteMaterial({map: dotTexture(true), color: k ? 0xff7a1a : 0xffe08a, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending})); sp.scale.set(1.6 - k * .3, 2.8 - k * .5, 1); sp.position.y = 1.2 + k * .5; fl.add(sp);} g.add(fl);
+        this.jetFx.push({j, o: grate, f: fl});}
+      else {const hm = new THREE.Group(); const head = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 1.1, 24), new THREE.MeshStandardMaterial({color: 0x3a3632, metalness: .9, roughness: .35})); head.castShadow = true;
+        const rod = new THREE.Mesh(new THREE.CylinderGeometry(.18, .18, 8, 10), new THREE.MeshStandardMaterial({color: 0x2a2622, metalness: .9, roughness: .4})); rod.position.y = 4.5; hm.add(head, rod);
+        const mark = new THREE.Mesh(new THREE.RingGeometry(1.3, 1.5, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({color: 0xff3a1a, transparent: true, opacity: 0, depthWrite: false})); mark.position.y = .04; g.add(hm, mark);
+        this.jetFx.push({j, o: mark, f: hm});}
+      this.scene.add(g);}
     // spring pads
     for (const p of this.course.pads) {const ring = new THREE.Mesh(new THREE.CylinderGeometry(p.r, p.r * 1.08, .22, 32), new THREE.MeshStandardMaterial({color: 0x24180e, metalness: .6, roughness: .4})); ring.position.set(p.x, p.y + .11, p.z); this.scene.add(ring);
       const top = new THREE.Mesh(new THREE.CircleGeometry(p.r * .86, 32).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({map: padTexture(), emissive: 0xffb23a, emissiveMap: padTexture(), emissiveIntensity: 1.1, roughness: .5})); top.position.set(p.x, p.y + .23, p.z); this.padMeshes.push(top); this.scene.add(top);}
@@ -132,7 +142,7 @@ export class RaceApp {
 
   private async addLook(r: Runner) {
     const g = await this.model(`chars/${r.character}.glb`);
-    const root = SkeletonUtils.clone(g.scene); root.traverse(o => {const m = o as THREE.Mesh; if (m.isMesh) {m.castShadow = true; m.frustumCulled = false; const mm = m.material as THREE.MeshStandardMaterial; mm.side = THREE.DoubleSide; mm.envMapIntensity = 1.4; mm.roughness = .65;}});
+    const root = SkeletonUtils.clone(g.scene); root.traverse(o => {const m = o as THREE.Mesh; if (m.isMesh) {m.castShadow = true; m.frustumCulled = false; const mm = m.material as THREE.MeshStandardMaterial; mm.side = THREE.DoubleSide; mm.envMapIntensity = 1.6; mm.roughness = .6; mm.emissive = new THREE.Color(1, 1, 1); mm.emissiveMap = mm.map; mm.emissiveIntensity = .38; mm.color.multiplyScalar(1.25);}});
     const blob = new THREE.Mesh(new THREE.CircleGeometry(.55, 24).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({map: dotTexture(true), color: 0x000000, transparent: true, opacity: .55, depthWrite: false})); blob.renderOrder = 1; this.scene.add(blob); this.blobs.set(r, blob);
     this.scene.add(root); const mixer = new THREE.AnimationMixer(root); const acts: Record<string, THREE.AnimationAction> = {};
     for (const clip of g.animations) {const a = mixer.clipAction(clip); acts[clip.name] = a; if (clip.name === 'jump' || clip.name === 'stun') {a.setLoop(clip.name === 'stun' ? THREE.LoopRepeat : THREE.LoopOnce, Infinity); a.clampWhenFinished = true;}}
@@ -189,9 +199,10 @@ export class RaceApp {
       for (const sg of [-1, 1]) {const post = new THREE.Mesh(new THREE.CylinderGeometry(.18, .22, 4.2, 10), postMat); post.position.set(sg * w, y + 2.1, cz); post.castShadow = true; this.scene.add(post);
         const cap = new THREE.Mesh(new THREE.SphereGeometry(.28, 12, 8), new THREE.MeshStandardMaterial({color: 0x222018, emissive: 0xffa040, emissiveIntensity: 1.6})); cap.position.set(sg * w, y + 4.35, cz); this.scene.add(cap);
         const halo = new THREE.Sprite(new THREE.SpriteMaterial({map: dotTexture(true), color: 0xffa040, transparent: true, opacity: .8, depthWrite: false, blending: THREE.AdditiveBlending})); halo.scale.setScalar(2.2); halo.position.copy(cap.position); this.scene.add(halo);}
+      const flagM = 0; void flagM;
       const flag = new THREE.Mesh(new THREE.PlaneGeometry(w * 2 - .6, .9), new THREE.MeshStandardMaterial({map: flagTexture(), side: THREE.DoubleSide, roughness: .8, emissive: 0x000000, emissiveMap: flagTexture(), emissiveIntensity: .9}));
-      flag.position.set(0, y + 3.7, cz); flag.rotation.y = Math.PI; this.scene.add(flag);
-      const rope = new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, w * 2, 6).rotateZ(Math.PI / 2), new THREE.MeshStandardMaterial({color: 0x2a2018})); rope.position.set(0, y + 4.2, cz); this.scene.add(rope);
+      flag.position.set(0, y + 3.7, cz); flag.rotation.y = Math.PI; this.scene.add(flag); this.soft.push(flag);
+      const rope = new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, w * 2, 6).rotateZ(Math.PI / 2), new THREE.MeshStandardMaterial({color: 0x2a2018})); rope.position.set(0, y + 4.2, cz); this.scene.add(rope); this.soft.push(rope);
       const glow = new THREE.Mesh(new THREE.PlaneGeometry(w * 2, .7).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({color: 0x6fd3ff, transparent: true, opacity: .4, depthWrite: false, blending: THREE.AdditiveBlending}));
       glow.position.set(0, y + .03, cz); glow.renderOrder = 3; this.scene.add(glow);
       this.cpArches.push({glow, flag, lit: false});
@@ -414,6 +425,8 @@ export class RaceApp {
     c.pads.forEach((p, i) => {const k = Math.max(0, 1 - (c.time - p.fired) * 4); this.padMeshes[i].position.y = p.y + .23 + k * .25; (this.padMeshes[i].material as THREE.MeshStandardMaterial).emissiveIntensity = 1 + Math.sin(c.time * 6) * .3 + k * 3;});
     for (const [b, w] of this.warnPlanes) {w.visible = b.warn && !b.gone; (w.material as THREE.MeshBasicMaterial).opacity = .35 + .35 * Math.sin(c.time * 28);}
     for (const t of this.belts) t.offset.y = (t.offset.y + dt * .9) % 1;
+    for (const {j, o, f} of this.jetFx) {if (j.kind === 'fire') {f.visible = j.state === 2; f.scale.y = .8 + Math.random() * .4; ((o as THREE.Mesh).material as THREE.MeshStandardMaterial).emissiveIntensity = j.state === 1 ? 1 + Math.sin(c.time * 30) : j.state === 2 ? 2 : 0;}
+      else {const tgt = j.state === 2 ? .55 : j.state === 1 ? 3.2 : 4.2; f.position.y += (tgt - f.position.y) * Math.min(1, dt * (j.state === 2 ? 30 : 4)); ((o as THREE.Mesh).material as THREE.MeshBasicMaterial).opacity = j.state === 1 ? .5 + .4 * Math.sin(c.time * 25) : j.state === 2 ? .8 : 0;}}
     for (const gm of this.ghosts) gm.emissiveIntensity = .025 * Math.max(0, Math.sin(c.time * 1.3)) ** 8;
     this.portalFx.forEach((g, i) => {g.userData.disc.rotation.z -= dt * 2.4; const p = c.portals[i]; (g.userData.disc.material as THREE.MeshBasicMaterial).opacity = .7 + .25 * Math.sin(c.time * 5 + i) + (c.time - p.used < .4 ? .5 : 0);});
     const tp = (this.me as any).teleported; if (tp && tp !== this.lastTp) {this.lastTp = tp; this.camTarget.set(this.me.x, this.me.y, this.me.z); const pk = c.portals.find(p => c.time - p.used < .1); this.toast(pk?.kind === 'far' ? 'ДАЛЕКО ВПЕРЁД!' : pk?.kind === 'back' ? 'НАЗАД!' : 'ТЕЛЕПОРТ!'); this.puff(this.me.x, this.me.y, this.me.z, 1.6);}
@@ -443,6 +456,7 @@ export class RaceApp {
     {const head = new THREE.Vector3(me.x, me.y + 1.1, me.z);
       for (const m of this.faded) {const mats = m.material as THREE.Material[]; mats.forEach(x => {(x as any).opacity = Math.min(1, (x as any).opacity + dt * 4); if ((x as any).opacity >= 1) x.transparent = false;});}
       for (let pass = 0; pass < 3; pass++) {const dir = this.camera.position.clone().sub(head), dist = dir.length(); dir.normalize(); this.ray.set(head, dir); this.ray.far = dist;
+        for (const f of this.soft) {const hz = Math.abs(f.position.z - me.z) < 1 ? 0 : 1; const fd = this.camera.position.z < f.position.z && me.z > f.position.z - .5 ? .15 : 1; const mt = f.material as THREE.MeshStandardMaterial; mt.transparent = true; mt.opacity += (fd - mt.opacity) * Math.min(1, dt * 8); void hz;}
         const occ: THREE.Mesh[] = []; for (const [b, m] of this.blockMeshes) if (m.visible && Math.abs((b.z0 + b.z1) / 2 - me.z) < 30) occ.push(m);
         const hit = this.ray.intersectObjects(occ, false)[0]; if (!hit) break; const mesh = hit.object as THREE.Mesh, blk = [...this.blockMeshes].find(([, m]) => m === mesh)?.[0];
         if (blk?.wall) {if (!(mesh.material as any).__own) {mesh.material = (mesh.material as THREE.Material[]).map(x => x.clone()); (mesh.material as any).__own = true;}
