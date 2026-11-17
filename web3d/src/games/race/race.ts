@@ -164,7 +164,7 @@ export class RaceApp {
 
   private async addLook(r: Runner) {
     const g = await this.model(`chars/${r.character}.glb`);
-    const root = SkeletonUtils.clone(g.scene); root.traverse(o => {const m = o as THREE.Mesh; if (m.isMesh) {m.castShadow = true; m.frustumCulled = false; const mm = m.material as THREE.MeshStandardMaterial; mm.side = THREE.DoubleSide; mm.envMapIntensity = 1.6; mm.roughness = .6; mm.emissive = new THREE.Color(1, 1, 1); mm.emissiveMap = mm.map; mm.emissiveIntensity = .38; mm.color.multiplyScalar(1.25);}});
+    const root = SkeletonUtils.clone(g.scene); root.traverse(o => {const m = o as THREE.Mesh; if (m.isMesh) {m.castShadow = true; m.frustumCulled = false; const mm = m.material as THREE.MeshStandardMaterial; mm.side = THREE.DoubleSide; mm.envMapIntensity = 1.6; mm.roughness = .6; mm.emissive = new THREE.Color(1, 1, 1); mm.emissiveMap = mm.map; mm.emissiveIntensity = .15;}});
     const blob = new THREE.Mesh(new THREE.CircleGeometry(.55, 24).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({map: dotTexture(true), color: 0x000000, transparent: true, opacity: .55, depthWrite: false})); blob.renderOrder = 1; this.scene.add(blob); this.blobs.set(r, blob);
     this.scene.add(root); const mixer = new THREE.AnimationMixer(root); const acts: Record<string, THREE.AnimationAction> = {};
     for (const clip of g.animations) {const a = mixer.clipAction(clip); acts[clip.name] = a; if (clip.name === 'jump' || clip.name === 'stun') {a.setLoop(clip.name === 'stun' ? THREE.LoopRepeat : THREE.LoopOnce, Infinity); a.clampWhenFinished = true;}}
