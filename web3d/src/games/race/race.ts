@@ -323,7 +323,7 @@ export class RaceApp {
         const wc = add(new THREE.Mesh(plane(len, 1.3, 2), mats.beam), false); wc.position.set(sd * (r.halfW - .03), r.y + .65, zc); wc.rotation.y = -sd * Math.PI / 2;
         const rail = add(new THREE.Mesh(new THREE.BoxGeometry(.12, .14, len), mats.beam), false); rail.position.set(sd * (r.halfW - .06), r.y + 1.32, zc);
         const ao = add(new THREE.Mesh(new THREE.PlaneGeometry(len, 1.2), new THREE.MeshBasicMaterial({map: aoTexture(), transparent: true, depthWrite: false, color: 0})), false); ao.rotation.set(-Math.PI / 2, 0, -sd * Math.PI / 2 + Math.PI / 2); ao.position.set(sd * (r.halfW - .6), r.y + .02, zc);
-        for (let z = r.z0 + 1; z < r.z1; z += 4) {const post = add(new THREE.Mesh(new THREE.BoxGeometry(.5, r.h + 1, .5), mats.beam)); post.position.set(sd * (r.halfW - .25), r.y + r.h / 2 - .5, z);}}
+        for (let z = Math.ceil((r.z0 + 1) / 8) * 8; z < r.z1; z += 8) {const post = add(new THREE.Mesh(new THREE.BoxGeometry(.5, r.h + 1, .5), mats.beam)); post.position.set(sd * (r.halfW - .25), r.y + r.h / 2 - .5, z);}}
       if (prevW > 0 && prevW !== r.halfW) for (const sd of [-1, 1]) {const a = Math.min(prevW, r.halfW), b = Math.max(prevW, r.halfW); const j = add(new THREE.Mesh(plane(b - a, H + 4, 3), mats.wall)); j.position.set(sd * (a + b) / 2, base + (H + 4) / 2, r.z0); if (prevW < r.halfW) j.rotation.y = Math.PI;}
       prevW = r.halfW;
       // ceiling: boards with barred skylights every 8 m, beams across every 4 m
@@ -333,7 +333,14 @@ export class RaceApp {
         else {const ce = add(new THREE.Mesh(plane(r.halfW * 2, seg, 2.5), mats.beam)); ce.rotation.x = Math.PI / 2; ce.position.set(0, top + .05, z + seg / 2);
           const lid = add(new THREE.Mesh(new THREE.BoxGeometry(r.halfW * 2 + 2, .3, seg), new THREE.MeshBasicMaterial({color: 0}))); lid.position.set(0, top + .4, z + seg / 2);}
         z += seg;}
-      for (let zz = r.z0 + 1; zz < r.z1; zz += 4) {const bm = add(new THREE.Mesh(new THREE.BoxGeometry(r.halfW * 2, .45, .45), mats.beam)); bm.position.set(0, top - .25, zz);}
+      for (let zz = Math.ceil((r.z0 + 1) / 8) * 8; zz < r.z1; zz += 8) {const bm = add(new THREE.Mesh(new THREE.BoxGeometry(r.halfW * 2, .45, .45), mats.beam)); bm.position.set(0, top - .25, zz);}
+      // the collector's gallery: his exhibits' portraits in gilded frames, red drapes, a carpet runner
+      for (let zz = Math.ceil(r.z0 / 8) * 8 + 4; zz < r.z1 - 2; zz += 8) for (const sd of [-1, 1]) {if (rnd() < .25) continue;
+        const ch = CHARACTERS[Math.floor(rnd() * CHARACTERS.length)], f = new THREE.Group(); f.position.set(sd * (r.halfW - .06), r.y + 3.1, zz); f.rotation.y = -sd * Math.PI / 2;
+        const frame = new THREE.Mesh(new THREE.BoxGeometry(1.7, 2.1, .12), this.gold); const pic = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.8), this.portrait(ch)); pic.position.z = .075; const back = new THREE.Mesh(new THREE.PlaneGeometry(1.45, 1.85), this.canvasBg); back.position.z = .065; f.add(frame, back, pic);
+        const plate = new THREE.Mesh(new THREE.BoxGeometry(.7, .14, .03), this.gold); plate.position.set(0, -1.2, .06); f.add(plate); this.scene.add(f);}
+      for (let zz = Math.ceil(r.z0 / 8) * 8; zz < r.z1; zz += 8) for (const sd of [-1, 1]) {const d = new THREE.Mesh(new THREE.PlaneGeometry(1.6, r.h - .6, 6, 1), this.drape); d.position.set(sd * (r.halfW - .12), r.y + (r.h - .6) / 2 + .3, zz + sd * .9); d.rotation.y = -sd * Math.PI / 2;
+        const pa = d.geometry.getAttribute('position'); for (let i = 0; i < pa.count; i++) pa.setZ(i, Math.sin(pa.getX(i) * 6) * .08); d.geometry.computeVertexNormals(); this.scene.add(d);}
       // wall lamps with candles
       for (let zz = r.z0 + 3; zz < r.z1 - 1; zz += 7) {const sd = Math.round(zz / 7) % 2 ? 1 : -1; put('caged_hanging_light', sd * (r.halfW - .45), r.y + 2.4, zz, .55, sd > 0 ? -Math.PI / 2 : Math.PI / 2); glows.push(new THREE.Vector3(sd * (r.halfW - .5), r.y + 2.45, zz));}
       // clutter along the walls of wide rooms
@@ -371,7 +378,14 @@ export class RaceApp {
       m.position.set(x - SKY_DIR.x * L / 2, y - L / 2, z - SKY_DIR.z * L / 2); m.rotation.set(Math.atan2(SKY_DIR.z, SKY_DIR.y), rot, 0); this.scene.add(m);}}
     progress(.8);
   }
-  private swingers: THREE.Object3D[] = []; private flames: THREE.Sprite[] = [];
+  private swingers: THREE.Object3D[] = [];
+  private gold = new THREE.MeshStandardMaterial({color: 0xc9962e, metalness: 1, roughness: .35, envMapIntensity: 1.6});
+  private drape = new THREE.MeshStandardMaterial({color: 0x5a0d10, roughness: .85, side: THREE.DoubleSide});
+  private canvasBg = new THREE.MeshStandardMaterial({color: 0x2b1a14, roughness: .9});
+  private portraits = new Map<string, THREE.Material>();
+  private portrait(ch: string) {let m = this.portraits.get(ch); if (!m) {const t = this.texLoader.load(`../hell-cage-host/chars/${ch}.png`); t.colorSpace = THREE.SRGBColorSpace;
+    const c = document.createElement('canvas'); c.width = 4; c.height = 4; m = new THREE.MeshStandardMaterial({map: t, color: 0xd8c8b0, roughness: .7, transparent: true, alphaTest: .05});
+    const bg = new THREE.MeshStandardMaterial({color: 0x2a1410}); void bg; this.portraits.set(ch, m);} return m;} private flames: THREE.Sprite[] = [];
 
   // ---------- graveyard dressing ----------
   private async decorateNight(stone: THREE.Material, progress: (f: number) => void) {
