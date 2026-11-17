@@ -21,36 +21,42 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 public final class SystemBreachRulesFilm implements Disposable {
     public static final float W=1920,H=1080;
     // compact cut: what players can do. Each scene replays a source animation at its own speed.
-    private static final float[] START={0,3.2f,7,12.4f,16.6f,20.6f,25.2f},END={3.2f,7,12.4f,16.6f,20.6f,25.2f,32};
-    private static final float[] SPEED={1,1.45f,1.9f,1,1,1.6f,1.15f};
-    public static final float LENGTH=32;
+    private static final float[] START={0,4.6f,9.2f,15.3f,20.4f,24.4f,30.3f},END={4.6f,9.2f,15.3f,20.4f,24.4f,30.3f,37.7f};
+    private static final float[] SPEED={.8f,1.2f,1.68f,1,1,1.25f,1.06f};
+    public static final float LENGTH=37.7f;
     private static final String[] TAB={"","ОТВЕЧАЙ","ВЗЛАМЫВАЙ","DDoS","ВИРУС","ЗАЩИТА","ПОБЕДА"};
     private static final String[] SUB={
-        "",
-        "Отвечай на вопросы — каждый верный ответ приносит души.",
-        "Взламывай соперников: угадай пароль и забери их души себе.",
-        "Запускай DDoS — у цели на 10 секунд тормозят кнопки.",
-        "Заражай вирусами — ломай экраны соперникам.",
-        "Защищайся: фаервол отбивает атаки, приманка ловит хакера.",
-        "У кого в конце больше всего душ — тот победил."};
+        "Добро пожаловать в систему. Сегодня каждый из вас — хакер.",
+        "Отвечайте на вопросы — каждый верный ответ приносит вам души.",
+        "Взламывайте соперников: угадайте пароль — и заберите их души себе.",
+        "Запустите DDoS — и у жертвы на десять секунд зависнут кнопки.",
+        "Заражайте вирусами — ломайте экраны соперников.",
+        "Защищайтесь: фаервол отбивает атаки, а приманка ловит самого хакера.",
+        "У кого в конце больше всего душ — тот и победил. Готовы? Взламываем!"};
     private static final Color CYAN=new Color(.25f,.86f,1,1),GREEN=new Color(.3f,1,.55f,1),RED=new Color(1,.27f,.3f,1),
         VIOLET=new Color(.72f,.42f,1,1),AMBER=new Color(1,.72f,.2f,1),INK=new Color(.03f,.06f,.11f,1),PANEL=new Color(.05f,.1f,.17f,1),WHITE=new Color(.92f,.97f,1,1);
     private final SystemBreachHostAssets assets;private final boolean ownAssets;
     private final SpriteBatch batch=new SpriteBatch();private final ShapeRenderer shapes=new ShapeRenderer();
     private final FitViewport viewport=new FitViewport(W,H);private final GlyphLayout gl=new GlyphLayout();
-    private float time,skipAt=-1;private boolean hover;private final com.badlogic.gdx.math.Vector2 tmp=new com.badlogic.gdx.math.Vector2();private int pass;private ShapeRenderer r;private SpriteBatch b;
+    private final com.badlogic.gdx.audio.Sound[] voice=new com.badlogic.gdx.audio.Sound[7];private com.badlogic.gdx.audio.Sound whoosh;private int voiced=-1;private float time,skipAt=-1;private boolean hover;private final com.badlogic.gdx.math.Vector2 tmp=new com.badlogic.gdx.math.Vector2();private int pass;private ShapeRenderer r;private SpriteBatch b;
     private static final String GLYPHS="ABCDEFGHJKLMNPQRSTUVWXYZ0123456789#$%&@";
 
     public SystemBreachRulesFilm(boolean ru){this(new SystemBreachHostAssets(ru),true);}
-    SystemBreachRulesFilm(SystemBreachHostAssets a,boolean own){assets=a;ownAssets=own;}
+    SystemBreachRulesFilm(SystemBreachHostAssets a,boolean own){assets=a;ownAssets=own;
+        if(Gdx.audio!=null)try{for(int i=0;i<voice.length;i++){var f=Gdx.files.internal("system_breach/rules/rules_"+i+".wav");if(f.exists())voice[i]=Gdx.audio.newSound(f);}
+            var w=Gdx.files.internal("system_breach/sfx/whoosh.wav");if(w.exists())whoosh=Gdx.audio.newSound(w);}catch(RuntimeException ignored){}}
+    private void audio(){
+        if(skipAt>=0){for(var v:voice)if(v!=null)v.stop();return;}
+        int s=scene();if(s!=voiced&&time-START[s]>=.2f){voiced=s;if(voice[s]!=null)voice[s].play(1);if(whoosh!=null&&s>0)whoosh.play(.18f);}
+    }
     public void resize(int w,int h){viewport.update(w,h,true);}
     public boolean done(){return time>=LENGTH||(skipAt>=0&&time-skipAt>=.45f);}
     public void skip(){if(skipAt<0)skipAt=time;}
-    public void seek(float t){time=t;skipAt=-1;}
+    public void seek(float t){time=t;skipAt=-1;voiced=-1;for(var v:voice)if(v!=null)v.stop();}
     public float time(){return time;}
 
     public void render(float dt){
-        time=Math.min(LENGTH,time+Math.min(dt,.1f));input();
+        time=Math.min(LENGTH,time+Math.min(dt,.1f));input();audio();
         ScreenUtils.clear(INK);viewport.apply();
         shapes.setProjectionMatrix(viewport.getCamera().combined);batch.setProjectionMatrix(viewport.getCamera().combined);
         Gdx.gl.glEnable(GL20.GL_BLEND);
@@ -191,7 +197,7 @@ public final class SystemBreachRulesFilm implements Disposable {
             text(assets.digits,shown,fx,fy+30,c,a,.6f);
             text(assets.log,miss?"НЕВЕРНО":t>6.2f?"ДОСТУП ПОЛУЧЕН":"ПОДБОР ПАРОЛЯ…",fx,fy-70,miss?RED:t>6.2f?GREEN:WHITE,a*.9f,1);}
         // stamp on target
-        float st=k(t,6.2f,6.5f);if(st>0){float sc=1+.6f*(1-ease(st));
+        float st=k(t,5.4f,5.7f);if(st>0){float sc=1+.6f*(1-ease(st));
             if(pass==0)panel(tx-170*sc,y+170-30*sc,340*sc,60*sc,RED,a*st);
             if(pass==2)glow(tx,y+170,300,RED,.4f*a*st);
             if(pass==1)text(assets.board,"ВЗЛОМАН",tx,y+170+14,RED,a*st,1.3f*sc);}
@@ -288,7 +294,7 @@ public final class SystemBreachRulesFilm implements Disposable {
     private static final String[] FIN={"skeleton","dracula","pumpkin","voodoo"};
     private void finale(float t,float a){
         heading("ПОБЕЖДАЙ",t,a,GREEN);headingBar(t,a,GREEN);
-        float go=k(t,5.4f,5.9f);float a0=a;a*=1-go;
+        float go=k(t,4.6f,5.1f);float a0=a;a*=1-go;
         float[] h={.55f,1f,.4f,.7f};float base=230;
         for(int i=0;i<4;i++){float x=W/2-480+i*320;float g=ease(k(t,.4f+.15f*i,2.6f+.15f*i))*h[i]*330;boolean win=i==1;
             if(pass==0){col(win?GREEN:CYAN,a*.85f);r.rect(x-80,base,160,g);col(INK,.35f*a);r.rect(x-80,base+g-6,160,6);}
@@ -299,15 +305,15 @@ public final class SystemBreachRulesFilm implements Disposable {
         a=a0;
         if(go>0){
             if(pass==2)glow(W/2,H/2,900,RED,.3f*a*go);
-            if(pass==1){text(assets.stage,decode("ГОТОВЫ?",k(t,5.4f,6.1f),t),W/2,H/2+110,WHITE,a*go,1.1f);
-                text(assets.stage,decode("ВЗЛАМЫВАЕМ!",k(t,6.3f,7.2f),t),W/2,H/2-40,RED,a*k(t,6.2f,6.5f),1.25f);}}
+            if(pass==1){text(assets.stage,decode("ГОТОВЫ?",k(t,4.6f,5.2f),t),W/2,H/2+110,WHITE,a*go,1.1f);
+                text(assets.stage,decode("ВЗЛАМЫВАЕМ!",k(t,5.5f,6.2f),t),W/2,H/2-40,RED,a*k(t,5.4f,5.7f),1.25f);}}
     }
 
     // ---------- chrome ----------
     private void chromeShapes(int s,float t){
         // subtitle plate
         float a=ease(k(t,.3f,.7f))*(1-ease(k(t,END[s]-START[s]-.35f,END[s]-START[s])));
-        if(s>0){col(Color.BLACK,.62f*a);r.rect(W/2-820,40,1640,110);col(CYAN,.8f*a);r.rect(W/2-820,148,1640,2);}
+        {col(Color.BLACK,.62f*a);r.rect(W/2-820,40,1640,110);col(CYAN,.8f*a);r.rect(W/2-820,148,1640,2);}
         // progress pips
         if(s>0)for(int i=1;i<TAB.length;i++){float x=tabX(i);col(i<s?CYAN:i==s?WHITE:new Color(.2f,.3f,.4f,1),i==s?1:.7f);r.rect(x-70,H-52,140,i==s?5:3);}
         // skip button (top right)
@@ -324,7 +330,7 @@ public final class SystemBreachRulesFilm implements Disposable {
         text(assets.board,"ПРОПУСТИТЬ",W-330+122,H-118+42,hover?WHITE:CYAN,1,.95f);
         text(assets.log,"ENTER / КЛИК",W-330+145,H-140,WHITE,.45f,.9f);
         if(s>0)for(int i=1;i<TAB.length;i++)text(assets.log,TAB[i],tabX(i),H-64,i==s?WHITE:i<s?CYAN:new Color(.45f,.55f,.65f,1),i==s?1:.8f,1);
-        if(s==0)return;float a=ease(k(t,.3f,.7f))*(1-ease(k(t,END[s]-START[s]-.35f,END[s]-START[s])));
+        float a=ease(k(t,.3f,.7f))*(1-ease(k(t,END[s]-START[s]-.35f,END[s]-START[s])));
         String full=SUB[s];int n=Math.min(full.length(),(int)(Math.max(0,t-.3f)*55));
         BitmapFont f=assets.stageName;float sc=.62f;f.getData().setScale(sc);gl.setText(f,full,Color.WHITE,1560,com.badlogic.gdx.utils.Align.center,true);
         float y=95+gl.height/2;f.setColor(WHITE.r,WHITE.g,WHITE.b,a);f.draw(b,full.substring(0,n),W/2-780,y,1560,com.badlogic.gdx.utils.Align.center,true);
@@ -381,5 +387,5 @@ public final class SystemBreachRulesFilm implements Disposable {
     private static float hash(int i){int h=i*374761393+668265263;h=(h^(h>>>13))*1274126177;return ((h^(h>>>16))&0xffffff)/(float)0x1000000;}
     private static float k(float t,float a,float b){return MathUtils.clamp((t-a)/(b-a),0,1);}
     private static float ease(float x){return x*x*(3-2*x);}
-    @Override public void dispose(){batch.dispose();shapes.dispose();if(ownAssets)assets.dispose();}
+    @Override public void dispose(){for(var v:voice)if(v!=null)v.dispose();if(whoosh!=null)whoosh.dispose();batch.dispose();shapes.dispose();if(ownAssets)assets.dispose();}
 }
