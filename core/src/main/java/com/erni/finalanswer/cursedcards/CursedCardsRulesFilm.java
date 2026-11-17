@@ -31,15 +31,15 @@ import java.util.Map;
  */
 public final class CursedCardsRulesFilm implements Disposable {
     public static final float W=1920,H=1080;
-    private static final float[] START={0,5.6f,11.8f,18.6f,25.6f,31.6f,38.6f},END={5.6f,11.8f,18.6f,25.6f,31.6f,38.6f,43.4f};
-    public static final float LENGTH=43.4f;
+    private static final float[] START={0,5.6f,11.8f,18.6f,25.6f,32f,39f},END={5.6f,11.8f,18.6f,25.6f,32f,39f,43.8f};
+    public static final float LENGTH=43.8f;
     private static final String[] TAB={"","РАЗДАЧА","ПАРЫ","ХОД","ПРОКЛЯТИЕ","ИТОГ",""};
     private static final String[] SUB={
         "Добро пожаловать в проклятые карты! Одна из них несёт смерть.",
         "Каждому раздают карты. И где-то среди них прячется карта смерти!",
         "Одинаковые пары сразу сбрасываются. Чем меньше карт, тем вы ближе к спасению.",
         "По очереди вслепую берите одну карту у соседа. Собралась пара? Сбрасывайте её!",
-        "Зрители могут проклясть игрока. Тогда смерть скорее окажется у него в руке!",
+        "Зрители могут проклясть игрока. Тогда с большим шансом смерть окажется именно у него!",
         "Избавились от всех карт? Вы спасены! А у кого осталась смерть, тот погибает.",
         "Ну что, готовы? Главное, не вытащите смерть!"};
     private static final Color BLOOD=new Color(.9f,.16f,.08f,1),GOLD=new Color(1f,.74f,.32f,1),INK=new Color(.24f,.12f,.06f,1),
@@ -86,7 +86,7 @@ public final class CursedCardsRulesFilm implements Disposable {
         ScreenUtils.clear(0,0,0,1);viewport.apply();
         float cut=99;for(int i=1;i<START.length;i++)cut=Math.min(cut,Math.abs(time-START[i]));
         float slam=time>=START[5]+3.2f&&time<START[5]+3.8f?time-(START[5]+3.2f):-1;
-        post.time=time;post.cx=.5f;post.cy=.55f;post.desat=0;post.aberration=.06f+(cut<.35f?.35f*(1-cut/.35f):0)+(slam>=0&&slam<.25f?.4f*(1-slam/.25f):0);
+        post.time=time;post.cx=.5f;post.cy=.55f;post.desat=0;post.aberration=0;
         if(slam>=0&&slam<.6f){post.shock=slam*1.1f;post.shockStrength=.35f*(1-slam/.6f);}else post.shock=-1;
         post.present(postBatch);
     }
