@@ -79,7 +79,7 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
   const reason=p=>p?.allowed?'':(REASONS[p?.reason]||'недоступно');
   function act(type,fields){const id=requests.action(type,fields);if(id){navigator.vibrate?.(12);sfx('tap');render();}return id;}
   function say(text){const t=el('sbx-toast');t.textContent=text;t.classList.remove('on');void t.offsetWidth;t.classList.add('on');}
-  function answer(kind,type,fields,button){const st=getState()?.systemBreach,ap=st?.players.find(p=>p.playerId===getState().selfId)?.accessPoints??0,cid=st?.self?.challenge?.challengeId;const id=act(type,fields);if(id)verdict={id,kind,button,ok:null,until:now()+1700,sent:now(),ap,cid};}
+  function answer(kind,type,fields,button){const st=getState()?.systemBreach,ap=st?.players.find(p=>p.playerId===getState().selfId)?.accessPoints??0,cid=st?.self?.challenge?.challengeId;const id=act(type,fields);const seq=(st?.events||[]).reduce((m,e)=>Math.max(m,e.sequence||0),0);if(id)verdict={id,kind,button,ok:null,until:now()+1700,sent:now(),ap,cid,seq};}
   function showVerdict(ok,text){
     sfx(verdict.kind==='hack'?(ok?'hackOk':'hackFail'):(ok?'cleared':'wrong'));const v=verdict;v.ok=ok;v.until=now()+1500;v.button?.classList.add(ok?'right':'wrong');navigator.vibrate?.(ok?[30,40,30]:[90]);
     const st=mk('div','sbx-verdict '+(ok?'ok':'bad'),null,body());mk('b','mi',ok?'\ue5ca':'\ue5cd',st);{const sp=mk('span',null,text,st);try{window.SBFX?.decode(sp,text);}catch(e){}}flash(ok?'flash-ok':'flash-bad');
@@ -228,7 +228,7 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
     sab.sync(s.phase==='ACTIVE'&&s.role==='PLAYER'?me.sabotage:null);
     const keys=me.keys||0;if(keys<banked)banked=keys;
     // quiz verdict from the balance itself, in case the receipt is late: AP rose → right; the question left without a rise → wrong
-    if(verdict&&verdict.ok==null&&verdict.kind==='quiz'&&mine){const d=mine.accessPoints-verdict.ap;if(d>0)scorePop(true,d);else if(me.challenge?.challengeId!==verdict.cid&&now()-verdict.sent>700)scorePop(false,0);}
+    if(verdict&&verdict.ok==null&&verdict.kind==='quiz'&&mine){const sid=getState().selfId,ev=(s.events||[]).filter(e=>e.sequence>verdict.seq&&e.targetId===sid&&(e.type==="CHALLENGE_SOLVED"||e.type==="CHALLENGE_FAILED")).pop();if(ev)scorePop(ev.type==="CHALLENGE_SOLVED",ev.amount||0);else if(me.challenge?.challengeId!==verdict.cid&&now()-verdict.sent>1500)scorePop(false,0);}
     const holding=verdict&&(verdict.ok==null?now()-verdict.sent<4000:now()<verdict.until);
     if(!holding&&verdict)verdict=null;
     if(holding)return tick(true);
