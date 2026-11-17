@@ -361,13 +361,30 @@ public final class SystemBreachRulesFilm implements Disposable {
         {float ta=k(time,START[1]-X/2,START[1]+X/2);for(int i=1;i<TAB.length;i++)text(assets.log,TAB[i],tabX(i),H-64,i==s?WHITE:i<s?CYAN:new Color(.45f,.55f,.65f,1),(i==s?1:.8f)*ta,1);}
         // subtitle: old line fades out, new one fades in word by word as it is spoken
         float len=END[s]-START[s];float a=ease(k(t,.15f,.5f))*(1-ease(k(t,len-.3f,len)))*(1-k(time,LENGTH-.6f,LENGTH));
-        String full=SUB[s];int n=Math.min(full.length(),(int)(Math.max(0,t-.15f)*70));while(n<full.length()&&n>0&&full.charAt(n-1)!=' ')n++;
-        BitmapFont f=assets.stageName;float sc=.62f;f.getData().setScale(sc);gl.setText(f,full,Color.WHITE,1560,com.badlogic.gdx.utils.Align.center,true);
-        float y=95+gl.height/2;f.setColor(WHITE.r,WHITE.g,WHITE.b,a);f.draw(b,full.substring(0,n),W/2-780,y,1560,com.badlogic.gdx.utils.Align.center,true);
-        f.getData().setScale(1);f.setColor(Color.WHITE);
+        typeLine(SUB[s],t-.15f,a);
         text(assets.log,"SYSTEM BREACH  ·  ЧТО МОГУТ ИГРОКИ",60,H-30,CYAN,.7f,1,false);
     }
 
+    /**
+     * Subtitle typing: the whole line is laid out once (so nothing re-centres while it types); every letter then
+     * fades in and settles up into place a beat after the previous one, with a soft cyan caret riding the leading edge.
+     */
+    private void typeLine(String full,float tt,float a){
+        if(a<=0||tt<=0)return;BitmapFont f=assets.stageName;float sc=.62f;f.getData().setScale(sc);
+        gl.setText(f,full,Color.WHITE,1560,com.badlogic.gdx.utils.Align.center,true);
+        float ox=W/2-780,oy=95+gl.height/2+f.getData().ascent;int idx=0;float cx=-1,cy=0,ca=0;final float CPS=48,FADE=.22f;
+        for(var run:gl.runs){float gx=ox+run.x,gy=oy+run.y;
+            for(int j=0;j<run.glyphs.size;j++){var g=run.glyphs.get(j);gx+=run.xAdvances.get(j);
+                float p=MathUtils.clamp((tt-idx/CPS)/FADE,0,1);idx++;if(p<=0){continue;}
+                float e=1-(1-p)*(1-p),rise=(1-e)*12,x0=gx+g.xoffset*sc,y0=gy+g.yoffset*sc-rise,w=g.width*sc,h=g.height*sc;
+                if(w>0&&h>0){Texture tex=f.getRegions().get(g.page).getTexture();
+                    b.setColor(0,0,0,.55f*a*e);b.draw(tex,x0+2,y0-2,w,h,g.u,g.v,g.u2,g.v2);
+                    float wt=1-e;b.setColor(WHITE.r+(CYAN.r-WHITE.r)*wt,WHITE.g+(CYAN.g-WHITE.g)*wt,WHITE.b+(CYAN.b-WHITE.b)*wt,a*e);b.draw(tex,x0,y0,w,h,g.u,g.v,g.u2,g.v2);}
+                if(p<1){cx=gx+(g.xoffset+g.width)*sc;cy=gy-f.getCapHeight()*1.05f;ca=1-p;}}}
+        b.setColor(Color.WHITE);f.getData().setScale(1);
+        if(cx>0){b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);b.setColor(CYAN.r,CYAN.g,CYAN.b,.55f*a*ca);b.draw(assets.glow,cx-26,cy-26,52,52);
+            b.setColor(CYAN.r,CYAN.g,CYAN.b,.9f*a*ca);b.draw(assets.pixel,cx+2,cy-16,3,32);b.setColor(Color.WHITE);b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
+    }
     private static float tabX(int i){return W/2+(i-3.5f)*170;}
     private void input(){
         tmp.set(Gdx.input.getX(),Gdx.input.getY());viewport.unproject(tmp);
