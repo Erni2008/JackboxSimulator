@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import {GLTFLoader, type GLTF} from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {RaceSound} from './sound';
 import {Course, Runner, top, type Block, H, R as RR, SECTION_NAMES, TRIALS} from './course';
 import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
@@ -20,7 +21,7 @@ export class RaceApp {
   readonly renderer: THREE.WebGLRenderer; readonly scene = new THREE.Scene(); readonly camera = new THREE.PerspectiveCamera(55, 1, .3, 900);
   course: Course; readonly night: boolean; readonly manor: boolean; readonly crypt: boolean; readonly limit: number; runners: Runner[] = []; me!: Runner; clock = 0; private acc = 0;
   private sun!: THREE.DirectionalLight; private fill!: THREE.DirectionalLight; private mist: THREE.Mesh[] = []; private pollen!: THREE.Points; private puffs: {s: THREE.Sprite; t: number}[] = []; private grassMat?: THREE.Material; private looks = new Map<Runner, Look>(); private blockMeshes = new Map<Block, THREE.Mesh>();
-  private sweeperMeshes: THREE.Object3D[] = []; private cpArches: {glow: THREE.Mesh; flag: THREE.Mesh; lit: boolean}[] = []; private lastCp = 0; private pend: THREE.Object3D[] = []; private rams: THREE.Object3D[] = []; private padMeshes: THREE.Mesh[] = []; private warnPlanes = new Map<Block, THREE.Mesh>(); private belts: THREE.Texture[] = []; private composer?: EffectComposer; private lastSection = ''; private ghosts: THREE.MeshStandardMaterial[] = []; private lastTp = 0; readonly snd = new RaceSound(); private sndState: any = {count: 9, falls: 0, stun: 0, fin: false, step: 0, gates: new Map<any, boolean>(), hooks: new Map<any, number>(), jets: new Map<any, number>(), pads: new Map<any, number>(), crumbs: new Set<any>()}; private sunGlow?: THREE.Sprite; private moonGlow?: THREE.Sprite; private rays: THREE.Mesh[] = []; private ray = new THREE.Raycaster(); private faded = new Set<THREE.Mesh>(); private soft: THREE.Mesh[] = []; private jetFx: {j: any; o: THREE.Object3D; f: THREE.Object3D}[] = []; private mazeBlend = 0; private portalFx: THREE.Object3D[] = []; private boulderPool: THREE.Object3D[] = [];
+  private sweeperMeshes: THREE.Object3D[] = []; private cpArches: {glow: THREE.Mesh; flag: THREE.Mesh; lit: boolean}[] = []; private lastCp = 0; private pend: THREE.Object3D[] = []; private rams: THREE.Object3D[] = []; private padMeshes: THREE.Mesh[] = []; private warnPlanes = new Map<Block, THREE.Mesh>(); private belts: THREE.Texture[] = []; private composer?: EffectComposer; private lastSection = ''; private ghosts: THREE.MeshStandardMaterial[] = []; private lastTp = 0; private phoneShadows = false; private frameNo = 0; readonly snd = new RaceSound(); private sndState: any = {count: 9, falls: 0, stun: 0, fin: false, step: 0, gates: new Map<any, boolean>(), hooks: new Map<any, number>(), jets: new Map<any, number>(), pads: new Map<any, number>(), crumbs: new Set<any>()}; private sunGlow?: THREE.Sprite; private moonGlow?: THREE.Sprite; private rays: THREE.Mesh[] = []; private ray = new THREE.Raycaster(); private faded = new Set<THREE.Mesh>(); private soft: THREE.Mesh[] = []; private jetFx: {j: any; o: THREE.Object3D; f: THREE.Object3D}[] = []; private mazeBlend = 0; private portalFx: THREE.Object3D[] = []; private boulderPool: THREE.Object3D[] = [];
   private gltf = new GLTFLoader(); private texLoader = new THREE.TextureLoader(); private cache = new Map<string, Promise<GLTF>>();
   private camTarget = new THREE.Vector3(); private pixelRatio: number; private frameAvg = 16; private last = 0;
   private blobs = new Map<Runner, THREE.Mesh>();   private dots = new Map<Runner, HTMLElement>(); private keys = new Set<string>(); private stick = {id: -1, ox: 0, oy: 0, x: 0, y: 0}; private hud: HTMLElement;
@@ -141,7 +142,8 @@ export class RaceApp {
     const banner = new THREE.Mesh(new THREE.PlaneGeometry(13, 1.7), new THREE.MeshStandardMaterial({map: bannerTexture(this.manor ? 'СВОБОДА' : 'ФИНИШ'), side: THREE.DoubleSide, roughness: .85}));
     banner.position.set(0, fy + 6, this.course.finishZ); banner.rotation.y = Math.PI; this.scene.add(banner);
     this.checkpointArches(this.manor ? mats.beam : this.night ? mats.brick : mats.bark);
-    await (this.manor ? this.decorateManor(mats, progress) : this.night ? this.decorateNight(mats.stone, progress) : this.decorate(progress)); this.buildGrass(); progress(.8);
+    const before = this.scene.children.length;
+    await (this.manor ? this.decorateManor(mats, progress) : this.night ? this.decorateNight(mats.stone, progress) : this.decorate(progress)); this.buildGrass(); this.mergeStatic(before); progress(.8);
     // runners
     if (this.net) {const n = this.net; for (let i = 0; i < n.roster.length; i++) {const p = n.roster[i], self = p.id === n.selfId && !n.spectator;
         const r = new Runner(p.id, self ? 'Вы' : p.name, CHARACTERS.includes(p.char) ? p.char : CHARACTERS[i % CHARACTERS.length], i, false); (r as any).remote = !self; r.x = ((i % 4) - 1.5) * 2.2; r.z = -1.5 - Math.floor(i / 4) * 2.2; this.runners.push(r);
@@ -308,6 +310,10 @@ export class RaceApp {
   }
 
   start() {
+    if (matchMedia('(pointer:coarse)').matches) { // phones: only runners and moving hazards cast shadows; the shadow map refreshes every other frame
+      const dyn = new Set<THREE.Object3D>(); for (const l of this.looks.values()) l.root.traverse(o => dyn.add(o));
+      this.scene.traverse(o => {const m = o as THREE.Mesh; if (m.isMesh && !dyn.has(m) && !(m as any).isSkinnedMesh && !m.userData.p) m.castShadow = false;});
+      this.renderer.shadowMap.autoUpdate = false; this.phoneShadows = true;}
     if (false) {const c = new EffectComposer(this.renderer); c.addPass(new RenderPass(this.scene, this.camera));
       c.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth / 2, innerHeight / 2), this.night || this.manor ? .75 : .35, .5, .82)); c.addPass(new OutputPass()); c.setSize(innerWidth, innerHeight); this.composer = c;}
     this.renderer.setAnimationLoop(t => this.frame(t));}
@@ -329,6 +335,34 @@ export class RaceApp {
       glow.position.set(0, y + .03, cz); glow.renderOrder = 3; this.scene.add(glow);
       this.cpArches.push({glow, flag, lit: false});
     }
+  }
+  /** Bake every plain static mesh added by the dressing pass into one mesh per material (thousands of draw calls -> dozens). */
+  private mergeStatic(from: number) {
+    const groups = new Map<string, {mat: THREE.Material; geos: THREE.BufferGeometry[]; shadow: boolean}>(), drop: THREE.Mesh[] = [];
+    this.scene.updateMatrixWorld(true);
+    for (const o of this.scene.children.slice(from)) {const m = o as THREE.Mesh; if (!m.isMesh || (m as any).isInstancedMesh || Array.isArray(m.material) || m.userData.keep) continue;
+      let g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone(); g.applyMatrix4(m.matrixWorld); const keys = Object.keys(g.attributes).sort().join(',');
+      for (const k of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(k)) g.deleteAttribute(k);
+      if (!g.attributes.normal) g.computeVertexNormals(); if (!g.attributes.uv) g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2)); void keys;
+      const key = (m.material as THREE.Material).uuid + (m.castShadow ? 's' : ''); let e = groups.get(key); if (!e) {e = {mat: m.material as THREE.Material, geos: [], shadow: m.castShadow}; groups.set(key, e);} e.geos.push(g); drop.push(m);}
+    // static course blocks (+ their trims): no motion, not an occluding wall outside a maze
+    const inMaze = (b: Block) => this.course.mazePaths.some(mz => b.z0 >= mz.box[2] - .5 && b.z1 <= mz.box[3] + .5);
+    for (const [b, m] of [...this.blockMeshes]) {
+      if (b.driftAmp || b.liftAmp || b.crumbles || b.trapPeriod || b.gear || b.cart || b.tilt || b.ghost || b.fake || (b.wall && !inMaze(b)) || b.conveyor || m.userData.pivot) continue;
+      m.updateMatrixWorld(true); const g0 = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry, mats = m.material as THREE.Material[];
+      for (const grp of g0.groups) {const part = new THREE.BufferGeometry(); for (const k of ['position', 'normal', 'uv']) {const a = g0.getAttribute(k) as THREE.BufferAttribute; part.setAttribute(k, new THREE.BufferAttribute((a.array as Float32Array).slice(grp.start * a.itemSize, (grp.start + grp.count) * a.itemSize), a.itemSize));}
+        part.applyMatrix4(m.matrixWorld); const mat = mats[grp.materialIndex ?? 0], key = mat.uuid + (m.castShadow ? 's' : ''); let e = groups.get(key); if (!e) {e = {mat, geos: [], shadow: m.castShadow}; groups.set(key, e);} e.geos.push(part);}
+      for (const ch of m.children) {const cm = ch as THREE.Mesh; if (!cm.isMesh || m.userData.crack === cm) continue; const g = (cm.geometry.index ? cm.geometry.toNonIndexed() : cm.geometry.clone()); for (const k of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(k)) g.deleteAttribute(k); g.applyMatrix4(cm.matrixWorld);
+        const key = (cm.material as THREE.Material).uuid; let e = groups.get(key); if (!e) {e = {mat: cm.material as THREE.Material, geos: [], shadow: false}; groups.set(key, e);} e.geos.push(g);}
+      this.scene.remove(m); this.blockMeshes.delete(b);}
+    for (const m of drop) this.scene.remove(m);
+    // static glow sprites -> one Points cloud per colour/size
+    const pts = new Map<string, {mat: THREE.SpriteMaterial; pos: number[]; size: number}>(), flames = new Set<THREE.Object3D>(this.flames);
+    for (const o of [...this.scene.children]) {const sp = o as THREE.Sprite; if (!(sp as any).isSprite || flames.has(sp) || sp === this.sunGlow || sp === this.moonGlow || sp.userData.keep) continue; const mt = sp.material as THREE.SpriteMaterial;
+      const key = mt.color.getHexString() + Math.round(sp.scale.x * 4) + mt.opacity.toFixed(2); let e = pts.get(key); if (!e) {e = {mat: mt, pos: [], size: sp.scale.x}; pts.set(key, e);} e.pos.push(sp.position.x, sp.position.y, sp.position.z); this.scene.remove(sp);}
+    for (const {mat, pos, size} of pts.values()) {const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      const pm = new THREE.PointsMaterial({map: mat.map, color: mat.color, size: size * 1.0, transparent: true, opacity: mat.opacity, depthWrite: false, blending: mat.blending, sizeAttenuation: true}); const p = new THREE.Points(g, pm); p.frustumCulled = false; this.scene.add(p);}
+    for (const {mat, geos, shadow} of groups.values()) {const merged = mergeGeometries(geos, false); if (!merged) continue; const mm = new THREE.Mesh(merged, mat); mm.castShadow = shadow; mm.receiveShadow = true; this.scene.add(mm);}
   }
   private flash() {const f = document.getElementById('flash'); if (!f) return; f.classList.remove('on'); void f.offsetWidth; f.classList.add('on');}
   private toast(text: string) {const t = document.getElementById('toast'); if (!t) return; t.textContent = text; t.classList.remove('show'); void t.offsetWidth; t.classList.add('show');}
@@ -588,6 +622,7 @@ export class RaceApp {
       for (const r of this.runners) {if ((r as any).remote) continue; if (r.bot) this.course.think(r, STEP); if (!live || this.clock < 0) {r.inX = r.inZ = 0; r.jump = false;} this.course.move(r, STEP);}
       for (let i = 0; i < this.runners.length; i++) for (let j = i + 1; j < this.runners.length; j++) {const a = this.runners[i], b = this.runners[j]; if (a.hook >= 0 || b.hook >= 0) continue; const dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz), m = RR * 1.9;
         if (d < m && d > 1e-4 && Math.abs(a.y - b.y) < 1.2) {const p = (m - d) / 2; a.x -= dx / d * p; a.z -= dz / d * p; b.x += dx / d * p; b.z += dz / d * p;}}}
+    if (this.phoneShadows) this.renderer.shadowMap.needsUpdate = (this.frameNo++ & 1) === 0;
     this.sync(dt); if (this.composer) this.composer.render(); else this.renderer.render(this.scene, this.camera); this.hudUpdate();
   }
 
