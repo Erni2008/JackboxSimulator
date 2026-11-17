@@ -1304,7 +1304,7 @@ tasks.register('finalSecondRulesPreview', JavaExec) {
     classpath = sourceSets.dev.runtimeClasspath
     mainClass = 'com.erni.finalanswer.lwjgl3.FinalSecondRulesPreview'
     workingDir = rootProject.file('assets')
-    for (key in ['sb.capture','sb.at','sb.width','sb.height']) {
+    for (key in ['sb.capture','sb.at','sb.width','sb.height','fs.rulesVariant']) {
         if (providers.gradleProperty(key).isPresent()) systemProperty key, providers.gradleProperty(key).get()
     }
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'

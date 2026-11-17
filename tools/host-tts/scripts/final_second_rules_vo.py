@@ -13,6 +13,19 @@ LINES=[
  "Ну что, готовы? Ловите последнюю секунду!",
 ]
 SEEDS={0:7,1:7,2:42,3:7,4:42,5:42}
+# second take of the same rules, so the intro does not always sound identical (VARIANT=b)
+LINES_B=[
+ "Это последняя секунда! Здесь всё решают мгновения.",
+ "Правило одно. Поймайте таймер ровно на нужной отметке!",
+ "Первое нажатие запускает отсчёт. Второе его останавливает!",
+ "А дальше сложнее. Каждый раунд приносит новое испытание!",
+ "Самый неточный игрок покидает игру!",
+ "Приготовьтесь! Время пошло!",
+]
+SEEDS_B={}
+VB=os.environ.get('VARIANT','')=='b'
+if VB:LINES,SEEDS=LINES_B,SEEDS_B
+PFX='rules_b_' if VB else 'rules_'
 OUT=ROOT/'assets/final_second/rules';WORK=TOOL/'output/final-second-rules'
 
 def main():
@@ -24,7 +37,7 @@ def main():
         try:
             for i,text in enumerate(LINES):
                 if only and i not in only:continue
-                raw=WORK/f'rules_{i}.wav';treated=WORK/f'rules_{i}_treated.wav';final=OUT/f'rules_{i}.wav'
+                raw=WORK/f'rules_{i}.wav';treated=WORK/f'rules_{i}_treated.wav';final=OUT/f'{PFX}{i}.wav'
                 for f in (raw,treated,final):
                     if f.exists():f.unlink()
                 # sentence by sentence, joined with a natural breath between them

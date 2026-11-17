@@ -40,7 +40,16 @@ public final class FinalSecondRulesFilm implements Disposable {
         "Нажали один раз, и время пошло. Нажали снова, и таймер встал!",
         "Но не всё так просто. В каждом раунде вас ждёт новое испытание!",
         "Кто окажется дальше всех от цели, тот выбывает!",
-        "Ну что, готовы? Ловите последнюю секунду!"};
+        "Ну что, готовы? Ловите последнюю секунду!"},
+        SUB_B={
+        "Это последняя секунда! Здесь всё решают мгновения.",
+        "Правило одно. Поймайте таймер ровно на нужной отметке!",
+        "Первое нажатие запускает отсчёт. Второе его останавливает!",
+        "А дальше сложнее. Каждый раунд приносит новое испытание!",
+        "Самый неточный игрок покидает игру!",
+        "Приготовьтесь! Время пошло!"};
+    /** Two voiced takes of the same rules; one is picked at random each time (or -Dfs.rulesVariant=a|b). */
+    private final boolean variantB;private final String[] subs;
     private static final Color BLOOD=new Color(.9f,.16f,.08f,1),GOLD=new Color(1f,.74f,.32f,1),INK=new Color(.24f,.12f,.06f,1),
         BONE=new Color(.96f,.92f,.84f,1),DARK=new Color(.03f,.015f,.015f,1),EMBER=new Color(1,.42f,.18f,1);
     private static final String[] WHO={"skeleton","dracula","pumpkin","voodoo","ghost"};
@@ -61,7 +70,9 @@ public final class FinalSecondRulesFilm implements Disposable {
         glow=new Texture(g);glow.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);g.dispose();
         Pixmap p=new Pixmap(1,1,Pixmap.Format.RGBA8888);p.setColor(Color.WHITE);p.fill();pixel=new Texture(p);p.dispose();
         title=UiFonts.gothic(132);heading=UiFonts.gothic(78);hand=UiFonts.handwriting(66);sub=font("NotoSans-SemiCondensedSemiBold.ttf",36);small=font("NotoSans-SemiCondensedSemiBold.ttf",22);
-        if(Gdx.audio!=null)try{for(int i=0;i<voice.length;i++){var f=Gdx.files.internal("final_second/rules/rules_"+i+".wav");if(f.exists())voice[i]=Gdx.audio.newSound(f);}
+        String vp=System.getProperty("fs.rulesVariant","");boolean b=vp.equals("b")||(!vp.equals("a")&&MathUtils.randomBoolean());
+        if(b&&!Gdx.files.internal("final_second/rules/rules_b_0.wav").exists())b=false;variantB=b;subs=b?SUB_B:SUB;
+        if(Gdx.audio!=null)try{for(int i=0;i<voice.length;i++){var f=Gdx.files.internal("final_second/rules/rules_"+(variantB?"b_":"")+i+".wav");if(f.exists())voice[i]=Gdx.audio.newSound(f);}
             whoosh=snd("system_breach/sfx/whoosh.wav");paper=null;thud=snd("system_breach/sfx/strike.wav");flip=snd("system_breach/sfx/tick.wav");}catch(RuntimeException ignored){}
     }
     private static Texture tex(String path){Texture t=new Texture(Gdx.files.internal(path),true);t.setFilter(Texture.TextureFilter.MipMapLinearLinear,Texture.TextureFilter.Linear);return t;}
@@ -272,7 +283,14 @@ public final class FinalSecondRulesFilm implements Disposable {
         float ta=k(time,START[1]-.3f,START[1]+.3f)*(1-k(time,START[START.length-1]-.3f,START[START.length-1]+.3f));
         for(int i=1;i<=TAB.length-2;i++){Color c=i==s?BONE:i<s?GOLD:new Color(.55f,.45f,.4f,1);small.getData().setScale(.85f);gl.setText(small,TAB[i]);float lw=gl.width;small.getData().setScale(1);text(small,"0"+i,tabX(i)+14-lw/2-36,H-64,i==s?BLOOD:c,(i==s?1:.6f)*ta,.8f,false);text(small,TAB[i],tabX(i)+14,H-64,c,(i==s?1:.8f)*ta,.85f);}
         text(small,"THE FINAL SECOND  ·  ПРАВИЛА",60,H-30,GOLD,.7f,.85f,false);
-        float len=END[s]-START[s];float a=ease(k(t,.15f,.5f))*(1-ease(k(t,len-.3f,len)))*(1-k(time,LENGTH-.6f,LENGTH));typeLine(SUB[s],t-.15f,a);
+        float len=END[s]-START[s];float a=ease(k(t,.15f,.5f))*(1-ease(k(t,len-.3f,len)))*(1-k(time,LENGTH-.6f,LENGTH));typeLine(subs[s],t-.15f,a);cutFlare();
+    }
+    /** Anamorphic light streak and a warm flash sweeping across every chapter cut. */
+    private void cutFlare(){
+        for(int i=1;i<START.length;i++){float d=time-START[i]+.15f;if(d<0||d>.9f)continue;float e=1-d/.9f,ee=e*e;
+            batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);float x=-300+(W+600)*ease(Math.min(1,d/.7f));
+            b(GOLD.r,GOLD.g,GOLD.b,.35f*ee);batch.draw(glow,x-1100,H/2-14,2200,28);b(1,.95f,.85f,.55f*ee);batch.draw(glow,x-500,H/2-4,1000,8);
+            b(EMBER.r,EMBER.g,EMBER.b,.18f*ee);batch.draw(glow,x-420,H/2-420,840,840);b(1,1,1,1);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
     }
     private static float tabX(int i){return W/2+(i-(TAB.length-1)/2f)*230;}
     private void typeLine(String full,float tt,float a){
