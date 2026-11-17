@@ -38,7 +38,7 @@ public final class CursedCardsRulesFilm implements Disposable {
         "Добро пожаловать в проклятые карты! Одна из них несёт смерть.",
         "Каждому раздают карты. И где-то среди них прячется карта смерти!",
         "Одинаковые пары сразу сбрасываются. Чем меньше карт, тем вы ближе к спасению.",
-        "По очереди берите одну карту у соседа. Вслепую! На ход всего пять секунд.",
+        "По очереди вслепую берите одну карту у соседа. Собралась пара? Сбрасывайте её!",
         "Зрители могут проклясть игрока. Тогда смерть скорее окажется у него в руке!",
         "Избавились от всех карт? Вы спасены! А у кого осталась смерть, тот погибает.",
         "Ну что, готовы? Главное, не вытащите смерть!"};
@@ -224,9 +224,6 @@ public final class CursedCardsRulesFilm implements Disposable {
         float mx=W/2-520,my=520,nx=W/2+330,ny=520;
         framed(WHO[0],mx,my+40,190,a,GOLD,0);if(pass==1)text(small,"ТВОЙ ХОД",mx,my-80,GOLD,a,1.1f);
         framed(WHO[1],nx,my+260,120,a,GOLD,0);if(pass==1)text(small,"СОСЕД",nx,my+180,BONE,.7f*a,1);
-        // countdown ring: five seconds per turn
-        float tl=Math.max(1,5-Math.max(0,t-.6f));if(pass==0){int seg=60;for(int q=0;q<seg;q++){float f0=q/(float)seg;boolean on=f0<tl/5;col(on?GOLD:new Color(.25f,.15f,.12f,1),a*(on?.95f:.6f));float a0=MathUtils.PI/2-f0*MathUtils.PI2,a1=a0-MathUtils.PI2/seg*.7f;shapes.rectLine(mx+MathUtils.cos(a0)*120,my+40+MathUtils.sin(a0)*120,mx+MathUtils.cos(a1)*120,my+40+MathUtils.sin(a1)*120,5);}}
-        if(pass==1)text(heading,String.valueOf((int)Math.ceil(tl)),mx+150,my+160,GOLD,a,.6f);
         int pick=2;float hov=k(t,.8f,2.6f),take=ease(k(t,2.8f,3.6f)),fl=ease(k(t,3.6f,4.1f));
         for(int i=0;i<5;i++){float u=i/4f-.5f;float x=nx+u*420,y=ny-Math.abs(u)*30,rot=-u*14;float hoverIdx=hov*4.99f;boolean over=(int)hoverIdx==i&&take==0;
             if(i==pick&&take>0){x=MathUtils.lerp(x,mx+260,take);y=MathUtils.lerp(y,my-40,take)+MathUtils.sin(take*MathUtils.PI)*120;rot*=1-take;}
