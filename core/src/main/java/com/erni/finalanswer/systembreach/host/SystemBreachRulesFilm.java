@@ -21,9 +21,9 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 public final class SystemBreachRulesFilm implements Disposable {
     public static final float W=1920,H=1080;
     // compact cut: what players can do. Each scene replays a source animation at its own speed.
-    private static final float[] START={0,4.6f,9.6f,15.7f,21.2f,25.2f,31.1f},END={4.6f,9.6f,15.7f,21.2f,25.2f,31.1f,38.5f};
-    private static final float[] SPEED={.8f,1.1f,1.68f,1,1,1.25f,1.06f};
-    public static final float LENGTH=38.5f;
+    private static final float[] START={0,5.8f,11f,16.8f,21.8f,26.5f,32.5f},END={5.8f,11f,16.8f,21.8f,26.5f,32.5f,40.1f};
+    private static final float[] SPEED={.65f,1.06f,1.77f,1.1f,.85f,1.23f,1.06f};
+    public static final float LENGTH=40.1f;
     private static final String[] TAB={"","ОТВЕЧАЙ","ВЗЛАМЫВАЙ","DDoS","ВИРУС","ЗАЩИТА","ПОБЕДА"};
     private static final String[] SUB={
         "Добро пожаловать в систему! Сегодня каждый из вас — хакер.",
@@ -43,7 +43,7 @@ public final class SystemBreachRulesFilm implements Disposable {
 
     public SystemBreachRulesFilm(boolean ru){this(new SystemBreachHostAssets(ru),true);}
     SystemBreachRulesFilm(SystemBreachHostAssets a,boolean own){assets=a;ownAssets=own;
-        if(Gdx.audio!=null)try{for(int i=0;i<voice.length;i++){String dir=System.getProperty("sb.voice","espeech").equals("qwen")?"rules":"rules_espeech";var f=Gdx.files.internal("system_breach/"+dir+"/rules_"+i+".wav");if(!f.exists())f=Gdx.files.internal("system_breach/rules/rules_"+i+".wav");if(f.exists())voice[i]=Gdx.audio.newSound(f);}
+        if(Gdx.audio!=null)try{for(int i=0;i<voice.length;i++){String dir=System.getProperty("sb.voice","qwen").equals("espeech")?"rules_espeech":"rules";var f=Gdx.files.internal("system_breach/"+dir+"/rules_"+i+".wav");if(!f.exists())f=Gdx.files.internal("system_breach/rules/rules_"+i+".wav");if(f.exists())voice[i]=Gdx.audio.newSound(f);}
             var w=Gdx.files.internal("system_breach/sfx/whoosh.wav");if(w.exists())whoosh=Gdx.audio.newSound(w);}catch(RuntimeException ignored){}}
     private void audio(){
         if(skipAt>=0){for(var v:voice)if(v!=null)v.stop();return;}
@@ -217,7 +217,7 @@ public final class SystemBreachRulesFilm implements Disposable {
             text(assets.digits,shown,fx,fy+30,c,a,.6f);
             text(assets.log,miss?"НЕВЕРНО":t>6.2f?"ДОСТУП ПОЛУЧЕН":"ПОДБОР ПАРОЛЯ…",fx,fy-70,miss?RED:t>6.2f?GREEN:WHITE,a*.9f,1);}
         // stamp on target
-        float st=k(t,4.7f,5.0f);if(st>0){float sc=1+.6f*(1-ease(st));
+        float st=k(t,5.3f,5.6f);if(st>0){float sc=1+.6f*(1-ease(st));
             if(pass==0)panel(tx-170*sc,y+170-30*sc,340*sc,60*sc,RED,a*st);
             if(pass==2)glow(tx,y+170,300,RED,.4f*a*st);
             if(pass==1)text(assets.board,"ВЗЛОМАН",tx,y+170+14,RED,a*st,1.3f*sc);}
@@ -314,7 +314,7 @@ public final class SystemBreachRulesFilm implements Disposable {
     private static final String[] FIN={"skeleton","dracula","pumpkin","voodoo"};
     private void finale(float t,float a){
         heading("ПОБЕЖДАЙ",t,a,GREEN);headingBar(t,a,GREEN);
-        float go=k(t,3.3f,3.8f);float a0=a;a*=1-go;
+        float go=k(t,3.7f,4.2f);float a0=a;a*=1-go;
         float[] h={.55f,1f,.4f,.7f};float base=230;
         for(int i=0;i<4;i++){float x=W/2-480+i*320;float g=ease(k(t,.4f+.15f*i,2.6f+.15f*i))*h[i]*330;boolean win=i==1;
             if(pass==0){col(win?GREEN:CYAN,a*.85f);r.rect(x-80,base,160,g);col(INK,.35f*a);r.rect(x-80,base+g-6,160,6);}
@@ -325,8 +325,8 @@ public final class SystemBreachRulesFilm implements Disposable {
         a=a0;
         if(go>0){
             if(pass==2)glow(W/2,H/2,900,RED,.3f*a*go);
-            if(pass==1){text(assets.stage,decode("ГОТОВЫ?",k(t,3.3f,3.9f),t),W/2,H/2+110,WHITE,a*go,1.1f);
-                text(assets.stage,decode("ВЗЛАМЫВАЕМ!",k(t,4.8f,5.4f),t),W/2,H/2-40,RED,a*k(t,4.7f,5.0f),1.25f);}}
+            if(pass==1){text(assets.stage,decode("ГОТОВЫ?",k(t,3.7f,4.3f),t),W/2,H/2+110,WHITE,a*go,1.1f);
+                text(assets.stage,decode("ВЗЛАМЫВАЕМ!",k(t,5.4f,6.0f),t),W/2,H/2-40,RED,a*k(t,5.3f,5.6f),1.25f);}}
     }
 
     // ---------- chrome ----------
