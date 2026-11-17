@@ -45,3 +45,5 @@ body.playing::after{content:"";position:fixed;inset:0;pointer-events:none;z-inde
 #board b{width:14px;text-align:center;font-family:Georgia,serif}#board img{width:20px;height:20px;border-radius:50%;object-fit:cover;object-position:center 15%;background:#2a1b16}
 @media (max-height:420px){#board{display:none}}
 #mute{position:absolute;top:max(10px,env(safe-area-inset-top));right:max(14px,env(safe-area-inset-right));width:44px;height:44px;border-radius:12px;border:1px solid #f6c26b55;background:#0d0907d0;color:#fff;font-size:20px;pointer-events:auto}
+body.spectator #stick-zone,body.spectator #jump,body.spectator .tag.me{display:none}
+body.spectator #board{display:flex!important}

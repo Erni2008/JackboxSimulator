@@ -127,3 +127,12 @@ tasks.register('lastCommandDev', JavaExec) {
     args providers.gradleProperty('lc.port').getOrElse('8080')
     doFirst { println 'THE_LAST_COMMAND_DEV: http://localhost:' + providers.gradleProperty('lc.port').getOrElse('8080') + '/last-command-3d/' }
 }
+
+// Local race QA server on a spare port (never the user's 18097/8080/8081): ./gradlew :server:raceQa -Prace.port=18311
+tasks.register('raceQa', JavaExec) {
+    group = 'verification'
+    dependsOn classes
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.finalanswer.server.RoomServer'
+    args providers.gradleProperty('race.port').getOrElse('18311')
+}

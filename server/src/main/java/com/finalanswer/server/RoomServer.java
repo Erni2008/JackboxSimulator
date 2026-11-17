@@ -42,12 +42,12 @@ public final class RoomServer implements AutoCloseable {
                 ctx.header("Referrer-Policy","no-referrer");
                 ctx.header("Content-Security-Policy","default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' ws: wss:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
                 // THE BROKEN ELEVATOR: GLTFLoader hands embedded textures over as blob: URLs; the film-grain overlay is a data: SVG
-                if(ctx.path().startsWith("/broken-elevator-manual")||ctx.path().startsWith("/hell-cage-host"))ctx.header("Content-Security-Policy","default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' blob: data:; connect-src 'self' blob: ws: wss:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
+                if(ctx.path().startsWith("/broken-elevator-manual")||ctx.path().startsWith("/hell-cage-host")||ctx.path().startsWith("/race"))ctx.header("Content-Security-Policy","default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' blob: data:; connect-src 'self' blob: ws: wss:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
                 if(Boolean.getBoolean("lastcommand.dev")&&ctx.path().startsWith("/last-command-3d"))ctx.header("Content-Security-Policy","default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; connect-src 'self' blob: ws: wss:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
                 if(!config.allowsOrigin(ctx.header("Origin"),ctx.header("Host"))) throw new RoomService.Failure(403,"ORIGIN_NOT_ALLOWED");
                 if(ctx.path().startsWith("/rooms")) {
                     ctx.contentType("application/json; charset=utf-8").header("Cache-Control","no-store");
-                    if(!ctx.path().endsWith("/cage")&&!limits.allow("http:"+ip(ctx),80,2))throw new RoomService.Failure(429,"RATE_LIMITED");
+                    if(!ctx.path().endsWith("/cage")&&!ctx.path().endsWith("/race")&&!limits.allow("http:"+ip(ctx),80,2))throw new RoomService.Failure(429,"RATE_LIMITED");
                 }
             });
             c.routes.get("/health",ctx->ctx.contentType("application/json").result("{\"status\":\"ok\",\"protocol\":1,\"lastCommand\":{\"engine\":\"race\",\"solo\":true,\"debug\":"+com.finalanswer.server.rooms.LastCommandSession.DEBUG+"}}"));
@@ -56,6 +56,7 @@ public final class RoomServer implements AutoCloseable {
                 ctx.status(201).result(rooms.create(form(ctx)));
             });
             c.routes.get("/rooms/{code}",ctx->ctx.result(rooms.view(ctx.pathParam("code"))));
+            c.routes.get("/rooms/{code}/race",ctx->ctx.result(rooms.raceView(ctx.pathParam("code"),ctx.queryParam("token"),"1".equals(ctx.queryParam("close")))));
             c.routes.get("/rooms/{code}/cage",ctx->ctx.result(rooms.cageView(ctx.pathParam("code"),ctx.queryParam("token"))));
             c.routes.post("/rooms/{code}/join",ctx->{
                 if(!limits.allow("join:"+ip(ctx),15,.25))throw new RoomService.Failure(429,"RATE_LIMITED");

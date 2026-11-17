@@ -25,8 +25,11 @@ export class RaceApp {
   private camTarget = new THREE.Vector3(); private pixelRatio: number; private frameAvg = 16; private last = 0;
   private blobs = new Map<Runner, THREE.Mesh>();   private dots = new Map<Runner, HTMLElement>(); private keys = new Set<string>(); private stick = {id: -1, ox: 0, oy: 0, x: 0, y: 0}; private hud: HTMLElement;
 
-  constructor(private host: HTMLElement, private myChar: string, map = 1) {
-    const qs = new URLSearchParams(location.search); const tq = qs.get('t'), only = tq ? (TRIALS[Number(tq) - 1] ?? (TRIALS.includes(tq) ? tq : '')) : ''; this.course = new Course(map, Number(qs.get('seed')) || (Math.random() * 1e9) | 0, only); this.night = this.course.theme === 'graveyard'; this.crypt = this.course.theme === 'crypt'; this.manor = this.course.theme === 'manor' || this.crypt; this.limit = this.crypt ? 210 : LIMIT;
+  /** Online race: roster from the room, seed/map/start from the server; remote runners are interpolated, not simulated. */
+  net?: {roster: {id: string; name: string; char: string}[]; selfId: string; seed: number; startAt: number; serverNow: () => number; send: (s: number[]) => void; spectator: boolean};
+  constructor(private host: HTMLElement, private myChar: string, map = 1, net?: RaceApp['net']) {
+    this.net = net;
+    const qs = new URLSearchParams(location.search); const tq = qs.get('t'), only = tq ? (TRIALS[Number(tq) - 1] ?? (TRIALS.includes(tq) ? tq : '')) : ''; this.course = new Course(map, net ? net.seed : Number(qs.get('seed')) || (Math.random() * 1e9) | 0, only); this.night = this.course.theme === 'graveyard'; this.crypt = this.course.theme === 'crypt'; this.manor = this.course.theme === 'manor' || this.crypt; this.limit = this.crypt ? 210 : LIMIT;
     const phone = matchMedia('(pointer:coarse)').matches;
     this.renderer = new THREE.WebGLRenderer({antialias: !phone || devicePixelRatio < 2, powerPreference: 'high-performance'});
     this.pixelRatio = Math.min(devicePixelRatio, phone ? 1.5 : 1.35); this.renderer.setPixelRatio(this.pixelRatio);
@@ -140,13 +143,19 @@ export class RaceApp {
     this.checkpointArches(this.manor ? mats.beam : this.night ? mats.brick : mats.bark);
     await (this.manor ? this.decorateManor(mats, progress) : this.night ? this.decorateNight(mats.stone, progress) : this.decorate(progress)); this.buildGrass(); progress(.8);
     // runners
+    if (this.net) {const n = this.net; for (let i = 0; i < n.roster.length; i++) {const p = n.roster[i], self = p.id === n.selfId && !n.spectator;
+        const r = new Runner(p.id, self ? 'Вы' : p.name, CHARACTERS.includes(p.char) ? p.char : CHARACTERS[i % CHARACTERS.length], i, false); (r as any).remote = !self; r.x = ((i % 4) - 1.5) * 2.2; r.z = -1.5 - Math.floor(i / 4) * 2.2; this.runners.push(r);
+        await this.addLook(r); progress(.8 + .2 * (i + 1) / n.roster.length);}
+      this.me = this.runners.find(r => !(r as any).remote) ?? this.runners[0];
+      if (n.spectator) document.body.classList.add('spectator');
+    } else {
     const others = CHARACTERS.filter(c => c !== this.myChar);
     const cast = [this.myChar, ...others.sort(() => Math.random() - .5).slice(0, 5)];
     for (let i = 0; i < cast.length; i++) {
       const r = new Runner('p' + i, i === 0 ? 'Вы' : NAMES[cast[i]], cast[i], i, i > 0); r.x = ((i % 3) - 1) * 2.4; r.z = -1.5 - Math.floor(i / 3) * 2.4; this.runners.push(r);
       await this.addLook(r); progress(.8 + .2 * (i + 1) / cast.length);
     }
-    this.me = this.runners[0];
+    this.me = this.runners[0];}
     const dz = Number(new URLSearchParams(location.search).get('z')); if (dz) for (const r of this.runners) {r.z = dz + r.slot * .3; r.x = (r.slot % 3 - 1) * 1.5; r.y = this.course.spawnY(dz) + .5; r.progress = dz; r.checkpoint = this.course.checkpoints.filter(c => c <= dz).length - 1;}
     this.camTarget.set(this.me.x, this.me.y, this.me.z);
   }
@@ -567,15 +576,28 @@ export class RaceApp {
     this.frameAvg += (dt * 1000 - this.frameAvg) * .05;
     if (this.frameAvg > 21 && this.pixelRatio > .85) {this.pixelRatio = Math.max(.85, this.pixelRatio - .1); this.renderer.setPixelRatio(this.pixelRatio); this.frameAvg = 16;}
     this.readInput();
-    this.acc += dt;
+    if (this.net) {const target = COUNTDOWN + (this.net.serverNow() - this.net.startAt) / 1000; if (target < this.clock || this.clock <= 0 && target < 0) this.clock = Math.min(target, 0); this.acc = Math.max(0, Math.min(8, target - this.clock));
+      if (this.acc > 2) {while (this.acc > .2) {this.acc -= STEP; this.clock += STEP; this.course.step(STEP);}}
+      this.netTick(dt);}
+    else this.acc += dt;
     while (this.acc >= STEP) {this.acc -= STEP; this.clock += STEP; const live = this.clock >= COUNTDOWN && !this.over();
       this.course.step(STEP);
-      for (const r of this.runners) {if (r.bot) this.course.think(r, STEP); if (!live) {r.inX = r.inZ = 0; r.jump = false;} this.course.move(r, STEP);}
+      for (const r of this.runners) {if ((r as any).remote) continue; if (r.bot) this.course.think(r, STEP); if (!live || this.clock < 0) {r.inX = r.inZ = 0; r.jump = false;} this.course.move(r, STEP);}
       for (let i = 0; i < this.runners.length; i++) for (let j = i + 1; j < this.runners.length; j++) {const a = this.runners[i], b = this.runners[j]; if (a.hook >= 0 || b.hook >= 0) continue; const dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz), m = RR * 1.9;
         if (d < m && d > 1e-4 && Math.abs(a.y - b.y) < 1.2) {const p = (m - d) / 2; a.x -= dx / d * p; a.z -= dz / d * p; b.x += dx / d * p; b.z += dz / d * p;}}}
     this.sync(dt); if (this.composer) this.composer.render(); else this.renderer.render(this.scene, this.camera); this.hudUpdate();
   }
 
+  /** remote state from the server: id -> [x,y,z,facing,anim,cp,progress,finished,finishTime,falls] */
+  remote(runners: Record<string, number[]>) {for (const r of this.runners) {const v = runners[r.id]; if (!v || !(r as any).remote) continue; (r as any).target = v;}}
+  private sendT = 0;
+  private netTick(dt: number) {
+    for (const r of this.runners) {const v = (r as any).target as number[] | undefined; if (!(r as any).remote || !v) continue; const k = Math.min(1, dt * 10);
+      if (Math.hypot(v[0] - r.x, v[2] - r.z) > 6) {r.x = v[0]; r.y = v[1]; r.z = v[2];} else {r.vx = (v[0] - r.x) / Math.max(dt, .016) * k; r.vz = (v[2] - r.z) / Math.max(dt, .016) * k; r.x += (v[0] - r.x) * k; r.y += (v[1] - r.y) * k; r.z += (v[2] - r.z) * k;}
+      r.facing = v[3]; r.stun = v[4] === 3 ? .3 : 0; r.ground = v[4] === 2 ? null : (r.ground ?? this.course.blocks[0]); r.vy = v[4] === 2 ? 1 : 0; r.checkpoint = v[5]; r.progress = v[6]; if (v[7] && !r.finished) {r.finished = true; r.finishTime = v[8];} r.falls = v[9];}
+    if (this.net!.spectator) {const lead = this.standings()[0]; if (lead) this.me = lead; return;}
+    this.sendT -= dt; if (this.sendT > 0) return; this.sendT = .2; const m = this.me, anim = m.stun > 0 ? 3 : !m.ground ? 2 : Math.hypot(m.vx, m.vz) > .8 ? 1 : 0;
+    this.net!.send([+m.x.toFixed(2), +m.y.toFixed(2), +m.z.toFixed(2), +m.facing.toFixed(2), anim, m.checkpoint, +m.progress.toFixed(1), m.finished ? 1 : 0, +m.finishTime.toFixed(2), m.falls]);}
   over() {if (this.clock - COUNTDOWN >= this.limit) return true; return this.runners.length > 0 && this.runners.every(r => r.finished);}
   timeLeft() {return Math.max(0, this.limit - Math.max(0, this.clock - COUNTDOWN));}
   standings() {return [...this.runners].sort((a, b) => (a.finished ? 0 : 1) - (b.finished ? 0 : 1) || (a.finished ? a.finishTime - b.finishTime : b.progress - a.progress));}
