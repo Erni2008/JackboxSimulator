@@ -64,7 +64,9 @@ export class Course {
     const pool = ['terraces', 'spinner', 'gaps', 'pendulums', 'rafts', 'crumble', 'pushers', 'pads', 'traps', 'conveyor', ...(this.theme === 'graveyard' ? ['sink'] : [])].filter(n => !(this.theme === 'manor' && n === 'pads'));
     for (let i = pool.length - 1; i > 0; i--) {const j = Math.floor(this.rnd() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]];}
     let order = pool.slice(0, 6); order.splice(2 + Math.floor(this.rnd() * 3), 0, 'ramp'); order.push(this.theme === 'manor' ? 'pads' : 'rain', 'hops');
-    if (this.theme === 'crypt') {const extra = pool.filter(n => n !== 'pads' && n !== 'rafts').slice(0, 3); order = ['maze', extra[0], 'fakewalls', extra[1], 'portals', extra[2], 'maze', 'rain', 'hops'];}
+    if (this.theme === 'crypt') {const extra = pool.filter(n => n !== 'pads' && n !== 'rafts').slice(0, 3); const core = ['maze', 'fakewalls', 'portals', 'maze', ...(this.rnd() < .5 ? ['portals'] : ['fakewalls'])];
+      for (let i = core.length - 1; i > 1; i--) {const j = 1 + Math.floor(this.rnd() * i); [core[i], core[j]] = [core[j], core[i]];}
+      order = []; core.forEach((c, i) => {order.push(c); if (extra[i]) order.push(extra[i]);}); order.push('rain', 'hops');}
     for (const name of order) {
       const z0 = this.z; (this as any)['s_' + name](); this.sections.push({name, z0, z1: this.z});
       if (name === 'hops') break;
@@ -119,47 +121,64 @@ export class Course {
 
   // ---- catacomb sections ----
   private wallBlock(x0: number, x1: number, z0: number, z1: number, h = 2.8, ghost = false) {const b = this.add(x0, x1, z0, z1, this.y + h, this.y + h, 'flag'); b.bottom = this.y; b.wall = true; b.ghost = ghost; return b;}
-  /** Seeded perfect maze (depth-first), one entrance, one exit; bots follow the solved path. */
+  /** Seeded labyrinth: 9x8 cells, braided with loops so wall-following fails, per-race variant (classic / trapdoor cells /
+   *  secret walls / portal cells). Bots follow the solved path. */
   private s_maze() {
-    const C = 7, Rr = 6, cs = 3.2, W = C * cs, z0 = this.z + 1, x0 = -W / 2, t = .35;
-    this.add(-W / 2 - .5, W / 2 + .5, this.z, z0 + Rr * cs + 1, this.y, this.y, this.look.main); this.room(this.z, z0 + Rr * cs + 1, W / 2 + 1.1, 12);
+    const C = 9, Rr = 8, cs = 3, W = C * cs, z0 = this.z + 1, x0 = -W / 2, t = .35, y = this.y;
+    const variant = this.pick(['classic', 'traps', 'secret', 'portals']);
     const seen = new Set<number>(), open = new Set<string>(), key = (a: number, b: number) => a < b ? a + ':' + b : b + ':' + a, id = (c: number, r: number) => r * C + c;
-    const stack = [[3, 0]]; seen.add(id(3, 0));
+    const startC = Math.floor(C / 2), exitC = Math.floor(this.rnd() * C);
+    const stack = [[startC, 0]]; seen.add(id(startC, 0));
     while (stack.length) {const [c, r] = stack[stack.length - 1]; const nb = [[c + 1, r], [c - 1, r], [c, r + 1], [c, r - 1]].filter(([a, b]) => a >= 0 && a < C && b >= 0 && b < Rr && !seen.has(id(a, b)));
       if (!nb.length) {stack.pop(); continue;} const [a, b] = nb[Math.floor(this.rnd() * nb.length) % nb.length]; open.add(key(id(c, r), id(a, b))); seen.add(id(a, b)); stack.push([a, b]);}
-    const exitC = Math.floor(this.rnd() * C);
-    for (let r = 0; r <= Rr; r++) for (let c = 0; c < C; c++) {  // horizontal walls (between row r-1 and r)
-      const isOpen = r === 0 ? c === 3 : r === Rr ? c === exitC : open.has(key(id(c, r - 1), id(c, r)));
-      if (!isOpen) this.wallBlock(x0 + c * cs - t / 2, x0 + (c + 1) * cs + t / 2, z0 + r * cs - t / 2, z0 + r * cs + t / 2);}
-    for (let r = 0; r < Rr; r++) for (let c = 0; c <= C; c++) {  // vertical walls
-      const isOpen = c > 0 && c < C && open.has(key(id(c - 1, r), id(c, r)));
-      if (!isOpen) this.wallBlock(x0 + c * cs - t / 2, x0 + c * cs + t / 2, z0 + r * cs - t / 2, z0 + (r + 1) * cs + t / 2);}
-    // solve for bots
-    const prev = new Map<number, number>(), q = [id(3, 0)]; prev.set(id(3, 0), -1);
+    // braid: knock out some walls to make loops (no single "follow the wall" solution)
+    for (let i = 0; i < 9; i++) {const c = Math.floor(this.rnd() * (C - 1)), r = Math.floor(this.rnd() * Rr); if (this.rnd() < .5) open.add(key(id(c, r), id(c + 1, r))); else if (r < Rr - 1) open.add(key(id(c, r), id(c, r + 1)));}
+    const prev = new Map<number, number>(), q = [id(startC, 0)]; prev.set(id(startC, 0), -1);
     while (q.length) {const cur = q.shift()!, c = cur % C, r = Math.floor(cur / C); for (const [a, b] of [[c + 1, r], [c - 1, r], [c, r + 1], [c, r - 1]]) {if (a < 0 || a >= C || b < 0 || b >= Rr) continue; const n = id(a, b); if (prev.has(n) || !open.has(key(cur, n))) continue; prev.set(n, cur); q.push(n);}}
-    const path: [number, number][] = []; for (let n = id(exitC, Rr - 1); n !== -1; n = prev.get(n)!) path.unshift([x0 + (n % C + .5) * cs, z0 + (Math.floor(n / C) + .5) * cs]);
+    const sol: number[] = []; for (let n = id(exitC, Rr - 1); n !== -1; n = prev.get(n)!) sol.unshift(n); const onPath = new Set(sol);
+    // floor: one slab per cell (trap variant turns some off-path cells into trapdoors)
+    for (let r = 0; r < Rr; r++) for (let c = 0; c < C; c++) {const b = this.add(x0 + c * cs, x0 + (c + 1) * cs, z0 + r * cs, z0 + (r + 1) * cs, y, y, this.look.main);
+      if (variant === 'traps' && !onPath.has(id(c, r)) && this.rnd() < .45) {b.trapPeriod = 2.2 + this.rnd(); b.trapPhase = this.rnd(); b.bottom = y - .35;}
+      if (variant === 'traps' && onPath.has(id(c, r)) && r > 0 && r < Rr - 1 && this.rnd() < .22) {b.trapPeriod = 3; b.trapPhase = this.rnd(); b.bottom = y - .35;}}
+    this.add(-W / 2 - .5, W / 2 + .5, this.z, z0, y, y, this.look.main); this.add(-W / 2 - .5, W / 2 + .5, z0 + Rr * cs, z0 + Rr * cs + 1, y, y, this.look.main);
+    this.room(this.z, z0 + Rr * cs + 1, W / 2 + 1.1, 12);
+    // secret variant: a few solid-looking walls on shortcuts are fake
+    const ghosts = new Set<string>(); if (variant === 'secret') for (let i = 0; i < 5; i++) {const c = Math.floor(this.rnd() * (C - 1)), r = Math.floor(this.rnd() * Rr); const k = key(id(c, r), id(c + 1, r)); if (!open.has(k)) ghosts.add(k);}
+    for (let r = 0; r <= Rr; r++) for (let c = 0; c < C; c++) {
+      const isOpen = r === 0 ? c === startC : r === Rr ? c === exitC : open.has(key(id(c, r - 1), id(c, r)));
+      if (!isOpen) this.wallBlock(x0 + c * cs - t / 2, x0 + (c + 1) * cs + t / 2, z0 + r * cs - t / 2, z0 + r * cs + t / 2, 3);}
+    for (let r = 0; r < Rr; r++) for (let c = 0; c <= C; c++) {
+      const k = c > 0 && c < C ? key(id(c - 1, r), id(c, r)) : ''; const isOpen = k !== '' && open.has(k);
+      if (!isOpen) this.wallBlock(x0 + c * cs - t / 2, x0 + c * cs + t / 2, z0 + r * cs - t / 2, z0 + (r + 1) * cs + t / 2, 3, ghosts.has(k));}
+    // portal variant: two portal cells — one jumps you to a cell next to the exit, one back to the entrance
+    if (variant === 'portals') {const cells = [...Array(C * Rr).keys()].filter(n => !onPath.has(n) && Math.floor(n / C) > 1 && Math.floor(n / C) < Rr - 1); for (let i = cells.length - 1; i > 0; i--) {const j = Math.floor(this.rnd() * (i + 1)); [cells[i], cells[j]] = [cells[j], cells[i]];}
+      const ex = sol[Math.max(0, sol.length - 2)], st = sol[0], cc = (n: number) => [x0 + (n % C + .5) * cs, z0 + (Math.floor(n / C) + .5) * cs];
+      cells.slice(0, 2).forEach((n, i) => {const [px, pz] = cc(n), [tx, tz] = cc(i === 0 ? ex : st); this.portals.push({x: px, y, z: pz, r: .9, tx, ty: y, tz, kind: i === 0 ? 'far' : 'back', used: -9});});}
+    const path: [number, number][] = sol.map(n => [x0 + (n % C + .5) * cs, z0 + (Math.floor(n / C) + .5) * cs]);
     path.unshift([0, z0 - .6]); path.push([x0 + (exitC + .5) * cs, z0 + Rr * cs + .8]);
-    this.mazePaths.push({box: [x0, x0 + W, z0 - 1, z0 + Rr * cs + 1], path});
+    this.mazePaths.push({box: [x0, x0 + W, z0 - 1, z0 + Rr * cs + 1], path, variant});
     this.z = z0 + Rr * cs + 1;
   }
-  mazePaths: {box: number[]; path: [number, number][]}[] = [];
-  /** Zig-zag of cross walls; each has a shimmering fake segment in the middle — the secret straight route. */
-  private s_fakewalls() {const len = 34, w = 4.6, z = this.z; this.add(-w, w, z, z + len, this.y, this.y, this.look.main); this.room(z, z + len, w + .6, 9);
-    for (let i = 0; i < 4; i++) {const wz = z + 5 + i * 7.5, gap = i % 2 ? 1 : -1, t = .45;
-      // solid wall with a real doorway at one side and a fake panel in the centre
-      if (gap > 0) {this.wallBlock(-w, -1.3, wz, wz + t); this.wallBlock(1.3, w - 1.8, wz, wz + t);} else {this.wallBlock(-w + 1.8, -1.3, wz, wz + t); this.wallBlock(1.3, w, wz, wz + t);}
-      this.wallBlock(-1.3, 1.3, wz, wz + t, 2.8, true);}
+  mazePaths: {box: number[]; path: [number, number][]; variant: string}[] = [];
+  fakeWalls: {z: number; slots: number[]; real: number}[] = [];
+  /** Sealed cross walls — no doorway at all. One panel in each wall is fake: find it by running into the stone. */
+  private s_fakewalls() {const n = 4 + Math.floor(this.rnd() * 2), gapZ = 6.5, len = 3 + n * gapZ, w = 5, z = this.z, t = .5, pw = 2;
+    this.add(-w, w, z, z + len, this.y, this.y, this.look.main); this.room(z, z + len, w + .6, 9);
+    const slots = [-3.75, -1.25, 1.25, 3.75];
+    for (let i = 0; i < n; i++) {const wz = z + 4 + i * gapZ, real = Math.floor(this.rnd() * slots.length) % slots.length;
+      slots.forEach((sx, k) => this.wallBlock(sx - pw / 2 - (k === 0 ? .25 : 0), sx + pw / 2 + (k === 3 ? .25 : 0), wz, wz + t, 3.2, k === real));
+      this.fakeWalls.push({z: wz, slots, real});}
     this.z += len;}
-  /** Three identical portals in front of a sealed wall; the seed decides which goes far, which near, which back. */
-  private s_portals() {const z = this.z, w = 6.4, y = this.y; this.add(-w, w, z, z + 12, y, y, this.look.main); this.room(z, z + 12, w + .6, 9);
+  /** 3-5 look-alike portals before a sealed wall; one goes far past a trap corridor, one near, the rest send you back. */
+  private s_portals() {const z = this.z, w = 7, y = this.y, n = 3 + Math.floor(this.rnd() * 3); this.add(-w, w, z, z + 12, y, y, this.look.main); this.room(z, z + 12, w + .6, 9);
     this.wallBlock(-w, w, z + 11, z + 12, 5);
-    // behind the wall: a trap corridor the lucky portal skips
     const cz = z + 12; this.add(-4, 4, cz, cz + 4, y, y, this.look.main);
     for (let r = 0; r < 5; r++) for (const c of [-1, 0, 1]) {const b = this.add(c * 2.6 - 1.25, c * 2.6 + 1.25, cz + 4 + r * 2.6, cz + 4 + r * 2.6 + 2.5, y, y, this.look.alt); b.bottom = y - .35; b.trapPeriod = 2.4; b.trapPhase = r * .15 + c * .04;}
     const end = cz + 17; this.add(-4, 4, end, end + 4, y, y, this.look.main); this.room(cz, end + 4, 4.6, 9);
-    const kinds: Portal['kind'][] = ['far', 'near', 'back']; for (let i = 2; i > 0; i--) {const j = Math.floor(this.rnd() * (i + 1)); [kinds[i], kinds[j]] = [kinds[j], kinds[i]];}
-    [-4, 0, 4].forEach((x, i) => {const k = kinds[i]; const tz = k === 'far' ? end + 2 : k === 'near' ? cz + 1.5 : z + 1.5; this.portals.push({x, y, z: z + 8, r: 1.05, tx: 0, ty: y, tz, kind: k, used: -9});});
+    const kinds: Portal['kind'][] = ['far', 'near', ...Array(n - 2).fill('back')]; for (let i = kinds.length - 1; i > 0; i--) {const j = Math.floor(this.rnd() * (i + 1)); [kinds[i], kinds[j]] = [kinds[j], kinds[i]];}
+    kinds.forEach((k, i) => {const x = -((n - 1) * 2.9) / 2 + i * 2.9; const tz = k === 'far' ? end + 2 : k === 'near' ? cz + 1.5 : z + 1.5; this.portals.push({x, y, z: z + 8, r: 1.05, tx: 0, ty: y, tz, kind: k, used: -9});});
     this.z = end + 4;}
+  private pick<T>(a: T[]) {return a[Math.floor(this.rnd() * a.length) % a.length];}
 
   private room(z0: number, z1: number, halfW: number, h = 8, sky = true) {if (this.theme === 'manor' || this.theme === 'crypt') this.rooms.push({z0, z1, halfW, y: this.y, h, skylights: sky && this.theme === 'manor'});}
   private add(x0: number, x1: number, z0: number, z1: number, y0: number, y1: number, mat: Mat): Block {
@@ -278,7 +297,10 @@ export class Course {
     for (const m of this.mazePaths) if (r.x > m.box[0] - 1 && r.x < m.box[1] + 1 && r.z > m.box[2] && r.z < m.box[3]) {
       let best = 0, bd = 1e9; m.path.forEach(([px, pz], i) => {const d = Math.hypot(px - r.x, pz - r.z); if (d < bd) {bd = d; best = i;}});
       const [nx, nz] = m.path[Math.min(m.path.length - 1, best + (bd < 1.1 ? 1 : 0))]; const dx = nx - r.x, dz = nz - r.z, l = Math.hypot(dx, dz) || 1; r.inX = dx / l; r.inZ = dz / l;}
-    if (this.portals.length) {const p0 = this.portals[0]; if (r.z > p0.z - 7 && r.z < p0.z + .5) {const pick = this.portals[(r.slot * 7 + Math.floor(this.time / 9)) % this.portals.length]; r.inX = clamp((pick.x - r.x) * .8, -1, 1);}}
+    for (const fw of this.fakeWalls) if (r.z > fw.z - 3.5 && r.z < fw.z + .2) {const st = r as any; if (st.fwZ !== fw.z) {st.fwZ = fw.z; st.try = Math.floor(Math.random() * fw.slots.length); st.stuck = 0;}
+      const sx = fw.slots[st.try % fw.slots.length]; r.inX = clamp((sx - r.x) * 1.2, -1, 1); r.inZ = Math.abs(sx - r.x) < .6 ? 1 : .25;
+      if (r.z > fw.z - .9 && Math.abs(r.vz) < .5) {st.stuck += dt; if (st.stuck > .35) {st.try++; st.stuck = 0;}} break;}
+        {const near = this.portals.filter(p => p.kind !== 'far' || true).filter(p => Math.abs(p.z - (r.z + 4)) < 4.5 && Math.abs(p.z - r.z) < 8 && p.z > r.z); if (near.length >= 3 && !this.mazePaths.some(m => r.z > m.box[2] && r.z < m.box[3])) {const pick = near[(r.slot * 7 + Math.floor(this.time / 9)) % near.length]; r.inX = clamp((pick.x - r.x) * .8, -1, 1);}}
     let want = false, support = false; const ahead = r.z + 1.3, here = r.ground ? top(r.ground, r.z) : r.y;
     for (const b of this.blocks) {if (b.gone || b.wall) continue; if (r.x >= b.x0 + b.offX && r.x <= b.x1 + b.offX && ahead >= b.z0 && ahead <= b.z1) {support = true; if (top(b, ahead) > here + .35) want = true;}}
     if (!support && !this.pads.some(p => Math.abs(p.z - r.z) < 2.5)) want = true;

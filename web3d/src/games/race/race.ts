@@ -17,7 +17,7 @@ type Look = {root: THREE.Object3D; mixer: THREE.AnimationMixer; acts: Record<str
 
 export class RaceApp {
   readonly renderer: THREE.WebGLRenderer; readonly scene = new THREE.Scene(); readonly camera = new THREE.PerspectiveCamera(55, 1, .3, 900);
-  course: Course; readonly night: boolean; readonly manor: boolean; readonly crypt: boolean; runners: Runner[] = []; me!: Runner; clock = 0; private acc = 0;
+  course: Course; readonly night: boolean; readonly manor: boolean; readonly crypt: boolean; readonly limit: number; runners: Runner[] = []; me!: Runner; clock = 0; private acc = 0;
   private sun!: THREE.DirectionalLight; private fill!: THREE.DirectionalLight; private mist: THREE.Mesh[] = []; private pollen!: THREE.Points; private puffs: {s: THREE.Sprite; t: number}[] = []; private grassMat?: THREE.Material; private looks = new Map<Runner, Look>(); private blockMeshes = new Map<Block, THREE.Mesh>();
   private sweeperMeshes: THREE.Object3D[] = []; private cpArches: {glow: THREE.Mesh; flag: THREE.Mesh; lit: boolean}[] = []; private lastCp = 0; private pend: THREE.Object3D[] = []; private rams: THREE.Object3D[] = []; private padMeshes: THREE.Mesh[] = []; private warnPlanes = new Map<Block, THREE.Mesh>(); private belts: THREE.Texture[] = []; private composer?: EffectComposer; private lastSection = ''; private ghosts: THREE.MeshStandardMaterial[] = []; private lastTp = 0; private mazeBlend = 0; private portalFx: THREE.Object3D[] = []; private boulderPool: THREE.Object3D[] = [];
   private gltf = new GLTFLoader(); private texLoader = new THREE.TextureLoader(); private cache = new Map<string, Promise<GLTF>>();
@@ -25,7 +25,7 @@ export class RaceApp {
   private blobs = new Map<Runner, THREE.Mesh>();   private dots = new Map<Runner, HTMLElement>(); private keys = new Set<string>(); private stick = {id: -1, ox: 0, oy: 0, x: 0, y: 0}; private hud: HTMLElement;
 
   constructor(private host: HTMLElement, private myChar: string, map = 1) {
-    const qs = new URLSearchParams(location.search); this.course = new Course(map, Number(qs.get('seed')) || (Math.random() * 1e9) | 0); this.night = this.course.theme === 'graveyard'; this.crypt = this.course.theme === 'crypt'; this.manor = this.course.theme === 'manor' || this.crypt;
+    const qs = new URLSearchParams(location.search); this.course = new Course(map, Number(qs.get('seed')) || (Math.random() * 1e9) | 0); this.night = this.course.theme === 'graveyard'; this.crypt = this.course.theme === 'crypt'; this.manor = this.course.theme === 'manor' || this.crypt; this.limit = this.crypt ? 210 : LIMIT;
     const phone = matchMedia('(pointer:coarse)').matches;
     this.renderer = new THREE.WebGLRenderer({antialias: !phone || devicePixelRatio < 2, powerPreference: 'high-performance'});
     this.pixelRatio = Math.min(devicePixelRatio, phone ? 1.5 : 1.35); this.renderer.setPixelRatio(this.pixelRatio);
@@ -62,7 +62,7 @@ export class RaceApp {
       let side = b.mat === 'plank' ? mats.plank : b.mat === 'dark' ? mats.dark : this.manor ? (b.mat === 'floor' ? mats.beam : mats.wall) : this.night ? mats.brick : mats.rock;
       let tm = topM; if (b.conveyor) {const mm = (topM as THREE.MeshStandardMaterial).clone(); for (const k of ['map', 'normalMap', 'roughnessMap'] as const) if (mm[k]) {mm[k] = mm[k]!.clone(); mm[k]!.needsUpdate = true; this.belts.push(mm[k]!);} tm = mm;}
       if (b.wall) {tm = mats.wall; side = mats.wall;}
-      if (b.ghost) {const gm = (mats.wall as THREE.MeshStandardMaterial).clone(); gm.transparent = true; gm.opacity = .92; gm.emissive = new THREE.Color(0x2aff9a); gm.emissiveIntensity = .05; tm = gm; side = gm; this.ghosts.push(gm);}
+      if (b.ghost) {const gm = (mats.wall as THREE.MeshStandardMaterial).clone(); gm.transparent = true; gm.opacity = .92; gm.emissive = new THREE.Color(0x2aff9a); gm.emissiveIntensity = 0; tm = gm; side = gm; this.ghosts.push(gm);}
       const m = new THREE.Mesh(blockGeometry(b), [tm, b.wall ? side : this.shaded(side)]); if (b.wall) m.castShadow = true;
       // carved edge trim around walkable tops (curbs / skirting) — breaks the boxy look
       const trimMat = this.manor ? (b.mat === 'floor' ? mats.beam : mats.wall) : this.night ? mats.brick : b.mat === 'grass' ? null : b.mat === 'plank' ? mats.bark : mats.rock;
@@ -401,8 +401,8 @@ export class RaceApp {
     this.sync(dt); if (this.composer) this.composer.render(); else this.renderer.render(this.scene, this.camera); this.hudUpdate();
   }
 
-  over() {if (this.clock - COUNTDOWN >= LIMIT) return true; return this.runners.length > 0 && this.runners.every(r => r.finished);}
-  timeLeft() {return Math.max(0, LIMIT - Math.max(0, this.clock - COUNTDOWN));}
+  over() {if (this.clock - COUNTDOWN >= this.limit) return true; return this.runners.length > 0 && this.runners.every(r => r.finished);}
+  timeLeft() {return Math.max(0, this.limit - Math.max(0, this.clock - COUNTDOWN));}
   standings() {return [...this.runners].sort((a, b) => (a.finished ? 0 : 1) - (b.finished ? 0 : 1) || (a.finished ? a.finishTime - b.finishTime : b.progress - a.progress));}
 
   private sync(dt: number) {
@@ -414,7 +414,7 @@ export class RaceApp {
     c.pads.forEach((p, i) => {const k = Math.max(0, 1 - (c.time - p.fired) * 4); this.padMeshes[i].position.y = p.y + .23 + k * .25; (this.padMeshes[i].material as THREE.MeshStandardMaterial).emissiveIntensity = 1 + Math.sin(c.time * 6) * .3 + k * 3;});
     for (const [b, w] of this.warnPlanes) {w.visible = b.warn && !b.gone; (w.material as THREE.MeshBasicMaterial).opacity = .35 + .35 * Math.sin(c.time * 28);}
     for (const t of this.belts) t.offset.y = (t.offset.y + dt * .9) % 1;
-    for (const gm of this.ghosts) gm.emissiveIntensity = .04 + .05 * (.5 + .5 * Math.sin(c.time * 2.3));
+    for (const gm of this.ghosts) gm.emissiveIntensity = .025 * Math.max(0, Math.sin(c.time * 1.3)) ** 8;
     this.portalFx.forEach((g, i) => {g.userData.disc.rotation.z -= dt * 2.4; const p = c.portals[i]; (g.userData.disc.material as THREE.MeshBasicMaterial).opacity = .7 + .25 * Math.sin(c.time * 5 + i) + (c.time - p.used < .4 ? .5 : 0);});
     const tp = (this.me as any).teleported; if (tp && tp !== this.lastTp) {this.lastTp = tp; this.camTarget.set(this.me.x, this.me.y, this.me.z); const pk = c.portals.find(p => c.time - p.used < .1); this.toast(pk?.kind === 'far' ? 'ДАЛЕКО ВПЕРЁД!' : pk?.kind === 'back' ? 'НАЗАД!' : 'ТЕЛЕПОРТ!'); this.puff(this.me.x, this.me.y, this.me.z, 1.6);}
     const sec = c.sectionAt(this.me.z); if (sec && sec.name !== this.lastSection) {this.lastSection = sec.name; if (this.clock > COUNTDOWN + .5) this.toast(SECTION_NAMES[sec.name].toUpperCase());}
@@ -435,8 +435,8 @@ export class RaceApp {
     const me = this.me, portrait = this.camera.aspect < 1, k = Math.min(1, dt * 5);
     this.camTarget.x += (me.x * .75 - this.camTarget.x) * k; this.camTarget.z += (me.z - this.camTarget.z) * k; this.camTarget.y += (Math.max(me.y, -4) - this.camTarget.y) * Math.min(1, dt * 2.5);
     const back = this.manor ? (portrait ? 9 : 7.4) : portrait ? 11 : 8.6, up = this.manor ? (portrait ? 6 : 4.4) : portrait ? 7.2 : 5.4;
-    const inMaze = this.course.mazePaths.some(m => me.z > m.box[2] - 2 && me.z < m.box[3]); this.mazeBlend += ((inMaze ? 1 : 0) - this.mazeBlend) * Math.min(1, dt * 2.5);
-    const mb = this.mazeBlend, back2 = back + (4.2 - back) * mb, up2 = up + (10.5 - up) * mb;
+    const inMaze = this.course.mazePaths.some(m => me.z > m.box[2] - 2 && me.z < m.box[3]) || this.course.fakeWalls.some(f => me.z > f.z - 6 && me.z < f.z + 3); this.mazeBlend += ((inMaze ? 1 : 0) - this.mazeBlend) * Math.min(1, dt * 2.5);
+    const mb = this.mazeBlend, back2 = back + (4.6 - back) * mb, up2 = up + (7.4 - up) * mb;
     this.camera.position.set(this.camTarget.x, this.camTarget.y + up2, this.camTarget.z - back2);
     if (this.manor) {const cz = this.camera.position.z, rm = this.course.rooms.find(r => cz >= r.z0 && cz <= r.z1) ?? this.course.rooms.find(r => this.camTarget.z >= r.z0 && this.camTarget.z <= r.z1); if (rm) {const lim = rm.halfW - 1.1; this.camera.position.x = Math.max(-lim, Math.min(lim, this.camera.position.x)); this.camera.position.y = Math.min(this.camera.position.y, rm.y + rm.h - .8 + 4 * this.mazeBlend);}} this.camera.lookAt(this.camTarget.x, this.camTarget.y + 1.3, this.camTarget.z + 7);
     this.sun.target.position.set(this.camTarget.x, this.camTarget.y, this.camTarget.z + 8);
