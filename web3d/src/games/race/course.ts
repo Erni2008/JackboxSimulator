@@ -2,9 +2,10 @@
 // phone sees the same logs, boulders and rafts; each phone simulates only its own runner.
 export type Mat = 'grass' | 'plank' | 'stone';
 export interface Block {x0: number; x1: number; z0: number; z1: number; bottom: number; y0: number; y1: number; mat: Mat;
-  driftAmp: number; driftPeriod: number; driftPhase: number; crumbles: boolean; offX: number; offY: number; lastOffX: number; crumbleAt: number; fallV: number; gone: boolean}
+  driftAmp: number; driftPeriod: number; driftPhase: number; crumbles: boolean; crumbleDelay: number; offX: number; offY: number; lastOffX: number; crumbleAt: number; fallV: number; gone: boolean}
 export interface Sweeper {x: number; y: number; z: number; len: number; speed: number; angle: number}
 export interface Pendulum {px: number; py: number; pz: number; len: number; amp: number; period: number; phase: number; radius: number; bx: number; by: number; bz: number; swing: number}
+export interface Faller {id: number; x: number; z: number; g: number; spawn: number; impact: number; r: number; y: number; alive: boolean; landed: boolean}
 export interface Boulder {x: number; y: number; z: number; vz: number; spin: number; radius: number; alive: boolean}
 
 export const R = .42, H = 1.55, DEATH_Y = -12, BOTTOM = -16;
@@ -19,8 +20,8 @@ export class Runner {
 }
 
 export class Course {
-  blocks: Block[] = []; sweepers: Sweeper[] = []; pendulums: Pendulum[] = []; boulders: Boulder[] = [];
-  checkpoints: number[]; finishZ: number; rampZ0: number; rampZ1: number; rampY0: number; rampY1: number; time = 0;
+  blocks: Block[] = []; sweepers: Sweeper[] = []; pendulums: Pendulum[] = []; boulders: Boulder[] = []; fallers: Faller[] = []; fallZones: [number, number, number, number][] = []; private fallTimer = 0; private fallSeed = 99; private fallId = 0;
+  checkpoints: number[]; gauntlet: number[] = []; finishZ: number; rampZ0: number; rampZ1: number; rampY0: number; rampY1: number; time = 0;
   private boulderTimer = 1.5; private seed = 7;
   constructor() {
     let z = 0, y = 0;
@@ -38,12 +39,27 @@ export class Course {
     z += 16; this.add(-8, 8, z, z + 7, y, y, 'grass'); z += 7;
     this.rampZ0 = z; this.rampZ1 = z + 34; this.rampY0 = y; this.rampY1 = y + 7.5;
     this.add(-7, 7, this.rampZ0, this.rampZ1, this.rampY0, this.rampY1, 'grass'); z = this.rampZ1; y = this.rampY1;
-    this.add(-8, 8, z, z + 9, y, y, 'grass'); this.add(-8, 8, z + 9, z + 16, y - .9, y - .9, 'grass'); z += 16; y -= .9;
-    this.add(-11, 11, z, z + 22, y, y, 'stone'); this.finishZ = z + 12;
-    this.checkpoints = [0, 46, 101, 145, 176, this.rampZ1 + 1];
+    // ---- final gauntlet ----
+    this.add(-8, 8, z, z + 8, y, y, 'grass'); z += 8; const cpFall = z;
+    // 9. rockfall: long causeway, rocks crash down on red warning circles
+    this.add(-6, 6, z, z + 46, y, y, 'stone'); this.fallZones.push([-5, 5, z + 2, z + 45]); z += 46;
+    this.add(-7, 7, z, z + 6, y, y, 'grass'); z += 6; const cpBridge = z;
+    // 10. collapsing bridge: two narrow lanes of slabs that drop almost at once
+    for (let r = 0; r < 9; r++) for (const c of [-1, 1]) {const b = this.add(c * 1.7 - 1.1, c * 1.7 + 1.1, z + r * 2.9 + .25, z + r * 2.9 + 2.6, y, y, 'stone'); b.crumbles = true; b.crumbleDelay = .42; b.bottom = y - .9;}
+    z += 26.4; this.add(-7, 7, z, z + 6, y, y, 'grass'); z += 6; const cpLogs = z;
+    // 11. twin logs spinning against each other
+    this.add(-10, 10, z, z + 30, y, y, 'stone');
+    this.sweepers.push({x: 0, y: y + .55, z: z + 8, len: 8.5, speed: 1.6, angle: 0}, {x: 0, y: y + .55, z: z + 21, len: 8.5, speed: -1.95, angle: 0}); z += 30;
+    // 12. island hops up to the finish under falling rocks
+    const hops = [[0, 3.2], [-2.6, 2.6], [2.4, 2.6], [-1.2, 2.4], [1.8, 2.6], [0, 3]];
+    const hz0 = z; for (const [hx, len] of hops) {z += 2.1; y += .45; this.add(hx - 1.7, hx + 1.7, z, z + len, y, y, 'stone'); z += len;}
+    this.fallZones.push([-3, 3, hz0, z]);
+    z += 1.8; this.add(-11, 11, z, z + 22, y, y, 'stone'); this.finishZ = z + 12;
+    this.gauntlet = [cpFall, cpBridge, cpLogs];
+    this.checkpoints = [0, 46, 101, 145, 176, this.rampZ1 + 1, ...this.gauntlet.map(v => v - 3)];
   }
   private add(x0: number, x1: number, z0: number, z1: number, y0: number, y1: number, mat: Mat): Block {
-    const b: Block = {x0, x1, z0, z1, y0, y1, mat, bottom: mat === 'plank' ? Math.min(y0, y1) - .42 : BOTTOM, driftAmp: 0, driftPeriod: 1, driftPhase: 0, crumbles: false, offX: 0, offY: 0, lastOffX: 0, crumbleAt: -1, fallV: 0, gone: false};
+    const b: Block = {x0, x1, z0, z1, y0, y1, mat, bottom: mat === 'plank' ? Math.min(y0, y1) - .42 : BOTTOM, driftAmp: 0, driftPeriod: 1, driftPhase: 0, crumbles: false, crumbleDelay: .75, offX: 0, offY: 0, lastOffX: 0, crumbleAt: -1, fallV: 0, gone: false};
     this.blocks.push(b); return b;
   }
   spawnY(z: number) {let best = 0; for (const b of this.blocks) if (!b.crumbles && !b.driftAmp && z >= b.z0 && z <= b.z1) best = Math.max(best, top(b, z)); return best;}
@@ -54,8 +70,8 @@ export class Course {
       b.lastOffX = b.offX;
       if (b.driftAmp) b.offX = b.driftAmp * Math.sin(Math.PI * 2 * t0 / b.driftPeriod + b.driftPhase);
       if (b.crumbles && b.crumbleAt >= 0) {const t = t0 - b.crumbleAt;
-        if (t > .75) {b.fallV += 26 * dt; b.offY -= b.fallV * dt; if (b.offY < -6) b.gone = true;}
-        if (t > 4.5) {b.crumbleAt = -1; b.offY = 0; b.fallV = 0; b.gone = false;}}
+        if (t > b.crumbleDelay) {b.fallV += 26 * dt; b.offY -= b.fallV * dt; if (b.offY < -6) b.gone = true;}
+        if (t > b.crumbleDelay + 3.8) {b.crumbleAt = -1; b.offY = 0; b.fallV = 0; b.gone = false;}}
     }
     for (const s of this.sweepers) s.angle = s.speed * t0;
     for (const p of this.pendulums) {p.swing = p.amp * Math.sin(Math.PI * 2 * t0 / p.period + p.phase); p.bx = p.px + Math.sin(p.swing) * p.len; p.by = p.py - Math.cos(p.swing) * p.len; p.bz = p.pz;}
@@ -67,6 +83,19 @@ export class Course {
       if (bo.z > this.rampZ0) bo.y = this.rampY0 + (bo.z - this.rampZ0) * slope + bo.radius; else bo.y -= 30 * dt;
       if (bo.y < DEATH_Y - 10) bo.alive = false;}
     this.boulders = this.boulders.filter(b => b.alive);
+    // rockfall: deterministic from the shared clock (same rocks on every phone)
+    this.fallTimer -= dt;
+    while (this.fallTimer <= 0 && this.fallZones.length) {
+      const rnd = () => ((this.fallSeed = (this.fallSeed * 1103515245 + 12345) | 0) >>> 8 & 65535) / 65535;
+      const zn = this.fallZones[rnd() < .72 ? 0 : 1], x = zn[0] + rnd() * (zn[1] - zn[0]), z = zn[2] + rnd() * (zn[3] - zn[2]);
+      let g = -99; for (const b of this.blocks) if (!b.crumbles && !b.driftAmp && x >= b.x0 && x <= b.x1 && z >= b.z0 && z <= b.z1) g = Math.max(g, top(b, z));
+      const r = .8 + rnd() * .7; if (g > -50) this.fallers.push({id: ++this.fallId, x, z, g, spawn: t0, impact: t0 + 1.25 + rnd() * .3, r, y: g + 30, alive: true, landed: false});
+      this.fallTimer += .2 + rnd() * .16;
+    }
+    for (const f of this.fallers) {const k = (t0 - f.spawn) / (f.impact - f.spawn);
+      if (k < 1) f.y = f.g + f.r + 30 * (1 - k * k); else {f.landed = true; f.y = f.g + f.r * .7 - Math.max(0, t0 - f.impact - .6) * 2;}
+      if (t0 > f.impact + 1.4) f.alive = false;}
+    this.fallers = this.fallers.filter(f => f.alive);
   }
 
   move(r: Runner, dt: number) {
@@ -104,6 +133,8 @@ export class Course {
     }
     for (const p of this.pendulums) {const dx = r.x - p.bx, dy = r.y + H / 2 - p.by, dz = r.z - p.bz, rr = p.radius + R + .2;
       if (dx * dx + dy * dy + dz * dz < rr * rr) {const dir = Math.sign(Math.cos(Math.PI * 2 * this.time / p.period + p.phase)) || 1; this.hit(r, dir * 15, 7, Math.sign(dz) * 2);}}
+    for (const f of this.fallers) {if (this.time > f.impact + .25) continue; const dx = r.x - f.x, dy = r.y + H / 2 - f.y, dz = r.z - f.z, rr = f.r + R;
+      if (dx * dx + dy * dy + dz * dz < rr * rr) {const d = Math.hypot(dx, dz) || 1; this.hit(r, dx / d * 9, 8, dz / d * 9);}}
     for (const bo of this.boulders) {const dx = r.x - bo.x, dy = r.y + H / 2 - bo.y, dz = r.z - bo.z, rr = bo.radius + R;
       if (dx * dx + dy * dy + dz * dz < rr * rr) this.hit(r, Math.sign(dx) * 4, 6, -12);}
     for (let i = this.checkpoints.length - 1; i >= 0; i--) if (r.z >= this.checkpoints[i] && r.ground && !r.ground.crumbles && !r.ground.driftAmp) {r.checkpoint = Math.max(r.checkpoint, i); break;}
@@ -126,6 +157,7 @@ export class Course {
     for (const s of this.sweepers) {const ex = Math.cos(s.angle) * s.len, ez = Math.sin(s.angle) * s.len, t = clamp(((r.x - s.x) * ex + (r.z - s.z) * ez) / (ex * ex + ez * ez), -1, 1);
       if (Math.hypot(r.x - (s.x + ex * t), r.z - (s.z + ez * t)) < 1.7) want = true;}
     for (const b of this.boulders) if (Math.abs(b.x - r.x) < b.radius + .6 && b.z > r.z && b.z - r.z < 3.2) want = true;
+    for (const f of this.fallers) if (!f.landed && Math.abs(f.z - r.z - 1.5) < 2 && Math.abs(f.x - r.x) < f.r + .8) r.inX = Math.sign(r.x - f.x || 1);
     if (want && r.ground && r.botCool <= 0 && Math.random() < .55) {r.jump = true; r.holdJump = true; r.botCool = .35;}
     if (r.ground && !want) r.holdJump = false;
   }

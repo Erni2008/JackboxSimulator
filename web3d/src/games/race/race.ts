@@ -7,7 +7,7 @@ import {Course, Runner, top, type Block, H} from './course';
 
 export const CHARACTERS = ['skeleton', 'dracula', 'pumpkin', 'voodoo', 'ghost', 'zombie', 'plague_doctor', 'puppeteer'];
 export const NAMES: Record<string, string> = {skeleton: 'Скелет', dracula: 'Дракула', pumpkin: 'Тыква', voodoo: 'Вуду', ghost: 'Призрак', zombie: 'Зомби', plague_doctor: 'Чумной доктор', puppeteer: 'Кукольник'};
-const LIMIT = 120, COUNTDOWN = 3.5, STEP = 1 / 120;
+const LIMIT = 150, COUNTDOWN = 3.5, STEP = 1 / 120;
 
 type Look = {root: THREE.Object3D; mixer: THREE.AnimationMixer; acts: Record<string, THREE.AnimationAction>; cur: string; tag: HTMLDivElement; squash: number; prevVy: number};
 
@@ -65,6 +65,7 @@ export class RaceApp {
       const beam = new THREE.Mesh(logGeo, mats.bark); beam.scale.set(13.6, .9, .9); beam.position.set(0, p.py, p.pz); beam.castShadow = true; this.scene.add(beam);
       this.pend.push({bob, chain});
     }
+    this.boulderSrc = boulder.scene;
     for (let i = 0; i < 6; i++) {const b = normalized(boulder.scene, 2.4, 'max'); b.visible = false; this.boulderPool.push(b); this.scene.add(b);}
     // finish arch
     const fy = this.course.spawnY(this.course.finishZ);
@@ -81,6 +82,7 @@ export class RaceApp {
       await this.addLook(r); progress(.8 + .2 * (i + 1) / cast.length);
     }
     this.me = this.runners[0];
+    const dz = Number(new URLSearchParams(location.search).get('z')); if (dz) for (const r of this.runners) {r.z = dz + r.slot * .3; r.x = (r.slot % 3 - 1) * 1.5; r.y = this.course.spawnY(dz) + .5; r.progress = dz; r.checkpoint = this.course.checkpoints.filter(c => c <= dz).length - 1;}
     this.camTarget.set(this.me.x, this.me.y, this.me.z);
   }
 
@@ -129,6 +131,22 @@ export class RaceApp {
   }
 
   start() {this.renderer.setAnimationLoop(t => this.frame(t));}
+
+  // ---------- rockfall ----------
+  private rocks: {rock: THREE.Object3D; ring: THREE.Mesh; id: number}[] = []; private shake = 0; private boulderSrc?: THREE.Object3D;
+  private syncRocks(dt: number) {
+    if (!this.boulderSrc) return;
+    const ringMat = (o: number) => new THREE.MeshBasicMaterial({color: 0xff3b1f, transparent: true, opacity: o, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide});
+    while (this.rocks.length < this.course.fallers.length) {const rock = normalized(this.boulderSrc, 2, 'max'); const ring = new THREE.Mesh(new THREE.RingGeometry(.82, 1, 40).rotateX(-Math.PI / 2), ringMat(.8));
+      const disc = new THREE.Mesh(new THREE.CircleGeometry(1, 40).rotateX(-Math.PI / 2), ringMat(.25)); ring.add(disc); ring.renderOrder = 3; this.scene.add(rock, ring); this.rocks.push({rock, ring, id: -1});}
+    this.rocks.forEach((v, i) => {const f = this.course.fallers[i]; v.rock.visible = v.ring.visible = !!f; if (!f) {v.id = -1; return;}
+      if (v.id !== f.id) {v.id = f.id; v.rock.userData.done = false; v.rock.rotation.set(Math.random() * 6, Math.random() * 6, 0);}
+      v.rock.position.set(f.x, f.y, f.z); v.rock.scale.setScalar(f.r); v.rock.rotation.x += dt * 4;
+      const k = Math.min(1, (this.course.time - f.spawn) / (f.impact - f.spawn)); v.ring.visible = !f.landed;
+      v.ring.position.set(f.x, f.g + .04, f.z); v.ring.scale.setScalar(f.r * (2.4 - 1.3 * k)); (v.ring.material as THREE.MeshBasicMaterial).opacity = .35 + .6 * k * (.6 + .4 * Math.sin(this.course.time * 30));
+      if (f.landed && !v.rock.userData.done) {v.rock.userData.done = true; this.puff(f.x, f.g, f.z, 2.2); this.puff(f.x, f.g, f.z, 1.6);
+        const d = Math.hypot(f.x - this.me.x, f.z - this.me.z); if (d < 14) {this.shake = Math.max(this.shake, .35 * (1 - d / 14)); navigator.vibrate?.(d < 5 ? 30 : 0);}}});
+  }
 
   // ---------- atmosphere ----------
   private grassSpots: THREE.Matrix4[] = [];
@@ -240,7 +258,8 @@ export class RaceApp {
     this.sun.target.position.set(this.camTarget.x, this.camTarget.y, this.camTarget.z + 8);
     const sd = SUN_DIR; this.sun.position.set(this.camTarget.x + sd.x * 70, this.camTarget.y + sd.y * 70, this.camTarget.z + 8 + sd.z * 70);
     this.fill.position.copy(this.camera.position); this.fill.target.position.set(this.camTarget.x, this.camTarget.y, this.camTarget.z);
-    this.animateAtmosphere(dt);
+    this.animateAtmosphere(dt); this.syncRocks(dt);
+    if (this.shake > 0) {this.shake = Math.max(0, this.shake - dt * 1.2); const a = this.shake * this.shake * 1.4; this.camera.position.x += (Math.random() - .5) * a; this.camera.position.y += (Math.random() - .5) * a;}
   }
 
   private hudUpdate() {
