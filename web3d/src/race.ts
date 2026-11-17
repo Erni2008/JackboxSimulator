@@ -21,6 +21,8 @@ function online() {
     const me = roster.find((p: any) => p.id === st.selfId);
     app = new RaceApp(document.getElementById('stage')!, me?.char || 'pumpkin', st.race.map, {roster, selfId: st.selfId, seed: st.race.seed, startAt: st.race.startAt, serverNow, send: s => send('RACE_STATE', {roomCode: cred.code, s}), spectator: !!st.host});
     await app.load(f => fill.style.width = `${Math.round(f * 100)}%`); load.hidden = true; app.start();
+    const tap = document.getElementById('tap')!; tap.hidden = false; tap.onclick = () => {tap.hidden = true; app!.snd.unlock(); app!.snd.ambience(app!.course.theme); app!.snd.playMusic('audio/music.m4a');};
+    document.getElementById('intro-skip')!.onclick = () => {app!.introSkipped = true; document.getElementById('intro')!.hidden = true; app!.snd.voice('');};
     const again = document.getElementById('again')!; again.textContent = st.host ? 'В ЛОББИ' : 'ЖДЁМ ВЕДУЩЕГО'; if (!st.host) again.onclick = () => {};
   };
   if (q.get('host')) { // spectator: poll the race over HTTP (keeps the desktop host's socket untouched)

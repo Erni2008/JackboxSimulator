@@ -576,9 +576,10 @@ export class RaceApp {
     this.frameAvg += (dt * 1000 - this.frameAvg) * .05;
     if (this.frameAvg > 21 && this.pixelRatio > .85) {this.pixelRatio = Math.max(.85, this.pixelRatio - .1); this.renderer.setPixelRatio(this.pixelRatio); this.frameAvg = 16;}
     this.readInput();
-    if (this.net) {const target = COUNTDOWN + (this.net.serverNow() - this.net.startAt) / 1000; if (target < this.clock || this.clock <= 0 && target < 0) this.clock = Math.min(target, 0); this.acc = Math.max(0, Math.min(8, target - this.clock));
+    if (this.net) {const target = COUNTDOWN + (this.net.serverNow() - this.net.startAt) / 1000; this.intro(target + INTRO - COUNTDOWN); if (target < this.clock || this.clock <= 0 && target < 0) this.clock = Math.min(target, 0); this.acc = Math.max(0, Math.min(8, target - this.clock));
       if (this.acc > 2) {while (this.acc > .2) {this.acc -= STEP; this.clock += STEP; this.course.step(STEP);}}
       this.netTick(dt);}
+    if (this.introT >= 0 && !this.introSkipped) {this.sync(dt); this.renderer.render(this.scene, this.camera); return;}
     else this.acc += dt;
     while (this.acc >= STEP) {this.acc -= STEP; this.clock += STEP; const live = this.clock >= COUNTDOWN && !this.over();
       this.course.step(STEP);
@@ -598,6 +599,17 @@ export class RaceApp {
     if (this.net!.spectator) {const lead = this.standings()[0]; if (lead) this.me = lead; return;}
     this.sendT -= dt; if (this.sendT > 0) return; this.sendT = .2; const m = this.me, anim = m.stun > 0 ? 3 : !m.ground ? 2 : Math.hypot(m.vx, m.vz) > .8 ? 1 : 0;
     this.net!.send([+m.x.toFixed(2), +m.y.toFixed(2), +m.z.toFixed(2), +m.facing.toFixed(2), anim, m.checkpoint, +m.progress.toFixed(1), m.finished ? 1 : 0, +m.finishTime.toFixed(2), m.falls]);}
+  // ---- rules intro (online): voiced lines over a flyover of the real course, synced to the server clock ----
+  introT = -1; introSkipped = false; private introLine = -1;
+  private intro(t: number) {
+    const el = document.getElementById('intro'); if (!el) return;
+    if (t < 0 || t >= INTRO) {this.introT = -1; el.hidden = true; document.body.classList.remove('intro-on'); return;}
+    this.introT = t; el.hidden = this.introSkipped; document.body.classList.toggle('intro-on', !this.introSkipped); if (this.introSkipped) return;
+    let i = -1; for (let k = 0; k < RULES.length; k++) if (t >= RULES[k][0]) i = k;
+    if (i !== this.introLine) {this.introLine = i; const sub = document.getElementById('intro-sub')!; sub.textContent = i >= 0 ? RULES[i][1] : ''; sub.classList.remove('in'); void sub.offsetWidth; sub.classList.add('in');
+      if (i >= 0 && t - RULES[i][0] < .6) this.snd.voice(`audio/rules_${i}.m4a`);}
+    (document.getElementById('intro-bar') as HTMLElement).style.width = `${t / INTRO * 100}%`;
+  }
   over() {if (this.clock - COUNTDOWN >= this.limit) return true; return this.runners.length > 0 && this.runners.every(r => r.finished);}
   timeLeft() {return Math.max(0, this.limit - Math.max(0, this.clock - COUNTDOWN));}
   standings() {return [...this.runners].sort((a, b) => (a.finished ? 0 : 1) - (b.finished ? 0 : 1) || (a.finished ? a.finishTime - b.finishTime : b.progress - a.progress));}
@@ -637,6 +649,9 @@ export class RaceApp {
       const bl = this.blobs.get(r); if (bl) {let gy = -99; for (const b of c.blocks) if (!b.gone && r.x >= b.x0 + b.offX && r.x <= b.x1 + b.offX && r.z >= b.z0 && r.z <= b.z1 && top(b, r.z) <= r.y + .05) gy = Math.max(gy, top(b, r.z)); bl.visible = gy > -50; const hgt = r.y - gy; bl.position.set(r.x, gy + .03, r.z); bl.scale.setScalar(Math.max(.4, 1 - hgt * .12)); (bl.material as THREE.MeshBasicMaterial).opacity = Math.max(.15, .55 - hgt * .06);}
     }
     // camera: behind and above the player, framed wider in portrait
+    if (this.introT >= 0 && !this.introSkipped) {const f = Math.min(1, this.introT / INTRO), z = -6 + (this.course.finishZ + 6) * (f * f * (3 - 2 * f)), y = this.course.spawnY(Math.max(0, z));
+      this.camera.position.set(Math.sin(this.introT * .25) * 9, y + 9 + Math.sin(this.introT * .4) * 2, z - 14); this.camera.lookAt(0, y + 1, z + 10);
+      this.sun.position.set(this.camera.position.x + SUN_DIR.x * 70, y + SUN_DIR.y * 70, z + SUN_DIR.z * 70); this.sun.target.position.set(0, y, z + 8); this.animateAtmosphere(dt); return;}
     const me = this.me, portrait = this.camera.aspect < 1, k = Math.min(1, dt * 5);
     this.camTarget.x += (me.x * .75 - this.camTarget.x) * k; this.camTarget.z += (me.z - this.camTarget.z) * k; this.camTarget.y += (Math.max(me.y, -4) - this.camTarget.y) * Math.min(1, dt * 2.5);
     const back = this.manor ? (portrait ? 9 : 7.4) : portrait ? 11 : 8.6, up = this.manor ? (portrait ? 6 : 4.4) : portrait ? 7.2 : 5.4;
@@ -676,7 +691,7 @@ export class RaceApp {
     const t = this.timeLeft(); setText('timer', `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`);
     document.getElementById('timer')!.classList.toggle('low', t < 20 && this.clock > COUNTDOWN);
     const n = Math.ceil(COUNTDOWN - .5 - this.clock); if (this.clock < COUNTDOWN + .3 && n !== this.sndState.count) {this.sndState.count = n; if (n >= 0 && n <= 3) this.snd.countdown(n <= 0);}
-    setText('count', this.clock < COUNTDOWN ? (n > 0 ? String(n) : 'ВПЕРЁД!') : '');
+    setText('count', this.clock >= 0 && this.clock < COUNTDOWN ? (n > 0 ? String(n) : 'ВПЕРЁД!') : this.clock < 0 && this.introSkipped ? 'ЖДЁМ СТАРТА…' : '');
     const st = this.standings(), place = st.indexOf(this.me) + 1; setText('place-n', String(place)); setText('place-of', `/${st.length}`);
     document.getElementById('place')!.dataset.p = String(Math.min(place, 4));
     // progress track: every runner as a portrait dot
@@ -855,3 +870,6 @@ function metalMat(name: 'metal_plate_02' | 'rusty_metal_02' | 'metal_grate_rusty
 
 function rayTexture() {const c = document.createElement('canvas'); c.width = 64; c.height = 256; const x = c.getContext('2d')!; const g = x.createLinearGradient(0, 0, 0, 256); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(.6, 'rgba(255,255,255,.8)'); g.addColorStop(1, 'rgba(255,255,255,1)');
   x.fillStyle = g; x.fillRect(0, 0, 64, 256); const h = x.createLinearGradient(0, 0, 64, 0); h.addColorStop(0, 'rgba(0,0,0,1)'); h.addColorStop(.5, 'rgba(0,0,0,0)'); h.addColorStop(1, 'rgba(0,0,0,1)'); x.globalCompositeOperation = 'destination-out'; x.fillStyle = h; x.fillRect(0, 0, 64, 256); return new THREE.CanvasTexture(c);}
+
+const INTRO = 25;
+const RULES: [number, string][] = [[.6, 'Добро пожаловать в Проклятый забег!'], [3.8, 'Цель простая — первым добежать до финиша!'], [8.2, 'На пути брёвна, бочки, ловушки и пропасти. Упали? Вернётесь на последний чекпоинт.'], [15.6, 'Джойстик слева — бежать. Кнопка справа — прыгать.'], [20.2, 'Трасса каждый раз новая. Удачи — и не отставайте!']];

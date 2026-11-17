@@ -8,7 +8,7 @@ const post=async(u,d)=>{const r=await fetch(BASE+u,{method:'POST',body:new URLSe
   const p1=await post(`/rooms/${code}/join`,{name:'Аня',characterId:'pumpkin'}),p2=await post(`/rooms/${code}/join`,{name:'Боря',characterId:'skeleton'});
   const t1=p1.sessionToken||p1.token,t2=p2.sessionToken||p2.token;
   const ws=new WebSocket(BASE.replace('http','ws')+'/ws');await new Promise(r=>ws.onopen=r);const send=(type,payload)=>ws.send(JSON.stringify({type,requestId:'q'+Math.random().toString(36).slice(2),payload}));
-  send('AUTH',{roomCode:code,token:hostTok});await new Promise(r=>setTimeout(r,500));
+  send('AUTH',{roomCode:code,token:hostTok});setInterval(()=>send('PING',{roomCode:code}),8000);await new Promise(r=>setTimeout(r,500));
   const b=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH||undefined,args:['--use-angle=metal','--ignore-gpu-blocklist']});
   const phone=async(tok,name)=>{const c=await b.newContext({viewport:{width:844,height:390},hasTouch:true});await c.addInitScript(([code,tok,name])=>sessionStorage.setItem('finalanswer-session',JSON.stringify({code,token:tok,name})),[code,tok,name]);const p=await c.newPage();const e=[];p.on('pageerror',x=>e.push(x.message));await p.goto(BASE+'/');return {p,e};};
   const a=await phone(t1,'Аня'),bb=await phone(t2,'Боря');
@@ -18,12 +18,12 @@ const post=async(u,d)=>{const r=await fetch(BASE+u,{method:'POST',body:new URLSe
   await new Promise(r=>setTimeout(r,4000));console.log('urls',a.p.url(),bb.p.url(),await a.p.evaluate(()=>document.body.dataset.view));
   for(const x of [a,bb])await x.p.waitForURL(/race/,{timeout:30000,waitUntil:'commit'});
   for(const pg of [a.p,bb.p,host])await pg.waitForSelector('#loading[hidden]',{timeout:120000,state:'attached'});
-  await new Promise(r=>setTimeout(r,13000)); // countdown
+  await new Promise(r=>setTimeout(r,9000));await host.screenshot({path:OUT+'/online_intro.png'});await new Promise(r=>setTimeout(r,33000)); // intro + countdown
   await a.p.keyboard.down('KeyW');await new Promise(r=>setTimeout(r,5000));await a.p.keyboard.up('KeyW');
   const prog=async pg=>pg.evaluate(()=>[...document.querySelectorAll('#track i')].map(i=>parseFloat(i.style.left)||0));
   console.log('phone A track',await prog(a.p),'phone B track',await prog(bb.p),'host track',await prog(host));
   await a.p.screenshot({path:OUT+'/online_a.png'});await bb.p.screenshot({path:OUT+'/online_b.png'});await host.screenshot({path:OUT+'/online_host.png'});
   console.log('errors',JSON.stringify([...a.e,...bb.e,...he].slice(0,5)));
-  send('CLOSE_WEB_GAME',{roomCode:code});await new Promise(r=>setTimeout(r,4000));console.log('after close A url',a.p.url());
+  send('CLOSE_WEB_GAME',{roomCode:code});await new Promise(r=>setTimeout(r,6000));console.log('after close A url',a.p.url());
   await b.close();ws.close();process.exit(0);
 })().catch(e=>{console.error(e);process.exit(1);});

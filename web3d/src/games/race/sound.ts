@@ -35,6 +35,8 @@ export class RaceSound {
   }
   setMuted(m: boolean) {this.muted = m; if (this.master) this.master.gain.value = m ? 0 : .9; if (this.music) this.music.muted = m;}
 
+  private voiceEl?: HTMLAudioElement;
+  voice(url: string) {this.voiceEl?.pause(); if (this.muted || !url) return; const a = new Audio(url); a.volume = 1; this.voiceEl = a; if (this.music) this.music.volume = .1; a.onended = () => {if (this.music) this.music.volume = .28;}; a.play().catch(() => {});}
   // -------- one-shots --------
   private can(key: string, gap: number) {const now = performance.now(), l = this.last.get(key) ?? 0; if (now - l < gap || this.voices > 14) return false; this.last.set(key, now); return true;}
   private env(g: GainNode, a: number, peak: number, d: number) {const t = this.ctx!.currentTime; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(.0001, t + a + d);}

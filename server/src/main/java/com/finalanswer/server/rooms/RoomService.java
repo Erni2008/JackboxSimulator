@@ -180,7 +180,7 @@ public final class RoomService {
             if(!Set.of("broken-elevator","race").contains(id))throw new Failure(400,"INVALID_WEB_GAME");
             if(id.equals("race")){
                 int map=data.has("map")?data.get("map").getAsInt():1+random.nextInt(4);if(map<1||map>4)throw new Failure(400,"INVALID_RACE_MAP");
-                room.raceMap=map;room.raceSeed=1+random.nextInt(999_999_999);room.raceStart=now()+12_000;room.race.clear();room.webGameAt=now();
+                room.raceMap=map;room.raceSeed=1+random.nextInt(999_999_999);room.raceStart=now()+37_000;room.race.clear();room.webGameAt=now();
                 room.webGame=id;room.webGameId=UUID.randomUUID().toString();System.out.println("[race] open room="+room.code+" map="+map+" seed="+room.raceSeed);
                 broadcast(room,"WEB_GAME_OPENED");reply(peer,room,member,message);return;
             }
