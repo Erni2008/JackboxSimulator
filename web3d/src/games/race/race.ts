@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import {GLTFLoader, type GLTF} from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
-import {Course, Runner, top, type Block, H, SECTION_NAMES} from './course';
+import {Course, Runner, top, type Block, H, R as RR, SECTION_NAMES, TRIALS} from './course';
 import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
@@ -25,7 +25,7 @@ export class RaceApp {
   private blobs = new Map<Runner, THREE.Mesh>();   private dots = new Map<Runner, HTMLElement>(); private keys = new Set<string>(); private stick = {id: -1, ox: 0, oy: 0, x: 0, y: 0}; private hud: HTMLElement;
 
   constructor(private host: HTMLElement, private myChar: string, map = 1) {
-    const qs = new URLSearchParams(location.search); this.course = new Course(map, Number(qs.get('seed')) || (Math.random() * 1e9) | 0); this.night = this.course.theme === 'graveyard'; this.crypt = this.course.theme === 'crypt'; this.manor = this.course.theme === 'manor' || this.crypt; this.limit = this.crypt ? 210 : LIMIT;
+    const qs = new URLSearchParams(location.search); const tq = qs.get('t'), only = tq ? (TRIALS[Number(tq) - 1] ?? (TRIALS.includes(tq) ? tq : '')) : ''; this.course = new Course(map, Number(qs.get('seed')) || (Math.random() * 1e9) | 0, only); this.night = this.course.theme === 'graveyard'; this.crypt = this.course.theme === 'crypt'; this.manor = this.course.theme === 'manor' || this.crypt; this.limit = this.crypt ? 210 : LIMIT;
     const phone = matchMedia('(pointer:coarse)').matches;
     this.renderer = new THREE.WebGLRenderer({antialias: !phone || devicePixelRatio < 2, powerPreference: 'high-performance'});
     this.pixelRatio = Math.min(devicePixelRatio, phone ? 1.5 : 1.35); this.renderer.setPixelRatio(this.pixelRatio);
@@ -63,14 +63,20 @@ export class RaceApp {
       let tm = topM; if (b.conveyor) {const mm = (topM as THREE.MeshStandardMaterial).clone(); for (const k of ['map', 'normalMap', 'roughnessMap'] as const) if (mm[k]) {mm[k] = mm[k]!.clone(); mm[k]!.needsUpdate = true; this.belts.push(mm[k]!);} tm = mm;}
       if (b.wall) {tm = mats.wall; side = mats.wall;}
       if (b.ghost) {const gm = (mats.wall as THREE.MeshStandardMaterial).clone(); gm.transparent = true; gm.opacity = .92; gm.emissive = new THREE.Color(0x2aff9a); gm.emissiveIntensity = 0; tm = gm; side = gm; this.ghosts.push(gm);}
+      if (b.crumbles && !b.sink && !b.fake) {} 
+      if (b.mat !== 'grass' && !b.fake && this.course.sections.some(sc => sc.name === 'falsebridge' && b.z0 >= sc.z0 && b.z1 <= sc.z1) && !b.land) {const hm = (tm as THREE.MeshStandardMaterial).clone(); hm.color = new THREE.Color(0xd2dcc2); tm = hm;}
       const m = new THREE.Mesh(blockGeometry(b), [tm, b.wall ? side : this.shaded(side)]); m.geometry.computeBoundingSphere(); if (b.wall) m.castShadow = true;
+      if (b.tilt) {const cx = (b.x0 + b.x1) / 2, cz = (b.z0 + b.z1) / 2; m.geometry.translate(-cx, -b.y0, -cz); m.userData.pivot = [cx, b.y0, cz];}
+      if (b.gear || b.cart) m.visible = false, m.userData.hidden = true;
+      if (b.crumbles && !b.sink) {const cr = new THREE.Mesh(new THREE.PlaneGeometry(b.x1 - b.x0 - .1, b.z1 - b.z0 - .1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({map: crackTexture(), transparent: true, opacity: 0, depthWrite: false, color: 0x120a06}));
+        cr.position.set((b.x0 + b.x1) / 2, b.y0 + .03, (b.z0 + b.z1) / 2); m.add(cr); m.userData.crack = cr;}
       // carved edge trim around walkable tops (curbs / skirting) — breaks the boxy look
       const trimMat = this.manor ? (b.mat === 'floor' ? mats.beam : mats.wall) : this.night ? mats.brick : b.mat === 'grass' ? null : b.mat === 'plank' ? mats.bark : mats.rock;
       if (trimMat && !b.trapPeriod && !b.wall && (b.x1 - b.x0) > 2 && b.y0 === b.y1) {const y = b.y0, tw = .28, th = .2;
         const edge = (w: number, d: number, x: number, z: number) => {const t = new THREE.Mesh(new THREE.BoxGeometry(w, th, d), trimMat); t.position.set(x, y - th / 2 + .07, z); t.castShadow = false; t.receiveShadow = true; m.add(t);};
         edge(tw, b.z1 - b.z0, b.x0 + tw / 2 - .04, (b.z0 + b.z1) / 2); edge(tw, b.z1 - b.z0, b.x1 - tw / 2 + .04, (b.z0 + b.z1) / 2);
         if (!b.land) {edge(b.x1 - b.x0, tw, (b.x0 + b.x1) / 2, b.z0 + tw / 2 - .04); edge(b.x1 - b.x0, tw, (b.x0 + b.x1) / 2, b.z1 - tw / 2 + .04);}}
-      if (b.trapPeriod) {const w = new THREE.Mesh(new THREE.PlaneGeometry(b.x1 - b.x0 - .1, b.z1 - b.z0 - .1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({color: 0xff2a12, transparent: true, opacity: .5, depthWrite: false, blending: THREE.AdditiveBlending})); w.position.set((b.x0 + b.x1) / 2, b.y0 + .03, (b.z0 + b.z1) / 2); w.visible = false; this.scene.add(w); this.warnPlanes.set(b, w);} if (b.mat === 'grass') this.grassOn(b); m.receiveShadow = true; m.castShadow = b.mat === 'plank' || b.crumbles; this.blockMeshes.set(b, m); this.scene.add(m);
+      if (b.trapPeriod) {const w = new THREE.Mesh(new THREE.PlaneGeometry(b.x1 - b.x0 - .1, b.z1 - b.z0 - .1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({color: 0xff2a12, transparent: true, opacity: .5, depthWrite: false, blending: THREE.AdditiveBlending})); w.position.set((b.x0 + b.x1) / 2, b.y0 + .03, (b.z0 + b.z1) / 2); w.visible = false; this.scene.add(w); this.warnPlanes.set(b, w);} if (b.mat === 'grass' && !(b.gear || b.cart || b.tilt || b.trapPeriod || b.wall || b.fake || b.driftAmp || (b.x1 - b.x0) < 6)) this.grassOn(b); m.receiveShadow = true; m.castShadow = b.mat === 'plank' || b.crumbles; this.blockMeshes.set(b, m); this.scene.add(m);
     }
     if (!this.night) {const floor = new THREE.Mesh(new THREE.PlaneGeometry(520, 540).rotateX(-Math.PI / 2), mats.ground); floor.receiveShadow = false; floor.position.set(0, -34, 150); worldUV(floor.geometry as THREE.BufferGeometry, 6, 'xz'); this.scene.add(floor);}
     // hazards
@@ -104,6 +110,7 @@ export class RaceApp {
       const glow = new THREE.Sprite(new THREE.SpriteMaterial({map: dotTexture(true), color: 0x44ffb0, transparent: true, opacity: .7, depthWrite: false, blending: THREE.AdditiveBlending})); glow.scale.setScalar(4.2); glow.position.y = 1.35; g.add(glow);
       const pool = new THREE.Mesh(new THREE.CircleGeometry(1.8, 24).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({map: dotTexture(true), color: 0x2affa0, transparent: true, opacity: .4, depthWrite: false, blending: THREE.AdditiveBlending})); pool.position.y = .04; g.add(pool);
       g.userData.disc = disc; this.portalFx.push(g); this.scene.add(g);}
+    this.buildMech(mats);
     // fire jets and hammers
     for (const j of this.course.jets) {const g = new THREE.Group(); g.position.set(j.x, j.y, j.z);
       if (j.kind === 'fire') {const grate = new THREE.Mesh(new THREE.CylinderGeometry(.75, .8, .08, 20), new THREE.MeshStandardMaterial({color: 0x1b1714, metalness: .8, roughness: .5, emissive: 0xff3a00, emissiveIntensity: 0})); grate.position.y = .04; g.add(grate);
@@ -159,7 +166,7 @@ export class RaceApp {
     for (let z = -40; z < len + 40; z += 8 + rnd() * 7) for (const s of [-1, 1]) put(rnd() < .55 ? 'fir_tree_01_c' : 'pine_tree_01_c', s * (34 + rnd() * 46), -34, z + rnd() * 5, 30 + rnd() * 14);
     
     for (const b of this.course.blocks) {
-      if (b.mat === 'plank' || b.crumbles) continue; const d = b.z1 - b.z0;
+      if (b.mat === 'plank' || b.crumbles || (b.gear || b.cart || b.tilt || b.trapPeriod || b.wall || b.fake || b.driftAmp || (b.x1 - b.x0) < 6)) continue; const d = b.z1 - b.z0;
       for (let i = 0; i < d * .8; i++) {const side = rnd() < .5 ? -1 : 1, x = side > 0 ? b.x1 - 1 - rnd() * 1.3 : b.x0 + 1 + rnd() * 1.3, z = b.z0 + rnd() * d, y = top(b, z), r = rnd();
         if (b.mat === 'grass' && r < .5) put('grass_medium_01', x, y, z, .7 + rnd() * .5);
         else if (r < .74) put('fern_02', x, y, z, .8 + rnd() * .6);
@@ -183,6 +190,92 @@ export class RaceApp {
         const mat = m.material as THREE.MeshStandardMaterial; if (mat.alphaTest > 0 || mat.transparent) {mat.transparent = false; mat.alphaTest = .45; mat.side = THREE.DoubleSide;}});
       progress(.15 + .65 * (++done) / names.length);
     }));
+  }
+
+  // ================= new trial visuals =================
+  private mech: {gears: [any, THREE.Object3D][]; carts: [Block, THREE.Object3D][]; gates: [any, THREE.Object3D, THREE.Object3D, THREE.Object3D, THREE.MeshStandardMaterial][]; fans: [any, THREE.Object3D, THREE.MeshStandardMaterial, THREE.Points][]; hooks: [any, THREE.Object3D, THREE.Mesh, THREE.MeshStandardMaterial][]; chasers: [any, THREE.Object3D][]; tiltLamps: [Block, THREE.MeshStandardMaterial[]][]; sweepLamps: [any, THREE.MeshStandardMaterial][]} = {gears: [], carts: [], gates: [], fans: [], hooks: [], chasers: [], tiltLamps: [], sweepLamps: []};
+  private buildMech(mats: Record<string, THREE.MeshStandardMaterial>) {
+    const c = this.course, steel = new THREE.MeshStandardMaterial({color: 0x4a4b50, metalness: .9, roughness: .38, envMapIntensity: 1.4}), dark = new THREE.MeshStandardMaterial({color: 0x26262a, metalness: .85, roughness: .5}),
+      rust = new THREE.MeshStandardMaterial({color: 0x6a3a22, metalness: .55, roughness: .7}), lamp = () => new THREE.MeshStandardMaterial({color: 0x330a05, emissive: 0xff2a10, emissiveIntensity: 0});
+    // gears: toothed steel discs with spokes, hub bolts and an axle down into the abyss; missing sectors cut out
+    for (const g of c.gears) {const grp = new THREE.Group(); grp.position.set(g.x, g.y, g.z);
+      const sh = new THREE.Shape(), T = g.teeth, ro = g.r + .28, ri = g.r - .05;
+      for (let i = 0; i < T * 4; i++) {const a = i / (T * 4) * Math.PI * 2, rr = (i % 4 === 1 || i % 4 === 2) ? ro : ri; const x = Math.cos(a) * rr, y = Math.sin(a) * rr; if (i === 0) sh.moveTo(x, y); else sh.lineTo(x, y);}
+      const hole = new THREE.Path(); hole.absarc(0, 0, g.r * .3, 0, Math.PI * 2, true); sh.holes.push(hole);
+      for (const [a0, a1] of g.gaps) {const cut = new THREE.Path(); cut.moveTo(Math.cos(a0) * g.r * .38, Math.sin(a0) * g.r * .38); cut.absarc(0, 0, g.r * .93, a0, a1, false); cut.lineTo(Math.cos(a1) * g.r * .38, Math.sin(a1) * g.r * .38); cut.absarc(0, 0, g.r * .38, a1, a0, true); sh.holes.push(cut);}
+      const geo = new THREE.ExtrudeGeometry(sh, {depth: .55, bevelEnabled: true, bevelSize: .05, bevelThickness: .05, bevelSegments: 1, curveSegments: 24}); geo.rotateX(Math.PI / 2); geo.translate(0, 0, 0);
+      const disc = new THREE.Mesh(geo, steel); disc.castShadow = disc.receiveShadow = true; const spin = new THREE.Group(); spin.add(disc);
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(g.r * .32, g.r * .32, .62, 24), dark); hub.position.y = -.27; spin.add(hub);
+      for (let k = 0; k < 6; k++) {const bolt = new THREE.Mesh(new THREE.CylinderGeometry(.09, .09, .1, 8), rust); const a = k / 6 * Math.PI * 2; bolt.position.set(Math.cos(a) * g.r * .22, .05, Math.sin(a) * g.r * .22); spin.add(bolt);}
+      const mark = new THREE.Mesh(new THREE.BoxGeometry(g.r * .55, .04, .18), new THREE.MeshStandardMaterial({color: 0xd8a23a, metalness: .3, roughness: .6})); mark.position.set(g.r * .62, .03, 0); spin.add(mark);
+      grp.add(spin); const axle = new THREE.Mesh(new THREE.CylinderGeometry(.35, .45, 14, 12), dark); axle.position.y = -7.4; grp.add(axle); this.scene.add(grp); this.mech.gears.push([g, spin]);}
+    // mine carts: riveted iron tubs on wheels; rails, sleepers and tunnel mouths at both ends
+    const lanes = new Map<number, Block>(); for (const b of c.carts) lanes.set(b.cart!.lane, b);
+    for (const [, b] of lanes) {const L = b.cart!.len, zc = (b.z0 + b.z1) / 2, y = b.y0;
+      for (const sd of [-.75, .75]) {const rail = new THREE.Mesh(new THREE.BoxGeometry(L * 2 + 4, .12, .1), steel); rail.position.set(0, y - .95, zc + sd); this.scene.add(rail);}
+      const sl = new THREE.InstancedMesh(new THREE.BoxGeometry(.25, .12, 2.1), mats.bark, Math.floor(L * 2 / .9)); for (let i = 0; i < sl.count; i++) sl.setMatrixAt(i, new THREE.Matrix4().setPosition(-L + i * .9, y - 1.06, zc)); this.scene.add(sl);
+      for (const sd of [-1, 1]) {const arch = new THREE.Group(); const back = new THREE.Mesh(new THREE.BoxGeometry(2.2, 4.2, 3.2), mats.rock ?? dark); back.position.set(sd * (L + 1.6), y + .6, zc); arch.add(back);
+        const hole = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.6), new THREE.MeshBasicMaterial({color: 0x050403})); hole.position.set(sd * (L + .48), y + .1, zc); hole.rotation.y = -sd * Math.PI / 2; arch.add(hole);
+        const beam = new THREE.Mesh(new THREE.BoxGeometry(.4, .4, 3), mats.bark); beam.position.set(sd * (L + .45), y + 1.5, zc); arch.add(beam); this.scene.add(arch);}}
+    for (const b of c.carts) {const g = new THREE.Group(), w = b.x1 - b.x0, d = b.z1 - b.z0;
+      const tub = new THREE.Mesh(new THREE.BoxGeometry(w, .9, d), rust); tub.position.y = -.45; tub.castShadow = true; g.add(tub);
+      const floor = new THREE.Mesh(new THREE.BoxGeometry(w - .2, .06, d - .2), mats.plank); floor.position.y = -.02; g.add(floor);
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) {const lip = new THREE.Mesh(new THREE.BoxGeometry(sx ? .12 : w, .16, sz ? .12 : d), dark); void lip;}
+      const rimG = new THREE.BoxGeometry(w + .1, .12, .12), rim1 = new THREE.Mesh(rimG, dark), rim2 = rim1.clone(); rim1.position.set(0, .02, -d / 2); rim2.position.set(0, .02, d / 2); g.add(rim1, rim2);
+      for (const sx of [-.75, .75]) for (const sz of [-.75, .75]) {const wh = new THREE.Mesh(new THREE.CylinderGeometry(.26, .26, .14, 14).rotateX(Math.PI / 2), dark); wh.position.set(sx * w / 2.2, -.9, sz); g.add(wh);}
+      g.position.set(0, b.y0, (b.z0 + b.z1) / 2); this.scene.add(g); this.mech.carts.push([b, g]);}
+    // gates: steel leaves or a spiked portcullis, frame with warning lamps
+    for (const gt of c.gates) {const frame = new THREE.Mesh(new THREE.BoxGeometry(gt.halfW * 2 + 2.4, .6, .8), dark); frame.position.set(0, gt.y + 4.2, gt.z); this.scene.add(frame);
+      const lm = lamp(); for (const sd of [-1, 1]) {const l = new THREE.Mesh(new THREE.SphereGeometry(.18, 12, 8), lm); l.position.set(sd * (gt.halfW + .6), gt.y + 3.6, gt.z - .45); this.scene.add(l);}
+      let a: THREE.Object3D, b: THREE.Object3D;
+      if (gt.kind === 'slide') {const leaf = () => {const g = new THREE.Group(); const p = new THREE.Mesh(new THREE.BoxGeometry(gt.halfW, 3.6, .3), steel); p.position.set(gt.halfW / 2, 1.8, 0); p.castShadow = true; g.add(p);
+          for (let i = 0; i < 4; i++) {const rib = new THREE.Mesh(new THREE.BoxGeometry(gt.halfW, .12, .36), dark); rib.position.set(gt.halfW / 2, .4 + i * .95, 0); g.add(rib);} const edge = new THREE.Mesh(new THREE.BoxGeometry(.14, 3.6, .4), new THREE.MeshStandardMaterial({color: 0xd8b23a, metalness: .4, roughness: .5})); edge.position.set(gt.halfW, 1.8, 0); g.add(edge); return g;};
+        a = leaf(); b = leaf(); b.scale.x = -1; a.position.set(-gt.halfW * 2, gt.y, gt.z); b.position.set(gt.halfW * 2, gt.y, gt.z);}
+      else {a = new THREE.Group(); for (let i = 0; i < 9; i++) {const bar = new THREE.Mesh(new THREE.BoxGeometry(.14, 3.4, .14), steel); bar.position.set(-gt.halfW + .2 + i * (gt.halfW * 2 - .4) / 8, 1.7, 0); a.add(bar); const tip = new THREE.Mesh(new THREE.ConeGeometry(.12, .35, 6).rotateX(Math.PI), steel); tip.position.set(bar.position.x, -.15, 0); a.add(tip);}
+        for (let i = 0; i < 3; i++) {const h = new THREE.Mesh(new THREE.BoxGeometry(gt.halfW * 2, .14, .18), dark); h.position.y = .5 + i * 1.2; a.add(h);} a.position.set(0, gt.y, gt.z); b = new THREE.Group();}
+      this.scene.add(a, b); this.mech.gates.push([gt, a, b, frame, lm]);}
+    // fans: steel housing, spinning blades, warning lamp, airflow particles
+    for (const f of c.fans) {const g = new THREE.Group(); g.position.set(f.x, f.y, f.z); g.rotation.y = Math.atan2(f.dx, f.dz);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(1.25, .16, 10, 32), dark); g.add(ring); const cage = new THREE.Mesh(new THREE.TorusGeometry(.6, .04, 6, 24), steel); cage.position.z = .2; g.add(cage);
+      const blades = new THREE.Group(); for (let k = 0; k < 5; k++) {const bl = new THREE.Mesh(new THREE.BoxGeometry(.32, 1.1, .05), steel); bl.position.y = .58; bl.rotation.y = .5; const arm = new THREE.Group(); arm.add(bl); arm.rotation.z = k / 5 * Math.PI * 2; blades.add(arm);}
+      blades.add(new THREE.Mesh(new THREE.SphereGeometry(.2, 12, 8), dark)); g.add(blades);
+      const stand = new THREE.Mesh(new THREE.BoxGeometry(.4, f.y - this.course.spawnY(f.z) + 4, .4), dark); stand.position.y = -(f.y - this.course.spawnY(f.z) + 4) / 2 - 1; g.add(stand);
+      const lm = lamp(); const l = new THREE.Mesh(new THREE.SphereGeometry(.15, 10, 8), lm); l.position.set(0, 1.5, 0); g.add(l);
+      const n = 70, pos = new Float32Array(n * 3); for (let i = 0; i < n; i++) {pos[i * 3] = (Math.random() - .5) * 2 * f.half; pos[i * 3 + 1] = (Math.random() - .3) * 2; pos[i * 3 + 2] = Math.random() * f.reach;}
+      const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.BufferAttribute(pos, 3)); const pts = new THREE.Points(pg, new THREE.PointsMaterial({map: dotTexture(true), size: .25, color: 0xe8e4dc, transparent: true, opacity: .5, depthWrite: false})); pts.frustumCulled = false; g.add(pts);
+      this.scene.add(g); this.mech.fans.push([f, blades, lm, pts]);}
+    // hooks: pillar with lamp, chain and a heavy hook head
+    for (const h of c.hooks) {const base = this.course.spawnY(h.z); const pil = new THREE.Mesh(new THREE.BoxGeometry(1.2, 8, 1.2), dark); pil.position.set(h.pillarX + h.side * .4, h.y - 3, h.z); this.scene.add(pil);
+      const lm = lamp(); const l = new THREE.Mesh(new THREE.SphereGeometry(.2, 10, 8), lm); l.position.set(h.pillarX - h.side * .3, h.y + 1, h.z); this.scene.add(l); void base;
+      const head = new THREE.Group(); const shank = new THREE.Mesh(new THREE.CylinderGeometry(.09, .09, .9, 8).rotateZ(Math.PI / 2), steel); head.add(shank);
+      const curve = new THREE.Mesh(new THREE.TorusGeometry(.38, .09, 8, 20, Math.PI * 1.3), steel); curve.position.x = -.5; curve.rotation.z = Math.PI * .35; head.add(curve);
+      const tip = new THREE.Mesh(new THREE.ConeGeometry(.11, .3, 8), steel); tip.position.set(-.5, .38, 0); head.add(tip); head.scale.x = h.side; this.scene.add(head);
+      const chain = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, 1, 6).rotateZ(Math.PI / 2), new THREE.MeshStandardMaterial({color: 0x3a3632, metalness: .9, roughness: .4})); this.scene.add(chain);
+      this.mech.hooks.push([h, head, chain, lm]);}
+    // chaser boulder (+ toppling columns along the corridor)
+    for (const ch of c.chasers) {const b = new THREE.Mesh(new THREE.IcosahedronGeometry(ch.r, 3), mats.rock ?? steel); b.castShadow = true; const g = new THREE.Group(); g.add(b); this.scene.add(g); this.mech.chasers.push([ch, g]);
+      for (let i = 1; i < ch.path.length - 1; i += 1) {const [px, pz] = ch.path[i]; const col = new THREE.Mesh(new THREE.CylinderGeometry(.35, .4, 3.4, 12), mats.rock ?? steel); col.position.set(px + 2.6 * (i % 2 ? 1 : -1), ch.y + 1.7, pz + 1.5); col.castShadow = true; col.userData.col = [ch, i]; this.scene.add(col); this.columns.push(col);}}
+    // tilting chamber: warning lamps on the rim; mill surge lamps on spinner posts
+    for (const b of c.tilts) if (b.tilt!.axis === 'xz') {const ms: THREE.MeshStandardMaterial[] = []; for (const [x, z] of [[b.x0, b.z0], [b.x1, b.z0], [b.x0, b.z1], [b.x1, b.z1]]) {const m = lamp(); ms.push(m); const pole = new THREE.Mesh(new THREE.CylinderGeometry(.08, .08, 3, 6), dark); pole.position.set(x * 1.12, b.y0 + 1.5, z); this.scene.add(pole); const l = new THREE.Mesh(new THREE.SphereGeometry(.22, 10, 8), m); l.position.set(x * 1.12, b.y0 + 3.1, z); this.scene.add(l);} this.mech.tiltLamps.push([b, ms]);}
+    for (const sw of c.sweepers) if (sw.vary) {const m = lamp(); const l = new THREE.Mesh(new THREE.SphereGeometry(.25, 10, 8), m); l.position.set(sw.x, sw.y + 1.3, sw.z); this.scene.add(l); this.mech.sweepLamps.push([sw, m]);}
+  }
+  private columns: THREE.Mesh[] = [];
+  private syncMech(dt: number) {
+    const c = this.course, t = c.time;
+    for (const [g, spin] of this.mech.gears) spin.rotation.y = -g.angle;
+    for (const [b, g] of this.mech.carts) {g.position.x = b.offX; g.visible = Math.abs(b.offX) < b.cart!.len - .2;}
+    for (const [gt, a, b, , lm] of this.mech.gates) {lm.emissiveIntensity = gt.warn ? (Math.sin(t * 30) > 0 ? 3 : .2) : gt.open < .5 ? 1.2 : 0;
+      if (gt.kind === 'slide') {const leaf = gt.halfW * (1 - gt.open); a.position.x = -gt.halfW - gt.halfW + leaf; b.position.x = gt.halfW + gt.halfW - leaf;} else a.position.y = gt.y + 3.2 * gt.open + .1;}
+    for (const [f, blades, lm, pts] of this.mech.fans) {blades.rotation.z = f.spin; lm.emissiveIntensity = f.on > .05 ? 2.5 : (((t / f.period) + f.phase) % 1 > .9 ? (Math.sin(t * 25) > 0 ? 2 : 0) : 0);
+      (pts.material as THREE.PointsMaterial).opacity = .55 * f.on; const p = pts.geometry.getAttribute('position') as THREE.BufferAttribute; for (let i = 0; i < p.count; i++) {let z = p.getZ(i) + dt * 18 * f.on; if (z > f.reach) z -= f.reach; p.setZ(i, z);} p.needsUpdate = true;}
+    for (const [h, head, chain, lm] of this.mech.hooks) {const hx = h.pillarX - h.side * h.reach * h.ext; head.position.set(hx, h.y, h.z); lm.emissiveIntensity = h.state === 1 ? (Math.sin(t * 28) > 0 ? 3 : .2) : 0;
+      const len = Math.abs(hx - h.pillarX) + .01; chain.scale.set(len, 1, 1); chain.position.set((hx + h.pillarX) / 2, h.y, h.z); chain.visible = h.ext > .02;}
+    for (const [ch, g] of this.mech.chasers) {g.visible = ch.active; g.position.set(ch.x, ch.y + ch.r, ch.z); g.rotation.x = ch.spin; g.rotation.y = 0;}
+    for (const col of this.columns) {const [ch, i] = col.userData.col; const [px, pz] = ch.path[i]; const near = ch.active && Math.hypot(ch.x - px, ch.z - pz) < 3; if (near) col.userData.fall = 1; if (!ch.active) col.userData.fall = 0;
+      const k = col.userData.fall ? Math.min(1.4, (col.rotation.z ? Math.abs(col.rotation.z) : 0) + dt * 2.5) : Math.max(0, Math.abs(col.rotation.z) - dt); col.rotation.z = k * (i % 2 ? 1 : -1);}
+    for (const [b, ms] of this.mech.tiltLamps) for (const m of ms) m.emissiveIntensity = b.tilt!.warn ? (Math.sin(t * 22) > 0 ? 3 : .3) : 0;
+    for (const [sw, m] of this.mech.sweepLamps) m.emissiveIntensity = sw.boost === 1 ? 3 : sw.boost ? (Math.sin(t * 24) > 0 ? 2.5 : .2) : 0;
+    // hooked runner: show stretched pose
   }
 
   start() {
@@ -288,7 +381,7 @@ export class RaceApp {
       put(rnd() < .7 ? graves : crosses, x, -2.6, z, .9 + rnd() * .6, (rnd() - .5) * .6, (rnd() - .5) * .35);}
     // graves on the wide plazas, iron fences along their edges, lanterns along the path
     for (const b of this.course.blocks) {
-      if (b.crumbles || b.driftAmp || b.liftAmp) continue; const d = b.z1 - b.z0, w = b.x1 - b.x0, y = top(b, b.z0);
+      if (b.crumbles || b.driftAmp || b.liftAmp || (b.gear || b.cart || b.tilt || b.trapPeriod || b.wall || b.fake || b.driftAmp || (b.x1 - b.x0) < 6)) continue; const d = b.z1 - b.z0, w = b.x1 - b.x0, y = top(b, b.z0);
       if (w >= 14) for (let i = 0; i < d / 3; i++) {const sd = rnd() < .5 ? -1 : 1, x = sd > 0 ? b.x1 - .8 - rnd() * 1.2 : b.x0 + .8 + rnd() * 1.2; put(rnd() < .75 ? graves : crosses, x, y, b.z0 + rnd() * d, .7 + rnd() * .4, (rnd() - .5) * .5, (rnd() - .5) * .25);}
       if (b.mat !== 'mud') for (const sd of [-1, 1]) for (let zz = b.z0 + .3; zz < b.z1; zz += .45) if (rnd() < .92) put(bars, sd > 0 ? b.x1 - .1 : b.x0 + .1, y, zz, 1, 0, (rnd() - .5) * .12);
       for (let zz = b.z0 + 3; zz < b.z1 - 1; zz += 11) for (const sd of [-1, 1]) lamps.push(new THREE.Vector3(sd > 0 ? b.x1 - .45 : b.x0 + .45, y, zz + (sd > 0 ? 5 : 0)));
@@ -408,7 +501,9 @@ export class RaceApp {
     this.acc += dt;
     while (this.acc >= STEP) {this.acc -= STEP; this.clock += STEP; const live = this.clock >= COUNTDOWN && !this.over();
       this.course.step(STEP);
-      for (const r of this.runners) {if (r.bot) this.course.think(r, STEP); if (!live) {r.inX = r.inZ = 0; r.jump = false;} this.course.move(r, STEP);}}
+      for (const r of this.runners) {if (r.bot) this.course.think(r, STEP); if (!live) {r.inX = r.inZ = 0; r.jump = false;} this.course.move(r, STEP);}
+      for (let i = 0; i < this.runners.length; i++) for (let j = i + 1; j < this.runners.length; j++) {const a = this.runners[i], b = this.runners[j]; if (a.hook >= 0 || b.hook >= 0) continue; const dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz), m = RR * 1.9;
+        if (d < m && d > 1e-4 && Math.abs(a.y - b.y) < 1.2) {const p = (m - d) / 2; a.x -= dx / d * p; a.z -= dz / d * p; b.x += dx / d * p; b.z += dz / d * p;}}}
     this.sync(dt); if (this.composer) this.composer.render(); else this.renderer.render(this.scene, this.camera); this.hudUpdate();
   }
 
@@ -418,7 +513,11 @@ export class RaceApp {
 
   private sync(dt: number) {
     const c = this.course;
-    for (const [b, m] of this.blockMeshes) {const shake = b.crumbles && b.crumbleAt >= 0 && c.time - b.crumbleAt < .75 ? Math.sin(c.time * 70) * .05 : 0; m.position.set(b.offX + shake, b.offY, 0); m.visible = !b.gone;}
+    for (const [b, m] of this.blockMeshes) {const ct = b.crumbleAt >= 0 ? c.time - b.crumbleAt : -1, shake = b.crumbles && ct >= 0 && ct < b.crumbleDelay ? Math.sin(c.time * 70) * .06 * (ct / b.crumbleDelay) : 0;
+      if (m.userData.pivot) {const [px, py, pz] = m.userData.pivot; m.position.set(px + b.offX, py + b.offY, pz); m.rotation.set(-Math.atan(b.tiltZ), 0, Math.atan(b.tiltX));}
+      else m.position.set(b.offX + shake, b.offY, 0); m.visible = !b.gone && !m.userData.hidden;
+      if (m.userData.crack) (m.userData.crack.material as THREE.MeshBasicMaterial).opacity = ct >= 0 ? Math.min(.9, ct / b.crumbleDelay * 1.2) : 0;}
+    this.syncMech(dt);
     c.sweepers.forEach((s, i) => {const m = this.sweeperMeshes[i]; m.position.set(s.x, s.y, s.z); m.rotation.y = -s.angle;});
     c.pendulums.forEach((p, i) => {this.pend[i].rotation.z = p.swing;});
     for (const g of this.rams) {const p = g.userData.p; g.position.x = p.side * (p.wallX - p.reach * p.ext + 1);}
@@ -639,4 +738,9 @@ function aoTexture() {const c = document.createElement('canvas'); c.width = 4; c
 function swirlTexture() {const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d')!; x.translate(128, 128);
   for (let i = 0; i < 900; i++) {const t = i / 900, a = t * Math.PI * 14, r = t * 120; x.fillStyle = `rgba(255,255,255,${.6 * (1 - t) + .1})`; x.beginPath(); x.arc(Math.cos(a) * r, Math.sin(a) * r, 2 + t * 7, 0, 7); x.fill();}
   const g = x.createRadialGradient(0, 0, 0, 0, 0, 128); g.addColorStop(0, 'rgba(255,255,255,.9)'); g.addColorStop(.3, 'rgba(255,255,255,.2)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(-128, -128, 256, 256);
+  return new THREE.CanvasTexture(c);}
+
+function crackTexture() {const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d')!; x.strokeStyle = '#000'; x.lineCap = 'round';
+  for (let k = 0; k < 7; k++) {let px = 128 + (Math.random() - .5) * 30, py = 128 + (Math.random() - .5) * 30; x.lineWidth = 4; x.beginPath(); x.moveTo(px, py);
+    const a = Math.random() * 6.28; for (let i = 0; i < 8; i++) {px += Math.cos(a + (Math.random() - .5) * 1.2) * 18; py += Math.sin(a + (Math.random() - .5) * 1.2) * 18; x.lineTo(px, py); x.lineWidth = Math.max(1, 4 - i * .4);} x.stroke();}
   return new THREE.CanvasTexture(c);}
