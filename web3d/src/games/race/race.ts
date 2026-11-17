@@ -19,7 +19,7 @@ export class RaceApp {
   readonly renderer: THREE.WebGLRenderer; readonly scene = new THREE.Scene(); readonly camera = new THREE.PerspectiveCamera(55, 1, .3, 900);
   course: Course; readonly night: boolean; readonly manor: boolean; readonly crypt: boolean; readonly limit: number; runners: Runner[] = []; me!: Runner; clock = 0; private acc = 0;
   private sun!: THREE.DirectionalLight; private fill!: THREE.DirectionalLight; private mist: THREE.Mesh[] = []; private pollen!: THREE.Points; private puffs: {s: THREE.Sprite; t: number}[] = []; private grassMat?: THREE.Material; private looks = new Map<Runner, Look>(); private blockMeshes = new Map<Block, THREE.Mesh>();
-  private sweeperMeshes: THREE.Object3D[] = []; private cpArches: {glow: THREE.Mesh; flag: THREE.Mesh; lit: boolean}[] = []; private lastCp = 0; private pend: THREE.Object3D[] = []; private rams: THREE.Object3D[] = []; private padMeshes: THREE.Mesh[] = []; private warnPlanes = new Map<Block, THREE.Mesh>(); private belts: THREE.Texture[] = []; private composer?: EffectComposer; private lastSection = ''; private ghosts: THREE.MeshStandardMaterial[] = []; private lastTp = 0; private mazeBlend = 0; private portalFx: THREE.Object3D[] = []; private boulderPool: THREE.Object3D[] = [];
+  private sweeperMeshes: THREE.Object3D[] = []; private cpArches: {glow: THREE.Mesh; flag: THREE.Mesh; lit: boolean}[] = []; private lastCp = 0; private pend: THREE.Object3D[] = []; private rams: THREE.Object3D[] = []; private padMeshes: THREE.Mesh[] = []; private warnPlanes = new Map<Block, THREE.Mesh>(); private belts: THREE.Texture[] = []; private composer?: EffectComposer; private lastSection = ''; private ghosts: THREE.MeshStandardMaterial[] = []; private lastTp = 0; private ray = new THREE.Raycaster(); private faded = new Set<THREE.Mesh>(); private mazeBlend = 0; private portalFx: THREE.Object3D[] = []; private boulderPool: THREE.Object3D[] = [];
   private gltf = new GLTFLoader(); private texLoader = new THREE.TextureLoader(); private cache = new Map<string, Promise<GLTF>>();
   private camTarget = new THREE.Vector3(); private pixelRatio: number; private frameAvg = 16; private last = 0;
   private blobs = new Map<Runner, THREE.Mesh>();   private dots = new Map<Runner, HTMLElement>(); private keys = new Set<string>(); private stick = {id: -1, ox: 0, oy: 0, x: 0, y: 0}; private hud: HTMLElement;
@@ -63,7 +63,7 @@ export class RaceApp {
       let tm = topM; if (b.conveyor) {const mm = (topM as THREE.MeshStandardMaterial).clone(); for (const k of ['map', 'normalMap', 'roughnessMap'] as const) if (mm[k]) {mm[k] = mm[k]!.clone(); mm[k]!.needsUpdate = true; this.belts.push(mm[k]!);} tm = mm;}
       if (b.wall) {tm = mats.wall; side = mats.wall;}
       if (b.ghost) {const gm = (mats.wall as THREE.MeshStandardMaterial).clone(); gm.transparent = true; gm.opacity = .92; gm.emissive = new THREE.Color(0x2aff9a); gm.emissiveIntensity = 0; tm = gm; side = gm; this.ghosts.push(gm);}
-      const m = new THREE.Mesh(blockGeometry(b), [tm, b.wall ? side : this.shaded(side)]); if (b.wall) m.castShadow = true;
+      const m = new THREE.Mesh(blockGeometry(b), [tm, b.wall ? side : this.shaded(side)]); m.geometry.computeBoundingSphere(); if (b.wall) m.castShadow = true;
       // carved edge trim around walkable tops (curbs / skirting) — breaks the boxy look
       const trimMat = this.manor ? (b.mat === 'floor' ? mats.beam : mats.wall) : this.night ? mats.brick : b.mat === 'grass' ? null : b.mat === 'plank' ? mats.bark : mats.rock;
       if (trimMat && !b.trapPeriod && !b.wall && (b.x1 - b.x0) > 2 && b.y0 === b.y1) {const y = b.y0, tw = .28, th = .2;
@@ -439,6 +439,16 @@ export class RaceApp {
     const mb = this.mazeBlend, back2 = back + (4.6 - back) * mb, up2 = up + (7.4 - up) * mb;
     this.camera.position.set(this.camTarget.x, this.camTarget.y + up2, this.camTarget.z - back2);
     if (this.manor) {const cz = this.camera.position.z, rm = this.course.rooms.find(r => cz >= r.z0 && cz <= r.z1) ?? this.course.rooms.find(r => this.camTarget.z >= r.z0 && this.camTarget.z <= r.z1); if (rm) {const lim = rm.halfW - 1.1; this.camera.position.x = Math.max(-lim, Math.min(lim, this.camera.position.x)); this.camera.position.y = Math.min(this.camera.position.y, rm.y + rm.h - .8 + 4 * this.mazeBlend);}} this.camera.lookAt(this.camTarget.x, this.camTarget.y + 1.3, this.camTarget.z + 7);
+    // never let geometry hide the runner: walls between camera and player turn see-through, other blocks lift the camera
+    {const head = new THREE.Vector3(me.x, me.y + 1.1, me.z);
+      for (const m of this.faded) {const mats = m.material as THREE.Material[]; mats.forEach(x => {(x as any).opacity = Math.min(1, (x as any).opacity + dt * 4); if ((x as any).opacity >= 1) x.transparent = false;});}
+      for (let pass = 0; pass < 3; pass++) {const dir = this.camera.position.clone().sub(head), dist = dir.length(); dir.normalize(); this.ray.set(head, dir); this.ray.far = dist;
+        const occ: THREE.Mesh[] = []; for (const [b, m] of this.blockMeshes) if (m.visible && Math.abs((b.z0 + b.z1) / 2 - me.z) < 30) occ.push(m);
+        const hit = this.ray.intersectObjects(occ, false)[0]; if (!hit) break; const mesh = hit.object as THREE.Mesh, blk = [...this.blockMeshes].find(([, m]) => m === mesh)?.[0];
+        if (blk?.wall) {if (!(mesh.material as any).__own) {mesh.material = (mesh.material as THREE.Material[]).map(x => x.clone()); (mesh.material as any).__own = true;}
+          (mesh.material as THREE.Material[]).forEach(x => {x.transparent = true; (x as any).opacity = .18; x.depthWrite = false;}); this.faded.add(mesh); occ.splice(occ.indexOf(mesh), 1);
+          this.ray.intersectObjects(occ, false); if (!this.ray.intersectObjects(occ, false).length) break; continue;}
+        this.camera.position.y += 2.5; this.camera.lookAt(me.x, me.y + 1.2, me.z + 5);}}
     this.sun.target.position.set(this.camTarget.x, this.camTarget.y, this.camTarget.z + 8);
     const sd = this.manor ? SKY_DIR : this.night ? MOON_DIR : SUN_DIR; this.sun.position.set(this.camTarget.x + sd.x * 70, this.camTarget.y + sd.y * 70, this.camTarget.z + 8 + sd.z * 70);
     this.fill.position.copy(this.camera.position); this.fill.target.position.set(this.camTarget.x, this.camTarget.y, this.camTarget.z);
