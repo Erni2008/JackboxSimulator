@@ -627,16 +627,31 @@ export class RaceApp {
   }
 
   /** remote state from the server: id -> [x,y,z,facing,anim,cp,progress,finished,finishTime,falls] */
-  remote(runners: Record<string, number[]>) {for (const r of this.runners) {const v = runners[r.id]; if (!v || !(r as any).remote) continue; (r as any).target = v;}}
+  remote(runners: Record<string, number[]>) {const now = performance.now() / 1000;
+    for (const r of this.runners) {const v = runners[r.id]; if (!v || !(r as any).remote) continue; const a = r as any, prev = a.target as number[] | undefined;
+      if (prev && (prev[0] !== v[0] || prev[2] !== v[2])) {const dt = Math.max(.05, now - (a.tAt ?? now - .2)), cl = (x: number) => Math.max(-9, Math.min(9, x)); a.estVx = cl((v[0] - prev[0]) / dt); a.estVz = cl((v[2] - prev[2]) / dt); a.tAt = now;}
+      else if (prev && now - (a.tAt ?? now) > .5) {a.estVx = 0; a.estVz = 0;}
+      a.target = v;}}
   private sendT = 0;
   private netTick(dt: number) {
     for (const r of this.runners) {const v = (r as any).target as number[] | undefined; if (!(r as any).remote || !v) continue; const k = Math.min(1, dt * 10);
-      if (Math.hypot(v[0] - r.x, v[2] - r.z) > 6) {r.x = v[0]; r.y = v[1]; r.z = v[2];} else {r.vx = (v[0] - r.x) / Math.max(dt, .016) * k; r.vz = (v[2] - r.z) / Math.max(dt, .016) * k; r.x += (v[0] - r.x) * k; r.y += (v[1] - r.y) * k; r.z += (v[2] - r.z) * k;}
-      r.facing = v[3]; r.stun = v[4] === 3 ? .3 : 0; r.ground = v[4] === 2 ? null : (r.ground ?? this.course.blocks[0]); r.vy = v[4] === 2 ? 1 : 0; r.checkpoint = v[5]; r.progress = v[6]; if (v[7] && !r.finished) {r.finished = true; r.finishTime = v[8];} r.falls = v[9];}
+      const a = r as any; r.vx = a.estVx ?? 0; r.vz = a.estVz ?? 0;
+      if (Math.hypot(v[0] - r.x, v[2] - r.z) > 6) {r.x = v[0]; r.y = v[1]; r.z = v[2];} else {r.x += (v[0] - r.x) * k; r.y += (v[1] - r.y) * k; r.z += (v[2] - r.z) * k;}
+      r.facing = v[3]; r.stun = v[4] === 3 ? .3 : 0; r.ground = v[4] === 2 ? null : this.course.blocks[0]; r.vy = 0; if (v[4] === 0) {r.vx = 0; r.vz = 0;} r.checkpoint = v[5]; r.progress = v[6]; if (v[7] && !r.finished) {r.finished = true; r.finishTime = v[8];} r.falls = v[9];}
     if (this.net!.spectator) {const lead = this.standings()[0]; if (lead) this.me = lead; return;}
     this.sendT -= dt; if (this.sendT > 0) return; this.sendT = .2; const m = this.me, anim = m.stun > 0 ? 3 : !m.ground ? 2 : Math.hypot(m.vx, m.vz) > .8 ? 1 : 0;
     this.net!.send([+m.x.toFixed(2), +m.y.toFixed(2), +m.z.toFixed(2), +m.facing.toFixed(2), anim, m.checkpoint, +m.progress.toFixed(1), m.finished ? 1 : 0, +m.finishTime.toFixed(2), m.falls]);}
   // ---- rules intro (online): voiced lines over a flyover of the real course, synced to the server clock ----
+  private introH?: Float32Array;
+  /** Smooth flyover height: course top sampled every metre, max over a window, then low-passed (no dips into gaps, no jumps). */
+  private introHeight(z: number) {
+    if (!this.introH) {const n = Math.ceil(this.course.finishZ + 40), raw = new Float32Array(n), h = new Float32Array(n);
+      for (let i = 0; i < n; i++) {let y = -1e9; for (const b of this.course.blocks) if (!b.wall && i - 6 >= b.z0 - 1 && i - 6 <= b.z1 + 1) y = Math.max(y, Math.max(b.y0, b.y1)); raw[i] = y > -1e8 ? y : (i ? raw[i - 1] : 0);}
+      for (let i = 0; i < n; i++) {let m = -1e9; for (let k = -8; k <= 8; k++) m = Math.max(m, raw[Math.max(0, Math.min(n - 1, i + k))]); h[i] = m;}
+      for (let pass = 0; pass < 4; pass++) for (let i = 1; i < n - 1; i++) h[i] = (h[i - 1] + h[i] * 2 + h[i + 1]) / 4;
+      this.introH = h;}
+    const h = this.introH, x = Math.max(0, Math.min(h.length - 1.001, z + 6)), i = Math.floor(x); return h[i] + (h[i + 1] - h[i]) * (x - i);
+  }
   introT = -1; introSkipped = false; private introLine = -1;
   private intro(t: number) {
     const el = document.getElementById('intro'); if (!el) return;
@@ -686,8 +701,8 @@ export class RaceApp {
       const bl = this.blobs.get(r); if (bl) {let gy = -99; for (const b of c.blocks) if (!b.gone && r.x >= b.x0 + b.offX && r.x <= b.x1 + b.offX && r.z >= b.z0 && r.z <= b.z1 && top(b, r.z) <= r.y + .05) gy = Math.max(gy, top(b, r.z)); bl.visible = gy > -50; const hgt = r.y - gy; bl.position.set(r.x, gy + .03, r.z); bl.scale.setScalar(Math.max(.4, 1 - hgt * .12)); (bl.material as THREE.MeshBasicMaterial).opacity = Math.max(.15, .55 - hgt * .06);}
     }
     // camera: behind and above the player, framed wider in portrait
-    if (this.introT >= 0 && !this.introSkipped) {const f = Math.min(1, this.introT / INTRO), z = -6 + (this.course.finishZ + 6) * (f * f * (3 - 2 * f)), y = this.course.spawnY(Math.max(0, z));
-      this.camera.position.set(Math.sin(this.introT * .25) * 9, y + 9 + Math.sin(this.introT * .4) * 2, z - 14); this.camera.lookAt(0, y + 1, z + 10);
+    if (this.introT >= 0 && !this.introSkipped) {const f = Math.min(1, this.introT / INTRO), z = -6 + (this.course.finishZ + 6) * (f * f * (3 - 2 * f)), y = this.introHeight(z);
+      this.camera.position.set(Math.sin(this.introT * .2) * 7, y + 11, z - 15); this.camera.lookAt(0, this.introHeight(z + 10) + 1, z + 10);
       this.sun.position.set(this.camera.position.x + SUN_DIR.x * 70, y + SUN_DIR.y * 70, z + SUN_DIR.z * 70); this.sun.target.position.set(0, y, z + 8); this.animateAtmosphere(dt); return;}
     const me = this.me, portrait = this.camera.aspect < 1, k = Math.min(1, dt * 5);
     this.camTarget.x += (me.x * .75 - this.camTarget.x) * k; this.camTarget.z += (me.z - this.camTarget.z) * k; this.camTarget.y += (Math.max(me.y, -4) - this.camTarget.y) * Math.min(1, dt * 2.5);

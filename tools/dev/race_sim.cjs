@@ -2,7 +2,7 @@
 // races the CURSED RACE as autopilot browser phones while the host screen opens in your browser.
 // BASE=http://localhost:18311 PLAYERS=5 MAP=1 PLAYWRIGHT_MODULE=... CHROME_PATH=... node tools/dev/race_sim.cjs
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');const {execSync}=require('node:child_process');
-const BASE=process.env.BASE||'http://localhost:18311',N=Number(process.env.PLAYERS||5),MAP=Number(process.env.MAP||1);
+const BASE=process.env.BASE||'http://localhost:18311',N=Number(process.env.PLAYERS||5),MAP=Number(process.env.MAP||1),ME=process.env.ME!=='0';
 const post=async(u,d)=>{const r=await fetch(BASE+u,{method:'POST',body:new URLSearchParams(d)});const j=await r.json();if(!r.ok)throw new Error(u+' '+JSON.stringify(j));return j;};
 const rid=()=>Math.random().toString(36).slice(2);const wait=ms=>new Promise(r=>setTimeout(r,ms));
 function sock(code,token,onState){const ws=new WebSocket(BASE.replace('http','ws')+'/ws');const o={ws,state:null,send:(type,payload)=>ws.readyState===1&&ws.send(JSON.stringify({type,requestId:rid(),payload:{roomCode:code,...payload}}))};
@@ -12,7 +12,8 @@ function sock(code,token,onState){const ws=new WebSocket(BASE.replace('http','ws
   const names=['Аня','Боря','Вика','Гоша','Даша','Егор','Женя','Зоя'],chars=['pumpkin','skeleton','dracula','voodoo','ghost','zombie','plague_doctor','puppeteer'];
   const room=await post('/rooms',{name:'Симуляция',maxPlayers:8,mode:'CLASSIC'});const code=room.code,hostTok=room.hostSession||room.token;console.log('room',code);
   const host=sock(code,hostTok);const players=[];
-  for(let i=0;i<N;i++){const j=await post(`/rooms/${code}/join`,{name:names[i],characterId:chars[i]});players.push({name:names[i],tok:j.sessionToken||j.token,id:j.selfId});}
+  if(ME){names.unshift('Вы');chars.unshift(process.env.CHAR||'pumpkin');chars.splice(chars.lastIndexOf(process.env.CHAR||'pumpkin'),1);}
+  for(let i=0;i<N+(ME?1:0);i++){const j=await post(`/rooms/${code}/join`,{name:names[i],characterId:chars[i]});players.push({name:names[i],tok:j.sessionToken||j.token,id:j.selfId});}
   for(const p of players)p.s=sock(code,p.tok);await wait(1500);
   // ---- quiz: one question, everyone answers at random (wrong answers included) ----
   host.send('START_GAME',{});let answered=false,revealed=false;
@@ -25,7 +26,8 @@ function sock(code,token,onState){const ws=new WebSocket(BASE.replace('http','ws
   host.send('OPEN_WEB_GAME',{game:'race',map:MAP});await wait(1500);
   if(host.state?.webGame!=='race'){console.log('race did not open (phase',host.state?.phase,')');process.exit(1);}
   console.log('race open: map',host.state.race.map,'seed',host.state.race.seed,'— all',N,'players run, including wrong answers');
-  execSync(`open "${BASE}/race/?host=1&room=${code}#token=${encodeURIComponent(hostTok)}"`);
+  if(ME){const me=players.shift();me.s.ws.close();execSync(`open "${BASE}/race/?net=1#seat=${code}.${encodeURIComponent(me.tok)}"`);console.log('YOUR runner opened in the browser: WASD + SPACE');}
+  else execSync(`open "${BASE}/race/?host=1&room=${code}#token=${encodeURIComponent(hostTok)}"`);
   const b=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH||undefined,args:['--use-angle=metal','--ignore-gpu-blocklist']});
   for(const p of players){const c=await b.newContext({viewport:{width:640,height:360}});await c.addInitScript(([code,tok,name])=>sessionStorage.setItem('finalanswer-session',JSON.stringify({code,token:tok,name})),[code,p.tok,p.name]);
     const pg=await c.newPage();pg.on('pageerror',e=>console.log('  page error',p.name,e.message));await pg.goto(BASE+'/race/?net=1&bot=1');p.pg=pg;}

@@ -7,7 +7,8 @@ let map = [1, 2, 3, 4].includes(Number(q.get('map'))) ? Number(q.get('map')) : 1
 function online() {
   let cred: any = null;
   if (q.get('host')) {const tok = /#token=([^&]+)/.exec(location.hash)?.[1]; if (tok) cred = {code: q.get('room'), token: decodeURIComponent(tok)};}
-  else {try {cred = JSON.parse(sessionStorage.getItem('finalanswer-session') || 'null');} catch {}}
+  else {const seat = /#seat=([^.&]+)\.([^&]+)/.exec(location.hash); if (seat) {cred = {code: seat[1], token: decodeURIComponent(seat[2])}; try {sessionStorage.setItem('finalanswer-session', JSON.stringify(cred));} catch {}}
+    else try {cred = JSON.parse(sessionStorage.getItem('finalanswer-session') || 'null');} catch {}}
   if (!cred?.code || !cred?.token) {document.querySelector('#loading h2')!.textContent = 'Нет сессии комнаты — вернитесь в игру'; return;}
   pick.hidden = true; load.hidden = false; document.body.classList.add('playing');
   let app: RaceApp | null = null, offset = 0, raceId = '', ws: WebSocket, building = false;
