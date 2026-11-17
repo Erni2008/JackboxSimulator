@@ -230,7 +230,7 @@ export class Course {
     for (let i = 0; i < 6; i++) {const len = 5 + this.rnd() * 2, nx = (this.rnd() - .5) * 6; beam(Math.min(x, nx) - .55, Math.max(x, nx) + .55, this.z, this.z + .9);
       beam(nx - .55, nx + .55, this.z + .9, this.z + len); x = nx; this.z += len;}
     beam(Math.min(x, 0) - .55, Math.max(x, 0) + .55, this.z, this.z + 1); this.z += 1;
-    if (v === 3) for (let i = 0; i < 3; i++) {const fz = z0 + 6 + i * 11, sd = i % 2 ? 1 : -1; this.fans.push({x: sd * 7, z: fz, y: y + 1.2, dx: -sd, dz: 0, reach: 14, half: 2.6, force: 3.2, period: 3.6, phase: i * .33, on: 0, spin: 0});}
+    if (v === 3) for (let i = 0; i < 3; i++) {const fz = z0 + 6 + i * 11, sd = i % 2 ? 1 : -1; this.fans.push({x: sd * 7, z: fz, y: y + 1.2, dx: -sd, dz: 0, reach: 14, half: 2.6, force: 6.5, period: 3.6, phase: i * .33, on: 0, spin: 0});}
     this.room(z0, this.z, 6, 9);}
   private s_zigzag() {const z0 = this.z, y = this.y, w = 6; this.add(-w, w, z0, z0 + 34, y, y, this.look.main); this.room(z0, z0 + 34, w + .6, 9);
     for (let i = 0; i < 5; i++) {const wz = z0 + 4 + i * 6, sd = i % 2 ? 1 : -1; this.wallBlock(sd > 0 ? -w : -w + 2.6, sd > 0 ? w - 2.6 : w, wz, wz + .5, 1.6);
@@ -255,9 +255,9 @@ export class Course {
   /** Wind corridor: side fans push you to the open edges, a head fan pushes you back; low partitions give shelter. */
   private s_wind() {const len = 36, w = 3.6, z = this.z, y = this.y; this.add(-w, w, z, z + len, y, y, this.look.main); this.room(z, z + len, w + 4, 10);
     const n = 4 + Math.floor(this.rnd() * 3);
-    for (let i = 0; i < n - 1; i++) {const fz = z + 5 + i * (len - 10) / (n - 2), sd = i % 2 ? 1 : -1; this.fans.push({x: sd * (w + 2.6), z: fz, y: y + 1.3, dx: -sd, dz: 0, reach: 2 * w + 3, half: 2.4, force: 4.5 + this.rnd() * 2, period: 3 + this.rnd(), phase: this.rnd(), on: 0, spin: 0});
+    for (let i = 0; i < n - 1; i++) {const fz = z + 5 + i * (len - 10) / (n - 2), sd = i % 2 ? 1 : -1; this.fans.push({x: sd * (w + 2.6), z: fz, y: y + 1.3, dx: -sd, dz: 0, reach: 2 * w + 3, half: 2.4, force: 11 + this.rnd() * 4, period: 3 + this.rnd(), phase: this.rnd(), on: 0, spin: 0});
       this.wallBlock(sd > 0 ? w - 1.8 : -w + 1.4, sd > 0 ? w - 1.4 : -w + 1.8, fz - 3.6, fz - 2.2, 1.6);}
-    this.fans.push({x: 0, z: z + len + 1.5, y: y + 1.3, dx: 0, dz: -1, reach: len, half: 2.2, force: 3.2, period: 4.2, phase: this.rnd(), on: 0, spin: 0});
+    this.fans.push({x: 0, z: z + len + 1.5, y: y + 1.3, dx: 0, dz: -1, reach: len, half: 2.2, force: 7, period: 4.2, phase: this.rnd(), on: 0, spin: 0});
     for (let i = 0; i < 3; i++) this.wallBlock(-1.2 + (i % 2) * 1.5, .3 + (i % 2) * 1.5, z + 8 + i * 9, z + 8.6 + i * 9, 1.3);
     this.z += len;}
   /** Rolling boulder: a huge sphere rolls down a winding corridor every few seconds, accelerating; hide in the side niches. */
