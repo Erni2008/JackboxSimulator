@@ -14,7 +14,7 @@ type Look = {root: THREE.Object3D; mixer: THREE.AnimationMixer; acts: Record<str
 export class RaceApp {
   readonly renderer: THREE.WebGLRenderer; readonly scene = new THREE.Scene(); readonly camera = new THREE.PerspectiveCamera(55, 1, .3, 900);
   course = new Course(); runners: Runner[] = []; me!: Runner; clock = 0; private acc = 0;
-  private sun!: THREE.DirectionalLight; private looks = new Map<Runner, Look>(); private blockMeshes = new Map<Block, THREE.Mesh>();
+  private sun!: THREE.DirectionalLight; private fill!: THREE.DirectionalLight; private mist: THREE.Mesh[] = []; private pollen!: THREE.Points; private puffs: {s: THREE.Sprite; t: number}[] = []; private grassMat?: THREE.Material; private looks = new Map<Runner, Look>(); private blockMeshes = new Map<Block, THREE.Mesh>();
   private sweeperMeshes: THREE.Mesh[] = []; private pend: {bob: THREE.Object3D; chain: THREE.Mesh}[] = []; private boulderPool: THREE.Object3D[] = [];
   private gltf = new GLTFLoader(); private texLoader = new THREE.TextureLoader(); private cache = new Map<string, Promise<GLTF>>();
   private camTarget = new THREE.Vector3(); private pixelRatio: number; private frameAvg = 16; private last = 0;
@@ -33,19 +33,26 @@ export class RaceApp {
   }
 
   async load(progress: (f: number) => void) {
-    const fog = new THREE.Color(.66, .7, .68); this.scene.fog = new THREE.Fog(fog, 34, 210); this.scene.background = fog;
-    this.scene.add(new THREE.HemisphereLight(0xcfe0ff, 0x4a5530, 1.25));
-    this.sun = new THREE.DirectionalLight(0xfff0d8, 2.6); this.sun.position.set(18, 30, -14); this.sun.castShadow = true;
-    this.sun.shadow.mapSize.set(1024, 1024); Object.assign(this.sun.shadow.camera, {left: -22, right: 22, top: 22, bottom: -22, near: 1, far: 90}); this.sun.shadow.bias = -.0006; this.sun.shadow.normalBias = .03;
+    // golden-hour sky: background + image-based lighting from the same panorama
+    const sky = this.tex('sky.jpg', false); sky.mapping = THREE.EquirectangularReflectionMapping;
+    this.scene.background = sky;
+    const pmrem = new THREE.PMREMGenerator(this.renderer); this.scene.environment = pmrem.fromEquirectangular(await loaded(sky)).texture; pmrem.dispose();
+    (this.scene as any).environmentIntensity = .75; (this.scene as any).backgroundIntensity = 1;
+    this.scene.fog = new THREE.Fog(new THREE.Color(.62, .58, .64), 38, 240);
+    this.scene.add(new THREE.HemisphereLight(0xbfc8ff, 0x3d3324, .35));
+    // low sun ahead of the runners (matches the sun in the panorama): long shadows towards the camera, glowing rim on everything
+    this.sun = new THREE.DirectionalLight(0xffb978, 3.4); this.sun.castShadow = true;
+    const hi = !matchMedia('(pointer:coarse)').matches; this.sun.shadow.mapSize.set(hi ? 2048 : 1024, hi ? 2048 : 1024);
+    Object.assign(this.sun.shadow.camera, {left: -24, right: 24, top: 24, bottom: -24, near: 1, far: 140}); this.sun.shadow.bias = -.0005; this.sun.shadow.normalBias = .04;
     this.scene.add(this.sun, this.sun.target);
-    const sky = new THREE.Mesh(new THREE.SphereGeometry(600, 48, 24), new THREE.MeshBasicMaterial({map: this.tex('sky.jpg', false), side: THREE.BackSide, fog: false, depthWrite: false}));
-    sky.renderOrder = -1; sky.name = 'sky'; this.scene.add(sky);
-    const mats = {grass: this.mat('leafy_grass', 3.2), rock: this.mat('rock_face_03', 4), plank: this.mat('brown_planks_05', 2.2), stone: this.mat('mossy_rock', 3.2), bark: this.mat('bark_brown_02', 1), ground: this.mat('forest_ground_04', 6)};
+    this.fill = new THREE.DirectionalLight(0xc8d2ff, 1.7); this.scene.add(this.fill, this.fill.target); // cool fill from the camera side
+    this.atmosphere();
+    const mats = {grass: this.mat('leafy_grass', 3.2, false, 0xc4dc8a), rock: this.mat('rock_face_03', 4, true), plank: this.mat('brown_planks_05', 2.2, true), stone: this.mat('mossy_rock', 3.2), bark: this.mat('bark_brown_02', 1), ground: this.mat('forest_ground_04', 6)};
     for (const b of this.course.blocks) {
       const topM = b.mat === 'grass' ? mats.grass : b.mat === 'plank' ? mats.plank : mats.stone, side = b.mat === 'plank' ? mats.plank : mats.rock;
-      const m = new THREE.Mesh(blockGeometry(b), [topM, side]); m.receiveShadow = true; m.castShadow = b.mat === 'plank' || b.crumbles; this.blockMeshes.set(b, m); this.scene.add(m);
+      const m = new THREE.Mesh(blockGeometry(b), [topM, side]); if (b.mat === 'grass') this.grassOn(b); m.receiveShadow = true; m.castShadow = b.mat === 'plank' || b.crumbles; this.blockMeshes.set(b, m); this.scene.add(m);
     }
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(520, 540).rotateX(-Math.PI / 2), mats.ground); floor.position.set(0, -34, 150); worldUV(floor.geometry as THREE.BufferGeometry, 6, 'xz'); this.scene.add(floor);
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(520, 540).rotateX(-Math.PI / 2), mats.ground); floor.receiveShadow = false; floor.position.set(0, -34, 150); worldUV(floor.geometry as THREE.BufferGeometry, 6, 'xz'); this.scene.add(floor);
     // hazards
     const logGeo = new THREE.CylinderGeometry(.42, .42, 1, 14, 1); logGeo.rotateZ(Math.PI / 2);
     for (const s of this.course.sweepers) {const log = new THREE.Mesh(logGeo, mats.bark); log.scale.set(s.len * 2, 1, 1); log.castShadow = true; this.sweeperMeshes.push(log); this.scene.add(log);
@@ -65,7 +72,7 @@ export class RaceApp {
     const beam = new THREE.Mesh(logGeo, mats.bark); beam.scale.set(16.5, 1.1, 1.1); beam.position.set(0, fy + 7.1, this.course.finishZ); this.scene.add(beam);
     const banner = new THREE.Mesh(new THREE.PlaneGeometry(13, 1.7), new THREE.MeshStandardMaterial({map: bannerTexture(), side: THREE.DoubleSide, roughness: .85}));
     banner.position.set(0, fy + 6, this.course.finishZ); banner.rotation.y = Math.PI; this.scene.add(banner);
-    await this.decorate(progress); progress(.8);
+    await this.decorate(progress); this.buildGrass(); progress(.8);
     // runners
     const others = CHARACTERS.filter(c => c !== this.myChar);
     const cast = [this.myChar, ...others.sort(() => Math.random() - .5).slice(0, 5)];
@@ -79,7 +86,7 @@ export class RaceApp {
 
   private async addLook(r: Runner) {
     const g = await this.model(`chars/${r.character}.glb`);
-    const root = SkeletonUtils.clone(g.scene); root.traverse(o => {const m = o as THREE.Mesh; if (m.isMesh) {m.castShadow = true; m.frustumCulled = false; (m.material as THREE.Material).side = THREE.DoubleSide;}});
+    const root = SkeletonUtils.clone(g.scene); root.traverse(o => {const m = o as THREE.Mesh; if (m.isMesh) {m.castShadow = true; m.frustumCulled = false; const mm = m.material as THREE.MeshStandardMaterial; mm.side = THREE.DoubleSide; mm.envMapIntensity = 1.4; mm.roughness = .65;}});
     this.scene.add(root); const mixer = new THREE.AnimationMixer(root); const acts: Record<string, THREE.AnimationAction> = {};
     for (const clip of g.animations) {const a = mixer.clipAction(clip); acts[clip.name] = a; if (clip.name === 'jump' || clip.name === 'stun') {a.setLoop(clip.name === 'stun' ? THREE.LoopRepeat : THREE.LoopOnce, Infinity); a.clampWhenFinished = true;}}
     acts.idle?.play();
@@ -92,8 +99,8 @@ export class RaceApp {
     const place: Record<string, THREE.Matrix4[]> = {};
     const put = (name: string, x: number, y: number, z: number, size: number, yaw = rnd() * Math.PI * 2) => (place[name] ??= []).push(new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw), new THREE.Vector3(size, size, size)));
     const len = this.course.finishZ + 30;
-    for (let z = -40; z < len + 40; z += 8 + rnd() * 7) for (const s of [-1, 1]) put(rnd() < .55 ? 'fir_tree_01_c' : 'pine_tree_01_c', s * (17 + rnd() * 50), -34, z + rnd() * 5, 26 + rnd() * 14);
-    for (let z = -30; z < len + 30; z += 40) for (const s of [-1, 1]) put('namaqualand_cliff_01', s * (90 + rnd() * 20), -34, z, 60 + rnd() * 20);
+    for (let z = -40; z < len + 40; z += 8 + rnd() * 7) for (const s of [-1, 1]) put(rnd() < .55 ? 'fir_tree_01_c' : 'pine_tree_01_c', s * (34 + rnd() * 46), -34, z + rnd() * 5, 30 + rnd() * 14);
+    
     for (const b of this.course.blocks) {
       if (b.mat === 'plank' || b.crumbles) continue; const d = b.z1 - b.z0;
       for (let i = 0; i < d * .8; i++) {const side = rnd() < .5 ? -1 : 1, x = side > 0 ? b.x1 - rnd() * 1.5 : b.x0 + rnd() * 1.5, z = b.z0 + rnd() * d, y = top(b, z), r = rnd();
@@ -105,7 +112,7 @@ export class RaceApp {
       if (b.x1 - b.x0 > 12 && d > 14 && rnd() < .7) put('boulder_01', rnd() < .5 ? b.x0 + 1.4 : b.x1 - 1.4, top(b, b.z0 + d / 2) - .3, b.z0 + d / 2, 2.4);
       for (let i = 0; i < d / 6; i++) {const z = b.z0 + rnd() * d, side = rnd() < .5 ? -1 : 1; put('root_cluster_01', side > 0 ? b.x1 + .1 : b.x0 - .1, top(b, z) - 1.6, z, 2.2, side > 0 ? Math.PI / 2 : -Math.PI / 2);}
     }
-    put('fir_tree_01_c', -7.5, 0, 4, 16); put('pine_tree_01_c', 8, 0, 12, 18);
+    
     const fy = this.course.spawnY(this.course.finishZ); put('fir_tree_01_c', -9.5, fy, this.course.finishZ + 7, 17); put('dead_tree_trunk', 9.5, fy, this.course.finishZ + 6, 3);
     const names = Object.keys(place); let done = 0;
     await Promise.all(names.map(async n => {
@@ -122,6 +129,74 @@ export class RaceApp {
   }
 
   start() {this.renderer.setAnimationLoop(t => this.frame(t));}
+
+  // ---------- atmosphere ----------
+  private grassSpots: THREE.Matrix4[] = [];
+  private grassOn(b: Block) {
+    let seed = (Math.abs(Math.floor(b.z0 * 131 + b.x0 * 17)) % 2147483000) + 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const area = (b.x1 - b.x0) * (b.z1 - b.z0), n = Math.floor(area * (matchMedia('(pointer:coarse)').matches ? 2.4 : 3.6));
+    const q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3();
+    for (let i = 0; i < n; i++) {
+      // denser along the edges, sparse in the running lane
+      let x = b.x0 + rnd() * (b.x1 - b.x0); const z = b.z0 + rnd() * (b.z1 - b.z0); const edge = Math.min(x - b.x0, b.x1 - x);
+      if (edge > 2.5 && rnd() < .35) continue; if (edge < .15) x += x < (b.x0 + b.x1) / 2 ? .15 : -.15;
+      const s = .5 + rnd() * .6 + (edge < 1.5 ? .3 : 0); e.set(0, rnd() * Math.PI, 0); q.setFromEuler(e);
+      this.grassSpots.push(new THREE.Matrix4().compose(v.set(x, top(b, z), z), q, sc.set(s, s * (.8 + rnd() * .5), s)));
+    }
+  }
+  private buildGrass() {
+    const c = document.createElement('canvas'); c.width = 128; c.height = 128; const x = c.getContext('2d')!;
+    for (let i = 0; i < 46; i++) {const bx = 4 + Math.random() * 120, lean = (Math.random() - .5) * 34, hgt = 60 + Math.random() * 66, w = 1.4 + Math.random() * 2.2;
+      const g = x.createLinearGradient(0, 128, 0, 128 - hgt); g.addColorStop(0, '#1f3310'); g.addColorStop(.55, '#5f8a2a'); g.addColorStop(1, '#c9d27a');
+      x.fillStyle = g; x.beginPath(); x.moveTo(bx - w, 128); x.quadraticCurveTo(bx + lean * .4, 128 - hgt * .6, bx + lean, 128 - hgt); x.quadraticCurveTo(bx + lean * .4 + 1, 128 - hgt * .6, bx + w, 128); x.fill();}
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+    const quad = (r: number) => new THREE.PlaneGeometry(.75, .55).translate(0, .275, 0).rotateY(r);
+    const geo = mergeGeos([quad(0), quad(Math.PI / 3), quad(-Math.PI / 3)]);
+    const mat = new THREE.MeshStandardMaterial({map: t, alphaTest: .45, side: THREE.DoubleSide, roughness: .9, envMapIntensity: .6});
+    mat.onBeforeCompile = sh => {sh.uniforms.uTime = {value: 0}; (mat as any).userData.shader = sh;
+      sh.vertexShader = 'uniform float uTime;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+        vec4 wp = instanceMatrix * vec4(0.,0.,0.,1.); float sway = sin(uTime*1.7 + wp.x*.35 + wp.z*.27) * .12 + sin(uTime*3.1 + wp.z*.9) * .04;
+        transformed.x += sway * uv.y * uv.y; transformed.z += sway * .6 * uv.y * uv.y;`);
+      sh.vertexShader = sh.vertexShader.replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\n objectNormal = vec3(0.,1.,0.);');};
+    this.grassMat = mat;
+    const inst = new THREE.InstancedMesh(geo, mat, this.grassSpots.length); const col = new THREE.Color();
+    this.grassSpots.forEach((m, i) => {inst.setMatrixAt(i, m); col.setHSL(.2 + Math.random() * .07, .5, .5 + Math.random() * .2); inst.setColorAt(i, col);});
+    inst.receiveShadow = true; inst.computeBoundingSphere(); this.scene.add(inst);
+  }
+  private atmosphere() {
+    // drifting mist layers in the gorge
+    const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d')!;
+    for (let i = 0; i < 70; i++) {const px = Math.random() * 256, py = Math.random() * 256, r = 20 + Math.random() * 60, g = x.createRadialGradient(px, py, 0, px, py, r);
+      g.addColorStop(0, 'rgba(255,240,230,.22)'); g.addColorStop(1, 'rgba(255,240,230,0)'); x.fillStyle = g; for (const ox of [-256, 0, 256]) for (const oy of [-256, 0, 256]) {x.save(); x.translate(ox, oy); x.fillRect(px - r, py - r, r * 2, r * 2); x.restore();}}
+    const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(5, 5);
+    for (const [y, o] of [[-9, .5], [-15, .65], [-22, .8], [-29, .9]] as const) {
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(700, 700).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({map: t.clone(), transparent: true, opacity: o, depthWrite: false, color: 0xf2d8c8}));
+      (m.material as THREE.MeshBasicMaterial).map!.repeat.set(4 + y * -.05, 4); m.position.set(0, y, 150); m.renderOrder = 2; this.mist.push(m); this.scene.add(m);}
+    // river at the bottom of the gorge (mirrors the sunset sky)
+    const river = new THREE.Mesh(new THREE.PlaneGeometry(26, 600).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({color: 0x1d2a33, metalness: .9, roughness: .12, envMapIntensity: 1.3}));
+    river.position.set(-6, -33.6, 150); this.scene.add(river);
+    // pollen / dust motes in the light
+    const n = matchMedia('(pointer:coarse)').matches ? 260 : 520, pos = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {pos[i * 3] = (Math.random() - .5) * 40; pos[i * 3 + 1] = Math.random() * 14; pos[i * 3 + 2] = Math.random() * 50 - 10;}
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    this.pollen = new THREE.Points(g, new THREE.PointsMaterial({map: dotTexture(), size: .13, color: 0xffd9a0, transparent: true, opacity: .85, depthWrite: false, blending: THREE.AdditiveBlending}));
+    this.pollen.frustumCulled = false; this.scene.add(this.pollen);
+  }
+  private animateAtmosphere(dt: number) {
+    const t = this.course.time; this.mist.forEach((m, i) => {const mp = (m.material as THREE.MeshBasicMaterial).map!; mp.offset.x = t * (.004 + i * .002); mp.offset.y = t * .002 * (i % 2 ? 1 : -1);});
+    const sh = (this.grassMat as any)?.userData?.shader; if (sh) sh.uniforms.uTime.value = t;
+    this.pollen.position.set(this.camTarget.x, this.camTarget.y - 2, this.camTarget.z - 10);
+    const p = this.pollen.geometry.getAttribute('position') as THREE.BufferAttribute;
+    for (let i = 0; i < p.count; i++) {let y = p.getY(i) + dt * (.15 + (i % 7) * .03); if (y > 14) y = 0; p.setY(i, y); p.setX(i, p.getX(i) + Math.sin(t * .6 + i) * dt * .2);}
+    p.needsUpdate = true;
+    for (const f of this.puffs) {if (f.t < 0) continue; f.t += dt; const k = f.t / .7; if (k >= 1) {f.t = -1; f.s.visible = false; continue;}
+      f.s.scale.setScalar(f.s.userData.size * (.5 + k * 1.4)); (f.s.material as THREE.SpriteMaterial).opacity = .55 * (1 - k); f.s.position.y += dt * .5;}
+  }
+  private puff(x: number, y: number, z: number, size: number) {
+    if (!this.puffs.length) {const tex = dotTexture(true); for (let i = 0; i < 24; i++) {const s = new THREE.Sprite(new THREE.SpriteMaterial({map: tex, color: 0xd9c3a2, transparent: true, depthWrite: false})); s.visible = false; this.scene.add(s); this.puffs.push({s, t: -1});}}
+    for (let k = 0; k < 5; k++) {const f = this.puffs.find(p => p.t < 0); if (!f) return; const a = Math.random() * Math.PI * 2, r = .3 + Math.random() * .4;
+      f.t = 0; f.s.visible = true; f.s.position.set(x + Math.cos(a) * r, y + .15, z + Math.sin(a) * r); f.s.userData.size = size * (.6 + Math.random() * .5);}
+  }
 
   private frame(t: number) {
     const dt = this.last ? Math.min(.1, (t - this.last) / 1000) : 1 / 60; this.last = t;
@@ -150,7 +225,8 @@ export class RaceApp {
       const hs = Math.hypot(r.vx, r.vz), want = r.stun > 0 ? 'stun' : !r.ground ? 'jump' : hs > .8 ? 'run' : 'idle';
       if (want !== l.cur && l.acts[want]) {const a = l.acts[want]; a.reset().fadeIn(.12).play(); l.acts[l.cur]?.fadeOut(.12); l.cur = want;}
       if (l.acts.run) l.acts.run.timeScale = Math.max(.6, hs / 5.5);
-      if (r.ground && l.prevVy < -6) l.squash = Math.min(.3, -l.prevVy * .022); l.prevVy = r.vy; l.squash = Math.max(0, l.squash - dt * 2.2);
+      if (r.ground && l.prevVy < -6) {l.squash = Math.min(.3, -l.prevVy * .022); this.puff(r.x, r.y, r.z, Math.min(1.4, -l.prevVy / 9));}
+      if (!r.ground && l.prevVy <= .5 && r.vy > 8) this.puff(r.x, r.y, r.z, .6); l.prevVy = r.vy; l.squash = Math.max(0, l.squash - dt * 2.2);
       const sy = 1 - l.squash, sxz = 1 / Math.sqrt(sy), ghost = r.character === 'ghost' ? .25 + Math.sin(c.time * 3 + r.slot) * .08 : 0;
       l.root.position.set(r.x, r.y + ghost, r.z); l.root.scale.set(sxz, sy, sxz);
       const yaw = r.facing; let d = yaw - l.root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); l.root.rotation.y += d * Math.min(1, dt * 14);
@@ -159,10 +235,12 @@ export class RaceApp {
     // camera: behind and above the player, framed wider in portrait
     const me = this.me, portrait = this.camera.aspect < 1, k = Math.min(1, dt * 5);
     this.camTarget.x += (me.x * .75 - this.camTarget.x) * k; this.camTarget.z += (me.z - this.camTarget.z) * k; this.camTarget.y += (Math.max(me.y, -4) - this.camTarget.y) * Math.min(1, dt * 2.5);
-    const back = portrait ? 12.5 : 10, up = portrait ? 8.5 : 6.8;
-    this.camera.position.set(this.camTarget.x, this.camTarget.y + up, this.camTarget.z - back); this.camera.lookAt(this.camTarget.x, this.camTarget.y + 1, this.camTarget.z + 6);
-    this.sun.position.set(this.camTarget.x + 18, this.camTarget.y + 30, this.camTarget.z - 4); this.sun.target.position.set(this.camTarget.x, this.camTarget.y, this.camTarget.z + 8);
-    this.scene.getObjectByName('sky')!.position.copy(this.camera.position);
+    const back = portrait ? 11 : 8.6, up = portrait ? 7.2 : 5.4;
+    this.camera.position.set(this.camTarget.x, this.camTarget.y + up, this.camTarget.z - back); this.camera.lookAt(this.camTarget.x, this.camTarget.y + 1.3, this.camTarget.z + 7);
+    this.sun.target.position.set(this.camTarget.x, this.camTarget.y, this.camTarget.z + 8);
+    const sd = SUN_DIR; this.sun.position.set(this.camTarget.x + sd.x * 70, this.camTarget.y + sd.y * 70, this.camTarget.z + 8 + sd.z * 70);
+    this.fill.position.copy(this.camera.position); this.fill.target.position.set(this.camTarget.x, this.camTarget.y, this.camTarget.z);
+    this.animateAtmosphere(dt);
   }
 
   private hudUpdate() {
@@ -198,31 +276,40 @@ export class RaceApp {
     this.me.inX = x; this.me.inZ = z; if (k.has('Space')) this.me.holdJump = true; else if (this.stick.id < 0 && !document.getElementById('jump')!.classList.contains('down')) this.me.holdJump = false;
   }
 
-  private resize() {const w = innerWidth, h = innerHeight; this.renderer.setSize(w, h); this.camera.aspect = w / h; this.camera.fov = w < h ? 68 : 55; this.camera.updateProjectionMatrix();}
+  private resize() {const w = innerWidth, h = innerHeight; this.renderer.setSize(w, h); this.camera.aspect = w / h; this.camera.fov = w < h ? 70 : 58; this.camera.updateProjectionMatrix();}
   private model(url: string) {let p = this.cache.get(url); if (!p) {p = this.gltf.loadAsync(url); this.cache.set(url, p);} return p;}
   private tex(url: string, repeat = true, color = true) {const t = this.texLoader.load(url); if (color) t.colorSpace = THREE.SRGBColorSpace; if (repeat) t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; return t;}
-  private mat(name: string, _tile: number) {
+  private mat(name: string, _tile: number, shade = false, tint = 0xffffff) {
     const arm = this.tex(`tex/${name}/arm.jpg`, true, false);
-    return new THREE.MeshStandardMaterial({map: this.tex(`tex/${name}/diffuse.jpg`), normalMap: this.tex(`tex/${name}/nor_gl.jpg`, true, false), roughnessMap: arm, roughness: 1, metalness: 0});
+    return new THREE.MeshStandardMaterial({map: this.tex(`tex/${name}/diffuse.jpg`), normalMap: this.tex(`tex/${name}/nor_gl.jpg`, true, false), roughnessMap: arm, roughness: 1, metalness: 0, vertexColors: shade, envMapIntensity: .8, color: tint});
   }
 }
 
 /** Box/ramp with world-scaled UVs: group 0 = walking face, group 1 = cliff faces. */
 function blockGeometry(b: Block) {
-  const pos: number[] = [], nor: number[] = [], uv: number[] = [], idx: number[] = []; const g = new THREE.BufferGeometry();
-  const tile = b.mat === 'plank' ? 2.2 : 3.2, st = 4;
-  const quad = (p: number[][], n: number[], tl: number, mode: 'xz' | 'zy' | 'xy') => {const base = pos.length / 3;
-    for (const q of p) {pos.push(...q); nor.push(...n); uv.push(mode === 'xz' ? q[0] / tl : mode === 'zy' ? q[2] / tl : q[0] / tl, mode === 'xz' ? q[2] / tl : q[1] / tl);}
-    idx.push(base, base + 1, base + 2, base, base + 2, base + 3);};
-  const {x0, x1, z0, z1, y0, y1, bottom: bt} = b; const ny = 1, nz = -(y1 - y0) / (z1 - z0), l = Math.hypot(ny, nz);
-  quad([[x0, y0, z0], [x0, y1, z1], [x1, y1, z1], [x1, y0, z0]], [0, ny / l, nz / l], tile, 'xz'); const topCount = idx.length;
-  quad([[x0, bt, z0], [x0, y0, z0], [x1, y0, z0], [x1, bt, z0]], [0, 0, -1], st, 'xy');
-  quad([[x1, bt, z1], [x1, y1, z1], [x0, y1, z1], [x0, bt, z1]], [0, 0, 1], st, 'xy');
-  quad([[x0, bt, z1], [x0, y1, z1], [x0, y0, z0], [x0, bt, z0]], [-1, 0, 0], st, 'zy');
-  quad([[x1, bt, z0], [x1, y0, z0], [x1, y1, z1], [x1, bt, z1]], [1, 0, 0], st, 'zy');
-  if (b.mat === 'plank' || b.crumbles) quad([[x0, bt, z0], [x1, bt, z0], [x1, bt, z1], [x0, bt, z1]], [0, -1, 0], st, 'xz');
-  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx);
-  g.addGroup(0, topCount, 0); g.addGroup(topCount, idx.length - topCount, 1); return g;
+  const tops: number[][] = [], sides: number[][] = []; // [x,y,z,nx,ny,nz,u,v,shade] per vertex, 4 per quad
+  const tile = b.mat === 'plank' ? 2.2 : 3.2, st = 4, {x0, x1, z0, z1, y0, y1, bottom: bt} = b, drop = Math.max(.01, (Math.max(y0, y1) - bt));
+  const shade = (y: number) => b.mat === 'plank' ? 1 : .18 + .82 * Math.pow(Math.max(0, Math.min(1, (y - bt) / drop)), 2.2);
+  const quad = (into: number[][], p: number[][], n: number[], tl: number, mode: 'xz' | 'zy' | 'xy', lit = true) => {
+    for (const q of p) into.push([q[0], q[1], q[2], n[0], n[1], n[2], mode === 'xz' ? q[0] / tl : mode === 'zy' ? q[2] / tl : q[0] / tl, mode === 'xz' ? q[2] / tl : q[1] / tl, lit ? 1 : shade(q[1])]);};
+  const ny = 1, nz = -(y1 - y0) / (z1 - z0), l = Math.hypot(ny, nz);
+  quad(tops, [[x0, y0, z0], [x0, y1, z1], [x1, y1, z1], [x1, y0, z0]], [0, ny / l, nz / l], tile, 'xz');
+  quad(sides, [[x0, bt, z0], [x0, y0, z0], [x1, y0, z0], [x1, bt, z0]], [0, 0, -1], st, 'xy', false);
+  quad(sides, [[x1, bt, z1], [x1, y1, z1], [x0, y1, z1], [x0, bt, z1]], [0, 0, 1], st, 'xy', false);
+  quad(sides, [[x0, bt, z1], [x0, y1, z1], [x0, y0, z0], [x0, bt, z0]], [-1, 0, 0], st, 'zy', false);
+  quad(sides, [[x1, bt, z0], [x1, y0, z0], [x1, y1, z1], [x1, bt, z1]], [1, 0, 0], st, 'zy', false);
+  if (b.mat === 'plank' || b.crumbles) quad(sides, [[x0, bt, z0], [x1, bt, z0], [x1, bt, z1], [x0, bt, z1]], [0, -1, 0], st, 'xz', false);
+  if (b.mat === 'grass') { // turf lip hanging over the cliff edge
+    const d = .32, o = .03;
+    quad(tops, [[x0 - o, y0 - d, z0 - o], [x0 - o, y0, z0 - o], [x1 + o, y0, z0 - o], [x1 + o, y0 - d, z0 - o]], [0, 0, -1], tile, 'xy');
+    quad(tops, [[x0 - o, y1 - d, z1 + o], [x0 - o, y0 - d, z0 - o], [x0 - o, y0, z0 - o], [x0 - o, y1, z1 + o]].map((q, i) => i === 0 ? q : i === 1 ? q : q) && [[x0 - o, y0 - d, z1 + o], [x0 - o, y1, z1 + o], [x0 - o, y0, z0 - o], [x0 - o, y0 - d, z0 - o]], [-1, 0, 0], tile, 'zy');
+    quad(tops, [[x1 + o, y0 - d, z0 - o], [x1 + o, y0, z0 - o], [x1 + o, y1, z1 + o], [x1 + o, y1 - d, z1 + o]], [1, 0, 0], tile, 'zy');
+  }
+  const all = [...tops, ...sides], g = new THREE.BufferGeometry(), idx: number[] = [];
+  for (let qd = 0; qd < all.length / 4; qd++) {const b0 = qd * 4; idx.push(b0, b0 + 1, b0 + 2, b0, b0 + 2, b0 + 3);}
+  g.setAttribute('position', new THREE.Float32BufferAttribute(all.flatMap(v => v.slice(0, 3)), 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(all.flatMap(v => v.slice(3, 6)), 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(all.flatMap(v => v.slice(6, 8)), 2)); g.setAttribute('color', new THREE.Float32BufferAttribute(all.flatMap(v => [v[8], v[8], v[8]]), 3));
+  g.setIndex(idx); g.addGroup(0, tops.length / 4 * 6, 0); g.addGroup(tops.length / 4 * 6, sides.length / 4 * 6, 1); return g;
 }
 function worldUV(g: THREE.BufferGeometry, tile: number, _m: 'xz') {const p = g.getAttribute('position'), uv = g.getAttribute('uv'); for (let i = 0; i < p.count; i++) uv.setXY(i, p.getX(i) / tile, p.getZ(i) / tile); uv.needsUpdate = true;}
 /** Clone a glTF scene scaled so its height (or largest side) = size, feet at origin, centred. */
@@ -236,3 +323,13 @@ function bannerTexture() {const c = document.createElement('canvas'); c.width = 
   x.fillStyle = '#f6e7c8'; x.font = 'bold 76px Georgia, serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('ФИНИШ', 512, 70);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;}
 function setText(id: string, s: string) {const e = document.getElementById(id); if (e && e.textContent !== s) e.textContent = s;}
+
+const SUN_DIR = new THREE.Vector3(.31, .32, .9).normalize();
+function loaded(t: THREE.Texture): Promise<THREE.Texture> {return new Promise(r => {if ((t.image as any)?.complete) r(t); else {const img = t.image as any; const chk = () => (t.image as any)?.complete ? r(t) : setTimeout(chk, 30); chk();}});}
+function dotTexture(soft = false) {const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d')!; const g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(soft ? .5 : .25, `rgba(255,255,255,${soft ? .45 : .5})`); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c);}
+function mergeGeos(list: THREE.BufferGeometry[]) {const pos: number[] = [], nor: number[] = [], uv: number[] = [], idx: number[] = []; let off = 0;
+  for (const g of list) {const p = g.getAttribute('position'), n = g.getAttribute('normal'), u = g.getAttribute('uv'), ix = g.getIndex()!;
+    for (let i = 0; i < p.count; i++) {pos.push(p.getX(i), p.getY(i), p.getZ(i)); nor.push(n.getX(i), n.getY(i), n.getZ(i)); uv.push(u.getX(i), u.getY(i));}
+    for (let i = 0; i < ix.count; i++) idx.push(ix.getX(i) + off); off += p.count;}
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); return g;}

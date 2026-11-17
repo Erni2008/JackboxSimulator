@@ -22,3 +22,4 @@ h1{font:700 clamp(30px,7vw,64px)/1 Georgia,serif;letter-spacing:.06em;margin:0;c
 #results{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,90vw);background:#160f0de8;border:1px solid #6b4a2b;border-radius:18px;padding:18px 20px;pointer-events:auto;text-align:center}
 #results h2{margin:0 0 10px;font:700 34px/1 Georgia,serif;color:#f6dfb0}#results ol{text-align:left;margin:0 0 14px;padding-left:24px}#results li{padding:5px 0;display:flex;justify-content:space-between;gap:12px}#results li.me{color:#f6c26b;font-weight:700}
 #results button{background:#c0392b;border:0;color:#fff;font:700 16px inherit;padding:12px 26px;border-radius:12px}
+body.playing::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse at 50% 45%,transparent 55%,rgba(20,8,4,.55) 100%)}
