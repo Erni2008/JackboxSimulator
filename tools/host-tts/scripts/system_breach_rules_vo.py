@@ -27,7 +27,7 @@ def main():
                 raw=WORK/f'rules_{i}.wav';treated=WORK/f'rules_{i}_treated.wav';final=OUT/f'rules_{i}.wav'
                 for f in (raw,treated,final):
                     if f.exists():f.unlink()
-                worker.generate(text,raw,seed=int(os.environ.get('SEED',str({0:21,1:7,2:7,3:7,4:21,5:7,6:7}[i]))),temperature=.6);validate(raw,text)
+                worker.generate(text,raw,seed=int(os.environ.get('SEED','7' if i in (2,3) else '42')),temperature=.6);validate(raw,text)
                 treat(raw,treated,settings,text);normalize(treated,final)
                 print(f'READY {i}: {validate(final,text):.2f}s',flush=True)
         finally:worker.close()
