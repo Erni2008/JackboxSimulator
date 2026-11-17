@@ -42,7 +42,7 @@ public final class SystemBreachRulesFilm implements Disposable {
     private static final String GLYPHS="ABCDEFGHJKLMNPQRSTUVWXYZ0123456789#$%&@";
 
     public SystemBreachRulesFilm(boolean ru){this(new SystemBreachHostAssets(ru),true);}
-    SystemBreachRulesFilm(SystemBreachHostAssets a,boolean own){assets=a;ownAssets=own;
+    SystemBreachRulesFilm(SystemBreachHostAssets a,boolean own){assets=a;ownAssets=own;eye=buttonEye();
         if(Gdx.audio!=null)try{for(int i=0;i<voice.length;i++){String dir=System.getProperty("sb.voice","qwen").equals("espeech")?"rules_espeech":"rules";var f=Gdx.files.internal("system_breach/"+dir+"/rules_"+i+".wav");if(!f.exists())f=Gdx.files.internal("system_breach/rules/rules_"+i+".wav");if(f.exists())voice[i]=Gdx.audio.newSound(f);}
             var w=Gdx.files.internal("system_breach/sfx/whoosh.wav");if(w.exists())whoosh=Gdx.audio.newSound(w);}catch(RuntimeException ignored){}}
     private void audio(){
@@ -227,19 +227,28 @@ public final class SystemBreachRulesFilm implements Disposable {
         if(pass==1&&t>7)text(assets.stage,"+40 душ",ax,y+250,GREEN,a*k(t,7.2f,7.8f),.55f);
     }
 
+    /** {start, gets through}: level 1 lets half through, level 2 one of five, level 3 one of ten. */
+    private static final float[][] ATK={{.6f,0},{1f,1},{1.35f,0},{1.7f,1},{2.6f,0},{2.85f,0},{3.1f,1},{3.3f,0},
+        {4.1f,0},{4.35f,0},{4.6f,0},{4.8f,0},{5.0f,0},{5.2f,1},{5.4f,0},{5.6f,0},{5.85f,0},{6.1f,0}};
     private void defence(float t,float a){
         heading("ЗАЩИЩАЙСЯ",t,a,CYAN);headingBar(t,a,CYAN);
         float x=W/2-200,y=540;int lvl=t<2.6f?1:t<4.2f?2:3;
         portraitFrame("ghost",x,y,200,a,CYAN);
         for(int i=0;i<lvl;i++){float on=ease(k(t,i==0?.3f:i==1?2.6f:4.2f,(i==0?.3f:i==1?2.6f:4.2f)+.5f));hexRing(x,y,170+i*44,a*on*.9f,t*(i%2==0?.3f:-.25f));}
         if(pass==2)glow(x,y,520,CYAN,.18f*a*lvl);
-        // incoming attacks bounce
-        for(int j=0;j<3;j++){float st=1.2f+j*2.2f,f=k(t,st,st+.9f);if(f<=0||f>=1)continue;float r0=170+(lvl-1)*44;
-            float ang=MathUtils.PI*(.15f+j*.12f);float dist=f<.6f?MathUtils.lerp(900,r0,f/.6f):MathUtils.lerp(r0,r0+260,(f-.6f)/.4f);
-            float px=x+MathUtils.cos(ang)*dist,py=y+MathUtils.sin(ang)*dist*.6f;
-            if(pass==0){col(RED,a*(f<.6f?1:1-(f-.6f)/.4f));r.circle(px,py,10,12);}
-            if(pass==2){glow(px,py,60,RED,.6f*a);if(f>.55f&&f<.75f)glow(x+MathUtils.cos(ang)*r0,y+MathUtils.sin(ang)*r0*.6f,200,CYAN,.6f*a);}}
-        if(pass==1&&((t>1.75f&&t<2.6f)||(t>3.95f&&t<4.8f)||(t>6.15f&&t<7)))text(assets.board,"АТАКА ОТБИТА",x,y+270,CYAN,a,1.2f);
+        // incoming attacks: the stronger the firewall, the more of them burn on the shield (level 3: ten in, one gets through)
+        int blocked=0,through=0;float hitFlash=0;
+        for(int j=0;j<ATK.length;j++){float t0=ATK[j][0],hit=t0+.7f;int L=hit<2.6f?1:hit<4.2f?2:3;boolean pass3=ATK[j][1]>0;
+            float ang=MathUtils.PI2*hash(j*17+5),r0=170+(L-1)*44,f=t-t0;if(f<0)continue;
+            if(t>=hit&&L==lvl){if(pass3)through++;else blocked++;}
+            if(pass3&&f>=.7f&&f<1.3f)hitFlash=Math.max(hitFlash,1-(f-.95f)/.35f);
+            float dist,fade=1;if(f<.7f)dist=MathUtils.lerp(1000,r0,ease(f/.7f));else if(pass3){dist=MathUtils.lerp(r0,0,Math.min(1,(f-.7f)/.25f));fade=f<.95f?1:0;}else{dist=r0+(f-.7f)*700;fade=1-Math.min(1,(f-.7f)/.35f);}
+            if(fade<=0)continue;float px=x+MathUtils.cos(ang)*dist,py=y+MathUtils.sin(ang)*dist*.62f;float tx=-MathUtils.cos(ang),ty=-MathUtils.sin(ang)*.62f;
+            if(pass==0){col(RED,a*fade);r.circle(px,py,9,12);for(int q=1;q<5;q++){col(RED,a*fade*(.5f-q*.1f));r.circle(px-tx*q*16*(f<.7f?1:-1),py-ty*q*16*(f<.7f?1:-1),9-q*1.6f,10);}}
+            if(pass==2){glow(px,py,70,RED,.7f*a*fade);if(!pass3&&f>.66f&&f<.9f)glow(x+MathUtils.cos(ang)*r0,y+MathUtils.sin(ang)*r0*.62f,230,CYAN,.7f*a*(1-(f-.66f)/.24f));}}
+        if(hitFlash>0){hitFlash=Math.min(1,hitFlash);if(pass==2)glow(x,y,420,RED,.6f*a*hitFlash);if(pass==0){col(RED,.35f*a*hitFlash);r.rect(x-100,y-100,200,200);}}
+        if(pass==1){text(assets.board,"ОТБИТО  "+blocked,x-120,y+270,CYAN,a*k(t,.9f,1.2f),1.15f);text(assets.board,"ПРОБИЛО  "+through,x+120,y+270,RED,a*k(t,.9f,1.2f),1.15f);
+            if(hitFlash>0)text(assets.stage,"−10 душ",x,y-160,RED,a*hitFlash,.6f);}
         // right column: upgrade panels
         float rx=W/2+420;
         if(pass==0){panel(rx-230,y+20,460,150,CYAN,a);panel(rx-230,y-200,460,150,AMBER,a*k(t,5,5.5f));
@@ -367,11 +376,30 @@ public final class SystemBreachRulesFilm implements Disposable {
     }
 
     // ---------- primitives ----------
+    private final Texture eye;
+    /** Stitched button eye for the voodoo doll: dark lacquered button, four thread holes, a red ember glint. */
+    private static Texture buttonEye(){
+        int n=128;var pm=new com.badlogic.gdx.graphics.Pixmap(n,n,com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);pm.setBlending(com.badlogic.gdx.graphics.Pixmap.Blending.None);
+        for(int y=0;y<n;y++)for(int x=0;x<n;x++){float dx=(x-n/2f+.5f)/(n/2f),dy=(y-n/2f+.5f)/(n/2f),d=(float)Math.sqrt(dx*dx+dy*dy);if(d>1){pm.drawPixel(x,y,0);continue;}
+            float rim=d>.8f?1-(d-.8f)/.2f*.6f:1;float shade=.5f+.5f*(-dx*.5f-dy*.7f);float r=.10f+.10f*shade,g=.05f+.05f*shade,b=.05f+.04f*shade;
+            if(d>.78f&&d<.9f){r+=.12f;g+=.07f;b+=.05f;}
+            float glow=Math.max(0,1-d/.55f);r+=.55f*glow*glow;g+=.05f*glow*glow;
+            for(int h=0;h<4;h++){float hx=(h%2==0?-.22f:.22f),hy=(h<2?-.22f:.22f);float hd=(float)Math.hypot(dx-hx,dy-hy);if(hd<.11f){r=.02f;g=.01f;b=.01f;}}
+            float sp=(float)Math.hypot(dx+.38f,dy+.42f);if(sp<.16f){float k=1-sp/.16f;r+=.6f*k;g+=.55f*k;b+=.5f*k;}
+            float al=d>.94f?(1-d)/.06f:1;pm.drawPixel(x,y,Color.rgba8888(Math.min(1,r*rim),Math.min(1,g*rim),Math.min(1,b*rim),al));}
+        // cross stitch over the button
+        pm.setColor(.55f,.45f,.32f,1);for(int k=-1;k<=1;k++){pm.drawLine(38+k,38,90+k,90);pm.drawLine(90+k,38,38+k,90);}
+        Texture t=new Texture(pm);t.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);pm.dispose();return t;
+    }
     private void portraitFrame(String id,float x,float y,float s,float a,Color c){
         if(pass==0){col(c,a);r.rect(x-s/2-5,y-s/2-5,s+10,s+10);col(INK,a);r.rect(x-s/2,y-s/2,s,s);
             col(c,a);float k=24;r.rect(x-s/2-12,y+s/2+4,k,4);r.rect(x+s/2+12-k,y-s/2-8,k,4);}
         if(pass==2)glow(x,y,s*1.6f,c,.18f*a);
         if(pass==1){Texture tex=assets.portrait(id);if(tex!=null){b.setColor(1,1,1,a);b.draw(tex,x-s/2,y-s/2,s,s);b.setColor(Color.WHITE);}}
+        if(id.equals("voodoo")){float er=s*.085f,top=y+s/2;float[][] E={{.317f,.493f},{.78f,.60f}};float blink=MathUtils.sin(time*2.3f)>.985f?.25f:1;
+            for(float[] e:E){float ex=x-s/2+e[0]*s,ey=top-e[1]*s;
+                if(pass==1){b.setColor(1,1,1,a);b.draw(eye,ex-er,ey-er*blink,er*2,er*2*blink);b.setColor(Color.WHITE);}
+                if(pass==2)glow(ex,ey,er*3.4f,RED,(.35f+.15f*MathUtils.sin(time*3))*a);}}
     }
     private void panel(float x,float y,float w,float h,Color c,float a){
         if(a<=0)return;col(PANEL,.92f*a);r.rect(x,y,w,h);col(c,a);r.rect(x,y,w,2);r.rect(x,y+h-2,w,2);r.rect(x,y,2,h);r.rect(x+w-2,y,2,h);
@@ -398,7 +426,7 @@ public final class SystemBreachRulesFilm implements Disposable {
     private void text(BitmapFont f,String s,float cx,float y,Color c,float a,float sc){text(f,s,cx,y,c,a,sc,true);}
     private void text(BitmapFont f,String s,float x,float y,Color c,float a,float sc,boolean center){
         if(a<=0||sc<=0||s.isEmpty())return;f.getData().setScale(sc);gl.setText(f,s);float x0=center?x-gl.width/2:x;
-        if(pass!=2){float o=Math.max(2,3*sc);f.setColor(0,0,0,.55f*Math.min(1,a));f.draw(b,s,x0+o,y-o);}
+        if(pass!=2&&c.r+c.g+c.b>.9f){float o=Math.max(2,3*sc);f.setColor(0,0,0,.55f*Math.min(1,a));f.draw(b,s,x0+o,y-o);}
         f.setColor(c.r,c.g,c.b,Math.min(1,a));f.draw(b,s,x0,y);f.getData().setScale(1);f.setColor(Color.WHITE);
     }
     private static String decode(String s,float p,float t){
@@ -409,5 +437,5 @@ public final class SystemBreachRulesFilm implements Disposable {
     private static float hash(int i){int h=i*374761393+668265263;h=(h^(h>>>13))*1274126177;return ((h^(h>>>16))&0xffffff)/(float)0x1000000;}
     private static float k(float t,float a,float b){return MathUtils.clamp((t-a)/(b-a),0,1);}
     private static float ease(float x){return x*x*(3-2*x);}
-    @Override public void dispose(){for(var v:voice)if(v!=null)v.dispose();if(whoosh!=null)whoosh.dispose();batch.dispose();shapes.dispose();if(ownAssets)assets.dispose();}
+    @Override public void dispose(){eye.dispose();for(var v:voice)if(v!=null)v.dispose();if(whoosh!=null)whoosh.dispose();batch.dispose();shapes.dispose();if(ownAssets)assets.dispose();}
 }
