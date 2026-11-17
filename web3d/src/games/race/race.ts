@@ -22,7 +22,7 @@ export class RaceApp {
   private sweeperMeshes: THREE.Object3D[] = []; private cpArches: {glow: THREE.Mesh; flag: THREE.Mesh; lit: boolean}[] = []; private lastCp = 0; private pend: THREE.Object3D[] = []; private rams: THREE.Object3D[] = []; private padMeshes: THREE.Mesh[] = []; private warnPlanes = new Map<Block, THREE.Mesh>(); private belts: THREE.Texture[] = []; private composer?: EffectComposer; private lastSection = ''; private boulderPool: THREE.Object3D[] = [];
   private gltf = new GLTFLoader(); private texLoader = new THREE.TextureLoader(); private cache = new Map<string, Promise<GLTF>>();
   private camTarget = new THREE.Vector3(); private pixelRatio: number; private frameAvg = 16; private last = 0;
-  private dots = new Map<Runner, HTMLElement>(); private keys = new Set<string>(); private stick = {id: -1, ox: 0, oy: 0, x: 0, y: 0}; private hud: HTMLElement;
+  private blobs = new Map<Runner, THREE.Mesh>();   private dots = new Map<Runner, HTMLElement>(); private keys = new Set<string>(); private stick = {id: -1, ox: 0, oy: 0, x: 0, y: 0}; private hud: HTMLElement;
 
   constructor(private host: HTMLElement, private myChar: string, map = 1) {
     const qs = new URLSearchParams(location.search); this.course = new Course(map, Number(qs.get('seed')) || (Math.random() * 1e9) | 0); this.night = this.course.theme === 'graveyard'; this.manor = this.course.theme === 'manor';
@@ -118,6 +118,7 @@ export class RaceApp {
   private async addLook(r: Runner) {
     const g = await this.model(`chars/${r.character}.glb`);
     const root = SkeletonUtils.clone(g.scene); root.traverse(o => {const m = o as THREE.Mesh; if (m.isMesh) {m.castShadow = true; m.frustumCulled = false; const mm = m.material as THREE.MeshStandardMaterial; mm.side = THREE.DoubleSide; mm.envMapIntensity = 1.4; mm.roughness = .65;}});
+    const blob = new THREE.Mesh(new THREE.CircleGeometry(.55, 24).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({map: dotTexture(true), color: 0x000000, transparent: true, opacity: .55, depthWrite: false})); blob.renderOrder = 1; this.scene.add(blob); this.blobs.set(r, blob);
     this.scene.add(root); const mixer = new THREE.AnimationMixer(root); const acts: Record<string, THREE.AnimationAction> = {};
     for (const clip of g.animations) {const a = mixer.clipAction(clip); acts[clip.name] = a; if (clip.name === 'jump' || clip.name === 'stun') {a.setLoop(clip.name === 'stun' ? THREE.LoopRepeat : THREE.LoopOnce, Infinity); a.clampWhenFinished = true;}}
     acts.idle?.play();
@@ -407,6 +408,7 @@ export class RaceApp {
       l.root.position.set(r.x, r.y + ghost, r.z); l.root.scale.set(sxz, sy, sxz);
       const yaw = r.facing; let d = yaw - l.root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); l.root.rotation.y += d * Math.min(1, dt * 22);
       l.mixer.update(dt);
+      const bl = this.blobs.get(r); if (bl) {let gy = -99; for (const b of c.blocks) if (!b.gone && r.x >= b.x0 + b.offX && r.x <= b.x1 + b.offX && r.z >= b.z0 && r.z <= b.z1 && top(b, r.z) <= r.y + .05) gy = Math.max(gy, top(b, r.z)); bl.visible = gy > -50; const hgt = r.y - gy; bl.position.set(r.x, gy + .03, r.z); bl.scale.setScalar(Math.max(.4, 1 - hgt * .12)); (bl.material as THREE.MeshBasicMaterial).opacity = Math.max(.15, .55 - hgt * .06);}
     }
     // camera: behind and above the player, framed wider in portrait
     const me = this.me, portrait = this.camera.aspect < 1, k = Math.min(1, dt * 5);

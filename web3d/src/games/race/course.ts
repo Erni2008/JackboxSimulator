@@ -142,10 +142,10 @@ export class Course {
     // rolling barrels / boulders: frequent waves of 1-3 down the ramp
     this.boulderTimer -= dt;
     if (this.boulderTimer <= 0 && this.rampZ1 > this.rampZ0) {
-      const r1 = this.srand(), n = r1 < .45 ? 1 : r1 < .85 ? 2 : 3, lanes = [-1, 0, 1].sort(() => this.srand() - .5).slice(0, n);
+      const r1 = this.srand(), n = r1 < .6 ? 1 : 2, lanes = [-1, 0, 1].sort(() => this.srand() - .5).slice(0, n);
       for (const ln of lanes) {const radius = this.theme === 'manor' ? .85 + this.srand() * .2 : 1 + this.srand() * .4;
         this.boulders.push({x: ln * this.rampHalfW * .62 + (this.srand() - .5) * .8, y: this.rampY1 + radius, z: this.rampZ1 - 1 - this.srand() * 2, vz: -2 - this.srand() * 2, spin: 0, radius, alive: true});}
-      this.boulderTimer = .55 + this.srand() * .45;
+      this.boulderTimer = .95 + this.srand() * .5;
     }
     const slope = (this.rampY1 - this.rampY0) / Math.max(1, this.rampZ1 - this.rampZ0);
     for (const bo of this.boulders) {bo.vz -= 10 * dt; bo.z += bo.vz * dt; bo.spin += bo.vz * dt / bo.radius;
