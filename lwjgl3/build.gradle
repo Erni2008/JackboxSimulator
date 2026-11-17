@@ -1255,6 +1255,20 @@ tasks.register('systemBreachScreenPreview', JavaExec) {
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
 
+// SYSTEM BREACH rules film; -Psb.capture=/abs/dir -Psb.at=s,s writes frames.
+tasks.register('systemBreachRulesPreview', JavaExec) {
+    group = 'application'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.SystemBreachRulesPreview'
+    workingDir = rootProject.file('assets')
+    for (key in ['sb.capture','sb.at','sb.width','sb.height']) {
+        if (providers.gradleProperty(key).isPresent()) systemProperty key, providers.gradleProperty(key).get()
+    }
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
 // Cinematic FLOOR 1 -> FLOOR 2 elevator with the real assets; -Pel.capture=/abs/dir writes runtime screenshots + timing checks.
 tasks.register('elevatorTransitionPreview', JavaExec) {
     group = 'application'
