@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import {GLTFLoader, type GLTF} from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
+import {RaceSound} from './sound';
 import {Course, Runner, top, type Block, H, R as RR, SECTION_NAMES, TRIALS} from './course';
 import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
@@ -19,7 +20,7 @@ export class RaceApp {
   readonly renderer: THREE.WebGLRenderer; readonly scene = new THREE.Scene(); readonly camera = new THREE.PerspectiveCamera(55, 1, .3, 900);
   course: Course; readonly night: boolean; readonly manor: boolean; readonly crypt: boolean; readonly limit: number; runners: Runner[] = []; me!: Runner; clock = 0; private acc = 0;
   private sun!: THREE.DirectionalLight; private fill!: THREE.DirectionalLight; private mist: THREE.Mesh[] = []; private pollen!: THREE.Points; private puffs: {s: THREE.Sprite; t: number}[] = []; private grassMat?: THREE.Material; private looks = new Map<Runner, Look>(); private blockMeshes = new Map<Block, THREE.Mesh>();
-  private sweeperMeshes: THREE.Object3D[] = []; private cpArches: {glow: THREE.Mesh; flag: THREE.Mesh; lit: boolean}[] = []; private lastCp = 0; private pend: THREE.Object3D[] = []; private rams: THREE.Object3D[] = []; private padMeshes: THREE.Mesh[] = []; private warnPlanes = new Map<Block, THREE.Mesh>(); private belts: THREE.Texture[] = []; private composer?: EffectComposer; private lastSection = ''; private ghosts: THREE.MeshStandardMaterial[] = []; private lastTp = 0; private sunGlow?: THREE.Sprite; private moonGlow?: THREE.Sprite; private rays: THREE.Mesh[] = []; private ray = new THREE.Raycaster(); private faded = new Set<THREE.Mesh>(); private soft: THREE.Mesh[] = []; private jetFx: {j: any; o: THREE.Object3D; f: THREE.Object3D}[] = []; private mazeBlend = 0; private portalFx: THREE.Object3D[] = []; private boulderPool: THREE.Object3D[] = [];
+  private sweeperMeshes: THREE.Object3D[] = []; private cpArches: {glow: THREE.Mesh; flag: THREE.Mesh; lit: boolean}[] = []; private lastCp = 0; private pend: THREE.Object3D[] = []; private rams: THREE.Object3D[] = []; private padMeshes: THREE.Mesh[] = []; private warnPlanes = new Map<Block, THREE.Mesh>(); private belts: THREE.Texture[] = []; private composer?: EffectComposer; private lastSection = ''; private ghosts: THREE.MeshStandardMaterial[] = []; private lastTp = 0; readonly snd = new RaceSound(); private sndState = {count: 9, falls: 0, stun: 0, fin: false, step: 0, gates: new Map<any, boolean>(), hooks: new Map<any, number>(), jets: new Map<any, number>(), pads: new Map<any, number>(), crumbs: new Set<any>()}; private sunGlow?: THREE.Sprite; private moonGlow?: THREE.Sprite; private rays: THREE.Mesh[] = []; private ray = new THREE.Raycaster(); private faded = new Set<THREE.Mesh>(); private soft: THREE.Mesh[] = []; private jetFx: {j: any; o: THREE.Object3D; f: THREE.Object3D}[] = []; private mazeBlend = 0; private portalFx: THREE.Object3D[] = []; private boulderPool: THREE.Object3D[] = [];
   private gltf = new GLTFLoader(); private texLoader = new THREE.TextureLoader(); private cache = new Map<string, Promise<GLTF>>();
   private camTarget = new THREE.Vector3(); private pixelRatio: number; private frameAvg = 16; private last = 0;
   private blobs = new Map<Runner, THREE.Mesh>();   private dots = new Map<Runner, HTMLElement>(); private keys = new Set<string>(); private stick = {id: -1, ox: 0, oy: 0, x: 0, y: 0}; private hud: HTMLElement;
@@ -280,7 +281,20 @@ export class RaceApp {
       const k = col.userData.fall ? Math.min(1.4, (col.rotation.z ? Math.abs(col.rotation.z) : 0) + dt * 2.5) : Math.max(0, Math.abs(col.rotation.z) - dt); col.rotation.z = k * (i % 2 ? 1 : -1);}
     for (const [b, ms] of this.mech.tiltLamps) for (const m of ms) m.emissiveIntensity = b.tilt!.warn ? (Math.sin(t * 22) > 0 ? 3 : .3) : 0;
     for (const [sw, m] of this.mech.sweepLamps) m.emissiveIntensity = sw.boost === 1 ? 3 : sw.boost ? (Math.sin(t * 24) > 0 ? 2.5 : .2) : 0;
-    // hooked runner: show stretched pose
+    // ---- sound of the world around the local runner ----
+    const me = this.me, ss = this.sndState, dd = (x: number, z: number) => Math.hypot(x - me.x, z - me.z);
+    if (me.falls > ss.falls) {ss.falls = me.falls; this.snd.splash(); navigator.vibrate?.(40);}
+    if (me.stun > .5 && ss.stun <= .25) {this.snd.hit(0); navigator.vibrate?.(35);} ss.stun = me.stun;
+    if (me.ground && Math.hypot(me.vx, me.vz) > 2) {ss.step += dt * Math.hypot(me.vx, me.vz); if (ss.step > 1.6) {ss.step = 0; this.snd.step(me.ground.mat);}}
+    for (const g of c.gates) {if (g.warn && !ss.gates.get(g)) this.snd.alarm(dd(0, g.z)); if (g.open < .05 && g.lastOpen >= .05) this.snd.metal(dd(0, g.z)); ss.gates.set(g, g.warn);}
+    for (const h of c.hooks) {const prev = ss.hooks.get(h) ?? 0; if (h.state === 1 && prev !== 1) this.snd.alarm(dd(h.pillarX, h.z)); if (h.state === 2 && prev !== 2) this.snd.chain(dd(h.pillarX, h.z)); ss.hooks.set(h, h.state);}
+    for (const j of c.jets) {const prev = ss.jets.get(j) ?? 0; if (j.state === 2 && prev !== 2) {if (j.kind === 'fire') this.snd.fire(dd(j.x, j.z)); else this.snd.thud(dd(j.x, j.z), .8);} ss.jets.set(j, j.state);}
+    for (const p of c.pads) {if (p.fired !== (ss.pads.get(p) ?? -9)) {ss.pads.set(p, p.fired); if (dd(p.x, p.z) > 1.5) this.snd.whoosh(dd(p.x, p.z));}}
+    for (const b of c.blocks) if (b.crumbleAt >= 0 && !ss.crumbs.has(b)) {ss.crumbs.add(b); this.snd.crumble(dd((b.x0 + b.x1) / 2, (b.z0 + b.z1) / 2));} else if (b.crumbleAt < 0) ss.crumbs.delete(b);
+    for (const b of c.boulders) if (dd(b.x, b.z) < 14) this.snd.roll(dd(b.x, b.z));
+    for (const ch of c.chasers) if (ch.active) this.snd.roll(dd(ch.x, ch.z) * .6);
+    for (const sw of c.sweepers) {const d = dd(sw.x, sw.z); if (d < sw.len + 2) {const a = sw.angle % Math.PI; if (Math.abs(a) < .08) this.snd.whoosh(d * .5);}}
+    let wind = me.wind || 0; for (const f of c.fans) if (f.on > .1 && dd(f.x, f.z) < 14) wind = Math.max(wind, f.on * .5); this.snd.tickAmbience(t, wind);
   }
 
   start() {
@@ -474,7 +488,7 @@ export class RaceApp {
       v.rock.position.set(f.x, f.y, f.z); v.rock.scale.setScalar(f.r); v.rock.rotation.x += dt * 4;
       const k = Math.min(1, (this.course.time - f.spawn) / (f.impact - f.spawn)); v.ring.visible = !f.landed;
       v.ring.position.set(f.x, f.g + .04, f.z); v.ring.scale.setScalar(f.r * (2.4 - 1.3 * k)); (v.ring.material as THREE.MeshBasicMaterial).opacity = .35 + .6 * k * (.6 + .4 * Math.sin(this.course.time * 30));
-      if (f.landed && !v.rock.userData.done) {v.rock.userData.done = true; this.puff(f.x, f.g, f.z, 2.2); this.puff(f.x, f.g, f.z, 1.6);
+      if (f.landed && !v.rock.userData.done) {v.rock.userData.done = true; this.snd.thud(Math.hypot(f.x - this.me.x, f.z - this.me.z), 1.2); if (this.night) this.snd.fire(Math.hypot(f.x - this.me.x, f.z - this.me.z)); this.puff(f.x, f.g, f.z, 2.2); this.puff(f.x, f.g, f.z, 1.6);
         const d = Math.hypot(f.x - this.me.x, f.z - this.me.z); if (d < 14) {this.shake = Math.max(this.shake, .35 * (1 - d / 14)); navigator.vibrate?.(d < 5 ? 30 : 0);}}});
   }
 
@@ -583,13 +597,15 @@ export class RaceApp {
       else {const tgt = j.state === 2 ? .55 : j.state === 1 ? 3.2 : 4.2; f.position.y += (tgt - f.position.y) * Math.min(1, dt * (j.state === 2 ? 30 : 4)); ((o as THREE.Mesh).material as THREE.MeshBasicMaterial).opacity = j.state === 1 ? .5 + .4 * Math.sin(c.time * 25) : j.state === 2 ? .8 : 0;}}
     for (const gm of this.ghosts) gm.emissiveIntensity = .025 * Math.max(0, Math.sin(c.time * 1.3)) ** 8;
     this.portalFx.forEach((g, i) => {g.userData.disc.rotation.z -= dt * 2.4; const p = c.portals[i]; (g.userData.disc.material as THREE.MeshBasicMaterial).opacity = .7 + .25 * Math.sin(c.time * 5 + i) + (c.time - p.used < .4 ? .5 : 0);});
-    const tp = (this.me as any).teleported; if (tp && tp !== this.lastTp) {this.lastTp = tp; this.camTarget.set(this.me.x, this.me.y, this.me.z); const pk = c.portals.find(p => c.time - p.used < .1); this.toast(pk?.kind === 'far' ? 'ДАЛЕКО ВПЕРЁД!' : pk?.kind === 'back' ? 'НАЗАД!' : 'ТЕЛЕПОРТ!'); this.puff(this.me.x, this.me.y, this.me.z, 1.6);}
+    const tp = (this.me as any).teleported; if (tp && tp !== this.lastTp) {this.lastTp = tp; this.camTarget.set(this.me.x, this.me.y, this.me.z); const pk = c.portals.find(p => c.time - p.used < .1); this.snd.portal(); this.toast(pk?.kind === 'far' ? 'ДАЛЕКО ВПЕРЁД!' : pk?.kind === 'back' ? 'НАЗАД!' : 'ТЕЛЕПОРТ!'); this.puff(this.me.x, this.me.y, this.me.z, 1.6);}
     const sec = c.sectionAt(this.me.z); if (sec && sec.name !== this.lastSection) {this.lastSection = sec.name; if (this.clock > COUNTDOWN + .5) this.toast(SECTION_NAMES[sec.name].toUpperCase());}
     this.boulderPool.forEach((o, i) => {const b = c.boulders[i]; o.visible = !!b; if (b) {o.position.set(b.x, b.y, b.z); o.rotation.x = b.spin; o.scale.setScalar(b.radius / 1.2 * o.userData.base);}});
     for (const [r, l] of this.looks) {
       const hs = Math.hypot(r.vx, r.vz), want = r.stun > 0 ? 'stun' : !r.ground ? 'jump' : hs > .8 ? 'run' : 'idle';
       if (want !== l.cur && l.acts[want]) {const a = l.acts[want]; a.reset().fadeIn(.06).play(); l.acts[l.cur]?.fadeOut(.06); l.cur = want;}
       if (l.acts.run) l.acts.run.timeScale = Math.max(.6, hs / 5.5);
+      if (r === this.me && r.ground && l.prevVy < -4) this.snd.land(Math.min(1, -l.prevVy / 14));
+      if (r === this.me && !r.ground && l.prevVy <= .5 && r.vy > 8) {if (r.vy > 12) this.snd.spring(); else this.snd.jump();}
       if (r.ground && l.prevVy < -6) {l.squash = Math.min(.3, -l.prevVy * .022); this.puff(r.x, r.y, r.z, Math.min(1.4, -l.prevVy / 9));}
       if (!r.ground && l.prevVy <= .5 && r.vy > 8) this.puff(r.x, r.y, r.z, .6); l.prevVy = r.vy; l.squash = Math.max(0, l.squash - dt * 2.2);
       const sy = 1 - l.squash, sxz = 1 / Math.sqrt(sy), ghost = r.character === 'ghost' ? .25 + Math.sin(c.time * 3 + r.slot) * .08 : 0;
@@ -626,7 +642,7 @@ export class RaceApp {
       this.rays.forEach((r, i) => {r.position.copy(this.camera.position).addScaledVector(SUN_DIR, 300); r.lookAt(this.camera.position); r.rotateZ(-.5 + i * .25 + Math.sin(this.course.time * .1 + i) * .03); r.translateY(-120);});}
     for (const s of this.swingers) s.rotation.z = Math.sin(this.course.time * .8 + s.userData.sway) * .05;
     this.flames.forEach((f, i) => f.scale.setScalar(1.8 + Math.sin(this.course.time * 13 + i * 1.7) * .12 + Math.sin(this.course.time * 7.3 + i) * .08));
-    if (this.me.checkpoint > this.lastCp) {for (let i = this.lastCp + 1; i <= this.me.checkpoint; i++) {const a = this.cpArches[i - 1]; if (a && !a.lit) {a.lit = true; (a.flag.material as THREE.MeshStandardMaterial).emissive.set(0xffb238); (a.glow.material as THREE.MeshBasicMaterial).color.set(0xffc455); this.toast('ЧЕКПОИНТ!'); this.puff(this.me.x, this.me.y, this.me.z, 1.4); navigator.vibrate?.(20);}} this.lastCp = this.me.checkpoint;}
+    if (this.me.checkpoint > this.lastCp) {for (let i = this.lastCp + 1; i <= this.me.checkpoint; i++) {const a = this.cpArches[i - 1]; if (a && !a.lit) {a.lit = true; (a.flag.material as THREE.MeshStandardMaterial).emissive.set(0xffb238); (a.glow.material as THREE.MeshBasicMaterial).color.set(0xffc455); this.toast('ЧЕКПОИНТ!'); this.snd.checkpoint(); this.puff(this.me.x, this.me.y, this.me.z, 1.4); navigator.vibrate?.(20);}} this.lastCp = this.me.checkpoint;}
     for (const a of this.cpArches) {const m = a.glow.material as THREE.MeshBasicMaterial; m.opacity = (a.lit ? .55 : .35) + Math.sin(this.course.time * 3) * .12;}
     if (this.shake > 0) {this.shake = Math.max(0, this.shake - dt * 1.2); const a = this.shake * this.shake * 1.4; this.camera.position.x += (Math.random() - .5) * a; this.camera.position.y += (Math.random() - .5) * a;}
   }
@@ -637,7 +653,8 @@ export class RaceApp {
       l.tag.style.display = on ? '' : 'none'; if (on) l.tag.style.transform = `translate(${(v.x * .5 + .5) * w}px,${(-v.y * .5 + .5) * h}px) translate(-50%,-100%)`;}
     const t = this.timeLeft(); setText('timer', `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`);
     document.getElementById('timer')!.classList.toggle('low', t < 20 && this.clock > COUNTDOWN);
-    const n = Math.ceil(COUNTDOWN - .5 - this.clock); setText('count', this.clock < COUNTDOWN ? (n > 0 ? String(n) : 'ВПЕРЁД!') : '');
+    const n = Math.ceil(COUNTDOWN - .5 - this.clock); if (this.clock < COUNTDOWN + .3 && n !== this.sndState.count) {this.sndState.count = n; if (n >= 0 && n <= 3) this.snd.countdown(n <= 0);}
+    setText('count', this.clock < COUNTDOWN ? (n > 0 ? String(n) : 'ВПЕРЁД!') : '');
     const st = this.standings(), place = st.indexOf(this.me) + 1; setText('place-n', String(place)); setText('place-of', `/${st.length}`);
     document.getElementById('place')!.dataset.p = String(Math.min(place, 4));
     // progress track: every runner as a portrait dot
@@ -649,12 +666,15 @@ export class RaceApp {
     const html = rows.map(r => `<li class="${r === this.me ? 'me' : ''}"><b>${st.indexOf(r) + 1}</b><img src="../hell-cage-host/chars/${r.character}.png" alt="">${r.name}${r.finished ? ' ✓' : ''}</li>`).join('');
     const lb = document.getElementById('board')!; if (lb.dataset.h !== html) {lb.dataset.h = html; lb.innerHTML = html;}
     const res = document.getElementById('results')!;
-    if ((this.me.finished || this.over()) && res.hidden) {res.hidden = false;
+    if ((this.me.finished || this.over()) && res.hidden) {res.hidden = false; this.snd.finish(this.me.finished && st.indexOf(this.me) < 3);
       res.querySelector('ol')!.innerHTML = st.map(r => `<li class="${r === this.me ? 'me' : ''}">${r.name}<span>${r.finished ? (r.finishTime - COUNTDOWN).toFixed(1) + ' с' : Math.round(r.progress / this.course.finishZ * 100) + '%'}</span></li>`).join('');
       setText('verdict', this.me.finished ? 'ФИНИШ!' : 'ВРЕМЯ ВЫШЛО');}
   }
 
   private input() {
+    const unlock = () => {this.snd.unlock(); this.snd.ambience(this.course.theme); this.snd.playMusic('audio/music.m4a');};
+    const mute = document.getElementById('mute'); if (mute) {let m = false; try {m = localStorage.getItem('race-mute') === '1';} catch {} this.snd.setMuted(m); mute.textContent = m ? '🔇' : '🔊';
+      mute.addEventListener('pointerdown', e => {e.stopPropagation(); m = !m; this.snd.setMuted(m); mute.textContent = m ? '🔇' : '🔊'; try {localStorage.setItem('race-mute', m ? '1' : '0');} catch {}});} addEventListener('pointerdown', unlock); addEventListener('keydown', unlock);
     addEventListener('keydown', e => {this.keys.add(e.code); if (e.code === 'Space') {this.me && (this.me.jump = true); e.preventDefault();}});
     addEventListener('keyup', e => this.keys.delete(e.code));
     const zone = document.getElementById('stick-zone')!, knob = document.getElementById('knob')!, base = document.getElementById('stick')!, jump = document.getElementById('jump')!;
