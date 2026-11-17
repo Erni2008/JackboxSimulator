@@ -1,0 +1,133 @@
+// Obstacle race course + physics (port of core/.../race/RaceCourse.java). Deterministic from the shared clock, so every
+// phone sees the same logs, boulders and rafts; each phone simulates only its own runner.
+export type Mat = 'grass' | 'plank' | 'stone';
+export interface Block {x0: number; x1: number; z0: number; z1: number; bottom: number; y0: number; y1: number; mat: Mat;
+  driftAmp: number; driftPeriod: number; driftPhase: number; crumbles: boolean; offX: number; offY: number; lastOffX: number; crumbleAt: number; fallV: number; gone: boolean}
+export interface Sweeper {x: number; y: number; z: number; len: number; speed: number; angle: number}
+export interface Pendulum {px: number; py: number; pz: number; len: number; amp: number; period: number; phase: number; radius: number; bx: number; by: number; bz: number; swing: number}
+export interface Boulder {x: number; y: number; z: number; vz: number; spin: number; radius: number; alive: boolean}
+
+export const R = .42, H = 1.55, DEATH_Y = -12, BOTTOM = -16;
+const clamp = (v: number, a: number, b: number) => v < a ? a : v > b ? b : v;
+export const top = (b: Block, z: number) => {const t = b.z1 === b.z0 ? 0 : clamp((z - b.z0) / (b.z1 - b.z0), 0, 1); return b.y0 + (b.y1 - b.y0) * t + b.offY;};
+
+export class Runner {
+  x = 0; y = 0; z = 0; vx = 0; vy = 0; vz = 0; inX = 0; inZ = 0; facing = 0; stun = 0; coyote = 0; jumpBuffer = 0;
+  progress = 0; finishTime = 0; jump = false; holdJump = false; finished = false; checkpoint = 0; falls = 0;
+  ground: Block | null = null; botCool = 0; landed = 0;
+  constructor(public id: string, public name: string, public character: string, public slot: number, public bot: boolean) {}
+}
+
+export class Course {
+  blocks: Block[] = []; sweepers: Sweeper[] = []; pendulums: Pendulum[] = []; boulders: Boulder[] = [];
+  checkpoints: number[]; finishZ: number; rampZ0: number; rampZ1: number; rampY0: number; rampY1: number; time = 0;
+  private boulderTimer = 1.5; private seed = 7;
+  constructor() {
+    let z = 0, y = 0;
+    this.add(-9, 9, -6, 18, 0, 0, 'grass'); z = 18;
+    this.add(-8, 8, z, z + 9, .9, .9, 'grass'); this.add(-8, 8, z + 9, z + 18, 1.8, 1.8, 'grass'); this.add(-8, 8, z + 18, z + 27, 2.7, 2.7, 'grass'); z += 27; y = 2.7;
+    this.add(-10, 10, z, z + 22, y, y, 'stone'); this.sweepers.push({x: 0, y: y + .55, z: z + 11, len: 9.5, speed: 1.25, angle: 0}); z += 22;
+    const seg = [3.2, 2.6, 2.6, 2.2, 2.6, 2, 3];
+    seg.forEach((s, i) => {this.add(-2.2, 2.2, z, z + s, y, y, 'plank'); z += s + (i < seg.length - 1 ? 1.7 : 0);});
+    this.add(-6, 6, z, z + 30, y, y, 'stone');
+    for (let i = 0; i < 3; i++) this.pendulums.push({px: 0, py: y + 8.4, pz: z + 6 + i * 9, len: 7.3, amp: .85, period: 2.6, phase: i * 1.9, radius: 1.15, bx: 0, by: 0, bz: 0, swing: 0});
+    z += 30;
+    for (let i = 0; i < 4; i++) {const b = this.add(-2.3, 2.3, z + 1.6, z + 6.2, y, y, 'plank'); b.driftAmp = 4.2; b.driftPeriod = 3.4 + i * .35; b.driftPhase = i * 1.7; z += 6.2;}
+    z += 1.6; this.add(-7, 7, z, z + 8, y, y, 'grass'); z += 8;
+    for (let r = 0; r < 5; r++) for (let c = -1; c <= 1; c++) {const b = this.add(c * 3.2 - 1.4, c * 3.2 + 1.4, z + r * 3.2 + .2, z + r * 3.2 + 3, y, y, 'stone'); b.crumbles = true; b.bottom = y - .9;}
+    z += 16; this.add(-8, 8, z, z + 7, y, y, 'grass'); z += 7;
+    this.rampZ0 = z; this.rampZ1 = z + 34; this.rampY0 = y; this.rampY1 = y + 7.5;
+    this.add(-7, 7, this.rampZ0, this.rampZ1, this.rampY0, this.rampY1, 'grass'); z = this.rampZ1; y = this.rampY1;
+    this.add(-8, 8, z, z + 9, y, y, 'grass'); this.add(-8, 8, z + 9, z + 16, y - .9, y - .9, 'grass'); z += 16; y -= .9;
+    this.add(-11, 11, z, z + 22, y, y, 'stone'); this.finishZ = z + 12;
+    this.checkpoints = [0, 46, 101, 145, 176, this.rampZ1 + 1];
+  }
+  private add(x0: number, x1: number, z0: number, z1: number, y0: number, y1: number, mat: Mat): Block {
+    const b: Block = {x0, x1, z0, z1, y0, y1, mat, bottom: mat === 'plank' ? Math.min(y0, y1) - .42 : BOTTOM, driftAmp: 0, driftPeriod: 1, driftPhase: 0, crumbles: false, offX: 0, offY: 0, lastOffX: 0, crumbleAt: -1, fallV: 0, gone: false};
+    this.blocks.push(b); return b;
+  }
+  spawnY(z: number) {let best = 0; for (const b of this.blocks) if (!b.crumbles && !b.driftAmp && z >= b.z0 && z <= b.z1) best = Math.max(best, top(b, z)); return best;}
+
+  step(dt: number) {
+    this.time += dt; const t0 = this.time;
+    for (const b of this.blocks) {
+      b.lastOffX = b.offX;
+      if (b.driftAmp) b.offX = b.driftAmp * Math.sin(Math.PI * 2 * t0 / b.driftPeriod + b.driftPhase);
+      if (b.crumbles && b.crumbleAt >= 0) {const t = t0 - b.crumbleAt;
+        if (t > .75) {b.fallV += 26 * dt; b.offY -= b.fallV * dt; if (b.offY < -6) b.gone = true;}
+        if (t > 4.5) {b.crumbleAt = -1; b.offY = 0; b.fallV = 0; b.gone = false;}}
+    }
+    for (const s of this.sweepers) s.angle = s.speed * t0;
+    for (const p of this.pendulums) {p.swing = p.amp * Math.sin(Math.PI * 2 * t0 / p.period + p.phase); p.bx = p.px + Math.sin(p.swing) * p.len; p.by = p.py - Math.cos(p.swing) * p.len; p.bz = p.pz;}
+    this.boulderTimer -= dt;
+    if (this.boulderTimer <= 0) {this.seed = (this.seed * 1103515245 + 12345) | 0; const r = ((this.seed >>> 8) & 1023) / 1023; const radius = 1.1 + .4 * r;
+      this.boulders.push({x: -4.6 + 9.2 * r, y: this.rampY1 + radius, z: this.rampZ1 - 1, vz: 0, spin: 0, radius, alive: true}); this.boulderTimer = 1.7 + .8 * r;}
+    const slope = (this.rampY1 - this.rampY0) / (this.rampZ1 - this.rampZ0);
+    for (const bo of this.boulders) {bo.vz -= 9 * dt; bo.z += bo.vz * dt; bo.spin += bo.vz * dt / bo.radius;
+      if (bo.z > this.rampZ0) bo.y = this.rampY0 + (bo.z - this.rampZ0) * slope + bo.radius; else bo.y -= 30 * dt;
+      if (bo.y < DEATH_Y - 10) bo.alive = false;}
+    this.boulders = this.boulders.filter(b => b.alive);
+  }
+
+  move(r: Runner, dt: number) {
+    if (r.finished) {r.vx = r.vy = r.vz = 0; return;}
+    r.stun = Math.max(0, r.stun - dt); r.coyote -= dt; r.jumpBuffer -= dt;
+    let ix = r.inX, iz = r.inZ; const il = Math.hypot(ix, iz); if (il > 1) {ix /= il; iz /= il;}
+    const speed = 8.2; let acc = r.ground ? 46 : 16; if (r.stun > 0) acc = 3;
+    r.vx = approach(r.vx, ix * speed, acc * dt); r.vz = approach(r.vz, iz * speed, acc * dt);
+    if (il > .1) r.facing = Math.atan2(ix, iz);
+    if (r.jump) {r.jumpBuffer = .14; r.jump = false;}
+    if (r.jumpBuffer > 0 && r.coyote > 0 && r.stun <= 0) {r.vy = 9.6; r.coyote = 0; r.jumpBuffer = 0; r.ground = null;}
+    r.vy -= (r.vy > 0 && !r.holdJump ? 38 : 26) * dt;
+    if (r.ground) r.x += r.ground.offX - r.ground.lastOffX;
+    const prevY = r.y; r.x += r.vx * dt; r.y += r.vy * dt; r.z += r.vz * dt;
+    let landed: Block | null = null;
+    for (const b of this.blocks) {
+      if (b.gone) continue;
+      const x0 = b.x0 + b.offX, x1 = b.x1 + b.offX, cx = clamp(r.x, x0, x1), cz = clamp(r.z, b.z0, b.z1), dx = r.x - cx, dz = r.z - cz, d2 = dx * dx + dz * dz;
+      if (d2 > R * R) continue;
+      const tp = top(b, cz), ramp = b.y0 !== b.y1;
+      const over = r.x > x0 - R * .5 && r.x < x1 + R * .5 && r.z > b.z0 - R * .5 && r.z < b.z1 + R * .5;
+      if (over && r.vy <= .01 && r.y <= tp + .05 && prevY >= tp - .45 - (ramp ? .5 : 0)) {r.y = tp; r.vy = 0; landed = b; continue;}
+      if (r.y < tp - .45 && r.y + H > b.bottom) {
+        if (d2 > 1e-6) {const d = Math.sqrt(d2), push = R - d; r.x += dx / d * push; r.z += dz / d * push; if (Math.abs(dx) > Math.abs(dz)) r.vx = 0; else r.vz = 0;}
+        else {const l = r.x - x0, rr = x1 - r.x, f = r.z - b.z0, k = b.z1 - r.z, m = Math.min(l, rr, f, k);
+          if (m === l) r.x = x0 - R; else if (m === rr) r.x = x1 + R; else if (m === f) r.z = b.z0 - R; else r.z = b.z1 + R;}
+      }
+    }
+    if (landed && !r.ground && prevY - r.y >= 0) r.landed = this.time;
+    r.ground = landed; if (landed) {r.coyote = .1; if (landed.crumbles && landed.crumbleAt < 0) landed.crumbleAt = this.time;}
+    for (const s of this.sweepers) {
+      const ex = Math.cos(s.angle) * s.len, ez = Math.sin(s.angle) * s.len, t = clamp(((r.x - s.x) * ex + (r.z - s.z) * ez) / (ex * ex + ez * ez), -1, 1);
+      const dx = r.x - (s.x + ex * t), dz = r.z - (s.z + ez * t), d = Math.hypot(dx, dz);
+      if (d < R + .42 && r.y < s.y + .45 && r.y + H > s.y - .45) {const sg = Math.sign(t + 1e-4); this.hit(r, -Math.sin(s.angle) * sg * 11 + (d ? dx / d * 4 : 0), 6.5, Math.cos(s.angle) * sg * 11 + (d ? dz / d * 4 : 0));}
+    }
+    for (const p of this.pendulums) {const dx = r.x - p.bx, dy = r.y + H / 2 - p.by, dz = r.z - p.bz, rr = p.radius + R + .2;
+      if (dx * dx + dy * dy + dz * dz < rr * rr) {const dir = Math.sign(Math.cos(Math.PI * 2 * this.time / p.period + p.phase)) || 1; this.hit(r, dir * 15, 7, Math.sign(dz) * 2);}}
+    for (const bo of this.boulders) {const dx = r.x - bo.x, dy = r.y + H / 2 - bo.y, dz = r.z - bo.z, rr = bo.radius + R;
+      if (dx * dx + dy * dy + dz * dz < rr * rr) this.hit(r, Math.sign(dx) * 4, 6, -12);}
+    for (let i = this.checkpoints.length - 1; i >= 0; i--) if (r.z >= this.checkpoints[i] && r.ground && !r.ground.crumbles && !r.ground.driftAmp) {r.checkpoint = Math.max(r.checkpoint, i); break;}
+    if (r.y < DEATH_Y) this.respawn(r);
+    r.progress = Math.max(r.progress, r.z);
+    if (r.z >= this.finishZ && r.ground && !r.finished) {r.finished = true; r.finishTime = this.time;}
+  }
+  private hit(r: Runner, vx: number, vy: number, vz: number) {if (r.stun > .25) return; r.vx = vx; r.vy = vy; r.vz = vz; r.stun = .55; r.ground = null; r.coyote = 0;}
+  respawn(r: Runner) {const z = this.checkpoints[r.checkpoint] + 2; r.x = ((r.slot % 5) - 2) * 1.4; r.y = this.spawnY(z) + 1.5; r.z = z; r.vx = r.vy = r.vz = 0; r.ground = null; r.falls++; r.stun = .3;}
+
+  /** Bot: run the centreline (ride rafts), jump at steps, gaps, the log and boulders. */
+  think(r: Runner, dt: number) {
+    r.botCool -= dt; let tx = ((r.slot % 5) - 2) * .9;
+    if (r.ground?.driftAmp) tx = (r.ground.x0 + r.ground.x1) / 2 + r.ground.offX;
+    for (const b of this.blocks) if (b.driftAmp && b.z0 > r.z && b.z0 - r.z < 2.5) tx = (b.x0 + b.x1) / 2 + b.offX;
+    r.inX = clamp((tx - r.x) * .6, -1, 1); r.inZ = 1;
+    let want = false, support = false; const ahead = r.z + 1.3, here = r.ground ? top(r.ground, r.z) : r.y;
+    for (const b of this.blocks) {if (b.gone) continue; if (r.x >= b.x0 + b.offX && r.x <= b.x1 + b.offX && ahead >= b.z0 && ahead <= b.z1) {support = true; if (top(b, ahead) > here + .35) want = true;}}
+    if (!support) want = true;
+    for (const s of this.sweepers) {const ex = Math.cos(s.angle) * s.len, ez = Math.sin(s.angle) * s.len, t = clamp(((r.x - s.x) * ex + (r.z - s.z) * ez) / (ex * ex + ez * ez), -1, 1);
+      if (Math.hypot(r.x - (s.x + ex * t), r.z - (s.z + ez * t)) < 1.7) want = true;}
+    for (const b of this.boulders) if (Math.abs(b.x - r.x) < b.radius + .6 && b.z > r.z && b.z - r.z < 3.2) want = true;
+    if (want && r.ground && r.botCool <= 0 && Math.random() < .55) {r.jump = true; r.holdJump = true; r.botCool = .35;}
+    if (r.ground && !want) r.holdJump = false;
+  }
+}
+const approach = (v: number, t: number, d: number) => v < t ? Math.min(t, v + d) : Math.max(t, v - d);
