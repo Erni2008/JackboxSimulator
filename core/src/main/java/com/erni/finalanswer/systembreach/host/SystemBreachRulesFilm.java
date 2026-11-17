@@ -164,7 +164,7 @@ public final class SystemBreachRulesFilm implements Disposable {
         if(pass==1)text(assets.board,decode(q,k(qt,.6f,1.3f),t),px,py+190,WHITE,a,1.05f);
         for(int i=0;i<4;i++){float d=ease(k(qt,1+.12f*i,1.4f+.12f*i));float bx=px,by=py+80-i*104;
             boolean isPick=i==picked;Color c=isPick&&res>0?(picked==correct?GREEN:RED):CYAN;
-            if(pass==0){float press=isPick?(1-.05f*MathUtils.sin(tap*MathUtils.PI)):1;round(bx-160*press,by-38*press,320*press,76*press,16,isPick&&res>0?c:new Color(.1f,.2f,.3f,1),a*d*(isPick&&res>0?.85f:1));}
+            if(pass==0){float press=isPick?(1-.05f*MathUtils.sin(tap*MathUtils.PI)):1;round(bx-160*press,by-38*press,320*press,76*press,16,isPick&&res>0?c:new Color(.1f,.2f,.3f,1),a*d);}
             if(pass==1)text(assets.board,o[i],bx,by+12,isPick&&res>0?INK:WHITE,a*d,1);
         }
         // finger tap ripple
@@ -235,7 +235,7 @@ public final class SystemBreachRulesFilm implements Disposable {
         float x=W/2-200,y=540;int lvl=t<2.6f?1:t<4.2f?2:3;
         portraitFrame("ghost",x,y,200,a,CYAN);
         for(int i=0;i<lvl;i++){float on=ease(k(t,i==0?.3f:i==1?2.6f:4.2f,(i==0?.3f:i==1?2.6f:4.2f)+.5f));hexRing(x,y,170+i*44,a*on*.9f,t*(i%2==0?.3f:-.25f));}
-        if(pass==2)glow(x,y,520,CYAN,.18f*a*lvl);
+        if(pass==2){glow(x,y,520,CYAN,.18f*a*lvl);for(int i=0;i<lvl;i++)glow(x,y,(170+i*44)*2.3f,CYAN,.07f*a*(1+.4f*MathUtils.sin(time*2.6f+i)));}
         // incoming attacks: the stronger the firewall, the more of them burn on the shield (level 3: ten in, one gets through)
         int blocked=0,through=0;float hitFlash=0;
         for(int j=0;j<ATK.length;j++){float t0=ATK[j][0],hit=t0+.7f;int L=hit<2.6f?1:hit<4.2f?2:3;boolean pass3=ATK[j][1]>0;
@@ -326,7 +326,10 @@ public final class SystemBreachRulesFilm implements Disposable {
         float go=k(t,3.7f,4.2f);float a0=a;a*=1-go;
         float[] h={.55f,1f,.4f,.7f};float base=230;
         for(int i=0;i<4;i++){float x=W/2-480+i*320;float g=ease(k(t,.4f+.15f*i,2.6f+.15f*i))*h[i]*330;boolean win=i==1;
-            if(pass==0){col(win?GREEN:CYAN,a*.85f);r.rect(x-80,base,160,g);col(INK,.35f*a);r.rect(x-80,base+g-6,160,6);}
+            if(pass==0&&g>0){Color c=win?GREEN:CYAN;Color bot=new Color(c.r*.18f,c.g*.18f,c.b*.22f,.95f*a),top=new Color(c.r*.75f,c.g*.75f,c.b*.8f,.95f*a);
+                Color z=new Color(0,0,0,0),sh=new Color(0,0,0,.5f*a);r.rect(x-80+10,base-16,160,16,z,z,sh,sh);
+                r.rect(x-80,base,160,g,bot,bot,top,top);Color gl0=new Color(1,1,1,.16f*a),glz=new Color(1,1,1,0);r.rect(x-80+14,base,28,g,glz,glz,gl0,gl0);
+                col(c,a);r.rect(x-80,base+g-4,160,4);col(c,.6f*a);r.rect(x-80,base,2,g);r.rect(x+78,base,2,g);}
             if(pass==2&&win&&t>2.8f)glow(x,base+g,360,GREEN,.4f*a);
             portraitFrame(FIN[i],x,base+g+90,140,a,win&&t>2.8f?GREEN:CYAN);
             if(pass==1)text(assets.ap,SystemBreachHostViewModel.souls(MathUtils.round(g/330*260),true),x,base-24,WHITE,a,1.1f);
@@ -425,6 +428,9 @@ public final class SystemBreachRulesFilm implements Disposable {
     private void round(float x,float y,float w,float h,float rad,Color c,float a){
         col(c,a);r.rect(x+rad,y,w-2*rad,h);r.rect(x,y+rad,rad,h-2*rad);r.rect(x+w-rad,y+rad,rad,h-2*rad);
         r.circle(x+rad,y+rad,rad,16);r.circle(x+w-rad,y+rad,rad,16);r.circle(x+rad,y+h-rad,rad,16);r.circle(x+w-rad,y+h-rad,rad,16);
+        // soft top sheen and a darker foot, so surfaces read as lit objects rather than flat fills
+        Color z=new Color(1,1,1,0),hi=new Color(1,1,1,.07f*a),lo=new Color(0,0,0,.22f*a),lz=new Color(0,0,0,0);
+        r.rect(x+rad*.6f,y+h*.55f,w-rad*1.2f,h*.45f-rad*.6f,z,z,hi,hi);r.rect(x+rad*.6f,y+rad*.4f,w-rad*1.2f,h*.3f,lo,lo,lz,lz);
     }
     private void hexRing(float x,float y,float rad,float a,float rot){
         if(pass!=0||a<=0)return;col(CYAN,a);for(int i=0;i<6;i++){float a0=rot+i*MathUtils.PI/3,a1=a0+MathUtils.PI/3;r.rectLine(x+MathUtils.cos(a0)*rad,y+MathUtils.sin(a0)*rad,x+MathUtils.cos(a1)*rad,y+MathUtils.sin(a1)*rad,4);}
