@@ -18,13 +18,18 @@ final class SbSounds implements Disposable {
     /** Loads name.wav plus its variants name_2.wav, name_3.wav when present. */
     SbSounds(){for(String n:NAMES)for(String v:new String[]{"","_2","_3"})try{var f=Gdx.files.internal("system_breach/sfx/"+n+v+".wav");if(f.exists())sounds.computeIfAbsent(n,k->new java.util.ArrayList<>()).add(Gdx.audio.newSound(f));}catch(RuntimeException ignored){}}
     private Sound lastAnswer;private long lastAnswerId,lastAnswerAt;
+    private final java.util.ArrayList<Long> recent=new java.util.ArrayList<>();private long lastAny;
     private int note=0;private long lastChime;
     /** Right answers climb a D-minor pentatonic as a melody; after a quiet spell it starts again from the bottom. */
     private String nextChime(){long now=System.currentTimeMillis();if(now-lastChime>4000)note=random.nextInt(2);else note=Math.min(7,note+1+(random.nextInt(4)==0?1:0));if(note>=7&&random.nextBoolean())note=3;lastChime=now;return "chime_"+note;}
     void play(String name){if(name.equals("knock")){play(name,.5f);return;}play(name,1);}
     void play(String name,float volume){
-        var list=sounds.get(name);if(list==null||list.isEmpty())return;long now=System.currentTimeMillis(),gap=name.equals("coin")||name.equals("knock")||name.equals("wrong")?250:name.equals("solve")?1500:name.startsWith("t")&&name.length()==4?150:400;
-        if(now-last.getOrDefault(name,0L)<gap)return;last.put(name,now);
+        var list=sounds.get(name);if(list==null||list.isEmpty())return;long now=System.currentTimeMillis(),gap=name.equals("coin")||name.equals("knock")||name.equals("wrong")?700:name.equals("solve")?1500:name.startsWith("t")&&name.length()==4?150:400;
+        if(now-last.getOrDefault(name,0L)<gap)return;
+        // never more than two sounds at once: minor cues are dropped while anything else rang in the last 450 ms, and any
+        // cue waits out a 180 ms gap after the previous one
+        boolean minor=name.equals("coin")||name.equals("key")||name.equals("wrong")||name.equals("knock")||name.equals("hack_start");
+        recent.removeIf(t->now-t>450);if(now-lastAny<180||recent.size()>=2||(minor&&!recent.isEmpty()))return;recent.add(now);lastAny=now;last.put(name,now);
         // a different take and a hair of pitch each time, so repeats never sound mechanical
         boolean tonal=!name.equals("thunder")&&!name.equals("drumroll");float pitch=name.equals("coin")?1:tonal&&list.size()>1?1:.97f+random.nextFloat()*.06f;
         // the answer sounds stay clean: a key chime landing on the same coin is dropped, and an earlier coin still ringing
