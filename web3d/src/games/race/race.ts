@@ -85,7 +85,7 @@ export class RaceApp {
       this.sweeperMeshes.push(g); this.scene.add(g);
       const ph = s.y - this.course.spawnY(s.z) + 1.05, post = new THREE.Mesh(new THREE.CylinderGeometry(.55, .65, ph, 12), this.night ? mats.brick : mats.bark); post.position.set(s.x, s.y + .5 - ph / 2, s.z); post.castShadow = true; this.scene.add(post);}
     const boulder = await this.model('env/boulder_01.glb'); progress(.15);
-    const linkGeo = new THREE.TorusGeometry(.13, .035, 6, 12), ironM = new THREE.MeshStandardMaterial({color: 0x34302c, metalness: .9, roughness: .38});
+    const linkGeo = new THREE.TorusGeometry(.13, .035, 6, 12), ironM = metalMat('rusty_metal_02', 0x9a9a9a, .3);
     for (const p of this.course.pendulums) {
       const pivot = new THREE.Group(); pivot.position.set(p.px, p.py, p.pz);
       const links = Math.round(p.len / .2); const chain = new THREE.InstancedMesh(linkGeo, ironM, links); const m4 = new THREE.Matrix4(), q = new THREE.Quaternion();
@@ -113,16 +113,16 @@ export class RaceApp {
     this.buildMech(mats);
     // fire jets and hammers
     for (const j of this.course.jets) {const g = new THREE.Group(); g.position.set(j.x, j.y, j.z);
-      if (j.kind === 'fire') {const grate = new THREE.Mesh(new THREE.CylinderGeometry(.75, .8, .08, 20), new THREE.MeshStandardMaterial({color: 0x1b1714, metalness: .8, roughness: .5, emissive: 0xff3a00, emissiveIntensity: 0})); grate.position.y = .04; g.add(grate);
+      if (j.kind === 'fire') {const gm = metalMat('metal_grate_rusty', 0xffffff, .6).clone(); gm.emissive = new THREE.Color(0xff3a00); gm.emissiveIntensity = 0; const grate = new THREE.Mesh(new THREE.CylinderGeometry(.75, .8, .08, 20), gm); grate.position.y = .04; g.add(grate);
         const fl = new THREE.Group(); for (let k = 0; k < 3; k++) {const sp = new THREE.Sprite(new THREE.SpriteMaterial({map: dotTexture(true), color: k ? 0xff7a1a : 0xffe08a, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending})); sp.scale.set(1.6 - k * .3, 2.8 - k * .5, 1); sp.position.y = 1.2 + k * .5; fl.add(sp);} g.add(fl);
         this.jetFx.push({j, o: grate, f: fl});}
-      else {const hm = new THREE.Group(); const head = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 1.1, 24), new THREE.MeshStandardMaterial({color: 0x3a3632, metalness: .9, roughness: .35})); head.castShadow = true;
-        const rod = new THREE.Mesh(new THREE.CylinderGeometry(.18, .18, 8, 10), new THREE.MeshStandardMaterial({color: 0x2a2622, metalness: .9, roughness: .4})); rod.position.y = 4.5; hm.add(head, rod);
+      else {const hm = new THREE.Group(); const head = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 1.1, 24), metalMat('rusty_metal_02', 0xa0a0a0, .6)); head.castShadow = true;
+        const rod = new THREE.Mesh(new THREE.CylinderGeometry(.18, .18, 8, 10), metalMat('metal_plate_02', 0x9a9a9a, .3)); rod.position.y = 4.5; hm.add(head, rod);
         const mark = new THREE.Mesh(new THREE.RingGeometry(1.3, 1.5, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({color: 0xff3a1a, transparent: true, opacity: 0, depthWrite: false})); mark.position.y = .04; g.add(hm, mark);
         this.jetFx.push({j, o: mark, f: hm});}
       this.scene.add(g);}
     // spring pads
-    for (const p of this.course.pads) {const ring = new THREE.Mesh(new THREE.CylinderGeometry(p.r, p.r * 1.08, .22, 32), new THREE.MeshStandardMaterial({color: 0x24180e, metalness: .6, roughness: .4})); ring.position.set(p.x, p.y + .11, p.z); this.scene.add(ring);
+    for (const p of this.course.pads) {const ring = new THREE.Mesh(new THREE.CylinderGeometry(p.r, p.r * 1.08, .22, 32), metalMat('rusty_metal_02', 0xffffff, .5)); ring.position.set(p.x, p.y + .11, p.z); this.scene.add(ring);
       const top = new THREE.Mesh(new THREE.CircleGeometry(p.r * .86, 32).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({map: padTexture(), emissive: 0xffb23a, emissiveMap: padTexture(), emissiveIntensity: 1.1, roughness: .5})); top.position.set(p.x, p.y + .23, p.z); this.padMeshes.push(top); this.scene.add(top);}
     this.boulderSrc = boulder.scene;
     const barrel = await this.model('env/wine_barrel_01.glb');
@@ -195,8 +195,8 @@ export class RaceApp {
   // ================= new trial visuals =================
   private mech: {gears: [any, THREE.Object3D][]; carts: [Block, THREE.Object3D][]; gates: [any, THREE.Object3D, THREE.Object3D, THREE.Object3D, THREE.MeshStandardMaterial][]; fans: [any, THREE.Object3D, THREE.MeshStandardMaterial, THREE.Points][]; hooks: [any, THREE.Object3D, THREE.Mesh, THREE.MeshStandardMaterial][]; chasers: [any, THREE.Object3D][]; tiltLamps: [Block, THREE.MeshStandardMaterial[]][]; sweepLamps: [any, THREE.MeshStandardMaterial][]} = {gears: [], carts: [], gates: [], fans: [], hooks: [], chasers: [], tiltLamps: [], sweepLamps: []};
   private buildMech(mats: Record<string, THREE.MeshStandardMaterial>) {
-    const c = this.course, steel = new THREE.MeshStandardMaterial({color: 0x4a4b50, metalness: .9, roughness: .38, envMapIntensity: 1.4}), dark = new THREE.MeshStandardMaterial({color: 0x26262a, metalness: .85, roughness: .5}),
-      rust = new THREE.MeshStandardMaterial({color: 0x6a3a22, metalness: .55, roughness: .7}), lamp = () => new THREE.MeshStandardMaterial({color: 0x330a05, emissive: 0xff2a10, emissiveIntensity: 0});
+    const c = this.course, steel = metalMat('metal_plate_02', 0xd8dade, .35), dark = metalMat('rusty_metal_02', 0x8a8a8a, .5),
+      rust = metalMat('rusty_metal_02', 0xffffff, .6), lamp = () => new THREE.MeshStandardMaterial({color: 0x330a05, emissive: 0xff2a10, emissiveIntensity: 0});
     // gears: toothed steel discs with spokes, hub bolts and an axle down into the abyss; missing sectors cut out
     for (const g of c.gears) {const grp = new THREE.Group(); grp.position.set(g.x, g.y, g.z);
       const sh = new THREE.Shape(), T = g.teeth, ro = g.r + .28, ri = g.r - .05;
@@ -219,7 +219,7 @@ export class RaceApp {
         const beam = new THREE.Mesh(new THREE.BoxGeometry(.4, .4, 3), mats.bark); beam.position.set(sd * (L + .45), y + 1.5, zc); arch.add(beam); this.scene.add(arch);}}
     for (const b of c.carts) {const g = new THREE.Group(), w = b.x1 - b.x0, d = b.z1 - b.z0;
       const tub = new THREE.Mesh(new THREE.BoxGeometry(w, .9, d), rust); tub.position.y = -.45; tub.castShadow = true; g.add(tub);
-      const floor = new THREE.Mesh(new THREE.BoxGeometry(w - .2, .06, d - .2), mats.plank); floor.position.y = -.02; g.add(floor);
+      const floor = new THREE.Mesh(new THREE.BoxGeometry(w - .2, .06, d - .2), metalMat('metal_grate_rusty', 0xffffff, .8)); floor.position.y = -.02; g.add(floor);
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) {const lip = new THREE.Mesh(new THREE.BoxGeometry(sx ? .12 : w, .16, sz ? .12 : d), dark); void lip;}
       const rimG = new THREE.BoxGeometry(w + .1, .12, .12), rim1 = new THREE.Mesh(rimG, dark), rim2 = rim1.clone(); rim1.position.set(0, .02, -d / 2); rim2.position.set(0, .02, d / 2); g.add(rim1, rim2);
       for (const sx of [-.75, .75]) for (const sz of [-.75, .75]) {const wh = new THREE.Mesh(new THREE.CylinderGeometry(.26, .26, .14, 14).rotateX(Math.PI / 2), dark); wh.position.set(sx * w / 2.2, -.9, sz); g.add(wh);}
@@ -250,10 +250,10 @@ export class RaceApp {
       const head = new THREE.Group(); const shank = new THREE.Mesh(new THREE.CylinderGeometry(.09, .09, .9, 8).rotateZ(Math.PI / 2), steel); head.add(shank);
       const curve = new THREE.Mesh(new THREE.TorusGeometry(.38, .09, 8, 20, Math.PI * 1.3), steel); curve.position.x = -.5; curve.rotation.z = Math.PI * .35; head.add(curve);
       const tip = new THREE.Mesh(new THREE.ConeGeometry(.11, .3, 8), steel); tip.position.set(-.5, .38, 0); head.add(tip); head.scale.x = h.side; this.scene.add(head);
-      const chain = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, 1, 6).rotateZ(Math.PI / 2), new THREE.MeshStandardMaterial({color: 0x3a3632, metalness: .9, roughness: .4})); this.scene.add(chain);
+      const chain = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, 1, 6).rotateZ(Math.PI / 2), dark); this.scene.add(chain);
       this.mech.hooks.push([h, head, chain, lm]);}
     // chaser boulder (+ toppling columns along the corridor)
-    for (const ch of c.chasers) {const b = new THREE.Mesh(new THREE.IcosahedronGeometry(ch.r, 3), mats.rock ?? steel); b.castShadow = true; const g = new THREE.Group(); g.add(b); this.scene.add(g); this.mech.chasers.push([ch, g]);
+    for (const ch of c.chasers) {const b = new THREE.Mesh(new THREE.IcosahedronGeometry(ch.r, 4), mats.rock ?? steel); b.castShadow = true; const g = new THREE.Group(); g.add(b); this.scene.add(g); this.mech.chasers.push([ch, g]);
       for (let i = 1; i < ch.path.length - 1; i += 1) {const [px, pz] = ch.path[i]; const col = new THREE.Mesh(new THREE.CylinderGeometry(.35, .4, 3.4, 12), mats.rock ?? steel); col.position.set(px + 2.6 * (i % 2 ? 1 : -1), ch.y + 1.7, pz + 1.5); col.castShadow = true; col.userData.col = [ch, i]; this.scene.add(col); this.columns.push(col);}}
     // tilting chamber: warning lamps on the rim; mill surge lamps on spinner posts
     for (const b of c.tilts) if (b.tilt!.axis === 'xz') {const ms: THREE.MeshStandardMaterial[] = []; for (const [x, z] of [[b.x0, b.z0], [b.x1, b.z0], [b.x0, b.z1], [b.x1, b.z1]]) {const m = lamp(); ms.push(m); const pole = new THREE.Mesh(new THREE.CylinderGeometry(.08, .08, 3, 6), dark); pole.position.set(x * 1.12, b.y0 + 1.5, z); this.scene.add(pole); const l = new THREE.Mesh(new THREE.SphereGeometry(.22, 10, 8), m); l.position.set(x * 1.12, b.y0 + 3.1, z); this.scene.add(l);} this.mech.tiltLamps.push([b, ms]);}
@@ -681,7 +681,7 @@ const MOON_DIR = new THREE.Vector3(.81, .3, .59).normalize();
 function scythe() {
   const sh = new THREE.Shape(); sh.moveTo(-1.6, 0); sh.quadraticCurveTo(0, -1.25, 1.6, 0); sh.quadraticCurveTo(0, -.55, -1.6, 0);
   const geo = new THREE.ExtrudeGeometry(sh, {depth: .06, bevelEnabled: true, bevelThickness: .02, bevelSize: .03, bevelSegments: 1, curveSegments: 18}); geo.translate(0, .1, -.03);
-  const blade = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color: 0x9aa0a6, metalness: .95, roughness: .28, envMapIntensity: 1.6}));
+  const blade = new THREE.Mesh(geo, metalMat('metal_plate_02', 0xcfd3d8, .5));
   const hub = new THREE.Mesh(new THREE.BoxGeometry(.5, .5, .3), new THREE.MeshStandardMaterial({color: 0x2a2420, metalness: .6, roughness: .6})); hub.position.y = .25;
   const g = new THREE.Group(); g.add(blade, hub); blade.castShadow = true; g.userData.base = 1; return g;
 }
@@ -707,7 +707,7 @@ function shaftTexture() {const c = document.createElement('canvas'); c.width = 6
   x.globalCompositeOperation = 'destination-out'; x.fillStyle = h; x.fillRect(0, 0, 64, 256); return new THREE.CanvasTexture(c);}
 
 /** Iron mace ball with spikes. */
-function spikedBall() {const g = new THREE.Group(), m = new THREE.MeshStandardMaterial({color: 0x2c2a2a, metalness: .92, roughness: .34, envMapIntensity: 1.6});
+function spikedBall() {const g = new THREE.Group(), m = metalMat('rusty_metal_02', 0x9a9a9a, .5);
   const ball = new THREE.Mesh(new THREE.IcosahedronGeometry(.85, 2), m); ball.castShadow = true; g.add(ball);
   const ico = new THREE.IcosahedronGeometry(1, 1), pos = ico.getAttribute('position'), seen = new Set<string>();
   for (let i = 0; i < pos.count; i++) {const v = new THREE.Vector3(pos.getX(i), pos.getY(i), pos.getZ(i)).normalize(), key = v.toArray().map(x => x.toFixed(2)).join(); if (seen.has(key)) continue; seen.add(key);
@@ -720,7 +720,7 @@ function padTexture() {const c = document.createElement('canvas'); c.width = c.h
 
 /** Wrought-iron birdcage the exhibits were kept in: ring base, bars, domed top with a hook; open=true leaves the door swung out. */
 function ironCage(open = false) {
-  const g = new THREE.Group(), iron = new THREE.MeshStandardMaterial({color: 0x2b2622, metalness: .9, roughness: .42, envMapIntensity: 1.5}), rust = new THREE.MeshStandardMaterial({color: 0x5a3220, metalness: .5, roughness: .8});
+  const g = new THREE.Group(), iron = metalMat('rusty_metal_02', 0x8c8c8c, .3), rust = metalMat('rusty_metal_02', 0xffffff, .6);
   const R = .85, Hh = 1.7, bars = 18;
   const floor = new THREE.Mesh(new THREE.CylinderGeometry(R, R * 1.02, .12, 28), rust); floor.position.y = .06; g.add(floor);
   for (const y of [.12, .9, Hh]) {const ring = new THREE.Mesh(new THREE.TorusGeometry(R, .045, 8, 40).rotateX(Math.PI / 2), iron); ring.position.y = y; g.add(ring);}
@@ -744,3 +744,11 @@ function crackTexture() {const c = document.createElement('canvas'); c.width = c
   for (let k = 0; k < 7; k++) {let px = 128 + (Math.random() - .5) * 30, py = 128 + (Math.random() - .5) * 30; x.lineWidth = 4; x.beginPath(); x.moveTo(px, py);
     const a = Math.random() * 6.28; for (let i = 0; i < 8; i++) {px += Math.cos(a + (Math.random() - .5) * 1.2) * 18; py += Math.sin(a + (Math.random() - .5) * 1.2) * 18; x.lineTo(px, py); x.lineWidth = Math.max(1, 4 - i * .4);} x.stroke();}
   return new THREE.CanvasTexture(c);}
+
+/** Realistic PBR metal from Poly Haven scans (shared, cached): plate steel, rusty iron, rusty grate. */
+const _metal = new Map<string, THREE.MeshStandardMaterial>();
+function metalMat(name: 'metal_plate_02' | 'rusty_metal_02' | 'metal_grate_rusty', tint = 0xffffff, repeat = 1) {
+  const key = name + tint + repeat; let m = _metal.get(key); if (m) return m;
+  const L = new THREE.TextureLoader(), t = (f: string, srgb = false) => {const x = L.load(`tex/${name}/${f}.jpg`); x.wrapS = x.wrapT = THREE.RepeatWrapping; x.repeat.set(repeat, repeat); x.anisotropy = 4; if (srgb) x.colorSpace = THREE.SRGBColorSpace; return x;};
+  const arm = t('arm'); m = new THREE.MeshStandardMaterial({map: t('diffuse', true), normalMap: t('nor_gl'), roughnessMap: arm, metalnessMap: arm, metalness: 1, roughness: 1, color: tint, envMapIntensity: 1.3});
+  _metal.set(key, m); return m;}
