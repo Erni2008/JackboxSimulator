@@ -32,21 +32,21 @@ import java.util.Map;
  */
 public final class ImpostorRulesFilm implements Disposable {
     public static final float W=1920,H=1080;
-    private static final float[] START={0,5.6f,13.4f,19f,23.6f,27.4f,33.4f},END={5.6f,13.4f,19f,23.6f,27.4f,33.4f,37.8f};
-    public static final float LENGTH=37.8f;
+    private static final float[] START={0,5.4f,12.8f,22f,27.2f,33.8f,40.4f},END={5.4f,12.8f,22f,27.2f,33.8f,40.4f,44.8f};
+    public static final float LENGTH=44.8f;
     private static final String[] TAB={"","РОЛИ","УЛИКИ","ПОДОЗРЕНИЕ","ГОЛОСОВАНИЕ","ИТОГ",""};
     private static final String[] SUB={
-        "Добро пожаловать в игру! Сегодня среди вас есть самозванец.",
-        "Все получают секретное слово! Все, кроме самозванца, ему достаётся только подсказка.",
-        "Пишите слова улики! Намекайте, но не выдавайте слово!",
-        "После каждого раунда отмечайте, кто подозрителен!",
-        "Через три раунда финальное голосование!",
-        "Поймали самозванца, победа ваша! Ошиблись, побеждает он!",
+        "Добро пожаловать в игру! Среди вас прячется самозванец.",
+        "Каждый получает секретное слово! Только самозванец его не знает. У него есть лишь подсказка.",
+        "Игра идёт три раунда! В каждом раунде вы пишете одно слово, связанное с секретным. Намекайте, но не выдавайте его!",
+        "После каждого раунда отмечайте, кто вам кажется подозрительным!",
+        "После трёх раундов все голосуют! Кого выбрали, тот и подозреваемый.",
+        "Поймали самозванца, побеждают мирные! Ошиблись, побеждает самозванец!",
         "Ну что, готовы? Тогда найдите самозванца!"};
     private static final Color BLOOD=new Color(.86f,.1f,.08f,1),GOLD=new Color(.96f,.78f,.45f,1),INK=new Color(.24f,.12f,.06f,1),
         BONE=new Color(.96f,.92f,.84f,1),DARK=new Color(.03f,.015f,.015f,1),EMBER=new Color(1,.42f,.18f,1);
     private static final String[] WHO={"skeleton","dracula","pumpkin","voodoo","ghost"};
-    private static final String[] CLUE={"Сок","Сад","Ньютон","Круглое…"};
+    private static final String[][] CLUES={{"Сок","Сад","Ньютон","Круглое…"},{"Пирог","Червяк","Ева","Сладкое"},{"Зелёное","Сидр","Ветка","Полезное"}};
     private static final int IMP=3;
 
     private final SpriteBatch batch=new SpriteBatch();private final ShapeRenderer shapes=new ShapeRenderer();
@@ -186,15 +186,18 @@ public final class ImpostorRulesFilm implements Disposable {
     }
     private void clues(float t,float a){
         headingText("УЛИКИ",t,a,GOLD);
-        if(pass==1){float p=ease(k(t,.3f,.9f));text(small,"СЕКРЕТНОЕ СЛОВО",W/2,H-232,BONE,a*.7f*p,1);text(hand,"ЯБЛОКО",W/2,H-252,GOLD,a*p,.8f);}
+        int round=1+Math.min(2,(int)(Math.max(0,t-1.2f)/2.7f));
+        if(pass==1){float p=ease(k(t,.3f,.9f));text(small,"СЕКРЕТНОЕ СЛОВО",W/2-260,H-232,BONE,a*.7f*p,1);text(hand,"ЯБЛОКО",W/2-260,H-252,GOLD,a*p,.8f);
+            text(small,"РАУНД",W/2+260,H-232,BONE,a*.7f*p,1);text(heading,round+" / 3",W/2+260,H-246,BLOOD,a*p,.62f);
+            for(int r=0;r<3;r++){float on=r<round?1:.25f;b(r<round?BLOOD.r:.4f,r<round?BLOOD.g:.3f,r<round?BLOOD.b:.3f,a*p*on);batch.draw(glow,W/2+260-48+r*48-9,H-330-9,18,18);}b(1,1,1,1);}
         for(int i=0;i<4;i++){float d=ease(k(t,.4f+.15f*i,1+.15f*i));float x=W/2+(i-1.5f)*400,y=600-(1-d)*60;
             if(pass==1){framed(WHO[i],x,y,230,a*d,BLOOD,0);
                 float nx=x,ny=y-250;b(0,0,0,.4f*a*d);batch.draw(note,nx-118+8,ny-78-8,236,156);b(1,1,1,a*d);batch.draw(note,nx-118,ny-78,236,156);b(1,1,1,1);
-                float tp=k(t,1.6f+.7f*i,2.2f+.7f*i);String c=CLUE[i];int n=(int)Math.ceil(c.length()*tp);
+                int rd=Math.min(2,(int)(Math.max(0,t-1.2f)/2.7f));float rt=t-1.2f-rd*2.7f;float tp=k(rt,.2f+.35f*i,.6f+.35f*i);String c=CLUES[rd][i];int n=(int)Math.ceil(c.length()*tp);
                 if(n>0)text(hand,c.substring(0,n),nx,ny+22,i==IMP?BLOOD:INK,a,.72f);}
-            if(pass==2&&i==IMP){float q=k(t,4.8f,5.4f);glowAt(x,y-250,380,BLOOD,.35f*a*q*(.7f+.3f*MathUtils.sin(time*6)));}
+            if(pass==2&&i==IMP){float q=k(t,8.2f,8.8f);glowAt(x,y-250,380,BLOOD,.35f*a*q*(.7f+.3f*MathUtils.sin(time*6)));}
         }
-        if(pass==1){float q=k(t,4.9f,5.4f);text(sub,"Хм… подозрительно?",W/2+1.5f*400,170,BLOOD,a*q,.85f);}
+        if(pass==1){float q=k(t,8.3f,8.8f);text(sub,"Хм… подозрительно?",W/2+1.5f*400,250,BLOOD,a*q,.7f);}
     }
     /** Detective board: red threads run from each accuser to the one they suspect; the suspect lights up. */
     private static final int[][] ENV={{0,3},{1,3},{2,1},{4,3}};
