@@ -17,7 +17,7 @@ import java.util.*;
 public final class SystemBreachScreenPreview {
     public static void main(String[] args){
         var c=new Lwjgl3ApplicationConfiguration();c.setTitle("FINAL ANSWER / SYSTEM BREACH / host");
-        c.setWindowedMode(Integer.getInteger("sb.width",1600),Integer.getInteger("sb.height",900));c.setForegroundFPS(60);c.disableAudio(true);
+        c.setWindowedMode(Integer.getInteger("sb.width",1600),Integer.getInteger("sb.height",900));c.setForegroundFPS(60);c.disableAudio(System.getProperty("sb.capture")!=null);
         String capture=System.getProperty("sb.capture","");int count=Math.max(2,Math.min(8,Integer.getInteger("sb.players",8)));String phase=System.getProperty("sb.phase","ACTIVE");
         new Lwjgl3Application(new Game(){
             final String[] names=Boolean.getBoolean("sb.long")?new String[]{"Александра","Maximilian","Кристиночка","Vladislav","Евгения","Konstantin","Станислав","Bartholomew"}
