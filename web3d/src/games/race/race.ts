@@ -20,7 +20,7 @@ export class RaceApp {
   readonly renderer: THREE.WebGLRenderer; readonly scene = new THREE.Scene(); readonly camera = new THREE.PerspectiveCamera(55, 1, .3, 900);
   course: Course; readonly night: boolean; readonly manor: boolean; readonly crypt: boolean; readonly limit: number; runners: Runner[] = []; me!: Runner; clock = 0; private acc = 0;
   private sun!: THREE.DirectionalLight; private fill!: THREE.DirectionalLight; private mist: THREE.Mesh[] = []; private pollen!: THREE.Points; private puffs: {s: THREE.Sprite; t: number}[] = []; private grassMat?: THREE.Material; private looks = new Map<Runner, Look>(); private blockMeshes = new Map<Block, THREE.Mesh>();
-  private sweeperMeshes: THREE.Object3D[] = []; private cpArches: {glow: THREE.Mesh; flag: THREE.Mesh; lit: boolean}[] = []; private lastCp = 0; private pend: THREE.Object3D[] = []; private rams: THREE.Object3D[] = []; private padMeshes: THREE.Mesh[] = []; private warnPlanes = new Map<Block, THREE.Mesh>(); private belts: THREE.Texture[] = []; private composer?: EffectComposer; private lastSection = ''; private ghosts: THREE.MeshStandardMaterial[] = []; private lastTp = 0; readonly snd = new RaceSound(); private sndState = {count: 9, falls: 0, stun: 0, fin: false, step: 0, gates: new Map<any, boolean>(), hooks: new Map<any, number>(), jets: new Map<any, number>(), pads: new Map<any, number>(), crumbs: new Set<any>()}; private sunGlow?: THREE.Sprite; private moonGlow?: THREE.Sprite; private rays: THREE.Mesh[] = []; private ray = new THREE.Raycaster(); private faded = new Set<THREE.Mesh>(); private soft: THREE.Mesh[] = []; private jetFx: {j: any; o: THREE.Object3D; f: THREE.Object3D}[] = []; private mazeBlend = 0; private portalFx: THREE.Object3D[] = []; private boulderPool: THREE.Object3D[] = [];
+  private sweeperMeshes: THREE.Object3D[] = []; private cpArches: {glow: THREE.Mesh; flag: THREE.Mesh; lit: boolean}[] = []; private lastCp = 0; private pend: THREE.Object3D[] = []; private rams: THREE.Object3D[] = []; private padMeshes: THREE.Mesh[] = []; private warnPlanes = new Map<Block, THREE.Mesh>(); private belts: THREE.Texture[] = []; private composer?: EffectComposer; private lastSection = ''; private ghosts: THREE.MeshStandardMaterial[] = []; private lastTp = 0; readonly snd = new RaceSound(); private sndState: any = {count: 9, falls: 0, stun: 0, fin: false, step: 0, gates: new Map<any, boolean>(), hooks: new Map<any, number>(), jets: new Map<any, number>(), pads: new Map<any, number>(), crumbs: new Set<any>()}; private sunGlow?: THREE.Sprite; private moonGlow?: THREE.Sprite; private rays: THREE.Mesh[] = []; private ray = new THREE.Raycaster(); private faded = new Set<THREE.Mesh>(); private soft: THREE.Mesh[] = []; private jetFx: {j: any; o: THREE.Object3D; f: THREE.Object3D}[] = []; private mazeBlend = 0; private portalFx: THREE.Object3D[] = []; private boulderPool: THREE.Object3D[] = [];
   private gltf = new GLTFLoader(); private texLoader = new THREE.TextureLoader(); private cache = new Map<string, Promise<GLTF>>();
   private camTarget = new THREE.Vector3(); private pixelRatio: number; private frameAvg = 16; private last = 0;
   private blobs = new Map<Runner, THREE.Mesh>();   private dots = new Map<Runner, HTMLElement>(); private keys = new Set<string>(); private stick = {id: -1, ox: 0, oy: 0, x: 0, y: 0}; private hud: HTMLElement;
@@ -292,7 +292,8 @@ export class RaceApp {
     for (const [sw, m] of this.mech.sweepLamps) m.emissiveIntensity = sw.boost === 1 ? 3 : sw.boost ? (Math.sin(t * 24) > 0 ? 2.5 : .2) : 0;
     // ---- sound of the world around the local runner ----
     const me = this.me, ss = this.sndState, dd = (x: number, z: number) => Math.hypot(x - me.x, z - me.z);
-    if (me.falls > ss.falls) {ss.falls = me.falls; this.snd.splash(); navigator.vibrate?.(40);}
+    if (me.falls > ss.falls) {ss.falls = me.falls; this.snd.splash(); navigator.vibrate?.(40); this.puff(me.x, me.y, me.z, 1.8); this.flash();}
+    if (!me.ground && Math.hypot(me.vx, me.vz) > 4) {ss.trail = (ss.trail || 0) + dt; if (ss.trail > .05) {ss.trail = 0; this.puff(me.x, me.y + .4, me.z, .35);}}
     if (me.stun > .5 && ss.stun <= .25) {this.snd.hit(0); navigator.vibrate?.(35);} ss.stun = me.stun;
     if (me.ground && Math.hypot(me.vx, me.vz) > 2) {ss.step += dt * Math.hypot(me.vx, me.vz); if (ss.step > 1.6) {ss.step = 0; this.snd.step(me.ground.mat);}}
     for (const g of c.gates) {if (g.warn && !ss.gates.get(g)) this.snd.alarm(dd(0, g.z)); if (g.open < .05 && g.lastOpen >= .05) this.snd.metal(dd(0, g.z)); ss.gates.set(g, g.warn);}
@@ -329,6 +330,7 @@ export class RaceApp {
       this.cpArches.push({glow, flag, lit: false});
     }
   }
+  private flash() {const f = document.getElementById('flash'); if (!f) return; f.classList.remove('on'); void f.offsetWidth; f.classList.add('on');}
   private toast(text: string) {const t = document.getElementById('toast'); if (!t) return; t.textContent = text; t.classList.remove('show'); void t.offsetWidth; t.classList.add('show');}
 
   // ---------- the collector's house ----------
@@ -704,8 +706,12 @@ export class RaceApp {
     const lb = document.getElementById('board')!; if (lb.dataset.h !== html) {lb.dataset.h = html; lb.innerHTML = html;}
     const res = document.getElementById('results')!;
     if ((this.me.finished || this.over()) && res.hidden) {res.hidden = false; this.snd.finish(this.me.finished && st.indexOf(this.me) < 3);
-      res.querySelector('ol')!.innerHTML = st.map(r => `<li class="${r === this.me ? 'me' : ''}">${r.name}<span>${r.finished ? (r.finishTime - COUNTDOWN).toFixed(1) + ' с' : Math.round(r.progress / this.course.finishZ * 100) + '%'}</span></li>`).join('');
-      setText('verdict', this.me.finished ? 'ФИНИШ!' : 'ВРЕМЯ ВЫШЛО');}
+      const res2 = (r: Runner) => r.finished ? (r.finishTime - COUNTDOWN).toFixed(1) + ' с' : Math.round(Math.min(1, r.progress / this.course.finishZ) * 100) + '%';
+      const img = (r: Runner) => `../hell-cage-host/chars/${r.character}.png`, pod = [st[1], st[0], st[2]];
+      (res.querySelector('.podium') as HTMLElement).innerHTML = pod.map((r, i) => r ? `<div class="step s${[2, 1, 3][i]}${r === this.me ? ' me' : ''}"><img src="${img(r)}" alt=""><b>${r.name}</b><small>${res2(r)}</small><div class="block">${[2, 1, 3][i]}</div></div>` : '<div class="step empty"></div>').join('');
+      res.querySelector('ol')!.innerHTML = st.slice(3).map((r, i) => `<li class="${r === this.me ? 'me' : ''}"><em>${i + 4}</em>${r.name}<span>${res2(r)}${r.falls ? ` · падений ${r.falls}` : ''}</span></li>`).join('');
+      const myPlace = st.indexOf(this.me) + 1; setText('verdict', this.net?.spectator ? 'ИТОГИ ЗАБЕГА' : this.me.finished ? (myPlace === 1 ? 'ПОБЕДА!' : `ФИНИШ · ${myPlace} МЕСТО`) : 'ВРЕМЯ ВЫШЛО');
+      document.body.classList.add('done'); if (myPlace <= 3 || this.net?.spectator) confetti();}
   }
 
   private input() {
@@ -873,3 +879,7 @@ function rayTexture() {const c = document.createElement('canvas'); c.width = 64;
 
 const INTRO = 25;
 const RULES: [number, string][] = [[.6, 'Добро пожаловать в Проклятый забег!'], [3.8, 'Цель простая — первым добежать до финиша!'], [8.2, 'На пути брёвна, бочки, ловушки и пропасти. Упали? Вернётесь на последний чекпоинт.'], [15.6, 'Джойстик слева — бежать. Кнопка справа — прыгать.'], [20.2, 'Трасса каждый раз новая. Удачи — и не отставайте!']];
+
+function confetti() {const c = document.createElement('canvas'); c.className = 'confetti'; c.width = innerWidth; c.height = innerHeight; document.body.appendChild(c); const x = c.getContext('2d')!;
+  const cols = ['#f6c26b', '#e74c3c', '#fff1d0', '#c0392b', '#ffd24a'], ps = Array.from({length: 140}, () => ({x: Math.random() * c.width, y: -20 - Math.random() * c.height * .5, vx: (Math.random() - .5) * 2, vy: 2 + Math.random() * 3, r: Math.random() * 6, s: 4 + Math.random() * 6, c: cols[Math.floor(Math.random() * cols.length)]}));
+  let t = 0; const tick = () => {t++; x.clearRect(0, 0, c.width, c.height); for (const p of ps) {p.x += p.vx; p.y += p.vy; p.r += .1; x.save(); x.translate(p.x, p.y); x.rotate(p.r); x.fillStyle = p.c; x.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); x.restore();} if (t < 260) requestAnimationFrame(tick); else c.remove();}; tick();}

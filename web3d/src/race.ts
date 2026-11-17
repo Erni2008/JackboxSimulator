@@ -44,7 +44,7 @@ const go = async (ch: string) => {
   pick.hidden = true; load.hidden = false; document.body.classList.add('playing');
   const app = new RaceApp(document.getElementById('stage')!, ch, map);
   await app.load(f => fill.style.width = `${Math.round(f * 100)}%`);
-  load.hidden = true; app.start();
+  load.hidden = true; app.start(); (window as any).__race = app;
   document.getElementById('again')!.onclick = () => location.reload();
 };
 if (q.get('net') || q.get('host')) online();

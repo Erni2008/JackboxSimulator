@@ -56,3 +56,16 @@ body.spectator #board{display:flex!important}
 #intro-skip{position:absolute;right:max(16px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));pointer-events:auto;background:#0d0907c8;border:1px solid #f6c26b88;color:#f6dfb0;font:700 13px/1 inherit;letter-spacing:.15em;padding:12px 16px;border-radius:12px}
 #tap{position:fixed;inset:0;z-index:6;display:grid;place-items:center;background:#000a}#tap button{background:linear-gradient(#c0392b,#7a1a12);border:1px solid #f6c26b;color:#fff;font:700 18px/1 inherit;letter-spacing:.12em;padding:20px 28px;border-radius:16px}
 body.intro-on #hud>*:not(#mute){visibility:hidden}
+
+#results{width:min(560px,94vw)}
+.podium{display:flex;align-items:flex-end;justify-content:center;gap:8px;margin:6px 0 12px}
+.podium .step{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;animation:rise .7s cubic-bezier(.2,1.4,.4,1) both}.podium .s1{animation-delay:.5s}.podium .s2{animation-delay:.25s}.podium .s3{animation-delay:0s}
+.podium img{height:clamp(54px,12vh,96px);object-fit:contain;filter:drop-shadow(0 6px 8px #000a)}.podium b{font:700 14px/1.1 inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}.podium small{font-size:12px;opacity:.75}
+.podium .block{width:100%;display:grid;place-items:center;font:700 26px/1 Georgia,serif;border-radius:10px 10px 0 0;background:linear-gradient(#3a2418,#1d120d);border:1px solid #6b4a2b;border-bottom:0}
+.podium .s1 .block{height:clamp(56px,13vh,96px);color:#ffd24a;background:linear-gradient(#6b4a12,#2a1d08);border-color:#f6c26b}.podium .s2 .block{height:clamp(40px,9vh,70px);color:#d9e2ea}.podium .s3 .block{height:clamp(28px,6vh,50px);color:#e2995a}
+.podium .me b{color:#f6c26b}.podium .empty{visibility:hidden}
+@keyframes rise{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:none}}
+#results li em{font-style:normal;font-family:Georgia,serif;color:#f6c26b;margin-right:8px}
+.confetti{position:fixed;inset:0;z-index:7;pointer-events:none}
+#flash{position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle,#fff0 30%,#ff3b1f55);opacity:0;z-index:3}#flash.on{animation:fl .6s ease-out}@keyframes fl{0%{opacity:1}100%{opacity:0}}
+body.done .tag,body.done #stick-zone,body.done #jump{display:none}#results li{justify-content:flex-start}#results li span{margin-left:auto}
