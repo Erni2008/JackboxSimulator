@@ -3,7 +3,11 @@
 import * as THREE from 'three';
 import {GLTFLoader, type GLTF} from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
-import {Course, Runner, top, type Block, H} from './course';
+import {Course, Runner, top, type Block, H, SECTION_NAMES} from './course';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 
 export const CHARACTERS = ['skeleton', 'dracula', 'pumpkin', 'voodoo', 'ghost', 'zombie', 'plague_doctor', 'puppeteer'];
 export const NAMES: Record<string, string> = {skeleton: 'Скелет', dracula: 'Дракула', pumpkin: 'Тыква', voodoo: 'Вуду', ghost: 'Призрак', zombie: 'Зомби', plague_doctor: 'Чумной доктор', puppeteer: 'Кукольник'};
@@ -15,13 +19,13 @@ export class RaceApp {
   readonly renderer: THREE.WebGLRenderer; readonly scene = new THREE.Scene(); readonly camera = new THREE.PerspectiveCamera(55, 1, .3, 900);
   course: Course; readonly night: boolean; readonly manor: boolean; runners: Runner[] = []; me!: Runner; clock = 0; private acc = 0;
   private sun!: THREE.DirectionalLight; private fill!: THREE.DirectionalLight; private mist: THREE.Mesh[] = []; private pollen!: THREE.Points; private puffs: {s: THREE.Sprite; t: number}[] = []; private grassMat?: THREE.Material; private looks = new Map<Runner, Look>(); private blockMeshes = new Map<Block, THREE.Mesh>();
-  private sweeperMeshes: THREE.Object3D[] = []; private cpArches: {glow: THREE.Mesh; flag: THREE.Mesh; lit: boolean}[] = []; private lastCp = 0; private pend: {bob: THREE.Object3D; chain: THREE.Mesh}[] = []; private boulderPool: THREE.Object3D[] = [];
+  private sweeperMeshes: THREE.Object3D[] = []; private cpArches: {glow: THREE.Mesh; flag: THREE.Mesh; lit: boolean}[] = []; private lastCp = 0; private pend: THREE.Object3D[] = []; private rams: THREE.Object3D[] = []; private padMeshes: THREE.Mesh[] = []; private warnPlanes = new Map<Block, THREE.Mesh>(); private belts: THREE.Texture[] = []; private composer?: EffectComposer; private lastSection = ''; private boulderPool: THREE.Object3D[] = [];
   private gltf = new GLTFLoader(); private texLoader = new THREE.TextureLoader(); private cache = new Map<string, Promise<GLTF>>();
   private camTarget = new THREE.Vector3(); private pixelRatio: number; private frameAvg = 16; private last = 0;
   private dots = new Map<Runner, HTMLElement>(); private keys = new Set<string>(); private stick = {id: -1, ox: 0, oy: 0, x: 0, y: 0}; private hud: HTMLElement;
 
   constructor(private host: HTMLElement, private myChar: string, map = 1) {
-    this.course = new Course(map); this.night = this.course.theme === 'graveyard'; this.manor = this.course.theme === 'manor';
+    const qs = new URLSearchParams(location.search); this.course = new Course(map, Number(qs.get('seed')) || (Math.random() * 1e9) | 0); this.night = this.course.theme === 'graveyard'; this.manor = this.course.theme === 'manor';
     const phone = matchMedia('(pointer:coarse)').matches;
     this.renderer = new THREE.WebGLRenderer({antialias: !phone || devicePixelRatio < 2, powerPreference: 'high-performance'});
     this.pixelRatio = Math.min(devicePixelRatio, phone ? 1.5 : 2); this.renderer.setPixelRatio(this.pixelRatio);
@@ -56,7 +60,9 @@ export class RaceApp {
     for (const b of this.course.blocks) {
       const topM = ({grass: mats.grass, plank: mats.plank, stone: mats.stone, cobble: mats.cobble, brick: mats.brick, dark: mats.dark, mud: mats.mud, floor: mats.floor, flag: mats.flag} as Record<string, THREE.Material>)[b.mat];
       const side = b.mat === 'plank' ? mats.plank : b.mat === 'dark' ? mats.dark : this.manor ? (b.mat === 'floor' ? mats.beam : mats.wall) : this.night ? mats.brick : mats.rock;
-      const m = new THREE.Mesh(blockGeometry(b), [topM, side]); if (b.mat === 'grass') this.grassOn(b); m.receiveShadow = true; m.castShadow = b.mat === 'plank' || b.crumbles; this.blockMeshes.set(b, m); this.scene.add(m);
+      let tm = topM; if (b.conveyor) {const mm = (topM as THREE.MeshStandardMaterial).clone(); for (const k of ['map', 'normalMap', 'roughnessMap'] as const) if (mm[k]) {mm[k] = mm[k]!.clone(); mm[k]!.needsUpdate = true; this.belts.push(mm[k]!);} tm = mm;}
+      const m = new THREE.Mesh(blockGeometry(b), [tm, side]);
+      if (b.trapPeriod) {const w = new THREE.Mesh(new THREE.PlaneGeometry(b.x1 - b.x0 - .1, b.z1 - b.z0 - .1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({color: 0xff2a12, transparent: true, opacity: .5, depthWrite: false, blending: THREE.AdditiveBlending})); w.position.set((b.x0 + b.x1) / 2, b.y0 + .03, (b.z0 + b.z1) / 2); w.visible = false; this.scene.add(w); this.warnPlanes.set(b, w);} if (b.mat === 'grass') this.grassOn(b); m.receiveShadow = true; m.castShadow = b.mat === 'plank' || b.crumbles; this.blockMeshes.set(b, m); this.scene.add(m);
     }
     if (!this.night) {const floor = new THREE.Mesh(new THREE.PlaneGeometry(520, 540).rotateX(-Math.PI / 2), mats.ground); floor.receiveShadow = false; floor.position.set(0, -34, 150); worldUV(floor.geometry as THREE.BufferGeometry, 6, 'xz'); this.scene.add(floor);}
     // hazards
@@ -65,14 +71,27 @@ export class RaceApp {
       this.sweeperMeshes.push(g); this.scene.add(g);
       const post = new THREE.Mesh(new THREE.CylinderGeometry(.55, .65, 1.6, 12), this.night ? mats.brick : mats.bark); post.position.set(s.x, s.y - .25, s.z); post.castShadow = true; this.scene.add(post);}
     const boulder = await this.model('env/boulder_01.glb'); const cageG = this.manor ? await this.model('env/cage.glb') : null; progress(.15);
+    const linkGeo = new THREE.TorusGeometry(.13, .035, 6, 12), ironM = new THREE.MeshStandardMaterial({color: 0x34302c, metalness: .9, roughness: .38});
     for (const p of this.course.pendulums) {
-      const bob = cageG ? hanging(normalized(cageG.scene, 2.3, 'height'), 1.15) : this.night ? scythe() : normalized(boulder.scene, p.radius * 2.1, 'max'); this.scene.add(bob);
-      const chain = new THREE.Mesh(new THREE.CylinderGeometry(.07, .07, 1, 6), new THREE.MeshStandardMaterial({color: 0x3a3632, metalness: .8, roughness: .45})); this.scene.add(chain);
-      const base = this.course.spawnY(p.pz), postX = this.night ? 5 : 6.4;
+      const pivot = new THREE.Group(); pivot.position.set(p.px, p.py, p.pz);
+      const links = Math.round(p.len / .2); const chain = new THREE.InstancedMesh(linkGeo, ironM, links); const m4 = new THREE.Matrix4(), q = new THREE.Quaternion();
+      for (let i = 0; i < links; i++) {q.setFromEuler(new THREE.Euler(0, i % 2 ? Math.PI / 2 : 0, Math.PI / 2)); m4.compose(new THREE.Vector3(0, -i * .2 - .1, 0), q, new THREE.Vector3(1, 1, 1)); chain.setMatrixAt(i, m4);}
+      chain.castShadow = true; pivot.add(chain);
+      const bob = this.manor ? spikedBall() : this.night ? scythe() : normalized(boulder.scene, p.radius * 2.1, 'max'); bob.position.y = -p.len; pivot.add(bob); this.scene.add(pivot);
+      const base = this.course.spawnY(p.pz), postX = this.night ? 5.2 : 5.4;
       if (!this.manor) for (const sg of [-1, 1]) {const post = new THREE.Mesh(this.night ? new THREE.BoxGeometry(.9, p.py - base, .9) : new THREE.CylinderGeometry(.45, .5, p.py - base, 10), this.night ? mats.brick : mats.bark); post.position.set(sg * postX, (base + p.py) / 2, p.pz); post.castShadow = true; this.scene.add(post);}
-      if (!this.manor) {const beam = new THREE.Mesh(logGeo, this.night ? mats.dark : mats.bark); beam.scale.set(postX * 2 + .8, .9, .9); beam.position.set(0, p.py, p.pz); beam.castShadow = true; this.scene.add(beam);}
-      this.pend.push({bob, chain});
+      const beam = new THREE.Mesh(logGeo, this.manor ? mats.beam : this.night ? mats.dark : mats.bark); beam.scale.set(postX * 2 + .8, .9, .9); beam.position.set(0, p.py + .3, p.pz); beam.castShadow = true; this.scene.add(beam);
+      this.pend.push(pivot);
     }
+    // rams in the walls
+    for (const p of this.course.pushers) {const g = new THREE.Group(); const ram = new THREE.Mesh(new THREE.BoxGeometry(1, 1.5, p.d - .2), this.manor ? mats.beam : this.night ? mats.dark : mats.bark); ram.position.x = -.5; ram.castShadow = true;
+      const plate = new THREE.Mesh(new THREE.BoxGeometry(.18, 1.7, p.d), ironM); plate.position.x = -1.02; g.add(ram, plate);
+      for (let i = 0; i < 6; i++) {const sp = new THREE.Mesh(new THREE.ConeGeometry(.1, .35, 8).rotateZ(Math.PI / 2), ironM); sp.position.set(-1.25, -.5 + (i % 2) * .9, -p.d / 2 + .4 + Math.floor(i / 2) * (p.d - .8) / 2); g.add(sp);}
+      g.position.set(p.side * p.wallX, p.y + .8, p.z); g.scale.x = p.side; g.userData.p = p; this.rams.push(g); this.scene.add(g);
+      const house = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.6, p.d + .8), this.manor ? mats.wall : this.night ? mats.brick : mats.rock); house.position.set(p.side * (p.wallX + .6), p.y + 1.3, p.z); house.castShadow = true; this.scene.add(house);}
+    // spring pads
+    for (const p of this.course.pads) {const ring = new THREE.Mesh(new THREE.CylinderGeometry(p.r, p.r * 1.08, .22, 32), new THREE.MeshStandardMaterial({color: 0x24180e, metalness: .6, roughness: .4})); ring.position.set(p.x, p.y + .11, p.z); this.scene.add(ring);
+      const top = new THREE.Mesh(new THREE.CircleGeometry(p.r * .86, 32).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({map: padTexture(), emissive: 0xffb23a, emissiveMap: padTexture(), emissiveIntensity: 1.1, roughness: .5})); top.position.set(p.x, p.y + .23, p.z); this.padMeshes.push(top); this.scene.add(top);}
     this.boulderSrc = boulder.scene;
     const barrel = this.manor ? await this.model('env/wine_barrel_01.glb') : null;
     for (let i = 0; i < 6; i++) {const b = barrel ? rolling(normalized(barrel.scene, 2.4, 'max')) : normalized(boulder.scene, 2.4, 'max'); b.visible = false; this.boulderPool.push(b); this.scene.add(b);}
@@ -140,7 +159,10 @@ export class RaceApp {
     }));
   }
 
-  start() {this.renderer.setAnimationLoop(t => this.frame(t));}
+  start() {
+    if (!matchMedia('(pointer:coarse)').matches) {const c = new EffectComposer(this.renderer); c.addPass(new RenderPass(this.scene, this.camera));
+      c.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth / 2, innerHeight / 2), this.night || this.manor ? .75 : .35, .5, .82)); c.addPass(new OutputPass()); c.setSize(innerWidth, innerHeight); this.composer = c;}
+    this.renderer.setAnimationLoop(t => this.frame(t));}
 
   // ---------- checkpoints ----------
   private checkpointArches(postMat: THREE.Material) {
@@ -357,7 +379,7 @@ export class RaceApp {
     while (this.acc >= STEP) {this.acc -= STEP; this.clock += STEP; const live = this.clock >= COUNTDOWN && !this.over();
       this.course.step(STEP);
       for (const r of this.runners) {if (r.bot) this.course.think(r, STEP); if (!live) {r.inX = r.inZ = 0; r.jump = false;} this.course.move(r, STEP);}}
-    this.sync(dt); this.renderer.render(this.scene, this.camera); this.hudUpdate();
+    this.sync(dt); if (this.composer) this.composer.render(); else this.renderer.render(this.scene, this.camera); this.hudUpdate();
   }
 
   over() {if (this.clock - COUNTDOWN >= LIMIT) return true; return this.runners.length > 0 && this.runners.every(r => r.finished);}
@@ -368,8 +390,12 @@ export class RaceApp {
     const c = this.course;
     for (const [b, m] of this.blockMeshes) {const shake = b.crumbles && b.crumbleAt >= 0 && c.time - b.crumbleAt < .75 ? Math.sin(c.time * 70) * .05 : 0; m.position.set(b.offX + shake, b.offY, 0); m.visible = !b.gone;}
     c.sweepers.forEach((s, i) => {const m = this.sweeperMeshes[i]; m.position.set(s.x, s.y, s.z); m.rotation.y = -s.angle;});
-    c.pendulums.forEach((p, i) => {const {bob, chain} = this.pend[i]; bob.position.set(p.bx, p.by, p.bz); bob.rotation.z = p.swing;
-      chain.position.set((p.px + p.bx) / 2, (p.py + p.by) / 2, p.pz); chain.rotation.z = p.swing; chain.scale.y = p.len - p.radius * .6;});
+    c.pendulums.forEach((p, i) => {this.pend[i].rotation.z = p.swing;});
+    for (const g of this.rams) {const p = g.userData.p; g.position.x = p.side * (p.wallX - p.reach * p.ext);}
+    c.pads.forEach((p, i) => {const k = Math.max(0, 1 - (c.time - p.fired) * 4); this.padMeshes[i].position.y = p.y + .23 + k * .25; (this.padMeshes[i].material as THREE.MeshStandardMaterial).emissiveIntensity = 1 + Math.sin(c.time * 6) * .3 + k * 3;});
+    for (const [b, w] of this.warnPlanes) {w.visible = b.warn && !b.gone; (w.material as THREE.MeshBasicMaterial).opacity = .35 + .35 * Math.sin(c.time * 28);}
+    for (const t of this.belts) t.offset.y = (t.offset.y + dt * .9) % 1;
+    const sec = c.sectionAt(this.me.z); if (sec && sec.name !== this.lastSection) {this.lastSection = sec.name; if (this.clock > COUNTDOWN + .5) this.toast(SECTION_NAMES[sec.name].toUpperCase());}
     this.boulderPool.forEach((o, i) => {const b = c.boulders[i]; o.visible = !!b; if (b) {o.position.set(b.x, b.y, b.z); o.rotation.x = b.spin; o.scale.setScalar(b.radius / 1.2 * o.userData.base);}});
     for (const [r, l] of this.looks) {
       const hs = Math.hypot(r.vx, r.vz), want = r.stun > 0 ? 'stun' : !r.ground ? 'jump' : hs > .8 ? 'run' : 'idle';
@@ -441,7 +467,7 @@ export class RaceApp {
     this.me.inX = x; this.me.inZ = z; if (k.has('Space')) this.me.holdJump = true; else if (this.stick.id < 0 && !document.getElementById('jump')!.classList.contains('down')) this.me.holdJump = false;
   }
 
-  private resize() {const w = innerWidth, h = innerHeight; this.renderer.setSize(w, h); this.camera.aspect = w / h; this.camera.fov = w < h ? 70 : 58; this.camera.updateProjectionMatrix();}
+  private resize() {const w = innerWidth, h = innerHeight; this.renderer.setSize(w, h); this.composer?.setSize(w, h); this.camera.aspect = w / h; this.camera.fov = w < h ? 70 : 58; this.camera.updateProjectionMatrix();}
   private model(url: string) {let p = this.cache.get(url); if (!p) {p = this.gltf.loadAsync(url); this.cache.set(url, p);} return p;}
   private tex(url: string, repeat = true, color = true) {const t = this.texLoader.load(url); if (color) t.colorSpace = THREE.SRGBColorSpace; if (repeat) t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; return t;}
   private mat(name: string, _tile: number, shade = false, tint = 0xffffff) {
@@ -528,3 +554,15 @@ function shaftTexture() {const c = document.createElement('canvas'); c.width = 6
   const g = x.createLinearGradient(0, 0, 0, 256); g.addColorStop(0, 'rgba(255,255,255,.9)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 256);
   const h = x.createLinearGradient(0, 0, 64, 0); h.addColorStop(0, 'rgba(0,0,0,1)'); h.addColorStop(.25, 'rgba(0,0,0,0)'); h.addColorStop(.75, 'rgba(0,0,0,0)'); h.addColorStop(1, 'rgba(0,0,0,1)');
   x.globalCompositeOperation = 'destination-out'; x.fillStyle = h; x.fillRect(0, 0, 64, 256); return new THREE.CanvasTexture(c);}
+
+/** Iron mace ball with spikes. */
+function spikedBall() {const g = new THREE.Group(), m = new THREE.MeshStandardMaterial({color: 0x2c2a2a, metalness: .92, roughness: .34, envMapIntensity: 1.6});
+  const ball = new THREE.Mesh(new THREE.IcosahedronGeometry(.85, 2), m); ball.castShadow = true; g.add(ball);
+  const ico = new THREE.IcosahedronGeometry(1, 1), pos = ico.getAttribute('position'), seen = new Set<string>();
+  for (let i = 0; i < pos.count; i++) {const v = new THREE.Vector3(pos.getX(i), pos.getY(i), pos.getZ(i)).normalize(), key = v.toArray().map(x => x.toFixed(2)).join(); if (seen.has(key)) continue; seen.add(key);
+    const sp = new THREE.Mesh(new THREE.ConeGeometry(.13, .55, 8), m); sp.position.copy(v.clone().multiplyScalar(1.02)); sp.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), v); g.add(sp);}
+  const cap = new THREE.Mesh(new THREE.TorusGeometry(.2, .06, 6, 12), m); cap.position.y = .95; g.add(cap); g.userData.base = 1; return g;}
+function padTexture() {const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d')!; x.fillStyle = '#3a1a08'; x.fillRect(0, 0, 128, 128);
+  x.strokeStyle = '#ffcf5a'; x.lineWidth = 8; for (const r of [56, 38]) {x.beginPath(); x.arc(64, 64, r, 0, 7); x.stroke();}
+  x.fillStyle = '#ffe08a'; x.beginPath(); x.moveTo(64, 26); x.lineTo(90, 64); x.lineTo(74, 64); x.lineTo(74, 100); x.lineTo(54, 100); x.lineTo(54, 64); x.lineTo(38, 64); x.closePath(); x.fill();
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.center.set(.5, .5); t.rotation = Math.PI; return t;}

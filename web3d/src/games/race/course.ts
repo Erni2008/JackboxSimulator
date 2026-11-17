@@ -1,16 +1,23 @@
-// Obstacle race course + physics (port of core/.../race/RaceCourse.java). Deterministic from the shared clock, so every
-// phone sees the same logs, boulders and rafts; each phone simulates only its own runner.
+// Obstacle race course + physics. The course is assembled from a library of sections, shuffled by a seed, so every
+// race is different; the seed is all a phone needs to rebuild the exact same course. Moving parts are deterministic from
+// the shared clock, so every phone sees the same logs, barrels and rocks; each phone simulates only its own runner.
 export type Mat = 'grass' | 'plank' | 'stone' | 'cobble' | 'brick' | 'dark' | 'mud' | 'floor' | 'flag';
 export type Theme = 'cliffs' | 'graveyard' | 'manor';
 export const THIN: Mat[] = ['plank', 'dark'];
 /** Indoor room: walls at ±halfW from z0 to z1, ceiling at floor + h. */
 export interface Room {z0: number; z1: number; halfW: number; y: number; h: number; skylights: boolean}
 export interface Block {x0: number; x1: number; z0: number; z1: number; bottom: number; y0: number; y1: number; mat: Mat;
-  driftAmp: number; driftPeriod: number; driftPhase: number; crumbles: boolean; crumbleDelay: number; sink: boolean; liftAmp: number; liftPeriod: number; liftPhase: number; lastOffY: number; offX: number; offY: number; lastOffX: number; crumbleAt: number; fallV: number; gone: boolean}
-export interface Sweeper {x: number; y: number; z: number; len: number; speed: number; angle: number; arms?: number}
+  driftAmp: number; driftPeriod: number; driftPhase: number; crumbles: boolean; crumbleDelay: number; sink: boolean;
+  liftAmp: number; liftPeriod: number; liftPhase: number; conveyor: number; trapPeriod: number; trapPhase: number; warn: boolean;
+  lastOffY: number; offX: number; offY: number; lastOffX: number; crumbleAt: number; fallV: number; gone: boolean; land?: boolean}
+export interface Sweeper {x: number; y: number; z: number; len: number; speed: number; angle: number; arms?: number; angle0?: number}
 export interface Pendulum {px: number; py: number; pz: number; len: number; amp: number; period: number; phase: number; radius: number; bx: number; by: number; bz: number; swing: number}
 export interface Faller {id: number; x: number; z: number; g: number; spawn: number; impact: number; r: number; y: number; alive: boolean; landed: boolean}
 export interface Boulder {x: number; y: number; z: number; vz: number; spin: number; radius: number; alive: boolean}
+/** Ram that shoots out of a side wall. */
+export interface Pusher {side: number; wallX: number; z: number; d: number; y: number; reach: number; period: number; phase: number; ext: number; lastExt: number}
+/** Spring pad that launches runners forward over a gap. */
+export interface Pad {x: number; z: number; y: number; r: number; fired: number}
 
 export const R = .42, H = 1.55, DEATH_Y = -12, BOTTOM = -16;
 const clamp = (v: number, a: number, b: number) => v < a ? a : v > b ? b : v;
@@ -23,116 +30,97 @@ export class Runner {
   constructor(public id: string, public name: string, public character: string, public slot: number, public bot: boolean) {}
 }
 
+type Look = {main: Mat; alt: Mat; thin: Mat; land: Mat; crumble: Mat};
+const LOOK: Record<Theme, Look> = {
+  cliffs: {main: 'grass', alt: 'stone', thin: 'plank', land: 'grass', crumble: 'stone'},
+  graveyard: {main: 'cobble', alt: 'brick', thin: 'dark', land: 'mud', crumble: 'mud'},
+  manor: {main: 'floor', alt: 'flag', thin: 'floor', land: 'flag', crumble: 'floor'},
+};
+export const SECTION_NAMES: Record<string, string> = {terraces: 'Террасы', spinner: 'Мельница', gaps: 'Провалы', pendulums: 'Маятники', rafts: 'Плоты', crumble: 'Обвал пола',
+  sink: 'Трясина', pushers: 'Тараны', pads: 'Батуты', traps: 'Люки', conveyor: 'Транспортёр', ramp: 'Скат', rain: 'Дождь с неба', hops: 'Лестница к финишу'};
+
 export class Course {
-  blocks: Block[] = []; sweepers: Sweeper[] = []; pendulums: Pendulum[] = []; boulders: Boulder[] = []; fallers: Faller[] = []; fallZones: [number, number, number, number][] = []; private fallTimer = 0; private fallSeed = 99; private fallId = 0;
-  checkpoints: number[]; gauntlet: number[] = []; finishZ: number; rampZ0: number; rampZ1: number; rampY0: number; rampY1: number; time = 0;
-  private boulderTimer = 1.5; private seed = 7;
-  theme: Theme; deathY = DEATH_Y; rooms: Room[] = [];
-  constructor(public map = 1) {
+  blocks: Block[] = []; sweepers: Sweeper[] = []; pendulums: Pendulum[] = []; boulders: Boulder[] = []; fallers: Faller[] = [];
+  pushers: Pusher[] = []; pads: Pad[] = []; rooms: Room[] = []; sections: {name: string; z0: number; z1: number}[] = [];
+  fallZones: [number, number, number, number][] = []; checkpoints: number[] = [0]; finishZ = 0; time = 0;
+  rampZ0 = 0; rampZ1 = 0; rampY0 = 0; rampY1 = 0; rampHalfW = 4; theme: Theme; deathY = DEATH_Y;
+  private boulderTimer = 1.2; private seed = 7; private fallTimer = 0; private fallSeed = 99; private fallId = 0;
+  private look: Look; private z = 0; private y = 0; private rs: number;
+
+  constructor(public map = 1, public courseSeed = 1) {
     this.theme = map === 3 ? 'manor' : map === 2 ? 'graveyard' : 'cliffs';
-    if (map === 3) {this.deathY = -6; this.finishZ = 0; this.checkpoints = []; this.rampZ0 = this.rampZ1 = this.rampY0 = this.rampY1 = 0; this.map3(); return;}
-    if (map === 2) {this.deathY = -2.4; this.rampZ0 = this.rampZ1 = this.rampY0 = this.rampY1 = 0; this.finishZ = 0; this.checkpoints = []; this.map2(); return;}
-    let z = 0, y = 0;
-    this.add(-9, 9, -6, 18, 0, 0, 'grass'); z = 18;
-    this.add(-8, 8, z, z + 9, .9, .9, 'grass'); this.add(-8, 8, z + 9, z + 18, 1.8, 1.8, 'grass'); this.add(-8, 8, z + 18, z + 27, 2.7, 2.7, 'grass'); z += 27; y = 2.7;
-    this.add(-10, 10, z, z + 22, y, y, 'stone'); this.sweepers.push({x: 0, y: y + .55, z: z + 11, len: 9.5, speed: 1.25, angle: 0}); z += 22;
-    const seg = [3.2, 2.6, 2.6, 2.2, 2.6, 2, 3];
-    seg.forEach((s, i) => {this.add(-2.2, 2.2, z, z + s, y, y, 'plank'); z += s + (i < seg.length - 1 ? 1.7 : 0);});
-    this.add(-6, 6, z, z + 30, y, y, 'stone');
-    for (let i = 0; i < 3; i++) this.pendulums.push({px: 0, py: y + 8.4, pz: z + 6 + i * 9, len: 7.3, amp: .85, period: 2.6, phase: i * 1.9, radius: 1.15, bx: 0, by: 0, bz: 0, swing: 0});
-    z += 30;
-    for (let i = 0; i < 4; i++) {const b = this.add(-2.3, 2.3, z + 1.6, z + 6.2, y, y, 'plank'); b.driftAmp = 4.2; b.driftPeriod = 3.4 + i * .35; b.driftPhase = i * 1.7; z += 6.2;}
-    z += 1.6; this.add(-7, 7, z, z + 8, y, y, 'grass'); z += 8;
-    for (let r = 0; r < 5; r++) for (let c = -1; c <= 1; c++) {const b = this.add(c * 3.2 - 1.4, c * 3.2 + 1.4, z + r * 3.2 + .2, z + r * 3.2 + 3, y, y, 'stone'); b.crumbles = true; b.bottom = y - .9;}
-    z += 16; this.add(-8, 8, z, z + 7, y, y, 'grass'); z += 7;
-    this.rampZ0 = z; this.rampZ1 = z + 34; this.rampY0 = y; this.rampY1 = y + 7.5;
-    this.add(-7, 7, this.rampZ0, this.rampZ1, this.rampY0, this.rampY1, 'grass'); z = this.rampZ1; y = this.rampY1;
-    // ---- final gauntlet ----
-    this.add(-8, 8, z, z + 8, y, y, 'grass'); z += 8; const cpFall = z;
-    // 9. rockfall: long causeway, rocks crash down on red warning circles
-    this.add(-6, 6, z, z + 46, y, y, 'stone'); this.fallZones.push([-5, 5, z + 2, z + 45]); z += 46;
-    this.add(-7, 7, z, z + 6, y, y, 'grass'); z += 6; const cpBridge = z;
-    // 10. collapsing bridge: two narrow lanes of slabs that drop almost at once
-    for (let r = 0; r < 9; r++) for (const c of [-1, 1]) {const b = this.add(c * 1.7 - 1.1, c * 1.7 + 1.1, z + r * 2.9 + .25, z + r * 2.9 + 2.6, y, y, 'stone'); b.crumbles = true; b.crumbleDelay = .42; b.bottom = y - .9;}
-    z += 26.4; this.add(-7, 7, z, z + 6, y, y, 'grass'); z += 6; const cpLogs = z;
-    // 11. twin logs spinning against each other
-    this.add(-10, 10, z, z + 30, y, y, 'stone');
-    this.sweepers.push({x: 0, y: y + .55, z: z + 8, len: 8.5, speed: 1.6, angle: 0}, {x: 0, y: y + .55, z: z + 21, len: 8.5, speed: -1.95, angle: 0}); z += 30;
-    // 12. island hops up to the finish under falling rocks
-    const hops = [[0, 3.2], [-2.6, 2.6], [2.4, 2.6], [-1.2, 2.4], [1.8, 2.6], [0, 3]];
-    const hz0 = z; for (const [hx, len] of hops) {z += 2.1; y += .45; this.add(hx - 1.7, hx + 1.7, z, z + len, y, y, 'stone'); z += len;}
-    this.fallZones.push([-3, 3, hz0, z]);
-    z += 1.8; this.add(-11, 11, z, z + 22, y, y, 'stone'); this.finishZ = z + 12;
-    this.gauntlet = [cpFall, cpBridge, cpLogs];
-    this.checkpoints = [0, 46, 101, 145, 176, this.rampZ1 + 1, ...this.gauntlet.map(v => v - 3)];
+    this.deathY = this.theme === 'manor' ? -6 : this.theme === 'graveyard' ? -2.4 : DEATH_Y;
+    this.look = LOOK[this.theme]; this.rs = (courseSeed >>> 0) || 1;
+    this.build();
   }
-  /** THE CURSED GRAVEYARD: night, moonlight, crypt lifts, scythes, swamp coffins, a spinning cross, fire rain. */
-  private map2() {
-    let z = 0, y = 0; const cp: number[] = [0];
-    this.add(-10, 10, -6, 20, 0, 0, 'cobble'); z = 20;
-    // crypt lids lifting and sinking out of phase
-    const lifts = [[-2.2, 0], [2, .6], [-1.6, 1.2], [2.4, 1.8], [-.6, 2.4], [0, 3]];
-    lifts.forEach(([lx, ly], i) => {z += 1.4; const b = this.add(lx - 2, lx + 2, z, z + 3.6, ly + .6, ly + .6, 'brick'); b.liftAmp = .85; b.liftPeriod = 3.2; b.liftPhase = i * 1.15; b.bottom = ly - 2.5; z += 3.6;});
-    y = 3.6; z += 1.4; this.add(-7, 7, z, z + 7, y, y, 'cobble'); z += 7; cp.push(z - 4);
-    // scythe corridor
-    this.add(-4.5, 4.5, z, z + 38, y, y, 'cobble');
-    for (let i = 0; i < 4; i++) this.pendulums.push({px: 0, py: y + 7.6, pz: z + 6 + i * 8.5, len: 6.6, amp: .95, period: 2.2, phase: i * 1.3, radius: 1.05, bx: 0, by: 0, bz: 0, swing: 0});
-    z += 38; this.add(-7, 7, z, z + 7, y, y, 'mud'); z += 7; cp.push(z - 4);
-    // swamp: sinking slabs then drifting coffins
-    for (let r = 0; r < 4; r++) for (const c of [-1, 0, 1]) {const b = this.add(c * 3 - 1.2, c * 3 + 1.2, z + r * 3 + .3, z + r * 3 + 2.7, y, y, 'mud'); b.crumbles = true; b.sink = true; b.crumbleDelay = .35; b.bottom = y - .7;}
-    z += 12.6;
-    for (let i = 0; i < 4; i++) {const b = this.add(-1.1, 1.1, z + 1.5, z + 5.6, y, y, 'dark'); b.driftAmp = 4.6; b.driftPeriod = 3.1 + i * .3; b.driftPhase = i * 2.1; z += 5.6;}
-    z += 1.5; this.add(-8, 8, z, z + 7, y, y, 'mud'); z += 7; cp.push(z - 4);
-    // the spinning cross
-    this.add(-11, 11, z, z + 26, y, y, 'brick');
-    this.sweepers.push({x: 0, y: y + .55, z: z + 13, len: 10, speed: 1.05, angle: 0, arms: 2}); z += 26;
-    this.add(-7, 7, z, z + 7, y, y, 'cobble'); z += 7; cp.push(z - 4);
-    // fire rain over the long causeway, then rising crypt hops to the mausoleum
-    this.add(-5.5, 5.5, z, z + 44, y, y, 'cobble'); this.fallZones.push([-4.5, 4.5, z + 2, z + 43]); z += 44;
-    this.add(-7, 7, z, z + 6, y, y, 'mud'); z += 6; cp.push(z - 4);
-    const hz0 = z; for (const [hx, len] of [[0, 3], [-2.4, 2.6], [2.2, 2.6], [-1, 2.4], [1.6, 2.6], [0, 3]]) {z += 2.1; y += .5; const b = this.add(hx - 1.7, hx + 1.7, z, z + len, y, y, 'brick'); b.liftAmp = .35; b.liftPeriod = 2.4; b.liftPhase = z; z += len;}
-    this.fallZones.push([-3, 3, hz0, z]);
-    z += 1.8; this.add(-11, 11, z, z + 22, y, y, 'cobble'); this.finishZ = z + 12;
-    this.checkpoints = cp;
+  private rnd() {this.rs = (Math.imul(this.rs, 1103515245) + 12345) >>> 0; return (this.rs >>> 8 & 65535) / 65535;}
+
+  private build() {
+    const L = this.look;
+    this.add(-10, 10, -6, 20, 0, 0, L.land).land = true; this.room(-8, 20, 10, 10); this.z = 20;
+    const pool = ['terraces', 'spinner', 'gaps', 'pendulums', 'rafts', 'crumble', 'pushers', 'pads', 'traps', 'conveyor', ...(this.theme === 'graveyard' ? ['sink'] : [])];
+    for (let i = pool.length - 1; i > 0; i--) {const j = Math.floor(this.rnd() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]];}
+    const order = pool.slice(0, 6); order.splice(2 + Math.floor(this.rnd() * 3), 0, 'ramp'); order.push('rain', 'hops');
+    for (const name of order) {
+      const z0 = this.z; (this as any)['s_' + name](); this.sections.push({name, z0, z1: this.z});
+      if (name === 'hops') break;
+      this.add(-6, 6, this.z, this.z + 6, this.y, this.y, L.land).land = true; this.room(this.z, this.z + 6, 6.6, 8, false); this.checkpoints.push(this.z + 2.5); this.z += 6;
+    }
+    this.z += 1.8; this.add(-11, 11, this.z, this.z + 22, this.y, this.y, L.alt).land = true; this.room(this.z, this.z + 22, 11.6, 12); this.finishZ = this.z + 12;
   }
-  /** THE COLLECTOR'S HOUSE: the exhibits break out of the cage cellar and run for the door to freedom. */
-  private map3() {
-    let z = 0, y = 0; const cp: number[] = [0]; const room = (z0: number, z1: number, halfW: number, h = 8, sky = true) => this.rooms.push({z0, z1, halfW, y, h, skylights: sky});
-    // 1. cage hall
-    this.add(-9, 9, -6, 22, 0, 0, 'flag'); room(-8, 22, 9.6, 10); z = 22;
-    // 2. broken floor: tiles with holes into the dark
-    const pat = [[-1, 1], [1], [-1], [-1, 1], [1], [-1, 1], [-1]];
-    pat.forEach((cols, r) => {for (const c of cols) this.add(c * 2.1 - 1.9, c * 2.1 + 1.9, z + r * 3.3, z + r * 3.3 + 3.3, y, y, 'floor').bottom = y - .5;});
-    room(z, z + pat.length * 3.3, 4.6, 7); z += pat.length * 3.3;
-    this.add(-4.6, 4.6, z, z + 6, y, y, 'flag'); room(z, z + 6, 4.6, 7, false); z += 6; cp.push(z - 3);
-    // 3. corridor of swinging cages
-    this.add(-4, 4, z, z + 36, y, y, 'floor'); room(z, z + 36, 4.6, 8.2);
-    for (let i = 0; i < 4; i++) this.pendulums.push({px: 0, py: y + 7.6, pz: z + 5 + i * 8.5, len: 5.9, amp: .92, period: 2.4, phase: i * 1.45, radius: 1.05, bx: 0, by: 0, bz: 0, swing: 0});
-    z += 36; this.add(-4.6, 4.6, z, z + 6, y, y, 'flag'); room(z, z + 6, 4.6, 7, false); z += 6; cp.push(z - 3);
-    // 4. wine cellar stairs: barrels rolling down
-    this.rampZ0 = z; this.rampZ1 = z + 30; this.rampY0 = y; this.rampY1 = y + 6; this.add(-3.6, 3.6, z, z + 30, y, y + 6, 'flag'); room(z, z + 30, 4.2, 9); z += 30; y += 6;
-    this.add(-6, 6, z, z + 6, y, y, 'floor'); room(z, z + 6, 6.6, 7); z += 6; cp.push(z - 3);
-    // 5. rotten floorboards that give way
-    for (let r = 0; r < 6; r++) for (const c of [-1, 0, 1]) {const b = this.add(c * 3 - 1.3, c * 3 + 1.3, z + r * 3.1 + .25, z + r * 3.1 + 2.85, y, y, 'floor'); b.crumbles = true; b.crumbleDelay = .55; b.bottom = y - .5;}
-    room(z, z + 18.6, 6.6, 7); z += 18.6; this.add(-6, 6, z, z + 6, y, y, 'flag'); room(z, z + 6, 6.6, 7, false); z += 6; cp.push(z - 3);
-    // 6. library: crates on ropes over the pit, then the turning beams
-    for (let i = 0; i < 4; i++) {const b = this.add(-1.3, 1.3, z + 1.5, z + 5.3, y, y, 'floor'); b.driftAmp = 3.8; b.driftPeriod = 3.3 + i * .3; b.driftPhase = i * 1.9; b.bottom = y - .6; z += 5.3;}
-    room(z - 21.2, z + 1.5, 6, 9); z += 1.5;
-    this.add(-10, 10, z, z + 26, y, y, 'floor'); room(z, z + 26, 10.6, 9); this.sweepers.push({x: 0, y: y + .55, z: z + 13, len: 9.2, speed: 1.2, angle: 0, arms: 2}); z += 26; cp.push(z - 3);
-    // 7. hall of falling chandeliers
-    this.add(-6, 6, z, z + 42, y, y, 'flag'); room(z, z + 42, 6.6, 10); this.fallZones.push([-5, 5, z + 2, z + 41]); z += 42;
-    this.add(-6, 6, z, z + 6, y, y, 'floor'); room(z, z + 6, 6.6, 8, false); z += 6; cp.push(z - 3);
-    // 8. grand staircase hops to the door
-    const hz0 = z; for (const [hx, len] of [[0, 3], [-2.2, 2.6], [2, 2.6], [-.8, 2.4], [1.4, 2.6], [0, 3]]) {z += 2.1; y += .5; const b = this.add(hx - 1.8, hx + 1.8, z, z + len, y, y, 'flag'); b.liftAmp = .3; b.liftPeriod = 2.6; b.liftPhase = z; z += len;}
-    this.fallZones.push([-3, 3, hz0, z]); room(hz0, z, 6.6, 12);
-    z += 1.8; this.add(-9, 9, z, z + 20, y, y, 'flag'); room(z, z + 20, 9.6, 12); this.finishZ = z + 11;
-    this.checkpoints = cp;
-  }
+
+  // ---------------- sections ----------------
+  private s_terraces() {const up = this.y < 4 || this.rnd() < .6, n = 3 + Math.floor(this.rnd() * 2);
+    for (let i = 0; i < n; i++) {this.y += up ? .9 : -.9; const w = 7 + this.rnd() * 2; this.add(-w, w, this.z, this.z + 7, this.y, this.y, this.look.main); this.room(this.z, this.z + 7, w + .6, 9); this.z += 7;}}
+  private s_spinner() {const v = Math.floor(this.rnd() * 3), y = this.y, z = this.z, sp = (1.1 + this.rnd() * .6) * (this.rnd() < .5 ? -1 : 1);
+    this.add(-10, 10, z, z + 26, y, y, this.look.alt); this.room(z, z + 26, 10.6, 9);
+    if (v === 0) this.sweepers.push({x: 0, y: y + .55, z: z + 13, len: 9.5, speed: sp, angle: 0});
+    else if (v === 1) this.sweepers.push({x: 0, y: y + .55, z: z + 8, len: 8.5, speed: sp * 1.2, angle: 0}, {x: 0, y: y + .55, z: z + 19, len: 8.5, speed: -sp * 1.35, angle: 1});
+    else this.sweepers.push({x: 0, y: y + .55, z: z + 13, len: 9.8, speed: sp * .95, angle: 0, arms: 2});
+    this.z += 26;}
+  private s_gaps() {const n = 6 + Math.floor(this.rnd() * 2), zig = this.rnd() < .5; const z0 = this.z;
+    for (let i = 0; i < n; i++) {const len = 2 + this.rnd() * 1.2, x = zig ? (i % 2 ? 1.3 : -1.3) : 0; this.add(x - 2.2, x + 2.2, this.z, this.z + len, this.y, this.y, this.look.thin).bottom = this.y - .45; this.z += len + (i < n - 1 ? 1.5 + this.rnd() * .4 : 0);}
+    this.room(z0, this.z, 5, 8);}
+  private s_pendulums() {const len = 32 + this.rnd() * 6, y = this.y, z = this.z, n = 4, per = 2.2 + this.rnd() * .6;
+    this.add(-4.5, 4.5, z, z + len, y, y, this.look.main); this.room(z, z + len, 5.1, 9);
+    for (let i = 0; i < n; i++) this.pendulums.push({px: 0, py: y + 7.8, pz: z + 5 + i * (len - 8) / (n - 1), len: 6.3, amp: .95, period: per, phase: i * (1.1 + this.rnd()), radius: 1.05, bx: 0, by: 0, bz: 0, swing: 0});
+    this.z += len;}
+  private s_rafts() {const z0 = this.z; for (let i = 0; i < 4; i++) {const b = this.add(-2.2, 2.2, this.z + 1.6, this.z + 6, this.y, this.y, this.look.thin); b.bottom = this.y - .45; b.driftAmp = 3.6 + this.rnd(); b.driftPeriod = 3 + this.rnd(); b.driftPhase = this.rnd() * 6; this.z += 6;}
+    this.z += 1.6; this.room(z0, this.z, 7, 9);}
+  private s_crumble() {const rows = 5 + Math.floor(this.rnd() * 2), z0 = this.z, delay = .45 + this.rnd() * .3;
+    for (let r = 0; r < rows; r++) for (const c of [-1, 0, 1]) {const b = this.add(c * 3 - 1.3, c * 3 + 1.3, this.z + r * 3.1 + .25, this.z + r * 3.1 + 2.85, this.y, this.y, this.look.crumble); b.crumbles = true; b.crumbleDelay = delay; b.bottom = this.y - .7;}
+    this.z += rows * 3.1; this.room(z0, this.z, 6.6, 8);}
+  private s_sink() {const z0 = this.z; for (let r = 0; r < 4; r++) for (const c of [-1, 0, 1]) {const b = this.add(c * 3 - 1.2, c * 3 + 1.2, this.z + r * 3 + .3, this.z + r * 3 + 2.7, this.y, this.y, 'mud'); b.crumbles = true; b.sink = true; b.crumbleDelay = .35; b.bottom = this.y - .7;}
+    this.z += 12.6; this.room(z0, this.z, 6.6, 8);}
+  private s_pushers() {const len = 34, y = this.y, z = this.z, w = 4.2; this.add(-w, w, z, z + len, y, y, this.look.main); this.room(z, z + len, w + .6, 8);
+    for (let i = 0; i < 6; i++) this.pushers.push({side: i % 2 ? 1 : -1, wallX: w + .2, z: z + 4 + i * 5.3, d: 2.4, y, reach: w * 1.15, period: 2.2 + this.rnd() * .5, phase: this.rnd(), ext: 0, lastExt: 0});
+    this.z += len;}
+  private s_pads() {const z0 = this.z; for (let i = 0; i < 3; i++) {const len = 5; this.add(-3.5, 3.5, this.z, this.z + len, this.y, this.y, this.look.alt); this.pads.push({x: 0, z: this.z + len - 1.4, y: this.y, r: 1.3, fired: -9});
+      this.z += len + 6 + this.rnd() * 1.5; this.y += this.rnd() < .5 ? .8 : 0;}
+    this.add(-3.5, 3.5, this.z, this.z + 3, this.y, this.y, this.look.alt); this.z += 3; this.room(z0, this.z, 5, 11);}
+  private s_traps() {const rows = 6, z0 = this.z, per = 2.6 + this.rnd() * .6, wave = this.rnd() < .5;
+    for (let r = 0; r < rows; r++) for (const c of [-1, 0, 1]) {const b = this.add(c * 2.6 - 1.25, c * 2.6 + 1.25, this.z + r * 2.6, this.z + r * 2.6 + 2.5, this.y, this.y, this.look.alt); b.bottom = this.y - .35;
+      b.trapPeriod = per; b.trapPhase = wave ? r * .14 + c * .05 : ((r * 3 + c + 7) * .37) % 1;}
+    this.z += rows * 2.6; this.room(z0, this.z, 4.6, 8);}
+  private s_conveyor() {const len = 30, y = this.y, z = this.z, b = this.add(-4, 4, z, z + len, y, y, this.look.main); b.conveyor = -(3.2 + this.rnd() * 1.2); this.room(z, z + len, 4.6, 8);
+    for (let i = 0; i < 4; i++) {const zz = z + 5 + i * 6.5, sd = i % 2 ? 1 : -1, full = this.rnd() < .35; this.add(full ? -4 : sd > 0 ? -.4 : -4, full ? 4 : sd > 0 ? 4 : .4, zz, zz + .6, y + .75, y + .75, this.look.alt).bottom = y;}
+    this.z += len;}
+  private s_ramp() {const len = 30 + this.rnd() * 6, rise = 6 + this.rnd() * 2, w = this.theme === 'manor' ? 4 : 6;
+    this.rampZ0 = this.z; this.rampZ1 = this.z + len; this.rampY0 = this.y; this.rampY1 = this.y + rise; this.rampHalfW = w - .6;
+    this.add(-w, w, this.z, this.z + len, this.y, this.y + rise, this.look.alt); this.room(this.z, this.z + len, w + .6, 10 + rise); this.z += len; this.y += rise;}
+  private s_rain() {const len = 40 + this.rnd() * 6; this.add(-5.5, 5.5, this.z, this.z + len, this.y, this.y, this.look.alt); this.fallZones.push([-4.5, 4.5, this.z + 2, this.z + len - 1]); this.room(this.z, this.z + len, 6.1, 10); this.z += len;}
+  private s_hops() {const z0 = this.z, lifts = this.theme !== 'cliffs';
+    for (const [hx, len] of [[0, 3], [-2.3, 2.6], [2.1, 2.6], [-1, 2.4], [1.6, 2.6], [0, 3]]) {this.z += 2.1; this.y += .5; const b = this.add(hx - 1.8, hx + 1.8, this.z, this.z + len, this.y, this.y, this.look.alt); if (lifts) {b.liftAmp = .3; b.liftPeriod = 2.5; b.liftPhase = this.z;} this.z += len;}
+    this.fallZones.push([-3, 3, z0, this.z]); this.room(z0, this.z, 6.6, 12);}
+
+  private room(z0: number, z1: number, halfW: number, h = 8, sky = true) {if (this.theme === 'manor') this.rooms.push({z0, z1, halfW, y: this.y, h, skylights: sky});}
   private add(x0: number, x1: number, z0: number, z1: number, y0: number, y1: number, mat: Mat): Block {
-    const b: Block = {x0, x1, z0, z1, y0, y1, mat, bottom: THIN.includes(mat) ? Math.min(y0, y1) - .42 : BOTTOM, sink: false, liftAmp: 0, liftPeriod: 1, liftPhase: 0, lastOffY: 0, driftAmp: 0, driftPeriod: 1, driftPhase: 0, crumbles: false, crumbleDelay: .75, offX: 0, offY: 0, lastOffX: 0, crumbleAt: -1, fallV: 0, gone: false};
+    const b: Block = {x0, x1, z0, z1, y0, y1, mat, bottom: THIN.includes(mat) ? Math.min(y0, y1) - .42 : BOTTOM, sink: false, liftAmp: 0, liftPeriod: 1, liftPhase: 0, lastOffY: 0,
+      conveyor: 0, trapPeriod: 0, trapPhase: 0, warn: false, driftAmp: 0, driftPeriod: 1, driftPhase: 0, crumbles: false, crumbleDelay: .75, offX: 0, offY: 0, lastOffX: 0, crumbleAt: -1, fallV: 0, gone: false};
     this.blocks.push(b); return b;
   }
-  spawnY(z: number) {let best = 0; for (const b of this.blocks) if (!b.crumbles && !b.driftAmp && z >= b.z0 && z <= b.z1) best = Math.max(best, top(b, z)); return best;}
+  spawnY(z: number) {let best = -99; for (const b of this.blocks) if (!b.crumbles && !b.driftAmp && !b.trapPeriod && z >= b.z0 && z <= b.z1 && b.bottom < b.y0 - .5) best = Math.max(best, top(b, z)); return best > -99 ? best : 0;}
+  sectionAt(z: number) {return this.sections.find(s => z >= s.z0 && z < s.z1);}
 
   step(dt: number) {
     this.time += dt; const t0 = this.time;
@@ -140,27 +128,35 @@ export class Course {
       b.lastOffX = b.offX; b.lastOffY = b.offY;
       if (b.liftAmp) b.offY = b.liftAmp * Math.sin(Math.PI * 2 * t0 / b.liftPeriod + b.liftPhase);
       if (b.driftAmp) b.offX = b.driftAmp * Math.sin(Math.PI * 2 * t0 / b.driftPeriod + b.driftPhase);
+      if (b.trapPeriod) {const ph = ((t0 / b.trapPeriod) + b.trapPhase) % 1; b.gone = ph > .7; b.warn = ph > .46 && ph <= .7;}
       if (b.sink && b.crumbleAt < 0 && b.offY < 0) b.offY = Math.min(0, b.offY + dt * 1.2);
       if (b.crumbles && b.crumbleAt >= 0) {const t = t0 - b.crumbleAt;
-        if (b.sink) {if (t > b.crumbleDelay) b.offY = Math.max(-2.6, b.offY - dt * 1.6); if (t > b.crumbleDelay + 3.2) {b.crumbleAt = -1;}}
+        if (b.sink) {if (t > b.crumbleDelay) b.offY = Math.max(-2.6, b.offY - dt * 1.6); if (t > b.crumbleDelay + 3.2) b.crumbleAt = -1;}
         else if (t > b.crumbleDelay) {b.fallV += 26 * dt; b.offY -= b.fallV * dt; if (b.offY < -6) b.gone = true;}
         if (!b.sink && t > b.crumbleDelay + 3.8) {b.crumbleAt = -1; b.offY = 0; b.fallV = 0; b.gone = false;}}
     }
-    for (const s of this.sweepers) s.angle = s.speed * t0;
+    for (const s of this.sweepers) {s.angle0 ??= s.angle; s.angle = s.speed * t0 + s.angle0;}
     for (const p of this.pendulums) {p.swing = p.amp * Math.sin(Math.PI * 2 * t0 / p.period + p.phase); p.bx = p.px + Math.sin(p.swing) * p.len; p.by = p.py - Math.cos(p.swing) * p.len; p.bz = p.pz;}
+    for (const p of this.pushers) {p.lastExt = p.ext; const ph = ((t0 / p.period) + p.phase) % 1;
+      const e = ph < .1 ? ph / .1 : ph < .42 ? 1 : ph < .72 ? 1 - (ph - .42) / .3 : 0; p.ext = e * e * (3 - 2 * e);}
+    // rolling barrels / boulders: frequent waves of 1-3 down the ramp
     this.boulderTimer -= dt;
-    if (this.boulderTimer <= 0 && this.theme !== 'graveyard') {this.seed = (this.seed * 1103515245 + 12345) | 0; const r = ((this.seed >>> 8) & 1023) / 1023; const radius = 1.1 + .4 * r;
-      this.boulders.push({x: -4.6 + 9.2 * r, y: this.rampY1 + radius, z: this.rampZ1 - 1, vz: 0, spin: 0, radius, alive: true}); this.boulderTimer = 1.7 + .8 * r;}
-    const slope = (this.rampY1 - this.rampY0) / (this.rampZ1 - this.rampZ0);
-    for (const bo of this.boulders) {bo.vz -= 9 * dt; bo.z += bo.vz * dt; bo.spin += bo.vz * dt / bo.radius;
+    if (this.boulderTimer <= 0 && this.rampZ1 > this.rampZ0) {
+      const r1 = this.srand(), n = r1 < .45 ? 1 : r1 < .85 ? 2 : 3, lanes = [-1, 0, 1].sort(() => this.srand() - .5).slice(0, n);
+      for (const ln of lanes) {const radius = this.theme === 'manor' ? .85 + this.srand() * .2 : 1 + this.srand() * .4;
+        this.boulders.push({x: ln * this.rampHalfW * .62 + (this.srand() - .5) * .8, y: this.rampY1 + radius, z: this.rampZ1 - 1 - this.srand() * 2, vz: -2 - this.srand() * 2, spin: 0, radius, alive: true});}
+      this.boulderTimer = .55 + this.srand() * .45;
+    }
+    const slope = (this.rampY1 - this.rampY0) / Math.max(1, this.rampZ1 - this.rampZ0);
+    for (const bo of this.boulders) {bo.vz -= 10 * dt; bo.z += bo.vz * dt; bo.spin += bo.vz * dt / bo.radius;
       if (bo.z > this.rampZ0) bo.y = this.rampY0 + (bo.z - this.rampZ0) * slope + bo.radius; else bo.y -= 30 * dt;
-      if (bo.y < DEATH_Y - 10) bo.alive = false;}
+      if (bo.y < this.deathY - 10) bo.alive = false;}
     this.boulders = this.boulders.filter(b => b.alive);
-    // rockfall: deterministic from the shared clock (same rocks on every phone)
+    // rain from the sky (rocks / fireballs / chandeliers)
     this.fallTimer -= dt;
     while (this.fallTimer <= 0 && this.fallZones.length) {
       const rnd = () => ((this.fallSeed = (this.fallSeed * 1103515245 + 12345) | 0) >>> 8 & 65535) / 65535;
-      const zn = this.fallZones[rnd() < .72 ? 0 : 1], x = zn[0] + rnd() * (zn[1] - zn[0]), z = zn[2] + rnd() * (zn[3] - zn[2]);
+      const zn = this.fallZones[rnd() < .72 ? 0 : this.fallZones.length - 1], x = zn[0] + rnd() * (zn[1] - zn[0]), z = zn[2] + rnd() * (zn[3] - zn[2]);
       let g = -99; for (const b of this.blocks) if (!b.crumbles && !b.driftAmp && x >= b.x0 && x <= b.x1 && z >= b.z0 && z <= b.z1) g = Math.max(g, top(b, z));
       const r = .8 + rnd() * .7; if (g > -50) this.fallers.push({id: ++this.fallId, x, z, g, spawn: t0, impact: t0 + 1.25 + rnd() * .3, r, y: g + 30, alive: true, landed: false});
       this.fallTimer += .2 + rnd() * .16;
@@ -170,18 +166,19 @@ export class Course {
       if (t0 > f.impact + 1.4) f.alive = false;}
     this.fallers = this.fallers.filter(f => f.alive);
   }
+  private srand() {this.seed = (Math.imul(this.seed, 1103515245) + 12345) | 0; return ((this.seed >>> 8) & 1023) / 1023;}
 
   move(r: Runner, dt: number) {
     if (r.finished) {r.vx = r.vy = r.vz = 0; return;}
     r.stun = Math.max(0, r.stun - dt); r.coyote -= dt; r.jumpBuffer -= dt;
     let ix = r.inX, iz = r.inZ; const il = Math.hypot(ix, iz); if (il > 1) {ix /= il; iz /= il;}
     const speed = 8.2; let acc = r.ground ? 46 : 16; if (r.stun > 0) acc = 3;
-    r.vx = approach(r.vx, ix * speed, acc * dt); r.vz = approach(r.vz, iz * speed, acc * dt);
+    r.vx = approach(r.vx, ix * speed, acc * dt); r.vz = !r.ground && r.vz > speed ? r.vz - 2 * dt : approach(r.vz, iz * speed, acc * dt);
     if (il > .1) r.facing = Math.atan2(ix, iz);
     if (r.jump) {r.jumpBuffer = .14; r.jump = false;}
     if (r.jumpBuffer > 0 && r.coyote > 0 && r.stun <= 0) {r.vy = 9.6; r.coyote = 0; r.jumpBuffer = 0; r.ground = null;}
     r.vy -= (r.vy > 0 && !r.holdJump ? 38 : 26) * dt;
-    if (r.ground) {r.x += r.ground.offX - r.ground.lastOffX; r.y += r.ground.offY - r.ground.lastOffY;}
+    if (r.ground) {r.x += r.ground.offX - r.ground.lastOffX; r.y += r.ground.offY - r.ground.lastOffY; r.z += r.ground.conveyor * dt;}
     const prevY = r.y; r.x += r.vx * dt; r.y += r.vy * dt; r.z += r.vz * dt;
     let landed: Block | null = null;
     for (const b of this.blocks) {
@@ -199,36 +196,41 @@ export class Course {
     }
     if (landed && !r.ground && prevY - r.y >= 0) r.landed = this.time;
     r.ground = landed; if (landed) {r.coyote = .1; if (landed.crumbles && landed.crumbleAt < 0) landed.crumbleAt = this.time;}
-    for (const s0 of this.sweepers) for (let arm = 0; arm < (s0.arms || 1); arm++) {const s = {...s0, angle: s0.angle + arm * Math.PI / (s0.arms || 1)};
-      const ex = Math.cos(s.angle) * s.len, ez = Math.sin(s.angle) * s.len, t = clamp(((r.x - s.x) * ex + (r.z - s.z) * ez) / (ex * ex + ez * ez), -1, 1);
-      const dx = r.x - (s.x + ex * t), dz = r.z - (s.z + ez * t), d = Math.hypot(dx, dz);
-      if (d < R + .42 && r.y < s.y + .45 && r.y + H > s.y - .45) {const sg = Math.sign(t + 1e-4); this.hit(r, -Math.sin(s.angle) * sg * 11 + (d ? dx / d * 4 : 0), 6.5, Math.cos(s.angle) * sg * 11 + (d ? dz / d * 4 : 0));}
+    for (const s0 of this.sweepers) for (let arm = 0; arm < (s0.arms || 1); arm++) {const a = s0.angle + arm * Math.PI / (s0.arms || 1);
+      const ex = Math.cos(a) * s0.len, ez = Math.sin(a) * s0.len, t = clamp(((r.x - s0.x) * ex + (r.z - s0.z) * ez) / (ex * ex + ez * ez), -1, 1);
+      const dx = r.x - (s0.x + ex * t), dz = r.z - (s0.z + ez * t), d = Math.hypot(dx, dz);
+      if (d < R + .42 && r.y < s0.y + .45 && r.y + H > s0.y - .45) {const sg = Math.sign(t + 1e-4) * Math.sign(s0.speed); this.hit(r, -Math.sin(a) * sg * 11 + (d ? dx / d * 4 : 0), 6.5, Math.cos(a) * sg * 11 + (d ? dz / d * 4 : 0));}
     }
     for (const p of this.pendulums) {const dx = r.x - p.bx, dy = r.y + H / 2 - p.by, dz = r.z - p.bz, rr = p.radius + R + .2;
       if (dx * dx + dy * dy + dz * dz < rr * rr) {const dir = Math.sign(Math.cos(Math.PI * 2 * this.time / p.period + p.phase)) || 1; this.hit(r, dir * 15, 7, Math.sign(dz) * 2);}}
+    for (const p of this.pushers) {const inner = p.wallX - p.reach * p.ext, xa = Math.min(p.side * p.wallX, p.side * inner), xb = Math.max(p.side * p.wallX, p.side * inner);
+      if (p.ext > .05 && r.x + R > xa && r.x - R < xb && Math.abs(r.z - p.z) < p.d / 2 + R && r.y < p.y + 1.7 && r.y + H > p.y) {
+        if (p.ext > p.lastExt) this.hit(r, -p.side * 15, 6.5, (r.z - p.z) * 2); else r.x = p.side > 0 ? Math.min(r.x, xa - R) : Math.max(r.x, xb + R);}}
+    for (const p of this.pads) if (r.ground && Math.hypot(r.x - p.x, r.z - p.z) < p.r && Math.abs(r.y - p.y) < .3) {r.vy = 15; r.vz = Math.max(r.vz, 10.5); r.ground = null; r.coyote = 0; p.fired = this.time;}
     for (const f of this.fallers) {if (this.time > f.impact + .25) continue; const dx = r.x - f.x, dy = r.y + H / 2 - f.y, dz = r.z - f.z, rr = f.r + R;
       if (dx * dx + dy * dy + dz * dz < rr * rr) {const d = Math.hypot(dx, dz) || 1; this.hit(r, dx / d * 9, 8, dz / d * 9);}}
     for (const bo of this.boulders) {const dx = r.x - bo.x, dy = r.y + H / 2 - bo.y, dz = r.z - bo.z, rr = bo.radius + R;
       if (dx * dx + dy * dy + dz * dz < rr * rr) this.hit(r, Math.sign(dx) * 4, 6, -12);}
-    for (let i = this.checkpoints.length - 1; i >= 0; i--) if (r.z >= this.checkpoints[i] && r.ground && !r.ground.crumbles && !r.ground.driftAmp) {r.checkpoint = Math.max(r.checkpoint, i); break;}
+    for (let i = this.checkpoints.length - 1; i >= 0; i--) if (r.z >= this.checkpoints[i] && r.ground?.land) {r.checkpoint = Math.max(r.checkpoint, i); break;}
     if (r.y < this.deathY) this.respawn(r);
     r.progress = Math.max(r.progress, r.z);
     if (r.z >= this.finishZ && r.ground && !r.finished) {r.finished = true; r.finishTime = this.time;}
   }
   private hit(r: Runner, vx: number, vy: number, vz: number) {if (r.stun > .25) return; r.vx = vx; r.vy = vy; r.vz = vz; r.stun = .55; r.ground = null; r.coyote = 0;}
-  respawn(r: Runner) {const z = this.checkpoints[r.checkpoint] + 2; r.x = ((r.slot % 5) - 2) * 1.4; r.y = this.spawnY(z) + 1.5; r.z = z; r.vx = r.vy = r.vz = 0; r.ground = null; r.falls++; r.stun = .3;}
+  respawn(r: Runner) {const z = this.checkpoints[r.checkpoint] + .5; r.x = ((r.slot % 5) - 2) * 1.4; r.y = this.spawnY(z) + 1.5; r.z = z; r.vx = r.vy = r.vz = 0; r.ground = null; r.falls++; r.stun = .3;}
 
-  /** Bot: run the centreline (ride rafts), jump at steps, gaps, the log and boulders. */
+  /** Bot: run the centreline (ride rafts), jump at steps, gaps, logs, barriers and barrels. */
   think(r: Runner, dt: number) {
     r.botCool -= dt; let tx = ((r.slot % 5) - 2) * .9;
     if (r.ground?.driftAmp) tx = (r.ground.x0 + r.ground.x1) / 2 + r.ground.offX;
     for (const b of this.blocks) if (b.driftAmp && b.z0 > r.z && b.z0 - r.z < 2.5) tx = (b.x0 + b.x1) / 2 + b.offX;
+    for (const p of this.pads) if (p.z > r.z && p.z - r.z < 6) tx = p.x;
     r.inX = clamp((tx - r.x) * .6, -1, 1); r.inZ = 1;
     let want = false, support = false; const ahead = r.z + 1.3, here = r.ground ? top(r.ground, r.z) : r.y;
     for (const b of this.blocks) {if (b.gone) continue; if (r.x >= b.x0 + b.offX && r.x <= b.x1 + b.offX && ahead >= b.z0 && ahead <= b.z1) {support = true; if (top(b, ahead) > here + .35) want = true;}}
-    if (!support) want = true;
-    for (const s0 of this.sweepers) for (let arm = 0; arm < (s0.arms || 1); arm++) {const s = {...s0, angle: s0.angle + arm * Math.PI / (s0.arms || 1)}; const ex = Math.cos(s.angle) * s.len, ez = Math.sin(s.angle) * s.len, t = clamp(((r.x - s.x) * ex + (r.z - s.z) * ez) / (ex * ex + ez * ez), -1, 1);
-      if (Math.hypot(r.x - (s.x + ex * t), r.z - (s.z + ez * t)) < 1.7) want = true;}
+    if (!support && !this.pads.some(p => Math.abs(p.z - r.z) < 2.5)) want = true;
+    for (const s0 of this.sweepers) for (let arm = 0; arm < (s0.arms || 1); arm++) {const a = s0.angle + arm * Math.PI / (s0.arms || 1), ex = Math.cos(a) * s0.len, ez = Math.sin(a) * s0.len, t = clamp(((r.x - s0.x) * ex + (r.z - s0.z) * ez) / (ex * ex + ez * ez), -1, 1);
+      if (Math.hypot(r.x - (s0.x + ex * t), r.z - (s0.z + ez * t)) < 1.7) want = true;}
     for (const b of this.boulders) if (Math.abs(b.x - r.x) < b.radius + .6 && b.z > r.z && b.z - r.z < 3.2) want = true;
     for (const f of this.fallers) if (!f.landed && Math.abs(f.z - r.z - 1.5) < 2 && Math.abs(f.x - r.x) < f.r + .8) r.inX = Math.sign(r.x - f.x || 1);
     if (want && r.ground && r.botCool <= 0 && Math.random() < .55) {r.jump = true; r.holdJump = true; r.botCool = .35;}
