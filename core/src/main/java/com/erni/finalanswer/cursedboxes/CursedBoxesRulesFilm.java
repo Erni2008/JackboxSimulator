@@ -50,14 +50,14 @@ public final class CursedBoxesRulesFilm implements Disposable {
     private final SpriteBatch batch=new SpriteBatch();private final ShapeRenderer shapes=new ShapeRenderer();
     private final PolygonSpriteBatch postBatch=new PolygonSpriteBatch();private final DeathPost post=new DeathPost();
     private final FitViewport viewport=new FitViewport(W,H);private final GlyphLayout gl=new GlyphLayout();
-    private final Texture eye=com.erni.finalanswer.systembreach.host.SystemBreachRulesFilm.buttonEye();private final Texture crate,broken,ghost,survivor,flash,debris,glow,pixel;private final Map<String,Texture> portraits=new HashMap<>();
+    private final Texture eye=com.erni.finalanswer.systembreach.host.SystemBreachRulesFilm.buttonEye();private final Texture crate,broken,ghost,survivor,flash,debris,smoke,wisp,glow,pixel;private TextureRegion glowR,debrisR;private final Map<String,Texture> portraits=new HashMap<>();
     private final BitmapFont title,heading,hand,sub,small;
     private final Sound[] voice=new Sound[7];private Sound whoosh,paper,thud;private int voiced=-1;
     private final Matrix4 xf=new Matrix4();private final Vector2 tmp=new Vector2();
     private float time,skipAt=-1,tabPos=1;private boolean hover,stampPlayed,shotA,shotB;private int pass;
 
     public CursedBoxesRulesFilm(){
-        crate=tex("cursed_boxes/phone/crate-intact.png");broken=tex("cursed_boxes/phone/crate-destroyed.png");ghost=tex("cursed_boxes/ghost_hit.png");survivor=tex("cursed_boxes/survivors/pumpkin.png");flash=tex("cursed_boxes/effects/muzzle_flash.png");debris=tex("cursed_boxes/debris_a.png");
+        crate=tex("cursed_boxes/phone/crate-intact.png");broken=tex("cursed_boxes/phone/crate-destroyed.png");ghost=tex("cursed_boxes/ghost_hit.png");survivor=tex("cursed_boxes/survivors/pumpkin.png");flash=tex("cursed_boxes/effects/muzzle_flash.png");smoke=tex("cursed_boxes/effects/gun_smoke.png");wisp=tex("cursed_boxes/effects/cursed_smoke.png");debris=tex("cursed_boxes/debris_a.png");
         Pixmap g=new Pixmap(128,128,Pixmap.Format.RGBA8888);for(int y=0;y<128;y++)for(int x=0;x<128;x++){float d=Math.min(1,(float)Math.hypot(x-63.5,y-63.5)/63.5f);float v=(1-d)*(1-d);g.drawPixel(x,y,Color.rgba8888(1,1,1,v));}
         glow=new Texture(g);glow.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);g.dispose();
         Pixmap p=new Pixmap(1,1,Pixmap.Format.RGBA8888);p.setColor(Color.WHITE);p.fill();pixel=new Texture(p);p.dispose();
@@ -90,13 +90,16 @@ public final class CursedBoxesRulesFilm implements Disposable {
         if(slam>=0&&slam<.6f){post.shock=slam*1.1f;post.shockStrength=.35f*(1-slam/.6f);}else post.shock=-1;
         post.present(postBatch);
     }
+    private float shakeX,shakeY;
     private void frame(){
+        {float e=-1;for(float st:new float[]{START[3]+2.6f,START[4]+.6f})if(time>=st&&time<st+.7f)e=time-st;
+         if(e>=0){float amp=26*(float)Math.exp(-e*7);shakeX=amp*(hash((int)(time*90))-.5f)*2;shakeY=amp*(hash((int)(time*90)+77)-.5f)*2;}else{shakeX=shakeY=0;}}
         var cam=viewport.getCamera();cam.update();shapes.setProjectionMatrix(cam.combined);batch.setProjectionMatrix(cam.combined);
         int s=scene();float lt=time-START[s];
         stage(s,lt);
         for(int i=Math.max(0,s-1);i<=Math.min(START.length-1,s+1);i++){float v=vis(i);if(v<=0)continue;float t=time-START[i],len=END[i]-START[i];
             float enter=1-k(time,START[i]-.1f,START[i]+.6f),leave=k(time,END[i]-.45f,END[i]);float sc=1+.025f*k(t,0,len)+.05f*ease(enter)-.04f*ease(leave);
-            xf.idt().translate(W/2,H/2,0).scale(sc,sc,1).translate(-W/2,-H/2,0);shapes.setTransformMatrix(xf);batch.setTransformMatrix(xf);
+            xf.idt().translate(W/2+shakeX,H/2+shakeY,0).scale(sc,sc,1).translate(-W/2,-H/2,0);shapes.setTransformMatrix(xf);batch.setTransformMatrix(xf);
             blendOn();shapes.begin(ShapeRenderer.ShapeType.Filled);pass=0;scene(i,t,v);shapes.end();
             batch.begin();pass=1;scene(i,t,v);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);pass=2;scene(i,t,v);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.end();}
         xf.idt();shapes.setTransformMatrix(xf);batch.setTransformMatrix(xf);
@@ -165,21 +168,46 @@ public final class CursedBoxesRulesFilm implements Disposable {
     private static float cellY(int i){return 500+(1.5f-(i/4))*(CH+GAP);}
     /** The 4×4 shelf of crates; destroyed ones show the broken crate. */
     private void grid(float a,boolean[] gone,float in,int glowCell,float glowK){
-        for(int i=0;i<16;i++){float d=ease(k(in,.03f*i,.35f+.03f*i));if(d<=0)continue;float x=cellX(i),y=cellY(i)-(1-d)*40;
+        for(int i=0;i<16;i++){float d=ease(k(in,.03f*i,.35f+.03f*i));if(d<=0)continue;float x=cellX(i),y=cellY(i)-(1-d)*40;y+=jolt(i);
             if(pass==1){b(0,0,0,.5f*a*d);batch.draw(crate,x-CW/2+8,y-CH/2-10,CW,CH);b(1,1,1,a*d);batch.draw(gone!=null&&gone[i]?broken:crate,x-CW/2,y-CH/2,CW,CH);b(1,1,1,1);
                 text(small,String.format("%02d",i+1),x-CW/2+22,y+CH/2-8,BONE,.55f*a*d,.8f,false);}
             if(pass==2&&i==glowCell&&glowK>0)glowAt(x,y,360,BLOOD,.45f*a*glowK);}
     }
+    private float joltT=-1;private int joltA=-1,joltB=-1;
+    /** Vertical kick of a crate just after a hider lands in it (hiding scene) or a shot hits it. */
+    private float jolt(int i){float st=-1;float lt=time-START[2];if(scene()==2){if(i==HIDE_A)st=lt-1.95f;if(i==HIDE_B)st=lt-3.45f;}
+        if(scene()==3&&i==MISS)st=time-START[3]-2.6f;if(scene()==4&&i==HIDE_A)st=time-START[4]-.6f;
+        if(st<0||st>.6f)return 0;return MathUtils.sin(st*40)*14*(float)Math.exp(-st*8);}
     private void crosshair(float x,float y,float a,float lock){
         if(pass!=0||a<=0)return;float r=58+(1-lock)*22;Color c=lock>.95f?BLOOD:GOLD;col(c,.9f*a);
         for(int q=0;q<4;q++){float ang=q*MathUtils.HALF_PI+time*(1-lock)*2;float cx=MathUtils.cos(ang),sy=MathUtils.sin(ang);shapes.rectLine(x+cx*r*.55f,y+sy*r*.55f,x+cx*r,y+sy*r,3);}
         for(int q=0;q<48;q++){float a0=q/48f*MathUtils.PI2,a1=(q+1)/48f*MathUtils.PI2;if(q%6==5)continue;shapes.rectLine(x+MathUtils.cos(a0)*r*.8f,y+MathUtils.sin(a0)*r*.8f,x+MathUtils.cos(a1)*r*.8f,y+MathUtils.sin(a1)*r*.8f,2);}
         shapes.circle(x,y,3.5f,12);
     }
-    private void blast(float x,float y,float f,float a){
-        if(f<=0||f>=1)return;
-        if(pass==1){float s=1-f;b(1,1,1,a*s);batch.draw(debris,x-130*(1+f),y-85*(1+f),260*(1+f),170*(1+f));b(1,1,1,1);}
-        if(pass==2){glowAt(x,y,700*(1-f*.5f),EMBER,.9f*a*(1-f));b(1,1,1,a*(1-f)*.9f);batch.draw(flash,x-210,y-70,420,280);b(1,1,1,1);}
+    /**
+     * Shotgun impact at (x,y), e seconds after the shot: a tracer from the shooter, a white-hot core, a ring, sparks that
+     * streak and fall, spinning wood splinters cut from the debris sheet, and gun smoke that billows up and thins out.
+     */
+    private void blast(float x,float y,float e,float a){
+        if(e<0||e>2.2f||a<=0)return;if(glowR==null){glowR=new TextureRegion(glow);debrisR=new TextureRegion(debris);}
+        if(pass==2){
+            if(e<.07f){float k=1-e/.07f;float sx=W/2,sy=-40;float dx=x-sx,dy=y-sy,len=(float)Math.hypot(dx,dy),ang=MathUtils.atan2(dy,dx)*MathUtils.radDeg;
+                b(1,.95f,.8f,a*k);batch.draw(glowR,sx,sy-10,0,10,len,20,1,1,ang);}
+            if(e<.25f){float k=1-e/.25f;glowAt(x,y,520+600*e,new Color(1,.95f,.85f,1),a*k*k);glowAt(x,y,1400,EMBER,.35f*a*k);}
+            if(e<.45f){float k=e/.45f;float rr=60+420*ease(k);for(int q=0;q<36;q++){float an=q/36f*MathUtils.PI2;b(1,.8f,.5f,.35f*a*(1-k));batch.draw(glow,x+MathUtils.cos(an)*rr-14,y+MathUtils.sin(an)*rr*.7f-14,28,28);}b(1,1,1,1);}
+            for(int i=0;i<46;i++){float life=.35f+.35f*hash(i*7+3);if(e>life)continue;float an=MathUtils.PI*(.05f+.9f*hash(i*13+1)),sp=700+900*hash(i*5+2);
+                float vx=MathUtils.cos(an)*sp*(hash(i)>.5f?1:-1),vy=MathUtils.sin(an)*sp*.8f-200;float px=x+vx*e,py=y+vy*e-1600*e*e;float vyt=vy-3200*e;
+                float ang=MathUtils.atan2(vyt,vx)*MathUtils.radDeg,k=1-e/life;b(1,.75f+.2f*k,.4f*k,a*k);batch.draw(glowR,px-22,py-3,22,3,44*(.6f+k),6,1,1,ang);}
+            b(1,1,1,1);}
+        if(pass==1){
+            for(int i=0;i<28;i++){float life=1.1f+.6f*hash(i*3+9);if(e>life)continue;float an=MathUtils.PI*(.1f+.8f*hash(i*17+4)),sp=380+700*hash(i*11+6);
+                float vx=MathUtils.cos(an)*sp*(i%2==0?1:-1),vy=MathUtils.sin(an)*sp;float px=x+vx*e,py=y+vy*e-1500*e*e;if(py<170)continue;
+                float sz=26+44*hash(i*29),rot=(hash(i*31)*360)+e*(400+600*hash(i*37))*(i%3==0?-1:1),k=1-k(e,life*.6f,life);
+                int rx=(int)(hash(i*41)*5)*(debris.getWidth()/6),ry=(int)(hash(i*43)*3)*(debris.getHeight()/4);debrisR.setRegion(rx,ry,debris.getWidth()/6,debris.getHeight()/4);
+                b(0,0,0,.35f*a*k);batch.draw(debrisR,px-sz/2+6,py-sz*.3f-8,sz/2,sz*.3f,sz,sz*.6f,1,1,rot);b(.95f,.85f,.75f,a*k);batch.draw(debrisR,px-sz/2,py-sz*.3f,sz/2,sz*.3f,sz,sz*.6f,1,1,rot);}
+            for(int i=0;i<7;i++){float st=.03f*i,ee=e-st;if(ee<0)continue;float k=ee/2f;if(k>=1)continue;float r=90+360*ease(Math.min(1,k*1.6f));float px=x+(hash(i*19)-.5f)*160+ee*40*(i%2==0?1:-1),py=y+ee*120+(hash(i*23)-.5f)*60;
+                b(.75f,.7f,.66f,.55f*a*(1-k)*(1-k));batch.draw(new TextureRegion(smoke),px-r,py-r*.66f,r,r*.66f,r*2,r*1.33f,1,1,hash(i*7)*360+ee*20);}
+            b(1,1,1,1);}
     }
     private void titleScene(float t,float a){
         float p=ease(k(t,.2f,1.2f));float bob=MathUtils.sin(time*1.6f)*6;
@@ -202,11 +230,13 @@ public final class CursedBoxesRulesFilm implements Disposable {
     private void clues(float t,float a){
         headingText("ПРЯТКИ",t,a,BLOOD);
         grid(a,null,t,-1,0);
-        // two hiders slip into their boxes; the crate shakes as the lid closes
+        // two hiders drop into their boxes from above; the crate jolts and puffs dust as the lid slams
         int[] hid={HIDE_A,HIDE_B};String[] who={WHO[IMP],WHO[2]};
-        for(int h=0;h<2;h++){float st=1.4f+h*1.4f,f=k(t,st,st+.9f);float tx=cellX(hid[h]),ty=cellY(hid[h]);float sx=h==0?W/2+700:W/2-700,sy=300;
-            if(f>0&&f<1){float x=MathUtils.lerp(sx,tx,ease(f)),y=MathUtils.lerp(sy,ty,ease(f))+MathUtils.sin(f*MathUtils.PI)*120;framed(who[h],x,y,150*(1-.6f*ease(f)),a*(1-k(f,.8f,1)),BLOOD,0);}
-            if(pass==2&&f>=1&&t<st+1.6f)glowAt(tx,ty,300,GOLD,.4f*a*(1-(t-st-.9f)/.7f));}
+        for(int h=0;h<2;h++){float st=1.4f+h*1.5f,f=k(t,st,st+.55f);float tx=cellX(hid[h]),ty=cellY(hid[h]);
+            if(f>0&&f<1){float yy=MathUtils.lerp(ty+520,ty,f*f);framed(who[h],tx,yy,140*(1-.35f*f*f),a*(f<.85f?1:(1-f)/.15f),BLOOD,0);}
+            float e=t-st-.55f;if(e>0&&e<1.4f){if(pass==1){for(int i=0;i<5;i++){float k2=e/1.4f,r=50+150*ease(k2);float px=tx+(i-2)*40+(i-2)*e*60,py=ty-CH/2+10+e*30;
+                    b(.8f,.72f,.62f,.45f*a*(1-k2));batch.draw(new TextureRegion(smoke),px-r,py-r*.5f,r,r*.5f,r*2,r,1,1,i*60);}b(1,1,1,1);}
+                if(pass==2&&e<.3f)glowAt(tx,ty,320,GOLD,.5f*a*(1-e/.3f));}}
         if(pass==1){float q=k(t,4.6f,5.2f);text(sub,"Никто не видит, кто где спрятался",W/2,262,GOLD,a*q,.85f);}
     }
     private void suspicion(float t,float a){
@@ -215,18 +245,20 @@ public final class CursedBoxesRulesFilm implements Disposable {
         grid(a,gone,1,-1,0);
         // crosshair sweeps the shelf, locks on a box and fires
         float sw=k(t,.6f,2.2f);float x=MathUtils.lerp(cellX(12),cellX(MISS),ease(sw))+MathUtils.sin(t*3)*(1-sw)*40,y=MathUtils.lerp(cellY(12),cellY(MISS),ease(sw));
-        crosshair(x,y,a*(1-k(t,2.9f,3.2f)),k(t,2,2.4f));blast(cellX(MISS),cellY(MISS),k(t,2.6f,3.6f),a);
+        crosshair(x,y,a*(1-k(t,2.9f,3.2f)),k(t,2,2.4f));blast(cellX(MISS),cellY(MISS),t-2.6f,a);
         if(pass==1){float m=k(t,3.2f,3.6f);text(heading,"ПРОМАХ",cellX(MISS),cellY(MISS)+CH/2+40,BONE,a*m,.6f);text(sub,"1 выстрел на стрелка",W/2,262,GOLD,a*k(t,.6f,1.1f),.85f);}
     }
     private void vote(float t,float a){
         headingText("ПОПАДАНИЕ",t,a,BLOOD);
         boolean[] gone=new boolean[16];gone[MISS]=true;if(t>=.6f)gone[HIDE_A]=true;
         grid(a,gone,1,HIDE_A,k(t,.6f,1.2f));float x=cellX(HIDE_A),y=cellY(HIDE_A);
-        crosshair(x,y,a*(1-k(t,.5f,.7f)),1);blast(x,y,k(t,.6f,1.6f),a);
+        crosshair(x,y,a*(1-k(t,.5f,.7f)),1);blast(x,y,t-.6f,a);
         float g=ease(k(t,1.1f,2.6f));
-        if(g>0){float gy=y+30+g*170,gs=300;if(pass==1){b(.85f,.9f,1,a*g*(.75f+.25f*MathUtils.sin(time*4)));batch.draw(ghost,x-gs/2+MathUtils.sin(time*2)*14,gy-gs/2,gs,gs*1175/1338f);b(1,1,1,1);}
+        if(g>0){float gy=y+30+g*170,gs=300*(.7f+.3f*g);
+            if(pass==1){for(int i=0;i<5;i++){float ph=(time*.35f+i/5f)%1;float wy=y+ph*(gy-y+80),ws=180+160*ph;b(.6f,.7f,.9f,.28f*a*g*(1-ph));batch.draw(new TextureRegion(wisp),x-ws/2+MathUtils.sin(time*1.5f+i)*30,wy-ws*.33f,ws/2,ws*.33f,ws,ws*.66f,1,1,i*70+time*15);}
+                float sway=MathUtils.sin(time*1.8f)*16,tilt=MathUtils.sin(time*1.3f)*4;b(.85f,.92f,1,a*g*(.8f+.2f*MathUtils.sin(time*5)));batch.draw(new TextureRegion(ghost),x-gs/2+sway,gy-gs/2,gs/2,gs/2,gs,gs*1175/1338f,1,1,tilt);b(1,1,1,1);}
             if(pass==2)glowAt(x,gy,520,new Color(.6f,.75f,1,1),.35f*a*g);
-            if(pass==1)text(heading,"ВЫБЫЛ",x+260,gy-40,BLOOD,a*k(t,1.8f,2.3f),.75f);}
+            if(pass==1)text(heading,"ВЫБЫЛ",x+360,gy+40,BLOOD,a*k(t,1.8f,2.3f),.75f);}
     }
     private void result(float t,float a){
         headingText("ВЫЖИВШИЕ",t,a,GOLD);
@@ -318,7 +350,7 @@ public final class CursedBoxesRulesFilm implements Disposable {
     private static float ease(float x){return x*x*(3-2*x);}
     @Override public void dispose(){
         for(var v:voice)if(v!=null)v.dispose();for(Sound s:new Sound[]{whoosh,paper,thud})if(s!=null)s.dispose();
-        for(Texture t:new Texture[]{eye,crate,broken,ghost,survivor,flash,debris,glow,pixel})t.dispose();for(Texture t:portraits.values())if(t!=null)t.dispose();if(ringTex!=null)ringTex.dispose();
+        for(Texture t:new Texture[]{eye,crate,broken,ghost,survivor,flash,debris,smoke,wisp,glow,pixel})t.dispose();for(Texture t:portraits.values())if(t!=null)t.dispose();if(ringTex!=null)ringTex.dispose();
         for(BitmapFont f:new BitmapFont[]{title,heading,hand,sub,small})f.dispose();batch.dispose();shapes.dispose();postBatch.dispose();post.dispose();
     }
 }
