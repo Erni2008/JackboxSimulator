@@ -28,7 +28,7 @@ export class RaceApp {
     const qs = new URLSearchParams(location.search); this.course = new Course(map, Number(qs.get('seed')) || (Math.random() * 1e9) | 0); this.night = this.course.theme === 'graveyard'; this.manor = this.course.theme === 'manor';
     const phone = matchMedia('(pointer:coarse)').matches;
     this.renderer = new THREE.WebGLRenderer({antialias: !phone || devicePixelRatio < 2, powerPreference: 'high-performance'});
-    this.pixelRatio = Math.min(devicePixelRatio, phone ? 1.5 : 2); this.renderer.setPixelRatio(this.pixelRatio);
+    this.pixelRatio = Math.min(devicePixelRatio, phone ? 1.5 : 1.35); this.renderer.setPixelRatio(this.pixelRatio);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace; this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.05;
     this.renderer.shadowMap.enabled = true; this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     host.appendChild(this.renderer.domElement);
@@ -70,7 +70,7 @@ export class RaceApp {
     for (const s of this.course.sweepers) {const g = new THREE.Group(); for (let a = 0; a < (s.arms || 1); a++) {const log = new THREE.Mesh(this.manor ? new THREE.BoxGeometry(1, .62, .62) : logGeo, this.manor ? mats.beam : this.night ? mats.dark : mats.bark); log.scale.set(s.len * 2, 1, 1); log.rotation.y = a * Math.PI / (s.arms || 1); log.castShadow = true; g.add(log);}
       this.sweeperMeshes.push(g); this.scene.add(g);
       const post = new THREE.Mesh(new THREE.CylinderGeometry(.55, .65, 1.6, 12), this.night ? mats.brick : mats.bark); post.position.set(s.x, s.y - .25, s.z); post.castShadow = true; this.scene.add(post);}
-    const boulder = await this.model('env/boulder_01.glb'); const cageG = this.manor ? await this.model('env/cage.glb') : null; progress(.15);
+    const boulder = await this.model('env/boulder_01.glb'); progress(.15);
     const linkGeo = new THREE.TorusGeometry(.13, .035, 6, 12), ironM = new THREE.MeshStandardMaterial({color: 0x34302c, metalness: .9, roughness: .38});
     for (const p of this.course.pendulums) {
       const pivot = new THREE.Group(); pivot.position.set(p.px, p.py, p.pz);
@@ -160,7 +160,7 @@ export class RaceApp {
   }
 
   start() {
-    if (!matchMedia('(pointer:coarse)').matches) {const c = new EffectComposer(this.renderer); c.addPass(new RenderPass(this.scene, this.camera));
+    if (false) {const c = new EffectComposer(this.renderer); c.addPass(new RenderPass(this.scene, this.camera));
       c.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth / 2, innerHeight / 2), this.night || this.manor ? .75 : .35, .5, .82)); c.addPass(new OutputPass()); c.setSize(innerWidth, innerHeight); this.composer = c;}
     this.renderer.setAnimationLoop(t => this.frame(t));}
 
@@ -217,10 +217,10 @@ export class RaceApp {
     // library shelves (along the walls by the turning beams)
     const lib = c.sweepers[0]; if (lib) for (let z = lib.z - 12; z < lib.z + 12; z += 2.2) for (const sd of [-1, 1]) put('wooden_bookshelf_worn', sd * 10, lib.y - .55, z, 2.6, sd > 0 ? -Math.PI / 2 : Math.PI / 2);
     // empty cages hanging in the cellar where the exhibits were kept, chandeliers in the great hall
-    const cageG = await this.model('env/cage.glb'); const ch = await this.model('env/lantern_chandelier_01.glb'); this.chandelier = ch.scene;
-    for (const [x, z, h] of [[-5.5, 2, 4.2], [5, 6, 3.6], [-4.5, 12, 3.9], [5.5, 16, 4.4], [0, 19, 5.2], [-6.5, 18, 3.4]]) {const cg = normalized(cageG.scene, 2.2, 'height'); cg.position.set(x, h, z); cg.rotation.y = rnd() * 6; cg.userData.sway = rnd() * 6; this.scene.add(cg); this.swingers.push(cg);
+    const ch = await this.model('env/lantern_chandelier_01.glb'); this.chandelier = ch.scene;
+    for (const [x, z, h] of [[-5.5, 2, 4.2], [5, 6, 3.6], [-4.5, 12, 3.9], [5.5, 16, 4.4], [0, 19, 5.2], [-6.5, 18, 3.4]]) {const cg = ironCage(); cg.position.set(x, h, z); cg.rotation.y = rnd() * 6; cg.userData.sway = rnd() * 6; this.scene.add(cg); this.swingers.push(cg);
       const chain = add(new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, 10 - h - 2.2, 6), ironMat), false); chain.position.set(x, h + 2.2 + (10 - h - 2.2) / 2, z);}
-    for (const [x, z, h] of [[-5.4, -2, 0], [6, 9, 0]] as const) {const cg = normalized(cageG.scene, 2.2, 'height'); cg.position.set(x, h, z); cg.rotation.set(0, rnd() * 6, .2); this.scene.add(cg);}
+    for (const [x, z, h] of [[-5.4, -2, 0], [6, 9, 0]] as const) {const cg = ironCage(true); cg.position.set(x, h, z); cg.rotation.set(0, rnd() * 6, .15); this.scene.add(cg);}
     const hall = c.fallZones[0]; if (hall) for (let z = hall[2] + 4; z < hall[3]; z += 9) {const chd = normalized(ch.scene, 2.4, 'max'); chd.position.set(0, (c.rooms.find(r => z >= r.z0 && z <= r.z1)?.y ?? 0) + 7.4, z); this.scene.add(chd); glows.push(chd.position.clone().add(new THREE.Vector3(0, -.3, 0)));}
     // the door to freedom, moonlight pouring through
     const door = await this.model('env/large_castle_door.glb'); const fy = c.spawnY(c.finishZ); const dr = normalized(door.scene, 7.5, 'height'); dr.position.set(0, fy, c.finishZ + 8.6); dr.rotation.y = Math.PI; this.scene.add(dr);
@@ -239,7 +239,7 @@ export class RaceApp {
       const pool = new THREE.Mesh(new THREE.CircleGeometry(2.6, 24).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({map: dotTexture(true), color: 0xff8030, transparent: true, opacity: .22, depthWrite: false, blending: THREE.AdditiveBlending}));
       pool.position.set(g.x, c.spawnY(g.z) + .03, g.z); this.scene.add(pool);}
     const shaftTex = shaftTexture();
-    for (const [x, y, z, hw] of shafts) {const L = 14; for (const rot of [0, Math.PI / 2]) {const m = new THREE.Mesh(new THREE.PlaneGeometry(hw * 1.6, L), new THREE.MeshBasicMaterial({map: shaftTex, color: 0x9fb8ff, transparent: true, opacity: .16, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false}));
+    for (const [x, y, z, hw] of shafts) {const L = 14; for (const rot of [0, Math.PI / 2]) {const m = new THREE.Mesh(new THREE.PlaneGeometry(hw * 1.6, L), new THREE.MeshBasicMaterial({map: shaftTex, color: 0x9fb8ff, transparent: true, opacity: .07, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false}));
       m.position.set(x - SKY_DIR.x * L / 2, y - L / 2, z - SKY_DIR.z * L / 2); m.rotation.set(Math.atan2(SKY_DIR.z, SKY_DIR.y), rot, 0); this.scene.add(m);}}
     progress(.8);
   }
@@ -339,7 +339,7 @@ export class RaceApp {
     for (let i = 0; i < 70; i++) {const px = Math.random() * 256, py = Math.random() * 256, r = 20 + Math.random() * 60, g = x.createRadialGradient(px, py, 0, px, py, r);
       g.addColorStop(0, 'rgba(255,240,230,.22)'); g.addColorStop(1, 'rgba(255,240,230,0)'); x.fillStyle = g; for (const ox of [-256, 0, 256]) for (const oy of [-256, 0, 256]) {x.save(); x.translate(ox, oy); x.fillRect(px - r, py - r, r * 2, r * 2); x.restore();}}
     const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(5, 5);
-    for (const [y, o] of (this.manor ? [[-3.5, .5], [-2, .3]] : this.night ? [[-1.6, .35], [-.6, .22], [.6, .12]] : [[-9, .5], [-15, .65], [-22, .8], [-29, .9]]) as [number, number][]) {
+    for (const [y, o] of (this.manor ? [[-4, .35]] : this.night ? [[-1.6, .35], [-.6, .22], [.6, .12]] : [[-9, .5], [-15, .65], [-22, .8], [-29, .9]]) as [number, number][]) {
       const m = new THREE.Mesh(new THREE.PlaneGeometry(700, 700).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({map: t.clone(), transparent: true, opacity: o, depthWrite: false, color: this.manor ? 0x5d6f96 : this.night ? 0x9fc4d8 : 0xf2d8c8}));
       (m.material as THREE.MeshBasicMaterial).map!.repeat.set(4 + y * -.05, 4); m.position.set(0, y, 150); m.renderOrder = 2; this.mist.push(m); this.scene.add(m);}
     if (this.manor) {const pit = new THREE.Mesh(new THREE.PlaneGeometry(60, 700).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({color: 0x010102})); pit.position.set(0, -7, 200); this.scene.add(pit);}
@@ -399,13 +399,13 @@ export class RaceApp {
     this.boulderPool.forEach((o, i) => {const b = c.boulders[i]; o.visible = !!b; if (b) {o.position.set(b.x, b.y, b.z); o.rotation.x = b.spin; o.scale.setScalar(b.radius / 1.2 * o.userData.base);}});
     for (const [r, l] of this.looks) {
       const hs = Math.hypot(r.vx, r.vz), want = r.stun > 0 ? 'stun' : !r.ground ? 'jump' : hs > .8 ? 'run' : 'idle';
-      if (want !== l.cur && l.acts[want]) {const a = l.acts[want]; a.reset().fadeIn(.12).play(); l.acts[l.cur]?.fadeOut(.12); l.cur = want;}
+      if (want !== l.cur && l.acts[want]) {const a = l.acts[want]; a.reset().fadeIn(.06).play(); l.acts[l.cur]?.fadeOut(.06); l.cur = want;}
       if (l.acts.run) l.acts.run.timeScale = Math.max(.6, hs / 5.5);
       if (r.ground && l.prevVy < -6) {l.squash = Math.min(.3, -l.prevVy * .022); this.puff(r.x, r.y, r.z, Math.min(1.4, -l.prevVy / 9));}
       if (!r.ground && l.prevVy <= .5 && r.vy > 8) this.puff(r.x, r.y, r.z, .6); l.prevVy = r.vy; l.squash = Math.max(0, l.squash - dt * 2.2);
       const sy = 1 - l.squash, sxz = 1 / Math.sqrt(sy), ghost = r.character === 'ghost' ? .25 + Math.sin(c.time * 3 + r.slot) * .08 : 0;
       l.root.position.set(r.x, r.y + ghost, r.z); l.root.scale.set(sxz, sy, sxz);
-      const yaw = r.facing; let d = yaw - l.root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); l.root.rotation.y += d * Math.min(1, dt * 14);
+      const yaw = r.facing; let d = yaw - l.root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); l.root.rotation.y += d * Math.min(1, dt * 22);
       l.mixer.update(dt);
     }
     // camera: behind and above the player, framed wider in portrait
@@ -566,3 +566,17 @@ function padTexture() {const c = document.createElement('canvas'); c.width = c.h
   x.strokeStyle = '#ffcf5a'; x.lineWidth = 8; for (const r of [56, 38]) {x.beginPath(); x.arc(64, 64, r, 0, 7); x.stroke();}
   x.fillStyle = '#ffe08a'; x.beginPath(); x.moveTo(64, 26); x.lineTo(90, 64); x.lineTo(74, 64); x.lineTo(74, 100); x.lineTo(54, 100); x.lineTo(54, 64); x.lineTo(38, 64); x.closePath(); x.fill();
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.center.set(.5, .5); t.rotation = Math.PI; return t;}
+
+/** Wrought-iron birdcage the exhibits were kept in: ring base, bars, domed top with a hook; open=true leaves the door swung out. */
+function ironCage(open = false) {
+  const g = new THREE.Group(), iron = new THREE.MeshStandardMaterial({color: 0x2b2622, metalness: .9, roughness: .42, envMapIntensity: 1.5}), rust = new THREE.MeshStandardMaterial({color: 0x5a3220, metalness: .5, roughness: .8});
+  const R = .85, Hh = 1.7, bars = 18;
+  const floor = new THREE.Mesh(new THREE.CylinderGeometry(R, R * 1.02, .12, 28), rust); floor.position.y = .06; g.add(floor);
+  for (const y of [.12, .9, Hh]) {const ring = new THREE.Mesh(new THREE.TorusGeometry(R, .045, 8, 40).rotateX(Math.PI / 2), iron); ring.position.y = y; g.add(ring);}
+  const barGeo = new THREE.CylinderGeometry(.025, .025, Hh - .12, 6);
+  for (let i = 0; i < bars; i++) {const a = i / bars * Math.PI * 2; if (open && i >= 2 && i <= 4) continue; const b = new THREE.Mesh(barGeo, iron); b.position.set(Math.cos(a) * R, (Hh + .12) / 2, Math.sin(a) * R); b.castShadow = true; g.add(b);}
+  for (let i = 0; i < bars / 2; i++) {const a = i / (bars / 2) * Math.PI; const arc = new THREE.Mesh(new THREE.TorusGeometry(R, .025, 6, 24, Math.PI), iron); arc.position.y = Hh; arc.rotation.y = a; g.add(arc);}
+  const hook = new THREE.Mesh(new THREE.TorusGeometry(.13, .035, 8, 16), iron); hook.position.y = Hh + R + .12; g.add(hook);
+  if (open) {const door = new THREE.Group(); for (let i = 0; i < 3; i++) {const b = new THREE.Mesh(barGeo, iron); b.position.set(i * .26, (Hh + .12) / 2, 0); door.add(b);} door.position.set(Math.cos(2 / bars * Math.PI * 2) * R, 0, Math.sin(2 / bars * Math.PI * 2) * R); door.rotation.y = -1.6; g.add(door);}
+  g.traverse(o => {if ((o as THREE.Mesh).isMesh) {o.castShadow = true; o.receiveShadow = true;}}); return g;
+}

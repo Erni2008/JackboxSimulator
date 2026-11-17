@@ -2,7 +2,7 @@
 import bpy,os
 ROOT=os.path.abspath(os.path.join(os.path.dirname(__file__),'../../..'));SRC=f'{ROOT}/source_assets/race/ph/models';OUT=f'{ROOT}/web/race/env'
 B={'wine_barrel_01':1500,'wooden_barrels_01':2500,'wooden_crate_01':600,'wooden_candlestick':600,'brass_candleholders':1500,'lantern_chandelier_01':3000,'large_castle_door':3000,'wooden_bookshelf_worn':2500,'wine_bottles_01':1500,'wooden_bucket_01':800,'caged_hanging_light':1500}
-items=[(n,f'{SRC}/{n}/{n}.gltf',b) for n,b in B.items()]+[('cage',f'{ROOT}/cage.glb',4500)]
+items=[(n,f'{SRC}/{n}/{n}.gltf',b) for n,b in B.items()]
 for name,path,budget in items:
     bpy.ops.wm.read_factory_settings(use_empty=True);bpy.ops.import_scene.gltf(filepath=path)
     meshes=[o for o in bpy.context.scene.objects if o.type=='MESH'];total=sum(len(o.data.polygons) for o in meshes)

@@ -96,7 +96,7 @@ export class Course {
     for (let i = 0; i < 6; i++) this.pushers.push({side: i % 2 ? 1 : -1, wallX: w + .2, z: z + 4 + i * 5.3, d: 2.4, y, reach: w * 1.15, period: 2.2 + this.rnd() * .5, phase: this.rnd(), ext: 0, lastExt: 0});
     this.z += len;}
   private s_pads() {const z0 = this.z; for (let i = 0; i < 3; i++) {const len = 5; this.add(-3.5, 3.5, this.z, this.z + len, this.y, this.y, this.look.alt); this.pads.push({x: 0, z: this.z + len - 1.4, y: this.y, r: 1.3, fired: -9});
-      this.z += len + 6 + this.rnd() * 1.5; this.y += this.rnd() < .5 ? .8 : 0;}
+      this.z += len + (i === 0 ? 6 + this.rnd() * 1.5 : 3.6 + this.rnd() * .6); this.y += this.rnd() < .5 ? .8 : 0;}
     this.add(-3.5, 3.5, this.z, this.z + 3, this.y, this.y, this.look.alt); this.z += 3; this.room(z0, this.z, 5, 11);}
   private s_traps() {const rows = 6, z0 = this.z, per = 2.6 + this.rnd() * .6, wave = this.rnd() < .5;
     for (let r = 0; r < rows; r++) for (const c of [-1, 0, 1]) {const b = this.add(c * 2.6 - 1.25, c * 2.6 + 1.25, this.z + r * 2.6, this.z + r * 2.6 + 2.5, this.y, this.y, this.look.alt); b.bottom = this.y - .35;
@@ -172,7 +172,7 @@ export class Course {
     if (r.finished) {r.vx = r.vy = r.vz = 0; return;}
     r.stun = Math.max(0, r.stun - dt); r.coyote -= dt; r.jumpBuffer -= dt;
     let ix = r.inX, iz = r.inZ; const il = Math.hypot(ix, iz); if (il > 1) {ix /= il; iz /= il;}
-    const speed = 8.2; let acc = r.ground ? 46 : 16; if (r.stun > 0) acc = 3;
+    const speed = 8.2; let acc = r.ground ? 75 : 24; if (r.stun > 0) acc = 3;
     r.vx = approach(r.vx, ix * speed, acc * dt); r.vz = !r.ground && r.vz > speed ? r.vz - 2 * dt : approach(r.vz, iz * speed, acc * dt);
     if (il > .1) r.facing = Math.atan2(ix, iz);
     if (r.jump) {r.jumpBuffer = .14; r.jump = false;}
