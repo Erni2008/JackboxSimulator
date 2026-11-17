@@ -97,14 +97,7 @@ public final class ImpostorRulesFilm implements Disposable {
     private void frame(){
         var cam=viewport.getCamera();cam.update();shapes.setProjectionMatrix(cam.combined);batch.setProjectionMatrix(cam.combined);
         int s=scene();float lt=time-START[s];
-        // the lamp-lit room, slowly pushing in
-        float z=1.06f+.04f*(time/LENGTH),dr=MathUtils.sin(time*.08f)*20;
-        batch.begin();batch.setColor(.55f,.5f,.5f,1);batch.draw(room,W/2-W*z/2+dr,H/2-H*z/2,W*z,H*z);batch.setColor(Color.WHITE);
-        batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);float flick=.85f+.15f*MathUtils.sin(time*9)*MathUtils.sin(time*3.3f);
-        glowAt(W/2,H-120,900,EMBER,.16f*flick);glowAt(150,560,700,BLOOD,.10f);
-        for(int i=0;i<30;i++){float h1=hash(i),h2=hash(i*3+7);float x=h1*W+MathUtils.sin(time*.4f+i)*30,y=(h2*H+time*(12+18*h1))%H;glowAt(x,y,6+8*h2,EMBER,.35f*(.5f+.5f*MathUtils.sin(time*2+i)));}
-        batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.end();
-        blendOn();shapes.begin(ShapeRenderer.ShapeType.Filled);shapes.setColor(0,0,0,.42f);shapes.rect(0,0,W,H);shapes.end();
+        stage(s,lt);
         for(int i=Math.max(0,s-1);i<=Math.min(START.length-1,s+1);i++){float v=vis(i);if(v<=0)continue;float t=time-START[i],len=END[i]-START[i];
             float enter=1-k(time,START[i]-.1f,START[i]+.6f),leave=k(time,END[i]-.45f,END[i]);float sc=1+.025f*k(t,0,len)+.05f*ease(enter)-.04f*ease(leave);
             xf.idt().translate(W/2,H/2,0).scale(sc,sc,1).translate(-W/2,-H/2,0);shapes.setTransformMatrix(xf);batch.setTransformMatrix(xf);
@@ -113,6 +106,33 @@ public final class ImpostorRulesFilm implements Disposable {
         xf.idt();shapes.setTransformMatrix(xf);batch.setTransformMatrix(xf);
         blendOn();shapes.begin(ShapeRenderer.ShapeType.Filled);vignette();chromeShapes(s);shapes.end();
         batch.begin();chromeText(s,lt);batch.end();
+    }
+    /** Empty black stage: a hard spotlight cone with haze, a pool of light on the floor, drifting smoke and dust. */
+    private float spotX=W/2;
+    private void stage(int s,float lt){
+        float target=s==4?W/2:s==3?W/2+(IMP-1.5f)*400:W/2;spotX+=(target-spotX)*Math.min(1,Gdx.graphics.getDeltaTime()*1.5f);
+        float flick=.92f+.08f*MathUtils.sin(time*11)*MathUtils.sin(time*2.7f);
+        blendOn();shapes.begin(ShapeRenderer.ShapeType.Filled);
+        Color top=new Color(.05f,.012f,.014f,1),bot=new Color(.012f,.004f,.006f,1);shapes.rect(0,0,W,H,bot,bot,top,top);
+        // floor plane with faint boards receding
+        Color f0=new Color(.10f,.03f,.03f,1),f1=new Color(.02f,.006f,.008f,1);shapes.rect(0,0,W,330,f0,f0,f1,f1);
+        for(int i=-12;i<=12;i++){shapes.setColor(.2f,.06f,.05f,.10f);shapes.rectLine(W/2+i*40,330,W/2+i*190,0,1.2f);}
+        // spotlight cone (two layers) from above
+        float sx=spotX,cw=420;Color c0=new Color(1,.86f,.7f,.0f),c1=new Color(1,.82f,.65f,.10f*flick);
+        shapes.triangle(sx-30,H+40,sx+30,H+40,sx+cw,150,c1,c1,c0);shapes.triangle(sx-30,H+40,sx-cw,150,sx+cw,150,c1,c0,c0);
+        Color d1=new Color(1,.85f,.7f,.07f*flick);shapes.triangle(sx-14,H+40,sx+14,H+40,sx+cw*.55f,150,d1,d1,c0);shapes.triangle(sx-14,H+40,sx-cw*.55f,150,sx+cw*.55f,150,d1,c0,c0);
+        shapes.end();
+        batch.begin();batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
+        glowAt(sx,190,1000,new Color(1,.8f,.6f,1),.22f*flick);
+        b(1,.8f,.6f,.16f*flick);batch.draw(glow,sx-520,120,1040,150);b(1,1,1,1);
+        // red rim lights at the wings
+        glowAt(-60,520,900,BLOOD,.18f);glowAt(W+60,520,900,BLOOD,.18f);
+        // slow smoke bands
+        for(int i=0;i<7;i++){float h1=hash(i*5+1),y=180+h1*620,x=((time*(14+10*h1)+hash(i)*W*2)%(W+1400))-700;b(.75f,.55f,.5f,.06f);batch.draw(glow,x,y-110,1400,220);}
+        // dust in the beam
+        for(int i=0;i<46;i++){float h1=hash(i),h2=hash(i*3+7);float y=(h2*H+time*(8+14*h1))%H;float spread=(H-y)/H*cw;float x=sx+(h1-.5f)*2*spread+MathUtils.sin(time*.5f+i)*12;
+            glowAt(x,y,4+6*h2,new Color(1,.85f,.7f,1),.5f*(.4f+.6f*MathUtils.sin(time*1.7f+i*1.3f)));}
+        batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.end();
     }
     private int scene(){for(int i=START.length-1;i>=0;i--)if(time>=START[i])return i;return 0;}
     private float vis(int i){float in=i==0?1:ease(k(time,START[i]-.05f,START[i]+.5f)),out=i==START.length-1?1:1-ease(k(time,END[i]-.45f,END[i]));return in*out;}
@@ -139,18 +159,30 @@ public final class ImpostorRulesFilm implements Disposable {
             float focus=k(t,5.4f,6.2f);float dim=imp?1:1-.45f*focus;float lift=imp?focus*30:0;float cw=250,ch=314;
             if(pass==1){b(0,0,0,.45f*a*d*dim);batch.draw(shown?front:back,x-cw/2*sx+12,y-ch/2-14+lift,cw/2*sx,ch/2,cw*sx,ch,1,1,rot,0,0,back.getWidth(),back.getHeight(),false,false);
                 float sh=dim*(imp&&focus>0?1:.95f);b(sh,sh*(imp?.92f:1),sh*(imp?.9f:1),a*d);batch.draw(shown?front:back,x-cw/2*sx,y-ch/2+lift,cw/2*sx,ch/2,cw*sx,ch,1,1,rot,0,0,back.getWidth(),back.getHeight(),false,false);b(1,1,1,1);
-                if(shown&&sx>.3f){if(imp){text(hand,"САМОЗВАНЕЦ",x,y+40+lift,BLOOD,a*dim,.78f*sx);text(small,"подсказка:",x,y-22+lift,INK,a*.9f,1);text(hand,"Еда",x,y-50+lift,INK,a,.7f*sx);}
+                if(shown&&sx>.3f){if(imp){text(hand,"САМОЗВАНЕЦ",x,y+40+lift,BLOOD,a*dim,.56f*sx);text(small,"подсказка:",x,y-22+lift,INK,a*.9f,1);text(hand,"Еда",x,y-50+lift,INK,a,.7f*sx);}
                     else{text(small,"секретное слово",x,y+44+lift,INK,a*.8f*dim,1);text(hand,"ЯБЛОКО",x,y+8+lift,INK,a*dim,.8f*sx);}}}
             if(pass==2&&imp&&focus>0)glowAt(x,y+lift,520,BLOOD,.45f*a*focus*(.8f+.2f*MathUtils.sin(time*5)));
         }
         if(pass==1){float f=k(t,6,6.6f);text(sub,"Самозванец не знает слова",W/2+2*300-300,250,BLOOD,a*f,.9f);}
     }
+    /** Portrait medallion: drop shadow, dark velvet disc, the character, a fine gold ring and a red rim light. */
     private void framed(String id,float x,float y,float w,float a,Color tint,float tintK){
-        float h=w*frame.getHeight()/(float)frame.getWidth();Texture p=portrait(id);
-        if(p!=null){float pw=w*.62f;b(1-.3f*tintK*(1-tint.r),1-.6f*tintK,1-.6f*tintK,a);batch.draw(p,x-pw/2,y-pw/2+h*.06f,pw,pw);}
-        if(id.equals("voodoo")&&p!=null){float pw=w*.62f,er=pw*.085f,px0=x-pw/2,top=y+pw/2+h*.06f;float blink=MathUtils.sin(time*2.3f)>.985f?.25f:1;
-            for(float[] e:new float[][]{{.317f,.493f},{.78f,.60f}}){float ex=px0+e[0]*pw,ey=top-e[1]*pw;b(1,1,1,a);batch.draw(eye,ex-er,ey-er*blink,er*2,er*2*blink);}b(1,1,1,1);}
-        b(1,1,1,a);batch.draw(frame,x-w/2,y-h/2,w,h);b(1,1,1,1);
+        if(a<=0)return;float r=w*.42f;Texture p=portrait(id);
+        b(0,0,0,.55f*a);batch.draw(glow,x-r*1.5f+10,y-r*1.5f-16,r*3,r*3);
+        if(p!=null){float pw=r*2.1f;b(1-.2f*tintK,1-.65f*tintK,1-.65f*tintK,a);batch.draw(p,x-pw/2,y-pw/2,pw,pw);}
+        if(id.equals("voodoo")&&p!=null){float pw=r*2.1f,er=pw*.085f,px0=x-pw/2,top=y+pw/2;float blink=MathUtils.sin(time*2.3f)>.985f?.25f:1;
+            for(float[] e:new float[][]{{.317f,.493f},{.78f,.60f}}){float ex=px0+e[0]*pw,ey=top-e[1]*pw;b(1,1,1,a);batch.draw(eye,ex-er,ey-er*blink,er*2,er*2*blink);}}
+        b(1,1,1,1);ring(x,y,r*1.02f,a);
+        batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);glowAt(x+r*.5f,y+r*.6f,r*2.2f,BLOOD,.18f*a+.35f*a*tintK);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
+    }
+    private Texture ringTex;
+    /** Thin antique-gold ring, baked once so it stays crisp inside the sprite pass. */
+    private void ring(float x,float y,float r,float a){
+        if(ringTex==null){int n=256;Pixmap pm=new Pixmap(n,n,Pixmap.Format.RGBA8888);pm.setBlending(Pixmap.Blending.None);
+            for(int yy=0;yy<n;yy++)for(int xx=0;xx<n;xx++){float d=(float)Math.hypot(xx-n/2f+.5f,yy-n/2f+.5f)/(n/2f);float ring=Math.max(0,1-Math.abs(d-.93f)/.035f),inner=Math.max(0,1-Math.abs(d-.86f)/.012f)*.6f,out=d>.9f&&d<1?Math.max(0,(d-.9f)/.1f)*(1-d)*4:0;
+                float sh=.75f+.25f*(float)Math.sin(Math.atan2(yy-n/2f,xx-n/2f)*1+.8f);float al=Math.min(1,ring+inner);pm.drawPixel(xx,yy,Color.rgba8888(.95f*sh,.74f*sh,.42f*sh,al));}
+            ringTex=new Texture(pm);ringTex.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);pm.dispose();}
+        b(1,1,1,a);batch.draw(ringTex,x-r,y-r,r*2,r*2);b(1,1,1,1);
     }
     private void clues(float t,float a){
         headingText("УЛИКИ",t,a,GOLD);
@@ -164,21 +196,23 @@ public final class ImpostorRulesFilm implements Disposable {
         }
         if(pass==1){float q=k(t,4.9f,5.4f);text(sub,"Хм… подозрительно?",W/2+1.5f*400,170,BLOOD,a*q,.85f);}
     }
-    /** Envelopes fly to the suspects: three land on the impostor, one on the dracula. */
+    /** Detective board: red threads run from each accuser to the one they suspect; the suspect lights up. */
     private static final int[][] ENV={{0,3},{1,3},{2,1},{4,3}};
     private void suspicion(float t,float a){
         headingText("ПОДОЗРЕНИЕ",t,a,BLOOD);
-        float[] px=new float[5];for(int i=0;i<4;i++)px[i]=W/2+(i-1.5f)*400;px[4]=W/2;
+        float[] px=new float[5],py=new float[5];for(int i=0;i<4;i++){px[i]=W/2+(i-1.5f)*400;py[i]=560+((i%2)*2-1)*40;}px[4]=W/2;py[4]=300;
         int[] got=new int[4];
-        for(int i=0;i<4;i++){float d=ease(k(t,.2f+.1f*i,.7f+.1f*i));if(pass==1)framed(WHO[i],px[i],560,230,a*d,BLOOD,i==IMP?k(t,3.6f,4.2f):0);}
-        for(int e=0;e<ENV.length;e++){int from=ENV[e][0],to=ENV[e][1];float f=k(t,1+.55f*e,1.75f+.55f*e);if(f<=0)continue;
-            float sx=from==4?W/2:px[from],sy=from==4?160:420,tx=px[to],ty=760+got[to]*26;got[to]++;
-            float x=MathUtils.lerp(sx,tx,ease(f)),y=MathUtils.lerp(sy,ty,ease(f))+MathUtils.sin(f*MathUtils.PI)*220;float rot=(1-f)*360*(e%2==0?1:-1)+(-8+got[to]*7);
-            if(pass==1){b(1,1,1,a);batch.draw(new TextureRegion(envelope),x-80,y-46,80,46,160,92,1,1,rot);b(1,1,1,1);}
-            if(pass==2&&f<1)glowAt(x,y,140,GOLD,.25f*a);}
-        if(pass==1){for(int i=0;i<4;i++)if(got[i]>0)text(heading,"×"+got[i],px[i]+120,860,i==IMP?BLOOD:GOLD,a*k(t,3.2f,3.6f),.7f);}
-        if(pass==2)glowAt(px[IMP],560,520,BLOOD,.35f*a*k(t,3.6f,4.2f));
+        for(int e=0;e<ENV.length;e++){int from=ENV[e][0],to=ENV[e][1];float f=ease(k(t,.9f+.6f*e,1.6f+.6f*e));if(f<=0)continue;got[to]++;
+            float x0=px[from],y0=py[from],x1=MathUtils.lerp(x0,px[to],f),y1=MathUtils.lerp(y0,py[to],f);float sag=60*(1-f*.4f);
+            if(pass==0){int seg=24;float lx=x0,ly=y0;for(int q=1;q<=seg;q++){float u=q/(float)seg;float xx=MathUtils.lerp(x0,x1,u),yy=MathUtils.lerp(y0,y1,u)-MathUtils.sin(u*MathUtils.PI)*sag;
+                shapes.setColor(0,0,0,.5f*a);shapes.rectLine(lx+4,ly-6,xx+4,yy-6,3.5f);shapes.setColor(BLOOD.r,BLOOD.g*.8f,BLOOD.b,.95f*a);shapes.rectLine(lx,ly,xx,yy,3f);lx=xx;ly=yy;}}
+            if(pass==2&&f<1)glowAt(x1,y1,90,BLOOD,.7f*a);}
+        for(int i=0;i<4;i++){float d=ease(k(t,.2f+.1f*i,.7f+.1f*i));float sus=i==IMP?k(t,3.4f,4f):0;if(pass==1){framed(WHO[i],px[i],py[i],230,a*d,BLOOD,sus);pin(px[i],py[i]+100,a*d);}}
+        if(pass==1){float pa=ease(k(t,.4f,.8f));framed(WHO[4],px[4],py[4],150,a*pa,BLOOD,0);pin(px[4],py[4]+66,a*pa);
+            for(int i=0;i<4;i++)if(got[i]>0)text(heading,"×"+got[i],px[i]+130,py[i]-110,i==IMP?BLOOD:GOLD,a*k(t,3,3.4f),.62f);}
+        if(pass==2)glowAt(px[IMP],py[IMP],560,BLOOD,.4f*a*k(t,3.4f,4f)*(.8f+.2f*MathUtils.sin(time*6)));
     }
+    private void pin(float x,float y,float a){b(0,0,0,.5f*a);batch.draw(glow,x-14+4,y-14-6,28,28);b(.75f,.08f,.06f,a);batch.draw(glow,x-11,y-11,22,22);b(1,.7f,.6f,a);batch.draw(glow,x-5,y-1,8,8);b(1,1,1,1);}
     /** The blood stamp slams onto the suspect's sheet. */
     private void vote(float t,float a){
         headingText("ГОЛОСОВАНИЕ",t,a,BLOOD);
@@ -274,7 +308,7 @@ public final class ImpostorRulesFilm implements Disposable {
     private static float ease(float x){return x*x*(3-2*x);}
     @Override public void dispose(){
         for(var v:voice)if(v!=null)v.dispose();for(Sound s:new Sound[]{whoosh,paper,thud})if(s!=null)s.dispose();
-        for(Texture t:new Texture[]{eye,room,back,front,envelope,stamp,print,note,frame,glow,pixel})t.dispose();for(Texture t:portraits.values())if(t!=null)t.dispose();
+        for(Texture t:new Texture[]{eye,room,back,front,envelope,stamp,print,note,frame,glow,pixel})t.dispose();for(Texture t:portraits.values())if(t!=null)t.dispose();if(ringTex!=null)ringTex.dispose();
         for(BitmapFont f:new BitmapFont[]{title,heading,hand,sub,small})f.dispose();batch.dispose();shapes.dispose();postBatch.dispose();post.dispose();
     }
 }
