@@ -21,9 +21,9 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 public final class SystemBreachRulesFilm implements Disposable {
     public static final float W=1920,H=1080;
     // compact cut: what players can do. Each scene replays a source animation at its own speed.
-    private static final float[] START={0,5.8f,11f,16.8f,21.8f,26.5f,32.5f},END={5.8f,11f,16.8f,21.8f,26.5f,32.5f,40.1f};
-    private static final float[] SPEED={.65f,1.06f,1.77f,1.1f,.85f,1.23f,1.06f};
-    public static final float LENGTH=40.1f;
+    private static final float[] START={0,5.8f,11.4f,17.2f,22.2f,26.9f,33.6f},END={5.8f,11.4f,17.2f,22.2f,26.9f,33.6f,41.2f};
+    private static final float[] SPEED={.65f,.98f,1.77f,1.1f,.85f,1.1f,1.06f};
+    public static final float LENGTH=41.2f;
     private static final String[] TAB={"","ОТВЕЧАЙ","ВЗЛАМЫВАЙ","DDoS","ВИРУС","ЗАЩИТА","ПОБЕДА"};
     private static final String[] SUB={
         "Добро пожаловать в систему! Сегодня каждый из вас — хакер.",
