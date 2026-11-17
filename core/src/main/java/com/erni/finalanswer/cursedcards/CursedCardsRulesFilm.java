@@ -170,6 +170,15 @@ public final class CursedCardsRulesFilm implements Disposable {
         if(pass!=1||a<=0)return;float h=w*1.5f,sx=Math.abs(MathUtils.cos(flip*MathUtils.PI));boolean front=flip>.5f;Texture t=front?tx(value):back;
         b(0,0,0,.5f*a);batch.draw(new TextureRegion(t),x-w/2*sx+10,y-h/2-14,w/2*sx,h/2,w*sx,h,1,1,rot);
         float l=.82f+.18f*lit;b(l,l,l,a);batch.draw(new TextureRegion(t),x-w/2*sx,y-h/2,w/2*sx,h/2,w*sx,h,1,1,rot);b(1,1,1,1);
+        // a glint sweeps across the face right after it turns over
+        if(flip>.5f&&flip<1){float g=(flip-.5f)/.5f;if(glowR==null)glowR=new TextureRegion(glow);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
+            float gx=x+(g-.5f)*w*1.3f;b(1,.92f,.75f,.55f*a*MathUtils.sin(g*MathUtils.PI));batch.draw(glowR,gx-w*.18f,y-h*.6f,w*.18f,h*.6f,w*.36f,h*1.2f,1,1,rot+22);
+            b(1,1,1,1);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
+    }
+    /** Radial gold sparks bursting from (x,y), e seconds after the moment. */
+    private void sparks(float x,float y,float e,float a,Color c){
+        if(pass!=2||e<0||e>.9f)return;for(int i=0;i<28;i++){float an=hash(i*7+3)*MathUtils.PI2,sp=260+420*hash(i*11);float px=x+MathUtils.cos(an)*sp*e,py=y+MathUtils.sin(an)*sp*e-300*e*e;float k=1-e/.9f;glowAt(px,py,10+18*k,c,a*k);}
+        if(e<.25f)glowAt(x,y,420,c,.6f*a*(1-e/.25f));
     }
     private void fan(float cx,float cy,int n,float spread,float w,float a,int[] vals,float flip){
         for(int i=0;i<n;i++){float u=n==1?0:i/(float)(n-1)-.5f;float rot=-u*spread,x=cx+u*w*1.9f,y=cy-Math.abs(u)*30;card(x,y,w,rot,flip,vals==null?1:vals[i],a,1);}
@@ -188,7 +197,8 @@ public final class CursedCardsRulesFilm implements Disposable {
         for(int p=0;p<4;p++){framed(WHO[p],SEAT[p][0],SEAT[p][1]-230,130,a*ease(k(t,.2f+.1f*p,.6f+.1f*p)),GOLD,0);
             for(int c=0;c<4;c++){float st=.7f+(c*4+p)*.13f,f=ease(k(t,st,st+.45f));if(f<=0)continue;float u=c/3f-.5f;
                 float tx=SEAT[p][0]+u*120,ty=SEAT[p][1]-Math.abs(u)*20,rot=-u*20;float x=MathUtils.lerp(dx,tx,f),y=MathUtils.lerp(dy,ty,f)+MathUtils.sin(f*MathUtils.PI)*60;
-                card(x,y,110,MathUtils.lerp(0,rot,f)+(1-f)*200,0,1,a,1);}}
+                if(f<.98f)for(int g=3;g>=1;g--){float fg=Math.max(0,f-g*.06f);float gx=MathUtils.lerp(dx,tx,fg),gy=MathUtils.lerp(dy,ty,fg)+MathUtils.sin(fg*MathUtils.PI)*60;card(gx,gy,110,MathUtils.lerp(0,rot,fg)+(1-fg)*200,0,1,a*.18f*(4-g)/3f,1);}
+                card(x,y,110,MathUtils.lerp(0,rot,f)+(1-f)*200,0,1,a,1);if(f>=1&&pass==2){float e=t-st-.45f;if(e<.2f)glowAt(tx,ty,180,GOLD,.4f*a*(1-e/.2f));}}}
         // the DEATH card hides somewhere: one back pulses red
         float hb=k(t,3.4f,3.8f);if(hb>0){float x=SEAT[CURSED][0]+(2/3f-.5f)*120,y=SEAT[CURSED][1]-(1/6f)*20;float beat=(float)Math.pow(Math.max(0,MathUtils.sin(time*6)),6);
             if(pass==2)glowAt(x,y,340,BLOOD,a*hb*(.25f+.55f*beat));if(pass==1)text(sub,"Где-то здесь — смерть",W/2,215,BLOOD,a*hb,.85f);}
@@ -202,6 +212,7 @@ public final class CursedCardsRulesFilm implements Disposable {
             float fx=MathUtils.lerp(x,px+(pair==0?-12:12),go),fy=MathUtils.lerp(y+lift*60,py+(pair==0?-6:8),go),fr=MathUtils.lerp(rot,pair==0?-8:10,go);
             card(fx,fy,MathUtils.lerp(170,130,go),fr,ease(k(t,.4f+.1f*i,.8f+.1f*i)),v[i],a,1);
             if(pass==2&&pair>=0&&lift>0&&go<1)glowAt(x,y+lift*60,300,GOLD,.35f*a*lift*(1-go));}
+        for(int pr=0;pr<2;pr++){float st=1.2f+pr*1.6f;sparks(W/2-160,620,t-st-.3f,a,GOLD);sparks(W/2+520,520,t-st-1.2f,a*.7f,GOLD);}
         if(pass==1){for(int pr=0;pr<2;pr++){float st=1.2f+pr*1.6f,f=k(t,st+.2f,st+.5f)*(1-k(t,st+1.1f,st+1.4f));text(heading,"ПАРА!",W/2-160,760,GOLD,a*f,.7f);}
             text(sub,"Осталась одна карта",cx,240,BONE,a*k(t,4.6f,5.1f),.85f);}
     }
@@ -217,6 +228,7 @@ public final class CursedCardsRulesFilm implements Disposable {
         for(int i=0;i<5;i++){float u=i/4f-.5f;float x=nx+u*420,y=ny-Math.abs(u)*30,rot=-u*14;float hoverIdx=hov*4.99f;boolean over=(int)hoverIdx==i&&take==0;
             if(i==pick&&take>0){x=MathUtils.lerp(x,mx+260,take);y=MathUtils.lerp(y,my-40,take)+MathUtils.sin(take*MathUtils.PI)*120;rot*=1-take;}
             card(x,y+(over?28:0),150,rot,i==pick?fl:0,9,a,over?1:.85f);if(pass==2&&over)glowAt(x,y+28,260,GOLD,.35f*a);}
+        sparks(mx+260,my-40,t-4.15f,a,GOLD);
         if(pass==1){float p=k(t,4.2f,4.6f);text(heading,"ВСЛЕПУЮ!",nx,ny-260,BLOOD,a*k(t,1,1.4f)*(1-p),.7f);text(heading,"9 + 9 = ПАРА!",nx,ny-260,GOLD,a*p,.7f);}
     }
     private void vote(float t,float a){
@@ -228,7 +240,7 @@ public final class CursedCardsRulesFilm implements Disposable {
         if(c>0){if(pass==1){for(int i=0;i<6;i++){float ph=(time*.4f+i/6f)%1;float r=160+220*ph;b(.9f,.15f,.12f,.25f*a*c*(1-ph));batch.draw(new TextureRegion(wisp),tx-r,ty-r*.6f+ph*120,r,r*.6f,r*2,r*1.2f,1,1,i*60+time*20);}b(1,1,1,1);
                 text(heading,"ПРОКЛЯТ",tx,ty-170,BLOOD,a*k(t,3,3.4f),.75f);}
             if(pass==2)glowAt(tx,ty,700,BLOOD,.45f*a*c*(.8f+.2f*MathUtils.sin(time*5)));
-            float d=ease(k(t,3.6f,4.4f));card(MathUtils.lerp(W/2+700,tx+230,d),ty+MathUtils.sin(d*MathUtils.PI)*120,130,(1-d)*-90+8,ease(k(t,4.6f,5.1f)),0,a*d,1);}
+            sparks(tx+230,ty,t-4.4f,a,BLOOD);            float d=ease(k(t,3.6f,4.4f));card(MathUtils.lerp(W/2+700,tx+230,d),ty+MathUtils.sin(d*MathUtils.PI)*120,130,(1-d)*-90+8,ease(k(t,4.6f,5.1f)),0,a*d,1);}
     }
     private void result(float t,float a){
         headingText("ИТОГ",t,a,GOLD);
