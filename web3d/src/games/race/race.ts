@@ -13,7 +13,7 @@ type Look = {root: THREE.Object3D; mixer: THREE.AnimationMixer; acts: Record<str
 
 export class RaceApp {
   readonly renderer: THREE.WebGLRenderer; readonly scene = new THREE.Scene(); readonly camera = new THREE.PerspectiveCamera(55, 1, .3, 900);
-  course: Course; readonly night: boolean; runners: Runner[] = []; me!: Runner; clock = 0; private acc = 0;
+  course: Course; readonly night: boolean; readonly manor: boolean; runners: Runner[] = []; me!: Runner; clock = 0; private acc = 0;
   private sun!: THREE.DirectionalLight; private fill!: THREE.DirectionalLight; private mist: THREE.Mesh[] = []; private pollen!: THREE.Points; private puffs: {s: THREE.Sprite; t: number}[] = []; private grassMat?: THREE.Material; private looks = new Map<Runner, Look>(); private blockMeshes = new Map<Block, THREE.Mesh>();
   private sweeperMeshes: THREE.Object3D[] = []; private cpArches: {glow: THREE.Mesh; flag: THREE.Mesh; lit: boolean}[] = []; private lastCp = 0; private pend: {bob: THREE.Object3D; chain: THREE.Mesh}[] = []; private boulderPool: THREE.Object3D[] = [];
   private gltf = new GLTFLoader(); private texLoader = new THREE.TextureLoader(); private cache = new Map<string, Promise<GLTF>>();
@@ -21,7 +21,7 @@ export class RaceApp {
   private dots = new Map<Runner, HTMLElement>(); private keys = new Set<string>(); private stick = {id: -1, ox: 0, oy: 0, x: 0, y: 0}; private hud: HTMLElement;
 
   constructor(private host: HTMLElement, private myChar: string, map = 1) {
-    this.course = new Course(map); this.night = this.course.theme === 'graveyard';
+    this.course = new Course(map); this.night = this.course.theme === 'graveyard'; this.manor = this.course.theme === 'manor';
     const phone = matchMedia('(pointer:coarse)').matches;
     this.renderer = new THREE.WebGLRenderer({antialias: !phone || devicePixelRatio < 2, powerPreference: 'high-performance'});
     this.pixelRatio = Math.min(devicePixelRatio, phone ? 1.5 : 2); this.renderer.setPixelRatio(this.pixelRatio);
@@ -34,54 +34,56 @@ export class RaceApp {
   }
 
   async load(progress: (f: number) => void) {
-    const N = this.night;
+    const N = this.night || this.manor, IN = this.manor;
     // sky: background + image-based lighting from the same panorama (sunset over the gorge / moonrise over the graveyard)
     const sky = this.tex(N ? 'sky_night.jpg' : 'sky.jpg', false); sky.mapping = THREE.EquirectangularReflectionMapping;
     this.scene.background = sky;
     const pmrem = new THREE.PMREMGenerator(this.renderer); this.scene.environment = pmrem.fromEquirectangular(await loaded(sky)).texture; pmrem.dispose();
-    (this.scene as any).environmentIntensity = N ? .55 : .75; (this.scene as any).backgroundIntensity = N ? .85 : 1;
-    this.scene.fog = N ? new THREE.Fog(new THREE.Color(.1, .15, .24), 16, 120) : new THREE.Fog(new THREE.Color(.62, .58, .64), 38, 240);
-    this.scene.add(N ? new THREE.HemisphereLight(0x7088c8, 0x141812, .55) : new THREE.HemisphereLight(0xbfc8ff, 0x3d3324, .35));
-    if (N) this.renderer.toneMappingExposure = 1.2;
+    (this.scene as any).environmentIntensity = IN ? .3 : N ? .55 : .75; (this.scene as any).backgroundIntensity = N ? .85 : 1; if (IN) this.scene.background = new THREE.Color(0x040508);
+    this.scene.fog = IN ? new THREE.Fog(new THREE.Color(.025, .03, .05), 10, 70) : N ? new THREE.Fog(new THREE.Color(.1, .15, .24), 16, 120) : new THREE.Fog(new THREE.Color(.62, .58, .64), 38, 240);
+    this.scene.add(IN ? new THREE.HemisphereLight(0x46588c, 0x24170c, .5) : N ? new THREE.HemisphereLight(0x7088c8, 0x141812, .55) : new THREE.HemisphereLight(0xbfc8ff, 0x3d3324, .35));
+    if (N) this.renderer.toneMappingExposure = IN ? 1.3 : 1.2;
     // key light matches the sun / moon in the panorama: long shadows towards the camera, rim light on everything
-    this.sun = N ? new THREE.DirectionalLight(0xb4ccff, 2.4) : new THREE.DirectionalLight(0xffb978, 3.4); this.sun.castShadow = true;
+    this.sun = IN ? new THREE.DirectionalLight(0xa9c2ff, 4.2) : N ? new THREE.DirectionalLight(0xb4ccff, 2.4) : new THREE.DirectionalLight(0xffb978, 3.4); this.sun.castShadow = true;
     const hi = !matchMedia('(pointer:coarse)').matches; this.sun.shadow.mapSize.set(hi ? 2048 : 1024, hi ? 2048 : 1024);
     Object.assign(this.sun.shadow.camera, {left: -24, right: 24, top: 24, bottom: -24, near: 1, far: 140}); this.sun.shadow.bias = -.0005; this.sun.shadow.normalBias = .04;
     this.scene.add(this.sun, this.sun.target);
-    this.fill = new THREE.DirectionalLight(N ? 0xa8b8ff : 0xc8d2ff, N ? 1.1 : 1.7); this.scene.add(this.fill, this.fill.target); // cool fill from the camera side
+    this.fill = new THREE.DirectionalLight(IN ? 0xffb37a : N ? 0xa8b8ff : 0xc8d2ff, IN ? 1.25 : N ? 1.1 : 1.7); this.scene.add(this.fill, this.fill.target); // cool fill from the camera side
     this.atmosphere();
-    const mats = {cobble: this.mat('mossy_cobblestone', 3), brick: this.mat('mossy_brick', 3, true), dark: this.mat('dark_wooden_planks', 2.2, true), mud: this.mat('brown_mud_leaves_01', 3, false, 0x9aa38a),
+    const mats = {floor: this.mat('old_wooden_floor_02', 2.5, true), flag: this.mat('mossy_cobblestone', 2.5, false, 0x8a8a8a), wall: this.mat('castle_brick_07', 3), beam: this.mat('medieval_wood', 2, true),
+      cobble: this.mat('mossy_cobblestone', 3), brick: this.mat('mossy_brick', 3, true), dark: this.mat('dark_wooden_planks', 2.2, true), mud: this.mat('brown_mud_leaves_01', 3, false, 0x9aa38a),
       grass: this.mat('leafy_grass', 3.2, false, 0xc4dc8a), rock: this.mat('rock_face_03', 4, true), plank: this.mat('brown_planks_05', 2.2, true), stone: this.mat('mossy_rock', 3.2), bark: this.mat('bark_brown_02', 1), ground: this.mat('forest_ground_04', 6)};
     for (const b of this.course.blocks) {
-      const topM = ({grass: mats.grass, plank: mats.plank, stone: mats.stone, cobble: mats.cobble, brick: mats.brick, dark: mats.dark, mud: mats.mud} as Record<string, THREE.Material>)[b.mat];
-      const side = b.mat === 'plank' ? mats.plank : b.mat === 'dark' ? mats.dark : this.night ? mats.brick : mats.rock;
+      const topM = ({grass: mats.grass, plank: mats.plank, stone: mats.stone, cobble: mats.cobble, brick: mats.brick, dark: mats.dark, mud: mats.mud, floor: mats.floor, flag: mats.flag} as Record<string, THREE.Material>)[b.mat];
+      const side = b.mat === 'plank' ? mats.plank : b.mat === 'dark' ? mats.dark : this.manor ? (b.mat === 'floor' ? mats.beam : mats.wall) : this.night ? mats.brick : mats.rock;
       const m = new THREE.Mesh(blockGeometry(b), [topM, side]); if (b.mat === 'grass') this.grassOn(b); m.receiveShadow = true; m.castShadow = b.mat === 'plank' || b.crumbles; this.blockMeshes.set(b, m); this.scene.add(m);
     }
     if (!this.night) {const floor = new THREE.Mesh(new THREE.PlaneGeometry(520, 540).rotateX(-Math.PI / 2), mats.ground); floor.receiveShadow = false; floor.position.set(0, -34, 150); worldUV(floor.geometry as THREE.BufferGeometry, 6, 'xz'); this.scene.add(floor);}
     // hazards
     const logGeo = new THREE.CylinderGeometry(.42, .42, 1, 14, 1); logGeo.rotateZ(Math.PI / 2);
-    for (const s of this.course.sweepers) {const g = new THREE.Group(); for (let a = 0; a < (s.arms || 1); a++) {const log = new THREE.Mesh(logGeo, this.night ? mats.dark : mats.bark); log.scale.set(s.len * 2, 1, 1); log.rotation.y = a * Math.PI / (s.arms || 1); log.castShadow = true; g.add(log);}
+    for (const s of this.course.sweepers) {const g = new THREE.Group(); for (let a = 0; a < (s.arms || 1); a++) {const log = new THREE.Mesh(this.manor ? new THREE.BoxGeometry(1, .62, .62) : logGeo, this.manor ? mats.beam : this.night ? mats.dark : mats.bark); log.scale.set(s.len * 2, 1, 1); log.rotation.y = a * Math.PI / (s.arms || 1); log.castShadow = true; g.add(log);}
       this.sweeperMeshes.push(g); this.scene.add(g);
       const post = new THREE.Mesh(new THREE.CylinderGeometry(.55, .65, 1.6, 12), this.night ? mats.brick : mats.bark); post.position.set(s.x, s.y - .25, s.z); post.castShadow = true; this.scene.add(post);}
-    const boulder = await this.model('env/boulder_01.glb'); progress(.15);
+    const boulder = await this.model('env/boulder_01.glb'); const cageG = this.manor ? await this.model('env/cage.glb') : null; progress(.15);
     for (const p of this.course.pendulums) {
-      const bob = this.night ? scythe() : normalized(boulder.scene, p.radius * 2.1, 'max'); this.scene.add(bob);
+      const bob = cageG ? hanging(normalized(cageG.scene, 2.3, 'height'), 1.15) : this.night ? scythe() : normalized(boulder.scene, p.radius * 2.1, 'max'); this.scene.add(bob);
       const chain = new THREE.Mesh(new THREE.CylinderGeometry(.07, .07, 1, 6), new THREE.MeshStandardMaterial({color: 0x3a3632, metalness: .8, roughness: .45})); this.scene.add(chain);
       const base = this.course.spawnY(p.pz), postX = this.night ? 5 : 6.4;
-      for (const sg of [-1, 1]) {const post = new THREE.Mesh(this.night ? new THREE.BoxGeometry(.9, p.py - base, .9) : new THREE.CylinderGeometry(.45, .5, p.py - base, 10), this.night ? mats.brick : mats.bark); post.position.set(sg * postX, (base + p.py) / 2, p.pz); post.castShadow = true; this.scene.add(post);}
-      const beam = new THREE.Mesh(logGeo, this.night ? mats.dark : mats.bark); beam.scale.set(postX * 2 + .8, .9, .9); beam.position.set(0, p.py, p.pz); beam.castShadow = true; this.scene.add(beam);
+      if (!this.manor) for (const sg of [-1, 1]) {const post = new THREE.Mesh(this.night ? new THREE.BoxGeometry(.9, p.py - base, .9) : new THREE.CylinderGeometry(.45, .5, p.py - base, 10), this.night ? mats.brick : mats.bark); post.position.set(sg * postX, (base + p.py) / 2, p.pz); post.castShadow = true; this.scene.add(post);}
+      if (!this.manor) {const beam = new THREE.Mesh(logGeo, this.night ? mats.dark : mats.bark); beam.scale.set(postX * 2 + .8, .9, .9); beam.position.set(0, p.py, p.pz); beam.castShadow = true; this.scene.add(beam);}
       this.pend.push({bob, chain});
     }
     this.boulderSrc = boulder.scene;
-    for (let i = 0; i < 6; i++) {const b = normalized(boulder.scene, 2.4, 'max'); b.visible = false; this.boulderPool.push(b); this.scene.add(b);}
+    const barrel = this.manor ? await this.model('env/wine_barrel_01.glb') : null;
+    for (let i = 0; i < 6; i++) {const b = barrel ? rolling(normalized(barrel.scene, 2.4, 'max')) : normalized(boulder.scene, 2.4, 'max'); b.visible = false; this.boulderPool.push(b); this.scene.add(b);}
     // finish arch
     const fy = this.course.spawnY(this.course.finishZ);
-    for (const sg of [-1, 1]) {const post = new THREE.Mesh(this.night ? new THREE.BoxGeometry(1.3, 7, 1.3) : new THREE.CylinderGeometry(.55, .6, 7, 12), this.night ? mats.brick : mats.bark); post.position.set(sg * 7.5, fy + 3.5, this.course.finishZ); post.castShadow = true; this.scene.add(post);}
+    for (const sg of [-1, 1]) {const post = new THREE.Mesh(this.night || this.manor ? new THREE.BoxGeometry(1.3, 7, 1.3) : new THREE.CylinderGeometry(.55, .6, 7, 12), this.night ? mats.brick : mats.bark); post.position.set(sg * 7.5, fy + 3.5, this.course.finishZ); post.castShadow = true; this.scene.add(post);}
     const beam = new THREE.Mesh(logGeo, mats.bark); beam.scale.set(16.5, 1.1, 1.1); beam.position.set(0, fy + 7.1, this.course.finishZ); this.scene.add(beam);
-    const banner = new THREE.Mesh(new THREE.PlaneGeometry(13, 1.7), new THREE.MeshStandardMaterial({map: bannerTexture(), side: THREE.DoubleSide, roughness: .85}));
+    const banner = new THREE.Mesh(new THREE.PlaneGeometry(13, 1.7), new THREE.MeshStandardMaterial({map: bannerTexture(this.manor ? 'СВОБОДА' : 'ФИНИШ'), side: THREE.DoubleSide, roughness: .85}));
     banner.position.set(0, fy + 6, this.course.finishZ); banner.rotation.y = Math.PI; this.scene.add(banner);
-    this.checkpointArches(this.night ? mats.brick : mats.bark);
-    await (this.night ? this.decorateNight(mats.stone, progress) : this.decorate(progress)); this.buildGrass(); progress(.8);
+    this.checkpointArches(this.manor ? mats.beam : this.night ? mats.brick : mats.bark);
+    await (this.manor ? this.decorateManor(mats, progress) : this.night ? this.decorateNight(mats.stone, progress) : this.decorate(progress)); this.buildGrass(); progress(.8);
     // runners
     const others = CHARACTERS.filter(c => c !== this.myChar);
     const cast = [this.myChar, ...others.sort(() => Math.random() - .5).slice(0, 5)];
@@ -159,6 +161,68 @@ export class RaceApp {
   }
   private toast(text: string) {const t = document.getElementById('toast'); if (!t) return; t.textContent = text; t.classList.remove('show'); void t.offsetWidth; t.classList.add('show');}
 
+  // ---------- the collector's house ----------
+  private async decorateManor(mats: Record<string, THREE.MeshStandardMaterial>, progress: (f: number) => void) {
+    const c = this.course; let seed = 31; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const props: Record<string, THREE.Matrix4[]> = {}, glows: THREE.Vector3[] = [], shafts: [number, number, number, number][] = [];
+    const put = (n: string, x: number, y: number, z: number, size: number, yaw = rnd() * Math.PI * 2) => (props[n] ??= []).push(new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw), new THREE.Vector3(size, size, size)));
+    const add = (m: THREE.Mesh, shadow = true) => {m.castShadow = shadow; m.receiveShadow = true; this.scene.add(m); return m;};
+    const plane = (w: number, h: number, tile: number) => {const g = new THREE.PlaneGeometry(w, h); const uv = g.getAttribute('uv'); for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * w / tile, uv.getY(i) * h / tile); return g;};
+    const ironMat = new THREE.MeshStandardMaterial({color: 0x17171b, metalness: .85, roughness: .45});
+    let prevW = -1;
+    for (const r of c.rooms) {
+      const len = r.z1 - r.z0, zc = (r.z0 + r.z1) / 2, base = r.y - 8, H = r.h + 8;
+      for (const sd of [-1, 1]) {const w = add(new THREE.Mesh(plane(len, H, 3), mats.wall)); w.position.set(sd * r.halfW, base + H / 2, zc); w.rotation.y = -sd * Math.PI / 2;
+        for (let z = r.z0 + 1; z < r.z1; z += 4) {const post = add(new THREE.Mesh(new THREE.BoxGeometry(.5, r.h + 1, .5), mats.beam)); post.position.set(sd * (r.halfW - .25), r.y + r.h / 2 - .5, z);}}
+      if (prevW > 0 && prevW !== r.halfW) for (const sd of [-1, 1]) {const a = Math.min(prevW, r.halfW), b = Math.max(prevW, r.halfW); const j = add(new THREE.Mesh(plane(b - a, H + 4, 3), mats.wall)); j.position.set(sd * (a + b) / 2, base + (H + 4) / 2, r.z0); if (prevW < r.halfW) j.rotation.y = Math.PI;}
+      prevW = r.halfW;
+      // ceiling: boards with barred skylights every 8 m, beams across every 4 m
+      const top = r.y + r.h; let z = r.z0;
+      while (z < r.z1) {const open = r.skylights && (Math.round(z) % 8 < 3) && z + 2.4 < r.z1; const seg = open ? 2.4 : Math.min(r.z1 - z, 5.6);
+        if (open) {for (let x = -r.halfW + .5; x < r.halfW; x += .6) {const bar = add(new THREE.Mesh(new THREE.BoxGeometry(.07, .07, seg), ironMat)); bar.position.set(x, top, z + seg / 2);} shafts.push([0, top, z + seg / 2, r.halfW]);}
+        else {const ce = add(new THREE.Mesh(plane(r.halfW * 2, seg, 2.5), mats.beam)); ce.rotation.x = Math.PI / 2; ce.position.set(0, top + .05, z + seg / 2);
+          const lid = add(new THREE.Mesh(new THREE.BoxGeometry(r.halfW * 2 + 2, .3, seg), new THREE.MeshBasicMaterial({color: 0}))); lid.position.set(0, top + .4, z + seg / 2);}
+        z += seg;}
+      for (let zz = r.z0 + 1; zz < r.z1; zz += 4) {const bm = add(new THREE.Mesh(new THREE.BoxGeometry(r.halfW * 2, .45, .45), mats.beam)); bm.position.set(0, top - .25, zz);}
+      // wall lamps with candles
+      for (let zz = r.z0 + 3; zz < r.z1 - 1; zz += 7) {const sd = Math.round(zz / 7) % 2 ? 1 : -1; put('caged_hanging_light', sd * (r.halfW - .45), r.y + 2.4, zz, .55, sd > 0 ? -Math.PI / 2 : Math.PI / 2); glows.push(new THREE.Vector3(sd * (r.halfW - .5), r.y + 2.45, zz));}
+      // clutter along the walls of wide rooms
+      if (r.halfW >= 6) for (let i = 0; i < len / 3.5; i++) {const sd = rnd() < .5 ? -1 : 1, x = sd * (r.halfW - 1.1 - rnd() * .8), zz = r.z0 + 1 + rnd() * (len - 2), k = rnd();
+        if (c.blocks.some(b => b.crumbles && zz > b.z0 - 1 && zz < b.z1 + 1)) continue;
+        if (k < .3) put('wine_barrel_01', x, r.y, zz, 1.1); else if (k < .5) put('wooden_crate_01', x, r.y, zz, .9 + rnd() * .3); else if (k < .62) put('wooden_barrels_01', x, r.y, zz, 1.8);
+        else if (k < .74) {put('wooden_bucket_01', x, r.y, zz, .45);} else if (k < .86) {put('wine_bottles_01', x, r.y, zz, .5);} else {put('brass_candleholders', x, r.y, zz, .6); glows.push(new THREE.Vector3(x, r.y + .65, zz));}}
+    }
+    // library shelves (along the walls by the turning beams)
+    const lib = c.sweepers[0]; if (lib) for (let z = lib.z - 12; z < lib.z + 12; z += 2.2) for (const sd of [-1, 1]) put('wooden_bookshelf_worn', sd * 10, lib.y - .55, z, 2.6, sd > 0 ? -Math.PI / 2 : Math.PI / 2);
+    // empty cages hanging in the cellar where the exhibits were kept, chandeliers in the great hall
+    const cageG = await this.model('env/cage.glb'); const ch = await this.model('env/lantern_chandelier_01.glb'); this.chandelier = ch.scene;
+    for (const [x, z, h] of [[-5.5, 2, 4.2], [5, 6, 3.6], [-4.5, 12, 3.9], [5.5, 16, 4.4], [0, 19, 5.2], [-6.5, 18, 3.4]]) {const cg = normalized(cageG.scene, 2.2, 'height'); cg.position.set(x, h, z); cg.rotation.y = rnd() * 6; cg.userData.sway = rnd() * 6; this.scene.add(cg); this.swingers.push(cg);
+      const chain = add(new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, 10 - h - 2.2, 6), ironMat), false); chain.position.set(x, h + 2.2 + (10 - h - 2.2) / 2, z);}
+    for (const [x, z, h] of [[-5.4, -2, 0], [6, 9, 0]] as const) {const cg = normalized(cageG.scene, 2.2, 'height'); cg.position.set(x, h, z); cg.rotation.set(0, rnd() * 6, .2); this.scene.add(cg);}
+    const hall = c.fallZones[0]; if (hall) for (let z = hall[2] + 4; z < hall[3]; z += 9) {const chd = normalized(ch.scene, 2.4, 'max'); chd.position.set(0, (c.rooms.find(r => z >= r.z0 && z <= r.z1)?.y ?? 0) + 7.4, z); this.scene.add(chd); glows.push(chd.position.clone().add(new THREE.Vector3(0, -.3, 0)));}
+    // the door to freedom, moonlight pouring through
+    const door = await this.model('env/large_castle_door.glb'); const fy = c.spawnY(c.finishZ); const dr = normalized(door.scene, 7.5, 'height'); dr.position.set(0, fy, c.finishZ + 8.6); dr.rotation.y = Math.PI; this.scene.add(dr);
+    const burst = new THREE.Sprite(new THREE.SpriteMaterial({map: dotTexture(true), color: 0xb9d0ff, transparent: true, opacity: .8, depthWrite: false, blending: THREE.AdditiveBlending})); burst.scale.set(14, 10, 1); burst.position.set(0, fy + 3.6, c.finishZ + 8); this.scene.add(burst);
+    progress(.45);
+    // instanced props
+    const names = Object.keys(props); let done = 0;
+    await Promise.all(names.map(async n => {const g = await this.model(`env/${n}.glb`); const base = normalized(g.scene, 1, /shelf|candle|light|bottles|bucket|barrels/.test(n) ? 'height' : 'max'); base.updateMatrixWorld(true);
+      if (!/shelf|light/.test(n)) base.children[0].position.y += 0; // keep feet on floor
+      base.traverse(o => {const m = o as THREE.Mesh; if (!m.isMesh) return; const im = new THREE.InstancedMesh(m.geometry, m.material, props[n].length); const local = m.matrixWorld.clone();
+        props[n].forEach((pm, i) => im.setMatrixAt(i, pm.clone().multiply(local))); im.castShadow = true; im.receiveShadow = true; im.computeBoundingSphere(); this.scene.add(im);});
+      progress(.45 + .35 * (++done) / names.length);}));
+    // candle glows (no real lights: phone friendly) and moonlight shafts through the skylights
+    const halo = new THREE.SpriteMaterial({map: dotTexture(true), color: 0xff9a40, transparent: true, opacity: .8, depthWrite: false, blending: THREE.AdditiveBlending});
+    for (const g of glows) {const h = new THREE.Sprite(halo); h.scale.setScalar(1.9); h.position.copy(g); this.scene.add(h); this.flames.push(h);
+      const pool = new THREE.Mesh(new THREE.CircleGeometry(2.6, 24).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({map: dotTexture(true), color: 0xff8030, transparent: true, opacity: .22, depthWrite: false, blending: THREE.AdditiveBlending}));
+      pool.position.set(g.x, c.spawnY(g.z) + .03, g.z); this.scene.add(pool);}
+    const shaftTex = shaftTexture();
+    for (const [x, y, z, hw] of shafts) {const L = 14; for (const rot of [0, Math.PI / 2]) {const m = new THREE.Mesh(new THREE.PlaneGeometry(hw * 1.6, L), new THREE.MeshBasicMaterial({map: shaftTex, color: 0x9fb8ff, transparent: true, opacity: .16, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false}));
+      m.position.set(x - SKY_DIR.x * L / 2, y - L / 2, z - SKY_DIR.z * L / 2); m.rotation.set(Math.atan2(SKY_DIR.z, SKY_DIR.y), rot, 0); this.scene.add(m);}}
+    progress(.8);
+  }
+  private swingers: THREE.Object3D[] = []; private flames: THREE.Sprite[] = [];
+
   // ---------- graveyard dressing ----------
   private async decorateNight(stone: THREE.Material, progress: (f: number) => void) {
     let seed = 23; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -199,11 +263,11 @@ export class RaceApp {
   }
 
   // ---------- rockfall ----------
-  private rocks: {rock: THREE.Object3D; ring: THREE.Mesh; id: number}[] = []; private shake = 0; private boulderSrc?: THREE.Object3D;
+  private chandelier?: THREE.Object3D; private rocks: {rock: THREE.Object3D; ring: THREE.Mesh; id: number}[] = []; private shake = 0; private boulderSrc?: THREE.Object3D;
   private syncRocks(dt: number) {
     if (!this.boulderSrc) return;
     const ringMat = (o: number) => new THREE.MeshBasicMaterial({color: 0xff3b1f, transparent: true, opacity: o, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide});
-    while (this.rocks.length < this.course.fallers.length) {const rock = this.night ? fireball() : normalized(this.boulderSrc, 2, 'max'); const ring = new THREE.Mesh(new THREE.RingGeometry(.82, 1, 40).rotateX(-Math.PI / 2), ringMat(.8));
+    while (this.rocks.length < this.course.fallers.length) {const rock = this.manor && this.chandelier ? normalized(this.chandelier, 2.2, 'max') : this.night ? fireball() : normalized(this.boulderSrc, 2, 'max'); const ring = new THREE.Mesh(new THREE.RingGeometry(.82, 1, 40).rotateX(-Math.PI / 2), ringMat(.8));
       const disc = new THREE.Mesh(new THREE.CircleGeometry(1, 40).rotateX(-Math.PI / 2), ringMat(.25)); ring.add(disc); ring.renderOrder = 3; this.scene.add(rock, ring); this.rocks.push({rock, ring, id: -1});}
     this.rocks.forEach((v, i) => {const f = this.course.fallers[i]; v.rock.visible = v.ring.visible = !!f; if (!f) {v.id = -1; return;}
       if (v.id !== f.id) {v.id = f.id; v.rock.userData.done = false; v.rock.rotation.set(Math.random() * 6, Math.random() * 6, 0);}
@@ -253,10 +317,11 @@ export class RaceApp {
     for (let i = 0; i < 70; i++) {const px = Math.random() * 256, py = Math.random() * 256, r = 20 + Math.random() * 60, g = x.createRadialGradient(px, py, 0, px, py, r);
       g.addColorStop(0, 'rgba(255,240,230,.22)'); g.addColorStop(1, 'rgba(255,240,230,0)'); x.fillStyle = g; for (const ox of [-256, 0, 256]) for (const oy of [-256, 0, 256]) {x.save(); x.translate(ox, oy); x.fillRect(px - r, py - r, r * 2, r * 2); x.restore();}}
     const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(5, 5);
-    for (const [y, o] of (this.night ? [[-1.6, .35], [-.6, .22], [.6, .12]] : [[-9, .5], [-15, .65], [-22, .8], [-29, .9]]) as [number, number][]) {
-      const m = new THREE.Mesh(new THREE.PlaneGeometry(700, 700).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({map: t.clone(), transparent: true, opacity: o, depthWrite: false, color: this.night ? 0x9fc4d8 : 0xf2d8c8}));
+    for (const [y, o] of (this.manor ? [[-3.5, .5], [-2, .3]] : this.night ? [[-1.6, .35], [-.6, .22], [.6, .12]] : [[-9, .5], [-15, .65], [-22, .8], [-29, .9]]) as [number, number][]) {
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(700, 700).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({map: t.clone(), transparent: true, opacity: o, depthWrite: false, color: this.manor ? 0x5d6f96 : this.night ? 0x9fc4d8 : 0xf2d8c8}));
       (m.material as THREE.MeshBasicMaterial).map!.repeat.set(4 + y * -.05, 4); m.position.set(0, y, 150); m.renderOrder = 2; this.mist.push(m); this.scene.add(m);}
-    if (this.night) {const swamp = new THREE.Mesh(new THREE.PlaneGeometry(400, 700).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({color: 0x0c1714, metalness: .85, roughness: .18, envMapIntensity: 1.1})); swamp.position.set(0, -2.5, 200); this.scene.add(swamp);}
+    if (this.manor) {const pit = new THREE.Mesh(new THREE.PlaneGeometry(60, 700).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({color: 0x010102})); pit.position.set(0, -7, 200); this.scene.add(pit);}
+    else if (this.night) {const swamp = new THREE.Mesh(new THREE.PlaneGeometry(400, 700).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({color: 0x0c1714, metalness: .85, roughness: .18, envMapIntensity: 1.1})); swamp.position.set(0, -2.5, 200); this.scene.add(swamp);}
     // river at the bottom of the gorge (mirrors the sunset sky)
     const river = new THREE.Mesh(new THREE.PlaneGeometry(26, 600).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({color: 0x1d2a33, metalness: .9, roughness: .12, envMapIntensity: 1.3}));
     river.position.set(-6, -33.6, 150); if (!this.night) this.scene.add(river);
@@ -264,7 +329,7 @@ export class RaceApp {
     const n = matchMedia('(pointer:coarse)').matches ? 260 : 520, pos = new Float32Array(n * 3);
     for (let i = 0; i < n; i++) {pos[i * 3] = (Math.random() - .5) * 40; pos[i * 3 + 1] = Math.random() * 14; pos[i * 3 + 2] = Math.random() * 50 - 10;}
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    this.pollen = new THREE.Points(g, new THREE.PointsMaterial({map: dotTexture(), size: this.night ? .16 : .13, color: this.night ? 0xc8ff7a : 0xffd9a0, transparent: true, opacity: .85, depthWrite: false, blending: THREE.AdditiveBlending}));
+    this.pollen = new THREE.Points(g, new THREE.PointsMaterial({map: dotTexture(), size: this.night ? .16 : .13, color: this.manor ? 0xbfd2ff : this.night ? 0xc8ff7a : 0xffd9a0, transparent: true, opacity: .85, depthWrite: false, blending: THREE.AdditiveBlending}));
     this.pollen.frustumCulled = false; this.scene.add(this.pollen);
   }
   private animateAtmosphere(dt: number) {
@@ -320,12 +385,15 @@ export class RaceApp {
     // camera: behind and above the player, framed wider in portrait
     const me = this.me, portrait = this.camera.aspect < 1, k = Math.min(1, dt * 5);
     this.camTarget.x += (me.x * .75 - this.camTarget.x) * k; this.camTarget.z += (me.z - this.camTarget.z) * k; this.camTarget.y += (Math.max(me.y, -4) - this.camTarget.y) * Math.min(1, dt * 2.5);
-    const back = portrait ? 11 : 8.6, up = portrait ? 7.2 : 5.4;
-    this.camera.position.set(this.camTarget.x, this.camTarget.y + up, this.camTarget.z - back); this.camera.lookAt(this.camTarget.x, this.camTarget.y + 1.3, this.camTarget.z + 7);
+    const back = this.manor ? (portrait ? 9 : 7.4) : portrait ? 11 : 8.6, up = this.manor ? (portrait ? 6 : 4.4) : portrait ? 7.2 : 5.4;
+    this.camera.position.set(this.camTarget.x, this.camTarget.y + up, this.camTarget.z - back);
+    if (this.manor) {const cz = this.camera.position.z, rm = this.course.rooms.find(r => cz >= r.z0 && cz <= r.z1) ?? this.course.rooms.find(r => this.camTarget.z >= r.z0 && this.camTarget.z <= r.z1); if (rm) {const lim = rm.halfW - 1.1; this.camera.position.x = Math.max(-lim, Math.min(lim, this.camera.position.x)); this.camera.position.y = Math.min(this.camera.position.y, rm.y + rm.h - .8);}} this.camera.lookAt(this.camTarget.x, this.camTarget.y + 1.3, this.camTarget.z + 7);
     this.sun.target.position.set(this.camTarget.x, this.camTarget.y, this.camTarget.z + 8);
-    const sd = this.night ? MOON_DIR : SUN_DIR; this.sun.position.set(this.camTarget.x + sd.x * 70, this.camTarget.y + sd.y * 70, this.camTarget.z + 8 + sd.z * 70);
+    const sd = this.manor ? SKY_DIR : this.night ? MOON_DIR : SUN_DIR; this.sun.position.set(this.camTarget.x + sd.x * 70, this.camTarget.y + sd.y * 70, this.camTarget.z + 8 + sd.z * 70);
     this.fill.position.copy(this.camera.position); this.fill.target.position.set(this.camTarget.x, this.camTarget.y, this.camTarget.z);
     this.animateAtmosphere(dt); this.syncRocks(dt);
+    for (const s of this.swingers) s.rotation.z = Math.sin(this.course.time * .8 + s.userData.sway) * .05;
+    this.flames.forEach((f, i) => f.scale.setScalar(1.8 + Math.sin(this.course.time * 13 + i * 1.7) * .12 + Math.sin(this.course.time * 7.3 + i) * .08));
     if (this.me.checkpoint > this.lastCp) {for (let i = this.lastCp + 1; i <= this.me.checkpoint; i++) {const a = this.cpArches[i - 1]; if (a && !a.lit) {a.lit = true; (a.flag.material as THREE.MeshStandardMaterial).emissive.set(0xffb238); (a.glow.material as THREE.MeshBasicMaterial).color.set(0xffc455); this.toast('ЧЕКПОИНТ!'); this.puff(this.me.x, this.me.y, this.me.z, 1.4); navigator.vibrate?.(20);}} this.lastCp = this.me.checkpoint;}
     for (const a of this.cpArches) {const m = a.glow.material as THREE.MeshBasicMaterial; m.opacity = (a.lit ? .55 : .35) + Math.sin(this.course.time * 3) * .12;}
     if (this.shake > 0) {this.shake = Math.max(0, this.shake - dt * 1.2); const a = this.shake * this.shake * 1.4; this.camera.position.x += (Math.random() - .5) * a; this.camera.position.y += (Math.random() - .5) * a;}
@@ -415,9 +483,9 @@ function normalized(src: THREE.Object3D, size: number, by: 'height' | 'max') {
   const inner = src.clone(true); inner.position.set(-(box.min.x + box.max.x) / 2 * k, by === 'height' ? -box.min.y * k : -(box.min.y + box.max.y) / 2 * k, -(box.min.z + box.max.z) / 2 * k); inner.scale.setScalar(k);
   const outer = new THREE.Group(); outer.add(inner); outer.userData.base = 1; inner.traverse(o => {if ((o as THREE.Mesh).isMesh) {o.castShadow = true; o.receiveShadow = true;}}); return outer;
 }
-function bannerTexture() {const c = document.createElement('canvas'); c.width = 1024; c.height = 136; const x = c.getContext('2d')!;
+function bannerTexture(word = 'ФИНИШ') {const c = document.createElement('canvas'); c.width = 1024; c.height = 136; const x = c.getContext('2d')!;
   x.fillStyle = '#7a0f0b'; x.fillRect(0, 0, 1024, 136); for (let i = 0; i < 32; i++) {x.fillStyle = i % 2 ? '#f2eadc' : '#111'; x.fillRect(i * 32, 0, 32, 16); x.fillStyle = i % 2 ? '#111' : '#f2eadc'; x.fillRect(i * 32, 120, 32, 16);}
-  x.fillStyle = '#f6e7c8'; x.font = 'bold 76px Georgia, serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('ФИНИШ', 512, 70);
+  x.fillStyle = '#f6e7c8'; x.font = 'bold 76px Georgia, serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(word, 512, 70);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;}
 function setText(id: string, s: string) {const e = document.getElementById(id); if (e && e.textContent !== s) e.textContent = s;}
 
@@ -450,3 +518,13 @@ function flagTexture() {const c = document.createElement('canvas'); c.width = 51
   for (let i = 0; i < 16; i++) {x.fillStyle = i % 2 ? '#f2eadc' : '#1a1410'; x.fillRect(i * 32, 0, 32, 10); x.fillStyle = i % 2 ? '#1a1410' : '#f2eadc'; x.fillRect(i * 32, 54, 32, 10);}
   x.fillStyle = '#2a7fb0'; x.fillRect(0, 10, 512, 44); x.fillStyle = '#f6e7c8'; x.font = 'bold 32px Georgia, serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('ЧЕКПОИНТ', 256, 33);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;}
+
+const SKY_DIR = new THREE.Vector3(-.18, 1, .32).normalize();
+/** Hang an object (feet at origin) so its centre sits on the pendulum bob. */
+function hanging(o: THREE.Object3D, half: number) {const g = new THREE.Group(); o.position.y = -half; g.add(o); g.userData.base = 1; return g;}
+/** Barrel lying on its side, rolling about X. */
+function rolling(o: THREE.Object3D) {const g = new THREE.Group(); o.rotation.z = Math.PI / 2; g.add(o); g.userData.base = o.userData.base; return g;}
+function shaftTexture() {const c = document.createElement('canvas'); c.width = 64; c.height = 256; const x = c.getContext('2d')!;
+  const g = x.createLinearGradient(0, 0, 0, 256); g.addColorStop(0, 'rgba(255,255,255,.9)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 256);
+  const h = x.createLinearGradient(0, 0, 64, 0); h.addColorStop(0, 'rgba(0,0,0,1)'); h.addColorStop(.25, 'rgba(0,0,0,0)'); h.addColorStop(.75, 'rgba(0,0,0,0)'); h.addColorStop(1, 'rgba(0,0,0,1)');
+  x.globalCompositeOperation = 'destination-out'; x.fillStyle = h; x.fillRect(0, 0, 64, 256); return new THREE.CanvasTexture(c);}

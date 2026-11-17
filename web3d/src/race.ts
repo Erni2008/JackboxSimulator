@@ -1,6 +1,6 @@
 import {RaceApp, CHARACTERS, NAMES} from './games/race/race';
 const q = new URLSearchParams(location.search);
-let map = Number(q.get('map')) === 2 ? 2 : 1;
+let map = [1, 2, 3].includes(Number(q.get('map'))) ? Number(q.get('map')) : 1;
 const pick = document.getElementById('pick')!, load = document.getElementById('loading')!, fill = document.getElementById('load-fill')!;
 const go = async (ch: string) => {
   pick.hidden = true; load.hidden = false; document.body.classList.add('playing');

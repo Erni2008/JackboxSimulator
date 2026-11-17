@@ -1,8 +1,10 @@
 // Obstacle race course + physics (port of core/.../race/RaceCourse.java). Deterministic from the shared clock, so every
 // phone sees the same logs, boulders and rafts; each phone simulates only its own runner.
-export type Mat = 'grass' | 'plank' | 'stone' | 'cobble' | 'brick' | 'dark' | 'mud';
-export type Theme = 'cliffs' | 'graveyard';
+export type Mat = 'grass' | 'plank' | 'stone' | 'cobble' | 'brick' | 'dark' | 'mud' | 'floor' | 'flag';
+export type Theme = 'cliffs' | 'graveyard' | 'manor';
 export const THIN: Mat[] = ['plank', 'dark'];
+/** Indoor room: walls at ±halfW from z0 to z1, ceiling at floor + h. */
+export interface Room {z0: number; z1: number; halfW: number; y: number; h: number; skylights: boolean}
 export interface Block {x0: number; x1: number; z0: number; z1: number; bottom: number; y0: number; y1: number; mat: Mat;
   driftAmp: number; driftPeriod: number; driftPhase: number; crumbles: boolean; crumbleDelay: number; sink: boolean; liftAmp: number; liftPeriod: number; liftPhase: number; lastOffY: number; offX: number; offY: number; lastOffX: number; crumbleAt: number; fallV: number; gone: boolean}
 export interface Sweeper {x: number; y: number; z: number; len: number; speed: number; angle: number; arms?: number}
@@ -25,9 +27,10 @@ export class Course {
   blocks: Block[] = []; sweepers: Sweeper[] = []; pendulums: Pendulum[] = []; boulders: Boulder[] = []; fallers: Faller[] = []; fallZones: [number, number, number, number][] = []; private fallTimer = 0; private fallSeed = 99; private fallId = 0;
   checkpoints: number[]; gauntlet: number[] = []; finishZ: number; rampZ0: number; rampZ1: number; rampY0: number; rampY1: number; time = 0;
   private boulderTimer = 1.5; private seed = 7;
-  theme: Theme; deathY = DEATH_Y;
+  theme: Theme; deathY = DEATH_Y; rooms: Room[] = [];
   constructor(public map = 1) {
-    this.theme = map === 2 ? 'graveyard' : 'cliffs';
+    this.theme = map === 3 ? 'manor' : map === 2 ? 'graveyard' : 'cliffs';
+    if (map === 3) {this.deathY = -6; this.finishZ = 0; this.checkpoints = []; this.rampZ0 = this.rampZ1 = this.rampY0 = this.rampY1 = 0; this.map3(); return;}
     if (map === 2) {this.deathY = -2.4; this.rampZ0 = this.rampZ1 = this.rampY0 = this.rampY1 = 0; this.finishZ = 0; this.checkpoints = []; this.map2(); return;}
     let z = 0, y = 0;
     this.add(-9, 9, -6, 18, 0, 0, 'grass'); z = 18;
@@ -92,6 +95,39 @@ export class Course {
     z += 1.8; this.add(-11, 11, z, z + 22, y, y, 'cobble'); this.finishZ = z + 12;
     this.checkpoints = cp;
   }
+  /** THE COLLECTOR'S HOUSE: the exhibits break out of the cage cellar and run for the door to freedom. */
+  private map3() {
+    let z = 0, y = 0; const cp: number[] = [0]; const room = (z0: number, z1: number, halfW: number, h = 8, sky = true) => this.rooms.push({z0, z1, halfW, y, h, skylights: sky});
+    // 1. cage hall
+    this.add(-9, 9, -6, 22, 0, 0, 'flag'); room(-8, 22, 9.6, 10); z = 22;
+    // 2. broken floor: tiles with holes into the dark
+    const pat = [[-1, 1], [1], [-1], [-1, 1], [1], [-1, 1], [-1]];
+    pat.forEach((cols, r) => {for (const c of cols) this.add(c * 2.1 - 1.9, c * 2.1 + 1.9, z + r * 3.3, z + r * 3.3 + 3.3, y, y, 'floor').bottom = y - .5;});
+    room(z, z + pat.length * 3.3, 4.6, 7); z += pat.length * 3.3;
+    this.add(-4.6, 4.6, z, z + 6, y, y, 'flag'); room(z, z + 6, 4.6, 7, false); z += 6; cp.push(z - 3);
+    // 3. corridor of swinging cages
+    this.add(-4, 4, z, z + 36, y, y, 'floor'); room(z, z + 36, 4.6, 8.2);
+    for (let i = 0; i < 4; i++) this.pendulums.push({px: 0, py: y + 7.6, pz: z + 5 + i * 8.5, len: 5.9, amp: .92, period: 2.4, phase: i * 1.45, radius: 1.05, bx: 0, by: 0, bz: 0, swing: 0});
+    z += 36; this.add(-4.6, 4.6, z, z + 6, y, y, 'flag'); room(z, z + 6, 4.6, 7, false); z += 6; cp.push(z - 3);
+    // 4. wine cellar stairs: barrels rolling down
+    this.rampZ0 = z; this.rampZ1 = z + 30; this.rampY0 = y; this.rampY1 = y + 6; this.add(-3.6, 3.6, z, z + 30, y, y + 6, 'flag'); room(z, z + 30, 4.2, 9); z += 30; y += 6;
+    this.add(-6, 6, z, z + 6, y, y, 'floor'); room(z, z + 6, 6.6, 7); z += 6; cp.push(z - 3);
+    // 5. rotten floorboards that give way
+    for (let r = 0; r < 6; r++) for (const c of [-1, 0, 1]) {const b = this.add(c * 3 - 1.3, c * 3 + 1.3, z + r * 3.1 + .25, z + r * 3.1 + 2.85, y, y, 'floor'); b.crumbles = true; b.crumbleDelay = .55; b.bottom = y - .5;}
+    room(z, z + 18.6, 6.6, 7); z += 18.6; this.add(-6, 6, z, z + 6, y, y, 'flag'); room(z, z + 6, 6.6, 7, false); z += 6; cp.push(z - 3);
+    // 6. library: crates on ropes over the pit, then the turning beams
+    for (let i = 0; i < 4; i++) {const b = this.add(-1.3, 1.3, z + 1.5, z + 5.3, y, y, 'floor'); b.driftAmp = 3.8; b.driftPeriod = 3.3 + i * .3; b.driftPhase = i * 1.9; b.bottom = y - .6; z += 5.3;}
+    room(z - 21.2, z + 1.5, 6, 9); z += 1.5;
+    this.add(-10, 10, z, z + 26, y, y, 'floor'); room(z, z + 26, 10.6, 9); this.sweepers.push({x: 0, y: y + .55, z: z + 13, len: 9.2, speed: 1.2, angle: 0, arms: 2}); z += 26; cp.push(z - 3);
+    // 7. hall of falling chandeliers
+    this.add(-6, 6, z, z + 42, y, y, 'flag'); room(z, z + 42, 6.6, 10); this.fallZones.push([-5, 5, z + 2, z + 41]); z += 42;
+    this.add(-6, 6, z, z + 6, y, y, 'floor'); room(z, z + 6, 6.6, 8, false); z += 6; cp.push(z - 3);
+    // 8. grand staircase hops to the door
+    const hz0 = z; for (const [hx, len] of [[0, 3], [-2.2, 2.6], [2, 2.6], [-.8, 2.4], [1.4, 2.6], [0, 3]]) {z += 2.1; y += .5; const b = this.add(hx - 1.8, hx + 1.8, z, z + len, y, y, 'flag'); b.liftAmp = .3; b.liftPeriod = 2.6; b.liftPhase = z; z += len;}
+    this.fallZones.push([-3, 3, hz0, z]); room(hz0, z, 6.6, 12);
+    z += 1.8; this.add(-9, 9, z, z + 20, y, y, 'flag'); room(z, z + 20, 9.6, 12); this.finishZ = z + 11;
+    this.checkpoints = cp;
+  }
   private add(x0: number, x1: number, z0: number, z1: number, y0: number, y1: number, mat: Mat): Block {
     const b: Block = {x0, x1, z0, z1, y0, y1, mat, bottom: THIN.includes(mat) ? Math.min(y0, y1) - .42 : BOTTOM, sink: false, liftAmp: 0, liftPeriod: 1, liftPhase: 0, lastOffY: 0, driftAmp: 0, driftPeriod: 1, driftPhase: 0, crumbles: false, crumbleDelay: .75, offX: 0, offY: 0, lastOffX: 0, crumbleAt: -1, fallV: 0, gone: false};
     this.blocks.push(b); return b;
@@ -113,7 +149,7 @@ export class Course {
     for (const s of this.sweepers) s.angle = s.speed * t0;
     for (const p of this.pendulums) {p.swing = p.amp * Math.sin(Math.PI * 2 * t0 / p.period + p.phase); p.bx = p.px + Math.sin(p.swing) * p.len; p.by = p.py - Math.cos(p.swing) * p.len; p.bz = p.pz;}
     this.boulderTimer -= dt;
-    if (this.boulderTimer <= 0 && this.theme === 'cliffs') {this.seed = (this.seed * 1103515245 + 12345) | 0; const r = ((this.seed >>> 8) & 1023) / 1023; const radius = 1.1 + .4 * r;
+    if (this.boulderTimer <= 0 && this.theme !== 'graveyard') {this.seed = (this.seed * 1103515245 + 12345) | 0; const r = ((this.seed >>> 8) & 1023) / 1023; const radius = 1.1 + .4 * r;
       this.boulders.push({x: -4.6 + 9.2 * r, y: this.rampY1 + radius, z: this.rampZ1 - 1, vz: 0, spin: 0, radius, alive: true}); this.boulderTimer = 1.7 + .8 * r;}
     const slope = (this.rampY1 - this.rampY0) / (this.rampZ1 - this.rampZ0);
     for (const bo of this.boulders) {bo.vz -= 9 * dt; bo.z += bo.vz * dt; bo.spin += bo.vz * dt / bo.radius;
