@@ -21,9 +21,9 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 public final class SystemBreachRulesFilm implements Disposable {
     public static final float W=1920,H=1080;
     // compact cut: what players can do. Each scene replays a source animation at its own speed.
-    private static final float[] START={0,4.6f,9.2f,15.3f,20.4f,24.4f,30.3f},END={4.6f,9.2f,15.3f,20.4f,24.4f,30.3f,37.7f};
-    private static final float[] SPEED={.8f,1.2f,1.68f,1,1,1.25f,1.06f};
-    public static final float LENGTH=37.7f;
+    private static final float[] START={0,4.6f,9.6f,15.7f,21.2f,25.2f,31.1f},END={4.6f,9.6f,15.7f,21.2f,25.2f,31.1f,38.5f};
+    private static final float[] SPEED={.8f,1.1f,1.68f,1,1,1.25f,1.06f};
+    public static final float LENGTH=38.5f;
     private static final String[] TAB={"","ОТВЕЧАЙ","ВЗЛАМЫВАЙ","DDoS","ВИРУС","ЗАЩИТА","ПОБЕДА"};
     private static final String[] SUB={
         "Добро пожаловать в систему. Сегодня каждый из вас — хакер.",
@@ -113,6 +113,7 @@ public final class SystemBreachRulesFilm implements Disposable {
             case 5->defence(st,a);default->finale(st,a);}
     }
     private void heading(String ru,float t,float a,Color c){
+        if(pass==2){float sw=k(t,.5f,1.3f);if(sw>0&&sw<1){float x=W/2-320+640*ease(sw);b.setColor(c.r,c.g,c.b,.55f*a*MathUtils.sin(sw*MathUtils.PI));b.draw(assets.glow,x-120,H-190,240,110);b.setColor(Color.WHITE);}}
         if(pass!=1)return;float p=k(t,.1f,.8f);text(assets.stage,decode(ru,p,t),W/2,H-120,c,a,.72f);
     }
     private void headingBar(float t,float a,Color c){
