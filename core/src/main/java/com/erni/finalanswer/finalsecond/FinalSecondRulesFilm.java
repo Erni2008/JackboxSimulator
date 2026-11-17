@@ -31,16 +31,15 @@ import java.util.Map;
  */
 public final class FinalSecondRulesFilm implements Disposable {
     public static final float W=1920,H=1080;
-    private static final float[] START={0,6.2f,11.6f,17.6f,23.8f,31.6f,36.6f},END={6.2f,11.6f,17.6f,23.8f,31.6f,36.6f,41.6f};
-    public static final float LENGTH=41.6f;
-    private static final String[] TAB={"","ЦЕЛЬ","КНОПКА","ВСЛЕПУЮ","ИСПЫТАНИЯ","ИТОГ",""};
+    private static final float[] START={0,6.2f,11.6f,17.6f,23.2f,28.2f},END={6.2f,11.6f,17.6f,23.2f,28.2f,33.2f};
+    public static final float LENGTH=33.2f;
+    private static final String[] TAB={"","ЦЕЛЬ","КНОПКА","ИСПЫТАНИЯ","ИТОГ",""};
     private static final String[] SUB={
         "Добро пожаловать в последнюю секунду! Здесь важна каждая доля секунды.",
-        "Задача простая. Остановите таймер ровно на семи секундах!",
+        "Задача простая. Остановите таймер точно на заданном времени!",
         "Нажали один раз, и время пошло. Нажали снова, и таймер встал!",
-        "Но таймер виден только первые три секунды. Дальше считайте в уме!",
-        "В каждом раунде новое испытание. Скрытый таймер, общая цепочка или внезапная смена скорости!",
-        "Чей результат дальше всех от семи секунд, тот выбывает!",
+        "Но не всё так просто. В каждом раунде вас ждёт новое испытание!",
+        "Кто окажется дальше всех от цели, тот выбывает!",
         "Ну что, готовы? Ловите последнюю секунду!"};
     private static final Color BLOOD=new Color(.9f,.16f,.08f,1),GOLD=new Color(1f,.74f,.32f,1),INK=new Color(.24f,.12f,.06f,1),
         BONE=new Color(.96f,.92f,.84f,1),DARK=new Color(.03f,.015f,.015f,1),EMBER=new Color(1,.42f,.18f,1);
@@ -50,14 +49,14 @@ public final class FinalSecondRulesFilm implements Disposable {
     private final SpriteBatch batch=new SpriteBatch();private final ShapeRenderer shapes=new ShapeRenderer();
     private final PolygonSpriteBatch postBatch=new PolygonSpriteBatch();private final DeathPost post=new DeathPost();
     private final FitViewport viewport=new FitViewport(W,H);private final GlyphLayout gl=new GlyphLayout();
-    private final Texture eye=com.erni.finalanswer.systembreach.host.SystemBreachRulesFilm.buttonEye();private final Texture cap,collar,smoke,wisp,glow,pixel;private final SevenSegment seg=new SevenSegment();private TextureRegion glowR,debrisR;private final Map<String,Texture> portraits=new HashMap<>();
+    private final Texture eye=com.erni.finalanswer.systembreach.host.SystemBreachRulesFilm.buttonEye();private final Texture cap,collar,plate,smoke,wisp,glow,pixel;private final SevenSegment seg=new SevenSegment();private TextureRegion glowR,debrisR;private final Map<String,Texture> portraits=new HashMap<>();
     private final BitmapFont title,heading,hand,sub,small;
-    private final Sound[] voice=new Sound[7];private Sound whoosh,paper,thud,flip;private int voiced=-1;
+    private final Sound[] voice=new Sound[6];private Sound whoosh,paper,thud,flip;private int voiced=-1;
     private final Matrix4 xf=new Matrix4();private final Vector2 tmp=new Vector2();
     private float time,skipAt=-1,tabPos=1;private boolean hover,stampPlayed,shotA,shotB;private int pass;
 
     public FinalSecondRulesFilm(){
-        cap=tex("final_second/button_cap.png");collar=tex("final_second/collar_front.png");smoke=tex("cursed_boxes/effects/gun_smoke.png");wisp=tex("cursed_boxes/effects/cursed_smoke.png");
+        cap=tex("final_second/button_cap.png");plate=tex("final_second/machine_plate.png");collar=tex("final_second/collar_front.png");smoke=tex("cursed_boxes/effects/gun_smoke.png");wisp=tex("cursed_boxes/effects/cursed_smoke.png");
         Pixmap g=new Pixmap(128,128,Pixmap.Format.RGBA8888);for(int y=0;y<128;y++)for(int x=0;x<128;x++){float d=Math.min(1,(float)Math.hypot(x-63.5,y-63.5)/63.5f);float v=(1-d)*(1-d);g.drawPixel(x,y,Color.rgba8888(1,1,1,v));}
         glow=new Texture(g);glow.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);g.dispose();
         Pixmap p=new Pixmap(1,1,Pixmap.Format.RGBA8888);p.setColor(Color.WHITE);p.fill();pixel=new Texture(p);p.dispose();
@@ -137,7 +136,7 @@ public final class FinalSecondRulesFilm implements Disposable {
     }
     private int scene(){for(int i=START.length-1;i>=0;i--)if(time>=START[i])return i;return 0;}
     private float vis(int i){float in=i==0?1:ease(k(time,START[i]-.05f,START[i]+.5f)),out=i==START.length-1?1:1-ease(k(time,END[i]-.45f,END[i]));return in*out;}
-    private void scene(int s,float t,float a){switch(s){case 0->titleScene(t,a);case 1->roles(t,a);case 2->clues(t,a);case 3->suspicion(t,a);case 4->vote(t,a);case 5->result(t,a);default->finale(t,a);}}
+    private void scene(int s,float t,float a){switch(s){case 0->titleScene(t,a);case 1->roles(t,a);case 2->clues(t,a);case 3->mystery(t,a);case 4->result(t,a);default->finale(t,a);}}
 
     // ---------- scenes ----------
     /** Portrait medallion: drop shadow, dark velvet disc, the character, a fine gold ring and a red rim light. */
@@ -178,11 +177,23 @@ public final class FinalSecondRulesFilm implements Disposable {
     /** Brass display bezel behind a readout. */
     private void bezel(float cx,float y,float w,float h,float a,Color rim){if(pass!=0||a<=0)return;panel(cx-w/2,y-h*.18f,w,h*1.36f,rim,a);}
     /** The game's red button: collar in front, cap that sinks when pressed (press 0..1). */
+    /**
+     * The game's red button assembled like the machine: a dark brass well behind, the red cap seated in it (sinks on
+     * press), and the brass front lip on top, using the plate layout offsets so the cap is never cut through the middle.
+     */
     private void button(float cx,float cy,float s,float press,float a){
-        if(a<=0)return;float cw=357*s,ch=207*s,lw=369*s,lh=134*s;
-        if(pass==2){glowAt(cx,cy+ch*.2f,cw*2.4f,BLOOD,.35f*a*(.7f+.3f*MathUtils.sin(time*3))+.5f*a*press);}
-        if(pass==1){b(0,0,0,.5f*a);batch.draw(glow,cx-cw*.8f,cy-ch*.9f,cw*1.6f,ch*.9f);b(1,1,1,a);batch.draw(cap,cx-cw/2,cy-ch*.25f-press*ch*.22f,cw,ch);batch.draw(collar,cx-lw/2,cy-lh*.95f,lw,lh);b(1,1,1,1);}
+        if(a<=0)return;float cw=357*s,ch=207*s,lw=369*s,lh=134*s;float capY=cy-ch*.5f,lipTop=capY+ch-132*s,sink=press*26*s;
+        if(pass==0){Color z=new Color(0,0,0,0),sh=new Color(0,0,0,.6f*a);shapes.setColor(0,0,0,.55f*a);shapes.ellipse(cx-lw*.62f,lipTop-lh-26*s,lw*1.24f,70*s);
+            shapes.setColor(.10f,.05f,.04f,a);shapes.ellipse(cx-lw*.49f,lipTop-58*s,lw*.98f,128*s);shapes.setColor(.035f,.01f,.01f,a);shapes.ellipse(cx-lw*.44f,lipTop-44*s,lw*.88f,104*s);}
+        if(pass==2){glowAt(cx,capY+ch*.6f,cw*2.4f,BLOOD,.32f*a*(.7f+.3f*MathUtils.sin(time*3))+.55f*a*press);}
+        if(pass==1){float l=1-.15f*press;b(l,l,l,a);batch.draw(cap,cx-cw/2,capY-sink,cw,ch);b(1,1,1,a);batch.draw(collar,cx-lw/2,lipTop-lh,lw,lh);b(1,1,1,1);}
     }
+    private Texture edge;
+    /** Black frame that fades the plate crop into the stage so no rectangle edge shows. */
+    private Texture edgeMask(){if(edge==null){int n=256;Pixmap pm=new Pixmap(n,n,Pixmap.Format.RGBA8888);pm.setBlending(Pixmap.Blending.None);
+        for(int y=0;y<n;y++)for(int x=0;x<n;x++){float dx=(x-n/2f+.5f)/(n/2f),dy=(y-n/2f+.5f)/(n/2f);float d=(float)Math.sqrt(dx*dx*.85f+dy*dy);float al=MathUtils.clamp((d-.62f)/.36f,0,1);al=al*al*(3-2*al);
+            float c=.012f;pm.drawPixel(x,y,Color.rgba8888(c,c*.4f,c*.4f,al));}
+        edge=new Texture(pm);edge.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);pm.dispose();}return edge;}
     private float pressAt(float t,float at){float e=t-at;return e<0||e>.35f?0:e<.08f?e/.08f:1-(e-.08f)/.27f;}
     private void ripple(float x,float y,float e,float a,Color c){if(pass!=2||e<0||e>.8f)return;float k=e/.8f;float r=80+520*ease(k);for(int q=0;q<40;q++){float an=q/40f*MathUtils.PI2;glowAt(x+MathUtils.cos(an)*r,y+MathUtils.sin(an)*r*.35f,26,c,.45f*a*(1-k));}}
 
@@ -197,38 +208,30 @@ public final class FinalSecondRulesFilm implements Disposable {
     private void roles(float t,float a){
         headingText("ЦЕЛЬ",t,a,GOLD);
         float run=k(t,.8f,3.6f);float v=7f*ease(run);boolean done=run>=1;
-        bezel(W/2,520,760,210,a,done?new Color(.4f,1,.5f,1):BLOOD);readout(fmt(v),W/2,520,210,1,a,false);
-        if(pass==2&&done){float e=t-3.6f;glowAt(W/2,620,1200,new Color(.3f,1,.45f,1),a*(e<.4f?.6f*(1-e/.4f):0)+.15f*a);}
-        if(pass==1){text(heading,"ЦЕЛЬ:  7,00 СЕКУНДЫ",W/2,830,GOLD,a,.55f);
-            text(heading,"РОВНО!",W/2,330,new Color(.45f,1,.55f,1),a*k(t,3.7f,4f),.8f);}
+        bezel(W/2,450,760,210,a,done?new Color(.4f,1,.5f,1):BLOOD);readout(fmt(v),W/2,450,210,1,a,false);
+        if(pass==2&&done){float e=t-3.6f;glowAt(W/2,550,1200,new Color(.3f,1,.45f,1),a*(e<.4f?.6f*(1-e/.4f):0)+.15f*a);}
+        if(pass==1){text(heading,"ЦЕЛЬ:  7,00 С",W/2,840,GOLD,a,.55f);text(small,"например  ·  в каждом раунде своё время",W/2,790,BONE,.75f*a,1.05f);
+            text(heading,"РОВНО!",W/2,300,new Color(.45f,1,.55f,1),a*k(t,3.7f,4f),.8f);}
     }
     private void clues(float t,float a){
         headingText("КНОПКА",t,a,GOLD);
         float p1=1.4f,p2=3.9f;float press=Math.max(pressAt(t,p1),pressAt(t,p2));
         float v=t<p1?0:t<p2?(t-p1)*2.78f:(p2-p1)*2.78f;
-        bezel(W/2,720,560,150,a,BLOOD);readout(fmt(v),W/2,720,150,1,a,false);
+        bezel(W/2,670,560,150,a,BLOOD);readout(fmt(v),W/2,670,150,1,a,false);
         button(W/2,360,1.15f,press,a);ripple(W/2,380,t-p1,a,BLOOD);ripple(W/2,380,t-p2,a,GOLD);
         if(pass==1){text(heading,"СТАРТ",W/2-470,400,BLOOD,a*k(t,p1,p1+.2f)*(1-k(t,p2-.3f,p2)),.75f);text(heading,"СТОП",W/2+470,400,GOLD,a*k(t,p2,p2+.2f),.75f);
             text(small,"1 НАЖАТИЕ",W/2-470,330,BONE,.7f*a*k(t,p1,p1+.2f)*(1-k(t,p2-.3f,p2)),1.1f);text(small,"2 НАЖАТИЕ",W/2+470,330,BONE,.7f*a*k(t,p2,p2+.2f),1.1f);}
     }
-    private void suspicion(float t,float a){
-        headingText("ВСЛЕПУЮ",t,a,BLOOD);
-        float st=.6f,el=Math.max(0,t-st)*1.25f;boolean hidden=el>3;boolean stop=t>5.2f;float shown=stop?7.12f:el;
-        bezel(W/2,470,760,210,a,hidden&&!stop?new Color(.35f,.25f,.25f,1):BLOOD);readout(fmt(shown),W/2,470,210,hidden&&!stop?.4f:1,a,hidden&&!stop);
-        if(pass==1){text(sub,hidden?"Табло погасло. Считайте в уме!":"Первые 3 секунды видно",W/2,790,hidden?BLOOD:BONE,a,1);
-            if(hidden&&!stop){float beat=(el%1f);text(heading,String.valueOf((int)el+1)+"…",W/2,330,BONE,a*(1-beat)*.8f,.9f+.3f*(1-beat));}
-            if(stop)text(heading,"7,12  ·  ПОЧТИ!",W/2,330,GOLD,a*k(t,5.2f,5.5f),.75f);}
-        if(pass==2&&stop)glowAt(W/2,550,1000,GOLD,.3f*a*(1-k(t,5.2f,6f)));
-    }
-    private void vote(float t,float a){
-        headingText("ИСПЫТАНИЯ",t,a,GOLD);
-        String[] n={"СКРЫТЫЙ ТАЙМЕР","ЦЕПОЧКА","СМЕНА СКОРОСТИ"},d={"ничего не видно","2 секунды на всех, по очереди","×0,5  ×1,5  ×2"};float[] at={2.3f,3.6f,4.8f};
-        for(int i=0;i<3;i++){float in=ease(k(t,at[i],at[i]+.5f));float x=W/2+(i-1)*560,y=500-(1-in)*80;if(pass==0)panel(x-250,y-200,500,400,i==1?BLOOD:GOLD,a*in);
-            if(pass==1){text(heading,n[i],x,y+150,i==1?BLOOD:GOLD,a*in,.55f);text(small,d[i],x,y-160,BONE,a*in*.85f,1.15f);}
-            float lt=t-at[i];
-            if(i==0)readout("-.--",x,y-20,120,.35f,a*in,true);
-            if(i==1){for(int q=0;q<4;q++){float px=x-180+q*120;framed(WHO[q],px,y+20,90,a*in,(int)(lt*1.2f)%4==q?GOLD:BLOOD,0);if(pass==2&&(int)(lt*1.2f)%4==q)glowAt(px,y+20,180,GOLD,.5f*a*in);}}
-            if(i==2){float sp=lt<1.2f?1:((int)(lt*.8f)%3==0?.5f:(int)(lt*.8f)%3==1?1.5f:2);readout(fmt((lt*sp)%7),x,y-20,110,1,a*in,false);if(pass==1)text(heading,"×"+(sp==1?"1":sp==.5f?"0,5":sp==1.5f?"1,5":"2"),x+170,y+60,BLOOD,a*in,.55f);}}
+    /** New trial every round: three sealed cards; each turns over in turn to show only a glowing question mark. */
+    private void mystery(float t,float a){
+        headingText("ИСПЫТАНИЯ",t,a,BLOOD);
+        for(int i=0;i<3;i++){float in=ease(k(t,.3f+.25f*i,.8f+.25f*i));float x=W/2+(i-1)*480,y=520-(1-in)*80+MathUtils.sin(time*1.4f+i)*8;float fl=ease(k(t,1.6f+.7f*i,2.1f+.7f*i));
+            float sx=Math.max(.05f,Math.abs(MathUtils.cos(fl*MathUtils.PI)));boolean front=fl>.5f;float w=320*sx,h=420;
+            if(pass==0){Color rim=front?GOLD:BLOOD;panel(x-w/2,y-h/2,w,h,rim,a*in);}
+            if(pass==1){text(small,"РАУНД "+(i+1),x,y+h/2+40,BONE,.7f*a*in,1.1f);
+                if(front&&sx>.3f)text(title,"?",x,y+70,GOLD,a*in,1.3f*sx);else if(sx>.3f)text(heading,"???",x,y+30,new Color(.5f,.3f,.28f,1),a*in*.7f,.8f*sx);}
+            if(pass==2&&front)glowAt(x,y,520,GOLD,.3f*a*in*(.8f+.2f*MathUtils.sin(time*4+i)));}
+        if(pass==1)text(heading,"КАЖДЫЙ РАУНД — НОВОЕ ИСПЫТАНИЕ",W/2,230,BLOOD,a*k(t,3.6f,4f),.5f);
     }
     private void result(float t,float a){
         headingText("ИТОГ",t,a,GOLD);
@@ -253,8 +256,8 @@ public final class FinalSecondRulesFilm implements Disposable {
         float a=ease(k(time,.2f,.9f))*(1-k(time,LENGTH-.6f,LENGTH));
         Color c0=new Color(0,0,0,0),c1=new Color(0,0,0,.72f*a);shapes.rect(W/2-820,40,820,110,c0,c1,c1,c0);shapes.rect(W/2,40,820,110,c1,c0,c0,c1);
         Color l0=new Color(GOLD.r,GOLD.g,GOLD.b,0),l1=new Color(GOLD.r,GOLD.g,GOLD.b,.7f*a);shapes.rect(W/2-820,148,820,1.5f,l0,l1,l1,l0);shapes.rect(W/2,148,820,1.5f,l1,l0,l0,l1);
-        float ta=k(time,START[1]-.3f,START[1]+.3f)*(1-k(time,START[6]-.3f,START[6]+.3f));tabPos+=(MathUtils.clamp(s,1,5)-tabPos)*Math.min(1,Gdx.graphics.getDeltaTime()*7);
-        for(int i=1;i<=5;i++){col(i<s?GOLD:new Color(.35f,.25f,.2f,1),.7f*ta);shapes.rect(tabX(i)-95,H-52,190,2);}col(BONE,ta);float mx=tabX(1)+(tabPos-1)*230;shapes.rect(mx-95,H-53,190,4);
+        float ta=k(time,START[1]-.3f,START[1]+.3f)*(1-k(time,START[START.length-1]-.3f,START[START.length-1]+.3f));tabPos+=(MathUtils.clamp(s,1,TAB.length-2)-tabPos)*Math.min(1,Gdx.graphics.getDeltaTime()*7);
+        for(int i=1;i<=TAB.length-2;i++){col(i<s?GOLD:new Color(.35f,.25f,.2f,1),.7f*ta);shapes.rect(tabX(i)-95,H-52,190,2);}col(BONE,ta);float mx=tabX(1)+(tabPos-1)*230;shapes.rect(mx-95,H-53,190,4);
         float bx=W-330,by=H-118,bw=290,bh=64;col(Color.BLACK,.55f);shapes.rect(bx,by,bw,bh);col(hover?BONE:GOLD,hover?1:.8f);shapes.rect(bx,by,bw,1.5f);shapes.rect(bx,by+bh-1.5f,bw,1.5f);shapes.rect(bx,by,1.5f,bh);shapes.rect(bx+bw-1.5f,by,1.5f,bh);
         float tx=bx+bw-46,ty=by+bh/2;shapes.triangle(tx-14,ty+12,tx-14,ty-12,tx+2,ty);shapes.triangle(tx+2,ty+12,tx+2,ty-12,tx+18,ty);
         // film timeline under the subtitle: scene ticks and a glowing playhead
@@ -266,12 +269,12 @@ public final class FinalSecondRulesFilm implements Disposable {
     }
     private void chromeText(int s,float t){
         text(small,"ПРОПУСТИТЬ",W-330+122,H-118+42,hover?BONE:GOLD,1,1.05f);text(small,"ENTER / КЛИК",W-330+145,H-140,BONE,.45f,.8f);
-        float ta=k(time,START[1]-.3f,START[1]+.3f)*(1-k(time,START[6]-.3f,START[6]+.3f));
-        for(int i=1;i<=5;i++){Color c=i==s?BONE:i<s?GOLD:new Color(.55f,.45f,.4f,1);small.getData().setScale(.85f);gl.setText(small,TAB[i]);float lw=gl.width;small.getData().setScale(1);text(small,"0"+i,tabX(i)+14-lw/2-36,H-64,i==s?BLOOD:c,(i==s?1:.6f)*ta,.8f,false);text(small,TAB[i],tabX(i)+14,H-64,c,(i==s?1:.8f)*ta,.85f);}
+        float ta=k(time,START[1]-.3f,START[1]+.3f)*(1-k(time,START[START.length-1]-.3f,START[START.length-1]+.3f));
+        for(int i=1;i<=TAB.length-2;i++){Color c=i==s?BONE:i<s?GOLD:new Color(.55f,.45f,.4f,1);small.getData().setScale(.85f);gl.setText(small,TAB[i]);float lw=gl.width;small.getData().setScale(1);text(small,"0"+i,tabX(i)+14-lw/2-36,H-64,i==s?BLOOD:c,(i==s?1:.6f)*ta,.8f,false);text(small,TAB[i],tabX(i)+14,H-64,c,(i==s?1:.8f)*ta,.85f);}
         text(small,"THE FINAL SECOND  ·  ПРАВИЛА",60,H-30,GOLD,.7f,.85f,false);
         float len=END[s]-START[s];float a=ease(k(t,.15f,.5f))*(1-ease(k(t,len-.3f,len)))*(1-k(time,LENGTH-.6f,LENGTH));typeLine(SUB[s],t-.15f,a);
     }
-    private static float tabX(int i){return W/2+(i-3)*230;}
+    private static float tabX(int i){return W/2+(i-(TAB.length-1)/2f)*230;}
     private void typeLine(String full,float tt,float a){
         if(a<=0||tt<=0)return;BitmapFont f=sub;f.getData().setScale(1);gl.setText(f,full,Color.WHITE,1560,Align.center,true);
         float ox=W/2-780,oy=95+gl.height/2+f.getData().ascent;int idx=0;float cx=-1,cy=0,ca=0;final float CPS=48,FADE=.22f;
@@ -320,7 +323,7 @@ public final class FinalSecondRulesFilm implements Disposable {
     private static float ease(float x){return x*x*(3-2*x);}
     @Override public void dispose(){
         for(var v:voice)if(v!=null)v.dispose();for(Sound s:new Sound[]{whoosh,paper,thud,flip})if(s!=null)s.dispose();
-        seg.dispose();for(Texture t:new Texture[]{eye,cap,collar,smoke,wisp,glow,pixel})t.dispose();for(Texture t:portraits.values())if(t!=null)t.dispose();if(ringTex!=null)ringTex.dispose();
+        seg.dispose();if(edge!=null)edge.dispose();for(Texture t:new Texture[]{eye,cap,collar,plate,smoke,wisp,glow,pixel})t.dispose();for(Texture t:portraits.values())if(t!=null)t.dispose();if(ringTex!=null)ringTex.dispose();
         for(BitmapFont f:new BitmapFont[]{title,heading,hand,sub,small})f.dispose();batch.dispose();shapes.dispose();postBatch.dispose();post.dispose();
     }
 }
