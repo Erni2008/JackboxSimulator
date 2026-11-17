@@ -26,13 +26,13 @@ public final class SystemBreachRulesFilm implements Disposable {
     public static final float LENGTH=38.5f;
     private static final String[] TAB={"","ОТВЕЧАЙ","ВЗЛАМЫВАЙ","DDoS","ВИРУС","ЗАЩИТА","ПОБЕДА"};
     private static final String[] SUB={
-        "Добро пожаловать в систему. Сегодня каждый из вас — хакер.",
-        "Отвечайте на вопросы — каждый верный ответ приносит вам души.",
-        "Взламывайте соперников: угадайте пароль — и заберите их души себе.",
-        "Запустите DDoS — и у жертвы на десять секунд зависнут кнопки.",
-        "Заражайте вирусами — ломайте экраны соперников.",
-        "Защищайтесь: фаервол отбивает атаки, а приманка ловит самого хакера.",
-        "У кого в конце больше всего душ — тот и победил. Готовы? Взламываем!"};
+        "Добро пожаловать в систему! Сегодня каждый из вас — хакер.",
+        "Отвечайте на вопросы! Каждый верный ответ приносит вам души.",
+        "Взламывайте соперников! Угадайте пароль — и заберите их души себе!",
+        "Запустите DDoS — и у жертвы на десять секунд зависнут кнопки!",
+        "Заражайте вирусами! Ломайте экраны соперников!",
+        "А теперь — защищайтесь! Фаервол отбивает атаки, а приманка ловит самого хакера.",
+        "У кого в конце больше всего душ — тот и победил. Ну что, готовы? Тогда взламываем!"};
     private static final Color CYAN=new Color(.25f,.86f,1,1),GREEN=new Color(.3f,1,.55f,1),RED=new Color(1,.27f,.3f,1),
         VIOLET=new Color(.72f,.42f,1,1),AMBER=new Color(1,.72f,.2f,1),INK=new Color(.03f,.06f,.11f,1),PANEL=new Color(.05f,.1f,.17f,1),WHITE=new Color(.92f,.97f,1,1);
     private final SystemBreachHostAssets assets;private final boolean ownAssets;
@@ -217,7 +217,7 @@ public final class SystemBreachRulesFilm implements Disposable {
             text(assets.digits,shown,fx,fy+30,c,a,.6f);
             text(assets.log,miss?"НЕВЕРНО":t>6.2f?"ДОСТУП ПОЛУЧЕН":"ПОДБОР ПАРОЛЯ…",fx,fy-70,miss?RED:t>6.2f?GREEN:WHITE,a*.9f,1);}
         // stamp on target
-        float st=k(t,5.4f,5.7f);if(st>0){float sc=1+.6f*(1-ease(st));
+        float st=k(t,4.7f,5.0f);if(st>0){float sc=1+.6f*(1-ease(st));
             if(pass==0)panel(tx-170*sc,y+170-30*sc,340*sc,60*sc,RED,a*st);
             if(pass==2)glow(tx,y+170,300,RED,.4f*a*st);
             if(pass==1)text(assets.board,"ВЗЛОМАН",tx,y+170+14,RED,a*st,1.3f*sc);}
@@ -314,7 +314,7 @@ public final class SystemBreachRulesFilm implements Disposable {
     private static final String[] FIN={"skeleton","dracula","pumpkin","voodoo"};
     private void finale(float t,float a){
         heading("ПОБЕЖДАЙ",t,a,GREEN);headingBar(t,a,GREEN);
-        float go=k(t,4.6f,5.1f);float a0=a;a*=1-go;
+        float go=k(t,3.3f,3.8f);float a0=a;a*=1-go;
         float[] h={.55f,1f,.4f,.7f};float base=230;
         for(int i=0;i<4;i++){float x=W/2-480+i*320;float g=ease(k(t,.4f+.15f*i,2.6f+.15f*i))*h[i]*330;boolean win=i==1;
             if(pass==0){col(win?GREEN:CYAN,a*.85f);r.rect(x-80,base,160,g);col(INK,.35f*a);r.rect(x-80,base+g-6,160,6);}
@@ -325,8 +325,8 @@ public final class SystemBreachRulesFilm implements Disposable {
         a=a0;
         if(go>0){
             if(pass==2)glow(W/2,H/2,900,RED,.3f*a*go);
-            if(pass==1){text(assets.stage,decode("ГОТОВЫ?",k(t,4.6f,5.2f),t),W/2,H/2+110,WHITE,a*go,1.1f);
-                text(assets.stage,decode("ВЗЛАМЫВАЕМ!",k(t,5.5f,6.2f),t),W/2,H/2-40,RED,a*k(t,5.4f,5.7f),1.25f);}}
+            if(pass==1){text(assets.stage,decode("ГОТОВЫ?",k(t,3.3f,3.9f),t),W/2,H/2+110,WHITE,a*go,1.1f);
+                text(assets.stage,decode("ВЗЛАМЫВАЕМ!",k(t,4.8f,5.4f),t),W/2,H/2-40,RED,a*k(t,4.7f,5.0f),1.25f);}}
     }
 
     // ---------- chrome ----------
