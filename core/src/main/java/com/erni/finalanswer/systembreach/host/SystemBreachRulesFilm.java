@@ -247,7 +247,7 @@ public final class SystemBreachRulesFilm implements Disposable {
         if(pass==0&&t<3.6f){float p=ease(k(t,.4f,.8f))*(1-ease(k(t,3.2f,3.6f)));panel(W/2-480,560,960,170,AMBER,a*p);
             col(AMBER,a*p*fl);bolt(W/2-400,645,1.1f);bolt(W/2+400,645,1.1f);}
         if(pass==2&&t<3.6f)glow(W/2,645,900,AMBER,.35f*a*fl);
-        if(pass==1&&t<3.6f){float p=1-ease(k(t,3.2f,3.6f));text(assets.stage,"СБОЙ СИСТЕМЫ  ×2",W/2,690,AMBER,a*p*k(t,.5f,.9f),.7f);text(assets.board,"20 секунд двойных очков",W/2,610,WHITE,a*p*k(t,.8f,1.2f),1);}
+        if(pass==1&&t<3.6f){float p=1-ease(k(t,3.2f,3.6f));text(assets.stage,"СБОЙ СИСТЕМЫ  ×2",W/2,690,AMBER,a*p*k(t,.5f,.9f),.7f);text(assets.board,"20 секунд двойных душ",W/2,610,WHITE,a*p*k(t,.8f,1.2f),1);}
         String[] n={"ЩИТ","РАЗГОН","СКАНЕР"},d={"сжигает одну атаку","3 ответа ×2","подсказка пароля лидера"};Color[] c={CYAN,AMBER,GREEN};
         for(int i=0;i<3;i++){float in=ease(k(t,3.6f+.35f*i,4.2f+.35f*i));float x=W/2-480+i*480,y=470-(1-in)*80;
             if(pass==0){panel(x-200,y-130,400,260,c[i],a*in);}

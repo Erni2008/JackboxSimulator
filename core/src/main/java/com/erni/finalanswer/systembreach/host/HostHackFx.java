@@ -145,7 +145,7 @@ final class HostHackFx {
         r.setColor(0,0,0,.75f);r.rect(x-4,y-4,w+8,62);paint.plate(x,y,w,54,12,new Color(c2.r*.25f,c2.g*.25f,c2.b*.25f,.97f),new Color(.03f,.03f,.03f,.97f));paint.outline(x+4,y+4,w-8,46,10,2f,c2);
         float pr=vm.surgeLeftMs()/(float)20_000;r.setColor(c2.r,c2.g,c2.b,.9f);r.rect(x+12,y+6,(w-24)*pr,3);}
     void surgeText(SpriteBatch b,BitmapFont f,SystemBreachHostViewModel vm,float time){String s=vm.surge();if(s.isEmpty())return;
-        String t=(vm.ru()?(s.equals("DOUBLE")?"СБОЙ · ОЧКИ ×2":"СБОЙ · ФАЕРВОЛЫ ВЫКЛ"):(s.equals("DOUBLE")?"SURGE · POINTS ×2":"SURGE · FIREWALLS OFF"))+"  "+(vm.surgeLeftMs()/1000+1);
+        String t=(vm.ru()?(s.equals("DOUBLE")?"СБОЙ · ДУШИ ×2":"СБОЙ · ФАЕРВОЛЫ ВЫКЛ"):(s.equals("DOUBLE")?"SURGE · POINTS ×2":"SURGE · FIREWALLS OFF"))+"  "+(vm.surgeLeftMs()/1000+1);
         float a=.85f+.15f*MathUtils.sin(time*8);if(s.equals("DOUBLE"))f.setColor(1,.88f,.45f,a);else f.setColor(1,.45f,.38f,a);f.draw(b,t,TIMER.x,TIMER.y-74+38,TIMER.width,1,false);f.setColor(1,1,1,1);}
     /** DDoS made unmistakable: a torrent of packets from the attacker's podium into the target's, the target's screen
      *  drowned in red interference, shock rings, and a live traffic readout with an overload bar. */

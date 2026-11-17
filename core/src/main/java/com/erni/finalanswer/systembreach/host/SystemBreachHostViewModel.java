@@ -185,7 +185,7 @@ public final class SystemBreachHostViewModel {
             case "ATTACK_SUCCEEDED"->new Toast(L("HACK SUCCESSFUL","ВЗЛОМ УДАЛСЯ"),who(a),L("breaks into the system","взламывает систему"),who(t),plus);
             case "ATTACK_FAILED"->new Toast(L("HACK FAILED","ПРОВАЛ ВЗЛОМА"),who(t),L("repels the attack","отражает атаку"),who(a),"");
             case "ATTACK_EXPIRED"->new Toast(L("HACK TIMED OUT","ВРЕМЯ ВЗЛОМА ВЫШЛО"),who(a),L("loses the connection","теряет соединение"),who(t),"");
-            case "MULTIPLIER_UPGRADED"->new Toast(L("UPGRADE","УЛУЧШЕНИЕ"),who(t),L("raises the points multiplier","повышает множитель очков"),"","×"+fmt(amount/10.0));
+            case "MULTIPLIER_UPGRADED"->new Toast(L("UPGRADE","УЛУЧШЕНИЕ"),who(t),L("raises the points multiplier","повышает множитель душ"),"","×"+fmt(amount/10.0));
             case "FIREWALL_UPGRADED"->new Toast(L("DEFENCE","ЗАЩИТА"),who(t),L("reinforces the firewall","укрепляет фаервол"),"",L("LV.","УР. ")+amount);
             case "RECOVERY_SUCCEEDED"->new Toast(L("SYSTEM RESTORED","СИСТЕМА ВОССТАНОВЛЕНА"),who(t),L("is back online","снова в сети"),"","");
             case "SABOTAGE_STARTED"->new Toast(L("SABOTAGE","САБОТАЖ")+"  ·  "+virus(amount,ru),who(a),L("launches a sabotage","устраивает саботаж"),who(t),"");

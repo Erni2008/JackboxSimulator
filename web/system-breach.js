@@ -151,7 +151,7 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
       options(b,atk.options||[],(o,btn)=>answer('hack','ATTACK_SUBMIT',{attackId:atk.attackId,password:o},btn),'sbx-pass');timerBar(b,now(),atk.expiresAt);return;}
     if(mode==='ddos'){header(b,'DDoS · КЛЮЧ','Кого завалить трафиком?','hack');mk('p','sbx-note','10 секунд кнопки цели тормозят. Фаервол сокращает время.',b);targets(b,s,me,'DDOS');return;}
     if(mode==='market'){header(b,'ЧЁРНЫЙ РЫНОК','Одноразовые программы за души','key');const g=mk('div','sbx-cards',null,b);const mk2=me.extra?.market||{};
-      const ITEMS=[['SHIELD','\ue32a','Щит','блокирует следующую атаку'],['OVERCLOCK','\ue3e7','Разгон','3 ответа ×2 очков'],['SCANNER','\ue8b6','Сканер','2 символа пароля лидера']];
+      const ITEMS=[['SHIELD','\ue32a','Щит','блокирует следующую атаку'],['OVERCLOCK','\ue3e7','Разгон','3 ответа ×2 душ'],['SCANNER','\ue8b6','Сканер','2 символа пароля лидера']];
       ITEMS.forEach(([id,ic,t,d],i)=>{const pm=mk2[id];card(g,{icon:ic,title:t,sub:pm?.allowed?d+' · −'+souls(pm.cost):pm?.reason==='SB_SOLD_OUT'?'уже куплено':reason(pm),cls:'mult',disabled:requests.pending()||!pm?.allowed,onClick:()=>{mode='';act('MARKET_BUY',{item:id});},delay:i*70});});
       const back=mk('button','sbx-back','← назад',b);back.onclick=()=>{mode='';viewKey='';render();};return;}
     if(mode==='hack'||mode==='sabotage'){header(b,mode==='hack'?'ВЗЛОМ · КЛЮЧ':'САБОТАЖ · КЛЮЧ',mode==='hack'?'Чей компьютер ломаем?':'Кого заразить вирусом?','hack');if(mode==='sabotage')mk('p','sbx-note','Случайный вирус из 7. Фаервол цели может его отбить.',b);targets(b,s,me,mode==='hack'?'ATTACK':'SABOTAGE');return;}
@@ -165,7 +165,7 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
       card(g,{icon:'\ue1b3',title:'Взлом',sub:anyHack?'угадай пароль — укради души':(mine?.attackReadyAt>now()?'перезарядка '+secs(mine.attackReadyAt)+' с':'нет целей'),cls:'hack',disabled:requests.pending()||!anyHack,onClick:()=>{mode='hack';viewKey='';render();},delay:0});
       card(g,{icon:'\ue32a',title:'Фаервол',sub:a.firewall?.allowed?'LV'+(mine?.firewallLevel||1)+' → LV'+((mine?.firewallLevel||1)+1)+' · −'+souls(a.firewall.cost):reason(a.firewall),cls:'fw',disabled:requests.pending()||!a.firewall?.allowed,onClick:()=>act('FIREWALL_UPGRADE'),delay:70});
       const mu=a.multiplier,curM=s.multipliers?.[getState()?.selfId]||1;
-      card(g,{icon:'\ue3d2',title:'Множитель',sub:mu?.allowed?'очки ×'+fx(curM)+' → ×'+fx(STEPS[Math.min(STEPS.length-1,STEPS.indexOf(curM)+1)]||curM)+' · −'+souls(mu.cost):(mu?.reason==='SB_MAX_MULTIPLIER'?'максимум ×2.5':reason(mu)),cls:'mult',disabled:requests.pending()||!mu?.allowed,onClick:()=>act('MULTIPLIER_UPGRADE'),delay:105});
+      card(g,{icon:'\ue3d2',title:'Множитель',sub:mu?.allowed?'души ×'+fx(curM)+' → ×'+fx(STEPS[Math.min(STEPS.length-1,STEPS.indexOf(curM)+1)]||curM)+' · −'+souls(mu.cost):(mu?.reason==='SB_MAX_MULTIPLIER'?'максимум ×2.5':reason(mu)),cls:'mult',disabled:requests.pending()||!mu?.allowed,onClick:()=>act('MULTIPLIER_UPGRADE'),delay:105});
       card(g,{icon:'\ue868',title:'Саботаж',sub:anySab?'запусти вирус сопернику':'нет целей',cls:'trojan',disabled:requests.pending()||!anySab,onClick:()=>{mode='sabotage';viewKey='';render();},delay:140});
       {const anyDdos=(a.targets||[]).some(t=>t.ddos?.allowed);card(g,{icon:'\ue1e1',title:'DDoS',sub:anyDdos?'кнопки цели тормозят 10 с':'нет целей',cls:'hack',disabled:requests.pending()||!anyDdos,onClick:()=>{mode='ddos';viewKey='';render();},delay:160});}
       {const hp=me.extra?.honeypot;card(g,{icon:'\ue897',title:'Приманка',sub:hp?.allowed?'атакующий сам теряет души':hp?.reason==='SB_HONEYPOT_ARMED'?'уже стоит':reason(hp),cls:'fw',disabled:requests.pending()||!hp?.allowed,onClick:()=>act('HONEYPOT'),delay:180});}
@@ -197,7 +197,7 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
   function extras(s){const scr=el('sbx-screen');if(!scr)return;const me=s.self||{},t=now();
     scr.classList.toggle('ddos',(me.ddosUntil||0)>t);
     let sg=el('sbx-surge');if(!sg){sg=mk('div','sbx-surge',null,scr);sg.id='sbx-surge';}
-    const su=s.surge||{};if(su.kind&&su.until>t){sg.hidden=false;sg.dataset.kind=su.kind;sg.textContent=(su.kind==='DOUBLE'?'⚡ СБОЙ СИСТЕМЫ · ОЧКИ ×2':'⚠ СБОЙ СИСТЕМЫ · ФАЕРВОЛЫ ОТКЛЮЧЕНЫ')+' · '+Math.ceil((su.until-t)/1000)+' с';}else sg.hidden=true;
+    const su=s.surge||{};if(su.kind&&su.until>t){sg.hidden=false;sg.dataset.kind=su.kind;sg.textContent=(su.kind==='DOUBLE'?'⚡ СБОЙ СИСТЕМЫ · ДУШИ ×2':'⚠ СБОЙ СИСТЕМЫ · ФАЕРВОЛЫ ОТКЛЮЧЕНЫ')+' · '+Math.ceil((su.until-t)/1000)+' с';}else sg.hidden=true;
     let ch=el('sbx-chips');if(!ch){ch=mk('div','sbx-chips',null,scr);ch.id='sbx-chips';}
     const chips=[];if((me.honeypotUntil||0)>t)chips.push('🍯 приманка');if(me.shield)chips.push('🛡 щит');if(me.overclock>0)chips.push('⚡ разгон ×'+me.overclock);const v=chips.join('  ');if(ch.textContent!==v)ch.textContent=v;ch.hidden=!v;}
   function receipts(s){
@@ -213,7 +213,7 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
     if(r.status==='HONEYPOT_ARMED'){say('Приманка установлена');flash('flash-key');return;}
     if(r.action==='MARKET_BUY'&&r.status==='BOUGHT'){sfx('key');say({SHIELD:'Щит активен',OVERCLOCK:'Разгон: 3 ответа ×2',SCANNER:'Сканер: подсказка пароля лидера'}[r.details?.item]||'Куплено');flash('flash-key');return;}
     if(r.action==='SABOTAGE'){if(r.status==='INFECTED'){sfx('hackOk');say('Вирус внедрён: '+(VIRUS[r.details?.type]||'вирус'));flash('flash-ok');}else{sfx('hackFail');say('Фаервол цели отбил вирус');flash('flash-bad');}return;}
-    const msg={MULTIPLIER_UPGRADED:'Множитель очков повышен',FIREWALL_UPGRADED:'Фаервол улучшен',SPECIAL_APPLIED:'Троян внедрён'}[r.status];if(msg){say(msg);flash('flash-ok');}
+    const msg={MULTIPLIER_UPGRADED:'Множитель душ повышен',FIREWALL_UPGRADED:'Фаервол улучшен',SPECIAL_APPLIED:'Троян внедрён'}[r.status];if(msg){say(msg);flash('flash-ok');}
   }
   function celebrate(keys){
     celebrateUntil=now()+1700;sfx('key');const b=body();b.replaceChildren();
