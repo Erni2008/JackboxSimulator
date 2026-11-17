@@ -19,7 +19,7 @@ export class RaceApp {
   readonly renderer: THREE.WebGLRenderer; readonly scene = new THREE.Scene(); readonly camera = new THREE.PerspectiveCamera(55, 1, .3, 900);
   course: Course; readonly night: boolean; readonly manor: boolean; readonly crypt: boolean; readonly limit: number; runners: Runner[] = []; me!: Runner; clock = 0; private acc = 0;
   private sun!: THREE.DirectionalLight; private fill!: THREE.DirectionalLight; private mist: THREE.Mesh[] = []; private pollen!: THREE.Points; private puffs: {s: THREE.Sprite; t: number}[] = []; private grassMat?: THREE.Material; private looks = new Map<Runner, Look>(); private blockMeshes = new Map<Block, THREE.Mesh>();
-  private sweeperMeshes: THREE.Object3D[] = []; private cpArches: {glow: THREE.Mesh; flag: THREE.Mesh; lit: boolean}[] = []; private lastCp = 0; private pend: THREE.Object3D[] = []; private rams: THREE.Object3D[] = []; private padMeshes: THREE.Mesh[] = []; private warnPlanes = new Map<Block, THREE.Mesh>(); private belts: THREE.Texture[] = []; private composer?: EffectComposer; private lastSection = ''; private ghosts: THREE.MeshStandardMaterial[] = []; private lastTp = 0; private ray = new THREE.Raycaster(); private faded = new Set<THREE.Mesh>(); private soft: THREE.Mesh[] = []; private jetFx: {j: any; o: THREE.Object3D; f: THREE.Object3D}[] = []; private mazeBlend = 0; private portalFx: THREE.Object3D[] = []; private boulderPool: THREE.Object3D[] = [];
+  private sweeperMeshes: THREE.Object3D[] = []; private cpArches: {glow: THREE.Mesh; flag: THREE.Mesh; lit: boolean}[] = []; private lastCp = 0; private pend: THREE.Object3D[] = []; private rams: THREE.Object3D[] = []; private padMeshes: THREE.Mesh[] = []; private warnPlanes = new Map<Block, THREE.Mesh>(); private belts: THREE.Texture[] = []; private composer?: EffectComposer; private lastSection = ''; private ghosts: THREE.MeshStandardMaterial[] = []; private lastTp = 0; private sunGlow?: THREE.Sprite; private rays: THREE.Mesh[] = []; private ray = new THREE.Raycaster(); private faded = new Set<THREE.Mesh>(); private soft: THREE.Mesh[] = []; private jetFx: {j: any; o: THREE.Object3D; f: THREE.Object3D}[] = []; private mazeBlend = 0; private portalFx: THREE.Object3D[] = []; private boulderPool: THREE.Object3D[] = [];
   private gltf = new GLTFLoader(); private texLoader = new THREE.TextureLoader(); private cache = new Map<string, Promise<GLTF>>();
   private camTarget = new THREE.Vector3(); private pixelRatio: number; private frameAvg = 16; private last = 0;
   private blobs = new Map<Runner, THREE.Mesh>();   private dots = new Map<Runner, HTMLElement>(); private keys = new Set<string>(); private stick = {id: -1, ox: 0, oy: 0, x: 0, y: 0}; private hud: HTMLElement;
@@ -44,7 +44,7 @@ export class RaceApp {
     this.scene.background = sky;
     const pmrem = new THREE.PMREMGenerator(this.renderer); this.scene.environment = pmrem.fromEquirectangular(await loaded(sky)).texture; pmrem.dispose();
     (this.scene as any).environmentIntensity = IN ? .3 : N ? .55 : .75; (this.scene as any).backgroundIntensity = N ? .85 : 1; if (IN) this.scene.background = new THREE.Color(this.crypt ? 0x030605 : 0x040508);
-    this.scene.fog = this.crypt ? new THREE.Fog(new THREE.Color(.03, .05, .045), 9, 58) : IN ? new THREE.Fog(new THREE.Color(.025, .03, .05), 10, 70) : N ? new THREE.Fog(new THREE.Color(.1, .15, .24), 16, 120) : new THREE.Fog(new THREE.Color(.62, .58, .64), 38, 240);
+    this.scene.fog = this.crypt ? new THREE.Fog(new THREE.Color(.03, .05, .045), 9, 58) : IN ? new THREE.Fog(new THREE.Color(.025, .03, .05), 10, 70) : N ? new THREE.Fog(new THREE.Color(.1, .15, .24), 16, 120) : new THREE.Fog(new THREE.Color(.74, .6, .56), 45, 330);
     this.scene.add(this.crypt ? new THREE.HemisphereLight(0x4a7a68, 0x22160c, .8) : IN ? new THREE.HemisphereLight(0x46588c, 0x24170c, .5) : N ? new THREE.HemisphereLight(0x7088c8, 0x141812, .55) : new THREE.HemisphereLight(0xbfc8ff, 0x3d3324, .35));
     if (N) this.renderer.toneMappingExposure = IN ? 1.3 : 1.2;
     // key light matches the sun / moon in the panorama: long shadows towards the camera, rim light on everything
@@ -54,6 +54,8 @@ export class RaceApp {
     this.scene.add(this.sun, this.sun.target);
     this.fill = new THREE.DirectionalLight(this.crypt ? 0xffa868 : IN ? 0xffb37a : N ? 0xa8b8ff : 0xc8d2ff, this.crypt ? 1.6 : IN ? 1.25 : N ? 1.1 : 1.7); this.scene.add(this.fill, this.fill.target); // cool fill from the camera side
     this.atmosphere();
+    if (!N) {const glow = new THREE.Sprite(new THREE.SpriteMaterial({map: dotTexture(true), color: 0xffb070, transparent: true, opacity: .55, depthWrite: false, blending: THREE.AdditiveBlending, fog: false})); glow.scale.set(260, 160, 1); glow.userData.sun = true; this.sunGlow = glow; this.scene.add(glow);
+      for (let i = 0; i < 5; i++) {const ray = new THREE.Mesh(new THREE.PlaneGeometry(14 + i * 4, 420), new THREE.MeshBasicMaterial({map: rayTexture(), color: 0xffc890, transparent: true, opacity: .07, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, side: THREE.DoubleSide})); ray.userData.k = i; this.rays.push(ray); this.scene.add(ray);}}
     const mats = {floor: this.mat('old_wooden_floor_02', 2.5, true), flag: this.mat('mossy_cobblestone', 2.5, false, 0x8a8a8a), wall: this.mat('castle_brick_07', 3), beam: this.mat('medieval_wood', 2, true),
       cobble: this.mat('mossy_cobblestone', 3), brick: this.mat('mossy_brick', 3, true), dark: this.mat('dark_wooden_planks', 2.2, true), mud: this.mat('brown_mud_leaves_01', 3, false, 0x9aa38a),
       grass: this.mat('leafy_grass', 3.2, false, 0xc4dc8a), rock: this.mat('rock_face_03', 4, true), plank: this.mat('brown_planks_05', 2.2, true), stone: this.mat('mossy_rock', 3.2), bark: this.mat('bark_brown_02', 1), ground: this.mat('forest_ground_04', 6)};
@@ -164,6 +166,8 @@ export class RaceApp {
     const put = (name: string, x: number, y: number, z: number, size: number, yaw = rnd() * Math.PI * 2) => (place[name] ??= []).push(new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw), new THREE.Vector3(size, size, size)));
     const len = this.course.finishZ + 30;
     for (let z = -40; z < len + 40; z += 8 + rnd() * 7) for (const s of [-1, 1]) put(rnd() < .55 ? 'fir_tree_01_c' : 'pine_tree_01_c', s * (34 + rnd() * 46), -34, z + rnd() * 5, 30 + rnd() * 14);
+    for (let z = -60; z < len + 120; z += 26 + rnd() * 18) for (const s of [-1, 1]) put('namaqualand_cliff_01', s * (170 + rnd() * 70), -46, z, 55 + rnd() * 35);
+    for (let i = 0; i < 6; i++) put('namaqualand_cliff_01', (rnd() - .5) * 260, -46, len + 200 + rnd() * 80, 60 + rnd() * 40);
     
     for (const b of this.course.blocks) {
       if (b.mat === 'plank' || b.crumbles || (b.gear || b.cart || b.tilt || b.trapPeriod || b.wall || b.fake || b.driftAmp || (b.x1 - b.x0) < 6)) continue; const d = b.z1 - b.z0;
@@ -566,6 +570,8 @@ export class RaceApp {
     const sd = this.manor ? SKY_DIR : this.night ? MOON_DIR : SUN_DIR; this.sun.position.set(this.camTarget.x + sd.x * 70, this.camTarget.y + sd.y * 70, this.camTarget.z + 8 + sd.z * 70);
     this.fill.position.copy(this.camera.position); this.fill.target.position.set(this.camTarget.x, this.camTarget.y, this.camTarget.z);
     this.animateAtmosphere(dt); this.syncRocks(dt);
+    if (this.sunGlow) {const sp = this.camera.position.clone().addScaledVector(SUN_DIR, 420); this.sunGlow.position.copy(sp);
+      this.rays.forEach((r, i) => {r.position.copy(this.camera.position).addScaledVector(SUN_DIR, 300); r.lookAt(this.camera.position); r.rotateZ(-.5 + i * .25 + Math.sin(this.course.time * .1 + i) * .03); r.translateY(-120);});}
     for (const s of this.swingers) s.rotation.z = Math.sin(this.course.time * .8 + s.userData.sway) * .05;
     this.flames.forEach((f, i) => f.scale.setScalar(1.8 + Math.sin(this.course.time * 13 + i * 1.7) * .12 + Math.sin(this.course.time * 7.3 + i) * .08));
     if (this.me.checkpoint > this.lastCp) {for (let i = this.lastCp + 1; i <= this.me.checkpoint; i++) {const a = this.cpArches[i - 1]; if (a && !a.lit) {a.lit = true; (a.flag.material as THREE.MeshStandardMaterial).emissive.set(0xffb238); (a.glow.material as THREE.MeshBasicMaterial).color.set(0xffc455); this.toast('ЧЕКПОИНТ!'); this.puff(this.me.x, this.me.y, this.me.z, 1.4); navigator.vibrate?.(20);}} this.lastCp = this.me.checkpoint;}
@@ -752,3 +758,6 @@ function metalMat(name: 'metal_plate_02' | 'rusty_metal_02' | 'metal_grate_rusty
   const L = new THREE.TextureLoader(), t = (f: string, srgb = false) => {const x = L.load(`tex/${name}/${f}.jpg`); x.wrapS = x.wrapT = THREE.RepeatWrapping; x.repeat.set(repeat, repeat); x.anisotropy = 4; if (srgb) x.colorSpace = THREE.SRGBColorSpace; return x;};
   const arm = t('arm'); m = new THREE.MeshStandardMaterial({map: t('diffuse', true), normalMap: t('nor_gl'), roughnessMap: arm, metalnessMap: arm, metalness: 1, roughness: 1, color: tint, envMapIntensity: 1.3});
   _metal.set(key, m); return m;}
+
+function rayTexture() {const c = document.createElement('canvas'); c.width = 64; c.height = 256; const x = c.getContext('2d')!; const g = x.createLinearGradient(0, 0, 0, 256); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(.6, 'rgba(255,255,255,.8)'); g.addColorStop(1, 'rgba(255,255,255,1)');
+  x.fillStyle = g; x.fillRect(0, 0, 64, 256); const h = x.createLinearGradient(0, 0, 64, 0); h.addColorStop(0, 'rgba(0,0,0,1)'); h.addColorStop(.5, 'rgba(0,0,0,0)'); h.addColorStop(1, 'rgba(0,0,0,1)'); x.globalCompositeOperation = 'destination-out'; x.fillStyle = h; x.fillRect(0, 0, 64, 256); return new THREE.CanvasTexture(c);}
