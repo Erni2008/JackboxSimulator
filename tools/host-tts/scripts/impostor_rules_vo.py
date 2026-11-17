@@ -7,7 +7,7 @@ from system_breach_pack import treat,normalize
 LINES=[
  "Добро пожаловать в игру! Сегодня среди вас есть самозванец.",
  "Все получают секретное слово! Все, кроме самозванца, ему достаётся только подсказка.",
- "Пишите слова-улики! Намекайте, но не выдавайте слово!",
+ "Пишите слова у ли ки! Намекайте, но не выдавайте слово!",
  "После каждого раунда отмечайте, кто подозрителен!",
  "Через три раунда финальное голосование!",
  "Поймали самозванца, победа ваша! Ошиблись, побеждает он!",
@@ -27,7 +27,18 @@ def main():
                 raw=WORK/f'rules_{i}.wav';treated=WORK/f'rules_{i}_treated.wav';final=OUT/f'rules_{i}.wav'
                 for f in (raw,treated,final):
                     if f.exists():f.unlink()
-                worker.generate(text,raw,seed=int(os.environ.get('SEED',str({1:21,4:7}.get(i,42)))),temperature=.6);validate(raw,text)
+                # sentence by sentence, joined with a natural breath between them
+                import re,numpy as np,soundfile as sf
+                parts=re.findall(r'[^.!?…]+[.!?…]+',text) or [text];chunks=[];sr=24000
+                for k,part in enumerate(parts):
+                    piece=WORK/f'rules_{i}_{k}.wav'
+                    if piece.exists():piece.unlink()
+                    worker.generate(part.strip(),piece,seed=int(os.environ.get('SEED',str({1:21,4:7}.get(i,42)))),temperature=.6)
+                    w,sr=sf.read(piece,dtype='float32');w=w if w.ndim==1 else w.mean(axis=1);nz=np.where(np.abs(w)>.01)[0]
+                    if len(nz):w=w[max(0,nz[0]-int(sr*.02)):nz[-1]+int(sr*.06)]
+                    chunks.append(w)
+                    if k<len(parts)-1:chunks.append(np.zeros(int(sr*float(os.environ.get('PAUSE','.42'))),dtype=np.float32))
+                sf.write(raw,np.concatenate(chunks),sr);validate(raw,text)
                 treat(raw,treated,settings,text);normalize(treated,final)
                 print(f'READY {i}: {validate(final,text):.2f}s',flush=True)
         finally:worker.close()

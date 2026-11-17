@@ -32,13 +32,13 @@ import java.util.Map;
  */
 public final class ImpostorRulesFilm implements Disposable {
     public static final float W=1920,H=1080;
-    private static final float[] START={0,5.6f,13f,18.6f,23.2f,27f,32.6f},END={5.6f,13f,18.6f,23.2f,27f,32.6f,37f};
-    public static final float LENGTH=37f;
+    private static final float[] START={0,5.6f,13.4f,19f,23.6f,27.4f,33.4f},END={5.6f,13.4f,19f,23.6f,27.4f,33.4f,37.8f};
+    public static final float LENGTH=37.8f;
     private static final String[] TAB={"","РОЛИ","УЛИКИ","ПОДОЗРЕНИЕ","ГОЛОСОВАНИЕ","ИТОГ",""};
     private static final String[] SUB={
         "Добро пожаловать в игру! Сегодня среди вас есть самозванец.",
         "Все получают секретное слово! Все, кроме самозванца, ему достаётся только подсказка.",
-        "Пишите слова-улики! Намекайте, но не выдавайте слово!",
+        "Пишите слова улики! Намекайте, но не выдавайте слово!",
         "После каждого раунда отмечайте, кто подозрителен!",
         "Через три раунда финальное голосование!",
         "Поймали самозванца, победа ваша! Ошиблись, побеждает он!",
