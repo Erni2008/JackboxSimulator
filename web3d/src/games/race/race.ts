@@ -334,6 +334,15 @@ export class RaceApp {
           const lid = add(new THREE.Mesh(new THREE.BoxGeometry(r.halfW * 2 + 2, .3, seg), new THREE.MeshBasicMaterial({color: 0}))); lid.position.set(0, top + .4, z + seg / 2);}
         z += seg;}
       for (let zz = Math.ceil((r.z0 + 1) / 8) * 8; zz < r.z1; zz += 8) {const bm = add(new THREE.Mesh(new THREE.BoxGeometry(r.halfW * 2, .45, .45), mats.beam)); bm.position.set(0, top - .25, zz);}
+      if (this.crypt) {// catacomb walls: niches stacked with skulls, burning torches, roots and cobwebs
+        for (let zz = Math.ceil(r.z0 / 5) * 5 + 2; zz < r.z1 - 1; zz += 5) for (const sd of [-1, 1]) {const nx = sd * (r.halfW - .05);
+          for (let row = 0; row < 3; row++) {const ni = new THREE.Mesh(new THREE.PlaneGeometry(1.5, .78), this.niche); ni.position.set(nx - sd * .01, r.y + .9 + row * .95, zz); ni.rotation.y = -sd * Math.PI / 2; this.scene.add(ni);
+            for (let k = 0; k < 3; k++) if (rnd() < .7) this.skullAt.push(new THREE.Vector3(nx - sd * .18, r.y + .78 + row * .95, zz - .45 + k * .45));}
+          if (Math.round(zz / 5) % 2) {const tz = zz + 2.5, tp = new THREE.Vector3(nx - sd * .25, r.y + 2.6, tz); const st = new THREE.Mesh(new THREE.CylinderGeometry(.05, .04, .6, 6), this.gold); st.position.copy(tp).add(new THREE.Vector3(0, -.2, 0)); st.rotation.z = sd * .4; this.scene.add(st);
+            const fl = new THREE.Sprite(new THREE.SpriteMaterial({map: dotTexture(true), color: 0xff8a2a, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending})); fl.scale.set(.5, .9, 1); fl.position.copy(tp).add(new THREE.Vector3(0, .25, 0)); this.scene.add(fl); this.flames.push(fl);
+            const pool = new THREE.Mesh(new THREE.CircleGeometry(3, 24).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({map: dotTexture(true), color: 0xff7a20, transparent: true, opacity: .3, depthWrite: false, blending: THREE.AdditiveBlending})); pool.position.set(nx - sd * 1.6, r.y + .03, tz); this.scene.add(pool);}}
+        for (let i = 0; i < (r.z1 - r.z0) / 6; i++) {const web = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.6), this.web); const sd = rnd() < .5 ? -1 : 1; web.position.set(sd * (r.halfW - .7), r.y + r.h - .7, r.z0 + rnd() * (r.z1 - r.z0)); web.rotation.set(0, sd * .8, 0); this.scene.add(web);}
+      } else {
       // the collector's gallery: his exhibits' portraits in gilded frames, red drapes, a carpet runner
       for (let zz = Math.ceil(r.z0 / 8) * 8 + 4; zz < r.z1 - 2; zz += 8) for (const sd of [-1, 1]) {if (rnd() < .25) continue;
         const ch = CHARACTERS[Math.floor(rnd() * CHARACTERS.length)], f = new THREE.Group(); f.position.set(sd * (r.halfW - .06), r.y + 3.1, zz); f.rotation.y = -sd * Math.PI / 2;
@@ -341,6 +350,7 @@ export class RaceApp {
         const plate = new THREE.Mesh(new THREE.BoxGeometry(.7, .14, .03), this.gold); plate.position.set(0, -1.2, .06); f.add(plate); this.scene.add(f);}
       for (let zz = Math.ceil(r.z0 / 8) * 8; zz < r.z1; zz += 8) for (const sd of [-1, 1]) {const d = new THREE.Mesh(new THREE.PlaneGeometry(1.6, r.h - .6, 6, 1), this.drape); d.position.set(sd * (r.halfW - .12), r.y + (r.h - .6) / 2 + .3, zz + sd * .9); d.rotation.y = -sd * Math.PI / 2;
         const pa = d.geometry.getAttribute('position'); for (let i = 0; i < pa.count; i++) pa.setZ(i, Math.sin(pa.getX(i) * 6) * .08); d.geometry.computeVertexNormals(); this.scene.add(d);}
+      }
       // wall lamps with candles
       for (let zz = r.z0 + 3; zz < r.z1 - 1; zz += 7) {const sd = Math.round(zz / 7) % 2 ? 1 : -1; put('caged_hanging_light', sd * (r.halfW - .45), r.y + 2.4, zz, .55, sd > 0 ? -Math.PI / 2 : Math.PI / 2); glows.push(new THREE.Vector3(sd * (r.halfW - .5), r.y + 2.45, zz));}
       // clutter along the walls of wide rooms
@@ -349,6 +359,15 @@ export class RaceApp {
         if (k < .3) put('wine_barrel_01', x, r.y, zz, 1.1); else if (k < .5) put('wooden_crate_01', x, r.y, zz, .9 + rnd() * .3); else if (k < .62) put('wooden_barrels_01', x, r.y, zz, 1.8);
         else if (k < .74) {put('wooden_bucket_01', x, r.y, zz, .45);} else if (k < .86) {put('wine_bottles_01', x, r.y, zz, .5);} else {put('brass_candleholders', x, r.y, zz, .6); glows.push(new THREE.Vector3(x, r.y + .65, zz));}}
     }
+    if (this.skullAt.length) {const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d')!; x.fillStyle = '#c9bc9c'; x.fillRect(0, 0, 128, 128);
+      const g = x.createRadialGradient(64, 50, 10, 64, 64, 70); g.addColorStop(0, 'rgba(255,250,230,.25)'); g.addColorStop(1, 'rgba(60,45,30,.6)'); x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+      x.fillStyle = '#120a06'; for (const ex of [44, 84]) {x.beginPath(); x.ellipse(ex, 60, 14, 17, 0, 0, 7); x.fill();} x.beginPath(); x.moveTo(64, 74); x.lineTo(57, 92); x.lineTo(71, 92); x.fill();
+      for (let i = 0; i < 6; i++) x.fillRect(42 + i * 8, 104, 5, 12); const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+      const face = new THREE.MeshStandardMaterial({map: tex, roughness: .8}), bone = new THREE.MeshStandardMaterial({color: 0xbcae8c, roughness: .85});
+      const head = new THREE.SphereGeometry(.2, 14, 10).scale(1, .95, 1.05), front = new THREE.PlaneGeometry(.3, .32).translate(0, -.02, .2).rotateY(0);
+      const ih = new THREE.InstancedMesh(head, bone, this.skullAt.length), iff = new THREE.InstancedMesh(front, face, this.skullAt.length);
+      this.skullAt.forEach((p, i) => {const m = new THREE.Matrix4().compose(p, new THREE.Quaternion().setFromEuler(new THREE.Euler(0, (Math.random() - .5) * .4 + (p.x > 0 ? -Math.PI * .75 : Math.PI * .75))), new THREE.Vector3(1, 1, 1)); ih.setMatrixAt(i, m); iff.setMatrixAt(i, m);});
+      ih.computeBoundingSphere(); iff.computeBoundingSphere(); this.scene.add(ih, iff);}
     // library shelves (along the walls by the turning beams)
     const lib = c.sweepers[0]; if (lib) for (let z = lib.z - 12; z < lib.z + 12; z += 2.2) for (const sd of [-1, 1]) put('wooden_bookshelf_worn', sd * 10, lib.y - .55, z, 2.6, sd > 0 ? -Math.PI / 2 : Math.PI / 2);
     // empty cages hanging in the cellar where the exhibits were kept, chandeliers in the great hall
@@ -379,6 +398,11 @@ export class RaceApp {
     progress(.8);
   }
   private swingers: THREE.Object3D[] = [];
+  private skullAt: THREE.Vector3[] = [];
+  private niche = new THREE.MeshBasicMaterial({color: 0x060403});
+  private web = (() => {const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d')!; x.strokeStyle = 'rgba(230,230,230,.55)'; x.lineWidth = 1;
+    for (let k = 0; k < 9; k++) {const a = k / 9 * Math.PI / 2; x.beginPath(); x.moveTo(0, 0); x.lineTo(Math.cos(a) * 128, Math.sin(a) * 128); x.stroke();}
+    for (let r = 14; r < 128; r += 14) {x.beginPath(); x.arc(0, 0, r, 0, Math.PI / 2); x.stroke();} const t = new THREE.CanvasTexture(c); return new THREE.MeshBasicMaterial({map: t, transparent: true, depthWrite: false, side: THREE.DoubleSide});})();
   private gold = new THREE.MeshStandardMaterial({color: 0xc9962e, metalness: 1, roughness: .35, envMapIntensity: 1.6});
   private drape = new THREE.MeshStandardMaterial({color: 0x5a0d10, roughness: .85, side: THREE.DoubleSide});
   private canvasBg = new THREE.MeshStandardMaterial({color: 0x2b1a14, roughness: .9});
