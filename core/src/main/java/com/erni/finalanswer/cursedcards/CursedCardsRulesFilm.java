@@ -131,6 +131,8 @@ public final class CursedCardsRulesFilm implements Disposable {
         // dust in the beam
         for(int i=0;i<46;i++){float h1=hash(i),h2=hash(i*3+7);float y=(h2*H+time*(8+14*h1))%H;float spread=(H-y)/H*cw;float x=sx+(h1-.5f)*2*spread+MathUtils.sin(time*.5f+i)*12;
             glowAt(x,y,4+6*h2,new Color(1,.85f,.7f,1),.5f*(.4f+.6f*MathUtils.sin(time*1.7f+i*1.3f)));}
+        for(int i=0;i<26;i++){float h1=hash(i*9+2),h2=hash(i*5+11);float y=(h2*H*1.2f+time*(40+60*h1))%(H*1.2f)-60;float x=h1*W+MathUtils.sin(time*.9f+i*2.1f)*40;float fl=.5f+.5f*MathUtils.sin(time*4+i);
+            glowAt(x,y,5+7*h2,EMBER,.55f*fl*(1-y/H));glowAt(x,y,26,BLOOD,.10f*fl);}
         batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.end();
     }
     private int scene(){for(int i=START.length-1;i>=0;i--)if(time>=START[i])return i;return 0;}
@@ -167,7 +169,7 @@ public final class CursedCardsRulesFilm implements Disposable {
     private Texture tx(int v){return v==0?death:face[v];}
     /** One card with a soft shadow; flip 0 shows the back, 1 the face (it turns edge-on in between). */
     private void card(float x,float y,float w,float rot,float flip,int value,float a,float lit){
-        if(pass!=1||a<=0)return;float h=w*1.5f,sx=Math.abs(MathUtils.cos(flip*MathUtils.PI));boolean front=flip>.5f;Texture t=front?tx(value):back;
+        if(pass!=1||a<=0)return;rot+=MathUtils.sin(time*1.3f+x*.013f)*1.4f;y+=MathUtils.sin(time*1.7f+x*.021f)*3;float h=w*1.5f,sx=Math.abs(MathUtils.cos(flip*MathUtils.PI));boolean front=flip>.5f;Texture t=front?tx(value):back;
         b(0,0,0,.5f*a);batch.draw(new TextureRegion(t),x-w/2*sx+10,y-h/2-14,w/2*sx,h/2,w*sx,h,1,1,rot);
         float l=.82f+.18f*lit;b(l,l,l,a);batch.draw(new TextureRegion(t),x-w/2*sx,y-h/2,w/2*sx,h/2,w*sx,h,1,1,rot);b(1,1,1,1);
         // a glint sweeps across the face right after it turns over
@@ -185,7 +187,8 @@ public final class CursedCardsRulesFilm implements Disposable {
     }
     private void titleScene(float t,float a){
         float fl=ease(k(t,1.2f,2f));float bob=MathUtils.sin(time*1.4f)*8;
-        if(pass==2){glowAt(W/2,H/2-150,900,BLOOD,.35f*a*fl*(.8f+.2f*MathUtils.sin(time*3)));glowAt(W/2,H/2+250,800,GOLD,.12f*a);}
+        if(pass==2){glowAt(W/2,H/2-150,900,BLOOD,.35f*a*fl*(.8f+.2f*MathUtils.sin(time*3)));glowAt(W/2,H/2+250,800,GOLD,.12f*a);
+            if(glowR==null)glowR=new TextureRegion(glow);for(int i=0;i<12;i++){float ang=i*30+time*8;b(1,.35f,.2f,.10f*a*fl);batch.draw(glowR,W/2,H/2-150-24,0,24,620,48,1,1,ang);}b(1,1,1,1);}
         card(W/2,H/2-150+bob,230,MathUtils.sin(time*.8f)*3,fl,0,a*ease(k(t,.2f,.8f)),1);
         if(pass==1){float q=ease(k(t,.6f,1.5f));text(title,"THE CURSED CARDS",W/2,H-190+(1-q)*30,GOLD,a*q,.9f);
             float r=ease(k(t,1.3f,2.1f));text(heading,"ПРОКЛЯТЫЕ КАРТЫ",W/2,H-320,BLOOD,a*r,.8f);}
@@ -237,6 +240,8 @@ public final class CursedCardsRulesFilm implements Disposable {
         for(int i=0;i<5;i++){float sx=W/2+(i-2)*320,sy=770;framed(i<4?WHO[(i+3)%5]:WHO[4],sx,sy,100,a*.75f*ease(k(t,.2f+.1f*i,.6f+.1f*i)),BLOOD,0);
             float f=k(t,1+.25f*i,1.9f+.25f*i);if(f>0&&f<1&&pass==2){for(int q=0;q<10;q++){float ff=Math.max(0,f-q*.025f);float x=MathUtils.lerp(sx,tx,ease(ff)),y=MathUtils.lerp(sy-60,ty+40,ease(ff))+MathUtils.sin(ff*MathUtils.PI)*80*(i%2==0?1:-1);glowAt(x,y,70-q*5,BLOOD,.8f*a*(1-q/10f));}}}
         float c=ease(k(t,2.6f,3.4f));
+        if(c>0&&pass==0){float rr=210;int n=72;for(int q=0;q<n;q++){float a0=q/(float)n*MathUtils.PI2+time*.4f,a1=a0+MathUtils.PI2/n*.6f;col(BLOOD,.8f*a*c);shapes.rectLine(tx+MathUtils.cos(a0)*rr,ty+MathUtils.sin(a0)*rr*.42f-120,tx+MathUtils.cos(a1)*rr,ty+MathUtils.sin(a1)*rr*.42f-120,2.5f);}
+            for(int q=0;q<5;q++){float a0=q*MathUtils.PI2/5-time*.3f,a1=a0+MathUtils.PI2*2/5;col(BLOOD,.55f*a*c);shapes.rectLine(tx+MathUtils.cos(a0)*rr*.92f,ty+MathUtils.sin(a0)*rr*.39f-120,tx+MathUtils.cos(a1)*rr*.92f,ty+MathUtils.sin(a1)*rr*.39f-120,2);}}
         if(c>0){if(pass==1){for(int i=0;i<6;i++){float ph=(time*.4f+i/6f)%1;float r=160+220*ph;b(.9f,.15f,.12f,.25f*a*c*(1-ph));batch.draw(new TextureRegion(wisp),tx-r,ty-r*.6f+ph*120,r,r*.6f,r*2,r*1.2f,1,1,i*60+time*20);}b(1,1,1,1);
                 text(heading,"ПРОКЛЯТ",tx,ty-170,BLOOD,a*k(t,3,3.4f),.75f);}
             if(pass==2)glowAt(tx,ty,700,BLOOD,.45f*a*c*(.8f+.2f*MathUtils.sin(time*5)));
@@ -251,6 +256,8 @@ public final class CursedCardsRulesFilm implements Disposable {
         float fl=ease(k(t,2.6f,3.2f)),dead=k(t,3.2f,4f);framed(WHO[CURSED],rx-90,y+70,170,a*r,BLOOD,dead);
         card(rx+120,y+50,140,6,fl,0,a*r,1);
         if(pass==1){text(small,"ПОСЛЕДНЯЯ КАРТА",rx,y-60,BONE,a*r,1.1f);text(heading,"СМЕРТЬ",rx,y-110,BLOOD,a*dead,.75f+.1f*(1-dead));}
+        {float e=t-3.2f;if(e>0&&e<2f){if(pass==1){for(int i=0;i<6;i++){float k2=e/2f,rs=60+260*ease(Math.min(1,k2*1.5f));b(.35f,.08f,.08f,.5f*a*(1-k2));batch.draw(new TextureRegion(smoke),rx+120-rs+(i-2.5f)*30,y+50-rs*.6f+e*60,rs,rs*.6f,rs*2,rs*1.2f,1,1,i*55+e*30);}b(1,1,1,1);}
+            sparks(rx+120,y+50,e,a,BLOOD);}}
         if(pass==2&&fl>.5f)glowAt(rx+120,y+50,700,BLOOD,.55f*a*(1-.5f*dead)*(.8f+.2f*MathUtils.sin(time*6)));
     }
     private void finale(float t,float a){
