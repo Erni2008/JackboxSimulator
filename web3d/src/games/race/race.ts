@@ -92,10 +92,10 @@ export class RaceApp {
       this.pend.push(pivot);
     }
     // rams in the walls
-    for (const p of this.course.pushers) {const g = new THREE.Group(); const ram = new THREE.Mesh(new THREE.BoxGeometry(1, 1.5, p.d - .2), this.manor ? mats.beam : this.night ? mats.dark : mats.bark); ram.position.x = -.5; ram.castShadow = true;
+    for (const p of this.course.pushers) {const g = new THREE.Group(); const rl = p.reach + 1.4, ram = new THREE.Mesh(new THREE.BoxGeometry(rl, 1.5, p.d - .2), this.manor ? mats.beam : this.night ? mats.dark : mats.bark); ram.position.x = rl / 2 - 1; ram.castShadow = true;
       const plate = new THREE.Mesh(new THREE.BoxGeometry(.18, 1.7, p.d), ironM); plate.position.x = -1.02; g.add(ram, plate);
       for (let i = 0; i < 6; i++) {const sp = new THREE.Mesh(new THREE.ConeGeometry(.1, .35, 8).rotateZ(Math.PI / 2), ironM); sp.position.set(-1.25, -.5 + (i % 2) * .9, -p.d / 2 + .4 + Math.floor(i / 2) * (p.d - .8) / 2); g.add(sp);}
-      g.position.set(p.side * p.wallX, p.y + .8, p.z); g.scale.x = p.side; g.userData.p = p; this.rams.push(g); this.scene.add(g);
+      g.position.set(p.side * (p.wallX + 1), p.y + .8, p.z); g.scale.x = p.side; g.userData.p = p; this.rams.push(g); this.scene.add(g);
       const house = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.6, p.d + .8), this.manor ? mats.wall : this.night ? mats.brick : mats.rock); house.position.set(p.side * (p.wallX + .6), p.y + 1.3, p.z); house.castShadow = true; this.scene.add(house);}
     // portals: stone arch, swirling disc, glow
     for (const p of this.course.portals) {const g = new THREE.Group(); g.position.set(p.x, p.y, p.z);
@@ -421,7 +421,7 @@ export class RaceApp {
     for (const [b, m] of this.blockMeshes) {const shake = b.crumbles && b.crumbleAt >= 0 && c.time - b.crumbleAt < .75 ? Math.sin(c.time * 70) * .05 : 0; m.position.set(b.offX + shake, b.offY, 0); m.visible = !b.gone;}
     c.sweepers.forEach((s, i) => {const m = this.sweeperMeshes[i]; m.position.set(s.x, s.y, s.z); m.rotation.y = -s.angle;});
     c.pendulums.forEach((p, i) => {this.pend[i].rotation.z = p.swing;});
-    for (const g of this.rams) {const p = g.userData.p; g.position.x = p.side * (p.wallX - p.reach * p.ext);}
+    for (const g of this.rams) {const p = g.userData.p; g.position.x = p.side * (p.wallX - p.reach * p.ext + 1);}
     c.pads.forEach((p, i) => {const k = Math.max(0, 1 - (c.time - p.fired) * 4); this.padMeshes[i].position.y = p.y + .23 + k * .25; (this.padMeshes[i].material as THREE.MeshStandardMaterial).emissiveIntensity = 1 + Math.sin(c.time * 6) * .3 + k * 3;});
     for (const [b, w] of this.warnPlanes) {w.visible = b.warn && !b.gone; (w.material as THREE.MeshBasicMaterial).opacity = .35 + .35 * Math.sin(c.time * 28);}
     for (const t of this.belts) t.offset.y = (t.offset.y + dt * .9) % 1;

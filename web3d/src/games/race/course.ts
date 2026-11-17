@@ -314,7 +314,8 @@ export class Course {
       if (dx * dx + dy * dy + dz * dz < rr * rr) {const dir = Math.sign(Math.cos(Math.PI * 2 * this.time / p.period + p.phase)) || 1; this.hit(r, dir * 15, 7, Math.sign(dz) * 2);}}
     for (const p of this.pushers) {const inner = p.wallX - p.reach * p.ext, xa = Math.min(p.side * p.wallX, p.side * inner), xb = Math.max(p.side * p.wallX, p.side * inner);
       if (p.ext > .05 && r.x + R > xa && r.x - R < xb && Math.abs(r.z - p.z) < p.d / 2 + R && r.y < p.y + 1.7 && r.y + H > p.y) {
-        if (p.ext > p.lastExt) this.hit(r, -p.side * 15, 6.5, (r.z - p.z) * 2); else r.x = p.side > 0 ? Math.min(r.x, xa - R) : Math.max(r.x, xb + R);}}
+        if (p.ext >= p.lastExt || p.ext > .3) this.hit(r, -p.side * (p.ext > p.lastExt ? 15 : 9), 6.5, (r.z - p.z) * 2);
+        r.x = p.side > 0 ? Math.min(r.x, xa - R) : Math.max(r.x, xb + R);}}
     for (const p of this.portals) if (Math.hypot(r.x - p.x, r.z - p.z) < p.r && Math.abs(r.y - p.y) < 1.2) {r.x = p.tx + ((r.slot % 3) - 1) * .8; r.y = p.ty + .1; r.z = p.tz; r.vx = r.vz = 0; r.vy = 0; r.ground = null; p.used = this.time; (r as any).teleported = this.time; r.progress = Math.max(r.progress, r.z);}
     for (const j of this.jets) if (j.state === 2 && Math.hypot(r.x - j.x, r.z - j.z) < j.r + R * .6 && r.y < j.y + (j.kind === 'fire' ? 2.4 : 1.6)) {const dx = r.x - j.x, dz = r.z - j.z, d = Math.hypot(dx, dz) || 1; this.hit(r, dx / d * 8, j.kind === 'fire' ? 11 : 4, dz / d * 8 - 3);}
     for (const p of this.pads) if (r.ground && Math.hypot(r.x - p.x, r.z - p.z) < p.r && Math.abs(r.y - p.y) < .3) {r.vy = 15; r.vz = Math.max(r.vz, 10.5); r.ground = null; r.coyote = 0; p.fired = this.time;}
