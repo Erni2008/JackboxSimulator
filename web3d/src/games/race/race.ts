@@ -146,7 +146,7 @@ export class RaceApp {
     await (this.manor ? this.decorateManor(mats, progress) : this.night ? this.decorateNight(mats.stone, progress) : this.decorate(progress)); this.buildGrass(); this.mergeStatic(before); progress(.8);
     // runners
     if (this.net) {const n = this.net; for (let i = 0; i < n.roster.length; i++) {const p = n.roster[i], self = p.id === n.selfId && !n.spectator;
-        const r = new Runner(p.id, self ? 'Вы' : p.name, CHARACTERS.includes(p.char) ? p.char : CHARACTERS[i % CHARACTERS.length], i, false); (r as any).remote = !self; r.x = ((i % 4) - 1.5) * 2.2; r.z = -1.5 - Math.floor(i / 4) * 2.2; this.runners.push(r);
+        const r = new Runner(p.id, self ? 'Вы' : p.name, CHARACTERS.includes(p.char) ? p.char : CHARACTERS[i % CHARACTERS.length], i, self && new URLSearchParams(location.search).has('bot')); (r as any).remote = !self; r.x = ((i % 4) - 1.5) * 2.2; r.z = -1.5 - Math.floor(i / 4) * 2.2; this.runners.push(r);
         await this.addLook(r); progress(.8 + .2 * (i + 1) / n.roster.length);}
       this.me = this.runners.find(r => !(r as any).remote) ?? this.runners[0];
       if (n.spectator) document.body.classList.add('spectator');
