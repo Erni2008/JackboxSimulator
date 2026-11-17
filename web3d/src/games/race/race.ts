@@ -77,7 +77,7 @@ export class RaceApp {
     const logGeo = new THREE.CylinderGeometry(.42, .42, 1, 14, 1); logGeo.rotateZ(Math.PI / 2);
     for (const s of this.course.sweepers) {const g = new THREE.Group(); for (let a = 0; a < (s.arms || 1); a++) {const log = new THREE.Mesh(this.manor ? new THREE.BoxGeometry(1, .62, .62) : logGeo, this.manor ? mats.beam : this.night ? mats.dark : mats.bark); log.scale.set(s.len * 2, 1, 1); log.rotation.y = a * Math.PI / (s.arms || 1); log.castShadow = true; g.add(log);}
       this.sweeperMeshes.push(g); this.scene.add(g);
-      const post = new THREE.Mesh(new THREE.CylinderGeometry(.55, .65, 1.6, 12), this.night ? mats.brick : mats.bark); post.position.set(s.x, s.y - .25, s.z); post.castShadow = true; this.scene.add(post);}
+      const ph = s.y - this.course.spawnY(s.z) + 1.05, post = new THREE.Mesh(new THREE.CylinderGeometry(.55, .65, ph, 12), this.night ? mats.brick : mats.bark); post.position.set(s.x, s.y + .5 - ph / 2, s.z); post.castShadow = true; this.scene.add(post);}
     const boulder = await this.model('env/boulder_01.glb'); progress(.15);
     const linkGeo = new THREE.TorusGeometry(.13, .035, 6, 12), ironM = new THREE.MeshStandardMaterial({color: 0x34302c, metalness: .9, roughness: .38});
     for (const p of this.course.pendulums) {

@@ -42,7 +42,7 @@ const LOOK: Record<Theme, Look> = {
   crypt: {main: 'flag', alt: 'flag', thin: 'floor', land: 'flag', crumble: 'flag'},
 };
 export const SECTION_NAMES: Record<string, string> = {terraces: 'Террасы', spinner: 'Мельница', gaps: 'Провалы', pendulums: 'Маятники', rafts: 'Плоты', crumble: 'Обвал пола',
-  sink: 'Трясина', pushers: 'Тараны', pads: 'Батуты', traps: 'Люки', conveyor: 'Транспортёр', flames: 'Огненный пол', hammers: 'Молоты', beams: 'Узкие балки', zigzag: 'Змейка', maze: 'Лабиринт', fakewalls: 'Ложные стены', portals: 'Порталы', ramp: 'Скат', rain: 'Дождь с неба', hops: 'Лестница к финишу'};
+  sink: 'Трясина', pushers: 'Тараны', pads: 'Батуты', traps: 'Люки', conveyor: 'Транспортёр', flames: 'Огненный пол', gauntlet: 'Мясорубка', bounce: 'Прыгающая лестница', padspin: 'Полёт над мельницей', highlow: 'Верх-низ', hammers: 'Молоты', beams: 'Узкие балки', zigzag: 'Змейка', maze: 'Лабиринт', fakewalls: 'Ложные стены', portals: 'Порталы', ramp: 'Скат', rain: 'Дождь с неба', hops: 'Лестница к финишу'};
 
 export class Course {
   blocks: Block[] = []; sweepers: Sweeper[] = []; pendulums: Pendulum[] = []; boulders: Boulder[] = []; fallers: Faller[] = [];
@@ -66,6 +66,8 @@ export class Course {
     const pool = ['terraces', 'spinner', 'gaps', 'pendulums', 'rafts', 'crumble', 'pushers', 'pads', 'traps', 'conveyor', 'flames', 'hammers', 'beams', 'zigzag', ...(this.theme === 'graveyard' ? ['sink'] : [])].filter(n => !(this.theme === 'manor' && n === 'pads'));
     for (let i = pool.length - 1; i > 0; i--) {const j = Math.floor(this.rnd() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]];}
     let order = pool.slice(0, 6); order.splice(2 + Math.floor(this.rnd() * 3), 0, 'ramp'); order.push(this.theme === 'manor' ? 'pads' : 'rain', 'hops');
+    if (this.theme === 'cliffs') {const a = ['gauntlet', 'bounce', 'padspin', 'highlow', 'spinner', 'pads']; for (let i = a.length - 1; i > 0; i--) {const j = Math.floor(this.rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]];}
+      order = [...a.slice(0, 3), 'ramp', ...a.slice(3), 'hops'];}
     if (this.theme === 'crypt') {const extra = pool.filter(n => n !== 'pads' && n !== 'rafts').slice(0, 3); const core = ['maze', 'fakewalls', 'portals', 'maze', ...(this.rnd() < .5 ? ['portals'] : ['fakewalls'])];
       for (let i = core.length - 1; i > 1; i--) {const j = 1 + Math.floor(this.rnd() * i); [core[i], core[j]] = [core[j], core[i]];}
       order = []; core.forEach((c, i) => {order.push(c); if (extra[i]) order.push(extra[i]);}); order.push('rain', 'hops');}
@@ -182,6 +184,26 @@ export class Course {
     this.z = end + 4;}
   private pick<T>(a: T[]) {return a[Math.floor(this.rnd() * a.length) % a.length];}
 
+  /** Arena of overlapping spinners: different lengths, speeds and directions — timing puzzle. */
+  private s_gauntlet() {const z = this.z, y = this.y, len = 40; this.add(-11, 11, z, z + len, y, y, this.look.alt); this.room(z, z + len, 11.6, 9);
+    const sp = 1 + this.rnd() * .4;
+    this.sweepers.push({x: -4.5, y: y + .55, z: z + 9, len: 5.5, speed: sp * 1.6, angle: 0}, {x: 4.5, y: y + .55, z: z + 9, len: 5.5, speed: -sp * 1.6, angle: 1.5},
+      {x: 0, y: y + .55, z: z + 20, len: 9.5, speed: sp, angle: .7, arms: 2}, {x: -4, y: y + .55, z: z + 31, len: 6, speed: -sp * 1.3, angle: 2}, {x: 4, y: y + .55, z: z + 31, len: 6, speed: sp * 1.3, angle: .3});
+    this.z += len;}
+  /** Chain of springs climbing up a cliff: each pad throws you onto a higher, offset island. */
+  private s_bounce() {const z0 = this.z; let x = 0;
+    for (let i = 0; i < 5; i++) {this.add(x - 2.4, x + 2.4, this.z, this.z + 4, this.y, this.y, this.look.alt); this.pads.push({x, z: this.z + 2.6, y: this.y, r: 1.2, fired: -9});
+      this.z += 4 + 4 + this.rnd(); this.y += 1.4; x = (this.rnd() - .5) * 5;}
+    this.add(-4, 4, this.z, this.z + 4, this.y, this.y, this.look.alt); this.z += 4; this.room(z0, this.z, 7, 14);}
+  /** A pad launches you over a spinner arena onto a ledge — miss and you land among the logs. */
+  private s_padspin() {const z = this.z, y = this.y; this.add(-4, 4, z, z + 5, y, y, this.look.alt); this.pads.push({x: 0, z: z + 3.6, y, r: 1.3, fired: -9});
+    this.add(-9, 9, z + 5, z + 21, y - 1.2, y - 1.2, this.look.alt); this.sweepers.push({x: 0, y: y - .65, z: z + 9.5, len: 7.5, speed: 1.7, angle: 0, arms: 2});
+    this.add(-5, 5, z + 21, z + 27, y, y, this.look.alt); this.add(-5, 5, z + 15, z + 21, y - 1.2, y - .1, this.look.alt);
+    this.z += 27; this.room(z, this.z, 9.6, 9);}
+  /** Two logs on one axle: a low one you jump and a high one that only clips jumpers. */
+  private s_highlow() {const z = this.z, y = this.y, len = 34; this.add(-9, 9, z, z + len, y, y, this.look.alt); this.room(z, z + len, 9.6, 10);
+    for (let i = 0; i < 3; i++) {const sz = z + 6 + i * 11, sp = (1.1 + this.rnd() * .5) * (i % 2 ? -1 : 1); this.sweepers.push({x: 0, y: y + .55, z: sz, len: 8, speed: sp, angle: 0}, {x: 0, y: y + 2.3, z: sz, len: 8, speed: sp, angle: Math.PI / 2});}
+    this.z += len;}
   private s_flames() {const len = 30, w = 5, z = this.z, y = this.y; this.add(-w, w, z, z + len, y, y, this.look.alt); this.room(z, z + len, w + .6, 9);
     const per = 2.4 + this.rnd() * .6, pat = Math.floor(this.rnd() * 3);
     for (let r = 0; r < 6; r++) for (let c = 0; c < 4; c++) {const x = -3.75 + c * 2.5, zz = z + 3 + r * 4.4;
