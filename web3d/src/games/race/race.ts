@@ -118,7 +118,7 @@ export class RaceApp {
     for (const p of this.course.pads) {const ring = new THREE.Mesh(new THREE.CylinderGeometry(p.r, p.r * 1.08, .22, 32), new THREE.MeshStandardMaterial({color: 0x24180e, metalness: .6, roughness: .4})); ring.position.set(p.x, p.y + .11, p.z); this.scene.add(ring);
       const top = new THREE.Mesh(new THREE.CircleGeometry(p.r * .86, 32).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({map: padTexture(), emissive: 0xffb23a, emissiveMap: padTexture(), emissiveIntensity: 1.1, roughness: .5})); top.position.set(p.x, p.y + .23, p.z); this.padMeshes.push(top); this.scene.add(top);}
     this.boulderSrc = boulder.scene;
-    const barrel = this.manor ? await this.model('env/wine_barrel_01.glb') : null;
+    const barrel = await this.model('env/wine_barrel_01.glb');
     for (let i = 0; i < 6; i++) {const b = barrel ? rolling(normalized(barrel.scene, 2.4, 'max')) : normalized(boulder.scene, 2.4, 'max'); b.visible = false; this.boulderPool.push(b); this.scene.add(b);}
     // finish arch
     const fy = this.course.spawnY(this.course.finishZ);
