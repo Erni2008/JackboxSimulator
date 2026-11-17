@@ -43,7 +43,7 @@ public final class SystemBreachRulesFilm implements Disposable {
 
     public SystemBreachRulesFilm(boolean ru){this(new SystemBreachHostAssets(ru),true);}
     SystemBreachRulesFilm(SystemBreachHostAssets a,boolean own){assets=a;ownAssets=own;
-        if(Gdx.audio!=null)try{for(int i=0;i<voice.length;i++){var f=Gdx.files.internal("system_breach/rules/rules_"+i+".wav");if(f.exists())voice[i]=Gdx.audio.newSound(f);}
+        if(Gdx.audio!=null)try{for(int i=0;i<voice.length;i++){String dir=System.getProperty("sb.voice","espeech").equals("qwen")?"rules":"rules_espeech";var f=Gdx.files.internal("system_breach/"+dir+"/rules_"+i+".wav");if(!f.exists())f=Gdx.files.internal("system_breach/rules/rules_"+i+".wav");if(f.exists())voice[i]=Gdx.audio.newSound(f);}
             var w=Gdx.files.internal("system_breach/sfx/whoosh.wav");if(w.exists())whoosh=Gdx.audio.newSound(w);}catch(RuntimeException ignored){}}
     private void audio(){
         if(skipAt>=0){for(var v:voice)if(v!=null)v.stop();return;}
