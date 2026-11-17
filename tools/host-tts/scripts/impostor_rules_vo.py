@@ -5,13 +5,13 @@ from narration import LocalWorker,TOOL,ROOT,validate
 from system_breach_pack import treat,normalize
 
 LINES=[
- "У каждого есть роль. А у одного — тайна.",
- "Все игроки получают секретное слово. Все — кроме самозванца: ему достаётся только подсказка.",
- "Каждый раунд напишите одно слово-улику. Намекните — но не выдайте слово!",
- "После раунда отметьте, кто кажется вам подозрительным.",
- "Через три раунда — финальное голосование.",
- "Поймали самозванца — победили мирные. Ошиблись — побеждает самозванец.",
- "Ну что ж… Найдите самозванца!",
+ "Добро пожаловать в игру! Сегодня среди вас есть самозванец.",
+ "Все получают секретное слово! Все, кроме самозванца, ему достаётся только подсказка.",
+ "Пишите слова-улики! Намекайте, но не выдавайте слово!",
+ "После каждого раунда отмечайте, кто подозрителен!",
+ "Через три раунда финальное голосование!",
+ "Поймали самозванца, победа ваша! Ошиблись, побеждает он!",
+ "Ну что, готовы? Тогда найдите самозванца!",
 ]
 OUT=ROOT/'assets/impostor/rules';WORK=TOOL/'output/impostor-rules'
 
@@ -27,7 +27,7 @@ def main():
                 raw=WORK/f'rules_{i}.wav';treated=WORK/f'rules_{i}_treated.wav';final=OUT/f'rules_{i}.wav'
                 for f in (raw,treated,final):
                     if f.exists():f.unlink()
-                worker.generate(text,raw,seed=int(os.environ.get('SEED','21' if i==5 else '7' if i in (2,3) else '42')),temperature=.6);validate(raw,text)
+                worker.generate(text,raw,seed=int(os.environ.get('SEED',str({1:21,4:7}.get(i,42)))),temperature=.6);validate(raw,text)
                 treat(raw,treated,settings,text);normalize(treated,final)
                 print(f'READY {i}: {validate(final,text):.2f}s',flush=True)
         finally:worker.close()

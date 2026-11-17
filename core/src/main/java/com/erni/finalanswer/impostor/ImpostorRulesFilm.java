@@ -32,17 +32,17 @@ import java.util.Map;
  */
 public final class ImpostorRulesFilm implements Disposable {
     public static final float W=1920,H=1080;
-    private static final float[] START={0,5,14.2f,20.6f,25.6f,30.2f,36.8f},END={5,14.2f,20.6f,25.6f,30.2f,36.8f,41.8f};
-    public static final float LENGTH=41.8f;
+    private static final float[] START={0,5.6f,13f,18.6f,23.2f,27f,32.6f},END={5.6f,13f,18.6f,23.2f,27f,32.6f,37f};
+    public static final float LENGTH=37f;
     private static final String[] TAB={"","РОЛИ","УЛИКИ","ПОДОЗРЕНИЕ","ГОЛОСОВАНИЕ","ИТОГ",""};
     private static final String[] SUB={
-        "У каждого есть роль. А у одного — тайна.",
-        "Все игроки получают секретное слово. Все — кроме самозванца: ему достаётся только подсказка.",
-        "Каждый раунд напишите одно слово-улику. Намекните — но не выдайте слово!",
-        "После раунда отметьте, кто кажется вам подозрительным.",
-        "Через три раунда — финальное голосование.",
-        "Поймали самозванца — победили мирные. Ошиблись — побеждает самозванец.",
-        "Ну что ж… Найдите самозванца!"};
+        "Добро пожаловать в игру! Сегодня среди вас есть самозванец.",
+        "Все получают секретное слово! Все, кроме самозванца, ему достаётся только подсказка.",
+        "Пишите слова-улики! Намекайте, но не выдавайте слово!",
+        "После каждого раунда отмечайте, кто подозрителен!",
+        "Через три раунда финальное голосование!",
+        "Поймали самозванца, победа ваша! Ошиблись, побеждает он!",
+        "Ну что, готовы? Тогда найдите самозванца!"};
     private static final Color BLOOD=new Color(.86f,.1f,.08f,1),GOLD=new Color(.96f,.78f,.45f,1),INK=new Color(.24f,.12f,.06f,1),
         BONE=new Color(.96f,.92f,.84f,1),DARK=new Color(.03f,.015f,.015f,1),EMBER=new Color(1,.42f,.18f,1);
     private static final String[] WHO={"skeleton","dracula","pumpkin","voodoo","ghost"};
@@ -247,20 +247,24 @@ public final class ImpostorRulesFilm implements Disposable {
         Color c0=new Color(0,0,0,0),c1=new Color(0,0,0,.72f*a);shapes.rect(W/2-820,40,820,110,c0,c1,c1,c0);shapes.rect(W/2,40,820,110,c1,c0,c0,c1);
         Color l0=new Color(GOLD.r,GOLD.g,GOLD.b,0),l1=new Color(GOLD.r,GOLD.g,GOLD.b,.7f*a);shapes.rect(W/2-820,148,820,1.5f,l0,l1,l1,l0);shapes.rect(W/2,148,820,1.5f,l1,l0,l0,l1);
         float ta=k(time,START[1]-.3f,START[1]+.3f)*(1-k(time,START[6]-.3f,START[6]+.3f));tabPos+=(MathUtils.clamp(s,1,5)-tabPos)*Math.min(1,Gdx.graphics.getDeltaTime()*7);
-        for(int i=1;i<=5;i++){col(i<s?GOLD:new Color(.35f,.25f,.2f,1),.7f*ta);shapes.rect(tabX(i)-80,H-52,160,2);}col(BONE,ta);float mx=tabX(1)+(tabPos-1)*190;shapes.rect(mx-80,H-53,160,4);
+        for(int i=1;i<=5;i++){col(i<s?GOLD:new Color(.35f,.25f,.2f,1),.7f*ta);shapes.rect(tabX(i)-95,H-52,190,2);}col(BONE,ta);float mx=tabX(1)+(tabPos-1)*230;shapes.rect(mx-95,H-53,190,4);
         float bx=W-330,by=H-118,bw=290,bh=64;col(Color.BLACK,.55f);shapes.rect(bx,by,bw,bh);col(hover?BONE:GOLD,hover?1:.8f);shapes.rect(bx,by,bw,1.5f);shapes.rect(bx,by+bh-1.5f,bw,1.5f);shapes.rect(bx,by,1.5f,bh);shapes.rect(bx+bw-1.5f,by,1.5f,bh);
         float tx=bx+bw-46,ty=by+bh/2;shapes.triangle(tx-14,ty+12,tx-14,ty-12,tx+2,ty);shapes.triangle(tx+2,ty+12,tx+2,ty-12,tx+18,ty);
+        // film timeline under the subtitle: scene ticks and a glowing playhead
+        {float tl=W/2-560,tw=1120,ly=30,pa=a*.9f;col(new Color(.3f,.2f,.18f,1),.6f*pa);shapes.rect(tl,ly,tw,2);
+         for(int i=1;i<START.length;i++){col(GOLD,.5f*pa);shapes.rect(tl+tw*START[i]/LENGTH-1,ly-3,2,8);}
+         float ph=tw*time/LENGTH;Color g0=new Color(GOLD.r,GOLD.g,GOLD.b,.2f*pa),g1=new Color(GOLD.r,GOLD.g,GOLD.b,.95f*pa);shapes.rect(tl,ly,ph,2,g0,g1,g1,g0);col(BONE,pa);shapes.circle(tl+ph,ly+1,4,16);}
         if(skipAt>=0){col(Color.BLACK,k(time-skipAt,0,.45f));shapes.rect(0,0,W,H);}
         if(time>LENGTH-1){col(Color.BLACK,k(time,LENGTH-1,LENGTH));shapes.rect(0,0,W,H);}
     }
     private void chromeText(int s,float t){
         text(small,"ПРОПУСТИТЬ",W-330+122,H-118+42,hover?BONE:GOLD,1,1.05f);text(small,"ENTER / КЛИК",W-330+145,H-140,BONE,.45f,.8f);
         float ta=k(time,START[1]-.3f,START[1]+.3f)*(1-k(time,START[6]-.3f,START[6]+.3f));
-        for(int i=1;i<=5;i++)text(small,TAB[i],tabX(i),H-64,i==s?BONE:i<s?GOLD:new Color(.55f,.45f,.4f,1),(i==s?1:.8f)*ta,.85f);
+        for(int i=1;i<=5;i++){Color c=i==s?BONE:i<s?GOLD:new Color(.55f,.45f,.4f,1);small.getData().setScale(.85f);gl.setText(small,TAB[i]);float lw=gl.width;small.getData().setScale(1);text(small,"0"+i,tabX(i)+14-lw/2-36,H-64,i==s?BLOOD:c,(i==s?1:.6f)*ta,.8f,false);text(small,TAB[i],tabX(i)+14,H-64,c,(i==s?1:.8f)*ta,.85f);}
         text(small,"THE IMPOSTOR  ·  ПРАВИЛА",60,H-30,GOLD,.7f,.85f,false);
         float len=END[s]-START[s];float a=ease(k(t,.15f,.5f))*(1-ease(k(t,len-.3f,len)))*(1-k(time,LENGTH-.6f,LENGTH));typeLine(SUB[s],t-.15f,a);
     }
-    private static float tabX(int i){return W/2+(i-3)*190;}
+    private static float tabX(int i){return W/2+(i-3)*230;}
     private void typeLine(String full,float tt,float a){
         if(a<=0||tt<=0)return;BitmapFont f=sub;f.getData().setScale(1);gl.setText(f,full,Color.WHITE,1560,Align.center,true);
         float ox=W/2-780,oy=95+gl.height/2+f.getData().ascent;int idx=0;float cx=-1,cy=0,ca=0;final float CPS=48,FADE=.22f;
@@ -280,7 +284,7 @@ public final class ImpostorRulesFilm implements Disposable {
     }
     private void audio(){
         if(skipAt>=0){for(var v:voice)if(v!=null)v.stop();return;}
-        int s=scene();if(s!=voiced&&time-START[s]>=.2f){voiced=s;if(voice[s]!=null)voice[s].play(1);if(whoosh!=null&&s>0)whoosh.play(.15f);if(paper!=null&&(s==1||s==2))paper.play(.5f);}
+        int s=scene();if(s!=voiced&&time-START[s]>=.2f){voiced=s;if(voice[s]!=null)voice[s].play(1);if(whoosh!=null&&s>0)whoosh.play(.15f);}
         if(!stampPlayed&&time>=START[4]+1.6f&&time<START[4]+2){stampPlayed=true;if(thud!=null)thud.play(.8f);}
     }
 
