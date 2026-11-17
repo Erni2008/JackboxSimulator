@@ -28,7 +28,7 @@ final class SbSounds implements Disposable {
         if(now-last.getOrDefault(name,0L)<gap)return;
         // never more than two sounds at once: minor cues are dropped while anything else rang in the last 450 ms, and any
         // cue waits out a 180 ms gap after the previous one
-        boolean minor=name.equals("coin")||name.equals("key")||name.equals("wrong")||name.equals("knock")||name.equals("hack_start");
+        boolean minor=name.equals("key")||name.equals("knock")||name.equals("hack_start");
         recent.removeIf(t->now-t>450);if(now-lastAny<180||recent.size()>=2||(minor&&!recent.isEmpty()))return;recent.add(now);lastAny=now;last.put(name,now);
         // a different take and a hair of pitch each time, so repeats never sound mechanical
         boolean tonal=!name.equals("thunder")&&!name.equals("drumroll");float pitch=name.equals("coin")?1:tonal&&list.size()>1?1:.97f+random.nextFloat()*.06f;
@@ -43,11 +43,11 @@ final class SbSounds implements Disposable {
     /** Event type from the server log → cue. */
     static String cue(String type){
         return switch(type){
-            case "CHALLENGE_SOLVED"->"coin";case "CHALLENGE_FAILED"->"wrong";   // dozens per match: the floating "+N AP" says it visually
-            case "KEY_EARNED","KEY_BOUGHT"->"key";case "ATTACK_STARTED"->"hack_start";case "ATTACK_SUCCEEDED"->"hack_success";
+            case "CHALLENGE_SOLVED"->null;case "CHALLENGE_FAILED"->"wrong";case "KEY_BOUGHT","MULTIPLIER_UPGRADED","FIREWALL_UPGRADED"->"coin";   // dozens per match: the floating "+N AP" says it visually
+            case "KEY_EARNED"->"key";case "ATTACK_STARTED"->"hack_start";case "ATTACK_SUCCEEDED"->"hack_success";
             case "ATTACK_FAILED","ATTACK_EXPIRED"->"hack_fail";case "SABOTAGE_STARTED","TROJAN","DATA_LEAK","SYSTEM_OVERLOAD","FIREWALL_BREAKER"->"sabotage";
-            case "SABOTAGE_CLEARED","RECOVERY_SUCCEEDED","EMERGENCY_RESTORED"->"clean";case "SABOTAGE_BLOCKED","FIREWALL_UPGRADED"->"firewall";
-            case "MULTIPLIER_UPGRADED"->"multiplier";case "DDOS_STARTED"->"sabotage";case "HONEYPOT_TRIGGERED"->"strike";case "SHIELD_BLOCKED"->"firewall";case "SURGE_DOUBLE","SURGE_FIREWALL_DOWN"->"thunder";case "RESULTS"->"complete";default->null;
+            case "SABOTAGE_CLEARED","RECOVERY_SUCCEEDED","EMERGENCY_RESTORED"->"clean";case "SABOTAGE_BLOCKED"->"firewall";
+            case "DDOS_STARTED"->"sabotage";case "HONEYPOT_TRIGGERED"->"strike";case "SHIELD_BLOCKED"->"firewall";case "SURGE_DOUBLE","SURGE_FIREWALL_DOWN"->"thunder";case "RESULTS"->"complete";default->type.startsWith("MARKET_")?"coin":null;
         };
     }
     @Override public void dispose(){for(var l:sounds.values())for(Sound s:l)s.dispose();sounds.clear();}
