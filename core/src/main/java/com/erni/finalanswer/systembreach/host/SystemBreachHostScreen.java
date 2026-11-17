@@ -62,7 +62,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         String winner=model.results()?model.winnerId():"";
 
         batch.begin();batch.setColor(1,1,1,1);batch.draw(assets.background,0,0,W,H);
-        {long lf=model.remainingMs();hfx.rain(batch,assets.hex,time,model.phase().equals("ACTIVE")&&lf>0&&lf<=10_000);hfx.feeds(batch,assets.hex,time);}
+        
         batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);atmosphere();motes();batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
         batch.setColor(0,0,0,.35f);batch.draw(assets.glow,W/2-1100,PANEL_Y-260,2200,700);batch.setColor(1,1,1,1);   // soft shade the line-up stands in
         batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
@@ -103,8 +103,8 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         batch.end();
         ceremony.draw(shapes,batch,paint,assets,characters,model.ru(),time,viewport.getCamera());
         Gdx.gl.glEnable(GL20.GL_BLEND);Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
-        shapes.setProjectionMatrix(viewport.getCamera().combined);shapes.begin(ShapeRenderer.ShapeType.Filled);hfx.ddosShapes(shapes,model,time);hfx.stampShapes(shapes,model);hfx.overlay(shapes,time);shapes.end();
-        batch.setProjectionMatrix(viewport.getCamera().combined);batch.begin();batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);hfx.ddosGlow(batch,assets,model,time);hfx.stampGlow(batch,assets,model);hfx.flash(batch,assets);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);hfx.ddosText(batch,assets.stageName,assets.log,model,time);hfx.stamp(batch,assets.board,model);batch.end();
+        shapes.setProjectionMatrix(viewport.getCamera().combined);shapes.begin(ShapeRenderer.ShapeType.Filled);hfx.ddosShapes(shapes,model,time);hfx.stampShapes(shapes,model);shapes.end();
+        batch.setProjectionMatrix(viewport.getCamera().combined);batch.begin();batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);hfx.ddosGlow(batch,assets,model,time);hfx.stampGlow(batch,assets,model);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);hfx.ddosText(batch,assets.stageName,assets.log,model,time);hfx.stamp(batch,assets.board,model);batch.end();
     }
 
     /** Data motes drifting up through the hall: cheap, deterministic, no allocation. */
