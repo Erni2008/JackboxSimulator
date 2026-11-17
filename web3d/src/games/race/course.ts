@@ -346,7 +346,7 @@ export class Course {
       const r1 = this.srand(), n = r1 < .6 ? 1 : 2, lanes = [-1, 0, 1].sort(() => this.srand() - .5).slice(0, n);
       for (const ln of lanes) {const radius = .85 + this.srand() * .2;
         this.boulders.push({x: ln * this.rampHalfW * .62 + (this.srand() - .5) * .8, y: this.rampY1 + radius, z: this.rampZ1 - 1 - this.srand() * 2, vz: -2 - this.srand() * 2, spin: 0, radius, alive: true});}
-      this.boulderTimer = .95 + this.srand() * .5;
+      this.boulderTimer = .79 + this.srand() * .42;
     }
     const slope = (this.rampY1 - this.rampY0) / Math.max(1, this.rampZ1 - this.rampZ0);
     for (const bo of this.boulders) {bo.vz -= 10 * dt; bo.z += bo.vz * dt; bo.spin += bo.vz * dt / bo.radius;
