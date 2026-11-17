@@ -110,7 +110,16 @@ public class FinalAnswerGame extends Game {
     public void startFinalSecond(){
         if(activeRoom==null||realtime==null||!activeRoom.host())return;
         var snapshot=realtime.snapshot();if(snapshot==null||!snapshot.has("lobbyId"))return;
-        realtime.send("START_FINAL_SECOND",java.util.Map.of("roomCode",activeRoom.code(),"sessionId",snapshot.get("lobbyId").getAsString()));
+        String lobby=snapshot.get("lobbyId").getAsString();var back=getScreen();
+        // the rules film plays on the host screen first (skippable); the round starts when it ends
+        var film=new com.erni.finalanswer.finalsecond.FinalSecondRulesFilm();
+        setScreen(new com.badlogic.gdx.ScreenAdapter(){boolean sent;
+            @Override public void show(){com.badlogic.gdx.Gdx.input.setInputProcessor(null);}
+            @Override public void resize(int w,int h){film.resize(w,h);}
+            @Override public void render(float dt){film.render(dt);if(sent||!film.done())return;sent=true;
+                com.badlogic.gdx.Gdx.app.postRunnable(()->{film.dispose();
+                    if(activeRoom==null||realtime==null||!realtime.connected()){setScreen(back);return;}
+                    realtime.send("START_FINAL_SECOND",java.util.Map.of("roomCode",activeRoom.code(),"sessionId",lobby));});}});
     }
     private void openFinalSecond(com.google.gson.JsonObject state){
         String session=state.getAsJsonObject("finalSecond").get("sessionId").getAsString();

@@ -70,7 +70,7 @@ public final class FinalSecondRulesFilm implements Disposable {
         glow=new Texture(g);glow.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);g.dispose();
         Pixmap p=new Pixmap(1,1,Pixmap.Format.RGBA8888);p.setColor(Color.WHITE);p.fill();pixel=new Texture(p);p.dispose();
         title=UiFonts.gothic(132);heading=UiFonts.gothic(78);hand=UiFonts.handwriting(66);sub=font("NotoSans-SemiCondensedSemiBold.ttf",36);small=font("NotoSans-SemiCondensedSemiBold.ttf",22);
-        String vp=System.getProperty("fs.rulesVariant","");boolean b=vp.equals("b")||(!vp.equals("a")&&MathUtils.randomBoolean());
+        String vp=System.getProperty("fs.rulesVariant","");boolean b=vp.equals("b")||(!vp.equals("a")&&nextIsB());
         if(b&&!Gdx.files.internal("final_second/rules/rules_b_0.wav").exists())b=false;variantB=b;subs=b?SUB_B:SUB;
         if(Gdx.audio!=null)try{for(int i=0;i<voice.length;i++){var f=Gdx.files.internal("final_second/rules/rules_"+(variantB?"b_":"")+i+".wav");if(f.exists())voice[i]=Gdx.audio.newSound(f);}
             whoosh=snd("system_breach/sfx/whoosh.wav");paper=null;thud=snd("system_breach/sfx/strike.wav");flip=snd("system_breach/sfx/tick.wav");}catch(RuntimeException ignored){}
@@ -284,6 +284,11 @@ public final class FinalSecondRulesFilm implements Disposable {
         for(int i=1;i<=TAB.length-2;i++){Color c=i==s?BONE:i<s?GOLD:new Color(.55f,.45f,.4f,1);small.getData().setScale(.85f);gl.setText(small,TAB[i]);float lw=gl.width;small.getData().setScale(1);text(small,"0"+i,tabX(i)+14-lw/2-36,H-64,i==s?BLOOD:c,(i==s?1:.6f)*ta,.8f,false);text(small,TAB[i],tabX(i)+14,H-64,c,(i==s?1:.8f)*ta,.85f);}
         text(small,"THE FINAL SECOND  ·  ПРАВИЛА",60,H-30,GOLD,.7f,.85f,false);
         float len=END[s]-START[s];float a=ease(k(t,.15f,.5f))*(1-ease(k(t,len-.3f,len)))*(1-k(time,LENGTH-.6f,LENGTH));typeLine(subs[s],t-.15f,a);cutFlare();
+    }
+    /** Alternates the two takes between showings (A, B, A, …), remembered across launches. */
+    private static boolean nextIsB(){
+        try{var pr=Gdx.app.getPreferences("finalanswer-rules");int n=pr.getInteger("finalSecond",0);pr.putInteger("finalSecond",n+1);pr.flush();return n%2==1;}
+        catch(RuntimeException e){return MathUtils.randomBoolean();}
     }
     /** Anamorphic light streak and a warm flash sweeping across every chapter cut. */
     private void cutFlare(){
