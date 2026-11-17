@@ -27,12 +27,12 @@ public final class SystemBreachRulesFilm implements Disposable {
     private static final String[] TAB={"","ОТВЕЧАЙ","ВЗЛАМЫВАЙ","DDoS","ВИРУС","ЗАЩИТА","ПОБЕДА"};
     private static final String[] SUB={
         "",
-        "Отвечай на вопросы — каждый верный ответ приносит AP.",
-        "Взламывай соперников: угадай пароль и забери их AP себе.",
+        "Отвечай на вопросы — каждый верный ответ приносит души.",
+        "Взламывай соперников: угадай пароль и забери их души себе.",
         "Запускай DDoS — у цели на 10 секунд тормозят кнопки.",
         "Заражай вирусами — ломай экраны соперникам.",
         "Защищайся: фаервол отбивает атаки, приманка ловит хакера.",
-        "У кого больше всего AP в конце — тот победил."};
+        "У кого в конце больше всего душ — тот победил."};
     private static final Color CYAN=new Color(.25f,.86f,1,1),GREEN=new Color(.3f,1,.55f,1),RED=new Color(1,.27f,.3f,1),
         VIOLET=new Color(.72f,.42f,1,1),AMBER=new Color(1,.72f,.2f,1),INK=new Color(.03f,.06f,.11f,1),PANEL=new Color(.05f,.1f,.17f,1),WHITE=new Color(.92f,.97f,1,1);
     private final SystemBreachHostAssets assets;private final boolean ownAssets;
@@ -146,12 +146,12 @@ public final class SystemBreachRulesFilm implements Disposable {
         // AP counter on the right
         float cx=W/2+330,cy=600;int ap=second?110:MathUtils.round(100+10*ease(k(qt,3,3.8f)));if(!second&&qt<3)ap=100;
         if(pass==0){panel(cx-210,cy-110,420,220,second&&res>0?RED:GREEN,a);}
-        if(pass==1){text(assets.log,"ОЧКИ ДОСТУПА",cx,cy+80,WHITE,a*.8f,1);text(assets.digits,ap+" AP",cx,cy+30,second&&res>0?WHITE:GREEN,a,.9f);}
+        if(pass==1){text(assets.log,"СОБРАНО ДУШ",cx,cy+80,WHITE,a*.8f,1);text(assets.stage,SystemBreachHostViewModel.souls(ap,true),cx,cy+34,second&&res>0?WHITE:GREEN,a,.72f);}
         // flying +10
         if(!second){float f=k(qt,2.8f,3.6f);if(f>0&&f<1){float x=MathUtils.lerp(px+120,cx,ease(f)),y=MathUtils.lerp(fy,cy,ease(f))+MathUtils.sin(f*MathUtils.PI)*140;
-            if(pass==2)glow(x,y,90,GREEN,.6f*a);if(pass==1)text(assets.ap,"+10",x,y+14,GREEN,a,1.3f);}}
+            if(pass==2)glow(x,y,90,GREEN,.6f*a);if(pass==1)text(assets.ap,"+10",x,y+14,GREEN,a,1.4f);}}
         if(pass==1){float v=second?k(qt,2.7f,3.1f):k(qt,3.6f,4.1f);
-            text(assets.board,second?"Ошибка — без награды":"Верно!  +10 AP",cx,cy-170,second?RED:GREEN,a*v,1.1f);}
+            text(assets.board,second?"Ошибка — без награды":"Верно!  +10 душ",cx,cy-170,second?RED:GREEN,a*v,1.1f);}
     }
 
     private void keys(float t,float a){
@@ -198,7 +198,7 @@ public final class SystemBreachRulesFilm implements Disposable {
         // AP stream back to attacker
         float flow=k(t,7,10);if(flow>0&&flow<1)for(int i=0;i<14;i++){float f=((flow*3+i/14f)%1);float x=MathUtils.lerp(tx-120,ax+120,f),yy=y-110+MathUtils.sin(f*MathUtils.PI)*-90;
             if(pass==2)glow(x,yy,46,GREEN,.7f*a);}
-        if(pass==1&&t>7)text(assets.stage,"+40 AP",ax,y+250,GREEN,a*k(t,7.2f,7.8f),.55f);
+        if(pass==1&&t>7)text(assets.stage,"+40 душ",ax,y+250,GREEN,a*k(t,7.2f,7.8f),.55f);
     }
 
     private void defence(float t,float a){
@@ -294,7 +294,7 @@ public final class SystemBreachRulesFilm implements Disposable {
             if(pass==0){col(win?GREEN:CYAN,a*.85f);r.rect(x-80,base,160,g);col(INK,.35f*a);r.rect(x-80,base+g-6,160,6);}
             if(pass==2&&win&&t>2.8f)glow(x,base+g,360,GREEN,.4f*a);
             portraitFrame(FIN[i],x,base+g+90,140,a,win&&t>2.8f?GREEN:CYAN);
-            if(pass==1)text(assets.ap,MathUtils.round(g/330*260)+" AP",x,base-24,WHITE,a,1.1f);
+            if(pass==1)text(assets.ap,SystemBreachHostViewModel.souls(MathUtils.round(g/330*260),true),x,base-24,WHITE,a,1.1f);
             if(win&&t>2.8f&&pass==0){float cy=base+g+190+6*MathUtils.sin(t*3);crown(x,cy,AMBER,a*k(t,2.8f,3.2f));}}
         a=a0;
         if(go>0){

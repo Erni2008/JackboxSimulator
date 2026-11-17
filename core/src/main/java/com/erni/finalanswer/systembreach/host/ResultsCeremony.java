@@ -86,7 +86,7 @@ final class ResultsCeremony {
             var c=medal(rank);float ta=winFade*clamp((local-.35f)/.3f);
             paint.centered(batch,assets.heading,place(rank,ru),x,BASE+podH(rank)-28,c,ta);
             paint.centered(batch,assets.stageName,paint.fit(assets.stageName,s.name,290),x,BASE-28,SbPaint.IVORY,ta);
-            paint.centered(batch,assets.boardAp,s.ap+" AP",x,BASE-92,c,ta);}
+            paint.centered(batch,assets.boardAp,SystemBreachHostViewModel.souls(s.ap,ru),x,BASE-92,c,ta);}
         // headline
         String head;Color hc;float ha;
         if(trial<=0){boolean champ=!winners.isEmpty()&&t>=revealAt(0);head=champ?(ru?"ПОБЕДИТЕЛЬ — "+winners.getFirst().name:"WINNER — "+winners.getFirst().name):t<OPEN?(ru?"ОПЕРАЦИЯ ЗАВЕРШЕНА":"OPERATION COMPLETE"):(ru?"ЛУЧШИЕ ХАКЕРЫ":"TOP HACKERS");
@@ -193,7 +193,7 @@ final class ResultsCeremony {
         // captions: quiet, set in the dark under the stage
         float la=trial*clamp((tt-.4f)/.6f);boolean ghost=form>.3f;
         paint.centered(batch,a.stageName,loser.name,W/2f,BASE-6,ghost?GHOST:SbPaint.IVORY,la*(struck>0&&struck<.45f?.3f:1));
-        String line=ghost?(ru?"ДОСТУП АННУЛИРОВАН · "+loser.ap+" AP":"ACCESS REVOKED · "+loser.ap+" AP"):struck>0?(ru?"ПРИГОВОР ПРИВЕДЁН В ИСПОЛНЕНИЕ":"SENTENCE CARRIED OUT"):(ru?"ПОСЛЕДНЕЕ МЕСТО · ПРИГОВОР":"LAST PLACE · SENTENCED");
+        String line=ghost?(ru?"ДОСТУП АННУЛИРОВАН · "+SystemBreachHostViewModel.souls(loser.ap,ru):"ACCESS REVOKED · "+SystemBreachHostViewModel.souls(loser.ap,ru)):struck>0?(ru?"ПРИГОВОР ПРИВЕДЁН В ИСПОЛНЕНИЕ":"SENTENCE CARRIED OUT"):(ru?"ПОСЛЕДНЕЕ МЕСТО · ПРИГОВОР":"LAST PLACE · SENTENCED");
         paint.centered(batch,a.label,line,W/2f,BASE-58,ghost?GHOST:tmp.set(.85f,.3f,.27f,1),la*.9f);
     }
     /** A soft vignette over the whole stage: corners fall into darkness. */

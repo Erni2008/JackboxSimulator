@@ -26,9 +26,9 @@ final class SystemBreachHostAssets implements Disposable {
         title=font("Rajdhani-Bold.ttf",92,false);digits=font("Rajdhani-Bold.ttf",88,false);hex=font("Rajdhani-Medium.ttf",17,false);
         String ui=ru?"RussoOne-Regular.ttf":"Rajdhani-SemiBold.ttf",uiBold=ru?"RussoOne-Regular.ttf":"Rajdhani-Bold.ttf";
         label=font(ui,ru?23:28,ru);labelSmall=font(ui,ru?15:21,ru);heading=font(uiBold,ru?40:47,ru);
-        status=font(uiBold,ru?19:25,ru);ap=font("Rajdhani-Bold.ttf",30,false);
+        status=font(uiBold,ru?19:25,ru);ap=font(ru?"RussoOne-Regular.ttf":"Rajdhani-Bold.ttf",ru?25:30,ru);
         name=font("NotoSans-SemiCondensedSemiBold.ttf",23,true);log=font("NotoSans-SemiCondensedSemiBold.ttf",19,true);
-        board=font("NotoSans-SemiCondensedSemiBold.ttf",26,true);stage=font(uiBold,ru?76:88,true);stageName=font("NotoSans-SemiCondensedSemiBold.ttf",54,true);boardAp=font("Rajdhani-Bold.ttf",30,false);
+        board=font("NotoSans-SemiCondensedSemiBold.ttf",26,true);stage=font(uiBold,ru?76:88,true);stageName=font("NotoSans-SemiCondensedSemiBold.ttf",54,true);boardAp=font(ru?"RussoOne-Regular.ttf":"Rajdhani-Bold.ttf",ru?25:30,ru);
         crest=UiFonts.gothic(46);
         icon=icons(44);iconSmall=icons(26);iconTiny=icons(18);iconBig=icons(54);
     }

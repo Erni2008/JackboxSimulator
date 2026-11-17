@@ -4,6 +4,6 @@ package com.erni.finalanswer.systembreach.host;
 final class SbIcons {
     private SbIcons(){}
     static final char ONLINE='',HACK='',RECOVERY='',FIREWALL='',COMPROMISED='',OFFLINE='',
-        COIN='',PAID='',TIMER='',TROPHY='',LINK_OFF='',BOLT='';
+        COIN='',PAID='',TIMER='',TROPHY='',LINK_OFF='',BOLT='';
     static final String ALL=""+ONLINE+HACK+RECOVERY+FIREWALL+COMPROMISED+OFFLINE+COIN+PAID+TIMER+TROPHY+LINK_OFF+BOLT;
 }

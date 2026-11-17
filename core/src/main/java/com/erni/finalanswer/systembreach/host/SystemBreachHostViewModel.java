@@ -35,21 +35,24 @@ public final class SystemBreachHostViewModel {
         Slot(String id){this.id=id;}
         // cached strings: rebuilt only when the shown value changes, never per frame
         private int apKey=Integer.MIN_VALUE,fwKey,deltaKey;private String apText="",fwText="",deltaText="";
-        public String apText(){int v=Math.round(shownAp);if(v!=apKey){apKey=v;apText=v+" AP";}return apText;}
+        public String apText(){int v=Math.round(shownAp);if(v!=apKey){apKey=v;apText=souls(v,russianText);}return apText;}
         private String fwShort="";private int fwShortKey;
         public String firewallShort(){if(fwShortKey!=firewall||fwShort.isEmpty()){fwShortKey=firewall;fwShort=(russianText?"УР":"LV")+firewall;}return fwShort;}
         public String firewallText(){if(fwKey!=firewall||fwText.isEmpty()){fwKey=firewall;fwText=(russianText?"ФАЕРВОЛ УР.":"FIREWALL LV.")+firewall;}return fwText;}
-        public String deltaText(){if(deltaKey!=delta||deltaText.isEmpty()){deltaKey=delta;deltaText=(delta>0?"+":"-")+Math.abs(delta)+" AP";}return deltaText;}
+        public String deltaText(){if(deltaKey!=delta||deltaText.isEmpty()){deltaKey=delta;deltaText=(delta>0?"+":"-")+souls(Math.abs(delta),russianText);}return deltaText;}
     }
     public record LogLine(long sequence,String text,Tone tone,long at,String stamp){
         public LogLine(long sequence,String text,Tone tone,long at){this(sequence,text,tone,at,String.format(java.util.Locale.ROOT,"%02d:%02d",at/60000,at/1000%60));}
     }
     public record Attack(String attackerId,String targetId,long startedAt){}
     private final List<Attack> attacks=new ArrayList<>();
-    private final boolean ru;
+    private final boolean ru;public boolean russian(){return ru;}
     public SystemBreachHostViewModel(boolean russian){ru=russian;}
     public boolean ru(){return ru;}
     private String L(String en,String ru){return this.ru?ru:en;}
+    /** The currency: souls. "1 душа, 2 души, 5 душ". */
+    public static String souls(int n,boolean ru){if(!ru)return n+(Math.abs(n)==1?" soul":" souls");int m=Math.abs(n)%100,l=m%10;return n+(m>=11&&m<=14?" душ":l==1?" душа":l>=2&&l<=4?" души":" душ");}
+    private String souls(int n){return souls(n,ru);}
     /** "1.3", "2" — one decimal, no trailing zero. */
     public static String fmt(double v){long t=Math.round(v*10);return t%10==0?String.valueOf(t/10):(t/10)+"."+(t%10);}
     private double roundMult=1;private String roundText="×1";public double roundMult(){return roundMult;}public String roundText(){return roundText;}
@@ -146,7 +149,7 @@ public final class SystemBreachHostViewModel {
     private LogLine line(String type,String a,String t,int amount,long seq){
         return switch(type){
             case "ATTACK_STARTED"->new LogLine(seq,L(who(t)+" is being hacked!","Взлом: "+who(t)+"!"),Tone.HACK,0);
-            case "ATTACK_SUCCEEDED"->new LogLine(seq,who(a)+" » "+who(t)+L(": hacked",": взлом")+(amount>0?"  +"+amount+" AP":""),Tone.HACK,0);
+            case "ATTACK_SUCCEEDED"->new LogLine(seq,who(a)+" » "+who(t)+L(": hacked",": взлом")+(amount>0?"  +"+souls(amount):""),Tone.HACK,0);
             case "ATTACK_FAILED"->new LogLine(seq,who(t)+L(": attack repelled",": атака отражена")+" « "+who(a),Tone.FIREWALL,0);
             case "ATTACK_EXPIRED","ATTACK_INTERRUPTED"->new LogLine(seq,L(who(a)+" lost the link to "+who(t),who(a)+" потерял связь с "+who(t)),Tone.MUTED,0);
             case "RECOVERY_START"->new LogLine(seq,L(who(t)+" started recovery",who(t)+" начал восстановление"),Tone.RECOVERY,0);
@@ -155,9 +158,9 @@ public final class SystemBreachHostViewModel {
             case "EMERGENCY_RESTORED"->new LogLine(seq,L(who(t)+" emergency restore",who(t)+": аварийный откат"),Tone.RECOVERY,0);
             case "MULTIPLIER_UPGRADED"->new LogLine(seq,L(who(t)+" multiplier ×"+fmt(amount/10.0),who(t)+": множитель ×"+fmt(amount/10.0)),Tone.REWARD,0);
             case "FIREWALL_UPGRADED"->new LogLine(seq,L(who(t)+" upgraded firewall to Lv."+amount,who(t)+": фаервол ур."+amount),Tone.FIREWALL,0);
-            case "CHALLENGE_SOLVED"->new LogLine(seq,L(who(t)+" earned +"+amount+" AP",who(t)+" получил +"+amount+" AP"),Tone.REWARD,0);
+            case "CHALLENGE_SOLVED"->new LogLine(seq,L(who(t)+" earned +"+souls(amount),who(t)+" получил +"+souls(amount)),Tone.REWARD,0);
             case "TROJAN"->new LogLine(seq,L(who(a)+" planted a Trojan in "+who(t),who(a)+" внедрил троян в "+who(t)),Tone.HACK,0);
-            case "DATA_LEAK"->new LogLine(seq,L(who(a)+" leaked data from "+who(t),who(a)+" слил данные "+who(t))+(amount>0?"  +"+amount+" AP":""),Tone.HACK,0);
+            case "DATA_LEAK"->new LogLine(seq,L(who(a)+" leaked data from "+who(t),who(a)+" слил данные "+who(t))+(amount>0?"  +"+souls(amount):""),Tone.HACK,0);
             case "SYSTEM_OVERLOAD"->new LogLine(seq,L(who(a)+" overloaded "+who(t),who(a)+" перегрузил "+who(t)),Tone.HACK,0);
             case "FIREWALL_BREAKER"->new LogLine(seq,L(who(a)+" broke "+who(t)+"'s firewall",who(a)+" пробил фаервол "+who(t)),Tone.HACK,0);
             case "TRACE_ATTACK"->new LogLine(seq,L(who(a)+" is tracing "+who(t),who(a)+" отслеживает "+who(t)),Tone.HACK,0);
@@ -177,7 +180,7 @@ public final class SystemBreachHostViewModel {
 
     /** The big centre-stage banner: only the moments worth a cheer. */
     private Toast headline(String type,String a,String t,int amount){
-        String plus=amount>0?"+"+amount+" AP":"";
+        String plus=amount>0?"+"+souls(amount):"";
         return switch(type){
             case "ATTACK_SUCCEEDED"->new Toast(L("HACK SUCCESSFUL","ВЗЛОМ УДАЛСЯ"),who(a),L("breaks into the system","взламывает систему"),who(t),plus);
             case "ATTACK_FAILED"->new Toast(L("HACK FAILED","ПРОВАЛ ВЗЛОМА"),who(t),L("repels the attack","отражает атаку"),who(a),"");
@@ -191,7 +194,7 @@ public final class SystemBreachHostViewModel {
             case "SABOTAGE_CLEARED"->new Toast(L("SYSTEM CLEAN","СИСТЕМА ОЧИЩЕНА"),who(t),L("removes the virus","удаляет вирус"),"","");
             case "TROJAN","DATA_LEAK","SYSTEM_OVERLOAD","FIREWALL_BREAKER","TRACE_ATTACK"->new Toast(L(type.replace('_',' '),switch(type){case "TROJAN"->"ТРОЯН";case "DATA_LEAK"->"УТЕЧКА ДАННЫХ";case "SYSTEM_OVERLOAD"->"ПЕРЕГРУЗКА";case "FIREWALL_BREAKER"->"ПРОБОЙ ФАЕРВОЛА";default->"СЛЕЖКА";}),who(a),L("strikes","наносит удар"),who(t),plus);
             case "DDOS_STARTED"->new Toast("DDoS",who(a),L("floods","заваливает трафиком"),who(t),amount+L(" s"," с"));
-            case "HONEYPOT_TRIGGERED"->new Toast(L("HONEYPOT!","ЛОВУШКА!"),who(a),L("walks into the trap of","попадает в ловушку"),who(t),amount>0?"−"+amount+" AP":"");
+            case "HONEYPOT_TRIGGERED"->new Toast(L("HONEYPOT!","ЛОВУШКА!"),who(a),L("walks into the trap of","попадает в ловушку"),who(t),amount>0?"−"+souls(amount):"");
             case "SHIELD_BLOCKED"->new Toast(L("SHIELD","ЩИТ"),who(t),L("shield burns the attack of","щитом сжигает атаку"),who(a),"");
             case "SURGE_DOUBLE"->new Toast(L("SYSTEM SURGE","СБОЙ СИСТЕМЫ"),"",L("all answers pay double","все ответы приносят ×2"),"",amount+L(" s"," с"));
             case "SURGE_FIREWALL_DOWN"->new Toast(L("SYSTEM SURGE","СБОЙ СИСТЕМЫ"),"",L("every firewall is down","все фаерволы отключены"),"",amount+L(" s"," с"));

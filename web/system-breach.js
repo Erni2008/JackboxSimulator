@@ -75,7 +75,8 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
   const STEPS=[1,1.3,1.5,1.8,2,2.5],fx=v=>{const t=Math.round(v*10);return t%10?(t/10).toFixed(1):String(t/10);};
   const secs=t=>Math.max(0,Math.ceil((t-now())/1000));
   const mmss=ms=>{const s=Math.max(0,Math.ceil(ms/1000));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');};
-  const REASONS={SB_HONEYPOT_ARMED:'уже стоит',SB_SOLD_OUT:'уже куплено',SB_INSUFFICIENT_AP:'мало AP',SB_ATTACK_COOLDOWN:'перезарядка',SB_TARGET_PROTECTED:'под защитой',SB_TARGET_BUSY:'уже атакуют',SB_TARGET_DISCONNECTED:'не в сети',SB_MAX_FIREWALL:'максимум',SB_CHALLENGE_COOLDOWN:'подожди',SB_ROUND_ENDING:'раунд кончается',SB_RECOVERY_REQUIRED:'сначала перезагрузка',SB_TEMPORARILY_BLOCKED:'система заблокирована',SB_ATTACK_PENDING:'атака уже идёт',SB_CHALLENGE_PENDING:'задание уже есть',SB_NEED_KEY:'нужен ключ',SB_MAX_MULTIPLIER:'максимум',SB_TARGET_INFECTED:'уже заражён',SB_ANSWERS_LOCKED:'ответы заблокированы',SB_STALE_SABOTAGE:'вирус уже исчез',SB_TIMEOUT:'нет ответа сервера — попробуй ещё',SB_KEY_LIMIT:'максимум 2 ключа за SOULS',SB_NOT_ENOUGH_SOULS:'мало SOULS'};
+  const REASONS={SB_HONEYPOT_ARMED:'уже стоит',SB_SOLD_OUT:'уже куплено',SB_INSUFFICIENT_AP:'мало душ',SB_ATTACK_COOLDOWN:'перезарядка',SB_TARGET_PROTECTED:'под защитой',SB_TARGET_BUSY:'уже атакуют',SB_TARGET_DISCONNECTED:'не в сети',SB_MAX_FIREWALL:'максимум',SB_CHALLENGE_COOLDOWN:'подожди',SB_ROUND_ENDING:'раунд кончается',SB_RECOVERY_REQUIRED:'сначала перезагрузка',SB_TEMPORARILY_BLOCKED:'система заблокирована',SB_ATTACK_PENDING:'атака уже идёт',SB_CHALLENGE_PENDING:'задание уже есть',SB_NEED_KEY:'нужен ключ',SB_MAX_MULTIPLIER:'максимум',SB_TARGET_INFECTED:'уже заражён',SB_ANSWERS_LOCKED:'ответы заблокированы',SB_STALE_SABOTAGE:'вирус уже исчез',SB_TIMEOUT:'нет ответа сервера — попробуй ещё',SB_KEY_LIMIT:'максимум 2 ключа за SOULS',SB_NOT_ENOUGH_SOULS:'мало SOULS'};
+  const souls=n=>{const m=Math.abs(n)%100,l=m%10;return n+(m>=11&&m<=14?' душ':l===1?' душа':l>=2&&l<=4?' души':' душ');};
   const reason=p=>p?.allowed?'':(REASONS[p?.reason]||'недоступно');
   function act(type,fields){const id=requests.action(type,fields);if(id){navigator.vibrate?.(12);sfx('tap');render();}return id;}
   function say(text){const t=el('sbx-toast');t.textContent=text;t.classList.remove('on');void t.offsetWidth;t.classList.add('on');}
@@ -88,7 +89,7 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
   function scorePop(ok,amt){
     sfx(ok?'correct':'wrong');const v=verdict;v.ok=ok;v.until=now()+1500;const btn=v.button;btn?.classList.add(ok?'right':'wrong');navigator.vibrate?.(ok?[25,35,25]:[80]);
     const host=body(),r=btn?btn.getBoundingClientRect():host.getBoundingClientRect(),hr=host.getBoundingClientRect();
-    const f=mk('div','sbx-pop '+(ok?'ok':'bad'),ok?'+'+amt+' AP':'МИМО',host);f.style.left=(r.left-hr.left+r.width/2)+'px';f.style.top=(r.top-hr.top)+'px';
+    const f=mk('div','sbx-pop '+(ok?'ok':'bad'),ok?'+'+souls(amt):'МИМО',host);f.style.left=(r.left-hr.left+r.width/2)+'px';f.style.top=(r.top-hr.top)+'px';
     if(ok){for(let i=0;i<10;i++){const d=mk('i','sbx-spark',null,host);d.style.left=(r.left-hr.left+r.width/2)+'px';d.style.top=(r.top-hr.top+r.height/2)+'px';const a=Math.PI*2*i/10;d.style.setProperty('--dx',(Math.cos(a)*(40+Math.random()*30)).toFixed(0)+'px');d.style.setProperty('--dy',(Math.sin(a)*(30+Math.random()*24)-20).toFixed(0)+'px');}}
     if(ok){// shockwave from the key, then the score flies into the AP counter
       const w=mk('i','sbx-wave',null,host);w.style.left=f.style.left;w.style.top=(r.top-hr.top+r.height/2)+'px';
@@ -124,8 +125,8 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
       const perm=kind==='SABOTAGE'?t.sabotage:kind==='DDOS'?t.ddos:t.attack;any=true;
       const r=mk('button','sbx-target',null,list);r.disabled=requests.pending()||!perm?.allowed;
       const fi=face(t.playerId);if(fi){const ph=mk('span','sbx-tface',null,r);const im=mk('img',null,null,ph);im.src=fi;im.alt='';}
-      const n=mk('span','sbx-tname',null,r);mk('b',null,p.nickname,n);mk('small',null,p.accessPoints+' AP · FW'+(p.firewallLevel||1),n);
-      const inf=s.sabotage?.[t.playerId];mk('span','sbx-cost',kind==='DDOS'?(perm?.allowed?'ЗАФЛУДИТЬ':reason(perm)):kind==='SABOTAGE'?(perm?.allowed?'ЗАРАЗИТЬ':reason(perm)):perm?.allowed?'−'+perm.cost+' AP':reason(perm),r);if(inf)r.classList.add('infected');
+      const n=mk('span','sbx-tname',null,r);mk('b',null,p.nickname,n);mk('small',null,souls(p.accessPoints)+' · FW'+(p.firewallLevel||1),n);
+      const inf=s.sabotage?.[t.playerId];mk('span','sbx-cost',kind==='DDOS'?(perm?.allowed?'ЗАФЛУДИТЬ':reason(perm)):kind==='SABOTAGE'?(perm?.allowed?'ЗАРАЗИТЬ':reason(perm)):perm?.allowed?'−'+souls(perm.cost):reason(perm),r);if(inf)r.classList.add('infected');
       r.onclick=()=>{mode='';kind==='SABOTAGE'?act('SABOTAGE',{targetId:t.playerId}):kind==='DDOS'?act('DDOS',{targetId:t.playerId}):act('ATTACK_REQUEST',{targetId:t.playerId});};}
     if(!any)mk('p','sbx-note','Нет доступных целей.',parent);
     const back=mk('button','sbx-back','← назад',parent);back.onclick=()=>{mode='';viewKey='';render();};
@@ -149,26 +150,26 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
       header(b,'ВЗЛОМ · ОДНА ПОПЫТКА','Угадай пароль: '+(t?.nickname||'цель'),'hack');
       options(b,atk.options||[],(o,btn)=>answer('hack','ATTACK_SUBMIT',{attackId:atk.attackId,password:o},btn),'sbx-pass');timerBar(b,now(),atk.expiresAt);return;}
     if(mode==='ddos'){header(b,'DDoS · КЛЮЧ','Кого завалить трафиком?','hack');mk('p','sbx-note','10 секунд кнопки цели тормозят. Фаервол сокращает время.',b);targets(b,s,me,'DDOS');return;}
-    if(mode==='market'){header(b,'ЧЁРНЫЙ РЫНОК','Одноразовые программы за AP','key');const g=mk('div','sbx-cards',null,b);const mk2=me.extra?.market||{};
+    if(mode==='market'){header(b,'ЧЁРНЫЙ РЫНОК','Одноразовые программы за души','key');const g=mk('div','sbx-cards',null,b);const mk2=me.extra?.market||{};
       const ITEMS=[['SHIELD','\ue32a','Щит','блокирует следующую атаку'],['OVERCLOCK','\ue3e7','Разгон','3 ответа ×2 очков'],['SCANNER','\ue8b6','Сканер','2 символа пароля лидера']];
-      ITEMS.forEach(([id,ic,t,d],i)=>{const pm=mk2[id];card(g,{icon:ic,title:t,sub:pm?.allowed?d+' · −'+pm.cost+' AP':pm?.reason==='SB_SOLD_OUT'?'уже куплено':reason(pm),cls:'mult',disabled:requests.pending()||!pm?.allowed,onClick:()=>{mode='';act('MARKET_BUY',{item:id});},delay:i*70});});
+      ITEMS.forEach(([id,ic,t,d],i)=>{const pm=mk2[id];card(g,{icon:ic,title:t,sub:pm?.allowed?d+' · −'+souls(pm.cost):pm?.reason==='SB_SOLD_OUT'?'уже куплено':reason(pm),cls:'mult',disabled:requests.pending()||!pm?.allowed,onClick:()=>{mode='';act('MARKET_BUY',{item:id});},delay:i*70});});
       const back=mk('button','sbx-back','← назад',b);back.onclick=()=>{mode='';viewKey='';render();};return;}
     if(mode==='hack'||mode==='sabotage'){header(b,mode==='hack'?'ВЗЛОМ · КЛЮЧ':'САБОТАЖ · КЛЮЧ',mode==='hack'?'Чей компьютер ломаем?':'Кого заразить вирусом?','hack');if(mode==='sabotage')mk('p','sbx-note','Случайный вирус из 7. Фаервол цели может его отбить.',b);targets(b,s,me,mode==='hack'?'ATTACK':'SABOTAGE');return;}
-    if(ch){header(b,'ВОПРОС · +'+(s.rewards?.[ch.type]||10)+' AP','Ответь быстро');
+    if(ch){header(b,'ВОПРОС · +'+souls(s.rewards?.[ch.type]||10),'Ответь быстро');
       if(ch.data?.question){typeq(b,ch.data.question);sab.decorate(options(b,ch.data.options||[],(o,btn)=>answer('quiz','CHALLENGE_SUBMIT',{challengeId:ch.challengeId,answer:o},btn)));}
       timerBar(b,ch.createdAt,ch.expiresAt);return;}
     const keys=me.keys||0;
     if(keys>banked){
       b.classList.add('menu');header(b,'ДОСТУП ОТКРЫТ · КЛЮЧЕЙ: '+keys,'Используй ключ','key');const g=mk('div','sbx-cards',null,b);
       const anyHack=(a.targets||[]).some(t=>t.attack?.allowed),anySab=(a.targets||[]).some(t=>t.sabotage?.allowed);
-      card(g,{icon:'\ue1b3',title:'Взлом',sub:anyHack?'угадай пароль — укради AP':(mine?.attackReadyAt>now()?'перезарядка '+secs(mine.attackReadyAt)+' с':'нет целей'),cls:'hack',disabled:requests.pending()||!anyHack,onClick:()=>{mode='hack';viewKey='';render();},delay:0});
-      card(g,{icon:'\ue32a',title:'Фаервол',sub:a.firewall?.allowed?'LV'+(mine?.firewallLevel||1)+' → LV'+((mine?.firewallLevel||1)+1)+' · −'+a.firewall.cost+' AP':reason(a.firewall),cls:'fw',disabled:requests.pending()||!a.firewall?.allowed,onClick:()=>act('FIREWALL_UPGRADE'),delay:70});
+      card(g,{icon:'\ue1b3',title:'Взлом',sub:anyHack?'угадай пароль — укради души':(mine?.attackReadyAt>now()?'перезарядка '+secs(mine.attackReadyAt)+' с':'нет целей'),cls:'hack',disabled:requests.pending()||!anyHack,onClick:()=>{mode='hack';viewKey='';render();},delay:0});
+      card(g,{icon:'\ue32a',title:'Фаервол',sub:a.firewall?.allowed?'LV'+(mine?.firewallLevel||1)+' → LV'+((mine?.firewallLevel||1)+1)+' · −'+souls(a.firewall.cost):reason(a.firewall),cls:'fw',disabled:requests.pending()||!a.firewall?.allowed,onClick:()=>act('FIREWALL_UPGRADE'),delay:70});
       const mu=a.multiplier,curM=s.multipliers?.[getState()?.selfId]||1;
-      card(g,{icon:'\ue3d2',title:'Множитель',sub:mu?.allowed?'очки ×'+fx(curM)+' → ×'+fx(STEPS[Math.min(STEPS.length-1,STEPS.indexOf(curM)+1)]||curM)+' · −'+mu.cost+' AP':(mu?.reason==='SB_MAX_MULTIPLIER'?'максимум ×2.5':reason(mu)),cls:'mult',disabled:requests.pending()||!mu?.allowed,onClick:()=>act('MULTIPLIER_UPGRADE'),delay:105});
+      card(g,{icon:'\ue3d2',title:'Множитель',sub:mu?.allowed?'очки ×'+fx(curM)+' → ×'+fx(STEPS[Math.min(STEPS.length-1,STEPS.indexOf(curM)+1)]||curM)+' · −'+souls(mu.cost):(mu?.reason==='SB_MAX_MULTIPLIER'?'максимум ×2.5':reason(mu)),cls:'mult',disabled:requests.pending()||!mu?.allowed,onClick:()=>act('MULTIPLIER_UPGRADE'),delay:105});
       card(g,{icon:'\ue868',title:'Саботаж',sub:anySab?'запусти вирус сопернику':'нет целей',cls:'trojan',disabled:requests.pending()||!anySab,onClick:()=>{mode='sabotage';viewKey='';render();},delay:140});
       {const anyDdos=(a.targets||[]).some(t=>t.ddos?.allowed);card(g,{icon:'\ue1e1',title:'DDoS',sub:anyDdos?'кнопки цели тормозят 10 с':'нет целей',cls:'hack',disabled:requests.pending()||!anyDdos,onClick:()=>{mode='ddos';viewKey='';render();},delay:160});}
-      {const hp=me.extra?.honeypot;card(g,{icon:'\ue897',title:'Приманка',sub:hp?.allowed?'атакующий сам теряет AP':hp?.reason==='SB_HONEYPOT_ARMED'?'уже стоит':reason(hp),cls:'fw',disabled:requests.pending()||!hp?.allowed,onClick:()=>act('HONEYPOT'),delay:180});}
-      card(g,{icon:'\ue8cc',title:'Чёрный рынок',sub:'программы за AP',cls:'trojan',disabled:requests.pending(),onClick:()=>{mode='market';viewKey='';render();},delay:195});
+      {const hp=me.extra?.honeypot;card(g,{icon:'\ue897',title:'Приманка',sub:hp?.allowed?'атакующий сам теряет души':hp?.reason==='SB_HONEYPOT_ARMED'?'уже стоит':reason(hp),cls:'fw',disabled:requests.pending()||!hp?.allowed,onClick:()=>act('HONEYPOT'),delay:180});}
+      card(g,{icon:'\ue8cc',title:'Чёрный рынок',sub:'программы за души',cls:'trojan',disabled:requests.pending(),onClick:()=>{mode='market';viewKey='';render();},delay:195});
       card(g,{icon:'\ue01f',title:'Копить ключ',sub:'продолжить вопросы',cls:'save',disabled:requests.pending(),onClick:()=>{banked=keys;viewKey='';render();},delay:210});
       return;
     }
@@ -203,10 +204,10 @@ function createSystemBreachController({getState,isAuthenticated,send,makeId,now}
     const r=s.self?.lastAction;if(!r||r.requestId===lastReceipt)return;lastReceipt=r.requestId;
     if(verdict&&verdict.ok==null&&r.requestId===verdict.id){const st=r.status,amt=r.details?.reward||r.details?.amount||0;
       if(verdict.kind==='quiz'){if(verdict.ok==null)scorePop(st==='SUCCESS',amt);}
-      else if(verdict.kind==='hack')showVerdict(st==='SUCCESS',st==='SUCCESS'?'ВЗЛОМ УДАЛСЯ'+(amt?'  +'+amt+' AP':''):'ПАРОЛЬ НЕВЕРНЫЙ');
+      else if(verdict.kind==='hack')showVerdict(st==='SUCCESS',st==='SUCCESS'?'ВЗЛОМ УДАЛСЯ'+(amt?'  +'+souls(amt):''):'ПАРОЛЬ НЕВЕРНЫЙ');
       else showVerdict(st==='SUCCESS',st==='SUCCESS'?'СИСТЕМА ВОССТАНОВЛЕНА':st==='EMERGENCY_RESTORED'?'АВАРИЙНЫЙ ОТКАТ':'НЕВЕРНО — ЕЩЁ ВОПРОС');return;}
     if(r.action==='SABOTAGE_CLEAR'){sab.result(r.requestId,r.status);if(r.status==='WRONG')say('Неверно — попробуй ещё');return;}
-    if(r.status==='TRAPPED'){sfx('hackFail');say('ЛОВУШКА! Ты потерял '+(r.details?.amount||0)+' AP');flash('flash-bad');return;}
+    if(r.status==='TRAPPED'){sfx('hackFail');say('ЛОВУШКА! Ты потерял '+souls(r.details?.amount||0));flash('flash-bad');return;}
     if(r.status==='SHIELDED'){sfx('hackFail');say('Цель закрыта щитом — атака сгорела');flash('flash-bad');return;}
     if(r.status==='FLOODED'){sfx('hackOk');say('DDoS пошёл: '+(r.details?.seconds||10)+' с лагов у цели');flash('flash-ok');return;}
     if(r.status==='HONEYPOT_ARMED'){say('Приманка установлена');flash('flash-key');return;}

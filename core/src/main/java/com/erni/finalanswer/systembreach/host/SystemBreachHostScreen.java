@@ -144,7 +144,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         Gdx.gl.glEnable(GL20.GL_BLEND);shapes.begin(ShapeRenderer.ShapeType.Filled);
         paint.frame(cx-bw/2,y,bw,96,24,SbPaint.GOLD,.9f);paint.crown(cx,y+100,56,SbPaint.GOLD);shapes.end();
         batch.begin();paint.centered(batch,assets.label,model.ru()?"СИСТЕМА ЗАХВАЧЕНА":"SYSTEM OWNED BY",cx,y+84,SbPaint.GOLD,k);
-        paint.centered(batch,assets.board,paint.fit(assets.board,w.name+"   "+w.ap+" AP",bw-60),cx,y+46,SbPaint.IVORY,k);batch.end();
+        paint.centered(batch,assets.board,paint.fit(assets.board,w.name+"   "+SystemBreachHostViewModel.souls(w.ap,model.russian()),bw-60),cx,y+46,SbPaint.IVORY,k);batch.end();
     }
     private static final Color VERB=new Color(.78f,.80f,.76f,1);
     private float toastWidth(){var t=model.toastParts();return paint.width(assets.board,t.line())+40;}
