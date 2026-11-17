@@ -61,14 +61,33 @@ public final class SystemBreachRulesFilm implements Disposable {
         shapes.setProjectionMatrix(viewport.getCamera().combined);batch.setProjectionMatrix(viewport.getCamera().combined);
         Gdx.gl.glEnable(GL20.GL_BLEND);
         int s=scene();float lt=time-START[s];
-        // backdrop
-        b=batch;batch.begin();batch.setColor(.32f,.42f,.55f,1);batch.draw(assets.background,0,0,W,H);batch.setColor(Color.WHITE);batch.end();
-        r=shapes;Gdx.gl.glEnable(GL20.GL_BLEND);Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);shapes.begin(ShapeRenderer.ShapeType.Filled);backdrop();pass=0;scene(s,lt);shapes.end();
-        batch.begin();batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);pass=2;ambient();scene(s,lt);
-        batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);pass=1;scene(s,lt);batch.end();
-        // chrome: progress, subtitles, transition wipe
-        Gdx.gl.glEnable(GL20.GL_BLEND);Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);shapes.begin(ShapeRenderer.ShapeType.Filled);chromeShapes(s,lt);shapes.end();
+        // backdrop: slow drift of the room behind everything
+        b=batch;r=shapes;float drift=MathUtils.sin(time*.07f)*24;
+        batch.begin();batch.setColor(.30f,.40f,.53f,1);batch.draw(assets.background,-40+drift,-30,W+80,H+60);batch.setColor(Color.WHITE);batch.end();
+        blendOn();shapes.begin(ShapeRenderer.ShapeType.Filled);backdrop();shapes.end();
+        batch.begin();batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);ambient();batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.end();
+        // scenes: the outgoing one recedes while the next pushes in (cross-dissolve, no hard cut)
+        for(int i=Math.max(0,s-1);i<=Math.min(START.length-1,s+1);i++){float v=vis(i);if(v<=0)continue;float t=time-START[i];
+            float len=END[i]-START[i];float enter=1-k(time,START[i]-X/2,START[i]+X/2),leave=k(time,END[i]-X/2,END[i]+X/2);
+            float sc=1+.022f*k(t,0,len)+.05f*ease(enter)-.04f*ease(leave);float dx=-70*ease(leave)+70*ease(enter);
+            xf.idt().translate(W/2+dx,H/2,0).scale(sc,sc,1).translate(-W/2,-H/2,0);shapes.setTransformMatrix(xf);batch.setTransformMatrix(xf);
+            blendOn();shapes.begin(ShapeRenderer.ShapeType.Filled);pass=0;scene(i,t,v);shapes.end();
+            batch.begin();batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);pass=2;scene(i,t,v);
+            batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);pass=1;scene(i,t,v);batch.end();}
+        xf.idt();shapes.setTransformMatrix(xf);batch.setTransformMatrix(xf);
+        // flash of light on each cut
+        float cut=99;for(int i=1;i<START.length;i++)cut=Math.min(cut,Math.abs(time-START[i]));
+        if(cut<X/2){batch.begin();batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);float f=1-cut/(X/2);batch.setColor(CYAN.r,CYAN.g,CYAN.b,.10f*f*f);batch.draw(assets.glow,-200,-300,W+400,H+600);batch.setColor(Color.WHITE);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.end();}
+        blendOn();shapes.begin(ShapeRenderer.ShapeType.Filled);vignette();chromeShapes(s,lt);shapes.end();
         batch.begin();chromeText(s,lt);batch.end();
+    }
+    private static final float X=.8f;private final com.badlogic.gdx.math.Matrix4 xf=new com.badlogic.gdx.math.Matrix4();private float tabPos=1;
+    private static void blendOn(){Gdx.gl.glEnable(GL20.GL_BLEND);Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
+    /** 0..1 visibility of scene i, overlapping its neighbours by X seconds. */
+    private float vis(int i){float in=i==0?1:ease(k(time,START[i]-.05f,START[i]+X*.6f)),out=i==START.length-1?1:1-ease(k(time,END[i]-X*.5f,END[i]));return in*out;}
+    private void vignette(){
+        Color c0=new Color(0,0,0,0),c1=new Color(0,0,0,.75f);
+        r.rect(0,0,W,260,c1,c1,c0,c0);r.rect(0,H-200,W,200,c0,c0,c1,c1);r.rect(0,0,260,H,c1,c0,c0,c1);r.rect(W-260,0,260,H,c0,c1,c1,c0);
     }
     private int scene(){for(int i=START.length-1;i>=0;i--)if(time>=START[i])return i;return 0;}
 
@@ -88,8 +107,8 @@ public final class SystemBreachRulesFilm implements Disposable {
     }
 
     // ---------- scenes ----------
-    private void scene(int s,float t){
-        float in=ease(k(t,0,.35f)),out=1-ease(k(t,END[s]-START[s]-.35f,END[s]-START[s]));float a=in*out;float st=t*SPEED[s];
+    private void scene(int s,float t,float a){
+        float st=t*SPEED[s];
         switch(s){case 0->title(st,a);case 1->questions(st,a);case 2->hack(st,a);case 3->ddos(st,a);case 4->virus(st,a);
             case 5->defence(st,a);default->finale(st,a);}
     }
@@ -312,26 +331,27 @@ public final class SystemBreachRulesFilm implements Disposable {
     // ---------- chrome ----------
     private void chromeShapes(int s,float t){
         // subtitle plate
-        float a=ease(k(t,.3f,.7f))*(1-ease(k(t,END[s]-START[s]-.35f,END[s]-START[s])));
-        {col(Color.BLACK,.62f*a);r.rect(W/2-820,40,1640,110);col(CYAN,.8f*a);r.rect(W/2-820,148,1640,2);}
+        float a=ease(k(time,.2f,.9f))*(1-k(time,LENGTH-.6f,LENGTH));
+        {Color c0=new Color(0,0,0,0),c1=new Color(0,0,0,.72f*a);r.rect(W/2-820,40,820,110,c0,c1,c1,c0);r.rect(W/2,40,820,110,c1,c0,c0,c1);
+         Color l0=new Color(CYAN.r,CYAN.g,CYAN.b,0),l1=new Color(CYAN.r,CYAN.g,CYAN.b,.8f*a);r.rect(W/2-820,148,820,2,l0,l1,l1,l0);r.rect(W/2,148,820,2,l1,l0,l0,l1);}
         // progress pips
-        if(s>0)for(int i=1;i<TAB.length;i++){float x=tabX(i);col(i<s?CYAN:i==s?WHITE:new Color(.2f,.3f,.4f,1),i==s?1:.7f);r.rect(x-70,H-52,140,i==s?5:3);}
+        {float ta=k(time,START[1]-X/2,START[1]+X/2);tabPos+=(Math.max(1,s)-tabPos)*Math.min(1,Gdx.graphics.getDeltaTime()*7);
+         for(int i=1;i<TAB.length;i++){float x=tabX(i);col(i<s?CYAN:new Color(.2f,.3f,.4f,1),.7f*ta);r.rect(x-70,H-52,140,3);}
+         col(WHITE,ta);float mx=tabX(1)+(tabPos-1)*170;r.rect(mx-70,H-53,140,5);}
         // skip button (top right)
         {float bx=W-330,by=H-118,bw=290,bh=64;col(Color.BLACK,.55f);r.rect(bx,by,bw,bh);col(hover?WHITE:CYAN,hover?1:.8f);r.rect(bx,by,bw,2);r.rect(bx,by+bh-2,bw,2);r.rect(bx,by,2,bh);r.rect(bx+bw-2,by,2,bh);
             col(hover?WHITE:CYAN,1);float tx=bx+bw-46,ty=by+bh/2;r.triangle(tx-14,ty+12,tx-14,ty-12,tx+2,ty);r.triangle(tx+2,ty+12,tx+2,ty-12,tx+18,ty);}
         if(skipAt>=0){col(Color.BLACK,k(time-skipAt,0,.45f));r.rect(0,0,W,H);}
-        // scene transition wipe
-        float into=t,outOf=END[s]-START[s]-t;float w=Math.min(into,outOf);
-        if(w<.25f&&time<LENGTH-.3f){float f=1-w/.25f;col(CYAN,.35f*f);float y=(into<outOf?1-into/.25f:outOf/.25f)*H;r.rect(0,y-2,W,4);col(CYAN,.08f*f);r.rect(0,y-40,W,80);}
         // fade to black at the end
         if(time>LENGTH-1){col(Color.BLACK,k(time,LENGTH-1,LENGTH));r.rect(0,0,W,H);}
     }
     private void chromeText(int s,float t){
         text(assets.board,"ПРОПУСТИТЬ",W-330+122,H-118+42,hover?WHITE:CYAN,1,.95f);
         text(assets.log,"ENTER / КЛИК",W-330+145,H-140,WHITE,.45f,.9f);
-        if(s>0)for(int i=1;i<TAB.length;i++)text(assets.log,TAB[i],tabX(i),H-64,i==s?WHITE:i<s?CYAN:new Color(.45f,.55f,.65f,1),i==s?1:.8f,1);
-        float a=ease(k(t,.3f,.7f))*(1-ease(k(t,END[s]-START[s]-.35f,END[s]-START[s])));
-        String full=SUB[s];int n=Math.min(full.length(),(int)(Math.max(0,t-.3f)*55));
+        {float ta=k(time,START[1]-X/2,START[1]+X/2);for(int i=1;i<TAB.length;i++)text(assets.log,TAB[i],tabX(i),H-64,i==s?WHITE:i<s?CYAN:new Color(.45f,.55f,.65f,1),(i==s?1:.8f)*ta,1);}
+        // subtitle: old line fades out, new one fades in word by word as it is spoken
+        float len=END[s]-START[s];float a=ease(k(t,.15f,.5f))*(1-ease(k(t,len-.3f,len)))*(1-k(time,LENGTH-.6f,LENGTH));
+        String full=SUB[s];int n=Math.min(full.length(),(int)(Math.max(0,t-.15f)*70));while(n<full.length()&&n>0&&full.charAt(n-1)!=' ')n++;
         BitmapFont f=assets.stageName;float sc=.62f;f.getData().setScale(sc);gl.setText(f,full,Color.WHITE,1560,com.badlogic.gdx.utils.Align.center,true);
         float y=95+gl.height/2;f.setColor(WHITE.r,WHITE.g,WHITE.b,a);f.draw(b,full.substring(0,n),W/2-780,y,1560,com.badlogic.gdx.utils.Align.center,true);
         f.getData().setScale(1);f.setColor(Color.WHITE);
@@ -376,8 +396,9 @@ public final class SystemBreachRulesFilm implements Disposable {
     private void col(Color c,float a){r.setColor(c.r,c.g,c.b,Math.max(0,Math.min(1,a)));}
     private void text(BitmapFont f,String s,float cx,float y,Color c,float a,float sc){text(f,s,cx,y,c,a,sc,true);}
     private void text(BitmapFont f,String s,float x,float y,Color c,float a,float sc,boolean center){
-        if(a<=0||sc<=0||s.isEmpty())return;f.getData().setScale(sc);f.setColor(c.r,c.g,c.b,Math.min(1,a));gl.setText(f,s);
-        f.draw(b,s,center?x-gl.width/2:x,y);f.getData().setScale(1);f.setColor(Color.WHITE);
+        if(a<=0||sc<=0||s.isEmpty())return;f.getData().setScale(sc);gl.setText(f,s);float x0=center?x-gl.width/2:x;
+        if(pass!=2){float o=Math.max(2,3*sc);f.setColor(0,0,0,.55f*Math.min(1,a));f.draw(b,s,x0+o,y-o);}
+        f.setColor(c.r,c.g,c.b,Math.min(1,a));f.draw(b,s,x0,y);f.getData().setScale(1);f.setColor(Color.WHITE);
     }
     private static String decode(String s,float p,float t){
         if(p>=1)return s;if(p<=0)return "";StringBuilder o=new StringBuilder();int n=s.length(),solid=(int)(p*n);
