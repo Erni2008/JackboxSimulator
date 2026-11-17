@@ -37,12 +37,12 @@ public final class ImpostorRulesFilm implements Disposable {
     private static final String[] TAB={"","РОЛИ","УЛИКИ","ПОДОЗРЕНИЕ","ГОЛОСОВАНИЕ","ИТОГ",""};
     private static final String[] SUB={
         "У каждого есть роль. А у одного — тайна.",
-        "Все игроки получают секретное слово. Все — кроме импостора: ему достаётся только подсказка.",
+        "Все игроки получают секретное слово. Все — кроме самозванца: ему достаётся только подсказка.",
         "Каждый раунд напишите одно слово-улику. Намекните — но не выдайте слово!",
         "После раунда отметьте, кто кажется вам подозрительным.",
         "Через три раунда — финальное голосование.",
-        "Поймали импостора — победили мирные. Ошиблись — побеждает импостор.",
-        "Ну что ж… Найдите импостора!"};
+        "Поймали самозванца — победили мирные. Ошиблись — побеждает самозванец.",
+        "Ну что ж… Найдите самозванца!"};
     private static final Color BLOOD=new Color(.86f,.1f,.08f,1),GOLD=new Color(.96f,.78f,.45f,1),INK=new Color(.24f,.12f,.06f,1),
         BONE=new Color(.96f,.92f,.84f,1),DARK=new Color(.03f,.015f,.015f,1),EMBER=new Color(1,.42f,.18f,1);
     private static final String[] WHO={"skeleton","dracula","pumpkin","voodoo","ghost"};
@@ -127,7 +127,7 @@ public final class ImpostorRulesFilm implements Disposable {
     private void titleScene(float t,float a){
         if(pass==1){float pr=ease(k(t,.2f,1.6f));draw(print,W/2,H/2+40,560*(1.15f-.15f*pr),.16f*a*pr,time*2);
             float p=ease(k(t,.3f,1.3f));text(title,"THE IMPOSTOR",W/2,H/2+120+(1-p)*30,GOLD,a*p,1);
-            float q=ease(k(t,1.2f,2f));text(heading,"ИМПОСТОР",W/2,H/2-10,BLOOD,a*q,1+.08f*(1-q));}
+            float q=ease(k(t,1.2f,2f));text(heading,"САМОЗВАНЕЦ",W/2,H/2-10,BLOOD,a*q,1+.08f*(1-q));}
         if(pass==2){glowAt(W/2,H/2+60,1100,BLOOD,.22f*a*k(t,.3f,1.5f));glowAt(W/2,H/2+90,700,GOLD,.10f*a*k(t,.5f,1.5f));}
         if(pass==0){float w=ease(k(t,.6f,1.6f))*620;Color c0=new Color(GOLD.r,GOLD.g,GOLD.b,0),c1=new Color(GOLD.r,GOLD.g,GOLD.b,.8f*a);shapes.rect(W/2-w,H/2-70,w,2,c0,c1,c1,c0);shapes.rect(W/2,H/2-70,w,2,c1,c0,c0,c1);}
     }
@@ -139,11 +139,11 @@ public final class ImpostorRulesFilm implements Disposable {
             float focus=k(t,5.4f,6.2f);float dim=imp?1:1-.45f*focus;float lift=imp?focus*30:0;float cw=250,ch=314;
             if(pass==1){b(0,0,0,.45f*a*d*dim);batch.draw(shown?front:back,x-cw/2*sx+12,y-ch/2-14+lift,cw/2*sx,ch/2,cw*sx,ch,1,1,rot,0,0,back.getWidth(),back.getHeight(),false,false);
                 float sh=dim*(imp&&focus>0?1:.95f);b(sh,sh*(imp?.92f:1),sh*(imp?.9f:1),a*d);batch.draw(shown?front:back,x-cw/2*sx,y-ch/2+lift,cw/2*sx,ch/2,cw*sx,ch,1,1,rot,0,0,back.getWidth(),back.getHeight(),false,false);b(1,1,1,1);
-                if(shown&&sx>.3f){if(imp){text(hand,"ИМПОСТОР",x,y+40+lift,BLOOD,a*dim,.78f*sx);text(small,"подсказка:",x,y-22+lift,INK,a*.9f,1);text(hand,"Еда",x,y-50+lift,INK,a,.7f*sx);}
+                if(shown&&sx>.3f){if(imp){text(hand,"САМОЗВАНЕЦ",x,y+40+lift,BLOOD,a*dim,.78f*sx);text(small,"подсказка:",x,y-22+lift,INK,a*.9f,1);text(hand,"Еда",x,y-50+lift,INK,a,.7f*sx);}
                     else{text(small,"секретное слово",x,y+44+lift,INK,a*.8f*dim,1);text(hand,"ЯБЛОКО",x,y+8+lift,INK,a*dim,.8f*sx);}}}
             if(pass==2&&imp&&focus>0)glowAt(x,y+lift,520,BLOOD,.45f*a*focus*(.8f+.2f*MathUtils.sin(time*5)));
         }
-        if(pass==1){float f=k(t,6,6.6f);text(sub,"Импостор не знает слова",W/2+2*300-300,250,BLOOD,a*f,.9f);}
+        if(pass==1){float f=k(t,6,6.6f);text(sub,"Самозванец не знает слова",W/2+2*300-300,250,BLOOD,a*f,.9f);}
     }
     private void framed(String id,float x,float y,float w,float a,Color tint,float tintK){
         float h=w*frame.getHeight()/(float)frame.getWidth();Texture p=portrait(id);
@@ -195,15 +195,15 @@ public final class ImpostorRulesFilm implements Disposable {
         headingText("ИТОГ",t,a,GOLD);
         float l=ease(k(t,.3f,.9f)),r=ease(k(t,2.6f,3.2f));
         if(pass==0){panel(W/2-760,330,700,420,GOLD,a*l);panel(W/2+60,330,700,420,BLOOD,a*r);}
-        if(pass==1){framed(WHO[IMP],W/2-410,600,190,a*l,BLOOD,0);text(sub,"Импостор пойман",W/2-410,440,BONE,a*l,1);text(heading,"ПОБЕДА МИРНЫХ",W/2-410,395,GOLD,a*l,.62f);
-            framed(WHO[1],W/2+410,600,190,a*r,BLOOD,0);text(sub,"Выгнали невиновного",W/2+410,440,BONE,a*r,1);text(heading,"ПОБЕДА ИМПОСТОРА",W/2+410,395,BLOOD,a*r,.62f);
+        if(pass==1){framed(WHO[IMP],W/2-410,600,190,a*l,BLOOD,0);text(sub,"Самозванец пойман",W/2-410,440,BONE,a*l,1);text(heading,"ПОБЕДА МИРНЫХ",W/2-410,395,GOLD,a*l,.62f);
+            framed(WHO[1],W/2+410,600,190,a*r,BLOOD,0);text(sub,"Выгнали невиновного",W/2+410,440,BONE,a*r,1);text(heading,"ПОБЕДА САМОЗВАНЦА",W/2+410,395,BLOOD,a*r,.62f);
             if(r>0){b(1,1,1,.55f*a*r);batch.draw(print,W/2+410-120,600-120,240,240);b(1,1,1,1);}}
         if(pass==2){glowAt(W/2-410,540,700,GOLD,.18f*a*l);glowAt(W/2+410,540,700,BLOOD,.25f*a*r);}
     }
     private void finale(float t,float a){
         float p=ease(k(t,1.1f,1.7f)),q=ease(k(t,.1f,.6f));
         if(pass==1){draw(print,W/2,H/2+30,640*(1.3f-.3f*p),.35f*a*p,0);text(heading,"Ну что ж…",W/2,H/2+190,BONE,a*q*(1-p*.4f),.8f);
-            text(title,"НАЙДИТЕ ИМПОСТОРА!",W/2,H/2+60,BLOOD,a*p,.62f*(1+.25f*(1-p)));}
+            text(title,"НАЙДИТЕ САМОЗВАНЦА!",W/2,H/2+60,BLOOD,a*p,.62f*(1+.25f*(1-p)));}
         if(pass==2)glowAt(W/2,H/2+40,1200,BLOOD,.35f*a*p*(.85f+.15f*MathUtils.sin(time*4)));
     }
 
