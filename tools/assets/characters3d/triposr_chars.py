@@ -14,8 +14,8 @@ for n in names:
     a=np.array(im).astype(np.float32)/255;rgb=a[:,:,:3]*a[:,:,3:4]+.5*(1-a[:,:,3:4]);img=Image.fromarray((rgb*255).astype(np.uint8))
     img.save(f'{OUT}/{n}_input.png')
     with torch.no_grad():codes=model([img],device=dev)
-    mesh=model.extract_mesh(codes,False,resolution=320)[0]
-    tex=bake_texture(mesh,model,codes[0],1024)
+    mesh=model.extract_mesh(codes,False,resolution=int(os.environ.get('MC','320')))[0]
+    tex=bake_texture(mesh,model,codes[0],int(os.environ.get('TEXRES','1024')))
     import trimesh
     mesh.apply_transform(trimesh.transformations.rotation_matrix(-np.pi/2,[1,0,0]))
     xatlas.export(f'{OUT}/{n}.obj',mesh.vertices[tex['vmapping']],tex['indices'],tex['uvs'],mesh.vertex_normals[tex['vmapping']])

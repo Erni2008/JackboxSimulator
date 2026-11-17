@@ -9,7 +9,7 @@ for n in names:
     P=f'{ROOT}/source_assets/characters3d/prep'
     bpy.ops.wm.obj_import(filepath=f'{P}/{n}_lo_uv.obj',forward_axis='Y',up_axis='Z');o=bpy.context.selected_objects[0];bpy.context.view_layer.objects.active=o
     o.rotation_euler=(0,0,0);o.name=n
-    img=bpy.data.images.load(f'{P}/{n}_lo.png');img.scale(512,512);ml=bpy.data.materials.new(n);ml.use_nodes=True;tn=ml.node_tree.nodes.new('ShaderNodeTexImage');tn.image=img
+    img=bpy.data.images.load(f'{P}/{n}_lo.png');img.scale(1024,1024);ml=bpy.data.materials.new(n);ml.use_nodes=True;tn=ml.node_tree.nodes.new('ShaderNodeTexImage');tn.image=img
     bl=ml.node_tree.nodes['Principled BSDF'];ml.node_tree.links.new(tn.outputs[0],bl.inputs['Base Color']);bl.inputs['Roughness'].default_value=.75
     ml.use_backface_culling=False;o.data.materials.clear();o.data.materials.append(ml)
     bpy.ops.object.mode_set(mode='EDIT');bpy.ops.mesh.select_all(action='SELECT');bpy.ops.mesh.normals_make_consistent(inside=False);bpy.ops.object.mode_set(mode='OBJECT')

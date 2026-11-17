@@ -32,8 +32,9 @@ for n in names:
     V=lv[vmap];F=idx
     # rasterise triangles in UV space
     img=np.zeros((TEX,TEX,3),np.float32);mask=np.zeros((TEX,TEX),bool)
-    pts=[];pix=[]
-    for tri in F:
+    pts=[];pix=[];nrm=[]
+    fn=np.cross(V[F[:,1]]-V[F[:,0]],V[F[:,2]]-V[F[:,0]]);fn/=np.linalg.norm(fn,axis=1,keepdims=True)+1e-12
+    for ti,tri in enumerate(F):
         uv=uvs[tri]*TEX;mn=np.floor(uv.min(0)).astype(int);mx=np.ceil(uv.max(0)).astype(int)
         xs,ys=np.meshgrid(np.arange(max(mn[0],0),min(mx[0]+1,TEX)),np.arange(max(mn[1],0),min(mx[1]+1,TEX)));c=np.stack([xs.ravel()+.5,ys.ravel()+.5],1)
         a,b,cc=uv;den=(b[1]-cc[1])*(a[0]-cc[0])+(cc[0]-b[0])*(a[1]-cc[1])
@@ -41,12 +42,29 @@ for n in names:
         w0=((b[1]-cc[1])*(c[:,0]-cc[0])+(cc[0]-b[0])*(c[:,1]-cc[1]))/den;w1=((cc[1]-a[1])*(c[:,0]-cc[0])+(a[0]-cc[0])*(c[:,1]-cc[1]))/den;w2=1-w0-w1
         ins=(w0>=-.02)&(w1>=-.02)&(w2>=-.02)
         if not ins.any():continue
-        W=np.stack([w0[ins],w1[ins],w2[ins]],1);pts.append(W@V[tri]);pix.append(c[ins].astype(int))
-    pts=np.concatenate(pts);pix=np.concatenate(pix)
+        W=np.stack([w0[ins],w1[ins],w2[ins]],1);pts.append(W@V[tri]);pix.append(c[ins].astype(int));nrm.append(np.repeat(fn[ti][None],int(ins.sum()),0))
+    pts=np.concatenate(pts);pix=np.concatenate(pix);nrm=np.concatenate(nrm)
     hm=trimesh.Trimesh(hv,hf,process=False);cp,dist,tid=trimesh.proximity.closest_point(hm,pts)
     bary=trimesh.triangles.points_to_barycentric(hm.triangles[tid],cp);huv=np.einsum('ij,ijk->ik',bary,hvt[hft[tid]])
     sx=np.clip((huv[:,0]*sw).astype(int),0,sw-1);sy=np.clip(((1-huv[:,1])*sh).astype(int),0,sh-1)
-    img[pix[:,1],pix[:,0]]=src[sy,sx];mask[pix[:,1],pix[:,0]]=True
+    col=src[sy,sx].copy()
+    # project the original artwork onto the front (crisp painted detail), blend by facing; occlusion via a front depth buffer
+    art=Image.open(f'{ROOT}/web/hell-cage-host/chars/{n}.png').convert('RGBA');bb=art.getbbox();art=np.asarray(art.crop(bb)).astype(np.float32);ah,aw=art.shape[:2]
+    xmn,xmx=lv[:,0].min(),lv[:,0].max();zmn,zmx=lv[:,2].min(),lv[:,2].max()
+    def proj(mirror):
+        u=(pts[:,0]-xmn)/(xmx-xmn);u=1-u if mirror else u;v=1-(pts[:,2]-zmn)/(zmx-zmn)
+        return np.clip((u*(aw-1)).astype(int),0,aw-1),np.clip((v*(ah-1)).astype(int),0,ah-1)
+    facing=np.clip((-nrm[:,1]-.2)/.55,0,1)
+    G=192;gu=np.clip(((pts[:,0]-xmn)/(xmx-xmn)*(G-1)).astype(int),0,G-1);gv=np.clip(((pts[:,2]-zmn)/(zmx-zmn)*(G-1)).astype(int),0,G-1)
+    depth=np.full((G,G),np.inf);np.minimum.at(depth,(gv,gu),pts[:,1]);vis=pts[:,1]<=depth[gv,gu]+.035
+    best=None
+    for mirror in (False,True):
+        ax,ay=proj(mirror);a_=art[ay,ax];m=(facing>.6)&vis&(a_[:,3]>200)
+        err=np.abs(a_[m,:3]-col[m]).mean() if m.any() else 1e9
+        if best is None or err<best[0]:best=(err,ax,ay)
+    _,ax,ay=best;a_=art[ay,ax];w=(facing*vis*(a_[:,3]/255.))[:,None]*.92
+    col=col*(1-w)+a_[:,:3]*w
+    img[pix[:,1],pix[:,0]]=col;mask[pix[:,1],pix[:,0]]=True
     for _ in range(8):  # dilate into gutters
         m=mask.copy();acc=np.zeros_like(img);cnt=np.zeros((TEX,TEX),np.float32)
         for dy,dx in ((1,0),(-1,0),(0,1),(0,-1)):
