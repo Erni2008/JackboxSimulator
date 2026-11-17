@@ -27,7 +27,7 @@ public final class SystemBreachRulesFilm implements Disposable {
     private static final String[] TAB={"","ОТВЕЧАЙ","ВЗЛАМЫВАЙ","DDoS","ВИРУС","ЗАЩИТА","ПОБЕДА"};
     private static final String[] SUB={
         "Добро пожаловать в систему! Сегодня каждый из вас — хакер.",
-        "Отвечайте на вопросы! Каждый верный ответ приносит вам валюту — души.",
+        "Отвечайте на вопросы! Каждый верный ответ приносит вам деньги — души.",
         "Взламывайте соперников! Угадайте пароль — и заберите их души себе!",
         "Запустите DDoS — и у жертвы на десять секунд зависнут кнопки!",
         "Заражайте вирусами! Ломайте экраны соперников!",
@@ -246,9 +246,9 @@ public final class SystemBreachRulesFilm implements Disposable {
             if(fade<=0)continue;float px=x+MathUtils.cos(ang)*dist,py=y+MathUtils.sin(ang)*dist*.62f;float tx=-MathUtils.cos(ang),ty=-MathUtils.sin(ang)*.62f;
             if(pass==0){col(RED,a*fade);r.circle(px,py,9,12);for(int q=1;q<5;q++){col(RED,a*fade*(.5f-q*.1f));r.circle(px-tx*q*16*(f<.7f?1:-1),py-ty*q*16*(f<.7f?1:-1),9-q*1.6f,10);}}
             if(pass==2){glow(px,py,70,RED,.7f*a*fade);if(!pass3&&f>.66f&&f<.9f)glow(x+MathUtils.cos(ang)*r0,y+MathUtils.sin(ang)*r0*.62f,230,CYAN,.7f*a*(1-(f-.66f)/.24f));}}
-        if(hitFlash>0){hitFlash=Math.min(1,hitFlash);if(pass==2)glow(x,y,420,RED,.6f*a*hitFlash);if(pass==0){col(RED,.35f*a*hitFlash);r.rect(x-100,y-100,200,200);}}
+        if(hitFlash>0){hitFlash=Math.min(1,hitFlash);if(pass==2){glow(x,y,420,RED,.6f*a*hitFlash);glow(x,y-170+(1-hitFlash)*40,300,RED,.35f*a*hitFlash);}if(pass==0){col(RED,.35f*a*hitFlash);r.rect(x-100,y-100,200,200);float up=(1-hitFlash)*40;panel(x-130,y-205+up,260,72,RED,a*Math.min(1,hitFlash*1.6f));}}
         if(pass==1){text(assets.board,"ОТБИТО  "+blocked,x-120,y+270,CYAN,a*k(t,.9f,1.2f),1.15f);text(assets.board,"ПРОБИЛО  "+through,x+120,y+270,RED,a*k(t,.9f,1.2f),1.15f);
-            if(hitFlash>0)text(assets.stage,"−10 душ",x,y-160,RED,a*hitFlash,.6f);}
+            if(hitFlash>0){float up=(1-hitFlash)*40,pop=1+.35f*(float)Math.pow(hitFlash,6);text(assets.stage,"-10 душ",x+(hitFlash>.8f?MathUtils.sin(time*70)*4:0),y-150+up,RED,a*Math.min(1,hitFlash*1.6f),.62f*pop);}}
         // right column: upgrade panels
         float rx=W/2+420;
         if(pass==0){panel(rx-230,y+20,460,150,CYAN,a);panel(rx-230,y-200,460,150,AMBER,a*k(t,5,5.5f));
