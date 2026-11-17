@@ -19,7 +19,7 @@ export class RaceApp {
   readonly renderer: THREE.WebGLRenderer; readonly scene = new THREE.Scene(); readonly camera = new THREE.PerspectiveCamera(55, 1, .3, 900);
   course: Course; readonly night: boolean; readonly manor: boolean; readonly crypt: boolean; readonly limit: number; runners: Runner[] = []; me!: Runner; clock = 0; private acc = 0;
   private sun!: THREE.DirectionalLight; private fill!: THREE.DirectionalLight; private mist: THREE.Mesh[] = []; private pollen!: THREE.Points; private puffs: {s: THREE.Sprite; t: number}[] = []; private grassMat?: THREE.Material; private looks = new Map<Runner, Look>(); private blockMeshes = new Map<Block, THREE.Mesh>();
-  private sweeperMeshes: THREE.Object3D[] = []; private cpArches: {glow: THREE.Mesh; flag: THREE.Mesh; lit: boolean}[] = []; private lastCp = 0; private pend: THREE.Object3D[] = []; private rams: THREE.Object3D[] = []; private padMeshes: THREE.Mesh[] = []; private warnPlanes = new Map<Block, THREE.Mesh>(); private belts: THREE.Texture[] = []; private composer?: EffectComposer; private lastSection = ''; private ghosts: THREE.MeshStandardMaterial[] = []; private lastTp = 0; private sunGlow?: THREE.Sprite; private rays: THREE.Mesh[] = []; private ray = new THREE.Raycaster(); private faded = new Set<THREE.Mesh>(); private soft: THREE.Mesh[] = []; private jetFx: {j: any; o: THREE.Object3D; f: THREE.Object3D}[] = []; private mazeBlend = 0; private portalFx: THREE.Object3D[] = []; private boulderPool: THREE.Object3D[] = [];
+  private sweeperMeshes: THREE.Object3D[] = []; private cpArches: {glow: THREE.Mesh; flag: THREE.Mesh; lit: boolean}[] = []; private lastCp = 0; private pend: THREE.Object3D[] = []; private rams: THREE.Object3D[] = []; private padMeshes: THREE.Mesh[] = []; private warnPlanes = new Map<Block, THREE.Mesh>(); private belts: THREE.Texture[] = []; private composer?: EffectComposer; private lastSection = ''; private ghosts: THREE.MeshStandardMaterial[] = []; private lastTp = 0; private sunGlow?: THREE.Sprite; private moonGlow?: THREE.Sprite; private rays: THREE.Mesh[] = []; private ray = new THREE.Raycaster(); private faded = new Set<THREE.Mesh>(); private soft: THREE.Mesh[] = []; private jetFx: {j: any; o: THREE.Object3D; f: THREE.Object3D}[] = []; private mazeBlend = 0; private portalFx: THREE.Object3D[] = []; private boulderPool: THREE.Object3D[] = [];
   private gltf = new GLTFLoader(); private texLoader = new THREE.TextureLoader(); private cache = new Map<string, Promise<GLTF>>();
   private camTarget = new THREE.Vector3(); private pixelRatio: number; private frameAvg = 16; private last = 0;
   private blobs = new Map<Runner, THREE.Mesh>();   private dots = new Map<Runner, HTMLElement>(); private keys = new Set<string>(); private stick = {id: -1, ox: 0, oy: 0, x: 0, y: 0}; private hud: HTMLElement;
@@ -44,7 +44,7 @@ export class RaceApp {
     this.scene.background = sky;
     const pmrem = new THREE.PMREMGenerator(this.renderer); this.scene.environment = pmrem.fromEquirectangular(await loaded(sky)).texture; pmrem.dispose();
     (this.scene as any).environmentIntensity = IN ? .3 : N ? .55 : .75; (this.scene as any).backgroundIntensity = N ? .85 : 1; if (IN) this.scene.background = new THREE.Color(this.crypt ? 0x030605 : 0x040508);
-    this.scene.fog = this.crypt ? new THREE.Fog(new THREE.Color(.03, .05, .045), 9, 58) : IN ? new THREE.Fog(new THREE.Color(.025, .03, .05), 10, 70) : N ? new THREE.Fog(new THREE.Color(.1, .15, .24), 16, 120) : new THREE.Fog(new THREE.Color(.74, .6, .56), 45, 330);
+    this.scene.fog = this.crypt ? new THREE.Fog(new THREE.Color(.03, .05, .045), 9, 58) : IN ? new THREE.Fog(new THREE.Color(.025, .03, .05), 10, 70) : N ? new THREE.Fog(new THREE.Color(.13, .18, .28), 18, 170) : new THREE.Fog(new THREE.Color(.74, .6, .56), 45, 330);
     this.scene.add(this.crypt ? new THREE.HemisphereLight(0x4a7a68, 0x22160c, .8) : IN ? new THREE.HemisphereLight(0x46588c, 0x24170c, .5) : N ? new THREE.HemisphereLight(0x7088c8, 0x141812, .55) : new THREE.HemisphereLight(0xbfc8ff, 0x3d3324, .35));
     if (N) this.renderer.toneMappingExposure = IN ? 1.3 : 1.2;
     // key light matches the sun / moon in the panorama: long shadows towards the camera, rim light on everything
@@ -54,10 +54,11 @@ export class RaceApp {
     this.scene.add(this.sun, this.sun.target);
     this.fill = new THREE.DirectionalLight(this.crypt ? 0xffa868 : IN ? 0xffb37a : N ? 0xa8b8ff : 0xc8d2ff, this.crypt ? 1.6 : IN ? 1.25 : N ? 1.1 : 1.7); this.scene.add(this.fill, this.fill.target); // cool fill from the camera side
     this.atmosphere();
+    if (this.night) {const mg = new THREE.Sprite(new THREE.SpriteMaterial({map: dotTexture(true), color: 0x9fc0ff, transparent: true, opacity: .45, depthWrite: false, blending: THREE.AdditiveBlending, fog: false})); mg.scale.set(200, 200, 1); this.moonGlow = mg; this.scene.add(mg);}
     if (!N) {const glow = new THREE.Sprite(new THREE.SpriteMaterial({map: dotTexture(true), color: 0xffb070, transparent: true, opacity: .55, depthWrite: false, blending: THREE.AdditiveBlending, fog: false})); glow.scale.set(260, 160, 1); glow.userData.sun = true; this.sunGlow = glow; this.scene.add(glow);
       for (let i = 0; i < 5; i++) {const ray = new THREE.Mesh(new THREE.PlaneGeometry(14 + i * 4, 420), new THREE.MeshBasicMaterial({map: rayTexture(), color: 0xffc890, transparent: true, opacity: .07, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, side: THREE.DoubleSide})); ray.userData.k = i; this.rays.push(ray); this.scene.add(ray);}}
     const mats = {floor: this.mat('old_wooden_floor_02', 2.5, true), flag: this.mat('mossy_cobblestone', 2.5, false, 0x8a8a8a), wall: this.mat('castle_brick_07', 3), beam: this.mat('medieval_wood', 2, true),
-      cobble: this.mat('mossy_cobblestone', 3), brick: this.mat('mossy_brick', 3, true), dark: this.mat('dark_wooden_planks', 2.2, true), mud: this.mat('brown_mud_leaves_01', 3, false, 0x9aa38a),
+      cobble: this.mat('mossy_cobblestone', 3, false, this.night ? 0xe6e8f0 : 0xffffff), brick: this.mat('mossy_brick', 3, true), dark: this.mat('dark_wooden_planks', 2.2, true), mud: this.mat('brown_mud_leaves_01', 3, false, 0xd8dcc8),
       grass: this.mat('leafy_grass', 3.2, false, 0xc4dc8a), rock: this.mat('rock_face_03', 4, true), plank: this.mat('brown_planks_05', 2.2, true), stone: this.mat('mossy_rock', 3.2), bark: this.mat('bark_brown_02', 1), ground: this.mat('forest_ground_04', 6)};
     for (const b of this.course.blocks) {
       const topM = ({grass: mats.grass, plank: mats.plank, stone: mats.stone, cobble: mats.cobble, brick: mats.brick, dark: mats.dark, mud: mats.mud, floor: mats.floor, flag: mats.flag} as Record<string, THREE.Material>)[b.mat];
@@ -78,7 +79,7 @@ export class RaceApp {
         const edge = (w: number, d: number, x: number, z: number) => {const t = new THREE.Mesh(new THREE.BoxGeometry(w, th, d), trimMat); t.position.set(x, y - th / 2 + .07, z); t.castShadow = false; t.receiveShadow = true; m.add(t);};
         edge(tw, b.z1 - b.z0, b.x0 + tw / 2 - .04, (b.z0 + b.z1) / 2); edge(tw, b.z1 - b.z0, b.x1 - tw / 2 + .04, (b.z0 + b.z1) / 2);
         if (!b.land) {edge(b.x1 - b.x0, tw, (b.x0 + b.x1) / 2, b.z0 + tw / 2 - .04); edge(b.x1 - b.x0, tw, (b.x0 + b.x1) / 2, b.z1 - tw / 2 + .04);}}
-      if (b.trapPeriod) {const w = new THREE.Mesh(new THREE.PlaneGeometry(b.x1 - b.x0 - .1, b.z1 - b.z0 - .1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({color: 0xff2a12, transparent: true, opacity: .5, depthWrite: false, blending: THREE.AdditiveBlending})); w.position.set((b.x0 + b.x1) / 2, b.y0 + .03, (b.z0 + b.z1) / 2); w.visible = false; this.scene.add(w); this.warnPlanes.set(b, w);} if (b.mat === 'grass' && !(b.gear || b.cart || b.tilt || b.trapPeriod || b.wall || b.fake || b.driftAmp || (b.x1 - b.x0) < 6)) this.grassOn(b); m.receiveShadow = true; m.castShadow = b.mat === 'plank' || b.crumbles; this.blockMeshes.set(b, m); this.scene.add(m);
+      if (b.trapPeriod) {const w = new THREE.Mesh(new THREE.PlaneGeometry(b.x1 - b.x0 - .1, b.z1 - b.z0 - .1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({color: 0xff2a12, transparent: true, opacity: .5, depthWrite: false, blending: THREE.AdditiveBlending})); w.position.set((b.x0 + b.x1) / 2, b.y0 + .03, (b.z0 + b.z1) / 2); w.visible = false; this.scene.add(w); this.warnPlanes.set(b, w);} if ((b.mat === 'grass' || b.mat === 'mud') && !(b.gear || b.cart || b.tilt || b.trapPeriod || b.wall || b.fake || b.driftAmp || (b.x1 - b.x0) < 6)) this.grassOn(b); m.receiveShadow = true; m.castShadow = b.mat === 'plank' || b.crumbles; this.blockMeshes.set(b, m); this.scene.add(m);
     }
     if (!this.night) {const floor = new THREE.Mesh(new THREE.PlaneGeometry(520, 540).rotateX(-Math.PI / 2), mats.ground); floor.receiveShadow = false; floor.position.set(0, -34, 150); worldUV(floor.geometry as THREE.BufferGeometry, 6, 'xz'); this.scene.add(floor);}
     // hazards
@@ -390,7 +391,7 @@ export class RaceApp {
       if (b.mat !== 'mud') for (const sd of [-1, 1]) for (let zz = b.z0 + .3; zz < b.z1; zz += .45) if (rnd() < .92) put(bars, sd > 0 ? b.x1 - .1 : b.x0 + .1, y, zz, 1, 0, (rnd() - .5) * .12);
       for (let zz = b.z0 + 3; zz < b.z1 - 1; zz += 11) for (const sd of [-1, 1]) lamps.push(new THREE.Vector3(sd > 0 ? b.x1 - .45 : b.x0 + .45, y, zz + (sd > 0 ? 5 : 0)));
     }
-    for (let z = -30; z < len + 30; z += 14 + rnd() * 10) for (const sd of [-1, 1]) put(trees, sd * (24 + rnd() * 40), -2.9, z, 1.6 + rnd() * 1.4, rnd() * 6);
+    for (let z = -30; z < len + 30; z += 6 + rnd() * 6) for (const sd of [-1, 1]) put(trees, sd * (16 + rnd() * 45), -2.9, z, 3.5 + rnd() * 2.5, rnd() * 6);
     // meshes
     const graveGeo = mergeGeos([new THREE.BoxGeometry(.8, 1, .2).translate(0, .5, 0), new THREE.CylinderGeometry(.4, .4, .2, 18, 1, false, -Math.PI / 2, Math.PI).rotateX(Math.PI / 2).rotateZ(0).translate(0, 1, 0), new THREE.BoxGeometry(1, .18, .32).translate(0, .09, 0)]);
     const crossGeo = mergeGeos([new THREE.BoxGeometry(.16, 1.5, .16).translate(0, .75, 0), new THREE.BoxGeometry(.8, .16, .16).translate(0, 1.1, 0)]);
@@ -398,8 +399,20 @@ export class RaceApp {
     inst(graveGeo, stone, graves); inst(crossGeo, stone, crosses);
     inst(new THREE.BoxGeometry(.05, 1.25, .05).translate(0, .62, 0), new THREE.MeshStandardMaterial({color: 0x15151a, metalness: .85, roughness: .4}), bars, false);
     progress(.4);
-    const dead = await this.model('env/dead_tree_trunk.glb'); const base = normalized(dead.scene, 1, 'height'); base.updateMatrixWorld(true);
-    base.traverse(o => {const m = o as THREE.Mesh; if (!m.isMesh) return; const im = new THREE.InstancedMesh(m.geometry, m.material, trees.length); const local = m.matrixWorld.clone(); trees.forEach((t, i) => im.setMatrixAt(i, t.clone().multiply(local))); im.computeBoundingSphere(); this.scene.add(im);});
+    // dark conifer silhouettes around the swamp (scanned trees, nearly black under the moon)
+    const tree = await this.model('env/pine_tree_01_c.glb'); const tb = normalized(tree.scene, 1, 'height'); tb.updateMatrixWorld(true);
+    tb.traverse(o => {const m = o as THREE.Mesh; if (!m.isMesh) return; const mt = (m.material as THREE.MeshStandardMaterial).clone(); mt.color = new THREE.Color(0x3a4450); const im = new THREE.InstancedMesh(m.geometry, mt, trees.length); const local = m.matrixWorld.clone();
+      trees.forEach((t, i) => {const mm = t.clone(); const sc = new THREE.Vector3(); mm.decompose(new THREE.Vector3(), new THREE.Quaternion(), sc); im.setMatrixAt(i, mm.scale(new THREE.Vector3(2.6, 2.6, 2.6)).multiply(local));}); im.computeBoundingSphere(); this.scene.add(im);});
+    // distant chapels / mausoleums on the horizon with warm windows, and a ruined wall line
+    const chapelMat = new THREE.MeshStandardMaterial({color: 0x1b1e26, roughness: 1}), winMat = new THREE.MeshBasicMaterial({color: 0xffa040, fog: false});
+    for (let i = 0; i < 9; i++) {const sd = i % 2 ? 1 : -1, z = -10 + i * (len / 8), x = sd * (100 + rnd() * 70), g = new THREE.Group(); g.position.set(x, -3, z); const s2 = 2 + rnd() * 2.5; g.scale.setScalar(s2);
+      const body = new THREE.Mesh(new THREE.BoxGeometry(4, 5, 7), chapelMat); body.position.y = 2.5; g.add(body);
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(3.6, 3, 4).rotateY(Math.PI / 4), chapelMat); roof.scale.z = 1.7; roof.position.y = 6.5; g.add(roof);
+      if (rnd() < .7) {const tower = new THREE.Mesh(new THREE.BoxGeometry(1.8, 8, 1.8), chapelMat); tower.position.set(0, 4, -4); g.add(tower); const spire = new THREE.Mesh(new THREE.ConeGeometry(1.4, 4, 4), chapelMat); spire.position.set(0, 10, -4); g.add(spire);
+        const cr = new THREE.Mesh(new THREE.BoxGeometry(.2, 1.4, .2), chapelMat); cr.position.set(0, 12.6, -4); g.add(cr); const cb = new THREE.Mesh(new THREE.BoxGeometry(.8, .2, .2), chapelMat); cb.position.set(0, 12.8, -4); g.add(cb);}
+      for (let k = 0; k < 3; k++) if (rnd() < .7) {const w = new THREE.Mesh(new THREE.PlaneGeometry(.6, 1.2), winMat); w.position.set(-sd * 2.02, 2.6, -2 + k * 2); w.rotation.y = -sd * Math.PI / 2; g.add(w);
+        const h = new THREE.Sprite(new THREE.SpriteMaterial({map: dotTexture(true), color: 0xff9030, transparent: true, opacity: .35, depthWrite: false, blending: THREE.AdditiveBlending, fog: false})); h.scale.setScalar(3); h.position.copy(w.position); g.add(h);}
+      this.scene.add(g);}
     // lanterns: iron post, glowing cage, halo (no real lights: cheap on phones)
     const postGeo = new THREE.CylinderGeometry(.06, .08, 2.2, 8).translate(0, 1.1, 0), lampGeo = new THREE.BoxGeometry(.32, .42, .32);
     const posts = new THREE.InstancedMesh(postGeo, new THREE.MeshStandardMaterial({color: 0x121216, metalness: .8, roughness: .5}), lamps.length);
@@ -457,7 +470,7 @@ export class RaceApp {
       sh.vertexShader = sh.vertexShader.replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\n objectNormal = vec3(0.,1.,0.);');};
     this.grassMat = mat;
     const inst = new THREE.InstancedMesh(geo, mat, this.grassSpots.length); const col = new THREE.Color();
-    this.grassSpots.forEach((m, i) => {inst.setMatrixAt(i, m); col.setHSL(.2 + Math.random() * .07, .5, .5 + Math.random() * .2); inst.setColorAt(i, col);});
+    this.grassSpots.forEach((m, i) => {inst.setMatrixAt(i, m); if (this.night) col.setHSL(.15 + Math.random() * .05, .25, .32 + Math.random() * .12); else col.setHSL(.2 + Math.random() * .07, .5, .5 + Math.random() * .2); inst.setColorAt(i, col);});
     inst.receiveShadow = true; inst.computeBoundingSphere(); this.scene.add(inst);
   }
   private atmosphere() {
@@ -570,6 +583,7 @@ export class RaceApp {
     const sd = this.manor ? SKY_DIR : this.night ? MOON_DIR : SUN_DIR; this.sun.position.set(this.camTarget.x + sd.x * 70, this.camTarget.y + sd.y * 70, this.camTarget.z + 8 + sd.z * 70);
     this.fill.position.copy(this.camera.position); this.fill.target.position.set(this.camTarget.x, this.camTarget.y, this.camTarget.z);
     this.animateAtmosphere(dt); this.syncRocks(dt);
+    if (this.moonGlow) this.moonGlow.position.copy(this.camera.position).addScaledVector(MOON_DIR, 400);
     if (this.sunGlow) {const sp = this.camera.position.clone().addScaledVector(SUN_DIR, 420); this.sunGlow.position.copy(sp);
       this.rays.forEach((r, i) => {r.position.copy(this.camera.position).addScaledVector(SUN_DIR, 300); r.lookAt(this.camera.position); r.rotateZ(-.5 + i * .25 + Math.sin(this.course.time * .1 + i) * .03); r.translateY(-120);});}
     for (const s of this.swingers) s.rotation.z = Math.sin(this.course.time * .8 + s.userData.sway) * .05;
