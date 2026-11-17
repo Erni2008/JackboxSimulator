@@ -61,7 +61,13 @@ export class RaceApp {
       const topM = ({grass: mats.grass, plank: mats.plank, stone: mats.stone, cobble: mats.cobble, brick: mats.brick, dark: mats.dark, mud: mats.mud, floor: mats.floor, flag: mats.flag} as Record<string, THREE.Material>)[b.mat];
       const side = b.mat === 'plank' ? mats.plank : b.mat === 'dark' ? mats.dark : this.manor ? (b.mat === 'floor' ? mats.beam : mats.wall) : this.night ? mats.brick : mats.rock;
       let tm = topM; if (b.conveyor) {const mm = (topM as THREE.MeshStandardMaterial).clone(); for (const k of ['map', 'normalMap', 'roughnessMap'] as const) if (mm[k]) {mm[k] = mm[k]!.clone(); mm[k]!.needsUpdate = true; this.belts.push(mm[k]!);} tm = mm;}
-      const m = new THREE.Mesh(blockGeometry(b), [tm, side]);
+      const m = new THREE.Mesh(blockGeometry(b), [tm, this.shaded(side)]);
+      // carved edge trim around walkable tops (curbs / skirting) — breaks the boxy look
+      const trimMat = this.manor ? (b.mat === 'floor' ? mats.beam : mats.wall) : this.night ? mats.brick : b.mat === 'grass' ? null : b.mat === 'plank' ? mats.bark : mats.rock;
+      if (trimMat && !b.trapPeriod && (b.x1 - b.x0) > 2 && b.y0 === b.y1) {const y = b.y0, tw = .28, th = .2;
+        const edge = (w: number, d: number, x: number, z: number) => {const t = new THREE.Mesh(new THREE.BoxGeometry(w, th, d), trimMat); t.position.set(x, y - th / 2 + .07, z); t.castShadow = false; t.receiveShadow = true; m.add(t);};
+        edge(tw, b.z1 - b.z0, b.x0 + tw / 2 - .04, (b.z0 + b.z1) / 2); edge(tw, b.z1 - b.z0, b.x1 - tw / 2 + .04, (b.z0 + b.z1) / 2);
+        if (!b.land) {edge(b.x1 - b.x0, tw, (b.x0 + b.x1) / 2, b.z0 + tw / 2 - .04); edge(b.x1 - b.x0, tw, (b.x0 + b.x1) / 2, b.z1 - tw / 2 + .04);}}
       if (b.trapPeriod) {const w = new THREE.Mesh(new THREE.PlaneGeometry(b.x1 - b.x0 - .1, b.z1 - b.z0 - .1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({color: 0xff2a12, transparent: true, opacity: .5, depthWrite: false, blending: THREE.AdditiveBlending})); w.position.set((b.x0 + b.x1) / 2, b.y0 + .03, (b.z0 + b.z1) / 2); w.visible = false; this.scene.add(w); this.warnPlanes.set(b, w);} if (b.mat === 'grass') this.grassOn(b); m.receiveShadow = true; m.castShadow = b.mat === 'plank' || b.crumbles; this.blockMeshes.set(b, m); this.scene.add(m);
     }
     if (!this.night) {const floor = new THREE.Mesh(new THREE.PlaneGeometry(520, 540).rotateX(-Math.PI / 2), mats.ground); floor.receiveShadow = false; floor.position.set(0, -34, 150); worldUV(floor.geometry as THREE.BufferGeometry, 6, 'xz'); this.scene.add(floor);}
@@ -196,6 +202,9 @@ export class RaceApp {
     for (const r of c.rooms) {
       const len = r.z1 - r.z0, zc = (r.z0 + r.z1) / 2, base = r.y - 8, H = r.h + 8;
       for (const sd of [-1, 1]) {const w = add(new THREE.Mesh(plane(len, H, 3), mats.wall)); w.position.set(sd * r.halfW, base + H / 2, zc); w.rotation.y = -sd * Math.PI / 2;
+        const wc = add(new THREE.Mesh(plane(len, 1.3, 2), mats.beam), false); wc.position.set(sd * (r.halfW - .03), r.y + .65, zc); wc.rotation.y = -sd * Math.PI / 2;
+        const rail = add(new THREE.Mesh(new THREE.BoxGeometry(.12, .14, len), mats.beam), false); rail.position.set(sd * (r.halfW - .06), r.y + 1.32, zc);
+        const ao = add(new THREE.Mesh(new THREE.PlaneGeometry(len, 1.2), new THREE.MeshBasicMaterial({map: aoTexture(), transparent: true, depthWrite: false, color: 0})), false); ao.rotation.set(-Math.PI / 2, 0, -sd * Math.PI / 2 + Math.PI / 2); ao.position.set(sd * (r.halfW - .6), r.y + .02, zc);
         for (let z = r.z0 + 1; z < r.z1; z += 4) {const post = add(new THREE.Mesh(new THREE.BoxGeometry(.5, r.h + 1, .5), mats.beam)); post.position.set(sd * (r.halfW - .25), r.y + r.h / 2 - .5, z);}}
       if (prevW > 0 && prevW !== r.halfW) for (const sd of [-1, 1]) {const a = Math.min(prevW, r.halfW), b = Math.max(prevW, r.halfW); const j = add(new THREE.Mesh(plane(b - a, H + 4, 3), mats.wall)); j.position.set(sd * (a + b) / 2, base + (H + 4) / 2, r.z0); if (prevW < r.halfW) j.rotation.y = Math.PI;}
       prevW = r.halfW;
@@ -472,9 +481,12 @@ export class RaceApp {
   private resize() {const w = innerWidth, h = innerHeight; this.renderer.setSize(w, h); this.composer?.setSize(w, h); this.camera.aspect = w / h; this.camera.fov = w < h ? 70 : 58; this.camera.updateProjectionMatrix();}
   private model(url: string) {let p = this.cache.get(url); if (!p) {p = this.gltf.loadAsync(url); this.cache.set(url, p);} return p;}
   private tex(url: string, repeat = true, color = true) {const t = this.texLoader.load(url); if (color) t.colorSpace = THREE.SRGBColorSpace; if (repeat) t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; return t;}
+  private shadedCache = new Map<THREE.Material, THREE.Material>();
+  /** Same material, darkened towards the abyss through the block's vertex colours (only block cliff faces carry them). */
+  private shaded(m: THREE.Material) {let c = this.shadedCache.get(m); if (!c) {c = (m as THREE.MeshStandardMaterial).clone(); (c as THREE.MeshStandardMaterial).vertexColors = true; this.shadedCache.set(m, c);} return c;}
   private mat(name: string, _tile: number, shade = false, tint = 0xffffff) {
     const arm = this.tex(`tex/${name}/arm.jpg`, true, false);
-    return new THREE.MeshStandardMaterial({map: this.tex(`tex/${name}/diffuse.jpg`), normalMap: this.tex(`tex/${name}/nor_gl.jpg`, true, false), roughnessMap: arm, roughness: 1, metalness: 0, vertexColors: shade, envMapIntensity: .8, color: tint});
+    return new THREE.MeshStandardMaterial({map: this.tex(`tex/${name}/diffuse.jpg`), normalMap: this.tex(`tex/${name}/nor_gl.jpg`, true, false), roughnessMap: arm, roughness: 1, metalness: 0, vertexColors: false, envMapIntensity: .8, color: tint});
   }
 }
 
@@ -582,3 +594,6 @@ function ironCage(open = false) {
   if (open) {const door = new THREE.Group(); for (let i = 0; i < 3; i++) {const b = new THREE.Mesh(barGeo, iron); b.position.set(i * .26, (Hh + .12) / 2, 0); door.add(b);} door.position.set(Math.cos(2 / bars * Math.PI * 2) * R, 0, Math.sin(2 / bars * Math.PI * 2) * R); door.rotation.y = -1.6; g.add(door);}
   g.traverse(o => {if ((o as THREE.Mesh).isMesh) {o.castShadow = true; o.receiveShadow = true;}}); return g;
 }
+
+function aoTexture() {const c = document.createElement('canvas'); c.width = 4; c.height = 64; const x = c.getContext('2d')!; const g = x.createLinearGradient(0, 0, 0, 64);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.75)'); x.fillStyle = g; x.fillRect(0, 0, 4, 64); return new THREE.CanvasTexture(c);}
