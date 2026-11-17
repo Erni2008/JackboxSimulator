@@ -2,14 +2,16 @@
 // race is different; the seed is all a phone needs to rebuild the exact same course. Moving parts are deterministic from
 // the shared clock, so every phone sees the same logs, barrels and rocks; each phone simulates only its own runner.
 export type Mat = 'grass' | 'plank' | 'stone' | 'cobble' | 'brick' | 'dark' | 'mud' | 'floor' | 'flag';
-export type Theme = 'cliffs' | 'graveyard' | 'manor';
+export type Theme = 'cliffs' | 'graveyard' | 'manor' | 'crypt';
 export const THIN: Mat[] = ['plank', 'dark'];
 /** Indoor room: walls at ±halfW from z0 to z1, ceiling at floor + h. */
 export interface Room {z0: number; z1: number; halfW: number; y: number; h: number; skylights: boolean}
 export interface Block {x0: number; x1: number; z0: number; z1: number; bottom: number; y0: number; y1: number; mat: Mat;
   driftAmp: number; driftPeriod: number; driftPhase: number; crumbles: boolean; crumbleDelay: number; sink: boolean;
   liftAmp: number; liftPeriod: number; liftPhase: number; conveyor: number; trapPeriod: number; trapPhase: number; warn: boolean;
-  lastOffY: number; offX: number; offY: number; lastOffX: number; crumbleAt: number; fallV: number; gone: boolean; land?: boolean}
+  lastOffY: number; offX: number; offY: number; lastOffX: number; crumbleAt: number; fallV: number; gone: boolean; land?: boolean; wall?: boolean; ghost?: boolean}
+/** Portal: step in, come out somewhere else (good / short / back to start). */
+export interface Portal {x: number; y: number; z: number; r: number; tx: number; ty: number; tz: number; kind: 'far' | 'near' | 'back'; used: number}
 export interface Sweeper {x: number; y: number; z: number; len: number; speed: number; angle: number; arms?: number; angle0?: number}
 export interface Pendulum {px: number; py: number; pz: number; len: number; amp: number; period: number; phase: number; radius: number; bx: number; by: number; bz: number; swing: number}
 export interface Faller {id: number; x: number; z: number; g: number; spawn: number; impact: number; r: number; y: number; alive: boolean; landed: boolean}
@@ -35,21 +37,22 @@ const LOOK: Record<Theme, Look> = {
   cliffs: {main: 'grass', alt: 'stone', thin: 'plank', land: 'grass', crumble: 'stone'},
   graveyard: {main: 'cobble', alt: 'brick', thin: 'dark', land: 'mud', crumble: 'mud'},
   manor: {main: 'floor', alt: 'flag', thin: 'floor', land: 'flag', crumble: 'floor'},
+  crypt: {main: 'flag', alt: 'flag', thin: 'floor', land: 'flag', crumble: 'flag'},
 };
 export const SECTION_NAMES: Record<string, string> = {terraces: 'Террасы', spinner: 'Мельница', gaps: 'Провалы', pendulums: 'Маятники', rafts: 'Плоты', crumble: 'Обвал пола',
-  sink: 'Трясина', pushers: 'Тараны', pads: 'Батуты', traps: 'Люки', conveyor: 'Транспортёр', ramp: 'Скат', rain: 'Дождь с неба', hops: 'Лестница к финишу'};
+  sink: 'Трясина', pushers: 'Тараны', pads: 'Батуты', traps: 'Люки', conveyor: 'Транспортёр', maze: 'Лабиринт', fakewalls: 'Ложные стены', portals: 'Порталы', ramp: 'Скат', rain: 'Дождь с неба', hops: 'Лестница к финишу'};
 
 export class Course {
   blocks: Block[] = []; sweepers: Sweeper[] = []; pendulums: Pendulum[] = []; boulders: Boulder[] = []; fallers: Faller[] = [];
-  pushers: Pusher[] = []; pads: Pad[] = []; rooms: Room[] = []; sections: {name: string; z0: number; z1: number}[] = [];
+  pushers: Pusher[] = []; pads: Pad[] = []; portals: Portal[] = []; mazePath: [number, number][] = []; mazeBox = [0, 0, 0, 0]; rooms: Room[] = []; sections: {name: string; z0: number; z1: number}[] = [];
   fallZones: [number, number, number, number][] = []; checkpoints: number[] = [0]; finishZ = 0; time = 0;
   rampZ0 = 0; rampZ1 = 0; rampY0 = 0; rampY1 = 0; rampHalfW = 4; theme: Theme; deathY = DEATH_Y;
   private boulderTimer = 1.2; private seed = 7; private fallTimer = 0; private fallSeed = 99; private fallId = 0;
   private look: Look; private z = 0; private y = 0; private rs: number;
 
   constructor(public map = 1, public courseSeed = 1) {
-    this.theme = map === 3 ? 'manor' : map === 2 ? 'graveyard' : 'cliffs';
-    this.deathY = this.theme === 'manor' ? -6 : this.theme === 'graveyard' ? -2.4 : DEATH_Y;
+    this.theme = map === 4 ? 'crypt' : map === 3 ? 'manor' : map === 2 ? 'graveyard' : 'cliffs';
+    this.deathY = this.theme === 'manor' || this.theme === 'crypt' ? -6 : this.theme === 'graveyard' ? -2.4 : DEATH_Y;
     this.look = LOOK[this.theme]; this.rs = (courseSeed >>> 0) || 1;
     this.build();
   }
@@ -60,7 +63,8 @@ export class Course {
     this.add(-10, 10, -6, 20, 0, 0, L.land).land = true; this.room(-8, 20, 10, 10); this.z = 20;
     const pool = ['terraces', 'spinner', 'gaps', 'pendulums', 'rafts', 'crumble', 'pushers', 'pads', 'traps', 'conveyor', ...(this.theme === 'graveyard' ? ['sink'] : [])].filter(n => !(this.theme === 'manor' && n === 'pads'));
     for (let i = pool.length - 1; i > 0; i--) {const j = Math.floor(this.rnd() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]];}
-    const order = pool.slice(0, 6); order.splice(2 + Math.floor(this.rnd() * 3), 0, 'ramp'); order.push(this.theme === 'manor' ? 'pads' : 'rain', 'hops');
+    let order = pool.slice(0, 6); order.splice(2 + Math.floor(this.rnd() * 3), 0, 'ramp'); order.push(this.theme === 'manor' ? 'pads' : 'rain', 'hops');
+    if (this.theme === 'crypt') {const extra = pool.filter(n => n !== 'pads' && n !== 'rafts').slice(0, 3); order = ['maze', extra[0], 'fakewalls', extra[1], 'portals', extra[2], 'maze', 'rain', 'hops'];}
     for (const name of order) {
       const z0 = this.z; (this as any)['s_' + name](); this.sections.push({name, z0, z1: this.z});
       if (name === 'hops') break;
@@ -113,13 +117,57 @@ export class Course {
     for (const [hx, len] of [[0, 3], [-2.3, 2.6], [2.1, 2.6], [-1, 2.4], [1.6, 2.6], [0, 3]]) {this.z += 2.1; this.y += .5; const b = this.add(hx - 1.8, hx + 1.8, this.z, this.z + len, this.y, this.y, this.look.alt); if (lifts) {b.liftAmp = .3; b.liftPeriod = 2.5; b.liftPhase = this.z;} this.z += len;}
     this.fallZones.push([-3, 3, z0, this.z]); this.room(z0, this.z, 6.6, 12);}
 
-  private room(z0: number, z1: number, halfW: number, h = 8, sky = true) {if (this.theme === 'manor') this.rooms.push({z0, z1, halfW, y: this.y, h, skylights: sky});}
+  // ---- catacomb sections ----
+  private wallBlock(x0: number, x1: number, z0: number, z1: number, h = 2.8, ghost = false) {const b = this.add(x0, x1, z0, z1, this.y + h, this.y + h, 'flag'); b.bottom = this.y; b.wall = true; b.ghost = ghost; return b;}
+  /** Seeded perfect maze (depth-first), one entrance, one exit; bots follow the solved path. */
+  private s_maze() {
+    const C = 7, Rr = 6, cs = 3.2, W = C * cs, z0 = this.z + 1, x0 = -W / 2, t = .35;
+    this.add(-W / 2 - .5, W / 2 + .5, this.z, z0 + Rr * cs + 1, this.y, this.y, this.look.main); this.room(this.z, z0 + Rr * cs + 1, W / 2 + 1.1, 12);
+    const seen = new Set<number>(), open = new Set<string>(), key = (a: number, b: number) => a < b ? a + ':' + b : b + ':' + a, id = (c: number, r: number) => r * C + c;
+    const stack = [[3, 0]]; seen.add(id(3, 0));
+    while (stack.length) {const [c, r] = stack[stack.length - 1]; const nb = [[c + 1, r], [c - 1, r], [c, r + 1], [c, r - 1]].filter(([a, b]) => a >= 0 && a < C && b >= 0 && b < Rr && !seen.has(id(a, b)));
+      if (!nb.length) {stack.pop(); continue;} const [a, b] = nb[Math.floor(this.rnd() * nb.length) % nb.length]; open.add(key(id(c, r), id(a, b))); seen.add(id(a, b)); stack.push([a, b]);}
+    const exitC = Math.floor(this.rnd() * C);
+    for (let r = 0; r <= Rr; r++) for (let c = 0; c < C; c++) {  // horizontal walls (between row r-1 and r)
+      const isOpen = r === 0 ? c === 3 : r === Rr ? c === exitC : open.has(key(id(c, r - 1), id(c, r)));
+      if (!isOpen) this.wallBlock(x0 + c * cs - t / 2, x0 + (c + 1) * cs + t / 2, z0 + r * cs - t / 2, z0 + r * cs + t / 2);}
+    for (let r = 0; r < Rr; r++) for (let c = 0; c <= C; c++) {  // vertical walls
+      const isOpen = c > 0 && c < C && open.has(key(id(c - 1, r), id(c, r)));
+      if (!isOpen) this.wallBlock(x0 + c * cs - t / 2, x0 + c * cs + t / 2, z0 + r * cs - t / 2, z0 + (r + 1) * cs + t / 2);}
+    // solve for bots
+    const prev = new Map<number, number>(), q = [id(3, 0)]; prev.set(id(3, 0), -1);
+    while (q.length) {const cur = q.shift()!, c = cur % C, r = Math.floor(cur / C); for (const [a, b] of [[c + 1, r], [c - 1, r], [c, r + 1], [c, r - 1]]) {if (a < 0 || a >= C || b < 0 || b >= Rr) continue; const n = id(a, b); if (prev.has(n) || !open.has(key(cur, n))) continue; prev.set(n, cur); q.push(n);}}
+    const path: [number, number][] = []; for (let n = id(exitC, Rr - 1); n !== -1; n = prev.get(n)!) path.unshift([x0 + (n % C + .5) * cs, z0 + (Math.floor(n / C) + .5) * cs]);
+    path.unshift([0, z0 - .6]); path.push([x0 + (exitC + .5) * cs, z0 + Rr * cs + .8]);
+    this.mazePaths.push({box: [x0, x0 + W, z0 - 1, z0 + Rr * cs + 1], path});
+    this.z = z0 + Rr * cs + 1;
+  }
+  mazePaths: {box: number[]; path: [number, number][]}[] = [];
+  /** Zig-zag of cross walls; each has a shimmering fake segment in the middle — the secret straight route. */
+  private s_fakewalls() {const len = 34, w = 4.6, z = this.z; this.add(-w, w, z, z + len, this.y, this.y, this.look.main); this.room(z, z + len, w + .6, 9);
+    for (let i = 0; i < 4; i++) {const wz = z + 5 + i * 7.5, gap = i % 2 ? 1 : -1, t = .45;
+      // solid wall with a real doorway at one side and a fake panel in the centre
+      if (gap > 0) {this.wallBlock(-w, -1.3, wz, wz + t); this.wallBlock(1.3, w - 1.8, wz, wz + t);} else {this.wallBlock(-w + 1.8, -1.3, wz, wz + t); this.wallBlock(1.3, w, wz, wz + t);}
+      this.wallBlock(-1.3, 1.3, wz, wz + t, 2.8, true);}
+    this.z += len;}
+  /** Three identical portals in front of a sealed wall; the seed decides which goes far, which near, which back. */
+  private s_portals() {const z = this.z, w = 6.4, y = this.y; this.add(-w, w, z, z + 12, y, y, this.look.main); this.room(z, z + 12, w + .6, 9);
+    this.wallBlock(-w, w, z + 11, z + 12, 5);
+    // behind the wall: a trap corridor the lucky portal skips
+    const cz = z + 12; this.add(-4, 4, cz, cz + 4, y, y, this.look.main);
+    for (let r = 0; r < 5; r++) for (const c of [-1, 0, 1]) {const b = this.add(c * 2.6 - 1.25, c * 2.6 + 1.25, cz + 4 + r * 2.6, cz + 4 + r * 2.6 + 2.5, y, y, this.look.alt); b.bottom = y - .35; b.trapPeriod = 2.4; b.trapPhase = r * .15 + c * .04;}
+    const end = cz + 17; this.add(-4, 4, end, end + 4, y, y, this.look.main); this.room(cz, end + 4, 4.6, 9);
+    const kinds: Portal['kind'][] = ['far', 'near', 'back']; for (let i = 2; i > 0; i--) {const j = Math.floor(this.rnd() * (i + 1)); [kinds[i], kinds[j]] = [kinds[j], kinds[i]];}
+    [-4, 0, 4].forEach((x, i) => {const k = kinds[i]; const tz = k === 'far' ? end + 2 : k === 'near' ? cz + 1.5 : z + 1.5; this.portals.push({x, y, z: z + 8, r: 1.05, tx: 0, ty: y, tz, kind: k, used: -9});});
+    this.z = end + 4;}
+
+  private room(z0: number, z1: number, halfW: number, h = 8, sky = true) {if (this.theme === 'manor' || this.theme === 'crypt') this.rooms.push({z0, z1, halfW, y: this.y, h, skylights: sky && this.theme === 'manor'});}
   private add(x0: number, x1: number, z0: number, z1: number, y0: number, y1: number, mat: Mat): Block {
     const b: Block = {x0, x1, z0, z1, y0, y1, mat, bottom: THIN.includes(mat) ? Math.min(y0, y1) - .42 : BOTTOM, sink: false, liftAmp: 0, liftPeriod: 1, liftPhase: 0, lastOffY: 0,
       conveyor: 0, trapPeriod: 0, trapPhase: 0, warn: false, driftAmp: 0, driftPeriod: 1, driftPhase: 0, crumbles: false, crumbleDelay: .75, offX: 0, offY: 0, lastOffX: 0, crumbleAt: -1, fallV: 0, gone: false};
     this.blocks.push(b); return b;
   }
-  spawnY(z: number) {let best = -99; for (const b of this.blocks) if (!b.crumbles && !b.driftAmp && !b.trapPeriod && z >= b.z0 && z <= b.z1 && b.bottom < b.y0 - .5) best = Math.max(best, top(b, z)); return best > -99 ? best : 0;}
+  spawnY(z: number) {let best = -99; for (const b of this.blocks) if (!b.crumbles && !b.driftAmp && !b.trapPeriod && !b.wall && z >= b.z0 && z <= b.z1 && b.bottom < b.y0 - .5) best = Math.max(best, top(b, z)); return best > -99 ? best : 0;}
   sectionAt(z: number) {return this.sections.find(s => z >= s.z0 && z < s.z1);}
 
   step(dt: number) {
@@ -182,7 +230,7 @@ export class Course {
     const prevY = r.y; r.x += r.vx * dt; r.y += r.vy * dt; r.z += r.vz * dt;
     let landed: Block | null = null;
     for (const b of this.blocks) {
-      if (b.gone) continue;
+      if (b.gone || b.ghost) continue;
       const x0 = b.x0 + b.offX, x1 = b.x1 + b.offX, cx = clamp(r.x, x0, x1), cz = clamp(r.z, b.z0, b.z1), dx = r.x - cx, dz = r.z - cz, d2 = dx * dx + dz * dz;
       if (d2 > R * R) continue;
       const tp = top(b, cz), ramp = b.y0 !== b.y1;
@@ -206,6 +254,7 @@ export class Course {
     for (const p of this.pushers) {const inner = p.wallX - p.reach * p.ext, xa = Math.min(p.side * p.wallX, p.side * inner), xb = Math.max(p.side * p.wallX, p.side * inner);
       if (p.ext > .05 && r.x + R > xa && r.x - R < xb && Math.abs(r.z - p.z) < p.d / 2 + R && r.y < p.y + 1.7 && r.y + H > p.y) {
         if (p.ext > p.lastExt) this.hit(r, -p.side * 15, 6.5, (r.z - p.z) * 2); else r.x = p.side > 0 ? Math.min(r.x, xa - R) : Math.max(r.x, xb + R);}}
+    for (const p of this.portals) if (Math.hypot(r.x - p.x, r.z - p.z) < p.r && Math.abs(r.y - p.y) < 1.2) {r.x = p.tx + ((r.slot % 3) - 1) * .8; r.y = p.ty + .1; r.z = p.tz; r.vx = r.vz = 0; r.vy = 0; r.ground = null; p.used = this.time; (r as any).teleported = this.time; r.progress = Math.max(r.progress, r.z);}
     for (const p of this.pads) if (r.ground && Math.hypot(r.x - p.x, r.z - p.z) < p.r && Math.abs(r.y - p.y) < .3) {r.vy = 15; r.vz = Math.max(r.vz, 10.5); r.ground = null; r.coyote = 0; p.fired = this.time;}
     for (const f of this.fallers) {if (this.time > f.impact + .25) continue; const dx = r.x - f.x, dy = r.y + H / 2 - f.y, dz = r.z - f.z, rr = f.r + R;
       if (dx * dx + dy * dy + dz * dz < rr * rr) {const d = Math.hypot(dx, dz) || 1; this.hit(r, dx / d * 9, 8, dz / d * 9);}}
@@ -226,8 +275,12 @@ export class Course {
     for (const b of this.blocks) if (b.driftAmp && b.z0 > r.z && b.z0 - r.z < 2.5) tx = (b.x0 + b.x1) / 2 + b.offX;
     for (const p of this.pads) if (p.z > r.z && p.z - r.z < 6) tx = p.x;
     r.inX = clamp((tx - r.x) * .6, -1, 1); r.inZ = 1;
+    for (const m of this.mazePaths) if (r.x > m.box[0] - 1 && r.x < m.box[1] + 1 && r.z > m.box[2] && r.z < m.box[3]) {
+      let best = 0, bd = 1e9; m.path.forEach(([px, pz], i) => {const d = Math.hypot(px - r.x, pz - r.z); if (d < bd) {bd = d; best = i;}});
+      const [nx, nz] = m.path[Math.min(m.path.length - 1, best + (bd < 1.1 ? 1 : 0))]; const dx = nx - r.x, dz = nz - r.z, l = Math.hypot(dx, dz) || 1; r.inX = dx / l; r.inZ = dz / l;}
+    if (this.portals.length) {const p0 = this.portals[0]; if (r.z > p0.z - 7 && r.z < p0.z + .5) {const pick = this.portals[(r.slot * 7 + Math.floor(this.time / 9)) % this.portals.length]; r.inX = clamp((pick.x - r.x) * .8, -1, 1);}}
     let want = false, support = false; const ahead = r.z + 1.3, here = r.ground ? top(r.ground, r.z) : r.y;
-    for (const b of this.blocks) {if (b.gone) continue; if (r.x >= b.x0 + b.offX && r.x <= b.x1 + b.offX && ahead >= b.z0 && ahead <= b.z1) {support = true; if (top(b, ahead) > here + .35) want = true;}}
+    for (const b of this.blocks) {if (b.gone || b.wall) continue; if (r.x >= b.x0 + b.offX && r.x <= b.x1 + b.offX && ahead >= b.z0 && ahead <= b.z1) {support = true; if (top(b, ahead) > here + .35) want = true;}}
     if (!support && !this.pads.some(p => Math.abs(p.z - r.z) < 2.5)) want = true;
     for (const s0 of this.sweepers) for (let arm = 0; arm < (s0.arms || 1); arm++) {const a = s0.angle + arm * Math.PI / (s0.arms || 1), ex = Math.cos(a) * s0.len, ez = Math.sin(a) * s0.len, t = clamp(((r.x - s0.x) * ex + (r.z - s0.z) * ez) / (ex * ex + ez * ez), -1, 1);
       if (Math.hypot(r.x - (s0.x + ex * t), r.z - (s0.z + ez * t)) < 1.7) want = true;}
