@@ -1,0 +1,35 @@
+"""Voice the THE IMPOSTOR rules film with the approved cloned host voice (same treatment as the SB pack)."""
+import json,os,sys
+from pathlib import Path
+from narration import LocalWorker,TOOL,ROOT,validate
+from system_breach_pack import treat,normalize
+
+LINES=[
+ "У каждого есть роль. А у одного — тайна.",
+ "Все игроки получают секретное слово. Все — кроме импостора: ему достаётся только подсказка.",
+ "Каждый раунд напишите одно слово-улику. Намекните — но не выдайте слово!",
+ "После раунда отметьте, кто кажется вам подозрительным.",
+ "Через три раунда — финальное голосование.",
+ "Поймали импостора — победили мирные. Ошиблись — побеждает импостор.",
+ "Ну что ж… Найдите импостора!",
+]
+OUT=ROOT/'assets/impostor/rules';WORK=TOOL/'output/impostor-rules'
+
+def main():
+    cfg=TOOL/'config/system-breach.local.json';settings=json.loads((TOOL/'config/intro-treatment.json').read_text());settings['tailPaddingSeconds']=.22
+    only={int(a) for a in sys.argv[1:]}
+    OUT.mkdir(parents=True,exist_ok=True);WORK.mkdir(parents=True,exist_ok=True)
+    with (WORK/'worker.log').open('a') as log:
+        worker=LocalWorker(cfg,log)
+        try:
+            for i,text in enumerate(LINES):
+                if only and i not in only:continue
+                raw=WORK/f'rules_{i}.wav';treated=WORK/f'rules_{i}_treated.wav';final=OUT/f'rules_{i}.wav'
+                for f in (raw,treated,final):
+                    if f.exists():f.unlink()
+                worker.generate(text,raw,seed=int(os.environ.get('SEED','7' if i in (2,3) else '42')),temperature=.6);validate(raw,text)
+                treat(raw,treated,settings,text);normalize(treated,final)
+                print(f'READY {i}: {validate(final,text):.2f}s',flush=True)
+        finally:worker.close()
+
+if __name__=='__main__':main()

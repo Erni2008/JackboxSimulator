@@ -398,7 +398,7 @@ public final class SystemBreachRulesFilm implements Disposable {
     // ---------- primitives ----------
     private final Texture eye;
     /** Stitched button eye for the voodoo doll: dark lacquered button, four thread holes, a red ember glint. */
-    private static Texture buttonEye(){
+    public static Texture buttonEye(){
         int n=128;var pm=new com.badlogic.gdx.graphics.Pixmap(n,n,com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);pm.setBlending(com.badlogic.gdx.graphics.Pixmap.Blending.None);
         for(int y=0;y<n;y++)for(int x=0;x<n;x++){float dx=(x-n/2f+.5f)/(n/2f),dy=(y-n/2f+.5f)/(n/2f),d=(float)Math.sqrt(dx*dx+dy*dy);if(d>1){pm.drawPixel(x,y,0);continue;}
             float rim=d>.8f?1-(d-.8f)/.2f*.6f:1;float shade=.5f+.5f*(-dx*.5f-dy*.7f);float r=.10f+.10f*shade,g=.05f+.05f*shade,b=.05f+.04f*shade;
