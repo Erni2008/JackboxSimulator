@@ -70,7 +70,7 @@ export const TRIALS = ['spinner', 'gauntlet', 'highlow', 'gaps', 'beams', 'pendu
   'gears', 'gates', 'wind', 'chase', 'tilt', 'hooks', 'falsebridge', 'minecarts'];
 
 export class Course {
-  static readonly BARREL_SPEEDS = [5.5, 9, 13];
+  static readonly BARREL_SPEEDS = [4, 8.5, 14]; // slow / medium / fast — clearly different
   blocks: Block[] = []; sweepers: Sweeper[] = []; pendulums: Pendulum[] = []; boulders: Boulder[] = []; fallers: Faller[] = [];
   pushers: Pusher[] = []; jets: Jet[] = []; gears: Gear[] = []; gates: Gate[] = []; fans: Fan[] = []; hooks: Hook[] = []; chasers: Chaser[] = []; carts: Block[] = []; tilts: Block[] = []; pads: Pad[] = []; portals: Portal[] = []; mazePath: [number, number][] = []; mazeBox = [0, 0, 0, 0]; rooms: Room[] = []; sections: {name: string; z0: number; z1: number}[] = [];
   fallZones: [number, number, number, number][] = []; checkpoints: number[] = [0]; finishZ = 0; time = 0;
@@ -375,7 +375,7 @@ export class Course {
     if (this.boulderTimer <= 0 && this.rampZ1 > this.rampZ0) {
       const len = this.rampZ1 - this.rampZ0, hw = this.rampHalfW, pick = this.srand(), lanes = [-1, 0, 1].sort(() => this.srand() - .5);
       const pattern = pick < .34 ? 'down' : pick < .52 ? 'up' : pick < .72 ? 'cross' : pick < .87 ? 'zigzag' : 'hop';
-      const spawn = (ln: number, dir: 1 | -1, o: Partial<Boulder> = {}) => {if (this.boulders.length >= 8) return; const radius = .85 + this.srand() * .2;
+      const spawn = (ln: number, dir: 1 | -1, o: Partial<Boulder> = {}) => {if (this.boulders.length >= 10) return; const radius = .85 + this.srand() * .2;
         const x = clamp(ln * hw * .62 + (this.srand() - .5) * .8, -hw + radius, hw - radius), z = dir < 0 ? this.rampZ1 - 1 - this.srand() * 2 : this.rampZ0 + .6;
         if (this.boulders.some(q => Math.hypot(q.x - x, q.z - z) < q.radius + radius + .2)) return; // never spawn inside another one
         const up = dir > 0, v0 = Math.sqrt(12 * len * (.38 + this.srand() * .32)); // uphill launch peaks at 38-70 % of the ramp
@@ -386,11 +386,11 @@ export class Course {
       else if (pattern === 'cross') {spawn(lanes[0], -1); spawn(lanes[0], 1);} // same lane: they meet head-on and bounce apart
       else if (pattern === 'zigzag') spawn(lanes[0], -1, {vx: (this.srand() < .5 ? -1 : 1) * (2.6 + this.srand() * 1.6), target: Course.BARREL_SPEEDS[1]});
       else spawn(lanes[0], -1, {bouncy: true, vh: 4, target: Course.BARREL_SPEEDS[this.srand() < .5 ? 0 : 1]});
-      this.boulderTimer = (pattern === 'up' || pattern === 'cross' ? 1.7 : 1.05) + this.srand() * .55;
+      this.boulderTimer = (pattern === 'up' || pattern === 'cross' ? 1.2 : .62) + this.srand() * .38; // frequent waves
     }
     const slope = (this.rampY1 - this.rampY0) / Math.max(1, this.rampZ1 - this.rampZ0), hw = this.rampHalfW;
     for (const bo of this.boulders) {
-      if (!bo.free && this.time >= bo.next) {bo.target = Course.BARREL_SPEEDS[Math.min(2, Math.floor(this.srand() * 3))] * (.85 + this.srand() * .3); bo.next = this.time + .9 + this.srand() * 1.8;} // change pace mid-roll
+      if (!bo.free && this.time >= bo.next) {bo.target = Course.BARREL_SPEEDS[Math.min(2, Math.floor(this.srand() * 3))] * (.9 + this.srand() * .2); bo.next = this.time + .9 + this.srand() * 1.8;} // change pace mid-roll
       const onRamp = bo.z > this.rampZ0 && bo.z < this.rampZ1 + .5;
       if (!onRamp) bo.vz -= 10 * dt; else if (bo.free) bo.vz -= 6 * dt; else bo.vz += clamp(-bo.target - bo.vz, -7 * dt, 7 * dt);
       if (bo.z > this.rampZ1 - bo.radius && bo.vz > 0) bo.vz = -bo.vz * .4; // never rolls off the top
