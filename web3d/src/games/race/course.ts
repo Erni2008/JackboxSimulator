@@ -358,14 +358,14 @@ export class Course {
     if (this.boulderTimer <= 0 && this.rampZ1 > this.rampZ0) {
       const r1 = this.srand(), n = r1 < .6 ? 1 : 2, lanes = [-1, 0, 1].sort(() => this.srand() - .5).slice(0, n);
       for (const ln of lanes) {const radius = .85 + this.srand() * .2;
-        const x = ln * this.rampHalfW * .62 + (this.srand() - .5) * .8, z = this.rampZ1 - 1 - this.srand() * 2, target = Course.BARREL_SPEEDS[Math.floor(this.srand() * 3)];
+        const x = ln * this.rampHalfW * .62 + (this.srand() - .5) * .8, z = this.rampZ1 - 1 - this.srand() * 2, target = Course.BARREL_SPEEDS[Math.min(2, Math.floor(this.srand() * 3))];
         if (this.boulders.some(o => Math.hypot(o.x - x, o.z - z) < o.radius + radius + .1)) continue; // never spawn inside another barrel
         this.boulders.push({x, y: this.rampY1 + radius, z, vz: -2 - this.srand() * 2, spin: 0, radius, alive: true, target, next: this.time + .8 + this.srand() * 1.6});}
       this.boulderTimer = 1.05 + this.srand() * .55;
     }
     const slope = (this.rampY1 - this.rampY0) / Math.max(1, this.rampZ1 - this.rampZ0);
     for (const bo of this.boulders) {
-      if (this.time >= bo.next) {bo.target = Course.BARREL_SPEEDS[Math.floor(this.srand() * 3)] * (.85 + this.srand() * .3); bo.next = this.time + .9 + this.srand() * 1.8;} // change pace mid-roll
+      if (this.time >= bo.next) {bo.target = Course.BARREL_SPEEDS[Math.min(2, Math.floor(this.srand() * 3))] * (.85 + this.srand() * .3); bo.next = this.time + .9 + this.srand() * 1.8;} // change pace mid-roll
       if (bo.z > this.rampZ0) bo.vz += clamp(-bo.target - bo.vz, -7 * dt, 7 * dt); else bo.vz -= 10 * dt;
       bo.z += bo.vz * dt; bo.spin += bo.vz * dt / bo.radius;
       if (bo.z > this.rampZ0) bo.y = this.rampY0 + (bo.z - this.rampZ0) * slope + bo.radius; else bo.y -= 30 * dt;
