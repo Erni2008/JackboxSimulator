@@ -71,5 +71,12 @@ export class RaceSound {
   splash() {if (!this.ready || !this.can('fall', 500)) return; this.burst(.9, .3, 'lowpass', 2000, 200); this.tone(500, 'sine', .7, .12, .25);}
   checkpoint() {if (!this.ready) return; [659, 784, 988, 1319].forEach((f, i) => this.tone(f, 'triangle', .35, .12, 1, i * .08));}
   countdown(go: boolean) {if (!this.ready) return; go ? [523, 659, 784].forEach((f, i) => this.tone(f, 'square', .45, .09, 1, i * .03)) : this.tone(440, 'square', .18, .09);}
+  private rumbleG?: GainNode;
+  rumble(level: number) {if (!this.ready) return; if (!this.rumbleG) {const c = this.ctx!, src = c.createBufferSource(); src.buffer = this.noise; src.loop = true; const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 120; this.rumbleG = c.createGain(); this.rumbleG.gain.value = 0; src.connect(f).connect(this.rumbleG).connect(this.sfx); src.start();}
+    this.rumbleG.gain.setTargetAtTime(level * .5, this.ctx!.currentTime, .2);}
+  sparkAppear() {if (!this.ready) return; [784, 988, 1175, 1568].forEach((f, i) => this.tone(f, 'sine', .9, .06, 1.01, i * .09));}
+  sparkHum(level: number) {if (!this.ready || !this.can('hum', 450)) return; this.tone(523 + level * 300, 'sine', .4, .04 + level * .05, 1.05);}
+  revive() {if (!this.ready) return; this.burst(.4, .2, 'bandpass', 400, 4000, 2); [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => this.tone(f, 'triangle', .7, .08, 1, .4 + i * .07)); this.burst(1.2, .12, 'highpass', 5000, 9000, 1, 1.2);}
+  deathSting() {if (!this.ready) return; [330, 311, 262, 196].forEach((f, i) => this.tone(f, 'sawtooth', .55, .05, .98, i * .14)); this.tone(55, 'sine', 1.2, .3, .7);}
   finish(win: boolean) {if (!this.ready) return; const n = win ? [523, 659, 784, 1047, 1319] : [392, 330, 262]; n.forEach((f, i) => this.tone(f, 'triangle', .6, .13, 1, i * .12)); if (win) this.burst(1.6, .1, 'highpass', 4000, 8000);}
 }

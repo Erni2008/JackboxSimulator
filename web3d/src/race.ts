@@ -20,21 +20,23 @@ function online() {
     if (building || raceId === st.race.id) return; building = true; raceId = st.race.id;
     const roster = (st.players || []).filter((p: any) => p.connectionStatus !== 'OFFLINE' || true).map((p: any) => ({id: p.id, name: p.nickname || p.name, char: p.characterId}));
     const me = roster.find((p: any) => p.id === st.selfId);
-    app = new RaceApp(document.getElementById('stage')!, me?.char || 'pumpkin', st.race.map, {roster, selfId: st.selfId, seed: st.race.seed, startAt: st.race.startAt, serverNow, send: s => send('RACE_STATE', {roomCode: cred.code, s}), spectator: !!st.host});
-    await app.load(f => fill.style.width = `${Math.round(f * 100)}%`); load.hidden = true; app.start();
+    app = new RaceApp(document.getElementById('stage')!, me?.char || 'pumpkin', st.race.map, {roster, selfId: st.selfId, seed: st.race.seed, startAt: st.race.startAt, serverNow, send: (s, extra) => send('RACE_STATE', {roomCode: cred.code, s, ...(extra || {})}), spark: () => send('RACE_SPARK', {roomCode: cred.code}), spectator: !!st.host});
+    if (st.run) app.surv?.apply(st.run);
+    await app.load(f => fill.style.width = `${Math.round(f * 100)}%`); load.hidden = true; app.start(); (window as any).__race = app;
     const tap = document.getElementById('tap')!; tap.hidden = false; tap.onclick = () => {tap.hidden = true; app!.snd.unlock(); app!.snd.ambience(app!.course.theme); app!.snd.playMusic('audio/music.m4a');};
     document.getElementById('intro-skip')!.onclick = () => {app!.introSkipped = true; document.getElementById('intro')!.hidden = true; app!.snd.voice('');};
     const again = document.getElementById('again')!; again.textContent = st.host ? 'В ЛОББИ' : 'ЖДЁМ ВЕДУЩЕГО'; if (!st.host) again.onclick = () => {};
   };
   if (q.get('host')) { // spectator: poll the race over HTTP (keeps the desktop host's socket untouched)
     const url = (close = false) => `/rooms/${encodeURIComponent(cred.code)}/race?token=${encodeURIComponent(cred.token)}${close ? '&close=1' : ''}`;
-    const poll = async () => {try {const r = await fetch(url()); const st = await r.json(); if (r.ok) {if (!raceId && st.race) await onState(st); else if (raceId && st.webGame !== 'race') {document.querySelector('#verdict')!.textContent = 'ЗАБЕГ ЗАКРЫТ';} else {offset += ((st.serverTime - Date.now()) - offset) * .2; app?.remote(st.runners);}}} catch {} setTimeout(poll, 120);};
+    const poll = async () => {try {const r = await fetch(url()); const st = await r.json(); if (r.ok) {if (!raceId && st.race) await onState(st); else if (raceId && st.webGame !== 'race') {document.querySelector('#verdict')!.textContent = 'ЗАБЕГ ЗАКРЫТ';} else {offset += ((st.serverTime - Date.now()) - offset) * .2; app?.remote(st.runners); if (st.run) app?.surv?.apply(st.run);}}} catch {} setTimeout(poll, 120);};
     poll(); document.getElementById('again')!.onclick = () => fetch(url(true)); return;
   }
   const connect = () => {
     ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
     ws.onopen = () => send('AUTH', {roomCode: cred.code, token: cred.token});
-    ws.onmessage = e => {try {const m = JSON.parse(e.data); if (m.type === 'RACE_POS') {if (m.payload.id === raceId) {offset += ((m.payload.serverTime - Date.now()) - offset) * .1; app?.remote(m.payload.runners);} return;}
+    ws.onmessage = e => {try {const m = JSON.parse(e.data); if (m.type === 'RACE_POS') {if (m.payload.id === raceId) {offset += ((m.payload.serverTime - Date.now()) - offset) * .1; app?.remote(m.payload.runners); if (m.payload.run) app?.surv?.apply(m.payload.run);} return;}
+      if (m.payload?.run && app) app.surv?.apply(m.payload.run);
       if (m.payload?.code && m.payload?.selfId !== undefined) onState(m.payload);} catch {}};
     ws.onclose = () => setTimeout(connect, 1500);
   };
