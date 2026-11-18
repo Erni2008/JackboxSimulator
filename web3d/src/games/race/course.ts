@@ -75,7 +75,7 @@ export class Course {
   pushers: Pusher[] = []; jets: Jet[] = []; gears: Gear[] = []; gates: Gate[] = []; fans: Fan[] = []; hooks: Hook[] = []; chasers: Chaser[] = []; carts: Block[] = []; tilts: Block[] = []; pads: Pad[] = []; portals: Portal[] = []; mazePath: [number, number][] = []; mazeBox = [0, 0, 0, 0]; rooms: Room[] = []; sections: {name: string; z0: number; z1: number}[] = [];
   fallZones: [number, number, number, number][] = []; checkpoints: number[] = [0]; finishZ = 0; time = 0;
   rampZ0 = 0; rampZ1 = 0; rampY0 = 0; rampY1 = 0; rampHalfW = 4; theme: Theme; deathY = DEATH_Y;
-  private boulderTimer = 1.2; private seed = 7; private fallTimer = 0; private fallSeed = 99; private fallId = 0;
+  private boulderTimer = 1.2; private nextPick = -1; rampWarn = false; private seed = 7; private fallTimer = 0; private fallSeed = 99; private fallId = 0;
   private look: Look; private z = 0; private y = 0; private rs: number;
 
   constructor(public map = 1, public courseSeed = 1, public only = '') {
@@ -373,7 +373,7 @@ export class Course {
     // zigzag off the rails, bouncing hoppers. Always passable: at most 8 on the ramp, at least one lane left free per wave.
     this.boulderTimer -= dt;
     if (this.boulderTimer <= 0 && this.rampZ1 > this.rampZ0) {
-      const len = this.rampZ1 - this.rampZ0, hw = this.rampHalfW, pick = this.srand(), lanes = [-1, 0, 1].sort(() => this.srand() - .5);
+      const len = this.rampZ1 - this.rampZ0, hw = this.rampHalfW, pick = this.nextPick >= 0 ? this.nextPick : this.srand(), lanes = [-1, 0, 1].sort(() => this.srand() - .5);
       const pattern = pick < .34 ? 'down' : pick < .52 ? 'up' : pick < .72 ? 'cross' : pick < .87 ? 'zigzag' : 'hop';
       const spawn = (ln: number, dir: 1 | -1, o: Partial<Boulder> = {}) => {if (this.boulders.length >= 10) return; const radius = .85 + this.srand() * .2;
         const x = clamp(ln * hw * .62 + (this.srand() - .5) * .8, -hw + radius, hw - radius), z = dir < 0 ? this.rampZ1 - 1 - this.srand() * 2 : this.rampZ0 + .6;
@@ -387,7 +387,9 @@ export class Course {
       else if (pattern === 'zigzag') spawn(lanes[0], -1, {vx: (this.srand() < .5 ? -1 : 1) * (2.6 + this.srand() * 1.6), target: Course.BARREL_SPEEDS[1]});
       else spawn(lanes[0], -1, {bouncy: true, vh: 4, target: Course.BARREL_SPEEDS[this.srand() < .5 ? 0 : 1]});
       this.boulderTimer = (pattern === 'up' || pattern === 'cross' ? 1.2 : .62) + this.srand() * .38; // frequent waves
+      this.nextPick = this.srand(); // the next wave is decided now, so an uphill launch can be announced before it fires
     }
+    this.rampWarn = this.rampZ1 > this.rampZ0 && this.nextPick >= .34 && this.nextPick < .72 && this.boulderTimer < .9; // launcher lamps blink 0.9 s before an uphill barrel
     const slope = (this.rampY1 - this.rampY0) / Math.max(1, this.rampZ1 - this.rampZ0), hw = this.rampHalfW;
     for (const bo of this.boulders) {
       if (!bo.free && this.time >= bo.next) {bo.target = Course.BARREL_SPEEDS[Math.min(2, Math.floor(this.srand() * 3))] * (.9 + this.srand() * .2); bo.next = this.time + .9 + this.srand() * 1.8;} // change pace mid-roll

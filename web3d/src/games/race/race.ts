@@ -290,6 +290,9 @@ export class RaceApp {
     }
     // tilting chamber: warning lamps on the rim; mill surge lamps on spinner posts
     for (const b of c.tilts) if (b.tilt!.axis === 'xz') {const ms: THREE.MeshStandardMaterial[] = []; for (const [x, z] of [[b.x0, b.z0], [b.x1, b.z0], [b.x0, b.z1], [b.x1, b.z1]]) {const m = lamp(); ms.push(m); const pole = new THREE.Mesh(new THREE.CylinderGeometry(.08, .08, 3, 6), dark); pole.position.set(x * 1.12, b.y0 + 1.5, z); this.scene.add(pole); const l = new THREE.Mesh(new THREE.SphereGeometry(.22, 10, 8), m); l.position.set(x * 1.12, b.y0 + 3.1, z); this.scene.add(l);} this.mech.tiltLamps.push([b, ms]);}
+    // ramp launcher: two warning lamps at the foot of the ramp blink before a barrel is fired uphill
+    if (c.rampZ1 > c.rampZ0) for (const sd of [-1, 1]) {const m = lamp(); const l = new THREE.Mesh(new THREE.SphereGeometry(.32, 12, 8), m); l.position.set(sd * (c.rampHalfW + .4), c.rampY0 + 1.6, c.rampZ0 + .4); this.scene.add(l);
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(.08, .1, 1.6, 8), steel); post.position.set(sd * (c.rampHalfW + .4), c.rampY0 + .8, c.rampZ0 + .4); this.scene.add(post); this.rampLamps.push(m);}
     for (const sw of c.sweepers) if (sw.vary) {const m = lamp(); const l = new THREE.Mesh(new THREE.SphereGeometry(.25, 10, 8), m); l.position.set(sw.x, sw.y + 1.3, sw.z); this.scene.add(l); this.mech.sweepLamps.push([sw, m]);}
   }
   private columns: THREE.Mesh[] = [];
@@ -298,6 +301,8 @@ export class RaceApp {
     const c = this.course, t = c.time;
     for(const signal of this.stoneSignals){const phase=((t-signal.phase)%2+2)%2;signal.lamp.emissiveIntensity=phase>1.55 ? 1.5+Math.sin(t*35)*1.1 : .12;}
     for (const [g, spin] of this.mech.gears) spin.rotation.y = -g.angle;
+    for (const m of this.rampLamps) m.emissiveIntensity = c.rampWarn ? (Math.sin(t * 26) > 0 ? 3.5 : .3) : 0;
+    if (c.rampWarn && !this.sndState.rampWarn) this.snd.alarm(Math.hypot(this.me.x, this.me.z - c.rampZ0)); this.sndState.rampWarn = c.rampWarn;
     for (const [b, g] of this.mech.carts) {g.position.x = b.offX; g.visible = Math.abs(b.offX) < b.cart!.len + 1.8;}
     for (const [gt, a, b, , lm] of this.mech.gates) {lm.emissiveIntensity = gt.warn ? (Math.sin(t * 30) > 0 ? 3 : .2) : gt.open < .5 ? 1.2 : 0;
       if (gt.kind === 'slide') {const leaf = gt.halfW * (1 - gt.open); a.position.x = -gt.halfW - gt.halfW + leaf; b.position.x = gt.halfW + gt.halfW - leaf;} else a.position.y = gt.y + 3.2 * gt.open + .1;}
@@ -391,6 +396,7 @@ export class RaceApp {
     for (const {mat, geos, shadow} of groups.values()) {const merged = mergeGeometries(geos, false); if (!merged) continue; const mm = new THREE.Mesh(merged, mat); mm.castShadow = shadow; mm.receiveShadow = true; this.scene.add(mm);}
   }
   private flash() {const f = document.getElementById('flash'); if (!f) return; f.classList.remove('on'); void f.offsetWidth; f.classList.add('on');}
+  private cpFirst = new Map<number, number>(); private rescueBtn?: HTMLButtonElement; private rampLamps: THREE.MeshStandardMaterial[] = []; private leaderId = '';
   private hype = {place: 0, placeAt: 0, final: false, tick: -1};
   private fovKick = 0; private lastGroundY = 0;
   private toast(text: string) {const t = document.getElementById('toast'); if (!t) return; t.textContent = text; t.classList.remove('show'); void t.offsetWidth; t.classList.add('show');}
@@ -710,7 +716,7 @@ export class RaceApp {
       const hs = Math.hypot(r.vx, r.vz), want = r.stun > 0 ? 'stun' : !r.ground ? 'jump' : hs > .8 ? 'run' : 'idle';
       if (want !== l.cur && l.acts[want]) {const a = l.acts[want]; a.reset().fadeIn(.06).play(); l.acts[l.cur]?.fadeOut(.06); l.cur = want;}
       if (l.acts.run) l.acts.run.timeScale = Math.max(.6, hs / 5.5);
-      if (r === this.me && r.ground && l.prevVy < -4) this.snd.land(Math.min(1, -l.prevVy / 14));
+      if (r === this.me && r.ground && l.prevVy < -4) {this.snd.land(Math.min(1, -l.prevVy / 14)); if (l.prevVy < -11) this.shake = Math.max(this.shake, Math.min(.35, -l.prevVy * .02));}
       if (r === this.me && !r.ground && l.prevVy <= .5 && r.vy > 8) {if (r.vy > 12) this.snd.spring(); else this.snd.jump();}
       if (r.ground && l.prevVy < -6) {l.squash = Math.min(.3, -l.prevVy * .022); this.puff(r.x, r.y, r.z, Math.min(1.4, -l.prevVy / 9));}
       if (!r.ground && l.prevVy <= .5 && r.vy > 8) this.puff(r.x, r.y, r.z, .6); l.prevVy = r.vy; l.squash = Math.max(0, l.squash - dt * 2.2);
@@ -757,7 +763,8 @@ export class RaceApp {
       this.rays.forEach((r, i) => {r.position.copy(this.camera.position).addScaledVector(SUN_DIR, 300); r.lookAt(this.camera.position); r.rotateZ(-.5 + i * .25 + Math.sin(this.course.time * .1 + i) * .03); r.translateY(-120);});}
     for (const s of this.swingers) s.rotation.z = Math.sin(this.course.time * .8 + s.userData.sway) * .05;
     this.flames.forEach((f, i) => f.scale.setScalar(1.8 + Math.sin(this.course.time * 13 + i * 1.7) * .12 + Math.sin(this.course.time * 7.3 + i) * .08));
-    if (this.me.checkpoint > this.lastCp) {for (let i = this.lastCp + 1; i <= this.me.checkpoint; i++) {const a = this.cpArches[i - 1]; if (a && !a.lit) {a.lit = true; (a.flag.material as THREE.MeshStandardMaterial).emissive.set(0xffb238); (a.glow.material as THREE.MeshBasicMaterial).color.set(0xffc455); this.toast('ЧЕКПОИНТ!'); this.snd.checkpoint(); this.puff(this.me.x, this.me.y, this.me.z, 1.4); navigator.vibrate?.(20);}} this.lastCp = this.me.checkpoint;}
+    for (const r of this.runners) for (let i = 1; i <= r.checkpoint; i++) if (!this.cpFirst.has(i)) this.cpFirst.set(i, this.clock); // first arrival at each checkpoint, for splits
+    if (this.me.checkpoint > this.lastCp) {for (let i = this.lastCp + 1; i <= this.me.checkpoint; i++) {const a = this.cpArches[i - 1]; if (a && !a.lit) {a.lit = true; (a.flag.material as THREE.MeshStandardMaterial).emissive.set(0xffb238); (a.glow.material as THREE.MeshBasicMaterial).color.set(0xffc455); {const first = this.cpFirst.get(i); this.toast(first === undefined || this.clock - first < .05 ? 'ЧЕКПОИНТ · ТЫ ПЕРВЫЙ!' : `ЧЕКПОИНТ · +${(this.clock - first).toFixed(1)} с`);} this.snd.checkpoint(); this.puff(this.me.x, this.me.y, this.me.z, 1.4); navigator.vibrate?.(20);}} this.lastCp = this.me.checkpoint;}
     for (const a of this.cpArches) {const m = a.glow.material as THREE.MeshBasicMaterial; m.opacity = (a.lit ? .55 : .35) + Math.sin(this.course.time * 3) * .12;}
     if (this.shake > 0) {this.shake = Math.max(0, this.shake - dt * 1.2); const a = this.shake * this.shake * 1.4; this.camera.position.x += (Math.random() - .5) * a; this.camera.position.y += (Math.random() - .5) * a;}
   }
@@ -781,10 +788,18 @@ export class RaceApp {
     document.getElementById('timer')!.classList.toggle('low', t < 20 && this.clock > COUNTDOWN);
     const n = Math.ceil(COUNTDOWN - .5 - this.clock); if (this.clock < COUNTDOWN + .3 && n !== this.sndState.count) {this.sndState.count = n; if (n >= 0 && n <= 3) this.snd.countdown(n <= 0);}
     setText('count', this.clock >= 0 && this.clock < COUNTDOWN ? (n > 0 ? String(n) : 'ВПЕРЁД!') : this.clock < 0 && this.introSkipped ? 'ЖДЁМ СТАРТА…' : '');
-    const st = this.standings(), place = st.indexOf(this.me) + 1; setText('place-n', String(place)); setText('place-of', `/${st.length}`);
+    const st = this.standings(), place = st.indexOf(this.me) + 1;
+    if (st[0] && st[0].id !== this.leaderId && this.clock > COUNTDOWN) {for (const [r, l] of this.looks) {const t = (r === st[0] ? '👑 ' : '') + r.name; if (l.tag.textContent !== t) {l.tag.textContent = t; (l as any).tagW = 0;}} this.leaderId = st[0].id;} setText('place-n', String(place)); setText('place-of', `/${st.length}`);
     {const h = this.hype; const live = this.clock > COUNTDOWN + 2 && !this.me.finished;
       if (live && h.place && place !== h.place && this.clock - h.placeAt > 1.2) {h.placeAt = this.clock; if (place < h.place) {this.toast(place === 1 ? 'ТЫ ЛИДИРУЕШЬ!' : `ОБГОН! ${place} МЕСТО`); this.snd.checkpoint(); navigator.vibrate?.(15);} else this.toast(`${place} МЕСТО ▼`);}
       if (live) h.place = place;
+      {const me = this.me as any; me.lastAdv ??= {z: me.z, t: this.clock}; if (me.z > me.lastAdv.z + 1) me.lastAdv = {z: me.z, t: this.clock};
+        const stuck = live && !(me.remote) && me.safe <= 0 && (me.airT > 1.4 || this.clock - me.lastAdv.t > 8);
+        if (stuck && !this.rescueBtn) {const b = document.createElement('button'); b.textContent = '↺ К ЧЕКПОИНТУ'; b.setAttribute('style', 'position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:5;padding:12px 20px;border:1px solid #f6c26b;border-radius:14px;background:#1d1411e6;color:#f6dfb0;font:700 15px system-ui;pointer-events:auto');
+          b.addEventListener('pointerdown', e => {e.preventDefault(); e.stopPropagation(); this.course.respawn(this.me); me.lastAdv = {z: me.z, t: this.clock}; this.toast('НАЗАД К ЧЕКПОИНТУ');}); document.body.appendChild(b); this.rescueBtn = b;}
+        if (this.rescueBtn) this.rescueBtn.style.display = stuck ? '' : 'none';}
+      {let sl = document.getElementById('speedlines'); if (!sl) {sl = document.createElement('div'); sl.id = 'speedlines'; sl.setAttribute('style', 'position:fixed;inset:0;pointer-events:none;z-index:1;opacity:0;background:repeating-conic-gradient(from 0deg at 50% 50%,#fff0 0 4deg,#ffffff22 4deg 5deg);-webkit-mask:radial-gradient(circle,#0000 35%,#000 75%);mask:radial-gradient(circle,#0000 35%,#000 75%)'); document.body.appendChild(sl);}
+        const o = (this.fovKick * .9).toFixed(2); if (sl.style.opacity !== o) sl.style.opacity = o;}
       if (live && !h.final && this.me.z > this.course.finishZ - 30) {h.final = true; this.toast('ФИНИШНАЯ ПРЯМАЯ!'); this.snd.checkpoint(); document.body.classList.add('final-stretch');
         if (!document.getElementById('fs-css')) {const st = document.createElement('style'); st.id = 'fs-css'; st.textContent = `body.final-stretch:not(.done)::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:2;box-shadow:inset 0 0 80px 10px #ffc44a55;animation:fsPulse 1.1s ease-in-out infinite}@keyframes fsPulse{50%{box-shadow:inset 0 0 120px 18px #ffc44a88}}`; document.head.appendChild(st);}}
       const tl = this.timeLeft(), sec = Math.ceil(tl); if (live && tl < 10 && tl > 0 && sec !== h.tick) {h.tick = sec; this.snd.countdown(false);}}
