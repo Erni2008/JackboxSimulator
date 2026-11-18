@@ -50,5 +50,5 @@ const go = async (ch: string) => {
 };
 if (q.get('net') || q.get('host')) online();
 else if (q.get('char') && CHARACTERS.includes(q.get('char')!)) go(q.get('char')!);
-else for (const c of CHARACTERS) {const b = document.createElement('button'); b.innerHTML = `<img src="../hell-cage-host/chars/${c}.png" alt=""><span>${NAMES[c]}</span>`; b.onclick = () => go(c); document.getElementById('roster')!.appendChild(b);}
+else for (const c of CHARACTERS) {const b = document.createElement('button'); b.innerHTML = `<img src="portraits/${c}.png" alt=""><span>${NAMES[c]}</span>`; b.onclick = () => go(c); document.getElementById('roster')!.appendChild(b);}
 for (const b of document.querySelectorAll<HTMLButtonElement>('#maps button')) {b.classList.toggle('on', Number(b.dataset.map) === map); b.onclick = () => {map = Number(b.dataset.map); document.querySelectorAll('#maps button').forEach(x => x.classList.toggle('on', x === b));};}

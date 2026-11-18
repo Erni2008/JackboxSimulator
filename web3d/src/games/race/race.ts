@@ -21,7 +21,7 @@ export class RaceApp {
   readonly renderer: THREE.WebGLRenderer; readonly scene = new THREE.Scene(); readonly camera = new THREE.PerspectiveCamera(55, 1, .3, 900);
   course: Course; readonly night: boolean; readonly manor: boolean; readonly crypt: boolean; readonly limit: number; runners: Runner[] = []; me!: Runner; clock = 0; private acc = 0;
   private sun!: THREE.DirectionalLight; private fill!: THREE.DirectionalLight; private mist: THREE.Mesh[] = []; private pollen!: THREE.Points; private puffs: {s: THREE.Sprite; t: number}[] = []; private grassMat?: THREE.Material; private looks = new Map<Runner, Look>(); private blockMeshes = new Map<Block, THREE.Mesh>();
-  private sweeperMeshes: THREE.Object3D[] = []; private cpArches: {glow: THREE.Mesh; flag: THREE.Mesh; lit: boolean}[] = []; private lastCp = 0; private pend: THREE.Object3D[] = []; private rams: THREE.Object3D[] = []; private padMeshes: THREE.Mesh[] = []; private warnPlanes = new Map<Block, THREE.Mesh>(); private belts: THREE.Texture[] = []; private composer?: EffectComposer; private lastSection = ''; private ghosts: THREE.MeshStandardMaterial[] = []; private lastTp = 0; private phoneShadows = false; private frameNo = 0; readonly snd = new RaceSound(); private sndState: any = {count: 9, falls: 0, stun: 0, fin: false, step: 0, gates: new Map<any, boolean>(), hooks: new Map<any, number>(), jets: new Map<any, number>(), pads: new Map<any, number>(), crumbs: new Set<any>()}; private sunGlow?: THREE.Sprite; private moonGlow?: THREE.Sprite; private rays: THREE.Mesh[] = []; private ray = new THREE.Raycaster(); private faded = new Set<THREE.Mesh>(); private soft: THREE.Mesh[] = []; private jetFx: {j: any; o: THREE.Object3D; f: THREE.Object3D}[] = []; private mazeBlend = 0; private portalFx: THREE.Object3D[] = []; private boulderPool: THREE.Object3D[] = [];
+  private sweeperMeshes: THREE.Object3D[] = []; private cpArches: {glow: THREE.Mesh; flag: THREE.Mesh; lit: boolean}[] = []; private lastCp = 0; private pend: THREE.Object3D[] = []; private rams: THREE.Object3D[] = []; private padMeshes: THREE.Mesh[] = []; private warnPlanes = new Map<Block, THREE.Mesh>(); private belts: THREE.Texture[] = []; private composer?: EffectComposer; private lastSection = ''; private ghosts: THREE.MeshStandardMaterial[] = []; private lastTp = 0; private readonly headless = new URLSearchParams(location.search).has('bot'); private hudT = 0; private phoneShadows = false; private frameNo = 0; readonly snd = new RaceSound(); private sndState: any = {count: 9, falls: 0, stun: 0, fin: false, step: 0, gates: new Map<any, boolean>(), hooks: new Map<any, number>(), jets: new Map<any, number>(), pads: new Map<any, number>(), crumbs: new Set<any>()}; private sunGlow?: THREE.Sprite; private moonGlow?: THREE.Sprite; private rays: THREE.Mesh[] = []; private ray = new THREE.Raycaster(); private faded = new Set<THREE.Mesh>(); private soft: THREE.Mesh[] = []; private jetFx: {j: any; o: THREE.Object3D; f: THREE.Object3D}[] = []; private mazeBlend = 0; private portalFx: THREE.Object3D[] = []; private boulderPool: THREE.Object3D[] = [];
   private gltf = new GLTFLoader(); private texLoader = new THREE.TextureLoader(); private cache = new Map<string, Promise<GLTF>>();
   private camTarget = new THREE.Vector3(); private pixelRatio: number; private frameAvg = 16; private last = 0;
   private blobs = new Map<Runner, THREE.Mesh>();   private dots = new Map<Runner, HTMLElement>(); private keys = new Set<string>(); private stick = {id: -1, ox: 0, oy: 0, x: 0, y: 0}; private hud: HTMLElement;
@@ -33,7 +33,7 @@ export class RaceApp {
     const qs = new URLSearchParams(location.search); const tq = qs.get('t'), only = tq ? (TRIALS[Number(tq) - 1] ?? (TRIALS.includes(tq) ? tq : '')) : ''; this.course = new Course(map, net ? net.seed : Number(qs.get('seed')) || (Math.random() * 1e9) | 0, only); this.night = this.course.theme === 'graveyard'; this.crypt = this.course.theme === 'crypt'; this.manor = this.course.theme === 'manor' || this.crypt; this.limit = this.crypt ? 210 : LIMIT;
     const phone = matchMedia('(pointer:coarse)').matches;
     this.renderer = new THREE.WebGLRenderer({antialias: !phone || devicePixelRatio < 2, powerPreference: 'high-performance'});
-    this.pixelRatio = Math.min(devicePixelRatio, phone ? 1.5 : 1.35); this.renderer.setPixelRatio(this.pixelRatio);
+    this.pixelRatio = Math.min(devicePixelRatio, phone ? 1.25 : 1.25); this.renderer.setPixelRatio(this.pixelRatio);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace; this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.15;
     this.renderer.shadowMap.enabled = true; this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     host.appendChild(this.renderer.domElement);
@@ -109,7 +109,7 @@ export class RaceApp {
     for (const p of this.course.pushers) {const g = new THREE.Group(); const rl = p.reach + 1.4, ram = new THREE.Mesh(new THREE.BoxGeometry(rl, 1.5, p.d - .2), this.manor ? mats.beam : this.night ? mats.dark : mats.bark); ram.position.x = rl / 2 - 1; ram.castShadow = true;
       const plate = new THREE.Mesh(new THREE.BoxGeometry(.18, 1.7, p.d), ironM); plate.position.x = -1.02; g.add(ram, plate);
       for (let i = 0; i < 6; i++) {const sp = new THREE.Mesh(new THREE.ConeGeometry(.1, .35, 8).rotateZ(Math.PI / 2), ironM); sp.position.set(-1.25, -.5 + (i % 2) * .9, -p.d / 2 + .4 + Math.floor(i / 2) * (p.d - .8) / 2); g.add(sp);}
-      g.position.set(p.side * (p.wallX + 1), p.y + .8, p.z); g.scale.x = p.side; g.userData.p = p; this.rams.push(g); this.scene.add(g);
+      g.position.set(p.side * (p.wallX + 1), p.y + .8, p.z); g.scale.x = p.side; g.userData.p = p; bake(g); this.rams.push(g); this.scene.add(g);
       const house = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.6, p.d + .8), this.manor ? mats.wall : this.night ? mats.brick : mats.rock); house.position.set(p.side * (p.wallX + .6), p.y + 1.3, p.z); house.castShadow = true; this.scene.add(house);}
     // portals: stone arch, swirling disc, glow
     for (const p of this.course.portals) {const g = new THREE.Group(); g.position.set(p.x, p.y, p.z);
@@ -147,7 +147,8 @@ export class RaceApp {
     // runners
     if (this.net) {const n = this.net; for (let i = 0; i < n.roster.length; i++) {const p = n.roster[i], self = p.id === n.selfId && !n.spectator;
         const r = new Runner(p.id, self ? 'Вы' : p.name, CHARACTERS.includes(p.char) ? p.char : CHARACTERS[i % CHARACTERS.length], i, self && new URLSearchParams(location.search).has('bot')); (r as any).remote = !self; r.x = ((i % 4) - 1.5) * 2.2; r.z = -1.5 - Math.floor(i / 4) * 2.2; this.runners.push(r);
-        await this.addLook(r); progress(.8 + .2 * (i + 1) / n.roster.length);}
+        progress(.8 + .2 * (i + 1) / n.roster.length);}
+      await Promise.all(this.runners.map(r => this.addLook(r)));
       this.me = this.runners.find(r => !(r as any).remote) ?? this.runners[0];
       if (n.spectator) document.body.classList.add('spectator');
     } else {
@@ -155,8 +156,9 @@ export class RaceApp {
     const cast = [this.myChar, ...others.sort(() => Math.random() - .5).slice(0, 5)];
     for (let i = 0; i < cast.length; i++) {
       const r = new Runner('p' + i, i === 0 ? 'Вы' : NAMES[cast[i]], cast[i], i, i > 0); r.x = ((i % 3) - 1) * 2.4; r.z = -1.5 - Math.floor(i / 3) * 2.4; this.runners.push(r);
-      await this.addLook(r); progress(.8 + .2 * (i + 1) / cast.length);
+      progress(.8 + .2 * (i + 1) / cast.length);
     }
+    await Promise.all(this.runners.map(r => this.addLook(r)));
     this.me = this.runners[0];}
     const dz = Number(new URLSearchParams(location.search).get('z')); if (dz) for (const r of this.runners) {r.z = dz + r.slot * .3; r.x = (r.slot % 3 - 1) * 1.5; r.y = this.course.spawnY(dz) + .5; r.progress = dz; r.checkpoint = this.course.checkpoints.filter(c => c <= dz).length - 1;}
     this.camTarget.set(this.me.x, this.me.y, this.me.z);
@@ -169,7 +171,7 @@ export class RaceApp {
     this.scene.add(root); const mixer = new THREE.AnimationMixer(root); const acts: Record<string, THREE.AnimationAction> = {};
     for (const clip of g.animations) {const a = mixer.clipAction(clip); acts[clip.name] = a; if (clip.name === 'jump' || clip.name === 'stun') {a.setLoop(clip.name === 'stun' ? THREE.LoopRepeat : THREE.LoopOnce, Infinity); a.clampWhenFinished = true;}}
     acts.idle?.play();
-    const tag = document.createElement('div'); tag.className = 'tag' + (r.bot ? '' : ' me'); tag.textContent = r.name; this.hud.appendChild(tag);
+    const tag = document.createElement('div'); tag.className = 'tag' + ((this.net ? !(r as any).remote : !r.bot) ? ' me' : ''); tag.textContent = r.name; this.hud.appendChild(tag);
     this.looks.set(r, {root, mixer, acts, cur: 'idle', tag, squash: 0, prevVy: 0});
   }
 
@@ -246,16 +248,16 @@ export class RaceApp {
       const lm = lamp(); for (const sd of [-1, 1]) {const l = new THREE.Mesh(new THREE.SphereGeometry(.18, 12, 8), lm); l.position.set(sd * (gt.halfW + .6), gt.y + 3.6, gt.z - .45); this.scene.add(l);}
       let a: THREE.Object3D, b: THREE.Object3D;
       if (gt.kind === 'slide') {const leaf = () => {const g = new THREE.Group(); const p = new THREE.Mesh(new THREE.BoxGeometry(gt.halfW, 3.6, .3), steel); p.position.set(gt.halfW / 2, 1.8, 0); p.castShadow = true; g.add(p);
-          for (let i = 0; i < 4; i++) {const rib = new THREE.Mesh(new THREE.BoxGeometry(gt.halfW, .12, .36), dark); rib.position.set(gt.halfW / 2, .4 + i * .95, 0); g.add(rib);} const edge = new THREE.Mesh(new THREE.BoxGeometry(.14, 3.6, .4), new THREE.MeshStandardMaterial({color: 0xd8b23a, metalness: .4, roughness: .5})); edge.position.set(gt.halfW, 1.8, 0); g.add(edge); return g;};
+          for (let i = 0; i < 4; i++) {const rib = new THREE.Mesh(new THREE.BoxGeometry(gt.halfW, .12, .36), dark); rib.position.set(gt.halfW / 2, .4 + i * .95, 0); g.add(rib);} const edge = new THREE.Mesh(new THREE.BoxGeometry(.14, 3.6, .4), new THREE.MeshStandardMaterial({color: 0xd8b23a, metalness: .4, roughness: .5})); edge.position.set(gt.halfW, 1.8, 0); g.add(edge); return bake(g);};
         a = leaf(); b = leaf(); b.scale.x = -1; a.position.set(-gt.halfW * 2, gt.y, gt.z); b.position.set(gt.halfW * 2, gt.y, gt.z);}
       else {a = new THREE.Group(); for (let i = 0; i < 9; i++) {const bar = new THREE.Mesh(new THREE.BoxGeometry(.14, 3.4, .14), steel); bar.position.set(-gt.halfW + .2 + i * (gt.halfW * 2 - .4) / 8, 1.7, 0); a.add(bar); const tip = new THREE.Mesh(new THREE.ConeGeometry(.12, .35, 6).rotateX(Math.PI), steel); tip.position.set(bar.position.x, -.15, 0); a.add(tip);}
-        for (let i = 0; i < 3; i++) {const h = new THREE.Mesh(new THREE.BoxGeometry(gt.halfW * 2, .14, .18), dark); h.position.y = .5 + i * 1.2; a.add(h);} a.position.set(0, gt.y, gt.z); b = new THREE.Group();}
+        for (let i = 0; i < 3; i++) {const h = new THREE.Mesh(new THREE.BoxGeometry(gt.halfW * 2, .14, .18), dark); h.position.y = .5 + i * 1.2; a.add(h);} bake(a); a.position.set(0, gt.y, gt.z); b = new THREE.Group();}
       this.scene.add(a, b); this.mech.gates.push([gt, a, b, frame, lm]);}
     // fans: steel housing, spinning blades, warning lamp, airflow particles
     for (const f of c.fans) {const g = new THREE.Group(); g.position.set(f.x, f.y, f.z); g.rotation.y = Math.atan2(f.dx, f.dz);
       const ring = new THREE.Mesh(new THREE.TorusGeometry(1.25, .16, 10, 32), dark); g.add(ring); const cage = new THREE.Mesh(new THREE.TorusGeometry(.6, .04, 6, 24), steel); cage.position.z = .2; g.add(cage);
       const blades = new THREE.Group(); for (let k = 0; k < 5; k++) {const bl = new THREE.Mesh(new THREE.BoxGeometry(.32, 1.1, .05), steel); bl.position.y = .58; bl.rotation.y = .5; const arm = new THREE.Group(); arm.add(bl); arm.rotation.z = k / 5 * Math.PI * 2; blades.add(arm);}
-      blades.add(new THREE.Mesh(new THREE.SphereGeometry(.2, 12, 8), dark)); g.add(blades);
+      blades.add(new THREE.Mesh(new THREE.SphereGeometry(.2, 12, 8), dark)); bake(blades); g.add(blades);
       const stand = new THREE.Mesh(new THREE.BoxGeometry(.4, f.y - this.course.spawnY(f.z) + 4, .4), dark); stand.position.y = -(f.y - this.course.spawnY(f.z) + 4) / 2 - 1; g.add(stand);
       const lm = lamp(); const l = new THREE.Mesh(new THREE.SphereGeometry(.15, 10, 8), lm); l.position.set(0, 1.5, 0); g.add(l);
       const n = 70, pos = new Float32Array(n * 3); for (let i = 0; i < n; i++) {pos[i * 3] = (Math.random() - .5) * 2 * f.half; pos[i * 3 + 1] = (Math.random() - .3) * 2; pos[i * 3 + 2] = Math.random() * f.reach;}
@@ -266,7 +268,7 @@ export class RaceApp {
       const lm = lamp(); const l = new THREE.Mesh(new THREE.SphereGeometry(.2, 10, 8), lm); l.position.set(h.pillarX - h.side * .3, h.y + 1, h.z); this.scene.add(l); void base;
       const head = new THREE.Group(); const shank = new THREE.Mesh(new THREE.CylinderGeometry(.09, .09, .9, 8).rotateZ(Math.PI / 2), steel); head.add(shank);
       const curve = new THREE.Mesh(new THREE.TorusGeometry(.38, .09, 8, 20, Math.PI * 1.3), steel); curve.position.x = -.5; curve.rotation.z = Math.PI * .35; head.add(curve);
-      const tip = new THREE.Mesh(new THREE.ConeGeometry(.11, .3, 8), steel); tip.position.set(-.5, .38, 0); head.add(tip); head.scale.x = h.side; this.scene.add(head);
+      const tip = new THREE.Mesh(new THREE.ConeGeometry(.11, .3, 8), steel); tip.position.set(-.5, .38, 0); head.add(tip); bake(head); head.scale.x = h.side; this.scene.add(head);
       const chain = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, 1, 6).rotateZ(Math.PI / 2), dark); this.scene.add(chain);
       this.mech.hooks.push([h, head, chain, lm]);}
     // chaser boulder (+ toppling columns along the corridor)
@@ -340,6 +342,14 @@ export class RaceApp {
   private mergeStatic(from: number) {
     const groups = new Map<string, {mat: THREE.Material; geos: THREE.BufferGeometry[]; shadow: boolean}>(), drop: THREE.Mesh[] = [];
     this.scene.updateMatrixWorld(true);
+    const take = (m: THREE.Mesh) => {let g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone(); g.applyMatrix4(m.matrixWorld);
+      for (const k of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(k)) g.deleteAttribute(k);
+      if (!g.attributes.normal) g.computeVertexNormals(); if (!g.attributes.uv) g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2));
+      const key = (m.material as THREE.Material).uuid + (m.castShadow ? 's' : ''); let e = groups.get(key); if (!e) {e = {mat: m.material as THREE.Material, geos: [], shadow: m.castShadow}; groups.set(key, e);} e.geos.push(g);};
+    // static decor groups (frames, chapels, chandeliers…): flatten their plain meshes; animated groups carry userData.sway
+    for (const o of this.scene.children.slice(from)) {if ((o as any).isMesh || (o as any).isSprite || (o as any).isPoints || o.userData.sway !== undefined || o.userData.keep) continue;
+      const kids: THREE.Mesh[] = []; o.traverse(c => {const m = c as THREE.Mesh; if (m !== o && m.isMesh && !(m as any).isInstancedMesh && !(m as any).isSkinnedMesh && !Array.isArray(m.material)) kids.push(m);});
+      for (const m of kids) {take(m); m.parent!.remove(m);} let left = 0; o.traverse(c => {if (c !== o && ((c as any).isMesh || (c as any).isSprite || (c as any).isPoints)) left++;}); if (!left) this.scene.remove(o);}
     for (const o of this.scene.children.slice(from)) {const m = o as THREE.Mesh; if (!m.isMesh || (m as any).isInstancedMesh || Array.isArray(m.material) || m.userData.keep) continue;
       let g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone(); g.applyMatrix4(m.matrixWorld); const keys = Object.keys(g.attributes).sort().join(',');
       for (const k of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(k)) g.deleteAttribute(k);
@@ -381,7 +391,7 @@ export class RaceApp {
       for (const sd of [-1, 1]) {const w = add(new THREE.Mesh(plane(len, H, 3), mats.wall)); w.position.set(sd * r.halfW, base + H / 2, zc); w.rotation.y = -sd * Math.PI / 2;
         const wc = add(new THREE.Mesh(plane(len, 1.3, 2), mats.beam), false); wc.position.set(sd * (r.halfW - .03), r.y + .65, zc); wc.rotation.y = -sd * Math.PI / 2;
         const rail = add(new THREE.Mesh(new THREE.BoxGeometry(.12, .14, len), mats.beam), false); rail.position.set(sd * (r.halfW - .06), r.y + 1.32, zc);
-        const ao = add(new THREE.Mesh(new THREE.PlaneGeometry(len, 1.2), new THREE.MeshBasicMaterial({map: aoTexture(), transparent: true, depthWrite: false, color: 0})), false); ao.rotation.set(-Math.PI / 2, 0, -sd * Math.PI / 2 + Math.PI / 2); ao.position.set(sd * (r.halfW - .6), r.y + .02, zc);
+        const ao = add(new THREE.Mesh(new THREE.PlaneGeometry(len, 1.2), AO_MAT_GET()), false); ao.rotation.set(-Math.PI / 2, 0, -sd * Math.PI / 2 + Math.PI / 2); ao.position.set(sd * (r.halfW - .6), r.y + .02, zc);
         for (let z = Math.ceil((r.z0 + 1) / 8) * 8; z < r.z1; z += 8) {const post = add(new THREE.Mesh(new THREE.BoxGeometry(.5, r.h + 1, .5), mats.beam)); post.position.set(sd * (r.halfW - .25), r.y + r.h / 2 - .5, z);}}
       if (prevW > 0 && prevW !== r.halfW) for (const sd of [-1, 1]) {const a = Math.min(prevW, r.halfW), b = Math.max(prevW, r.halfW); const j = add(new THREE.Mesh(plane(b - a, H + 4, 3), mats.wall)); j.position.set(sd * (a + b) / 2, base + (H + 4) / 2, r.z0); if (prevW < r.halfW) j.rotation.y = Math.PI;}
       prevW = r.halfW;
@@ -449,7 +459,7 @@ export class RaceApp {
     // candle glows (no real lights: phone friendly) and moonlight shafts through the skylights
     const halo = new THREE.SpriteMaterial({map: dotTexture(true), color: 0xff9a40, transparent: true, opacity: .8, depthWrite: false, blending: THREE.AdditiveBlending});
     for (const g of glows) {const h = new THREE.Sprite(halo); h.scale.setScalar(1.9); h.position.copy(g); this.scene.add(h); this.flames.push(h);
-      const pool = new THREE.Mesh(new THREE.CircleGeometry(2.6, 24).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({map: dotTexture(true), color: 0xff8030, transparent: true, opacity: .22, depthWrite: false, blending: THREE.AdditiveBlending}));
+      const pool = new THREE.Mesh(new THREE.CircleGeometry(2.6, 24).rotateX(-Math.PI / 2), POOL_MAT());
       pool.position.set(g.x, c.spawnY(g.z) + .03, g.z); this.scene.add(pool);}
     const shaftTex = shaftTexture();
     for (const [x, y, z, hw] of shafts) {const L = 14; for (const rot of [0, Math.PI / 2]) {const m = new THREE.Mesh(new THREE.PlaneGeometry(hw * 1.6, L), new THREE.MeshBasicMaterial({map: shaftTex, color: 0x9fb8ff, transparent: true, opacity: .07, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false}));
@@ -466,7 +476,7 @@ export class RaceApp {
   private drape = new THREE.MeshStandardMaterial({color: 0x5a0d10, roughness: .85, side: THREE.DoubleSide});
   private canvasBg = new THREE.MeshStandardMaterial({color: 0x2b1a14, roughness: .9});
   private portraits = new Map<string, THREE.Material>();
-  private portrait(ch: string) {let m = this.portraits.get(ch); if (!m) {const t = this.texLoader.load(`../hell-cage-host/chars/${ch}.png`); t.colorSpace = THREE.SRGBColorSpace;
+  private portrait(ch: string) {let m = this.portraits.get(ch); if (!m) {const t = this.texLoader.load(`portraits/${ch}.png`); t.colorSpace = THREE.SRGBColorSpace;
     const c = document.createElement('canvas'); c.width = 4; c.height = 4; m = new THREE.MeshStandardMaterial({map: t, color: 0xd8c8b0, roughness: .7, transparent: true, alphaTest: .05});
     const bg = new THREE.MeshStandardMaterial({color: 0x2a1410}); void bg; this.portraits.set(ch, m);} return m;} private flames: THREE.Sprite[] = [];
 
@@ -541,7 +551,7 @@ export class RaceApp {
   private grassSpots: THREE.Matrix4[] = [];
   private grassOn(b: Block) {
     let seed = (Math.abs(Math.floor(b.z0 * 131 + b.x0 * 17)) % 2147483000) + 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-    const area = (b.x1 - b.x0) * (b.z1 - b.z0), n = Math.floor(area * (matchMedia('(pointer:coarse)').matches ? 2.4 : 3.6));
+    const area = (b.x1 - b.x0) * (b.z1 - b.z0), n = Math.floor(area * (matchMedia('(pointer:coarse)').matches ? 1.2 : 2.2));
     const q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3();
     for (let i = 0; i < n; i++) {
       // denser along the edges, sparse in the running lane
@@ -610,7 +620,7 @@ export class RaceApp {
   private frame(t: number) {
     const dt = this.last ? Math.min(.1, (t - this.last) / 1000) : 1 / 60; this.last = t;
     this.frameAvg += (dt * 1000 - this.frameAvg) * .05;
-    if (this.frameAvg > 21 && this.pixelRatio > .85) {this.pixelRatio = Math.max(.85, this.pixelRatio - .1); this.renderer.setPixelRatio(this.pixelRatio); this.frameAvg = 16;}
+    if (this.frameAvg > 19 && this.pixelRatio > .75) {this.pixelRatio = Math.max(.75, this.pixelRatio - .1); this.renderer.setPixelRatio(this.pixelRatio); this.frameAvg = 16;}
     this.readInput();
     if (this.net) {const target = COUNTDOWN + (this.net.serverNow() - this.net.startAt) / 1000; this.intro(target + INTRO - COUNTDOWN); if (target < this.clock || this.clock <= 0 && target < 0) this.clock = Math.min(target, 0); this.acc = Math.max(0, Math.min(8, target - this.clock));
       if (this.acc > 2) {while (this.acc > .2) {this.acc -= STEP; this.clock += STEP; this.course.step(STEP);}}
@@ -622,6 +632,7 @@ export class RaceApp {
       for (const r of this.runners) {if ((r as any).remote) continue; if (r.bot) this.course.think(r, STEP); if (!live || this.clock < 0) {r.inX = r.inZ = 0; r.jump = false;} this.course.move(r, STEP);}
       for (let i = 0; i < this.runners.length; i++) for (let j = i + 1; j < this.runners.length; j++) {const a = this.runners[i], b = this.runners[j]; if (a.hook >= 0 || b.hook >= 0) continue; const dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz), m = RR * 1.9;
         if (d < m && d > 1e-4 && Math.abs(a.y - b.y) < 1.2) {const p = (m - d) / 2; a.x -= dx / d * p; a.z -= dz / d * p; b.x += dx / d * p; b.z += dz / d * p;}}}
+    if (this.headless) {this.hudT = (this.hudT || 0) + dt; if (this.hudT < 1) return; this.hudT = 0;} // autopilot bots: simulate only, draw once a second
     if (this.phoneShadows) this.renderer.shadowMap.needsUpdate = (this.frameNo++ & 1) === 0;
     this.sync(dt); if (this.composer) this.composer.render(); else this.renderer.render(this.scene, this.camera); this.hudUpdate();
   }
@@ -738,8 +749,19 @@ export class RaceApp {
 
   private hudUpdate() {
     const w = innerWidth, h = innerHeight, v = new THREE.Vector3();
-    for (const [r, l] of this.looks) {v.set(r.x, r.y + H + .55, r.z).project(this.camera); const on = v.z < 1 && Math.abs(v.x) < 1.1 && Math.abs(v.y) < 1.1;
-      l.tag.style.display = on ? '' : 'none'; if (on) l.tag.style.transform = `translate(${(v.x * .5 + .5) * w}px,${(-v.y * .5 + .5) * h}px) translate(-50%,-100%)`;}
+    // name tags: nearest first, shrink + fade with distance, hidden far away, never stacked on top of each other
+    const cam = this.camera.position, items: {l: any; x: number; y: number; d: number; me: boolean}[] = [];
+    for (const [r, l] of this.looks) {const d = Math.hypot(r.x - cam.x, r.y - cam.y, r.z - cam.z), me = r === this.me; v.set(r.x, r.y + H + .45, r.z).project(this.camera);
+      if (v.z >= 1 || Math.abs(v.x) > 1.05 || Math.abs(v.y) > 1.05 || (!me && d > 34)) {if (l.tag.style.display !== 'none') l.tag.style.display = 'none'; continue;}
+      items.push({l, x: (v.x * .5 + .5) * w, y: (-v.y * .5 + .5) * h, d, me});}
+    items.sort((a, b) => (b.me ? 1 : 0) - (a.me ? 1 : 0) || a.d - b.d); const placed: [number, number, number, number][] = [];
+    for (const it of items) {const k = Math.max(.62, Math.min(1, 14 / it.d)), tw = (it.l.tagW ??= it.l.tag.offsetWidth || 60) * k, th = 22 * k;
+      const box: [number, number, number, number] = [it.x - tw / 2, it.y - th, it.x + tw / 2, it.y];
+      const hit = !it.me && placed.some(p => box[0] < p[2] && box[2] > p[0] && box[1] < p[3] && box[3] > p[1]);
+      if (hit) {if (it.l.tag.style.display !== 'none') it.l.tag.style.display = 'none'; continue;} placed.push(box);
+      if (it.l.tag.style.display === 'none') it.l.tag.style.display = '';
+      const op = it.me ? '1' : (Math.round(Math.max(.35, Math.min(1, 1.6 - it.d / 26)) * 10) / 10).toString(); if (it.l.tagO !== op) {it.l.tagO = op; it.l.tag.style.opacity = op;}
+      const tr = `translate(${Math.round(it.x)}px,${Math.round(it.y)}px) translate(-50%,-100%) scale(${k.toFixed(2)})`; if (it.l.tagT !== tr) {it.l.tagT = tr; it.l.tag.style.transform = tr;}}
     const t = this.timeLeft(); setText('timer', `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`);
     document.getElementById('timer')!.classList.toggle('low', t < 20 && this.clock > COUNTDOWN);
     const n = Math.ceil(COUNTDOWN - .5 - this.clock); if (this.clock < COUNTDOWN + .3 && n !== this.sndState.count) {this.sndState.count = n; if (n >= 0 && n <= 3) this.snd.countdown(n <= 0);}
@@ -747,17 +769,17 @@ export class RaceApp {
     const st = this.standings(), place = st.indexOf(this.me) + 1; setText('place-n', String(place)); setText('place-of', `/${st.length}`);
     document.getElementById('place')!.dataset.p = String(Math.min(place, 4));
     // progress track: every runner as a portrait dot
-    if (!this.dots.size) {const track = document.getElementById('track')!; for (const r of this.runners) {const d = document.createElement('i'); d.className = r === this.me ? 'me' : ''; d.style.backgroundImage = `url(../hell-cage-host/chars/${r.character}.png)`; track.appendChild(d); this.dots.set(r, d);}}
+    if (!this.dots.size) {const track = document.getElementById('track')!; for (const r of this.runners) {const d = document.createElement('i'); d.className = r === this.me ? 'me' : ''; d.style.backgroundImage = `url(portraits/${r.character}.png)`; track.appendChild(d); this.dots.set(r, d);}}
     for (const [r, d] of this.dots) {const f = r.finished ? 1 : Math.min(1, Math.max(0, r.z / this.course.finishZ)); d.style.left = `${f * 100}%`; d.style.zIndex = r === this.me ? '9' : String(Math.round(f * 8));}
     (document.getElementById('fill') as HTMLElement).style.width = `${Math.min(1, Math.max(0, this.me.z / this.course.finishZ)) * 100}%`;
     // mini leaderboard: top 3 (+ you)
     const rows = st.slice(0, 3); if (!rows.includes(this.me)) rows.push(this.me);
-    const html = rows.map(r => `<li class="${r === this.me ? 'me' : ''}"><b>${st.indexOf(r) + 1}</b><img src="../hell-cage-host/chars/${r.character}.png" alt="">${r.name}${r.finished ? ' ✓' : ''}</li>`).join('');
+    const html = rows.map(r => `<li class="${r === this.me ? 'me' : ''}"><b>${st.indexOf(r) + 1}</b><img src="portraits/${r.character}.png" alt="">${r.name}${r.finished ? ' ✓' : ''}</li>`).join('');
     const lb = document.getElementById('board')!; if (lb.dataset.h !== html) {lb.dataset.h = html; lb.innerHTML = html;}
     const res = document.getElementById('results')!;
     if ((this.me.finished || this.over()) && res.hidden) {res.hidden = false; this.snd.finish(this.me.finished && st.indexOf(this.me) < 3);
       const res2 = (r: Runner) => r.finished ? (r.finishTime - COUNTDOWN).toFixed(1) + ' с' : Math.round(Math.min(1, r.progress / this.course.finishZ) * 100) + '%';
-      const img = (r: Runner) => `../hell-cage-host/chars/${r.character}.png`, pod = [st[1], st[0], st[2]];
+      const img = (r: Runner) => `portraits/${r.character}.png`, pod = [st[1], st[0], st[2]];
       (res.querySelector('.podium') as HTMLElement).innerHTML = pod.map((r, i) => r ? `<div class="step s${[2, 1, 3][i]}${r === this.me ? ' me' : ''}"><img src="${img(r)}" alt=""><b>${r.name}</b><small>${res2(r)}</small><div class="block">${[2, 1, 3][i]}</div></div>` : '<div class="step empty"></div>').join('');
       res.querySelector('ol')!.innerHTML = st.slice(3).map((r, i) => `<li class="${r === this.me ? 'me' : ''}"><em>${i + 4}</em>${r.name}<span>${res2(r)}${r.falls ? ` · падений ${r.falls}` : ''}</span></li>`).join('');
       const myPlace = st.indexOf(this.me) + 1; setText('verdict', this.net?.spectator ? 'ИТОГИ ЗАБЕГА' : this.me.finished ? (myPlace === 1 ? 'ПОБЕДА!' : `ФИНИШ · ${myPlace} МЕСТО`) : 'ВРЕМЯ ВЫШЛО');
@@ -883,7 +905,7 @@ function spikedBall() {const g = new THREE.Group(), m = metalMat('rusty_metal_02
   const ico = new THREE.IcosahedronGeometry(1, 1), pos = ico.getAttribute('position'), seen = new Set<string>();
   for (let i = 0; i < pos.count; i++) {const v = new THREE.Vector3(pos.getX(i), pos.getY(i), pos.getZ(i)).normalize(), key = v.toArray().map(x => x.toFixed(2)).join(); if (seen.has(key)) continue; seen.add(key);
     const sp = new THREE.Mesh(new THREE.ConeGeometry(.13, .55, 8), m); sp.position.copy(v.clone().multiplyScalar(1.02)); sp.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), v); g.add(sp);}
-  const cap = new THREE.Mesh(new THREE.TorusGeometry(.2, .06, 6, 12), m); cap.position.y = .95; g.add(cap); g.userData.base = 1; return g;}
+  const cap = new THREE.Mesh(new THREE.TorusGeometry(.2, .06, 6, 12), m); cap.position.y = .95; g.add(cap); g.userData.base = 1; return bake(g);}
 function padTexture() {const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d')!; x.fillStyle = '#3a1a08'; x.fillRect(0, 0, 128, 128);
   x.strokeStyle = '#ffcf5a'; x.lineWidth = 8; for (const r of [56, 38]) {x.beginPath(); x.arc(64, 64, r, 0, 7); x.stroke();}
   x.fillStyle = '#ffe08a'; x.beginPath(); x.moveTo(64, 26); x.lineTo(90, 64); x.lineTo(74, 64); x.lineTo(74, 100); x.lineTo(54, 100); x.lineTo(54, 64); x.lineTo(38, 64); x.closePath(); x.fill();
@@ -900,7 +922,7 @@ function ironCage(open = false) {
   for (let i = 0; i < bars / 2; i++) {const a = i / (bars / 2) * Math.PI; const arc = new THREE.Mesh(new THREE.TorusGeometry(R, .025, 6, 24, Math.PI), iron); arc.position.y = Hh; arc.rotation.y = a; g.add(arc);}
   const hook = new THREE.Mesh(new THREE.TorusGeometry(.13, .035, 8, 16), iron); hook.position.y = Hh + R + .12; g.add(hook);
   if (open) {const door = new THREE.Group(); for (let i = 0; i < 3; i++) {const b = new THREE.Mesh(barGeo, iron); b.position.set(i * .26, (Hh + .12) / 2, 0); door.add(b);} door.position.set(Math.cos(2 / bars * Math.PI * 2) * R, 0, Math.sin(2 / bars * Math.PI * 2) * R); door.rotation.y = -1.6; g.add(door);}
-  g.traverse(o => {if ((o as THREE.Mesh).isMesh) {o.castShadow = true; o.receiveShadow = true;}}); return g;
+  g.traverse(o => {if ((o as THREE.Mesh).isMesh) {o.castShadow = true; o.receiveShadow = true;}}); return bake(g);
 }
 
 function aoTexture() {const c = document.createElement('canvas'); c.width = 4; c.height = 64; const x = c.getContext('2d')!; const g = x.createLinearGradient(0, 0, 0, 64);
@@ -933,3 +955,17 @@ const RULES: [number, string][] = [[.6, 'Добро пожаловать в Пр
 function confetti() {const c = document.createElement('canvas'); c.className = 'confetti'; c.width = innerWidth; c.height = innerHeight; document.body.appendChild(c); const x = c.getContext('2d')!;
   const cols = ['#f6c26b', '#e74c3c', '#fff1d0', '#c0392b', '#ffd24a'], ps = Array.from({length: 140}, () => ({x: Math.random() * c.width, y: -20 - Math.random() * c.height * .5, vx: (Math.random() - .5) * 2, vy: 2 + Math.random() * 3, r: Math.random() * 6, s: 4 + Math.random() * 6, c: cols[Math.floor(Math.random() * cols.length)]}));
   let t = 0; const tick = () => {t++; x.clearRect(0, 0, c.width, c.height); for (const p of ps) {p.x += p.vx; p.y += p.vy; p.r += .1; x.save(); x.translate(p.x, p.y); x.rotate(p.r); x.fillStyle = p.c; x.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); x.restore();} if (t < 260) requestAnimationFrame(tick); else c.remove();}; tick();}
+
+let _ao: THREE.MeshBasicMaterial | null = null, _pool: THREE.MeshBasicMaterial | null = null;
+const AO_MAT_GET = () => _ao ??= new THREE.MeshBasicMaterial({map: aoTexture(), transparent: true, depthWrite: false, color: 0});
+const POOL_MAT = () => _pool ??= new THREE.MeshBasicMaterial({map: dotTexture(true), color: 0xff8030, transparent: true, opacity: .22, depthWrite: false, blending: THREE.AdditiveBlending});
+/** Merge a group's plain child meshes into one mesh per material (same local space): one draw call per material instead of dozens. */
+function bake<T extends THREE.Object3D>(g: T): T {
+  g.updateMatrixWorld(true); const inv = g.matrixWorld.clone().invert(), by = new Map<THREE.Material, THREE.BufferGeometry[]>(), drop: THREE.Mesh[] = [];
+  g.traverse(o => {const m = o as THREE.Mesh; if (!m.isMesh || m === (g as any) || Array.isArray(m.material) || (m as any).isInstancedMesh) return;
+    const geo = (m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone()).applyMatrix4(inv.clone().multiply(m.matrixWorld));
+    for (const k of Object.keys(geo.attributes)) if (!['position', 'normal', 'uv'].includes(k)) geo.deleteAttribute(k);
+    if (!geo.attributes.uv) geo.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(geo.attributes.position.count * 2), 2));
+    (by.get(m.material as THREE.Material) ?? by.set(m.material as THREE.Material, []).get(m.material as THREE.Material)!).push(geo); drop.push(m);});
+  if (drop.length < 2) return g; for (const m of drop) m.parent!.remove(m);
+  for (const [mat, geos] of by) {const mm = new THREE.Mesh(mergeGeometries(geos, false)!, mat); mm.castShadow = mm.receiveShadow = true; g.add(mm);} return g;}

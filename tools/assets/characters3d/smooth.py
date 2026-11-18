@@ -31,5 +31,6 @@ im=im.filter(ImageFilter.MedianFilter(3))
 im=im.filter(ImageFilter.GaussianBlur(.6));im=ImageEnhance.Color(im).enhance(1.55);im=ImageEnhance.Brightness(im).enhance(1.15);im=ImageEnhance.Contrast(im).enhance(1.1)
 im.save(p)""",tmp],check=True)
         im.reload();im.alpha_mode='NONE'
+        if im.size[0]>512:im.scale(512,512)
     bpy.ops.export_scene.gltf(filepath=f'{OUT}/{n}.glb',export_format='GLB',export_image_format='JPEG',export_jpeg_quality=85,export_animation_mode='ACTIONS')
     print('DONE',n,flush=True)
