@@ -1,4 +1,4 @@
-import {RaceIntro, INTRO} from './intro';
+import {RaceIntro} from './intro';
 // Obstacle race in the browser: built for phones (Poco X3 Pro / iPhone) — instanced scenery, 512px textures, one shadow map
 // that follows the player, adaptive resolution. Touch: left thumb stick + jump button; PC: WASD/arrows + SPACE.
 import * as THREE from 'three';
@@ -136,7 +136,7 @@ export class RaceApp {
       const top = new THREE.Mesh(new THREE.CircleGeometry(p.r * .86, 32).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({map: padTexture(), emissive: 0xffb23a, emissiveMap: padTexture(), emissiveIntensity: 1.1, roughness: .5})); top.position.set(p.x, p.y + .23, p.z); this.padMeshes.push(top); this.scene.add(top);}
     this.boulderSrc = boulder.scene;
     const barrel = await this.model('env/wine_barrel_01.glb');
-    for (let i = 0; i < 6; i++) {const b = barrel ? rolling(normalized(barrel.scene, 2.4, 'max')) : normalized(boulder.scene, 2.4, 'max'); b.visible = false; this.boulderPool.push(b); this.scene.add(b);}
+    for (let i = 0; i < 9; i++) {const b = barrel ? rolling(normalized(barrel.scene, 2.4, 'max')) : normalized(boulder.scene, 2.4, 'max'); b.visible = false; this.boulderPool.push(b); this.scene.add(b);}
     // finish arch
     const fy = this.course.spawnY(this.course.finishZ);
     for (const sg of [-1, 1]) {const post = new THREE.Mesh(this.night || this.manor ? new THREE.BoxGeometry(1.3, 7, 1.3) : new THREE.CylinderGeometry(.55, .6, 7, 12), this.night ? mats.brick : mats.bark); post.position.set(sg * 7.5, fy + 3.5, this.course.finishZ); post.castShadow = true; this.scene.add(post);}
@@ -273,16 +273,30 @@ export class RaceApp {
       const tip = new THREE.Mesh(new THREE.ConeGeometry(.11, .3, 8), steel); tip.position.set(-.5, .38, 0); head.add(tip); bake(head); head.scale.x = h.side; this.scene.add(head);
       const chain = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, 1, 6).rotateZ(Math.PI / 2), dark); this.scene.add(chain);
       this.mech.hooks.push([h, head, chain, lm]);}
-    // chaser boulder (+ toppling columns along the corridor)
-    for (const ch of c.chasers) {const b = new THREE.Mesh(new THREE.IcosahedronGeometry(ch.r, 4), mats.rock ?? steel); b.castShadow = true; const g = new THREE.Group(); g.add(b); this.scene.add(g); this.mech.chasers.push([ch, g]);
-      for (let i = 1; i < ch.path.length - 1; i += 1) {const [px, pz] = ch.path[i]; const col = new THREE.Mesh(new THREE.CylinderGeometry(.35, .4, 3.4, 12), mats.rock ?? steel); col.position.set(px + 2.6 * (i % 2 ? 1 : -1), ch.y + 1.7, pz + 1.5); col.castShadow = true; col.userData.col = [ch, i]; this.scene.add(col); this.columns.push(col);}}
+    // Rock waves share geometry; each body keeps its own pose. Amber beacon announces the next release.
+    const stoneGeo=new THREE.SphereGeometry(1,32,24), vertices=stoneGeo.getAttribute('position');
+    for(let i=0;i<vertices.count;i++){const x=vertices.getX(i),y=vertices.getY(i),z=vertices.getZ(i),k=.96+.035*Math.sin(x*5+z*2)*Math.sin(y*6-z*3);vertices.setXYZ(i,x*k,y*k,z*k);}stoneGeo.computeVertexNormals();
+    for (const ch of c.chasers) {
+      const mesh=new THREE.Mesh(stoneGeo,mats.rock);mesh.scale.setScalar(ch.r);mesh.castShadow=true;
+      const g=new THREE.Group();g.add(mesh);this.scene.add(g);this.mech.chasers.push([ch,g]);
+      if(ch.slot!==0)continue;
+      const signal=new THREE.MeshStandardMaterial({color:0x3c2108,emissive:0xffa52a,emissiveIntensity:.2});
+      const beacon=new THREE.Mesh(new THREE.SphereGeometry(.3,12,8),signal);beacon.position.set(3.2,ch.track.y1+3,ch.track.z1-1);this.scene.add(beacon);
+      this.stoneSignals.push({phase:ch.phase,lamp:signal});
+      for(let i=0;i<5;i++) {const z=ch.track.z0+6+i*8,side=i%2?-1:1;
+        const mark=new THREE.Mesh(new THREE.BoxGeometry(.12,.12,2.4),new THREE.MeshStandardMaterial({color:0xc2ad66,emissive:0x6c5622,emissiveIntensity:.4}));
+        mark.position.set(side*4.4,this.course.spawnY(z)+.12,z);this.scene.add(mark);
+      }
+    }
     // tilting chamber: warning lamps on the rim; mill surge lamps on spinner posts
     for (const b of c.tilts) if (b.tilt!.axis === 'xz') {const ms: THREE.MeshStandardMaterial[] = []; for (const [x, z] of [[b.x0, b.z0], [b.x1, b.z0], [b.x0, b.z1], [b.x1, b.z1]]) {const m = lamp(); ms.push(m); const pole = new THREE.Mesh(new THREE.CylinderGeometry(.08, .08, 3, 6), dark); pole.position.set(x * 1.12, b.y0 + 1.5, z); this.scene.add(pole); const l = new THREE.Mesh(new THREE.SphereGeometry(.22, 10, 8), m); l.position.set(x * 1.12, b.y0 + 3.1, z); this.scene.add(l);} this.mech.tiltLamps.push([b, ms]);}
     for (const sw of c.sweepers) if (sw.vary) {const m = lamp(); const l = new THREE.Mesh(new THREE.SphereGeometry(.25, 10, 8), m); l.position.set(sw.x, sw.y + 1.3, sw.z); this.scene.add(l); this.mech.sweepLamps.push([sw, m]);}
   }
   private columns: THREE.Mesh[] = [];
+  private stoneSignals: {phase: number; lamp: THREE.MeshStandardMaterial}[] = [];
   private syncMech(dt: number) {
     const c = this.course, t = c.time;
+    for(const signal of this.stoneSignals){const phase=((t-signal.phase)%2+2)%2;signal.lamp.emissiveIntensity=phase>1.55 ? 1.5+Math.sin(t*35)*1.1 : .12;}
     for (const [g, spin] of this.mech.gears) spin.rotation.y = -g.angle;
     for (const [b, g] of this.mech.carts) {g.position.x = b.offX; g.visible = Math.abs(b.offX) < b.cart!.len + 1.8;}
     for (const [gt, a, b, , lm] of this.mech.gates) {lm.emissiveIntensity = gt.warn ? (Math.sin(t * 30) > 0 ? 3 : .2) : gt.open < .5 ? 1.2 : 0;
@@ -631,7 +645,7 @@ export class RaceApp {
       const preview = new URLSearchParams(location.search).get('introAt');
       this.intro(preview !== null ? Number(preview) : (t - this.localIntroStart) / 1000);
     }
-    if (this.net) {const target = COUNTDOWN + (this.net.serverNow() - this.net.startAt) / 1000; this.intro(target + INTRO); if (target < this.clock || this.clock <= 0 && target < 0) this.clock = Math.min(target, 0); this.acc = Math.max(0, Math.min(8, target - this.clock));
+    if (this.net) {const target = COUNTDOWN + (this.net.serverNow() - this.net.startAt) / 1000; this.intro(target + this.rulesIntro.duration); if (target < this.clock || this.clock <= 0 && target < 0) this.clock = Math.min(target, 0); this.acc = Math.max(0, Math.min(8, target - this.clock));
       if (this.acc > 2) {while (this.acc > .2) {this.acc -= STEP; this.clock += STEP; this.course.step(STEP);}}
       this.netTick(dt);}
     if (this.introT >= 0 && !this.introSkipped) {const savedTime = this.course.time; this.course.time = this.introT; this.course.step(0); this.sync(dt); this.course.time = savedTime; if (this.phoneShadows) this.renderer.shadowMap.needsUpdate = true; this.renderer.render(this.scene, this.camera); return;}
@@ -697,7 +711,7 @@ export class RaceApp {
     this.portalFx.forEach((g, i) => {g.userData.disc.rotation.z -= dt * 2.4; const p = c.portals[i]; (g.userData.disc.material as THREE.MeshBasicMaterial).opacity = .7 + .25 * Math.sin(c.time * 5 + i) + (c.time - p.used < .4 ? .5 : 0);});
     const tp = (this.me as any).teleported; if (tp && tp !== this.lastTp) {this.lastTp = tp; this.camTarget.set(this.me.x, this.me.y, this.me.z); const pk = c.portals.find(p => c.time - p.used < .1); this.snd.portal(); this.toast(pk?.kind === 'far' ? 'ДАЛЕКО ВПЕРЁД!' : pk?.kind === 'back' ? 'НАЗАД!' : 'ТЕЛЕПОРТ!'); this.puff(this.me.x, this.me.y, this.me.z, 1.6);}
     const sec = c.sectionAt(this.me.z); if (sec && sec.name !== this.lastSection) {this.lastSection = sec.name; if (this.clock > COUNTDOWN + .5) this.toast(SECTION_NAMES[sec.name].toUpperCase());}
-    this.boulderPool.forEach((o, i) => {const b = c.boulders[i]; o.visible = !!b; if (b) {o.position.set(b.x, b.y, b.z); o.rotation.x = b.spin; o.scale.setScalar(b.radius / 1.2 * o.userData.base);}});
+    this.boulderPool.forEach((o, i) => {const b = c.boulders[i]; o.visible = !!b; if (b) {o.position.set(b.x, b.y, b.z); o.rotation.order = 'YXZ'; o.rotation.y += (b.roll - o.rotation.y) * .25; o.rotation.x = b.spin; o.scale.setScalar(b.radius / 1.2 * o.userData.base);}});
     for (const [r, l] of this.looks) {
       const hs = Math.hypot(r.vx, r.vz), want = r.stun > 0 ? 'stun' : !r.ground ? 'jump' : hs > .8 ? 'run' : 'idle';
       if (want !== l.cur && l.acts[want]) {const a = l.acts[want]; a.reset().fadeIn(.06).play(); l.acts[l.cur]?.fadeOut(.06); l.cur = want;}
