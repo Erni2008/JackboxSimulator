@@ -1,3 +1,4 @@
+import {RaceIntro, INTRO} from './intro';
 // Obstacle race in the browser: built for phones (Poco X3 Pro / iPhone) — instanced scenery, 512px textures, one shadow map
 // that follows the player, adaptive resolution. Touch: left thumb stick + jump button; PC: WASD/arrows + SPACE.
 import * as THREE from 'three';
@@ -618,25 +619,37 @@ export class RaceApp {
       f.t = 0; f.s.visible = true; f.s.position.set(x + Math.cos(a) * r, y + .15, z + Math.sin(a) * r); f.s.userData.size = size * (.6 + Math.random() * .5);}
   }
 
+  private prevPos = new Map<Runner, [number, number, number]>();
   private frame(t: number) {
-    if (this.last && t - this.last < 15.5) return; // cap at 60 fps: 120 Hz screens (ProMotion Mac / iPhone Pro) otherwise draw twice as much and overheat
+    if (this.last && t - this.last < 11) return; // cap at 60 fps (11 ms threshold: skips every other 120 Hz tick but never a 60 Hz frame that arrives a little early): 120 Hz screens (ProMotion Mac / iPhone Pro) otherwise draw twice as much and overheat
     const dt = this.last ? Math.min(.1, (t - this.last) / 1000) : 1 / 60; this.last = t;
     this.frameAvg += (dt * 1000 - this.frameAvg) * .05;
     if (this.frameAvg > 19 && this.pixelRatio > .75) {this.pixelRatio = Math.max(.75, this.pixelRatio - .1); this.renderer.setPixelRatio(this.pixelRatio); this.frameAvg = 16;}
     this.readInput();
-    if (this.net) {const target = COUNTDOWN + (this.net.serverNow() - this.net.startAt) / 1000; this.intro(target + INTRO - COUNTDOWN); if (target < this.clock || this.clock <= 0 && target < 0) this.clock = Math.min(target, 0); this.acc = Math.max(0, Math.min(8, target - this.clock));
+    if (!this.net) {
+      if (this.localIntroStart < 0) this.localIntroStart = t;
+      const preview = new URLSearchParams(location.search).get('introAt');
+      this.intro(preview !== null ? Number(preview) : (t - this.localIntroStart) / 1000);
+    }
+    if (this.net) {const target = COUNTDOWN + (this.net.serverNow() - this.net.startAt) / 1000; this.intro(target + INTRO); if (target < this.clock || this.clock <= 0 && target < 0) this.clock = Math.min(target, 0); this.acc = Math.max(0, Math.min(8, target - this.clock));
       if (this.acc > 2) {while (this.acc > .2) {this.acc -= STEP; this.clock += STEP; this.course.step(STEP);}}
       this.netTick(dt);}
-    if (this.introT >= 0 && !this.introSkipped) {this.sync(dt); this.renderer.render(this.scene, this.camera); return;}
+    if (this.introT >= 0 && !this.introSkipped) {const savedTime = this.course.time; this.course.time = this.introT; this.course.step(0); this.sync(dt); this.course.time = savedTime; if (this.phoneShadows) this.renderer.shadowMap.needsUpdate = true; this.renderer.render(this.scene, this.camera); return;}
     else this.acc += dt;
+    const prev = this.prevPos;
     while (this.acc >= STEP) {this.acc -= STEP; this.clock += STEP; const live = this.clock >= COUNTDOWN && !this.over();
+      for (const r of this.runners) if (!(r as any).remote) prev.set(r, [r.x, r.y, r.z]);
       this.course.step(STEP);
       for (const r of this.runners) {if ((r as any).remote) continue; if (r.bot) this.course.think(r, STEP); if (!live || this.clock < 0) {r.inX = r.inZ = 0; r.jump = false;} this.course.move(r, STEP);}
       for (let i = 0; i < this.runners.length; i++) for (let j = i + 1; j < this.runners.length; j++) {const a = this.runners[i], b = this.runners[j]; if (a.hook >= 0 || b.hook >= 0) continue; const dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz), m = RR * 1.9;
         if (d < m && d > 1e-4 && Math.abs(a.y - b.y) < 1.2) {const p = (m - d) / 2; a.x -= dx / d * p; a.z -= dz / d * p; b.x += dx / d * p; b.z += dz / d * p;}}}
     if (this.headless) {this.hudT = (this.hudT || 0) + dt; if (this.hudT < 1) return; this.hudT = 0;} // autopilot bots: simulate only, draw once a second
     if (this.phoneShadows) this.renderer.shadowMap.needsUpdate = (this.frameNo++ & 1) === 0;
-    this.sync(dt); if (this.composer) this.composer.render(); else this.renderer.render(this.scene, this.camera); this.hudUpdate();
+    // draw local runners between the last two physics steps: at 60 fps a frame holds 1-3 fixed steps, which made running look jerky
+    const k = 1 - Math.min(1, this.acc / STEP), real: [Runner, number, number, number][] = [];
+    for (const [r, [x, y, z]] of prev) {if (Math.abs(r.x - x) + Math.abs(r.y - y) + Math.abs(r.z - z) > 2) continue; real.push([r, r.x, r.y, r.z]); r.x -= (r.x - x) * k; r.y -= (r.y - y) * k; r.z -= (r.z - z) * k;}
+    this.sync(dt); for (const [r, x, y, z] of real) {r.x = x; r.y = y; r.z = z;}
+    if (this.composer) this.composer.render(); else this.renderer.render(this.scene, this.camera); this.hudUpdate();
   }
 
   /** remote state from the server: id -> [x,y,z,facing,anim,cp,progress,finished,finishTime,falls] */
@@ -655,26 +668,11 @@ export class RaceApp {
     this.sendT -= dt; if (this.sendT > 0) return; this.sendT = .2; const m = this.me, anim = m.stun > 0 ? 3 : !m.ground ? 2 : Math.hypot(m.vx, m.vz) > .8 ? 1 : 0;
     this.netSends = (this.netSends || 0) + 1; this.net!.send([+m.x.toFixed(2), +m.y.toFixed(2), +m.z.toFixed(2), +m.facing.toFixed(2), anim, m.checkpoint, +m.progress.toFixed(1), m.finished ? 1 : 0, +m.finishTime.toFixed(2), m.falls], this.netSends < 6 || this.surv?.run?.needCourse ? {c: this.course.checkpoints.map((x: number) => +x.toFixed(2)), f: +this.course.finishZ.toFixed(2)} : undefined);}
   private netSends = 0;
-  // ---- rules intro (online): voiced lines over a flyover of the real course, synced to the server clock ----
-  private introH?: Float32Array;
-  /** Smooth flyover height: course top sampled every metre, max over a window, then low-passed (no dips into gaps, no jumps). */
-  private introHeight(z: number) {
-    if (!this.introH) {const n = Math.ceil(this.course.finishZ + 40), raw = new Float32Array(n), h = new Float32Array(n);
-      for (let i = 0; i < n; i++) {let y = -1e9; for (const b of this.course.blocks) if (!b.wall && i - 6 >= b.z0 - 1 && i - 6 <= b.z1 + 1) y = Math.max(y, Math.max(b.y0, b.y1)); raw[i] = y > -1e8 ? y : (i ? raw[i - 1] : 0);}
-      for (let i = 0; i < n; i++) {let m = -1e9; for (let k = -8; k <= 8; k++) m = Math.max(m, raw[Math.max(0, Math.min(n - 1, i + k))]); h[i] = m;}
-      for (let pass = 0; pass < 4; pass++) for (let i = 1; i < n - 1; i++) h[i] = (h[i - 1] + h[i] * 2 + h[i + 1]) / 4;
-      this.introH = h;}
-    const h = this.introH, x = Math.max(0, Math.min(h.length - 1.001, z + 6)), i = Math.floor(x); return h[i] + (h[i + 1] - h[i]) * (x - i);
-  }
-  introT = -1; introSkipped = false; private introLine = -1;
+  private readonly rulesIntro = new RaceIntro(this);
+  private localIntroStart = -1;
+  introT = -1; introSkipped = false;
   private intro(t: number) {
-    const el = document.getElementById('intro'); if (!el) return;
-    if (t < 0 || t >= INTRO) {this.introT = -1; el.hidden = true; document.body.classList.remove('intro-on'); return;}
-    this.introT = t; el.hidden = this.introSkipped; document.body.classList.toggle('intro-on', !this.introSkipped); if (this.introSkipped) return;
-    let i = -1; for (let k = 0; k < RULES.length; k++) if (t >= RULES[k][0]) i = k;
-    if (i !== this.introLine) {this.introLine = i; const sub = document.getElementById('intro-sub')!; sub.textContent = i >= 0 ? RULES[i][1] : ''; sub.classList.remove('in'); void sub.offsetWidth; sub.classList.add('in');
-      if (i >= 0 && t - RULES[i][0] < .6) this.snd.voice(`audio/rules_${i}.m4a`);}
-    (document.getElementById('intro-bar') as HTMLElement).style.width = `${t / INTRO * 100}%`;
+    this.introT = this.rulesIntro.update(t, this.introSkipped) ? t : -1;
   }
   over() {if (this.clock - COUNTDOWN >= this.limit) return true; return this.runners.length > 0 && this.runners.every(r => r.finished);}
   timeLeft() {return Math.max(0, this.limit - Math.max(0, this.clock - COUNTDOWN));}
@@ -715,9 +713,10 @@ export class RaceApp {
       const bl = this.blobs.get(r); if (bl) {let gy = -99; for (const b of c.blocks) if (!b.gone && r.x >= b.x0 + b.offX && r.x <= b.x1 + b.offX && r.z >= b.z0 && r.z <= b.z1 && top(b, r.z) <= r.y + .05) gy = Math.max(gy, top(b, r.z)); bl.visible = gy > -50; const hgt = r.y - gy; bl.position.set(r.x, gy + .03, r.z); bl.scale.setScalar(Math.max(.4, 1 - hgt * .12)); (bl.material as THREE.MeshBasicMaterial).opacity = Math.max(.15, .55 - hgt * .06);}
     }
     // camera: behind and above the player, framed wider in portrait
-    if (this.introT >= 0 && !this.introSkipped) {const f = Math.min(1, this.introT / INTRO), z = -6 + (this.course.finishZ + 6) * (f * f * (3 - 2 * f)), y = this.introHeight(z);
-      this.camera.position.set(Math.sin(this.introT * .2) * 7, y + 11, z - 15); this.camera.lookAt(0, this.introHeight(z + 10) + 1, z + 10);
-      this.sun.position.set(this.camera.position.x + SUN_DIR.x * 70, y + SUN_DIR.y * 70, z + SUN_DIR.z * 70); this.sun.target.position.set(0, y, z + 8); this.animateAtmosphere(dt); return;}
+    if (this.introT >= 0 && !this.introSkipped) {
+      this.rulesIntro.camera(this.introT);
+      this.sun.position.copy(this.camera.position).addScaledVector(SUN_DIR, 70); this.sun.target.position.set(0, this.camera.position.y - 3, this.camera.position.z + 8);
+      this.animateAtmosphere(dt); return;}
     const me = this.me, portrait = this.camera.aspect < 1, k = Math.min(1, dt * 5);
     this.camTarget.x += (me.x * .75 - this.camTarget.x) * k; this.camTarget.z += (me.z - this.camTarget.z) * k; this.camTarget.y += (Math.max(me.y, -4) - this.camTarget.y) * Math.min(1, dt * 2.5);
     const back = this.manor ? (portrait ? 9 : 7.4) : portrait ? 11 : 8.6, up = this.manor ? (portrait ? 6 : 4.4) : portrait ? 7.2 : 5.4;
@@ -960,8 +959,6 @@ function metalMat(name: 'metal_plate_02' | 'rusty_metal_02' | 'metal_grate_rusty
 function rayTexture() {const c = document.createElement('canvas'); c.width = 64; c.height = 256; const x = c.getContext('2d')!; const g = x.createLinearGradient(0, 0, 0, 256); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(.6, 'rgba(255,255,255,.8)'); g.addColorStop(1, 'rgba(255,255,255,1)');
   x.fillStyle = g; x.fillRect(0, 0, 64, 256); const h = x.createLinearGradient(0, 0, 64, 0); h.addColorStop(0, 'rgba(0,0,0,1)'); h.addColorStop(.5, 'rgba(0,0,0,0)'); h.addColorStop(1, 'rgba(0,0,0,1)'); x.globalCompositeOperation = 'destination-out'; x.fillStyle = h; x.fillRect(0, 0, 64, 256); return new THREE.CanvasTexture(c);}
 
-const INTRO = 25;
-const RULES: [number, string][] = [[.6, 'Добро пожаловать в Проклятый забег!'], [3.8, 'Цель простая — первым добежать до финиша!'], [8.2, 'На пути брёвна, бочки, ловушки и пропасти. Упали? Вернётесь на последний чекпоинт.'], [15.6, 'Джойстик слева — бежать. Кнопка справа — прыгать.'], [20.2, 'Трасса каждый раз новая. Удачи — и не отставайте!']];
 
 function confetti() {const c = document.createElement('canvas'); c.className = 'confetti'; c.width = innerWidth; c.height = innerHeight; document.body.appendChild(c); const x = c.getContext('2d')!;
   const cols = ['#f6c26b', '#e74c3c', '#fff1d0', '#c0392b', '#ffd24a'], ps = Array.from({length: 140}, () => ({x: Math.random() * c.width, y: -20 - Math.random() * c.height * .5, vx: (Math.random() - .5) * 2, vy: 2 + Math.random() * 3, r: Math.random() * 6, s: 4 + Math.random() * 6, c: cols[Math.floor(Math.random() * cols.length)]}));
