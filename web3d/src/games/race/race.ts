@@ -234,7 +234,7 @@ export class RaceApp {
     for (const [, b] of lanes) {const L = b.cart!.len, zc = (b.z0 + b.z1) / 2, y = b.y0;
       for (const sd of [-.75, .75]) {const rail = new THREE.Mesh(new THREE.BoxGeometry(L * 2 + 4, .12, .1), steel); rail.position.set(0, y - .95, zc + sd); this.scene.add(rail);}
       const sl = new THREE.InstancedMesh(new THREE.BoxGeometry(.25, .12, 2.1), mats.bark, Math.floor(L * 2 / .9)); for (let i = 0; i < sl.count; i++) sl.setMatrixAt(i, new THREE.Matrix4().setPosition(-L + i * .9, y - 1.06, zc)); this.scene.add(sl);
-      for (const sd of [-1, 1]) {const arch = new THREE.Group(); const back = new THREE.Mesh(new THREE.BoxGeometry(2.2, 4.2, 3.2), mats.rock ?? dark); back.position.set(sd * (L + 1.6), y + .6, zc); arch.add(back);
+      for (const sd of [-1, 1]) {const arch = new THREE.Group(); const back = new THREE.Mesh(new THREE.BoxGeometry(4.4, 4.2, 3.2), mats.rock ?? dark); back.position.set(sd * (L + 2.7), y + .6, zc); arch.add(back);
         const hole = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.6), new THREE.MeshBasicMaterial({color: 0x050403})); hole.position.set(sd * (L + .48), y + .1, zc); hole.rotation.y = -sd * Math.PI / 2; arch.add(hole);
         const beam = new THREE.Mesh(new THREE.BoxGeometry(.4, .4, 3), mats.bark); beam.position.set(sd * (L + .45), y + 1.5, zc); arch.add(beam); this.scene.add(arch);}}
     for (const b of c.carts) {const g = new THREE.Group(), w = b.x1 - b.x0, d = b.z1 - b.z0;
@@ -283,7 +283,7 @@ export class RaceApp {
   private syncMech(dt: number) {
     const c = this.course, t = c.time;
     for (const [g, spin] of this.mech.gears) spin.rotation.y = -g.angle;
-    for (const [b, g] of this.mech.carts) {g.position.x = b.offX; g.visible = Math.abs(b.offX) < b.cart!.len - .2;}
+    for (const [b, g] of this.mech.carts) {g.position.x = b.offX; g.visible = Math.abs(b.offX) < b.cart!.len + 1.8;}
     for (const [gt, a, b, , lm] of this.mech.gates) {lm.emissiveIntensity = gt.warn ? (Math.sin(t * 30) > 0 ? 3 : .2) : gt.open < .5 ? 1.2 : 0;
       if (gt.kind === 'slide') {const leaf = gt.halfW * (1 - gt.open); a.position.x = -gt.halfW - gt.halfW + leaf; b.position.x = gt.halfW + gt.halfW - leaf;} else a.position.y = gt.y + 3.2 * gt.open + .1;}
     for (const [f, blades, lm, pts] of this.mech.fans) {blades.rotation.z = f.spin; lm.emissiveIntensity = f.on > .05 ? 2.5 : (((t / f.period) + f.phase) % 1 > .9 ? (Math.sin(t * 25) > 0 ? 2 : 0) : 0);

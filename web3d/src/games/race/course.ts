@@ -16,6 +16,8 @@ export interface Tilt {amp: number; period: number; seed: number; axis: 'xz' | '
 /** Flat turntable gear: you stand on it and turn with it; missing sectors drop you. */
 export interface Gear {x: number; z: number; y: number; r: number; speed: number; move: number; stop: number; phase: number; gaps: [number, number][]; angle: number; lastAngle: number; teeth: number; block: Block}
 /** Mine cart running across the course on a looped track (tunnels at both ends). */
+/** The track runs CART_TUNNEL past each mouth (at len + .48) so a cart slides fully into the dark before it wraps. */
+export const CART_TUNNEL = 2.6;
 export interface Cart {lane: number; speed: number; len: number; base: number; move: number; stop: number}
 /** Gate across the corridor: two sliding leaves or a dropping portcullis. */
 export interface Gate {z: number; y: number; halfW: number; kind: 'slide' | 'drop'; period: number; phase: number; open: number; lastOpen: number; warn: boolean}
@@ -107,11 +109,11 @@ export class Course {
   /** Mill: single / twin counter / 4-arm cross / speed pulses / reversing direction. */
   private s_spinner() {const v = Math.floor(this.rnd() * 5), y = this.y, z = this.z, sp = (1.1 + this.rnd() * .6) * (this.rnd() < .5 ? -1 : 1);
     this.add(-10, 10, z, z + 26, y, y, this.look.alt); this.room(z, z + 26, 10.6, 9);
-    if (v === 0) this.sweepers.push({x: 0, y: y + .55, z: z + 13, len: 9.5, speed: sp, angle: 0});
-    else if (v === 1) this.sweepers.push({x: 0, y: y + .55, z: z + 8, len: 8.5, speed: sp * 1.2, angle: 0}, {x: 0, y: y + .55, z: z + 19, len: 8.5, speed: -sp * 1.35, angle: 1});
-    else if (v === 2) this.sweepers.push({x: 0, y: y + .55, z: z + 13, len: 9.8, speed: sp * .95, angle: 0, arms: 2});
-    else if (v === 3) this.sweepers.push({x: 0, y: y + .55, z: z + 13, len: 9.5, speed: sp, angle: 0, vary: 'pulse'});
-    else this.sweepers.push({x: 0, y: y + .55, z: z + 13, len: 9.5, speed: sp * 1.2, angle: 0, arms: 2, vary: 'reverse'});
+    if (v === 0) this.sweepers.push({x: 0, y: y + .55, z: z + 13, len: 10.2, speed: sp, angle: 0});
+    else if (v === 1) this.sweepers.push({x: 0, y: y + .55, z: z + 10.5, len: 10.2, speed: sp * 1.2, angle: 0}, {x: 0, y: y + 1.2, z: z + 15.5, len: 10.2, speed: -sp * 1.35, angle: 1});
+    else if (v === 2) this.sweepers.push({x: 0, y: y + .55, z: z + 13, len: 10.2, speed: sp * .95, angle: 0, arms: 2});
+    else if (v === 3) this.sweepers.push({x: 0, y: y + .55, z: z + 13, len: 10.2, speed: sp, angle: 0, vary: 'pulse'});
+    else this.sweepers.push({x: 0, y: y + .55, z: z + 13, len: 10.2, speed: sp * 1.2, angle: 0, arms: 2, vary: 'reverse'});
     this.z += 26;}
   private s_gaps() {const n = 6 + Math.floor(this.rnd() * 2), zig = this.rnd() < .5; const z0 = this.z;
     for (let i = 0; i < n; i++) {const len = 2 + this.rnd() * 1.2, x = zig ? (i % 2 ? 1.3 : -1.3) : 0; this.add(x - 2.2, x + 2.2, this.z, this.z + len, this.y, this.y, this.look.thin).bottom = this.y - .45; this.z += len + (i < n - 1 ? 1.5 + this.rnd() * .4 : 0);}
@@ -209,11 +211,11 @@ export class Course {
   /** Meat grinder: five logs, independent speeds, two at shin height and one at head height, periodic surges (warning lamps). */
   private s_gauntlet() {const z = this.z, y = this.y, len = 40; this.add(-11, 11, z, z + len, y, y, this.look.alt); this.room(z, z + len, 11.6, 9);
     const sp = 1 + this.rnd() * .4, k = () => .8 + this.rnd() * .5;
-    this.sweepers.push({x: -4.5, y: y + .55, z: z + 9, len: 5.5, speed: sp * 1.6 * k(), angle: 0, vary: 'pulse'}, {x: 4.5, y: y + .55, z: z + 9, len: 5.5, speed: -sp * 1.6 * k(), angle: 1.5},
-      {x: 0, y: y + .55, z: z + 20, len: 9.5, speed: sp * k(), angle: .7, arms: 2, vary: 'pulse'}, {x: -4, y: y + 2.1, z: z + 31, len: 6, speed: -sp * 1.3 * k(), angle: 2}, {x: 4, y: y + .55, z: z + 31, len: 6, speed: sp * 1.3 * k(), angle: .3, vary: 'pulse'});
+    this.sweepers.push({x: -4.5, y: y + .55, z: z + 9, len: 6.7, speed: sp * 1.6 * k(), angle: 0, vary: 'pulse'}, {x: 4.5, y: y + .55, z: z + 9, len: 6.7, speed: -sp * 1.6 * k(), angle: 1.5},
+      {x: 0, y: y + .55, z: z + 20, len: 11.2, speed: sp * k(), angle: .7, arms: 2, vary: 'pulse'}, {x: -4, y: y + 2.1, z: z + 31, len: 7.2, speed: -sp * 1.3 * k(), angle: 2}, {x: 4, y: y + .55, z: z + 31, len: 7.2, speed: sp * 1.3 * k(), angle: .3, vary: 'pulse'});
     this.z += len;}
   private s_highlow() {const z = this.z, y = this.y, len = 34; this.add(-9, 9, z, z + len, y, y, this.look.alt); this.room(z, z + len, 9.6, 10);
-    for (let i = 0; i < 3; i++) {const sz = z + 6 + i * 11, sp = (1.1 + this.rnd() * .5) * (i % 2 ? -1 : 1); this.sweepers.push({x: 0, y: y + .55, z: sz, len: 8, speed: sp, angle: 0}, {x: 0, y: y + 2.3, z: sz, len: 8, speed: sp, angle: Math.PI / 2});}
+    for (let i = 0; i < 3; i++) {const sz = z + 6 + i * 11, sp = (1.1 + this.rnd() * .5) * (i % 2 ? -1 : 1); this.sweepers.push({x: 0, y: y + .55, z: sz, len: 9.2, speed: sp, angle: 0}, {x: 0, y: y + 2.3, z: sz, len: 9.2, speed: sp, angle: Math.PI / 2});}
     this.z += len;}
   private s_flames() {const len = 30, w = 5, z = this.z, y = this.y; this.add(-w, w, z, z + len, y, y, this.look.alt); this.room(z, z + len, w + .6, 9);
     const per = 2.4 + this.rnd() * .6, pat = Math.floor(this.rnd() * 3);
@@ -323,7 +325,7 @@ export class Course {
     for (const g of this.gears) {g.lastAngle = g.angle; const cyc = g.move + g.stop, n = Math.floor((t0 + g.phase) / cyc), f = Math.min(g.move, (t0 + g.phase) - n * cyc); g.angle = g.speed * (n * g.move + f);}
     // mine carts: looped track, pauses, tunnels at both ends
     for (const b of this.carts) {const c = b.cart!, cyc = c.move + c.stop, n = Math.floor(t0 / cyc), moved = n * c.move + Math.min(c.move, t0 - n * cyc);
-      const L2 = c.len * 2, p = ((c.base + c.speed * moved) % L2 + L2) % L2 - c.len; b.lastOffX = b.offX; b.offX = p; b.gone = Math.abs(p) > c.len - 1.3;}
+      const E = c.len + CART_TUNNEL, L2 = E * 2, p = ((c.base + c.speed * moved) % L2 + L2) % L2 - E; b.lastOffX = b.offX; b.offX = p; b.gone = Math.abs(p) > c.len - .8;}
     for (const g of this.gates) {g.lastOpen = g.open; const ph = ((t0 / g.period) + g.phase) % 1;
       const e = ph < .35 ? 1 : ph < .47 ? 1 : ph < .55 ? 1 - (ph - .47) / .08 : ph < .7 ? 0 : ph < .82 ? (ph - .7) / .12 : 1; g.open = e; g.warn = ph > .35 && ph < .47;}
     for (const f of this.fans) {const ph = ((t0 / f.period) + f.phase) % 1; f.on = ph < .55 ? (ph < .08 ? ph / .08 : 1) * (.75 + .25 * Math.sin(t0 * 2.3 + f.z)) : 0; f.spin += dt * (2 + 22 * f.on);}
