@@ -314,7 +314,7 @@ export class RaceApp {
     const me = this.me, ss = this.sndState, dd = (x: number, z: number) => Math.hypot(x - me.x, z - me.z);
     if (me.falls > ss.falls) {ss.falls = me.falls; this.snd.splash(); navigator.vibrate?.(40); this.puff(me.x, me.y, me.z, 1.8); this.flash();}
     if (!me.ground && Math.hypot(me.vx, me.vz) > 4) {ss.trail = (ss.trail || 0) + dt; if (ss.trail > .05) {ss.trail = 0; this.puff(me.x, me.y + .4, me.z, .35);}}
-    if (me.stun > .5 && ss.stun <= .25) {this.snd.hit(0); navigator.vibrate?.(35);} ss.stun = me.stun;
+    if (me.stun > .5 && ss.stun <= .25) {this.snd.hit(0); navigator.vibrate?.(35); this.shake = Math.max(this.shake, .42); this.puff(me.x, me.y + .9, me.z, 1.1);} ss.stun = me.stun; // hit: sound, buzz, camera kick, dust
     if (me.ground && Math.hypot(me.vx, me.vz) > 2) {ss.step += dt * Math.hypot(me.vx, me.vz); if (ss.step > 1.6) {ss.step = 0; this.snd.step(me.ground.mat);}}
     for (const g of c.gates) {if (g.warn && !ss.gates.get(g)) this.snd.alarm(dd(0, g.z)); if (g.open < .05 && g.lastOpen >= .05) this.snd.metal(dd(0, g.z)); ss.gates.set(g, g.warn);}
     for (const h of c.hooks) {const prev = ss.hooks.get(h) ?? 0; if (h.state === 1 && prev !== 1) this.snd.alarm(dd(h.pillarX, h.z)); if (h.state === 2 && prev !== 2) this.snd.chain(dd(h.pillarX, h.z)); ss.hooks.set(h, h.state);}
