@@ -134,5 +134,6 @@ tasks.register('raceQa', JavaExec) {
     dependsOn classes
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'com.finalanswer.server.RoomServer'
+    systemProperty 'race.qa', 'true'
     args providers.gradleProperty('race.port').getOrElse('18311')
 }

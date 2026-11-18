@@ -47,19 +47,19 @@ public final class RoomServer implements AutoCloseable {
                 if(!config.allowsOrigin(ctx.header("Origin"),ctx.header("Host"))) throw new RoomService.Failure(403,"ORIGIN_NOT_ALLOWED");
                 if(ctx.path().startsWith("/rooms")) {
                     ctx.contentType("application/json; charset=utf-8").header("Cache-Control","no-store");
-                    if(!ctx.path().endsWith("/cage")&&!ctx.path().endsWith("/race")&&!limits.allow("http:"+ip(ctx),80,2))throw new RoomService.Failure(429,"RATE_LIMITED");
+                    if(!Boolean.getBoolean("race.qa")&&!ctx.path().endsWith("/cage")&&!ctx.path().endsWith("/race")&&!limits.allow("http:"+ip(ctx),80,2))throw new RoomService.Failure(429,"RATE_LIMITED");
                 }
             });
             c.routes.get("/health",ctx->ctx.contentType("application/json").result("{\"status\":\"ok\",\"protocol\":1,\"lastCommand\":{\"engine\":\"race\",\"solo\":true,\"debug\":"+com.finalanswer.server.rooms.LastCommandSession.DEBUG+"}}"));
             c.routes.post("/rooms",ctx->{
-                if(!limits.allow("create:"+ip(ctx),6,.1))throw new RoomService.Failure(429,"RATE_LIMITED");
+                if(!Boolean.getBoolean("race.qa")&&!limits.allow("create:"+ip(ctx),6,.1))throw new RoomService.Failure(429,"RATE_LIMITED");
                 ctx.status(201).result(rooms.create(form(ctx)));
             });
             c.routes.get("/rooms/{code}",ctx->ctx.result(rooms.view(ctx.pathParam("code"))));
             c.routes.get("/rooms/{code}/race",ctx->ctx.result(rooms.raceView(ctx.pathParam("code"),ctx.queryParam("token"),"1".equals(ctx.queryParam("close")))));
             c.routes.get("/rooms/{code}/cage",ctx->ctx.result(rooms.cageView(ctx.pathParam("code"),ctx.queryParam("token"))));
             c.routes.post("/rooms/{code}/join",ctx->{
-                if(!limits.allow("join:"+ip(ctx),15,.25))throw new RoomService.Failure(429,"RATE_LIMITED");
+                if(!Boolean.getBoolean("race.qa")&&!limits.allow("join:"+ip(ctx),15,.25))throw new RoomService.Failure(429,"RATE_LIMITED");
                 ctx.result(rooms.join(ctx.pathParam("code"),form(ctx)));
             });
             c.routes.post("/rooms/{code}/heartbeat",ctx->ctx.result(rooms.heartbeat(ctx.pathParam("code"),required(ctx,"token"))));

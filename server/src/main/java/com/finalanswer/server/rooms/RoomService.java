@@ -162,8 +162,15 @@ public final class RoomService {
         if(message.type().equals("LEAVE_ROOM")) { leave(room.code,member.token); return; }
         if(message.type().equals("SET_LANGUAGE")){ requireHost(member); String lang=Protocol.string(data,"language"); if(!Set.of("en","ru").contains(lang))throw new Failure(400,"INVALID_LANGUAGE"); if(!lang.equals(room.language)){room.language=lang;broadcast(room,"LANGUAGE_CHANGED");} reply(peer,room,member,message); return; }
         if(message.type().startsWith("SYSTEM_BREACH_")){systemBreachCommand(room,member,peer,message);return;}
+        if(message.type().equals("QA_SET_ALIVE")&&Boolean.getBoolean("race.qa")){requireHost(member);String id=Protocol.string(data,"id");for(Member m:room.members.values())if(m.id.equals(id))m.alive=data.get("alive").getAsBoolean();broadcast(room,"ROOM_UPDATED");reply(peer,room,member,message);return;}
         if(message.type().equals("RACE_STATE")){raceState(room,member,data);return;}
-        if(message.type().equals("CLOSE_WEB_GAME")){requireHost(member);if(!room.webGameId.isEmpty()){room.webGame="";room.webGameId="";room.race.clear();room.lobbyId=UUID.randomUUID().toString();broadcast(room,"WEB_GAME_CLOSED");}reply(peer,room,member,message);return;}
+        if(message.type().equals("RACE_SPARK")){
+            var rs=room.raceSession;if(rs==null||member.host)throw new Failure(409,"NO_RACE");
+            String r=rs.pickup(member.id,message.requestId(),now());
+            if(r.equals("OK")){System.out.println("[race] spark revive "+member.name);raceRelay(room,true);}
+            peer.send(Protocol.event("RACE_SPARK_RESULT",message.requestId(),Map.of("result",r)));return;
+        }
+        if(message.type().equals("CLOSE_WEB_GAME")){requireHost(member);if(!room.webGameId.isEmpty()){room.webGame="";room.webGameId="";room.race.clear();room.raceSession=null;room.lobbyId=UUID.randomUUID().toString();broadcast(room,"WEB_GAME_CLOSED");}reply(peer,room,member,message);return;}
         if(message.type().equals("SOULS_REVIVE")){
             if(member.host||member.left)throw new Failure(403,"NOT_A_PLAYER");
             if(member.alive||member.revivalPending)throw new Failure(409,"NOT_A_GHOST");
@@ -180,7 +187,14 @@ public final class RoomService {
             if(!Set.of("broken-elevator","race").contains(id))throw new Failure(400,"INVALID_WEB_GAME");
             if(id.equals("race")){
                 int map=data.has("map")?data.get("map").getAsInt():1+random.nextInt(4);if(map<1||map>4)throw new Failure(400,"INVALID_RACE_MAP");
-                room.raceMap=map;room.raceSeed=1+random.nextInt(999_999_999);room.raceStart=now()+37_000;room.race.clear();room.webGameAt=now();
+                room.raceMap=map;room.raceSeed=1+random.nextInt(999_999_999);room.raceStart=now()+37_000;room.race.clear();room.raceScored=false;room.webGameAt=now();
+                var formats=new ArrayList<>(List.of(RaceSession.Format.values()));if(map==4)formats.retainAll(RaceSession.CRYPT_OK);
+                RaceSession.Format fmt;try{fmt=data.has("format")?RaceSession.Format.valueOf(Protocol.string(data,"format")):formats.get(random.nextInt(formats.size()));}catch(RuntimeException e){throw new Failure(400,"INVALID_RACE_FORMAT");}
+                if(!formats.contains(fmt))throw new Failure(400,"RACE_FORMAT_NOT_SUPPORTED_ON_MAP");
+                List<Map.Entry<String,Boolean>> roster=new ArrayList<>();for(Member m:room.members.values())if(!m.left)roster.add(Map.entry(m.id,m.alive));
+                if(Boolean.getBoolean("race.qa")&&data.has("startInMs"))room.raceStart=now()+data.get("startInMs").getAsLong();
+                room.raceSession=new RaceSession(fmt,map,room.raceStart,roster,random);
+                if(Boolean.getBoolean("race.qa")){var rs=room.raceSession;if(data.has("limitMs"))rs.qaLimit(data.get("limitMs").getAsLong());if(data.has("sparkInMs")){rs.sparkPlanned=rs.players.values().stream().anyMatch(q->q.ghostAtStart);rs.sparkAt=room.raceStart+data.get("sparkInMs").getAsLong();}}
                 room.webGame=id;room.webGameId=UUID.randomUUID().toString();System.out.println("[race] open room="+room.code+" map="+map+" seed="+room.raceSeed);
                 broadcast(room,"WEB_GAME_OPENED");reply(peer,room,member,message);return;
             }
@@ -445,7 +459,7 @@ public final class RoomService {
     }
     static final long BREACH_AUTO_END_MS=20_000;
     private void endBreach(Room room){room.breach.close();room.breach=null;room.breachFinishedAt=0;room.breachKeysBought.clear();room.members.values().removeIf(m->m.left);room.lobbyId=UUID.randomUUID().toString();broadcast(room,"SYSTEM_BREACH_FINISHED");}
-    private boolean miniGameRunning(Room room){return room.breach!=null||room.cursed!=null||room.impostor!=null||room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null;}
+    private boolean miniGameRunning(Room room){return (room.raceSession!=null&&!room.raceSession.ended)||room.breach!=null||room.cursed!=null||room.impostor!=null||room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null;}
     /** A ghost who bought their way back returns at the next safe moment: in the lobby, or before the next question's answers open. */
     private void applyRevivals(Room room){
         if(miniGameRunning(room))return;boolean changed=false;
@@ -834,9 +848,10 @@ public final class RoomService {
     /** Host big screen (browser) watches the race over HTTP polling, so it never steals the desktop host's socket. */
     public synchronized String raceView(String code,String token,boolean close){
         Room room=find(code); if(token==null||!room.host.token.equals(token))throw new Failure(403,"NOT_HOST");
-        if(close&&room.webGame.equals("race")){room.webGame="";room.webGameId="";room.race.clear();room.lobbyId=UUID.randomUUID().toString();broadcast(room,"WEB_GAME_CLOSED");}
+        if(close&&room.webGame.equals("race")){room.webGame="";room.webGameId="";room.race.clear();room.raceSession=null;room.lobbyId=UUID.randomUUID().toString();broadcast(room,"WEB_GAME_CLOSED");}
         Map<String,Object> v=new LinkedHashMap<>(); v.put("serverTime",now()); v.put("code",room.code); v.put("selfId",room.host.id); v.put("host",true); v.put("webGame",room.webGame);
         if(room.webGame.equals("race"))v.put("race",Map.of("map",room.raceMap,"seed",room.raceSeed,"startAt",room.raceStart,"id",room.webGameId));
+        if(room.raceSession!=null)v.put("run",room.raceSession.snapshot(now()));
         List<Map<String,Object>> ps=new ArrayList<>();for(Member m:room.members.values()){if(m.left)continue;ps.add(Map.of("id",m.id,"nickname",m.name,"characterId",m.characterId,"connectionStatus",m.peer==null?"OFFLINE":"ONLINE"));}
         v.put("players",ps);Map<String,Object> runners=new LinkedHashMap<>();for(var e:room.race.entrySet())runners.put(e.getKey(),e.getValue());v.put("runners",runners);
         return Protocol.JSON.toJson(v);
@@ -890,6 +905,8 @@ public final class RoomService {
         // nobody is ever stuck on a finished SYSTEM BREACH: if the host never ends it, the room returns to the lobby
         if(room.breach!=null&&room.breach.phase()==SystemBreachPhase.FINISHED){if(room.breachFinishedAt==0)room.breachFinishedAt=now();else if(now()-room.breachFinishedAt>=BREACH_AUTO_END_MS)endBreach(room);}
         applyRevivals(room);
+        if(room.raceSession!=null&&!room.raceSession.ended){Set<String> on=room.members.values().stream().filter(m->m.peer!=null&&!m.left).map(m->m.id).collect(java.util.stream.Collectors.toSet());
+            if(room.raceSession.tick(now(),on)){finishRaceIfEnded(room);raceRelay(room,true);}}
         tickPressure(room); tickFormula(room); tickBomb(room); if(room.shift!=null&&room.webGame.equals("broken-elevator")&&room.shift.advance(now()))broadcast(room,"CAGE_UPDATE");
         if(room.cursed!=null&&room.cursed.tick(now(),room.members.values().stream().filter(m->m.left).map(m->m.id).collect(java.util.stream.Collectors.toSet())))broadcast(room,"CURSED_BOXES_UPDATED");
         if(room.impostor!=null) {
@@ -947,10 +964,25 @@ public final class RoomService {
         double[] v=new double[10];
         try{var a=data.getAsJsonArray("s");if(a==null||a.size()!=10)throw new IllegalArgumentException();for(int i=0;i<10;i++){double d=a.get(i).getAsDouble();if(!Double.isFinite(d)||Math.abs(d)>100_000)throw new IllegalArgumentException();v[i]=d;}}
         catch(RuntimeException bad){throw new Failure(400,"INVALID_RACE_STATE");}
-        room.race.put(member.id,v);long t=now();
-        if(t-room.raceRelayAt<90)return;room.raceRelayAt=t;
+        room.race.put(member.id,v);long t=now();boolean changed=false;
+        var rs=room.raceSession;
+        if(rs!=null){
+            if(rs.checkpoints==null&&data.has("c")&&data.has("f")){try{var c=data.getAsJsonArray("c");double[] cps=new double[c.size()];for(int i=0;i<cps.length;i++)cps[i]=c.get(i).getAsDouble();rs.course(cps,data.get("f").getAsDouble());}catch(RuntimeException ignored){}}
+            changed=rs.report(member.id,v,t);if(changed)finishRaceIfEnded(room);
+        }
+        raceRelay(room,changed);
+    }
+    private void finishRaceIfEnded(Room room){
+        var rs=room.raceSession;if(rs==null||!rs.ended||room.raceScored)return;room.raceScored=true;
+        for(Member m:room.members.values())if(rs.players.containsKey(m.id))m.alive=rs.survived(m.id);
+        System.out.println("[race] end room="+room.code+" survivors="+room.members.values().stream().filter(m->m.alive).count());
+        broadcast(room,"RACE_FINISHED");
+    }
+    private void raceRelay(Room room,boolean force){
+        long t=now();if(!force&&t-room.raceRelayAt<90)return;room.raceRelayAt=t;
         Map<String,Object> payload=new LinkedHashMap<>();payload.put("serverTime",t);payload.put("id",room.webGameId);
         Map<String,Object> runners=new LinkedHashMap<>();for(var e:room.race.entrySet())runners.put(e.getKey(),e.getValue());payload.put("runners",runners);
+        if(room.raceSession!=null)payload.put("run",room.raceSession.snapshot(t));
         for(Member m:allMembers(room))if(m.peer!=null)m.peer.send(Protocol.event("RACE_POS","",payload));
     }
     private void broadcast(Room room,String type) {
@@ -975,7 +1007,7 @@ public final class RoomService {
         value.put("impostorSettings",room.impostorSettings);value.put("impostorWordCategories",List.of("DEFAULT"));
         value.put("lobbyId",room.lobbyId); value.put("language",room.language); value.put("elevatorDifficulty",room.difficulty.name());
         if(!room.webGameId.isEmpty()){value.put("webGame",room.webGame);value.put("webGameId",room.webGameId);
-            if(room.webGame.equals("race"))value.put("race",Map.of("map",room.raceMap,"seed",room.raceSeed,"startAt",room.raceStart,"id",room.webGameId));}
+            if(room.webGame.equals("race")){value.put("race",Map.of("map",room.raceMap,"seed",room.raceSeed,"startAt",room.raceStart,"id",room.webGameId));if(room.raceSession!=null)value.put("run",room.raceSession.snapshot(now()));}}
         if(self!=null&&!self.host){var pz=room.pressure.get(self.id);if(pz!=null)value.put("elevatorPressure",pressureView(pz));var fz=room.formula.get(self.id);if(fz!=null)value.put("elevatorFormula",formulaView(fz));var bz=room.bomb.get(self.id);if(bz!=null)value.put("elevatorBomb",bombView(bz));value.put("elevatorRepairs",self.elevatorRepairs);if(room.shift!=null){room.shift.add(self.id);var cv=cageShiftView(room);cv.put("me",cageCell(room.shift.cages.get(self.id)));value.put("cage",cv);}value.put("elevatorPenalties",self.elevatorPenalties);}
         if(room.impostor==null && !room.impostorRoster.isEmpty())value.put("impostorLobby",Map.of("sessionId",room.lobbyId,"participantIds",room.impostorRoster));
         List<Map<String,Object>> players=new ArrayList<>();
@@ -1119,7 +1151,7 @@ public final class RoomService {
         /** SOULS balances for this room's session. */
         final com.finalanswer.server.economy.SoulsWallet souls=new com.finalanswer.server.economy.SoulsWallet();
         final int maxPlayers,questionCount; final byte[] salt,passwordHash;
-        int raceMap=1; long raceSeed,raceStart,raceRelayAt; final Map<String,double[]> race=new LinkedHashMap<>();
+        int raceMap=1; long raceSeed,raceStart,raceRelayAt; RaceSession raceSession; boolean raceScored; final Map<String,double[]> race=new LinkedHashMap<>();
         String webGame="",webGameId="",language="en"; long webGameAt; com.erni.finalanswer.gameplay.elevator.CageShift shift; final com.erni.finalanswer.gameplay.elevator.CageShift.BombBag bombBag=new com.erni.finalanswer.gameplay.elevator.CageShift.BombBag(); com.erni.finalanswer.gameplay.elevator.Difficulty difficulty=com.erni.finalanswer.gameplay.elevator.Difficulty.NORMAL;
         final Map<String,com.erni.finalanswer.gameplay.elevator.PressurePuzzle> pressure=new LinkedHashMap<>();
         final Map<String,com.erni.finalanswer.gameplay.elevator.FormulaPuzzle> formula=new LinkedHashMap<>();
