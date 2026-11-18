@@ -32,7 +32,8 @@ export interface Portal {x: number; y: number; z: number; r: number; tx: number;
 export interface Sweeper {x: number; y: number; z: number; len: number; speed: number; angle: number; arms?: number; angle0?: number; vary?: 'const' | 'pulse' | 'reverse'; lastAngle?: number; boost?: number}
 export interface Pendulum {px: number; py: number; pz: number; len: number; amp: number; period: number; phase: number; radius: number; bx: number; by: number; bz: number; swing: number}
 export interface Faller {id: number; x: number; z: number; g: number; spawn: number; impact: number; r: number; y: number; alive: boolean; landed: boolean}
-export interface Boulder {x: number; y: number; z: number; vz: number; spin: number; radius: number; alive: boolean}
+/** Rolling barrel: own cruise speed (slow / medium / fast) that it changes mid-roll at `next`. */
+export interface Boulder {x: number; y: number; z: number; vz: number; spin: number; radius: number; alive: boolean; target: number; next: number}
 /** Ram that shoots out of a side wall. */
 export interface Pusher {side: number; wallX: number; z: number; d: number; y: number; reach: number; period: number; phase: number; ext: number; lastExt: number}
 /** Floor hazard that fires periodically: flame jet or crushing hammer. */
@@ -66,6 +67,7 @@ export const TRIALS = ['spinner', 'gauntlet', 'highlow', 'gaps', 'beams', 'pendu
   'gears', 'gates', 'wind', 'chase', 'tilt', 'hooks', 'falsebridge', 'minecarts'];
 
 export class Course {
+  static readonly BARREL_SPEEDS = [4.5, 8, 12.5];
   blocks: Block[] = []; sweepers: Sweeper[] = []; pendulums: Pendulum[] = []; boulders: Boulder[] = []; fallers: Faller[] = [];
   pushers: Pusher[] = []; jets: Jet[] = []; gears: Gear[] = []; gates: Gate[] = []; fans: Fan[] = []; hooks: Hook[] = []; chasers: Chaser[] = []; carts: Block[] = []; tilts: Block[] = []; pads: Pad[] = []; portals: Portal[] = []; mazePath: [number, number][] = []; mazeBox = [0, 0, 0, 0]; rooms: Room[] = []; sections: {name: string; z0: number; z1: number}[] = [];
   fallZones: [number, number, number, number][] = []; checkpoints: number[] = [0]; finishZ = 0; time = 0;
@@ -78,6 +80,14 @@ export class Course {
     this.deathY = this.theme === 'manor' || this.theme === 'crypt' ? -6 : this.theme === 'graveyard' ? -2.4 : DEATH_Y;
     this.look = LOOK[this.theme]; this.rs = (courseSeed >>> 0) || 1;
     this.build();
+  }
+  /** Logs whose sweep circles overlap must never pass through each other: same-height pairs are moved to another level
+   *  (low .55 = jump, mid 1.2 = still jumpable, high 2.3 / 2.95 = only catches a jumping runner). */
+  private separateLogs() {
+    const LV = [.55, 1.2, 2.3, 2.95], sw = this.sweepers;
+    for (let i = 0; i < sw.length; i++) {const a = sw[i], floor = this.spawnY(a.z);
+      const clash = (y: number) => sw.some((b, j) => j !== i && Math.hypot(a.x - b.x, a.z - b.z) < a.len + b.len + .2 && Math.abs(b.y - y) < .64); // logs are .62 thick
+      if (!clash(a.y)) continue; const lv = LV.map(v => floor + v).filter(y => !clash(y)).sort((p, q) => Math.abs(p - a.y) - Math.abs(q - a.y))[0]; if (lv !== undefined) a.y = lv;}
   }
   private rnd() {this.rs = (Math.imul(this.rs, 1103515245) + 12345) >>> 0; return (this.rs >>> 8 & 65535) / 65535;}
 
@@ -102,6 +112,7 @@ export class Course {
       const z0 = this.z; (this as any)['s_' + name](); this.sections.push({name, z0, z1: this.z});
       this.add(-6, 6, this.z, this.z + 6, this.y, this.y, L.land).land = true; this.room(this.z, this.z + 6, 6.6, 8, false); this.checkpoints.push(this.z + 2.5); this.z += 6;
     }
+    this.separateLogs();
     this.z += 1.8; this.add(-11, 11, this.z, this.z + 22, this.y, this.y, L.alt).land = true; this.room(this.z, this.z + 22, 11.6, 12); this.finishZ = this.z + 12;
   }
 
@@ -110,7 +121,7 @@ export class Course {
   private s_spinner() {const v = Math.floor(this.rnd() * 5), y = this.y, z = this.z, sp = (1.1 + this.rnd() * .6) * (this.rnd() < .5 ? -1 : 1);
     this.add(-10, 10, z, z + 26, y, y, this.look.alt); this.room(z, z + 26, 10.6, 9);
     if (v === 0) this.sweepers.push({x: 0, y: y + .55, z: z + 13, len: 10.2, speed: sp, angle: 0});
-    else if (v === 1) this.sweepers.push({x: 0, y: y + .55, z: z + 10.5, len: 10.2, speed: sp * 1.2, angle: 0}, {x: 0, y: y + 1.2, z: z + 15.5, len: 10.2, speed: -sp * 1.35, angle: 1});
+    else if (v === 1) this.sweepers.push({x: 0, y: y + .55, z: z + 13, len: 10.2, speed: sp * 1.2, angle: 0}, {x: 0, y: y + 1.2, z: z + 13, len: 10.2, speed: -sp * 1.35, angle: 1});
     else if (v === 2) this.sweepers.push({x: 0, y: y + .55, z: z + 13, len: 10.2, speed: sp * .95, angle: 0, arms: 2});
     else if (v === 3) this.sweepers.push({x: 0, y: y + .55, z: z + 13, len: 10.2, speed: sp, angle: 0, vary: 'pulse'});
     else this.sweepers.push({x: 0, y: y + .55, z: z + 13, len: 10.2, speed: sp * 1.2, angle: 0, arms: 2, vary: 'reverse'});
@@ -347,14 +358,24 @@ export class Course {
     if (this.boulderTimer <= 0 && this.rampZ1 > this.rampZ0) {
       const r1 = this.srand(), n = r1 < .6 ? 1 : 2, lanes = [-1, 0, 1].sort(() => this.srand() - .5).slice(0, n);
       for (const ln of lanes) {const radius = .85 + this.srand() * .2;
-        this.boulders.push({x: ln * this.rampHalfW * .62 + (this.srand() - .5) * .8, y: this.rampY1 + radius, z: this.rampZ1 - 1 - this.srand() * 2, vz: -2 - this.srand() * 2, spin: 0, radius, alive: true});}
+        const x = ln * this.rampHalfW * .62 + (this.srand() - .5) * .8, z = this.rampZ1 - 1 - this.srand() * 2, target = Course.BARREL_SPEEDS[Math.floor(this.srand() * 3)];
+        if (this.boulders.some(o => Math.hypot(o.x - x, o.z - z) < o.radius + radius + .1)) continue; // never spawn inside another barrel
+        this.boulders.push({x, y: this.rampY1 + radius, z, vz: -2 - this.srand() * 2, spin: 0, radius, alive: true, target, next: this.time + .8 + this.srand() * 1.6});}
       this.boulderTimer = .79 + this.srand() * .42;
     }
     const slope = (this.rampY1 - this.rampY0) / Math.max(1, this.rampZ1 - this.rampZ0);
-    for (const bo of this.boulders) {bo.vz -= 10 * dt; bo.z += bo.vz * dt; bo.spin += bo.vz * dt / bo.radius;
+    for (const bo of this.boulders) {
+      if (this.time >= bo.next) {bo.target = Course.BARREL_SPEEDS[Math.floor(this.srand() * 3)] * (.85 + this.srand() * .3); bo.next = this.time + .9 + this.srand() * 1.8;} // change pace mid-roll
+      if (bo.z > this.rampZ0) bo.vz += clamp(-bo.target - bo.vz, -7 * dt, 7 * dt); else bo.vz -= 10 * dt;
+      bo.z += bo.vz * dt; bo.spin += bo.vz * dt / bo.radius;
       if (bo.z > this.rampZ0) bo.y = this.rampY0 + (bo.z - this.rampZ0) * slope + bo.radius; else bo.y -= 30 * dt;
       if (bo.y < this.deathY - 10) bo.alive = false;}
     this.boulders = this.boulders.filter(b => b.alive);
+    // barrels bump instead of passing through each other: push apart and swap speeds along the roll
+    for (let i = 0; i < this.boulders.length; i++) for (let j = i + 1; j < this.boulders.length; j++) {const a = this.boulders[i], b = this.boulders[j];
+      const dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz), m = a.radius + b.radius; if (d >= m || d < 1e-4) continue;
+      const p = (m - d) / 2; a.x -= dx / d * p; a.z -= dz / d * p; b.x += dx / d * p; b.z += dz / d * p;
+      if ((b.vz - a.vz) * dz < 0) {const t = a.vz; a.vz = b.vz; b.vz = t;} for (const o of [a, b]) o.x = clamp(o.x, -this.rampHalfW + o.radius, this.rampHalfW - o.radius);}
     // rain from the sky (rocks / fireballs / chandeliers)
     this.fallTimer -= dt;
     while (this.fallTimer <= 0 && this.fallZones.length) {
