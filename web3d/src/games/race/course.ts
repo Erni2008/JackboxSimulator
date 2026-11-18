@@ -48,7 +48,7 @@ export const top = (b: Block, z: number, x = (b.x0 + b.x1) / 2 + b.offX) => {con
 export class Runner {
   x = 0; y = 0; z = 0; vx = 0; vy = 0; vz = 0; inX = 0; inZ = 0; facing = 0; stun = 0; coyote = 0; jumpBuffer = 0;
   progress = 0; finishTime = 0; jump = false; holdJump = false; finished = false; checkpoint = 0; falls = 0;
-  ground: Block | null = null; botCool = 0; landed = 0; hook = -1; wind = 0;
+  ground: Block | null = null; launched = false; botCool = 0; landed = 0; hook = -1; wind = 0;
   constructor(public id: string, public name: string, public character: string, public slot: number, public bot: boolean) {}
 }
 
@@ -67,7 +67,7 @@ export const TRIALS = ['spinner', 'gauntlet', 'highlow', 'gaps', 'beams', 'pendu
   'gears', 'gates', 'wind', 'chase', 'tilt', 'hooks', 'falsebridge', 'minecarts'];
 
 export class Course {
-  static readonly BARREL_SPEEDS = [4.5, 8, 12.5];
+  static readonly BARREL_SPEEDS = [5.5, 9, 13];
   blocks: Block[] = []; sweepers: Sweeper[] = []; pendulums: Pendulum[] = []; boulders: Boulder[] = []; fallers: Faller[] = [];
   pushers: Pusher[] = []; jets: Jet[] = []; gears: Gear[] = []; gates: Gate[] = []; fans: Fan[] = []; hooks: Hook[] = []; chasers: Chaser[] = []; carts: Block[] = []; tilts: Block[] = []; pads: Pad[] = []; portals: Portal[] = []; mazePath: [number, number][] = []; mazeBox = [0, 0, 0, 0]; rooms: Room[] = []; sections: {name: string; z0: number; z1: number}[] = [];
   fallZones: [number, number, number, number][] = []; checkpoints: number[] = [0]; finishZ = 0; time = 0;
@@ -361,7 +361,7 @@ export class Course {
         const x = ln * this.rampHalfW * .62 + (this.srand() - .5) * .8, z = this.rampZ1 - 1 - this.srand() * 2, target = Course.BARREL_SPEEDS[Math.floor(this.srand() * 3)];
         if (this.boulders.some(o => Math.hypot(o.x - x, o.z - z) < o.radius + radius + .1)) continue; // never spawn inside another barrel
         this.boulders.push({x, y: this.rampY1 + radius, z, vz: -2 - this.srand() * 2, spin: 0, radius, alive: true, target, next: this.time + .8 + this.srand() * 1.6});}
-      this.boulderTimer = .79 + this.srand() * .42;
+      this.boulderTimer = 1.05 + this.srand() * .55;
     }
     const slope = (this.rampY1 - this.rampY0) / Math.max(1, this.rampZ1 - this.rampZ0);
     for (const bo of this.boulders) {
@@ -403,7 +403,8 @@ export class Course {
     if (il > .1) r.facing = Math.atan2(ix, iz);
     if (r.jump) {r.jumpBuffer = .14; r.jump = false;}
     if (r.jumpBuffer > 0 && r.coyote > 0 && r.stun <= 0) {r.vy = 9.6; r.coyote = 0; r.jumpBuffer = 0; r.ground = null;}
-    r.vy -= (r.vy > 0 && !r.holdJump ? 38 : 26) * dt;
+    if (r.vy <= 0) r.launched = false; // a pad launch flies the same arc whether or not jump is held
+    r.vy -= (r.vy > 0 && !r.holdJump && !r.launched ? 38 : 26) * dt;
     if (r.ground) {const gd = r.ground;
       if (gd.gear) {const g = gd.gear, da = g.angle - g.lastAngle, dx = r.x - g.x, dz = r.z - g.z, c = Math.cos(da), sn = Math.sin(da); r.x = g.x + dx * c - dz * sn; r.z = g.z + dx * sn + dz * c; r.facing += da * 0;}
       else if (!(gd.cart && Math.abs(gd.offX - gd.lastOffX) > 3)) {r.x += gd.offX - gd.lastOffX; r.y += gd.offY - gd.lastOffY;} r.z += gd.conveyor * dt;
@@ -454,7 +455,7 @@ export class Course {
         r.x = p.side > 0 ? Math.min(r.x, xa - R) : Math.max(r.x, xb + R);}}
     for (const p of this.portals) if (Math.hypot(r.x - p.x, r.z - p.z) < p.r && Math.abs(r.y - p.y) < 1.2) {r.x = p.tx + ((r.slot % 3) - 1) * .8; r.y = p.ty + .1; r.z = p.tz; r.vx = r.vz = 0; r.vy = 0; r.ground = null; p.used = this.time; (r as any).teleported = this.time; r.progress = Math.max(r.progress, r.z);}
     for (const j of this.jets) if (j.state === 2 && Math.hypot(r.x - j.x, r.z - j.z) < j.r + R * .6 && r.y < j.y + (j.kind === 'fire' ? 2.4 : 1.6)) {const dx = r.x - j.x, dz = r.z - j.z, d = Math.hypot(dx, dz) || 1; this.hit(r, dx / d * 8, j.kind === 'fire' ? 11 : 4, dz / d * 8 - 3);}
-    for (const p of this.pads) if (r.ground && Math.hypot(r.x - p.x, r.z - p.z) < p.r && Math.abs(r.y - p.y) < .3) {r.vy = 15; r.vz = Math.max(r.vz, 10.5); r.ground = null; r.coyote = 0; p.fired = this.time;}
+    for (const p of this.pads) if (r.ground && Math.hypot(r.x - p.x, r.z - p.z) < p.r && Math.abs(r.y - p.y) < .3) {r.vy = 15; r.vz = Math.max(r.vz, 10.5); r.launched = true; r.ground = null; r.coyote = 0; p.fired = this.time;}
     for (const f of this.fallers) {if (this.time > f.impact + .25) continue; const dx = r.x - f.x, dy = r.y + H / 2 - f.y, dz = r.z - f.z, rr = f.r + R;
       if (dx * dx + dy * dy + dz * dz < rr * rr) {const d = Math.hypot(dx, dz) || 1; this.hit(r, dx / d * 9, 8, dz / d * 9);}}
     for (const bo of this.boulders) {const dx = r.x - bo.x, dy = r.y + H / 2 - bo.y, dz = r.z - bo.z, rr = bo.radius + R;
@@ -473,7 +474,21 @@ export class Course {
     if (r.ground?.driftAmp) tx = (r.ground.x0 + r.ground.x1) / 2 + r.ground.offX;
     for (const b of this.blocks) if (b.driftAmp && b.z0 > r.z && b.z0 - r.z < 2.5) tx = (b.x0 + b.x1) / 2 + b.offX;
     for (const p of this.pads) if (p.z > r.z && p.z - r.z < 6) tx = p.x;
+    // narrow paths (beams, zig bridges): if the planned line has no floor just ahead, steer onto the nearest floor that does
+    {const za = r.z + 1.4, on = (b: Block) => !b.wall && !b.gone && !b.fake && !b.cart && za >= b.z0 && za <= b.z1 && b.bottom < top(b, za) - .1;
+      if (!this.blocks.some(b => on(b) && tx > b.x0 + b.offX + .35 && tx < b.x1 + b.offX - .35)) {let best = tx, bd = 1e9;
+        for (const b of this.blocks) if (on(b)) {const x = clamp(r.x, b.x0 + b.offX + .45, b.x1 + b.offX - .45), d = Math.abs(x - r.x); if (d < bd) {bd = d; best = x;}}
+        tx = best;}}
+    // walls ahead (zigzag baffles, barriers): head for the side of the wall that still has floor
+    for (const b of this.blocks) {if (!b.wall || b.ghost || b.gone || b.z0 - r.z > 3.5 || b.z1 < r.z - .2 || tx < b.x0 - R - .3 || tx > b.x1 + R + .3) continue;
+      const floorAt = (x: number) => this.blocks.some(f => !f.wall && !f.gone && x > f.x0 + .3 && x < f.x1 - .3 && b.z0 >= f.z0 && b.z0 <= f.z1);
+      const opts = [b.x0 - R - .55, b.x1 + R + .55].filter(floorAt).sort((p, q) => Math.abs(p - r.x) - Math.abs(q - r.x)); if (opts.length) tx = opts[0];}
     r.inX = clamp((tx - r.x) * .6, -1, 1); r.inZ = 1;
+    // mine carts: wait at the edge of a lane until a cart is right in front, then hop on
+    if (r.ground && !r.ground.cart || r.ground?.cart) {const za = r.z + 1.9, lane = this.carts.filter(b => za >= b.z0 - .2 && za <= b.z1 + .2 && !(r.ground === b));
+      if (lane.length && !this.blocks.some(b => !b.cart && !b.wall && za >= b.z0 && za <= b.z1 && r.x > b.x0 && r.x < b.x1)) {
+        const ok = lane.find(b => !b.gone && r.x > b.x0 + b.offX + .3 && r.x < b.x1 + b.offX - .3 && Math.abs(b.offX + (b.cart!.speed * .35)) < b.cart!.len - 2.5);
+        if (!ok) {r.inZ = r.ground ? -.15 : r.inZ; r.inX = r.ground?.cart ? clamp(((r.ground.x0 + r.ground.x1) / 2 + r.ground.offX - r.x) * 2, -1, 1) : r.inX;} else r.inX = clamp(((ok.x0 + ok.x1) / 2 + ok.offX - r.x) * 1.5, -1, 1);}}
     for (const m of this.mazePaths) if (r.x > m.box[0] - 1 && r.x < m.box[1] + 1 && r.z > m.box[2] && r.z < m.box[3]) {
       let best = 0, bd = 1e9; m.path.forEach(([px, pz], i) => {const d = Math.hypot(px - r.x, pz - r.z); if (d < bd) {bd = d; best = i;}});
       const [nx, nz] = m.path[Math.min(m.path.length - 1, best + (bd < 1.1 ? 1 : 0))]; const dx = nx - r.x, dz = nz - r.z, l = Math.hypot(dx, dz) || 1; r.inX = dx / l; r.inZ = dz / l;}
@@ -481,15 +496,20 @@ export class Course {
       const sx = fw.slots[st.try % fw.slots.length]; r.inX = clamp((sx - r.x) * 1.2, -1, 1); r.inZ = Math.abs(sx - r.x) < .6 ? 1 : .25;
       if (r.z > fw.z - .9 && Math.abs(r.vz) < .5) {st.stuck += dt; if (st.stuck > .35) {st.try++; st.stuck = 0;}} break;}
         {const near = this.portals.filter(p => p.kind !== 'far' || true).filter(p => Math.abs(p.z - (r.z + 4)) < 4.5 && Math.abs(p.z - r.z) < 8 && p.z > r.z); if (near.length >= 3 && !this.mazePaths.some(m => r.z > m.box[2] && r.z < m.box[3])) {const pick = near[(r.slot * 7 + Math.floor(this.time / 9)) % near.length]; r.inX = clamp((pick.x - r.x) * .8, -1, 1);}}
-    let want = false, support = false; const ahead = r.z + 1.3, here = r.ground ? top(r.ground, r.z) : r.y;
+    let want = false, veto = false, support = false; const ahead = r.z + 1.3, here = r.ground ? top(r.ground, r.z) : r.y;
     for (const b of this.blocks) {if (b.gone || b.wall) continue; if (r.x >= b.x0 + b.offX && r.x <= b.x1 + b.offX && ahead >= b.z0 && ahead <= b.z1) {support = true; if (top(b, ahead) > here + .35) want = true;}}
-    if (!support && !this.pads.some(p => Math.abs(p.z - r.z) < 2.5)) want = true;
+    let edge = false; if (!support && !this.pads.some(p => Math.abs(p.z - r.z) < 2.5)) { // gap ahead: take off at the lip, not 1.3 m early (early jumps chain into short landings)
+      const near = r.z + .55; edge = !this.blocks.some(b => !b.wall && !b.gone && r.x >= b.x0 + b.offX && r.x <= b.x1 + b.offX && near >= b.z0 && near <= b.z1); 
+      // aim the landing at the middle of the next floor: a held jump carries ~5.4 m at full speed
+      let next = 1e9, nEnd = 0; for (const b of this.blocks) if (!b.wall && !b.gone && !b.cart && r.x >= b.x0 + b.offX - .2 && r.x <= b.x1 + b.offX + .2 && b.z0 > r.z + .3 && b.z0 < next) {next = b.z0; nEnd = b.z1;}
+      const land = next < 1e9 ? (next + Math.min(nEnd, next + 4)) / 2 : 1e9;
+      if (edge || !r.ground || land - r.z <= 5.4) want = true;}
     for (const s0 of this.sweepers) for (let arm = 0; arm < (s0.arms || 1); arm++) {const a = s0.angle + arm * Math.PI / (s0.arms || 1), ex = Math.cos(a) * s0.len, ez = Math.sin(a) * s0.len, t = clamp(((r.x - s0.x) * ex + (r.z - s0.z) * ez) / (ex * ex + ez * ez), -1, 1);
-      if (Math.hypot(r.x - (s0.x + ex * t), r.z - (s0.z + ez * t)) < 1.7) want = true;}
+      const lift = s0.y - here; if (Math.hypot(r.x - (s0.x + ex * t), r.z - (s0.z + ez * t)) < 1.7) {if (lift < 1.5) want = true; else if (lift < 3.4) {veto = true; if (r.vy > 0) r.holdJump = false;}}}
     for (const b of this.boulders) if (Math.abs(b.x - r.x) < b.radius + .6 && b.z > r.z && b.z - r.z < 3.2) want = true;
     for (const j of this.jets) if (j.state >= 1 && j.z > r.z && j.z - r.z < 2.2 && Math.abs(j.x - r.x) < j.r + .5) {r.inZ = .1; r.inX = Math.sign(r.x - j.x || 1);}
     for (const f of this.fallers) if (!f.landed && Math.abs(f.z - r.z - 1.5) < 2 && Math.abs(f.x - r.x) < f.r + .8) r.inX = Math.sign(r.x - f.x || 1);
-    if (want && r.ground && r.botCool <= 0 && Math.random() < .55) {r.jump = true; r.holdJump = true; r.botCool = .35;}
+    if (want && !(veto && support) && r.ground && r.botCool <= 0 && (edge || Math.random() < .55)) {r.jump = true; r.holdJump = true; r.botCool = .35;}
     if (r.ground && !want) r.holdJump = false;
   }
 }
