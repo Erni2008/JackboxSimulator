@@ -36,7 +36,7 @@ export class RaceApp {
     this.renderer = new THREE.WebGLRenderer({antialias: !phone || devicePixelRatio < 2, powerPreference: 'high-performance'});
     this.pixelRatio = Math.min(devicePixelRatio, phone ? 1.25 : 1.25); this.renderer.setPixelRatio(this.pixelRatio);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace; this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.15;
-    this.renderer.shadowMap.enabled = true; this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.enabled = true; this.renderer.shadowMap.type = phone ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
     host.appendChild(this.renderer.domElement);
     this.hud = document.getElementById('hud')!;
     addEventListener('resize', () => this.resize()); this.resize();
@@ -313,7 +313,7 @@ export class RaceApp {
   }
 
   start() {
-    if (matchMedia('(pointer:coarse)').matches) { // phones: only runners and moving hazards cast shadows; the shadow map refreshes every other frame
+    { // all devices: only runners and moving hazards cast shadows; the shadow map refreshes every other frame (static decor shadows were the biggest GPU cost)
       const dyn = new Set<THREE.Object3D>(); for (const l of this.looks.values()) l.root.traverse(o => dyn.add(o));
       this.scene.traverse(o => {const m = o as THREE.Mesh; if (m.isMesh && !dyn.has(m) && !(m as any).isSkinnedMesh && !m.userData.p) m.castShadow = false;});
       this.renderer.shadowMap.autoUpdate = false; this.phoneShadows = true;}
@@ -619,6 +619,7 @@ export class RaceApp {
   }
 
   private frame(t: number) {
+    if (this.last && t - this.last < 15.5) return; // cap at 60 fps: 120 Hz screens (ProMotion Mac / iPhone Pro) otherwise draw twice as much and overheat
     const dt = this.last ? Math.min(.1, (t - this.last) / 1000) : 1 / 60; this.last = t;
     this.frameAvg += (dt * 1000 - this.frameAvg) * .05;
     if (this.frameAvg > 19 && this.pixelRatio > .75) {this.pixelRatio = Math.max(.75, this.pixelRatio - .1); this.renderer.setPixelRatio(this.pixelRatio); this.frameAvg = 16;}
