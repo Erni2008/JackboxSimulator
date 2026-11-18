@@ -51,7 +51,7 @@ export const top = (b: Block, z: number, x = (b.x0 + b.x1) / 2 + b.offX) => {con
 export class Runner {
   x = 0; y = 0; z = 0; vx = 0; vy = 0; vz = 0; inX = 0; inZ = 0; facing = 0; stun = 0; coyote = 0; jumpBuffer = 0;
   progress = 0; finishTime = 0; jump = false; holdJump = false; finished = false; checkpoint = 0; falls = 0;
-  ground: Block | null = null; launched = false; botCool = 0; landed = 0; hook = -1; wind = 0;
+  ground: Block | null = null; launched = false; safe = 0; airT = 0; botCool = 0; landed = 0; hook = -1; wind = 0;
   constructor(public id: string, public name: string, public character: string, public slot: number, public bot: boolean) {}
 }
 
@@ -497,12 +497,13 @@ export class Course {
     for (const bo of this.boulders) {const dx = r.x - bo.x, dy = r.y + H / 2 - bo.y, dz = r.z - bo.z, rr = bo.radius + R;
       if (dx * dx + dy * dy + dz * dz < rr * rr) this.hit(r, Math.sign(dx) * 4 + bo.vx * .6, 6, bo.vz > 1 ? 12 : -12);}
     for (let i = this.checkpoints.length - 1; i >= 0; i--) if (r.z >= this.checkpoints[i] && r.ground?.land) {r.checkpoint = Math.max(r.checkpoint, i); break;}
-    if (r.y < this.deathY) this.respawn(r);
+    r.safe = Math.max(0, r.safe - dt); r.airT = r.ground ? 0 : r.airT + dt;
+    if (r.y < this.deathY || (r.airT > 4.5 && r.hook < 0)) this.respawn(r); // fell, or wedged in the air for 4.5 s
     r.progress = Math.max(r.progress, r.z);
     if (r.z >= this.finishZ && r.ground && !r.finished) {r.finished = true; r.finishTime = this.time;}
   }
-  private hit(r: Runner, vx: number, vy: number, vz: number) {if (r.stun > .25) return; r.vx = vx; r.vy = vy; r.vz = vz; r.stun = .55; r.ground = null; r.coyote = 0;}
-  respawn(r: Runner) {r.hook = -1; const z = this.checkpoints[r.checkpoint] + .5; r.x = ((r.slot % 5) - 2) * 1.4; r.y = this.spawnY(z) + 1.5; r.z = z; r.vx = r.vy = r.vz = 0; r.ground = null; r.falls++; r.stun = .3;}
+  private hit(r: Runner, vx: number, vy: number, vz: number) {if (r.stun > .25 || r.safe > 0) return; /* respawn grace: no hits for 1.5 s */ r.vx = vx; r.vy = vy; r.vz = vz; r.stun = .55; r.ground = null; r.coyote = 0;}
+  respawn(r: Runner) {r.hook = -1; const z = this.checkpoints[r.checkpoint] + .5; r.x = ((r.slot % 5) - 2) * 1.4; r.y = this.spawnY(z) + 1.5; r.z = z; r.vx = r.vy = r.vz = 0; r.ground = null; r.falls++; r.stun = .3; r.safe = 1.5; r.airT = 0;}
 
   /** Bot: run the centreline (ride rafts), jump at steps, gaps, logs, barriers and barrels. */
   think(r: Runner, dt: number) {
@@ -510,6 +511,9 @@ export class Course {
     if (r.ground?.driftAmp) tx = (r.ground.x0 + r.ground.x1) / 2 + r.ground.offX;
     for (const b of this.blocks) if (b.driftAmp && b.z0 > r.z && b.z0 - r.z < 2.5) tx = (b.x0 + b.x1) / 2 + b.offX;
     for (const p of this.pads) if (p.z > r.z && p.z - r.z < 6) tx = p.x;
+    // rolling stones: hug the wall on the side away from the nearest stone coming down
+    {const st = this.chasers.filter(ch => ch.active && ch.z > r.z - 1 && ch.z - r.z < 16 && r.z > ch.track.z0 - 2 && r.z < ch.track.z1).sort((p, q) => p.z - q.z)[0];
+      if (st) tx = (st.x > 0 ? -1 : 1) * (st.track.halfWidth - .45);}
     // narrow paths (beams, zig bridges): if the planned line has no floor just ahead, steer onto the nearest floor that does
     {const za = r.z + 1.4, on = (b: Block) => !b.wall && !b.gone && !b.fake && !b.cart && za >= b.z0 && za <= b.z1 && b.bottom < top(b, za) - .1;
       if (!this.blocks.some(b => on(b) && tx > b.x0 + b.offX + .35 && tx < b.x1 + b.offX - .35)) {let best = tx, bd = 1e9;

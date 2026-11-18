@@ -391,6 +391,8 @@ export class RaceApp {
     for (const {mat, geos, shadow} of groups.values()) {const merged = mergeGeometries(geos, false); if (!merged) continue; const mm = new THREE.Mesh(merged, mat); mm.castShadow = shadow; mm.receiveShadow = true; this.scene.add(mm);}
   }
   private flash() {const f = document.getElementById('flash'); if (!f) return; f.classList.remove('on'); void f.offsetWidth; f.classList.add('on');}
+  private hype = {place: 0, placeAt: 0, final: false, tick: -1};
+  private fovKick = 0; private lastGroundY = 0;
   private toast(text: string) {const t = document.getElementById('toast'); if (!t) return; t.textContent = text; t.classList.remove('show'); void t.offsetWidth; t.classList.add('show');}
 
   // ---------- the collector's house ----------
@@ -713,7 +715,7 @@ export class RaceApp {
       if (r.ground && l.prevVy < -6) {l.squash = Math.min(.3, -l.prevVy * .022); this.puff(r.x, r.y, r.z, Math.min(1.4, -l.prevVy / 9));}
       if (!r.ground && l.prevVy <= .5 && r.vy > 8) this.puff(r.x, r.y, r.z, .6); l.prevVy = r.vy; l.squash = Math.max(0, l.squash - dt * 2.2);
       const sy = 1 - l.squash, sxz = 1 / Math.sqrt(sy), ghost = r.character === 'ghost' ? .25 + Math.sin(c.time * 3 + r.slot) * .08 : 0;
-      l.root.position.set(r.x, r.y + ghost, r.z); l.root.scale.set(sxz, sy, sxz);
+      l.root.position.set(r.x, r.y + ghost, r.z); l.root.scale.set(sxz, sy, sxz); l.root.visible = !(r.safe > 0 && Math.sin(c.time * 30) > .2); // blinking = respawn grace
       const yaw = r.facing; let d = yaw - l.root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); l.root.rotation.y += d * Math.min(1, dt * 22);
       l.mixer.update(dt);
       const bl = this.blobs.get(r); if (bl) {let gy = -99; for (const b of c.blocks) if (!b.gone && r.x >= b.x0 + b.offX && r.x <= b.x1 + b.offX && r.z >= b.z0 && r.z <= b.z1 && top(b, r.z) <= r.y + .05) gy = Math.max(gy, top(b, r.z)); bl.visible = gy > -50; const hgt = r.y - gy; bl.position.set(r.x, gy + .03, r.z); bl.scale.setScalar(Math.max(.4, 1 - hgt * .12)); (bl.material as THREE.MeshBasicMaterial).opacity = Math.max(.15, .55 - hgt * .06);}
@@ -724,7 +726,11 @@ export class RaceApp {
       this.sun.position.copy(this.camera.position).addScaledVector(SUN_DIR, 70); this.sun.target.position.set(0, this.camera.position.y - 3, this.camera.position.z + 8);
       this.animateAtmosphere(dt); return;}
     const me = this.me, portrait = this.camera.aspect < 1, k = Math.min(1, dt * 5);
-    this.camTarget.x += (me.x * .75 - this.camTarget.x) * k; this.camTarget.z += (me.z - this.camTarget.z) * k; this.camTarget.y += (Math.max(me.y, -4) - this.camTarget.y) * Math.min(1, dt * 2.5);
+    if (me.ground) this.lastGroundY = me.y; const followY = Math.max(me.y, this.lastGroundY - 2.5, -4); // falling: the camera stays up and watches you drop away
+    const lead = Math.max(-1, Math.min(2.2, me.vz * .22)); // look a little ahead when running fast
+    this.camTarget.x += (me.x * .75 - this.camTarget.x) * k; this.camTarget.z += (me.z + lead - this.camTarget.z) * k; this.camTarget.y += (followY - this.camTarget.y) * Math.min(1, dt * 2.5);
+    if (!me.ground && me.vy > 12) this.fovKick = Math.min(1, this.fovKick + dt * 8); else this.fovKick = Math.max(0, this.fovKick - dt * 1.6);
+    {const want = (portrait ? 65 : 55) + this.fovKick * 9 + Math.min(1, Math.hypot(me.vx, me.vz) / 8.2) * 2.5; if (Math.abs(this.camera.fov - want) > .05) {this.camera.fov += (want - this.camera.fov) * Math.min(1, dt * 6); this.camera.updateProjectionMatrix();}}
     const back = this.manor ? (portrait ? 9 : 7.4) : portrait ? 11 : 8.6, up = this.manor ? (portrait ? 6 : 4.4) : portrait ? 7.2 : 5.4;
     const inMaze = this.course.mazePaths.some(m => me.z > m.box[2] - 2 && me.z < m.box[3]) || this.course.fakeWalls.some(f => me.z > f.z - 6 && me.z < f.z + 3); this.mazeBlend += ((inMaze ? 1 : 0) - this.mazeBlend) * Math.min(1, dt * 2.5);
     const mb = this.mazeBlend, back2 = back + (4.6 - back) * mb, up2 = up + (7.4 - up) * mb;
@@ -776,6 +782,12 @@ export class RaceApp {
     const n = Math.ceil(COUNTDOWN - .5 - this.clock); if (this.clock < COUNTDOWN + .3 && n !== this.sndState.count) {this.sndState.count = n; if (n >= 0 && n <= 3) this.snd.countdown(n <= 0);}
     setText('count', this.clock >= 0 && this.clock < COUNTDOWN ? (n > 0 ? String(n) : 'ВПЕРЁД!') : this.clock < 0 && this.introSkipped ? 'ЖДЁМ СТАРТА…' : '');
     const st = this.standings(), place = st.indexOf(this.me) + 1; setText('place-n', String(place)); setText('place-of', `/${st.length}`);
+    {const h = this.hype; const live = this.clock > COUNTDOWN + 2 && !this.me.finished;
+      if (live && h.place && place !== h.place && this.clock - h.placeAt > 1.2) {h.placeAt = this.clock; if (place < h.place) {this.toast(place === 1 ? 'ТЫ ЛИДИРУЕШЬ!' : `ОБГОН! ${place} МЕСТО`); this.snd.checkpoint(); navigator.vibrate?.(15);} else this.toast(`${place} МЕСТО ▼`);}
+      if (live) h.place = place;
+      if (live && !h.final && this.me.z > this.course.finishZ - 30) {h.final = true; this.toast('ФИНИШНАЯ ПРЯМАЯ!'); this.snd.checkpoint(); document.body.classList.add('final-stretch');
+        if (!document.getElementById('fs-css')) {const st = document.createElement('style'); st.id = 'fs-css'; st.textContent = `body.final-stretch:not(.done)::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:2;box-shadow:inset 0 0 80px 10px #ffc44a55;animation:fsPulse 1.1s ease-in-out infinite}@keyframes fsPulse{50%{box-shadow:inset 0 0 120px 18px #ffc44a88}}`; document.head.appendChild(st);}}
+      const tl = this.timeLeft(), sec = Math.ceil(tl); if (live && tl < 10 && tl > 0 && sec !== h.tick) {h.tick = sec; this.snd.countdown(false);}}
     document.getElementById('place')!.dataset.p = String(Math.min(place, 4));
     // progress track: every runner as a portrait dot
     if (!this.dots.size) {const track = document.getElementById('track')!; for (const r of this.runners) {const d = document.createElement('i'); d.className = r === this.me ? 'me' : ''; d.style.backgroundImage = `url(portraits/${r.character}.png)`; track.appendChild(d); this.dots.set(r, d);}}
@@ -809,7 +821,7 @@ export class RaceApp {
     const unlock = () => {this.snd.unlock(); this.snd.ambience(this.course.theme); this.snd.playMusic('audio/music.m4a');};
     const mute = document.getElementById('mute'); if (mute) {let m = false; try {m = localStorage.getItem('race-mute') === '1';} catch {} this.snd.setMuted(m); mute.textContent = m ? '🔇' : '🔊';
       mute.addEventListener('pointerdown', e => {e.stopPropagation(); m = !m; this.snd.setMuted(m); mute.textContent = m ? '🔇' : '🔊'; try {localStorage.setItem('race-mute', m ? '1' : '0');} catch {}});} addEventListener('pointerdown', unlock); addEventListener('keydown', unlock);
-    addEventListener('keydown', e => {if (this.net?.spectator && /^Digit[0-9]$/.test(e.code)) this.surv?.key(e.code.slice(5)); this.keys.add(e.code); if (e.code === 'Space') {this.me && (this.me.jump = true); e.preventDefault();}});
+    addEventListener('keydown', e => {if (this.net?.spectator && /^Digit[0-9]$/.test(e.code)) this.surv?.key(e.code.slice(5)); this.keys.add(e.code); if (e.code === 'KeyR' && this.me && !this.me.finished && this.clock > COUNTDOWN && this.me.safe <= 0 && !(this.me as any).remote) {this.course.respawn(this.me); this.toast('НАЗАД К ЧЕКПОИНТУ');} if (e.code === 'Space') {this.me && (this.me.jump = true); e.preventDefault();}});
     addEventListener('keyup', e => this.keys.delete(e.code));
     const zone = document.getElementById('stick-zone')!, knob = document.getElementById('knob')!, base = document.getElementById('stick')!, jump = document.getElementById('jump')!;
     zone.addEventListener('pointerdown', e => {this.stick = {id: e.pointerId, ox: e.clientX, oy: e.clientY, x: 0, y: 0}; base.style.display = 'block'; base.style.left = e.clientX + 'px'; base.style.top = e.clientY + 'px'; knob.style.transform = ''; zone.setPointerCapture(e.pointerId);});
