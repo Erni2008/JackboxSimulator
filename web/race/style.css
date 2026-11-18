@@ -101,3 +101,4 @@ body.intro-on #format{visibility:hidden}
 .podium .fate.dead{border-color:#a33;background:linear-gradient(#3a1414,#1d0c0c)}.podium .fate.dead small{color:#ff8a7a}.podium .fate.dead img{filter:grayscale(1) brightness(.7)}
 .podium .fate.ghost img{filter:grayscale(.6) opacity(.6) hue-rotate(180deg)}.podium .fate.ghost small{color:#b9d4ff}.podium .fate.me{box-shadow:0 0 0 2px #f6c26b}
 .podium{flex-wrap:wrap}
+#skins{display:flex;gap:6px;align-items:center;font:600 12px/1 inherit;opacity:.95}#skins span{opacity:.7;margin-right:4px}#skins button{background:#1d1411;border:1px solid #6b4a2b;color:#f3e9d6;border-radius:10px;padding:7px 11px;font:600 12px/1 inherit;cursor:pointer}#skins button.on{border-color:#f6c26b;background:#3a2418;color:#ffd6a0}

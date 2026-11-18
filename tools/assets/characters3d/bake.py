@@ -2,7 +2,7 @@
 import sys,numpy as np,trimesh,xatlas
 from PIL import Image
 ROOT=sys.argv[1];names=sys.argv[2:];TEX=1024
-P=f'{ROOT}/source_assets/characters3d/prep';T=f'{ROOT}/source_assets/characters3d/triposr'
+import os;P=os.environ.get('PREP',f'{ROOT}/source_assets/characters3d/prep');T=f'{ROOT}/source_assets/characters3d/triposr'
 def load_obj(path):
     v=[];vt=[];f=[];ft=[]
     for line in open(path):
@@ -62,7 +62,7 @@ for n in names:
         ax,ay=proj(mirror);a_=art[ay,ax];m=(facing>.6)&vis&(a_[:,3]>200)
         err=np.abs(a_[m,:3]-col[m]).mean() if m.any() else 1e9
         if best is None or err<best[0]:best=(err,ax,ay)
-    _,ax,ay=best;a_=art[ay,ax];w=(facing*vis*(a_[:,3]/255.))[:,None]*.92
+    _,ax,ay=best;a_=art[ay,ax];w=(facing*vis*(a_[:,3]/255.))[:,None]*float(os.environ.get('PROJ','.92'))
     col=col*(1-w)+a_[:,:3]*w
     img[pix[:,1],pix[:,0]]=col;mask[pix[:,1],pix[:,0]]=True
     for _ in range(8):  # dilate into gutters
@@ -70,7 +70,14 @@ for n in names:
         for dy,dx in ((1,0),(-1,0),(0,1),(0,-1)):
             sm=np.roll(np.roll(mask,dy,0),dx,1);si=np.roll(np.roll(img,dy,0),dx,1);acc+=si*sm[...,None];cnt+=sm
         fill=(~mask)&(cnt>0);img[fill]=acc[fill]/cnt[fill][:,None];mask|=fill
-    Image.fromarray(np.clip(img,0,255).astype(np.uint8)).transpose(Image.FLIP_TOP_BOTTOM).save(f'{P}/{n}_lo.png')
+    from PIL import ImageFilter,ImageEnhance,ImageOps
+    out=Image.fromarray(np.clip(img,0,255).astype(np.uint8));g=os.environ.get('GRADE','a')
+    if g=='a':out=out.filter(ImageFilter.MedianFilter(3));out=ImageEnhance.Color(out).enhance(1.4);out=ImageEnhance.Brightness(out).enhance(1.12);out=ImageEnhance.Contrast(out).enhance(1.1);out=out.filter(ImageFilter.UnsharpMask(2,70,2))
+    elif g=='b':
+        for _ in range(2):out=out.filter(ImageFilter.MedianFilter(5))
+        out=out.quantize(28,method=Image.Quantize.MEDIANCUT).convert('RGB').filter(ImageFilter.GaussianBlur(.8));out=ImageEnhance.Color(out).enhance(1.75);out=ImageEnhance.Brightness(out).enhance(1.22)
+    elif g=='c':out=out.filter(ImageFilter.MedianFilter(3));out=ImageEnhance.Color(out).enhance(.95);out=ImageEnhance.Contrast(out).enhance(1.4);out=ImageEnhance.Brightness(out).enhance(.95);out=out.filter(ImageFilter.UnsharpMask(3,120,2))
+    out.transpose(Image.FLIP_TOP_BOTTOM).save(f'{P}/{n}_lo.png')
     with open(f'{P}/{n}_lo_uv.obj','w') as fo:
         for p in V:fo.write(f'v {p[0]} {p[1]} {p[2]}\n')
         for t in uvs:fo.write(f'vt {t[0]} {t[1]}\n')

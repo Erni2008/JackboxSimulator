@@ -18,6 +18,7 @@ for n in names:
     tex=bake_texture(mesh,model,codes[0],int(os.environ.get('TEXRES','1024')))
     import trimesh
     mesh.apply_transform(trimesh.transformations.rotation_matrix(-np.pi/2,[1,0,0]))
+    mesh.export(f'{OUT}/{n}_raw.ply')  # watertight marching-cubes surface, before UV splitting
     xatlas.export(f'{OUT}/{n}.obj',mesh.vertices[tex['vmapping']],tex['indices'],tex['uvs'],mesh.vertex_normals[tex['vmapping']])
     Image.fromarray((tex['colors']*255.0).astype(np.uint8)).transpose(Image.FLIP_TOP_BOTTOM).save(f'{OUT}/{n}.png')
     print('DONE',n,len(mesh.faces),flush=True)

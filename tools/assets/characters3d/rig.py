@@ -1,16 +1,16 @@
 """blender -b -P rig.py -- [names]: TripoSR OBJ -> phone-light rigged .glb (≈5k tris, 512px texture) with idle/run/jump/stun clips."""
 import bpy,sys,math,os,mathutils
-ROOT=os.path.abspath(os.path.join(os.path.dirname(__file__),'../../..'));SRC=f'{ROOT}/source_assets/characters3d/triposr';OUT=f'{ROOT}/web/race/chars'
+ROOT=os.path.abspath(os.path.join(os.path.dirname(__file__),'../../..'));SRC=f'{ROOT}/source_assets/characters3d/triposr';OUT=os.environ.get('OUT',f'{ROOT}/web/race/chars')
 names=sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else []
 names=names or ['skeleton','dracula','pumpkin','voodoo','ghost','zombie','plague_doctor','puppeteer']
 os.makedirs(OUT,exist_ok=True);H=1.55;TRIS=6000;TEX=512
 for n in names:
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    P=f'{ROOT}/source_assets/characters3d/prep'
+    P=os.environ.get('PREP',f'{ROOT}/source_assets/characters3d/prep')
     bpy.ops.wm.obj_import(filepath=f'{P}/{n}_lo_uv.obj',forward_axis='Y',up_axis='Z');o=bpy.context.selected_objects[0];bpy.context.view_layer.objects.active=o
     o.rotation_euler=(0,0,0);o.name=n
-    img=bpy.data.images.load(f'{P}/{n}_lo.png');img.scale(1024,1024);ml=bpy.data.materials.new(n);ml.use_nodes=True;tn=ml.node_tree.nodes.new('ShaderNodeTexImage');tn.image=img
-    bl=ml.node_tree.nodes['Principled BSDF'];ml.node_tree.links.new(tn.outputs[0],bl.inputs['Base Color']);bl.inputs['Roughness'].default_value=.75
+    img=bpy.data.images.load(f'{P}/{n}_lo.png');img.scale(int(os.environ.get('TEXSZ','1024')),int(os.environ.get('TEXSZ','1024')));ml=bpy.data.materials.new(n);ml.use_nodes=True;tn=ml.node_tree.nodes.new('ShaderNodeTexImage');tn.image=img
+    bl=ml.node_tree.nodes['Principled BSDF'];ml.node_tree.links.new(tn.outputs[0],bl.inputs['Base Color']);bl.inputs['Roughness'].default_value=float(os.environ.get('ROUGH','.75'))
     ml.use_backface_culling=False;o.data.materials.clear();o.data.materials.append(ml)
     bpy.ops.object.mode_set(mode='EDIT');bpy.ops.mesh.select_all(action='SELECT');bpy.ops.mesh.normals_make_consistent(inside=False);bpy.ops.object.mode_set(mode='OBJECT')
     bpy.ops.object.shade_smooth()

@@ -166,7 +166,7 @@ export class RaceApp {
   }
 
   private async addLook(r: Runner) {
-    const g = await this.model(`chars/${r.character}.glb`);
+    const g = await this.model(`chars/${SKIN}/${r.character}.glb`);
     const root = SkeletonUtils.clone(g.scene); root.traverse(o => {const m = o as THREE.Mesh; if (m.isMesh) {m.castShadow = true; m.frustumCulled = false; const mm = m.material as THREE.MeshStandardMaterial; mm.side = THREE.DoubleSide; mm.envMapIntensity = 1.6; mm.roughness = .6; mm.emissive = new THREE.Color(1, 1, 1); mm.emissiveMap = mm.map; mm.emissiveIntensity = .15;}});
     const blob = new THREE.Mesh(new THREE.CircleGeometry(.55, 24).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({map: dotTexture(true), color: 0x000000, transparent: true, opacity: .55, depthWrite: false})); blob.renderOrder = 1; this.scene.add(blob); this.blobs.set(r, blob);
     this.scene.add(root); const mixer = new THREE.AnimationMixer(root); const acts: Record<string, THREE.AnimationAction> = {};
@@ -979,3 +979,6 @@ function bake<T extends THREE.Object3D>(g: T): T {
     (by.get(m.material as THREE.Material) ?? by.set(m.material as THREE.Material, []).get(m.material as THREE.Material)!).push(geo); drop.push(m);});
   if (drop.length < 2) return g; for (const m of drop) m.parent!.remove(m);
   for (const [mat, geos] of by) {const mm = new THREE.Mesh(mergeGeometries(geos, false)!, mat); mm.castShadow = mm.receiveShadow = true; g.add(mm);} return g;}
+
+/** Character look: a = crisp, b = toon, c = gothic (query ?skin= or the saved choice). */
+export const SKIN = (() => {const q = new URLSearchParams(location.search).get('skin'); let v = q; if (!v) try {v = localStorage.getItem('race-skin');} catch {} return ['a', 'b', 'c'].includes(v || '') ? v! : 'a';})();
