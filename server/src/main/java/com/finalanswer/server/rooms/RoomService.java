@@ -187,7 +187,7 @@ public final class RoomService {
             if(!Set.of("broken-elevator","race").contains(id))throw new Failure(400,"INVALID_WEB_GAME");
             if(id.equals("race")){
                 int map=data.has("map")?data.get("map").getAsInt():1+random.nextInt(4);if(map<1||map>4)throw new Failure(400,"INVALID_RACE_MAP");
-                room.raceMap=map;room.raceSeed=1+random.nextInt(999_999_999);room.raceStart=now()+37_000;room.race.clear();room.raceScored=false;room.webGameAt=now();
+                room.raceMap=map;room.raceSeed=1+random.nextInt(999_999_999);room.raceStart=now()+37_000;room.race.clear();room.raceScored=false;room.raceEndedAt=0;room.webGameAt=now();
                 var formats=new ArrayList<>(List.of(RaceSession.Format.values()));if(map==4)formats.retainAll(RaceSession.CRYPT_OK);
                 RaceSession.Format fmt;try{fmt=data.has("format")?RaceSession.Format.valueOf(Protocol.string(data,"format")):formats.get(random.nextInt(formats.size()));}catch(RuntimeException e){throw new Failure(400,"INVALID_RACE_FORMAT");}
                 if(!formats.contains(fmt))throw new Failure(400,"RACE_FORMAT_NOT_SUPPORTED_ON_MAP");
@@ -900,6 +900,7 @@ public final class RoomService {
             if((changed||resync)&&m.peer!=null){puzzle.sentAt=now();m.peer.send(Protocol.event("PRESSURE_UPDATED","",snapshot(room,m,false)));}
         }
     }
+    private static final long RACE_AUTO_END_MS=18_000;
     private void tickRoom(Room room) {
         if(room.breach!=null&&tickBreach(room))broadcast(room,"SYSTEM_BREACH_STATE");
         // nobody is ever stuck on a finished SYSTEM BREACH: if the host never ends it, the room returns to the lobby
@@ -907,6 +908,8 @@ public final class RoomService {
         applyRevivals(room);
         if(room.raceSession!=null&&!room.raceSession.ended){Set<String> on=room.members.values().stream().filter(m->m.peer!=null&&!m.left).map(m->m.id).collect(java.util.stream.Collectors.toSet());
             if(room.raceSession.tick(now(),on)){finishRaceIfEnded(room);raceRelay(room,true);}}
+        // like every other mode: once the results ceremony has played, the race closes itself and every phone returns to the lobby
+        if(room.webGame.equals("race")&&room.raceEndedAt>0&&now()-room.raceEndedAt>=RACE_AUTO_END_MS){room.raceEndedAt=0;room.webGame="";room.webGameId="";room.race.clear();room.raceSession=null;room.lobbyId=UUID.randomUUID().toString();broadcast(room,"WEB_GAME_CLOSED");}
         tickPressure(room); tickFormula(room); tickBomb(room); if(room.shift!=null&&room.webGame.equals("broken-elevator")&&room.shift.advance(now()))broadcast(room,"CAGE_UPDATE");
         if(room.cursed!=null&&room.cursed.tick(now(),room.members.values().stream().filter(m->m.left).map(m->m.id).collect(java.util.stream.Collectors.toSet())))broadcast(room,"CURSED_BOXES_UPDATED");
         if(room.impostor!=null) {
@@ -973,7 +976,7 @@ public final class RoomService {
         raceRelay(room,changed);
     }
     private void finishRaceIfEnded(Room room){
-        var rs=room.raceSession;if(rs==null||!rs.ended||room.raceScored)return;room.raceScored=true;
+        var rs=room.raceSession;if(rs==null||!rs.ended||room.raceScored)return;room.raceScored=true;room.raceEndedAt=now();
         for(Member m:room.members.values())if(rs.players.containsKey(m.id))m.alive=rs.survived(m.id);
         System.out.println("[race] end room="+room.code+" survivors="+room.members.values().stream().filter(m->m.alive).count());
         broadcast(room,"RACE_FINISHED");
@@ -1151,7 +1154,7 @@ public final class RoomService {
         /** SOULS balances for this room's session. */
         final com.finalanswer.server.economy.SoulsWallet souls=new com.finalanswer.server.economy.SoulsWallet();
         final int maxPlayers,questionCount; final byte[] salt,passwordHash;
-        int raceMap=1; long raceSeed,raceStart,raceRelayAt; RaceSession raceSession; boolean raceScored; final Map<String,double[]> race=new LinkedHashMap<>();
+        int raceMap=1; long raceSeed,raceStart,raceRelayAt,raceEndedAt; RaceSession raceSession; boolean raceScored; final Map<String,double[]> race=new LinkedHashMap<>();
         String webGame="",webGameId="",language="en"; long webGameAt; com.erni.finalanswer.gameplay.elevator.CageShift shift; final com.erni.finalanswer.gameplay.elevator.CageShift.BombBag bombBag=new com.erni.finalanswer.gameplay.elevator.CageShift.BombBag(); com.erni.finalanswer.gameplay.elevator.Difficulty difficulty=com.erni.finalanswer.gameplay.elevator.Difficulty.NORMAL;
         final Map<String,com.erni.finalanswer.gameplay.elevator.PressurePuzzle> pressure=new LinkedHashMap<>();
         final Map<String,com.erni.finalanswer.gameplay.elevator.FormulaPuzzle> formula=new LinkedHashMap<>();
