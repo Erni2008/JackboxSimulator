@@ -288,7 +288,7 @@ export class Course {
     const track: StoneTrack = {z0,z1:z0+length,y0:y,y1:y+rise,halfWidth:w};
     const path: [number,number][] = [[0,z0+length],[0,z0-5]];
     const phase=this.rnd()*.4;
-    for (let slot=0;slot<8;slot++) this.chasers.push({path,y,r:2.2,period:STONE_INTERVAL,phase,x:0,z:z0+length,spin:0,active:false,dist:0,slot,track,vx:0,vz:0});
+    for (let slot=0;slot<8;slot++) this.chasers.push({path,y,r:1.6,period:STONE_INTERVAL,phase,x:0,z:z0+length,spin:0,active:false,dist:0,slot,track,vx:0,vz:0});
     this.z+=length;this.y+=rise;this.room(z0,this.z,7.5,12);
   }
   /** Tilting chamber: big platform tilts on two axes in seeded sequences; lamps warn before a strong tilt; posts to steer around. */

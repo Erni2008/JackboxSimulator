@@ -5,6 +5,8 @@ export class RaceSound {
   private noise!: AudioBuffer; private voices = 0; private music?: HTMLAudioElement; private amb?: {src: AudioBufferSourceNode; g: GainNode; f: BiquadFilterNode};
   private windG?: GainNode; private last = new Map<string, number>();
   muted = false;
+  private cinematic = false;
+  setCinematic(on:boolean){this.cinematic=on;if(this.music)this.music.volume=on?0:.28;}
 
   /** Must be called from a user gesture (tap / key). */
   unlock() {
@@ -31,12 +33,12 @@ export class RaceSound {
     this.windG!.gain.setTargetAtTime(wind * .22, this.ctx.currentTime, .15);
   }
   playMusic(url: string) {
-    if (this.music) return; const a = new Audio(url); a.loop = true; a.volume = .28; this.music = a; a.play().catch(() => {});
+    if (this.music) return; const a = new Audio(url); a.loop = true; a.volume = this.cinematic ? 0 : .28; this.music = a; a.play().catch(() => {});
   }
   setMuted(m: boolean) {this.muted = m; if (this.master) this.master.gain.value = m ? 0 : .9; if (this.music) this.music.muted = m;}
 
   private voiceEl?: HTMLAudioElement;
-  voice(url: string) {this.voiceEl?.pause(); if (this.muted || !url) return; const a = new Audio(url); a.volume = 1; this.voiceEl = a; if (this.music) this.music.volume = .1; a.onended = () => {if (this.music) this.music.volume = .28;}; a.play().catch(() => {});}
+  voice(url: string, offset = 0) {this.voiceEl?.pause(); if (this.music) this.music.volume = this.cinematic ? 0 : .28; if (this.muted || !url) return; const a = new Audio(url); a.volume = 1; if (offset > 0) a.currentTime = offset; this.voiceEl = a; if (this.music) this.music.volume = this.cinematic ? 0 : .1; a.onended = () => {if (this.music) this.music.volume = this.cinematic ? 0 : .28;}; a.play().catch(() => {});}
   // -------- one-shots --------
   private can(key: string, gap: number) {const now = performance.now(), l = this.last.get(key) ?? 0; if (now - l < gap || this.voices > 14) return false; this.last.set(key, now); return true;}
   private env(g: GainNode, a: number, peak: number, d: number) {const t = this.ctx!.currentTime; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(.0001, t + a + d);}

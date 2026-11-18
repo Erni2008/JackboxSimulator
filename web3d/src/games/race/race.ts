@@ -791,15 +791,18 @@ export class RaceApp {
       const R = this.surv?.run, label = (r: Runner) => {const p = R?.players[r.id]; if (!p) return ''; return p.status === 'SAVED' ? (p.revived ? 'воскрес и выжил' : 'выжил') : p.status === 'DEAD' ? 'погиб' : p.revived ? 'воскрес' : 'призрак';};
       const res2 = (r: Runner) => R ? label(r) : r.finished ? (r.finishTime - COUNTDOWN).toFixed(1) + ' с' : Math.round(Math.min(1, r.progress / this.course.finishZ) * 100) + '%';
       const img = (r: Runner) => `portraits/${r.character}.png`, pod = [st[1], st[0], st[2]];
-      (res.querySelector('.podium') as HTMLElement).innerHTML = pod.map((r, i) => r ? `<div class="step s${[2, 1, 3][i]}${r === this.me ? ' me' : ''}"><img src="${img(r)}" alt=""><b>${r.name}</b><small>${res2(r)}</small><div class="block">${[2, 1, 3][i]}</div></div>` : '<div class="step empty"></div>').join('');
-      res.querySelector('ol')!.innerHTML = st.slice(3).map((r, i) => `<li class="${r === this.me ? 'me' : ''}"><em>${i + 4}</em>${r.name}<span>${res2(r)}${r.falls ? ` · падений ${r.falls}` : ''}</span></li>`).join('');
+      ceremonyStyle(); res.classList.add('cer');
+      const at = {3: .7, 2: 1.6, 1: 2.7} as Record<number, number>; // reveal order: bronze, silver, then gold
+      (res.querySelector('.podium') as HTMLElement).innerHTML = pod.map((r, i) => {const pl = [2, 1, 3][i]; return r ? `<div class="step s${pl}${r === this.me ? ' me' : ''}" style="--d:${at[pl]}s">${pl === 1 ? '<i class="rays"></i><i class="crown">👑</i>' : ''}<img src="${img(r)}" alt=""><b>${r.name}</b><small>${res2(r)}</small><div class="block"><span>${pl}</span></div></div>` : '<div class="step empty"></div>';}).join('');
+      res.querySelector('ol')!.innerHTML = st.slice(3).map((r, i) => `<li class="${r === this.me ? 'me' : ''}" style="--d:${3.6 + i * .12}s"><em>${i + 4}</em>${r.name}<span>${res2(r)}${r.falls ? ` · падений ${r.falls}` : ''}</span></li>`).join('');
+      for (const pl of [3, 2, 1]) if (pod[[1, 0, 2][pl - 1]]) setTimeout(() => this.snd.land(pl === 1 ? 1 : .6), (at[pl] + .55) * 1000);
       const myPlace = st.indexOf(this.me) + 1; if (R) {
         const order = (r: Runner) => {const p = R.players[r.id]; return p?.status === 'SAVED' ? 0 : p?.alive ? 1 : p?.status === 'DEAD' ? 2 : 3;};
-        (res.querySelector('.podium') as HTMLElement).innerHTML = [...this.runners].sort((x, y) => order(x) - order(y)).map(r => {const p = R.players[r.id] ?? {}, cls = p.status === 'SAVED' ? 'ok' : p.status === 'DEAD' ? 'dead' : 'ghost';
-          return `<div class="fate ${cls}${r === this.me ? ' me' : ''}"><img src="${img(r)}" alt=""><b>${r.name}</b><small>${label(r)}</small></div>`;}).join('');
-        res.querySelector('ol')!.innerHTML = '';const mp = R.players[this.me.id]; setText('verdict', this.net?.spectator ? 'ИТОГИ ИСПЫТАНИЯ' : mp?.status === 'SAVED' ? 'ТЫ ВЫЖИЛ!' : mp?.alive === false ? 'ТЫ ПРИЗРАК' : 'ИТОГИ'); if (mp?.status === 'SAVED' || this.net?.spectator) confetti(); document.body.classList.add('done'); return;}
+        (res.querySelector('.podium') as HTMLElement).innerHTML = [...this.runners].sort((x, y) => order(x) - order(y)).map((r, i) => {const p = R.players[r.id] ?? {}, cls = p.status === 'SAVED' ? 'ok' : p.status === 'DEAD' ? 'dead' : 'ghost';
+          return `<div class="fate ${cls}${r === this.me ? ' me' : ''}" style="--d:${.8 + i * .35}s"><img src="${img(r)}" alt=""><b>${r.name}</b><small>${label(r)}</small></div>`;}).join('');
+        res.querySelector('ol')!.innerHTML = '';const mp = R.players[this.me.id]; setText('verdict', this.net?.spectator ? 'ИТОГИ ИСПЫТАНИЯ' : mp?.status === 'SAVED' ? 'ТЫ ВЫЖИЛ!' : mp?.alive === false ? 'ТЫ ПРИЗРАК' : 'ИТОГИ'); if (mp?.status === 'SAVED' || this.net?.spectator) setTimeout(confetti, (.8 + this.runners.length * .35) * 1000); document.body.classList.add('done'); return;}
       setText('verdict', this.net?.spectator ? 'ИТОГИ ЗАБЕГА' : this.me.finished ? (myPlace === 1 ? 'ПОБЕДА!' : `ФИНИШ · ${myPlace} МЕСТО`) : 'ВРЕМЯ ВЫШЛО');
-      document.body.classList.add('done'); if (myPlace <= 3 || this.net?.spectator) confetti();}
+      document.body.classList.add('done'); if (myPlace <= 3 || this.net?.spectator) setTimeout(confetti, 3300);}
   }
 
   private input() {
@@ -966,6 +969,48 @@ function rayTexture() {const c = document.createElement('canvas'); c.width = 64;
   x.fillStyle = g; x.fillRect(0, 0, 64, 256); const h = x.createLinearGradient(0, 0, 64, 0); h.addColorStop(0, 'rgba(0,0,0,1)'); h.addColorStop(.5, 'rgba(0,0,0,0)'); h.addColorStop(1, 'rgba(0,0,0,1)'); x.globalCompositeOperation = 'destination-out'; x.fillStyle = h; x.fillRect(0, 0, 64, 256); return new THREE.CanvasTexture(c);}
 
 
+/** Results ceremony: dark spotlight backdrop, title slam, podium blocks rise bronze -> silver -> gold, portraits drop in with a bounce,
+ *  rotating light rays and a crown for the winner, then the rest of the table and the button. Fate cards flip in one by one. */
+function ceremonyStyle() {
+  if (document.getElementById('cer-css')) return; const st = document.createElement('style'); st.id = 'cer-css'; st.textContent = `
+body.done::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,#0000 0,#000a 55%,#000e 100%);animation:cerBg .8s ease both}
+@keyframes cerBg{from{opacity:0}to{opacity:1}}
+#results.cer{z-index:1;overflow:visible;animation:cerPanel .6s cubic-bezier(.2,1.2,.4,1) both}
+@keyframes cerPanel{from{opacity:0;transform:translate(-50%,-40%) scale(.85)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+#results.cer h2{animation:cerTitle .7s cubic-bezier(.2,1.6,.4,1) .15s both;background:linear-gradient(90deg,#f6dfb0 0,#fff6d8 45%,#ffd24a 50%,#f6dfb0 60%);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent}
+#results.cer h2{animation:cerTitle .7s cubic-bezier(.2,1.6,.4,1) .15s both,cerShine 2.4s linear 1s infinite}
+@keyframes cerTitle{from{opacity:0;transform:scale(2.4);filter:blur(8px)}to{opacity:1;transform:scale(1);filter:blur(0)}}
+@keyframes cerShine{from{background-position:100% 0}to{background-position:-100% 0}}
+#results.cer .podium{min-height:clamp(150px,30vh,230px)}
+#results.cer .podium .step{position:relative;animation:none}
+#results.cer .podium .step .block{transform-origin:50% 100%;animation:cerGrow .55s cubic-bezier(.2,1.3,.4,1) var(--d) both}
+#results.cer .podium .step .block span{display:inline-block;animation:cerPop .4s cubic-bezier(.2,1.8,.4,1) calc(var(--d) + .35s) both}
+@keyframes cerGrow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes cerPop{from{opacity:0;transform:scale(0)}to{opacity:1;transform:scale(1)}}
+#results.cer .podium .step img{animation:cerDrop .7s cubic-bezier(.3,1.5,.5,1) calc(var(--d) + .45s) both}
+@keyframes cerDrop{0%{opacity:0;transform:translateY(-160px) scale(.6) rotate(-12deg)}60%{opacity:1;transform:translateY(8px) scale(1.08,.92)}100%{opacity:1;transform:none}}
+#results.cer .podium .step b,#results.cer .podium .step small{animation:cerFade .4s ease calc(var(--d) + .8s) both}
+@keyframes cerFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+#results.cer .podium .s1 img{filter:drop-shadow(0 0 14px #ffd24acc) drop-shadow(0 6px 8px #000a)}
+#results.cer .podium .rays{position:absolute;left:50%;top:38%;width:240px;height:240px;margin:-120px 0 0 -120px;z-index:-1;pointer-events:none;border-radius:50%;
+  background:repeating-conic-gradient(#ffd24a55 0 9deg,#0000 9deg 24deg);-webkit-mask:radial-gradient(#000 20%,#0000 70%);mask:radial-gradient(#000 20%,#0000 70%);animation:cerRaysIn .8s ease calc(var(--d) + .5s) both,cerSpin 9s linear infinite}
+@keyframes cerRaysIn{from{opacity:0;scale:.3}to{opacity:1;scale:1}}
+@keyframes cerSpin{to{rotate:360deg}}
+#results.cer .podium .crown{position:absolute;top:-30px;left:50%;font-style:normal;font-size:30px;translate:-50% 0;animation:cerCrown .6s cubic-bezier(.2,1.8,.4,1) calc(var(--d) + 1s) both,cerBob 1.6s ease-in-out calc(var(--d) + 1.6s) infinite}
+@keyframes cerCrown{from{opacity:0;transform:translateY(-40px) rotate(-30deg) scale(.4)}to{opacity:1;transform:none}}
+@keyframes cerBob{50%{transform:translateY(-5px) rotate(4deg)}}
+#results.cer ol li{animation:cerSlide .45s ease var(--d) both}
+@keyframes cerSlide{from{opacity:0;transform:translateX(-30px)}to{opacity:1;transform:none}}
+#results.cer button{animation:cerFade .5s ease 4s both}
+#results.cer .podium .fate{animation:cerFlip .6s cubic-bezier(.2,1.3,.4,1) var(--d) both;backface-visibility:hidden}
+@keyframes cerFlip{from{opacity:0;transform:perspective(500px) rotateY(90deg) scale(.8)}to{opacity:1;transform:none}}
+#results.cer .podium .fate.ok{animation:cerFlip .6s cubic-bezier(.2,1.3,.4,1) var(--d) both,cerGlow 1.8s ease-in-out calc(var(--d) + .6s) infinite}
+@keyframes cerGlow{50%{box-shadow:0 0 18px #5fd27a99}}
+#results.cer .podium .fate.dead img{animation:cerShake .5s ease calc(var(--d) + .5s) both}
+@keyframes cerShake{20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
+@media (prefers-reduced-motion:reduce){#results.cer *,#results.cer{animation-duration:.01s!important;animation-delay:0s!important}}`;
+  document.head.appendChild(st);
+}
 function confetti() {const c = document.createElement('canvas'); c.className = 'confetti'; c.width = innerWidth; c.height = innerHeight; document.body.appendChild(c); const x = c.getContext('2d')!;
   const cols = ['#f6c26b', '#e74c3c', '#fff1d0', '#c0392b', '#ffd24a'], ps = Array.from({length: 140}, () => ({x: Math.random() * c.width, y: -20 - Math.random() * c.height * .5, vx: (Math.random() - .5) * 2, vy: 2 + Math.random() * 3, r: Math.random() * 6, s: 4 + Math.random() * 6, c: cols[Math.floor(Math.random() * cols.length)]}));
   let t = 0; const tick = () => {t++; x.clearRect(0, 0, c.width, c.height); for (const p of ps) {p.x += p.vx; p.y += p.vy; p.r += .1; x.save(); x.translate(p.x, p.y); x.rotate(p.r); x.fillStyle = p.c; x.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); x.restore();} if (t < 260) requestAnimationFrame(tick); else c.remove();}; tick();}

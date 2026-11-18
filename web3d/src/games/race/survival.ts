@@ -1,3 +1,4 @@
+import {LifeSpark} from './life-spark';
 // CURSED RUN client: presentation of the server-authoritative survival state (formats, ghosts, Life Spark, revival,
 // fronts, gates, seats, personal timers) + host auto camera and host voice events. All effects are cheap: a handful of
 // meshes/sprites, material tweaks on existing character models, no physics.
@@ -5,14 +6,14 @@ import * as THREE from 'three';
 import type {Runner} from './course';
 
 export const FORMAT_NAME: Record<string, string> = {DEATH_RUN: 'СМЕРТЕЛЬНЫЙ ЗАБЕГ', DARKNESS: 'НАСТУПАЮЩАЯ ТЬМА', LAST_SURVIVORS: 'ПОСЛЕДНИЕ ВЫЖИВШИЕ', COLLAPSE: 'РАЗРУШАЮЩИЙСЯ МИР', LAST_CHANCE: 'ПОСЛЕДНИЙ ШАНС', SALVATION: 'СПАСИТЕЛЬНЫЕ ВОРОТА'};
-const FORMAT_RULE: Record<string, string> = {DEATH_RUN: 'Успей до финиша — или умри', DARKNESS: 'Тьма поглощает отставших', LAST_SURVIVORS: 'На рубежах места заканчиваются', COLLAPSE: 'Трасса рушится за спиной', LAST_CHANCE: 'Своё время у каждого: чекпоинты дают секунды', SALVATION: 'В убежище мест меньше, чем живых'};
+export const FORMAT_RULE: Record<string, string> = {DEATH_RUN: 'Успей до финиша — или умри', DARKNESS: 'Тьма поглощает отставших', LAST_SURVIVORS: 'На рубежах места заканчиваются', COLLAPSE: 'Трасса рушится за спиной', LAST_CHANCE: 'Своё время у каждого: чекпоинты дают секунды', SALVATION: 'В убежище мест меньше, чем живых'};
 const FORMAT_VOICE: Record<string, number> = {DEATH_RUN: 1, DARKNESS: 2, LAST_SURVIVORS: 3, COLLAPSE: 4, LAST_CHANCE: 5, SALVATION: 6};
 const DEATH_TEXT: Record<string, [string, string]> = {TIME: ['ВРЕМЯ ИСТЕКЛО', 'теперь ты призрак'], DARKNESS: ['ТЬМА ПОГЛОТИЛА ТЕБЯ', 'теперь ты призрак'], COLLAPSE: ['МИР РУХНУЛ ПОД ТОБОЙ', 'теперь ты призрак'],
   GATE: ['ВОРОТА ЗАКРЫЛИСЬ', 'мест больше нет'], SEATS: ['ТЫ НЕ УСПЕЛ!', 'убежище заполнено']};
 
 export class Survival {
   run: any = null; pending: any = null; private prev = new Map<string, string>(); private seenEv = 0; private ghostLook = new Map<Runner, boolean>();
-  private spark?: THREE.Group; private sparkCore!: THREE.Mesh; private sparkShards: THREE.Mesh[] = []; private sparkHalo!: THREE.Sprite; private sparkSent = 0;
+  private spark?: LifeSpark; private sparkSent = 0;
   private front?: THREE.Group; private frontMats: THREE.Material[] = []; private ash!: THREE.Points; private revivals: {r: Runner; t: number; ring: THREE.Mesh}[] = [];
   private voiceQ: number[] = []; private voiceBusy = 0; private saidStart = false; private camFocus?: Runner; private camSince = 0; private manual: Runner | null = null;
   private lastBeep = 0; private shown = new Set<string>();
@@ -97,15 +98,7 @@ export class Survival {
 
   // ---------------- Life Spark ----------------
   private buildSpark() {
-    const g = new THREE.Group(); this.sparkCore = new THREE.Mesh(new THREE.IcosahedronGeometry(.22, 2), new THREE.MeshStandardMaterial({color: 0xfff4d0, emissive: 0xffd780, emissiveIntensity: 1.6, roughness: .3}));
-    g.add(this.sparkCore);
-    const hc = document.createElement('canvas'); hc.width = hc.height = 64; const x = hc.getContext('2d')!; x.fillStyle = '#ff3b3b'; x.beginPath(); x.moveTo(32, 52); x.bezierCurveTo(4, 32, 14, 8, 32, 22); x.bezierCurveTo(50, 8, 60, 32, 32, 52); x.fill();
-    const heart = new THREE.Sprite(new THREE.SpriteMaterial({map: new THREE.CanvasTexture(hc), transparent: true, depthTest: false})); heart.scale.setScalar(.22); heart.userData.heart = true; g.add(heart);
-    for (let i = 0; i < 5; i++) {const s = new THREE.Mesh(new THREE.OctahedronGeometry(.09, 0), new THREE.MeshStandardMaterial({color: 0xfff0c0, emissive: 0xffc860, emissiveIntensity: .8, transparent: true, opacity: .6}));
-      s.scale.set(.6, 1.6, .6); this.sparkShards.push(s); g.add(s);}
-    const c = document.createElement('canvas'); c.width = c.height = 64; const y = c.getContext('2d')!; const gr = y.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,240,200,.9)'); gr.addColorStop(.4, 'rgba(255,210,120,.3)'); gr.addColorStop(1, 'rgba(255,200,100,0)'); y.fillStyle = gr; y.fillRect(0, 0, 64, 64);
-    this.sparkHalo = new THREE.Sprite(new THREE.SpriteMaterial({map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending})); this.sparkHalo.scale.setScalar(1.4); g.add(this.sparkHalo);
-    this.app.scene.add(g); this.spark = g;
+    this.spark = new LifeSpark(); this.app.scene.add(this.spark);
   }
   private tickSpark(dt: number, now: number) {
     const a = this.app, sp = this.run.spark; const show = sp.active;
@@ -113,11 +106,8 @@ export class Survival {
     this.spark.visible = show; if (!show) {const h = document.getElementById('spark-hint'); if (h) h.hidden = true; return;}
     const t = performance.now() / 1000, y = a.course.spawnY(sp.z) + 1.25 + Math.sin(t * 1.6) * .15; this.spark.position.set(0, y, sp.z);
     const me = a.me, ghostMe = (me as any).ghost && !a.net?.spectator && !this.run.players[me.id]?.revived && this.run.players[me.id]?.status !== 'GHOST_CAUGHT';
-    const d = Math.hypot(me.x, me.z - sp.z, me.y - (y - 1.25)), near = ghostMe && d < 9, rate = near ? 7 : 2.6;
-    const pulse = 1 + .12 * Math.sin(t * rate); this.sparkCore.scale.setScalar(pulse); this.sparkCore.rotation.y += dt * .8;
-    (this.sparkCore.material as THREE.MeshStandardMaterial).emissiveIntensity = (near ? 2.2 : 1.6) + (Math.sin(t * 13) > .97 ? 1.5 : 0);
-    this.sparkShards.forEach((s, i) => {const ang = t * (.9 + i * .07) + i * 1.257, r = .45 + .05 * Math.sin(t * 2 + i); s.position.set(Math.cos(ang) * r, Math.sin(t * 1.3 + i) * .18, Math.sin(ang) * r); s.rotation.set(t + i, t * .7, 0);});
-    this.sparkHalo.scale.setScalar(1.2 + .25 * pulse + (near ? .3 : 0));
+    const d = Math.hypot(me.x, me.z - sp.z, me.y - (y - 1.25)), near = ghostMe && d < 9;
+    this.spark.animate(t, near ? 1-d/9 : 0);
     if (near) a.snd.sparkHum?.(1 - d / 9);
     // pickup: physically reach it as a ghost; the server decides
     if (ghostMe && d < 1.6 && now - this.sparkSent > 400) {this.sparkSent = now; a.net?.spark?.();}
@@ -125,20 +115,45 @@ export class Survival {
     const hint = document.getElementById('spark-hint'); if (hint) {hint.hidden = !ghostMe; if (ghostMe) hint.textContent = sp.z > me.z ? `✦ ИСКРА ВПЕРЕДИ · ${Math.round(sp.z - me.z)} м` : '✦ ИСКРА ПОЗАДИ';}
   }
 
-  // ---------------- revival (≈1.7 s, control never taken away) ----------------
+  // ---------------- revival (≈2.4 s, control never taken away) ----------------
+  // ghost -> human: golden sparks spiral in, a pillar of light comes down, the ghost flickers between spirit and flesh,
+  // a flash and a shockwave ring on the ground, then a warm afterglow fades off the living body.
   private startRevival(r: Runner) {
-    const a = this.app; const ring = new THREE.Mesh(new THREE.TorusGeometry(.6, .05, 8, 32).rotateX(Math.PI / 2), new THREE.MeshBasicMaterial({color: 0xffe2a0, transparent: true, opacity: .9, depthWrite: false, blending: THREE.AdditiveBlending}));
-    a.scene.add(ring); this.revivals.push({r, t: 0, ring}); if (this.spark && this.run.spark.by === r.id) this.spark.visible = false;
-    a.snd.revive?.(); if (r === a.me) navigator.vibrate?.([30, 60, 30]);
+    const a = this.app, add = THREE.AdditiveBlending, fx = new THREE.Group();
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(.6, .05, 8, 32).rotateX(Math.PI / 2), new THREE.MeshBasicMaterial({color: 0xffe2a0, transparent: true, opacity: .9, depthWrite: false, blending: add}));
+    const pillar = new THREE.Mesh(new THREE.CylinderGeometry(.9, 1.3, 14, 24, 1, true).translate(0, 7, 0), new THREE.MeshBasicMaterial({color: 0xffe6a8, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, blending: add}));
+    const wave = new THREE.Mesh(new THREE.RingGeometry(.7, 1, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({color: 0xfff0c0, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, blending: add}));
+    const N = 48, pos = new Float32Array(N * 3), sparks = new THREE.Points(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(pos, 3)), new THREE.PointsMaterial({color: 0xffd36a, size: .16, transparent: true, opacity: 1, depthWrite: false, blending: add}));
+    const glow = new THREE.PointLight(0xffc870, 0, 9, 2);
+    fx.add(ring, pillar, wave, sparks, glow); a.scene.add(fx);
+    this.revivals.push({r, t: 0, ring: fx as any}); (this.revivals[this.revivals.length - 1] as any).parts = {ring, pillar, wave, sparks, pos, glow, seed: Math.random() * 6};
+    if (this.spark && this.run.spark.by === r.id) this.spark.visible = false;
+    a.snd.revive?.(); if (r === a.me) navigator.vibrate?.([30, 60, 30, 120, 60]);
   }
   private tickRevivals(dt: number) {
-    const a = this.app;
-    for (const v of [...this.revivals]) {v.t += dt; const r = v.r, t = v.t;
-      v.ring.position.set(r.x, r.y + .1 + Math.min(1.6, Math.max(0, t - .4) * 2), r.z); v.ring.scale.setScalar(1 + t * 1.4); (v.ring.material as THREE.MeshBasicMaterial).opacity = Math.max(0, .9 - t * .5);
-      if (t < .4 && Math.random() < .5) a.puff(r.x + (Math.random() - .5), r.y + 1.5 + Math.random(), r.z + (Math.random() - .5), .4);
-      const k = Math.min(1, Math.max(0, (t - .4) / .8)); this.ghostMaterial(r, 1 - k);
-      if (t > 1.2 && !(v as any).flash) {(v as any).flash = true; a.puff(r.x, r.y + .8, r.z, 1.8); if (r === a.me) this.big('ВОСКРЕШЕНИЕ!', 'ТЫ СНОВА ЖИВ!', 'win');}
-      if (t > 1.7) {a.scene.remove(v.ring); this.revivals.splice(this.revivals.indexOf(v), 1); this.setGhostLook(r, false, true);}}
+    const a = this.app, ease = (x: number) => Math.max(0, Math.min(1, x)), END = 2.4;
+    for (const v of [...this.revivals]) {v.t += dt; const r = v.r, t = v.t, P = (v as any).parts; const fx = v.ring as unknown as THREE.Group;
+      fx.position.set(r.x, r.y, r.z);
+      // golden sparks spiral in towards the body, then burst up and away after the flash
+      for (let i = 0; i < 48; i++) {const f = i / 48, ang = P.seed + f * 25 + t * (5 + f * 3), inK = ease(t / 1.1), out = ease((t - 1.2) / 1.2);
+        const rad = (1.8 - 1.5 * inK) * (1 - f * .3) + out * (2.5 + f * 2), h = .1 + f * 2.4 * (1 - inK * .4) + inK * 1 + out * (1.5 + f * 3);
+        P.pos[i * 3] = Math.cos(ang) * rad; P.pos[i * 3 + 1] = h; P.pos[i * 3 + 2] = Math.sin(ang) * rad;}
+      P.sparks.geometry.attributes.position.needsUpdate = true; (P.sparks.material as THREE.PointsMaterial).opacity = t < 1.2 ? ease(t / .3) : 1 - ease((t - 1.4) / 1);
+      // pillar of light: comes down, holds through the change, thins out
+      const pm = P.pillar.material as THREE.MeshBasicMaterial; pm.opacity = t < 1.2 ? ease((t - .15) / .5) * .45 : .45 * (1 - ease((t - 1.3) / .9));
+      P.pillar.scale.set(t < 1.2 ? 1 : 1 - ease((t - 1.2) / 1) * .8, 1, t < 1.2 ? 1 : 1 - ease((t - 1.2) / 1) * .8);
+      // rising halo ring
+      P.ring.position.y = .1 + Math.min(1.6, Math.max(0, t - .4) * 2); P.ring.scale.setScalar(1 + t * 1.4); (P.ring.material as THREE.MeshBasicMaterial).opacity = Math.max(0, .9 - t * .5);
+      // ghost <-> flesh flicker that settles into the living body
+      const k = ease((t - .4) / 1), flick = t > .4 && t < 1.25 ? (Math.sin(t * 38) > 0 ? .35 : 0) : 0; this.ghostMaterial(r, Math.max(0, Math.min(1, 1 - k + flick)));
+      if (t < .5 && Math.random() < .5) a.puff(r.x + (Math.random() - .5), r.y + 1.5 + Math.random(), r.z + (Math.random() - .5), .4);
+      if (t > 1.2 && !(v as any).flash) {(v as any).flash = true; a.puff(r.x, r.y + .8, r.z, 2.2); a.puff(r.x, r.y + .2, r.z, 1.6);
+        if (r === a.me) this.big('ВОСКРЕШЕНИЕ!', 'ТЫ СНОВА ЖИВ!', 'win');}
+      // flash light + ground shockwave
+      P.glow.intensity = t < 1.2 ? ease((t - .3) / .9) * 6 : 14 * Math.exp(-(t - 1.2) * 4); P.glow.position.y = 1.2;
+      const wt = t - 1.2, wm = P.wave.material as THREE.MeshBasicMaterial; P.wave.position.y = .06; P.wave.scale.setScalar(wt > 0 ? 1 + wt * 9 : .01); wm.opacity = wt > 0 ? .85 * (1 - ease(wt / .7)) : 0;
+      if (t > END) {a.scene.remove(fx); fx.traverse(o => {const m = o as THREE.Mesh; m.geometry?.dispose(); (m.material as THREE.Material | undefined)?.dispose?.();});
+        this.revivals.splice(this.revivals.indexOf(v), 1); this.setGhostLook(r, false, true);}}
   }
   private setGhostLook(r: Runner, ghost: boolean, force = false) {if (!force && this.ghostLook.get(r) === ghost) return; this.ghostLook.set(r, ghost); this.ghostMaterial(r, ghost ? 1 : 0);}
   private ghostMaterial(r: Runner, k: number) {
