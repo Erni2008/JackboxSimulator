@@ -331,7 +331,7 @@ export class RaceApp {
     { // all devices: only runners and moving hazards cast shadows; the shadow map refreshes every other frame (static decor shadows were the biggest GPU cost)
       const dyn = new Set<THREE.Object3D>(); for (const l of this.looks.values()) l.root.traverse(o => dyn.add(o));
       this.scene.traverse(o => {const m = o as THREE.Mesh; if (m.isMesh && !dyn.has(m) && !(m as any).isSkinnedMesh && !m.userData.p) m.castShadow = false;});
-      this.renderer.shadowMap.autoUpdate = false; this.phoneShadows = true;}
+      if (matchMedia("(pointer:coarse)").matches) {this.renderer.shadowMap.autoUpdate = false; this.phoneShadows = true;}} // every-other-frame shadow refresh only on phones (on desktop it made moving shadows lag)
     if (false) {const c = new EffectComposer(this.renderer); c.addPass(new RenderPass(this.scene, this.camera));
       c.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth / 2, innerHeight / 2), this.night || this.manor ? .75 : .35, .5, .82)); c.addPass(new OutputPass()); c.setSize(innerWidth, innerHeight); this.composer = c;}
     this.renderer.setAnimationLoop(t => this.frame(t));}
@@ -633,9 +633,7 @@ export class RaceApp {
       f.t = 0; f.s.visible = true; f.s.position.set(x + Math.cos(a) * r, y + .15, z + Math.sin(a) * r); f.s.userData.size = size * (.6 + Math.random() * .5);}
   }
 
-  private prevPos = new Map<Runner, [number, number, number]>();
   private frame(t: number) {
-    if (this.last && t - this.last < 11) return; // cap at 60 fps (11 ms threshold: skips every other 120 Hz tick but never a 60 Hz frame that arrives a little early): 120 Hz screens (ProMotion Mac / iPhone Pro) otherwise draw twice as much and overheat
     const dt = this.last ? Math.min(.1, (t - this.last) / 1000) : 1 / 60; this.last = t;
     this.frameAvg += (dt * 1000 - this.frameAvg) * .05;
     if (this.frameAvg > 19 && this.pixelRatio > .75) {this.pixelRatio = Math.max(.75, this.pixelRatio - .1); this.renderer.setPixelRatio(this.pixelRatio); this.frameAvg = 16;}
@@ -648,51 +646,32 @@ export class RaceApp {
     if (this.net) {const target = COUNTDOWN + (this.net.serverNow() - this.net.startAt) / 1000; this.intro(target + this.rulesIntro.duration); if (target < this.clock || this.clock <= 0 && target < 0) this.clock = Math.min(target, 0); this.acc = Math.max(0, Math.min(8, target - this.clock));
       if (this.acc > 2) {while (this.acc > .2) {this.acc -= STEP; this.clock += STEP; this.course.step(STEP);}}
       this.netTick(dt);}
-    if (this.introT >= 0 && !this.introSkipped) {const savedTime = this.course.time; this.course.time = this.introT; this.course.step(0); this.sync(dt); this.course.time = savedTime; if (this.phoneShadows) this.renderer.shadowMap.needsUpdate = true; this.renderer.render(this.scene, this.camera); this.rulesIntro.renderArtifact(); return;}
+    if (this.introT >= 0 && !this.introSkipped) {const savedTime = this.course.time; this.course.time = this.introT; this.course.step(0); this.sync(dt); this.course.time = savedTime; if (this.phoneShadows) this.renderer.shadowMap.needsUpdate = true; this.renderer.render(this.scene, this.camera); return;}
     else this.acc += dt;
-    const prev = this.prevPos;
     while (this.acc >= STEP) {this.acc -= STEP; this.clock += STEP; const live = this.clock >= COUNTDOWN && !this.over();
-      for (const r of this.runners) if (!(r as any).remote) prev.set(r, [r.x, r.y, r.z]);
       this.course.step(STEP);
       for (const r of this.runners) {if ((r as any).remote) continue; if (r.bot) this.course.think(r, STEP); if (!live || this.clock < 0) {r.inX = r.inZ = 0; r.jump = false;} this.course.move(r, STEP);}
       for (let i = 0; i < this.runners.length; i++) for (let j = i + 1; j < this.runners.length; j++) {const a = this.runners[i], b = this.runners[j]; if (a.hook >= 0 || b.hook >= 0) continue; const dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz), m = RR * 1.9;
         if (d < m && d > 1e-4 && Math.abs(a.y - b.y) < 1.2) {const p = (m - d) / 2; a.x -= dx / d * p; a.z -= dz / d * p; b.x += dx / d * p; b.z += dz / d * p;}}}
     if (this.headless) {this.hudT = (this.hudT || 0) + dt; if (this.hudT < 1) return; this.hudT = 0;} // autopilot bots: simulate only, draw once a second
     if (this.phoneShadows) this.renderer.shadowMap.needsUpdate = (this.frameNo++ & 1) === 0;
-    // draw local runners between the last two physics steps: at 60 fps a frame holds 1-3 fixed steps, which made running look jerky
-    const k = 1 - Math.min(1, this.acc / STEP), real: [Runner, number, number, number][] = [];
-    for (const [r, [x, y, z]] of prev) {if (Math.abs(r.x - x) + Math.abs(r.y - y) + Math.abs(r.z - z) > 2) continue; real.push([r, r.x, r.y, r.z]); r.x -= (r.x - x) * k; r.y -= (r.y - y) * k; r.z -= (r.z - z) * k;}
-    this.sync(dt); for (const [r, x, y, z] of real) {r.x = x; r.y = y; r.z = z;}
-    if (this.composer) this.composer.render(); else this.renderer.render(this.scene, this.camera); this.hudUpdate();
+    this.sync(dt); if (this.composer) this.composer.render(); else this.renderer.render(this.scene, this.camera); this.hudUpdate();
   }
 
   /** remote state from the server: id -> [x,y,z,facing,anim,cp,progress,finished,finishTime,falls] */
   remote(runners: Record<string, number[]>) {const now = performance.now() / 1000;
     for (const r of this.runners) {const v = runners[r.id]; if (!v || !(r as any).remote) continue; const a = r as any, prev = a.target as number[] | undefined;
-      const sn: {t: number; v: number[]}[] = a.snaps ??= []; const last = sn[sn.length - 1];
-      if (!last || last.v.some((x, i) => x !== v[i])) {sn.push({t: now, v}); if (sn.length > 24) sn.shift();}
       if (prev && (prev[0] !== v[0] || prev[2] !== v[2])) {const dt = Math.max(.05, now - (a.tAt ?? now - .2)), cl = (x: number) => Math.max(-9, Math.min(9, x)); a.estVx = cl((v[0] - prev[0]) / dt); a.estVz = cl((v[2] - prev[2]) / dt); a.tAt = now;}
       else if (prev && now - (a.tAt ?? now) > .5) {a.estVx = 0; a.estVz = 0;}
       a.target = v;}}
   private sendT = 0;
   private netTick(dt: number) {
-    // remote runners: snapshot interpolation — drawn ~0.22 s in the past, moving smoothly between the two snapshots around that moment
-    // (chasing the newest 5-10 Hz sample made them lurch forward and stall every update)
-    const now = performance.now() / 1000, rt = now - .22;
-    for (const r of this.runners) {const v = (r as any).target as number[] | undefined; if (!(r as any).remote || !v) continue;
-      const a = r as any, sn: {t: number; v: number[]}[] = a.snaps ?? [];
-      let i = sn.length - 1; while (i > 0 && sn[i - 1].t > rt) i--;
-      const s1 = sn[i], s0 = sn[i - 1]; let x = v[0], y = v[1], z = v[2], vx = 0, vz = 0;
-      if (s0 && s1 && s1.t > s0.t) {const span = s1.t - s0.t, u = Math.min(1.25, Math.max(0, (rt - s0.t) / span)); // up to 25 % past the newest: short extrapolation
-        const jump = Math.hypot(s1.v[0] - s0.v[0], s1.v[2] - s0.v[2]) > 6; // respawn / teleport: no sliding across the map
-        if (jump) {const q = u < 1 ? s0 : s1; x = q.v[0]; y = q.v[1]; z = q.v[2];}
-        else {x = s0.v[0] + (s1.v[0] - s0.v[0]) * u; y = s0.v[1] + (s1.v[1] - s0.v[1]) * Math.min(1, u); z = s0.v[2] + (s1.v[2] - s0.v[2]) * u; vx = (s1.v[0] - s0.v[0]) / span; vz = (s1.v[2] - s0.v[2]) / span;}}
-      else if (s1) {x = s1.v[0]; y = s1.v[1]; z = s1.v[2];}
-      const cl = (q: number) => Math.max(-12, Math.min(12, q)); r.vx = cl(vx); r.vz = cl(vz);
-      const k = Math.min(1, dt * 25); if (Math.hypot(x - r.x, z - r.z) > 6) {r.x = x; r.y = y; r.z = z;} else {r.x += (x - r.x) * k; r.y += (y - r.y) * k; r.z += (z - r.z) * k;}
-      if (Math.abs(r.vx) + Math.abs(r.vz) > .5) r.facing = Math.atan2(r.vx, r.vz); else r.facing = v[3]; r.stun = v[4] === 3 ? .3 : 0; r.ground = v[4] === 2 ? null : this.course.blocks[0]; r.vy = 0; if (v[4] === 0) {r.vx = 0; r.vz = 0;} r.checkpoint = v[5]; r.progress = v[6]; if (v[7] && !r.finished) {r.finished = true; r.finishTime = v[8];} r.falls = v[9];}
+    for (const r of this.runners) {const v = (r as any).target as number[] | undefined; if (!(r as any).remote || !v) continue; const k = Math.min(1, dt * 10);
+      const a = r as any; r.vx = a.estVx ?? 0; r.vz = a.estVz ?? 0;
+      if (Math.hypot(v[0] - r.x, v[2] - r.z) > 6) {r.x = v[0]; r.y = v[1]; r.z = v[2];} else {r.x += (v[0] - r.x) * k; r.y += (v[1] - r.y) * k; r.z += (v[2] - r.z) * k;}
+      r.facing = v[3]; r.stun = v[4] === 3 ? .3 : 0; r.ground = v[4] === 2 ? null : this.course.blocks[0]; r.vy = 0; if (v[4] === 0) {r.vx = 0; r.vz = 0;} r.checkpoint = v[5]; r.progress = v[6]; if (v[7] && !r.finished) {r.finished = true; r.finishTime = v[8];} r.falls = v[9];}
     if (this.net!.spectator) {if (!this.surv?.run) {const lead = this.standings()[0]; if (lead) this.me = lead;} return;}
-    this.sendT -= dt; if (this.sendT > 0) return; this.sendT = .1; const m = this.me, anim = m.stun > 0 ? 3 : !m.ground ? 2 : Math.hypot(m.vx, m.vz) > .8 ? 1 : 0;
+    this.sendT -= dt; if (this.sendT > 0) return; this.sendT = .2; const m = this.me, anim = m.stun > 0 ? 3 : !m.ground ? 2 : Math.hypot(m.vx, m.vz) > .8 ? 1 : 0;
     this.netSends = (this.netSends || 0) + 1; this.net!.send([+m.x.toFixed(2), +m.y.toFixed(2), +m.z.toFixed(2), +m.facing.toFixed(2), anim, m.checkpoint, +m.progress.toFixed(1), m.finished ? 1 : 0, +m.finishTime.toFixed(2), m.falls], this.netSends < 6 || this.surv?.run?.needCourse ? {c: this.course.checkpoints.map((x: number) => +x.toFixed(2)), f: +this.course.finishZ.toFixed(2)} : undefined);}
   private netSends = 0;
   private readonly rulesIntro = new RaceIntro(this);
@@ -726,8 +705,7 @@ export class RaceApp {
     const sec = c.sectionAt(this.me.z); if (sec && sec.name !== this.lastSection) {this.lastSection = sec.name; if (this.clock > COUNTDOWN + .5) this.toast(SECTION_NAMES[sec.name].toUpperCase());}
     this.boulderPool.forEach((o, i) => {const b = c.boulders[i]; o.visible = !!b; if (b) {o.position.set(b.x, b.y, b.z); o.rotation.order = 'YXZ'; o.rotation.y += (b.roll - o.rotation.y) * .25; o.rotation.x = b.spin; o.scale.setScalar(b.radius / 1.2 * o.userData.base);}});
     for (const [r, l] of this.looks) {
-      const hs = Math.hypot(r.vx, r.vz); l.airT = r.ground ? 0 : (l.airT ?? 0) + dt; l.runT = hs > .8 ? 0 : (l.runT ?? 0) + dt;
-      const want = r.stun > 0 ? 'stun' : l.airT > .12 || (!r.ground && r.vy > 3) ? 'jump' : l.runT < .15 ? 'run' : 'idle'; // hysteresis: one-frame ground losses / speed dips no longer restart clips
+      const hs = Math.hypot(r.vx, r.vz), want = r.stun > 0 ? 'stun' : !r.ground ? 'jump' : hs > .8 ? 'run' : 'idle';
       if (want !== l.cur && l.acts[want]) {const a = l.acts[want]; a.reset().fadeIn(.06).play(); l.acts[l.cur]?.fadeOut(.06); l.cur = want;}
       if (l.acts.run) l.acts.run.timeScale = Math.max(.6, hs / 5.5);
       if (r === this.me && r.ground && l.prevVy < -4) this.snd.land(Math.min(1, -l.prevVy / 14));
