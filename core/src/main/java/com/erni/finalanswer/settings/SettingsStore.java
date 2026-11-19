@@ -10,9 +10,10 @@ public final class SettingsStore {
         mix.master=com.erni.finalanswer.audio.AudioMix.unit(preferences.getFloat("audio.master",1));
         mix.music=com.erni.finalanswer.audio.AudioMix.unit(preferences.getFloat("audio.music",1));
         mix.sfx=com.erni.finalanswer.audio.AudioMix.unit(preferences.getFloat("audio.sfx",1));
+        mix.voice=com.erni.finalanswer.audio.AudioMix.unit(preferences.getFloat("audio.voice",1));
     }
     public void saveAudio(com.erni.finalanswer.audio.AudioMix mix){
-        preferences.putFloat("audio.master",mix.master).putFloat("audio.music",mix.music).putFloat("audio.sfx",mix.sfx).flush();
+        preferences.putFloat("audio.master",mix.master).putFloat("audio.music",mix.music).putFloat("audio.sfx",mix.sfx).putFloat("audio.voice",mix.voice).flush();
     }
 
     public GameSettings load() {

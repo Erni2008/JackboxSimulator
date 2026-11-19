@@ -43,7 +43,7 @@ public final class HostVoiceManager implements AutoCloseable {
     private final Set<String> retained=new LinkedHashSet<>();
     private Collection<String> introBank=List.of();
     private boolean bankQueued,releaseBank,allowIntroReview;
-    private float gain(){return volume*scopeGain*mix.gain(AudioMix.Category.SFX);}
+    private float gain(){return volume*scopeGain*mix.gain(AudioMix.Category.VOICE);}
 
     public HostVoiceManager(String language,AudioMix mix,Consumer<String> warning){
         this(emptyManifest(language),new GdxLoader(language),mix,warning);manifestPending=true;

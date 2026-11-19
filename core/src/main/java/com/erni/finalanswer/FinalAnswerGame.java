@@ -44,8 +44,9 @@ public class FinalAnswerGame extends Game {
         setScreen(settingsScreen);
     }
 
-    public void commitAudioVolumes(float master,float music,float sfx){
-        var mix=com.erni.finalanswer.audio.AudioMix.GLOBAL;
+    public void commitAudioVolumes(float master,float music,float sfx){commitAudioVolumes(master,music,sfx,com.erni.finalanswer.audio.AudioMix.GLOBAL.voice);}
+    public void commitAudioVolumes(float master,float music,float sfx,float voice){
+        var mix=com.erni.finalanswer.audio.AudioMix.GLOBAL;mix.voice=com.erni.finalanswer.audio.AudioMix.unit(voice);
         mix.master=com.erni.finalanswer.audio.AudioMix.unit(master);mix.music=com.erni.finalanswer.audio.AudioMix.unit(music);mix.sfx=com.erni.finalanswer.audio.AudioMix.unit(sfx);
         settingsStore.saveAudio(mix);
     }
