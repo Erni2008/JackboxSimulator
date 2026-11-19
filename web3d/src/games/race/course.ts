@@ -1,3 +1,4 @@
+import {t} from './i18n';
 import {stoneAt, STONE_INTERVAL, type StoneTrack, type StoneBody} from './rolling-stone';
 // Obstacle race course + physics. The course is assembled from a library of sections, shuffled by a seed, so every
 // race is different; the seed is all a phone needs to rebuild the exact same course. Moving parts are deterministic from
@@ -62,8 +63,8 @@ const LOOK: Record<Theme, Look> = {
   manor: {main: 'floor', alt: 'flag', thin: 'floor', land: 'flag', crumble: 'floor'},
   crypt: {main: 'flag', alt: 'flag', thin: 'floor', land: 'flag', crumble: 'flag'},
 };
-export const SECTION_NAMES: Record<string, string> = {gears: 'Гигантские шестерни', gates: 'Смертельные ворота', wind: 'Ветряной коридор', chase: 'Катящийся валун', tilt: 'Переворачивающаяся комната', hooks: 'Крюки', falsebridge: 'Ложный мост', minecarts: 'Безумные вагонетки', spinner: 'Мельница', gaps: 'Провалы', pendulums: 'Маятники', rafts: 'Плоты', crumble: 'Обвал пола',
-  sink: 'Трясина', pushers: 'Тараны', pads: 'Батуты', traps: 'Люки', conveyor: 'Транспортёр', flames: 'Огненный пол', gauntlet: 'Мясорубка', highlow: 'Верх-низ', hammers: 'Молоты', beams: 'Узкие балки', zigzag: 'Змейка', maze: 'Лабиринт', fakewalls: 'Ложные стены', portals: 'Порталы', ramp: 'Скат', rain: 'Дождь с неба',};
+export const SECTION_NAMES: Record<string, string> = {gears: t('Гигантские шестерни', 'Giant Gears'), gates: t('Смертельные ворота', 'Deadly Gates'), wind: t('Ветряной коридор', 'Wind Tunnel'), chase: t('Катящийся валун', 'Rolling Boulder'), tilt: t('Переворачивающаяся комната', 'Tilting Room'), hooks: t('Крюки', 'Hooks'), falsebridge: t('Ложный мост', 'False Bridge'), minecarts: t('Безумные вагонетки', 'Crazy Minecarts'), spinner: t('Мельница', 'The Mill'), gaps: t('Провалы', 'Gaps'), pendulums: t('Маятники', 'Pendulums'), rafts: t('Плоты', 'Rafts'), crumble: t('Обвал пола', 'Collapsing Floor'),
+  sink: t('Трясина', 'Quagmire'), pushers: t('Тараны', 'Battering Rams'), pads: t('Батуты', 'Jump Pads'), traps: t('Люки', 'Trapdoors'), conveyor: t('Транспортёр', 'Conveyor'), flames: t('Огненный пол', 'Fire Floor'), gauntlet: t('Мясорубка', 'Meat Grinder'), highlow: t('Верх-низ', 'High & Low'), hammers: t('Молоты', 'Hammers'), beams: t('Узкие балки', 'Narrow Beams'), zigzag: t('Змейка', 'Zigzag'), maze: t('Лабиринт', 'Labyrinth'), fakewalls: t('Ложные стены', 'False Walls'), portals: t('Порталы', 'Portals'), ramp: t('Скат', 'The Ramp'), rain: t('Дождь с неба', 'Sky Rain'),};
 
 /** All 29 trials, numbered for ?t=N test runs. */
 export const TRIALS = ['spinner', 'gauntlet', 'highlow', 'gaps', 'beams', 'pendulums', 'rafts', 'crumble', 'sink', 'pushers', 'pads', 'traps', 'conveyor', 'flames', 'hammers', 'zigzag', 'ramp', 'rain', 'maze', 'fakewalls', 'portals',

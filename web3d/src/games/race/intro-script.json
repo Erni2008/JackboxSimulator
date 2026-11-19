@@ -12,31 +12,41 @@
       "title": "ПРОКЛЯТЫЙ ЗАБЕГ",
       "text": "Добро пожаловать в Проклятый забег.",
       "clip": "short_welcome",
-      "pauseAfter": 1.0
+      "pauseAfter": 1.0,
+      "title_en": "CURSED RUN",
+      "text_en": "Welcome to the Cursed Run."
     },
     {
       "at": 4.167,
       "title": "ДОРОГА К СПАСЕНИЮ",
       "text": "Ваша цель — добраться до финиша живыми. После падения вы вернётесь к чекпоинту.",
-      "clip": "short_goal"
+      "clip": "short_goal",
+      "title_en": "THE ROAD TO SALVATION",
+      "text_en": "Your goal is to reach the finish alive. If you fall, you return to the last checkpoint."
     },
     {
       "at": 10.817,
       "title": "ДВИГАЙСЯ И ПРЫГАЙ",
       "text": "Джойстик слева — движение. Кнопка справа — прыжок. На компьютере — стрелки и пробел.",
-      "clip": "short_controls"
+      "clip": "short_controls",
+      "title_en": "MOVE AND JUMP",
+      "text_en": "Joystick on the left to move. Button on the right to jump. On a computer: arrow keys and space."
     },
     {
       "at": 17.767,
       "title": "ПРАВИЛО ЗАБЕГА",
       "text": "",
-      "clip": "format"
+      "clip": "format",
+      "title_en": "THE RULE OF THE RUN",
+      "text_en": ""
     },
     {
       "at": 25.617,
       "title": "ИСКРА ЖИЗНИ",
       "text": "Призраки тоже бегут. Иногда на трассе появляется Искра жизни. Первый призрак, коснувшийся её, снова станет живым.",
-      "clip": "short_spark"
+      "clip": "short_spark",
+      "title_en": "THE LIFE SPARK",
+      "text_en": "Ghosts run too. Sometimes a Life Spark appears on the track. The first ghost to touch it comes back to life."
     }
   ],
   "formats": {
@@ -44,37 +54,49 @@
       "text": "Доберитесь до финиша, пока идёт отсчёт. Когда время закончится, отставшие погибнут.",
       "clip": "intro_format_death",
       "duration": 5.3,
-      "filmDuration": 33.767
+      "filmDuration": 33.767,
+      "text_en": "Reach the finish before the countdown ends. When time runs out, the stragglers die."
     },
     "DARKNESS": {
       "text": "Тьма наступает сзади. Держитесь впереди неё — поглощённый чекпоинт уже не спасёт.",
       "clip": "intro_format_darkness",
       "duration": 5.0,
-      "filmDuration": 33.467
+      "filmDuration": 33.467,
+      "text_en": "Darkness creeps up from behind. Stay ahead of it — a swallowed checkpoint will not save you."
     },
     "LAST_SURVIVORS": {
       "text": "На рубежах места заканчиваются, и ворота закрываются. Проходите вовремя — или выбывайте.",
       "clip": "intro_format_survivors",
       "duration": 6.5,
-      "filmDuration": 34.967
+      "filmDuration": 34.967,
+      "text_en": "Seats run out at every gate, and the gates slam shut. Get through in time — or you are out."
     },
     "COLLAPSE": {
       "text": "За спиной рушится трасса. Не задерживайтесь: безопасный путь исчезает следом за вами.",
       "clip": "intro_format_collapse",
       "duration": 6.6,
-      "filmDuration": 35.067
+      "filmDuration": 35.067,
+      "text_en": "The track crumbles behind you. Do not linger: the safe path vanishes right after you."
     },
     "LAST_CHANCE": {
       "text": "У каждого свой запас времени. Каждый новый чекпоинт добавляет секунды. Не дайте таймеру обнулиться.",
       "clip": "intro_format_chance",
       "duration": 7.2,
-      "filmDuration": 35.667
+      "filmDuration": 35.667,
+      "text_en": "Everyone has their own clock. Every new checkpoint adds seconds. Do not let your timer hit zero."
     },
     "SALVATION": {
       "text": "На финише — спасительные ворота. Но мест за ними меньше, чем живых. Успейте занять своё.",
       "clip": "intro_format_salvation",
       "duration": 6.7,
-      "filmDuration": 35.167
+      "filmDuration": 35.167,
+      "text_en": "At the finish stand the Gates of Salvation. But there are fewer seats than the living. Claim yours in time."
     }
-  }
+  },
+  "maps_en": [
+    "SUNSET GORGE",
+    "CURSED GRAVEYARD",
+    "THE COLLECTOR'S HOUSE",
+    "CATACOMBS"
+  ]
 }

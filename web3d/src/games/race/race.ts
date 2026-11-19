@@ -1,3 +1,4 @@
+import {t} from './i18n';
 import {RaceIntro} from './intro';
 // Obstacle race in the browser: built for phones (Poco X3 Pro / iPhone) — instanced scenery, 512px textures, one shadow map
 // that follows the player, adaptive resolution. Touch: left thumb stick + jump button; PC: WASD/arrows + SPACE.
@@ -14,7 +15,8 @@ import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 
 export const CHARACTERS = ['skeleton', 'dracula', 'pumpkin', 'voodoo', 'ghost', 'zombie', 'plague_doctor', 'puppeteer'];
-export const NAMES: Record<string, string> = {skeleton: 'Скелет', dracula: 'Дракула', pumpkin: 'Тыква', voodoo: 'Вуду', ghost: 'Призрак', zombie: 'Зомби', plague_doctor: 'Чумной доктор', puppeteer: 'Кукольник'};
+export const NAMES: Record<string, string> = {skeleton: t('Скелет', 'Skeleton'), dracula: t('Дракула', 'Dracula'), pumpkin: t('Тыква', 'Pumpkin'), voodoo: t('Вуду', 'Voodoo'), ghost: t('Призрак', 'Ghost'), zombie: t('Зомби', 'Zombie'), plague_doctor: t('Чумной доктор', 'Plague Doctor'), puppeteer: t('Кукольник', 'Puppeteer')};
+const ord = (n: number) => n + (n % 10 === 1 && n % 100 !== 11 ? 'st' : n % 10 === 2 && n % 100 !== 12 ? 'nd' : n % 10 === 3 && n % 100 !== 13 ? 'rd' : 'th');
 const LIMIT = 150, COUNTDOWN = 3.5, STEP = 1 / 120;
 
 type Look = {root: THREE.Object3D; mixer: THREE.AnimationMixer; acts: Record<string, THREE.AnimationAction>; cur: string; tag: HTMLDivElement; squash: number; prevVy: number};
@@ -141,14 +143,14 @@ export class RaceApp {
     const fy = this.course.spawnY(this.course.finishZ);
     for (const sg of [-1, 1]) {const post = new THREE.Mesh(this.night || this.manor ? new THREE.BoxGeometry(1.3, 7, 1.3) : new THREE.CylinderGeometry(.55, .6, 7, 12), this.night ? mats.brick : mats.bark); post.position.set(sg * 7.5, fy + 3.5, this.course.finishZ); post.castShadow = true; this.scene.add(post);}
     const beam = new THREE.Mesh(logGeo, mats.bark); beam.scale.set(16.5, 1.1, 1.1); beam.position.set(0, fy + 7.1, this.course.finishZ); this.scene.add(beam);
-    const banner = new THREE.Mesh(new THREE.PlaneGeometry(13, 1.7), new THREE.MeshStandardMaterial({map: bannerTexture(this.manor ? 'СВОБОДА' : 'ФИНИШ'), side: THREE.DoubleSide, roughness: .85}));
+    const banner = new THREE.Mesh(new THREE.PlaneGeometry(13, 1.7), new THREE.MeshStandardMaterial({map: bannerTexture(this.manor ? t('СВОБОДА', 'FREEDOM') : t('ФИНИШ', 'FINISH')), side: THREE.DoubleSide, roughness: .85}));
     banner.position.set(0, fy + 6, this.course.finishZ); banner.rotation.y = Math.PI; this.scene.add(banner);
     this.checkpointArches(this.manor ? mats.beam : this.night ? mats.brick : mats.bark);
     const before = this.scene.children.length;
     await (this.manor ? this.decorateManor(mats, progress) : this.night ? this.decorateNight(mats.stone, progress) : this.decorate(progress)); this.buildGrass(); this.mergeStatic(before); progress(.8);
     // runners
     if (this.net) {const n = this.net; for (let i = 0; i < n.roster.length; i++) {const p = n.roster[i], self = p.id === n.selfId && !n.spectator;
-        const r = new Runner(p.id, self ? 'Вы' : p.name, CHARACTERS.includes(p.char) ? p.char : CHARACTERS[i % CHARACTERS.length], i, self && new URLSearchParams(location.search).has('bot')); (r as any).remote = !self; r.x = ((i % 4) - 1.5) * 2.2; r.z = -1.5 - Math.floor(i / 4) * 2.2; this.runners.push(r);
+        const r = new Runner(p.id, self ? t('Вы', 'You') : p.name, CHARACTERS.includes(p.char) ? p.char : CHARACTERS[i % CHARACTERS.length], i, self && new URLSearchParams(location.search).has('bot')); (r as any).remote = !self; r.x = ((i % 4) - 1.5) * 2.2; r.z = -1.5 - Math.floor(i / 4) * 2.2; this.runners.push(r);
         progress(.8 + .2 * (i + 1) / n.roster.length);}
       await Promise.all(this.runners.map(r => this.addLook(r)));
       this.me = this.runners.find(r => !(r as any).remote) ?? this.runners[0];
@@ -157,7 +159,7 @@ export class RaceApp {
     const others = CHARACTERS.filter(c => c !== this.myChar);
     const cast = [this.myChar, ...others.sort(() => Math.random() - .5).slice(0, 5)];
     for (let i = 0; i < cast.length; i++) {
-      const r = new Runner('p' + i, i === 0 ? 'Вы' : NAMES[cast[i]], cast[i], i, i > 0); r.x = ((i % 3) - 1) * 2.4; r.z = -1.5 - Math.floor(i / 3) * 2.4; this.runners.push(r);
+      const r = new Runner('p' + i, i === 0 ? t('Вы', 'You') : NAMES[cast[i]], cast[i], i, i > 0); r.x = ((i % 3) - 1) * 2.4; r.z = -1.5 - Math.floor(i / 3) * 2.4; this.runners.push(r);
       progress(.8 + .2 * (i + 1) / cast.length);
     }
     await Promise.all(this.runners.map(r => this.addLook(r)));
@@ -709,7 +711,7 @@ export class RaceApp {
       else {const tgt = j.state === 2 ? .55 : j.state === 1 ? 3.2 : 4.2; f.position.y += (tgt - f.position.y) * Math.min(1, dt * (j.state === 2 ? 30 : 4)); ((o as THREE.Mesh).material as THREE.MeshBasicMaterial).opacity = j.state === 1 ? .5 + .4 * Math.sin(c.time * 25) : j.state === 2 ? .8 : 0;}}
     for (const gm of this.ghosts) gm.emissiveIntensity = .025 * Math.max(0, Math.sin(c.time * 1.3)) ** 8;
     this.portalFx.forEach((g, i) => {g.userData.disc.rotation.z -= dt * 2.4; const p = c.portals[i]; (g.userData.disc.material as THREE.MeshBasicMaterial).opacity = .7 + .25 * Math.sin(c.time * 5 + i) + (c.time - p.used < .4 ? .5 : 0);});
-    const tp = (this.me as any).teleported; if (tp && tp !== this.lastTp) {this.lastTp = tp; this.camTarget.set(this.me.x, this.me.y, this.me.z); const pk = c.portals.find(p => c.time - p.used < .1); this.snd.portal(); this.toast(pk?.kind === 'far' ? 'ДАЛЕКО ВПЕРЁД!' : pk?.kind === 'back' ? 'НАЗАД!' : 'ТЕЛЕПОРТ!'); this.puff(this.me.x, this.me.y, this.me.z, 1.6);}
+    const tp = (this.me as any).teleported; if (tp && tp !== this.lastTp) {this.lastTp = tp; this.camTarget.set(this.me.x, this.me.y, this.me.z); const pk = c.portals.find(p => c.time - p.used < .1); this.snd.portal(); this.toast(pk?.kind === 'far' ? t('ДАЛЕКО ВПЕРЁД!', 'FAR AHEAD!') : pk?.kind === 'back' ? t('НАЗАД!', 'BACK!') : t('ТЕЛЕПОРТ!', 'TELEPORT!')); this.puff(this.me.x, this.me.y, this.me.z, 1.6);}
     const sec = c.sectionAt(this.me.z); if (sec && sec.name !== this.lastSection) {this.lastSection = sec.name; if (this.clock > COUNTDOWN + .5) this.toast(SECTION_NAMES[sec.name].toUpperCase());}
     this.boulderPool.forEach((o, i) => {const b = c.boulders[i]; o.visible = !!b; if (b) {o.position.set(b.x, b.y, b.z); o.rotation.order = 'YXZ'; o.rotation.y += (b.roll - o.rotation.y) * .25; o.rotation.x = b.spin; o.scale.setScalar(b.radius / 1.2 * o.userData.base);}});
     for (const [r, l] of this.looks) {
@@ -764,7 +766,7 @@ export class RaceApp {
     for (const s of this.swingers) s.rotation.z = Math.sin(this.course.time * .8 + s.userData.sway) * .05;
     this.flames.forEach((f, i) => f.scale.setScalar(1.8 + Math.sin(this.course.time * 13 + i * 1.7) * .12 + Math.sin(this.course.time * 7.3 + i) * .08));
     for (const r of this.runners) for (let i = 1; i <= r.checkpoint; i++) if (!this.cpFirst.has(i)) this.cpFirst.set(i, this.clock); // first arrival at each checkpoint, for splits
-    if (this.me.checkpoint > this.lastCp) {for (let i = this.lastCp + 1; i <= this.me.checkpoint; i++) {const a = this.cpArches[i - 1]; if (a && !a.lit) {a.lit = true; (a.flag.material as THREE.MeshStandardMaterial).emissive.set(0xffb238); (a.glow.material as THREE.MeshBasicMaterial).color.set(0xffc455); {const first = this.cpFirst.get(i); this.toast(first === undefined || this.clock - first < .05 ? 'ЧЕКПОИНТ · ТЫ ПЕРВЫЙ!' : `ЧЕКПОИНТ · +${(this.clock - first).toFixed(1)} с`);} this.snd.checkpoint(); this.puff(this.me.x, this.me.y, this.me.z, 1.4); navigator.vibrate?.(20);}} this.lastCp = this.me.checkpoint;}
+    if (this.me.checkpoint > this.lastCp) {for (let i = this.lastCp + 1; i <= this.me.checkpoint; i++) {const a = this.cpArches[i - 1]; if (a && !a.lit) {a.lit = true; (a.flag.material as THREE.MeshStandardMaterial).emissive.set(0xffb238); (a.glow.material as THREE.MeshBasicMaterial).color.set(0xffc455); {const first = this.cpFirst.get(i); this.toast(first === undefined || this.clock - first < .05 ? t('ЧЕКПОИНТ · ТЫ ПЕРВЫЙ!', 'CHECKPOINT · YOU\'RE FIRST!') : t(`ЧЕКПОИНТ · +${(this.clock - first).toFixed(1)} с`, `CHECKPOINT · +${(this.clock - first).toFixed(1)} s`));} this.snd.checkpoint(); this.puff(this.me.x, this.me.y, this.me.z, 1.4); navigator.vibrate?.(20);}} this.lastCp = this.me.checkpoint;}
     for (const a of this.cpArches) {const m = a.glow.material as THREE.MeshBasicMaterial; m.opacity = (a.lit ? .55 : .35) + Math.sin(this.course.time * 3) * .12;}
     if (this.shake > 0) {this.shake = Math.max(0, this.shake - dt * 1.2); const a = this.shake * this.shake * 1.4; this.camera.position.x += (Math.random() - .5) * a; this.camera.position.y += (Math.random() - .5) * a;}
   }
@@ -787,20 +789,20 @@ export class RaceApp {
     const t = this.timeLeft(); setText('timer', `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`);
     document.getElementById('timer')!.classList.toggle('low', t < 20 && this.clock > COUNTDOWN);
     const n = Math.ceil(COUNTDOWN - .5 - this.clock); if (this.clock < COUNTDOWN + .3 && n !== this.sndState.count) {this.sndState.count = n; if (n >= 0 && n <= 3) this.snd.countdown(n <= 0);}
-    setText('count', this.clock >= 0 && this.clock < COUNTDOWN ? (n > 0 ? String(n) : 'ВПЕРЁД!') : this.clock < 0 && this.introSkipped ? 'ЖДЁМ СТАРТА…' : '');
+    setText('count', this.clock >= 0 && this.clock < COUNTDOWN ? (n > 0 ? String(n) : t('ВПЕРЁД!', 'GO!')) : this.clock < 0 && this.introSkipped ? t('ЖДЁМ СТАРТА…', 'WAITING FOR START…') : '');
     const st = this.standings(), place = st.indexOf(this.me) + 1;
     if (st[0] && st[0].id !== this.leaderId && this.clock > COUNTDOWN) {for (const [r, l] of this.looks) {const t = (r === st[0] ? '👑 ' : '') + r.name; if (l.tag.textContent !== t) {l.tag.textContent = t; (l as any).tagW = 0;}} this.leaderId = st[0].id;} setText('place-n', String(place)); setText('place-of', `/${st.length}`);
     {const h = this.hype; const live = this.clock > COUNTDOWN + 2 && !this.me.finished;
-      if (live && h.place && place !== h.place && this.clock - h.placeAt > 1.2) {h.placeAt = this.clock; if (place < h.place) {this.toast(place === 1 ? 'ТЫ ЛИДИРУЕШЬ!' : `ОБГОН! ${place} МЕСТО`); this.snd.checkpoint(); navigator.vibrate?.(15);} else this.toast(`${place} МЕСТО ▼`);}
+      if (live && h.place && place !== h.place && this.clock - h.placeAt > 1.2) {h.placeAt = this.clock; if (place < h.place) {this.toast(place === 1 ? t('ТЫ ЛИДИРУЕШЬ!', 'YOU\'RE IN THE LEAD!') : t(`ОБГОН! ${place} МЕСТО`, `OVERTAKE! ${ord(place)} PLACE`)); this.snd.checkpoint(); navigator.vibrate?.(15);} else this.toast(t(`${place} МЕСТО ▼`, `${ord(place)} PLACE ▼`));}
       if (live) h.place = place;
       {const me = this.me as any; me.lastAdv ??= {z: me.z, t: this.clock}; if (me.z > me.lastAdv.z + 1) me.lastAdv = {z: me.z, t: this.clock};
         const stuck = live && !(me.remote) && me.safe <= 0 && (me.airT > 1.4 || this.clock - me.lastAdv.t > 8);
-        if (stuck && !this.rescueBtn) {const b = document.createElement('button'); b.textContent = '↺ К ЧЕКПОИНТУ'; b.setAttribute('style', 'position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:5;padding:12px 20px;border:1px solid #f6c26b;border-radius:14px;background:#1d1411e6;color:#f6dfb0;font:700 15px system-ui;pointer-events:auto');
-          b.addEventListener('pointerdown', e => {e.preventDefault(); e.stopPropagation(); this.course.respawn(this.me); me.lastAdv = {z: me.z, t: this.clock}; this.toast('НАЗАД К ЧЕКПОИНТУ');}); document.body.appendChild(b); this.rescueBtn = b;}
+        if (stuck && !this.rescueBtn) {const b = document.createElement('button'); b.textContent = t('↺ К ЧЕКПОИНТУ', '↺ TO CHECKPOINT'); b.setAttribute('style', 'position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:5;padding:12px 20px;border:1px solid #f6c26b;border-radius:14px;background:#1d1411e6;color:#f6dfb0;font:700 15px system-ui;pointer-events:auto');
+          b.addEventListener('pointerdown', e => {e.preventDefault(); e.stopPropagation(); this.course.respawn(this.me); me.lastAdv = {z: me.z, t: this.clock}; this.toast(t('НАЗАД К ЧЕКПОИНТУ', 'BACK TO CHECKPOINT'));}); document.body.appendChild(b); this.rescueBtn = b;}
         if (this.rescueBtn) this.rescueBtn.style.display = stuck ? '' : 'none';}
       {let sl = document.getElementById('speedlines'); if (!sl) {sl = document.createElement('div'); sl.id = 'speedlines'; sl.setAttribute('style', 'position:fixed;inset:0;pointer-events:none;z-index:1;opacity:0;background:repeating-conic-gradient(from 0deg at 50% 50%,#fff0 0 4deg,#ffffff22 4deg 5deg);-webkit-mask:radial-gradient(circle,#0000 35%,#000 75%);mask:radial-gradient(circle,#0000 35%,#000 75%)'); document.body.appendChild(sl);}
         const o = (this.fovKick * .9).toFixed(2); if (sl.style.opacity !== o) sl.style.opacity = o;}
-      if (live && !h.final && this.me.z > this.course.finishZ - 30) {h.final = true; this.toast('ФИНИШНАЯ ПРЯМАЯ!'); this.snd.checkpoint(); document.body.classList.add('final-stretch');
+      if (live && !h.final && this.me.z > this.course.finishZ - 30) {h.final = true; this.toast(t('ФИНИШНАЯ ПРЯМАЯ!', 'FINAL STRETCH!')); this.snd.checkpoint(); document.body.classList.add('final-stretch');
         if (!document.getElementById('fs-css')) {const st = document.createElement('style'); st.id = 'fs-css'; st.textContent = `body.final-stretch:not(.done)::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:2;box-shadow:inset 0 0 80px 10px #ffc44a55;animation:fsPulse 1.1s ease-in-out infinite}@keyframes fsPulse{50%{box-shadow:inset 0 0 120px 18px #ffc44a88}}`; document.head.appendChild(st);}}
       const tl = this.timeLeft(), sec = Math.ceil(tl); if (live && tl < 10 && tl > 0 && sec !== h.tick) {h.tick = sec; this.snd.countdown(false);}}
     document.getElementById('place')!.dataset.p = String(Math.min(place, 4));
@@ -815,20 +817,20 @@ export class RaceApp {
     const res = document.getElementById('results')!;
     const runDone = this.surv?.run ? this.surv.run.ended : (this.me.finished || this.over());
     if (runDone && res.hidden) {res.hidden = false; this.snd.finish(this.me.finished && st.indexOf(this.me) < 3);
-      const R = this.surv?.run, label = (r: Runner) => {const p = R?.players[r.id]; if (!p) return ''; return p.status === 'SAVED' ? (p.revived ? 'воскрес и выжил' : 'выжил') : p.status === 'DEAD' ? 'погиб' : p.revived ? 'воскрес' : 'призрак';};
-      const res2 = (r: Runner) => R ? label(r) : r.finished ? (r.finishTime - COUNTDOWN).toFixed(1) + ' с' : Math.round(Math.min(1, r.progress / this.course.finishZ) * 100) + '%';
+      const R = this.surv?.run, label = (r: Runner) => {const p = R?.players[r.id]; if (!p) return ''; return p.status === 'SAVED' ? (p.revived ? t('воскрес и выжил', 'revived and survived') : t('выжил', 'survived')) : p.status === 'DEAD' ? t('погиб', 'died') : p.revived ? t('воскрес', 'revived') : t('призрак', 'ghost');};
+      const res2 = (r: Runner) => R ? label(r) : r.finished ? (r.finishTime - COUNTDOWN).toFixed(1) + t(' с', ' s') : Math.round(Math.min(1, r.progress / this.course.finishZ) * 100) + '%';
       const img = (r: Runner) => `portraits/${r.character}.png`, pod = [st[1], st[0], st[2]];
       ceremonyStyle(); res.classList.add('cer');
       const at = {3: .7, 2: 1.6, 1: 2.7} as Record<number, number>; // reveal order: bronze, silver, then gold
       (res.querySelector('.podium') as HTMLElement).innerHTML = pod.map((r, i) => {const pl = [2, 1, 3][i]; return r ? `<div class="step s${pl}${r === this.me ? ' me' : ''}" style="--d:${at[pl]}s">${pl === 1 ? '<i class="rays"></i><i class="crown">👑</i>' : ''}<img src="${img(r)}" alt=""><b>${r.name}</b><small>${res2(r)}</small><div class="block"><span>${pl}</span></div></div>` : '<div class="step empty"></div>';}).join('');
-      res.querySelector('ol')!.innerHTML = st.slice(3).map((r, i) => `<li class="${r === this.me ? 'me' : ''}" style="--d:${3.6 + i * .12}s"><em>${i + 4}</em>${r.name}<span>${res2(r)}${r.falls ? ` · падений ${r.falls}` : ''}</span></li>`).join('');
+      res.querySelector('ol')!.innerHTML = st.slice(3).map((r, i) => `<li class="${r === this.me ? 'me' : ''}" style="--d:${3.6 + i * .12}s"><em>${i + 4}</em>${r.name}<span>${res2(r)}${r.falls ? t(` · падений ${r.falls}`, ` · falls ${r.falls}`) : ''}</span></li>`).join('');
       for (const pl of [3, 2, 1]) if (pod[[1, 0, 2][pl - 1]]) setTimeout(() => this.snd.land(pl === 1 ? 1 : .6), (at[pl] + .55) * 1000);
       const myPlace = st.indexOf(this.me) + 1; if (R) {
         const order = (r: Runner) => {const p = R.players[r.id]; return p?.status === 'SAVED' ? 0 : p?.alive ? 1 : p?.status === 'DEAD' ? 2 : 3;};
         (res.querySelector('.podium') as HTMLElement).innerHTML = [...this.runners].sort((x, y) => order(x) - order(y)).map((r, i) => {const p = R.players[r.id] ?? {}, cls = p.status === 'SAVED' ? 'ok' : p.status === 'DEAD' ? 'dead' : 'ghost';
           return `<div class="fate ${cls}${r === this.me ? ' me' : ''}" style="--d:${.8 + i * .35}s"><img src="${img(r)}" alt=""><b>${r.name}</b><small>${label(r)}</small></div>`;}).join('');
-        res.querySelector('ol')!.innerHTML = '';const mp = R.players[this.me.id]; setText('verdict', this.net?.spectator ? 'ИТОГИ ИСПЫТАНИЯ' : mp?.status === 'SAVED' ? 'ТЫ ВЫЖИЛ!' : mp?.alive === false ? 'ТЫ ПРИЗРАК' : 'ИТОГИ'); if (mp?.status === 'SAVED' || this.net?.spectator) setTimeout(confetti, (.8 + this.runners.length * .35) * 1000); document.body.classList.add('done'); return;}
-      setText('verdict', this.net?.spectator ? 'ИТОГИ ЗАБЕГА' : this.me.finished ? (myPlace === 1 ? 'ПОБЕДА!' : `ФИНИШ · ${myPlace} МЕСТО`) : 'ВРЕМЯ ВЫШЛО');
+        res.querySelector('ol')!.innerHTML = '';const mp = R.players[this.me.id]; setText('verdict', this.net?.spectator ? t('ИТОГИ ИСПЫТАНИЯ', 'TRIAL RESULTS') : mp?.status === 'SAVED' ? t('ТЫ ВЫЖИЛ!', 'YOU SURVIVED!') : mp?.alive === false ? t('ТЫ ПРИЗРАК', 'YOU ARE A GHOST') : t('ИТОГИ', 'RESULTS')); if (mp?.status === 'SAVED' || this.net?.spectator) setTimeout(confetti, (.8 + this.runners.length * .35) * 1000); document.body.classList.add('done'); return;}
+      setText('verdict', this.net?.spectator ? t('ИТОГИ ЗАБЕГА', 'RACE RESULTS') : this.me.finished ? (myPlace === 1 ? t('ПОБЕДА!', 'VICTORY!') : t(`ФИНИШ · ${myPlace} МЕСТО`, `FINISH · ${ord(myPlace)} PLACE`)) : t('ВРЕМЯ ВЫШЛО', 'TIME\'S UP'));
       document.body.classList.add('done'); if (myPlace <= 3 || this.net?.spectator) setTimeout(confetti, 3300);}
   }
 
@@ -836,7 +838,7 @@ export class RaceApp {
     const unlock = () => {this.snd.unlock(); this.snd.ambience(this.course.theme); this.snd.playMusic('audio/music.m4a');};
     const mute = document.getElementById('mute'); if (mute) {let m = false; try {m = localStorage.getItem('race-mute') === '1';} catch {} this.snd.setMuted(m); mute.textContent = m ? '🔇' : '🔊';
       mute.addEventListener('pointerdown', e => {e.stopPropagation(); m = !m; this.snd.setMuted(m); mute.textContent = m ? '🔇' : '🔊'; try {localStorage.setItem('race-mute', m ? '1' : '0');} catch {}});} addEventListener('pointerdown', unlock); addEventListener('keydown', unlock);
-    addEventListener('keydown', e => {if (this.net?.spectator && /^Digit[0-9]$/.test(e.code)) this.surv?.key(e.code.slice(5)); this.keys.add(e.code); if (e.code === 'KeyR' && this.me && !this.me.finished && this.clock > COUNTDOWN && this.me.safe <= 0 && !(this.me as any).remote) {this.course.respawn(this.me); this.toast('НАЗАД К ЧЕКПОИНТУ');} if (e.code === 'Space') {this.me && (this.me.jump = true); e.preventDefault();}});
+    addEventListener('keydown', e => {if (this.net?.spectator && /^Digit[0-9]$/.test(e.code)) this.surv?.key(e.code.slice(5)); this.keys.add(e.code); if (e.code === 'KeyR' && this.me && !this.me.finished && this.clock > COUNTDOWN && this.me.safe <= 0 && !(this.me as any).remote) {this.course.respawn(this.me); this.toast(t('НАЗАД К ЧЕКПОИНТУ', 'BACK TO CHECKPOINT'));} if (e.code === 'Space') {this.me && (this.me.jump = true); e.preventDefault();}});
     addEventListener('keyup', e => this.keys.delete(e.code));
     const zone = document.getElementById('stick-zone')!, knob = document.getElementById('knob')!, base = document.getElementById('stick')!, jump = document.getElementById('jump')!;
     zone.addEventListener('pointerdown', e => {this.stick = {id: e.pointerId, ox: e.clientX, oy: e.clientY, x: 0, y: 0}; base.style.display = 'block'; base.style.left = e.clientX + 'px'; base.style.top = e.clientY + 'px'; knob.style.transform = ''; zone.setPointerCapture(e.pointerId);});
@@ -899,7 +901,7 @@ function normalized(src: THREE.Object3D, size: number, by: 'height' | 'max') {
   const inner = src.clone(true); inner.position.set(-(box.min.x + box.max.x) / 2 * k, by === 'height' ? -box.min.y * k : -(box.min.y + box.max.y) / 2 * k, -(box.min.z + box.max.z) / 2 * k); inner.scale.setScalar(k);
   const outer = new THREE.Group(); outer.add(inner); outer.userData.base = 1; inner.traverse(o => {if ((o as THREE.Mesh).isMesh) {o.castShadow = true; o.receiveShadow = true;}}); return outer;
 }
-function bannerTexture(word = 'ФИНИШ') {const c = document.createElement('canvas'); c.width = 1024; c.height = 136; const x = c.getContext('2d')!;
+function bannerTexture(word = t('ФИНИШ', 'FINISH')) {const c = document.createElement('canvas'); c.width = 1024; c.height = 136; const x = c.getContext('2d')!;
   x.fillStyle = '#7a0f0b'; x.fillRect(0, 0, 1024, 136); for (let i = 0; i < 32; i++) {x.fillStyle = i % 2 ? '#f2eadc' : '#111'; x.fillRect(i * 32, 0, 32, 16); x.fillStyle = i % 2 ? '#111' : '#f2eadc'; x.fillRect(i * 32, 120, 32, 16);}
   x.fillStyle = '#f6e7c8'; x.font = 'bold 76px Georgia, serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(word, 512, 70);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;}
@@ -932,7 +934,7 @@ function fireball() {
 }
 function flagTexture() {const c = document.createElement('canvas'); c.width = 512; c.height = 64; const x = c.getContext('2d')!;
   for (let i = 0; i < 16; i++) {x.fillStyle = i % 2 ? '#f2eadc' : '#1a1410'; x.fillRect(i * 32, 0, 32, 10); x.fillStyle = i % 2 ? '#1a1410' : '#f2eadc'; x.fillRect(i * 32, 54, 32, 10);}
-  x.fillStyle = '#2a7fb0'; x.fillRect(0, 10, 512, 44); x.fillStyle = '#f6e7c8'; x.font = 'bold 32px Georgia, serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('ЧЕКПОИНТ', 256, 33);
+  x.fillStyle = '#2a7fb0'; x.fillRect(0, 10, 512, 44); x.fillStyle = '#f6e7c8'; x.font = 'bold 32px Georgia, serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(t('ЧЕКПОИНТ', 'CHECKPOINT'), 256, 33);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;}
 
 const SKY_DIR = new THREE.Vector3(-.18, 1, .32).normalize();
