@@ -1,5 +1,6 @@
-// THE BROKEN ELEVATOR — what the host says in each recorded line (Russian; subtitles and the host-screen caption).
-// Generated from tools/host-tts/config (events.json + elevator-extra-lines.tsv).
+// THE BROKEN ELEVATOR — what the host says in each recorded line (subtitles and the host-screen caption).
+// Russian text matches the recordings made from tools/host-tts/config (events.json + elevator-extra-lines.tsv);
+// the English text below is maintained here by hand until the English voice is recorded. Keep both in step.
 import {LANG} from './i18n';
 const VOICE_TEXT_RU: Record<string, string> = {
 "intro": "Добро пожаловать в «Адскую клетку»! Под вами — раскалённая лава, вокруг — оборудование, которое давно пора отправить на свалку. Ваша задача проста: чините механизмы, чтобы остановить спуск. И постарайтесь не стать частью расплавленного металла!",
