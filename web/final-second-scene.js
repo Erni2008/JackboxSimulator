@@ -25,7 +25,7 @@
     if(digits.dataset.kind!=='count'){
       ctx.fillStyle=value.trim()?'#ed3622':'#29100d';ctx.beginPath();ctx.arc(359,174,6,0,Math.PI*2);ctx.fill();
     }
-    if(!count){ctx.font='27px Georgia';ctx.fillStyle='#ae291e';ctx.fillText('с',617,160);}
+    if(!count){ctx.font='27px Georgia';ctx.fillStyle='#ae291e';ctx.fillText(faT('с', 's'),617,160);}
   }
   canvas.parentElement.classList.add('has-segments');
   new MutationObserver(draw).observe(digits,{childList:true,characterData:true,subtree:true,attributes:true,attributeFilter:['data-kind']});draw();

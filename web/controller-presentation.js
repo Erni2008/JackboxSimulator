@@ -14,9 +14,9 @@ function controllerPresentation(state) {
   if(impostor&&!['READY','REPLAY_PREPARATION'].includes(impostor.phase)){
     const phase=impostor.phase, final=['EVIDENCE_REVIEW','FINAL_VOTING','VOTING_LOCKED','FINAL_VOTE_REVEAL','SUSPECT_ANNOUNCEMENT','IMPOSTOR_REVEAL','RESULT'].includes(phase);
     const role=phase==='ROLE_REVEAL', writing=phase==='ROUND_CLUE_INPUT';
-    return {mode:'impostor',title:'ИМПОСТОР',steps:['РОЛЬ','СЛОВА','ВЕРДИКТ'],step:final?2:role?0:1,
-      label:role?'ТОЛЬКО ДЛЯ ВАС':writing?(impostor.clueSubmitted?'СЛОВО ЗАФИКСИРОВАНО':impostor.activeParticipant?'НАПИШИТЕ СЛОВО':'СМОТРИТЕ НА ОБЩИЙ ЭКРАН'):final?'ФИНАЛЬНЫЙ АКТ':'СОПОСТАВЛЯЙТЕ СЛОВА',
-      note:role?'Не показывайте свой экран другим игрокам.':writing?(impostor.clueSubmitted?'Ваше слово принято. Ожидаем остальных игроков.':impostor.activeParticipant?'Одно слово, до 10 букв. Постарайтесь звучать убедительно.':'Игроки готовят свои слова.'):'Следуйте подсказкам ниже и смотрите на общий экран.',
+    return {mode:'impostor',title:faT('ИМПОСТОР', 'IMPOSTOR'),steps:[faT('РОЛЬ', 'ROLE'),faT('СЛОВА', 'WORDS'),faT('ВЕРДИКТ', 'VERDICT')],step:final?2:role?0:1,
+      label:role?faT('ТОЛЬКО ДЛЯ ВАС', 'FOR YOUR EYES ONLY'):writing?(impostor.clueSubmitted?faT('СЛОВО ЗАФИКСИРОВАНО', 'WORD LOCKED IN'):impostor.activeParticipant?faT('НАПИШИТЕ СЛОВО', 'WRITE A WORD'):faT('СМОТРИТЕ НА ОБЩИЙ ЭКРАН', 'LOOK AT THE SHARED SCREEN')):final?faT('ФИНАЛЬНЫЙ АКТ', 'FINAL ACT'):faT('СОПОСТАВЛЯЙТЕ СЛОВА', 'COMPARE THE WORDS'),
+      note:role?faT('Не показывайте свой экран другим игрокам.', 'Don\'t show your screen to other players.'):writing?(impostor.clueSubmitted?faT('Ваше слово принято. Ожидаем остальных игроков.', 'Your word is in. Waiting for the other players.'):impostor.activeParticipant?faT('Одно слово, до 10 букв. Постарайтесь звучать убедительно.', 'One word, up to 10 letters. Try to sound convincing.'):faT('Игроки готовят свои слова.', 'Players are preparing their words.')):faT('Следуйте подсказкам ниже и смотрите на общий экран.', 'Follow the hints below and look at the shared screen.'),
       tone:writing&&impostor.clueSubmitted?'confirmed':writing&&impostor.activeParticipant?'active':'quiet'};
   }
   return null;
@@ -24,10 +24,10 @@ function controllerPresentation(state) {
 function renderControllerPresentation(state) {
   const panel=document.getElementById('controller-director'),view=controllerPresentation(state);
   panel.hidden=!view;panel.lang=view?.mode==='impostor'?'ru':'en';
-  const leave=document.querySelector('#leave .fa-label');if(leave)leave.textContent=view?.mode==='impostor'?'ВЫЙТИ':'LEAVE ROOM';
+  const leave=document.querySelector('#leave .fa-label');if(leave)leave.textContent=view?.mode==='impostor'?faT('ВЫЙТИ', 'LEAVE'):'LEAVE ROOM';
   if(!view){delete document.body.dataset.mode;delete document.body.dataset.presentationPhase;return;}
-  panel.querySelector('.director-private').textContent=view.mode==='impostor'?'ЛИЧНЫЙ КОНТРОЛЛЕР':'PERSONAL CONTROLLER';
-  panel.setAttribute('aria-label',view.mode==='impostor'?'Ход игры':'Game progress');
+  panel.querySelector('.director-private').textContent=view.mode==='impostor'?faT('ЛИЧНЫЙ КОНТРОЛЛЕР', 'PERSONAL CONTROLLER'):'PERSONAL CONTROLLER';
+  panel.setAttribute('aria-label',view.mode==='impostor'?faT('Ход игры', 'Game progress'):'Game progress');
   document.body.dataset.mode=view.mode;document.body.dataset.presentationPhase=state.cursedBoxes?.phase||state.impostor?.phase||'';panel.dataset.tone=view.tone;
   document.getElementById('director-mode').textContent=view.title;
   document.getElementById('director-label').textContent=view.label;

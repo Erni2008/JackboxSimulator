@@ -95,7 +95,7 @@ function handle(event){const payload=event.payload||{};heartbeatWatch.acknowledg
   document.body.dataset.reducedMotion=String(!!settings?.reducedMotion);
   document.body.dataset.effects=String(settings?.visualEffectsEnabled!==false);
   document.body.dataset.sound=String(settings?.soundEnabled!==false);
-  if(settings)$('room-configuration').textContent=`${settings.roundCount} раунда · Слово: ${settings.clueSeconds} с · Обсуждение: ${settings.discussionSeconds} с · Голосование: ${settings.votingSeconds} с`;
+  if(settings)$('room-configuration').textContent=faT(`${settings.roundCount} раунда · Слово: ${settings.clueSeconds} с · Обсуждение: ${settings.discussionSeconds} с · Голосование: ${settings.votingSeconds} с`, `${settings.roundCount} rounds · Word: ${settings.clueSeconds} s · Discussion: ${settings.discussionSeconds} s · Voting: ${settings.votingSeconds} s`);
   if(event.type==='AUTHENTICATED')document.body.dataset.cinematic='false';
   else if(oldPhase!==state.impostor?.phase)document.body.dataset.cinematic='true';
   if(previousMatch && (previousMatch!==state.impostor?.sessionId || state.impostor?.phase==='REPLAY_PREPARATION')){
@@ -157,7 +157,7 @@ function render(){
   if(state.phase==='RESULTS'){
     // the verdict belongs to the host's screen: a phone never learns here whether it was right or how the others did
     show('result');const result=state.results.find(r=>r.playerId===state.selfId);$('result-screen').dataset.outcome=result?.answeredInTime?'sealed':'timeout';
-    $('result-title').textContent=result?.answeredInTime?'Ответ отправлен':'Время вышло';
+    $('result-title').textContent=result?.answeredInTime?faT('Ответ отправлен', 'Answer sent'):faT('Время вышло', 'Time\'s up');
     $('result-detail').textContent=result?.answeredInTime?'The host reveals the truth. Watch the shared screen.':'No answer reached the host in time. Watch the shared screen.';
     $('correct-answer').textContent='';$('result-score').textContent=`QUESTION ${state.questionNumber} / ${state.questionCount}`;return;
   }

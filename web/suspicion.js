@@ -12,12 +12,12 @@ function createSuspicionController({getState,isAuthenticated,send,now,explain,ma
     const s=current(),requestId=makeId();
     pending={requestId,target};error='';render();
     send('SUBMIT_SUSPICION',{roomCode:getState().code,sessionId:s.sessionId,round:s.round,suspectId:target},requestId);
-    pendingTimer=setTimeout(()=>{reset();error='Проверяем, принят ли выбор…';send('SYNC');render();},4000);
+    pendingTimer=setTimeout(()=>{reset();error=faT('Проверяем, принят ли выбор…', 'Checking whether the choice was accepted…');send('SYNC');render();},4000);
   }
   function event(message){
     const snapshot=message.payload?.impostor;
     if(snapshot && pending && snapshot.selectedSuspectId===pending.target){reset();error='';}
-    if(snapshot && message.type==='STATE' && error==='Проверяем, принят ли выбор…')error='';
+    if(snapshot && message.type==='STATE' && error===faT('Проверяем, принят ли выбор…', 'Checking whether the choice was accepted…'))error='';
     if(pending&&message.requestId===pending.requestId) {
       if(message.type==='SUSPICION_ACCEPTED'){reset();error='';}
       else if(message.type==='SUSPICION_REJECTED'||message.type==='ERROR'){reset();error=explain(message.payload?.code);}
@@ -26,24 +26,24 @@ function createSuspicionController({getState,isAuthenticated,send,now,explain,ma
   function tick(){
     const s=current();if(!s||!el('suspicion-timer'))return;
     const active=s.phase==='PRELIMINARY_SUSPICION'&&!s.suspicionFinalized,left=active?Math.max(0,s.deadline-now()):0;
-    const label=`${Math.ceil(left/1000)} с`;if(el('suspicion-timer').textContent!==label)el('suspicion-timer').textContent=label;
+    const label=faT(`${Math.ceil(left/1000)} с`, `${Math.ceil(left/1000)} s`);if(el('suspicion-timer').textContent!==label)el('suspicion-timer').textContent=label;
     for(const button of el('suspect-cards').children){const disabled=!canSelect(button.dataset.id);if(button.disabled!==disabled)button.disabled=disabled;}
   }
   function render(){
     const s=current();if(!s)return;
     const next=`${s.sessionId}:${s.round}`;
     if(next!==key){reset();error='';key=next;}
-    el('suspicion-title').textContent=s.phase==='PRELIMINARY_SUSPICION'&&!s.suspicionFinalized?'ВЫБЕРИТЕ ПОДОЗРЕВАЕМОГО':'ПОДОЗРЕНИЯ ЗАПЕЧАТАНЫ';
-    el('suspicion-progress').textContent=`ПОЛУЧЕНО ПОДОЗРЕНИЙ: ${s.submittedCount}/${s.eligibleCount}`;
-    el('suspicion-status').textContent=error|| (pending?'ОТПРАВЛЯЕМ ВЫБОР…':(s.phase!=='PRELIMINARY_SUSPICION'||s.suspicionFinalized)?(s.hasSubmitted?'Ваше подозрение принято.':'Время истекло. Вы воздержались.'):!s.eligible?
-      'В этой фазе вы наблюдаете за игрой.':s.hasSubmitted?'Выбор принят. До конца отсчёта его можно изменить.':
-      'Выберите участника или воздержитесь. Ваш выбор останется тайным.');
+    el('suspicion-title').textContent=s.phase==='PRELIMINARY_SUSPICION'&&!s.suspicionFinalized?faT('ВЫБЕРИТЕ ПОДОЗРЕВАЕМОГО', 'CHOOSE A SUSPECT'):faT('ПОДОЗРЕНИЯ ЗАПЕЧАТАНЫ', 'SUSPICIONS SEALED');
+    el('suspicion-progress').textContent=faT(`ПОЛУЧЕНО ПОДОЗРЕНИЙ: ${s.submittedCount}/${s.eligibleCount}`, `SUSPICIONS RECEIVED: ${s.submittedCount}/${s.eligibleCount}`);
+    el('suspicion-status').textContent=error|| (pending?faT('ОТПРАВЛЯЕМ ВЫБОР…', 'SENDING CHOICE…'):(s.phase!=='PRELIMINARY_SUSPICION'||s.suspicionFinalized)?(s.hasSubmitted?faT('Ваше подозрение принято.', 'Your suspicion is in.'):faT('Время истекло. Вы воздержались.', 'Time ran out. You abstained.')):!s.eligible?
+      faT('В этой фазе вы наблюдаете за игрой.', 'You\'re watching the game in this phase.'):s.hasSubmitted?faT('Выбор принят. До конца отсчёта его можно изменить.', 'Choice accepted. You can change it until the countdown ends.'):
+      faT('Выберите участника или воздержитесь. Ваш выбор останется тайным.', 'Choose a player or abstain. Your choice stays secret.'));
     const focusedId=el('suspect-cards').contains(document.activeElement)?document.activeElement.closest('[data-id]')?.dataset.id:null;
     el('suspect-cards').setAttribute('aria-busy',String(!!pending));
     el('suspect-cards').replaceChildren();
     for(const participant of s.participants){
       const button=document.createElement('button');button.type='button';button.className='suspect-card';
-      button.title=participant.name;button.setAttribute('aria-label',participant.name+(participant.id===getState().selfId?' · вы':''));
+      button.title=participant.name;button.setAttribute('aria-label',participant.name+(participant.id===getState().selfId?faT(' · вы', ' · you'):''));
       button.dataset.id=participant.id;button.dataset.initial=(Array.from(participant.name.trim())[0]||'?').toUpperCase();if(participant.id===getState().selfId)button.dataset.self='true';button.textContent=participant.name;
       const selected=participant.id===s.selectedSuspectId;
       button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));

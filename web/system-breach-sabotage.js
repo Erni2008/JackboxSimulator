@@ -42,7 +42,7 @@ function sabPulse(node,cls){node.classList.remove(cls);void node.offsetWidth;nod
  */
 const SABOTAGE_EFFECTS={
   SHUFFLE_ATTACK:{
-    name:'ПЕРЕМЕШКА',hint:'Кнопки ответов меняются местами',removal:'panel',task:'Нажми символы в показанном порядке',
+    name:faT('ПЕРЕМЕШКА', 'SHUFFLE'),hint:faT('Кнопки ответов меняются местами', 'Answer buttons swap places'),removal:'panel',task:faT('Нажми символы в показанном порядке', 'Press the symbols in the order shown'),
     grid(ctx,grid,gs){
       gs.every(SABOTAGE_CONFIG.SHUFFLE_INTERVAL_MS,()=>{
         if(!grid.isConnected||grid.querySelector('.picked'))return;const now=[...grid.querySelectorAll(':scope > .sbx-option')];if(now.length<2)return;
@@ -60,7 +60,7 @@ const SABOTAGE_EFFECTS={
     auto(ctx){return ctx.root.querySelector('.sbx-sab-key[data-v="'+CSS.escape(ctx.data.sequence[ctx.progress.i||0])+'"]');}
   },
   NUMBER_HUNT:{
-    name:'ОХОТА НА ЦИФРЫ',hint:'Экран засорён цифрами',removal:'overlay',task:'Нажимай цифры по порядку: 1 → 2 → 3 …',
+    name:faT('ОХОТА НА ЦИФРЫ', 'NUMBER HUNT'),hint:faT('Экран засорён цифрами', 'The screen is littered with numbers'),removal:'overlay',task:faT('Нажимай цифры по порядку: 1 → 2 → 3 …', 'Press the numbers in order: 1 → 2 → 3 …'),
     build(ctx,box){
       const n=ctx.data.count||7,pr=ctx.progress;pr.found=pr.found||0;
       if(!pr.spots){// scattered cells, preferring the ones that do not cover the answers
@@ -76,24 +76,24 @@ const SABOTAGE_EFFECTS={
     auto(ctx){return ctx.root.querySelector('.sbx-sab-num[data-v="'+((ctx.progress.found||0)+1)+'"]');}
   },
   POPUP_STORM:{
-    name:'ШТОРМ ОКОН',hint:'Ложные системные окна',removal:'overlay',task:'Закрой все окна. Мигающий крестик — ловушка, жми OK',
+    name:faT('ШТОРМ ОКОН', 'WINDOW STORM'),hint:faT('Ложные системные окна', 'Fake system windows'),removal:'overlay',task:faT('Закрой все окна. Мигающий крестик — ловушка, жми OK', 'Close every window. A blinking cross is a trap — press OK'),
     build(ctx,box){
       const pr=ctx.progress;pr.closed=pr.closed||[];const wins=(ctx.data.windows||[]).filter(w=>!pr.closed.includes(w.id));
-      const LINES=['Процесс svch0st.exe не отвечает','Сеанс будет прерван','Обнаружен неизвестный пакет','Доступ к памяти запрещён','Перегрев процессора 97°C','Неверная подпись драйвера'];
+      const LINES=[faT('Процесс svch0st.exe не отвечает', 'Process svch0st.exe is not responding'),faT('Сеанс будет прерван', 'The session will be terminated'),faT('Обнаружен неизвестный пакет', 'Unknown packet detected'),faT('Доступ к памяти запрещён', 'Memory access denied'),faT('Перегрев процессора 97°C', 'CPU overheating 97°C'),faT('Неверная подпись драйвера', 'Invalid driver signature')];
       const place=el=>{el.style.left=(2+ctx.rng()*(96-SABOTAGE_CONFIG.POPUP_WIDTH_PCT)).toFixed(1)+'%';el.style.top=(12+ctx.rng()*48).toFixed(1)+'%';};
       wins.forEach((w,k)=>ctx.scope.later(k*SABOTAGE_CONFIG.POPUP_STAGGER_MS,()=>{
         const win=ctx.mk('div','sbx-sab-win'+(w.fakeClose?' trap':''),null,box);win.dataset.id=w.id;win.style.width=SABOTAGE_CONFIG.POPUP_WIDTH_PCT+'%';win.style.zIndex=String(10+k);place(win);
         const bar=ctx.mk('div','sbx-sab-winbar',null,win);ctx.mk('span','mi','',bar);ctx.mk('b',null,w.title,bar);
-        const x=ctx.btn('sbx-sab-x'+(w.fakeClose?' fake':''),'✕',bar);x.setAttribute('aria-label',w.fakeClose?'ложная кнопка':'закрыть');
+        const x=ctx.btn('sbx-sab-x'+(w.fakeClose?' fake':''),'✕',bar);x.setAttribute('aria-label',w.fakeClose?faT('ложная кнопка', 'fake button'):faT('закрыть', 'close'));
         ctx.mk('p',null,LINES[Math.floor(ctx.rng()*LINES.length)],win);const ok=ctx.btn('sbx-sab-ok','OK',win);
         const close=()=>{if(win.classList.contains('closing'))return;win.classList.add('closing');pr.closed.push(w.id);ctx.scope.later(180,()=>win.remove());if(pr.closed.length>=(ctx.data.windows||[]).length)ctx.finish(pr.closed.slice());};
-        ok.onclick=close;x.onclick=w.fakeClose?()=>{place(win);sabPulse(win,'jump');ctx.buzz();ctx.tip('Крестик ложный — нажми OK');}:close;
+        ok.onclick=close;x.onclick=w.fakeClose?()=>{place(win);sabPulse(win,'jump');ctx.buzz();ctx.tip(faT('Крестик ложный — нажми OK', 'The cross is fake — press OK'));}:close;
       }));
     },
     auto(ctx){const w=ctx.root.querySelector('.sbx-sab-win:not(.closing)');return w?.querySelector('.sbx-sab-ok')||null;}
   },
   GHOST_BUTTONS:{
-    name:'КНОПКИ-ПРИЗРАКИ',hint:'Часть кнопок — подделки',removal:'overlay',task:'Найди 3 спрятанных жучка среди ответов',
+    name:faT('КНОПКИ-ПРИЗРАКИ', 'GHOST BUTTONS'),hint:faT('Часть кнопок — подделки', 'Some buttons are fakes'),removal:'overlay',task:faT('Найди 3 спрятанных жучка среди ответов', 'Find 3 hidden bugs among the answers'),
     grid(ctx,grid,gs){
       const real=[...grid.querySelectorAll(':scope > .sbx-option')];if(!real.length)return;const labels=real.map(b=>b.querySelector('.sbx-val')?.textContent||'');
       grid.classList.add('sab-ghost');gs.undo(()=>grid.classList.remove('sab-ghost'));
@@ -101,11 +101,11 @@ const SABOTAGE_EFFECTS={
       for(let i=0;i<(ctx.data.ghosts||4);i++){const g=ctx.mk('button','sbx-option sbx-ghost',null);g.type='button';g.dataset.nativeButton='';g.dataset.ghost='1';
         ctx.mk('span','sbx-key',String.fromCharCode(65+Math.floor(ctx.rng()*real.length)),g);ctx.mk('span','sbx-val',labels[Math.floor(ctx.rng()*labels.length)],g);g.style.animationDelay=(-ctx.rng()*3).toFixed(2)+'s';
         // a ghost never reaches the answer path: no submit, just a glitch
-        g.onclick=e=>{e.stopPropagation();sabPulse(g,'poof');ctx.buzz();ctx.tip('Это призрак — ответ не засчитан');};all.push(g);}
+        g.onclick=e=>{e.stopPropagation();sabPulse(g,'poof');ctx.buzz();ctx.tip(faT('Это призрак — ответ не засчитан', 'That\'s a ghost — answer not counted'));};all.push(g);}
       for(const b of sabShuffle(all,ctx.rng))grid.append(b);
       gs.undo(()=>{for(const g of grid.querySelectorAll('.sbx-ghost'))g.remove();for(const b of real)grid.append(b);});
       const pr=ctx.progress;pr.found=pr.found||[];
-      for(const id of ctx.data.viruses||[]){if(pr.found.includes(id))continue;const bug=ctx.btn('sbx-sab-bug mi','',grid);bug.dataset.id=id;bug.setAttribute('aria-label','вирус');
+      for(const id of ctx.data.viruses||[]){if(pr.found.includes(id))continue;const bug=ctx.btn('sbx-sab-bug mi','',grid);bug.dataset.id=id;bug.setAttribute('aria-label',faT('вирус', 'virus'));
         bug.style.left=(4+ctx.rng()*86).toFixed(1)+'%';bug.style.top=(6+ctx.rng()*80).toFixed(1)+'%';
         bug.onclick=e=>{e.stopPropagation();pr.found.push(id);bug.classList.add('caught');gs.later(260,()=>bug.remove());ctx.count();if(pr.found.length>=(ctx.data.viruses||[]).length)ctx.finish(pr.found.slice());};
         gs.undo(()=>bug.remove());}
@@ -113,7 +113,7 @@ const SABOTAGE_EFFECTS={
     auto(ctx){return ctx.screen().querySelector('.sbx-sab-bug:not(.caught)');}
   },
   SCREEN_GLITCH:{
-    name:'ГЛИТЧ ЭКРАНА',hint:'Изображение искажено',removal:'panel',task:'Выставь регуляторы как в цели',
+    name:faT('ГЛИТЧ ЭКРАНА', 'SCREEN GLITCH'),hint:faT('Изображение искажено', 'The image is distorted'),removal:'panel',task:faT('Выставь регуляторы как в цели', 'Set the dials to match the target'),
     start(ctx){
       const scr=ctx.screen();scr.classList.add('sab-glitch');ctx.scope.undo(()=>scr.classList.remove('sab-glitch','sab-shift'));
       // a 7-second interference storm, a short calm, and again — until the virus is removed or burns out
@@ -130,7 +130,7 @@ const SABOTAGE_EFFECTS={
     },
     build(ctx,box){
       const d=ctx.data,max=d.max||5,pr=ctx.progress;pr.vals=pr.vals||(d.start||[]).slice();
-      const t=ctx.mk('div','sbx-sab-target',null,box);ctx.mk('small',null,'ЦЕЛЬ',t);ctx.mk('b',null,(d.target||[]).join(' — '),t);
+      const t=ctx.mk('div','sbx-sab-target',null,box);ctx.mk('small',null,faT('ЦЕЛЬ', 'TARGET'),t);ctx.mk('b',null,(d.target||[]).join(' — '),t);
       const row=ctx.mk('div','sbx-sab-dials',null,box);
       (d.target||[]).forEach((want,k)=>{const col=ctx.mk('div','sbx-sab-dial',null,row);const up=ctx.btn('sbx-sab-step mi','',col);const v=ctx.mk('b',null,'',col);const dn=ctx.btn('sbx-sab-step mi','',col);
         const paint=()=>{v.textContent=String(pr.vals[k]);col.classList.toggle('ok',String(pr.vals[k])===want);};paint();
@@ -140,7 +140,7 @@ const SABOTAGE_EFFECTS={
     auto(ctx){const d=ctx.data,k=(ctx.progress.vals||[]).findIndex((x,i)=>String(x)!==d.target[i]);return k<0?null:ctx.root.querySelector('.sbx-sab-step[data-k="'+k+'"][data-dir="1"]');}
   },
   LOCKED_ANSWERS:{
-    name:'ЗАМОК',banner:'ОТВЕТЫ ЗАБЛОКИРОВАНЫ',hint:'Ответы заблокированы',removal:'panel',autoOpen:true,task:'Нажми числа по возрастанию',
+    name:faT('ЗАМОК', 'LOCK'),banner:faT('ОТВЕТЫ ЗАБЛОКИРОВАНЫ', 'ANSWERS LOCKED'),hint:faT('Ответы заблокированы', 'Answers locked'),removal:'panel',autoOpen:true,task:faT('Нажми числа по возрастанию', 'Press the numbers in ascending order'),
     grid(ctx,grid,gs){
       grid.classList.add('sab-locked');
       const btns=[...grid.querySelectorAll(':scope > .sbx-option')],was=btns.map(b=>b.disabled);
@@ -156,7 +156,7 @@ const SABOTAGE_EFFECTS={
     auto(ctx){const order=(ctx.data.numbers||[]).slice().sort((a,b)=>a-b);return ctx.root.querySelector('.sbx-sab-key[data-v="'+order[ctx.progress.i||0]+'"]');}
   },
   MAGNETIC_BUTTONS:{
-    name:'МАГНИТНЫЕ КНОПКИ',hint:'Кнопки уплывают',removal:'overlay',task:'Поймай 3 красных индикатора',
+    name:faT('МАГНИТНЫЕ КНОПКИ', 'MAGNETIC BUTTONS'),hint:faT('Кнопки уплывают', 'The buttons drift away'),removal:'overlay',task:faT('Поймай 3 красных индикатора', 'Catch 3 red indicators'),
     grid(ctx,grid,gs){
       const btns=[...grid.querySelectorAll(':scope > .sbx-option')];if(!btns.length)return;const s=SABOTAGE_CONFIG.MAGNETIC_SCALE;
       btns.forEach(b=>{b.style.scale=String(s);b.style.transition='scale .3s';});gs.undo(()=>btns.forEach(b=>{b.style.scale='';b.style.translate='';b.style.transition='';}));
@@ -174,7 +174,7 @@ const SABOTAGE_EFFECTS={
     },
     build(ctx,box){
       const pr=ctx.progress;pr.caught=pr.caught||[];const dots=[];
-      for(const id of ctx.data.indicators||[]){if(pr.caught.includes(id))continue;const b=ctx.btn('sbx-sab-dot',null,box);b.dataset.id=id;b.setAttribute('aria-label','индикатор');ctx.mk('i',null,null,b);
+      for(const id of ctx.data.indicators||[]){if(pr.caught.includes(id))continue;const b=ctx.btn('sbx-sab-dot',null,box);b.dataset.id=id;b.setAttribute('aria-label',faT('индикатор', 'indicator'));ctx.mk('i',null,null,b);
         const a=ctx.rng()*6.28;dots.push({b,x:10+ctx.rng()*80,y:20+ctx.rng()*65,vx:Math.cos(a),vy:Math.sin(a)});
         b.onclick=()=>{pr.caught.push(id);b.classList.add('caught');b.disabled=true;ctx.scope.later(300,()=>b.remove());ctx.count();if(pr.caught.length>=(ctx.data.indicators||[]).length)ctx.finish(pr.caught.slice());};}
       const put=()=>dots.forEach(d=>{d.b.style.left=d.x.toFixed(2)+'%';d.b.style.top=d.y.toFixed(2)+'%';});put();if(ctx.reduced)return;
@@ -206,9 +206,9 @@ function createSystemBreachSabotage({screen,submit,buzz=()=>{},sound=()=>{},redu
   function splash(cls,title,sub,ms){const r=layer(),s=mk('div','sbx-sab-splash '+cls,null,r);mk('span','mi',cls==='ok'?'':'',s);mk('b',null,title,s);if(sub)mk('small',null,sub,s);setTimeout(()=>s.remove(),ms);}
   function paintBanner(){
     if(!inf||!banner)return;const e=inf.effect;banner.querySelector('.n').textContent=e.banner||e.name;
-    banner.querySelector('.q').textContent=inf.sent?'ОЧИСТКА…':'ещё '+inf.left+' '+(inf.left===1?'вопрос':inf.left<5?'вопроса':'вопросов');
+    banner.querySelector('.q').textContent=inf.sent?faT('ОЧИСТКА…', 'CLEANING…'):faT('ещё ', 'more ')+inf.left+' '+(inf.left===1?faT('вопрос', 'question'):inf.left<5?faT('вопроса', 'questions'):faT('вопросов', 'questions'));
     const c=banner.querySelector('.c');if(c)c.textContent=inf.counter();
-    const go=banner.querySelector('.go');if(go){go.hidden=e.removal!=='panel'||!!e.autoOpen;go.textContent=inf.panelOpen?'К ВОПРОСУ':'УДАЛИТЬ ВИРУС';}
+    const go=banner.querySelector('.go');if(go){go.hidden=e.removal!=='panel'||!!e.autoOpen;go.textContent=inf.panelOpen?faT('К ВОПРОСУ', 'TO THE QUESTION'):faT('УДАЛИТЬ ВИРУС', 'REMOVE VIRUS');}
   }
   function makeBanner(){
     banner=mk('div','sbx-sab-banner');const top=mk('div','row',null,banner);mk('span','mi','',top);mk('b','n',null,top);mk('span','q',null,top);mk('span','c',null,top);
@@ -216,9 +216,9 @@ function createSystemBreachSabotage({screen,submit,buzz=()=>{},sound=()=>{},redu
   }
   function openPanel(){
     if(!inf||inf.panel)return;inf.panelOpen=true;const p=mk('div','sbx-sab-panel',null,layer());inf.panel=p;
-    const h=mk('div','sbx-sab-panelhead',null,p);mk('span','mi','',h);mk('b',null,'УДАЛЕНИЕ ВИРУСА',h);mk('small',null,inf.effect.task,p);
+    const h=mk('div','sbx-sab-panelhead',null,p);mk('span','mi','',h);mk('b',null,faT('УДАЛЕНИЕ ВИРУСА', 'REMOVING VIRUS'),h);mk('small',null,inf.effect.task,p);
     const box=mk('div','sbx-sab-box',null,p);inf.effect.build(inf.ctx,box);
-    if(!inf.effect.autoOpen){const back=btn('sbx-sab-close','← продолжить отвечать',p);back.onclick=closePanel;}
+    if(!inf.effect.autoOpen){const back=btn('sbx-sab-close',faT('← продолжить отвечать', '← keep answering'),p);back.onclick=closePanel;}
     paintBanner();
   }
   function closePanel(){if(!inf)return;inf.panel?.remove();inf.panel=null;inf.panelOpen=false;paintBanner();}
@@ -232,7 +232,7 @@ function createSystemBreachSabotage({screen,submit,buzz=()=>{},sound=()=>{},redu
       count(){paintBanner();},
       finish(answer){if(!inf||inf.answer)return;inf.answer=answer;trySubmit();}};
     inf.ctx=ctx;screen().classList.add('sab-infected');scope.undo(()=>screen().classList.remove('sab-infected'));
-    splash('bad','ЗАРАЖЕНИЕ',effect.name,SABOTAGE_CONFIG.INFECT_SPLASH_MS);buzz([40,40,40,40,120]);sound('infected');
+    splash('bad',faT('ЗАРАЖЕНИЕ', 'INFECTION'),effect.name,SABOTAGE_CONFIG.INFECT_SPLASH_MS);buzz([40,40,40,40,120]);sound('infected');
     makeBanner();effect.start?.(ctx);if(effect.removal==='overlay')scope.later(SABOTAGE_CONFIG.INFECT_SPLASH_MS,()=>ctx.tip(effect.task));
     if(effect.removal==='overlay'){inf.overlay=mk('div','sbx-sab-overlay '+view.type.toLowerCase(),null,layer());if(view.type!=='GHOST_BUTTONS')effect.build(ctx,inf.overlay);}
     if(effect.autoOpen)openPanel();
@@ -254,7 +254,7 @@ function createSystemBreachSabotage({screen,submit,buzz=()=>{},sound=()=>{},redu
     /** view = self.sabotage from the server (empty / missing when clean). */
     sync(view){
       const id=view?.infectionId||'';
-      if(inf&&inf.id!==id){const cleared=inf.answer;cleanup();if(!id){splash('ok',cleared?'ВИРУС УДАЛЁН':'ВИРУС ВЫДОХСЯ','система чиста',SABOTAGE_CONFIG.CLEARED_SPLASH_MS);sound('cleared');}}
+      if(inf&&inf.id!==id){const cleared=inf.answer;cleanup();if(!id){splash('ok',cleared?faT('ВИРУС УДАЛЁН', 'VIRUS REMOVED'):faT('ВИРУС ВЫДОХСЯ', 'THE VIRUS WORE OFF'),faT('система чиста', 'system clean'),SABOTAGE_CONFIG.CLEARED_SPLASH_MS);sound('cleared');}}
       if(!inf&&id)start(view);
       if(inf){if(inf.left!==view.questionsLeft){inf.left=view.questionsLeft;paintBanner();}trySubmit();}
     },

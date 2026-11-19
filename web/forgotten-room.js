@@ -12,8 +12,8 @@ function createForgottenRoomController({getState,isAuthenticated,send,makeId,now
   const el=id=>document.getElementById(id);
   const mini=()=>getState()?.forgottenRoom;
   const selfId=()=>getState()?.selfId;
-  const T={DISAPPEARED:'Исчез',MOVED:'Переместился',ROTATED:'Повернулся / упал',CHANGED:'Изменился',APPEARED:'Появился',TOGGLED:'Зажёгся / погас'};
-  const HINT={DISAPPEARED:'Здесь что-то стояло',MOVED:'Переехал сюда или отсюда',ROTATED:'Отвернулся или упал на бок',CHANGED:'Выглядит иначе',APPEARED:'Раньше его не было',TOGGLED:'Свет включился или выключился'};
+  const T={DISAPPEARED:faT('Исчез', 'Gone'),MOVED:faT('Переместился', 'Moved'),ROTATED:faT('Повернулся / упал', 'Turned / fell'),CHANGED:faT('Изменился', 'Changed'),APPEARED:faT('Появился', 'Appeared'),TOGGLED:faT('Зажёгся / погас', 'Lit / went out')};
+  const HINT={DISAPPEARED:faT('Здесь что-то стояло', 'Something stood here'),MOVED:faT('Переехал сюда или отсюда', 'Moved here or away'),ROTATED:faT('Отвернулся или упал на бок', 'Turned away or fell on its side'),CHANGED:faT('Выглядит иначе', 'Looks different'),APPEARED:faT('Раньше его не было', 'It wasn\'t here before'),TOGGLED:faT('Свет включился или выключился', 'The light turned on or off')};
   const W=1920,H=1080;
   // hit zones, in room units (1920-wide): objects get a padded box; otherwise the nearest place within reach wins
   const OBJECT_PAD=.22,PLACE_REACH=150;
@@ -66,7 +66,7 @@ function createForgottenRoomController({getState,isAuthenticated,send,makeId,now
   }
   const placeOf=(m,slot)=>m.places.find(p=>p.id===slot);
   const objectAt=(m,slot)=>(m.objects||[]).find(o=>o.slot===slot);
-  const nameAt=(m,slot)=>objectAt(m,slot)?.name||'Пустое место';
+  const nameAt=(m,slot)=>objectAt(m,slot)?.name||faT('Пустое место', 'Empty spot');
 
   // ---------- rendering ----------
   function render(){
@@ -80,16 +80,16 @@ function createForgottenRoomController({getState,isAuthenticated,send,makeId,now
     scr.dataset.mode=answering?'answer':viewing?'view':'watch';
     el('room-watch').hidden=answering||viewing;el('room-play').hidden=!(answering||viewing);
     if(!answering&&!viewing){document.body.classList.remove('fr-full');watch(m,me);cancelAnimationFrame(raf);raf=0;return;}
-    el('room-title').textContent=m.phase==='OBSERVATION'?'Запоминай всё':m.phase==='CHANGED_ROOM'?'Свет вернулся…':'Что изменилось?';
+    el('room-title').textContent=m.phase==='OBSERVATION'?faT('Запоминай всё', 'Remember everything'):m.phase==='CHANGED_ROOM'?faT('Свет вернулся…', 'The light is back…'):faT('Что изменилось?', 'What changed?');
     if(!answering){selected=null;}
     document.body.classList.toggle('fr-full',answering);
     buildStage(m);paintStage(m);paintList(m);if(!raf)tick();
   }
   function watch(m,me){
-    const t={INTRO:['Забытая комната','Смотри на общий экран'],OBSERVATION:['Запоминай всё','Смотри на общий экран'],BLACKOUT:['Тьма','…'],
-      CHANGED_ROOM:['Свет вернулся','Что-то изменилось'],ANSWER_PHASE:me?['Ответ отправлен','Смотри на общий экран']:['Ты наблюдаешь','Смотри на общий экран'],
-      REVEAL:['Ответ отправлен','Смотри на общий экран'],RESULTS:['Ответ отправлен','Смотри на общий экран']}[m.phase]||['Забытая комната','Смотри на общий экран'];
-    if((m.phase==='REVEAL'||m.phase==='RESULTS')&&!m.myAnswers&&me)t[0]='Время вышло';
+    const t={INTRO:[faT('Забытая комната', 'The Forgotten Room'),faT('Смотри на общий экран', 'Look at the shared screen')],OBSERVATION:[faT('Запоминай всё', 'Remember everything'),faT('Смотри на общий экран', 'Look at the shared screen')],BLACKOUT:[faT('Тьма', 'Darkness'),'…'],
+      CHANGED_ROOM:[faT('Свет вернулся', 'The light is back'),faT('Что-то изменилось', 'Something changed')],ANSWER_PHASE:me?[faT('Ответ отправлен', 'Answer sent'),faT('Смотри на общий экран', 'Look at the shared screen')]:[faT('Ты наблюдаешь', 'You\'re watching'),faT('Смотри на общий экран', 'Look at the shared screen')],
+      REVEAL:[faT('Ответ отправлен', 'Answer sent'),faT('Смотри на общий экран', 'Look at the shared screen')],RESULTS:[faT('Ответ отправлен', 'Answer sent'),faT('Смотри на общий экран', 'Look at the shared screen')]}[m.phase]||[faT('Забытая комната', 'The Forgotten Room'),faT('Смотри на общий экран', 'Look at the shared screen')];
+    if((m.phase==='REVEAL'||m.phase==='RESULTS')&&!m.myAnswers&&me)t[0]=faT('Время вышло', 'Time\'s up');
     el('room-watch-title').textContent=t[0];el('room-watch-note').textContent=t[1];
   }
   function buildStage(m){
@@ -123,9 +123,9 @@ function createForgottenRoomController({getState,isAuthenticated,send,makeId,now
     el('room-count').textContent=`${answers.length} / ${m.guessLimit}`;el('room-count').parentElement.dataset.full=String(answers.length>=m.guessLimit);
     const list=el('room-list');list.replaceChildren();
     answers.forEach((a,i)=>{const c=document.createElement('button');c.type='button';c.className='room-chip';c.dataset.nativeButton='';c.dataset.slot=a.slot;
-      const p=placeOf(m,a.slot);c.innerHTML=`<b>${i+1}</b><span>${nameAt(m,a.slot)}<small>${p?.label||''}</small></span><i aria-label="Убрать">✕</i>`;list.append(c);});
-    if(!answers.length){const e=document.createElement('p');e.className='room-empty';e.textContent='Нажимай на места, где что-то изменилось. До 5 меток; нажми на метку ещё раз, чтобы снять';list.append(e);}
-    const go=el('room-send');go.disabled=!!sending||!isAuthenticated();go.textContent=sending?'Отправляю…':answers.length?'Отправить метки':'Отправить без меток';
+      const p=placeOf(m,a.slot);c.innerHTML=faT(`<b>${i+1}</b><span>${nameAt(m,a.slot)}<small>${p?.label||''}</small></span><i aria-label="Убрать">✕</i>`, `<b>${i+1}</b><span>${nameAt(m,a.slot)}<small>${p?.label||''}</small></span><i aria-label="Remove">✕</i>`);list.append(c);});
+    if(!answers.length){const e=document.createElement('p');e.className='room-empty';e.textContent=faT('Нажимай на места, где что-то изменилось. До 5 меток; нажми на метку ещё раз, чтобы снять', 'Tap the spots where something changed. Up to 5 marks; tap a mark again to remove it');list.append(e);}
+    const go=el('room-send');go.disabled=!!sending||!isAuthenticated();go.textContent=sending?faT('Отправляю…', 'Sending…'):answers.length?faT('Отправить метки', 'Send marks'):faT('Отправить без меток', 'Send without marks');
     el('room-error').textContent=error;el('room-error').hidden=!error;
   }
   function tick(){
@@ -147,7 +147,7 @@ function createForgottenRoomController({getState,isAuthenticated,send,makeId,now
     if(!slot){nudge();return;}
     const i=answers.findIndex(a=>a.slot===slot);
     if(i>=0){answers.splice(i,1);try{navigator.vibrate?.(8);}catch{}}
-    else if(answers.length>=m.guessLimit){nudge();toast('Максимум '+m.guessLimit+' меток — нажми на свою метку, чтобы снять');return;}
+    else if(answers.length>=m.guessLimit){nudge();toast(faT('Максимум ', 'Maximum ')+m.guessLimit+faT(' меток — нажми на свою метку, чтобы снять', ' marks — tap your mark to remove it'));return;}
     else{answers.push({slot});try{navigator.vibrate?.(14);}catch{}}
     error='';paintStage(m);paintList(m);
   });
@@ -159,7 +159,7 @@ function createForgottenRoomController({getState,isAuthenticated,send,makeId,now
 
   function event(ev){
     if(!sending)return;
-    if(ev.requestId===sending&&(ev.type==='ERROR')){error=explain(ev.payload?.code)||'Не получилось отправить. Ещё раз?';sending=null;const m=mini();if(m)paintList(m);}
+    if(ev.requestId===sending&&(ev.type==='ERROR')){error=explain(ev.payload?.code)||faT('Не получилось отправить. Ещё раз?', 'Couldn\'t send. Try again?');sending=null;const m=mini();if(m)paintList(m);}
     if(mini()?.myAnswers){sending=null;}
   }
   return {render,reset,suspend,event};
