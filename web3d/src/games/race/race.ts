@@ -991,7 +991,7 @@ const _metal = new Map<string, THREE.MeshStandardMaterial>();
 function metalMat(name: 'metal_plate_02' | 'rusty_metal_02' | 'metal_grate_rusty', tint = 0xffffff, repeat = 1) {
   const key = name + tint + repeat; let m = _metal.get(key); if (m) return m;
   const L = new THREE.TextureLoader(), t = (f: string, srgb = false) => {const x = L.load(`tex/${name}/${f}.jpg`); x.wrapS = x.wrapT = THREE.RepeatWrapping; x.repeat.set(repeat, repeat); x.anisotropy = 4; if (srgb) x.colorSpace = THREE.SRGBColorSpace; return x;};
-  const arm = lx('arm'); m = new THREE.MeshStandardMaterial({map: lx('diffuse', true), normalMap: lx('nor_gl'), roughnessMap: arm, metalnessMap: arm, metalness: 1, roughness: 1, color: tint, envMapIntensity: 1.3});
+  const arm = t('arm'); m = new THREE.MeshStandardMaterial({map: t('diffuse', true), normalMap: t('nor_gl'), roughnessMap: arm, metalnessMap: arm, metalness: 1, roughness: 1, color: tint, envMapIntensity: 1.3});
   _metal.set(key, m); return m;}
 
 function rayTexture() {const c = document.createElement('canvas'); c.width = 64; c.height = 256; const x = c.getContext('2d')!; const g = x.createLinearGradient(0, 0, 0, 256); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(.6, 'rgba(255,255,255,.8)'); g.addColorStop(1, 'rgba(255,255,255,1)');
