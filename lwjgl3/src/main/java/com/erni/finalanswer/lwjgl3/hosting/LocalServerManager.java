@@ -12,7 +12,8 @@ import java.util.concurrent.*;
 public final class LocalServerManager implements HostingAccess {
     private final ScheduledExecutorService worker=Executors.newSingleThreadScheduledExecutor(r->{Thread t=new Thread(r,"FinalAnswer-hosting");t.setDaemon(true);return t;});
     private final HttpClient http=HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build();
-    private final String external;
+    private volatile String external;
+    private final boolean fallbackLocal;
     private final int configuredPort;
     private RoomServer owned;
     private CompletableFuture<String> starting;
@@ -20,7 +21,9 @@ public final class LocalServerManager implements HostingAccess {
     private volatile List<Address> addresses=List.of();
     private boolean closed;
     private final Thread shutdown=new Thread(this::close,"FinalAnswer-owned-server-shutdown");
-    public LocalServerManager(int port,String external){
+    public LocalServerManager(int port,String external){this(port,external,false);}
+    public LocalServerManager(int port,String external,boolean fallbackLocal){
+        this.fallbackLocal=fallbackLocal;
         if(port<0||port>65535)throw new IllegalArgumentException("Invalid local port");
         this.configuredPort=port;this.external=external==null?"":external.replaceAll("/+$","");
         if(!this.external.isEmpty()){
@@ -31,11 +34,15 @@ public final class LocalServerManager implements HostingAccess {
         worker.scheduleWithFixedDelay(this::monitor,5,5,TimeUnit.SECONDS);
     }
     public static LocalServerManager configured(){
-        String url=System.getProperty("finalanswer.server",System.getenv().getOrDefault("FINALANSWER_SERVER_URL",""));
+        // build default (finalanswer-hosting.properties) < environment < -D property
+        Properties built=new Properties();
+        try(var in=LocalServerManager.class.getResourceAsStream("/finalanswer-hosting.properties")){if(in!=null)built.load(new java.io.InputStreamReader(in,java.nio.charset.StandardCharsets.UTF_8));}catch(java.io.IOException ignored){}
+        String url=System.getProperty("finalanswer.server",System.getenv().getOrDefault("FINALANSWER_SERVER_URL",built.getProperty("server.url","").strip()));
+        boolean fallback=Boolean.parseBoolean(built.getProperty("fallback.local","true"))&&System.getProperty("finalanswer.server")==null&&System.getenv("FINALANSWER_SERVER_URL")==null;
         String mode=System.getProperty("finalanswer.hosting",url.isBlank()?"local":"external");
         if(!Set.of("local","external").contains(mode))throw new IllegalArgumentException("finalanswer.hosting must be local or external");
         if(mode.equals("external")&&url.isBlank())throw new IllegalArgumentException("External hosting requires FINALANSWER_SERVER_URL");
-        return new LocalServerManager(Integer.parseInt(System.getProperty("finalanswer.localPort","8080")),mode.equals("local")?"":url);
+        return new LocalServerManager(Integer.parseInt(System.getProperty("finalanswer.localPort","8080")),mode.equals("local")?"":url,fallback);
     }
     @Override public synchronized CompletableFuture<String> ensureReady(){
         if(closed)return CompletableFuture.failedFuture(new IllegalStateException("Hosting has been stopped."));
@@ -52,9 +59,17 @@ public final class LocalServerManager implements HostingAccess {
                 candidate.start();
                 synchronized(this){if(closed)throw new IllegalStateException("Hosting has been stopped.");owned=candidate;api="http://127.0.0.1:"+candidate.port();}
             }
-            long deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(8);
+            long deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(!external.isEmpty()&&fallbackLocal?3:8); // with a fallback, don't make the host wait long for an unreachable cloud
             boolean ready=false;
             do{if(healthy()){ready=true;break;}if(Thread.currentThread().isInterrupted())break;Thread.sleep(120);}while(System.nanoTime()<deadline);
+            if(!ready&&!external.isEmpty()&&fallbackLocal){
+                // cloud unreachable (no internet, outage): keep the party going on this computer's own server, same Wi-Fi
+                System.err.println("Final Answer: "+external+" unreachable, falling back to the local server");
+                external="";candidate=new RoomServer(new ServerConfig("0.0.0.0",configuredPort,"",Set.of(),"",20));candidate.start();
+                synchronized(this){if(closed)throw new IllegalStateException("Hosting has been stopped.");owned=candidate;api="http://127.0.0.1:"+candidate.port();}
+                deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(8);
+                do{if(healthy()){ready=true;break;}Thread.sleep(120);}while(System.nanoTime()<deadline);
+            }
             if(!ready)throw new IllegalStateException("Server did not become ready. Check the configured address and network.");
             refreshAddresses();status=external.isEmpty()?"Local server running · port "+URI.create(api).getPort():"External server ready";result.complete(api);
         }catch(Exception error){

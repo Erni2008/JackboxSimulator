@@ -135,5 +135,10 @@ tasks.register('raceQa', JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'com.finalanswer.server.RoomServer'
     systemProperty 'race.qa', 'true'
+    // load tests come from one IP
+    systemProperty 'server.maxPeers', providers.gradleProperty('race.maxPeers').getOrElse('512')
+    systemProperty 'server.maxPeersPerIp', providers.gradleProperty('race.maxPeers').getOrElse('512')
+    systemProperty 'server.upgradeBurst', '10000'
+    systemProperty 'server.upgradePerSecond', '10000'
     args providers.gradleProperty('race.port').getOrElse('18311')
 }

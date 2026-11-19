@@ -1421,3 +1421,10 @@ tasks.register('deathPreview', JavaExec) {
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
+// Release hosting: an unreachable cloud server falls back to the game's own local server.
+tasks.register('hostingFallbackCheck', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.hosting.HostingFallbackCheck'
+}

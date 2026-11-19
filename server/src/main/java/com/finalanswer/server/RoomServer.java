@@ -14,6 +14,12 @@ public final class RoomServer implements AutoCloseable {
     private final RoomService rooms;
     private final Javalin app;
     private final Map<String,SocketPeer> peers=new ConcurrentHashMap<>();
+    // Connection limits: defaults suit the host's own computer; a cloud server raises them (SERVER_MAX_PEERS etc.).
+    // Per-IP limits matter in the cloud: a whole party behind one Wi-Fi shares one public IP.
+    private static final int MAX_PEERS=limit("server.maxPeers","SERVER_MAX_PEERS",512), MAX_PEERS_PER_IP=limit("server.maxPeersPerIp","SERVER_MAX_PEERS_PER_IP",32),
+        UPGRADE_BURST=limit("server.upgradeBurst","SERVER_UPGRADE_BURST",20);
+    private static final double UPGRADE_RATE=limit("server.upgradePerSecond","SERVER_UPGRADE_PER_SECOND",1);
+    private static int limit(String property,String env,int fallback){try{return Math.max(1,Integer.parseInt(System.getProperty(property,System.getenv().getOrDefault(env,String.valueOf(fallback)))));}catch(NumberFormatException e){return fallback;}}
     private final RateLimit limits=new RateLimit();
     private final ScheduledExecutorService scheduler=Executors.newSingleThreadScheduledExecutor();
     private final ServerConfig config;
@@ -68,15 +74,15 @@ public final class RoomServer implements AutoCloseable {
             c.routes.wsBeforeUpgrade("/ws",ctx->{
                 if(!config.allowsOrigin(ctx.header("Origin"),ctx.header("Host")))throw new RoomService.Failure(403,"ORIGIN_NOT_ALLOWED");
                 String ip=ip(ctx);
-                if(peers.size()>=512||peers.values().stream().filter(p->p.ip().equals(ip)).count()>=32
-                    ||!limits.allow("upgrade:"+ip,20,1))throw new RoomService.Failure(429,"TOO_MANY_CONNECTIONS");
+                if(peers.size()>=MAX_PEERS||peers.values().stream().filter(p->p.ip().equals(ip)).count()>=MAX_PEERS_PER_IP
+                    ||!limits.allow("upgrade:"+ip,UPGRADE_BURST,UPGRADE_RATE))throw new RoomService.Failure(429,"TOO_MANY_CONNECTIONS");
                 ctx.attribute("peerIp",ip);
             });
             c.routes.ws("/ws",ws->{
                 ws.onConnect(ctx->{
                     SocketPeer peer=new SocketPeer(ctx.sessionId,ctx.attribute("peerIp"),ctx.session);
                     synchronized(peers) {
-                        if(peers.size()>=512 || peers.values().stream().filter(p->p.ip().equals(peer.ip())).count()>=32) {
+                        if(peers.size()>=MAX_PEERS || peers.values().stream().filter(p->p.ip().equals(peer.ip())).count()>=MAX_PEERS_PER_IP) {
                             peer.close(1013,"TOO_MANY_CONNECTIONS");return;
                         }
                         peers.put(peer.id(),peer);
