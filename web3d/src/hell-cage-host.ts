@@ -15,7 +15,7 @@ import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
 const params = new URLSearchParams(location.search), hash = new URLSearchParams(location.hash.slice(1));
 const ROOM = params.get('room'), TOKEN = hash.get('token') || params.get('token'), DEMO = !ROOM || params.get('demo') === '1';
-let LANG: 'ru' | 'en' = params.get('lang') === 'en' ? 'en' : 'ru'; const L = (ru: string, en: string) => LANG === 'ru' ? ru : en;
+let LANG: 'ru' | 'en' = (() => {const q = params.get('lang'); if (q === 'ru' || q === 'en') return q; try {const v = sessionStorage.getItem('finalanswer-lang') ?? localStorage.getItem('finalanswer-lang'); if (v === 'ru' || v === 'en') return v;} catch {} return 'en';})(); // URL > stored room language > English; the room state updates it const L = (ru: string, en: string) => LANG === 'ru' ? ru : en;
 const TEX = '../broken-elevator-manual/textures/';
 const CHARS = ['skeleton', 'pumpkin', 'plague_doctor', 'dracula', 'ghost', 'voodoo', 'zombie', 'puppeteer'];
 
@@ -301,7 +301,7 @@ async function poll() {
 let demoTimer: any = 0;
 function demo() { clearInterval(demoTimer); /* a fresh shift: the previous one's ticker must stop */
   for (const c of cages.values()) { scene.remove(c.root); c.label.remove(); } cages.clear(); // a fresh shift: new cages
-  const names = ['Skelly', 'Тыква', 'Доктор', 'Граф', 'Призрак', 'Вуду'], LIMIT = 24_000, INTRO = 4000, BREAK = 4000;
+  const names = ['Skelly', L('Тыква', 'Pumpkin'), L('Доктор', 'Doctor'), L('Граф', 'Count'), L('Призрак', 'Ghost'), L('Вуду', 'Voodoo')], LIMIT = 24_000, INTRO = 4000, BREAK = 4000;
   players = names.map((n, i) => ({id: 'p' + i, name: n, characterId: CHARS[i], online: true, kind: '', cage: {height: 100, fails: 0, repairs: 0, outcome: 'RUNNING', dead: false}}));
   const kinds = ['wire', 'pressure', 'formula', 'lock'].sort(() => Math.random() - .5).slice(0, 2); kinds.splice(1 + Math.floor(Math.random() * 2), 0, 'bomb'); let t0 = Date.now(); const plan = new Map<string, {at: number; ok: boolean}>();
   shift = {phase: 'INTRO', round: -1, rounds: 3, kind: '', kinds, phaseStart: t0, phaseEnd: t0 + INTRO, roundLimit: LIMIT, startM: 100, difficulty: 'NORMAL'};
