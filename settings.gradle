@@ -7,6 +7,9 @@ plugins {
 // if you want to temporarily disable a subproject.
 include 'core', 'lwjgl3'
 
+// In-game Chromium window for the web-based 3D mini-games (child process of the desktop game).
+include 'viewer'
+
 // Dedicated Java server, independent of the desktop client.
 include 'server'
 

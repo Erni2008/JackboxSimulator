@@ -30,6 +30,10 @@ public class FinalAnswerGame extends Game {
         return settings;
     }
 
+    private com.erni.finalanswer.webview.GameWebView webView=com.erni.finalanswer.webview.GameWebView.BROWSER;
+    /** Where the web-based 3D mini-games are shown (in-game view on desktop, browser elsewhere). */
+    public com.erni.finalanswer.webview.GameWebView getWebView(){return webView;}
+    public void setWebView(com.erni.finalanswer.webview.GameWebView view){webView=view==null?com.erni.finalanswer.webview.GameWebView.BROWSER:view;}
     public Localization getTexts() {
         return texts;
     }
@@ -327,6 +331,8 @@ public class FinalAnswerGame extends Game {
         }
         if(activeRoom.host()&&data.has("systemBreach")){openSystemBreach(data);return;}
         if(breachDebug!=null&&!data.has("systemBreach"))releaseSystemBreach();
+        // the race / Hell Cage ended (or was closed): the in-game view closes and the host is back in the game
+        if(activeRoom.host()&&(type.equals("WEB_GAME_CLOSED")||data.has("webGame")&&data.get("webGame").getAsString().isEmpty()))webView.close();
         if(activeRoom.host()&&data.has("lastCommand")){openLastCommand(data,false);return;}
         if(activeRoom.host()&&data.has("cursedCards")){openCursedCards(data);return;}
         if(cardsScreen!=null&&!data.has("cursedCards"))releaseCursedCards(true);

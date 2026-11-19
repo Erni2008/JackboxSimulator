@@ -39,6 +39,7 @@ dependencies {
 
     implementation project(':core')
     implementation project(':server')
+    implementation project(':viewer') // in-game Chromium view for the web mini-games (child process)
 
     if (enableGraalNative == 'true') {
         implementation "io.github.berstanio:gdx-svmhelper-backend-lwjgl3:$graalHelperVersion"

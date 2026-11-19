@@ -1,0 +1,15 @@
+// GAME VIEW: the 3D mini-games (Cursed Run, Hell Cage host screen) are web pages; this module shows them inside the
+// game as a borderless full-screen Chromium window (JCEF) instead of an external browser. It runs as a child process
+// of the desktop game (GLFW and AWT cannot share one process reliably on macOS) and is controlled over stdin.
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+eclipse.project.name = appName + '-viewer'
+java.sourceCompatibility = 21
+java.targetCompatibility = 21
+
+dependencies {
+    implementation "me.friwi:jcefmaven:146.0.10"
+}
+
+tasks.register('printClasspath') {
+    doLast {println sourceSets.main.runtimeClasspath.asPath}
+}

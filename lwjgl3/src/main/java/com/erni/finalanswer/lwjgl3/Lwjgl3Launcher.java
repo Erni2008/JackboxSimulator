@@ -31,6 +31,7 @@ public class Lwjgl3Launcher {
 
         com.erni.finalanswer.lwjgl3.display.DesktopBorderless.install();
         FinalAnswerGame game=Boolean.getBoolean("finalanswer.selfCheck")?new com.erni.finalanswer.lwjgl3.hosting.ApplicationSelfCheck(hosting):new FinalAnswerGame(hosting);
+        game.setWebView(new com.erni.finalanswer.lwjgl3.webview.DesktopGameWebView()); // 3D web mini-games inside the game, not in a browser
         var application=new Lwjgl3Application(game,getDefaultConfiguration());
         if(game instanceof com.erni.finalanswer.lwjgl3.hosting.ApplicationSelfCheck check)check.verify();
         return application;
