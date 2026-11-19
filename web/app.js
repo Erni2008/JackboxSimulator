@@ -1,8 +1,8 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const screens=['join','waiting','question','result','finished','disconnected','suspicion','impostor','final','cursed','ghost','blackout','lastcommand','cards','room','fsec','breach'];
-const messages={ROOM_NOT_FOUND:'ROOM NOT FOUND — check the six-character code.',ROOM_IS_FULL:'ROOM IS FULL.',CHARACTER_IN_USE:'That character belongs to another player. Choose a different character.',PLAYER_OFFLINE:'A player is disconnected. Reconnect before starting.',NOT_ENOUGH_PLAYERS:'At least one connected player is required.',GAME_ALREADY_STARTED:'GAME ALREADY STARTED. Only returning guests can rejoin.',INVALID_NICKNAME:'INVALID NICKNAME — use 1–24 characters.',NICKNAME_IN_USE:'That nickname is already taken.',INVALID_PASSWORD:'INVALID PASSWORD.',RATE_LIMITED:'Too many attempts. Wait a moment and try again.',SESSION_ENDED:'Your session has ended. Join a room again.',HOST_DISCONNECTED:'The host disconnected.',HOST_CLOSED_ROOM:'The host closed this room.',SERVER_SHUTDOWN:'The server is restarting. Please join again shortly.',ANSWER_TOO_LATE:"TIME’S UP — your answer arrived after the deadline.",ANSWER_ALREADY_SUBMITTED:'ANSWER SUBMITTED — your first answer is final.',ANSWERING_NOT_STARTED:'Wait for the host to finish presenting the question.',CONNECTION_LOST:'CONNECTION LOST — reconnecting to your seat…',SESSION_REPLACED:'This session was opened in another tab. Join separately to play as another guest.'};
-const explanation=code=>messages[code]||String(code||'Connection error. Please try again.').replaceAll('_',' ');
+const messages={get ROOM_NOT_FOUND(){return faT('КОМНАТА НЕ НАЙДЕНА — проверьте шестизначный код.', 'ROOM NOT FOUND — check the six-character code.')},get ROOM_IS_FULL(){return faT('КОМНАТА ЗАПОЛНЕНА.', 'ROOM IS FULL.')},get CHARACTER_IN_USE(){return faT('Этот персонаж уже у другого игрока. Выберите другого.', 'That character belongs to another player. Choose a different character.')},get PLAYER_OFFLINE(){return faT('Один из игроков отключился. Переподключитесь перед стартом.', 'A player is disconnected. Reconnect before starting.')},get NOT_ENOUGH_PLAYERS(){return faT('Нужен хотя бы один подключённый игрок.', 'At least one connected player is required.')},get GAME_ALREADY_STARTED(){return faT('ИГРА УЖЕ ИДЁТ. Вернуться могут только её участники.', 'GAME ALREADY STARTED. Only returning guests can rejoin.')},INVALID_NICKNAME:'INVALID NICKNAME — use 1–24 characters.',get NICKNAME_IN_USE(){return faT('Это имя уже занято.', 'That nickname is already taken.')},get INVALID_PASSWORD(){return faT('НЕВЕРНЫЙ ПАРОЛЬ.', 'INVALID PASSWORD.')},get RATE_LIMITED(){return faT('Слишком много попыток. Подождите немного и попробуйте снова.', 'Too many attempts. Wait a moment and try again.')},get SESSION_ENDED(){return faT('Сессия завершена. Войдите в комнату заново.', 'Your session has ended. Join a room again.')},get HOST_DISCONNECTED(){return faT('Ведущий отключился.', 'The host disconnected.')},get HOST_CLOSED_ROOM(){return faT('Ведущий закрыл комнату.', 'The host closed this room.')},get SERVER_SHUTDOWN(){return faT('Сервер перезапускается. Войдите снова чуть позже.', 'The server is restarting. Please join again shortly.')},get ANSWER_TOO_LATE(){return faT('ВРЕМЯ ВЫШЛО — ответ пришёл после окончания отсчёта.', "TIME’S UP — your answer arrived after the deadline.")},get ANSWER_ALREADY_SUBMITTED(){return faT('ОТВЕТ ОТПРАВЛЕН — засчитывается первый ответ.', 'ANSWER SUBMITTED — your first answer is final.')},get ANSWERING_NOT_STARTED(){return faT('Дождитесь, пока ведущий зачитает вопрос.', 'Wait for the host to finish presenting the question.')},get CONNECTION_LOST(){return faT('СВЯЗЬ ПОТЕРЯНА — возвращаем вас на место…', 'CONNECTION LOST — reconnecting to your seat…')},get SESSION_REPLACED(){return faT('Эта сессия открыта в другой вкладке. Чтобы играть ещё одним гостем, войдите отдельно.', 'This session was opened in another tab. Join separately to play as another guest.')}};
+const explanation=code=>messages[code]||String(code||faT('Ошибка соединения. Попробуйте ещё раз.', 'Connection error. Please try again.')).replaceAll('_',' ');
 let credentials=null,ws=null,state=null,authenticated=false,generation=0,retries=0,retryTimer=null,heartbeat=null,pending=null,pendingTimer=null,currentScreen='',questionKey='',serverTime=0,receivedAt=0,stopped=false,reconnectAt=0;
 const pings=new Map();
 const impostorPhoneAudio=createImpostorPhoneAudio();
@@ -17,7 +17,7 @@ function ping(){
 }
 function updateReconnect(){
   if(currentScreen!=='disconnected')return;
-  $('reconnect-countdown').textContent=reconnectAt>0?`NEXT ATTEMPT · ${Math.max(0,Math.ceil((reconnectAt-performance.now())/1000))}s`:'';
+  $('reconnect-countdown').textContent=reconnectAt>0?faT(`СЛЕДУЮЩАЯ ПОПЫТКА · ${Math.max(0,Math.ceil((reconnectAt-performance.now())/1000))} с`, `NEXT ATTEMPT · ${Math.max(0,Math.ceil((reconnectAt-performance.now())/1000))}s`):'';
 }
 const systemBreach=createSystemBreachController({getState:()=>state,isAuthenticated:()=>authenticated,send,makeId:id,now});
 const lastCommand=createLastCommandController({getState:()=>state,isAuthenticated:()=>authenticated,send});
@@ -28,33 +28,33 @@ const cards=createCursedCardsController({getState:()=>state,isAuthenticated:()=>
 const finalVoting=createFinalVotingController({getState:()=>state,isAuthenticated:()=>authenticated,send,now,makeId:id});
 const impostor=createImpostorController({getState:()=>state,isAuthenticated:()=>authenticated,send,now,makeId:id});
 const suspicion=createSuspicionController({getState:()=>state,isAuthenticated:()=>authenticated,send,now,explain:code=>explanation(code),makeId:id});
-Object.assign(messages,{SUSPICION_TOO_LATE:'The suspicion deadline has passed.',SUSPICION_CLOSED:'Suspicions are sealed.',INVALID_SUSPECT:'Choose an active participant.',SELF_SUSPICION:'You cannot suspect yourself.',NOT_ELIGIBLE:'You are not eligible in this phase.',STALE_SUSPICION:'This suspicion round has ended.',WRONG_ROOM:'This request belongs to another room.',INVALID_SUSPICION:'Invalid selection. Please reconnect and try again.'});
+Object.defineProperties(messages,Object.getOwnPropertyDescriptors({get SUSPICION_TOO_LATE(){return faT('Время на подозрение вышло.', 'The suspicion deadline has passed.')},get SUSPICION_CLOSED(){return faT('Подозрения запечатаны.', 'Suspicions are sealed.')},get INVALID_SUSPECT(){return faT('Выберите активного участника.', 'Choose an active participant.')},get SELF_SUSPICION(){return faT('Нельзя подозревать себя.', 'You cannot suspect yourself.')},get NOT_ELIGIBLE(){return faT('В этой фазе вы не участвуете.', 'You are not eligible in this phase.')},get STALE_SUSPICION(){return faT('Раунд подозрений окончен.', 'This suspicion round has ended.')},get WRONG_ROOM(){return faT('Этот запрос относится к другой комнате.', 'This request belongs to another room.')},get INVALID_SUSPICION(){return faT('Неверный выбор. Переподключитесь и попробуйте снова.', 'Invalid selection. Please reconnect and try again.')}}));
 try{credentials=JSON.parse(sessionStorage.getItem('finalanswer-session')||'null');}catch{credentials=null;}
 // host plays from the streaming PC: the desktop game opens /#seat=<base64url json> with a seat it already joined
 {const m=/^#seat=([A-Za-z0-9_-]+)$/.exec(location.hash);if(m){try{const seat=JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(m[1].replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0))));if(seat.code&&seat.token)credentials={code:String(seat.code),token:String(seat.token),name:String(seat.name||'')};}catch{}history.replaceState(null,'',location.pathname);try{sessionStorage.setItem('finalanswer-session',JSON.stringify(credentials));}catch{}}}
 function id(){return Array.from(crypto.getRandomValues(new Uint32Array(4)),n=>n.toString(16)).join('');}
 function show(name){if(currentScreen===name)return;if(currentScreen==='lastcommand')lastCommand.suspend();if(currentScreen==='impostor')impostor.hide();if(currentScreen==='cursed')cursed.suspend();if(currentScreen==='cards')cards.suspend();if(currentScreen==='room')forgotten.suspend();if(currentScreen==='fsec')finalSecond.suspend();currentScreen=name;document.body.dataset.view=name;if(!['cursed','impostor','suspicion','final'].includes(name))renderControllerPresentation(null);document.body.dataset.controller=name==='cursed'?'cursed':'';screens.forEach(s=>$(s+'-screen').hidden=s!==name);window.scrollTo(0,0);}
 function status(text,offline=false){$('connection').textContent=text;$('connection').classList.toggle('offline',offline);}
-function save(){try{if(credentials)sessionStorage.setItem('finalanswer-session',JSON.stringify(credentials));else sessionStorage.removeItem('finalanswer-session');}catch{status('Storage unavailable — keep this tab open.',true);}}
+function save(){try{if(credentials)sessionStorage.setItem('finalanswer-session',JSON.stringify(credentials));else sessionStorage.removeItem('finalanswer-session');}catch{status(faT('Хранилище недоступно — не закрывайте эту вкладку.', 'Storage unavailable — keep this tab open.'),true);}}
 function send(type,payload={},requestId=id()){if(ws?.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type,requestId,payload}));return requestId;}
 function now(){return serverTime+performance.now()-receivedAt;}
 function sessionFields(){return {roomCode:credentials.code,gameId:state.gameId,questionId:state.question.id};}
 function stop(){systemBreach.reset();lastCommand.suspend();impostorPhoneAudio.suspend();reconnectAt=0;cursed.reset();cards.reset();forgotten.reset();finalSecond.reset();suspicion.reset();impostor.reset();finalVoting.reset();stopped=true;generation++;authenticated=false;clearTimeout(retryTimer);clearTimeout(pendingTimer);clearInterval(heartbeat);heartbeatWatch.clear();if(ws){ws.close();ws=null;}}
-function end(code){stop();credentials=null;save();state=null;pending=null;$('session-footer').hidden=true;show('join');$('join-error').textContent=explanation(code);status('THE CONNECTION HAS ENDED',true);}
-function lost(version){lastCommand.suspend();if(version!==generation||stopped)return;impostorPhoneAudio.suspend();cursed.suspend();suspicion.reset();impostor.suspend();finalVoting.reset();authenticated=false;generation++;clearInterval(heartbeat);heartbeatWatch.clear();clearTimeout(pendingTimer);pending=null;status('CONNECTION LOST',true);show('disconnected');$('retry').hidden=false;
+function end(code){stop();credentials=null;save();state=null;pending=null;$('session-footer').hidden=true;show('join');$('join-error').textContent=explanation(code);status(faT('СОЕДИНЕНИЕ ЗАВЕРШЕНО', 'THE CONNECTION HAS ENDED'),true);}
+function lost(version){lastCommand.suspend();if(version!==generation||stopped)return;impostorPhoneAudio.suspend();cursed.suspend();suspicion.reset();impostor.suspend();finalVoting.reset();authenticated=false;generation++;clearInterval(heartbeat);heartbeatWatch.clear();clearTimeout(pendingTimer);pending=null;status(faT('СВЯЗЬ ПОТЕРЯНА', 'CONNECTION LOST'),true);show('disconnected');$('retry').hidden=false;
   reconnectAt=0;
-  if(++retries>12){$('disconnect-message').textContent='We could not reconnect. Your seat is reserved for this session; try again when the connection returns.';return;}
+  if(++retries>12){$('disconnect-message').textContent=faT('Не удалось переподключиться. Ваше место сохранено на эту сессию — попробуйте снова, когда вернётся связь.', 'We could not reconnect. Your seat is reserved for this session; try again when the connection returns.');return;}
   const delay=Math.min(15000,500*2**Math.min(retries-1,5))+Math.random()*200;
   reconnectAt=performance.now()+delay;updateReconnect();
-  $('disconnect-message').textContent='The signal dropped. Reconnecting to your seat…';
+  $('disconnect-message').textContent=faT('Сигнал пропал. Возвращаем вас на место…', 'The signal dropped. Reconnecting to your seat…');
   retryTimer=setTimeout(connect,delay);
 }
 function connect(){if(!credentials)return;reconnectAt=0;updateReconnect();stopped=false;clearTimeout(retryTimer);clearInterval(heartbeat);heartbeatWatch.clear();const version=++generation;if(ws){ws.onclose=null;ws.close();}authenticated=false;
-  status('CONNECTING TO THE SHOW',true);show('disconnected');$('disconnect-message').textContent='Restoring your seat…';
+  status(faT('ПОДКЛЮЧАЕМСЯ К ШОУ', 'CONNECTING TO THE SHOW'),true);show('disconnected');$('disconnect-message').textContent=faT('Восстанавливаем ваше место…', 'Restoring your seat…');
   const socket=new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}/ws`);ws=socket;
   const authTimeout=setTimeout(()=>{if(version===generation&&!authenticated)socket.close();},10000);
   socket.onopen=()=>{if(version!==generation){socket.close();return;}send('AUTH',{roomCode:credentials.code,token:credentials.token});};
-  socket.onmessage=e=>{if(version!==generation)return;try{handle(JSON.parse(e.data));}catch{status('Could not read a server update. Reconnecting…',true);socket.close();}};
+  socket.onmessage=e=>{if(version!==generation)return;try{handle(JSON.parse(e.data));}catch{status(faT('Не удалось прочитать ответ сервера. Переподключаемся…', 'Could not read a server update. Reconnecting…'),true);socket.close();}};
   socket.onclose=e=>{clearTimeout(authTimeout);if(version!==generation)return;if(e.code===4001){end('SESSION_REPLACED');return;}if(e.code===4002){end(e.reason);return;}lost(version);};
   socket.onerror=()=>{socket.close();};
 }
@@ -82,7 +82,7 @@ function handle(event){const payload=event.payload||{};heartbeatWatch.acknowledg
     pending=null;clearTimeout(pendingTimer);$('answer-status').textContent=explanation(code);status(explanation(code),true);if(event.type==='ANSWER_REJECTED'&&code!=='RATE_LIMITED')send('SYNC');return;
   }
   if(event.type==='AUTHENTICATED'){
-    authenticated=true;retries=0;pending=null;status('CONNECTED · YOUR SEAT IS SECURE');
+    authenticated=true;retries=0;pending=null;status(faT('ПОДКЛЮЧЕНО · ВАШЕ МЕСТО ЗА ВАМИ', 'CONNECTED · YOUR SEAT IS SECURE'));
     clearInterval(heartbeat);heartbeatWatch.clear();heartbeat=setInterval(ping,10000);
   }
   if(!payload.roomId)return;
@@ -128,8 +128,8 @@ function render(){
   }
   if(state.phase==='LOBBY'||state.phase==='STARTING'){
     show('waiting');$('room-label').textContent=`ROOM ${state.code} · ${state.name}`;
-    $('waiting-title').textContent=state.intro?'THE SHOW IS ABOUT TO BEGIN':state.impostor?.phase==='REPLAY_PREPARATION'?'WAITING FOR HOST...':state.phase==='LOBBY'?"You're on the list.":'The doors are closing…';
-    $('waiting-message').textContent=state.intro?'Watch the main screen. Your place is saved; answers will open after the introduction.':state.impostor?.phase==='REPLAY_PREPARATION'?'The previous match is complete. The host will start a fresh match.':!state.hostConnected?'Host disconnected. Waiting for reconnection.':state.phase==='LOBBY'?'The host will begin the show shortly.':`${state.roundTitle||'ROUND 1'} · ${Math.max(0,Math.ceil((state.transitionEndsAt-now())/1000))}s`;
+    $('waiting-title').textContent=state.intro?faT('ШОУ ВОТ-ВОТ НАЧНЁТСЯ', 'THE SHOW IS ABOUT TO BEGIN'):state.impostor?.phase==='REPLAY_PREPARATION'?faT('ЖДЁМ ВЕДУЩЕГО...', 'WAITING FOR HOST...'):state.phase==='LOBBY'?faT('Вы в списке.', "You're on the list."):'The doors are closing…';
+    $('waiting-message').textContent=state.intro?'Watch the main screen. Your place is saved; answers will open after the introduction.':state.impostor?.phase==='REPLAY_PREPARATION'?faT('Прошлая партия окончена. Ведущий начнёт новую.', 'The previous match is complete. The host will start a fresh match.'):!state.hostConnected?faT('Ведущий отключился. Ждём переподключения.', 'Host disconnected. Waiting for reconnection.'):state.phase==='LOBBY'?faT('Ведущий скоро начнёт шоу.', 'The host will begin the show shortly.'):`${state.roundTitle||'ROUND 1'} · ${Math.max(0,Math.ceil((state.transitionEndsAt-now())/1000))}s`;
     $('player-name').textContent=self?.name||credentials.name;$('character-name').textContent=`${self?.characterId?.replace('_',' ').toUpperCase()||'GUEST'}`;
     const guests=state.players.filter(player=>!player.host);
     $('room-connected').textContent=`${guests.filter(player=>player.connectionStatus==='ONLINE').length} / ${guests.length} CONNECTED`;
@@ -142,23 +142,23 @@ function render(){
       row.dataset.connection=player.connectionStatus;row.classList.toggle('is-self',player.id===state.selfId);
       name.textContent=player.name;name.className='guest-name';
       if(player.id===state.selfId){const you=document.createElement('span');you.className='guest-you';you.textContent='YOU';name.append(you);}
-      flag.textContent=player.connectionStatus==='ONLINE'?'CONNECTED':player.connectionStatus==='OFFLINE'?'RECONNECTING':player.connectionStatus;
+      flag.textContent=player.connectionStatus==='ONLINE'?faT('НА СВЯЗИ', 'CONNECTED'):player.connectionStatus==='OFFLINE'?faT('ПЕРЕПОДКЛЮЧАЕТСЯ', 'RECONNECTING'):player.connectionStatus;
       flag.className='guest-connection';row.append(name,flag);$('players').append(row);
     }}return;
   }
   if(state.phase==='GAME_FINISHED'){
-    show('finished');$('finish-message').textContent=state.finishReason==='COMPLETED'?'You made it through every question. Thank you for playing.':'The show ended because the host connection was lost.';$('final-score').textContent=`${self?.score||0} POINTS`;renderFinalStandings();return;
+    show('finished');$('finish-message').textContent=state.finishReason==='COMPLETED'?faT('Вы прошли все вопросы. Спасибо за игру.', 'You made it through every question. Thank you for playing.'):faT('Шоу окончено: пропала связь с ведущим.', 'The show ended because the host connection was lost.');$('final-score').textContent=`${self?.score||0} POINTS`;renderFinalStandings();return;
   }
   renderLifeRoster();
   if(isGhost(self)&&!state.question){
     show('ghost');$('ghost-player-name').textContent=self.name;
-    $('ghost-question').textContent=state.question?.text||'Watch the shared screen.';return;
+    $('ghost-question').textContent=state.question?.text||faT('Смотрите на общий экран.', 'Watch the shared screen.');return;
   }
   if(state.phase==='RESULTS'){
     // the verdict belongs to the host's screen: a phone never learns here whether it was right or how the others did
     show('result');const result=state.results.find(r=>r.playerId===state.selfId);$('result-screen').dataset.outcome=result?.answeredInTime?'sealed':'timeout';
-    $('result-title').textContent=result?.answeredInTime?faT('Ответ отправлен', 'Answer sent'):faT('Время вышло', 'Time\'s up');
-    $('result-detail').textContent=result?.answeredInTime?'The host reveals the truth. Watch the shared screen.':'No answer reached the host in time. Watch the shared screen.';
+    $('result-title').textContent=result?.answeredInTime?faT('Ответ отправлен', faT('Ответ отправлен', 'Answer sent')):faT('Время вышло', 'Time\'s up');
+    $('result-detail').textContent=result?.answeredInTime?faT('Ведущий раскрывает правду. Смотрите на общий экран.', 'The host reveals the truth. Watch the shared screen.'):faT('Ответ не дошёл до ведущего вовремя. Смотрите на общий экран.', 'No answer reached the host in time. Watch the shared screen.');
     $('correct-answer').textContent='';$('result-score').textContent=`QUESTION ${state.questionNumber} / ${state.questionCount}`;return;
   }
   show('question');const q=state.question,key=state.gameId+':'+state.questionNumber+':'+q.id;
@@ -189,8 +189,8 @@ function renderLifeRoster(){
     card.hidden=!self;
     if(card.dataset.life!==life){
       card.dataset.life=life;
-      card.querySelector('span').textContent=ghost?'YOU ARE A GHOST':'YOU ARE ALIVE';
-      card.querySelector('p').textContent=ghost?'Keep answering and earning points. In Cursed Boxes, you choose shot targets without risking elimination.':'Answer questions and earn points. Wrong answers may send you to an elimination game.';
+      card.querySelector('span').textContent=ghost?faT('ВЫ ПРИЗРАК', 'YOU ARE A GHOST'):faT('ВЫ ЖИВЫ', 'YOU ARE ALIVE');
+      card.querySelector('p').textContent=ghost?faT('Продолжайте отвечать и зарабатывать очки. В Проклятых коробках вы выбираете цели без риска выбыть.', 'Keep answering and earning points. In Cursed Boxes, you choose shot targets without risking elimination.'):faT('Отвечайте на вопросы и зарабатывайте очки. Ошибка может отправить вас в игру на выбывание.', 'Answer questions and earn points. Wrong answers may send you to an elimination game.');
     }
   }
   const players=state.players.filter(player=>!player.host);
@@ -200,7 +200,7 @@ function renderLifeRoster(){
     target.dataset.roster=key;target.replaceChildren();
     const heading=document.createElement('p');heading.className='eyebrow';
     const ghosts=players.filter(isGhost).length;
-    heading.textContent=`STILL IN THE GAME · ${players.length-ghosts} ALIVE / ${ghosts} GHOSTS`;target.append(heading);
+    heading.textContent=faT(`ЕЩЁ В ИГРЕ · ${players.length-ghosts} ЖИВЫХ / ${ghosts} ПРИЗРАКОВ`, `STILL IN THE GAME · ${players.length-ghosts} ALIVE / ${ghosts} GHOSTS`);target.append(heading);
     const list=document.createElement('ul');
     for(const player of players){
       const item=document.createElement('li'),name=document.createElement('span'),badge=document.createElement('span');
@@ -233,17 +233,17 @@ function updateClock(){if(currentScreen!=='question'||!state)return;
   if($('answer-receipt-value').textContent!==view.receipt)$('answer-receipt-value').textContent=view.receipt;
   if(view.remaining===0)updateButtons();
 }
-function submit(index){if(!authenticated||state.phase!=='ANSWERING'||state.hasSubmittedAnswer||pending!==null||now()>=state.deadline)return;pending=index;render();send('SUBMIT_ANSWER',{...sessionFields(),answerIndex:index});pendingTimer=setTimeout(()=>{pending=null;send('SYNC');$('answer-status').textContent='Checking whether your answer was received…';updateButtons();},5000);}
+function submit(index){if(!authenticated||state.phase!=='ANSWERING'||state.hasSubmittedAnswer||pending!==null||now()>=state.deadline)return;pending=index;render();send('SUBMIT_ANSWER',{...sessionFields(),answerIndex:index});pendingTimer=setTimeout(()=>{pending=null;send('SYNC');$('answer-status').textContent=faT('Проверяем, принят ли ответ…', 'Checking whether your answer was received…');updateButtons();},5000);}
 $('join-form').addEventListener('submit',async event=>{event.preventDefault();if($('join-button').disabled)return;
   $('join-error').textContent='';const code=$('room-code').value.trim().toUpperCase(),name=$('nickname').value.trim();
-  if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code)){$('join-error').textContent='INVALID CODE — enter the six-character room code.';$('room-code').focus();return;}
+  if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code)){$('join-error').textContent=faT('НЕВЕРНЫЙ КОД — введите шестизначный код комнаты.', 'INVALID CODE — enter the six-character room code.');$('room-code').focus();return;}
   if(!name||name.length>24||/[\u0000-\u001f\u007f]/.test(name)){$('join-error').textContent='INVALID NICKNAME — use 1–24 characters.';$('nickname').focus();return;}
   $('join-button').disabled=true;const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),10000);
-  try{const response=await fetch(`/rooms/${encodeURIComponent(code)}/join`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({name,password:$('password').value,characterId:$('character').value}),signal:abort.signal});const data=await response.json();if(!response.ok)throw new Error(explanation(data.error));credentials={code:data.code,token:data.token,name};save();$('password').value='';retries=0;state=null;connect();}catch(error){$('join-error').textContent=error.name==='AbortError'?'CONNECTION LOST — the server did not respond.':error.message||'Unable to join. Please try again.';}finally{clearTimeout(timer);$('join-button').disabled=false;refreshCharacters();}
+  try{const response=await fetch(`/rooms/${encodeURIComponent(code)}/join`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({name,password:$('password').value,characterId:$('character').value}),signal:abort.signal});const data=await response.json();if(!response.ok)throw new Error(explanation(data.error));credentials={code:data.code,token:data.token,name};save();$('password').value='';retries=0;state=null;connect();}catch(error){$('join-error').textContent=error.name==='AbortError'?faT('СВЯЗЬ ПОТЕРЯНА — сервер не ответил.', 'CONNECTION LOST — the server did not respond.'):error.message||faT('Не удалось войти. Попробуйте ещё раз.', 'Unable to join. Please try again.');}finally{clearTimeout(timer);$('join-button').disabled=false;refreshCharacters();}
 });
 $('room-code').addEventListener('input',()=>{$('room-code').value=$('room-code').value.toUpperCase().replace(/[^A-Z2-9]/g,'');});
 $('retry').addEventListener('click',()=>{retries=0;connect();});
-$('leave').addEventListener('click',async()=>{const saved=credentials;stop();credentials=null;save();state=null;pending=null;questionKey='';$('session-footer').hidden=true;show('join');status('YOUR SEAT IS WAITING');if(saved)try{await fetch(`/rooms/${encodeURIComponent(saved.code)}/leave`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({token:saved.token})});}catch{/* Disconnect still preserves the seat until the server expires it. */}});
+$('leave').addEventListener('click',async()=>{const saved=credentials;stop();credentials=null;save();state=null;pending=null;questionKey='';$('session-footer').hidden=true;show('join');status(faT('ВАШЕ МЕСТО ЖДЁТ', 'YOUR SEAT IS WAITING'));if(saved)try{await fetch(`/rooms/${encodeURIComponent(saved.code)}/leave`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({token:saved.token})});}catch{/* Disconnect still preserves the seat until the server expires it. */}});
 window.addEventListener('online',()=>{if(credentials&&!authenticated){retries=0;connect();}});
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden){heartbeatWatch.clear();return;}
