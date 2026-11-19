@@ -1,5 +1,7 @@
 package com.erni.finalanswer.impostor;
 
+import com.erni.finalanswer.localization.Localization;
+
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
@@ -48,7 +50,7 @@ public final class ImpostorParticipantView extends Group {
     }
     private Boolean readyState;
     private static final Color READY_COLOR=Color.valueOf("BCD5A6"),WAITING_COLOR=Color.valueOf("BDAA93");
-    public void ready(Boolean ready){if(java.util.Objects.equals(readyState,ready))return;readyState=ready;readyLabel.setVisible(ready!=null);if(ready!=null){readyLabel.setText(ready?"СЛОВО ПРИНЯТО":"ПИШЕТ СЛОВО");readyLabel.setColor(ready?READY_COLOR:WAITING_COLOR);}}
+    public void ready(Boolean ready){if(java.util.Objects.equals(readyState,ready))return;readyState=ready;readyLabel.setVisible(ready!=null);if(ready!=null){readyLabel.setText(ready?Localization.tr("СЛОВО ПРИНЯТО", "WORD ACCEPTED"):Localization.tr("ПИШЕТ СЛОВО", "WRITING A WORD"));readyLabel.setColor(ready?READY_COLOR:WAITING_COLOR);}}
     private float portraitY=Float.NaN;
     public void updatePortrait(float delta,boolean reduced){updatePortrait(delta,reduced,-1);}
     public void updatePortrait(float delta,boolean reduced,float eliminatedAge){
@@ -92,7 +94,7 @@ public final class ImpostorParticipantView extends Group {
             portrait.addActor(avatar);
             addActor(portrait);elimination=new ImpostorElimination(portrait);
         }
-        eliminationLabel=new Label("РАСКРЫТ",new Label.LabelStyle(font,Color.valueOf("D89A9F")));eliminationLabel.setName("eliminationStatus");eliminationLabel.setFontScale(.5f);eliminationLabel.setAlignment(Align.center);eliminationLabel.setBounds(0,-14,194,20);eliminationLabel.setVisible(false);addActor(eliminationLabel);
+        eliminationLabel=new Label(Localization.tr("РАСКРЫТ", "EXPOSED"),new Label.LabelStyle(font,Color.valueOf("D89A9F")));eliminationLabel.setName("eliminationStatus");eliminationLabel.setFontScale(.5f);eliminationLabel.setAlignment(Align.center);eliminationLabel.setBounds(0,-14,194,20);eliminationLabel.setVisible(false);addActor(eliminationLabel);
         readyLabel=new Label("",new Label.LabelStyle(font,Color.WHITE));readyLabel.setName("clueReadiness");readyLabel.setAlignment(Align.center);readyLabel.setFontScale(.68f);readyLabel.setBounds(-10,-40,214,26);readyLabel.setVisible(false);addActor(readyLabel);
         Label nickname = new Label(participant.player().name(), new Label.LabelStyle(nicknameFont,
                 com.erni.finalanswer.ui.PlayerColors.light(participant.player().characterId())));

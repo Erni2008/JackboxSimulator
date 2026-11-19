@@ -1,5 +1,7 @@
 package com.erni.finalanswer.systembreach.host;
 
+import com.erni.finalanswer.localization.Localization;
+
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -46,8 +48,8 @@ final class LeaderboardPanel {
         b.flush();com.badlogic.gdx.scenes.scene2d.utils.ScissorStack.popScissors();
     }
     void text(SpriteBatch b,SbPaint p,SystemBreachHostAssets as,SystemBreachHostViewModel vm){
-        p.text(b,as.heading,vm.results()?(vm.ru()?"ИТОГИ":"RESULTS"):(vm.ru()?"ЛИДЕРЫ":"LEADERBOARD"),BOARD.x+200,BOARD.y+BOARD.height/2+as.heading.getCapHeight()/2+6,SbPaint.GREEN,1);
-        if(vm.finished())p.text(b,as.labelSmall,vm.ru()?"ENTER - В ЛОББИ":"ENTER - BACK TO LOBBY",BOARD.x+204,BOARD.y+38,SbPaint.IVORY,.75f);
+        p.text(b,as.heading,vm.results()?(vm.ru()?Localization.tr("ИТОГИ", "RESULTS"):"RESULTS"):(vm.ru()?Localization.tr("ЛИДЕРЫ", "LEADERS"):"LEADERBOARD"),BOARD.x+200,BOARD.y+BOARD.height/2+as.heading.getCapHeight()/2+6,SbPaint.GREEN,1);
+        if(vm.finished())p.text(b,as.labelSmall,vm.ru()?Localization.tr("ENTER - В ЛОББИ", "ENTER - TO LOBBY"):"ENTER - BACK TO LOBBY",BOARD.x+204,BOARD.y+38,SbPaint.IVORY,.75f);
         p.icon(b,as.iconBig,SbIcons.TROPHY,BOARD.x+110,BOARD.y+BOARD.height/2,SbPaint.GOLD,1,1.35f,0);
         var top=vm.ranking();
         for(int i=0;i<Math.min(3,top.size());i++){

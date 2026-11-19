@@ -1,5 +1,7 @@
 package com.erni.finalanswer.screens;
 
+import com.erni.finalanswer.localization.Localization;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.ScreenAdapter;
@@ -130,21 +132,21 @@ public final class CageLobbyScreen extends ScreenAdapter {
         cards=button("THE CURSED CARDS",60,style,game::startCursedCards);cards.setBounds(60,210,520,54);cards.getLabel().setFontScale(.68f);
         // Individual mode buttons stay as the enable/disable source of truth; the selector drives them.
         for(var b:new TextButton[]{play,impostor,cursed,lastCommand,cards})b.setVisible(false);
-        modes.add(new Mode("ВОПРОСЫ (ОСНОВНАЯ ИГРА)","от 1 игрока",play,game::showPlayScreen));
-        modes.add(new Mode("THE IMPOSTOR","от 3 игроков",impostor,game::showImpostorLobby));
-        modes.add(new Mode("CURSED BOXES","от 2 игроков",cursed,game::startCursedBoxesMultiplayer));
+        modes.add(new Mode(Localization.tr("ВОПРОСЫ (ОСНОВНАЯ ИГРА)", "QUESTIONS (MAIN GAME)"),Localization.tr("от 1 игрока", "1+ players"),play,game::showPlayScreen));
+        modes.add(new Mode("THE IMPOSTOR",Localization.tr("от 3 игроков", "3+ players"),impostor,game::showImpostorLobby));
+        modes.add(new Mode("CURSED BOXES",Localization.tr("от 2 игроков", "2+ players"),cursed,game::startCursedBoxesMultiplayer));
         // THE LAST COMMAND is parked (2026-11-08): it will come back with a new interpretation; its code stays.
-        if(LAST_COMMAND_ENABLED)modes.add(new Mode("THE LAST COMMAND","от 1 игрока",lastCommand,game::startLastCommand));
-        modes.add(new Mode("THE CURSED CARDS","4–6 игроков",cards,game::startCursedCards));
-        modes.add(new Mode("SYSTEM BREACH","2–8 игроков · Phase 1 · только очки",null,game::startSystemBreach));
-        modes.add(new Mode("THE FINAL SECOND","2–8 игроков · останови таймер на 7,00 с вслепую",null,game::startFinalSecond));
-        if(FORGOTTEN_ROOM_ENABLED)for(String[] d:new String[][]{{"EASY","ЛЁГКИЙ","8–10 предметов · 2 изменения"},{"MEDIUM","СРЕДНИЙ","12–15 предметов · 3 изменения"},{"HARD","СЛОЖНЫЙ","16–18 предметов · 4–5 изменений"}})
-            modes.add(new Mode("THE FORGOTTEN ROOM · "+d[1],"2–8 игроков · "+d[2]+" · только очки",null,()->game.startForgottenRoom(d[0])));
+        if(LAST_COMMAND_ENABLED)modes.add(new Mode("THE LAST COMMAND",Localization.tr("от 1 игрока", "1+ players"),lastCommand,game::startLastCommand));
+        modes.add(new Mode("THE CURSED CARDS",Localization.tr("4–6 игроков", "4–6 players"),cards,game::startCursedCards));
+        modes.add(new Mode("SYSTEM BREACH",Localization.tr("2–8 игроков · Phase 1 · только очки", "2–8 players · Phase 1 · points only"),null,game::startSystemBreach));
+        modes.add(new Mode("THE FINAL SECOND",Localization.tr("2–8 игроков · останови таймер на 7,00 с вслепую", "2–8 players · stop the timer at 7.00 s blind"),null,game::startFinalSecond));
+        if(FORGOTTEN_ROOM_ENABLED)for(String[] d:new String[][]{{"EASY",Localization.tr("ЛЁГКИЙ", "EASY"),Localization.tr("8–10 предметов · 2 изменения", "8–10 objects · 2 changes")},{"MEDIUM",Localization.tr("СРЕДНИЙ", "MEDIUM"),Localization.tr("12–15 предметов · 3 изменения", "12–15 objects · 3 changes")},{"HARD",Localization.tr("СЛОЖНЫЙ", "HARD"),Localization.tr("16–18 предметов · 4–5 изменений", "16–18 objects · 4–5 changes")}})
+            modes.add(new Mode("THE FORGOTTEN ROOM · "+d[1],Localization.tr("2–8 игроков · ", "2–8 players · ")+d[2]+Localization.tr(" · только очки", " · points only"),null,()->game.startForgottenRoom(d[0])));
         // CURSED RACE: 3D obstacle race on every phone; the host's big screen follows the leader in the browser
         // one entry like every other mode: the server picks the map (4 worlds) and the survival format at random
-        modes.add(new Mode("ПРОКЛЯТЫЙ ЗАБЕГ","2–8 игроков · случайная карта и формат выживания · призраки ищут Искру жизни",null,()->{var rt=game.getRealtime();if(rt!=null&&rt.connected())rt.send("OPEN_WEB_GAME",java.util.Map.of("game","race"));var room=game.getActiveRoom();String base=game.getHosting().apiUrl().replaceAll("/+$","");if(room!=null)Gdx.net.openURI(base+"/race/?host=1&room="+room.code()+"#token="+room.token());}));
-        for(String[] d:new String[][]{{"EASY","ЛЁГКИЙ","90 / 60 / 60 с · одна поломка · без помех"},{"NORMAL","СРЕДНИЙ","60 / 45 / 45 с · стандартные правила"},{"HARD","СЛОЖНЫЙ","45 / 35 / 35 с · двойные поломки · всегда скачок"}})
-            modes.add(new Mode("АДСКАЯ КЛЕТКА · "+d[1],d[2]+" · телефоны переключатся в клетку",null,()->{var rt=game.getRealtime();if(rt!=null&&rt.connected())rt.send("OPEN_WEB_GAME",java.util.Map.of("game","broken-elevator","difficulty",d[0]));var room=game.getActiveRoom();String base=game.getHosting().apiUrl().replaceAll("/+$","");Gdx.net.openURI(room!=null?base+"/hell-cage-host/?room="+room.code()+"#token="+room.token():base+"/broken-elevator-manual/?diff="+d[0].toLowerCase());}));
+        modes.add(new Mode(Localization.tr("ПРОКЛЯТЫЙ ЗАБЕГ", "CURSED RUN"),Localization.tr("2–8 игроков · случайная карта и формат выживания · призраки ищут Искру жизни", "2–8 players · random map and survival format · ghosts hunt the Life Spark"),null,()->{var rt=game.getRealtime();if(rt!=null&&rt.connected())rt.send("OPEN_WEB_GAME",java.util.Map.of("game","race"));var room=game.getActiveRoom();String base=game.getHosting().apiUrl().replaceAll("/+$","");if(room!=null)Gdx.net.openURI(base+"/race/?host=1&room="+room.code()+"#token="+room.token());}));
+        for(String[] d:new String[][]{{"EASY",Localization.tr("ЛЁГКИЙ", "EASY"),Localization.tr("90 / 60 / 60 с · одна поломка · без помех", "90 / 60 / 60 s · one breakdown · no interference")},{"NORMAL",Localization.tr("СРЕДНИЙ", "MEDIUM"),Localization.tr("60 / 45 / 45 с · стандартные правила", "60 / 45 / 45 s · standard rules")},{"HARD",Localization.tr("СЛОЖНЫЙ", "HARD"),Localization.tr("45 / 35 / 35 с · двойные поломки · всегда скачок", "45 / 35 / 35 s · double breakdowns · always a jolt")}})
+            modes.add(new Mode(Localization.tr("АДСКАЯ КЛЕТКА · ", "HELL CAGE · ")+d[1],d[2]+Localization.tr(" · телефоны переключатся в клетку", " · phones switch to the cage"),null,()->{var rt=game.getRealtime();if(rt!=null&&rt.connected())rt.send("OPEN_WEB_GAME",java.util.Map.of("game","broken-elevator","difficulty",d[0]));var room=game.getActiveRoom();String base=game.getHosting().apiUrl().replaceAll("/+$","");Gdx.net.openURI(room!=null?base+"/hell-cage-host/?room="+room.code()+"#token="+room.token():base+"/broken-elevator-manual/?diff="+d[0].toLowerCase());}));
         Image modePlaque = new Image(com.erni.finalanswer.ui.lobby.LobbyPlaque.drawable()); modePlaque.setBounds(630, 166, 1140, 104); stage.addActor(modePlaque);
         modeName=new Label("",new Label.LabelStyle(modeFont,Color.valueOf("F2E2C4")));modeName.setAlignment(Align.center);modeName.setBounds(650,210,1100,46);stage.addActor(modeName);
         modeHint=new Label("",new Label.LabelStyle(font,Color.valueOf("B79E7C")));modeHint.setFontScale(.62f);modeHint.setAlignment(Align.center);modeHint.setBounds(650,180,1100,28);stage.addActor(modeHint);

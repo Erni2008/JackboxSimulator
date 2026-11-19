@@ -1,5 +1,7 @@
 package com.erni.finalanswer.finalsecond;
 
+import com.erni.finalanswer.localization.Localization;
+
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.*;
@@ -52,29 +54,29 @@ public final class FinalSecondScreen extends ScreenAdapter {
         String tgt=target(l("targetMs"));String shown=null;scene.rawDigits=null;scene.displayFlicker=1;scene.power=1;float t=since("phaseStartedAt");
         switch(phase){
             case "INTRO"->{ // power-up: dark → lamps stutter on → segment self-test
-                scene.power=ease((t-.2f)/1.3f);scene.plaque("ДОБРО ПОЖАЛОВАТЬ В","THE FINAL SECOND",false);
+                scene.power=ease((t-.2f)/1.3f);scene.plaque(Localization.tr("ДОБРО ПОЖАЛОВАТЬ В", "WELCOME TO"),"THE FINAL SECOND",false);
                 if(t>1.5f&&t<2.4f){scene.rawDigits="8888";scene.rawComma=true;scene.displayFlicker=((int)(t*14))%2==0?1:.4f;}}
-            case "TARGET"->scene.plaque(chain()?"ОБЩИЙ ПРЕДЕЛ":blind()?"ВСЛЕПУЮ! ОСТАНОВИ НА":"ОСТАНОВИ ТАЙМЕР НА",typewriter(tgt+" СЕКУНД",t),true);
+            case "TARGET"->scene.plaque(chain()?Localization.tr("ОБЩИЙ ПРЕДЕЛ", "SHARED LIMIT"):blind()?Localization.tr("ВСЛЕПУЮ! ОСТАНОВИ НА", "BLIND! STOP AT"):Localization.tr("ОСТАНОВИ ТАЙМЕР НА", "STOP THE TIMER AT"),typewriter(tgt+Localization.tr(" СЕКУНД", " SECONDS"),t),true);
             case "COUNTDOWN"->{int n=Math.max(1,3-(int)t);float f=t%1;scene.rawDigits="  "+n+" ";scene.rawComma=false;scene.displayFlicker=f>.82f?.25f:1;
-                scene.plaque(chain()?"ОБЩИЙ ПРЕДЕЛ":blind()?"ВСЛЕПУЮ! ОСТАНОВИ НА":"ОСТАНОВИ ТАЙМЕР НА",tgt+" СЕКУНД",true);}
+                scene.plaque(chain()?Localization.tr("ОБЩИЙ ПРЕДЕЛ", "SHARED LIMIT"):blind()?Localization.tr("ВСЛЕПУЮ! ОСТАНОВИ НА", "BLIND! STOP AT"):Localization.tr("ОСТАНОВИ ТАЙМЕР НА", "STOP THE TIMER AT"),tgt+Localization.tr(" СЕКУНД", " SECONDS"),true);}
             case "RUNNING"->{
-                if(chain())scene.plaque("ХОД: "+name(fs.get("activePlayer").getAsString()).toUpperCase(Locale.ROOT),fs.get("turnRunning").getAsBoolean()?"НАЖМИ СТОП":"НАЖМИ СТАРТ",true);
+                if(chain())scene.plaque(Localization.tr("ХОД: ", "TURN: ")+name(fs.get("activePlayer").getAsString()).toUpperCase(Locale.ROOT),fs.get("turnRunning").getAsBoolean()?Localization.tr("НАЖМИ СТОП", "PRESS STOP"):Localization.tr("НАЖМИ СТАРТ", "PRESS START"),true);
                 else{
-                    scene.plaque(blind()?"ВСЛЕПУЮ! ОСТАНОВИ НА":"ОСТАНОВИ ТАЙМЕР НА",tgt+" СЕКУНД",true);
+                    scene.plaque(blind()?Localization.tr("ВСЛЕПУЮ! ОСТАНОВИ НА", "BLIND! STOP AT"):Localization.tr("ОСТАНОВИ ТАЙМЕР НА", "STOP THE TIMER AT"),tgt+Localization.tr(" СЕКУНД", " SECONDS"),true);
                     if(!manual()){long el=now()-l("runStart"),vis=l("visibleMs");if(el<vis)shown=fmt(el);else if(vis>0&&el<vis+420){shown=fmt(vis);scene.displayFlicker=MathUtils.random()<.55f?.08f:.9f;}}
                 }
             }
             case "REVEAL"->shown=revealDisplay(t);
-            case "RESULTS"->{scene.rawDigits="----";scene.plaque("ИТОГИ",(chain()?"ОБЩИЙ ПРЕДЕЛ ":"ЦЕЛЬ ")+tgt+" С",false);}
+            case "RESULTS"->{scene.rawDigits="----";scene.plaque(Localization.tr("ИТОГИ", "RESULTS"),(chain()?Localization.tr("ОБЩИЙ ПРЕДЕЛ ", "SHARED LIMIT "):Localization.tr("ЦЕЛЬ ", "TARGET "))+tgt+Localization.tr(" С", " S"),false);}
             default->{}
         }
         ScreenUtils.clear(0,0,0,1);vp.apply();batch.setProjectionMatrix(cam.combined);batch.begin();
         hostBoard(phase,tgt,shown,t);
         switch(phase){
-            case "INTRO"->{players(1,null,false);ribbon("СОБЕРИТЕСЬ У ЭКРАНА",t-1.2f);}
-            case "TARGET"->ribbon(speedShift()?"СКОРОСТЬ ИЗМЕНИТСЯ ОДИН РАЗ · УСПЕЙ ОСТАНОВИТЬ ДО ПРЕДЕЛА":chain()?"ПО ОЧЕРЕДИ: СТАРТ, ЗАТЕМ СТОП · ОБЩЕЕ ВРЕМЯ СКРЫТО":blind()?"ДВА НАЖАТИЯ: СТАРТ, ЗАТЕМ СТОП · ТАЙМЕР ВСЛЕПУЮ":"СТАРТ, ЗАТЕМ СТОП · ПЕРВЫЕ ТРИ СЕКУНДЫ ВИДНЫ НА ТЕЛЕФОНЕ",t-.8f);
-            case "COUNTDOWN"->{ribbon("ПЕРВОЕ НАЖАТИЕ — СТАРТ · ВТОРОЕ — СТОП",t);players(1,null,false);}
-            case "RUNNING"->{players(1,chain()?fs.get("activePlayer").getAsString():null,false);ribbon(chain()?"ОСТАНОВИ И ПЕРЕДАЙ ХОД · ПРЕВЫСИШЬ ПРЕДЕЛ — ВЫБЫВАЕШЬ":"ТАЙМЕР НА ТЕЛЕФОНЕ · ПЕРВОЕ НАЖАТИЕ — СТАРТ, ВТОРОЕ — СТОП",t);}
+            case "INTRO"->{players(1,null,false);ribbon(Localization.tr("СОБЕРИТЕСЬ У ЭКРАНА", "GATHER AT THE SCREEN"),t-1.2f);}
+            case "TARGET"->ribbon(speedShift()?Localization.tr("СКОРОСТЬ ИЗМЕНИТСЯ ОДИН РАЗ · УСПЕЙ ОСТАНОВИТЬ ДО ПРЕДЕЛА", "THE SPEED CHANGES ONCE · STOP BEFORE THE LIMIT"):chain()?Localization.tr("ПО ОЧЕРЕДИ: СТАРТ, ЗАТЕМ СТОП · ОБЩЕЕ ВРЕМЯ СКРЫТО", "IN TURNS: START, THEN STOP · TOTAL TIME HIDDEN"):blind()?Localization.tr("ДВА НАЖАТИЯ: СТАРТ, ЗАТЕМ СТОП · ТАЙМЕР ВСЛЕПУЮ", "TWO PRESSES: START, THEN STOP · BLIND TIMER"):Localization.tr("СТАРТ, ЗАТЕМ СТОП · ПЕРВЫЕ ТРИ СЕКУНДЫ ВИДНЫ НА ТЕЛЕФОНЕ", "START, THEN STOP · THE FIRST THREE SECONDS ARE SHOWN ON THE PHONE"),t-.8f);
+            case "COUNTDOWN"->{ribbon(Localization.tr("ПЕРВОЕ НАЖАТИЕ — СТАРТ · ВТОРОЕ — СТОП", "FIRST PRESS — START · SECOND — STOP"),t);players(1,null,false);}
+            case "RUNNING"->{players(1,chain()?fs.get("activePlayer").getAsString():null,false);ribbon(chain()?Localization.tr("ОСТАНОВИ И ПЕРЕДАЙ ХОД · ПРЕВЫСИШЬ ПРЕДЕЛ — ВЫБЫВАЕШЬ", "STOP AND PASS THE TURN · GO OVER THE LIMIT — YOU'RE OUT"):Localization.tr("ТАЙМЕР НА ТЕЛЕФОНЕ · ПЕРВОЕ НАЖАТИЕ — СТАРТ, ВТОРОЕ — СТОП", "TIMER ON THE PHONE · FIRST PRESS — START, SECOND — STOP"),t);}
             case "REVEAL"->reveal(t);
             case "RESULTS"->results(t);
             default->{}
@@ -90,21 +92,21 @@ public final class FinalSecondScreen extends ScreenAdapter {
         batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
         batch.setColor(GOLD.r,GOLD.g,GOLD.b,.48f);batch.draw(pixel,100,971,1720,1);
         text(body,"THE FINAL SECOND",960,1035,.68f,GOLD,1);
-        text(body,speedShift()?"SPEED SHIFT · ПЕРЕМЕННАЯ СКОРОСТЬ":chain()?"ЦЕПОЧКА · ОБЩИЙ СКРЫТЫЙ ТАЙМЕР":blind()?"ЛИЧНЫЙ ТАЙМЕР · ВСЛЕПУЮ":"ЛИЧНЫЙ ТАЙМЕР · НА ТОЧНОСТЬ",960,943,.5f,DIM,1);
+        text(body,speedShift()?Localization.tr("SPEED SHIFT · ПЕРЕМЕННАЯ СКОРОСТЬ", "SPEED SHIFT · VARIABLE SPEED"):chain()?Localization.tr("ЦЕПОЧКА · ОБЩИЙ СКРЫТЫЙ ТАЙМЕР", "CHAIN · SHARED HIDDEN TIMER"):blind()?Localization.tr("ЛИЧНЫЙ ТАЙМЕР · ВСЛЕПУЮ", "PERSONAL TIMER · BLIND"):Localization.tr("ЛИЧНЫЙ ТАЙМЕР · НА ТОЧНОСТЬ", "PERSONAL TIMER · PRECISION"),960,943,.5f,DIM,1);
         String heading="",main="",detail="";
         switch(phase){
-            case "INTRO"->{heading="ИСПЫТАНИЕ ВРЕМЕНЕМ";main="THE FINAL SECOND";detail="Приготовьте кнопку на своём устройстве";}
-            case "TARGET"->{heading=chain()?"ОБЩИЙ ПРЕДЕЛ":"ЦЕЛЬ РАУНДА";main=tgt+" СЕКУНД";detail=chain()?"Время накапливается · между ходами пауза":"Каждый запускает и останавливает свой таймер";}
-            case "COUNTDOWN"->{heading="ПРИГОТОВЬТЕСЬ";main=String.valueOf(Math.max(1,3-(int)t));detail="Первое нажатие — старт · второе — стоп";}
+            case "INTRO"->{heading=Localization.tr("ИСПЫТАНИЕ ВРЕМЕНЕМ", "TRIAL BY TIME");main="THE FINAL SECOND";detail=Localization.tr("Приготовьте кнопку на своём устройстве", "Get the button on your device ready");}
+            case "TARGET"->{heading=chain()?Localization.tr("ОБЩИЙ ПРЕДЕЛ", "SHARED LIMIT"):Localization.tr("ЦЕЛЬ РАУНДА", "ROUND TARGET");main=tgt+Localization.tr(" СЕКУНД", " SECONDS");detail=chain()?Localization.tr("Время накапливается · между ходами пауза", "Time adds up · pause between turns"):Localization.tr("Каждый запускает и останавливает свой таймер", "Everyone starts and stops their own timer");}
+            case "COUNTDOWN"->{heading=Localization.tr("ПРИГОТОВЬТЕСЬ", "GET READY");main=String.valueOf(Math.max(1,3-(int)t));detail=Localization.tr("Первое нажатие — старт · второе — стоп", "First press — start · second — stop");}
             case "RUNNING"->{
-                if(chain()){boolean running=fs.get("turnRunning").getAsBoolean();heading=running?"ТАЙМЕР ИДЁТ · ВРЕМЯ СКРЫТО":"ТАЙМЕР НА ПАУЗЕ";main=name(fs.get("activePlayer").getAsString());detail=running?"Останавливает время и передаёт ход":"Следующий участник запускает общий таймер";}
-                else{heading="ИСПЫТАНИЕ ИДЁТ";main=list("stopped").size()+" / "+list("seats").size();detail=(speedShift()?"Один неожиданный сдвиг скорости · цель ":"Участников завершили попытку · цель ")+tgt+" с";}
+                if(chain()){boolean running=fs.get("turnRunning").getAsBoolean();heading=running?Localization.tr("ТАЙМЕР ИДЁТ · ВРЕМЯ СКРЫТО", "TIMER RUNNING · TIME HIDDEN"):Localization.tr("ТАЙМЕР НА ПАУЗЕ", "TIMER PAUSED");main=name(fs.get("activePlayer").getAsString());detail=running?Localization.tr("Останавливает время и передаёт ход", "Stops the time and passes the turn"):Localization.tr("Следующий участник запускает общий таймер", "The next player starts the shared timer");}
+                else{heading=Localization.tr("ИСПЫТАНИЕ ИДЁТ", "TRIAL IN PROGRESS");main=list("stopped").size()+" / "+list("seats").size();detail=(speedShift()?Localization.tr("Один неожиданный сдвиг скорости · цель ", "One unexpected speed shift · target "):Localization.tr("Участников завершили попытку · цель ", "Players finished their attempt · target "))+tgt+Localization.tr(" с", " s");}
             }
-            case "REVEAL"->{int index=revealIndex(t);heading=chain()?"ЦЕПОЧКА ЗАВЕРШЕНА":"РАСКРЫТИЕ РЕЗУЛЬТАТОВ";
-                if(index<0){main=chain()?"ПРЕДЕЛ ДОСТИГНУТ":"КТО БЫЛ ТОЧНЕЕ?";detail=chain()?chainReason():"Результаты появляются от худшего к лучшему";}
-                else{var r=rows().get(rows().size()-1-index);main=name(r.get("playerId").getAsString());detail=(r.get("eliminated").getAsBoolean()?"ВЫБЫВАЕТ":"ПРОХОДИТ ДАЛЬШЕ")+(shown==null?"":" · "+shown+" с");}
+            case "REVEAL"->{int index=revealIndex(t);heading=chain()?Localization.tr("ЦЕПОЧКА ЗАВЕРШЕНА", "CHAIN COMPLETE"):Localization.tr("РАСКРЫТИЕ РЕЗУЛЬТАТОВ", "REVEALING RESULTS");
+                if(index<0){main=chain()?Localization.tr("ПРЕДЕЛ ДОСТИГНУТ", "LIMIT REACHED"):Localization.tr("КТО БЫЛ ТОЧНЕЕ?", "WHO WAS MORE ACCURATE?");detail=chain()?chainReason():Localization.tr("Результаты появляются от худшего к лучшему", "Results appear from worst to best");}
+                else{var r=rows().get(rows().size()-1-index);main=name(r.get("playerId").getAsString());detail=(r.get("eliminated").getAsBoolean()?Localization.tr("ВЫБЫВАЕТ", "IS OUT"):Localization.tr("ПРОХОДИТ ДАЛЬШЕ", "GOES THROUGH"))+(shown==null?"":" · "+shown+Localization.tr(" с", " s"));}
             }
-            case "RESULTS"->{heading="РАУНД ЗАВЕРШЁН";main="";}
+            case "RESULTS"->{heading=Localization.tr("РАУНД ЗАВЕРШЁН", "ROUND COMPLETE");main="";}
         }
         text(body,heading,960,850,.65f,GOLD,1);
         float scale=Math.min(1.35f,1480/Math.max(1,widthOf(title,main,1)));
@@ -116,7 +118,7 @@ public final class FinalSecondScreen extends ScreenAdapter {
     private boolean speedShift(){return fs.has("task")&&fs.get("task").getAsString().equals("SPEED_SHIFT");}
     private boolean chain(){return fs.has("task")&&fs.get("task").getAsString().equals("CHAIN");}
     private boolean manual(){return fs.has("manualStart")&&fs.get("manualStart").getAsBoolean();}
-    private String chainReason(){String why=fs.has("lossReason")?fs.get("lossReason").getAsString():"";return why.equals("NO_START")?"НЕ НАЧАЛ СВОЙ ХОД":why.equals("TURN_LIMIT")?"НЕ ОСТАНОВИЛ ЗА 2 СЕКУНДЫ":"ПЕРЕШЁЛ ОБЩИЙ ПРЕДЕЛ";}
+    private String chainReason(){String why=fs.has("lossReason")?fs.get("lossReason").getAsString():"";return why.equals("NO_START")?Localization.tr("НЕ НАЧАЛ СВОЙ ХОД", "DIDN'T START THEIR TURN"):why.equals("TURN_LIMIT")?Localization.tr("НЕ ОСТАНОВИЛ ЗА 2 СЕКУНДЫ", "DIDN'T STOP WITHIN 2 SECONDS"):Localization.tr("ПЕРЕШЁЛ ОБЩИЙ ПРЕДЕЛ", "WENT OVER THE SHARED LIMIT");}
     private boolean blind(){return fs.has("blind")&&fs.get("blind").getAsBoolean();}
     private final Map<String,Float> lit=new HashMap<>();private float clock;
     private static String typewriter(String s,float t){int n=MathUtils.clamp((int)((t-.35f)*18),0,s.length());return n<=0?" ":s.substring(0,n);}
@@ -151,7 +153,7 @@ public final class FinalSecondScreen extends ScreenAdapter {
             ring(cx,cy,r,a,f?GOLD:on>0&&!revealMode?new Color(1f,.2f,.14f,1):new Color(.55f,.42f,.24f,1));
             body.getData().setScale(Math.min(.66f*Math.min(scale,1.1f),340/Math.max(1,widthOf(body,name(id),1))));gl.setText(body,name(id));body.setColor(0,0,0,.8f*a);body.draw(batch,name(id),cx-gl.width/2+2,cy-r-12);
             body.setColor(f?GOLD.r:IVORY.r,f?GOLD.g:IVORY.g,f?GOLD.b:IVORY.b,a);body.draw(batch,name(id),cx-gl.width/2,cy-r-10);body.getData().setScale(1);
-            if(!revealMode){String st=chain()?(id.equals(focus)?"ИГРАЕТ СЕЙЧАС":"ЖДЁТ ОЧЕРЕДИ"):on>0?"ГОТОВО":list("started").contains(id)?"СЧИТАЕТ":"ЖДЁТ СТАРТА";body.getData().setScale(.46f);gl.setText(body,st);body.setColor(on>0?1f:DIM.r,on>0?.35f:DIM.g,on>0?.28f:DIM.b,a);body.draw(batch,st,cx-gl.width/2,cy-r-47);body.getData().setScale(1);}
+            if(!revealMode){String st=chain()?(id.equals(focus)?Localization.tr("ИГРАЕТ СЕЙЧАС", "PLAYING NOW"):Localization.tr("ЖДЁТ ОЧЕРЕДИ", "WAITING FOR TURN")):on>0?Localization.tr("ГОТОВО", "DONE"):list("started").contains(id)?Localization.tr("СЧИТАЕТ", "COUNTING"):Localization.tr("ЖДЁТ СТАРТА", "WAITING FOR START");body.getData().setScale(.46f);gl.setText(body,st);body.setColor(on>0?1f:DIM.r,on>0?.35f:DIM.g,on>0?.28f:DIM.b,a);body.draw(batch,st,cx-gl.width/2,cy-r-47);body.getData().setScale(1);}
         }
         batch.setColor(Color.WHITE);
     }
@@ -168,11 +170,11 @@ public final class FinalSecondScreen extends ScreenAdapter {
     /** Has this player's result already been shown (reveal goes worst → best)? */
     private boolean revealedYet(String id){var rs=rows();int i=revealIndex(since("phaseStartedAt"));for(int k=0;k<=i&&k<rs.size();k++)if(rs.get(rs.size()-1-k).get("playerId").getAsString().equals(id))return true;return false;}
     private String revealDisplay(float t){
-        int i=revealIndex(t);if(i<0){scene.plaque(chain()?"ЦЕПОЧКА ПРЕРВАНА":"РЕЗУЛЬТАТЫ",chain()?chainReason():"КТО БЫЛ ТОЧНЕЕ?",false);return null;}
+        int i=revealIndex(t);if(i<0){scene.plaque(chain()?Localization.tr("ЦЕПОЧКА ПРЕРВАНА", "CHAIN BROKEN"):Localization.tr("РЕЗУЛЬТАТЫ", "RESULTS"),chain()?chainReason():Localization.tr("КТО БЫЛ ТОЧНЕЕ?", "WHO WAS MORE ACCURATE?"),false);return null;}
         var rs=rows();var r=rs.get(rs.size()-1-i);String id=r.get("playerId").getAsString();
         float step=l("revealStepMs")/1000f,u=((t-l("revealIntroMs")/1000f)-i*step)/step;
         boolean dead=r.get("eliminated").getAsBoolean();
-        scene.plaque(chain()?(dead?"ВЫБЫВАЕТ":"ВЫЖИЛ"):"МЕСТО "+r.get("rank").getAsInt(),name(id).toUpperCase(Locale.ROOT),dead&&u>.55f);
+        scene.plaque(chain()?(dead?Localization.tr("ВЫБЫВАЕТ", "IS OUT"):Localization.tr("ВЫЖИЛ", "SURVIVED")):Localization.tr("МЕСТО ", "PLACE ")+r.get("rank").getAsInt(),name(id).toUpperCase(Locale.ROOT),dead&&u>.55f);
         if(i!=lastReveal){lastReveal=i;scene.press();}
         if(!r.get("stopped").getAsBoolean()){scene.rawDigits="----";scene.rawComma=false;return null;}
         // the time "rolls" onto the display, then settles
@@ -184,10 +186,10 @@ public final class FinalSecondScreen extends ScreenAdapter {
         int i=revealIndex(t);String focus=null;
         if(i>=0){var rs=rows();var r=rs.get(rs.size()-1-i);focus=r.get("playerId").getAsString();
             float step=l("revealStepMs")/1000f,u=((t-l("revealIntroMs")/1000f)-i*step)/step;boolean dead=r.get("eliminated").getAsBoolean();
-            String line=chain()?(dead?chainReason():"ПЕРЕДАЛ ХОД И ВЫЖИЛ"):r.get("stopped").getAsBoolean()?"ОШИБКА  "+fmtErr(r.get("errorMs").getAsLong())+" С":"НЕ НАЖАЛ";
-            ribbon(dead&&u>.55f?line+"   ·   МАШИНА ЗАБИРАЕТ ИГРОКА":line,(u-.22f)*1.4f);
+            String line=chain()?(dead?chainReason():Localization.tr("ПЕРЕДАЛ ХОД И ВЫЖИЛ", "PASSED THE TURN AND SURVIVED")):r.get("stopped").getAsBoolean()?Localization.tr("ОШИБКА  ", "ERROR  ")+fmtErr(r.get("errorMs").getAsLong())+Localization.tr(" С", " S"):Localization.tr("НЕ НАЖАЛ", "DIDN'T PRESS");
+            ribbon(dead&&u>.55f?line+Localization.tr("   ·   МАШИНА ЗАБИРАЕТ ИГРОКА", "    ·   THE MACHINE TAKES A PLAYER"):line,(u-.22f)*1.4f);
             if(dead&&u>.55f){batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(1f,.08f,.05f,.14f*MathUtils.random());batch.draw(pixel,0,0,1920,1080);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
-        }else ribbon(chain()?"ОБЩИЙ ТАЙМЕР ОСТАНОВЛЕН":"ОТ ХУДШЕГО К ЛУЧШЕМУ",t);
+        }else ribbon(chain()?Localization.tr("ОБЩИЙ ТАЙМЕР ОСТАНОВЛЕН", "SHARED TIMER STOPPED"):Localization.tr("ОТ ХУДШЕГО К ЛУЧШЕМУ", "FROM WORST TO BEST"),t);
         players(1,focus,true);
     }
     static String fmtErr(long ms){long cs=Math.round(ms/10.0);return (cs/100)+","+String.format("%02d",cs%100);}
@@ -208,9 +210,9 @@ public final class FinalSecondScreen extends ScreenAdapter {
             text(title,String.valueOf(r.get("rank").getAsInt()),x+52,y+rowH*.74f,.62f,rc,ra);
             Texture face=face(character(id));float fr=rowH*.4f;if(face!=null){batch.setColor(dead?.5f:1,dead?.3f:1,dead?.3f:1,ra);batch.draw(face,x+110-fr,y+rowH/2-fr,fr*2,fr*2);}ring(x+110,y+rowH/2,fr,ra,rc);
             body.getData().setScale(.72f);body.setColor(dead?RED.r:IVORY.r,dead?RED.g:IVORY.g,dead?RED.b:IVORY.b,ra);body.draw(batch,name(id),x+160,y+rowH*.68f);
-            body.getData().setScale(.42f);body.setColor(DIM.r,DIM.g,DIM.b,ra);body.draw(batch,chain()?(dead?chainReason():"ВЫЖИЛ В ЦЕПОЧКЕ"):dead?"ЗАБРАН МАШИНОЙ":r.get("stopped").getAsBoolean()?"ОСТАНОВИЛ НА "+fmt(r.get("stoppedMs").getAsLong())+" С":"НЕ НАЖАЛ",x+160,y+rowH*.34f);
-            String err=chain()?(dead?"ВЫБЫЛ":"ВЫЖИЛ"):r.get("stopped").getAsBoolean()?"±"+fmtErr(r.get("errorMs").getAsLong()):"—";body.getData().setScale(.8f);gl.setText(body,err);body.setColor(rc.r,rc.g,rc.b,ra);body.draw(batch,err,x+w-40-gl.width,y+rowH*.66f);body.getData().setScale(1);}
-        batch.setColor(Color.WHITE);if(t>2)ribbon("ENTER — ВЕРНУТЬСЯ В ЛОББИ",(t-2)*.8f);
+            body.getData().setScale(.42f);body.setColor(DIM.r,DIM.g,DIM.b,ra);body.draw(batch,chain()?(dead?chainReason():Localization.tr("ВЫЖИЛ В ЦЕПОЧКЕ", "SURVIVED THE CHAIN")):dead?Localization.tr("ЗАБРАН МАШИНОЙ", "TAKEN BY THE MACHINE"):r.get("stopped").getAsBoolean()?Localization.tr("ОСТАНОВИЛ НА ", "STOPPED AT ")+fmt(r.get("stoppedMs").getAsLong())+Localization.tr(" С", " S"):Localization.tr("НЕ НАЖАЛ", "DIDN'T PRESS"),x+160,y+rowH*.34f);
+            String err=chain()?(dead?Localization.tr("ВЫБЫЛ", "OUT"):Localization.tr("ВЫЖИЛ", "SURVIVED")):r.get("stopped").getAsBoolean()?"±"+fmtErr(r.get("errorMs").getAsLong()):"—";body.getData().setScale(.8f);gl.setText(body,err);body.setColor(rc.r,rc.g,rc.b,ra);body.draw(batch,err,x+w-40-gl.width,y+rowH*.66f);body.getData().setScale(1);}
+        batch.setColor(Color.WHITE);if(t>2)ribbon(Localization.tr("ENTER — ВЕРНУТЬСЯ В ЛОББИ", "ENTER — BACK TO LOBBY"),(t-2)*.8f);
     }
 
     private Texture face(String character){

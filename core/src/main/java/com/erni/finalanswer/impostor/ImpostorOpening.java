@@ -1,5 +1,7 @@
 package com.erni.finalanswer.impostor;
 
+import com.erni.finalanswer.localization.Localization;
+
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -20,9 +22,9 @@ final class ImpostorOpening implements AutoCloseable {
 
     ImpostorOpening(){
         english=label("T H E   I M P O S T O R",smallFont,Color.valueOf("AB998C"),640,50);
-        title=label("ИМПОСТОР",titleFont,Color.valueOf("A72D36"),440,190);
-        skip=label("ENTER / ПРОБЕЛ — ПРОДОЛЖИТЬ",smallFont,Color.valueOf("80756D"),100,40);
-        tagline=label("У КАЖДОГО ЕСТЬ РОЛЬ. У ОДНОГО — ТАЙНА.",smallFont,Color.valueOf("C8BDB3"),340,50);
+        title=label(Localization.tr("ИМПОСТОР", "IMPOSTOR"),titleFont,Color.valueOf("A72D36"),440,190);
+        skip=label(Localization.tr("ENTER / ПРОБЕЛ — ПРОДОЛЖИТЬ", "ENTER / SPACE — CONTINUE"),smallFont,Color.valueOf("80756D"),100,40);
+        tagline=label(Localization.tr("У КАЖДОГО ЕСТЬ РОЛЬ. У ОДНОГО — ТАЙНА.", "EVERYONE HAS A ROLE. ONE HAS A SECRET."),smallFont,Color.valueOf("C8BDB3"),340,50);
     }
     private Label label(String text,BitmapFont font,Color color,float y,float height){
         Label label=new Label(text,new Label.LabelStyle(font,color));

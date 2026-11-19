@@ -1,5 +1,7 @@
 package com.erni.finalanswer.systembreach.host;
 
+import com.erni.finalanswer.localization.Localization;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
@@ -24,15 +26,15 @@ public final class SystemBreachRulesFilm implements Disposable {
     private static final float[] START={0,5.8f,11f,16.8f,21.8f,26.5f,32.5f},END={5.8f,11f,16.8f,21.8f,26.5f,32.5f,40.1f};
     private static final float[] SPEED={.65f,1.06f,1.77f,1.1f,.85f,1.23f,1.06f};
     public static final float LENGTH=40.1f;
-    private static final String[] TAB={"","ОТВЕЧАЙ","ВЗЛАМЫВАЙ","DDoS","ВИРУС","ЗАЩИТА","ПОБЕДА"};
+    private static final String[] TAB={"",Localization.tr("ОТВЕЧАЙ", "ANSWER"),Localization.tr("ВЗЛАМЫВАЙ", "HACK"),"DDoS",Localization.tr("ВИРУС", "VIRUS"),Localization.tr("ЗАЩИТА", "DEFENSE"),Localization.tr("ПОБЕДА", "VICTORY")};
     private static final String[] SUB={
-        "Добро пожаловать в систему! Сегодня каждый из вас — хакер.",
-        "Отвечайте на вопросы! Каждый верный ответ приносит вам деньги — души.",
-        "Взламывайте соперников! Угадайте пароль — и заберите их души себе!",
-        "Запустите DDoS — и у жертвы на десять секунд зависнут кнопки!",
-        "Заражайте вирусами! Ломайте экраны соперников!",
-        "А теперь — защищайтесь! Фаервол отбивает атаки, а приманка ловит самого хакера.",
-        "У кого в конце больше всего душ — тот и победил. Ну что, готовы? Тогда взламываем!"};
+        Localization.tr("Добро пожаловать в систему! Сегодня каждый из вас — хакер.", "Welcome to the system! Tonight every one of you is a hacker."),
+        Localization.tr("Отвечайте на вопросы! Каждый верный ответ приносит вам деньги — души.", "Answer the questions! Every correct answer earns you money — souls."),
+        Localization.tr("Взламывайте соперников! Угадайте пароль — и заберите их души себе!", "Hack your rivals! Guess the password — and take their souls!"),
+        Localization.tr("Запустите DDoS — и у жертвы на десять секунд зависнут кнопки!", "Launch a DDoS — and your victim's buttons freeze for ten seconds!"),
+        Localization.tr("Заражайте вирусами! Ломайте экраны соперников!", "Infect with viruses! Break your rivals' screens!"),
+        Localization.tr("А теперь — защищайтесь! Фаервол отбивает атаки, а приманка ловит самого хакера.", "And now — defend yourselves! The firewall blocks attacks, and the honeypot catches the hacker himself."),
+        Localization.tr("У кого в конце больше всего душ — тот и победил. Ну что, готовы? Тогда взламываем!", "Whoever has the most souls at the end wins. So, are you ready? Then let's hack!")};
     private static final Color CYAN=new Color(.25f,.86f,1,1),GREEN=new Color(.3f,1,.55f,1),RED=new Color(1,.27f,.3f,1),
         VIOLET=new Color(.72f,.42f,1,1),AMBER=new Color(1,.72f,.2f,1),INK=new Color(.03f,.06f,.11f,1),PANEL=new Color(.05f,.1f,.17f,1),WHITE=new Color(.92f,.97f,1,1);
     private final SystemBreachHostAssets assets;private final boolean ownAssets;
@@ -126,13 +128,13 @@ public final class SystemBreachRulesFilm implements Disposable {
             hexRing(W/2,H/2+40,330+20*MathUtils.sin(t*1.4f),a*.25f,t*.2f);hexRing(W/2,H/2+40,380,a*.12f,-t*.15f);}
         if(pass==2){glow(W/2,H/2+60,700,CYAN,.30f*a);}
         if(pass==1){text(assets.title,decode("SYSTEM BREACH",p,t),W/2,H/2+110,WHITE,a,1.5f);
-            text(assets.stage,decode("ВЗЛОМ СИСТЕМЫ",k(t,1.2f,2.3f),t),W/2,H/2-40,CYAN,a*k(t,1.1f,1.4f),.62f);
-            text(assets.log,"ЧТО МОГУТ ИГРОКИ",W/2,H/2-175,WHITE,a*.6f*k(t,2,2.6f),1);}
+            text(assets.stage,decode(Localization.tr("ВЗЛОМ СИСТЕМЫ", "SYSTEM HACK"),k(t,1.2f,2.3f),t),W/2,H/2-40,CYAN,a*k(t,1.1f,1.4f),.62f);
+            text(assets.log,Localization.tr("ЧТО МОГУТ ИГРОКИ", "WHAT PLAYERS CAN DO"),W/2,H/2-175,WHITE,a*.6f*k(t,2,2.6f),1);}
     }
 
     private static final String[] PASS={"NOVA7","ZER0X","K1LLR"};
     private void password(float t,float a){
-        heading("ПАРОЛЬ",t,a,CYAN);headingBar(t,a,CYAN);
+        heading(Localization.tr("ПАРОЛЬ", "PASSWORD"),t,a,CYAN);headingBar(t,a,CYAN);
         float cx=W/2,cy=520;int chosen=1;float pick=k(t,2.6f,3.2f),lock=k(t,3.6f,4.4f);
         // portrait
         portraitFrame("skeleton",cx-560,cy-20,240,a,CYAN);
@@ -148,18 +150,18 @@ public final class SystemBreachRulesFilm implements Disposable {
             if(pass==0){float c=ease(k(t,4.4f,4.8f));col(GREEN,a*lock);r.rect(lx-55,ly-50,110,80);col(INK,a*lock);r.rect(lx-45,ly-40,90,60);
                 col(GREEN,a*lock);arcLine(lx,ly+30+18*(1-c),36,0,180,9);col(GREEN,a*lock);r.circle(lx,ly-12,9,16);r.rect(lx-3,ly-30,6,18);}
             if(pass==2)glow(lx,ly,220,GREEN,.3f*a*k(t,4.4f,5));
-            if(pass==1)text(assets.board,"ПАРОЛЬ ЗАКРЫТ",lx,ly-80,GREEN,a*k(t,4.6f,5.1f),1);}
-        if(pass==1)text(assets.name,"ТЫ",cx-560,cy-170,WHITE,a,1);
+            if(pass==1)text(assets.board,Localization.tr("ПАРОЛЬ ЗАКРЫТ", "PASSWORD LOCKED"),lx,ly-80,GREEN,a*k(t,4.6f,5.1f),1);}
+        if(pass==1)text(assets.name,Localization.tr("ТЫ", "YOU"),cx-560,cy-170,WHITE,a,1);
     }
 
     private void questions(float t,float a){
-        heading("ОТВЕЧАЙ",t,a,CYAN);headingBar(t,a,CYAN);
+        heading(Localization.tr("ОТВЕЧАЙ", "ANSWER"),t,a,CYAN);headingBar(t,a,CYAN);
         float px=W/2-360,py=520,pw=420,ph=640;float rise=ease(k(t,.2f,1));py-=(1-rise)*120;
         // phone
         if(pass==0){col(Color.BLACK,.5f*a);r.rect(px-pw/2+10,py-ph/2-14,pw,ph);round(px-pw/2,py-ph/2,pw,ph,40,new Color(.12f,.16f,.22f,1),a);
             round(px-pw/2+16,py-ph/2+16,pw-32,ph-32,28,PANEL,a);col(CYAN,.6f*a);r.rect(px-50,py+ph/2-34,100,6);}
         boolean second=t>5.6f;float qt=second?t-5.6f:t;
-        String q=second?"Столица Австралии?":"2 + 2 × 2 = ?";String[] o=second?new String[]{"Сидней","Канберра","Мельбурн","Перт"}:new String[]{"8","6","4","10"};
+        String q=second?Localization.tr("Столица Австралии?", "Capital of Australia?"):"2 + 2 × 2 = ?";String[] o=second?new String[]{Localization.tr("Сидней", "Sydney"),Localization.tr("Канберра", "Canberra"),Localization.tr("Мельбурн", "Melbourne"),Localization.tr("Перт", "Perth")}:new String[]{"8","6","4","10"};
         int correct=1,picked=second?0:1;float tap=k(qt,2.2f,2.5f),res=k(qt,2.5f,2.8f);
         if(pass==1)text(assets.board,decode(q,k(qt,.6f,1.3f),t),px,py+190,WHITE,a,1.05f);
         for(int i=0;i<4;i++){float d=ease(k(qt,1+.12f*i,1.4f+.12f*i));float bx=px,by=py+80-i*104;
@@ -172,35 +174,35 @@ public final class SystemBreachRulesFilm implements Disposable {
         // AP counter on the right
         float cx=W/2+330,cy=600;int ap=second?110:MathUtils.round(100+10*ease(k(qt,3,3.8f)));if(!second&&qt<3)ap=100;
         if(pass==0){panel(cx-210,cy-110,420,220,second&&res>0?RED:GREEN,a);}
-        if(pass==1){text(assets.log,"СОБРАНО ДУШ",cx,cy+80,WHITE,a*.8f,1);text(assets.stage,SystemBreachHostViewModel.souls(ap,true),cx,cy+34,second&&res>0?WHITE:GREEN,a,.72f);}
+        if(pass==1){text(assets.log,Localization.tr("СОБРАНО ДУШ", "SOULS COLLECTED"),cx,cy+80,WHITE,a*.8f,1);text(assets.stage,SystemBreachHostViewModel.souls(ap,true),cx,cy+34,second&&res>0?WHITE:GREEN,a,.72f);}
         // flying +10
         if(!second){float f=k(qt,2.8f,3.6f);if(f>0&&f<1){float x=MathUtils.lerp(px+120,cx,ease(f)),y=MathUtils.lerp(fy,cy,ease(f))+MathUtils.sin(f*MathUtils.PI)*140;
             if(pass==2)glow(x,y,90,GREEN,.6f*a);if(pass==1)text(assets.ap,"+10",x,y+14,GREEN,a,1.4f);}}
         if(pass==1){float v=second?k(qt,2.7f,3.1f):k(qt,3.6f,4.1f);
-            text(assets.board,second?"Ошибка — без награды":"Верно!  +10 душ",cx,cy-170,second?RED:GREEN,a*v,1.1f);}
+            text(assets.board,second?Localization.tr("Ошибка — без награды", "Wrong — no reward"):Localization.tr("Верно!  +10 душ", "Correct!  +10 souls"),cx,cy-170,second?RED:GREEN,a*v,1.1f);}
     }
 
     private void keys(float t,float a){
-        heading("КЛЮЧ",t,a,AMBER);headingBar(t,a,AMBER);
+        heading(Localization.tr("КЛЮЧ", "KEY"),t,a,AMBER);headingBar(t,a,AMBER);
         float cy=560;
         for(int i=0;i<3;i++){float on=k(t,.8f+.8f*i,1.1f+.8f*i);float x=W/2-260+i*260,y=cy+120;float merge=ease(k(t,3.6f,4.4f));
             x=MathUtils.lerp(x,W/2,merge);y=MathUtils.lerp(y,cy-20,merge);
             if(pass==0){col(on>0?GREEN:CYAN,a*(1-merge*.9f));r.circle(x,y,46,32);col(INK,a*(1-merge*.9f));r.circle(x,y,38,32);
                 if(on>0){col(GREEN,a*(1-merge)*on);float s=24*on;r.rectLine(x-s*.6f,y,x-s*.15f,y-s*.5f,7);r.rectLine(x-s*.15f,y-s*.5f,x+s*.7f,y+s*.5f,7);}}
             if(pass==2&&on>0)glow(x,y,120,GREEN,.35f*a*on*(1-merge));
-            if(pass==1&&merge<.3f)text(assets.log,"ВЕРНО "+(i+1),x,y-70,WHITE,a*.8f*(1-merge*3),1);}
+            if(pass==1&&merge<.3f)text(assets.log,Localization.tr("ВЕРНО ", "CORRECT ")+(i+1),x,y-70,WHITE,a*.8f*(1-merge*3),1);}
         float kk=ease(k(t,4.3f,5));
         if(kk>0){float s=1+.15f*MathUtils.sin(Math.max(0,t-4.3f)*3);float x=W/2,y=cy-20;
             if(pass==2){glow(x,y,420*kk,AMBER,.45f*a);}
             if(pass==0)keyShape(x,y,1.6f*kk*s,AMBER,a);
-            if(pass==1)text(assets.stage,"+1 КЛЮЧ",x,y-170,AMBER,a*kk,.6f);}
+            if(pass==1)text(assets.stage,Localization.tr("+1 КЛЮЧ", "+1 KEY"),x,y-170,AMBER,a*kk,.6f);}
     }
 
     private void hack(float t,float a){
-        heading("ВЗЛАМЫВАЙ",t,a,RED);headingBar(t,a,RED);
+        heading(Localization.tr("ВЗЛАМЫВАЙ", "HACK"),t,a,RED);headingBar(t,a,RED);
         float ax=W/2-560,tx=W/2+560,y=560;
         portraitFrame("skeleton",ax,y,220,a,CYAN);portraitFrame("dracula",tx,y,220,a,t>6.2f?RED:CYAN);
-        if(pass==1){text(assets.name,"ТЫ",ax,y-150,CYAN,a,1);text(assets.name,"СОПЕРНИК",tx,y-150,WHITE,a,1);}
+        if(pass==1){text(assets.name,Localization.tr("ТЫ", "YOU"),ax,y-150,CYAN,a,1);text(assets.name,Localization.tr("СОПЕРНИК", "RIVAL"),tx,y-150,WHITE,a,1);}
         // key spent
         float spend=k(t,.6f,1.4f);if(spend<1&&spend>0&&pass==0)keyShape(ax,y+190-60*spend,.7f,AMBER,a*(1-spend));
         // beam
@@ -215,23 +217,23 @@ public final class SystemBreachRulesFilm implements Disposable {
             if(t<3.2f)shown="?????";else if(t<4.2f)shown="NOVA7";else if(t<5.2f)shown="K1LLR";else if(t<6.2f)shown=decode("ZER0X",k(t,5.2f,6.2f),t);else{shown="ZER0X";c=GREEN;}
             boolean miss=(t>=3.6f&&t<4.2f)||(t>=4.6f&&t<5.2f);if(miss)c=RED;
             text(assets.digits,shown,fx,fy+30,c,a,.6f);
-            text(assets.log,miss?"НЕВЕРНО":t>6.2f?"ДОСТУП ПОЛУЧЕН":"ПОДБОР ПАРОЛЯ…",fx,fy-70,miss?RED:t>6.2f?GREEN:WHITE,a*.9f,1);}
+            text(assets.log,miss?Localization.tr("НЕВЕРНО", "WRONG"):t>6.2f?Localization.tr("ДОСТУП ПОЛУЧЕН", "ACCESS GRANTED"):Localization.tr("ПОДБОР ПАРОЛЯ…", "CRACKING PASSWORD…"),fx,fy-70,miss?RED:t>6.2f?GREEN:WHITE,a*.9f,1);}
         // stamp on target
         float st=k(t,5.3f,5.6f);if(st>0){float sc=1+.6f*(1-ease(st));
             if(pass==0)panel(tx-170*sc,y+170-30*sc,340*sc,60*sc,RED,a*st);
             if(pass==2)glow(tx,y+170,300,RED,.4f*a*st);
-            if(pass==1)text(assets.board,"ВЗЛОМАН",tx,y+170+14,RED,a*st,1.3f*sc);}
+            if(pass==1)text(assets.board,Localization.tr("ВЗЛОМАН", "HACKED"),tx,y+170+14,RED,a*st,1.3f*sc);}
         // AP stream back to attacker
         float flow=k(t,7,10);if(flow>0&&flow<1)for(int i=0;i<14;i++){float f=((flow*3+i/14f)%1);float x=MathUtils.lerp(tx-120,ax+120,f),yy=y-110+MathUtils.sin(f*MathUtils.PI)*-90;
             if(pass==2)glow(x,yy,46,GREEN,.7f*a);}
-        if(pass==1&&t>7)text(assets.stage,"+40 душ",ax,y+250,GREEN,a*k(t,7.2f,7.8f),.55f);
+        if(pass==1&&t>7)text(assets.stage,Localization.tr("+40 душ", "+40 souls"),ax,y+250,GREEN,a*k(t,7.2f,7.8f),.55f);
     }
 
     /** {start, gets through}: level 1 lets half through, level 2 one of five, level 3 one of ten. */
     private static final float[][] ATK={{.6f,0},{1f,1},{1.35f,0},{1.7f,1},{2.6f,0},{2.85f,0},{3.1f,1},{3.3f,0},
         {4.1f,0},{4.35f,0},{4.6f,0},{4.8f,0},{5.0f,0},{5.2f,1},{5.4f,0},{5.6f,0},{5.85f,0},{6.1f,0}};
     private void defence(float t,float a){
-        heading("ЗАЩИЩАЙСЯ",t,a,CYAN);headingBar(t,a,CYAN);
+        heading(Localization.tr("ЗАЩИЩАЙСЯ", "DEFEND"),t,a,CYAN);headingBar(t,a,CYAN);
         float x=W/2-200,y=540;int lvl=t<2.6f?1:t<4.2f?2:3;
         portraitFrame("ghost",x,y,200,a,CYAN);
         for(int i=0;i<lvl;i++){float on=ease(k(t,i==0?.3f:i==1?2.6f:4.2f,(i==0?.3f:i==1?2.6f:4.2f)+.5f));hexRing(x,y,170+i*44,a*on*.9f,t*(i%2==0?.3f:-.25f));}
@@ -247,20 +249,20 @@ public final class SystemBreachRulesFilm implements Disposable {
             if(pass==0){col(RED,a*fade);r.circle(px,py,9,12);for(int q=1;q<5;q++){col(RED,a*fade*(.5f-q*.1f));r.circle(px-tx*q*16*(f<.7f?1:-1),py-ty*q*16*(f<.7f?1:-1),9-q*1.6f,10);}}
             if(pass==2){glow(px,py,70,RED,.7f*a*fade);if(!pass3&&f>.66f&&f<.9f)glow(x+MathUtils.cos(ang)*r0,y+MathUtils.sin(ang)*r0*.62f,230,CYAN,.7f*a*(1-(f-.66f)/.24f));}}
         if(hitFlash>0){hitFlash=Math.min(1,hitFlash);if(pass==2){glow(x,y,420,RED,.6f*a*hitFlash);glow(x,y-170+(1-hitFlash)*40,300,RED,.35f*a*hitFlash);}if(pass==0){col(RED,.35f*a*hitFlash);r.rect(x-100,y-100,200,200);float up=(1-hitFlash)*40;panel(x-130,y-205+up,260,72,RED,a*Math.min(1,hitFlash*1.6f));}}
-        if(pass==1){text(assets.board,"ОТБИТО  "+blocked,x-120,y+270,CYAN,a*k(t,.9f,1.2f),1.15f);text(assets.board,"ПРОБИЛО  "+through,x+120,y+270,RED,a*k(t,.9f,1.2f),1.15f);
-            if(hitFlash>0){float up=(1-hitFlash)*40,pop=1+.35f*(float)Math.pow(hitFlash,6);text(assets.stage,"-10 душ",x+(hitFlash>.8f?MathUtils.sin(time*70)*4:0),y-150+up,RED,a*Math.min(1,hitFlash*1.6f),.62f*pop);}}
+        if(pass==1){text(assets.board,Localization.tr("ОТБИТО  ", "BLOCKED  ")+blocked,x-120,y+270,CYAN,a*k(t,.9f,1.2f),1.15f);text(assets.board,Localization.tr("ПРОБИЛО  ", "BROKE THROUGH  ")+through,x+120,y+270,RED,a*k(t,.9f,1.2f),1.15f);
+            if(hitFlash>0){float up=(1-hitFlash)*40,pop=1+.35f*(float)Math.pow(hitFlash,6);text(assets.stage,Localization.tr("-10 душ", "-10 souls"),x+(hitFlash>.8f?MathUtils.sin(time*70)*4:0),y-150+up,RED,a*Math.min(1,hitFlash*1.6f),.62f*pop);}}
         // right column: upgrade panels
         float rx=W/2+420;
         if(pass==0){panel(rx-230,y+20,460,150,CYAN,a);panel(rx-230,y-200,460,150,AMBER,a*k(t,5,5.5f));
             for(int i=0;i<3;i++){col(i<lvl?CYAN:new Color(.15f,.25f,.35f,1),a);r.rect(rx-180+i*125,y+40,110,26);}}
-        if(pass==1){text(assets.log,"ФАЕРВОЛ",rx,y+150,WHITE,a*.8f,1);
-            text(assets.board,"Уровень "+lvl+" из 3",rx,y+115,CYAN,a,1.1f);
-            float m=k(t,5,5.5f);text(assets.log,"МНОЖИТЕЛЬ",rx,y-70,WHITE,a*.8f*m,1);text(assets.digits,t<6.3f?"×1.0":"×1.5",rx,y-95,AMBER,a*m,.75f);}
+        if(pass==1){text(assets.log,Localization.tr("ФАЕРВОЛ", "FIREWALL"),rx,y+150,WHITE,a*.8f,1);
+            text(assets.board,Localization.tr("Уровень ", "Level ")+lvl+Localization.tr(" из 3", " of 3"),rx,y+115,CYAN,a,1.1f);
+            float m=k(t,5,5.5f);text(assets.log,Localization.tr("МНОЖИТЕЛЬ", "MULTIPLIER"),rx,y-70,WHITE,a*.8f*m,1);text(assets.digits,t<6.3f?"×1.0":"×1.5",rx,y-95,AMBER,a*m,.75f);}
     }
 
     private void weapons(float t,float a){
-        heading("ОРУЖИЕ ХАКЕРА",t,a,VIOLET);headingBar(t,a,VIOLET);
-        String[] n={"ВИРУС","DDoS","ПРИМАНКА"};String[] d={"ломает экран соперника","тормозит его кнопки","наказывает нападающего"};Color[] c={VIOLET,RED,AMBER};
+        heading(Localization.tr("ОРУЖИЕ ХАКЕРА", "HACKER'S ARSENAL"),t,a,VIOLET);headingBar(t,a,VIOLET);
+        String[] n={Localization.tr("ВИРУС", "VIRUS"),"DDoS",Localization.tr("ПРИМАНКА", "HONEYPOT")};String[] d={Localization.tr("ломает экран соперника", "breaks a rival's screen"),Localization.tr("тормозит его кнопки", "slows their buttons"),Localization.tr("наказывает нападающего", "punishes the attacker")};Color[] c={VIOLET,RED,AMBER};
         for(int i=0;i<3;i++){float in=ease(k(t,.4f+.5f*i,1+.5f*i));float x=W/2-560+i*560,y=520-(1-in)*100;float act=k(t,2.4f+2.2f*i,2.8f+2.2f*i)*(1-k(t,4.4f+2.2f*i,4.8f+2.2f*i));float act2=Math.max(act,i==2?k(t,8.4f,8.8f):0);
             float sc=1+.06f*act2;
             if(pass==0){panel(x-230*sc,y-210*sc,460*sc,420*sc,c[i],a*in);
@@ -277,23 +279,23 @@ public final class SystemBreachRulesFilm implements Disposable {
     }
 
     private void surge(float t,float a){
-        heading("СБОИ И РЫНОК",t,a,AMBER);headingBar(t,a,AMBER);
+        heading(Localization.tr("СБОИ И РЫНОК", "GLITCHES AND MARKET"),t,a,AMBER);headingBar(t,a,AMBER);
         float fl=t>.6f&&t<3.2f?(MathUtils.sin(t*22)>.3f?1:.55f):0;
         if(pass==0&&t<3.6f){float p=ease(k(t,.4f,.8f))*(1-ease(k(t,3.2f,3.6f)));panel(W/2-480,560,960,170,AMBER,a*p);
             col(AMBER,a*p*fl);bolt(W/2-400,645,1.1f);bolt(W/2+400,645,1.1f);}
         if(pass==2&&t<3.6f)glow(W/2,645,900,AMBER,.35f*a*fl);
-        if(pass==1&&t<3.6f){float p=1-ease(k(t,3.2f,3.6f));text(assets.stage,"СБОЙ СИСТЕМЫ  ×2",W/2,690,AMBER,a*p*k(t,.5f,.9f),.7f);text(assets.board,"20 секунд двойных душ",W/2,610,WHITE,a*p*k(t,.8f,1.2f),1);}
-        String[] n={"ЩИТ","РАЗГОН","СКАНЕР"},d={"сжигает одну атаку","3 ответа ×2","подсказка пароля лидера"};Color[] c={CYAN,AMBER,GREEN};
+        if(pass==1&&t<3.6f){float p=1-ease(k(t,3.2f,3.6f));text(assets.stage,Localization.tr("СБОЙ СИСТЕМЫ  ×2", "SYSTEM FAILURE  ×2"),W/2,690,AMBER,a*p*k(t,.5f,.9f),.7f);text(assets.board,Localization.tr("20 секунд двойных душ", "20 seconds of double souls"),W/2,610,WHITE,a*p*k(t,.8f,1.2f),1);}
+        String[] n={Localization.tr("ЩИТ", "SHIELD"),Localization.tr("РАЗГОН", "ACCELERATION"),Localization.tr("СКАНЕР", "SCANNER")},d={Localization.tr("сжигает одну атаку", "burns one attack"),Localization.tr("3 ответа ×2", "3 answers ×2"),Localization.tr("подсказка пароля лидера", "leader's password hint")};Color[] c={CYAN,AMBER,GREEN};
         for(int i=0;i<3;i++){float in=ease(k(t,3.6f+.35f*i,4.2f+.35f*i));float x=W/2-480+i*480,y=470-(1-in)*80;
             if(pass==0){panel(x-200,y-130,400,260,c[i],a*in);}
             if(pass==1){text(assets.stageName,n[i],x,y+60,c[i],a*in,.8f);text(assets.board,d[i],x,y-20,WHITE,a*in*.9f,.95f);}}
-        if(pass==1)text(assets.log,"ЧЁРНЫЙ РЫНОК",W/2,700,WHITE,a*k(t,3.8f,4.3f),1.4f);
+        if(pass==1)text(assets.log,Localization.tr("ЧЁРНЫЙ РЫНОК", "BLACK MARKET"),W/2,700,WHITE,a*k(t,3.8f,4.3f),1.4f);
     }
 
     private void ddos(float t,float a){
         heading("DDoS",t,a,RED);headingBar(t,a,RED);
         float ax=W/2-560,y=560,px=W/2+420,py=540,pw=340,ph=520;
-        portraitFrame("skeleton",ax,y,200,a,CYAN);if(pass==1)text(assets.name,"ТЫ",ax,y-140,CYAN,a,1);
+        portraitFrame("skeleton",ax,y,200,a,CYAN);if(pass==1)text(assets.name,Localization.tr("ТЫ", "YOU"),ax,y-140,CYAN,a,1);
         float f=ease(k(t,.4f,1.1f));
         // packet torrent
         for(int i=0;i<40;i++){float h1=hash(i),q=((t*1.6f+h1)%1);if(q>f)continue;float x=MathUtils.lerp(ax+110,px-pw/2,q),yy=y+(hash(i*5)-.5f)*160*MathUtils.sin(q*MathUtils.PI);
@@ -304,10 +306,10 @@ public final class SystemBreachRulesFilm implements Disposable {
             if(f>.5f)for(int i=0;i<10;i++){float yy=py-ph/2+hash(i*7+(int)(t*12))*ph;col(RED,.35f*a);r.rect(px-pw/2+14,yy,pw-28,3);}
             col(RED,a*(MathUtils.sin(t*10)>0?1:.4f)*f);r.rect(px-pw/2-6,py-ph/2-6,pw+12,4);r.rect(px-pw/2-6,py+ph/2+2,pw+12,4);r.rect(px-pw/2-6,py-ph/2-6,4,ph+12);r.rect(px+pw/2+2,py-ph/2-6,4,ph+12);}
         if(pass==2)glow(px,py,700,RED,.25f*a*f);
-        if(pass==1&&f>.5f){text(assets.stage,"ЛАГ",px,py+30,RED,a,.9f);text(assets.ap,Math.max(0,10-(int)((t-1.1f)*2.5f))+" s",px,py-40,WHITE,a,1.3f);}
+        if(pass==1&&f>.5f){text(assets.stage,Localization.tr("ЛАГ", "LAG"),px,py+30,RED,a,.9f);text(assets.ap,Math.max(0,10-(int)((t-1.1f)*2.5f))+" s",px,py-40,WHITE,a,1.3f);}
     }
     private void virus(float t,float a){
-        heading("ЗАРАЖАЙ",t,a,VIOLET);headingBar(t,a,VIOLET);
+        heading(Localization.tr("ЗАРАЖАЙ", "INFECT"),t,a,VIOLET);headingBar(t,a,VIOLET);
         float px=W/2,py=540,pw=360,ph=540;float inf=ease(k(t,.8f,1.3f));
         float jx=inf>0?(hash((int)(t*30))-.5f)*14*inf:0;
         if(pass==0){round(px-pw/2+jx,py-ph/2,pw,ph,34,new Color(.12f,.16f,.22f,1),a);round(px-pw/2+14+jx,py-ph/2+14,pw-28,ph-28,24,PANEL,a);
@@ -316,13 +318,13 @@ public final class SystemBreachRulesFilm implements Disposable {
         if(pass==2)glow(px,py,800,VIOLET,.3f*a*inf);
         // virus orb flying in
         float fl=k(t,0,.8f);if(fl<1){float x=MathUtils.lerp(px-700,px,ease(fl)),y=py+300*(1-fl)*(1-fl);if(pass==2)glow(x,y,160,VIOLET,.9f*a);}
-        if(pass==1&&inf>0){text(assets.board,"ЭКРАН ЗАРАЖЁН",px,py-ph/2-40,VIOLET,a*inf,1.2f);
-            String[] v={"ПЕРЕМЕШКА","ПРИЗРАЧНЫЕ КНОПКИ","ГЛИТЧ"};for(int i=0;i<3;i++)text(assets.log,v[i],px+(i==1?520:-520),py+80-i*80,WHITE,a*k(t,1.2f+.3f*i,1.5f+.3f*i)*.8f,1.2f);}
+        if(pass==1&&inf>0){text(assets.board,Localization.tr("ЭКРАН ЗАРАЖЁН", "SCREEN INFECTED"),px,py-ph/2-40,VIOLET,a*inf,1.2f);
+            String[] v={Localization.tr("ПЕРЕМЕШКА", "SHUFFLE"),Localization.tr("ПРИЗРАЧНЫЕ КНОПКИ", "GHOST BUTTONS"),Localization.tr("ГЛИТЧ", "GLITCH")};for(int i=0;i<3;i++)text(assets.log,v[i],px+(i==1?520:-520),py+80-i*80,WHITE,a*k(t,1.2f+.3f*i,1.5f+.3f*i)*.8f,1.2f);}
     }
 
     private static final String[] FIN={"skeleton","dracula","pumpkin","voodoo"};
     private void finale(float t,float a){
-        heading("ПОБЕЖДАЙ",t,a,GREEN);headingBar(t,a,GREEN);
+        heading(Localization.tr("ПОБЕЖДАЙ", "WIN"),t,a,GREEN);headingBar(t,a,GREEN);
         float go=k(t,3.7f,4.2f);float a0=a;a*=1-go;
         float[] h={.55f,1f,.4f,.7f};float base=230;
         for(int i=0;i<4;i++){float x=W/2-480+i*320;float g=ease(k(t,.4f+.15f*i,2.6f+.15f*i))*h[i]*330;boolean win=i==1;
@@ -337,8 +339,8 @@ public final class SystemBreachRulesFilm implements Disposable {
         a=a0;
         if(go>0){
             if(pass==2)glow(W/2,H/2,900,RED,.3f*a*go);
-            if(pass==1){text(assets.stage,decode("ГОТОВЫ?",k(t,3.7f,4.3f),t),W/2,H/2+110,WHITE,a*go,1.1f);
-                text(assets.stage,decode("ВЗЛАМЫВАЕМ!",k(t,5.4f,6.0f),t),W/2,H/2-40,RED,a*k(t,5.3f,5.6f),1.25f);}}
+            if(pass==1){text(assets.stage,decode(Localization.tr("ГОТОВЫ?", "READY?"),k(t,3.7f,4.3f),t),W/2,H/2+110,WHITE,a*go,1.1f);
+                text(assets.stage,decode(Localization.tr("ВЗЛАМЫВАЕМ!", "HACKING!"),k(t,5.4f,6.0f),t),W/2,H/2-40,RED,a*k(t,5.3f,5.6f),1.25f);}}
     }
 
     // ---------- chrome ----------
@@ -359,13 +361,13 @@ public final class SystemBreachRulesFilm implements Disposable {
         if(time>LENGTH-1){col(Color.BLACK,k(time,LENGTH-1,LENGTH));r.rect(0,0,W,H);}
     }
     private void chromeText(int s,float t){
-        text(assets.board,"ПРОПУСТИТЬ",W-330+122,H-118+42,hover?WHITE:CYAN,1,.95f);
-        text(assets.log,"ENTER / КЛИК",W-330+145,H-140,WHITE,.45f,.9f);
+        text(assets.board,Localization.tr("ПРОПУСТИТЬ", "SKIP"),W-330+122,H-118+42,hover?WHITE:CYAN,1,.95f);
+        text(assets.log,Localization.tr("ENTER / КЛИК", "ENTER / CLICK"),W-330+145,H-140,WHITE,.45f,.9f);
         {float ta=k(time,START[1]-X/2,START[1]+X/2);for(int i=1;i<TAB.length;i++)text(assets.log,TAB[i],tabX(i),H-64,i==s?WHITE:i<s?CYAN:new Color(.45f,.55f,.65f,1),(i==s?1:.8f)*ta,1);}
         // subtitle: old line fades out, new one fades in word by word as it is spoken
         float len=END[s]-START[s];float a=ease(k(t,.15f,.5f))*(1-ease(k(t,len-.3f,len)))*(1-k(time,LENGTH-.6f,LENGTH));
         typeLine(SUB[s],t-.15f,a);
-        text(assets.log,"SYSTEM BREACH  ·  ЧТО МОГУТ ИГРОКИ",60,H-30,CYAN,.7f,1,false);
+        text(assets.log,Localization.tr("SYSTEM BREACH  ·  ЧТО МОГУТ ИГРОКИ", "SYSTEM BREACH  ·  WHAT PLAYERS CAN DO"),60,H-30,CYAN,.7f,1,false);
     }
 
     /**

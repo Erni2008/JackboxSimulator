@@ -1,5 +1,7 @@
 package com.erni.finalanswer.ui.buttons.menu;
 
+import com.erni.finalanswer.localization.Localization;
+
 import com.erni.finalanswer.ui.RuntimeTextures;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
@@ -84,7 +86,7 @@ public abstract class AnimatedImageButton extends Button implements Disposable {
                 if (!compiled.isCompiled()) {
                     String log = compiled.getLog();
                     compiled.dispose();
-                    throw new IllegalStateException("Ошибка переходов кнопки: " + log);
+                    throw new IllegalStateException(Localization.tr("Ошибка переходов кнопки: ", "Button transition error: ") + log);
                 }
                 sharedTransitionShader = compiled;
             }

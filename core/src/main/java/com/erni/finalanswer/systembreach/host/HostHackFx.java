@@ -1,5 +1,7 @@
 package com.erni.finalanswer.systembreach.host;
 
+import com.erni.finalanswer.localization.Localization;
+
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -46,7 +48,7 @@ final class HostHackFx {
     /** Per-podium stamps: a compact plate over the player it concerns; letters decode out of noise, then it fades. */
     private static final int MAXP=8;private final String[] pid=new String[MAXP];private final int[] pkind=new int[MAXP];private final float[] page=new float[MAXP];
     { java.util.Arrays.fill(page,99); }
-    private static final String[][] STAMP={{"ВЗЛОМАН","HACKED"},{"АТАКА ОТБИТА","BLOCKED"},{"ВИРУС","VIRUS"},{"КЛЮЧ","KEY"},{"ЛОВУШКА!","HONEYPOT!"},{"ЩИТ","SHIELD"}};
+    private static final String[][] STAMP={{Localization.tr("ВЗЛОМАН", "HACKED"),"HACKED"},{Localization.tr("АТАКА ОТБИТА", "ATTACK BLOCKED"),"BLOCKED"},{Localization.tr("ВИРУС", "VIRUS"),"VIRUS"},{Localization.tr("КЛЮЧ", "KEY"),"KEY"},{Localization.tr("ЛОВУШКА!", "TRAP!"),"HONEYPOT!"},{Localization.tr("ЩИТ", "SHIELD"),"SHIELD"}};
     private final char[] buf=new char[24];
     void event(String type,String a,String t){
         int kind;String who;
@@ -145,7 +147,7 @@ final class HostHackFx {
         r.setColor(0,0,0,.75f);r.rect(x-4,y-4,w+8,62);paint.plate(x,y,w,54,12,new Color(c2.r*.25f,c2.g*.25f,c2.b*.25f,.97f),new Color(.03f,.03f,.03f,.97f));paint.outline(x+4,y+4,w-8,46,10,2f,c2);
         float pr=vm.surgeLeftMs()/(float)20_000;r.setColor(c2.r,c2.g,c2.b,.9f);r.rect(x+12,y+6,(w-24)*pr,3);}
     void surgeText(SpriteBatch b,BitmapFont f,SystemBreachHostViewModel vm,float time){String s=vm.surge();if(s.isEmpty())return;
-        String t=(vm.ru()?(s.equals("DOUBLE")?"СБОЙ · ДУШИ ×2":"СБОЙ · ФАЕРВОЛЫ ВЫКЛ"):(s.equals("DOUBLE")?"SURGE · POINTS ×2":"SURGE · FIREWALLS OFF"))+"  "+(vm.surgeLeftMs()/1000+1);
+        String t=(vm.ru()?(s.equals("DOUBLE")?Localization.tr("СБОЙ · ДУШИ ×2", "GLITCH · SOULS ×2"):Localization.tr("СБОЙ · ФАЕРВОЛЫ ВЫКЛ", "GLITCH · FIREWALLS OFF")):(s.equals("DOUBLE")?"SURGE · POINTS ×2":"SURGE · FIREWALLS OFF"))+"  "+(vm.surgeLeftMs()/1000+1);
         float a=.85f+.15f*MathUtils.sin(time*8);if(s.equals("DOUBLE"))f.setColor(1,.88f,.45f,a);else f.setColor(1,.45f,.38f,a);f.draw(b,t,TIMER.x,TIMER.y-74+38,TIMER.width,1,false);f.setColor(1,1,1,1);}
     /** DDoS made unmistakable: a torrent of packets from the attacker's podium into the target's, the target's screen
      *  drowned in red interference, shock rings, and a live traffic readout with an overload bar. */
@@ -180,7 +182,7 @@ final class HostHackFx {
         var slots=vm.slots();int n=slots.size();
         for(int i=0;i<n;i++){var sl=slots.get(i);if(!vm.ddosed(sl.id))continue;float tx=slotX(i,n),by=PANEL_Y+PANEL_H*.36f;
             float j=MathUtils.sin(time*40)>0?2:-2;big.setColor(1,.1f,.1f,.5f);big.draw(b,"DDoS",tx-200+j+3,by+80,400,1,false);big.setColor(1,.92f,.9f,1);big.draw(b,"DDoS",tx-200+j,by+80,400,1,false);
-            sbuf.setLength(0);int gb=(int)(80+40*MathUtils.sin(time*5+i)+MathUtils.random(9));sbuf.append("▼ ").append(gb/10).append('.').append(gb%10).append(" Gb/s  ").append((int)Math.ceil(vm.ddosLeft(sl.id))).append(vm.ru()?" с":" s");
+            sbuf.setLength(0);int gb=(int)(80+40*MathUtils.sin(time*5+i)+MathUtils.random(9));sbuf.append("▼ ").append(gb/10).append('.').append(gb%10).append(" Gb/s  ").append((int)Math.ceil(vm.ddosLeft(sl.id))).append(vm.ru()?Localization.tr(" с", " s"):" s");
             small.setColor(1,.65f,.55f,1);small.draw(b,sbuf,tx-200,by+20,400,1,false);}
         big.setColor(1,1,1,1);small.setColor(1,1,1,1);
     }

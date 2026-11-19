@@ -1,5 +1,7 @@
 package com.erni.finalanswer.impostor;
 
+import com.erni.finalanswer.localization.Localization;
+
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
@@ -16,14 +18,14 @@ final class RoleSubtitles extends Table implements AutoCloseable {
     private final Image progress;
     private int index=-1;
     private float revealAge;
-    private static final String[] LINES={"Карточки с ролями", "Перед вами — карточки с ролями.",
-        "Внимательно прочитайте свою карточку.", "И помните: ваша роль должна остаться тайной."};
+    private static final String[] LINES={Localization.tr("Карточки с ролями", "Role cards"), Localization.tr("Перед вами — карточки с ролями.", "In front of you — the role cards."),
+        Localization.tr("Внимательно прочитайте свою карточку.", "Read your card carefully."), Localization.tr("И помните: ваша роль должна остаться тайной.", "And remember: your role must stay a secret.")};
     RoleSubtitles(){
         Pixmap map=new Pixmap(1,1,Pixmap.Format.RGBA8888);map.setColor(Color.WHITE);map.fill();pixel=new Texture(map);map.dispose();
         setName("impostorRoleInstruction");setTouchable(Touchable.disabled);setBounds(250,150,1300,154);
         setBackground(new TextureRegionDrawable(pixel).tint(new Color(.018f,.012f,.016f,.91f)));
         pad(18,32,22,32);
-        Label caption=new Label("Р А З Д А Ч А   Р О Л Е Й",new Label.LabelStyle(captionFont,Color.valueOf("C68A73")));
+        Label caption=new Label(Localization.tr("Р А З Д А Ч А   Р О Л Е Й", "D E A L I N G   R O L E S"),new Label.LabelStyle(captionFont,Color.valueOf("C68A73")));
         add(caption).padBottom(13).row();
         sentence=new Label("",new Label.LabelStyle(font,Color.valueOf("F6EEE4")));sentence.setAlignment(Align.center);sentence.setWrap(true);
         add(sentence).width(1236).height(76);

@@ -1,5 +1,7 @@
 package com.erni.finalanswer.systembreach.host;
 
+import com.erni.finalanswer.localization.Localization;
+
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
@@ -12,7 +14,7 @@ final class TimerPanel {
     private final Color c2=new Color(),color=new Color(),icon=new Color();private long shownSec=-1;private String shown="";
     private Color color(SystemBreachHostViewModel vm){long ms=vm.remainingMs();return color.set(vm.phase().equals("INITIALIZATION")?SbPaint.GREEN:!vm.phase().equals("ACTIVE")?SbPaint.RED:ms<=10_000?SbPaint.RED:ms<=30_000?SbPaint.AMBER:SbPaint.GREEN);}
     private float pulse(SystemBreachHostViewModel vm,float time){return vm.phase().equals("ACTIVE")&&vm.remainingMs()<=10_000&&vm.remainingMs()>0?.75f+.25f*MathUtils.sin(time*6.3f):1;}
-    private String label(SystemBreachHostViewModel vm){return switch(vm.phase()){case "INITIALIZATION"->vm.ru()?"СТАРТ ЧЕРЕЗ":"STARTING IN";case "ACTIVE"->vm.ru()?"ОСТАЛОСЬ":"TIME LEFT";default->vm.ru()?"ВРЕМЯ ВЫШЛО":"TIME UP";};}
+    private String label(SystemBreachHostViewModel vm){return switch(vm.phase()){case "INITIALIZATION"->vm.ru()?Localization.tr("СТАРТ ЧЕРЕЗ", "STARTING IN"):"STARTING IN";case "ACTIVE"->vm.ru()?Localization.tr("ОСТАЛОСЬ", "LEFT"):"TIME LEFT";default->vm.ru()?Localization.tr("ВРЕМЯ ВЫШЛО", "TIME'S UP"):"TIME UP";};}
 
     void shapes(SbPaint p,SystemBreachHostViewModel vm,float time){
         Color c=color(vm);p.frame(TIMER.x,TIMER.y,TIMER.width,TIMER.height,22,c,.55f*pulse(vm,time));
@@ -26,7 +28,7 @@ final class TimerPanel {
     void text(SpriteBatch b,SbPaint p,SystemBreachHostAssets as,SystemBreachHostViewModel vm,float time){
         Color c=color(vm);long s=(vm.remainingMs()+999)/1000;
         p.centered(b,as.label,label(vm),TIMER.x+TIMER.width/2,TIMER.y+TIMER.height-22,vm.phase().equals("ACTIVE")||vm.phase().equals("INITIALIZATION")?SbPaint.IVORY:SbPaint.RED,.95f);
-        if(roundTab(vm)){String t=(vm.ru()?"ДУШИ ":"POINTS ")+vm.roundText();p.centered(b,as.status,t,TIMER.x+TIMER.width/2,TIMER.y+as.status.getCapHeight()/2-1,c2.set(.12f,.07f,0,1),1);}
+        if(roundTab(vm)){String t=(vm.ru()?Localization.tr("ДУШИ ", "SOULS "):"POINTS ")+vm.roundText();p.centered(b,as.status,t,TIMER.x+TIMER.width/2,TIMER.y+as.status.getCapHeight()/2-1,c2.set(.12f,.07f,0,1),1);}
         p.icon(b,as.iconBig,SbIcons.TIMER,TIMER.x+74,TIMER.y+104,c,pulse(vm,time),1,0);
         if(s!=shownSec){shownSec=s;shown=String.format(Locale.ROOT,"%02d:%02d",s/60,s%60);}
         as.digits.setColor(c.r,c.g,c.b,.07f);{float gx=TIMER.x+TIMER.width/2+42-p.width(as.digits,"88:88")/2;as.digits.draw(b,"88:88",gx,TIMER.y+140);}

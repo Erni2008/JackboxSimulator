@@ -1,5 +1,7 @@
 package com.erni.finalanswer.systembreach.host;
 
+import com.erni.finalanswer.localization.Localization;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
@@ -89,9 +91,9 @@ final class ResultsCeremony {
             paint.centered(batch,assets.boardAp,SystemBreachHostViewModel.souls(s.ap,ru),x,BASE-92,c,ta);}
         // headline
         String head;Color hc;float ha;
-        if(trial<=0){boolean champ=!winners.isEmpty()&&t>=revealAt(0);head=champ?(ru?"ПОБЕДИТЕЛЬ — "+winners.getFirst().name:"WINNER — "+winners.getFirst().name):t<OPEN?(ru?"ОПЕРАЦИЯ ЗАВЕРШЕНА":"OPERATION COMPLETE"):(ru?"ЛУЧШИЕ ХАКЕРЫ":"TOP HACKERS");
+        if(trial<=0){boolean champ=!winners.isEmpty()&&t>=revealAt(0);head=champ?(ru?Localization.tr("ПОБЕДИТЕЛЬ — ", "WINNER — ")+winners.getFirst().name:"WINNER — "+winners.getFirst().name):t<OPEN?(ru?Localization.tr("ОПЕРАЦИЯ ЗАВЕРШЕНА", "OPERATION COMPLETE"):"OPERATION COMPLETE"):(ru?Localization.tr("ЛУЧШИЕ ХАКЕРЫ", "TOP HACKERS"):"TOP HACKERS");
             hc=champ?SbPaint.GOLD:SbPaint.GREEN;ha=winFade*clamp(t/.25f);}
-        else{float tt=t-we;boolean done=tt>TRIAL+2.4f;head=done?(ru?loser.name+" — ТЕПЕРЬ ПРИЗРАК":loser.name+" IS NOW A GHOST"):(ru?"ПОСЛЕДНЕЕ МЕСТО":"LAST PLACE");hc=done?GHOST:SbPaint.RED;ha=trial;}
+        else{float tt=t-we;boolean done=tt>TRIAL+2.4f;head=done?(ru?loser.name+Localization.tr(" — ТЕПЕРЬ ПРИЗРАК", " — NOW A GHOST"):loser.name+" IS NOW A GHOST"):(ru?Localization.tr("ПОСЛЕДНЕЕ МЕСТО", "LAST PLACE"):"LAST PLACE");hc=done?GHOST:SbPaint.RED;ha=trial;}
         float slam=t<.5f?1+(1-outCubic(t/.5f))*.6f:1,jit=t<OPEN&&MathUtils.random()<.08f?MathUtils.random(-8,8):0;
         assets.stage.getData().setScale(slam);paint.centered(batch,assets.stage,paint.fit(assets.stage,head,W-200),W/2f+jit,H-120,hc,ha);assets.stage.getData().setScale(1);
         if(loser!=null&&trial>0)trial(batch,paint,assets,characters,ru,time,cam,trial,t-we);
@@ -193,7 +195,7 @@ final class ResultsCeremony {
         // captions: quiet, set in the dark under the stage
         float la=trial*clamp((tt-.4f)/.6f);boolean ghost=form>.3f;
         paint.centered(batch,a.stageName,loser.name,W/2f,BASE-6,ghost?GHOST:SbPaint.IVORY,la*(struck>0&&struck<.45f?.3f:1));
-        String line=ghost?(ru?"ДОСТУП АННУЛИРОВАН · "+SystemBreachHostViewModel.souls(loser.ap,ru):"ACCESS REVOKED · "+SystemBreachHostViewModel.souls(loser.ap,ru)):struck>0?(ru?"ПРИГОВОР ПРИВЕДЁН В ИСПОЛНЕНИЕ":"SENTENCE CARRIED OUT"):(ru?"ПОСЛЕДНЕЕ МЕСТО · ПРИГОВОР":"LAST PLACE · SENTENCED");
+        String line=ghost?(ru?Localization.tr("ДОСТУП АННУЛИРОВАН · ", "ACCESS REVOKED · ")+SystemBreachHostViewModel.souls(loser.ap,ru):"ACCESS REVOKED · "+SystemBreachHostViewModel.souls(loser.ap,ru)):struck>0?(ru?Localization.tr("ПРИГОВОР ПРИВЕДЁН В ИСПОЛНЕНИЕ", "THE SENTENCE HAS BEEN CARRIED OUT"):"SENTENCE CARRIED OUT"):(ru?Localization.tr("ПОСЛЕДНЕЕ МЕСТО · ПРИГОВОР", "LAST PLACE · THE VERDICT"):"LAST PLACE · SENTENCED");
         paint.centered(batch,a.label,line,W/2f,BASE-58,ghost?GHOST:tmp.set(.85f,.3f,.27f,1),la*.9f);
     }
     /** A soft vignette over the whole stage: corners fall into darkness. */
@@ -205,5 +207,5 @@ final class ResultsCeremony {
     }
     private static void bolt(ShapeRenderer s,float x,float y,float nx,float ny,float a,float w){s.setColor(1,.35f,.3f,.35f*a);s.rectLine(x,y,nx,ny,w);s.setColor(1,.8f,.75f,.75f*a);s.rectLine(x,y,nx,ny,w*.45f);s.setColor(1,1,1,a);s.rectLine(x,y,nx,ny,Math.max(1.5f,w*.18f));}
     private static void ring(ShapeRenderer s,float cx,float cy,float rx,float ry,float w){int n=40;for(int i=0;i<n;i++){float a=i*MathUtils.PI2/n,b=(i+1)*MathUtils.PI2/n;s.rectLine(cx+MathUtils.cos(a)*rx,cy+MathUtils.sin(a)*ry,cx+MathUtils.cos(b)*rx,cy+MathUtils.sin(b)*ry,w);}}
-    private static String place(int rank,boolean ru){return ru?rank+" МЕСТО":rank==1?"1ST PLACE":rank==2?"2ND PLACE":"3RD PLACE";}
+    private static String place(int rank,boolean ru){return ru?rank+Localization.tr(" МЕСТО", " PLACE"):rank==1?"1ST PLACE":rank==2?"2ND PLACE":"3RD PLACE";}
 }

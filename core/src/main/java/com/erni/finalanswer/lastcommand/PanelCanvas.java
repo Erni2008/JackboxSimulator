@@ -1,4 +1,6 @@
 package com.erni.finalanswer.lastcommand;
+
+import com.erni.finalanswer.localization.Localization;
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.*;
@@ -60,7 +62,7 @@ final class PanelCanvas implements Disposable {
     }
     void paper(String value){
         begin();Gdx.gl.glClearColor(.84f,.77f,.60f,1);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);batch.begin();
-        font.setColor(.18f,.14f,.09f,1);font.getData().setScale(.32f);layout.setText(font,"КОД ДОСТУПА");font.draw(batch,"КОД ДОСТУПА",(buffer.getWidth()-layout.width)/2,106);
+        font.setColor(.18f,.14f,.09f,1);font.getData().setScale(.32f);layout.setText(font,Localization.tr("КОД ДОСТУПА", "ACCESS CODE"));font.draw(batch,Localization.tr("КОД ДОСТУПА", "ACCESS CODE"),(buffer.getWidth()-layout.width)/2,106);
         font.getData().setScale(.8f);layout.setText(font,value);font.draw(batch,value,(buffer.getWidth()-layout.width)/2,68);font.getData().setScale(1);batch.end();buffer.end();
     }
     private void begin(){buffer.begin();Gdx.gl.glDisable(GL20.GL_SCISSOR_TEST);Gdx.gl.glClearColor(.012f,.007f,.006f,1);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);batch.setProjectionMatrix(projection.setToOrtho2D(0,0,buffer.getWidth(),buffer.getHeight()));}

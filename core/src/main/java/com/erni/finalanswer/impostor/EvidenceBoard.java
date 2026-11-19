@@ -1,5 +1,7 @@
 package com.erni.finalanswer.impostor;
 
+import com.erni.finalanswer.localization.Localization;
+
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
@@ -24,9 +26,9 @@ final class EvidenceBoard extends Table implements AutoCloseable {
         if(roster.equals(players)&&history.equals(rounds))return;
         roster=List.copyOf(players);history=rounds.stream().map(Map::copyOf).toList();clearChildren();
         if(players.isEmpty()||rounds.isEmpty())return;
-        add(label("ДОСЬЕ · РАСКРЫТЫЕ СЛОВА", "D8B688",.78f)).colspan(players.size()+1).height(38).row();
+        add(label(Localization.tr("ДОСЬЕ · РАСКРЫТЫЕ СЛОВА", "DOSSIER · REVEALED WORDS"), "D8B688",.78f)).colspan(players.size()+1).height(38).row();
         Image rule=new Image(new TextureRegionDrawable(pixel));rule.setColor(.57f,.42f,.25f,.65f);add(rule).colspan(players.size()+1).height(1).fillX().padBottom(10).row();
-        add(label("РАУНД","AD998B",.65f)).width(110);
+        add(label(Localization.tr("РАУНД", "ROUND"),"AD998B",.65f)).width(110);
         float width=1080f/players.size();
         for(var player:players){Label name=label(player.player().name(),"E8D5B8",.72f);name.setEllipsis("...");add(name).width(width).height(44);}row();
         for(int r=0;r<rounds.size();r++){

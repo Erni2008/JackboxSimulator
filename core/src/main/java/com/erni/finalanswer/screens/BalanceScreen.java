@@ -1,5 +1,7 @@
 package com.erni.finalanswer.screens;
 
+import com.erni.finalanswer.localization.Localization;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.ScreenAdapter;
@@ -86,7 +88,7 @@ public final class BalanceScreen extends ScreenAdapter {
         batch.setProjectionMatrix(view.getCamera().combined);batch.begin();
         float ta=MathUtils.clamp(time/.5f,0,1)*out;
         title.setColor(.96f,.78f,.42f,ta);
-        title.draw(batch,ru?"БАЛАНС ДУШ":"SOUL BALANCE",0,top+190,W,Align.center,false);
+        title.draw(batch,ru?Localization.tr("БАЛАНС ДУШ", "SOUL BALANCE"):"SOUL BALANCE",0,top+190,W,Align.center,false);
         for(int i=0;i<rows.size();i++){Row r=rows.get(i);float a=appear(i)*out;if(a<=0)continue;
             float y=top-i*(ROW+GAP)-ROW,x=tx+(1-ease(a))*180,mid=y+ROW/2;
             boolean lead=r.rank==1&&r.souls>0,broke=r.souls==0;
@@ -102,10 +104,10 @@ public final class BalanceScreen extends ScreenAdapter {
             number.setColor(broke?.55f:lead?1f:.92f,broke?.22f:lead?.82f:.88f,broke?.22f:lead?.4f:.84f,a);
             number.draw(batch,value,x+tw-300,mid+number.getCapHeight()/2,190,Align.right,false);
             small.setColor(.7f,.62f,.55f,.85f*a);
-            small.draw(batch,ru?"душ":"souls",x+tw-96,mid+small.getCapHeight()/2,80,Align.left,false);}
-        if(rows.isEmpty()){small.setColor(.7f,.7f,.7f,ta);small.draw(batch,ru?"Нет игроков":"No players",0,H/2,W,Align.center,false);}
+            small.draw(batch,ru?Localization.tr("душ", "souls"):"souls",x+tw-96,mid+small.getCapHeight()/2,80,Align.left,false);}
+        if(rows.isEmpty()){small.setColor(.7f,.7f,.7f,ta);small.draw(batch,ru?Localization.tr("Нет игроков", "No players"):"No players",0,H/2,W,Align.center,false);}
         if(time>settled()){small.setColor(.6f,.6f,.6f,.5f*MathUtils.clamp((time-settled())/.6f,0,1)*out);
-            small.draw(batch,ru?"нажмите любую клавишу":"press any key",0,70,W,Align.center,false);}
+            small.draw(batch,ru?Localization.tr("нажмите любую клавишу", "press any key"):"press any key",0,70,W,Align.center,false);}
         batch.end();
     }
     /** Bottom row first, the leader last. */

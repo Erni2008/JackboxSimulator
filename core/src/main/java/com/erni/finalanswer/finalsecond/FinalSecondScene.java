@@ -1,5 +1,7 @@
 package com.erni.finalanswer.finalsecond;
 
+import com.erni.finalanswer.localization.Localization;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.*;
@@ -96,7 +98,7 @@ public final class FinalSecondScene implements Disposable {
         prevTop=curTop;prevMain=curMain;prevRed=curRed;curTop=top;curMain=main;curRed=red;plaqueKey=k;plaqueFade=prevTop==null?1:0;}
     private String plaqueKey="",curTop,curMain,prevTop,prevMain;private boolean curRed,prevRed;private float plaqueFade=1;
     private void plaque(SpriteBatch b,String target,float jx,float jy){
-        if(curTop==null)plaque("ОСТАНОВИ ТАЙМЕР НА",target+" СЕКУНД",true);
+        if(curTop==null)plaque(Localization.tr("ОСТАНОВИ ТАЙМЕР НА", "STOP THE TIMER AT"),target+Localization.tr(" СЕКУНД", " SECONDS"),true);
         float cx=plaque[0]+plaque[2]/2+jx,top=plaque[1]+plaque[3]+jy;
         float k=plaqueFade*plaqueFade*(3-2*plaqueFade);
         if(prevTop!=null&&k<1)plaqueLines(b,prevTop,prevMain,prevRed,cx,top,1-k,-8*k);
@@ -132,7 +134,7 @@ public final class FinalSecondScene implements Disposable {
             seg.digit(b,SevenSegment.mask(c),x,y,dw,dh,lit,ghost);
             x+=dw+gap;if(i==1){seg.dot(b,x-gap*.55f,y-dh*.02f,dh*.09f,rawDigits!=null&&!rawComma?0:lit,ghost);x+=comma;}}
         // unit "с"
-        text(b,title,"с",x+dw*.12f,y+dh*.30f,.9f,new Color(1f,.26f,.2f,shown==null?.18f:1f),shown==null?0:.4f);
+        text(b,title,Localization.tr("с", "s"),x+dw*.12f,y+dh*.30f,.9f,new Color(1f,.26f,.2f,shown==null?.18f:1f),shown==null?0:.4f);
         // glass sheen
         b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);b.setColor(1f,.9f,.85f,.035f);b.draw(soft,gx+gw*.05f,gy+gh*.55f,gw*.9f,gh*.6f);
         b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);b.setColor(Color.WHITE);

@@ -351,7 +351,7 @@ public class FinalAnswerGame extends Game {
     /** Settings → "Host plays from this PC": seat the host as a player and open the controller in the browser, already joined. */
     private void openHostSeat(RoomSession room,String password){
         if(hostSeat!=null){roomApi.leave(hostSeat);hostSeat=null;}
-        String name=settings.language().equals("ru")?"Ведущий":"Host";
+        String name=settings.language().equals("ru")?Localization.tr("Ведущий", "Host"):"Host";
         roomApi.join(room.code(),name,password==null?"":password,seat->{
             if(activeRoom==null||!activeRoom.code().equals(room.code())){roomApi.leave(seat);return;}
             hostSeat=seat;var json=new com.google.gson.JsonObject();json.addProperty("code",seat.code());json.addProperty("token",seat.token());json.addProperty("name",name);

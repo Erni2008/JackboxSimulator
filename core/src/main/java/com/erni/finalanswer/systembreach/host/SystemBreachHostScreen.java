@@ -1,5 +1,7 @@
 package com.erni.finalanswer.systembreach.host;
 
+import com.erni.finalanswer.localization.Localization;
+
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
@@ -143,7 +145,7 @@ public final class SystemBreachHostScreen extends ScreenAdapter {
         var w=model.ranking().getFirst();float k=Math.min(1,time%1000>0?1:0),cx=W/2,y=TOAST_Y-6,bw=Math.max(620,paint.width(assets.board,w.name)+360);
         Gdx.gl.glEnable(GL20.GL_BLEND);shapes.begin(ShapeRenderer.ShapeType.Filled);
         paint.frame(cx-bw/2,y,bw,96,24,SbPaint.GOLD,.9f);paint.crown(cx,y+100,56,SbPaint.GOLD);shapes.end();
-        batch.begin();paint.centered(batch,assets.label,model.ru()?"СИСТЕМА ЗАХВАЧЕНА":"SYSTEM OWNED BY",cx,y+84,SbPaint.GOLD,k);
+        batch.begin();paint.centered(batch,assets.label,model.ru()?Localization.tr("СИСТЕМА ЗАХВАЧЕНА", "SYSTEM TAKEN OVER"):"SYSTEM OWNED BY",cx,y+84,SbPaint.GOLD,k);
         paint.centered(batch,assets.board,paint.fit(assets.board,w.name+"   "+SystemBreachHostViewModel.souls(w.ap,model.russian()),bw-60),cx,y+46,SbPaint.IVORY,k);batch.end();
     }
     private static final Color VERB=new Color(.78f,.80f,.76f,1);

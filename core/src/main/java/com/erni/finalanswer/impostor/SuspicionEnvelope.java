@@ -1,5 +1,7 @@
 package com.erni.finalanswer.impostor;
 
+import com.erni.finalanswer.localization.Localization;
+
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.Group;
@@ -36,7 +38,7 @@ public final class SuspicionEnvelope extends Group {
         if(fresh) {elapsed=0;state=State.OPEN;setVisible(true);}
         if(next.finalized() && (fresh || !snapshot.finalized())) {state=State.CLOSED;elapsed=0;setVisible(true);}
         snapshot=next;
-        progress.setText("ПОДОЗРЕНИЙ ПОЛУЧЕНО: "+next.submitted()+"/"+next.eligible());
+        progress.setText(Localization.tr("ПОДОЗРЕНИЙ ПОЛУЧЕНО: ", "SUSPICIONS RECEIVED: ")+next.submitted()+"/"+next.eligible());
         updateFaces();
     }
     public void update(float delta) {

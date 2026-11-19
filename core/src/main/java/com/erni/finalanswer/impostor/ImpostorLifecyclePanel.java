@@ -1,5 +1,7 @@
 package com.erni.finalanswer.impostor;
 
+import com.erni.finalanswer.localization.Localization;
+
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.*;
@@ -36,9 +38,9 @@ public final class ImpostorLifecyclePanel extends Group implements Disposable {
         Pixmap f=new Pixmap(8,8,Pixmap.Format.RGBA8888);f.setColor(Color.WHITE);f.fill();f.setBlending(Pixmap.Blending.None);f.setColor(new Color(1,1,1,0));f.fillRectangle(2,2,4,4);frame=new Texture(f);f.dispose();
         setName("impostorLifecycle");setBounds(80,45,1420,990);setVisible(false);
         addActor(results);controls.setName("impostorHostControls");addActor(controls);
-        replay=button("ЕЩЁ РАЗ","impostorReplay",()->action.accept("REPLAY_IMPOSTOR"));replay.setBounds(300,12,300,58);controls.addActor(replay);
-        lobby=button("В КОМНАТУ","impostorReturnLobby",()->action.accept("IMPOSTOR_RETURN_TO_LOBBY"));lobby.setBounds(640,12,400,58);controls.addActor(lobby);
-        start=button("НАЧАТЬ ИГРУ","impostorStart",()->action.accept("START_IMPOSTOR"));start.setBounds(920,80,350,64);controls.addActor(start);
+        replay=button(Localization.tr("ЕЩЁ РАЗ", "AGAIN"),"impostorReplay",()->action.accept("REPLAY_IMPOSTOR"));replay.setBounds(300,12,300,58);controls.addActor(replay);
+        lobby=button(Localization.tr("В КОМНАТУ", "TO THE ROOM"),"impostorReturnLobby",()->action.accept("IMPOSTOR_RETURN_TO_LOBBY"));lobby.setBounds(640,12,400,58);controls.addActor(lobby);
+        start=button(Localization.tr("НАЧАТЬ ИГРУ", "START GAME"),"impostorStart",()->action.accept("START_IMPOSTOR"));start.setBounds(920,80,350,64);controls.addActor(start);
         message=text("",Color.valueOf("D7B88D"),.8f,100,76,1200,55);message.setName("impostorActionStatus");addActor(message);
     }
     private Label text(String value,Color color,float scale,float x,float y,float w,float h){Label label=new Label(value,new Label.LabelStyle(font,color));label.setFontScale(scale);label.setBounds(x,y,w,h);label.setAlignment(Align.center);label.setWrap(true);label.setTouchable(Touchable.disabled);return label;}
@@ -66,14 +68,14 @@ public final class ImpostorLifecyclePanel extends Group implements Disposable {
         results.addActor(fill(new Color(accent.r,accent.g,accent.b,.07f),0,790,1420,200));
         results.addActor(fill(new Color(accent.r,accent.g,accent.b,.035f),0,850,1420,140));
         results.addActor(fill(accent.cpy().mul(1,1,1,.8f),0,987,1420,3));results.addActor(fill(accent.cpy().mul(1,1,1,.35f),0,0,1420,2));
-        results.addActor(text("И Т О Г   И Г Р Ы",Color.valueOf("A8957C"),.72f,50,935,1320,36));
-        String title=switch(outcome){case "IMPOSTOR_ESCAPED"->"ИМПОСТОР СКРЫЛСЯ";case "NO_CONSENSUS"->"НЕТ ЕДИНОГО РЕШЕНИЯ";default->"ИМПОСТОР РАСКРЫТ";};
+        results.addActor(text(Localization.tr("И Т О Г   И Г Р Ы", "G A M E   R E S U L T S"),Color.valueOf("A8957C"),.72f,50,935,1320,36));
+        String title=switch(outcome){case "IMPOSTOR_ESCAPED"->Localization.tr("ИМПОСТОР СКРЫЛСЯ", "IMPOSTOR GOT AWAY");case "NO_CONSENSUS"->Localization.tr("НЕТ ЕДИНОГО РЕШЕНИЯ", "NO CONSENSUS");default->Localization.tr("ИМПОСТОР РАСКРЫТ", "IMPOSTOR EXPOSED");};
         Label shadow=new Label(title,new Label.LabelStyle(headingFont,new Color(0,0,0,.75f)));shadow.setAlignment(Align.center);shadow.setBounds(54,836,1320,100);shadow.setTouchable(Touchable.disabled);results.addActor(shadow);
         Label heading=new Label(title,new Label.LabelStyle(headingFont,escaped?Color.valueOf("D8434C"):Color.valueOf("EEDCB8")));heading.setAlignment(Align.center);heading.setBounds(50,840,1320,100);heading.setTouchable(Touchable.disabled);heading.setName("impostorResultTitle");results.addActor(heading);
         float fit=Math.min(1,1260/Math.max(1,heading.getPrefWidth()));heading.setFontScale(fit);shadow.setFontScale(fit);
         Map<String,RoomSession.Player> players=new LinkedHashMap<>();for(var p:roster)players.put(p.player().id(),p.player());
         boolean impostorWon=result.winningSide().name().equals("IMPOSTOR");
-        results.addActor(rich("Импостор — "+esc(name(players,result.impostorId()))+"   ·   "+(impostorWon?"Победил импостор":"Победили мирные"),impostorWon?"E58E86":"D9B98C",1f,70,790,1280,46));
+        results.addActor(rich(Localization.tr("Импостор — ", "The impostor — ")+esc(name(players,result.impostorId()))+"   ·   "+(impostorWon?Localization.tr("Победил импостор", "The impostor won"):Localization.tr("Победили мирные", "The civilians won")),impostorWon?"E58E86":"D9B98C",1f,70,790,1280,46));
         // ornament: two rules and a diamond
         results.addActor(fill(accent.cpy().mul(1,1,1,.5f),410,768,260,1));results.addActor(fill(accent.cpy().mul(1,1,1,.5f),750,768,260,1));
         Image gem=fill(accent,0,0,10,10);gem.setOrigin(5,5);gem.setRotation(45);gem.setPosition(705,763);results.addActor(gem);
@@ -90,22 +92,22 @@ public final class ImpostorLifecyclePanel extends Group implements Disposable {
             assets.texture(ImpostorAsset.SUSPECT_PAPER).ifPresent(t->{Image paper=new Image(t);paper.setSize(width,height);paper.setColor(impostor?Color.valueOf("FFD9BC"):Color.WHITE);card.addActor(paper);});
             Actor avatar=avatars.apply(player);if(avatar!=null && avatar.getWidth()>0 && avatar.getHeight()>0){Group box=new Group();float scale=Math.min(96/avatar.getWidth(),70/avatar.getHeight());box.setPosition(width/2-avatar.getWidth()*scale/2,148);box.setScale(scale);avatar.setPosition(0,0);box.addActor(avatar);card.addActor(box);}
             Label nickname=new Label(esc(player.name()),new Label.LabelStyle(bodyFont,Color.valueOf("2E1B12")));nickname.setAlignment(Align.center);nickname.setFontScale(.95f);nickname.setBounds(26,196,width-52,40);nickname.setEllipsis("...");nickname.setTouchable(Touchable.disabled);card.addActor(nickname);
-            Label role=new Label(status.role().equals("IMPOSTOR")?"ИМПОСТОР":"МИРНЫЙ",new Label.LabelStyle(bodyFont,Color.valueOf(impostor?"8E1B28":"4A3020")));role.setAlignment(Align.center);role.setFontScale(.82f);role.setBounds(22,112,width-44,34);role.setTouchable(Touchable.disabled);card.addActor(role);
-            Label win=new Label(status.winner()?"ПОБЕДА":"ПОРАЖЕНИЕ",new Label.LabelStyle(bodyFont,Color.valueOf(status.winner()?"3D5A2A":"7A2A24")));win.setAlignment(Align.center);win.setFontScale(.66f);win.setBounds(22,84,width-44,28);win.setTouchable(Touchable.disabled);card.addActor(win);
+            Label role=new Label(status.role().equals("IMPOSTOR")?Localization.tr("ИМПОСТОР", "IMPOSTOR"):Localization.tr("МИРНЫЙ", "CIVILIAN"),new Label.LabelStyle(bodyFont,Color.valueOf(impostor?"8E1B28":"4A3020")));role.setAlignment(Align.center);role.setFontScale(.82f);role.setBounds(22,112,width-44,34);role.setTouchable(Touchable.disabled);card.addActor(role);
+            Label win=new Label(status.winner()?Localization.tr("ПОБЕДА", "VICTORY"):Localization.tr("ПОРАЖЕНИЕ", "DEFEAT"),new Label.LabelStyle(bodyFont,Color.valueOf(status.winner()?"3D5A2A":"7A2A24")));win.setAlignment(Align.center);win.setFontScale(.66f);win.setBounds(22,84,width-44,28);win.setTouchable(Touchable.disabled);card.addActor(win);
             for(int n=0;n<status.votesReceived();n++){final int slot=n,count=status.votesReceived();assets.texture(ImpostorAsset.STAMP_MARK).ifPresent(t->{Image mark=new Image(t);mark.setName("resultStamp:"+player.id()+":"+slot);float size=Math.min(40,(width-60)/Math.max(1,count)-6);mark.setBounds(width/2-(count*(size+6)-6)/2+slot*(size+6),30,size,size*t.getHeight()/t.getWidth());mark.setColor(.62f,.14f,.17f,.95f);card.addActor(mark);});}
             results.addActor(card);
         }
         // three dossier columns
         var st=result.statistics();
-        column("СТАТИСТИКА",40);column("КТО ЗА КОГО ГОЛОСОВАЛ",495);column("ПОДСКАЗКИ ПО РАУНДАМ",950);
-        Label keys=body("Участники\nРаунды\nСлова\nГолосов принято\nВоздержались\nБольше всего голосов","A8957C",.76f,62,160,250,205);keys.setAlignment(Align.topLeft);keys.setName("impostorStatistics");results.addActor(keys);
+        column(Localization.tr("СТАТИСТИКА", "STATISTICS"),40);column(Localization.tr("КТО ЗА КОГО ГОЛОСОВАЛ", "WHO VOTED FOR WHOM"),495);column(Localization.tr("ПОДСКАЗКИ ПО РАУНДАМ", "HINTS BY ROUND"),950);
+        Label keys=body(Localization.tr("Участники\nРаунды\nСлова\nГолосов принято\nВоздержались\nБольше всего голосов", "Players\nRounds\nWords\nVotes received\nAbstained\nMost votes"),"A8957C",.76f,62,160,250,205);keys.setAlignment(Align.topLeft);keys.setName("impostorStatistics");results.addActor(keys);
         Label values=body(st.activeParticipants()+"\n"+st.completedRounds()+"\n"+st.submittedClues()+"\n"+st.validVotes()+"\n"+st.abstentions()+"\n"+esc(names(players,result.mostVoted())),"F0E2C8",.76f,250,160,198,205);values.setAlignment(Align.topRight);values.setWrap(false);values.setEllipsis(true);results.addActor(values);
         StringBuilder history=new StringBuilder();for(var entry:result.ballots().entrySet())history.append(shortName(name(players,entry.getKey())).replace("[","[[")).append("  [#B8955F]—[]  ").append(shortName(name(players,entry.getValue())).replace("[","[[")).append('\n');
-        history.append("\nВоздержались: ").append(result.abstentions().isEmpty()?"нет":esc(names(players,result.abstentions())));
+        history.append(Localization.tr("\nВоздержались: ", "\nAbstained: ")).append(result.abstentions().isEmpty()?Localization.tr("нет", "no"):esc(names(players,result.abstentions())));
         Label votes=body(history.toString(),"F0E2C8",.76f,517,160,388,205);votes.setAlignment(Align.topLeft);votes.setName("impostorVotingHistory");scroll(votes);
         StringBuilder rounds=new StringBuilder();for(var player:roster){rounds.append("[#C9A86E]").append(shortName(player.player().name()).replace("[","[[")).append("[]   ");for(int r=0;r<result.clueRounds().size();r++){if(r>0)rounds.append("  ·  ");rounds.append(result.clueRounds().get(r).getOrDefault(player.player().id(),"—"));}rounds.append('\n');}
         Label clues=body(rounds.toString(),"F0E2C8",.66f,972,160,398,205);clues.setAlignment(Align.topLeft);clues.setName("impostorRoundSummary");scroll(clues);
-        defaultStatus=host?"Игра завершена. Можно сыграть ещё раз или вернуться в комнату.":"Ожидаем ведущего…";message.setText(defaultStatus);
+        defaultStatus=host?Localization.tr("Игра завершена. Можно сыграть ещё раз или вернуться в комнату.", "Game over. You can play again or return to the room."):Localization.tr("Ожидаем ведущего…", "Waiting for the host…");message.setText(defaultStatus);
     }
     private Image fill(Color color,float x,float y,float w,float h){Image image=new Image(solid.tint(color));image.setBounds(x,y,w,h);image.setTouchable(Touchable.disabled);return image;}
     private Label rich(String value,String color,float scale,float x,float y,float w,float h){Label label=new Label(value,new Label.LabelStyle(bodyFont,Color.valueOf(color)));label.setFontScale(scale);label.setBounds(x,y,w,h);label.setAlignment(Align.center);label.setTouchable(Touchable.disabled);return label;}
@@ -128,17 +130,17 @@ public final class ImpostorLifecyclePanel extends Group implements Disposable {
         var previous=new LinkedHashMap<>(choices);choices.clear();
         for(int i=0;i<players.size();i++){
             var player=players.get(i);var style=new CheckBox.CheckBoxStyle();style.font=font;style.fontColor=Color.valueOf("E0D2BF");style.checkboxOff=solid.tint(Color.valueOf("55434A"));style.checkboxOn=solid.tint(Color.valueOf("B54743"));style.checkboxOff.setMinSize(24,24);style.checkboxOn.setMinSize(24,24);
-            CheckBox box=new CheckBox(shortName(player.name())+"  "+(player.connectionStatus().equals("ONLINE")?"в сети":"нет связи"),style);box.setName("impostorSelect:"+player.id());box.setBounds(920,650-i*55,450,48);
+            CheckBox box=new CheckBox(shortName(player.name())+"  "+(player.connectionStatus().equals("ONLINE")?Localization.tr("в сети", "online"):Localization.tr("нет связи", "no connection")),style);box.setName("impostorSelect:"+player.id());box.setBounds(920,650-i*55,450,48);
             box.setChecked(previous.containsKey(player.id())?previous.get(player.id()).isChecked():active.contains(player.id()));box.setDisabled(replayReady||!host);choices.put(player.id(),box);box.addListener(new ChangeListener(){public void changed(ChangeEvent e,Actor a){refreshSelection();}});controls.addActor(box);
         }
-        defaultStatus=replayReady?"Реванш готов. Ожидаем ведущего…":"Выберите 3 или 4 игроков. Остальные станут зрителями.";
+        defaultStatus=replayReady?Localization.tr("Реванш готов. Ожидаем ведущего…", "Rematch ready. Waiting for the host…"):Localization.tr("Выберите 3 или 4 игроков. Остальные станут зрителями.", "Choose 3 or 4 players. The rest will watch.");
         refreshSelection();
     }
     public java.util.List<String> selected(){return choices.entrySet().stream().filter(e->e.getValue().isChecked()).map(Map.Entry::getKey).toList();}
     private void refreshSelection(){
-        int count=selected().size();start.setText("НАЧАТЬ ИГРУ · "+count+"/4");
+        int count=selected().size();start.setText(Localization.tr("НАЧАТЬ ИГРУ · ", "START GAME · ")+count+"/4");
         start.setDisabled(busy||waiting&&!replayReady&&(count<3||count>4));
-        if(!busy&&waiting)message.setText(replayReady?defaultStatus:"Выбрано: "+count+". Для игры нужны 3 или 4 участника.");
+        if(!busy&&waiting)message.setText(replayReady?defaultStatus:Localization.tr("Выбрано: ", "Selected: ")+count+Localization.tr(". Для игры нужны 3 или 4 участника.", ". The game needs 3 or 4 players."));
     }
     public void status(String status,boolean busy){this.busy=busy;replay.setDisabled(busy);lobby.setDisabled(busy);refreshSelection();if(!status.isEmpty())message.setText(status);else if(!waiting)message.setText(defaultStatus);}
     public void hidePanel(){setVisible(false);match="";waitingKey="";results.clearChildren();choices.clear();for(Actor actor:controls.getChildren().toArray(Actor.class))if(actor instanceof CheckBox)actor.remove();}

@@ -1,5 +1,7 @@
 package com.erni.finalanswer.cursedcards;
 
+import com.erni.finalanswer.localization.Localization;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
@@ -33,15 +35,15 @@ public final class CursedCardsRulesFilm implements Disposable {
     public static final float W=1920,H=1080;
     private static final float[] START={0,5.6f,11.8f,18.6f,25.6f,32f,39f},END={5.6f,11.8f,18.6f,25.6f,32f,39f,43.8f};
     public static final float LENGTH=43.8f;
-    private static final String[] TAB={"","РАЗДАЧА","ПАРЫ","ХОД","ПРОКЛЯТИЕ","ИТОГ",""};
+    private static final String[] TAB={"",Localization.tr("РАЗДАЧА", "DEALING"),Localization.tr("ПАРЫ", "PAIRS"),Localization.tr("ХОД", "TURN"),Localization.tr("ПРОКЛЯТИЕ", "CURSE"),Localization.tr("ИТОГ", "RESULT"),""};
     private static final String[] SUB={
-        "Добро пожаловать в проклятые карты! Одна из них несёт смерть.",
-        "Каждому раздают карты. И где-то среди них прячется карта смерти!",
-        "Одинаковые пары сразу сбрасываются. Чем меньше карт, тем вы ближе к спасению.",
-        "По очереди вслепую берите одну карту у соседа. Собралась пара? Сбрасывайте её!",
-        "Зрители могут проклясть игрока. Тогда шанс, что смерть достанется ему, станет выше!",
-        "Избавились от всех карт? Вы спасены! А у кого осталась смерть, тот погибает.",
-        "Ну что, готовы? Главное, не вытащите смерть!"};
+        Localization.tr("Добро пожаловать в проклятые карты! Одна из них несёт смерть.", "Welcome to The Cursed Cards! One of them carries death."),
+        Localization.tr("Каждому раздают карты. И где-то среди них прячется карта смерти!", "Everyone is dealt cards. And somewhere among them hides the death card!"),
+        Localization.tr("Одинаковые пары сразу сбрасываются. Чем меньше карт, тем вы ближе к спасению.", "Matching pairs are discarded at once. The fewer cards, the closer you are to salvation."),
+        Localization.tr("По очереди вслепую берите одну карту у соседа. Собралась пара? Сбрасывайте её!", "Take turns drawing one card blind from your neighbour. Made a pair? Discard it!"),
+        Localization.tr("Зрители могут проклясть игрока. Тогда шанс, что смерть достанется ему, станет выше!", "Spectators can curse a player. Then the chance that death lands on them goes up!"),
+        Localization.tr("Избавились от всех карт? Вы спасены! А у кого осталась смерть, тот погибает.", "Got rid of all your cards? You are saved! Whoever is left holding death dies."),
+        Localization.tr("Ну что, готовы? Главное, не вытащите смерть!", "So, are you ready? Just don't draw death!")};
     private static final Color BLOOD=new Color(.9f,.16f,.08f,1),GOLD=new Color(1f,.74f,.32f,1),INK=new Color(.24f,.12f,.06f,1),
         BONE=new Color(.96f,.92f,.84f,1),DARK=new Color(.03f,.015f,.015f,1),EMBER=new Color(1,.42f,.18f,1);
     private static final String[] WHO={"skeleton","dracula","pumpkin","voodoo","ghost"};
@@ -191,11 +193,11 @@ public final class CursedCardsRulesFilm implements Disposable {
             if(glowR==null)glowR=new TextureRegion(glow);for(int i=0;i<12;i++){float ang=i*30+time*8;b(1,.35f,.2f,.10f*a*fl);batch.draw(glowR,W/2,H/2-150-24,0,24,620,48,1,1,ang);}b(1,1,1,1);}
         card(W/2,H/2-150+bob,230,MathUtils.sin(time*.8f)*3,fl,0,a*ease(k(t,.2f,.8f)),1);
         if(pass==1){float q=ease(k(t,.6f,1.5f));text(title,"THE CURSED CARDS",W/2,H-190+(1-q)*30,GOLD,a*q,.9f);
-            float r=ease(k(t,1.3f,2.1f));text(heading,"ПРОКЛЯТЫЕ КАРТЫ",W/2,H-320,BLOOD,a*r,.8f);}
+            float r=ease(k(t,1.3f,2.1f));text(heading,Localization.tr("ПРОКЛЯТЫЕ КАРТЫ", "THE CURSED CARDS"),W/2,H-320,BLOOD,a*r,.8f);}
     }
     private static final float[][] SEAT={{W/2-640,520},{W/2-215,520},{W/2+215,520},{W/2+640,520}};
     private void roles(float t,float a){
-        headingText("РАЗДАЧА",t,a,GOLD);
+        headingText(Localization.tr("РАЗДАЧА", "DEALING"),t,a,GOLD);
         float dx=W/2,dy=740;card(dx,dy,110,0,0,1,a*ease(k(t,.1f,.5f)),1);
         for(int p=0;p<4;p++){framed(WHO[p],SEAT[p][0],SEAT[p][1]-230,130,a*ease(k(t,.2f+.1f*p,.6f+.1f*p)),GOLD,0);
             for(int c=0;c<4;c++){float st=.7f+(c*4+p)*.13f,f=ease(k(t,st,st+.45f));if(f<=0)continue;float u=c/3f-.5f;
@@ -204,35 +206,35 @@ public final class CursedCardsRulesFilm implements Disposable {
                 card(x,y,110,MathUtils.lerp(0,rot,f)+(1-f)*200,0,1,a,1);if(f>=1&&pass==2){float e=t-st-.45f;if(e<.2f)glowAt(tx,ty,180,GOLD,.4f*a*(1-e/.2f));}}}
         // the DEATH card hides somewhere: one back pulses red
         float hb=k(t,3.4f,3.8f);if(hb>0){float x=SEAT[CURSED][0]+(2/3f-.5f)*120,y=SEAT[CURSED][1]-(1/6f)*20;float beat=(float)Math.pow(Math.max(0,MathUtils.sin(time*6)),6);
-            if(pass==2)glowAt(x,y,340,BLOOD,a*hb*(.25f+.55f*beat));if(pass==1)text(sub,"Где-то здесь — смерть",W/2,215,BLOOD,a*hb,.85f);}
+            if(pass==2)glowAt(x,y,340,BLOOD,a*hb*(.25f+.55f*beat));if(pass==1)text(sub,Localization.tr("Где-то здесь — смерть", "Death is somewhere here"),W/2,215,BLOOD,a*hb,.85f);}
     }
     private void clues(float t,float a){
-        headingText("ПАРЫ",t,a,GOLD);
+        headingText(Localization.tr("ПАРЫ", "PAIRS"),t,a,GOLD);
         int[] v={3,9,7,3,7};float cx=W/2-160,cy=500;
-        float px=W/2+520,py=520;if(pass==1){text(small,"СБРОС",px,py+170,BONE,.6f*a,1);}
+        float px=W/2+520,py=520;if(pass==1){text(small,Localization.tr("СБРОС", "RESET"),px,py+170,BONE,.6f*a,1);}
         for(int i=0;i<5;i++){float u=i/4f-.5f;float x=cx+u*560,y=cy-Math.abs(u)*40,rot=-u*16;int pair=(v[i]==3)?0:(v[i]==7)?1:-1;
             float lift=0,go=0;if(pair>=0){float st=1.2f+pair*1.6f;lift=ease(k(t,st,st+.4f));go=ease(k(t,st+.6f,st+1.2f));}
             float fx=MathUtils.lerp(x,px+(pair==0?-12:12),go),fy=MathUtils.lerp(y+lift*60,py+(pair==0?-6:8),go),fr=MathUtils.lerp(rot,pair==0?-8:10,go);
             card(fx,fy,MathUtils.lerp(170,130,go),fr,ease(k(t,.4f+.1f*i,.8f+.1f*i)),v[i],a,1);
             if(pass==2&&pair>=0&&lift>0&&go<1)glowAt(x,y+lift*60,300,GOLD,.35f*a*lift*(1-go));}
         for(int pr=0;pr<2;pr++){float st=1.2f+pr*1.6f;sparks(W/2-160,620,t-st-.3f,a,GOLD);sparks(W/2+520,520,t-st-1.2f,a*.7f,GOLD);}
-        if(pass==1){for(int pr=0;pr<2;pr++){float st=1.2f+pr*1.6f,f=k(t,st+.2f,st+.5f)*(1-k(t,st+1.1f,st+1.4f));text(heading,"ПАРА!",W/2-160,760,GOLD,a*f,.7f);}
-            text(sub,"Осталась одна карта",cx,240,BONE,a*k(t,4.6f,5.1f),.85f);}
+        if(pass==1){for(int pr=0;pr<2;pr++){float st=1.2f+pr*1.6f,f=k(t,st+.2f,st+.5f)*(1-k(t,st+1.1f,st+1.4f));text(heading,Localization.tr("ПАРА!", "PAIR!"),W/2-160,760,GOLD,a*f,.7f);}
+            text(sub,Localization.tr("Осталась одна карта", "One card left"),cx,240,BONE,a*k(t,4.6f,5.1f),.85f);}
     }
     private void suspicion(float t,float a){
-        headingText("ХОД",t,a,GOLD);
+        headingText(Localization.tr("ХОД", "TURN"),t,a,GOLD);
         float mx=W/2-520,my=520,nx=W/2+330,ny=520;
-        framed(WHO[0],mx,my+40,190,a,GOLD,0);if(pass==1)text(small,"ТВОЙ ХОД",mx,my-80,GOLD,a,1.1f);
-        framed(WHO[1],nx,my+260,120,a,GOLD,0);if(pass==1)text(small,"СОСЕД",nx,my+180,BONE,.7f*a,1);
+        framed(WHO[0],mx,my+40,190,a,GOLD,0);if(pass==1)text(small,Localization.tr("ТВОЙ ХОД", "YOUR TURN"),mx,my-80,GOLD,a,1.1f);
+        framed(WHO[1],nx,my+260,120,a,GOLD,0);if(pass==1)text(small,Localization.tr("СОСЕД", "NEIGHBOUR"),nx,my+180,BONE,.7f*a,1);
         int pick=2;float hov=k(t,.8f,2.6f),take=ease(k(t,2.8f,3.6f)),fl=ease(k(t,3.6f,4.1f));
         for(int i=0;i<5;i++){float u=i/4f-.5f;float x=nx+u*420,y=ny-Math.abs(u)*30,rot=-u*14;float hoverIdx=hov*4.99f;boolean over=(int)hoverIdx==i&&take==0;
             if(i==pick&&take>0){x=MathUtils.lerp(x,mx+260,take);y=MathUtils.lerp(y,my-40,take)+MathUtils.sin(take*MathUtils.PI)*120;rot*=1-take;}
             card(x,y+(over?28:0),150,rot,i==pick?fl:0,9,a,over?1:.85f);if(pass==2&&over)glowAt(x,y+28,260,GOLD,.35f*a);}
         sparks(mx+260,my-40,t-4.15f,a,GOLD);
-        if(pass==1){float p=k(t,4.2f,4.6f);text(heading,"ВСЛЕПУЮ!",nx,ny-260,BLOOD,a*k(t,1,1.4f)*(1-p),.7f);text(heading,"9 + 9 = ПАРА!",nx,ny-260,GOLD,a*p,.7f);}
+        if(pass==1){float p=k(t,4.2f,4.6f);text(heading,Localization.tr("ВСЛЕПУЮ!", "BLIND!"),nx,ny-260,BLOOD,a*k(t,1,1.4f)*(1-p),.7f);text(heading,Localization.tr("9 + 9 = ПАРА!", "9 + 9 = PAIR!"),nx,ny-260,GOLD,a*p,.7f);}
     }
     private void vote(float t,float a){
-        headingText("ПРОКЛЯТИЕ",t,a,BLOOD);
+        headingText(Localization.tr("ПРОКЛЯТИЕ", "CURSE"),t,a,BLOOD);
         float tx=W/2,ty=420;framed(WHO[CURSED],tx,ty,240,a,BLOOD,ease(k(t,2.6f,3.4f)));
         for(int i=0;i<5;i++){float sx=W/2+(i-2)*320,sy=770;framed(i<4?WHO[(i+3)%5]:WHO[4],sx,sy,100,a*.75f*ease(k(t,.2f+.1f*i,.6f+.1f*i)),BLOOD,0);
             float f=k(t,1+.25f*i,1.9f+.25f*i);if(f>0&&f<1&&pass==2){for(int q=0;q<10;q++){float ff=Math.max(0,f-q*.025f);float x=MathUtils.lerp(sx,tx,ease(ff)),y=MathUtils.lerp(sy-60,ty+40,ease(ff))+MathUtils.sin(ff*MathUtils.PI)*80*(i%2==0?1:-1);glowAt(x,y,70-q*5,BLOOD,.8f*a*(1-q/10f));}}}
@@ -240,19 +242,19 @@ public final class CursedCardsRulesFilm implements Disposable {
         if(c>0&&pass==0){float rr=210;int n=72;for(int q=0;q<n;q++){float a0=q/(float)n*MathUtils.PI2+time*.4f,a1=a0+MathUtils.PI2/n*.6f;col(BLOOD,.8f*a*c);shapes.rectLine(tx+MathUtils.cos(a0)*rr,ty+MathUtils.sin(a0)*rr*.42f-120,tx+MathUtils.cos(a1)*rr,ty+MathUtils.sin(a1)*rr*.42f-120,2.5f);}
             for(int q=0;q<5;q++){float a0=q*MathUtils.PI2/5-time*.3f,a1=a0+MathUtils.PI2*2/5;col(BLOOD,.55f*a*c);shapes.rectLine(tx+MathUtils.cos(a0)*rr*.92f,ty+MathUtils.sin(a0)*rr*.39f-120,tx+MathUtils.cos(a1)*rr*.92f,ty+MathUtils.sin(a1)*rr*.39f-120,2);}}
         if(c>0){if(pass==1){for(int i=0;i<6;i++){float ph=(time*.4f+i/6f)%1;float r=160+220*ph;b(.9f,.15f,.12f,.25f*a*c*(1-ph));batch.draw(new TextureRegion(wisp),tx-r,ty-r*.6f+ph*120,r,r*.6f,r*2,r*1.2f,1,1,i*60+time*20);}b(1,1,1,1);
-                text(heading,"ПРОКЛЯТ",tx,ty-170,BLOOD,a*k(t,3,3.4f),.75f);}
+                text(heading,Localization.tr("ПРОКЛЯТ", "CURSED"),tx,ty-170,BLOOD,a*k(t,3,3.4f),.75f);}
             if(pass==2)glowAt(tx,ty,700,BLOOD,.45f*a*c*(.8f+.2f*MathUtils.sin(time*5)));
             sparks(tx+230,ty,t-4.4f,a,BLOOD);            float d=ease(k(t,3.6f,4.4f));card(MathUtils.lerp(W/2+700,tx+230,d),ty+MathUtils.sin(d*MathUtils.PI)*120,130,(1-d)*-90+8,ease(k(t,4.6f,5.1f)),0,a*d,1);}
     }
     private void result(float t,float a){
-        headingText("ИТОГ",t,a,GOLD);
+        headingText(Localization.tr("ИТОГ", "RESULT"),t,a,GOLD);
         float l=ease(k(t,.3f,.9f)),r=ease(k(t,1.6f,2.2f));float lx=W/2-420,rx=W/2+420,y=470;
         if(pass==0){panel(lx-320,y-190,640,420,GOLD,a*l);panel(rx-320,y-190,640,420,BLOOD,a*r);}
-        framed(WHO[0],lx,y+70,190,a*l,GOLD,0);if(pass==1){text(small,"0 КАРТ В РУКЕ",lx,y-60,BONE,a*l,1.1f);text(heading,"СПАСЁН",lx,y-110,GOLD,a*l,.75f);}
+        framed(WHO[0],lx,y+70,190,a*l,GOLD,0);if(pass==1){text(small,Localization.tr("0 КАРТ В РУКЕ", "0 CARDS IN HAND"),lx,y-60,BONE,a*l,1.1f);text(heading,Localization.tr("СПАСЁН", "SAVED"),lx,y-110,GOLD,a*l,.75f);}
         if(pass==2)glowAt(lx,y+70,600,GOLD,.2f*a*l);
         float fl=ease(k(t,2.6f,3.2f)),dead=k(t,3.2f,4f);framed(WHO[CURSED],rx-90,y+70,170,a*r,BLOOD,dead);
         card(rx+120,y+50,140,6,fl,0,a*r,1);
-        if(pass==1){text(small,"ПОСЛЕДНЯЯ КАРТА",rx,y-60,BONE,a*r,1.1f);text(heading,"СМЕРТЬ",rx,y-110,BLOOD,a*dead,.75f+.1f*(1-dead));}
+        if(pass==1){text(small,Localization.tr("ПОСЛЕДНЯЯ КАРТА", "LAST CARD"),rx,y-60,BONE,a*r,1.1f);text(heading,Localization.tr("СМЕРТЬ", "DEATH"),rx,y-110,BLOOD,a*dead,.75f+.1f*(1-dead));}
         {float e=t-3.2f;if(e>0&&e<2f){if(pass==1){for(int i=0;i<6;i++){float k2=e/2f,rs=60+260*ease(Math.min(1,k2*1.5f));b(.35f,.08f,.08f,.5f*a*(1-k2));batch.draw(new TextureRegion(smoke),rx+120-rs+(i-2.5f)*30,y+50-rs*.6f+e*60,rs,rs*.6f,rs*2,rs*1.2f,1,1,i*55+e*30);}b(1,1,1,1);}
             sparks(rx+120,y+50,e,a,BLOOD);}}
         if(pass==2&&fl>.5f)glowAt(rx+120,y+50,700,BLOOD,.55f*a*(1-.5f*dead)*(.8f+.2f*MathUtils.sin(time*6)));
@@ -261,7 +263,7 @@ public final class CursedCardsRulesFilm implements Disposable {
         float p=ease(k(t,1.1f,1.7f)),q=ease(k(t,.1f,.6f));
         for(int i=0;i<5;i++){float u=i/4f-.5f;float x=W/2+u*760,y=320-Math.abs(u)*40;float fl=i==2?ease(k(t,1.8f,2.4f)):0;card(x,y+(i==2?fl*30:0),150,-u*18,fl,0,a*q,1);}
         if(pass==2)glowAt(W/2,350,800,BLOOD,.4f*a*ease(k(t,1.8f,2.4f)));
-        if(pass==1){text(heading,"Ну что, готовы?",W/2,H/2+250,BONE,a*q*(1-p*.4f),.8f);text(title,"НЕ ВЫТАЩИТЕ СМЕРТЬ!",W/2,H/2+130,BLOOD,a*p,.6f*(1+.25f*(1-p)));}
+        if(pass==1){text(heading,Localization.tr("Ну что, готовы?", "So, are you ready?"),W/2,H/2+250,BONE,a*q*(1-p*.4f),.8f);text(title,Localization.tr("НЕ ВЫТАЩИТЕ СМЕРТЬ!", "DON'T DRAW DEATH!"),W/2,H/2+130,BLOOD,a*p,.6f*(1+.25f*(1-p)));}
     }
 
     // ---------- chrome ----------
@@ -281,10 +283,10 @@ public final class CursedCardsRulesFilm implements Disposable {
         if(time>LENGTH-1){col(Color.BLACK,k(time,LENGTH-1,LENGTH));shapes.rect(0,0,W,H);}
     }
     private void chromeText(int s,float t){
-        text(small,"ПРОПУСТИТЬ",W-330+122,H-118+42,hover?BONE:GOLD,1,1.05f);text(small,"ENTER / КЛИК",W-330+145,H-140,BONE,.45f,.8f);
+        text(small,Localization.tr("ПРОПУСТИТЬ", "SKIP"),W-330+122,H-118+42,hover?BONE:GOLD,1,1.05f);text(small,Localization.tr("ENTER / КЛИК", "ENTER / CLICK"),W-330+145,H-140,BONE,.45f,.8f);
         float ta=k(time,START[1]-.3f,START[1]+.3f)*(1-k(time,START[6]-.3f,START[6]+.3f));
         for(int i=1;i<=5;i++){Color c=i==s?BONE:i<s?GOLD:new Color(.55f,.45f,.4f,1);small.getData().setScale(.85f);gl.setText(small,TAB[i]);float lw=gl.width;small.getData().setScale(1);text(small,"0"+i,tabX(i)+14-lw/2-36,H-64,i==s?BLOOD:c,(i==s?1:.6f)*ta,.8f,false);text(small,TAB[i],tabX(i)+14,H-64,c,(i==s?1:.8f)*ta,.85f);}
-        text(small,"THE CURSED CARDS  ·  ПРАВИЛА",60,H-30,GOLD,.7f,.85f,false);
+        text(small,Localization.tr("THE CURSED CARDS  ·  ПРАВИЛА", "THE CURSED CARDS  ·  RULES"),60,H-30,GOLD,.7f,.85f,false);
         float len=END[s]-START[s];float a=ease(k(t,.15f,.5f))*(1-ease(k(t,len-.3f,len)))*(1-k(time,LENGTH-.6f,LENGTH));typeLine(SUB[s],t-.15f,a);
     }
     private static float tabX(int i){return W/2+(i-3)*230;}

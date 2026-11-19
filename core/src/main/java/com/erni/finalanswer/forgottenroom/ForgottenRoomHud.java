@@ -1,5 +1,7 @@
 package com.erni.finalanswer.forgottenroom;
 
+import com.erni.finalanswer.localization.Localization;
+
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.math.MathUtils;
@@ -83,7 +85,7 @@ final class ForgottenRoomHud {
         b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);b.setColor(glow.r,glow.g,glow.b,.18f*alpha);b.draw(art.soft,cx-R*.42f,cy-R*.3f,R*.84f,R*.7f);
         b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
         text(b,title,num,cx,cy+nh*.5f+R*.16f,sc*.92f,urgent?EMBER:IVORY,alpha);
-        text(b,body,"СЕКУНД",cx,cy-R*.36f,R/250f,urgent?EMBER:DIM,.85f*alpha);
+        text(b,body,Localization.tr("СЕКУНД", "SECONDS"),cx,cy-R*.36f,R/250f,urgent?EMBER:DIM,.85f*alpha);
         b.setColor(1,1,1,1);}
 
     // ---------- scenes ----------
@@ -96,9 +98,9 @@ final class ForgottenRoomHud {
         text(b,body,"FINAL ANSWER  /  FORGOTTEN ROOMS",W/2,694+lift,.62f,GOLD,a);
         rule(b,W/2,638+lift,320,a*.6f);
         wrapped(b,title,roomName.toUpperCase(Locale.ROOT),W/2,590+lift,1500,1.03f,IVORY,a);
-        text(b,body,"Запомните комнату. Найдите то, что изменилось.",W/2,451+lift,.82f,IVORY,a*ease((t-.45f)/.7f));
+        text(b,body,Localization.tr("Запомните комнату. Найдите то, что изменилось.", "Remember the room. Find what has changed."),W/2,451+lift,.82f,IVORY,a*ease((t-.45f)/.7f));
         float appear=a*ease((t-.9f)/.8f);
-        String[] steps={"01   НАБЛЮДАЙТЕ","02   ЗАПОМИНАЙТЕ","03   НАХОДИТЕ"};
+        String[] steps={Localization.tr("01   НАБЛЮДАЙТЕ", "01   WATCH"),Localization.tr("02   ЗАПОМИНАЙТЕ", "02   REMEMBER"),Localization.tr("03   НАХОДИТЕ", "03   FIND")};
         for(int i=0;i<3;i++)text(b,body,steps[i],W/2+(i-1)*360,330,.56f,GOLD,appear*.9f);
         b.setColor(1,1,1,1);
     }
@@ -118,7 +120,7 @@ final class ForgottenRoomHud {
         leftText(b,body,"FORGOTTEN ROOMS  /  "+roomName.toUpperCase(Locale.ROOT),68,H-30,.43f,GOLD,a,1100);
         leftText(b,body,instruction,68,H-62,.77f,IVORY,a,1260);
         text(b,body,stage,1590,H-43,.46f,GOLD,a);
-        text(b,body,seconds<=3&&seconds>0?"ВРЕМЯ ИСТЕКАЕТ":"ОСТАЛОСЬ ВРЕМЕНИ",1590,H-70,.38f,DIM,a);
+        text(b,body,seconds<=3&&seconds>0?Localization.tr("ВРЕМЯ ИСТЕКАЕТ", "TIME IS RUNNING OUT"):Localization.tr("ОСТАЛОСЬ ВРЕМЕНИ", "TIME LEFT"),1590,H-70,.38f,DIM,a);
         ring(b,W-92,H-61,44,fraction,seconds,a);
         // A single quiet progress track across the header. The scene beneath is never dimmed by it.
         b.setColor(1,1,1,.10f*a);b.draw(art.pixel,68,H-108,W-136,1);
@@ -126,15 +128,15 @@ final class ForgottenRoomHud {
         b.draw(art.pixel,68,H-108,(W-136)*MathUtils.clamp(fraction,0,1),2);b.setColor(1,1,1,1);
     }
     void observation(SpriteBatch b,float fraction,int seconds,float alpha){
-        header(b,"01 / НАБЛЮДЕНИЕ","Запомните предметы и их расположение",fraction,seconds,alpha);
+        header(b,Localization.tr("01 / НАБЛЮДЕНИЕ", "01 / OBSERVATION"),Localization.tr("Запомните предметы и их расположение", "Remember the objects and where they are"),fraction,seconds,alpha);
     }
     void changedRoom(SpriteBatch b,float t){
         float a=ease((t-.25f)/.45f);topBand(b,a);
-        leftText(b,body,"02 / КОМНАТА ИЗМЕНИЛАСЬ",68,H-32,.48f,GOLD,a,1200);
-        leftText(b,body,"Присмотритесь. Что стало иначе?",68,H-66,.8f,IVORY,a,1300);
+        leftText(b,body,Localization.tr("02 / КОМНАТА ИЗМЕНИЛАСЬ", "02 / THE ROOM HAS CHANGED"),68,H-32,.48f,GOLD,a,1200);
+        leftText(b,body,Localization.tr("Присмотритесь. Что стало иначе?", "Look closely. What's different?"),68,H-66,.8f,IVORY,a,1300);
     }
     void answering(SpriteBatch b,ForgottenRoomModel m,float fraction,int seconds){
-        header(b,"03 / РАССЛЕДОВАНИЕ","Найдите изменения · отметьте их на телефонах",fraction,seconds,1);
+        header(b,Localization.tr("03 / РАССЛЕДОВАНИЕ", "03 / INVESTIGATION"),Localization.tr("Найдите изменения · отметьте их на телефонах", "Find the changes · mark them on your phones"),fraction,seconds,1);
         players(b,m);
     }
     /** Player plaques along the bottom: face in a medallion, name, and a gilt seal once the answer is in (never whether it is right). */
@@ -146,35 +148,35 @@ final class ForgottenRoomHud {
             plaque(b,x,y,pw,ph,.9f,done);
             medallion(b,m,id,x+29,y+31,24,1,done);
             leftText(b,body,m.name(id),x+62,y+45,.55f,done?IVORY:DIM,1,pw-76);
-            leftText(b,body,done?"ОТВЕТ ПРИНЯТ":"ИЩЕТ ИЗМЕНЕНИЯ",x+62,y+21,.32f,done?GOLD:DIM,.85f,pw-76);
+            leftText(b,body,done?Localization.tr("ОТВЕТ ПРИНЯТ", "ANSWER RECEIVED"):Localization.tr("ИЩЕТ ИЗМЕНЕНИЯ", "LOOKING FOR CHANGES"),x+62,y+21,.32f,done?GOLD:DIM,.85f,pw-76);
         }
-        text(b,body,m.submitted.size()+" / "+n+"  ОТВЕТОВ ПРИНЯТО",W/2,110,.4f,IVORY,.86f);
+        text(b,body,m.submitted.size()+" / "+n+Localization.tr("  ОТВЕТОВ ПРИНЯТО", " ANSWERS RECEIVED"),W/2,110,.4f,IVORY,.86f);
     }
-    void revealTitle(SpriteBatch b,float t){float a=ease(t/.6f);text(b,title,"ТАЙНЫ КОМНАТЫ",W/2,H/2+40,1.35f,GOLD,a);rule(b,W/2,H/2-30,460,a);
-        text(b,body,"Посмотрим, что изменилось",W/2,H/2-60,.75f,IVORY,a*ease((t-.4f)/.6f));}
+    void revealTitle(SpriteBatch b,float t){float a=ease(t/.6f);text(b,title,Localization.tr("ТАЙНЫ КОМНАТЫ", "SECRETS OF THE ROOM"),W/2,H/2+40,1.35f,GOLD,a);rule(b,W/2,H/2-30,460,a);
+        text(b,body,Localization.tr("Посмотрим, что изменилось", "Let's see what changed"),W/2,H/2-60,.75f,IVORY,a*ease((t-.4f)/.6f));}
     void revealCaption(SpriteBatch b,ForgottenRoomModel m,ForgottenRoomModel.Change c,int index,float t){
         float a=ease((t-.15f)/.5f)*(1-ease((t-.93f)/.07f));if(a<=0)return;
         // keep the caption away from the change: bottom band normally, top band when the change sits low in the room
         float low=0;for(String slot:c.slots()){var p=m.places.get(slot);if(p!=null)low=Math.max(low,p.y());}
         float w=1240,h=196,x=(W-w)/2,y=low>.62f?H-h-30:28;boolean found=!c.foundBy().isEmpty();
         plaque(b,x,y,w,h,a,found);
-        text(b,body,"ИЗМЕНЕНИЕ  "+(index+1)+"  ИЗ  "+m.changes.size(),W/2,y+h-18,.48f,DIM,a);
+        text(b,body,Localization.tr("ИЗМЕНЕНИЕ  ", "CHANGE  ")+(index+1)+Localization.tr("  ИЗ  ", "  OF  ")+m.changes.size(),W/2,y+h-18,.48f,DIM,a);
         text(b,title,c.caption(),W/2,y+h-44,.78f,GOLD,a);
         rule(b,W/2,y+h-112,360,a*.8f);
         float fa=a*ease((t-.4f)/.3f);
-        if(!found)text(b,body,"НИКТО НЕ ЗАМЕТИЛ",W/2,y+62,.82f,EMBER,fa);
+        if(!found)text(b,body,Localization.tr("НИКТО НЕ ЗАМЕТИЛ", "NOBODY NOTICED"),W/2,y+62,.82f,EMBER,fa);
         else{ // who found it: faces in medallions with names
             int k=c.foundBy().size();float r=26,slotW=190,sx=W/2-(k-1)*slotW/2;
             for(int i=0;i<k;i++){String id=c.foundBy().get(i);float px=sx+i*slotW;medallion(b,m,id,px-48,y+50,r,fa,true);
                 body.getData().setScale(.6f);body.setColor(IVORY.r,IVORY.g,IVORY.b,fa);body.draw(b,m.name(id),px-14,y+64);body.getData().setScale(1);}
-            text(b,body,"ЗАМЕТИЛИ",W/2,y+104,.46f,DIM,fa);}
+            text(b,body,Localization.tr("ЗАМЕТИЛИ", "SPOTTED"),W/2,y+104,.46f,DIM,fa);}
     }
     /** Final table: a gilt panel, rows arrive one by one, faces in medallions, podium colours for the top three, points counting up. */
     void results(SpriteBatch b,ForgottenRoomModel m,float t){
         float a=ease(t/.6f);b.setColor(0,0,0,.62f*a);b.draw(art.pixel,0,0,W,H);b.setColor(1,1,1,1);
         int n=m.results.size();float rowH=Math.min(112,600f/Math.max(1,n)),w=1060,x=(W-w)/2,top=H-250,panelH=n*rowH+300;
         plaque(b,x-40,top-n*rowH-40,w+80,panelH-60,a*.85f,false);
-        text(b,title,"ИТОГИ РАССЛЕДОВАНИЯ",W/2,H-96,1.0f,GOLD,a);rule(b,W/2,H-160,460,a);text(b,body,roomName.toUpperCase(Locale.ROOT),W/2,H-188,.62f,IVORY,a);
+        text(b,title,Localization.tr("ИТОГИ РАССЛЕДОВАНИЯ", "INVESTIGATION RESULTS"),W/2,H-96,1.0f,GOLD,a);rule(b,W/2,H-160,460,a);text(b,body,roomName.toUpperCase(Locale.ROOT),W/2,H-188,.62f,IVORY,a);
         Color[] podium={GOLD,new Color(.82f,.84f,.88f,1),new Color(.80f,.52f,.30f,1)};
         for(int i=0;i<n;i++){var r=m.results.get(i);float ra=ease((t-.5f-i*.22f)/.45f);if(ra<=0)continue;
             float y=top-(i+1)*rowH,slide=(1-ra)*40;boolean first=r.rank()==1;Color pc=r.rank()<=3?podium[r.rank()-1]:DIM;
@@ -184,10 +186,10 @@ final class ForgottenRoomHud {
             medallion(b,m,r.playerId(),x+146+slide,mid,rowH*.36f,ra,first);
             float nx=x+204+slide;body.getData().setScale(.92f);body.setColor(IVORY.r,IVORY.g,IVORY.b,ra);body.draw(b,m.name(r.playerId()),nx,mid+34);
             body.getData().setScale(.5f);body.setColor(DIM.r,DIM.g,DIM.b,ra);
-            body.draw(b,(r.submitted()?"НАЙДЕНО  "+r.correct()+"  ИЗ  "+m.changes.size():"НЕ ОТВЕТИЛ"),nx,mid-8);body.getData().setScale(1);
+            body.draw(b,(r.submitted()?Localization.tr("НАЙДЕНО  ", "FOUND  ")+r.correct()+Localization.tr("  ИЗ  ", "  OF  ")+m.changes.size():Localization.tr("НЕ ОТВЕТИЛ", "NO ANSWER")),nx,mid-8);body.getData().setScale(1);
             int shown=Math.round(r.points()*ease((t-.8f-i*.22f)/1.4f));
             text(b,title,String.valueOf(shown),x+w-120+slide,mid+34,.9f,first?GOLD:IVORY,ra);
-            text(b,body,"ОЧК.",x+w-50+slide,mid+10,.44f,DIM,ra);}
-        if(t>2.5f)text(b,body,"ENTER — ВЕРНУТЬСЯ В ЛОББИ",W/2,46,.55f,DIM,ease((t-2.5f)/.6f)*.85f);
+            text(b,body,Localization.tr("ОЧК.", "PTS"),x+w-50+slide,mid+10,.44f,DIM,ra);}
+        if(t>2.5f)text(b,body,Localization.tr("ENTER — ВЕРНУТЬСЯ В ЛОББИ", "ENTER — BACK TO LOBBY"),W/2,46,.55f,DIM,ease((t-2.5f)/.6f)*.85f);
     }
 }

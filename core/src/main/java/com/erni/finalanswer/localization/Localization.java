@@ -17,8 +17,20 @@ public class Localization {
         setLanguage(language);
     }
 
+    private static volatile String current = "en";
+
+    /** Inline bilingual text: every visible string carries Russian and English side by side; English is the default. */
+    public static String tr(String ru, String en) {
+        return "ru".equals(current) ? ru : en;
+    }
+
+    public static boolean russian() {
+        return "ru".equals(current);
+    }
+
     public void setLanguage(String language) {
         this.language = "ru".equals(language) ? "ru" : "en";
+        current = this.language;
         bundle =
                 BUNDLES.computeIfAbsent(
                         this.language,

@@ -1,5 +1,7 @@
 package com.erni.finalanswer.impostor;
 
+import com.erni.finalanswer.localization.Localization;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.ScreenAdapter;
@@ -159,16 +161,16 @@ public final class ImpostorScreen extends ScreenAdapter {
         if(type.equals("PLAYER_JOINED"))audio.play(com.erni.finalanswer.audio.PresentationAudio.Cue.PLAYER_JOINED);
         if(type.equals("IMPOSTOR_LOBBY_RETURNED"))audio.play(com.erni.finalanswer.audio.PresentationAudio.Cue.LOBBY);
         if(type.equals("ROOM_CLOSED")){roomClosed=true;if(roomSettings!=null)roomSettings.update(authoritativeSettings,false);clearSuspicion();clearFinal();lifecycle.hidePanel();roomLobby.update(null,"");
-            lifecycle.setVisible(true);lifecycle.status("Комната недоступна: "+event.getAsJsonObject("payload").get("reason").getAsString(),true);return;}
+            lifecycle.setVisible(true);lifecycle.status(Localization.tr("Комната недоступна: ", "Room unavailable: ")+event.getAsJsonObject("payload").get("reason").getAsString(),true);return;}
         if(!pendingAction.isEmpty() && event.get("requestId").getAsString().equals(pendingAction)){
             pendingAction="";lifecycleError=type.equals("IMPOSTOR_ACTION_REJECTED")||type.equals("ERROR")?event.getAsJsonObject("payload").get("code").getAsString():"";
-            if(roomSettings!=null)roomSettings.status(lifecycleError.isEmpty()?"Настройки синхронизированы.":lifecycleError);
+            if(roomSettings!=null)roomSettings.status(lifecycleError.isEmpty()?Localization.tr("Настройки синхронизированы.", "Settings synced."):lifecycleError);
         }
         if(roomSettings!=null&&!lifecycleError.isEmpty())roomSettings.status(lifecycleError);
     }
     private void sendSettings(com.erni.finalanswer.gameplay.impostor.ImpostorSettings settings){
         if(liveConnection==null||!liveConnection.connected()||liveState==null||!liveState.get("host").getAsBoolean()||!pendingAction.isEmpty())return;
-        pendingAction=liveConnection.send("UPDATE_IMPOSTOR_SETTINGS",Map.of("roomCode",liveState.get("code").getAsString(),"sessionId",liveState.get("lobbyId").getAsString(),"settings",settings));actionStarted=System.nanoTime();lifecycleError="";roomSettings.status("Отправляем…");
+        pendingAction=liveConnection.send("UPDATE_IMPOSTOR_SETTINGS",Map.of("roomCode",liveState.get("code").getAsString(),"sessionId",liveState.get("lobbyId").getAsString(),"settings",settings));actionStarted=System.nanoTime();lifecycleError="";roomSettings.status(Localization.tr("Отправляем…", "Sending…"));
     }
     private boolean reducedMotion(){return game.getSettings().reducedMotion()||authoritativeSettings.reducedMotion()||!authoritativeSettings.visualEffectsEnabled();}
     private void sendLifecycle(String type){
@@ -177,7 +179,7 @@ public final class ImpostorScreen extends ScreenAdapter {
         var mini=liveState.has("impostor")?liveState.getAsJsonObject("impostor"):null;
         payload.put("sessionId",mini==null?liveState.get("lobbyId").getAsString():mini.get("sessionId").getAsString());
         if(type.equals("START_IMPOSTOR") && mini==null)payload.put("participantIds",lifecycle.selected());
-        pendingAction=liveConnection.send(type,payload);actionStarted=System.nanoTime();lifecycleError="";lifecycle.status("Отправляем…",true);
+        pendingAction=liveConnection.send(type,payload);actionStarted=System.nanoTime();lifecycleError="";lifecycle.status(Localization.tr("Отправляем…", "Sending…"),true);
     }
     private void updateLifecycle(float delta){
         if(liveConnection==null || roomClosed)return;
@@ -207,11 +209,11 @@ public final class ImpostorScreen extends ScreenAdapter {
                 lifecycle.hidePanel();
             }
         }
-        if(!pendingAction.isEmpty() && System.nanoTime()-actionStarted>3_000_000_000L){pendingAction="";lifecycleError="Проверяем состояние комнаты…";liveConnection.send("SYNC",Map.of());}
+        if(!pendingAction.isEmpty() && System.nanoTime()-actionStarted>3_000_000_000L){pendingAction="";lifecycleError=Localization.tr("Проверяем состояние комнаты…", "Checking the room state…");liveConnection.send("SYNC",Map.of());}
         if(lifecycle.isVisible()){
             if(!lifecycleError.isEmpty())lifecycle.status(lifecycleError,false);
-            else if(!pendingAction.isEmpty())lifecycle.status("Отправляем…",true);
-            else lifecycle.status(liveConnection.connected()?"":"Связь потеряна. Переподключаемся…",!liveConnection.connected());
+            else if(!pendingAction.isEmpty())lifecycle.status(Localization.tr("Отправляем…", "Sending…"),true);
+            else lifecycle.status(liveConnection.connected()?"":Localization.tr("Связь потеряна. Переподключаемся…", "Connection lost. Reconnecting…"),!liveConnection.connected());
             lifecycle.update(delta,reducedMotion());
         }
     }
@@ -234,7 +236,7 @@ public final class ImpostorScreen extends ScreenAdapter {
             long seconds=suspicion.finalized()?0:Math.max(0,(suspicion.deadline()-now+999)/1000);
             if(seconds!=displayedSuspicionSeconds) {
                 displayedSuspicionSeconds=seconds;
-                label.setText("ДО КОНЦА ПОДОЗРЕНИЙ");
+                label.setText(Localization.tr("ДО КОНЦА ПОДОЗРЕНИЙ", "UNTIL SUSPICIONS END"));
                 value.setText(seconds<10?"00:0"+seconds:"00:"+seconds);
             }
         } else if(finalSnapshot!=null) {
@@ -245,19 +247,19 @@ public final class ImpostorScreen extends ScreenAdapter {
             boolean timed=finalSnapshot.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.EVIDENCE_REVIEW || finalSnapshot.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.FINAL_VOTING;
             long seconds=timed?Math.max(0,(finalSnapshot.deadline()-now+999)/1000):0;
             if(seconds!=displayedSuspicionSeconds){displayedSuspicionSeconds=seconds;
-                label.setText(finalSnapshot.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.EVIDENCE_REVIEW?"ДО КОНЦА ОБСУЖДЕНИЯ":"ДО КОНЦА ГОЛОСОВАНИЯ");
+                label.setText(finalSnapshot.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.EVIDENCE_REVIEW?Localization.tr("ДО КОНЦА ОБСУЖДЕНИЯ", "UNTIL DISCUSSION ENDS"):Localization.tr("ДО КОНЦА ГОЛОСОВАНИЯ", "UNTIL VOTING ENDS"));
                 value.setText(timed?String.format(java.util.Locale.ROOT,"%02d:%02d",seconds/60,seconds%60):"00:00");}
         } else if(liveRound) {
             long now=roundServerTime+(System.nanoTime()-roundReceivedNano)/1_000_000;
             long seconds=Math.max(0,(roundDeadline-now+999)/1000);
-            if(seconds!=displayedSuspicionSeconds){displayedSuspicionSeconds=seconds;label.setText("ДО КОНЦА РАУНДА");
+            if(seconds!=displayedSuspicionSeconds){displayedSuspicionSeconds=seconds;label.setText(Localization.tr("ДО КОНЦА РАУНДА", "UNTIL THE ROUND ENDS"));
                 value.setText(seconds<10?"00:0"+seconds:"00:"+seconds);}
         } else if(state.phase()==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.ROLE_REVEAL&&roundDeadline>0){
             long now=roundServerTime+(System.nanoTime()-roundReceivedNano)/1_000_000;
             long seconds=Math.max(0,(roundDeadline-now+999)/1000);
-            label.setText("ПРОЧИТАЙТЕ СВОЮ РОЛЬ");value.setText(String.format(java.util.Locale.ROOT,"%02d:%02d",seconds/60,seconds%60));
+            label.setText(Localization.tr("ПРОЧИТАЙТЕ СВОЮ РОЛЬ", "READ YOUR ROLE"));value.setText(String.format(java.util.Locale.ROOT,"%02d:%02d",seconds/60,seconds%60));
         } else if(displayedSuspicionSeconds!=-2) {
-            displayedSuspicionSeconds=-2;label.setText("ОЖИДАЕМ НАЧАЛА");value.setText("—");
+            displayedSuspicionSeconds=-2;label.setText(Localization.tr("ОЖИДАЕМ НАЧАЛА", "WAITING TO BEGIN"));value.setText("—");
         }
     }
 
@@ -273,7 +275,7 @@ public final class ImpostorScreen extends ScreenAdapter {
             }restorePresentation=false;presentationKey=key;
             var style=phase==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.RESULT?com.erni.finalanswer.presentation.PhaseTransition.Style.ZOOM:com.erni.finalanswer.presentation.PhaseTransition.Style.DARKNESS;
             transition.enter(key,new com.erni.finalanswer.presentation.PhaseTransition.Config(style,phase==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.ROUND_CLUE_INPUT?1.4f:.65f,.16f),restore);
-            if(introduction!=null)introduction.setText(phase==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.ROUND_CLUE_INPUT?"РАУНД "+(paperReveal.round()+1):"");
+            if(introduction!=null)introduction.setText(phase==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.ROUND_CLUE_INPUT?Localization.tr("РАУНД ", "ROUND ")+(paperReveal.round()+1):"");
             if(!introductionPlayed&&!joiningActiveGame&&(phase==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.INTRO||phase==com.erni.finalanswer.gameplay.impostor.ImpostorPhase.ROLE_REVEAL)){
                 introductionPlayed=true;
                 game.getAudio().hostVoice().scopeGain(uiAudioGain());
@@ -474,7 +476,7 @@ public final class ImpostorScreen extends ScreenAdapter {
             });
         }
         addImage(ImpostorAsset.TIMER_RECTANGLE, "impostorTimerPanel", ImpostorLayout.TIMER_PANEL);
-        addText("impostorTimerLabel", "ОЖИДАЕМ НАЧАЛА", labelFont,
+        addText("impostorTimerLabel", Localization.tr("ОЖИДАЕМ НАЧАЛА", "WAITING TO BEGIN"), labelFont,
                 Color.valueOf("D5CEC4"), ImpostorLayout.TIMER_LABEL);
         addText("impostorTimerValue", "—", timerFont,
                 Color.valueOf("B43742"), ImpostorLayout.TIMER_VALUE);
@@ -484,16 +486,16 @@ public final class ImpostorScreen extends ScreenAdapter {
         roundRuleTop=new com.badlogic.gdx.scenes.scene2d.ui.Image(bandPixel);roundRuleTop.setBounds(660,748,600,3);roundRuleTop.setColor(.85f,.68f,.42f,0);roundRuleTop.setTouchable(Touchable.disabled);stage.addActor(roundRuleTop);
         roundRuleBottom=new com.badlogic.gdx.scenes.scene2d.ui.Image(bandPixel);roundRuleBottom.setBounds(660,588,600,3);roundRuleBottom.setColor(.85f,.68f,.42f,0);roundRuleBottom.setTouchable(Touchable.disabled);stage.addActor(roundRuleBottom);
         introduction=new Label("",new Label.LabelStyle(roundFont,Color.valueOf("EEDDBC")));introduction.setName("impostorRoundIntro");introduction.setBounds(460,540,1000,110);introduction.setFontScale(1f);introduction.setAlignment(Align.center);introduction.setTouchable(Touchable.disabled);stage.addActor(introduction);
-        roundInstruction=new Label("ОДНО СЛОВО. НИКАКИХ ОБЪЯСНЕНИЙ.",new Label.LabelStyle(participantFont,Color.valueOf("D8B88D")));
+        roundInstruction=new Label(Localization.tr("ОДНО СЛОВО. НИКАКИХ ОБЪЯСНЕНИЙ.", "ONE WORD. NO EXPLANATIONS."),new Label.LabelStyle(participantFont,Color.valueOf("D8B88D")));
         roundInstruction.setName("impostorRoundInstruction");roundInstruction.setAlignment(Align.center);roundInstruction.setFontScale(1.08f);roundInstruction.setBounds(460,470,1000,45);roundInstruction.setVisible(false);roundInstruction.setTouchable(Touchable.disabled);stage.addActor(roundInstruction);
         roleInstruction=new RoleSubtitles();stage.addActor(roleInstruction);
         localSettings=new ImpostorPresentationSettings(participantFont,game.getTexts().get("impostor.vote.options"),game.getTexts().get("impostor.vote.close"));stage.addActor(localSettings);
-        addAudioControl("impostorSoundToggle",1510,85,()->audio.muted()?"ЗВУК: ВЫКЛ.":"ЗВУК: ВКЛ.",this::toggleLocalSound);
-        addAudioControl("impostorAmbienceToggle",1510,48,()->audio.ambienceMuted()?"АТМОСФЕРА: ВЫКЛ.":"АТМОСФЕРА: ВКЛ.",()->{audio.muteAmbience(!audio.ambienceMuted());saveLocalPresentation();});
-        addAudioControl("impostorVolumeDown",1510,12,()->"− ГРОМКОСТЬ "+Math.round(audio.volume()*100)+"%",()->{audio.volume(audio.volume()-.1f);saveLocalPresentation();});
-        addAudioControl("impostorVolumeUp",1720,12,()->"ГРОМКОСТЬ +",()->{audio.volume(audio.volume()+.1f);saveLocalPresentation();});
-        addAudioControl("impostorSubtitlesToggle",1510,320,()->subtitlesEnabled?"СУБТИТРЫ: ВКЛ.":"СУБТИТРЫ: ВЫКЛ.",()->{subtitlesEnabled=!subtitlesEnabled;saveLocalPresentation();});
-        addAudioControl("impostorSubtitleSize",1510,280,()->largeSubtitles?"ТЕКСТ: КРУПНЫЙ":"ТЕКСТ: ОБЫЧНЫЙ",()->{largeSubtitles=!largeSubtitles;saveLocalPresentation();});
+        addAudioControl("impostorSoundToggle",1510,85,()->audio.muted()?Localization.tr("ЗВУК: ВЫКЛ.", "SOUND: OFF"):Localization.tr("ЗВУК: ВКЛ.", "SOUND: ON"),this::toggleLocalSound);
+        addAudioControl("impostorAmbienceToggle",1510,48,()->audio.ambienceMuted()?Localization.tr("АТМОСФЕРА: ВЫКЛ.", "ATMOSPHERE: OFF"):Localization.tr("АТМОСФЕРА: ВКЛ.", "ATMOSPHERE: ON"),()->{audio.muteAmbience(!audio.ambienceMuted());saveLocalPresentation();});
+        addAudioControl("impostorVolumeDown",1510,12,()->Localization.tr("− ГРОМКОСТЬ ", "− VOLUME")+Math.round(audio.volume()*100)+"%",()->{audio.volume(audio.volume()-.1f);saveLocalPresentation();});
+        addAudioControl("impostorVolumeUp",1720,12,()->Localization.tr("ГРОМКОСТЬ +", "VOLUME +"),()->{audio.volume(audio.volume()+.1f);saveLocalPresentation();});
+        addAudioControl("impostorSubtitlesToggle",1510,320,()->subtitlesEnabled?Localization.tr("СУБТИТРЫ: ВКЛ.", "SUBTITLES: ON"):Localization.tr("СУБТИТРЫ: ВЫКЛ.", "SUBTITLES: OFF"),()->{subtitlesEnabled=!subtitlesEnabled;saveLocalPresentation();});
+        addAudioControl("impostorSubtitleSize",1510,280,()->largeSubtitles?Localization.tr("ТЕКСТ: КРУПНЫЙ", "TEXT: LARGE"):Localization.tr("ТЕКСТ: ОБЫЧНЫЙ", "TEXT: NORMAL"),()->{largeSubtitles=!largeSubtitles;saveLocalPresentation();});
         localSettingsOpen=new Label(game.getTexts().get("settings.title"),new Label.LabelStyle(labelFont,Color.valueOf("C0AB87")));localSettingsOpen.setBounds(1650,25,220,42);localSettingsOpen.setAlignment(Align.center);localSettingsOpen.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ClickListener(){@Override public void clicked(InputEvent event,float x,float y){localSettings.toggle();}});stage.addActor(localSettingsOpen);
         stage.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ClickListener(){
             @Override public void clicked(InputEvent e,float x,float y){audio.play(com.erni.finalanswer.audio.PresentationAudio.Cue.CLICK);}

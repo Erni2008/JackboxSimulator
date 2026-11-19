@@ -1,5 +1,7 @@
 package com.erni.finalanswer.finalsecond;
 
+import com.erni.finalanswer.localization.Localization;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
@@ -33,21 +35,21 @@ public final class FinalSecondRulesFilm implements Disposable {
     public static final float W=1920,H=1080;
     private static final float[] START={0,6.2f,11.6f,17.6f,23.2f,28.2f},END={6.2f,11.6f,17.6f,23.2f,28.2f,33.2f};
     public static final float LENGTH=33.2f;
-    private static final String[] TAB={"","ЦЕЛЬ","КНОПКА","ИСПЫТАНИЯ","ИТОГ",""};
+    private static final String[] TAB={"",Localization.tr("ЦЕЛЬ", "TARGET"),Localization.tr("КНОПКА", "BUTTON"),Localization.tr("ИСПЫТАНИЯ", "TRIALS"),Localization.tr("ИТОГ", "RESULT"),""};
     private static final String[] SUB={
-        "Добро пожаловать в последнюю секунду! Здесь важна каждая доля секунды.",
-        "Задача простая. Остановите таймер точно на заданном времени!",
-        "Нажали один раз, и время пошло. Нажали снова, и таймер встал!",
-        "Но не всё так просто. В каждом раунде вас ждёт новое испытание!",
-        "Кто окажется дальше всех от цели, тот выбывает!",
-        "Ну что, готовы? Ловите последнюю секунду!"},
+        Localization.tr("Добро пожаловать в последнюю секунду! Здесь важна каждая доля секунды.", "Welcome to The Final Second! Every split second counts here."),
+        Localization.tr("Задача простая. Остановите таймер точно на заданном времени!", "The task is simple. Stop the timer exactly at the target time!"),
+        Localization.tr("Нажали один раз, и время пошло. Нажали снова, и таймер встал!", "Press once and the clock starts. Press again and the timer stops!"),
+        Localization.tr("Но не всё так просто. В каждом раунде вас ждёт новое испытание!", "But it's not that simple. A new trial awaits you every round!"),
+        Localization.tr("Кто окажется дальше всех от цели, тот выбывает!", "Whoever ends up furthest from the target is out!"),
+        Localization.tr("Ну что, готовы? Ловите последнюю секунду!", "So, are you ready? Catch the final second!")},
         SUB_B={
-        "Это последняя секунда! Здесь всё решают мгновения.",
-        "Правило одно. Поймайте таймер ровно на нужной отметке!",
-        "Первое нажатие запускает отсчёт. Второе его останавливает!",
-        "А дальше сложнее. Каждый раунд приносит новое испытание!",
-        "Самый неточный игрок покидает игру!",
-        "Приготовьтесь! Время пошло!"};
+        Localization.tr("Это последняя секунда! Здесь всё решают мгновения.", "This is The Final Second! Here everything comes down to moments."),
+        Localization.tr("Правило одно. Поймайте таймер ровно на нужной отметке!", "There's one rule. Catch the timer exactly on the mark!"),
+        Localization.tr("Первое нажатие запускает отсчёт. Второе его останавливает!", "The first press starts the count. The second one stops it!"),
+        Localization.tr("А дальше сложнее. Каждый раунд приносит новое испытание!", "And it gets harder. Every round brings a new trial!"),
+        Localization.tr("Самый неточный игрок покидает игру!", "The least accurate player leaves the game!"),
+        Localization.tr("Приготовьтесь! Время пошло!", "Get ready! The clock is ticking!")};
     /** Two voiced takes of the same rules; one is picked at random each time (or -Dfs.rulesVariant=a|b). */
     private final boolean variantB;private final String[] subs;
     private static final Color BLOOD=new Color(.9f,.16f,.08f,1),GOLD=new Color(1f,.74f,.32f,1),INK=new Color(.24f,.12f,.06f,1),
@@ -214,51 +216,51 @@ public final class FinalSecondRulesFilm implements Disposable {
         float on=k(t,.9f,2.2f);String v=on<.25f?"0.00":on<.5f?"3.00":on<.75f?"5.00":"7.00";readout(v,W/2,380,190,on>=1?1:.85f,a*q,false);
         if(pass==2)glowAt(W/2,470,1100,BLOOD,.3f*a*q*(on>=1?1:.6f));
         if(pass==1){float r=ease(k(t,.6f,1.5f));text(title,"THE FINAL SECOND",W/2,H-190+(1-r)*30,GOLD,a*r,.9f);
-            float u=ease(k(t,1.3f,2.1f));text(heading,"ПОСЛЕДНЯЯ СЕКУНДА",W/2,H-320,BLOOD,a*u,.8f);}
+            float u=ease(k(t,1.3f,2.1f));text(heading,Localization.tr("ПОСЛЕДНЯЯ СЕКУНДА", "THE FINAL SECOND"),W/2,H-320,BLOOD,a*u,.8f);}
     }
     private void roles(float t,float a){
-        headingText("ЦЕЛЬ",t,a,GOLD);
+        headingText(Localization.tr("ЦЕЛЬ", "TARGET"),t,a,GOLD);
         float run=k(t,.8f,3.6f);float v=7f*ease(run);boolean done=run>=1;
         bezel(W/2,450,760,210,a,done?new Color(.4f,1,.5f,1):BLOOD);readout(fmt(v),W/2,450,210,1,a,false);
         if(pass==2&&done){float e=t-3.6f;glowAt(W/2,550,1200,new Color(.3f,1,.45f,1),a*(e<.4f?.6f*(1-e/.4f):0)+.15f*a);}
-        if(pass==1){text(heading,"ЦЕЛЬ:  7,00 С",W/2,840,GOLD,a,.55f);text(small,"например  ·  в каждом раунде своё время",W/2,790,BONE,.75f*a,1.05f);
-            text(heading,"РОВНО!",W/2,300,new Color(.45f,1,.55f,1),a*k(t,3.7f,4f),.8f);}
+        if(pass==1){text(heading,Localization.tr("ЦЕЛЬ:  7,00 С", "TARGET:  7.00 S"),W/2,840,GOLD,a,.55f);text(small,Localization.tr("например  ·  в каждом раунде своё время", "for example  ·  each round has its own time"),W/2,790,BONE,.75f*a,1.05f);
+            text(heading,Localization.tr("РОВНО!", "EXACTLY!"),W/2,300,new Color(.45f,1,.55f,1),a*k(t,3.7f,4f),.8f);}
     }
     private void clues(float t,float a){
-        headingText("КНОПКА",t,a,GOLD);
+        headingText(Localization.tr("КНОПКА", "BUTTON"),t,a,GOLD);
         float p1=1.4f,p2=3.9f;float press=Math.max(pressAt(t,p1),pressAt(t,p2));
         float v=t<p1?0:t<p2?(t-p1)*2.78f:(p2-p1)*2.78f;
         bezel(W/2,670,560,150,a,BLOOD);readout(fmt(v),W/2,670,150,1,a,false);
         button(W/2,360,1.15f,press,a);ripple(W/2,380,t-p1,a,BLOOD);ripple(W/2,380,t-p2,a,GOLD);
-        if(pass==1){text(heading,"СТАРТ",W/2-470,400,BLOOD,a*k(t,p1,p1+.2f)*(1-k(t,p2-.3f,p2)),.75f);text(heading,"СТОП",W/2+470,400,GOLD,a*k(t,p2,p2+.2f),.75f);
-            text(small,"1 НАЖАТИЕ",W/2-470,330,BONE,.7f*a*k(t,p1,p1+.2f)*(1-k(t,p2-.3f,p2)),1.1f);text(small,"2 НАЖАТИЕ",W/2+470,330,BONE,.7f*a*k(t,p2,p2+.2f),1.1f);}
+        if(pass==1){text(heading,Localization.tr("СТАРТ", "START"),W/2-470,400,BLOOD,a*k(t,p1,p1+.2f)*(1-k(t,p2-.3f,p2)),.75f);text(heading,Localization.tr("СТОП", "STOP"),W/2+470,400,GOLD,a*k(t,p2,p2+.2f),.75f);
+            text(small,Localization.tr("1 НАЖАТИЕ", "1 PRESS"),W/2-470,330,BONE,.7f*a*k(t,p1,p1+.2f)*(1-k(t,p2-.3f,p2)),1.1f);text(small,Localization.tr("2 НАЖАТИЕ", "2 PRESS"),W/2+470,330,BONE,.7f*a*k(t,p2,p2+.2f),1.1f);}
     }
     /** New trial every round: three sealed cards; each turns over in turn to show only a glowing question mark. */
     private void mystery(float t,float a){
-        headingText("ИСПЫТАНИЯ",t,a,BLOOD);
+        headingText(Localization.tr("ИСПЫТАНИЯ", "TRIALS"),t,a,BLOOD);
         for(int i=0;i<3;i++){float in=ease(k(t,.3f+.25f*i,.8f+.25f*i));float x=W/2+(i-1)*480,y=520-(1-in)*80+MathUtils.sin(time*1.4f+i)*8;float fl=ease(k(t,1.6f+.7f*i,2.1f+.7f*i));
             float sx=Math.max(.05f,Math.abs(MathUtils.cos(fl*MathUtils.PI)));boolean front=fl>.5f;float w=320*sx,h=420;
             if(pass==0){Color rim=front?GOLD:BLOOD;panel(x-w/2,y-h/2,w,h,rim,a*in);}
-            if(pass==1){text(small,"РАУНД "+(i+1),x,y+h/2+40,BONE,.7f*a*in,1.1f);
+            if(pass==1){text(small,Localization.tr("РАУНД ", "ROUND ")+(i+1),x,y+h/2+40,BONE,.7f*a*in,1.1f);
                 if(front&&sx>.3f)text(title,"?",x,y+70,GOLD,a*in,1.3f*sx);else if(sx>.3f)text(heading,"???",x,y+30,new Color(.5f,.3f,.28f,1),a*in*.7f,.8f*sx);}
             if(pass==2&&front)glowAt(x,y,520,GOLD,.3f*a*in*(.8f+.2f*MathUtils.sin(time*4+i)));}
-        if(pass==1)text(heading,"КАЖДЫЙ РАУНД — НОВОЕ ИСПЫТАНИЕ",W/2,230,BLOOD,a*k(t,3.6f,4f),.5f);
+        if(pass==1)text(heading,Localization.tr("КАЖДЫЙ РАУНД — НОВОЕ ИСПЫТАНИЕ", "EVERY ROUND — A NEW TRIAL"),W/2,230,BLOOD,a*k(t,3.6f,4f),.5f);
     }
     private void result(float t,float a){
-        headingText("ИТОГ",t,a,GOLD);
+        headingText(Localization.tr("ИТОГ", "RESULT"),t,a,GOLD);
         String[] who={WHO[0],WHO[1],WHO[2],WHO[3]};float[] res={7.02f,6.95f,7.21f,8.40f};
         for(int i=0;i<4;i++){float in=ease(k(t,.3f+.25f*i,.8f+.25f*i));float y=720-i*130,x0=W/2-520;boolean out=i==3;float loss=out?k(t,2.4f,2.9f):0;
             if(pass==0)panel(x0,y-55,1040,110,out&&loss>0?BLOOD:GOLD,a*in);
             framed(who[i],x0+80,y,90,a*in,BLOOD,loss);
-            if(pass==1){text(heading,String.valueOf(i+1),x0+175,y+28,out?BLOOD:GOLD,a*in,.55f);text(small,i==0?"ближе всех":i==3?"дальше всех":"",x0+620,y-14,BONE,.6f*a*in,1);}
+            if(pass==1){text(heading,String.valueOf(i+1),x0+175,y+28,out?BLOOD:GOLD,a*in,.55f);text(small,i==0?Localization.tr("ближе всех", "closest"):i==3?Localization.tr("дальше всех", "furthest"):"",x0+620,y-14,BONE,.6f*a*in,1);}
             readout(fmt(res[i]),x0+460,y-38,76,1,a*in,false);
             if(pass==1){String err=String.format(java.util.Locale.ROOT,"%+.2f",res[i]-7);text(heading,err,x0+870,y+28,out?BLOOD:new Color(.45f,1,.55f,1),a*in,.5f);}
-            if(out&&loss>0){if(pass==1)text(heading,"ВЫБЫВАЕТ",W/2,y-80,BLOOD,a*loss,.6f);if(pass==2)glowAt(x0+520,y,1100,BLOOD,.3f*a*loss);}}
+            if(out&&loss>0){if(pass==1)text(heading,Localization.tr("ВЫБЫВАЕТ", "IS OUT"),W/2,y-80,BLOOD,a*loss,.6f);if(pass==2)glowAt(x0+520,y,1100,BLOOD,.3f*a*loss);}}
     }
     private void finale(float t,float a){
         float p=ease(k(t,1.1f,1.7f)),q=ease(k(t,.1f,.6f));
         bezel(W/2,300,560,150,a*q,BLOOD);float pulse=.75f+.25f*MathUtils.sin(time*6);readout("7.00",W/2,300,150,pulse,a*q,false);
-        if(pass==1){text(heading,"Ну что, готовы?",W/2,H/2+250,BONE,a*q*(1-p*.4f),.8f);text(title,"ЛОВИТЕ ПОСЛЕДНЮЮ СЕКУНДУ!",W/2,H/2+130,BLOOD,a*p,.5f*(1+.25f*(1-p)));}
+        if(pass==1){text(heading,Localization.tr("Ну что, готовы?", "So, are you ready?"),W/2,H/2+250,BONE,a*q*(1-p*.4f),.8f);text(title,Localization.tr("ЛОВИТЕ ПОСЛЕДНЮЮ СЕКУНДУ!", "CATCH THE FINAL SECOND!"),W/2,H/2+130,BLOOD,a*p,.5f*(1+.25f*(1-p)));}
         if(pass==2)glowAt(W/2,360,1000,BLOOD,.35f*a*q*pulse);
     }
 
@@ -279,10 +281,10 @@ public final class FinalSecondRulesFilm implements Disposable {
         if(time>LENGTH-1){col(Color.BLACK,k(time,LENGTH-1,LENGTH));shapes.rect(0,0,W,H);}
     }
     private void chromeText(int s,float t){
-        text(small,"ПРОПУСТИТЬ",W-330+122,H-118+42,hover?BONE:GOLD,1,1.05f);text(small,"ENTER / КЛИК",W-330+145,H-140,BONE,.45f,.8f);
+        text(small,Localization.tr("ПРОПУСТИТЬ", "SKIP"),W-330+122,H-118+42,hover?BONE:GOLD,1,1.05f);text(small,Localization.tr("ENTER / КЛИК", "ENTER / CLICK"),W-330+145,H-140,BONE,.45f,.8f);
         float ta=k(time,START[1]-.3f,START[1]+.3f)*(1-k(time,START[START.length-1]-.3f,START[START.length-1]+.3f));
         for(int i=1;i<=TAB.length-2;i++){Color c=i==s?BONE:i<s?GOLD:new Color(.55f,.45f,.4f,1);small.getData().setScale(.85f);gl.setText(small,TAB[i]);float lw=gl.width;small.getData().setScale(1);text(small,"0"+i,tabX(i)+14-lw/2-36,H-64,i==s?BLOOD:c,(i==s?1:.6f)*ta,.8f,false);text(small,TAB[i],tabX(i)+14,H-64,c,(i==s?1:.8f)*ta,.85f);}
-        text(small,"THE FINAL SECOND  ·  ПРАВИЛА",60,H-30,GOLD,.7f,.85f,false);
+        text(small,Localization.tr("THE FINAL SECOND  ·  ПРАВИЛА", "THE FINAL SECOND  ·  RULES"),60,H-30,GOLD,.7f,.85f,false);
         float len=END[s]-START[s];float a=ease(k(t,.15f,.5f))*(1-ease(k(t,len-.3f,len)))*(1-k(time,LENGTH-.6f,LENGTH));typeLine(subs[s],t-.15f,a);cutFlare();
     }
     /** Alternates the two takes between showings (A, B, A, …), remembered across launches. */

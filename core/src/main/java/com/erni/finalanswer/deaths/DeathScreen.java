@@ -1,5 +1,7 @@
 package com.erni.finalanswer.deaths;
 
+import com.erni.finalanswer.localization.Localization;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.ScreenAdapter;
@@ -127,7 +129,7 @@ public final class DeathScreen extends ScreenAdapter {
         Death d=deaths.get(index);
         float na=MathUtils.clamp((t-.15f)/.5f,0,1)*fade;
         nameFont.setColor(.93f,.9f,.86f,na);nameFont.draw(batch,d.name(),0,H-70,W,Align.center,false);
-        small.setColor(.6f,.58f,.55f,na*.8f);small.draw(batch,(ru?"ПОГИБ  ":"DIED  ")+(index+1)+" / "+deaths.size(),0,H-175,W,Align.center,false);
+        small.setColor(.6f,.58f,.55f,na*.8f);small.draw(batch,(ru?Localization.tr("ПОГИБ  ", "DIED  "):"DIED  ")+(index+1)+" / "+deaths.size(),0,H-175,W,Align.center,false);
         if(since>=0){float k=MathUtils.clamp(since/.22f,0,1);float sc=1+.35f*(1-k)*(1-k)*(1-k);
             causeFont.getData().setScale(sc);
             Color cc=switch(d.cause()){case SHOT->new Color(.92f,.1f,.12f,1);case BURNED->new Color(1,.5f,.12f,1);case EXPLODED->new Color(1,.8f,.3f,1);case CURSED->new Color(.72f,.45f,1,1);};

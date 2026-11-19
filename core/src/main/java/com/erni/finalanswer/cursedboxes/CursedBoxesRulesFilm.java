@@ -1,5 +1,7 @@
 package com.erni.finalanswer.cursedboxes;
 
+import com.erni.finalanswer.localization.Localization;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
@@ -33,15 +35,15 @@ public final class CursedBoxesRulesFilm implements Disposable {
     public static final float W=1920,H=1080;
     private static final float[] START={0,6f,13.6f,20.6f,28.4f,34.8f,41.4f},END={6f,13.6f,20.6f,28.4f,34.8f,41.4f,46f};
     public static final float LENGTH=46f;
-    private static final String[] TAB={"","ВОПРОС","ПРЯТКИ","ВЫСТРЕЛ","ПОПАДАНИЕ","ВЫЖИВШИЕ",""};
+    private static final String[] TAB={"",Localization.tr("ВОПРОС", "QUESTION"),Localization.tr("ПРЯТКИ", "HIDE AND SEEK"),Localization.tr("ВЫСТРЕЛ", "SHOT"),Localization.tr("ПОПАДАНИЕ", "HIT"),Localization.tr("ВЫЖИВШИЕ", "SURVIVORS"),""};
     private static final String[] SUB={
-        "Добро пожаловать в проклятые коробки! Здесь одна ошибка может стоить жизни.",
-        "Сначала вопрос! Ответили правильно? Вы получаете дробовик! Ошиблись? Придётся прятаться.",
-        "Каждый, кто ошибся, тайно выбирает одну из шестнадцати коробок. И прячется внутри!",
-        "А теперь стрелки! У каждого только один выстрел. Выбирайте коробку. И стреляйте!",
-        "Попали в коробку с игроком? Он выбывает. И становится призраком!",
-        "Пустая коробка? Это промах! А кто уцелел, тот выжил и играет дальше.",
-        "Ну что, готовы? Тогда прячьтесь получше!"};
+        Localization.tr("Добро пожаловать в проклятые коробки! Здесь одна ошибка может стоить жизни.", "Welcome to Cursed Boxes! Here a single mistake can cost you your life."),
+        Localization.tr("Сначала вопрос! Ответили правильно? Вы получаете дробовик! Ошиблись? Придётся прятаться.", "A question first! Got it right? You get a shotgun! Got it wrong? You'll have to hide."),
+        Localization.tr("Каждый, кто ошибся, тайно выбирает одну из шестнадцати коробок. И прячется внутри!", "Everyone who got it wrong secretly picks one of sixteen boxes. And hides inside!"),
+        Localization.tr("А теперь стрелки! У каждого только один выстрел. Выбирайте коробку. И стреляйте!", "Now the shooters! Everyone gets just one shot. Pick a box. And fire!"),
+        Localization.tr("Попали в коробку с игроком? Он выбывает. И становится призраком!", "Hit a box with a player inside? They're out. And become a ghost!"),
+        Localization.tr("Пустая коробка? Это промах! А кто уцелел, тот выжил и играет дальше.", "An empty box? That's a miss! Whoever is left standing survives and plays on."),
+        Localization.tr("Ну что, готовы? Тогда прячьтесь получше!", "So, are you ready? Then hide well!")};
     private static final Color BLOOD=new Color(.9f,.16f,.08f,1),GOLD=new Color(1f,.74f,.32f,1),INK=new Color(.24f,.12f,.06f,1),
         BONE=new Color(.96f,.92f,.84f,1),DARK=new Color(.03f,.015f,.015f,1),EMBER=new Color(1,.42f,.18f,1);
     private static final String[] WHO={"skeleton","dracula","pumpkin","voodoo","ghost"};
@@ -213,22 +215,22 @@ public final class CursedBoxesRulesFilm implements Disposable {
         float p=ease(k(t,.2f,1.2f));float bob=MathUtils.sin(time*1.6f)*6;
         if(pass==1){float w=520*(.9f+.1f*p);b(0,0,0,.5f*a*p);batch.draw(crate,W/2-w/2+16,H/2-170-w*163/274/2-20+bob,w,w*163/274);b(1,1,1,a*p);batch.draw(crate,W/2-w/2,H/2-170-w*163/274/2+bob,w,w*163/274);b(1,1,1,1);
             float q=ease(k(t,.6f,1.5f));text(title,"CURSED BOXES",W/2,H/2+250+(1-q)*30,GOLD,a*q,1);
-            float r=ease(k(t,1.3f,2.1f));text(heading,"ПРОКЛЯТЫЕ КОРОБКИ",W/2,H/2+120,BLOOD,a*r,.8f+.06f*(1-r));}
+            float r=ease(k(t,1.3f,2.1f));text(heading,Localization.tr("ПРОКЛЯТЫЕ КОРОБКИ", "CURSED BOXES"),W/2,H/2+120,BLOOD,a*r,.8f+.06f*(1-r));}
         if(pass==2){glowAt(W/2,H/2-170,900,BLOOD,.25f*a*p*(.8f+.2f*MathUtils.sin(time*3)));glowAt(W/2,H/2+230,800,GOLD,.12f*a*p);}
     }
     private void roles(float t,float a){
-        headingText("ВОПРОС",t,a,GOLD);
+        headingText(Localization.tr("ВОПРОС", "QUESTION"),t,a,GOLD);
         float qa=ease(k(t,.2f,.7f));if(pass==0)panel(W/2-420,640,840,190,GOLD,a*qa);
-        if(pass==1){text(sub,"Сколько ног у паука?",W/2,790,BONE,a*qa,1.1f);String[] o={"6","8","10","12"};
+        if(pass==1){text(sub,Localization.tr("Сколько ног у паука?", "How many legs does a spider have?"),W/2,790,BONE,a*qa,1.1f);String[] o={"6","8","10","12"};
             for(int i=0;i<4;i++){float x=W/2-300+i*200;boolean right=i==1;float lit=right?k(t,2.2f,2.5f):0;text(heading,o[i],x,720,lit>0?new Color(.45f,1,.55f,1):BONE,a*qa*(1-.5f*k(t,2.2f,2.5f)*(right?0:1)),.7f);}}
         float l=ease(k(t,1.6f,2.2f)),r=ease(k(t,3.4f,4f));
         framed(WHO[0],W/2-420,380,200,a*l,GOLD,0);framed(WHO[IMP],W/2+420,380,200,a*r,BLOOD,0);
-        if(pass==1){text(small,"ОТВЕТИЛ ВЕРНО",W/2-420,250,new Color(.45f,1,.55f,1),a*l,1.1f);text(heading,"СТРЕЛОК",W/2-420,215,GOLD,a*l,.62f);
-            text(small,"ОШИБСЯ",W/2+420,250,BLOOD,a*r,1.1f);text(heading,"ПРЯЧЕТСЯ",W/2+420,215,BLOOD,a*r,.62f);}
+        if(pass==1){text(small,Localization.tr("ОТВЕТИЛ ВЕРНО", "ANSWERED CORRECTLY"),W/2-420,250,new Color(.45f,1,.55f,1),a*l,1.1f);text(heading,Localization.tr("СТРЕЛОК", "SHOOTER"),W/2-420,215,GOLD,a*l,.62f);
+            text(small,Localization.tr("ОШИБСЯ", "WRONG"),W/2+420,250,BLOOD,a*r,1.1f);text(heading,Localization.tr("ПРЯЧЕТСЯ", "HIDING"),W/2+420,215,BLOOD,a*r,.62f);}
         crosshair(W/2-420,380,a*l*k(t,2,2.4f),1);
     }
     private void clues(float t,float a){
-        headingText("ПРЯТКИ",t,a,BLOOD);
+        headingText(Localization.tr("ПРЯТКИ", "HIDE AND SEEK"),t,a,BLOOD);
         grid(a,null,t,-1,0);
         // two hiders drop into their boxes from above; the crate jolts and puffs dust as the lid slams
         int[] hid={HIDE_A,HIDE_B};String[] who={WHO[IMP],WHO[2]};
@@ -237,19 +239,19 @@ public final class CursedBoxesRulesFilm implements Disposable {
             float e=t-st-.55f;if(e>0&&e<1.4f){if(pass==1){for(int i=0;i<5;i++){float k2=e/1.4f,r=50+150*ease(k2);float px=tx+(i-2)*40+(i-2)*e*60,py=ty-CH/2+10+e*30;
                     b(.8f,.72f,.62f,.45f*a*(1-k2));batch.draw(new TextureRegion(smoke),px-r,py-r*.5f,r,r*.5f,r*2,r,1,1,i*60);}b(1,1,1,1);}
                 if(pass==2&&e<.3f)glowAt(tx,ty,320,GOLD,.5f*a*(1-e/.3f));}}
-        if(pass==1){float q=k(t,4.6f,5.2f);text(sub,"Никто не видит, кто где спрятался",W/2,262,GOLD,a*q,.85f);}
+        if(pass==1){float q=k(t,4.6f,5.2f);text(sub,Localization.tr("Никто не видит, кто где спрятался", "Nobody sees who hid where"),W/2,262,GOLD,a*q,.85f);}
     }
     private void suspicion(float t,float a){
-        headingText("ВЫСТРЕЛ",t,a,GOLD);
+        headingText(Localization.tr("ВЫСТРЕЛ", "SHOT"),t,a,GOLD);
         boolean[] gone=new boolean[16];if(t>=5.2f)gone[MISS]=true;
         grid(a,gone,1,-1,0);
         // crosshair sweeps the shelf, locks on a box and fires
         float sw=k(t,2.6f,4.6f);float x=MathUtils.lerp(cellX(12),cellX(MISS),ease(sw))+MathUtils.sin(t*3)*(1-sw)*40,y=MathUtils.lerp(cellY(12),cellY(MISS),ease(sw));
         crosshair(x,y,a*(1-k(t,5.5f,5.8f)),k(t,4.4f,4.9f));blast(cellX(MISS),cellY(MISS),t-5.2f,a);
-        if(pass==1){float m=k(t,5.8f,6.2f);text(heading,"ПРОМАХ",cellX(MISS),cellY(MISS)+CH/2+40,BONE,a*m,.6f);text(sub,"1 выстрел на стрелка",W/2,262,GOLD,a*k(t,.6f,1.1f),.85f);}
+        if(pass==1){float m=k(t,5.8f,6.2f);text(heading,Localization.tr("ПРОМАХ", "MISS"),cellX(MISS),cellY(MISS)+CH/2+40,BONE,a*m,.6f);text(sub,Localization.tr("1 выстрел на стрелка", "1 shot per shooter"),W/2,262,GOLD,a*k(t,.6f,1.1f),.85f);}
     }
     private void vote(float t,float a){
-        headingText("ПОПАДАНИЕ",t,a,BLOOD);
+        headingText(Localization.tr("ПОПАДАНИЕ", "HIT"),t,a,BLOOD);
         boolean[] gone=new boolean[16];gone[MISS]=true;if(t>=.6f)gone[HIDE_A]=true;
         grid(a,gone,1,HIDE_A,k(t,.6f,1.2f));float x=cellX(HIDE_A),y=cellY(HIDE_A);
         crosshair(x,y,a*(1-k(t,.5f,.7f)),1);blast(x,y,t-.6f,a);
@@ -258,23 +260,23 @@ public final class CursedBoxesRulesFilm implements Disposable {
             if(pass==1){for(int i=0;i<5;i++){float ph=(time*.35f+i/5f)%1;float wy=y+ph*(gy-y+80),ws=180+160*ph;b(.6f,.7f,.9f,.28f*a*g*(1-ph));batch.draw(new TextureRegion(wisp),x-ws/2+MathUtils.sin(time*1.5f+i)*30,wy-ws*.33f,ws/2,ws*.33f,ws,ws*.66f,1,1,i*70+time*15);}
                 float sway=MathUtils.sin(time*1.8f)*16,tilt=MathUtils.sin(time*1.3f)*4;b(.85f,.92f,1,a*g*(.8f+.2f*MathUtils.sin(time*5)));batch.draw(new TextureRegion(ghost),x-gs/2+sway,gy-gs/2,gs/2,gs/2,gs,gs*1175/1338f,1,1,tilt);b(1,1,1,1);}
             if(pass==2)glowAt(x,gy,520,new Color(.6f,.75f,1,1),.35f*a*g);
-            if(pass==1)text(heading,"ВЫБЫЛ",x+360,gy+40,BLOOD,a*k(t,1.8f,2.3f),.75f);}
+            if(pass==1)text(heading,Localization.tr("ВЫБЫЛ", "OUT"),x+360,gy+40,BLOOD,a*k(t,1.8f,2.3f),.75f);}
     }
     private void result(float t,float a){
-        headingText("ВЫЖИВШИЕ",t,a,GOLD);
+        headingText(Localization.tr("ВЫЖИВШИЕ", "SURVIVORS"),t,a,GOLD);
         boolean[] gone=new boolean[16];gone[MISS]=true;gone[HIDE_A]=true;
         float open=ease(k(t,2.2f,3.2f));if(t>2.2f)gone[HIDE_B]=true;
         grid(a,gone,1,HIDE_B,open);
-        if(pass==1){text(heading,"ПРОМАХ",cellX(MISS),cellY(MISS)+CH/2+40,BONE,a*k(t,.4f,.9f)*(1-k(t,2,2.4f)),.6f);}
+        if(pass==1){text(heading,Localization.tr("ПРОМАХ", "MISS"),cellX(MISS),cellY(MISS)+CH/2+40,BONE,a*k(t,.4f,.9f)*(1-k(t,2,2.4f)),.6f);}
         if(open>0){float x=cellX(HIDE_B),y=cellY(HIDE_B);float h=420*open,w=h*1024/1536f;
-            if(pass==1){b(1,1,1,a*open);batch.draw(survivor,x-w/2,y-60,w,h);b(1,1,1,1);text(heading,"ВЫЖИЛ!",x,y-90,GOLD,a*k(t,3,3.4f),.8f);}
+            if(pass==1){b(1,1,1,a*open);batch.draw(survivor,x-w/2,y-60,w,h);b(1,1,1,1);text(heading,Localization.tr("ВЫЖИЛ!", "SURVIVED!"),x,y-90,GOLD,a*k(t,3,3.4f),.8f);}
             if(pass==2)glowAt(x,y+120,700,GOLD,.35f*a*open);}
     }
     private void finale(float t,float a){
         float p=ease(k(t,1.1f,1.7f)),q=ease(k(t,.1f,.6f));
         for(int i=0;i<5;i++){float x=W/2+(i-2)*300,y=330+MathUtils.sin(time*1.4f+i)*8;if(pass==1){b(.55f,.5f,.48f,a*q*.8f);batch.draw(crate,x-110,y-65,220,130);b(1,1,1,1);}}
         crosshair(W/2+MathUtils.sin(time*1.3f)*300,330,a*q,.6f);
-        if(pass==1){text(heading,"Ну что, готовы?",W/2,H/2+230,BONE,a*q*(1-p*.4f),.8f);text(title,"ПРЯЧЬТЕСЬ ПОЛУЧШЕ!",W/2,H/2+110,BLOOD,a*p,.6f*(1+.25f*(1-p)));}
+        if(pass==1){text(heading,Localization.tr("Ну что, готовы?", "So, are you ready?"),W/2,H/2+230,BONE,a*q*(1-p*.4f),.8f);text(title,Localization.tr("ПРЯЧЬТЕСЬ ПОЛУЧШЕ!", "HIDE WELL!"),W/2,H/2+110,BLOOD,a*p,.6f*(1+.25f*(1-p)));}
         if(pass==2)glowAt(W/2,H/2+80,1200,BLOOD,.3f*a*p*(.85f+.15f*MathUtils.sin(time*4)));
     }
 
@@ -295,10 +297,10 @@ public final class CursedBoxesRulesFilm implements Disposable {
         if(time>LENGTH-1){col(Color.BLACK,k(time,LENGTH-1,LENGTH));shapes.rect(0,0,W,H);}
     }
     private void chromeText(int s,float t){
-        text(small,"ПРОПУСТИТЬ",W-330+122,H-118+42,hover?BONE:GOLD,1,1.05f);text(small,"ENTER / КЛИК",W-330+145,H-140,BONE,.45f,.8f);
+        text(small,Localization.tr("ПРОПУСТИТЬ", "SKIP"),W-330+122,H-118+42,hover?BONE:GOLD,1,1.05f);text(small,Localization.tr("ENTER / КЛИК", "ENTER / CLICK"),W-330+145,H-140,BONE,.45f,.8f);
         float ta=k(time,START[1]-.3f,START[1]+.3f)*(1-k(time,START[6]-.3f,START[6]+.3f));
         for(int i=1;i<=5;i++){Color c=i==s?BONE:i<s?GOLD:new Color(.55f,.45f,.4f,1);small.getData().setScale(.85f);gl.setText(small,TAB[i]);float lw=gl.width;small.getData().setScale(1);text(small,"0"+i,tabX(i)+14-lw/2-36,H-64,i==s?BLOOD:c,(i==s?1:.6f)*ta,.8f,false);text(small,TAB[i],tabX(i)+14,H-64,c,(i==s?1:.8f)*ta,.85f);}
-        text(small,"CURSED BOXES  ·  ПРАВИЛА",60,H-30,GOLD,.7f,.85f,false);
+        text(small,Localization.tr("CURSED BOXES  ·  ПРАВИЛА", "CURSED BOXES  ·  RULES"),60,H-30,GOLD,.7f,.85f,false);
         float len=END[s]-START[s];float a=ease(k(t,.15f,.5f))*(1-ease(k(t,len-.3f,len)))*(1-k(time,LENGTH-.6f,LENGTH));typeLine(SUB[s],t-.15f,a);
     }
     private static float tabX(int i){return W/2+(i-3)*230;}
