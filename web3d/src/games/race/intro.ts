@@ -1,4 +1,4 @@
-import {t} from './i18n';
+import {t as lx} from './i18n';
 import {LifeSpark} from './life-spark';
 import * as THREE from 'three';
 import script from './intro-script.json';
@@ -73,10 +73,10 @@ export class RaceIntro {
     if (i !== this.line || format !== this.format) {
       this.line = i; this.format = format; this.spoken = -1;
       const set = (id: string, text: string) => {const e = document.getElementById(id); if (e) e.textContent = text;};
-      set('intro-map', t(script.maps[this.app.course.map - 1], script.maps_en[this.app.course.map - 1]));
+      set('intro-map', lx(script.maps[this.app.course.map - 1], script.maps_en[this.app.course.map - 1]));
       set('intro-chapter', `${String(Math.max(1, i + 1)).padStart(2, '0')} / ${String(script.beats.length).padStart(2, '0')}`);
-      set('intro-title', beat?.clip === 'format' ? FORMAT_NAME[format] ?? FORMAT_NAME.DEATH_RUN : beat ? t(beat.title, beat.title_en) : t('ПРОКЛЯТЫЙ ЗАБЕГ', 'CURSED RUN'));
-      set('intro-sub', beat?.clip === 'format' ? t(formatScript.text, formatScript.text_en) : beat ? t(beat.text, beat.text_en) : '');
+      set('intro-title', beat?.clip === 'format' ? FORMAT_NAME[format] ?? FORMAT_NAME.DEATH_RUN : beat ? lx(beat.title, beat.title_en) : lx('ПРОКЛЯТЫЙ ЗАБЕГ', 'CURSED RUN'));
+      set('intro-sub', beat?.clip === 'format' ? lx(formatScript.text, formatScript.text_en) : beat ? lx(beat.text, beat.text_en) : '');
       el.classList.remove('beat-in'); void el.offsetWidth; el.classList.add('beat-in');
     }
     // A tap can unlock audio after a beat has started. Seek to the matching offset, never start a late full sentence.

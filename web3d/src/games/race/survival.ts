@@ -1,4 +1,4 @@
-import {t} from './i18n';
+import {t as lx} from './i18n';
 import {LifeSpark} from './life-spark';
 // CURSED RUN client: presentation of the server-authoritative survival state (formats, ghosts, Life Spark, revival,
 // fronts, gates, seats, personal timers) + host auto camera and host voice events. All effects are cheap: a handful of
@@ -6,11 +6,11 @@ import {LifeSpark} from './life-spark';
 import * as THREE from 'three';
 import type {Runner} from './course';
 
-export const FORMAT_NAME: Record<string, string> = {DEATH_RUN: t('СМЕРТЕЛЬНЫЙ ЗАБЕГ', 'DEATH RUN'), DARKNESS: t('НАСТУПАЮЩАЯ ТЬМА', 'CREEPING DARKNESS'), LAST_SURVIVORS: t('ПОСЛЕДНИЕ ВЫЖИВШИЕ', 'LAST SURVIVORS'), COLLAPSE: t('РАЗРУШАЮЩИЙСЯ МИР', 'CRUMBLING WORLD'), LAST_CHANCE: t('ПОСЛЕДНИЙ ШАНС', 'LAST CHANCE'), SALVATION: t('СПАСИТЕЛЬНЫЕ ВОРОТА', 'GATES OF SALVATION')};
-export const FORMAT_RULE: Record<string, string> = {DEATH_RUN: t('Успей до финиша — или умри', 'Reach the finish — or die'), DARKNESS: t('Тьма поглощает отставших', 'The darkness devours the stragglers'), LAST_SURVIVORS: t('На рубежах места заканчиваются', 'Seats run out at every gate'), COLLAPSE: t('Трасса рушится за спиной', 'The track crumbles behind you'), LAST_CHANCE: t('Своё время у каждого: чекпоинты дают секунды', 'Everyone has their own clock: checkpoints add seconds'), SALVATION: t('В убежище мест меньше, чем живых', 'The shelter has fewer seats than the living')};
+export const FORMAT_NAME: Record<string, string> = {DEATH_RUN: lx('СМЕРТЕЛЬНЫЙ ЗАБЕГ', 'DEATH RUN'), DARKNESS: lx('НАСТУПАЮЩАЯ ТЬМА', 'CREEPING DARKNESS'), LAST_SURVIVORS: lx('ПОСЛЕДНИЕ ВЫЖИВШИЕ', 'LAST SURVIVORS'), COLLAPSE: lx('РАЗРУШАЮЩИЙСЯ МИР', 'CRUMBLING WORLD'), LAST_CHANCE: lx('ПОСЛЕДНИЙ ШАНС', 'LAST CHANCE'), SALVATION: lx('СПАСИТЕЛЬНЫЕ ВОРОТА', 'GATES OF SALVATION')};
+export const FORMAT_RULE: Record<string, string> = {DEATH_RUN: lx('Успей до финиша — или умри', 'Reach the finish — or die'), DARKNESS: lx('Тьма поглощает отставших', 'The darkness devours the stragglers'), LAST_SURVIVORS: lx('На рубежах места заканчиваются', 'Seats run out at every gate'), COLLAPSE: lx('Трасса рушится за спиной', 'The track crumbles behind you'), LAST_CHANCE: lx('Своё время у каждого: чекпоинты дают секунды', 'Everyone has their own clock: checkpoints add seconds'), SALVATION: lx('В убежище мест меньше, чем живых', 'The shelter has fewer seats than the living')};
 const FORMAT_VOICE: Record<string, number> = {DEATH_RUN: 1, DARKNESS: 2, LAST_SURVIVORS: 3, COLLAPSE: 4, LAST_CHANCE: 5, SALVATION: 6};
-const DEATH_TEXT: Record<string, [string, string]> = {TIME: [t('ВРЕМЯ ИСТЕКЛО', 'TIME RAN OUT'), t('теперь ты призрак', 'now you are a ghost')], DARKNESS: [t('ТЬМА ПОГЛОТИЛА ТЕБЯ', 'THE DARKNESS SWALLOWED YOU'), t('теперь ты призрак', 'now you are a ghost')], COLLAPSE: [t('МИР РУХНУЛ ПОД ТОБОЙ', 'THE WORLD COLLAPSED BENEATH YOU'), t('теперь ты призрак', 'now you are a ghost')],
-  GATE: [t('ВОРОТА ЗАКРЫЛИСЬ', 'THE GATES CLOSED'), t('мест больше нет', 'no seats left')], SEATS: [t('ТЫ НЕ УСПЕЛ!', 'TOO LATE!'), t('убежище заполнено', 'the shelter is full')]};
+const DEATH_TEXT: Record<string, [string, string]> = {TIME: [lx('ВРЕМЯ ИСТЕКЛО', 'TIME RAN OUT'), lx('теперь ты призрак', 'now you are a ghost')], DARKNESS: [lx('ТЬМА ПОГЛОТИЛА ТЕБЯ', 'THE DARKNESS SWALLOWED YOU'), lx('теперь ты призрак', 'now you are a ghost')], COLLAPSE: [lx('МИР РУХНУЛ ПОД ТОБОЙ', 'THE WORLD COLLAPSED BENEATH YOU'), lx('теперь ты призрак', 'now you are a ghost')],
+  GATE: [lx('ВОРОТА ЗАКРЫЛИСЬ', 'THE GATES CLOSED'), lx('мест больше нет', 'no seats left')], SEATS: [lx('ТЫ НЕ УСПЕЛ!', 'TOO LATE!'), lx('убежище заполнено', 'the shelter is full')]};
 
 export class Survival {
   run: any = null; pending: any = null; private prev = new Map<string, string>(); private seenEv = 0; private ghostLook = new Map<Runner, boolean>();
@@ -38,24 +38,24 @@ export class Survival {
   private transition(r: Runner, was: string, p: any) {
     const me = r === this.app.me, a = this.app;
     if (p.status === 'REVIVED') this.startRevival(r);
-    if (p.status === 'DEAD') {a.puff(r.x, r.y, r.z, 2); if (me) this.big(...(DEATH_TEXT[p.reason] ?? [t('ТЫ ПОГИБ', 'YOU DIED'), t('теперь ты призрак', 'now you are a ghost')]), 'bad'); a.snd.deathSting?.(); if (p.reason === 'SEATS' || p.reason === 'GATE') a.snd.metal(0);}
+    if (p.status === 'DEAD') {a.puff(r.x, r.y, r.z, 2); if (me) this.big(...(DEATH_TEXT[p.reason] ?? [lx('ТЫ ПОГИБ', 'YOU DIED'), lx('теперь ты призрак', 'now you are a ghost')]), 'bad'); a.snd.deathSting?.(); if (p.reason === 'SEATS' || p.reason === 'GATE') a.snd.metal(0);}
     if (p.status === 'SAVED' && me) {const f = this.run.format, last = this.run.events.some((e: any) => e.type === 'LAST_SURVIVOR' && e.who === r.id);
-      if (last) this.big(t('ПОСЛЕДНИЙ ВЫЖИВШИЙ', 'LAST SURVIVOR'), r.name, 'win'); else if (f === 'DARKNESS') this.big(t('ТЫ СБЕЖАЛ!', 'YOU ESCAPED!'), t('тьма осталась позади', 'the darkness is behind you'), 'win'); else if (f === 'SALVATION') this.big(t('ТЫ СПАСЁН!', 'YOU ARE SAVED!'), t(`место ${p.place} из ${this.run.seats}`, `seat ${p.place} of ${this.run.seats}`), 'win'); else this.big(t('ТЫ ВЫЖИЛ!', 'YOU SURVIVED!'), '', 'win');
+      if (last) this.big(lx('ПОСЛЕДНИЙ ВЫЖИВШИЙ', 'LAST SURVIVOR'), r.name, 'win'); else if (f === 'DARKNESS') this.big(lx('ТЫ СБЕЖАЛ!', 'YOU ESCAPED!'), lx('тьма осталась позади', 'the darkness is behind you'), 'win'); else if (f === 'SALVATION') this.big(lx('ТЫ СПАСЁН!', 'YOU ARE SAVED!'), lx(`место ${p.place} из ${this.run.seats}`, `seat ${p.place} of ${this.run.seats}`), 'win'); else this.big(lx('ТЫ ВЫЖИЛ!', 'YOU SURVIVED!'), '', 'win');
       a.snd.finish(true);}
-    if (p.status === 'GHOST_FINISHED' && me) this.big(t('ФИНИШ ДОСТИГНУТ', 'FINISH REACHED'), t('но ты всё ещё призрак…', 'but you are still a ghost…'), 'ghost');
-    if (p.status === 'GHOST_CAUGHT' && me) this.big(t('ТЬМА ДОГНАЛА ТЕБЯ', 'THE DARKNESS CAUGHT YOU'), t('забег окончен', 'the run is over'), 'ghost');
+    if (p.status === 'GHOST_FINISHED' && me) this.big(lx('ФИНИШ ДОСТИГНУТ', 'FINISH REACHED'), lx('но ты всё ещё призрак…', 'but you are still a ghost…'), 'ghost');
+    if (p.status === 'GHOST_CAUGHT' && me) this.big(lx('ТЬМА ДОГНАЛА ТЕБЯ', 'THE DARKNESS CAUGHT YOU'), lx('забег окончен', 'the run is over'), 'ghost');
   }
   private event(e: any) {
     const a = this.app, name = (id: string) => (a.runners as Runner[]).find(r => r.id === id)?.name ?? '';
     const feed = (t: string) => {const f = document.getElementById('feed'); if (!f) return; const d = document.createElement('div'); d.textContent = t; f.prepend(d); while (f.children.length > 5) f.lastChild!.remove(); setTimeout(() => d.classList.add('old'), 6000);};
     switch (e.type) {
-      case 'SPARK': a.toast?.(t('ИСКРА ЖИЗНИ ПОЯВИЛАСЬ!', 'THE LIFE SPARK HAS APPEARED!')); feed(t('✦ Искра жизни появилась', '✦ The Life Spark has appeared')); this.say(7); a.snd.sparkAppear?.(); break;
-      case 'REVIVED': feed(e.who === a.me?.id && !a.net?.spectator ? t('✦ Ты воскрес!', '✦ You revived!') : t(`✦ ${name(e.who)} воскрес!`, `✦ ${name(e.who)} revived!`)); this.say(8); this.focus(e.who, 3); break;
-      case 'DIED': feed(t(`✝ ${name(e.who)} погиб`, `✝ ${name(e.who)} died`)); if (!this.shown.has('died')) {this.shown.add('died'); this.say(10);} break;
-      case 'SAVED': feed(t(`✓ ${name(e.who)} спасён${e.seat ? ` · место ${e.seat}` : ''}`, `✓ ${name(e.who)} saved${e.seat ? ` · seat ${e.seat}` : ''}`)); if (!this.shown.has('saved')) {this.shown.add('saved'); this.say(9);} if (this.run.format === 'SALVATION') a.snd.metal(0); break;
-      case 'GATE_CLOSED': feed(t(`⛓ Рубеж ${e.gate} закрыт`, `⛓ Gate ${e.gate} closed`)); a.snd.metal(0); break;
-      case 'LAST_SURVIVOR': feed(t(`★ ${name(e.who)} — последний выживший`, `★ ${name(e.who)} — last survivor`)); a.snd.finish(true); break;
-      case 'END': feed(t('Испытание окончено', 'The trial is over')); break;
+      case 'SPARK': a.toast?.(lx('ИСКРА ЖИЗНИ ПОЯВИЛАСЬ!', 'THE LIFE SPARK HAS APPEARED!')); feed(lx('✦ Искра жизни появилась', '✦ The Life Spark has appeared')); this.say(7); a.snd.sparkAppear?.(); break;
+      case 'REVIVED': feed(e.who === a.me?.id && !a.net?.spectator ? lx('✦ Ты воскрес!', '✦ You revived!') : lx(`✦ ${name(e.who)} воскрес!`, `✦ ${name(e.who)} revived!`)); this.say(8); this.focus(e.who, 3); break;
+      case 'DIED': feed(lx(`✝ ${name(e.who)} погиб`, `✝ ${name(e.who)} died`)); if (!this.shown.has('died')) {this.shown.add('died'); this.say(10);} break;
+      case 'SAVED': feed(lx(`✓ ${name(e.who)} спасён${e.seat ? ` · место ${e.seat}` : ''}`, `✓ ${name(e.who)} saved${e.seat ? ` · seat ${e.seat}` : ''}`)); if (!this.shown.has('saved')) {this.shown.add('saved'); this.say(9);} if (this.run.format === 'SALVATION') a.snd.metal(0); break;
+      case 'GATE_CLOSED': feed(lx(`⛓ Рубеж ${e.gate} закрыт`, `⛓ Gate ${e.gate} closed`)); a.snd.metal(0); break;
+      case 'LAST_SURVIVOR': feed(lx(`★ ${name(e.who)} — последний выживший`, `★ ${name(e.who)} — last survivor`)); a.snd.finish(true); break;
+      case 'END': feed(lx('Испытание окончено', 'The trial is over')); break;
     }
   }
 
@@ -79,7 +79,7 @@ export class Survival {
       if (b.z1 < z - 1 && !b.collapsed) {b.collapsed = true; b.crumbles = true; b.crumbleDelay = 0; b.crumbleAt = a.course.time - .01; b.restoreAfter = 1e9; a.puff((b.x0 + b.x1) / 2, b.y0, (b.z0 + b.z1) / 2, 2.5); a.snd.crumble(Math.abs(a.me.z - b.z1));}
       else if (!b.collapsed && b.z0 < z + 10 && b.crumbleAt < 0 && !b.land) {b.shakeUntil = a.course.time + .2;}}
     const gap = a.me.z - z, warn = !a.net?.spectator && !(a.me as any).ghost && gap < 14 && !a.me.finished;
-    document.body.classList.toggle('front-warn', warn); const el = document.getElementById('front-gap'); if (el) {el.hidden = !warn; el.textContent = `${fmt === 'DARKNESS' ? t('ТЬМА', 'DARKNESS') : t('ОБВАЛ', 'COLLAPSE')} ${t('В', 'IN')} ${Math.max(0, gap).toFixed(0)} ${t('М', 'M')}`;}
+    document.body.classList.toggle('front-warn', warn); const el = document.getElementById('front-gap'); if (el) {el.hidden = !warn; el.textContent = `${fmt === 'DARKNESS' ? lx('ТЬМА', 'DARKNESS') : lx('ОБВАЛ', 'COLLAPSE')} ${lx('В', 'IN')} ${Math.max(0, gap).toFixed(0)} ${lx('М', 'M')}`;}
     a.snd.rumble?.(Math.max(0, 1 - Math.max(0, gap) / 30));
   }
   private buildFront(fmt: string) {
@@ -113,7 +113,7 @@ export class Survival {
     // pickup: physically reach it as a ghost; the server decides
     if (ghostMe && d < 1.6 && now - this.sparkSent > 400) {this.sparkSent = now; a.net?.spark?.();}
     // ghost HUD direction hint (not exact through walls)
-    const hint = document.getElementById('spark-hint'); if (hint) {hint.hidden = !ghostMe; if (ghostMe) hint.textContent = sp.z > me.z ? t(`✦ ИСКРА ВПЕРЕДИ · ${Math.round(sp.z - me.z)} м`, `✦ SPARK AHEAD · ${Math.round(sp.z - me.z)} m`) : '✦ ИСКРА ПОЗАДИ';}
+    const hint = document.getElementById('spark-hint'); if (hint) {hint.hidden = !ghostMe; if (ghostMe) hint.textContent = sp.z > me.z ? lx(`✦ ИСКРА ВПЕРЕДИ · ${Math.round(sp.z - me.z)} м`, `✦ SPARK AHEAD · ${Math.round(sp.z - me.z)} m`) : '✦ ИСКРА ПОЗАДИ';}
   }
 
   // ---------------- revival (≈2.4 s, control never taken away) ----------------
@@ -149,7 +149,7 @@ export class Survival {
       const k = ease((t - .4) / 1), flick = t > .4 && t < 1.25 ? (Math.sin(t * 38) > 0 ? .35 : 0) : 0; this.ghostMaterial(r, Math.max(0, Math.min(1, 1 - k + flick)));
       if (t < .5 && Math.random() < .5) a.puff(r.x + (Math.random() - .5), r.y + 1.5 + Math.random(), r.z + (Math.random() - .5), .4);
       if (t > 1.2 && !(v as any).flash) {(v as any).flash = true; a.puff(r.x, r.y + .8, r.z, 2.2); a.puff(r.x, r.y + .2, r.z, 1.6);
-        if (r === a.me) this.big(t('ВОСКРЕШЕНИЕ!', 'RESURRECTION!'), t('ТЫ СНОВА ЖИВ!', 'YOU LIVE AGAIN!'), 'win');}
+        if (r === a.me) this.big(lx('ВОСКРЕШЕНИЕ!', 'RESURRECTION!'), lx('ТЫ СНОВА ЖИВ!', 'YOU LIVE AGAIN!'), 'win');}
       // flash light + ground shockwave
       P.glow.intensity = t < 1.2 ? ease((t - .3) / .9) * 6 : 14 * Math.exp(-(t - 1.2) * 4); P.glow.position.y = 1.2;
       const wt = t - 1.2, wm = P.wave.material as THREE.MeshBasicMaterial; P.wave.position.y = .06; P.wave.scale.setScalar(wt > 0 ? 1 + wt * 9 : .01); wm.opacity = wt > 0 ? .85 * (1 - ease(wt / .7)) : 0;
@@ -166,16 +166,16 @@ export class Survival {
   // ---------------- HUD ----------------
   private hud(now: number, raceT: number) {
     const a = this.app, run = this.run, me = a.me, p = run.players[me.id], spect = a.net?.spectator;
-    const badge = document.getElementById('life'); if (badge && !spect && p) {const st = p.status, txt = st === 'SAVED' ? t('СПАСЁН', 'SAVED') : p.alive ? (p.revived ? t('ВОСКРЕШЁН', 'REVIVED') : t('ЖИВ', 'ALIVE')) : t('ПРИЗРАК', 'GHOST');
+    const badge = document.getElementById('life'); if (badge && !spect && p) {const st = p.status, txt = st === 'SAVED' ? lx('СПАСЁН', 'SAVED') : p.alive ? (p.revived ? lx('ВОСКРЕШЁН', 'REVIVED') : lx('ЖИВ', 'ALIVE')) : lx('ПРИЗРАК', 'GHOST');
       if (badge.textContent !== txt) {badge.textContent = txt; badge.className = st === 'SAVED' ? 'saved' : p.alive ? 'alive' : 'ghost';}}
     const extra = document.getElementById('run-info'); let info = '';
-    if (run.format === 'SALVATION') {const left = run.seats - run.seatsUsed; info = `${t('УБЕЖИЩЕ', 'SHELTER')} ${'■'.repeat(run.seatsUsed)}${'□'.repeat(Math.max(0, left))} · ${t('мест', 'seats')} ${left}`;}
-    if (run.format === 'LAST_SURVIVORS') {const g = run.closed.findIndex((c: boolean) => !c); info = g < 0 ? t('ВСЕ РУБЕЖИ ЗАКРЫТЫ', 'ALL GATES CLOSED') : t(`РУБЕЖ ${g + 1} · мест ${Math.max(0, run.quotas[g] - run.passed[g])} из ${run.quotas[g]}`, `GATE ${g + 1} · seats ${Math.max(0, run.quotas[g] - run.passed[g])} of ${run.quotas[g]}`);}
-    if (run.format === 'LAST_CHANCE' && p && p.alive && p.status !== 'SAVED' && !spect) {const left = Math.max(0, (p.deadline - now) / 1000); info = t(`ТВОЁ ВРЕМЯ ${left.toFixed(1)} С`, `YOUR TIME ${left.toFixed(1)} S`);
+    if (run.format === 'SALVATION') {const left = run.seats - run.seatsUsed; info = `${lx('УБЕЖИЩЕ', 'SHELTER')} ${'■'.repeat(run.seatsUsed)}${'□'.repeat(Math.max(0, left))} · ${lx('мест', 'seats')} ${left}`;}
+    if (run.format === 'LAST_SURVIVORS') {const g = run.closed.findIndex((c: boolean) => !c); info = g < 0 ? lx('ВСЕ РУБЕЖИ ЗАКРЫТЫ', 'ALL GATES CLOSED') : lx(`РУБЕЖ ${g + 1} · мест ${Math.max(0, run.quotas[g] - run.passed[g])} из ${run.quotas[g]}`, `GATE ${g + 1} · seats ${Math.max(0, run.quotas[g] - run.passed[g])} of ${run.quotas[g]}`);}
+    if (run.format === 'LAST_CHANCE' && p && p.alive && p.status !== 'SAVED' && !spect) {const left = Math.max(0, (p.deadline - now) / 1000); info = lx(`ТВОЁ ВРЕМЯ ${left.toFixed(1)} С`, `YOUR TIME ${left.toFixed(1)} S`);
       document.body.classList.toggle('chance-low', left < 10); if (left < 10 && now - this.lastBeep > (left < 4 ? 350 : 900)) {this.lastBeep = now; a.snd.alarm(0);}} else document.body.classList.remove('chance-low');
     if (extra && extra.textContent !== info) {extra.textContent = info; extra.hidden = !info;}
     if (spect) {const ps = Object.values(run.players) as any[]; const c = (f: (x: any) => boolean) => ps.filter(f).length;
-      const h = document.getElementById('host-stats'); if (h) {const s = `<b>${FORMAT_NAME[run.format]}</b><span>${t('Живых', 'Alive')} ${c(x => x.alive && x.status !== 'SAVED')}</span><span>${t('Спасено', 'Saved')} ${c(x => x.status === 'SAVED')}</span><span>${t('Призраков', 'Ghosts')} ${c(x => !x.alive)}</span><span>${t('Погибло', 'Dead')} ${c(x => x.status === 'DEAD')}</span>`; if (h.innerHTML !== s) h.innerHTML = s; h.hidden = false;}}
+      const h = document.getElementById('host-stats'); if (h) {const s = `<b>${FORMAT_NAME[run.format]}</b><span>${lx('Живых', 'Alive')} ${c(x => x.alive && x.status !== 'SAVED')}</span><span>${lx('Спасено', 'Saved')} ${c(x => x.status === 'SAVED')}</span><span>${lx('Призраков', 'Ghosts')} ${c(x => !x.alive)}</span><span>${lx('Погибло', 'Dead')} ${c(x => x.status === 'DEAD')}</span>`; if (h.innerHTML !== s) h.innerHTML = s; h.hidden = false;}}
   }
   private big(title: string, sub: string, kind: string) {const el = document.getElementById('big'); if (!el) return; el.className = kind; el.innerHTML = `<b>${title}</b>${sub ? `<span>${sub}</span>` : ''}`; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');}
 

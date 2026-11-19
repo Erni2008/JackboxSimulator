@@ -1,4 +1,4 @@
-import {t} from './i18n';
+import {t as lx} from './i18n';
 import {stoneAt, STONE_INTERVAL, type StoneTrack, type StoneBody} from './rolling-stone';
 // Obstacle race course + physics. The course is assembled from a library of sections, shuffled by a seed, so every
 // race is different; the seed is all a phone needs to rebuild the exact same course. Moving parts are deterministic from
@@ -63,8 +63,8 @@ const LOOK: Record<Theme, Look> = {
   manor: {main: 'floor', alt: 'flag', thin: 'floor', land: 'flag', crumble: 'floor'},
   crypt: {main: 'flag', alt: 'flag', thin: 'floor', land: 'flag', crumble: 'flag'},
 };
-export const SECTION_NAMES: Record<string, string> = {gears: t('Гигантские шестерни', 'Giant Gears'), gates: t('Смертельные ворота', 'Deadly Gates'), wind: t('Ветряной коридор', 'Wind Tunnel'), chase: t('Катящийся валун', 'Rolling Boulder'), tilt: t('Переворачивающаяся комната', 'Tilting Room'), hooks: t('Крюки', 'Hooks'), falsebridge: t('Ложный мост', 'False Bridge'), minecarts: t('Безумные вагонетки', 'Crazy Minecarts'), spinner: t('Мельница', 'The Mill'), gaps: t('Провалы', 'Gaps'), pendulums: t('Маятники', 'Pendulums'), rafts: t('Плоты', 'Rafts'), crumble: t('Обвал пола', 'Collapsing Floor'),
-  sink: t('Трясина', 'Quagmire'), pushers: t('Тараны', 'Battering Rams'), pads: t('Батуты', 'Jump Pads'), traps: t('Люки', 'Trapdoors'), conveyor: t('Транспортёр', 'Conveyor'), flames: t('Огненный пол', 'Fire Floor'), gauntlet: t('Мясорубка', 'Meat Grinder'), highlow: t('Верх-низ', 'High & Low'), hammers: t('Молоты', 'Hammers'), beams: t('Узкие балки', 'Narrow Beams'), zigzag: t('Змейка', 'Zigzag'), maze: t('Лабиринт', 'Labyrinth'), fakewalls: t('Ложные стены', 'False Walls'), portals: t('Порталы', 'Portals'), ramp: t('Скат', 'The Ramp'), rain: t('Дождь с неба', 'Sky Rain'),};
+export const SECTION_NAMES: Record<string, string> = {gears: lx('Гигантские шестерни', 'Giant Gears'), gates: lx('Смертельные ворота', 'Deadly Gates'), wind: lx('Ветряной коридор', 'Wind Tunnel'), chase: lx('Катящийся валун', 'Rolling Boulder'), tilt: lx('Переворачивающаяся комната', 'Tilting Room'), hooks: lx('Крюки', 'Hooks'), falsebridge: lx('Ложный мост', 'False Bridge'), minecarts: lx('Безумные вагонетки', 'Crazy Minecarts'), spinner: lx('Мельница', 'The Mill'), gaps: lx('Провалы', 'Gaps'), pendulums: lx('Маятники', 'Pendulums'), rafts: lx('Плоты', 'Rafts'), crumble: lx('Обвал пола', 'Collapsing Floor'),
+  sink: lx('Трясина', 'Quagmire'), pushers: lx('Тараны', 'Battering Rams'), pads: lx('Батуты', 'Jump Pads'), traps: lx('Люки', 'Trapdoors'), conveyor: lx('Транспортёр', 'Conveyor'), flames: lx('Огненный пол', 'Fire Floor'), gauntlet: lx('Мясорубка', 'Meat Grinder'), highlow: lx('Верх-низ', 'High & Low'), hammers: lx('Молоты', 'Hammers'), beams: lx('Узкие балки', 'Narrow Beams'), zigzag: lx('Змейка', 'Zigzag'), maze: lx('Лабиринт', 'Labyrinth'), fakewalls: lx('Ложные стены', 'False Walls'), portals: lx('Порталы', 'Portals'), ramp: lx('Скат', 'The Ramp'), rain: lx('Дождь с неба', 'Sky Rain'),};
 
 /** All 29 trials, numbered for ?t=N test runs. */
 export const TRIALS = ['spinner', 'gauntlet', 'highlow', 'gaps', 'beams', 'pendulums', 'rafts', 'crumble', 'sink', 'pushers', 'pads', 'traps', 'conveyor', 'flames', 'hammers', 'zigzag', 'ramp', 'rain', 'maze', 'fakewalls', 'portals',
