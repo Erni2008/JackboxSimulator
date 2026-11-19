@@ -21,26 +21,26 @@
 
   // ---- join: title only; characters are dealt at random by the server ----
   const form=$('join-form');
-  if(form){const title=document.createElement('p');title.className='g-title';title.textContent='JOIN THE GAME';form.before(title);}
+  if(form){const title=document.createElement('p');title.className='g-title';title.textContent=faT('ВОЙТИ В ИГРУ', 'JOIN THE GAME');form.before(title);}
 
   // ---- lobby: own character in a hanging cage, "waiting for host" ----
   const waiting=$('waiting-screen');let lobbyCage=null;
   if(waiting){
     const t=document.createElement('p');t.className='g-title';t.id='g-room';waiting.prepend(t);
     lobbyCage=cage();t.after(lobbyCage);
-    const w=document.createElement('p');w.className='g-wait';w.textContent='WAITING FOR HOST…';lobbyCage.after(w);
+    const w=document.createElement('p');w.className='g-wait';w.textContent=faT('ЖДЁМ ВЕДУЩЕГО…', 'WAITING FOR HOST…');lobbyCage.after(w);
   }
   const players=$('players');
   function paintLobby(){
     try{
       if(typeof state==='undefined'||!state||body.dataset.view!=='waiting')return;
       const self=state.players?.find(p=>p.id===state.selfId);
-      $('g-room').textContent='ROOM: '+(state.code||'');
+      $('g-room').textContent=faT('КОМНАТА: ', 'ROOM: ')+(state.code||'');
       lobbyCage.querySelector('.who').src=portrait(self?.characterId);lobbyCage.querySelector('.plate').textContent=self?.name||'';
       const guests=(state.players||[]).filter(p=>!p.host);
       [...players.querySelectorAll('li:not(.g-empty)')].forEach((li,i)=>{const g=guests[i];if(g&&!li.querySelector('img.face')){const im=document.createElement('img');im.className='face';im.alt='';im.src=portrait(g.characterId);li.prepend(im);}});
       players.querySelectorAll('.g-empty').forEach(n=>n.remove());
-      for(let i=guests.length;i<Math.min(8,state.maxPlayers||8);i++){const li=document.createElement('li');li.className='g-empty';li.textContent='EMPTY SEAT';players.append(li);}
+      for(let i=guests.length;i<Math.min(8,state.maxPlayers||8);i++){const li=document.createElement('li');li.className='g-empty';li.textContent=faT('ПУСТОЕ МЕСТО', 'EMPTY SEAT');players.append(li);}
     }catch{}
   }
 

@@ -13,7 +13,7 @@
 function createCursedCardsController({getState,isAuthenticated,send,makeId,now,explain}){
   const el=id=>document.getElementById(id);
   const ART=v=>`/art/cursed_cards/cards/card_${v===0?'death':v}.jpg`,BACK='/art/cursed_cards/cards/card_back.jpg';
-  const errors={CARDS_NOT_YOUR_TURN:'Wait for your turn.',CARDS_STALE_TURN:'The turn has moved on.',CARDS_TURN_NOT_READY:'Watch the table — your turn begins in a moment.',CARDS_INVALID_SLOT:'Choose one of the hidden cards.',CARDS_STALE_HAND:'The cards moved — tap again.',CARDS_TURN_EXPIRED:'Too late — fate chose for you.',CARDS_NOTHING_TO_SHUFFLE:'Nothing to shuffle.',CARDS_VOTE_CLOSED:'The curse has been cast.',CARDS_NOT_SPECTATOR:'Only the audience may curse.',CARDS_INVALID_TARGET:'Choose a seated player.',STALE_CARDS_SESSION:'This match has ended.'};
+  const errors={CARDS_NOT_YOUR_TURN:faT('Дождитесь своего хода.', 'Wait for your turn.'),CARDS_STALE_TURN:faT('Ход уже перешёл.', 'The turn has moved on.'),CARDS_TURN_NOT_READY:faT('Следите за столом — ваш ход сейчас начнётся.', 'Watch the table — your turn begins in a moment.'),CARDS_INVALID_SLOT:faT('Выберите одну из скрытых карт.', 'Choose one of the hidden cards.'),CARDS_STALE_HAND:faT('Карты сдвинулись — нажмите ещё раз.', 'The cards moved — tap again.'),CARDS_TURN_EXPIRED:faT('Поздно — судьба выбрала за вас.', 'Too late — fate chose for you.'),CARDS_NOTHING_TO_SHUFFLE:faT('Нечего перемешивать.', 'Nothing to shuffle.'),CARDS_VOTE_CLOSED:faT('Проклятие наложено.', 'The curse has been cast.'),CARDS_NOT_SPECTATOR:faT('Проклинать могут только зрители.', 'Only the audience may curse.'),CARDS_INVALID_TARGET:faT('Выберите игрока за столом.', 'Choose a seated player.'),STALE_CARDS_SESSION:faT('Партия окончена.', 'This match has ended.')};
   const mini=()=>getState()?.cursedCards;
   const selfId=()=>getState()?.selfId;
   const name=id=>{const p=getState()?.players?.find(p=>p.id===id);return (p?.nickname||p?.name||'PLAYER').toUpperCase();};
@@ -63,7 +63,7 @@ function createCursedCardsController({getState,isAuthenticated,send,makeId,now,e
   function settle(){clearTimeout(settleTimer);if(reduced()){layoutHand(false);return;}layoutHand(true);settleTimer=setTimeout(()=>layoutHand(false),170);}
 
   // ---------------- own hand reconciliation ----------------
-  function card(v){let n=own.get(v);if(n)return n;n=document.createElement('img');n.className='cards-own';n.src=ART(v);n.alt=v===0?'DEATH':`Card ${v}`;n.draggable=false;n.dataset.v=v;n.decoding='async';
+  function card(v){let n=own.get(v);if(n)return n;n=document.createElement('img');n.className='cards-own';n.src=ART(v);n.alt=v===0?'DEATH':faT(`Карта ${v}`, `Card ${v}`);n.draggable=false;n.dataset.v=v;n.decoding='async';
     own.set(v,n);el('cards-hand').append(n);return n;}
   function syncHand(values,animate,dealing){
     const box=el('cards-hand'),before=prevValues,orderChanged=before.join()!==values.join(),gone=before.filter(v=>!values.includes(v)),added=values.filter(v=>!before.includes(v));
@@ -90,7 +90,7 @@ function createCursedCardsController({getState,isAuthenticated,send,makeId,now,e
   function layoutBacks(lift){const row=el('cards-pick-row'),nodes=[...row.children],{cw,ch,at}=fan(row,nodes.length,{max:.3,cap:120,spread:18,gap:.8});
     nodes.forEach((n,i)=>{if(!at[i])return;const sel=i===tapped;place(n,at[i],cw,ch,sel?`translateY(${-ch*.16}px) scale(1.08)`:lift?`translateY(${-ch*.1}px)`:'');});}
   function syncBacks(s){const row=el('cards-pick-row'),n=s.sourceCards||0;
-    if(row.children.length!==n){row.replaceChildren();for(let i=0;i<n;i++){const b=document.createElement('button');b.type='button';b.className='cards-back';b.dataset.nativeButton='';b.setAttribute('aria-label',`Hidden card ${i+1}`);
+    if(row.children.length!==n){row.replaceChildren();for(let i=0;i<n;i++){const b=document.createElement('button');b.type='button';b.className='cards-back';b.dataset.nativeButton='';b.setAttribute('aria-label',faT(`Скрытая карта ${i+1}`, `Hidden card ${i+1}`));
       b.addEventListener('pointerdown',()=>{if(!b.disabled)b.classList.add('pressing');});b.addEventListener('pointerup',()=>b.classList.remove('pressing'));b.addEventListener('pointerleave',()=>b.classList.remove('pressing'));
       b.addEventListener('click',()=>take(i));row.append(b);}requestAnimationFrame(()=>layoutBacks(false));}
     else if(backsRev!==null&&backsRev!==s.sourceRevision&&!reduced()){layoutBacks(true);setTimeout(()=>layoutBacks(false),170);riffle();}
@@ -123,7 +123,7 @@ function createCursedCardsController({getState,isAuthenticated,send,makeId,now,e
     const ev=readEvents(s,me),safeNow=player&&me>=0&&s.safe?.[me],myTurn=s.phase==='PLAYING'&&s.drawer===root.selfId,picked=s.phase==='PLAYING'&&s.source===root.selfId;
     screen.dataset.phase=s.phase;screen.dataset.role=s.role;screen.dataset.mode=myTurn?'pick':picked?'picked':safeNow||!player?'watch':'hand';
     // top
-    el('cards-name').textContent=name(root.selfId);el('cards-role').textContent=player?(safeNow?'SAFE':'AT THE TABLE'):'IN THE AUDIENCE';
+    el('cards-name').textContent=name(root.selfId);el('cards-role').textContent=player?(safeNow?'SAFE':faT('ЗА СТОЛОМ', 'AT THE TABLE')):faT('В ЗАЛЕ', 'IN THE AUDIENCE');
     el('cards-phase').textContent=phaseLabel(s,myTurn,picked,safeNow);
     el('cards-counter').textContent=player&&s.phase!=='CURSE_VOTE'?`${values.length}`:'';el('cards-counter').hidden=!player||s.phase==='CURSE_VOTE';
     // banner
@@ -131,8 +131,8 @@ function createCursedCardsController({getState,isAuthenticated,send,makeId,now,e
     // hand
     el('cards-hand-wrap').hidden=!player||safeNow&&!values.length||s.phase==='CURSE_VOTE';
     syncHand(values,primed&&s.phase!=='CURSE_VOTE',s.phase==='DEALING');
-    if(ev.lost!==null&&ev.lost!==undefined)toast(`${name(s.seats[ev.lost])} TOOK ONE OF YOUR CARDS`);
-    else if(ev.pairs)toast(ev.pairs>1?'PAIRS BURN':'A PAIR BURNS');
+    if(ev.lost!==null&&ev.lost!==undefined)toast(faT(`${name(s.seats[ev.lost])} ВЗЯЛ ВАШУ КАРТУ`, `${name(s.seats[ev.lost])} TOOK ONE OF YOUR CARDS`));
+    else if(ev.pairs)toast(ev.pairs>1?faT('ПАРЫ СГОРАЮТ', 'PAIRS BURN'):faT('ПАРА СГОРАЕТ', 'A PAIR BURNS'));
     if(ev.safe)moment();
     el('cards-shuffle').disabled=!player||values.length<2||!['PLAYING','DEALING'].includes(s.phase);
     el('cards-screen').querySelector('.cc-bottom').hidden=!player||safeNow||s.phase==='FINISHED'||s.phase==='CURSE_VOTE';
@@ -146,16 +146,16 @@ function createCursedCardsController({getState,isAuthenticated,send,makeId,now,e
     renderResult(s,root);
     startClock();
   }
-  function phaseLabel(s,myTurn,picked,safe){if(s.phase==='CURSE_VOTE')return 'THE CURSE';if(s.phase==='DEALING')return 'THE DEAL';if(s.phase==='FINISHED')return 'THE VERDICT';
-    if(safe)return 'SAFE';if(myTurn)return 'YOUR TURN';if(picked)return 'UNDER THREAT';return 'IN PLAY';}
+  function phaseLabel(s,myTurn,picked,safe){if(s.phase==='CURSE_VOTE')return faT('ПРОКЛЯТИЕ', 'THE CURSE');if(s.phase==='DEALING')return faT('РАЗДАЧА', 'THE DEAL');if(s.phase==='FINISHED')return faT('ПРИГОВОР', 'THE VERDICT');
+    if(safe)return 'SAFE';if(myTurn)return faT('ВАШ ХОД', 'YOUR TURN');if(picked)return faT('ПОД УГРОЗОЙ', 'UNDER THREAT');return faT('В ИГРЕ', 'IN PLAY');}
   function bannerText(s,root,myTurn,picked,safe,player){
-    if(s.phase==='CURSE_VOTE')return s.role==='SPECTATOR'?['CURSE A PLAYER',s.myVote?`YOU CURSED ${name(s.myVote)} · ${s.votes}/${s.voters} VOTED`:'One curse. It may bring DEATH closer to them.']:['THE AUDIENCE CHOOSES','Someone at the table will be cursed…'];
-    if(s.phase==='DEALING')return ['THE DEAL',s.cursedPlayer?`THE AUDIENCE CURSED ${name(s.cursedPlayer)}`:'Watch the table.'];
+    if(s.phase==='CURSE_VOTE')return s.role==='SPECTATOR'?[faT('ПРОКЛЯНИ ИГРОКА', 'CURSE A PLAYER'),s.myVote?faT(`ВЫ ПРОКЛЯЛИ ${name(s.myVote)} · ${s.votes}/${s.voters} ПРОГОЛОСОВАЛИ`, `YOU CURSED ${name(s.myVote)} · ${s.votes}/${s.voters} VOTED`):faT('Одно проклятие. Оно может приблизить к нему СМЕРТЬ.', 'One curse. It may bring DEATH closer to them.')]:[faT('ЗРИТЕЛИ ВЫБИРАЮТ', 'THE AUDIENCE CHOOSES'),faT('Кто-то за столом будет проклят…', 'Someone at the table will be cursed…')];
+    if(s.phase==='DEALING')return [faT('РАЗДАЧА', 'THE DEAL'),s.cursedPlayer?faT(`ЗРИТЕЛИ ПРОКЛЯЛИ ${name(s.cursedPlayer)}`, `THE AUDIENCE CURSED ${name(s.cursedPlayer)}`):faT('Следите за столом.', 'Watch the table.')];
     if(s.phase==='FINISHED')return ['',''];
-    if(!player||safe)return [safe?'YOU ARE SAFE':'THE TABLE',`${name(s.drawer)} TAKES FROM ${name(s.source)}`];
-    if(myTurn)return [s.canDraw?'PICK A CARD':'GET READY',s.canDraw?(pending||tapped>=0?'TAKING…':`FROM ${name(s.source)} — ONE TAP`):`${name(s.source)}'S CARDS`];
-    if(picked)return ['YOUR CARDS ARE BEING PICKED',`${name(s.drawer)} IS CHOOSING — SHUFFLE!`];
-    return ['YOUR HAND',`${name(s.drawer)} TAKES FROM ${name(s.source)}`];
+    if(!player||safe)return [safe?faT('ВЫ В БЕЗОПАСНОСТИ', 'YOU ARE SAFE'):faT('СТОЛ', 'THE TABLE'),faT(`${name(s.drawer)} БЕРЁТ У ${name(s.source)}`, `${name(s.drawer)} TAKES FROM ${name(s.source)}`)];
+    if(myTurn)return [s.canDraw?faT('ВЫБЕРИ КАРТУ', 'PICK A CARD'):faT('ПРИГОТОВЬТЕСЬ', 'GET READY'),s.canDraw?(pending||tapped>=0?faT('БЕРЁМ…', 'TAKING…'):faT(`У ${name(s.source)} — ОДНО КАСАНИЕ`, `FROM ${name(s.source)} — ONE TAP`)):faT(`КАРТЫ ${name(s.source)}`, `${name(s.source)}'S CARDS`)];
+    if(picked)return [faT('У ВАС БЕРУТ КАРТУ', 'YOUR CARDS ARE BEING PICKED'),faT(`${name(s.drawer)} ВЫБИРАЕТ — ПЕРЕМЕШАЙ!`, `${name(s.drawer)} IS CHOOSING — SHUFFLE!`)];
+    return [faT('ВАША РУКА', 'YOUR HAND'),faT(`${name(s.drawer)} БЕРЁТ У ${name(s.source)}`, `${name(s.drawer)} TAKES FROM ${name(s.source)}`)];
   }
   function renderVote(s){const list=el('cards-vote-list');const ids=s.seats||[];
     if(list.children.length!==ids.length){list.replaceChildren();for(const id of ids){const b=document.createElement('button');b.type='button';b.className='cards-target';b.dataset.nativeButton='';b.dataset.id=id;
@@ -174,8 +174,8 @@ function createCursedCardsController({getState,isAuthenticated,send,makeId,now,e
       if(lost&&player){buzz([30,40,60]);setTimeout(()=>{resultStage=1;paintResult(s,root);},reduced()?0:1500);}}
     paintResult(s,root);}
   function paintResult(s,root){const lost=s.loser===root.selfId,player=s.role==='PLAYER';const box=el('cards-result');box.dataset.stage=resultStage;
-    el('cards-result-title').textContent=!player?`${name(s.loser)} IS CURSED`:lost?(resultStage?'YOU HAVE BEEN ELIMINATED':'THE DEATH CARD'):'YOU SURVIVED';
-    el('cards-result-detail').textContent=!player?'Everyone else survives.':lost?(resultStage?'The curse is yours. Watch the table.':''):`${name(s.loser)} holds DEATH.`;}
+    el('cards-result-title').textContent=!player?faT(`${name(s.loser)} ПРОКЛЯТ`, `${name(s.loser)} IS CURSED`):lost?(resultStage?faT('ВЫ ВЫБЫЛИ', 'YOU HAVE BEEN ELIMINATED'):faT('КАРТА СМЕРТИ', 'THE DEATH CARD')):faT('ВЫ ВЫЖИЛИ', 'YOU SURVIVED');
+    el('cards-result-detail').textContent=!player?faT('Все остальные выживают.', 'Everyone else survives.'):lost?(resultStage?faT('Проклятие за вами. Следите за столом.', 'The curse is yours. Watch the table.'):''):faT(`У ${name(s.loser)} СМЕРТЬ.`, `${name(s.loser)} holds DEATH.`);}
   function toast(text){const t=el('cards-toast');t.textContent=text;t.classList.remove('show');void t.offsetWidth;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),1900);}
   function moment(){const m=el('cards-moment');m.hidden=false;m.classList.remove('show');void m.offsetWidth;m.classList.add('show');buzz([20,30,20]);clearTimeout(momentTimer);momentTimer=setTimeout(()=>{m.hidden=true;},2600);}
 
