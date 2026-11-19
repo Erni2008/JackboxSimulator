@@ -12,8 +12,8 @@ function createForgottenRoomController({getState,isAuthenticated,send,makeId,now
   const el=id=>document.getElementById(id);
   const mini=()=>getState()?.forgottenRoom;
   const selfId=()=>getState()?.selfId;
-  const T={DISAPPEARED:faT('Исчез', 'Gone'),MOVED:faT('Переместился', 'Moved'),ROTATED:faT('Повернулся / упал', 'Turned / fell'),CHANGED:faT('Изменился', 'Changed'),APPEARED:faT('Появился', 'Appeared'),TOGGLED:faT('Зажёгся / погас', 'Lit / went out')};
-  const HINT={DISAPPEARED:faT('Здесь что-то стояло', 'Something stood here'),MOVED:faT('Переехал сюда или отсюда', 'Moved here or away'),ROTATED:faT('Отвернулся или упал на бок', 'Turned away or fell on its side'),CHANGED:faT('Выглядит иначе', 'Looks different'),APPEARED:faT('Раньше его не было', 'It wasn\'t here before'),TOGGLED:faT('Свет включился или выключился', 'The light turned on or off')};
+  const T={get DISAPPEARED(){return faT('Исчез', 'Gone')},get MOVED(){return faT('Переместился', 'Moved')},get ROTATED(){return faT('Повернулся / упал', 'Turned / fell')},get CHANGED(){return faT('Изменился', 'Changed')},get APPEARED(){return faT('Появился', 'Appeared')},get TOGGLED(){return faT('Зажёгся / погас', 'Lit / went out')}};
+  const HINT={get DISAPPEARED(){return faT('Здесь что-то стояло', 'Something stood here')},get MOVED(){return faT('Переехал сюда или отсюда', 'Moved here or away')},get ROTATED(){return faT('Отвернулся или упал на бок', 'Turned away or fell on its side')},get CHANGED(){return faT('Выглядит иначе', 'Looks different')},get APPEARED(){return faT('Раньше его не было', 'It wasn\'t here before')},get TOGGLED(){return faT('Свет включился или выключился', 'The light turned on or off')}};
   const W=1920,H=1080;
   // hit zones, in room units (1920-wide): objects get a padded box; otherwise the nearest place within reach wins
   const OBJECT_PAD=.22,PLACE_REACH=150;
