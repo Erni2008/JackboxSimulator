@@ -18,9 +18,10 @@ public final class GameSession {
     public String finishReason = "";
     public IntroGate intro;
 
-    public GameSession(int count, Set<String> participants, EndPolicy policy, long now) {
+    public GameSession(int count, Set<String> participants, EndPolicy policy, long now) {this(count,participants,policy,now,"ru");}
+    public GameSession(int count, Set<String> participants, EndPolicy policy, long now, String language) {
         if(count<1 || count>12) throw new IllegalArgumentException("INVALID_QUESTION_COUNT");
-        this.questions=List.copyOf(catalog().subList(0,count));
+        this.questions=List.copyOf(QuestionCatalog.all(language).subList(0,count));
         this.participants=new LinkedHashSet<>(participants); this.endPolicy=policy; phaseStartedAt=now;
     }
     public Question question() { return index < 0 ? null : questions.get(index); }

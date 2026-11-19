@@ -1,0 +1,150 @@
+{
+  "version": 1,
+  "language": "en",
+  "questions": [
+    {
+      "id": "solar-largest",
+      "text": "Which planet is the largest in the Solar System?",
+      "answers": [
+        "Earth",
+        "Jupiter",
+        "Saturn",
+        "Neptune"
+      ],
+      "correctAnswerIndex": 1,
+      "demo": true
+    },
+    {
+      "id": "ocean-deepest",
+      "text": "Which ocean holds the deepest point on Earth?",
+      "answers": [
+        "Atlantic",
+        "Indian",
+        "Pacific",
+        "Arctic"
+      ],
+      "correctAnswerIndex": 2,
+      "demo": true
+    },
+    {
+      "id": "raven-author",
+      "text": "Who wrote the poem «The Raven»?",
+      "answers": [
+        "Mary Shelley",
+        "Bram Stoker",
+        "H. P. Lovecraft",
+        "Edgar Allan Poe"
+      ],
+      "correctAnswerIndex": 3,
+      "demo": true
+    },
+    {
+      "id": "light-year",
+      "text": "What do astronomers measure when they talk about one light year?",
+      "answers": [
+        "The distance light travels in a year",
+        "The age of a star",
+        "The time a star takes to orbit the galaxy",
+        "A star's brightness compared to the Sun"
+      ],
+      "correctAnswerIndex": 0,
+      "demo": true
+    },
+    {
+      "id": "human-bones",
+      "text": "How many bones are usually in an adult human skeleton?",
+      "answers": [
+        "186",
+        "206",
+        "226",
+        "246"
+      ],
+      "correctAnswerIndex": 1,
+      "demo": true
+    },
+    {
+      "id": "sunlight",
+      "text": "Which legendary creature fears sunlight?",
+      "answers": [
+        "Vampire",
+        "Skeleton",
+        "Ghost",
+        "Werewolf"
+      ],
+      "correctAnswerIndex": 0,
+      "demo": false
+    },
+    {
+      "id": "chemical-gold",
+      "text": "Which chemical symbol stands for gold?",
+      "answers": [
+        "Ag",
+        "Fe",
+        "Au",
+        "Cu"
+      ],
+      "correctAnswerIndex": 2,
+      "demo": false
+    },
+    {
+      "id": "chess-king",
+      "text": "Which chess piece moves one square in any direction?",
+      "answers": [
+        "Bishop",
+        "Rook",
+        "Queen",
+        "King"
+      ],
+      "correctAnswerIndex": 3,
+      "demo": false
+    },
+    {
+      "id": "octopus",
+      "text": "How many hearts does an octopus have?",
+      "answers": [
+        "One",
+        "Two",
+        "Three",
+        "Four"
+      ],
+      "correctAnswerIndex": 2,
+      "demo": false
+    },
+    {
+      "id": "frankenstein",
+      "text": "Who wrote the novel «Frankenstein»?",
+      "answers": [
+        "Mary Shelley",
+        "Bram Stoker",
+        "Jane Austen",
+        "Emily Brontë"
+      ],
+      "correctAnswerIndex": 0,
+      "demo": false
+    },
+    {
+      "id": "sound-space",
+      "text": "Why doesn't ordinary sound travel through a vacuum?",
+      "answers": [
+        "It's too cold there",
+        "There is no medium for sound waves",
+        "Light absorbs the sound",
+        "Gravity gets in the way"
+      ],
+      "correctAnswerIndex": 1,
+      "demo": false
+    },
+    {
+      "id": "triangle",
+      "text": "What is the sum of a triangle's interior angles in Euclidean geometry?",
+      "answers": [
+        "90 degrees",
+        "180 degrees",
+        "270 degrees",
+        "360 degrees"
+      ],
+      "correctAnswerIndex": 1,
+      "demo": false
+    }
+  ]
+}

@@ -8,6 +8,14 @@ import java.util.Locale;
 final class WordHints {
     private static final Map<String,String> DEFAULTS=Map.of(
         "ЯБЛОКО","Еда", "ОКЕАН","Природа", "МУЗЫКА","Творчество", "КОСМОС","Пространство", "САМОЛЁТ","Путешествия");
+    private static final Map<String,String> DEFAULTS_EN=Map.of(
+        "APPLE","Food", "OCEAN","Nature", "MUSIC","Creativity", "SPACE","The cosmos", "PLANE","Travel");
+    static String forWordEnglish(String word){
+        String direct=DEFAULTS_EN.get(word);if(direct!=null)return direct;
+        for(String fallback:new String[]{"An object, place or phenomenon","A broad association","Pick a general direction"})
+            if(!fallback.toUpperCase(Locale.ROOT).contains(word.toUpperCase(Locale.ROOT)))return fallback;
+        return "A general theme";
+    }
     static String forWord(String word){
         String direct=DEFAULTS.get(word);if(direct!=null)return direct;
         for(String fallback:new String[]{"Предмет, место или явление","Широкая ассоциация","Выберите общее направление"})

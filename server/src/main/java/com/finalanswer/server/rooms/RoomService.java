@@ -253,7 +253,7 @@ public final class RoomService {
                 }
                 validateImpostorRoster(room,roster);
                 var session=room.impostor==null?new ImpostorSession(room.id,roster,room.impostorSettings):room.impostor;
-                session.begin(impostorWords,random,now());room.impostor=session;room.impostorRoster=List.copyOf(roster);
+                session.begin(impostorWords.forLanguage(room.language),random,now());room.impostor=session;room.impostorRoster=List.copyOf(roster);
                 broadcast(room,"IMPOSTOR_STARTED");
             }else{
                 if(room.impostor==null || room.impostor.phase()!=com.erni.finalanswer.gameplay.impostor.ImpostorPhase.RESULT)throw new Failure(409,"INVALID_PHASE");
@@ -276,7 +276,7 @@ public final class RoomService {
             if(room.members.values().stream().anyMatch(m->m.peer==null||m.left))throw new Failure(409,"PLAYER_OFFLINE");
             if(room.members.values().stream().map(m->m.characterId).distinct().count()!=participants.size())throw new Failure(409,"CHARACTER_IN_USE");
             if(room.impostor!=null){room.lastImpostorResult=room.impostor.result();room.impostor.close();room.impostor=null;}
-            room.game=new GameSession(room.questionCount,participants,endPolicy,now());
+            room.game=new GameSession(room.questionCount,participants,endPolicy,now(),room.language);
             if(!introId.isEmpty()){
                 room.game.intro=new com.finalanswer.server.game.IntroGate(now());
             }
@@ -495,7 +495,7 @@ public final class RoomService {
             int difficulty=1;try{if(data.has("difficulty")){var e=data.get("difficulty");if(!e.isJsonPrimitive()||!e.getAsJsonPrimitive().isNumber()||!e.toString().matches("[1-3]"))throw new IllegalArgumentException();difficulty=e.getAsInt();}}
             catch(RuntimeException error){throw new Failure(400,"SB_INVALID_DIFFICULTY");}
             var seats=room.members.values().stream().filter(m->m.peer!=null&&!m.left&&m.alive).map(m->m.id).toList();
-            try{room.breach=new SystemBreachSession(seats,now(),breachConfig,random,difficulty);room.breach.partyMode();}catch(BreachFailure error){throw new Failure(409,error.getMessage());}
+            try{room.breach=new SystemBreachSession(seats,now(),breachConfig,random,difficulty);room.breach.language(room.language);room.breach.partyMode();}catch(BreachFailure error){throw new Failure(409,error.getMessage());}
             room.breachScored=false;room.breachEventSequence=0;room.breachStartRequest=message.requestId();room.lastBreachResult=null;broadcast(room,"SYSTEM_BREACH_START");return;
         }
         if(room.breach==null||!room.breach.id.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"SB_STALE_SESSION");
@@ -666,7 +666,7 @@ public final class RoomService {
         room.members.values().stream().filter(m->m.peer!=null&&!m.left).forEach(m->available.add(m.id));
         if(!available.containsAll(activeIds))throw new Failure(400,"INVALID_IMPOSTOR_PARTICIPANTS");
         var session=new ImpostorSession(room.id,activeIds,room.impostorSettings);
-        session.begin(impostorWords,random,now());room.impostor=session;room.impostorRoster=List.copyOf(activeIds);
+        session.begin(impostorWords.forLanguage(room.language),random,now());room.impostor=session;room.impostorRoster=List.copyOf(activeIds);
         broadcast(room,"IMPOSTOR_STARTED");return session.id;
     }
     /** Trusted orchestration, only after the matching clue reveal. Not exposed to host/player commands. */

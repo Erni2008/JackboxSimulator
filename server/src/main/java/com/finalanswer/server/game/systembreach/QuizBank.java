@@ -35,12 +35,43 @@ final class QuizBank {
         {"Сколько ушей у зайца?","2","4","1","3"},
         {"Какая планета наша?","Земля","Марс","Луна","Солнце"},
     };
-    private final Random random;
+    private static final String[][] FACTS_EN={
+        {"What colour is grass?","Green","Blue","Red","Yellow"},
+        {"What colour is the sky during the day?","Blue","Green","Black","Pink"},
+        {"How many days are in a week?","7","5","8","10"},
+        {"How many months are in a year?","12","10","11","14"},
+        {"How many legs does a cat have?","4","2","6","8"},
+        {"How many legs does a spider have?","8","6","4","10"},
+        {"Which animal meows?","Cat","Dog","Cow","Duck"},
+        {"Which animal barks?","Dog","Cat","Fish","Owl"},
+        {"What shines during the day?","The Sun","The Moon","A street lamp","The stars"},
+        {"What colour is snow?","White","Black","Green","Red"},
+        {"How many hours are in a day?","24","12","20","48"},
+        {"How many minutes are in an hour?","60","100","30","90"},
+        {"Where do fish live?","In water","In a tree","In sand","In the clouds"},
+        {"What does a cow drink?","Water","Milk","Juice","Tea"},
+        {"Which fruit is yellow and long?","Banana","Apple","Plum","Cherry"},
+        {"How many wheels does a bicycle have?","2","3","4","1"},
+        {"What colour is a tomato?","Red","Blue","White","Purple"},
+        {"What comes after Monday?","Tuesday","Wednesday","Sunday","Friday"},
+        {"Which season is the coldest?","Winter","Summer","Spring","Autumn"},
+        {"How many fingers are on one hand?","5","4","6","10"},
+        {"What do people breathe?","Air","Water","Sand","Light"},
+        {"Which bird can't fly?","Penguin","Pigeon","Crow","Eagle"},
+        {"Which of these is a vegetable?","Carrot","Apple","Pear","Grape"},
+        {"How many corners does a triangle have?","3","4","5","2"},
+        {"What colour is coal?","Black","White","Yellow","Light blue"},
+        {"Which is heavier: 1 kg of feathers or 1 kg of iron?","The same","Iron","Feathers","No idea"},
+        {"How many ears does a hare have?","2","4","1","3"},
+        {"Which planet is ours?","Earth","Mars","The Moon","The Sun"},
+    };
+    private final Random random;private String language="ru";
     QuizBank(Random random){this.random=random;}
+    void language(String l){language="ru".equals(l)?"ru":"en";}
 
     Question next(int difficulty){return random.nextInt(100)<55?math(difficulty):fact();}
     private Question fact(){
-        String[] f=FACTS[random.nextInt(FACTS.length)];List<String> options=new ArrayList<>(List.of(f[1],f[2],f[3],f[4]));Collections.shuffle(options,random);
+        String[][] bank="ru".equals(language)?FACTS:FACTS_EN;String[] f=bank[random.nextInt(bank.length)];List<String> options=new ArrayList<>(List.of(f[1],f[2],f[3],f[4]));Collections.shuffle(options,random);
         return new Question(f[0],List.copyOf(options),f[1]);
     }
     private Question math(int difficulty){

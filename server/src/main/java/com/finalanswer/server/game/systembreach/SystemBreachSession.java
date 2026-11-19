@@ -26,6 +26,8 @@ public final class SystemBreachSession {
     private final ArrayDeque<SystemBreachView.Event> events=new ArrayDeque<>();
     private List<SystemBreachView.Result> results=List.of();private SystemBreachPhase phase=SystemBreachPhase.INITIALIZATION;
     private long phaseStarted,phaseEnds,activeEnds,eventSequence,completedAt;private boolean closed;
+    /** Quiz questions follow the room language (Russian or English). */
+    public void language(String l){factory.language(l);}
     public SystemBreachSession(List<String> ids,long now,SystemBreachConfig cfg,Random random,int difficulty){
         if(ids.size()<2||ids.size()>8||new HashSet<>(ids).size()!=ids.size()||ids.stream().anyMatch(s->s==null||s.isBlank()))throw new BreachFailure("INVALID_ROSTER");
         if(difficulty<1||difficulty>3)throw new BreachFailure("INVALID_DIFFICULTY");

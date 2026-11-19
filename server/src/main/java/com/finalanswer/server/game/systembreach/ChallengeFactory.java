@@ -8,6 +8,7 @@ import static com.erni.finalanswer.gameplay.systembreach.SystemBreachConfig.Para
 final class ChallengeFactory {
     static final List<String> WORDS=List.of("DARK","SHADOW","PHANTOM","REAPER","CIPHER","VECTOR","GHOST","RAVEN","VAULT","NEXUS","EMBER","ORBIT","FROST","ONYX","SPECTRE","VORTEX","ECHO","NIGHT","COBALT","DELTA","QUARTZ","SILVER","TRACE","WARDEN");
     private final Random random;private final SystemBreachConfig cfg;private final int difficulty;private final QuizBank quiz;
+    void language(String l){quiz.language(l);}
     ChallengeFactory(Random random,SystemBreachConfig cfg,int difficulty){this.random=random;this.quiz=new QuizBank(random);this.cfg=cfg;this.difficulty=difficulty;}
     long minimumWindow(ChallengeType type){return type==ChallengeType.SIGNAL_INTERCEPTION?Math.max(cfg.get(MIN_ACTION_WINDOW_MS),cfg.get(SIGNAL_DELAY_MS)+cfg.get(SIGNAL_JITTER_MS)+Math.max(150,cfg.get(SIGNAL_WINDOW_MS)/difficulty)+cfg.get(SIGNAL_TOLERANCE_MS)+1):cfg.get(MIN_ACTION_WINDOW_MS);}
     BreachChallenge earning(ChallengeType type,long now){return earning(type,now,Long.MAX_VALUE);}
