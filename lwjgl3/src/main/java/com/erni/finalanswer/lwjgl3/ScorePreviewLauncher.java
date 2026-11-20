@@ -12,7 +12,8 @@ public final class ScorePreviewLauncher {
         +"{\"name\":\"Bob\",\"characterId\":\"skeleton\",\"earned\":800,\"total\":2100},"
         +"{\"name\":\"Cid\",\"characterId\":\"dracula\",\"earned\":600,\"total\":2600},"
         +"{\"name\":\"Dee\",\"characterId\":\"voodoo\",\"earned\":400,\"total\":900},"
-        +"{\"name\":\"Eve\",\"characterId\":\"ghost\",\"earned\":0,\"total\":500}]}";
+        +"{\"name\":\"Eve\",\"characterId\":\"ghost\",\"earned\":0,\"total\":2500},"
+        +"{\"name\":\"Gus\",\"characterId\":\"zombie\",\"earned\":50,\"total\":700}]}";
     public static void main(String[] args) {
         if (StartupHelper.startNewJvmIfRequired()) return;
         var config = new Lwjgl3ApplicationConfiguration();
