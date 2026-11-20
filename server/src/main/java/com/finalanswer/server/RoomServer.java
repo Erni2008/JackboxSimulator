@@ -61,6 +61,7 @@ public final class RoomServer implements AutoCloseable {
                 if(!Boolean.getBoolean("race.qa")&&!limits.allow("create:"+ip(ctx),6,.1))throw new RoomService.Failure(429,"RATE_LIMITED");
                 ctx.status(201).result(rooms.create(form(ctx)));
             });
+            c.routes.get("/qa/rooms",ctx->ctx.contentType("application/json").result(rooms.qaRooms()));
             c.routes.get("/rooms/{code}",ctx->ctx.result(rooms.view(ctx.pathParam("code"))));
             c.routes.get("/rooms/{code}/race",ctx->ctx.result(rooms.raceView(ctx.pathParam("code"),ctx.queryParam("token"),"1".equals(ctx.queryParam("close")))));
             c.routes.get("/rooms/{code}/cage",ctx->ctx.result(rooms.cageView(ctx.pathParam("code"),ctx.queryParam("token"))));

@@ -11,22 +11,37 @@
   const seen=()=>{try{return JSON.parse(sessionStorage.getItem(KEY)||'[]');}catch{return [];}};
   const mark=id=>{try{sessionStorage.setItem(KEY,JSON.stringify(seen().concat(id).slice(-20)));}catch{}};
   const shownNow=new Set();
+  const fmt=n=>Math.max(0,Math.round(n)).toLocaleString('en-US').replace(/,/g,'\u202f');
   function show(sum,selfId){
     const rows=sum.rows||[];const i=rows.findIndex(r=>r.playerId===selfId);if(i<0)return;const me=rows[i];
     let place=1;for(const r of rows)if(r.earned>me.earned)place++;
-    const n=NAMES[sum.mode];const o=document.createElement('div');o.className='round-score';o.setAttribute('role','status');
-    const lead=place===1&&me.earned>0;if(lead)o.classList.add('lead');if(me.earned<=0)o.classList.add('zero');
-    o.innerHTML=`<div class="rs-card"><p class="rs-eyebrow">${faT('ИТОГИ РАУНДА','ROUND RESULTS')}</p>${n?`<p class="rs-mode">${faT(n[0],n[1])}</p>`:''}
-      <p class="rs-place">${faT('МЕСТО','PLACE')} <b>${place}</b><small> / ${rows.length}</small></p>
-      <p class="rs-amount"><span>${me.earned>0?'+':''}0</span><small>${faT('ОЧКОВ','POINTS')}</small></p>
-      <p class="rs-total">${faT('ВСЕГО','TOTAL')} <b>${Number(me.total).toLocaleString('en-US')}</b></p>
-      <p class="rs-hint">${faT('коснитесь, чтобы закрыть','tap to close')}</p></div>`;
+    const n=NAMES[sum.mode],earned=Math.max(0,me.earned|0),before=Math.max(0,me.total-earned);
+    const tier=earned<=0?'zero':place===1?'gold':place===2?'silver':place===3?'bronze':'plain';
+    const o=document.createElement('div');o.className='round-score tier-'+tier;o.setAttribute('role','status');
+    o.innerHTML=`<div class="rs-rays"></div><div class="rs-card">
+      <p class="rs-eyebrow">${faT('ИТОГИ РАУНДА','ROUND RESULTS')}</p>${n?`<p class="rs-mode">${faT(n[0],n[1])}</p>`:''}
+      <div class="rs-medal"><b>${place}</b><small>${faT('МЕСТО','PLACE')}</small></div>
+      ${place===1&&earned>0?`<p class="rs-winner">${faT('ПОБЕДИТЕЛЬ РАУНДА','ROUND WINNER')}</p>`:''}
+      <p class="rs-amount"><span>${earned>0?'+':''}0</span><small>${faT('ОЧКОВ','POINTS')}</small></p>
+      <div class="rs-total"><small>${faT('ВСЕГО','TOTAL')}</small><b>${fmt(before)}</b></div>
+      <p class="rs-hint">${faT('коснитесь, чтобы закрыть','tap to close')}</p></div><div class="rs-sparks"></div>`;
     document.body.append(o);
-    const span=o.querySelector('.rs-amount span'),t0=performance.now(),target=me.earned;
-    const run=t=>{const k=Math.min(1,Math.max(0,(t-t0-450)/900)),v=Math.round(target*(1-Math.pow(1-k,3)));span.textContent=(target>0?'+':'')+v;if(k<1&&o.isConnected)requestAnimationFrame(run);};requestAnimationFrame(run);
-    if(lead){navigator.vibrate?.([30,50,30,50,60]);try{FA_SFX.souls();}catch(e){}}else navigator.vibrate?.(25);
+    const span=o.querySelector('.rs-amount span'),tot=o.querySelector('.rs-total b'),amount=o.querySelector('.rs-amount'),sparks=o.querySelector('.rs-sparks');
+    const t0=performance.now(),C0=650,C1=1100,R0=C0+C1+350,R1=700;let landed=false,rolled=false;
+    const run=t=>{if(!o.isConnected)return;const d=t-t0;
+      const k=Math.min(1,Math.max(0,(d-C0)/C1)),e=k*k*(3-2*k);span.textContent=(earned>0?'+':'')+fmt(earned*e);
+      if(k>=1&&!landed){landed=true;if(earned>0){amount.classList.add('pop');burst(sparks,tier==='gold'?34:20);navigator.vibrate?.(tier==='gold'?[40,40,80]:[30]);try{tier==='gold'?FA_SFX.souls():FA_SFX.tap();}catch(e){}}}
+      const r=Math.min(1,Math.max(0,(d-R0)/R1)),re=1-Math.pow(1-r,3);tot.textContent=fmt(before+earned*re);
+      if(r>=1&&!rolled){rolled=true;if(earned>0)tot.parentElement.classList.add('flash');}
+      if(!rolled)requestAnimationFrame(run);};requestAnimationFrame(run);
     const close=()=>{if(o.classList.contains('out'))return;o.classList.add('out');setTimeout(()=>o.remove(),400);};
-    o.addEventListener('click',close);setTimeout(close,7000);
+    o.addEventListener('click',close);setTimeout(close,9000);
+  }
+  function burst(host,count){
+    for(let k=0;k<count;k++){const p=document.createElement('i');const a=Math.random()*Math.PI*2,v=70+Math.random()*130;
+      p.style.setProperty('--dx',(Math.cos(a)*v).toFixed(0)+'px');p.style.setProperty('--dy',(Math.sin(a)*v-40).toFixed(0)+'px');
+      p.style.setProperty('--s',(.6+Math.random()*.9).toFixed(2));p.style.animationDelay=(Math.random()*.08).toFixed(2)+'s';host.append(p);}
+    setTimeout(()=>host.replaceChildren(),1600);
   }
   window.FA_ROUND_SCORE={event(e){
     const p=e&&e.payload;const sum=p&&p.modeSummary;if(!sum||!sum.id||p.host||p.webGame)return;

@@ -63,6 +63,7 @@ run {
   if(remote.isPresent()) systemProperty 'finalanswer.server', remote.get()
   if(providers.gradleProperty('localServerPort').isPresent()) systemProperty 'finalanswer.localPort', providers.gradleProperty('localServerPort').get()
   workingDir = rootProject.file('assets').path
+  if(providers.gradleProperty('qa').isPresent()) systemProperty 'finalanswer.qa', 'true'
 // You can uncomment the next line if your IDE claims a build failure even when the app closed properly.
   //setIgnoreExitValue(true)
 // The next two jvmArgs additions help LWJGL3 on JDK 24 and higher.
@@ -251,6 +252,17 @@ tasks.register('playPreview', JavaExec) {
     dependsOn classes
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'com.erni.finalanswer.lwjgl3.PlayPreviewLauncher'
+    workingDir = rootProject.file('assets')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.register('scorePreview', JavaExec) {
+    group = 'application'
+    description = 'Opens the ROUND RESULTS screen with a sample table.'
+    dependsOn classes
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.ScorePreviewLauncher'
     workingDir = rootProject.file('assets')
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'

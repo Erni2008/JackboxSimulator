@@ -218,10 +218,16 @@ public final class CageLobbyScreen extends ScreenAdapter {
         status.setText(introAborted?"INTRO INTERRUPTED — RETURN TO MENU":notice);
         cages.reducedMotion(game.getSettings().reducedMotion()); atmosphere.reducedMotion(game.getSettings().reducedMotion());
     }
+    private static final boolean QA = Boolean.getBoolean("finalanswer.qa"); private int qaSkips;
     @Override public void show() { Gdx.input.setInputProcessor(stage); }
     @Override public void hide() { if(introActive())resetTransition();cages.stopAudio(); if (Gdx.input.getInputProcessor() == stage) Gdx.input.setInputProcessor(null); }
     @Override public void render(float delta) {
         if (!starting && !pendingStart && Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) { game.showMainMenu(); return; }
+        // QA run only (-Dfinalanswer.qa=true against a race.qa server): F8 skips a mode to its end with big points, F9 a normal one
+        if (QA && game.getRealtime() != null && (Gdx.input.isKeyJustPressed(Input.Keys.F8) || Gdx.input.isKeyJustPressed(Input.Keys.F9))) {
+            boolean big = Gdx.input.isKeyJustPressed(Input.Keys.F8); String[] modes = {"race","cage","final-second","cards","impostor","boxes"};
+            game.getRealtime().send("QA_SKIP_MODE", java.util.Map.of("roomCode", game.getActiveRoom().code(), "mode", modes[qaSkips++ % modes.length], "scale", big ? 4 : 1));
+        }
         synchronize(game.getActiveRoom(), game.getLobbyStatus());
         draw(delta);
     }

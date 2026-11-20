@@ -109,6 +109,8 @@ public final class RoomService {
         Room room=find(code); Member member=authenticate(room,token);
         member.seen=now(); return json(snapshot(room,member,true));
     }
+    /** QA only: codes of the open rooms, newest first (test bots find the room the host just made). */
+    public synchronized String qaRooms(){if(!Boolean.getBoolean("race.qa"))throw new Failure(404,"NOT_FOUND");return json(rooms.values().stream().sorted(Comparator.comparingLong((Room r)->-r.createdAt)).map(r->r.code).toList());}
     public synchronized String view(String code) { return json(snapshot(find(code),null,false)); }
     public synchronized String reroll(String code,Map<String,String> data) {
         Room room=find(code); Member host=authenticate(room,data.getOrDefault("token","")); requireHost(host);
@@ -162,6 +164,11 @@ public final class RoomService {
         if(message.type().equals("LEAVE_ROOM")) { leave(room.code,member.token); return; }
         if(message.type().equals("SET_LANGUAGE")){ requireHost(member); String lang=Protocol.string(data,"language"); if(!Set.of("en","ru").contains(lang))throw new Failure(400,"INVALID_LANGUAGE"); if(!lang.equals(room.language)){room.language=lang;broadcast(room,"LANGUAGE_CHANGED");} reply(peer,room,member,message); return; }
         if(message.type().startsWith("SYSTEM_BREACH_")){systemBreachCommand(room,member,peer,message);return;}
+        // QA only: pretend a mode was played and skipped to its end, so the round results can be watched without playing it
+        if(message.type().equals("QA_SKIP_MODE")&&Boolean.getBoolean("race.qa")){requireHost(member);String mode=data.has("mode")?Protocol.string(data,"mode"):"race";
+            List<Member> ps=new ArrayList<>(room.members.values().stream().filter(m->!m.host&&!m.left).toList());Collections.shuffle(ps,random);Map<String,Integer> pts=new HashMap<>();
+            for(int i=0;i<ps.size();i++)pts.put(ps.get(i).id,i==ps.size()-1&&ps.size()>3?ModeScoring.OUT:ModeScoring.place(i+1)*(data.has("scale")?data.get("scale").getAsInt():1));
+            award(room,pts);publishSummary(room,pts,mode);reply(peer,room,member,message);return;}
         if(message.type().equals("QA_SET_ALIVE")&&Boolean.getBoolean("race.qa")){requireHost(member);String id=Protocol.string(data,"id");for(Member m:room.members.values())if(m.id.equals(id))m.alive=data.get("alive").getAsBoolean();broadcast(room,"ROOM_UPDATED");reply(peer,room,member,message);return;}
         if(message.type().equals("RACE_STATE")){raceState(room,member,data);return;}
         if(message.type().equals("RACE_SPARK")){
@@ -1192,7 +1199,7 @@ public final class RoomService {
     private static String json(Object value) {return Protocol.JSON.toJson(value);}
     private record Binding(Room room,Member member) {}
     private static final class Room {
-        final String id=UUID.randomUUID().toString(), name,mode; String code;
+        final String id=UUID.randomUUID().toString(), name,mode; String code; final long createdAt=System.nanoTime();
         /** SOULS balances for this room's session. */
         final com.finalanswer.server.economy.SoulsWallet souls=new com.finalanswer.server.economy.SoulsWallet();
         final int maxPlayers,questionCount; final byte[] salt,passwordHash;
