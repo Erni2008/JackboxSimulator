@@ -339,7 +339,7 @@ export class Course {
         if (!b.sink && t > b.crumbleDelay + b.restoreAfter) {b.crumbleAt = -1; b.offY = 0; b.fallV = 0; b.gone = false;}}
     }
     for (const s of this.sweepers) {s.angle0 ??= s.angle; s.lastAngle = s.angle;
-      if (s.vary === 'pulse') {const u = t0 / 6 + s.angle0, f = u - Math.floor(u); s.boost = f > .7 ? 1 : f > .58 ? .5 : 0; s.angle = s.angle0 + s.speed * (t0 + 1.8 * Math.floor(u) + Math.max(0, f - .7) * 6);}
+      if (s.vary === 'pulse') {const u = t0 / 6 + s.angle0, f = u - Math.floor(u); s.boost = f > .7 ? 1 : f > .58 ? .5 : 0; const e = clamp((f - .6) / .4, 0, 1); s.angle = s.angle0 + s.speed * (t0 + 1.8 * Math.floor(u) + 1.8 * e * e * (3 - 2 * e));} // surge ramps up and settles (no instant speed jump)
       else if (s.vary === 'reverse') s.angle = s.angle0 + s.speed * 2.6 * Math.sin(t0 * .45);
       else s.angle = s.speed * t0 + s.angle0;}
     // gears: turn with optional pauses
@@ -357,6 +357,7 @@ export class Course {
       const birth=c.phase+birthWave*STONE_INTERVAL, age=t0-birth;
       c.active=birthWave>=0 && age>=0 && age<12;
       if (!c.active) continue;
+      {const v = Math.sin((birthWave + 1) * 12.9898 + c.phase * 78.233) * 43758.5453, f = v - Math.floor(v); c.r = f < .35 ? 1.45 : f < .75 ? 1.8 : 2.15;} // small / medium / big stones by wave
       c.body=stoneAt(c.body,age,birth,c.track,c.r);
       c.x=c.body.x;c.z=c.body.z;c.y=c.body.y-c.r;c.vx=c.body.vx;c.vz=c.body.vz;c.spin=c.body.spin;
       c.dist=c.track.z1-c.z;

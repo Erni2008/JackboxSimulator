@@ -93,9 +93,31 @@ export class RaceApp {
     if (!this.night) {const floor = new THREE.Mesh(new THREE.PlaneGeometry(520, 540).rotateX(-Math.PI / 2), mats.ground); floor.receiveShadow = false; floor.position.set(0, -34, 150); worldUV(floor.geometry as THREE.BufferGeometry, 6, 'xz'); this.scene.add(floor);}
     // hazards
     const logGeo = new THREE.CylinderGeometry(.42, .42, 1, 14, 1); logGeo.rotateZ(Math.PI / 2);
-    for (const s of this.course.sweepers) {const g = new THREE.Group(); for (let a = 0; a < (s.arms || 1); a++) {const log = new THREE.Mesh(this.manor ? new THREE.BoxGeometry(1, .62, .62) : logGeo, this.manor ? mats.beam : this.night ? mats.dark : mats.bark); log.scale.set(s.len * 2, 1, 1); log.rotation.y = a * Math.PI / (s.arms || 1); log.castShadow = true; g.add(log);}
+    // Sweeping logs built like a real machine: ONE post per axle (as tall as its highest log, with a cap), and every log
+    // hangs on its own iron-banded hub that wraps the post and turns with it; each log is two arms starting at the hub's
+    // rim, so no log ever passes through the post or through another log's post.
+    const hubGeo = new THREE.CylinderGeometry(.82, .82, .78, 20), bandGeo = new THREE.CylinderGeometry(.86, .86, .12, 20), strapGeo = new THREE.BoxGeometry(.16, .92, .92);
+    const iron = new THREE.MeshStandardMaterial({color: 0x2b2622, metalness: .85, roughness: .45}), wood = this.manor ? mats.beam : this.night ? mats.dark : mats.bark;
+    const axles = new Map<string, {x: number; z: number; floor: number; top: number}>();
+    for (const s of this.course.sweepers) {
+      const g = new THREE.Group(), hubR = .82;
+      const hub = new THREE.Mesh(hubGeo, wood); hub.castShadow = true; g.add(hub);
+      for (const dy of [-.3, .3]) {const band = new THREE.Mesh(bandGeo, iron); band.position.y = dy; g.add(band);}
+      for (let a = 0; a < (s.arms || 1); a++) for (const side of [-1, 1]) {
+        const arm = new THREE.Group(); arm.rotation.y = a * Math.PI / (s.arms || 1) + (side < 0 ? Math.PI : 0); g.add(arm);
+        const reach = Math.max(.5, s.len - hubR), log = new THREE.Mesh(this.manor ? new THREE.BoxGeometry(1, .62, .62) : logGeo, wood);
+        log.scale.set(reach, 1, 1); log.position.x = hubR + reach / 2 - .05; log.castShadow = true; arm.add(log);
+        for (const k of [.12, .55, 1]) {const strap = new THREE.Mesh(strapGeo, iron); strap.position.x = hubR + reach * k - (k === 1 ? .12 : 0); strap.scale.set(1, this.manor ? .75 : 1, this.manor ? .75 : 1); arm.add(strap);}
+      }
       this.sweeperMeshes.push(g); this.scene.add(g);
-      const ph = s.y - this.course.spawnY(s.z) + 1.05, post = new THREE.Mesh(new THREE.CylinderGeometry(.55, .65, ph, 12), this.night ? mats.brick : mats.bark); post.position.set(s.x, s.y + .5 - ph / 2, s.z); post.castShadow = true; this.scene.add(post);}
+      const key = s.x.toFixed(2) + ',' + s.z.toFixed(2), floor = this.course.spawnY(s.z), ax = axles.get(key);
+      if (ax) ax.top = Math.max(ax.top, s.y); else axles.set(key, {x: s.x, z: s.z, floor, top: s.y});
+    }
+    for (const ax of axles.values()) {
+      const h = ax.top - ax.floor + 1.0, post = new THREE.Mesh(new THREE.CylinderGeometry(.5, .62, h, 14), this.night ? mats.brick : mats.bark); post.position.set(ax.x, ax.floor + h / 2 - .05, ax.z); post.castShadow = true; this.scene.add(post);
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(.62, .5, .3, 14), iron); cap.position.set(ax.x, ax.floor + h + .08, ax.z); this.scene.add(cap);
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(.95, 1.15, .35, 16), this.night ? mats.brick : mats.rock ?? iron); base.position.set(ax.x, ax.floor + .12, ax.z); base.receiveShadow = true; this.scene.add(base);
+    }
     const boulder = await this.model('env/boulder_01.glb'); progress(.15);
     const linkGeo = new THREE.TorusGeometry(.13, .035, 6, 12), ironM = metalMat('rusty_metal_02', 0x9a9a9a, .3);
     for (const p of this.course.pendulums) {
@@ -312,7 +334,7 @@ export class RaceApp {
       (pts.material as THREE.PointsMaterial).opacity = .55 * f.on; const p = pts.geometry.getAttribute('position') as THREE.BufferAttribute; for (let i = 0; i < p.count; i++) {let z = p.getZ(i) + dt * 18 * f.on; if (z > f.reach) z -= f.reach; p.setZ(i, z);} p.needsUpdate = true;}
     for (const [h, head, chain, lm] of this.mech.hooks) {const hx = h.pillarX - h.side * h.reach * h.ext; head.position.set(hx, h.y, h.z); lm.emissiveIntensity = h.state === 1 ? (Math.sin(t * 28) > 0 ? 3 : .2) : 0;
       const len = Math.abs(hx - h.pillarX) + .01; chain.scale.set(len, 1, 1); chain.position.set((hx + h.pillarX) / 2, h.y, h.z); chain.visible = h.ext > .02;}
-    for (const [ch, g] of this.mech.chasers) {g.visible = ch.active; g.position.set(ch.x, ch.y + ch.r, ch.z); g.rotation.x = ch.spin; g.rotation.y = 0;}
+    for (const [ch, g] of this.mech.chasers) {g.visible = ch.active; g.children[0].scale.setScalar(ch.r); g.position.set(ch.x, ch.y + ch.r, ch.z); g.rotation.x = ch.spin; g.rotation.y = 0;}
     for (const col of this.columns) {const [ch, i] = col.userData.col; const [px, pz] = ch.path[i]; const near = ch.active && Math.hypot(ch.x - px, ch.z - pz) < 3; if (near) col.userData.fall = 1; if (!ch.active) col.userData.fall = 0;
       const k = col.userData.fall ? Math.min(1.4, (col.rotation.z ? Math.abs(col.rotation.z) : 0) + dt * 2.5) : Math.max(0, Math.abs(col.rotation.z) - dt); col.rotation.z = k * (i % 2 ? 1 : -1);}
     for (const [b, ms] of this.mech.tiltLamps) for (const m of ms) m.emissiveIntensity = b.tilt!.warn ? (Math.sin(t * 22) > 0 ? 3 : .3) : 0;
@@ -797,13 +819,12 @@ export class RaceApp {
       if (live) h.place = place;
       {const me = this.me as any; me.lastAdv ??= {z: me.z, t: this.clock}; if (me.z > me.lastAdv.z + 1) me.lastAdv = {z: me.z, t: this.clock};
         const stuck = live && !(me.remote) && me.safe <= 0 && (me.airT > 1.4 || this.clock - me.lastAdv.t > 8);
-        if (stuck && !this.rescueBtn) {const b = document.createElement('button'); b.textContent = lx('↺ К ЧЕКПОИНТУ', '↺ TO CHECKPOINT'); b.setAttribute('style', 'position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:5;padding:12px 20px;border:1px solid #f6c26b;border-radius:14px;background:#1d1411e6;color:#f6dfb0;font:700 15px system-ui;pointer-events:auto');
+        if (stuck && !this.rescueBtn) {const b = document.createElement('button'); b.textContent = lx('↺ К ЧЕКПОИНТУ', '↺ TO CHECKPOINT'); b.id = 'rescue-btn'; fxStyles();
           b.addEventListener('pointerdown', e => {e.preventDefault(); e.stopPropagation(); this.course.respawn(this.me); me.lastAdv = {z: me.z, t: this.clock}; this.toast(lx('НАЗАД К ЧЕКПОИНТУ', 'BACK TO CHECKPOINT'));}); document.body.appendChild(b); this.rescueBtn = b;}
         if (this.rescueBtn) this.rescueBtn.style.display = stuck ? '' : 'none';}
-      {let sl = document.getElementById('speedlines'); if (!sl) {sl = document.createElement('div'); sl.id = 'speedlines'; sl.setAttribute('style', 'position:fixed;inset:0;pointer-events:none;z-index:1;opacity:0;background:repeating-conic-gradient(from 0deg at 50% 50%,#fff0 0 4deg,#ffffff22 4deg 5deg);-webkit-mask:radial-gradient(circle,#0000 35%,#000 75%);mask:radial-gradient(circle,#0000 35%,#000 75%)'); document.body.appendChild(sl);}
+      {let sl = document.getElementById('speedlines'); if (!sl) {sl = document.createElement('div'); sl.id = 'speedlines'; fxStyles(); document.body.appendChild(sl);}
         const o = (this.fovKick * .9).toFixed(2); if (sl.style.opacity !== o) sl.style.opacity = o;}
-      if (live && !h.final && this.me.z > this.course.finishZ - 30) {h.final = true; this.toast(lx('ФИНИШНАЯ ПРЯМАЯ!', 'FINAL STRETCH!')); this.snd.checkpoint(); document.body.classList.add('final-stretch');
-        if (!document.getElementById('fs-css')) {const st = document.createElement('style'); st.id = 'fs-css'; st.textContent = `body.final-stretch:not(.done)::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:2;box-shadow:inset 0 0 80px 10px #ffc44a55;animation:fsPulse 1.1s ease-in-out infinite}@keyframes fsPulse{50%{box-shadow:inset 0 0 120px 18px #ffc44a88}}`; document.head.appendChild(st);}}
+      if (live && !h.final && this.me.z > this.course.finishZ - 30) {h.final = true; this.toast(lx('ФИНИШНАЯ ПРЯМАЯ!', 'FINAL STRETCH!')); this.snd.checkpoint(); document.body.classList.add('final-stretch'); fxStyles();}
       const tl = this.timeLeft(), sec = Math.ceil(tl); if (live && tl < 10 && tl > 0 && sec !== h.tick) {h.tick = sec; this.snd.countdown(false);}}
     document.getElementById('place')!.dataset.p = String(Math.min(place, 4));
     // progress track: every runner as a portrait dot
@@ -822,16 +843,16 @@ export class RaceApp {
       const img = (r: Runner) => `portraits/${r.character}.png`, pod = [st[1], st[0], st[2]];
       ceremonyStyle(); res.classList.add('cer');
       const at = {3: .7, 2: 1.6, 1: 2.7} as Record<number, number>; // reveal order: bronze, silver, then gold
-      (res.querySelector('.podium') as HTMLElement).innerHTML = pod.map((r, i) => {const pl = [2, 1, 3][i]; return r ? `<div class="step s${pl}${r === this.me ? ' me' : ''}" style="--d:${at[pl]}s">${pl === 1 ? '<i class="rays"></i><i class="crown">👑</i>' : ''}<img src="${img(r)}" alt=""><b>${r.name}</b><small>${res2(r)}</small><div class="block"><span>${pl}</span></div></div>` : '<div class="step empty"></div>';}).join('');
-      res.querySelector('ol')!.innerHTML = st.slice(3).map((r, i) => `<li class="${r === this.me ? 'me' : ''}" style="--d:${3.6 + i * .12}s"><em>${i + 4}</em>${r.name}<span>${res2(r)}${r.falls ? lx(` · падений ${r.falls}`, ` · falls ${r.falls}`) : ''}</span></li>`).join('');
+      (res.querySelector('.podium') as HTMLElement).innerHTML = pod.map((r, i) => {const pl = [2, 1, 3][i]; return r ? `<div class="step s${pl}${r === this.me ? ' me' : ''}" data-d="${at[pl]}">${pl === 1 ? '<i class="rays"></i><i class="crown">👑</i>' : ''}<img src="${img(r)}" alt=""><b>${r.name}</b><small>${res2(r)}</small><div class="block"><span>${pl}</span></div></div>` : '<div class="step empty"></div>';}).join('');
+      res.querySelector('ol')!.innerHTML = st.slice(3).map((r, i) => `<li class="${r === this.me ? 'me' : ''}" data-d="${3.6 + i * .12}"><em>${i + 4}</em>${r.name}<span>${res2(r)}${r.falls ? lx(` · падений ${r.falls}`, ` · falls ${r.falls}`) : ''}</span></li>`).join('');
       for (const pl of [3, 2, 1]) if (pod[[1, 0, 2][pl - 1]]) setTimeout(() => this.snd.land(pl === 1 ? 1 : .6), (at[pl] + .55) * 1000);
       const myPlace = st.indexOf(this.me) + 1; if (R) {
         const order = (r: Runner) => {const p = R.players[r.id]; return p?.status === 'SAVED' ? 0 : p?.alive ? 1 : p?.status === 'DEAD' ? 2 : 3;};
         (res.querySelector('.podium') as HTMLElement).innerHTML = [...this.runners].sort((x, y) => order(x) - order(y)).map((r, i) => {const p = R.players[r.id] ?? {}, cls = p.status === 'SAVED' ? 'ok' : p.status === 'DEAD' ? 'dead' : 'ghost';
-          return `<div class="fate ${cls}${r === this.me ? ' me' : ''}" style="--d:${.8 + i * .35}s"><img src="${img(r)}" alt=""><b>${r.name}</b><small>${label(r)}</small></div>`;}).join('');
-        res.querySelector('ol')!.innerHTML = '';const mp = R.players[this.me.id]; setText('verdict', this.net?.spectator ? lx('ИТОГИ ИСПЫТАНИЯ', 'TRIAL RESULTS') : mp?.status === 'SAVED' ? lx('ТЫ ВЫЖИЛ!', 'YOU SURVIVED!') : mp?.alive === false ? lx('ТЫ ПРИЗРАК', 'YOU ARE A GHOST') : lx('ИТОГИ', 'RESULTS')); if (mp?.status === 'SAVED' || this.net?.spectator) setTimeout(confetti, (.8 + this.runners.length * .35) * 1000); document.body.classList.add('done'); return;}
+          return `<div class="fate ${cls}${r === this.me ? ' me' : ''}" data-d="${.8 + i * .35}"><img src="${img(r)}" alt=""><b>${r.name}</b><small>${label(r)}</small></div>`;}).join('');
+        res.querySelector('ol')!.innerHTML = '';const mp = R.players[this.me.id]; setText('verdict', this.net?.spectator ? lx('ИТОГИ ИСПЫТАНИЯ', 'TRIAL RESULTS') : mp?.status === 'SAVED' ? lx('ТЫ ВЫЖИЛ!', 'YOU SURVIVED!') : mp?.alive === false ? lx('ТЫ ПРИЗРАК', 'YOU ARE A GHOST') : lx('ИТОГИ', 'RESULTS')); if (mp?.status === 'SAVED' || this.net?.spectator) setTimeout(confetti, (.8 + this.runners.length * .35) * 1000); applyDelays(res); document.body.classList.add('done'); return;}
       setText('verdict', this.net?.spectator ? lx('ИТОГИ ЗАБЕГА', 'RACE RESULTS') : this.me.finished ? (myPlace === 1 ? lx('ПОБЕДА!', 'VICTORY!') : lx(`ФИНИШ · ${myPlace} МЕСТО`, `FINISH · ${ord(myPlace)} PLACE`)) : lx('ВРЕМЯ ВЫШЛО', 'TIME\'S UP'));
-      document.body.classList.add('done'); if (myPlace <= 3 || this.net?.spectator) setTimeout(confetti, 3300);}
+      applyDelays(res); document.body.classList.add('done'); if (myPlace <= 3 || this.net?.spectator) setTimeout(confetti, 3300);}
   }
 
   private input() {
@@ -1000,46 +1021,11 @@ function rayTexture() {const c = document.createElement('canvas'); c.width = 64;
 
 /** Results ceremony: dark spotlight backdrop, title slam, podium blocks rise bronze -> silver -> gold, portraits drop in with a bounce,
  *  rotating light rays and a crown for the winner, then the rest of the table and the button. Fate cards flip in one by one. */
-function ceremonyStyle() {
-  if (document.getElementById('cer-css')) return; const st = document.createElement('style'); st.id = 'cer-css'; st.textContent = `
-body.done::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,#0000 0,#000a 55%,#000e 100%);animation:cerBg .8s ease both}
-@keyframes cerBg{from{opacity:0}to{opacity:1}}
-#results.cer{z-index:1;overflow:visible;animation:cerPanel .6s cubic-bezier(.2,1.2,.4,1) both}
-@keyframes cerPanel{from{opacity:0;transform:translate(-50%,-40%) scale(.85)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
-#results.cer h2{animation:cerTitle .7s cubic-bezier(.2,1.6,.4,1) .15s both;background:linear-gradient(90deg,#f6dfb0 0,#fff6d8 45%,#ffd24a 50%,#f6dfb0 60%);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent}
-#results.cer h2{animation:cerTitle .7s cubic-bezier(.2,1.6,.4,1) .15s both,cerShine 2.4s linear 1s infinite}
-@keyframes cerTitle{from{opacity:0;transform:scale(2.4);filter:blur(8px)}to{opacity:1;transform:scale(1);filter:blur(0)}}
-@keyframes cerShine{from{background-position:100% 0}to{background-position:-100% 0}}
-#results.cer .podium{min-height:clamp(150px,30vh,230px)}
-#results.cer .podium .step{position:relative;animation:none}
-#results.cer .podium .step .block{transform-origin:50% 100%;animation:cerGrow .55s cubic-bezier(.2,1.3,.4,1) var(--d) both}
-#results.cer .podium .step .block span{display:inline-block;animation:cerPop .4s cubic-bezier(.2,1.8,.4,1) calc(var(--d) + .35s) both}
-@keyframes cerGrow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
-@keyframes cerPop{from{opacity:0;transform:scale(0)}to{opacity:1;transform:scale(1)}}
-#results.cer .podium .step img{animation:cerDrop .7s cubic-bezier(.3,1.5,.5,1) calc(var(--d) + .45s) both}
-@keyframes cerDrop{0%{opacity:0;transform:translateY(-160px) scale(.6) rotate(-12deg)}60%{opacity:1;transform:translateY(8px) scale(1.08,.92)}100%{opacity:1;transform:none}}
-#results.cer .podium .step b,#results.cer .podium .step small{animation:cerFade .4s ease calc(var(--d) + .8s) both}
-@keyframes cerFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-#results.cer .podium .s1 img{filter:drop-shadow(0 0 14px #ffd24acc) drop-shadow(0 6px 8px #000a)}
-#results.cer .podium .rays{position:absolute;left:50%;top:38%;width:240px;height:240px;margin:-120px 0 0 -120px;z-index:-1;pointer-events:none;border-radius:50%;
-  background:repeating-conic-gradient(#ffd24a55 0 9deg,#0000 9deg 24deg);-webkit-mask:radial-gradient(#000 20%,#0000 70%);mask:radial-gradient(#000 20%,#0000 70%);animation:cerRaysIn .8s ease calc(var(--d) + .5s) both,cerSpin 9s linear infinite}
-@keyframes cerRaysIn{from{opacity:0;scale:.3}to{opacity:1;scale:1}}
-@keyframes cerSpin{to{rotate:360deg}}
-#results.cer .podium .crown{position:absolute;top:-30px;left:50%;font-style:normal;font-size:30px;translate:-50% 0;animation:cerCrown .6s cubic-bezier(.2,1.8,.4,1) calc(var(--d) + 1s) both,cerBob 1.6s ease-in-out calc(var(--d) + 1.6s) infinite}
-@keyframes cerCrown{from{opacity:0;transform:translateY(-40px) rotate(-30deg) scale(.4)}to{opacity:1;transform:none}}
-@keyframes cerBob{50%{transform:translateY(-5px) rotate(4deg)}}
-#results.cer ol li{animation:cerSlide .45s ease var(--d) both}
-@keyframes cerSlide{from{opacity:0;transform:translateX(-30px)}to{opacity:1;transform:none}}
-#results.cer button{animation:cerFade .5s ease 4s both}
-#results.cer .podium .fate{animation:cerFlip .6s cubic-bezier(.2,1.3,.4,1) var(--d) both;backface-visibility:hidden}
-@keyframes cerFlip{from{opacity:0;transform:perspective(500px) rotateY(90deg) scale(.8)}to{opacity:1;transform:none}}
-#results.cer .podium .fate.ok{animation:cerFlip .6s cubic-bezier(.2,1.3,.4,1) var(--d) both,cerGlow 1.8s ease-in-out calc(var(--d) + .6s) infinite}
-@keyframes cerGlow{50%{box-shadow:0 0 18px #5fd27a99}}
-#results.cer .podium .fate.dead img{animation:cerShake .5s ease calc(var(--d) + .5s) both}
-@keyframes cerShake{20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
-@media (prefers-reduced-motion:reduce){#results.cer *,#results.cer{animation-duration:.01s!important;animation-delay:0s!important}}`;
-  document.head.appendChild(st);
-}
+function ceremonyStyle() {fxStyles();}
+/** CSP-safe animation delays: data-d -> --d via the CSSOM (inline style attributes are blocked). */
+function applyDelays(root: ParentNode) {root.querySelectorAll<HTMLElement>('[data-d]').forEach(e => e.style.setProperty('--d', e.dataset.d + 's'));}
+/** Effects CSS lives in fx.css (the race page CSP allows same-origin stylesheets, not inline <style>). */
+export function fxStyles() {if (document.getElementById('fx-css')) return; const l = document.createElement('link'); l.id = 'fx-css'; l.rel = 'stylesheet'; l.href = 'fx.css?v=1'; document.head.appendChild(l);}
 function confetti() {const c = document.createElement('canvas'); c.className = 'confetti'; c.width = innerWidth; c.height = innerHeight; document.body.appendChild(c); const x = c.getContext('2d')!;
   const cols = ['#f6c26b', '#e74c3c', '#fff1d0', '#c0392b', '#ffd24a'], ps = Array.from({length: 140}, () => ({x: Math.random() * c.width, y: -20 - Math.random() * c.height * .5, vx: (Math.random() - .5) * 2, vy: 2 + Math.random() * 3, r: Math.random() * 6, s: 4 + Math.random() * 6, c: cols[Math.floor(Math.random() * cols.length)]}));
   let t = 0; const tick = () => {t++; x.clearRect(0, 0, c.width, c.height); for (const p of ps) {p.x += p.vx; p.y += p.vy; p.r += .1; x.save(); x.translate(p.x, p.y); x.rotate(p.r); x.fillStyle = p.c; x.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); x.restore();} if (t < 260) requestAnimationFrame(tick); else c.remove();}; tick();}

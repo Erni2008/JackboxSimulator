@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import script from './intro-script.json';
 import type {Course} from './course';
 import {FORMAT_NAME} from './survival';
+import {fxStyles} from './race';
 
 export const INTRO = script.duration;
 const ease = (x: number) => {x = THREE.MathUtils.clamp(x, 0, 1); return x * x * (3 - 2 * x);};
@@ -101,13 +102,7 @@ export class RaceIntro {
   private overlay() {
     let o = document.getElementById('intro-cine');
     if (!o) {o = document.createElement('div'); o.id = 'intro-cine'; o.innerHTML = '<i class="bar t"></i><i class="bar b"></i><i class="cut"></i><i class="vig"></i>'; document.getElementById('intro')?.prepend(o);
-      const st = document.createElement('style'); st.textContent = `
-#intro-cine{position:absolute;inset:0;pointer-events:none;z-index:0}
-#intro-cine .bar{position:absolute;left:0;right:0;height:calc(var(--lb,0)*9vh);background:#000;transition:none}
-#intro-cine .bar.t{top:0}#intro-cine .bar.b{bottom:0}
-#intro-cine .cut{position:absolute;inset:0;background:#000;opacity:var(--cut,0)}
-#intro-cine .vig{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,#0000 55%,#0008 100%)}
-@media (orientation:portrait){#intro-cine .bar{height:calc(var(--lb,0)*6vh)}}`; document.head.appendChild(st);}
+      fxStyles();}
     return o as HTMLElement;
   }
   /** Gameplay camera pose (same framing as RaceApp.sync) so the last shot lands exactly where play begins. */
