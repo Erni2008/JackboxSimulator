@@ -61,6 +61,7 @@ function connect(){if(!credentials)return;reconnectAt=0;updateReconnect();stoppe
 function handle(event){const payload=event.payload||{};heartbeatWatch.acknowledge(event.requestId);
   systemBreach.event(event);
   if(event.type==='SYSTEM_BREACH_ACTION_REJECTED'){if(authenticated)send('SYNC');return;}
+  window.FA_ROUND_SCORE?.event(event);window.FA_MODE_RULES?.event(event);
   cursed.event(event);cards.event(event);forgotten.event(event);finalSecond.event(event);suspicion.event(event);impostor.event(event);finalVoting.event(event);
   if(event.type==='CURSED_ACTION_REJECTED'){if(authenticated)send('SYNC');return;}
   if(event.type==='FINAL_VOTE_REJECTED'){if(authenticated)send('SYNC');return;}

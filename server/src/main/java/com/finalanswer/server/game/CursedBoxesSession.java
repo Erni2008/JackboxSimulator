@@ -72,6 +72,8 @@ public final class CursedBoxesSession {
     }
     private void lockHidingIfComplete(){hidingLocked=hidingPlayers.stream().allMatch(p->hidingChoices.containsKey(p)||eliminated.contains(p));}
     public Set<String> eliminatedPlayers(){return Set.copyOf(eliminated);}
+    public Set<String> hiders(){return hidingPlayers;}
+    public List<String> playerIds(){return players.stream().map(Player::id).toList();}
     public boolean finished(){return finished&&revealCompleted;}
     public boolean isGhost(String player){return finished&&eliminated.contains(player);}
     public boolean canReturn(String player){return isGhost(player)&&!departed.contains(player);}

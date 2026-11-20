@@ -43,6 +43,8 @@ final class CursedCardsSession {
         if(this.spectators.isEmpty())deal(now);else{phase=Phase.CURSE_VOTE;phaseEnds=now+timing.voteMs();}
     }
     Phase phase(){return phase;}
+    /** The player the curse took, once the game is over. */
+    String loserId(){return phase==Phase.FINISHED&&game.loser()>=0?seats.get(game.loser()):null;}
     int seat(String member){return seats.indexOf(member);}
     String cursedPlayer(){return cursed;}
     CursedCardsGame game(){return game;}

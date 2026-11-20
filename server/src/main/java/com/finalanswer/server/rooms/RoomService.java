@@ -276,7 +276,7 @@ public final class RoomService {
             if(room.members.values().stream().anyMatch(m->m.peer==null||m.left))throw new Failure(409,"PLAYER_OFFLINE");
             if(room.members.values().stream().map(m->m.characterId).distinct().count()!=participants.size())throw new Failure(409,"CHARACTER_IN_USE");
             if(room.impostor!=null){room.lastImpostorResult=room.impostor.result();room.impostor.close();room.impostor=null;}
-            room.game=new GameSession(room.questionCount,participants,endPolicy,now(),room.language);
+            room.quizEarned.clear();room.game=new GameSession(room.questionCount,participants,endPolicy,now(),room.language);
             if(!introId.isEmpty()){
                 room.game.intro=new com.finalanswer.server.game.IntroGate(now());
             }
@@ -360,7 +360,7 @@ public final class RoomService {
                 if(game.phase==Phase.REVEALING) {
                     if(now()<game.endedAt+Protocol.CLOCK_EXIT_MILLIS) throw new Failure(409,"NOT_READY");
                     game.reveal(now());
-                    for(Member player:room.members.values()) if(game.submitted.getOrDefault(player.id,-1)==game.question().correctAnswerIndex()){ player.score+=100;
+                    for(Member player:room.members.values()) if(game.submitted.getOrDefault(player.id,-1)==game.question().correctAnswerIndex()){ player.score+=100;room.quizEarned.merge(player.id,100,Integer::sum);
                         room.souls.reward(player.id,com.finalanswer.server.economy.SoulsRewards.QUIZ_CORRECT_ANSWER,com.finalanswer.server.economy.SoulsRewards.REASON_QUIZ_CORRECT,"quiz/"+game.id+"/"+game.question().id()); }
                     broadcast(room,"REVEAL_STARTED"); broadcast(room,"QUESTION_RESULTS"); broadcast(room,"RESULTS_STARTED");
                 } else if(game.phase!=Phase.RESULTS) throw new Failure(409,"INVALID_PHASE");
@@ -900,12 +900,54 @@ public final class RoomService {
             if((changed||resync)&&m.peer!=null){puzzle.sentAt=now();m.peer.send(Protocol.event("PRESSURE_UPDATED","",snapshot(room,m,false)));}
         }
     }
+    /** Every finished mode is scored exactly once: points by place, then a summary for the host's screen and the phones. */
+    private void scoreFinishedModes(Room room){
+        var rs=room.raceSession;
+        if(rs!=null&&rs.ended&&first(room,"race",rs)){Map<String,Integer> pts=new HashMap<>();
+            for(var p:rs.players.values())pts.put(p.id,p.status.equals("SAVED")&&p.place>0?ModeScoring.place(p.place):p.alive?ModeScoring.REST:ModeScoring.OUT);
+            award(room,pts);publishSummary(room,pts,"race");}
+        var sh=room.shift;
+        if(sh!=null&&sh.phase()==com.erni.finalanswer.gameplay.elevator.CageShift.Phase.END&&first(room,"cage",sh)){Map<String,Integer> pts=new HashMap<>();
+            for(var c:sh.cages.values())pts.put(c.id,c.dead||c.blown?ModeScoring.NONE:c.outcome==com.erni.finalanswer.gameplay.elevator.CageShift.Outcome.OK?ModeScoring.CAGE_CLEAR:ModeScoring.CAGE_HELD);
+            award(room,pts);publishSummary(room,pts,"cage");}
+        var cb=room.cursed;
+        if(cb!=null&&cb.finished()&&first(room,"boxes",cb)){Map<String,Integer> pts=new HashMap<>();var out=cb.eliminatedPlayers();
+            for(String id:cb.playerIds())pts.put(id,!cb.hiders().contains(id)?ModeScoring.REST:out.contains(id)?ModeScoring.OUT:ModeScoring.SURVIVED);
+            award(room,pts);publishSummary(room,pts,"boxes");}
+        var cards=room.cards;
+        if(cards!=null&&cards.phase()==CursedCardsSession.Phase.FINISHED&&first(room,"cards",cards)){Map<String,Integer> pts=new HashMap<>();String loser=cards.loserId();
+            for(String id:cards.seats)pts.put(id,id.equals(loser)?ModeScoring.NONE:ModeScoring.SAFE_CARDS);
+            award(room,pts);publishSummary(room,pts,"cards");}
+        var fs=room.finalSecond;
+        if(fs!=null&&fs.phase()==FinalSecondSession.Phase.RESULTS&&first(room,"final-second",fs)){Map<String,Integer> pts=new HashMap<>();
+            for(var r:fs.results())pts.put(r.playerId(),r.eliminated()?ModeScoring.OUT:ModeScoring.place(r.rank()));
+            award(room,pts);publishSummary(room,pts,"final-second");}
+        var imp=room.impostor;var ir=imp==null?null:imp.result();
+        if(ir!=null&&first(room,"impostor",ir)){Map<String,Integer> pts=new HashMap<>();
+            for(var p:ir.participants())pts.put(p.playerId(),p.winner()?ModeScoring.WIN_SIDE:ModeScoring.LOSE_SIDE);
+            award(room,pts);publishSummary(room,pts,"impostor");}
+        // these modes add their own points; only the summary is new
+        if(room.game!=null&&room.game.phase==Phase.GAME_FINISHED&&first(room,"questions",room.game)){publishSummary(room,new HashMap<>(room.quizEarned),"questions");room.quizEarned.clear();}
+        if(room.breach!=null&&room.breachScored&&first(room,"breach",room.breach)){Map<String,Integer> pts=new HashMap<>();if(room.lastBreachResult!=null)for(var row:room.lastBreachResult.rankings())pts.put(row.playerId(),(int)Math.min(Integer.MAX_VALUE,row.accessPoints()));publishSummary(room,pts,"breach");}
+        if(room.forgotten!=null&&room.forgotten.scored()&&first(room,"forgotten",room.forgotten)){Map<String,Integer> pts=new HashMap<>();for(var e:room.forgotten.results().entrySet())pts.put(e.getKey(),e.getValue().points());publishSummary(room,pts,"forgotten");}
+    }
+    private static boolean first(Room room,String mode,Object session){return room.scoredModes.add(mode+":"+System.identityHashCode(session));}
+    private static void award(Room room,Map<String,Integer> pts){for(Member m:room.members.values()){Integer p=pts.get(m.id);if(p!=null&&!m.host)m.score=(int)Math.min(Integer.MAX_VALUE,(long)m.score+p);}}
+    private void publishSummary(Room room,Map<String,Integer> earned,String mode){
+        List<Map<String,Object>> rows=new ArrayList<>();
+        for(Member m:room.members.values()){if(m.host||m.left)continue;Map<String,Object> r=new LinkedHashMap<>();
+            r.put("playerId",m.id);r.put("name",m.name);r.put("characterId",m.characterId);r.put("earned",earned.getOrDefault(m.id,0));r.put("total",m.score);rows.add(r);}
+        rows.sort((a,b)->a.get("earned").equals(b.get("earned"))?Integer.compare((int)b.get("total"),(int)a.get("total")):Integer.compare((int)b.get("earned"),(int)a.get("earned")));
+        Map<String,Object> v=new LinkedHashMap<>();v.put("id",UUID.randomUUID().toString());v.put("mode",mode);v.put("at",now());v.put("rows",rows);
+        room.modeSummary=v;System.out.println("[score] "+mode+" room="+room.code+" rows="+rows.size());broadcast(room,"MODE_SUMMARY");
+    }
     private static final long RACE_AUTO_END_MS=18_000;
     private void tickRoom(Room room) {
         if(room.breach!=null&&tickBreach(room))broadcast(room,"SYSTEM_BREACH_STATE");
         // nobody is ever stuck on a finished SYSTEM BREACH: if the host never ends it, the room returns to the lobby
         if(room.breach!=null&&room.breach.phase()==SystemBreachPhase.FINISHED){if(room.breachFinishedAt==0)room.breachFinishedAt=now();else if(now()-room.breachFinishedAt>=BREACH_AUTO_END_MS)endBreach(room);}
         applyRevivals(room);
+        scoreFinishedModes(room);
         if(room.raceSession!=null&&!room.raceSession.ended){Set<String> on=room.members.values().stream().filter(m->m.peer!=null&&!m.left).map(m->m.id).collect(java.util.stream.Collectors.toSet());
             if(room.raceSession.tick(now(),on)){finishRaceIfEnded(room);raceRelay(room,true);}}
         // like every other mode: once the results ceremony has played, the race closes itself and every phone returns to the lobby
@@ -1008,7 +1050,7 @@ public final class RoomService {
         value.put("availableCharacters",CHARACTERS.stream().filter(c->room.members.values().stream().noneMatch(m->m.characterId.equals(c))).toList());
         value.put("canStart",game==null && room.impostor==null && room.cursed==null && room.lastCommand==null&&room.cards==null&&room.forgotten==null&&room.finalSecond==null&&room.breach==null && room.host.peer!=null && !room.members.isEmpty() && room.members.values().stream().allMatch(m->m.peer!=null&&!m.left));
         value.put("impostorSettings",room.impostorSettings);value.put("impostorWordCategories",List.of("DEFAULT"));
-        value.put("lobbyId",room.lobbyId); value.put("language",room.language); value.put("elevatorDifficulty",room.difficulty.name());
+        if(room.modeSummary!=null)value.put("modeSummary",room.modeSummary);value.put("lobbyId",room.lobbyId); value.put("language",room.language); value.put("elevatorDifficulty",room.difficulty.name());
         if(!room.webGameId.isEmpty()){value.put("webGame",room.webGame);value.put("webGameId",room.webGameId);
             if(room.webGame.equals("race")){value.put("race",Map.of("map",room.raceMap,"seed",room.raceSeed,"startAt",room.raceStart,"id",room.webGameId));if(room.raceSession!=null)value.put("run",room.raceSession.snapshot(now()));}}
         if(self!=null&&!self.host){var pz=room.pressure.get(self.id);if(pz!=null)value.put("elevatorPressure",pressureView(pz));var fz=room.formula.get(self.id);if(fz!=null)value.put("elevatorFormula",formulaView(fz));var bz=room.bomb.get(self.id);if(bz!=null)value.put("elevatorBomb",bombView(bz));value.put("elevatorRepairs",self.elevatorRepairs);if(room.shift!=null){room.shift.add(self.id);var cv=cageShiftView(room);cv.put("me",cageCell(room.shift.cages.get(self.id)));value.put("cage",cv);}value.put("elevatorPenalties",self.elevatorPenalties);}
@@ -1154,6 +1196,7 @@ public final class RoomService {
         /** SOULS balances for this room's session. */
         final com.finalanswer.server.economy.SoulsWallet souls=new com.finalanswer.server.economy.SoulsWallet();
         final int maxPlayers,questionCount; final byte[] salt,passwordHash;
+        final Set<String> scoredModes=new HashSet<>(); final Map<String,Integer> quizEarned=new HashMap<>(); Map<String,Object> modeSummary;
         int raceMap=1; long raceSeed,raceStart,raceRelayAt,raceEndedAt; RaceSession raceSession; boolean raceScored; final Map<String,double[]> race=new LinkedHashMap<>();
         String webGame="",webGameId="",language="en"; long webGameAt; com.erni.finalanswer.gameplay.elevator.CageShift shift; final com.erni.finalanswer.gameplay.elevator.CageShift.BombBag bombBag=new com.erni.finalanswer.gameplay.elevator.CageShift.BombBag(); com.erni.finalanswer.gameplay.elevator.Difficulty difficulty=com.erni.finalanswer.gameplay.elevator.Difficulty.NORMAL;
         final Map<String,com.erni.finalanswer.gameplay.elevator.PressurePuzzle> pressure=new LinkedHashMap<>();

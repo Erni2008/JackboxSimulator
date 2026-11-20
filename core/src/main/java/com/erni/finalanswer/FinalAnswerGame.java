@@ -271,11 +271,14 @@ public class FinalAnswerGame extends Game {
     }
     public void showRoomLobby() {
         if (activeRoom == null) { showMainMenu(); return; }
+        if (activeRoom.host() && pendingSummary != null && realtime != null) { showBalances(); return; }
         if (cageLobbyScreen == null) cageLobbyScreen = new com.erni.finalanswer.screens.CageLobbyScreen(this);
         if (activeRoom.host()) com.erni.finalanswer.impostor.ImpostorAssets.prewarm(); // THE IMPOSTOR is the heaviest mode to open: decode its art while the host waits
         if(getScreen()!=cageLobbyScreen)setScreen(cageLobbyScreen);
     }
     private com.erni.finalanswer.screens.BalanceScreen balanceScreen;
+    /** Points earned in the mode that just ended (MODE_SUMMARY); shown once, before the soul balance. */
+    private com.google.gson.JsonObject pendingSummary;private com.erni.finalanswer.screens.ScoreScreen scoreScreen;
     /** After a mini-game: the soul balance board, then the room lobby. */
     // players who died during the running mini-game, in the order they died, with what killed them
     private final java.util.Map<String,Boolean> aliveSeen=new java.util.HashMap<>();
@@ -303,6 +306,12 @@ public class FinalAnswerGame extends Game {
                 if(deathScreen==null)return;var d=deathScreen;deathScreen=null;if(getScreen()==d)showBalances();d.dispose();});
             setScreen(deathScreen);return;
         }
+        if(pendingSummary!=null){var sum=pendingSummary;pendingSummary=null;
+            if(scoreScreen!=null)scoreScreen.dispose();
+            scoreScreen=new com.erni.finalanswer.screens.ScoreScreen(sum,()->{
+                if(scoreScreen==null)return;var sc=scoreScreen;scoreScreen=null;if(getScreen()==sc)showBalances();sc.dispose();});
+            setScreen(scoreScreen);return;
+        }
         if(balanceScreen!=null){balanceScreen.dispose();balanceScreen=null;}
         var board=new com.erni.finalanswer.screens.BalanceScreen(realtime.snapshot(),"ru".equals(getSettings().language()),()->{
             if(balanceScreen==null)return;var b=balanceScreen;balanceScreen=null;if(getScreen()==b)showRoomLobby();b.dispose();});
@@ -324,6 +333,9 @@ public class FinalAnswerGame extends Game {
         if (type.equals("ERROR")) { Gdx.app.log("Lobby","server error "+data); lobbyStatus=data.get("code").getAsString(); if(cageLobbyScreen!=null)cageLobbyScreen.startRejected(); return; }
         if(type.equals("CURSED_ACTION_REJECTED")&&(getScreen()==cageLobbyScreen||getScreen()==networkCursedLoading)){lobbyStatus=data.get("code").getAsString();return;}
         if (!data.has("players")) return;
+        if("MODE_SUMMARY".equals(type)&&data.has("modeSummary"))pendingSummary=data.getAsJsonObject("modeSummary");
+        // web games (race, cage) run in the viewer over the lobby: show the results once the viewer has closed
+        if(pendingSummary!=null&&activeRoom.host()&&getScreen()==cageLobbyScreen&&!data.has("webGame"))Gdx.app.postRunnable(()->{if(pendingSummary!=null&&getScreen()==cageLobbyScreen)showBalances();});
         trackDeaths(data);
         activeRoom=RoomApiClient.parse(new com.badlogic.gdx.utils.JsonReader().parse(data.toString()),activeRoom.token());
         if (cageLobbyScreen != null) {

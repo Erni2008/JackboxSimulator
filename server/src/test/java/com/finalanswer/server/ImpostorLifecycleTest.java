@@ -58,7 +58,10 @@ class ImpostorLifecycleTest {
     @Test void replayResetsAllMatchDataAndPreservesRoom(){var m=new Match(3);m.finish("IMPOSTOR_CAUGHT");var before=m.f.hostPeer.latest().deepCopy();String old=m.f.session;m.replay();assertNotEquals(old,m.f.session);assertEquals("REPLAY_PREPARATION",m.phase());
         var mini=m.f.mini(0);for(String key:List.of("role","secretWord","result","ownClue","ownFinalVote","finalVoteSnapshot","revealedImpostorId","outcome"))assertFalse(mini.has(key),key);
         assertEquals(0,mini.get("round").getAsInt());assertEquals(0,mini.get("deadline").getAsLong());assertTrue(mini.getAsJsonArray("revealedClues").isEmpty());
-        for(String key:List.of("code","roomId","players","roomSettings","selfId","host"))assertEquals(before.get(key),m.f.hostPeer.latest().get(key),key);
+        for(String key:List.of("code","roomId","roomSettings","selfId","host"))assertEquals(before.get(key),m.f.hostPeer.latest().get(key),key);
+        // the finished match pays its points (winning side 250, losing side 50) once; everything else about the players is kept
+        var after=m.f.hostPeer.latest().getAsJsonArray("players");var was=before.getAsJsonArray("players");assertEquals(was.size(),after.size());
+        for(int i=0;i<was.size();i++){var a=was.get(i).getAsJsonObject().deepCopy();var b=after.get(i).getAsJsonObject().deepCopy();int sc=b.get("score").getAsInt();a.remove("score");b.remove("score");assertEquals(a,b);assertTrue(sc==0||sc==50||sc==250,"score "+sc);}
         m.start();assertEquals("ROLE_REVEAL",m.phase());assertEquals(1,java.util.stream.IntStream.range(0,3).filter(i->s(m.f.mini(i),"role").equals("IMPOSTOR")).count());}
     @Test void replayAndLobbyRequireHost(){var m=new Match(3);m.finish("NO_CONSENSUS");for(String type:List.of("REPLAY_IMPOSTOR","IMPOSTOR_RETURN_TO_LOBBY","START_IMPOSTOR"))failure("HOST_ONLY",()->m.action(m.f.peers.getFirst(),type,m.f.session));}
     @Test void activeReplayRejected(){var m=new Match(3);failure("INVALID_PHASE",()->m.action("REPLAY_IMPOSTOR"));failure("INVALID_PHASE",()->m.action("IMPOSTOR_RETURN_TO_LOBBY"));}
