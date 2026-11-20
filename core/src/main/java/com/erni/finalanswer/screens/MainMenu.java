@@ -20,7 +20,7 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 
 import com.badlogic.gdx.scenes.scene2d.Stage;
 
-import com.erni.finalanswer.ui.effects.TableCandle;
+import com.erni.finalanswer.ui.effects.MenuAmbience;
 import com.erni.finalanswer.ui.lobby.LobbyPanel;
 import com.erni.finalanswer.ui.buttons.menu.AnimatedImageButton;
 import com.erni.finalanswer.ui.buttons.menu.PlayButton;
@@ -42,7 +42,7 @@ public class MainMenu extends ScreenAdapter {
 
     private final SpriteBatch batch;
     private final Texture background;
-    private final TableCandle tableCandle;
+    private final MenuAmbience ambience;
     private final Texture titleShade;
     private final Texture titleLogo;
     private final com.badlogic.gdx.graphics.g2d.BitmapFont demoFont = com.erni.finalanswer.ui.UiFonts.body(20);
@@ -70,7 +70,7 @@ public class MainMenu extends ScreenAdapter {
         game = receivedGame;
 
         batch = new SpriteBatch();
-        tableCandle = new TableCandle();
+        ambience = new MenuAmbience();
 
         titleLogo = RuntimeTextures.load("ui/Final_Answer.png");
         titleLogo.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
@@ -200,15 +200,12 @@ public class MainMenu extends ScreenAdapter {
 
         batch.begin();
 
-        batch.draw(
-            background,
-            drawX,
-            drawY,
-            drawWidth,
-            drawHeight
-        );
-
-        tableCandle.draw(batch, game.getSettings().reducedMotion() ? 0 : delta, drawX, drawY, drawWidth, drawHeight);
+        // the painting comes alive: slow camera drift, flickering lights, lightning, dust
+        boolean still = game.getSettings().reducedMotion();
+        ambience.update(still ? 0 : Math.min(delta, 0.1f));
+        float[] r = ambience.drift(drawX, drawY, drawWidth, drawHeight, still);
+        batch.draw(background, r[0], r[1], r[2], r[3]);
+        ambience.draw(batch, r[0], r[1], r[2], r[3]);
         batch.end();
 
         // Draw the title last, in resolution-independent UI coordinates.
@@ -313,7 +310,7 @@ public class MainMenu extends ScreenAdapter {
 
         titleLogo.dispose();
 
-        tableCandle.dispose();
+        ambience.dispose();
         background.dispose();
         titleShade.dispose();
     }
