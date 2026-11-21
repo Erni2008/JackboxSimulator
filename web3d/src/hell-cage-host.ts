@@ -15,7 +15,8 @@ import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
 const params = new URLSearchParams(location.search), hash = new URLSearchParams(location.hash.slice(1));
 const ROOM = params.get('room'), TOKEN = hash.get('token') || params.get('token'), DEMO = !ROOM || params.get('demo') === '1';
-let LANG: 'ru' | 'en' = (() => {const q = params.get('lang'); if (q === 'ru' || q === 'en') return q; try {const v = sessionStorage.getItem('finalanswer-lang') ?? localStorage.getItem('finalanswer-lang'); if (v === 'ru' || v === 'en') return v;} catch {} return 'en';})(); // URL > stored room language > English; the room state updates it const L = (ru: string, en: string) => LANG === 'ru' ? ru : en;
+let LANG: 'ru' | 'en' = (() => {const q = params.get('lang'); if (q === 'ru' || q === 'en') return q; try {const v = sessionStorage.getItem('finalanswer-lang') ?? localStorage.getItem('finalanswer-lang'); if (v === 'ru' || v === 'en') return v;} catch {} return 'en';})(); // URL > stored room language > English; the room state updates it
+const L = (ru: string, en: string) => LANG === 'ru' ? ru : en;
 const TEX = '../broken-elevator-manual/textures/';
 const CHARS = ['skeleton', 'pumpkin', 'plague_doctor', 'dracula', 'ghost', 'voodoo', 'zombie', 'puppeteer'];
 
