@@ -8,11 +8,26 @@ html body.pj-on #join-screen>#pj.pj{display:flex!important}
 
 .pj{--cu:#c98a52;--cu2:#f2c28c;--cu3:#8a5530;--cream:#f4dcc0;position:relative;z-index:1;flex-direction:column;align-items:center;padding:6px 0 30px;
   font-family:Gothic,Georgia,serif;color:var(--cream);min-height:calc(100dvh - 20px)}
-.pj-bg{position:fixed;inset:0;z-index:-1;background:url('/ui/join/bg.jpg') 50% 50%/cover no-repeat}
-.pj-bg::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 42%,transparent 30%,#0006 75%),linear-gradient(180deg,#0009 0%,#0000 26%,#0000 70%,#000a 100%)}
-/* candle light breathing over the painting (the lantern, the candles and the hourglass sit at the bottom corners) */
-.pj-bg::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 12% 74%,#ff9a3c22,transparent 22%),radial-gradient(circle at 86% 78%,#ff9a3c1c,transparent 20%);animation:pj-candle 3.2s ease-in-out infinite}
-
+.pj-bg{position:fixed;inset:0;z-index:-1;overflow:hidden;background:#070405}
+/* the painting and its lights share one box sized like background-size:cover, so every glow sits on its flame */
+.pj-scene{--ar:calc(941/1672);position:absolute;left:50%;top:50%;width:max(100vw,calc(100dvh*941/1672));height:max(100dvh,calc(100vw*1672/941));transform:translate(-50%,-50%);
+  background:url('/ui/join/bg_portrait.jpg') 50% 50%/100% 100% no-repeat}
+.pj-shade{position:absolute;inset:0;background:radial-gradient(ellipse 90% 60% at 50% 46%,transparent 40%,#0007 100%),linear-gradient(180deg,#000a 0%,#0003 22%,#0000 40%,#0000 72%,#0008 100%)}
+.pj-l{position:absolute;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;mix-blend-mode:screen}
+.pj-l.moon{left:54%;top:19.5%;width:44%;aspect-ratio:1;background:radial-gradient(circle,#9fb6ff33,transparent 62%);animation:pj-moon 7s ease-in-out infinite}
+.pj-l.wall{top:37.5%;width:18%;aspect-ratio:1;background:radial-gradient(circle,#ff9a3c55,transparent 60%);animation:pj-flick 2.3s ease-in-out infinite}
+.pj-l.wall.a{left:15.7%}.pj-l.wall.b{left:83.6%;animation-delay:-1.1s}
+.pj-l.lamp{left:8%;top:62%;width:30%;aspect-ratio:1;background:radial-gradient(circle,#ffa24a66,transparent 60%);animation:pj-flick 1.9s ease-in-out infinite}
+.pj-l.can{width:14%;aspect-ratio:1;background:radial-gradient(circle,#ffb05a77,transparent 60%);animation:pj-flick 1.4s ease-in-out infinite}
+.pj-l.can.a{left:18%;top:64.5%;animation-delay:-.4s}.pj-l.can.b{left:24.5%;top:68.4%;animation-delay:-.9s}.pj-l.can.c{left:81.3%;top:67%;animation-delay:-.2s}
+.pj-l.sand{left:89%;top:58.5%;width:12%;aspect-ratio:1;background:radial-gradient(circle,#ff6a2a44,transparent 60%);animation:pj-flick 3s ease-in-out infinite}
+.pj-fog{position:absolute;left:-40%;width:180%;height:12%;border-radius:50%;background:radial-gradient(closest-side,#b8b0c022,transparent);filter:blur(8px);pointer-events:none;animation:pj-drift 30s linear infinite}
+.pj-fog.f1{top:66%}.pj-fog.f2{top:71%;animation-duration:44s;animation-direction:reverse;opacity:.7}
+@media (min-aspect-ratio:1/1){.pj-scene{width:max(100vw,calc(100dvh*1672/941));height:max(100dvh,calc(100vw*941/1672));background-image:url('/ui/join/bg_wide.jpg')}
+  .pj-l,.pj-fog{display:none}}
+@keyframes pj-flick{0%,100%{opacity:.85;transform:translate(-50%,-50%) scale(1)}30%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}55%{opacity:.7;transform:translate(-50%,-50%) scale(.97)}75%{opacity:.95}}
+@keyframes pj-moon{0%,100%{opacity:.7}50%{opacity:1}}
+@keyframes pj-drift{from{transform:translateX(0)}to{transform:translateX(22%)}}
 .pj-brand{text-align:center;margin-top:4px;animation:pj-in .8s ease-out both}
 .pj-kicker{margin:0;font-size:11px;font-weight:700;letter-spacing:.34em;text-transform:uppercase;color:var(--cu2);text-shadow:0 1px 3px #000}
 .pj-logo{display:block;width:min(92vw,380px);margin:4px auto 0;filter:drop-shadow(0 6px 12px #000c)}
@@ -22,7 +37,7 @@ html body.pj-on #join-screen>#pj.pj{display:flex!important}
 .pj-sub b{font-size:15px;letter-spacing:.32em;text-transform:uppercase;color:var(--cream);font-weight:700;text-shadow:0 1px 3px #000}
 
 /* ornate copper panel */
-.pj-panel{position:relative;width:min(100%,400px);margin-top:16px;padding:30px 22px 52px;background:linear-gradient(180deg,#1a1011f0,#120a0bf2);
+.pj-panel{position:relative;width:min(100%,400px);margin-top:16px;padding:30px 22px 52px;background:linear-gradient(180deg,#1a1011de,#120a0be8);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
   box-shadow:inset 0 0 0 1.5px var(--cu3),inset 0 0 0 2.5px #00000080,inset 0 0 0 7px #1a1011,inset 0 0 0 8px #c98a5244,0 24px 50px #000d;
   border-radius:4px;animation:pj-in .8s .1s ease-out both}
 .pj-panel.shake{animation:pj-shake .45s}
@@ -83,4 +98,13 @@ html body.pj-on #pj #join-button:active{transform:scale(.97)}
 @keyframes pj-pop{0%{transform:scale(1)}40%{transform:scale(1.1)}100%{transform:scale(1)}}
 @keyframes pj-shake{0%,100%{transform:none}20%{transform:translateX(-8px)}40%{transform:translateX(7px)}60%{transform:translateX(-4px)}80%{transform:translateX(2px)}}
 @media (min-aspect-ratio:4/3){.pj{justify-content:center}.pj-logo{width:min(48vw,520px)}.pj-panel{width:440px}}
-@media (prefers-reduced-motion:reduce){.pj *,.pj-bg::after{animation:none!important}}
+@media (prefers-reduced-motion:reduce){.pj *{animation:none!important}}
+/* universal phone sizing: cells always fit, everything scales with the screen width */
+.pj-cells{grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:clamp(5px,1.8vw,8px)!important}
+.pj-cells span{font-size:clamp(22px,7.4vw,30px)!important;min-width:0}
+.pj-panel{box-sizing:border-box;padding:clamp(24px,7vw,30px) clamp(14px,5vw,22px) 52px}
+.pj{box-sizing:border-box;width:100%;max-width:100%;overflow-x:hidden}
+@media (max-height:700px){.pj-logo{width:min(70vw,300px)}.pj-panel{margin-top:10px}.pj-div{margin:12px 0 10px}}
+.pj-sub b{white-space:nowrap;font-size:clamp(12px,3.8vw,15px);letter-spacing:clamp(.16em,1vw,.32em)}
+.pj-sub i{width:clamp(22px,9vw,44px)}
+@media (min-aspect-ratio:4/3){.pj-panel{width:100%!important}.pj{overflow:visible}}

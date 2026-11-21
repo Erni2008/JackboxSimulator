@@ -13,7 +13,9 @@
   const max=+nick.getAttribute('maxlength')||16;
 
   const root=document.createElement('div');root.id='pj';root.className='pj';
-  root.innerHTML=`<div class="pj-bg" aria-hidden="true"></div>
+  root.innerHTML=`<div class="pj-bg" aria-hidden="true"><div class="pj-scene">
+      <i class="pj-l moon"></i><i class="pj-l wall a"></i><i class="pj-l wall b"></i><i class="pj-l lamp"></i><i class="pj-l can a"></i><i class="pj-l can b"></i><i class="pj-l can c"></i><i class="pj-l sand"></i>
+      <i class="pj-fog f1"></i><i class="pj-fog f2"></i></div><i class="pj-shade"></i></div>
     <header class="pj-brand">
       <p class="pj-kicker">${T('Игровое шоу на выживание','A survival game show')}</p>
       <img class="pj-logo" src="${A}logo.png" alt="Final Answer">
