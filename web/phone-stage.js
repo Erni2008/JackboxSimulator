@@ -16,11 +16,11 @@
 
   // ---------- lobby markup ----------
   const stage=document.createElement('div');stage.className='ps-lobby';stage.id='ps-lobby';
-  stage.innerHTML=`<div class="ps-top"><span class="ps-room"><small></small><b></b></span><span class="ps-count"><b>0</b><small>/ 8</small></span></div>
+  stage.innerHTML=`<img class="ps-logo" src="/ui/join/logo.png" alt="Final Answer"><div class="ps-top"><span class="ps-room"><small></small><b></b></span><span class="ps-count"><b>0</b><small>/ 8</small></span></div>
     <div class="ps-hero" role="button" tabindex="0">
       <i class="ps-beam"></i><i class="ps-aura"></i>
-      <div class="ps-tilt"><img class="ps-body" alt="" draggable="false"><img class="ps-shadow" alt="" draggable="false"></div>
-      <i class="ps-pedestal"></i><div class="ps-embers"></div><div class="ps-burst"></div>
+      <div class="ps-swing"><i class="ps-chain"></i>
+        <div class="ps-tilt"><svg class="ps-cage back" viewBox="0 0 200 300" aria-hidden="true"></svg><img class="ps-body" alt="" draggable="false"><img class="ps-shadow" alt="" draggable="false"><svg class="ps-cage front" viewBox="0 0 200 300" aria-hidden="true"></svg></div></div><div class="ps-embers"></div><div class="ps-burst"></div>
     </div>
     <div class="ps-plate"><small></small><b></b></div>
     <p class="ps-status"><i></i><span></span></p>
@@ -29,6 +29,19 @@
   waiting.prepend(stage);
   const hero=stage.querySelector('.ps-hero'),tilt=stage.querySelector('.ps-tilt'),img=stage.querySelector('.ps-body'),shadow=stage.querySelector('.ps-shadow'),roster=stage.querySelector('.ps-roster');
   const embers=stage.querySelector('.ps-embers'),burst=stage.querySelector('.ps-burst');
+  // a round hanging cage drawn in two layers: back bars behind the character, front bars in front (bars crowd at the sides like a real cylinder)
+  {const R=80,cx=100,top=70,bot=272,N=11,grad='<defs><linearGradient id="cu" x1="0" x2="1"><stop offset="0" stop-color="#5a3018"/><stop offset=".45" stop-color="#e8a868"/><stop offset=".6" stop-color="#ffd8a8"/><stop offset="1" stop-color="#6a3a1c"/></linearGradient><linearGradient id="cud" x1="0" x2="1"><stop offset="0" stop-color="#2a160c"/><stop offset=".5" stop-color="#6a4024"/><stop offset="1" stop-color="#2a160c"/></linearGradient></defs>';
+    const layer=front=>{let g=grad;const st=front?'url(#cu)':'url(#cud)',w=front?2.6:2;
+      if(!front){g+=`<ellipse cx="${cx}" cy="${bot}" rx="${R}" ry="15" fill="#120a08" stroke="url(#cud)" stroke-width="3"/><ellipse cx="${cx}" cy="${bot}" rx="${R-12}" ry="10" fill="#000" opacity=".45"/>`;}
+      for(let i=0;i<N;i++){const t=-Math.PI/2+Math.PI*(i+.5)/N,x=cx+R*Math.sin(t);
+        const lit=Math.cos(t),col=front?`rgb(${Math.round(80+130*lit)},${Math.round(42+86*lit)},${Math.round(20+48*lit)})`:`rgb(${Math.round(50+40*lit)},${Math.round(28+22*lit)},${Math.round(14+12*lit)})`;
+        g+=`<rect x="${(x-w/2).toFixed(1)}" y="${top}" width="${w}" height="${bot-top}" rx="${w/2}" fill="${col}"/>`;
+        g+=`<path d="M${cx} 14 Q${(cx+(x-cx)*1.05).toFixed(1)} 22 ${x.toFixed(1)} ${top}" fill="none" stroke="${st}" stroke-width="${w*.85}"/>`;}
+      if(front){g+=`<ellipse cx="${cx}" cy="${top}" rx="${R}" ry="11" fill="none" stroke="url(#cu)" stroke-width="5"/><ellipse cx="${cx}" cy="${bot-58}" rx="${R}" ry="14" fill="none" stroke="url(#cu)" stroke-width="2.6" opacity=".85"/>`;
+        g+=`<path d="M${cx-R} ${bot} A${R} 15 0 0 0 ${cx+R} ${bot}" fill="none" stroke="url(#cu)" stroke-width="6"/><circle cx="${cx}" cy="12" r="7" fill="url(#cu)"/><rect x="${cx-11}" y="${bot-46}" width="22" height="18" rx="3" fill="url(#cu)" stroke="#3a1e0c"/><circle cx="${cx}" cy="${bot-39}" r="2.6" fill="#1a0c06"/><rect x="${cx-1.1}" y="${bot-38}" width="2.2" height="5" fill="#1a0c06"/>`;}
+      else g+=`<path d="M${cx-R} ${top} A${R} 11 0 0 1 ${cx+R} ${top}" fill="none" stroke="url(#cud)" stroke-width="4"/>`;
+      return g;};
+    stage.querySelector('.ps-cage.back').innerHTML=layer(false);stage.querySelector('.ps-cage.front').innerHTML=layer(true).replace(/id="cu"/,'id="cu"').replace(/id="cud"/,'id="cud2"');}
   if(!calm)for(let i=0;i<(low?8:16);i++){const e=document.createElement('i');e.style.left=(8+Math.random()*84)+'%';e.style.animationDuration=(4+Math.random()*5)+'s';e.style.animationDelay=(-Math.random()*8)+'s';e.style.setProperty('--dx',(Math.random()*40-20).toFixed(0)+'px');embers.append(e);}
 
   // ---------- tilt: device orientation, else the finger ----------
