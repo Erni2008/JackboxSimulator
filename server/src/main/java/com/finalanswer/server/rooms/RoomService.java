@@ -208,7 +208,7 @@ public final class RoomService {
                 broadcast(room,"WEB_GAME_OPENED");reply(peer,room,member,message);return;
             }
             if(data.has("difficulty")){String d=Protocol.string(data,"difficulty");if(!Set.of("EASY","NORMAL","HARD").contains(d))throw new Failure(400,"INVALID_DIFFICULTY");room.difficulty=com.erni.finalanswer.gameplay.elevator.Difficulty.valueOf(d);}
-            room.pressure.clear();room.formula.clear();room.bomb.clear();room.webGameAt=now();room.shift=new com.erni.finalanswer.gameplay.elevator.CageShift(room.difficulty,room.members.values().stream().filter(m->!m.left).map(m->m.id).toList(),random.nextLong(),now(),room.bombBag.draw(random));for(var m:room.members.values()){m.elevatorRepairs=0;m.elevatorPenalties=0;m.cageKind="";m.cageTask=0;m.cageFailAt=0;}
+            room.pressure.clear();room.formula.clear();room.bomb.clear();room.webGameAt=now();room.shift=new com.erni.finalanswer.gameplay.elevator.CageShift(room.difficulty,room.members.values().stream().filter(m->!m.left).map(m->m.id).toList(),random.nextLong(),now(),Boolean.getBoolean("race.qa")&&data.has("bomb")&&data.get("bomb").getAsBoolean()||room.bombBag.draw(random)); // QA runs may force the bomb shiftfor(var m:room.members.values()){m.elevatorRepairs=0;m.elevatorPenalties=0;m.cageKind="";m.cageTask=0;m.cageFailAt=0;}
             room.webGame=id;room.webGameId=UUID.randomUUID().toString();broadcast(room,"WEB_GAME_OPENED");reply(peer,room,member,message);return;
         }
         if(Set.of("START_LAST_COMMAND","LAST_COMMAND_ACTION","END_LAST_COMMAND").contains(message.type())){lastCommandCommand(room,member,peer,message);return;}
