@@ -84,7 +84,7 @@ export class RaceApp {
         cr.position.set((b.x0 + b.x1) / 2, b.y0 + .03, (b.z0 + b.z1) / 2); m.add(cr); m.userData.crack = cr;}
       // carved edge trim around walkable tops (curbs / skirting) — breaks the boxy look
       const trimMat = this.manor ? (b.mat === 'floor' ? mats.beam : mats.wall) : this.night ? mats.brick : b.mat === 'grass' ? null : b.mat === 'plank' ? mats.bark : mats.rock;
-      if (trimMat && !b.trapPeriod && !b.wall && (b.x1 - b.x0) > 2 && b.y0 === b.y1) {const y = b.y0, tw = .28, th = .2;
+      if (trimMat && !b.trapPeriod && !b.wall && !b.tilt && (b.x1 - b.x0) > 2 && b.y0 === b.y1) {const y = b.y0, tw = .28, th = .2;
         const edge = (w: number, d: number, x: number, z: number) => {const t = new THREE.Mesh(new THREE.BoxGeometry(w, th, d), trimMat); t.position.set(x, y - th / 2 + .07, z); t.castShadow = false; t.receiveShadow = true; m.add(t);};
         edge(tw, b.z1 - b.z0, b.x0 + tw / 2 - .04, (b.z0 + b.z1) / 2); edge(tw, b.z1 - b.z0, b.x1 - tw / 2 + .04, (b.z0 + b.z1) / 2);
         if (!b.land) {edge(b.x1 - b.x0, tw, (b.x0 + b.x1) / 2, b.z0 + tw / 2 - .04); edge(b.x1 - b.x0, tw, (b.x0 + b.x1) / 2, b.z1 - tw / 2 + .04);}}
