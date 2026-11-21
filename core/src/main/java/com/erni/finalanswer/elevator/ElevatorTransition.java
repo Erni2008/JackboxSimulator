@@ -204,6 +204,7 @@ public final class ElevatorTransition implements Disposable {
     /** Draws the current frame. The caller has already drawn the gameplay screen when {@link #gameplayOverlayAlpha()} > 0. */
     public void render(){
         if(state==State.IDLE)return;
+        trackMotion();
         viewport.apply();camera.update();batch.setProjectionMatrix(camera.combined);
         Gdx.gl.glEnable(GL20.GL_BLEND);
         batch.begin();batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
@@ -229,7 +230,12 @@ public final class ElevatorTransition implements Disposable {
                     float real=ElevatorCinematicCamera.smoother(u/.3f);                                   // the painted cabin in the doorway eases into the real one
                     clip(hallL,hdx,hdy,hdw,hdh);drawCabin(ip,cd,cabinL,hallA*real,false);unclip();}
                 grade(1-e);}
-            case CLOSING_INTERIOR_DOORS,SELECTING_FLOOR,STARTING_MOVEMENT,MOVING,ARRIVING->{cabinL.set(1,cx,cy,cx+sx,cy+sy);drawCabin(ip,cd,cabinL,1,false);}
+            case CLOSING_INTERIOR_DOORS,SELECTING_FLOOR,STARTING_MOVEMENT,MOVING,ARRIVING->{
+                // first person inside the car: the head breathes and sways, sinks with the start (inertia) and lifts as the car brakes
+                float w=state==State.CLOSING_INTERIOR_DOORS?ElevatorCinematicCamera.smoother(stateTime/.9f):state==State.ARRIVING?1-ElevatorCinematicCamera.smoother((stateTime/dur(state)-.55f)/.45f):1;   // eases in and out so entering and the door opening never jump
+                float sp=speedNorm(),breath=MathUtils.sin(totalTime*1.1f),k=1+w*(.055f+.006f*breath+.012f*sp);
+                float hx=w*(MathUtils.sin(totalTime*.43f)*7+MathUtils.sin(totalTime*.91f+1)*3),hy=w*(breath*4-MathUtils.clamp(accS,-1,1)*26*dir);
+                cabinL.set(k,cx,cy,cx+sx*(1+.6f*w)+hx,cy+sy*(1+.6f*w)+hy);drawCabin(ip,cd,cabinL,1,false);rideFx(ip,cd,cabinL,sp);}
             case OPENING_INTERIOR_DOORS->{cabinL.set(1,cx,cy,cx+sx,cy+sy);float ls=dp.h>0?cdh*over/dp.h:1;destL.set(ls,cx,cy,ccx+sx,ccy+sy);
                 drawCabinWithDestination(ip,cd,dp,cabinL,destL,1);}
             case EXITING_ELEVATOR->{float u=MathUtils.clamp(stateTime/dur(state),0,1),e=ElevatorCinematicCamera.smoother(u);
@@ -244,6 +250,41 @@ public final class ElevatorTransition implements Disposable {
             default->{}
         }
         batch.setColor(1,1,1,1);batch.end();
+    }
+
+    // ---- riding: motion state measured from the eased car position (floors per second, smoothed) ----
+    private float lastCar=Float.NaN,vel,accS,dir=1;
+    private void trackMotion(){float dt=Math.min(Gdx.graphics.getDeltaTime(),.05f);if(dt<=0)return;
+        if(Float.isNaN(lastCar)||state==State.IDLE||state==State.PREPARING){lastCar=carFloor;vel=0;accS=0;dir=to>=from?1:-1;return;}
+        float v=(carFloor-lastCar)/dt;lastCar=carFloor;float nv=vel+(v-vel)*Math.min(1,dt*10);float a=(nv-vel)/dt;vel=nv;
+        float vmax=Math.max(.2f,Math.abs(to-from)*2f/Math.max(1,cfg.t("startMovement")+cfg.t("moving")+cfg.t("arriving")));
+        accS+=(MathUtils.clamp(a*dir/vmax,-3,3)-accS)*Math.min(1,dt*5);}
+    private float speedNorm(){float vmax=Math.max(.2f,Math.abs(to-from)*2f/Math.max(1,cfg.t("startMovement")+cfg.t("moving")+cfg.t("arriving")));return MathUtils.clamp(Math.abs(vel)/vmax*1.6f,0,1);}
+    /**
+     * Inside the moving car: light from every landing we pass slides through the seam of the closed doors, the cabin
+     * lamp dips on jolts, dust hangs in the air and falls against the motion, the frame closes in at speed.
+     */
+    private void rideFx(Place p,SourceRect d,Layer l,float sp){
+        float dx=p.x(d.x()),dy=p.y(d.y(),d.h()),dw=d.w()*p.k,dh=d.h()*p.k;
+        batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
+        if(sp>.02f){float frac=carFloor-(float)Math.floor(carFloor);float pos=dir>0?1-frac:frac;      // a landing's light passes once per floor
+            float by=dy+dh*(-.3f+1.6f*pos),bh=dh*.32f,seamX=dx+dw/2;
+            clip(l,dx,dy,dw,dh);
+            batch.setColor(1,.72f,.38f,.55f*sp);rect(glow,seamX-dw*.05f,by-bh/2,dw*.1f,bh,l);          // bright through the seam
+            batch.setColor(1,.62f,.30f,.22f*sp);rect(glow,dx-dw*.1f,by-bh*.7f,dw*1.2f,bh*1.4f,l);      // spilling over the door leaves
+            batch.setColor(1,.85f,.6f,.7f*sp);rect(pixel,seamX-1.5f,by-bh*.35f,3,bh*.7f,l);
+            unclip();
+            // the same light rakes across the floor of the cabin as it passes
+            batch.setColor(1,.6f,.3f,.08f*sp*MathUtils.sin(MathUtils.clamp(pos,0,1)*MathUtils.PI));rect(glow,dx-dw*.6f,p.oy,dw*2.2f,dy-p.oy+dh*.15f,l);}
+        // dust floating in the lamp light, sinking faster against the climb
+        for(int i=0;i<36;i++){float ph=(totalTime*(.025f+.02f*h(i*11))+h(i*5+3)+(dir>0?1:-1)*carFloor*.35f)%1f;if(ph<0)ph+=1;
+            float mx=p.ox+p.w*(.18f+.64f*h(i*3+1))+MathUtils.sin(totalTime*.5f+i)*12,my=p.oy+p.h*(1-ph);
+            float sz=(1.4f+2.2f*h(i*7+2))*1.6f;batch.setColor(1,.82f,.58f,(.10f+.12f*sp)*MathUtils.sin(ph*MathUtils.PI));rect(glow,mx-sz,my-sz,sz*2,sz*2,l);}
+        batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
+        // cabin lamp: tiny flicker, a real dip on jolts
+        float jolt=Math.abs(cine.shakeY())/14f,n=noise(totalTime*7.3f),dip=MathUtils.clamp(.03f*n+.25f*jolt*jolt+(n>.97f?.18f:0),0,.45f);
+        batch.setColor(0,0,0,dip);batch.draw(pixel,-50,-50,WORLD_W+100,WORLD_H+100);
+        batch.setColor(1,1,1,.35f+.4f*sp);batch.draw(vignette,-40,-30,WORLD_W+80,WORLD_H+60);batch.setColor(1,1,1,1);
     }
 
     /** The gameplay room grading (QuizBackground: dim, top and bottom shades, vignette), weighted 0..1. */
