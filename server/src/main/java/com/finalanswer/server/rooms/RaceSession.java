@@ -20,6 +20,13 @@ final class RaceSession {
         double seatsRatio = .6; int[] gateCheckpoints = {2, 4, 6};
     }
     static final Config CFG = new Config();
+    static long introDuration(Format format) {
+        var properties = new Properties();
+        try (var input = RaceSession.class.getResourceAsStream("/race-intro.properties")) {
+            if (input != null) properties.load(input);
+            return Long.parseLong(properties.getProperty(format.name(), "19710"));
+        } catch (java.io.IOException | NumberFormatException error) {throw new IllegalStateException("Invalid race intro timing", error);}
+    }
     static final Set<Format> CRYPT_OK = EnumSet.of(Format.DEATH_RUN, Format.LAST_SURVIVORS, Format.LAST_CHANCE, Format.SALVATION);
 
     static final class P {

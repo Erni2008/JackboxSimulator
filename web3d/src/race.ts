@@ -1,4 +1,6 @@
 import {RaceApp, CHARACTERS, NAMES, SKIN} from './games/race/race';
+import {TRIALS} from './games/race/course';
+import {t as lx} from './games/race/i18n';
 const q = new URLSearchParams(location.search);
 const pick = document.getElementById('pick')!, load = document.getElementById('loading')!, fill = document.getElementById('load-fill')!;
 let map = [1, 2, 3, 4].includes(Number(q.get('map'))) ? Number(q.get('map')) : 1;
@@ -22,7 +24,7 @@ function online() {
     const me = roster.find((p: any) => p.id === st.selfId);
     app = new RaceApp(document.getElementById('stage')!, me?.char || 'pumpkin', st.race.map, {roster, selfId: st.selfId, seed: st.race.seed, startAt: st.race.startAt, serverNow, send: (s, extra) => send('RACE_STATE', {roomCode: cred.code, s, ...(extra || {})}), spark: () => send('RACE_SPARK', {roomCode: cred.code}), spectator: !!st.host});
     if (st.run) app.surv?.apply(st.run);
-    await app.load(f => fill.style.width = `${Math.round(f * 100)}%`); load.hidden = true; app.start(); (window as any).__race = app;
+    await app.load(f => fill.style.width = `${Math.round(f * 100)}%`); if (st.run) {app.surv?.apply(st.run); if (app.surv) app.surv.pending = null;} load.hidden = true; app.start(); (window as any).__race = app;
     const tap = document.getElementById('tap')!; tap.hidden = false; tap.onclick = () => {tap.hidden = true; app!.snd.unlock(); app!.snd.ambience(app!.course.theme); app!.snd.playMusic('audio/music.m4a');};
     document.getElementById('intro-skip')!.onclick = () => {app!.introSkipped = true; document.getElementById('intro')!.hidden = true; app!.snd.voice('');};
     const again = document.getElementById('again')!; again.textContent = st.host ? 'В ЛОББИ' : 'ЖДЁМ ВЕДУЩЕГО'; if (!st.host) again.onclick = () => {};
@@ -47,11 +49,26 @@ const go = async (ch: string) => {
   pick.hidden = true; load.hidden = false; document.body.classList.add('playing');
   const app = new RaceApp(document.getElementById('stage')!, ch, map);
   await app.load(f => fill.style.width = `${Math.round(f * 100)}%`);
-  load.hidden = true; app.start(); (window as any).__race = app;
+  {const ln = (window as any).__laneName?.(); if (ln) {const tag = document.createElement('div'); tag.id = 'lane-tag'; tag.textContent = ln; document.body.appendChild(tag);}}
+  load.hidden = true; app.snd.unlock(); app.snd.ambience(app.course.theme); app.snd.playMusic('audio/music.m4a'); app.start(); (window as any).__race = app;
+  document.getElementById('intro-skip')!.onclick = () => {app.introSkipped = true; app.snd.voice('');};
   document.getElementById('again')!.onclick = () => location.reload();
 };
 if (q.get('net') || q.get('host')) online();
 else if (q.get('char') && CHARACTERS.includes(q.get('char')!)) go(q.get('char')!);
 else for (const c of CHARACTERS) {const b = document.createElement('button'); b.innerHTML = `<img src="portraits/${c}.png" alt=""><span>${NAMES[c]}</span>`; b.onclick = () => go(c); document.getElementById('roster')!.appendChild(b);}
 for (const b of document.querySelectorAll<HTMLButtonElement>('#maps button')) {b.classList.toggle('on', Number(b.dataset.map) === map); b.onclick = () => {map = Number(b.dataset.map); document.querySelectorAll('#maps button').forEach(x => x.classList.toggle('on', x === b));};}
+// test a single lane: pick it like the map (or ?t=N in the address); the choice goes into the URL the race reads
+const LANES: [string, string][] = [['Мельница','Windmill'],['Мясорубка','Meat grinder'],['Верх-низ','High-low'],['Провалы','Gaps'],['Узкие балки','Narrow beams'],['Маятники','Pendulums'],['Плоты','Rafts'],['Обвал пола','Crumbling floor'],['Трясина','Quagmire'],['Тараны','Rams'],['Батуты','Trampolines'],['Люки','Trapdoors'],['Транспортёр','Conveyor'],['Огненный пол','Fire floor'],['Молоты','Hammers'],['Змейка','Zigzag'],['Скат с бочками','Barrel ramp'],['Дождь с неба','Sky rain'],['Лабиринт','Maze'],['Ложные стены','Fake walls'],['Порталы','Portals'],['Гигантские шестерни','Giant gears'],['Смертельные ворота','Deadly gates'],['Ветряной коридор','Wind corridor'],['Катящийся валун','Rolling boulder'],['Переворачивающаяся комната','Tilting room'],['Крюки','Hooks'],['Ложный мост','False bridge'],['Безумные вагонетки','Mad minecarts']];
+{
+  const tq = q.get('t'); let lane = tq ? (Number(tq) || TRIALS.indexOf(tq) + 1) : 0; if (!(lane >= 1 && lane <= TRIALS.length)) lane = 0;
+  const box = document.createElement('div'); box.id = 'lanes';
+  const all = [`<button data-lane="0" class="all"><b>${lx('Вся трасса','Full course')}</b></button>`].concat(LANES.slice(0, TRIALS.length).map((n, i) => `<button data-lane="${i + 1}"><i>${i + 1}</i><b>${lx(n[0], n[1])}</b></button>`));
+  box.innerHTML = `<span>${lx('Полоса','Lane')}</span><div>${all.join('')}</div>`;
+  document.getElementById('maps')!.after(box);
+  const mark = () => box.querySelectorAll<HTMLButtonElement>('button').forEach(x => x.classList.toggle('on', Number(x.dataset.lane) === lane));
+  box.querySelectorAll<HTMLButtonElement>('button').forEach(x => x.onclick = () => {lane = Number(x.dataset.lane); const u = new URL(location.href); if (lane) u.searchParams.set('t', String(lane)); else u.searchParams.delete('t'); history.replaceState(null, '', u); mark();});
+  mark();
+  (window as any).__laneName = () => lane ? `${lane} · ${lx(LANES[lane - 1][0], LANES[lane - 1][1])}` : '';
+}
 for (const b of document.querySelectorAll<HTMLButtonElement>('#skins button')) {b.classList.toggle('on', b.dataset.skin === SKIN); b.onclick = () => {try {localStorage.setItem('race-skin', b.dataset.skin!);} catch {} location.reload();};}

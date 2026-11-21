@@ -23,9 +23,12 @@ function sock(code,token,onState){const ws=new WebSocket(BASE.replace('http','ws
     if(['REVEALING','RESULTS','ROUND_CLUE_REVEAL'].includes(ph)&&answered){revealed=true;const c=st.question?.correctAnswerIndex??st.correctAnswerIndex;
       for(const p of players)console.log(`  ${p.name}: ответ ${p.answer+1}${c!==undefined?(p.answer===c?' ✓ верно':' ✗ неверно'):''}`);}}
   // ---- the race: everyone runs, regardless of the answer ----
-  host.send('OPEN_WEB_GAME',{game:'race',map:MAP});await wait(1500);
+  // wrong answers -> ghosts (as if they lost earlier), so the survival rules and the Life Spark can be checked
+  if(process.env.GHOSTS!=='0')for(const p of players)if(p.name!=='Вы'&&p.answer!==undefined&&host.state?.question&&p.answer!==(host.state.question.correctAnswerIndex??-1)){host.send('QA_SET_ALIVE',{id:p.id,alive:false});console.log('  '+p.name+' -> призрак');}
+  await wait(400);
+  host.send('OPEN_WEB_GAME',{game:'race',map:MAP,...(process.env.FORMAT?{format:process.env.FORMAT}:{}),...(process.env.SPARK?{sparkInMs:Number(process.env.SPARK)}:{})});await wait(1500);
   if(host.state?.webGame!=='race'){console.log('race did not open (phase',host.state?.phase,')');process.exit(1);}
-  console.log('race open: map',host.state.race.map,'seed',host.state.race.seed,'— all',N,'players run, including wrong answers');
+  console.log('race open: map',host.state.race.map,'format',host.state.run?.format,'seed',host.state.race.seed,'— all',N,'players run, including wrong answers');
   if(ME){const me=players.shift();me.s.ws.close();execSync(`open "${BASE}/race/?net=1#seat=${code}.${encodeURIComponent(me.tok)}"`);console.log('YOUR runner opened in the browser: WASD + SPACE');}
   else execSync(`open "${BASE}/race/?host=1&room=${code}#token=${encodeURIComponent(hostTok)}"`);
   const b=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH||undefined,args:['--use-angle=metal','--ignore-gpu-blocklist']});

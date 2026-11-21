@@ -194,9 +194,11 @@ public final class RoomService {
             if(!Set.of("broken-elevator","race").contains(id))throw new Failure(400,"INVALID_WEB_GAME");
             if(id.equals("race")){
                 int map=data.has("map")?data.get("map").getAsInt():1+random.nextInt(4);if(map<1||map>4)throw new Failure(400,"INVALID_RACE_MAP");
-                room.raceMap=map;room.raceSeed=1+random.nextInt(999_999_999);room.raceStart=now()+37_000;room.race.clear();room.raceScored=false;room.raceEndedAt=0;room.webGameAt=now();
+                room.raceMap=map;room.raceSeed=1+random.nextInt(999_999_999);
+                room.race.clear();room.raceScored=false;room.raceEndedAt=0;room.webGameAt=now();
                 var formats=new ArrayList<>(List.of(RaceSession.Format.values()));if(map==4)formats.retainAll(RaceSession.CRYPT_OK);
                 RaceSession.Format fmt;try{fmt=data.has("format")?RaceSession.Format.valueOf(Protocol.string(data,"format")):formats.get(random.nextInt(formats.size()));}catch(RuntimeException e){throw new Failure(400,"INVALID_RACE_FORMAT");}
+                room.raceStart=now()+12_000+RaceSession.introDuration(fmt); // load allowance + measured speech + countdown
                 if(!formats.contains(fmt))throw new Failure(400,"RACE_FORMAT_NOT_SUPPORTED_ON_MAP");
                 List<Map.Entry<String,Boolean>> roster=new ArrayList<>();for(Member m:room.members.values())if(!m.left)roster.add(Map.entry(m.id,m.alive));
                 if(Boolean.getBoolean("race.qa")&&data.has("startInMs"))room.raceStart=now()+data.get("startInMs").getAsLong();
