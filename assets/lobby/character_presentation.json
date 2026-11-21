@@ -37,7 +37,7 @@
     },
     {
       "id": "dracula",
-      "scale": 1.333,
+      "scale": 1.19,
       "pivotX": 174,
       "pivotY": 68,
       "x": 1,
@@ -59,7 +59,7 @@
     },
     {
       "id": "plague_doctor",
-      "scale": 1.283,
+      "scale": 1.14,
       "pivotX": 174,
       "pivotY": 68,
       "x": 0,

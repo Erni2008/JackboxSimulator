@@ -95,7 +95,7 @@ public final class HangingCage extends Group {
         applyTransform(batch, charWorld);
         // pass 2 (2D): a soft contact shadow on the cage floor, then the prisoner standing inside
         if (character != null) { batch.setColor(0, 0, 0, .55f * parentAlpha); batch.draw(assets.softDot, Cage3D.CX - 62, Cage3D.BASE_Y + 1, 124, 16); batch.setColor(1, 1, 1, parentAlpha); }
-        if (character != null && clipBegin(Cage3D.CX - Cage3D.R + 6, Cage3D.BASE_Y + 6, Cage3D.R * 2 - 12, Cage3D.TOP - 8)) {
+        if (character != null && clipBegin(Cage3D.CX - Cage3D.R - 70, Cage3D.BASE_Y + 6, Cage3D.R * 2 + 140, Cage3D.TOP - 8)  /* wide enough for hands reaching out through the bars */) {
             presentation.drawInCage(batch, character, assets.presentation.profile(characterId), parentAlpha, animation.time());
             batch.flush(); clipEnd();
         }

@@ -28,7 +28,7 @@ public final class CagePreviewLauncher {
             private RoomSession room(int count, boolean middle) {
                 var players = new ArrayList<RoomSession.Player>();
                 for (int i = 0; i < count; i++) if (middle || i != 3)
-                    players.add(new RoomSession.Player("player-" + i, List.of("Анастасия", "Bram", "Mary", "Edgar", "Wednesday", "Владислав", "Григорий", "Alexander").get(i), false, System.getProperty("cage.character", "skeleton"), "ONLINE", false, 0));
+                    players.add(new RoomSession.Player("player-" + i, List.of("Анастасия", "Bram", "Mary", "Edgar", "Wednesday", "Владислав", "Григорий", "Alexander").get(i), false, System.getProperty("cage.character", List.of("skeleton","dracula","pumpkin","voodoo","ghost","zombie","plague_doctor","puppeteer").get(i)), "ONLINE", false, 0));
                 return new RoomSession("ABC123", "THE WAITING ROOM", 8, "standard", "preview", false, players);
             }
             @Override public void create() { super.create(); preview = new CageLobbyScreen(this); setScreen(preview); room = room(8, true);
