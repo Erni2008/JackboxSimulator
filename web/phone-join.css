@@ -81,3 +81,49 @@ html body.pj-on #pj .pj-logo span{-webkit-text-fill-color:transparent}
 .pj-cast .c3{height:170px!important}.pj-cast .c2,.pj-cast .c5{height:160px!important}
 .pj-err #join-error:empty{display:none}
 html body.pj-on #pj #join-button{margin-top:2px!important}
+/* ---- premium pass ---- */
+.pj-fog{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+.pj-fog i{position:absolute;left:-60%;width:220%;height:180px;border-radius:50%;background:radial-gradient(closest-side,#c9b6a014,transparent);filter:blur(10px);animation:pj-fog 26s linear infinite}
+.pj-fog i:nth-child(1){top:30%}.pj-fog i:nth-child(2){top:55%;animation-duration:34s;animation-direction:reverse;opacity:.8}.pj-fog i:nth-child(3){top:78%;animation-duration:42s}
+.pj-dust{position:absolute;inset:0;pointer-events:none;z-index:0}
+.pj-dust i{position:absolute;width:3px;height:3px;border-radius:50%;background:#ffd9a0;box-shadow:0 0 6px #ffb560;opacity:0;animation:pj-dust ease-in-out infinite}
+html body.pj-on #pj .pj-logo{position:relative;animation:pj-flare 1.4s cubic-bezier(.2,.9,.3,1) both}
+html body.pj-on #pj .pj-logo::after{content:attr(data-text);position:absolute;inset:0;display:none}
+.pj-brand{position:relative}
+.pj-brand::after{content:"";position:absolute;left:50%;top:22%;width:70%;height:46%;transform:translateX(-50%);pointer-events:none;
+  background:linear-gradient(100deg,transparent 35%,#fff7e299 50%,transparent 65%);background-size:250% 100%;mix-blend-mode:overlay;
+  -webkit-mask:linear-gradient(#000,#000);animation:pj-sweep 5s 1.4s ease-in-out infinite}
+.pj-ring{position:absolute;inset:-1px;border-radius:23px;padding:1.5px;pointer-events:none;
+  background:conic-gradient(from var(--a,0deg),transparent 0 70%,#ffe2a6 80%,#e7c07a 85%,transparent 92%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:pj-ring 6s linear infinite}
+@property --a{syntax:'<angle>';inherits:false;initial-value:0deg}
+.pj-corner{position:absolute;width:34px;height:34px;color:#e7c07a;opacity:.85;pointer-events:none;filter:drop-shadow(0 0 4px #e7a95a66)}
+.pj-corner svg{width:100%;height:100%;display:block}
+.pj-corner.k0{left:-6px;top:-6px}.pj-corner.k1{right:-6px;top:-6px;transform:scaleX(-1)}.pj-corner.k2{left:-6px;bottom:-6px;transform:scaleY(-1)}.pj-corner.k3{right:-6px;bottom:-6px;transform:scale(-1)}
+.pj-label em{display:flex;align-items:center;gap:8px;font-style:normal}.pj-label svg{width:18px;height:18px;color:var(--gold2);filter:drop-shadow(0 0 4px #e7a95a88)}
+/* brass cells with an engraved letter */
+.pj-cells span{position:relative;background:linear-gradient(180deg,#2a1c14,#130b09 55%,#1e140f)!important;
+  box-shadow:inset 0 1px 0 #ffe2a633,inset 0 -2px 0 #0008,inset 0 0 0 1px #8a6236,0 3px 8px #000a!important;
+  background-clip:padding-box;color:transparent;animation:pj-cell .5s cubic-bezier(.2,1.4,.4,1) both}
+.pj-cells span:empty::before{content:"";width:6px;height:6px;border-radius:50%;background:#e7c07a33}
+.pj-cells span.on{color:#ffe7b3;text-shadow:0 1px 0 #000,0 -1px 0 #ffffff22,0 0 14px #ffc66c88;
+  box-shadow:inset 0 1px 0 #ffe2a666,inset 0 -2px 0 #0008,inset 0 0 0 1.5px #e7c07a,0 0 18px #e7a95a44!important}
+.pj-cells span.cur{box-shadow:inset 0 0 0 2px #ffe2a6,0 0 22px #ffd28a77!important}
+.pj.code-full .pj-cells span{box-shadow:inset 0 1px 0 #ffe2a688,inset 0 0 0 1.5px #ffe2a6,0 0 22px #ffcf7a66!important}
+/* brass plate button with rivets */
+html body.pj-on #pj #join-button b{position:relative;z-index:1;font-weight:700}
+.pj-rivet{position:absolute;top:50%;width:9px;height:9px;margin-top:-4.5px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3cf,#a06b2c 60%,#4a2b10);box-shadow:0 1px 1px #0008}
+.pj-rivet.l{left:16px}.pj-rivet.r{right:16px}
+html body.pj-on #pj.ready #join-button{animation:pj-ready 2.4s ease-in-out infinite}
+html body.pj-on #pj.ready #join-button b{text-shadow:0 1px 0 #ffe9b8,0 -1px 0 #6b3d14}
+html body.pj-on #pj #join-button:active{transform:translateY(2px) scale(.985)!important;box-shadow:inset 0 3px 8px #0006!important}
+/* entrance */
+.pj-cast img{opacity:0;animation:pj-rise .9s var(--d,.6s) cubic-bezier(.2,1,.3,1) forwards,pj-breathe 4s ease-in-out calc(var(--d,.6s) + .9s) infinite}
+@keyframes pj-fog{from{transform:translateX(0)}to{transform:translateX(30%)}}
+@keyframes pj-dust{0%,100%{opacity:0;transform:translate(0,0)}50%{opacity:.7;transform:translate(10px,-30px)}}
+@keyframes pj-flare{0%{opacity:0;filter:brightness(3) blur(6px) drop-shadow(0 0 30px #ffd28a)}60%{opacity:1;filter:brightness(1.4) drop-shadow(0 0 24px #e7a95a)}100%{filter:drop-shadow(0 2px 0 #3a210f) drop-shadow(0 0 24px #e7a95a55)}}
+@keyframes pj-sweep{0%{background-position:150% 0}60%,100%{background-position:-60% 0}}
+@keyframes pj-ring{to{--a:360deg}}
+@keyframes pj-cell{from{opacity:0;transform:translateY(10px) scale(.8)}to{opacity:1;transform:none}}
+@keyframes pj-ready{0%,100%{filter:brightness(1)}50%{filter:brightness(1.12)}}
+@keyframes pj-rise{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:none}}
