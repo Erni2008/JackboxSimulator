@@ -122,7 +122,9 @@ final class CharacterLighting {
             // inside a cage: cooler, dimmer interior and slanted moonlight shadows of the front bars across the body
             if (u_inside > 0.) { vec2 sp = v_uv / u_px; float ph = fract((sp.x + sp.y * .32 - u_bar.y) / u_bar.x);
                 float bar = smoothstep(.0, .12, ph) * (1. - smoothstep(.2, .34, ph));
-                rgb *= mix(vec3(1.), vec3(.82, .86, .95), u_inside); rgb *= 1. - bar * .42 * u_inside; }
+                rgb *= mix(vec3(1.), vec3(1.04, .97, .9), u_inside); rgb *= 1. - bar * .2 * u_inside;
+                // a warm lamp inside the cage: lifts the face and chest, fades toward the feet
+                rgb += vec3(1., .62, .32) * .1 * u_inside * smoothstep(.15, .85, 1. - v_uv.y) * c.a; }
             vec4 lit = vec4(rgb * c.a, c.a);
             gl_FragColor = (lit + vec4(0., 0., 0., sh) * (1. - c.a)) * v_color.a;
         }

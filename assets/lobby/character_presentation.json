@@ -2,7 +2,7 @@
   "profiles": [
     {
       "id": "skeleton",
-      "scale": 1.18,
+      "scale": 1.463,
       "pivotX": 174,
       "pivotY": 68,
       "x": 0,
@@ -10,56 +10,56 @@
       "brightness": 1,
       "growAt": 1.5,
       "growDuration": 0.95,
-      "cageExposure": 0.93,
-      "cageContrast": 1
+      "cageExposure": 1.135,
+      "cageContrast": 1.06
     },
     {
       "id": "ghost",
-      "scale": 1.065,
+      "scale": 1.321,
       "pivotX": 174,
       "pivotY": 151,
       "x": 0,
       "y": -1,
       "brightness": 1,
-      "cageExposure": 0.93,
-      "cageContrast": 1
+      "cageExposure": 1.135,
+      "cageContrast": 1.06
     },
     {
       "id": "zombie",
-      "scale": 1.055,
+      "scale": 1.308,
       "pivotX": 174,
       "pivotY": 68,
       "x": 0,
       "y": -5,
       "brightness": 0.86,
-      "cageExposure": 0.93,
-      "cageContrast": 1
+      "cageExposure": 1.135,
+      "cageContrast": 1.06
     },
     {
       "id": "dracula",
-      "scale": 1.075,
+      "scale": 1.333,
       "pivotX": 174,
       "pivotY": 68,
       "x": 1,
       "y": -5,
       "brightness": 1,
-      "cageExposure": 0.93,
-      "cageContrast": 1
+      "cageExposure": 1.135,
+      "cageContrast": 1.06
     },
     {
       "id": "pumpkin",
-      "scale": 1.16,
+      "scale": 1.438,
       "pivotX": 174,
       "pivotY": 68,
       "x": 0,
       "y": -2,
       "brightness": 1,
-      "cageExposure": 0.93,
-      "cageContrast": 1
+      "cageExposure": 1.135,
+      "cageContrast": 1.06
     },
     {
       "id": "plague_doctor",
-      "scale": 1.035,
+      "scale": 1.283,
       "pivotX": 174,
       "pivotY": 68,
       "x": 0,
@@ -67,23 +67,23 @@
       "brightness": 1,
       "exposure": 1.85,
       "contrast": 1.18,
-      "cageExposure": 0.85,
-      "cageContrast": 1
+      "cageExposure": 1.037,
+      "cageContrast": 1.06
     },
     {
       "id": "voodoo",
-      "scale": 1.08,
+      "scale": 1.339,
       "pivotX": 174,
       "pivotY": 68,
       "x": 2,
       "y": 1,
       "brightness": 1,
-      "cageExposure": 0.93,
-      "cageContrast": 1
+      "cageExposure": 1.135,
+      "cageContrast": 1.06
     },
     {
       "id": "puppeteer",
-      "scale": 1.07,
+      "scale": 1.327,
       "pivotX": 174,
       "pivotY": 68,
       "x": 0,
@@ -91,8 +91,8 @@
       "brightness": 1,
       "exposure": 1.9,
       "contrast": 1.2,
-      "cageExposure": 1.6,
-      "cageContrast": 1.12
+      "cageExposure": 1.25,
+      "cageContrast": 1.187
     }
   ]
 }
