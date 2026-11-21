@@ -584,7 +584,7 @@ export class RaceApp {
   private syncRocks(dt: number) {
     if (!this.boulderSrc) return;
     const ringMat = (o: number) => new THREE.MeshBasicMaterial({color: 0xff3b1f, transparent: true, opacity: o, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide});
-    while (this.rocks.length < this.course.fallers.length) {const rock = this.manor && this.chandelier ? normalized(this.chandelier, 2.2, 'max') : this.night ? fireball() : normalized(this.boulderSrc, 2, 'max'); const ring = new THREE.Mesh(new THREE.RingGeometry(.82, 1, 40).rotateX(-Math.PI / 2), ringMat(.8));
+    while (this.rocks.length < this.course.fallers.length) {const rock = this.manor && this.chandelier ? normalized(this.chandelier, 2.2, 'max') : this.night ? meteor(normalized(this.boulderSrc, 2, 'max')) : normalized(this.boulderSrc, 2, 'max'); const ring = new THREE.Mesh(new THREE.RingGeometry(.82, 1, 40).rotateX(-Math.PI / 2), ringMat(.8));
       const disc = new THREE.Mesh(new THREE.CircleGeometry(1, 40).rotateX(-Math.PI / 2), ringMat(.25)); ring.add(disc); ring.renderOrder = 3; this.scene.add(rock, ring); this.rocks.push({rock, ring, id: -1});}
     this.rocks.forEach((v, i) => {const f = this.course.fallers[i]; v.rock.visible = v.ring.visible = !!f; if (!f) {v.id = -1; return;}
       if (v.id !== f.id) {v.id = f.id; v.rock.userData.done = false; v.rock.rotation.set(Math.random() * 6, Math.random() * 6, 0);}
@@ -731,7 +731,8 @@ export class RaceApp {
     for (const t of this.belts) t.offset.y = (t.offset.y + dt * .9) % 1;
     for (const {j, o, f} of this.jetFx) {if (j.kind === 'fire') {f.visible = j.state === 2; f.scale.y = .8 + Math.random() * .4; ((o as THREE.Mesh).material as THREE.MeshStandardMaterial).emissiveIntensity = j.state === 1 ? 1 + Math.sin(c.time * 30) : j.state === 2 ? 2 : 0;}
       else {const tgt = j.state === 2 ? .55 : j.state === 1 ? 3.2 : 4.2; f.position.y += (tgt - f.position.y) * Math.min(1, dt * (j.state === 2 ? 30 : 4)); ((o as THREE.Mesh).material as THREE.MeshBasicMaterial).opacity = j.state === 1 ? .5 + .4 * Math.sin(c.time * 25) : j.state === 2 ? .8 : 0;}}
-    for (const gm of this.ghosts) gm.emissiveIntensity = .025 * Math.max(0, Math.sin(c.time * 1.3)) ** 8;
+    // fake panels glow once at the very start of the race, then never again
+    {const k = c.time > 0 && c.time < 2.4 ? Math.sin(Math.PI * c.time / 2.4) : 0; for (const gm of this.ghosts) gm.emissiveIntensity = .45 * k;}
     this.portalFx.forEach((g, i) => {g.userData.disc.rotation.z -= dt * 2.4; const p = c.portals[i]; (g.userData.disc.material as THREE.MeshBasicMaterial).opacity = .7 + .25 * Math.sin(c.time * 5 + i) + (c.time - p.used < .4 ? .5 : 0);});
     const tp = (this.me as any).teleported; if (tp && tp !== this.lastTp) {this.lastTp = tp; this.camTarget.set(this.me.x, this.me.y, this.me.z); const pk = c.portals.find(p => c.time - p.used < .1); this.snd.portal(); this.toast(pk?.kind === 'far' ? lx('ДАЛЕКО ВПЕРЁД!', 'FAR AHEAD!') : pk?.kind === 'back' ? lx('НАЗАД!', 'BACK!') : lx('ТЕЛЕПОРТ!', 'TELEPORT!')); this.puff(this.me.x, this.me.y, this.me.z, 1.6);}
     const sec = c.sectionAt(this.me.z); if (sec && sec.name !== this.lastSection) {this.lastSection = sec.name; if (this.clock > COUNTDOWN + .5) this.toast(SECTION_NAMES[sec.name].toUpperCase());}
@@ -856,7 +857,7 @@ export class RaceApp {
   }
 
   private input() {
-    const unlock = () => {this.snd.unlock(); this.snd.ambience(this.course.theme); this.snd.playMusic('audio/music.m4a');};
+    const unlock = () => {this.snd.unlock(); this.snd.ambience(this.course.theme);}; // no music bed
     const mute = document.getElementById('mute'); if (mute) {let m = false; try {m = localStorage.getItem('race-mute') === '1';} catch {} this.snd.setMuted(m); mute.textContent = m ? '🔇' : '🔊';
       mute.addEventListener('pointerdown', e => {e.stopPropagation(); m = !m; this.snd.setMuted(m); mute.textContent = m ? '🔇' : '🔊'; try {localStorage.setItem('race-mute', m ? '1' : '0');} catch {}});} addEventListener('pointerdown', unlock); addEventListener('keydown', unlock);
     addEventListener('keydown', e => {if (this.net?.spectator && /^Digit[0-9]$/.test(e.code)) this.surv?.key(e.code.slice(5)); this.keys.add(e.code); if (e.code === 'KeyR' && this.me && !this.me.finished && this.clock > COUNTDOWN && this.me.safe <= 0 && !(this.me as any).remote) {this.course.respawn(this.me); this.toast(lx('НАЗАД К ЧЕКПОИНТУ', 'BACK TO CHECKPOINT'));} if (e.code === 'Space') {this.me && (this.me.jump = true); e.preventDefault();}});
@@ -947,6 +948,8 @@ function scythe() {
   const hub = new THREE.Mesh(new THREE.BoxGeometry(.5, .5, .3), new THREE.MeshStandardMaterial({color: 0x2a2420, metalness: .6, roughness: .6})); hub.position.y = .25;
   const g = new THREE.Group(); g.add(blade, hub); blade.castShadow = true; g.userData.base = 1; return g;
 }
+/** Fire rain on the graveyard: a real 3D rock, glowing hot from inside (no flat sprites). */
+function meteor(o: THREE.Object3D) {o.traverse(c => {const m = c as THREE.Mesh; if (!m.isMesh) return; const mt = (m.material as THREE.MeshStandardMaterial).clone(); mt.emissive = new THREE.Color(0xff5a14); mt.emissiveIntensity = 1.6; mt.emissiveMap = mt.map; mt.color = new THREE.Color(0x3a2418); m.material = mt;}); return o;}
 function fireball() {
   const g = new THREE.Group(); const core = new THREE.Mesh(new THREE.IcosahedronGeometry(.85, 1), new THREE.MeshStandardMaterial({color: 0x301008, emissive: 0xff6a1a, emissiveIntensity: 2.4, roughness: .9}));
   const halo = new THREE.Sprite(new THREE.SpriteMaterial({map: dotTexture(true), color: 0xff7a2a, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending})); halo.scale.setScalar(3.4);

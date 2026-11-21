@@ -25,7 +25,7 @@ function online() {
     app = new RaceApp(document.getElementById('stage')!, me?.char || 'pumpkin', st.race.map, {roster, selfId: st.selfId, seed: st.race.seed, startAt: st.race.startAt, serverNow, send: (s, extra) => send('RACE_STATE', {roomCode: cred.code, s, ...(extra || {})}), spark: () => send('RACE_SPARK', {roomCode: cred.code}), spectator: !!st.host});
     if (st.run) app.surv?.apply(st.run);
     await app.load(f => fill.style.width = `${Math.round(f * 100)}%`); if (st.run) {app.surv?.apply(st.run); if (app.surv) app.surv.pending = null;} load.hidden = true; app.start(); (window as any).__race = app;
-    const tap = document.getElementById('tap')!; tap.hidden = false; tap.onclick = () => {tap.hidden = true; app!.snd.unlock(); app!.snd.ambience(app!.course.theme); app!.snd.playMusic('audio/music.m4a');};
+    const tap = document.getElementById('tap')!; tap.hidden = false; tap.onclick = () => {tap.hidden = true; app!.snd.unlock(); app!.snd.ambience(app!.course.theme);};
     document.getElementById('intro-skip')!.onclick = () => {app!.introSkipped = true; document.getElementById('intro')!.hidden = true; app!.snd.voice('');};
     const again = document.getElementById('again')!; again.textContent = st.host ? 'В ЛОББИ' : 'ЖДЁМ ВЕДУЩЕГО'; if (!st.host) again.onclick = () => {};
   };
@@ -50,7 +50,7 @@ const go = async (ch: string) => {
   const app = new RaceApp(document.getElementById('stage')!, ch, map);
   await app.load(f => fill.style.width = `${Math.round(f * 100)}%`);
   {const ln = (window as any).__laneName?.(); if (ln) {const tag = document.createElement('div'); tag.id = 'lane-tag'; tag.textContent = ln; document.body.appendChild(tag);}}
-  load.hidden = true; app.snd.unlock(); app.snd.ambience(app.course.theme); app.snd.playMusic('audio/music.m4a'); app.start(); (window as any).__race = app;
+  load.hidden = true; app.snd.unlock(); app.snd.ambience(app.course.theme); app.start(); (window as any).__race = app;
   document.getElementById('intro-skip')!.onclick = () => {app.introSkipped = true; app.snd.voice('');};
   document.getElementById('again')!.onclick = () => location.reload();
 };
