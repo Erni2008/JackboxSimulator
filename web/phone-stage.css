@@ -1,0 +1,66 @@
+/* PHONE STAGE — lobby on a lit stage (see phone-stage.js). Loaded last: wins over arena-pro / controller-polish. */
+.ps-on #waiting-screen>:not(.ps-lobby){display:none!important}
+html body.ps-on[data-view="waiting"] #waiting-screen>#ps-lobby.ps-lobby.ps-lobby{display:flex!important}
+.ps-on[data-view="waiting"] .masthead{transform:scale(.5);transform-origin:50% 0;margin-bottom:-52px}
+.ps-lobby{--gold:#e9c27a;--gold2:#ffdf9e;--ink:#120a0b;--px:0px;--py:0px;position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;padding:4px 0 18px;font-family:Gothic,Georgia,serif;color:#f4eadb}
+.ps-top{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.ps-room,.ps-count{display:flex;align-items:baseline;gap:8px;padding:7px 14px;border-radius:999px;background:linear-gradient(180deg,#2a1b17e6,#140c0de6);box-shadow:inset 0 0 0 1px #e9c27a55,0 6px 18px #000a}
+.ps-room small,.ps-count small{font-size:11px;letter-spacing:.22em;color:#b9a184}
+.ps-room b{font-size:20px;letter-spacing:.24em;color:var(--gold2)}
+.ps-count b{font-size:20px;color:var(--gold2)}
+
+/* hero */
+.ps-hero{position:relative;width:min(66vw,280px);height:min(74vw,310px);perspective:700px;cursor:pointer;outline:none;-webkit-tap-highlight-color:transparent}
+.ps-beam{position:absolute;left:50%;top:-40px;width:120%;height:115%;transform:translateX(-50%);pointer-events:none;
+  background:conic-gradient(from 168deg at 50% 0,transparent 0deg,#ffd9a019 8deg,#ffd9a033 12deg,#ffd9a019 16deg,transparent 24deg);filter:blur(2px);animation:ps-beam 6s ease-in-out infinite}
+.ps-aura{position:absolute;left:50%;bottom:6%;width:78%;height:70%;transform:translate(-50%,0);border-radius:50%;background:radial-gradient(closest-side,#ff9a4a33,#ff6a2a14 60%,transparent);filter:blur(6px);animation:ps-aura 3.4s ease-in-out infinite}
+.ps-tilt{position:absolute;inset:0 0 13% 0;transform-style:preserve-3d;transition:transform .05s linear}
+.ps-body{position:absolute;left:50%;bottom:0;height:100%;max-width:100%;object-fit:contain;transform:translate(calc(-50% + var(--px)),0) translateZ(30px);transform-origin:50% 100%;
+  filter:drop-shadow(0 0 1px #000) drop-shadow(0 12px 18px #000c) drop-shadow(0 0 22px #ff8a3a40);animation:ps-breathe 3.2s ease-in-out infinite}
+.ps-shadow{position:absolute;left:50%;bottom:-2%;height:22%;max-width:90%;transform:translateX(-50%) scaleY(-.28) translateY(-6%);opacity:.18;filter:blur(3px) brightness(.2);pointer-events:none}
+.ps-pedestal{position:absolute;left:50%;bottom:3%;width:72%;height:15%;transform:translateX(-50%);border-radius:50%;
+  background:radial-gradient(ellipse at 50% 35%,#5a3c2c,#2a1912 55%,#0d0708 72%,transparent 74%);box-shadow:0 0 0 1px #e9c27a33,0 18px 30px #000c}
+.ps-pedestal::after{content:"";position:absolute;inset:18% 12% 46%;border-radius:50%;background:radial-gradient(ellipse,#ffcf8a55,transparent 70%);animation:ps-aura 3.4s ease-in-out infinite}
+.ps-embers{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.ps-embers i{position:absolute;bottom:12%;width:4px;height:4px;border-radius:50%;background:#ffb25e;box-shadow:0 0 8px 2px #ff7a2a88;opacity:0;animation:ps-ember linear infinite}
+.ps-burst{position:absolute;left:50%;top:35%;width:0;height:0;pointer-events:none}
+.ps-burst i{position:absolute;width:7px;height:7px;margin:-3px;border-radius:50%;background:var(--gold2);box-shadow:0 0 10px #ffb25e;animation:ps-spark .9s cubic-bezier(.1,.7,.3,1) both}
+.ps-hero.jump .ps-body{animation:ps-jump .6s cubic-bezier(.3,1.6,.5,1),ps-breathe 3.2s ease-in-out .6s infinite}
+.ps-hero.arrive .ps-tilt{animation:ps-arrive .9s cubic-bezier(.2,1.3,.4,1) both}
+
+.ps-plate{margin-top:-6px;display:flex;flex-direction:column;align-items:center;padding:8px 26px 9px;border-radius:12px;background:linear-gradient(180deg,#2c1d18,#120b0c);box-shadow:inset 0 0 0 1px #e9c27a66,inset 0 1px 0 #ffffff14,0 10px 24px #000c}
+.ps-plate small{font-size:11px;letter-spacing:.26em;color:#c9a675}
+.ps-plate b{font-size:26px;line-height:1.05;letter-spacing:.04em;color:#fff3df}
+.ps-status{margin:6px 0 0;display:flex;align-items:center;gap:10px;font-size:15px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
+.ps-status i{width:9px;height:9px;border-radius:50%;background:var(--gold);box-shadow:0 0 12px var(--gold);animation:ps-pulse 1.4s ease-in-out infinite}
+.ps-status span::after{content:"";display:inline-block;width:1.2em;text-align:left;animation:ps-dots 1.4s steps(4) infinite}
+.ps-lobby.starting .ps-status{color:#ff9a6a}.ps-lobby.starting .ps-status i{background:#ff6a3a;box-shadow:0 0 14px #ff6a3a}
+.ps-hint{margin:0;font-size:12px;letter-spacing:.08em;color:#9f8b7d;text-align:center}
+
+.ps-roster{list-style:none;margin:8px 0 0;padding:0;width:100%;display:grid;grid-template-columns:repeat(4,1fr);gap:6px 8px}
+.ps-guest{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:12px;letter-spacing:.06em;color:#e8dccb;min-width:0}
+.ps-guest img,.ps-guest i{width:44px;height:44px;border-radius:50%;object-fit:cover;background:#1b1112;box-shadow:0 0 0 2px #6b4a2b,0 6px 14px #000b}
+.ps-guest span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ps-guest.me img{box-shadow:0 0 0 2px var(--gold2),0 0 16px #e9c27a88}.ps-guest.me span{color:var(--gold2)}
+.ps-guest.away{opacity:.45;filter:grayscale(.8)}
+.ps-guest.empty i{display:block;background:radial-gradient(circle,#ffffff08,transparent 70%);box-shadow:inset 0 0 0 1.5px #ffffff1c}
+.ps-guest.new{animation:ps-pop .55s cubic-bezier(.2,1.6,.4,1) both}
+
+@keyframes ps-breathe{0%,100%{transform:translate(calc(-50% + var(--px)),0) translateZ(30px) scale(1,1)}50%{transform:translate(calc(-50% + var(--px)),-3px) translateZ(30px) scale(1.012,1.022)}}
+@keyframes ps-jump{0%{transform:translate(calc(-50% + var(--px)),0) translateZ(30px) scale(1.08,.9)}35%{transform:translate(calc(-50% + var(--px)),-46px) translateZ(30px) scale(.95,1.06)}70%{transform:translate(calc(-50% + var(--px)),0) translateZ(30px) scale(1.06,.94)}100%{transform:translate(calc(-50% + var(--px)),0) translateZ(30px) scale(1,1)}}
+@keyframes ps-arrive{from{opacity:0;transform:translateY(60px) scale(.8)}to{opacity:1;transform:none}}
+@keyframes ps-beam{0%,100%{opacity:.75}50%{opacity:1}}
+@keyframes ps-aura{0%,100%{opacity:.7;transform:translate(-50%,0) scale(1)}50%{opacity:1;transform:translate(-50%,0) scale(1.05)}}
+@keyframes ps-ember{0%{opacity:0;transform:translate(0,0) scale(.6)}15%{opacity:1}100%{opacity:0;transform:translate(var(--dx),-260px) scale(.2)}}
+@keyframes ps-spark{from{opacity:1;transform:translate(0,0)}to{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.2)}}
+@keyframes ps-pulse{0%,100%{opacity:.4;transform:scale(.8)}50%{opacity:1;transform:scale(1.15)}}
+@keyframes ps-dots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+@keyframes ps-pop{from{opacity:0;transform:scale(.3) translateY(14px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.ps-lobby *{animation:none!important}}
+
+/* join: everything on one screen, the button always in reach */
+.ps-on[data-view="join"] .masthead{transform:scale(.7);transform-origin:50% 0;margin-bottom:-40px}
+.ps-on #join-form{display:flex;flex-direction:column}
+.ps-on #join-form #join-button{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom));z-index:3;margin-top:14px}
+.ps-on #room-code{font-size:32px!important;letter-spacing:.42em!important;text-align:center;caret-color:#e9c27a;box-shadow:inset 0 0 0 1px #e9c27a88,0 0 24px #e9c27a22!important}
+.ps-on #room-code:focus{box-shadow:inset 0 0 0 2px #ffdf9e,0 0 32px #e9c27a55!important}
