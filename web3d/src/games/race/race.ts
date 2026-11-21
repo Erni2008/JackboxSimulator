@@ -125,7 +125,7 @@ export class RaceApp {
       const links = Math.round(p.len / .2); const chain = new THREE.InstancedMesh(linkGeo, ironM, links); const m4 = new THREE.Matrix4(), q = new THREE.Quaternion();
       for (let i = 0; i < links; i++) {q.setFromEuler(new THREE.Euler(0, i % 2 ? Math.PI / 2 : 0, Math.PI / 2)); m4.compose(new THREE.Vector3(0, -i * .2 - .1, 0), q, new THREE.Vector3(1, 1, 1)); chain.setMatrixAt(i, m4);}
       chain.castShadow = true; pivot.add(chain);
-      const bob = this.manor ? spikedBall() : this.night ? scythe() : normalized(boulder.scene, p.radius * 2.1, 'max'); bob.position.y = -p.len; pivot.add(bob); this.scene.add(pivot);
+      const bob = scythe(); // the anchor-like blade on every map (no boulders or spiked balls on pendulums) bob.position.y = -p.len; pivot.add(bob); this.scene.add(pivot);
       const base = this.course.spawnY(p.pz), postX = this.night ? 5.2 : 5.4;
       if (!this.manor) for (const sg of [-1, 1]) {const post = new THREE.Mesh(this.night ? new THREE.BoxGeometry(.9, p.py - base, .9) : new THREE.CylinderGeometry(.45, .5, p.py - base, 10), this.night ? mats.brick : mats.bark); post.position.set(sg * postX, (base + p.py) / 2, p.pz); post.castShadow = true; this.scene.add(post);}
       const beam = new THREE.Mesh(logGeo, this.manor ? mats.beam : this.night ? mats.dark : mats.bark); beam.scale.set(postX * 2 + .8, .9, .9); beam.position.set(0, p.py + .3, p.pz); beam.castShadow = true; this.scene.add(beam);
