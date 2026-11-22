@@ -10,7 +10,8 @@ import com.badlogic.gdx.math.Matrix4;
 public final class DraculaCharacter implements CageCharacter {
     /** escape attempt: how far each arm is raised toward the bars (degrees, 0 = rest) */
     private float gripL, gripR;
-    @Override public void grip(float left, float right) { gripL = left; gripR = right; }
+    /** calibrated so the raised hands land on the two bending door bars (the cage asks for up to ~164 degrees) */
+    @Override public void grip(float left, float right) { gripL = left * 0.88f; gripR = right * 0.88f; }
     // Lobby-only presentation scale; the complete rig grows uniformly around its existing anchor.
     private static final float LOBBY_SCALE = 1.14f;
     public static final float CAPE_SCALE=.072f, CAPE_WAVE=1.05f;

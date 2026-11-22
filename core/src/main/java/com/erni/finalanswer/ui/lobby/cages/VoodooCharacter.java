@@ -12,7 +12,8 @@ import java.util.*;
 public final class VoodooCharacter implements CageCharacter {
     /** escape attempt: how far each arm is raised toward the bars (degrees, 0 = rest) */
     private float gripL, gripR;
-    @Override public void grip(float left, float right) { gripL = left; gripR = right; }
+    /** calibrated so the raised hands land on the two bending door bars (the cage asks for up to ~164 degrees) */
+    @Override public void grip(float left, float right) { gripL = left * 0.62f; gripR = right * 0.62f; }
     public static final class Part {
         public final VoodooConfig.Part config;public final TextureRegion region;
         public final Matrix4 world=new Matrix4();

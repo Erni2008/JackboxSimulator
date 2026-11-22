@@ -11,7 +11,8 @@ import com.badlogic.gdx.math.Matrix4;
 public final class PumpkinCharacter implements CageCharacter {
     /** escape attempt: how far each arm is raised toward the bars (degrees, 0 = rest) */
     private float gripL, gripR;
-    @Override public void grip(float left, float right) { gripL = left; gripR = right; }
+    /** calibrated so the raised hands land on the two bending door bars (the cage asks for up to ~164 degrees) */
+    @Override public void grip(float left, float right) { gripL = left * 0.62f; gripR = right * 0.62f; }
     public static final float HEAD_SCALE=.05f, BODY_SCALE=.052f, STEM_SCALE=.05f;
     private final PumpkinAssets assets;
     private final PumpkinAnimator animator;

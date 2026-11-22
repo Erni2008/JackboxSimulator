@@ -11,7 +11,8 @@ import com.badlogic.gdx.math.Matrix4;
 public final class PlagueDoctorCharacter implements CageCharacter {
     /** escape attempt: how far each arm is raised toward the bars (degrees, 0 = rest) */
     private float gripL, gripR;
-    @Override public void grip(float left, float right) { gripL = left; gripR = right; }
+    /** calibrated so the raised hands land on the two bending door bars (the cage asks for up to ~164 degrees) */
+    @Override public void grip(float left, float right) { gripL = left * 0.62f; gripR = right * 0.62f; }
     private static final float LOBBY_SCALE=1.32f;
     /** Base material exposure; readability is calibrated separately for mask, cloth and hat. Lantern intensity is independent. */
     public static float plagueDoctorBrightness=.65f;
