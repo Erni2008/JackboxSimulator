@@ -27,4 +27,18 @@ class CageViewTest {
         assertEquals("NOT_HOST", assertThrows(com.finalanswer.server.rooms.RoomService.Failure.class, () -> service.cageView(s(host, "code"), s(one, "token"))).getMessage());
         assertThrows(com.finalanswer.server.rooms.RoomService.Failure.class, () -> command(a, "CAGE_REPORT", Map.of("kind", "lava")));
     }
+
+    /** A second Hell Cage in the same room starts every player clean: no repairs, penalties or lockout carried over. */
+    @Test void reopenedCageStartsFromZero() {
+        host = obj(service.create(new HashMap<>(Map.of("name", "Cage", "maxPlayers", "4")))); service.attach(s(host, "code"), s(host, "token"), h, "host");
+        one = obj(service.join(s(host, "code"), Map.of("name", "One"))); service.attach(s(host, "code"), s(one, "token"), a, "a");
+        command(h, "OPEN_WEB_GAME", Map.of("game", "broken-elevator"));
+        command(a, "CAGE_REPORT", Map.of("kind", "wire", "task", 1, "result", "FAIL"));
+        command(a, "CAGE_REPORT", Map.of("kind", "wire", "task", 1, "result", "OK"));
+        command(h, "CLOSE_WEB_GAME", Map.of());
+        command(a, "CAGE_REPORT", Map.of("kind", "wire", "task", 1, "result", "OK")); // late, after the close: ignored
+        command(h, "OPEN_WEB_GAME", Map.of("game", "broken-elevator"));
+        var p = view().getAsJsonArray("players").get(0).getAsJsonObject();
+        assertEquals(0, p.get("repairs").getAsInt()); assertEquals(0, p.get("penalties").getAsInt()); assertEquals(0, p.get("failAt").getAsLong());
+    }
 }

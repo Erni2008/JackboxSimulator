@@ -208,7 +208,7 @@ public final class RoomService {
                 broadcast(room,"WEB_GAME_OPENED");reply(peer,room,member,message);return;
             }
             if(data.has("difficulty")){String d=Protocol.string(data,"difficulty");if(!Set.of("EASY","NORMAL","HARD").contains(d))throw new Failure(400,"INVALID_DIFFICULTY");room.difficulty=com.erni.finalanswer.gameplay.elevator.Difficulty.valueOf(d);}
-            room.pressure.clear();room.formula.clear();room.bomb.clear();room.webGameAt=now();room.shift=new com.erni.finalanswer.gameplay.elevator.CageShift(room.difficulty,room.members.values().stream().filter(m->!m.left).map(m->m.id).toList(),random.nextLong(),now(),Boolean.getBoolean("race.qa")&&data.has("bomb")&&data.get("bomb").getAsBoolean()||room.bombBag.draw(random)); // QA runs may force the bomb shiftfor(var m:room.members.values()){m.elevatorRepairs=0;m.elevatorPenalties=0;m.cageKind="";m.cageTask=0;m.cageFailAt=0;}
+            room.pressure.clear();room.formula.clear();room.bomb.clear();room.webGameAt=now();room.shift=new com.erni.finalanswer.gameplay.elevator.CageShift(room.difficulty,room.members.values().stream().filter(m->!m.left).map(m->m.id).toList(),random.nextLong(),now(),Boolean.getBoolean("race.qa")&&data.has("bomb")&&data.get("bomb").getAsBoolean()||room.bombBag.draw(random)); /* QA runs may force the bomb shift */ for(var m:room.members.values()){m.elevatorRepairs=0;m.elevatorPenalties=0;m.cageKind="";m.cageTask=0;m.cageFailAt=0;}
             room.webGame=id;room.webGameId=UUID.randomUUID().toString();broadcast(room,"WEB_GAME_OPENED");reply(peer,room,member,message);return;
         }
         if(Set.of("START_LAST_COMMAND","LAST_COMMAND_ACTION","END_LAST_COMMAND").contains(message.type())){lastCommandCommand(room,member,peer,message);return;}
@@ -804,6 +804,8 @@ public final class RoomService {
     /** THE HELL CAGE: the phone tells the room which machine it is on; the wire panel (client-side rules) also reports its result */
     private void cageReport(Room room,Member member,Peer peer,Message message){
         JsonObject data=message.payload(); if(member.host)throw new Failure(403,"NOT_A_PLAYER");
+        // a report still in flight when the shift closed must not count towards the next game
+        if(!room.webGame.equals("broken-elevator")){reply(peer,room,member,message);return;}
         String kind=data.has("kind")?Protocol.string(data,"kind"):"";if(!Set.of("wire","pressure","formula","lock","bomb").contains(kind))throw new Failure(400,"INVALID_CAGE_REPORT");
         int task=data.has("task")?Math.max(1,Math.min(99,data.get("task").getAsInt())):1; member.cageKind=kind; member.cageTask=task;
         String result=data.has("result")?Protocol.string(data,"result"):"";
