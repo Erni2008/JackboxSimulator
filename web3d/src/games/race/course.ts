@@ -52,7 +52,7 @@ export const top = (b: Block, z: number, x = (b.x0 + b.x1) / 2 + b.offX) => {con
 export class Runner {
   x = 0; y = 0; z = 0; vx = 0; vy = 0; vz = 0; inX = 0; inZ = 0; facing = 0; stun = 0; coyote = 0; jumpBuffer = 0;
   progress = 0; finishTime = 0; jump = false; holdJump = false; finished = false; checkpoint = 0; falls = 0;
-  ground: Block | null = null; launched = false; safe = 0; airT = 0; botCool = 0; landed = 0; hook = -1; wind = 0;
+  ground: Block | null = null; launched = false; safe = 0; airT = 0; botCool = 0; landed = 0; hook = -1; wind = 0; onProp = false;
   constructor(public id: string, public name: string, public character: string, public slot: number, public bot: boolean) {}
 }
 
@@ -73,7 +73,7 @@ export const TRIALS = ['spinner', 'gauntlet', 'highlow', 'gaps', 'beams', 'pendu
 export class Course {
   static readonly BARREL_SPEEDS = [4, 8.5, 14]; // slow / medium / fast — clearly different
   blocks: Block[] = []; sweepers: Sweeper[] = []; pendulums: Pendulum[] = []; boulders: Boulder[] = []; fallers: Faller[] = [];
-  pushers: Pusher[] = []; jets: Jet[] = []; gears: Gear[] = []; gates: Gate[] = []; fans: Fan[] = []; hooks: Hook[] = []; chasers: Chaser[] = []; carts: Block[] = []; tilts: Block[] = []; pads: Pad[] = []; portals: Portal[] = []; mazePath: [number, number][] = []; mazeBox = [0, 0, 0, 0]; rooms: Room[] = []; sections: {name: string; z0: number; z1: number}[] = [];
+  pushers: Pusher[] = []; jets: Jet[] = []; gears: Gear[] = []; gates: Gate[] = []; fans: Fan[] = []; hooks: Hook[] = []; chasers: Chaser[] = []; carts: Block[] = []; tilts: Block[] = []; pads: Pad[] = []; portals: Portal[] = []; /** solid scenery (rocks, stumps, boulders, graves): runners walk around them, or stand on top */ props: {x: number; z: number; y: number; r: number; h: number}[] = []; mazePath: [number, number][] = []; mazeBox = [0, 0, 0, 0]; rooms: Room[] = []; sections: {name: string; z0: number; z1: number}[] = [];
   fallZones: [number, number, number, number][] = []; checkpoints: number[] = [0]; finishZ = 0; time = 0;
   rampZ0 = 0; rampZ1 = 0; rampY0 = 0; rampY1 = 0; rampHalfW = 4; theme: Theme; deathY = DEATH_Y;
   private boulderTimer = 1.2; private nextPick = -1; rampWarn = false; private seed = 7; private fallTimer = 0; private fallSeed = 99; private fallId = 0;
@@ -438,7 +438,7 @@ export class Course {
     if (r.finished) {r.vx = r.vy = r.vz = 0; return;}
     r.stun = Math.max(0, r.stun - dt); r.coyote -= dt; r.jumpBuffer -= dt;
     let ix = r.inX, iz = r.inZ; const il = Math.hypot(ix, iz); if (il > 1) {ix /= il; iz /= il;}
-    const speed = 8.2; let acc = r.ground ? 75 : 24; if (r.stun > 0) acc = 3;
+    const speed = 8.2; let acc = r.ground || r.onProp ? 75 : 24; if (r.stun > 0) acc = 3;
     r.vx = approach(r.vx, ix * speed, acc * dt); r.vz = !r.ground && r.vz > speed ? r.vz - 2 * dt : approach(r.vz, iz * speed, acc * dt);
     if (il > .1) r.facing = Math.atan2(ix, iz);
     if (r.jump) {r.jumpBuffer = .14; r.jump = false;}
@@ -469,7 +469,10 @@ export class Course {
           if (m === l) r.x = x0 - R; else if (m === rr) r.x = x1 + R; else if (m === f) r.z = b.z0 - R; else r.z = b.z1 + R;}
       }
     }
-    if (landed && !r.ground && prevY - r.y >= 0) r.landed = this.time;
+    let onProp = false; for (const p of this.props) {const dx = r.x - p.x, dz = r.z - p.z, rr = p.r + R; if (dx * dx + dz * dz >= rr * rr || r.y + H <= p.y || r.y >= p.y + p.h) continue;
+      if (prevY >= p.y + p.h - .3 && r.vy <= .01) {r.y = p.y + p.h; r.vy = 0; r.coyote = .1; onProp = true; continue;} // step onto a low rock instead of snagging on its edge
+      const d = Math.hypot(dx, dz) || 1e-3, push = rr - d; r.x += dx / d * push; r.z += dz / d * push; const vn = (r.vx * dx + r.vz * dz) / d; if (vn < 0) {r.vx -= vn * dx / d; r.vz -= vn * dz / d;}}
+    r.onProp = onProp; if (landed && !r.ground && prevY - r.y >= 0) r.landed = this.time;
     for (const g of this.gears) {const dx = r.x - g.x, dz = r.z - g.z, d = Math.hypot(dx, dz); if (d > g.r + R) continue;
       let la = Math.atan2(dz, dx) - g.angle; la = ((la % 6.2832) + 6.2832) % 6.2832; const inGap = g.gaps.some(([a, b]) => la >= a && la <= b);
       if (d <= g.r && !inGap && r.vy <= .01 && r.y <= g.y + .05 && prevY >= g.y - .45) {r.y = g.y; r.vy = 0; landed = g.block; continue;}

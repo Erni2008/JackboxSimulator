@@ -215,10 +215,10 @@ export class RaceApp {
       for (let i = 0; i < d * .8; i++) {const side = rnd() < .5 ? -1 : 1, x = side > 0 ? b.x1 - 1 - rnd() * 1.3 : b.x0 + 1 + rnd() * 1.3, z = b.z0 + rnd() * d, y = top(b, z), r = rnd();
         if (b.mat === 'grass' && r < .5) put('grass_medium_01', x, y, z, .7 + rnd() * .5);
         else if (r < .74) put('fern_02', x, y, z, .8 + rnd() * .6);
-        else if (r < .88) put('rock_moss_set_01', x, y - .1, z, .8 + rnd() * .7);
+        else if (r < .88) {const sz = .8 + rnd() * .7; put('rock_moss_set_01', x, y - .1, z, sz); this.solid(x, z, y, sz * .38, sz * .45);}
         else if (r < .95) put('shrub_01', x, y, z, 1.1 + rnd() * .8);
-        else put('tree_stump_01', x, y, z, .9 + rnd() * .4);}
-      if (b.x1 - b.x0 > 12 && d > 14 && rnd() < .7) put('boulder_01', rnd() < .5 ? b.x0 + 1.4 : b.x1 - 1.4, top(b, b.z0 + d / 2) - .3, b.z0 + d / 2, 2.4);
+        else {const sz = .9 + rnd() * .4; put('tree_stump_01', x, y, z, sz); this.solid(x, z, y, sz * .3, sz * .55);}}
+      if (b.x1 - b.x0 > 12 && d > 14 && rnd() < .7) {const bx = rnd() < .5 ? b.x0 + 1.4 : b.x1 - 1.4, by = top(b, b.z0 + d / 2); put('boulder_01', bx, by - .3, b.z0 + d / 2, 2.4); this.solid(bx, b.z0 + d / 2, by, 1, 1.9);}
       for (let i = 0; i < 0; i++) {const z = b.z0 + rnd() * d, side = rnd() < .5 ? -1 : 1; put('root_cluster_01', side > 0 ? b.x1 + .1 : b.x0 - .1, top(b, z) - 1.6, z, 2.2, side > 0 ? Math.PI / 2 : -Math.PI / 2);}
     }
     
@@ -528,6 +528,9 @@ export class RaceApp {
     const c = document.createElement('canvas'); c.width = 4; c.height = 4; m = new THREE.MeshStandardMaterial({map: t, color: 0xd8c8b0, roughness: .7, transparent: true, alphaTest: .05});
     const bg = new THREE.MeshStandardMaterial({color: 0x2a1410}); void bg; this.portraits.set(ch, m);} return m;} private flames: THREE.Sprite[] = [];
 
+  /** registers a piece of scenery as solid in the course physics */
+  private solid(x: number, z: number, y: number, r: number, h: number) {this.course.props.push({x, z, y, r, h});}
+
   // ---------- graveyard dressing ----------
   private async decorateNight(stone: THREE.Material, progress: (f: number) => void) {
     let seed = 23; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -542,7 +545,7 @@ export class RaceApp {
     // graves on the wide plazas, iron fences along their edges, lanterns along the path
     for (const b of this.course.blocks) {
       if (b.crumbles || b.driftAmp || b.liftAmp || (b.gear || b.cart || b.tilt || b.trapPeriod || b.wall || b.fake || b.driftAmp || (b.x1 - b.x0) < 6)) continue; const d = b.z1 - b.z0, w = b.x1 - b.x0, y = top(b, b.z0);
-      if (w >= 14) for (let i = 0; i < d / 3; i++) {const sd = rnd() < .5 ? -1 : 1, x = sd > 0 ? b.x1 - .8 - rnd() * 1.2 : b.x0 + .8 + rnd() * 1.2; put(rnd() < .75 ? graves : crosses, x, y, b.z0 + rnd() * d, .7 + rnd() * .4, (rnd() - .5) * .5, (rnd() - .5) * .25);}
+      if (w >= 14) for (let i = 0; i < d / 3; i++) {const sd = rnd() < .5 ? -1 : 1, x = sd > 0 ? b.x1 - .8 - rnd() * 1.2 : b.x0 + .8 + rnd() * 1.2, gz = b.z0 + rnd() * d, gs = .7 + rnd() * .4, grave = rnd() < .75; put(grave ? graves : crosses, x, y, gz, gs, (rnd() - .5) * .5, (rnd() - .5) * .25); this.solid(x, gz, y, grave ? .45 * gs : .25 * gs, (grave ? 1.3 : 1.5) * gs);}
       if (b.mat !== 'mud') for (const sd of [-1, 1]) for (let zz = b.z0 + .3; zz < b.z1; zz += .45) if (rnd() < .92) put(bars, sd > 0 ? b.x1 - .1 : b.x0 + .1, y, zz, 1, 0, (rnd() - .5) * .12);
       for (let zz = b.z0 + 3; zz < b.z1 - 1; zz += 11) for (const sd of [-1, 1]) lamps.push(new THREE.Vector3(sd > 0 ? b.x1 - .45 : b.x0 + .45, y, zz + (sd > 0 ? 5 : 0)));
     }
