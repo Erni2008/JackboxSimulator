@@ -22,7 +22,7 @@
   function show(mode){
     const d=R[mode];if(!d)return;if(open)open.remove();
     const o=document.createElement('div');o.className='mode-rules';o.setAttribute('role','dialog');o.setAttribute('aria-label',faT(d.t[0],d.t[1]));
-    o.innerHTML=`<div class="mr-card"><p class="mr-eyebrow">${faT('КАК ИГРАТЬ','HOW TO PLAY')}</p><p class="mr-title">${faT(d.t[0],d.t[1])}</p><ol>${d.r.map(x=>`<li>${faT(x[0],x[1])}</li>`).join('')}</ol><button type="button" data-native-button>${faT('ПОНЯТНО','GOT IT')}</button><i class="mr-timer"></i></div>`;
+    o.innerHTML=`<div class="mr-card"><img class="cu-c tl" src="/ui/join/corner_tl.png" alt=""><img class="cu-c tr" src="/ui/join/corner_tr.png" alt=""><img class="cu-c bl" src="/ui/join/corner_bl.png" alt=""><img class="cu-c br" src="/ui/join/corner_br.png" alt=""><img class="cu-crest" src="/ui/join/crest.png" alt=""><p class="mr-eyebrow">${faT('КАК ИГРАТЬ','HOW TO PLAY')}</p><p class="mr-title">${faT(d.t[0],d.t[1])}</p><ol>${d.r.map(x=>`<li>${faT(x[0],x[1])}</li>`).join('')}</ol><button type="button" data-native-button>${faT('ПОНЯТНО','GOT IT')}</button><i class="mr-timer"></i></div>`;
     document.body.append(o);open=o;
     const close=()=>{if(o.classList.contains('out'))return;o.classList.add('out');setTimeout(()=>{o.remove();if(open===o)open=null;},300);};
     o.querySelector('button').onclick=close;o.addEventListener('click',e=>{if(e.target===o)close();});setTimeout(close,8000);

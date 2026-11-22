@@ -1,0 +1,27 @@
+/* COPPER UI — the join screen's ornate copper frame, shared by the overlay cards (how to play, round results).
+   Loaded after mode-rules.css and round-score.css. Corner, crest art: /ui/join/. */
+.mr-card,.rs-card{--cu:#c98a52;--cu3:#8a5530;--cream:#f4dcc0;overflow:visible!important;border-radius:4px!important;
+  background:linear-gradient(180deg,#1d1112f2,#110909f5)!important;
+  box-shadow:inset 0 0 0 1.5px var(--cu3),inset 0 0 0 2.5px #00000080,inset 0 0 0 7px #1a1011,inset 0 0 0 8px #c98a5244,0 24px 50px #000d!important}
+.rs-card::before{display:none}
+.cu-c{position:absolute;width:54px;height:54px;pointer-events:none;z-index:2}
+.cu-c.tl{left:-8px;top:-8px}.cu-c.tr{right:-8px;top:-8px}.cu-c.bl{left:-8px;bottom:-8px}.cu-c.br{right:-8px;bottom:-8px}
+.cu-crest{position:absolute;left:50%;top:-13px;width:104px;transform:translateX(-50%);pointer-events:none;z-index:2}
+/* how to play */
+.mr-card{padding:30px 22px 20px!important}
+.mr-eyebrow{text-align:center;letter-spacing:.32em!important;color:var(--cu)!important;font-family:Gothic,Georgia,serif}
+.mr-title{text-align:center;font-family:Gothic,Georgia,serif!important;font-size:30px!important;letter-spacing:.08em;text-transform:uppercase;color:#fbe3c4!important;text-shadow:0 2px 3px #000}
+.mr-title::after{content:"";display:block;width:140px;height:1px;margin:10px auto 0;background:linear-gradient(90deg,transparent,var(--cu),transparent)}
+.mr-card li{border-top:1px solid #c98a5226!important;color:var(--cream)}
+.mr-card li::before{color:#2a1408!important;background:radial-gradient(circle at 35% 30%,#ffd8a8,#c98a52 55%,#6a3a1c)!important;box-shadow:0 0 0 1px #3a1e0c,0 0 8px #c98a5255;font-family:Gothic,Georgia,serif}
+html body .mode-rules .mr-card button{position:relative;height:56px;min-height:0;border:0;border-radius:0;
+  background:linear-gradient(180deg,#e7a36a,#8a4a22 45%,#f0b47a);clip-path:polygon(8% 0,92% 0,100% 50%,92% 100%,8% 100%,0 50%);
+  font:700 19px/1 Gothic,Georgia,serif;letter-spacing:.18em;color:#fbe3c4;text-shadow:0 2px 2px #000a;isolation:isolate}
+html body .mode-rules .mr-card button::before{content:"";position:absolute;inset:2.5px;z-index:-1;clip-path:polygon(8% 0,92% 0,100% 50%,92% 100%,8% 100%,0 50%);background:radial-gradient(ellipse at 50% 35%,#a02a1c,#5e130d 60%,#3a0a07)}
+html body .mode-rules .mr-card button:active{transform:scale(.98)}
+.mr-timer{left:12px!important;right:12px;width:auto!important;bottom:7px!important;height:2px!important;background:linear-gradient(90deg,#8a5530,#f2c28c,#8a5530)!important}
+/* round results */
+.rs-card{padding:32px 22px 20px!important}
+.rs-eyebrow{font-family:Gothic,Georgia,serif;letter-spacing:.34em!important}
+.rs-mode{font-family:Gothic,Georgia,serif;color:var(--cream)!important;text-transform:uppercase}
+.rs-total{box-shadow:inset 0 0 0 1px #c98a5240!important;border-radius:3px!important;background:#0a0505b0!important}

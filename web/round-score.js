@@ -18,7 +18,7 @@
     const n=NAMES[sum.mode],earned=Math.max(0,me.earned|0),before=Math.max(0,me.total-earned);
     const tier=earned<=0?'zero':place===1?'gold':place===2?'silver':place===3?'bronze':'plain';
     const o=document.createElement('div');o.className='round-score tier-'+tier;o.setAttribute('role','status');
-    o.innerHTML=`<div class="rs-rays"></div><div class="rs-card">
+    o.innerHTML=`<div class="rs-rays"></div><div class="rs-card"><img class="cu-c tl" src="/ui/join/corner_tl.png" alt=""><img class="cu-c tr" src="/ui/join/corner_tr.png" alt=""><img class="cu-c bl" src="/ui/join/corner_bl.png" alt=""><img class="cu-c br" src="/ui/join/corner_br.png" alt=""><img class="cu-crest" src="/ui/join/crest.png" alt="">
       <p class="rs-eyebrow">${faT('ИТОГИ РАУНДА','ROUND RESULTS')}</p>${n?`<p class="rs-mode">${faT(n[0],n[1])}</p>`:''}
       <div class="rs-medal"><b>${place}</b><small>${faT('МЕСТО','PLACE')}</small></div>
       ${place===1&&earned>0?`<p class="rs-winner">${faT('ПОБЕДИТЕЛЬ РАУНДА','ROUND WINNER')}</p>`:''}
