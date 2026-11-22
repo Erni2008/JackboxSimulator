@@ -440,6 +440,9 @@ tasks.register('cagePreview', JavaExec) {
     workingDir = rootProject.file('assets')
     systemProperty 'cage.check', providers.gradleProperty('cageCheck').getOrElse('false')
     systemProperty 'cage.output', rootProject.file('generated/cage-preview').absolutePath
+    systemProperty 'cage.struggle', providers.gradleProperty('cageStruggle').getOrElse('0')
+    systemProperty 'cage.grip', providers.gradleProperty('cageGrip').getOrElse('-1')
+    systemProperty 'cage.debug', providers.gradleProperty('cageDebug').getOrElse('false')
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
