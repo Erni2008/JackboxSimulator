@@ -11,10 +11,10 @@ import static com.finalanswer.server.RoomServiceTest.*;
 /** THE HOST'S SUITCASE: module choice, fuse, progress, and the room keeps the same suitcase across reconnects. */
 class BombPuzzleTest {
     static final List<Mechanism> WM = List.of(Mechanism.WIRE_MAZE), HC = List.of(Mechanism.HIDDEN_CONNECTIONS);
-    @Test void alwaysThreeOfFiveReproducibleAndForcible() {
+    @Test void alwaysThreeOfSixReproducibleAndForcible() {
         Set<Set<Mechanism>> combos = new HashSet<>();
         for (long s = 0; s < 400; s++) { var a = BombPuzzle.pick(s); assertEquals(a, BombPuzzle.pick(s)); assertEquals(3, a.size()); assertEquals(3, new HashSet<>(a).size()); combos.add(EnumSet.copyOf(a)); }
-        assertEquals(10, combos.size(), "all ten 3-of-5 combinations come up");
+        assertEquals(20, combos.size(), "all twenty 3-of-6 combinations come up");
         assertEquals(List.of(Mechanism.LASER), new BombPuzzle(1, Difficulty.EASY, List.of(Mechanism.LASER), 0).armed);
         assertEquals(List.of(Mechanism.WIRE_MAZE, Mechanism.THERMAL), BombPuzzle.parseList("wire_maze,thermal,lava")); assertNull(BombPuzzle.parse("lava"));
         assertTrue(CageShift.FULL_POOL.contains("bomb"), "the bomb is the fifth assignment");
@@ -119,4 +119,20 @@ class BombPuzzleTest {
             int hottest = 0; for (int i = 1; i < 6; i++) if (t.caps.get(i).temp() > t.caps.get(hottest).temp()) hottest = i; assertNotEquals(hottest, t.solution(), "the hottest is never the one"); }
     }
     static String bomb(TestPeer p) { for (int i = p.events.size() - 1; i >= 0; i--) { var pl = p.events.get(i).getAsJsonObject("payload"); if (pl != null && pl.has("elevatorBomb")) return pl.get("elevatorBomb").toString(); } return ""; }
+
+    /** THE CIPHER LOCK: both formats, case and spaces don't matter, a wrong code is a strike, the answer never leaves the server. */
+    @Test void cipherLockBothFormats() {
+        assertEquals("53 4F 55 4C", CipherLock.hex("SOUL"));
+        Set<CipherLock.Mode> modes = EnumSet.noneOf(CipherLock.Mode.class);
+        for (long s = 0; s < 40; s++) for (Difficulty d : Difficulty.values()) { var c = CipherLock.generate(s, d); modes.add(c.mode);
+            assertTrue(c.word.matches("[A-Z]{3,7}")); String answer = c.mode == CipherLock.Mode.TO_HEX ? CipherLock.hex(c.word) : c.word;
+            assertTrue(c.accepts(answer)); assertTrue(c.accepts(answer.toLowerCase().replace(" ", ""))); assertFalse(c.accepts(answer + "A")); assertFalse(c.accepts(""));
+            assertEquals(c.mode == CipherLock.Mode.TO_HEX ? c.word : CipherLock.hex(c.word), c.shown()); }
+        assertEquals(EnumSet.allOf(CipherLock.Mode.class), modes, "both formats come up");
+        var p = new BombPuzzle(9, Difficulty.EASY, List.of(Mechanism.CIPHER), 0); p.apply("OPEN", 1, 1);
+        p.decode("ZZZZ", 2, 2); assertEquals(1, p.strikes()); assertEquals(Outcome.RUNNING, p.outcome());
+        assertFalse(p.decode("ZZZZ", 2, 3), "a replayed message is ignored");
+        String answer = p.cipher.mode == CipherLock.Mode.TO_HEX ? CipherLock.hex(p.cipher.word) : p.cipher.word.toLowerCase();
+        p.decode(answer, 3, 4); assertEquals(Outcome.DEFUSED, p.outcome());
+    }
 }

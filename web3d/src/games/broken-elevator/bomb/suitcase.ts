@@ -10,11 +10,11 @@ import {L} from '../i18n';
 import {mergeStatic} from './merge';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 
-export type Mechanism = 'WIRE_MAZE' | 'HIDDEN_CONNECTIONS' | 'XRAY' | 'LASER' | 'THERMAL';
-export const MECHANISMS: Mechanism[] = ['WIRE_MAZE', 'HIDDEN_CONNECTIONS', 'XRAY', 'LASER', 'THERMAL'];
+export type Mechanism = 'WIRE_MAZE' | 'HIDDEN_CONNECTIONS' | 'XRAY' | 'LASER' | 'THERMAL' | 'CIPHER';
+export const MECHANISMS: Mechanism[] = ['WIRE_MAZE', 'HIDDEN_CONNECTIONS', 'XRAY', 'LASER', 'THERMAL', 'CIPHER'];
 export const MECH_NAME: Record<Mechanism, () => string> = {WIRE_MAZE: () => L('Лабиринт проводов', 'Wire maze'), HIDDEN_CONNECTIONS: () => L('Скрытые соединения', 'Hidden connections'),
-  XRAY: () => L('Рентген', 'X-ray inspection'), LASER: () => L('Лазерный контур', 'Laser routing'), THERMAL: () => L('Тепловая угроза', 'Thermal threat')};
-export const ROMAN = ['I', 'II', 'III', 'IV', 'V'];
+  XRAY: () => L('Рентген', 'X-ray inspection'), LASER: () => L('Лазерный контур', 'Laser routing'), THERMAL: () => L('Тепловая угроза', 'Thermal threat'), CIPHER: () => L('Шифратор', 'Cipher lock')};
+export const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI'];
 export type CaseEvent = 'PICKUP' | 'PUTDOWN' | 'LATCH' | 'LOCKED' | 'LID_OPEN' | 'LID_OPENED' | 'FOCUS' | 'UNFOCUS';
 
 // outer size (m): a doctor's-bag sized instrument case lying flat
@@ -146,7 +146,7 @@ export class Suitcase {
       const pl = new T.Mesh(new T.PlaneGeometry(w, wallH), lining); pl.position.set(x, wallH / 2, z); pl.rotation.y = ry; this.interior.add(pl); }
     const brushed = Suitcase.brushed(), screwM = new T.MeshStandardMaterial({color: '#8c8478', metalness: 1, roughness: .32}), screwG = new T.CylinderGeometry(.0022, .0022, .0012, 12);
     const frameM = new T.MeshStandardMaterial({color: '#6e5430', metalness: .9, roughness: .48, map: this.grime(57)}); this.frameMat = frameM; // darker, worn brass for the bay frames (a tap on a frame steps back to the whole case)
-    const layout: [Mechanism, number, number, number, number][] = [['WIRE_MAZE', -.145, -.068, .15, .15], ['HIDDEN_CONNECTIONS', 0, -.068, .125, .13], ['XRAY', .145, -.068, .13, .13], ['LASER', -.085, .072, .25, .12], ['THERMAL', .14, .072, .15, .12]];
+    const layout: [Mechanism, number, number, number, number][] = [['WIRE_MAZE', -.145, -.068, .15, .15], ['HIDDEN_CONNECTIONS', 0, -.068, .125, .13], ['XRAY', .145, -.068, .13, .13], ['LASER', -.085, .072, .25, .12], ['THERMAL', .14, .072, .15, .12], ['CIPHER', .1, -.068, .17, .12]];
     layout.forEach(([m, x, z, w, d], i) => { const g = new T.Group(); g.position.set(x, .002, z); this.interior.add(g);
       const plate = new T.Mesh(new T.BoxGeometry(w, .003, d), brushed); plate.position.y = .0015; g.add(plate);
       for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const sc = new T.Mesh(screwG, screwM); sc.position.set(sx * (w / 2 - .007), .0036, sz * (d / 2 - .007)); g.add(sc); }

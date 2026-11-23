@@ -825,8 +825,10 @@ public final class RoomService {
                 room.bomb.put(member.id,new com.erni.finalanswer.gameplay.elevator.BombPuzzle(random.nextLong(),room.difficulty,forced,now(),limit));}
             reply(peer,room,member,message);return;
         }
-        var keys=new HashSet<>(data.keySet());keys.remove("roomCode"); if(!keys.equals(Set.of("action","seq"))&&!keys.equals(Set.of("action","seq","arg")))throw new Failure(400,"INVALID_BOMB_ACTION");
+        var keys=new HashSet<>(data.keySet());keys.remove("roomCode"); boolean decode=keys.equals(Set.of("action","seq","text"))&&"DECODE".equals(Protocol.string(data,"action"));
+        if(!decode&&!keys.equals(Set.of("action","seq"))&&!keys.equals(Set.of("action","seq","arg")))throw new Failure(400,"INVALID_BOMB_ACTION");
         var p=room.bomb.get(member.id);if(p==null)throw new Failure(409,"NO_BOMB_PUZZLE");
+        if(decode){try{p.decode(Protocol.string(data,"text"),data.get("seq").getAsLong(),now());}catch(RuntimeException e){throw new Failure(400,"INVALID_BOMB_ACTION");}bombOutcome(room,member,p);reply(peer,room,member,message);return;}
         try{p.apply(Protocol.string(data,"action"),data.has("arg")?data.get("arg").getAsInt():-1,data.get("seq").getAsLong(),now());}catch(RuntimeException e){throw new Failure(400,"INVALID_BOMB_ACTION");}
         bombOutcome(room,member,p); reply(peer,room,member,message);
     }
@@ -843,6 +845,7 @@ public final class RoomService {
         if(p.xray!=null)v.put("xray",Map.of("stamp",p.xray.stamp,"cans",p.xray.cans.stream().map(c->Map.of("core",c.core().name(),"needles",c.needles(),"ring",c.ring())).toList()));
         if(p.laser!=null){var g=p.laser;v.put("laser",Map.of("emitter",g.emitterRow,"mirrors",g.mirrors,"baffles",g.baffles,"sensors",g.sensors.stream().map(e->List.of(e.side(),e.index())).toList(),"state",g.state(),"hit",g.hit(g.state())));}
         if(p.thermal!=null)v.put("thermal",Map.of("stamp",p.thermal.stamp.name(),"caps",p.thermal.caps.stream().map(c->Map.of("temp",c.temp(),"pattern",c.pattern().name(),"symbol",c.symbol().name())).toList()));
+        if(p.cipher!=null)v.put("cipher",Map.of("mode",p.cipher.mode.name(),"shown",p.cipher.shown(),"length",p.cipher.word.length()));
         var e=p.lastEvent();if(e!=null)v.put("event",Map.of("seq",e.seq(),"type",e.type(),"detail",e.detail()));
         return v; } // the solution never leaves the server
     private void tickBomb(Room room){

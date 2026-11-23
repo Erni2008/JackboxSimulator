@@ -12,13 +12,13 @@ import java.util.*;
  * <p>Everything here is a fictional game device: abstract rules invented for FINAL ANSWER.
  */
 public final class BombPuzzle {
-    public enum Mechanism { WIRE_MAZE, HIDDEN_CONNECTIONS, XRAY, LASER, THERMAL }
+    public enum Mechanism { WIRE_MAZE, HIDDEN_CONNECTIONS, XRAY, LASER, THERMAL, CIPHER }
     public enum Outcome { RUNNING, DEFUSED, DETONATED }
     /** progress the room restores on reconnect */
     public enum Stage { HIDDEN, FOUND, OPEN }
     public record Event(long seq, String type, String detail) {}
 
-    /** armed mechanisms per event: always 3 of the 5, all must be neutralised */
+    /** armed mechanisms per event: always 3 of the 6, all must be neutralised */
     public static final int MODULES_PER_EVENT = 3;
 
     public final long seed; public final Difficulty difficulty; public final List<Mechanism> armed;
@@ -29,7 +29,7 @@ public final class BombPuzzle {
     /** generated layouts of the armed mechanisms (null for the others: they are dead decoration) */
     public final WireMaze wires; private final Set<Integer> cut = new TreeSet<>();
     public final HiddenLinks links; private int[] probe = {-1, -1}; private String reading = "";
-    public final XrayCans xray; public final LaserGrid laser; public final ThermalCaps thermal;
+    public final XrayCans xray; public final LaserGrid laser; public final ThermalCaps thermal; public final CipherLock cipher;
 
     public BombPuzzle(long seed, Difficulty d, List<Mechanism> forced, long now) { this(seed, d, forced, now, d.bombMs); }
     public BombPuzzle(long seed, Difficulty d, List<Mechanism> forced, long now, long limitMs) {
@@ -39,6 +39,7 @@ public final class BombPuzzle {
         this.xray = armed.contains(Mechanism.XRAY) ? XrayCans.generate(seed, d) : null;
         this.laser = armed.contains(Mechanism.LASER) ? LaserGrid.generate(seed, d) : null;
         this.thermal = armed.contains(Mechanism.THERMAL) ? ThermalCaps.generate(seed, d) : null;
+        this.cipher = armed.contains(Mechanism.CIPHER) ? CipherLock.generate(seed, d) : null;
     }
     /** three distinct mechanisms, random but reproducible from the seed, in bay order */
     public static List<Mechanism> pick(long seed) { List<Mechanism> all = new ArrayList<>(List.of(Mechanism.values())); Collections.shuffle(all, new Random(seed ^ 0x5EEDB0B5L));
@@ -74,6 +75,13 @@ public final class BombPuzzle {
             default -> throw new IllegalArgumentException("UNKNOWN_BOMB_ACTION");
         }
         lastEvent = new Event(seq, action, ""); return true;
+    }
+    /** CIPHER: the typed answer. Old/duplicate seq are ignored; a wrong answer is a strike. */
+    public boolean decode(String typed, long seq, long now) {
+        advance(now); if (outcome != Outcome.RUNNING || seq <= lastSeq) return false; live(Mechanism.CIPHER); lastSeq = seq;
+        if (typed == null || typed.length() > 40) throw new IllegalArgumentException("INVALID_CODE");
+        lastEvent = new Event(seq, "DECODE", typed.replaceAll("\\s+", "").toUpperCase(Locale.ROOT));
+        if (cipher.accepts(typed)) neutralise(Mechanism.CIPHER, seq, now); else strike(seq, now, "CODE " + typed.trim()); return true;
     }
     /** the action must target an armed, still live mechanism, with the lid open */
     private void live(Mechanism m) { if (stage != Stage.OPEN || !armed.contains(m) || neutralised.contains(m)) throw new IllegalArgumentException("NOT_LIVE"); }
