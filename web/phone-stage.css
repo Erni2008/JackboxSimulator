@@ -87,3 +87,6 @@ body.ps-on[data-view="waiting"] .masthead{display:none!important}
 .ps-chain{top:-48px;height:54px}
 .ps-hero{width:min(64vw,260px)!important;height:min(88vw,360px)!important}
 .ps-body{height:76%!important;max-width:78%!important;bottom:6%!important}
+/* short phones: the cage shrinks with the screen height so the status line never drops below the fold */
+.ps-hero{height:clamp(220px,calc(100dvh - 400px),360px)!important;width:auto!important;aspect-ratio:13/18;margin-top:clamp(18px,calc(100dvh - 700px),46px)}
+.ps-lobby{min-height:0}

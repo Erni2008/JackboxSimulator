@@ -9,7 +9,7 @@ async function room(n){const r=await post('/rooms',{name:'Gallery',maxPlayers:8,
   const ws=new WebSocket(BASE.replace('http','ws')+'/ws');const h={code,st:null,errors:[]};h.send=(t,p={})=>ws.send(JSON.stringify({type:t,requestId:rid(),payload:{roomCode:code,...p}}));
   ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.payload?.players)h.st=m.payload;if(m.type==='ERROR'||m.type.endsWith('REJECTED'))h.errors.push(m.payload?.code);};
   await new Promise(r=>ws.onopen=r);h.send('AUTH',{token:tok});await wait(500);h.send('SET_LANGUAGE',{language:'ru'});
-  const me=await post(`/rooms/${code}/join`,{name:'Тыква',characterId:'pumpkin'});h.seat=Buffer.from(JSON.stringify({code,token:me.sessionToken||me.token,name:'Тыква'})).toString('base64url');
+  const me=await post(`/rooms/${code}/join`,{name:'Игрок',characterId:'pumpkin'});h.seat=Buffer.from(JSON.stringify({code,token:me.sessionToken||me.token,name:'Игрок'})).toString('base64url');
   h.bots=[];for(let i=1;i<n;i++){const j=await post(`/rooms/${code}/join`,{name:['Ann','Bob','Cid','Dee','Eve','Gus'][i-1],characterId:CH[i]});const b=new WebSocket(BASE.replace('http','ws')+'/ws');b.onopen=()=>b.send(JSON.stringify({type:'AUTH',requestId:rid(),payload:{roomCode:code,token:j.sessionToken||j.token}}));h.bots.push(b);}
   return h;}
 (async()=>{const b=await chromium.launch({headless:true,executablePath:process.env.CHROME||'/Users/erni/Desktop/Google Chrome.app/Contents/MacOS/Google Chrome'});
@@ -28,7 +28,7 @@ async function room(n){const r=await post('/rooms',{name:'Gallery',maxPlayers:8,
       if(s.phase==='REVEALING'&&!done.r){done.r=1;await wait(1800);await snap(p,'06-reveal','Раскрытие ответа');h.send('REVEAL_READY',{gameId:s.gameId,questionId:s.question?.id});}
       if(s.phase==='RESULTS'&&!done.s){done.s=1;await wait(1500);await snap(p,'07-results','Итог вопроса');break;}
       await wait(250);}
-    await p.evaluate(()=>window.FA_ROUND_SCORE?.event({payload:{selfId:'me',serverTime:Date.now(),modeSummary:{id:'g'+Date.now(),mode:'race',at:Date.now(),rows:[{playerId:'me',name:'Тыква',earned:300,total:1200},{playerId:'b',name:'Bob',earned:200,total:900}]}}}));await wait(3200);await snap(p,'08-round-score','Итоги раунда');}
+    await p.evaluate(()=>window.FA_ROUND_SCORE?.event({payload:{selfId:'me',serverTime:Date.now(),modeSummary:{id:'g'+Date.now(),mode:'race',at:Date.now(),rows:[{playerId:'me',name:'Игрок',earned:300,total:1200},{playerId:'b',name:'Bob',earned:200,total:900}]}}}));await wait(3200);await snap(p,'08-round-score','Итоги раунда');}
   // modes started by the host
   const modes=[['09-cards','Проклятые карты',5,h=>h.send('START_CARDS',{sessionId:h.st.lobbyId})],['10-final-second','Последняя секунда',4,h=>h.send('START_FINAL_SECOND',{sessionId:h.st.lobbyId})],
     ['11-impostor','Самозванец',4,h=>h.send('START_IMPOSTOR',{sessionId:h.st.lobbyId,participantIds:h.st.players.filter(x=>!x.host).map(x=>x.id)})],['12-breach','System Breach',4,h=>h.send('SYSTEM_BREACH_START',{sessionId:h.st.lobbyId})],
