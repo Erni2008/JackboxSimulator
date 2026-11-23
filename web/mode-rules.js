@@ -5,7 +5,7 @@
  */
 (function(){
   const R={
-    questions:{t:['ВОПРОСЫ','QUESTIONS'],r:[['Выберите ответ, пока горят часы','Pick an answer before the clock runs out'],['Верный ответ: +100 очков и души','Correct answer: +100 points and souls'],['Ошиблись? Вас ждут Проклятые коробки','Wrong? The Cursed Boxes are waiting']]},
+    questions:{t:['ВОПРОСЫ','QUESTIONS'],r:[['Выберите ответ, пока горят часы','Pick an answer before the clock runs out'],['Верный ответ: +100 очков и души','Correct answer: +100 points and souls'],['Ошиблись? Вас ждут испытания на выживание','Wrong? Survival trials await you']]},
     boxes:{t:['ПРОКЛЯТЫЕ КОРОБКИ','CURSED BOXES'],r:[['Ошибившиеся прячутся в коробки','Those who were wrong hide in the boxes'],['Остальные выбирают, в какую стрелять','Everyone else picks a box to shoot'],['Выжил в коробке: 200 очков','Survive in a box: 200 points']]},
     cards:{t:['ПРОКЛЯТЫЕ КАРТЫ','CURSED CARDS'],r:[['В свой ход тяните карту','Draw a card on your turn'],['Одна из карт проклята: не вытяните её','One card is cursed: do not draw it'],['Уцелели: 150 очков','Stay safe: 150 points']]},
     'final-second':{t:['ПОСЛЕДНЯЯ СЕКУНДА','FINAL SECOND'],r:[['Запустите отсчёт и остановите его точно в цель','Start the clock and stop it right on the target'],['Чем ближе к цели, тем выше место','The closer you stop, the higher you place'],['1 место: 300 · 2: 200 · 3: 150','1st: 300 · 2nd: 200 · 3rd: 150']]},
