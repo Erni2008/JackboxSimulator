@@ -24,7 +24,7 @@ async function room(n){const r=await post('/rooms',{name:'Gallery',maxPlayers:8,
     for(let k=0;k<200;k++){const s=h.st;if(!s){await wait(200);continue;}
       if(s.phase==='STARTING'&&s.intro)h.send('SKIP_INTRO',{gameId:s.gameId,introId:s.intro.introId});
       if(s.phase==='QUESTION_PRESENTATION')h.send('PRESENTATION_READY',{gameId:s.gameId,questionId:s.question?.id});
-      if(s.phase==='ANSWERING'&&!done.q){done.q=1;await wait(1500);await snap(p,'04-question','Вопрос');const btn=await p.$('#answers .answer');if(btn){await btn.click();await wait(900);await snap(p,'05-answered','Ответ принят');}}
+      if(s.phase==='ANSWERING'&&!done.q){done.q=1;await wait(1500);await p.evaluate(()=>document.querySelectorAll('.mode-rules').forEach(e=>e.remove()));await wait(300);await snap(p,'04-question','Вопрос');const btn=await p.$('#answers .answer');if(btn){await btn.click();await wait(900);await snap(p,'05-answered','Ответ принят');}}
       if(s.phase==='REVEALING'&&!done.r){done.r=1;await wait(1800);await snap(p,'06-reveal','Раскрытие ответа');h.send('REVEAL_READY',{gameId:s.gameId,questionId:s.question?.id});}
       if(s.phase==='RESULTS'&&!done.s){done.s=1;await wait(1500);await snap(p,'07-results','Итог вопроса');break;}
       await wait(250);}
