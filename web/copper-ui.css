@@ -25,3 +25,22 @@ html body .mode-rules .mr-card button:active{transform:scale(.98)}
 .rs-eyebrow{font-family:Gothic,Georgia,serif;letter-spacing:.34em!important}
 .rs-mode{font-family:Gothic,Georgia,serif;color:var(--cream)!important;text-transform:uppercase}
 .rs-total{box-shadow:inset 0 0 0 1px #c98a5240!important;border-radius:3px!important;background:#0a0505b0!important}
+/* answer sealed (phone-result.js) */
+html body[data-view="result"] #result-screen>.pr-card{display:block!important}
+.pr-card{--cu:#c98a52;--cu3:#8a5530;--cream:#f4dcc0;position:relative;width:min(100%,340px);margin:34px auto 0;padding:56px 20px 18px;text-align:center;border-radius:4px;
+  background:linear-gradient(180deg,#1d1112ee,#110909f2);box-shadow:inset 0 0 0 1.5px var(--cu3),inset 0 0 0 2.5px #00000080,inset 0 0 0 7px #1a1011,inset 0 0 0 8px #c98a5244,0 24px 50px #000d;font-family:Gothic,Georgia,serif;color:var(--cream)}
+.pr-card.in{animation:pr-in .6s cubic-bezier(.2,1.3,.4,1) both}
+.pr-card p{margin:0}
+.pr-medal{position:absolute;left:50%;top:-44px;width:88px;height:88px;transform:translateX(-50%);border-radius:50%;padding:4px;z-index:3;
+  background:conic-gradient(from 200deg,#6a3a1c,#ffd8a8,#c98a52,#5a3018,#f2c28c,#6a3a1c);box-shadow:0 0 0 2px #2a160c,0 8px 22px #000c,0 0 26px #c98a5240}
+.pr-medal img{width:100%;height:100%;border-radius:50%;object-fit:cover;background:#1a0d0a;box-shadow:inset 0 0 12px #000}
+.pr-card .cu-crest{display:none}
+.pr-name{font-size:20px;letter-spacing:.1em;text-transform:uppercase;color:#fbe3c4;text-shadow:0 2px 3px #000}
+.pr-label{margin-top:12px!important;font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--cu)}
+.pr-label::before,.pr-label::after{content:"";display:inline-block;width:28px;height:1px;margin:0 10px 3px;background:linear-gradient(90deg,transparent,var(--cu))}
+.pr-label::after{transform:scaleX(-1)}
+.pr-answer{margin-top:8px!important;padding:12px 10px;font-size:22px;line-height:1.2;color:#fbe3c4;border-radius:3px;background:radial-gradient(ellipse at 50% 30%,#6a1a14,#3a0c09 70%);box-shadow:inset 0 0 0 1px #c98a5266,0 0 18px #a02a1c40}
+.pr-card.none .pr-answer{background:#0a0505b0;color:#a08a78}
+.pr-q{margin-top:12px!important;font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:#a08a78}
+@keyframes pr-in{from{opacity:0;transform:translateY(24px) scale(.96)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.pr-card.in{animation:none}}
