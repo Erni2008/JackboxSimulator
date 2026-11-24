@@ -36,6 +36,16 @@ class RareRulesTest {
         assertEquals("slovakia",validator.validate(europe,"Slovakia").answerId());assertEquals("slovenia",validator.validate(europe,"Slovenia").answerId());
         assertNotEquals(AnswerValidator.Status.VALID_TYPO,validator.validate(europe,"Slovekia").status(),"a typo between two real answers is never guessed");
     }
+    @Test void correctsMisspellingsLayoutsAndAlphabets(){
+        assertEquals("paracetamol",validator.validate(MED,"парацитомол").answerId(),"two spelling mistakes in a long word");
+        assertEquals("paracetamol",validator.validate(MED,"gfhfwtnfvjk").answerId(),"Russian typed on the English layout");
+        assertEquals("paracetamol",validator.validate(MED,"paratsetamol").answerId(),"Russian word typed in Latin letters");
+        assertEquals("ibuprofen",validator.validate(MED,"ибупрофин").answerId());
+        assertEquals("aspirin",validator.validate(MED,"фызшкшт").answerId(),"English word typed on the Russian layout");
+        assertEquals(AnswerValidator.Status.VALID_TYPO,validator.validate(MED,"парацитомол").status(),"a correction is marked as one");
+        assertEquals(AnswerValidator.Status.INVALID,validator.validate(MED,"телевизор").status(),"an unrelated word is never forced onto an answer");
+        var dino=BANK.get("dinosaur");assertEquals("t_rex",validator.validate(dino,"тиранозавр").answerId());
+    }
     // 1
     @Test void twoIdenticalAnswersBothCollide(){
         var ps=players(3);var o=play(1,ps,"p0","Paracetamol","p1","paracetamol","p2","Ibuprofen");

@@ -92,7 +92,7 @@ final class RareMindsRace {
                     String head=vis.substring(0,keep),tail=vis.substring(keep);art.textLeft(art.small,head,tx,cy-4,.78f,tc,1);
                     float hx=tx+art.width(art.small,head,.78f);if(!tail.isEmpty())art.textLeft(art.small,tail,hx+(1-k)*8,cy-4,.78f,tc,k);
                     if(!l.locked()&&blink)art.rect(hx+art.width(art.small,tail,.78f)+3,cy-30,2,26,RareMindsArt.GOLD,1);}
-                if(l.locked())art.textRight(art.tiny,art_tr("ГОТОВ","LOCKED"),tx0-16,cy-6,.72f,RareMindsArt.GOLD,1);
+                if(l.locked())art.textRight(art.tiny,art_tr("ОТВЕТ ПРИНЯТ","ANSWER LOCKED"),tx0-16,cy-6,.72f,RareMindsArt.GOLD,1);
                 if(l.zone())art.textRight(art.tiny,art_tr("ЗОНА СМЕРТИ","DEATH ZONE"),tx0-16,cy+26,.62f,RareMindsArt.RED_SOFT,.7f+.3f*MathUtils.sin(clock*5));
             }else{
             String ans=!l.answered()?art_tr("нет ответа","no answer"):l.answer();

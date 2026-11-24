@@ -23,7 +23,7 @@ public final class RareMindsScreen extends ScreenAdapter {
     private final OrthographicCamera cam=new OrthographicCamera();private final FitViewport vp=new FitViewport(W,H,cam);
     private SpriteBatch batch;private RareMindsArt art;private RareMindsSounds sfx;private boolean created;
     private JsonObject state,rm;private final LongSupplier serverNow;private final Consumer<String> onEnd;private final Runnable openMonitor;
-    private float clock;private RareMindsRace race;
+    private float clock;private RareMindsRace race;private RareMindsVoice voice;
     /** live typing on the cards (H hides it, e.g. while streaming) */
     private boolean liveShown=true;
 
@@ -40,7 +40,7 @@ public final class RareMindsScreen extends ScreenAdapter {
     public void apply(JsonObject snapshot){if(!snapshot.has("rareMinds"))return;state=snapshot;rm=snapshot.getAsJsonObject("rareMinds");}
 
     @Override public void show(){
-        if(!created){created=true;batch=new SpriteBatch();art=new RareMindsArt();art.batch=batch;sfx=new RareMindsSounds();art.big.getData().markupEnabled=true;race=new RareMindsRace(art);board=new RareMindsAnswerBoard(art);}
+        if(!created){created=true;batch=new SpriteBatch();art=new RareMindsArt();art.batch=batch;sfx=new RareMindsSounds();art.big.getData().markupEnabled=true;race=new RareMindsRace(art);board=new RareMindsAnswerBoard(art);voice=new RareMindsVoice();}
         Gdx.input.setInputProcessor(new InputAdapter(){@Override public boolean keyDown(int k){
             if(k==Input.Keys.M){openMonitor.run();return true;}
             if(k==Input.Keys.H){liveShown=!liveShown;return true;}
@@ -70,7 +70,9 @@ public final class RareMindsScreen extends ScreenAdapter {
     private boolean revealPhase(){String p=phase();return p.equals("ANSWERS_LOCKED")||p.equals("REVEALING_RESULTS");}
     /** act one (answer board) lasts boardEnd seconds, then act two (the race): a player's result lands when their car arrives */
     private float boardEnd=4.5f;private int tilesSounded=-1;private RareMindsAnswerBoard board;
-    private float revealAt(int index){return boardEnd+RareMindsRace.arrival(index)-RareMindsRace.START;}
+    /** ANSWERS LOCKED: the host's line plays before the answers turn over */
+    static final float LOCK_HOLD=3.2f;private boolean lookSaid,pointsSaid;
+    private float revealAt(int index){return LOCK_HOLD+boardEnd+RareMindsRace.arrival(index)-RareMindsRace.START;}
     private float sinceLock(){return (now()-lockStart)/1000f;}
     private boolean revealed(String id){if(!revealPhase())return phase().equals("FINAL_RESULTS")||phase().equals("COMPLETED");var ps=players();for(int k=0;k<ps.size();k++)if(s(ps.get(k),"id").equals(id))return sinceLock()>=revealAt(k);return false;}
     /** what a card shows: the live public values, or the values from before this question until its reveal lands */
@@ -84,6 +86,7 @@ public final class RareMindsScreen extends ScreenAdapter {
             if(ph.equals("ANSWERS_LOCKED")){lockStart=l(rm,"phaseStartedAt");lockIn=0;sfx.play(Cue.LOCK);}
             if(ph.equals("REVEALING_RESULTS")&&!lastPhase.equals("ANSWERS_LOCKED"))lockStart=l(rm,"phaseStartedAt")-1200;
             if(ph.equals("FINAL_RESULTS")&&!winnerPlayed){winnerPlayed=true;sfx.play(Cue.WINNER);}
+            if(ph.equals("QUESTION_ACTIVE")){lookSaid=false;pointsSaid=false;}
             lastPhase=ph;lastQuestion=q;tickerIndex=0;tickerT=0;
         }
         if(ph.equals("QUESTION_ACTIVE")){
@@ -270,6 +273,20 @@ public final class RareMindsScreen extends ScreenAdapter {
         String q=ru()?s(rm,"textRu"):s(rm,"textEn");
         race.draw(430,128,1060,632,q,lanes,names,fin,0,clock,"","",true);
     }
+    /** "All answers are in": a held moment, the host's line as a subtitle and in the host's own voice. */
+    private void lockedCard(boolean fin,float t){
+        if(!lookSaid&&t>.35f){lookSaid=true;voice.say("look");}
+        float x=430,y=128,w=1060,h=632,a=ease(t/.35f);art.panel(x,y,w,h,1,fin?RareMindsArt.RED:null);
+        art.glow(x+w/2,y+h*.56f,w*.9f,h*.7f,RareMindsArt.GOLD,.14f*a);
+        art.text(art.tiny,Localization.tr("ВСЕ ОТВЕТЫ","ALL ANSWERS"),x+w/2,y+h*.68f,1,RareMindsArt.GOLD,a,0);
+        art.text(art.big,Localization.tr("ОТВЕТЫ ПРИНЯТЫ","ANSWERS LOCKED IN"),x+w/2,y+h*.60f,1+.06f*(1-a),RareMindsArt.IVORY,a,w-80);
+        int n=0;for(var p:players())if(row(s(p,"id"))!=null&&!s(row(s(p,"id")),"text").isEmpty())n++;
+        art.text(art.small,n+" / "+players().size(),x+w/2,y+h*.45f,.9f,RareMindsArt.DIM,a,0);
+        // the host speaks
+        float sa=ease((t-.35f)/.4f);if(sa>0){String line=Localization.tr("«Так, посмотрим, что вы тут написали…»","\u201cRight, let's see what you've written…\u201d");
+            art.rect(x+120,y+70,w-240,64,new Color(0,0,0,.55f),sa);art.rect(x+120,y+70,4,64,RareMindsArt.GOLD,sa);
+            art.textLeft(art.tiny,Localization.tr("ВЕДУЩИЙ","HOST"),x+140,y+122,.7f,RareMindsArt.GOLD,sa);art.text(art.small,line,x+w/2+30,y+114,.86f,RareMindsArt.IVORY,sa,w-320);}
+    }
     private void raceBoard(boolean fin){
         List<RareMindsRace.Lane> lanes=new ArrayList<>();
         for(var p:players()){String id=s(p,"id");JsonObject r=row(id);if(r==null)continue;
@@ -277,7 +294,9 @@ public final class RareMindsScreen extends ScreenAdapter {
                 tierIndex(s(r,"tier")),r.has("share")?r.get("share").getAsDouble():.5,i(r,"earned"),b(r,"jackpot"),i(r,"jackpotSouls"),b(r,"eliminated"),b(r,"resurrected"),before.containsKey(id)?l(before.get(id),"souls"):Math.max(0,l(r,"souls")-i(r,"earned")-i(r,"jackpotSouls")),l(r,"souls"),"",false,-1,0,false));}
         var tiers=rm.getAsJsonArray("tiers");String[] names=new String[tiers.size()];for(int k=0;k<tiers.size();k++)names[k]=tierName(s(tiers.get(k).getAsJsonObject(),"id"));
         String q=(ru()?s(rm,"textRu"):s(rm,"textEn"));
-        List<RareMindsAnswerBoard.Group> groups=groups();boardEnd=RareMindsAnswerBoard.duration(groups.size());float t=sinceLock();
+        List<RareMindsAnswerBoard.Group> groups=groups();boardEnd=RareMindsAnswerBoard.duration(groups.size());float t=sinceLock()-LOCK_HOLD;
+        if(t<0){lockedCard(fin,t+LOCK_HOLD);return;}
+        if(!pointsSaid&&t>=RareMindsAnswerBoard.pointsAt(groups.size())-.6f){pointsSaid=true;voice.say("points");}
         if(t<boardEnd){
             int flipped=(int)Math.floor((t-RareMindsAnswerBoard.INTRO-RareMindsAnswerBoard.FLIP*.5f)/RareMindsAnswerBoard.STEP);
             if(flipped>tilesSounded&&flipped<groups.size()){tilesSounded=flipped;var g=groups.get(flipped);sfx.play(g.collided()?Cue.COLLISION:g.jackpot()?Cue.JACKPOT:Cue.REVEAL);}
@@ -295,7 +314,8 @@ public final class RareMindsScreen extends ScreenAdapter {
         List<RareMindsAnswerBoard.Group> out=new ArrayList<>();
         for(var e:by.entrySet()){var rs=e.getValue();JsonObject r=rs.get(0);List<RareMindsAnswerBoard.Member> ms=new ArrayList<>();boolean jack=false;int js=0;
             for(var x:rs){String id=s(x,"playerId");ms.add(new RareMindsAnswerBoard.Member(name(id),s(roster(id),"characterId"),b(x,"ghost")));if(b(x,"jackpot")){jack=true;js=i(x,"jackpotSouls");}}
-            out.add(new RareMindsAnswerBoard.Group(answerLabel(r),b(r,"valid"),s(r,"text").isEmpty(),tierIndex(s(r,"tier")),r.has("share")?r.get("share").getAsDouble():1,i(r,"earned"),i(r,"penaltyPct"),jack,js,ms));}
+            String typedFix=rs.stream().filter(x->b(x,"corrected")).map(x->s(x,"text")).findFirst().orElse(null);
+            out.add(new RareMindsAnswerBoard.Group(answerLabel(r),b(r,"valid"),s(r,"text").isEmpty(),tierIndex(s(r,"tier")),r.has("share")?r.get("share").getAsDouble():1,i(r,"earned"),i(r,"penaltyPct"),jack,js,ms,typedFix));}
         out.sort(Comparator.<RareMindsAnswerBoard.Group,Integer>comparing(g->g.empty()?0:!g.valid()?1:2).thenComparing(g->-g.share()).thenComparing(RareMindsAnswerBoard.Group::jackpot));
         return out;
     }
@@ -452,5 +472,5 @@ public final class RareMindsScreen extends ScreenAdapter {
     }
 
     private static float ease(float t){t=MathUtils.clamp(t,0,1);return t*t*(3-2*t);}
-    @Override public void dispose(){if(!created)return;if(cardFb!=null)cardFb.dispose();batch.dispose();art.dispose();sfx.dispose();}
+    @Override public void dispose(){if(!created)return;voice.dispose();if(cardFb!=null)cardFb.dispose();batch.dispose();art.dispose();sfx.dispose();}
 }
