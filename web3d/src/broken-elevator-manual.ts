@@ -271,7 +271,7 @@ async function boot() {
   const applyRefView = () => { if (!refDock) { camera.clearViewOffset(); return; } const w = innerWidth, h = innerHeight; camera.setViewOffset(w, h, refW / 2, refDock === 'sheet' ? (refH + refExtra - Math.min(120, h * .13)) / 2 : 0, w, h); }; /* on a phone the top strip keeps the timer and the task tag */
   ref.onLayout = (d, w, h) => { refDock = d; refW = w; refH = h; applyRefView(); };
   addEventListener('resize', applyRefView);
-  let refFocus: string | null = null, refKind = kind;
+  let refFocus: string | null = null, refKind = kind; const refUnlocked = new Set<string>(); let refHeld = false;
   const hud = () => { $('task').textContent = `${innerWidth < 520 ? '' : L('ЗАДАНИЕ', 'TASK') + ' '}${taskNo} / ${TOTAL} · ${kind === 'pressure' ? L('КЛАПАНЫ', 'VALVES') : kind === "formula" ? L("ФОРМУЛА", "FORMULA") : kind === "lock" ? L("ЗАМОК", "LOCK") : kind === "bomb" ? L("БОМБА", "BOMB") : L("ПРОВОДА", "WIRES")} · ${diffName().toUpperCase()}`; };
   // result card: low on screen (≈85 % of the viewport), fades in, a small mechanical jolt, holds, fades out (~2 s)
   let verdictTimer: any = 0;
@@ -513,7 +513,11 @@ async function boot() {
   const FPS_CAP = +(params.get('fps') || 0); /* phones too aim at 60 (the adaptive step lowers resolution if they cannot) */ let lastDraw = 0;
   const loop = (now: number) => {
     if (FPS_CAP && now - lastDraw < 1000 / FPS_CAP - 2) { requestAnimationFrame(loop); return; } lastDraw = now;
-    { ref.setAvailable(!$('verdict').classList.contains('show') && (kind !== 'bomb' || !!dbook));
+    { // the manual button appears once this task's book has been taken in hand; taking it opens the panel by itself
+      const hand = kind === 'bomb' ? dui : cur(), inHand = !!hand && (hand.state === 'held' || hand.state === 'reading' || hand.state === 'lifting'), key = refSource()?.key ?? '';
+      if (inHand && !refHeld) { refHeld = true; if (key) { refUnlocked.add(key); if (!ref.open) ref.show(); } } else if (!inHand) refHeld = false;
+      if (ref.open && hand && (hand.state === 'held' || hand.state === 'reading') && !hand.lowered) hand.setLowered(true); // the panel replaces the book held up in front of the eyes
+      ref.setAvailable(!$('verdict').classList.contains('show') && refUnlocked.has(key) && (kind !== 'bomb' || !!dbook));
       if (kind !== refKind) { refKind = kind; ref.refresh(); }
       { const pad = $('cipher-pad'), ex = refDock === 'sheet' && !pad.hidden ? pad.offsetHeight + 8 : 0; if (ex !== refExtra) { refExtra = ex; applyRefView(); } }
       const f = kind === 'bomb' ? suitcase?.focus ?? null : null; if (f !== refFocus) { refFocus = f; if (f && ref.open) ref.go(MECHANISMS.indexOf(f) + 1); } }

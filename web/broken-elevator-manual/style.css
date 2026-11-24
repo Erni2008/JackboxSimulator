@@ -431,3 +431,9 @@ html body #loading { background: radial-gradient(ellipse at 50% 60%, #1e0d07 0%,
 #loading .ld-bar::after { content: ""; position: absolute; inset: 0; width: 40%; background: linear-gradient(90deg, transparent, #f2c28c, transparent); animation: ld-run 1.4s ease-in-out infinite; will-change: transform; }
 @keyframes ld-spin { to { transform: rotate(360deg); } }
 @keyframes ld-run { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+/* the manual button: big and unmistakable once the book has been taken */
+html body #ref-btn { min-height: 54px; padding: 10px 22px 10px 16px; gap: 12px; font-size: 18px; letter-spacing: .12em; animation: ref-appear .5s cubic-bezier(.2,1.4,.4,1) both; }
+html body #ref-btn .ref-ico { width: 28px; height: 21px; border-width: 2.5px; }
+@keyframes ref-appear { from { opacity: 0; transform: scale(.7); } to { opacity: 1; transform: none; } }
+@media (max-width: 700px) { html body #ref-btn { min-height: 48px; padding: 8px 16px 8px 12px; font-size: 16px; } html body #ref-btn b { font-size: 16px; } }
+@media (prefers-reduced-motion: reduce) { html body #ref-btn { animation: none; } }
