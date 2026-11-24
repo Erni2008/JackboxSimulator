@@ -397,7 +397,7 @@ public final class RareMindsScreen extends ScreenAdapter {
         for(var e:by.entrySet()){var rs=e.getValue();JsonObject r=rs.get(0);List<RareMindsAnswerBoard.Member> ms=new ArrayList<>();boolean jack=false;int js=0;
             for(var x:rs){String id=s(x,"playerId");ms.add(new RareMindsAnswerBoard.Member(name(id),s(roster(id),"characterId"),b(x,"ghost"),teamOf(id)));if(b(x,"jackpot")){jack=true;js=i(x,"jackpotSouls");}}
             String typedFix=rs.stream().filter(x->b(x,"corrected")).map(x->s(x,"text")).findFirst().orElse(null);
-            out.add(new RareMindsAnswerBoard.Group(answerLabel(r),b(r,"valid"),s(r,"text").isEmpty(),tierIndex(s(r,"tier")),r.has("share")?r.get("share").getAsDouble():1,i(r,"earned"),i(r,"penaltyPct"),jack,js,ms,typedFix));}
+            out.add(new RareMindsAnswerBoard.Group(answerLabel(r),b(r,"valid"),s(r,"text").isEmpty(),tierIndex(s(r,"tier")),r.has("share")?r.get("share").getAsDouble():1,i(r,"earned"),i(r,"penaltyPct"),jack,js,ms,typedFix,rs.stream().anyMatch(x->b(x,"collided"))));}
         out.sort(Comparator.<RareMindsAnswerBoard.Group,Integer>comparing(g->g.empty()?0:!g.valid()?1:2).thenComparing(g->-g.share()).thenComparing(RareMindsAnswerBoard.Group::jackpot));
         return out;
     }

@@ -64,7 +64,7 @@ final class RareMindsSpectrum {
         art.rect(cx-aw/2,cy+D/2+8,aw,36,RareMindsArt.PANEL,a);art.rect(cx-aw/2,cy+D/2+8,aw,3,ring,a);
         art.text(art.small,ans,cx,cy+D/2+38,.92f,g.valid()?RareMindsArt.IVORY:RareMindsArt.DIM,a,aw-12);
         if(g.jackpot()&&landed>0){batch().setColor(RareMindsArt.GOLD.r,RareMindsArt.GOLD.g,RareMindsArt.GOLD.b,landed);batch().draw(art.crown,cx-24,cy+D/2+40+(1-landed)*14,48,48);}
-        if(landed>0){String info=!g.valid()?(g.empty()?"0":tr("не принято","not accepted")):(col?(teamClash(g)?tr("СОВПАДЕНИЕ В КОМАНДЕ","TEAMMATE CLASH"):tr("СОВПАДЕНИЕ","COLLISION")):tierNames[g.tier()])+" · "+pct(g.share())+"  +"+g.souls();
+        if(landed>0){String info=!g.valid()?(g.empty()?"0":tr("не принято","not accepted")):(col?tr("СОВПАДЕНИЕ","COLLISION"):teamClash(g)&&g.members().size()>1?tr("ОБЩИЙ ОТВЕТ КОМАНДЫ","TEAM ANSWER"):tierNames[g.tier()])+" · "+pct(g.share())+"  +"+g.souls();
             art.text(art.tiny,info,cx,cy-D/2-30,.76f,col?RareMindsArt.RED_SOFT:tc,landed,cw+80);
             if(g.typed()!=null)art.text(art.tiny,g.typed()+" → "+tr("исправлено","corrected"),cx,cy-D/2-52,.58f,RareMindsArt.DIM,landed*.8f,cw+80);}
     }

@@ -68,7 +68,7 @@ final class RareMindsTeams {
             if(ft>=1)plate(s.name(),s.character(),colX+d*.45f,py,d,ring,1);
             else{icon(s.character(),px,py,d*(ft>0?1:rolling?1.12f:.9f),ring,1);art.text(art.tiny,s.name(),px,py-d/2-8,.8f,ft>0?ring:RareMindsArt.IVORY,1,d+60);}}
         if(t>=draftDone(n)-.6f){float a=ease((t-draftDone(n)+.6f)/.4f);art.text(art.mid,tr("КОМАНДЫ СОБРАНЫ!","TEAMS ARE SET!"),ccx,ccy+18,1,RareMindsArt.IVORY,a,0);
-            art.text(art.tiny,tr("Совпадение с напарником не приносит душ","Matching a teammate pays nothing"),ccx,ccy-30,.8f,RareMindsArt.DIM,a,w*.36f);}
+            art.text(art.tiny,tr("С напарником можно совпадать, с соперником нельзя","Match your teammates freely, never your rivals"),ccx,ccy-30,.8f,RareMindsArt.DIM,a,w*.36f);}
         else if(t<RING+PICK*n)art.text(art.mid,tr("Кто с кем?","Who is with whom?"),ccx,y+h-80,.9f,RareMindsArt.IVORY,ease(t/.4f),0);
     }
 

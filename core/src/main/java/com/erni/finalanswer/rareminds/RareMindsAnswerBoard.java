@@ -14,8 +14,9 @@ final class RareMindsAnswerBoard {
     record Member(String name,String character,boolean ghost,int team){Member(String name,String character,boolean ghost){this(name,character,ghost,-1);}}
     /** one 1-on-1 duel of the DUELS format: who won this question (0 draw) and the running score */
     record Duel(String a,String b,String charA,String charB,int result,int bonus,int winsA,int winsB){}
-    record Group(String answer,boolean valid,boolean empty,int tier,double share,int souls,int penaltyPct,boolean jackpot,int jackpotSouls,List<Member> members,String typed){
-        boolean collided(){return valid&&members.size()>1;}
+    record Group(String answer,boolean valid,boolean empty,int tier,double share,int souls,int penaltyPct,boolean jackpot,int jackpotSouls,List<Member> members,String typed,boolean col){
+        /** the server's verdict (teammates sharing an answer is not a collision) */
+        boolean collided(){return col;}
     }
     static final float INTRO=.45f,STEP=.55f,FLIP=.38f,POINTS_GAP=.8f,POINT_STEP=.5f;
     /** second pass: the moment souls start being handed out */

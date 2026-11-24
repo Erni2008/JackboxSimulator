@@ -58,19 +58,19 @@ public final class RareRules {
         Map<String,Rarity.Estimate> est=new HashMap<>();for(String a:share.keySet())est.put(a,Rarity.estimate(q,a,stats));
 
         Map<String,Integer> earned=new HashMap<>(),pct=new HashMap<>(),base=new HashMap<>();Map<String,Risk> risk=new HashMap<>();
-        // TEAMS: an answer shared with a teammate is the worst collision of all — it pays nothing
-        Set<String> teamCol=new HashSet<>();
-        for(Player p:players){var r=val.get(p.id);if(p.team<0||!r.valid())continue;for(Player o:players)if(o!=p&&o.team==p.team&&val.get(o.id).valid()&&val.get(o.id).answerId().equals(r.answerId()))teamCol.add(p.id);}
+        // TEAMS: teammates may share an answer freely; a collision needs a player of the OTHER team with the same answer
+        Set<String> rivalShare=new HashSet<>();
+        for(Player p:players){var r=val.get(p.id);if(!r.valid())continue;for(Player o:players)if(o!=p&&val.get(o.id).valid()&&val.get(o.id).answerId().equals(r.answerId())&&(p.team<0||o.team!=p.team))rivalShare.add(p.id);}
         Set<String> wasAlive=new HashSet<>(),diedNow=new HashSet<>(),ghostOk=new HashSet<>(),lostNow=new HashSet<>();
         for(Player p:players){
-            var r=val.get(p.id);Submission s=subs.get(p.id);boolean valid=r.valid();boolean collided=valid&&share.get(r.answerId())>1;
+            var r=val.get(p.id);Submission s=subs.get(p.id);boolean valid=r.valid();boolean collided=valid&&rivalShare.contains(p.id);
             int b=valid?est.get(r.answerId()).tier().souls*(fin?2:1):0,e=b,cut=0;Risk rk=Risk.NONE;
             if(p.alive){wasAlive.add(p.id);
                 boolean risky=s!=null&&s.riskIt()&&p.collisions==MAX_COLLISIONS-1;
-                if(collided){p.collisions++;cut=teamCol.contains(p.id)?100:p.collisions==1?25:50;e=b*(100-cut)/100;if(risky)rk=Risk.FAILED;if(p.collisions>=MAX_COLLISIONS)diedNow.add(p.id);}
+                if(collided){p.collisions++;cut=p.collisions==1?25:50;e=b*(100-cut)/100;if(risky)rk=Risk.FAILED;if(p.collisions>=MAX_COLLISIONS)diedNow.add(p.id);}
                 else if(risky){if(valid&&est.get(r.answerId()).tier().deep()){p.collisions=MAX_COLLISIONS-2;rk=Risk.SAVED;}else rk=Risk.HELD;}
             }else{
-                if(collided){cut=teamCol.contains(p.id)?100:50;e=b*(100-cut)/100;}
+                if(collided){cut=50;e=b/2;}
                 if(p.resurrectionPossible){if(valid&&!collided){p.ghostUnique++;ghostOk.add(p.id);}else{p.resurrectionPossible=false;lostNow.add(p.id);}}
             }
             p.souls+=e;earned.put(p.id,e);pct.put(p.id,cut);base.put(p.id,b);risk.put(p.id,rk);
@@ -103,7 +103,7 @@ public final class RareRules {
         for(Player p:players){var r=val.get(p.id);Submission s=subs.get(p.id);boolean valid=r.valid();
             var e=valid?est.get(r.answerId()):null;if(valid)record.add(r.answerId());
             rows.add(new Row(p.id,s==null?"":s.text(),r.status(),r.answerId(),e==null?null:e.tier(),e==null?0:e.score(),!wasAlive.contains(p.id),
-                valid&&share.get(r.answerId())>1,valid?share.get(r.answerId()):0,pct.get(p.id),base.get(p.id),earned.get(p.id),
+                valid&&rivalShare.contains(p.id),valid?share.get(r.answerId()):0,pct.get(p.id),base.get(p.id),earned.get(p.id),
                 jack.containsKey(p.id),jack.getOrDefault(p.id,0),p.jackpotStreak,risk.get(p.id),diedNow.contains(p.id),penalty.getOrDefault(p.id,0L),
                 ghostOk.contains(p.id),lostNow.contains(p.id),back.contains(p.id),p.souls,p.collisions,p.alive,p.ghostRemaining(QUESTIONS),duel.getOrDefault(p.id,0),duelSouls.getOrDefault(p.id,0)));}
         return new Outcome(question,fin,List.copyOf(rows),jw==null?"":jw.id,List.copyOf(record));

@@ -112,7 +112,7 @@ function createRareMindsController({getState,isAuthenticated,send,makeId,now}){
     // DUELS format: your fixed opponent and the score
     const opp=p.opponent&&m.players.find(x=>x.id===p.opponent),oppName=opp&&(getState().players||[]).find(x=>x.id===opp.id)?.name;
     if(m.format==='TEAMS'&&p.team!=null){const tn=[T('АЛЫЕ','CRIMSON'),T('ЛАЗУРНЫЕ','AZURE')],tt=m.teamTotals||[0,0];els.duel.hidden=false;els.duel.dataset.team=String(p.team);
-      els.duel.innerHTML=`<b>${T('КОМАНДА','TEAM')} ${tn[p.team]}</b> ${tn[0]} ${Number(tt[0]).toLocaleString()} : ${Number(tt[1]).toLocaleString()} ${tn[1]}<br><small>${T('Не совпадай с напарниками: такой ответ не принесёт душ','Do not match your teammates: that answer pays nothing')}</small>`;}
+      els.duel.innerHTML=`<b>${T('КОМАНДА','TEAM')} ${tn[p.team]}</b> ${tn[0]} ${Number(tt[0]).toLocaleString()} : ${Number(tt[1]).toLocaleString()} ${tn[1]}<br><small>${T('С напарником совпадать можно. Совпадение с соперником ставит череп','Matching a teammate is fine. Matching a rival costs a skull')}</small>`;}
     else{els.duel.dataset.team='';
     els.duel.hidden=!opp;if(opp)els.duel.innerHTML=`<b>${T('ДУЭЛЬ 1 НА 1','1-ON-1 DUEL')}</b> ${T('против','vs')} ${esc(oppName||'?')} · ${p.duelWins||0} : ${opp.duelWins||0}`;}
     els.look.hidden=!(ph==='ANSWERS_LOCKED'||ph==='REVEALING_RESULTS'||ph==='FINAL_RESULTS'||ph==='COMPLETED');

@@ -62,14 +62,15 @@ class RareRulesTest {
         assertEquals(1,fin.row("p0").duelResult(),"an invalid answer loses the duel");assertEquals(RareRules.FINAL_DUEL_BONUS,fin.row("p0").duelBonus());
         assertEquals(1,fin.row("p2").duelResult(),"no answer loses too");
     }
-    @Test void teamsPunishTeammateCollisionsAndPayTheWinningTeam(){
+    @Test void teammatesMayShareAnswersOnlyRivalsCollide(){
         var ps=players(4);ps.get(0).team=0;ps.get(1).team=0;ps.get(2).team=1;ps.get(3).team=1;
         var o=play(1,ps,"p0","aspirin","p1","aspirin","p2","ibuprofen","p3","paracetamol");
-        assertEquals(0,o.row("p0").earned(),"teammates with the same answer earn nothing");assertEquals(1,ps.get(0).collisions,"and still take a skull");
-        var o2=play(2,ps,"p0","insulin","p2","insulin");assertEquals(tier("insulin")*50/100,o2.row("p0").earned(),"a collision with a rival is the usual one (second skull: -50%)");
-        long t1=ps.get(2).souls+ps.get(3).souls;var st=RareRules.finishTeams(ps);
-        assertTrue(t1>ps.get(0).souls+ps.get(1).souls);for(var s:st)assertEquals(s.playerId().equals("p2")||s.playerId().equals("p3"),s.winner());
-        assertEquals(RareRules.TEAM_WIN_BONUS,st.stream().filter(s->s.playerId().equals("p2")).findFirst().orElseThrow().winnerBonus());
+        assertFalse(o.row("p0").collided(),"teammates sharing an answer is not a collision");assertEquals(0,ps.get(0).collisions);assertEquals(tier("aspirin"),o.row("p0").earned(),"full souls");
+        var o2=play(2,ps,"p0","insulin","p2","insulin","p1","morphine");assertTrue(o2.row("p0").collided());assertEquals(1,ps.get(0).collisions,"a rival with the same answer is a collision");
+        assertEquals(tier("insulin")*75/100,o2.row("p0").earned());
+        var o3=play(3,ps,"p0","warfarin","p1","warfarin","p2","warfarin");for(String id:List.of("p0","p1","p2"))assertTrue(o3.row(id).collided(),"shared with a rival too: everyone with it collides");
+        long t1=ps.get(2).souls+ps.get(3).souls,t0=ps.get(0).souls+ps.get(1).souls;var st=RareRules.finishTeams(ps);int win=t0>t1?0:1;
+        for(var s:st)assertEquals(ps.stream().filter(x->x.id.equals(s.playerId())).findFirst().orElseThrow().team==win,s.winner());
     }
     @Test void teamsAreRolledForFourOrMore(){
         int teams=0;for(int i=0;i<2000;i++){var s=new RareMindsSession(List.of("a","b","c","d","e"),BANK,new RarityStats.Memory(),new Random(i),0);if(s.format==RareMindsSession.Format.TEAMS){teams++;
