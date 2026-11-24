@@ -173,7 +173,7 @@ async function boot() {
     suitcase = new Suitcase(overlay, quality === 'high'); suitcase.place(ci, floorY); scene.add(suitcase.root); suitcase.place(ci, floorY);
     nbook = nb; startDefusalBook();
     maze = new WireMazeView(); suitcase.bays.WIRE_MAZE.mount.add(maze.group); links = new LinksView(); suitcase.bays.HIDDEN_CONNECTIONS.mount.add(links.group);
-    xrayV = new XrayView(); suitcase.bays.XRAY.mount.add(xrayV.group); laserV = new LaserView(); suitcase.bays.LASER.mount.add(laserV.group); thermalV = new ThermalView(); suitcase.bays.THERMAL.mount.add(thermalV.group); cipherV = new CipherView(); suitcase.bays.CIPHER.mount.add(cipherV.group);
+    xrayV = new XrayView(); suitcase.bays.XRAY.mount.add(xrayV.group); laserV = new LaserView(); suitcase.bays.LASER.mount.add(laserV.group); thermalV = new ThermalView(); suitcase.bays.THERMAL.mount.add(thermalV.group); CipherView.aniso = Math.min(8, renderer.capabilities.getMaxAnisotropy()); cipherV = new CipherView(); suitcase.bays.CIPHER.mount.add(cipherV.group);
     $('cp-back').onclick = () => { if (cipherV?.back()) { audio.play('button', .3); haptic('tap'); } }; $('cp-go').onclick = submitCipher;
     let scanSound = 0; suitcase.onGrab = rc => { const f = suitcase!.focus; const v = f === 'XRAY' ? xrayV : f === 'THERMAL' ? thermalV : null; if (!v || kind !== 'bomb' || bombDone || !live(f!) || !v.head.held) return null; // the instrument must be in hand // dragging the instrument moves it; a still tap on it (handled as a tap) puts it back
       if ((f === 'XRAY' ? xrayV!.leverAt(rc) : thermalV!.valveAt(rc)) >= 0) return null; // a tap on a lever / valve stays a tap

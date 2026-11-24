@@ -352,3 +352,6 @@ body.ref-sheet .ref-foot button { height: 34px; font-size: 13px; }
 body.ref-side #clock { right: calc(var(--ref-w) + 16px); }
 body.ref-side #task, body.ref-side #prompt, body.ref-side #tester { left: calc((100vw - var(--ref-w)) / 2); }
 body.ref-sheet #tester { bottom: calc(var(--ref-h) + 8px); }
+.ref-view.zoomed { overflow-x: auto; touch-action: pan-x pan-y; cursor: zoom-out; }
+.ref-view { cursor: zoom-in; user-select: none; -webkit-user-select: none; }
+.ref-view canvas { image-rendering: auto; }

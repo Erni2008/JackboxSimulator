@@ -122,10 +122,10 @@ class BombPuzzleTest {
 
     /** THE CIPHER LOCK: both formats, case and spaces don't matter, a wrong code is a strike, the answer never leaves the server. */
     @Test void cipherLockBothFormats() {
-        assertEquals("53 4F 55 4C", CipherLock.hex("SOUL"));
+        assertEquals("73 6F 75 6C", CipherLock.hex("soul")); assertEquals("67 6F 6F 6E", CipherLock.hex("goon"));
         Set<CipherLock.Mode> modes = EnumSet.noneOf(CipherLock.Mode.class);
         for (long s = 0; s < 40; s++) for (Difficulty d : Difficulty.values()) { var c = CipherLock.generate(s, d); modes.add(c.mode);
-            assertTrue(c.word.matches("[A-Z]{3,7}")); String answer = c.mode == CipherLock.Mode.TO_HEX ? CipherLock.hex(c.word) : c.word;
+            assertTrue(c.word.matches("[a-z]{3,7}")); String answer = c.mode == CipherLock.Mode.TO_HEX ? CipherLock.hex(c.word) : c.word;
             assertTrue(c.accepts(answer)); assertTrue(c.accepts(answer.toLowerCase().replace(" ", ""))); assertFalse(c.accepts(answer + "A")); assertFalse(c.accepts(""));
             assertEquals(c.mode == CipherLock.Mode.TO_HEX ? c.word : CipherLock.hex(c.word), c.shown()); }
         assertEquals(EnumSet.allOf(CipherLock.Mode.class), modes, "both formats come up");

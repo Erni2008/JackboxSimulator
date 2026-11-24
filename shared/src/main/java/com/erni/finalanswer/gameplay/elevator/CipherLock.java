@@ -5,14 +5,14 @@ import java.util.*;
 /**
  * THE HOST'S SUITCASE — mechanism VI, THE CIPHER LOCK (fictional). Two screens and a key: the upper screen shows a
  * challenge, the lower one what the player types. Two formats, picked from the seed:
- * TO_HEX — a word is shown, type its letters as hexadecimal codes (S O U L → 53 4F 55 4C);
+ * TO_HEX — a word is shown, type its letters as hexadecimal codes (s o u l → 73 6F 75 6C);
  * TO_TEXT — hexadecimal codes are shown, type the word they spell.
- * Chapter VI of the notebook carries the table: A = 41 … O = 4F, P = 50 … Z = 5A. Longer words on harder levels.
+ * Words are lower case, as real text is, so the codes are the real ASCII ones: a = 61 … o = 6F, p = 70 … z = 7A (chapter VI).
  */
 public final class CipherLock {
     public enum Mode { TO_HEX, TO_TEXT }
-    static final List<String> SHORT = List.of("BAT", "OWL", "RAT", "AXE", "FOG", "ASH", "OAK", "RIP", "TOMB", "BONE", "DOOM", "FEAR", "SOUL", "CAGE", "GRIM", "HOWL", "MOON", "WOLF", "DARK", "FIRE");
-    static final List<String> LONG = List.of("GHOST", "SKULL", "GRAVE", "CURSE", "CRYPT", "BLOOD", "WITCH", "RAVEN", "CANDLE", "COFFIN", "SHADOW", "SPIDER", "PUMPKIN", "DEMON", "TORCH");
+    static final List<String> SHORT = List.of("bat", "owl", "rat", "axe", "fog", "ash", "oak", "rip", "tomb", "bone", "doom", "fear", "soul", "cage", "grim", "howl", "moon", "wolf", "dark", "fire");
+    static final List<String> LONG = List.of("ghost", "skull", "grave", "curse", "crypt", "blood", "witch", "raven", "candle", "coffin", "shadow", "spider", "pumpkin", "demon", "torch");
     public final Mode mode; public final String word;
     private CipherLock(Mode mode, String word) { this.mode = mode; this.word = word; }
 
@@ -22,13 +22,13 @@ public final class CipherLock {
         for (String w : LONG) if (d == Difficulty.NORMAL ? w.length() == 5 : d == Difficulty.HARD) pool.add(w);
         return new CipherLock(r.nextBoolean() ? Mode.TO_HEX : Mode.TO_TEXT, pool.get(r.nextInt(pool.size())));
     }
-    /** "SOUL" → "53 4F 55 4C" */
+    /** "soul" → "73 6F 75 6C" */
     public static String hex(String word) { StringBuilder b = new StringBuilder(); for (char c : word.toCharArray()) { if (b.length() > 0) b.append(' '); b.append(String.format("%02X", (int) c)); } return b.toString(); }
     /** what the upper screen shows */
     public String shown() { return mode == Mode.TO_HEX ? word : hex(word); }
     /** the answer, compared without spaces and case */
     public boolean accepts(String typed) {
         if (typed == null) return false; String t = typed.replaceAll("\\s+", "").toUpperCase(Locale.ROOT);
-        return t.equals(mode == Mode.TO_HEX ? hex(word).replace(" ", "") : word);
+        return t.equals(mode == Mode.TO_HEX ? hex(word).replace(" ", "") : word.toUpperCase(Locale.ROOT)); // hex digits and typed letters: either case
     }
 }

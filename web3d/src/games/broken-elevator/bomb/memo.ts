@@ -161,10 +161,10 @@ const cipher: Draw = x => {
   let y = section(x, L('ПОРЯДОК', 'ORDER'), 290);
   y = step(x, 1, L('Прочитай красную надпись над экранами: СЛОВО → HEX или HEX → СЛОВО.', 'Read the red line above the screens: WORD → HEX or HEX → WORD.'), y);
   y = step(x, 2, L('Каждую букву или код найди в таблице ниже. Набери ответ на клавиатуре и нажми ВВОД.', 'Look up every letter or code in the table below. Type the answer on the keypad and press SUBMIT.'), y);
-  y = example(x, 'SOUL → 53 4F 55 4C   ·   43 41 47 45 → CAGE', y);
+  y = example(x, 'soul → 73 6F 75 6C   ·   63 61 67 65 → cage', y);
   // the A–Z table: three ledger columns of letter and code
   const cols = 4, rows = 7, cw = (PW - 2 * M) / cols, rh = 48;
-  for (let i = 0; i < 26; i++) { const c = Math.floor(i / rows), r = i % rows, px = M + c * cw, py = y + r * rh, ch = String.fromCharCode(65 + i);
+  for (let i = 0; i < 26; i++) { const c = Math.floor(i / rows), r = i % rows, px = M + c * cw, py = y + r * rh, ch = String.fromCharCode(97 + i);
     if (r % 2 === 0) { x.fillStyle = 'rgba(42,29,18,.07)'; x.fillRect(px + 4, py, cw - 8, rh); }
     font(x, 32, MONO, 'bold'); x.fillStyle = INK; x.textAlign = 'left'; x.fillText(ch, px + 22, py + 35);
     font(x, 26, MONO); x.fillStyle = 'rgba(42,29,18,.5)'; x.fillText('=', px + 66, py + 34);

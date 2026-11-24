@@ -11,7 +11,7 @@ export type RefDock = 'side' | 'sheet' | null;
 const store = {get(k: string) { try { return localStorage.getItem(k); } catch { return null; } }, set(k: string, v: string) { try { localStorage.setItem(k, v); } catch { /* private mode */ } }};
 
 export class ReferencePanel {
-  open = false; dock: RefDock = null; page = 0; private src: RefSource | null = null; private last = new Map<string, number>();
+  open = false; dock: RefDock = null; page = 0; /** 1 = fit the width, 2 = a closer look (double tap) */ zoom = 1; private src: RefSource | null = null; private last = new Map<string, number>();
   private el: HTMLElement; private cv: HTMLCanvasElement; private view: HTMLElement; private titleEl: HTMLElement; private countEl: HTMLElement; private tabsEl: HTMLElement; private btn: HTMLButtonElement;
   private sheetH = Math.min(.8, Math.max(.3, Number(store.get('fa-ref-sheet')) || .4));
   /** called when the panel opens, closes or changes size: the scene re-centres itself in the free area */
@@ -35,7 +35,11 @@ export class ReferencePanel {
     (el.querySelector('.ref-prev') as HTMLElement).onclick = () => this.turn(-1); (el.querySelector('.ref-next') as HTMLElement).onclick = () => this.turn(1);
     // swipe the page sideways to turn it (vertical drags still scroll the page)
     let sx = 0, sy = 0, st = 0; this.view.addEventListener('pointerdown', e => { sx = e.clientX; sy = e.clientY; st = performance.now(); });
-    this.view.addEventListener('pointerup', e => { const dx = e.clientX - sx, dy = e.clientY - sy; if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.6 && performance.now() - st < 700) this.turn(dx < 0 ? 1 : -1); });
+    this.view.addEventListener('pointerup', e => { const dx = e.clientX - sx, dy = e.clientY - sy; if (this.zoom === 1 && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.6 && performance.now() - st < 700) this.turn(dx < 0 ? 1 : -1); /* zoomed in, a sideways drag pans instead */ });
+    // double tap / double click: a closer look at small print (tables), centred on the tap; again to fit the width
+    let lastTap = 0; this.view.addEventListener('pointerup', e => { const t = performance.now(); if (t - lastTap < 320) { const r = this.view.getBoundingClientRect(), fx = (e.clientX - r.left + this.view.scrollLeft) / this.view.scrollWidth, fy = (e.clientY - r.top + this.view.scrollTop) / this.view.scrollHeight;
+      this.zoom = this.zoom > 1 ? 1 : 2; this.view.classList.toggle('zoomed', this.zoom > 1); this.draw(); this.view.scrollLeft = fx * this.view.scrollWidth - r.width / 2; this.view.scrollTop = fy * this.view.scrollHeight - r.height / 2; lastTap = 0; } else lastTap = t; });
+    this.view.addEventListener('dblclick', e => e.preventDefault());
     // drag the sheet's handle to resize it
     const grip = el.querySelector('.ref-grip') as HTMLElement; let drag = false;
     grip.addEventListener('pointerdown', e => { drag = true; grip.setPointerCapture(e.pointerId); });
@@ -53,7 +57,7 @@ export class ReferencePanel {
     this.page = Math.max(0, Math.min(s.book.count - 1, page ?? this.last.get(s.key) ?? s.start ?? 0)); this.titleEl.textContent = s.title; this.buildTabs(); this.layout(); this.draw(); this.el.classList.remove('in'); void this.el.offsetWidth; this.el.classList.add('in'); }
   close() { if (!this.open) return; this.open = false; this.el.hidden = true; document.body.classList.remove('ref-on', 'ref-side', 'ref-sheet'); this.btn.classList.remove('on'); this.dock = null; this.onLayout(null, 0, 0); }
   /** jump to a page (e.g. the chapter of the bay just focused) when the panel is open */
-  go(page: number) { if (!this.src) return; const p = Math.max(0, Math.min(this.src.book.count - 1, page)); if (p === this.page) return; this.page = p; this.last.set(this.src.key, p); this.view.scrollTop = 0; this.draw(); }
+  go(page: number) { if (!this.src) return; const p = Math.max(0, Math.min(this.src.book.count - 1, page)); if (p === this.page) return; this.page = p; this.last.set(this.src.key, p); this.zoom = 1; this.view.classList.remove('zoomed'); this.view.scrollTop = 0; this.view.scrollLeft = 0; this.draw(); }
   /** the source changed (another task): re-read it if open */
   refresh() { if (!this.open) return; const s = this.source(); if (!s) { this.close(); return; } if (s.key !== this.src?.key) { this.src = s; this.page = this.last.get(s.key) ?? s.start ?? 0; this.titleEl.textContent = s.title; this.buildTabs(); } this.draw(); }
   turn(d: number) { if (!this.src) return; const p = this.page + d; if (p < 0 || p >= this.src.book.count) return; this.go(p); this.sounds.turn?.(); this.el.classList.remove('flip-l', 'flip-r'); void this.el.offsetWidth; this.el.classList.add(d > 0 ? 'flip-r' : 'flip-l'); }
@@ -66,7 +70,7 @@ export class ReferencePanel {
     document.body.style.setProperty('--ref-w', wide ? w + 'px' : '0px'); document.body.style.setProperty('--ref-h', wide ? '0px' : h + 'px');
     this.onLayout(this.dock, wide ? w : 0, wide ? 0 : h); }
   private draw() { const s = this.src; if (!s) return; const src = s.book.page(this.page), r = devicePixelRatio || 1;
-    const w = Math.max(200, this.view.clientWidth - 2), h = Math.round(w * src.height / src.width);
+    const w = Math.round(Math.max(200, this.view.clientWidth - 2) * this.zoom), h = Math.round(w * src.height / src.width);
     this.cv.width = Math.round(w * r); this.cv.height = Math.round(h * r); this.cv.style.width = w + 'px'; this.cv.style.height = h + 'px';
     const x = this.cv.getContext('2d')!; x.imageSmoothingQuality = 'high'; x.drawImage(src, 0, 0, this.cv.width, this.cv.height);
     this.countEl.textContent = `${this.page + 1} / ${s.book.count}`; this.last.set(s.key, this.page);
