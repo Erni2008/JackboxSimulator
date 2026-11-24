@@ -71,7 +71,9 @@ public final class RareMindsScreen extends ScreenAdapter {
     /** act one (answer board) lasts boardEnd seconds, then act two (the race): a player's result lands when their car arrives */
     private float boardEnd=4.5f;private int tilesSounded=-1;private RareMindsAnswerBoard board;
     /** ANSWERS LOCKED: the host's line plays before the answers turn over */
-    static final float LOCK_HOLD=3.2f;private boolean lookSaid,pointsSaid;
+    static final float LOCK_HOLD=3.2f;private boolean lookSaid,pointsSaid;private int lookTake;
+    /** same order as tools/host-tts/scripts/rare_minds_vo.py */
+    private static final String[] LOOK_RU={"Так, посмотрим, что вы тут написали!","Ну что ж, посмотрим, что вы тут понаписали!","Итак, открываем ваши ответы!"};
     private float revealAt(int index){return LOCK_HOLD+boardEnd+RareMindsRace.arrival(index)-RareMindsRace.START;}
     private float sinceLock(){return (now()-lockStart)/1000f;}
     private boolean revealed(String id){if(!revealPhase())return phase().equals("FINAL_RESULTS")||phase().equals("COMPLETED");var ps=players();for(int k=0;k<ps.size();k++)if(s(ps.get(k),"id").equals(id))return sinceLock()>=revealAt(k);return false;}
@@ -275,7 +277,7 @@ public final class RareMindsScreen extends ScreenAdapter {
     }
     /** "All answers are in": a held moment, the host's line as a subtitle and in the host's own voice. */
     private void lockedCard(boolean fin,float t){
-        if(!lookSaid&&t>.35f){lookSaid=true;voice.say("look");}
+        if(!lookSaid&&t>.35f){lookSaid=true;lookTake=voice.say("look",LOOK_RU.length);}
         float x=430,y=128,w=1060,h=632,a=ease(t/.35f);art.panel(x,y,w,h,1,fin?RareMindsArt.RED:null);
         art.glow(x+w/2,y+h*.56f,w*.9f,h*.7f,RareMindsArt.GOLD,.14f*a);
         art.text(art.tiny,Localization.tr("ВСЕ ОТВЕТЫ","ALL ANSWERS"),x+w/2,y+h*.68f,1,RareMindsArt.GOLD,a,0);
@@ -283,7 +285,7 @@ public final class RareMindsScreen extends ScreenAdapter {
         int n=0;for(var p:players())if(row(s(p,"id"))!=null&&!s(row(s(p,"id")),"text").isEmpty())n++;
         art.text(art.small,n+" / "+players().size(),x+w/2,y+h*.45f,.9f,RareMindsArt.DIM,a,0);
         // the host speaks
-        float sa=ease((t-.35f)/.4f);if(sa>0){String line=Localization.tr("«Так, посмотрим, что вы тут написали…»","\u201cRight, let's see what you've written…\u201d");
+        float sa=ease((t-.35f)/.4f);if(sa>0){String line=Localization.russian()?"«"+LOOK_RU[Math.min(lookTake,LOOK_RU.length-1)]+"»":"\u201cRight, let's see what you've written…\u201d";
             art.rect(x+120,y+70,w-240,64,new Color(0,0,0,.55f),sa);art.rect(x+120,y+70,4,64,RareMindsArt.GOLD,sa);
             art.textLeft(art.tiny,Localization.tr("ВЕДУЩИЙ","HOST"),x+140,y+122,.7f,RareMindsArt.GOLD,sa);art.text(art.small,line,x+w/2+30,y+114,.86f,RareMindsArt.IVORY,sa,w-320);}
     }
@@ -296,7 +298,7 @@ public final class RareMindsScreen extends ScreenAdapter {
         String q=(ru()?s(rm,"textRu"):s(rm,"textEn"));
         List<RareMindsAnswerBoard.Group> groups=groups();boardEnd=RareMindsAnswerBoard.duration(groups.size());float t=sinceLock()-LOCK_HOLD;
         if(t<0){lockedCard(fin,t+LOCK_HOLD);return;}
-        if(!pointsSaid&&t>=RareMindsAnswerBoard.pointsAt(groups.size())-.6f){pointsSaid=true;voice.say("points");}
+        if(!pointsSaid&&t>=RareMindsAnswerBoard.pointsAt(groups.size())-.6f){pointsSaid=true;voice.say("points",2);}
         if(t<boardEnd){
             int flipped=(int)Math.floor((t-RareMindsAnswerBoard.INTRO-RareMindsAnswerBoard.FLIP*.5f)/RareMindsAnswerBoard.STEP);
             if(flipped>tilesSounded&&flipped<groups.size()){tilesSounded=flipped;var g=groups.get(flipped);sfx.play(g.collided()?Cue.COLLISION:g.jackpot()?Cue.JACKPOT:Cue.REVEAL);}

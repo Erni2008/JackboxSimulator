@@ -18,6 +18,7 @@ final class RareMindsVoice implements Disposable {
             for(int i=0;i<4;i++){var f=Gdx.files.internal("rare_minds/voice/"+lang+"/"+cue+"_"+i+".wav");if(f.exists())try{l.add(Gdx.audio.newSound(f));}catch(RuntimeException ignored){}}
             takes.put(cue,l);}
     }
-    void say(String cue){List<Sound> l=takes.getOrDefault(cue,List.of());if(l.isEmpty())return;int k=new Random().nextInt(l.size());if(l.size()>1&&last.getOrDefault(cue,-1)==k)k=(k+1)%l.size();last.put(cue,k);try{l.get(k).play(.95f);}catch(RuntimeException ignored){}}
+    /** @return the take that played (or a random take index when there is no audio), for the matching subtitle */
+    int say(String cue,int count){List<Sound> l=takes.getOrDefault(cue,List.of());if(l.isEmpty())return new Random().nextInt(Math.max(1,count));int k=new Random().nextInt(l.size());if(l.size()>1&&last.getOrDefault(cue,-1)==k)k=(k+1)%l.size();last.put(cue,k);try{l.get(k).play(.95f);}catch(RuntimeException ignored){}return k;}
     @Override public void dispose(){for(var l:takes.values())for(Sound s:l)s.dispose();}
 }
