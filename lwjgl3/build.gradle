@@ -1256,6 +1256,31 @@ tasks.register('finalSecondScreenPreview', JavaExec) {
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
 
+// RARE MINDS live test host (driven by tools/dev/rare_minds_test.py)
+tasks.register('rareMindsLiveHost', JavaExec) {
+    group = 'application'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.RareMindsLiveHost'
+    workingDir = rootProject.file('assets')
+    ['rm.url', 'rm.code', 'rm.token', 'rm.players', 'rm.lang'].each { k -> systemProperty k, providers.gradleProperty(k).getOrElse('') }
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+// RARE MINDS: replay a recorded host stream in real time (-Prm.stream=file), or render 30 fps frames (-Prm.frames=dir)
+tasks.register('rareMindsReplay', JavaExec) {
+    group = 'application'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.RareMindsReplay'
+    workingDir = rootProject.file('assets')
+    systemProperty 'rm.stream', providers.gradleProperty('rm.stream').getOrElse('')
+    systemProperty 'rm.frames', providers.gradleProperty('rm.frames').getOrElse('')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
 // RARE MINDS host screen on recorded snapshots (-Prm.snapshots=file -Prm.capture=dir).
 tasks.register('rareMindsScreenPreview', JavaExec) {
     group = 'application'

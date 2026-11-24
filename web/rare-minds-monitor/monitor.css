@@ -25,7 +25,7 @@ body[data-final="true"]{background:radial-gradient(120% 70% at 50% -10%,#4a0c09,
 .meta{display:flex;flex-wrap:wrap;gap:6px;margin:0}
 .meta span{padding:3px 7px;border-radius:2px;font-size:11px;letter-spacing:.12em;background:#ffffff0d;box-shadow:inset 0 0 0 1px currentColor}
 .lock{color:var(--g)}.chk.ok{color:#4fe08a}.chk.bad{color:#ff6b5e}.chk.warn{color:#ffb02e}.risk{color:var(--red)}
-.t-COMMON{color:#cfcfcf}.t-UNCOMMON{color:#4fe08a}.t-RARE{color:#4fb6ff}.t-EPIC{color:#c77dff}.t-LEGENDARY{color:#ffc23d}.t-MYTHIC{color:#ff4a3d}
+.t-COMMON{color:#cfcfcf}.t-RARE{color:#4fb6ff}.t-EPIC{color:#c77dff}.t-LEGENDARY{color:#ffc23d}
 .canon{margin:0;color:var(--dim);font-size:13px}
 .warn{margin:0;color:#ffb02e;font-weight:700;font-size:12px;letter-spacing:.1em}
 .mon-card footer{display:flex;gap:10px;align-items:center;font-size:13px;color:var(--dim)}

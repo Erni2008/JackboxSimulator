@@ -64,7 +64,7 @@ public final class RareMindsScreen extends ScreenAdapter {
     private JsonObject row(String id){for(var r:rows())if(s(r,"playerId").equals(id))return r;return null;}
     private JsonObject live(String id){if(rm.has("live"))for(var e:rm.getAsJsonArray("live")){var o=e.getAsJsonObject();if(s(o,"id").equals(id))return o;}return null;}
     private Fx fx(String id){return fx.computeIfAbsent(id,k->new Fx());}
-    private int tierIndex(String id){String[] t={"COMMON","UNCOMMON","RARE","EPIC","LEGENDARY","MYTHIC"};for(int k=0;k<t.length;k++)if(t[k].equals(id))return k;return 0;}
+    private int tierIndex(String id){String[] t={"COMMON","RARE","EPIC","LEGENDARY"};for(int k=0;k<t.length;k++)if(t[k].equals(id))return k;return 0;}
     private String tierName(String id){for(var e:rm.getAsJsonArray("tiers")){var t=e.getAsJsonObject();if(s(t,"id").equals(id))return ru()?s(t,"ru"):s(t,"en");}return id;}
     private String answerLabel(JsonObject r){return b(r,"valid")?(ru()?s(r,"labelRu"):s(r,"labelEn")):s(r,"text");}
     private boolean revealPhase(){String p=phase();return p.equals("ANSWERS_LOCKED")||p.equals("REVEALING_RESULTS");}
@@ -163,7 +163,7 @@ public final class RareMindsScreen extends ScreenAdapter {
             float iy=ry-32;
             switch(e[0]){
                 case "skull"->{batch.setColor(RareMindsArt.RED);batch.draw(art.skull,x+18,iy-20,42,42);}
-                case "gem"->art.gem(x+39,iy+1,15,RareMindsArt.TIER[5],1);
+                case "gem"->art.gem(x+39,iy+1,15,RareMindsArt.TIER[3],1);
                 case "crown"->{batch.setColor(RareMindsArt.GOLD);batch.draw(art.crown,x+16,iy-22,46,46);}
                 default->{batch.setColor(RareMindsArt.GHOST);batch.draw(art.skull,x+18,iy-20,42,42);}
             }
@@ -189,14 +189,14 @@ public final class RareMindsScreen extends ScreenAdapter {
     private void rarity(boolean fin){
         float x=1521,y=470,w=367,h=300;art.panel(x,y,w,h,1,null);
         art.text(art.small,Localization.tr("РЕДКОСТЬ ОТВЕТА","ANSWER RARITY"),x+w/2,y+h-20,.82f,RareMindsArt.IVORY,1,w-30);
-        int mult=fin?2:1;float ry=y+h-58;
+        int mult=fin?2:1;float ry=y+h-62;
         var tiers=rm.getAsJsonArray("tiers");
         for(int k=0;k<tiers.size();k++){var t=tiers.get(k).getAsJsonObject();Color c=RareMindsArt.TIER[k];
-            art.rect(x+14,ry-30,w-28,34,c,.10f);art.rect(x+14,ry-30,3,34,c,.9f);
+            art.rect(x+14,ry-34,w-28,40,c,.10f);art.rect(x+14,ry-34,3,40,c,.9f);
             art.gem(x+36,ry-13,9,c,1);
             art.textLeft(art.tiny,ru()?s(t,"ru"):s(t,"en"),x+56,ry-2,.82f,c,1);
             art.textRight(art.tiny,"+"+(i(t,"souls")*mult)+Localization.tr(" душ"," souls"),x+w-24,ry-2,.82f,fin?RareMindsArt.GOLD:RareMindsArt.IVORY,1);
-            ry-=34;
+            ry-=46;
         }
         art.rect(x+14,y+8,w-28,30,RareMindsArt.GOLD,.14f);batch.setColor(RareMindsArt.GOLD);batch.draw(art.crown,x+22,y+8,30,30);
         art.textLeft(art.tiny,Localization.tr("ДЖЕКПОТ","JACKPOT"),x+60,y+32,.82f,RareMindsArt.GOLD,1);
@@ -264,7 +264,7 @@ public final class RareMindsScreen extends ScreenAdapter {
             float age=locked?clock-lockedAt.get(id+"#"+i(rm,"question")):-1;
             String txt=l==null?"":s(l,"text");if(!liveShown&&!txt.isEmpty())txt=locked?Localization.tr("ответ готов","locked in"):Localization.tr("печатает…","typing…");
             lanes.add(RareMindsRace.Lane.waiting(name(id),s(roster(id),"characterId"),!b(p,"alive"),l(p,"souls"),txt,locked,age,i(p,"collisions"),b(p,"deathZone")));}
-        String[] names=new String[6];var tiers=rm.getAsJsonArray("tiers");for(int k=0;k<6;k++)names[k]=tierName(s(tiers.get(k).getAsJsonObject(),"id"));
+        var tiers=rm.getAsJsonArray("tiers");String[] names=new String[tiers.size()];for(int k=0;k<tiers.size();k++)names[k]=tierName(s(tiers.get(k).getAsJsonObject(),"id"));
         String q=ru()?s(rm,"textRu"):s(rm,"textEn");
         race.draw(430,128,1060,632,q,lanes,names,fin,0,clock,"","",true);
     }
@@ -273,7 +273,7 @@ public final class RareMindsScreen extends ScreenAdapter {
         for(var p:players()){String id=s(p,"id");JsonObject r=row(id);if(r==null)continue;
             lanes.add(new RareMindsRace.Lane(name(id),s(roster(id),"characterId"),answerLabel(r),!s(r,"text").isEmpty(),b(r,"valid"),b(r,"collided"),i(r,"sharedWith"),b(r,"ghost"),
                 tierIndex(s(r,"tier")),r.has("share")?r.get("share").getAsDouble():.5,i(r,"earned"),b(r,"jackpot"),i(r,"jackpotSouls"),b(r,"eliminated"),b(r,"resurrected"),before.containsKey(id)?l(before.get(id),"souls"):Math.max(0,l(r,"souls")-i(r,"earned")-i(r,"jackpotSouls")),l(r,"souls"),"",false,-1,0,false));}
-        String[] names=new String[6];var tiers=rm.getAsJsonArray("tiers");for(int k=0;k<6;k++)names[k]=tierName(s(tiers.get(k).getAsJsonObject(),"id"));
+        var tiers=rm.getAsJsonArray("tiers");String[] names=new String[tiers.size()];for(int k=0;k<tiers.size();k++)names[k]=tierName(s(tiers.get(k).getAsJsonObject(),"id"));
         String q=(ru()?s(rm,"textRu"):s(rm,"textEn"));
         race.draw(430,128,1060,632,Localization.tr("ГОНКА ДУШ · ","SOUL RACE · ")+(fin?Localization.tr("ФИНАЛ · ","FINAL · "):Localization.tr("ВОПРОС ","QUESTION ")+i(rm,"question")+"/"+i(rm,"questions")+" · ")+q,lanes,names,fin,sinceLock(),clock,
             Localization.tr("ОТВЕТЫ ЗАКРЫТЫ","ANSWERS LOCKED"),Localization.tr("Джекпот никто не забрал","Nobody takes the jackpot"));

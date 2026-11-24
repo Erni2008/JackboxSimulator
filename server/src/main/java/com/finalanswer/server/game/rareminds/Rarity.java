@@ -15,16 +15,14 @@ public final class Rarity {
     public static final int MIN_SAMPLE=30;
 
     public enum Tier {
-        COMMON(100,"COMMON","ОБЫЧНЫЙ",.080),
-        UNCOMMON(150,"UNCOMMON","НЕОБЫЧНЫЙ",.045),
-        RARE(300,"RARE","РЕДКИЙ",.022),
-        EPIC(500,"EPIC","ЭПИЧЕСКИЙ",.010),
-        LEGENDARY(700,"LEGENDARY","ЛЕГЕНДАРНЫЙ",.004),
-        MYTHIC(1000,"MYTHIC","МИФИЧЕСКИЙ",0);
+        COMMON(100,"COMMON","ОБЫЧНЫЙ",.060),
+        RARE(300,"RARE","РЕДКИЙ",.025),
+        EPIC(600,"EPIC","ЭПИЧЕСКИЙ",.008),
+        LEGENDARY(1000,"LEGENDARY","ЛЕГЕНДАРНЫЙ",0);
         public final int souls;public final String en,ru;final double minShare;
         Tier(int souls,String en,String ru,double minShare){this.souls=souls;this.en=en;this.ru=ru;this.minShare=minShare;}
-        /** RISK IT clears a collision only at LEGENDARY or above. */
-        public boolean deep(){return ordinal()>=LEGENDARY.ordinal();}
+        /** RISK IT clears a collision only at EPIC or above. */
+        public boolean deep(){return ordinal()>=EPIC.ordinal();}
     }
     /** @param score −ln(p) in micro-units: higher is rarer; integer so comparisons are exact and repeatable */
     public record Estimate(Tier tier,double share,long score){}
@@ -39,5 +37,5 @@ public final class Rarity {
         p=Math.max(1e-9,Math.min(1,p));
         return new Estimate(tierOf(p),p,Math.round(-Math.log(p)*1_000_000));
     }
-    public static Tier tierOf(double share){for(Tier t:Tier.values())if(share>=t.minShare)return t;return Tier.MYTHIC;}
+    public static Tier tierOf(double share){for(Tier t:Tier.values())if(share>=t.minShare)return t;return Tier.LEGENDARY;}
 }

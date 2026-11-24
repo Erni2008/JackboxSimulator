@@ -15,13 +15,13 @@ import java.util.*;
 final class RareMindsArt implements Disposable {
     static final Color GOLD=new Color(.93f,.80f,.56f,1),GOLD_DEEP=new Color(.66f,.48f,.24f,1),IVORY=new Color(.98f,.93f,.84f,1),
         DIM=new Color(.70f,.62f,.52f,1),RED=new Color(.93f,.17f,.12f,1),RED_SOFT=new Color(1f,.42f,.34f,1),GHOST=new Color(.62f,.82f,1f,1),PANEL=new Color(.045f,.018f,.02f,.84f);
-    /** COMMON … MYTHIC gem colours, same order as the server's tiers. */
-    static final Color[] TIER={new Color(.82f,.82f,.84f,1),new Color(.30f,.88f,.54f,1),new Color(.30f,.70f,1f,1),new Color(.78f,.49f,1f,1),new Color(1f,.76f,.24f,1),new Color(1f,.29f,.24f,1)};
+    /** COMMON, RARE, EPIC, LEGENDARY gem colours, same order as the server's tiers. */
+    static final Color[] TIER={new Color(.80f,.80f,.82f,1),new Color(.30f,.70f,1f,1),new Color(.78f,.49f,1f,1),new Color(1f,.76f,.24f,1)};
 
     final Texture background,pixel,soft,skull,crown,ring,car,wheels;
     final BitmapFont title,big,mid,small,tiny,num;
     /** pre-rendered materials from tools/assets/rare_minds/make_ui.py */
-    final Texture titleArt,bezel,gemTex,grain,flame;final NinePatch slot,frame,frameRed,frameGhost,card,cardRed,cardGhost,tab;
+    final Texture titleArt,bezel,gemTex,grain,flame,carBody,carDetail;final NinePatch slot,frame,frameRed,frameGhost,card,cardRed,cardGhost,tab;
     private final java.util.List<Texture> owned=new java.util.ArrayList<>();
     private Texture ui(String n){Texture t=new Texture(Gdx.files.internal("rare_minds/ui/"+n),true);t.setFilter(Texture.TextureFilter.MipMapLinearLinear,Texture.TextureFilter.Linear);owned.add(t);return t;}
     private NinePatch nine(String n,int edge){return new NinePatch(ui(n),edge,edge,edge,edge);}
@@ -34,7 +34,7 @@ final class RareMindsArt implements Disposable {
         Pixmap p=new Pixmap(1,1,Pixmap.Format.RGBA8888);p.setColor(Color.WHITE);p.fill();pixel=new Texture(p);p.dispose();
         titleArt=ui("title.png");bezel=ui("bezel.png");gemTex=ui("gem.png");grain=new Texture(Gdx.files.internal("rare_minds/ui/grain.png"));grain.setWrap(Texture.TextureWrap.Repeat,Texture.TextureWrap.Repeat);owned.add(grain);
         frame=nine("panel.png",40);frameRed=nine("panel_red.png",40);frameGhost=nine("panel_ghost.png",40);card=nine("card.png",30);cardRed=nine("card_red.png",30);cardGhost=nine("card_ghost.png",30);tab=nine("tab.png",28);
-        soft=radial();skull=ui("skull.png");flame=ui("flame.png");slot=nine("slot.png",14);crown=crown();ring=ring();car=car(false);wheels=car(true);
+        soft=radial();skull=ui("skull.png");flame=ui("flame.png");carBody=ui("car_body.png");carDetail=ui("car_detail.png");slot=nine("slot.png",14);crown=crown();ring=ring();car=car(false);wheels=car(true);
         // Russo One (display, numbers) + Noto Sans SemiCondensed SemiBold (everything read at a glance); both carry Cyrillic
         title=font("ui/fonts/RussoOne-Regular.ttf",118,3);big=font("ui/fonts/RussoOne-Regular.ttf",58,0);num=font("ui/fonts/RussoOne-Regular.ttf",40,0);
         mid=font("ui/fonts/NotoSans-SemiCondensedSemiBold.ttf",38,0);small=font("ui/fonts/NotoSans-SemiCondensedSemiBold.ttf",28,0);tiny=font("ui/fonts/NotoSans-SemiCondensedSemiBold.ttf",22,0);

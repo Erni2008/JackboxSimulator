@@ -27,7 +27,7 @@ function createRareMindsController({getState,isAuthenticated,send,makeId,now}){
       </div>
       <div class="rm-answer" data-k="answerBox">
         <input data-k="input" type="text" inputmode="text" autocomplete="off" autocapitalize="sentences" autocorrect="off" spellcheck="false" maxlength="40" enterkeyhint="send" aria-label="${T('Твой ответ','Your answer')}" placeholder="${T('Редкий ответ…','A rare answer…')}">
-        <button type="button" class="rm-risk" data-k="risk" hidden aria-pressed="false"><b>${T('РИСКНУТЬ','RISK IT')}</b><small>${T('легендарный уникальный ответ снимет одно совпадение','a unique legendary answer removes one collision')}</small></button>
+        <button type="button" class="rm-risk" data-k="risk" hidden aria-pressed="false"><b>${T('РИСКНУТЬ','RISK IT')}</b><small>${T('эпический или легендарный уникальный ответ снимет одно совпадение','a unique epic or legendary answer removes one collision')}</small></button>
         <button type="button" class="rm-send" data-k="send" data-native-button>${T('ОТВЕТИТЬ','LOCK IN')}</button>
         <p class="rm-hint" data-k="hint" aria-live="polite"></p>
       </div>

@@ -52,7 +52,7 @@
 .rm-big{margin:10px 0 4px;font:700 34px/1 Georgia,serif;color:var(--g)}.rm-big small{font-size:15px;color:var(--dim)}
 .rm-rank{margin:2px 0;font:700 40px/1 Gothic,Georgia,serif;letter-spacing:.08em;color:#fff1d6}
 .rm-tier{display:inline-block;margin:10px 0 0;padding:6px 12px;border-radius:2px;font:700 13px/1 Gothic,Georgia,serif;letter-spacing:.2em;background:#ffffff10;box-shadow:inset 0 0 0 1px currentColor}
-.t-COMMON{color:#cfcfcf}.t-UNCOMMON{color:#4fe08a}.t-RARE{color:#4fb6ff}.t-EPIC{color:#c77dff}.t-LEGENDARY{color:#ffc23d}.t-MYTHIC{color:#ff4a3d}
+.t-COMMON{color:#cfcfcf}.t-RARE{color:#4fb6ff}.t-EPIC{color:#c77dff}.t-LEGENDARY{color:#ffc23d}
 .rm-tag{margin:8px 0 0;font:700 13px/1.25 Gothic,Georgia,serif;letter-spacing:.12em;color:var(--dim)}
 .rm-tag.red{color:#ff6b5e}.rm-tag.gold{color:var(--g)}.rm-tag.ghost{color:var(--ghost)}
 .rm-ghost{border-color:#9fd2ff55;background:#08111bd9}.rm-ghost .rm-eyebrow{color:var(--ghost)}.rm-ghost p{margin:0;font-size:15px;line-height:1.35}

@@ -15,7 +15,7 @@
   history.replaceState(null,'',location.pathname+location.search);
   $('mon-private').textContent=T('ПРИВАТНЫЙ ЭКРАН ВЕДУЩЕГО · НЕ ПОКАЗЫВАТЬ ИГРОКАМ','PRIVATE HOST VIEW · DO NOT SHOW TO PLAYERS');
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const TIER={COMMON:T('ОБЫЧНЫЙ','COMMON'),UNCOMMON:T('НЕОБЫЧНЫЙ','UNCOMMON'),RARE:T('РЕДКИЙ','RARE'),EPIC:T('ЭПИЧЕСКИЙ','EPIC'),LEGENDARY:T('ЛЕГЕНДАРНЫЙ','LEGENDARY'),MYTHIC:T('МИФИЧЕСКИЙ','MYTHIC')};
+  const TIER={COMMON:T('ОБЫЧНЫЙ','COMMON'),RARE:T('РЕДКИЙ','RARE'),EPIC:T('ЭПИЧЕСКИЙ','EPIC'),LEGENDARY:T('ЛЕГЕНДАРНЫЙ','LEGENDARY')};
   const CHECK={VALID:['ok',T('ВЕРНО','VALID')],VALID_TYPO:['ok',T('ВЕРНО · опечатка','VALID · typo')],INVALID:['bad',T('НЕ ПРИНЯТ','NOT ACCEPTED')],UNCERTAIN:['warn',T('НЕОДНОЗНАЧНО','AMBIGUOUS')],EMPTY:['',''] };
   let data=null,offset=0,failures=0;
 

@@ -26,7 +26,7 @@ final class RareMindsRace {
         case "pumpkin"->new Color(1f,.55f,.12f,1);case "plague_doctor"->new Color(.62f,.42f,.95f,1);case "voodoo"->new Color(.98f,.80f,.25f,1);case "puppeteer"->new Color(.25f,.45f,1f,1);
         default->new Color(.8f,.8f,.8f,1);};}
     /** smoothed lane slot per player (lanes are ordered by souls and slide when someone overtakes) */
-    private final Map<String,Float> slot=new HashMap<>();private final Map<String,Integer> lastRank=new HashMap<>();private final Map<String,Float> upAt=new HashMap<>();private float lastClock=-1,maxScale=0;
+    private final Map<String,Float> slot=new HashMap<>();private final Map<String,Integer> lastRank=new HashMap<>();private final Map<String,Float> upAt=new HashMap<>();private float lastClock=-1,maxScale=0;private final Map<String,String> typed=new HashMap<>();private final Map<String,Integer> stable=new HashMap<>();private final Map<String,Float> typedAt=new HashMap<>();
     static final float START=.9f,STAGGER=.12f,DRIVE=2.4f;
     /** shares at the zone boundaries (same as the server tiers) and the scale ends */
     private static final double TOP=.25,BOTTOM=.0015;private static final double[] EDGES={.080,.045,.022,.010,.004};
@@ -82,8 +82,14 @@ final class RareMindsRace {
                 float sx=x+72+fs+art.width(art.small,l.name(),.82f)+14;
                 for(int k=0;k<3;k++){Color sc=k<l.skulls()?(l.ghost()?RareMindsArt.GHOST:RareMindsArt.RED):new Color(.3f,.24f,.22f,1);batch().setColor(sc);batch().draw(art.skull,sx+k*24,cy+4,22,22);}
                 String txt=l.live()==null?"":l.live();boolean blink=((int)(clock*2))%2==0;
-                String shown=txt.isEmpty()?(l.locked()?"":"…"):txt+(l.locked()||!blink?"":"|");
-                art.textLeft(art.small,ellipsize(shown,20),x+72+fs,cy-4,.78f,l.locked()?RareMindsArt.GOLD:Color.WHITE,txt.isEmpty()?.4f:1);
+                // letters arrive like typing: the newest characters fade and slide in instead of popping
+                String prev=typed.getOrDefault(l.name(),"");if(!txt.equals(prev)){int keep=0;while(keep<Math.min(prev.length(),txt.length())&&prev.charAt(keep)==txt.charAt(keep))keep++;stable.put(l.name(),keep);typedAt.put(l.name(),clock);typed.put(l.name(),txt);}
+                Color tc=l.locked()?RareMindsArt.GOLD:Color.WHITE;float tx=x+72+fs;
+                if(txt.isEmpty())art.textLeft(art.small,l.locked()?"":"…",tx,cy-4,.78f,tc,.4f);
+                else{String vis=ellipsize(txt,20);int keep=Math.min(stable.getOrDefault(l.name(),0),vis.length());float k=Math.min(1,(clock-typedAt.getOrDefault(l.name(),0f))/.22f);
+                    String head=vis.substring(0,keep),tail=vis.substring(keep);art.textLeft(art.small,head,tx,cy-4,.78f,tc,1);
+                    float hx=tx+art.width(art.small,head,.78f);if(!tail.isEmpty())art.textLeft(art.small,tail,hx+(1-k)*8,cy-4,.78f,tc,k);
+                    if(!l.locked()&&blink)art.rect(hx+art.width(art.small,tail,.78f)+3,cy-30,2,26,RareMindsArt.GOLD,1);}
                 if(l.locked())art.textRight(art.tiny,art_tr("ГОТОВ","LOCKED"),tx0-16,cy-6,.72f,RareMindsArt.GOLD,1);
                 if(l.zone())art.textRight(art.tiny,art_tr("ЗОНА СМЕРТИ","DEATH ZONE"),tx0-16,cy+26,.62f,RareMindsArt.RED_SOFT,.7f+.3f*MathUtils.sin(clock*5));
             }else{
@@ -126,15 +132,11 @@ final class RareMindsRace {
     private void car(float cx,float cy,float s,Color c,boolean ghost,boolean moving){car(cx,cy,s,c,ghost,moving,-1);}
     /** A side-view race car: tinted body, darker underside, a hard specular stripe, tyres, glass, headlight and race number. */
     private void car(float cx,float cy,float s,Color c,boolean ghost,boolean moving,int number){
-        float a=ghost?.55f:1,w=118*s,h=w*40/128f,x=cx-w/2,y=cy-h/2;
-        art.shade(cx,y+2,w*1.25f,h*.55f,.8f);
-        if(moving)art.glow(cx-w*.6f,cy,w*.9f,h*1.1f,c,.45f);
-        batch().setColor(c.r,c.g,c.b,a);batch().draw(art.car,x,y,w,h);
-        batch().setColor(c.r*.45f,c.g*.45f,c.b*.45f,a);batch().draw(art.car,x,y,w,h*.42f,0,1f,1f,.58f);
-        batch().setColor(1,1,1,.42f*a);batch().draw(art.car,x,y+h*.62f,w,h*.06f,0,.38f,1f,.32f);
-        batch().setColor(.04f,.04f,.05f,a);batch().draw(art.wheels,x,y,w,h);
-        art.glow(cx+w*.47f,cy-h*.02f,30*s,16*s,new Color(1,.95f,.8f,1),.7f*a);
-        if(number>0)art.text(art.num,String.valueOf(number),cx-w*.05f,cy+h*.18f,.34f*s,Color.WHITE,a,0);
+        float a=ghost?.55f:1,w=124*s,h=w*160/512f,x=cx-w/2,y=cy-h/2;
+        art.shade(cx,y+h*.08f,w*1.2f,h*.45f,.85f);
+        if(moving)art.glow(cx-w*.62f,cy-h*.05f,w*.8f,h*.9f,c,.40f);
+        batch().setColor(c.r,c.g,c.b,a);batch().draw(art.carBody,x,y,w,h);
+        batch().setColor(1,1,1,a);batch().draw(art.carDetail,x,y,w,h);
     }
     private static boolean arrivedAll(float t,int n){return t>=arrival(n-1);}
     private static String pct(double share){double p=share*100;return p>=1?Math.round(p)+"%":p>=.1?String.format(Locale.ROOT,"%.1f%%",p):"<0.1%";}

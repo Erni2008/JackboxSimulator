@@ -160,7 +160,38 @@ def flame_draw(d, N):
     d.polygon([(32 * s, 4 * s), (46 * s, 26 * s), (50 * s, 42 * s), (42 * s, 56 * s), (22 * s, 56 * s), (14 * s, 42 * s), (20 * s, 24 * s), (26 * s, 32 * s)], fill=255)
     d.ellipse((16 * s, 30 * s, 48 * s, 60 * s), fill=255); d.ellipse((25 * s, 38 * s, 39 * s, 56 * s), fill=0)
 
+def car_art(W=512, H=160):
+    """side-view GT racer: car_body.png is greyscale-shaded (tinted per player at draw time), car_detail.png is the
+    untinted layer (tyres, rims, glass, intakes, light trims)"""
+    S = 2; w, h = W * S, H * S
+    def P(pts): return [(x * w, y * h) for x, y in pts]
+    body = Image.new('L', (w, h)); d = ImageDraw.Draw(body)
+    d.polygon(P([(.03, .70), (.05, .52), (.16, .45), (.33, .40), (.42, .22), (.50, .17), (.62, .18), (.72, .33), (.86, .42), (.97, .52), (.99, .64), (.96, .74), (.03, .76)]), fill=255)
+    d.polygon(P([(.00, .30), (.09, .30), (.11, .46), (.06, .48)]), fill=255)  # rear wing
+    m = np.array(body) > 127
+    shade, hgt = bevel(m, h * .12, light=(-.3, -.9, .6))
+    ys = np.linspace(0, 1, h)[:, None] * np.ones((1, w))
+    v = (.35 + .75 * shade) * (1.05 - .55 * np.clip((ys - .45) / .35, 0, 1))
+    v += np.clip((shade - .82) * 6, 0, 1) * .45                 # hard specular line along the shoulder
+    v[(ys > .56) & (ys < .575) & m] *= .55                       # body crease
+    rgba(np.dstack([v, v, v]) * 230, m * 255).resize((W, H), Image.LANCZOS).save(os.path.join(OUT, 'car_body.png'))
+    det = Image.new('RGBA', (w, h)); dd = ImageDraw.Draw(det)
+    dd.polygon(P([(.44, .25), (.51, .21), (.61, .22), (.68, .34), (.46, .36)]), fill=(18, 22, 30, 245))      # glass
+    dd.polygon(P([(.49, .23), (.56, .22), (.52, .33), (.47, .34)]), fill=(120, 140, 170, 120))             # glass reflection
+    dd.polygon(P([(.20, .50), (.30, .47), (.32, .55), (.21, .58)]), fill=(10, 10, 12, 230))                # side intake
+    for cx in (.20, .80):
+        r = .25 * h; X, Y = cx * w, .74 * h
+        dd.ellipse((X - r, Y - r, X + r, Y + r), fill=(14, 14, 16, 255))
+        dd.ellipse((X - r * .62, Y - r * .62, X + r * .62, Y + r * .62), fill=(150, 152, 158, 255))
+        dd.ellipse((X - r * .5, Y - r * .5, X + r * .5, Y + r * .5), fill=(60, 62, 68, 255))
+        for k in range(5):
+            a = k * 2 * np.pi / 5; dd.line((X, Y, X + np.cos(a) * r * .55, Y + np.sin(a) * r * .55), fill=(190, 192, 198, 255), width=int(5 * S))
+        dd.ellipse((X - r * .14, Y - r * .14, X + r * .14, Y + r * .14), fill=(210, 210, 215, 255))
+    det = det.filter(ImageFilter.SMOOTH)
+    det.resize((W, H), Image.LANCZOS).save(os.path.join(OUT, 'car_detail.png')); print('car art')
+
 if __name__ == '__main__':
+    car_art()
     slot('slot.png')
     icon('skull.png', skull_draw)
     icon('flame.png', flame_draw)
