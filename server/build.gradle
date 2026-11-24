@@ -13,7 +13,7 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter:5.12.2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
-test { useJUnitPlatform() }
+test { useJUnitPlatform(); systemProperty 'rareminds.stats', layout.buildDirectory.file('rare-minds-test-stats.json').get().asFile.absolutePath }
 processResources {
     from(rootProject.file('web')) { into 'web' }
     from(rootProject.file('assets/ui/fonts')) {

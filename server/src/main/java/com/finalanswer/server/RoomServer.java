@@ -53,7 +53,7 @@ public final class RoomServer implements AutoCloseable {
                 if(!config.allowsOrigin(ctx.header("Origin"),ctx.header("Host"))) throw new RoomService.Failure(403,"ORIGIN_NOT_ALLOWED");
                 if(ctx.path().startsWith("/rooms")) {
                     ctx.contentType("application/json; charset=utf-8").header("Cache-Control","no-store");
-                    if(!Boolean.getBoolean("race.qa")&&!ctx.path().endsWith("/cage")&&!ctx.path().endsWith("/race")&&!limits.allow("http:"+ip(ctx),80,2))throw new RoomService.Failure(429,"RATE_LIMITED");
+                    if(!Boolean.getBoolean("race.qa")&&!ctx.path().endsWith("/cage")&&!ctx.path().endsWith("/rare-minds/monitor")&&!ctx.path().endsWith("/race")&&!limits.allow("http:"+ip(ctx),80,2))throw new RoomService.Failure(429,"RATE_LIMITED");
                 }
             });
             c.routes.get("/health",ctx->ctx.contentType("application/json").result("{\"status\":\"ok\",\"protocol\":1,\"lastCommand\":{\"engine\":\"race\",\"solo\":true,\"debug\":"+com.finalanswer.server.rooms.LastCommandSession.DEBUG+"}}"));
@@ -64,6 +64,8 @@ public final class RoomServer implements AutoCloseable {
             c.routes.get("/qa/rooms",ctx->ctx.contentType("application/json").result(rooms.qaRooms()));
             c.routes.get("/rooms/{code}",ctx->ctx.result(rooms.view(ctx.pathParam("code"))));
             c.routes.get("/rooms/{code}/race",ctx->ctx.result(rooms.raceView(ctx.pathParam("code"),ctx.queryParam("token"),"1".equals(ctx.queryParam("close")))));
+            // RARE MINDS private host monitor: token in a header (never in the URL), polled a few times a second
+            c.routes.get("/rooms/{code}/rare-minds/monitor",ctx->ctx.result(rooms.rareMindsMonitor(ctx.pathParam("code"),ctx.header("X-Host-Token"))));
             c.routes.get("/rooms/{code}/cage",ctx->ctx.result(rooms.cageView(ctx.pathParam("code"),ctx.queryParam("token"))));
             c.routes.post("/rooms/{code}/join",ctx->{
                 if(!Boolean.getBoolean("race.qa")&&!limits.allow("join:"+ip(ctx),15,.25))throw new RoomService.Failure(429,"RATE_LIMITED");
@@ -99,6 +101,7 @@ public final class RoomServer implements AutoCloseable {
                         if(message.type().startsWith("SYSTEM_BREACH_"))type="SYSTEM_BREACH_ACTION_REJECTED";
                         if(message.type().startsWith("CURSED_")||message.type().equals("START_CURSED_BOXES"))type="CURSED_ACTION_REJECTED";
                         if(message.type().equals("SUBMIT_ANSWER"))type="ANSWER_REJECTED";
+                        if(message.type().startsWith("RM_"))type="RARE_MINDS_REJECTED";
                         if(message.type().equals("SUBMIT_SUSPICION"))type="SUSPICION_REJECTED";
                         if(message.type().equals("SUBMIT_CLUE"))type="CLUE_REJECTED";
                         if(message.type().equals("SUBMIT_FINAL_VOTE"))type="FINAL_VOTE_REJECTED";
