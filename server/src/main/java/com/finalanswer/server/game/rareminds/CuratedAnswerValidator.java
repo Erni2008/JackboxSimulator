@@ -30,6 +30,8 @@ public final class CuratedAnswerValidator implements AnswerValidator {
         if(key.isEmpty())return Result.of(Status.EMPTY,key);
         Map<String,String> m=index.computeIfAbsent(q.id(),x->build(q));
         String exact=m.get(key);if(exact!=null)return new Result(Status.VALID,exact,key);
+        // a leading English article is not part of the answer ("the Moon", "a dolphin")
+        String cl=RareText.clean(typed);if(cl!=null){String low=cl.toLowerCase(Locale.ROOT);for(String art:new String[]{"the ","an ","a "})if(low.startsWith(art)&&low.length()>art.length()+2){Result r=validate(q,cl.substring(art.length()));if(r.valid())return new Result(Status.VALID_TYPO,r.answerId(),key);}}
         if(q.typoTolerance()==0)return Result.of(Status.INVALID,key);
         Map<String,String> lat=latin.computeIfAbsent(q.id(),x->latinIndex(m));
         // 1. typed on the wrong keyboard layout (gfhfwtnfvjk → парацетамол, зфкфсуефьщд → paracetamol)
