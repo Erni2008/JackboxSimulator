@@ -37,7 +37,7 @@ public final class RareMindsLiveHost {
             void onState(JsonObject s){
                 offset=s.get("serverTime").getAsLong()-System.currentTimeMillis();
                 if(!started&&!s.has("rareMinds")){long online=0;for(var e:s.getAsJsonArray("players"))if("ONLINE".equals(e.getAsJsonObject().get("connectionStatus").getAsString()))online++;
-                    if(online>=players){started=true;JsonObject lg=new JsonObject();lg.addProperty("language",System.getProperty("rm.lang","ru"));send("SET_LANGUAGE",lg);JsonObject p=new JsonObject();p.addProperty("sessionId",s.get("lobbyId").getAsString());send("START_RARE_MINDS",p);}}
+                    if(online>=players){started=true;JsonObject lg=new JsonObject();lg.addProperty("language",System.getProperty("rm.lang","ru"));send("SET_LANGUAGE",lg);JsonObject p=new JsonObject();p.addProperty("sessionId",s.get("lobbyId").getAsString());String f=System.getProperty("rm.format","");if(!f.isBlank())p.addProperty("format",f);send("START_RARE_MINDS",p);}}
                 if(!s.has("rareMinds"))return;
                 if(screen==null){screen=new RareMindsScreen(s,this::now,id->{JsonObject p=new JsonObject();p.addProperty("sessionId",id);send("END_RARE_MINDS",p);},()->{});setScreen(screen);}else screen.apply(s);
             }

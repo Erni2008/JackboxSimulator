@@ -63,3 +63,6 @@
 .rm-intro ol{margin:0;padding:0 0 0 20px;text-align:left;display:grid;gap:8px;font-size:15px;line-height:1.35}
 .rm-look{margin:18px 0 0;text-align:center;font:700 14px/1 Gothic,Georgia,serif;letter-spacing:.3em;color:var(--g);animation:rm-blink 1.4s infinite}
 @media (prefers-reduced-motion:reduce){#rm-screen *{animation:none!important}#rm-screen::before{animation:none!important}}
+
+.rm-duel{margin:12px 0 0;padding:10px 12px;text-align:center;border:1px solid #e2372a88;border-radius:3px;background:#1a0606cc;font:15px/1.3 Georgia,serif;color:#ffd2c8}
+.rm-duel b{display:block;margin-bottom:4px;font:700 11px/1 Gothic,Georgia,serif;letter-spacing:.3em;color:#ff6b5e}

@@ -41,6 +41,7 @@ function createRareMindsController({getState,isAuthenticated,send,makeId,now}){
         <li>${T('Самый редкий уникальный ответ забирает джекпот.','The rarest unique answer takes the jackpot.')}</li>
         <li>${T('Призрак вернётся, если до конца отвечает уникально.','A ghost returns by answering uniquely to the end.')}</li></ol>
       </div>
+      <p class="rm-duel" data-k="duel" hidden></p>
       <p class="rm-look" data-k="look" hidden>${T('СМОТРИ НА ЭКРАН','LOOK AT THE SCREEN')}</p>`;
     root.querySelectorAll('[data-k]').forEach(e=>els[e.dataset.k]=e);
     els.input.addEventListener('input',()=>{error='';scheduleDraft();paintHint();});
@@ -107,6 +108,9 @@ function createRareMindsController({getState,isAuthenticated,send,makeId,now}){
     els.send.disabled=!isAuthenticated()||!!pending;
     paintHint();
     renderGhost(m,p,ghost);renderResult(m,p);
+    // DUELS format: your fixed opponent and the score
+    const opp=p.opponent&&m.players.find(x=>x.id===p.opponent),oppName=opp&&(getState().players||[]).find(x=>x.id===opp.id)?.name;
+    els.duel.hidden=!opp;if(opp)els.duel.innerHTML=`<b>${T('ДУЭЛЬ 1 НА 1','1-ON-1 DUEL')}</b> ${T('против','vs')} ${esc(oppName||'?')} · ${p.duelWins||0} : ${opp.duelWins||0}`;
     els.look.hidden=!(ph==='ANSWERS_LOCKED'||ph==='REVEALING_RESULTS'||ph==='FINAL_RESULTS'||ph==='COMPLETED');
     if(lastPhase!==ph||lastQuestion!==m.question){lastPhase=ph;lastQuestion=m.question;if(active&&!locked&&!ghost&&document.activeElement!==els.input&&matchMedia('(pointer:fine)').matches)els.input.focus();}
     if(!raf)tick();
@@ -136,10 +140,12 @@ function createRareMindsController({getState,isAuthenticated,send,makeId,now}){
     if(r.eliminated)tags.push(`<p class="rm-tag red">${T('ВЫБЫВАНИЕ','ELIMINATED')} · −${r.deathPenalty} ${T('душ','souls')}</p>`);
     if(r.ghostSuccess)tags.push(`<p class="rm-tag ghost">${T('Уникально! Шаг к воскрешению','Unique! One step closer to coming back')}</p>`);
     if(r.resurrectionLost)tags.push(`<p class="rm-tag red">${T('Воскрешение потеряно','Resurrection lost')}</p>`);
+    if(r.duel>0)tags.push(`<p class="rm-tag gold">${T('ДУЭЛЬ ВЫИГРАНА','DUEL WON')} +${r.duelBonus}</p>`);
+    if(r.duel<0)tags.push(`<p class="rm-tag red">${T('Дуэль проиграна','Duel lost')}</p>`);
     if(r.resurrected)tags.push(`<p class="rm-tag gold">${T('ВОСКРЕШЁН!','RESURRECTED!')} +100</p>`);
     els.result.innerHTML=`<p class="rm-eyebrow">${T('ТВОЙ ОТВЕТ','YOUR ANSWER')}</p><p class="rm-mine">${esc(r.valid?T(r.labelRu,r.labelEn):r.text||'—')}</p>
       ${r.valid?`<p class="rm-tier t-${esc(r.tier)}">${esc(tierName(r.tier))} · ${tierSouls(r.tier)*(m.reveal.final?2:1)}</p>`:''}
-      <p class="rm-big">+${r.earned+(r.jackpotSouls||0)} <small>${T('душ','souls')}</small></p>${tags.join('')}`;
+      <p class="rm-big">+${r.earned+(r.jackpotSouls||0)+(r.duelBonus||0)} <small>${T('душ','souls')}</small></p>${tags.join('')}`;
   }
   function tick(){
     const m=mini();if(!m||!root||root.hidden){raf=0;return;}

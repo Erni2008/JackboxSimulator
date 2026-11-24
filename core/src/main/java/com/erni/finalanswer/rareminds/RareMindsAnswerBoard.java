@@ -12,6 +12,8 @@ import java.util.*;
  */
 final class RareMindsAnswerBoard {
     record Member(String name,String character,boolean ghost){}
+    /** one 1-on-1 duel of the DUELS format: who won this question (0 draw) and the running score */
+    record Duel(String a,String b,String charA,String charB,int result,int bonus,int winsA,int winsB){}
     record Group(String answer,boolean valid,boolean empty,int tier,double share,int souls,int penaltyPct,boolean jackpot,int jackpotSouls,List<Member> members,String typed){
         boolean collided(){return valid&&members.size()>1;}
     }
@@ -20,19 +22,22 @@ final class RareMindsAnswerBoard {
     static float pointsAt(int n){return INTRO+STEP*Math.max(0,n-1)+FLIP+POINTS_GAP;}
     /** when the board is done (answers shown, then every tile scored, jackpot crowned) */
     static float duration(int n){return pointsAt(n)+POINT_STEP*Math.max(0,n-1)+1.4f;}
+    static float duration(int n,boolean duels){return duration(n)+(duels?1.6f:0);}
     private final RareMindsArt art;RareMindsAnswerBoard(RareMindsArt art){this.art=art;}
 
-    void draw(float x,float y,float w,float h,String title,List<Group> groups,String[] tierNames,boolean fin,float t,float clock){
+    void draw(float x,float y,float w,float h,String title,List<Group> groups,String[] tierNames,boolean fin,float t,float clock){draw(x,y,w,h,title,groups,tierNames,fin,t,clock,List.of());}
+    void draw(float x,float y,float w,float h,String title,List<Group> groups,String[] tierNames,boolean fin,float t,float clock,List<Duel> duels){
         art.panel(x,y,w,h,1,fin?RareMindsArt.RED:null);
         float ta=MathUtils.clamp(t/.35f,0,1);
         art.text(art.mid,title,x+w/2,y+h-22,.78f,RareMindsArt.IVORY,ta,w-80);
         art.text(art.tiny,tr("ОТВЕТЫ","THE ANSWERS"),x+w/2,y+h-70,.8f,RareMindsArt.GOLD,ta,0);
         int n=groups.size();if(n==0)return;
-        int cols=n<=3?n:n<=4?2:3,rows=(n+cols-1)/cols;float gap=22,top=y+h-96,bottom=y+28;
+        int cols=n<=3?n:n<=4?2:3,rows=(n+cols-1)/cols;float gap=22,top=y+h-96,bottom=y+(duels.isEmpty()?28:118);
         float tw=Math.min(310,(w-60-gap*(cols-1))/cols),th=Math.min(200,(top-bottom-gap*(rows-1))/rows);
         for(int i=0;i<n;i++){Group g=groups.get(i);int r=i/cols,c=i%cols;int inRow=Math.min(cols,n-r*cols);
             float rowW=inRow*tw+(inRow-1)*gap,tx=x+w/2-rowW/2+c*(tw+gap),ty=top-(r+1)*th-r*gap;
             float lt=(t-INTRO-i*STEP)/FLIP;tile(g,tx,ty,tw,th,lt,clock,tierNames,t-pointsAt(n)-i*POINT_STEP);}
+        if(!duels.isEmpty())duelStrip(x,y+14,w,duels,t-duration(n),clock);
         if(t>pointsAt(n)-.5f)art.text(art.tiny,tr("РАЗДАЁМ ДУШИ","HANDING OUT SOULS"),x+w/2,y+h-70,.8f,RareMindsArt.GOLD,0,0);
     }
     /** a tile turning over: its back (gilt, a question mark) narrows to an edge, then the face widens */
@@ -68,6 +73,26 @@ final class RareMindsAnswerBoard {
         if(g.jackpot()&&after>.3f){float c=ease((after-.3f)*2.5f);art.glow(cx,y+h/2,w*1.9f,h*1.9f,RareMindsArt.GOLD,.28f*c*(.85f+.15f*MathUtils.sin(clock*4)));
             batch().setColor(RareMindsArt.GOLD.r,RareMindsArt.GOLD.g,RareMindsArt.GOLD.b,c);batch().draw(art.crown,cx-28,y+h-6+(1-c)*20,56,56);
             art.text(art.small,tr("ДЖЕКПОТ +","JACKPOT +")+g.jackpotSouls(),cx,y-10,.8f,RareMindsArt.GOLD,c,0);}
+    }
+    /** the duel scoreboard under the tiles: each pair face to face, the winner lit and paid */
+    private void duelStrip(float x,float y,float w,List<Duel> duels,float t,float clock){
+        if(t<-.2f){art.text(art.tiny,tr("ДУЭЛИ 1 НА 1","1-ON-1 DUELS"),x+w/2,y+86,.72f,RareMindsArt.DIM,1,0);}
+        int n=duels.size();float gap=14,cw=Math.min(330,(w-60-gap*(n-1))/n),h=74;
+        for(int i=0;i<n;i++){Duel d=duels.get(i);float cx=x+w/2-(n*cw+(n-1)*gap)/2+i*(cw+gap)+cw/2;float a=ease((t-i*.25f)/.35f);
+            art.rect(cx-cw/2,y,cw,h,new Color(0,0,0,.55f),1);art.rect(cx-cw/2,y+h-3,cw,3,RareMindsArt.GOLD,.6f);
+            boolean aw=a>0&&d.result()>0,bw=a>0&&d.result()<0;
+            side(d.a(),d.charA(),cx-cw/2+10,y,true,aw,a>0&&d.result()<0);side(d.b(),d.charB(),cx+cw/2-10,y,false,bw,a>0&&d.result()>0);
+            art.text(art.small,"VS",cx,y+h/2+12,.8f,RareMindsArt.RED_SOFT,1,0);
+            if(a>0){art.text(art.num,d.winsA()+" : "+d.winsB(),cx,y+20,.4f,RareMindsArt.IVORY,a,0);
+                if(d.result()!=0){art.glow(d.result()>0?cx-cw/4:cx+cw/4,y+h/2,cw*.7f,h*1.6f,RareMindsArt.GOLD,.25f*a);
+                    art.text(art.tiny,"+"+d.bonus(),d.result()>0?cx-cw/4:cx+cw/4,y+h+20,.8f,RareMindsArt.GOLD,a,0);}
+                else art.text(art.tiny,tr("НИЧЬЯ","DRAW"),cx,y+h+20,.72f,RareMindsArt.DIM,a,0);}}
+    }
+    private void side(String name,String character,float x,float y,boolean left,boolean won,boolean lost){
+        Texture face=art.face(character);float fs=44,fx=left?x:x-fs;float al=lost?.45f:1;
+        if(face!=null){batch().setColor(al,al,al,1);batch().draw(face,fx,y+15,fs,fs);}
+        Color rc=won?RareMindsArt.GOLD:RareMindsArt.GOLD_DEEP;batch().setColor(rc);batch().draw(art.ring,fx-2,y+13,fs+4,fs+4);
+        if(left)art.textLeft(art.tiny,name,fx+fs+8,y+46,.78f,won?RareMindsArt.GOLD:RareMindsArt.IVORY,al);else art.textRight(art.tiny,name,fx-8,y+46,.78f,won?RareMindsArt.GOLD:RareMindsArt.IVORY,al);
     }
     private static String pct(double share){double p=share*100;return p>=1?Math.round(p)+"%":p>=.1?String.format(Locale.ROOT,"%.1f%%",p):"<0.1%";}
     private static float ease(float t){t=MathUtils.clamp(t,0,1);return t*t*(3-2*t);}

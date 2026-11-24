@@ -580,8 +580,10 @@ public final class RoomService {
                 if(room.game!=null||room.impostor!=null||room.cursed!=null||room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null||room.rareMinds!=null||room.breach!=null||!room.webGameId.isEmpty())throw new Failure(409,"GAME_ALREADY_STARTED");
                 if(!room.lobbyId.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_RM_SESSION");
                 List<String> seats=room.members.values().stream().filter(m->m.peer!=null&&!m.left).map(m->m.id).toList();
-                room.rareMinds=new com.finalanswer.server.game.rareminds.RareMindsSession(seats,com.finalanswer.server.game.rareminds.RareQuestionBank.load(),rareStats(),random,now());room.rareMindsDoneAt=0;
-                System.out.println("[rare-minds] start room="+room.code+" seats="+seats.size());
+                com.finalanswer.server.game.rareminds.RareMindsSession.Format forced=null;
+                if(Boolean.getBoolean("race.qa")&&data.has("format"))try{forced=com.finalanswer.server.game.rareminds.RareMindsSession.Format.valueOf(Protocol.string(data,"format"));}catch(RuntimeException e){throw new Failure(400,"RM_INVALID_FORMAT");}
+                room.rareMinds=new com.finalanswer.server.game.rareminds.RareMindsSession(seats,com.finalanswer.server.game.rareminds.RareQuestionBank.load(),rareStats(),random,now(),forced);room.rareMindsDoneAt=0;
+                System.out.println("[rare-minds] start room="+room.code+" seats="+seats.size()+" format="+room.rareMinds.format);
                 broadcast(room,"RARE_MINDS_STARTED");
             }
             case "END_RARE_MINDS"->{requireHost(member);requireRareMinds(room,data);endRareMinds(room);}

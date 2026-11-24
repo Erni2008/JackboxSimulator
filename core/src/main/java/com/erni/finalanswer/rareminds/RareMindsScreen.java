@@ -222,8 +222,12 @@ public final class RareMindsScreen extends ScreenAdapter {
             float t=Math.max(0,(l(rm,"phaseEndsAt")-now())/1000f);
             art.paragraph(art.big,Localization.tr("Назови верный ответ, который не придёт в голову никому другому","Give a valid answer nobody else will think of"),cx,y+h-50,w-120,.82f,RareMindsArt.IVORY,1);
             art.ornament(cx,y+106,520,RareMindsArt.GOLD,.7f);
-            art.text(art.small,Localization.tr("Совпадения ставят черепа · Редкость приносит души · 8 вопросов","Collisions cost skulls · Rarity pays souls · 8 questions"),cx,y+84,.8f,RareMindsArt.GOLD,1,w-80);
+            if(!duelsFormat())art.text(art.small,Localization.tr("Совпадения ставят черепа · Редкость приносит души · 8 вопросов","Collisions cost skulls · Rarity pays souls · 8 questions"),cx,y+84,.8f,RareMindsArt.GOLD,1,w-80);
             art.text(art.small,Localization.tr("Первый вопрос через ","First question in ")+(int)Math.ceil(t),cx,y+42,.74f,RareMindsArt.DIM,1,0);
+            if(duelsFormat()){float pulse=.75f+.25f*MathUtils.sin(clock*4);art.glow(cx,y+112,620,110,RareMindsArt.RED,.22f*pulse);
+                art.text(art.mid,Localization.tr("ФОРМАТ: ДУЭЛИ 1 НА 1","FORMAT: 1-ON-1 DUELS"),cx,y+132,.82f,RareMindsArt.RED_SOFT,1,0);
+                StringBuilder sb=new StringBuilder();Set<String> seen=new HashSet<>();for(var p:players()){String id=s(p,"id"),o=s(p,"opponent");if(o.isEmpty()||seen.contains(id))continue;seen.add(id);seen.add(o);if(sb.length()>0)sb.append("     ");sb.append(name(id)).append("  VS  ").append(name(o));}
+                art.text(art.small,sb.toString(),cx,y+92,.74f,RareMindsArt.IVORY,1,w-80);}
             return;
         }
         String text=ru()?s(rm,"textRu"):s(rm,"textEn");
@@ -296,18 +300,28 @@ public final class RareMindsScreen extends ScreenAdapter {
                 tierIndex(s(r,"tier")),r.has("share")?r.get("share").getAsDouble():.5,i(r,"earned"),b(r,"jackpot"),i(r,"jackpotSouls"),b(r,"eliminated"),b(r,"resurrected"),before.containsKey(id)?l(before.get(id),"souls"):Math.max(0,l(r,"souls")-i(r,"earned")-i(r,"jackpotSouls")),l(r,"souls"),"",false,-1,0,false));}
         var tiers=rm.getAsJsonArray("tiers");String[] names=new String[tiers.size()];for(int k=0;k<tiers.size();k++)names[k]=tierName(s(tiers.get(k).getAsJsonObject(),"id"));
         String q=(ru()?s(rm,"textRu"):s(rm,"textEn"));
-        List<RareMindsAnswerBoard.Group> groups=groups();boardEnd=RareMindsAnswerBoard.duration(groups.size());float t=sinceLock()-LOCK_HOLD;
+        List<RareMindsAnswerBoard.Group> groups=groups();List<RareMindsAnswerBoard.Duel> duels=duels();boardEnd=RareMindsAnswerBoard.duration(groups.size(),!duels.isEmpty());float t=sinceLock()-LOCK_HOLD;
         if(t<0){lockedCard(fin,t+LOCK_HOLD);return;}
         if(!pointsSaid&&t>=RareMindsAnswerBoard.pointsAt(groups.size())-.6f){pointsSaid=true;voice.say("points",2);}
         if(t<boardEnd){
             int flipped=(int)Math.floor((t-RareMindsAnswerBoard.INTRO-RareMindsAnswerBoard.FLIP*.5f)/RareMindsAnswerBoard.STEP);
             if(flipped>tilesSounded&&flipped<groups.size()){tilesSounded=flipped;var g=groups.get(flipped);sfx.play(g.collided()?Cue.COLLISION:g.jackpot()?Cue.JACKPOT:Cue.REVEAL);}
-            board.draw(430,128,1060,632,(fin?Localization.tr("ПОСЛЕДНИЙ ОТВЕТ · ","THE LAST ANSWER · "):Localization.tr("ВОПРОС ","QUESTION ")+i(rm,"question")+"/"+i(rm,"questions")+" · ")+q,groups,names,fin,t,clock);
+            board.draw(430,128,1060,632,(fin?Localization.tr("ПОСЛЕДНИЙ ОТВЕТ · ","THE LAST ANSWER · "):Localization.tr("ВОПРОС ","QUESTION ")+i(rm,"question")+"/"+i(rm,"questions")+" · ")+q,groups,names,fin,t,clock,duels);
             return;
         }
         tilesSounded=-1;
         race.draw(430,128,1060,632,Localization.tr("ГОНКА ДУШ · ","SOUL RACE · ")+(fin?Localization.tr("ФИНАЛ · ","FINAL · "):Localization.tr("ВОПРОС ","QUESTION ")+i(rm,"question")+"/"+i(rm,"questions")+" · ")+q,lanes,names,fin,t-boardEnd+RareMindsRace.START,clock,
             Localization.tr("ОТВЕТЫ ЗАКРЫТЫ","ANSWERS LOCKED"),Localization.tr("Джекпот никто не забрал","Nobody takes the jackpot"));
+    }
+    private boolean duelsFormat(){return "DUELS".equals(s(rm,"format"));}
+    /** the duels of this question (DUELS format), each pair once */
+    private List<RareMindsAnswerBoard.Duel> duels(){
+        List<RareMindsAnswerBoard.Duel> out=new ArrayList<>();if(!duelsFormat())return out;Set<String> done=new HashSet<>();
+        for(var p:players()){String a=s(p,"id"),b=s(p,"opponent");if(b.isEmpty()||done.contains(a))continue;done.add(a);done.add(b);
+            JsonObject ra=row(a),rb=row(b);JsonObject pb=players().stream().filter(x->s(x,"id").equals(b)).findFirst().orElse(new JsonObject());
+            int res=ra==null?0:i(ra,"duel"),bonus=ra==null?0:Math.max(i(ra,"duelBonus"),rb==null?0:i(rb,"duelBonus"));
+            out.add(new RareMindsAnswerBoard.Duel(name(a),name(b),s(roster(a),"characterId"),s(roster(b),"characterId"),res,bonus,i(p,"duelWins"),i(pb,"duelWins")));}
+        return out;
     }
     /** this question's answers grouped into board tiles: no answer, refused answers, then valid ones from common to rare */
     private List<RareMindsAnswerBoard.Group> groups(){
@@ -453,6 +467,7 @@ public final class RareMindsScreen extends ScreenAdapter {
             for(var p:ps){String n=name(s(p,"id"));
                 if(b(p,"deathZone"))out.add(new String[]{"red",Localization.tr("ЗОНА СМЕРТИ · "+n+" · 2/3 · можно рискнуть","DEATH ZONE · "+n+" · 2/3 · may RISK IT")});
                 if(!b(p,"alive")&&b(p,"resurrectionPossible"))out.add(new String[]{"ghost",Localization.tr("Призрак "+n+": "+i(p,"ghostUnique")+" из "+(i(rm,"questions")-i(p,"eliminatedAt"))+" к воскрешению","Ghost "+n+": "+i(p,"ghostUnique")+" of "+(i(rm,"questions")-i(p,"eliminatedAt"))+" toward resurrection")});}
+            for(var d:duels())out.add(new String[]{"gold",Localization.tr("ДУЭЛЬ · ","DUEL · ")+d.a()+"  "+d.winsA()+" : "+d.winsB()+"  "+d.b()});
             if(b(rm,"finalQuestion"))out.add(new String[]{"red",Localization.tr("ПОСЛЕДНИЙ ОТВЕТ · все награды удваиваются · джекпот 500","THE LAST ANSWER · all rewards doubled · jackpot 500")});
             return out;
         }

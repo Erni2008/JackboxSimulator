@@ -9,7 +9,7 @@ import java.util.*;
  */
 public final class RareRules {
     public static final int QUESTIONS=8,MIN_PLAYERS=2,MAX_PLAYERS=8,MAX_COLLISIONS=3;
-    public static final int JACKPOT=300,FINAL_JACKPOT=500,STREAK_2=150,STREAK_3=300,RESURRECTION_BONUS=100,WINNER_BONUS=500;
+    public static final int DUEL_BONUS=200,FINAL_DUEL_BONUS=400,JACKPOT=300,FINAL_JACKPOT=500,STREAK_2=150,STREAK_3=300,RESURRECTION_BONUS=100,WINNER_BONUS=500;
     private RareRules(){}
 
     /** Mutable per-player match state, owned by the session. Souls here are this mini-game's souls only. */
@@ -21,7 +21,9 @@ public final class RareRules {
         public boolean resurrectionPossible,resurrected;
         /** valid unique answers given as a ghost since the elimination */
         public int ghostUnique;
-        public int jackpotStreak,jackpots;
+        public int jackpotStreak,jackpots,duelWins;
+        /** DUELS format: the fixed opponent for the whole match (null in the classic format) */
+        public String opponent;
         public Player(String id,int seat){this.id=id;this.seat=seat;}
         public boolean deathZone(){return alive&&collisions==MAX_COLLISIONS-1;}
         /** questions a ghost still has to answer uniquely to come back (0 when not applicable) */
@@ -36,7 +38,8 @@ public final class RareRules {
                       boolean ghost,boolean collided,int sharedWith,int collisionPenaltyPct,int baseSouls,int earned,
                       boolean jackpot,int jackpotSouls,int jackpotStreak,Risk risk,boolean eliminated,long deathPenalty,
                       boolean ghostSuccess,boolean resurrectionLost,boolean resurrected,long soulsAfter,int collisionsAfter,
-                      boolean aliveAfter,int ghostRemaining){
+                      boolean aliveAfter,int ghostRemaining,int duelResult,int duelBonus){
+        /** duelResult: 1 won the duel, -1 lost, 0 draw or no duel */
         public boolean valid(){return status==AnswerValidator.Status.VALID||status==AnswerValidator.Status.VALID_TYPO;}
         public boolean answered(){return status!=AnswerValidator.Status.EMPTY;}
     }
@@ -85,16 +88,25 @@ public final class RareRules {
         if(fin)for(Player p:players)if(!p.alive&&p.eliminatedAt<question&&p.resurrectionPossible&&!p.resurrected&&p.ghostUnique==QUESTIONS-p.eliminatedAt){
             p.alive=true;p.resurrected=true;p.resurrectionPossible=false;p.collisions=MAX_COLLISIONS-1;p.souls+=RESURRECTION_BONUS;back.add(p.id);}
 
+        // DUELS: inside each fixed pair the rarer valid unique answer wins the duel (both bad, or equal rarity: no winner)
+        Map<String,Integer> duel=new HashMap<>(),duelSouls=new HashMap<>();Map<String,Player> by=new HashMap<>();for(Player p:players)by.put(p.id,p);
+        for(Player p:players){if(p.opponent==null||duel.containsKey(p.id))continue;Player o=by.get(p.opponent);if(o==null)continue;
+            long a=duelScore(val.get(p.id),share,est),b=duelScore(val.get(o.id),share,est);int r=Long.compare(a,b);
+            duel.put(p.id,r);duel.put(o.id,-r);
+            if(r!=0){Player w=r>0?p:o;int bonus=fin?FINAL_DUEL_BONUS:DUEL_BONUS;w.souls+=bonus;w.duelWins++;duelSouls.put(w.id,bonus);}}
         List<Row> rows=new ArrayList<>();List<String> record=new ArrayList<>();
         for(Player p:players){var r=val.get(p.id);Submission s=subs.get(p.id);boolean valid=r.valid();
             var e=valid?est.get(r.answerId()):null;if(valid)record.add(r.answerId());
             rows.add(new Row(p.id,s==null?"":s.text(),r.status(),r.answerId(),e==null?null:e.tier(),e==null?0:e.score(),!wasAlive.contains(p.id),
                 valid&&share.get(r.answerId())>1,valid?share.get(r.answerId()):0,pct.get(p.id),base.get(p.id),earned.get(p.id),
                 jack.containsKey(p.id),jack.getOrDefault(p.id,0),p.jackpotStreak,risk.get(p.id),diedNow.contains(p.id),penalty.getOrDefault(p.id,0L),
-                ghostOk.contains(p.id),lostNow.contains(p.id),back.contains(p.id),p.souls,p.collisions,p.alive,p.ghostRemaining(QUESTIONS)));}
+                ghostOk.contains(p.id),lostNow.contains(p.id),back.contains(p.id),p.souls,p.collisions,p.alive,p.ghostRemaining(QUESTIONS),duel.getOrDefault(p.id,0),duelSouls.getOrDefault(p.id,0)));}
         return new Outcome(question,fin,List.copyOf(rows),jw==null?"":jw.id,List.copyOf(record));
     }
 
+    /** a duel compares rarity scores; collided, invalid or missing answers score lowest */
+    private static long duelScore(AnswerValidator.Result r,Map<String,Integer> share,Map<String,Rarity.Estimate> est){
+        if(!r.valid()||share.get(r.answerId())>1)return Long.MIN_VALUE;return est.get(r.answerId()).score();}
     /** Final standing. Only living players can win; ties: more souls, fewer collisions, earlier seat. */
     public record Standing(String playerId,int rank,long souls,boolean alive,boolean winner,int winnerBonus){}
     public static List<Standing> finish(List<Player> players){

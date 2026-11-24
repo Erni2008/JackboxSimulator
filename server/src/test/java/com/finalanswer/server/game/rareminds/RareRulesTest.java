@@ -46,6 +46,21 @@ class RareRulesTest {
         assertEquals(AnswerValidator.Status.INVALID,validator.validate(MED,"телевизор").status(),"an unrelated word is never forced onto an answer");
         var dino=BANK.get("dinosaur");assertEquals("t_rex",validator.validate(dino,"тиранозавр").answerId());
     }
+    @Test void duelsRewardTheRarerAnswerInEachPair(){
+        var ps=players(4);ps.get(0).opponent="p1";ps.get(1).opponent="p0";ps.get(2).opponent="p3";ps.get(3).opponent="p2";
+        var o=play(1,ps,"p0","methotrexate","p1","aspirin","p2","ibuprofen","p3","ibuprofen");
+        assertEquals(1,o.row("p0").duelResult());assertEquals(-1,o.row("p1").duelResult());assertEquals(RareRules.DUEL_BONUS,o.row("p0").duelBonus());assertEquals(1,ps.get(0).duelWins);
+        assertEquals(0,o.row("p2").duelResult(),"both collided: no winner");
+        var fin=play(8,ps,"p0","aspirin","p1","banana","p2","digoxin");
+        assertEquals(1,fin.row("p0").duelResult(),"an invalid answer loses the duel");assertEquals(RareRules.FINAL_DUEL_BONUS,fin.row("p0").duelBonus());
+        assertEquals(1,fin.row("p2").duelResult(),"no answer loses too");
+    }
+    @Test void duelsAreRolledOnlyForAnEvenTable(){
+        int duels=0;for(int i=0;i<2000;i++){var s=new RareMindsSession(List.of("a","b","c","d"),BANK,new RarityStats.Memory(),new Random(i),0);if(s.format==RareMindsSession.Format.DUELS){duels++;
+            var p=s.player("a");assertNotNull(p.opponent);assertEquals("a",s.player(p.opponent).opponent);}}
+        assertTrue(duels>200&&duels<420,"about 15 %: "+duels);
+        for(int i=0;i<300;i++)assertEquals(RareMindsSession.Format.CLASSIC,new RareMindsSession(List.of("a","b","c"),BANK,new RarityStats.Memory(),new Random(i),0).format);
+    }
     // 1
     @Test void twoIdenticalAnswersBothCollide(){
         var ps=players(3);var o=play(1,ps,"p0","Paracetamol","p1","paracetamol","p2","Ibuprofen");
