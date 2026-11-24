@@ -95,6 +95,8 @@ public final class RareMindsSession {
         RareQuestion q=currentQuestion();
         Outcome o=RareRules.resolve(question,q,players,Map.copyOf(subs),validator,stats);
         outcomes.add(o);stats.record(q.id(),o.recordedAnswers());
+        List<String> unknown=new ArrayList<>();for(var r:o.rows())if(!r.text().isEmpty()&&(r.status()==AnswerValidator.Status.INVALID||r.status()==AnswerValidator.Status.UNCERTAIN))unknown.add(r.text());
+        stats.recordUnknown(q.id(),unknown);
         enter(Phase.ANSWERS_LOCKED,now,timing.lockedMs());
     }
 

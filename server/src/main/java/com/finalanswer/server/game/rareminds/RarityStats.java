@@ -16,6 +16,8 @@ public interface RarityStats {
     long total(String questionId);
     /** Record the valid answers of one resolved question (each player's answer once). */
     void record(String questionId,Collection<String> answerIds);
+    /** Answers the game could not recognise (to review and add to the bank). Default: not kept. */
+    default void recordUnknown(String questionId,Collection<String> texts){}
 
     /** In memory, for tests and when no file is configured. */
     final class Memory implements RarityStats {
@@ -43,6 +45,19 @@ public interface RarityStats {
         public static FileStore configured(){
             String p=System.getProperty("rareminds.stats","");
             return new FileStore(p.isBlank()?Path.of(System.getProperty("user.home"),".finalanswer","rare_minds_stats.json"):Path.of(p));
+        }
+        private final Map<String,Map<String,Long>> unknown=new TreeMap<>();
+        private Path unknownFile(){return file.resolveSibling("rare_minds_unrecognized.json");}
+        /** counts of unrecognised answers per question, written next to the stats file */
+        @Override public synchronized void recordUnknown(String q,Collection<String> texts){
+            if(texts.isEmpty())return;
+            if(unknown.isEmpty())try{if(Files.isRegularFile(unknownFile()))for(var e:JsonParser.parseString(Files.readString(unknownFile(),StandardCharsets.UTF_8)).getAsJsonObject().getAsJsonObject("unknown").entrySet()){var m=unknown.computeIfAbsent(e.getKey(),k->new TreeMap<>());for(var a:e.getValue().getAsJsonObject().entrySet())m.put(a.getKey(),a.getValue().getAsLong());}}catch(IOException|RuntimeException ignored){}
+            var m=unknown.computeIfAbsent(q,k->new TreeMap<>());for(String t:texts){String k=t.toLowerCase(java.util.Locale.ROOT).trim();if(!k.isEmpty()&&k.length()<=40)m.merge(k,1L,Long::sum);}
+            try{JsonObject all=new JsonObject();for(var e:unknown.entrySet()){JsonObject o=new JsonObject();e.getValue().forEach(o::addProperty);all.add(e.getKey(),o);}
+                JsonObject root=new JsonObject();root.addProperty("note","answers players gave that the bank does not know; review with tools/dev/rare_minds_review.py");root.add("unknown",all);
+                Path dir=unknownFile().toAbsolutePath().getParent();if(dir!=null)Files.createDirectories(dir);Path tmp=unknownFile().resolveSibling("rare_minds_unrecognized.json.tmp");
+                Files.writeString(tmp,root.toString(),StandardCharsets.UTF_8);Files.move(tmp,unknownFile(),StandardCopyOption.REPLACE_EXISTING,StandardCopyOption.ATOMIC_MOVE);}
+            catch(IOException|RuntimeException e){System.out.println("[rare-minds] could not save unrecognised answers: "+e.getMessage());}
         }
         @Override public long count(String q,String a){return mem.count(q,a);}
         @Override public long total(String q){return mem.total(q);}
