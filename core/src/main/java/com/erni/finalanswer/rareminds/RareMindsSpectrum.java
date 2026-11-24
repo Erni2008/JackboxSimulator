@@ -29,40 +29,44 @@ final class RareMindsSpectrum {
                 art.rect(prev,by,zw,bh,c,.85f);art.rect(prev,by+bh,zw,2,Color.WHITE,.25f);
                 art.text(art.tiny,tierNames[z],prev+(e-prev)/2,by-12,.86f,c,bar,e-prev-6);prev=e;}
 }
-        // grid slots (all cards open together) and landing spots (stacked where they overlap)
-        int cols=Math.min(n,4),rows=(n+cols-1)/cols;float cw=Math.min(250,(w-80-18*(cols-1))/cols),ch=128,gap=22,gridTop=y+h-84;
-        float lw=Math.min(230,(bx1-bx0)/Math.max(3,n)-8),lh=118;float[] landX=new float[n],landY=new float[n];List<float[]> placed=new ArrayList<>();
+        // every answer is a cluster of character icons (one per player who gave it)
+        float D=n>6?62:74,gapI=6;float[] cwid=new float[n];for(int i=0;i<n;i++)cwid[i]=Math.max(150,groups.get(i).members().size()*(D+gapI)-gapI);
+        float lh=D+86;float[] landX=new float[n],landY=new float[n];List<float[]> placed=new ArrayList<>();
         Integer[] order=new Integer[n];for(int i=0;i<n;i++)order[i]=i;Arrays.sort(order,(a,b)->Double.compare(groups.get(b).share(),groups.get(a).share()));
-        for(int i=0;i<n;i++){var g=groups.get(i);float px=g.valid()?bx0+pos(g.share())*(bx1-bx0):bx0+lw/2;px=MathUtils.clamp(px,bx0+lw/2,bx1-lw/2);
-            float py=by+bh+26+lh/2;boolean moved=true;while(moved){moved=false;for(float[] o:placed)if(Math.abs(o[0]-px)<lw+6&&Math.abs(o[1]-py)<lh+4){py=o[1]+lh+8;moved=true;}}
-            placed.add(new float[]{px,py});landX[i]=px;landY[i]=py;}
+        for(int k=0;k<n;k++){int i=order[k];var g=groups.get(i);float half=cwid[i]/2;float px=g.valid()?bx0+pos(g.share())*(bx1-bx0):bx0+half;px=MathUtils.clamp(px,bx0+half,bx1-half);
+            float py=by+bh+18+lh/2;boolean moved=true;while(moved){moved=false;for(float[] o:placed)if(Math.abs(o[0]-px)<(o[2]+half)+10&&Math.abs(o[1]-py)<lh){py=o[1]+lh;moved=true;}}
+            placed.add(new float[]{px,py,half});landX[i]=px;landY[i]=py;}
+        // opening row: all answers at once across the top
+        float total=0;for(float c:cwid)total+=c;total+=28*(n-1);float rowScale=Math.min(1,(w-60)/total),rx=x+w/2-total*rowScale/2,rowY=y+h-140;float[] gx=new float[n];
+        for(int i=0;i<n;i++){gx[i]=rx+cwid[i]*rowScale/2;rx+=(cwid[i]+28)*rowScale;}
         for(int k=0;k<n;k++){int i=order[k];var g=groups.get(i);float landed=ease((t-FLY-k*STAGGER-FLY_TIME)/SETTLE);
-            if(landed>0&&g.valid()){Color tc=RareMindsArt.TIER[g.tier()];art.rect(landX[i]-1,by+bh,2,landY[i]-lh/2-by-bh,tc,.7f*landed);}}
-        for(int k=0;k<n;k++){int i=order[k];var g=groups.get(i);int r=i/cols,c=i%cols;int inRow=Math.min(cols,n-r*cols);
-            float gx=x+w/2-(inRow*cw+(inRow-1)*gap)/2+c*(cw+gap)+cw/2,gy=gridTop-r*(ch+gap)-ch/2;
+            if(landed>0&&g.valid()){Color tc=RareMindsArt.TIER[g.tier()];art.rect(landX[i]-1,by+bh,2,landY[i]-lh/2+6-by-bh,tc,.7f*landed);}}
+        for(int k=0;k<n;k++){int i=order[k];var g=groups.get(i);
             float pop=ease((t-OPEN)/.35f),fly=ease((t-FLY-k*STAGGER)/FLY_TIME);
-            float cx=MathUtils.lerp(gx,landX[i],fly),cy=MathUtils.lerp(gy,landY[i],fly)+MathUtils.sin(fly*MathUtils.PI)*40;
-            float cwi=MathUtils.lerp(cw,lw,fly),chi=MathUtils.lerp(ch,lh,fly);float sc=pop<1?.6f+.4f*pop:1;
-            float landed=ease((t-FLY-k*STAGGER-FLY_TIME)/SETTLE);
-            card(g,cx,cy,cwi*sc,chi*sc,pop,landed,tierNames,clock,fly);
+            float cx=MathUtils.lerp(gx[i],landX[i],fly),cy=MathUtils.lerp(rowY,landY[i],fly)+MathUtils.sin(fly*MathUtils.PI)*50;
+            float sc=MathUtils.lerp(rowScale,1,fly)*(pop<1?.6f+.4f*pop:1);float landed=ease((t-FLY-k*STAGGER-FLY_TIME)/SETTLE);
+            cluster(g,cx,cy,D*sc,gapI*sc,pop,landed,tierNames,clock);
         }
     }
-    private void card(RareMindsAnswerBoard.Group g,float cx,float cy,float w,float h,float a,float landed,String[] tierNames,float clock,float fly){
+    /** one answer: the answer above, the players' character icons side by side, the result underneath */
+    private void cluster(RareMindsAnswerBoard.Group g,float cx,float cy,float D,float gap,float a,float landed,String[] tierNames,float clock){
         if(a<=0)return;boolean col=g.collided()&&landed>0;Color tc=g.valid()?RareMindsArt.TIER[g.tier()]:RareMindsArt.DIM;
-        if(g.jackpot()&&landed>0)art.glow(cx,cy,w*2.2f,h*2.6f,RareMindsArt.GOLD,.35f*landed*(.85f+.15f*MathUtils.sin(clock*4)));
-        art.shade(cx,cy-6,w+40,h+30,.6f*a);
-        art.rect(cx-w/2,cy-h/2,w,h,RareMindsArt.PANEL,a);
-        Color edge=col?RareMindsArt.RED:landed>0?tc:RareMindsArt.GOLD;
-        art.rect(cx-w/2,cy+h/2-3,w,3,edge,a);art.rect(cx-w/2,cy-h/2,w,1.5f,edge,.6f*a);art.rect(cx-w/2,cy-h/2,1.5f,h,edge,.6f*a);art.rect(cx+w/2-1.5f,cy-h/2,1.5f,h,edge,.6f*a);
-        float s=w/250f;
-        art.text(art.small,g.empty()?tr("нет ответа","no answer"):g.answer(),cx,cy+h/2-10,Math.max(.8f,1.15f*s),g.valid()?RareMindsArt.IVORY:RareMindsArt.DIM,a,w-14);
-        int m=g.members().size();float fs=Math.min(40,Math.max(26,h*.36f)),fx=cx-(m*(fs+4)-4)/2;
-        for(int i=0;i<m;i++){var mb=g.members().get(i);Texture face=art.face(mb.character());float px=fx+i*(fs+4),py=cy-fs/2+(landed>0?2:-6);
-            if(face!=null){batch().setColor(1,1,1,a);batch().draw(face,px,py,fs,fs);}batch().setColor(edge.r,edge.g,edge.b,a);batch().draw(art.ring,px-1.5f,py-1.5f,fs+3,fs+3);}
+        Color ring=col?RareMindsArt.RED:landed>0?tc:RareMindsArt.GOLD;int m=g.members().size();float cw=m*(D+gap)-gap,x0=cx-cw/2;
+        if(g.jackpot()&&landed>0)art.glow(cx,cy,cw+D*2.4f,D*3f,RareMindsArt.GOLD,.38f*landed*(.85f+.15f*MathUtils.sin(clock*4)));
+        if(col)art.glow(cx,cy,cw+D*1.6f,D*2.2f,RareMindsArt.RED,.25f*landed);
+        for(int i=0;i<m;i++){var mb=g.members().get(i);float px=x0+i*(D+gap);
+            art.shade(px+D/2,cy-D*.12f,D*1.6f,D*1.4f,.7f*a);
+            batch().setColor(.05f,.03f,.03f,a);batch().draw(art.soft,px-D*.05f,cy-D*.55f,D*1.1f,D*1.1f);
+            Texture face=art.face(mb.character());if(face!=null){float al=g.valid()||landed<=0?1:.55f;batch().setColor(al,al,al,a);batch().draw(face,px,cy-D/2,D,D);}
+            batch().setColor(ring.r,ring.g,ring.b,a);for(int r=0;r<4;r++)batch().draw(art.ring,px-3+r*.5f,cy-D/2-3+r*.5f,D+6-r,D+6-r);
+            art.text(art.tiny,mb.name(),px+D/2,cy-D/2-8,.66f,RareMindsArt.IVORY,a*.9f,D+gap+30);}
+        String ans=g.empty()?tr("нет ответа","no answer"):g.answer();float aw=Math.min(Math.max(cw,140)+40,art.width(art.small,ans,.92f)+28);
+        art.rect(cx-aw/2,cy+D/2+8,aw,36,RareMindsArt.PANEL,a);art.rect(cx-aw/2,cy+D/2+8,aw,3,ring,a);
+        art.text(art.small,ans,cx,cy+D/2+38,.92f,g.valid()?RareMindsArt.IVORY:RareMindsArt.DIM,a,aw-12);
+        if(g.jackpot()&&landed>0){batch().setColor(RareMindsArt.GOLD.r,RareMindsArt.GOLD.g,RareMindsArt.GOLD.b,landed);batch().draw(art.crown,cx-24,cy+D/2+40+(1-landed)*14,48,48);}
         if(landed>0){String info=!g.valid()?(g.empty()?"0":tr("не принято","not accepted")):(col?tr("СОВПАДЕНИЕ","COLLISION"):tierNames[g.tier()])+" · "+pct(g.share())+"  +"+g.souls();
-            art.rect(cx-w/2+2,cy-h/2+2,w-4,26,col?RareMindsArt.RED:tc,.22f*landed);art.text(art.tiny,info,cx,cy-h/2+22,.72f,col?RareMindsArt.RED_SOFT:tc,landed,w-10);
-            if(g.jackpot()){batch().setColor(RareMindsArt.GOLD.r,RareMindsArt.GOLD.g,RareMindsArt.GOLD.b,landed);batch().draw(art.crown,cx-20,cy+h/2-4+(1-landed)*14,40,40);}
-            if(g.typed()!=null)art.text(art.tiny,g.typed()+" → "+tr("исправлено","corrected"),cx,cy+h/2+18,.56f,RareMindsArt.DIM,landed*.8f,w+40);}
+            art.text(art.tiny,info,cx,cy-D/2-30,.76f,col?RareMindsArt.RED_SOFT:tc,landed,cw+80);
+            if(g.typed()!=null)art.text(art.tiny,g.typed()+" → "+tr("исправлено","corrected"),cx,cy-D/2-52,.58f,RareMindsArt.DIM,landed*.8f,cw+80);}
     }
     private static String pct(double share){double p=share*100;return p>=1?Math.round(p)+"%":p>=.1?String.format(Locale.ROOT,"%.1f%%",p):"<0.1%";}
     private static float ease(float t){t=MathUtils.clamp(t,0,1);return t*t*(3-2*t);}
