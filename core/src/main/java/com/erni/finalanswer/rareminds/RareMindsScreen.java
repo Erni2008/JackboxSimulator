@@ -118,7 +118,8 @@ public final class RareMindsScreen extends ScreenAdapter {
         String ph=phase();
         if(ph.equals("FINAL_RESULTS")||ph.equals("COMPLETED"))standings();
         else if(revealPhase())raceBoard(fin);
-        else{questionPanel(ph,fin);cards();}
+        else if(ph.equals("QUESTION_ACTIVE"))liveRace(fin);
+        else{questionPanel(ph,fin);reflectedCards();}
         ticker();
         embers(dt);
         art.shade(W/2,H/2,W*1.25f,H*1.25f,0);batch.setColor(0,0,0,.0f);
@@ -254,11 +255,24 @@ public final class RareMindsScreen extends ScreenAdapter {
         if(r!=null){int k=tierIndex(s(r,"tier"));
             art.text(art.small,answerLabel(r)+"  ·  "+tierName(s(r,"tier"))+"  ·  +"+i(r,"jackpotSouls")+Localization.tr(" душ"," souls")+(i(r,"jackpotStreak")>1?Localization.tr("  ·  серия ×","  ·  streak ×")+i(r,"jackpotStreak"):""),cx,y+92,.86f,RareMindsArt.TIER[k],a,w-80);}
     }
+    private final Map<String,Float> lockedAt=new HashMap<>();
+    /** The answer window on the same race track: cars parked at their souls, live typing per lane, a car revs and leaps when its player locks in. */
+    private void liveRace(boolean fin){
+        List<RareMindsRace.Lane> lanes=new ArrayList<>();
+        for(var p:players()){String id=s(p,"id");JsonObject l=live(id);boolean locked=b(p,"submitted")||l!=null&&b(l,"locked");
+            if(locked)lockedAt.putIfAbsent(id+"#"+i(rm,"question"),clock);
+            float age=locked?clock-lockedAt.get(id+"#"+i(rm,"question")):-1;
+            String txt=l==null?"":s(l,"text");if(!liveShown&&!txt.isEmpty())txt=locked?Localization.tr("ответ готов","locked in"):Localization.tr("печатает…","typing…");
+            lanes.add(RareMindsRace.Lane.waiting(name(id),s(roster(id),"characterId"),!b(p,"alive"),l(p,"souls"),txt,locked,age,i(p,"collisions"),b(p,"deathZone")));}
+        String[] names=new String[6];var tiers=rm.getAsJsonArray("tiers");for(int k=0;k<6;k++)names[k]=tierName(s(tiers.get(k).getAsJsonObject(),"id"));
+        String q=ru()?s(rm,"textRu"):s(rm,"textEn");
+        race.draw(430,128,1060,632,q,lanes,names,fin,0,clock,"","",true);
+    }
     private void raceBoard(boolean fin){
         List<RareMindsRace.Lane> lanes=new ArrayList<>();
         for(var p:players()){String id=s(p,"id");JsonObject r=row(id);if(r==null)continue;
             lanes.add(new RareMindsRace.Lane(name(id),s(roster(id),"characterId"),answerLabel(r),!s(r,"text").isEmpty(),b(r,"valid"),b(r,"collided"),i(r,"sharedWith"),b(r,"ghost"),
-                tierIndex(s(r,"tier")),r.has("share")?r.get("share").getAsDouble():.5,i(r,"earned"),b(r,"jackpot"),i(r,"jackpotSouls"),b(r,"eliminated"),b(r,"resurrected"),before.containsKey(id)?l(before.get(id),"souls"):Math.max(0,l(r,"souls")-i(r,"earned")-i(r,"jackpotSouls")),l(r,"souls")));}
+                tierIndex(s(r,"tier")),r.has("share")?r.get("share").getAsDouble():.5,i(r,"earned"),b(r,"jackpot"),i(r,"jackpotSouls"),b(r,"eliminated"),b(r,"resurrected"),before.containsKey(id)?l(before.get(id),"souls"):Math.max(0,l(r,"souls")-i(r,"earned")-i(r,"jackpotSouls")),l(r,"souls"),"",false,-1,0,false));}
         String[] names=new String[6];var tiers=rm.getAsJsonArray("tiers");for(int k=0;k<6;k++)names[k]=tierName(s(tiers.get(k).getAsJsonObject(),"id"));
         String q=(ru()?s(rm,"textRu"):s(rm,"textEn"));
         race.draw(430,128,1060,632,Localization.tr("ГОНКА ДУШ · ","SOUL RACE · ")+(fin?Localization.tr("ФИНАЛ · ","FINAL · "):Localization.tr("ВОПРОС ","QUESTION ")+i(rm,"question")+"/"+i(rm,"questions")+" · ")+q,lanes,names,fin,sinceLock(),clock,
@@ -268,6 +282,24 @@ public final class RareMindsScreen extends ScreenAdapter {
     private static String markLast(String t){String s=t.replace("[","[[");int k=s.trim().lastIndexOf(' ');if(k<0)return s;return s.substring(0,k+1)+"[#FF4A3A]"+s.substring(k+1)+"[]";}
 
     // ---------------------------------------------------------------- players
+    private com.badlogic.gdx.graphics.glutils.FrameBuffer cardFb;
+    /** The card row is drawn into a buffer once, then shown twice: upright, and mirrored and faded on the glossy floor. */
+    private void reflectedCards(){
+        int fw=1920,fh=400;float y0=110;
+        if(cardFb==null)cardFb=new com.badlogic.gdx.graphics.glutils.FrameBuffer(Pixmap.Format.RGBA8888,fw*2,fh*2,false);
+        batch.end();cardFb.begin();Gdx.gl.glClearColor(0,0,0,0);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        var m=new com.badlogic.gdx.math.Matrix4().setToOrtho2D(0,y0,fw,fh);batch.setProjectionMatrix(m);
+        batch.setBlendFunctionSeparate(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA,GL20.GL_ONE,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.begin();cards();batch.end();
+        cardFb.end();vp.apply();batch.setProjectionMatrix(cam.combined);batch.setBlendFunction(GL20.GL_ONE,GL20.GL_ONE_MINUS_SRC_ALPHA);batch.begin();
+        Texture t=cardFb.getColorBufferTexture();
+        // mirror: only the lower part of the cards, fading out, on the stage floor
+        float rh=150;batch.setColor(.55f,.42f,.40f,.30f);
+        batch.draw(t,0,y0-rh+18,fw,rh,0,0,t.getWidth(),(int)(t.getHeight()*rh/fh),false,false);
+        batch.setColor(Color.WHITE);batch.draw(t,0,y0,fw,fh,0,0,t.getWidth(),t.getHeight(),false,true);
+        batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
+        // fade the reflection into the floor
+        for(int k=0;k<12;k++){batch.setColor(.03f,.01f,.01f,.06f*k);batch.draw(art.pixel,0,y0-rh+18+k*rh/12f*0,fw,rh*(1-k/12f));}
+    }
     private void cards(){
         var ps=players();int n=ps.size();float cw=170,ch=262,gap=n>6?14:22,total=n*cw+(n-1)*gap,x0=W/2-total/2,y=128;
         for(int k=0;k<n;k++){JsonObject live=ps.get(k);String id=s(live,"id");JsonObject p=shown(live);Fx f=fx(id);
@@ -293,7 +325,7 @@ public final class RareMindsScreen extends ScreenAdapter {
                 float sx=x+14+s2*32,sy=y+50-sz/2;
                 if(on){Color c=ghost?RareMindsArt.GHOST:RareMindsArt.RED;batch.setColor(c);}else batch.setColor(.32f,.26f,.24f,1);
                 batch.draw(art.skull,sx,sy,sz,sz);}
-            art.text(art.tiny,String.format(Locale.ROOT,"%,d",l(p,"souls")).replace(',',' ')+Localization.tr(" душ"," souls"),x+cw/2,y+27,.74f,RareMindsArt.GOLD,1,cw-12);
+            String soulTxt=String.format(Locale.ROOT,"%,d",l(p,"souls")).replace(',',' ');float stw=art.width(art.num,soulTxt,.42f);batch.setColor(1f,.55f,.2f,1);batch.draw(art.flame,x+cw/2-stw/2-24,y+9,20,20);art.textLeft(art.num,soulTxt,x+cw/2-stw/2+2,y+27,.42f,RareMindsArt.GOLD,1);
             if(ghost&&r==null)ghostPips(p,x+cw/2,y+ch+12);
             if(r!=null)answerPlate(r,x+cw/2,y+ch+16,cw+gap-6,ease(f.pop));
             if(zone&&!ghost&&r==null)art.text(art.tiny,Localization.tr("ЗОНА СМЕРТИ","DEATH ZONE"),x+cw/2,y+ch+30,.8f,RareMindsArt.RED_SOFT,.75f+.25f*MathUtils.sin(clock*5),cw);
@@ -304,7 +336,7 @@ public final class RareMindsScreen extends ScreenAdapter {
         if(!active)return;JsonObject l=live(id);String t=l==null?"":s(l,"text");boolean locked=b(p,"submitted")||l!=null&&b(l,"locked");
         boolean col=l!=null&&l.has("possibleCollision")&&l.getAsJsonArray("possibleCollision").size()>0;
         Color edge=col?new Color(1f,.69f,.18f,1):locked?RareMindsArt.GOLD:new Color(1,1,1,.18f);
-        art.rect(x,y,w,h,new Color(0,0,0,.75f),1);art.rect(x,y,w,2,edge,col?.6f+.4f*MathUtils.sin(clock*8):1);
+        batch.setColor(Color.WHITE);art.slot.setColor(Color.WHITE);art.slot.draw(batch,x,y,w,h);art.rect(x+8,y+3,w-16,2,edge,(col?.6f+.4f*MathUtils.sin(clock*8):locked?.9f:0));
         String shown;Color c;
         if(!liveShown){shown=t.isEmpty()?"":locked?Localization.tr("ответ готов","locked in"):Localization.tr("печатает","typing")+".".repeat(1+(int)(clock*3)%3);c=RareMindsArt.DIM;}
         else if(t.isEmpty()){shown="";c=RareMindsArt.DIM;}
@@ -399,5 +431,5 @@ public final class RareMindsScreen extends ScreenAdapter {
     }
 
     private static float ease(float t){t=MathUtils.clamp(t,0,1);return t*t*(3-2*t);}
-    @Override public void dispose(){if(!created)return;batch.dispose();art.dispose();sfx.dispose();}
+    @Override public void dispose(){if(!created)return;if(cardFb!=null)cardFb.dispose();batch.dispose();art.dispose();sfx.dispose();}
 }

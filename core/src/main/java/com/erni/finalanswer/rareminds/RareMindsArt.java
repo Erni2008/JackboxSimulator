@@ -21,7 +21,7 @@ final class RareMindsArt implements Disposable {
     final Texture background,pixel,soft,skull,crown,ring,car,wheels;
     final BitmapFont title,big,mid,small,tiny,num;
     /** pre-rendered materials from tools/assets/rare_minds/make_ui.py */
-    final Texture titleArt,bezel,gemTex,grain;final NinePatch frame,frameRed,frameGhost,card,cardRed,cardGhost,tab;
+    final Texture titleArt,bezel,gemTex,grain,flame;final NinePatch slot,frame,frameRed,frameGhost,card,cardRed,cardGhost,tab;
     private final java.util.List<Texture> owned=new java.util.ArrayList<>();
     private Texture ui(String n){Texture t=new Texture(Gdx.files.internal("rare_minds/ui/"+n),true);t.setFilter(Texture.TextureFilter.MipMapLinearLinear,Texture.TextureFilter.Linear);owned.add(t);return t;}
     private NinePatch nine(String n,int edge){return new NinePatch(ui(n),edge,edge,edge,edge);}
@@ -34,7 +34,7 @@ final class RareMindsArt implements Disposable {
         Pixmap p=new Pixmap(1,1,Pixmap.Format.RGBA8888);p.setColor(Color.WHITE);p.fill();pixel=new Texture(p);p.dispose();
         titleArt=ui("title.png");bezel=ui("bezel.png");gemTex=ui("gem.png");grain=new Texture(Gdx.files.internal("rare_minds/ui/grain.png"));grain.setWrap(Texture.TextureWrap.Repeat,Texture.TextureWrap.Repeat);owned.add(grain);
         frame=nine("panel.png",40);frameRed=nine("panel_red.png",40);frameGhost=nine("panel_ghost.png",40);card=nine("card.png",30);cardRed=nine("card_red.png",30);cardGhost=nine("card_ghost.png",30);tab=nine("tab.png",28);
-        soft=radial();skull=skull();crown=crown();ring=ring();car=car(false);wheels=car(true);
+        soft=radial();skull=ui("skull.png");flame=ui("flame.png");slot=nine("slot.png",14);crown=crown();ring=ring();car=car(false);wheels=car(true);
         // Russo One (display, numbers) + Noto Sans SemiCondensed SemiBold (everything read at a glance); both carry Cyrillic
         title=font("ui/fonts/RussoOne-Regular.ttf",118,3);big=font("ui/fonts/RussoOne-Regular.ttf",58,0);num=font("ui/fonts/RussoOne-Regular.ttf",40,0);
         mid=font("ui/fonts/NotoSans-SemiCondensedSemiBold.ttf",38,0);small=font("ui/fonts/NotoSans-SemiCondensedSemiBold.ttf",28,0);tiny=font("ui/fonts/NotoSans-SemiCondensedSemiBold.ttf",22,0);
@@ -44,7 +44,7 @@ final class RareMindsArt implements Disposable {
         var g=new com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator(Gdx.files.internal(file));
         try{var p=new com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFontParameter();p.size=size;p.kerning=true;
             StringBuilder c=new StringBuilder(com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.DEFAULT_CHARS);for(char ch='\u0400';ch<='\u04ff';ch++)c.append(ch);
-            p.characters=c.append("\u2013\u2014\u2018\u2019\u201c\u201d\u00ab\u00bb\u2026\u00b7\u00d7\u2212").toString();
+            p.characters=c.append("\u2013\u2014\u2018\u2019\u201c\u201d\u00ab\u00bb\u2026\u00b7\u00d7\u2212\u25b2").toString();
             if(border>0){p.borderWidth=border;p.borderColor=new Color(.10f,.03f,.02f,1);}
             p.minFilter=Texture.TextureFilter.Linear;p.magFilter=Texture.TextureFilter.Linear;return g.generateFont(p);}finally{g.dispose();}
     }
@@ -144,5 +144,5 @@ final class RareMindsArt implements Disposable {
         for(int y=0;y<n;y++)for(int x=0;x<n;x++){float a=0;for(int j=0;j<s;j++)for(int i=0;i<s;i++)a+=(big.getPixel(x*s+i,y*s+j)&0xff)/255f;p.drawPixel(x,y,Color.rgba8888(1,1,1,a/(s*s)));}
         Texture t=new Texture(p);t.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();return t;}
 
-    @Override public void dispose(){for(Texture t:owned)t.dispose();background.dispose();pixel.dispose();soft.dispose();skull.dispose();crown.dispose();ring.dispose();car.dispose();wheels.dispose();title.dispose();big.dispose();num.dispose();mid.dispose();small.dispose();tiny.dispose();for(Texture t:faces.values())if(t!=null)t.dispose();}
+    @Override public void dispose(){for(Texture t:owned)t.dispose();background.dispose();pixel.dispose();soft.dispose();crown.dispose();ring.dispose();car.dispose();wheels.dispose();title.dispose();big.dispose();num.dispose();mid.dispose();small.dispose();tiny.dispose();for(Texture t:faces.values())if(t!=null)t.dispose();}
 }

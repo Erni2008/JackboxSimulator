@@ -71,7 +71,10 @@ def frame(name, w, h, r, rim, inset_tint=(16, 7, 8), accent=None, gem=True):
     shade, hgt = bevel(ring, RIMW * .5)
     ys = np.linspace(0, 1, H)[:, None] * np.ones((1, W)); xs = np.ones((H, 1)) * np.linspace(0, 1, W)[None, :]
     metal = np.clip(ramp(GOLD, np.clip(.05 + (1 - shade) * .55 + ys * .25, 0, 1)) * (.7 + .5 * shade[..., None]), 0, 255) if accent is None else np.array(accent)[None, None, :] * (.35 + .9 * shade[..., None])
-    metal = metal * (.8 + .25 * np.sin(xs * 40 + ys * 9)[..., None] * 0)  # (reserved: brushed texture)
+    rng = np.random.default_rng(w * 7 + h)
+    brush = ndimage.gaussian_filter(rng.normal(0, 1, (H, W)), (0.4, 9)) + ndimage.gaussian_filter(rng.normal(0, 1, (H, W)), (9, 0.4))
+    scratch = (rng.random((H, W)) > .9993).astype(float); scratch = ndimage.gaussian_filter(ndimage.uniform_filter1d(scratch, 23, axis=1), .5) * 40
+    metal = metal * (1 + .07 * brush[..., None]) + scratch[..., None] * 3
     # fine engraved line inside the rim
     d_in = ndimage.distance_transform_edt(im)
     groove = (d_in > 5 * S) & (d_in < 6.2 * S)
@@ -124,7 +127,43 @@ def grain(name, size=256):
     rng = np.random.default_rng(7); n = rng.normal(128, 40, (size, size)); n = ndimage.gaussian_filter(n, .6)
     rgba(np.dstack([n, n, n]), np.full((size, size), 255)).save(os.path.join(OUT, name))
 
+def slot(name, w=96, h=48, r=10):
+    """engraved inset slot: dark recess, inner shadow on top, light catch on the bottom lip, thin gold rim"""
+    S = 2; W, H = w * S, h * S
+    m = Image.new('L', (W, H)); ImageDraw.Draw(m).rounded_rectangle((0, 0, W - 1, H - 1), r * S, fill=255); om = np.array(m) > 127
+    i = Image.new('L', (W, H)); ImageDraw.Draw(i).rounded_rectangle((3 * S, 3 * S, W - 1 - 3 * S, H - 1 - 3 * S), (r - 2) * S, fill=255); im = np.array(i) > 127
+    ys = np.linspace(0, 1, H)[:, None] * np.ones((1, W))
+    rgb = np.zeros((H, W, 3)); rgb[:] = (6, 3, 4)
+    d = ndimage.distance_transform_edt(im); top = np.clip(1 - d / (10 * S), 0, 1) * (ys < .5)
+    rgb = rgb * (1 - .5 * top[..., None]) + (np.array([30, 16, 12]) * (ys[..., None] ** 3))
+    rim = om & ~im; shade, _ = bevel(rim, 2 * S, light=(0, .9, .5)); rgb[rim] = ramp(RIM, 1 - shade)[rim] * .8
+    rgba(rgb, np.where(om, 245, 0)).resize((w, h), Image.LANCZOS).save(os.path.join(OUT, name)); print(name)
+
+def icon(name, draw, size=96):
+    """white beveled icon (tinted at draw time) from a mask drawing function"""
+    S = 4; N = size * S; m = Image.new('L', (N, N)); draw(ImageDraw.Draw(m), N); mask = np.array(m) > 127
+    shade, hgt = bevel(mask, N * .06); v = (.45 + .7 * shade) * 255
+    v = v + np.clip((shade - .8) * 5, 0, 1) * 120
+    ol = ndimage.binary_dilation(mask, iterations=S * 2) & ~mask
+    rgb = np.dstack([v, v, v]); rgb[ol] = 20; a = np.where(mask | ol, 255, 0)
+    rgba(rgb, a).resize((size, size), Image.LANCZOS).save(os.path.join(OUT, name)); print(name)
+
+def skull_draw(d, N):
+    s = N / 64
+    d.ellipse((10 * s, 6 * s, 54 * s, 46 * s), fill=255); d.rounded_rectangle((18 * s, 34 * s, 46 * s, 56 * s), 5 * s, fill=255)
+    d.ellipse((17 * s, 22 * s, 30 * s, 35 * s), fill=0); d.ellipse((34 * s, 22 * s, 47 * s, 35 * s), fill=0)
+    d.polygon([(32 * s, 36 * s), (28.5 * s, 43 * s), (35.5 * s, 43 * s)], fill=0)
+    for k in range(4): d.rectangle(((23 + k * 5.5) * s, 48 * s, (24.6 + k * 5.5) * s, 56 * s), fill=0)
+
+def flame_draw(d, N):
+    s = N / 64
+    d.polygon([(32 * s, 4 * s), (46 * s, 26 * s), (50 * s, 42 * s), (42 * s, 56 * s), (22 * s, 56 * s), (14 * s, 42 * s), (20 * s, 24 * s), (26 * s, 32 * s)], fill=255)
+    d.ellipse((16 * s, 30 * s, 48 * s, 60 * s), fill=255); d.ellipse((25 * s, 38 * s, 39 * s, 56 * s), fill=0)
+
 if __name__ == '__main__':
+    slot('slot.png')
+    icon('skull.png', skull_draw)
+    icon('flame.png', flame_draw)
     title('RARE MINDS', 220, 'title.png')
     frame('panel.png', 192, 192, 22, 12, gem=False)
     frame('panel_red.png', 192, 192, 22, 12, inset_tint=(26, 6, 6), accent=(230, 60, 44), gem=False)
