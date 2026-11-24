@@ -20,6 +20,11 @@ final class RareMindsArt implements Disposable {
 
     final Texture background,pixel,soft,skull,crown,ring,car,wheels;
     final BitmapFont title,big,mid,small,tiny,num;
+    /** pre-rendered materials from tools/assets/rare_minds/make_ui.py */
+    final Texture titleArt,bezel,gemTex,grain;final NinePatch frame,frameRed,frameGhost,card,cardRed,cardGhost,tab;
+    private final java.util.List<Texture> owned=new java.util.ArrayList<>();
+    private Texture ui(String n){Texture t=new Texture(Gdx.files.internal("rare_minds/ui/"+n),true);t.setFilter(Texture.TextureFilter.MipMapLinearLinear,Texture.TextureFilter.Linear);owned.add(t);return t;}
+    private NinePatch nine(String n,int edge){return new NinePatch(ui(n),edge,edge,edge,edge);}
     private final Map<String,Texture> faces=new HashMap<>();
     final GlyphLayout gl=new GlyphLayout();
     SpriteBatch batch;
@@ -27,6 +32,8 @@ final class RareMindsArt implements Disposable {
     RareMindsArt(){
         background=new Texture(Gdx.files.internal("rare_minds/background.jpg"),true);background.setFilter(Texture.TextureFilter.MipMapLinearLinear,Texture.TextureFilter.Linear);
         Pixmap p=new Pixmap(1,1,Pixmap.Format.RGBA8888);p.setColor(Color.WHITE);p.fill();pixel=new Texture(p);p.dispose();
+        titleArt=ui("title.png");bezel=ui("bezel.png");gemTex=ui("gem.png");grain=new Texture(Gdx.files.internal("rare_minds/ui/grain.png"));grain.setWrap(Texture.TextureWrap.Repeat,Texture.TextureWrap.Repeat);owned.add(grain);
+        frame=nine("panel.png",40);frameRed=nine("panel_red.png",40);frameGhost=nine("panel_ghost.png",40);card=nine("card.png",30);cardRed=nine("card_red.png",30);cardGhost=nine("card_ghost.png",30);tab=nine("tab.png",28);
         soft=radial();skull=skull();crown=crown();ring=ring();car=car(false);wheels=car(true);
         // Russo One (display, numbers) + Noto Sans SemiCondensed SemiBold (everything read at a glance); both carry Cyrillic
         title=font("ui/fonts/RussoOne-Regular.ttf",118,3);big=font("ui/fonts/RussoOne-Regular.ttf",58,0);num=font("ui/fonts/RussoOne-Regular.ttf",40,0);
@@ -52,31 +59,28 @@ final class RareMindsArt implements Disposable {
     void shade(float cx,float cy,float w,float h,float a){batch.setColor(0,0,0,a);batch.draw(soft,cx-w/2,cy-h/2,w,h);}
     void diamond(float x,float y,float r,Color c,float a){batch.setColor(c.r,c.g,c.b,a);batch.draw(pixel,x-r*.7f,y-r*.7f,r*.7f,r*.7f,r*1.4f,r*1.4f,1,1,45,0,0,1,1,false,false);}
     /** A gem: dark-edged diamond with a bright facet. */
-    void gem(float x,float y,float r,Color c,float a){diamond(x,y,r+2,Color.BLACK,a*.8f);diamond(x,y,r,c,a);batch.setColor(1,1,1,.55f*a);batch.draw(pixel,x-r*.35f,y,r*.35f,0,r*.5f,r*.5f,1,1,45,0,0,1,1,false,false);}
+    void gem(float x,float y,float r,Color c,float a){if(gemTex!=null){batch.setColor(0,0,0,.6f*a);batch.draw(gemTex,x-r*1.25f+1,y-r*1.25f-2,r*2.5f,r*2.5f);batch.setColor(c.r,c.g,c.b,a);batch.draw(gemTex,x-r*1.2f,y-r*1.2f,r*2.4f,r*2.4f);return;}diamond(x,y,r+2,Color.BLACK,a*.8f);diamond(x,y,r,c,a);batch.setColor(1,1,1,.55f*a);batch.draw(pixel,x-r*.35f,y,r*.35f,0,r*.5f,r*.5f,1,1,45,0,0,1,1,false,false);}
 
     /**
      * The game-show frame used by every panel: smoked glass, a double gilt line with chamfered corners and a faint
      * inner rim light. {@code accent} tints the outer line (red for danger, blue for ghosts).
      */
-    /** Flat smoked panel: one hairline border and a solid accent bar on top. No ornaments, no bloom. */
+    /** Gilt frame over dark glass (nine-patch art), a soft shadow under it; red for danger, blue for ghosts. */
     void panel(float x,float y,float w,float h,float a,Color accent){
-        Color c=accent==null?GOLD:accent;
-        batch.setColor(0,0,0,.35f*a);batch.draw(pixel,x+6,y-8,w,h);
-        rect(x,y,w,h,PANEL,a);
-        rect(x,y+h-1,w,1,c,.35f*a);rect(x,y,w,1,c,.35f*a);rect(x,y,1,h,c,.35f*a);rect(x+w-1,y,1,h,c,.35f*a);
-        rect(x,y+h-4,w,4,c,.95f*a);
+        NinePatch n=accent==RED||accent==RED_SOFT?frameRed:accent==GHOST?frameGhost:frame;
+        shade(x+w/2,y+h/2-18,w+120,h+110,.6f*a);
+        batch.setColor(Color.WHITE);n.setColor(new Color(1,1,1,a));n.draw(batch,x-6,y-6,w+12,h+12);
+        if(accent!=GHOST){diamond(x+w/2,y+h+3,11,new Color(.28f,.13f,.05f,1),a);gem(x+w/2,y+h+3,8,accent==null?GOLD:accent,a);}
     }
+    void cardFrame(float x,float y,float w,float h,Color accent){NinePatch n=accent==RED?cardRed:accent==GHOST?cardGhost:card;shade(x+w/2,y+h/2-14,w+70,h+60,.6f);batch.setColor(Color.WHITE);n.setColor(Color.WHITE);n.draw(batch,x-4,y-4,w+8,h+8);}
     private void line(float x,float y,float w,float h,Color c,float a){rect(x,y,w,h,c,a);}
     private void corner(float x,float y,float k,int sx,int sy,Color c,float a){
         // 45° chamfer from (x, y+sy*k) to (x+sx*k, y)
         float len=(float)Math.hypot(k,k);float ang=sx*sy>0?-45:45;
         batch.setColor(c.r,c.g,c.b,c.a*.92f*a);batch.draw(pixel,x+sx*k/2-len/2,y+sy*k/2-1,len/2,1,len,2,1,1,ang,0,0,1,1,false,false);
     }
-    /** A small gilt plaque with pointed ends (the "QUESTION 3 / 8" tab, the subtitle plate). */
-    /** A flat label bar (tabs, subtitles). */
-    void plaque(float cx,float cy,float w,float h,float a,Color accent){
-        Color c=accent==null?GOLD:accent;rect(cx-w/2,cy-h/2,w,h,PANEL,a);rect(cx-w/2,cy-h/2,4,h,c,a);rect(cx+w/2-4,cy-h/2,4,h,c,a);
-    }
+    /** Gilt tab (question number, labels). */
+    void plaque(float cx,float cy,float w,float h,float a,Color accent){shade(cx,cy-8,w+80,h+50,.6f*a);batch.setColor(Color.WHITE);tab.setColor(accent==RED?new Color(1,.55f,.5f,a):new Color(1,1,1,a));tab.draw(batch,cx-w/2,cy-h/2,w,h);}
     void ornament(float cx,float y,float w,Color c,float a){rect(cx-w/2,y,w,1,c,a*.35f);}
 
     // ---------------------------------------------------------------- text
@@ -98,14 +102,14 @@ final class RareMindsArt implements Disposable {
 
     /** Timer ring: dark disc, faint track, the remaining arc lit, ticks every second. */
     void timerRing(float cx,float cy,float r,float frac,Color c,float a,float pulse){
-        shade(cx,cy-8,r*3.2f,r*3.2f,.7f*a);
-        batch.setColor(.03f,.01f,.012f,.92f*a);batch.draw(soft,cx-r*1.25f,cy-r*1.25f,r*2.5f,r*2.5f);
-        batch.setColor(.03f,.01f,.012f,a);batch.draw(ring,cx-r,cy-r,r*2,r*2);
-        int n=180;for(int k=0;k<n;k++){float t=k/(float)n;float ang=90-t*360;boolean lit=t<=frac;
-            float x=cx+MathUtils.cosDeg(ang)*r*.86f,y=cy+MathUtils.sinDeg(ang)*r*.86f;
-            batch.setColor(lit?c.r:.22f,lit?c.g:.07f,lit?c.b:.06f,a*(lit?1:.9f));batch.draw(pixel,x-6,y-1.6f,6,1.6f,12,3.2f,1,1,ang+90,0,0,1,1,false,false);}
-        glow(cx,cy,r*3f,r*3f,c,(.18f+.25f*pulse)*a);
-        batch.setColor(GOLD_DEEP.r,GOLD_DEEP.g,GOLD_DEEP.b,.75f*a);batch.draw(ring,cx-r*1.04f,cy-r*1.04f,r*2.08f,r*2.08f);
+        shade(cx,cy-10,r*3f,r*3f,.75f*a);
+        batch.setColor(1,1,1,a);batch.draw(bezel,cx-r*1.22f,cy-r*1.22f,r*2.44f,r*2.44f);
+        int n=120;float rr=r*.86f;batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
+        for(int k=0;k<n;k++){float t=k/(float)n;if(t>frac)break;float ang=90-t*360;float x=cx+MathUtils.cosDeg(ang)*rr,y=cy+MathUtils.sinDeg(ang)*rr;
+            batch.setColor(c.r,c.g,c.b,a*.95f);batch.draw(pixel,x-7,y-2.2f,7,2.2f,14,4.4f,1,1,ang+90,0,0,1,1,false,false);
+            batch.setColor(c.r,c.g,c.b,a*.18f);batch.draw(soft,x-14,y-14,28,28);}
+        batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
+        glow(cx,cy,r*2.6f,r*2.6f,c,(.10f+.22f*pulse)*a);
     }
 
     // ---------------------------------------------------------------- procedural sprites
@@ -140,5 +144,5 @@ final class RareMindsArt implements Disposable {
         for(int y=0;y<n;y++)for(int x=0;x<n;x++){float a=0;for(int j=0;j<s;j++)for(int i=0;i<s;i++)a+=(big.getPixel(x*s+i,y*s+j)&0xff)/255f;p.drawPixel(x,y,Color.rgba8888(1,1,1,a/(s*s)));}
         Texture t=new Texture(p);t.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();return t;}
 
-    @Override public void dispose(){background.dispose();pixel.dispose();soft.dispose();skull.dispose();crown.dispose();ring.dispose();car.dispose();wheels.dispose();title.dispose();big.dispose();num.dispose();mid.dispose();small.dispose();tiny.dispose();for(Texture t:faces.values())if(t!=null)t.dispose();}
+    @Override public void dispose(){for(Texture t:owned)t.dispose();background.dispose();pixel.dispose();soft.dispose();skull.dispose();crown.dispose();ring.dispose();car.dispose();wheels.dispose();title.dispose();big.dispose();num.dispose();mid.dispose();small.dispose();tiny.dispose();for(Texture t:faces.values())if(t!=null)t.dispose();}
 }

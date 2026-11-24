@@ -120,18 +120,37 @@ public final class RareMindsScreen extends ScreenAdapter {
         else if(revealPhase())raceBoard(fin);
         else{questionPanel(ph,fin);cards();}
         ticker();
+        embers(dt);
+        art.shade(W/2,H/2,W*1.25f,H*1.25f,0);batch.setColor(0,0,0,.0f);
+        batch.setColor(1,1,1,.045f);float gx=MathUtils.random(256f),gy=MathUtils.random(256f);batch.draw(art.grain,0,0,W,H,(int)gx,(int)gy,(int)W,(int)H,false,false);
         art.textRight(art.tiny,(liveShown?Localization.tr("H · скрыть ввод","H · hide typing"):Localization.tr("H · показать ввод","H · show typing"))+"    "+Localization.tr("M · монитор","M · monitor"),W-28,30,.8f,RareMindsArt.DIM,.45f);
         batch.end();
     }
 
+    private final float[][] ember=new float[70][5];private boolean embersInit;
+    /** warm sparks drifting up from the stage, additive */
+    private void embers(float dt){
+        if(!embersInit){embersInit=true;for(float[] e:ember)resetEmber(e,true);}
+        batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
+        for(float[] e:ember){e[1]+=e[3]*dt;e[0]+=MathUtils.sin(clock*1.3f+e[4])*12*dt;if(e[1]>H*.75f)resetEmber(e,false);
+            float a=MathUtils.clamp(1-e[1]/(H*.75f),0,1)*.75f*(.6f+.4f*MathUtils.sin(clock*7+e[4]));
+            batch.setColor(1f,.45f,.15f,a);batch.draw(art.soft,e[0]-e[2],e[1]-e[2],e[2]*2,e[2]*2);
+            batch.setColor(1f,.85f,.6f,a);batch.draw(art.soft,e[0]-e[2]*.35f,e[1]-e[2]*.35f,e[2]*.7f,e[2]*.7f);}
+        batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
+    }
+    private static void resetEmber(float[] e,boolean anywhere){e[0]=MathUtils.random(60f,W-60);e[1]=anywhere?MathUtils.random(0f,H*.7f):MathUtils.random(-20f,60f);e[2]=MathUtils.random(3f,8f);e[3]=MathUtils.random(25f,70f);e[4]=MathUtils.random(6.28f);}
     private void spaced(BitmapFont f,String s,float cx,float y,float scale,float gap,Color c,float a){
         float total=0;for(int k=0;k<s.length();k++)total+=art.width(f,String.valueOf(s.charAt(k)),scale)+(k<s.length()-1?gap:0);
         float x=cx-total/2;for(int k=0;k<s.length();k++){String ch=String.valueOf(s.charAt(k));art.textLeft(f,ch,x,y,scale,c,a);x+=art.width(f,ch,scale)+gap;}
     }
     private void header(boolean fin){
         spaced(art.tiny,"FINAL ANSWER",W/2,1056,1,9,RareMindsArt.IVORY,.75f);
-        art.text(art.title,"RARE MINDS",W/2,1028,1,RareMindsArt.GOLD,1,0);
-        spaced(art.small,"DEADLY ANSWERS",W/2,918,.8f,10,fin?RareMindsArt.RED_SOFT:RareMindsArt.RED,1);
+        float tw=980,th=tw*art.titleArt.getHeight()/(float)art.titleArt.getWidth();
+        art.glow(W/2,968,1300,300,fin?RareMindsArt.RED:new Color(.85f,.22f,.10f,1),.16f+.05f*MathUtils.sin(clock*1.4f));
+        batch.setColor(Color.WHITE);batch.draw(art.titleArt,W/2-tw/2,968-th/2,tw,th);
+        // a slow light sweep across the gold
+        float sw=((clock*.22f)%1.6f)-.3f;if(sw>0&&sw<1){batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(1,.92f,.75f,.10f*MathUtils.sin(sw*MathUtils.PI));batch.draw(art.soft,W/2-tw/2+sw*tw-90,968-th*.35f,180,th*.7f);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
+        spaced(art.small,"DEADLY ANSWERS",W/2,890,.8f,10,fin?RareMindsArt.RED_SOFT:RareMindsArt.RED,1);
     }
     private void rules(){
         float x=63,y=470,w=304,h=386;art.panel(x,y,w,h,1,null);
@@ -259,11 +278,11 @@ public final class RareMindsScreen extends ScreenAdapter {
             if(zone&&!ghost)art.glow(x+cw/2,y+ch/2,cw*2.2f,ch*1.6f,RareMindsArt.RED,.22f+.14f*MathUtils.sin(clock*4+k));
             if(ghost)art.glow(x+cw/2,y+ch/2,cw*2f,ch*1.4f,RareMindsArt.GHOST,.10f);
             if(f.flash>0)art.glow(x+cw/2,y+ch/2,cw*2.6f,ch*1.8f,r!=null&&b(r,"resurrected")?RareMindsArt.GOLD:RareMindsArt.RED,.45f*f.flash);
-            art.panel(x,y,cw,ch,1,accent);
+            art.cardFrame(x,y,cw,ch,accent);
             // portrait
             Texture face=art.face(s(roster(id),"characterId"));float fs=96,fx0=x+cw/2-fs/2,fy=y+ch-fs-14;
-            art.rect(fx0-3,fy-3,fs+6,fs+6,accent==null?RareMindsArt.GOLD_DEEP:accent,.8f);
-            if(face!=null){if(ghost)batch.setColor(.55f,.75f,1f,.65f);else batch.setColor(Color.WHITE);batch.draw(face,fx0,fy,fs,fs);}
+            Color ringC=accent==null?RareMindsArt.GOLD:accent;art.glow(fx0+fs/2,fy+fs/2,fs*1.5f,fs*1.5f,ringC,.18f);
+            if(face!=null){if(ghost)batch.setColor(.55f,.75f,1f,.65f);else batch.setColor(Color.WHITE);batch.draw(face,fx0,fy,fs,fs);}for(int rk=0;rk<3;rk++){batch.setColor(ringC.r,ringC.g,ringC.b,1);batch.draw(art.ring,fx0-4+rk*.6f,fy-4+rk*.6f,fs+8-rk*1.2f,fs+8-rk*1.2f);}
             if(active&&b(live,"submitted"))check(x+cw-26,y+ch-24,ease(f.submit));
             if(r!=null&&b(r,"jackpot")){float a=ease(f.crown);batch.setColor(RareMindsArt.GOLD.r,RareMindsArt.GOLD.g,RareMindsArt.GOLD.b,a);batch.draw(art.crown,x+cw/2-26,fy+fs-24,52,52);}
             art.text(art.small,name(id),x+cw/2,fy-4,.95f,ghost?RareMindsArt.GHOST:RareMindsArt.IVORY,1,cw-16);

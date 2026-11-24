@@ -23,7 +23,7 @@ public final class RareMindsScreenPreview {
             void load(){JsonObject snap=all.getAsJsonObject(keys[k]);now=snap.get("serverTime").getAsLong();if(s==null){s=new RareMindsScreen(snap,()->now,x->{},()->{});setScreen(s);}else s.apply(snap);frames=0;}
             @Override public void create(){load();}
             @Override public void render(){now+=16;super.render();
-                if(++frames==150){if(!cap.isEmpty()){Pixmap p=ScreenUtils.getFrameBufferPixmap(0,0,Gdx.graphics.getBackBufferWidth(),Gdx.graphics.getBackBufferHeight());PixmapIO.writePNG(Gdx.files.absolute(cap+"/host-"+keys[k]+".png"),p,-1,true);p.dispose();}
+                if(++frames==150){if(!cap.isEmpty()){Pixmap p=ScreenUtils.getFrameBufferPixmap(0,0,Gdx.graphics.getBackBufferWidth(),Gdx.graphics.getBackBufferHeight());var px=p.getPixels();for(int i=3;i<px.limit();i+=4)px.put(i,(byte)255);PixmapIO.writePNG(Gdx.files.absolute(cap+"/host-"+keys[k]+".png"),p,-1,true);p.dispose();}
                     if(++k>=keys.length){if(!cap.isEmpty())Gdx.app.exit();k=0;}load();}}
         },c);
     }
