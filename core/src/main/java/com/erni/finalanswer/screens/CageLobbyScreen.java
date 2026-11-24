@@ -139,6 +139,7 @@ public final class CageLobbyScreen extends ScreenAdapter {
         if(LAST_COMMAND_ENABLED)modes.add(new Mode("THE LAST COMMAND",Localization.tr("от 1 игрока", "1+ players"),lastCommand,game::startLastCommand));
         modes.add(new Mode("THE CURSED CARDS",Localization.tr("4–6 игроков", "4–6 players"),cards,game::startCursedCards));
         modes.add(new Mode("SYSTEM BREACH",Localization.tr("2–8 игроков · Phase 1 · только очки", "2–8 players · Phase 1 · points only"),null,game::startSystemBreach));
+        modes.add(new Mode("RARE MINDS · DEADLY ANSWERS",Localization.tr("2–8 игроков · редкие ответы · совпадения убивают", "2–8 players · rare answers · collisions kill"),null,game::startRareMinds));
         modes.add(new Mode("THE FINAL SECOND",Localization.tr("2–8 игроков · останови таймер на 7,00 с вслепую", "2–8 players · stop the timer at 7.00 s blind"),null,game::startFinalSecond));
         if(FORGOTTEN_ROOM_ENABLED)for(String[] d:new String[][]{{"EASY",Localization.tr("ЛЁГКИЙ", "EASY"),Localization.tr("8–10 предметов · 2 изменения", "8–10 objects · 2 changes")},{"MEDIUM",Localization.tr("СРЕДНИЙ", "MEDIUM"),Localization.tr("12–15 предметов · 3 изменения", "12–15 objects · 3 changes")},{"HARD",Localization.tr("СЛОЖНЫЙ", "HARD"),Localization.tr("16–18 предметов · 4–5 изменений", "16–18 objects · 4–5 changes")}})
             modes.add(new Mode("THE FORGOTTEN ROOM · "+d[1],Localization.tr("2–8 игроков · ", "2–8 players · ")+d[2]+Localization.tr(" · только очки", " · points only"),null,()->game.startForgottenRoom(d[0])));

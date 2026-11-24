@@ -12,9 +12,10 @@
     impostor:{t:['САМОЗВАНЕЦ','THE IMPOSTOR'],r:[['Все знают слово, кроме самозванца','Everyone knows the word except the impostor'],['Дайте подсказку, не выдав слово','Give a clue without giving the word away'],['Голосуйте. Победившая сторона: 250 очков','Vote. The winning side gets 250 points']]},
     breach:{t:['SYSTEM BREACH','SYSTEM BREACH'],r:[['Взламывайте систему на своём телефоне','Hack the system on your phone'],['Каждый решённый узел даёт очки доступа','Every solved node earns access points'],['Очки доступа идут в общий счёт','Access points go to your total']]},
     forgotten:{t:['ЗАБЫТАЯ КОМНАТА','THE FORGOTTEN ROOM'],r:[['Запомните комнату','Memorise the room'],['Найдите, что изменилось','Find what has changed'],['Точность и скорость дают очки','Accuracy and speed earn points']]},
+    'rare-minds':{t:['RARE MINDS','RARE MINDS'],r:[['Пишите верный, но редкий ответ','Type a valid but rare answer'],['Совпали с кем то? Череп. Три черепа, и вы призрак','Matched someone? A skull. Three skulls and you are a ghost'],['Самый редкий ответ забирает джекпот душ','The rarest answer takes the soul jackpot']]},
     cage:{t:['АДСКАЯ КЛЕТКА','HELL CAGE'],r:[['Чините свою клетку заданиями на телефоне','Repair your cage with the tasks on your phone'],['Ошибки опускают клетку ниже','Mistakes lower your cage'],['Удержались: 200 очков · сорвались: 0','Hold on: 200 points · fall: 0']]}
   };
-  const START={GAME_STARTED:'questions',CURSED_BOXES_STARTED:'boxes',CARDS_STARTED:'cards',FINAL_SECOND_STARTED:'final-second',IMPOSTOR_STARTED:'impostor',SYSTEM_BREACH_START:'breach',FORGOTTEN_ROOM_STARTED:'forgotten'};
+  const START={GAME_STARTED:'questions',CURSED_BOXES_STARTED:'boxes',CARDS_STARTED:'cards',FINAL_SECOND_STARTED:'final-second',IMPOSTOR_STARTED:'impostor',SYSTEM_BREACH_START:'breach',FORGOTTEN_ROOM_STARTED:'forgotten',RARE_MINDS_STARTED:'rare-minds'};
   const KEY='fa.modeRules.seen',TIMES=2;
   const read=()=>{try{return JSON.parse(localStorage.getItem(KEY)||'{}');}catch{return {};}};
   const bump=m=>{try{const s=read();s[m]=(s[m]||0)+1;localStorage.setItem(KEY,JSON.stringify(s));}catch{}};

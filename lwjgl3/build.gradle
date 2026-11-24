@@ -1256,6 +1256,19 @@ tasks.register('finalSecondScreenPreview', JavaExec) {
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
 
+// RARE MINDS host screen on recorded snapshots (-Prm.snapshots=file -Prm.capture=dir).
+tasks.register('rareMindsScreenPreview', JavaExec) {
+    group = 'application'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.RareMindsScreenPreview'
+    workingDir = rootProject.file('assets')
+    systemProperty 'rm.snapshots', providers.gradleProperty('rm.snapshots').getOrElse('')
+    systemProperty 'rm.capture', providers.gradleProperty('rm.capture').getOrElse('')
+    if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
 // SYSTEM BREACH public-state host design fixture; optional screenshot for visual QA.
 tasks.register('systemBreachScreenPreview', JavaExec) {
     group = 'application'

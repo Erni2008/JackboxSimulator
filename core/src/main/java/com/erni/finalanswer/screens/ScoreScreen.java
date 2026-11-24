@@ -85,6 +85,7 @@ public final class ScoreScreen extends ScreenAdapter {
             case "boxes"->Localization.tr("ПРОКЛЯТЫЕ КОРОБКИ","CURSED BOXES");
             case "cards"->Localization.tr("ПРОКЛЯТЫЕ КАРТЫ","CURSED CARDS");
             case "final-second"->Localization.tr("ПОСЛЕДНЯЯ СЕКУНДА","FINAL SECOND");
+            case "rare-minds"->"RARE MINDS";
             case "impostor"->Localization.tr("САМОЗВАНЕЦ","THE IMPOSTOR");
             case "questions"->Localization.tr("ВОПРОСЫ","QUESTIONS");
             case "breach"->"SYSTEM BREACH";

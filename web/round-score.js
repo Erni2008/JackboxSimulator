@@ -5,7 +5,7 @@
  */
 (function(){
   const NAMES={race:['ПРОКЛЯТЫЙ ЗАБЕГ','CURSED RUN'],cage:['АДСКАЯ КЛЕТКА','HELL CAGE'],boxes:['ПРОКЛЯТЫЕ КОРОБКИ','CURSED BOXES'],
-    cards:['ПРОКЛЯТЫЕ КАРТЫ','CURSED CARDS'],'final-second':['ПОСЛЕДНЯЯ СЕКУНДА','FINAL SECOND'],impostor:['САМОЗВАНЕЦ','THE IMPOSTOR'],
+    cards:['ПРОКЛЯТЫЕ КАРТЫ','CURSED CARDS'],'final-second':['ПОСЛЕДНЯЯ СЕКУНДА','FINAL SECOND'],'rare-minds':['RARE MINDS','RARE MINDS'],impostor:['САМОЗВАНЕЦ','THE IMPOSTOR'],
     questions:['ВОПРОСЫ','QUESTIONS'],breach:['SYSTEM BREACH','SYSTEM BREACH'],forgotten:['ЗАБЫТАЯ КОМНАТА','THE FORGOTTEN ROOM']};
   const KEY='fa.roundScore.seen';
   const seen=()=>{try{return JSON.parse(sessionStorage.getItem(KEY)||'[]');}catch{return [];}};

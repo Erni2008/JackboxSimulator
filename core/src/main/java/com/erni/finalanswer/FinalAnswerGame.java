@@ -135,6 +135,33 @@ public class FinalAnswerGame extends Game {
         setScreen(finalSecondScreen);
     }
     private void releaseFinalSecond(boolean toLobby){if(finalSecondScreen==null)return;var old=finalSecondScreen;finalSecondScreen=null;if(toLobby)showBalances();else if(getScreen()==old)setScreen(null);old.dispose();}
+    private com.erni.finalanswer.rareminds.RareMindsScreen rareMindsScreen;
+    /** Host: start RARE MINDS for every connected player (its rules play on the big screen while phones get ready). */
+    public void startRareMinds(){
+        if(activeRoom==null||realtime==null||!activeRoom.host()||!realtime.connected())return;
+        var snapshot=realtime.snapshot();if(snapshot==null||!snapshot.has("lobbyId"))return;
+        realtime.send("START_RARE_MINDS",java.util.Map.of("roomCode",activeRoom.code(),"sessionId",snapshot.get("lobbyId").getAsString()));
+    }
+    private void openRareMinds(com.google.gson.JsonObject state){
+        String session=state.getAsJsonObject("rareMinds").get("sessionId").getAsString();
+        if(rareMindsScreen!=null&&rareMindsScreen.session().equals(session)){rareMindsScreen.apply(state);if(getScreen()!=rareMindsScreen)setScreen(rareMindsScreen);return;}
+        releaseRareMinds(false);
+        rareMindsScreen=new com.erni.finalanswer.rareminds.RareMindsScreen(state,realtime::serverNow,id->{
+            if(realtime!=null&&realtime.connected())realtime.send("END_RARE_MINDS",java.util.Map.of("roomCode",activeRoom.code(),"sessionId",id));},this::openRareMindsMonitor);
+        setScreen(rareMindsScreen);
+    }
+    private void releaseRareMinds(boolean toLobby){if(rareMindsScreen==null)return;var old=rareMindsScreen;rareMindsScreen=null;if(toLobby)showBalances();else if(getScreen()==old)setScreen(null);old.dispose();}
+    /**
+     * The host's private live-answer monitor opens in this computer's browser (a second monitor, a laptop the guests
+     * cannot see). The host token travels in the URL fragment, which browsers never send to a server; the link is also
+     * copied to the clipboard so the host can open it on their own phone.
+     */
+    private void openRareMindsMonitor(){
+        if(activeRoom==null||!activeRoom.host())return;
+        String url=hosting.apiUrl().replaceAll("/+$","")+"/rare-minds-monitor/?lang="+getTexts().getLanguage()+"#room="+activeRoom.code()+"&token="+activeRoom.token();
+        try{Gdx.app.getClipboard().setContents(url);}catch(RuntimeException ignored){}
+        if(!Gdx.net.openURI(url))Gdx.app.log("RareMinds","could not open the monitor in a browser; the link is on the clipboard");
+    }
     private com.erni.finalanswer.forgottenroom.ForgottenRoomScreen forgottenScreen;
     /** Host: start THE FORGOTTEN ROOM (EASY / MEDIUM / HARD) for every connected player; score-only. */
     public void startForgottenRoom(String difficulty){
@@ -349,6 +376,8 @@ public class FinalAnswerGame extends Game {
         if(activeRoom.host()&&data.has("lastCommand")){openLastCommand(data,false);return;}
         if(activeRoom.host()&&data.has("cursedCards")){openCursedCards(data);return;}
         if(cardsScreen!=null&&!data.has("cursedCards"))releaseCursedCards(true);
+        if(activeRoom.host()&&data.has("rareMinds")){openRareMinds(data);return;}
+        if(rareMindsScreen!=null&&!data.has("rareMinds"))releaseRareMinds(true);
         if(activeRoom.host()&&data.has("finalSecond")){openFinalSecond(data);return;}
         if(finalSecondScreen!=null&&!data.has("finalSecond"))releaseFinalSecond(true);
         if(activeRoom.host()&&data.has("forgottenRoom")){openForgottenRoom(data);return;}

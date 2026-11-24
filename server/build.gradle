@@ -135,6 +135,8 @@ tasks.register('raceQa', JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'com.finalanswer.server.RoomServer'
     systemProperty 'race.qa', 'true'
+    // RARE MINDS: QA bot answers never touch the real local rarity statistics
+    systemProperty 'rareminds.stats', layout.buildDirectory.file('rare-minds-qa-stats.json').get().asFile.absolutePath
     // load tests come from one IP
     systemProperty 'server.maxPeers', providers.gradleProperty('race.maxPeers').getOrElse('512')
     systemProperty 'server.maxPeersPerIp', providers.gradleProperty('race.maxPeers').getOrElse('512')

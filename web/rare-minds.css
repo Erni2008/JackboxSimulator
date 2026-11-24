@@ -1,0 +1,65 @@
+/* RARE MINDS — DEADLY ANSWERS, phone. Black stage, gold rule lines, restrained red for danger; ghosts turn cold. */
+#rm-screen{--g:#e8c37e;--g2:#a8803f;--ink:#f6ead2;--dim:#a8977c;--red:#e2372a;--red2:#7a120c;--ghost:#9fd2ff;--rm-left:1;
+  position:relative;min-height:100dvh;padding:calc(14px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));box-sizing:border-box;
+  color:var(--ink);font-family:Georgia,"Times New Roman",serif;
+  background:radial-gradient(120% 60% at 50% -10%,#3a0d0b 0%,#160607 45%,#070405 100%)}
+#rm-screen[data-ghost="true"]{background:radial-gradient(120% 60% at 50% -10%,#14273a 0%,#0a1018 50%,#050608 100%)}
+#rm-screen[data-zone="true"]::before{content:"";position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 90px #e2372a55;animation:rm-pulse 1.6s ease-in-out infinite}
+@keyframes rm-pulse{50%{box-shadow:inset 0 0 40px #e2372a22}}
+.rm-top{position:relative;text-align:center;padding:4px 70px 10px}
+.rm-brand{margin:0;font:700 26px/1 Gothic,Georgia,serif;letter-spacing:.12em;background:linear-gradient(180deg,#fff3dc,#e8c37e 45%,#9c6f33);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 2px 2px #000)}
+.rm-sub{margin:6px 0 0;font:600 10px/1 Gothic,Georgia,serif;letter-spacing:.42em;color:var(--g2)}
+.rm-clock{position:absolute;right:0;top:0;width:58px;height:58px}
+.rm-clock svg{width:100%;height:100%;transform:rotate(-90deg)}
+.rm-clock-bg{fill:#0c0405;stroke:#3a1712;stroke-width:5}
+.rm-clock-arc{fill:none;stroke:var(--red);stroke-width:5;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:calc(100 - var(--rm-left) * 100);filter:drop-shadow(0 0 4px #e2372a)}
+#rm-screen[data-ghost="true"] .rm-clock-arc{stroke:var(--ghost);filter:drop-shadow(0 0 4px #9fd2ff)}
+.rm-clock b{position:absolute;inset:0;display:grid;place-items:center;font:700 21px/1 Georgia,serif;color:#ffd9cf}
+#rm-screen[data-hurry="true"] .rm-clock{animation:rm-beat .5s ease-in-out infinite alternate}
+@keyframes rm-beat{to{transform:scale(1.08)}}
+.rm-status{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 12px;padding:8px 12px;border:1px solid #e8c37e33;border-radius:3px;background:#0a0405cc}
+.rm-souls{font:700 18px/1 Georgia,serif;color:var(--g)}
+.rm-souls::before{content:"";display:inline-block;width:12px;height:16px;margin-right:6px;vertical-align:-2px;background:radial-gradient(ellipse at 50% 70%,#ffcf7a,#e2372a 60%,transparent 62%);border-radius:50% 50% 45% 45%}
+.rm-skulls{display:flex;gap:5px}
+.rm-skulls i{width:18px;height:18px;background:#4a3a34;-webkit-mask:url(/rare-minds-skull.svg) center/contain no-repeat;mask:url(/rare-minds-skull.svg) center/contain no-repeat}
+.rm-skulls i.on{background:var(--red);filter:drop-shadow(0 0 5px #e2372a)}
+.rm-skulls i.g.on{background:var(--ghost)}
+.rm-life{font:700 11px/1 Gothic,Georgia,serif;letter-spacing:.2em;color:var(--dim)}
+#rm-screen[data-zone="true"] .rm-life{color:var(--red)}
+#rm-screen[data-ghost="true"] .rm-life{color:var(--ghost)}
+.rm-card{position:relative;padding:16px 16px 18px;text-align:center;border:1px solid #e8c37e55;border-radius:3px;background:linear-gradient(180deg,#1b0a0a,#0d0506);box-shadow:inset 0 0 0 4px #0d0506,inset 0 0 0 5px #e8c37e22,0 14px 30px #000a}
+.rm-qno{margin:0 0 8px;font:700 12px/1 Gothic,Georgia,serif;letter-spacing:.3em;color:var(--g)}
+.rm-question{margin:0;font:600 clamp(21px,6.2vw,27px)/1.18 Georgia,serif;color:#fff4e2;text-shadow:0 2px 3px #000}
+.rm-final{margin:10px 0 0;font:700 11px/1 Gothic,Georgia,serif;letter-spacing:.24em;color:var(--red);animation:rm-blink 1.2s infinite}
+@keyframes rm-blink{50%{opacity:.55}}
+#rm-screen[data-final="true"] .rm-card{border-color:#e2372a99;box-shadow:inset 0 0 0 4px #0d0506,inset 0 0 0 5px #e2372a44,0 0 30px #e2372a33}
+.rm-answer{margin-top:16px;display:grid;gap:10px}
+.rm-answer input{width:100%;box-sizing:border-box;height:56px;padding:0 16px;border:1px solid #e8c37e66;border-radius:3px;background:#050203;color:#fff6e8;font:600 21px/1 Georgia,serif;outline:none;box-shadow:inset 0 2px 10px #000}
+.rm-answer input:focus{border-color:var(--g);box-shadow:inset 0 2px 10px #000,0 0 0 3px #e8c37e22}
+.rm-send{height:58px;border:0;border-radius:0;font:700 19px/1 Gothic,Georgia,serif;letter-spacing:.2em;color:#fff3dc;text-shadow:0 2px 2px #000a;
+  background:linear-gradient(180deg,#d33a2b,#7a120c);clip-path:polygon(6% 0,94% 0,100% 50%,94% 100%,6% 100%,0 50%);box-shadow:inset 0 0 0 2px #e8c37e88}
+.rm-send:active{transform:scale(.98)}.rm-send:disabled{filter:grayscale(.7) brightness(.7)}
+#rm-screen[data-ghost="true"] .rm-send{background:linear-gradient(180deg,#3d6c95,#14283c)}
+.rm-risk{display:grid;gap:3px;padding:10px 12px;border:1px dashed #e2372a;border-radius:3px;background:#1a0606;color:#ffb3a8;text-align:left}
+.rm-risk b{font:700 15px/1 Gothic,Georgia,serif;letter-spacing:.2em}.rm-risk small{font:13px/1.25 Georgia,serif;color:#d79d93}
+.rm-risk.on{border-style:solid;background:linear-gradient(180deg,#5a0d08,#2a0605);color:#fff;box-shadow:0 0 18px #e2372a77}
+.rm-risk.on b::after{content:" ✓"}
+.rm-hint{min-height:18px;margin:0;font:14px/1.3 Georgia,serif;color:var(--dim);text-align:center}.rm-hint.err{color:#ff8a7e}
+.rm-locked,.rm-result,.rm-ghost,.rm-intro{margin-top:16px;padding:16px;text-align:center;border:1px solid #e8c37e33;border-radius:3px;background:#0a0405d9}
+.rm-eyebrow{margin:0 0 8px;font:700 11px/1 Gothic,Georgia,serif;letter-spacing:.32em;color:var(--g)}
+.rm-mine{margin:0;font:700 24px/1.15 Georgia,serif;color:#fff4e2;word-break:break-word}
+.rm-wait,.rm-small{margin:8px 0 0;color:var(--dim);font-size:14px}
+.rm-big{margin:10px 0 4px;font:700 34px/1 Georgia,serif;color:var(--g)}.rm-big small{font-size:15px;color:var(--dim)}
+.rm-rank{margin:2px 0;font:700 40px/1 Gothic,Georgia,serif;letter-spacing:.08em;color:#fff1d6}
+.rm-tier{display:inline-block;margin:10px 0 0;padding:6px 12px;border-radius:2px;font:700 13px/1 Gothic,Georgia,serif;letter-spacing:.2em;background:#ffffff10;box-shadow:inset 0 0 0 1px currentColor}
+.t-COMMON{color:#cfcfcf}.t-UNCOMMON{color:#4fe08a}.t-RARE{color:#4fb6ff}.t-EPIC{color:#c77dff}.t-LEGENDARY{color:#ffc23d}.t-MYTHIC{color:#ff4a3d}
+.rm-tag{margin:8px 0 0;font:700 13px/1.25 Gothic,Georgia,serif;letter-spacing:.12em;color:var(--dim)}
+.rm-tag.red{color:#ff6b5e}.rm-tag.gold{color:var(--g)}.rm-tag.ghost{color:var(--ghost)}
+.rm-ghost{border-color:#9fd2ff55;background:#08111bd9}.rm-ghost .rm-eyebrow{color:var(--ghost)}.rm-ghost p{margin:0;font-size:15px;line-height:1.35}
+.rm-dots{display:flex;justify-content:center;gap:8px;margin:12px 0 4px}
+.rm-dots i{width:16px;height:16px;border-radius:50%;border:2px solid #9fd2ff66}
+.rm-dots i.ok{background:var(--ghost);border-color:var(--ghost);box-shadow:0 0 8px #9fd2ff}
+.rm-dots i.x{border-color:var(--red);background:#e2372a55}
+.rm-intro ol{margin:0;padding:0 0 0 20px;text-align:left;display:grid;gap:8px;font-size:15px;line-height:1.35}
+.rm-look{margin:18px 0 0;text-align:center;font:700 14px/1 Gothic,Georgia,serif;letter-spacing:.3em;color:var(--g);animation:rm-blink 1.4s infinite}
+@media (prefers-reduced-motion:reduce){#rm-screen *{animation:none!important}#rm-screen::before{animation:none!important}}
