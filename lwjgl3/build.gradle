@@ -1263,7 +1263,7 @@ tasks.register('rareMindsLiveHost', JavaExec) {
     classpath = sourceSets.dev.runtimeClasspath
     mainClass = 'com.erni.finalanswer.lwjgl3.RareMindsLiveHost'
     workingDir = rootProject.file('assets')
-    ['rm.url', 'rm.code', 'rm.token', 'rm.players', 'rm.lang', 'rm.format'].each { k -> systemProperty k, providers.gradleProperty(k).getOrElse('') }
+    ['rm.url', 'rm.code', 'rm.token', 'rm.players', 'rm.lang', 'rm.format', 'rm.race'].each { k -> systemProperty k, providers.gradleProperty(k).getOrElse('') }
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }

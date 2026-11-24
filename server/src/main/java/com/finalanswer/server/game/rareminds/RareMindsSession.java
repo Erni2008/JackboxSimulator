@@ -18,11 +18,13 @@ import java.util.*;
 public final class RareMindsSession {
     /** CLASSIC, or DUELS: with an even number of players, sometimes (15 %) everyone also plays a fixed 1-on-1 duel */
     public enum Format {CLASSIC,DUELS}
-    public static final double DUEL_CHANCE=.15;
+    public static final double DUEL_CHANCE=.15,RACE_CHANCE=.35;
     public final Format format;
+    /** presentation only: some matches show the scores as the Soul Race, the others as a leaderboard */
+    public final boolean race;
     public enum Phase {INITIALIZING,QUESTION_ACTIVE,ANSWERS_LOCKED,REVEALING_RESULTS,FINAL_RESULTS,COMPLETED}
     public record Timing(long introMs,long answerMs,long lockedMs,long revealMs,long finalRevealMs,long resultsMs,long graceMs){
-        public static final Timing DEFAULT=new Timing(7000,18000,3200,6500,7500,16000,350);
+        public static final Timing DEFAULT=new Timing(7000,18000,3200,9000,10000,16000,350);
     }
     public static final class Failure extends RuntimeException{public final int status;public Failure(int status,String code){super(code);this.status=status;}}
     private record Draft(String text,boolean risk,long at){}
@@ -40,10 +42,12 @@ public final class RareMindsSession {
 
     public RareMindsSession(List<String> seats,RareQuestionBank bank,RarityStats stats,Random random,long now){this(seats,bank,stats,random,now,null);}
     /** @param forced a format to use (QA); null rolls it: DUELS with {@link #DUEL_CHANCE} when the player count is even */
-    public RareMindsSession(List<String> seats,RareQuestionBank bank,RarityStats stats,Random random,long now,Format forced){
-        this(seats,bank.draw(RareRules.QUESTIONS,random),bank.validator(),stats,Timing.DEFAULT,now,forced!=null?forced:seats.size()%2==0&&random.nextDouble()<DUEL_CHANCE?Format.DUELS:Format.CLASSIC,random);}
-    public RareMindsSession(List<String> seats,List<RareQuestion> questions,CuratedAnswerValidator validator,RarityStats stats,Timing timing,long now){this(seats,questions,validator,stats,timing,now,Format.CLASSIC,new Random(0));}
-    public RareMindsSession(List<String> seats,List<RareQuestion> questions,CuratedAnswerValidator validator,RarityStats stats,Timing timing,long now,Format format,Random random){
+    public RareMindsSession(List<String> seats,RareQuestionBank bank,RarityStats stats,Random random,long now,Format forced){this(seats,bank,stats,random,now,forced,null);}
+    public RareMindsSession(List<String> seats,RareQuestionBank bank,RarityStats stats,Random random,long now,Format forced,Boolean forcedRace){
+        this(seats,bank.draw(RareRules.QUESTIONS,random),bank.validator(),stats,Timing.DEFAULT,now,forced!=null?forced:seats.size()%2==0&&random.nextDouble()<DUEL_CHANCE?Format.DUELS:Format.CLASSIC,random,forcedRace!=null?forcedRace:random.nextDouble()<RACE_CHANCE);}
+    public RareMindsSession(List<String> seats,List<RareQuestion> questions,CuratedAnswerValidator validator,RarityStats stats,Timing timing,long now){this(seats,questions,validator,stats,timing,now,Format.CLASSIC,new Random(0),false);}
+    public RareMindsSession(List<String> seats,List<RareQuestion> questions,CuratedAnswerValidator validator,RarityStats stats,Timing timing,long now,Format format,Random random,boolean race){
+        this.race=race;
         if(seats.size()<RareRules.MIN_PLAYERS||seats.size()>RareRules.MAX_PLAYERS)throw new Failure(409,"RM_PLAYER_COUNT");
         if(new HashSet<>(seats).size()!=seats.size())throw new Failure(400,"RM_INVALID_ROSTER");
         if(questions.size()!=RareRules.QUESTIONS)throw new IllegalArgumentException("need "+RareRules.QUESTIONS+" questions");
@@ -141,7 +145,7 @@ public final class RareMindsSession {
     /** {@code host}: the host's own game client also gets live typing (the host shows it on the big screen by choice). */
     public Map<String,Object> snapshot(String self,boolean host,long now){
         Map<String,Object> v=new LinkedHashMap<>();
-        v.put("sessionId",id);v.put("format",format.name());v.put("duelBonus",question==RareRules.QUESTIONS?RareRules.FINAL_DUEL_BONUS:RareRules.DUEL_BONUS);v.put("phase",phase.name());v.put("serverTime",now);v.put("phaseStartedAt",phaseStarted);v.put("phaseEndsAt",ends());
+        v.put("sessionId",id);v.put("format",format.name());v.put("race",race);v.put("duelBonus",question==RareRules.QUESTIONS?RareRules.FINAL_DUEL_BONUS:RareRules.DUEL_BONUS);v.put("phase",phase.name());v.put("serverTime",now);v.put("phaseStartedAt",phaseStarted);v.put("phaseEndsAt",ends());
         v.put("question",question);v.put("questions",RareRules.QUESTIONS);v.put("finalQuestion",question==RareRules.QUESTIONS);
         v.put("answerMs",timing.answerMs());v.put("maxAnswer",RareText.MAX_ANSWER);
         v.put("jackpot",question==RareRules.QUESTIONS?RareRules.FINAL_JACKPOT:RareRules.JACKPOT);v.put("multiplier",question==RareRules.QUESTIONS?2:1);

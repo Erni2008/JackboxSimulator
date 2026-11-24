@@ -62,7 +62,7 @@ class RareMindsRoomServiceTest {
             if(q==4){b=new TestPeer();service.attach(code(),s(two,"token"),b,"two-again");assertEquals(4,rm(b).get("question").getAsInt(),"a reconnecting player is back in the same question");}
             command(b,"RM_SUBMIT",answer(b,valid(q+10)));
             advance(700);assertEquals("ANSWERS_LOCKED",s(rm(a),"phase"),"everyone answered: the window closes early");
-            advance(3_300);advance(q==8?7_600:6_600);
+            advance(3_300);advance(q==8?10_100:9_100);
         }
         assertEquals("FINAL_RESULTS",s(rm(a),"phase"));
         var standings=rm(a).getAsJsonArray("standings");long total=0;

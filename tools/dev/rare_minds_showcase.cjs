@@ -35,7 +35,7 @@ async function type(bot,s,text){
   const hostWs=sock(code,host.token,e=>{if(e.payload?.roomId){state=e.payload;stream.write(JSON.stringify({at:Date.now()-t0,type:e.type,state:e.payload})+'\n');}});
   for(const b of bots)b.ws=sock(code,b.id.token,()=>{});
   while(!state||state.players.filter(p=>p.connectionStatus==='ONLINE').length<names.length)await sleep(150);
-  hostWs.cmd('START_RARE_MINDS',{sessionId:state.lobbyId,...(process.env.FORMAT?{format:process.env.FORMAT}:{})});
+  hostWs.cmd('START_RARE_MINDS',{sessionId:state.lobbyId,...(process.env.FORMAT?{format:process.env.FORMAT}:{}),...(process.env.RACE?{race:process.env.RACE==='1'}:{})});
   // per round, answer popularity ranks for each bot (equal numbers collide)
   const plan=[[0,0,6,14,3,22],[1,9,1,17,24,5],[2,12,20,2,8,27]];
   const misspell=t=>t.length>7?t.slice(0,3)+t[4]+t[3]+t.slice(5):t; // Kate swaps two letters: the game corrects it
