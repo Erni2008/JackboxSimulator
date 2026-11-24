@@ -1,18 +1,16 @@
 package com.finalanswer.server.game.rareminds;
 
 /**
- * Hybrid rarity. The estimated share of players who give an answer is
- * <pre>  p = (observed + K · prior) / (total + K)        prior = popularity / Σ popularity</pre>
- * Two safeguards keep a handful of games from swinging the tiers: below {@link #MIN_SAMPLE} recorded answers for a
- * question only the curated prior counts, and after that the prior still weighs as K pseudo-answers, so real
- * frequencies take over gradually as answers accumulate. Only valid answers are ever scored, and an answer nobody has
- * given yet still gets its curated prior — it is never "maximally rare" just for being unseen.
+ * Rarity = the estimated share of players who give an answer.
+ * <ul><li>While a question has fewer than {@link #MIN_SAMPLE} real recorded answers, the share is the curated starting
+ * estimate from the bank ({@code popularity / Σ popularity}) — a handful of games never decides rarity.</li>
+ * <li>From {@link #MIN_SAMPLE} answers on, rarity comes <b>only from the game's own statistics</b>:
+ * {@code p = (count + 1) / (total + answers)} (add-one smoothing, so an answer nobody has given yet is rare but finite).</li></ul>
+ * Only valid answers are ever scored; validity is decided elsewhere.
  */
 public final class Rarity {
-    /** Pseudo-count of the prior: the number of real answers it takes for live data to weigh as much as the bank. */
-    public static final int K=200;
-    /** Recorded answers a question needs before live statistics are used at all. */
-    public static final int MIN_SAMPLE=30;
+    /** Real recorded answers a question needs before its rarity comes only from the game's statistics. */
+    public static final int MIN_SAMPLE=200;
 
     public enum Tier {
         COMMON(100,"COMMON","ОБЫЧНЫЙ",.060),
@@ -33,7 +31,7 @@ public final class Rarity {
         var a=q.answer(answerId);if(a==null)throw new IllegalArgumentException("unknown answer "+answerId);
         double prior=a.popularity()/(double)q.popularityTotal();
         long total=stats.total(q.id());
-        double p=total<MIN_SAMPLE?prior:(stats.count(q.id(),answerId)+K*prior)/(total+K);
+        double p=total<MIN_SAMPLE?prior:(stats.count(q.id(),answerId)+1.0)/(total+q.answers().size());
         p=Math.max(1e-9,Math.min(1,p));
         return new Estimate(tierOf(p),p,Math.round(-Math.log(p)*1_000_000));
     }

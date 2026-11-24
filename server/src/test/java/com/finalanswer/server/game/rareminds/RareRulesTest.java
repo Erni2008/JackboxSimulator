@@ -175,7 +175,12 @@ class RareRulesTest {
         for(int i=0;i<400;i++)fresh.record(MED.id(),List.of("digoxin"));
         assertEquals(Rarity.Tier.COMMON,Rarity.estimate(MED,"digoxin",fresh).tier(),"live statistics take over from the curated prior");
         var small=new RarityStats.Memory();small.record(MED.id(),List.of("digoxin"));
-        assertEquals(first.tier(),Rarity.estimate(MED,"digoxin",small).tier(),"one game cannot swing the tier (pseudo-count safeguard)");
+        assertEquals(first.tier(),Rarity.estimate(MED,"digoxin",small).tier(),"a few games never decide rarity");
+        var real=new RarityStats.Memory();for(int i=0;i<199;i++)real.record(MED.id(),List.of("aspirin"));
+        assertEquals(Rarity.estimate(MED,"paracetamol",new RarityStats.Memory()).tier(),Rarity.estimate(MED,"paracetamol",real).tier(),"below 200 answers: the starting estimate");
+        real.record(MED.id(),List.of("aspirin"));
+        assertEquals(Rarity.Tier.LEGENDARY,Rarity.estimate(MED,"paracetamol",real).tier(),"from 200 answers: only what players actually answered (nobody said paracetamol)");
+        assertEquals(Rarity.Tier.COMMON,Rarity.estimate(MED,"aspirin",real).tier());
         var none=play(1,players(2),"p0","definitely not a drug");assertEquals(0,none.row("p0").earned());assertNull(none.row("p0").tier());
     }
 
