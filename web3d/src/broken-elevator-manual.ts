@@ -47,7 +47,7 @@ renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.ACESFilmi
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFShadowMap; renderer.shadowMap.autoUpdate = false; let frameNo = 0;
 // iPhones (Apple GPU) hold 2x; Android mid-range (e.g. Poco X3 Pro, Adreno 640) starts lower and may drop further
 const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-const DPR_FLOOR = mobile ? (ios ? 1.5 : 1) : 1; let dpr = Math.min(devicePixelRatio, mobile ? (ios ? 2 : 1.6) : quality === "high" ? 2 : 1.5); let shadowEvery = mobile ? 3 : 1; renderer.setPixelRatio(dpr);
+const DPR_FLOOR = mobile ? (ios ? 1.1 : .9) : 1; let dpr = Math.min(devicePixelRatio, mobile ? (ios ? 1.5 : 1.25) : quality === "high" ? 1.25 : 1); let shadowEvery = mobile ? 12 : 6; /* 60 fps first: a Retina canvas at 2x is 4x the pixels for a barely visible gain (antialiasing covers it); the lamp and the cage stand still, so their shadows need not be redrawn every frame */ renderer.setPixelRatio(dpr);
 $('viewport').append(renderer.domElement);
 const scene = new T.Scene(), camera = new T.PerspectiveCamera(50, 1, .03, 40);
 camera.position.set(0, 1.56, .5); camera.lookAt(0, .1, -.25);
@@ -508,7 +508,7 @@ async function boot() {
   renderer.domElement.addEventListener('pointermove', e => { const p = drag.get(e.pointerId); if (!p || drag.size > 1) return; const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY; if (!canLook()) return; const k = 2.6 / Math.max(innerHeight, 400); yawT += dx * k; pitchT = T.MathUtils.clamp(pitchT + dy * k, -1.45, 1.35); focusTo = null; });
   renderer.domElement.addEventListener('pointermove', e => { if (e.pointerType !== 'mouse' || drag.size) return; hoverRay.setFromCamera(new T.Vector2(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1), camera); box.hover(hoverRay); });
   // phones run the cage at 30 fps (half the GPU work and heat; the slow camera does not need more); ?fps=N overrides
-  const FPS_CAP = +(params.get('fps') || (mobile ? 30 : 0)); let lastDraw = 0;
+  const FPS_CAP = +(params.get('fps') || 0); /* phones too aim at 60 (the adaptive step lowers resolution if they cannot) */ let lastDraw = 0;
   const loop = (now: number) => {
     if (FPS_CAP && now - lastDraw < 1000 / FPS_CAP - 2) { requestAnimationFrame(loop); return; } lastDraw = now;
     { ref.setAvailable(!$('verdict').classList.contains('show') && (kind !== 'bomb' || !!dbook));
@@ -516,7 +516,7 @@ async function boot() {
       { const pad = $('cipher-pad'), ex = refDock === 'sheet' && !pad.hidden ? pad.offsetHeight + 8 : 0; if (ex !== refExtra) { refExtra = ex; applyRefView(); } }
       const f = kind === 'bomb' ? suitcase?.focus ?? null : null; if (f !== refFocus) { refFocus = f; if (f && ref.open) ref.go(MECHANISMS.indexOf(f) + 1); } }
     const dt = Math.min(.05, (now - last) / 1000) * timeScale; last = now; acc += dt; frames++;
-    if (acc > 1) { const ms = acc / frames * 1000; if (ms > (FPS_CAP ? 1000 / FPS_CAP + 7 : 19)) { if (dpr > DPR_FLOOR) { dpr = Math.max(DPR_FLOOR, dpr - .2); renderer.setPixelRatio(dpr); resize(); } else if (shadowEvery < 15) shadowEvery = shadowEvery * 2 + 1; } acc = 0; frames = 0; }
+    if (acc > 1) { const ms = acc / frames * 1000; if (ms > (FPS_CAP ? 1000 / FPS_CAP + 7 : 17.5)) { if (dpr > DPR_FLOOR) { dpr = Math.max(DPR_FLOOR, dpr - .2); renderer.setPixelRatio(dpr); resize(); } else if (shadowEvery < 15) shadowEvery = shadowEvery * 2 + 1; } acc = 0; frames = 0; }
     // gentle head motion while looking around the cage (none while reading)
     // exponential smoothing of the look (frame-rate independent): no stepping between irregular mouse events
     { const a = 1 - Math.exp(-dt * 22); yaw += (yawT - yaw) * a; pitch += (pitchT - pitch) * a; }

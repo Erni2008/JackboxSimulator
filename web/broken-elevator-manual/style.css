@@ -390,7 +390,7 @@ html body #task::before { left: 10px; } html body #task::after { right: 10px; }
 html body #clock { top: var(--hud-top); right: 14px; width: 66px; height: 66px; border-radius: 50%; box-shadow: 0 0 0 2px var(--cu3), 0 0 0 4px #1a0d07, 0 0 0 5px rgba(201,138,82,.45), 0 8px 20px rgba(0,0,0,.65); }
 html body #clock .track { fill: #120806e6; stroke: #2a160c; }
 html body #clock .ring { filter: drop-shadow(0 0 4px rgba(255,70,30,.7)); }
-html body #clock-num { font: 700 23px 'Cormorant SC', Georgia, serif; color: #fbe3c4; text-shadow: 0 1px 2px #000; }
+html body #clock-num { text-shadow: 0 1px 2px #000; } /* the original Georgia numerals stay */
 
 /* the coach line under the plaque: a soft dark chip */
 html body #hint { top: calc(var(--hud-top) + 54px); left: 50%; right: auto; transform: translateX(-50%); width: max-content; max-width: min(86vw, 760px); padding: 6px 18px; border-radius: 999px; font-size: 15px; color: rgba(244,220,192,.8);
