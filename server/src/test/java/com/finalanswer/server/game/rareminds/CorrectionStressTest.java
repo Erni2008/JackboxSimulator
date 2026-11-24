@@ -17,7 +17,7 @@ class CorrectionStressTest {
     void kind(String name,int minLen,BiFunction<String,Random,String> mut){
         var bank=RareQuestionBank.load();var v=bank.validator();Random r=new Random(name.hashCode());int tot=0,ok=0;
         for(var q:bank.questions())for(var a:q.answers())for(String alias:List.of(a.labelEn(),a.labelRu())){String k=alias.toLowerCase(Locale.ROOT);if(RareText.key(k).length()<minLen)continue;
-            String m=mut.apply(k,r);if(m==null||RareText.key(m).equals(RareText.key(k)))continue;tot++;var res=v.validate(q,m);
+            String m=mut.apply(k,r);if(m==null||RareText.key(m).equals(RareText.key(k))||RareText.key(m).length()<4)continue; /* 3 letters are too few to guess from */tot++;var res=v.validate(q,m);
             if(res.valid()&&res.answerId().equals(a.id()))ok++;else if(fails.size()<60)fails.add(name+": "+q.id()+" '"+m+"' -> "+res.status()+" "+res.answerId()+" (want "+a.id()+")");}
         rates.put(name,tot==0?100:ok*100.0/tot); // tot 0: normalisation already makes them identical
     }

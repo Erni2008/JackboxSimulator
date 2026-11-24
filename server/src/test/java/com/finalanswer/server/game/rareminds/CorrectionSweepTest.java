@@ -10,7 +10,7 @@ class CorrectionSweepTest {
         var bank=RareQuestionBank.load();var v=bank.validator();Random r=new Random(11);int total=0,ok=0;List<String> fails=new ArrayList<>();
         for(var q:bank.questions())for(var a:q.answers())for(String alias:List.of(a.labelEn(),a.labelRu())){
             String k=alias.toLowerCase(Locale.ROOT);if(RareText.key(k).length()<4)continue;
-            for(int rep=0;rep<3;rep++){String typo=mutate(k,r);if(RareText.key(typo).equals(RareText.key(k)))continue;total++;
+            for(int rep=0;rep<3;rep++){String typo=mutate(k,r);if(RareText.key(typo).equals(RareText.key(k))||RareText.key(typo).length()<4)continue;total++;
                 var res=v.validate(q,typo);if(res.valid()&&res.answerId().equals(a.id()))ok++;else if(fails.size()<40)fails.add(q.id()+": "+typo+" -> "+res.status()+" "+res.answerId()+" (want "+a.id()+")");}}
         double rate=ok*100.0/total;System.out.printf("typo sweep: %d/%d corrected (%.1f%%)%n",ok,total,rate);fails.forEach(System.out::println);
         assertTrue(rate>=99,"typo correction rate "+rate);

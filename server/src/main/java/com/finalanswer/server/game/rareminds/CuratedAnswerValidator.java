@@ -38,27 +38,27 @@ public final class CuratedAnswerValidator implements AnswerValidator {
         for(String alt:new String[]{RareText.key(swapLayout(typed,EN,RU)),RareText.key(swapLayout(typed,RU,EN))}){String hit=m.get(alt);if(hit!=null&&!alt.equals(key))return new Result(Status.VALID_TYPO,hit,key);}
         // 2. the other alphabet (paratsetamol → парацетамол): compare everything in one phonetic Latin form
         String lk=phonetic(key);String hit=lat.get(lk);if(hit!=null)return new Result(Status.VALID_TYPO,hit,key);
-        // 3. spelling mistakes and unfinished words: every alias is a candidate; forgiven edits are about a third of the
-        //    word (at least 1, at most 4); a typed start of a single word (4+ letters) completes it. The closest wins,
-        //    then the longest shared start, then the more popular answer — so a recognisable word is always corrected.
-        if(key.length()<3)return Result.of(Status.INVALID,key);
-        int tol=Math.max(1,Math.min(4,Math.round(key.length()*.34f)));
-        String[] typedForms={key,lk,RareText.key(swapLayout(typed,EN,RU)),RareText.key(swapLayout(typed,RU,EN))};
+        // 3. spelling mistakes and unfinished words, guarded against false positives:
+        //    - the first letter must match (people rarely miss it; unrelated words usually differ there);
+        //    - 4–7 letters: one edit, 8+: two (12+: three); shorter words only match exactly;
+        //    - an unfinished word (5+ letters, more than half of the word) completes a single answer;
+        //    - other layouts and alphabets only ever match exactly (steps 1–2), never fuzzily.
+        if(key.length()<4)return Result.of(Status.INVALID,key);
+        int tol=key.length()>=12?3:key.length()>=8?2:1;
         String best=null;double bestD=99;int bestPre=-1,bestPop=-1;boolean tie=false;
-        for(int f=0;f<typedForms.length;f++){String form=f==1?lk:typedForms[f];if(form.isEmpty())continue;Map<String,String> space=f==1?lat:m;String typedForm=f==1?lk:form;
-            for(var e:space.entrySet()){String alias=e.getKey();if(alias.length()<3)continue;
-                double d=99;
-                int dd=RareText.distance(typedForm,alias,tol);if(dd<=tol)d=dd;
-                if(typedForm.length()>=4&&alias.startsWith(typedForm)&&alias.length()>typedForm.length())d=Math.min(d,1.15); // unfinished word: a little worse than one typo
-                if(d>=99)continue;
-                if(f>=2)d+=.25; // a layout swap counts a little against it
-                if(f==1)d+=.1;  // so does the phonetic (other alphabet) form
-                int pre=0;while(pre<Math.min(alias.length(),typedForm.length())&&alias.charAt(pre)==typedForm.charAt(pre))pre++;
-                int pop=popularity(q,e.getValue());
-                int cmp=d!=bestD?Double.compare(bestD,d):pre!=bestPre?Integer.compare(pre,bestPre):Integer.compare(pop,bestPop);
-                if(cmp>0){best=e.getValue();bestD=d;bestPre=pre;bestPop=pop;tie=false;}
-                else if(cmp==0&&!e.getValue().equals(best))tie=true;
-            }}
+        for(var e:m.entrySet()){String alias=e.getKey();if(alias.length()<4||alias.charAt(0)!=key.charAt(0))continue;
+            double d=99;
+            /* the allowance follows the intended word: a long answer typed with letters missing still gets its two edits */
+            int t2=Math.max(tol,key.length()>=6?(alias.length()>=12?3:alias.length()>=8?2:1):1);
+            if(Math.abs(alias.length()-key.length())<=t2){int dd=RareText.distance(key,alias,t2);if(dd<=t2)d=dd;}
+            if(key.length()>=5&&alias.startsWith(key)&&key.length()*2>alias.length())d=Math.min(d,1.15);
+            if(d>=99)continue;
+            int pre=0;while(pre<Math.min(alias.length(),key.length())&&alias.charAt(pre)==key.charAt(pre))pre++;
+            int pop=popularity(q,e.getValue());
+            int cmp=d!=bestD?Double.compare(bestD,d):pre!=bestPre?Integer.compare(pre,bestPre):Integer.compare(pop,bestPop);
+            if(cmp>0){best=e.getValue();bestD=d;bestPre=pre;bestPop=pop;tie=false;}
+            else if(cmp==0&&!e.getValue().equals(best))tie=true;
+        }
         if(best==null)return Result.of(Status.INVALID,key);
         if(tie)return Result.of(Status.UNCERTAIN,key);
         return new Result(Status.VALID_TYPO,best,key);
