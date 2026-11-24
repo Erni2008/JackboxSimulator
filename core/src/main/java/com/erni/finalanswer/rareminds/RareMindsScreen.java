@@ -40,7 +40,7 @@ public final class RareMindsScreen extends ScreenAdapter {
     public void apply(JsonObject snapshot){if(!snapshot.has("rareMinds"))return;state=snapshot;rm=snapshot.getAsJsonObject("rareMinds");}
 
     @Override public void show(){
-        if(!created){created=true;batch=new SpriteBatch();art=new RareMindsArt();art.batch=batch;sfx=new RareMindsSounds();art.big.getData().markupEnabled=true;race=new RareMindsRace(art);board=new RareMindsAnswerBoard(art);spectrum=new RareMindsSpectrum(art);leaderboard=new RareMindsLeaderboard(art);voice=new RareMindsVoice();}
+        if(!created){created=true;batch=new SpriteBatch();art=new RareMindsArt();art.batch=batch;sfx=new RareMindsSounds();art.big.getData().markupEnabled=true;race=new RareMindsRace(art);board=new RareMindsAnswerBoard(art);spectrum=new RareMindsSpectrum(art);leaderboard=new RareMindsLeaderboard(art);teams=new RareMindsTeams(art);voice=new RareMindsVoice();}
         Gdx.input.setInputProcessor(new InputAdapter(){@Override public boolean keyDown(int k){
             if(k==Input.Keys.M){openMonitor.run();return true;}
             if(k==Input.Keys.H){liveShown=!liveShown;return true;}
@@ -69,7 +69,7 @@ public final class RareMindsScreen extends ScreenAdapter {
     private String answerLabel(JsonObject r){return b(r,"valid")?(ru()?s(r,"labelRu"):s(r,"labelEn")):s(r,"text");}
     private boolean revealPhase(){String p=phase();return p.equals("ANSWERS_LOCKED")||p.equals("REVEALING_RESULTS");}
     /** act one (answer board) lasts boardEnd seconds, then act two (the race): a player's result lands when their car arrives */
-    private float boardEnd=4.5f;private int tilesSounded=-1;private RareMindsAnswerBoard board;private RareMindsSpectrum spectrum;private RareMindsLeaderboard leaderboard;
+    private float boardEnd=4.5f;private int tilesSounded=-1;private RareMindsAnswerBoard board;private RareMindsSpectrum spectrum;private RareMindsLeaderboard leaderboard;private RareMindsTeams teams;
     /** ANSWERS LOCKED: the host's line plays before the answers turn over */
     static final float LOCK_HOLD=3.2f;private boolean lookSaid,pointsSaid;private int lookTake;
     /** same order as tools/host-tts/scripts/rare_minds_vo.py */
@@ -125,6 +125,7 @@ public final class RareMindsScreen extends ScreenAdapter {
         String ph=phase();
         if(ph.equals("FINAL_RESULTS")||ph.equals("COMPLETED"))standings();
         else if(revealPhase())raceBoard(fin);
+        else if(ph.equals("INITIALIZING")&&teamsFormat())teamDraft();
         else if(ph.equals("QUESTION_ACTIVE")&&raceShown())liveRace(fin);
         else{questionPanel(ph,fin);reflectedCards();}
         ticker();
@@ -321,6 +322,7 @@ public final class RareMindsScreen extends ScreenAdapter {
             spectrum.draw(430,128,1060,632,head,groups,names,fin,t,clock);return;
         }
         tilesSounded=-1;float after=t-boardEnd;
+        if(teamsFormat()){teamMerge(after);return;}
         if(!raceShown()){List<RareMindsLeaderboard.Row> rows=new ArrayList<>();
             for(var p:players()){String id=s(p,"id");JsonObject r=row(id);if(r==null)continue;long to=l(r,"souls"),from=before.containsKey(id)?l(before.get(id),"souls"):Math.max(0,to-i(r,"earned")-i(r,"jackpotSouls")-i(r,"duelBonus"));
                 rows.add(new RareMindsLeaderboard.Row(name(id),s(roster(id),"characterId"),from,to,i(r,"collisions"),!b(r,"alive"),b(r,"collided"),b(r,"jackpot"),teamOf(id)));}
@@ -356,6 +358,24 @@ public final class RareMindsScreen extends ScreenAdapter {
         art.shade(cx,y+10,w+260,90,.6f);art.rect(cx-w/2,y,w*share,h,TEAM[0],.95f);art.rect(cx-w/2+w*share,y,w*(1-share),h,TEAM[1],.95f);art.rect(cx-w/2+w*share-1.5f,y-4,3,h+8,Color.WHITE,.9f);
         art.textRight(art.small,teamName(0)+"  "+String.format(Locale.ROOT,"%,d",(long)teamShown0).replace(',',' '),cx-w/2-16,y+22,.82f,TEAM[0],1);
         art.textLeft(art.small,String.format(Locale.ROOT,"%,d",(long)teamShown1).replace(',',' ')+"  "+teamName(1),cx+w/2+16,y+22,.82f,TEAM[1],1);
+    }
+    private int draftSounded=-1;
+    private void teamDraft(){
+        List<RareMindsTeams.Seat> seats=new ArrayList<>();for(var p:players())seats.add(new RareMindsTeams.Seat(name(s(p,"id")),s(roster(s(p,"id")),"characterId"),i(p,"team"),false));
+        float t=(now()-l(rm,"phaseStartedAt"))/1000f;int k=(int)Math.floor((t-RareMindsTeams.RING-.45f)/RareMindsTeams.PICK);
+        if(k>draftSounded&&k<seats.size()){draftSounded=k;sfx.play(Cue.REVEAL);}
+        teams.draft(430,128,1060,632,seats,t,clock);
+    }
+    private int mergeSounded=-1;
+    private void teamMerge(float t){
+        List<RareMindsTeams.Gain> gains=new ArrayList<>();long[] bef=new long[2],aft=new long[2];
+        for(var p:players()){String id=s(p,"id");JsonObject r=row(id);int tm=teamOf(id);if(r==null||tm<0)continue;
+            long to=l(r,"souls"),from=before.containsKey(id)?l(before.get(id),"souls"):Math.max(0,to-i(r,"earned")-i(r,"jackpotSouls"));
+            bef[tm]+=from;aft[tm]+=to;boolean clash=b(r,"collided")&&i(r,"penaltyPct")>=100;
+            gains.add(new RareMindsTeams.Gain(name(id),s(roster(id),"characterId"),tm,(int)Math.max(0,to-from),clash));}
+        int k=(int)Math.floor((t-.5f-.6f)/.28f);if(k>mergeSounded&&k<gains.size()){mergeSounded=k;sfx.play(Cue.REVEAL);}
+        if(t<0)mergeSounded=-1;
+        teams.merge(430,128,1060,632,gains,bef,aft,t,clock);
     }
     private boolean duelsFormat(){return "DUELS".equals(s(rm,"format"));}
     /** the duels of this question (DUELS format), each pair once */
