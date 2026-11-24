@@ -18,7 +18,7 @@ import java.util.*;
 public final class RareMindsSession {
     public enum Phase {INITIALIZING,QUESTION_ACTIVE,ANSWERS_LOCKED,REVEALING_RESULTS,FINAL_RESULTS,COMPLETED}
     public record Timing(long introMs,long answerMs,long lockedMs,long revealMs,long finalRevealMs,long resultsMs,long graceMs){
-        public static final Timing DEFAULT=new Timing(7000,18000,1200,5200,7000,16000,350);
+        public static final Timing DEFAULT=new Timing(7000,18000,1200,7600,9000,16000,350);
     }
     public static final class Failure extends RuntimeException{public final int status;public Failure(int status,String code){super(code);this.status=status;}}
     private record Draft(String text,boolean risk,long at){}
@@ -160,7 +160,7 @@ public final class RareMindsSession {
         List<Map<String,Object>> rows=new ArrayList<>();
         for(Row r:o.rows()){Map<String,Object> m=new LinkedHashMap<>();
             m.put("playerId",r.playerId());m.put("text",r.text());m.put("status",r.status().name());m.put("valid",r.valid());
-            if(r.valid()){var a=q.answer(r.answerId());m.put("answerId",r.answerId());m.put("labelEn",a.labelEn());m.put("labelRu",a.labelRu());m.put("tier",r.tier().name());}
+            if(r.valid()){var a=q.answer(r.answerId());m.put("answerId",r.answerId());m.put("labelEn",a.labelEn());m.put("labelRu",a.labelRu());m.put("tier",r.tier().name());m.put("share",Math.exp(-r.rarityScore()/1_000_000.0));}
             m.put("ghost",r.ghost());m.put("collided",r.collided());m.put("sharedWith",r.sharedWith());m.put("penaltyPct",r.collisionPenaltyPct());
             m.put("base",r.baseSouls());m.put("earned",r.earned());m.put("jackpot",r.jackpot());m.put("jackpotSouls",r.jackpotSouls());m.put("jackpotStreak",r.jackpotStreak());
             m.put("risk",r.risk().name());m.put("eliminated",r.eliminated());m.put("deathPenalty",r.deathPenalty());m.put("ghostSuccess",r.ghostSuccess());

@@ -18,7 +18,7 @@ final class RareMindsArt implements Disposable {
     /** COMMON … MYTHIC gem colours, same order as the server's tiers. */
     static final Color[] TIER={new Color(.82f,.82f,.84f,1),new Color(.30f,.88f,.54f,1),new Color(.30f,.70f,1f,1),new Color(.78f,.49f,1f,1),new Color(1f,.76f,.24f,1),new Color(1f,.29f,.24f,1)};
 
-    final Texture background,pixel,soft,skull,crown,ring;
+    final Texture background,pixel,soft,skull,crown,ring,car,wheels;
     final BitmapFont title,big,mid,small,tiny,num;
     private final Map<String,Texture> faces=new HashMap<>();
     final GlyphLayout gl=new GlyphLayout();
@@ -27,7 +27,7 @@ final class RareMindsArt implements Disposable {
     RareMindsArt(){
         background=new Texture(Gdx.files.internal("rare_minds/background.jpg"),true);background.setFilter(Texture.TextureFilter.MipMapLinearLinear,Texture.TextureFilter.Linear);
         Pixmap p=new Pixmap(1,1,Pixmap.Format.RGBA8888);p.setColor(Color.WHITE);p.fill();pixel=new Texture(p);p.dispose();
-        soft=radial();skull=skull();crown=crown();ring=ring();
+        soft=radial();skull=skull();crown=crown();ring=ring();car=car(false);wheels=car(true);
         // Russo One (display, numbers) + Noto Sans SemiCondensed SemiBold (everything read at a glance); both carry Cyrillic
         title=font("ui/fonts/RussoOne-Regular.ttf",118,3);big=font("ui/fonts/RussoOne-Regular.ttf",58,0);num=font("ui/fonts/RussoOne-Regular.ttf",40,0);
         mid=font("ui/fonts/NotoSans-SemiCondensedSemiBold.ttf",38,0);small=font("ui/fonts/NotoSans-SemiCondensedSemiBold.ttf",28,0);tiny=font("ui/fonts/NotoSans-SemiCondensedSemiBold.ttf",22,0);
@@ -126,9 +126,19 @@ final class RareMindsArt implements Disposable {
         big.fillRectangle(10*s,40*s,44*s,10*s);big.fillTriangle(10*s,42*s,10*s,16*s,24*s,42*s);big.fillTriangle(22*s,42*s,32*s,10*s,42*s,42*s);big.fillTriangle(40*s,42*s,54*s,16*s,54*s,42*s);
         big.fillCircle(10*s,15*s,4*s);big.fillCircle(32*s,9*s,4*s);big.fillCircle(54*s,15*s,4*s);
         Texture t=downsample(big,s);big.dispose();return t;}
+    /** Side view of a low race car, 128×40 (body tinted at draw time; {@code wheelsOnly} gives the dark tyres + glass layer). */
+    private static Texture car(boolean wheelsOnly){int s=4,W=128,H=40;Pixmap b=new Pixmap(W*s,H*s,Pixmap.Format.RGBA8888);b.setBlending(Pixmap.Blending.None);b.setColor(Color.WHITE);
+        if(!wheelsOnly){b.fillRectangle(14*s,12*s,100*s,12*s);b.fillCircle(14*s,18*s,6*s);b.fillTriangle(110*s,12*s,110*s,24*s,126*s,22*s);// body + nose
+            b.fillCircle(56*s,12*s,12*s);b.fillRectangle(44*s,6*s,30*s,8*s);// cockpit dome
+            b.fillRectangle(2*s,4*s,10*s,6*s);b.fillRectangle(8*s,8*s,4*s,8*s);// rear wing
+            b.setColor(0,0,0,0);b.fillRectangle(0,24*s,W*s,16*s);}
+        else{b.fillCircle(30*s,26*s,9*s);b.fillCircle(98*s,26*s,9*s);b.fillTriangle(50*s,9*s,62*s,2*s,68*s,9*s);}
+        Pixmap p=new Pixmap(W,H,Pixmap.Format.RGBA8888);p.setBlending(Pixmap.Blending.None);
+        for(int y=0;y<H;y++)for(int x=0;x<W;x++){float a=0;for(int j=0;j<s;j++)for(int i=0;i<s;i++)a+=(b.getPixel(x*s+i,y*s+j)&0xff)/255f;p.drawPixel(x,y,Color.rgba8888(1,1,1,a/(s*s)));}
+        b.dispose();Texture t=new Texture(p);t.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();return t;}
     private static Texture downsample(Pixmap big,int s){int n=big.getWidth()/s;Pixmap p=new Pixmap(n,n,Pixmap.Format.RGBA8888);p.setBlending(Pixmap.Blending.None);
         for(int y=0;y<n;y++)for(int x=0;x<n;x++){float a=0;for(int j=0;j<s;j++)for(int i=0;i<s;i++)a+=(big.getPixel(x*s+i,y*s+j)&0xff)/255f;p.drawPixel(x,y,Color.rgba8888(1,1,1,a/(s*s)));}
         Texture t=new Texture(p);t.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();return t;}
 
-    @Override public void dispose(){background.dispose();pixel.dispose();soft.dispose();skull.dispose();crown.dispose();ring.dispose();title.dispose();big.dispose();num.dispose();mid.dispose();small.dispose();tiny.dispose();for(Texture t:faces.values())if(t!=null)t.dispose();}
+    @Override public void dispose(){background.dispose();pixel.dispose();soft.dispose();skull.dispose();crown.dispose();ring.dispose();car.dispose();wheels.dispose();title.dispose();big.dispose();num.dispose();mid.dispose();small.dispose();tiny.dispose();for(Texture t:faces.values())if(t!=null)t.dispose();}
 }

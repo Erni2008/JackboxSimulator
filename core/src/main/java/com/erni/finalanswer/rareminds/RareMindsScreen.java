@@ -23,7 +23,7 @@ public final class RareMindsScreen extends ScreenAdapter {
     private final OrthographicCamera cam=new OrthographicCamera();private final FitViewport vp=new FitViewport(W,H,cam);
     private SpriteBatch batch;private RareMindsArt art;private RareMindsSounds sfx;private boolean created;
     private JsonObject state,rm;private final LongSupplier serverNow;private final Consumer<String> onEnd;private final Runnable openMonitor;
-    private float clock;
+    private float clock;private RareMindsRace race;
     /** live typing on the cards (H hides it, e.g. while streaming) */
     private boolean liveShown=true;
 
@@ -40,7 +40,7 @@ public final class RareMindsScreen extends ScreenAdapter {
     public void apply(JsonObject snapshot){if(!snapshot.has("rareMinds"))return;state=snapshot;rm=snapshot.getAsJsonObject("rareMinds");}
 
     @Override public void show(){
-        if(!created){created=true;batch=new SpriteBatch();art=new RareMindsArt();art.batch=batch;sfx=new RareMindsSounds();art.big.getData().markupEnabled=true;}
+        if(!created){created=true;batch=new SpriteBatch();art=new RareMindsArt();art.batch=batch;sfx=new RareMindsSounds();art.big.getData().markupEnabled=true;race=new RareMindsRace(art);}
         Gdx.input.setInputProcessor(new InputAdapter(){@Override public boolean keyDown(int k){
             if(k==Input.Keys.M){openMonitor.run();return true;}
             if(k==Input.Keys.H){liveShown=!liveShown;return true;}
@@ -68,7 +68,7 @@ public final class RareMindsScreen extends ScreenAdapter {
     private String tierName(String id){for(var e:rm.getAsJsonArray("tiers")){var t=e.getAsJsonObject();if(s(t,"id").equals(id))return ru()?s(t,"ru"):s(t,"en");}return id;}
     private String answerLabel(JsonObject r){return b(r,"valid")?(ru()?s(r,"labelRu"):s(r,"labelEn")):s(r,"text");}
     private boolean revealPhase(){String p=phase();return p.equals("ANSWERS_LOCKED")||p.equals("REVEALING_RESULTS");}
-    private float revealAt(int index){return .55f+.34f*index;}
+    private float revealAt(int index){return RareMindsRace.arrival(index);}
     private float sinceLock(){return (now()-lockStart)/1000f;}
     private boolean revealed(String id){if(!revealPhase())return phase().equals("FINAL_RESULTS")||phase().equals("COMPLETED");var ps=players();for(int k=0;k<ps.size();k++)if(s(ps.get(k),"id").equals(id))return sinceLock()>=revealAt(k);return false;}
     /** what a card shows: the live public values, or the values from before this question until its reveal lands */
@@ -117,6 +117,7 @@ public final class RareMindsScreen extends ScreenAdapter {
         rules();timer();rarity(fin);
         String ph=phase();
         if(ph.equals("FINAL_RESULTS")||ph.equals("COMPLETED"))standings();
+        else if(revealPhase())raceBoard(fin);
         else{questionPanel(ph,fin);cards();}
         ticker();
         art.textRight(art.tiny,(liveShown?Localization.tr("H · скрыть ввод","H · hide typing"):Localization.tr("H · показать ввод","H · show typing"))+"    "+Localization.tr("M · монитор","M · monitor"),W-28,30,.8f,RareMindsArt.DIM,.45f);
@@ -233,6 +234,16 @@ public final class RareMindsScreen extends ScreenAdapter {
         art.text(art.mid,Localization.tr("ДЖЕКПОТ","JACKPOT")+" · "+name(winner).toUpperCase(Locale.ROOT),cx,y+150,1.05f,RareMindsArt.GOLD,a,w-80);
         if(r!=null){int k=tierIndex(s(r,"tier"));
             art.text(art.small,answerLabel(r)+"  ·  "+tierName(s(r,"tier"))+"  ·  +"+i(r,"jackpotSouls")+Localization.tr(" душ"," souls")+(i(r,"jackpotStreak")>1?Localization.tr("  ·  серия ×","  ·  streak ×")+i(r,"jackpotStreak"):""),cx,y+92,.86f,RareMindsArt.TIER[k],a,w-80);}
+    }
+    private void raceBoard(boolean fin){
+        List<RareMindsRace.Lane> lanes=new ArrayList<>();
+        for(var p:players()){String id=s(p,"id");JsonObject r=row(id);if(r==null)continue;
+            lanes.add(new RareMindsRace.Lane(name(id),s(roster(id),"characterId"),answerLabel(r),!s(r,"text").isEmpty(),b(r,"valid"),b(r,"collided"),i(r,"sharedWith"),b(r,"ghost"),
+                tierIndex(s(r,"tier")),r.has("share")?r.get("share").getAsDouble():.5,i(r,"earned"),b(r,"jackpot"),i(r,"jackpotSouls"),b(r,"eliminated"),b(r,"resurrected"),before.containsKey(id)?l(before.get(id),"souls"):Math.max(0,l(r,"souls")-i(r,"earned")-i(r,"jackpotSouls")),l(r,"souls")));}
+        String[] names=new String[6];var tiers=rm.getAsJsonArray("tiers");for(int k=0;k<6;k++)names[k]=tierName(s(tiers.get(k).getAsJsonObject(),"id"));
+        String q=(ru()?s(rm,"textRu"):s(rm,"textEn"));
+        race.draw(430,128,1060,632,Localization.tr("ГОНКА ДУШ · ","SOUL RACE · ")+(fin?Localization.tr("ФИНАЛ · ","FINAL · "):Localization.tr("ВОПРОС ","QUESTION ")+i(rm,"question")+"/"+i(rm,"questions")+" · ")+q,lanes,names,fin,sinceLock(),clock,
+            Localization.tr("ОТВЕТЫ ЗАКРЫТЫ","ANSWERS LOCKED"),Localization.tr("Джекпот никто не забрал","Nobody takes the jackpot"));
     }
     /** Colour the last word red (font markup), like the reference's highlighted keyword. */
     private static String markLast(String t){String s=t.replace("[","[[");int k=s.trim().lastIndexOf(' ');if(k<0)return s;return s.substring(0,k+1)+"[#FF4A3A]"+s.substring(k+1)+"[]";}
