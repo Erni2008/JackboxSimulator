@@ -23,7 +23,7 @@ public final class RareMindsScreen extends ScreenAdapter {
     private final OrthographicCamera cam=new OrthographicCamera();private final FitViewport vp=new FitViewport(W,H,cam);
     private SpriteBatch batch;private RareMindsArt art;private RareMindsSounds sfx;private boolean created;
     private JsonObject state,rm;private final LongSupplier serverNow;private final Consumer<String> onEnd;private final Runnable openMonitor;
-    private float clock;private RareMindsRace race;private RareMindsVoice voice;
+    private float clock;private RareMindsJuice juice;private RareMindsRace race;private RareMindsVoice voice;
     /** live typing on the cards (H hides it, e.g. while streaming) */
     private boolean liveShown=true;
 
@@ -40,7 +40,7 @@ public final class RareMindsScreen extends ScreenAdapter {
     public void apply(JsonObject snapshot){if(!snapshot.has("rareMinds"))return;state=snapshot;rm=snapshot.getAsJsonObject("rareMinds");}
 
     @Override public void show(){
-        if(!created){created=true;batch=new SpriteBatch();art=new RareMindsArt();art.batch=batch;sfx=new RareMindsSounds();art.big.getData().markupEnabled=true;race=new RareMindsRace(art);board=new RareMindsAnswerBoard(art);spectrum=new RareMindsSpectrum(art);leaderboard=new RareMindsLeaderboard(art);teams=new RareMindsTeams(art);voice=new RareMindsVoice();}
+        if(!created){created=true;batch=new SpriteBatch();art=new RareMindsArt();art.batch=batch;sfx=new RareMindsSounds();art.big.getData().markupEnabled=true;juice=new RareMindsJuice(art);race=new RareMindsRace(art);board=new RareMindsAnswerBoard(art);spectrum=new RareMindsSpectrum(art,juice);leaderboard=new RareMindsLeaderboard(art);teams=new RareMindsTeams(art);voice=new RareMindsVoice();}
         Gdx.input.setInputProcessor(new InputAdapter(){@Override public boolean keyDown(int k){
             if(k==Input.Keys.M){openMonitor.run();return true;}
             if(k==Input.Keys.H){liveShown=!liveShown;return true;}
@@ -84,10 +84,10 @@ public final class RareMindsScreen extends ScreenAdapter {
     private void events(float dt){
         String ph=phase();int q=i(rm,"question");
         if(!ph.equals(lastPhase)||q!=lastQuestion){
-            if(ph.equals("QUESTION_ACTIVE")){questionIn=0;revealedUpTo=-1;jackpotPlayed=false;sfx.play(b(rm,"finalQuestion")?Cue.FINAL:Cue.QUESTION);if(b(rm,"finalQuestion"))finalIn=0;for(Fx f:fx.values()){f.submittedSeen=false;f.submit=0;}}
+            if(ph.equals("QUESTION_ACTIVE")){juice.shake(b(rm,"finalQuestion")?.7f:.3f);questionIn=0;revealedUpTo=-1;jackpotPlayed=false;sfx.play(b(rm,"finalQuestion")?Cue.FINAL:Cue.QUESTION);if(b(rm,"finalQuestion"))finalIn=0;for(Fx f:fx.values()){f.submittedSeen=false;f.submit=0;}}
             if(ph.equals("ANSWERS_LOCKED")){lockStart=l(rm,"phaseStartedAt");lockIn=0;sfx.play(Cue.LOCK);}
             if(ph.equals("REVEALING_RESULTS")&&!lastPhase.equals("ANSWERS_LOCKED"))lockStart=l(rm,"phaseStartedAt")-1200;
-            if(ph.equals("FINAL_RESULTS")&&!winnerPlayed){winnerPlayed=true;sfx.play(Cue.WINNER);}
+            if(ph.equals("FINAL_RESULTS")&&!winnerPlayed){winnerPlayed=true;sfx.play(Cue.WINNER);juice.confetti(960,1100,0);for(int k=0;k<3;k++){juice.confetti(560+k*400,120,70);}juice.shake(.5f);}
             if(ph.equals("QUESTION_ACTIVE")){lookSaid=false;pointsSaid=false;}
             lastPhase=ph;lastQuestion=q;tickerIndex=0;tickerT=0;
         }
@@ -116,6 +116,7 @@ public final class RareMindsScreen extends ScreenAdapter {
     // ---------------------------------------------------------------- frame
     @Override public void render(float dt){
         clock+=dt;sfx.update(dt);events(dt);
+        juice.update(dt);cam.position.set(W/2+juice.shakeX(clock),H/2+juice.shakeY(clock),0);cam.update();
         ScreenUtils.clear(0,0,0,1);vp.apply();batch.setProjectionMatrix(cam.combined);batch.begin();
         batch.setColor(Color.WHITE);batch.draw(art.background,0,0,W,H);
         boolean fin=b(rm,"finalQuestion")&&!phase().equals("INITIALIZING");
@@ -128,6 +129,8 @@ public final class RareMindsScreen extends ScreenAdapter {
         else if(ph.equals("INITIALIZING")&&teamsFormat())teamDraft();
         else if(ph.equals("QUESTION_ACTIVE")&&raceShown())liveRace(fin);
         else{questionPanel(ph,fin);reflectedCards();}
+        if(ph.equals("QUESTION_ACTIVE")){long left=l(rm,"phaseEndsAt")-now();int sec=(int)Math.ceil(left/1000.0);juice.countdown(960,440,sec,(left%1000)/1000f,fin);}
+        juice.draw();
         ticker();
         embers(dt);
         art.shade(W/2,H/2,W*1.25f,H*1.25f,0);batch.setColor(0,0,0,.0f);

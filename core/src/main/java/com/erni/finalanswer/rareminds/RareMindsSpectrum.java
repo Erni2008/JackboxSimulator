@@ -15,7 +15,8 @@ final class RareMindsSpectrum {
     /** when everything has landed and been labelled */
     static float duration(int n){return FLY+STAGGER*Math.max(0,n-1)+FLY_TIME+SETTLE+1.2f;}
     private static final double TOP=.25,BOTTOM=.0015;private static final double[] EDGES={.060,.025,.008};
-    private final RareMindsArt art;RareMindsSpectrum(RareMindsArt art){this.art=art;}
+    private final RareMindsArt art;private final RareMindsJuice juice;private final Set<Integer> fired=new HashSet<>();
+    RareMindsSpectrum(RareMindsArt art,RareMindsJuice juice){this.art=art;this.juice=juice;}
     static float pos(double share){return MathUtils.clamp((float)((Math.log(TOP)-Math.log(Math.max(share,1e-6)))/(Math.log(TOP)-Math.log(BOTTOM))),0,1);}
 
     void draw(float x,float y,float w,float h,String title,List<RareMindsAnswerBoard.Group> groups,String[] tierNames,boolean fin,float t,float clock){
@@ -45,6 +46,12 @@ final class RareMindsSpectrum {
             float pop=ease((t-OPEN)/.35f),fly=ease((t-FLY-k*STAGGER)/FLY_TIME);
             float cx=MathUtils.lerp(gx[i],landX[i],fly),cy=MathUtils.lerp(rowY,landY[i],fly)+MathUtils.sin(fly*MathUtils.PI)*50;
             float sc=MathUtils.lerp(rowScale,1,fly)*(pop<1?.6f+.4f*pop:1);float landed=ease((t-FLY-k*STAGGER-FLY_TIME)/SETTLE);
+            if(landed>0)cy+=MathUtils.sin(clock*3.2f+i*1.3f)*3*landed; // idle bob once landed
+            if(t<FLY)fired.clear();
+            if(landed>0&&fired.add(i)){ // the landing moment: confetti for the jackpot, sparks and a jolt for a collision
+                if(g.jackpot()){juice.confetti(cx,cy+D,90);juice.shake(.35f);}
+                else if(g.collided()){juice.sparks(cx,cy,RareMindsArt.RED,26);juice.shake(.45f);}
+                else if(g.valid())juice.sparks(cx,cy,RareMindsArt.TIER[g.tier()],10);}
             cluster(g,cx,cy,D*sc,gapI*sc,pop,landed,tierNames,clock);
         }
     }
