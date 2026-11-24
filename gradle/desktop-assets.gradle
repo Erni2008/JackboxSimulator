@@ -12,6 +12,11 @@ tasks.register('stageDesktopAssets', Sync) {
     inputs.file(dimensions)
     from(sourceAssets) {
         exclude 'assets.txt', '**/*.blend', '**/*.blend1', '**/*.md', '**/.DS_Store'
+        // Parked lobby modes and the local race preview use source assets during development.
+        exclude 'models/last_command/**', 'sounds/last_command/**', 'shaders/last_command/**',
+            'forgotten_room/3d/**', 'forgotten_room/audio/**', 'forgotten_room/greenhouse/**',
+            'forgotten_room/objects/**', 'forgotten_room/props3d/**', 'forgotten_room/rooms/**',
+            'race/**'
         // Original 4K maps are retained in the workspace. Use the already validated game models.
         exclude 'models/shotgun/shotgun_bolt.glb', 'models/shotgun/shotgun_shell.glb'
         exclude 'sounds/questions/background_music2.wav'

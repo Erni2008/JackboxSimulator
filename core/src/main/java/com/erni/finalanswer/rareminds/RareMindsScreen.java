@@ -15,7 +15,8 @@ import java.util.function.*;
 /**
  * RARE MINDS — DEADLY ANSWERS, the shared (public) host screen. It is driven only by public server snapshots: the
  * question, the timer, who has locked an answer, collisions, souls, ghosts and the reveal. What players are typing
- * is never part of this screen's data; the host reads it in the private monitor (key M opens it on this computer).
+ * reaches only the host's own client and is shown on the cards live (H hides it for a stream); M opens the private
+ * monitor in a browser.
  */
 public final class RareMindsScreen extends ScreenAdapter {
     private static final float W=1920,H=1080;
@@ -23,6 +24,8 @@ public final class RareMindsScreen extends ScreenAdapter {
     private SpriteBatch batch;private RareMindsArt art;private RareMindsSounds sfx;private boolean created;
     private JsonObject state,rm;private final LongSupplier serverNow;private final Consumer<String> onEnd;private final Runnable openMonitor;
     private float clock;
+    /** live typing on the cards (H hides it, e.g. while streaming) */
+    private boolean liveShown=true;
 
     /** per-card animation state */
     private static final class Fx{float pop,shake,flash,ghost,submit,crown;boolean submittedSeen;}
@@ -40,6 +43,7 @@ public final class RareMindsScreen extends ScreenAdapter {
         if(!created){created=true;batch=new SpriteBatch();art=new RareMindsArt();art.batch=batch;sfx=new RareMindsSounds();art.big.getData().markupEnabled=true;}
         Gdx.input.setInputProcessor(new InputAdapter(){@Override public boolean keyDown(int k){
             if(k==Input.Keys.M){openMonitor.run();return true;}
+            if(k==Input.Keys.H){liveShown=!liveShown;return true;}
             if((k==Input.Keys.ENTER||k==Input.Keys.ESCAPE)&&(phase().equals("FINAL_RESULTS")||phase().equals("COMPLETED"))){onEnd.accept(session());return true;}
             return false;}});
     }
@@ -58,6 +62,7 @@ public final class RareMindsScreen extends ScreenAdapter {
     private String name(String id){String n=s(roster(id),"name");return n.isEmpty()?"?":n;}
     private List<JsonObject> rows(){List<JsonObject> o=new ArrayList<>();if(rm.has("reveal"))for(var e:rm.getAsJsonObject("reveal").getAsJsonArray("rows"))o.add(e.getAsJsonObject());return o;}
     private JsonObject row(String id){for(var r:rows())if(s(r,"playerId").equals(id))return r;return null;}
+    private JsonObject live(String id){if(rm.has("live"))for(var e:rm.getAsJsonArray("live")){var o=e.getAsJsonObject();if(s(o,"id").equals(id))return o;}return null;}
     private Fx fx(String id){return fx.computeIfAbsent(id,k->new Fx());}
     private int tierIndex(String id){String[] t={"COMMON","UNCOMMON","RARE","EPIC","LEGENDARY","MYTHIC"};for(int k=0;k<t.length;k++)if(t[k].equals(id))return k;return 0;}
     private String tierName(String id){for(var e:rm.getAsJsonArray("tiers")){var t=e.getAsJsonObject();if(s(t,"id").equals(id))return ru()?s(t,"ru"):s(t,"en");}return id;}
@@ -114,7 +119,7 @@ public final class RareMindsScreen extends ScreenAdapter {
         if(ph.equals("FINAL_RESULTS")||ph.equals("COMPLETED"))standings();
         else{questionPanel(ph,fin);cards();}
         ticker();
-        art.textRight(art.tiny,Localization.tr("M · ПРИВАТНЫЙ МОНИТОР ВЕДУЩЕГО","M · HOST PRIVATE MONITOR"),W-28,30,.78f,RareMindsArt.DIM,.42f);
+        art.textRight(art.tiny,(liveShown?Localization.tr("H · скрыть ввод","H · hide typing"):Localization.tr("H · показать ввод","H · show typing"))+"    "+Localization.tr("M · монитор","M · monitor"),W-28,30,.8f,RareMindsArt.DIM,.45f);
         batch.end();
     }
 
@@ -123,15 +128,9 @@ public final class RareMindsScreen extends ScreenAdapter {
         float x=cx-total/2;for(int k=0;k<s.length();k++){String ch=String.valueOf(s.charAt(k));art.textLeft(f,ch,x,y,scale,c,a);x+=art.width(f,ch,scale)+gap;}
     }
     private void header(boolean fin){
-        spaced(art.small,"FINAL ANSWER",W/2,1052,.9f,11,RareMindsArt.IVORY,.92f);
-        art.ornament(W/2-330,1036,260,RareMindsArt.GOLD,.8f);art.ornament(W/2+330,1036,260,RareMindsArt.GOLD,.8f);
-        art.glow(W/2,930,1100,260,fin?RareMindsArt.RED:new Color(.9f,.25f,.12f,1),.20f+.05f*MathUtils.sin(clock*1.3f));
-        // title: deep shadow, warm under-glow, then the gilt face with a pale top highlight
-        art.text(art.title,"RARE MINDS",W/2+4,1010-6,1,new Color(.12f,.02f,.02f,1),.9f,0);
-        art.text(art.title,"RARE MINDS",W/2,1010,1,RareMindsArt.GOLD_DEEP,1,0);
-        art.text(art.title,"RARE MINDS",W/2,1013,1,RareMindsArt.GOLD,1,0);
-        art.plaque(W/2,842,430,50,1,null);
-        spaced(art.small,"DEADLY ANSWERS",W/2,857,.82f,8,RareMindsArt.IVORY,.95f);
+        spaced(art.tiny,"FINAL ANSWER",W/2,1056,1,9,RareMindsArt.IVORY,.75f);
+        art.text(art.title,"RARE MINDS",W/2,1028,1,RareMindsArt.GOLD,1,0);
+        spaced(art.small,"DEADLY ANSWERS",W/2,918,.8f,10,fin?RareMindsArt.RED_SOFT:RareMindsArt.RED,1);
     }
     private void rules(){
         float x=63,y=470,w=304,h=386;art.panel(x,y,w,h,1,null);
@@ -251,16 +250,17 @@ public final class RareMindsScreen extends ScreenAdapter {
             if(f.flash>0)art.glow(x+cw/2,y+ch/2,cw*2.6f,ch*1.8f,r!=null&&b(r,"resurrected")?RareMindsArt.GOLD:RareMindsArt.RED,.45f*f.flash);
             art.panel(x,y,cw,ch,1,accent);
             // portrait
-            Texture face=art.face(s(roster(id),"characterId"));float fs=118,fx0=x+cw/2-fs/2,fy=y+ch-fs-14;
+            Texture face=art.face(s(roster(id),"characterId"));float fs=96,fx0=x+cw/2-fs/2,fy=y+ch-fs-14;
             art.rect(fx0-3,fy-3,fs+6,fs+6,accent==null?RareMindsArt.GOLD_DEEP:accent,.8f);
             if(face!=null){if(ghost)batch.setColor(.55f,.75f,1f,.65f);else batch.setColor(Color.WHITE);batch.draw(face,fx0,fy,fs,fs);}
             if(active&&b(live,"submitted"))check(x+cw-26,y+ch-24,ease(f.submit));
             if(r!=null&&b(r,"jackpot")){float a=ease(f.crown);batch.setColor(RareMindsArt.GOLD.r,RareMindsArt.GOLD.g,RareMindsArt.GOLD.b,a);batch.draw(art.crown,x+cw/2-26,fy+fs-24,52,52);}
-            art.text(art.small,name(id),x+cw/2,fy-6,.92f,ghost?RareMindsArt.GHOST:RareMindsArt.IVORY,1,cw-16);
+            art.text(art.small,name(id),x+cw/2,fy-4,.95f,ghost?RareMindsArt.GHOST:RareMindsArt.IVORY,1,cw-16);
             int col=i(p,"collisions");
-            art.text(art.mid,col+"/3",x+cw/2,fy-40,.72f,ghost?RareMindsArt.GHOST:zone?RareMindsArt.RED_SOFT:RareMindsArt.IVORY,1,0);
+            liveField(id,live,x+8,y+76,cw-16,40,active);
+            art.textRight(art.num,col+"/3",x+cw-10,y+66,.5f,ghost?RareMindsArt.GHOST:zone?RareMindsArt.RED_SOFT:RareMindsArt.DIM,1);
             for(int s2=0;s2<3;s2++){boolean on=s2<col;float sz=26*(on&&r!=null&&b(r,"collided")&&s2==col-1?1+.35f*(1-ease(f.pop)):1);
-                float sx=x+cw/2-40+s2*40-sz/2,sy=y+47-sz/2;
+                float sx=x+14+s2*32,sy=y+50-sz/2;
                 if(on){Color c=ghost?RareMindsArt.GHOST:RareMindsArt.RED;batch.setColor(c);}else batch.setColor(.32f,.26f,.24f,1);
                 batch.draw(art.skull,sx,sy,sz,sz);}
             art.text(art.tiny,String.format(Locale.ROOT,"%,d",l(p,"souls")).replace(',',' ')+Localization.tr(" душ"," souls"),x+cw/2,y+27,.74f,RareMindsArt.GOLD,1,cw-12);
@@ -268,6 +268,18 @@ public final class RareMindsScreen extends ScreenAdapter {
             if(r!=null)answerPlate(r,x+cw/2,y+ch+16,cw+gap-6,ease(f.pop));
             if(zone&&!ghost&&r==null)art.text(art.tiny,Localization.tr("ЗОНА СМЕРТИ","DEATH ZONE"),x+cw/2,y+ch+30,.8f,RareMindsArt.RED_SOFT,.75f+.25f*MathUtils.sin(clock*5),cw);
         }
+    }
+    /** What this player is typing right now (host client only), the locked answer, or a quiet "typing…" when hidden. */
+    private void liveField(String id,JsonObject p,float x,float y,float w,float h,boolean active){
+        if(!active)return;JsonObject l=live(id);String t=l==null?"":s(l,"text");boolean locked=b(p,"submitted")||l!=null&&b(l,"locked");
+        boolean col=l!=null&&l.has("possibleCollision")&&l.getAsJsonArray("possibleCollision").size()>0;
+        Color edge=col?new Color(1f,.69f,.18f,1):locked?RareMindsArt.GOLD:new Color(1,1,1,.18f);
+        art.rect(x,y,w,h,new Color(0,0,0,.75f),1);art.rect(x,y,w,2,edge,col?.6f+.4f*MathUtils.sin(clock*8):1);
+        String shown;Color c;
+        if(!liveShown){shown=t.isEmpty()?"":locked?Localization.tr("ответ готов","locked in"):Localization.tr("печатает","typing")+".".repeat(1+(int)(clock*3)%3);c=RareMindsArt.DIM;}
+        else if(t.isEmpty()){shown="";c=RareMindsArt.DIM;}
+        else{shown=t+(locked||((int)(clock*2))%2==1?"":"|");c=locked?RareMindsArt.GOLD:Color.WHITE;}
+        if(!shown.isEmpty())art.text(art.small,shown,x+w/2,y+h-8,.9f,c,1,w-10);
     }
     private void check(float cx,float cy,float a){
         art.glow(cx,cy,60,60,RareMindsArt.GOLD,.5f*a);float s=.6f+.4f*a;
@@ -324,7 +336,7 @@ public final class RareMindsScreen extends ScreenAdapter {
         Color c=switch(cur[0]){case "red"->RareMindsArt.RED_SOFT;case "ghost"->RareMindsArt.GHOST;case "gold"->RareMindsArt.GOLD;default->RareMindsArt.IVORY;};
         float w=Math.min(1300,art.width(art.small,cur[1],.8f)+160),cx=W/2,y=40,h=60;
         art.shade(cx,y+h/2,w+200,h+80,.6f);art.rect(cx-w/2,y,w,h,RareMindsArt.PANEL,1);art.rect(cx-w/2,y+h-2,w,2,c,.85f);art.rect(cx-w/2,y,w,2,c,.85f);
-        art.diamond(cx-w/2,y+h/2,8,c,1);art.diamond(cx+w/2,y+h/2,8,c,1);
+
         art.text(art.small,cur[1],cx,y+h/2+15,.8f,c,a,w-60);
     }
     /** Bottom line messages: collisions, death zones, eliminations and ghost progress — never anyone's typing. */

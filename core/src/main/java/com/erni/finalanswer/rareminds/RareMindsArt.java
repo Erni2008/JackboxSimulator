@@ -19,7 +19,7 @@ final class RareMindsArt implements Disposable {
     static final Color[] TIER={new Color(.82f,.82f,.84f,1),new Color(.30f,.88f,.54f,1),new Color(.30f,.70f,1f,1),new Color(.78f,.49f,1f,1),new Color(1f,.76f,.24f,1),new Color(1f,.29f,.24f,1)};
 
     final Texture background,pixel,soft,skull,crown,ring;
-    final BitmapFont title,big,mid,small,tiny;
+    final BitmapFont title,big,mid,small,tiny,num;
     private final Map<String,Texture> faces=new HashMap<>();
     final GlyphLayout gl=new GlyphLayout();
     SpriteBatch batch;
@@ -28,10 +28,19 @@ final class RareMindsArt implements Disposable {
         background=new Texture(Gdx.files.internal("rare_minds/background.jpg"),true);background.setFilter(Texture.TextureFilter.MipMapLinearLinear,Texture.TextureFilter.Linear);
         Pixmap p=new Pixmap(1,1,Pixmap.Format.RGBA8888);p.setColor(Color.WHITE);p.fill();pixel=new Texture(p);p.dispose();
         soft=radial();skull=skull();crown=crown();ring=ring();
-        title=com.erni.finalanswer.ui.UiFonts.gothic(132);big=com.erni.finalanswer.ui.UiFonts.gothic(66);mid=com.erni.finalanswer.ui.UiFonts.gothic(40);
-        small=com.erni.finalanswer.ui.UiFonts.gothic(30);tiny=com.erni.finalanswer.ui.UiFonts.gothic(23);
+        // Russo One (display, numbers) + Noto Sans SemiCondensed SemiBold (everything read at a glance); both carry Cyrillic
+        title=font("ui/fonts/RussoOne-Regular.ttf",118,3);big=font("ui/fonts/RussoOne-Regular.ttf",58,0);num=font("ui/fonts/RussoOne-Regular.ttf",40,0);
+        mid=font("ui/fonts/NotoSans-SemiCondensedSemiBold.ttf",38,0);small=font("ui/fonts/NotoSans-SemiCondensedSemiBold.ttf",28,0);tiny=font("ui/fonts/NotoSans-SemiCondensedSemiBold.ttf",22,0);
     }
 
+    private static BitmapFont font(String file,int size,int border){
+        var g=new com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator(Gdx.files.internal(file));
+        try{var p=new com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFontParameter();p.size=size;p.kerning=true;
+            StringBuilder c=new StringBuilder(com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.DEFAULT_CHARS);for(char ch='\u0400';ch<='\u04ff';ch++)c.append(ch);
+            p.characters=c.append("\u2013\u2014\u2018\u2019\u201c\u201d\u00ab\u00bb\u2026\u00b7\u00d7\u2212").toString();
+            if(border>0){p.borderWidth=border;p.borderColor=new Color(.10f,.03f,.02f,1);}
+            p.minFilter=Texture.TextureFilter.Linear;p.magFilter=Texture.TextureFilter.Linear;return g.generateFont(p);}finally{g.dispose();}
+    }
     Texture face(String character){
         if(character==null||character.isEmpty())return null;
         return faces.computeIfAbsent(character,c->{var f=Gdx.files.internal("forgotten_room/portraits/"+c+".png");if(!f.exists())return null;Texture t=new Texture(f,true);t.setFilter(Texture.TextureFilter.MipMapLinearLinear,Texture.TextureFilter.Linear);return t;});
@@ -49,15 +58,13 @@ final class RareMindsArt implements Disposable {
      * The game-show frame used by every panel: smoked glass, a double gilt line with chamfered corners and a faint
      * inner rim light. {@code accent} tints the outer line (red for danger, blue for ghosts).
      */
+    /** Flat smoked panel: one hairline border and a solid accent bar on top. No ornaments, no bloom. */
     void panel(float x,float y,float w,float h,float a,Color accent){
-        shade(x+w/2,y+h/2-14,w+150,h+150,.55f*a);
+        Color c=accent==null?GOLD:accent;
+        batch.setColor(0,0,0,.35f*a);batch.draw(pixel,x+6,y-8,w,h);
         rect(x,y,w,h,PANEL,a);
-        batch.setColor(.30f,.05f,.04f,.22f*a);batch.draw(soft,x+w*.1f,y+h*.45f,w*.8f,h*.9f);
-        Color c=accent==null?GOLD:accent;float k=12;
-        line(x+k,y+h-1.5f,w-2*k,2,c,.92f*a);line(x+k,y-.5f,w-2*k,2,c,.92f*a);line(x-.5f,y+k,2,h-2*k,c,.92f*a);line(x+w-1.5f,y+k,2,h-2*k,c,.92f*a);
-        corner(x,y+h,k,1,-1,c,a);corner(x+w,y+h,k,-1,-1,c,a);corner(x,y,k,1,1,c,a);corner(x+w,y,k,-1,1,c,a);
-        float i=7;rect(x+i+k,y+h-i-1,w-2*i-2*k,1,c,.28f*a);rect(x+i+k,y+i,w-2*i-2*k,1,c,.28f*a);rect(x+i,y+i+k,1,h-2*i-2*k,c,.28f*a);rect(x+w-i-1,y+i+k,1,h-2*i-2*k,c,.28f*a);
-        diamond(x+w/2,y+h,6,c,a);diamond(x+w/2,y,6,c,a);
+        rect(x,y+h-1,w,1,c,.35f*a);rect(x,y,w,1,c,.35f*a);rect(x,y,1,h,c,.35f*a);rect(x+w-1,y,1,h,c,.35f*a);
+        rect(x,y+h-4,w,4,c,.95f*a);
     }
     private void line(float x,float y,float w,float h,Color c,float a){rect(x,y,w,h,c,a);}
     private void corner(float x,float y,float k,int sx,int sy,Color c,float a){
@@ -66,17 +73,11 @@ final class RareMindsArt implements Disposable {
         batch.setColor(c.r,c.g,c.b,c.a*.92f*a);batch.draw(pixel,x+sx*k/2-len/2,y+sy*k/2-1,len/2,1,len,2,1,1,ang,0,0,1,1,false,false);
     }
     /** A small gilt plaque with pointed ends (the "QUESTION 3 / 8" tab, the subtitle plate). */
+    /** A flat label bar (tabs, subtitles). */
     void plaque(float cx,float cy,float w,float h,float a,Color accent){
-        Color c=accent==null?GOLD:accent;
-        shade(cx,cy-6,w+90,h+70,.6f*a);rect(cx-w/2,cy-h/2,w,h,PANEL,a);
-        rect(cx-w/2,cy+h/2-2,w,2,c,.9f*a);rect(cx-w/2,cy-h/2,w,2,c,.9f*a);
-        diamond(cx-w/2,cy,h*.42f,c,.9f*a);diamond(cx+w/2,cy,h*.42f,c,.9f*a);diamond(cx-w/2,cy,h*.28f,PANEL,a);diamond(cx+w/2,cy,h*.28f,PANEL,a);
+        Color c=accent==null?GOLD:accent;rect(cx-w/2,cy-h/2,w,h,PANEL,a);rect(cx-w/2,cy-h/2,4,h,c,a);rect(cx+w/2-4,cy-h/2,4,h,c,a);
     }
-    void ornament(float cx,float y,float w,Color c,float a){
-        batch.setColor(c.r,c.g,c.b,0);
-        for(int i=0;i<40;i++){float t=i/39f,x=cx-w/2+w*t;float fade=1-Math.abs(t-.5f)*2;rect(x,y,w/40f+1,1.4f,c,a*fade*.85f);}
-        diamond(cx,y+.7f,5,c,a);
-    }
+    void ornament(float cx,float y,float w,Color c,float a){rect(cx-w/2,y,w,1,c,a*.35f);}
 
     // ---------------------------------------------------------------- text
     float width(BitmapFont f,String s,float scale){f.getData().setScale(scale);gl.setText(f,s);f.getData().setScale(1);return gl.width;}
@@ -129,5 +130,5 @@ final class RareMindsArt implements Disposable {
         for(int y=0;y<n;y++)for(int x=0;x<n;x++){float a=0;for(int j=0;j<s;j++)for(int i=0;i<s;i++)a+=(big.getPixel(x*s+i,y*s+j)&0xff)/255f;p.drawPixel(x,y,Color.rgba8888(1,1,1,a/(s*s)));}
         Texture t=new Texture(p);t.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();return t;}
 
-    @Override public void dispose(){background.dispose();pixel.dispose();soft.dispose();skull.dispose();crown.dispose();ring.dispose();title.dispose();big.dispose();mid.dispose();small.dispose();tiny.dispose();for(Texture t:faces.values())if(t!=null)t.dispose();}
+    @Override public void dispose(){background.dispose();pixel.dispose();soft.dispose();skull.dispose();crown.dispose();ring.dispose();title.dispose();big.dispose();num.dispose();mid.dispose();small.dispose();tiny.dispose();for(Texture t:faces.values())if(t!=null)t.dispose();}
 }

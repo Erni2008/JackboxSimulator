@@ -586,7 +586,7 @@ public final class RoomService {
             }
             case "END_RARE_MINDS"->{requireHost(member);requireRareMinds(room,data);endRareMinds(room);}
             case "RM_DRAFT"->{requireRareMinds(room,data);if(member.host)throw new Failure(403,"RM_NOT_A_PLAYER");
-                room.rareMinds.draft(member.id,intField(data,"question"),Protocol.string(data,"text"),data.has("risk")&&data.get("risk").getAsBoolean(),now());}
+                room.rareMinds.draft(member.id,intField(data,"question"),Protocol.string(data,"text"),data.has("risk")&&data.get("risk").getAsBoolean(),now());pushRareLive(room);}
             case "RM_SUBMIT"->{requireRareMinds(room,data);if(member.host)throw new Failure(403,"RM_NOT_A_PLAYER");
                 var rm=room.rareMinds;
                 if(rm.submit(member.id,message.requestId(),intField(data,"question"),Protocol.string(data,"text"),data.has("risk")&&data.get("risk").getAsBoolean(),now())){
@@ -601,8 +601,13 @@ public final class RoomService {
     private static int intField(JsonObject data,String key){try{return data.get(key).getAsInt();}catch(RuntimeException e){throw new Failure(400,"RM_INVALID_MESSAGE");}}
     private static void requireRareMinds(Room room,JsonObject data){if(room.rareMinds==null||!room.rareMinds.id.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_RM_SESSION");}
     private void endRareMinds(Room room){room.rareMinds=null;room.rareMindsDoneAt=0;room.lobbyId=UUID.randomUUID().toString();broadcast(room,"RARE_MINDS_ENDED");}
+    /** Live typing goes to the host's own client only, at most ~8 times a second (the rest follows on the next tick). */
+    private void pushRareLive(Room room){
+        var rm=room.rareMinds;if(rm==null||!rm.liveDirty||now()-room.rareLiveAt<120||room.host.peer==null)return;
+        rm.liveDirty=false;room.rareLiveAt=now();room.host.peer.send(Protocol.event("RARE_MINDS_LIVE","",snapshot(room,room.host,false)));
+    }
     private void tickRareMinds(Room room){
-        var rm=room.rareMinds;boolean changed=rm.tick(now());
+        var rm=room.rareMinds;pushRareLive(room);boolean changed=rm.tick(now());
         if(!changed&&rm.phase()==com.finalanswer.server.game.rareminds.RareMindsSession.Phase.QUESTION_ACTIVE)changed=rm.everyoneAnswered(room.members.values().stream().filter(m->m.peer!=null&&!m.left).map(m->m.id).toList(),now());
         if(changed){scoreFinishedModes(room);broadcast(room,"RARE_MINDS_UPDATED");}
         // nobody is stuck on a finished match: if the host never closes it, the room returns to the lobby
@@ -1159,7 +1164,7 @@ public final class RoomService {
         }
         if(room.lastCommand!=null)value.put("lastCommand",room.lastCommand.snapshot(self==null?"":self.id,now()));
         if(room.cards!=null)value.put("cursedCards",room.cards.snapshot(self==null?"":self.id,self!=null&&self.host,now()));
-        if(room.rareMinds!=null)value.put("rareMinds",room.rareMinds.snapshot(self==null||self.host?null:self.id,now()));
+        if(room.rareMinds!=null)value.put("rareMinds",room.rareMinds.snapshot(self==null||self.host?null:self.id,self!=null&&self.host,now()));
         if(room.finalSecond!=null)value.put("finalSecond",room.finalSecond.snapshot(self==null?"":self.id,self!=null&&self.host,now()));
         if(room.breach!=null)value.put("systemBreach",room.breach.snapshot(self==null?"":self.id,self!=null&&self.host,now(),breachOnline(room),breachNames(room)));
         if(room.forgotten!=null)value.put("forgottenRoom",room.forgotten.snapshot(self==null?"":self.id,self!=null&&self.host,now()));
@@ -1290,7 +1295,7 @@ public final class RoomService {
         String lobbyId=UUID.randomUUID().toString();List<String> impostorRoster=List.of();
         com.erni.finalanswer.gameplay.impostor.ImpostorSettings impostorSettings=com.erni.finalanswer.gameplay.impostor.ImpostorSettings.defaults();
         com.erni.finalanswer.gameplay.impostor.ImpostorMatchResult lastImpostorResult;
-        final Map<String,Member> members=new LinkedHashMap<>(); Member host; GameSession game; ImpostorSession impostor; CursedBoxesSession cursed; LastCommandSession lastCommand; CursedCardsSession cards; ForgottenRoomSession forgotten; FinalSecondSession finalSecond; com.finalanswer.server.game.rareminds.RareMindsSession rareMinds; long rareMindsDoneAt; SystemBreachSession breach; SystemBreachView.Outcome lastBreachResult; boolean breachScored; long breachFinishedAt; final Map<String,Integer> breachKeysBought=new HashMap<>(); long breachEventSequence; String breachStartRequest=""; final FinalSecondSession.TaskBag fsTasks=new FinalSecondSession.TaskBag(); long revision;
+        final Map<String,Member> members=new LinkedHashMap<>(); Member host; GameSession game; ImpostorSession impostor; CursedBoxesSession cursed; LastCommandSession lastCommand; CursedCardsSession cards; ForgottenRoomSession forgotten; FinalSecondSession finalSecond; com.finalanswer.server.game.rareminds.RareMindsSession rareMinds; long rareMindsDoneAt,rareLiveAt; SystemBreachSession breach; SystemBreachView.Outcome lastBreachResult; boolean breachScored; long breachFinishedAt; final Map<String,Integer> breachKeysBought=new HashMap<>(); long breachEventSequence; String breachStartRequest=""; final FinalSecondSession.TaskBag fsTasks=new FinalSecondSession.TaskBag(); long revision;
         Room(String code,String name,int max,String mode,int questions,byte[] salt,byte[] hash) {
             this.code=code;this.name=name;maxPlayers=max;this.mode=mode;questionCount=questions;this.salt=salt;passwordHash=hash;
         }

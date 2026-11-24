@@ -373,14 +373,14 @@ public class FinalAnswerGame extends Game {
         if(breachDebug!=null&&!data.has("systemBreach"))releaseSystemBreach();
         // the race / Hell Cage ended (or was closed): the in-game view closes and the host is back in the game
         if(activeRoom.host()&&(type.equals("WEB_GAME_CLOSED")||data.has("webGame")&&data.get("webGame").getAsString().isEmpty()))webView.close();
-        if(activeRoom.host()&&data.has("lastCommand")){openLastCommand(data,false);return;}
+        if(activeRoom.host()&&data.has("lastCommand")&&Gdx.files.internal("models/last_command/computer.glb").exists()){openLastCommand(data,false);return;}
         if(activeRoom.host()&&data.has("cursedCards")){openCursedCards(data);return;}
         if(cardsScreen!=null&&!data.has("cursedCards"))releaseCursedCards(true);
         if(activeRoom.host()&&data.has("rareMinds")){openRareMinds(data);return;}
         if(rareMindsScreen!=null&&!data.has("rareMinds"))releaseRareMinds(true);
         if(activeRoom.host()&&data.has("finalSecond")){openFinalSecond(data);return;}
         if(finalSecondScreen!=null&&!data.has("finalSecond"))releaseFinalSecond(true);
-        if(activeRoom.host()&&data.has("forgottenRoom")){openForgottenRoom(data);return;}
+        if(activeRoom.host()&&data.has("forgottenRoom")&&Gdx.files.internal("forgotten_room/rooms/room_01.jpg").exists()){openForgottenRoom(data);return;}
         if(forgottenScreen!=null&&!data.has("forgottenRoom"))releaseForgottenRoom(true);
         if(!lastCommandSession.isEmpty()&&!data.has("lastCommand")){lastCommandSession="";if(getScreen() instanceof com.erni.finalanswer.lastcommand.TheLastCommandScreen)showBalances();}
         if(activeRoom.host()&&data.has("cursedBoxes")){openNetworkCursed(data);return;}

@@ -102,7 +102,7 @@ public final class RareMindsSession {
     public void draft(String member,int forQuestion,String raw,boolean risk,long now){
         Player p=seat(member);
         if(phase!=Phase.QUESTION_ACTIVE||forQuestion!=question||subs.containsKey(p.id))return; // late or stale drafts are dropped quietly
-        String s=text(raw);drafts.put(p.id,new Draft(s,risk&&canRisk(p),now));
+        String s=text(raw);drafts.put(p.id,new Draft(s,risk&&canRisk(p),now));liveDirty=true;
     }
 
     /**
@@ -125,7 +125,9 @@ public final class RareMindsSession {
     private long ends(){return phaseEnds==Long.MAX_VALUE?-1:phaseEnds;}
 
     /** Public state for phones and the shared screen; {@code self} adds only that player's own data. */
-    public Map<String,Object> snapshot(String self,long now){
+    public Map<String,Object> snapshot(String self,long now){return snapshot(self,false,now);}
+    /** {@code host}: the host's own game client also gets live typing (the host shows it on the big screen by choice). */
+    public Map<String,Object> snapshot(String self,boolean host,long now){
         Map<String,Object> v=new LinkedHashMap<>();
         v.put("sessionId",id);v.put("phase",phase.name());v.put("serverTime",now);v.put("phaseStartedAt",phaseStarted);v.put("phaseEndsAt",ends());
         v.put("question",question);v.put("questions",RareRules.QUESTIONS);v.put("finalQuestion",question==RareRules.QUESTIONS);
@@ -149,6 +151,7 @@ public final class RareMindsSession {
             Submission s=phase==Phase.QUESTION_ACTIVE?subs.get(me.id):null;
             m.put("submitted",s!=null);if(s!=null){m.put("answer",s.text());m.put("riskIt",s.riskIt());}
             m.put("canRisk",canRisk(me));v.put("me",m);}
+        if(host)v.put("live",live());
         return v;
     }
     private Map<String,Object> outcomeView(Outcome o){
@@ -171,8 +174,11 @@ public final class RareMindsSession {
      * HOST-ONLY live monitor: what everyone is typing, what they locked, whether it validates, and provisional
      * collisions (drafts or answers that could become the same canonical answer). Never part of {@link #snapshot}.
      */
-    public Map<String,Object> monitor(long now){
-        Map<String,Object> v=snapshot(null,now);RareQuestion q=currentQuestion();
+    public Map<String,Object> monitor(long now){Map<String,Object> v=snapshot(null,now);v.put("live",live());return v;}
+    /** set when a draft or answer changed since the host last got live data */
+    public boolean liveDirty;
+    private List<Map<String,Object>> live(){
+        RareQuestion q=currentQuestion();
         Map<String,Set<String>> cand=new HashMap<>();
         if(q!=null&&phase==Phase.QUESTION_ACTIVE)for(Player p:players){String t=subs.containsKey(p.id)?subs.get(p.id).text():drafts.containsKey(p.id)?drafts.get(p.id).text:"";cand.put(p.id,t.isEmpty()?Set.of():candidates.candidates(q,t));}
         List<Map<String,Object>> live=new ArrayList<>();
@@ -184,7 +190,6 @@ public final class RareMindsSession {
             List<String> with=new ArrayList<>();Set<String> mine=cand.getOrDefault(p.id,Set.of());
             if(!mine.isEmpty())for(Player o:players)if(o!=p&&!Collections.disjoint(mine,cand.getOrDefault(o.id,Set.of())))with.add(o.id);
             m.put("possibleCollision",with);live.add(m);}
-        v.put("live",live);
-        return v;
+        return live;
     }
 }

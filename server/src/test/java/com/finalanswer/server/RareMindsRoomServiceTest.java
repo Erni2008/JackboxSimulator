@@ -33,7 +33,8 @@ class RareMindsRoomServiceTest {
 
     @Test void draftsStayPrivateAndOnlyTheHostMonitorSeesThem(){
         start();command(a,"RM_DRAFT",answer(a,"Secret draf"));command(b,"RM_SUBMIT",answer(b,valid(0)));
-        for(TestPeer p:List.of(hostPeer,a,b))assertFalse(p.latest().toString().contains("Secret draf"),"drafts never reach phones or the public screen");
+        for(TestPeer p:List.of(a,b))assertFalse(p.latest().toString().contains("Secret draf"),"drafts never reach other phones");
+        assertTrue(hostPeer.latest().toString().contains("Secret draf"),"the host's own client gets live typing");
         assertFalse(rm(a).toString().contains(valid(0)),"another player's locked answer is hidden until the reveal");
         assertTrue(rm(b).getAsJsonObject("me").get("submitted").getAsBoolean());
         var mon=obj(service.rareMindsMonitor(code(),s(host,"token")));assertTrue(mon.toString().contains("Secret draf"));
