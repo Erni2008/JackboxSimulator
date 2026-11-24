@@ -26,7 +26,7 @@ final class RareMindsRace {
         case "pumpkin"->new Color(1f,.55f,.12f,1);case "plague_doctor"->new Color(.62f,.42f,.95f,1);case "voodoo"->new Color(.98f,.80f,.25f,1);case "puppeteer"->new Color(.25f,.45f,1f,1);
         default->new Color(.8f,.8f,.8f,1);};}
     /** smoothed lane slot per player (lanes are ordered by souls and slide when someone overtakes) */
-    private final Map<String,Float> slot=new HashMap<>();private final Map<String,Integer> lastRank=new HashMap<>();private final Map<String,Float> upAt=new HashMap<>();private float lastClock=-1,maxScale=0;private final Map<String,String> typed=new HashMap<>();private final Map<String,Integer> stable=new HashMap<>();private final Map<String,Float> typedAt=new HashMap<>();
+    private final Map<String,Float> slot=new HashMap<>();private final Map<String,Integer> lastRank=new HashMap<>();private final Map<String,Float> upAt=new HashMap<>();private float lastClock=-1,maxScale=0;private final Map<String,String> typed=new HashMap<>();private final Map<String,Integer> stable=new HashMap<>();private final Map<String,Float> typedAt=new HashMap<>(),fixedAt=new HashMap<>();
     static final float START=.9f,STAGGER=.12f,DRIVE=2.4f;
     /** shares at the zone boundaries (same as the server tiers) and the scale ends */
     private static final double TOP=.25,BOTTOM=.0015;private static final double[] EDGES={.080,.045,.022,.010,.004};
@@ -85,12 +85,15 @@ final class RareMindsRace {
                 for(int k=0;k<3;k++){Color sc=k<l.skulls()?(l.ghost()?RareMindsArt.GHOST:RareMindsArt.RED):new Color(.3f,.24f,.22f,1);batch().setColor(sc);batch().draw(art.skull,sx+k*24,cy+4,22,22);}
                 String txt=l.live()==null?"":l.live();boolean blink=((int)(clock*2))%2==0;
                 // letters arrive like typing: the newest characters fade and slide in instead of popping
-                String prev=typed.getOrDefault(l.name(),"");if(!txt.equals(prev)){int keep=0;while(keep<Math.min(prev.length(),txt.length())&&prev.charAt(keep)==txt.charAt(keep))keep++;stable.put(l.name(),keep);typedAt.put(l.name(),clock);typed.put(l.name(),txt);}
+                String prev=typed.getOrDefault(l.name(),"");if(!txt.equals(prev)&&l.locked()&&!prev.isEmpty()&&!txt.equalsIgnoreCase(prev))fixedAt.put(l.name(),clock);
+                if(!txt.equals(prev)){int keep=0;while(keep<Math.min(prev.length(),txt.length())&&prev.charAt(keep)==txt.charAt(keep))keep++;stable.put(l.name(),keep);typedAt.put(l.name(),clock);typed.put(l.name(),txt);}
                 Color tc=l.locked()?RareMindsArt.GOLD:Color.WHITE;float tx=x+72+fs;
                 if(txt.isEmpty())art.textLeft(art.small,l.locked()?"":"…",tx,cy-4,.78f,tc,.4f);
                 else{String vis=ellipsize(txt,20);int keep=Math.min(stable.getOrDefault(l.name(),0),vis.length());float k=Math.min(1,(clock-typedAt.getOrDefault(l.name(),0f))/.22f);
                     String head=vis.substring(0,keep),tail=vis.substring(keep);art.textLeft(art.small,head,tx,cy-4,.78f,tc,1);
                     float hx=tx+art.width(art.small,head,.78f);if(!tail.isEmpty())art.textLeft(art.small,tail,hx+(1-k)*8,cy-4,.78f,tc,k);
+                    Float fixed=fixedAt.get(l.name());if(fixed!=null&&clock-fixed<2.2f){float fa=Math.min(1,(clock-fixed)*4)*Math.min(1,(2.2f-(clock-fixed))*2);float ex=hx+art.width(art.small,tail,.78f)+12;
+                        art.rect(ex,cy-26,art.width(art.tiny,art_tr("исправлено","corrected"),.6f)+12,20,new Color(.3f,1f,.45f,1),.18f*fa);art.textLeft(art.tiny,art_tr("исправлено","corrected"),ex+6,cy-11,.6f,new Color(.45f,1f,.55f,1),fa);}
                     if(!l.locked()&&blink)art.rect(hx+art.width(art.small,tail,.78f)+3,cy-30,2,26,RareMindsArt.GOLD,1);}
                 if(l.locked()){float bx=sx+3*24+10;art.rect(bx,cy+5,art.width(art.tiny,art_tr("ПРИНЯТ","LOCKED"),.62f)+14,20,RareMindsArt.GOLD,.18f);art.textLeft(art.tiny,art_tr("ПРИНЯТ","LOCKED"),bx+7,cy+21,.62f,RareMindsArt.GOLD,1);}
                 if(l.zone())art.textRight(art.tiny,art_tr("ЗОНА СМЕРТИ","DEATH ZONE"),tx0-16,cy+26,.62f,RareMindsArt.RED_SOFT,.7f+.3f*MathUtils.sin(clock*5));

@@ -278,7 +278,7 @@ public final class RareMindsScreen extends ScreenAdapter {
         for(var p:players()){String id=s(p,"id");JsonObject l=live(id);boolean locked=b(p,"submitted")||l!=null&&b(l,"locked");
             if(locked)lockedAt.putIfAbsent(id+"#"+i(rm,"question"),clock);
             float age=locked?clock-lockedAt.get(id+"#"+i(rm,"question")):-1;
-            String txt=l==null?"":s(l,"text");if(!liveShown&&!txt.isEmpty())txt=locked?Localization.tr("ответ готов","locked in"):Localization.tr("печатает…","typing…");
+            String txt=shownLive(l,locked);if(!liveShown&&!txt.isEmpty())txt=locked?Localization.tr("ответ готов","locked in"):Localization.tr("печатает…","typing…");
             lanes.add(RareMindsRace.Lane.waiting(name(id),s(roster(id),"characterId"),!b(p,"alive"),l(p,"souls"),txt,locked,age,i(p,"collisions"),b(p,"deathZone")));}
         var tiers=rm.getAsJsonArray("tiers");String[] names=new String[tiers.size()];for(int k=0;k<tiers.size();k++)names[k]=tierName(s(tiers.get(k).getAsJsonObject(),"id"));
         String q=ru()?s(rm,"textRu"):s(rm,"textEn");
@@ -344,6 +344,8 @@ public final class RareMindsScreen extends ScreenAdapter {
         art.rect(bx,by,bw,64,RareMindsArt.PANEL,sa);art.rect(bx,by,5,64,RareMindsArt.GOLD,sa);
         art.textLeft(art.tiny,Localization.tr("ВЕДУЩИЙ","HOST"),bx+20,by+42,.72f,RareMindsArt.GOLD,sa);art.text(art.small,line,960+40,by+44,.9f,RareMindsArt.IVORY,sa,bw-160);
     }
+    /** what a lane shows: the typing as it comes, and once the answer is locked the word the game understood (autocorrect) */
+    private String shownLive(JsonObject l,boolean locked){if(l==null)return "";String raw=s(l,"text");if(locked&&l.has("labelEn"))return ru()?s(l,"labelRu"):s(l,"labelEn");return raw;}
     private boolean teamsFormat(){return "TEAMS".equals(s(rm,"format"));}
     static final Color[] TEAM={new Color(.93f,.24f,.22f,1),new Color(.26f,.64f,.98f,1)};
     static Color teamColor(int t){return TEAM[Math.max(0,Math.min(1,t))];}
@@ -454,7 +456,7 @@ public final class RareMindsScreen extends ScreenAdapter {
     }
     /** What this player is typing right now (host client only), the locked answer, or a quiet "typing…" when hidden. */
     private void liveField(String id,JsonObject p,float x,float y,float w,float h,boolean active){
-        if(!active)return;JsonObject l=live(id);String t=l==null?"":s(l,"text");boolean locked=b(p,"submitted")||l!=null&&b(l,"locked");
+        if(!active)return;JsonObject l=live(id);String t=shownLive(l,b(p,"submitted")||l!=null&&b(l,"locked"));boolean locked=b(p,"submitted")||l!=null&&b(l,"locked");
         boolean col=l!=null&&l.has("possibleCollision")&&l.getAsJsonArray("possibleCollision").size()>0;
         Color edge=col?new Color(1f,.69f,.18f,1):locked?RareMindsArt.GOLD:new Color(1,1,1,.18f);
         batch.setColor(Color.WHITE);art.slot.setColor(Color.WHITE);art.slot.draw(batch,x,y,w,h);art.rect(x+8,y+3,w-16,2,edge,(col?.6f+.4f*MathUtils.sin(clock*8):locked?.9f:0));

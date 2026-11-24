@@ -111,12 +111,15 @@ async def main():
     async def play(b, s):
         q = s['question']; answers = ranked(s['questionId'], a.lang)
         text = answers[PLAN[(q - 1) % len(PLAN)][b.seat] % len(answers)]
+        typed = text
+        if b.seat in (2, 4) and len(text) > 5:   # Kate and Nick make a typo (swapped letters), the game corrects it
+            k = 2 if len(text) > 6 else 1; typed = text[:k] + text[k + 1] + text[k] + text[k + 2:]
         if b.seat == 0: print(f'round {q}: {s["textRu"] if a.lang == "ru" else s["textEn"]}')
         await asyncio.sleep(random.uniform(1.0, 5.5))           # read the question, think
-        await b.type_answer(s, text)
+        await b.type_answer(s, typed)
         await asyncio.sleep(random.uniform(.4, 1.6))            # hesitate, then lock in
-        await b.cmd('RM_SUBMIT', sessionId=s['sessionId'], question=q, text=text, risk=False)
-        print(f'  {b.name:5} → {text}')
+        await b.cmd('RM_SUBMIT', sessionId=s['sessionId'], question=q, text=typed, risk=False)
+        print(f'  {b.name:5} → {typed}' + (f'  (game corrects to {text})' if typed != text else ''))
 
     try:
         await asyncio.gather(*(run(b) for b in bots))

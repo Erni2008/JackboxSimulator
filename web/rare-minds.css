@@ -69,3 +69,4 @@
 .rm-duel[data-team="0"]{border-color:#ee3d38;background:#2a0707cc}.rm-duel[data-team="0"] b{color:#ff6b5e}
 .rm-duel[data-team="1"]{border-color:#43a4f5;background:#071a2acc;color:#d6ecff}.rm-duel[data-team="1"] b{color:#7cc4ff}
 .rm-duel small{display:block;margin-top:4px;font-size:12px;opacity:.8}
+.rm-fixed{margin:6px 0 0;font:13px/1.3 Georgia,serif;color:#7fe08f}

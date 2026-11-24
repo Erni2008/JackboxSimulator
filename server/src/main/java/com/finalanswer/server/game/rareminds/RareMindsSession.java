@@ -169,7 +169,9 @@ public final class RareMindsSession {
         Player me=self==null?null:byId.get(self);
         if(me!=null){Map<String,Object> m=new LinkedHashMap<>();
             Submission s=phase==Phase.QUESTION_ACTIVE?subs.get(me.id):null;
-            m.put("submitted",s!=null);if(s!=null){m.put("answer",s.text());m.put("riskIt",s.riskIt());}
+            m.put("submitted",s!=null);if(s!=null){m.put("answer",s.text());m.put("riskIt",s.riskIt());
+                // autocorrect on lock: the player sees the word the game understood
+                var vr=validator.validate(currentQuestion(),s.text());if(vr.valid()){var a=currentQuestion().answer(vr.answerId());m.put("labelEn",a.labelEn());m.put("labelRu",a.labelRu());m.put("corrected",vr.status()==AnswerValidator.Status.VALID_TYPO);}}
             m.put("canRisk",canRisk(me));v.put("me",m);}
         if(host)v.put("live",live());
         return v;

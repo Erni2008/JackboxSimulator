@@ -38,14 +38,14 @@ async function type(bot,s,text){
   hostWs.cmd('START_RARE_MINDS',{sessionId:state.lobbyId,...(process.env.FORMAT?{format:process.env.FORMAT}:{}),...(process.env.RACE?{race:process.env.RACE==='1'}:{})});
   // per round, answer popularity ranks for each bot (equal numbers collide)
   const plan=[[0,0,6,14,3,22],[1,9,1,17,24,5],[2,12,20,2,8,27]];
-  const misspell=t=>t.length>7?t.slice(0,3)+t[4]+t[3]+t.slice(5):t; // Kate swaps two letters: the game corrects it
+  const misspell=t=>{if(t.length<=5)return t;const k=t.length>6?2:1;return t.slice(0,k)+t[k+1]+t[k]+t.slice(k+2);}; // a swapped pair of letters: the game corrects it
   let q=0;
   while(true){
     const s=state.rareMinds;if(!s){await sleep(100);continue;}
     if(s.phase==='QUESTION_ACTIVE'&&s.question!==q){
       q=s.question;if(q>rounds){await sleep(300);break;}
       const answers=ranked(s.questionId),p=plan[(q-1)%plan.length];console.log('round',q,s.textEn);
-      bots.forEach((b,i)=>{(async()=>{await sleep(900+Math.random()*4500);const text=b.name==='Kate'?misspell(answers[p[i]]):answers[p[i]];await type(b,s,text);await sleep(300+Math.random()*1500);
+      bots.forEach((b,i)=>{(async()=>{await sleep(900+Math.random()*4500);const text=(b.name==='Kate'||b.name==='Nick')?misspell(answers[p[i]]):answers[p[i]];await type(b,s,text);await sleep(300+Math.random()*1500);
         b.ws.cmd('RM_SUBMIT',{sessionId:s.sessionId,question:q,text,risk:false});})();});
     }
     if(s.phase==='QUESTION_ACTIVE'&&s.question>rounds)break;

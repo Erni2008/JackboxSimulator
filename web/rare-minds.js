@@ -31,7 +31,7 @@ function createRareMindsController({getState,isAuthenticated,send,makeId,now}){
         <button type="button" class="rm-send" data-k="send" data-native-button>${T('ОТВЕТИТЬ','LOCK IN')}</button>
         <p class="rm-hint" data-k="hint" aria-live="polite"></p>
       </div>
-      <div class="rm-locked" data-k="locked" hidden><p class="rm-eyebrow">${T('ОТВЕТ ПРИНЯТ','ANSWER LOCKED')}</p><p class="rm-mine" data-k="mine"></p><p class="rm-wait">${T('Ждём остальных…','Waiting for the others…')}</p></div>
+      <div class="rm-locked" data-k="locked" hidden><p class="rm-eyebrow">${T('ОТВЕТ ПРИНЯТ','ANSWER LOCKED')}</p><p class="rm-mine" data-k="mine"></p><p class="rm-fixed" data-k="fixed" hidden></p><p class="rm-wait">${T('Ждём остальных…','Waiting for the others…')}</p></div>
       <div class="rm-result" data-k="result" hidden></div>
       <div class="rm-ghost" data-k="ghost" hidden></div>
       <div class="rm-intro" data-k="intro" hidden>
@@ -103,7 +103,8 @@ function createRareMindsController({getState,isAuthenticated,send,makeId,now}){
     els.intro.hidden=ph!=='INITIALIZING';
     els.answerBox.hidden=!active||locked;
     els.locked.hidden=!locked;
-    if(locked)els.mine.textContent=m.me?.answer||pending?.text||'';
+    if(locked){const me=m.me||{},lab=me.labelEn?T(me.labelRu,me.labelEn):'';els.mine.textContent=lab||me.answer||pending?.text||'';
+      els.fixed.hidden=!(me.corrected&&me.answer);if(me.corrected)els.fixed.textContent=T('исправлено из «','corrected from “')+me.answer+T('»','”');}
     els.risk.hidden=!(active&&m.me?.canRisk);
     els.send.disabled=!isAuthenticated()||!!pending;
     paintHint();
