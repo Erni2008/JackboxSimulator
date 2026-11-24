@@ -22,7 +22,7 @@ public final class RareMindsSession {
     public final Format format;
     public enum Phase {INITIALIZING,QUESTION_ACTIVE,ANSWERS_LOCKED,REVEALING_RESULTS,FINAL_RESULTS,COMPLETED}
     public record Timing(long introMs,long answerMs,long lockedMs,long revealMs,long finalRevealMs,long resultsMs,long graceMs){
-        public static final Timing DEFAULT=new Timing(7000,18000,3200,12500,13500,16000,350);
+        public static final Timing DEFAULT=new Timing(7000,18000,3200,6500,7500,16000,350);
     }
     public static final class Failure extends RuntimeException{public final int status;public Failure(int status,String code){super(code);this.status=status;}}
     private record Draft(String text,boolean risk,long at){}
@@ -72,7 +72,7 @@ public final class RareMindsSession {
         while(now>=phaseEnds){long at=phaseEnds;changed=true;switch(phase){
             case INITIALIZING->startQuestion(1,at);
             case QUESTION_ACTIVE->lock(at);
-            case ANSWERS_LOCKED->enter(Phase.REVEALING_RESULTS,at,(question==RareRules.QUESTIONS?timing.finalRevealMs():timing.revealMs())+(format==Format.DUELS?1600:0)); /* duels add their scoreboard */
+            case ANSWERS_LOCKED->enter(Phase.REVEALING_RESULTS,at,(question==RareRules.QUESTIONS?timing.finalRevealMs():timing.revealMs())); /* duels add their scoreboard */
             case REVEALING_RESULTS->{if(question<RareRules.QUESTIONS)startQuestion(question+1,at);else{standings=RareRules.finish(players);enter(Phase.FINAL_RESULTS,at,timing.resultsMs());}}
             case FINAL_RESULTS->enter(Phase.COMPLETED,at,-1);
             default->{return changed;}

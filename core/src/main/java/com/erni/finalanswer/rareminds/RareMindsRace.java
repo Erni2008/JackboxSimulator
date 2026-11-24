@@ -15,10 +15,10 @@ final class RareMindsRace {
     /** one lane as the screen hands it over */
     record Lane(String name,String character,String answer,boolean answered,boolean valid,boolean collided,int sharedWith,boolean ghost,
                 int tier,double share,int earned,boolean jackpot,int jackpotSouls,boolean eliminated,boolean resurrected,long fromSouls,long souls,
-                String live,boolean locked,float lockAge,int skulls,boolean zone){
+                String live,boolean locked,float lockAge,int skulls,boolean zone,int duelBonus){
         /** a lane during the answer window: cars parked at their souls, live typing in the left column */
         static Lane waiting(String name,String character,boolean ghost,long souls,String live,boolean locked,float lockAge,int skulls,boolean zone){
-            return new Lane(name,character,"",false,false,false,0,ghost,0,0,0,false,0,false,false,souls,souls,live,locked,lockAge,skulls,zone);}
+            return new Lane(name,character,"",false,false,false,0,ghost,0,0,0,false,0,false,false,souls,souls,live,locked,lockAge,skulls,zone,0);}
     }
     /** Each character always drives the same colour (never recoloured by state: easy to follow across the match). */
     static Color carColor(String character){return switch(character==null?"":character){
@@ -92,16 +92,16 @@ final class RareMindsRace {
                     String head=vis.substring(0,keep),tail=vis.substring(keep);art.textLeft(art.small,head,tx,cy-4,.78f,tc,1);
                     float hx=tx+art.width(art.small,head,.78f);if(!tail.isEmpty())art.textLeft(art.small,tail,hx+(1-k)*8,cy-4,.78f,tc,k);
                     if(!l.locked()&&blink)art.rect(hx+art.width(art.small,tail,.78f)+3,cy-30,2,26,RareMindsArt.GOLD,1);}
-                if(l.locked())art.textRight(art.tiny,art_tr("ОТВЕТ ПРИНЯТ","ANSWER LOCKED"),tx0-16,cy-6,.72f,RareMindsArt.GOLD,1);
+                if(l.locked()){float bx=sx+3*24+10;art.rect(bx,cy+5,art.width(art.tiny,art_tr("ПРИНЯТ","LOCKED"),.62f)+14,20,RareMindsArt.GOLD,.18f);art.textLeft(art.tiny,art_tr("ПРИНЯТ","LOCKED"),bx+7,cy+21,.62f,RareMindsArt.GOLD,1);}
                 if(l.zone())art.textRight(art.tiny,art_tr("ЗОНА СМЕРТИ","DEATH ZONE"),tx0-16,cy+26,.62f,RareMindsArt.RED_SOFT,.7f+.3f*MathUtils.sin(clock*5));
             }else{
             String ans=!l.answered()?art_tr("нет ответа","no answer"):l.answer();
             art.textLeft(art.tiny,ellipsize(ans,22),x+72+fs,cy-6,.8f,!l.valid()?RareMindsArt.DIM:l.collided()?RareMindsArt.RED_SOFT:RareMindsArt.TIER[l.tier()],Math.min(1,Math.max(0,lt*3)));}
             // the racer
             float from=l.fromSouls()/scale,to=l.souls()/scale,f=from+(to-from)*easeOut(lt);
-            float rx=tx0+f*(tx1-tx0),shake=l.collided()&&arrived?MathUtils.sin(clock*60)*Math.max(0,1-(lt-1)*2)*5:0;
+            float carW=124*Math.min(1.25f,rowH/62f);float rx=tx0+carW/2+4+f*(tx1-tx0-carW-8),shake=l.collided()&&arrived?MathUtils.sin(clock*60)*Math.max(0,1-(lt-1)*2)*5:0;
             Color c=carColor(l.character());if(l.collided()&&arrived)art.glow(rx,cy,160,90,RareMindsArt.RED,.5f*Math.max(0,1-(lt-1)));
-            if(lt>0&&lt<1.6f&&to>from){float fx=tx0+from*(tx1-tx0),tw=rx-fx;batch().setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
+            if(lt>0&&lt<1.6f&&to>from){float fx=tx0+carW/2+4+from*(tx1-tx0-carW-8)-carW/2,tw=rx-carW/2-fx;batch().setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
                 for(int k=0;k<10;k++){float a=.035f*(k+1);batch().setColor(c.r,c.g,c.b,a);batch().draw(art.pixel,fx+tw*k/10f,cy-3,tw/10f+1,6);}
                 batch().setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
             if(live){
@@ -122,6 +122,7 @@ final class RareMindsRace {
                 else if(!l.valid()){tag=art_tr("не принят","not accepted");tc=RareMindsArt.DIM;}
                 else if(l.collided()){tag=art_tr("СОВПАДЕНИЕ ×","CRASH ×")+l.sharedWith()+"  +"+l.earned();tc=RareMindsArt.RED_SOFT;}
                 else {tag=tierNames[l.tier()]+" · "+pct(l.share())+"  +"+(l.earned()+l.jackpotSouls());tc=RareMindsArt.TIER[l.tier()];}
+                if(l.duelBonus()>0)tag+=art_tr("  · ДУЭЛЬ +","  · DUEL +")+l.duelBonus();
                 if(l.eliminated())tag+=art_tr("  · ВЫБЫЛ","  · OUT");if(l.resurrected())tag=art_tr("ВОСКРЕС!","BACK TO LIFE!");
                 float cw2=59*Math.min(1.25f,rowH/62f)+14;float lx=rx+cw2;if(lx+art.width(art.small,tag,.72f)>x+w-20)lx=rx-cw2-art.width(art.small,tag,.72f);
                 art.textLeft(art.small,tag,lx,cy+12,.72f,tc,a);}

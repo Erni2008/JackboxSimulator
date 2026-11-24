@@ -107,7 +107,7 @@ public final class RareMindsScreen extends ScreenAdapter {
                 if(b(r,"resurrectionLost"))sfx.play(Cue.GHOST_LOST);
                 if(b(r,"resurrected")){f.flash=1;sfx.play(Cue.RESURRECT);}
             }
-            if(!jackpotPlayed&&sinceLock()>=revealAt(ps.size())+.3f){jackpotPlayed=true;String w=s(rm.getAsJsonObject("reveal"),"jackpotWinner");if(!w.isEmpty()){fx(w).crown=0;sfx.play(Cue.JACKPOT);}}
+            if(!jackpotPlayed&&sinceLock()>=revealAt(ps.size())+.3f){jackpotPlayed=true;String w=s(rm.getAsJsonObject("reveal"),"jackpotWinner");if(!w.isEmpty())fx(w).crown=0; /* the jackpot sound already played on the answer board */}
         }
         for(Fx f:fx.values()){f.pop=Math.min(1,f.pop+dt*3);f.shake=Math.max(0,f.shake-dt*2.2f);f.flash=Math.max(0,f.flash-dt*1.4f);f.ghost=Math.min(1,f.ghost+dt*1.2f);f.submit=Math.min(1,f.submit+dt*3.5f);f.crown=Math.min(1,f.crown+dt*2);}
         questionIn=Math.min(1,questionIn+dt*2.4f);lockIn=Math.min(1,lockIn+dt*3);finalIn=Math.min(1,finalIn+dt*.8f);
@@ -164,7 +164,7 @@ public final class RareMindsScreen extends ScreenAdapter {
         float x=63,y=470,w=304,h=386;art.panel(x,y,w,h,1,null);
         art.text(art.mid,Localization.tr("ПРАВИЛА","RULES"),x+w/2,y+h-26,.92f,RareMindsArt.GOLD,1,0);art.ornament(x+w/2,y+h-72,200,RareMindsArt.GOLD,.7f);
         String[][] r={{"skull",Localization.tr("3 совпадения, и ты выбываешь","3 collisions and you are out")},{"gem",Localization.tr("Чем реже ответ, тем больше душ","The rarer the answer, the more souls")},
-            {"crown",Localization.tr("Самый редкий ответ берёт джекпот","The rarest answer takes the jackpot")},{"ghost",Localization.tr("Призрак воскресает, если отвечает уникально","Ghosts return by staying unique")}};
+            {"crown",Localization.tr("Самый редкий ответ берёт джекпот","The rarest answer takes the jackpot")},{"ghost",Localization.tr("Призрак может воскреснуть","A ghost can come back")}};
         float ry=y+h-92;
         for(String[] e:r){
             float iy=ry-32;
@@ -280,6 +280,19 @@ public final class RareMindsScreen extends ScreenAdapter {
         race.draw(430,128,1060,632,q,lanes,names,fin,0,clock,"","",true);
     }
     /** "All answers are in": a held moment, the host's line as a subtitle and in the host's own voice. */
+    /** All answers are in: the track stays, every lane shows its answer, the host speaks over it. */
+    private void lockedTrack(boolean fin,float t){
+        if(!lookSaid&&t>.35f){lookSaid=true;lookTake=voice.say("look",LOOK_RU.length);}
+        List<RareMindsRace.Lane> lanes=new ArrayList<>();
+        for(var p:players()){String id=s(p,"id");JsonObject r=row(id);JsonObject b0=before.getOrDefault(id,p);
+            String txt=r==null?"":s(r,"text");lanes.add(RareMindsRace.Lane.waiting(name(id),s(roster(id),"characterId"),!b(b0,"alive"),l(b0,"souls"),txt,true,9,i(b0,"collisions"),b(b0,"deathZone")));}
+        var tiers=rm.getAsJsonArray("tiers");String[] names=new String[tiers.size()];for(int k=0;k<tiers.size();k++)names[k]=tierName(s(tiers.get(k).getAsJsonObject(),"id"));
+        race.draw(430,128,1060,632,Localization.tr("ОТВЕТЫ ПРИНЯТЫ","ANSWERS LOCKED IN"),lanes,names,fin,0,clock,"","",true);
+        float sa=ease((t-.3f)/.4f);if(sa>0){String line=Localization.russian()?"«"+LOOK_RU[Math.min(lookTake,LOOK_RU.length-1)]+"»":"\u201cRight, let's see what you've written…\u201d";
+            float bw=Math.min(1000,art.width(art.small,line,.9f)+220),bx=960-bw/2,by=40;art.shade(960,by+32,bw+200,140,.6f*sa);
+            art.rect(bx,by,bw,64,RareMindsArt.PANEL,sa);art.rect(bx,by,5,64,RareMindsArt.GOLD,sa);
+            art.textLeft(art.tiny,Localization.tr("ВЕДУЩИЙ","HOST"),bx+20,by+42,.72f,RareMindsArt.GOLD,sa);art.text(art.small,line,960+40,by+44,.9f,RareMindsArt.IVORY,sa,bw-160);}
+    }
     private void lockedCard(boolean fin,float t){
         if(!lookSaid&&t>.35f){lookSaid=true;lookTake=voice.say("look",LOOK_RU.length);}
         float x=430,y=128,w=1060,h=632,a=ease(t/.35f);art.panel(x,y,w,h,1,fin?RareMindsArt.RED:null);
@@ -297,13 +310,14 @@ public final class RareMindsScreen extends ScreenAdapter {
         List<RareMindsRace.Lane> lanes=new ArrayList<>();
         for(var p:players()){String id=s(p,"id");JsonObject r=row(id);if(r==null)continue;
             lanes.add(new RareMindsRace.Lane(name(id),s(roster(id),"characterId"),answerLabel(r),!s(r,"text").isEmpty(),b(r,"valid"),b(r,"collided"),i(r,"sharedWith"),b(r,"ghost"),
-                tierIndex(s(r,"tier")),r.has("share")?r.get("share").getAsDouble():.5,i(r,"earned"),b(r,"jackpot"),i(r,"jackpotSouls"),b(r,"eliminated"),b(r,"resurrected"),before.containsKey(id)?l(before.get(id),"souls"):Math.max(0,l(r,"souls")-i(r,"earned")-i(r,"jackpotSouls")),l(r,"souls"),"",false,-1,0,false));}
+                tierIndex(s(r,"tier")),r.has("share")?r.get("share").getAsDouble():.5,i(r,"earned"),b(r,"jackpot"),i(r,"jackpotSouls"),b(r,"eliminated"),b(r,"resurrected"),before.containsKey(id)?l(before.get(id),"souls"):Math.max(0,l(r,"souls")-i(r,"earned")-i(r,"jackpotSouls")),l(r,"souls"),"",false,-1,0,false,i(r,"duelBonus")));}
         var tiers=rm.getAsJsonArray("tiers");String[] names=new String[tiers.size()];for(int k=0;k<tiers.size();k++)names[k]=tierName(s(tiers.get(k).getAsJsonObject(),"id"));
         String q=(ru()?s(rm,"textRu"):s(rm,"textEn"));
         List<RareMindsAnswerBoard.Group> groups=groups();List<RareMindsAnswerBoard.Duel> duels=duels();boardEnd=RareMindsAnswerBoard.duration(groups.size(),!duels.isEmpty());float t=sinceLock()-LOCK_HOLD;
-        if(t<0){lockedCard(fin,t+LOCK_HOLD);return;}
+        if(t<0){lockedTrack(fin,t+LOCK_HOLD);return;}
+        boardEnd=0;
         if(!pointsSaid&&t>=RareMindsAnswerBoard.pointsAt(groups.size())-.6f){pointsSaid=true;voice.say("points",2);}
-        if(t<boardEnd){
+        if(false){
             int flipped=(int)Math.floor((t-RareMindsAnswerBoard.INTRO-RareMindsAnswerBoard.FLIP*.5f)/RareMindsAnswerBoard.STEP);
             if(flipped>tilesSounded&&flipped<groups.size()){tilesSounded=flipped;var g=groups.get(flipped);sfx.play(g.collided()?Cue.COLLISION:g.jackpot()?Cue.JACKPOT:Cue.REVEAL);}
             board.draw(430,128,1060,632,(fin?Localization.tr("ПОСЛЕДНИЙ ОТВЕТ · ","THE LAST ANSWER · "):Localization.tr("ВОПРОС ","QUESTION ")+i(rm,"question")+"/"+i(rm,"questions")+" · ")+q,groups,names,fin,t,clock,duels);
@@ -449,6 +463,7 @@ public final class RareMindsScreen extends ScreenAdapter {
 
     // ---------------------------------------------------------------- ticker
     private void ticker(){
+        if(revealPhase()&&sinceLock()<LOCK_HOLD)return; // the host's line uses this strip
         List<String[]> m=messages();if(m.isEmpty())return;
         tickerT+=Gdx.graphics.getDeltaTime();if(tickerT>2.4f){tickerT=0;tickerIndex++;}
         String[] cur=m.get(tickerIndex%m.size());float a=Math.min(1,Math.min(tickerT*4,(2.4f-tickerT)*4));
