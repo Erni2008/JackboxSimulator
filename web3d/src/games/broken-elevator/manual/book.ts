@@ -175,8 +175,12 @@ export class EngineersManual {
     if (this.turning) { this.turning.t += dt / this.turning.dur; if (this.turning.t >= 1) this.finishTurn(); }
     this.settle += dt; this.flutter = Math.max(0, this.flutter - dt * .9);
     this.split += (this.splitTarget - this.split) * Math.min(1, dt * 6);
+    // rebuilding the page blocks and the spine (with fresh normals) is the costliest thing a book does: only when its shape moved
+    const key = this.turning || Math.abs(this.split - this.splitTarget) > 1e-4 ? NaN : this.openness * 7919 + this.split;
+    if (key === this.poseKey) return; this.poseKey = key;
     this.pose();
   }
+  private poseKey = NaN;
 
   /** Lays out every part for the current openness, split and leaf progress. */
   pose() {

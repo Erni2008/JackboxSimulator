@@ -453,7 +453,9 @@ async function boot() {
   // phones: bolts, screws, rivets and tags (< 2.5 cm) stop casting shadows — invisible at that size, but each one is a shadow-pass draw
   if (mobile) { const sp = new T.Sphere(), sc = new T.Vector3(); scene.updateMatrixWorld(true); scene.traverse((o: any) => { if (!o.isMesh || !o.castShadow || !o.geometry) return; if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere(); o.getWorldScale(sc); if (o.geometry.boundingSphere.radius * Math.max(sc.x, sc.y, sc.z) < .025) o.castShadow = false; }); void sp; }
   try { await (renderer as any).compileAsync?.(scene, camera); } catch {}
-  scene.traverse((o: any) => { const ms = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []; for (const m of ms) for (const k of ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap', 'bumpMap', 'aoMap', 'alphaMap']) if (m[k]) renderer.initTexture(m[k]); });
+  // upload the textures a few at a time, giving the page a breath between batches (the loading animation keeps moving)
+  { const texs = new Set<T.Texture>(); scene.traverse((o: any) => { const ms = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []; for (const m of ms) for (const k of ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap', 'bumpMap', 'aoMap', 'alphaMap']) if (m[k]) texs.add(m[k]); });
+    let n = 0; for (const t of texs) { renderer.initTexture(t); if (++n % 3 === 0) await new Promise(r => setTimeout(r, 0)); } }
   { const q0 = camera.quaternion.clone(); for (let i = 0; i < 8; i++) { camera.quaternion.setFromEuler(new T.Euler(0, i * Math.PI / 4, 0)); renderer.shadowMap.needsUpdate = true; renderer.render(scene, camera); await new Promise(r => requestAnimationFrame(r)); } camera.quaternion.copy(q0); }
   // came from a room on this phone: one tap back to the room controller (same seat, the session is kept)
   { let inRoom = false; try { inRoom = !!sessionStorage.getItem('finalanswer-session'); } catch {} const b = $('btn-room'); b.hidden = !inRoom; b.onclick = () => { location.href = '/'; }; }

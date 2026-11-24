@@ -62,7 +62,7 @@ export async function buildGlbCage(renderer: T.WebGLRenderer, scene: T.Scene, hi
   const baked = await loadBaked(['cage-map', 'cage-orm'], {srgb: [true, false], flipY: false, aniso: 8});
   const maps = baked ? {map: baked[0], orm: baked[1]} : matteMaps(img, ormImg, sz); if (!baked) { register('cage-map', maps.map); register('cage-orm', maps.orm); }
   const mat = new T.MeshPhysicalMaterial({map: maps.map, normalMap: m.normalMap, normalScale: new T.Vector2(1.6, 1.6), roughnessMap: maps.orm, metalnessMap: maps.orm, roughness: 1, metalness: 1,
-    specularIntensity: .5, specularColor: new T.Color(1, 1, 1), envMapIntensity: .6, side: T.DoubleSide});
+    specularIntensity: .7, specularColor: new T.Color(1, 1, 1), envMapIntensity: .95, side: T.DoubleSide, color: new T.Color('#b9aca2')}); /* tinted toward old iron: less flat red, more metal catching the light */
   await triplanarDetail(mat);
   m.map?.dispose(); m.roughnessMap?.dispose(); m.dispose(); mesh.material = mat; mesh.castShadow = mesh.receiveShadow = true;
   scene.add(root);
@@ -80,6 +80,15 @@ export async function buildGlbCage(renderer: T.WebGLRenderer, scene: T.Scene, hi
   scene.add(lamp, lamp.target);
   const bulb = {intensity: 0};
   const glow = new T.Mesh(new T.SphereGeometry(.03, 16, 10), new T.MeshBasicMaterial({color: '#ffcf96'})); glow.position.copy(lamp.position).y -= .02; scene.add(glow);
+  // the lamp's beam made visible: a soft additive cone (bright at the bulb, fading to the floor) with dust drifting in it
+  const beamH = ceilingY - floorY - .15, beamTex = (() => { const c = document.createElement('canvas'); c.width = 4; c.height = 128; const x = c.getContext('2d')!, g = x.createLinearGradient(0, 0, 0, 128);
+    g.addColorStop(0, 'rgba(255,190,120,.0)'); g.addColorStop(.06, 'rgba(255,190,120,.55)'); g.addColorStop(.5, 'rgba(255,170,100,.16)'); g.addColorStop(1, 'rgba(255,150,80,0)'); x.fillStyle = g; x.fillRect(0, 0, 4, 128); const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t; })();
+  const beam = new T.Mesh(new T.CylinderGeometry(.03, Math.tan(1.05 * .55) * beamH, beamH, 32, 1, true), new T.MeshBasicMaterial({map: beamTex, transparent: true, opacity: .32, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, fog: false}));
+  beam.position.set(lamp.position.x, ceilingY - .12 - beamH / 2, lamp.position.z); beam.renderOrder = 2; beam.raycast = () => {}; scene.add(beam);
+  const DUST = hi ? 220 : 90, dustPos = new Float32Array(DUST * 3), dustSeed = new Float32Array(DUST); for (let i = 0; i < DUST; i++) { const r = Math.sqrt(Math.random()) * .55, a = Math.random() * 6.283; dustPos[i * 3] = Math.cos(a) * r; dustPos[i * 3 + 1] = floorY + .2 + Math.random() * (beamH - .2); dustPos[i * 3 + 2] = Math.sin(a) * r; dustSeed[i] = Math.random() * 100; }
+  const dustGeo = new T.BufferGeometry(); dustGeo.setAttribute('position', new T.BufferAttribute(dustPos, 3));
+  const dust = new T.Points(dustGeo, new T.PointsMaterial({map: (() => { const c = document.createElement('canvas'); c.width = c.height = 32; const x = c.getContext('2d')!, g = x.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(.35, 'rgba(255,255,255,.45)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 32, 32); return new T.CanvasTexture(c); })(), color: '#ffd2a0', size: .006, transparent: true, opacity: .5, depthWrite: false, blending: T.AdditiveBlending, sizeAttenuation: true, fog: false})); dust.raycast = () => {}; scene.add(dust);
+  const driftDust = (dt: number) => { for (let i = 0; i < DUST; i++) { const k = i * 3; dustPos[k + 1] -= dt * .02; dustPos[k] += Math.sin(t * .4 + dustSeed[i]) * dt * .01; if (dustPos[k + 1] < floorY + .1) dustPos[k + 1] = floorY + beamH; } dustGeo.attributes.position.needsUpdate = true; };
   const lava = createLava(scene, floorY - 3.2, hi);
   // soft bounce fill so corners and the far walls never fall to pure black (no shadows: cheap on phones)
   for (const [x, yy, z, c, k] of [[0, .5, 0, '#ffc79a', 1.0]] as const) { const f = new T.PointLight(c, k, 4.5, 1.5); f.position.set(x * (px + nx) / 2, floorY + yy * (ceilingY - floorY), z * (pz + nz) / 2); scene.add(f); }
@@ -115,7 +124,7 @@ export async function buildGlbCage(renderer: T.WebGLRenderer, scene: T.Scene, hi
     update(dt: number) {
     if (plunging && lavaY < lavaTarget) { fallV += 9.8 * (lavaY < floorY ? 1.6 : .08) * dt; if (lavaY >= floorY) fallV = Math.min(fallV, .35); lavaY = Math.min(lavaTarget, lavaY + fallV * dt); lava.setY(lavaY); }
     else if (lavaY < lavaTarget) { fallV += 9.8 * 1.4 * dt; lavaY = Math.min(lavaTarget, lavaY + fallV * dt); lava.setY(lavaY); if (lavaY >= lavaTarget) { api.onFallImpact(Math.min(1.5, fallV / 3)); fallV = 0; } }
-    t += dt; lava.update(dt);
+    t += dt; lava.update(dt); driftDust(dt);
     const f = Math.random() < .003 ? .3 : 1; lamp.intensity = 34 * (.97 + Math.sin(t * 47) * .015) * f * api.power; bulb.intensity = 2.2 * f * api.power;
     alarm.intensity = api.alarmLevel * 9 * (.55 + .45 * Math.max(0, Math.sin(t * 9)));
   }};
