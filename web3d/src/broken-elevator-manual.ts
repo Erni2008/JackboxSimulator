@@ -32,6 +32,7 @@ import {LinksView, makeLinks, type LinksModel} from "./games/broken-elevator/bom
 import {XrayView, makeXray, solveXray, type XrayLayout} from "./games/broken-elevator/bomb/xray";
 import {LaserView, makeLaser, trace as laserTrace, type LaserLayout} from "./games/broken-elevator/bomb/laser";
 import {ThermalView, makeThermal, solveThermal, type ThermalLayout} from "./games/broken-elevator/bomb/thermal";
+import {ReferencePanel, type RefSource, type RefDock} from "./games/broken-elevator/manual/reference";
 import {CipherView, makeCipher, cipherAccepts, cipherKeys, type CipherLayout} from "./games/broken-elevator/bomb/cipher";
 import {Notebook} from "./games/broken-elevator/bomb/notebook";
 import {memoPages} from "./games/broken-elevator/bomb/memo";
@@ -254,6 +255,23 @@ async function boot() {
   // АДСКАЯ КЛЕТКА room mode: the server runs the shift (3 rounds, shared timer); the phone only plays the round it is given
   let IN_ROOM = false; /* true once the server runs a shift for this room */ let serverKind: Kind | null = null, curRound = -1, roundLimitS = 0, roundDeadlineAt = 0, shiftV: any = null;
   let kind: Kind = kindOf(1);
+  // REFERENCE PANEL: the current book's pages, docked beside (PC) or under (phone) the task, so it can be read while solving
+  const asRef = (b: EngineersManual) => ({page: (i: number) => (b as any).page(i) as HTMLCanvasElement, get count() { return b.pages.length; }});
+  const refSource = (): RefSource | null => {
+    if (kind === 'bomb') { if (!dbook) return null; const f = suitcase?.focus;
+      return {key: 'bomb', title: L('Блокнот обезвреживания', 'Defusal notebook'), book: asRef(dbook), start: f ? MECHANISMS.indexOf(f) + 1 : 0,
+        tabs: [{label: '§', title: L('Памятка', 'Briefing'), page: 0}, ...MECHANISMS.map((m, i) => ({label: ['I', 'II', 'III', 'IV', 'V', 'VI'][i], title: m, page: i + 1}))]}; }
+    if (kind === 'formula') return {key: 'journal', title: L('Журнал алхимика', "The alchemist's journal"), book: asRef(journal)};
+    return {key: 'manual', title: L('Справочник инженера', "The engineer's manual"), book: asRef(book)}; };
+  const ref = new ReferencePanel(refSource); ref.sounds.turn = () => audio.play('pageTurn', .7);
+  ref.onOpen = () => { const h = cur(); if ((h.state === 'held' || h.state === 'reading') && !h.lowered) h.setLowered(true); if (dui && (dui.state === 'held' || dui.state === 'reading') && !dui.lowered) dui.setLowered(true); };
+  let refDock: RefDock = null, refW = 0, refH = 0;
+  /** the scene re-centres in the area the panel leaves free (the projection is shifted, the canvas stays full size, so taps still map) */
+  let refExtra = 0; // the phone keypad above the sheet also takes room: the scene centres in what is left
+  const applyRefView = () => { if (!refDock) { camera.clearViewOffset(); return; } const w = innerWidth, h = innerHeight; camera.setViewOffset(w, h, refW / 2, refDock === 'sheet' ? (refH + refExtra - Math.min(120, h * .13)) / 2 : 0, w, h); }; /* on a phone the top strip keeps the timer and the task tag */
+  ref.onLayout = (d, w, h) => { refDock = d; refW = w; refH = h; applyRefView(); };
+  addEventListener('resize', applyRefView);
+  let refFocus: string | null = null, refKind = kind;
   const hud = () => { $('task').textContent = `${innerWidth < 520 ? '' : L('ЗАДАНИЕ', 'TASK') + ' '}${taskNo} / ${TOTAL} · ${kind === 'pressure' ? L('КЛАПАНЫ', 'VALVES') : kind === "formula" ? L("ФОРМУЛА", "FORMULA") : kind === "lock" ? L("ЗАМОК", "LOCK") : kind === "bomb" ? L("БОМБА", "BOMB") : L("ПРОВОДА", "WIRES")} · ${diffName().toUpperCase()}`; };
   // result card: low on screen (≈85 % of the viewport), fades in, a small mechanical jolt, holds, fades out (~2 s)
   let verdictTimer: any = 0;
@@ -488,6 +506,10 @@ async function boot() {
   const FPS_CAP = +(params.get('fps') || (mobile ? 30 : 0)); let lastDraw = 0;
   const loop = (now: number) => {
     if (FPS_CAP && now - lastDraw < 1000 / FPS_CAP - 2) { requestAnimationFrame(loop); return; } lastDraw = now;
+    { ref.setAvailable(!$('verdict').classList.contains('show') && (kind !== 'bomb' || !!dbook));
+      if (kind !== refKind) { refKind = kind; ref.refresh(); }
+      { const pad = $('cipher-pad'), ex = refDock === 'sheet' && !pad.hidden ? pad.offsetHeight + 8 : 0; if (ex !== refExtra) { refExtra = ex; applyRefView(); } }
+      const f = kind === 'bomb' ? suitcase?.focus ?? null : null; if (f !== refFocus) { refFocus = f; if (f && ref.open) ref.go(MECHANISMS.indexOf(f) + 1); } }
     const dt = Math.min(.05, (now - last) / 1000) * timeScale; last = now; acc += dt; frames++;
     if (acc > 1) { const ms = acc / frames * 1000; if (ms > (FPS_CAP ? 1000 / FPS_CAP + 7 : 19)) { if (dpr > DPR_FLOOR) { dpr = Math.max(DPR_FLOOR, dpr - .2); renderer.setPixelRatio(dpr); resize(); } else if (shadowEvery < 15) shadowEvery = shadowEvery * 2 + 1; } acc = 0; frames = 0; }
     // gentle head motion while looking around the cage (none while reading)
@@ -508,7 +530,7 @@ async function boot() {
     { const up = (['held', 'reading', 'lifting'].includes(cur().state) && !cur().lowered) || notes.held >= 0 || nb.open; if (document.body.classList.contains('paper-up') !== up) document.body.classList.toggle('paper-up', up); } // a book or sheet in front of the eyes: the task text steps aside
     cage.update(dt); ui.update(dt); jui.update(dt); if (kind === "wire" || inspectTarget === "box") box.update(dt); if (kind === "pressure" || inspectTarget === "pressure") press.update(dt, link.view()); if (kind === "formula" || inspectTarget === "lab") lab.update(dt, flink.view()); if (kind === "lock" || inspectTarget === "lock") lock.update(dt); /* only the machine in play animates */
     if (suitcase && nbook) { const liveK = kind === 'bomb'; suitcase.root.visible = liveK; if (nbook.root) nbook.root.visible = liveK; nbook.update();
-      { const split = liveK && inspecting && inspectTarget === 'bomb' && suitcase.state === 'held' && nbook.open; suitcase.sideOn = split; if (dui) dui.splitOn = split; if (dbook && dui && suitcase.focus !== bookFocus) { bookFocus = suitcase.focus; const i = bookFocus ? (['WIRE_MAZE', 'HIDDEN_CONNECTIONS', 'XRAY', 'LASER', 'THERMAL'] as string[]).indexOf(bookFocus) : -1; bookGoal = i >= 0 ? {spread: Math.floor((i + 1) / 2), side: i % 2 === 0 ? 1 : -1} : null; }
+      { const split = liveK && inspecting && inspectTarget === 'bomb' && suitcase.state === 'held' && nbook.open && !ref.open; suitcase.sideOn = split; if (dui) dui.splitOn = split; if (dbook && dui && suitcase.focus !== bookFocus) { bookFocus = suitcase.focus; const i = bookFocus ? (['WIRE_MAZE', 'HIDDEN_CONNECTIONS', 'XRAY', 'LASER', 'THERMAL'] as string[]).indexOf(bookFocus) : -1; bookGoal = i >= 0 ? {spread: Math.floor((i + 1) / 2), side: i % 2 === 0 ? 1 : -1} : null; }
       // a bay brought up: the notebook leafs to that bay's page by itself (page 2 + its index; two pages a spread)
       if (bookGoal && dbook && dui && dui.state === 'reading' && !dui.lowered) { if (dbook.spread !== bookGoal.spread) { if (dbook.canTurn(Math.sign(bookGoal.spread - dbook.spread))) dbook.turn(Math.sign(bookGoal.spread - dbook.spread), 2.2); } else { dui.showSide(bookGoal.side); bookGoal = null; } } if (split && dui && frameNo % 6 === 0) { spPrev ??= document.querySelector('.sp-prev'); spNext ??= document.querySelector('.sp-next'); spPrev?.classList.toggle('on', dui.focusSide < 0); spNext?.classList.toggle('on', dui.focusSide > 0); } if (document.body.classList.contains('split') !== split) document.body.classList.toggle('split', split); if (frameNo % 15 === 0 || !split) document.body.classList.toggle('vsplit', split && camera.aspect < .9); } dui?.update(dt); $('btn-nb').hidden = !(liveK && nbook.taken && inspecting && inspectTarget === 'bomb'); let gs = gazeS, gn = gazeN;
       if (liveK && !inspecting && suitcase.enabled && frameNo % 3 === 0) { hoverRay.setFromCamera(new T.Vector2(0, 0), camera); const a = suitcase.hits(hoverRay), b = nbook.hits(hoverRay); gs = !!a && a.distance < 2.2 && (!b || a.distance < b.distance); gn = !!b && b.distance < 2.2 && !gs; }

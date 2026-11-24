@@ -289,3 +289,66 @@ body.paper-up #hint,body.paper-up #task,body.paper-up #host-say{opacity:0!import
 #cipher-pad #cp-back { font: 600 15px 'IM Fell English SC', serif; letter-spacing: .08em; }
 #cipher-pad #cp-go { font: 700 18px 'IM Fell English SC', serif; letter-spacing: .16em; text-transform: uppercase; background: linear-gradient(#5f8a2a, #2e4a10); box-shadow: inset 0 0 0 1px #b8e07a, 0 0 14px rgba(140,220,90,.35), 0 2px 0 #0a0503; }
 body.cipher-on #host-say { bottom: calc(var(--pad-h, 180px) + 30px + env(safe-area-inset-bottom)); }
+
+/* REFERENCE PANEL (manual/reference.ts): the manual read flat beside / under the task */
+#ref-btn { position: fixed; left: 16px; top: max(132px, calc(env(safe-area-inset-top) + 120px)); z-index: 40; display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 7px 14px 7px 10px;
+  border: 0; border-radius: 4px; font: 700 14px 'IM Fell English SC', serif; letter-spacing: .1em; color: #fbe3c4; cursor: pointer;
+  background: linear-gradient(#5a3420, #2e1a10); box-shadow: inset 0 0 0 1.5px #c98a52, inset 0 0 0 4px #2a160c, inset 0 0 0 5px rgba(242,194,140,.3), 0 6px 16px rgba(0,0,0,.6); }
+#ref-btn[hidden] { display: none; }
+#ref-btn .ref-ico { width: 20px; height: 15px; border: 2px solid #f2c28c; border-radius: 2px 2px 3px 3px; position: relative; box-sizing: border-box; }
+#ref-btn .ref-ico::after { content: ""; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 2px; margin-left: -1px; background: #f2c28c; }
+#ref-btn.on { background: linear-gradient(#8a4a22, #4a1e0e); box-shadow: inset 0 0 0 1.5px #ffd8a8, inset 0 0 0 4px #2a160c, 0 0 18px rgba(255,170,90,.45); }
+#ref { position: fixed; z-index: 45; display: flex; flex-direction: column; box-sizing: border-box; color: #f4dcc0; font-family: 'IM Fell English SC', serif;
+  background: linear-gradient(#1d1210, #120a08); box-shadow: inset 0 0 0 1.5px #8a5530, inset 0 0 0 6px #1a1011, inset 0 0 0 7px rgba(201,138,82,.28), 0 0 40px rgba(0,0,0,.8); }
+#ref[hidden] { display: none; }
+body.ref-side #ref { top: 0; right: 0; bottom: 0; width: var(--ref-w); padding: 10px 12px 12px; }
+body.ref-sheet #ref { left: 0; right: 0; bottom: 0; height: var(--ref-h); padding: 0 10px calc(10px + env(safe-area-inset-bottom)); border-radius: 14px 14px 0 0; }
+#ref.in { animation: ref-in .32s cubic-bezier(.2,1,.3,1) both; }
+body.ref-side #ref.in { animation-name: ref-in-side; }
+@keyframes ref-in { from { transform: translateY(40%); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes ref-in-side { from { transform: translateX(40%); opacity: 0; } to { transform: none; opacity: 1; } }
+.ref-grip { display: none; height: 26px; align-items: center; justify-content: center; cursor: ns-resize; touch-action: none; flex: none; }
+body.ref-sheet .ref-grip { display: flex; }
+.ref-grip i { width: 54px; height: 5px; border-radius: 3px; background: #c98a52; opacity: .8; }
+.ref-head { display: flex; align-items: center; gap: 10px; padding: 4px 4px 8px; flex: none; }
+.ref-title { flex: 1; font-size: 17px; letter-spacing: .08em; color: #fbe3c4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ref-count { font: 600 13px 'IBM Plex Mono', monospace; color: #c9a675; }
+#ref button { border: 0; border-radius: 4px; color: #fbe3c4; cursor: pointer; touch-action: manipulation; background: linear-gradient(#4a2c1a, #26160c); box-shadow: inset 0 0 0 1px rgba(242,194,140,.45); }
+#ref button:disabled { opacity: .35; cursor: default; }
+.ref-close { width: 34px; height: 34px; font-size: 16px; }
+.ref-tabs { display: flex; gap: 5px; padding: 0 2px 8px; flex: none; overflow-x: auto; }
+.ref-tabs[hidden] { display: none; }
+.ref-tabs button { min-width: 40px; height: 32px; font: 700 15px 'IM Fell English SC', serif; }
+.ref-tabs button.on { background: linear-gradient(#a0401c, #5e1a0c); box-shadow: inset 0 0 0 1px #ffd8a8, 0 0 10px rgba(255,140,60,.35); }
+.ref-view { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; border-radius: 3px; background: #0a0605; box-shadow: inset 0 0 0 1px rgba(201,138,82,.35); -webkit-overflow-scrolling: touch; touch-action: pan-y; }
+.ref-view canvas { display: block; margin: 0 auto; }
+#ref.flip-r .ref-view canvas { animation: ref-flip-r .28s ease-out; }
+#ref.flip-l .ref-view canvas { animation: ref-flip-l .28s ease-out; }
+@keyframes ref-flip-r { from { transform: translateX(26px); opacity: .3; } to { transform: none; opacity: 1; } }
+@keyframes ref-flip-l { from { transform: translateX(-26px); opacity: .3; } to { transform: none; opacity: 1; } }
+.ref-foot { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding-top: 8px; flex: none; }
+.ref-foot button { height: 42px; font: 700 15px 'IM Fell English SC', serif; letter-spacing: .1em; }
+/* the task's own controls move into the free area */
+body.ref-side #cipher-pad, body.ref-side #scope, body.ref-side #host-say, body.ref-side #bomb-coach { left: calc((100vw - var(--ref-w)) / 2); }
+body.ref-side #cipher-pad { width: min(calc(94vw - var(--ref-w)), 460px); }
+body.ref-sheet #cipher-pad, body.ref-sheet #scope { bottom: calc(var(--ref-h) + 8px); }
+body.ref-sheet #host-say, body.ref-sheet.cipher-on #host-say { bottom: auto; top: max(18vh, 120px); }
+body.ref-sheet #cipher-pad button { min-height: 36px; font-size: 17px; }
+body.ref-sheet #cipher-pad .cp-keys { gap: 4px; }
+@media (prefers-reduced-motion: reduce) { #ref.in, #ref .ref-view canvas { animation: none !important; } }
+/* phone with the sheet open: the top HUD and the captions step aside so the task has the free strip */
+body.ref-side #hint { padding-right: calc(var(--ref-w) + 20px); padding-left: 180px; }
+body.ref-sheet #btn-sound, body.ref-sheet #btn-cam, body.ref-sheet #ref-btn, body.ref-sheet #hint, body.ref-sheet #host-say, body.ref-sheet #bomb-coach { display: none !important; }
+/* compact sheet chrome on phones: more of the page shows */
+body.ref-sheet .ref-grip { height: 18px; }
+body.ref-sheet .ref-head { padding: 0 2px 6px; }
+body.ref-sheet .ref-title { font-size: 14px; }
+body.ref-sheet .ref-close { width: 30px; height: 30px; }
+body.ref-sheet .ref-tabs { padding-bottom: 6px; }
+body.ref-sheet .ref-tabs button { height: 28px; min-width: 36px; font-size: 13px; }
+body.ref-sheet .ref-foot { padding-top: 6px; }
+body.ref-sheet .ref-foot button { height: 34px; font-size: 13px; }
+/* PC with the side panel: the timer, task tag, prompt and tester stay in the free area */
+body.ref-side #clock { right: calc(var(--ref-w) + 16px); }
+body.ref-side #task, body.ref-side #prompt, body.ref-side #tester { left: calc((100vw - var(--ref-w)) / 2); }
+body.ref-sheet #tester { bottom: calc(var(--ref-h) + 8px); }

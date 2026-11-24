@@ -156,8 +156,25 @@ const heat: Draw = x => {
   caption(x, L('Самая горячая капсула почти никогда не опасна.', 'The hottest capsule is almost never the one.'), y - 6);
   warn(x);
 };
-/** the notebook's six pages (memo + I–V), each drawing its own paper in 1000×1400 page space */
+const cipher: Draw = x => {
+  head(x, 'VI', L('Шифр', 'Cipher'), L('шифратор', 'cipher lock'));
+  let y = section(x, L('ПОРЯДОК', 'ORDER'), 290);
+  y = step(x, 1, L('Прочитай красную надпись над экранами: СЛОВО → HEX или HEX → СЛОВО.', 'Read the red line above the screens: WORD → HEX or HEX → WORD.'), y);
+  y = step(x, 2, L('Каждую букву или код найди в таблице ниже. Набери ответ на клавиатуре и нажми ВВОД.', 'Look up every letter or code in the table below. Type the answer on the keypad and press SUBMIT.'), y);
+  y = example(x, 'SOUL → 53 4F 55 4C   ·   43 41 47 45 → CAGE', y);
+  // the A–Z table: three ledger columns of letter and code
+  const cols = 4, rows = 7, cw = (PW - 2 * M) / cols, rh = 48;
+  for (let i = 0; i < 26; i++) { const c = Math.floor(i / rows), r = i % rows, px = M + c * cw, py = y + r * rh, ch = String.fromCharCode(65 + i);
+    if (r % 2 === 0) { x.fillStyle = 'rgba(42,29,18,.07)'; x.fillRect(px + 4, py, cw - 8, rh); }
+    font(x, 32, MONO, 'bold'); x.fillStyle = INK; x.textAlign = 'left'; x.fillText(ch, px + 22, py + 35);
+    font(x, 26, MONO); x.fillStyle = 'rgba(42,29,18,.5)'; x.fillText('=', px + 66, py + 34);
+    font(x, 32, MONO, 'bold'); x.fillStyle = RED; x.fillText(ch.charCodeAt(0).toString(16).toUpperCase(), px + 104, py + 35); }
+  y += rows * rh + 26;
+  y = rule(x, L('Пробелы не нужны. Неверный ВВОД — ошибка.', 'No spaces needed. A wrong SUBMIT is a mistake.'), y);
+  warn(x);
+};
+/** the notebook's seven pages (memo + I–VI), each drawing its own paper in 1000×1400 page space */
 export function memoPages(d: MemoDiff = 'NORMAL'): ((x: CanvasRenderingContext2D) => void)[] {
   const pin = d; // the pages render lazily (when turned to), so each one re-pins its own difficulty
-  return [memo, wires, contacts, xray, laser, heat].map((dr, i) => (x: CanvasRenderingContext2D) => { D = pin; paper(x, 300 + i); const ink = inkFor(x, 700 + i); dr(x, ink); frame(x, i + 1); });
+  return [memo, wires, contacts, xray, laser, heat, cipher].map((dr, i) => (x: CanvasRenderingContext2D) => { D = pin; paper(x, 300 + i); const ink = inkFor(x, 700 + i); dr(x, ink); frame(x, i + 1); });
 }
