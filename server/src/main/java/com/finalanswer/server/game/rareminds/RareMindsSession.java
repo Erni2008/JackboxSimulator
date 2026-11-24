@@ -17,11 +17,13 @@ import java.util.*;
  */
 public final class RareMindsSession {
     /** CLASSIC, or DUELS: with an even number of players, sometimes (15 %) everyone also plays a fixed 1-on-1 duel */
-    public enum Format {CLASSIC,DUELS}
-    public static final double DUEL_CHANCE=.15,RACE_CHANCE=.35;
+    public enum Format {CLASSIC,DUELS,TEAMS}
+    public static final double TEAM_CHANCE=.15,DUEL_CHANCE=.15,RACE_CHANCE=.35;
     public final Format format;
     /** presentation only: some matches show the scores as the Soul Race, the others as a leaderboard */
     public final boolean race;
+    /** one roll: DUELS (even tables) or TEAMS (4+ players), each 15 %, otherwise CLASSIC */
+    static Format roll(int seats,Random random){double r=random.nextDouble();if(seats%2==0&&r<DUEL_CHANCE)return Format.DUELS;if(seats>=4&&r>=DUEL_CHANCE&&r<DUEL_CHANCE+TEAM_CHANCE)return Format.TEAMS;return Format.CLASSIC;}
     public enum Phase {INITIALIZING,QUESTION_ACTIVE,ANSWERS_LOCKED,REVEALING_RESULTS,FINAL_RESULTS,COMPLETED}
     public record Timing(long introMs,long answerMs,long lockedMs,long revealMs,long finalRevealMs,long resultsMs,long graceMs){
         public static final Timing DEFAULT=new Timing(7000,18000,3200,9000,10000,16000,350);
@@ -44,7 +46,7 @@ public final class RareMindsSession {
     /** @param forced a format to use (QA); null rolls it: DUELS with {@link #DUEL_CHANCE} when the player count is even */
     public RareMindsSession(List<String> seats,RareQuestionBank bank,RarityStats stats,Random random,long now,Format forced){this(seats,bank,stats,random,now,forced,null);}
     public RareMindsSession(List<String> seats,RareQuestionBank bank,RarityStats stats,Random random,long now,Format forced,Boolean forcedRace){
-        this(seats,bank.draw(RareRules.QUESTIONS,random),bank.validator(),stats,Timing.DEFAULT,now,forced!=null?forced:seats.size()%2==0&&random.nextDouble()<DUEL_CHANCE?Format.DUELS:Format.CLASSIC,random,forcedRace!=null?forcedRace:random.nextDouble()<RACE_CHANCE);}
+        this(seats,bank.draw(RareRules.QUESTIONS,random),bank.validator(),stats,Timing.DEFAULT,now,forced!=null?forced:roll(seats.size(),random),random,forcedRace!=null?forcedRace:random.nextDouble()<RACE_CHANCE);}
     public RareMindsSession(List<String> seats,List<RareQuestion> questions,CuratedAnswerValidator validator,RarityStats stats,Timing timing,long now){this(seats,questions,validator,stats,timing,now,Format.CLASSIC,new Random(0),false);}
     public RareMindsSession(List<String> seats,List<RareQuestion> questions,CuratedAnswerValidator validator,RarityStats stats,Timing timing,long now,Format format,Random random,boolean race){
         this.race=race;
@@ -55,6 +57,8 @@ public final class RareMindsSession {
         for(int i=0;i<seats.size();i++){Player p=new Player(seats.get(i),i);players.add(p);byId.put(p.id,p);}
         if(format==Format.DUELS&&seats.size()%2!=0)throw new Failure(409,"RM_DUELS_NEED_EVEN");
         this.format=format;
+        if(format==Format.TEAMS&&seats.size()<4)throw new Failure(409,"RM_TEAMS_NEED_FOUR");
+        if(format==Format.TEAMS){List<Player> order=new ArrayList<>(players);Collections.shuffle(order,random);for(int i=0;i<order.size();i++)order.get(i).team=i%2;}
         if(format==Format.DUELS){List<Player> order=new ArrayList<>(players);Collections.shuffle(order,random);
             for(int i=0;i+1<order.size();i+=2){order.get(i).opponent=order.get(i+1).id;order.get(i+1).opponent=order.get(i).id;}}
         enter(Phase.INITIALIZING,now,timing.introMs());
@@ -77,7 +81,7 @@ public final class RareMindsSession {
             case INITIALIZING->startQuestion(1,at);
             case QUESTION_ACTIVE->lock(at);
             case ANSWERS_LOCKED->enter(Phase.REVEALING_RESULTS,at,(question==RareRules.QUESTIONS?timing.finalRevealMs():timing.revealMs())); /* duels add their scoreboard */
-            case REVEALING_RESULTS->{if(question<RareRules.QUESTIONS)startQuestion(question+1,at);else{standings=RareRules.finish(players);enter(Phase.FINAL_RESULTS,at,timing.resultsMs());}}
+            case REVEALING_RESULTS->{if(question<RareRules.QUESTIONS)startQuestion(question+1,at);else{standings=format==Format.TEAMS?RareRules.finishTeams(players):RareRules.finish(players);enter(Phase.FINAL_RESULTS,at,timing.resultsMs());}}
             case FINAL_RESULTS->enter(Phase.COMPLETED,at,-1);
             default->{return changed;}
         }}
@@ -145,7 +149,7 @@ public final class RareMindsSession {
     /** {@code host}: the host's own game client also gets live typing (the host shows it on the big screen by choice). */
     public Map<String,Object> snapshot(String self,boolean host,long now){
         Map<String,Object> v=new LinkedHashMap<>();
-        v.put("sessionId",id);v.put("format",format.name());v.put("race",race);v.put("duelBonus",question==RareRules.QUESTIONS?RareRules.FINAL_DUEL_BONUS:RareRules.DUEL_BONUS);v.put("phase",phase.name());v.put("serverTime",now);v.put("phaseStartedAt",phaseStarted);v.put("phaseEndsAt",ends());
+        v.put("sessionId",id);v.put("format",format.name());if(format==Format.TEAMS){long[] tt=RareRules.teamTotals(players);v.put("teamTotals",List.of(tt[0],tt[1]));}v.put("race",race);v.put("duelBonus",question==RareRules.QUESTIONS?RareRules.FINAL_DUEL_BONUS:RareRules.DUEL_BONUS);v.put("phase",phase.name());v.put("serverTime",now);v.put("phaseStartedAt",phaseStarted);v.put("phaseEndsAt",ends());
         v.put("question",question);v.put("questions",RareRules.QUESTIONS);v.put("finalQuestion",question==RareRules.QUESTIONS);
         v.put("answerMs",timing.answerMs());v.put("maxAnswer",RareText.MAX_ANSWER);
         v.put("jackpot",question==RareRules.QUESTIONS?RareRules.FINAL_JACKPOT:RareRules.JACKPOT);v.put("multiplier",question==RareRules.QUESTIONS?2:1);
@@ -157,7 +161,7 @@ public final class RareMindsSession {
             m.put("id",p.id);m.put("souls",p.souls);m.put("collisions",p.collisions);m.put("alive",p.alive);m.put("deathZone",p.deathZone());
             m.put("submitted",phase==Phase.QUESTION_ACTIVE&&subs.containsKey(p.id));
             m.put("eliminatedAt",p.eliminatedAt);m.put("resurrectionPossible",p.resurrectionPossible);m.put("resurrected",p.resurrected);
-            m.put("ghostUnique",p.ghostUnique);m.put("ghostRemaining",p.ghostRemaining(RareRules.QUESTIONS));m.put("jackpotStreak",p.jackpotStreak);m.put("jackpots",p.jackpots);if(p.opponent!=null){m.put("opponent",p.opponent);m.put("duelWins",p.duelWins);}
+            m.put("ghostUnique",p.ghostUnique);m.put("ghostRemaining",p.ghostRemaining(RareRules.QUESTIONS));m.put("jackpotStreak",p.jackpotStreak);m.put("jackpots",p.jackpots);if(p.team>=0)m.put("team",p.team);if(p.opponent!=null){m.put("opponent",p.opponent);m.put("duelWins",p.duelWins);}
             ps.add(m);}
         v.put("players",ps);
         if(!outcomes.isEmpty()&&(phase==Phase.ANSWERS_LOCKED||phase==Phase.REVEALING_RESULTS||phase==Phase.FINAL_RESULTS||phase==Phase.COMPLETED))v.put("reveal",outcomeView(outcomes.get(outcomes.size()-1)));

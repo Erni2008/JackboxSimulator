@@ -9,7 +9,7 @@ import java.util.*;
  * count up with a "+gained" chip, then the table re-sorts in one smooth move; overtakers flash ▲.
  */
 final class RareMindsLeaderboard {
-    record Row(String name,String character,long from,long to,int skulls,boolean ghost,boolean collided,boolean jackpot){}
+    record Row(String name,String character,long from,long to,int skulls,boolean ghost,boolean collided,boolean jackpot,int team){}
     private final RareMindsArt art;RareMindsLeaderboard(RareMindsArt art){this.art=art;}
     void draw(float x,float y,float w,float h,String title,List<Row> rows,float t){
         art.panel(x,y,w,h,1,null);art.text(art.mid,title,x+w/2,y+h-22,.78f,RareMindsArt.IVORY,1,w-80);
@@ -23,7 +23,8 @@ final class RareMindsLeaderboard {
             art.text(art.num,String.valueOf(place),x+62,cy+16,.62f,mc,1,0);
             Texture face=art.face(r.character());float fs=rowH-16;if(face!=null){batch().setColor(r.ghost()?.6f:1,r.ghost()?.8f:1,1,1);batch().draw(face,x+100,cy-fs/2,fs,fs);}
             batch().setColor(mc);batch().draw(art.ring,x+98,cy-fs/2-2,fs+4,fs+4);
-            art.textLeft(art.small,r.name(),x+116+fs,cy+18,.95f,r.ghost()?RareMindsArt.GHOST:RareMindsArt.IVORY,1);
+            art.textLeft(art.small,r.name(),x+116+fs,cy+18,.95f,r.team()>=0?RareMindsScreen.teamColor(r.team()):r.ghost()?RareMindsArt.GHOST:RareMindsArt.IVORY,1);
+            if(r.team()>=0)art.rect(x+24,ry+3,5,rowH-6,RareMindsScreen.teamColor(r.team()),.9f);
             for(int k=0;k<3;k++){batch().setColor(k<r.skulls()?(r.ghost()?RareMindsArt.GHOST:RareMindsArt.RED):new Color(.3f,.24f,.22f,1));batch().draw(art.skull,x+118+fs+k*26,cy-24,22,22);}
             long shown=r.from()+Math.round((r.to()-r.from())*count);
             art.textRight(art.num,String.format(Locale.ROOT,"%,d",shown).replace(',',' '),x+w-60,cy+18,.62f,RareMindsArt.GOLD,1);

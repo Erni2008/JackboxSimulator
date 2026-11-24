@@ -9,7 +9,7 @@ import java.util.*;
  */
 public final class RareRules {
     public static final int QUESTIONS=8,MIN_PLAYERS=2,MAX_PLAYERS=8,MAX_COLLISIONS=3;
-    public static final int DUEL_BONUS=200,FINAL_DUEL_BONUS=400,JACKPOT=300,FINAL_JACKPOT=500,STREAK_2=150,STREAK_3=300,RESURRECTION_BONUS=100,WINNER_BONUS=500;
+    public static final int TEAM_WIN_BONUS=300,DUEL_BONUS=200,FINAL_DUEL_BONUS=400,JACKPOT=300,FINAL_JACKPOT=500,STREAK_2=150,STREAK_3=300,RESURRECTION_BONUS=100,WINNER_BONUS=500;
     private RareRules(){}
 
     /** Mutable per-player match state, owned by the session. Souls here are this mini-game's souls only. */
@@ -24,6 +24,8 @@ public final class RareRules {
         public int jackpotStreak,jackpots,duelWins;
         /** DUELS format: the fixed opponent for the whole match (null in the classic format) */
         public String opponent;
+        /** TEAMS format: 0 or 1 (-1 in the other formats) */
+        public int team=-1;
         public Player(String id,int seat){this.id=id;this.seat=seat;}
         public boolean deathZone(){return alive&&collisions==MAX_COLLISIONS-1;}
         /** questions a ghost still has to answer uniquely to come back (0 when not applicable) */
@@ -56,16 +58,19 @@ public final class RareRules {
         Map<String,Rarity.Estimate> est=new HashMap<>();for(String a:share.keySet())est.put(a,Rarity.estimate(q,a,stats));
 
         Map<String,Integer> earned=new HashMap<>(),pct=new HashMap<>(),base=new HashMap<>();Map<String,Risk> risk=new HashMap<>();
+        // TEAMS: an answer shared with a teammate is the worst collision of all — it pays nothing
+        Set<String> teamCol=new HashSet<>();
+        for(Player p:players){var r=val.get(p.id);if(p.team<0||!r.valid())continue;for(Player o:players)if(o!=p&&o.team==p.team&&val.get(o.id).valid()&&val.get(o.id).answerId().equals(r.answerId()))teamCol.add(p.id);}
         Set<String> wasAlive=new HashSet<>(),diedNow=new HashSet<>(),ghostOk=new HashSet<>(),lostNow=new HashSet<>();
         for(Player p:players){
             var r=val.get(p.id);Submission s=subs.get(p.id);boolean valid=r.valid();boolean collided=valid&&share.get(r.answerId())>1;
             int b=valid?est.get(r.answerId()).tier().souls*(fin?2:1):0,e=b,cut=0;Risk rk=Risk.NONE;
             if(p.alive){wasAlive.add(p.id);
                 boolean risky=s!=null&&s.riskIt()&&p.collisions==MAX_COLLISIONS-1;
-                if(collided){p.collisions++;cut=p.collisions==1?25:50;e=b*(100-cut)/100;if(risky)rk=Risk.FAILED;if(p.collisions>=MAX_COLLISIONS)diedNow.add(p.id);}
+                if(collided){p.collisions++;cut=teamCol.contains(p.id)?100:p.collisions==1?25:50;e=b*(100-cut)/100;if(risky)rk=Risk.FAILED;if(p.collisions>=MAX_COLLISIONS)diedNow.add(p.id);}
                 else if(risky){if(valid&&est.get(r.answerId()).tier().deep()){p.collisions=MAX_COLLISIONS-2;rk=Risk.SAVED;}else rk=Risk.HELD;}
             }else{
-                if(collided){cut=50;e=b/2;}
+                if(collided){cut=teamCol.contains(p.id)?100:50;e=b*(100-cut)/100;}
                 if(p.resurrectionPossible){if(valid&&!collided){p.ghostUnique++;ghostOk.add(p.id);}else{p.resurrectionPossible=false;lostNow.add(p.id);}}
             }
             p.souls+=e;earned.put(p.id,e);pct.put(p.id,cut);base.put(p.id,b);risk.put(p.id,rk);
@@ -109,6 +114,16 @@ public final class RareRules {
         if(!r.valid()||share.get(r.answerId())>1)return Long.MIN_VALUE;return est.get(r.answerId()).score();}
     /** Final standing. Only living players can win; ties: more souls, fewer collisions, earlier seat. */
     public record Standing(String playerId,int rank,long souls,boolean alive,boolean winner,int winnerBonus){}
+    /** TEAMS: the team with more souls wins; every member of it gets {@link #TEAM_WIN_BONUS}. Equal totals: no bonus. */
+    public static List<Standing> finishTeams(List<Player> players){
+        long[] tot=new long[2];for(Player p:players)if(p.team>=0)tot[p.team]+=p.souls;
+        int win=tot[0]==tot[1]?-1:tot[0]>tot[1]?0:1;
+        for(Player p:players)if(p.team==win)p.souls+=TEAM_WIN_BONUS;
+        List<Player> order=new ArrayList<>(players);order.sort(Comparator.<Player>comparingLong(p->-p.souls).thenComparingInt(p->p.seat));
+        List<Standing> out=new ArrayList<>();for(int i=0;i<order.size();i++){Player p=order.get(i);out.add(new Standing(p.id,i+1,p.souls,p.alive,p.team==win,p.team==win?TEAM_WIN_BONUS:0));}
+        return List.copyOf(out);
+    }
+    public static long[] teamTotals(List<Player> players){long[] t=new long[2];for(Player p:players)if(p.team>=0)t[p.team]+=p.souls;return t;}
     public static List<Standing> finish(List<Player> players){
         List<Player> order=new ArrayList<>(players);
         order.sort(Comparator.<Player,Boolean>comparing(p->!p.alive).thenComparing(p->-p.souls).thenComparingInt(p->p.collisions).thenComparingInt(p->p.seat));

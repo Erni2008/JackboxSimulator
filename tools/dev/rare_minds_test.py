@@ -10,6 +10,7 @@ rare answers and the jackpot. After the last round the script closes the window 
     python3 tools/dev/rare_minds_test.py              # 3 rounds, Russian questions on screen
     python3 tools/dev/rare_minds_test.py --rounds 5 --lang en --wpm 35
     python3 tools/dev/rare_minds_test.py --duels      # the 1-on-1 DUELS format
+    python3 tools/dev/rare_minds_test.py --teams      # TEAM VS TEAM
     python3 tools/dev/rare_minds_test.py --race       # the Soul Race (normally 35% of matches); --no-race for the leaderboard
 
 Needs: Java 21 (Gradle), python package `websockets`.
@@ -65,6 +66,7 @@ async def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--url', default='http://localhost:18330'); ap.add_argument('--rounds', type=int, default=3)
     ap.add_argument('--wpm', type=float, default=35); g = ap.add_mutually_exclusive_group(); g.add_argument('--race', dest='race', action='store_const', const='true', help='force the Soul Race (normally 35%%)'); g.add_argument('--no-race', dest='race', action='store_const', const='false', help='force the leaderboard')
+    ap.add_argument('--teams', action='store_true', help='force the TEAM VS TEAM format (normally 15%% with 4+ players)')
     ap.add_argument('--duels', action='store_true', help='force the 1-on-1 DUELS format (normally 15%% with an even table)'); ap.add_argument('--lang', choices=['ru', 'en'], default='ru')
     a = ap.parse_args()
     import websockets
@@ -82,7 +84,7 @@ async def main():
     code = host['code']
     print('room', code, '— opening the host screen …')
     procs.append(subprocess.Popen(['./gradlew', '-q', ':lwjgl3:rareMindsLiveHost', f'-Prm.url={a.url}', f'-Prm.code={code}',
-                                   f'-Prm.token={host["token"]}', f'-Prm.players={len(NAMES)}', f'-Prm.lang={a.lang}', f'-Prm.format={"DUELS" if a.duels else ""}', f'-Prm.race={a.race or ""}'], cwd=ROOT, start_new_session=True))
+                                   f'-Prm.token={host["token"]}', f'-Prm.players={len(NAMES)}', f'-Prm.lang={a.lang}', f'-Prm.format={"DUELS" if a.duels else "TEAMS" if a.teams else ""}', f'-Prm.race={a.race or ""}'], cwd=ROOT, start_new_session=True))
     ws_url = a.url.replace('http', 'ws', 1) + '/ws'
     bots = []
     for i, n in enumerate(NAMES):

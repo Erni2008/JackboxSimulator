@@ -62,6 +62,21 @@ class RareRulesTest {
         assertEquals(1,fin.row("p0").duelResult(),"an invalid answer loses the duel");assertEquals(RareRules.FINAL_DUEL_BONUS,fin.row("p0").duelBonus());
         assertEquals(1,fin.row("p2").duelResult(),"no answer loses too");
     }
+    @Test void teamsPunishTeammateCollisionsAndPayTheWinningTeam(){
+        var ps=players(4);ps.get(0).team=0;ps.get(1).team=0;ps.get(2).team=1;ps.get(3).team=1;
+        var o=play(1,ps,"p0","aspirin","p1","aspirin","p2","ibuprofen","p3","paracetamol");
+        assertEquals(0,o.row("p0").earned(),"teammates with the same answer earn nothing");assertEquals(1,ps.get(0).collisions,"and still take a skull");
+        var o2=play(2,ps,"p0","insulin","p2","insulin");assertEquals(tier("insulin")*50/100,o2.row("p0").earned(),"a collision with a rival is the usual one (second skull: -50%)");
+        long t1=ps.get(2).souls+ps.get(3).souls;var st=RareRules.finishTeams(ps);
+        assertTrue(t1>ps.get(0).souls+ps.get(1).souls);for(var s:st)assertEquals(s.playerId().equals("p2")||s.playerId().equals("p3"),s.winner());
+        assertEquals(RareRules.TEAM_WIN_BONUS,st.stream().filter(s->s.playerId().equals("p2")).findFirst().orElseThrow().winnerBonus());
+    }
+    @Test void teamsAreRolledForFourOrMore(){
+        int teams=0;for(int i=0;i<2000;i++){var s=new RareMindsSession(List.of("a","b","c","d","e"),BANK,new RarityStats.Memory(),new Random(i),0);if(s.format==RareMindsSession.Format.TEAMS){teams++;
+            long t0=s.seats().stream().filter(x->s.player(x).team==0).count();assertTrue(t0==2||t0==3);}}
+        assertTrue(teams>200&&teams<420,"about 15 %: "+teams);
+        for(int i=0;i<300;i++)assertNotEquals(RareMindsSession.Format.TEAMS,new RareMindsSession(List.of("a","b","c"),BANK,new RarityStats.Memory(),new Random(i),0).format);
+    }
     @Test void duelsAreRolledOnlyForAnEvenTable(){
         int duels=0;for(int i=0;i<2000;i++){var s=new RareMindsSession(List.of("a","b","c","d"),BANK,new RarityStats.Memory(),new Random(i),0);if(s.format==RareMindsSession.Format.DUELS){duels++;
             var p=s.player("a");assertNotNull(p.opponent);assertEquals("a",s.player(p.opponent).opponent);}}

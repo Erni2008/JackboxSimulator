@@ -120,7 +120,7 @@ public final class RareMindsScreen extends ScreenAdapter {
         batch.setColor(Color.WHITE);batch.draw(art.background,0,0,W,H);
         boolean fin=b(rm,"finalQuestion")&&!phase().equals("INITIALIZING");
         if(fin){float p=.5f+.5f*MathUtils.sin(clock*2.2f);art.glow(W/2,H*.55f,W*1.5f,H*1.3f,RareMindsArt.RED,.10f+.06f*p);}
-        header(fin);
+        header(fin);if(teamsFormat())teamBar();
         rules();timer();rarity(fin);
         String ph=phase();
         if(ph.equals("FINAL_RESULTS")||ph.equals("COMPLETED"))standings();
@@ -220,10 +220,14 @@ public final class RareMindsScreen extends ScreenAdapter {
         art.text(art.mid,tab,cx,y+h+15,.86f,fin?RareMindsArt.RED_SOFT:RareMindsArt.IVORY,1,0);
         if(ph.equals("INITIALIZING")){
             float t=Math.max(0,(l(rm,"phaseEndsAt")-now())/1000f);
-            art.paragraph(art.big,Localization.tr("Назови верный ответ, который не придёт в голову никому другому","Give a valid answer nobody else will think of"),cx,y+h-50,w-120,.82f,RareMindsArt.IVORY,1);
+            art.paragraph(art.big,Localization.tr("Назови верный ответ, который не придёт в голову никому другому","Give a valid answer nobody else will think of"),cx,y+h-40,w-120,duelsFormat()||teamsFormat()?.6f:.82f,RareMindsArt.IVORY,1);
             art.ornament(cx,y+106,520,RareMindsArt.GOLD,.7f);
-            if(!duelsFormat())art.text(art.small,Localization.tr("Совпадения ставят черепа · Редкость приносит души · 8 вопросов","Collisions cost skulls · Rarity pays souls · 8 questions"),cx,y+84,.8f,RareMindsArt.GOLD,1,w-80);
+            if(!duelsFormat()&&!teamsFormat())art.text(art.small,Localization.tr("Совпадения ставят черепа · Редкость приносит души · 8 вопросов","Collisions cost skulls · Rarity pays souls · 8 questions"),cx,y+84,.8f,RareMindsArt.GOLD,1,w-80);
             art.text(art.small,Localization.tr("Первый вопрос через ","First question in ")+(int)Math.ceil(t),cx,y+42,.74f,RareMindsArt.DIM,1,0);
+            if(teamsFormat()){float pulse=.75f+.25f*MathUtils.sin(clock*4);art.glow(cx,y+112,620,110,RareMindsArt.GOLD,.18f*pulse);
+                art.text(art.mid,Localization.tr("ФОРМАТ: КОМАНДА НА КОМАНДУ","FORMAT: TEAM VS TEAM"),cx,y+132,.82f,RareMindsArt.GOLD,1,0);
+                for(int tm=0;tm<2;tm++){StringBuilder sb=new StringBuilder(teamName(tm)+":  ");boolean first=true;for(var p:players())if(i(p,"team")==tm&&p.has("team")){if(!first)sb.append(", ");sb.append(name(s(p,"id")));first=false;}
+                    art.text(art.small,sb.toString(),cx+(tm==0?-w/4:w/4),y+92,.7f,TEAM[tm],1,w/2-30);}}
             if(duelsFormat()){float pulse=.75f+.25f*MathUtils.sin(clock*4);art.glow(cx,y+112,620,110,RareMindsArt.RED,.22f*pulse);
                 art.text(art.mid,Localization.tr("ФОРМАТ: ДУЭЛИ 1 НА 1","FORMAT: 1-ON-1 DUELS"),cx,y+132,.82f,RareMindsArt.RED_SOFT,1,0);
                 StringBuilder sb=new StringBuilder();Set<String> seen=new HashSet<>();for(var p:players()){String id=s(p,"id"),o=s(p,"opponent");if(o.isEmpty()||seen.contains(id))continue;seen.add(id);seen.add(o);if(sb.length()>0)sb.append("     ");sb.append(name(id)).append("  VS  ").append(name(o));}
@@ -319,7 +323,7 @@ public final class RareMindsScreen extends ScreenAdapter {
         tilesSounded=-1;float after=t-boardEnd;
         if(!raceShown()){List<RareMindsLeaderboard.Row> rows=new ArrayList<>();
             for(var p:players()){String id=s(p,"id");JsonObject r=row(id);if(r==null)continue;long to=l(r,"souls"),from=before.containsKey(id)?l(before.get(id),"souls"):Math.max(0,to-i(r,"earned")-i(r,"jackpotSouls")-i(r,"duelBonus"));
-                rows.add(new RareMindsLeaderboard.Row(name(id),s(roster(id),"characterId"),from,to,i(r,"collisions"),!b(r,"alive"),b(r,"collided"),b(r,"jackpot")));}
+                rows.add(new RareMindsLeaderboard.Row(name(id),s(roster(id),"characterId"),from,to,i(r,"collisions"),!b(r,"alive"),b(r,"collided"),b(r,"jackpot"),teamOf(id)));}
             leaderboard.draw(430,128,1060,632,Localization.tr("ДУШИ ЗА ИГРУ","SOULS THIS GAME"),rows,after);return;}
         List<RareMindsRace.Lane> lanes=new ArrayList<>();
         for(var p:players()){String id=s(p,"id");JsonObject r=row(id);if(r==null)continue;
@@ -338,6 +342,21 @@ public final class RareMindsScreen extends ScreenAdapter {
         art.rect(bx,by,bw,64,RareMindsArt.PANEL,sa);art.rect(bx,by,5,64,RareMindsArt.GOLD,sa);
         art.textLeft(art.tiny,Localization.tr("ВЕДУЩИЙ","HOST"),bx+20,by+42,.72f,RareMindsArt.GOLD,sa);art.text(art.small,line,960+40,by+44,.9f,RareMindsArt.IVORY,sa,bw-160);
     }
+    private boolean teamsFormat(){return "TEAMS".equals(s(rm,"format"));}
+    static final Color[] TEAM={new Color(.93f,.24f,.22f,1),new Color(.26f,.64f,.98f,1)};
+    static Color teamColor(int t){return TEAM[Math.max(0,Math.min(1,t))];}
+    private static String teamName(int t){return t==0?Localization.tr("АЛЫЕ","CRIMSON"):Localization.tr("ЛАЗУРНЫЕ","AZURE");}
+    private int teamOf(String id){for(var p:players())if(s(p,"id").equals(id)&&p.has("team"))return i(p,"team");return -1;}
+    private float teamShown0,teamShown1;
+    /** the team scoreboard under the title: both totals and a tug-of-war bar */
+    private void teamBar(){
+        var tt=rm.getAsJsonArray("teamTotals");if(tt==null)return;float a0=tt.get(0).getAsLong(),a1=tt.get(1).getAsLong();
+        teamShown0+=(a0-teamShown0)*Math.min(1,Gdx.graphics.getDeltaTime()*3);teamShown1+=(a1-teamShown1)*Math.min(1,Gdx.graphics.getDeltaTime()*3);
+        float cx=W/2,y=800,w=560,h=14,share=teamShown0+teamShown1<=0?.5f:teamShown0/(teamShown0+teamShown1);
+        art.shade(cx,y+10,w+260,90,.6f);art.rect(cx-w/2,y,w*share,h,TEAM[0],.95f);art.rect(cx-w/2+w*share,y,w*(1-share),h,TEAM[1],.95f);art.rect(cx-w/2+w*share-1.5f,y-4,3,h+8,Color.WHITE,.9f);
+        art.textRight(art.small,teamName(0)+"  "+String.format(Locale.ROOT,"%,d",(long)teamShown0).replace(',',' '),cx-w/2-16,y+22,.82f,TEAM[0],1);
+        art.textLeft(art.small,String.format(Locale.ROOT,"%,d",(long)teamShown1).replace(',',' ')+"  "+teamName(1),cx+w/2+16,y+22,.82f,TEAM[1],1);
+    }
     private boolean duelsFormat(){return "DUELS".equals(s(rm,"format"));}
     /** the duels of this question (DUELS format), each pair once */
     private List<RareMindsAnswerBoard.Duel> duels(){
@@ -354,7 +373,7 @@ public final class RareMindsScreen extends ScreenAdapter {
         for(var p:players()){JsonObject r=row(s(p,"id"));if(r==null)continue;String key=s(r,"text").isEmpty()?"~empty":b(r,"valid")?"a:"+s(r,"answerId"):"x:"+s(r,"playerId");by.computeIfAbsent(key,k->new ArrayList<>()).add(r);}
         List<RareMindsAnswerBoard.Group> out=new ArrayList<>();
         for(var e:by.entrySet()){var rs=e.getValue();JsonObject r=rs.get(0);List<RareMindsAnswerBoard.Member> ms=new ArrayList<>();boolean jack=false;int js=0;
-            for(var x:rs){String id=s(x,"playerId");ms.add(new RareMindsAnswerBoard.Member(name(id),s(roster(id),"characterId"),b(x,"ghost")));if(b(x,"jackpot")){jack=true;js=i(x,"jackpotSouls");}}
+            for(var x:rs){String id=s(x,"playerId");ms.add(new RareMindsAnswerBoard.Member(name(id),s(roster(id),"characterId"),b(x,"ghost"),teamOf(id)));if(b(x,"jackpot")){jack=true;js=i(x,"jackpotSouls");}}
             String typedFix=rs.stream().filter(x->b(x,"corrected")).map(x->s(x,"text")).findFirst().orElse(null);
             out.add(new RareMindsAnswerBoard.Group(answerLabel(r),b(r,"valid"),s(r,"text").isEmpty(),tierIndex(s(r,"tier")),r.has("share")?r.get("share").getAsDouble():1,i(r,"earned"),i(r,"penaltyPct"),jack,js,ms,typedFix));}
         out.sort(Comparator.<RareMindsAnswerBoard.Group,Integer>comparing(g->g.empty()?0:!g.valid()?1:2).thenComparing(g->-g.share()).thenComparing(RareMindsAnswerBoard.Group::jackpot));
@@ -456,10 +475,13 @@ public final class RareMindsScreen extends ScreenAdapter {
         List<JsonObject> st=new ArrayList<>();if(rm.has("standings"))for(var e:rm.getAsJsonArray("standings"))st.add(e.getAsJsonObject());
         JsonObject win=st.stream().filter(o->b(o,"winner")).findFirst().orElse(null);
         float t=(now()-l(rm,"phaseStartedAt"))/1000f;
-        if(win!=null){float a=ease(t/.8f);art.glow(cx,y+h-80,900,200,RareMindsArt.GOLD,.25f*a);batch.setColor(RareMindsArt.GOLD.r,RareMindsArt.GOLD.g,RareMindsArt.GOLD.b,a);batch.draw(art.crown,cx-40,y+h-96,80,80);
+        if(teamsFormat()&&rm.has("teamTotals")){var tt=rm.getAsJsonArray("teamTotals");long a0=tt.get(0).getAsLong(),a1=tt.get(1).getAsLong();float a=ease(t/.8f);int wt=a0==a1?-1:a0>a1?0:1;
+            if(wt>=0){art.glow(cx,y+h-90,900,220,TEAM[wt],.30f*a);art.text(art.big,Localization.tr("ПОБЕДИЛИ ","WINNERS: ")+teamName(wt),cx,y+h-100,.9f,TEAM[wt],a,w-100);}else art.text(art.big,Localization.tr("НИЧЬЯ","A DRAW"),cx,y+h-100,.9f,RareMindsArt.IVORY,a,0);
+            art.text(art.small,teamName(0)+"  "+a0+"   :   "+a1+"  "+teamName(1)+Localization.tr("   ·   победителям +300 душ","   ·   winners +300 souls"),cx,y+h-160,.8f,RareMindsArt.IVORY,a,w-80);win=null;}
+        else if(win!=null){float a=ease(t/.8f);art.glow(cx,y+h-80,900,200,RareMindsArt.GOLD,.25f*a);batch.setColor(RareMindsArt.GOLD.r,RareMindsArt.GOLD.g,RareMindsArt.GOLD.b,a);batch.draw(art.crown,cx-40,y+h-96,80,80);
             art.text(art.big,name(s(win,"playerId")).toUpperCase(Locale.ROOT),cx,y+h-110,.9f,RareMindsArt.GOLD,a,w-100);
             art.text(art.small,Localization.tr("ПОБЕДИТЕЛЬ · +500 душ","WINNER · +500 souls"),cx,y+h-170,.8f,RareMindsArt.IVORY,a,0);}
-        else art.text(art.big,Localization.tr("ПОБЕДИТЕЛЯ НЕТ","NO WINNER"),cx,y+h-110,.9f,RareMindsArt.DIM,1,0);
+        else if(!teamsFormat())art.text(art.big,Localization.tr("ПОБЕДИТЕЛЯ НЕТ","NO WINNER"),cx,y+h-110,.9f,RareMindsArt.DIM,1,0);
         float rowH=Math.min(52,380f/Math.max(1,st.size())),top=y+h-200;
         for(int k=0;k<st.size();k++){var o=st.get(k);float a=ease((t-.6f-k*.12f)/.4f);if(a<=0)continue;float ry=top-(k+1)*rowH;String id=s(o,"playerId");boolean alive=b(o,"alive");
             if(k>0)art.rect(x+60,ry+rowH,w-120,1,RareMindsArt.GOLD,.18f*a);

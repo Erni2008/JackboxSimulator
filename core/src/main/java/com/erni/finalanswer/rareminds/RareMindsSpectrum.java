@@ -59,15 +59,16 @@ final class RareMindsSpectrum {
             batch().setColor(.05f,.03f,.03f,a);batch().draw(art.soft,px-D*.05f,cy-D*.55f,D*1.1f,D*1.1f);
             Texture face=art.face(mb.character());if(face!=null){float al=g.valid()||landed<=0?1:.55f;batch().setColor(al,al,al,a);batch().draw(face,px,cy-D/2,D,D);}
             batch().setColor(ring.r,ring.g,ring.b,a);for(int r=0;r<4;r++)batch().draw(art.ring,px-3+r*.5f,cy-D/2-3+r*.5f,D+6-r,D+6-r);
-            art.text(art.tiny,mb.name(),px+D/2,cy-D/2-8,.66f,RareMindsArt.IVORY,a*.9f,D+gap+30);}
+            art.text(art.tiny,mb.name(),px+D/2,cy-D/2-8,.66f,mb.team()<0?RareMindsArt.IVORY:RareMindsScreen.teamColor(mb.team()),a*.9f,D+gap+30);}
         String ans=g.empty()?tr("нет ответа","no answer"):g.answer();float aw=Math.min(Math.max(cw,140)+40,art.width(art.small,ans,.92f)+28);
         art.rect(cx-aw/2,cy+D/2+8,aw,36,RareMindsArt.PANEL,a);art.rect(cx-aw/2,cy+D/2+8,aw,3,ring,a);
         art.text(art.small,ans,cx,cy+D/2+38,.92f,g.valid()?RareMindsArt.IVORY:RareMindsArt.DIM,a,aw-12);
         if(g.jackpot()&&landed>0){batch().setColor(RareMindsArt.GOLD.r,RareMindsArt.GOLD.g,RareMindsArt.GOLD.b,landed);batch().draw(art.crown,cx-24,cy+D/2+40+(1-landed)*14,48,48);}
-        if(landed>0){String info=!g.valid()?(g.empty()?"0":tr("не принято","not accepted")):(col?tr("СОВПАДЕНИЕ","COLLISION"):tierNames[g.tier()])+" · "+pct(g.share())+"  +"+g.souls();
+        if(landed>0){String info=!g.valid()?(g.empty()?"0":tr("не принято","not accepted")):(col?(teamClash(g)?tr("СОВПАДЕНИЕ В КОМАНДЕ","TEAMMATE CLASH"):tr("СОВПАДЕНИЕ","COLLISION")):tierNames[g.tier()])+" · "+pct(g.share())+"  +"+g.souls();
             art.text(art.tiny,info,cx,cy-D/2-30,.76f,col?RareMindsArt.RED_SOFT:tc,landed,cw+80);
             if(g.typed()!=null)art.text(art.tiny,g.typed()+" → "+tr("исправлено","corrected"),cx,cy-D/2-52,.58f,RareMindsArt.DIM,landed*.8f,cw+80);}
     }
+    private static boolean teamClash(RareMindsAnswerBoard.Group g){var ms=g.members();for(int i=0;i<ms.size();i++)for(int j=i+1;j<ms.size();j++)if(ms.get(i).team()>=0&&ms.get(i).team()==ms.get(j).team())return true;return false;}
     private static String pct(double share){double p=share*100;return p>=1?Math.round(p)+"%":p>=.1?String.format(Locale.ROOT,"%.1f%%",p):"<0.1%";}
     private static float ease(float t){t=MathUtils.clamp(t,0,1);return t*t*(3-2*t);}
     private com.badlogic.gdx.graphics.g2d.SpriteBatch batch(){return art.batch;}

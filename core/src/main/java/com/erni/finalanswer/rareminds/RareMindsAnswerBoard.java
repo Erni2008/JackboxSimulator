@@ -11,7 +11,7 @@ import java.util.*;
  * rarest unique answer turns last and takes the jackpot crown.
  */
 final class RareMindsAnswerBoard {
-    record Member(String name,String character,boolean ghost){}
+    record Member(String name,String character,boolean ghost,int team){Member(String name,String character,boolean ghost){this(name,character,ghost,-1);}}
     /** one 1-on-1 duel of the DUELS format: who won this question (0 draw) and the running score */
     record Duel(String a,String b,String charA,String charB,int result,int bonus,int winsA,int winsB){}
     record Group(String answer,boolean valid,boolean empty,int tier,double share,int souls,int penaltyPct,boolean jackpot,int jackpotSouls,List<Member> members,String typed){
