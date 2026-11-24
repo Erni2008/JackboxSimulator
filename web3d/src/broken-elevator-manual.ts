@@ -431,7 +431,12 @@ async function boot() {
   $('btn-sheet').onclick = () => { notes.putBack(); $('btn-sheet').hidden = true; audio.play('pageTurn', 1); };
   $('btn-back').onclick = () => { if (inspecting && inspectTarget === 'bomb' && suitcase?.focus) { suitcase.focusOn(null); if (!bombDone) coach(nbook?.taken ? 'bays' : 'notebook'); return; } setInspect(false); }; addEventListener('keydown', e => { if (e.key === 'Escape' && inspecting) setInspect(false); });
   $('btn-open').onclick = () => cur().open(); $('btn-close').onclick = () => cur().close(); $('btn-drop').onclick = () => cur().drop();
-  $('btn-sound').onclick = () => { audio.unlock(); audio.enabled = !audio.enabled; $('btn-sound').textContent = audio.enabled ? L('Звук: вкл.', 'Sound: on') : L('Звук: выкл.', 'Sound: off'); };
+  // sound: a round copper icon (speaker with waves, struck through when muted)
+  const soundBtn = $('btn-sound'); soundBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="spk" d="M4 9h4l5-4v14l-5-4H4z"/><path class="wave" d="M16 8.5a5 5 0 0 1 0 7M18.6 6a8.6 8.6 0 0 1 0 12"/><path class="mute" d="M16 9l6 6M22 9l-6 6"/></svg>';
+  const soundLabel = () => { const t = audio.enabled ? L('Звук включён', 'Sound on') : L('Звук выключен', 'Sound off'); soundBtn.title = t; soundBtn.setAttribute('aria-label', t); soundBtn.classList.toggle('off', !audio.enabled); }; soundLabel();
+  soundBtn.onclick = () => { audio.unlock(); audio.enabled = !audio.enabled; soundLabel(); };
+  // the free camera is a development tool: its button shows only with ?freecam=1 or ?dev=1 (C still toggles it)
+  if (params.get('freecam') === '1' || params.get('dev') === '1') document.body.classList.add('dev');
   book.onspread = s => { $('page-label').textContent = `${2 * s + 1}–${2 * s + 2} / ${book.pages.length}`; }; book.onspread(0);
   journal.onspread = s => { $('page-label').textContent = `${2 * s + 1}–${2 * s + 2} / ${journal.pages.length}`; };
   jui.onstate = s => { sync(s); if (s === 'reading') journal.onspread(journal.spread); else if (s === 'rest') book.onspread(book.spread); };

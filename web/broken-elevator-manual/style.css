@@ -355,3 +355,67 @@ body.ref-sheet #tester { bottom: calc(var(--ref-h) + 8px); }
 .ref-view.zoomed { overflow-x: auto; touch-action: pan-x pan-y; cursor: zoom-out; }
 .ref-view { cursor: zoom-in; user-select: none; -webkit-user-select: none; }
 .ref-view canvas { image-rendering: auto; }
+
+/* ============ HUD 2.0 — copper instruments over a cinematic frame ============ */
+:root { --cu: #c98a52; --cu2: #f2c28c; --cu3: #8a5530; --cream: #f4dcc0; --hud-top: max(12px, env(safe-area-inset-top)); }
+/* cinematic frame: a deep lens vignette, the lava's warm breath rising from below, a cold rim of night above */
+html body #grade { background:
+  radial-gradient(ellipse 120% 60% at 50% 112%, rgba(255,96,24,.20), transparent 60%),
+  radial-gradient(ellipse 90% 45% at 50% -8%, rgba(70,90,140,.16), transparent 70%),
+  radial-gradient(ellipse 78% 72% at 50% 46%, transparent 52%, rgba(8,3,1,.45) 80%, rgba(3,1,0,.82) 100%); mix-blend-mode: normal; animation: lava-breath 6s ease-in-out infinite; }
+@keyframes lava-breath { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.12); } }
+/* letterbox hairlines: the frame of a show */
+#viewport::before, #viewport::after { content: ""; position: fixed; left: 0; right: 0; height: 26px; pointer-events: none; z-index: 1; }
+#viewport::before { top: 0; background: linear-gradient(#000c, transparent); }
+#viewport::after { bottom: 0; background: linear-gradient(transparent, #000c); }
+
+/* top-left cluster: sound (round) + manual */
+html body #btn-cam { display: none; }
+html body.dev #btn-cam { display: block; left: 16px; top: calc(var(--hud-top) + 56px); }
+html body #btn-sound { left: 14px; top: var(--hud-top); width: 44px; height: 44px; min-height: 0; padding: 0; border: 0; border-radius: 50%; opacity: 1; display: grid; place-items: center; cursor: pointer;
+  background: radial-gradient(circle at 35% 30%, #5a3420, #1e100a 75%); box-shadow: inset 0 0 0 1.5px var(--cu), inset 0 0 0 4px #1a0d07, inset 0 0 0 5px rgba(242,194,140,.25), 0 6px 14px rgba(0,0,0,.6); backdrop-filter: none; -webkit-backdrop-filter: none; }
+#btn-sound svg { width: 22px; height: 22px; fill: none; stroke: var(--cu2); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+#btn-sound .spk { fill: var(--cu2); stroke: none; }
+#btn-sound .mute { display: none; stroke: #ff7a5a; }
+#btn-sound.off .wave { display: none; } #btn-sound.off .mute { display: inline; } #btn-sound.off .spk { fill: #8a6a50; }
+html body #ref-btn { left: 66px; top: var(--hud-top); min-height: 44px; }
+
+/* task plaque: engraved copper title plate */
+html body #task { top: var(--hud-top); padding: 9px 26px 8px; border: 0; border-radius: 3px; font: 700 18px/1.15 'Cormorant SC', Georgia, serif; letter-spacing: .14em; color: #fbe3c4; text-shadow: 0 1px 2px #000;
+  background: linear-gradient(180deg, #3a2014, #1c0f09); box-shadow: inset 0 0 0 1.5px var(--cu3), inset 0 0 0 4px #160a06, inset 0 0 0 5px rgba(201,138,82,.35), inset 0 1px 0 rgba(255,220,180,.12), 0 8px 20px rgba(0,0,0,.6); }
+html body #task::before, html body #task::after { content: ""; position: absolute; top: 50%; width: 7px; height: 7px; margin-top: -3.5px; transform: rotate(45deg); background: var(--cu); box-shadow: 0 0 6px rgba(242,194,140,.5); }
+html body #task::before { left: 10px; } html body #task::after { right: 10px; }
+
+/* the timer: a copper bezel round the red ring */
+html body #clock { top: var(--hud-top); right: 14px; width: 66px; height: 66px; border-radius: 50%; box-shadow: 0 0 0 2px var(--cu3), 0 0 0 4px #1a0d07, 0 0 0 5px rgba(201,138,82,.45), 0 8px 20px rgba(0,0,0,.65); }
+html body #clock .track { fill: #120806e6; stroke: #2a160c; }
+html body #clock .ring { filter: drop-shadow(0 0 4px rgba(255,70,30,.7)); }
+html body #clock-num { font: 700 23px 'Cormorant SC', Georgia, serif; color: #fbe3c4; text-shadow: 0 1px 2px #000; }
+
+/* the coach line under the plaque: a soft dark chip */
+html body #hint { top: calc(var(--hud-top) + 54px); left: 50%; right: auto; transform: translateX(-50%); width: max-content; max-width: min(86vw, 760px); padding: 6px 18px; border-radius: 999px; font-size: 15px; color: rgba(244,220,192,.8);
+  background: linear-gradient(90deg, transparent, rgba(10,5,3,.66) 14%, rgba(10,5,3,.66) 86%, transparent); text-shadow: 0 1px 3px #000; }
+html body #hint:empty { display: none; }
+
+/* the host's subtitles: a speaker tag over a dark band */
+html body #host-say { padding: 26px 26px 12px; border-radius: 4px; font: 500 clamp(15px, 2vw, 20px)/1.4 'Lora', Georgia, serif; color: #fbe9cc;
+  background: linear-gradient(180deg, rgba(14,7,4,.0), rgba(14,7,4,.78) 30%, rgba(14,7,4,.78) 80%, rgba(14,7,4,0)); text-shadow: 0 1px 3px #000; }
+html body #host-say::before { content: "ВЕДУЩИЙ"; position: absolute; left: 50%; top: 6px; transform: translateX(-50%); font: 700 11px/1 'Oswald', sans-serif; letter-spacing: .34em; color: var(--cu); }
+html[lang=en] body #host-say::before { content: "THE HOST"; }
+
+/* phones: two rows — sound + manual + timer on top, the plaque under them, the coach line under that */
+@media (max-width: 700px) {
+  html body #task { top: calc(var(--hud-top) + 54px); font-size: 15px; padding: 7px 22px 6px; max-width: calc(100vw - 32px); white-space: nowrap; }
+  html body #hint { top: calc(var(--hud-top) + 96px); font-size: 13.5px; white-space: normal; text-align: center; }
+  html body #ref-btn b { font-size: 13px; }
+  html body #host-say { padding: 22px 16px 10px; }
+}
+@media (prefers-reduced-motion: reduce) { html body #grade { animation: none; } }
+html body #host-say { background: radial-gradient(ellipse 60% 75% at 50% 58%, rgba(14,7,4,.82) 35%, rgba(14,7,4,.5) 62%, transparent 82%); }
+html body #task { width: max-content; box-sizing: border-box; }
+@media (max-width: 700px) {
+  html body #task { top: calc(var(--hud-top) + 76px); }
+  html body #hint { top: calc(var(--hud-top) + 118px); }
+  html body #bomb-coach { top: calc(var(--hud-top) + 160px); }
+}
+@media (max-width: 700px) { html body #task { left: 50%; right: auto; transform: translateX(-50%); text-align: center; letter-spacing: .1em; } }
