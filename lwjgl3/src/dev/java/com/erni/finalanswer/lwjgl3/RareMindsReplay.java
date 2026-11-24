@@ -29,8 +29,8 @@ public final class RareMindsReplay {
                 t+=frames.isEmpty()?(long)(Gdx.graphics.getDeltaTime()*1000):33;
                 while(next<evs.size()&&evs.get(next).at<=t){cur=evs.get(next++);s.apply(cur.state);}
                 if(frames.isEmpty())super.render();else s.render(1/30f);
-                if(!frames.isEmpty()){Pixmap p=ScreenUtils.getFrameBufferPixmap(0,0,Gdx.graphics.getBackBufferWidth(),Gdx.graphics.getBackBufferHeight());var px=p.getPixels();for(int i=3;i<px.limit();i+=4)px.put(i,(byte)255);
-                    PixmapIO.writePNG(Gdx.files.absolute(String.format("%s/f%05d.png",frames,frame++)),p,1,true);p.dispose();}
+                if(!frames.isEmpty()&&frame++%Integer.getInteger("rm.every",1)==0){Pixmap p=ScreenUtils.getFrameBufferPixmap(0,0,Gdx.graphics.getBackBufferWidth(),Gdx.graphics.getBackBufferHeight());var px=p.getPixels();for(int i=3;i<px.limit();i+=4)px.put(i,(byte)255);
+                    PixmapIO.writePNG(Gdx.files.absolute(String.format("%s/f%05d.png",frames,frame)),p,1,true);p.dispose();}
                 if(next>=evs.size()&&t>evs.get(evs.size()-1).at+1500)Gdx.app.exit();
             }
         },c);

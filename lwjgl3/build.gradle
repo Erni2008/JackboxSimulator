@@ -1277,6 +1277,7 @@ tasks.register('rareMindsReplay', JavaExec) {
     workingDir = rootProject.file('assets')
     systemProperty 'rm.stream', providers.gradleProperty('rm.stream').getOrElse('')
     systemProperty 'rm.frames', providers.gradleProperty('rm.frames').getOrElse('')
+    systemProperty 'rm.every', providers.gradleProperty('rm.every').getOrElse('1')
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }

@@ -40,7 +40,7 @@ public final class RareMindsScreen extends ScreenAdapter {
     public void apply(JsonObject snapshot){if(!snapshot.has("rareMinds"))return;state=snapshot;rm=snapshot.getAsJsonObject("rareMinds");}
 
     @Override public void show(){
-        if(!created){created=true;batch=new SpriteBatch();art=new RareMindsArt();art.batch=batch;sfx=new RareMindsSounds();art.big.getData().markupEnabled=true;race=new RareMindsRace(art);}
+        if(!created){created=true;batch=new SpriteBatch();art=new RareMindsArt();art.batch=batch;sfx=new RareMindsSounds();art.big.getData().markupEnabled=true;race=new RareMindsRace(art);board=new RareMindsAnswerBoard(art);}
         Gdx.input.setInputProcessor(new InputAdapter(){@Override public boolean keyDown(int k){
             if(k==Input.Keys.M){openMonitor.run();return true;}
             if(k==Input.Keys.H){liveShown=!liveShown;return true;}
@@ -68,7 +68,9 @@ public final class RareMindsScreen extends ScreenAdapter {
     private String tierName(String id){for(var e:rm.getAsJsonArray("tiers")){var t=e.getAsJsonObject();if(s(t,"id").equals(id))return ru()?s(t,"ru"):s(t,"en");}return id;}
     private String answerLabel(JsonObject r){return b(r,"valid")?(ru()?s(r,"labelRu"):s(r,"labelEn")):s(r,"text");}
     private boolean revealPhase(){String p=phase();return p.equals("ANSWERS_LOCKED")||p.equals("REVEALING_RESULTS");}
-    private float revealAt(int index){return RareMindsRace.arrival(index);}
+    /** act one (answer board) lasts boardEnd seconds, then act two (the race): a player's result lands when their car arrives */
+    private float boardEnd=4.5f;private int tilesSounded=-1;private RareMindsAnswerBoard board;
+    private float revealAt(int index){return boardEnd+RareMindsRace.arrival(index)-RareMindsRace.START;}
     private float sinceLock(){return (now()-lockStart)/1000f;}
     private boolean revealed(String id){if(!revealPhase())return phase().equals("FINAL_RESULTS")||phase().equals("COMPLETED");var ps=players();for(int k=0;k<ps.size();k++)if(s(ps.get(k),"id").equals(id))return sinceLock()>=revealAt(k);return false;}
     /** what a card shows: the live public values, or the values from before this question until its reveal lands */
@@ -275,8 +277,27 @@ public final class RareMindsScreen extends ScreenAdapter {
                 tierIndex(s(r,"tier")),r.has("share")?r.get("share").getAsDouble():.5,i(r,"earned"),b(r,"jackpot"),i(r,"jackpotSouls"),b(r,"eliminated"),b(r,"resurrected"),before.containsKey(id)?l(before.get(id),"souls"):Math.max(0,l(r,"souls")-i(r,"earned")-i(r,"jackpotSouls")),l(r,"souls"),"",false,-1,0,false));}
         var tiers=rm.getAsJsonArray("tiers");String[] names=new String[tiers.size()];for(int k=0;k<tiers.size();k++)names[k]=tierName(s(tiers.get(k).getAsJsonObject(),"id"));
         String q=(ru()?s(rm,"textRu"):s(rm,"textEn"));
-        race.draw(430,128,1060,632,Localization.tr("ГОНКА ДУШ · ","SOUL RACE · ")+(fin?Localization.tr("ФИНАЛ · ","FINAL · "):Localization.tr("ВОПРОС ","QUESTION ")+i(rm,"question")+"/"+i(rm,"questions")+" · ")+q,lanes,names,fin,sinceLock(),clock,
+        List<RareMindsAnswerBoard.Group> groups=groups();boardEnd=RareMindsAnswerBoard.duration(groups.size());float t=sinceLock();
+        if(t<boardEnd){
+            int flipped=(int)Math.floor((t-RareMindsAnswerBoard.INTRO-RareMindsAnswerBoard.FLIP*.5f)/RareMindsAnswerBoard.STEP);
+            if(flipped>tilesSounded&&flipped<groups.size()){tilesSounded=flipped;var g=groups.get(flipped);sfx.play(g.collided()?Cue.COLLISION:g.jackpot()?Cue.JACKPOT:Cue.REVEAL);}
+            board.draw(430,128,1060,632,(fin?Localization.tr("ПОСЛЕДНИЙ ОТВЕТ · ","THE LAST ANSWER · "):Localization.tr("ВОПРОС ","QUESTION ")+i(rm,"question")+"/"+i(rm,"questions")+" · ")+q,groups,names,fin,t,clock);
+            return;
+        }
+        tilesSounded=-1;
+        race.draw(430,128,1060,632,Localization.tr("ГОНКА ДУШ · ","SOUL RACE · ")+(fin?Localization.tr("ФИНАЛ · ","FINAL · "):Localization.tr("ВОПРОС ","QUESTION ")+i(rm,"question")+"/"+i(rm,"questions")+" · ")+q,lanes,names,fin,t-boardEnd+RareMindsRace.START,clock,
             Localization.tr("ОТВЕТЫ ЗАКРЫТЫ","ANSWERS LOCKED"),Localization.tr("Джекпот никто не забрал","Nobody takes the jackpot"));
+    }
+    /** this question's answers grouped into board tiles: no answer, refused answers, then valid ones from common to rare */
+    private List<RareMindsAnswerBoard.Group> groups(){
+        Map<String,List<JsonObject>> by=new LinkedHashMap<>();
+        for(var p:players()){JsonObject r=row(s(p,"id"));if(r==null)continue;String key=s(r,"text").isEmpty()?"~empty":b(r,"valid")?"a:"+s(r,"answerId"):"x:"+s(r,"playerId");by.computeIfAbsent(key,k->new ArrayList<>()).add(r);}
+        List<RareMindsAnswerBoard.Group> out=new ArrayList<>();
+        for(var e:by.entrySet()){var rs=e.getValue();JsonObject r=rs.get(0);List<RareMindsAnswerBoard.Member> ms=new ArrayList<>();boolean jack=false;int js=0;
+            for(var x:rs){String id=s(x,"playerId");ms.add(new RareMindsAnswerBoard.Member(name(id),s(roster(id),"characterId"),b(x,"ghost")));if(b(x,"jackpot")){jack=true;js=i(x,"jackpotSouls");}}
+            out.add(new RareMindsAnswerBoard.Group(answerLabel(r),b(r,"valid"),s(r,"text").isEmpty(),tierIndex(s(r,"tier")),r.has("share")?r.get("share").getAsDouble():1,i(r,"earned"),i(r,"penaltyPct"),jack,js,ms));}
+        out.sort(Comparator.<RareMindsAnswerBoard.Group,Integer>comparing(g->g.empty()?0:!g.valid()?1:2).thenComparing(g->-g.share()).thenComparing(RareMindsAnswerBoard.Group::jackpot));
+        return out;
     }
     /** Colour the last word red (font markup), like the reference's highlighted keyword. */
     private static String markLast(String t){String s=t.replace("[","[[");int k=s.trim().lastIndexOf(' ');if(k<0)return s;return s.substring(0,k+1)+"[#FF4A3A]"+s.substring(k+1)+"[]";}

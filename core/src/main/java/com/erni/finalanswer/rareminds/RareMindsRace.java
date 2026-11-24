@@ -53,14 +53,16 @@ final class RareMindsRace {
         art.text(art.tiny,art_tr("ДУШИ ЗА ИГРУ","SOULS THIS GAME"),tx1-60,laneBottom-10,.6f,RareMindsArt.DIM,.8f,0);
         // places after this question
         float dt=lastClock<0?1:Math.min(.1f,clock-lastClock);lastClock=clock;
-        if(live)t=99;float lockA=live?0:MathUtils.clamp(1-(t-START+.2f)*3,0,1);
+        if(live)t=99;float lockA=0; /* the answer board now covers the lock moment */
         float tt=live?99:t;float[] cur=new float[lanes.size()];
-        for(int i=0;i<lanes.size();i++){Lane l=lanes.get(i);float q=(tt-START-i*STAGGER)/DRIVE;cur[i]=l.fromSouls()+(l.souls()-l.fromSouls())*easeOut(q);}
+        /* order holds while the cars drive; once everyone has arrived the standings re-sort in one smooth move */
+        boolean settled=live||tt>=arrival(lanes.size()-1)+.35f;
+        for(int i=0;i<lanes.size();i++){Lane l=lanes.get(i);cur[i]=settled?l.souls():l.fromSouls();}
         Integer[] idx=new Integer[lanes.size()];for(int i=0;i<idx.length;i++)idx[i]=i;
         Arrays.sort(idx,(a,b)->cur[a]!=cur[b]?Float.compare(cur[b],cur[a]):Integer.compare(a,b));
         int[] rank=new int[lanes.size()];for(int k=0;k<idx.length;k++)rank[idx[k]]=k;
         for(int i=0;i<lanes.size();i++){String key=lanes.get(i).name();Integer before=lastRank.get(key);if(before!=null&&rank[i]<before)upAt.put(key,clock);lastRank.put(key,rank[i]);
-            float sv=slot.getOrDefault(key,(float)rank[i]);sv+=(rank[i]-sv)*Math.min(1,dt*5.5f);slot.put(key,sv);}
+            float sv=slot.getOrDefault(key,(float)rank[i]);sv+=(rank[i]-sv)*Math.min(1,dt*4f);slot.put(key,sv);}
         for(int i=0;i<lanes.size();i++){Lane l=lanes.get(i);float sl=slot.get(l.name());float ry=laneTop-(sl+1)*rowH,cy=ry+rowH/2;
             Float up=upAt.get(l.name());if(up!=null&&clock-up<1.4f){float a=1-(clock-up)/1.4f;art.rect(x+16,ry,w-32,rowH,new Color(.3f,1f,.45f,1),.10f*a);art.text(art.mid,"▲",x+28+2,cy+14+(1-a)*12,.7f,new Color(.35f,1f,.5f,1),a,0);}
             // asphalt lane: dark tarmac with a faint sheen, dashed white lane line, white start line

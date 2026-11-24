@@ -18,7 +18,7 @@ import java.util.*;
 public final class RareMindsSession {
     public enum Phase {INITIALIZING,QUESTION_ACTIVE,ANSWERS_LOCKED,REVEALING_RESULTS,FINAL_RESULTS,COMPLETED}
     public record Timing(long introMs,long answerMs,long lockedMs,long revealMs,long finalRevealMs,long resultsMs,long graceMs){
-        public static final Timing DEFAULT=new Timing(7000,18000,1200,7600,9000,16000,350);
+        public static final Timing DEFAULT=new Timing(7000,18000,1200,11000,12000,16000,350);
     }
     public static final class Failure extends RuntimeException{public final int status;public Failure(int status,String code){super(code);this.status=status;}}
     private record Draft(String text,boolean risk,long at){}
