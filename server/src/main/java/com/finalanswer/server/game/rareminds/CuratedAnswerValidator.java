@@ -36,20 +36,32 @@ public final class CuratedAnswerValidator implements AnswerValidator {
         for(String alt:new String[]{RareText.key(swapLayout(typed,EN,RU)),RareText.key(swapLayout(typed,RU,EN))}){String hit=m.get(alt);if(hit!=null&&!alt.equals(key))return new Result(Status.VALID_TYPO,hit,key);}
         // 2. the other alphabet (paratsetamol → парацетамол): compare everything in one phonetic Latin form
         String lk=phonetic(key);String hit=lat.get(lk);if(hit!=null)return new Result(Status.VALID_TYPO,hit,key);
-        // 3. spelling mistakes: forgiven edits grow with the word (5–7 letters: 1, 8–11: 2, 12+: 3)
-        if(key.length()<5)return Result.of(Status.INVALID,key);
-        int tol=key.length()>=12?3:key.length()>=8?2:1;
-        String best=null;int bestD=tol+1;boolean tie=false;
-        for(var space:List.of(Map.entry(key,m),Map.entry(lk,lat)))for(var e:space.getValue().entrySet()){
-            if(e.getKey().length()<5)continue;
-            int d=RareText.distance(space.getKey(),e.getKey(),tol);if(d>tol)continue;
-            if(d<bestD){best=e.getValue();bestD=d;tie=false;}
-            else if(d==bestD&&!e.getValue().equals(best))tie=true;
-        }
+        // 3. spelling mistakes and unfinished words: every alias is a candidate; forgiven edits are about a third of the
+        //    word (at least 1, at most 4); a typed start of a single word (4+ letters) completes it. The closest wins,
+        //    then the longest shared start, then the more popular answer — so a recognisable word is always corrected.
+        if(key.length()<3)return Result.of(Status.INVALID,key);
+        int tol=Math.max(1,Math.min(4,Math.round(key.length()*.34f)));
+        String[] typedForms={key,lk,RareText.key(swapLayout(typed,EN,RU)),RareText.key(swapLayout(typed,RU,EN))};
+        String best=null;double bestD=99;int bestPre=-1,bestPop=-1;boolean tie=false;
+        for(int f=0;f<typedForms.length;f++){String form=f==1?lk:typedForms[f];if(form.isEmpty())continue;Map<String,String> space=f==1?lat:m;String typedForm=f==1?lk:form;
+            for(var e:space.entrySet()){String alias=e.getKey();if(alias.length()<3)continue;
+                double d=99;
+                int dd=RareText.distance(typedForm,alias,tol);if(dd<=tol)d=dd;
+                if(typedForm.length()>=4&&alias.startsWith(typedForm)&&alias.length()>typedForm.length())d=Math.min(d,1.15); // unfinished word: a little worse than one typo
+                if(d>=99)continue;
+                if(f>=2)d+=.25; // a layout swap counts a little against it
+                if(f==1)d+=.1;  // so does the phonetic (other alphabet) form
+                int pre=0;while(pre<Math.min(alias.length(),typedForm.length())&&alias.charAt(pre)==typedForm.charAt(pre))pre++;
+                int pop=popularity(q,e.getValue());
+                int cmp=d!=bestD?Double.compare(bestD,d):pre!=bestPre?Integer.compare(pre,bestPre):Integer.compare(pop,bestPop);
+                if(cmp>0){best=e.getValue();bestD=d;bestPre=pre;bestPop=pop;tie=false;}
+                else if(cmp==0&&!e.getValue().equals(best))tie=true;
+            }}
         if(best==null)return Result.of(Status.INVALID,key);
         if(tie)return Result.of(Status.UNCERTAIN,key);
         return new Result(Status.VALID_TYPO,best,key);
     }
+    private static int popularity(RareQuestion q,String answerId){var a=q.answer(answerId);return a==null?0:a.popularity();}
 
     private final Map<String,Map<String,String>> latin=new HashMap<>();
     private static Map<String,String> latinIndex(Map<String,String> m){Map<String,String> o=new HashMap<>();Set<String> clash=new HashSet<>();
@@ -72,8 +84,9 @@ public final class CuratedAnswerValidator implements AnswerValidator {
      * answer; otherwise every answer with an alias starting with the draft (4+ characters, at most 4 candidates).
      */
     public Set<String> candidates(RareQuestion q,String draft){
-        Result r=validate(q,draft);if(r.valid())return Set.of(r.answerId());
-        String key=r.key();if(key.length()<4)return Set.of();
+        String key=RareText.key(draft);if(key.length()<4)return Set.of();
+        Map<String,String> m=index.computeIfAbsent(q.id(),x->build(q));if(m.containsKey(key))return Set.of(m.get(key));
+        if(key.length()>=6){Result r=validate(q,draft);if(r.valid())return Set.of(r.answerId());} // short drafts: exact or prefix only, no guessing
         Set<String> out=new TreeSet<>();
         for(var e:index.computeIfAbsent(q.id(),x->build(q)).entrySet())if(e.getKey().startsWith(key)){out.add(e.getValue());if(out.size()>4)return Set.of();}
         return out;

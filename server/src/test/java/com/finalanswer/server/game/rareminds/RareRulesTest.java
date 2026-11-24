@@ -34,7 +34,7 @@ class RareRulesTest {
         assertEquals(AnswerValidator.Status.EMPTY,validator.validate(MED,"   ").status());
         var europe=BANK.get("europe_country");
         assertEquals("slovakia",validator.validate(europe,"Slovakia").answerId());assertEquals("slovenia",validator.validate(europe,"Slovenia").answerId());
-        assertNotEquals(AnswerValidator.Status.VALID_TYPO,validator.validate(europe,"Slovekia").status(),"a typo between two real answers is never guessed");
+        assertTrue(validator.validate(europe,"Slovekia").valid(),"a typo between two real answers is still corrected (closest start, then the more popular one)");
     }
     @Test void correctsMisspellingsLayoutsAndAlphabets(){
         assertEquals("paracetamol",validator.validate(MED,"парацитомол").answerId(),"two spelling mistakes in a long word");
@@ -44,6 +44,13 @@ class RareRulesTest {
         assertEquals("aspirin",validator.validate(MED,"фызшкшт").answerId(),"English word typed on the Russian layout");
         assertEquals(AnswerValidator.Status.VALID_TYPO,validator.validate(MED,"парацитомол").status(),"a correction is marked as one");
         assertEquals(AnswerValidator.Status.INVALID,validator.validate(MED,"телевизор").status(),"an unrelated word is never forced onto an answer");
+        assertEquals("paracetamol",validator.validate(MED,"Парацет").answerId(),"an unfinished word is completed");
+        assertEquals("paracetamol",validator.validate(MED,"paracetemol").answerId());
+        assertEquals("insulin",validator.validate(MED,"инсулн").answerId(),"short words are corrected too");
+        assertEquals("aspirin",validator.validate(MED,"Аспирн").answerId());
+        assertEquals("diclofenac",validator.validate(MED,"diklofenak").answerId());
+        var europeQ=BANK.get("europe_country");assertEquals("france",validator.validate(europeQ,"Франци").answerId());assertEquals("spain",validator.validate(europeQ,"Spian").answerId());
+        assertEquals("italy",validator.validate(europeQ,"Итaлия").answerId(),"mixed alphabets inside one word");
         var dino=BANK.get("dinosaur");assertEquals("t_rex",validator.validate(dino,"тиранозавр").answerId());
     }
     @Test void duelsRewardTheRarerAnswerInEachPair(){
