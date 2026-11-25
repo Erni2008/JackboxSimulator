@@ -15,7 +15,7 @@ import java.util.concurrent.CompletableFuture;
  * </pre>
  * Validation starts the moment an answer arrives (deterministic steps immediately, the optional AI judge on its own
  * thread). After the deadline the session waits at most {@code validationMaxMs}; anything still undecided goes to the
- * vote, and a vote without a majority is neutral. Nothing here blocks: {@link #tick} only reads finished futures.
+ * vote; a tie is accepted, only an empty vote is neutral. Nothing here blocks: {@link #tick} only reads finished futures.
  *
  * <p>Privacy: {@link #snapshot} never carries another player's answer text before ANSWER_REVEAL (the host's own
  * client gets live text only when {@code hiddenAnswers} is off), and never any verified answer of the category.
@@ -139,7 +139,8 @@ public final class ThinkOrDieSession {
 
     private void closeDisputes(){
         for(Dispute d:disputes){long yes=d.votes.values().stream().filter(b->b).count(),no=d.votes.size()-yes;
-            d.outcome=yes>no?"ACCEPTED":no>yes?"REJECTED":"NEUTRAL";
+            // a tie goes to the player: a correct answer must not be lost to a split room
+            d.outcome=d.votes.isEmpty()?"NEUTRAL":yes>=no?"ACCEPTED":"REJECTED";
             for(Sub s:subs)if(s.key.equals(d.key)&&s.result.isEmpty()&&s.verdict.status()==ValidationStatus.UNCERTAIN){
                 if(d.outcome.equals("ACCEPTED"))s.verdict=Verdict.valid("vote:"+d.key,Verdict.Source.VOTE);
                 else if(d.outcome.equals("REJECTED"))s.result="REJECTED";}}

@@ -89,12 +89,12 @@ class ThinkOrDieSessionTest {
         assertEquals(ThinkOrDieSession.Phase.ANSWER_REVEAL,s.phase());
         assertEquals(150,s.player("a").roundPoints);
     }
-    @Test void tiedOrMissingVotesAreNeutral(){
+    @Test void tiedVoteGoesToThePlayer(){
         var s=session(List.of("a","b","c"),Set.of(),"pump_bottle");toAnswering(s);
         say(s,"a","Bubble bath foam");endAnswers(s);
         String id=(String)((List<Map<String,Object>>)s.snapshot("b",false,now).get("disputes")).get(0).get("id");
         s.vote("b",id,true,now);s.vote("c",id,false,now);s.tick(now);
-        assertEquals(0,s.player("a").roundPoints);assertEquals(0,s.player("a").roundIncorrect);
+        assertEquals(150,s.player("a").roundPoints,"a tie accepts the answer");assertEquals(0,s.player("a").roundIncorrect);
     }
     @Test void twoPlayerGameWorksWithVotes(){
         var s=session(List.of("a","b"),Set.of(),"pump_bottle");toAnswering(s);
