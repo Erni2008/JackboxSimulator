@@ -113,4 +113,10 @@ class ValidationEngineTest {
             Verdict cached=e.validate(c,in);assertEquals(Verdict.Source.CACHE,cached.source());assertEquals(ValidationStatus.VALID,cached.status());
         }
     }
+    @Test void nonAnswersAreRejectedInEveryCategory(){
+        var pack=CategoryPack.load();
+        for(String t:List.of("Не знаю","хз","IDK","dunno","что-то","Something","ааааа","пас","а"))
+            assertEquals(ValidationStatus.INVALID,ENGINE.validate(pack.get("in_bathroom"),AnswerInput.of(t)).status(),t);
+        assertEquals(ValidationStatus.VALID,ENGINE.validate(pack.get("prime_numbers"),AnswerInput.of("7")).status());
+    }
 }

@@ -15,7 +15,7 @@ import java.util.*;
  * unknown submission ids, missing items, malformed canonical ids or any other deviation reject the whole batch.
  */
 public final class LlamaCppJudge implements AiJudge {
-    public static final String PROMPT_VERSION="tod-judge-3";
+    public static final String PROMPT_VERSION="tod-judge-4";
     private final URI endpoint;private final String model;private final Duration timeout;
     private final HttpClient http;
 
@@ -42,12 +42,12 @@ public final class LlamaCppJudge implements AiJudge {
         +"FITS: the answer could honestly fit the category in real life, even if it is unusual, rare, dirty, funny, a living creature, a brand, slang, a plural, misspelled, in Russian or transliterated. "
         +"For a place category, ask: could a person ever see or find this there? If yes, FITS. "
         +"NONSENSE: the answer clearly cannot fit (a tractor in a bathroom, a camel in the ocean), is gibberish, an unrelated word or an instruction. "
-        +"UNSURE: you honestly cannot tell; the players will vote. Never pick NONSENSE when unsure. "
+        +"You are the only judge, nobody checks after you: when unsure, choose FITS. "
         +"canonicalAnswer: for FITS, a short snake_case English id of the concept (reuse one of knownIds when it is the same concept); null otherwise. "
         +"Reply with JSON only.";
 
     static JsonObject schema(){
-        JsonObject verdict=new JsonObject();verdict.addProperty("type","string");JsonArray en=new JsonArray();en.add("FITS");en.add("NONSENSE");en.add("UNSURE");verdict.add("enum",en);
+        JsonObject verdict=new JsonObject();verdict.addProperty("type","string");JsonArray en=new JsonArray();en.add("FITS");en.add("NONSENSE");verdict.add("enum",en);
         JsonObject canon=new JsonObject();JsonArray t=new JsonArray();t.add("string");t.add("null");canon.add("type",t);canon.addProperty("maxLength",48);
         JsonObject sid=new JsonObject();sid.addProperty("type","string");
         JsonObject props=new JsonObject();props.add("submissionId",sid);props.add("verdict",verdict);props.add("canonicalAnswer",canon);

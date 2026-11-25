@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 
 class ThinkOrDieSessionTest {
     static final CategoryPack PACK=CategoryPack.load();
-    static final ThinkOrDieConfig CFG=ThinkOrDieConfig.DEFAULT.withTiming(1000,1000,30000,10000,2000,2000,3000);
+    static final ThinkOrDieConfig CFG=ThinkOrDieConfig.DEFAULT.withTiming(1000,1000,30000,10000,2000,2000,3000).withVotes(true); // vote rules stay tested; the shipped default is votes=false
     long now=0;int req=0;
 
     ThinkOrDieSession session(List<String> seats,Set<String> ghosts,String... cats){

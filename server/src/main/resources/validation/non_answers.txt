@@ -1,0 +1,118 @@
+# Answers that never fit any category (RU + EN): rejected at once, before lists, rules and the AI.
+# One per line, compared after normalization (case, ё/е, punctuation and spacing do not matter).
+не знаю
+незнаю
+я не знаю
+не помню
+без понятия
+понятия не имею
+хз
+хрен знает
+фиг знает
+кто знает
+пас
+пропуск
+пропускаю
+дальше
+следующий
+нет ответа
+ничего
+ничто
+нечто
+что-то
+что то
+чтото
+что-нибудь
+что нибудь
+что угодно
+всё
+все
+всё подряд
+любое
+любой
+штука
+штуковина
+вещь
+вещи
+предмет
+объект
+какая-то штука
+что-то странное
+слово
+ответ
+мой ответ
+правильный ответ
+верный ответ
+да
+нет
+ок
+окей
+ага
+угу
+ну
+эм
+ммм
+ааа
+хм
+лол
+кек
+тест
+тестовый ответ
+бла бла
+бла-бла
+абв
+абвгд
+йцукен
+фыва
+asdf
+asdfgh
+qwerty
+qwe
+idk
+i dont know
+i don't know
+dont know
+don't know
+dunno
+no idea
+no clue
+who knows
+pass
+skip
+next
+nothing
+none
+no answer
+something
+some thing
+some weird thing
+anything
+everything
+whatever
+any
+stuff
+thing
+things
+object
+item
+word
+answer
+my answer
+correct answer
+right answer
+yes
+no
+ok
+okay
+yeah
+yep
+nope
+um
+umm
+hmm
+lol
+test
+blah
+blah blah
+abc
+xyz

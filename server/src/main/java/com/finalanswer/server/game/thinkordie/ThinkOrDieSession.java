@@ -117,7 +117,7 @@ public final class ThinkOrDieSession {
             s.verdict=v==null?Verdict.uncertain(Verdict.Source.FALLBACK):v;}
         markPersonalDuplicates();
         Map<String,Dispute> byKey=new LinkedHashMap<>();
-        for(Sub s:subs)if(s.result.isEmpty()&&s.verdict.status()==ValidationStatus.UNCERTAIN){
+        if(cfg.votes())for(Sub s:subs)if(s.result.isEmpty()&&s.verdict.status()==ValidationStatus.UNCERTAIN){
             Dispute d=byKey.computeIfAbsent(s.key,k->new Dispute("d"+(byKey.size()+1),k,s.text));d.authors.add(s.player);}
         int n=0;for(Dispute d:byKey.values()){if(n++<cfg.maxDisputes()&&!eligibleFor(d).isEmpty())disputes.add(d);}
         if(disputes.isEmpty()){scoreRound();enterReveal(now);}

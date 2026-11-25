@@ -7,7 +7,7 @@ import java.util.concurrent.*;
  * Final Answer Validation Engine — reusable by any mode that accepts free text.
  *
  * <pre>
- * raw → sanitize/normalize ({@link AnswerInput}) → known wrong answers → verified aliases → category rule
+ * raw → sanitize/normalize ({@link AnswerInput}) → known wrong answers → verified aliases → non-answers ("не знаю", "idk") → category rule
  *     → conservative typo → AI cache → [optional AI judge, asynchronous] → fallback
  * </pre>
  * The fallback never treats an unknown answer as wrong unless the category is exhaustive: it becomes UNCERTAIN, and
@@ -28,7 +28,7 @@ public final class ValidationEngine implements AutoCloseable {
 
     public ValidationEngine(WordDictionary dictionary,ValidationCache cache,AiJudge ai){
         verified=new VerifiedAnswers();this.cache=cache==null?ValidationCache.NONE:cache;this.ai=ai;
-        steps=List.of(verified.knownInvalid(),verified.exact(),RuleSteps.words(dictionary),RuleSteps.numbers(),verified.typo(),this::cached);
+        steps=List.of(verified.knownInvalid(),verified.exact(),NonAnswers.STEP,RuleSteps.words(dictionary),RuleSteps.numbers(),verified.typo(),this::cached);
         worker=ai==null?null:Executors.newSingleThreadScheduledExecutor(r->{Thread t=new Thread(r,"validation-ai");t.setDaemon(true);return t;});
     }
     /** Deterministic engine without AI or cache (tests, tools). */
