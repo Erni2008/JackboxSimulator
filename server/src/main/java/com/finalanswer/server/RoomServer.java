@@ -102,6 +102,7 @@ public final class RoomServer implements AutoCloseable {
                         if(message.type().startsWith("CURSED_")||message.type().equals("START_CURSED_BOXES"))type="CURSED_ACTION_REJECTED";
                         if(message.type().equals("SUBMIT_ANSWER"))type="ANSWER_REJECTED";
                         if(message.type().startsWith("RM_"))type="RARE_MINDS_REJECTED";
+                        if(message.type().startsWith("TOD_"))type="THINK_OR_DIE_REJECTED";
                         if(message.type().equals("SUBMIT_SUSPICION"))type="SUSPICION_REJECTED";
                         if(message.type().equals("SUBMIT_CLUE"))type="CLUE_REJECTED";
                         if(message.type().equals("SUBMIT_FINAL_VOTE"))type="FINAL_VOTE_REJECTED";

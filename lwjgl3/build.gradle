@@ -1482,3 +1482,14 @@ tasks.register('hostingFallbackCheck', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'com.erni.finalanswer.lwjgl3.hosting.HostingFallbackCheck'
 }
+
+tasks.register('thinkOrDieLiveHost', JavaExec) {
+    group = 'application'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.ThinkOrDieLiveHost'
+    workingDir = rootProject.file('assets')
+    ['tod.url', 'tod.code', 'tod.token', 'tod.players', 'tod.lang', 'tod.ghost'].each { k -> systemProperty k, providers.gradleProperty(k).getOrElse('') }
+    if (System.getProperty('os.name').toLowerCase().contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}

@@ -81,7 +81,7 @@ public final class RoomService {
     public synchronized String join(String code,Map<String,String> data) {return joinInternal(code,data,false);}
     private String joinInternal(String code,Map<String,String> data,boolean developmentJoin) {
         Room room=find(code);
-        if(room.game!=null || room.impostor!=null || room.cursed!=null || (room.lastCommand!=null&&!developmentJoin||room.cards!=null||room.forgotten!=null||room.finalSecond!=null||room.rareMinds!=null||room.breach!=null)) throw new Failure(409,"GAME_ALREADY_STARTED");
+        if(room.game!=null || room.impostor!=null || room.cursed!=null || (room.lastCommand!=null&&!developmentJoin||room.cards!=null||room.forgotten!=null||room.finalSecond!=null||room.rareMinds!=null||room.thinkOrDie!=null||room.breach!=null)) throw new Failure(409,"GAME_ALREADY_STARTED");
         String name=text(data.get("name"),MAX_NICKNAME,"INVALID_NICKNAME");
         String password=data.getOrDefault("password","");
         if(password.length()>64 || room.passwordHash!=null&&!MessageDigest.isEqual(room.passwordHash,hash(password,room.salt)))
@@ -114,7 +114,7 @@ public final class RoomService {
     public synchronized String view(String code) { return json(snapshot(find(code),null,false)); }
     public synchronized String reroll(String code,Map<String,String> data) {
         Room room=find(code); Member host=authenticate(room,data.getOrDefault("token","")); requireHost(host);
-        if(room.game!=null || room.impostor!=null || room.cursed!=null || (room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null||room.rareMinds!=null||room.breach!=null) || !room.members.isEmpty()) throw new Failure(409,"ROOM_NOT_EMPTY");
+        if(room.game!=null || room.impostor!=null || room.cursed!=null || (room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null||room.rareMinds!=null||room.thinkOrDie!=null||room.breach!=null) || !room.members.isEmpty()) throw new Failure(409,"ROOM_NOT_EMPTY");
         // Generate while the old code is still reserved, so reroll always changes it.
         String replacement=code();
         rooms.remove(room.code); room.code=replacement; rooms.put(room.code,room); host.seen=now();
@@ -216,6 +216,7 @@ public final class RoomService {
         if(Set.of("START_FORGOTTEN_ROOM","ROOM_SUBMIT","END_FORGOTTEN_ROOM").contains(message.type())){forgottenCommand(room,member,peer,message);return;}
         if(Set.of("START_FINAL_SECOND","FS_START","FS_STOP","END_FINAL_SECOND").contains(message.type())){finalSecondCommand(room,member,peer,message);return;}
         if(Set.of("START_RARE_MINDS","RM_DRAFT","RM_SUBMIT","END_RARE_MINDS").contains(message.type())){rareMindsCommand(room,member,peer,message);return;}
+        if(Set.of("START_THINK_OR_DIE","TOD_SUBMIT","TOD_VOTE","END_THINK_OR_DIE").contains(message.type())){thinkOrDieCommand(room,member,peer,message);return;}
         if(room.cards!=null)throw new Failure(409,"CARDS_IN_PROGRESS");
         if(room.forgotten!=null)throw new Failure(409,"FORGOTTEN_ROOM_IN_PROGRESS");
         if(room.lastCommand!=null)throw new Failure(409,"LAST_COMMAND_IN_PROGRESS");
@@ -224,7 +225,7 @@ public final class RoomService {
         }
         if(message.type().equals("UPDATE_IMPOSTOR_SETTINGS")) {
             requireHost(member);
-            if(room.game!=null || room.impostor!=null || room.cursed!=null || (room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null||room.rareMinds!=null||room.breach!=null))throw new Failure(409,"SETTINGS_LOCKED");
+            if(room.game!=null || room.impostor!=null || room.cursed!=null || (room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null||room.rareMinds!=null||room.thinkOrDie!=null||room.breach!=null))throw new Failure(409,"SETTINGS_LOCKED");
             if(!data.keySet().equals(Set.of("roomCode","sessionId","settings")) || suppliedCode.isBlank()
                     || !room.lobbyId.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_IMPOSTOR_SESSION");
             try {
@@ -417,7 +418,7 @@ public final class RoomService {
         switch(message.type()){
             case "START_CARDS"->{
                 requireHost(member);
-                if(room.game!=null||room.impostor!=null||room.cursed!=null||room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null||room.rareMinds!=null||room.breach!=null)throw new Failure(409,"GAME_ALREADY_STARTED");
+                if(room.game!=null||room.impostor!=null||room.cursed!=null||room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null||room.rareMinds!=null||room.thinkOrDie!=null||room.breach!=null)throw new Failure(409,"GAME_ALREADY_STARTED");
                 if(!room.lobbyId.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_CARDS_SESSION");
                 List<String> online=room.members.values().stream().filter(m->m.peer!=null&&!m.left).map(m->m.id).toList();
                 List<String> seats;
@@ -446,7 +447,7 @@ public final class RoomService {
         switch(message.type()){
             case "START_FORGOTTEN_ROOM"->{
                 requireHost(member);
-                if(room.game!=null||room.impostor!=null||room.cursed!=null||room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null||room.rareMinds!=null||room.breach!=null)throw new Failure(409,"GAME_ALREADY_STARTED");
+                if(room.game!=null||room.impostor!=null||room.cursed!=null||room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null||room.rareMinds!=null||room.thinkOrDie!=null||room.breach!=null)throw new Failure(409,"GAME_ALREADY_STARTED");
                 if(!room.lobbyId.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_ROOM_SESSION");
                 var difficulty=com.erni.finalanswer.gameplay.forgottenroom.RoomDifficulty.parse(data.has("difficulty")?data.get("difficulty").getAsString():null);
                 List<String> seats=room.members.values().stream().filter(m->m.peer!=null&&!m.left).map(m->m.id).toList();
@@ -469,7 +470,7 @@ public final class RoomService {
     }
     static final long BREACH_AUTO_END_MS=20_000;
     private void endBreach(Room room){room.breach.close();room.breach=null;room.breachFinishedAt=0;room.breachKeysBought.clear();room.members.values().removeIf(m->m.left);room.lobbyId=UUID.randomUUID().toString();broadcast(room,"SYSTEM_BREACH_FINISHED");}
-    private boolean miniGameRunning(Room room){return (room.raceSession!=null&&!room.raceSession.ended)||room.breach!=null||room.cursed!=null||room.impostor!=null||room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null||room.rareMinds!=null;}
+    private boolean miniGameRunning(Room room){return (room.raceSession!=null&&!room.raceSession.ended)||room.breach!=null||room.cursed!=null||room.impostor!=null||room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null||room.rareMinds!=null||room.thinkOrDie!=null;}
     /** A ghost who bought their way back returns at the next safe moment: in the lobby, or before the next question's answers open. */
     private void applyRevivals(Room room){
         if(miniGameRunning(room))return;boolean changed=false;
@@ -500,7 +501,7 @@ public final class RoomService {
         if(action.equals("START")){
             requireHost(member);
             if(room.breach!=null&&room.breachStartRequest.equals(message.requestId())){reply(peer,room,member,message);return;}
-            if(room.game!=null||room.impostor!=null||room.cursed!=null||room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null||room.rareMinds!=null||room.breach!=null||!room.webGameId.isEmpty())throw new Failure(409,"GAME_ALREADY_STARTED");
+            if(room.game!=null||room.impostor!=null||room.cursed!=null||room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null||room.rareMinds!=null||room.thinkOrDie!=null||room.breach!=null||!room.webGameId.isEmpty())throw new Failure(409,"GAME_ALREADY_STARTED");
             if(!data.keySet().stream().allMatch(Set.of("roomCode","sessionId","difficulty")::contains)||!room.lobbyId.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"SB_STALE_SESSION");
             int difficulty=1;try{if(data.has("difficulty")){var e=data.get("difficulty");if(!e.isJsonPrimitive()||!e.getAsJsonPrimitive().isNumber()||!e.toString().matches("[1-3]"))throw new IllegalArgumentException();difficulty=e.getAsInt();}}
             catch(RuntimeException error){throw new Failure(400,"SB_INVALID_DIFFICULTY");}
@@ -538,7 +539,7 @@ public final class RoomService {
         switch(message.type()){
             case "START_FINAL_SECOND"->{
                 requireHost(member);
-                if(room.game!=null||room.impostor!=null||room.cursed!=null||room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null||room.rareMinds!=null||room.breach!=null)throw new Failure(409,"GAME_ALREADY_STARTED");
+                if(room.game!=null||room.impostor!=null||room.cursed!=null||room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null||room.rareMinds!=null||room.thinkOrDie!=null||room.breach!=null)throw new Failure(409,"GAME_ALREADY_STARTED");
                 if(!room.lobbyId.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_FS_SESSION");
                 List<String> seats=room.members.values().stream().filter(m->m.peer!=null&&!m.left&&m.alive).map(m->m.id).toList();
                 FinalSecondSession.Task task;
@@ -577,7 +578,7 @@ public final class RoomService {
         try{switch(message.type()){
             case "START_RARE_MINDS"->{
                 requireHost(member);
-                if(room.game!=null||room.impostor!=null||room.cursed!=null||room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null||room.rareMinds!=null||room.breach!=null||!room.webGameId.isEmpty())throw new Failure(409,"GAME_ALREADY_STARTED");
+                if(room.game!=null||room.impostor!=null||room.cursed!=null||room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null||room.rareMinds!=null||room.thinkOrDie!=null||room.breach!=null||!room.webGameId.isEmpty())throw new Failure(409,"GAME_ALREADY_STARTED");
                 if(!room.lobbyId.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_RM_SESSION");
                 List<String> seats=room.members.values().stream().filter(m->m.peer!=null&&!m.left).map(m->m.id).toList();
                 com.finalanswer.server.game.rareminds.RareMindsSession.Format forced=null;
@@ -602,7 +603,7 @@ public final class RoomService {
         catch(UnsupportedOperationException|ClassCastException|IllegalStateException e){throw new Failure(400,"RM_INVALID_MESSAGE");}
     }
     private static int intField(JsonObject data,String key){try{return data.get(key).getAsInt();}catch(RuntimeException e){throw new Failure(400,"RM_INVALID_MESSAGE");}}
-    private static void requireRareMinds(Room room,JsonObject data){if(room.rareMinds==null||!room.rareMinds.id.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_RM_SESSION");}
+    private static void requireRareMinds(Room room,JsonObject data){if(room.rareMinds==null&&room.thinkOrDie==null||!room.rareMinds.id.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_RM_SESSION");}
     private void endRareMinds(Room room){room.rareMinds=null;room.rareMindsDoneAt=0;room.lobbyId=UUID.randomUUID().toString();broadcast(room,"RARE_MINDS_ENDED");}
     /** Live typing goes to the host's own client only, at most ~8 times a second (the rest follows on the next tick). */
     private void pushRareLive(Room room){
@@ -639,6 +640,67 @@ public final class RoomService {
         List<Map<String,Object>> names=new ArrayList<>();for(Member p:room.members.values())names.add(Map.of("id",p.id,"name",p.name,"characterId",p.characterId,"online",p.peer!=null&&!p.left));v.put("roster",names);
         return json(v);
     }
+    // ---------------------------------------------------------------- THINK OR DIE
+    private com.finalanswer.server.validation.ValidationEngine validationEngine;
+    /** One engine per server: deterministic steps, the local AI cache, and the optional AI pack when configured. */
+    private synchronized com.finalanswer.server.validation.ValidationEngine validationEngine(){
+        if(validationEngine==null){var ai=com.finalanswer.server.validation.LlamaCppJudge.configured();
+            validationEngine=new com.finalanswer.server.validation.ValidationEngine(new com.finalanswer.server.validation.WordDictionary(),ai==null?com.finalanswer.server.validation.ValidationCache.NONE:com.finalanswer.server.validation.ValidationCache.FileStore.configured(),ai);
+            System.out.println("[think-or-die] validation engine ready, AI judge "+(ai==null?"off":ai.modelVersion()));}
+        return validationEngine;
+    }
+    static final long THINK_OR_DIE_AUTO_END_MS=25_000;
+    /** Host starts/ends; every seated player (alive or ghost) submits answers and votes on disputed ones. */
+    private void thinkOrDieCommand(Room room,Member member,Peer peer,Message message){
+        JsonObject data=message.payload();
+        try{switch(message.type()){
+            case "START_THINK_OR_DIE"->{
+                requireHost(member);
+                if(room.game!=null||room.impostor!=null||room.cursed!=null||room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null||room.rareMinds!=null||room.thinkOrDie!=null||room.breach!=null||!room.webGameId.isEmpty())throw new Failure(409,"GAME_ALREADY_STARTED");
+                if(!room.lobbyId.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_TOD_SESSION");
+                List<Member> seated=room.members.values().stream().filter(m->m.peer!=null&&!m.left).toList();
+                Set<String> ghosts=new HashSet<>();for(Member m:seated)if(!m.alive)ghosts.add(m.id);
+                var cfg=com.finalanswer.server.game.thinkordie.ThinkOrDieConfig.DEFAULT;
+                var cats=com.finalanswer.server.validation.CategoryPack.load().draw(cfg.rounds(),room.language,random);
+                room.thinkOrDie=new com.finalanswer.server.game.thinkordie.ThinkOrDieSession(seated.stream().map(m->m.id).toList(),ghosts,cats,validationEngine(),cfg,room.language,now());room.thinkOrDieDoneAt=0;
+                System.out.println("[think-or-die] start room="+room.code+" seats="+seated.size()+" ghosts="+ghosts.size());
+                broadcast(room,"THINK_OR_DIE_STARTED");
+            }
+            case "END_THINK_OR_DIE"->{requireHost(member);requireThinkOrDie(room,data);endThinkOrDie(room);}
+            case "TOD_SUBMIT"->{requireThinkOrDie(room,data);if(member.host)throw new Failure(403,"TOD_NOT_A_PLAYER");
+                String id=room.thinkOrDie.submit(member.id,message.requestId(),intField(data,"round"),Protocol.string(data,"text"),now());
+                if(id!=null)pushThinkOrDie(room,member);else reply(peer,room,member,message);}
+            case "TOD_VOTE"->{requireThinkOrDie(room,data);if(member.host)throw new Failure(403,"TOD_NOT_A_PLAYER");
+                room.thinkOrDie.vote(member.id,Protocol.string(data,"disputeId"),data.has("accept")&&data.get("accept").getAsBoolean(),now());
+                broadcast(room,"THINK_OR_DIE_UPDATED");}
+            default->throw new Failure(400,"UNKNOWN_COMMAND");
+        }}catch(com.finalanswer.server.game.thinkordie.ThinkOrDieSession.Failure f){throw new Failure(f.status,f.getMessage());}
+        catch(UnsupportedOperationException|ClassCastException|IllegalStateException e){throw new Failure(400,"TOD_INVALID_MESSAGE");}
+    }
+    private static void requireThinkOrDie(Room room,JsonObject data){if(room.thinkOrDie==null||!room.thinkOrDie.id.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_TOD_SESSION");}
+    private void endThinkOrDie(Room room){room.thinkOrDie=null;room.thinkOrDieDoneAt=0;room.lobbyId=UUID.randomUUID().toString();broadcast(room,"THINK_OR_DIE_ENDED");}
+    /**
+     * A new answer: the author gets their own history at once; everyone else (and the host screen) only a counter
+     * update, throttled to ~6 a second so eight fast typists never flood the phones.
+     */
+    private void pushThinkOrDie(Room room,Member author){
+        if(author.peer!=null)author.peer.send(Protocol.event("THINK_OR_DIE_UPDATED","",snapshot(room,author,false)));
+        if(now()-room.thinkOrDieLiveAt>=160){room.thinkOrDieLiveAt=now();room.thinkOrDie.liveDirty=false;if(room.host.peer!=null)room.host.peer.send(Protocol.event("THINK_OR_DIE_UPDATED","",snapshot(room,room.host,false)));}
+    }
+    private void tickThinkOrDie(Room room){
+        var t=room.thinkOrDie;t.connected(room.members.values().stream().filter(m->m.peer!=null&&!m.left).map(m->m.id).toList());
+        boolean changed=t.tick(now());
+        for(String id:t.takeRevivals())for(Member m:room.members.values())if(m.id.equals(id)&&!m.alive){m.alive=true;m.revivalPending=false;changed=true;System.out.println("[think-or-die] "+m.name+" resurrected");}
+        if(changed){scoreFinishedModes(room);broadcast(room,"THINK_OR_DIE_UPDATED");}
+        else if(t.liveDirty&&now()-room.thinkOrDieLiveAt>=160&&room.host.peer!=null){t.liveDirty=false;room.thinkOrDieLiveAt=now();room.host.peer.send(Protocol.event("THINK_OR_DIE_UPDATED","",snapshot(room,room.host,false)));}
+        if(t.phase()==com.finalanswer.server.game.thinkordie.ThinkOrDieSession.Phase.COMPLETED){if(room.thinkOrDieDoneAt==0)room.thinkOrDieDoneAt=now();else if(now()-room.thinkOrDieDoneAt>=THINK_OR_DIE_AUTO_END_MS)endThinkOrDie(room);}
+    }
+    /** Souls once per match and player (reward key), place points to the round score like every other mode. */
+    private void payThinkOrDie(Room room,com.finalanswer.server.game.thinkordie.ThinkOrDieSession t){
+        if(t.paid)return;t.paid=true;Map<String,Integer> pts=new HashMap<>();
+        for(var s:t.standings()){if(s.souls()>0)room.souls.reward(s.playerId(),s.souls(),"THINK_OR_DIE","think-or-die/"+t.id);pts.put(s.playerId(),ModeScoring.place(s.rank()));}
+        award(room,pts);publishSummary(room,pts,"think-or-die");broadcast(room,"SOULS_UPDATED");
+    }
     private static void requireFinalSecond(Room room,JsonObject data){if(room.finalSecond==null||!room.finalSecond.id.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_FS_SESSION");}
     private boolean tickFinalSecond(Room room){
         var f=room.finalSecond;boolean changed=f.tick(now());
@@ -660,7 +722,7 @@ public final class RoomService {
         if(message.type().equals("START_LAST_COMMAND")){
             requireHost(member);
             if(!data.keySet().equals(Set.of("roomCode","sessionId","seed"))||!room.lobbyId.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_LAST_COMMAND_SESSION");
-            if(room.game!=null||room.impostor!=null||room.cursed!=null||(room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null||room.rareMinds!=null||room.breach!=null))throw new Failure(409,"GAME_ALREADY_STARTED");
+            if(room.game!=null||room.impostor!=null||room.cursed!=null||(room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null||room.rareMinds!=null||room.thinkOrDie!=null||room.breach!=null))throw new Failure(409,"GAME_ALREADY_STARTED");
             if(room.members.isEmpty())throw new Failure(409,"NOT_ENOUGH_PLAYERS");
             if(room.members.values().stream().anyMatch(m->m.peer==null||m.left))throw new Failure(409,"PLAYER_OFFLINE");
             long seed;try{seed=Long.parseLong(Protocol.string(data,"seed"));}catch(NumberFormatException e){throw new Failure(400,"INVALID_LAST_COMMAND_SEED");}
@@ -733,7 +795,7 @@ public final class RoomService {
     /** Server-only assignment hook. No wire command or automatic participant-selection policy. */
     public synchronized String installImpostorSession(String code,List<String> activeIds) {
         Room room=find(code);
-        if(room.game!=null || room.impostor!=null || room.cursed!=null || (room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null||room.rareMinds!=null||room.breach!=null))throw new Failure(409,"GAME_ALREADY_STARTED");
+        if(room.game!=null || room.impostor!=null || room.cursed!=null || (room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null||room.rareMinds!=null||room.thinkOrDie!=null||room.breach!=null))throw new Failure(409,"GAME_ALREADY_STARTED");
         Set<String> available=new HashSet<>();
         room.members.values().stream().filter(m->m.peer!=null&&!m.left).forEach(m->available.add(m.id));
         if(!available.containsAll(activeIds))throw new Failure(400,"INVALID_IMPOSTOR_PARTICIPANTS");
@@ -745,7 +807,7 @@ public final class RoomService {
     public synchronized String startImpostorGame(String code,List<String> activeIds) {
         // Prepare hidden state before installation, so invalid word configuration cannot strand a room.
         Room room=find(code);
-        if(room.game!=null || room.impostor!=null || room.cursed!=null || (room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null||room.rareMinds!=null||room.breach!=null))throw new Failure(409,"GAME_ALREADY_STARTED");
+        if(room.game!=null || room.impostor!=null || room.cursed!=null || (room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null||room.rareMinds!=null||room.thinkOrDie!=null||room.breach!=null))throw new Failure(409,"GAME_ALREADY_STARTED");
         Set<String> available=new HashSet<>();
         room.members.values().stream().filter(m->m.peer!=null&&!m.left).forEach(m->available.add(m.id));
         if(!available.containsAll(activeIds))throw new Failure(400,"INVALID_IMPOSTOR_PARTICIPANTS");
@@ -799,13 +861,13 @@ public final class RoomService {
         for(Room room:rooms.values())if(room.finalSecond!=null&&tickFinalSecond(room))broadcast(room,"FINAL_SECOND_UPDATED");
         for(Room room:new ArrayList<>(rooms.values())) {
             // Detect half-open sockets even when the transport has not reported a close.
-            for(Member member:allMembers(room))if(room.game==null && room.impostor==null && room.cursed==null && room.lastCommand==null&&room.cards==null&&room.forgotten==null&&room.finalSecond==null&&room.rareMinds==null&&room.breach==null && member.peer!=null && now()-member.seen>45_000){
+            for(Member member:allMembers(room))if(room.game==null && room.impostor==null && room.cursed==null && room.lastCommand==null&&room.cards==null&&room.forgotten==null&&room.finalSecond==null&&room.rareMinds==null&&room.thinkOrDie==null&&room.breach==null && member.peer!=null && now()-member.seen>45_000){
                 disconnectMember(member,"CONNECTION_LOST");broadcast(room,"PLAYER_LEFT");
             }
             // Host heartbeat keeps an unconfirmed CREATE -> GENERATE room alive too.
             if(room.host.peer==null && now()-room.host.seen>120_000) { closeRoom(room,"HOST_DISCONNECTED"); continue; }
             for(Member member:new ArrayList<>(room.members.values())) {
-                if(room.game==null && room.impostor==null && room.cursed==null && room.lastCommand==null&&room.cards==null&&room.forgotten==null&&room.finalSecond==null&&room.rareMinds==null&&room.breach==null && member.peer==null && now()-member.seen>600_000) {
+                if(room.game==null && room.impostor==null && room.cursed==null && room.lastCommand==null&&room.cards==null&&room.forgotten==null&&room.finalSecond==null&&room.rareMinds==null&&room.thinkOrDie==null&&room.breach==null && member.peer==null && now()-member.seen>600_000) {
                     room.members.remove(member.token); broadcast(room,"PLAYER_LEFT");
                 }
             }
@@ -1013,6 +1075,8 @@ public final class RoomService {
             award(room,pts);publishSummary(room,pts,"final-second");}
         var rm=room.rareMinds;
         if(rm!=null&&!rm.standings().isEmpty()&&first(room,"rare-minds",rm))payRareMinds(room,rm);
+        var tod=room.thinkOrDie;
+        if(tod!=null&&!tod.standings().isEmpty()&&first(room,"think-or-die",tod))payThinkOrDie(room,tod);
         var imp=room.impostor;var ir=imp==null?null:imp.result();
         if(ir!=null&&first(room,"impostor",ir)){Map<String,Integer> pts=new HashMap<>();
             for(var p:ir.participants())pts.put(p.playerId(),p.winner()?ModeScoring.WIN_SIDE:ModeScoring.LOSE_SIDE);
@@ -1038,6 +1102,7 @@ public final class RoomService {
         // nobody is ever stuck on a finished SYSTEM BREACH: if the host never ends it, the room returns to the lobby
         if(room.breach!=null&&room.breach.phase()==SystemBreachPhase.FINISHED){if(room.breachFinishedAt==0)room.breachFinishedAt=now();else if(now()-room.breachFinishedAt>=BREACH_AUTO_END_MS)endBreach(room);}
         if(room.rareMinds!=null)tickRareMinds(room);
+        if(room.thinkOrDie!=null)tickThinkOrDie(room);
         applyRevivals(room);
         scoreFinishedModes(room);
         if(room.raceSession!=null&&!room.raceSession.ended){Set<String> on=room.members.values().stream().filter(m->m.peer!=null&&!m.left).map(m->m.id).collect(java.util.stream.Collectors.toSet());
@@ -1136,11 +1201,11 @@ public final class RoomService {
         value.put("protocolVersion",Protocol.VERSION); value.put("roomId",room.id); value.put("code",room.code); value.put("roomCode",room.code);
         value.put("name",room.name); value.put("maxPlayers",room.maxPlayers); value.put("gameMode",room.mode); value.put("questionCount",room.questionCount);
         value.put("roomSettings",Map.of("name",room.name,"maxPlayers",room.maxPlayers,"gameMode",room.mode,"questionCount",room.questionCount,"passwordRequired",room.passwordHash!=null));
-        value.put("roomStatus",(room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null||room.rareMinds!=null||room.breach!=null)?"IN_GAME":room.cursed!=null?room.cursed.finished()?"GAME_FINISHED":"IN_GAME":game==null?"LOBBY":phase==Phase.GAME_FINISHED?"GAME_FINISHED":"IN_GAME");
+        value.put("roomStatus",(room.lastCommand!=null||room.cards!=null||room.forgotten!=null||room.finalSecond!=null||room.rareMinds!=null||room.thinkOrDie!=null||room.breach!=null)?"IN_GAME":room.cursed!=null?room.cursed.finished()?"GAME_FINISHED":"IN_GAME":game==null?"LOBBY":phase==Phase.GAME_FINISHED?"GAME_FINISHED":"IN_GAME");
         value.put("phase",phase.name()); value.put("revision",room.revision); value.put("serverTime",now()); value.put("publicUrl",publicUrl);
         value.put("hostConnected",room.host.peer!=null);
         value.put("availableCharacters",CHARACTERS.stream().filter(c->room.members.values().stream().noneMatch(m->m.characterId.equals(c))).toList());
-        value.put("canStart",game==null && room.impostor==null && room.cursed==null && room.lastCommand==null&&room.cards==null&&room.forgotten==null&&room.finalSecond==null&&room.rareMinds==null&&room.breach==null && room.host.peer!=null && !room.members.isEmpty() && room.members.values().stream().allMatch(m->m.peer!=null&&!m.left));
+        value.put("canStart",game==null && room.impostor==null && room.cursed==null && room.lastCommand==null&&room.cards==null&&room.forgotten==null&&room.finalSecond==null&&room.rareMinds==null&&room.thinkOrDie==null&&room.breach==null && room.host.peer!=null && !room.members.isEmpty() && room.members.values().stream().allMatch(m->m.peer!=null&&!m.left));
         value.put("impostorSettings",room.impostorSettings);value.put("impostorWordCategories",List.of("DEFAULT"));
         if(room.modeSummary!=null)value.put("modeSummary",room.modeSummary);value.put("lobbyId",room.lobbyId); value.put("language",room.language); value.put("elevatorDifficulty",room.difficulty.name());
         if(!room.webGameId.isEmpty()){value.put("webGame",room.webGame);value.put("webGameId",room.webGameId);
@@ -1167,6 +1232,7 @@ public final class RoomService {
         }
         if(room.lastCommand!=null)value.put("lastCommand",room.lastCommand.snapshot(self==null?"":self.id,now()));
         if(room.cards!=null)value.put("cursedCards",room.cards.snapshot(self==null?"":self.id,self!=null&&self.host,now()));
+        if(room.thinkOrDie!=null)value.put("thinkOrDie",room.thinkOrDie.snapshot(self==null||self.host?null:self.id,self!=null&&self.host,now()));
         if(room.rareMinds!=null)value.put("rareMinds",room.rareMinds.snapshot(self==null||self.host?null:self.id,self!=null&&self.host,now()));
         if(room.finalSecond!=null)value.put("finalSecond",room.finalSecond.snapshot(self==null?"":self.id,self!=null&&self.host,now()));
         if(room.breach!=null)value.put("systemBreach",room.breach.snapshot(self==null?"":self.id,self!=null&&self.host,now(),breachOnline(room),breachNames(room)));
@@ -1298,7 +1364,7 @@ public final class RoomService {
         String lobbyId=UUID.randomUUID().toString();List<String> impostorRoster=List.of();
         com.erni.finalanswer.gameplay.impostor.ImpostorSettings impostorSettings=com.erni.finalanswer.gameplay.impostor.ImpostorSettings.defaults();
         com.erni.finalanswer.gameplay.impostor.ImpostorMatchResult lastImpostorResult;
-        final Map<String,Member> members=new LinkedHashMap<>(); Member host; GameSession game; ImpostorSession impostor; CursedBoxesSession cursed; LastCommandSession lastCommand; CursedCardsSession cards; ForgottenRoomSession forgotten; FinalSecondSession finalSecond; com.finalanswer.server.game.rareminds.RareMindsSession rareMinds; long rareMindsDoneAt,rareLiveAt; SystemBreachSession breach; SystemBreachView.Outcome lastBreachResult; boolean breachScored; long breachFinishedAt; final Map<String,Integer> breachKeysBought=new HashMap<>(); long breachEventSequence; String breachStartRequest=""; final FinalSecondSession.TaskBag fsTasks=new FinalSecondSession.TaskBag(); long revision;
+        final Map<String,Member> members=new LinkedHashMap<>(); Member host; GameSession game; ImpostorSession impostor; CursedBoxesSession cursed; LastCommandSession lastCommand; CursedCardsSession cards; ForgottenRoomSession forgotten; FinalSecondSession finalSecond; com.finalanswer.server.game.rareminds.RareMindsSession rareMinds; long rareMindsDoneAt,rareLiveAt; com.finalanswer.server.game.thinkordie.ThinkOrDieSession thinkOrDie; long thinkOrDieDoneAt,thinkOrDieLiveAt; SystemBreachSession breach; SystemBreachView.Outcome lastBreachResult; boolean breachScored; long breachFinishedAt; final Map<String,Integer> breachKeysBought=new HashMap<>(); long breachEventSequence; String breachStartRequest=""; final FinalSecondSession.TaskBag fsTasks=new FinalSecondSession.TaskBag(); long revision;
         Room(String code,String name,int max,String mode,int questions,byte[] salt,byte[] hash) {
             this.code=code;this.name=name;maxPlayers=max;this.mode=mode;questionCount=questions;this.salt=salt;passwordHash=hash;
         }

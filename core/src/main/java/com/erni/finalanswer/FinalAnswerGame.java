@@ -135,6 +135,22 @@ public class FinalAnswerGame extends Game {
         setScreen(finalSecondScreen);
     }
     private void releaseFinalSecond(boolean toLobby){if(finalSecondScreen==null)return;var old=finalSecondScreen;finalSecondScreen=null;if(toLobby)showBalances();else if(getScreen()==old)setScreen(null);old.dispose();}
+    private com.erni.finalanswer.thinkordie.ThinkOrDieScreen thinkOrDieScreen;
+    /** Host: start THINK OR DIE for every connected player (alive and ghosts). */
+    public void startThinkOrDie(){
+        if(activeRoom==null||realtime==null||!activeRoom.host()||!realtime.connected())return;
+        var snapshot=realtime.snapshot();if(snapshot==null||!snapshot.has("lobbyId"))return;
+        realtime.send("START_THINK_OR_DIE",java.util.Map.of("roomCode",activeRoom.code(),"sessionId",snapshot.get("lobbyId").getAsString()));
+    }
+    private void openThinkOrDie(com.google.gson.JsonObject state){
+        String session=state.getAsJsonObject("thinkOrDie").get("sessionId").getAsString();
+        if(thinkOrDieScreen!=null&&thinkOrDieScreen.session().equals(session)){thinkOrDieScreen.apply(state);if(getScreen()!=thinkOrDieScreen)setScreen(thinkOrDieScreen);return;}
+        releaseThinkOrDie(false);
+        thinkOrDieScreen=new com.erni.finalanswer.thinkordie.ThinkOrDieScreen(state,realtime::serverNow,id->{
+            if(realtime!=null&&realtime.connected())realtime.send("END_THINK_OR_DIE",java.util.Map.of("roomCode",activeRoom.code(),"sessionId",id));});
+        setScreen(thinkOrDieScreen);
+    }
+    private void releaseThinkOrDie(boolean toLobby){if(thinkOrDieScreen==null)return;var old=thinkOrDieScreen;thinkOrDieScreen=null;if(toLobby)showBalances();else if(getScreen()==old)setScreen(null);old.dispose();}
     private com.erni.finalanswer.rareminds.RareMindsScreen rareMindsScreen;
     /** Host: start RARE MINDS for every connected player (its rules play on the big screen while phones get ready). */
     public void startRareMinds(){
@@ -376,6 +392,8 @@ public class FinalAnswerGame extends Game {
         if(activeRoom.host()&&data.has("lastCommand")&&Gdx.files.internal("models/last_command/computer.glb").exists()){openLastCommand(data,false);return;}
         if(activeRoom.host()&&data.has("cursedCards")){openCursedCards(data);return;}
         if(cardsScreen!=null&&!data.has("cursedCards"))releaseCursedCards(true);
+        if(activeRoom.host()&&data.has("thinkOrDie")){openThinkOrDie(data);return;}
+        if(thinkOrDieScreen!=null&&!data.has("thinkOrDie"))releaseThinkOrDie(true);
         if(activeRoom.host()&&data.has("rareMinds")){openRareMinds(data);return;}
         if(rareMindsScreen!=null&&!data.has("rareMinds"))releaseRareMinds(true);
         if(activeRoom.host()&&data.has("finalSecond")){openFinalSecond(data);return;}
