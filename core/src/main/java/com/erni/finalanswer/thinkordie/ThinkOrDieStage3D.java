@@ -36,7 +36,7 @@ final class ThinkOrDieStage3D implements Disposable {
         IBLBuilder ibl=IBLBuilder.createIndoor(key);
         try{diffuse=ibl.buildIrradianceMap(16);specular=ibl.buildRadianceMap(5);}finally{ibl.dispose();}
         brdf=new Texture(Gdx.files.classpath("net/mgsx/gltf/shaders/brdfLUT.png"));
-        manager.setAmbientLight(.05f);
+        manager.setAmbientLight(.14f);
         manager.environment.set(PBRCubemapAttribute.createDiffuseEnv(diffuse));manager.environment.set(PBRCubemapAttribute.createSpecularEnv(specular));
         manager.environment.set(new PBRTextureAttribute(PBRTextureAttribute.BRDFLUTTexture,brdf));
         manager.environment.set(new ColorAttribute(ColorAttribute.Fog,.02f,.012f,.014f,1));
@@ -87,8 +87,8 @@ final class ThinkOrDieStage3D implements Disposable {
             l.scene.modelInstance.transform.setToTranslation(l.pivot).rotate(Vector3.Z,sw).rotate(Vector3.X,sw*.4f).translate(0,-l.len,0).scale(1.4f,1.4f,1.4f);
             Vector3 p=new Vector3(0,-l.len-.3f,0).rotate(Vector3.X,sw*.4f).rotate(Vector3.Z,sw).add(l.pivot);
             float flick=.8f+.2f*MathUtils.sin(t*13+l.phase*5)*MathUtils.sin(t*7.3f+l.phase);if(MathUtils.random()<.004f)flick=.15f;
-            l.light.set(mood,p,22f*flick*(1+kick),14f);}
-        for(int k=0;k<candles.size();k++){float f=.75f+.25f*MathUtils.sin(t*17+k*3)*MathUtils.sin(t*5.1f+k);candles.get(k).intensity=9f*f;}
+            l.light.set(mood,p,55f*flick*(1+kick),18f);}
+        for(int k=0;k<candles.size();k++){float f=.75f+.25f*MathUtils.sin(t*17+k*3)*MathUtils.sin(t*5.1f+k);candles.get(k).intensity=22f*f;}
         manager.update(dt);
         Gdx.gl.glClear(GL20.GL_DEPTH_BUFFER_BIT);
         manager.render();

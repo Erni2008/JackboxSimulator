@@ -17,7 +17,7 @@ import java.util.*;
 final class ThinkOrDieArt implements Disposable {
     static final Color INK=new Color(.94f,.91f,.88f,1),DIM=new Color(.58f,.55f,.53f,1),ACID=new Color(.85f,1f,.25f,1),BLOOD=new Color(.92f,.18f,.14f,1),
         GOLD=new Color(1f,.77f,.30f,1),GREEN=new Color(.36f,.89f,.54f,1),ORANGE=new Color(1f,.60f,.24f,1),RED=new Color(1f,.29f,.24f,1),
-        NEUTRAL=new Color(.62f,.62f,.66f,1),GHOST=new Color(.56f,.82f,1f,1),PANEL=new Color(.06f,.045f,.05f,.86f);
+        NEUTRAL=new Color(.62f,.62f,.66f,1),GHOST=new Color(.56f,.82f,1f,1),PANEL=new Color(.05f,.035f,.04f,.74f);
     /** lane colours, one per seat */
     static final Color[] SEAT={new Color(.95f,.30f,.25f,1),new Color(.30f,.70f,1f,1),new Color(.98f,.78f,.25f,1),new Color(.55f,.90f,.40f,1),
         new Color(.80f,.45f,1f,1),new Color(1f,.55f,.20f,1),new Color(.25f,.90f,.85f,1),new Color(1f,.45f,.70f,1)};

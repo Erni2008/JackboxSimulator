@@ -21,7 +21,9 @@ import java.util.function.*;
 public final class ThinkOrDieScreen extends ScreenAdapter {
     private static final float W=1920,H=1080;
     private final OrthographicCamera cam=new OrthographicCamera();private final FitViewport vp=new FitViewport(W,H,cam);
-    private SpriteBatch batch;private ThinkOrDieArt art;private boolean created;
+    private SpriteBatch batch;private ThinkOrDieArt art;private boolean created;private ThinkOrDieStage3D stage3d;
+    private static final class Ember{float x,y,vx,vy,life,max,size;Color c;}
+    private final List<Ember> embers=new ArrayList<>();private int typed=-1;
     private JsonObject state,t;private final LongSupplier serverNow;private final Consumer<String> onEnd;
     private float clock,shake,phaseT;private String lastPhase="";private int lastRound=-1,lastSecond=-1,soundedTiles=-1;
 
@@ -33,7 +35,8 @@ public final class ThinkOrDieScreen extends ScreenAdapter {
     public void apply(JsonObject snapshot){if(!snapshot.has("thinkOrDie"))return;state=snapshot;t=snapshot.getAsJsonObject("thinkOrDie");}
 
     @Override public void show(){
-        if(!created){created=true;batch=new SpriteBatch();art=new ThinkOrDieArt();art.batch=batch;}
+        if(!created){created=true;batch=new SpriteBatch();art=new ThinkOrDieArt();art.batch=batch;
+            try{stage3d=new ThinkOrDieStage3D();}catch(RuntimeException|Error e){Gdx.app.error("ThinkOrDie","3D stage unavailable, using the 2D stage",e);stage3d=null;}}
         Gdx.input.setInputProcessor(new InputAdapter(){@Override public boolean keyDown(int k){
             if((k==Input.Keys.ENTER||k==Input.Keys.ESCAPE)&&(phase().equals("FINAL_RESULTS")||phase().equals("COMPLETED"))){onEnd.accept(session());return true;}
             return false;}});
@@ -68,7 +71,10 @@ public final class ThinkOrDieScreen extends ScreenAdapter {
         String ph=phase();
         if(!ph.equals(lastPhase)||i(t,"round")!=lastRound){onPhase(ph);lastPhase=ph;lastRound=i(t,"round");phaseT=0;}
         updateLanes(dt);
-        ScreenUtils.clear(0.02f,0.015f,0.017f,1);
+        ScreenUtils.clear(0.02f,0.015f,0.017f,1,true);
+        if(stage3d!=null){mood3d(ph);Gdx.gl.glViewport(0,0,Gdx.graphics.getBackBufferWidth(),Gdx.graphics.getBackBufferHeight());
+            try{stage3d.render(dt,Gdx.graphics.getBackBufferWidth(),Gdx.graphics.getBackBufferHeight());}catch(RuntimeException e){Gdx.app.error("ThinkOrDie","3D stage failed, switching to 2D",e);stage3d.dispose();stage3d=null;}
+            Gdx.gl.glDisable(GL20.GL_DEPTH_TEST);Gdx.gl.glDisable(GL20.GL_CULL_FACE);}
         cam.position.set(W/2+MathUtils.sin(clock*63)*shake*12,H/2+MathUtils.cos(clock*57)*shake*9,0);vp.apply();batch.setProjectionMatrix(cam.combined);
         batch.begin();
         stage();
@@ -82,17 +88,46 @@ public final class ThinkOrDieScreen extends ScreenAdapter {
             case "FINAL_RESULTS","COMPLETED"->podium();
             default->{}
         }
+        embers(dt);
+        countdown();
         art.grain(W,H,clock,.9f);
         batch.end();
     }
+    private void mood3d(String ph){
+        boolean risen=ph.equals("ROUND_RESULTS")&&players().stream().anyMatch(p->b(p,"roundResurrected"));
+        Color c=switch(ph){case "ANSWERING","ANSWER_VALIDATION"->left()<5.5f&&ph.equals("ANSWERING")?new Color(1f,.12f,.08f,1):new Color(.55f,1f,.25f,1);
+            case "DISPUTE"->new Color(.85f,.85f,1f,1);case "ANSWER_REVEAL"->new Color(1f,.7f,.3f,1);case "FINAL_RESULTS","COMPLETED"->new Color(1f,.78f,.35f,1);
+            default->new Color(.95f,.25f,.12f,1);};
+        if(risen)c=new Color(.45f,.75f,1f,1);
+        stage3d.mood(c);stage3d.dolly(switch(ph){case "ANSWERING"->.45f;case "CATEGORY_REVEAL"->.8f;case "FINAL_RESULTS","COMPLETED"->1f;case "INTRO"->0f;default->.25f;});
+    }
+    /** floating embers (red), ghost wisps (blue) during resurrections, gold sparks at the final */
+    private void embers(float dt){
+        String ph=phase();boolean risen=ph.equals("ROUND_RESULTS")&&phaseT<4&&players().stream().anyMatch(p->b(p,"roundResurrected"));
+        Color c=risen?ThinkOrDieArt.GHOST:ph.startsWith("FINAL")||ph.equals("COMPLETED")?ThinkOrDieArt.GOLD:ph.equals("ANSWERING")?ThinkOrDieArt.ACID:new Color(1f,.45f,.2f,1);
+        int rate=risen?8:ph.startsWith("FINAL")?5:1;
+        for(int k=0;k<rate;k++)if(MathUtils.random()<.5f){Ember e=new Ember();e.x=MathUtils.random(W);e.y=-10;e.vx=MathUtils.random(-30f,30f);e.vy=MathUtils.random(60f,180f)*(risen?2:1);e.max=e.life=MathUtils.random(3f,7f);e.size=MathUtils.random(2f,5.5f);e.c=c;embers.add(e);}
+        for(Iterator<Ember> it=embers.iterator();it.hasNext();){Ember e=it.next();e.life-=dt;if(e.life<=0){it.remove();continue;}
+            e.x+=(e.vx+MathUtils.sin(clock*2+e.y*.01f)*25)*dt;e.y+=e.vy*dt;float a=Math.min(1,e.life/e.max*2)*Math.min(1,(e.max-e.life)*2);
+            art.glow(e.x,e.y,e.size*5,e.size*5,e.c,.35f*a);art.glow(e.x,e.y,e.size*1.4f,e.size*1.4f,Color.WHITE,.5f*a);}
+    }
+    /** the last five seconds of answering: a huge number punches in at the centre of the screen */
+    private void countdown(){
+        if(!phase().equals("ANSWERING"))return;float lf=left();if(lf>5||lf<=0)return;
+        int sec=(int)Math.ceil(lf);float frac=sec-lf,k=1-frac;float sc=2.4f-1.3f*ease(Math.min(1,frac*4)),a=Math.min(1,(1-frac)*2.5f)*.55f;
+        art.glow(W/2,H/2,700*sc,700*sc,ThinkOrDieArt.BLOOD,.22f*a);
+        art.text(art.display,String.valueOf(sec),W/2,H/2+70*sc,sc,ThinkOrDieArt.BLOOD,a,0);
+        if(k>.9f)stage3dImpulse(.15f);
+    }
+    private void stage3dImpulse(float k){if(stage3d!=null)stage3d.impulse(k);}
     private void onPhase(String ph){
         switch(ph){
-            case "CATEGORY_REVEAL"->{art.play("sounds/impostor/vote_started.wav",.6f);shake=.5f;soundedTiles=-1;for(Lane ln:lanes.values()){ln.count=0;ln.shown=0;}}
+            case "CATEGORY_REVEAL"->{art.play("sounds/impostor/vote_started.wav",.6f);shake=.5f;stage3dImpulse(.9f);soundedTiles=-1;for(Lane ln:lanes.values()){ln.count=0;ln.shown=0;}}
             case "ANSWERING"->art.play("sounds/questions/door_lock(done).wav",.45f);
             case "ANSWER_VALIDATION"->{art.play("sounds/questions/door_lock(done).wav",.6f);shake=.35f;}
             case "DISPUTE"->art.play("sounds/cursed_boxes/appearance.wav",.55f);
-            case "ROUND_RESULTS"->{boolean risen=players().stream().anyMatch(p->b(p,"roundResurrected"));if(risen){art.play("sounds/cursed_boxes/horror_appearance.wav",.75f);shake=.8f;}}
-            case "FINAL_RESULTS"->{art.play("sounds/results/winner_impact.wav",.85f);shake=1f;}
+            case "ROUND_RESULTS"->{boolean risen=players().stream().anyMatch(p->b(p,"roundResurrected"));if(risen){art.play("sounds/cursed_boxes/horror_appearance.wav",.75f);shake=.8f;stage3dImpulse(1f);}}
+            case "FINAL_RESULTS"->{art.play("sounds/results/winner_impact.wav",.85f);shake=1f;stage3dImpulse(1f);}
             default->{}
         }
     }
@@ -109,6 +144,12 @@ public final class ThinkOrDieScreen extends ScreenAdapter {
 
     // ---------------------------------------------------------------- stage
     private void stage(){
+        if(stage3d!=null){
+            // darken the bottom half where the UI sits, keep the vault visible above
+            for(int k=0;k<12;k++){float f=k/11f;art.rect(0,H*f*.75f,W,H*.75f/11f+1,Color.BLACK,.62f*(1-f)+.12f);}
+            art.rect(0,0,W,H,Color.BLACK,phase().equals("INTRO")||phase().equals("CATEGORY_REVEAL")?.15f:.32f);
+            return;
+        }
         if(art.background!=null){batch.setColor(1,1,1,1);batch.draw(art.background,0,0,W,H);}
         else{
             for(int k=0;k<24;k++){float f=k/23f;art.rect(0,H*f,W,H/23f+1,new Color(.03f+.07f*f,.018f+.02f*f,.02f+.02f*f,1),1);}
@@ -121,7 +162,9 @@ public final class ThinkOrDieScreen extends ScreenAdapter {
         for(int k=0;k<6;k++){float a=.10f;art.rect(0,0,W,40+k*24,Color.BLACK,a);art.rect(0,H-(40+k*24),W,40+k*24,Color.BLACK,a);}
     }
     private void header(boolean timed){
-        art.left(art.horror,"THINK OR DIE",56,1046,.36f,ThinkOrDieArt.INK,.9f,0);
+        float ab=2+MathUtils.random()*(MathUtils.random()<.03f?10:1.5f);
+        art.left(art.horror,"THINK OR DIE",56-ab,1046,.36f,new Color(1,.1f,.1f,1),.45f,0);art.left(art.horror,"THINK OR DIE",56+ab,1046,.36f,new Color(.1f,.8f,1,1),.35f,0);
+        art.left(art.horror,"THINK OR DIE",56,1046,.36f,ThinkOrDieArt.INK,.95f,0);
         art.left(art.tiny,(tr("РАУНД ","ROUND ")+i(t,"round")+" / "+i(t,"rounds")),60,966,1,ThinkOrDieArt.DIM,1,0);
         String cat=category();
         if(!cat.isEmpty()){float a=ease(phaseT*2);art.paragraph(art.display,cat,W/2,1040,1240,.56f,120,ThinkOrDieArt.INK,a);}
@@ -146,7 +189,9 @@ public final class ThinkOrDieScreen extends ScreenAdapter {
     private void intro(){
         float a=ease(phaseT*1.2f),flick=MathUtils.random()<.04f?.55f:1;
         art.glow(W/2,760,1500,520,ThinkOrDieArt.BLOOD,.18f*a);
-        art.text(art.horror,"THINK OR DIE",W/2,880,1.05f+.03f*MathUtils.sin(clock*2),ThinkOrDieArt.INK,a*flick,1700);
+        float sc=1.05f+.03f*MathUtils.sin(clock*2),ab=4+MathUtils.random()*(MathUtils.random()<.05f?26:3);
+        art.text(art.horror,"THINK OR DIE",W/2-ab,880,sc,new Color(1,.08f,.08f,1),.5f*a*flick,1700);art.text(art.horror,"THINK OR DIE",W/2+ab,880,sc,new Color(.1f,.8f,1,1),.35f*a*flick,1700);
+        art.text(art.horror,"THINK OR DIE",W/2,880,sc,ThinkOrDieArt.INK,a*flick,1700);
         art.text(art.small,tr("ДУМАЙ БЫСТРО. ИЛИ УМРИ.","THINK FAST. OR DIE."),W/2,700,1,ThinkOrDieArt.BLOOD,a,0);
         String[] rules={tr("Одна категория на всех. 30 секунд. Пиши столько верных ответов, сколько успеешь.","One category for everyone. 30 seconds. Type as many correct answers as you can."),
             tr("Ответы на экране скрыты, пока идёт время. Списать не выйдет.","Answers stay hidden on screen while the clock runs. No copying."),
@@ -160,7 +205,9 @@ public final class ThinkOrDieScreen extends ScreenAdapter {
     private void categoryReveal(){
         float k=ease(phaseT*1.6f);
         art.text(art.big,tr("РАУНД ","ROUND ")+i(t,"round"),W/2,860,.8f,ThinkOrDieArt.BLOOD,ease(phaseT*3),0);
-        String cat=category();float sc=.95f+.6f*(1-back(phaseT*1.4f));
+        String full=category();int shownChars=Math.min(full.length(),(int)(phaseT*38));String cat=full.substring(0,shownChars)+(shownChars<full.length()&&((int)(clock*10))%2==0?"_":"");
+        if(shownChars!=typed){typed=shownChars;if(shownChars<full.length()&&shownChars%2==0)art.play("sounds/results/count_tick.wav",.12f);}
+        float sc=.95f+.25f*(1-back(phaseT*1.4f));
         for(int g=2;g>=1;g--)art.paragraph(art.display,cat,W/2+g*14*(1-k),720,1500,sc,320,ThinkOrDieArt.BLOOD,.25f*(1-k));
         art.paragraph(art.display,cat,W/2,720,1500,sc,320,ThinkOrDieArt.INK,k);
         art.text(art.small,tr("ПРИГОТОВЬТЕСЬ","GET READY"),W/2,260,1,ThinkOrDieArt.DIM,.6f+.4f*MathUtils.sin(clock*5),0);
@@ -171,7 +218,7 @@ public final class ThinkOrDieScreen extends ScreenAdapter {
     private void race(boolean checking){
         var ps=players();int n=Math.max(1,ps.size());
         float top=880,bottom=70,laneH=Math.min(100,(top-bottom)/n),gap=laneH*.14f;
-        int max=8;for(Lane ln:lanes.values())max=Math.max(max,ln.count+3);
+        int max=15;for(Lane ln:lanes.values())max=Math.max(max,ln.count+4);
         float trackL=470,trackR=1700;
         for(int k=0;k<ps.size();k++){JsonObject p=ps.get(k);String id=s(p,"id");Lane ln=lanes.computeIfAbsent(id,x->new Lane());
             float y=top-(k+1)*laneH+gap/2,h=laneH-gap,cy=y+h/2;boolean ghost=b(p,"ghost");Color c=ghost?ThinkOrDieArt.GHOST:seatColor(id);
@@ -258,8 +305,8 @@ public final class ThinkOrDieScreen extends ScreenAdapter {
             art.left(art.tiny,i(p,"roundCorrect")+" ✓   "+i(p,"roundUnique")+" ★   "+i(p,"roundIncorrect")+" ✕",352,y+rowH/2-16,.95f,ThinkOrDieArt.DIM,a,0);
             int rp=i(p,"roundPoints");float shownRp=rp*ease(phaseT*1.2f-.4f);
             art.text(art.big,(rp>0?"+":"")+Math.round(shownRp),820,y+rowH/2+22,.7f,rp<0?ThinkOrDieArt.RED:ThinkOrDieArt.ACID,a,0);
-            float tot=l(p,"points");float bw=760*Math.max(0,tot)/best*ease(phaseT*1.5f-.3f);
-            art.rect(950,y+rowH/2-10,760,20,Color.WHITE,.06f*a);art.rect(950,y+rowH/2-10,bw,20,c,.85f*a);
+            float tot=l(p,"points");float bw=640*Math.max(0,tot)/best*ease(phaseT*1.5f-.3f);
+            art.rect(950,y+rowH/2-10,640,20,Color.WHITE,.06f*a);art.rect(950,y+rowH/2-10,bw,20,c,.85f*a);
             art.right(art.big,String.valueOf(Math.round(tot)),1740,y+rowH/2+22,.62f,ThinkOrDieArt.INK,a);
         }
     }
