@@ -24,6 +24,11 @@ public final class ThinkOrDieSession {
     public enum Phase {INTRO,CATEGORY_REVEAL,ANSWERING,ANSWER_VALIDATION,DISPUTE,ANSWER_REVEAL,ROUND_RESULTS,FINAL_RESULTS,COMPLETED}
     public static final class Failure extends RuntimeException{public final int status;public Failure(int status,String code){super(code);this.status=status;}}
     public static final int MIN_PLAYERS=2,MAX_PLAYERS=8;
+    /**
+     * An answer the AI judge called wrong costs nothing unless -Dthinkordie.aiPenalties=true: measured accuracy is
+     * 93 % with 0 false accepts but 2.4 % false rejects (docs/think-or-die/AI_PACK.md), so the AI never takes points.
+     */
+    static final boolean AI_PENALTIES=Boolean.getBoolean("thinkordie.aiPenalties");
 
     static final class Sub{
         final String id,player,text,key;final long at;Verdict verdict;CompletableFuture<Verdict> pending;
@@ -150,7 +155,7 @@ public final class ThinkOrDieSession {
             if(s.result.equals("DUPLICATE")){s.points=0;continue;}
             if(s.result.equals("REJECTED")){s.points=cfg.voteRejectPenalty();p.roundIncorrect++;}
             else if(s.verdict.valid()){int n=owners.get(s.verdict.canonicalId()).size();s.canonical=s.verdict.canonicalId();s.result=n==1?"UNIQUE":n==2?"SHARED":"MANY";s.points=cfg.pointsFor(n);p.roundCorrect++;if(n==1)p.roundUnique++;}
-            else if(s.verdict.status()==ValidationStatus.INVALID){s.result="INVALID";s.points=cfg.pointsInvalid();p.roundIncorrect++;}
+            else if(s.verdict.status()==ValidationStatus.INVALID){s.result="INVALID";s.points=s.verdict.source()==Verdict.Source.AI&&!AI_PENALTIES?0:cfg.pointsInvalid();p.roundIncorrect++;}
             else{s.result="UNCERTAIN";s.points=0;}
             p.roundPoints+=s.points;}
         for(Player p:players){p.points+=p.roundPoints;p.correct+=p.roundCorrect;p.unique+=p.roundUnique;p.incorrect+=p.roundIncorrect;}

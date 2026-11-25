@@ -1,0 +1,19 @@
+FINAL ANSWER — third-party components added for THINK OR DIE (checked 2026-11-25 against the official sources)
+
+Shipped with the game
+- English word list (server/src/main/resources/validation/words_en.txt.gz): Webster's Second International
+  Dictionary (1934) via the BSD "web2" list. The 1934 copyright has lapsed: public domain. See DICTIONARY_LICENSES/.
+- 3D props (assets/think_or_die/3d/*.glb): Poly Haven, CC0 1.0. No attribution required.
+
+Optional AI Answer Pack (separate download, NOT in the repository, lives on the drive in FinalAnswerAIPack/)
+- llama.cpp b12686, https://github.com/ggml-org/llama.cpp, MIT. Copy: DEPENDENCY_LICENSES/llama.cpp-MIT.txt
+- Qwen3-4B-Instruct-2507 (Qwen/Qwen3-4B-Instruct-2507 @ cdbee75f17c0), Apache-2.0. Copy: MODEL_LICENSES/
+  Quantized file: lmstudio-community/Qwen3-4B-Instruct-2507-GGUF @ 4edb920b6f14, Qwen3-4B-Instruct-2507-Q4_K_M.gguf,
+  sha256 8cdb57cbb880d313736a9bc4e3d3d2485f145b5e19cf33783746e753e82641fc. A quantization is a derivative of the
+  Apache-2.0 weights; redistribution keeps the Apache-2.0 licence text and NOTICE.
+
+No new Java dependencies (the validation engine uses only the JDK and Gson, already in the project).
+
+Open questions for review
+- Category text names characters and brands (Batman villains, Disney princesses). Naming them as quiz answers is
+  ordinary trivia use; no logos, artwork or character images are used. Marketing material must not use them.
