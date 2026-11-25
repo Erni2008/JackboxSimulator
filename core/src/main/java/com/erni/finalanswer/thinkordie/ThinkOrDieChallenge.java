@@ -130,13 +130,9 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
     }
 
     // ---------------------------------------------------------------- primitives
+    private final com.erni.finalanswer.ui.play.NeonFrame frame=new com.erni.finalanswer.ui.play.NeonFrame();
     private void octPlate(float x,float y,float w,float h,Color fill,Color rim,float a){
-        if(a<=0||w<=2||h<=2)return;float k=Math.min(1,Math.min(w,h)/64f);
-        art.glow(x+w/2,y+h/2,w*1.10f,h*1.65f,rim,.20f*a);
-        draw9(oct,x+4,y-7,w,h,0,0,0,.45f*a,k);
-        draw9(oct,x,y,w,h,fill.r,fill.g,fill.b,fill.a*a,k);
-        draw9(octRim,x,y,w,h,rim.r,rim.g,rim.b,a,k);
-        draw9(octRim,x+5,y+5,w-10,h-10,rim.r,rim.g,rim.b,.35f*a,k);
+        if(a<=0||w<=8||h<=8)return;frame.draw(art.batch,x,y,w,h,rim,fill,Math.min(h,w)>=90?6:4,a);
     }
     private void draw9(NinePatch n,float x,float y,float w,float h,float r,float g,float b,float al,float k){
         art.batch.setColor(r,g,b,al);if(k<1){n.scale(k,k);n.draw(art.batch,x,y,w,h);n.scale(1/k,1/k);}else n.draw(art.batch,x,y,w,h);}
@@ -335,5 +331,5 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
             art.glow(w/2,h*.47f,1100,320,VIOLET,(.35f+.2f*beat)*a*r);
             art.text(art.display,"RESURRECTION",w/2,h*.47f+40,.62f,METAL,a*r,1200);}
     }
-    @Override public void dispose(){art.dispose();serif.dispose();octFill.dispose();octEdge.dispose();}
+    @Override public void dispose(){art.dispose();frame.dispose();serif.dispose();octFill.dispose();octEdge.dispose();}
 }

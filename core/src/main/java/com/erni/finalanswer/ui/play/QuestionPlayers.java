@@ -121,7 +121,7 @@ public final class QuestionPlayers extends Actor implements Disposable {
             float scale=Math.min(135/e.height,(cell-24)/150)*e.size*(card?.80f:1);
             float shakeX=!reduced?MathUtils.sin(e.shakeTime*31+e.phase)*.65f*e.shakeEnvelope:0;
             float shakeY=!reduced?MathUtils.sin(e.shakeTime*27+e.phase*1.7f)*.28f*e.shakeEnvelope:0;
-            local.set(saved).translate(center+shakeX,getY()+(card?104:52)+shakeY,0).scale(scale,scale,1).translate(-174,-e.floor,0);
+            local.set(saved).translate(center+shakeX,getY()+(card?103:52)+shakeY,0).scale(scale,scale,1).translate(-174,-e.floor,0);
             batch.setTransformMatrix(local);
             if(e.player.ghost)batch.setColor(.63f,.78f,.88f,color.a);
             presentation.draw(batch,e.character,e.profile,alpha*(e.player.ghost?.52f:1),e.time);
@@ -133,7 +133,7 @@ public final class QuestionPlayers extends Actor implements Disposable {
             }
             e.nameScale=Math.min(card?.78f:1,((card?cardW-30:cell-16))/Math.max(1,e.nameWidth));
             font.getData().setScale(e.nameScale);e.name.setText(font,e.nickname);
-            float x=center-e.name.width/2,y=getY()+(card?92:43);
+            float x=center-e.name.width/2,y=getY()+(card?93:43);
             font.setColor(.015f,.008f,.008f,alpha*.9f);font.draw(batch,e.nickname,x+1.4f,y-1.4f);
             if(card)font.setColor(.96f,.92f,.88f,alpha);else{font.setColor(com.erni.finalanswer.ui.PlayerColors.light(e.player.characterId));font.getColor().a=alpha;}
             font.draw(batch,e.nickname,x,y);
@@ -156,17 +156,18 @@ public final class QuestionPlayers extends Actor implements Disposable {
     private static final Color RED=new Color(1f,.20f,.24f,1),GOLD=new Color(1f,.76f,.22f,1),PURPLE=new Color(.70f,.32f,1f,1),GREEN=new Color(.22f,.78f,.30f,1);
     /** THINK OR DIE card behind a character: dark plate, glowing rim (gold for the leader, violet for ghosts), name bar. */
     private void pillAt(Batch b,float x,float y,float w,float h){float k=Math.min(1,Math.min(w,h)/36f);if(k<1){pill.scale(k,k);pill.draw(b,x,y,w,h);pill.scale(1/k,1/k);}else pill.draw(b,x,y,w,h);}
+    private NeonFrame frame;
+    /** THINK OR DIE card behind a character: steel and neon frame (gold leader, violet ghost), halo, name plaque. */
     private void drawCard(Batch batch,Entry e,float cx,float w,boolean leader,float alpha){
-        counterAssets();Color rim=e.player.ghost?PURPLE:leader?GOLD:RED;float y=getY()+4,h=172,x=cx-w/2;
+        counterAssets();if(frame==null)frame=new NeonFrame();
+        Color rim=e.player.ghost?PURPLE:leader?GOLD:RED;float y=getY()+4,h=172,x=cx-w/2;
         float pop=reduced?0:Math.max(0,1-e.counterPop/.45f);
-        batch.setColor(rim.r,rim.g,rim.b,(.22f+.25f*pop)*alpha);pillAt(batch,x-7,y-7,w+14,h+14);
-        batch.setColor(rim.r,rim.g,rim.b,alpha);pillAt(batch,x,y,w,h);
-        batch.setColor(.07f,.025f,.03f,.93f*alpha);pillAt(batch,x+3,y+3,w-6,h-6);
-        // name bar
-        batch.setColor(rim.r*.55f,rim.g*.35f,rim.b*.35f,.95f*alpha);pillAt(batch,x+10,y+66,w-20,34);
-        batch.setColor(.03f,.01f,.02f,.95f*alpha);pillAt(batch,x+12,y+68,w-24,30);
+        frame.draw(batch,x,y,w,h,rim,CARD_FILL,5,alpha*(1+.0f*pop));
+        frame.halo(batch,cx,y+134,40,rim,(.55f+.45f*pop)*alpha);
+        frame.draw(batch,x+12,y+64,w-24,38,new Color(.75f,.72f,.70f,1),PLAQUE,3,alpha);
         batch.setColor(color);
     }
+    private static final Color CARD_FILL=new Color(.08f,.03f,.035f,.95f),PLAQUE=new Color(.05f,.02f,.02f,.97f);
     private void drawCardCounter(Batch batch,Entry e,float cx,float cy,float alpha){
         float pop=reduced?0:Math.max(0,1-e.counterPop/.35f),ease=com.badlogic.gdx.math.Interpolation.pow2Out.apply(pop);
         String t=Integer.toString(e.counter);counterFont.getData().setScale(1.05f*(1+.35f*ease));counterText.setText(counterFont,t);
@@ -209,5 +210,5 @@ public final class QuestionPlayers extends Actor implements Disposable {
         float dx=bx-ax,dy=by-ay,length=(float)Math.sqrt(dx*dx+dy*dy);if(length<=0)return;
         batch.draw(uiPixel,ax+dy/length*width/2,ay-dx/length*width/2,0,0,length,width,1,1,MathUtils.atan2(dy,dx)*MathUtils.radiansToDegrees);
     }
-    @Override public void dispose(){entries.clear();font.dispose();if(counterFont!=null)counterFont.dispose();if(pillTexture!=null)pillTexture.dispose();}
+    @Override public void dispose(){entries.clear();font.dispose();if(counterFont!=null)counterFont.dispose();if(pillTexture!=null)pillTexture.dispose();if(frame!=null)frame.dispose();}
 }
