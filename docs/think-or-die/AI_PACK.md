@@ -36,3 +36,17 @@ A 4B model judging a list mixes up its verdicts, so every answer is its own requ
 4 parallel slots (`-np 4 -c 8192`). About 1.5 s per answer; a burst of 12 takes about 11 s. Judging starts while
 players are still typing; anything unfinished after `validationMaxMs` goes to the vote, never to "wrong".
 Compare modes with `./gradlew :server:aiJudgeEval -Pai.batch=1`.
+
+## Load (MacBook Air M4 16 GB, `./gradlew :server:aiJudgeLoad`, 2026-11-25)
+tod-judge-5: one answer per request, reply `{"v":"FITS"}` (12 tokens max), category context first so the prompt
+cache reuses it. Accuracy on the 263 labelled answers: **97 % correct, false rejects 0.8 %, false accepts 1.9 %**.
+
+Throughput of the local 4B model on this laptop: about **4 unknown answers per second** (was 2 with the list
+reply). Every room shares one admission queue (`thinkordie.ai.slots`, default 4 in flight); an answer that waits
+longer than `thinkordie.ai.queueMs` (6 s) is not sent to the model, so a burst can never stall later rounds:
+the round always moves on within `validationMaxMs`. Only answers missing from the lists ever reach the AI, and every
+AI verdict is cached for all future games, so the same answer is never judged twice.
+
+For many simultaneous rooms the model needs a GPU server at release (cloud is deferred): llama.cpp or vLLM on a
+single modern GPU serves this model at well over 50 answers per second with the same code (`THINK_OR_DIE_AI_URL`,
+`THINK_OR_DIE_AI_SLOTS`).

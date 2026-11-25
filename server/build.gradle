@@ -148,6 +148,16 @@ tasks.register('raceQa', JavaExec) {
 }
 
 // Accuracy of the optional AI judge against a running local llama-server (AI Answer Pack).
+tasks.register('aiJudgeLoad', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.finalanswer.server.validation.AiJudgeLoadTest'
+    systemProperty 'ai.url', providers.gradleProperty('ai.url').getOrElse('http://127.0.0.1:18431')
+    systemProperty 'ai.slots', providers.gradleProperty('ai.slots').getOrElse('4')
+    systemProperty 'ai.queueMs', providers.gradleProperty('ai.queueMs').getOrElse('6000')
+}
+
 tasks.register('aiJudgeEval', JavaExec) {
     group = 'verification'
     dependsOn testClasses

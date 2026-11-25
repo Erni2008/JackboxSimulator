@@ -24,7 +24,7 @@ public final class ValidationEngine implements AutoCloseable {
     private final Map<String,CompletableFuture<Verdict>> inflight=new ConcurrentHashMap<>();
     private final Map<String,List<Waiting>> batches=new HashMap<>();
     private record Waiting(Category category,String lang,AnswerInput input,CompletableFuture<Verdict> future){}
-    static final long BATCH_DELAY_MS=120;static final int BATCH_MAX=16;
+    static final long BATCH_DELAY_MS=60;static final int BATCH_MAX=16;static final long AI_HARD_TIMEOUT_MS=15_000;
 
     public ValidationEngine(WordDictionary dictionary,ValidationCache cache,AiJudge ai){
         verified=new VerifiedAnswers();this.cache=cache==null?ValidationCache.NONE:cache;this.ai=ai;
@@ -62,18 +62,16 @@ public final class ValidationEngine implements AutoCloseable {
         List<Waiting> b;synchronized(batches){b=batches.remove(categoryId);}
         if(b==null||b.isEmpty())return;
         Category c=b.get(0).category();
-        List<AiJudge.Item> items=new ArrayList<>();for(int i=0;i<b.size();i++)items.add(new AiJudge.Item("a"+i,b.get(i).input().clean()));
-        try{
-            List<AiJudge.Result> rs=ai.judge(c,b.get(0).lang(),items,new ArrayList<>(verified.canonicalIds(c)));
-            Map<String,AiJudge.Result> by=new HashMap<>();for(var r:rs)by.put(r.submissionId(),r);
-            Set<String> known=verified.canonicalIds(c);
-            for(int i=0;i<b.size();i++){Waiting w=b.get(i);AiJudge.Result r=by.get("a"+i);Verdict v=reconcile(r,w.input(),known);
+        Set<String> known=verified.canonicalIds(c);List<String> ids=new ArrayList<>(known);
+        // non-blocking: every answer is its own queued request, so one slow category never holds up another room
+        for(int i=0;i<b.size();i++){Waiting w=b.get(i);
+            CompletableFuture<AiJudge.Result> f;
+            try{f=ai.judgeOne(c,w.lang(),new AiJudge.Item("a"+i,w.input().clean()),ids);}catch(RuntimeException e){f=CompletableFuture.failedFuture(e);}
+            f.orTimeout(AI_HARD_TIMEOUT_MS,TimeUnit.MILLISECONDS).whenComplete((r,e)->{
+                if(e!=null){System.err.println("[validation] AI judge failed for one answer: "+e);w.future().complete(Verdict.uncertain(Verdict.Source.FALLBACK));return;}
+                Verdict v=reconcile(r,w.input(),known);
                 if(v.status()!=ValidationStatus.UNCERTAIN)cache.put(new ValidationCache.Entry(c.id(),c.version(),w.input().key(),v.status(),v.canonicalId(),ai.modelVersion(),System.currentTimeMillis(),"AI"));
-                w.future().complete(v);}
-        }catch(Exception|Error e){
-            System.err.println("[validation] AI judge failed, "+b.size()+" answer(s) go to the vote: "+e);
-            for(Waiting w:b)w.future().complete(Verdict.uncertain(Verdict.Source.FALLBACK));
-        }
+                w.future().complete(v);});}
     }
     /**
      * An AI canonical id may only MERGE an answer into a verified concept. Otherwise the id is derived from the
