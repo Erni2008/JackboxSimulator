@@ -5,6 +5,7 @@ import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.google.gson.*;
@@ -21,7 +22,7 @@ import java.util.function.*;
 public final class ThinkOrDieScreen extends ScreenAdapter {
     private static final float W=1920,H=1080;
     private final OrthographicCamera cam=new OrthographicCamera();private final FitViewport vp=new FitViewport(W,H,cam);
-    private SpriteBatch batch;private ThinkOrDieArt art;private boolean created;private ThinkOrDieStage3D stage3d;
+    private SpriteBatch batch;private ThinkOrDieArt art;private boolean created;
     private static final class Ember{float x,y,vx,vy,life,max,size;Color c;}
     private final List<Ember> embers=new ArrayList<>();private int typed=-1;
     private JsonObject state,t;private final LongSupplier serverNow;private final Consumer<String> onEnd;
@@ -35,8 +36,7 @@ public final class ThinkOrDieScreen extends ScreenAdapter {
     public void apply(JsonObject snapshot){if(!snapshot.has("thinkOrDie"))return;state=snapshot;t=snapshot.getAsJsonObject("thinkOrDie");}
 
     @Override public void show(){
-        if(!created){created=true;batch=new SpriteBatch();art=new ThinkOrDieArt();art.batch=batch;
-            try{stage3d=new ThinkOrDieStage3D();}catch(RuntimeException|Error e){Gdx.app.error("ThinkOrDie","3D stage unavailable, using the 2D stage",e);stage3d=null;}}
+        if(!created){created=true;batch=new SpriteBatch();art=new ThinkOrDieArt();art.batch=batch;}
         Gdx.input.setInputProcessor(new InputAdapter(){@Override public boolean keyDown(int k){
             if((k==Input.Keys.ENTER||k==Input.Keys.ESCAPE)&&(phase().equals("FINAL_RESULTS")||phase().equals("COMPLETED"))){onEnd.accept(session());return true;}
             return false;}});
@@ -72,16 +72,14 @@ public final class ThinkOrDieScreen extends ScreenAdapter {
         if(!ph.equals(lastPhase)||i(t,"round")!=lastRound){onPhase(ph);lastPhase=ph;lastRound=i(t,"round");phaseT=0;}
         updateLanes(dt);
         ScreenUtils.clear(0.02f,0.015f,0.017f,1,true);
-        if(stage3d!=null){mood3d(ph);Gdx.gl.glViewport(0,0,Gdx.graphics.getBackBufferWidth(),Gdx.graphics.getBackBufferHeight());
-            try{stage3d.render(dt,Gdx.graphics.getBackBufferWidth(),Gdx.graphics.getBackBufferHeight());}catch(RuntimeException e){Gdx.app.error("ThinkOrDie","3D stage failed, switching to 2D",e);stage3d.dispose();stage3d=null;}
-            Gdx.gl.glDisable(GL20.GL_DEPTH_TEST);Gdx.gl.glDisable(GL20.GL_CULL_FACE);}
+
         cam.position.set(W/2+MathUtils.sin(clock*63)*shake*12,H/2+MathUtils.cos(clock*57)*shake*9,0);vp.apply();batch.setProjectionMatrix(cam.combined);
         batch.begin();
         stage();
         switch(ph){
             case "INTRO"->intro();
             case "CATEGORY_REVEAL"->categoryReveal();
-            case "ANSWERING","ANSWER_VALIDATION"->{header(true);race(ph.equals("ANSWER_VALIDATION"));}
+            case "ANSWERING","ANSWER_VALIDATION"->{race(ph.equals("ANSWER_VALIDATION"));topBand();header(true);}
             case "DISPUTE"->{header(true);disputes();}
             case "ANSWER_REVEAL"->{header(false);reveal();}
             case "ROUND_RESULTS"->{boolean risen=players().stream().anyMatch(p->b(p,"roundResurrected"));
@@ -94,23 +92,15 @@ public final class ThinkOrDieScreen extends ScreenAdapter {
         art.grain(W,H,clock,.9f);
         batch.end();
     }
-    private void mood3d(String ph){
-        boolean risen=ph.equals("ROUND_RESULTS")&&players().stream().anyMatch(p->b(p,"roundResurrected"));
-        Color c=switch(ph){case "ANSWERING","ANSWER_VALIDATION"->left()<5.5f&&ph.equals("ANSWERING")?new Color(1f,.12f,.08f,1):new Color(.55f,1f,.25f,1);
-            case "DISPUTE"->new Color(.85f,.85f,1f,1);case "ANSWER_REVEAL"->new Color(1f,.7f,.3f,1);case "FINAL_RESULTS","COMPLETED"->new Color(1f,.78f,.35f,1);
-            default->new Color(.95f,.25f,.12f,1);};
-        if(risen)c=new Color(.45f,.75f,1f,1);
-        stage3d.mood(c);stage3d.dolly(switch(ph){case "ANSWERING"->.45f;case "CATEGORY_REVEAL"->.8f;case "FINAL_RESULTS","COMPLETED"->1f;case "INTRO"->0f;default->.25f;});
-    }
     /** floating embers (red), ghost wisps (blue) during resurrections, gold sparks at the final */
     private void embers(float dt){
         String ph=phase();boolean risen=ph.equals("ROUND_RESULTS")&&phaseT<4&&players().stream().anyMatch(p->b(p,"roundResurrected"));
         Color c=risen?ThinkOrDieArt.GHOST:ph.startsWith("FINAL")||ph.equals("COMPLETED")?ThinkOrDieArt.GOLD:ph.equals("ANSWERING")?ThinkOrDieArt.ACID:new Color(1f,.45f,.2f,1);
-        int rate=risen?8:ph.startsWith("FINAL")?5:1;
+        int rate=risen?6:ph.startsWith("FINAL")||ph.equals("COMPLETED")?3:ph.equals("INTRO")?1:0;
         for(int k=0;k<rate;k++)if(MathUtils.random()<.5f){Ember e=new Ember();e.x=MathUtils.random(W);e.y=-10;e.vx=MathUtils.random(-30f,30f);e.vy=MathUtils.random(60f,180f)*(risen?2:1);e.max=e.life=MathUtils.random(3f,7f);e.size=MathUtils.random(2f,5.5f);e.c=c;embers.add(e);}
         for(Iterator<Ember> it=embers.iterator();it.hasNext();){Ember e=it.next();e.life-=dt;if(e.life<=0){it.remove();continue;}
             e.x+=(e.vx+MathUtils.sin(clock*2+e.y*.01f)*25)*dt;e.y+=e.vy*dt;float a=Math.min(1,e.life/e.max*2)*Math.min(1,(e.max-e.life)*2);
-            art.glow(e.x,e.y,e.size*5,e.size*5,e.c,.35f*a);art.glow(e.x,e.y,e.size*1.4f,e.size*1.4f,Color.WHITE,.5f*a);}
+            art.glow(e.x,e.y,e.size*3,e.size*3,e.c,.22f*a);art.rect(e.x-1,e.y-1,2,2,Color.WHITE,.7f*a);}
     }
     /** the last five seconds of answering: a huge number punches in at the centre of the screen */
     private void countdown(){
@@ -118,17 +108,17 @@ public final class ThinkOrDieScreen extends ScreenAdapter {
         int sec=(int)Math.ceil(lf);float frac=sec-lf,k=1-frac;float sc=2.4f-1.3f*ease(Math.min(1,frac*4)),a=Math.min(1,(1-frac)*2.5f)*.55f;
         art.glow(W/2,H/2,700*sc,700*sc,ThinkOrDieArt.BLOOD,.22f*a);
         art.text(art.display,String.valueOf(sec),W/2,H/2+70*sc,sc,ThinkOrDieArt.BLOOD,a,0);
-        if(k>.9f)stage3dImpulse(.15f);
+        if(k>.9f)impulse(.15f);
     }
-    private void stage3dImpulse(float k){if(stage3d!=null)stage3d.impulse(k);}
+    private void impulse(float k){shake=Math.max(shake,k*.4f);}
     private void onPhase(String ph){
         switch(ph){
-            case "CATEGORY_REVEAL"->{art.play("sounds/impostor/vote_started.wav",.6f);shake=.5f;stage3dImpulse(.9f);soundedTiles=-1;for(Lane ln:lanes.values()){ln.count=0;ln.shown=0;}}
+            case "CATEGORY_REVEAL"->{art.play("sounds/impostor/vote_started.wav",.6f);shake=.5f;impulse(.9f);soundedTiles=-1;for(Lane ln:lanes.values()){ln.count=0;ln.shown=0;}}
             case "ANSWERING"->art.play("sounds/questions/door_lock(done).wav",.45f);
             case "ANSWER_VALIDATION"->{art.play("sounds/questions/door_lock(done).wav",.6f);shake=.35f;}
             case "DISPUTE"->art.play("sounds/cursed_boxes/appearance.wav",.55f);
-            case "ROUND_RESULTS"->{boolean risen=players().stream().anyMatch(p->b(p,"roundResurrected"));if(risen){art.play("sounds/cursed_boxes/horror_appearance.wav",.75f);shake=.8f;stage3dImpulse(1f);}}
-            case "FINAL_RESULTS"->{art.play("sounds/results/winner_impact.wav",.85f);shake=1f;stage3dImpulse(1f);}
+            case "ROUND_RESULTS"->{boolean risen=players().stream().anyMatch(p->b(p,"roundResurrected"));if(risen){art.play("sounds/cursed_boxes/horror_appearance.wav",.75f);shake=.8f;impulse(1f);}}
+            case "FINAL_RESULTS"->{art.play("sounds/results/winner_impact.wav",.85f);shake=1f;impulse(1f);}
             default->{}
         }
     }
@@ -140,28 +130,29 @@ public final class ThinkOrDieScreen extends ScreenAdapter {
             ln.count=Math.max(c,phase().equals("ANSWERING")||phase().equals("ANSWER_VALIDATION")?ln.count:c);
             ln.shown+=(ln.count-ln.shown)*Math.min(1,dt*6);ln.bump=Math.max(0,ln.bump-dt*3);ln.flash=Math.max(0,ln.flash-dt*2.2f);ln.puffT+=dt;}
     }
+    private int raceMax(){int max=15;for(Lane ln:lanes.values())max=Math.max(max,ln.count+4);return max;}
     /** live mode only: the newest answer text of a player (absent when answers are hidden) */
     private String latest(String id){for(var o:arr(t,"live"))if(s(o,"id").equals(id)){var r=o.getAsJsonArray("recent");return r==null||r.isEmpty()?"":r.get(r.size()-1).getAsString();}return "";}
 
     // ---------------------------------------------------------------- stage
     private void stage(){
-        if(stage3d!=null){
-            // darken the bottom half where the UI sits, keep the vault visible above
-            for(int k=0;k<12;k++){float f=k/11f;art.rect(0,H*f*.75f,W,H*.75f/11f+1,Color.BLACK,.62f*(1-f)+.12f);}
-            art.rect(0,0,W,H,Color.BLACK,phase().equals("INTRO")||phase().equals("CATEGORY_REVEAL")?.15f:.32f);
-            return;
-        }
-        if(art.background!=null){batch.setColor(1,1,1,1);batch.draw(art.background,0,0,W,H);}
-        else{
-            for(int k=0;k<24;k++){float f=k/23f;art.rect(0,H*f,W,H/23f+1,new Color(.03f+.07f*f,.018f+.02f*f,.02f+.02f*f,1),1);}
-            for(int k=0;k<5;k++){float x=(clock*18*(k%2==0?1:-1)+k*430)%(W+800)-400;art.glow(x,200+k*170,900,520,new Color(.45f,.05f,.04f,1),.07f);}
-        }
-        boolean ghostHeavy=players().stream().filter(p->b(p,"ghost")).count()*2>players().size();
-        art.glow(W/2,H*.62f,1700,900,ghostHeavy?ThinkOrDieArt.GHOST:new Color(.6f,.08f,.06f,1),.06f+.02f*MathUtils.sin(clock*1.3f));
-        art.shade(W/2,H/2,W*1.9f,H*2.2f,0);
-        // vignette
-        for(int k=0;k<6;k++){float a=.10f;art.rect(0,0,W,40+k*24,Color.BLACK,a);art.rect(0,H-(40+k*24),W,40+k*24,Color.BLACK,a);}
+        // the game's dungeon: moonlight through the bars above, a fire pit below
+        if(art.dungeon!=null){batch.setColor(.78f,.78f,.82f,1);batch.draw(art.dungeon,-30+MathUtils.sin(clock*.05f)*12,-20,W+60,H+40);}
+        else art.rect(0,0,W,H,new Color(.04f,.04f,.06f,1),1);
+        String ph=phase();boolean racing=ph.equals("ANSWERING")||ph.equals("ANSWER_VALIDATION");
+        float heat=racing?(left()<5.5f&&ph.equals("ANSWERING")?1f:.55f):ph.equals("CATEGORY_REVEAL")?.4f:.25f;
+        // fire pit: layered flicker along the bottom edge
+        float fl=.85f+.15f*MathUtils.sin(clock*9)*MathUtils.sin(clock*5.3f);
+        for(int k=0;k<9;k++){float x=k*W/8f+MathUtils.sin(clock*1.7f+k)*40;art.glow(x,-40,520,420*heat*fl,new Color(1f,.38f,.12f,1),.35f*heat);}
+        art.glow(W/2,-160,W*1.6f,760*heat,new Color(1f,.22f,.05f,1),.6f*heat*fl);
+        for(int k=0;k<10;k++){float x=(k*197+clock*40)%W,y=((clock*90+k*61)%260)*heat;art.glow(x,y,18,18,new Color(1f,.6f,.2f,1),.6f*heat*(1-y/260f));}
+        // moonlight shafts
+        for(int k=0;k<3;k++)art.glow(W*(.32f+k*.18f),H*.78f,260,900,new Color(.55f,.7f,1f,1),.05f+.02f*MathUtils.sin(clock*.6f+k));
+        art.rect(0,0,W,H,Color.BLACK,ph.equals("ANSWER_REVEAL")||ph.equals("ROUND_RESULTS")||ph.startsWith("FINAL")||ph.equals("COMPLETED")?.55f:ph.equals("DISPUTE")?.45f:.18f);
+        for(int k=0;k<6;k++){art.rect(0,H-(30+k*22),W,30+k*22,Color.BLACK,.08f);}
     }
+    /** dark band under the title so chains and props never cross the category */
+    private void topBand(){for(int k=0;k<10;k++)art.rect(0,H-200+k*20,W,20,Color.BLACK,.07f+k*.075f);}
     private void header(boolean timed){
         float ab=2+MathUtils.random()*(MathUtils.random()<.03f?10:1.5f);
         art.left(art.horror,"THINK OR DIE",56-ab,1046,.36f,new Color(1,.1f,.1f,1),.45f,0);art.left(art.horror,"THINK OR DIE",56+ab,1046,.36f,new Color(.1f,.8f,1,1),.35f,0);
@@ -217,33 +208,35 @@ public final class ThinkOrDieScreen extends ScreenAdapter {
 
     // ---------------------------------------------------------------- ANSWERING: the race
     private void race(boolean checking){
-        var ps=players();int n=Math.max(1,ps.size());
-        float top=880,bottom=70,laneH=Math.min(100,(top-bottom)/n),gap=laneH*.14f;
-        int max=15;for(Lane ln:lanes.values())max=Math.max(max,ln.count+4);
-        float trackL=470,trackR=1700;
+        // every player hangs in their cage over the fire pit; each answer hauls the cage up toward the moonlight
+        var ps=players();int n=Math.max(1,ps.size());int max=15;for(Lane ln:lanes.values())max=Math.max(max,ln.count+4);
+        float span=Math.min(230,1500f/n),x0=W/2-span*(n-1)/2f,low=150,high=640;
         for(int k=0;k<ps.size();k++){JsonObject p=ps.get(k);String id=s(p,"id");Lane ln=lanes.computeIfAbsent(id,x->new Lane());
-            float y=top-(k+1)*laneH+gap/2,h=laneH-gap,cy=y+h/2;boolean ghost=b(p,"ghost");Color c=ghost?ThinkOrDieArt.GHOST:seatColor(id);
-            float a=ease(phaseT*3-k*.12f);
-            art.slab(60,y,1800,h,c,a);
-            art.portrait(character(id),112,cy,h*.36f,c,ghost,a);
-            art.left(art.mid,name(id),160,cy+16,.72f,ghost?ThinkOrDieArt.GHOST:ThinkOrDieArt.INK,a,280);
-            if(ghost)art.left(art.tiny,tr("ПРИЗРАК","GHOST"),162,cy-14,.9f,ThinkOrDieArt.GHOST,a,0);
-            // track: dashed centre line and checkpoints every 5 answers
-            for(float x=trackL;x<trackR;x+=36)art.rect(x,cy-1,18,2,Color.WHITE,.08f*a);
-            for(int m=5;m<max;m+=5){float x=trackL+(trackR-trackL)*m/(float)max;art.rect(x,y+6,2,h-12,Color.WHITE,.12f*a);art.text(art.tiny,String.valueOf(m),x,y+h-6,.7f,ThinkOrDieArt.DIM,.6f*a,0);}
-            float carW=Math.min(150,h*1.55f),prog=ln.shown/max,cx=trackL+(trackR-trackL-carW)*prog;
-            float bounce=ln.bump*8*MathUtils.sin(ln.bump*12);
-            if(ln.flash>0)art.glow(cx+carW/2,cy,carW*2.6f,h*2.2f,c,.35f*ln.flash);
-            // exhaust streak behind a moving car
-            float spd=Math.max(0,ln.count-ln.shown);if(spd>.05f)for(int s=1;s<6;s++)art.rect(cx-s*22,cy-6+MathUtils.random(-2f,2f),16,3,c,.25f*a*(1-s/6f)*Math.min(1,spd));
-            art.car(cx,cy-carW*40/128f/2+bounce,carW,c,a,ghost);
-            if(ln.puffT<1.4f&&!ln.puff.isEmpty()){float pa=1-ln.puffT/1.4f;art.text(art.small,ln.puff,cx+carW/2,cy+h*.55f+ln.puffT*40,.85f,c,pa*a,360);}
-            art.right(art.big,String.valueOf(ln.count),1840,cy+24,.9f,ThinkOrDieArt.INK,a);
-            if(checking){long done=l(p,"checked");float f=ln.count==0?1:Math.min(1,done/(float)ln.count);art.rect(trackL,y+4,(trackR-trackL)*f,3,ThinkOrDieArt.ACID,.7f*a);}
+            boolean ghost=b(p,"ghost");Color c=ghost?ThinkOrDieArt.GHOST:seatColor(id);float a=ease(phaseT*2.5f-k*.1f);
+            float prog=ln.shown/max,sway=MathUtils.sin(clock*1.1f+k*1.7f)*3.5f+ln.bump*MathUtils.sin(ln.bump*18)*5;
+            float cw=Math.min(170,span*.82f),ch=cw*1374/1145f,cx=x0+k*span,by=low+(high-low)*prog-ln.bump*10;
+            // chain from the ceiling hook to the cage ring (swings with the cage)
+            float topY=H-150,ringY=by+ch-4,ringX=cx+MathUtils.sinDeg(sway)*(topY-ringY)*.0f;
+            if(art.hook!=null){batch.setColor(.75f,.72f,.7f,a);batch.draw(art.hook,cx-38,topY-40,76,72);}
+            if(art.chain!=null){float len=topY-ringY,cwid=24;batch.setColor(.8f,.78f,.76f,a);
+                batch.draw(art.chain,cx-cwid/2,ringY,cwid/2,0,cwid,len,1,1,-sway*.6f,436,0,152,(int)(len*152/cwid),false,false);}
+            // portrait inside, bars over it
+            float swayX=MathUtils.sinDeg(sway)*30;
+            art.portrait(character(id),cx+swayX,by+ch*.42f,cw*.30f,c,ghost,a);
+            if(art.cage!=null){batch.setColor(ghost?new Color(.6f,.75f,1f,a*.85f):new Color(1,1,1,a));batch.draw(art.cage,cx-cw/2+swayX,by,cw/2,ch,cw,ch,1,1,-sway*.6f,0,0,art.cage.getWidth(),art.cage.getHeight(),false,false);}
+            if(ln.flash>0)art.glow(cx+swayX,by+ch/2,cw*2,ch*1.6f,c,.25f*ln.flash);
+            // heat from below on low cages
+            art.glow(cx+swayX,by,cw*1.6f,cw,new Color(1,.35f,.1f,1),.25f*(1-prog)*a);
+            // name plate under the cage: dark iron with bone letters, answer count in red serif
+            float pw=Math.max(cw,art.width(art.small,name(id),.72f)+70);art.slab(cx-pw/2+swayX,by-62,pw,52,c,a);
+            art.left(art.small,name(id),cx-pw/2+14+swayX,by-22,.72f,ghost?ThinkOrDieArt.GHOST:ThinkOrDieArt.INK,a,pw-70);
+            art.right(art.big,String.valueOf(ln.count),cx+pw/2-12+swayX,by-14,.6f,ln.flash>0?c:ThinkOrDieArt.GOLD,a);
+            if(ghost)art.text(art.tiny,tr("ПРИЗРАК","GHOST"),cx+swayX,by-74,.85f,ThinkOrDieArt.GHOST,a,0);
+            if(ln.puffT<1.2f&&!ln.puff.isEmpty()){float pa=1-ln.puffT/1.2f;art.text(art.mid,ln.puff,cx+swayX,by+ch+30+ln.puffT*60,.8f,c,pa,360);}
+            if(checking){long done=l(p,"checked");float f=ln.count==0?1:Math.min(1,done/(float)ln.count);art.rect(cx-pw/2+swayX,by-64,pw*f,2,ThinkOrDieArt.ACID,a);}
         }
-        if(checking){float sweep=(clock*900)%(W+400)-200;art.glow(sweep,(top+bottom)/2,260,top-bottom+80,ThinkOrDieArt.ACID,.10f);
-            art.text(art.big,tr("ПРОВЕРЯЕМ ОТВЕТЫ…","CHECKING ANSWERS…"),W/2,940,.7f,ThinkOrDieArt.ACID,.7f+.3f*MathUtils.sin(clock*6),0);}
-        else if(b(t,"hiddenAnswers"))art.text(art.tiny,tr("ОТВЕТЫ СКРЫТЫ ДО РАСКРЫТИЯ","ANSWERS STAY HIDDEN UNTIL THE REVEAL"),W/2,940,1,ThinkOrDieArt.DIM,.8f,0);
+        if(checking)art.text(art.big,tr("Проверяем ответы","Checking the answers"),W/2,120,.85f,ThinkOrDieArt.INK,.6f+.4f*MathUtils.sin(clock*5),0);
+        else if(b(t,"hiddenAnswers"))art.text(art.tiny,tr("КАЖДЫЙ ВЕРНЫЙ ОТВЕТ ПОДНИМАЕТ КЛЕТКУ НАД ОГНЁМ  ·  ОТВЕТЫ СКРЫТЫ","EVERY ANSWER HAULS YOUR CAGE AWAY FROM THE FIRE  ·  ANSWERS STAY HIDDEN"),W/2,46,1,ThinkOrDieArt.DIM,.85f,0);
     }
 
     // ---------------------------------------------------------------- DISPUTE
@@ -276,17 +269,29 @@ public final class ThinkOrDieScreen extends ScreenAdapter {
                 art.play(st.equals("UNIQUE")?"sounds/results/points_land.wav":st.equals("INVALID")||st.equals("REJECTED")?"sounds/impostor/wooden_stumb_hit.wav":"sounds/results/row_whoosh.wav",st.equals("UNIQUE")?.5f:.32f);
                 if(st.equals("UNIQUE"))shake=Math.max(shake,.25f);}
             JsonObject tile=tiles.get(k);int col=k%cols,row=k/cols;float x=60+col*(tw+gx),y=areaTop-(row+1)*th-row*gy;
-            float sc=back(lt*3.2f),a=Math.min(1,lt*4);String st=s(tile,"status");Color c=statusColor(st);
-            float cw=tw*sc,ch=th*sc,ox=x+(tw-cw)/2,oy=y+(th-ch)/2;
-            art.slab(ox,oy,cw,ch,c,a);if(lt<.35f)art.glow(ox+cw/2,oy+ch/2,cw*1.2f,ch*2.2f,c,.5f*(1-lt/.35f));
-            if(st.equals("UNIQUE"))art.glow(ox+cw/2,oy+ch/2,cw*1.1f,ch*1.8f,ThinkOrDieArt.GOLD,.08f+.05f*MathUtils.sin(clock*4+k));
-            boolean wrong=st.equals("INVALID")||st.equals("REJECTED");
-            art.left(art.mid,s(tile,"label"),ox+20,oy+ch-14,.66f*Math.min(1,th/90f),wrong?new Color(1,.75f,.72f,1):ThinkOrDieArt.INK,a,cw-200);
-            if(wrong)art.rect(ox+20,oy+ch-34*Math.min(1,th/90f),Math.min(cw-220,art.width(art.mid,s(tile,"label"),.66f*Math.min(1,th/90f))),3,ThinkOrDieArt.RED,a);
-            int pts=i(tile,"points");art.right(art.big,(pts>0?"+":"")+pts,ox+cw-18,oy+ch/2+22,.62f,c,a);
-            art.left(art.tiny,statusName(st),ox+cw-170,oy+18,.75f,c,.8f*a,0);
-            var who=tile.getAsJsonArray("players");float px=ox+34;
-            if(who!=null)for(int m=0;m<who.size()&&m<8;m++){String id=who.get(m).getAsString();art.portrait(character(id),px,oy+22,Math.min(15,th*.16f),seatColor(id),b(playerById(id),"ghost"),a);px+=36;}
+            float drop=1-ease(lt*3.5f),a=Math.min(1,lt*5);String st=s(tile,"status");Color c=statusColor(st);boolean wrong=st.equals("INVALID")||st.equals("REJECTED");
+            float rot=(new java.util.Random(k*31L+i(t,"round")).nextFloat()-.5f)*5f+drop*8,cx=x+tw/2,cy=y+th/2+drop*60;
+            Matrix4 keep=batch.getTransformMatrix().cpy();
+            batch.setTransformMatrix(new Matrix4(keep).translate(cx,cy,0).rotate(0,0,1,rot).scale(1+drop*.15f,1+drop*.15f,1));
+            float lx=-tw/2,ly=-th/2,fs=Math.min(1,th/96f);
+            art.paper(lx,ly,tw,th,k,a);
+            Color ink=wrong?new Color(.35f,.12f,.1f,1):ThinkOrDieArt.INKD;
+            art.left(art.hand,s(tile,"label"),lx+22,ly+th-12,.78f*fs,ink,a,tw-170);
+            if(wrong){float lw=Math.min(tw-180,art.width(art.hand,s(tile,"label"),.78f*fs));art.rect(lx+18,ly+th-38*fs,lw+8,4,ThinkOrDieArt.BLOOD,a);}
+            int pts=i(tile,"points");art.right(art.big,(pts>0?"+":"")+pts,lx+tw-16,ly+th-14,.58f*fs,pts>0?new Color(.15f,.35f,.12f,1):pts<0?ThinkOrDieArt.BLOOD:new Color(.35f,.3f,.25f,1),a);
+            // rubber stamp, slightly rotated, in the status colour
+            Matrix4 note=batch.getTransformMatrix().cpy();
+            batch.setTransformMatrix(new Matrix4(note).translate(lx+tw-92,ly+24*fs,0).rotate(0,0,1,-8));
+            String stamp=statusName(st);float sw=art.width(art.tiny,stamp,.85f)+16;
+            Color sc=st.equals("UNIQUE")?new Color(.75f,.5f,.05f,1):st.equals("SHARED")?new Color(.15f,.45f,.2f,1):st.equals("MANY")?new Color(.75f,.38f,.08f,1):wrong?ThinkOrDieArt.BLOOD:new Color(.4f,.38f,.36f,1);
+            art.frame(-sw/2,-14,sw,28,sc,.85f*a,2);art.text(art.tiny,stamp,0,10,.85f,sc,.9f*a,0);
+            batch.setTransformMatrix(note);
+            var who=tile.getAsJsonArray("players");float px=lx+30;
+            if(who!=null)for(int m=0;m<who.size()&&m<6;m++){String id=who.get(m).getAsString();art.portrait(character(id),px,ly+22*fs,Math.min(15,th*.16f),seatColor(id),b(playerById(id),"ghost"),a);px+=34;}
+            // a nail on top
+            art.rect(-4,ly+th-8,8,8,new Color(.2f,.18f,.16f,1),a);art.rect(-2,ly+th-6,3,3,Color.WHITE,.4f*a);
+            batch.setTransformMatrix(keep);
+            if(lt<.25f&&st.equals("UNIQUE"))art.glow(cx,cy,tw*1.2f,th*2,ThinkOrDieArt.GOLD,.35f*(1-lt/.25f));
         }
         if(overflow&&phaseT>.5f+shownN*step)art.text(art.small,"+"+(n-shownN)+tr(" ещё"," more"),W-200,areaBottom+20,1,ThinkOrDieArt.DIM,1,0);
     }

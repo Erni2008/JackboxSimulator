@@ -17,12 +17,14 @@ import java.util.*;
 final class ThinkOrDieArt implements Disposable {
     static final Color INK=new Color(.94f,.91f,.88f,1),DIM=new Color(.58f,.55f,.53f,1),ACID=new Color(.85f,1f,.25f,1),BLOOD=new Color(.92f,.18f,.14f,1),
         GOLD=new Color(1f,.77f,.30f,1),GREEN=new Color(.36f,.89f,.54f,1),ORANGE=new Color(1f,.60f,.24f,1),RED=new Color(1f,.29f,.24f,1),
-        NEUTRAL=new Color(.62f,.62f,.66f,1),GHOST=new Color(.56f,.82f,1f,1),PANEL=new Color(.05f,.035f,.04f,.74f);
+        NEUTRAL=new Color(.62f,.62f,.66f,1),GHOST=new Color(.56f,.82f,1f,1),PANEL=new Color(.035f,.028f,.03f,.80f);
     /** lane colours, one per seat */
     static final Color[] SEAT={new Color(.95f,.30f,.25f,1),new Color(.30f,.70f,1f,1),new Color(.98f,.78f,.25f,1),new Color(.55f,.90f,.40f,1),
         new Color(.80f,.45f,1f,1),new Color(1f,.55f,.20f,1),new Color(.25f,.90f,.85f,1),new Color(1f,.45f,.70f,1)};
 
     final Texture pixel,soft,ring,car,carGlass,noise;final Texture background;
+    /** the game's own dungeon kit (lobby): moonlit dungeon, hanging cage, chain, ceiling hook; flame from RARE MINDS */
+    final Texture dungeon,cage,chain,hook,flame;final BitmapFont hand;
     final BitmapFont horror,display,big,mid,small,tiny;
     final GlyphLayout gl=new GlyphLayout();
     private final Map<String,Texture> faces=new HashMap<>();private final Map<String,Sound> sounds=new HashMap<>();
@@ -33,9 +35,13 @@ final class ThinkOrDieArt implements Disposable {
         soft=radial();ring=ring();car=car(false);carGlass=car(true);noise=noise();
         var bg=Gdx.files.internal("think_or_die/background.jpg");
         background=bg.exists()?mip(new Texture(bg,true)):null;
-        horror=font("ui/fonts/Creepster-Regular.ttf",150,0);display=font("ui/fonts/RussoOne-Regular.ttf",96,0);big=font("ui/fonts/RussoOne-Regular.ttf",56,0);
+        dungeon=tex("lobby/background_dungeon.png");cage=tex("lobby/cages/cage_bars.png");hook=tex("lobby/cages/chain_hook.png");flame=tex("rare_minds/ui/flame.png");
+        chain=tex("lobby/cages/chain.png");if(chain!=null)chain.setWrap(Texture.TextureWrap.ClampToEdge,Texture.TextureWrap.Repeat);
+        hand=font("ui/fonts/Caveat-Variable.ttf",64,0);
+        horror=font("ui/fonts/Creepster-Regular.ttf",150,0);display=font("ui/fonts/CormorantSC-Bold.ttf",108,0);big=font("ui/fonts/CormorantSC-Bold.ttf",64,0);
         mid=font("ui/fonts/NotoSans-SemiCondensedSemiBold.ttf",40,0);small=font("ui/fonts/NotoSans-SemiCondensedSemiBold.ttf",28,0);tiny=font("ui/fonts/NotoSans-SemiCondensedSemiBold.ttf",21,0);
     }
+    private static Texture tex(String path){var f=Gdx.files.internal(path);return f.exists()?mip(new Texture(f,true)):null;}
     private static Texture mip(Texture t){t.setFilter(Texture.TextureFilter.MipMapLinearLinear,Texture.TextureFilter.Linear);return t;}
     private static BitmapFont font(String file,int size,int border){
         var fh=Gdx.files.internal(file);if(!fh.exists())fh=Gdx.files.internal("ui/fonts/NotoSans-SemiCondensedSemiBold.ttf");
@@ -60,11 +66,24 @@ final class ThinkOrDieArt implements Disposable {
     void rect(float x,float y,float w,float h,Color c,float a){batch.setColor(c.r,c.g,c.b,c.a*a);batch.draw(pixel,x,y,w,h);}
     void glow(float cx,float cy,float w,float h,Color c,float a){batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(c.r,c.g,c.b,a);batch.draw(soft,cx-w/2,cy-h/2,w,h);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
     void shade(float cx,float cy,float w,float h,float a){batch.setColor(0,0,0,a);batch.draw(soft,cx-w/2,cy-h/2,w,h);}
-    /** Smoked-glass slab with a hairline rim and a coloured spine on the left. */
-    void slab(float x,float y,float w,float h,Color spine,float a){
-        shade(x+w/2,y+h/2-10,w+60,h+50,.55f*a);
-        rect(x,y,w,h,PANEL,a);rect(x,y+h-1,w,1,Color.WHITE,.10f*a);rect(x,y,w,1,Color.BLACK,.6f*a);
-        if(spine!=null){rect(x,y,5,h,spine,a);glow(x+2,y+h/2,40,h*1.1f,spine,.10f*a);}
+    /** Editorial card: flat dark fill, hairline bone border, a 2px accent rule on top. No glow. */
+    void slab(float x,float y,float w,float h,Color accent,float a){
+        rect(x+6,y-8,w,h,Color.BLACK,.35f*a);
+        rect(x,y,w,h,PANEL,a);
+        rect(x,y,w,1,INK,.10f*a);rect(x,y+h-1,w,1,INK,.16f*a);rect(x,y,1,h,INK,.10f*a);rect(x+w-1,y,1,h,INK,.10f*a);
+        if(accent!=null)rect(x,y+h-2,Math.min(w,Math.max(40,w*.18f)),2,accent,a);
+    }
+    static final Color PAPER=new Color(.90f,.84f,.72f,1),INKD=new Color(.12f,.08f,.07f,1);
+    /** An aged parchment note: torn-looking uneven edges, burnt rim, a few stains (deterministic per seed). */
+    void paper(float x,float y,float w,float h,int seed,float a){
+        java.util.Random r=new java.util.Random(seed*7919L+3);
+        rect(x+5,y-7,w,h,Color.BLACK,.45f*a);
+        rect(x,y,w,h,PAPER,a);
+        for(int k=0;k<6;k++){float sx=x+r.nextFloat()*w,sy=y+r.nextFloat()*h,sr=8+r.nextFloat()*30;batch.setColor(.55f,.42f,.28f,.10f*a);batch.draw(soft,sx-sr,sy-sr,sr*2,sr*2);}
+        // burnt rim
+        for(int k=0;k<4;k++){float t=3+k*3,al=(.16f-k*.035f)*a;rect(x,y,w,t,new Color(.35f,.22f,.12f,1),al);rect(x,y+h-t,w,t,new Color(.35f,.22f,.12f,1),al);rect(x,y,t,h,new Color(.35f,.22f,.12f,1),al);rect(x+w-t,y,t,h,new Color(.35f,.22f,.12f,1),al);}
+        // ragged bottom edge
+        for(float px=x;px<x+w;px+=6)rect(px,y-r.nextFloat()*4,6,4,PAPER,a);
     }
     void frame(float x,float y,float w,float h,Color c,float a,float t){rect(x,y,w,t,c,a);rect(x,y+h-t,w,t,c,a);rect(x,y,t,h,c,a);rect(x+w-t,y,t,h,c,a);}
 
@@ -129,7 +148,7 @@ final class ThinkOrDieArt implements Disposable {
         for(int y=0;y<H;y++)for(int x=0;x<W;x++){float a=0;for(int j=0;j<s;j++)for(int i=0;i<s;i++)a+=(b.getPixel(x*s+i,y*s+j)&0xff)/255f;p.drawPixel(x,y,Color.rgba8888(1,1,1,a/(s*s)));}
         b.dispose();Texture t=new Texture(p);t.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();return t;}
 
-    @Override public void dispose(){pixel.dispose();soft.dispose();ring.dispose();car.dispose();carGlass.dispose();noise.dispose();if(background!=null)background.dispose();
+    @Override public void dispose(){pixel.dispose();soft.dispose();ring.dispose();car.dispose();carGlass.dispose();noise.dispose();if(background!=null)background.dispose();for(Texture t:new Texture[]{dungeon,cage,chain,hook,flame})if(t!=null)t.dispose();hand.dispose();
         horror.dispose();display.dispose();big.dispose();mid.dispose();small.dispose();tiny.dispose();
         for(Texture t:faces.values())if(t!=null)t.dispose();for(Sound s:sounds.values())if(s!=null)s.dispose();}
 }
