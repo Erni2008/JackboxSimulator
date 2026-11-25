@@ -16,7 +16,7 @@ public final class AiJudgeEvaluation {
     /** Labelled cases from /think_or_die/ai_eval.tsv (category, lang, answer, 1 or 0). */
     static final List<Case> CASES=load();
     static List<Case> load(){
-        try(var in=AiJudgeEvaluation.class.getResourceAsStream("/think_or_die/ai_eval.tsv")){
+        try(var in=AiJudgeEvaluation.class.getResourceAsStream(System.getProperty("ai.set","/think_or_die/ai_eval.tsv"))){
             List<Case> out=new ArrayList<>();
             for(String line:new String(in.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8).split("\\R")){
                 if(line.isBlank()||line.startsWith("#"))continue;String[] f=line.split("\t");
@@ -29,6 +29,7 @@ public final class AiJudgeEvaluation {
         String url=System.getProperty("ai.url","http://127.0.0.1:18431");
         var judge=new LlamaCppJudge(url,"qwen3-4b-instruct-2507-q4_k_m",Duration.ofSeconds(60));
         var pack=CategoryPack.load();
+        if(Boolean.getBoolean("ai.engine")){engineMode(judge,pack);return;}
         int fa=0,fr=0,unc=0,ok=0;long worst=0,total=0;
         Map<String,List<Case>> by=new LinkedHashMap<>();for(Case c:CASES){String k0=c.category()+"|"+c.lang();int part=0;while(by.getOrDefault(k0+"|"+part,List.of()).size()>=Integer.getInteger("ai.batch",12))part++;by.computeIfAbsent(k0+"|"+part,k->new ArrayList<>()).add(c);} // round-sized batches
         for(var e:by.entrySet()){var cs=e.getValue();Category cat=pack.get(cs.get(0).category());
@@ -44,5 +45,18 @@ public final class AiJudgeEvaluation {
         int n=CASES.size();
         System.out.printf("%nRESULT: %d cases, correct %d (%.0f%%), false accepts %d (%.1f%%), false rejects %d (%.1f%%), uncertain %d (%.0f%%); batch latency avg %d ms, worst %d ms%n",
             n,ok,100.0*ok/n,fa,100.0*fa/n,fr,100.0*fr/n,unc,100.0*unc/n,total/by.size(),worst);
+    }
+    /** Whole system as in a game: non-answers, lists, rules, typos first; only the rest goes to the AI. */
+    static void engineMode(LlamaCppJudge judge,CategoryPack pack) throws Exception{
+        judge.tune(4,120_000);var engine=new ValidationEngine(new WordDictionary(),ValidationCache.NONE,judge);
+        int ok=0,fa=0,fr=0,byList=0,byAi=0;
+        for(Case c:CASES){Category cat=pack.get(c.category());AnswerInput in=AnswerInput.of(c.answer());
+            Verdict v=in==null?Verdict.invalid(Verdict.Source.KNOWN_INVALID):engine.validate(cat,in);
+            if(v.status()==ValidationStatus.PENDING){byAi++;v=engine.judgeLater(cat,c.lang(),in).get(60,java.util.concurrent.TimeUnit.SECONDS);}else byList++;
+            boolean valid=v.status()==ValidationStatus.VALID;
+            if(valid==c.valid())ok++;else if(valid){fa++;System.out.println("FALSE ACCEPT  "+c.category()+"  "+c.answer()+"  ("+v.source()+")");}else{fr++;System.out.println("false reject  "+c.category()+"  "+c.answer()+"  ("+v.source()+")");}}
+        int n=CASES.size();
+        System.out.printf("%nSYSTEM: %d cases (%d decided without AI, %d by AI): correct %d (%.1f%%), false accepts %d, false rejects %d%n",n,byList,byAi,ok,100.0*ok/n,fa,fr);
+        engine.close();System.exit(0);
     }
 }

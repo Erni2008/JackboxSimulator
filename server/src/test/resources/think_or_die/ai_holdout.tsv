@@ -1,0 +1,132 @@
+# Held-out set written AFTER the lists were expanded; never used to tune lists or prompts.
+in_bathroom	ru	Шампунь от перхоти	1
+in_bathroom	ru	Маникюрный набор	1
+in_bathroom	ru	Корзина для мусора	1
+in_bathroom	ru	Ароматические палочки	1
+in_bathroom	ru	Детская ванночка	1
+in_bathroom	en	Q-tips	1
+in_bathroom	en	Bath robe hook	1
+in_bathroom	en	Exfoliating glove	1
+in_bathroom	en	Electric heater	1
+in_bathroom	en	Bathroom rug	1
+in_bathroom	en	Hair straightener	1
+in_bathroom	ru	Утюжок для волос	1
+in_bathroom	ru	Плойка	1
+in_bathroom	en	Bookshelf	0
+in_bathroom	ru	Холодильник для пива	0
+in_bathroom	en	Swimming pool	0
+in_bathroom	ru	Грузовик	0
+in_bathroom	en	Lawn	0
+in_kitchen	ru	Сотейник	1
+in_kitchen	ru	Нож для пиццы	1
+in_kitchen	en	Pizza cutter	1
+in_kitchen	en	Egg timer	1
+in_kitchen	ru	Подставка под горячее	1
+in_kitchen	en	Spice grinder	1
+in_kitchen	ru	Кофемолка	1
+in_kitchen	en	Dish rack	1
+in_kitchen	ru	Сушилка для посуды	1
+in_kitchen	en	Sandwich	1
+in_kitchen	ru	Пельмени	1
+in_kitchen	en	Bathtub	0
+in_kitchen	ru	Унитаз	0
+in_kitchen	en	Lawnmower	0
+in_kitchen	ru	Самолёт	0
+in_kitchen	en	Shower curtain	0
+produces_light	ru	Прожектор на стадионе	1
+produces_light	en	Bonfire	1
+produces_light	ru	Электрическая дуга	1
+produces_light	en	Tablet screen	1
+produces_light	ru	Кинескоп	1
+produces_light	en	Glowing jellyfish	1
+produces_light	ru	Ёлочная гирлянда	1
+produces_light	en	Chalk	0
+produces_light	ru	Табуретка	0
+produces_light	en	Mirror	0
+produces_light	ru	Тень	0
+pump_bottle	ru	Гель для умывания	1
+pump_bottle	en	Body wash	1
+pump_bottle	ru	Флюид для лица	1
+pump_bottle	en	Sriracha	1
+pump_bottle	ru	Пенка для бритья	1
+pump_bottle	en	Brick	0
+pump_bottle	ru	Шуруповёрт	0
+pump_bottle	en	Tennis ball	0
+winter_things	ru	Снежная баба	1
+winter_things	en	Ice skating	1
+winter_things	ru	Ледяная горка	1
+winter_things	en	Earmuffs	1
+winter_things	ru	Пуховик	1
+winter_things	en	Christmas lights	1
+winter_things	ru	Шуба	1
+winter_things	en	Sunburn	0
+winter_things	ru	Пляж	0
+winter_things	en	Ice cream truck in July	0
+winter_things	ru	Кондиционер	0
+ocean_things	ru	Скат манта	1
+ocean_things	en	Hammerhead	1
+ocean_things	ru	Подводный вулкан	1
+ocean_things	en	Seaweed salad	1
+ocean_things	ru	Морская болезнь	1
+ocean_things	en	Cargo ship	1
+ocean_things	ru	Кашалот	1
+ocean_things	en	Cactus	0
+ocean_things	ru	Пустыня Сахара	0
+ocean_things	en	Snowman	0
+movie_genres	ru	Нео нуар	1
+movie_genres	en	Spaghetti western	1
+movie_genres	ru	Кино про ограбление	1
+movie_genres	en	Teen comedy	1
+movie_genres	ru	Мистический триллер	1
+movie_genres	en	Chair	0
+movie_genres	ru	Помидор	0
+movie_genres	en	Wednesday	0
+programming_languages	en	Ballerina	1
+programming_languages	ru	Котлин мультиплатформа	1
+programming_languages	en	Odin	1
+programming_languages	en	Gleam	1
+programming_languages	ru	Си шарп	1
+programming_languages	en	Excel	0
+programming_languages	ru	Фотошоп	0
+programming_languages	en	JSON	0
+chemical_elements	ru	Азот	1
+chemical_elements	en	Ytterbium	1
+chemical_elements	en	Hg	1
+chemical_elements	ru	Бронза	0
+chemical_elements	en	Salt	0
+chemical_elements	en	Plastic	0
+batman_villains	en	Mr. Freeze	1
+batman_villains	en	Ra's al Ghul	1
+batman_villains	ru	Ядовитый Плющ	1
+batman_villains	en	Clayface	1
+batman_villains	en	Mad Hatter	1
+batman_villains	en	Deadshot	1
+batman_villains	en	Darkseid	0
+batman_villains	ru	Человек паук	0
+batman_villains	en	Voldemort	0
+ruin_first_date	ru	Прийти с бывшей	1
+ruin_first_date	en	Talking only about yourself	1
+ruin_first_date	ru	Пролить кофе	1
+ruin_first_date	en	Proposing marriage	1
+ruin_first_date	ru	Отвечать на звонки весь вечер	1
+ruin_first_date	en	Earthquake	1
+ruin_first_date	en	Pythagorean theorem	0
+ruin_first_date	ru	Квадратный корень	0
+animals_five_letters	en	Bison	1
+animals_five_letters	en	Lemur	1
+animals_five_letters	en	Horse	1
+animals_five_letters	en	Cat	0
+animals_five_letters	en	Elephant	0
+animals_five_letters	en	Table	0
+track_and_field	en	Pole vault	1
+track_and_field	ru	Метание молота	1
+track_and_field	en	Marathon	1
+track_and_field	en	Decathlon	1
+track_and_field	en	Freestyle swimming	0
+track_and_field	ru	Фигурное катание	0
+disney_princesses	en	Moana	1
+disney_princesses	ru	Рапунцель	1
+disney_princesses	en	Tiana	1
+disney_princesses	en	Elsa	1
+disney_princesses	en	Hermione	0
+disney_princesses	ru	Золушка из Шрека	0

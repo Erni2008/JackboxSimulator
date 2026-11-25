@@ -50,3 +50,14 @@ AI verdict is cached for all future games, so the same answer is never judged tw
 For many simultaneous rooms the model needs a GPU server at release (cloud is deferred): llama.cpp or vLLM on a
 single modern GPU serves this model at well over 50 answers per second with the same code (`THINK_OR_DIE_AI_URL`,
 `THINK_OR_DIE_AI_SLOTS`).
+
+## Whole system accuracy (lists + rules + AI, `aiJudgeEval -Pai.engine=true`, 2026-11-25)
+| set | decided without AI | correct | false accepts | false rejects |
+|---|---|---|---|---|
+| ai_eval.tsv (263, lists were grown with it in view) | 200 | 99.2 % | 2 | 0 |
+| **ai_holdout.tsv (131, never used for tuning)** | 46 | **96.2 %** | 2 | 3 |
+
+Every error is made by the AI, never by the lists. The remaining AI errors are gaps in what a 4B model knows
+(Odin and Gleam as languages, Darkseid as a Batman villain); a two-judge consensus (`thinkordie.ai.consensus=true`)
+did not change the held-out score, so it is off. The way to 99 %+ is coverage: grow the verified lists so that
+almost every real answer is decided without the AI, and use a larger model offline to propose list entries.
