@@ -10,6 +10,7 @@ ghost and types faster with rare answers only, so you can watch a resurrection. 
     python3 tools/dev/think_or_die_test.py                 # 6 bots, Russian
     python3 tools/dev/think_or_die_test.py --lang en --players 8 --wpm 45
     python3 tools/dev/think_or_die_test.py --no-ghost
+    python3 tools/dev/think_or_die_test.py --me --ai     # you play from your phone/browser too, local AI judge on
 
 Needs: Java 21 (Gradle), python package `websockets`.
 """
@@ -61,15 +62,26 @@ async def main():
     ap.add_argument('--url', default='http://localhost:18330'); ap.add_argument('--players', type=int, default=6)
     ap.add_argument('--wpm', type=float, default=35); ap.add_argument('--lang', choices=['ru', 'en'], default='ru')
     ap.add_argument('--no-ghost', action='store_true')
+    ap.add_argument('--me', action='store_true', help='keep a seat for you: the match waits until you join from a phone or browser')
+    ap.add_argument('--ai', action='store_true', help='start the AI judge from the flash drive and connect the server to it')
     a = ap.parse_args()
     import websockets
-    names = NAMES[:max(2, min(8, a.players))]
+    names = NAMES[:max(1 if a.me else 2, min(7 if a.me else 8, a.players))]
     ghost = '' if a.no_ghost else names[-1]
     procs = []
     port = urllib.parse.urlparse(a.url).port or 80
+    if a.ai and not healthy('http://127.0.0.1:18431'):
+        pack = next((os.path.join('/Volumes', v, 'FinalAnswerAIPack') for v in os.listdir('/Volumes') if os.path.isdir(os.path.join('/Volumes', v, 'FinalAnswerAIPack'))), None)
+        if not pack: sys.exit('AI pack not found: plug in the flash drive')
+        print('starting the AI judge …')
+        procs.append(subprocess.Popen([os.path.join(pack, 'Start AI Judge.command')], start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
+        for _ in range(120):
+            if healthy('http://127.0.0.1:18431'): break
+            time.sleep(1)
+        else: sys.exit('AI judge did not start')
     if not healthy(a.url):
         print('starting the local QA server on port', port, '…')
-        procs.append(subprocess.Popen(['./gradlew', '-q', ':server:raceQa', f'-Prace.port={port}'], cwd=ROOT, start_new_session=True))
+        procs.append(subprocess.Popen(['./gradlew', '-q', ':server:raceQa', f'-Prace.port={port}'] + (['-Ptod.ai=http://127.0.0.1:18431'] if a.ai else []), cwd=ROOT, start_new_session=True))
         for _ in range(150):
             if healthy(a.url): break
             time.sleep(1)
@@ -78,7 +90,12 @@ async def main():
     code = host['code']
     print('room', code, '— opening the host screen …')
     procs.append(subprocess.Popen(['./gradlew', '-q', ':lwjgl3:thinkOrDieLiveHost', f'-Ptod.url={a.url}', f'-Ptod.code={code}', f'-Ptod.token={host["token"]}',
-                                   f'-Ptod.players={len(names)}', f'-Ptod.lang={a.lang}', f'-Ptod.ghost={ghost}'], cwd=ROOT, start_new_session=True))
+                                   f'-Ptod.players={len(names) + (1 if a.me else 0)}', f'-Ptod.lang={a.lang}', f'-Ptod.ghost={ghost}'], cwd=ROOT, start_new_session=True))
+    if a.me:
+        import socket
+        try: s0 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s0.connect(('10.255.255.255', 1)); ip = s0.getsockname()[0]; s0.close()
+        except Exception: ip = 'localhost'
+        print(f"\n  JOIN: open http://{ip}:{port}/ on your phone (same Wi-Fi) or http://localhost:{port}/ here, room code {code}\n  the match starts as soon as you join\n")
     ws_url = a.url.replace('http', 'ws', 1) + '/ws'
     bots = []
     for i, n in enumerate(names):
