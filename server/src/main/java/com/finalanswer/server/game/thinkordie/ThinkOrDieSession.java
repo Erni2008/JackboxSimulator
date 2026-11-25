@@ -276,12 +276,18 @@ public final class ThinkOrDieSession {
         if(!standings.isEmpty()){List<Map<String,Object>> st=new ArrayList<>();for(Standing s:standings)st.add(Map.of("playerId",s.playerId(),"rank",s.rank(),"points",s.points(),"correct",s.correct(),"unique",s.unique(),"incorrect",s.incorrect(),"souls",s.souls(),"resurrected",s.resurrected()));v.put("standings",st);}
         Player me=self==null?null:byId.get(self);
         if(me!=null){List<Map<String,Object>> mine=new ArrayList<>();
-            for(Sub s:subs)if(s.player.equals(me.id)){Map<String,Object> m=new LinkedHashMap<>();m.put("id",s.id);m.put("text",s.text);m.put("state",ownState(s));if(!s.result.isEmpty()&&phase.ordinal()>=Phase.ANSWER_REVEAL.ordinal())m.put("points",s.points);mine.add(m);}
+            for(Sub s:subs)if(s.player.equals(me.id)){Map<String,Object> m=new LinkedHashMap<>();m.put("id",s.id);m.put("text",s.text);String lb=ownLabel(s);if(lb!=null)m.put("label",lb);m.put("state",ownState(s));if(!s.result.isEmpty()&&phase.ordinal()>=Phase.ANSWER_REVEAL.ordinal())m.put("points",s.points);mine.add(m);}
             v.put("me",Map.of("ghost",me.ghost,"history",mine,"count",me.roundCount));}
         if(host&&!cfg.hiddenAnswers()&&phase==Phase.ANSWERING)v.put("live",live());
         return v;
     }
     /** What a player sees for their own answer while answering: accepted / rejected / duplicate / pending. */
+    /** The verified spelling of a player's own answer ("бритв" shows as "Бритва") as soon as it is known. */
+    private String ownLabel(Sub s){
+        if(!s.verdict.valid()||s.verdict.canonicalId()==null)return null;
+        Category.Answer a=category().answer(s.verdict.canonicalId());
+        return a==null?null:"ru".equals(lang)?a.labelRu():a.labelEn();
+    }
     private String ownState(Sub s){
         if(phase.ordinal()>=Phase.ANSWER_REVEAL.ordinal()&&!s.result.isEmpty())return s.result;
         return switch(s.verdict.status()){case VALID->"ACCEPTED";case INVALID->"REJECTED";case DUPLICATE->"DUPLICATE";default->"PENDING";};

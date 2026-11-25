@@ -96,7 +96,7 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
     const rows=[...outbox.map(o=>({text:o.text,state:'SENDING'})),...[...hist].reverse()];
     const key=JSON.stringify(rows)+ph;
     if(key!==lastKey){lastKey=key;
-      els.list.innerHTML=rows.map(r=>{const st=STATE[r.state]||STATE.PENDING;return `<li class="s-${st[1]}"><span>${esc(r.text)}</span><em>${esc(st[0])}${r.points!=null?` · ${r.points>0?'+':''}${r.points}`:''}</em></li>`;}).join('');}
+      els.list.innerHTML=rows.map(r=>{const st=STATE[r.state]||STATE.PENDING;return `<li class="s-${st[1]}"><span>${esc(r.label||r.text)}</span><em>${esc(st[0])}${r.points!=null?` · ${r.points>0?'+':''}${r.points}`:''}</em></li>`;}).join('');}
     els.list.hidden=!rows.length||ph==='INTRO'||ph==='CATEGORY_REVEAL'||ph==='FINAL_RESULTS'||ph==='COMPLETED';
     els.count.hidden=!(answering||ph==='ANSWER_VALIDATION');
     if(!els.count.hidden)els.count.innerHTML=ph==='ANSWER_VALIDATION'?`<b>${T('ПРОВЕРЯЕМ ОТВЕТЫ…','CHECKING ANSWERS…')}</b>`:`<b>${hist.length+outbox.length}</b> ${T('ответов','answers')}`;
