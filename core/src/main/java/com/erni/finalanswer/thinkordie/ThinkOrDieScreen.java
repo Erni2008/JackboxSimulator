@@ -84,7 +84,8 @@ public final class ThinkOrDieScreen extends ScreenAdapter {
             case "ANSWERING","ANSWER_VALIDATION"->{header(true);race(ph.equals("ANSWER_VALIDATION"));}
             case "DISPUTE"->{header(true);disputes();}
             case "ANSWER_REVEAL"->{header(false);reveal();}
-            case "ROUND_RESULTS"->{header(false);scoreboard();resurrection();}
+            case "ROUND_RESULTS"->{boolean risen=players().stream().anyMatch(p->b(p,"roundResurrected"));
+                if(risen&&phaseT<3.6f)resurrection();else{header(false);float keep=phaseT;if(risen)phaseT-=3.6f;scoreboard();phaseT=keep;}}
             case "FINAL_RESULTS","COMPLETED"->podium();
             default->{}
         }
@@ -167,7 +168,7 @@ public final class ThinkOrDieScreen extends ScreenAdapter {
         art.left(art.horror,"THINK OR DIE",56,1046,.36f,ThinkOrDieArt.INK,.95f,0);
         art.left(art.tiny,(tr("РАУНД ","ROUND ")+i(t,"round")+" / "+i(t,"rounds")),60,966,1,ThinkOrDieArt.DIM,1,0);
         String cat=category();
-        if(!cat.isEmpty()){float a=ease(phaseT*2);art.paragraph(art.display,cat,W/2,1040,1240,.56f,120,ThinkOrDieArt.INK,a);}
+        if(!cat.isEmpty()){float a=ease(phaseT*2);art.text(art.display,cat,W/2,1040,.56f,ThinkOrDieArt.INK,a,1240);}
         if(timed)timer(1800,980,62);
     }
     private void timer(float cx,float cy,float r){
@@ -302,7 +303,7 @@ public final class ThinkOrDieScreen extends ScreenAdapter {
             art.text(art.big,String.valueOf(k+1),215,y+rowH/2+20,.6f,ThinkOrDieArt.DIM,a,0);
             art.portrait(character(id),300,y+rowH/2,rowH*.32f,c,ghost,a);
             art.left(art.mid,name(id),350,y+rowH/2+16,.7f,ThinkOrDieArt.INK,a,300);
-            art.left(art.tiny,i(p,"roundCorrect")+" ✓   "+i(p,"roundUnique")+" ★   "+i(p,"roundIncorrect")+" ✕",352,y+rowH/2-16,.95f,ThinkOrDieArt.DIM,a,0);
+            art.left(art.tiny,tr("верно ","correct ")+i(p,"roundCorrect")+tr("  ·  уникально ","  ·  unique ")+i(p,"roundUnique")+tr("  ·  ошибок ","  ·  wrong ")+i(p,"roundIncorrect"),352,y+rowH/2-16,.95f,ThinkOrDieArt.DIM,a,0);
             int rp=i(p,"roundPoints");float shownRp=rp*ease(phaseT*1.2f-.4f);
             art.text(art.big,(rp>0?"+":"")+Math.round(shownRp),820,y+rowH/2+22,.7f,rp<0?ThinkOrDieArt.RED:ThinkOrDieArt.ACID,a,0);
             float tot=l(p,"points");float bw=640*Math.max(0,tot)/best*ease(phaseT*1.5f-.3f);
@@ -315,7 +316,7 @@ public final class ThinkOrDieScreen extends ScreenAdapter {
         List<JsonObject> risen=new ArrayList<>();for(var p:players())if(b(p,"roundResurrected"))risen.add(p);
         if(risen.isEmpty()||phaseT>3.6f)return;
         float a=phaseT<.3f?phaseT/.3f:phaseT>3f?(3.6f-phaseT)/.6f:1;
-        art.rect(0,0,W,H,Color.BLACK,.82f*a);
+        art.rect(0,0,W,H,Color.BLACK,.55f*a);
         art.glow(W/2,560,1400,1000,ThinkOrDieArt.GHOST,.3f*a);
         for(int k=0;k<risen.size();k++){String id=s(risen.get(k),"id");float cx=W/2+(k-(risen.size()-1)/2f)*320;float rise=ease(phaseT*1.2f);
             art.portrait(character(id),cx,420+rise*120,110,ThinkOrDieArt.GHOST,phaseT<1.2f,a);
@@ -344,7 +345,7 @@ public final class ThinkOrDieScreen extends ScreenAdapter {
         }
         // everyone: correct / unique / wrong / resurrected
         float y=900-90;int k=0;
-        for(JsonObject s:st){String id=s(s,"playerId");String line=i(s,"rank")+".  "+name(id)+"   "+i(s,"correct")+" ✓  "+i(s,"unique")+" ★  "+i(s,"incorrect")+" ✕"+(b(s,"resurrected")?tr("   ВОСКРЕС","   RISEN"):"");
+        for(JsonObject s:st){String id=s(s,"playerId");String line=i(s,"rank")+".  "+name(id)+"   "+tr("верно ","correct ")+i(s,"correct")+tr(" · уник. "," · unique ")+i(s,"unique")+tr(" · ошибок "," · wrong ")+i(s,"incorrect")+(b(s,"resurrected")?tr("   ВОСКРЕС","   RISEN"):"");
             float a=ease(phaseT*1.2f-2f-k*.1f);
             if(k<4)art.left(art.tiny,line,60,y-k*34,1,b(s,"resurrected")?ThinkOrDieArt.GHOST:ThinkOrDieArt.DIM,a,520);
             else art.right(art.tiny,line,1860,y-(k-4)*34,1,ThinkOrDieArt.DIM,a);
