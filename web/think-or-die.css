@@ -1,66 +1,89 @@
-/* THINK OR DIE — phone. Near-black stage, cold bone-white type, one acid accent; ghosts turn blue. */
-#tod-screen{--ink:#efe9e1;--dim:#8f8a84;--acc:#d9ff3f;--gold:#ffc44d;--ok:#5be38a;--many:#ff9a3c;--bad:#ff4b3e;--ghost:#8fd0ff;--line:#ffffff1f;--tod-left:1;
-  position:relative;min-height:100dvh;padding:calc(12px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom));box-sizing:border-box;
+/* THINK OR DIE — phone. A bright TV game show: studio violet, hot magenta, electric cyan, sunshine yellow,
+   chunky rounded plates and the Russo One display face. Full screen over the app frame while the mode runs. */
+@font-face{font-family:"Russo One";src:url("fonts/RussoOne-Regular.ttf") format("truetype");font-display:swap}
+#tod-screen{--ink:#fff;--dim:#c4b6ec;--acc:#ffe12e;--mag:#ff2e93;--cyan:#1fe0ff;--gold:#ffd92e;--ok:#66ff73;--many:#ff8c1f;--bad:#ff3a55;--ghost:#8be0ff;
+  --night:#10052a;--violet:#3a0f78;--panel:#24104dcc;--line:#ffffff26;--tod-left:1;
+  position:fixed;inset:0;z-index:60;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:calc(12px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));box-sizing:border-box;
   color:var(--ink);font-family:"Noto Sans",system-ui,sans-serif;
-  background:radial-gradient(130% 70% at 50% -20%,#2a1214 0%,#0c0809 50%,#050405 100%)}
-#tod-screen[data-ghost="true"]{--acc:var(--ghost);background:radial-gradient(130% 70% at 50% -20%,#0f2333 0%,#070b10 55%,#040506 100%)}
-#tod-screen::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.07;background:repeating-linear-gradient(0deg,#fff 0 1px,transparent 1px 3px)}
-.tod-top{position:relative;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:2px 0 10px}
-.tod-brand{margin:0;font:400 24px/1 Creepster,Georgia,serif;letter-spacing:.06em;color:var(--ink);text-shadow:0 0 18px #ff3b2e55}
-.tod-brand span{color:var(--bad);font-size:.7em;vertical-align:.12em}
-.tod-round{margin:0 auto 0 0;padding-left:10px;font:700 10px/1 system-ui,sans-serif;letter-spacing:.24em;color:var(--dim)}
-.tod-clock{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;
-  background:conic-gradient(var(--acc) calc(var(--tod-left)*360deg),#ffffff12 0);box-shadow:0 0 18px #0008}
-.tod-clock b{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:#0b0809;font:800 19px/1 system-ui,sans-serif}
-#tod-screen[data-hurry="true"] .tod-clock{--acc:var(--bad);animation:tod-beat .5s ease-in-out infinite alternate}
-@keyframes tod-beat{to{transform:scale(1.1)}}
-.tod-bar{height:3px;background:#ffffff10;border-radius:2px;overflow:hidden;margin-bottom:12px}
-.tod-bar i{display:block;height:100%;width:calc(var(--tod-left)*100%);background:var(--acc);box-shadow:0 0 10px var(--acc);transition:width .2s linear}
-#tod-screen[data-hurry="true"] .tod-bar i{background:var(--bad);box-shadow:0 0 10px var(--bad)}
-.tod-ghost{margin:0 0 10px;padding:9px 12px;border:1px solid #8fd0ff55;border-radius:10px;background:#0c1a26cc;color:var(--ghost);font:700 11px/1.35 system-ui,sans-serif;letter-spacing:.06em}
-.tod-card{padding:16px 16px 18px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,#171112,#0c0909);box-shadow:0 18px 40px #000a,inset 0 1px 0 #ffffff14}
-.tod-eyebrow{margin:0 0 8px;font:800 10px/1 system-ui,sans-serif;letter-spacing:.3em;color:var(--acc)}
-.tod-cat{margin:0;font:700 clamp(20px,6.2vw,28px)/1.18 system-ui,sans-serif;letter-spacing:-.01em;overflow-wrap:anywhere}
-#tod-screen[data-phase="CATEGORY_REVEAL"] .tod-cat{animation:tod-in .6s cubic-bezier(.2,.9,.2,1.2)}
-@keyframes tod-in{from{opacity:0;transform:translateY(10px) scale(.96);filter:blur(6px)}}
-.tod-intro ol{margin:14px 0 0;padding-left:20px;line-height:1.45;font-size:15px}
-.tod-intro li{margin:0 0 8px}
-.tod-pts{margin:12px 0 0;font-size:13px;color:var(--dim);line-height:1.6}.tod-pts b{color:var(--ink)}.tod-pts .g{color:var(--gold)}.tod-pts .r{color:var(--bad)}
-.tod-form{position:sticky;top:0;z-index:2;display:grid;grid-template-columns:1fr auto;gap:8px;margin:12px -4px 0;padding:8px 4px;background:linear-gradient(#0b0809f2,#0b0809e0);backdrop-filter:blur(6px)}
-.tod-form input{min-width:0;height:54px;padding:0 14px;border:1.5px solid #ffffff2a;border-radius:12px;background:#120d0e;color:var(--ink);font:600 18px/1 system-ui,sans-serif;outline:none}
-.tod-form input:focus{border-color:var(--acc);box-shadow:0 0 0 3px #d9ff3f22}
-.tod-send{height:54px;padding:0 16px;border:0;border-radius:12px;background:var(--acc);color:#0b0809;font:900 13px/1 system-ui,sans-serif;letter-spacing:.12em}
-.tod-send:active{transform:scale(.96)}
-.tod-send:disabled{opacity:.4}
-.tod-hint{grid-column:1/-1;min-height:14px;margin:0;font-size:12px;color:var(--dim)}.tod-hint.err{color:var(--bad)}
-.tod-count{margin:8px 0;text-align:center;font-size:13px;color:var(--dim)}.tod-count b{color:var(--ink);font-size:22px}
-.tod-list{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:6px}
-.tod-list li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:10px;background:#ffffff08;border-left:3px solid #ffffff30;animation:tod-pop .25s ease-out}
-.tod-list li:first-child{animation:tod-pop .3s cubic-bezier(.2,.9,.2,1.3)}
-@keyframes tod-pop{from{opacity:0;transform:translateY(-6px)}}
-.tod-list span{font-weight:600;overflow-wrap:anywhere}
-.tod-list em{flex:none;font:700 10px/1 system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;font-style:normal;color:var(--dim)}
-.tod-list .s-ok{border-color:var(--ok)}.tod-list .s-ok em{color:var(--ok)}
-.tod-list .s-gold{border-color:var(--gold);background:#ffc44d12}.tod-list .s-gold em{color:var(--gold)}
-.tod-list .s-many{border-color:var(--many)}.tod-list .s-many em{color:var(--many)}
-.tod-list .s-bad{border-color:var(--bad)}.tod-list .s-bad em{color:var(--bad)}.tod-list .s-bad span{text-decoration:line-through;opacity:.7}
-.tod-list .s-dup{opacity:.55}
+  background:
+    radial-gradient(60% 40% at 15% 0%,#ff2e9355 0%,transparent 70%),
+    radial-gradient(60% 40% at 85% 0%,#1fe0ff44 0%,transparent 70%),
+    radial-gradient(4px 4px at 50% 50%,#ffffff16 45%,transparent 55%) 0 0/22px 22px,
+    linear-gradient(180deg,#2a0b5c 0%,#160634 55%,#0c0420 100%)}
+#tod-screen[hidden]{display:none}
+#tod-screen[data-ghost="true"]{--acc:var(--ghost)}
+#tod-screen *{box-sizing:border-box}
+.tod-top{display:flex;align-items:center;gap:10px;padding:2px 0 12px}
+.tod-brand{margin:0;padding:8px 12px;border-radius:12px;background:var(--night);box-shadow:inset 0 0 0 2px var(--gold),0 6px 0 #0006;
+  font:400 17px/1 "Russo One",system-ui,sans-serif;letter-spacing:.02em;color:var(--gold);white-space:nowrap}
+.tod-brand span{color:#fff}
+.tod-round{margin:0 auto 0 0;padding:7px 10px;border-radius:99px;background:var(--violet);font:400 11px/1 "Russo One",sans-serif;letter-spacing:.06em;color:#fff}
+.tod-clock{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;flex:none;
+  background:conic-gradient(var(--cyan) calc(var(--tod-left)*360deg),#ffffff1a 0);box-shadow:0 0 22px #1fe0ff66,0 6px 0 #0006}
+.tod-clock b{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:var(--night);font:400 21px/1 "Russo One",sans-serif}
+#tod-screen[data-hurry="true"] .tod-clock{background:conic-gradient(var(--mag) calc(var(--tod-left)*360deg),#ffffff1a 0);box-shadow:0 0 26px #ff2e93aa;animation:tod-beat .45s ease-in-out infinite alternate}
+@keyframes tod-beat{to{transform:scale(1.12)}}
+.tod-bar{height:8px;background:#ffffff14;border-radius:99px;overflow:hidden;margin-bottom:14px}
+.tod-bar i{display:block;height:100%;width:calc(var(--tod-left)*100%);border-radius:99px;background:linear-gradient(90deg,var(--cyan),var(--gold));transition:width .2s linear}
+#tod-screen[data-hurry="true"] .tod-bar i{background:linear-gradient(90deg,var(--mag),var(--gold))}
+.tod-ghost{margin:0 0 12px;padding:10px 14px;border-radius:14px;background:#1fe0ff22;box-shadow:inset 0 0 0 2px var(--ghost);color:var(--ghost);font:400 12px/1.35 "Russo One",sans-serif}
+.tod-card{position:relative;padding:18px 18px 20px;border-radius:22px;background:linear-gradient(180deg,#ff3fa0,#e3166f);
+  box-shadow:inset 0 0 0 3px var(--gold),inset 0 40px 40px -30px #ffffff40,0 10px 0 #0007,0 0 40px #ff2e9355}
+.tod-eyebrow{display:inline-block;margin:0 0 10px;padding:5px 10px;border-radius:99px;background:var(--gold);color:var(--night);font:400 11px/1 "Russo One",sans-serif;letter-spacing:.08em}
+.tod-cat{margin:0;font:400 clamp(22px,6.6vw,30px)/1.15 "Russo One",system-ui,sans-serif;text-shadow:0 3px 0 #0005;overflow-wrap:anywhere}
+#tod-screen[data-phase="CATEGORY_REVEAL"] .tod-card{animation:tod-zoom .6s cubic-bezier(.2,1.4,.3,1)}
+@keyframes tod-zoom{from{opacity:0;transform:scale(.6) rotate(-3deg)}}
+.tod-intro{margin-top:14px;padding:16px;border-radius:20px;background:var(--panel);box-shadow:inset 0 0 0 2px var(--line)}
+.tod-intro .tod-eyebrow{background:var(--cyan)}
+.tod-intro ol{margin:6px 0 0;padding:0;list-style:none;counter-reset:r;display:grid;gap:10px}
+.tod-intro li{counter-increment:r;display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:center;font-size:15px;line-height:1.35}
+.tod-intro li::before{content:counter(r);display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:var(--gold);color:var(--night);font:400 17px/1 "Russo One",sans-serif}
+.tod-pts{margin:14px 0 0;display:flex;flex-wrap:wrap;gap:6px;font-size:12px;color:var(--dim)}
+.tod-pts b{display:inline-block;padding:4px 8px;margin-right:2px;border-radius:8px;background:#ffffff22;color:#fff;font:400 13px/1 "Russo One",sans-serif}
+.tod-pts .g{background:var(--gold);color:var(--night)}.tod-pts .r{background:#ffffff22;color:var(--dim)}
+.tod-form{position:sticky;top:-12px;z-index:2;display:grid;grid-template-columns:1fr auto;gap:10px;margin:14px -16px 0;padding:12px 16px;
+  background:linear-gradient(#1a0740f5,#1a0740e8);backdrop-filter:blur(8px)}
+#tod-screen .tod-form input{min-width:0;width:100%;height:60px;margin:0;padding:0 16px;border:0!important;border-radius:16px!important;background:#fff!important;color:var(--night)!important;
+  font:700 19px/1 "Noto Sans",system-ui,sans-serif!important;letter-spacing:0!important;text-transform:none!important;text-align:left!important;caret-color:var(--mag)!important;outline:none;box-shadow:0 6px 0 #0006!important}
+#tod-screen .tod-form input::placeholder{color:#7a6aa8!important;font:600 17px/1 "Noto Sans",system-ui,sans-serif!important;letter-spacing:0!important;text-transform:none!important}
+#tod-screen .tod-form input:focus{box-shadow:0 6px 0 #0006,inset 0 0 0 3px var(--cyan),0 0 24px #1fe0ff66!important}
+.tod-send{height:60px;padding:0 18px;border:0;border-radius:16px;background:var(--gold);color:var(--night);
+  font:400 15px/1 "Russo One",sans-serif;letter-spacing:.04em;box-shadow:0 6px 0 #b8900a,0 10px 20px #0006;transition:transform .08s,box-shadow .08s}
+.tod-send:active{transform:translateY(5px);box-shadow:0 1px 0 #b8900a}
+.tod-send:disabled{opacity:.45}
+.tod-hint{grid-column:1/-1;min-height:14px;margin:0;font-size:12px;color:var(--dim)}.tod-hint.err{color:#ffb3c0}
+.tod-count{margin:10px 0 6px;text-align:center;font-size:13px;color:var(--dim)}
+.tod-count b{display:inline-block;min-width:54px;margin-right:6px;padding:6px 12px;border-radius:14px;background:var(--cyan);color:var(--night);font:400 26px/1 "Russo One",sans-serif;box-shadow:0 5px 0 #0007}
+.tod-list{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px}
+.tod-list li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-radius:16px;background:var(--panel);box-shadow:inset 0 0 0 2px var(--line),0 4px 0 #0005}
+.tod-list li.fresh{animation:tod-pop .28s cubic-bezier(.2,1.5,.3,1)}
+@keyframes tod-pop{from{opacity:0;transform:scale(.85)}}
+.tod-list span{font-weight:700;font-size:17px;overflow-wrap:anywhere}
+.tod-list em{flex:none;padding:6px 10px;border-radius:99px;background:#ffffff1c;font:400 11px/1 "Russo One",sans-serif;letter-spacing:.04em;text-transform:uppercase;font-style:normal;color:var(--dim)}
+.tod-list .s-p em{animation:tod-blink 1.1s ease-in-out infinite}
+.tod-list .s-ok{box-shadow:inset 0 0 0 2px var(--ok),0 4px 0 #0005}.tod-list .s-ok em{background:var(--ok);color:var(--night)}
+.tod-list .s-gold{background:#ffd92e22;box-shadow:inset 0 0 0 2px var(--gold),0 4px 0 #0005,0 0 20px #ffd92e44}.tod-list .s-gold em{background:var(--gold);color:var(--night)}
+.tod-list .s-many{box-shadow:inset 0 0 0 2px var(--many),0 4px 0 #0005}.tod-list .s-many em{background:var(--many);color:var(--night)}
+.tod-list .s-bad{opacity:.8}.tod-list .s-bad em{background:var(--bad);color:#fff}.tod-list .s-bad span{text-decoration:line-through 3px var(--bad);opacity:.75}
+.tod-list .s-dup{opacity:.5}
 .tod-vote{margin-top:14px}
 .tod-small{margin:0 0 10px;font-size:13px;color:var(--dim)}
-.tod-vote ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
-.tod-vote li{padding:12px;border:1px solid var(--line);border-radius:12px;background:#ffffff08}
-.tod-vote li span{display:block;margin-bottom:10px;font-size:18px;font-weight:700;overflow-wrap:anywhere}
-.tod-vote li div{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.tod-vote button{height:46px;border:1.5px solid #ffffff2a;border-radius:10px;background:transparent;color:var(--ink);font:800 12px/1 system-ui,sans-serif;letter-spacing:.14em}
-.tod-vote .yes.on{background:var(--ok);border-color:var(--ok);color:#06110a}.tod-vote .no.on{background:var(--bad);border-color:var(--bad);color:#160403}
+.tod-vote ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.tod-vote li{padding:14px;border-radius:18px;background:var(--panel);box-shadow:inset 0 0 0 2px var(--line)}
+.tod-vote li span{display:block;margin-bottom:12px;font:400 20px/1.2 "Russo One",sans-serif;overflow-wrap:anywhere}
+.tod-vote li div{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tod-vote button{height:50px;border:0;border-radius:14px;background:#ffffff1f;color:#fff;font:400 13px/1 "Russo One",sans-serif;box-shadow:0 5px 0 #0006}
+.tod-vote .yes.on{background:var(--ok);color:var(--night)}.tod-vote .no.on{background:var(--bad)}
 .tod-vote li.mine em{font-style:normal;font-size:12px;color:var(--dim)}
-.tod-result{margin-top:14px;padding:18px 16px;text-align:center;border:1px solid var(--line);border-radius:14px;background:#ffffff08;animation:tod-in .5s ease-out}
-.tod-big{margin:4px 0;font:900 52px/1 system-ui,sans-serif;color:var(--acc)}.tod-big.neg{color:var(--bad)}.tod-big small{font-size:14px;color:var(--dim)}
-.tod-rank{margin:0;font:400 44px/1 Creepster,Georgia,serif;color:var(--gold)}
-.tod-stats{margin:6px 0 0;font-size:13px;color:var(--dim)}
-.tod-souls{margin:12px 0 0;font:800 20px/1 system-ui,sans-serif;color:var(--gold)}
-.tod-tag{display:inline-block;margin:12px 0 0;padding:6px 10px;border-radius:20px;background:#8fd0ff22;color:var(--ghost);font:800 11px/1 system-ui,sans-serif;letter-spacing:.14em}
-.tod-tag.gold{background:#ffc44d22;color:var(--gold)}
-.tod-look{margin:18px 0 0;text-align:center;font:800 11px/1 system-ui,sans-serif;letter-spacing:.34em;color:var(--dim);animation:tod-blink 1.6s ease-in-out infinite}
-@keyframes tod-blink{50%{opacity:.35}}
+.tod-result{margin-top:14px;padding:22px 16px;text-align:center;border-radius:22px;background:var(--panel);box-shadow:inset 0 0 0 3px var(--cyan),0 10px 0 #0007;animation:tod-zoom .5s cubic-bezier(.2,1.4,.3,1)}
+.tod-big{margin:6px 0;font:400 60px/1 "Russo One",sans-serif;color:var(--gold);text-shadow:0 5px 0 #0007}.tod-big.neg{color:var(--bad)}.tod-big small{font-size:15px;color:var(--dim)}
+.tod-rank{margin:0;font:400 46px/1 "Russo One",sans-serif;color:var(--cyan);text-shadow:0 5px 0 #0007}
+.tod-stats{margin:8px 0 0;font-size:13px;color:var(--dim)}
+.tod-souls{display:inline-block;margin:14px 0 0;padding:8px 14px;border-radius:14px;background:var(--mag);font:400 20px/1 "Russo One",sans-serif;color:#fff;box-shadow:0 5px 0 #0007}
+.tod-tag{display:inline-block;margin:12px 4px 0;padding:7px 12px;border-radius:99px;background:var(--ghost);color:var(--night);font:400 11px/1 "Russo One",sans-serif}
+.tod-tag.gold{background:var(--gold)}
+.tod-look{margin:20px 0 0;text-align:center;font:400 13px/1 "Russo One",sans-serif;letter-spacing:.2em;color:var(--gold);animation:tod-blink 1.4s ease-in-out infinite}
+@keyframes tod-blink{50%{opacity:.4}}
 @media (prefers-reduced-motion:reduce){#tod-screen *{animation:none!important;transition:none!important}}
+.tod-brand i{font-style:normal;color:var(--mag)}

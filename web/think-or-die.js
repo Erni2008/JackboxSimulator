@@ -8,17 +8,18 @@
 function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
   const T=(ru,en)=>typeof faT==='function'?faT(ru,en):en;
   const mini=()=>getState()?.thinkOrDie;
-  let built=false,root,els={},session='',round=0,raf=0,error='',errorAt=0,outbox=[],lastPhase='',lastKey='',lastSendAt=0;
+  let seenRows=new Set(),built=false,root,els={},session='',round=0,raf=0,error='',errorAt=0,outbox=[],lastPhase='',lastKey='',lastSendAt=0;
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const STATE={
+  // built on every use: the room language can change after this controller is created
+  const STATES=()=>({
     PENDING:[T('проверка','checking'),'p'],ACCEPTED:[T('принято','accepted'),'ok'],REJECTED:[T('неверно','wrong'),'bad'],DUPLICATE:[T('повтор','repeat'),'dup'],
     UNIQUE:[T('уникально','unique'),'gold'],SHARED:[T('у двоих','shared by 2'),'ok'],MANY:[T('у многих','common'),'many'],INVALID:[T('неверно','wrong'),'bad'],
-    UNCERTAIN:[T('спорно · 0','disputed · 0'),'p'],SENDING:[T('отправка','sending'),'p']};
+    UNCERTAIN:[T('не проверено · 0','unchecked · 0'),'p'],SENDING:[T('отправка','sending'),'p']});
 
   function build(){
     if(built)return;built=true;root=document.getElementById('tod-screen');
     root.innerHTML=`
-      <header class="tod-top"><p class="tod-brand">THINK <span>OR</span> DIE</p><p class="tod-round" data-k="round"></p>
+      <header class="tod-top"><p class="tod-brand">THINK <span>OR</span> <i>DIE</i></p><p class="tod-round" data-k="round"></p>
         <div class="tod-clock" aria-hidden="true"><b data-k="clock">30</b></div></header>
       <div class="tod-bar" aria-hidden="true"><i></i></div>
       <p class="tod-ghost" data-k="ghost" hidden></p>
@@ -96,7 +97,7 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
     const rows=[...outbox.map(o=>({text:o.text,state:'SENDING'})),...[...hist].reverse()];
     const key=JSON.stringify(rows)+ph;
     if(key!==lastKey){lastKey=key;
-      els.list.innerHTML=rows.map(r=>{const st=STATE[r.state]||STATE.PENDING;return `<li class="s-${st[1]}"><span>${esc(r.label||r.text)}</span><em>${esc(st[0])}${r.points!=null?` · ${r.points>0?'+':''}${r.points}`:''}</em></li>`;}).join('');}
+      const STATE=STATES();els.list.innerHTML=rows.map(r=>{const st=STATE[r.state]||STATE.PENDING;const rk=(r.id||'o:'+r.text);const fresh=!seenRows.has(rk);seenRows.add(rk);return `<li class="s-${st[1]}${fresh?' fresh':''}"><span>${esc(r.label||r.text)}</span><em>${esc(st[0])}${r.points!=null?` · ${r.points>0?'+':''}${r.points}`:''}</em></li>`;}).join('');}
     els.list.hidden=!rows.length||ph==='INTRO'||ph==='CATEGORY_REVEAL'||ph==='FINAL_RESULTS'||ph==='COMPLETED';
     els.count.hidden=!(answering||ph==='ANSWER_VALIDATION');
     if(!els.count.hidden)els.count.innerHTML=ph==='ANSWER_VALIDATION'?`<b>${T('ПРОВЕРЯЕМ ОТВЕТЫ…','CHECKING ANSWERS…')}</b>`:`<b>${hist.length+outbox.length}</b> ${T('ответов','answers')}`;

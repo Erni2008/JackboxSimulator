@@ -15,31 +15,35 @@ import java.util.*;
  * when present, otherwise a procedural stage is drawn); fonts and portraits are the project's own. No game rules.
  */
 final class ThinkOrDieArt implements Disposable {
-    static final Color INK=new Color(.94f,.91f,.88f,1),DIM=new Color(.58f,.55f,.53f,1),ACID=new Color(.85f,1f,.25f,1),BLOOD=new Color(.92f,.18f,.14f,1),
-        GOLD=new Color(1f,.77f,.30f,1),GREEN=new Color(.36f,.89f,.54f,1),ORANGE=new Color(1f,.60f,.24f,1),RED=new Color(1f,.29f,.24f,1),
-        NEUTRAL=new Color(.62f,.62f,.66f,1),GHOST=new Color(.56f,.82f,1f,1),PANEL=new Color(.035f,.028f,.03f,.80f);
-    /** lane colours, one per seat */
-    static final Color[] SEAT={new Color(.95f,.30f,.25f,1),new Color(.30f,.70f,1f,1),new Color(.98f,.78f,.25f,1),new Color(.55f,.90f,.40f,1),
-        new Color(.80f,.45f,1f,1),new Color(1f,.55f,.20f,1),new Color(.25f,.90f,.85f,1),new Color(1f,.45f,.70f,1)};
+    // TV show palette: deep studio violet, hot magenta, electric cyan, sunshine yellow
+    static final Color INK=new Color(1f,1f,1f,1),DIM=new Color(.76f,.70f,.92f,1),ACID=new Color(.12f,.88f,1f,1),BLOOD=new Color(1f,.17f,.42f,1),
+        GOLD=new Color(1f,.85f,.18f,1),GREEN=new Color(.40f,1f,.45f,1),ORANGE=new Color(1f,.55f,.12f,1),RED=new Color(1f,.22f,.32f,1),
+        NEUTRAL=new Color(.62f,.58f,.78f,1),GHOST=new Color(.55f,.88f,1f,1),PANEL=new Color(.16f,.07f,.34f,.92f),
+        MAGENTA=new Color(1f,.18f,.58f,1),VIOLET=new Color(.24f,.08f,.50f,1),NIGHT=new Color(.06f,.02f,.16f,1);
+    /** seat colours, one per player: saturated and distinct on violet */
+    static final Color[] SEAT={new Color(1f,.27f,.36f,1),new Color(.18f,.74f,1f,1),new Color(1f,.82f,.16f,1),new Color(.36f,.95f,.42f,1),
+        new Color(.78f,.42f,1f,1),new Color(1f,.55f,.14f,1),new Color(.15f,.95f,.85f,1),new Color(1f,.42f,.80f,1)};
 
-    final Texture pixel,soft,ring,car,carGlass,noise;final Texture background;
+    final Texture pixel,soft,ring,car,carGlass,noise,round,beam,dots;final Texture background;final NinePatch plateFill,plateEdge;
     /** the game's own dungeon kit (lobby): moonlit dungeon, hanging cage, chain, ceiling hook; flame from RARE MINDS */
     final Texture dungeon,cage,chain,hook,flame;final BitmapFont hand;
     final BitmapFont horror,display,big,mid,small,tiny;
     final GlyphLayout gl=new GlyphLayout();
     private final Map<String,Texture> faces=new HashMap<>();private final Map<String,Sound> sounds=new HashMap<>();
-    SpriteBatch batch;
+    SpriteBatch batch;private Texture roundEdge;
 
     ThinkOrDieArt(){
         Pixmap p=new Pixmap(1,1,Pixmap.Format.RGBA8888);p.setColor(Color.WHITE);p.fill();pixel=new Texture(p);p.dispose();
         soft=radial();ring=ring();car=car(false);carGlass=car(true);noise=noise();
+        round=rounded(false);Texture edge=rounded(true);plateFill=new NinePatch(round,40,40,40,40);plateEdge=new NinePatch(edge,40,40,40,40);roundEdge=edge;
+        beam=beam();dots=dots();
         var bg=Gdx.files.internal("think_or_die/background.jpg");
         background=bg.exists()?mip(new Texture(bg,true)):null;
         dungeon=tex("lobby/background_dungeon.png");cage=tex("lobby/cages/cage_bars.png");hook=tex("lobby/cages/chain_hook.png");flame=tex("rare_minds/ui/flame.png");
         chain=tex("lobby/cages/chain.png");if(chain!=null)chain.setWrap(Texture.TextureWrap.ClampToEdge,Texture.TextureWrap.Repeat);
         hand=font("ui/fonts/Caveat-Variable.ttf",64,0);
-        horror=font("ui/fonts/Creepster-Regular.ttf",150,0);display=font("ui/fonts/CormorantSC-Bold.ttf",108,0);big=font("ui/fonts/CormorantSC-Bold.ttf",64,0);
-        mid=font("ui/fonts/NotoSans-SemiCondensedSemiBold.ttf",40,0);small=font("ui/fonts/NotoSans-SemiCondensedSemiBold.ttf",28,0);tiny=font("ui/fonts/NotoSans-SemiCondensedSemiBold.ttf",21,0);
+        horror=font("ui/fonts/RussoOne-Regular.ttf",150,0);display=font("ui/fonts/RussoOne-Regular.ttf",108,0);big=font("ui/fonts/RussoOne-Regular.ttf",64,0);
+        mid=font("ui/fonts/RussoOne-Regular.ttf",40,0);small=font("ui/fonts/RussoOne-Regular.ttf",28,0);tiny=font("ui/fonts/NotoSans-SemiCondensedSemiBold.ttf",22,0);
     }
     private static Texture tex(String path){var f=Gdx.files.internal(path);return f.exists()?mip(new Texture(f,true)):null;}
     private static Texture mip(Texture t){t.setFilter(Texture.TextureFilter.MipMapLinearLinear,Texture.TextureFilter.Linear);return t;}
@@ -87,6 +91,50 @@ final class ThinkOrDieArt implements Disposable {
         rect(x,y,w,1,INK,.10f*a);rect(x,y+h-1,w,1,INK,.16f*a);rect(x,y,1,h,INK,.10f*a);rect(x+w-1,y,1,h,INK,.10f*a);
         if(accent!=null)rect(x,y+h-2,Math.min(w,Math.max(40,w*.18f)),2,accent,a);
     }
+    /** TV plate: soft drop shadow, rounded fill, glossy top band, bright rim. r = colour of the rim and gloss. */
+    /** Draws a nine-patch, shrinking the corner radius when the box is smaller than two corners. */
+    void np(NinePatch n,float x,float y,float w,float h){
+        if(w<=0||h<=0)return;float k=Math.min(1,Math.min(w,h)/80f);
+        if(k<1){n.scale(k,k);n.draw(batch,x,y,w,h);n.scale(1/k,1/k);}else n.draw(batch,x,y,w,h);
+    }
+    void plate(float x,float y,float w,float h,Color fill,Color rim,float a){
+        if(a<=0)return;float m=Math.min(1,Math.min(w,h)/80f);
+        batch.setColor(0,0,0,.45f*a);np(plateFill,x+6,y-10,w,h);
+        batch.setColor(fill.r,fill.g,fill.b,fill.a*a);np(plateFill,x,y,w,h);
+        batch.setColor(1,1,1,.10f*a);np(plateFill,x+4,y+h*.52f,w-8,h*.46f-2);
+        if(rim!=null){batch.setColor(rim.r,rim.g,rim.b,a);np(plateEdge,x,y,w,h);
+            glow(x+w/2,y+h/2,w*1.15f,h*1.6f,rim,.10f*a*m);}
+    }
+    /** Pill-shaped chip with centred text. */
+    void chip(BitmapFont f,String s,float cx,float cy,float scale,Color fill,Color ink,float a){
+        if(a<=0||scale<=.01f)return;
+        float w=width(f,s,scale)+44,h=f.getLineHeight()*scale*.95f+18;plate(cx-w/2,cy-h/2,w,h,fill,null,a);
+        f.getData().setScale(scale);gl.setText(f,s);f.setColor(ink.r,ink.g,ink.b,a);f.draw(batch,s,cx-gl.width/2,cy+gl.height/2);f.getData().setScale(1);
+    }
+    /** The TV studio: violet gradient, LED dot wall, sweeping spotlights, glossy stage floor with a neon rim. */
+    void studio(float w,float h,float clock,float energy,Color accent){
+        int bands=36;for(int k=0;k<bands;k++){float f=k/(float)bands;Color c=new Color(NIGHT).lerp(VIOLET,(float)Math.pow(f,1.4f));rect(0,h*(1-f)-h/bands,w,h/bands+1,c,1);}
+        rect(0,0,w,h*.36f,NIGHT,.55f);
+        // LED wall: dots that ripple with the energy of the moment
+        batch.setColor(accent.r,accent.g,accent.b,.10f+.08f*energy);batch.draw(dots,0,h*.36f,w,h*.64f,0,0,(int)(w/24),(int)(h*.64f/24));
+        for(int k=0;k<7;k++){float x=w*(k+.5f)/7,wave=.5f+.5f*MathUtils.sin(clock*1.6f+k*.9f);glow(x,h*.70f,380,460,k%2==0?MAGENTA:ACID,(.05f+.07f*energy)*wave);}
+        // spotlights from the rig
+        for(int k=0;k<4;k++){float base=w*(.14f+k*.24f),ang=MathUtils.sin(clock*(.45f+k*.11f)+k*1.7f)*22+(k<2?8:-8);
+            Color c=k%2==0?MAGENTA:ACID;batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(c.r,c.g,c.b,.10f+.06f*energy);
+            batch.draw(beam,base-170,h-40-900,170,900,340,900,1,1,ang+180,0,0,beam.getWidth(),beam.getHeight(),false,false);
+            batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);glow(base,h-30,160,90,Color.WHITE,.35f);}
+        // stage floor with reflection and a neon edge
+        rect(0,0,w,h*.30f,NIGHT,.55f);
+        glow(w/2,h*.30f,w*1.1f,60,accent,.35f);rect(0,h*.30f-2,w,3,accent,.65f);
+        glow(w/2,h*.16f,w*.9f,h*.25f,MAGENTA,.10f+.05f*energy);
+    }
+    /** A neon podium disc the characters stand on. */
+    void disc(float cx,float y,float w,Color c,float a){
+        batch.setColor(0,0,0,.55f*a);batch.draw(soft,cx-w*.62f,y-w*.14f,w*1.24f,w*.30f);
+        batch.setColor(c.r*.35f,c.g*.35f,c.b*.35f,a);batch.draw(round,cx-w/2,y-w*.09f,w,w*.18f);
+        batch.setColor(c.r,c.g,c.b,a);batch.draw(roundEdge,cx-w/2,y-w*.09f,w,w*.18f);
+        glow(cx,y,w*1.2f,w*.5f,c,.35f*a);
+    }
     static final Color PAPER=new Color(.90f,.84f,.72f,1),INKD=new Color(.12f,.08f,.07f,1);
     /** An aged parchment note: torn-looking uneven edges, burnt rim, a few stains (deterministic per seed). */
     void paper(float x,float y,float w,float h,int seed,float a){
@@ -102,14 +150,14 @@ final class ThinkOrDieArt implements Disposable {
     void frame(float x,float y,float w,float h,Color c,float a,float t){rect(x,y,w,t,c,a);rect(x,y+h-t,w,t,c,a);rect(x,y,t,h,c,a);rect(x+w-t,y,t,h,c,a);}
 
     // ---------------------------------------------------------------- text
-    float width(BitmapFont f,String s,float scale){f.getData().setScale(scale);gl.setText(f,s);f.getData().setScale(1);return gl.width;}
+    float width(BitmapFont f,String s,float scale){scale=Math.max(scale,.01f);f.getData().setScale(scale);gl.setText(f,s);f.getData().setScale(1);return gl.width;}
     void text(BitmapFont f,String s,float cx,float y,float scale,Color c,float a,float maxW){
-        if(a<=0||s==null||s.isEmpty())return;float w=width(f,s,scale);if(maxW>0&&w>maxW)scale*=maxW/w;
-        f.getData().setScale(scale);gl.setText(f,s);float x=cx-gl.width/2;
-        f.setColor(0,0,0,.8f*a);f.draw(batch,s,x+2,y-3);f.setColor(c.r,c.g,c.b,a);f.draw(batch,s,x,y);f.getData().setScale(1);
+        if(a<=0||s==null||s.isEmpty()||scale<=.01f)return;float w=width(f,s,scale);if(maxW>0&&w>maxW)scale*=maxW/w;
+        f.getData().setScale(scale);gl.setText(f,s);float x=cx-gl.width/2;float o=Math.max(2,f.getLineHeight()*scale*.045f);
+        f.setColor(.05f,.0f,.14f,.9f*a);f.draw(batch,s,x+o*.6f,y-o*1.4f);f.setColor(c.r,c.g,c.b,a);f.draw(batch,s,x,y);f.getData().setScale(1);
     }
     void left(BitmapFont f,String s,float x,float y,float scale,Color c,float a,float maxW){
-        if(a<=0||s==null||s.isEmpty())return;float w=width(f,s,scale);if(maxW>0&&w>maxW)scale*=maxW/w;
+        if(a<=0||s==null||s.isEmpty()||scale<=.01f)return;float w=width(f,s,scale);if(maxW>0&&w>maxW)scale*=maxW/w;
         f.getData().setScale(scale);f.setColor(0,0,0,.75f*a);f.draw(batch,s,x+2,y-2);f.setColor(c.r,c.g,c.b,a);f.draw(batch,s,x,y);f.getData().setScale(1);
     }
     void right(BitmapFont f,String s,float x,float y,float scale,Color c,float a){left(f,s,x-width(f,s,scale),y,scale,c,a,0);}
@@ -144,6 +192,16 @@ final class ThinkOrDieArt implements Disposable {
     }
 
     // ---------------------------------------------------------------- procedural sprites
+    private static Texture rounded(boolean edgeOnly){int n=128,r=40;Pixmap p=new Pixmap(n,n,Pixmap.Format.RGBA8888);p.setBlending(Pixmap.Blending.None);
+        for(int y=0;y<n;y++)for(int x=0;x<n;x++){float dx=Math.max(0,Math.max(r-x-.5f,x+.5f-(n-r))),dy=Math.max(0,Math.max(r-y-.5f,y+.5f-(n-r)));float d=(float)Math.hypot(dx,dy)-(r-1);
+            float inside=MathUtils.clamp(.5f-d,0,1);float a=edgeOnly?inside*MathUtils.clamp(1-Math.abs(d+3f)/2.6f,0,1):inside;p.drawPixel(x,y,Color.rgba8888(1,1,1,a));}
+        Texture t=new Texture(p);t.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();return t;}
+    private static Texture beam(){int w=64,h=256;Pixmap p=new Pixmap(w,h,Pixmap.Format.RGBA8888);p.setBlending(Pixmap.Blending.None);
+        for(int y=0;y<h;y++){float f=y/(float)(h-1),half=.10f+.90f*f;for(int x=0;x<w;x++){float u=Math.abs((x+.5f)/w-.5f)*2/half;float a=u>=1?0:(1-u*u)*(1-f)*(.4f+.6f*(1-f));p.drawPixel(x,h-1-y,Color.rgba8888(1,1,1,a));}}
+        Texture t=new Texture(p);t.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();return t;}
+    private static Texture dots(){int n=24;Pixmap p=new Pixmap(n,n,Pixmap.Format.RGBA8888);p.setBlending(Pixmap.Blending.None);float c=(n-1)/2f;
+        for(int y=0;y<n;y++)for(int x=0;x<n;x++){float d=(float)Math.hypot(x-c,y-c);p.drawPixel(x,y,Color.rgba8888(1,1,1,MathUtils.clamp(3.2f-d,0,1)));}
+        Texture t=new Texture(p);t.setWrap(Texture.TextureWrap.Repeat,Texture.TextureWrap.Repeat);t.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();return t;}
     private static Texture radial(){int n=128;Pixmap p=new Pixmap(n,n,Pixmap.Format.RGBA8888);p.setBlending(Pixmap.Blending.None);float c=(n-1)/2f;
         for(int y=0;y<n;y++)for(int x=0;x<n;x++){float d=(float)Math.hypot(x-c,y-c)/c;float a=d>=1?0:(1-d);a=a*a*(3-2*a);p.drawPixel(x,y,Color.rgba8888(1,1,1,a));}
         Texture t=new Texture(p);t.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();return t;}
@@ -162,7 +220,7 @@ final class ThinkOrDieArt implements Disposable {
         for(int y=0;y<H;y++)for(int x=0;x<W;x++){float a=0;for(int j=0;j<s;j++)for(int i=0;i<s;i++)a+=(b.getPixel(x*s+i,y*s+j)&0xff)/255f;p.drawPixel(x,y,Color.rgba8888(1,1,1,a/(s*s)));}
         b.dispose();Texture t=new Texture(p);t.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();return t;}
 
-    @Override public void dispose(){pixel.dispose();soft.dispose();ring.dispose();car.dispose();carGlass.dispose();noise.dispose();if(background!=null)background.dispose();for(Texture t:new Texture[]{dungeon,cage,chain,hook,flame})if(t!=null)t.dispose();hand.dispose();
+    @Override public void dispose(){round.dispose();roundEdge.dispose();beam.dispose();dots.dispose();pixel.dispose();soft.dispose();ring.dispose();car.dispose();carGlass.dispose();noise.dispose();if(background!=null)background.dispose();for(Texture t:new Texture[]{dungeon,cage,chain,hook,flame})if(t!=null)t.dispose();hand.dispose();
         horror.dispose();display.dispose();big.dispose();mid.dispose();small.dispose();tiny.dispose();
         for(Texture t:faces.values())if(t!=null)t.dispose();for(Sound s:sounds.values())if(s!=null)s.dispose();}
 }
