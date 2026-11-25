@@ -21,7 +21,7 @@ public final class QuestionPlayers extends Actor implements Disposable {
     private static final class Entry {
         final QuestionPlayerStates.Player player;final CageCharacter character;final CageCharacterPresentation.Profile profile;
         final float phase,height,floor;final GlyphLayout name=new GlyphLayout();
-        String nickname="";float time=8,nameScale=1,nameWidth,size=THINKING_SCALE,sizeFrom=THINKING_SCALE,sizeTarget=THINKING_SCALE,sizeAge=GROW_SECONDS,shakeTime,shakeEnvelope;boolean showingCorrect;
+        String nickname="";int counter=-1;float counterPop=9,gainAge=9,gainShown,flashAge=9;int gain;float time=8,nameScale=1,nameWidth,size=THINKING_SCALE,sizeFrom=THINKING_SCALE,sizeTarget=THINKING_SCALE,sizeAge=GROW_SECONDS,shakeTime,shakeEnvelope;boolean showingCorrect;
         Entry(QuestionPlayerStates.Player player,CageLobby source){
             this.player=player;character=source.createCharacter(player.characterId);profile=source.presentation(player.characterId);
             phase=(player.id.hashCode()&0xffff)*.001f;
@@ -41,6 +41,25 @@ public final class QuestionPlayers extends Actor implements Disposable {
     private JsonObject previous;
     private final TextureRegion uiPixel;
     private boolean reduced,choicesVisible;
+    private boolean counting;private final Color neon=new Color(.95f,.18f,.32f,1);private final GlyphLayout counterText=new GlyphLayout();
+    private Runnable counterSound;
+    /**
+     * THINK OR DIE inside the match: each character shows how many answers it sent where the classic checkmark sits.
+     * {@code null} turns the counters off (classic questions). Only the changed digit animates; nothing is rebuilt.
+     */
+    public void counters(Map<String,Integer> values){
+        counting=values!=null;if(values==null){for(Entry e:entries){e.counter=-1;}return;}
+        boolean bumped=false;
+        for(Entry e:entries){Integer v=values.get(e.player.id);int n=v==null?0:v;
+            if(e.counter>=0&&n>e.counter){e.counterPop=0;bumped=true;}e.counter=n;}
+        if(bumped&&counterSound!=null)counterSound.run();
+    }
+    /** A short confirmation sound for counter bumps (throttled by the caller). */
+    public void counterSound(Runnable sound){counterSound=sound;}
+    /** Souls earned: a "+N" rolls up next to the character. */
+    public void gain(String id,int amount){for(Entry e:entries)if(e.player.id.equals(id)){e.gain=amount;e.gainAge=0;e.gainShown=0;}}
+    /** A neon burst around the character (resurrection). */
+    public void flash(String id){for(Entry e:entries)if(e.player.id.equals(id))e.flashAge=0;}
     /** Driven by the real first answer reveal, not by question typing or timer initialization. */
     public void answersVisible(boolean visible){choicesVisible=visible;}
     public boolean shaking(String id){for(Entry e:entries)if(e.player.id.equals(id))return choicesVisible&&e.player.thinking&&!reduced;return false;}
@@ -64,7 +83,8 @@ public final class QuestionPlayers extends Actor implements Disposable {
         this.reduced=reduced;
         if(!Float.isFinite(delta)||delta<=0)return;
         for(Entry e:entries){
-            e.sizeAge+=delta;
+            e.sizeAge+=delta;e.counterPop+=delta;e.gainAge+=delta;e.flashAge+=delta;
+            if(e.gain>0)e.gainShown=Math.min(e.gain,e.gain*Math.min(1,e.gainAge/.9f));
             float growth=reduced?1:com.badlogic.gdx.math.Interpolation.smooth.apply(Math.min(1,e.sizeAge/GROW_SECONDS));
             e.size=e.sizeFrom+(e.sizeTarget-e.sizeFrom)*growth;
             boolean nervous=choicesVisible&&e.player.thinking&&!reduced;
@@ -102,8 +122,27 @@ public final class QuestionPlayers extends Actor implements Disposable {
             String status=e.player.ghost?"GHOST":!e.player.online?"OFFLINE":"ALIVE";
             font.setColor(e.player.ghost?.60f:.77f,e.player.ghost?.80f:.86f,e.player.ghost?.93f:.66f,alpha);
             e.name.setText(font,status);font.draw(batch,status,center-e.name.width/2,getY()+18);
-            if(e.showingCorrect){drawCorrect(batch,center+cell*.30f,getY()+142,alpha);batch.setColor(color);}
+            if(counting&&e.counter>=0){drawCounter(batch,e,center+cell*.30f,getY()+142,alpha);batch.setColor(color);}
+            else if(e.showingCorrect){drawCorrect(batch,center+cell*.30f,getY()+142,alpha);batch.setColor(color);}
+            if(e.flashAge<1.4f){float k=1-e.flashAge/1.4f;batch.setColor(.75f,.35f,1f,.55f*k*alpha);
+                float r=60+90*e.flashAge;batch.draw(uiPixel,center-r,getY()+80-1.5f,r*2,3);batch.draw(uiPixel,center-1.5f,getY()+80-r*.7f,3,r*1.4f);batch.setColor(color);}
+            if(e.gain>0&&e.gainAge<4.5f){float k=e.gainAge<.25f?e.gainAge/.25f:e.gainAge>3.6f?Math.max(0,(4.5f-e.gainAge)/.9f):1;
+                String t="+"+Math.round(e.gainShown);font.getData().setScale(Math.min(.95f,(cell-16)/110f));counterText.setText(font,t);
+                float gy=getY()+170+Math.min(1,e.gainAge/.4f)*14;
+                font.setColor(0,0,0,.8f*k*alpha);font.draw(batch,t,center-counterText.width/2+2,gy-2);
+                font.setColor(1f,.86f,.30f,k*alpha);font.draw(batch,t,center-counterText.width/2,gy);}
         }}finally{batch.setTransformMatrix(saved);batch.setColor(color);font.getData().setScale(oldScaleX,oldScaleY);font.setColor(fontSaved);}
+    }
+    /** The neon answer counter: a dark pill, the digit pops up briefly with a soft glow on every new answer. */
+    private void drawCounter(Batch batch,Entry e,float x,float y,float alpha){
+        float pop=reduced?0:Math.max(0,1-e.counterPop/.35f),scale=.62f*(1+.45f*com.badlogic.gdx.math.Interpolation.pow2Out.apply(pop));
+        String t=Integer.toString(e.counter);font.getData().setScale(scale);counterText.setText(font,t);
+        float w=Math.max(38,counterText.width+22),h=36;
+        batch.setColor(.03f,.01f,.06f,.82f*alpha);batch.draw(uiPixel,x-w/2,y-h/2,w,h);
+        batch.setColor(neon.r,neon.g,neon.b,(.55f+.45f*pop)*alpha);
+        batch.draw(uiPixel,x-w/2,y-h/2,w,2);batch.draw(uiPixel,x-w/2,y+h/2-2,w,2);batch.draw(uiPixel,x-w/2,y-h/2,2,h);batch.draw(uiPixel,x+w/2-2,y-h/2,2,h);
+        if(pop>0){batch.setColor(neon.r,neon.g,neon.b,.30f*pop*alpha);float g=10*pop;batch.draw(uiPixel,x-w/2-g,y-h/2-g,w+2*g,h+2*g);}
+        font.setColor(.92f,.94f,1f,alpha);font.draw(batch,t,x-counterText.width/2,y+counterText.height/2);
     }
     private void drawCorrect(Batch batch,float x,float y,float alpha){
         float size=1,first=1,second=1;

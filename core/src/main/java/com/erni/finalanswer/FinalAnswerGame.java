@@ -366,6 +366,7 @@ public class FinalAnswerGame extends Game {
         if(getScreen()!=impostorScreen)setScreen(impostorScreen);
     }
     private void releaseImpostor(){if(impostorScreen!=null){if(getScreen()==impostorScreen)showMainMenu();impostorScreen.dispose();impostorScreen=null;}}
+    private static boolean isIntegrated(com.google.gson.JsonObject data){var t=data.getAsJsonObject("thinkOrDie");return t.has("integrated")&&t.get("integrated").getAsBoolean();}
     private void onRealtime(com.google.gson.JsonObject event) {
         if (activeRoom == null) return;
         String type=event.get("type").getAsString();
@@ -392,6 +393,8 @@ public class FinalAnswerGame extends Game {
         if(activeRoom.host()&&data.has("lastCommand")&&Gdx.files.internal("models/last_command/computer.glb").exists()){openLastCommand(data,false);return;}
         if(activeRoom.host()&&data.has("cursedCards")){openCursedCards(data);return;}
         if(cardsScreen!=null&&!data.has("cursedCards"))releaseCursedCards(true);
+        // THINK OR DIE inside the main match stays on the play screen (current floor, characters on top)
+        if(activeRoom.host()&&data.has("thinkOrDie")&&isIntegrated(data)){if(playScreen!=null&&getScreen()!=playScreen&&data.has("question"))openNetworkPlay();return;}
         if(activeRoom.host()&&data.has("thinkOrDie")){openThinkOrDie(data);return;}
         if(thinkOrDieScreen!=null&&!data.has("thinkOrDie"))releaseThinkOrDie(true);
         if(activeRoom.host()&&data.has("rareMinds")){openRareMinds(data);return;}

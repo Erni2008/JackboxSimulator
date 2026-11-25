@@ -87,3 +87,25 @@
 @keyframes tod-blink{50%{opacity:.4}}
 @media (prefers-reduced-motion:reduce){#tod-screen *{animation:none!important;transition:none!important}}
 .tod-brand i{font-style:normal;color:var(--mag)}
+/* THINK OR DIE inside the main match: the same controller in neon (red, violet, electric blue on black, metal white) */
+#tod-screen[data-mode="match"]{--ink:#e9eeff;--dim:#a9aecb;--acc:#ff2a4d;--mag:#ff2a4d;--cyan:#2aa0ff;--gold:#ffcc38;--night:#05030c;--violet:#2a0f55;--panel:#0d0818e6;--line:#9b5cff40;
+  height:var(--tod-vh,100dvh);top:var(--tod-vt,0);bottom:auto;
+  background:radial-gradient(70% 45% at 0% 10%,#8a2bff44 0%,transparent 70%),radial-gradient(70% 45% at 100% 10%,#2a8cff3a 0%,transparent 70%),
+    radial-gradient(90% 40% at 50% 105%,#ff2a4d33 0%,transparent 70%),#05030c}
+#tod-screen[data-mode="match"] .tod-brand{background:#000;color:#e9eeff;box-shadow:inset 0 0 0 2px #9b5cff,0 0 18px #9b5cff66}
+#tod-screen[data-mode="match"] .tod-brand span{color:#2aa0ff}#tod-screen[data-mode="match"] .tod-brand i{color:#ff2a4d;font-style:normal;text-shadow:0 0 10px #ff2a4d}
+#tod-screen[data-mode="match"] .tod-round{background:#14092b;box-shadow:inset 0 0 0 1px #9b5cff88}
+#tod-screen[data-mode="match"] .tod-clock{background:conic-gradient(#2aa0ff calc(var(--tod-left)*360deg),#ffffff14 0);box-shadow:0 0 22px #2aa0ff77}
+#tod-screen[data-mode="match"][data-hurry="true"] .tod-clock{background:conic-gradient(#ff2a4d calc(var(--tod-left)*360deg),#ffffff14 0);box-shadow:0 0 28px #ff2a4dbb}
+#tod-screen[data-mode="match"] .tod-bar i{background:linear-gradient(90deg,#9b5cff,#2aa0ff)}
+#tod-screen[data-mode="match"][data-hurry="true"] .tod-bar i{background:linear-gradient(90deg,#ff2a4d,#ff7a8c)}
+#tod-screen[data-mode="match"] .tod-card{background:linear-gradient(180deg,#140a26,#0a0614);box-shadow:inset 0 0 0 2px #ff2a4d,0 0 30px #ff2a4d40,0 10px 0 #0008}
+#tod-screen[data-mode="match"] .tod-eyebrow{background:#ff2a4d;color:#fff}
+#tod-screen[data-mode="match"] .tod-intro .tod-eyebrow{background:#2aa0ff}
+#tod-screen[data-mode="match"] .tod-form input{background:#0b0716!important;color:#e9eeff!important;border:2px solid #9b5cff!important;box-shadow:0 0 18px #9b5cff55!important}
+#tod-screen[data-mode="match"] .tod-form input:focus{border-color:#2aa0ff!important;box-shadow:0 0 22px #2aa0ff77!important}
+#tod-screen[data-mode="match"] .tod-send{background:linear-gradient(180deg,#ff3f60,#d3143a)!important;color:#fff!important;box-shadow:0 5px 0 #6d0a1f,0 0 22px #ff2a4d66!important}
+#tod-screen[data-mode="match"] .tod-count b{color:#2aa0ff;text-shadow:0 0 14px #2aa0ff}
+#tod-screen[data-mode="match"] .tod-list li.s-sent em{color:#a9aecb}
+#tod-screen[data-mode="match"][data-ghost="true"]{--acc:#8be0ff}
+body[data-view="tod"] .souls-chip{display:none}

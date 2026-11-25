@@ -14,8 +14,12 @@ public final class QuestionsHostLauncher {
         String capture=System.getProperty("q.capture","");float every=Float.parseFloat(System.getProperty("q.every","0.5"));
         new Lwjgl3Application(new FinalAnswerGame(HostingAccess.external(url)){
             boolean started;float clock;int shot;
+            // QA runs the host window in the background: losing focus must not pause the live match here
+            @Override public void pause(){if(!Boolean.getBoolean("q.background"))super.pause();}
             @Override public void create(){super.create();activateRoom(new RoomSession(code,"Тест основной викторины",8,"standard",token,true,List.of()));}
-            @Override public void render(){super.render();
+            @Override public void render(){
+                // test runs are silent (no host voice, music or effects) unless -Pq.sound=true; nothing is saved to settings
+                if(!Boolean.getBoolean("q.sound")){var mix=com.erni.finalanswer.audio.AudioMix.GLOBAL;mix.master=0;mix.voice=0;mix.music=0;mix.sfx=0;try{getAudio().hostVoice().stop();}catch(RuntimeException ignored){}}super.render();
                 // optional QA capture: small frames of what the host actually renders (-Pq.capture=/abs/dir, -Pq.every=seconds)
                 if(!capture.isEmpty()){clock+=com.badlogic.gdx.Gdx.graphics.getDeltaTime();if(clock>=every){clock=0;grab(capture+String.format("/f%04d.png",shot++));}}
                 var rt=getRealtime();if(started||rt==null||!rt.connected()||rt.snapshot()==null)return;var state=rt.snapshot();

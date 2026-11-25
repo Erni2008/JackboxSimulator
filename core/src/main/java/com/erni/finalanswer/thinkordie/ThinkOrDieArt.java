@@ -69,7 +69,7 @@ final class ThinkOrDieArt implements Disposable {
     /** Existing project sound effects; a missing file is skipped silently. */
     void play(String path,float volume){
         Sound s=sounds.computeIfAbsent(path,k->{try{var f=Gdx.files.internal(k);return f.exists()?Gdx.audio.newSound(f):null;}catch(RuntimeException e){return null;}});
-        if(s!=null)try{s.play(volume);}catch(RuntimeException ignored){}
+        float g=com.erni.finalanswer.audio.AudioMix.GLOBAL.gain(com.erni.finalanswer.audio.AudioMix.Category.SFX);if(s!=null&&g>0)try{s.play(volume*g);}catch(RuntimeException ignored){}
     }
 
     // ---------------------------------------------------------------- primitives

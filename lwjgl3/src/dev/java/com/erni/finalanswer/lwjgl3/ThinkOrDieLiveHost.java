@@ -44,7 +44,9 @@ public final class ThinkOrDieLiveHost {
                 if(!s.has("thinkOrDie"))return;
                 if(screen==null){screen=new ThinkOrDieScreen(s,this::now,id->{JsonObject p=new JsonObject();p.addProperty("sessionId",id);send("END_THINK_OR_DIE",p);});setScreen(screen);}else screen.apply(s);
             }
-            @Override public void render(){if(screen==null){ScreenUtils.clear(.04f,.02f,.02f,1);waiting();return;}super.render();}
+            @Override public void render(){
+                // test runs are silent (no host voice, music or effects) unless -Pq.sound=true; nothing is saved to settings
+                if(!Boolean.getBoolean("q.sound")){var mix=com.erni.finalanswer.audio.AudioMix.GLOBAL;mix.master=0;mix.voice=0;mix.music=0;mix.sfx=0;}if(screen==null){ScreenUtils.clear(.04f,.02f,.02f,1);waiting();return;}super.render();}
             /** Before the match: who is in, and how to join (instead of a black window). */
             void waiting(){
                 if(wb==null){wb=new com.badlogic.gdx.graphics.g2d.SpriteBatch();wf=new com.badlogic.gdx.graphics.g2d.BitmapFont();wf.getData().setScale(3f);}

@@ -29,6 +29,10 @@ public class PlayScreen extends ScreenAdapter {
     private com.erni.finalanswer.network.NetworkRoundAdapter network;
     private com.erni.finalanswer.network.RealtimeClient connection;
     private QuestionPlayers players;
+    /** THINK OR DIE challenge over the current floor (network matches only); characters stay in the top bar */
+    private com.erni.finalanswer.thinkordie.ThinkOrDieChallenge challenge;
+    private String challengePhase="";private float quizAlpha=1;
+    private final java.util.Map<String,Integer> counterValues=new java.util.HashMap<>();
     private final Label roster;
     private String rosterText = "";
     private final BitmapFont smallFont = UiFonts.body(19);
@@ -55,7 +59,9 @@ public class PlayScreen extends ScreenAdapter {
         this(game, new DemoQuestionSource());
         network = new com.erni.finalanswer.network.NetworkRoundAdapter(round, connection);
         this.connection=connection;
-        if(game.getRoomCharacters()!=null){players=new QuestionPlayers(game.getRoomCharacters(),pixel);stage.addActor(players);layoutClock();}
+        challenge=new com.erni.finalanswer.thinkordie.ThinkOrDieChallenge(connection::serverNow);
+        stage.getRoot().addActorAfter(background,challenge);
+        if(game.getRoomCharacters()!=null){players=new QuestionPlayers(game.getRoomCharacters(),pixel);stage.addActor(players);players.counterSound(challenge::blip);layoutClock();}
     }
 
     /** Audio adapters can subscribe before show(), then finish with the generation token from QUESTION_STARTED. */
@@ -260,12 +266,36 @@ public class PlayScreen extends ScreenAdapter {
         }
         if (elevatorActive()) { renderElevator(0); return; }   // the ride began this frame: keep the last question frame as it was
         updatePresentation();
+        syncChallenge(step);
         if(players!=null){players.synchronize(connection.snapshot(),connection.serverNow());players.answersVisible(round.presentation().answerProgress(0)>0);players.advance(step,game.getSettings().reducedMotion());}
         ScreenUtils.clear(9 / 255f, 9 / 255f, 9 / 255f, 1);
         stage.getViewport().apply();
         stage.act(step);
         stage.draw();
-        if (network != null && !applicationPaused) network.afterDraw();
+        if (network != null && !applicationPaused && !challenge.running()) network.afterDraw();
+    }
+    /**
+     * THINK OR DIE inside the match: the question UI fades out, the floor turns neon, the top-bar characters show
+     * answer counters instead of checkmarks; souls roll up next to them after the reveal. When the server moves on,
+     * everything fades back and the next question starts as usual.
+     */
+    private void syncChallenge(float step){
+        if(challenge==null)return;
+        var snap=connection.snapshot();challenge.apply(snap);
+        boolean on=challenge.running();
+        quizAlpha=com.badlogic.gdx.math.MathUtils.clamp(quizAlpha+(on?-1:1)*step/.5f,0,1);
+        for(Actor a:new Actor[]{question,answers,clock,heading,countdown,hint}){a.getColor().a=quizAlpha;a.setVisible(quizAlpha>0);}
+        if(players==null)return;
+        if(!on){if(!challengePhase.isEmpty()){players.counters(null);challengePhase="";}return;}
+        var t=snap.getAsJsonObject("thinkOrDie");String ph=challenge.phase();
+        counterValues.clear();
+        for(var e:t.getAsJsonArray("players")){var p=e.getAsJsonObject();counterValues.put(p.get("id").getAsString(),p.get("answers").getAsInt());}
+        players.counters(counterValues);
+        if(ph.equals("ROUND_RESULTS")&&!challengePhase.equals("ROUND_RESULTS"))
+            for(var e:t.getAsJsonArray("players")){var p=e.getAsJsonObject();String id=p.get("id").getAsString();
+                if(p.has("roundPoints")&&p.get("roundPoints").getAsInt()>0)players.gain(id,p.get("roundPoints").getAsInt());
+                if(p.has("roundResurrected")&&p.get("roundResurrected").getAsBoolean())players.flash(id);}
+        challengePhase=ph;
     }
     /**
      * The ride: the question timeline is frozen (so PRESENTATION_READY is not sent and the server keeps waiting),
@@ -312,6 +342,7 @@ public class PlayScreen extends ScreenAdapter {
         answers.dispose();
         smallFont.dispose();
         if(players!=null)players.dispose();
+        if(challenge!=null)challenge.dispose();
         if (elevator != null) { elevator.cancel(); elevator.dispose(); }
     }
 }
