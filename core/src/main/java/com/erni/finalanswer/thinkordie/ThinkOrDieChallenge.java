@@ -113,6 +113,14 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
         batch().setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
     }
     private SpriteBatch batch(){return art.batch;}
+    /** Flat glass plate for the neon look: dark fill, thin neon rim, soft outer glow (no gloss band across text). */
+    private void neonPlate(float x,float y,float w,float h,Color fill,Color rim,float a){
+        if(a<=0||w<=1||h<=1)return;
+        art.glow(x+w/2,y+h/2,w*1.12f,h*1.7f,rim,.16f*a);
+        art.batch.setColor(0,0,0,.40f*a);art.np(art.plateFill,x+4,y-8,w,h);
+        art.batch.setColor(fill.r,fill.g,fill.b,fill.a*a);art.np(art.plateFill,x,y,w,h);
+        art.batch.setColor(rim.r,rim.g,rim.b,a);art.np(art.plateEdge,x,y,w,h);
+    }
 
     /** "THINK OR DIE" in neon letters; small in the corner during the challenge. */
     private void wordmark(float cx,float y,float scale,float a){
@@ -132,7 +140,7 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
         if(rules&&t>=2f){float k=Math.min(1,(t-2f)/.35f);
             logo(w,h,a*k);
             float cw=1100,ch=360,x=w/2-cw/2,y=h*.42f-ch/2+(1-k)*-30;
-            art.plate(x,y,cw,ch,CARD,VIOLET,a*k);
+            neonPlate(x,y,cw,ch,CARD,VIOLET,a*k);
             art.text(art.big,tr("ПРАВИЛА","HOW IT WORKS"),w/2,y+ch-40,.7f,METAL,a*k,cw-60);
             String[][] lines={{tr("Пишите на телефоне как можно больше ответов по категории","Type as many answers as you can on your phone"),""},
                 {tr("Уникальный ответ: +200 душ · у двоих: +100 · у троих: +25","Only you: +200 souls · two players: +100 · three: +25"),""},
@@ -146,7 +154,7 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
     private void category(float w,float h,float a,float zoom){
         String text=categoryText();if(text.isEmpty())return;
         float cw=1000*Math.max(.05f,zoom),ch=230*Math.max(.05f,zoom),cx=w*.45f,cy=h*.45f;
-        art.plate(cx-cw/2,cy-ch/2,cw,ch,CARD,RED,a);
+        neonPlate(cx-cw/2,cy-ch/2,cw,ch,CARD,RED,a);
         art.text(art.tiny,tr("КАТЕГОРИЯ","CATEGORY"),cx,cy+ch/2-22,.95f*zoom,RED,a,0);
         if(zoom>.6f)art.paragraph(art.big,text,cx,cy+ch/2-58,cw-80,.78f,ch-90,METAL,a);
     }
@@ -212,7 +220,7 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
     }
     private void card(JsonObject c,float x,float y,float w,float h,float a){
         String st=c.get("status").getAsString();Color col=statusColor(st);boolean wrong=st.equals("INVALID")||st.equals("REJECTED");
-        art.plate(x,y,w,h,CARD,col,a);
+        neonPlate(x,y,w,h,CARD,col,a);
         art.rect(x+10,y+10,5,h-20,col,a);
         int pts=c.get("points").getAsInt();String souls=wrong||st.equals("UNCERTAIN")?"":(pts>0?"+"+pts:"0");
         float soulsW=souls.isEmpty()?0:art.width(art.mid,souls,.62f)+18;
@@ -229,7 +237,7 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
     private void soulsBanner(float w,float h,float a){
         float t=since(),k=Math.min(1,t/.3f);
         boolean revived=false;if(tod.has("players"))for(JsonElement e:tod.getAsJsonArray("players")){var p=e.getAsJsonObject();if(p.has("roundResurrected")&&p.get("roundResurrected").getAsBoolean())revived=true;}
-        float cy=150;art.plate(w/2-360,cy-52,720,104,CARD,GOLD,a*k);
+        float cy=150;neonPlate(w/2-360,cy-52,720,104,CARD,GOLD,a*k);
         art.text(art.big,tr("ДУШИ НАЧИСЛЕНЫ","SOULS AWARDED"),w/2,cy+24,.7f,GOLD,a*k,660);
         if(revived){float r=Math.min(1,Math.max(0,(t-.35f)/.3f));float beat=.5f+.5f*MathUtils.sin(clock*9);
             art.glow(w/2,h*.47f,1100,320,VIOLET,(.35f+.2f*beat)*a*r);

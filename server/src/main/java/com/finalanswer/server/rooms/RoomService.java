@@ -720,6 +720,8 @@ public final class RoomService {
         var pack=com.finalanswer.server.validation.CategoryPack.load();com.finalanswer.server.validation.Category cat=null;
         String forced=System.getProperty("thinkordie.integrated.category","");if(!forced.isEmpty())cat=pack.get(forced); // QA and tests
         for(int k=0;k<24&&(cat==null||g.challengeCategories.contains(cat.id())&&forced.isEmpty());k++)cat=pack.draw(1,room.language,random).get(0);
+        // QA server only: -Dthinkordie.integrated.qaGhost=<nickname> turns that player into a ghost before the challenge
+        if(Boolean.getBoolean("race.qa")){String qg=System.getProperty("thinkordie.integrated.qaGhost","");for(Member m:seats)if(!qg.isEmpty()&&m.name.equals(qg))m.alive=false;}
         Set<String> ghosts=new HashSet<>();for(Member m:seats)if(!m.alive)ghosts.add(m.id);
         g.lastChallengeIndex=g.index;g.challengeCategories.add(cat.id());
         room.challenge=new com.finalanswer.server.game.thinkordie.ThinkOrDieSession(seats.stream().map(m->m.id).toList(),ghosts,List.of(cat),validationEngine(),cfg,room.language,now(),g.challenges==0);

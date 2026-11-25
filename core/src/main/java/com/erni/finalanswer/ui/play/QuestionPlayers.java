@@ -43,6 +43,21 @@ public final class QuestionPlayers extends Actor implements Disposable {
     private boolean reduced,choicesVisible;
     private boolean counting;private final Color neon=new Color(.95f,.18f,.32f,1);private final GlyphLayout counterText=new GlyphLayout();
     private Runnable counterSound;
+    private BitmapFont counterFont;private com.badlogic.gdx.graphics.Texture pillTexture;private NinePatch pill;
+    /** Clean display digits and a rounded pill for the counters, created on first use (classic questions never pay for them). */
+    private void counterAssets(){
+        if(counterFont!=null)return;
+        var fh=com.badlogic.gdx.Gdx.files.internal("ui/fonts/RussoOne-Regular.ttf");
+        if(fh.exists()){var g=new com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator(fh);
+            try{var p=new com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFontParameter();p.size=34;p.characters="0123456789+";
+                p.minFilter=com.badlogic.gdx.graphics.Texture.TextureFilter.Linear;p.magFilter=com.badlogic.gdx.graphics.Texture.TextureFilter.Linear;counterFont=g.generateFont(p);}finally{g.dispose();}}
+        else counterFont=UiFonts.body(30);
+        int n=64,r=18;var pm=new com.badlogic.gdx.graphics.Pixmap(n,n,com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);pm.setBlending(com.badlogic.gdx.graphics.Pixmap.Blending.None);
+        for(int y=0;y<n;y++)for(int x=0;x<n;x++){float dx=Math.max(0,Math.max(r-x-.5f,x+.5f-(n-r))),dy=Math.max(0,Math.max(r-y-.5f,y+.5f-(n-r)));float d=(float)Math.hypot(dx,dy)-(r-1);
+            pm.drawPixel(x,y,Color.rgba8888(1,1,1,MathUtils.clamp(.5f-d,0,1)));}
+        pillTexture=new com.badlogic.gdx.graphics.Texture(pm);pillTexture.setFilter(com.badlogic.gdx.graphics.Texture.TextureFilter.Linear,com.badlogic.gdx.graphics.Texture.TextureFilter.Linear);pm.dispose();
+        pill=new NinePatch(pillTexture,r,r,r,r);
+    }
     /**
      * THINK OR DIE inside the match: each character shows how many answers it sent where the classic checkmark sits.
      * {@code null} turns the counters off (classic questions). Only the changed digit animates; nothing is rebuilt.
@@ -135,14 +150,15 @@ public final class QuestionPlayers extends Actor implements Disposable {
     }
     /** The neon answer counter: a dark pill, the digit pops up briefly with a soft glow on every new answer. */
     private void drawCounter(Batch batch,Entry e,float x,float y,float alpha){
-        float pop=reduced?0:Math.max(0,1-e.counterPop/.35f),scale=.62f*(1+.45f*com.badlogic.gdx.math.Interpolation.pow2Out.apply(pop));
-        String t=Integer.toString(e.counter);font.getData().setScale(scale);counterText.setText(font,t);
-        float w=Math.max(38,counterText.width+22),h=36;
-        batch.setColor(.03f,.01f,.06f,.82f*alpha);batch.draw(uiPixel,x-w/2,y-h/2,w,h);
-        batch.setColor(neon.r,neon.g,neon.b,(.55f+.45f*pop)*alpha);
-        batch.draw(uiPixel,x-w/2,y-h/2,w,2);batch.draw(uiPixel,x-w/2,y+h/2-2,w,2);batch.draw(uiPixel,x-w/2,y-h/2,2,h);batch.draw(uiPixel,x+w/2-2,y-h/2,2,h);
-        if(pop>0){batch.setColor(neon.r,neon.g,neon.b,.30f*pop*alpha);float g=10*pop;batch.draw(uiPixel,x-w/2-g,y-h/2-g,w+2*g,h+2*g);}
-        font.setColor(.92f,.94f,1f,alpha);font.draw(batch,t,x-counterText.width/2,y+counterText.height/2);
+        counterAssets();
+        float pop=reduced?0:Math.max(0,1-e.counterPop/.35f),ease=com.badlogic.gdx.math.Interpolation.pow2Out.apply(pop),scale=.82f*(1+.35f*ease);
+        String t=Integer.toString(e.counter);counterFont.getData().setScale(scale);counterText.setText(counterFont,t);
+        float h=40,w=Math.max(46,counterText.width+28);
+        if(pop>0){batch.setColor(neon.r,neon.g,neon.b,.35f*pop*alpha);float g=12*ease;pill.draw(batch,x-w/2-g,y-h/2-g,w+2*g,h+2*g);}
+        batch.setColor(neon.r,neon.g,neon.b,(.75f+.25f*pop)*alpha);pill.draw(batch,x-w/2,y-h/2,w,h);
+        batch.setColor(.035f,.015f,.07f,.94f*alpha);pill.draw(batch,x-w/2+2.5f,y-h/2+2.5f,w-5,h-5);
+        counterFont.setColor(1,.55f+.45f*(1-pop),.62f+.38f*(1-pop),alpha);counterFont.draw(batch,t,x-counterText.width/2,y+counterText.height/2);
+        counterFont.getData().setScale(1);
     }
     private void drawCorrect(Batch batch,float x,float y,float alpha){
         float size=1,first=1,second=1;
@@ -159,5 +175,5 @@ public final class QuestionPlayers extends Actor implements Disposable {
         float dx=bx-ax,dy=by-ay,length=(float)Math.sqrt(dx*dx+dy*dy);if(length<=0)return;
         batch.draw(uiPixel,ax+dy/length*width/2,ay-dx/length*width/2,0,0,length,width,1,1,MathUtils.atan2(dy,dx)*MathUtils.radiansToDegrees);
     }
-    @Override public void dispose(){entries.clear();font.dispose();}
+    @Override public void dispose(){entries.clear();font.dispose();if(counterFont!=null)counterFont.dispose();if(pillTexture!=null)pillTexture.dispose();}
 }
