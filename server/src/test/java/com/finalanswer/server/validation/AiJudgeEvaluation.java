@@ -30,7 +30,7 @@ public final class AiJudgeEvaluation {
         var judge=new LlamaCppJudge(url,"qwen3-4b-instruct-2507-q4_k_m",Duration.ofSeconds(60));
         var pack=CategoryPack.load();
         int fa=0,fr=0,unc=0,ok=0;long worst=0,total=0;
-        Map<String,List<Case>> by=new LinkedHashMap<>();for(Case c:CASES)by.computeIfAbsent(c.category()+"|"+c.lang(),k->new ArrayList<>()).add(c);
+        Map<String,List<Case>> by=new LinkedHashMap<>();for(Case c:CASES){String k0=c.category()+"|"+c.lang();int part=0;while(by.getOrDefault(k0+"|"+part,List.of()).size()>=Integer.getInteger("ai.batch",12))part++;by.computeIfAbsent(k0+"|"+part,k->new ArrayList<>()).add(c);} // round-sized batches
         for(var e:by.entrySet()){var cs=e.getValue();Category cat=pack.get(cs.get(0).category());
             List<AiJudge.Item> items=new ArrayList<>();for(int i=0;i<cs.size();i++)items.add(new AiJudge.Item("a"+i,cs.get(i).answer()));
             long t0=System.nanoTime();var res=judge.judge(cat,cs.get(0).lang(),items,new ArrayList<>(new VerifiedAnswers().canonicalIds(cat)));long ms=(System.nanoTime()-t0)/1_000_000;

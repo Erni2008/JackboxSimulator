@@ -151,5 +151,6 @@ tasks.register('aiJudgeEval', JavaExec) {
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'com.finalanswer.server.validation.AiJudgeEvaluation'
+    systemProperty 'ai.batch', providers.gradleProperty('ai.batch').getOrElse('12')
     systemProperty 'ai.url', providers.gradleProperty('ai.url').getOrElse('http://127.0.0.1:18431')
 }

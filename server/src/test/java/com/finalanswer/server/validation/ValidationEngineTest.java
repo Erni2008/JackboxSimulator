@@ -85,11 +85,11 @@ class ValidationEngineTest {
     }
     @Test void aiParserIsStrict(){
         var items=List.of(new AiJudge.Item("a0","x"),new AiJudge.Item("a1","y"));
-        var ok=LlamaCppJudge.parse("{\"results\":[{\"submissionId\":\"a0\",\"verdict\":\"VALID\",\"canonicalAnswer\":\"Chocolate Syrup\"},{\"submissionId\":\"a1\",\"verdict\":\"INVALID\",\"canonicalAnswer\":null}]}",items);
+        var ok=LlamaCppJudge.parse("{\"results\":[{\"submissionId\":\"a0\",\"verdict\":\"FITS\",\"canonicalAnswer\":\"Chocolate Syrup\"},{\"submissionId\":\"a1\",\"verdict\":\"NONSENSE\",\"canonicalAnswer\":null}]}",items);
         assertEquals("chocolate_syrup",ok.get(0).canonicalAnswer());
-        assertThrows(RuntimeException.class,()->LlamaCppJudge.parse("{\"results\":[{\"submissionId\":\"a0\",\"verdict\":\"VALID\",\"canonicalAnswer\":null}]}",items)); // incomplete
-        assertThrows(RuntimeException.class,()->LlamaCppJudge.parse("{\"results\":[{\"submissionId\":\"zz\",\"verdict\":\"VALID\",\"canonicalAnswer\":null},{\"submissionId\":\"a1\",\"verdict\":\"VALID\",\"canonicalAnswer\":null}]}",items));
-        assertThrows(RuntimeException.class,()->LlamaCppJudge.parse("{\"results\":[{\"submissionId\":\"a0\",\"verdict\":\"ACCEPT_ALL\",\"canonicalAnswer\":null},{\"submissionId\":\"a1\",\"verdict\":\"VALID\",\"canonicalAnswer\":null}]}",items));
+        assertThrows(RuntimeException.class,()->LlamaCppJudge.parse("{\"results\":[{\"submissionId\":\"a0\",\"verdict\":\"FITS\",\"canonicalAnswer\":null}]}",items)); // incomplete
+        assertThrows(RuntimeException.class,()->LlamaCppJudge.parse("{\"results\":[{\"submissionId\":\"zz\",\"verdict\":\"FITS\",\"canonicalAnswer\":null},{\"submissionId\":\"a1\",\"verdict\":\"FITS\",\"canonicalAnswer\":null}]}",items));
+        assertThrows(RuntimeException.class,()->LlamaCppJudge.parse("{\"results\":[{\"submissionId\":\"a0\",\"verdict\":\"ACCEPT_ALL\",\"canonicalAnswer\":null},{\"submissionId\":\"a1\",\"verdict\":\"FITS\",\"canonicalAnswer\":null}]}",items));
         assertThrows(RuntimeException.class,()->LlamaCppJudge.parse("Sure! Here are your results",items));
     }
     @Test void promptKeepsPlayerTextAsJsonData(){

@@ -23,6 +23,16 @@ same arguments. Only loopback URLs are accepted by the game.
   never mixed with verified content.
 
 ## Measured (MacBook Air M4 16 GB, `./gradlew :server:aiJudgeEval`, 2026-11-25)
-41 labelled answers outside the verified data, RU + EN, incl. two prompt-injection attempts:
-correct 93 %, **false accepts 0 %**, false rejects 2.4 % (Гирлянда), uncertain 5 %;
-batch latency average 2.8 s, worst 7.7 s (10 answers). `validationMaxMs` is 7 s; later results go to the vote.
+263 labelled answers outside the verified data (`server/src/test/resources/think_or_die/ai_eval.tsv`), RU + EN,
+many deliberately unusual (spider, mould, socks, cat in a bathroom), plus gibberish and prompt injections.
+
+| prompt / mode | correct | false accepts | false rejects |
+|---|---|---|---|
+| tod-judge-2, 12 answers per request | 89 % | 0 % | 6.5 % |
+| tod-judge-3 (FITS / NONSENSE / UNSURE), 12 per request | 90 % | 0 % | 9.5 % |
+| tod-judge-3, **one answer per request** (shipped) | **96 %** | 0.8 % | **3.0 %** |
+
+A 4B model judging a list mixes up its verdicts, so every answer is its own request and the server runs
+4 parallel slots (`-np 4 -c 8192`). About 1.5 s per answer; a burst of 12 takes about 11 s. Judging starts while
+players are still typing; anything unfinished after `validationMaxMs` goes to the vote, never to "wrong".
+Compare modes with `./gradlew :server:aiJudgeEval -Pai.batch=1`.
