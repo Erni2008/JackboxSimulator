@@ -7,7 +7,7 @@ import java.util.concurrent.CompletableFuture;
 /**
  * THINK OR DIE — one server-authoritative match. Every player (alive or ghost) gets the same category and types as
  * many answers as they can before the server deadline. Quantity of correct answers is the main goal; originality adds
- * to it (one player: 150, two: 100, three or more: 50, wrong: −25 by default).
+ * to it (one player: 150, two: 100, three or more: 50; a wrong answer scores 0 and never takes points).
  *
  * <pre>
  * INTRO → CATEGORY_REVEAL → ANSWERING → ANSWER_VALIDATION → [DISPUTE] → ANSWER_REVEAL → ROUND_RESULTS

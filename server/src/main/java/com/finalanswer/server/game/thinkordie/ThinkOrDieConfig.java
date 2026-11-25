@@ -32,7 +32,7 @@ public record ThinkOrDieConfig(int rounds,long introMs,long categoryMs,long answ
         ThinkOrDieConfig c=new ThinkOrDieConfig(i.applyAsInt("rounds",5),l.applyAsLong("introMs",9000L),l.applyAsLong("categoryMs",3800L),l.applyAsLong("answerMs",30000L),l.applyAsLong("graceMs",400L),
             l.applyAsLong("validationMinMs",900L),l.applyAsLong("validationMaxMs",5000L),l.applyAsLong("voteMs",14000L),i.applyAsInt("maxDisputes",6),
             l.applyAsLong("revealBaseMs",6000L),l.applyAsLong("revealPerAnswerMs",450L),l.applyAsLong("revealMaxMs",18000L),l.applyAsLong("roundResultsMs",6500L),l.applyAsLong("finalMs",16000L),
-            i.applyAsInt("pointsUnique",150),i.applyAsInt("pointsTwo",100),i.applyAsInt("pointsMany",50),i.applyAsInt("pointsInvalid",-25),i.applyAsInt("voteRejectPenalty",0),
+            i.applyAsInt("pointsUnique",150),i.applyAsInt("pointsTwo",100),i.applyAsInt("pointsMany",50),i.applyAsInt("pointsInvalid",0),i.applyAsInt("voteRejectPenalty",0),
             i.applyAsInt("resurrectMinAnswers",5),l.applyAsLong("rewardFirst",3000L),l.applyAsLong("rewardSecond",2000L),l.applyAsLong("rewardThird",1000L),
             i.applyAsInt("maxAnswersPerRound",60),l.applyAsLong("minSubmitIntervalMs",250L),hid==null||hid.isBlank()||Boolean.parseBoolean(hid.trim()));
         c.check();return c;

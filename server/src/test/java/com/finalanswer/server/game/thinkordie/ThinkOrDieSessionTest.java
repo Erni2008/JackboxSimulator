@@ -40,7 +40,7 @@ class ThinkOrDieSessionTest {
         assertEquals(50+100,s.player("a").roundPoints);
         assertEquals(50+100,s.player("b").roundPoints);
         assertEquals(50,s.player("c").roundPoints);
-        assertEquals(150-25,s.player("d").roundPoints);
+        assertEquals(150,s.player("d").roundPoints,"a wrong answer scores 0, never takes points");
         var rv=reveal(s);assertEquals("UNIQUE",rv.get(0).get("status"));assertEquals("Bane",rv.get(0).get("label"));
     }
     @Test void personalRepeatsScoreZeroAndDoNotCountGlobally(){

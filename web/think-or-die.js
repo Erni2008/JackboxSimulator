@@ -27,7 +27,7 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
         <p class="tod-eyebrow">${T('КАК ИГРАТЬ','HOW TO PLAY')}</p>
         <ol><li>${T('Одна категория на всех. За 30 секунд напиши как можно больше верных ответов.','One category for everyone. Write as many correct answers as you can in 30 seconds.')}</li>
         <li>${T('Количество решает. Ответ, которого нет ни у кого, стоит больше.','Quantity wins. An answer nobody else gave is worth more.')}</li>
-        <li>${T('Неверный ответ отнимает очки. Свой повтор ничего не даёт.','A wrong answer costs points. Repeating yourself gives nothing.')}</li>
+        <li>${T('Неверный ответ и свой повтор просто не дают очков.','A wrong answer or a repeat simply scores nothing.')}</li>
         <li>${T('Призрак оживает: пять верных ответов за раунд, и все только твои.','A ghost comes back: five correct answers in one round, all of them yours alone.')}</li></ol>
         <p class="tod-pts" data-k="pts"></p>
       </div>
