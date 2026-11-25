@@ -31,7 +31,7 @@ public final class ThinkOrDieSession {
     static final boolean AI_PENALTIES=Boolean.getBoolean("thinkordie.aiPenalties");
 
     static final class Sub{
-        final String id,player,text,key;final long at;Verdict verdict;CompletableFuture<Verdict> pending;
+        final String id,player,text,key;final long at;Verdict verdict;CompletableFuture<Verdict> pending;boolean exactRepeat;
         /** final status used for scoring: VALID, INVALID, DUPLICATE, UNCERTAIN (neutral), REJECTED (voted down) */
         String result="";int points;String canonical;
         Sub(String id,String player,String text,String key,long at,Verdict v){this.id=id;this.player=player;this.text=text;this.key=key;this.at=at;verdict=v;}
@@ -42,6 +42,8 @@ public final class ThinkOrDieSession {
         public final String id;public final int seat;public boolean ghost;public boolean resurrected;
         public long points;public int correct,unique,incorrect,roundPoints,roundCorrect,roundUnique,roundIncorrect;public boolean roundResurrected;
         long lastSubmit;int roundCount;
+        /** the live counter: accepted non-empty answers of this round without the player's exact own repeats */
+        int roundShown;
         Player(String id,int seat,boolean ghost){this.id=id;this.seat=seat;this.ghost=ghost;}
     }
     public record Standing(String playerId,int rank,long points,int correct,int unique,int incorrect,long souls,boolean resurrected){}
@@ -57,17 +59,24 @@ public final class ThinkOrDieSession {
     private int subSeq;
     /** set by the room once rewards went into the SOULS wallet */
     public boolean paid;
+    /** integrated mode: the rules card is part of this challenge's intro (first appearance in the match) */
+    public final boolean rules;
 
     /**
      * @param ghosts players who start as ghosts (they play normally and can resurrect)
      */
     public ThinkOrDieSession(List<String> seats,Set<String> ghosts,List<Category> categories,ValidationEngine engine,ThinkOrDieConfig cfg,String lang,long now){
+        this(seats,ghosts,categories,engine,cfg,lang,now,cfg.rulesMs()>0);
+    }
+    /** @param rules show the rules card in the intro (integrated mode: only the first challenge of a match) */
+    public ThinkOrDieSession(List<String> seats,Set<String> ghosts,List<Category> categories,ValidationEngine engine,ThinkOrDieConfig cfg,String lang,long now,boolean rules){
         if(seats.size()<MIN_PLAYERS||seats.size()>MAX_PLAYERS)throw new Failure(409,"TOD_PLAYER_COUNT");
         if(new HashSet<>(seats).size()!=seats.size())throw new Failure(400,"TOD_INVALID_ROSTER");
         if(categories.size()<cfg.rounds())throw new IllegalArgumentException("need "+cfg.rounds()+" categories");
         this.cfg=cfg;this.engine=engine;this.categories=List.copyOf(categories.subList(0,cfg.rounds()));this.lang="ru".equals(lang)?"ru":"en";
         for(int i=0;i<seats.size();i++){Player p=new Player(seats.get(i),i,ghosts.contains(seats.get(i)));players.add(p);byId.put(p.id,p);}
-        enter(Phase.INTRO,now,cfg.introMs());
+        this.rules=rules;
+        enter(Phase.INTRO,now,cfg.introMs()+(rules?cfg.rulesMs():0));
     }
 
     public Phase phase(){return phase;}
@@ -105,7 +114,7 @@ public final class ThinkOrDieSession {
     }
     private void startRound(int n,long now){
         round=n;subs.clear();disputes.clear();reveal=List.of();
-        for(Player p:players){p.roundPoints=p.roundCorrect=p.roundUnique=p.roundIncorrect=p.roundCount=0;p.roundResurrected=false;}
+        for(Player p:players){p.roundPoints=p.roundCorrect=p.roundUnique=p.roundIncorrect=p.roundCount=p.roundShown=0;p.roundResurrected=false;}
         enter(Phase.CATEGORY_REVEAL,now,cfg.categoryMs());
     }
     private boolean allSettled(){for(Sub s:subs)if(s.verdict.status()==ValidationStatus.PENDING&&(s.pending==null||!s.pending.isDone()))return false;return true;}
@@ -155,7 +164,7 @@ public final class ThinkOrDieSession {
         for(Sub s:subs){Player p=byId.get(s.player);
             if(s.result.equals("DUPLICATE")){s.points=0;continue;}
             if(s.result.equals("REJECTED")){s.points=cfg.voteRejectPenalty();p.roundIncorrect++;}
-            else if(s.verdict.valid()){int n=owners.get(s.verdict.canonicalId()).size();s.canonical=s.verdict.canonicalId();s.result=n==1?"UNIQUE":n==2?"SHARED":"MANY";s.points=cfg.pointsFor(n);p.roundCorrect++;if(n==1)p.roundUnique++;}
+            else if(s.verdict.valid()){int n=owners.get(s.verdict.canonicalId()).size();s.canonical=s.verdict.canonicalId();s.result=n==1?"UNIQUE":n==2?"SHARED":n>=4&&cfg.crowdTier()?"CROWD":"MANY";s.points=cfg.pointsFor(n);p.roundCorrect++;if(n==1)p.roundUnique++;}
             else if(s.verdict.status()==ValidationStatus.INVALID){s.result="INVALID";s.points=s.verdict.source()==Verdict.Source.AI&&!AI_PENALTIES?0:cfg.pointsInvalid();p.roundIncorrect++;}
             else{s.result="UNCERTAIN";s.points=0;}
             p.roundPoints+=s.points;}
@@ -167,6 +176,8 @@ public final class ThinkOrDieSession {
     private boolean qualifies(Player p){
         int good=0;
         for(Sub s:subs){if(!s.player.equals(p.id)||s.result.equals("DUPLICATE"))continue;
+            // integrated: only correct answers matter (none shared with anybody); standalone: nothing wrong either
+            if(cfg.integrated()&&!Set.of("SHARED","MANY","CROWD").contains(s.result)&&!s.result.equals("UNIQUE"))continue;
             if(!s.result.equals("UNIQUE"))return false;good++;}
         return good>=cfg.resurrectMinAnswers();
     }
@@ -178,7 +189,7 @@ public final class ThinkOrDieSession {
         Category c=category();List<Map<String,Object>> out=new ArrayList<>();Set<String> done=new HashSet<>();
         // correct answers, rarest first, then wrong and neutral ones
         List<Sub> order=new ArrayList<>(subs);
-        order.sort(Comparator.comparingInt((Sub s)->switch(s.result){case "UNIQUE"->0;case "SHARED"->1;case "MANY"->2;case "UNCERTAIN"->3;case "REJECTED"->4;case "INVALID"->5;default->6;}).thenComparingLong(s->s.at));
+        order.sort(Comparator.comparingInt((Sub s)->switch(s.result){case "UNIQUE"->0;case "SHARED"->1;case "MANY"->2;case "CROWD"->3;case "UNCERTAIN"->3;case "REJECTED"->4;case "INVALID"->5;default->6;}).thenComparingLong(s->s.at));
         for(Sub s:order){if(s.result.equals("DUPLICATE"))continue;
             String group=s.canonical!=null?"c:"+s.canonical:"t:"+s.result+":"+s.key;if(!done.add(group))continue;
             Map<String,Object> m=new LinkedHashMap<>();
@@ -226,9 +237,9 @@ public final class ThinkOrDieSession {
             if(in==null)throw new Failure(400,raw==null||raw.isBlank()?"TOD_EMPTY_ANSWER":"TOD_ANSWER_TOO_LONG");
             Category c=category();Verdict v=engine.validate(c,in);
             Sub s=new Sub("s"+(++subSeq),p.id,in.clean(),in.key(),Math.min(now,phaseEnds),v);
-            for(Sub o:subs)if(o.player.equals(p.id)&&(o.key.equals(in.key())||v.valid()&&o.verdict.valid()&&o.verdict.canonicalId().equals(v.canonicalId()))){s.verdict=v.duplicate();break;}
+            for(Sub o:subs)if(o.player.equals(p.id)&&(o.key.equals(in.key())||v.valid()&&o.verdict.valid()&&o.verdict.canonicalId().equals(v.canonicalId()))){s.verdict=v.duplicate();s.exactRepeat=o.key.equals(in.key());break;}
             if(s.verdict.status()==ValidationStatus.PENDING)s.pending=engine.judgeLater(c,lang,in);
-            subs.add(s);p.roundCount++;p.lastSubmit=now;liveDirty=true;
+            subs.add(s);p.roundCount++;if(!s.exactRepeat)p.roundShown++;p.lastSubmit=now;liveDirty=true;
             return s.id;
         }catch(Failure f){handled.remove(member+":"+requestId);throw f;}
     }
@@ -253,15 +264,17 @@ public final class ThinkOrDieSession {
         Map<String,Object> v=new LinkedHashMap<>();
         v.put("sessionId",id);v.put("phase",phase.name());v.put("serverTime",now);v.put("phaseStartedAt",phaseStarted);v.put("phaseEndsAt",ends());
         v.put("round",round);v.put("rounds",cfg.rounds());v.put("lang",lang);v.put("answerMs",cfg.answerMs());v.put("hiddenAnswers",cfg.hiddenAnswers());
+        v.put("integrated",cfg.integrated());v.put("rules",rules);v.put("hideVerdicts",cfg.hideVerdicts());
+        if(rules)v.put("rulesEndsAt",phaseStarted+cfg.introMs()+cfg.rulesMs());
         v.put("maxAnswer",AnswerInput.MAX_LENGTH);v.put("resurrectMin",cfg.resurrectMinAnswers());
-        v.put("points",Map.of("unique",cfg.pointsUnique(),"two",cfg.pointsTwo(),"many",cfg.pointsMany(),"invalid",cfg.pointsInvalid()));
+        v.put("points",Map.of("unique",cfg.pointsUnique(),"two",cfg.pointsTwo(),"three",cfg.pointsThree(),"crowd",cfg.pointsCrowd(),"many",cfg.pointsMany(),"invalid",cfg.pointsInvalid()));
         v.put("rewards",List.of(cfg.rewardFirst(),cfg.rewardSecond(),cfg.rewardThird()));
         Category c=category();
         if(c!=null&&phase!=Phase.INTRO){v.put("categoryId",c.id());v.put("categoryType",c.type().name());v.put("textEn",c.textEn());v.put("textRu",c.textRu());}
         boolean validating=phase==Phase.ANSWER_VALIDATION;
         List<Map<String,Object>> ps=new ArrayList<>();
         for(Player p:players){Map<String,Object> m=new LinkedHashMap<>();
-            m.put("id",p.id);m.put("ghost",p.ghost);m.put("resurrected",p.resurrected);m.put("points",p.points);m.put("answers",p.roundCount);
+            m.put("id",p.id);m.put("ghost",p.ghost);m.put("resurrected",p.resurrected);m.put("points",p.points);m.put("answers",p.roundShown);
             boolean shown=phase.ordinal()>=Phase.ANSWER_REVEAL.ordinal();
             if(shown){m.put("roundPoints",p.roundPoints);m.put("roundCorrect",p.roundCorrect);m.put("roundUnique",p.roundUnique);m.put("roundIncorrect",p.roundIncorrect);m.put("roundResurrected",p.roundResurrected);}
             m.put("correct",p.correct);m.put("unique",p.unique);m.put("incorrect",p.incorrect);
@@ -277,19 +290,22 @@ public final class ThinkOrDieSession {
         Player me=self==null?null:byId.get(self);
         if(me!=null){List<Map<String,Object>> mine=new ArrayList<>();
             for(Sub s:subs)if(s.player.equals(me.id)){Map<String,Object> m=new LinkedHashMap<>();m.put("id",s.id);m.put("text",s.text);String lb=ownLabel(s);if(lb!=null)m.put("label",lb);m.put("state",ownState(s));if(!s.result.isEmpty()&&phase.ordinal()>=Phase.ANSWER_REVEAL.ordinal())m.put("points",s.points);mine.add(m);}
-            v.put("me",Map.of("ghost",me.ghost,"history",mine,"count",me.roundCount));}
+            v.put("me",Map.of("ghost",me.ghost,"history",mine,"count",me.roundShown));}
         if(host&&!cfg.hiddenAnswers()&&phase==Phase.ANSWERING)v.put("live",live());
         return v;
     }
     /** What a player sees for their own answer while answering: accepted / rejected / duplicate / pending. */
     /** The verified spelling of a player's own answer ("бритв" shows as "Бритва") as soon as it is known. */
     private String ownLabel(Sub s){
+        if(cfg.hideVerdicts()&&phase.ordinal()<Phase.ANSWER_REVEAL.ordinal())return null;
         if(!s.verdict.valid()||s.verdict.canonicalId()==null)return null;
         Category.Answer a=category().answer(s.verdict.canonicalId());
         return a==null?null:"ru".equals(lang)?a.labelRu():a.labelEn();
     }
     private String ownState(Sub s){
         if(phase.ordinal()>=Phase.ANSWER_REVEAL.ordinal()&&!s.result.isEmpty())return s.result;
+        // integrated: only "sent" or "you already wrote exactly this" until the reveal, never right or wrong
+        if(cfg.hideVerdicts())return s.exactRepeat?"REPEAT":"SENT";
         return switch(s.verdict.status()){case VALID->"ACCEPTED";case INVALID->"REJECTED";case DUPLICATE->"DUPLICATE";default->"PENDING";};
     }
     private List<Map<String,Object>> live(){

@@ -17,6 +17,9 @@ public final class GameSession {
     public long questionStartedAt, phaseStartedAt, deadline, answeringStartedAt, endedAt;
     public String finishReason = "";
     public IntroGate intro;
+    /** THINK OR DIE challenges inside this match: how many ran, after which question index the last one ran, used categories */
+    public int challenges, lastChallengeIndex=-1;
+    public final Set<String> challengeCategories=new HashSet<>();
 
     public GameSession(int count, Set<String> participants, EndPolicy policy, long now) {this(count,participants,policy,now,"ru");}
     public GameSession(int count, Set<String> participants, EndPolicy policy, long now, String language) {

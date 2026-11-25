@@ -12,6 +12,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.junit.jupiter.api.Assertions.*;
 
 class RoomServiceTest {
+    // classic-question flow only: the THINK OR DIE match challenge has its own tests (MatchChallengeTest)
+    @BeforeAll static void noChallenges(){System.setProperty("thinkordie.integrated.everyQuestions","0");}
+    @AfterAll static void challengesBack(){System.clearProperty("thinkordie.integrated.everyQuestions");}
     final AtomicLong clock=new AtomicLong(1_000_000);
     final RoomService service=new RoomService(clock::get,1000,"https://play.example.test"); { service.randomCharacters=false; }
     JsonObject host,one,two;
