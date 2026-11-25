@@ -52,6 +52,12 @@ final class ThinkOrDieArt implements Disposable {
             if(border>0){p.borderWidth=border;p.borderColor=Color.BLACK;}
             p.minFilter=Texture.TextureFilter.Linear;p.magFilter=Texture.TextureFilter.Linear;return g.generateFont(p);}finally{g.dispose();}
     }
+    private final java.util.Map<String,Texture> bodies=new java.util.HashMap<>();
+    /** Full-body character art (results/characters/<id>.png), feet at the bottom edge. */
+    Texture body(String character){
+        if(character==null||character.isEmpty())return null;
+        return bodies.computeIfAbsent(character,c->{var f=Gdx.files.internal("results/characters/"+c+".png");return f.exists()?mip(new Texture(f,true)):null;});
+    }
     Texture face(String character){
         if(character==null||character.isEmpty())return null;
         return faces.computeIfAbsent(character,c->{var f=Gdx.files.internal("forgotten_room/portraits/"+c+".png");return f.exists()?mip(new Texture(f,true)):null;});
