@@ -1489,7 +1489,7 @@ tasks.register('thinkOrDieLiveHost', JavaExec) {
     classpath = sourceSets.dev.runtimeClasspath
     mainClass = 'com.erni.finalanswer.lwjgl3.ThinkOrDieLiveHost'
     workingDir = rootProject.file('assets')
-    ['tod.url', 'tod.code', 'tod.token', 'tod.players', 'tod.lang', 'tod.ghost'].each { k -> systemProperty k, providers.gradleProperty(k).getOrElse('') }
+    ['tod.url', 'tod.code', 'tod.token', 'tod.players', 'tod.lang', 'tod.ghost', 'tod.join'].each { k -> systemProperty k, providers.gradleProperty(k).getOrElse('') }
     if (System.getProperty('os.name').toLowerCase().contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }

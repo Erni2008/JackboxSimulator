@@ -88,14 +88,16 @@ async def main():
         else: sys.exit('server did not start')
     host = post(a.url, '/rooms', {'name': 'THINK OR DIE TEST', 'maxPlayers': '8'})
     code = host['code']
-    print('room', code, '— opening the host screen …')
-    procs.append(subprocess.Popen(['./gradlew', '-q', ':lwjgl3:thinkOrDieLiveHost', f'-Ptod.url={a.url}', f'-Ptod.code={code}', f'-Ptod.token={host["token"]}',
-                                   f'-Ptod.players={len(names) + (1 if a.me else 0)}', f'-Ptod.lang={a.lang}', f'-Ptod.ghost={ghost}'], cwd=ROOT, start_new_session=True))
+    join = ''
     if a.me:
         import socket
         try: s0 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s0.connect(('10.255.255.255', 1)); ip = s0.getsockname()[0]; s0.close()
         except Exception: ip = 'localhost'
+        join = f'http://{ip}:{port}/'
         print(f"\n  JOIN: open http://{ip}:{port}/ on your phone (same Wi-Fi) or http://localhost:{port}/ here, room code {code}\n  the match starts as soon as you join\n")
+    print('room', code, '— opening the host screen …')
+    procs.append(subprocess.Popen(['./gradlew', '-q', ':lwjgl3:thinkOrDieLiveHost', f'-Ptod.url={a.url}', f'-Ptod.code={code}', f'-Ptod.token={host["token"]}',
+                                   f'-Ptod.players={len(names) + (1 if a.me else 0)}', f'-Ptod.lang={a.lang}', f'-Ptod.ghost={ghost}', f'-Ptod.join={join}'], cwd=ROOT, start_new_session=True))
     ws_url = a.url.replace('http', 'ws', 1) + '/ws'
     bots = []
     for i, n in enumerate(names):

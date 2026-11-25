@@ -20,7 +20,7 @@ public final class ThinkOrDieLiveHost {
         int players=Integer.getInteger("tod.players",6);
         var c=new Lwjgl3ApplicationConfiguration();c.setTitle("Final Answer / THINK OR DIE / live test host");c.setWindowedMode(1600,900);c.setForegroundFPS(60);
         new Lwjgl3Application(new Game(){
-            ThinkOrDieScreen screen;volatile long offset;boolean started;WebSocket ws;
+            ThinkOrDieScreen screen;volatile long offset;boolean started;WebSocket ws;com.badlogic.gdx.graphics.g2d.SpriteBatch wb;com.badlogic.gdx.graphics.g2d.BitmapFont wf;int online;
             long now(){return System.currentTimeMillis()+offset;}
             synchronized void send(String type,JsonObject payload){JsonObject m=new JsonObject();m.addProperty("type",type);m.addProperty("requestId",Long.toHexString(System.nanoTime()));payload.addProperty("roomCode",code);m.add("payload",payload);ws.sendText(m.toString(),true).join();}
             @Override public void create(){
@@ -37,14 +37,27 @@ public final class ThinkOrDieLiveHost {
             void onState(JsonObject s){
                 offset=s.get("serverTime").getAsLong()-System.currentTimeMillis();
                 if(!started&&!s.has("thinkOrDie")){java.util.List<String> on=new java.util.ArrayList<>();for(var e:s.getAsJsonArray("players"))if("ONLINE".equals(e.getAsJsonObject().get("connectionStatus").getAsString()))on.add(e.getAsJsonObject().get("id").getAsString());
-                    if(on.size()>=players){started=true;JsonObject lg=new JsonObject();lg.addProperty("language",System.getProperty("tod.lang","ru"));send("SET_LANGUAGE",lg);
+                    online=on.size();if(on.size()>=players){started=true;JsonObject lg=new JsonObject();lg.addProperty("language",System.getProperty("tod.lang","ru"));send("SET_LANGUAGE",lg);
                         String ghost=System.getProperty("tod.ghost","");
                         for(var e:s.getAsJsonArray("players")){var o=e.getAsJsonObject();if(o.get("name").getAsString().equals(ghost)){JsonObject g=new JsonObject();g.addProperty("id",o.get("id").getAsString());g.addProperty("alive",false);send("QA_SET_ALIVE",g);}}
                         JsonObject p=new JsonObject();p.addProperty("sessionId",s.get("lobbyId").getAsString());send("START_THINK_OR_DIE",p);}}
                 if(!s.has("thinkOrDie"))return;
                 if(screen==null){screen=new ThinkOrDieScreen(s,this::now,id->{JsonObject p=new JsonObject();p.addProperty("sessionId",id);send("END_THINK_OR_DIE",p);});setScreen(screen);}else screen.apply(s);
             }
-            @Override public void render(){if(screen==null){ScreenUtils.clear(0,0,0,1);return;}super.render();}
+            @Override public void render(){if(screen==null){ScreenUtils.clear(.04f,.02f,.02f,1);waiting();return;}super.render();}
+            /** Before the match: who is in, and how to join (instead of a black window). */
+            void waiting(){
+                if(wb==null){wb=new com.badlogic.gdx.graphics.g2d.SpriteBatch();wf=new com.badlogic.gdx.graphics.g2d.BitmapFont();wf.getData().setScale(3f);}
+                wb.getProjectionMatrix().setToOrtho2D(0,0,Gdx.graphics.getWidth(),Gdx.graphics.getHeight());
+                int w=Gdx.graphics.getWidth(),h=Gdx.graphics.getHeight();String join=System.getProperty("tod.join","");
+                wb.begin();wf.setColor(.95f,.3f,.2f,1);
+                wf.draw(wb,"THINK OR DIE",0,h*.72f,w,com.badlogic.gdx.utils.Align.center,false);
+                wf.setColor(.92f,.88f,.82f,1);
+                wf.draw(wb,"ROOM  "+code,0,h*.56f,w,com.badlogic.gdx.utils.Align.center,false);
+                if(!join.isEmpty())wf.draw(wb,join,0,h*.46f,w,com.badlogic.gdx.utils.Align.center,false);
+                wf.draw(wb,"Players: "+online+" / "+players+"   waiting to start",0,h*.32f,w,com.badlogic.gdx.utils.Align.center,false);
+                wb.end();
+            }
         },c);
     }
 }
