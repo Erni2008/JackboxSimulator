@@ -53,7 +53,12 @@ public final class ThinkOrDieSession {
     private final ThinkOrDieConfig cfg;private final ValidationEngine engine;private final List<Category> categories;
     private final List<Player> players=new ArrayList<>();private final Map<String,Player> byId=new LinkedHashMap<>();
     private Phase phase;private long phaseStarted,phaseEnds;private int round;
-    private final List<Sub> subs=new ArrayList<>();private final List<Dispute> disputes=new ArrayList<>();
+    private final List<Sub> subs=new ArrayList<>();
+    /** answers refused while answering (wrong or a repeat): never counted, scored or revealed; the author sees them crossed out */
+    private final List<Sub> dropped=new ArrayList<>();
+    /** players whose own answer list changed outside a submit (an AI verdict arrived); the room pushes them a snapshot */
+    private final Set<String> touched=new LinkedHashSet<>();
+    public List<String> takeTouched(){List<String> r=new ArrayList<>(touched);touched.clear();return r;}private final List<Dispute> disputes=new ArrayList<>();
     private final Set<String> handled=new HashSet<>();private final Deque<String> revivals=new ArrayDeque<>();
     private List<Map<String,Object>> reveal=List.of();private List<Standing> standings=List.of();
     private int subSeq;
@@ -93,6 +98,7 @@ public final class ThinkOrDieSession {
     /** Advance time; @return true when the phase changed (the room broadcasts). */
     public boolean tick(long now){
         boolean changed=false;
+        if(phase==Phase.ANSWERING||phase==Phase.ANSWER_VALIDATION)resolveLive();
         for(int guard=0;guard<20;guard++){
             if(phase==Phase.ANSWER_VALIDATION&&now>=phaseStarted+cfg.validationMinMs()&&allSettled()){finishValidation(now);changed=true;continue;}
             if(phase==Phase.DISPUTE&&now<phaseEnds&&disputes.stream().allMatch(d->d.votes.size()>=eligible(d).size())){phaseEnds=now;}
@@ -113,9 +119,27 @@ public final class ThinkOrDieSession {
         return changed;
     }
     private void startRound(int n,long now){
-        round=n;subs.clear();disputes.clear();reveal=List.of();
+        round=n;subs.clear();dropped.clear();disputes.clear();reveal=List.of();
         for(Player p:players){p.roundPoints=p.roundCorrect=p.roundUnique=p.roundIncorrect=p.roundCount=p.roundShown=0;p.roundResurrected=false;}
         enter(Phase.CATEGORY_REVEAL,now,cfg.categoryMs());
+    }
+    /**
+     * Instant checking: an AI verdict that arrived turns a pending answer into a counted one, or drops it when it is
+     * wrong or the same concept the player already gave (it never counts, never scores, never reaches the reveal).
+     */
+    private void resolveLive(){
+        for(Iterator<Sub> it=subs.iterator();it.hasNext();){Sub s=it.next();
+            if(s.verdict.status()!=ValidationStatus.PENDING||s.pending==null||!s.pending.isDone())continue;
+            Verdict v=s.pending.getNow(null);s.verdict=v==null?Verdict.uncertain(Verdict.Source.FALLBACK):v;
+            Player p=byId.get(s.player);
+            if(cfg.rejectWrong()&&(s.verdict.status()==ValidationStatus.INVALID||repeatOfOwn(s))){it.remove();s.result=s.verdict.status()==ValidationStatus.INVALID?"WRONG_LIVE":"REPEAT_LIVE";dropped.add(s);}
+            else p.roundShown++;
+            touched.add(s.player);liveDirty=true;}
+    }
+    private boolean repeatOfOwn(Sub s){
+        if(!s.verdict.valid())return false;
+        for(Sub o:subs)if(o!=s&&o.player.equals(s.player)&&o.verdict.valid()&&o.verdict.canonicalId().equals(s.verdict.canonicalId())&&o.at<=s.at)return true;
+        return false;
     }
     private boolean allSettled(){for(Sub s:subs)if(s.verdict.status()==ValidationStatus.PENDING&&(s.pending==null||!s.pending.isDone()))return false;return true;}
 
@@ -124,6 +148,7 @@ public final class ThinkOrDieSession {
         for(Sub s:subs)if(s.verdict.status()==ValidationStatus.PENDING){
             Verdict v=s.pending!=null&&s.pending.isDone()?s.pending.getNow(null):null;
             s.verdict=v==null?Verdict.uncertain(Verdict.Source.FALLBACK):v;}
+        if(cfg.rejectWrong())for(Iterator<Sub> it=subs.iterator();it.hasNext();){Sub s=it.next();if(s.verdict.status()==ValidationStatus.INVALID){it.remove();s.result="WRONG_LIVE";dropped.add(s);touched.add(s.player);}}
         markPersonalDuplicates();
         Map<String,Dispute> byKey=new LinkedHashMap<>();
         if(cfg.votes())for(Sub s:subs)if(s.result.isEmpty()&&s.verdict.status()==ValidationStatus.UNCERTAIN){
@@ -238,8 +263,14 @@ public final class ThinkOrDieSession {
             Category c=category();Verdict v=engine.validate(c,in);
             Sub s=new Sub("s"+(++subSeq),p.id,in.clean(),in.key(),Math.min(now,phaseEnds),v);
             for(Sub o:subs)if(o.player.equals(p.id)&&(o.key.equals(in.key())||v.valid()&&o.verdict.valid()&&o.verdict.canonicalId().equals(v.canonicalId()))){s.verdict=v.duplicate();s.exactRepeat=o.key.equals(in.key());break;}
+            p.roundCount++;p.lastSubmit=now;liveDirty=true;
+            if(cfg.rejectWrong()&&(s.verdict.status()==ValidationStatus.INVALID||s.verdict.status()==ValidationStatus.DUPLICATE)){
+                // wrong or already given: refused at once, the phone shows it crossed out, nothing counts
+                s.result=s.verdict.status()==ValidationStatus.INVALID?"WRONG_LIVE":"REPEAT_LIVE";dropped.add(s);return s.id;}
             if(s.verdict.status()==ValidationStatus.PENDING)s.pending=engine.judgeLater(c,lang,in);
-            subs.add(s);p.roundCount++;if(!s.exactRepeat)p.roundShown++;p.lastSubmit=now;liveDirty=true;
+            subs.add(s);
+            if(cfg.rejectWrong()){if(s.verdict.status()!=ValidationStatus.PENDING)p.roundShown++;}
+            else if(!s.exactRepeat)p.roundShown++;
             return s.id;
         }catch(Failure f){handled.remove(member+":"+requestId);throw f;}
     }
@@ -289,7 +320,9 @@ public final class ThinkOrDieSession {
         if(!standings.isEmpty()){List<Map<String,Object>> st=new ArrayList<>();for(Standing s:standings)st.add(Map.of("playerId",s.playerId(),"rank",s.rank(),"points",s.points(),"correct",s.correct(),"unique",s.unique(),"incorrect",s.incorrect(),"souls",s.souls(),"resurrected",s.resurrected()));v.put("standings",st);}
         Player me=self==null?null:byId.get(self);
         if(me!=null){List<Map<String,Object>> mine=new ArrayList<>();
-            for(Sub s:subs)if(s.player.equals(me.id)){Map<String,Object> m=new LinkedHashMap<>();m.put("id",s.id);m.put("text",s.text);String lb=ownLabel(s);if(lb!=null)m.put("label",lb);m.put("state",ownState(s));if(!s.result.isEmpty()&&phase.ordinal()>=Phase.ANSWER_REVEAL.ordinal())m.put("points",s.points);mine.add(m);}
+            List<Sub> own=new ArrayList<>();for(Sub s:subs)if(s.player.equals(me.id))own.add(s);for(Sub s:dropped)if(s.player.equals(me.id))own.add(s);
+            own.sort(Comparator.comparingInt(s->Integer.parseInt(s.id.substring(1))));
+            for(Sub s:own){Map<String,Object> m=new LinkedHashMap<>();m.put("id",s.id);m.put("text",s.text);String lb=ownLabel(s);if(lb!=null)m.put("label",lb);m.put("state",ownState(s));if(!s.result.isEmpty()&&phase.ordinal()>=Phase.ANSWER_REVEAL.ordinal())m.put("points",s.points);mine.add(m);}
             v.put("me",Map.of("ghost",me.ghost,"history",mine,"count",me.roundShown));}
         if(host&&!cfg.hiddenAnswers()&&phase==Phase.ANSWERING)v.put("live",live());
         return v;
@@ -303,6 +336,7 @@ public final class ThinkOrDieSession {
         return a==null?null:"ru".equals(lang)?a.labelRu():a.labelEn();
     }
     private String ownState(Sub s){
+        if(s.result.equals("WRONG_LIVE")||s.result.equals("REPEAT_LIVE"))return s.result;
         if(phase.ordinal()>=Phase.ANSWER_REVEAL.ordinal()&&!s.result.isEmpty())return s.result;
         // integrated: only "sent" or "you already wrote exactly this" until the reveal, never right or wrong
         if(cfg.hideVerdicts())return s.exactRepeat?"REPEAT":"SENT";

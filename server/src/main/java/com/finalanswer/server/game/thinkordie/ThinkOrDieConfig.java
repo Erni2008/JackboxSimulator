@@ -18,13 +18,14 @@ import java.util.*;
  * @param rulesMs           extra intro time for the rules card (integrated mode shows it once per match)
  * @param hideVerdicts      true: a phone never learns whether its answer is right before the reveal
  * @param integrated        one challenge inside the main match (points are souls), not the standalone show
+ * @param rejectWrong       wrong answers and repeats are refused while answering (never counted); typos are corrected at once
  */
 public record ThinkOrDieConfig(int rounds,long introMs,long categoryMs,long answerMs,long graceMs,long validationMinMs,long validationMaxMs,
                                long voteMs,int maxDisputes,long revealBaseMs,long revealPerAnswerMs,long revealMaxMs,long roundResultsMs,long finalMs,
                                int pointsUnique,int pointsTwo,int pointsMany,int pointsInvalid,int voteRejectPenalty,
                                int resurrectMinAnswers,long rewardFirst,long rewardSecond,long rewardThird,
                                int maxAnswersPerRound,long minSubmitIntervalMs,boolean hiddenAnswers,boolean votes,
-                               int pointsThree,int pointsCrowd,long rulesMs,boolean hideVerdicts,boolean integrated){
+                               int pointsThree,int pointsCrowd,long rulesMs,boolean hideVerdicts,boolean integrated,boolean rejectWrong){
     public static final ThinkOrDieConfig DEFAULT=load();
     /** The one-round challenge inside the main match: {@code /think_or_die/integrated.properties}, overridable with {@code -Dthinkordie.integrated.<key>}. */
     public static final ThinkOrDieConfig INTEGRATED=load("/think_or_die/integrated.properties","thinkordie.integrated.");
@@ -46,7 +47,7 @@ public record ThinkOrDieConfig(int rounds,long introMs,long categoryMs,long answ
     static ThinkOrDieConfig from(java.util.function.Function<String,String> get){
         java.util.function.ToLongBiFunction<String,Long> l=(k,d)->{String v=get.apply(k);return v==null||v.isBlank()?d:Long.parseLong(v.trim());};
         java.util.function.ToIntBiFunction<String,Integer> i=(k,d)->(int)l.applyAsLong(k,(long)d);
-        String hid=get.apply("hiddenAnswers"),vot=get.apply("votes"),hv=get.apply("hideVerdicts"),ig=get.apply("integrated");
+        String hid=get.apply("hiddenAnswers"),vot=get.apply("votes"),hv=get.apply("hideVerdicts"),ig=get.apply("integrated"),rw=get.apply("rejectWrong");
         int many=i.applyAsInt("pointsMany",50);
         ThinkOrDieConfig c=new ThinkOrDieConfig(i.applyAsInt("rounds",5),l.applyAsLong("introMs",9000L),l.applyAsLong("categoryMs",3800L),l.applyAsLong("answerMs",30000L),l.applyAsLong("graceMs",400L),
             l.applyAsLong("validationMinMs",900L),l.applyAsLong("validationMaxMs",5000L),l.applyAsLong("voteMs",14000L),i.applyAsInt("maxDisputes",6),
@@ -54,7 +55,7 @@ public record ThinkOrDieConfig(int rounds,long introMs,long categoryMs,long answ
             i.applyAsInt("pointsUnique",150),i.applyAsInt("pointsTwo",100),many,i.applyAsInt("pointsInvalid",0),i.applyAsInt("voteRejectPenalty",0),
             i.applyAsInt("resurrectMinAnswers",5),l.applyAsLong("rewardFirst",3000L),l.applyAsLong("rewardSecond",2000L),l.applyAsLong("rewardThird",1000L),
             i.applyAsInt("maxAnswersPerRound",60),l.applyAsLong("minSubmitIntervalMs",250L),hid==null||hid.isBlank()||Boolean.parseBoolean(hid.trim()),vot!=null&&Boolean.parseBoolean(vot.trim()),
-            i.applyAsInt("pointsThree",many),i.applyAsInt("pointsCrowd",many),l.applyAsLong("rulesMs",0L),hv!=null&&Boolean.parseBoolean(hv.trim()),ig!=null&&Boolean.parseBoolean(ig.trim()));
+            i.applyAsInt("pointsThree",many),i.applyAsInt("pointsCrowd",many),l.applyAsLong("rulesMs",0L),hv!=null&&Boolean.parseBoolean(hv.trim()),ig!=null&&Boolean.parseBoolean(ig.trim()),rw!=null&&Boolean.parseBoolean(rw.trim()));
         c.check();return c;
     }
     void check(){
@@ -70,12 +71,12 @@ public record ThinkOrDieConfig(int rounds,long introMs,long categoryMs,long answ
     public boolean crowdTier(){return pointsCrowd<pointsThree;}
     public ThinkOrDieConfig withTiming(long intro,long category,long answer,long vote,long reveal,long results,long fin){
         return new ThinkOrDieConfig(rounds,intro,category,answer,graceMs,Math.min(validationMinMs,200),validationMaxMs,vote,maxDisputes,reveal,0,reveal,results,fin,
-            pointsUnique,pointsTwo,pointsMany,pointsInvalid,voteRejectPenalty,resurrectMinAnswers,rewardFirst,rewardSecond,rewardThird,maxAnswersPerRound,minSubmitIntervalMs,hiddenAnswers,votes,pointsThree,pointsCrowd,rulesMs,hideVerdicts,integrated);
+            pointsUnique,pointsTwo,pointsMany,pointsInvalid,voteRejectPenalty,resurrectMinAnswers,rewardFirst,rewardSecond,rewardThird,maxAnswersPerRound,minSubmitIntervalMs,hiddenAnswers,votes,pointsThree,pointsCrowd,rulesMs,hideVerdicts,integrated,rejectWrong);
     }
     public ThinkOrDieConfig withRounds(int r){return new ThinkOrDieConfig(r,introMs,categoryMs,answerMs,graceMs,validationMinMs,validationMaxMs,voteMs,maxDisputes,revealBaseMs,revealPerAnswerMs,revealMaxMs,roundResultsMs,finalMs,
-            pointsUnique,pointsTwo,pointsMany,pointsInvalid,voteRejectPenalty,resurrectMinAnswers,rewardFirst,rewardSecond,rewardThird,maxAnswersPerRound,minSubmitIntervalMs,hiddenAnswers,votes,pointsThree,pointsCrowd,rulesMs,hideVerdicts,integrated);}
+            pointsUnique,pointsTwo,pointsMany,pointsInvalid,voteRejectPenalty,resurrectMinAnswers,rewardFirst,rewardSecond,rewardThird,maxAnswersPerRound,minSubmitIntervalMs,hiddenAnswers,votes,pointsThree,pointsCrowd,rulesMs,hideVerdicts,integrated,rejectWrong);}
     public ThinkOrDieConfig withVotes(boolean v){return new ThinkOrDieConfig(rounds,introMs,categoryMs,answerMs,graceMs,validationMinMs,validationMaxMs,voteMs,maxDisputes,revealBaseMs,revealPerAnswerMs,revealMaxMs,roundResultsMs,finalMs,
-            pointsUnique,pointsTwo,pointsMany,pointsInvalid,voteRejectPenalty,resurrectMinAnswers,rewardFirst,rewardSecond,rewardThird,maxAnswersPerRound,minSubmitIntervalMs,hiddenAnswers,v,pointsThree,pointsCrowd,rulesMs,hideVerdicts,integrated);}
+            pointsUnique,pointsTwo,pointsMany,pointsInvalid,voteRejectPenalty,resurrectMinAnswers,rewardFirst,rewardSecond,rewardThird,maxAnswersPerRound,minSubmitIntervalMs,hiddenAnswers,v,pointsThree,pointsCrowd,rulesMs,hideVerdicts,integrated,rejectWrong);}
     public ThinkOrDieConfig withHiddenAnswers(boolean h){return new ThinkOrDieConfig(rounds,introMs,categoryMs,answerMs,graceMs,validationMinMs,validationMaxMs,voteMs,maxDisputes,revealBaseMs,revealPerAnswerMs,revealMaxMs,roundResultsMs,finalMs,
-            pointsUnique,pointsTwo,pointsMany,pointsInvalid,voteRejectPenalty,resurrectMinAnswers,rewardFirst,rewardSecond,rewardThird,maxAnswersPerRound,minSubmitIntervalMs,h,votes,pointsThree,pointsCrowd,rulesMs,hideVerdicts,integrated);}
+            pointsUnique,pointsTwo,pointsMany,pointsInvalid,voteRejectPenalty,resurrectMinAnswers,rewardFirst,rewardSecond,rewardThird,maxAnswersPerRound,minSubmitIntervalMs,h,votes,pointsThree,pointsCrowd,rulesMs,hideVerdicts,integrated,rejectWrong);}
 }

@@ -15,7 +15,7 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
     PENDING:[T('проверка','checking'),'p'],ACCEPTED:[T('принято','accepted'),'ok'],REJECTED:[T('неверно','wrong'),'bad'],DUPLICATE:[T('повтор','repeat'),'dup'],
     UNIQUE:[T('уникально','unique'),'gold'],SHARED:[T('у двоих','shared by 2'),'ok'],MANY:[T('у многих','common'),'many'],INVALID:[T('неверно','wrong'),'bad'],
     UNCERTAIN:[T('не проверено','unchecked'),'p'],SENDING:[T('отправка','sending'),'p'],
-    SENT:[T('отправлено','sent'),'sent'],REPEAT:[T('уже было','already sent'),'dup'],CROWD:[T('у всех · 0','everyone · 0'),'bad']});
+    SENT:[T('отправлено','sent'),'sent'],WRONG_LIVE:[T('неверно · не засчитано','wrong · not counted'),'bad'],REPEAT_LIVE:[T('уже было · не засчитано','already given · not counted'),'dup'],REPEAT:[T('уже было','already sent'),'dup'],CROWD:[T('у всех · 0','everyone · 0'),'bad']});
 
   function build(){
     if(built)return;built=true;root=document.getElementById('tod-screen');
@@ -107,7 +107,11 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
     const rows=[...outbox.map(o=>({text:o.text,state:'SENDING'})),...[...hist].reverse()];
     const key=JSON.stringify(rows)+ph;
     if(key!==lastKey){lastKey=key;
-      const STATE=STATES();els.list.innerHTML=rows.map(r=>{const st=STATE[r.state]||STATE.PENDING;const rk=(r.id||'o:'+r.text);const fresh=!seenRows.has(rk);seenRows.add(rk);return `<li class="s-${st[1]}${fresh?' fresh':''}"><span>${esc(r.label||r.text)}</span><em>${esc(st[0])}${r.points!=null?` · ${r.points>0?'+':''}${r.points}`:''}</em></li>`;}).join('');}
+      const STATE=STATES();let refused='';
+      els.list.innerHTML=rows.map(r=>{const st=STATE[r.state]||STATE.PENDING;const rk=(r.id||'o:'+r.text)+':'+r.state;const fresh=!seenRows.has(rk);seenRows.add(rk);
+        if(fresh&&(r.state==='WRONG_LIVE'||r.state==='REPEAT_LIVE'))refused=r.state;return `<li class="s-${st[1]}${fresh?' fresh':''}"><span>${esc(r.label||r.text)}</span><em>${esc(st[0])}${r.points!=null?` · ${r.points>0?'+':''}${r.points}`:''}</em></li>`;}).join('');
+      // a refused answer: short buzz and a hint, the field stays ready for the next one
+      if(refused&&answering){navigator.vibrate?.([40,50,40]);error=refused==='WRONG_LIVE'?T('Неверно, не засчитано','Wrong, not counted'):T('Уже было, не засчитано','Already given, not counted');errorAt=performance.now();}}
     els.list.hidden=!rows.length||ph==='INTRO'||ph==='CATEGORY_REVEAL'||ph==='FINAL_RESULTS'||ph==='COMPLETED';
     els.count.hidden=!(answering||ph==='ANSWER_VALIDATION');
     if(!els.count.hidden)els.count.innerHTML=ph==='ANSWER_VALIDATION'?`<b>${T('ПРОВЕРЯЕМ ОТВЕТЫ…','CHECKING ANSWERS…')}</b>`:`<b>${(m.me?.count??hist.length)+outbox.length}</b> ${T('ответов отправлено','answers sent')}`;

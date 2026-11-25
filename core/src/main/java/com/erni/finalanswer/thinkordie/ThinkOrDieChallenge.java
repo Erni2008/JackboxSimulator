@@ -1,13 +1,22 @@
 package com.erni.finalanswer.thinkordie;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
+import com.badlogic.gdx.graphics.g2d.NinePatch;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Disposable;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -16,31 +25,48 @@ import java.util.*;
 import java.util.function.LongSupplier;
 
 /**
- * THINK OR DIE as a challenge inside the main match. It draws over the current floor (the room's own background stays
- * visible): a neon wash with drifting particles, then logo, one-time rules, the category, a neon ring timer and the
- * grouped answer reveal. The characters stay where the classic quiz keeps them (top bar, {@code QuestionPlayers});
- * this actor never draws there. Reads server snapshots only; no network, no blocking work on the render thread.
+ * THINK OR DIE as a challenge inside the main match, drawn over the current floor (the room stays visible under a warm
+ * red light). Layout: metal logo on a red ribbon, a cut-corner category plate with a CATEGORY tab, a stopwatch timer on
+ * the right, three rule cards with drawn icons, the ghost rule and the four soul badges; then the grouped answer reveal.
+ * The characters stay in the classic top bar ({@code QuestionPlayers} card mode); this actor never draws there.
+ * Reads server snapshots only; no network, no blocking work on the render thread.
  */
 public final class ThinkOrDieChallenge extends Actor implements Disposable {
-    // neon palette: red, violet, electric blue on black, metallic white text
-    static final Color RED=new Color(1f,.16f,.30f,1),VIOLET=new Color(.62f,.24f,1f,1),BLUE=new Color(.16f,.62f,1f,1),
-        BLACK=new Color(.02f,.01f,.05f,1),METAL=new Color(.90f,.93f,1f,1),DIM=new Color(.66f,.68f,.82f,1),
-        GOLD=new Color(1f,.80f,.22f,1),CYAN=new Color(.30f,.88f,1f,1),ORANGE=new Color(1f,.56f,.16f,1),GREY=new Color(.55f,.56f,.64f,1),
-        CARD=new Color(.05f,.03f,.10f,.92f);
+    static final Color RED=new Color(1f,.18f,.22f,1),EMBER=new Color(1f,.42f,.16f,1),VIOLET=new Color(.62f,.24f,1f,1),BLUE=new Color(.20f,.55f,1f,1),
+        BLACK=new Color(.03f,.01f,.01f,1),METAL=new Color(.93f,.91f,.90f,1),DIM=new Color(.70f,.64f,.62f,1),STEEL=new Color(.55f,.53f,.55f,1),
+        GOLD=new Color(1f,.74f,.20f,1),GREEN=new Color(.25f,.85f,.32f,1),CYAN=new Color(.30f,.88f,1f,1),ORANGE=new Color(1f,.56f,.16f,1),GREY=new Color(.55f,.56f,.64f,1),
+        CARD=new Color(.07f,.025f,.025f,.93f);
     private final ThinkOrDieArt art=new ThinkOrDieArt();
     private final LongSupplier now;
     private JsonObject tod;private final Map<String,String> character=new HashMap<>(),names=new HashMap<>();
     private String session="",phase="",lang="en";
     private float mix,clock;private boolean active;
     private int lastSecond=-1;
-    private final float[] px=new float[48],py=new float[48],ps=new float[48];
+    private final float[] px=new float[40],py=new float[40],ps=new float[40];
     private long blipAt;
+    private final Texture octFill,octEdge;private final NinePatch oct,octRim;
+    private final BitmapFont serif;private final GlyphLayout gl=new GlyphLayout();private final Matrix4 saved=new Matrix4(),shear=new Matrix4();
 
     public ThinkOrDieChallenge(LongSupplier serverNow){
         now=serverNow;setTouchable(Touchable.disabled);setName("thinkOrDieChallenge");
         for(int i=0;i<px.length;i++){px[i]=MathUtils.random();py[i]=MathUtils.random();ps[i]=.3f+MathUtils.random();}
+        octFill=octagon(false);octEdge=octagon(true);oct=new NinePatch(octFill,30,30,30,30);octRim=new NinePatch(octEdge,30,30,30,30);
+        serif=serifFont();
     }
-    /** @param root the room snapshot (players + thinkOrDie); null ends the challenge (the neon fades away). */
+    /** Cut-corner plate (the frame of the mock-up): filled and rim-only versions, 96 px with 24 px bevels. */
+    private static Texture octagon(boolean edge){int n=96;float c=24;Pixmap p=new Pixmap(n,n,Pixmap.Format.RGBA8888);p.setBlending(Pixmap.Blending.None);
+        for(int y=0;y<n;y++)for(int x=0;x<n;x++){float fx=x+.5f,fy=y+.5f,r=(float)Math.sqrt(.5);
+            float d=Math.min(Math.min(Math.min(fx,fy),Math.min(n-fx,n-fy)),Math.min(Math.min((fx+fy-c)*r,(n-fx+fy-c)*r),Math.min((fx+n-fy-c)*r,(n-fx+n-fy-c)*r)));
+            float a=edge?MathUtils.clamp(1-Math.abs(d-2.6f)/1.7f,0,1):MathUtils.clamp(d+.5f,0,1);p.drawPixel(x,y,Color.rgba8888(1,1,1,a));}
+        Texture t=new Texture(p);t.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();return t;}
+    private static BitmapFont serifFont(){
+        var fh=Gdx.files.internal("ui/fonts/CormorantSC-Bold.ttf");if(!fh.exists())fh=Gdx.files.internal("ui/fonts/NotoSans-SemiCondensedSemiBold.ttf");
+        var g=new FreeTypeFontGenerator(fh);
+        try{var p=new FreeTypeFontGenerator.FreeTypeFontParameter();p.size=64;p.kerning=true;
+            StringBuilder c=new StringBuilder(FreeTypeFontGenerator.DEFAULT_CHARS);for(char ch='Ѐ';ch<='ӿ';ch++)c.append(ch);p.characters=c.append("–—«»…’").toString();
+            p.minFilter=Texture.TextureFilter.Linear;p.magFilter=Texture.TextureFilter.Linear;return g.generateFont(p);}finally{g.dispose();}
+    }
+    /** @param root the room snapshot (players + thinkOrDie); null ends the challenge (the light fades back). */
     public void apply(JsonObject root){
         JsonObject t=root==null||!root.has("thinkOrDie")?null:root.getAsJsonObject("thinkOrDie");
         if(t==null||!t.has("integrated")||!t.get("integrated").getAsBoolean()){active=false;return;}
@@ -49,17 +75,15 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
         String s=t.get("sessionId").getAsString();
         if(!s.equals(session)){session=s;lastSecond=-1;}
         String ph=t.get("phase").getAsString();
-        if(!ph.equals(phase)){onPhase(ph,t);phase=ph;}
+        if(!ph.equals(phase)){onPhase(ph);phase=ph;}
         tod=t;active=true;lang=t.has("lang")?t.get("lang").getAsString():"en";
     }
-    /** true while the challenge is running or its neon is still fading out. */
     public boolean visible(){return active||mix>0;}
     public boolean running(){return active;}
     public String phase(){return active?phase:"";}
     /** Answer-counter sound, throttled so eight fast typists never become noise. */
     public void blip(){long t=System.currentTimeMillis();if(t-blipAt<140)return;blipAt=t;art.play("sounds/impostor/vote_sent.wav",.22f);}
-
-    private void onPhase(String ph,JsonObject t){
+    private void onPhase(String ph){
         switch(ph){
             case "INTRO"->art.play("sounds/cursed_boxes/appearance.wav",.7f);
             case "CATEGORY_REVEAL"->art.play("sounds/impostor/vote_started.wav",.6f);
@@ -73,108 +97,141 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
     private long ms(String k){return tod!=null&&tod.has(k)?tod.get(k).getAsLong():0;}
     private float since(){return Math.max(0,(now.getAsLong()-ms("phaseStartedAt"))/1000f);}
     private float left(){long e=ms("phaseEndsAt");return e<0?0:Math.max(0,(e-now.getAsLong())/1000f);}
+    private int points(String k,int d){return tod!=null&&tod.has("points")&&tod.getAsJsonObject("points").has(k)?tod.getAsJsonObject("points").get(k).getAsInt():d;}
 
     @Override public void act(float delta){
         super.act(delta);clock+=delta;
         mix=MathUtils.clamp(mix+(active?1:-1)*delta/(active?.9f:1.1f),0,1);
-        for(int i=0;i<px.length;i++){py[i]+=delta*.025f*ps[i];if(py[i]>1.05f){py[i]=-.05f;px[i]=MathUtils.random();}}
+        for(int i=0;i<px.length;i++){py[i]+=delta*.03f*ps[i];if(py[i]>1.05f){py[i]=-.05f;px[i]=MathUtils.random();}}
         if(active&&"ANSWERING".equals(phase)){int s=(int)Math.ceil(left());if(s!=lastSecond){lastSecond=s;if(s>0&&s<=5)art.play("sounds/results/count_tick.wav",.35f+.08f*(5-s));}}
     }
     @Override public void draw(Batch batch,float parentAlpha){
         if(mix<=0||!(batch instanceof SpriteBatch sb))return;
-        art.batch=sb;Color saved=new Color(batch.getColor());
+        art.batch=sb;Color keep=new Color(batch.getColor());saved.set(batch.getTransformMatrix());
         float w=getStage().getViewport().getWorldWidth(),h=getStage().getViewport().getWorldHeight(),a=mix*parentAlpha;
         try{
             atmosphere(w,h,a);
             if(tod==null)return;
-            float content=active?a:a*.9f;
+            float t=since();
             switch(phase){
-                case "INTRO"->intro(w,h,content);
-                case "CATEGORY_REVEAL"->{logo(w,h,content);category(w,h,content,Interpolation.swingOut.apply(Math.min(1,since()/.55f)));}
-                case "ANSWERING"->{logo(w,h,content);category(w,h,content,1);timer(w,h,content);hint(w,content);edgePulse(w,h,content);}
-                case "ANSWER_VALIDATION","DISPUTE"->{logo(w,h,content);category(w,h,content*.85f,1);checking(w,h,content);}
-                case "ANSWER_REVEAL","ROUND_RESULTS","FINAL_RESULTS","COMPLETED"->{logo(w,h,content);reveal(w,h,content);}
+                case "INTRO"->{boolean rules=tod.has("rules")&&tod.get("rules").getAsBoolean();
+                    float slam=Math.min(1,t/.45f),move=rules?MathUtils.clamp((t-1.6f)/.5f,0,1):0;
+                    logo(w/2,MathUtils.lerp(h*.50f,613,Interpolation.pow2.apply(move)),MathUtils.lerp(1.45f,1f,Interpolation.pow2.apply(move))*(1.35f-.35f*Interpolation.pow3Out.apply(slam)),a*Math.min(1,t/.2f));
+                    if(t<.6f)art.glow(w/2,h*.5f,w*(.5f+t),h*.6f,RED,.4f*(1-t/.6f)*a);
+                    if(rules&&t>=2f){float k=Math.min(1,(t-2f)/.35f);rulesBlock(w,a,t-2f);
+                        categoryPlate(w,a*k,tr("ПРИГОТОВЬСЯ · СЕЙЧАС ПОЯВИТСЯ КАТЕГОРИЯ","GET READY · THE CATEGORY IS COMING"),.75f,true);}}
+                case "CATEGORY_REVEAL"->{logo(w/2,613,1,a);categoryPlate(w,a,categoryText(),Interpolation.swingOut.apply(Math.min(1,t/.55f)),false);rulesBlock(w,a,9);}
+                case "ANSWERING"->{logo(w/2,613,1,a);categoryPlate(w,a,categoryText(),1,false);stopwatch(a);rulesBlock(w,a,9);edgePulse(w,h,a);}
+                case "ANSWER_VALIDATION","DISPUTE"->{logo(w/2,613,1,a);categoryPlate(w,a*.85f,categoryText(),1,false);checking(a);rulesBlock(w,a*.6f,9);}
+                case "ANSWER_REVEAL","ROUND_RESULTS","FINAL_RESULTS","COMPLETED"->reveal(w,h,a);
                 default->{}
             }
-        }finally{batch.setColor(saved);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
+        }finally{batch.setTransformMatrix(saved);batch.setColor(keep);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
     }
 
-    /** The floor turns neon: a dark wash keeps text readable, coloured light from the edges, slow particles. */
+    // ---------------------------------------------------------------- primitives
+    private void octPlate(float x,float y,float w,float h,Color fill,Color rim,float a){
+        if(a<=0||w<=2||h<=2)return;float k=Math.min(1,Math.min(w,h)/64f);
+        art.glow(x+w/2,y+h/2,w*1.10f,h*1.65f,rim,.20f*a);
+        draw9(oct,x+4,y-7,w,h,0,0,0,.45f*a,k);
+        draw9(oct,x,y,w,h,fill.r,fill.g,fill.b,fill.a*a,k);
+        draw9(octRim,x,y,w,h,rim.r,rim.g,rim.b,a,k);
+        draw9(octRim,x+5,y+5,w-10,h-10,rim.r,rim.g,rim.b,.35f*a,k);
+    }
+    private void draw9(NinePatch n,float x,float y,float w,float h,float r,float g,float b,float al,float k){
+        art.batch.setColor(r,g,b,al);if(k<1){n.scale(k,k);n.draw(art.batch,x,y,w,h);n.scale(1/k,1/k);}else n.draw(art.batch,x,y,w,h);}
+    /** Kept for the reveal cards. */
+    private void neonPlate(float x,float y,float w,float h,Color fill,Color rim,float a){octPlate(x,y,w,h,fill,rim,a);}
+    private void circle(float cx,float cy,float r,float wd,Color c,float a){arc(cx,cy,r,0,360,wd,c,a);}
+    private void arc(float cx,float cy,float r,float a0,float a1,float wd,Color c,float a){int n=Math.max(8,(int)(Math.abs(a1-a0)/10));
+        for(int i=0;i<n;i++){float u=a0+(a1-a0)*i/n,v=a0+(a1-a0)*(i+1)/n;art.line(cx+MathUtils.cosDeg(u)*r,cy+MathUtils.sinDeg(u)*r,cx+MathUtils.cosDeg(v)*r,cy+MathUtils.sinDeg(v)*r,wd,c,a,false);}}
+
+    /** Warm red light over the floor: the room stays visible, edges glow, slow embers drift up. */
     private void atmosphere(float w,float h,float a){
-        art.rect(0,0,w,h,BLACK,.52f*a);
+        art.rect(0,0,w,h,BLACK,.40f*a);
         float pulse=.5f+.5f*MathUtils.sin(clock*.9f);
-        art.glow(0,h*.45f,w*.55f,h*1.2f,VIOLET,(.20f+.06f*pulse)*a);
-        art.glow(w,h*.45f,w*.55f,h*1.2f,BLUE,(.18f+.06f*(1-pulse))*a);
-        art.glow(w/2,-40,w*1.2f,260,RED,.22f*a);
-        art.rect(0,0,w,2,RED,.55f*a);
-        batch().setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
-        for(int i=0;i<px.length;i++){Color c=i%3==0?RED:i%3==1?VIOLET:BLUE;float s=3+4*ps[i];
+        art.glow(0,h*.40f,w*.50f,h*1.1f,RED,(.20f+.05f*pulse)*a);
+        art.glow(w,h*.40f,w*.50f,h*1.1f,RED,(.18f+.05f*(1-pulse))*a);
+        art.glow(w/2,h*.38f,w*.75f,h*.55f,EMBER,.10f*a);
+        art.glow(w/2,-30,w*1.2f,230,RED,.28f*a);
+        art.batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
+        for(int i=0;i<px.length;i++){Color c=i%2==0?EMBER:RED;float s=2.5f+3.5f*ps[i];
             art.batch.setColor(c.r,c.g,c.b,.35f*a*(.4f+.6f*MathUtils.sin(clock*2+i)));art.batch.draw(art.soft,px[i]*w-s*3,py[i]*h*.80f-s*3,s*6,s*6);}
-        batch().setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
-    }
-    private SpriteBatch batch(){return art.batch;}
-    /** Flat glass plate for the neon look: dark fill, thin neon rim, soft outer glow (no gloss band across text). */
-    private void neonPlate(float x,float y,float w,float h,Color fill,Color rim,float a){
-        if(a<=0||w<=1||h<=1)return;
-        art.glow(x+w/2,y+h/2,w*1.12f,h*1.7f,rim,.16f*a);
-        art.batch.setColor(0,0,0,.40f*a);art.np(art.plateFill,x+4,y-8,w,h);
-        art.batch.setColor(fill.r,fill.g,fill.b,fill.a*a);art.np(art.plateFill,x,y,w,h);
-        art.batch.setColor(rim.r,rim.g,rim.b,a);art.np(art.plateEdge,x,y,w,h);
+        art.batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
     }
 
-    /** "THINK OR DIE" in neon letters; small in the corner during the challenge. */
-    private void wordmark(float cx,float y,float scale,float a){
-        float w1=art.width(art.display,"THINK ",scale),w2=art.width(art.display,"OR ",scale),w3=art.width(art.display,"DIE",scale),x=cx-(w1+w2+w3)/2;
-        float flick=.85f+.15f*MathUtils.sin(clock*13)*MathUtils.sin(clock*3.1f);
-        art.glow(cx,y-art.display.getLineHeight()*scale*.35f,(w1+w2+w3)*1.25f,art.display.getLineHeight()*scale*1.6f,VIOLET,.35f*a);
-        art.left(art.display,"THINK ",x,y,scale,METAL,a,0);
-        art.left(art.display,"OR ",x+w1,y,scale,BLUE,a,0);
-        art.left(art.display,"DIE",x+w1+w2,y,scale,RED,a*flick,0);
+    /** Metal THINK / DIE with a red OR on a red ribbon, a drawn top hat above. */
+    private void logo(float cx,float cy,float s,float a){
+        if(a<=0||s<=.05f)return;float sc=.62f*s;
+        String l="THINK ",m="OR",r=" DIE";float wl=art.width(art.display,l,sc),wm=art.width(art.display,m,sc*.78f),wr=art.width(art.display,r,sc),tw=wl+wm+wr,th=art.display.getLineHeight()*sc;
+        // ribbon
+        float rw=tw*1.18f,rh=th*.62f,ry=cy-rh*.55f;
+        art.rect(cx-rw/2,ry,rw,rh,new Color(.45f,.03f,.05f,1),.95f*a);art.rect(cx-rw/2,ry+rh-3,rw,3,RED,a);art.rect(cx-rw/2,ry,rw,3,new Color(.25f,0,0,1),a);
+        for(int side=-1;side<=1;side+=2){float ex=cx+side*rw/2;art.line(ex,ry+rh,ex+side*46,ry+rh*.5f,rh*.5f,new Color(.40f,.02f,.04f,1),a,false);art.line(ex+side*46,ry+rh*.5f,ex,ry,rh*.5f,new Color(.40f,.02f,.04f,1),a,false);}
+        art.glow(cx,cy,tw*1.4f,th*2.2f,RED,.28f*a);
+        // top hat: tapered crown with a red band and a soft highlight, curved brim with rounded ends
+        float hw=th*.80f*Math.min(1,s),hx=cx,hy=ry+rh+2;
+        art.glow(hx,hy+hw*.35f,hw*2.2f,hw*1.3f,RED,.18f*a);
+        for(int k=0;k<12;k++){float f=k/11f,wd=hw*(.78f-.08f*f);art.rect(hx-wd/2,hy+hw*.12f+f*hw*.62f,wd,hw*.62f/11f+1,new Color(.10f+.05f*f,.09f+.05f*f,.11f+.05f*f,1),a);}
+        art.rect(hx-hw*.39f,hy+hw*.16f,hw*.78f,hw*.13f,RED,a);art.rect(hx-hw*.39f,hy+hw*.27f,hw*.78f,2,new Color(1f,.55f,.55f,1),a*.6f);
+        art.rect(hx-hw*.20f,hy+hw*.32f,hw*.06f,hw*.38f,new Color(1,1,1,1),.10f*a);
+        art.line(hx-hw*.82f,hy+hw*.13f,hx+hw*.82f,hy+hw*.13f,hw*.14f,new Color(.08f,.07f,.08f,1),a,false);
+        circle(hx-hw*.82f,hy+hw*.15f,hw*.035f,hw*.07f,new Color(.08f,.07f,.08f,1),a);circle(hx+hw*.82f,hy+hw*.15f,hw*.035f,hw*.07f,new Color(.08f,.07f,.08f,1),a);
+        // letters: dark bevel, steel body, light top edge (sheared like the mock-up)
+        float x=cx-tw/2,y=cy+th*.36f;
+        italic(x+tw/2,cy,.20f);
+        metal(art.display,l,x,y,sc,a);
+        art.glow(x+wl+wm/2,cy,wm*1.8f,th*1.2f,RED,.45f*a);art.left(art.display,m,x+wl,y-th*.08f,sc*.78f,new Color(1f,.16f,.20f,1),a,0);
+        art.display.getData().setScale(sc*.78f);art.display.setColor(1f,.75f,.75f,.35f*a);art.display.draw(art.batch,m,x+wl,y-th*.08f+1.5f);art.display.getData().setScale(1);
+        metal(art.display,r,x+wl+wm,y,sc,a);
+        art.batch.setTransformMatrix(saved);
     }
-    private void logo(float w,float h,float a){wordmark(170,h-200,.30f,a);}
-    private void intro(float w,float h,float a){
-        float t=since();boolean rules=tod.has("rules")&&tod.get("rules").getAsBoolean();
-        float slam=Math.min(1,t/.45f),scale=Math.max(.05f,.95f*(1.6f-.6f*Interpolation.pow3Out.apply(slam)));
-        if(!rules||t<2.2f){float k=rules&&t>1.8f?Math.max(0,1-(t-1.8f)/.4f):1;wordmark(w/2,h*.52f+60,scale,a*Math.min(1,t/.2f)*k);
-            if(t<.6f)art.glow(w/2,h*.48f,w*(.5f+t),h*.6f,RED,.4f*(1-t/.6f)*a);}
-        if(rules&&t>=2f){float k=Math.min(1,(t-2f)/.35f);
-            logo(w,h,a*k);
-            float cw=1100,ch=360,x=w/2-cw/2,y=h*.42f-ch/2+(1-k)*-30;
-            neonPlate(x,y,cw,ch,CARD,VIOLET,a*k);
-            art.text(art.big,tr("ПРАВИЛА","HOW IT WORKS"),w/2,y+ch-40,.7f,METAL,a*k,cw-60);
-            String[][] lines={{tr("Пишите на телефоне как можно больше ответов по категории","Type as many answers as you can on your phone"),""},
-                {tr("Уникальный ответ: +200 душ · у двоих: +100 · у троих: +25","Only you: +200 souls · two players: +100 · three: +25"),""},
-                {tr("Четыре и больше совпадений, ошибка или повтор: 0","Four or more matches, wrong or repeated: 0"),""},
-                {tr("Призрак с пятью уникальными ответами оживает","A ghost with five unique answers comes back to life"),""}};
-            for(int i=0;i<lines.length;i++){float d=Math.min(1,Math.max(0,(t-2.2f-i*.25f)/.3f));
-                art.text(art.small,lines[i][0],w/2,y+ch-120-i*58,.95f,i==3?CYAN:METAL,a*d,cw-80);}
-        }
+    private void metal(BitmapFont f,String s,float x,float y,float sc,float a){
+        art.left(f,s,x+2,y-3,sc,new Color(.20f,.18f,.19f,1),a,0);
+        art.left(f,s,x,y,sc,new Color(.70f,.69f,.72f,1),a,0);
+        art.batch.setColor(1,1,1,1);
+        f.getData().setScale(sc);f.setColor(1,1,1,.45f*a);f.draw(art.batch,s,x,y+1.5f);f.getData().setScale(1);
     }
+    private void italic(float ox,float oy,float k){shear.set(saved).translate(ox,oy,0);Matrix4 m=new Matrix4();m.val[Matrix4.M01]=k;shear.mul(m).translate(-ox,-oy,0);art.batch.setTransformMatrix(shear);}
+
     private String categoryText(){return tod.has("textRu")?("ru".equals(lang)?tod.get("textRu").getAsString():tod.get("textEn").getAsString()):"";}
-    private void category(float w,float h,float a,float zoom){
-        String text=categoryText();if(text.isEmpty())return;
-        float cw=1000*Math.max(.05f,zoom),ch=230*Math.max(.05f,zoom),cx=w*.45f,cy=h*.45f;
-        neonPlate(cx-cw/2,cy-ch/2,cw,ch,CARD,RED,a);
-        art.text(art.tiny,tr("КАТЕГОРИЯ","CATEGORY"),cx,cy+ch/2-22,.95f*zoom,RED,a,0);
-        if(zoom>.6f)art.paragraph(art.big,text,cx,cy+ch/2-58,cw-80,.78f,ch-90,METAL,a);
+    /** The category plate: cut corners, double red rim, rivets, a CATEGORY tab, sheared serif text. */
+    private void categoryPlate(float w,float a,String text,float zoom,boolean muted){
+        if(a<=0)return;float z=Math.max(.05f,zoom),cx=800,cy=407,pw=900*z,ph=172*z;
+        octPlate(cx-pw/2,cy-ph/2,pw,ph,CARD,RED,a);
+        for(float rx:new float[]{cx-pw/2+18,cx+pw/2-18}){circle(rx,cy,3,3,STEEL,a);}
+        if(z<.7f)return;
+        float tabW=280,tabH=40,ty=cy+ph/2-tabH/2+4;
+        octPlate(cx-tabW/2,ty-tabH/2,tabW,tabH,new Color(.10f,.06f,.05f,.97f),new Color(.80f,.62f,.45f,1),a);
+        art.text(art.tiny,spaced(tr("КАТЕГОРИЯ","CATEGORY")),cx,ty+9,.95f,new Color(.92f,.86f,.80f,1),a,0);
+        // sheared serif category text, shrunk until it fits
+        float boxW=pw-110,maxH=ph-64,sc=.92f;
+        for(int i=0;i<10;i++){serif.getData().setScale(sc);gl.setText(serif,text,METAL,boxW,Align.center,true);if(gl.height<=maxH)break;sc*=.9f;}
+        float top=cy-14+gl.height/2;
+        italic(cx,cy,.16f);
+        serif.setColor(0,0,0,.85f*a);serif.draw(art.batch,text,cx-boxW/2+3,top-3,boxW,Align.center,true);
+        serif.setColor(muted?DIM.r:METAL.r,muted?DIM.g:METAL.g,muted?DIM.b:METAL.b,a);serif.draw(art.batch,text,cx-boxW/2,top,boxW,Align.center,true);
+        serif.getData().setScale(1);art.batch.setTransformMatrix(saved);
     }
-    /** Neon ring: electric blue, red in the last five seconds with a growing pulse. */
-    private void timer(float w,float h,float a){
+    private static String spaced(String s){StringBuilder b=new StringBuilder();for(int i=0;i<s.length();i++){if(i>0)b.append(' ');b.append(s.charAt(i));}return b.toString();}
+
+    /** Stopwatch timer: steel case and crown, red tick track for the remaining time, digital mm:ss. */
+    private void stopwatch(float a){
         float total=Math.max(1,ms("answerMs")/1000f),rem=left(),frac=MathUtils.clamp(rem/total,0,1);
         boolean hot=rem<=5;float k=hot?(5-rem)/5:0,beat=hot?.5f+.5f*MathUtils.sin(clock*(8+6*k)):0;
-        float cx=w*.885f,cy=h*.45f,r=104+(hot?6*beat*k:0);Color c=hot?RED:BLUE;
-        art.glow(cx,cy,r*3.2f,r*3.2f,c,(.16f+.25f*k*beat)*a);
-        art.batch.setColor(BLACK.r,BLACK.g,BLACK.b,.85f*a);art.batch.draw(art.soft,cx-r*1.15f,cy-r*1.15f,r*2.3f,r*2.3f);
-        int seg=96;for(int i=0;i<seg;i++){float f=i/(float)seg;float a0=90-360*f,a1=90-360*(f+1f/seg);
-            boolean on=f<frac;Color col=on?c:DIM;float al=on?a:a*.18f;
-            art.line(cx+MathUtils.cosDeg(a0)*r,cy+MathUtils.sinDeg(a0)*r,cx+MathUtils.cosDeg(a1)*r,cy+MathUtils.sinDeg(a1)*r,on?9:5,col,al,on);}
-        String s=Integer.toString((int)Math.ceil(rem));
-        art.text(art.display,s,cx,cy+art.display.getLineHeight()*.62f*.36f+6,.62f*(hot?1+.08f*beat:1),hot?RED:METAL,a,0);
-        art.text(art.tiny,tr("СЕКУНД","SECONDS"),cx,cy-46,.85f,DIM,a,0);
-    }
-    private void hint(float w,float a){
-        float k=.75f+.25f*MathUtils.sin(clock*2.4f);
-        art.text(art.small,tr("Отвечайте с телефона · чем больше, тем лучше","Answer on your phone · the more the better"),w*.45f,92,.9f,METAL,a*k,w*.8f);
+        float cx=1402,cy=393,r=112*(1+(hot?.025f*beat*k:0));
+        art.glow(cx,cy,r*3.0f,r*3.0f,RED,(.18f+.30f*k*beat)*a);
+        // crown and side button
+        art.rect(cx-12,cy+r+6,24,24,STEEL,a);art.rect(cx-20,cy+r+28,40,10,new Color(.75f,.73f,.74f,1),a);
+        art.line(cx+MathUtils.cosDeg(45)*(r+4),cy+MathUtils.sinDeg(45)*(r+4),cx+MathUtils.cosDeg(45)*(r+22),cy+MathUtils.sinDeg(45)*(r+22),14,STEEL,a,false);
+        art.batch.setColor(.04f,.01f,.01f,.96f*a);art.batch.draw(art.soft,cx-r*1.25f,cy-r*1.25f,r*2.5f,r*2.5f);
+        circle(cx,cy,r+6,12,new Color(.36f,.34f,.36f,1),a);circle(cx,cy,r+12,3,new Color(.80f,.78f,.80f,1),a*.8f);circle(cx,cy,r-2,3,new Color(.12f,.10f,.10f,1),a);
+        int ticks=60;for(int i=0;i<ticks;i++){float f=i/(float)ticks,ang=90-360*f;boolean on=f<frac;float r0=r-30,r1=r-12-(i%5==0?0:4);
+            art.line(cx+MathUtils.cosDeg(ang)*r0,cy+MathUtils.sinDeg(ang)*r0,cx+MathUtils.cosDeg(ang)*r1,cy+MathUtils.sinDeg(ang)*r1,i%5==0?5:3.4f,on?RED:new Color(.25f,.05f,.06f,1),on?a:a*.8f,on);}
+        int s=(int)Math.ceil(rem);String t=String.format(Locale.ROOT,"%02d:%02d",s/60,s%60);
+        float sc=.40f*(hot?1+.06f*beat:1);
+        art.glow(cx,cy,r*1.5f,r*.8f,RED,.25f*a);
+        art.text(art.display,t,cx,cy+art.display.getLineHeight()*sc*.36f,sc,hot?new Color(1f,.30f,.30f,1):new Color(1f,.90f,.86f,1),a,r*1.5f);
     }
     /** Last five seconds: a soft red pulse grows from the screen edges. */
     private void edgePulse(float w,float h,float a){
@@ -182,15 +239,48 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
         art.glow(w/2,0,w*1.4f,220+120*k,RED,al);art.glow(w/2,h,w*1.4f,220+120*k,RED,al);
         art.glow(0,h/2,260+140*k,h*1.4f,RED,al);art.glow(w,h/2,260+140*k,h*1.4f,RED,al);
     }
-    private void checking(float w,float h,float a){
-        float cx=w*.885f,cy=h*.45f;
+    private void checking(float a){
+        float cx=1402,cy=393;
         for(int i=0;i<12;i++){float ang=-clock*240+i*30;float al=(i/12f)*a;
-            art.line(cx+MathUtils.cosDeg(ang)*60,cy+MathUtils.sinDeg(ang)*60,cx+MathUtils.cosDeg(ang)*90,cy+MathUtils.sinDeg(ang)*90,7,VIOLET,al,true);}
-        art.text(art.small,tr("ПРОВЕРКА","CHECKING"),cx,cy-120,.9f,METAL,a,0);
+            art.line(cx+MathUtils.cosDeg(ang)*60,cy+MathUtils.sinDeg(ang)*60,cx+MathUtils.cosDeg(ang)*92,cy+MathUtils.sinDeg(ang)*92,7,RED,al,true);}
+        art.text(art.small,tr("ПРОВЕРКА","CHECKING"),cx,cy-122,.9f,METAL,a,0);
+    }
+
+    /** Three rule cards with drawn icons, the ghost rule and the four soul badges (values from the server config). */
+    private void rulesBlock(float w,float a,float t){
+        if(a<=0)return;
+        float sec=Math.round(ms("answerMs")/1000f);
+        String[] txt={tr("ОДНА КАТЕГОРИЯ\nДЛЯ ВСЕХ","ONE CATEGORY\nFOR EVERYONE"),tr((int)sec+" СЕКУНД\nОТВЕЧАЙ С ТЕЛЕФОНА",(int)sec+" SECONDS\nANSWER ON YOUR PHONE"),tr("ПИШИ ВЕРНЫЕ ОТВЕТЫ\nКАК МОЖНО БОЛЬШЕ","WRITE CORRECT ANSWERS\nAS MANY AS YOU CAN")};
+        float[][] box={{350,219,315,73},{690,219,250,73},{965,219,285,73}};
+        for(int i=0;i<3;i++){float d=MathUtils.clamp((t-i*.15f)/.3f,0,1);if(d<=0)continue;float[] b=box[i];
+            octPlate(b[0],b[1],b[2],b[3],CARD,new Color(.85f,.45f,.25f,1),a*d);
+            float ix=b[0]+46,iy=b[1]+b[3]/2;icon(i,ix,iy,a*d);
+            String[] ln=txt[i].split("\n");float tx=b[0]+84+(b[2]-96)/2;
+            art.text(art.tiny,ln[0],tx,iy+18,.82f,METAL,a*d,b[2]-100);art.text(art.tiny,ln[1],tx,iy-4,.82f,METAL,a*d,b[2]-100);}
+        float d=MathUtils.clamp((t-.5f)/.3f,0,1);
+        if(d>0){art.rect(470,184,140,2,RED,a*d*.8f);art.rect(990,184,140,2,RED,a*d*.8f);circle(612,185,3,3,RED,a*d);circle(988,185,3,3,RED,a*d);
+            art.text(art.small,tr("ПРИЗРАК ОЖИВАЕТ:","THE GHOST AWAKES:"),800,197,.95f,RED,a*d,0);
+            art.text(art.tiny,tr("ПЯТЬ УНИКАЛЬНЫХ ВЕРНЫХ ОТВЕТОВ ЗА РАУНД, И ОН ВОЗВРАЩАЕТСЯ!","FIVE UNIQUE CORRECT ANSWERS IN A ROUND, AND THEY RETURN!"),800,160,.85f,METAL,a*d,900);}
+        Object[][] badges={{"+"+points("unique",200),tr("ТОЛЬКО ТЫ","ONLY YOU"),GOLD},{"+"+points("two",100),tr("У ДВОИХ","TWO PLAYERS"),GREEN},
+            {"+"+points("three",25),tr("У ТРОИХ","THREE PLAYERS"),BLUE},{String.valueOf(points("crowd",0)),tr("4+ ИЛИ ОШИБКА","FOUR+ OR WRONG"),RED}};
+        float[] cxs={435,677,923,1166};
+        for(int i=0;i<4;i++){float e=MathUtils.clamp((t-.7f-i*.12f)/.3f,0,1);if(e<=0)continue;Color c=(Color)badges[i][2];float bw=210,bh=77,bx=cxs[i]-bw/2,by=43;
+            octPlate(bx,by,bw,bh,new Color(c.r*.16f,c.g*.16f,c.b*.16f,.95f),c,a*e);
+            art.text(art.big,(String)badges[i][0],cxs[i],by+bh-10,.58f,METAL,a*e,bw-30);
+            art.text(art.tiny,(String)badges[i][1],cxs[i],by+24,.82f,METAL,a*e,bw-30);}
+    }
+    /** Drawn icons: 0 people, 1 stopwatch, 2 stacked layers. */
+    private void icon(int kind,float cx,float cy,float a){
+        Color c=GOLD;
+        switch(kind){
+            case 0->{for(int k=-1;k<=1;k++){float ox=k*15,s=k==0?1f:.8f,oy=k==0?2:0;circle(cx+ox,cy+8*s+oy,6*s,2.6f,c,a);arc(cx+ox,cy-10*s+oy,12*s,20,160,2.6f,c,a);}}
+            case 1->{circle(cx,cy-2,15,2.8f,c,a);art.rect(cx-4,cy+15,8,5,c,a);art.line(cx,cy-2,cx,cy+8,2.6f,c,a,false);art.line(cx,cy-2,cx+7,cy-6,2.6f,c,a,false);}
+            default->{for(int k=0;k<3;k++){float y=cy-10+k*9;art.line(cx-16,y,cx,y+7,2.6f,c,a,false);art.line(cx,y+7,cx+16,y,2.6f,c,a,false);art.line(cx+16,y,cx,y-7,2.6f,c,a,false);art.line(cx,y-7,cx-16,y,2.6f,c,a,false);}}
+        }
     }
 
     // ---------------------------------------------------------------- reveal
-    private Color statusColor(String st){return switch(st){case "UNIQUE"->GOLD;case "SHARED"->CYAN;case "MANY"->ORANGE;case "CROWD","INVALID","REJECTED"->RED;default->GREY;};}
+    private Color statusColor(String st){return switch(st){case "UNIQUE"->GOLD;case "SHARED"->GREEN;case "MANY"->ORANGE;case "CROWD","INVALID","REJECTED"->RED;default->GREY;};}
     private String statusName(String st){return switch(st){case "UNIQUE"->tr("УНИКАЛЬНО","UNIQUE");case "SHARED"->tr("У ДВОИХ","TWO PLAYERS");case "MANY"->tr("У ТРОИХ","THREE PLAYERS");
         case "CROWD"->tr("У ВСЕХ","EVERYONE");case "INVALID"->tr("НЕВЕРНО","WRONG");case "REJECTED"->tr("ОТКЛОНЕНО","REJECTED");default->tr("СПОРНО","UNDECIDED");};}
 
@@ -240,8 +330,10 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
         float cy=150;neonPlate(w/2-360,cy-52,720,104,CARD,GOLD,a*k);
         art.text(art.big,tr("ДУШИ НАЧИСЛЕНЫ","SOULS AWARDED"),w/2,cy+24,.7f,GOLD,a*k,660);
         if(revived){float r=Math.min(1,Math.max(0,(t-.35f)/.3f));float beat=.5f+.5f*MathUtils.sin(clock*9);
+            art.rect(0,0,w,h-190,BLACK,.45f*a*r);
+            octPlate(w/2-560,h*.47f-70,1120,140,new Color(.10f,.03f,.16f,.96f),VIOLET,a*r);
             art.glow(w/2,h*.47f,1100,320,VIOLET,(.35f+.2f*beat)*a*r);
             art.text(art.display,"RESURRECTION",w/2,h*.47f+40,.62f,METAL,a*r,1200);}
     }
-    @Override public void dispose(){art.dispose();}
+    @Override public void dispose(){art.dispose();serif.dispose();octFill.dispose();octEdge.dispose();}
 }

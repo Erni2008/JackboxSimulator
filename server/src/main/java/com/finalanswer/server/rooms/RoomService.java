@@ -693,7 +693,7 @@ public final class RoomService {
     }
     private void tickThinkOrDie(Room room){
         var t=room.thinkOrDie;t.connected(room.members.values().stream().filter(m->m.peer!=null&&!m.left).map(m->m.id).toList());
-        boolean changed=t.tick(now());
+        boolean changed=t.tick(now());pushTouched(room,t);
         for(String id:t.takeRevivals())for(Member m:room.members.values())if(m.id.equals(id)&&!m.alive){m.alive=true;m.revivalPending=false;changed=true;System.out.println("[think-or-die] "+m.name+" resurrected");}
         if(changed){scoreFinishedModes(room);broadcast(room,"THINK_OR_DIE_UPDATED");}
         else if(t.liveDirty&&now()-room.thinkOrDieLiveAt>=160&&room.host.peer!=null){t.liveDirty=false;room.thinkOrDieLiveAt=now();room.host.peer.send(Protocol.event("THINK_OR_DIE_UPDATED","",snapshot(room,room.host,false)));}
@@ -733,9 +733,13 @@ public final class RoomService {
      * Drives the match challenge. Souls are paid once (one reward key per challenge and player) when the reveal has
      * played and every match is known; resurrections apply at the same moment; then the match continues.
      */
+    /** An AI verdict changed a player's own list (counted, or crossed out as wrong): only that phone gets it now. */
+    private void pushTouched(Room room,com.finalanswer.server.game.thinkordie.ThinkOrDieSession t){
+        for(String id:t.takeTouched())for(Member m:room.members.values())if(m.id.equals(id)&&m.peer!=null)m.peer.send(Protocol.event("THINK_OR_DIE_UPDATED","",snapshot(room,m,false)));
+    }
     private void tickChallenge(Room room){
         var t=room.challenge;t.connected(room.members.values().stream().filter(m->m.peer!=null&&!m.left).map(m->m.id).toList());
-        boolean changed=t.tick(now());
+        boolean changed=t.tick(now());pushTouched(room,t);
         if(t.phase().ordinal()>=com.finalanswer.server.game.thinkordie.ThinkOrDieSession.Phase.ROUND_RESULTS.ordinal()&&!t.paid){
             t.paid=true;
             for(Member m:room.members.values()){var p=t.player(m.id);if(p==null||p.roundPoints<=0)continue;

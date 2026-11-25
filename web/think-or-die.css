@@ -109,3 +109,5 @@
 #tod-screen[data-mode="match"] .tod-list li.s-sent em{color:#a9aecb}
 #tod-screen[data-mode="match"][data-ghost="true"]{--acc:#8be0ff}
 body[data-view="tod"] .souls-chip{display:none}
+#tod-screen .tod-list li.s-bad span{text-decoration:line-through;text-decoration-color:#ff2a4d;opacity:.75}
+#tod-screen .tod-list li.s-dup span{opacity:.6}

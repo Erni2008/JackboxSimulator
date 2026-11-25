@@ -113,12 +113,15 @@ public final class QuestionPlayers extends Actor implements Disposable {
         saved.set(batch.getTransformMatrix());color.set(batch.getColor());
         float cell=Math.min(240,(getWidth()-120)/entries.size()),left=getX()+(getWidth()-cell*entries.size())/2;
         float oldScaleX=font.getData().scaleX,oldScaleY=font.getData().scaleY;fontSaved.set(font.getColor());
+        int lead=0;if(counting)for(Entry e:entries)lead=Math.max(lead,e.counter);
         try{for(int i=0;i<entries.size();i++){
             Entry e=entries.get(i);float center=left+(i+.5f)*cell;
-            float scale=Math.min(135/e.height,(cell-24)/150)*e.size;
+            boolean card=counting&&e.counter>=0;float cardW=Math.min(178,cell-16);
+            if(card)drawCard(batch,e,center,cardW,lead>0&&e.counter==lead,alpha);
+            float scale=Math.min(135/e.height,(cell-24)/150)*e.size*(card?.80f:1);
             float shakeX=!reduced?MathUtils.sin(e.shakeTime*31+e.phase)*.65f*e.shakeEnvelope:0;
             float shakeY=!reduced?MathUtils.sin(e.shakeTime*27+e.phase*1.7f)*.28f*e.shakeEnvelope:0;
-            local.set(saved).translate(center+shakeX,getY()+52+shakeY,0).scale(scale,scale,1).translate(-174,-e.floor,0);
+            local.set(saved).translate(center+shakeX,getY()+(card?104:52)+shakeY,0).scale(scale,scale,1).translate(-174,-e.floor,0);
             batch.setTransformMatrix(local);
             if(e.player.ghost)batch.setColor(.63f,.78f,.88f,color.a);
             presentation.draw(batch,e.character,e.profile,alpha*(e.player.ghost?.52f:1),e.time);
@@ -128,25 +131,56 @@ public final class QuestionPlayers extends Actor implements Disposable {
                 e.nickname=e.player.nickname;font.getData().setScale(1);e.name.setText(font,e.nickname);
                 e.nameWidth=e.name.width;
             }
-            e.nameScale=Math.min(1,(cell-16)/Math.max(1,e.nameWidth));
+            e.nameScale=Math.min(card?.78f:1,((card?cardW-30:cell-16))/Math.max(1,e.nameWidth));
             font.getData().setScale(e.nameScale);e.name.setText(font,e.nickname);
-            float x=center-e.name.width/2,y=getY()+43;
+            float x=center-e.name.width/2,y=getY()+(card?92:43);
             font.setColor(.015f,.008f,.008f,alpha*.9f);font.draw(batch,e.nickname,x+1.4f,y-1.4f);
-            font.setColor(com.erni.finalanswer.ui.PlayerColors.light(e.player.characterId));font.getColor().a=alpha;font.draw(batch,e.nickname,x,y);
-            font.getData().setScale(Math.min(.48f,(cell-16)/105f));
+            if(card)font.setColor(.96f,.92f,.88f,alpha);else{font.setColor(com.erni.finalanswer.ui.PlayerColors.light(e.player.characterId));font.getColor().a=alpha;}
+            font.draw(batch,e.nickname,x,y);
+            if(card){drawCardCounter(batch,e,center,getY()+46,alpha);drawStatusPill(batch,e,center,getY()+18,alpha);batch.setColor(color);}
+            else{font.getData().setScale(Math.min(.48f,(cell-16)/105f));
             String status=e.player.ghost?"GHOST":!e.player.online?"OFFLINE":"ALIVE";
             font.setColor(e.player.ghost?.60f:.77f,e.player.ghost?.80f:.86f,e.player.ghost?.93f:.66f,alpha);
-            e.name.setText(font,status);font.draw(batch,status,center-e.name.width/2,getY()+18);
-            if(counting&&e.counter>=0){drawCounter(batch,e,center+cell*.30f,getY()+142,alpha);batch.setColor(color);}
-            else if(e.showingCorrect){drawCorrect(batch,center+cell*.30f,getY()+142,alpha);batch.setColor(color);}
+            e.name.setText(font,status);font.draw(batch,status,center-e.name.width/2,getY()+18);}
+            if(!card&&e.showingCorrect){drawCorrect(batch,center+cell*.30f,getY()+142,alpha);batch.setColor(color);}
             if(e.flashAge<1.4f){float k=1-e.flashAge/1.4f;batch.setColor(.75f,.35f,1f,.55f*k*alpha);
                 float r=60+90*e.flashAge;batch.draw(uiPixel,center-r,getY()+80-1.5f,r*2,3);batch.draw(uiPixel,center-1.5f,getY()+80-r*.7f,3,r*1.4f);batch.setColor(color);}
             if(e.gain>0&&e.gainAge<4.5f){float k=e.gainAge<.25f?e.gainAge/.25f:e.gainAge>3.6f?Math.max(0,(4.5f-e.gainAge)/.9f):1;
                 String t="+"+Math.round(e.gainShown);font.getData().setScale(Math.min(.95f,(cell-16)/110f));counterText.setText(font,t);
                 float gy=getY()+170+Math.min(1,e.gainAge/.4f)*14;
+                if(counting){counterAssets();batch.setColor(.05f,.02f,.02f,.88f*k*alpha);pillAt(batch,center-counterText.width/2-14,gy-counterText.height-10,counterText.width+28,counterText.height+20);batch.setColor(color);}
                 font.setColor(0,0,0,.8f*k*alpha);font.draw(batch,t,center-counterText.width/2+2,gy-2);
                 font.setColor(1f,.86f,.30f,k*alpha);font.draw(batch,t,center-counterText.width/2,gy);}
         }}finally{batch.setTransformMatrix(saved);batch.setColor(color);font.getData().setScale(oldScaleX,oldScaleY);font.setColor(fontSaved);}
+    }
+    private static final Color RED=new Color(1f,.20f,.24f,1),GOLD=new Color(1f,.76f,.22f,1),PURPLE=new Color(.70f,.32f,1f,1),GREEN=new Color(.22f,.78f,.30f,1);
+    /** THINK OR DIE card behind a character: dark plate, glowing rim (gold for the leader, violet for ghosts), name bar. */
+    private void pillAt(Batch b,float x,float y,float w,float h){float k=Math.min(1,Math.min(w,h)/36f);if(k<1){pill.scale(k,k);pill.draw(b,x,y,w,h);pill.scale(1/k,1/k);}else pill.draw(b,x,y,w,h);}
+    private void drawCard(Batch batch,Entry e,float cx,float w,boolean leader,float alpha){
+        counterAssets();Color rim=e.player.ghost?PURPLE:leader?GOLD:RED;float y=getY()+4,h=172,x=cx-w/2;
+        float pop=reduced?0:Math.max(0,1-e.counterPop/.45f);
+        batch.setColor(rim.r,rim.g,rim.b,(.22f+.25f*pop)*alpha);pillAt(batch,x-7,y-7,w+14,h+14);
+        batch.setColor(rim.r,rim.g,rim.b,alpha);pillAt(batch,x,y,w,h);
+        batch.setColor(.07f,.025f,.03f,.93f*alpha);pillAt(batch,x+3,y+3,w-6,h-6);
+        // name bar
+        batch.setColor(rim.r*.55f,rim.g*.35f,rim.b*.35f,.95f*alpha);pillAt(batch,x+10,y+66,w-20,34);
+        batch.setColor(.03f,.01f,.02f,.95f*alpha);pillAt(batch,x+12,y+68,w-24,30);
+        batch.setColor(color);
+    }
+    private void drawCardCounter(Batch batch,Entry e,float cx,float cy,float alpha){
+        float pop=reduced?0:Math.max(0,1-e.counterPop/.35f),ease=com.badlogic.gdx.math.Interpolation.pow2Out.apply(pop);
+        String t=Integer.toString(e.counter);counterFont.getData().setScale(1.05f*(1+.35f*ease));counterText.setText(counterFont,t);
+        float x=cx-counterText.width/2,y=cy+counterText.height/2;
+        counterFont.setColor(0,0,0,.8f*alpha);counterFont.draw(batch,t,x+2,y-2);
+        counterFont.setColor(1f,.82f-.3f*pop,.55f-.3f*pop,alpha);counterFont.draw(batch,t,x,y);
+        counterFont.getData().setScale(1);
+    }
+    private void drawStatusPill(Batch batch,Entry e,float cx,float cy,float alpha){
+        String st=e.player.ghost?"GHOST":!e.player.online?"OFFLINE":"ALIVE";Color c=e.player.ghost?PURPLE:!e.player.online?new Color(.45f,.45f,.5f,1):GREEN;
+        font.getData().setScale(.42f);counterText.setText(font,st);float w=counterText.width+30,h=24;
+        batch.setColor(c.r,c.g,c.b,alpha);pillAt(batch,cx-w/2,cy-h/2,w,h);
+        batch.setColor(c.r*.35f,c.g*.35f,c.b*.35f,alpha);pillAt(batch,cx-w/2+2,cy-h/2+2,w-4,h-4);
+        font.setColor(.95f,1f,.95f,alpha);font.draw(batch,st,cx-counterText.width/2,cy+counterText.height/2);
     }
     /** The neon answer counter: a dark pill, the digit pops up briefly with a soft glow on every new answer. */
     private void drawCounter(Batch batch,Entry e,float x,float y,float alpha){

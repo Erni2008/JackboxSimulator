@@ -58,11 +58,12 @@ class MatchChallengeTest {
         until("ANSWERING");
         say(0,"fridge");say(0,"oven");say(0,"fridge");say(0,"  FRIDGE ");
         say(1,"fridge");say(1,"kettle");say(1,"whisk");say(1,"not a kitchen thing at all");
-        assertEquals(2,counter(0),"exact own repeats never count");assertEquals(4,counter(1),"wrong answers count: nothing is revealed early");
-        // the phone learns nothing about right or wrong before the reveal
+        assertEquals(2,counter(0),"exact own repeats never count");assertEquals(4,counter(1),"an unknown answer the deterministic engine cannot decide still counts");
+        // instant checking: accepted answers show the verified spelling, repeats are crossed out and never counted
         var mine=tod(peers.get(0)).getAsJsonObject("me").getAsJsonArray("history");
-        Set<String> states=new HashSet<>();for(var e:mine){states.add(s(e.getAsJsonObject(),"state"));assertFalse(e.getAsJsonObject().has("label"));}
-        assertEquals(Set.of("SENT","REPEAT"),states);
+        Set<String> states=new HashSet<>();for(var e:mine)states.add(s(e.getAsJsonObject(),"state"));
+        assertEquals(Set.of("ACCEPTED","REPEAT_LIVE"),states);
+        assertEquals("Fridge",s(mine.get(0).getAsJsonObject(),"label"));
         assertFalse(tod(peers.get(1)).toString().contains("oven"),"no other player's text before the reveal");
         until("ANSWER_REVEAL");
         assertEquals(before0,souls(0),"souls only after the reveal");
@@ -79,6 +80,17 @@ class MatchChallengeTest {
         assertEquals(5,h.latest().get("questionNumber").getAsInt());
         question();assertNull(tod(h),"never after the last question");
         assertEquals("GAME_FINISHED",s(h.latest(),"phase"));
+    }
+    @Test void wrongAnswersAreRefusedAtOnceAndTyposAreCorrected(){
+        room(2,3);question();question();until("ANSWERING");
+        say(0,"i dont know");say(0,"frige");say(0,"refrigerator");
+        var h0=tod(peers.get(0)).getAsJsonObject("me").getAsJsonArray("history");
+        assertEquals("WRONG_LIVE",s(h0.get(0).getAsJsonObject(),"state"),"a non-answer is refused");
+        assertEquals("ACCEPTED",s(h0.get(1).getAsJsonObject(),"state"));assertEquals("Fridge",s(h0.get(1).getAsJsonObject(),"label"),"the typo is corrected at once");
+        assertEquals("REPEAT_LIVE",s(h0.get(2).getAsJsonObject(),"state"),"the same concept again is refused");
+        assertEquals(1,counter(0),"only the counted answer");
+        until("ANSWER_REVEAL");
+        for(var r:tod(h).getAsJsonArray("reveal"))assertNotEquals("INVALID",s(r.getAsJsonObject(),"status"),"refused answers never reach the reveal");
     }
     @Test void rewardTiersFollowHowManyPlayersMatched(){
         room(8,3);question();question();until("ANSWERING");
