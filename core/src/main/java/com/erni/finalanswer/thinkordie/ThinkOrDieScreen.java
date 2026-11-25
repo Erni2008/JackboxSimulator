@@ -28,7 +28,7 @@ public final class ThinkOrDieScreen extends ScreenAdapter {
     private JsonObject state,t;private final LongSupplier serverNow;private final Consumer<String> onEnd;
     private float clock,shake,phaseT;private String lastPhase="";private int lastRound=-1,lastSecond=-1,soundedTiles=-1;
 
-    private static final class Lane{float shown,bump,flash;int count;String puff="";float puffT=9;}
+    private static final class Lane{float shown,bump,flash;int count;String puff="";float puffT=9;final float[] beats=new float[64];int nb;float last=-99;float frozen=-1;}
     private final Map<String,Lane> lanes=new HashMap<>();
 
     public ThinkOrDieScreen(JsonObject snapshot,LongSupplier serverNow,Consumer<String> onEnd){this.serverNow=serverNow;this.onEnd=onEnd;apply(snapshot);}
@@ -124,7 +124,7 @@ public final class ThinkOrDieScreen extends ScreenAdapter {
     }
     private void updateLanes(float dt){
         for(JsonObject p:players()){String id=s(p,"id");Lane ln=lanes.computeIfAbsent(id,k->new Lane());int c=i(p,"answers");
-            if(c>ln.count&&phase().equals("ANSWERING")){ln.bump=1;ln.flash=1;ln.puffT=0;ln.puff="+"+(c-ln.count);
+            if(c>ln.count&&phase().equals("ANSWERING")){for(int q=ln.count;q<c;q++){ln.beats[ln.nb++%ln.beats.length]=clock+(q-ln.count)*.22f;}ln.last=clock;ln.bump=1;ln.flash=1;ln.puffT=0;ln.puff="+"+(c-ln.count);
                 String latest=latest(id);if(!latest.isEmpty())ln.puff=latest;
                 art.play("sounds/impostor/vote_sent.wav",.18f);}
             ln.count=Math.max(c,phase().equals("ANSWERING")||phase().equals("ANSWER_VALIDATION")?ln.count:c);
@@ -206,37 +206,67 @@ public final class ThinkOrDieScreen extends ScreenAdapter {
         timer(W/2,170,46);
     }
 
-    // ---------------------------------------------------------------- ANSWERING: the race
+    // ---------------------------------------------------------------- ANSWERING: vital signs
+    /** One heartbeat (P wave, QRS spike, T wave) dt seconds after an answer; 0 at rest. */
+    private static float beat(float dt){
+        if(dt<0||dt>.6f)return 0;
+        return g(dt,.06f,.025f)*.12f-g(dt,.155f,.008f)*.14f+g(dt,.185f,.011f)-g(dt,.215f,.010f)*.34f+g(dt,.38f,.05f)*.22f;
+    }
+    private static float g(float x,float m,float s){float d=(x-m)/s;return (float)Math.exp(-d*d*.5f);}
+    private static final float WINDOW=8f;   // seconds of trace visible on every monitor
+    private static final int SAMPLES=260;
+    private static final Color FLAT=new Color(.95f,.18f,.16f,1),GRID=new Color(.55f,.75f,.7f,1);
+    /**
+     * Every player is a patient on a monitor: each answer is a heartbeat on their trace. Stop answering and the line
+     * goes flat and red. Answers stay hidden: only the pulse and the count are public.
+     */
     private void race(boolean checking){
-        // every player hangs in their cage over the fire pit; each answer hauls the cage up toward the moonlight
-        var ps=players();int n=Math.max(1,ps.size());int max=15;for(Lane ln:lanes.values())max=Math.max(max,ln.count+4);
-        float span=Math.min(230,1500f/n),x0=W/2-span*(n-1)/2f,low=150,high=640;
+        var ps=players();int n=Math.max(1,ps.size());
+        float top=860,bottom=150,rowH=Math.min(118,(top-bottom)/n),gap=rowH*.14f;
+        float y0=(top+bottom)/2+rowH*n/2f;           // rows centred vertically
+        float mx=470,mw=1190,cx=1790;                // monitor area and the count column
+        boolean last5=!checking&&left()<5.5f;
+        // console behind everything: dark glass with a hairline frame
+        art.rect(60,y0-rowH*n-24,W-120,rowH*n+48,Color.BLACK,.62f);
+        art.rect(60,y0+23,W-120,1,ThinkOrDieArt.INK,.16f);art.rect(60,y0-rowH*n-24,W-120,1,ThinkOrDieArt.INK,.16f);
         for(int k=0;k<ps.size();k++){JsonObject p=ps.get(k);String id=s(p,"id");Lane ln=lanes.computeIfAbsent(id,x->new Lane());
-            boolean ghost=b(p,"ghost");Color c=ghost?ThinkOrDieArt.GHOST:seatColor(id);float a=ease(phaseT*2.5f-k*.1f);
-            float prog=ln.shown/max,sway=MathUtils.sin(clock*1.1f+k*1.7f)*3.5f+ln.bump*MathUtils.sin(ln.bump*18)*5;
-            float cw=Math.min(170,span*.82f),ch=cw*1374/1145f,cx=x0+k*span,by=low+(high-low)*prog-ln.bump*10;
-            // chain from the ceiling hook to the cage ring (swings with the cage)
-            float topY=H-150,ringY=by+ch-4,ringX=cx+MathUtils.sinDeg(sway)*(topY-ringY)*.0f;
-            if(art.hook!=null){batch.setColor(.75f,.72f,.7f,a);batch.draw(art.hook,cx-38,topY-40,76,72);}
-            if(art.chain!=null){float len=topY-ringY,cwid=24;batch.setColor(.8f,.78f,.76f,a);
-                batch.draw(art.chain,cx-cwid/2,ringY,cwid/2,0,cwid,len,1,1,-sway*.6f,436,0,152,(int)(len*152/cwid),false,false);}
-            // portrait inside, bars over it
-            float swayX=MathUtils.sinDeg(sway)*30;
-            art.portrait(character(id),cx+swayX,by+ch*.42f,cw*.30f,c,ghost,a);
-            if(art.cage!=null){batch.setColor(ghost?new Color(.6f,.75f,1f,a*.85f):new Color(1,1,1,a));batch.draw(art.cage,cx-cw/2+swayX,by,cw/2,ch,cw,ch,1,1,-sway*.6f,0,0,art.cage.getWidth(),art.cage.getHeight(),false,false);}
-            if(ln.flash>0)art.glow(cx+swayX,by+ch/2,cw*2,ch*1.6f,c,.25f*ln.flash);
-            // heat from below on low cages
-            art.glow(cx+swayX,by,cw*1.6f,cw,new Color(1,.35f,.1f,1),.25f*(1-prog)*a);
-            // name plate under the cage: dark iron with bone letters, answer count in red serif
-            float pw=Math.max(cw,art.width(art.small,name(id),.72f)+70);art.slab(cx-pw/2+swayX,by-62,pw,52,c,a);
-            art.left(art.small,name(id),cx-pw/2+14+swayX,by-22,.72f,ghost?ThinkOrDieArt.GHOST:ThinkOrDieArt.INK,a,pw-70);
-            art.right(art.big,String.valueOf(ln.count),cx+pw/2-12+swayX,by-14,.6f,ln.flash>0?c:ThinkOrDieArt.GOLD,a);
-            if(ghost)art.text(art.tiny,tr("ПРИЗРАК","GHOST"),cx+swayX,by-74,.85f,ThinkOrDieArt.GHOST,a,0);
-            if(ln.puffT<1.2f&&!ln.puff.isEmpty()){float pa=1-ln.puffT/1.2f;art.text(art.mid,ln.puff,cx+swayX,by+ch+30+ln.puffT*60,.8f,c,pa,360);}
-            if(checking){long done=l(p,"checked");float f=ln.count==0?1:Math.min(1,done/(float)ln.count);art.rect(cx-pw/2+swayX,by-64,pw*f,2,ThinkOrDieArt.ACID,a);}
+            boolean ghost=b(p,"ghost");Color c=ghost?ThinkOrDieArt.GHOST:seatColor(id);float a=ease(phaseT*2.5f-k*.08f);
+            float ry=y0-(k+1)*rowH,mid=ry+rowH/2,h=rowH-gap,amp=h*.42f;
+            if(checking){if(ln.frozen<0)ln.frozen=clock;}else ln.frozen=-1;
+            float now=checking?ln.frozen:clock;
+            float idle=now-ln.last;boolean flat=!checking&&ln.count>0&&idle>6f||!checking&&ln.count==0&&phaseT>6f;
+            Color tc=flat?FLAT:c;
+            // patient: portrait, name, state
+            art.portrait(character(id),120,mid,Math.min(40,h*.40f),c,ghost,a);
+            art.left(art.small,name(id),178,mid+(ghost?16:10),.78f,ghost?ThinkOrDieArt.GHOST:ThinkOrDieArt.INK,a,270);
+            String st=checking?tr("ПРОВЕРКА","CHECKING"):flat?tr("ПУЛЬС ПРОПАДАЕТ","LOSING PULSE"):ghost?tr("ПРИЗРАК","GHOST"):tr("В СОЗНАНИИ","CONSCIOUS");
+            art.left(art.tiny,st,178,mid-14,.82f,flat?FLAT:ThinkOrDieArt.DIM,a*(flat?.6f+.4f*MathUtils.sin(clock*7):1),270);
+            // monitor: faint grid, then the glowing trace with a write head at the right
+            float gy=mid-h/2;
+            art.rect(mx,gy,mw,h,new Color(.02f,.05f,.05f,1),.7f*a);
+            for(int q=0;q<=24;q++)art.rect(mx+q*mw/24f,gy,1,h,GRID,(q%4==0?.07f:.03f)*a);
+            for(int q=0;q<=4;q++)art.rect(mx,gy+q*h/4f,mw,1,GRID,(q==2?.07f:.03f)*a);
+            float px=0,py=0;
+            for(int q=0;q<=SAMPLES;q++){float f=q/(float)SAMPLES,tt=now-WINDOW*(1-f),v=0;
+                for(int m=0;m<Math.min(ln.nb,ln.beats.length);m++)v+=beat(tt-ln.beats[m]);
+                v+=MathUtils.sin(tt*31+k)*.012f;              // a little life on the baseline
+                float x=mx+f*mw,y=mid+v*amp;
+                if(q>0){float fade=.25f+.75f*f;
+                    art.line(px,py,x,y,7,tc,.10f*fade*a,true);   // bloom
+                    art.line(px,py,x,y,2.4f,tc,.95f*fade*a,false);}
+                px=x;py=y;}
+            art.glow(px,py,46,46,tc,.8f*a);art.rect(px-3,py-3,6,6,Color.WHITE,a);
+            if(ln.flash>0)art.glow(mx+mw*.8f,mid,mw*.5f,h*1.6f,c,.12f*ln.flash);
+            // count: big numeral, rank-coloured flash on every answer
+            art.right(art.big,String.valueOf(ln.count),cx+60,mid+h*.30f,Math.min(.9f,h/110f),ln.flash>0?Color.WHITE:flat?FLAT:ThinkOrDieArt.GOLD,a);
+            art.left(art.tiny,tr("ОТВЕТОВ","ANSWERS"),mx+mw+26,mid-h*.30f,.75f,ThinkOrDieArt.DIM,a,140);
+            if(ln.puffT<1.1f&&!ln.puff.isEmpty()&&!b(t,"hiddenAnswers")){float pa=1-ln.puffT/1.1f;art.left(art.small,ln.puff,mx+mw*.62f,mid+h*.5f+ln.puffT*20,.7f,c,pa,420);}
+            if(checking){long done=l(p,"checked");float f=ln.count==0?1:Math.min(1,done/(float)ln.count);art.rect(mx,gy-3,mw*f,3,ThinkOrDieArt.ACID,a);}
+            if(k<ps.size()-1)art.rect(80,ry,W-160,1,ThinkOrDieArt.INK,.06f*a);
         }
-        if(checking)art.text(art.big,tr("Проверяем ответы","Checking the answers"),W/2,120,.85f,ThinkOrDieArt.INK,.6f+.4f*MathUtils.sin(clock*5),0);
-        else if(b(t,"hiddenAnswers"))art.text(art.tiny,tr("КАЖДЫЙ ВЕРНЫЙ ОТВЕТ ПОДНИМАЕТ КЛЕТКУ НАД ОГНЁМ  ·  ОТВЕТЫ СКРЫТЫ","EVERY ANSWER HAULS YOUR CAGE AWAY FROM THE FIRE  ·  ANSWERS STAY HIDDEN"),W/2,46,1,ThinkOrDieArt.DIM,.85f,0);
+        if(last5)art.rect(0,0,W,H,FLAT,.05f+.05f*MathUtils.sin(clock*12));
+        if(checking)art.text(art.big,tr("Проверяем ответы","Checking the answers"),W/2,92,.8f,ThinkOrDieArt.INK,.6f+.4f*MathUtils.sin(clock*5),0);
+        else art.text(art.tiny,tr("КАЖДЫЙ ОТВЕТ  —  УДАР СЕРДЦА  ·  ЗАМОЛЧИШЬ  —  ЛИНИЯ ПОГАСНЕТ  ·  ОТВЕТЫ СКРЫТЫ","EVERY ANSWER IS A HEARTBEAT  ·  GO QUIET AND THE LINE GOES FLAT  ·  ANSWERS STAY HIDDEN"),W/2,92,1,ThinkOrDieArt.DIM,.85f,0);
     }
 
     // ---------------------------------------------------------------- DISPUTE

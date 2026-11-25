@@ -65,6 +65,14 @@ final class ThinkOrDieArt implements Disposable {
     // ---------------------------------------------------------------- primitives
     void rect(float x,float y,float w,float h,Color c,float a){batch.setColor(c.r,c.g,c.b,c.a*a);batch.draw(pixel,x,y,w,h);}
     void glow(float cx,float cy,float w,float h,Color c,float a){batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(c.r,c.g,c.b,a);batch.draw(soft,cx-w/2,cy-h/2,w,h);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
+    /** A straight stroke of width w (used for the pulse traces). additive: glows instead of covering. */
+    void line(float x1,float y1,float x2,float y2,float w,Color c,float a,boolean additive){
+        float dx=x2-x1,dy=y2-y1,len=(float)Math.sqrt(dx*dx+dy*dy);if(len<.01f)return;
+        if(additive)batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
+        batch.setColor(c.r,c.g,c.b,c.a*a);
+        batch.draw(pixel,x1,y1-w/2,0,w/2,len,w,1,1,com.badlogic.gdx.math.MathUtils.atan2(dy,dx)*com.badlogic.gdx.math.MathUtils.radiansToDegrees,0,0,1,1,false,false);
+        if(additive)batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
+    }
     void shade(float cx,float cy,float w,float h,float a){batch.setColor(0,0,0,a);batch.draw(soft,cx-w/2,cy-h/2,w,h);}
     /** Editorial card: flat dark fill, hairline bone border, a 2px accent rule on top. No glow. */
     void slab(float x,float y,float w,float h,Color accent,float a){
