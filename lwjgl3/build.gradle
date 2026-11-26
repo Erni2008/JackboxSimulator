@@ -1493,3 +1493,15 @@ tasks.register('thinkOrDieLiveHost', JavaExec) {
     if (System.getProperty('os.name').toLowerCase().contains('mac')) jvmArgs '-XstartOnFirstThread'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
+
+// Dev: renders the lobby's 3D birdcage into phone lobby sprite sheets: ./gradlew :lwjgl3:cageSprites -Pcage.out=/abs/dir
+tasks.register('cageSprites', JavaExec) {
+    group = 'application'
+    dependsOn devClasses
+    classpath = sourceSets.dev.runtimeClasspath
+    mainClass = 'com.erni.finalanswer.lwjgl3.CageSpriteLauncher'
+    workingDir = rootProject.file('assets')
+    if (providers.gradleProperty('cage.out').isPresent()) systemProperty 'cage.out', providers.gradleProperty('cage.out').get()
+    if (System.getProperty('os.name').toLowerCase().contains('mac')) jvmArgs '-XstartOnFirstThread'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
