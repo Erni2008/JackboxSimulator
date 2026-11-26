@@ -121,11 +121,11 @@ public final class TodSetupScreen extends ScreenAdapter {
         for(int i=0;i<3;i++){float k=pick[i],x=x0+i*(cw+gap),y=y0+k*14;cards[i].set(x,y0,cw,ch);boolean ok=allowed(i),hover=cards[i].contains(hoverX,hoverY);
             if(k>.05f)art.glow(x+cw/2,y+ch/2,cw*1.5f,ch*1.3f,GOLD,.22f*k);
             art.panel(x,y,cw,ch,k>.5f?GOLD:hover?new Color(.9f,.7f,.45f,1):BRONZE,ok?1:.5f);
-            scene(i,x+cw/2,y+150,ok?1:.4f);
-            serifText(titles[i],x+cw/2,y+118,.66f,k>.5f?GOLD:IVORY,ok?1:.5f);
-            art.text(art.inter,desc[i][0],x+cw/2,y+66,.58f,IVORY,ok?1:.5f,cw-30);
-            art.text(art.inter,desc[i][1],x+cw/2,y+42,.50f,DIM,ok?1:.5f,cw-30);
-            art.text(art.inter,ok?need[i]:tr("мало игроков","not enough players"),x+cw/2,y+16,.42f,ok?DIM:RED,1,0);
+            scene(i,x+cw/2,y+165,ok?1:.4f);
+            serifText(titles[i],x+cw/2,y+138,.66f,k>.5f?GOLD:IVORY,ok?1:.5f);
+            art.text(art.inter,desc[i][0],x+cw/2,y+86,.58f,IVORY,ok?1:.5f,cw-40);
+            art.text(art.inter,desc[i][1],x+cw/2,y+62,.50f,DIM,ok?1:.5f,cw-40);
+            art.text(art.inter,ok?need[i]:tr("мало игроков","not enough players"),x+cw/2,y+34,.42f,ok?DIM:RED,1,0);
             if(focus==0&&i==format){float p=.5f+.5f*MathUtils.sin(clock*5);art.rect(x+40,y-10,cw-80,2,GOLD,.4f+.5f*p);}}
     }
     /** A small scene on each card: one crowd, two facing characters, two pairs facing each other. */

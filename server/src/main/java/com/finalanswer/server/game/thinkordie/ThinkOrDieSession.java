@@ -197,7 +197,8 @@ public final class ThinkOrDieSession {
     private void settleTurn(long now){
         Sub s=turnSub;Player p=byId.get(s.player);
         String canon=s.verdict.valid()?s.verdict.canonicalId():null;
-        if(s.verdict.status()==ValidationStatus.INVALID){refuse(p,s,"WRONG",s.text,now);return;}
+        // survival accepts only a confirmed answer: wrong, undecided or unchecked in time is refused (the turn goes on)
+        if(!s.verdict.valid()){refuse(p,s,s.verdict.status()==ValidationStatus.INVALID?"WRONG":"UNSURE",s.text,now);return;}
         if(usedKeys.contains(s.key)||canon!=null&&usedCanon.contains(canon)){refuse(p,s,"REPEAT",label(canon,s.text),now);return;}
         usedKeys.add(s.key);if(canon!=null)usedCanon.add(canon);
         p.correct++;p.points+=survival.pointsCorrect();

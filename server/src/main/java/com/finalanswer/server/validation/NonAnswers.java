@@ -20,6 +20,13 @@ final class NonAnswers {
         String letters=k.replaceAll("[^\\p{L}]","");
         if(letters.length()<2)return true;                               // "?", "7", "а"
         if(letters.chars().distinct().count()==1&&letters.length()>=3)return true; // "аааа", "zzz"
+        // keyboard mash, decided at once instead of waiting for the AI: a word of 3+ letters with no vowel ("qwzx", "ткпр"),
+        // or 6+ consonants in a row ("sdfghjk")
+        // (a word typed in capitals is an abbreviation, never mash: SQL, GLSL)
+        java.util.Set<String> caps=new java.util.HashSet<>();for(String w:in.clean().split("[^\\p{L}]+"))if(w.length()>=2&&w.equals(w.toUpperCase(java.util.Locale.ROOT)))caps.add(w.toLowerCase(java.util.Locale.ROOT));
+        for(String w:k.split("[^\\p{L}]+")){if(w.length()<3||caps.contains(w))continue;String lw=w.toLowerCase(java.util.Locale.ROOT);
+            if(!lw.matches(".*[aeiouyаеёиоуыэюяіїєáéíóúäöü].*"))return true;
+            if(lw.matches(".*[bcdfghjklmnpqrstvwxzбвгджзйклмнпрстфхцчшщ]{6,}.*"))return true;}
         return false;
     }
     private static Set<String> load(){

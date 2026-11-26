@@ -430,7 +430,28 @@ public final class TodSurvivalScreen extends ScreenAdapter {
     }
 
     /** Players in their hanging frames; the one whose turn it is hangs a little lower and glows, the eliminated fade. */
+    // ---------------------------------------------------------------- frame reactions and particles
+    private static final class Fx{int lives=-1,correct=-1;boolean out;float born,hitAt=-9,goodAt=-9,outAt=-9;}
+    private final Map<String,Fx> fx=new HashMap<>();
+    /** one pool of particles: 0 heart shard (falls, spins), 1 gold spark (additive), 2 ghost smoke (rises, grows) */
+    private final int PN=220;private final float[] qx=new float[PN],qy=new float[PN],qvx=new float[PN],qvy=new float[PN],ql=new float[PN],qm=new float[PN],qs=new float[PN],qr=new float[PN];private final int[] qt=new int[PN];private int qi;
+    private void emit(int type,float x,float y,float vx,float vy,float life,float size){int k=qi=(qi+1)%PN;qt[k]=type;qx[k]=x;qy[k]=y;qvx[k]=vx;qvy[k]=vy;ql[k]=qm[k]=life;qs[k]=size;qr[k]=MathUtils.random(360);}
+    private void particles(SpriteBatch b){
+        float dt=Math.min(.05f,Gdx.graphics.getDeltaTime());
+        for(int pass=0;pass<2;pass++){if(pass==1)b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
+            for(int k=0;k<PN;k++){if(ql[k]<=0)continue;boolean add=qt[k]==1;if(add!=(pass==1))continue;
+                if(pass==0||add){ql[k]-=dt*(pass==1||!add?1:0)+(pass==0&&!add?0:0);}
+                float a=MathUtils.clamp(ql[k]/qm[k],0,1);
+                switch(qt[k]){
+                    case 0->{qvy[k]-=900*dt;qx[k]+=qvx[k]*dt;qy[k]+=qvy[k]*dt;qr[k]+=qvx[k]*dt*2;b.setColor(.85f,.08f,.10f,a);b.draw(shard,qx[k]-qs[k]/2,qy[k]-qs[k]/2,qs[k]/2,qs[k]/2,qs[k],qs[k]*.7f,1,1,qr[k]);}
+                    case 1->{qvy[k]-=260*dt;qvx[k]*=.97f;qx[k]+=qvx[k]*dt;qy[k]+=qvy[k]*dt;b.setColor(1f,.78f+.2f*a,.35f,a);b.draw(art.soft,qx[k]-qs[k],qy[k]-qs[k],qs[k]*2,qs[k]*2);}
+                    default->{qx[k]+=qvx[k]*dt;qy[k]+=qvy[k]*dt;float g=qs[k]*(1.8f-a);b.setColor(.62f,.48f,.90f,.32f*a);b.draw(art.soft,qx[k]-g,qy[k]-g,g*2,g*2);}
+                }}}
+        b.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);b.setColor(Color.WHITE);
+    }
+    private com.badlogic.gdx.graphics.g2d.TextureRegion shard;
     private void players(SpriteBatch b){
+        if(shard==null)shard=new com.badlogic.gdx.graphics.g2d.TextureRegion(pixel);
         List<JsonObject> ps=players();int n=ps.size();if(n==0)return;
         float cell=Math.min(240,(W-120)/n),left=(W-cell*n)/2;String turn=s(survival(),"turnPlayer");boolean turning=phase().startsWith("TURN");
         int lives=survival().has("lives")?survival().get("lives").getAsInt():3;
@@ -438,8 +459,20 @@ public final class TodSurvivalScreen extends ScreenAdapter {
         for(int i=0;i<n;i++){JsonObject p=ps.get(i);String id=s(p,"id");boolean out=duel?p.has("ghost")&&p.get("ghost").getAsBoolean():p.has("lives")&&p.get("lives").getAsInt()<=0;boolean active=turning&&id.equals(turn);
             int side=duel?sideIndex(id):-1;boolean watching=duel&&side<0&&!phase().equals("FINAL_RESULTS")&&!phase().equals("COMPLETED");
             int k=out?1:new int[]{0,2,3,4}[i%4];Texture ft=frames[k];if(ft==null)continue;float[] g=QuestionPlayers.GEO[k];
-            float cx=left+(i+.5f)*cell,fw=Math.min(212,cell-10)*(active?1.08f:1),fh=fw*ft.getHeight()/ft.getWidth();
-            float plateMid=722-(active?8:0),top=plateMid+fh*(g[2]+g[3])/2,x0=cx-fw/2,hy=top-fh*g[0],hr=fw*g[1];
+            // reactions: drop in on arrival, hop on a correct answer, jolt on a lost life, a long swing when knocked out
+            int lvNow=p.has("lives")?p.get("lives").getAsInt():0,cNow=p.has("correct")?p.get("correct").getAsInt():0;
+            Fx f=fx.computeIfAbsent(id,x->{Fx q=new Fx();q.born=clock+0.08f*fx.size();return q;});
+            boolean lostLife=f.lives>=0&&lvNow<f.lives,gotOne=f.correct>=0&&cNow>f.correct,justOut=out&&!f.out&&f.lives>=0;
+            if(lostLife)f.hitAt=clock;if(gotOne)f.goodAt=clock;if(justOut)f.outAt=clock;
+            float tb=clock-f.born,drop=(1-Interpolation.swingOut.apply(MathUtils.clamp(tb/.8f,0,1)))*300,tg=clock-f.goodAt,th=clock-f.hitAt,to=clock-f.outAt;
+            float dy=drop+(tg<.5f?MathUtils.sin(tg/.5f*MathUtils.PI)*22:0),dx=(th<.5f?MathUtils.sin(th*60)*9*(1-th/.5f):0)+(to<3f?MathUtils.sin(to*7)*26*(float)Math.exp(-to*1.4f):0);
+            float cx=left+(i+.5f)*cell+dx,fw=Math.min(212,cell-10)*(active?1.08f:1),fh=fw*ft.getHeight()/ft.getWidth();
+            float plateMid=722-(active?8:0)+dy,top=plateMid+fh*(g[2]+g[3])/2,x0=cx-fw/2,hy=top-fh*g[0],hr=fw*g[1];
+            if(gotOne)for(int q=0;q<26;q++){float ang=MathUtils.random(360),sp=MathUtils.random(120,380);emit(1,cx+MathUtils.cosDeg(ang)*hr,hy+MathUtils.sinDeg(ang)*hr,MathUtils.cosDeg(ang)*sp,MathUtils.sinDeg(ang)*sp+120,MathUtils.random(.5f,1f),MathUtils.random(3,6));}
+            if(justOut)for(int q=0;q<18;q++)emit(2,cx+MathUtils.random(-hr,hr),hy+MathUtils.random(-hr,hr*.5f),MathUtils.random(-20,20),MathUtils.random(30,80),MathUtils.random(1.6f,2.6f),MathUtils.random(20,40));
+            if(tg<.6f)art.glow(cx,hy,hr*5,hr*5,GOLD,.45f*(1-tg/.6f));
+            if(th<.4f)art.glow(cx,hy,hr*5,hr*5,RED,.45f*(1-th/.4f));
+            if(to<1.2f)art.glow(cx,hy,hr*6,hr*6,new Color(.6f,.35f,1f,1),.5f*(1-to/1.2f));
             float a=out?.55f:watching?.42f:turning&&!active?.66f:1;
             if(side>=0&&!out){Color sc=SIDE[side];art.glow(cx,722+fw*.15f,fw*1.25f,fw*1.25f,sc,.16f);}
             if(active){ // a spotlight from above on the player who answers
@@ -460,8 +493,13 @@ public final class TodSurvivalScreen extends ScreenAdapter {
             // lives in the lower plate: hearts, spent ones dark
             float cTop=top-fh*g[4],cBot=top-fh*g[5];int lv=p.has("lives")?p.get("lives").getAsInt():0;float hs=fw*.040f,step=fw*.105f;
             float hsz=Math.min(cTop-cBot,fw*.13f)*.78f,stp=hsz*1.12f;
-            for(int j=0;j<lives;j++){float hx=cx+(j-(lives-1)/2f)*stp;if(j<lv)b.setColor(1,1,1,a);else b.setColor(.28f,.24f,.24f,.75f*a);b.draw(heartTex,hx-hsz/2,(cTop+cBot)/2-hsz/2,hsz,hsz);}
+            for(int j=0;j<lives;j++){float hx=cx+(j-(lives-1)/2f)*stp,hy2=(cTop+cBot)/2;
+                if(lostLife&&j>=lv&&j<f.lives)for(int q=0;q<12;q++)emit(0,hx,hy2,MathUtils.random(-160,160),MathUtils.random(80,320),MathUtils.random(.7f,1.1f),MathUtils.random(4,8)); // the heart shatters
+                boolean breaking=j>=lv&&th<.25f&&j<lv+1;float hsc=breaking?1+(.25f-th)*2.4f:1;
+                if(j<lv)b.setColor(1,1,1,a);else b.setColor(.28f,.24f,.24f,.75f*a);b.draw(heartTex,hx-hsz*hsc/2,hy2-hsz*hsc/2,hsz*hsc,hsz*hsc);}
+            f.lives=lvNow;f.correct=cNow;f.out=out;
         }
+        particles(b);
         b.setColor(Color.WHITE);
     }
     /** A glossy ruby heart (procedural, 64 px): dark rim, red body lit from the top left, a small highlight. */
