@@ -142,15 +142,24 @@ public class FinalAnswerGame extends Game {
         var snapshot=realtime.snapshot();if(snapshot==null||!snapshot.has("lobbyId"))return;
         realtime.send("START_THINK_OR_DIE",java.util.Map.of("roomCode",activeRoom.code(),"sessionId",snapshot.get("lobbyId").getAsString()));
     }
+    private com.erni.finalanswer.thinkordie.TodSurvivalScreen survivalScreen;
     private void openThinkOrDie(com.google.gson.JsonObject state){
         String session=state.getAsJsonObject("thinkOrDie").get("sessionId").getAsString();
+        if(com.erni.finalanswer.thinkordie.TodSurvivalScreen.isSurvival(state)){ // the standalone mode: survival
+            if(survivalScreen!=null&&survivalScreen.session().equals(session)){survivalScreen.apply(state);if(getScreen()!=survivalScreen)setScreen(survivalScreen);return;}
+            releaseThinkOrDie(false);
+            survivalScreen=new com.erni.finalanswer.thinkordie.TodSurvivalScreen(state,realtime::serverNow,id->{
+                if(realtime!=null&&realtime.connected())realtime.send("END_THINK_OR_DIE",java.util.Map.of("roomCode",activeRoom.code(),"sessionId",id));});
+            setScreen(survivalScreen);return;}
         if(thinkOrDieScreen!=null&&thinkOrDieScreen.session().equals(session)){thinkOrDieScreen.apply(state);if(getScreen()!=thinkOrDieScreen)setScreen(thinkOrDieScreen);return;}
         releaseThinkOrDie(false);
         thinkOrDieScreen=new com.erni.finalanswer.thinkordie.ThinkOrDieScreen(state,realtime::serverNow,id->{
             if(realtime!=null&&realtime.connected())realtime.send("END_THINK_OR_DIE",java.util.Map.of("roomCode",activeRoom.code(),"sessionId",id));});
         setScreen(thinkOrDieScreen);
     }
-    private void releaseThinkOrDie(boolean toLobby){if(thinkOrDieScreen==null)return;var old=thinkOrDieScreen;thinkOrDieScreen=null;if(toLobby)showBalances();else if(getScreen()==old)setScreen(null);old.dispose();}
+    private void releaseThinkOrDie(boolean toLobby){
+        if(survivalScreen!=null){var old=survivalScreen;survivalScreen=null;if(toLobby)showBalances();else if(getScreen()==old)setScreen(null);old.dispose();return;}
+        if(thinkOrDieScreen==null)return;var old=thinkOrDieScreen;thinkOrDieScreen=null;if(toLobby)showBalances();else if(getScreen()==old)setScreen(null);old.dispose();}
     private com.erni.finalanswer.rareminds.RareMindsScreen rareMindsScreen;
     /** Host: start RARE MINDS for every connected player (its rules play on the big screen while phones get ready). */
     public void startRareMinds(){

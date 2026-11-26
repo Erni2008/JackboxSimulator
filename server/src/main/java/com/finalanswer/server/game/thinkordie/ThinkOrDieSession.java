@@ -21,7 +21,8 @@ import java.util.concurrent.CompletableFuture;
  * client gets live text only when {@code hiddenAnswers} is off), and never any verified answer of the category.
  */
 public final class ThinkOrDieSession {
-    public enum Phase {INTRO,CATEGORY_REVEAL,ANSWERING,ANSWER_VALIDATION,DISPUTE,ANSWER_REVEAL,ROUND_RESULTS,FINAL_RESULTS,COMPLETED}
+    /** TURN, TURN_CHECK and TURN_RESULT belong to survival (the standalone mode) */
+    public enum Phase {INTRO,CATEGORY_REVEAL,ANSWERING,ANSWER_VALIDATION,DISPUTE,TURN,TURN_CHECK,TURN_RESULT,ANSWER_REVEAL,ROUND_RESULTS,FINAL_RESULTS,COMPLETED}
     public static final class Failure extends RuntimeException{public final int status;public Failure(int status,String code){super(code);this.status=status;}}
     public static final int MIN_PLAYERS=2,MAX_PLAYERS=8;
     /**
@@ -42,6 +43,8 @@ public final class ThinkOrDieSession {
         public final String id;public final int seat;public boolean ghost;public boolean resurrected;
         public long points;public int correct,unique,incorrect,roundPoints,roundCorrect,roundUnique,roundIncorrect;public boolean roundResurrected;
         long lastSubmit;int roundCount;
+        /** survival: lives left, and the order of elimination (0 = still in) */
+        public int lives,out;
         /** the live counter: accepted non-empty answers of this round without the player's exact own repeats */
         int roundShown;
         Player(String id,int seat,boolean ghost){this.id=id;this.seat=seat;this.ghost=ghost;}
@@ -66,6 +69,8 @@ public final class ThinkOrDieSession {
     public boolean paid;
     /** integrated mode: the rules card is part of this challenge's intro (first appearance in the match) */
     public final boolean rules;
+    /** survival mode settings, or null for the classic simultaneous show / match challenge */
+    public final SurvivalConfig survival;
 
     /**
      * @param ghosts players who start as ghosts (they play normally and can resurrect)
@@ -80,8 +85,109 @@ public final class ThinkOrDieSession {
         if(categories.size()<cfg.rounds())throw new IllegalArgumentException("need "+cfg.rounds()+" categories");
         this.cfg=cfg;this.engine=engine;this.categories=List.copyOf(categories.subList(0,cfg.rounds()));this.lang="ru".equals(lang)?"ru":"en";
         for(int i=0;i<seats.size();i++){Player p=new Player(seats.get(i),i,ghosts.contains(seats.get(i)));players.add(p);byId.put(p.id,p);}
-        this.rules=rules;
+        this.rules=rules;this.survival=null;
         enter(Phase.INTRO,now,cfg.introMs()+(rules?cfg.rulesMs():0));
+    }
+    /**
+     * Survival: players answer one at a time in seat order. Every answer must be new for the category (nobody may repeat
+     * anybody); a wrong answer, a repeat or a timeout costs a life; the turn clock shrinks each lap; a new category comes
+     * every few laps; the last player with lives wins (ghosts are out of this match, they do not answer).
+     */
+    public ThinkOrDieSession(List<String> seats,List<Category> categories,ValidationEngine engine,ThinkOrDieConfig cfg,SurvivalConfig sv,String lang,long now){
+        if(seats.size()<MIN_PLAYERS||seats.size()>MAX_PLAYERS)throw new Failure(409,"TOD_PLAYER_COUNT");
+        if(new HashSet<>(seats).size()!=seats.size())throw new Failure(400,"TOD_INVALID_ROSTER");
+        if(categories.isEmpty())throw new IllegalArgumentException("need categories");
+        this.cfg=cfg;this.engine=engine;this.categories=List.copyOf(categories);this.lang="ru".equals(lang)?"ru":"en";this.rules=true;this.survival=sv;
+        for(int i=0;i<seats.size();i++){Player p=new Player(seats.get(i),i,false);p.lives=sv.lives();players.add(p);byId.put(p.id,p);}
+        enter(Phase.INTRO,now,sv.introMs());
+    }
+    // ---------------------------------------------------------------- survival
+    private int turnSeat=-1,lap,catIndex,outSeq,lapsOnCategory;private String turnPlayer;private long turnMs;
+    private final Set<String> usedKeys=new HashSet<>(),usedCanon=new HashSet<>();
+    private final List<Map<String,Object>> used=new ArrayList<>();
+    private Map<String,Object> lastTurn=Map.of();private Sub turnSub;
+    private List<Player> alive(){List<Player> a=new ArrayList<>();for(Player p:players)if(p.lives>0)a.add(p);return a;}
+    private boolean tickSurvival(long now){
+        boolean changed=false;
+        for(int guard=0;guard<20;guard++){
+            if(phase==Phase.TURN_CHECK&&turnSub!=null&&turnSub.pending!=null&&turnSub.pending.isDone()){
+                Verdict v=turnSub.pending.getNow(null);turnSub.verdict=v==null?Verdict.uncertain(Verdict.Source.FALLBACK):v;settleTurn(now);changed=true;continue;}
+            if(now<phaseEnds)break;
+            long at=phaseEnds;changed=true;
+            switch(phase){
+                case INTRO->{round=1;catIndex=0;enter(Phase.CATEGORY_REVEAL,at,survival.categoryMs());}
+                case CATEGORY_REVEAL->nextTurn(at);
+                case TURN->{turnSub=null;lose(byId.get(turnPlayer),"TIMEOUT",null,null,at);}
+                case TURN_CHECK->{turnSub.verdict=Verdict.uncertain(Verdict.Source.FALLBACK);settleTurn(at);}
+                case TURN_RESULT->{if(alive().size()<=1){finishSurvival(at);}else nextTurn(at);}
+                case FINAL_RESULTS->enter(Phase.COMPLETED,at,-1);
+                default->{return changed;}
+            }
+        }
+        return changed;
+    }
+    /** Next living player; a full lap shortens the clock, and every few laps a new category is revealed first. */
+    private void nextTurn(long now){
+        if(phase==Phase.CATEGORY_REVEAL)turnSeat=nextAlive(turnSeat);
+        else{int nxt=nextAlive(turnSeat);
+            if(nxt<=turnSeat){lap++;lapsOnCategory++; // a full lap: shorter clock, maybe a new category (the next player opens it)
+                if(lapsOnCategory>=survival.lapsPerCategory()){lapsOnCategory=0;catIndex++;round=catIndex+1;usedKeys.clear();usedCanon.clear();used.clear();
+                    lastTurn=Map.of();turnPlayer=null;enter(Phase.CATEGORY_REVEAL,now,survival.categoryMs());return;}}
+            turnSeat=nxt;}
+        turnPlayer=players.get(turnSeat).id;turnMs=survival.turnMs(lap);turnSub=null;
+        enter(Phase.TURN,now,turnMs);
+    }
+    private int nextAlive(int from){int n=players.size();for(int k=1;k<=n;k++){int j=((from+k)%n+n)%n;if(players.get(j).lives>0)return j;}return Math.max(0,from);}
+    private void settleTurn(long now){
+        Sub s=turnSub;Player p=byId.get(s.player);
+        if(s.verdict.status()==ValidationStatus.INVALID){lose(p,"WRONG",s.text,null,now);return;}
+        String canon=s.verdict.valid()?s.verdict.canonicalId():null;
+        if(usedKeys.contains(s.key)||canon!=null&&usedCanon.contains(canon)){lose(p,"REPEAT",s.text,label(canon,s.text),now);return;}
+        usedKeys.add(s.key);if(canon!=null)usedCanon.add(canon);
+        p.correct++;p.points+=survival.pointsCorrect();
+        String lb=label(canon,s.text);Map<String,Object> u=new LinkedHashMap<>();u.put("label",lb);u.put("player",p.id);used.add(u);
+        lastTurn=Map.of("player",p.id,"outcome","CORRECT","text",s.text,"label",lb,"lives",p.lives);
+        enter(Phase.TURN_RESULT,now,survival.resultMs());
+    }
+    private String label(String canon,String text){if(canon==null)return text;Category.Answer a=category().answer(canon);return a==null?text:"ru".equals(lang)?a.labelRu():a.labelEn();}
+    private void lose(Player p,String why,String text,String label,long now){
+        p.lives=Math.max(0,p.lives-1);p.incorrect++;
+        if(p.lives==0){p.ghost=true;p.out=++outSeq;}
+        Map<String,Object> m=new LinkedHashMap<>();m.put("player",p.id);m.put("outcome",why);if(text!=null)m.put("text",text);if(label!=null)m.put("label",label);m.put("lives",p.lives);m.put("eliminated",p.lives==0);
+        lastTurn=m;turnSub=null;
+        enter(Phase.TURN_RESULT,now,survival.resultMs()+(p.lives==0?900:0));
+    }
+    private void finishSurvival(long now){
+        // survivors first, then the latest eliminated; ties by correct answers
+        List<Player> order=new ArrayList<>(players);
+        Comparator<Player> cmp=Comparator.comparingInt((Player p)->p.lives>0?0:1).thenComparingInt(p->-p.out).thenComparingInt(p->-p.correct);
+        order.sort(cmp.thenComparingInt(p->p.seat));
+        List<Standing> out=new ArrayList<>();int rank=0;Player prev=null;
+        for(int i=0;i<order.size();i++){Player p=order.get(i);if(prev==null||cmp.compare(prev,p)!=0)rank=i+1;prev=p;
+            long souls=rank==1?cfg.rewardFirst():rank==2?cfg.rewardSecond():rank==3?cfg.rewardThird():0;
+            out.add(new Standing(p.id,rank,p.points,p.correct,p.unique,p.incorrect,souls,false));}
+        standings=List.copyOf(out);turnPlayer=null;
+        enter(Phase.FINAL_RESULTS,now,survival.finalMs());
+    }
+    private String submitSurvival(Player p,String raw,long now){
+        if(phase!=Phase.TURN)throw new Failure(409,phase==Phase.TURN_CHECK||phase==Phase.TURN_RESULT?"TOD_ANSWERS_CLOSED":"TOD_NOT_OPEN");
+        if(!p.id.equals(turnPlayer))throw new Failure(409,"TOD_NOT_YOUR_TURN");
+        if(now>phaseEnds+cfg.graceMs())throw new Failure(409,"TOD_TOO_LATE");
+        if(raw!=null&&raw.length()>400)throw new Failure(400,"TOD_ANSWER_TOO_LONG");
+        AnswerInput in=AnswerInput.of(raw);
+        if(in==null)throw new Failure(400,raw==null||raw.isBlank()?"TOD_EMPTY_ANSWER":"TOD_ANSWER_TOO_LONG");
+        Category c=category();Verdict v=engine.validate(c,in);
+        Sub s=new Sub("s"+(++subSeq),p.id,in.clean(),in.key(),now,v);turnSub=s;p.lastSubmit=now;liveDirty=true;
+        if(v.status()==ValidationStatus.PENDING){s.pending=engine.judgeLater(c,lang,in);enter(Phase.TURN_CHECK,now,survival.checkMaxMs());}
+        else settleTurn(now);
+        return s.id;
+    }
+    private Map<String,Object> survivalView(){
+        Map<String,Object> m=new LinkedHashMap<>();
+        m.put("lives",survival.lives());m.put("lap",lap+1);m.put("turnMs",turnMs);
+        if(turnPlayer!=null)m.put("turnPlayer",turnPlayer);
+        m.put("used",List.copyOf(used));m.put("last",lastTurn);
+        return m;
     }
 
     public Phase phase(){return phase;}
@@ -89,7 +195,7 @@ public final class ThinkOrDieSession {
     public ThinkOrDieConfig config(){return cfg;}
     public Player player(String id){return byId.get(id);}
     public List<Standing> standings(){return standings;}
-    public Category category(){return round<1?null:categories.get(round-1);}
+    public Category category(){return round<1?null:categories.get((round-1)%categories.size());}
     /** Players who came back to life since the last call (the room flips them to alive exactly once). */
     public List<String> takeRevivals(){List<String> r=new ArrayList<>(revivals);revivals.clear();return r;}
 
@@ -97,6 +203,7 @@ public final class ThinkOrDieSession {
 
     /** Advance time; @return true when the phase changed (the room broadcasts). */
     public boolean tick(long now){
+        if(survival!=null)return tickSurvival(now);
         boolean changed=false;
         if(phase==Phase.ANSWERING||phase==Phase.ANSWER_VALIDATION)resolveLive();
         for(int guard=0;guard<20;guard++){
@@ -252,6 +359,7 @@ public final class ThinkOrDieSession {
         if(!handled.add(member+":"+requestId))return null;
         try{
             tick(now);
+            if(survival!=null)return submitSurvival(p,raw,now);
             if(phase!=Phase.ANSWERING)throw new Failure(409,phase.ordinal()<Phase.ANSWERING.ordinal()?"TOD_NOT_OPEN":"TOD_ANSWERS_CLOSED");
             if(forRound!=round)throw new Failure(409,"TOD_STALE_ROUND");
             if(now>phaseEnds+cfg.graceMs())throw new Failure(409,"TOD_TOO_LATE");
@@ -305,13 +413,14 @@ public final class ThinkOrDieSession {
         boolean validating=phase==Phase.ANSWER_VALIDATION;
         List<Map<String,Object>> ps=new ArrayList<>();
         for(Player p:players){Map<String,Object> m=new LinkedHashMap<>();
-            m.put("id",p.id);m.put("ghost",p.ghost);m.put("resurrected",p.resurrected);m.put("points",p.points);m.put("answers",p.roundShown);
+            m.put("id",p.id);m.put("ghost",p.ghost);if(survival!=null){m.put("lives",p.lives);m.put("out",p.out);}m.put("resurrected",p.resurrected);m.put("points",p.points);m.put("answers",p.roundShown);
             boolean shown=phase.ordinal()>=Phase.ANSWER_REVEAL.ordinal();
             if(shown){m.put("roundPoints",p.roundPoints);m.put("roundCorrect",p.roundCorrect);m.put("roundUnique",p.roundUnique);m.put("roundIncorrect",p.roundIncorrect);m.put("roundResurrected",p.roundResurrected);}
             m.put("correct",p.correct);m.put("unique",p.unique);m.put("incorrect",p.incorrect);
             if(validating){long done=subs.stream().filter(s->s.player.equals(p.id)&&(s.verdict.status()!=ValidationStatus.PENDING||s.pending!=null&&s.pending.isDone())).count();m.put("checked",done);}
             ps.add(m);}
         v.put("players",ps);
+        if(survival!=null){v.put("mode","survival");v.put("survival",survivalView());}
         if(phase==Phase.DISPUTE){List<Map<String,Object>> ds=new ArrayList<>();
             for(Dispute d:disputes){Map<String,Object> m=new LinkedHashMap<>();m.put("id",d.id);m.put("text",d.text);m.put("votes",d.votes.size());m.put("voters",eligible(d).size());
                 if(self!=null){m.put("mine",d.authors.contains(self));if(d.votes.containsKey(self))m.put("myVote",d.votes.get(self));}ds.add(m);}

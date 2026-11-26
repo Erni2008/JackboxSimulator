@@ -180,8 +180,8 @@ public final class QuestionPlayers extends Actor implements Disposable {
     private static final Color PLATE_FILL=new Color(.06f,.03f,.03f,.97f);
     /** Artwork frames (chains, ring, name plate, counter plate). Geometry per frame, fractions of the image, y from the top:
      *  hole centre y, hole radius (of width), name plate top/bottom, counter plate top/bottom. */
-    private static final String[] FRAMES={"tophat","ghost","copper","iron","gold"};
-    private static final float[][] GEO={{.432f,.200f,.668f,.755f,.778f,.878f},{.445f,.179f,.640f,.722f,.750f,.834f},{.430f,.198f,.640f,.744f,.756f,.836f},
+    public static final String[] FRAMES={"tophat","ghost","copper","iron","gold"};
+    public static final float[][] GEO={{.432f,.200f,.668f,.755f,.778f,.878f},{.445f,.179f,.640f,.722f,.750f,.834f},{.430f,.198f,.640f,.744f,.756f,.836f},
         {.427f,.189f,.626f,.722f,.748f,.844f},{.431f,.194f,.632f,.730f,.752f,.838f}};
     private final Texture[] frameTex=new Texture[FRAMES.length];private boolean framesLoaded;
     private Texture frameTex(int k){

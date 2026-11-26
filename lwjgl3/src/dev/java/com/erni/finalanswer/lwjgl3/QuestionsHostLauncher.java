@@ -25,7 +25,7 @@ public final class QuestionsHostLauncher {
                 var rt=getRealtime();if(started||rt==null||!rt.connected()||rt.snapshot()==null)return;var state=rt.snapshot();
                 if(!state.get("phase").getAsString().equals("LOBBY"))return;
                 var players=state.getAsJsonArray("players");if(players.size()<2)return;
-                if(players.asList().stream().allMatch(e->"ONLINE".equals(e.getAsJsonObject().get("connectionStatus").getAsString()))){started=true;rt.send("START_GAME",Map.of());}
+                if(players.asList().stream().allMatch(e->"ONLINE".equals(e.getAsJsonObject().get("connectionStatus").getAsString()))){started=true;if("survival".equals(System.getProperty("q.mode")))startThinkOrDie();else rt.send("START_GAME",Map.of());} // -Pq.mode=survival: standalone THINK OR DIE
             }
             void grab(String file){var g=com.badlogic.gdx.Gdx.graphics;var full=com.badlogic.gdx.utils.ScreenUtils.getFrameBufferPixmap(0,0,g.getBackBufferWidth(),g.getBackBufferHeight());
                 var small=new com.badlogic.gdx.graphics.Pixmap(640,360,com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);

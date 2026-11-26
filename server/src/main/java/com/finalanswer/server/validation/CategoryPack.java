@@ -28,6 +28,8 @@ public final class CategoryPack {
     }
     public int contentVersion(){return contentVersion;}
     public List<Entry> entries(){return entries;}
+    /** how many categories can be played in {@code lang} */
+    public int size(String lang){int n=0;for(Entry e:entries)if(e.langs().contains(lang))n++;return n;}
     public Category get(String id){for(Entry e:entries)if(e.category().id().equals(id))return e.category();return null;}
 
     /** {@code count} distinct categories playable in {@code lang}, no two from the same group in a row when possible. */

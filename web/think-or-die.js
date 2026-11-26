@@ -59,11 +59,14 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
   }
 
   function submit(){
-    const m=mini();if(!m||m.phase!=='ANSWERING'||!isAuthenticated())return;
+    const m=mini();if(!m||!isAuthenticated())return;
+    const surv=m.mode==='survival';
+    if(surv?!(m.phase==='TURN'&&m.survival?.turnPlayer===getState()?.selfId):m.phase!=='ANSWERING')return;
     const text=els.input.value.replace(/\s+/g,' ').trim();
     if(!text){els.input.focus();return;}
     if(performance.now()-lastSendAt<260)return; // the server's anti-spam floor
     lastSendAt=performance.now();
+    if(surv){const requestId=makeId();lastSendAt=performance.now();send('TOD_SUBMIT',{sessionId:m.sessionId,round:m.round,text},requestId);els.input.value='';navigator.vibrate?.(12);return;}
     if(held&&held.text===text)return; // still checking this exact answer
     const requestId=makeId(),have=(m.me?.history||[]).filter(h=>h.text===text).length;held={text,n:(m.me?.history||[]).length,round:m.round};
     outbox.push({requestId,text,have,round:m.round});
@@ -73,7 +76,7 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
   function event(e){
     if(e.type!=='THINK_OR_DIE_REJECTED')return;
     const code=e.payload?.code||'';outbox=outbox.filter(o=>o.requestId!==e.requestId);held=null;
-    error={TOD_TOO_LATE:T('Время вышло','Time is up'),TOD_ANSWERS_CLOSED:T('Приём ответов закрыт','Answers are closed'),TOD_EMPTY_ANSWER:'',TOD_ANSWER_TOO_LONG:T('До 40 знаков','40 characters max'),
+    error={TOD_TOO_LATE:T('Время вышло','Time is up'),TOD_NOT_YOUR_TURN:T('Сейчас не твой ход','It is not your turn'),TOD_ANSWERS_CLOSED:T('Приём ответов закрыт','Answers are closed'),TOD_EMPTY_ANSWER:'',TOD_ANSWER_TOO_LONG:T('До 40 знаков','40 characters max'),
       TOD_TOO_FAST:T('Чуть медленнее','A little slower'),TOD_TOO_MANY_ANSWERS:T('Лимит ответов в раунде','Answer limit for this round'),RATE_LIMITED:T('Чуть медленнее','A little slower'),TOD_OWN_ANSWER:T('За свой ответ голосовать нельзя','You cannot vote on your own answer')}[code]??T('Не отправлено','Not sent');
     errorAt=performance.now();render();
   }
@@ -85,12 +88,13 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
   function render(){
     build();const m=mini();if(!m)return;
     if(m.sessionId!==session){reset();session=m.sessionId;}
+    if(m.mode==='survival'){renderSurvival(m);return;}
     if(m.round!==round){round=m.round;outbox=[];held=null;error='';els.input.value='';}
     const hist=m.me?.history||[];
     outbox=outbox.filter(o=>o.round===m.round&&hist.filter(h=>h.text===o.text).length<=o.have);
     const p=me(),ph=m.phase,ghost=!!p.ghost;
     const match=!!m.integrated;
-    root.dataset.phase=ph;root.dataset.ghost=String(ghost);root.dataset.mode=match?'match':'show';
+    root.dataset.phase=ph;root.dataset.ghost=String(ghost);root.dataset.mode=match?'match':'show';root.dataset.survival='';
     els.round.textContent=match?T('ИСПЫТАНИЕ','CHALLENGE'):m.round?`${T('РАУНД','ROUND')} ${m.round} / ${m.rounds}`:'';
     els.eyebrow.textContent=ph==='INTRO'?T('ПРИГОТОВЬСЯ','GET READY'):ph==='CATEGORY_REVEAL'?T('КАТЕГОРИЯ','THE CATEGORY'):T('НАЗОВИ','NAME IT');
     els.cat.textContent=m.textEn?T(m.textRu,m.textEn):T('Думай быстро. Или умри.','Think fast. Or die.');
@@ -133,6 +137,49 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
     if(lastPhase!==ph){lastPhase=ph;if(answering){navigator.vibrate?.([30,60,30]);setTimeout(()=>els.input.focus(),40);}}
     if(!raf)tick();
   }
+  /** Survival: one player answers at a time. Only that phone gets the field; everyone sees whose turn it is, the last
+   *  verdict, their own lives and the answers already used in this category. */
+  let survTurnKey='';
+  function renderSurvival(m){
+    const sv=m.survival||{},ph=m.phase,self=getState()?.selfId,mine=sv.turnPlayer===self&&ph==='TURN';
+    const roster=getState()?.players||[],nameOf=id=>(roster.find(p=>p.id===id)||{}).name||'?';
+    const p=me(),lives=p.lives??0,max=sv.lives||3,out=lives<=0;
+    root.dataset.phase=ph;root.dataset.ghost=String(out);root.dataset.mode='match';root.dataset.survival='1';
+    els.round.textContent=T('ВЫЖИВАНИЕ','SURVIVAL')+' · '+'♥'.repeat(Math.max(0,lives))+'♡'.repeat(Math.max(0,max-lives));
+    els.eyebrow.textContent=mine?T('ТВОЙ ХОД!','YOUR TURN!'):ph==='INTRO'?T('ПРИГОТОВЬСЯ','GET READY'):T('КАТЕГОРИЯ','THE CATEGORY');
+    els.cat.textContent=m.textEn?T(m.textRu,m.textEn):T('Отвечай по очереди. Не умри.','Answer in turn. Do not die.');
+    els.intro.hidden=ph!=='INTRO';
+    if(ph==='INTRO'){els.rule1.textContent=T(`Отвечайте по очереди: назови новый верный ответ, пока горит фитиль.`,`Take turns: name a new correct answer before the fuse burns out.`);
+      els.pts.innerHTML=T(`Ошибка, повтор или конец времени: <b class="r">минус жизнь</b>. У тебя ${max} жизни. Время хода сокращается. Последний выживший побеждает.`,`A wrong answer, a repeat or running out of time: <b class="r">one life lost</b>. You have ${max} lives. Turns get shorter. The last survivor wins.`);}
+    els.form.hidden=!mine;els.send.disabled=!isAuthenticated();
+    els.ghost.hidden=!out||['FINAL_RESULTS','COMPLETED'].includes(ph);
+    if(out)els.ghost.textContent=T('ТЫ ВЫБЫЛ · смотри, кто выживет','YOU ARE OUT · watch who survives');
+    els.vote.hidden=true;
+    // whose turn / the last verdict
+    let info='';const last=sv.last||{};
+    if(ph==='TURN'&&!mine)info=`<b>${esc(nameOf(sv.turnPlayer))}</b> ${T('отвечает…','is answering…')}`;
+    else if(ph==='TURN_CHECK')info=`<b>${T('ПРОВЕРЯЕМ…','CHECKING…')}</b>`;
+    else if(ph==='TURN_RESULT'){const who=esc(nameOf(last.player)),what=esc(last.label||last.text||'');
+      info=last.outcome==='CORRECT'?`<b class="ok">${what}</b> ✓`:last.outcome==='TIMEOUT'?`${who}: <b class="bad">${T('время вышло','time is up')}</b>`:`${who}: <b class="bad">${what}</b> · ${last.outcome==='REPEAT'?T('уже было','already said'):T('неверно','wrong')}`;
+      if(last.eliminated)info+=`<br><b class="bad">${who} ${T('выбывает','is out')}</b>`;
+      if(last.player===self&&last.outcome!=='CORRECT')navigator.vibrate?.([60,40,60]);}
+    else if(ph==='CATEGORY_REVEAL')info=T('Новая категория','A new category');
+    els.count.hidden=!info||mine;if(!els.count.hidden)els.count.innerHTML=info;
+    // answers already used in this category
+    const used=[...(sv.used||[])].reverse();const key=JSON.stringify(used)+ph;
+    if(key!==lastKey){lastKey=key;els.list.innerHTML=used.map(u=>`<li class="s-ok"><span>${esc(u.label)}</span><em>${esc(nameOf(u.player))}</em></li>`).join('');}
+    els.list.hidden=!used.length||ph==='INTRO'||ph==='FINAL_RESULTS'||ph==='COMPLETED';
+    // final standings
+    const fin=ph==='FINAL_RESULTS'||ph==='COMPLETED';
+    if(fin){const st=(m.standings||[]).find(s=>s.playerId===self);els.result.hidden=!st;
+      if(st)els.result.innerHTML=`<p class="tod-eyebrow">${T('ИТОГ','FINAL')}</p><p class="tod-rank">#${st.rank}</p><p class="tod-stats">${st.correct} ${T('верных ответов','correct answers')}</p>${st.souls?`<p class="tod-souls">+${Number(st.souls).toLocaleString()} ${T('душ','souls')}</p>`:''}${st.rank===1?`<p class="tod-tag gold">${T('ТЫ ВЫЖИЛ!','YOU SURVIVED!')}</p>`:''}`;}
+    else els.result.hidden=true;
+    els.look.hidden=!(fin||ph==='INTRO'||ph==='CATEGORY_REVEAL');
+    paintHint();
+    const tk=ph+':'+sv.turnPlayer+':'+m.phaseStartedAt;
+    if(tk!==survTurnKey){survTurnKey=tk;if(mine){navigator.vibrate?.([30,60,30]);els.input.value='';setTimeout(()=>els.input.focus(),40);}}
+    if(!raf)tick();
+  }
   function renderVote(m){
     if(m.phase!=='DISPUTE'){els.vote.hidden=true;return;}
     els.vote.hidden=false;
@@ -156,12 +203,12 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
   }
   function tick(){
     const m=mini();if(!m||!root||root.hidden){raf=0;return;}
-    const timed=['ANSWERING','CATEGORY_REVEAL','DISPUTE'].includes(m.phase);
+    const timed=['ANSWERING','CATEGORY_REVEAL','DISPUTE','TURN'].includes(m.phase);
     const left=m.phaseEndsAt>0?Math.max(0,m.phaseEndsAt-now()):0,s=timed?Math.ceil(left/1000):0;
     if(els.clock.textContent!==String(timed?s:'·'))els.clock.textContent=timed?String(s):'·';
-    const total=m.phase==='ANSWERING'?m.answerMs:Math.max(1,m.phaseEndsAt-m.phaseStartedAt);
+    const total=m.phase==='ANSWERING'?m.answerMs:m.phase==='TURN'?(m.survival?.turnMs||10000):Math.max(1,m.phaseEndsAt-m.phaseStartedAt);
     root.style.setProperty('--tod-left',String(timed?Math.min(1,left/total):0));
-    root.dataset.hurry=String(m.phase==='ANSWERING'&&left<5000);
+    root.dataset.hurry=String(m.phase==='ANSWERING'&&left<5000||m.phase==='TURN'&&left<3000);
     if(error&&performance.now()-errorAt>2600){error='';paintHint();}
     raf=requestAnimationFrame(tick);
   }

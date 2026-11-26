@@ -111,3 +111,8 @@
 body[data-view="tod"] .souls-chip{display:none}
 #tod-screen .tod-list li.s-bad span{text-decoration:line-through;text-decoration-color:#ff2a4d;opacity:.75}
 #tod-screen .tod-list li.s-dup span{opacity:.6}
+
+/* survival: verdict colours in the turn line */
+#tod-screen .tod-count b.ok{color:#7be38a}
+#tod-screen .tod-count b.bad{color:#ff5a5f}
+#tod-screen[data-survival="1"] .tod-count{font-size:1.15rem;line-height:1.45}

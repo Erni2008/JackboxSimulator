@@ -663,15 +663,21 @@ public final class RoomService {
                 List<Member> seated=room.members.values().stream().filter(m->m.peer!=null&&!m.left).toList();
                 Set<String> ghosts=new HashSet<>();for(Member m:seated)if(!m.alive)ghosts.add(m.id);
                 var cfg=com.finalanswer.server.game.thinkordie.ThinkOrDieConfig.DEFAULT;
-                var cats=com.finalanswer.server.validation.CategoryPack.load().draw(cfg.rounds(),room.language,random);
-                room.thinkOrDie=new com.finalanswer.server.game.thinkordie.ThinkOrDieSession(seated.stream().map(m->m.id).toList(),ghosts,cats,validationEngine(),cfg,room.language,now());room.thinkOrDieDoneAt=0;
+                // the standalone mode is survival: turns, a shrinking clock, lives (every seated player starts alive)
+                var pack=com.finalanswer.server.validation.CategoryPack.load();int want=Math.min(12,pack.size(room.language));
+                var cats=pack.draw(want,room.language,random);
+                String forced=Boolean.getBoolean("race.qa")?System.getProperty("thinkordie.integrated.category",""):"";
+                if(!forced.isEmpty()&&pack.get(forced)!=null){var l=new ArrayList<>(cats);l.add(0,pack.get(forced));cats=l;}
+                String lang=Boolean.getBoolean("race.qa")&&!System.getProperty("thinkordie.integrated.lang","").isEmpty()?System.getProperty("thinkordie.integrated.lang"):room.language;
+                room.thinkOrDie=new com.finalanswer.server.game.thinkordie.ThinkOrDieSession(seated.stream().map(m->m.id).toList(),cats,validationEngine(),cfg,com.finalanswer.server.game.thinkordie.SurvivalConfig.DEFAULT,lang,now());room.thinkOrDieDoneAt=0;
                 System.out.println("[think-or-die] start room="+room.code+" seats="+seated.size()+" ghosts="+ghosts.size());
                 broadcast(room,"THINK_OR_DIE_STARTED");
             }
             case "END_THINK_OR_DIE"->{requireHost(member);requireThinkOrDie(room,data);if(room.thinkOrDie==null)throw new Failure(409,"STALE_TOD_SESSION");endThinkOrDie(room);}
             case "TOD_SUBMIT"->{requireThinkOrDie(room,data);if(member.host)throw new Failure(403,"TOD_NOT_A_PLAYER");
                 String id=tod(room).submit(member.id,message.requestId(),intField(data,"round"),Protocol.string(data,"text"),now());
-                if(id!=null)pushThinkOrDie(room,member);else reply(peer,room,member,message);}
+                if(id!=null&&tod(room).survival!=null)broadcast(room,"THINK_OR_DIE_UPDATED"); // survival: the whole room sees the turn
+                else if(id!=null)pushThinkOrDie(room,member);else reply(peer,room,member,message);}
             case "TOD_VOTE"->{requireThinkOrDie(room,data);if(member.host)throw new Failure(403,"TOD_NOT_A_PLAYER");
                 tod(room).vote(member.id,Protocol.string(data,"disputeId"),data.has("accept")&&data.get("accept").getAsBoolean(),now());
                 broadcast(room,"THINK_OR_DIE_UPDATED");}
