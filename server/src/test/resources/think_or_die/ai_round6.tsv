@@ -1,0 +1,157 @@
+# category	lang	answer	expected — round 6: typos, transliteration, lower case, slang (written before tuning)
+movie_genres	en	horor	1
+movie_genres	en	komediya	1
+movie_genres	en	triler	1
+movie_genres	en	drama film	1
+movie_genres	en	sci fi	1
+movie_genres	en	scifi	1
+movie_genres	en	romcom	1
+movie_genres	en	fantasi	1
+movie_genres	ru	мюзикал	1
+movie_genres	ru	комедия ужасов	1
+movie_genres	ru	боевичок	1
+movie_genres	ru	дорама	1
+movie_genres	ru	аниме фильм	1
+movie_genres	ru	черная комедия	1
+movie_genres	en	pizzza	0
+movie_genres	en	kinoteatr	0
+movie_genres	en	popkorn	0
+movie_genres	en	bilet	0
+movie_genres	ru	актер	0
+movie_genres	ru	кино зал	0
+movie_genres	ru	асдф	0
+movie_genres	en	qwerty	0
+movie_genres	en	ghjkl	0
+batman_villains	en	jocker	1
+batman_villains	en	harly quinn	1
+batman_villains	en	pinguin	1
+batman_villains	en	riddlr	1
+batman_villains	en	scarcrow	1
+batman_villains	ru	джокир	1
+batman_villains	ru	пингвин освальд	1
+batman_villains	ru	загадочник риддлер	1
+batman_villains	en	ra s al ghul	1
+batman_villains	en	catwomen	1
+batman_villains	en	spiderman	0
+batman_villains	en	batman	0
+batman_villains	ru	бэтмен	0
+batman_villains	ru	флеш	0
+disney_princesses	en	sinderella	1
+disney_princesses	en	rapunsel	1
+disney_princesses	en	mullan	1
+disney_princesses	en	jasmin	1
+disney_princesses	ru	белосніжка	1
+disney_princesses	ru	рапунцэль	1
+disney_princesses	ru	бель	1
+disney_princesses	en	barbi	0
+disney_princesses	en	dasha	0
+disney_princesses	en	hermiona	0
+disney_princesses	ru	даша путешественница	0
+disney_princesses	ru	маша и медведь	0
+disney_princesses	en	winx	0
+programming_languages	en	pyton	1
+programming_languages	en	javascrypt	1
+programming_languages	en	c plus plus	1
+programming_languages	en	c sharp	1
+programming_languages	en	golang	1
+programming_languages	ru	паскаль абц	1
+programming_languages	ru	пхп	1
+programming_languages	en	excell	0
+programming_languages	en	wordpad	0
+programming_languages	en	windows 10	0
+programming_languages	en	google chrome	0
+programming_languages	ru	гугл	0
+programming_languages	ru	телеграм	0
+programming_languages	ru	ютуб	0
+chemical_elements	en	oxigen	1
+chemical_elements	en	hidrogen	1
+chemical_elements	en	alluminium	1
+chemical_elements	ru	алюминий	1
+chemical_elements	en	vodka	0
+chemical_elements	en	wather	0
+chemical_elements	en	stell	0
+chemical_elements	ru	водичка	0
+chemical_elements	ru	пластмасса	0
+in_kitchen	en	frypan	1
+in_kitchen	en	microwave oven	1
+in_kitchen	en	kettel	1
+in_kitchen	en	blendr	1
+in_kitchen	en	toster	1
+in_kitchen	ru	кастрюлька	1
+in_kitchen	en	krovat	0
+in_kitchen	en	divan	0
+in_kitchen	en	unitaz	0
+in_kitchen	en	shampun	0
+in_kitchen	ru	машина	0
+in_kitchen	ru	носок	0
+in_kitchen	ru	кот	0
+in_bathroom	en	tooth brush	1
+in_bathroom	en	tooth paste	1
+in_bathroom	en	shampo	1
+in_bathroom	en	soap bar	1
+in_bathroom	en	towl	1
+in_bathroom	en	razer	1
+in_bathroom	ru	зубная щетка	1
+in_bathroom	ru	душевая лейка	1
+in_bathroom	en	holodilnik	0
+in_bathroom	en	skovoroda	0
+in_bathroom	en	divan	0
+in_bathroom	ru	пицца	0
+winter_things	en	skating	1
+winter_things	en	sledging	1
+winter_things	en	snow boarding	1
+winter_things	en	hokey	1
+winter_things	ru	снеговик	1
+winter_things	ru	катание на коньках	1
+winter_things	ru	фигурка	1
+winter_things	en	plavanie	0
+winter_things	en	serfing	0
+winter_things	en	plyazh	0
+winter_things	ru	серфинг	0
+ocean_things	en	sharc	1
+ocean_things	en	dolfin	1
+ocean_things	en	octopuss	1
+ocean_things	en	jelly fish	1
+ocean_things	ru	морской котик	1
+ocean_things	ru	мурена	1
+ocean_things	ru	морской огурец	1
+ocean_things	en	lyagushka	0
+ocean_things	en	karp	0
+ocean_things	en	shchuka	0
+produces_light	en	flash light	1
+produces_light	en	candel	1
+produces_light	ru	свечка	1
+produces_light	ru	костер	1
+produces_light	ru	экран	1
+produces_light	ru	светодиод	1
+produces_light	en	luna	0
+produces_light	en	zerkalo	0
+produces_light	en	okno	0
+pump_bottle	en	sanitizer	1
+pump_bottle	en	kamen	0
+pump_bottle	en	kirpich	0
+pump_bottle	en	yabloko	0
+track_and_field	en	sprint	1
+track_and_field	ru	спринт	1
+track_and_field	ru	прыжки с шестом	1
+track_and_field	ru	бег с барьерами	1
+track_and_field	en	plavanie	0
+track_and_field	en	boks	0
+track_and_field	en	futbol	0
+track_and_field	ru	лыжи	0
+ruin_first_date	en	late	1
+ruin_first_date	en	bad smell	1
+ruin_first_date	en	phone	1
+ruin_first_date	en	ex girlfriend	1
+ruin_first_date	en	rude	1
+ruin_first_date	ru	опоздал	1
+ruin_first_date	ru	запах	1
+ruin_first_date	ru	телефон	1
+ruin_first_date	ru	бывшая	1
+ruin_first_date	ru	хамство	1
+ruin_first_date	ru	пьяный	1
+ruin_first_date	ru	скучно	1
+ruin_first_date	ru	молчание	1
+ruin_first_date	en	treugolnik	0
+ruin_first_date	en	matematika	0
+ruin_first_date	en	asdfgh	0

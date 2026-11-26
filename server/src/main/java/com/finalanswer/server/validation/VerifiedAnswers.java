@@ -12,7 +12,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * match exactly, and the closest answer must be strictly closer than every other answer and every known wrong answer.
  */
 public final class VerifiedAnswers {
-    private record Index(Map<String,String> alias,Set<String> invalid){}
+    /** sound: sound key -> answer id ("" when two answers share the sound); soundInvalid: sound keys of known wrong answers */
+    private record Index(Map<String,String> alias,Set<String> invalid,Map<String,String> sound,Set<String> soundInvalid){}
     private final Map<String,Index> cache=new ConcurrentHashMap<>();
 
     private Index index(Category c){return cache.computeIfAbsent(c.id()+"#"+c.version(),k->build(c));}
@@ -26,14 +27,26 @@ public final class VerifiedAnswers {
         }
         Set<String> bad=new HashSet<>();
         for(String s:c.knownInvalid()){String k=AnswerInput.key(s);if(m.containsKey(k))throw new IllegalArgumentException(c.id()+": '"+s+"' is both valid and known invalid");bad.add(k);}
-        return new Index(Map.copyOf(m),Set.copyOf(bad));
+        Map<String,String> snd=new HashMap<>();for(var e:m.entrySet()){String k=Phonetic.sound(e.getKey());if(k.length()<3)continue;String prev=snd.putIfAbsent(k,e.getValue());if(prev!=null&&!prev.equals(e.getValue()))snd.put(k,"");}
+        Set<String> sbad=new HashSet<>();for(String b:bad){String k=Phonetic.sound(b);if(k.length()>=3&&!snd.containsKey(k))sbad.add(k);}
+        return new Index(Map.copyOf(m),Set.copyOf(bad),Map.copyOf(snd),Set.copyOf(sbad));
     }
 
     /** Validates the whole category data (throws on conflicts); used by the loader and the content builder. */
     public static void check(Category c){build(c);}
 
-    public ValidationStep knownInvalid(){return (c,in)->index(c).invalid.contains(in.key())?Verdict.invalid(Verdict.Source.KNOWN_INVALID):null;}
-    public ValidationStep exact(){return (c,in)->{String id=index(c).alias.get(in.key());return id==null?null:Verdict.valid(id,Verdict.Source.VERIFIED);};}
+    public ValidationStep knownInvalid(){return (c,in)->{Index ix=index(c);String k=in.key(),cy=Phonetic.cyrillic(k);
+        return ix.invalid.contains(k)||cy!=null&&ix.invalid.contains(cy)||ix.soundInvalid().contains(Phonetic.sound(k))?Verdict.invalid(Verdict.Source.KNOWN_INVALID):null;};}
+    public ValidationStep exact(){return (c,in)->{Index ix=index(c);String k=in.key(),id=ix.alias.get(k);
+        if(id==null){String cy=Phonetic.cyrillic(k);if(cy!=null)id=ix.alias.get(cy);}
+        return id==null?null:Verdict.valid(id,Verdict.Source.VERIFIED);};}
+    /** Sound-alike match on the verified answers ("dolfin", "sinderella", "triler", "towl", "shchuka"); a sound shared by two answers or a wrong one decides nothing. */
+    public ValidationStep sound(){return (c,in)->{Index ix=index(c);String k=in.key();if(k.replace(" ","").length()<3)return null;
+        String cy=Phonetic.cyrillic(k);
+        for(String cand:cy==null?new String[]{k}:new String[]{k,cy}){String sk=Phonetic.sound(cand);if(sk.length()<3)continue;
+            if(ix.soundInvalid().contains(sk))return null;
+            String id=ix.sound().get(sk);if(id!=null&&!id.isEmpty())return Verdict.corrected(id);}
+        return null;};}
     public ValidationStep typo(){return (c,in)->{
         String key=in.key();if(key.length()<5)return null;
         int tol=key.length()>=9?2:1;

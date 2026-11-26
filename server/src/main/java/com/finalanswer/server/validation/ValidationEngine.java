@@ -28,7 +28,7 @@ public final class ValidationEngine implements AutoCloseable {
 
     public ValidationEngine(WordDictionary dictionary,ValidationCache cache,AiJudge ai){
         verified=new VerifiedAnswers();this.cache=cache==null?ValidationCache.NONE:cache;this.ai=ai;
-        steps=List.of(verified.knownInvalid(),verified.exact(),NonAnswers.STEP,RuleSteps.words(dictionary),RuleSteps.numbers(),verified.typo(),this::cached);
+        steps=List.of(verified.knownInvalid(),verified.exact(),NonAnswers.STEP,RuleSteps.words(dictionary),RuleSteps.numbers(),verified.typo(),verified.sound(),this::cached);
         worker=ai==null?null:Executors.newSingleThreadScheduledExecutor(r->{Thread t=new Thread(r,"validation-ai");t.setDaemon(true);return t;});
     }
     /** Deterministic engine without AI or cache (tests, tools). */
