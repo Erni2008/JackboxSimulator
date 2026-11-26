@@ -20,7 +20,7 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
   function build(){
     if(built)return;built=true;root=document.getElementById('tod-screen');
     root.innerHTML=`
-      <header class="tod-top"><p class="tod-brand">THINK <span>OR</span> <i>DIE</i></p><p class="tod-round" data-k="round"></p>
+      <header class="tod-top"><p class="tod-brand"><img src="/ui/tod/logo.webp" alt="THINK OR DIE"></p><p class="tod-round" data-k="round"></p>
         <div class="tod-clock" aria-hidden="true"><b data-k="clock">30</b></div></header>
       <div class="tod-bar" aria-hidden="true"><i></i></div>
       <p class="tod-ghost" data-k="ghost" hidden></p>
@@ -33,6 +33,12 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
         <li>${T('Призрак оживает: пять верных ответов за раунд, и все только твои.','A ghost comes back: five correct answers in one round, all of them yours alone.')}</li></ol>
         <p class="tod-pts" data-k="pts"></p>
       </div>
+      <section class="tod-surv" data-k="surv" hidden>
+        <div class="tod-turn" data-k="turn"></div>
+        <div class="tod-fuse" aria-hidden="true"><i></i><b></b></div>
+        <div class="tod-verdict" data-k="verdict" aria-live="polite"></div>
+        <ul class="tod-lives" data-k="lives"></ul>
+      </section>
       <form class="tod-form" data-k="form" autocomplete="off" hidden>
         <input data-k="input" type="text" inputmode="text" autocomplete="off" autocapitalize="sentences" autocorrect="off" spellcheck="false" maxlength="40" enterkeyhint="send" aria-label="${T('Ответ','Answer')}" placeholder="${T('Пиши и жми Enter…','Type and press Enter…')}">
         <button type="submit" class="tod-send" data-k="send" data-native-button aria-label="${T('Отправить','Send')}">${T('ОТПРАВИТЬ','SEND')}</button>
@@ -94,7 +100,7 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
     outbox=outbox.filter(o=>o.round===m.round&&hist.filter(h=>h.text===o.text).length<=o.have);
     const p=me(),ph=m.phase,ghost=!!p.ghost;
     const match=!!m.integrated;
-    root.dataset.phase=ph;root.dataset.ghost=String(ghost);root.dataset.mode=match?'match':'show';root.dataset.survival='';
+    root.dataset.phase=ph;root.dataset.ghost=String(ghost);root.dataset.mode=match?'match':'show';root.dataset.survival='';if(els.surv)els.surv.hidden=true;
     els.round.textContent=match?T('ИСПЫТАНИЕ','CHALLENGE'):m.round?`${T('РАУНД','ROUND')} ${m.round} / ${m.rounds}`:'';
     els.eyebrow.textContent=ph==='INTRO'?T('ПРИГОТОВЬСЯ','GET READY'):ph==='CATEGORY_REVEAL'?T('КАТЕГОРИЯ','THE CATEGORY'):T('НАЗОВИ','NAME IT');
     els.cat.textContent=m.textEn?T(m.textRu,m.textEn):T('Думай быстро. Или умри.','Think fast. Or die.');
@@ -145,12 +151,36 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
     const roster=getState()?.players||[],nameOf=id=>(roster.find(p=>p.id===id)||{}).name||'?';
     const p=me(),lives=p.lives??0,max=sv.lives||3,out=lives<=0;
     root.dataset.phase=ph;root.dataset.ghost=String(out);root.dataset.mode='match';root.dataset.survival='1';
-    els.round.textContent=T('ВЫЖИВАНИЕ','SURVIVAL')+' · '+'♥'.repeat(Math.max(0,lives))+'♡'.repeat(Math.max(0,max-lives));
+    els.round.textContent=T('ВЫЖИВАНИЕ','SURVIVAL');
     els.eyebrow.textContent=mine?T('ТВОЙ ХОД!','YOUR TURN!'):ph==='INTRO'?T('ПРИГОТОВЬСЯ','GET READY'):T('КАТЕГОРИЯ','THE CATEGORY');
     els.cat.textContent=m.textEn?T(m.textRu,m.textEn):T('Отвечай по очереди. Не умри.','Answer in turn. Do not die.');
     els.intro.hidden=ph!=='INTRO';
-    if(ph==='INTRO'){els.rule1.textContent=T(`Отвечайте по очереди: назови новый верный ответ, пока горит фитиль.`,`Take turns: name a new correct answer before the fuse burns out.`);
-      els.pts.innerHTML=T(`Ошибка, повтор или конец времени: <b class="r">минус жизнь</b>. У тебя ${max} жизни. Время хода сокращается. Последний выживший побеждает.`,`A wrong answer, a repeat or running out of time: <b class="r">one life lost</b>. You have ${max} lives. Turns get shorter. The last survivor wins.`);}
+    if(ph==='INTRO'){const li=els.intro.querySelectorAll('li');const rules=[
+        T('Отвечайте по очереди: назови новый верный ответ, пока горит фитиль.','Take turns: name a new correct answer before the fuse burns out.'),
+        T('Нельзя повторять ни свои, ни чужие ответы.','No repeats: not yours and not anybody else\'s.'),
+        T(`Ошибка, повтор или конец времени отнимают жизнь. У каждого ${max} жизни.`,`A wrong answer, a repeat or running out of time costs a life. Everyone has ${max}.`),
+        T('Время хода сокращается. Последний выживший забирает души.','Turns get shorter. The last survivor takes the souls.')];
+      li.forEach((x,i)=>{x.textContent=rules[i]||'';});els.pts.innerHTML='';}
+    // the survival panel: who is answering, the fuse, the last verdict, everybody's lives
+    els.surv.hidden=!['TURN','TURN_CHECK','TURN_RESULT','CATEGORY_REVEAL'].includes(ph);
+    const charOf=id=>(roster.find(p=>p.id===id)||{}).characterId||'';
+    if(!els.surv.hidden){
+      const tp=sv.turnPlayer||'',me2=tp===self;
+      els.turn.innerHTML=ph==='CATEGORY_REVEAL'?`<p class="tod-turn-k">${T('НОВАЯ КАТЕГОРИЯ','A NEW CATEGORY')}</p>`
+        :tp?`<img src="/portraits/${esc(charOf(tp))}.webp" alt=""><div><p class="tod-turn-k">${ph!=='TURN'?T('ОТВЕТИЛ','ANSWERED'):me2?T('ТВОЙ ХОД','YOUR TURN'):T('ОТВЕЧАЕТ','NOW ANSWERING')}</p><p class="tod-turn-n">${ph==='TURN'&&me2?T('Отвечай!','Answer now!'):me2?T('Ты','You'):esc(nameOf(tp))}</p></div>`:'';
+      els.turn.classList.toggle('mine',me2&&ph==='TURN');
+      els.surv.querySelector('.tod-fuse').hidden=ph!=='TURN';
+      let v='';const last=sv.last||{};
+      if(ph==='TURN_CHECK')v=`<p class="chk">${T('Проверяем ответ…','Checking the answer…')}</p>`;
+      else if(ph==='TURN_RESULT'){const ok=last.outcome==='CORRECT',what=esc(last.label||last.text||'');
+        const why=last.outcome==='CORRECT'?T('принято','accepted'):last.outcome==='TIMEOUT'?T('время вышло · минус жизнь','time is up · one life lost'):last.outcome==='REPEAT'?T('уже было · минус жизнь','already said · one life lost'):T('неверно · минус жизнь','wrong · one life lost');
+        v=`<p class="${ok?'ok':'bad'}"><b>${last.outcome==='TIMEOUT'?esc(nameOf(last.player)):what}</b><small>${why}</small></p>`+(last.eliminated?`<p class="out">${esc(nameOf(last.player))} ${T('выбывает','is out')}</p>`:'');}
+      els.verdict.innerHTML=v;
+      const lk=JSON.stringify((m.players||[]).map(p=>[p.id,p.lives]))+tp+ph;
+      if(els.lives.dataset.k!==lk){els.lives.dataset.k=lk;
+        els.lives.innerHTML=(m.players||[]).map(p=>{const l=p.lives??0,out=l<=0;let h='';for(let i=0;i<max;i++)h+=`<i class="${i<l?'on':''}"></i>`;
+          return `<li class="${out?'out':''}${p.id===tp&&ph==='TURN'?' turn':''}${p.id===self?' me':''}"><img src="/portraits/${esc(charOf(p.id))}.webp" alt=""><span>${p.id===self?T('ТЫ','YOU'):esc(nameOf(p.id))}</span><em>${h}</em></li>`;}).join('');}
+    }
     els.form.hidden=!mine;els.send.disabled=!isAuthenticated();
     els.ghost.hidden=!out||['FINAL_RESULTS','COMPLETED'].includes(ph);
     if(out)els.ghost.textContent=T('ТЫ ВЫБЫЛ · смотри, кто выживет','YOU ARE OUT · watch who survives');
@@ -164,11 +194,11 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
       if(last.eliminated)info+=`<br><b class="bad">${who} ${T('выбывает','is out')}</b>`;
       if(last.player===self&&last.outcome!=='CORRECT')navigator.vibrate?.([60,40,60]);}
     else if(ph==='CATEGORY_REVEAL')info=T('Новая категория','A new category');
-    els.count.hidden=!info||mine;if(!els.count.hidden)els.count.innerHTML=info;
+    els.count.hidden=true;void info;
     // answers already used in this category
     const used=[...(sv.used||[])].reverse();const key=JSON.stringify(used)+ph;
     if(key!==lastKey){lastKey=key;els.list.innerHTML=used.map(u=>`<li class="s-ok"><span>${esc(u.label)}</span><em>${esc(nameOf(u.player))}</em></li>`).join('');}
-    els.list.hidden=!used.length||ph==='INTRO'||ph==='FINAL_RESULTS'||ph==='COMPLETED';
+    els.list.hidden=!used.length||ph==='INTRO'||ph==='FINAL_RESULTS'||ph==='COMPLETED';els.list.dataset.title=T('УЖЕ НАЗВАНО','ALREADY SAID');
     // final standings
     const fin=ph==='FINAL_RESULTS'||ph==='COMPLETED';
     if(fin){const st=(m.standings||[]).find(s=>s.playerId===self);els.result.hidden=!st;

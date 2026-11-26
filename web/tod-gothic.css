@@ -1,0 +1,114 @@
+/* THINK OR DIE phone, gothic (loaded after think-or-die.css): the same dark bronze language as the lobby and the host
+   screen — the artwork logo, the category plate, Cormorant SC headings, Inter for small text, bronze frames, gold.
+   Both the main-match challenge and survival. Only transform / opacity animate; no backdrop blur. */
+@font-face{font-family:Inter;src:url('/fonts/Inter-SemiBold.ttf') format('truetype');font-weight:600;font-display:swap}
+#tod-screen#tod-screen,#tod-screen#tod-screen[data-mode="match"]{--gold:#e6c08a;--gold2:#f7dcae;--bronze:#9a6a3c;--ivory:#f1e6d6;--dim:#a8927c;--ok:#7be38a;--bad:#ff6a5f;--ghost:#cdb8ff;
+  color:var(--ivory);font-family:Inter,system-ui,sans-serif;
+  background:radial-gradient(ellipse 90% 50% at 50% 0%,#3a0c0c88,transparent 70%),radial-gradient(ellipse 80% 40% at 50% 100%,#2a0808aa,transparent 70%),linear-gradient(180deg,#120808 0%,#0a0506 60%,#070304 100%)!important}
+#tod-screen#tod-screen[data-ghost="true"]{--acc:var(--ghost)}
+
+/* header: the artwork logo, the mode tag, the clock ring */
+#tod-screen#tod-screen .tod-top{gap:10px;padding:0 0 10px}
+#tod-screen#tod-screen .tod-brand{padding:0;background:none!important;box-shadow:none!important;flex:none}
+#tod-screen#tod-screen .tod-brand img{display:block;height:44px;width:auto;filter:drop-shadow(0 4px 8px #000c)}
+#tod-screen#tod-screen .tod-round{margin:0 auto 0 0;padding:6px 12px;border-radius:2px;background:linear-gradient(180deg,#1d1213,#0e0809)!important;box-shadow:inset 0 0 0 1px var(--bronze),inset 0 0 0 3px #0f090a,inset 0 0 0 4px #e6c08a22!important;
+  font:700 11px/1 Gothic,"Cormorant SC",serif!important;letter-spacing:.24em!important;color:var(--gold)!important;text-transform:uppercase}
+#tod-screen#tod-screen .tod-clock{width:54px;height:54px;background:conic-gradient(var(--gold) calc(var(--tod-left)*360deg),#ffffff12 0)!important;box-shadow:0 0 0 1px #4a2c0c,0 8px 18px #000c!important}
+#tod-screen#tod-screen .tod-clock b{width:44px;height:44px;background:radial-gradient(circle at 50% 35%,#2a1a14,#0c0708)!important;font:700 20px/1 Gothic,"Cormorant SC",serif!important;color:var(--gold2)}
+#tod-screen#tod-screen[data-hurry="true"] .tod-clock{background:conic-gradient(#ff5a3a calc(var(--tod-left)*360deg),#ffffff12 0)!important;box-shadow:0 0 18px #ff5a3a88!important}
+#tod-screen#tod-screen .tod-bar{height:3px;background:#ffffff10;margin-bottom:14px}
+#tod-screen#tod-screen .tod-bar i{background:linear-gradient(90deg,#9a6a3c,var(--gold2))!important}
+#tod-screen#tod-screen[data-hurry="true"] .tod-bar i{background:linear-gradient(90deg,#a02a1a,#ff8a5a)!important}
+
+/* the category: the artwork plate, text centred inside its window */
+#tod-screen#tod-screen .tod-card{padding:0!important;border-radius:0!important;background:url('/ui/tod/plate.webp') 50% 50%/100% 100% no-repeat!important;box-shadow:none!important;
+  aspect-ratio:900/228;display:flex;flex-direction:column;justify-content:center;align-items:center;filter:drop-shadow(0 10px 18px #000c)}
+#tod-screen#tod-screen .tod-eyebrow{position:absolute;top:2%;left:50%;transform:translateX(-50%);margin:0;padding:0;background:none!important;color:transparent!important;font-size:0}
+#tod-screen#tod-screen .tod-cat{width:80%;margin-top:9%;text-align:center;font:700 clamp(15px,4.6vw,21px)/1.12 Gothic,"Cormorant SC",serif!important;color:var(--ivory);text-shadow:0 2px 0 #000c;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#tod-screen#tod-screen[data-phase="CATEGORY_REVEAL"] .tod-card{animation:tod-plate .7s cubic-bezier(.2,1.3,.35,1)}
+@keyframes tod-plate{from{opacity:0;transform:scale(.7)}}
+
+/* the "how to play" card */
+#tod-screen#tod-screen .tod-intro{margin-top:16px;padding:16px 16px 14px;border-radius:3px;background:linear-gradient(180deg,#160d0ee6,#0c0708ee)!important;
+  box-shadow:inset 0 0 0 1px #9a6a3c88,inset 0 0 0 4px #0f090a,inset 0 0 0 5px #e6c08a1f,0 10px 22px #000b!important}
+#tod-screen#tod-screen .tod-intro .tod-eyebrow{position:static;transform:none;display:block;text-align:center;margin:0 0 12px;font:700 12px/1 Gothic,"Cormorant SC",serif!important;letter-spacing:.34em;color:var(--gold)!important}
+#tod-screen#tod-screen .tod-intro li{grid-template-columns:28px 1fr;font-size:14px;line-height:1.4;color:var(--ivory)}
+#tod-screen#tod-screen .tod-intro li::before{width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#f2cf7c,#a87628)!important;color:#2a1606!important;font:700 15px/1 Gothic,"Cormorant SC",serif!important;box-shadow:0 0 0 1px #4a2c0c}
+#tod-screen#tod-screen .tod-pts{color:var(--dim)}
+#tod-screen#tod-screen .tod-look{color:var(--gold)!important;font-family:Gothic,"Cormorant SC",serif!important;letter-spacing:.3em}
+
+/* answer field: dark bronze, gold caret, gold send plate */
+#tod-screen#tod-screen .tod-form{background:linear-gradient(#0e0708f2,#0e0708e6)!important;backdrop-filter:none!important}
+#tod-screen#tod-screen .tod-form input{height:56px!important;background:#f4ead8!important;color:#1d1008!important;border-radius:3px!important;caret-color:#a8401a!important;
+  box-shadow:inset 0 0 0 1px #4a2c0c,inset 0 2px 6px #0003,0 6px 14px #000a!important;font:600 19px/1 Inter,system-ui,sans-serif!important}
+#tod-screen#tod-screen .tod-form input::placeholder{color:#8a7462!important;font:600 16px/1 Inter,system-ui,sans-serif!important}
+#tod-screen#tod-screen .tod-form input:focus{box-shadow:inset 0 0 0 2px #c9965a,0 0 0 3px #e6c08a33,0 6px 14px #000a!important}
+#tod-screen#tod-screen .tod-send{height:56px;border-radius:3px;background:linear-gradient(180deg,#f2cf7c 0%,#d6a548 48%,#a87628 52%,#c8963c 100%)!important;color:#2a1606!important;
+  font:700 15px/1 Gothic,"Cormorant SC",serif!important;letter-spacing:.14em;box-shadow:0 0 0 1px #4a2c0c,inset 0 1px 0 #fff2c088,0 5px 0 #6a4416,0 10px 18px #000a!important}
+#tod-screen#tod-screen .tod-send:active{transform:translateY(4px);box-shadow:0 0 0 1px #4a2c0c,0 1px 0 #6a4416!important}
+#tod-screen#tod-screen .tod-hint{color:var(--dim)}#tod-screen#tod-screen .tod-hint.err{color:var(--bad)}
+
+/* own answers / used answers: bronze rows */
+#tod-screen#tod-screen .tod-list{gap:6px}
+#tod-screen#tod-screen .tod-list li{border-radius:2px!important;background:linear-gradient(180deg,#1a1011,#100a0b)!important;box-shadow:inset 0 0 0 1px #9a6a3c66!important;color:var(--ivory)}
+#tod-screen#tod-screen .tod-list li em{color:var(--dim)!important;font-style:normal}
+#tod-screen#tod-screen .tod-list li.s-ok{box-shadow:inset 0 0 0 1px #7be38a55,inset 3px 0 0 #7be38a!important}
+#tod-screen#tod-screen .tod-list li.s-bad{box-shadow:inset 0 0 0 1px #ff6a5f44,inset 3px 0 0 #ff6a5f!important}
+#tod-screen#tod-screen .tod-count{color:var(--dim)}#tod-screen#tod-screen .tod-count b{color:var(--gold2)!important}
+#tod-screen#tod-screen .tod-ghost{border-radius:3px;background:#2a1a4a99!important;box-shadow:inset 0 0 0 1px #9a7aff88!important;color:var(--ghost)!important;font:700 12px/1.4 Gothic,"Cormorant SC",serif!important;letter-spacing:.08em}
+#tod-screen#tod-screen .tod-result{border-radius:3px!important;background:linear-gradient(180deg,#160d0ee6,#0c0708ee)!important;box-shadow:inset 0 0 0 1px #9a6a3c88,inset 0 0 0 4px #0f090a!important}
+#tod-screen#tod-screen .tod-result .tod-rank,#tod-screen#tod-screen .tod-result .tod-big{font-family:Gothic,"Cormorant SC",serif!important;color:var(--gold2)!important}
+#tod-screen#tod-screen .tod-tag{border-radius:2px!important;background:linear-gradient(180deg,#f2cf7c,#a87628)!important;color:#2a1606!important}
+
+/* ================= survival ================= */
+#tod-screen#tod-screen[data-survival="1"] .tod-bar{display:none}
+.tod-surv{margin-top:16px;display:flex;flex-direction:column;gap:12px}
+.tod-turn{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:3px;min-height:76px;
+  background:linear-gradient(180deg,#1a1011f0,#0e0809f5);box-shadow:inset 0 0 0 1px #9a6a3c,inset 0 0 0 4px #0f090a,inset 0 0 0 5px #e6c08a22,0 10px 22px #000c}
+.tod-turn img{width:52px;height:52px;border-radius:50%;object-fit:cover;flex:none;box-shadow:0 0 0 2px #0f090a,0 0 0 3.5px var(--bronze),0 6px 12px #000c}
+.tod-turn-k{margin:0;font:700 11px/1 Gothic,"Cormorant SC",serif;letter-spacing:.32em;color:var(--dim)}
+.tod-turn-n{margin:5px 0 0;font:700 24px/1.05 Gothic,"Cormorant SC",serif;color:var(--ivory)}
+.tod-turn:not(:has(img)){justify-content:center}
+.tod-turn.mine{box-shadow:inset 0 0 0 1px var(--gold2),inset 0 0 0 4px #0f090a,inset 0 0 0 5px #e6c08a55,0 0 26px #e6c08a44,0 10px 22px #000c;animation:tod-mine 1.6s ease-in-out infinite}
+.tod-turn.mine .tod-turn-k{color:var(--gold)}.tod-turn.mine .tod-turn-n{color:var(--gold2)}
+.tod-turn.mine img{box-shadow:0 0 0 2px #0f090a,0 0 0 3.5px var(--gold2),0 0 16px #e6c08a88}
+@keyframes tod-mine{50%{transform:scale(1.015)}}
+/* the fuse: a braided cord burning from right to left, an ember at the tip */
+.tod-fuse{position:relative;height:14px;margin:2px 4px}
+.tod-fuse[hidden]{display:none}
+.tod-fuse i{position:absolute;left:0;top:4px;height:6px;width:calc(var(--tod-left)*100%);border-radius:3px;
+  background:repeating-linear-gradient(115deg,#c08850 0 4px,#7a4a22 4px 7px,#a87038 7px 10px);box-shadow:0 1px 0 #0008;transition:width .2s linear}
+.tod-fuse::before{content:"";position:absolute;left:0;right:0;top:6px;height:2px;background:#3a302a;border-radius:1px}
+.tod-fuse b{position:absolute;top:7px;left:calc(var(--tod-left)*100%);width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;
+  background:radial-gradient(circle,#fff6d0 0 18%,#ffc25a 35%,#ff7a22aa 55%,transparent 72%);transition:left .2s linear;will-change:transform;animation:tod-ember .25s ease-in-out infinite alternate}
+#tod-screen#tod-screen[data-hurry="true"] .tod-fuse b{background:radial-gradient(circle,#fff 0 16%,#ff6a3a 38%,#ff2a1aaa 58%,transparent 74%)}
+@keyframes tod-ember{to{transform:scale(1.25)}}
+.tod-verdict p{margin:0;text-align:center}
+.tod-verdict .ok b,.tod-verdict .bad b{display:block;font:700 26px/1.1 Gothic,"Cormorant SC",serif;letter-spacing:.02em}
+.tod-verdict .ok b{color:var(--ok)}.tod-verdict .bad b{color:var(--bad)}
+.tod-verdict small{display:block;margin-top:4px;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--dim)}
+.tod-verdict .chk{font:700 14px/1 Gothic,"Cormorant SC",serif;letter-spacing:.24em;color:var(--dim)}
+.tod-verdict .out{margin-top:8px;padding:6px 12px;border-radius:2px;background:#2a1a4a99;box-shadow:inset 0 0 0 1px #9a7aff88;color:var(--ghost);font:700 14px/1 Gothic,"Cormorant SC",serif;letter-spacing:.14em;text-transform:uppercase}
+.tod-verdict>p{animation:tod-pop .4s cubic-bezier(.2,1.5,.4,1)}
+@keyframes tod-pop{from{opacity:0;transform:scale(.8)}}
+/* everybody's lives */
+.tod-lives{list-style:none;margin:2px 0 0;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:10px 6px}
+.tod-lives li{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;transition:opacity .3s}
+.tod-lives img{width:40px;height:40px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 2px #0f090a,0 0 0 3px #9a6a3c88}
+.tod-lives span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.tod-lives em{display:flex;gap:3px}
+.tod-lives em i{width:9px;height:8px;background:#3a2222;clip-path:path('M4.5 8 L0.6 4.1 A2.1 2.1 0 0 1 4.5 1.4 A2.1 2.1 0 0 1 8.4 4.1 Z')}
+.tod-lives em i.on{background:linear-gradient(180deg,#ff6a5a,#b0141a)}
+.tod-lives li.turn img{box-shadow:0 0 0 2px #0f090a,0 0 0 3px var(--gold2),0 0 14px #e6c08a88}
+.tod-lives li.turn span{color:var(--gold2)}
+.tod-lives li.me span{color:var(--ivory)}
+.tod-lives li.out{opacity:.4;filter:grayscale(.7)}
+#tod-screen#tod-screen[data-survival="1"] .tod-list::before{content:attr(data-title);display:block;margin:6px 0 8px;text-align:center;font:700 11px/1 Gothic,"Cormorant SC",serif;letter-spacing:.34em;color:var(--dim)}
+#tod-screen#tod-screen[data-survival="1"] .tod-list{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+#tod-screen#tod-screen[data-survival="1"] .tod-list::before{flex-basis:100%}
+#tod-screen#tod-screen[data-survival="1"] .tod-list li{display:inline-flex;gap:6px;align-items:baseline;padding:6px 10px;font-size:13px}
+#tod-screen#tod-screen[data-survival="1"] .tod-list li em{font-size:10px;letter-spacing:.06em}
+@media (prefers-reduced-motion:reduce){#tod-screen#tod-screen *{animation:none!important}}
+#tod-screen#tod-screen .tod-list li em{background:none!important;padding:0!important;box-shadow:none!important;color:var(--dim)!important;font:600 10px/1 Inter,system-ui,sans-serif!important;letter-spacing:.08em!important;text-transform:uppercase}
+#tod-screen#tod-screen .tod-form input{border:0!important}

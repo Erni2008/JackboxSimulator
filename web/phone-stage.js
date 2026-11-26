@@ -48,10 +48,13 @@
   addEventListener('deviceorientation',e=>{if(e.gamma==null)return;setTarget(e.gamma/25,(e.beta-45)/30);},{passive:true});
   hero.addEventListener('pointermove',e=>{const r=hero.getBoundingClientRect();setTarget((e.clientX-r.left)/r.width*2-1,(e.clientY-r.top)/r.height*2-1);},{passive:true});
   hero.addEventListener('pointerleave',()=>setTarget(0,0));
-  if(!calm)(function loop(){gx+=(tx-gx)*.08;gy+=(ty-gy)*.08;
-    turn(performance.now());
-    stage.style.setProperty('--px',(gx*10).toFixed(1)+'px');stage.style.setProperty('--py',(gy*6).toFixed(1)+'px');
-    requestAnimationFrame(loop);})();
+  // one light loop: only while the lobby is on screen and the tab is visible; it touches the DOM only when the cage's
+  // yaw frame changes (no per-frame style writes)
+  let running=false;
+  const loop=()=>{if(body.dataset.view!=='waiting'||document.hidden){running=false;return;}
+    gx+=(tx-gx)*.08;gy+=(ty-gy)*.08;turn(performance.now());requestAnimationFrame(loop);};
+  const wake=()=>{if(calm||running||body.dataset.view!=='waiting'||document.hidden)return;running=true;requestAnimationFrame(loop);};
+  document.addEventListener('visibilitychange',wake);
 
   // ---------- tap: the character jumps, sparks fly ----------
   const poke=()=>{stage.classList.add('poked');hero.classList.remove('jump');void hero.offsetWidth;hero.classList.add('jump');
@@ -88,5 +91,5 @@
     const free=(state.maxPlayers||8)-order.length,show=Math.min(free,(4-order.length%4)%4||(order.length?0:4));
     for(let i=0;i<show;i++){const li=document.createElement('li');li.className='ps-guest empty';li.append(document.createElement('i'));const sp=document.createElement('span');sp.textContent=T('свободно','free');li.append(sp);roster.append(li);}
   }
-  setInterval(paint,250);
+  setInterval(()=>{paint();wake();},250);
 })();
