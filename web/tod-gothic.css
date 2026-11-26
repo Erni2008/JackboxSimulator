@@ -112,3 +112,6 @@
 @media (prefers-reduced-motion:reduce){#tod-screen#tod-screen *{animation:none!important}}
 #tod-screen#tod-screen .tod-list li em{background:none!important;padding:0!important;box-shadow:none!important;color:var(--dim)!important;font:600 10px/1 Inter,system-ui,sans-serif!important;letter-spacing:.08em!important;text-transform:uppercase}
 #tod-screen#tod-screen .tod-form input{border:0!important}
+#tod-screen#tod-screen .tod-count b{background:none!important;box-shadow:none!important;padding:0 4px 0 0!important;font:700 26px/1 Gothic,"Cormorant SC",serif!important;color:var(--gold2)!important;vertical-align:-3px}
+#tod-screen#tod-screen .tod-count{font-size:12px;letter-spacing:.14em;text-transform:uppercase}
+#tod-screen#tod-screen .tod-hint.wait{color:var(--gold)}

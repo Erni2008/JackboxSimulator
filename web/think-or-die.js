@@ -88,7 +88,7 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
   }
   function reset(){session='';round=0;outbox=[];held=null;error='';lastPhase='';lastKey='';cancelAnimationFrame(raf);raf=0;if(built)els.input.value='';}
   function suspend(){cancelAnimationFrame(raf);raf=0;}
-  function paintHint(){els.hint.textContent=error;els.hint.classList.toggle('err',!!error);}
+  function paintHint(){const wait=!!held&&error===T('Проверяем…','Checking…');els.hint.textContent=error;els.hint.classList.toggle('err',!!error&&!wait);els.hint.classList.toggle('wait',wait);}
   const me=()=>{const m=mini();return m?.players?.find(p=>p.id===getState()?.selfId)||{};};
 
   function render(){
