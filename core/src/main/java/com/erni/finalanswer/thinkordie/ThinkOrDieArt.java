@@ -26,7 +26,7 @@ final class ThinkOrDieArt implements Disposable {
 
     final Texture pixel,soft,ring,car,carGlass,noise,round,beam,dots;final Texture background;final NinePatch plateFill,plateEdge;
     /** the game's own dungeon kit (lobby): moonlit dungeon, hanging cage, chain, ceiling hook; flame from RARE MINDS */
-    final Texture[] badges=new Texture[4];final Texture logo,plate,rules,dungeon,cage,chain,hook,flame;final BitmapFont hand;
+    final Texture[] badges=new Texture[4];final Texture panelTex;final com.badlogic.gdx.graphics.g2d.NinePatch panel9;final Texture logo,plate,rules,dungeon,cage,chain,hook,flame;final BitmapFont hand;
     final BitmapFont horror,display,big,mid,small,tiny;
     /** THINK OR DIE typography: condensed bold for names and numbers, Inter for instructions (both OFL, Latin + Cyrillic) */
     final BitmapFont cond,inter;
@@ -41,7 +41,7 @@ final class ThinkOrDieArt implements Disposable {
         beam=beam();dots=dots();
         var bg=Gdx.files.internal("think_or_die/background.jpg");
         background=bg.exists()?mip(new Texture(bg,true)):null;
-        logo=tex("think_or_die/logo.png");plate=tex("think_or_die/category_plate.png");rules=tex("think_or_die/rules_bar.png");for(int i=0;i<4;i++)badges[i]=tex("think_or_die/badge_"+i+".png");dungeon=tex("lobby/background_dungeon.png");cage=tex("lobby/cages/cage_bars.png");hook=tex("lobby/cages/chain_hook.png");flame=tex("rare_minds/ui/flame.png");
+        logo=tex("think_or_die/logo.png");panelTex=tex("think_or_die/panel.png");panel9=panelTex==null?null:new com.badlogic.gdx.graphics.g2d.NinePatch(panelTex,62,62,26,30);plate=tex("think_or_die/category_plate.png");rules=tex("think_or_die/rules_bar.png");for(int i=0;i<4;i++)badges[i]=tex("think_or_die/badge_"+i+".png");dungeon=tex("lobby/background_dungeon.png");cage=tex("lobby/cages/cage_bars.png");hook=tex("lobby/cages/chain_hook.png");flame=tex("rare_minds/ui/flame.png");
         chain=tex("lobby/cages/chain.png");if(chain!=null)chain.setWrap(Texture.TextureWrap.ClampToEdge,Texture.TextureWrap.Repeat);
         hand=font("ui/fonts/Caveat-Variable.ttf",64,0);
         horror=font("ui/fonts/RussoOne-Regular.ttf",150,0);display=font("ui/fonts/RussoOne-Regular.ttf",108,0);big=font("ui/fonts/RussoOne-Regular.ttf",64,0);
@@ -76,6 +76,23 @@ final class ThinkOrDieArt implements Disposable {
     }
 
     // ---------------------------------------------------------------- primitives
+    /**
+     * The ornate gothic panel (bronze bevel, red inner line, dark stone with cracks) cut from the category plate artwork,
+     * stretched to any size; corners scale down for small panels. {@code accent} tints it (null or bronze/red keep the art
+     * as drawn; gold, green, violet and side colours shift the rim) and adds a soft glow for highlighted panels.
+     */
+    void panel(float x,float y,float w,float h,Color accent,float a){
+        if(a<=0||w<8||h<8)return;
+        if(panel9==null){rect(x,y,w,h,new Color(.06f,.03f,.03f,1),.94f*a);return;}
+        float k=Math.min(1,Math.min(h/(26+30)*.95f,w/(62+62)*.95f));
+        float tr=1,tg=1,tb=1;boolean glowIt=false;
+        if(accent!=null&&!(accent.r>.9f&&accent.g<.35f)&&!(Math.abs(accent.r-.72f)<.05f&&Math.abs(accent.g-.50f)<.05f)){
+            tr=MathUtils.lerp(1,accent.r,.55f);tg=MathUtils.lerp(1,accent.g,.55f);tb=MathUtils.lerp(1,accent.b,.55f);glowIt=true;}
+        if(glowIt)glow(x+w/2,y+h/2,w*1.15f,h*1.6f,accent,.18f*a);
+        batch.setColor(tr,tg,tb,a);
+        if(k<1){panel9.scale(k,k);panel9.draw(batch,x,y,w,h);panel9.scale(1/k,1/k);}else panel9.draw(batch,x,y,w,h);
+        batch.setColor(Color.WHITE);
+    }
     void rect(float x,float y,float w,float h,Color c,float a){batch.setColor(c.r,c.g,c.b,c.a*a);batch.draw(pixel,x,y,w,h);}
     void glow(float cx,float cy,float w,float h,Color c,float a){batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);batch.setColor(c.r,c.g,c.b,a);batch.draw(soft,cx-w/2,cy-h/2,w,h);batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
     /** A straight stroke of width w (used for the pulse traces). additive: glows instead of covering. */
@@ -223,7 +240,7 @@ final class ThinkOrDieArt implements Disposable {
         for(int y=0;y<H;y++)for(int x=0;x<W;x++){float a=0;for(int j=0;j<s;j++)for(int i=0;i<s;i++)a+=(b.getPixel(x*s+i,y*s+j)&0xff)/255f;p.drawPixel(x,y,Color.rgba8888(1,1,1,a/(s*s)));}
         b.dispose();Texture t=new Texture(p);t.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();return t;}
 
-    @Override public void dispose(){round.dispose();roundEdge.dispose();beam.dispose();dots.dispose();pixel.dispose();soft.dispose();ring.dispose();car.dispose();carGlass.dispose();noise.dispose();if(background!=null)background.dispose();for(Texture t:new Texture[]{logo,plate,rules,dungeon,cage,chain,hook,flame})if(t!=null)t.dispose();for(Texture t:badges)if(t!=null)t.dispose();hand.dispose();
+    @Override public void dispose(){round.dispose();roundEdge.dispose();beam.dispose();dots.dispose();pixel.dispose();soft.dispose();ring.dispose();car.dispose();carGlass.dispose();noise.dispose();if(background!=null)background.dispose();for(Texture t:new Texture[]{panelTex,logo,plate,rules,dungeon,cage,chain,hook,flame})if(t!=null)t.dispose();for(Texture t:badges)if(t!=null)t.dispose();hand.dispose();
         horror.dispose();display.dispose();big.dispose();mid.dispose();small.dispose();tiny.dispose();cond.dispose();inter.dispose();
         for(Texture t:faces.values())if(t!=null)t.dispose();for(Sound s:sounds.values())if(s!=null)s.dispose();}
 }

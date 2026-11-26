@@ -120,7 +120,7 @@ public final class TodSetupScreen extends ScreenAdapter {
         float cw=316,ch=380,gap=26,x0=60,y0=250;
         for(int i=0;i<3;i++){float k=pick[i],x=x0+i*(cw+gap),y=y0+k*14;cards[i].set(x,y0,cw,ch);boolean ok=allowed(i),hover=cards[i].contains(hoverX,hoverY);
             if(k>.05f)art.glow(x+cw/2,y+ch/2,cw*1.5f,ch*1.3f,GOLD,.22f*k);
-            neon.bronze(art.batch,x,y,cw,ch,PLAQUE,k>.5f?GOLD:hover?new Color(.9f,.7f,.45f,1):BRONZE,ok?1:.5f);
+            art.panel(x,y,cw,ch,k>.5f?GOLD:hover?new Color(.9f,.7f,.45f,1):BRONZE,ok?1:.5f);
             scene(i,x+cw/2,y+150,ok?1:.4f);
             serifText(titles[i],x+cw/2,y+118,.66f,k>.5f?GOLD:IVORY,ok?1:.5f);
             art.text(art.inter,desc[i][0],x+cw/2,y+66,.58f,IVORY,ok?1:.5f,cw-30);
@@ -142,14 +142,14 @@ public final class TodSetupScreen extends ScreenAdapter {
     }
     /** Settings panel on the right: lives, turn time, faster turns. */
     private void drawSettings(){
-        float x=1080,w=460,y=250,h=380;neon.bronze(art.batch,x,y,w,h,PLAQUE,BRONZE,1);
+        float x=1080,w=460,y=250,h=380;art.panel(x,y,w,h,BRONZE,1);
         label(tr("НАСТРОЙКИ","SETTINGS"),x+w/2,y+h-30,.46f,GOLD);
         stepper(1,x,y+h-120,w,tr("ЖИЗНИ","LIVES"),hearts(lives),livesMinus,livesPlus);
         stepper(2,x,y+h-220,w,tr("ВРЕМЯ ХОДА","TURN TIME"),turn+tr(" с"," s"),turnMinus,turnPlus);
         // faster turns toggle
         float ry=y+h-310;speedBox.set(x+24,ry-26,w-48,56);boolean f=focus==3;
         art.text(art.inter,tr("ХОД УСКОРЯЕТСЯ","TURNS GET FASTER"),x+28+130,ry+8,.50f,f?GOLD:DIM,1,0);
-        float tx=x+w-96,ty=ry-14;neon.bronze(art.batch,tx,ty,70,32,new Color(.08f,.05f,.04f,1),speed?GOLD:BRONZE,1);
+        float tx=x+w-96,ty=ry-14;art.panel(tx,ty,70,32,speed?GOLD:BRONZE,1);
         float knob=speed?tx+70-28:tx+4;art.batch.setColor(speed?GOLD:DIM);art.batch.draw(art.soft,knob,ty+4,24,24);art.batch.setColor(Color.WHITE);
         art.text(art.inter,speed?tr("ДА","ON"):tr("НЕТ","OFF"),x+w/2,ry-40,.40f,DIM,1,0);
         if(f)art.rect(x+40,ry-30,w-80,1.5f,GOLD,.7f);
@@ -158,7 +158,7 @@ public final class TodSetupScreen extends ScreenAdapter {
     private void stepper(int id,float x,float y,float w,String title,String value,Rectangle minus,Rectangle plus){
         boolean f=focus==id;art.text(art.inter,title,x+w/2,y+46,.50f,f?GOLD:DIM,1,0);
         minus.set(x+30,y-28,56,56);plus.set(x+w-86,y-28,56,56);
-        for(Rectangle r:new Rectangle[]{minus,plus}){boolean hv=r.contains(hoverX,hoverY);neon.bronze(art.batch,r.x,r.y,r.width,r.height,new Color(.08f,.05f,.04f,1),hv||f?GOLD:BRONZE,1);}
+        for(Rectangle r:new Rectangle[]{minus,plus}){boolean hv=r.contains(hoverX,hoverY);art.panel(r.x,r.y,r.width,r.height,hv||f?GOLD:BRONZE,1);}
         serifText("–",minus.x+28,y+18,.6f,IVORY,1);serifText("+",plus.x+28,y+18,.6f,IVORY,1);
         if(id==1){float hs=26,step=32,sx=x+w/2-(lives-1)*step/2;for(int i=0;i<lives;i++){art.batch.setColor(1f,.25f,.22f,1);heart(sx+i*step,y,hs);}art.batch.setColor(Color.WHITE);}
         else serifText(value,x+w/2,y+22,.70f,IVORY,1);
@@ -181,9 +181,9 @@ public final class TodSetupScreen extends ScreenAdapter {
         boolean ok=allowed(format),f=focus==4;startBtn.set(W/2-210,30,420,72);backBtn.set(60,40,170,52);
         float p=.5f+.5f*MathUtils.sin(clock*4);
         if(ok)art.glow(W/2,66,560,140,GOLD,(f?.32f:.18f)+.08f*p);
-        neon.bronze(art.batch,startBtn.x,startBtn.y,startBtn.width,startBtn.height,ok?new Color(.42f,.08f,.06f,1):new Color(.15f,.08f,.08f,1),ok?GOLD:BRONZE,ok?1:.5f);
+        art.panel(startBtn.x,startBtn.y,startBtn.width,startBtn.height,ok?GOLD:BRONZE,ok?1:.5f);
         serifText(tr("НАЧАТЬ","START"),W/2,82,.72f,ok?new Color(1f,.9f,.72f,1):DIM,1);
-        neon.bronze(art.batch,backBtn.x,backBtn.y,backBtn.width,backBtn.height,PLAQUE,backBtn.contains(hoverX,hoverY)?GOLD:BRONZE,1);
+        art.panel(backBtn.x,backBtn.y,backBtn.width,backBtn.height,backBtn.contains(hoverX,hoverY)?GOLD:BRONZE,1);
         art.text(art.inter,tr("НАЗАД","BACK"),backBtn.x+backBtn.width/2,backBtn.y+33,.52f,IVORY,1,0);
         art.text(art.inter,tr("Стрелки · Enter · Esc","Arrows · Enter · Esc"),W-150,62,.40f,DIM,1,0);
     }

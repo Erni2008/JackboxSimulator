@@ -153,7 +153,7 @@ public final class TodSurvivalScreen extends ScreenAdapter {
 
     /** A centred bronze plaque for the turn line (name, verdict, checking); returns its centre y. */
     private static final float PLAQUE_W=780,PLAQUE_H=116,PLAQUE_CY=224;
-    private void plaque(Color accent,float a,float dx){neon.bronze(art.batch,W/2-PLAQUE_W/2+dx,PLAQUE_CY-PLAQUE_H/2,PLAQUE_W,PLAQUE_H,PLAQUE,accent,a);}
+    private void plaque(Color accent,float a,float dx){art.panel(W/2-PLAQUE_W/2+dx,PLAQUE_CY-PLAQUE_H/2,PLAQUE_W,PLAQUE_H,accent,a);}
     private void spacedLabel(String s,float cx,float y,float sc,Color c,float a){
         StringBuilder b=new StringBuilder();for(int i=0;i<s.length();i++){if(i>0)b.append(' ');b.append(s.charAt(i));}
         art.text(art.inter,b.toString(),cx,y,sc,c,a,0);
@@ -191,7 +191,7 @@ public final class TodSurvivalScreen extends ScreenAdapter {
         float x=W/2-(total-gap)/2,y=58;
         for(int i=from;i<at.size();i++){JsonObject a=at.get(i).getAsJsonObject();boolean newest=i==at.size()-1;float k=newest?Math.max(.05f,Interpolation.swingOut.apply(Math.min(1,since/.3f))):1;
             float al=newest?1:.55f;float cx=x+w[i]/2;
-            neon.bronze(art.batch,cx-w[i]*k/2,y-17*k,w[i]*k,34*k,new Color(.12f,.03f,.03f,.94f),RED,al);
+            art.panel(cx-w[i]*k/2,y-17*k,w[i]*k,34*k,RED,al);
             String tx=s(a,"text");art.text(art.inter,tx,cx,y+8*k,sc*k,new Color(1f,.75f,.72f,1),al,0);
             float lw=art.width(art.inter,tx,sc*k);art.rect(cx-lw/2-3,y-1,lw+6,2,RED,al);
             if(s(a,"outcome").equals("REPEAT"))art.text(art.inter,tr("было","said"),cx,y-22,.36f,DIM,al,0);
@@ -247,7 +247,7 @@ public final class TodSurvivalScreen extends ScreenAdapter {
         else{art.line(mx-ms*.5f,my-ms*.5f,mx+ms*.5f,my+ms*.5f,6,c,k,false);art.line(mx-ms*.5f,my+ms*.5f,mx+ms*.5f,my-ms*.5f,6,c,k,false);}
         if(l.has("eliminated")&&l.get("eliminated").getAsBoolean()){float e=MathUtils.clamp((phaseClock-.55f)/.3f,0,1);
             if(phaseClock>.55f&&phaseClock<1f)art.rect(0,0,W,H,new Color(.55f,.30f,.95f,1),.18f*(1-(phaseClock-.55f)/.45f));
-            neon.bronze(art.batch,W/2-300,96,600,52,new Color(.08f,.03f,.12f,.95f),VIOLET,e);
+            art.panel(W/2-300,96,600,52,VIOLET,e);
             serifText(name(id).toUpperCase(Locale.ROOT)+tr(" ВЫБЫВАЕТ"," IS OUT"),W/2,133,.46f,VIOLET,e);}
     }
     // ---------------------------------------------------------------- the answer wall
@@ -263,14 +263,14 @@ public final class TodSurvivalScreen extends ScreenAdapter {
         String key=s(t,"categoryId")+":"+round();if(!key.equals(wallKey)){wallKey=key;born.clear();for(int i=0;i<u.size();i++)born.add(-9f);}
         while(born.size()<u.size())born.add(clock);while(born.size()>u.size())born.remove(born.size()-1);
         boolean duel=duel();JsonArray m=duel&&survival().has("match")?survival().getAsJsonArray("match"):new JsonArray();
-        float colW=300,rowH=44,top=548,xl=48,xr=W-48-colW;int rows=11;
+        float colW=310,rowH=58,top=536,xl=44,xr=W-44-colW;int rows=8;
         // column banners
         boolean sw=swapped();
         if(duel&&m.size()==2)for(int c=0;c<2;c++){JsonObject sd=m.get(sw?1-c:c).getAsJsonObject();float x=c==0?xl:xr;
-            neon.bronze(art.batch,x,top+6,colW,40,PLAQUE,SIDE[c],1);
-            art.left(art.cond,sideName(sd),x+16,top+36,.38f,SIDE[c],1,colW-110);
+            art.panel(x,top+2,colW,58,SIDE[c],1);
+            art.left(art.cond,sideName(sd),x+24,top+44,.44f,SIDE[c],1,colW-120);
             int lv=sd.get("lives").getAsInt(),max=survival().has("lives")?survival().get("lives").getAsInt():2;
-            for(int h=0;h<max;h++){if(h<lv)art.batch.setColor(Color.WHITE);else art.batch.setColor(.3f,.25f,.25f,.8f);art.batch.draw(heartTex,x+colW-26-h*26-11,top+15,22,22);}art.batch.setColor(Color.WHITE);}
+            for(int h=0;h<max;h++){if(h<lv)art.batch.setColor(Color.WHITE);else art.batch.setColor(.3f,.25f,.25f,.8f);art.batch.draw(heartTex,x+colW-40-h*28-12,top+19,24,24);}art.batch.setColor(Color.WHITE);}
         else if(u.size()>0){spacedLabel(tr("УЖЕ НАЗВАНО","ALREADY SAID"),xl+colW/2,top+30,.44f,DIM,.9f);spacedLabel(tr("УЖЕ НАЗВАНО","ALREADY SAID"),xr+colW/2,top+30,.44f,DIM,u.size()>rows?.9f:0);}
         int[] fill={0,0};
         for(int i=u.size()-1;i>=0;i--){JsonObject a=u.get(i).getAsJsonObject();int col,row;
@@ -280,11 +280,11 @@ public final class TodSurvivalScreen extends ScreenAdapter {
             float age=clock-born.get(i),e=Interpolation.pow3Out.apply(MathUtils.clamp(age/.55f,0,1));
             float tx=col==0?xl:xr,ty=top-14-(row+1)*rowH,x=MathUtils.lerp(W/2-colW/2,tx,e),y=MathUtils.lerp(PLAQUE_CY-20,ty,e),al=MathUtils.clamp(age/.15f,0,1)*(1-row*.035f);
             boolean fresh=age<1.6f;Color edge=fresh?GOLD:duel?SIDE[col]:BRONZE;
-            neon.bronze(art.batch,x,y,colW,rowH-6,PLAQUE,edge,al);
+            art.panel(x,y,colW,rowH-6,edge,al);
             String pid=s(a,"player");Texture face=art.face(character(pid));
-            if(face!=null){art.batch.setColor(1,1,1,al);art.batch.draw(face,x+8,y+5,rowH-16,rowH-16);art.batch.setColor(Color.WHITE);}
-            art.left(art.inter,s(a,"label"),x+rowH+2,y+(rowH-6)/2+9,.62f,fresh?IVORY:new Color(.86f,.80f,.72f,1),al,colW-rowH-58);
-            art.right(art.inter,name(pid),x+colW-12,y+(rowH-6)/2+7,.40f,DIM,al);
+            if(face!=null){art.batch.setColor(1,1,1,al);art.batch.draw(face,x+20,y+11,rowH-28,rowH-28);art.batch.setColor(Color.WHITE);}
+            art.left(art.inter,s(a,"label"),x+rowH+6,y+(rowH-6)/2+10,.66f,fresh?IVORY:new Color(.88f,.82f,.74f,1),al,colW-rowH-80);
+            art.right(art.inter,name(pid),x+colW-22,y+(rowH-6)/2+7,.40f,DIM,al);
             if(age<.5f)art.glow(x+colW/2,y+rowH/2,colW*1.1f,rowH*2,GOLD,.35f*(1-age/.5f));}
     }
     private int round(){return t!=null&&t.has("round")?t.get("round").getAsInt():0;}
@@ -320,7 +320,7 @@ public final class TodSurvivalScreen extends ScreenAdapter {
                 if(c+1<total){float nx=x+colW+gapX,ny=centers[c+1][Math.min(m/2,centers[c+1].length-1)];art.rect(x+colW,cy-1,gapX/2,2,BRONZE,.6f*d);art.rect(x+colW+gapX/2-1,Math.min(cy,ny),2,Math.abs(ny-cy)+2,BRONZE,.6f*d);art.rect(x+colW+gapX/2,ny-1,gapX/2,2,BRONZE,.6f*d);}
                 float bh=mt!=null&&mt.getAsJsonArray("sides").size()==2?64:34;
                 if(next)art.glow(x+colW/2,cy,colW*1.3f,bh*2.2f,GOLD,.25f+.1f*MathUtils.sin(clock*4));
-                neon.bronze(art.batch,x,cy-bh/2,colW,bh,PLAQUE,next?GOLD:BRONZE,d);
+                art.panel(x,cy-bh/2,colW,bh,next?GOLD:BRONZE,d);
                 if(mt==null){art.text(art.inter,"?",x+colW/2,cy+8,.6f,DIM,d,0);continue;}
                 JsonArray sd=mt.getAsJsonArray("sides");int win=mt.has("winner")?mt.get("winner").getAsInt():-1;
                 for(int q=0;q<sd.size();q++){JsonObject one=sd.get(q).getAsJsonObject();float ly=sd.size()==2?cy+(q==0?14:-16):cy+1;boolean w=one.get("id").getAsInt()==win,lost=win>=0&&!w;
@@ -344,7 +344,7 @@ public final class TodSurvivalScreen extends ScreenAdapter {
             for(int q=0;q<pl.size();q++){Texture body=art.body(character(pl.get(q).getAsString()));if(body==null)continue;float bh=pl.size()==1?440:360,bw=bh*body.getWidth()/body.getHeight();
                 float ox=pl.size()==1?0:(q-(pl.size()-1)/2f)*200;art.batch.setColor(1,1,1,k);art.batch.draw(body,x+ox-bw/2,120,bw,bh);}
             art.batch.setColor(Color.WHITE);
-            neon.bronze(art.batch,x-200,70,400,56,PLAQUE,SIDE[c],k);art.text(art.cond,sideName(sd),x,111,.46f,SIDE[c],k,370);}
+            art.panel(x-200,70,400,56,SIDE[c],k);art.text(art.cond,sideName(sd),x,111,.46f,SIDE[c],k,370);}
         if(v>0){art.glow(W/2,360,420,320,RED,.45f*v);serifText("VS",W/2,410,1.6f*v,new Color(1f,.86f,.6f,1),Math.min(1,v));}
     }
     /** The duel result: the winning side in gold with rays, the loser struck out. */
@@ -367,7 +367,7 @@ public final class TodSurvivalScreen extends ScreenAdapter {
             {tr(lives+" ЖИЗНИ",lives+" LIVES"),tr("Ошибки не страшны: жизнь\nуходит, только если вышло время","Wrong tries are free: a life goes\nonly when the time runs out")},
             {tr("ПОСЛЕДНИЙ ЖИВОЙ","LAST ONE STANDING"),tr("Время хода сокращается.\nПобеждает выживший","Turns get shorter.\nThe survivor wins")}};
         for(int i=0;i<3;i++){float d=MathUtils.clamp((phaseClock-1.0f-i*.18f)/.35f,0,1);if(d<=0)continue;float cx=W/2+(i-1)*370,cy=250,cw=340,ch=200;
-            neon.bronze(art.batch,cx-cw/2,cy-ch/2,cw,ch,PLAQUE,i==1?RED:BRONZE,d);
+            art.panel(cx-cw/2,cy-ch/2,cw,ch,i==1?RED:BRONZE,d);
             ruleIcon(i,cx,cy+56,d);
             art.text(art.inter,cards[i][0],cx,cy+12,.66f,GOLD,d,cw-30);
             String[] ln=cards[i][1].split("\n");art.text(art.inter,ln[0],cx,cy-26,.56f,IVORY,d,cw-30);art.text(art.inter,ln[1],cx,cy-50,.56f,IVORY,d,cw-30);}
@@ -411,7 +411,7 @@ public final class TodSurvivalScreen extends ScreenAdapter {
                 for(int q=0;q<10;q++){float ang=clock*7+q*36;art.line(cx,top+180,cx+MathUtils.cosDeg(ang)*360,top+180+MathUtils.sinDeg(ang)*220,26,GOLD,.03f*d,true);}
                 art.batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
             // pedestal: a stone block with a bronze rim and the place number
-            neon.bronze(art.batch,cx-150,110,300,top-110,new Color(.10f,.07f,.07f,.97f),medal[oi],d);
+            art.panel(cx-150,110,300,top-110,medal[oi],d);
             serifText(String.valueOf(oi+1),cx,top-18,.9f,medal[oi],d);
             // the characters stand on it
             for(int q=0;q<group.size();q++){String id=s(group.get(q),"playerId");Texture body=art.body(character(id));if(body==null)continue;
@@ -419,7 +419,7 @@ public final class TodSurvivalScreen extends ScreenAdapter {
                 art.batch.setColor(1,1,1,d);art.batch.draw(body,cx+ox-bw/2,top-6,bw,bh);}
             art.batch.setColor(Color.WHITE);
             StringBuilder nm=new StringBuilder();for(JsonObject g:group){if(nm.length()>0)nm.append(" & ");nm.append(name(s(g,"playerId")));}
-            float ny=top+(oi==0?318:246);neon.bronze(art.batch,cx-170,ny-26,340,52,PLAQUE,medal[oi],d);
+            float ny=top+(oi==0?318:246);art.panel(cx-170,ny-26,340,52,medal[oi],d);
             art.text(art.cond,nm.toString().toUpperCase(Locale.ROOT),cx,ny+12,.42f,medal[oi],d,310);
             long souls=group.get(0).has("souls")?group.get(0).get("souls").getAsLong():0;
             if(souls>0)art.text(art.cond,"+"+souls+tr(" душ"," souls"),cx,72,.40f,GOLD,d,0);}
