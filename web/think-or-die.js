@@ -55,7 +55,7 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
     // tapping SEND must not take the focus away from the field (the keyboard stays open on iOS and Android)
     els.send.addEventListener('pointerdown',e=>{if(document.activeElement===els.input)e.preventDefault();});
     els.input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();submit();}});
-    els.input.addEventListener('input',()=>{if(error){error='';paintHint();}});
+    els.input.addEventListener('input',()=>{if(error){error='';paintHint();}liveType();});
     els.vote.addEventListener('click',e=>{const b=e.target.closest('button[data-d]');if(!b)return;const m=mini();if(!m||!isAuthenticated())return;
       send('TOD_VOTE',{sessionId:m.sessionId,disputeId:b.dataset.d,accept:b.dataset.v==='1'});navigator.vibrate?.(15);
       b.closest('li')?.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));});
@@ -65,6 +65,11 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
     window.visualViewport?.addEventListener('resize',fit);window.visualViewport?.addEventListener('scroll',fit);fit();
   }
 
+  // survival: the answering player's letters go to the big screen live (at most ~10 a second, the last one always sent)
+  let typeTimer=0,typeLast=0,typeSent='';
+  function liveType(){const m=mini();if(!m||m.mode!=='survival'||m.phase!=='TURN'||m.survival?.turnPlayer!==getState()?.selfId)return;
+    const go=()=>{typeTimer=0;const v=els.input.value.slice(0,40);if(v===typeSent)return;typeSent=v;typeLast=performance.now();send('TOD_TYPING',{sessionId:m.sessionId,text:v});};
+    const wait=100-(performance.now()-typeLast);if(wait<=0)go();else if(!typeTimer)typeTimer=setTimeout(go,wait);}
   function submit(){
     const m=mini();if(!m||!isAuthenticated())return;
     const surv=m.mode==='survival';

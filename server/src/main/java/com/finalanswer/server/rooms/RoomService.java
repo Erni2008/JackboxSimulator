@@ -216,7 +216,7 @@ public final class RoomService {
         if(Set.of("START_FORGOTTEN_ROOM","ROOM_SUBMIT","END_FORGOTTEN_ROOM").contains(message.type())){forgottenCommand(room,member,peer,message);return;}
         if(Set.of("START_FINAL_SECOND","FS_START","FS_STOP","END_FINAL_SECOND").contains(message.type())){finalSecondCommand(room,member,peer,message);return;}
         if(Set.of("START_RARE_MINDS","RM_DRAFT","RM_SUBMIT","END_RARE_MINDS").contains(message.type())){rareMindsCommand(room,member,peer,message);return;}
-        if(Set.of("START_THINK_OR_DIE","TOD_SUBMIT","TOD_VOTE","END_THINK_OR_DIE").contains(message.type())){thinkOrDieCommand(room,member,peer,message);return;}
+        if(Set.of("START_THINK_OR_DIE","TOD_SUBMIT","TOD_VOTE","TOD_TYPING","END_THINK_OR_DIE").contains(message.type())){thinkOrDieCommand(room,member,peer,message);return;}
         if(room.cards!=null)throw new Failure(409,"CARDS_IN_PROGRESS");
         if(room.forgotten!=null)throw new Failure(409,"FORGOTTEN_ROOM_IN_PROGRESS");
         if(room.lastCommand!=null)throw new Failure(409,"LAST_COMMAND_IN_PROGRESS");
@@ -678,6 +678,8 @@ public final class RoomService {
                 String id=tod(room).submit(member.id,message.requestId(),intField(data,"round"),Protocol.string(data,"text"),now());
                 if(id!=null&&tod(room).survival!=null)broadcast(room,"THINK_OR_DIE_UPDATED"); // survival: the whole room sees the turn
                 else if(id!=null)pushThinkOrDie(room,member);else reply(peer,room,member,message);}
+            case "TOD_TYPING"->{requireThinkOrDie(room,data);if(member.host)return; // live letters of the answering player, throttled to ~8 a second
+                if(tod(room).typing(member.id,Protocol.string(data,"text"))&&now()-room.thinkOrDieLiveAt>=120){room.thinkOrDieLiveAt=now();tod(room).liveDirty=false;broadcast(room,"THINK_OR_DIE_UPDATED");}}
             case "TOD_VOTE"->{requireThinkOrDie(room,data);if(member.host)throw new Failure(403,"TOD_NOT_A_PLAYER");
                 tod(room).vote(member.id,Protocol.string(data,"disputeId"),data.has("accept")&&data.get("accept").getAsBoolean(),now());
                 broadcast(room,"THINK_OR_DIE_UPDATED");}

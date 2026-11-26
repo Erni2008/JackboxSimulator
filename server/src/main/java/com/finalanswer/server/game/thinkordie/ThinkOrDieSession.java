@@ -132,6 +132,14 @@ public final class ThinkOrDieSession {
     private Map<String,Object> lastTurn=Map.of();private Sub turnSub;private Side lastWinner;
     /** wrong answers and repeats inside the current turn: refused, the clock keeps running (only a timeout costs a life) */
     private final List<Map<String,Object>> attempts=new ArrayList<>();private long turnLeft;
+    /** what the answering player is typing right now (shown live on the big screen), cleared on every new turn */
+    private String typing="";
+    /** Live typing from the player whose turn it is; anything else is ignored. @return true when it changed */
+    public boolean typing(String member,String text){
+        if(survival==null||phase!=Phase.TURN||!member.equals(turnPlayer))return false;
+        String t=text==null?"":text.replaceAll("\\p{Cntrl}","");if(t.length()>AnswerInput.MAX_LENGTH)t=t.substring(0,AnswerInput.MAX_LENGTH);
+        if(t.equals(typing))return false;typing=t;liveDirty=true;return true;
+    }
     private Side sideOf(Player p){for(Side d:entrants)if(d.members.contains(p))return d;return null;}
     private List<Side> aliveIn(List<Side> m){List<Side> a=new ArrayList<>();for(Side d:m)if(d.lives>0)a.add(d);return a;}
     private boolean tickSurvival(long now){
@@ -183,7 +191,7 @@ public final class ThinkOrDieSession {
         if(phase!=Phase.CATEGORY_REVEAL&&sideTurn>=0&&nxt<=sideTurn){lap++;lapsOnCategory++;
             if(lapsOnCategory>=survival.lapsPerCategory()){lapsOnCategory=0;newCategory(now);return;}}
         sideTurn=nxt;Side d=match.get(sideTurn);Player p=d.members.get(d.next%d.members.size());d.next++;
-        turnPlayer=p.id;turnMs=survival.turnMs(lap);turnSub=null;attempts.clear();
+        turnPlayer=p.id;turnMs=survival.turnMs(lap);turnSub=null;attempts.clear();typing="";
         enter(Phase.TURN,now,turnMs);
     }
     private void settleTurn(long now){
@@ -247,7 +255,7 @@ public final class ThinkOrDieSession {
         Map<String,Object> m=new LinkedHashMap<>();
         m.put("format",format.name());m.put("lives",format==Format.FFA?survival.lives():survival.duelLives());m.put("lap",lap+1);m.put("turnMs",turnMs);
         if(turnPlayer!=null)m.put("turnPlayer",turnPlayer);
-        m.put("used",List.copyOf(used));m.put("last",lastTurn);m.put("attempts",List.copyOf(attempts));
+        m.put("used",List.copyOf(used));m.put("last",lastTurn);m.put("attempts",List.copyOf(attempts));if(phase==Phase.TURN||phase==Phase.TURN_CHECK)m.put("typing",typing);
         if(format!=Format.FFA){
             List<Map<String,Object>> cur=new ArrayList<>();for(Side d:match)cur.add(sideView(d));m.put("match",cur);
             List<List<Map<String,Object>>> br=new ArrayList<>();
