@@ -26,7 +26,7 @@ final class ThinkOrDieArt implements Disposable {
 
     final Texture pixel,soft,ring,car,carGlass,noise,round,beam,dots;final Texture background;final NinePatch plateFill,plateEdge;
     /** the game's own dungeon kit (lobby): moonlit dungeon, hanging cage, chain, ceiling hook; flame from RARE MINDS */
-    final Texture dungeon,cage,chain,hook,flame;final BitmapFont hand;
+    final Texture logo,dungeon,cage,chain,hook,flame;final BitmapFont hand;
     final BitmapFont horror,display,big,mid,small,tiny;
     final GlyphLayout gl=new GlyphLayout();
     private final Map<String,Texture> faces=new HashMap<>();private final Map<String,Sound> sounds=new HashMap<>();
@@ -39,7 +39,7 @@ final class ThinkOrDieArt implements Disposable {
         beam=beam();dots=dots();
         var bg=Gdx.files.internal("think_or_die/background.jpg");
         background=bg.exists()?mip(new Texture(bg,true)):null;
-        dungeon=tex("lobby/background_dungeon.png");cage=tex("lobby/cages/cage_bars.png");hook=tex("lobby/cages/chain_hook.png");flame=tex("rare_minds/ui/flame.png");
+        logo=tex("think_or_die/logo.png");dungeon=tex("lobby/background_dungeon.png");cage=tex("lobby/cages/cage_bars.png");hook=tex("lobby/cages/chain_hook.png");flame=tex("rare_minds/ui/flame.png");
         chain=tex("lobby/cages/chain.png");if(chain!=null)chain.setWrap(Texture.TextureWrap.ClampToEdge,Texture.TextureWrap.Repeat);
         hand=font("ui/fonts/Caveat-Variable.ttf",64,0);
         horror=font("ui/fonts/RussoOne-Regular.ttf",150,0);display=font("ui/fonts/RussoOne-Regular.ttf",108,0);big=font("ui/fonts/RussoOne-Regular.ttf",64,0);
@@ -220,7 +220,7 @@ final class ThinkOrDieArt implements Disposable {
         for(int y=0;y<H;y++)for(int x=0;x<W;x++){float a=0;for(int j=0;j<s;j++)for(int i=0;i<s;i++)a+=(b.getPixel(x*s+i,y*s+j)&0xff)/255f;p.drawPixel(x,y,Color.rgba8888(1,1,1,a/(s*s)));}
         b.dispose();Texture t=new Texture(p);t.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();return t;}
 
-    @Override public void dispose(){round.dispose();roundEdge.dispose();beam.dispose();dots.dispose();pixel.dispose();soft.dispose();ring.dispose();car.dispose();carGlass.dispose();noise.dispose();if(background!=null)background.dispose();for(Texture t:new Texture[]{dungeon,cage,chain,hook,flame})if(t!=null)t.dispose();hand.dispose();
+    @Override public void dispose(){round.dispose();roundEdge.dispose();beam.dispose();dots.dispose();pixel.dispose();soft.dispose();ring.dispose();car.dispose();carGlass.dispose();noise.dispose();if(background!=null)background.dispose();for(Texture t:new Texture[]{logo,dungeon,cage,chain,hook,flame})if(t!=null)t.dispose();hand.dispose();
         horror.dispose();display.dispose();big.dispose();mid.dispose();small.dispose();tiny.dispose();
         for(Texture t:faces.values())if(t!=null)t.dispose();for(Sound s:sounds.values())if(s!=null)s.dispose();}
 }

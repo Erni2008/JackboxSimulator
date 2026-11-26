@@ -158,7 +158,12 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
 
     /** Metal THINK / DIE with a red OR on a red ribbon, a drawn top hat above. */
     private void logo(float cx,float cy,float s,float a){
-        if(a<=0||s<=.05f)return;float sc=.62f*s;
+        if(a<=0||s<=.05f)return;
+        if(art.logo!=null){ // the artwork logo (stone THINK / DIE, red OR, top hat, blood splash)
+            float lw=560*s,lh=lw*art.logo.getHeight()/art.logo.getWidth(),ly=cy-12*s;
+            art.glow(cx,ly,lw*1.05f,lh*1.1f,BLACK,.50f*a);
+            art.batch.setColor(1,1,1,a);art.batch.draw(art.logo,cx-lw/2,ly-lh/2,lw,lh);art.batch.setColor(1,1,1,1);return;}
+        float sc=.62f*s;
         String l="THINK ",m="OR",r=" DIE";float wl=art.width(art.display,l,sc),wm=art.width(art.display,m,sc*.78f),wr=art.width(art.display,r,sc),tw=wl+wm+wr,th=art.display.getLineHeight()*sc;
         art.glow(cx,cy,tw*1.1f,th*1.4f,BLACK,.55f*a);
         for(int k=0;k<5;k++){float yy=cy-th*.10f+(k-2)*th*.09f,x0=cx-tw*(.42f+.05f*(k%3)),x1=cx+tw*(.40f+.06f*((k+1)%3));art.line(x0,yy-k*2,x1,yy+6-k,th*(.05f+.02f*(k%2)),new Color(.55f+.1f*(k%2),.02f,.04f,1),.55f*a,false);}
