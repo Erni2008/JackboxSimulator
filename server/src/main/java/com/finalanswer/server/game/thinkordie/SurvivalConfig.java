@@ -29,6 +29,11 @@ public record SurvivalConfig(int lives,long introMs,long categoryMs,long turnSta
             (int)l.applyAsLong("lapsPerCategory",2L),(int)l.applyAsLong("pointsCorrect",100L),l.applyAsLong("finalMs",14000L),l.applyAsLong("minSubmitIntervalMs",250L),
             (int)l.applyAsLong("duelLives",2L),l.applyAsLong("bracketMs",6000L),l.applyAsLong("matchIntroMs",4000L),l.applyAsLong("matchResultMs",4500L));
     }
+    /** The host's choices from the setup screen (clamped): lives for every format, the first turn length, faster turns or not. */
+    public SurvivalConfig with(int lives,int turnSeconds,boolean speedUp){
+        int lv=Math.max(1,Math.min(5,lives));long start=Math.max(5,Math.min(20,turnSeconds))*1000L;
+        return new SurvivalConfig(lv,introMs,categoryMs,start,speedUp?turnStepMs:0,Math.min(turnMinMs,start),checkMaxMs,resultMs,lapsPerCategory,pointsCorrect,finalMs,minSubmitIntervalMs,lv,bracketMs,matchIntroMs,matchResultMs);
+    }
     /** Turn length for a lap (0 = first lap). */
     public long turnMs(int lap){return Math.max(turnMinMs,turnStartMs-lap*turnStepMs);}
 }

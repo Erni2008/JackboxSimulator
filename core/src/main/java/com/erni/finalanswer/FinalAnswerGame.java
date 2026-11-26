@@ -138,6 +138,20 @@ public class FinalAnswerGame extends Game {
     private com.erni.finalanswer.thinkordie.ThinkOrDieScreen thinkOrDieScreen;
     /** Host: start THINK OR DIE for every connected player (alive and ghosts). */
     public void startThinkOrDie(){startThinkOrDie("FFA");}
+    private com.erni.finalanswer.thinkordie.TodSetupScreen todSetup;
+    /** Host: the THINK OR DIE setup screen (mode, lives, turn time); START sends the choice, BACK returns to the room lobby. */
+    public void showThinkOrDieSetup(){
+        if(activeRoom==null||realtime==null||!activeRoom.host()||!realtime.connected())return;
+        if(todSetup!=null)todSetup.dispose();
+        todSetup=new com.erni.finalanswer.thinkordie.TodSetupScreen(()->realtime==null?null:realtime.snapshot(),"ru".equals(getSettings().language()),new com.erni.finalanswer.thinkordie.TodSetupScreen.Listener(){
+            @Override public void start(com.erni.finalanswer.thinkordie.TodSetupScreen.Choice c){startThinkOrDie(c);}
+            @Override public void back(){var s=todSetup;todSetup=null;showRoomLobby();if(s!=null)Gdx.app.postRunnable(s::dispose);}});
+        setScreen(todSetup);
+    }
+    private void startThinkOrDie(com.erni.finalanswer.thinkordie.TodSetupScreen.Choice c){
+        if(activeRoom==null||realtime==null||!realtime.connected())return;var snapshot=realtime.snapshot();if(snapshot==null||!snapshot.has("lobbyId"))return;
+        realtime.send("START_THINK_OR_DIE",java.util.Map.of("roomCode",activeRoom.code(),"sessionId",snapshot.get("lobbyId").getAsString(),"format",c.format(),"lives",c.lives(),"turnSeconds",c.turnSeconds(),"speedUp",c.speedUp()));
+    }
     /** @param format FFA (survival, everyone against everyone), DUEL (1 on 1 knockout) or TEAMS (2 on 2 knockout) */
     public void startThinkOrDie(String format){
         if(activeRoom==null||realtime==null||!activeRoom.host()||!realtime.connected())return;
@@ -150,6 +164,7 @@ public class FinalAnswerGame extends Game {
         if(com.erni.finalanswer.thinkordie.TodSurvivalScreen.isSurvival(state)){ // the standalone mode: survival
             if(survivalScreen!=null&&survivalScreen.session().equals(session)){survivalScreen.apply(state);if(getScreen()!=survivalScreen)setScreen(survivalScreen);return;}
             releaseThinkOrDie(false);
+            if(todSetup!=null){var ts=todSetup;todSetup=null;Gdx.app.postRunnable(ts::dispose);}
             survivalScreen=new com.erni.finalanswer.thinkordie.TodSurvivalScreen(state,realtime::serverNow,id->{
                 if(realtime!=null&&realtime.connected())realtime.send("END_THINK_OR_DIE",java.util.Map.of("roomCode",activeRoom.code(),"sessionId",id));});
             setScreen(survivalScreen);return;}

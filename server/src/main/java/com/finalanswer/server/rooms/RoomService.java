@@ -669,7 +669,7 @@ public final class RoomService {
                 String forced=Boolean.getBoolean("race.qa")?System.getProperty("thinkordie.integrated.category",""):"";
                 if(!forced.isEmpty()&&pack.get(forced)!=null){var l=new ArrayList<>(cats);l.add(0,pack.get(forced));cats=l;}
                 String lang=Boolean.getBoolean("race.qa")&&!System.getProperty("thinkordie.integrated.lang","").isEmpty()?System.getProperty("thinkordie.integrated.lang"):room.language;
-                room.thinkOrDie=new com.finalanswer.server.game.thinkordie.ThinkOrDieSession(seated.stream().map(m->m.id).toList(),cats,validationEngine(),cfg,com.finalanswer.server.game.thinkordie.SurvivalConfig.DEFAULT,lang,now(),todFormat(data,seated.size()),random);room.thinkOrDieDoneAt=0;
+                room.thinkOrDie=new com.finalanswer.server.game.thinkordie.ThinkOrDieSession(seated.stream().map(m->m.id).toList(),cats,validationEngine(),cfg,todSurvival(data),lang,now(),todFormat(data,seated.size()),random);room.thinkOrDieDoneAt=0;
                 System.out.println("[think-or-die] start room="+room.code+" seats="+seated.size()+" ghosts="+ghosts.size());
                 broadcast(room,"THINK_OR_DIE_STARTED");
             }
@@ -684,6 +684,14 @@ public final class RoomService {
             default->throw new Failure(400,"UNKNOWN_COMMAND");
         }}catch(com.finalanswer.server.game.thinkordie.ThinkOrDieSession.Failure f){throw new Failure(f.status,f.getMessage());}
         catch(UnsupportedOperationException|ClassCastException|IllegalStateException e){throw new Failure(400,"TOD_INVALID_MESSAGE");}
+    }
+    /** Optional host settings on START_THINK_OR_DIE: "lives" (1-5), "turnSeconds" (5-20), "speedUp" (turns get shorter each lap). */
+    private static com.finalanswer.server.game.thinkordie.SurvivalConfig todSurvival(JsonObject data){
+        var d=com.finalanswer.server.game.thinkordie.SurvivalConfig.DEFAULT;
+        if(!data.has("lives")&&!data.has("turnSeconds")&&!data.has("speedUp"))return d;
+        try{int lv=data.has("lives")?data.get("lives").getAsInt():d.lives();int ts=data.has("turnSeconds")?data.get("turnSeconds").getAsInt():(int)(d.turnStartMs()/1000);
+            boolean sp=!data.has("speedUp")||data.get("speedUp").getAsBoolean();return d.with(lv,ts,sp);}
+        catch(RuntimeException e){throw new Failure(400,"TOD_INVALID_SETTINGS");}
     }
     /** START_THINK_OR_DIE may carry "format": FFA (default), DUEL (1 on 1 knockout) or TEAMS (2 on 2, needs 4 players). */
     private static com.finalanswer.server.game.thinkordie.ThinkOrDieSession.Format todFormat(JsonObject data,int players){
