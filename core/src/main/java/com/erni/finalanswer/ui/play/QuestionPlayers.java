@@ -208,24 +208,23 @@ public final class QuestionPlayers extends Actor implements Disposable {
      *  drawn at the same width with its name plate on one shared baseline, so the row reads level whatever the ornament. */
     private void drawHanging(Batch batch,Entry e,float cx,float cell,boolean leader,float alpha,int seat){
         todFonts();
-        int k=e.player.ghost?1:leader?4:SEAT_FRAMES[seat%3];Texture ft=frameTex(k);if(ft==null)return;float[] g=GEO[k];
+        int k=e.player.ghost?1:SEAT_FRAMES[seat%SEAT_FRAMES.length];leader=false;/* a frame never changes while answering */Texture ft=frameTex(k);if(ft==null)return;float[] g=GEO[k];
         float a=alpha;
-        float W=Math.min(196,cell-12),H=W*ft.getHeight()/ft.getWidth();
-        float plateMid=getY()+28+(196-W)*.18f,top=plateMid+H*(g[2]+g[3])/2,x0=cx-W/2;
+        float W=Math.min(212,cell-10),H=W*ft.getHeight()/ft.getWidth();
+        float plateMid=getY()+2+(212-W)*.18f,top=plateMid+H*(g[2]+g[3])/2,x0=cx-W/2;
         float hy=top-H*g[0],hr=W*g[1],cr=hr*1.02f;
         float pop=reduced?0:Math.max(0,1-e.counterPop/.45f);
-        // portrait clipped to the hole, behind the frame: head and shoulders fill the ring
-        batch.setColor(.05f,.02f,.03f,a);batch.draw(uiPixel,cx-cr,hy-cr,cr*2,cr*2);batch.setColor(color);
-        float scale=(hr*3.3f)/e.height*e.size;
-        batch.flush();clipArea.set(cx-cr,hy-cr,2*cr,2*cr);
-        boolean pushed=false;if(getStage()!=null){com.badlogic.gdx.scenes.scene2d.utils.ScissorStack.calculateScissors(getStage().getCamera(),batch.getTransformMatrix(),clipArea,clip);pushed=com.badlogic.gdx.scenes.scene2d.utils.ScissorStack.pushScissors(clip);}
-        local.set(saved).translate(cx,hy-hr*2.30f,0).scale(scale,scale,1).translate(-174,-e.floor,0);batch.setTransformMatrix(local);
+        // the ring's dark backdrop, the frame, then the whole character in front of it (never cropped); its legs go behind the
+        // name plate, which is redrawn from the same texture on top
+        batch.setColor(.05f,.02f,.03f,.85f*a);batch.draw(uiPixel,cx-cr*.72f,hy-cr*.72f,cr*1.44f,cr*1.44f);batch.setColor(color);
+        batch.setColor(1,1,1,a);batch.draw(ft,x0,top-H,W,H);batch.setColor(color);
+        float nameMid=top-H*(g[2]+g[3])/2,headTop=hy+hr*1.70f,bodyH=headTop-nameMid,scale=bodyH/e.height*e.size;
+        local.set(saved).translate(cx,nameMid,0).scale(scale,scale,1).translate(-174,-e.floor,0);batch.setTransformMatrix(local);
         if(e.player.ghost)batch.setColor(.86f,.80f,1f,color.a); // ghosts: a cool tint and slight transparency, still recognisable
-        presentation.draw(batch,e.character,e.profile,a*(e.player.ghost?.78f:1),e.time);batch.setColor(color);batch.setTransformMatrix(saved);
-        batch.flush();if(pushed)com.badlogic.gdx.scenes.scene2d.utils.ScissorStack.popScissors();
-        batch.setColor(1,1,1,a);batch.draw(ft,x0,top-H,W,H);
-        if(pop>0){batch.setBlendFunction(com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,com.badlogic.gdx.graphics.GL20.GL_ONE);batch.setColor(1,1,1,.30f*pop*a);batch.draw(ft,x0,top-H,W,H);
-            batch.setBlendFunction(com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA);}
+        presentation.draw(batch,e.character,e.profile,a*(e.player.ghost?.80f:1),e.time);batch.setColor(color);batch.setTransformMatrix(saved);
+        float plateCut=g[2]-.012f; // from just above the name plate down: plates over the character's legs
+        int sy=(int)(ft.getHeight()*plateCut);batch.setColor(1,1,1,a);
+        batch.draw(ft,x0,top-H,W,H*(1-plateCut),0,sy,ft.getWidth(),ft.getHeight()-sy,false,false);
         batch.setColor(color);
         Color acc=accTmp.set(com.erni.finalanswer.ui.PlayerColors.light(e.player.characterId));if(e.player.ghost)acc.set(GHOST_NAME);else if(leader)acc.set(NAME_GOLD);
         // nickname: fills the plate height, shrinks for long names, then ellipsis
@@ -248,7 +247,7 @@ public final class QuestionPlayers extends Actor implements Disposable {
         todScore.setColor(acc.r,acc.g,acc.b,a);todScore.draw(batch,t,cx-counterText.width/2,ty);
         todScore.getData().setScale(1);batch.setColor(color);
     }
-    private static final int[] SEAT_FRAMES={0,2,3};
+    private static final int[] SEAT_FRAMES={0,2,3,4};
     private final Color tmpShadow=new Color();private final java.util.HashMap<String,String> cutNames=new java.util.HashMap<>();
     private void setName(String nick,float pw,boolean cut,Color c){
         String t=nick;
