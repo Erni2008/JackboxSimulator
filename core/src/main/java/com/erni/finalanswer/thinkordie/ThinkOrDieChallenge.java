@@ -198,6 +198,17 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
     /** The category plate: cut corners, double red rim, rivets, a CATEGORY tab, sheared serif text. */
     private void categoryPlate(float w,float a,String text,float zoom,boolean muted){
         if(a<=0)return;float z=Math.max(.05f,zoom),cx=800,cy=407,pw=900*z,ph=172*z;
+        if(art.plate!=null){ // the artwork plate (bronze frame, red glow, CATEGORY tab); the category text goes inside
+            float W=920*z,H=W*art.plate.getHeight()/art.plate.getWidth(),top=411.5f+H/2;
+            art.batch.setColor(1,1,1,a);art.batch.draw(art.plate,800-W/2,top-H,W,H);art.batch.setColor(1,1,1,1);
+            if(z<.7f)return;
+            float boxW=W*.84f,boxTop=top-H*.29f,boxBot=top-H*.87f,maxH=boxTop-boxBot,sc=.92f;
+            for(int i=0;i<10;i++){serif.getData().setScale(sc);gl.setText(serif,text,METAL,boxW,Align.center,true);if(gl.height<=maxH)break;sc*=.9f;}
+            float ty=(boxTop+boxBot)/2+gl.height/2;
+            italic(800,(boxTop+boxBot)/2,.12f);
+            serif.setColor(0,0,0,.85f*a);serif.draw(art.batch,text,800-boxW/2+3,ty-3,boxW,Align.center,true);
+            serif.setColor(muted?DIM.r:METAL.r,muted?DIM.g:METAL.g,muted?DIM.b:METAL.b,a);serif.draw(art.batch,text,800-boxW/2,ty,boxW,Align.center,true);
+            serif.getData().setScale(1);art.batch.setTransformMatrix(saved);return;}
         art.glow(cx,cy,pw*1.15f,ph*1.6f,RED,.22f*a);frame.bronze(art.batch,cx-pw/2,cy-ph/2,pw,ph,new Color(.07f,.035f,.035f,.97f),RED,a);
         if(z<.7f)return;
         float tabW=280,tabH=40,ty=cy+ph/2-tabH/2+4;
