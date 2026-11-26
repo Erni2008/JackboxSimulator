@@ -8,7 +8,7 @@
 function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
   const T=(ru,en)=>typeof faT==='function'?faT(ru,en):en;
   const mini=()=>getState()?.thinkOrDie;
-  let seenRows=new Set(),built=false,root,els={},session='',round=0,raf=0,error='',errorAt=0,outbox=[],lastPhase='',lastKey='',lastSendAt=0;
+  let seenRows=new Set(),built=false,root,els={},session='',round=0,raf=0,error='',errorAt=0,outbox=[],held=null,lastPhase='',lastKey='',lastSendAt=0;
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   // built on every use: the room language can change after this controller is created
   const STATES=()=>({
@@ -64,19 +64,20 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
     if(!text){els.input.focus();return;}
     if(performance.now()-lastSendAt<260)return; // the server's anti-spam floor
     lastSendAt=performance.now();
-    const requestId=makeId(),have=(m.me?.history||[]).filter(h=>h.text===text).length;
+    if(held&&held.text===text)return; // still checking this exact answer
+    const requestId=makeId(),have=(m.me?.history||[]).filter(h=>h.text===text).length;held={text,have,round:m.round};
     outbox.push({requestId,text,have,round:m.round});
     send('TOD_SUBMIT',{sessionId:m.sessionId,round:m.round,text},requestId);
-    els.input.value='';els.input.focus();navigator.vibrate?.(12);render();
+    els.input.focus();render();
   }
   function event(e){
     if(e.type!=='THINK_OR_DIE_REJECTED')return;
-    const code=e.payload?.code||'';outbox=outbox.filter(o=>o.requestId!==e.requestId);
+    const code=e.payload?.code||'';outbox=outbox.filter(o=>o.requestId!==e.requestId);held=null;
     error={TOD_TOO_LATE:T('Время вышло','Time is up'),TOD_ANSWERS_CLOSED:T('Приём ответов закрыт','Answers are closed'),TOD_EMPTY_ANSWER:'',TOD_ANSWER_TOO_LONG:T('До 40 знаков','40 characters max'),
       TOD_TOO_FAST:T('Чуть медленнее','A little slower'),TOD_TOO_MANY_ANSWERS:T('Лимит ответов в раунде','Answer limit for this round'),RATE_LIMITED:T('Чуть медленнее','A little slower'),TOD_OWN_ANSWER:T('За свой ответ голосовать нельзя','You cannot vote on your own answer')}[code]??T('Не отправлено','Not sent');
     errorAt=performance.now();render();
   }
-  function reset(){session='';round=0;outbox=[];error='';lastPhase='';lastKey='';cancelAnimationFrame(raf);raf=0;if(built)els.input.value='';}
+  function reset(){session='';round=0;outbox=[];held=null;error='';lastPhase='';lastKey='';cancelAnimationFrame(raf);raf=0;if(built)els.input.value='';}
   function suspend(){cancelAnimationFrame(raf);raf=0;}
   function paintHint(){els.hint.textContent=error;els.hint.classList.toggle('err',!!error);}
   const me=()=>{const m=mini();return m?.players?.find(p=>p.id===getState()?.selfId)||{};};
@@ -84,7 +85,7 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
   function render(){
     build();const m=mini();if(!m)return;
     if(m.sessionId!==session){reset();session=m.sessionId;}
-    if(m.round!==round){round=m.round;outbox=[];error='';els.input.value='';}
+    if(m.round!==round){round=m.round;outbox=[];held=null;error='';els.input.value='';}
     const hist=m.me?.history||[];
     outbox=outbox.filter(o=>o.round===m.round&&hist.filter(h=>h.text===o.text).length<=o.have);
     const p=me(),ph=m.phase,ghost=!!p.ghost;
@@ -104,7 +105,15 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
     els.ghost.hidden=!(ghost&&!['FINAL_RESULTS','COMPLETED'].includes(ph));
     if(ghost)els.ghost.textContent=T(`ТЫ ПРИЗРАК · ${m.resurrectMin} верных уникальных ответов за раунд вернут тебя к жизни`,`YOU ARE A GHOST · ${m.resurrectMin} correct unique answers in one round bring you back`);
     // own answers, newest first
-    const rows=[...outbox.map(o=>({text:o.text,state:'SENDING'})),...[...hist].reverse()];
+    // the verdict for the answer still in the field: wrong stays there with a warning, counted clears it
+    if(held){const mine=hist.filter(h=>h.text===held.text);const v=mine.length>held.have?mine[mine.length-1]:null;
+      if(v&&v.state!=='PENDING'&&v.state!=='SENDING'){const same=els.input.value.replace(/\s+/g,' ').trim()===held.text;
+        if(v.state==='WRONG_LIVE'){navigator.vibrate?.([40,50,40]);error=T('Неверный ответ. Исправь и отправь снова','Wrong answer. Fix it and send again');errorAt=performance.now();}
+        else if(v.state==='REPEAT_LIVE'){navigator.vibrate?.([40,50,40]);error=T('Этот ответ уже был','You already gave this answer');errorAt=performance.now();if(same)els.input.select();}
+        else{error='';if(same)els.input.value='';navigator.vibrate?.(12);}
+        held=null;}}
+    if(held&&ph==='ANSWERING'&&!error){error=T('Проверяем…','Checking…');errorAt=performance.now();}
+    const rows=[...hist].reverse().filter(r=>!['WRONG_LIVE','REPEAT_LIVE','PENDING','SENDING'].includes(r.state));
     const key=JSON.stringify(rows)+ph;
     if(key!==lastKey){lastKey=key;
       const STATE=STATES();let refused='',back='';
@@ -113,9 +122,8 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
         if(bad)return ''; // refused answers never join the list: a wrong one goes back into the field to fix
         return `<li class="s-${st[1]}${fresh?' fresh':''}"><span>${esc(r.label||r.text)}</span><em>${esc(st[0])}${r.points!=null?` · ${r.points>0?'+':''}${r.points}`:''}</em></li>`;}).join('');
       // a refused answer: short buzz and a hint, the field stays ready for the next one
-      if(refused&&answering){navigator.vibrate?.([40,50,40]);
-        if(back&&!els.input.value.trim()){els.input.value=back;els.input.focus();const n=back.length;try{els.input.setSelectionRange(n,n);}catch{}}
-        error=refused==='WRONG_LIVE'?T('Неверно, исправь и отправь снова','Not accepted, fix it and send again'):T('Уже было, не засчитано','Already given, not counted');errorAt=performance.now();}}
+      if(false){
+      }}
     els.list.hidden=!rows.length||ph==='INTRO'||ph==='CATEGORY_REVEAL'||ph==='FINAL_RESULTS'||ph==='COMPLETED';
     els.count.hidden=!(answering||ph==='ANSWER_VALIDATION');
     if(!els.count.hidden)els.count.innerHTML=ph==='ANSWER_VALIDATION'?`<b>${T('ПРОВЕРЯЕМ ОТВЕТЫ…','CHECKING ANSWERS…')}</b>`:`<b>${(m.me?.count??hist.length)+outbox.length}</b> ${T('ответов отправлено','answers sent')}`;
