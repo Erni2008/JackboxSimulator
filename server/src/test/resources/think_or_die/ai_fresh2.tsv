@@ -1,0 +1,98 @@
+# category	lang	answer	expected — second fresh set, written before any tuning on it
+movie_genres	en	Romantic comedy	1
+movie_genres	en	Found footage	1
+movie_genres	en	Disaster film	1
+movie_genres	ru	Мелодрама	1
+movie_genres	ru	Боевик	1
+movie_genres	en	Popcorn	0
+movie_genres	en	Netflix	0
+movie_genres	en	Oscar	0
+movie_genres	ru	Режиссёр	0
+batman_villains	en	Mr. Freeze	1
+batman_villains	en	Clayface	1
+batman_villains	en	Hush	1
+batman_villains	ru	Пингвин	1
+batman_villains	en	Joker's daughter	1
+batman_villains	en	Venom	0
+batman_villains	en	Robin	0
+batman_villains	en	Alfred	0
+batman_villains	ru	Танос	0
+disney_princesses	en	Rapunzel	1
+disney_princesses	en	Tiana	1
+disney_princesses	ru	Жасмин	1
+disney_princesses	en	Mulan	1
+disney_princesses	en	Fiona	0
+disney_princesses	en	Barbie	0
+disney_princesses	en	Wonder Woman	0
+programming_languages	en	Swift	1
+programming_languages	en	Scala	1
+programming_languages	en	Lisp	1
+programming_languages	ru	Питон	1
+programming_languages	en	Linux	0
+programming_languages	en	Chrome	0
+programming_languages	en	JSON	0
+programming_languages	en	Snakescript	0
+chemical_elements	en	Argon	1
+chemical_elements	ru	Золото	1
+chemical_elements	en	Water	0
+chemical_elements	en	Bronze	0
+in_kitchen	en	Rolling pin	1
+in_kitchen	en	Whisk	1
+in_kitchen	en	Toaster oven	1
+in_kitchen	ru	Дуршлаг	1
+in_kitchen	ru	Чайник	1
+in_kitchen	en	Hammer	0
+in_kitchen	en	Pillow	0
+in_kitchen	en	Banana	0
+in_kitchen	ru	Подушка	0
+in_bathroom	en	Toothpaste	1
+in_bathroom	en	Bath towel	1
+in_bathroom	en	Electric razor	1
+in_bathroom	ru	Шампунь	1
+in_bathroom	ru	Мыло	1
+in_bathroom	en	Refrigerator	0
+in_bathroom	en	Frying pan	0
+in_bathroom	ru	Кастрюля	0
+in_bathroom	en	Squirrel	0
+winter_things	en	Ice hockey	1
+winter_things	en	Snowboarding	1
+winter_things	en	Building an igloo	1
+winter_things	ru	Хоккей	1
+winter_things	en	Surfing	0
+winter_things	en	Tennis	0
+winter_things	en	Snow	0
+winter_things	ru	Мороз	0
+ocean_things	en	Octopus	1
+ocean_things	en	Blue whale	1
+ocean_things	en	Clownfish	1
+ocean_things	ru	Дельфин	1
+ocean_things	ru	Краб	1
+ocean_things	en	Frog	0
+ocean_things	en	Carp	0
+ocean_things	en	Treasure chest	0
+ocean_things	ru	Лодка	0
+produces_light	en	Candle	1
+produces_light	en	Lightning	1
+produces_light	ru	Солнце	1
+produces_light	en	Window	0
+produces_light	en	Snowflake	0
+pump_bottle	en	Lotion	1
+pump_bottle	en	Dish soap	1
+pump_bottle	en	Rock	0
+pump_bottle	en	Banana	0
+track_and_field	en	Marathon	1
+track_and_field	en	High jump	1
+track_and_field	en	Javelin	1
+track_and_field	en	Touchdown	0
+track_and_field	en	Swimming	0
+animals_five_letters	en	Horse	1
+animals_five_letters	en	Shark	1
+animals_five_letters	en	Mouse	1
+animals_five_letters	en	Chair	0
+animals_five_letters	en	Dog	0
+animals_five_letters	en	Lizard	0
+ruin_first_date	en	Being rude to the waiter	1
+ruin_first_date	en	Showing up drunk	1
+ruin_first_date	ru	Опоздать	1
+ruin_first_date	en	Pineapple	0
+ruin_first_date	en	Mathematics	0
