@@ -146,6 +146,8 @@ tasks.register('raceQa', JavaExec) {
     if (providers.gradleProperty('tod.rounds').isPresent()) systemProperty 'thinkordie.rounds', providers.gradleProperty('tod.rounds').get()
     if (providers.gradleProperty('tod.ghost').isPresent()) systemProperty 'thinkordie.integrated.qaGhost', providers.gradleProperty('tod.ghost').get()
     if (providers.gradleProperty('tod.category').isPresent()) systemProperty 'thinkordie.integrated.category', providers.gradleProperty('tod.category').get()
+    // only THINK OR DIE challenges, no classic questions: -Ptod.only=3
+    if (providers.gradleProperty('tod.only').isPresent()) systemProperty 'thinkordie.integrated.only', providers.gradleProperty('tod.only').get()
     if (providers.gradleProperty('tod.ai').isPresent()) systemProperty 'thinkordie.ai.url', providers.gradleProperty('tod.ai').get()
     args providers.gradleProperty('race.port').getOrElse('18311')
 }

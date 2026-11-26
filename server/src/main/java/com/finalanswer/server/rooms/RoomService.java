@@ -352,7 +352,7 @@ public final class RoomService {
                 case "INTRO_RESUME" -> game.intro.resume(now());
                 default -> {
                     if(message.type().equals("INTRO_READY")&&!game.intro.ready(now()))throw new Failure(409,"INTRO_NOT_READY");
-                    game.intro.complete();game.next(now());broadcast(room,"QUESTION_STARTED");
+                    game.intro.complete();if(startOnlyChallenge(room))broadcast(room,"THINK_OR_DIE_STARTED");else{game.next(now());broadcast(room,"QUESTION_STARTED");}
                 }
             }
             if(game.phase==Phase.STARTING)broadcast(room,"INTRO_UPDATED");
@@ -710,10 +710,14 @@ public final class RoomService {
      * integrated round with every seated player, alive or ghost. The match itself waits in RESULTS until it completes.
      * @return true when a challenge started (the caller broadcasts)
      */
-    private boolean startChallenge(Room room){
+    /** QA server only: -Dthinkordie.integrated.only=N plays a match of N THINK OR DIE challenges and no classic questions. */
+    private static int onlyChallenges(){if(!Boolean.getBoolean("race.qa"))return 0;try{return Math.max(0,Integer.parseInt(System.getProperty("thinkordie.integrated.only","0").trim()));}catch(NumberFormatException e){return 0;}}
+    private boolean startOnlyChallenge(Room room){return room.game!=null&&room.game.challenges<onlyChallenges()&&startChallenge(room,true);}
+    private boolean startChallenge(Room room){return startChallenge(room,false);}
+    private boolean startChallenge(Room room,boolean force){
         GameSession g=room.game;if(g==null||room.challenge!=null||room.thinkOrDie!=null)return false;
         int every=com.finalanswer.server.game.thinkordie.ThinkOrDieConfig.matchEvery(),done=g.index+1;
-        if(every<=0||g.index<0||done%every!=0||done>=g.questions.size()||g.lastChallengeIndex==g.index)return false;
+        if(!force&&(every<=0||g.index<0||done%every!=0||done>=g.questions.size()||g.lastChallengeIndex==g.index))return false;
         List<Member> seats=room.members.values().stream().filter(m->!m.host&&!m.left).toList();
         if(seats.size()<com.finalanswer.server.game.thinkordie.ThinkOrDieSession.MIN_PLAYERS||seats.size()>com.finalanswer.server.game.thinkordie.ThinkOrDieSession.MAX_PLAYERS)return false;
         var cfg=com.finalanswer.server.game.thinkordie.ThinkOrDieConfig.INTEGRATED;
@@ -750,6 +754,11 @@ public final class RoomService {
         }
         if(t.phase()==com.finalanswer.server.game.thinkordie.ThinkOrDieSession.Phase.COMPLETED){
             room.challenge=null;GameSession g=room.game;
+            if(g!=null&&onlyChallenges()>0){
+                if(startOnlyChallenge(room))broadcast(room,"THINK_OR_DIE_STARTED");
+                else{g.finish("COMPLETED",now());broadcast(room,"GAME_FINISHED");}
+                return;
+            }
             if(g!=null&&g.phase==Phase.RESULTS){g.next(now());broadcast(room,g.phase==Phase.GAME_FINISHED?"GAME_FINISHED":"QUESTION_STARTED");}
             else broadcast(room,"THINK_OR_DIE_ENDED");
             return;
@@ -1187,7 +1196,8 @@ public final class RoomService {
         }
         if(game.phase==Phase.STARTING && game.intro==null&&now()>=game.phaseStartedAt+Protocol.LOBBY_TRANSITION_MILLIS){
             // The start roster is frozen. Reconnecting members retain their original seat.
-            game.next(game.phaseStartedAt+Protocol.LOBBY_TRANSITION_MILLIS);broadcast(room,"QUESTION_STARTED");
+            if(startOnlyChallenge(room))broadcast(room,"THINK_OR_DIE_STARTED");
+            else{game.next(game.phaseStartedAt+Protocol.LOBBY_TRANSITION_MILLIS);broadcast(room,"QUESTION_STARTED");}
         }
         if(game.phase==Phase.ANSWERING && now()>=game.deadline) {
             game.endAnswers(game.deadline); broadcast(room,"ANSWERING_FINISHED");
