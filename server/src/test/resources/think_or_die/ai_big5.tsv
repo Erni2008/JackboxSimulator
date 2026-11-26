@@ -1,0 +1,502 @@
+# category	lang	answer	expected — big fresh set (round 5), written before tuning
+movie_genres	en	Heist	1
+movie_genres	en	Courtroom drama	1
+movie_genres	en	Period drama	1
+movie_genres	en	Martial arts	1
+movie_genres	en	Spy film	1
+movie_genres	en	Road movie	1
+movie_genres	en	Teen drama	1
+movie_genres	en	Monster movie	1
+movie_genres	en	Gangster film	1
+movie_genres	en	Stop-motion	1
+movie_genres	en	Silent film	1
+movie_genres	en	Political thriller	1
+movie_genres	ru	Триллер про шпионов	1
+movie_genres	ru	Исторический фильм	1
+movie_genres	ru	Ужастик	1
+movie_genres	ru	Нуар	1
+movie_genres	ru	Аниме	1
+movie_genres	en	Pizza	0
+movie_genres	en	Theatre	0
+movie_genres	en	Actress	0
+movie_genres	en	Oscar award	0
+movie_genres	en	Remote control	0
+movie_genres	en	Sofa	0
+movie_genres	en	Box office	0
+movie_genres	en	Script	0
+movie_genres	ru	Сценарий	0
+movie_genres	ru	Пульт	0
+movie_genres	ru	Касса	0
+movie_genres	ru	Афиша	0
+movie_genres	ru	Глорбик	0
+batman_villains	en	Hugo Strange	1
+batman_villains	en	Mr. Zsasz	1
+batman_villains	en	Deathstroke	1
+batman_villains	en	Anarky	1
+batman_villains	en	Professor Pyg	1
+batman_villains	en	Joker	1
+batman_villains	en	Clock King	1
+batman_villains	en	Cluemaster	1
+batman_villains	en	Red Hood	1
+batman_villains	en	Mister Freeze	1
+batman_villains	ru	Ядовитый Плющ	1
+batman_villains	ru	Ра’с аль Гул	1
+batman_villains	ru	Харли Квин	1
+batman_villains	en	Iron Man	0
+batman_villains	en	Captain America	0
+batman_villains	en	Hulk	0
+batman_villains	en	Joker Jr Elmo	0
+batman_villains	en	Doctor Strange	0
+batman_villains	en	Black Widow	0
+batman_villains	en	Aquaman	0
+batman_villains	en	Flash	0
+batman_villains	en	Green Lantern	0
+batman_villains	en	Gollum	0
+batman_villains	en	Baba Yaga	0
+batman_villains	en	Koschei	0
+batman_villains	ru	Железный человек	0
+batman_villains	ru	Халк	0
+batman_villains	ru	Капитан Америка	0
+batman_villains	ru	Флэш	0
+batman_villains	ru	Аквамен	0
+batman_villains	ru	Кощей	0
+batman_villains	ru	Баба-Яга	0
+disney_princesses	ru	Спящая красавица	1
+disney_princesses	ru	Эльза	1
+disney_princesses	en	Sailor Moon	0
+disney_princesses	en	Lara Croft	0
+disney_princesses	en	Cleopatra	0
+disney_princesses	en	Queen Elizabeth	0
+disney_princesses	en	Alice Wonderland Queen of Hearts	0
+disney_princesses	en	Mermaid Marina	0
+disney_princesses	en	Princess Bubblegum	0
+disney_princesses	en	Masha	0
+disney_princesses	en	Alyonushka	0
+disney_princesses	ru	Василиса Премудрая	0
+disney_princesses	ru	Сейлор Мун	0
+disney_princesses	ru	Клеопатра	0
+disney_princesses	ru	Алёнушка	0
+disney_princesses	ru	Принцесса Жвачка	0
+programming_languages	en	C	1
+programming_languages	en	C++	1
+programming_languages	en	C#	1
+programming_languages	en	Java	1
+programming_languages	en	Python	1
+programming_languages	en	Rust	1
+programming_languages	en	Elm	1
+programming_languages	en	Racket	1
+programming_languages	en	Scheme	1
+programming_languages	en	Ada	1
+programming_languages	en	Smalltalk	1
+programming_languages	en	Crystal	1
+programming_languages	en	Nim	1
+programming_languages	en	Solidity	1
+programming_languages	en	VHDL	1
+programming_languages	en	Verilog	1
+programming_languages	en	PowerShell	1
+programming_languages	ru	Си плюс плюс	1
+programming_languages	ru	Пайтон	1
+programming_languages	ru	Раст	1
+programming_languages	ru	Свифт	1
+programming_languages	ru	Хаскель	1
+programming_languages	en	Notepad	0
+programming_languages	en	Visual Studio	0
+programming_languages	en	GitHub	0
+programming_languages	en	Docker	0
+programming_languages	en	Kubernetes	0
+programming_languages	en	Python snake	0
+programming_languages	en	Java coffee	0
+programming_languages	en	Ruby stone	0
+programming_languages	en	Bitcoin	0
+programming_languages	en	Ethereum	0
+programming_languages	en	Android	0
+programming_languages	en	iPhone	0
+programming_languages	ru	Ноутпад	0
+programming_languages	ru	Гитхаб	0
+programming_languages	ru	Докер	0
+programming_languages	ru	Андроид	0
+programming_languages	ru	Биткоин	0
+chemical_elements	en	Oxygen	1
+chemical_elements	en	Hydrogen	1
+chemical_elements	en	Iron	1
+chemical_elements	en	Gold	1
+chemical_elements	en	Silver	1
+chemical_elements	en	Aluminium	1
+chemical_elements	en	Silicon	1
+chemical_elements	en	Sulfur	1
+chemical_elements	en	Phosphorus	1
+chemical_elements	en	Magnesium	1
+chemical_elements	en	Nickel	1
+chemical_elements	en	Cobalt	1
+chemical_elements	en	Tin	1
+chemical_elements	en	Tungsten	1
+chemical_elements	en	Radon	1
+chemical_elements	en	Plutonium	1
+chemical_elements	en	Neodymium	1
+chemical_elements	ru	Кремний	1
+chemical_elements	ru	Сера	1
+chemical_elements	ru	Фосфор	1
+chemical_elements	ru	Магний	1
+chemical_elements	ru	Никель	1
+chemical_elements	ru	Кобальт	1
+chemical_elements	ru	Олово	1
+chemical_elements	ru	Радон	1
+chemical_elements	ru	Плутоний	1
+chemical_elements	ru	Неон	1
+chemical_elements	ru	Аргон	1
+chemical_elements	en	Wood	0
+chemical_elements	en	Paper	0
+chemical_elements	en	Rubber	0
+chemical_elements	en	Ceramic	0
+chemical_elements	en	Concrete	0
+chemical_elements	en	Diamondite	0
+chemical_elements	en	Mithril	0
+chemical_elements	en	Energy	0
+chemical_elements	en	Electricity	0
+chemical_elements	en	Fire	0
+chemical_elements	en	Earth	0
+chemical_elements	ru	Древесина	0
+chemical_elements	ru	Бумага	0
+chemical_elements	ru	Резина	0
+chemical_elements	ru	Бетон	0
+chemical_elements	ru	Мифрил	0
+chemical_elements	ru	Энергия	0
+chemical_elements	ru	Огонь	0
+chemical_elements	ru	Земля	0
+chemical_elements	ru	Электричество	0
+in_kitchen	en	Pot	1
+in_kitchen	en	Pan	1
+in_kitchen	en	Wok	1
+in_kitchen	en	Sieve	1
+in_kitchen	en	Teapot	1
+in_kitchen	en	Thermos	1
+in_kitchen	en	Juicer	1
+in_kitchen	en	Food processor	1
+in_kitchen	en	Bread maker	1
+in_kitchen	en	Rice cooker	1
+in_kitchen	en	Air fryer	1
+in_kitchen	en	Slow cooker	1
+in_kitchen	en	Corkscrew	1
+in_kitchen	en	Bottle opener	1
+in_kitchen	en	Napkin holder	1
+in_kitchen	ru	Сито	1
+in_kitchen	ru	Термос	1
+in_kitchen	ru	Соковыжималка	1
+in_kitchen	ru	Хлебопечка	1
+in_kitchen	ru	Аэрогриль	1
+in_kitchen	ru	Штопор	1
+in_kitchen	ru	Открывалка	1
+in_kitchen	ru	Вок	1
+in_kitchen	ru	Пароварка	1
+in_kitchen	en	Toothbrush	0
+in_kitchen	en	Bed sheet	0
+in_kitchen	en	Wardrobe	0
+in_kitchen	en	Lamp shade	0
+in_kitchen	en	Piano	0
+in_kitchen	en	Treadmill	0
+in_kitchen	en	Snowboard	0
+in_kitchen	en	Tent	0
+in_kitchen	en	Garden hose	0
+in_kitchen	ru	Зубная щётка	0
+in_kitchen	ru	Шторка для душа	0
+in_kitchen	ru	Простыня	0
+in_kitchen	ru	Шкаф для одежды	0
+in_kitchen	ru	Пианино	0
+in_kitchen	ru	Беговая дорожка	0
+in_kitchen	ru	Палатка	0
+in_kitchen	ru	Шланг	0
+in_bathroom	en	Hair dryer	1
+in_bathroom	en	Bubble bath	1
+in_bathroom	en	Loofah	1
+in_bathroom	en	Nail file	1
+in_bathroom	en	Body lotion	1
+in_bathroom	en	Face mask	1
+in_bathroom	en	Sunscreen	1
+in_bathroom	en	Towel rail	1
+in_bathroom	en	Soap dish	1
+in_bathroom	en	Toilet brush	1
+in_bathroom	en	Plunger	1
+in_bathroom	ru	Ополаскиватель	1
+in_bathroom	ru	Пена для ванны	1
+in_bathroom	ru	Пилка для ногтей	1
+in_bathroom	ru	Лосьон	1
+in_bathroom	ru	Маска для лица	1
+in_bathroom	ru	Полотенцесушитель	1
+in_bathroom	ru	Мыльница	1
+in_bathroom	ru	Ёршик	1
+in_bathroom	ru	Вантуз	1
+in_bathroom	en	Wok	0
+in_bathroom	en	Spatula	0
+in_bathroom	en	Teapot	0
+in_bathroom	en	Blender	0
+in_bathroom	en	Toaster	0
+in_bathroom	en	Piano	0
+in_bathroom	en	Fireplace	0
+in_bathroom	en	Bicycle	0
+in_bathroom	en	Snowboard	0
+in_bathroom	ru	Вок	0
+in_bathroom	ru	Лопатка	0
+in_bathroom	ru	Заварочный чайник	0
+in_bathroom	ru	Блендер	0
+in_bathroom	ru	Тостер	0
+in_bathroom	ru	Книжная полка	0
+in_bathroom	ru	Камин	0
+in_bathroom	ru	Велосипед	0
+winter_things	en	Alpine skiing	1
+winter_things	en	Speed skating	1
+winter_things	en	Ice dancing	1
+winter_things	en	Making snow angels	1
+winter_things	en	Tobogganing	1
+winter_things	en	Dog sledding	1
+winter_things	en	Skijoring	1
+winter_things	en	Ice climbing	1
+winter_things	ru	Коньки	1
+winter_things	ru	Снежки	1
+winter_things	ru	Ледолазание	1
+winter_things	ru	Катание на ватрушке	1
+winter_things	ru	Конькобежный спорт	1
+winter_things	ru	Скелетон	1
+winter_things	en	Hiking in summer	0
+winter_things	en	Water skiing	0
+winter_things	en	Kayaking	0
+winter_things	en	Diving	0
+winter_things	en	Golf	0
+winter_things	en	Baseball	0
+winter_things	en	Cricket	0
+winter_things	en	Volleyball	0
+winter_things	en	Rugby	0
+winter_things	en	Mittens	0
+winter_things	en	December	0
+winter_things	ru	Водные лыжи	0
+winter_things	ru	Каякинг	0
+winter_things	ru	Дайвинг	0
+winter_things	ru	Гольф	0
+winter_things	ru	Бейсбол	0
+winter_things	ru	Волейбол	0
+winter_things	ru	Регби	0
+winter_things	ru	Варежки	0
+winter_things	ru	Декабрь	0
+ocean_things	en	Manatee	1
+ocean_things	en	Sea otter	1
+ocean_things	en	Beluga	1
+ocean_things	en	Humpback whale	1
+ocean_things	en	Great white shark	1
+ocean_things	en	Mackerel	1
+ocean_things	en	Herring	1
+ocean_things	en	Cod	1
+ocean_things	en	Salmon	1
+ocean_things	en	Halibut	1
+ocean_things	en	Sardine	1
+ocean_things	en	Anchovy	1
+ocean_things	en	Sea urchin	1
+ocean_things	en	Sea anemone	1
+ocean_things	en	Krill	1
+ocean_things	en	Plankton	1
+ocean_things	en	Hermit crab	1
+ocean_things	en	Mantis shrimp	1
+ocean_things	ru	Лосось	1
+ocean_things	ru	Треска	1
+ocean_things	ru	Сельдь	1
+ocean_things	ru	Скумбрия	1
+ocean_things	ru	Сардина	1
+ocean_things	ru	Морской ёж	1
+ocean_things	ru	Актиния	1
+ocean_things	ru	Криль	1
+ocean_things	ru	Рак-отшельник	1
+ocean_things	ru	Белуха	1
+ocean_things	ru	Горбач	1
+ocean_things	ru	Ламантин	1
+ocean_things	ru	Камбала	1
+ocean_things	en	Tadpole	0
+ocean_things	en	Newt	0
+ocean_things	en	Salamander	0
+ocean_things	en	Axolotl	0
+ocean_things	en	Piranha	0
+ocean_things	en	Tilapia	0
+ocean_things	en	Koi	0
+ocean_things	en	Guppy	0
+ocean_things	en	Eel river	0
+ocean_things	en	Swan	0
+ocean_things	en	Heron	0
+ocean_things	en	Buoy	0
+ocean_things	en	Wave	0
+ocean_things	en	Tide	0
+ocean_things	ru	Головастик	0
+ocean_things	ru	Тритон	0
+ocean_things	ru	Саламандра	0
+ocean_things	ru	Аксолотль	0
+ocean_things	ru	Пиранья	0
+ocean_things	ru	Карп кои	0
+ocean_things	ru	Гуппи	0
+ocean_things	ru	Лебедь	0
+ocean_things	ru	Цапля	0
+ocean_things	ru	Маяк	0
+ocean_things	ru	Буй	0
+ocean_things	ru	Волна	0
+ocean_things	ru	Прилив	0
+produces_light	en	Bioluminescent algae	1
+produces_light	en	Lantern	1
+produces_light	en	Headlight	1
+produces_light	en	Traffic light	1
+produces_light	en	Laser	1
+produces_light	en	Spotlight	1
+produces_light	en	Chandelier	1
+produces_light	en	Meteor	1
+produces_light	en	Comet	1
+produces_light	en	Light bulb	1
+produces_light	en	Neon lamp	1
+produces_light	ru	Лампа	1
+produces_light	ru	Фонарь	1
+produces_light	ru	Фара	1
+produces_light	ru	Светофор	1
+produces_light	ru	Лазер	1
+produces_light	ru	Люстра	1
+produces_light	ru	Вулкан	1
+produces_light	ru	Метеор	1
+produces_light	ru	Комета	1
+produces_light	ru	Ночник	1
+produces_light	en	Cloud	0
+produces_light	en	Ice cube	0
+produces_light	en	Book	0
+produces_light	en	Chair	0
+produces_light	en	Black hole	0
+produces_light	en	Moonlight	0
+produces_light	en	Reflector	0
+produces_light	en	Paint	0
+produces_light	en	Gold	0
+produces_light	ru	Камень	0
+produces_light	ru	Облако	0
+produces_light	ru	Кубик льда	0
+produces_light	ru	Книга	0
+produces_light	ru	Стул	0
+produces_light	ru	Чёрная дыра	0
+produces_light	ru	Отражатель	0
+produces_light	ru	Краска	0
+produces_light	ru	Золото	0
+pump_bottle	en	Shower gel	1
+pump_bottle	en	Serum	1
+pump_bottle	en	Cleanser	1
+pump_bottle	en	Olive oil	1
+pump_bottle	en	Mayonnaise	1
+pump_bottle	en	Barbecue sauce	1
+pump_bottle	en	Honey	1
+pump_bottle	en	Toner	1
+pump_bottle	en	Bath oil	1
+pump_bottle	ru	Сыворотка	1
+pump_bottle	ru	Мицеллярная вода	1
+pump_bottle	ru	Оливковое масло	1
+pump_bottle	ru	Майонез	1
+pump_bottle	ru	Соус	1
+pump_bottle	ru	Мёд	1
+pump_bottle	en	Shoe	0
+pump_bottle	en	Pencil	0
+pump_bottle	en	Potato	0
+pump_bottle	en	Spoon	0
+pump_bottle	en	Lamp	0
+pump_bottle	en	Chair	0
+pump_bottle	en	Watermelon	0
+pump_bottle	en	Ball	0
+pump_bottle	ru	Ботинок	0
+pump_bottle	ru	Карандаш	0
+pump_bottle	ru	Картошка	0
+pump_bottle	ru	Ложка	0
+pump_bottle	ru	Лампа	0
+pump_bottle	ru	Стул	0
+pump_bottle	ru	Арбуз	0
+pump_bottle	ru	Мяч	0
+track_and_field	en	110 metres hurdles	1
+track_and_field	en	400 metres hurdles	1
+track_and_field	en	3000 metres steeplechase	1
+track_and_field	en	4 x 100 metres relay	1
+track_and_field	en	4 x 400 metres relay	1
+track_and_field	en	Half marathon	0
+track_and_field	en	20 km walk	1
+track_and_field	en	50 km walk	1
+track_and_field	en	Pentathlon	1
+track_and_field	en	Standing long jump	1
+track_and_field	ru	Бег на 200 метров	1
+track_and_field	ru	Бег на 1500 метров	1
+track_and_field	ru	Прыжок в длину	1
+track_and_field	ru	Ходьба на 20 км	1
+track_and_field	ru	Полумарафон	0
+track_and_field	ru	Эстафета 4 по 100	1
+track_and_field	en	Ski jumping	0
+track_and_field	en	Figure skating	0
+track_and_field	en	Weightlifting	0
+track_and_field	en	Wrestling	0
+track_and_field	en	Judo	0
+track_and_field	en	Archery	0
+track_and_field	en	Shooting	0
+track_and_field	en	Equestrian	0
+track_and_field	en	Sailing	0
+track_and_field	en	Triathlon	0
+track_and_field	ru	Прыжки с трамплина	0
+track_and_field	ru	Тяжёлая атлетика	0
+track_and_field	ru	Борьба	0
+track_and_field	ru	Дзюдо	0
+track_and_field	ru	Стрельба из лука	0
+track_and_field	ru	Парусный спорт	0
+track_and_field	ru	Триатлон	0
+animals_five_letters	en	Goat	0
+animals_five_letters	en	Hippo	1
+animals_five_letters	en	Rhino	1
+animals_five_letters	en	Dingo	1
+animals_five_letters	en	Quail	1
+animals_five_letters	en	Heron	1
+animals_five_letters	en	Stork	1
+animals_five_letters	en	Finch	1
+animals_five_letters	en	Trout	1
+animals_five_letters	en	Perch	1
+animals_five_letters	en	Prawn	1
+animals_five_letters	en	Louse	1
+animals_five_letters	en	Bongo	1
+animals_five_letters	en	Takin	1
+animals_five_letters	en	Kiwi	0
+animals_five_letters	en	Cow	0
+animals_five_letters	en	Pig	0
+animals_five_letters	en	Bear	0
+animals_five_letters	en	Wolf	0
+animals_five_letters	en	Fox	0
+animals_five_letters	en	Deer	0
+animals_five_letters	en	Kangaroo	0
+animals_five_letters	en	Ostrich	0
+animals_five_letters	en	Crocodile	0
+animals_five_letters	en	Panther	0
+animals_five_letters	en	Leopard	0
+animals_five_letters	en	Stone	0
+animals_five_letters	en	Cloud	0
+animals_five_letters	en	Pizza	0
+ruin_first_date	en	Picking your teeth	1
+ruin_first_date	en	Being glued to the phone	1
+ruin_first_date	en	Talking with your mouth full	1
+ruin_first_date	en	Showing up late	1
+ruin_first_date	en	Ordering for them	1
+ruin_first_date	en	Splitting the bill to the cent	1
+ruin_first_date	en	Smelly socks	1
+ruin_first_date	en	Bringing your dog	1
+ruin_first_date	en	Crying about your ex	1
+ruin_first_date	en	Flirting with the waiter	1
+ruin_first_date	ru	Говорить о деньгах	1
+ruin_first_date	ru	Прийти в спортивках	1
+ruin_first_date	ru	Хвастаться	1
+ruin_first_date	ru	Жаловаться на жизнь	1
+ruin_first_date	ru	Флиртовать с официанткой	1
+ruin_first_date	en	Hexagon	0
+ruin_first_date	en	Chlorophyll	0
+ruin_first_date	en	Geometry	0
+ruin_first_date	en	Green	0
+ruin_first_date	en	Mango	0
+ruin_first_date	en	Saturday	0
+ruin_first_date	en	Jupiter	0
+ruin_first_date	en	Velocity	0
+ruin_first_date	en	Nitrogen	0
+ruin_first_date	en	Calculus	0
+ruin_first_date	ru	Шестиугольник	0
+ruin_first_date	ru	Хлорофилл	0
+ruin_first_date	ru	Геометрия	0
+ruin_first_date	ru	Зелёный	0
+ruin_first_date	ru	Манго	0
+ruin_first_date	ru	Суббота	0
+ruin_first_date	ru	Юпитер	0
+ruin_first_date	ru	Скорость	0
+ruin_first_date	ru	Азот	0
