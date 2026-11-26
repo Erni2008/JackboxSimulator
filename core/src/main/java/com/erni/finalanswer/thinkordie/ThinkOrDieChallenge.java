@@ -262,12 +262,20 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
         float sec=Math.round(ms("answerMs")/1000f);
         String[] txt={tr("ОДНА КАТЕГОРИЯ\nДЛЯ ВСЕХ","ONE CATEGORY\nFOR EVERYONE"),tr((int)sec+" СЕКУНД\nОТВЕЧАЙ С ТЕЛЕФОНА",(int)sec+" SECONDS\nANSWER ON YOUR PHONE"),tr("ПИШИ ВЕРНЫЕ ОТВЕТЫ\nКАК МОЖНО БОЛЬШЕ","WRITE CORRECT ANSWERS\nAS MANY AS YOU CAN")};
         float[][] box={{350,219,315,73},{690,219,250,73},{965,219,285,73}};
+        if(art.rules!=null){ // the artwork rules bar (icons and dividers baked in); the three texts go next to the icons
+            float d0=MathUtils.clamp(t/.3f,0,1),W=940,H=W*art.rules.getHeight()/art.rules.getWidth(),cy=258;
+            if(d0>0){art.batch.setColor(1,1,1,a*d0);art.batch.draw(art.rules,800-W/2,cy-H/2,W,H);art.batch.setColor(1,1,1,1);}
+            float[][] col={{535,180},{826,208},{1133,208}};
+            for(int i=0;i<3;i++){float d=MathUtils.clamp((t-i*.15f)/.3f,0,1);if(d<=0)continue;String[] ln=txt[i].split("\n");
+                art.text(art.tiny,ln[0],col[i][0],cy+18,.82f,METAL,a*d,col[i][1]);art.text(art.tiny,ln[1],col[i][0],cy-6,.78f,METAL,a*d,col[i][1]);}
+        }else{
         {float d0=MathUtils.clamp(t/.3f,0,1);if(d0>0){frame.bronze(art.batch,340,214,920,84,new Color(.06f,.03f,.03f,.93f),new Color(.55f,.30f,.15f,1),a*d0);
             for(float dx:new float[]{677,957}){art.rect(dx-1,228,2,56,new Color(.75f,.52f,.28f,1),.8f*a*d0);}}}
         for(int i=0;i<3;i++){float d=MathUtils.clamp((t-i*.15f)/.3f,0,1);if(d<=0)continue;float[] b=box[i];
             float ix=b[0]+46,iy=b[1]+b[3]/2;icon(i,ix,iy,a*d);
             String[] ln=txt[i].split("\n");float tx=b[0]+84+(b[2]-96)/2;
             art.text(art.tiny,ln[0],tx,iy+18,.82f,METAL,a*d,b[2]-100);art.text(art.tiny,ln[1],tx,iy-4,.82f,METAL,a*d,b[2]-100);}
+        }
         float d=MathUtils.clamp((t-.5f)/.3f,0,1);
         if(d>0){art.rect(470,184,140,2,RED,a*d*.8f);art.rect(990,184,140,2,RED,a*d*.8f);circle(612,185,3,3,RED,a*d);circle(988,185,3,3,RED,a*d);
             art.text(art.small,tr("ПРИЗРАК ОЖИВАЕТ:","THE GHOST AWAKES:"),800,197,.95f,RED,a*d,0);
