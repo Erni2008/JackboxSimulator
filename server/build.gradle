@@ -146,6 +146,8 @@ tasks.register('raceQa', JavaExec) {
     if (providers.gradleProperty('tod.rounds').isPresent()) systemProperty 'thinkordie.rounds', providers.gradleProperty('tod.rounds').get()
     if (providers.gradleProperty('tod.ghost').isPresent()) systemProperty 'thinkordie.integrated.qaGhost', providers.gradleProperty('tod.ghost').get()
     if (providers.gradleProperty('tod.category').isPresent()) systemProperty 'thinkordie.integrated.category', providers.gradleProperty('tod.category').get()
+    // THINK OR DIE survival format for QA: -Ptod.format=DUEL / TEAMS
+    if (providers.gradleProperty('tod.format').isPresent()) systemProperty 'thinkordie.survival.format', providers.gradleProperty('tod.format').get()
     // THINK OR DIE language for QA screens: -Ptod.lang=ru
     if (providers.gradleProperty('tod.lang').isPresent()) systemProperty 'thinkordie.integrated.lang', providers.gradleProperty('tod.lang').get()
     // only THINK OR DIE challenges, no classic questions: -Ptod.only=3

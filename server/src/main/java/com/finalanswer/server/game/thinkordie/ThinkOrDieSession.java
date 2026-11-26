@@ -22,7 +22,9 @@ import java.util.concurrent.CompletableFuture;
  */
 public final class ThinkOrDieSession {
     /** TURN, TURN_CHECK and TURN_RESULT belong to survival (the standalone mode) */
-    public enum Phase {INTRO,CATEGORY_REVEAL,ANSWERING,ANSWER_VALIDATION,DISPUTE,TURN,TURN_CHECK,TURN_RESULT,ANSWER_REVEAL,ROUND_RESULTS,FINAL_RESULTS,COMPLETED}
+    public enum Phase {INTRO,CATEGORY_REVEAL,ANSWERING,ANSWER_VALIDATION,DISPUTE,BRACKET,MATCH_INTRO,TURN,TURN_CHECK,TURN_RESULT,MATCH_RESULT,ANSWER_REVEAL,ROUND_RESULTS,FINAL_RESULTS,COMPLETED}
+    /** survival formats: everyone against everyone, 1 on 1 knockout duels, 2 on 2 knockout team duels */
+    public enum Format {FFA,DUEL,TEAMS}
     public static final class Failure extends RuntimeException{public final int status;public Failure(int status,String code){super(code);this.status=status;}}
     public static final int MIN_PLAYERS=2,MAX_PLAYERS=8;
     /**
@@ -85,28 +87,53 @@ public final class ThinkOrDieSession {
         if(categories.size()<cfg.rounds())throw new IllegalArgumentException("need "+cfg.rounds()+" categories");
         this.cfg=cfg;this.engine=engine;this.categories=List.copyOf(categories.subList(0,cfg.rounds()));this.lang="ru".equals(lang)?"ru":"en";
         for(int i=0;i<seats.size();i++){Player p=new Player(seats.get(i),i,ghosts.contains(seats.get(i)));players.add(p);byId.put(p.id,p);}
-        this.rules=rules;this.survival=null;
+        this.rules=rules;this.survival=null;this.format=Format.FFA;
         enter(Phase.INTRO,now,cfg.introMs()+(rules?cfg.rulesMs():0));
     }
     /**
-     * Survival: players answer one at a time in seat order. Every answer must be new for the category (nobody may repeat
-     * anybody); a wrong answer, a repeat or a timeout costs a life; the turn clock shrinks each lap; a new category comes
-     * every few laps; the last player with lives wins (ghosts are out of this match, they do not answer).
+     * Survival, everyone against everyone: players answer one at a time in seat order. Every answer must be new for the
+     * category (nobody may repeat anybody); a wrong answer, a repeat or a timeout costs a life; the turn clock shrinks each
+     * lap; a new category every few laps; the last player with lives wins.
      */
     public ThinkOrDieSession(List<String> seats,List<Category> categories,ValidationEngine engine,ThinkOrDieConfig cfg,SurvivalConfig sv,String lang,long now){
+        this(seats,categories,engine,cfg,sv,lang,now,Format.FFA,new Random());
+    }
+    /**
+     * Survival in a format. DUEL and TEAMS are knockout brackets: random pairs of sides (one player, or a team of two;
+     * an odd player count makes one team of three), one match at a time while everybody watches; sides alternate turns
+     * (team members take turns inside their team), each side has {@code duelLives}; the winner moves on, a bye goes
+     * through when a round is odd; the last side standing are the champions.
+     */
+    public ThinkOrDieSession(List<String> seats,List<Category> categories,ValidationEngine engine,ThinkOrDieConfig cfg,SurvivalConfig sv,String lang,long now,Format format,Random random){
         if(seats.size()<MIN_PLAYERS||seats.size()>MAX_PLAYERS)throw new Failure(409,"TOD_PLAYER_COUNT");
+        if(format==Format.TEAMS&&seats.size()<4)throw new Failure(409,"TOD_PLAYER_COUNT");
         if(new HashSet<>(seats).size()!=seats.size())throw new Failure(400,"TOD_INVALID_ROSTER");
         if(categories.isEmpty())throw new IllegalArgumentException("need categories");
-        this.cfg=cfg;this.engine=engine;this.categories=List.copyOf(categories);this.lang="ru".equals(lang)?"ru":"en";this.rules=true;this.survival=sv;
-        for(int i=0;i<seats.size();i++){Player p=new Player(seats.get(i),i,false);p.lives=sv.lives();players.add(p);byId.put(p.id,p);}
+        this.cfg=cfg;this.engine=engine;this.categories=List.copyOf(categories);this.lang="ru".equals(lang)?"ru":"en";this.rules=true;this.survival=sv;this.format=format;
+        for(int i=0;i<seats.size();i++){Player p=new Player(seats.get(i),i,false);players.add(p);byId.put(p.id,p);}
+        List<Player> order=new ArrayList<>(players);if(format!=Format.FFA)Collections.shuffle(order,random);
+        if(format==Format.TEAMS){int teams=order.size()/2;for(int t=0;t<teams;t++)entrants.add(new Side(sideSeq++,new ArrayList<>(List.of(order.get(2*t),order.get(2*t+1)))));
+            if(order.size()%2==1)entrants.get(entrants.size()-1).members.add(order.get(order.size()-1));}
+        else for(Player p:order)entrants.add(new Side(sideSeq++,new ArrayList<>(List.of(p))));
+        int lives=format==Format.FFA?sv.lives():sv.duelLives();
+        for(Side d:entrants){d.lives=lives;for(Player p:d.members)p.lives=lives;}
         enter(Phase.INTRO,now,sv.introMs());
     }
-    // ---------------------------------------------------------------- survival
-    private int turnSeat=-1,lap,catIndex,outSeq,lapsOnCategory;private String turnPlayer;private long turnMs;
+    // ---------------------------------------------------------------- survival engine
+    public final Format format;
+    static final class Side{final int id;final List<Player> members;int lives,next,out;Side(int id,List<Player> m){this.id=id;members=m;}}
+    private final List<Side> entrants=new ArrayList<>();private int sideSeq;
+    /** knockout: the rounds, each a list of matches (a match is two sides, or one side with a bye); winners per match */
+    private final List<List<Side[]>> bracket=new ArrayList<>();private final Map<Side[],Side> winners=new IdentityHashMap<>();
+    private int matchIndex=-1;private List<Side> match=List.of();private int sideTurn=-1;
+    private int lap,catIndex=-1,outSeq,lapsOnCategory;private String turnPlayer;private long turnMs;
     private final Set<String> usedKeys=new HashSet<>(),usedCanon=new HashSet<>();
     private final List<Map<String,Object>> used=new ArrayList<>();
-    private Map<String,Object> lastTurn=Map.of();private Sub turnSub;
-    private List<Player> alive(){List<Player> a=new ArrayList<>();for(Player p:players)if(p.lives>0)a.add(p);return a;}
+    private Map<String,Object> lastTurn=Map.of();private Sub turnSub;private Side lastWinner;
+    /** wrong answers and repeats inside the current turn: refused, the clock keeps running (only a timeout costs a life) */
+    private final List<Map<String,Object>> attempts=new ArrayList<>();private long turnLeft;
+    private Side sideOf(Player p){for(Side d:entrants)if(d.members.contains(p))return d;return null;}
+    private List<Side> aliveIn(List<Side> m){List<Side> a=new ArrayList<>();for(Side d:m)if(d.lives>0)a.add(d);return a;}
     private boolean tickSurvival(long now){
         boolean changed=false;
         for(int guard=0;guard<20;guard++){
@@ -115,55 +142,86 @@ public final class ThinkOrDieSession {
             if(now<phaseEnds)break;
             long at=phaseEnds;changed=true;
             switch(phase){
-                case INTRO->{round=1;catIndex=0;enter(Phase.CATEGORY_REVEAL,at,survival.categoryMs());}
+                case INTRO->{if(format==Format.FFA){match=new ArrayList<>(entrants);startMatch(at,false);}else{bracket.add(pairs(entrants));enter(Phase.BRACKET,at,survival.bracketMs());}}
+                case BRACKET->nextMatch(at);
+                case MATCH_INTRO->newCategory(at);
                 case CATEGORY_REVEAL->nextTurn(at);
                 case TURN->{turnSub=null;lose(byId.get(turnPlayer),"TIMEOUT",null,null,at);}
                 case TURN_CHECK->{turnSub.verdict=Verdict.uncertain(Verdict.Source.FALLBACK);settleTurn(at);}
-                case TURN_RESULT->{if(alive().size()<=1){finishSurvival(at);}else nextTurn(at);}
+                case TURN_RESULT->{List<Side> a=aliveIn(match);if(a.size()<=1)endMatch(a.isEmpty()?null:a.get(0),at);else nextTurn(at);}
+                case MATCH_RESULT->nextMatch(at);
                 case FINAL_RESULTS->enter(Phase.COMPLETED,at,-1);
                 default->{return changed;}
             }
         }
         return changed;
     }
-    /** Next living player; a full lap shortens the clock, and every few laps a new category is revealed first. */
+    private List<Side[]> pairs(List<Side> in){List<Side[]> out=new ArrayList<>();for(int i=0;i<in.size();i+=2)out.add(i+1<in.size()?new Side[]{in.get(i),in.get(i+1)}:new Side[]{in.get(i)});return out;}
+    /** Next match of the current bracket round; byes pass straight through; a finished round builds the next one. */
+    private void nextMatch(long now){
+        List<Side[]> roundM=bracket.get(bracket.size()-1);
+        while(++matchIndex<roundM.size()){Side[] m=roundM.get(matchIndex);if(m.length==2){match=List.of(m[0],m[1]);int lives=survival.duelLives();
+                for(Side d:match){d.lives=lives;d.next=0;for(Player p:d.members)p.lives=lives;}startMatch(now,true);return;}
+            winners.put(m,m[0]);}
+        List<Side> next=new ArrayList<>();for(Side[] m:roundM)next.add(winners.get(m));
+        if(next.size()<=1){finishSurvival(now);return;}
+        bracket.add(pairs(next));matchIndex=-1;enter(Phase.BRACKET,now,survival.bracketMs());
+    }
+    private void startMatch(long now,boolean intro){lap=0;lapsOnCategory=0;sideTurn=-1;lastTurn=Map.of();turnPlayer=null;if(intro)enter(Phase.MATCH_INTRO,now,survival.matchIntroMs());else newCategory(now);}
+    private void newCategory(long now){catIndex++;round=catIndex+1;usedKeys.clear();usedCanon.clear();used.clear();lastTurn=Map.of();turnPlayer=null;enter(Phase.CATEGORY_REVEAL,now,survival.categoryMs());}
+    private void endMatch(Side winner,long now){
+        lastWinner=winner;turnPlayer=null;
+        if(format==Format.FFA){finishSurvival(now);return;}
+        winners.put(bracket.get(bracket.size()-1).get(matchIndex),winner);
+        for(Side d:match)if(d!=winner){d.out=++outSeq;for(Player p:d.members){p.ghost=true;p.out=d.out;}}
+        if(winner!=null)for(Player p:winner.members)p.lives=winner.lives;
+        enter(Phase.MATCH_RESULT,now,survival.matchResultMs());
+    }
+    /** Next side with lives (a full lap shortens the clock; every few laps a new category); inside a team the members alternate. */
     private void nextTurn(long now){
-        if(phase==Phase.CATEGORY_REVEAL)turnSeat=nextAlive(turnSeat);
-        else{int nxt=nextAlive(turnSeat);
-            if(nxt<=turnSeat){lap++;lapsOnCategory++; // a full lap: shorter clock, maybe a new category (the next player opens it)
-                if(lapsOnCategory>=survival.lapsPerCategory()){lapsOnCategory=0;catIndex++;round=catIndex+1;usedKeys.clear();usedCanon.clear();used.clear();
-                    lastTurn=Map.of();turnPlayer=null;enter(Phase.CATEGORY_REVEAL,now,survival.categoryMs());return;}}
-            turnSeat=nxt;}
-        turnPlayer=players.get(turnSeat).id;turnMs=survival.turnMs(lap);turnSub=null;
+        int n=match.size(),nxt=sideTurn;for(int k=1;k<=n;k++){int j=((sideTurn+k)%n+n)%n;if(match.get(j).lives>0){nxt=j;break;}}
+        if(phase!=Phase.CATEGORY_REVEAL&&sideTurn>=0&&nxt<=sideTurn){lap++;lapsOnCategory++;
+            if(lapsOnCategory>=survival.lapsPerCategory()){lapsOnCategory=0;newCategory(now);return;}}
+        sideTurn=nxt;Side d=match.get(sideTurn);Player p=d.members.get(d.next%d.members.size());d.next++;
+        turnPlayer=p.id;turnMs=survival.turnMs(lap);turnSub=null;attempts.clear();
         enter(Phase.TURN,now,turnMs);
     }
-    private int nextAlive(int from){int n=players.size();for(int k=1;k<=n;k++){int j=((from+k)%n+n)%n;if(players.get(j).lives>0)return j;}return Math.max(0,from);}
     private void settleTurn(long now){
         Sub s=turnSub;Player p=byId.get(s.player);
-        if(s.verdict.status()==ValidationStatus.INVALID){lose(p,"WRONG",s.text,null,now);return;}
         String canon=s.verdict.valid()?s.verdict.canonicalId():null;
-        if(usedKeys.contains(s.key)||canon!=null&&usedCanon.contains(canon)){lose(p,"REPEAT",s.text,label(canon,s.text),now);return;}
+        if(s.verdict.status()==ValidationStatus.INVALID){refuse(p,s,"WRONG",s.text,now);return;}
+        if(usedKeys.contains(s.key)||canon!=null&&usedCanon.contains(canon)){refuse(p,s,"REPEAT",label(canon,s.text),now);return;}
         usedKeys.add(s.key);if(canon!=null)usedCanon.add(canon);
         p.correct++;p.points+=survival.pointsCorrect();
-        String lb=label(canon,s.text);Map<String,Object> u=new LinkedHashMap<>();u.put("label",lb);u.put("player",p.id);used.add(u);
+        String lb=label(canon,s.text);Side d=sideOf(p);Map<String,Object> u=new LinkedHashMap<>();u.put("label",lb);u.put("player",p.id);u.put("side",d==null?0:d.id);used.add(u);
         lastTurn=Map.of("player",p.id,"outcome","CORRECT","text",s.text,"label",lb,"lives",p.lives);
         enter(Phase.TURN_RESULT,now,survival.resultMs());
     }
+    /** A refused attempt: listed for everyone, the turn goes on with the time that was left (the clock was stopped while checking). */
+    private void refuse(Player p,Sub s,String why,String shown,long now){
+        p.incorrect++;turnSub=null;
+        Map<String,Object> a=new LinkedHashMap<>();a.put("id",s.id);a.put("text",shown);a.put("outcome",why);attempts.add(a);
+        if(phase==Phase.TURN_CHECK)enter(Phase.TURN,now,Math.max(600,turnLeft));
+        liveDirty=true;
+    }
     private String label(String canon,String text){if(canon==null)return text;Category.Answer a=category().answer(canon);return a==null?text:"ru".equals(lang)?a.labelRu():a.labelEn();}
     private void lose(Player p,String why,String text,String label,long now){
-        p.lives=Math.max(0,p.lives-1);p.incorrect++;
-        if(p.lives==0){p.ghost=true;p.out=++outSeq;}
-        Map<String,Object> m=new LinkedHashMap<>();m.put("player",p.id);m.put("outcome",why);if(text!=null)m.put("text",text);if(label!=null)m.put("label",label);m.put("lives",p.lives);m.put("eliminated",p.lives==0);
+        Side d=sideOf(p);d.lives=Math.max(0,d.lives-1);p.incorrect++;
+        for(Player m:d.members)m.lives=d.lives;
+        boolean dead=d.lives==0;
+        if(dead&&format==Format.FFA){p.ghost=true;d.out=p.out=++outSeq;}
+        Map<String,Object> m=new LinkedHashMap<>();m.put("player",p.id);m.put("side",d.id);m.put("outcome",why);if(text!=null)m.put("text",text);if(label!=null)m.put("label",label);m.put("lives",d.lives);m.put("eliminated",dead);
         lastTurn=m;turnSub=null;
-        enter(Phase.TURN_RESULT,now,survival.resultMs()+(p.lives==0?900:0));
+        enter(Phase.TURN_RESULT,now,survival.resultMs()+(dead?900:0));
     }
     private void finishSurvival(long now){
-        // survivors first, then the latest eliminated; ties by correct answers
+        // still standing first, then the latest knocked out; ties by correct answers (team mates share their side's place)
         List<Player> order=new ArrayList<>(players);
-        Comparator<Player> cmp=Comparator.comparingInt((Player p)->p.lives>0?0:1).thenComparingInt(p->-p.out).thenComparingInt(p->-p.correct);
-        order.sort(cmp.thenComparingInt(p->p.seat));
+        Comparator<Player> cmp=Comparator.comparingInt((Player p)->p.out==0?0:1).thenComparingInt(p->-p.out);
+        if(format==Format.FFA)cmp=cmp.thenComparingInt(p->-p.correct);
+        Comparator<Player> c2=cmp;order.sort(c2.thenComparingInt(p->-p.correct).thenComparingInt(p->p.seat));
         List<Standing> out=new ArrayList<>();int rank=0;Player prev=null;
-        for(int i=0;i<order.size();i++){Player p=order.get(i);if(prev==null||cmp.compare(prev,p)!=0)rank=i+1;prev=p;
+        for(int i=0;i<order.size();i++){Player p=order.get(i);if(prev==null||c2.compare(prev,p)!=0)rank=i+1;prev=p;
             long souls=rank==1?cfg.rewardFirst():rank==2?cfg.rewardSecond():rank==3?cfg.rewardThird():0;
             out.add(new Standing(p.id,rank,p.points,p.correct,p.unique,p.incorrect,souls,false));}
         standings=List.copyOf(out);turnPlayer=null;
@@ -177,16 +235,28 @@ public final class ThinkOrDieSession {
         AnswerInput in=AnswerInput.of(raw);
         if(in==null)throw new Failure(400,raw==null||raw.isBlank()?"TOD_EMPTY_ANSWER":"TOD_ANSWER_TOO_LONG");
         Category c=category();Verdict v=engine.validate(c,in);
+        if(p.lastSubmit>0&&now-p.lastSubmit<survival.minSubmitIntervalMs())throw new Failure(429,"TOD_TOO_FAST");
         Sub s=new Sub("s"+(++subSeq),p.id,in.clean(),in.key(),now,v);turnSub=s;p.lastSubmit=now;liveDirty=true;
-        if(v.status()==ValidationStatus.PENDING){s.pending=engine.judgeLater(c,lang,in);enter(Phase.TURN_CHECK,now,survival.checkMaxMs());}
+        if(v.status()==ValidationStatus.PENDING){s.pending=engine.judgeLater(c,lang,in);turnLeft=phaseEnds-now;enter(Phase.TURN_CHECK,now,survival.checkMaxMs());}
         else settleTurn(now);
         return s.id;
     }
+    private static List<String> ids(Side d){List<String> l=new ArrayList<>();for(Player p:d.members)l.add(p.id);return l;}
+    private Map<String,Object> sideView(Side d){Map<String,Object> m=new LinkedHashMap<>();m.put("id",d.id);m.put("players",ids(d));m.put("lives",d.lives);m.put("out",d.out>0);return m;}
     private Map<String,Object> survivalView(){
         Map<String,Object> m=new LinkedHashMap<>();
-        m.put("lives",survival.lives());m.put("lap",lap+1);m.put("turnMs",turnMs);
+        m.put("format",format.name());m.put("lives",format==Format.FFA?survival.lives():survival.duelLives());m.put("lap",lap+1);m.put("turnMs",turnMs);
         if(turnPlayer!=null)m.put("turnPlayer",turnPlayer);
-        m.put("used",List.copyOf(used));m.put("last",lastTurn);
+        m.put("used",List.copyOf(used));m.put("last",lastTurn);m.put("attempts",List.copyOf(attempts));
+        if(format!=Format.FFA){
+            List<Map<String,Object>> cur=new ArrayList<>();for(Side d:match)cur.add(sideView(d));m.put("match",cur);
+            List<List<Map<String,Object>>> br=new ArrayList<>();
+            for(List<Side[]> roundM:bracket){List<Map<String,Object>> rm=new ArrayList<>();
+                for(Side[] x:roundM){Map<String,Object> mm=new LinkedHashMap<>();List<Map<String,Object>> sd=new ArrayList<>();for(Side d:x)sd.add(sideView(d));mm.put("sides",sd);
+                    Side w=winners.get(x);if(w!=null)mm.put("winner",w.id);if(x.length==1)mm.put("bye",true);rm.add(mm);}
+                br.add(rm);}
+            m.put("bracket",br);m.put("matchIndex",matchIndex);m.put("roundIndex",bracket.size()-1);
+            if(lastWinner!=null)m.put("winner",sideView(lastWinner));}
         return m;
     }
 

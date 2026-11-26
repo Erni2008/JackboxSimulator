@@ -18,7 +18,7 @@ import java.util.*;
  * @param pointsCorrect  points for each accepted answer (tie breaker after survival order)
  */
 public record SurvivalConfig(int lives,long introMs,long categoryMs,long turnStartMs,long turnStepMs,long turnMinMs,long checkMaxMs,long resultMs,
-                             int lapsPerCategory,int pointsCorrect,long finalMs,long minSubmitIntervalMs){
+                             int lapsPerCategory,int pointsCorrect,long finalMs,long minSubmitIntervalMs,int duelLives,long bracketMs,long matchIntroMs,long matchResultMs){
     public static final SurvivalConfig DEFAULT=load();
     static SurvivalConfig load(){
         Properties p=new Properties();
@@ -26,7 +26,8 @@ public record SurvivalConfig(int lives,long introMs,long categoryMs,long turnSta
         java.util.function.ToLongBiFunction<String,Long> l=(k,d)->{String v=System.getProperty("thinkordie.survival."+k,p.getProperty(k));return v==null||v.isBlank()?d:Long.parseLong(v.trim());};
         return new SurvivalConfig((int)l.applyAsLong("lives",3L),l.applyAsLong("introMs",7000L),l.applyAsLong("categoryMs",3800L),l.applyAsLong("turnStartMs",10000L),
             l.applyAsLong("turnStepMs",1000L),l.applyAsLong("turnMinMs",4000L),l.applyAsLong("checkMaxMs",5000L),l.applyAsLong("resultMs",1800L),
-            (int)l.applyAsLong("lapsPerCategory",2L),(int)l.applyAsLong("pointsCorrect",100L),l.applyAsLong("finalMs",14000L),l.applyAsLong("minSubmitIntervalMs",250L));
+            (int)l.applyAsLong("lapsPerCategory",2L),(int)l.applyAsLong("pointsCorrect",100L),l.applyAsLong("finalMs",14000L),l.applyAsLong("minSubmitIntervalMs",250L),
+            (int)l.applyAsLong("duelLives",2L),l.applyAsLong("bracketMs",6000L),l.applyAsLong("matchIntroMs",4000L),l.applyAsLong("matchResultMs",4500L));
     }
     /** Turn length for a lap (0 = first lap). */
     public long turnMs(int lap){return Math.max(turnMinMs,turnStartMs-lap*turnStepMs);}

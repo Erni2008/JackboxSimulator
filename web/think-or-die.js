@@ -36,6 +36,7 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
       <section class="tod-surv" data-k="surv" hidden>
         <div class="tod-turn" data-k="turn"></div>
         <div class="tod-fuse" aria-hidden="true"><i></i><b></b></div>
+        <ul class="tod-tries" data-k="tries"></ul>
         <div class="tod-verdict" data-k="verdict" aria-live="polite"></div>
         <ul class="tod-lives" data-k="lives"></ul>
       </section>
@@ -72,7 +73,7 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
     if(!text){els.input.focus();return;}
     if(performance.now()-lastSendAt<260)return; // the server's anti-spam floor
     lastSendAt=performance.now();
-    if(surv){const requestId=makeId();lastSendAt=performance.now();send('TOD_SUBMIT',{sessionId:m.sessionId,round:m.round,text},requestId);els.input.value='';navigator.vibrate?.(12);return;}
+    if(surv){const requestId=makeId();lastSendAt=performance.now();send('TOD_SUBMIT',{sessionId:m.sessionId,round:m.round,text},requestId);survSent=text;navigator.vibrate?.(12);els.input.select();return;}
     if(held&&held.text===text)return; // still checking this exact answer
     const requestId=makeId(),have=(m.me?.history||[]).filter(h=>h.text===text).length;held={text,n:(m.me?.history||[]).length,round:m.round};
     outbox.push({requestId,text,have,round:m.round});
@@ -145,28 +146,32 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
   }
   /** Survival: one player answers at a time. Only that phone gets the field; everyone sees whose turn it is, the last
    *  verdict, their own lives and the answers already used in this category. */
-  let survTurnKey='';
+  let survTurnKey='',survSent='',survAttempts=0;
   function renderSurvival(m){
     const sv=m.survival||{},ph=m.phase,self=getState()?.selfId,mine=sv.turnPlayer===self&&ph==='TURN';
     const roster=getState()?.players||[],nameOf=id=>(roster.find(p=>p.id===id)||{}).name||'?';
-    const p=me(),lives=p.lives??0,max=sv.lives||3,out=lives<=0;
+    const p=me(),lives=p.lives??0,max=sv.lives||3,out=(sv.format==='DUEL'||sv.format==='TEAMS')?!!p.ghost:lives<=0;
     root.dataset.phase=ph;root.dataset.ghost=String(out);root.dataset.mode='match';root.dataset.survival='1';
-    els.round.textContent=T('ВЫЖИВАНИЕ','SURVIVAL');
+    els.round.textContent=sv.format==='DUEL'?T('1 НА 1','1 ON 1'):sv.format==='TEAMS'?T('2 НА 2','2 ON 2'):T('ВЫЖИВАНИЕ','SURVIVAL');
     els.eyebrow.textContent=mine?T('ТВОЙ ХОД!','YOUR TURN!'):ph==='INTRO'?T('ПРИГОТОВЬСЯ','GET READY'):T('КАТЕГОРИЯ','THE CATEGORY');
     els.cat.textContent=m.textEn?T(m.textRu,m.textEn):T('Отвечай по очереди. Не умри.','Answer in turn. Do not die.');
     els.intro.hidden=ph!=='INTRO';
     if(ph==='INTRO'){const li=els.intro.querySelectorAll('li');const rules=[
         T('Отвечайте по очереди: назови новый верный ответ, пока горит фитиль.','Take turns: name a new correct answer before the fuse burns out.'),
-        T('Нельзя повторять ни свои, ни чужие ответы.','No repeats: not yours and not anybody else\'s.'),
-        T(`Ошибка, повтор или конец времени отнимают жизнь. У каждого ${max} жизни.`,`A wrong answer, a repeat or running out of time costs a life. Everyone has ${max}.`),
+        T('Неверные слова и повторы не засчитываются, пробуй сколько угодно, пока горит фитиль.','Wrong words and repeats are refused: try as many as you like while the fuse burns.'),
+        T(`Не успел назвать верный ответ до конца времени: минус жизнь. Жизней: ${max}.`,`No correct answer before the time runs out: one life lost. Lives: ${max}.`),
         T('Время хода сокращается. Последний выживший забирает души.','Turns get shorter. The last survivor takes the souls.')];
       li.forEach((x,i)=>{x.textContent=rules[i]||'';});els.pts.innerHTML='';}
     // the survival panel: who is answering, the fuse, the last verdict, everybody's lives
-    els.surv.hidden=!['TURN','TURN_CHECK','TURN_RESULT','CATEGORY_REVEAL'].includes(ph);
+    els.surv.hidden=!['TURN','TURN_CHECK','TURN_RESULT','CATEGORY_REVEAL','BRACKET','MATCH_INTRO','MATCH_RESULT'].includes(ph);
+    const duel=sv.format==='DUEL'||sv.format==='TEAMS',match=sv.match||[],sideName=sd=>(sd.players||[]).map(nameOf).join(' & '),mySide=match.findIndex(sd=>(sd.players||[]).includes(self));
     const charOf=id=>(roster.find(p=>p.id===id)||{}).characterId||'';
     if(!els.surv.hidden){
       const tp=sv.turnPlayer||'',me2=tp===self;
-      els.turn.innerHTML=ph==='CATEGORY_REVEAL'?`<p class="tod-turn-k">${T('НОВАЯ КАТЕГОРИЯ','A NEW CATEGORY')}</p>`
+      els.turn.innerHTML=ph==='BRACKET'?`<div><p class="tod-turn-k">${T('СЕТКА ТУРНИРА','THE BRACKET')}</p><p class="tod-turn-n">${T('Смотри на экран','Look at the screen')}</p></div>`
+        :ph==='MATCH_INTRO'&&match.length===2?`<div class="vs"><p class="tod-turn-k">${mySide>=0?T('ТВОЯ ДУЭЛЬ','YOUR DUEL'):T('СЛЕДУЮЩАЯ ДУЭЛЬ','NEXT DUEL')}</p><p class="tod-turn-n"><span class="s0">${esc(sideName(match[0]))}</span> <i>VS</i> <span class="s1">${esc(sideName(match[1]))}</span></p></div>`
+        :ph==='MATCH_RESULT'&&sv.winner?`<div><p class="tod-turn-k">${T('ПОБЕДА В ДУЭЛИ','WINS THE DUEL')}</p><p class="tod-turn-n gold">${esc(sideName(sv.winner))}</p></div>`
+        :ph==='CATEGORY_REVEAL'?`<p class="tod-turn-k">${T('НОВАЯ КАТЕГОРИЯ','A NEW CATEGORY')}</p>`
         :tp?`<img src="/portraits/${esc(charOf(tp))}.webp" alt=""><div><p class="tod-turn-k">${ph!=='TURN'?T('ОТВЕТИЛ','ANSWERED'):me2?T('ТВОЙ ХОД','YOUR TURN'):T('ОТВЕЧАЕТ','NOW ANSWERING')}</p><p class="tod-turn-n">${ph==='TURN'&&me2?T('Отвечай!','Answer now!'):me2?T('Ты','You'):esc(nameOf(tp))}</p></div>`:'';
       els.turn.classList.toggle('mine',me2&&ph==='TURN');
       els.surv.querySelector('.tod-fuse').hidden=ph!=='TURN';
@@ -176,14 +181,17 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
         const why=last.outcome==='CORRECT'?T('принято','accepted'):last.outcome==='TIMEOUT'?T('время вышло · минус жизнь','time is up · one life lost'):last.outcome==='REPEAT'?T('уже было · минус жизнь','already said · one life lost'):T('неверно · минус жизнь','wrong · one life lost');
         v=`<p class="${ok?'ok':'bad'}"><b>${last.outcome==='TIMEOUT'?esc(nameOf(last.player)):what}</b><small>${why}</small></p>`+(last.eliminated?`<p class="out">${esc(nameOf(last.player))} ${T('выбывает','is out')}</p>`:'');}
       els.verdict.innerHTML=v;
-      const lk=JSON.stringify((m.players||[]).map(p=>[p.id,p.lives]))+tp+ph;
+      const lk=JSON.stringify((m.players||[]).map(p=>[p.id,p.lives]))+tp+ph+JSON.stringify(match.map(x=>x.id));
       if(els.lives.dataset.k!==lk){els.lives.dataset.k=lk;
-        els.lives.innerHTML=(m.players||[]).map(p=>{const l=p.lives??0,out=l<=0;let h='';for(let i=0;i<max;i++)h+=`<i class="${i<l?'on':''}"></i>`;
-          return `<li class="${out?'out':''}${p.id===tp&&ph==='TURN'?' turn':''}${p.id===self?' me':''}"><img src="/portraits/${esc(charOf(p.id))}.webp" alt=""><span>${p.id===self?T('ТЫ','YOU'):esc(nameOf(p.id))}</span><em>${h}</em></li>`;}).join('');}
+        const shown=duel?(m.players||[]).filter(p=>match.some(sd=>(sd.players||[]).includes(p.id))):(m.players||[]);
+        els.lives.innerHTML=shown.map(p=>{const si=match.findIndex(sd=>(sd.players||[]).includes(p.id));const l=p.lives??0,out=l<=0;let h='';for(let i=0;i<max;i++)h+=`<i class="${i<l?'on':''}"></i>`;
+          return `<li class="${out?'out':''}${p.id===tp&&ph==='TURN'?' turn':''}${p.id===self?' me':''}${si>=0?' side'+si:''}"><img src="/portraits/${esc(charOf(p.id))}.webp" alt=""><span>${p.id===self?T('ТЫ','YOU'):esc(nameOf(p.id))}</span><em>${h}</em></li>`;}).join('');}
     }
-    els.form.hidden=!mine;els.send.disabled=!isAuthenticated();
+    els.form.hidden=!(sv.turnPlayer===self&&(ph==='TURN'||ph==='TURN_CHECK'));els.send.disabled=!isAuthenticated()||ph==='TURN_CHECK';
     els.ghost.hidden=!out||['FINAL_RESULTS','COMPLETED'].includes(ph);
     if(out)els.ghost.textContent=T('ТЫ ВЫБЫЛ · смотри, кто выживет','YOU ARE OUT · watch who survives');
+    const watching=duel&&!p.ghost&&mySide<0&&['TURN','TURN_CHECK','TURN_RESULT','CATEGORY_REVEAL','MATCH_INTRO'].includes(ph);
+    if(duel){els.ghost.hidden=!(p.ghost||watching)||['FINAL_RESULTS','COMPLETED'].includes(ph);els.ghost.textContent=p.ghost?T('ТЫ ВЫБЫЛ ИЗ СЕТКИ · смотри дальше','YOU ARE OUT OF THE BRACKET · keep watching'):T('СЕЙЧАС НЕ ТВОЯ ДУЭЛЬ · смотри и жди','NOT YOUR DUEL · watch and wait');root.dataset.ghost=String(!!p.ghost);}
     els.vote.hidden=true;
     // whose turn / the last verdict
     let info='';const last=sv.last||{};
@@ -206,8 +214,16 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
     else els.result.hidden=true;
     els.look.hidden=!(fin||ph==='INTRO'||ph==='CATEGORY_REVEAL');
     paintHint();
-    const tk=ph+':'+sv.turnPlayer+':'+m.phaseStartedAt;
-    if(tk!==survTurnKey){survTurnKey=tk;if(mine){navigator.vibrate?.([30,60,30]);els.input.value='';setTimeout(()=>els.input.focus(),40);}}
+    // refused tries of this turn: everyone sees them struck through; the one who answers gets a buzz and keeps the text selected
+    const at=sv.attempts||[];
+    if(els.tries){els.tries.innerHTML=ph==='TURN'||ph==='TURN_CHECK'?at.slice(-6).map((a,i,arr)=>`<li class="${i===arr.length-1?'new':''}">${esc(a.text||'')}${a.outcome==='REPEAT'?`<small>${T('было','said')}</small>`:''}</li>`).join(''):'';}
+    if(mine&&at.length>survAttempts){navigator.vibrate?.([40,40,40]);error=at[at.length-1].outcome==='REPEAT'?T('Уже было, пробуй другое!','Already said, try another!'):T('Неверно, пробуй ещё!','Wrong, try again!');errorAt=performance.now();els.input.focus();els.input.select();}
+    survAttempts=ph==='TURN'||ph==='TURN_CHECK'?at.length:0;
+    if(ph==='TURN_CHECK'&&mine){error=T('Проверяем…','Checking…');errorAt=performance.now();}
+    if(ph==='TURN_RESULT'&&sv.last?.player===self&&sv.last?.outcome==='CORRECT'){els.input.value='';}
+    // a new turn starts when TURN follows anything but its own check (a refused AI-checked try comes back to TURN)
+    const newTurn=ph==='TURN'&&survTurnKey!=='TURN'&&survTurnKey!=='TURN_CHECK';survTurnKey=ph;
+    if(newTurn&&mine){navigator.vibrate?.([30,60,30]);els.input.value='';survAttempts=0;setTimeout(()=>els.input.focus(),40);}
     if(!raf)tick();
   }
   function renderVote(m){

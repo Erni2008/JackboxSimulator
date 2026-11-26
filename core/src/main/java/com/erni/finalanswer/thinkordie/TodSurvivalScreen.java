@@ -108,13 +108,16 @@ public final class TodSurvivalScreen extends ScreenAdapter {
             try{
                 art.rect(0,0,W,H,BLACK,.30f);art.glow(W/2,-30,W*1.2f,240,RED,.22f);
                 String ph=phase();
-                players(sb);
+                if(!ph.equals("BRACKET")&&!ph.equals("MATCH_INTRO"))players(sb);
                 switch(ph){
                     case "INTRO"->intro();
-                    case "CATEGORY_REVEAL"->{logo(586,1);plate(Interpolation.swingOut.apply(Math.min(1,phaseClock/.55f)));plaque(GOLD,Math.min(1,phaseClock/.4f),0);spacedLabel(tr("НОВАЯ КАТЕГОРИЯ","A NEW CATEGORY"),W/2,PLAQUE_CY+12,.60f,GOLD,Math.min(1,phaseClock/.4f));used();}
-                    case "TURN"->{logo(586,1);plate(1);turn();used();}
-                    case "TURN_CHECK"->{logo(586,1);plate(1);checking();used();}
-                    case "TURN_RESULT"->{logo(586,1);plate(1);verdict();used();}
+                    case "BRACKET"->bracket();
+                    case "MATCH_INTRO"->versus();
+                    case "MATCH_RESULT"->matchResult();
+                    case "CATEGORY_REVEAL"->{logo(586,1);plate(Interpolation.swingOut.apply(Math.min(1,phaseClock/.55f)));plaque(GOLD,Math.min(1,phaseClock/.4f),0);spacedLabel(tr("НОВАЯ КАТЕГОРИЯ","A NEW CATEGORY"),W/2,PLAQUE_CY+12,.60f,GOLD,Math.min(1,phaseClock/.4f));wall();}
+                    case "TURN"->{logo(586,1);plate(1);turn();wall();}
+                    case "TURN_CHECK"->{logo(586,1);plate(1);checking();wall();}
+                    case "TURN_RESULT"->{logo(586,1);plate(1);verdict();wall();}
                     case "FINAL_RESULTS","COMPLETED"->finale();
                     default->{}
                 }
@@ -161,13 +164,31 @@ public final class TodSurvivalScreen extends ScreenAdapter {
         boolean hot=rem<=3;float beat=hot?.5f+.5f*MathUtils.sin(clock*14):0,in=Interpolation.pow3Out.apply(Math.min(1,phaseClock/.35f));
         Color pc=C_TMP.set(com.erni.finalanswer.ui.PlayerColors.light(character(id)));
         if(hot){float al=(.10f+.22f*(3-rem)/3)*(.6f+.4f*beat);art.glow(W/2,0,W*1.4f,260,RED,al);art.glow(W/2,H,W*1.4f,200,RED,al*.7f);art.glow(0,H/2,280,H*1.3f,RED,al);art.glow(W,H/2,280,H*1.3f,RED,al);}
-        plaque(hot?RED:BRONZE,in,0);
-        spacedLabel(tr("ОТВЕЧАЕТ","NOW ANSWERING"),W/2,PLAQUE_CY+38,.50f,DIM,in);
-        serifText(name(id).toUpperCase(Locale.ROOT),W/2,PLAQUE_CY+12,.80f,new Color(pc.r,pc.g,pc.b,1),in);
+        JsonArray at=survival().has("attempts")?survival().getAsJsonArray("attempts"):new JsonArray();
+        String ak=id+":"+at.size();if(!ak.equals(attemptKey)){if(at.size()>0&&attemptKey.startsWith(id+":")){attemptAt=clock;art.play("sounds/questions/door_lock(done).wav",.45f);}attemptKey=ak;}
+        float since=clock-attemptAt,shake=since<.4f?MathUtils.sin(since*70)*9*(1-since/.4f):0;
+        plaque(since<.5f?RED:hot?RED:BRONZE,in,shake);
+        spacedLabel(tr("ОТВЕЧАЕТ","NOW ANSWERING"),W/2+shake,PLAQUE_CY+38,.50f,DIM,in);
+        serifText(name(id).toUpperCase(Locale.ROOT),W/2+shake,PLAQUE_CY+12,.80f,new Color(pc.r,pc.g,pc.b,1),in);
         fuse(f,rem,hot,beat);
+        attempts(at,since);
+    }
+    private String attemptKey="";private float attemptAt=-9;
+    /** Refused tries of this turn: struck red words under the fuse, the newest pops in (the clock keeps running). */
+    private void attempts(JsonArray at,float since){
+        if(at.size()==0)return;int from=Math.max(0,at.size()-5);float sc=.56f,gap=12,total=0;float[] w=new float[at.size()];
+        for(int i=from;i<at.size();i++){w[i]=art.width(art.inter,s(at.get(i).getAsJsonObject(),"text"),sc)+30;total+=w[i]+gap;}
+        float x=W/2-(total-gap)/2,y=58;
+        for(int i=from;i<at.size();i++){JsonObject a=at.get(i).getAsJsonObject();boolean newest=i==at.size()-1;float k=newest?Math.max(.05f,Interpolation.swingOut.apply(Math.min(1,since/.3f))):1;
+            float al=newest?1:.55f;float cx=x+w[i]/2;
+            neon.bronze(art.batch,cx-w[i]*k/2,y-17*k,w[i]*k,34*k,new Color(.12f,.03f,.03f,.94f),RED,al);
+            String tx=s(a,"text");art.text(art.inter,tx,cx,y+8*k,sc*k,new Color(1f,.75f,.72f,1),al,0);
+            float lw=art.width(art.inter,tx,sc*k);art.rect(cx-lw/2-3,y-1,lw+6,2,RED,al);
+            if(s(a,"outcome").equals("REPEAT"))art.text(art.inter,tr("было","said"),cx,y-22,.36f,DIM,al,0);
+            x+=w[i]+gap;}
     }
     private void fuse(float f,float rem,boolean hot,float beat){
-        float fw=640,fx=W/2-fw/2-36,fy=114,th=12,tip=fx+fw*f;
+        float fw=640,fx=W/2-fw/2-36,fy=120,th=12,tip=fx+fw*f;
         // burnt part: ash, thin and grey; unburnt part: braided rope
         art.rect(tip,fy-2,fx+fw-tip,4,new Color(.16f,.14f,.13f,1),.85f);
         if(tip>fx){art.batch.setColor(Color.WHITE);float u=(tip-fx)/th;art.batch.draw(ropeTex,fx,fy-th/2,tip-fx,th,0,0,u*1f,1f);}
@@ -216,17 +237,106 @@ public final class TodSurvivalScreen extends ScreenAdapter {
             neon.bronze(art.batch,W/2-300,96,600,52,new Color(.08f,.03f,.12f,.95f),VIOLET,e);
             serifText(name(id).toUpperCase(Locale.ROOT)+tr(" ВЫБЫВАЕТ"," IS OUT"),W/2,133,.46f,VIOLET,e);}
     }
-    /** Answers already used in this category, newest first: small bronze tags, the newest with a gold edge. */
-    private void used(){
-        JsonArray u=survival().has("used")?survival().getAsJsonArray("used"):new JsonArray();if(u.size()==0)return;
-        float sc=.50f,y=40,gap=12;List<String> tags=new ArrayList<>();
-        for(int i=u.size()-1;i>=0&&tags.size()<12;i--)tags.add(s(u.get(i).getAsJsonObject(),"label"));
-        float total=0;float[] w=new float[tags.size()];for(int i=0;i<tags.size();i++){w[i]=art.width(art.inter,tags.get(i),sc)+34;total+=w[i]+gap;}
-        while(total>W-160&&tags.size()>1){total-=w[tags.size()-1]+gap;tags.remove(tags.size()-1);}
-        float x=W/2-(total-gap)/2;
-        spacedLabel(tr("УЖЕ НАЗВАНО","ALREADY SAID"),W/2,y+46,.44f,DIM,.9f);
-        for(int i=0;i<tags.size();i++){float a=i==0?1:.86f;neon.bronze(art.batch,x,y-20,w[i],34,PLAQUE,i==0?GOLD:BRONZE,a);
-            art.text(art.inter,tags.get(i),x+w[i]/2,y+3,sc,i==0?IVORY:DIM,a,0);x+=w[i]+gap;}
+    // ---------------------------------------------------------------- the answer wall
+    private static final Color[] SIDE={new Color(1f,.38f,.30f,1),new Color(.45f,.68f,1f,1)};
+    private final List<Float> born=new ArrayList<>();private String wallKey="";
+    /**
+     * The answers of this category as engraved bronze plaques in two columns at the sides of the screen. In a duel each
+     * side's answers stack under that side's banner (left / right); in survival the newest answer enters at the top of
+     * the left column and older ones flow down into the right one. A new plaque flies in from the centre with a gold flash.
+     */
+    private void wall(){
+        JsonArray u=survival().has("used")?survival().getAsJsonArray("used"):new JsonArray();
+        String key=s(t,"categoryId")+":"+round();if(!key.equals(wallKey)){wallKey=key;born.clear();for(int i=0;i<u.size();i++)born.add(-9f);}
+        while(born.size()<u.size())born.add(clock);while(born.size()>u.size())born.remove(born.size()-1);
+        boolean duel=duel();JsonArray m=duel&&survival().has("match")?survival().getAsJsonArray("match"):new JsonArray();
+        float colW=300,rowH=44,top=548,xl=48,xr=W-48-colW;int rows=11;
+        // column banners
+        if(duel&&m.size()==2)for(int c=0;c<2;c++){JsonObject sd=m.get(c).getAsJsonObject();float x=c==0?xl:xr;
+            neon.bronze(art.batch,x,top+6,colW,40,PLAQUE,SIDE[c],1);
+            art.left(art.cond,sideName(sd),x+16,top+36,.38f,SIDE[c],1,colW-110);
+            int lv=sd.get("lives").getAsInt(),max=survival().has("lives")?survival().get("lives").getAsInt():2;
+            for(int h=0;h<max;h++){if(h<lv)art.batch.setColor(Color.WHITE);else art.batch.setColor(.3f,.25f,.25f,.8f);art.batch.draw(heartTex,x+colW-26-h*26-11,top+15,22,22);}art.batch.setColor(Color.WHITE);}
+        else if(u.size()>0){spacedLabel(tr("УЖЕ НАЗВАНО","ALREADY SAID"),xl+colW/2,top+30,.44f,DIM,.9f);spacedLabel(tr("УЖЕ НАЗВАНО","ALREADY SAID"),xr+colW/2,top+30,.44f,DIM,u.size()>rows?.9f:0);}
+        int[] fill={0,0};
+        for(int i=u.size()-1;i>=0;i--){JsonObject a=u.get(i).getAsJsonObject();int col,row;
+            if(duel){int sid=a.has("side")?a.get("side").getAsInt():0;col=m.size()==2&&m.get(1).getAsJsonObject().get("id").getAsInt()==sid?1:0;row=fill[col]++;}
+            else{int k=u.size()-1-i;col=k<rows?0:1;row=k<rows?k:k-rows;}
+            if(row>=rows)continue;
+            float age=clock-born.get(i),e=Interpolation.pow3Out.apply(MathUtils.clamp(age/.55f,0,1));
+            float tx=col==0?xl:xr,ty=top-14-(row+1)*rowH,x=MathUtils.lerp(W/2-colW/2,tx,e),y=MathUtils.lerp(PLAQUE_CY-20,ty,e),al=MathUtils.clamp(age/.15f,0,1)*(1-row*.035f);
+            boolean fresh=age<1.6f;Color edge=fresh?GOLD:duel?SIDE[col]:BRONZE;
+            neon.bronze(art.batch,x,y,colW,rowH-6,PLAQUE,edge,al);
+            String pid=s(a,"player");Texture face=art.face(character(pid));
+            if(face!=null){art.batch.setColor(1,1,1,al);art.batch.draw(face,x+8,y+5,rowH-16,rowH-16);art.batch.setColor(Color.WHITE);}
+            art.left(art.inter,s(a,"label"),x+rowH+2,y+(rowH-6)/2+9,.62f,fresh?IVORY:new Color(.86f,.80f,.72f,1),al,colW-rowH-58);
+            art.right(art.inter,name(pid),x+colW-12,y+(rowH-6)/2+7,.40f,DIM,al);
+            if(age<.5f)art.glow(x+colW/2,y+rowH/2,colW*1.1f,rowH*2,GOLD,.35f*(1-age/.5f));}
+    }
+    private int round(){return t!=null&&t.has("round")?t.get("round").getAsInt():0;}
+    private boolean duel(){String f=s(survival(),"format");return f.equals("DUEL")||f.equals("TEAMS");}
+    /** 0 or 1 when the player is on one of the two sides of the current duel, else -1 */
+    private int sideIndex(String id){JsonArray m=survival().has("match")?survival().getAsJsonArray("match"):null;if(m==null)return -1;
+        for(int c=0;c<m.size();c++)for(JsonElement e:m.get(c).getAsJsonObject().getAsJsonArray("players"))if(e.getAsString().equals(id))return c;return -1;}
+    private String sideName(JsonObject sd){StringBuilder b=new StringBuilder();for(JsonElement e:sd.getAsJsonArray("players")){if(b.length()>0)b.append(" & ");b.append(name(e.getAsString()));}return b.toString().toUpperCase(Locale.ROOT);}
+
+    // ---------------------------------------------------------------- knockout: bracket, versus, duel result
+    /** The bracket: one column per round (future rounds as empty slots up to the champion), lines between them, the next
+     *  duel glowing gold, winners in gold, knocked-out sides struck through. */
+    private void bracket(){
+        logo(800,.62f);
+        JsonArray br=survival().has("bracket")?survival().getAsJsonArray("bracket"):new JsonArray();if(br.size()==0)return;
+        int first=br.get(0).getAsJsonArray().size(),total=1;{int n=first;while(n>1){n=(n+1)/2;total++;}}
+        int ri=survival().get("roundIndex").getAsInt();
+        String title=total-ri<=1?tr("ФИНАЛ","THE FINAL"):tr("РАУНД "+(ri+1),"ROUND "+(ri+1));
+        float k=Math.min(1,phaseClock/.5f);spacedLabel(title,W/2,722,.60f,GOLD,k);
+        float x0=120,x1=W-120,colW=Math.min(300,(x1-x0)/total-40),gapX=total>1?((x1-x0)-colW*total)/(total-1):0;
+        float areaTop=680,areaBot=80;
+        float[][] centers=new float[total][];
+        for(int c=0;c<total;c++){int n=c<br.size()?br.get(c).getAsJsonArray().size():Math.max(1,(int)Math.ceil(first/Math.pow(2,c)));centers[c]=new float[n];
+            for(int m=0;m<n;m++)centers[c][m]=c==0?areaTop-(areaTop-areaBot)*(m+.5f)/n:(m*2+1<centers[c-1].length?(centers[c-1][m*2]+centers[c-1][m*2+1])/2:centers[c-1][Math.min(m*2,centers[c-1].length-1)]);}
+        for(int c=0;c<total;c++){float x=x0+c*(colW+gapX);float d=MathUtils.clamp((phaseClock-c*.18f)/.4f,0,1);
+            for(int m=0;m<centers[c].length;m++){float cy=centers[c][m];JsonObject mt=c<br.size()&&m<br.get(c).getAsJsonArray().size()?br.get(c).getAsJsonArray().get(m).getAsJsonObject():null;
+                boolean next=c==ri&&mt!=null&&!mt.has("winner")&&!mt.has("bye")&&isNextMatch(br,ri,m);
+                if(c+1<total){float nx=x+colW+gapX,ny=centers[c+1][Math.min(m/2,centers[c+1].length-1)];art.rect(x+colW,cy-1,gapX/2,2,BRONZE,.6f*d);art.rect(x+colW+gapX/2-1,Math.min(cy,ny),2,Math.abs(ny-cy)+2,BRONZE,.6f*d);art.rect(x+colW+gapX/2,ny-1,gapX/2,2,BRONZE,.6f*d);}
+                float bh=mt!=null&&mt.getAsJsonArray("sides").size()==2?64:34;
+                if(next)art.glow(x+colW/2,cy,colW*1.3f,bh*2.2f,GOLD,.25f+.1f*MathUtils.sin(clock*4));
+                neon.bronze(art.batch,x,cy-bh/2,colW,bh,PLAQUE,next?GOLD:BRONZE,d);
+                if(mt==null){art.text(art.inter,"?",x+colW/2,cy+8,.6f,DIM,d,0);continue;}
+                JsonArray sd=mt.getAsJsonArray("sides");int win=mt.has("winner")?mt.get("winner").getAsInt():-1;
+                for(int q=0;q<sd.size();q++){JsonObject one=sd.get(q).getAsJsonObject();float ly=sd.size()==2?cy+(q==0?14:-16):cy+1;boolean w=one.get("id").getAsInt()==win,lost=win>=0&&!w;
+                    String nm=sideName(one);Color c2=w?GOLD:lost?new Color(.5f,.45f,.42f,1):IVORY;
+                    art.left(art.inter,nm,x+14,ly+8,.54f,c2,d,colW-28);if(lost){float lw=Math.min(colW-28,art.width(art.inter,nm,.54f));art.rect(x+14,ly-1,lw,1.5f,RED,.8f*d);}}
+                if(sd.size()==2)art.rect(x+10,cy-1,colW-20,1,BRONZE,.4f*d);
+                if(mt.has("bye"))art.right(art.inter,tr("проходит","bye"),x+colW-12,cy+7,.40f,DIM,d);}}
+        // the champion slot
+        art.text(art.inter,tr("ЧЕМПИОН","CHAMPION"),x0+(total-1)*(colW+gapX)+colW/2,centers[total-1][0]+62,.46f,GOLD,1,0);
+    }
+    private boolean isNextMatch(JsonArray br,int ri,int m){JsonArray r=br.get(ri).getAsJsonArray();for(int i=0;i<r.size();i++){JsonObject o=r.get(i).getAsJsonObject();if(o.has("winner")||o.has("bye"))continue;return i==m;}return false;}
+    /** Versus: both sides' characters slide in from the edges, a burning VS between them, names on plaques. */
+    private void versus(){
+        JsonArray m=survival().has("match")?survival().getAsJsonArray("match"):new JsonArray();if(m.size()<2)return;
+        int ri=survival().get("roundIndex").getAsInt();
+        float k=Interpolation.pow3Out.apply(Math.min(1,phaseClock/.6f)),v=Interpolation.swingOut.apply(MathUtils.clamp((phaseClock-.35f)/.5f,0,1));
+        logo(812,.55f);
+        spacedLabel(tr("РАУНД "+(ri+1)+" · ДУЭЛЬ","ROUND "+(ri+1)+" · DUEL"),W/2,724,.56f,DIM,k);
+        for(int c=0;c<2;c++){JsonObject sd=m.get(c).getAsJsonObject();JsonArray pl=sd.getAsJsonArray("players");float baseX=c==0?420:1180,dir=c==0?-1:1;
+            float x=baseX+dir*(1-k)*600;art.glow(x,330,620,520,SIDE[c],.22f*k);
+            for(int q=0;q<pl.size();q++){Texture body=art.body(character(pl.get(q).getAsString()));if(body==null)continue;float bh=pl.size()==1?440:360,bw=bh*body.getWidth()/body.getHeight();
+                float ox=pl.size()==1?0:(q-(pl.size()-1)/2f)*200;art.batch.setColor(1,1,1,k);art.batch.draw(body,x+ox-bw/2,120,bw,bh);}
+            art.batch.setColor(Color.WHITE);
+            neon.bronze(art.batch,x-200,70,400,56,PLAQUE,SIDE[c],k);art.text(art.cond,sideName(sd),x,111,.46f,SIDE[c],k,370);}
+        if(v>0){art.glow(W/2,360,420,320,RED,.45f*v);serifText("VS",W/2,410,1.6f*v,new Color(1f,.86f,.6f,1),Math.min(1,v));}
+    }
+    /** The duel result: the winning side in gold with rays, the loser struck out. */
+    private void matchResult(){
+        JsonObject w=survival().has("winner")?survival().getAsJsonObject("winner"):null;logo(586,1);if(w==null)return;
+        float k=Math.max(.05f,Interpolation.swingOut.apply(Math.min(1,phaseClock/.5f)));
+        art.batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);for(int i=0;i<12;i++){float ang=clock*8+i*30;art.line(W/2,300,W/2+MathUtils.cosDeg(ang)*460,300+MathUtils.sinDeg(ang)*240,30,GOLD,.03f,true);}
+        art.batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
+        plaque(GOLD,1,0);spacedLabel(tr("ПОБЕДА В ДУЭЛИ","WINS THE DUEL"),W/2,PLAQUE_CY+38,.50f,GOLD,1);
+        serifText(sideName(w),W/2,PLAQUE_CY+12,.80f*k,GOLD,1);
+        spacedLabel(tr("ПРОХОДИТ ДАЛЬШЕ","MOVES ON"),W/2,120,.46f,DIM,MathUtils.clamp((phaseClock-.6f)/.3f,0,1));
     }
     /** Intro: the logo, SURVIVAL between laurels and three rule cards with drawn icons. */
     private void intro(){
@@ -235,7 +345,7 @@ public final class TodSurvivalScreen extends ScreenAdapter {
         serifText(tr("ВЫЖИВАНИЕ","SURVIVAL"),W/2,452,.70f,GOLD,a);
         serif.getData().setScale(.70f);gl.setText(serif,tr("ВЫЖИВАНИЕ","SURVIVAL"));float hw=gl.width/2;serif.getData().setScale(1);
         String[][] cards={{tr("ПО ОЧЕРЕДИ","IN TURN"),tr("Назови новый верный\nответ, пока горит фитиль","Name a new correct answer\nbefore the fuse burns out")},
-            {tr(lives+" ЖИЗНИ",lives+" LIVES"),tr("Ошибка, повтор или конец\nвремени отнимают жизнь","A wrong answer, a repeat or\nrunning out of time costs one")},
+            {tr(lives+" ЖИЗНИ",lives+" LIVES"),tr("Ошибки не страшны: жизнь\nуходит, только если вышло время","Wrong tries are free: a life goes\nonly when the time runs out")},
             {tr("ПОСЛЕДНИЙ ЖИВОЙ","LAST ONE STANDING"),tr("Время хода сокращается.\nПобеждает выживший","Turns get shorter.\nThe survivor wins")}};
         for(int i=0;i<3;i++){float d=MathUtils.clamp((phaseClock-1.0f-i*.18f)/.35f,0,1);if(d<=0)continue;float cx=W/2+(i-1)*370,cy=250,cw=340,ch=200;
             neon.bronze(art.batch,cx-cw/2,cy-ch/2,cw,ch,PLAQUE,i==1?RED:BRONZE,d);
@@ -283,11 +393,14 @@ public final class TodSurvivalScreen extends ScreenAdapter {
         List<JsonObject> ps=players();int n=ps.size();if(n==0)return;
         float cell=Math.min(240,(W-120)/n),left=(W-cell*n)/2;String turn=s(survival(),"turnPlayer");boolean turning=phase().startsWith("TURN");
         int lives=survival().has("lives")?survival().get("lives").getAsInt():3;
-        for(int i=0;i<n;i++){JsonObject p=ps.get(i);String id=s(p,"id");boolean out=p.has("lives")&&p.get("lives").getAsInt()<=0;boolean active=turning&&id.equals(turn);
+        boolean duel=duel();
+        for(int i=0;i<n;i++){JsonObject p=ps.get(i);String id=s(p,"id");boolean out=duel?p.has("ghost")&&p.get("ghost").getAsBoolean():p.has("lives")&&p.get("lives").getAsInt()<=0;boolean active=turning&&id.equals(turn);
+            int side=duel?sideIndex(id):-1;boolean watching=duel&&side<0&&!phase().equals("FINAL_RESULTS")&&!phase().equals("COMPLETED");
             int k=out?1:new int[]{0,2,3,4}[i%4];Texture ft=frames[k];if(ft==null)continue;float[] g=QuestionPlayers.GEO[k];
             float cx=left+(i+.5f)*cell,fw=Math.min(212,cell-10)*(active?1.08f:1),fh=fw*ft.getHeight()/ft.getWidth();
             float plateMid=722-(active?8:0),top=plateMid+fh*(g[2]+g[3])/2,x0=cx-fw/2,hy=top-fh*g[0],hr=fw*g[1];
-            float a=out?.62f:turning&&!active?.62f:1;
+            float a=out?.55f:watching?.42f:turning&&!active?.66f:1;
+            if(side>=0&&!out){Color sc=SIDE[side];art.glow(cx,722+fw*.15f,fw*1.25f,fw*1.25f,sc,.16f);}
             if(active){ // a spotlight from above on the player who answers
                 art.batch.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE);
                 art.batch.setColor(1f,.82f,.55f,.10f);art.batch.draw(art.soft,cx-hr*2.2f,hy-hr*2.6f,hr*4.4f,H-(hy-hr*2.6f)+hr*2);

@@ -115,3 +115,21 @@
 #tod-screen#tod-screen .tod-count b{background:none!important;box-shadow:none!important;padding:0 4px 0 0!important;font:700 26px/1 Gothic,"Cormorant SC",serif!important;color:var(--gold2)!important;vertical-align:-3px}
 #tod-screen#tod-screen .tod-count{font-size:12px;letter-spacing:.14em;text-transform:uppercase}
 #tod-screen#tod-screen .tod-hint.wait{color:var(--gold)}
+/* duels */
+.tod-turn .vs{width:100%;text-align:center}
+.tod-turn .vs .tod-turn-n{font-size:21px}
+.tod-turn .vs i{font-style:normal;color:#ffb070;margin:0 8px;font-size:16px;letter-spacing:.1em}
+.tod-turn .s0,.tod-lives li.side0 span{color:#ff8a7a!important}
+.tod-turn .s1,.tod-lives li.side1 span{color:#8ab4ff!important}
+.tod-turn .gold{color:#f7dcae}
+.tod-lives li.side0 img{box-shadow:0 0 0 2px #0f090a,0 0 0 3px #ff6a5a}
+.tod-lives li.side1 img{box-shadow:0 0 0 2px #0f090a,0 0 0 3px #6a9aff}
+.tod-lives{display:flex!important;flex-wrap:wrap;justify-content:center;gap:10px 8px}
+.tod-lives li{width:74px}
+/* refused tries of the current turn */
+.tod-tries{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.tod-tries:empty{display:none}
+.tod-tries li{position:relative;padding:5px 10px;border-radius:2px;background:#2a0c0ccc;box-shadow:inset 0 0 0 1px #ff6a5f66;color:#ffb8b0;font-size:13px;text-decoration:line-through;text-decoration-color:#ff5a4a;opacity:.6}
+.tod-tries li small{margin-left:6px;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);text-decoration:none;display:inline-block}
+.tod-tries li.new{opacity:1;animation:tod-shake .4s ease-out}
+@keyframes tod-shake{0%{transform:translateX(0) scale(1.2)}25%{transform:translateX(-6px)}50%{transform:translateX(5px)}75%{transform:translateX(-3px)}100%{transform:none}}

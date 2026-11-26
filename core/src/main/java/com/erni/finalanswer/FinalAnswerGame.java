@@ -137,10 +137,12 @@ public class FinalAnswerGame extends Game {
     private void releaseFinalSecond(boolean toLobby){if(finalSecondScreen==null)return;var old=finalSecondScreen;finalSecondScreen=null;if(toLobby)showBalances();else if(getScreen()==old)setScreen(null);old.dispose();}
     private com.erni.finalanswer.thinkordie.ThinkOrDieScreen thinkOrDieScreen;
     /** Host: start THINK OR DIE for every connected player (alive and ghosts). */
-    public void startThinkOrDie(){
+    public void startThinkOrDie(){startThinkOrDie("FFA");}
+    /** @param format FFA (survival, everyone against everyone), DUEL (1 on 1 knockout) or TEAMS (2 on 2 knockout) */
+    public void startThinkOrDie(String format){
         if(activeRoom==null||realtime==null||!activeRoom.host()||!realtime.connected())return;
         var snapshot=realtime.snapshot();if(snapshot==null||!snapshot.has("lobbyId"))return;
-        realtime.send("START_THINK_OR_DIE",java.util.Map.of("roomCode",activeRoom.code(),"sessionId",snapshot.get("lobbyId").getAsString()));
+        realtime.send("START_THINK_OR_DIE",java.util.Map.of("roomCode",activeRoom.code(),"sessionId",snapshot.get("lobbyId").getAsString(),"format",format));
     }
     private com.erni.finalanswer.thinkordie.TodSurvivalScreen survivalScreen;
     private void openThinkOrDie(com.google.gson.JsonObject state){

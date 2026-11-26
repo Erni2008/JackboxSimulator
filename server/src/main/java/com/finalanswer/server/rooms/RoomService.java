@@ -669,7 +669,7 @@ public final class RoomService {
                 String forced=Boolean.getBoolean("race.qa")?System.getProperty("thinkordie.integrated.category",""):"";
                 if(!forced.isEmpty()&&pack.get(forced)!=null){var l=new ArrayList<>(cats);l.add(0,pack.get(forced));cats=l;}
                 String lang=Boolean.getBoolean("race.qa")&&!System.getProperty("thinkordie.integrated.lang","").isEmpty()?System.getProperty("thinkordie.integrated.lang"):room.language;
-                room.thinkOrDie=new com.finalanswer.server.game.thinkordie.ThinkOrDieSession(seated.stream().map(m->m.id).toList(),cats,validationEngine(),cfg,com.finalanswer.server.game.thinkordie.SurvivalConfig.DEFAULT,lang,now());room.thinkOrDieDoneAt=0;
+                room.thinkOrDie=new com.finalanswer.server.game.thinkordie.ThinkOrDieSession(seated.stream().map(m->m.id).toList(),cats,validationEngine(),cfg,com.finalanswer.server.game.thinkordie.SurvivalConfig.DEFAULT,lang,now(),todFormat(data,seated.size()),random);room.thinkOrDieDoneAt=0;
                 System.out.println("[think-or-die] start room="+room.code+" seats="+seated.size()+" ghosts="+ghosts.size());
                 broadcast(room,"THINK_OR_DIE_STARTED");
             }
@@ -684,6 +684,14 @@ public final class RoomService {
             default->throw new Failure(400,"UNKNOWN_COMMAND");
         }}catch(com.finalanswer.server.game.thinkordie.ThinkOrDieSession.Failure f){throw new Failure(f.status,f.getMessage());}
         catch(UnsupportedOperationException|ClassCastException|IllegalStateException e){throw new Failure(400,"TOD_INVALID_MESSAGE");}
+    }
+    /** START_THINK_OR_DIE may carry "format": FFA (default), DUEL (1 on 1 knockout) or TEAMS (2 on 2, needs 4 players). */
+    private static com.finalanswer.server.game.thinkordie.ThinkOrDieSession.Format todFormat(JsonObject data,int players){
+        String f=data.has("format")&&!data.get("format").isJsonNull()?data.get("format").getAsString():"FFA";
+        if(Boolean.getBoolean("race.qa")&&!System.getProperty("thinkordie.survival.format","").isEmpty())f=System.getProperty("thinkordie.survival.format");
+        try{var v=com.finalanswer.server.game.thinkordie.ThinkOrDieSession.Format.valueOf(f.trim().toUpperCase(java.util.Locale.ROOT));
+            if(v==com.finalanswer.server.game.thinkordie.ThinkOrDieSession.Format.TEAMS&&players<4)throw new Failure(409,"TOD_TEAMS_NEED_FOUR");return v;}
+        catch(IllegalArgumentException e){throw new Failure(400,"TOD_INVALID_FORMAT");}
     }
     private static void requireThinkOrDie(Room room,JsonObject data){var t=tod(room);if(t==null||!t.id.equals(Protocol.string(data,"sessionId")))throw new Failure(409,"STALE_TOD_SESSION");}
     /** The running THINK OR DIE: the standalone show, or the challenge inside the main match (never both). */
