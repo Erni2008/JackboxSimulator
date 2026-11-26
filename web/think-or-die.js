@@ -107,11 +107,15 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
     const rows=[...outbox.map(o=>({text:o.text,state:'SENDING'})),...[...hist].reverse()];
     const key=JSON.stringify(rows)+ph;
     if(key!==lastKey){lastKey=key;
-      const STATE=STATES();let refused='';
+      const STATE=STATES();let refused='',back='';
       els.list.innerHTML=rows.map(r=>{const st=STATE[r.state]||STATE.PENDING;const rk=(r.id||'o:'+r.text)+':'+r.state;const fresh=!seenRows.has(rk);seenRows.add(rk);
-        if(fresh&&(r.state==='WRONG_LIVE'||r.state==='REPEAT_LIVE'))refused=r.state;return `<li class="s-${st[1]}${fresh?' fresh':''}"><span>${esc(r.label||r.text)}</span><em>${esc(st[0])}${r.points!=null?` · ${r.points>0?'+':''}${r.points}`:''}</em></li>`;}).join('');
+        const bad=r.state==='WRONG_LIVE'||r.state==='REPEAT_LIVE';if(fresh&&bad){refused=r.state;if(r.state==='WRONG_LIVE')back=r.text;}
+        if(bad)return ''; // refused answers never join the list: a wrong one goes back into the field to fix
+        return `<li class="s-${st[1]}${fresh?' fresh':''}"><span>${esc(r.label||r.text)}</span><em>${esc(st[0])}${r.points!=null?` · ${r.points>0?'+':''}${r.points}`:''}</em></li>`;}).join('');
       // a refused answer: short buzz and a hint, the field stays ready for the next one
-      if(refused&&answering){navigator.vibrate?.([40,50,40]);error=refused==='WRONG_LIVE'?T('Неверно, не засчитано','Wrong, not counted'):T('Уже было, не засчитано','Already given, not counted');errorAt=performance.now();}}
+      if(refused&&answering){navigator.vibrate?.([40,50,40]);
+        if(back&&!els.input.value.trim()){els.input.value=back;els.input.focus();const n=back.length;try{els.input.setSelectionRange(n,n);}catch{}}
+        error=refused==='WRONG_LIVE'?T('Неверно, исправь и отправь снова','Not accepted, fix it and send again'):T('Уже было, не засчитано','Already given, not counted');errorAt=performance.now();}}
     els.list.hidden=!rows.length||ph==='INTRO'||ph==='CATEGORY_REVEAL'||ph==='FINAL_RESULTS'||ph==='COMPLETED';
     els.count.hidden=!(answering||ph==='ANSWER_VALIDATION');
     if(!els.count.hidden)els.count.innerHTML=ph==='ANSWER_VALIDATION'?`<b>${T('ПРОВЕРЯЕМ ОТВЕТЫ…','CHECKING ANSWERS…')}</b>`:`<b>${(m.me?.count??hist.length)+outbox.length}</b> ${T('ответов отправлено','answers sent')}`;
