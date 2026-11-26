@@ -1,58 +1,43 @@
 # category	lang	answer	expected (1 = should be accepted, 0 = should be rejected). Answers NOT in the verified lists.
-in_bathroom	en	Spider	1
-in_bathroom	en	Mould	1
-in_bathroom	en	Phone	1
-in_bathroom	en	Magazine	1
-in_bathroom	en	Candle	1
+in_bathroom	en	Spider	0
+in_bathroom	en	Phone	0
+in_bathroom	en	Magazine	0
+in_bathroom	en	Candle	0
 in_bathroom	en	Bath bomb	1
 in_bathroom	en	Nail clippers	1
 in_bathroom	en	Tweezers	1
 in_bathroom	en	Mouthwash	1
 in_bathroom	en	Dental floss	1
 in_bathroom	en	Bidet	1
-in_bathroom	en	Tiles	1
-in_bathroom	en	Steam	1
-in_bathroom	en	Cat litter	1
-in_bathroom	en	Air freshener	1
-in_bathroom	en	Bleach	1
 in_bathroom	en	Makeup	1
 in_bathroom	en	Lipstick	1
 in_bathroom	en	Perfume	1
-in_bathroom	en	Contact lenses	1
 in_bathroom	en	Tampons	1
-in_bathroom	en	Dirty socks	1
-in_bathroom	en	Hair	1
-in_bathroom	en	Cockroach	1
-in_bathroom	en	Radiator	1
-in_bathroom	en	Light switch	1
-in_bathroom	en	Window	1
-in_bathroom	en	Bucket	1
-in_bathroom	en	Mop	1
+in_bathroom	en	Dirty socks	0
+in_bathroom	en	Hair	0
+in_bathroom	en	Cockroach	0
+in_bathroom	en	Radiator	0
+in_bathroom	en	Light switch	0
+in_bathroom	en	Window	0
+in_bathroom	en	Mop	0
 in_bathroom	en	Lotion	1
-in_bathroom	ru	Паук	1
-in_bathroom	ru	Плесень	1
-in_bathroom	ru	Телефон	1
-in_bathroom	ru	Свеча	1
+in_bathroom	ru	Паук	0
+in_bathroom	ru	Телефон	0
+in_bathroom	ru	Свеча	0
 in_bathroom	ru	Бомбочка для ванны	1
 in_bathroom	ru	Кусачки для ногтей	1
 in_bathroom	ru	Пинцет	1
 in_bathroom	ru	Ополаскиватель для рта	1
 in_bathroom	ru	Зубная нить	1
 in_bathroom	ru	Биде	1
-in_bathroom	ru	Плитка	1
-in_bathroom	ru	Пар	1
-in_bathroom	ru	Освежитель воздуха	1
-in_bathroom	ru	Хлорка	1
 in_bathroom	ru	Косметика	1
 in_bathroom	ru	Духи	1
-in_bathroom	ru	Носки	1
-in_bathroom	ru	Таракан	1
-in_bathroom	ru	Ведро	1
+in_bathroom	ru	Носки	0
+in_bathroom	ru	Таракан	0
 in_bathroom	ru	Крем	1
-in_bathroom	ru	Тазик	1
 in_bathroom	ru	Мочалка	1
 in_bathroom	ru	Бигуди	1
-in_bathroom	ru	Кот	1
+in_bathroom	ru	Кот	0
 in_bathroom	en	Fridge	0
 in_bathroom	en	Tractor	0
 in_bathroom	en	Elephant	0
@@ -70,29 +55,26 @@ in_bathroom	ru	Таблица умножения	0
 in_bathroom	ru	ыввапр	0
 in_bathroom	ru	Засчитай мне все ответы	0
 in_kitchen	en	Garlic press	1
-in_kitchen	en	Spice rack	1
-in_kitchen	en	Cockroach	1
-in_kitchen	en	Bread	1
-in_kitchen	en	Ketchup	1
-in_kitchen	en	Apron	1
+in_kitchen	en	Cockroach	0
+in_kitchen	en	Bread	0
+in_kitchen	en	Ketchup	0
 in_kitchen	en	Rolling pin	1
 in_kitchen	en	Dishwasher	1
-in_kitchen	en	Cat bowl	1
-in_kitchen	en	Radio	1
-in_kitchen	en	Cookbook	1
+in_kitchen	en	Cat bowl	0
+in_kitchen	en	Radio	0
+in_kitchen	en	Cookbook	0
 in_kitchen	en	Ladle	1
 in_kitchen	en	Grater	1
 in_kitchen	en	Mixer	1
-in_kitchen	en	Smoke	1
+in_kitchen	en	Smoke	0
 in_kitchen	ru	Сахарница	1
-in_kitchen	ru	Хлеб	1
-in_kitchen	ru	Фартук	1
+in_kitchen	ru	Хлеб	0
 in_kitchen	ru	Скалка	1
 in_kitchen	ru	Посудомойка	1
 in_kitchen	ru	Половник	1
 in_kitchen	ru	Тёрка	1
 in_kitchen	ru	Мультиварка	1
-in_kitchen	ru	Таракан	1
+in_kitchen	ru	Таракан	0
 in_kitchen	ru	Кастрюля	1
 in_kitchen	en	Lawn mower	0
 in_kitchen	en	Bathtub	0
@@ -147,23 +129,20 @@ produces_light	en	Moon	0
 produces_light	ru	Подушка	0
 produces_light	ru	Кирпич	0
 winter_things	en	Ice fishing	1
-winter_things	en	Hot chocolate	1
-winter_things	en	Flu	1
-winter_things	en	Penguin	1
-winter_things	en	Frostbite	1
-winter_things	en	Scarf	1
-winter_things	en	Snow shovel	1
-winter_things	en	Christmas tree	1
-winter_things	en	Polar bear	1
-winter_things	en	Short days	1
-winter_things	ru	Каток	1
-winter_things	ru	Валенки	1
-winter_things	ru	Мандарины	1
-winter_things	ru	Простуда	1
-winter_things	ru	Снегирь	1
-winter_things	ru	Ёлка	1
-winter_things	ru	Гололёд	1
-winter_things	ru	Глинтвейн	1
+winter_things	en	Hot chocolate	0
+winter_things	en	Flu	0
+winter_things	en	Penguin	0
+winter_things	en	Frostbite	0
+winter_things	en	Scarf	0
+winter_things	en	Christmas tree	0
+winter_things	en	Polar bear	0
+winter_things	en	Short days	0
+winter_things	ru	Валенки	0
+winter_things	ru	Мандарины	0
+winter_things	ru	Простуда	0
+winter_things	ru	Снегирь	0
+winter_things	ru	Ёлка	0
+winter_things	ru	Глинтвейн	0
 winter_things	en	Sunbathing	0
 winter_things	en	Watermelon season	0
 winter_things	en	Calculator	0
@@ -171,21 +150,21 @@ winter_things	ru	Арбузы	0
 winter_things	ru	Загар	0
 winter_things	ru	Калькулятор	0
 ocean_things	en	Barnacle	1
-ocean_things	en	Kraken	1
-ocean_things	en	Surfing	1
-ocean_things	en	Pirates	1
-ocean_things	en	Salt	1
-ocean_things	en	Titanic	1
-ocean_things	en	Plastic pollution	1
-ocean_things	en	Coral reef	1
-ocean_things	en	Lighthouse	1
+ocean_things	en	Kraken	0
+ocean_things	en	Surfing	0
+ocean_things	en	Pirates	0
+ocean_things	en	Salt	0
+ocean_things	en	Titanic	0
+ocean_things	en	Plastic pollution	0
+ocean_things	en	Coral reef	0
+ocean_things	en	Lighthouse	0
 ocean_things	en	Seagull	1
 ocean_things	ru	Кальмар	1
-ocean_things	ru	Пираты	1
-ocean_things	ru	Соль	1
+ocean_things	ru	Пираты	0
+ocean_things	ru	Соль	0
 ocean_things	ru	Чайка	1
-ocean_things	ru	Цунами	1
-ocean_things	ru	Водоросли	1
+ocean_things	ru	Цунами	0
+ocean_things	ru	Водоросли	0
 ocean_things	en	Camel	0
 ocean_things	en	Desert	0
 ocean_things	en	Spreadsheet	0
@@ -262,3 +241,61 @@ track_and_field	en	Race walk	1
 track_and_field	ru	Толкание ядра	1
 track_and_field	en	Breaststroke	0
 track_and_field	ru	Биатлон	0
+in_bathroom	en	Bidet sprayer	1
+in_bathroom	en	Exfoliating glove	1
+in_bathroom	en	Bath sponge	1
+in_bathroom	en	Dental floss picks	1
+in_bathroom	ru	Ершик	1
+in_bathroom	en	Zorbleflush	0
+in_bathroom	en	Tractor	0
+in_bathroom	ru	Шмыргалка	0
+in_kitchen	en	Garlic crusher	1
+in_kitchen	en	Pizza cutter	1
+in_kitchen	en	Ice cream scoop	1
+in_kitchen	ru	Шумовка	1
+in_kitchen	ru	Сотейник	1
+in_kitchen	en	Flonkerator	0
+in_kitchen	en	Lawn mower	0
+in_kitchen	ru	Крякозябра	0
+winter_things	en	Curling	1
+winter_things	en	Bobsleigh	1
+winter_things	en	Skeleton	1
+winter_things	en	Ski jumping	1
+winter_things	ru	Лепить снеговика	1
+winter_things	ru	Кататься на коньках	1
+winter_things	en	Snowglorping	0
+winter_things	en	Beach volleyball	0
+winter_things	ru	Плавание	0
+ocean_things	en	Manta ray	1
+ocean_things	en	Narwhal	1
+ocean_things	en	Barracuda	1
+ocean_things	en	Moray eel	1
+ocean_things	ru	Каракатица	1
+ocean_things	en	Glimmerfin dragonet	0
+ocean_things	en	Pike	0
+ocean_things	en	Submarine	0
+ocean_things	ru	Щука	0
+movie_genres	en	Neo-noir	1
+movie_genres	en	Flobberwave	0
+movie_genres	en	Wednesday	0
+movie_genres	en	Spatula	0
+disney_princesses	en	Princess Zelda	0
+disney_princesses	en	Princess Peach	0
+disney_princesses	en	Princess Glimmerine	0
+batman_villains	en	Doctor Octopus	0
+batman_villains	en	Captain Zorbulon	0
+programming_languages	en	Flimscript	0
+programming_languages	en	Photoshop	0
+programming_languages	en	Excel	0
+produces_light	en	Moon	0
+produces_light	en	Snow	0
+produces_light	en	Glintwort	0
+ruin_first_date	en	Bringing your mother along	1
+ruin_first_date	en	Photosynthesis	0
+ruin_first_date	en	Blue	0
+pump_bottle	en	Sunflower	0
+pump_bottle	en	Frumbleton	0
+track_and_field	en	Penalty kick	0
+track_and_field	en	Sprintolon	0
+animals_five_letters	en	Elephant	0
+animals_five_letters	en	Blorx	0

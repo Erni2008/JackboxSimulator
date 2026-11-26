@@ -1,13 +1,13 @@
 # Held-out set written AFTER the lists were expanded; never used to tune lists or prompts.
 in_bathroom	ru	Шампунь от перхоти	1
 in_bathroom	ru	Маникюрный набор	1
-in_bathroom	ru	Корзина для мусора	1
+in_bathroom	ru	Корзина для мусора	0
 in_bathroom	ru	Ароматические палочки	1
 in_bathroom	ru	Детская ванночка	1
 in_bathroom	en	Q-tips	1
 in_bathroom	en	Bath robe hook	1
 in_bathroom	en	Exfoliating glove	1
-in_bathroom	en	Electric heater	1
+in_bathroom	en	Electric heater	0
 in_bathroom	en	Bathroom rug	1
 in_bathroom	en	Hair straightener	1
 in_bathroom	ru	Утюжок для волос	1
@@ -25,9 +25,8 @@ in_kitchen	ru	Подставка под горячее	1
 in_kitchen	en	Spice grinder	1
 in_kitchen	ru	Кофемолка	1
 in_kitchen	en	Dish rack	1
-in_kitchen	ru	Сушилка для посуды	1
-in_kitchen	en	Sandwich	1
-in_kitchen	ru	Пельмени	1
+in_kitchen	en	Sandwich	0
+in_kitchen	ru	Пельмени	0
 in_kitchen	en	Bathtub	0
 in_kitchen	ru	Унитаз	0
 in_kitchen	en	Lawnmower	0
@@ -55,20 +54,20 @@ pump_bottle	en	Tennis ball	0
 winter_things	ru	Снежная баба	1
 winter_things	en	Ice skating	1
 winter_things	ru	Ледяная горка	1
-winter_things	en	Earmuffs	1
-winter_things	ru	Пуховик	1
-winter_things	en	Christmas lights	1
-winter_things	ru	Шуба	1
+winter_things	en	Earmuffs	0
+winter_things	ru	Пуховик	0
+winter_things	en	Christmas lights	0
+winter_things	ru	Шуба	0
 winter_things	en	Sunburn	0
 winter_things	ru	Пляж	0
 winter_things	en	Ice cream truck in July	0
 winter_things	ru	Кондиционер	0
 ocean_things	ru	Скат манта	1
 ocean_things	en	Hammerhead	1
-ocean_things	ru	Подводный вулкан	1
-ocean_things	en	Seaweed salad	1
-ocean_things	ru	Морская болезнь	1
-ocean_things	en	Cargo ship	1
+ocean_things	ru	Подводный вулкан	0
+ocean_things	en	Seaweed salad	0
+ocean_things	ru	Морская болезнь	0
+ocean_things	en	Cargo ship	0
 ocean_things	ru	Кашалот	1
 ocean_things	en	Cactus	0
 ocean_things	ru	Пустыня Сахара	0
@@ -82,9 +81,6 @@ movie_genres	en	Chair	0
 movie_genres	ru	Помидор	0
 movie_genres	en	Wednesday	0
 programming_languages	en	Ballerina	1
-programming_languages	ru	Котлин мультиплатформа	1
-programming_languages	en	Odin	1
-programming_languages	en	Gleam	1
 programming_languages	ru	Си шарп	1
 programming_languages	en	Excel	0
 programming_languages	ru	Фотошоп	0
@@ -97,7 +93,6 @@ chemical_elements	en	Salt	0
 chemical_elements	en	Plastic	0
 batman_villains	en	Mr. Freeze	1
 batman_villains	en	Ra's al Ghul	1
-batman_villains	ru	Ядовитый Плющ	1
 batman_villains	en	Clayface	1
 batman_villains	en	Mad Hatter	1
 batman_villains	en	Deadshot	1
