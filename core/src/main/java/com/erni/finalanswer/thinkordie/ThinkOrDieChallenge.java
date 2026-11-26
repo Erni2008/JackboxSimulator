@@ -161,6 +161,8 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
         if(a<=0||s<=.05f)return;float sc=.62f*s;
         String l="THINK ",m="OR",r=" DIE";float wl=art.width(art.display,l,sc),wm=art.width(art.display,m,sc*.78f),wr=art.width(art.display,r,sc),tw=wl+wm+wr,th=art.display.getLineHeight()*sc;
         art.glow(cx,cy,tw*1.1f,th*1.4f,BLACK,.55f*a);
+        for(int k=0;k<5;k++){float yy=cy-th*.10f+(k-2)*th*.09f,x0=cx-tw*(.42f+.05f*(k%3)),x1=cx+tw*(.40f+.06f*((k+1)%3));art.line(x0,yy-k*2,x1,yy+6-k,th*(.05f+.02f*(k%2)),new Color(.55f+.1f*(k%2),.02f,.04f,1),.55f*a,false);}
+        art.glow(cx,cy-th*.1f,tw*1.2f,th*.9f,RED,.35f*a);
         art.glow(cx,cy,tw*1.4f,th*2.2f,RED,.28f*a);
         // top hat: tapered crown with a red band and a soft highlight, curved brim with rounded ends
         float hw=th*.80f*Math.min(1,s),hx=cx,hy=cy+th*.42f;
@@ -191,11 +193,11 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
     /** The category plate: cut corners, double red rim, rivets, a CATEGORY tab, sheared serif text. */
     private void categoryPlate(float w,float a,String text,float zoom,boolean muted){
         if(a<=0)return;float z=Math.max(.05f,zoom),cx=800,cy=407,pw=900*z,ph=172*z;
-        octPlate(cx-pw/2,cy-ph/2,pw,ph,CARD,RED,a);
+        art.glow(cx,cy,pw*1.15f,ph*1.6f,RED,.22f*a);frame.bronze(art.batch,cx-pw/2,cy-ph/2,pw,ph,new Color(.07f,.035f,.035f,.97f),RED,a);
         if(z<.7f)return;
         float tabW=280,tabH=40,ty=cy+ph/2-tabH/2+4;
-        tabW=220;tabH=36;octPlate(cx-tabW/2,ty-tabH/2,tabW,tabH,RED,RED,a);
-        art.text(art.tiny,spaced(tr("КАТЕГОРИЯ","CATEGORY")),cx,ty+9,.95f,Color.WHITE,a,0);
+        tabW=250;tabH=40;frame.bronze(art.batch,cx-tabW/2,ty-tabH/2,tabW,tabH,new Color(.42f,.04f,.06f,1),new Color(1f,.35f,.30f,1),a);
+        art.text(art.tiny,spaced(tr("КАТЕГОРИЯ","CATEGORY")),cx,ty+9,.95f,new Color(1f,.86f,.70f,1),a,0);
         // sheared serif category text, shrunk until it fits
         float boxW=pw-110,maxH=ph-64,sc=.92f;
         for(int i=0;i<10;i++){serif.getData().setScale(sc);gl.setText(serif,text,METAL,boxW,Align.center,true);if(gl.height<=maxH)break;sc*=.9f;}
@@ -244,8 +246,9 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
         float sec=Math.round(ms("answerMs")/1000f);
         String[] txt={tr("ОДНА КАТЕГОРИЯ\nДЛЯ ВСЕХ","ONE CATEGORY\nFOR EVERYONE"),tr((int)sec+" СЕКУНД\nОТВЕЧАЙ С ТЕЛЕФОНА",(int)sec+" SECONDS\nANSWER ON YOUR PHONE"),tr("ПИШИ ВЕРНЫЕ ОТВЕТЫ\nКАК МОЖНО БОЛЬШЕ","WRITE CORRECT ANSWERS\nAS MANY AS YOU CAN")};
         float[][] box={{350,219,315,73},{690,219,250,73},{965,219,285,73}};
+        {float d0=MathUtils.clamp(t/.3f,0,1);if(d0>0){frame.bronze(art.batch,340,214,920,84,new Color(.06f,.03f,.03f,.93f),new Color(.55f,.30f,.15f,1),a*d0);
+            for(float dx:new float[]{677,957}){art.rect(dx-1,228,2,56,new Color(.75f,.52f,.28f,1),.8f*a*d0);}}}
         for(int i=0;i<3;i++){float d=MathUtils.clamp((t-i*.15f)/.3f,0,1);if(d<=0)continue;float[] b=box[i];
-            art.glow(b[0]+b[2]/2,b[1]+b[3]/2,b[2]*1.1f,b[3]*1.4f,BLACK,.55f*a*d);
             float ix=b[0]+46,iy=b[1]+b[3]/2;icon(i,ix,iy,a*d);
             String[] ln=txt[i].split("\n");float tx=b[0]+84+(b[2]-96)/2;
             art.text(art.tiny,ln[0],tx,iy+18,.82f,METAL,a*d,b[2]-100);art.text(art.tiny,ln[1],tx,iy-4,.82f,METAL,a*d,b[2]-100);}
@@ -257,7 +260,10 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
             {"+"+points("three",25),tr("У ТРОИХ","THREE PLAYERS"),BLUE},{String.valueOf(points("crowd",0)),tr("4+ ИЛИ ОШИБКА","FOUR+ OR WRONG"),RED}};
         float[] cxs={435,677,923,1166};
         for(int i=0;i<4;i++){float e=MathUtils.clamp((t-.7f-i*.12f)/.3f,0,1);if(e<=0)continue;Color c=(Color)badges[i][2];float bw=210,bh=77,bx=cxs[i]-bw/2,by=43;
-            octPlate(bx,by,bw,bh,new Color(c.r*.55f,c.g*.55f,c.b*.55f,1),c,a*e);
+            art.glow(cxs[i],by+bh/2,bw*1.25f,bh*1.8f,c,.30f*a*e);
+            frame.bronze(art.batch,bx,by,bw,bh,new Color(c.r*.50f,c.g*.50f,c.b*.50f,1),new Color(Math.min(1,c.r*1.25f+.15f),Math.min(1,c.g*1.25f+.15f),Math.min(1,c.b*1.25f+.15f),1),a*e);
+            Color lc=new Color(Math.min(1,c.r*.6f+.4f),Math.min(1,c.g*.6f+.4f),Math.min(1,c.b*.6f+.3f),1);
+            frame.laurel(art.batch,bx+34,by+bh/2,24,-1,lc,a*e*.9f);frame.laurel(art.batch,bx+bw-34,by+bh/2,24,1,lc,a*e*.9f);
             art.text(art.big,(String)badges[i][0],cxs[i],by+bh-10,.58f,METAL,a*e,bw-30);
             art.text(art.tiny,(String)badges[i][1],cxs[i],by+24,.82f,METAL,a*e,bw-30);}
     }

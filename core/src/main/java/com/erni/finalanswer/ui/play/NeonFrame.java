@@ -109,5 +109,55 @@ public final class NeonFrame implements Disposable {
         b.setColor(1,1,1,.05f*a);nine(b,round,x+3,y+h*.5f,w-6,h*.5f-3,k);
         b.setColor(keep);
     }
+    private static final Color BRONZE=new Color(.62f,.40f,.20f,1),BRONZE_HI=new Color(.95f,.74f,.44f,1),BRONZE_LO=new Color(.26f,.14f,.07f,1);
+    private void seg(Batch b,float x1,float y1,float x2,float y2,float wd){float dx=x2-x1,dy=y2-y1,len=(float)Math.sqrt(dx*dx+dy*dy);
+        b.draw(px,x1,y1-wd/2,0,wd/2,len,wd,1,1,MathUtils.atan2(dy,dx)*MathUtils.radiansToDegrees);}
+    /** Ornate bronze ring (lit from above) with a thin accent ring inside; draw over the portrait. */
+    public void medallionRing(Batch b,float cx,float cy,float r,Color accent,float a){
+        Color keep=tmp.set(b.getColor());int n=72;
+        for(int i=0;i<n;i++){float u=360f*i/n,v=360f*(i+1)/n,lit=.5f+.5f*MathUtils.sinDeg((u+v)/2);
+            float rr=BRONZE_LO.r+(BRONZE_HI.r-BRONZE_LO.r)*lit,gg=BRONZE_LO.g+(BRONZE_HI.g-BRONZE_LO.g)*lit,bb=BRONZE_LO.b+(BRONZE_HI.b-BRONZE_LO.b)*lit;
+            b.setColor(.05f,.03f,.02f,a);seg(b,cx+MathUtils.cosDeg(u)*(r+5),cy+MathUtils.sinDeg(u)*(r+5),cx+MathUtils.cosDeg(v)*(r+5),cy+MathUtils.sinDeg(v)*(r+5),3);
+            b.setColor(rr,gg,bb,a);seg(b,cx+MathUtils.cosDeg(u)*(r+1),cy+MathUtils.sinDeg(u)*(r+1),cx+MathUtils.cosDeg(v)*(r+1),cy+MathUtils.sinDeg(v)*(r+1),7);
+            b.setColor(accent.r,accent.g,accent.b,.85f*a);seg(b,cx+MathUtils.cosDeg(u)*(r-4),cy+MathUtils.sinDeg(u)*(r-4),cx+MathUtils.cosDeg(v)*(r-4),cy+MathUtils.sinDeg(v)*(r-4),1.6f);}
+        // small studs at the four diagonals
+        for(int k=0;k<4;k++){float u=45+90*k;float sx=cx+MathUtils.cosDeg(u)*(r+1),sy=cy+MathUtils.sinDeg(u)*(r+1);
+            b.setColor(BRONZE_LO.r,BRONZE_LO.g,BRONZE_LO.b,a);b.draw(softTexOrNull(),sx-6,sy-6,12,12);b.setColor(BRONZE_HI.r,BRONZE_HI.g,BRONZE_HI.b,a);b.draw(softTexOrNull(),sx-3.5f,sy-3.5f,7,7);}
+        b.setColor(keep);
+    }
+    /** Dark disc with a soft accent tint behind a portrait. */
+    public void medallionBack(Batch b,float cx,float cy,float r,Color accent,float a){
+        Color keep=tmp.set(b.getColor());
+        b.setColor(.03f,.015f,.015f,a);b.draw(softTexOrNull(),cx-r*1.45f,cy-r*1.45f,r*2.9f,r*2.9f);
+        b.setColor(accent.r*.35f,accent.g*.20f,accent.b*.25f,.9f*a);b.draw(softTexOrNull(),cx-r*1.2f,cy-r*1.2f,r*2.4f,r*2.4f);
+        b.setColor(keep);
+    }
+    /** A hanging chain of alternating links between two points. */
+    public void chain(Batch b,float x1,float y1,float x2,float y2,float a){
+        Color keep=tmp.set(b.getColor());float dx=x2-x1,dy=y2-y1,len=(float)Math.sqrt(dx*dx+dy*dy),ang=MathUtils.atan2(dy,dx)*MathUtils.radiansToDegrees;int n=Math.max(2,(int)(len/9));
+        for(int i=0;i<n;i++){float f=(i+.5f)/n,cx=x1+dx*f,cy=y1+dy*f;boolean side=i%2==0;float w=side?11:9,h=side?6:2.5f;
+            b.setColor(.10f,.06f,.03f,a);b.draw(px,cx-w/2-1,cy-h/2-1,w/2+1,h/2+1,w+2,h+2,1,1,ang);
+            b.setColor(side?BRONZE.r:BRONZE_HI.r,side?BRONZE.g:BRONZE_HI.g,side?BRONZE.b:BRONZE_HI.b,a);b.draw(px,cx-w/2,cy-h/2,w/2,h/2,w,h,1,1,ang);}
+        b.setColor(keep);
+    }
+    /** Bronze-edged dark plate with an inner accent line (name plaques, category, rules bar). */
+    public void bronze(Batch b,float x,float y,float w,float h,Color fill,Color accent,float a){
+        if(a<=0||w<8||h<8)return;clean(b,x,y,w,h,new Color(0,0,0,0),BRONZE,a);
+        Color keep=tmp.set(b.getColor());float k=Math.min(1,Math.min(w,h)/56f);
+        b.setColor(BRONZE_HI.r,BRONZE_HI.g,BRONZE_HI.b,.9f*a);nine(b,round,x,y+h*.5f,w,h*.5f,k);
+        b.setColor(BRONZE.r,BRONZE.g,BRONZE.b,a);nine(b,round,x+1.5f,y+1.5f,w-3,h-3,k);
+        b.setColor(accent.r,accent.g,accent.b,a);nine(b,round,x+4,y+4,w-8,h-8,k);
+        b.setColor(fill.r,fill.g,fill.b,fill.a*a);nine(b,round,x+5.5f,y+5.5f,w-11,h-11,k);
+        b.setColor(1,1,1,.05f*a);nine(b,round,x+5.5f,y+h*.55f,w-11,h*.45f-5.5f,k);
+        b.setColor(keep);
+    }
+    /** Laurel branch (badge decoration): leaves along an arc, mirrored by side (-1 left, 1 right). */
+    public void laurel(Batch b,float cx,float cy,float r,int side,Color c,float a){
+        Color keep=tmp.set(b.getColor());
+        for(int i=0;i<7;i++){float u=-60+i*20;float ang=side<0?180-u:u;float lx=cx+MathUtils.cosDeg(ang)*r,ly=cy+MathUtils.sinDeg(ang)*r;
+            float rot=ang+(side<0?-90-35:90+35)+180*0;b.setColor(c.r*.5f,c.g*.5f,c.b*.5f,a);b.draw(px,lx-5,ly-2.5f,5,2.5f,11,5,1,1,rot);
+            b.setColor(c.r,c.g,c.b,a);b.draw(px,lx-4,ly-1.6f,4,1.6f,9,3.2f,1,1,rot);}
+        b.setColor(keep);
+    }
     @Override public void dispose(){if(roundTex!=null)roundTex.dispose();fillTex.dispose();edgeTex.dispose();softTex.dispose();gradTex.dispose();pixelTex.dispose();if(radial!=null)radial.dispose();}
 }
