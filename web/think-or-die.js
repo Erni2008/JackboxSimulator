@@ -65,7 +65,7 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
     if(performance.now()-lastSendAt<260)return; // the server's anti-spam floor
     lastSendAt=performance.now();
     if(held&&held.text===text)return; // still checking this exact answer
-    const requestId=makeId(),have=(m.me?.history||[]).filter(h=>h.text===text).length;held={text,have,round:m.round};
+    const requestId=makeId(),have=(m.me?.history||[]).filter(h=>h.text===text).length;held={text,n:(m.me?.history||[]).length,round:m.round};
     outbox.push({requestId,text,have,round:m.round});
     send('TOD_SUBMIT',{sessionId:m.sessionId,round:m.round,text},requestId);
     els.input.focus();render();
@@ -106,7 +106,7 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
     if(ghost)els.ghost.textContent=T(`ТЫ ПРИЗРАК · ${m.resurrectMin} верных уникальных ответов за раунд вернут тебя к жизни`,`YOU ARE A GHOST · ${m.resurrectMin} correct unique answers in one round bring you back`);
     // own answers, newest first
     // the verdict for the answer still in the field: wrong stays there with a warning, counted clears it
-    if(held){const mine=hist.filter(h=>h.text===held.text);const v=mine.length>held.have?mine[mine.length-1]:null;
+    if(held){const v=hist.length>held.n?hist[hist.length-1]:null; // the server keeps the cleaned text; the newest entry is this answer
       if(v&&v.state!=='PENDING'&&v.state!=='SENDING'){const same=els.input.value.replace(/\s+/g,' ').trim()===held.text;
         if(v.state==='WRONG_LIVE'){navigator.vibrate?.([40,50,40]);error=T('Неверный ответ. Исправь и отправь снова','Wrong answer. Fix it and send again');errorAt=performance.now();}
         else if(v.state==='REPEAT_LIVE'){navigator.vibrate?.([40,50,40]);error=T('Этот ответ уже был','You already gave this answer');errorAt=performance.now();if(same)els.input.select();}
