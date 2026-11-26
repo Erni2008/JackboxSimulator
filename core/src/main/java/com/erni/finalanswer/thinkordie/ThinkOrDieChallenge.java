@@ -284,6 +284,13 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
             {"+"+points("three",25),tr("У ТРОИХ","THREE PLAYERS"),BLUE},{String.valueOf(points("crowd",0)),tr("4+ ИЛИ ОШИБКА","FOUR+ OR WRONG"),RED}};
         float[] cxs={435,677,923,1166};
         for(int i=0;i<4;i++){float e=MathUtils.clamp((t-.7f-i*.12f)/.3f,0,1);if(e<=0)continue;Color c=(Color)badges[i][2];float bw=210,bh=77,bx=cxs[i]-bw/2,by=43;
+            Texture bt=art.badges[i];
+            if(bt!=null){ // artwork badge (coloured frame and laurels); value and label between the laurels
+                float iw=236,ih=iw*bt.getHeight()/bt.getWidth(),icy=82;
+                art.batch.setColor(1,1,1,a*e);art.batch.draw(bt,cxs[i]-iw/2,icy-ih/2,iw,ih);art.batch.setColor(1,1,1,1);
+                art.text(art.big,(String)badges[i][0],cxs[i],icy+34,.56f,METAL,a*e,128);
+                art.text(art.tiny,(String)badges[i][1],cxs[i],icy-14,.80f,METAL,a*e,134);
+                continue;}
             art.glow(cxs[i],by+bh/2,bw*1.25f,bh*1.8f,c,.30f*a*e);
             frame.bronze(art.batch,bx,by,bw,bh,new Color(c.r*.50f,c.g*.50f,c.b*.50f,1),new Color(Math.min(1,c.r*1.25f+.15f),Math.min(1,c.g*1.25f+.15f),Math.min(1,c.b*1.25f+.15f),1),a*e);
             Color lc=new Color(Math.min(1,c.r*.6f+.4f),Math.min(1,c.g*.6f+.4f),Math.min(1,c.b*.6f+.3f),1);
