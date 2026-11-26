@@ -127,6 +127,12 @@ public final class ThinkOrDieSession {
     private final List<List<Side[]>> bracket=new ArrayList<>();private final Map<Side[],Side> winners=new IdentityHashMap<>();
     private int matchIndex=-1;private List<Side> match=List.of();private int sideTurn=-1;
     private int lap,catIndex=-1,outSeq,lapsOnCategory;private String turnPlayer;private long turnMs;
+    /**
+     * The category round: sides that already had their turn in the current lap of this category. The category stays
+     * until a turn runs out of time; then {@code closing} is set, the sides that have not played this lap yet still
+     * answer the same category, and when the lap is complete the next category comes.
+     */
+    private final Set<Integer> lapDone=new HashSet<>();private boolean closing;
     private final Set<String> usedKeys=new HashSet<>(),usedCanon=new HashSet<>();
     private final List<Map<String,Object>> used=new ArrayList<>();
     private Map<String,Object> lastTurn=Map.of();private Sub turnSub;private Side lastWinner;
@@ -175,8 +181,8 @@ public final class ThinkOrDieSession {
         if(next.size()<=1){finishSurvival(now);return;}
         bracket.add(pairs(next));matchIndex=-1;enter(Phase.BRACKET,now,survival.bracketMs());
     }
-    private void startMatch(long now,boolean intro){lap=0;lapsOnCategory=0;sideTurn=-1;lastTurn=Map.of();turnPlayer=null;if(intro)enter(Phase.MATCH_INTRO,now,survival.matchIntroMs());else newCategory(now);}
-    private void newCategory(long now){catIndex++;round=catIndex+1;usedKeys.clear();usedCanon.clear();used.clear();lastTurn=Map.of();turnPlayer=null;enter(Phase.CATEGORY_REVEAL,now,survival.categoryMs());}
+    private void startMatch(long now,boolean intro){lap=0;lapsOnCategory=0;sideTurn=-1;lapDone.clear();closing=false;lastTurn=Map.of();turnPlayer=null;if(intro)enter(Phase.MATCH_INTRO,now,survival.matchIntroMs());else newCategory(now);}
+    private void newCategory(long now){catIndex++;round=catIndex+1;lapDone.clear();closing=false;lapsOnCategory=0;usedKeys.clear();usedCanon.clear();used.clear();lastTurn=Map.of();turnPlayer=null;enter(Phase.CATEGORY_REVEAL,now,survival.categoryMs());}
     private void endMatch(Side winner,long now){
         lastWinner=winner;turnPlayer=null;
         if(format==Format.FFA){finishSurvival(now);return;}
@@ -185,15 +191,23 @@ public final class ThinkOrDieSession {
         if(winner!=null)for(Player p:winner.members)p.lives=winner.lives;
         enter(Phase.MATCH_RESULT,now,survival.matchResultMs());
     }
-    /** Next side with lives (a full lap shortens the clock; every few laps a new category); inside a team the members alternate. */
+    /**
+     * Next turn. Sides answer in seat order; a lap is complete when every side with lives has had its turn in it (each
+     * completed lap shortens the clock). After a timeout in this category the lap is finished by the sides that have not
+     * played yet, then a new category opens with the next side in order. {@code lapsPerCategory} is only a safety cap.
+     */
     private void nextTurn(long now){
-        int n=match.size(),nxt=sideTurn;for(int k=1;k<=n;k++){int j=((sideTurn+k)%n+n)%n;if(match.get(j).lives>0){nxt=j;break;}}
-        if(phase!=Phase.CATEGORY_REVEAL&&sideTurn>=0&&nxt<=sideTurn){lap++;lapsOnCategory++;
-            if(lapsOnCategory>=survival.lapsPerCategory()){lapsOnCategory=0;newCategory(now);return;}}
-        sideTurn=nxt;Side d=match.get(sideTurn);Player p=d.members.get(d.next%d.members.size());d.next++;
+        int n=match.size();
+        if(phase!=Phase.CATEGORY_REVEAL&&lapComplete()){lapDone.clear();lap++;lapsOnCategory++;
+            if(closing||lapsOnCategory>=survival.lapsPerCategory()){newCategory(now);return;}}
+        int nxt=sideTurn;for(int k=1;k<=n;k++){int j=((sideTurn+k)%n+n)%n;if(match.get(j).lives>0&&!lapDone.contains(j)){nxt=j;break;}}
+        lapDone.add(nxt);sideTurn=nxt;Side d=match.get(sideTurn);Player p=d.members.get(d.next%d.members.size());d.next++;
         turnPlayer=p.id;turnMs=survival.turnMs(lap);turnSub=null;attempts.clear();typing="";
         enter(Phase.TURN,now,turnMs);
     }
+    private boolean lapComplete(){for(int j=0;j<match.size();j++)if(match.get(j).lives>0&&!lapDone.contains(j))return false;return true;}
+    /** sides with lives that still answer in this lap (only meaningful while closing) */
+    private int remainingInLap(){int r=0;for(int j=0;j<match.size();j++)if(match.get(j).lives>0&&!lapDone.contains(j))r++;return r;}
     private void settleTurn(long now){
         Sub s=turnSub;Player p=byId.get(s.player);
         String canon=s.verdict.valid()?s.verdict.canonicalId():null;
@@ -215,7 +229,7 @@ public final class ThinkOrDieSession {
     }
     private String label(String canon,String text){if(canon==null)return text;Category.Answer a=category().answer(canon);return a==null?text:"ru".equals(lang)?a.labelRu():a.labelEn();}
     private void lose(Player p,String why,String text,String label,long now){
-        Side d=sideOf(p);d.lives=Math.max(0,d.lives-1);p.incorrect++;
+        Side d=sideOf(p);d.lives=Math.max(0,d.lives-1);p.incorrect++;closing=true; // this category ends with the current lap
         for(Player m:d.members)m.lives=d.lives;
         boolean dead=d.lives==0;
         if(dead&&format==Format.FFA){p.ghost=true;d.out=p.out=++outSeq;}
@@ -255,6 +269,8 @@ public final class ThinkOrDieSession {
     private Map<String,Object> survivalView(){
         Map<String,Object> m=new LinkedHashMap<>();
         m.put("format",format.name());m.put("lives",format==Format.FFA?survival.lives():survival.duelLives());m.put("lap",lap+1);m.put("turnMs",turnMs);
+        m.put("closing",closing);m.put("remaining",closing?remainingInLap()+(phase==Phase.TURN||phase==Phase.TURN_CHECK?1:0):-1); // the one answering now counts
+        {List<String> done=new ArrayList<>();for(int j:lapDone)if(j>=0&&j<match.size())for(Player q:match.get(j).members)done.add(q.id);m.put("lapDone",done);}
         if(turnPlayer!=null)m.put("turnPlayer",turnPlayer);
         m.put("used",List.copyOf(used));m.put("last",lastTurn);m.put("attempts",List.copyOf(attempts));if(phase==Phase.TURN||phase==Phase.TURN_CHECK)m.put("typing",typing);
         if(format!=Format.FFA){

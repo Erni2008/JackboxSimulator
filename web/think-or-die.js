@@ -35,6 +35,7 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
       </div>
       <section class="tod-surv" data-k="surv" hidden>
         <div class="tod-turn" data-k="turn"></div>
+        <p class="tod-closing" data-k="closing" hidden></p>
         <div class="tod-fuse" aria-hidden="true"><i></i><b></b></div>
         <ul class="tod-tries" data-k="tries"></ul>
         <div class="tod-verdict" data-k="verdict" aria-live="polite"></div>
@@ -165,7 +166,7 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
         T('Отвечайте по очереди: назови новый верный ответ, пока горит фитиль.','Take turns: name a new correct answer before the fuse burns out.'),
         T('Неверные слова и повторы не засчитываются, пробуй сколько угодно, пока горит фитиль.','Wrong words and repeats are refused: try as many as you like while the fuse burns.'),
         T(`Не успел назвать верный ответ до конца времени: минус жизнь. Жизней: ${max}.`,`No correct answer before the time runs out: one life lost. Lives: ${max}.`),
-        T('Время хода сокращается. Последний выживший забирает души.','Turns get shorter. The last survivor takes the souls.')];
+        T('Категория держится, пока кто-то не провалит ход. Тогда остальные доотвечают круг, и категория сменится.','A category stays until someone runs out of time. Then the others finish the round and a new category comes.')];
       li.forEach((x,i)=>{x.textContent=rules[i]||'';});els.pts.innerHTML='';}
     // the survival panel: who is answering, the fuse, the last verdict, everybody's lives
     els.surv.hidden=!['TURN','TURN_CHECK','TURN_RESULT','CATEGORY_REVEAL','BRACKET','MATCH_INTRO','MATCH_RESULT'].includes(ph);
@@ -180,6 +181,9 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
         :tp?`<img src="/portraits/${esc(charOf(tp))}.webp" alt=""><div><p class="tod-turn-k">${ph!=='TURN'?T('ОТВЕТИЛ','ANSWERED'):me2?T('ТВОЙ ХОД','YOUR TURN'):T('ОТВЕЧАЕТ','NOW ANSWERING')}</p><p class="tod-turn-n">${ph==='TURN'&&me2?T('Отвечай!','Answer now!'):me2?T('Ты','You'):esc(nameOf(tp))}</p></div>`:'';
       els.turn.classList.toggle('mine',me2&&ph==='TURN');
       els.surv.querySelector('.tod-fuse').hidden=ph!=='TURN';
+      const closing=!!sv.closing&&['TURN','TURN_CHECK','TURN_RESULT'].includes(ph),rem=sv.remaining??0;
+      els.closing.hidden=!closing;
+      if(closing)els.closing.textContent=rem>0?T(`Последний круг · ещё ${rem}, потом новая категория`,`Last round · ${rem} more, then a new category`):T('Далее · новая категория','Next · a new category');
       let v='';const last=sv.last||{};
       if(ph==='TURN_CHECK')v=`<p class="chk">${T('Проверяем ответ…','Checking the answer…')}</p>`;
       else if(ph==='TURN_RESULT'){const ok=last.outcome==='CORRECT',what=esc(last.label||last.text||'');

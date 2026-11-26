@@ -51,7 +51,7 @@ public final class TodSurvivalScreen extends ScreenAdapter {
             Pixmap p=new Pixmap(1,1,Pixmap.Format.RGBA8888);p.setColor(Color.WHITE);p.fill();pixel=new Texture(p);p.dispose();
             background=new QuizBackground(pixel);background.setBounds(0,0,W,H);background.showImmediately(1,false);stage.addActor(background); // floor one, the Grand Hall, animated
             stage.addActor(new View());serif=serifFont();serif.getData().setLineHeight(serif.getData().lineHeight*.85f);
-            heartTex=heartTexture();ropeTex=ropeTexture();vig=vignetteTex();
+            heartTex=heartTexture();ropeTex=ropeTexture();vig=vignetteTex();disc=discTexture();
             for(int i=0;i<frames.length;i++){var f=Gdx.files.internal("think_or_die/frame_"+QuestionPlayers.FRAMES[i]+".png");if(f.exists()){frames[i]=new Texture(f,true);frames[i].setFilter(Texture.TextureFilter.MipMapLinearLinear,Texture.TextureFilter.Linear);}}}
         Gdx.input.setInputProcessor(new InputAdapter(){@Override public boolean keyDown(int k){
             if((k==Input.Keys.ENTER||k==Input.Keys.ESCAPE)&&(phase().equals("FINAL_RESULTS")||phase().equals("COMPLETED"))){onEnd.accept(session());return true;}
@@ -66,7 +66,7 @@ public final class TodSurvivalScreen extends ScreenAdapter {
         if(fade>0){fade=Math.max(0,fade-dt*3.2f);var b=stage.getBatch();b.setProjectionMatrix(stage.getCamera().combined);b.begin();b.setColor(0,0,0,Interpolation.pow2.apply(fade));b.draw(pixel,0,0,W,H);b.setColor(Color.WHITE);b.end();}
     }
     @Override public void hide(){Gdx.input.setInputProcessor(null);}
-    @Override public void dispose(){if(!created)return;stage.dispose();art.dispose();pixel.dispose();serif.dispose();background.dispose();for(Texture f:frames)if(f!=null)f.dispose();neon.dispose();heartTex.dispose();ropeTex.dispose();vig.dispose();}
+    @Override public void dispose(){if(!created)return;stage.dispose();art.dispose();pixel.dispose();serif.dispose();background.dispose();for(Texture f:frames)if(f!=null)f.dispose();neon.dispose();heartTex.dispose();ropeTex.dispose();vig.dispose();disc.dispose();}
 
     private float fade;
     private void onPhase(String ph){
@@ -119,9 +119,9 @@ public final class TodSurvivalScreen extends ScreenAdapter {
                     case "MATCH_INTRO"->versus();
                     case "MATCH_RESULT"->matchResult();
                     case "CATEGORY_REVEAL"->{logo(586,1);plate(Interpolation.swingOut.apply(Math.min(1,phaseClock/.55f)));plaque(GOLD,Math.min(1,phaseClock/.4f),0);countdown();wall();}
-                    case "TURN"->{stage();logo(586,1);plate(1);turn();wall();}
-                    case "TURN_CHECK"->{stage();logo(586,1);plate(1);checking();wall();}
-                    case "TURN_RESULT"->{stage();logo(586,1);plate(1);verdict();wall();}
+                    case "TURN"->{stage();logo(586,1);plate(1);turn();wall();closingRibbon();}
+                    case "TURN_CHECK"->{stage();logo(586,1);plate(1);checking();wall();closingRibbon();}
+                    case "TURN_RESULT"->{stage();logo(586,1);plate(1);verdict();wall();closingRibbon();}
                     case "FINAL_RESULTS","COMPLETED"->finale();
                     default->{}
                 }
@@ -153,11 +153,33 @@ public final class TodSurvivalScreen extends ScreenAdapter {
         if(res&&!ok)art.batch.setColor(1f,.72f,.72f,in);else art.batch.setColor(1,1,1,in);
         art.batch.draw(body,cx-bw*breathe/2,base,bw*breathe,bh*(2-breathe));art.batch.setColor(Color.WHITE);
     }
+    /**
+     * After a timeout the category is in its last lap: a red ribbon hangs from the bottom of the category plate,
+     * "LAST ROUND · N MORE", or "NEXT: A NEW CATEGORY" when nobody is left to answer in this lap. It swings in once.
+     */
+    private boolean wasClosing;private float closingAt=-9;
+    private void closingRibbon(){
+        JsonObject sv=survival();boolean closing=sv.has("closing")&&sv.get("closing").getAsBoolean();
+        if(closing&&!wasClosing){closingAt=clock;art.play("sounds/impostor/vote_started.wav",.45f);}wasClosing=closing;if(!closing)return;
+        int rem=sv.has("remaining")?sv.get("remaining").getAsInt():0;
+        boolean result=phase().equals("TURN_RESULT");
+        String txt=rem<=0||(result&&rem==0)?tr("ДАЛЕЕ · НОВАЯ КАТЕГОРИЯ","NEXT · A NEW CATEGORY"):tr("ПОСЛЕДНИЙ КРУГ · ЕЩЁ ","LAST ROUND · ")+rem+(ru()?"":(rem==1?" MORE":" MORE"));
+        float t=clock-closingAt,k=Math.max(.05f,Interpolation.swingOut.apply(MathUtils.clamp(t/.45f,0,1)));
+        float w=art.width(art.cond,txt,.40f)+110,h=56,y=302;
+        float pulse=.5f+.5f*MathUtils.sin(clock*4);
+        art.glow(W/2,y,w*1.3f,h*2.4f,RED,(.20f+.12f*pulse)*k);
+        art.panel(W/2-w*k/2,y-h/2,w*k,h,RED,1);
+        if(k>.6f)art.text(art.cond,txt,W/2,y+13,.40f,new Color(1f,.90f,.82f,1),MathUtils.clamp((k-.6f)/.4f,0,1),0);
+    }
+    private boolean ru(){return "ru".equals(lang());}
     /** Cinematic vignette: darker corners and edges so the eye goes to the plate and the turn. */
     private void vignette(){
         art.batch.setColor(0,0,0,.55f);art.batch.draw(vig,0,0,W,H);art.batch.setColor(Color.WHITE);
     }
-    private Texture vig;
+    private Texture vig,disc;
+    private static Texture discTexture(){int n=64;Pixmap p=new Pixmap(n,n,Pixmap.Format.RGBA8888);p.setBlending(Pixmap.Blending.None);
+        for(int y=0;y<n;y++)for(int x=0;x<n;x++){float dx=x+.5f-n/2f,dy=y+.5f-n/2f,d=n/2f-(float)Math.sqrt(dx*dx+dy*dy);p.drawPixel(x,y,Color.rgba8888(1,1,1,MathUtils.clamp(d,0,1)));}
+        Texture t=new Texture(p);t.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();return t;}
     private Texture vignetteTex(){int w=160,h=90;Pixmap p=new Pixmap(w,h,Pixmap.Format.RGBA8888);p.setBlending(Pixmap.Blending.None);
         for(int y=0;y<h;y++)for(int x=0;x<w;x++){float dx=(x+.5f)/w-.5f,dy=((y+.5f)/h-.52f)*1.15f,d=(float)Math.sqrt(dx*dx+dy*dy)*1.55f;float a=MathUtils.clamp((d-.42f)/.5f,0,1);p.drawPixel(x,y,Color.rgba8888(1,1,1,a*a));}
         Texture t=new Texture(p);t.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();return t;}
@@ -404,7 +426,7 @@ public final class TodSurvivalScreen extends ScreenAdapter {
         serif.getData().setScale(.70f);gl.setText(serif,tr("ВЫЖИВАНИЕ","SURVIVAL"));float hw=gl.width/2;serif.getData().setScale(1);
         String[][] cards={{tr("ПО ОЧЕРЕДИ","IN TURN"),tr("Назови новый верный\nответ, пока горит фитиль","Name a new correct answer\nbefore the fuse burns out")},
             {tr(lives+" ЖИЗНИ",lives+" LIVES"),tr("Ошибки не страшны: жизнь\nуходит, только если вышло время","Wrong tries are free: a life goes\nonly when the time runs out")},
-            {tr("ПОСЛЕДНИЙ ЖИВОЙ","LAST ONE STANDING"),tr("Время хода сокращается.\nПобеждает выживший","Turns get shorter.\nThe survivor wins")}};
+            {tr("КРУГ И СМЕНА","ROUND AND SWITCH"),tr("Не успел: остальные доотвечают\nкруг, и категория сменится","Out of time: the others finish\nthe round, then a new category")}};
         for(int i=0;i<3;i++){float d=MathUtils.clamp((phaseClock-1.0f-i*.18f)/.35f,0,1);if(d<=0)continue;float cx=W/2+(i-1)*370,cy=250,cw=340,ch=200;
             art.panel(cx-cw/2,cy-ch/2,cw,ch,i==1?RED:BRONZE,d);
             ruleIcon(i,cx,cy+56,d);
@@ -536,6 +558,15 @@ public final class TodSurvivalScreen extends ScreenAdapter {
                 if(lostLife&&j>=lv&&j<f.lives)for(int q=0;q<12;q++)emit(0,hx,hy2,MathUtils.random(-160,160),MathUtils.random(80,320),MathUtils.random(.7f,1.1f),MathUtils.random(4,8)); // the heart shatters
                 boolean breaking=j>=lv&&th<.25f&&j<lv+1;float hsc=breaking?1+(.25f-th)*2.4f:1;
                 if(j<lv)b.setColor(1,1,1,a);else b.setColor(.28f,.24f,.24f,.75f*a);b.draw(heartTex,hx-hsz*hsc/2,hy2-hsz*hsc/2,hsz*hsc,hsz*hsc);}
+            // this lap: a gold check on frames that already answered, a soft red pulse on the ones still to answer after a timeout
+            if(turning&&!out&&!watching&&!active){JsonArray done=survival().has("lapDone")?survival().getAsJsonArray("lapDone"):new JsonArray();boolean played=false;for(JsonElement e:done)if(e.getAsString().equals(id))played=true;
+                boolean closing=survival().has("closing")&&survival().get("closing").getAsBoolean();
+                if(played){float bx=cx+hr*.92f,by=hy+hr*.92f,R=17;
+                    b.setColor(0,0,0,.65f);b.draw(disc,bx-R-2,by-R-4,2*R+4,2*R+4);
+                    b.setColor(.55f,.36f,.12f,1);b.draw(disc,bx-R,by-R,2*R,2*R);b.setColor(1f,.82f,.42f,1);b.draw(disc,bx-R+2.5f,by-R+2.5f,2*R-5,2*R-5);
+                    b.setColor(1f,.95f,.75f,.6f);b.draw(disc,bx-R*.55f,by,R*.9f,R*.55f);
+                    Color ink=new Color(.20f,.09f,.02f,1);art.line(bx-7.5f,by+.5f,bx-2,by-6,3.8f,ink,1,false);art.line(bx-2,by-6,bx+8,by+7,3.8f,ink,1,false);}
+                else if(closing){float pu=.5f+.5f*MathUtils.sin(clock*5);art.glow(cx,hy,hr*4.6f,hr*4.6f,RED,.26f+.16f*pu);}}
             f.lives=lvNow;f.correct=cNow;f.out=out;
         }
         particles(b);
