@@ -113,11 +113,11 @@ public final class QuestionPlayers extends Actor implements Disposable {
         saved.set(batch.getTransformMatrix());color.set(batch.getColor());
         float cell=Math.min(240,(getWidth()-120)/entries.size()),left=getX()+(getWidth()-cell*entries.size())/2;
         float oldScaleX=font.getData().scaleX,oldScaleY=font.getData().scaleY;fontSaved.set(font.getColor());
-        int lead=0;if(counting)for(Entry e:entries)lead=Math.max(lead,e.counter);
+        int lead=0;if(counting)for(Entry e:entries)lead=Math.max(lead,e.counter);int leaders=0;for(Entry e:entries)if(lead>0&&e.counter==lead)leaders++;
         try{for(int i=0;i<entries.size();i++){
             Entry e=entries.get(i);float center=left+(i+.5f)*cell;
             boolean card=counting&&e.counter>=0;float cardW=Math.min(178,cell-16);
-            if(card){drawHanging(batch,e,center,cell,lead>0&&e.counter==lead,alpha);}else{
+            if(card){drawHanging(batch,e,center,cell,leaders==1&&e.counter==lead,alpha,i);}else{
             float scale=Math.min(135/e.height,(cell-24)/150)*e.size;
             float shakeX=!reduced?MathUtils.sin(e.shakeTime*31+e.phase)*.65f*e.shakeEnvelope:0;
             float shakeY=!reduced?MathUtils.sin(e.shakeTime*27+e.phase*1.7f)*.28f*e.shakeEnvelope:0;
@@ -177,40 +177,55 @@ public final class QuestionPlayers extends Actor implements Disposable {
     }
     private final com.badlogic.gdx.math.Rectangle clipArea=new com.badlogic.gdx.math.Rectangle(),clip=new com.badlogic.gdx.math.Rectangle();
     private static final Color PLATE_FILL=new Color(.06f,.03f,.03f,.97f);
-    /** THINK OR DIE: a portrait medallion hanging on two chains, a bronze name plaque and a small bronze counter box. */
-    private void drawHanging(Batch batch,Entry e,float cx,float cell,boolean leader,float alpha){
-        counterAssets();if(frame==null)frame=new NeonFrame();
-        float a=alpha*(e.player.ghost?.50f:1);Color acc=new Color(com.erni.finalanswer.ui.PlayerColors.light(e.player.characterId));
-        if(e.player.ghost)acc.set(PURPLE);
-        float r=Math.min(50,cell*.23f),cy=getY()+92,top=getY()+260;
+    /** Artwork frames (chains, ring, name plate, counter plate). Geometry per frame, fractions of the image, y from the top:
+     *  hole centre y, hole radius (of width), name plate top/bottom, counter plate top/bottom. */
+    private static final String[] FRAMES={"tophat","ghost","copper","iron","gold"};
+    private static final float[][] GEO={{.432f,.200f,.668f,.755f,.778f,.878f},{.445f,.179f,.640f,.722f,.750f,.834f},{.430f,.198f,.640f,.744f,.756f,.836f},
+        {.427f,.189f,.626f,.722f,.748f,.844f},{.431f,.194f,.632f,.730f,.752f,.838f}};
+    private final Texture[] frameTex=new Texture[FRAMES.length];private boolean framesLoaded;
+    private Texture frameTex(int k){
+        if(!framesLoaded){framesLoaded=true;for(int i=0;i<FRAMES.length;i++){var f=com.badlogic.gdx.Gdx.files.internal("think_or_die/frame_"+FRAMES[i]+".png");
+            if(f.exists()){frameTex[i]=new Texture(f,true);frameTex[i].setFilter(Texture.TextureFilter.MipMapLinearLinear,Texture.TextureFilter.Linear);}}}
+        return frameTex[k];
+    }
+    /** THINK OR DIE: the player's portrait inside a hanging artwork frame, nickname and answer count in its plates.
+     *  Ghosts get the violet frame, the leader the gold one, everyone else one of three frames by seat. */
+    private void drawHanging(Batch batch,Entry e,float cx,float cell,boolean leader,float alpha,int seat){
+        counterAssets();
+        int k=e.player.ghost?1:leader?4:new int[]{0,2,3}[seat%3];Texture ft=frameTex(k);if(ft==null)return;float[] g=GEO[k];
+        float a=alpha*(e.player.ghost?.75f:1);
+        float W=Math.min(196,cell-14),H=W*ft.getHeight()/ft.getWidth(),top=getY()+178,x0=cx-W/2;
+        float hy=top-H*g[0],hr=W*g[1],cr=hr*1.02f;
         float pop=reduced?0:Math.max(0,1-e.counterPop/.45f);
-        frame.chain(batch,cx-r*.62f,top,cx-r*.62f,cy+r*.80f,a);frame.chain(batch,cx+r*.62f,top,cx+r*.62f,cy+r*.80f,a);
-        frame.medallionBack(batch,cx,cy,r,acc,a);
-        // portrait: the character scaled up and clipped to the medallion so head and shoulders fill it
-        float scale=(r*2.5f)/e.height*e.size;
-        batch.flush();clipArea.set(cx-r+3,cy-r+3,2*r-6,2*r-6);
+        // portrait clipped to the hole, behind the frame
+        batch.setColor(.05f,.02f,.03f,a);batch.draw(uiPixel,cx-cr,hy-cr,cr*2,cr*2);batch.setColor(color);
+        float scale=(hr*2.6f)/e.height*e.size;
+        batch.flush();clipArea.set(cx-cr,hy-cr,2*cr,2*cr);
         boolean pushed=false;if(getStage()!=null){com.badlogic.gdx.scenes.scene2d.utils.ScissorStack.calculateScissors(getStage().getCamera(),batch.getTransformMatrix(),clipArea,clip);pushed=com.badlogic.gdx.scenes.scene2d.utils.ScissorStack.pushScissors(clip);}
-        local.set(saved).translate(cx,cy-r*1.45f,0).scale(scale,scale,1).translate(-174,-e.floor,0);batch.setTransformMatrix(local);
-        if(e.player.ghost)batch.setColor(.70f,.62f,.95f,color.a);
-        presentation.draw(batch,e.character,e.profile,a,e.time);batch.setColor(color);batch.setTransformMatrix(saved);
+        local.set(saved).translate(cx,hy-hr*1.55f,0).scale(scale,scale,1).translate(-174,-e.floor,0);batch.setTransformMatrix(local);
+        if(e.player.ghost)batch.setColor(.78f,.66f,1f,color.a);
+        presentation.draw(batch,e.character,e.profile,a*(e.player.ghost?.55f:1),e.time);batch.setColor(color);batch.setTransformMatrix(saved);
         batch.flush();if(pushed)com.badlogic.gdx.scenes.scene2d.utils.ScissorStack.popScissors();
-        frame.medallionRing(batch,cx,cy,r,leader&&!e.player.ghost?GOLD:acc,a);
-        if(pop>0){batch.setColor(acc.r,acc.g,acc.b,.35f*pop*a);batch.setBlendFunction(com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,com.badlogic.gdx.graphics.GL20.GL_ONE);frame.medallionRing(batch,cx,cy,r+2,acc,.5f*pop*a);batch.setBlendFunction(com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA);}
-        // name plaque
+        batch.setColor(1,1,1,a);batch.draw(ft,x0,top-H,W,H);
+        if(pop>0){batch.setBlendFunction(com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,com.badlogic.gdx.graphics.GL20.GL_ONE);batch.setColor(1,1,1,.35f*pop*a);batch.draw(ft,x0,top-H,W,H);
+            batch.setBlendFunction(com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA);}
+        batch.setColor(color);
+        Color acc=new Color(com.erni.finalanswer.ui.PlayerColors.light(e.player.characterId));if(e.player.ghost)acc.set(.85f,.62f,1f,1);else if(leader)acc.set(GOLD);
+        // nickname in the name plate
         if(!e.nickname.equals(e.player.nickname)){e.nickname=e.player.nickname;font.getData().setScale(1);e.name.setText(font,e.nickname);e.nameWidth=e.name.width;}
-        float pw=Math.min(cell-18,Math.max(110,r*2.5f)),ph=34,py=cy-r-ph+10;
-        frame.bronze(batch,cx-pw/2,py,pw,ph,PLATE_FILL,acc,a);
-        e.nameScale=Math.min(.72f,(pw-22)/Math.max(1,e.nameWidth));font.getData().setScale(e.nameScale);e.name.setText(font,e.nickname);
-        float ny=py+ph/2+e.name.height/2;
+        float nTop=top-H*g[2],nBot=top-H*g[3],pw=W*.56f;
+        e.nameScale=Math.min(.66f,Math.min(pw/Math.max(1,e.nameWidth),(nTop-nBot)*.62f/Math.max(1,font.getCapHeight()*1f)));font.getData().setScale(e.nameScale);e.name.setText(font,e.nickname);
+        float ny=(nTop+nBot)/2+e.name.height/2;
         font.setColor(0,0,0,.9f*a);font.draw(batch,e.nickname,cx-e.name.width/2+1.2f,ny-1.2f);
         font.setColor(acc.r,acc.g,acc.b,a);font.draw(batch,e.nickname,cx-e.name.width/2,ny);
-        // counter box
+        // answer count in the lower plate
+        float cTop=top-H*g[4],cBot=top-H*g[5];
         float ease=com.badlogic.gdx.math.Interpolation.pow2Out.apply(reduced?0:Math.max(0,1-e.counterPop/.35f));
-        String t=Integer.toString(e.counter);counterFont.getData().setScale(.62f*(1+.30f*ease));counterText.setText(counterFont,t);
-        float bw=Math.max(62,counterText.width+30),bh=34,by=py-bh+4;
-        frame.bronze(batch,cx-bw/2,by,bw,bh,PLATE_FILL,leader&&!e.player.ghost?GOLD:acc,a);
-        counterFont.setColor(0,0,0,.8f*a);counterFont.draw(batch,t,cx-counterText.width/2+1.5f,by+bh/2+counterText.height/2-1.5f);
-        Color nc=leader&&!e.player.ghost?GOLD:acc;counterFont.setColor(nc.r,nc.g,nc.b,a);counterFont.draw(batch,t,cx-counterText.width/2,by+bh/2+counterText.height/2);
+        String t=Integer.toString(e.counter);counterFont.getData().setScale(1);float base=(cTop-cBot)*.58f/Math.max(1,counterFont.getCapHeight());
+        counterFont.getData().setScale(base*(1+.25f*ease));counterText.setText(counterFont,t);
+        float ty=(cTop+cBot)/2+counterText.height/2;
+        counterFont.setColor(0,0,0,.8f*a);counterFont.draw(batch,t,cx-counterText.width/2+1.5f,ty-1.5f);
+        counterFont.setColor(acc.r,acc.g,acc.b,a);counterFont.draw(batch,t,cx-counterText.width/2,ty);
         counterFont.getData().setScale(1);batch.setColor(color);
     }
     /** THINK OR DIE answer count: a solid round badge by the character's shoulder (gold for the leader), pops on every answer. */
@@ -258,5 +273,5 @@ public final class QuestionPlayers extends Actor implements Disposable {
         float dx=bx-ax,dy=by-ay,length=(float)Math.sqrt(dx*dx+dy*dy);if(length<=0)return;
         batch.draw(uiPixel,ax+dy/length*width/2,ay-dx/length*width/2,0,0,length,width,1,1,MathUtils.atan2(dy,dx)*MathUtils.radiansToDegrees);
     }
-    @Override public void dispose(){entries.clear();font.dispose();if(counterFont!=null)counterFont.dispose();if(pillTexture!=null)pillTexture.dispose();if(frame!=null)frame.dispose();}
+    @Override public void dispose(){entries.clear();font.dispose();if(counterFont!=null)counterFont.dispose();if(pillTexture!=null)pillTexture.dispose();if(frame!=null)frame.dispose();for(Texture t:frameTex)if(t!=null)t.dispose();}
 }
