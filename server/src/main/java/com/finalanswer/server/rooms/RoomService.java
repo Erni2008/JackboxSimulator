@@ -712,7 +712,11 @@ public final class RoomService {
      */
     /** QA server only: -Dthinkordie.integrated.only=N plays a match of N THINK OR DIE challenges and no classic questions. */
     private static int onlyChallenges(){if(!Boolean.getBoolean("race.qa"))return 0;try{return Math.max(0,Integer.parseInt(System.getProperty("thinkordie.integrated.only","0").trim()));}catch(NumberFormatException e){return 0;}}
-    private boolean startOnlyChallenge(Room room){return room.game!=null&&room.game.challenges<onlyChallenges()&&startChallenge(room,true);}
+    private boolean startOnlyChallenge(Room room){
+        GameSession g=room.game;if(g==null||g.challenges>=onlyChallenges())return false;
+        // the host leaves the intro only on a question: open question 1 and hold it in RESULTS behind the challenge
+        if(g.phase==Phase.STARTING){g.next(now());g.phase=Phase.RESULTS;g.phaseStartedAt=now();broadcast(room,"QUESTION_STARTED");}
+        return startChallenge(room,true);}
     private boolean startChallenge(Room room){return startChallenge(room,false);}
     private boolean startChallenge(Room room,boolean force){
         GameSession g=room.game;if(g==null||room.challenge!=null||room.thinkOrDie!=null)return false;
