@@ -1,0 +1,85 @@
+# category	lang	answer	expected — third fresh set, Russian answers, typos and slang; written before tuning
+movie_genres	ru	Ужасы	1
+movie_genres	ru	Комедия	1
+movie_genres	ru	Мультфильм	1
+movie_genres	ru	Детектив	1
+movie_genres	ru	Попкорн	0
+movie_genres	ru	Кинотеатр	0
+movie_genres	ru	Сериал	0
+batman_villains	ru	Джокер	1
+batman_villains	ru	Харли Квинн	1
+batman_villains	ru	Бэйн	1
+batman_villains	ru	Двуликий	1
+batman_villains	ru	Женщина-кошка	1
+batman_villains	ru	Человек-паук	0
+batman_villains	ru	Супермен	0
+batman_villains	ru	Альфред	0
+disney_princesses	ru	Золушка	1
+disney_princesses	ru	Ариэль	1
+disney_princesses	ru	Покахонтас	1
+disney_princesses	ru	Рапунцель	1
+disney_princesses	ru	Гермиона	0
+disney_princesses	ru	Маша	0
+disney_princesses	ru	Принцесса Пич	0
+programming_languages	ru	Джава	1
+programming_languages	ru	Си шарп	1
+programming_languages	ru	Ворд	0
+programming_languages	ru	Виндовс	0
+chemical_elements	ru	Водород	1
+chemical_elements	ru	Кислород	1
+chemical_elements	ru	Серебро	1
+chemical_elements	ru	Вода	0
+chemical_elements	ru	Сталь	0
+in_kitchen	ru	Сковорода	1
+in_kitchen	ru	Микроволновка	1
+in_kitchen	ru	Холодос	1
+in_kitchen	ru	Половник	1
+in_kitchen	ru	Вилка	1
+in_kitchen	ru	Ковёр	0
+in_kitchen	ru	Молоток	0
+in_kitchen	ru	Картошка	0
+in_kitchen	ru	Мама	0
+in_bathroom	ru	Унитаз	1
+in_bathroom	ru	Зубная паста	1
+in_bathroom	ru	Полотенце	1
+in_bathroom	ru	Бритва	1
+in_bathroom	ru	Фен	1
+in_bathroom	ru	Холодильник	0
+in_bathroom	ru	Таракан	0
+in_bathroom	ru	Телевизор	0
+winter_things	ru	Лыжи	1
+winter_things	ru	Санки	1
+winter_things	ru	Сноуборд	1
+winter_things	ru	Играть в снежки	1
+winter_things	ru	Футбол	0
+winter_things	ru	Шарф	0
+winter_things	ru	Новый год	0
+ocean_things	ru	Акула	1
+ocean_things	ru	Кит	1
+ocean_things	ru	Осьминог	1
+ocean_things	ru	Морская звезда	1
+ocean_things	ru	Щука	0
+ocean_things	ru	Корабль	0
+ocean_things	ru	Русалка	0
+ocean_things	ru	Карась	0
+produces_light	ru	Лампочка	1
+produces_light	ru	Фонарик	1
+produces_light	ru	Светлячок	1
+produces_light	ru	Луна	0
+produces_light	ru	Зеркало	0
+pump_bottle	ru	Жидкое мыло	1
+pump_bottle	ru	Крем для рук	1
+pump_bottle	ru	Кирпич	0
+track_and_field	ru	Бег на 100 метров	1
+track_and_field	ru	Прыжки в длину	1
+track_and_field	ru	Метание копья	1
+track_and_field	ru	Плавание	0
+track_and_field	ru	Бокс	0
+animals_five_letters	ru	Тигр	1
+animals_five_letters	ru	Лошадь	1
+animals_five_letters	ru	Собака	0
+ruin_first_date	ru	Чеснок	1
+ruin_first_date	ru	Говорить только о себе	1
+ruin_first_date	ru	Прийти пьяным	1
+ruin_first_date	ru	Треугольник	0
+ruin_first_date	ru	Фотосинтез	0
