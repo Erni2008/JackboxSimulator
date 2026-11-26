@@ -10,7 +10,7 @@ import java.util.*;
 public final class QuestionsHostLauncher {
     public static void main(String[] args){
         String url=System.getProperty("room.url","http://localhost:18240"),code=System.getProperty("room.code"),token=System.getProperty("room.token");
-        var c=new Lwjgl3ApplicationConfiguration();c.setTitle("FINAL ANSWER / Основные вопросы / "+code);c.setWindowedMode(1600,900);c.setForegroundFPS(60);
+        var c=new Lwjgl3ApplicationConfiguration();c.setTitle("FINAL ANSWER / Основные вопросы / "+code);c.setWindowedMode(Integer.getInteger("q.width",1600),Integer.getInteger("q.height",900));c.setForegroundFPS(60);
         String capture=System.getProperty("q.capture","");float every=Float.parseFloat(System.getProperty("q.every","0.5"));
         new Lwjgl3Application(new FinalAnswerGame(HostingAccess.external(url)){
             boolean started;float clock;int shot;

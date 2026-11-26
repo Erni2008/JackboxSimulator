@@ -28,6 +28,8 @@ final class ThinkOrDieArt implements Disposable {
     /** the game's own dungeon kit (lobby): moonlit dungeon, hanging cage, chain, ceiling hook; flame from RARE MINDS */
     final Texture[] badges=new Texture[4];final Texture logo,plate,rules,dungeon,cage,chain,hook,flame;final BitmapFont hand;
     final BitmapFont horror,display,big,mid,small,tiny;
+    /** THINK OR DIE typography: condensed bold for names and numbers, Inter for instructions (both OFL, Latin + Cyrillic) */
+    final BitmapFont cond,inter;
     final GlyphLayout gl=new GlyphLayout();
     private final Map<String,Texture> faces=new HashMap<>();private final Map<String,Sound> sounds=new HashMap<>();
     SpriteBatch batch;private Texture roundEdge;
@@ -44,6 +46,7 @@ final class ThinkOrDieArt implements Disposable {
         hand=font("ui/fonts/Caveat-Variable.ttf",64,0);
         horror=font("ui/fonts/RussoOne-Regular.ttf",150,0);display=font("ui/fonts/RussoOne-Regular.ttf",108,0);big=font("ui/fonts/RussoOne-Regular.ttf",64,0);
         mid=font("ui/fonts/RussoOne-Regular.ttf",40,0);small=font("ui/fonts/RussoOne-Regular.ttf",28,0);tiny=font("ui/fonts/NotoSans-SemiCondensedSemiBold.ttf",22,0);
+        cond=font("ui/fonts/RobotoCondensed-Bold.ttf",64,0);inter=font("ui/fonts/Inter-SemiBold.ttf",26,0);
     }
     private static Texture tex(String path){var f=Gdx.files.internal(path);return f.exists()?mip(new Texture(f,true)):null;}
     private static Texture mip(Texture t){t.setFilter(Texture.TextureFilter.MipMapLinearLinear,Texture.TextureFilter.Linear);return t;}
@@ -221,6 +224,6 @@ final class ThinkOrDieArt implements Disposable {
         b.dispose();Texture t=new Texture(p);t.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();return t;}
 
     @Override public void dispose(){round.dispose();roundEdge.dispose();beam.dispose();dots.dispose();pixel.dispose();soft.dispose();ring.dispose();car.dispose();carGlass.dispose();noise.dispose();if(background!=null)background.dispose();for(Texture t:new Texture[]{logo,plate,rules,dungeon,cage,chain,hook,flame})if(t!=null)t.dispose();for(Texture t:badges)if(t!=null)t.dispose();hand.dispose();
-        horror.dispose();display.dispose();big.dispose();mid.dispose();small.dispose();tiny.dispose();
+        horror.dispose();display.dispose();big.dispose();mid.dispose();small.dispose();tiny.dispose();cond.dispose();inter.dispose();
         for(Texture t:faces.values())if(t!=null)t.dispose();for(Sound s:sounds.values())if(s!=null)s.dispose();}
 }

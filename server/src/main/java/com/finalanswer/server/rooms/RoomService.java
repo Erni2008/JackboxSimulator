@@ -732,7 +732,7 @@ public final class RoomService {
         if(Boolean.getBoolean("race.qa")){String qg=System.getProperty("thinkordie.integrated.qaGhost","");for(Member m:seats)if(!qg.isEmpty()&&m.name.equals(qg))m.alive=false;}
         Set<String> ghosts=new HashSet<>();for(Member m:seats)if(!m.alive)ghosts.add(m.id);
         g.lastChallengeIndex=g.index;g.challengeCategories.add(cat.id());
-        room.challenge=new com.finalanswer.server.game.thinkordie.ThinkOrDieSession(seats.stream().map(m->m.id).toList(),ghosts,List.of(cat),validationEngine(),cfg,room.language,now(),g.challenges==0);
+        room.challenge=new com.finalanswer.server.game.thinkordie.ThinkOrDieSession(seats.stream().map(m->m.id).toList(),ghosts,List.of(cat),validationEngine(),cfg,Boolean.getBoolean("race.qa")&&!System.getProperty("thinkordie.integrated.lang","").isEmpty()?System.getProperty("thinkordie.integrated.lang"):room.language,now(),g.challenges==0);
         g.challenges++;
         System.out.println("[think-or-die] match challenge room="+room.code+" after question "+done+" seats="+seats.size()+" ghosts="+ghosts.size()+" category="+cat.id());
         return true;

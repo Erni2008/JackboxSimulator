@@ -1443,7 +1443,7 @@ tasks.register('questionsHost', JavaExec) {
     classpath = sourceSets.dev.runtimeClasspath
     mainClass = 'com.erni.finalanswer.lwjgl3.QuestionsHostLauncher'
     workingDir = rootProject.file('assets')
-    for (key in ['room.url','room.code','room.token','q.capture','q.every','q.background','q.sound']) {
+    for (key in ['room.url','room.code','room.token','q.capture','q.every','q.background','q.sound','q.width','q.height']) {
         if (providers.gradleProperty(key).isPresent()) systemProperty key, providers.gradleProperty(key).get()
     }
     if (os.contains('mac')) jvmArgs '-XstartOnFirstThread'

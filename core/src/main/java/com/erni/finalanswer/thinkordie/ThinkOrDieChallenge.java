@@ -36,6 +36,14 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
         BLACK=new Color(.03f,.01f,.01f,1),METAL=new Color(.93f,.91f,.90f,1),DIM=new Color(.70f,.64f,.62f,1),STEEL=new Color(.55f,.53f,.55f,1),
         GOLD=new Color(1f,.74f,.20f,1),GREEN=new Color(.25f,.85f,.32f,1),CYAN=new Color(.30f,.88f,1f,1),ORANGE=new Color(1f,.56f,.16f,1),GREY=new Color(.55f,.56f,.64f,1),
         CARD=new Color(.07f,.025f,.025f,.93f);
+    /** One layout system for the challenge screen (1600 x 900 world), top to bottom with a clear gap between parts:
+     *  player frames (QuestionPlayers) / logo / question plate / rules bar / ghost line / soul badges. The timer is separate. */
+    static final class L{
+        static final float LOGO_W=470,LOGO_CY=586,PLATE_W=860,PLATE_TOP=496,RULES_W=860,RULES_CY=219,
+            GHOST_HEAD_Y=170,GHOST_TEXT_Y=139,BADGE_W=214,BADGE_STEP=242,BADGE_CY=70;
+        static final Color IVORY=new Color(.94f,.91f,.85f,1),IVORY_DIM=new Color(.80f,.76f,.70f,1),GHOST=new Color(.80f,.70f,1f,1),GHOST_LINE=new Color(.58f,.40f,.90f,1),
+            VALUE=new Color(.98f,.95f,.88f,1);
+    }
     private final ThinkOrDieArt art=new ThinkOrDieArt();
     private final LongSupplier now;
     private JsonObject tod;private final Map<String,String> character=new HashMap<>(),names=new HashMap<>();
@@ -51,7 +59,7 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
         now=serverNow;setTouchable(Touchable.disabled);setName("thinkOrDieChallenge");
         for(int i=0;i<px.length;i++){px[i]=MathUtils.random();py[i]=MathUtils.random();ps[i]=.3f+MathUtils.random();}
         octFill=octagon(false);octEdge=octagon(true);oct=new NinePatch(octFill,30,30,30,30);octRim=new NinePatch(octEdge,30,30,30,30);
-        serif=serifFont();
+        serif=serifFont();serif.getData().setLineHeight(serif.getData().lineHeight*.85f);
     }
     /** Cut-corner plate (the frame of the mock-up): filled and rim-only versions, 96 px with 24 px bevels. */
     private static Texture octagon(boolean edge){int n=96;float c=24;Pixmap p=new Pixmap(n,n,Pixmap.Format.RGBA8888);p.setBlending(Pixmap.Blending.None);
@@ -116,13 +124,13 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
             switch(phase){
                 case "INTRO"->{boolean rules=tod.has("rules")&&tod.get("rules").getAsBoolean();
                     float slam=Math.min(1,t/.45f),move=rules?MathUtils.clamp((t-1.6f)/.5f,0,1):0;
-                    logo(w/2,MathUtils.lerp(h*.50f,613,Interpolation.pow2.apply(move)),MathUtils.lerp(1.45f,1f,Interpolation.pow2.apply(move))*(1.35f-.35f*Interpolation.pow3Out.apply(slam)),a*Math.min(1,t/.2f));
+                    logo(w/2,MathUtils.lerp(h*.50f,L.LOGO_CY,Interpolation.pow2.apply(move)),MathUtils.lerp(1.45f,1f,Interpolation.pow2.apply(move))*(1.35f-.35f*Interpolation.pow3Out.apply(slam)),a*Math.min(1,t/.2f));
                     if(t<.6f)art.glow(w/2,h*.5f,w*(.5f+t),h*.6f,RED,.4f*(1-t/.6f)*a);
                     if(rules&&t>=2f){float k=Math.min(1,(t-2f)/.35f);rulesBlock(w,a,t-2f);
                         categoryPlate(w,a*k,tr("ПРИГОТОВЬСЯ · СЕЙЧАС ПОЯВИТСЯ КАТЕГОРИЯ","GET READY · THE CATEGORY IS COMING"),.75f,true);}}
-                case "CATEGORY_REVEAL"->{logo(w/2,613,1,a);categoryPlate(w,a,categoryText(),Interpolation.swingOut.apply(Math.min(1,t/.55f)),false);rulesBlock(w,a,9);}
-                case "ANSWERING"->{logo(w/2,613,1,a);categoryPlate(w,a,categoryText(),1,false);stopwatch(a);rulesBlock(w,a,9);edgePulse(w,h,a);}
-                case "ANSWER_VALIDATION","DISPUTE"->{logo(w/2,613,1,a);categoryPlate(w,a*.85f,categoryText(),1,false);checking(a);rulesBlock(w,a*.6f,9);}
+                case "CATEGORY_REVEAL"->{logo(w/2,L.LOGO_CY,1,a);categoryPlate(w,a,categoryText(),Interpolation.swingOut.apply(Math.min(1,t/.55f)),false);rulesBlock(w,a,9);}
+                case "ANSWERING"->{logo(w/2,L.LOGO_CY,1,a);categoryPlate(w,a,categoryText(),1,false);stopwatch(a);rulesBlock(w,a,9);edgePulse(w,h,a);}
+                case "ANSWER_VALIDATION","DISPUTE"->{logo(w/2,L.LOGO_CY,1,a);categoryPlate(w,a*.85f,categoryText(),1,false);checking(a);rulesBlock(w,a*.6f,9);}
                 case "ANSWER_REVEAL","ROUND_RESULTS","FINAL_RESULTS","COMPLETED"->reveal(w,h,a);
                 default->{}
             }
@@ -159,10 +167,9 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
     /** Metal THINK / DIE with a red OR on a red ribbon, a drawn top hat above. */
     private void logo(float cx,float cy,float s,float a){
         if(a<=0||s<=.05f)return;
-        if(art.logo!=null){ // the artwork logo (stone THINK / DIE, red OR, top hat, blood splash)
-            float lw=560*s,lh=lw*art.logo.getHeight()/art.logo.getWidth(),ly=cy-12*s;
-            art.glow(cx,ly,lw*1.05f,lh*1.1f,BLACK,.50f*a);
-            art.batch.setColor(1,1,1,a);art.batch.draw(art.logo,cx-lw/2,ly-lh/2,lw,lh);art.batch.setColor(1,1,1,1);return;}
+        if(art.logo!=null){ // the artwork logo (stone THINK / DIE, red OR, top hat, blood splash), aspect kept
+            float lw=L.LOGO_W*s,lh=lw*art.logo.getHeight()/art.logo.getWidth();
+            art.batch.setColor(1,1,1,a);art.batch.draw(art.logo,cx-lw/2,cy-lh/2,lw,lh);art.batch.setColor(1,1,1,1);return;}
         float sc=.62f*s;
         String l="THINK ",m="OR",r=" DIE";float wl=art.width(art.display,l,sc),wm=art.width(art.display,m,sc*.78f),wr=art.width(art.display,r,sc),tw=wl+wm+wr,th=art.display.getLineHeight()*sc;
         art.glow(cx,cy,tw*1.1f,th*1.4f,BLACK,.55f*a);
@@ -198,16 +205,20 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
     /** The category plate: cut corners, double red rim, rivets, a CATEGORY tab, sheared serif text. */
     private void categoryPlate(float w,float a,String text,float zoom,boolean muted){
         if(a<=0)return;float z=Math.max(.05f,zoom),cx=800,cy=407,pw=900*z,ph=172*z;
-        if(art.plate!=null){ // the artwork plate (bronze frame, red glow, CATEGORY tab); the category text goes inside
-            float W=920*z,H=W*art.plate.getHeight()/art.plate.getWidth(),top=411.5f+H/2;
+        if(art.plate!=null){ // the artwork plate (bronze frame, red glow, CATEGORY tab); the question is the focal point inside it
+            float W=L.PLATE_W*z,H=W*art.plate.getHeight()/art.plate.getWidth(),top=L.PLATE_TOP-(1-z)*H/2;
             art.batch.setColor(1,1,1,a);art.batch.draw(art.plate,800-W/2,top-H,W,H);art.batch.setColor(1,1,1,1);
             if(z<.7f)return;
-            float boxW=W*.84f,boxTop=top-H*.29f,boxBot=top-H*.87f,maxH=boxTop-boxBot,sc=.92f;
-            for(int i=0;i<10;i++){serif.getData().setScale(sc);gl.setText(serif,text,METAL,boxW,Align.center,true);if(gl.height<=maxH)break;sc*=.9f;}
-            float ty=(boxTop+boxBot)/2+gl.height/2;
-            italic(800,(boxTop+boxBot)/2,.12f);
-            serif.setColor(0,0,0,.85f*a);serif.draw(art.batch,text,800-boxW/2+3,ty-3,boxW,Align.center,true);
-            serif.setColor(muted?DIM.r:METAL.r,muted?DIM.g:METAL.g,muted?DIM.b:METAL.b,a);serif.draw(art.batch,text,800-boxW/2,ty,boxW,Align.center,true);
+            // content area inside the inner border: generous side padding, the CATEGORY tab kept clear at the top
+            float boxW=W*.80f,boxTop=top-H*.30f,boxBot=top-H*.86f,maxH=boxTop-boxBot,mid=(boxTop+boxBot)/2;
+            // one line when it fits at a large size; otherwise wrap and shrink until it fits both ways
+            serif.getData().setScale(1f);gl.setText(serif,text);float one=Math.min(1f,boxW/Math.max(1,gl.width));
+            float sc=1.0f;boolean wrap=one<.80f;if(!wrap)sc=Math.min(one,maxH/Math.max(1,serif.getCapHeight()/1f*1.6f));
+            for(int i=0;i<18;i++){serif.getData().setScale(sc);gl.setText(serif,text,METAL,boxW,Align.center,wrap);if(gl.height<=maxH&&gl.width<=boxW+1)break;sc*=.94f;}
+            float ty=mid+gl.height/2;
+            italic(800,mid,.10f);
+            serif.setColor(0,0,0,.85f*a);serif.draw(art.batch,text,800-boxW/2+2.5f,ty-2.5f,boxW,Align.center,wrap);
+            Color c=muted?DIM:L.IVORY;serif.setColor(c.r,c.g,c.b,a);serif.draw(art.batch,text,800-boxW/2,ty,boxW,Align.center,wrap);
             serif.getData().setScale(1);art.batch.setTransformMatrix(saved);return;}
         art.glow(cx,cy,pw*1.15f,ph*1.6f,RED,.22f*a);frame.bronze(art.batch,cx-pw/2,cy-ph/2,pw,ph,new Color(.07f,.035f,.035f,.97f),RED,a);
         if(z<.7f)return;
@@ -261,42 +272,38 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
         if(a<=0)return;
         float sec=Math.round(ms("answerMs")/1000f);
         String[] txt={tr("ОДНА КАТЕГОРИЯ\nДЛЯ ВСЕХ","ONE CATEGORY\nFOR EVERYONE"),tr((int)sec+" СЕКУНД\nОТВЕЧАЙ С ТЕЛЕФОНА",(int)sec+" SECONDS\nANSWER ON YOUR PHONE"),tr("ПИШИ ВЕРНЫЕ ОТВЕТЫ\nКАК МОЖНО БОЛЬШЕ","WRITE CORRECT ANSWERS\nAS MANY AS YOU CAN")};
-        float[][] box={{350,219,315,73},{690,219,250,73},{965,219,285,73}};
-        if(art.rules!=null){ // the artwork rules bar (icons and dividers baked in); the three texts go next to the icons
-            float d0=MathUtils.clamp(t/.3f,0,1),W=940,H=W*art.rules.getHeight()/art.rules.getWidth(),cy=258;
-            if(d0>0){art.batch.setColor(1,1,1,a*d0);art.batch.draw(art.rules,800-W/2,cy-H/2,W,H);art.batch.setColor(1,1,1,1);}
-            float[][] col={{535,180},{826,208},{1133,208}};
+        // rules bar: secondary information, darker graded artwork; texts centred in the space right of each icon
+        if(art.rules!=null){float d0=MathUtils.clamp(t/.3f,0,1),W=L.RULES_W,H=W*art.rules.getHeight()/art.rules.getWidth(),x0=800-W/2,cy=L.RULES_CY;
+            if(d0>0){art.batch.setColor(1,1,1,.92f*a*d0);art.batch.draw(art.rules,x0,cy-H/2,W,H);art.batch.setColor(1,1,1,1);}
             for(int i=0;i<3;i++){float d=MathUtils.clamp((t-i*.15f)/.3f,0,1);if(d<=0)continue;String[] ln=txt[i].split("\n");
-                art.text(art.tiny,ln[0],col[i][0],cy+18,.82f,METAL,a*d,col[i][1]);art.text(art.tiny,ln[1],col[i][0],cy-6,.78f,METAL,a*d,col[i][1]);}
-        }else{
-        {float d0=MathUtils.clamp(t/.3f,0,1);if(d0>0){frame.bronze(art.batch,340,214,920,84,new Color(.06f,.03f,.03f,.93f),new Color(.55f,.30f,.15f,1),a*d0);
-            for(float dx:new float[]{677,957}){art.rect(dx-1,228,2,56,new Color(.75f,.52f,.28f,1),.8f*a*d0);}}}
-        for(int i=0;i<3;i++){float d=MathUtils.clamp((t-i*.15f)/.3f,0,1);if(d<=0)continue;float[] b=box[i];
-            float ix=b[0]+46,iy=b[1]+b[3]/2;icon(i,ix,iy,a*d);
-            String[] ln=txt[i].split("\n");float tx=b[0]+84+(b[2]-96)/2;
-            art.text(art.tiny,ln[0],tx,iy+18,.82f,METAL,a*d,b[2]-100);art.text(art.tiny,ln[1],tx,iy-4,.82f,METAL,a*d,b[2]-100);}
-        }
+                float cx=x0+W*RULE_COL[i][0],mw=W*RULE_COL[i][1];
+                art.text(art.inter,ln[0],cx,cy+15,.66f,L.IVORY,a*d,mw);art.text(art.inter,ln[1],cx,cy-6,.58f,L.IVORY_DIM,a*d,mw);}}
+        // the ghost rule: pale violet heading tied to the ghost frames, ivory text, thin violet rules
         float d=MathUtils.clamp((t-.5f)/.3f,0,1);
-        if(d>0){art.rect(470,184,140,2,RED,a*d*.8f);art.rect(990,184,140,2,RED,a*d*.8f);circle(612,185,3,3,RED,a*d);circle(988,185,3,3,RED,a*d);
-            art.text(art.small,tr("ПРИЗРАК ОЖИВАЕТ:","THE GHOST AWAKES:"),800,197,.95f,RED,a*d,0);
-            art.text(art.tiny,tr("ПЯТЬ УНИКАЛЬНЫХ ВЕРНЫХ ОТВЕТОВ ЗА РАУНД, И ОН ВОЗВРАЩАЕТСЯ!","FIVE UNIQUE CORRECT ANSWERS IN A ROUND, AND THEY RETURN!"),800,160,.85f,METAL,a*d,900);}
-        Object[][] badges={{"+"+points("unique",200),tr("ТОЛЬКО ТЫ","ONLY YOU"),GOLD},{"+"+points("two",100),tr("У ДВОИХ","TWO PLAYERS"),GREEN},
-            {"+"+points("three",25),tr("У ТРОИХ","THREE PLAYERS"),BLUE},{String.valueOf(points("crowd",0)),tr("4+ ИЛИ ОШИБКА","FOUR+ OR WRONG"),RED}};
-        float[] cxs={435,677,923,1166};
-        for(int i=0;i<4;i++){float e=MathUtils.clamp((t-.7f-i*.12f)/.3f,0,1);if(e<=0)continue;Color c=(Color)badges[i][2];float bw=210,bh=77,bx=cxs[i]-bw/2,by=43;
-            Texture bt=art.badges[i];
-            if(bt!=null){ // artwork badge (coloured frame and laurels); value and label between the laurels
-                float iw=236,ih=iw*bt.getHeight()/bt.getWidth(),icy=82;
-                art.batch.setColor(1,1,1,a*e);art.batch.draw(bt,cxs[i]-iw/2,icy-ih/2,iw,ih);art.batch.setColor(1,1,1,1);
-                art.text(art.big,(String)badges[i][0],cxs[i],icy+34,.56f,METAL,a*e,128);
-                art.text(art.tiny,(String)badges[i][1],cxs[i],icy-14,.80f,METAL,a*e,134);
-                continue;}
-            art.glow(cxs[i],by+bh/2,bw*1.25f,bh*1.8f,c,.30f*a*e);
-            frame.bronze(art.batch,bx,by,bw,bh,new Color(c.r*.50f,c.g*.50f,c.b*.50f,1),new Color(Math.min(1,c.r*1.25f+.15f),Math.min(1,c.g*1.25f+.15f),Math.min(1,c.b*1.25f+.15f),1),a*e);
-            Color lc=new Color(Math.min(1,c.r*.6f+.4f),Math.min(1,c.g*.6f+.4f),Math.min(1,c.b*.6f+.3f),1);
-            frame.laurel(art.batch,bx+34,by+bh/2,24,-1,lc,a*e*.9f);frame.laurel(art.batch,bx+bw-34,by+bh/2,24,1,lc,a*e*.9f);
-            art.text(art.big,(String)badges[i][0],cxs[i],by+bh-10,.58f,METAL,a*e,bw-30);
-            art.text(art.tiny,(String)badges[i][1],cxs[i],by+24,.82f,METAL,a*e,bw-30);}
+        if(d>0){String head=tr("ПРИЗРАК ОЖИВАЕТ","THE GHOST AWAKES");float hw=art.width(serif,head,.40f);
+            art.glow(800,L.GHOST_HEAD_Y-10,hw*1.5f,46,VIOLET,.10f*a*d);
+            float lx=800-hw/2-26,rx=800+hw/2+26,ly=L.GHOST_HEAD_Y-13;
+            art.rect(lx-150,ly,150,1.2f,L.GHOST_LINE,.75f*a*d);art.rect(rx,ly,150,1.2f,L.GHOST_LINE,.75f*a*d);
+            diamond(lx+5,ly+.6f,3.2f,L.GHOST,a*d);diamond(rx-5,ly+.6f,3.2f,L.GHOST,a*d);
+            serifText(head,800,L.GHOST_HEAD_Y,.40f,L.GHOST,a*d);
+            art.text(art.inter,tr("Пять уникальных верных ответов за раунд, и призрак возвращается","Five unique correct answers in one round bring a ghost back to life"),800,L.GHOST_TEXT_Y,.62f,L.IVORY_DIM,a*d,900);}
+        // soul badges: graded plaques, identical size, values large, descriptions small
+        Object[][] badges={{"+"+points("unique",200),tr("ТОЛЬКО ТЫ","ONLY YOU")},{"+"+points("two",100),tr("У ДВОИХ","TWO PLAYERS")},
+            {"+"+points("three",25),tr("У ТРОИХ","THREE PLAYERS")},{String.valueOf(points("crowd",0)),tr("4+ ИЛИ ОШИБКА","FOUR+ OR WRONG")}};
+        for(int i=0;i<4;i++){float e=MathUtils.clamp((t-.7f-i*.12f)/.3f,0,1);if(e<=0)continue;Texture bt=art.badges[i];if(bt==null)continue;
+            float cx=800+(i-1.5f)*L.BADGE_STEP,iw=L.BADGE_W,ih=iw*BADGE_ASPECT,cy=L.BADGE_CY;
+            art.batch.setColor(1,1,1,a*e);art.batch.draw(bt,cx-iw/2,cy-ih/2,iw,ih);art.batch.setColor(1,1,1,1);
+            art.text(art.cond,(String)badges[i][0],cx,cy+27,.60f,L.VALUE,a*e,iw*.50f);
+            art.text(art.inter,(String)badges[i][1],cx,cy-12,.54f,L.IVORY_DIM,a*e,iw*.56f);}
+    }
+    /** Rule bar text columns: centre and width as fractions of the bar (the space right of each baked-in icon). */
+    private static final float[][] RULE_COL={{.226f,.165f},{.530f,.20f},{.856f,.20f}};
+    /** All four plaques are drawn with one aspect so they read as one set. */
+    private static final float BADGE_ASPECT=207f/480f;
+    private void diamond(float cx,float cy,float s,Color c,float a){art.line(cx-s,cy,cx,cy+s,s*.9f,c,a,false);art.line(cx,cy+s,cx+s,cy,s*.9f,c,a,false);art.line(cx+s,cy,cx,cy-s,s*.9f,c,a,false);art.line(cx,cy-s,cx-s,cy,s*.9f,c,a,false);}
+    private void serifText(String s,float cx,float y,float sc,Color c,float a){
+        serif.getData().setScale(sc);gl.setText(serif,s);float x=cx-gl.width/2;
+        serif.setColor(0,0,0,.8f*a);serif.draw(art.batch,s,x+1.5f,y-1.5f);serif.setColor(c.r,c.g,c.b,a);serif.draw(art.batch,s,x,y);serif.getData().setScale(1);
     }
     /** Drawn icons: 0 people, 1 stopwatch, 2 stacked layers. */
     private void icon(int kind,float cx,float cy,float a){

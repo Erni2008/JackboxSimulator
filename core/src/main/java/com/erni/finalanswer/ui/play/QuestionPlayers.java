@@ -8,6 +8,7 @@ import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.utils.Disposable;
+import com.badlogic.gdx.utils.Align;
 import com.erni.finalanswer.ui.UiFonts;
 import com.erni.finalanswer.ui.lobby.cages.*;
 import com.google.gson.JsonObject;
@@ -188,46 +189,72 @@ public final class QuestionPlayers extends Actor implements Disposable {
             if(f.exists()){frameTex[i]=new Texture(f,true);frameTex[i].setFilter(Texture.TextureFilter.MipMapLinearLinear,Texture.TextureFilter.Linear);}}}
         return frameTex[k];
     }
+    /** THINK OR DIE type: Roboto Condensed Bold (OFL, Latin + Cyrillic) for nicknames and answer counts, made on first use. */
+    private BitmapFont todName,todScore;
+    private void todFonts(){
+        if(todName!=null)return;var fh=com.badlogic.gdx.Gdx.files.internal("ui/fonts/RobotoCondensed-Bold.ttf");
+        if(!fh.exists()){todName=UiFonts.question(26);todScore=UiFonts.body(30);return;}
+        var g=new com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator(fh);
+        try{var p=new com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFontParameter();p.kerning=true;
+            p.minFilter=Texture.TextureFilter.Linear;p.magFilter=Texture.TextureFilter.Linear;
+            StringBuilder c=new StringBuilder(com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.DEFAULT_CHARS);for(char ch='Ѐ';ch<='ӿ';ch++)c.append(ch);
+            p.size=40;p.characters=c.append("…«»").toString();todName=g.generateFont(p);
+            p.size=60;p.characters="0123456789+";todScore=g.generateFont(p);}finally{g.dispose();}
+    }
+    private static final Color GHOST_NAME=new Color(.86f,.78f,1f,1),NAME_GOLD=new Color(1f,.82f,.40f,1);
+    private final Color accTmp=new Color();private final GlyphLayout nameFit=new GlyphLayout();
     /** THINK OR DIE: the player's portrait inside a hanging artwork frame, nickname and answer count in its plates.
-     *  Ghosts get the violet frame, the leader the gold one, everyone else one of three frames by seat. */
+     *  Ghosts get the violet frame, the sole leader the gold one, everyone else one of three frames by seat. Every frame is
+     *  drawn at the same width with its name plate on one shared baseline, so the row reads level whatever the ornament. */
     private void drawHanging(Batch batch,Entry e,float cx,float cell,boolean leader,float alpha,int seat){
-        counterAssets();
-        int k=e.player.ghost?1:leader?4:new int[]{0,2,3}[seat%3];Texture ft=frameTex(k);if(ft==null)return;float[] g=GEO[k];
-        float a=alpha*(e.player.ghost?.75f:1);
-        float W=Math.min(196,cell-14),H=W*ft.getHeight()/ft.getWidth(),top=getY()+178,x0=cx-W/2;
+        todFonts();
+        int k=e.player.ghost?1:leader?4:SEAT_FRAMES[seat%3];Texture ft=frameTex(k);if(ft==null)return;float[] g=GEO[k];
+        float a=alpha;
+        float W=Math.min(196,cell-12),H=W*ft.getHeight()/ft.getWidth();
+        float plateMid=getY()+28+(196-W)*.18f,top=plateMid+H*(g[2]+g[3])/2,x0=cx-W/2;
         float hy=top-H*g[0],hr=W*g[1],cr=hr*1.02f;
         float pop=reduced?0:Math.max(0,1-e.counterPop/.45f);
-        // portrait clipped to the hole, behind the frame
+        // portrait clipped to the hole, behind the frame: head and shoulders fill the ring
         batch.setColor(.05f,.02f,.03f,a);batch.draw(uiPixel,cx-cr,hy-cr,cr*2,cr*2);batch.setColor(color);
-        float scale=(hr*2.6f)/e.height*e.size;
+        float scale=(hr*3.3f)/e.height*e.size;
         batch.flush();clipArea.set(cx-cr,hy-cr,2*cr,2*cr);
         boolean pushed=false;if(getStage()!=null){com.badlogic.gdx.scenes.scene2d.utils.ScissorStack.calculateScissors(getStage().getCamera(),batch.getTransformMatrix(),clipArea,clip);pushed=com.badlogic.gdx.scenes.scene2d.utils.ScissorStack.pushScissors(clip);}
-        local.set(saved).translate(cx,hy-hr*1.55f,0).scale(scale,scale,1).translate(-174,-e.floor,0);batch.setTransformMatrix(local);
-        if(e.player.ghost)batch.setColor(.78f,.66f,1f,color.a);
-        presentation.draw(batch,e.character,e.profile,a*(e.player.ghost?.55f:1),e.time);batch.setColor(color);batch.setTransformMatrix(saved);
+        local.set(saved).translate(cx,hy-hr*2.30f,0).scale(scale,scale,1).translate(-174,-e.floor,0);batch.setTransformMatrix(local);
+        if(e.player.ghost)batch.setColor(.86f,.80f,1f,color.a); // ghosts: a cool tint and slight transparency, still recognisable
+        presentation.draw(batch,e.character,e.profile,a*(e.player.ghost?.78f:1),e.time);batch.setColor(color);batch.setTransformMatrix(saved);
         batch.flush();if(pushed)com.badlogic.gdx.scenes.scene2d.utils.ScissorStack.popScissors();
         batch.setColor(1,1,1,a);batch.draw(ft,x0,top-H,W,H);
-        if(pop>0){batch.setBlendFunction(com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,com.badlogic.gdx.graphics.GL20.GL_ONE);batch.setColor(1,1,1,.35f*pop*a);batch.draw(ft,x0,top-H,W,H);
+        if(pop>0){batch.setBlendFunction(com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,com.badlogic.gdx.graphics.GL20.GL_ONE);batch.setColor(1,1,1,.30f*pop*a);batch.draw(ft,x0,top-H,W,H);
             batch.setBlendFunction(com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA);}
         batch.setColor(color);
-        Color acc=new Color(com.erni.finalanswer.ui.PlayerColors.light(e.player.characterId));if(e.player.ghost)acc.set(.85f,.62f,1f,1);else if(leader)acc.set(GOLD);
-        // nickname in the name plate
-        if(!e.nickname.equals(e.player.nickname)){e.nickname=e.player.nickname;font.getData().setScale(1);e.name.setText(font,e.nickname);e.nameWidth=e.name.width;}
-        float nTop=top-H*g[2],nBot=top-H*g[3],pw=W*.56f;
-        e.nameScale=Math.min(.66f,Math.min(pw/Math.max(1,e.nameWidth),(nTop-nBot)*.62f/Math.max(1,font.getCapHeight()*1f)));font.getData().setScale(e.nameScale);e.name.setText(font,e.nickname);
-        float ny=(nTop+nBot)/2+e.name.height/2;
-        font.setColor(0,0,0,.9f*a);font.draw(batch,e.nickname,cx-e.name.width/2+1.2f,ny-1.2f);
-        font.setColor(acc.r,acc.g,acc.b,a);font.draw(batch,e.nickname,cx-e.name.width/2,ny);
-        // answer count in the lower plate
-        float cTop=top-H*g[4],cBot=top-H*g[5];
+        Color acc=accTmp.set(com.erni.finalanswer.ui.PlayerColors.light(e.player.characterId));if(e.player.ghost)acc.set(GHOST_NAME);else if(leader)acc.set(NAME_GOLD);
+        // nickname: fills the plate height, shrinks for long names, then ellipsis
+        float nTop=top-H*g[2],nBot=top-H*g[3],pw=W*.60f,nh=nTop-nBot;
+        float ns=W*.082f/Math.max(1,todName.getData().capHeight);String nick=e.player.nickname==null?"":e.player.nickname; // one size for every frame styleString nick=e.player.nickname==null?"":e.player.nickname;
+        todName.getData().setScale(ns);nameFit.setText(todName,nick);boolean cut=false;
+        if(nameFit.width>pw){float fit=ns*pw/nameFit.width;if(fit>=ns*.72f)ns=fit;else{ns*=.72f;cut=true;}todName.getData().setScale(ns);}
+        float ny=(nTop+nBot)/2+todName.getCapHeight()/2;
+        tmpShadow.set(0,0,0,.9f*a);setName(nick,pw,cut,tmpShadow);float nx=cx-nameFit.width/2;todName.draw(batch,nameFit,nx+1.4f,ny-1.4f);
+        tmpShadow.set(acc.r,acc.g,acc.b,a);setName(nick,pw,cut,tmpShadow);todName.draw(batch,nameFit,nx,ny);
+        todName.getData().setScale(1);
+        // answer count: large, fits the lower plate even for three digits
+        float cTop=top-H*g[4],cBot=top-H*g[5],ch=cTop-cBot,cw=W*.36f;
         float ease=com.badlogic.gdx.math.Interpolation.pow2Out.apply(reduced?0:Math.max(0,1-e.counterPop/.35f));
-        String t=Integer.toString(e.counter);counterFont.getData().setScale(1);float base=(cTop-cBot)*.58f/Math.max(1,counterFont.getCapHeight());
-        counterFont.getData().setScale(base*(1+.25f*ease));counterText.setText(counterFont,t);
-        float ty=(cTop+cBot)/2+counterText.height/2;
-        counterFont.setColor(0,0,0,.8f*a);counterFont.draw(batch,t,cx-counterText.width/2+1.5f,ty-1.5f);
-        counterFont.setColor(acc.r,acc.g,acc.b,a);counterFont.draw(batch,t,cx-counterText.width/2,ty);
-        counterFont.getData().setScale(1);batch.setColor(color);
+        String t=Integer.toString(e.counter);float base=W*.098f/Math.max(1,todScore.getData().capHeight);
+        todScore.getData().setScale(base);counterText.setText(todScore,t);if(counterText.width>cw){base*=cw/counterText.width;}
+        todScore.getData().setScale(base*(1+.22f*ease));counterText.setText(todScore,t);
+        float ty=(cTop+cBot)/2+todScore.getCapHeight()/2;
+        todScore.setColor(0,0,0,.85f*a);todScore.draw(batch,t,cx-counterText.width/2+1.6f,ty-1.6f);
+        todScore.setColor(acc.r,acc.g,acc.b,a);todScore.draw(batch,t,cx-counterText.width/2,ty);
+        todScore.getData().setScale(1);batch.setColor(color);
     }
+    private static final int[] SEAT_FRAMES={0,2,3};
+    private final Color tmpShadow=new Color();private final java.util.HashMap<String,String> cutNames=new java.util.HashMap<>();
+    private void setName(String nick,float pw,boolean cut,Color c){
+        String t=nick;
+        if(cut){String key=nick+'|'+(int)pw+'|'+(int)(todName.getData().scaleX*100);String hit=cutNames.get(key); // computed once per name and size
+            if(hit==null){nameFit.setText(todName,t);int n=t.length();while(n>1&&nameFit.width>pw){n--;nameFit.setText(todName,t.substring(0,n).trim()+"…");}hit=n<nick.length()?nick.substring(0,n).trim()+"…":nick;cutNames.put(key,hit);}t=hit;}
+        nameFit.setText(todName,t,c,0,Align.left,false);}
     /** THINK OR DIE answer count: a solid round badge by the character's shoulder (gold for the leader), pops on every answer. */
     private void drawBadge(Batch batch,Entry e,float cx,float cy,boolean leader,float alpha){
         counterAssets();float pop=reduced?0:Math.max(0,1-e.counterPop/.35f),ease=com.badlogic.gdx.math.Interpolation.pow2Out.apply(pop);
@@ -273,5 +300,5 @@ public final class QuestionPlayers extends Actor implements Disposable {
         float dx=bx-ax,dy=by-ay,length=(float)Math.sqrt(dx*dx+dy*dy);if(length<=0)return;
         batch.draw(uiPixel,ax+dy/length*width/2,ay-dx/length*width/2,0,0,length,width,1,1,MathUtils.atan2(dy,dx)*MathUtils.radiansToDegrees);
     }
-    @Override public void dispose(){entries.clear();font.dispose();if(counterFont!=null)counterFont.dispose();if(pillTexture!=null)pillTexture.dispose();if(frame!=null)frame.dispose();for(Texture t:frameTex)if(t!=null)t.dispose();}
+    @Override public void dispose(){entries.clear();font.dispose();if(counterFont!=null)counterFont.dispose();if(pillTexture!=null)pillTexture.dispose();if(frame!=null)frame.dispose();for(Texture t:frameTex)if(t!=null)t.dispose();if(todName!=null&&todName!=font){todName.dispose();todScore.dispose();}}
 }
