@@ -1,0 +1,183 @@
+# category	lang	answer	expected — new categories, second fresh set (written before tuning on it)
+egg_laying_not_bird	en	sea turtle	1
+egg_laying_not_bird	ru	тритон	1
+egg_laying_not_bird	en	kangaroo	0
+horned_animals	ru	джейран	1
+horned_animals	en	gazelle	1
+horned_animals	ru	тигр	0
+more_than_four_legs	ru	паучок	1
+more_than_four_legs	en	snake	0
+ocean_animals	en	walrus	1
+ocean_animals	ru	осётр	1
+ocean_animals	en	trout	0
+nocturnal_animals	en	barn owl	1
+nocturnal_animals	ru	воробей	0
+inflatable_things	ru	надувная лодка	1
+inflatable_things	en	brick wall	0
+things_with_wheels	en	forklift	1
+things_with_wheels	ru	лыжи	0
+rollable_things	en	sushi	1
+rollable_things	ru	ковровая дорожка	1
+rollable_things	ru	кирпич	0
+glass_objects	en	wine bottle	1
+glass_objects	ru	подушка	0
+opened_with_key	en	front door	1
+opened_with_key	ru	сейф	1
+opened_with_key	en	apple	0
+dairy_products	ru	творожок	1
+dairy_products	en	almond milk	0
+potato_dishes	en	potato wedges	1
+potato_dishes	ru	пюрешка	1
+potato_dishes	ru	гречка	0
+stone_fruit	ru	персики	1
+stone_fruit	en	raspberry	0
+corn_products	en	cornmeal	1
+corn_products	ru	хлопья кукурузные	1
+corn_products	en	oatmeal	0
+cheese_types	en	blue cheese	1
+cheese_types	ru	сыр с плесенью	1
+cheese_types	ru	кефир	0
+star_on_flag	en	Vietnam	1
+star_on_flag	ru	Германия	0
+island_countries	ru	Шри Ланка	1
+island_countries	en	Portugal	0
+two_word_countries	en	South Korea	1
+two_word_countries	en	Poland	0
+skeleton_bones	ru	берцовая кость	1
+skeleton_bones	en	muscle	0
+head_parts	en	eyebrows	1
+head_parts	ru	пятка	0
+internal_organs	ru	лёгкое	1
+internal_organs	en	fingernail	0
+vitamins	ru	витамин с	1
+vitamins	en	calcium	0
+dinosaur_movies	en	Jurassic Park 2	1
+dinosaur_movies	en	Finding Nemo	0
+space_movies	ru	Марсианин	1
+space_movies	en	The Godfather	0
+time_travel_movies	en	Back to the Future 2	1
+time_travel_movies	ru	Шрек	0
+talking_animal_cartoons	en	Kung Fu Panda 4	1
+talking_animal_cartoons	en	Frozen	0
+comic_book_movies	en	Batman Begins	1
+comic_book_movies	ru	Титаник	0
+flying_vehicles	en	hot-air balloon	1
+flying_vehicles	ru	подводная лодка	0
+vehicles_without_engine	en	rowboat	1
+vehicles_without_engine	en	motorbike	0
+rail_vehicles	ru	электричка	1
+rail_vehicles	en	taxi	0
+watercraft	en	speedboat	1
+watercraft	ru	велосипед	0
+emergency_vehicles	ru	скорая	1
+emergency_vehicles	en	school bus	0
+battery_devices	en	TV remote	1
+battery_devices	ru	стиральная машина	0
+operating_systems	en	Windows 95	1
+operating_systems	ru	браузер	0
+computer_components	en	graphics processor	1
+computer_components	ru	папка	0
+devices_with_screen	en	iPhone	1
+devices_with_screen	ru	чайник	0
+shades_of_blue	en	navy	1
+shades_of_blue	ru	красный	0
+gemstones	en	rose quartz	1
+gemstones	ru	кирпич	0
+textile_materials	en	wool	1
+textile_materials	ru	стекло	0
+wood_types	ru	дубовая	1
+wood_types	en	plastic	0
+metal_elements	ru	железо	1
+metal_elements	en	bronze	0
+mythical_creatures	en	griffon	1
+mythical_creatures	ru	корова	0
+flying_superheroes	en	Supergirl	1
+flying_superheroes	en	Hulk	0
+magic_users	en	Hermione	1
+magic_users	ru	Чебурашка	0
+fictional_robots	en	T-800	1
+fictional_robots	ru	Шрек	0
+ancient_gods	en	Aphrodite	1
+ancient_gods	ru	Гарри Поттер	0
+medical_professions	ru	медбрат	1
+medical_professions	en	plumber	0
+uniform_professions	en	policewoman	1
+uniform_professions	ru	писатель	0
+professions_letter_p_ru	ru	переводчица	1
+professions_letter_p_ru	ru	пицца	0
+animal_professions	en	vet	1
+animal_professions	ru	программист	0
+height_professions	en	crane driver	1
+height_professions	ru	кассир	0
+units_of_measurement	en	kilometer	1
+units_of_measurement	ru	линейка	0
+water_soluble	ru	поваренная соль	1
+water_soluble	en	sand	0
+measuring_instruments	ru	весы	1
+measuring_instruments	en	spoon	0
+renewable_energy	ru	ветряк	1
+renewable_energy	en	coal	0
+ball_sports	ru	футбольчик	1
+ball_sports	en	swimming	0
+board_games	en	checkers	1
+board_games	ru	прятки	0
+water_sports	ru	дайвинг	1
+water_sports	en	skiing	0
+dance_styles	ru	брейк данс	1
+dance_styles	en	chess	0
+martial_arts	ru	бокс	1
+martial_arts	en	tennis	0
+thorny_plants	ru	розы	1
+thorny_plants	en	tulip	0
+edible_mushrooms	ru	белые грибы	1
+edible_mushrooms	en	death cap	0
+natural_disasters	ru	землетрясения	1
+natural_disasters	en	rainbow	0
+garden_flowers	ru	тюльпаны	1
+garden_flowers	en	oak tree	0
+spice_plants	ru	перчик	1
+spice_plants	en	salt	0
+underground_structures	ru	метрополитен	1
+underground_structures	en	skyscraper	0
+residential_buildings	ru	пятиэтажка	1
+residential_buildings	en	factory	0
+defensive_structures	ru	крепостная стена	1
+defensive_structures	en	library	0
+religious_buildings	ru	храмы	1
+religious_buildings	en	shopping mall	0
+crossing_structures	ru	мостик	1
+crossing_structures	en	tower	0
+string_instruments	ru	гитарa	1
+string_instruments	en	trumpet	0
+wind_instruments	ru	саксафон	1
+wind_instruments	en	violin	0
+music_genres	ru	рок музыка	1
+music_genres	en	piano	0
+percussion_instruments	ru	барабаны	1
+percussion_instruments	en	flute	0
+drawing_supplies	ru	карандаши	1
+drawing_supplies	en	hammer	0
+inventions_before_1900	en	printing press	1
+inventions_before_1900	ru	интернет	0
+historical_empires	en	Roman Empire	1
+historical_empires	ru	Евросоюз	0
+medieval_items	ru	мечи	1
+medieval_items	en	laptop	0
+ancient_civilizations	ru	египтяне	1
+ancient_civilizations	en	Narnia	0
+obsolete_currencies	ru	марки	1
+obsolete_currencies	en	euro	0
+phobias	ru	боязнь высоты	1
+phobias	en	sadness	0
+light_without_electricity	ru	свечка	1
+light_without_electricity	en	lamp	0
+venomous_animals	ru	гадюка	1
+venomous_animals	en	python	0
+horror_creatures	ru	привидения	1
+horror_creatures	en	shark	0
+respiratory_protection	ru	маска	1
+respiratory_protection	en	gloves	0
+spice_plants	en	qwrtyp	0
+wood_types	ru	ываолд	0
+phobias	en	bananaphobia	0
+ancient_gods	en	Zorgon	0

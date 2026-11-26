@@ -37,9 +37,12 @@ public final class ValidationEngine implements AutoCloseable {
 
     /** @return VALID / INVALID / UNCERTAIN, or PENDING when the AI judge should be asked ({@link #judgeLater}). */
     public Verdict validate(Category c,AnswerInput in){
-        // a knowledge category with a letter-count rule ("an animal with exactly five letters"): a Latin answer of the wrong length is wrong at once
-        if(c.type()==Category.Type.KNOWLEDGE&&c.rule()!=null&&"LENGTH".equals(c.rule().kind())){String k=in.key().replace(" ","");
-            if(!k.isEmpty()&&k.matches("[a-z]+")&&k.length()!=c.rule().n())return Verdict.invalid(Verdict.Source.RULE);}
+        // a knowledge category with a letter rule ("an animal with exactly five letters", "a fruit starting with a vowel"):
+        // an answer in the rule's alphabet that breaks the rule is wrong at once; one in the other alphabet is judged by its
+        // translation ("Тигр" = tiger, five letters), so it goes on to the lists and the AI
+        if(c.type()!=Category.Type.WORD_RULE&&c.type()!=Category.Type.NUMERIC_RULE&&c.rule()!=null){String k=in.key().replaceAll("[^\\p{L}]","");
+            boolean script="ru".equals(c.rule().lang())?k.matches("[а-яё]+"):k.matches("[a-z]+");
+            if(!k.isEmpty()&&script&&!RuleSteps.keeps(c.rule(),k))return Verdict.invalid(Verdict.Source.RULE);}
         for(ValidationStep s:steps){Verdict v=s.check(c,in);if(v!=null)return v;}
         if(c.exhaustive())return Verdict.invalid(Verdict.Source.FALLBACK);
         return ai!=null&&c.allowUnknown()?Verdict.pending():Verdict.uncertain(Verdict.Source.FALLBACK);

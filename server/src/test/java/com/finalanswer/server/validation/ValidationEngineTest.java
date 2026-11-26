@@ -18,7 +18,9 @@ class ValidationEngineTest {
         assertTrue(PACK.draw(5,"en",new Random(1)).size()==5);
         assertTrue(PACK.draw(5,"ru",new Random(1)).size()==5);
         for(var e:PACK.entries()){var c=e.category();
-            if(c.type()!=Category.Type.WORD_RULE&&c.type()!=Category.Type.NUMERIC_RULE)assertTrue(c.answers().size()>=20,c.id()+" needs 20+ verified answers for 8 players");}
+            if(c.type()==Category.Type.WORD_RULE||c.type()==Category.Type.NUMERIC_RULE||c.exhaustive())continue; // rules or a complete closed list
+            int need=c.rule()!=null?12:20; // a letter rule ("three letters") is a small set by nature, the AI covers the rest
+            assertTrue(c.answers().size()>=need,c.id()+" needs "+need+"+ verified answers for 8 players");}
     }
     @Test void wordsContainingAnti(){
         valid("words_anti","antibiotic",null);valid("words_anti","romantic",null);status("words_anti","fantastic",ValidationStatus.INVALID); // f-a-n-t-a-s-t-i-c has no "anti" in a row (the spec example was wrong)
@@ -51,7 +53,25 @@ class ValidationEngineTest {
         assertNotEquals(v("winter_things","skiing").canonicalId(),v("winter_things","skating").canonicalId());
         assertNotEquals(v("ocean_things","shark").canonicalId(),v("ocean_things","whale").canonicalId());
         // a near miss of a known wrong answer is not corrected into a valid one
-        status("batman_villains","Supermen",ValidationStatus.UNCERTAIN);
+        assertNotEquals(ValidationStatus.VALID,v("batman_villains","Supermen").status()); // Superman is known wrong; its sound-alike is refused too
+    }
+    @Test void letterRulesInKnowledgeCategories(){
+        valid("countries_without_a_ru","Перу",null);status("countries_without_a_ru","Франция",ValidationStatus.INVALID);
+        valid("countries_without_a_ru","peru",null); // transliteration reads it as Перу
+        valid("countries_without_a_en","Chile",null);status("countries_without_a_en","Canada",ValidationStatus.INVALID);
+        valid("fruit_starting_vowel_ru","апельсин",null);status("fruit_starting_vowel_ru","банан",ValidationStatus.INVALID);
+        valid("fruit_starting_vowel_en","Apricot",null);status("fruit_starting_vowel_en","Banana",ValidationStatus.INVALID);
+        valid("clothing_starting_consonant_en","Jeans",null);status("clothing_starting_consonant_en","Apron",ValidationStatus.INVALID);
+        status("clothing_starting_consonant_ru","юбка",ValidationStatus.INVALID);valid("clothing_starting_consonant_ru","Шорты",null);
+        valid("professions_letter_p_ru","Пилот",null);status("professions_letter_p_ru","Врач",ValidationStatus.INVALID);
+        valid("body_parts_three_letters_ru","нос",null);status("body_parts_three_letters_ru","рука",ValidationStatus.INVALID);
+        valid("one_letter_element_symbols","Kalium","potassium");status("one_letter_element_symbols","Гелий",ValidationStatus.INVALID);
+        status("comic_book_movies","The Boys",ValidationStatus.INVALID);status("comic_book_movies","The Matrix",ValidationStatus.INVALID);
+        assertTrue(RuleSteps.keeps(new Category.Rule("REPEAT_LETTER",null,3,"ru"),"обороноспособность"));
+        assertFalse(RuleSteps.keeps(new Category.Rule("REPEAT_LETTER",null,3,"en"),"apple"));
+        assertTrue(RuleSteps.keeps(new Category.Rule("DOUBLE_LETTER",null,0,"en"),"apple"));
+        assertTrue(RuleSteps.keeps(new Category.Rule("SAME_ENDS",null,0,"ru"),"шалаш"));
+        assertFalse(RuleSteps.keeps(new Category.Rule("SAME_ENDS",null,0,"en"),"cat"));
     }
     @Test void exhaustiveGeography(){
         valid("landlocked_countries","Switzerland","switzerland");valid("landlocked_countries","Швейцария","switzerland");

@@ -72,7 +72,7 @@ class ThinkOrDieSessionTest {
         var s=session(List.of("g","h","x"),Set.of("g","h"),"batman_villains");toAnswering(s);
         for(String w:List.of("Joker","Bane","Riddler","Penguin","Scarecrow"))say(s,"g",w);
         say(s,"x","Joker"); // shared
-        for(String w:List.of("Hush","Clayface","Firefly","Deadshot","Mad Hatter","Superman"))say(s,"h",w); // one wrong
+        for(String w:List.of("Hush","Clayface","Firefly","Deadshot","Superman"))say(s,"h",w); // one wrong: only four count
         endAnswers(s);
         assertFalse(s.player("g").resurrected);assertFalse(s.player("h").resurrected);assertTrue(s.takeRevivals().isEmpty());
     }

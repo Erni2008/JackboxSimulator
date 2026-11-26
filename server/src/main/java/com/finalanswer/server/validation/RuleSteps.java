@@ -18,6 +18,7 @@ public final class RuleSteps {
         if(!keeps(r,key))return Verdict.invalid(Verdict.Source.RULE);
         return dictionary.knows(r.lang(),key)?Verdict.valid("word:"+key,Verdict.Source.DICTIONARY):null;
     };}
+    static final String VOWELS="aeiouаеёиоуыэюя";
     static boolean keeps(Category.Rule r,String key){
         String v=r.value()==null?"":AnswerInput.key(r.value());
         return switch(r.kind()){
@@ -26,6 +27,12 @@ public final class RuleSteps {
             case "ENDS_WITH"->key.endsWith(v)&&key.length()>v.length();
             case "LENGTH"->key.codePointCount(0,key.length())==r.n();
             case "PALINDROME"->key.length()>=3&&new StringBuilder(key).reverse().toString().equals(key);
+            case "NOT_CONTAINS"->!key.contains(v);
+            case "DOUBLE_LETTER"->{boolean d=false;for(int i=1;i<key.length();i++)if(key.charAt(i)==key.charAt(i-1)){d=true;break;}yield d;}
+            case "REPEAT_LETTER"->{boolean d=false;for(int i=0;i<key.length()&&!d;i++){char ch=key.charAt(i);d=key.chars().filter(x->x==ch).count()>=r.n();}yield d;}
+            case "SAME_ENDS"->key.length()>=2&&key.charAt(0)==key.charAt(key.length()-1);
+            case "STARTS_VOWEL"->!key.isEmpty()&&VOWELS.indexOf(key.charAt(0))>=0;
+            case "STARTS_CONSONANT"->!key.isEmpty()&&Character.isLetter(key.charAt(0))&&VOWELS.indexOf(key.charAt(0))<0&&"ъьй".indexOf(key.charAt(0))<0;
             default->throw new IllegalArgumentException("unknown word rule "+r.kind());
         };
     }

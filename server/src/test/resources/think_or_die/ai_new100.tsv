@@ -1,0 +1,192 @@
+# category	lang	answer	expected — the 106 new categories: answers NOT in the lists, wrong answers and gibberish (written before tuning)
+egg_laying_not_bird	en	tuatara	1
+egg_laying_not_bird	ru	окунь	1
+egg_laying_not_bird	en	parrot	0
+egg_laying_not_bird	ru	лошадь	0
+horned_animals	en	addax	1
+horned_animals	ru	тур	1
+horned_animals	en	zebra	0
+more_than_four_legs	en	earwig	1
+more_than_four_legs	ru	уховёртка	1
+more_than_four_legs	en	kangaroo	0
+ocean_animals	en	marlin	1
+ocean_animals	ru	мойва	1
+ocean_animals	ru	карась	0
+nocturnal_animals	en	kinkajou	1
+nocturnal_animals	ru	соня	1
+nocturnal_animals	en	pigeon	0
+inflatable_things	en	exercise ball	1
+inflatable_things	ru	надувной фламинго	1
+inflatable_things	en	hammer	0
+things_with_wheels	en	golf cart	1
+things_with_wheels	ru	квадроцикл	1
+things_with_wheels	ru	канoэ	0
+rollable_things	en	sleeping mat	1
+rollable_things	ru	тетрадь	0
+glass_objects	en	lightbulb	1
+glass_objects	ru	графинчик	1
+glass_objects	en	sock	0
+opened_with_key	en	locker room door	1
+opened_with_key	ru	банан	0
+dairy_products	en	quark	1
+dairy_products	ru	тан	1
+dairy_products	en	tofu	0
+potato_dishes	en	latke	1
+potato_dishes	ru	картофельные котлеты	1
+potato_dishes	en	risotto	0
+stone_fruit	en	plumcot	1
+stone_fruit	ru	банан	0
+corn_products	en	corn tortilla chips	1
+corn_products	ru	мамалыга	1
+corn_products	en	rye bread	0
+cheese_types	en	havarti	1
+cheese_types	ru	моцарела	1
+cheese_types	en	margarine	0
+star_on_flag	en	Grenada	1
+star_on_flag	ru	Франция	0
+island_countries	en	Bahrain	1
+island_countries	ru	Норвегия	0
+two_word_countries	en	Costa Rica	1
+two_word_countries	ru	Испания	0
+skeleton_bones	en	cuboid	1
+skeleton_bones	ru	лучевая	1
+skeleton_bones	en	bicep	0
+head_parts	en	philtrum	1
+head_parts	ru	коленка	0
+internal_organs	en	gall bladder	1
+internal_organs	ru	ресница	0
+vitamins	en	vitamin z	0
+dinosaur_movies	en	Jurassic World Camp Cretaceous	1
+dinosaur_movies	ru	Титаник	0
+space_movies	en	Moonfall	1
+space_movies	ru	Один дома	0
+time_travel_movies	en	Hot Tub Time Machine 2	1
+time_travel_movies	en	Titanic	0
+talking_animal_cartoons	en	Kung Fu Panda 2	1
+talking_animal_cartoons	ru	Каникулы Бонифация	1
+talking_animal_cartoons	en	Toy Story	0
+comic_book_movies	en	The Boys	0
+comic_book_movies	en	Thor Ragnarok	1
+flying_vehicles	en	airliner	1
+flying_vehicles	ru	трамвай	0
+vehicles_without_engine	en	sailing yacht	1
+vehicles_without_engine	ru	мотоцикл	0
+rail_vehicles	en	bullet train	1
+rail_vehicles	ru	автобус	0
+watercraft	en	pedalo	1
+watercraft	ru	самосвал	0
+emergency_vehicles	en	fire engine	1
+emergency_vehicles	ru	такси	0
+battery_devices	en	digital thermometer	1
+battery_devices	ru	холодильник	0
+operating_systems	en	Pop OS	1
+operating_systems	ru	фотошоп	0
+computer_components	en	heat sink	1
+computer_components	ru	антивирус	0
+devices_with_screen	en	smart fridge	1
+devices_with_screen	ru	утюг	0
+shades_of_blue	en	cerulean	1
+shades_of_blue	ru	алый	0
+gemstones	en	amazonite	1
+gemstones	ru	гранит	0
+textile_materials	en	silk	1
+textile_materials	ru	пластмасса	0
+wood_types	en	sapele	1
+wood_types	ru	фанера	0
+metal_elements	en	steel	0
+mythical_creatures	en	kelpie	1
+mythical_creatures	ru	жираф	0
+flying_superheroes	en	Batman	0
+flying_superheroes	en	Superboy	1
+magic_users	en	Gandalf the White	1
+magic_users	ru	Шерлок Холмс	0
+fictional_robots	en	Optimus	1
+fictional_robots	ru	Буратино	0
+ancient_gods	en	Hathor	1
+ancient_gods	ru	Наполеон	0
+medical_professions	en	anesthetist	1
+medical_professions	ru	бухгалтер	0
+uniform_professions	en	firefighter	1
+uniform_professions	ru	блогер	0
+professions_letter_p_en	en	paramedic	1
+professions_letter_p_en	en	doctor	0
+animal_professions	en	kennel worker	1
+animal_professions	ru	бухгалтер	0
+height_professions	en	roofer	1
+height_professions	ru	шахтёр	0
+units_of_measurement	en	furlong	1
+units_of_measurement	ru	скорость	0
+water_soluble	en	table sugar	1
+water_soluble	ru	песок	0
+measuring_instruments	en	hydrometer	1
+measuring_instruments	ru	молоток	0
+renewable_energy	en	solar power	1
+renewable_energy	ru	уголь	0
+ball_sports	en	beach volleyball	1
+ball_sports	ru	шахматы	0
+board_games	en	Settlers of Catan	1
+board_games	ru	футбол	0
+water_sports	en	rowing	1
+water_sports	ru	бокс	0
+dance_styles	en	hustle	1
+dance_styles	ru	карате	0
+martial_arts	en	judo	1
+martial_arts	ru	йога	0
+thorny_plants	en	gorse	1
+thorny_plants	ru	тюльпан	0
+edible_mushrooms	en	button mushroom	1
+edible_mushrooms	ru	мухомор	0
+natural_disasters	en	mudslide	1
+natural_disasters	ru	радуга	0
+garden_flowers	en	foxglove	1
+garden_flowers	ru	дуб	0
+spice_plants	en	vanilla bean	1
+spice_plants	ru	сахар	0
+underground_structures	en	subway tunnel	1
+underground_structures	ru	небоскрёб	0
+residential_buildings	en	condo	1
+residential_buildings	ru	школа	0
+defensive_structures	en	castle wall	1
+defensive_structures	ru	мост	0
+religious_buildings	en	cathedral	1
+religious_buildings	ru	больница	0
+crossing_structures	en	footbridge	1
+crossing_structures	ru	забор	0
+string_instruments	en	electric bass	1
+string_instruments	ru	флейта	0
+wind_instruments	en	trumpet	1
+wind_instruments	ru	скрипка	0
+music_genres	en	nu metal	1
+music_genres	ru	гитара	0
+percussion_instruments	en	snare	1
+percussion_instruments	ru	скрипка	0
+drawing_supplies	en	coloured pencils	1
+drawing_supplies	ru	молоток	0
+inventions_before_1900	en	steam train	1
+inventions_before_1900	ru	смартфон	0
+historical_empires	en	Achaemenid Empire	1
+historical_empires	ru	Нарния	0
+medieval_items	en	longbow	1
+medieval_items	ru	смартфон	0
+ancient_civilizations	en	Sumerians	1
+ancient_civilizations	ru	Атлантида	0
+obsolete_currencies	en	pfennig	1
+obsolete_currencies	ru	доллар	0
+countries_without_a_en	en	Liechtenstein	1
+fruit_starting_vowel_en	en	elderberry	1
+clothing_starting_consonant_en	en	cardigan	1
+phobias	en	fear of spiders	1
+phobias	ru	пиццафобия	0
+light_without_electricity	en	candlelight	1
+light_without_electricity	ru	фонарик	0
+venomous_animals	en	cottonmouth	1
+venomous_animals	ru	удав	0
+horror_creatures	en	poltergeist	1
+horror_creatures	ru	акула	0
+respiratory_protection	en	gasmask	1
+respiratory_protection	ru	беруши	0
+ocean_animals	en	xkqzvt	0
+cheese_types	ru	фывапр	0
+board_games	en	blorptastic	0
+garden_flowers	ru	цветозавр	0
+martial_arts	en	punchido	0

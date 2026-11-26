@@ -26,7 +26,8 @@ public final class VerifiedAnswers {
             if(prev!=null&&!prev.equals(a.id()))throw new IllegalArgumentException(c.id()+": alias '"+alias+"' belongs to "+prev+" and "+a.id());
         }
         Set<String> bad=new HashSet<>();
-        for(String s:c.knownInvalid()){String k=AnswerInput.key(s);if(m.containsKey(k))throw new IllegalArgumentException(c.id()+": '"+s+"' is both valid and known invalid");bad.add(k);}
+        for(String s:c.knownInvalid()){String k=AnswerInput.key(AnswerInput.isLatin(s)?AnswerInput.stripArticle(s):s); // keyed like a player's answer ("The Boys" → "boys")
+            if(m.containsKey(k))throw new IllegalArgumentException(c.id()+": '"+s+"' is both valid and known invalid");bad.add(k);}
         Map<String,String> snd=new HashMap<>();for(var e:m.entrySet()){String k=Phonetic.sound(e.getKey());if(k.length()<3)continue;String prev=snd.putIfAbsent(k,e.getValue());if(prev!=null&&!prev.equals(e.getValue()))snd.put(k,"");}
         Set<String> sbad=new HashSet<>();for(String b:bad){String k=Phonetic.sound(b);if(k.length()>=3&&!snd.containsKey(k))sbad.add(k);}
         return new Index(Map.copyOf(m),Set.copyOf(bad),Map.copyOf(snd),Set.copyOf(sbad));
