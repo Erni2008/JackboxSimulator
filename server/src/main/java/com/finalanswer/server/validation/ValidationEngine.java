@@ -37,6 +37,9 @@ public final class ValidationEngine implements AutoCloseable {
 
     /** @return VALID / INVALID / UNCERTAIN, or PENDING when the AI judge should be asked ({@link #judgeLater}). */
     public Verdict validate(Category c,AnswerInput in){
+        // a knowledge category with a letter-count rule ("an animal with exactly five letters"): a Latin answer of the wrong length is wrong at once
+        if(c.type()==Category.Type.KNOWLEDGE&&c.rule()!=null&&"LENGTH".equals(c.rule().kind())){String k=in.key().replace(" ","");
+            if(!k.isEmpty()&&k.matches("[a-z]+")&&k.length()!=c.rule().n())return Verdict.invalid(Verdict.Source.RULE);}
         for(ValidationStep s:steps){Verdict v=s.check(c,in);if(v!=null)return v;}
         if(c.exhaustive())return Verdict.invalid(Verdict.Source.FALLBACK);
         return ai!=null&&c.allowUnknown()?Verdict.pending():Verdict.uncertain(Verdict.Source.FALLBACK);

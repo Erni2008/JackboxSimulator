@@ -1,0 +1,67 @@
+# category	lang	answer	expected — fresh cases written after tuning, never used to adjust prompts or lists
+movie_genres	en	Mockumentary	1
+movie_genres	en	Body horror	1
+movie_genres	ru	Вестерн	1
+movie_genres	en	Microwave	0
+movie_genres	en	Glorbic	0
+movie_genres	ru	Понедельник	0
+batman_villains	en	Black Mask	1
+batman_villains	en	Killer Moth	1
+batman_villains	ru	Загадочник	1
+batman_villains	en	Green Goblin	0
+batman_villains	en	Lex Luthor	0
+batman_villains	en	Captain Snorkel	0
+disney_princesses	en	Moana	1
+disney_princesses	ru	Белоснежка	1
+disney_princesses	en	Elsa	1
+disney_princesses	en	Hermione	0
+disney_princesses	en	Princess Vexalia	0
+programming_languages	en	Haskell	1
+programming_languages	en	OCaml	1
+programming_languages	en	Fortran	1
+programming_languages	en	Microsoft Word	0
+programming_languages	en	Python Monty	0
+programming_languages	en	Brizzlecode	0
+chemical_elements	en	Neon	1
+chemical_elements	ru	Железо	1
+chemical_elements	en	Kryptonite	0
+chemical_elements	en	Steel	0
+in_kitchen	en	Colander	1
+in_kitchen	en	Cheese grater	1
+in_kitchen	ru	Сковородка	1
+in_kitchen	en	Sofa	0
+in_kitchen	en	Spoonerator	0
+in_kitchen	ru	Гантеля	0
+in_bathroom	en	Shower gel	1
+in_bathroom	en	Q-tips	1
+in_bathroom	ru	Зубная щётка	1
+in_bathroom	en	Lawnmower	0
+in_bathroom	en	Flushomatic	0
+winter_things	en	Snowball fight	1
+winter_things	en	Sledding	1
+winter_things	ru	Лыжи	1
+winter_things	en	Sunbathing	0
+winter_things	en	Glintskate	0
+ocean_things	en	Hammerhead shark	1
+ocean_things	en	Sea cucumber	1
+ocean_things	ru	Медуза	1
+ocean_things	en	Goldfish	0
+ocean_things	en	Anchor	0
+ocean_things	en	Blubberfin	0
+produces_light	en	Firefly	1
+produces_light	en	Lighthouse	1
+produces_light	en	Mirror	0
+produces_light	en	Shadow	0
+pump_bottle	en	Liquid soap	1
+pump_bottle	en	Shampoo	1
+pump_bottle	en	Brick	0
+track_and_field	en	Long jump	1
+track_and_field	en	Pole vault	1
+track_and_field	en	Slam dunk	0
+animals_five_letters	en	Tiger	1
+animals_five_letters	en	Camel	1
+animals_five_letters	en	Lion	0
+animals_five_letters	en	Penguin	0
+ruin_first_date	en	Talking about your ex	1
+ruin_first_date	en	Forgetting your wallet	1
+ruin_first_date	en	Triangle	0
