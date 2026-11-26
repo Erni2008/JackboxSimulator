@@ -94,5 +94,20 @@ public final class NeonFrame implements Disposable {
             radial=new Texture(p);radial.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();}
         return radial;
     }
-    @Override public void dispose(){fillTex.dispose();edgeTex.dispose();softTex.dispose();gradTex.dispose();pixelTex.dispose();if(radial!=null)radial.dispose();}
+    private Texture roundTex;private NinePatch round;
+    /** Clean rounded panel (game-show style): soft drop shadow, a thin solid outline in the accent colour, flat fill. */
+    public void clean(Batch b,float x,float y,float w,float h,Color fill,Color rim,float a){
+        if(a<=0||w<8||h<8)return;
+        if(round==null){int n=64;float R=22;Pixmap p=new Pixmap(n,n,Pixmap.Format.RGBA8888);p.setBlending(Pixmap.Blending.None);
+            for(int yy=0;yy<n;yy++)for(int xx=0;xx<n;xx++){float fx=xx+.5f,fy=yy+.5f,dx=Math.max(Math.max(R-fx,fx-(n-R)),0),dy=Math.max(Math.max(R-fy,fy-(n-R)),0);
+                float d=R-(float)Math.sqrt(dx*dx+dy*dy);if(dx==0&&dy==0)d=R;p.drawPixel(xx,yy,Color.rgba8888(1,1,1,MathUtils.clamp(d+.5f,0,1)));}
+            roundTex=new Texture(p);roundTex.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear);p.dispose();round=new NinePatch(roundTex,24,24,24,24);}
+        Color keep=tmp.set(b.getColor());float k=Math.min(1,Math.min(w,h)/56f);
+        b.setColor(0,0,0,.40f*a);nine(b,round,x+2,y-6,w,h,k);
+        b.setColor(rim.r,rim.g,rim.b,a);nine(b,round,x,y,w,h,k);
+        b.setColor(fill.r,fill.g,fill.b,fill.a*a);nine(b,round,x+3,y+3,w-6,h-6,k);
+        b.setColor(1,1,1,.05f*a);nine(b,round,x+3,y+h*.5f,w-6,h*.5f-3,k);
+        b.setColor(keep);
+    }
+    @Override public void dispose(){if(roundTex!=null)roundTex.dispose();fillTex.dispose();edgeTex.dispose();softTex.dispose();gradTex.dispose();pixelTex.dispose();if(radial!=null)radial.dispose();}
 }

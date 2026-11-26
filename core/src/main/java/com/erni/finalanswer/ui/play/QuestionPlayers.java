@@ -117,27 +117,26 @@ public final class QuestionPlayers extends Actor implements Disposable {
         try{for(int i=0;i<entries.size();i++){
             Entry e=entries.get(i);float center=left+(i+.5f)*cell;
             boolean card=counting&&e.counter>=0;float cardW=Math.min(178,cell-16);
-            if(card)drawCard(batch,e,center,cardW,lead>0&&e.counter==lead,alpha);
-            float scale=Math.min(135/e.height,(cell-24)/150)*e.size*(card?.80f:1);
+            float scale=Math.min(135/e.height,(cell-24)/150)*e.size;
             float shakeX=!reduced?MathUtils.sin(e.shakeTime*31+e.phase)*.65f*e.shakeEnvelope:0;
             float shakeY=!reduced?MathUtils.sin(e.shakeTime*27+e.phase*1.7f)*.28f*e.shakeEnvelope:0;
-            local.set(saved).translate(center+shakeX,getY()+(card?103:52)+shakeY,0).scale(scale,scale,1).translate(-174,-e.floor,0);
+            local.set(saved).translate(center+shakeX,getY()+52+shakeY,0).scale(scale,scale,1).translate(-174,-e.floor,0);
             batch.setTransformMatrix(local);
             if(e.player.ghost)batch.setColor(.63f,.78f,.88f,color.a);
-            presentation.draw(batch,e.character,e.profile,alpha*(e.player.ghost?.52f:1),e.time);
+            presentation.draw(batch,e.character,e.profile,alpha*(e.player.ghost?(card?.38f:.52f):1),e.time);
             batch.setColor(color);
             batch.setTransformMatrix(saved);
             if(!e.nickname.equals(e.player.nickname)){
                 e.nickname=e.player.nickname;font.getData().setScale(1);e.name.setText(font,e.nickname);
                 e.nameWidth=e.name.width;
             }
-            e.nameScale=Math.min(card?.78f:1,((card?cardW-30:cell-16))/Math.max(1,e.nameWidth));
+            e.nameScale=Math.min(1,(cell-16)/Math.max(1,e.nameWidth));
             font.getData().setScale(e.nameScale);e.name.setText(font,e.nickname);
-            float x=center-e.name.width/2,y=getY()+(card?93:43);
-            font.setColor(.015f,.008f,.008f,alpha*.9f);font.draw(batch,e.nickname,x+1.4f,y-1.4f);
-            if(card)font.setColor(.96f,.92f,.88f,alpha);else{font.setColor(com.erni.finalanswer.ui.PlayerColors.light(e.player.characterId));font.getColor().a=alpha;}
+            float x=center-e.name.width/2,y=getY()+43;
+            float na=alpha*(card&&e.player.ghost?.45f:1);font.setColor(.015f,.008f,.008f,na*.9f);font.draw(batch,e.nickname,x+1.4f,y-1.4f);
+            font.setColor(com.erni.finalanswer.ui.PlayerColors.light(e.player.characterId));font.getColor().a=na;
             font.draw(batch,e.nickname,x,y);
-            if(card){drawCardCounter(batch,e,center,getY()+46,alpha);drawStatusPill(batch,e,center,getY()+18,alpha);batch.setColor(color);}
+            if(card){drawBadge(batch,e,center+Math.min(62,cell*.30f),getY()+150,lead>0&&e.counter==lead,alpha*(e.player.ghost?.6f:1));batch.setColor(color);}
             else{font.getData().setScale(Math.min(.48f,(cell-16)/105f));
             String status=e.player.ghost?"GHOST":!e.player.online?"OFFLINE":"ALIVE";
             font.setColor(e.player.ghost?.60f:.77f,e.player.ghost?.80f:.86f,e.player.ghost?.93f:.66f,alpha);
@@ -175,6 +174,17 @@ public final class QuestionPlayers extends Actor implements Disposable {
         counterFont.setColor(0,0,0,.8f*alpha);counterFont.draw(batch,t,x+2,y-2);
         counterFont.setColor(1f,.82f-.3f*pop,.55f-.3f*pop,alpha);counterFont.draw(batch,t,x,y);
         counterFont.getData().setScale(1);
+    }
+    /** THINK OR DIE answer count: a solid round badge by the character's shoulder (gold for the leader), pops on every answer. */
+    private void drawBadge(Batch batch,Entry e,float cx,float cy,boolean leader,float alpha){
+        counterAssets();float pop=reduced?0:Math.max(0,1-e.counterPop/.35f),ease=com.badlogic.gdx.math.Interpolation.pow2Out.apply(pop);
+        String t=Integer.toString(e.counter);counterFont.getData().setScale(.78f*(1+.25f*ease));counterText.setText(counterFont,t);
+        float h=48*(1+.12f*ease),w=Math.max(h,counterText.width+26);Color c=e.player.ghost?PURPLE:leader?GOLD:RED;
+        batch.setColor(0,0,0,.45f*alpha);pillAt(batch,cx-w/2+2,cy-h/2-4,w,h);
+        batch.setColor(1,1,1,alpha);pillAt(batch,cx-w/2-3,cy-h/2-3,w+6,h+6);
+        batch.setColor(c.r,c.g,c.b,alpha);pillAt(batch,cx-w/2,cy-h/2,w,h);
+        counterFont.setColor(leader&&!e.player.ghost?.18f:1f,leader&&!e.player.ghost?.10f:1f,leader&&!e.player.ghost?.02f:1f,alpha);
+        counterFont.draw(batch,t,cx-counterText.width/2,cy+counterText.height/2);counterFont.getData().setScale(1);
     }
     private void drawStatusPill(Batch batch,Entry e,float cx,float cy,float alpha){
         String st=e.player.ghost?"GHOST":!e.player.online?"OFFLINE":"ALIVE";Color c=e.player.ghost?PURPLE:!e.player.online?new Color(.45f,.45f,.5f,1):GREEN;

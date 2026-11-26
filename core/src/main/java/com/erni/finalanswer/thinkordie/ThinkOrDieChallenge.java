@@ -132,7 +132,7 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
     // ---------------------------------------------------------------- primitives
     private final com.erni.finalanswer.ui.play.NeonFrame frame=new com.erni.finalanswer.ui.play.NeonFrame();
     private void octPlate(float x,float y,float w,float h,Color fill,Color rim,float a){
-        if(a<=0||w<=8||h<=8)return;frame.draw(art.batch,x,y,w,h,rim,fill,Math.min(h,w)>=90?6:4,a);
+        if(a<=0||w<=8||h<=8)return;frame.clean(art.batch,x,y,w,h,fill,rim,a);
     }
     private void draw9(NinePatch n,float x,float y,float w,float h,float r,float g,float b,float al,float k){
         art.batch.setColor(r,g,b,al);if(k<1){n.scale(k,k);n.draw(art.batch,x,y,w,h);n.scale(1/k,1/k);}else n.draw(art.batch,x,y,w,h);}
@@ -160,13 +160,10 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
     private void logo(float cx,float cy,float s,float a){
         if(a<=0||s<=.05f)return;float sc=.62f*s;
         String l="THINK ",m="OR",r=" DIE";float wl=art.width(art.display,l,sc),wm=art.width(art.display,m,sc*.78f),wr=art.width(art.display,r,sc),tw=wl+wm+wr,th=art.display.getLineHeight()*sc;
-        // ribbon
-        float rw=tw*1.18f,rh=th*.62f,ry=cy-rh*.55f;
-        art.rect(cx-rw/2,ry,rw,rh,new Color(.45f,.03f,.05f,1),.95f*a);art.rect(cx-rw/2,ry+rh-3,rw,3,RED,a);art.rect(cx-rw/2,ry,rw,3,new Color(.25f,0,0,1),a);
-        for(int side=-1;side<=1;side+=2){float ex=cx+side*rw/2;art.line(ex,ry+rh,ex+side*46,ry+rh*.5f,rh*.5f,new Color(.40f,.02f,.04f,1),a,false);art.line(ex+side*46,ry+rh*.5f,ex,ry,rh*.5f,new Color(.40f,.02f,.04f,1),a,false);}
+        art.glow(cx,cy,tw*1.1f,th*1.4f,BLACK,.55f*a);
         art.glow(cx,cy,tw*1.4f,th*2.2f,RED,.28f*a);
         // top hat: tapered crown with a red band and a soft highlight, curved brim with rounded ends
-        float hw=th*.80f*Math.min(1,s),hx=cx,hy=ry+rh+2;
+        float hw=th*.80f*Math.min(1,s),hx=cx,hy=cy+th*.42f;
         art.glow(hx,hy+hw*.35f,hw*2.2f,hw*1.3f,RED,.18f*a);
         for(int k=0;k<12;k++){float f=k/11f,wd=hw*(.78f-.08f*f);art.rect(hx-wd/2,hy+hw*.12f+f*hw*.62f,wd,hw*.62f/11f+1,new Color(.10f+.05f*f,.09f+.05f*f,.11f+.05f*f,1),a);}
         art.rect(hx-hw*.39f,hy+hw*.16f,hw*.78f,hw*.13f,RED,a);art.rect(hx-hw*.39f,hy+hw*.27f,hw*.78f,2,new Color(1f,.55f,.55f,1),a*.6f);
@@ -195,11 +192,10 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
     private void categoryPlate(float w,float a,String text,float zoom,boolean muted){
         if(a<=0)return;float z=Math.max(.05f,zoom),cx=800,cy=407,pw=900*z,ph=172*z;
         octPlate(cx-pw/2,cy-ph/2,pw,ph,CARD,RED,a);
-        for(float rx:new float[]{cx-pw/2+18,cx+pw/2-18}){circle(rx,cy,3,3,STEEL,a);}
         if(z<.7f)return;
         float tabW=280,tabH=40,ty=cy+ph/2-tabH/2+4;
-        octPlate(cx-tabW/2,ty-tabH/2,tabW,tabH,new Color(.10f,.06f,.05f,.97f),new Color(.80f,.62f,.45f,1),a);
-        art.text(art.tiny,spaced(tr("КАТЕГОРИЯ","CATEGORY")),cx,ty+9,.95f,new Color(.92f,.86f,.80f,1),a,0);
+        tabW=220;tabH=36;octPlate(cx-tabW/2,ty-tabH/2,tabW,tabH,RED,RED,a);
+        art.text(art.tiny,spaced(tr("КАТЕГОРИЯ","CATEGORY")),cx,ty+9,.95f,Color.WHITE,a,0);
         // sheared serif category text, shrunk until it fits
         float boxW=pw-110,maxH=ph-64,sc=.92f;
         for(int i=0;i<10;i++){serif.getData().setScale(sc);gl.setText(serif,text,METAL,boxW,Align.center,true);if(gl.height<=maxH)break;sc*=.9f;}
@@ -249,7 +245,7 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
         String[] txt={tr("ОДНА КАТЕГОРИЯ\nДЛЯ ВСЕХ","ONE CATEGORY\nFOR EVERYONE"),tr((int)sec+" СЕКУНД\nОТВЕЧАЙ С ТЕЛЕФОНА",(int)sec+" SECONDS\nANSWER ON YOUR PHONE"),tr("ПИШИ ВЕРНЫЕ ОТВЕТЫ\nКАК МОЖНО БОЛЬШЕ","WRITE CORRECT ANSWERS\nAS MANY AS YOU CAN")};
         float[][] box={{350,219,315,73},{690,219,250,73},{965,219,285,73}};
         for(int i=0;i<3;i++){float d=MathUtils.clamp((t-i*.15f)/.3f,0,1);if(d<=0)continue;float[] b=box[i];
-            octPlate(b[0],b[1],b[2],b[3],CARD,new Color(.85f,.45f,.25f,1),a*d);
+            art.glow(b[0]+b[2]/2,b[1]+b[3]/2,b[2]*1.1f,b[3]*1.4f,BLACK,.55f*a*d);
             float ix=b[0]+46,iy=b[1]+b[3]/2;icon(i,ix,iy,a*d);
             String[] ln=txt[i].split("\n");float tx=b[0]+84+(b[2]-96)/2;
             art.text(art.tiny,ln[0],tx,iy+18,.82f,METAL,a*d,b[2]-100);art.text(art.tiny,ln[1],tx,iy-4,.82f,METAL,a*d,b[2]-100);}
@@ -261,7 +257,7 @@ public final class ThinkOrDieChallenge extends Actor implements Disposable {
             {"+"+points("three",25),tr("У ТРОИХ","THREE PLAYERS"),BLUE},{String.valueOf(points("crowd",0)),tr("4+ ИЛИ ОШИБКА","FOUR+ OR WRONG"),RED}};
         float[] cxs={435,677,923,1166};
         for(int i=0;i<4;i++){float e=MathUtils.clamp((t-.7f-i*.12f)/.3f,0,1);if(e<=0)continue;Color c=(Color)badges[i][2];float bw=210,bh=77,bx=cxs[i]-bw/2,by=43;
-            octPlate(bx,by,bw,bh,new Color(c.r*.16f,c.g*.16f,c.b*.16f,.95f),c,a*e);
+            octPlate(bx,by,bw,bh,new Color(c.r*.55f,c.g*.55f,c.b*.55f,1),c,a*e);
             art.text(art.big,(String)badges[i][0],cxs[i],by+bh-10,.58f,METAL,a*e,bw-30);
             art.text(art.tiny,(String)badges[i][1],cxs[i],by+24,.82f,METAL,a*e,bw-30);}
     }
