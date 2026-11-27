@@ -252,9 +252,7 @@ Myanmar|Мьянма|бирма
 Venezuela|Венесуэла
 Honduras|Гондурас
 Panama|Панама
-Puerto Rico|Пуэрто Рико
 Syria|Сирия
-Iraq|Ирак
 Jordan|Иордания
 Somalia|Сомали
 Ethiopia|Эфиопия
@@ -292,11 +290,9 @@ Democratic Republic of the Congo|ДР Конго|конго
 South Sudan|Южный Судан
 Central African Republic|ЦАР|центральноафриканская республика
 Saint Kitts and Nevis|Сент Китс и Невис
-Antigua and Barbuda|Антигуа и Барбуда
 Libya|Ливия
 Mauritania|Мавритания
-Comoros|Коморы
-Nepal|Непал""",
+Comoros|Коморы""",
     "Russia/Россия/Japan/Япония/France/Франция/Germany/Германия/Italy/Италия/Canada/Канада/Ukraine/Украина/Spain/Испания/United Kingdom/Великобритания/India/Индия/Sweden/Швеция/Poland/Польша/Mexico/Мексика/Greece/Греция")
 
 cat("island_countries", "GEOGRAPHY", "geography",

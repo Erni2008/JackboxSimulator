@@ -1913,7 +1913,7 @@ Sojourner|Соджорнер
 Dawn|Даун
 Viking|Викинг
 Mariner|Маринер
-Spektr-R|Радиоастрон
+Spektr-R|Спектр-Р|радиоастрон
 Chandrayaan|Чандраян
 Hayabusa|Хаябуса
 Philae|Филы

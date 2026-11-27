@@ -158,8 +158,7 @@ TESS spacecraft|Космический телескоп ТЕСС|TESS
 Swift Observatory|Космическая обсерватория Свифт|свифт
 Fermi Gamma-ray Space Telescope|Космический телескоп Ферми|ферми
 NuSTAR spacecraft|Космический телескоп НуСтар|NuSTAR
-Spektr-RG|Спектр-РГ|спектр рг
-Spektr-R|Спектр-Р|спектр р''',
+Spektr-RG|Спектр-РГ|спектр рг''',
 'foreign_languages': '''Javanese|Яванский язык|яванский
 Gujarati|Гуджарати|гуджаратский язык
 Punjabi|Панджаби|панджабский язык/пенджаби
