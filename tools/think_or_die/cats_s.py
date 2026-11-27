@@ -47,7 +47,6 @@ Avatar|Аватар
 Passengers|Пассажиры
 Her|Она
 A.I. Artificial Intelligence|Искусственный разум
-Wall-E future|Будущее ВАЛЛ И
 Akira|Акира
 Snowpiercer|Сквозь снег
 Tomorrowland|Земля будущего

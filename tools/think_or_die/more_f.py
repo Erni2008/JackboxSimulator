@@ -57,13 +57,11 @@ Decorator crab|Краб декоратор
 Boxer crab|Краб боксёр
 Pea crab|Гороховый краб''',
 'dinosaur_movies': '''Jurassic Park|Парк юрского периода
-The Lost World: Jurassic Park|Затерянный мир Парк юрского периода
 Jurassic World: Fallen Kingdom|Мир юрского периода 2
 Jurassic World Dominion|Мир юрского периода Господство
 Jurassic World Rebirth|Мир юрского периода Возрождение
 The Land Before Time|Земля до начала времён
 The Good Dinosaur|Хороший динозавр
-Ice Age: Dawn of the Dinosaurs|Ледниковый период 3 Эра динозавров
 Dinosaur|Динозавр
 King Kong|Кинг Конг
 Night at the Museum|Ночь в музее
@@ -81,23 +79,13 @@ One Million Years B.C.|Миллион лет до нашей эры
 Dinosaur Island|Остров динозавров
 Baby: Secret of the Lost Legend|Малыш Секрет утраченной легенды
 The Valley of Gwangi|Долина Гванги
-Spy Kids 3-D|Дети шпионов 3
 Carnosaur|Карнозавр
 Raptor|Раптор
 Dino King|Король динозавров
-Dinosaurs|Динозавры сериал
-Prehistoric Planet|Доисторическая планета
-Planet Dinosaur|Планета динозавров
-Dinotopia|Динотопия
 The Lost World 1925|Затерянный мир 1925
 The Lost World 1960|Затерянный мир 1960
 At the Earth's Core|У земного ядра
 The Land That Time Forgot|Земля забытая временем
-Primeval|Портал юрского периода
-Terra Nova|Терра Нова
-Dinosaur Train|Поезд динозавров
-Barney|Барни
-Denver the Last Dinosaur|Денвер последний динозавр
 The Dinosaur Project|Проект динозавр
 Tammy and the T-Rex|Тэмми и Ти Рекс
 Ghidorah|Гидора
@@ -107,10 +95,6 @@ Reptilicus|Рептиликус
 The Beast from 20,000 Fathoms|Чудовище с глубины 20000 саженей
 Kong: Skull Island|Конг Остров черепа
 Pixels|Пиксели
-Dino Ranch|Дино ранчо
-Gigantosaurus|Гигантозавр
-Jurassic World: Camp Cretaceous|Мир юрского периода Лагерь мелового периода
-Primal|Первобытный
 Ice Age 5|Ледниковый период Столкновение неизбежно''',
 'tooth_care_items': '''Toothbrush|Зубная щётка|щётка
 Electric toothbrush|Электрическая щётка
@@ -356,16 +340,11 @@ A Hijacking|Захват
 Pirates of the 20th Century|Пираты XX века
 Pirates|Пираты Полански
 The Princess Bride|Принцесса невеста
-Sinbad: Legend of the Seven Seas|Синдбад Легенда семи морей
 One Piece|Ван Пис
-Our Flag Means Death|Наш флаг означает смерть
-Black Sails|Чёрные паруса
-Crossbones|Череп и кости
 Captain Kidd|Капитан Кидд
 The Island|Остров 1980
 Swashbuckler|Пират
 Yellowbeard|Желтобородый
-Pan|Пэн
 Smurfs|Смурфики пираты
 The Pirates of Penzance|Пираты Пензанса
 Captain Nemo|Капитан Немо
@@ -378,7 +357,6 @@ Against All Flags|Против всех флагов
 Anne of the Indies|Анна из Индии
 Blackbeard's Ghost|Призрак Чёрной бороды
 Captain Ron|Капитан Рон
-Jake and the Never Land Pirates|Джейк и пираты Нетландии
 Captain Sabertooth|Капитан Саблезуб
 The Pirate Fairy|Феи Загадка пиратского острова''',
 'time_travel_movies': '''Back to the Future|Назад в будущее

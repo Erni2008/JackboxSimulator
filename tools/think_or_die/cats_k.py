@@ -632,7 +632,6 @@ Men in Black|Люди в чёрном
 Inside Out|Головоломка
 Finding Nemo|В поисках Немо
 Cars|Тачки
-Monsters, Inc.|Корпорация монстров
 The Incredibles|Суперсемейка
 How to Train Your Dragon|Как приручить дракона
 Night at the Museum|Ночь в музее
@@ -662,8 +661,6 @@ Hotel Transylvania|Монстры на каникулах
 The Smurfs|Смурфики
 Moana|Моана
 Zootopia|Зверополис
-Hotel Belgrade|Отель Белград
-Gentlemen of Fortune|Джентльмены удачи
 Kitchen in Paris|Кухня
 Three Heroes|Три богатыря
 Mirage|Мираж""".replace("\nMirage|Мираж", "").replace("Kitchen in Paris|Кухня", "Kitchen in Paris|Кухня в Париже|кухня"),
@@ -763,7 +760,7 @@ Cutthroat Island|Остров головорезов
 The Goonies|Балбесы
 Captain Blood|Одиссея капитана Блада|капитан блад
 Pirates of the 20th Century|Пираты XX века|пираты 20 века
-Sinbad|Синдбад Легенда семи морей|синдбад
+Sinbad|Синдбад Легенда семи морей|синдбад/Sinbad: Legend of the Seven Seas
 The Princess Bride|Принцесса невеста
 Stardust|Звёздная пыль
 The Mystery of the Third Planet|Тайна третьей планеты
@@ -778,14 +775,12 @@ Dead Man's Chest|Сундук мертвеца
 Pan|Пэн Путешествие в Нетландию
 Swashbuckler|Пират
 Island of Lost Souls|Остров потерянных душ
-Black Sails|Чёрные паруса
 The Sea Hawk|Морской ястреб
 Captain Kidd|Капитан Кидд
 Asterix and Obelix|Астерикс и Обеликс
 Moana|Моана
 Muppets|Маппеты
 Kung Fu Panda 2|Кунг фу Панда 2
-Our Flag Means Death|Наш флаг означает смерть
 Chip 'n Dale: Rescue Rangers|Чип и Дейл спешат на помощь
 Spongebob|Губка Боб Губка из воды""".replace("\nKung Fu Panda 2|Кунг фу Панда 2", "").replace("\nSpongebob|Губка Боб Губка из воды", "").replace("\nMuppets|Маппеты", ""),
     "Titanic/Титаник/Home Alone/Один дома/Frozen/Холодное сердце/Shrek/Шрек/Harry Potter/Гарри Поттер/Jaws/Челюсти/Avatar/Аватар/Brother/Брат/Star Wars/Звёздные войны/The Lion King/Король Лев/Waterworld/Водный мир2".replace("/Waterworld/Водный мир2", ""))

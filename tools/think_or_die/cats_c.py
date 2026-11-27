@@ -8,7 +8,7 @@ cat("dinosaur_movies", "KNOWLEDGE", "movies_tv",
     "Настоящий фильм или мультфильм, где появляются динозавры: Парк Юрского периода, Земля до начала времён, Ледниковый период 3, Хороший динозавр, Кинг Конг 2005.",
     """Jurassic Park|Парк Юрского периода|парк юрского периода
 Jurassic World|Мир Юрского периода
-The Lost World|Затерянный мир
+The Lost World: Jurassic Park|Затерянный мир: Парк Юрского периода|затерянный мир 1997/парк юрского периода 2
 The Land Before Time|Земля до начала времён
 The Good Dinosaur|Хороший динозавр
 Ice Age: Dawn of the Dinosaurs|Ледниковый период 3|ледниковый период эра динозавров/ice age 3
@@ -33,7 +33,6 @@ One Million Years B.C.|Миллион лет до нашей эры
 Dinosaur Island|Остров динозавров
 Baby: Secret of the Lost Legend|Малыш Секрет утраченной легенды
 The Valley of Gwangi|Долина Гванги
-Spy Kids 3|Дети шпионов 3
 Lost World Arthur Conan Doyle|Затерянный мир 1925
 Peter Pan|Питер Пэн""".replace("\nPeter Pan|Питер Пэн", "").replace("\nLost World Arthur Conan Doyle|Затерянный мир 1925", ""),
     "Titanic/Титаник/Shrek/Шрек/Avatar/Аватар/Frozen/Холодное сердце/Harry Potter/Гарри Поттер/Star Wars/Звёздные войны/The Lion King/Король Лев/Home Alone/Один дома/Matrix/Матрица/Dragon/Дракон")
