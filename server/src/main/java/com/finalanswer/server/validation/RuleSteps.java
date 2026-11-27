@@ -33,6 +33,8 @@ public final class RuleSteps {
             case "STARTS_TWO_VOWELS"->key.length()>=3&&VOWELS.indexOf(key.charAt(0))>=0&&VOWELS.indexOf(key.charAt(1))>=0;
             case "DOUBLE_LETTER"->{boolean d=false;for(int i=1;i<key.length();i++)if(key.charAt(i)==key.charAt(i-1)){d=true;break;}yield d;}
             case "REPEAT_LETTER"->{boolean d=false;for(int i=0;i<key.length()&&!d;i++){char ch=key.charAt(i);d=key.chars().filter(x->x==ch).count()>=r.n();}yield d;}
+            case "CONTAINS_ALL"->{boolean all=true;for(String part:r.value().split("\\|"))if(!key.contains(AnswerInput.key(part)))all=false;yield all;} // "ж|а": every letter group
+            case "STARTS_ANY"->{boolean any=false;for(String part:r.value().split("\\|")){String p=AnswerInput.key(part);if(key.startsWith(p)&&key.length()>p.length())any=true;}yield any;} // "до|ре|ми"
             case "MAX_LENGTH"->key.codePointCount(0,key.length())<=r.n()&&key.length()>=2;
             case "MIDDLE_LETTER"->key.length()>=3&&key.substring(1,key.length()-1).contains(v); // the letter inside the word, not first or last
             case "CONSONANT_RUN"->{int run=0,best=0;for(char ch:key.toCharArray()){boolean cons=Character.isLetter(ch)&&VOWELS.indexOf(ch)<0&&ch!='ь'&&ch!='ъ';run=cons?run+1:0;best=Math.max(best,run);}yield best>=r.n();}

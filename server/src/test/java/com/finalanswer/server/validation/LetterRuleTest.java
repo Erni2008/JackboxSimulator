@@ -14,5 +14,9 @@ class LetterRuleTest {
         assertNotEquals(ValidationStatus.VALID,s("words_soft_sign_middle_ru","конь"));   // soft sign at the end
         assertNotEquals(ValidationStatus.VALID,s("words_three_consonants_ru","мама"));
         assertNotEquals(ValidationStatus.VALID,s("words_without_a_ru","мама"));
+        assertNotEquals(ValidationStatus.VALID,s("words_zh_and_a_ru","жук"));      // no А
+        assertNotEquals(ValidationStatus.VALID,s("words_note_start_ru","кот"));    // no note at the start
+        assertEquals(ValidationStatus.INVALID,s("countries_two_n_ru","Россия"));   // no Н at all
+        assertEquals(ValidationStatus.INVALID,s("cities_starting_s_ru","Москва"));
     }
 }
