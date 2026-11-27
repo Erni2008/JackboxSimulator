@@ -168,7 +168,7 @@ k("grated_foods", "food", "Name a food usually grated before adding to a dish", 
     "Nutmeg|Мускатный орех; Horseradish|Хрен; Chocolate|Шоколад; Parmesan|Пармезан; Radish|Редька|редис; Zucchini|Кабачок; Onion|Лук; Egg|Яйцо; Butter|Сливочное масло; Coconut|Кокос; Wasabi|Васаби; "
     "Daikon|Дайкон; Pumpkin|Тыква; Celery root|Сельдерей корень; Turnip|Репа; Pear|Груша; Quince|Айва; Tomato|Помидор; Mozzarella|Моцарелла; Processed cheese|Плавленый сыр;  "
     "Halva|Халва; Nuts|Орехи; Cinnamon stick|Корица; Truffle|Трюфель; Lime zest|Цедра лайма; Grapefruit zest|Цедра грейпфрута; Turmeric root|Куркума корень; Jerusalem artichoke|Топинамбур; Kohlrabi|Кольраби; "
-    "Fish|Мороженая рыба; Ice|Лёд;  Bread|Сухари|хлеб; Frozen fruit|Замороженные фрукты;  Sweet potato|Батат; Parsnip|Пастернак; Cucumber for tzatziki|Огурец для дзадзики"))
+    "Fish|Мороженая рыба;  Frozen fruit|Замороженные фрукты;  Sweet potato|Батат; Parsnip|Пастернак; Cucumber for tzatziki|Огурец для дзадзики"))
 
 k("sauce_types", "food", "Name a type of sauce", "Назовите разновидность соуса",
   "A real sauce: ketchup, mayonnaise, mustard, soy sauce, tartar, béchamel, hollandaise, pesto, barbecue, sweet and chili, tkemali, adjika, satsebeli, tzatziki, guacamole, salsa, teriyaki, Worcestershire, sriracha, garlic sauce, cheese sauce, sour cream sauce, horseradish sauce, aioli, bolognese, carbonara, gravy, Caesar dressing, ranch, tahini.",

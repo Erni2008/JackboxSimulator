@@ -1,0 +1,523 @@
+# round 14: list 8, Russian first, written before tuning
+words_starting_pere_ru	ru	переход	1
+words_starting_pere_ru	ru	перевод	1
+words_starting_pere_ru	ru	перерыв	1
+words_starting_pere_ru	ru	пирог	0
+words_starting_pere_ru	ru	перец	1
+words_starting_pere_ru	ru	перемена	1
+words_yu_and_k_ru	ru	юбка	1
+words_yu_and_k_ru	ru	клюква	1
+words_yu_and_k_ru	ru	ключ	1
+words_yu_and_k_ru	ru	юла	0
+words_yu_and_k_ru	ru	кот	0
+words_yu_and_k_ru	ru	люк	1
+words_three_o_ru	ru	молоко	1
+words_three_o_ru	ru	огород	1
+words_three_o_ru	ru	колокол	1
+words_three_o_ru	ru	мама	0
+words_three_o_ru	ru	кот	0
+words_three_o_ru	ru	хорошо	1
+words_with_tel_ru	ru	учитель	1
+words_with_tel_ru	ru	писатель	1
+words_with_tel_ru	ru	отель	1
+words_with_tel_ru	ru	тело	0
+words_with_tel_ru	ru	стол	0
+words_with_tel_ru	ru	дятел	0
+nouns_ending_nik_ru	ru	чайник	1
+nouns_ending_nik_ru	ru	праздник	1
+nouns_ending_nik_ru	ru	дневник	1
+nouns_ending_nik_ru	ru	ботинок	0
+nouns_ending_nik_ru	ru	стол	0
+nouns_ending_nik_ru	ru	понедельник	1
+words_starting_with_number_ru	ru	сорока	1
+words_starting_with_number_ru	ru	пятница	1
+words_starting_with_number_ru	ru	одиночество	1
+words_starting_with_number_ru	ru	кошка	0
+words_starting_with_number_ru	ru	стол	0
+words_starting_with_number_ru	ru	семья	1
+nouns_sh_to_a_ru	ru	школа	1
+nouns_sh_to_a_ru	ru	шапка	1
+nouns_sh_to_a_ru	ru	шуба	1
+nouns_sh_to_a_ru	ru	шкаф	0
+nouns_sh_to_a_ru	ru	мама	0
+nouns_sh_to_a_ru	ru	шина	1
+french_loanwords_ru	ru	пальто	1
+french_loanwords_ru	ru	пляж	1
+french_loanwords_ru	ru	шофёр	1
+french_loanwords_ru	ru	изба	0
+french_loanwords_ru	ru	компьютер	0
+french_loanwords_ru	ru	меню	1
+color_and_object_words	ru	персик	1
+color_and_object_words	ru	сирень	1
+color_and_object_words	ru	шоколад	1
+color_and_object_words	ru	стол	0
+color_and_object_words	ru	окно	0
+color_and_object_words	ru	изумруд	1
+hooded_clothing	ru	худи	1
+hooded_clothing	ru	куртка	1
+hooded_clothing	ru	пуховик	1
+hooded_clothing	ru	юбка	0
+hooded_clothing	ru	носки	0
+hooded_clothing	ru	дождевик	1
+laceless_shoes	ru	тапочки	1
+laceless_shoes	ru	шлёпанцы	1
+laceless_shoes	ru	валенки	1
+laceless_shoes	ru	кеды	0
+laceless_shoes	ru	берцы	0
+laceless_shoes	ru	лоферы	1
+wrist_accessories	ru	часы	1
+wrist_accessories	ru	браслет	1
+wrist_accessories	ru	фитнес браслет	1
+wrist_accessories	ru	серьги	0
+wrist_accessories	ru	шарф	0
+wrist_accessories	ru	фенечка	1
+winter_clothing_materials	ru	шерсть	1
+winter_clothing_materials	ru	пух	1
+winter_clothing_materials	ru	мех	1
+winter_clothing_materials	ru	шифон	0
+winter_clothing_materials	ru	лён	0
+winter_clothing_materials	ru	флис	1
+famous_hairstyles	ru	каре	1
+famous_hairstyles	ru	ирокез	1
+famous_hairstyles	ru	дреды	1
+famous_hairstyles	ru	маникюр	0
+famous_hairstyles	ru	тату	0
+famous_hairstyles	ru	коса	1
+formal_wear	ru	смокинг	1
+formal_wear	ru	костюм	1
+formal_wear	ru	вечернее платье	1
+formal_wear	ru	пижама	0
+formal_wear	ru	шорты	0
+formal_wear	ru	галстук	1
+jewelry_types	ru	кольцо	1
+jewelry_types	ru	серьги	1
+jewelry_types	ru	кулон	1
+jewelry_types	ru	часы с кукушкой	0
+jewelry_types	ru	ремень	0
+jewelry_types	ru	браслет	1
+metal_fastener_clothing	ru	джинсы	1
+metal_fastener_clothing	ru	куртка	1
+metal_fastener_clothing	ru	ремень	1
+metal_fastener_clothing	ru	носки	0
+metal_fastener_clothing	ru	шапка	0
+metal_fastener_clothing	ru	бюстгальтер	1
+clothing_starting_p_ru	ru	пальто	1
+clothing_starting_p_ru	ru	пиджак	1
+clothing_starting_p_ru	ru	платье	1
+clothing_starting_p_ru	ru	шорты	0
+clothing_starting_p_ru	ru	юбка	0
+clothing_starting_p_ru	ru	пижама	1
+famous_skyscrapers	ru	бурдж халифа	1
+famous_skyscrapers	ru	эмпайр стейт билдинг	1
+famous_skyscrapers	ru	лахта центр	1
+famous_skyscrapers	ru	эйфелева башня	0
+famous_skyscrapers	ru	колизей	0
+famous_skyscrapers	ru	башня федерация	1
+auditorium_buildings	ru	театр	1
+auditorium_buildings	ru	кинотеатр	1
+auditorium_buildings	ru	цирк	1
+auditorium_buildings	ru	магазин	0
+auditorium_buildings	ru	аптека	0
+auditorium_buildings	ru	филармония	1
+storage_structures	ru	склад	1
+storage_structures	ru	амбар	1
+storage_structures	ru	элеватор	1
+storage_structures	ru	беседка	0
+storage_structures	ru	остановка	0
+storage_structures	ru	водонапорная башня	1
+architecture_styles	ru	готика	1
+architecture_styles	ru	барокко	1
+architecture_styles	ru	модерн	1
+architecture_styles	ru	импрессионизм	0
+architecture_styles	ru	реализм	0
+architecture_styles	ru	конструктивизм	1
+structures_in_water	ru	маяк	1
+structures_in_water	ru	нефтяная платформа	1
+structures_in_water	ru	пирс	1
+structures_in_water	ru	вокзал	0
+structures_in_water	ru	аэропорт	0
+structures_in_water	ru	форт	1
+famous_squares	ru	красная площадь	1
+famous_squares	ru	дворцовая площадь	1
+famous_squares	ru	таймс сквер	1
+famous_squares	ru	арбат	0
+famous_squares	ru	невский проспект	0
+famous_squares	ru	площадь согласия	1
+hotel_rooms	ru	номер	1
+hotel_rooms	ru	люкс	1
+hotel_rooms	ru	лобби	1
+hotel_rooms	ru	кабина пилота	0
+hotel_rooms	ru	трюм	0
+hotel_rooms	ru	ресепшн	1
+observation_structures	ru	сторожевая башня	1
+observation_structures	ru	маяк	1
+observation_structures	ru	смотровая площадка	1
+observation_structures	ru	подвал	0
+observation_structures	ru	бункер	0
+observation_structures	ru	каланча	1
+glove_wearing_characters	ru	микки маус	1
+glove_wearing_characters	ru	фредди крюгер	1
+glove_wearing_characters	ru	бэтмен	1
+glove_wearing_characters	ru	шрек	0
+glove_wearing_characters	ru	гарри поттер	0
+glove_wearing_characters	ru	танос	1
+ship_voyage_films	ru	титаник	1
+ship_voyage_films	ru	пираты карибского моря	1
+ship_voyage_films	ru	жизнь пи	1
+ship_voyage_films	ru	один дома	0
+ship_voyage_films	ru	матрица	0
+ship_voyage_films	ru	моана	1
+fire_control_characters	ru	человек факел	1
+fire_control_characters	ru	зуко	1
+fire_control_characters	ru	призрачный гонщик	1
+fire_control_characters	ru	эльза	0
+fire_control_characters	ru	ледяной	0
+fire_control_characters	ru	чаризард	1
+time_of_day_films	ru	ночной дозор	1
+time_of_day_films	ru	полночь в париже	1
+time_of_day_films	ru	сумерки	1
+time_of_day_films	ru	титаник	0
+time_of_day_films	ru	аватар	0
+time_of_day_films	ru	день сурка	1
+facial_scar_characters	ru	гарри поттер	1
+facial_scar_characters	ru	шрам	1
+facial_scar_characters	ru	зуко	1
+facial_scar_characters	ru	шрек	0
+facial_scar_characters	ru	микки маус	0
+facial_scar_characters	ru	двуликий	1
+animated_series_before_2010	ru	симпсоны	1
+animated_series_before_2010	ru	губка боб	1
+animated_series_before_2010	ru	смешарики	1
+animated_series_before_2010	ru	фиксики	0
+animated_series_before_2010	ru	три кота	0
+animated_series_before_2010	ru	лунтик	1
+athlete_hero_films	ru	рокки	1
+athlete_hero_films	ru	легенда 17	1
+athlete_hero_films	ru	движение вверх	1
+athlete_hero_films	ru	титаник	0
+athlete_hero_films	ru	шрек	0
+athlete_hero_films	ru	тренер	1
+doctor_characters	ru	доктор хаус	1
+doctor_characters	ru	айболит	1
+doctor_characters	ru	доктор ватсон	1
+doctor_characters	ru	доктор зло	0
+doctor_characters	ru	доктор дум	0
+doctor_characters	ru	доктор кто	1
+desert_set_films	ru	дюна	1
+desert_set_films	ru	безумный макс	1
+desert_set_films	ru	белое солнце пустыни	1
+desert_set_films	ru	титаник	0
+desert_set_films	ru	холодное сердце	0
+desert_set_films	ru	мумия	1
+self_copy_characters	ru	наруто	1
+self_copy_characters	ru	агент смит	1
+self_copy_characters	ru	локи	1
+self_copy_characters	ru	супермен	0
+self_copy_characters	ru	халк	0
+self_copy_characters	ru	множитель	1
+moons_not_earth_jupiter	ru	титан	1
+moons_not_earth_jupiter	ru	фобос	1
+moons_not_earth_jupiter	ru	харон	1
+moons_not_earth_jupiter	ru	луна	0
+moons_not_earth_jupiter	ru	ио	0
+moons_not_earth_jupiter	ru	тритон	1
+alloy_elements	ru	железо	1
+alloy_elements	ru	медь	1
+alloy_elements	ru	хром	1
+alloy_elements	ru	кислород	0
+alloy_elements	ru	гелий	0
+alloy_elements	ru	олово	1
+named_stars	ru	сириус	1
+named_stars	ru	полярная звезда	1
+named_stars	ru	вега	1
+named_stars	ru	марс	0
+named_stars	ru	луна	0
+named_stars	ru	бетельгейзе	1
+conductive_materials	ru	медь	1
+conductive_materials	ru	серебро	1
+conductive_materials	ru	графит	1
+conductive_materials	ru	резина	0
+conductive_materials	ru	стекло	0
+conductive_materials	ru	солёная вода	1
+element_symbol_c	ru	углерод	1
+element_symbol_c	ru	кальций	1
+element_symbol_c	ru	медь	1
+element_symbol_c	ru	калий	0
+element_symbol_c	ru	кремний	0
+element_symbol_c	ru	хлор	1
+space_telescopes_observatories	ru	хаббл	1
+space_telescopes_observatories	ru	джеймс уэбб	1
+space_telescopes_observatories	ru	пулковская обсерватория	1
+space_telescopes_observatories	ru	мкс	0
+space_telescopes_observatories	ru	луноход	0
+space_telescopes_observatories	ru	кеплер	1
+room_temp_liquids	ru	вода	1
+room_temp_liquids	ru	ртуть	1
+room_temp_liquids	ru	спирт	1
+room_temp_liquids	ru	лёд	0
+room_temp_liquids	ru	соль	0
+room_temp_liquids	ru	бензин	1
+em_radiation_types	ru	радиоволны	1
+em_radiation_types	ru	ультрафиолет	1
+em_radiation_types	ru	рентген	1
+em_radiation_types	ru	звук	0
+em_radiation_types	ru	ультразвук	0
+em_radiation_types	ru	гамма излучение	1
+space_missions	ru	восток 1	1
+space_missions	ru	аполлон 11	1
+space_missions	ru	вояджер 1	1
+space_missions	ru	звёздные войны	0
+space_missions	ru	интерстеллар	0
+space_missions	ru	луноход	1
+passenger_rail_types	ru	электричка	1
+passenger_rail_types	ru	метро	1
+passenger_rail_types	ru	сапсан	1
+passenger_rail_types	ru	фура	0
+passenger_rail_types	ru	самолёт	0
+passenger_rail_types	ru	трамвай	1
+amphibious_vehicles	ru	амфибия	1
+amphibious_vehicles	ru	судно на воздушной подушке	1
+amphibious_vehicles	ru	бтр	1
+amphibious_vehicles	ru	велосипед	0
+amphibious_vehicles	ru	трамвай	0
+amphibious_vehicles	ru	шерп	1
+truck_types	ru	самосвал	1
+truck_types	ru	бензовоз	1
+truck_types	ru	эвакуатор	1
+truck_types	ru	седан	0
+truck_types	ru	мотоцикл	0
+truck_types	ru	фура	1
+cockpit_items	ru	штурвал	1
+cockpit_items	ru	высотомер	1
+cockpit_items	ru	автопилот	1
+cockpit_items	ru	тележка с едой	0
+cockpit_items	ru	туалет	0
+cockpit_items	ru	педали	1
+famous_aircraft_models	ru	боинг 747	1
+famous_aircraft_models	ru	конкорд	1
+famous_aircraft_models	ru	су 27	1
+famous_aircraft_models	ru	тесла	0
+famous_aircraft_models	ru	камаз	0
+famous_aircraft_models	ru	ан 225	1
+tracked_vehicles	ru	танк	1
+tracked_vehicles	ru	бульдозер	1
+tracked_vehicles	ru	экскаватор	1
+tracked_vehicles	ru	велосипед	0
+tracked_vehicles	ru	автобус	0
+tracked_vehicles	ru	ратрак	1
+tire_manufacturers	ru	мишлен	1
+tire_manufacturers	ru	бриджстоун	1
+tire_manufacturers	ru	пирелли	1
+tire_manufacturers	ru	тойота	0
+tire_manufacturers	ru	самсунг	0
+tire_manufacturers	ru	кордиант	1
+served_with_broth	ru	пельмени	1
+served_with_broth	ru	рамен	1
+served_with_broth	ru	пирожки	1
+served_with_broth	ru	пицца	0
+served_with_broth	ru	торт	0
+served_with_broth	ru	фо	1
+grated_foods	ru	сыр	1
+grated_foods	ru	морковь	1
+grated_foods	ru	свёкла	1
+grated_foods	ru	хлеб	0
+grated_foods	ru	молоко	0
+grated_foods	ru	чеснок	1
+sauce_types	ru	кетчуп	1
+sauce_types	ru	майонез	1
+sauce_types	ru	песто	1
+sauce_types	ru	сахар	0
+sauce_types	ru	молоко	0
+sauce_types	ru	ткемали	1
+minced_meat_dishes	ru	котлеты	1
+minced_meat_dishes	ru	пельмени	1
+minced_meat_dishes	ru	голубцы	1
+minced_meat_dishes	ru	стейк	0
+minced_meat_dishes	ru	шашлык	0
+minced_meat_dishes	ru	фрикадельки	1
+dried_fruits	ru	курага	1
+dried_fruits	ru	чернослив	1
+dried_fruits	ru	изюм	1
+dried_fruits	ru	картофель	0
+dried_fruits	ru	огурец	0
+dried_fruits	ru	финики	1
+sushi_ingredients	ru	рис	1
+sushi_ingredients	ru	нори	1
+sushi_ingredients	ru	лосось	1
+sushi_ingredients	ru	гречка	0
+sushi_ingredients	ru	картошка	0
+sushi_ingredients	ru	васаби	1
+melted_butter_dishes	ru	пельмени	1
+melted_butter_dishes	ru	вареники	1
+melted_butter_dishes	ru	блины	1
+melted_butter_dishes	ru	мороженое	0
+melted_butter_dishes	ru	салат	0
+melted_butter_dishes	ru	гречка	1
+board_game_pieces	ru	кубик	1
+board_game_pieces	ru	фишка	1
+board_game_pieces	ru	пешка	1
+board_game_pieces	ru	мяч	0
+board_game_pieces	ru	ракетка	0
+board_game_pieces	ru	карта	1
+miniature_model_hobbies	ru	стендовый моделизм	1
+miniature_model_hobbies	ru	судомоделизм	1
+miniature_model_hobbies	ru	диорама	1
+miniature_model_hobbies	ru	вязание	0
+miniature_model_hobbies	ru	бег	0
+miniature_model_hobbies	ru	бонсай	1
+special_shoe_sports	ru	футбол	1
+special_shoe_sports	ru	фигурное катание	1
+special_shoe_sports	ru	скалолазание	1
+special_shoe_sports	ru	шахматы	0
+special_shoe_sports	ru	покер	0
+special_shoe_sports	ru	боулинг	1
+business_sim_games	ru	rollercoaster tycoon	1
+business_sim_games	ru	симс	1
+business_sim_games	ru	stardew valley	1
+business_sim_games	ru	тетрис	0
+business_sim_games	ru	doom	0
+business_sim_games	ru	supermarket simulator	1
+trap_games	ru	принц персии	1
+trap_games	ru	томб райдер	1
+trap_games	ru	spelunky	1
+trap_games	ru	тетрис	0
+trap_games	ru	fifa	0
+trap_games	ru	зельда	1
+fighting_game_characters	ru	рю	1
+fighting_game_characters	ru	скорпион	1
+fighting_game_characters	ru	саб зиро	1
+fighting_game_characters	ru	шрек	0
+fighting_game_characters	ru	гарри поттер	0
+fighting_game_characters	ru	чун ли	1
+sport_ball_types	ru	футбольный мяч	1
+sport_ball_types	ru	теннисный мяч	1
+sport_ball_types	ru	мяч для гольфа	1
+sport_ball_types	ru	шайба	0
+sport_ball_types	ru	волан	0
+sport_ball_types	ru	баскетбольный мяч	1
+level_editor_games	ru	super mario maker	1
+level_editor_games	ru	майнкрафт	1
+level_editor_games	ru	роблокс	1
+level_editor_games	ru	тетрис	0
+level_editor_games	ru	fifa	0
+level_editor_games	ru	little big planet	1
+couple_dances	ru	вальс	1
+couple_dances	ru	танго	1
+couple_dances	ru	сальса	1
+couple_dances	ru	брейкданс	0
+couple_dances	ru	тверк	0
+couple_dances	ru	бачата	1
+paper_hobbies	ru	оригами	1
+paper_hobbies	ru	квиллинг	1
+paper_hobbies	ru	скрапбукинг	1
+paper_hobbies	ru	бег	0
+paper_hobbies	ru	плавание	0
+paper_hobbies	ru	каллиграфия	1
+national_costume_countries	ru	япония	1
+national_costume_countries	ru	индия	1
+national_costume_countries	ru	шотландия	1
+national_costume_countries	ru	антарктида	0
+national_costume_countries	ru	ватикан	0
+national_costume_countries	ru	корея	1
+famous_battles	ru	бородинская битва	1
+famous_battles	ru	ватерлоо	1
+famous_battles	ru	сталинградская битва	1
+famous_battles	ru	олимпиада	0
+famous_battles	ru	чемпионат мира	0
+famous_battles	ru	куликовская битва	1
+scientific_discovery_figures	ru	ньютон	1
+scientific_discovery_figures	ru	эйнштейн	1
+scientific_discovery_figures	ru	менделеев	1
+scientific_discovery_figures	ru	пушкин	0
+scientific_discovery_figures	ru	моцарт	0
+scientific_discovery_figures	ru	мария кюри	1
+wedding_items	ru	обручальные кольца	1
+wedding_items	ru	фата	1
+wedding_items	ru	букет	1
+wedding_items	ru	лопата	0
+wedding_items	ru	гантели	0
+wedding_items	ru	свадебный торт	1
+international_awards	ru	нобелевская премия	1
+international_awards	ru	оскар	1
+international_awards	ru	грэмми	1
+international_awards	ru	кубок россии	0
+international_awards	ru	пятёрка	0
+international_awards	ru	золотой мяч	1
+flying_mythical_creatures	ru	дракон	1
+flying_mythical_creatures	ru	феникс	1
+flying_mythical_creatures	ru	пегас	1
+flying_mythical_creatures	ru	кентавр	0
+flying_mythical_creatures	ru	русалка	0
+flying_mythical_creatures	ru	гарпия	1
+long_journey_literary_characters	ru	одиссей	1
+long_journey_literary_characters	ru	фродо	1
+long_journey_literary_characters	ru	гулливер	1
+long_journey_literary_characters	ru	обломов	0
+long_journey_literary_characters	ru	муму	0
+long_journey_literary_characters	ru	дон кихот	1
+historic_dynasties	ru	романовы	1
+historic_dynasties	ru	рюриковичи	1
+historic_dynasties	ru	габсбурги	1
+historic_dynasties	ru	кеннеди	0
+historic_dynasties	ru	ротшильды	0
+historic_dynasties	ru	тюдоры	1
+asian_traditional_instruments	ru	ситар	1
+asian_traditional_instruments	ru	сямисэн	1
+asian_traditional_instruments	ru	домбра	1
+asian_traditional_instruments	ru	балалайка	0
+asian_traditional_instruments	ru	скрипка	0
+asian_traditional_instruments	ru	дудук	1
+famous_sculptors	ru	микеланджело	1
+famous_sculptors	ru	роден	1
+famous_sculptors	ru	мухина	1
+famous_sculptors	ru	ван гог	0
+famous_sculptors	ru	моне	0
+famous_sculptors	ru	церетели	1
+winged_non_birds	ru	самолёт	1
+winged_non_birds	ru	летучая мышь	1
+winged_non_birds	ru	ангел	1
+winged_non_birds	ru	пингвин	0
+winged_non_birds	ru	бабочка	0
+winged_non_birds	ru	дракон	1
+school_and_prison_things	ru	звонок	1
+school_and_prison_things	ru	столовая	1
+school_and_prison_things	ru	форма	1
+school_and_prison_things	ru	аквариум с акулами	0
+school_and_prison_things	ru	бассейн с вином	0
+school_and_prison_things	ru	расписание	1
+color_mark_makers	ru	фломастер	1
+color_mark_makers	ru	мелок	1
+color_mark_makers	ru	краска	1
+color_mark_makers	ru	ластик	0
+color_mark_makers	ru	ножницы	0
+color_mark_makers	ru	ручка	1
+swells_in_water	ru	губка	1
+swells_in_water	ru	рис	1
+swells_in_water	ru	гречка	1
+swells_in_water	ru	камень	0
+swells_in_water	ru	стекло	0
+swells_in_water	ru	чиа	1
+light_and_heat_sources	ru	костёр	1
+light_and_heat_sources	ru	камин	1
+light_and_heat_sources	ru	свеча	1
+light_and_heat_sources	ru	светодиод	0
+light_and_heat_sources	ru	луна	0
+light_and_heat_sources	ru	лампа накаливания	1
+multi_level_non_buildings	ru	торт	1
+multi_level_non_buildings	ru	двухэтажный автобус	1
+multi_level_non_buildings	ru	корабль	1
+multi_level_non_buildings	ru	стул	0
+multi_level_non_buildings	ru	ложка	0
+multi_level_non_buildings	ru	двухъярусная кровать	1
+hospital_and_gym_items	ru	весы	1
+hospital_and_gym_items	ru	беговая дорожка	1
+hospital_and_gym_items	ru	тонометр	1
+hospital_and_gym_items	ru	скальпель	0
+hospital_and_gym_items	ru	штанга	0
+hospital_and_gym_items	ru	аптечка	1
+color_changing_things	ru	хамелеон	1
+color_changing_things	ru	осьминог	1
+color_changing_things	ru	листья осенью	1
+color_changing_things	ru	камень	0
+color_changing_things	ru	кирпич	0
+color_changing_things	ru	светофор	1
