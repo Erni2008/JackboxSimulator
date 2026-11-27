@@ -15,7 +15,7 @@ import cats_a  # noqa: E402  (defines C and cat())
 import cats_b, cats_c, cats_d, cats_e, cats_f  # noqa: E402,F401
 import cats_h, cats_i, cats_j  # noqa: E402,F401  (second list of 100)
 import cats_k, cats_l, cats_m, cats_n  # noqa: E402,F401  (third list, Russian first)
-import cats_o, cats_p, cats_q, cats_r, cats_s, cats_t, cats_u, cats_v, cats_w  # noqa: E402,F401  (fourth list, 466-560)
+import cats_o, cats_p, cats_q, cats_r, cats_s, cats_t, cats_u, cats_v, cats_w, cats_x, cats_y, cats_z, cats_za  # noqa: E402,F401  (fourth list, 466-560)
 import cats_g  # noqa: E402  (answers and traps learned from AI evaluation rounds)
 import glob, importlib  # noqa: E402
 
@@ -84,6 +84,9 @@ def keeps(rule, k):
     if kind == "PALINDROME": return len(k) >= 3 and k == k[::-1]
     if kind == "DOUBLE_LETTER": return any(k[i] == k[i - 1] for i in range(1, len(k)))
     if kind == "REPEAT_LETTER": return any(k.count(c) >= n for c in k)
+    cons = lambda ch: ch.isalpha() and ch not in VOWELS and ch not in "ьъ"
+    if kind == "REPEAT_CONSONANT": return any(cons(c) and k.count(c) >= n for c in k)
+    if kind == "DOUBLE_CONSONANT": return any(k[i] == k[i - 1] and cons(k[i]) for i in range(1, len(k)))
     if kind == "CONTAINS_ALL": return all(key(x) in k for x in rule["value"].split("|"))
     if kind == "STARTS_ANY": return any(k.startswith(key(x)) and len(k) > len(key(x)) for x in rule["value"].split("|"))
     if kind == "MAX_LENGTH": return 2 <= len(k) <= n

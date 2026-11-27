@@ -33,6 +33,8 @@ public final class RuleSteps {
             case "STARTS_TWO_VOWELS"->key.length()>=3&&VOWELS.indexOf(key.charAt(0))>=0&&VOWELS.indexOf(key.charAt(1))>=0;
             case "DOUBLE_LETTER"->{boolean d=false;for(int i=1;i<key.length();i++)if(key.charAt(i)==key.charAt(i-1)){d=true;break;}yield d;}
             case "REPEAT_LETTER"->{boolean d=false;for(int i=0;i<key.length()&&!d;i++){char ch=key.charAt(i);d=key.chars().filter(x->x==ch).count()>=r.n();}yield d;}
+            case "REPEAT_CONSONANT"->{boolean d=false;for(int i=0;i<key.length()&&!d;i++){char ch=key.charAt(i);if(Character.isLetter(ch)&&VOWELS.indexOf(ch)<0&&ch!='ь'&&ch!='ъ'&&key.chars().filter(x->x==ch).count()>=r.n())d=true;}yield d;}
+            case "DOUBLE_CONSONANT"->{boolean d=false;for(int i=1;i<key.length();i++){char ch=key.charAt(i);if(ch==key.charAt(i-1)&&Character.isLetter(ch)&&VOWELS.indexOf(ch)<0&&ch!='ь'&&ch!='ъ')d=true;}yield d;}
             case "CONTAINS_ALL"->{boolean all=true;for(String part:r.value().split("\\|"))if(!key.contains(AnswerInput.key(part)))all=false;yield all;} // "ж|а": every letter group
             case "STARTS_ANY"->{boolean any=false;for(String part:r.value().split("\\|")){String p=AnswerInput.key(part);if(key.startsWith(p)&&key.length()>p.length())any=true;}yield any;} // "до|ре|ми"
             case "MAX_LENGTH"->key.codePointCount(0,key.length())<=r.n()&&key.length()>=2;
