@@ -53,8 +53,7 @@ Crepe cake|Блинный торт
 Viennetta ice cream cake|Многослойный торт-мороженое Вьеннетта
 Lemon meringue pie|Лимонный пирог с меренгой
 Chocolate wafer bar|Шоколадный вафельный батончик''',
-'hollow_hard_things': '''Turtle nest no|Гнездо черепахи
-Crab claw shell|Хитиновая оболочка крабовой клешни
+'hollow_hard_things': '''Crab claw shell|Хитиновая оболочка крабовой клешни
 Sea urchin test|Панцирь морского ежа
 Horseshoe crab shell|Панцирь мечехвоста
 Cicada exuvia|Сброшенная оболочка цикады
