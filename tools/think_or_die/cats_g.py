@@ -40,6 +40,7 @@ EXTRA = {
     'obsolete_currencies': 'Pfennig|Пфенниг\nCentime|Сантим\nDenier|Денье\nShilling|Шиллинг британский\nFarthing|Фартинг\nHalfpenny|Полпенни\nGuinea|Гинея\nAltynnik|Алтынник',
 }
 INVALID = {
+    'ice_cream_flavors': 'чесночное/чесночный/garlic/чеснок',
     'long_tail_animals': 'Хомячок/Кролик/Крольчонок/Bunny/Морская свинка/Guinea pig',
     'vitamins': 'Vitamin Q/Витамин Q/Vitamin R/Vitamin S/Vitamin T/Vitamin U/Vitamin W',
     'comic_book_movies': 'The Boys/Пацаны/Invincible/Неуязвимый/Arcane/Аркейн/Loki series/Сериал Локи/WandaVision/ВандаВижн/Smallville/Тайны Смолвиля',

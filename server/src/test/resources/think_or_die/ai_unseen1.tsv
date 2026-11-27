@@ -1,0 +1,283 @@
+# unseen categories (not in the pack, no lists): AI alone judges from the question, written before tuning
+@soviet_cartoons	Name a Soviet cartoon	Назовите советский мультфильм
+soviet_cartoons	ru	Ну погоди	1
+soviet_cartoons	ru	Винни Пух	1
+soviet_cartoons	ru	Чебурашка	1
+soviet_cartoons	ru	ёжик в тумане	1
+soviet_cartoons	ru	простоквашино	1
+soviet_cartoons	ru	Бременские музыканты	1
+soviet_cartoons	ru	Шрек	0
+soviet_cartoons	ru	Холодное сердце	0
+soviet_cartoons	ru	Смешарики	0
+soviet_cartoons	ru	Маша и медведь	0
+soviet_cartoons	ru	крокодил гена	1
+soviet_cartoons	ru	38 попугаев	1
+@things_in_school_bag	Name something you keep in a school backpack	Назовите то, что носят в школьном рюкзаке
+things_in_school_bag	ru	пенал	1
+things_in_school_bag	ru	тетрадка	1
+things_in_school_bag	ru	учебник	1
+things_in_school_bag	ru	дневник	1
+things_in_school_bag	ru	линейка	1
+things_in_school_bag	ru	сменка	1
+things_in_school_bag	ru	ручка	1
+things_in_school_bag	ru	холодильник	0
+things_in_school_bag	ru	диван	0
+things_in_school_bag	ru	телевизор	0
+things_in_school_bag	ru	ластик	1
+things_in_school_bag	ru	бутер	1
+@russian_rappers	Name a Russian rapper	Назовите русского рэпера
+russian_rappers	ru	Моргенштерн	1
+russian_rappers	ru	Баста	1
+russian_rappers	ru	Oxxxymiron	1
+russian_rappers	ru	оксимирон	1
+russian_rappers	ru	Скриптонит	1
+russian_rappers	ru	Тимати	1
+russian_rappers	ru	Элджей	1
+russian_rappers	ru	Макан	1
+russian_rappers	ru	Пугачёва	0
+russian_rappers	ru	Киркоров	0
+russian_rappers	ru	Эминем	0
+russian_rappers	ru	Face	1
+@cat_breeds	Name a cat breed	Назовите породу кошек
+cat_breeds	ru	мейн кун	1
+cat_breeds	ru	сфинкс	1
+cat_breeds	ru	британец	1
+cat_breeds	ru	британская короткошёрстная	1
+cat_breeds	ru	шотландская вислоухая	1
+cat_breeds	ru	перс	1
+cat_breeds	ru	сиамская	1
+cat_breeds	ru	бенгал	1
+cat_breeds	ru	хаски	0
+cat_breeds	ru	пудель	0
+cat_breeds	ru	мопс	0
+cat_breeds	ru	корниш рекс	1
+@car_parts	Name a part of a car	Назовите деталь автомобиля
+car_parts	ru	руль	1
+car_parts	ru	бампер	1
+car_parts	ru	фара	1
+car_parts	ru	колесо	1
+car_parts	ru	движок	1
+car_parts	ru	коробка передач	1
+car_parts	ru	глушитель	1
+car_parts	ru	крыло	1
+car_parts	ru	штурвал	0
+car_parts	ru	парус	0
+car_parts	ru	пропеллер	0
+car_parts	ru	педаль газа	1
+@russian_holidays	Name a holiday celebrated in Russia	Назовите праздник, который отмечают в России
+russian_holidays	ru	новый год	1
+russian_holidays	ru	8 марта	1
+russian_holidays	ru	день победы	1
+russian_holidays	ru	масленица	1
+russian_holidays	ru	23 февраля	1
+russian_holidays	ru	рождество	1
+russian_holidays	ru	день космонавтики	1
+russian_holidays	ru	1 сентября	1
+russian_holidays	ru	день благодарения	0
+russian_holidays	ru	ханами	0
+russian_holidays	ru	день святого патрика	0
+@bakery_items	Name something sold in a bakery	Назовите то, что продают в пекарне
+bakery_items	ru	булочка	1
+bakery_items	ru	багет	1
+bakery_items	ru	круассан	1
+bakery_items	ru	батон	1
+bakery_items	ru	пирожок	1
+bakery_items	ru	бублик	1
+bakery_items	ru	сосиска в тесте	1
+bakery_items	ru	ватрушка	1
+bakery_items	ru	пельмени	0
+bakery_items	ru	шашлык	0
+bakery_items	ru	кекс	1
+@videogames	Name a video game	Назовите видеоигру
+videogames	ru	майнкрафт	1
+videogames	ru	дота	1
+videogames	ru	контра	1
+videogames	ru	кс го	1
+videogames	ru	гта	1
+videogames	ru	тетрис	1
+videogames	ru	сталкер	1
+videogames	ru	ведьмак	1
+videogames	ru	монополия	0
+videogames	ru	шахматы	0
+videogames	ru	фортнайт	1
+@kitchen_spices_ru	Name a seasoning used in Russian cooking	Назовите приправу, которую используют в русской кухне
+kitchen_spices_ru	ru	укроп	1
+kitchen_spices_ru	ru	перец	1
+kitchen_spices_ru	ru	лавровый лист	1
+kitchen_spices_ru	ru	хрен	1
+kitchen_spices_ru	ru	горчица	1
+kitchen_spices_ru	ru	чеснок	1
+kitchen_spices_ru	ru	петрушка	1
+kitchen_spices_ru	ru	соль	1
+kitchen_spices_ru	ru	мука	0
+kitchen_spices_ru	ru	рис	0
+kitchen_spices_ru	ru	аджика	1
+@things_at_the_beach	Name something you see at a beach	Назовите то, что можно увидеть на пляже
+things_at_the_beach	ru	песок	1
+things_at_the_beach	ru	зонтик	1
+things_at_the_beach	ru	шезлонг	1
+things_at_the_beach	ru	ракушка	1
+things_at_the_beach	ru	волна	1
+things_at_the_beach	ru	спасатель	1
+things_at_the_beach	ru	лежак	1
+things_at_the_beach	ru	надувной круг	1
+things_at_the_beach	ru	сугроб	0
+things_at_the_beach	ru	ёлка	0
+things_at_the_beach	ru	лыжи	0
+things_at_the_beach	ru	чайка	1
+@sea_names	Name a sea	Назовите море
+sea_names	ru	чёрное	1
+sea_names	ru	азовское	1
+sea_names	ru	балтийское	1
+sea_names	ru	средиземное	1
+sea_names	ru	каспийское	1
+sea_names	ru	красное	1
+sea_names	ru	японское	1
+sea_names	ru	баренцево	1
+sea_names	ru	байкал	0
+sea_names	ru	ладога	0
+sea_names	ru	нил	0
+sea_names	ru	охотское	1
+@superpowers	Name a superpower	Назовите суперспособность
+superpowers	ru	невидимость	1
+superpowers	ru	телепортация	1
+superpowers	ru	полёт	1
+superpowers	ru	телекинез	1
+superpowers	ru	чтение мыслей	1
+superpowers	ru	суперсила	1
+superpowers	ru	регенерация	1
+superpowers	ru	бессмертие	1
+superpowers	ru	готовка	0
+superpowers	ru	бег трусцой	0
+superpowers	ru	вождение	0
+superpowers	ru	путешествие во времени	1
+@office_items	Name something found in an office	Назовите то, что есть в офисе
+office_items	ru	принтер	1
+office_items	ru	степлер	1
+office_items	ru	кулер	1
+office_items	ru	скрепка	1
+office_items	ru	компьютер	1
+office_items	ru	бумага	1
+office_items	ru	кресло	1
+office_items	ru	маркерная доска	1
+office_items	ru	корова	0
+office_items	ru	трактор	0
+office_items	ru	банный веник	0
+office_items	ru	шредер	1
+@phone_apps	Name a smartphone app	Назовите приложение для смартфона
+phone_apps	ru	телеграм	1
+phone_apps	ru	тг	1
+phone_apps	ru	ватсап	1
+phone_apps	ru	вк	1
+phone_apps	ru	ютуб	1
+phone_apps	ru	тикток	1
+phone_apps	ru	инста	1
+phone_apps	ru	яндекс такси	1
+phone_apps	ru	ворд 2003	0
+phone_apps	ru	калькулятор	1
+phone_apps	ru	госуслуги	1
+phone_apps	ru	авито	1
+@fears_kids	Name something children are often afraid of	Назовите то, чего часто боятся дети
+fears_kids	ru	темнота	1
+fears_kids	ru	монстр под кроватью	1
+fears_kids	ru	бабайка	1
+fears_kids	ru	врач	1
+fears_kids	ru	укол	1
+fears_kids	ru	пауки	1
+fears_kids	ru	собаки	1
+fears_kids	ru	гроза	1
+fears_kids	ru	конфеты	0
+fears_kids	ru	мультики	0
+fears_kids	ru	каникулы	0
+fears_kids	ru	клоуны	1
+@hair_colors	Name a hair color	Назовите цвет волос
+hair_colors	ru	блонд	1
+hair_colors	ru	брюнет	1
+hair_colors	ru	рыжий	1
+hair_colors	ru	русый	1
+hair_colors	ru	шатен	1
+hair_colors	ru	седой	1
+hair_colors	ru	пепельный	1
+hair_colors	ru	платиновый	1
+hair_colors	ru	зелёный	1
+hair_colors	ru	квадратный	0
+hair_colors	ru	громкий	0
+hair_colors	ru	тёплый	0
+@footballers	Name a famous footballer	Назовите известного футболиста
+footballers	ru	месси	1
+footballers	ru	роналду	1
+footballers	ru	пеле	1
+footballers	ru	марадона	1
+footballers	ru	аршавин	1
+footballers	ru	акинфеев	1
+footballers	ru	мбаппе	1
+footballers	ru	неймар	1
+footballers	ru	овечкин	0
+footballers	ru	федерер	0
+footballers	ru	тайсон	0
+footballers	ru	холанд	1
+@st_petersburg_sights	Name a sight of Saint Petersburg	Назовите достопримечательность Санкт Петербурга
+st_petersburg_sights	ru	эрмитаж	1
+st_petersburg_sights	ru	исаакиевский собор	1
+st_petersburg_sights	ru	петропавловская крепость	1
+st_petersburg_sights	ru	невский проспект	1
+st_petersburg_sights	ru	спас на крови	1
+st_petersburg_sights	ru	разводные мосты	1
+st_petersburg_sights	ru	петергоф	1
+st_petersburg_sights	ru	медный всадник	1
+st_petersburg_sights	ru	красная площадь	0
+st_petersburg_sights	ru	кремль	0
+st_petersburg_sights	ru	эйфелева башня	0
+st_petersburg_sights	ru	аврора	1
+@russian_writers	Name a Russian writer	Назовите русского писателя
+russian_writers	ru	пушкин	1
+russian_writers	ru	толстой	1
+russian_writers	ru	достоевский	1
+russian_writers	ru	чехов	1
+russian_writers	ru	гоголь	1
+russian_writers	ru	булгаков	1
+russian_writers	ru	тургенев	1
+russian_writers	ru	лермонтов	1
+russian_writers	ru	шекспир	0
+russian_writers	ru	гюго	0
+russian_writers	ru	кинг	0
+russian_writers	ru	пелевин	1
+@drinks_hot	Name a hot drink	Назовите горячий напиток
+drinks_hot	ru	чай	1
+drinks_hot	ru	кофе	1
+drinks_hot	ru	какао	1
+drinks_hot	ru	глинтвейн	1
+drinks_hot	ru	сбитень	1
+drinks_hot	ru	капучино	1
+drinks_hot	ru	латте	1
+drinks_hot	ru	горячий шоколад	1
+drinks_hot	ru	квас	0
+drinks_hot	ru	кола	0
+drinks_hot	ru	морс холодный	0
+drinks_hot	ru	грог	1
+@animals_siberia	Name an animal that lives in Siberia	Назовите животное, которое живёт в Сибири
+animals_siberia	ru	соболь	1
+animals_siberia	ru	бурый медведь	1
+animals_siberia	ru	лось	1
+animals_siberia	ru	росомаха	1
+animals_siberia	ru	рысь	1
+animals_siberia	ru	белка	1
+animals_siberia	ru	амурский тигр	1
+animals_siberia	ru	северный олень	1
+animals_siberia	ru	кенгуру	0
+animals_siberia	ru	жираф	0
+animals_siberia	ru	пингвин	0
+animals_siberia	ru	бурундук	1
+@school_subjects	Name a school subject	Назовите школьный предмет
+school_subjects	ru	математика	1
+school_subjects	ru	матеша	1
+school_subjects	ru	физра	1
+school_subjects	ru	русский язык	1
+school_subjects	ru	литра	1
+school_subjects	ru	история	1
+school_subjects	ru	химия	1
+school_subjects	ru	информатика	1
+school_subjects	ru	обж	1
+school_subjects	ru	кулинария вуза	0
+school_subjects	ru	маникюр	0
+school_subjects	ru	йога	0

@@ -14,12 +14,15 @@ import java.util.*;
 public final class AiJudgeEvaluation {
     record Case(String category,String lang,String answer,boolean valid){}
     /** Labelled cases from /think_or_die/ai_eval.tsv (category, lang, answer, 1 or 0). */
+    /** "@id<TAB>English question<TAB>Russian question[<TAB>criteria]": a category that is not in the pack (no lists), to test unseen questions. */
+    static final Map<String,Category> EXTRA=new LinkedHashMap<>();
     static final List<Case> CASES=load();
     static List<Case> load(){
         try(var in=AiJudgeEvaluation.class.getResourceAsStream(System.getProperty("ai.set","/think_or_die/ai_eval.tsv"))){
             List<Case> out=new ArrayList<>();
             for(String line:new String(in.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8).split("\\R")){
                 if(line.isBlank()||line.startsWith("#"))continue;String[] f=line.split("\t");
+                if(line.startsWith("@")){EXTRA.put(f[0].substring(1),new Category(f[0].substring(1),1,Category.Type.KNOWLEDGE,"unseen",f[1],f[2],f.length>3?f[3]:null,null,null,List.of(),List.of(),true,false));continue;}
                 out.add(new Case(f[0],f[1],f[2],f[3].trim().equals("1")));}
             return out;
         }catch(Exception e){throw new IllegalStateException("ai_eval.tsv unreadable",e);}
@@ -32,7 +35,7 @@ public final class AiJudgeEvaluation {
         if(Boolean.getBoolean("ai.engine")){engineMode(judge,pack);return;}
         int fa=0,fr=0,unc=0,ok=0;long worst=0,total=0;
         Map<String,List<Case>> by=new LinkedHashMap<>();for(Case c:CASES){String k0=c.category()+"|"+c.lang();int part=0;while(by.getOrDefault(k0+"|"+part,List.of()).size()>=Integer.getInteger("ai.batch",12))part++;by.computeIfAbsent(k0+"|"+part,k->new ArrayList<>()).add(c);} // round-sized batches
-        for(var e:by.entrySet()){var cs=e.getValue();Category cat=pack.get(cs.get(0).category());
+        for(var e:by.entrySet()){var cs=e.getValue();Category cat=pack.get(cs.get(0).category());if(cat==null)cat=EXTRA.get(cs.get(0).category());
             List<AiJudge.Item> items=new ArrayList<>();for(int i=0;i<cs.size();i++)items.add(new AiJudge.Item("a"+i,cs.get(i).answer()));
             long t0=System.nanoTime();var res=judge.judge(cat,cs.get(0).lang(),items,new ArrayList<>(new VerifiedAnswers().canonicalIds(cat)));long ms=(System.nanoTime()-t0)/1_000_000;
             worst=Math.max(worst,ms);total+=ms;
@@ -50,7 +53,7 @@ public final class AiJudgeEvaluation {
     static void engineMode(LlamaCppJudge judge,CategoryPack pack) throws Exception{
         judge.tune(4,120_000);var engine=new ValidationEngine(new WordDictionary(),ValidationCache.NONE,judge);
         int ok=0,fa=0,fr=0,byList=0,byAi=0;
-        for(Case c:CASES){Category cat=pack.get(c.category());AnswerInput in=AnswerInput.of(c.answer());
+        for(Case c:CASES){Category cat=pack.get(c.category());if(cat==null)cat=EXTRA.get(c.category());AnswerInput in=AnswerInput.of(c.answer());
             Verdict v=in==null?Verdict.invalid(Verdict.Source.KNOWN_INVALID):engine.validate(cat,in);
             if(v.status()==ValidationStatus.PENDING){byAi++;v=engine.judgeLater(cat,c.lang(),in).get(60,java.util.concurrent.TimeUnit.SECONDS);}else byList++;
             boolean valid=v.status()==ValidationStatus.VALID;
