@@ -1,0 +1,733 @@
+# round 13: lists 6 and 7, Russian first, written before tuning
+words_two_k_ru	ru	кукла	1
+words_two_k_ru	ru	каникулы	1
+words_two_k_ru	ru	кошка	1
+words_two_k_ru	ru	дом	0
+words_two_k_ru	ru	кубик	1
+words_two_k_ru	ru	окно	0
+words_zh_and_a_ru	ru	жара	1
+words_zh_and_a_ru	ru	ржавчина	1
+words_zh_and_a_ru	ru	жаба	1
+words_zh_and_a_ru	ru	жук	0
+words_zh_and_a_ru	ru	дождь	0
+words_zh_and_a_ru	ru	кража	1
+words_note_start_ru	ru	дом	1
+words_note_start_ru	ru	река	1
+words_note_start_ru	ru	мир	1
+words_note_start_ru	ru	кот	0
+words_note_start_ru	ru	соль	1
+words_note_start_ru	ru	лягушка	1
+words_ending_ment_ru	ru	момент	1
+words_ending_ment_ru	ru	документ	1
+words_ending_ment_ru	ru	цемент	1
+words_ending_ment_ru	ru	мента	0
+words_ending_ment_ru	ru	инструмент	1
+words_ending_ment_ru	ru	комплимент	1
+nouns_d_to_o_ru	ru	дерево	1
+nouns_d_to_o_ru	ru	дело	1
+nouns_d_to_o_ru	ru	дупло	1
+nouns_d_to_o_ru	ru	дом	0
+nouns_d_to_o_ru	ru	добро	1
+nouns_d_to_o_ru	ru	долото	1
+word_containing_body_part_ru	ru	носорог	1
+word_containing_body_part_ru	ru	глазунья	1
+word_containing_body_part_ru	ru	рукавица	1
+word_containing_body_part_ru	ru	стол	0
+word_containing_body_part_ru	ru	головоломка	1
+word_containing_body_part_ru	ru	ротозей	1
+tiny_things	ru	атом	1
+tiny_things	ru	песчинка	1
+tiny_things	ru	муравей	1
+tiny_things	ru	слон	0
+tiny_things	ru	бактерия	1
+tiny_things	ru	кит	0
+war_films	ru	спасти рядового райана	1
+war_films	ru	а зори здесь тихие	1
+war_films	ru	9 рота	1
+war_films	ru	титаник	0
+war_films	ru	т 34	1
+war_films	ru	шрек	0
+treasure_hunt_films	ru	остров сокровищ	1
+treasure_hunt_films	ru	сокровище нации	1
+treasure_hunt_films	ru	индиана джонс	1
+treasure_hunt_films	ru	титаник	0
+treasure_hunt_films	ru	балбесы	1
+treasure_hunt_films	ru	шрек	0
+giant_creature_films	ru	кинг конг	1
+giant_creature_films	ru	годзилла	1
+giant_creature_films	ru	тихоокеанский рубеж	1
+giant_creature_films	ru	один дома	0
+giant_creature_films	ru	челюсти	1
+giant_creature_films	ru	ноттинг хилл	0
+unusual_abilities_films	ru	матильда	1
+unusual_abilities_films	ru	люси	1
+unusual_abilities_films	ru	человек паук	1
+unusual_abilities_films	ru	титаник	0
+unusual_abilities_films	ru	день сурка	1
+unusual_abilities_films	ru	крёстный отец	0
+competition_films	ru	рокки	1
+competition_films	ru	голодные игры	1
+competition_films	ru	легенда 17	1
+competition_films	ru	титаник	0
+competition_films	ru	тачки	1
+competition_films	ru	аватар	0
+school_university_films	ru	гарри поттер	1
+school_university_films	ru	дрянные девчонки	1
+school_university_films	ru	чучело	1
+school_university_films	ru	титаник	0
+school_university_films	ru	школа рока	1
+school_university_films	ru	аватар	0
+save_the_world_films	ru	армагеддон	1
+save_the_world_films	ru	мстители финал	1
+save_the_world_films	ru	пятый элемент	1
+save_the_world_films	ru	ноттинг хилл	0
+save_the_world_films	ru	день независимости	1
+save_the_world_films	ru	один дома	0
+police_series	ru	улицы разбитых фонарей	1
+police_series	ru	глухарь	1
+police_series	ru	бруклин 9 9	1
+police_series	ru	друзья	0
+police_series	ru	настоящий детектив	1
+police_series	ru	универ	0
+desert_countries	ru	египет	1
+desert_countries	ru	монголия	1
+desert_countries	ru	казахстан	1
+desert_countries	ru	япония	0
+desert_countries	ru	австралия	1
+desert_countries	ru	финляндия	0
+island_cities	ru	токио	1
+island_cities	ru	лондон	1
+island_cities	ru	сингапур	1
+island_cities	ru	москва	0
+island_cities	ru	гавана	1
+island_cities	ru	париж	0
+countries_two_n_ru	ru	аргентина	1
+countries_two_n_ru	ru	финляндия	1
+countries_two_n_ru	ru	индонезия	1
+countries_two_n_ru	ru	россия	0
+countries_two_n_ru	ru	нидерланды	1
+countries_two_n_ru	ru	ливан	0
+european_non_capitals	ru	барселона	1
+european_non_capitals	ru	милан	1
+european_non_capitals	ru	питер	1
+european_non_capitals	ru	москва	0
+european_non_capitals	ru	мюнхен	1
+european_non_capitals	ru	париж	0
+volcano_countries	ru	япония	1
+volcano_countries	ru	исландия	1
+volcano_countries	ru	италия	1
+volcano_countries	ru	финляндия	0
+volcano_countries	ru	индонезия	1
+volcano_countries	ru	беларусь	0
+multilingual_countries	ru	швейцария	1
+multilingual_countries	ru	канада	1
+multilingual_countries	ru	бельгия	1
+multilingual_countries	ru	япония	0
+multilingual_countries	ru	индия	1
+multilingual_countries	ru	польша	0
+cities_starting_s_ru	ru	самара	1
+cities_starting_s_ru	ru	сочи	1
+cities_starting_s_ru	ru	сеул	1
+cities_starting_s_ru	ru	москва	0
+cities_starting_s_ru	ru	сидней	1
+cities_starting_s_ru	ru	казань	0
+flag_yellow	ru	германия	1
+flag_yellow	ru	украина	1
+flag_yellow	ru	бразилия	1
+flag_yellow	ru	россия	0
+flag_yellow	ru	швеция	1
+flag_yellow	ru	франция	0
+lakes_outside_europe	ru	байкал	1
+lakes_outside_europe	ru	виктория	1
+lakes_outside_europe	ru	титикака	1
+lakes_outside_europe	ru	ладога	0
+lakes_outside_europe	ru	иссык куль	1
+lakes_outside_europe	ru	женевское	0
+redhead_characters	ru	ариэль	1
+redhead_characters	ru	рон уизли	1
+redhead_characters	ru	пеппи	1
+redhead_characters	ru	белоснежка	0
+redhead_characters	ru	мерида	1
+redhead_characters	ru	эльза	0
+ship_captains	ru	джек воробей	1
+ship_captains	ru	капитан крюк	1
+ship_captains	ru	капитан немо	1
+ship_captains	ru	капитан америка	0
+ship_captains	ru	капитан врунгель	1
+ship_captains	ru	капитан марвел	0
+cape_characters	ru	супермен	1
+cape_characters	ru	бэтмен	1
+cape_characters	ru	дракула	1
+cape_characters	ru	халк	0
+cape_characters	ru	зорро	1
+cape_characters	ru	человек паук	0
+royal_characters	ru	симба	1
+royal_characters	ru	эльза	1
+royal_characters	ru	арагорн	1
+royal_characters	ru	шрек	0
+royal_characters	ru	жасмин	1
+royal_characters	ru	бэтмен	0
+regeneration_characters	ru	росомаха	1
+regeneration_characters	ru	дэдпул	1
+regeneration_characters	ru	доктор кто	1
+regeneration_characters	ru	бэтмен	0
+regeneration_characters	ru	грут	1
+regeneration_characters	ru	гарри поттер	0
+musician_characters	ru	трубадур	1
+musician_characters	ru	лютик	1
+musician_characters	ru	сквидвард	1
+musician_characters	ru	бэтмен	0
+musician_characters	ru	мигель	1
+musician_characters	ru	халк	0
+winged_characters	ru	динь динь	1
+winged_characters	ru	сокол	1
+winged_characters	ru	малефисента	1
+winged_characters	ru	бэтмен	0
+winged_characters	ru	беззубик	1
+winged_characters	ru	питер пэн	0
+talking_animal_characters	ru	винни пух	1
+talking_animal_characters	ru	матроскин	1
+talking_animal_characters	ru	осёл	1
+talking_animal_characters	ru	маугли	0
+talking_animal_characters	ru	симба	1
+talking_animal_characters	ru	тарзан	0
+shield_characters	ru	капитан америка	1
+shield_characters	ru	чудо женщина	1
+shield_characters	ru	леонид	1
+shield_characters	ru	бэтмен	0
+shield_characters	ru	линк	1
+shield_characters	ru	супермен	0
+breakfast_dishes	ru	каша	1
+breakfast_dishes	ru	омлет	1
+breakfast_dishes	ru	сырники	1
+breakfast_dishes	ru	борщ	0
+breakfast_dishes	ru	хлопья	1
+breakfast_dishes	ru	шашлык	0
+jam_ingredients	ru	клубника	1
+jam_ingredients	ru	малина	1
+jam_ingredients	ru	шишки	1
+jam_ingredients	ru	мясо	0
+jam_ingredients	ru	абрикос	1
+jam_ingredients	ru	хлеб	0
+bread_types	ru	багет	1
+bread_types	ru	бородинский	1
+bread_types	ru	лаваш	1
+bread_types	ru	пицца	0
+bread_types	ru	чиабатта	1
+bread_types	ru	торт	0
+heat_changes_shape	ru	свеча	1
+heat_changes_shape	ru	шоколад	1
+heat_changes_shape	ru	лёд	1
+heat_changes_shape	ru	камень	0
+heat_changes_shape	ru	пластиковая бутылка	1
+heat_changes_shape	ru	кирпич	0
+flat_pack_items	ru	шкаф	1
+flat_pack_items	ru	мебель из икеи	1
+flat_pack_items	ru	конструктор	1
+flat_pack_items	ru	яблоко	0
+flat_pack_items	ru	стол	1
+flat_pack_items	ru	молоко	0
+open_once_items	ru	яйцо	1
+open_once_items	ru	консервная банка	1
+open_once_items	ru	конверт	1
+open_once_items	ru	дверь	0
+open_once_items	ru	банка газировки	1
+open_once_items	ru	шкаф	0
+layered_things	ru	торт	1
+layered_things	ru	лук	1
+layered_things	ru	лазанья	1
+layered_things	ru	ложка	0
+layered_things	ru	фанера	1
+layered_things	ru	стакан	0
+hollow_hard_things	ru	яичная скорлупа	1
+hollow_hard_things	ru	мяч	1
+hollow_hard_things	ru	бамбук	1
+hollow_hard_things	ru	кирпич	0
+hollow_hard_things	ru	колокол	1
+hollow_hard_things	ru	гиря	0
+symmetric_things	ru	мяч	1
+symmetric_things	ru	очки	1
+symmetric_things	ru	самолёт	1
+symmetric_things	ru	облако	0
+symmetric_things	ru	ножницы	1
+symmetric_things	ru	лужа	0
+lidded_non_dishes	ru	пианино	1
+lidded_non_dishes	ru	ноутбук	1
+lidded_non_dishes	ru	унитаз	1
+lidded_non_dishes	ru	кастрюля	0
+lidded_non_dishes	ru	сундук	1
+lidded_non_dishes	ru	чашка	0
+words_starting_with_animal_ru	ru	котлета	1
+words_starting_with_animal_ru	ru	ракета	1
+words_starting_with_animal_ru	ru	лосьон	1
+words_starting_with_animal_ru	ru	стол	0
+words_starting_with_animal_ru	ru	осанка	1
+words_starting_with_animal_ru	ru	котёнок	0
+words_with_dzh_ru	ru	джинсы	1
+words_with_dzh_ru	ru	джем	1
+words_with_dzh_ru	ru	поджог	1
+words_with_dzh_ru	ru	дом	0
+words_with_dzh_ru	ru	джунгли	1
+words_with_dzh_ru	ru	окно	0
+words_kh_and_o_ru	ru	хорошо	1
+words_kh_and_o_ru	ru	холод	1
+words_kh_and_o_ru	ru	ход	1
+words_kh_and_o_ru	ru	хлеб	0
+words_kh_and_o_ru	ru	муха	0
+words_kh_and_o_ru	ru	охота	1
+words_consonant_three_times_ru	ru	ссср	0
+words_consonant_three_times_ru	ru	касса	0
+words_consonant_three_times_ru	ru	стрессовость	1
+words_consonant_three_times_ru	ru	молоко	0
+words_consonant_three_times_ru	ru	кукушка	1
+words_consonant_three_times_ru	ru	сосиска	1
+words_starting_mikro_ru	ru	микроскоп	1
+words_starting_mikro_ru	ru	микроволновка	1
+words_starting_mikro_ru	ru	микрофон	1
+words_starting_mikro_ru	ru	макро	0
+words_starting_mikro_ru	ru	микроб	1
+words_starting_mikro_ru	ru	мир	0
+words_with_au_ru	ru	паук	1
+words_with_au_ru	ru	наука	1
+words_with_au_ru	ru	пауза	1
+words_with_au_ru	ru	пук	0
+words_with_au_ru	ru	аудио	1
+words_with_au_ru	ru	паутина	1
+words_z_to_k_ru	ru	замок	1
+words_z_to_k_ru	ru	звонок	1
+words_z_to_k_ru	ru	значок	1
+words_z_to_k_ru	ru	зонт	0
+words_z_to_k_ru	ru	зверёк	1
+words_z_to_k_ru	ru	кот	0
+words_double_consonant_ru	ru	касса	1
+words_double_consonant_ru	ru	группа	1
+words_double_consonant_ru	ru	класс	1
+words_double_consonant_ru	ru	мама	0
+words_double_consonant_ru	ru	длинношеее	1
+words_double_consonant_ru	ru	ванна	1
+nouns_ending_ar_ru	ru	словарь	1
+nouns_ending_ar_ru	ru	пекарь	1
+nouns_ending_ar_ru	ru	фонарь	1
+nouns_ending_ar_ru	ru	сухарь	1
+nouns_ending_ar_ru	ru	стол	0
+nouns_ending_ar_ru	ru	январь	1
+multi_actor_characters	ru	джеймс бонд	1
+multi_actor_characters	ru	бэтмен	1
+multi_actor_characters	ru	шерлок холмс	1
+multi_actor_characters	ru	шрек	0
+multi_actor_characters	ru	человек паук	1
+multi_actor_characters	ru	голлум	0
+artifact_films	ru	властелин колец	1
+artifact_films	ru	джуманджи	1
+artifact_films	ru	маска	1
+artifact_films	ru	титаник	0
+artifact_films	ru	индиана джонс	1
+artifact_films	ru	один дома	0
+secret_identity_characters	ru	бэтмен	1
+secret_identity_characters	ru	супермен	1
+secret_identity_characters	ru	зорро	1
+secret_identity_characters	ru	гарри поттер	0
+secret_identity_characters	ru	мулан	1
+secret_identity_characters	ru	шрек	0
+profession_title_films	ru	таксист	1
+profession_title_films	ru	пианист	1
+profession_title_films	ru	гладиатор	1
+profession_title_films	ru	титаник	0
+profession_title_films	ru	телохранитель	1
+profession_title_films	ru	аватар	0
+crossover_game_characters	ru	марио	1
+crossover_game_characters	ru	соник	1
+crossover_game_characters	ru	пикачу	1
+crossover_game_characters	ru	шрек	0
+crossover_game_characters	ru	кратос	1
+crossover_game_characters	ru	фродо	0
+underwater_animated_films	ru	в поисках немо	1
+underwater_animated_films	ru	русалочка	1
+underwater_animated_films	ru	подводная братва	1
+underwater_animated_films	ru	шрек	0
+underwater_animated_films	ru	рыбка поньо	1
+underwater_animated_films	ru	король лев	0
+supernatural_series	ru	сверхъестественное	1
+supernatural_series	ru	дневники вампира	1
+supernatural_series	ru	уэнсдэй	1
+supernatural_series	ru	друзья	0
+supernatural_series	ru	очень странные дела	1
+supernatural_series	ru	универ	0
+mentor_characters	ru	дамблдор	1
+mentor_characters	ru	йода	1
+mentor_characters	ru	гэндальф	1
+mentor_characters	ru	гарри поттер	0
+mentor_characters	ru	мастер шифу	1
+mentor_characters	ru	фродо	0
+films_with_animated_adaptation	ru	охотники за привидениями	1
+films_with_animated_adaptation	ru	люди в чёрном	1
+films_with_animated_adaptation	ru	джуманджи	1
+films_with_animated_adaptation	ru	шрек	0
+films_with_animated_adaptation	ru	звёздные войны	1
+films_with_animated_adaptation	ru	холодное сердце	0
+ocean_floor_things	ru	песок	1
+ocean_floor_things	ru	кораллы	1
+ocean_floor_things	ru	затонувший корабль	1
+ocean_floor_things	ru	облака	0
+ocean_floor_things	ru	ракушки	1
+ocean_floor_things	ru	самолёт в небе	0
+ancient_natural_objects	ru	гора	1
+ancient_natural_objects	ru	ледник	1
+ancient_natural_objects	ru	секвойя	1
+ancient_natural_objects	ru	бабочка	0
+ancient_natural_objects	ru	пещера	1
+ancient_natural_objects	ru	снеговик	0
+natural_cosmetic_ingredients	ru	алоэ	1
+natural_cosmetic_ingredients	ru	мёд	1
+natural_cosmetic_ingredients	ru	глина	1
+natural_cosmetic_ingredients	ru	бензин	0
+natural_cosmetic_ingredients	ru	кокосовое масло	1
+natural_cosmetic_ingredients	ru	пластик	0
+naked_eye_sky_objects	ru	луна	1
+naked_eye_sky_objects	ru	венера	1
+naked_eye_sky_objects	ru	млечный путь	1
+naked_eye_sky_objects	ru	нептун	0
+naked_eye_sky_objects	ru	мкс	1
+naked_eye_sky_objects	ru	плутон	0
+cave_things	ru	сталактиты	1
+cave_things	ru	летучие мыши	1
+cave_things	ru	подземное озеро	1
+cave_things	ru	жираф	0
+cave_things	ru	наскальные рисунки	1
+cave_things	ru	телевизор	0
+floating_natural_materials	ru	дерево	1
+floating_natural_materials	ru	пробка	1
+floating_natural_materials	ru	пемза	1
+floating_natural_materials	ru	гранит	0
+floating_natural_materials	ru	лёд	1
+floating_natural_materials	ru	железо	0
+loud_natural_phenomena	ru	гроза	1
+loud_natural_phenomena	ru	извержение вулкана	1
+loud_natural_phenomena	ru	водопад	1
+loud_natural_phenomena	ru	снегопад	0
+loud_natural_phenomena	ru	лавина	1
+loud_natural_phenomena	ru	туман	0
+seasonal_size_objects	ru	река	1
+seasonal_size_objects	ru	ледник	1
+seasonal_size_objects	ru	сугроб	1
+seasonal_size_objects	ru	гора	0
+seasonal_size_objects	ru	лужа	1
+seasonal_size_objects	ru	камень	0
+after_storm_beach	ru	водоросли	1
+after_storm_beach	ru	ракушки	1
+after_storm_beach	ru	янтарь	1
+after_storm_beach	ru	снег	0
+after_storm_beach	ru	медузы	1
+after_storm_beach	ru	кактус	0
+chocolate_fillings	ru	пралине	1
+chocolate_fillings	ru	орехи	1
+chocolate_fillings	ru	карамель	1
+chocolate_fillings	ru	колбаса	0
+chocolate_fillings	ru	нуга	1
+chocolate_fillings	ru	огурец	0
+shelled_foods	ru	яйцо	1
+shelled_foods	ru	грецкий орех	1
+shelled_foods	ru	фисташки	1
+shelled_foods	ru	яблоко	0
+shelled_foods	ru	креветки	1
+shelled_foods	ru	хлеб	0
+long_oven_dishes	ru	утка с яблоками	1
+long_oven_dishes	ru	буженина	1
+long_oven_dishes	ru	лазанья	1
+long_oven_dishes	ru	окрошка	0
+long_oven_dishes	ru	мясо в горшочках	1
+long_oven_dishes	ru	салат	0
+drinks_with_fruit_pieces	ru	сангрия	1
+drinks_with_fruit_pieces	ru	компот	1
+drinks_with_fruit_pieces	ru	смузи	1
+drinks_with_fruit_pieces	ru	водка	0
+drinks_with_fruit_pieces	ru	мохито	1
+drinks_with_fruit_pieces	ru	молоко	0
+festive_table_dishes	ru	оливье	1
+festive_table_dishes	ru	селёдка под шубой	1
+festive_table_dishes	ru	холодец	1
+festive_table_dishes	ru	доширак	0
+festive_table_dishes	ru	мандарины	1
+festive_table_dishes	ru	гречка	0
+sugar_substitutes	ru	мёд	1
+sugar_substitutes	ru	стевия	1
+sugar_substitutes	ru	кленовый сироп	1
+sugar_substitutes	ru	соль	0
+sugar_substitutes	ru	финики	1
+sugar_substitutes	ru	уксус	0
+fish_dishes	ru	уха	1
+fish_dishes	ru	суши	1
+fish_dishes	ru	селёдка под шубой	1
+fish_dishes	ru	борщ	0
+fish_dishes	ru	фиш энд чипс	1
+fish_dishes	ru	пельмени	0
+flake_foods	ru	овсяные хлопья	1
+flake_foods	ru	кукурузные хлопья	1
+flake_foods	ru	геркулес	1
+flake_foods	ru	рис	0
+flake_foods	ru	мюсли	1
+flake_foods	ru	макароны	0
+airport_namesakes	ru	пушкин	1
+airport_namesakes	ru	джон кеннеди	1
+airport_namesakes	ru	шарль де голль	1
+airport_namesakes	ru	гарри поттер	0
+airport_namesakes	ru	ломоносов	1
+airport_namesakes	ru	шрек	0
+monuments_of_people	ru	медный всадник	1
+monuments_of_people	ru	родина мать	1
+monuments_of_people	ru	статуя свободы	1
+monuments_of_people	ru	эйфелева башня	0
+monuments_of_people	ru	минин и пожарский	1
+monuments_of_people	ru	биг бен	0
+historic_money	ru	ракушки	1
+historic_money	ru	соль	1
+historic_money	ru	меха	1
+historic_money	ru	смартфон	0
+historic_money	ru	какао бобы	1
+historic_money	ru	бумага а4	0
+ancient_surviving_structures	ru	пирамиды гизы	1
+ancient_surviving_structures	ru	колизей	1
+ancient_surviving_structures	ru	стоунхендж	1
+ancient_surviving_structures	ru	бурдж халифа	0
+ancient_surviving_structures	ru	парфенон	1
+ancient_surviving_structures	ru	эйфелева башня	0
+costume_holidays	ru	хэллоуин	1
+costume_holidays	ru	карнавал	1
+costume_holidays	ru	масленица	1
+costume_holidays	ru	день знаний	0
+costume_holidays	ru	новый год	1
+costume_holidays	ru	день учителя	0
+eponym_people	ru	менделеев	1
+eponym_people	ru	ньютон	1
+eponym_people	ru	колумб	1
+eponym_people	ru	шрек	0
+eponym_people	ru	беринг	1
+eponym_people	ru	гарри поттер	0
+destructible_buildings_games	ru	майнкрафт	1
+destructible_buildings_games	ru	батлфилд	1
+destructible_buildings_games	ru	rainbow six	1
+destructible_buildings_games	ru	тетрис	0
+destructible_buildings_games	ru	teardown	1
+destructible_buildings_games	ru	шахматы	0
+silent_game_characters	ru	гордон фримен	1
+silent_game_characters	ru	линк	1
+silent_game_characters	ru	стив	1
+silent_game_characters	ru	кратос	0
+silent_game_characters	ru	челл	1
+silent_game_characters	ru	джоэл	0
+army_control_games	ru	старкрафт	1
+army_control_games	ru	варкрафт	1
+army_control_games	ru	тотал вар	1
+army_control_games	ru	тетрис	0
+army_control_games	ru	герои	1
+army_control_games	ru	майнкрафт	0
+reputation_system_games	ru	фоллаут нью вегас	1
+reputation_system_games	ru	ред дед редемпшн	1
+reputation_system_games	ru	масс эффект	1
+reputation_system_games	ru	тетрис	0
+reputation_system_games	ru	сталкер	1
+reputation_system_games	ru	flappy bird	0
+weather_gameplay_games	ru	зельда	1
+weather_gameplay_games	ru	ред дед 2	1
+weather_gameplay_games	ru	the long dark	1
+weather_gameplay_games	ru	тетрис	0
+weather_gameplay_games	ru	frostpunk	1
+weather_gameplay_games	ru	шахматы	0
+cooking_games	ru	overcooked	1
+cooking_games	ru	симс	1
+cooking_games	ru	stardew valley	1
+cooking_games	ru	тетрис	0
+cooking_games	ru	cooking mama	1
+cooking_games	ru	doom	0
+procedural_games	ru	майнкрафт	1
+procedural_games	ru	террария	1
+procedural_games	ru	no man's sky	1
+procedural_games	ru	тетрис	0
+procedural_games	ru	spelunky	1
+procedural_games	ru	ведьмак 3	0
+big_game_franchises	ru	марио	1
+big_game_franchises	ru	call of duty	1
+big_game_franchises	ru	гта	1
+big_game_franchises	ru	among us	0
+big_game_franchises	ru	assassin's creed	1
+big_game_franchises	ru	портал	0
+gravity_games	ru	gravity rush	1
+gravity_games	ru	vvvvvv	1
+gravity_games	ru	super mario galaxy	1
+gravity_games	ru	тетрис	0
+gravity_games	ru	control	1
+gravity_games	ru	fifa	0
+death_mechanic_games	ru	dark souls	1
+death_mechanic_games	ru	hades	1
+death_mechanic_games	ru	returnal	1
+death_mechanic_games	ru	тетрис	0
+death_mechanic_games	ru	dead cells	1
+death_mechanic_games	ru	симс	0
+night_shift_professions	ru	охранник	1
+night_shift_professions	ru	медсестра	1
+night_shift_professions	ru	таксист	1
+night_shift_professions	ru	учитель	0
+night_shift_professions	ru	пекарь	1
+night_shift_professions	ru	бухгалтер	0
+ship_professions	ru	капитан	1
+ship_professions	ru	боцман	1
+ship_professions	ru	кок	1
+ship_professions	ru	шахтёр	0
+ship_professions	ru	штурман	1
+ship_professions	ru	пилот	0
+color_sensitive_professions	ru	художник	1
+color_sensitive_professions	ru	дизайнер	1
+color_sensitive_professions	ru	визажист	1
+color_sensitive_professions	ru	бухгалтер	0
+color_sensitive_professions	ru	колорист	1
+color_sensitive_professions	ru	сторож	0
+precious_metal_professions	ru	ювелир	1
+precious_metal_professions	ru	гравёр	1
+precious_metal_professions	ru	часовщик	1
+precious_metal_professions	ru	сантехник	0
+precious_metal_professions	ru	пробирщик	1
+precious_metal_professions	ru	таксист	0
+public_performer_professions	ru	актёр	1
+public_performer_professions	ru	певец	1
+public_performer_professions	ru	комик	1
+public_performer_professions	ru	бухгалтер	0
+public_performer_professions	ru	фокусник	1
+public_performer_professions	ru	программист	0
+microscope_professions	ru	биолог	1
+microscope_professions	ru	лаборант	1
+microscope_professions	ru	криминалист	1
+microscope_professions	ru	повар	0
+microscope_professions	ru	микробиолог	1
+microscope_professions	ru	водитель	0
+vehicle_design_professions	ru	авиаконструктор	1
+vehicle_design_professions	ru	автодизайнер	1
+vehicle_design_professions	ru	кораблестроитель	1
+vehicle_design_professions	ru	пекарь	0
+vehicle_design_professions	ru	инженер конструктор	1
+vehicle_design_professions	ru	повар	0
+zoo_professions	ru	смотритель	1
+zoo_professions	ru	ветеринар	1
+zoo_professions	ru	дрессировщик	1
+zoo_professions	ru	шахтёр	0
+zoo_professions	ru	зоолог	1
+zoo_professions	ru	пилот	0
+restorer_professions	ru	реставратор	1
+restorer_professions	ru	переплётчик	1
+restorer_professions	ru	часовщик	1
+restorer_professions	ru	космонавт	0
+restorer_professions	ru	антиквар	1
+restorer_professions	ru	таксист	0
+snow_vehicles	ru	снегоход	1
+snow_vehicles	ru	сани	1
+snow_vehicles	ru	нарты	1
+snow_vehicles	ru	велосипед	0
+snow_vehicles	ru	ратрак	1
+snow_vehicles	ru	самокат	0
+place_named_companies	ru	нокиа	1
+place_named_companies	ru	амазон	1
+place_named_companies	ru	боржоми	1
+place_named_companies	ru	эппл	0
+place_named_companies	ru	камаз	1
+place_named_companies	ru	гугл	0
+english_word_car_models	ru	форд мустанг	1
+english_word_car_models	ru	фокус	1
+english_word_car_models	ru	битл	1
+english_word_car_models	ru	лада веста	0
+english_word_car_models	ru	чарджер	1
+english_word_car_models	ru	приус	0
+built_in_mic_devices	ru	смартфон	1
+built_in_mic_devices	ru	ноутбук	1
+built_in_mic_devices	ru	умная колонка	1
+built_in_mic_devices	ru	утюг	0
+built_in_mic_devices	ru	рация	1
+built_in_mic_devices	ru	чайник	0
+vehicle_carriers	ru	автовоз	1
+vehicle_carriers	ru	эвакуатор	1
+vehicle_carriers	ru	паром	1
+vehicle_carriers	ru	велосипед	0
+vehicle_carriers	ru	авианосец	1
+vehicle_carriers	ru	самокат	0
+music_equipment_companies	ru	ямаха	1
+music_equipment_companies	ru	фендер	1
+music_equipment_companies	ru	гибсон	1
+music_equipment_companies	ru	кока кола	0
+music_equipment_companies	ru	роланд	1
+music_equipment_companies	ru	найк	0
+voice_controlled_devices	ru	умная колонка	1
+voice_controlled_devices	ru	алиса	1
+voice_controlled_devices	ru	сири	1
+voice_controlled_devices	ru	утюг	0
+voice_controlled_devices	ru	смарт тв	1
+voice_controlled_devices	ru	вилка	0
+letter_logo_brands	ru	кока кола	1
+letter_logo_brands	ru	гугл	1
+letter_logo_brands	ru	сони	1
+letter_logo_brands	ru	эппл	0
+letter_logo_brands	ru	ибм	1
+letter_logo_brands	ru	найк	0
+wind_powered_vehicles	ru	парусник	1
+wind_powered_vehicles	ru	яхта	1
+wind_powered_vehicles	ru	виндсёрф	1
+wind_powered_vehicles	ru	велосипед	0
+wind_powered_vehicles	ru	буер	1
+wind_powered_vehicles	ru	трамвай	0
+laser_devices	ru	лазерный принтер	1
+laser_devices	ru	лазерная указка	1
+laser_devices	ru	сканер штрих кодов	1
+laser_devices	ru	утюг	0
+laser_devices	ru	дальномер	1
+laser_devices	ru	чайник	0
+restaurant_and_ship	ru	кухня	1
+restaurant_and_ship	ru	повар	1
+restaurant_and_ship	ru	меню	1
+restaurant_and_ship	ru	якорь настоящий	0
+restaurant_and_ship	ru	официант	1
+restaurant_and_ship	ru	парус	0
+heirlooms	ru	обручальное кольцо	1
+heirlooms	ru	часы	1
+heirlooms	ru	икона	1
+heirlooms	ru	зубная щётка	0
+heirlooms	ru	фотоальбом	1
+heirlooms	ru	йогурт	0
+paper_and_digital	ru	книга	1
+paper_and_digital	ru	билет	1
+paper_and_digital	ru	паспорт	1
+paper_and_digital	ru	стол	0
+paper_and_digital	ru	газета	1
+paper_and_digital	ru	чашка	0
+memory_keeping_items	ru	фотоальбом	1
+memory_keeping_items	ru	дневник	1
+memory_keeping_items	ru	капсула времени	1
+memory_keeping_items	ru	утюг	0
+memory_keeping_items	ru	сувенир	1
+memory_keeping_items	ru	веник	0
+serial_number_things	ru	купюра	1
+serial_number_things	ru	смартфон	1
+serial_number_things	ru	машина	1
+serial_number_things	ru	яблоко	0
+serial_number_things	ru	часы	1
+serial_number_things	ru	камень	0
+lab_and_kitchen_items	ru	весы	1
+lab_and_kitchen_items	ru	мерный стакан	1
+lab_and_kitchen_items	ru	термометр	1
+lab_and_kitchen_items	ru	телескоп	0
+lab_and_kitchen_items	ru	воронка	1
+lab_and_kitchen_items	ru	кровать	0
+jewelry_membership_symbols	ru	обручальное кольцо	1
+jewelry_membership_symbols	ru	значок	1
+jewelry_membership_symbols	ru	крестик	1
+jewelry_membership_symbols	ru	носки	0
+jewelry_membership_symbols	ru	фенечка	1
+jewelry_membership_symbols	ru	кепка	0
+obsolete_items	ru	пейджер	1
+obsolete_items	ru	дискета	1
+obsolete_items	ru	кассета	1
+obsolete_items	ru	смартфон	0
+obsolete_items	ru	пишущая машинка	1
+obsolete_items	ru	ноутбук	0
+named_non_living_things	ru	корабль	1
+named_non_living_things	ru	ураган	1
+named_non_living_things	ru	колокол	1
+named_non_living_things	ru	кошка	0
+named_non_living_things	ru	ракета	1
+named_non_living_things	ru	собака	0
