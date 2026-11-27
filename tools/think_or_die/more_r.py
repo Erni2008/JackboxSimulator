@@ -2,7 +2,7 @@ MORE = {
 'game_consoles': '''Fairchild Channel F|Фэрчайлд Ченнел Эф|ченнел эф
 RCA Studio II console|Ар-Си-Эй Студио II|RCA Studio II
 Bally Astrocade|Балли Астрокейд|астрокейд
-APF Imagination Machine|АПФ Имэджинейшн Машин|APF M1000
+APF MP1000 console|Приставка АПФ MP1000|APF MP1000/APF M1000/АПФ МП 1000
 Emerson Arcadia game console|Эмерсон Аркадия 2001|Emerson Arcadia 2001
 Mattel Intellivision|Интелливижн|маттел интелливижн
 ColecoVision|Колековижн|колековижн

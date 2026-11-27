@@ -204,7 +204,7 @@ Alien: Romulus|Чужой: Ромул
 A Quiet Place: Day One|Тихое место: День первый
 Skylines|Скайлайн 3|скайлайнс''',
 'time_travel_movies': '''A Connecticut Yankee in King Arthur's Court|Янки при дворе короля Артура
-A Kid in King Arthur's Court|Ребёнок при дворе короля Артура
+A Kid in King Arthur's Court|Первый рыцарь при дворе короля Артура|первый рыцарь при дворце короля артура
 The Visitors|Пришельцы (французский фильм)|пришельцы жан рено
 The Visitors II: The Corridors of Time|Пришельцы 2: Коридоры времени|коридоры времени
 Just Visiting|Пришельцы в Америке
