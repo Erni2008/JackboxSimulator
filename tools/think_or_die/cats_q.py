@@ -474,7 +474,6 @@ Guest from the Future|Сто лет тому вперёд
 Dunno|Незнайка
 Timur and His Team|Тимур и его команда
 The Kid from Kishinev|Республика ШКИД
-Metro 2033|Метро 2033
 The Shawshank Redemption|Рита Хейворт и спасение из Шоушенка""")
 
 cat("human_literary_characters", "KNOWLEDGE", "fantasy", "Name a literary character who is a human", "Назовите литературного персонажа, который является человеком",

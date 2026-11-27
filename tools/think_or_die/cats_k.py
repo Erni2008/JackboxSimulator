@@ -728,7 +728,6 @@ Ready Player One|Первому игроку приготовиться
 Fantastic Beasts|Фантастические твари
 Stalker|Сталкер
 Solaris|Солярис
-Kin-dza-dza!|Метро 2033
 Morozko|Морозко
 The Golden Calf|Золотой телёнок
 The Fate of a Man|Судьба человека
@@ -743,7 +742,7 @@ Matilda|Матильда
 Wonka|Вонка
 The Bourne Identity|Идентификация Борна
 Jaws|Челюсти
-Psycho|Психо""".replace("Kin-dza-dza!|Метро 2033", "Metro 2033|Метро 2033"),
+Psycho|Психо""",
     "Avatar/Аватар/Titanic/Титаник/Star Wars/Звёздные войны/Home Alone/Один дома/The Matrix/Матрица/Inception/Начало/Back to the Future/Назад в будущее/Toy Story/История игрушек/Brother/Брат/Gladiator/Гладиатор/Interstellar/Интерстеллар")
 
 cat("pirate_movies", "KNOWLEDGE", "movies_tv", "Name a movie with pirates in it", "Назовите фильм, в котором есть пираты",
