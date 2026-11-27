@@ -462,8 +462,6 @@ Diablo III|Диабло 3
 Borderlands 3|Бордерлендс 3
 Call of Duty 4|Колда 4
 Baldur's Gate 3|Балдурс гейт 3
-Half-Life: Alyx|Халф лайф аликс
-Metro Exodus|Метро исход
 Assassin's Creed III|Ассасин 3
 Uncharted 4|Анчартед 4
 Gears of War 4|Гирс оф вар 4
