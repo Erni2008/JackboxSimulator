@@ -75,8 +75,8 @@ k("stage_name_artists", "music", "Name a musician who performs under a stage nam
         "Tyler, the Creator|Тайлер зе криэйтор", "Billie Eilish|Билли Айлиш", "Eldzhey|Элджей", "Feduk|Федук", "Monetochka|Монеточка", "Zivert|Зиверт", "Klava Koka|Клава Кока",
         "Miyagi|Мияги", "Andy Panda|Энди Панда", "Kizaru|Кизару", "Big Baby Tape|Биг бейби тейп", "Slava Marlow|Слава Марлоу", "Mayot|Майот", "Og Buda|ОГ Буда", "Face|Фейс",
         "Pharaoh|Фараон", "Noize MC|Нойз МС", "Husky|Хаски", "Jony|Джони", "HammAli|Хамали", "Navai|Наваи", "Artik|Артик", "Asti|Асти", "Dzharakhov|Джарахов", "Mot|Мот",
-        "Loboda|Лобода", "Polina Gagarina|Гагарина", "Philipp Kirkorov|Киркоров", "Valeria|Валерия", "Glyukoza|Глюкоза", "Vitas|Витас", "Shura|Шура", "Serebro|Серебро",
-        "Bianka|Бьянка", "Max Korzh|Макс Корж", "Ramil'|Рамиль", "Mary Gu|Мэри Гу", "Dora|Дора", "Kate Perry|Кэти Перри", "Lana Del Rey|Лана Дель Рей", "Cardi B|Карди Би",
+        "Loboda|Лобода", "Polina Gagarina|Гагарина", "Valeria|Валерия", "Glyukoza|Глюкоза", "Vitas|Витас", "Shura|Шура", "Serebro|Серебро",
+        "Bianka|Бьянка", "Max Korzh|Макс Корж", "Ramil'|Рамиль", "Mary Gu|Мэри Гу", "Dora|Дора", "Katy Perry|Кэти Перри", "Lana Del Rey|Лана Дель Рей", "Cardi B|Карди Би",
         "Nicki Minaj|Ники Минаж", "Marshmello|Маршмеллоу", "Avicii|Авичи", "Skrillex|Скриллекс", "deadmau5|Дедмаус", "Moby|Моби", "Prince|Принс"))
 
 k("car_models_with_digit", "transport", "Name a car model with a digit in its name", "Назовите модель автомобиля, в названии которой есть цифра",
@@ -176,7 +176,7 @@ k("musicians_in_films", "music", "Name a musician who acted in feature films", "
         "Mick Jagger|Мик Джаггер", "Sting|Стинг", "Tom Waits|Том Уэйтс", "Bob Dylan|Боб Дилан", "Björk|Бьорк", "Dolly Parton|Долли Партон",
         "Kris Kristofferson|Крис Кристофферсон", "Meat Loaf|Мит Лоаф", "Iggy Pop|Игги Поп", "Marilyn Manson|Мэрилин Мэнсон", "Jon Bon Jovi|Бон Джови", "Ozzy Osbourne|Оззи Осборн",
         "Machine Gun Kelly|Машин ган келли", "Kid Cudi|Кид Кади", "Donald Glover|Дональд Гловер", "Janelle Monáe|Жанель Монэ", "Zendaya|Зендея", "Hailee Steinfeld|Хейли Стайнфелд",
-        "Bad Bunny|Бэд Банни", "Dima Bilan|Дима Билан", "Philipp Kirkorov|Киркоров", "Nikolai Rastorguev|Расторгуев", "Garik Sukachev|Гарик Сукачёв",
+        "Bad Bunny|Бэд Банни", "Dima Bilan|Дима Билан", "Nikolai Rastorguev|Расторгуев", "Garik Sukachev|Гарик Сукачёв",
         "Pyotr Mamonov|Пётр Мамонов", "Mikhail Boyarsky|Боярский", "Ivan Dorn|Иван Дорн", "Morgenshtern|Моргенштерн",
         "Egor Kreed|Егор Крид", "Ivan Urgant|Ургант", "Lolita|Лолита", "Vera Brezhneva|Вера Брежнева", "Gosha Kutsenko|Куценко", "Chris Kristofferson|Кристофферсон", "Drake|Дрейк", "Usher|Ашер"))
 

@@ -43,6 +43,7 @@ EXTRA = {
     'obsolete_currencies': 'Pfennig|Пфенниг\nCentime|Сантим\nDenier|Денье\nShilling|Шиллинг британский\nFarthing|Фартинг\nHalfpenny|Полпенни\nGuinea|Гинея\nAltynnik|Алтынник',
 }
 INVALID = {
+    'stage_name_artists': 'Пугачёва/Алла Пугачёва/Киркоров/Филипп Киркоров/Лепс/Григорий Лепс/Меладзе/Валерий Меладзе/Агутин/Леонтьев/Басков/Николай Басков/Адель/Adele',
     'ice_cream_flavors': 'чесночное/чесночный/garlic/чеснок',
     'long_tail_animals': 'Хомячок/Кролик/Крольчонок/Bunny/Морская свинка/Guinea pig',
     'vitamins': 'Vitamin Q/Витамин Q/Vitamin R/Vitamin S/Vitamin T/Vitamin U/Vitamin W',

@@ -1,0 +1,499 @@
+# round 12: list 5 categories, Russian first, written before tuning
+words_with_f_ru	ru	фонарь	1
+words_with_f_ru	ru	кофта	1
+words_with_f_ru	ru	шкаф	1
+words_with_f_ru	ru	дом	0
+words_with_f_ru	ru	фотка	1
+words_with_f_ru	ru	кот	0
+words_ending_tsiya_ru	ru	станция	1
+words_ending_tsiya_ru	ru	революция	1
+words_ending_tsiya_ru	ru	полиция	1
+words_ending_tsiya_ru	ru	нация	1
+words_ending_tsiya_ru	ru	столица	0
+words_ending_tsiya_ru	ru	акция	1
+words_with_str_ru	ru	страна	1
+words_with_str_ru	ru	быстро	1
+words_with_str_ru	ru	сестра	1
+words_with_str_ru	ru	острый	1
+words_with_str_ru	ru	сосна	0
+words_with_str_ru	ru	стрела	1
+words_without_a_ru	ru	дом	1
+words_without_a_ru	ru	лес	1
+words_without_a_ru	ru	кот	1
+words_without_a_ru	ru	мама	0
+words_without_a_ru	ru	окно	1
+words_without_a_ru	ru	папа	0
+words_soft_sign_middle_ru	ru	письмо	1
+words_soft_sign_middle_ru	ru	коньки	1
+words_soft_sign_middle_ru	ru	пальто	1
+words_soft_sign_middle_ru	ru	конь	0
+words_soft_sign_middle_ru	ru	семья	1
+words_soft_sign_middle_ru	ru	соль	0
+words_three_consonants_ru	ru	страна	1
+words_three_consonants_ru	ru	взгляд	1
+words_three_consonants_ru	ru	сестра	1
+words_three_consonants_ru	ru	мама	0
+words_three_consonants_ru	ru	здравствуйте	1
+words_three_consonants_ru	ru	окно	0
+nouns_six_letters_ru	ru	машина	1
+nouns_six_letters_ru	ru	собака	1
+nouns_six_letters_ru	ru	дорога	1
+nouns_six_letters_ru	ru	кот	0
+nouns_six_letters_ru	ru	капуста	0
+nouns_six_letters_ru	ru	ракета	1
+nouns_k_to_a_ru	ru	кошка	1
+nouns_k_to_a_ru	ru	книга	1
+nouns_k_to_a_ru	ru	корова	1
+nouns_k_to_a_ru	ru	кукла	1
+nouns_k_to_a_ru	ru	каша	1
+nouns_k_to_a_ru	ru	кот	0
+million_cities	ru	москва	1
+million_cities	ru	казань	1
+million_cities	ru	новосиб	1
+million_cities	ru	токио	1
+million_cities	ru	тула	0
+million_cities	ru	сочи	0
+countries_with_r_ru	ru	россия	1
+countries_with_r_ru	ru	франция	1
+countries_with_r_ru	ru	бразилия	1
+countries_with_r_ru	ru	италия	0
+countries_with_r_ru	ru	китай	0
+countries_with_r_ru	ru	турция	1
+seaside_cities	ru	сочи	1
+seaside_cities	ru	владивосток	1
+seaside_cities	ru	ницца	1
+seaside_cities	ru	москва	0
+seaside_cities	ru	одесса	1
+seaside_cities	ru	казань	0
+former_capitals	ru	санкт петербург	1
+former_capitals	ru	киото	1
+former_capitals	ru	бонн	1
+former_capitals	ru	москва	0
+former_capitals	ru	стамбул	1
+former_capitals	ru	алма ата	1
+flag_green	ru	италия	1
+flag_green	ru	бразилия	1
+flag_green	ru	мексика	1
+flag_green	ru	россия	0
+flag_green	ru	ирландия	1
+flag_green	ru	франция	0
+metro_cities	ru	москва	1
+metro_cities	ru	питер	1
+metro_cities	ru	лондон	1
+metro_cities	ru	сочи	0
+metro_cities	ru	минск	1
+metro_cities	ru	владивосток	0
+rivers_six_letters_max_ru	ru	волга	1
+rivers_six_letters_max_ru	ru	нил	1
+rivers_six_letters_max_ru	ru	обь	1
+rivers_six_letters_max_ru	ru	амазонка	0
+rivers_six_letters_max_ru	ru	лена	1
+rivers_six_letters_max_ru	ru	миссисипи	0
+unesco_sites	ru	кремль	1
+unesco_sites	ru	байкал	1
+unesco_sites	ru	кижи	1
+unesco_sites	ru	эйфелева башня	0
+unesco_sites	ru	колизей	1
+unesco_sites	ru	мачу пикчу	1
+cities_with_m_ru	ru	москва	1
+cities_with_m_ru	ru	омск	1
+cities_with_m_ru	ru	рим	1
+cities_with_m_ru	ru	казань	0
+cities_with_m_ru	ru	мадрид	1
+cities_with_m_ru	ru	тула	0
+animal_title_films	ru	король лев	1
+animal_title_films	ru	кунг фу панда	1
+animal_title_films	ru	собачье сердце	1
+animal_title_films	ru	титаник	0
+animal_title_films	ru	чёрный лебедь	1
+animal_title_films	ru	мадагаскар	0
+marvel_actors	ru	роберт дауни	1
+marvel_actors	ru	хемсворт	1
+marvel_actors	ru	том холланд	1
+marvel_actors	ru	ди каприо	0
+marvel_actors	ru	скарлетт йоханссон	1
+marvel_actors	ru	кристиан бейл	0
+future_set_films	ru	бегущий по лезвию	1
+future_set_films	ru	матрица	1
+future_set_films	ru	валл и	1
+future_set_films	ru	титаник	0
+future_set_films	ru	гостья из будущего	1
+future_set_films	ru	гладиатор	0
+one_word_title_films	ru	титаник	1
+one_word_title_films	ru	аватар	1
+one_word_title_films	ru	брат	1
+one_word_title_films	ru	один дома	0
+one_word_title_films	ru	джокер	1
+one_word_title_films	ru	король лев	0
+films_2000_2010	ru	шрек	1
+films_2000_2010	ru	аватар	1
+films_2000_2010	ru	9 рота	1
+films_2000_2010	ru	титаник	0
+films_2000_2010	ru	бумер	1
+films_2000_2010	ru	матрица	0
+place_title_films	ru	касабланка	1
+place_title_films	ru	фарго	1
+place_title_films	ru	москва слезам не верит	1
+place_title_films	ru	титаник	0
+place_title_films	ru	полночь в париже	1
+place_title_films	ru	аватар	0
+wedding_scene_films	ru	крёстный отец	1
+wedding_scene_films	ru	горько	1
+wedding_scene_films	ru	мамма миа	1
+wedding_scene_films	ru	терминатор	0
+wedding_scene_films	ru	шрек	1
+wedding_scene_films	ru	челюсти	0
+unusual_skin_characters	ru	шрек	1
+unusual_skin_characters	ru	халк	1
+unusual_skin_characters	ru	смурфики	1
+unusual_skin_characters	ru	бэтмен	0
+unusual_skin_characters	ru	гринч	1
+unusual_skin_characters	ru	шерлок	0
+sword_characters	ru	геральт	1
+sword_characters	ru	арагорн	1
+sword_characters	ru	зорро	1
+sword_characters	ru	халк	0
+sword_characters	ru	джон сноу	1
+sword_characters	ru	бэтмен	0
+teleport_characters	ru	ночной змей	1
+teleport_characters	ru	доктор стрэндж	1
+teleport_characters	ru	гоку	1
+teleport_characters	ru	супермен	0
+teleport_characters	ru	рик санчез	1
+teleport_characters	ru	халк	0
+characters_with_pets	ru	гарри поттер	1
+characters_with_pets	ru	шэгги	1
+characters_with_pets	ru	дядя фёдор	1
+characters_with_pets	ru	бэтмен	0
+characters_with_pets	ru	эш кетчум	1
+characters_with_pets	ru	халк	0
+characters_starting_a_ru	ru	алиса	1
+characters_starting_a_ru	ru	аладдин	1
+characters_starting_a_ru	ru	арагорн	1
+characters_starting_a_ru	ru	шрек	0
+characters_starting_a_ru	ru	айболит	1
+characters_starting_a_ru	ru	бэтмен	0
+armor_characters	ru	железный человек	1
+armor_characters	ru	дарт вейдер	1
+armor_characters	ru	мастер чиф	1
+armor_characters	ru	шрек	0
+armor_characters	ru	робокоп	1
+armor_characters	ru	гарри поттер	0
+scientist_characters	ru	док браун	1
+scientist_characters	ru	рик санчез	1
+scientist_characters	ru	профессор преображенский	1
+scientist_characters	ru	гарри поттер	0
+scientist_characters	ru	шелдон купер	1
+scientist_characters	ru	шрек	0
+ghost_spirit_characters	ru	каспер	1
+ghost_spirit_characters	ru	плакса миртл	1
+ghost_spirit_characters	ru	почти безголовый ник	1
+ghost_spirit_characters	ru	дракула	0
+ghost_spirit_characters	ru	битлджус	1
+ghost_spirit_characters	ru	зомби	0
+characters_with_vehicle	ru	бэтмен	1
+characters_with_vehicle	ru	баба яга	1
+characters_with_vehicle	ru	док браун	1
+characters_with_vehicle	ru	супермен	0
+characters_with_vehicle	ru	мистер бин	1
+characters_with_vehicle	ru	флэш	0
+egg_dishes	ru	омлет	1
+egg_dishes	ru	яичница	1
+egg_dishes	ru	оливье	1
+egg_dishes	ru	борщ	0
+egg_dishes	ru	карбонара	1
+egg_dishes	ru	пельмени	0
+grill_dishes	ru	шашлык	1
+grill_dishes	ru	стейк	1
+grill_dishes	ru	люля кебаб	1
+grill_dishes	ru	окрошка	0
+grill_dishes	ru	бургер	1
+grill_dishes	ru	суши	0
+food_starting_s_ru	ru	сыр	1
+food_starting_s_ru	ru	сметана	1
+food_starting_s_ru	ru	сосиски	1
+food_starting_s_ru	ru	молоко	0
+food_starting_s_ru	ru	сало	1
+food_starting_s_ru	ru	хлеб	0
+cheese_dishes	ru	пицца	1
+cheese_dishes	ru	лазанья	1
+cheese_dishes	ru	хачапури	1
+cheese_dishes	ru	борщ	0
+cheese_dishes	ru	фондю	1
+cheese_dishes	ru	окрошка	0
+candy_shop_items	ru	шоколад	1
+candy_shop_items	ru	мармелад	1
+candy_shop_items	ru	зефир	1
+candy_shop_items	ru	колбаса	0
+candy_shop_items	ru	чупа чупс	1
+candy_shop_items	ru	хлеб	0
+soup_types	ru	борщ	1
+soup_types	ru	щи	1
+soup_types	ru	солянка	1
+soup_types	ru	пельмени	0
+soup_types	ru	том ям	1
+soup_types	ru	шашлык	0
+zombie_games	ru	резидент ивел	1
+zombie_games	ru	left 4 dead	1
+zombie_games	ru	plants vs zombies	1
+zombie_games	ru	тетрис	0
+zombie_games	ru	dying light	1
+zombie_games	ru	fifa	0
+coop_games	ru	it takes two	1
+coop_games	ru	portal 2	1
+coop_games	ru	майнкрафт	1
+coop_games	ru	тетрис	0
+coop_games	ru	overcooked	1
+coop_games	ru	flappy bird	0
+games_starting_s	ru	skyrim	1
+games_starting_s	ru	sims	1
+games_starting_s	ru	sonic	1
+games_starting_s	ru	minecraft	0
+games_starting_s	ru	stalker	1
+games_starting_s	ru	doom	0
+ubisoft_games	ru	assassin's creed	1
+ubisoft_games	ru	far cry	1
+ubisoft_games	ru	rayman	1
+ubisoft_games	ru	gta	0
+ubisoft_games	ru	just dance	1
+ubisoft_games	ru	minecraft	0
+character_creator_games	ru	симс	1
+character_creator_games	ru	скайрим	1
+character_creator_games	ru	киберпанк 2077	1
+character_creator_games	ru	тетрис	0
+character_creator_games	ru	elden ring	1
+character_creator_games	ru	fifa	0
+boss_games	ru	dark souls	1
+boss_games	ru	cuphead	1
+boss_games	ru	hollow knight	1
+boss_games	ru	тетрис	0
+boss_games	ru	elden ring	1
+boss_games	ru	sims	0
+medieval_games	ru	kingdom come	1
+medieval_games	ru	mount and blade	1
+medieval_games	ru	for honor	1
+medieval_games	ru	gta	0
+medieval_games	ru	stronghold	1
+medieval_games	ru	fifa	0
+numbered_sequels_games	ru	ведьмак 3	1
+numbered_sequels_games	ru	гта 5	1
+numbered_sequels_games	ru	fallout 4	1
+numbered_sequels_games	ru	half life 2	0
+numbered_sequels_games	ru	герои 3	1
+numbered_sequels_games	ru	portal 2	0
+airport_things	ru	чемодан	1
+airport_things	ru	табло	1
+airport_things	ru	рамка металлоискателя	1
+airport_things	ru	холодильник	0
+airport_things	ru	дьюти фри	1
+airport_things	ru	трактор	0
+theatre_things	ru	сцена	1
+theatre_things	ru	занавес	1
+theatre_things	ru	гардероб	1
+theatre_things	ru	трактор	0
+theatre_things	ru	бинокль	1
+theatre_things	ru	лопата	0
+hiking_gear	ru	рюкзак	1
+hiking_gear	ru	палатка	1
+hiking_gear	ru	спальник	1
+hiking_gear	ru	телевизор	0
+hiking_gear	ru	котелок	1
+hiking_gear	ru	пылесос	0
+artist_studio_things	ru	мольберт	1
+artist_studio_things	ru	холст	1
+artist_studio_things	ru	кисти	1
+artist_studio_things	ru	стиральная машина	0
+artist_studio_things	ru	палитра	1
+artist_studio_things	ru	гиря	0
+museum_things	ru	картина	1
+museum_things	ru	скульптура	1
+museum_things	ru	мумия	1
+museum_things	ru	холодильник	0
+museum_things	ru	скелет динозавра	1
+museum_things	ru	стиральная машина	0
+leather_items	ru	ремень	1
+leather_items	ru	кошелёк	1
+leather_items	ru	сумка	1
+leather_items	ru	стакан	0
+leather_items	ru	перчатки	1
+leather_items	ru	вилка	0
+stage_name_artists	ru	моргенштерн	1
+stage_name_artists	ru	баста	1
+stage_name_artists	ru	эминем	1
+stage_name_artists	ru	пугачёва	0
+stage_name_artists	ru	леди гага	1
+stage_name_artists	ru	киркоров	0
+car_models_with_digit	ru	ваз 2107	1
+car_models_with_digit	ru	бмв х5	1
+car_models_with_digit	ru	мазда 6	1
+car_models_with_digit	ru	лада веста	0
+car_models_with_digit	ru	ауди а4	1
+car_models_with_digit	ru	тойота камри	0
+sneaker_brands	ru	найк	1
+sneaker_brands	ru	адидас	1
+sneaker_brands	ru	пума	1
+sneaker_brands	ru	самсунг	0
+sneaker_brands	ru	нью бэланс	1
+sneaker_brands	ru	кока кола	0
+bands_before_2000	ru	кино	1
+bands_before_2000	ru	битлз	1
+bands_before_2000	ru	металлика	1
+bands_before_2000	ru	ария	1
+bands_before_2000	ru	руки вверх	1
+bands_before_2000	ru	тикток	0
+oscar_acting_winners	ru	ди каприо	1
+oscar_acting_winners	ru	том хэнкс	1
+oscar_acting_winners	ru	мерил стрип	1
+oscar_acting_winners	ru	джонни депп	0
+oscar_acting_winners	ru	энтони хопкинс	1
+oscar_acting_winners	ru	том круз	0
+short_brand_names	ru	найк	1
+short_brand_names	ru	зара	1
+short_brand_names	ru	лего	1
+short_brand_names	ru	самсунг	0
+short_brand_names	ru	сони	1
+short_brand_names	ru	мерседес	0
+us_companies	ru	эпл	1
+us_companies	ru	гугл	1
+us_companies	ru	макдоналдс	1
+us_companies	ru	самсунг	0
+us_companies	ru	тесла	1
+us_companies	ru	сони	0
+musicians_in_films	ru	элвис пресли	1
+musicians_in_films	ru	леди гага	1
+musicians_in_films	ru	цой	1
+musicians_in_films	ru	эйнштейн	0
+musicians_in_films	ru	уилл смит	1
+musicians_in_films	ru	пушкин	0
+color_title_songs	ru	yellow submarine	1
+color_title_songs	ru	purple rain	1
+color_title_songs	ru	белые розы	1
+color_title_songs	ru	кукушка	0
+color_title_songs	ru	голубой вагон	1
+color_title_songs	ru	группа крови	0
+toy_companies	ru	лего	1
+toy_companies	ru	маттел	1
+toy_companies	ru	хасбро	1
+toy_companies	ru	самсунг	0
+toy_companies	ru	плеймобил	1
+toy_companies	ru	тесла	0
+real_madrid_players	ru	криштиану роналду	1
+real_madrid_players	ru	зидан	1
+real_madrid_players	ru	модрич	1
+real_madrid_players	ru	месси	0
+real_madrid_players	ru	бензема	1
+real_madrid_players	ru	неймар	0
+city_named_teams	ru	манчестер юнайтед	1
+city_named_teams	ru	реал мадрид	1
+city_named_teams	ru	чикаго буллз	1
+city_named_teams	ru	спартак	0
+city_named_teams	ru	ак барс казань	1
+city_named_teams	ru	зенит	0
+olympic_gold_athletes	ru	фелпс	1
+olympic_gold_athletes	ru	болт	1
+olympic_gold_athletes	ru	загитова	1
+olympic_gold_athletes	ru	роналду	0
+olympic_gold_athletes	ru	исинбаева	1
+olympic_gold_athletes	ru	хабиб	0
+outdoor_sports	ru	футбол	1
+outdoor_sports	ru	бег	1
+outdoor_sports	ru	лыжи	1
+outdoor_sports	ru	шахматы	0
+outdoor_sports	ru	сёрфинг	1
+outdoor_sports	ru	бильярд	0
+board_games_with_board	ru	шахматы	1
+board_games_with_board	ru	монополия	1
+board_games_with_board	ru	нарды	1
+board_games_with_board	ru	уно	0
+board_games_with_board	ru	шашки	1
+board_games_with_board	ru	мафия	0
+individual_sports	ru	теннис	1
+individual_sports	ru	бокс	1
+individual_sports	ru	фигурное катание	1
+individual_sports	ru	футбол	0
+individual_sports	ru	шахматы	1
+individual_sports	ru	хоккей	0
+premier_league_players	ru	анри	1
+premier_league_players	ru	руни	1
+premier_league_players	ru	салах	1
+premier_league_players	ru	месси	0
+premier_league_players	ru	аршавин	1
+premier_league_players	ru	пеле	0
+red_color_clubs	ru	спартак	1
+red_color_clubs	ru	цска	1
+red_color_clubs	ru	ливерпуль	1
+red_color_clubs	ru	зенит	0
+red_color_clubs	ru	бавария	1
+red_color_clubs	ru	челси	0
+olympians	ru	болт	1
+olympians	ru	загитова	1
+olympians	ru	овечкин	1
+olympians	ru	хабиб	0
+olympians	ru	шарапова	1
+olympians	ru	тайсон	0
+card_board_games	ru	уно	1
+card_board_games	ru	манчкин	1
+card_board_games	ru	диксит	1
+card_board_games	ru	шахматы	0
+card_board_games	ru	мафия	1
+card_board_games	ru	шашки	0
+pre_electricity_inventions	ru	колесо	1
+pre_electricity_inventions	ru	компас	1
+pre_electricity_inventions	ru	очки	1
+pre_electricity_inventions	ru	лампочка	0
+pre_electricity_inventions	ru	часы	1
+pre_electricity_inventions	ru	телефон	0
+pirate_ship_things	ru	пушка	1
+pirate_ship_things	ru	сундук с сокровищами	1
+pirate_ship_things	ru	штурвал	1
+pirate_ship_things	ru	телевизор	0
+pirate_ship_things	ru	попугай	1
+pirate_ship_things	ru	холодильник	0
+coat_of_arms_items	ru	орёл	1
+coat_of_arms_items	ru	лев	1
+coat_of_arms_items	ru	корона	1
+coat_of_arms_items	ru	холодильник	0
+coat_of_arms_items	ru	щит	1
+coat_of_arms_items	ru	кроссовки	0
+tube_products	ru	зубная паста	1
+tube_products	ru	крем для рук	1
+tube_products	ru	клей	1
+tube_products	ru	молоко	0
+tube_products	ru	горчица	1
+tube_products	ru	хлеб	0
+then_and_now_items	ru	ложка	1
+then_and_now_items	ru	нож	1
+then_and_now_items	ru	книга	1
+then_and_now_items	ru	смартфон	0
+then_and_now_items	ru	ключ	1
+then_and_now_items	ru	компьютер	0
+jewelry_materials	ru	золото	1
+jewelry_materials	ru	серебро	1
+jewelry_materials	ru	жемчуг	1
+jewelry_materials	ru	бетон	0
+jewelry_materials	ru	янтарь	1
+jewelry_materials	ru	асфальт	0
+medieval_professions	ru	кузнец	1
+medieval_professions	ru	рыцарь	1
+medieval_professions	ru	монах	1
+medieval_professions	ru	программист	0
+medieval_professions	ru	мельник	1
+medieval_professions	ru	блогер	0
+wood_and_metal_items	ru	топор	1
+wood_and_metal_items	ru	молоток	1
+wood_and_metal_items	ru	гитара	1
+wood_and_metal_items	ru	стакан	0
+wood_and_metal_items	ru	лопата	1
+wood_and_metal_items	ru	подушка	0
+spaceship_things	ru	скафандр	1
+spaceship_things	ru	иллюминатор	1
+spaceship_things	ru	пульт управления	1
+spaceship_things	ru	пальма	0
+spaceship_things	ru	солнечные батареи	1
+spaceship_things	ru	корова	0
+words_with_f_ru	ru	фыфырка	0
+words_without_a_ru	ru	блюмбик	0
+words_three_consonants_ru	ru	встрплк	0
+words_ending_tsiya_ru	ru	крокоция	0
+words_soft_sign_middle_ru	ru	мальдрюк	0
+words_with_str_ru	ru	стрымба	0

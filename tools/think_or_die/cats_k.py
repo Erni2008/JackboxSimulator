@@ -6,7 +6,10 @@ def ru_rule(id, group, en, ru, crit, lines, inv, rule, type="KNOWLEDGE"):
     cat(id, type, group, en, ru, "", crit, lines, inv, langs=["ru"], rule=dict(rule, lang="ru"), allowUnknown=True)
 
 def ru_word(id, en, ru, rule):
-    cat(id, "WORD_RULE", "vocabulary", en, ru, "", "", "", "", langs=["ru"], rule=dict(rule, lang="ru"))
+    # the letter rule is checked by the engine before the AI; the AI only has to confirm that the word is a real Russian word
+    crit = ("Any real, common Russian word in any grammatical form (noun, verb, adjective, adverb, plural, case form) that fits: "
+            + en + ". The letter condition is already verified by the game; say it fits unless the word is invented or not Russian.")
+    cat(id, "WORD_RULE", "vocabulary", en, ru, crit, "Любое настоящее русское слово в любой форме. Условие по буквам уже проверено игрой.", "", "", langs=["ru"], rule=dict(rule, lang="ru"))
 
 # ---------- 1. Animal abilities ----------
 cat("jumping_animals", "KNOWLEDGE", "animals", "Name an animal that can jump", "Назовите животное, которое умеет прыгать",
