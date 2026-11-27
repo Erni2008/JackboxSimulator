@@ -166,6 +166,16 @@ FULL = {
     "ДР Конго": "Демократическая Республика Конго", "DR Congo": "Democratic Republic of the Congo", "DRC": "Democratic Republic of the Congo",
     "КНДР": "Корейская Народно Демократическая Республика", "СССР": "Союз Советских Социалистических Республик",
     "USSR": "Union of Soviet Socialist Republics", "ООН": "Организация Объединённых Наций", "UN": "United Nations",
+    "ISS": "International Space Station", "МКС": "Международная космическая станция",
+    "ПТУ": "Профессионально техническое училище", "ОБЖ": "Основы безопасности жизнедеятельности",
+    "ИЗО": "Изобразительное искусство", "МХК": "Мировая художественная культура",
+    "ОРКСЭ": "Основы религиозных культур и светской этики", "ЛОР": "Оториноларинголог",
+    "ДОТ": "Долговременная огневая точка", "АЗС": "Автозаправочная станция", "ФАП": "Фельдшерско акушерский пункт",
+    "МЦК": "Московское центральное кольцо", "MMA": "Mixed martial arts", "ММА": "Смешанные единоборства",
+    "MSG": "Monosodium glutamate", "DNA": "Deoxyribonucleic acid",
+    "ATM": "Automated teller machine", "UPS": "Uninterruptible power supply",
+    "ALU": "Arithmetic logic unit", "ECU": "European Currency Unit", "VCR": "Video cassette recorder",
+    "DSLR": "Digital single lens reflex camera",
     "NYC": "New York City", "LA": "Los Angeles", "СПб": "Санкт Петербург", "Питер": "Санкт Петербург",
 }
 
