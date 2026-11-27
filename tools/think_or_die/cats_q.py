@@ -1574,7 +1574,7 @@ cat("data_units", "KNOWLEDGE", "science", "Name a unit of digital information", 
     """Bit|Бит
 Byte|Байт
 Kilobyte|Килобайт|кб/кило
-Megabyte|Мегабайт|мб/мега/метр
+Megabyte|Мегабайт|мб/мега/мегабайтик
 Gigabyte|Гигабайт|гб/гиг/гига
 Terabyte|Терабайт|тб/тера
 Petabyte|Петабайт|пб

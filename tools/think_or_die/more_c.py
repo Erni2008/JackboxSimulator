@@ -1083,7 +1083,5 @@ Ipe|Ипе
 Massaranduba|Массарандуба
 Garapa|Гарапа
 Tigerwood|Тигровое дерево
-Bamboo board|Бамбуковая доска
-Plywood|Фанера
 Saxaul|Саксаул''',
 }

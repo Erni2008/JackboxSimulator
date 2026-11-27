@@ -114,7 +114,7 @@ def build(c, log):
             en, ru, al = f[0], f[0], (f[1] if len(f) > 1 else "")
         else:
             en, ru, al = f[0], (f[1] if len(f) > 1 else f[0]), (f[2] if len(f) > 2 else "")
-        if re.search(r"[A-Za-zА-Яа-яЁё]\d$", ru) or re.search(r"[A-Za-zА-Яа-яЁё]\d$", en):  # draft marker like "Ванна2"
+        if re.search(r"[A-Za-zА-Яа-яЁё]{3,}\d$", ru) or re.search(r"[A-Za-zА-Яа-яЁё]{3,}\d$", en):  # draft marker like "Ванна2"
             log.append(f"  {c['id']}: dropped draft entry '{line}'"); continue
         if checked and langs == ["ru"]: en = ru  # a Russian letter category does not accept the English name as a list answer
         names = [en, ru] + [a for a in al.split("/") if a.strip()]

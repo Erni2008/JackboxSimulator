@@ -2,6 +2,9 @@
 # EXTRA: "English|Русский|alias/alias" lines appended to a category; "+English label|alias/alias" adds aliases to an existing answer.
 # Each category id appears once (a repeated dict key would silently replace the earlier one).
 EXTRA = {
+    'famous_museums': '+Madame Tussauds|мадам тюссо/тюссо',
+    'payment_methods': '+QR code|по qr/по qr коду/куар/кьюар',
+    'airlines': '+Ural Airlines|уральские/уральские авиалинии/ural',
     'things_with_wheels': 'Quad bike|Квадроцикл|квадрик/atv\nGo-kart|Карт|картинг\nGolf cart|Гольф кар\nForklift|Погрузчик',
     'dinosaur_movies': '+Jurassic World|jurassic world camp cretaceous/мир юрского периода лагерь мел',
     'magic_users': '+Gandalf|gandalf the white/gandalf the grey/гэндальф белый/гэндальф серый',

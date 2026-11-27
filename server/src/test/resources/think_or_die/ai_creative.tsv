@@ -1,0 +1,138 @@
+# every CREATIVE case from the eval sets
+ruin_first_date	en	Being late	1
+ruin_first_date	en	Bad breath	1
+ruin_first_date	en	Checking your phone	1
+ruin_first_date	en	Talking about your ex	1
+ruin_first_date	en	Rudeness	1
+ruin_first_date	en	Bringing a friend	1
+ruin_first_date	en	Food poisoning	1
+ruin_first_date	en	Spilling a drink	1
+ruin_first_date	en	Forgetting their name	1
+ruin_first_date	en	Arguing with the waiter	1
+ruin_first_date	en	Getting drunk	1
+ruin_first_date	en	Lying	1
+ruin_first_date	en	Bragging	1
+ruin_first_date	ru	Опоздание	1
+ruin_first_date	ru	Запах изо рта	1
+ruin_first_date	ru	Сидеть в телефоне	1
+ruin_first_date	ru	Разговоры о бывших	1
+ruin_first_date	ru	Грубость	1
+ruin_first_date	ru	Пролить вино	1
+ruin_first_date	ru	Забыть кошелёк	1
+ruin_first_date	ru	Хамство официанту	1
+ruin_first_date	ru	Напиться	1
+ruin_first_date	ru	Врать	1
+ruin_first_date	en	Triangle	0
+ruin_first_date	en	Photosynthesis	0
+ruin_first_date	en	Mathematics	0
+ruin_first_date	en	Blue	0
+ruin_first_date	en	Pineapple	0
+ruin_first_date	en	Tuesday	0
+ruin_first_date	en	Moon	0
+ruin_first_date	en	Gravity	0
+ruin_first_date	en	Algebra	0
+ruin_first_date	en	Oxygen	0
+ruin_first_date	ru	Треугольник	0
+ruin_first_date	ru	Фотосинтез	0
+ruin_first_date	ru	Математика	0
+ruin_first_date	ru	Синий	0
+ruin_first_date	ru	Ананас	0
+ruin_first_date	ru	Вторник	0
+ruin_first_date	ru	Гравитация	0
+ruin_first_date	ru	Алгебра	0
+ruin_first_date	ru	Кислород	0
+ruin_first_date	en	Picking your teeth	1
+ruin_first_date	en	Being glued to the phone	1
+ruin_first_date	en	Talking with your mouth full	1
+ruin_first_date	en	Showing up late	1
+ruin_first_date	en	Ordering for them	1
+ruin_first_date	en	Splitting the bill to the cent	1
+ruin_first_date	en	Smelly socks	1
+ruin_first_date	en	Bringing your dog	1
+ruin_first_date	en	Crying about your ex	1
+ruin_first_date	en	Flirting with the waiter	1
+ruin_first_date	ru	Говорить о деньгах	1
+ruin_first_date	ru	Прийти в спортивках	1
+ruin_first_date	ru	Хвастаться	1
+ruin_first_date	ru	Жаловаться на жизнь	1
+ruin_first_date	ru	Флиртовать с официанткой	1
+ruin_first_date	en	Hexagon	0
+ruin_first_date	en	Chlorophyll	0
+ruin_first_date	en	Geometry	0
+ruin_first_date	en	Green	0
+ruin_first_date	en	Mango	0
+ruin_first_date	en	Saturday	0
+ruin_first_date	en	Jupiter	0
+ruin_first_date	en	Velocity	0
+ruin_first_date	en	Nitrogen	0
+ruin_first_date	en	Calculus	0
+ruin_first_date	ru	Шестиугольник	0
+ruin_first_date	ru	Хлорофилл	0
+ruin_first_date	ru	Геометрия	0
+ruin_first_date	ru	Зелёный	0
+ruin_first_date	ru	Манго	0
+ruin_first_date	ru	Суббота	0
+ruin_first_date	ru	Юпитер	0
+ruin_first_date	ru	Скорость	0
+ruin_first_date	ru	Азот	0
+ruin_first_date	en	Bringing your mom	1
+ruin_first_date	en	Chewing with your mouth open	1
+ruin_first_date	en	Spilling wine on them	1
+ruin_first_date	en	Forgetting your wallet	1
+ruin_first_date	en	Rain	1
+ruin_first_date	ru	Опоздать на час	1
+ruin_first_date	ru	Говорить о бывшей	1
+ruin_first_date	ru	Неприятный запах изо рта	1
+ruin_first_date	en	The number seven	0
+ruin_first_date	ru	Таблица умножения	0
+ruin_first_date	en	Bringing your mother along	1
+ruin_first_date	en	Being rude to the waiter	1
+ruin_first_date	en	Showing up drunk	1
+ruin_first_date	ru	Опоздать	1
+ruin_first_date	ru	Чеснок	1
+ruin_first_date	ru	Говорить только о себе	1
+ruin_first_date	ru	Прийти пьяным	1
+ruin_first_date	ru	Прийти с бывшей	1
+ruin_first_date	en	Talking only about yourself	1
+ruin_first_date	ru	Пролить кофе	1
+ruin_first_date	en	Proposing marriage	1
+ruin_first_date	ru	Отвечать на звонки весь вечер	1
+ruin_first_date	en	Earthquake	1
+ruin_first_date	en	Pythagorean theorem	0
+ruin_first_date	ru	Квадратный корень	0
+car_cannot_continue	ru	пробил колесо	1
+car_cannot_continue	ru	кончился бензин	1
+car_cannot_continue	ru	сел аккум	1
+car_cannot_continue	ru	включил музыку	0
+car_cannot_continue	ru	лопнуло колесо	1
+car_cannot_continue	ru	закипел движок	1
+failed_inspection	ru	лысая резина	1
+failed_inspection	ru	тонировка	1
+failed_inspection	ru	нет аптечки	1
+failed_inspection	ru	грязная машина	0
+failed_inspection	ru	не горит фара	1
+failed_inspection	ru	трещина на лобовом	1
+eyes_closed_actions	ru	спать	1
+eyes_closed_actions	ru	медитировать	1
+eyes_closed_actions	ru	читать книгу	0
+eyes_closed_actions	ru	слушать музыку	1
+eyes_closed_actions	ru	целоваться	1
+eyes_closed_actions	ru	смотреть фильм	0
+ruin_first_date	en	late	1
+ruin_first_date	en	bad smell	1
+ruin_first_date	en	phone	1
+ruin_first_date	en	ex girlfriend	1
+ruin_first_date	en	rude	1
+ruin_first_date	ru	опоздал	1
+ruin_first_date	ru	запах	1
+ruin_first_date	ru	телефон	1
+ruin_first_date	ru	бывшая	1
+ruin_first_date	ru	хамство	1
+ruin_first_date	ru	пьяный	1
+ruin_first_date	ru	скучно	1
+ruin_first_date	ru	молчание	1
+ruin_first_date	en	treugolnik	0
+ruin_first_date	en	matematika	0
+ruin_first_date	en	asdfgh	0
+ruin_first_date	en	burping	1
+ruin_first_date	en	being late	1

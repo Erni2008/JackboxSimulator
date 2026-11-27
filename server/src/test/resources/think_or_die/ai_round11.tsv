@@ -1,0 +1,523 @@
+# round 11: list 4 categories (466-560), Russian first, written before tuning
+positive_emotions	ru	кайфово	1
+positive_emotions	ru	эйфория	1
+positive_emotions	ru	нежность	1
+positive_emotions	ru	зависть	0
+positive_emotions	ru	гордость	1
+positive_emotions	ru	злорадство	0
+negative_emotions	ru	бешенство	1
+negative_emotions	ru	тоска	1
+negative_emotions	ru	стыдоба	1
+negative_emotions	ru	радость	0
+negative_emotions	ru	облом	1
+negative_emotions	ru	восторг	0
+tiredness_words	ru	заколебался	1
+tiredness_words	ru	без задних ног	1
+tiredness_words	ru	бодрый	0
+tiredness_words	ru	ушатался	1
+tiredness_words	ru	выжатый как лимон	1
+tiredness_words	ru	весёлый	0
+surprise_words	ru	обалдеть	1
+surprise_words	ru	офигеть	1
+surprise_words	ru	челюсть отвисла	1
+surprise_words	ru	скука	0
+surprise_words	ru	ничоси	1
+surprise_words	ru	спокойствие	0
+fear_state_words	ru	очканул	1
+fear_state_words	ru	трясётся от страха	1
+fear_state_words	ru	мурашки	1
+fear_state_words	ru	смелость	0
+fear_state_words	ru	спокойный	0
+fear_state_words	ru	оцепенел	1
+famous_towers	ru	эйфелева	1
+famous_towers	ru	останкино	1
+famous_towers	ru	биг бен	1
+famous_towers	ru	пизанская	1
+famous_towers	ru	кремль	0
+famous_towers	ru	колизей	0
+famous_stadiums	ru	лужники	1
+famous_stadiums	ru	камп ноу	1
+famous_stadiums	ru	маракана	1
+famous_stadiums	ru	эрмитаж	0
+famous_stadiums	ru	уэмбли	1
+famous_stadiums	ru	газпром арена	1
+famous_bridges	ru	золотые ворота	1
+famous_bridges	ru	крымский мост	1
+famous_bridges	ru	бруклинский	1
+famous_bridges	ru	карлов мост	1
+famous_bridges	ru	эйфелева башня	0
+famous_bridges	ru	тауэрский мост	1
+famous_museums	ru	лувр	1
+famous_museums	ru	эрмитаж	1
+famous_museums	ru	третьяковка	1
+famous_museums	ru	кремль	0
+famous_museums	ru	мадам тюссо	1
+famous_museums	ru	прадо	1
+castles_palaces	ru	версаль	1
+castles_palaces	ru	зимний дворец	1
+castles_palaces	ru	хогвартс	0
+castles_palaces	ru	нойшванштайн	1
+castles_palaces	ru	замок золушки	0
+castles_palaces	ru	петергоф	1
+traffic_violations	ru	превышение	1
+traffic_violations	ru	проезд на красный	1
+traffic_violations	ru	пьяный за рулём	1
+traffic_violations	ru	пристегнулся	0
+traffic_violations	ru	парковка на газоне	1
+traffic_violations	ru	встречка	1
+car_cannot_continue	ru	пробил колесо	1
+car_cannot_continue	ru	кончился бензин	1
+car_cannot_continue	ru	сел аккум	1
+car_cannot_continue	ru	включил музыку	0
+car_cannot_continue	ru	лопнуло колесо	1
+car_cannot_continue	ru	закипел движок	1
+driver_hand_actions	ru	крутить баранку	1
+driver_hand_actions	ru	переключить передачу	1
+driver_hand_actions	ru	нажать на газ	0
+driver_hand_actions	ru	включить поворотник	1
+driver_hand_actions	ru	посигналить	1
+driver_hand_actions	ru	моргнуть	0
+road_markings	ru	сплошная	1
+road_markings	ru	зебра	1
+road_markings	ru	двойная сплошная	1
+road_markings	ru	светофор	0
+road_markings	ru	стоп линия	1
+road_markings	ru	дорожный знак	0
+failed_inspection	ru	лысая резина	1
+failed_inspection	ru	тонировка	1
+failed_inspection	ru	нет аптечки	1
+failed_inspection	ru	грязная машина	0
+failed_inspection	ru	не горит фара	1
+failed_inspection	ru	трещина на лобовом	1
+child_hero_films	ru	один дома	1
+child_hero_films	ru	матильда	1
+child_hero_films	ru	гарри поттер	1
+child_hero_films	ru	терминатор	0
+child_hero_films	ru	гостья из будущего	1
+child_hero_films	ru	крёстный отец	0
+best_picture_oscar	ru	титаник	1
+best_picture_oscar	ru	паразиты	1
+best_picture_oscar	ru	аватар	0
+best_picture_oscar	ru	гладиатор	1
+best_picture_oscar	ru	интерстеллар	0
+best_picture_oscar	ru	оппенгеймер	1
+person_name_films	ru	форрест гамп	1
+person_name_films	ru	амели	1
+person_name_films	ru	титаник	0
+person_name_films	ru	джон уик	1
+person_name_films	ru	аватар	0
+person_name_films	ru	рокки	1
+true_story_films	ru	титаник	1
+true_story_films	ru	легенда 17	1
+true_story_films	ru	аватар	0
+true_story_films	ru	движение вверх	1
+true_story_films	ru	шрек	0
+true_story_films	ru	список шиндлера	1
+films_before_2000	ru	терминатор	1
+films_before_2000	ru	матрица	1
+films_before_2000	ru	аватар	0
+films_before_2000	ru	ирония судьбы	1
+films_before_2000	ru	интерстеллар	0
+films_before_2000	ru	брат 2	1
+internet_memes	ru	ждун	1
+internet_memes	ru	доге	1
+internet_memes	ru	рикролл	1
+internet_memes	ru	мона лиза	0
+internet_memes	ru	шлёпа	1
+internet_memes	ru	гигачад	1
+internet_abbreviations	ru	лол	1
+internet_abbreviations	ru	имхо	1
+internet_abbreviations	ru	спс	1
+internet_abbreviations	ru	хз	1
+internet_abbreviations	ru	телевизор	0
+internet_abbreviations	ru	кмк	1
+emoticon_symbols	ru	двоеточие	1
+emoticon_symbols	ru	скобка	1
+emoticon_symbols	ru	точка с запятой	1
+emoticon_symbols	ru	буква я	0
+emoticon_symbols	ru	крышечка	1
+emoticon_symbols	ru	тире	1
+top_level_domains	ru	ру	1
+top_level_domains	ru	ком	1
+top_level_domains	ru	рф	1
+top_level_domains	ru	орг	1
+top_level_domains	ru	гугл	0
+top_level_domains	ru	нет	1
+account_actions	ru	зарегаться	1
+account_actions	ru	сменить пароль	1
+account_actions	ru	удалить акк	1
+account_actions	ru	сварить суп	0
+account_actions	ru	выйти из аккаунта	1
+account_actions	ru	поменять аву	1
+foot_actions	ru	пнуть	1
+foot_actions	ru	приседать	1
+foot_actions	ru	бегать	1
+foot_actions	ru	хлопать	0
+foot_actions	ru	подпрыгнуть	1
+foot_actions	ru	моргать	0
+two_hand_actions	ru	хлопать	1
+two_hand_actions	ru	печатать	1
+two_hand_actions	ru	завязать шнурки	1
+two_hand_actions	ru	моргать	0
+two_hand_actions	ru	месить тесто	1
+two_hand_actions	ru	свистеть	0
+one_finger_actions	ru	тапнуть	1
+one_finger_actions	ru	нажать кнопку	1
+one_finger_actions	ru	лайкнуть	1
+one_finger_actions	ru	обнять	0
+one_finger_actions	ru	свайпнуть	1
+one_finger_actions	ru	поднять штангу	0
+eyes_closed_actions	ru	спать	1
+eyes_closed_actions	ru	медитировать	1
+eyes_closed_actions	ru	читать книгу	0
+eyes_closed_actions	ru	слушать музыку	1
+eyes_closed_actions	ru	целоваться	1
+eyes_closed_actions	ru	смотреть фильм	0
+no_equipment_exercises	ru	отжимания	1
+no_equipment_exercises	ru	приседания	1
+no_equipment_exercises	ru	планка	1
+no_equipment_exercises	ru	жим штанги	0
+no_equipment_exercises	ru	бёрпи	1
+no_equipment_exercises	ru	подтягивания на турнике	0
+natural_noise	ru	гром	1
+natural_noise	ru	водопад	1
+natural_noise	ru	шум ветра	1
+natural_noise	ru	будильник	0
+natural_noise	ru	прибой	1
+natural_noise	ru	пылесос	0
+whistle_sounds	ru	чайник	1
+whistle_sounds	ru	свисток	1
+whistle_sounds	ru	ветер	1
+whistle_sounds	ru	барабан	0
+whistle_sounds	ru	суслик	1
+whistle_sounds	ru	пар	1
+crunch_actions	ru	грызть сухарики	1
+crunch_actions	ru	идти по снегу	1
+crunch_actions	ru	хрустеть пальцами	1
+crunch_actions	ru	пить воду	0
+crunch_actions	ru	есть чипсы	1
+crunch_actions	ru	гладить кота	0
+metal_ringing	ru	колокол	1
+metal_ringing	ru	монеты	1
+metal_ringing	ru	ключи	1
+metal_ringing	ru	подушка	0
+metal_ringing	ru	цепь	1
+metal_ringing	ru	бубенцы	1
+crackle_sounds	ru	костёр	1
+crackle_sounds	ru	дрова в камине	1
+crackle_sounds	ru	помехи радио	1
+crackle_sounds	ru	шёпот	0
+crackle_sounds	ru	попкорн	1
+crackle_sounds	ru	винил	1
+identity_documents	ru	паспорт	1
+identity_documents	ru	загран	1
+identity_documents	ru	права	1
+identity_documents	ru	чек	0
+identity_documents	ru	военник	1
+identity_documents	ru	снилс	0
+payment_methods	ru	налик	1
+payment_methods	ru	картой	1
+payment_methods	ru	по qr	1
+payment_methods	ru	сбп	1
+payment_methods	ru	обещанием	0
+payment_methods	ru	крипта	1
+receipt_info	ru	дата	1
+receipt_info	ru	сумма	1
+receipt_info	ru	ндс	1
+receipt_info	ru	имя кота	0
+receipt_info	ru	кассир	1
+receipt_info	ru	инн	1
+bank_services	ru	вклад	1
+bank_services	ru	ипотека	1
+bank_services	ru	кредитка	1
+bank_services	ru	стрижка	0
+bank_services	ru	перевод	1
+bank_services	ru	обмен валюты	1
+tax_types	ru	ндфл	1
+tax_types	ru	ндс	1
+tax_types	ru	транспортный налог	1
+tax_types	ru	штраф	0
+tax_types	ru	акциз	1
+tax_types	ru	госпошлина	1
+verbs_ending_tsya_ru	ru	смеяться	1
+verbs_ending_tsya_ru	ru	кататься	1
+verbs_ending_tsya_ru	ru	бояться	1
+verbs_ending_tsya_ru	ru	бегать	0
+verbs_ending_tsya_ru	ru	учиться	1
+verbs_ending_tsya_ru	ru	спать	0
+adjectives_b_ru	ru	белый	1
+adjectives_b_ru	ru	большой	1
+adjectives_b_ru	ru	быстрый	1
+adjectives_b_ru	ru	бегать	0
+adjectives_b_ru	ru	красный	0
+adjectives_b_ru	ru	бодрый	1
+adverbs_ending_o_ru	ru	быстро	1
+adverbs_ending_o_ru	ru	медленно	1
+adverbs_ending_o_ru	ru	весело	1
+adverbs_ending_o_ru	ru	окно	0
+adverbs_ending_o_ru	ru	громко	1
+adverbs_ending_o_ru	ru	быстрый	0
+words_prefix_anti_ru	ru	антивирус	1
+words_prefix_anti_ru	ru	антифриз	1
+words_prefix_anti_ru	ru	антиквар	0
+words_prefix_anti_ru	ru	антисептик	1
+words_prefix_anti_ru	ru	антенна	0
+words_prefix_anti_ru	ru	антигерой	1
+plurale_tantum_ru	ru	ножницы	1
+plurale_tantum_ru	ru	брюки	1
+plurale_tantum_ru	ru	очки	1
+plurale_tantum_ru	ru	стол	0
+plurale_tantum_ru	ru	сутки	1
+plurale_tantum_ru	ru	кошка	0
+sports_trophies	ru	кубок стэнли	1
+sports_trophies	ru	золотой мяч	1
+sports_trophies	ru	кубок гагарина	1
+sports_trophies	ru	оскар	0
+sports_trophies	ru	олимпийская медаль	1
+sports_trophies	ru	кубок дэвиса	1
+international_competitions	ru	олимпиада	1
+international_competitions	ru	чемпионат мира	1
+international_competitions	ru	уимблдон	1
+international_competitions	ru	кубок россии	0
+international_competitions	ru	формула 1	1
+international_competitions	ru	тур де франс	1
+football_clubs	ru	спартак	1
+football_clubs	ru	зенит	1
+football_clubs	ru	барса	1
+football_clubs	ru	ак барс	0
+football_clubs	ru	реал	1
+football_clubs	ru	цска	1
+retired_footballers	ru	пеле	1
+retired_footballers	ru	зидан	1
+retired_footballers	ru	месси	0
+retired_footballers	ru	аршавин	1
+retired_footballers	ru	роналду	0
+retired_footballers	ru	бекхэм	1
+team_positions	ru	вратарь	1
+team_positions	ru	нападающий	1
+team_positions	ru	либеро	1
+team_positions	ru	болельщик	0
+team_positions	ru	хавбек	1
+team_positions	ru	судья	0
+airlines	ru	аэрофлот	1
+airlines	ru	победа	1
+airlines	ru	s7	1
+airlines	ru	ржд	0
+airlines	ru	эмирейтс	1
+airlines	ru	уральские	1
+boarding_pass_info	ru	номер рейса	1
+boarding_pass_info	ru	место	1
+boarding_pass_info	ru	выход	1
+boarding_pass_info	ru	группа крови	0
+boarding_pass_info	ru	время посадки	1
+boarding_pass_info	ru	фио	1
+hand_luggage_banned	ru	нож	1
+hand_luggage_banned	ru	ножницы	1
+hand_luggage_banned	ru	пистолет	1
+hand_luggage_banned	ru	книга	0
+hand_luggage_banned	ru	вода больше 100 мл	1
+hand_luggage_banned	ru	телефон	0
+hotel_services	ru	завтрак	1
+hotel_services	ru	уборка	1
+hotel_services	ru	трансфер	1
+hotel_services	ru	ремонт машины	0
+hotel_services	ru	спа	1
+hotel_services	ru	химчистка	1
+accommodation_types	ru	хостел	1
+accommodation_types	ru	отель	1
+accommodation_types	ru	кемпинг	1
+accommodation_types	ru	офис	0
+accommodation_types	ru	глэмпинг	1
+accommodation_types	ru	турбаза	1
+famous_writers	ru	пушкин	1
+famous_writers	ru	толстой	1
+famous_writers	ru	кинг	1
+famous_writers	ru	моцарт	0
+famous_writers	ru	чехов	1
+famous_writers	ru	пикассо	0
+books_made_into_films	ru	гарри поттер	1
+books_made_into_films	ru	война и мир	1
+books_made_into_films	ru	мастер и маргарита	1
+books_made_into_films	ru	аватар	0
+books_made_into_films	ru	дюна	1
+books_made_into_films	ru	титаник	0
+human_literary_characters	ru	шерлок	1
+human_literary_characters	ru	онегин	1
+human_literary_characters	ru	раскольников	1
+human_literary_characters	ru	винни пух	0
+human_literary_characters	ru	гарри поттер	1
+human_literary_characters	ru	колобок	0
+literary_genres	ru	роман	1
+literary_genres	ru	детектив	1
+literary_genres	ru	басня	1
+literary_genres	ru	ужасы	1
+literary_genres	ru	симфония	0
+literary_genres	ru	сонет	1
+title_named_works	ru	евгений онегин	1
+title_named_works	ru	гамлет	1
+title_named_works	ru	война и мир	0
+title_named_works	ru	анна каренина	1
+title_named_works	ru	идиот	0
+title_named_works	ru	муму	1
+infectious_diseases	ru	грипп	1
+infectious_diseases	ru	ковид	1
+infectious_diseases	ru	ветрянка	1
+infectious_diseases	ru	диабет	0
+infectious_diseases	ru	корь	1
+infectious_diseases	ru	перелом	0
+medical_instruments	ru	скальпель	1
+medical_instruments	ru	шприц	1
+medical_instruments	ru	стетоскоп	1
+medical_instruments	ru	молоток плотника	0
+medical_instruments	ru	градусник	1
+medical_instruments	ru	тонометр	1
+medical_exams	ru	узи	1
+medical_exams	ru	мрт	1
+medical_exams	ru	флюшка	1
+medical_exams	ru	анализ крови	1
+medical_exams	ru	массаж	0
+medical_exams	ru	экг	1
+disease_symptoms	ru	температура	1
+disease_symptoms	ru	кашель	1
+disease_symptoms	ru	сопли	1
+disease_symptoms	ru	аппетит	0
+disease_symptoms	ru	тошнит	1
+disease_symptoms	ru	головокружение	1
+first_aid_kit_items	ru	бинт	1
+first_aid_kit_items	ru	пластырь	1
+first_aid_kit_items	ru	зелёнка	1
+first_aid_kit_items	ru	молоток	0
+first_aid_kit_items	ru	жгут	1
+first_aid_kit_items	ru	йод	1
+famous_tv_series	ru	игра престолов	1
+famous_tv_series	ru	друзья	1
+famous_tv_series	ru	универ	1
+famous_tv_series	ru	титаник	0
+famous_tv_series	ru	интерны	1
+famous_tv_series	ru	слово пацана	1
+tv_quizzes	ru	кто хочет стать миллионером	1
+tv_quizzes	ru	что где когда	1
+tv_quizzes	ru	поле чудес	1
+tv_quizzes	ru	дом 2	0
+tv_quizzes	ru	своя игра	1
+tv_quizzes	ru	холостяк	0
+animated_series	ru	симпсоны	1
+animated_series	ru	смешарики	1
+animated_series	ru	губка боб	1
+animated_series	ru	шрек	0
+animated_series	ru	лунтик	1
+animated_series	ru	король лев	0
+competition_tv_shows	ru	голос	1
+competition_tv_shows	ru	мастер шеф	1
+competition_tv_shows	ru	битва экстрасенсов	1
+competition_tv_shows	ru	новости	0
+competition_tv_shows	ru	холостяк	1
+competition_tv_shows	ru	танцы со звёздами	1
+long_running_series	ru	симпсоны	1
+long_running_series	ru	друзья	1
+long_running_series	ru	сверхъестественное	1
+long_running_series	ru	шерлок	0
+long_running_series	ru	универ	1
+long_running_series	ru	чернобыль	0
+punctuation_marks	ru	точка	1
+punctuation_marks	ru	запятая	1
+punctuation_marks	ru	тире	1
+punctuation_marks	ru	плюс	0
+punctuation_marks	ru	многоточие	1
+punctuation_marks	ru	кавычки	1
+greek_letters	ru	альфа	1
+greek_letters	ru	бета	1
+greek_letters	ru	омега	1
+greek_letters	ru	ятъ	0
+greek_letters	ru	пи	1
+greek_letters	ru	лямбда	1
+math_symbols	ru	плюс	1
+math_symbols	ru	корень	1
+math_symbols	ru	интеграл	1
+math_symbols	ru	запятая	0
+math_symbols	ru	бесконечность	1
+math_symbols	ru	равно	1
+data_units	ru	байт	1
+data_units	ru	гигабайт	1
+data_units	ru	бит	1
+data_units	ru	метр	0
+data_units	ru	терабайт	1
+data_units	ru	мегабайт	1
+elements_with_r_ru	ru	водород	1
+elements_with_r_ru	ru	кислород	1
+elements_with_r_ru	ru	хлор	1
+elements_with_r_ru	ru	азот	0
+elements_with_r_ru	ru	железо	0
+elements_with_r_ru	ru	серебро	1
+famous_inventors	ru	эдисон	1
+famous_inventors	ru	тесла	1
+famous_inventors	ru	кулибин	1
+famous_inventors	ru	пушкин	0
+famous_inventors	ru	попов	1
+famous_inventors	ru	калашников	1
+famous_painters	ru	репин	1
+famous_painters	ru	ван гог	1
+famous_painters	ru	айвазовский	1
+famous_painters	ru	моцарт	0
+famous_painters	ru	шишкин	1
+famous_painters	ru	пикассо	1
+famous_composers	ru	чайковский	1
+famous_composers	ru	моцарт	1
+famous_composers	ru	бах	1
+famous_composers	ru	пикассо	0
+famous_composers	ru	рахманинов	1
+famous_composers	ru	шопен	1
+kings_emperors	ru	пётр первый	1
+kings_emperors	ru	наполеон	1
+kings_emperors	ru	иван грозный	1
+kings_emperors	ru	ленин	0
+kings_emperors	ru	юлий цезарь	0
+kings_emperors	ru	екатерина вторая	1
+explorers	ru	колумб	1
+explorers	ru	магеллан	1
+explorers	ru	миклухо маклай	1
+explorers	ru	пушкин	0
+explorers	ru	конюхов	1
+explorers	ru	кук	1
+english_loanwords_ru	ru	компьютер	1
+english_loanwords_ru	ru	футбол	1
+english_loanwords_ru	ru	лайк	1
+english_loanwords_ru	ru	берёза	0
+english_loanwords_ru	ru	дедлайн	1
+english_loanwords_ru	ru	изба	0
+polysemous_words_ru	ru	ключ	1
+polysemous_words_ru	ru	коса	1
+polysemous_words_ru	ru	лук	1
+polysemous_words_ru	ru	замок	1
+polysemous_words_ru	ru	стул	1
+polysemous_words_ru	ru	ручка	1
+urban_legend_characters	ru	кровавая мэри	1
+urban_legend_characters	ru	слендер	1
+urban_legend_characters	ru	пиковая дама	1
+urban_legend_characters	ru	чебурашка	0
+urban_legend_characters	ru	чёрная рука	1
+urban_legend_characters	ru	гроб на колёсиках	1
+cursed_fictional_places	ru	сайлент хилл	1
+cursed_fictional_places	ru	мордор	1
+cursed_fictional_places	ru	дерри	1
+cursed_fictional_places	ru	диснейленд	0
+cursed_fictional_places	ru	изнанка	1
+cursed_fictional_places	ru	мотель бейтса	1
+fictional_detectives	ru	шерлок холмс	1
+fictional_detectives	ru	пуаро	1
+fictional_detectives	ru	коломбо	1
+fictional_detectives	ru	гарри поттер	0
+fictional_detectives	ru	фандорин	1
+fictional_detectives	ru	жеглов	1
+immortal_characters	ru	кощей	1
+immortal_characters	ru	дракула	1
+immortal_characters	ru	дэдпул	1
+immortal_characters	ru	гарри поттер	0
+immortal_characters	ru	горец	1
+immortal_characters	ru	чебурашка	0
+mind_readers	ru	профессор икс	1
+mind_readers	ru	эдвард каллен	1
+mind_readers	ru	джин грей	1
+mind_readers	ru	халк	0
+mind_readers	ru	одиннадцать	1
+mind_readers	ru	снегг	1
