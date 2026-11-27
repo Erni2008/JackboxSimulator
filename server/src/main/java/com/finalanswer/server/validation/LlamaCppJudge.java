@@ -75,18 +75,11 @@ public final class LlamaCppJudge implements AiJudge {
         JsonObject root=new JsonObject();root.addProperty("type","object");root.add("properties",rp);JsonArray rr=new JsonArray();rr.add("results");root.add("required",rr);root.addProperty("additionalProperties",false);
         return root;
     }
-    private static final String[] LAT={"a","b","v","g","d","e","zh","z","i","y","k","l","m","n","o","p","r","s","t","u","f","kh","ts","ch","sh","shch","","y","","e","yu","ya"};
     /**
-     * How the answer is shown to the model: first letter upper case, and a Russian answer followed by its Latin spelling.
-     * The 4B model failed to recognise lowercase Cyrillic names ("чехов", "пеле", "латте" all NO) but knows "Пеле (Pele)".
+     * How the answer is shown to the model: first letter upper case. The 4B model failed lowercase Cyrillic names
+     * ("чехов", "пеле", "латте" all NO) but knew "Чехов"; a Latin spelling added on top helped names but hurt common words.
      */
-    static String shown(String a){
-        String t=a.strip();if(t.isEmpty())return t;t=Character.toUpperCase(t.charAt(0))+t.substring(1);
-        if(t.length()>0)return t;
-        StringBuilder b=new StringBuilder();
-        for(char ch:t.toLowerCase().toCharArray()){if(ch=='ё')b.append("yo");else if(ch>='а'&&ch<='я')b.append(LAT[ch-'а']);else b.append(ch);}
-        String l=b.toString();return t+" (Latin: "+(l.isEmpty()?l:Character.toUpperCase(l.charAt(0))+l.substring(1))+")";
-    }
+    static String shown(String a){String t=a.strip();return t.isEmpty()?t:Character.toUpperCase(t.charAt(0))+t.substring(1);}
     static String userMessage(Category c,String lang,List<Item> items,List<String> knownIds){
         JsonObject o=new JsonObject();
         o.addProperty("category",c.textEn());if("ru".equals(lang))o.addProperty("categoryRu",c.textRu());
