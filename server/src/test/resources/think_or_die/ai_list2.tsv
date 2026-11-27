@@ -1,0 +1,194 @@
+# category	lang	answer	expected — list 2 categories, fresh words NOT in the lists (written before tuning)
+striped_animals	en	bumblebee	1
+striped_animals	ru	тигрёнок	1
+striped_animals	en	giraffe	0
+long_tail_animals	en	ring-tailed lemur	1
+long_tail_animals	ru	хомячок	0
+black_white_animals	en	killer whale	1
+black_white_animals	ru	лиса	0
+long_ear_animals	en	bunny	1
+long_ear_animals	ru	тюлень	0
+hoofed_animals	en	pony	1
+hoofed_animals	ru	кенгуру	0
+freezer_foods	en	frozen yogurt	1
+freezer_foods	ru	соль	0
+cookware	en	stockpot	1
+cookware	ru	холодильник	0
+pizza_toppings	en	sun-dried tomatoes	1
+pizza_toppings	ru	варенье	0
+canned_foods	en	canned peaches	1
+canned_foods	ru	хлеб	0
+salad_ingredients	en	cherry tomatoes	1
+salad_ingredients	ru	шоколад	0
+sleeveless_clothing	en	tank top	1
+sleeveless_clothing	ru	свитер	0
+headwear	en	baseball cap	1
+headwear	ru	перчатки	0
+footwear	en	wellington boots	1
+footwear	ru	носки	0
+winter_clothing	en	snow boots	1
+winter_clothing	ru	шорты	0
+clothing_with_pockets	en	cargo shorts	1
+clothing_with_pockets	ru	носки	0
+things_with_buttons	en	TV remote	1
+things_with_buttons	ru	ложка	0
+things_with_mirror	en	makeup compact	1
+things_with_mirror	ru	книга	0
+furniture	en	loveseat	1
+furniture	ru	лампа	0
+things_with_handle	en	frying pan	1
+things_with_handle	ru	мяч	0
+things_with_spring	en	clicky pen	1
+things_with_spring	ru	ложка	0
+ice_cream_flavors	en	butter pecan	1
+ice_cream_flavors	ru	чеснок	0
+desserts	en	creme caramel	1
+desserts	ru	борщ	0
+pancake_fillings	en	maple syrup	1
+pancake_fillings	ru	клей	0
+cake_ingredients	en	icing sugar	1
+cake_ingredients	ru	кетчуп	0
+candy_types	en	jawbreaker	1
+candy_types	ru	сыр	0
+disney_cartoons	en	Zootopia 2	1
+disney_cartoons	en	Shrek 2	0
+movies_with_number	en	The Seventh Seal	1
+movies_with_number	en	Titanic	0
+robot_movies	en	Terminator Genisys	1
+robot_movies	ru	Титаник	0
+pixar_characters	en	Lightning	1
+pixar_characters	en	Shrek	0
+alien_movies	en	Men in Black 3	1
+alien_movies	ru	Один дома	0
+phone_makers	en	Redmi	1
+phone_makers	en	Toyota	0
+social_networks	en	Insta	1
+social_networks	ru	Википедия	0
+headphone_devices	en	iPad	1
+headphone_devices	ru	чайник	0
+photo_devices	en	GoPro	1
+photo_devices	ru	принтер	0
+usb_charged_devices	en	AirPods	1
+usb_charged_devices	ru	холодильник	0
+hair_care_items	en	hair straightener	1
+hair_care_items	ru	зубная паста	0
+hygiene_products	en	toilet roll	1
+hygiene_products	ru	помада	0
+tooth_care_items	en	floss	1
+tooth_care_items	ru	расчёска	0
+cosmetics_types	en	eye shadow	1
+cosmetics_types	ru	зубная паста	0
+body_washing_items	en	shower sponge	1
+body_washing_items	ru	расчёска	0
+car_brands	en	Lambo	1
+car_brands	en	Yamaha	0
+car_parts	en	gear box	1
+car_parts	ru	парус	0
+two_wheeled_vehicles	en	push bike	1
+two_wheeled_vehicles	ru	машина	0
+european_car_brands	en	Merc	1
+european_car_brands	en	Toyota	0
+pedal_vehicles	en	pedal boat	1
+pedal_vehicles	ru	самокат	0
+school_subjects	en	maths	1
+school_subjects	ru	перемена	0
+stationery	en	glue stick	1
+stationery	ru	рюкзак	0
+art_class_items	en	paint brush	1
+art_class_items	ru	микроскоп	0
+school_bag_items	en	textbook	1
+school_bag_items	ru	пианино	0
+foreign_languages	en	Mandarin	1
+foreign_languages	en	Elvish	0
+yellow_fruits	en	lemons	1
+yellow_fruits	ru	клубника	0
+green_vegetables	en	sugar snap peas	1
+green_vegetables	ru	морковь	0
+red_berries	en	strawberries	1
+red_berries	ru	черника	0
+white_foods	en	cauliflower	1
+white_foods	ru	помидор	0
+orange_foods	en	carrots	1
+orange_foods	ru	банан	0
+two_player_games	en	Tic tac toe	1
+two_player_games	ru	пасьянс	0
+open_world_games	en	GTA San Andreas	1
+open_world_games	en	Tetris	0
+mobile_games	en	Brawl Stars	1
+mobile_games	en	Skyrim	0
+game_characters	en	Princess Zelda	1
+game_characters	en	Mickey Mouse	0
+game_consoles	en	PS5	1
+game_consoles	ru	компьютер	0
+fizzy_drinks	en	Coke	1
+fizzy_drinks	ru	молоко	0
+juice_fruits	en	oranges	1
+juice_fruits	ru	картошка	0
+tea_types	en	earl gray	1
+tea_types	ru	кофе	0
+coffee_drinks	en	flat white	1
+coffee_drinks	ru	какао	0
+milkshake_ingredients	en	chocolate syrup	1
+milkshake_ingredients	ru	чеснок	0
+hand_tools	en	claw hammer	1
+hand_tools	ru	дрель	0
+fasteners	en	wood screw	1
+fasteners	ru	молоток	0
+joining_items	en	superglue	1
+joining_items	ru	ножницы	0
+hole_making_tools	en	power drill	1
+hole_making_tools	ru	клей	0
+wall_painting_items	en	roller	1
+wall_painting_items	ru	молоток	0
+italian_cities	en	Napoli	1
+italian_cities	ru	Париж	0
+luggage_items	en	trolley bag	1
+luggage_items	ru	паспорт	0
+euro_countries	en	Holland	1
+euro_countries	ru	Польша	0
+famous_islands	en	Bali	1
+famous_islands	ru	Атлантида	0
+public_transport	en	underground	1
+public_transport	ru	велосипед	0
+farm_animals	en	hen	1
+farm_animals	ru	лев	0
+desert_animals	en	dromedary	1
+desert_animals	ru	пингвин	0
+underground_animals	en	moles	1
+underground_animals	ru	орёл	0
+river_animals	en	river otter	1
+river_animals	ru	акула	0
+rainforest_animals	en	spider monkey	1
+rainforest_animals	ru	белый медведь	0
+floating_things	en	rubber ducky	1
+floating_things	ru	камень	0
+washable_reusable	en	bath towel	1
+washable_reusable	ru	туалетная бумага	0
+sharp_tipped_things	en	sewing needle	1
+sharp_tipped_things	ru	мяч	0
+liquid_inside	en	water bottle	1
+liquid_inside	ru	кирпич	0
+wall_mountable	en	wall clock	1
+wall_mountable	ru	диван	0
+sportswear_brands	en	Adidas Originals	1
+sportswear_brands	en	Gucci	0
+pizza_types	en	Margarita	1
+pizza_types	ru	суши	0
+cat_breeds	en	Maine coon	1
+cat_breeds	en	Labrador	0
+pasta_types	en	angel hair	1
+pasta_types	ru	гречка	0
+annual_holidays	en	New Year's Day	1
+annual_holidays	ru	понедельник	0
+vegetable_letter_k_ru	ru	картошка	1
+vegetable_letter_k_ru	ru	морковь	0
+animal_ending_a_ru	ru	лисица	1
+animal_ending_a_ru	ru	волк	0
+countries_ending_ia_en	en	Algeria	1
+fruit_letter_n_en	en	lemon	1
+profession_letter_r_ru	ru	архитектор	1
+furniture	en	sdfghj	0
+cookware	ru	кастрюлькаа	1
+car_brands	en	Toyotaa	1
+cat_breeds	ru	котопёс	0
+mobile_games	en	Zorblax Quest	0

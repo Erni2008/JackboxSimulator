@@ -1,0 +1,79 @@
+# category	lang	answer	expected — round 7 on all earlier categories: plurals, diminutives, typos, slang, traps (written before tuning)
+batman_villains	en	the jokker	1
+batman_villains	ru	пингвинчик	1
+disney_princesses	en	Snow white	1
+disney_princesses	ru	Эльза	1
+movie_genres	ru	ужастики	1
+movie_genres	en	popcorn	0
+programming_languages	ru	питончик	0
+programming_languages	en	pyton	1
+chemical_elements	ru	кислородик	1
+chemical_elements	en	oxigen	1
+landlocked_countries	en	switzerland	1
+european_capitals	ru	Берлинн	1
+pump_bottle	ru	шампуни	1
+produces_light	en	torches	1
+in_bathroom	ru	мыльце	1
+in_kitchen	ru	сковородочка	1
+ocean_things	en	sharks	1
+ruin_first_date	en	burping	1
+egg_laying_not_bird	ru	крокодильчик	1
+ocean_animals	en	dolphins	1
+nocturnal_animals	ru	совы	1
+dairy_products	ru	творожок	1
+potato_dishes	en	mashed potato	1
+stone_fruit	en	cherrys	1
+cheese_types	en	parmezan	1
+star_on_flag	en	USA	1
+island_countries	en	Japan	1
+skeleton_bones	en	ribs	1
+head_parts	ru	глазки	1
+internal_organs	en	kidneys	1
+vitamins	en	vit c	1
+space_movies	en	interstelar	1
+flying_vehicles	ru	самолётик	1
+watercraft	en	boats	1
+operating_systems	en	windows xp	1
+computer_components	ru	видюха	1
+shades_of_blue	ru	тёмно синий	1
+gemstones	en	diamonds	1
+wood_types	en	oak wood	1
+metal_elements	ru	золотишко	1
+mythical_creatures	en	dragons	1
+flying_superheroes	en	Super man	1
+fictional_robots	en	Wall-e	1
+ancient_gods	en	Zues	1
+medical_professions	en	docter	1
+units_of_measurement	en	kilograms	1
+ball_sports	en	soccer	1
+board_games	en	monopolly	1
+dance_styles	en	hip hop	1
+martial_arts	en	kung-fu	1
+garden_flowers	en	roses	1
+edible_mushrooms	en	mushroom	0
+natural_disasters	en	earthquakes	1
+string_instruments	en	guitars	1
+music_genres	en	rock n roll	1
+phobias	en	fear of heights	1
+venomous_animals	en	cobras	1
+horror_creatures	en	ghosts	1
+historical_empires	en	Roman empire	1
+medieval_items	en	swords	1
+ancient_civilizations	en	egyptians	1
+batman_villains	en	Superman	0
+movie_genres	en	Titanic	0
+chemical_elements	en	Kryptonite	0
+european_capitals	en	Moscow	1
+european_capitals	en	Sydney	0
+pump_bottle	en	brick	0
+ocean_animals	en	tiger	0
+vitamins	en	vitamin q	0
+flying_superheroes	en	Spiderman	0
+board_games	en	football	0
+dance_styles	en	boxing	0
+music_genres	en	guitar	0
+gemstones	en	granite	0
+edible_mushrooms	en	fly agaric	0
+ancient_gods	en	Superman	0
+phobias	en	pizzaphobia	0
+programming_languages	en	snake	0

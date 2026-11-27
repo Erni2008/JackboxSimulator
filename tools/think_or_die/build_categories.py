@@ -13,6 +13,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import cats_a  # noqa: E402  (defines C and cat())
 import cats_b, cats_c, cats_d, cats_e, cats_f  # noqa: E402,F401
+import cats_h, cats_i, cats_j  # noqa: E402,F401  (second list of 100)
 import cats_g  # noqa: E402  (answers and traps learned from AI evaluation rounds)
 
 PACK = os.path.join(HERE, "..", "..", "server", "src", "main", "resources", "think_or_die", "categories.json")
@@ -111,11 +112,34 @@ def build(c, log):
     return o
 
 
+def check_unique_keys():
+    import ast
+    tree = ast.parse(open(os.path.join(HERE, "cats_g.py"), encoding="utf-8").read())
+    for n in tree.body:
+        if isinstance(n, ast.Assign) and isinstance(n.value, ast.Dict):
+            keys = [k.value for k in n.value.keys]
+            dup = {k for k in keys if keys.count(k) > 1}
+            if dup: sys.exit(f"cats_g.{n.targets[0].id}: repeated keys {dup} (the later one would replace the earlier)")
+
+
 def main():
+    check_unique_keys()
     pack = json.load(open(PACK, encoding="utf-8"))
     new, log = [], []
     for c in cats_a.C:
-        if c["id"] in cats_g.EXTRA: c["answers"] += "\n" + cats_g.EXTRA[c["id"]]
+        if c["id"] in cats_g.EXTRA:
+            for x in cats_g.EXTRA[c["id"]].split("\n"):
+                if x.startswith("+"):  # "+English label|alias/alias": more aliases for an existing answer
+                    lab, more = x[1:].split("|", 1)
+                    lines = c["answers"].split("\n")
+                    i = next((n for n, l in enumerate(lines) if l.split("|")[0] == lab), None)
+                    if i is None: sys.exit(f"{c['id']}: no answer '{lab}' to extend")
+                    f = lines[i].split("|")
+                    while len(f) < 3: f.append(f[0] if len(f) == 1 else "")
+                    f[2] = "/".join(a for a in (f[2], more) if a)
+                    lines[i] = "|".join(f); c["answers"] = "\n".join(lines)
+                else:
+                    c["answers"] += "\n" + x
         if c["id"] in cats_g.INVALID: c["invalid"] += "/" + cats_g.INVALID[c["id"]]
         new.append(build(c, log))
     ids = [c["id"] for c in new]
