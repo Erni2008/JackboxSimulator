@@ -617,7 +617,7 @@ The Trip to Italy|Поездка в Италию
 Under the Tuscan Sun|Под солнцем Тосканы
 Delhi Belly|Однажды в Дели
 Bombay|Бомбей
-Hotel Mumbai|Отель Мумбаи: Противостояние
+Hotel Mumbai|Отель Мумбаи: Противостояние|отель мумбаи
 Bangalore Days|Бангалорские дни
 Timbuktu|Тимбукту
 The Battle of Algiers|Битва за Алжир

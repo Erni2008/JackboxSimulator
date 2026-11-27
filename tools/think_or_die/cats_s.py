@@ -312,7 +312,7 @@ k("place_title_films", "movies_tv", "Name a film with a geographical place in it
   "A real film whose title names a real geographical place (city, country, region, river, mountain): Casablanca, Fargo, Chicago, Titanic no, Madagascar, Notting Hill, Midnight in Paris, Moscow Does Not Believe in Tears, Brooklyn, Philadelphia, Dunkirk, Stalingrad.",
   "Реальный фильм, в названии которого есть географическое место: Касабланка, Фарго, Чикаго, Мадагаскар, Ноттинг Хилл, Полночь в Париже, Москва слезам не верит, Бруклин, Филадельфия, Дюнкерк, Сталинград, Брестская крепость, Кавказская пленница.",
   """Casablanca|Касабланка
-Fargo|Фарго
+Fargo|Фарго|фарго коэнов
 Chicago|Чикаго
 Madagascar|Мадагаскар
 Notting Hill|Ноттинг Хилл
@@ -347,7 +347,6 @@ Leaving Las Vegas|Покидая Лас Вегас
 The Hangover Vegas|Мальчишник в Вегасе
 Manhattan|Манхэттен
 Mystic River|Таинственная река
-Apocalypse Now Vietnam|Доброе утро Вьетнам
 Good Morning, Vietnam|Доброе утро Вьетнам
 Pearl Harbor|Пёрл Харбор
 Letters from Iwo Jima|Письма с Иводзимы
@@ -359,20 +358,16 @@ Siberiade|Сибириада
 Siberian Barber|Сибирский цирюльник
 Volga-Volga|Волга Волга
 Kazan Orphan|Казанская сирота
-Station for Two|Вокзал для двоих
-Kin-dza-dza Pluk|Кин дза дза
 Chernobyl|Чернобыль
 Chernobyl 1986|Чернобыль Зона отчуждения
 Sevastopol|Битва за Севастополь
 Rzhev|Ржев
 Kandahar|Кандагар
 Afghan Breakdown|Афганский излом
-Mumbai Taj|Отель Мумбаи
 Tokyo Drift|Тройной форсаж Токийский дрифт
 Munich|Мюнхен
 Troy|Троя
 Rome|Рим
-Fargo film|Фарго Коэнов
 Nebraska|Небраска
 Dallas Buyers Club|Далласский клуб покупателей
 Detroit|Детройт
@@ -384,7 +379,6 @@ Sahara|Сахара
 Everest|Эверест
 Australia|Австралия
 Argentina 1985|Аргентина 1985
-Lost City of Z|Затерянный город Z
 Annapurna|Аннапурна
 Mission to Mars|Миссия на Марс
 Belfast|Белфаст
