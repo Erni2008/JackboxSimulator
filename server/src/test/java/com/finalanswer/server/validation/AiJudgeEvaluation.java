@@ -52,14 +52,15 @@ public final class AiJudgeEvaluation {
     /** Whole system as in a game: non-answers, lists, rules, typos first; only the rest goes to the AI. */
     static void engineMode(LlamaCppJudge judge,CategoryPack pack) throws Exception{
         judge.tune(4,120_000);var engine=new ValidationEngine(new WordDictionary(),ValidationCache.NONE,judge);
-        int ok=0,fa=0,fr=0,byList=0,byAi=0;
+        int ok=0,fa=0,fr=0,byList=0,byAi=0,vote=0;
         for(Case c:CASES){Category cat=pack.get(c.category());if(cat==null)cat=EXTRA.get(c.category());AnswerInput in=AnswerInput.of(c.answer());
             Verdict v=in==null?Verdict.invalid(Verdict.Source.KNOWN_INVALID):engine.validate(cat,in);
             if(v.status()==ValidationStatus.PENDING){byAi++;v=engine.judgeLater(cat,c.lang(),in).get(60,java.util.concurrent.TimeUnit.SECONDS);}else byList++;
             boolean valid=v.status()==ValidationStatus.VALID;
+            if(v.status()==ValidationStatus.UNCERTAIN){vote++;System.out.println("to vote       "+c.category()+"  "+c.answer()+"  (expected "+(c.valid()?"valid":"wrong")+")");continue;}
             if(valid==c.valid())ok++;else if(valid){fa++;System.out.println("FALSE ACCEPT  "+c.category()+"  "+c.answer()+"  ("+v.source()+")");}else{fr++;System.out.println("false reject  "+c.category()+"  "+c.answer()+"  ("+v.source()+")");}}
         int n=CASES.size();
-        System.out.printf("%nSYSTEM: %d cases (%d decided without AI, %d by AI): correct %d (%.1f%%), false accepts %d, false rejects %d%n",n,byList,byAi,ok,100.0*ok/n,fa,fr);
+        System.out.printf("%nSYSTEM: %d cases (%d decided without AI, %d by AI): correct %d (%.1f%%), false accepts %d, false rejects %d, to players' vote %d; never wrong %.1f%%%n",n,byList,byAi,ok,100.0*ok/n,fa,fr,vote,100.0*(ok+vote)/n);
         engine.close();System.exit(0);
     }
 }

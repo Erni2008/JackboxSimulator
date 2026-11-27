@@ -19,16 +19,17 @@ import java.util.concurrent.*;
  */
 public final class ValidationEngine implements AutoCloseable {
     private final List<ValidationStep> steps;private final VerifiedAnswers verified;
-    private final ValidationCache cache;private final AiJudge ai;
+    private final ValidationCache cache;private final AiJudge ai;private final LearnedAnswers learned;
     private final ScheduledExecutorService worker;
     private final Map<String,CompletableFuture<Verdict>> inflight=new ConcurrentHashMap<>();
     private final Map<String,List<Waiting>> batches=new HashMap<>();
     private record Waiting(Category category,String lang,AnswerInput input,CompletableFuture<Verdict> future){}
     static final long BATCH_DELAY_MS=60;static final int BATCH_MAX=16;static final long AI_HARD_TIMEOUT_MS=15_000;
 
-    public ValidationEngine(WordDictionary dictionary,ValidationCache cache,AiJudge ai){
-        verified=new VerifiedAnswers();this.cache=cache==null?ValidationCache.NONE:cache;this.ai=ai;
-        steps=List.of(verified.knownInvalid(),verified.exact(),NonAnswers.STEP,RuleSteps.words(dictionary),RuleSteps.numbers(),verified.typo(),verified.sound(),verified.generic(),this::cached);
+    public ValidationEngine(WordDictionary dictionary,ValidationCache cache,AiJudge ai){this(dictionary,cache,ai,LearnedAnswers.NONE);}
+    public ValidationEngine(WordDictionary dictionary,ValidationCache cache,AiJudge ai,LearnedAnswers learned){
+        verified=new VerifiedAnswers();this.cache=cache==null?ValidationCache.NONE:cache;this.ai=ai;this.learned=learned==null?LearnedAnswers.NONE:learned;
+        steps=List.of(verified.knownInvalid(),verified.exact(),NonAnswers.STEP,RuleSteps.words(dictionary),RuleSteps.numbers(),verified.typo(),verified.sound(),verified.generic(),this::fromVotes,this::cached);
         worker=ai==null?null:Executors.newSingleThreadScheduledExecutor(r->{Thread t=new Thread(r,"validation-ai");t.setDaemon(true);return t;});
     }
     /** Deterministic engine without AI or cache (tests, tools). */
@@ -48,6 +49,13 @@ public final class ValidationEngine implements AutoCloseable {
         if(c.exhaustive())return Verdict.invalid(Verdict.Source.FALLBACK);
         return ai!=null&&c.allowUnknown()?Verdict.pending():Verdict.uncertain(Verdict.Source.FALLBACK);
     }
+    /** Answers an earlier room settled by vote (rules and lists above still win). */
+    private Verdict fromVotes(Category c,AnswerInput in){
+        var e=learned.get(c.id(),in.key());if(e==null)return null;
+        return e.accepted()?Verdict.valid("vote:"+in.key(),Verdict.Source.VOTE):Verdict.invalid(Verdict.Source.VOTE);
+    }
+    /** A closed dispute: remember what the players decided. */
+    public void learn(Category c,String key,String text,int yes,int no){learned.record(c.id(),key,text,yes,no);}
     private Verdict cached(Category c,AnswerInput in){
         if(ai==null)return null;var e=cache.get(c.id(),c.version(),in.key(),ai.modelVersion());if(e==null)return null;
         return e.status()==ValidationStatus.VALID?Verdict.valid(e.canonicalId(),Verdict.Source.CACHE):Verdict.invalid(Verdict.Source.CACHE);

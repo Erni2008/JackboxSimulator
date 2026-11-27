@@ -647,7 +647,7 @@ public final class RoomService {
     /** One engine per server: deterministic steps, the local AI cache, and the optional AI pack when configured. */
     private synchronized com.finalanswer.server.validation.ValidationEngine validationEngine(){
         if(validationEngine==null){var ai=com.finalanswer.server.validation.LlamaCppJudge.configured();
-            validationEngine=new com.finalanswer.server.validation.ValidationEngine(new com.finalanswer.server.validation.WordDictionary(),ai==null?com.finalanswer.server.validation.ValidationCache.NONE:com.finalanswer.server.validation.ValidationCache.FileStore.configured(),ai);
+            validationEngine=new com.finalanswer.server.validation.ValidationEngine(new com.finalanswer.server.validation.WordDictionary(),ai==null?com.finalanswer.server.validation.ValidationCache.NONE:com.finalanswer.server.validation.ValidationCache.FileStore.configured(),ai,ai==null?com.finalanswer.server.validation.LearnedAnswers.NONE:com.finalanswer.server.validation.LearnedAnswers.configured());
             System.out.println("[think-or-die] validation engine ready, AI judge "+(ai==null?"off":ai.modelVersion()));}
         return validationEngine;
     }
