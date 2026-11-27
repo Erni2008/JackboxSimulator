@@ -40,6 +40,12 @@ public final class RuleSteps {
         };
     }
 
+    /** Optional range in the rule value: "100-999" (anything after "/" is a rule parameter). */
+    static boolean inRange(long n,String v){
+        if(v==null)return true;String rng=v.split("/")[0];if(!rng.matches("\\d+-\\d+"))return true;
+        String[] p=rng.split("-");return n>=Long.parseLong(p[0])&&n<=Long.parseLong(p[1]);
+    }
+
     public static ValidationStep numbers(){return (c,in)->{
         if(c.type()!=Category.Type.NUMERIC_RULE)return null;
         String k=in.key();if(!k.matches("[0-9]{1,15}"))return Verdict.invalid(Verdict.Source.RULE);
@@ -48,8 +54,14 @@ public final class RuleSteps {
             case "PRIME"->n>1&&BigInteger.valueOf(n).isProbablePrime(40);
             case "DIVISIBLE_BY"->n>0&&r.n()>0&&n%r.n()==0;
             case "SQUARE"->{long s=(long)Math.sqrt((double)n);while(s*s>n)s--;while((s+1)*(s+1)<=n)s++;yield n>0&&s*s==n;}
+            case "NUM_PALINDROME"->k.length()>=2&&new StringBuilder(k).reverse().toString().equals(k);
+            case "HAS_DIGIT"->k.indexOf((char)('0'+r.n()))>=0;
+            case "DIGIT_SUM"->k.chars().map(x->x-'0').sum()==r.n();
+            case "FIRST_GT_SECOND"->k.length()>=2&&k.charAt(0)>k.charAt(1);
+            case "DIVISIBLE_NOT"->{String[] p=(r.value()==null?"":r.value()).split("/");long not=p.length>1?Long.parseLong(p[1]):0;yield n>0&&r.n()>0&&n%r.n()==0&&(not==0||n%not!=0);}
             default->throw new IllegalArgumentException("unknown numeric rule "+r.kind());
         };
+        ok=ok&&inRange(n,r.value())&&!(k.length()>1&&k.charAt(0)=='0');
         return ok?Verdict.valid("num:"+n,Verdict.Source.RULE):Verdict.invalid(Verdict.Source.RULE);
     };}
 }

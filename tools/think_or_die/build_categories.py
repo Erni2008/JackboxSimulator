@@ -15,6 +15,7 @@ import cats_a  # noqa: E402  (defines C and cat())
 import cats_b, cats_c, cats_d, cats_e, cats_f  # noqa: E402,F401
 import cats_h, cats_i, cats_j  # noqa: E402,F401  (second list of 100)
 import cats_k, cats_l, cats_m, cats_n  # noqa: E402,F401  (third list, Russian first)
+import cats_o, cats_p, cats_q  # noqa: E402,F401  (fourth list, 466-560)
 import cats_g  # noqa: E402  (answers and traps learned from AI evaluation rounds)
 import glob, importlib  # noqa: E402
 
