@@ -16,6 +16,37 @@ import cats_b, cats_c, cats_d, cats_e, cats_f  # noqa: E402,F401
 import cats_h, cats_i, cats_j  # noqa: E402,F401  (second list of 100)
 import cats_k, cats_l, cats_m, cats_n  # noqa: E402,F401  (third list, Russian first)
 import cats_g  # noqa: E402  (answers and traps learned from AI evaluation rounds)
+import glob, importlib  # noqa: E402
+
+
+def load_more():
+    """more_*.py files: MORE = {category id: "English|Русский|alias/alias" lines} — hand-written extra answers."""
+    more = {}
+    for f in sorted(glob.glob(os.path.join(HERE, "more_*.py"))):
+        m = importlib.import_module(os.path.basename(f)[:-3])
+        for k, v in m.MORE.items():
+            more[k] = (more[k] + "\n" + v) if k in more else v
+    return more
+
+
+def extend_old(c, lines, log):
+    """Append answers to a hand-made category that lives only in the pack (not in cats_*.py)."""
+    ans = c.setdefault("answers", [])
+    seen = {akey(n) for a in ans for n in a[1].split("|") + a[2].split("|") if n}
+    used = {a[0] for a in ans}
+    seen |= {akey(w) for w in c.get("invalid", [])}  # never turn a known trap into an answer
+    en_only = c.get("langs") == ["en"]
+    for i, line in enumerate(l.strip() for l in lines.split("\n")):
+        if not line: continue
+        f = line.split("|")
+        if en_only: en, ru, al = f[0], f[0], (f[1] if len(f) > 1 else "")
+        else: en, ru, al = f[0], (f[1] if len(f) > 1 else f[0]), (f[2] if len(f) > 2 else "")
+        if akey(en) in seen or akey(ru) in seen:
+            continue
+        names = [n for n in dict.fromkeys([en, ru] + al.split("/")) if n.strip() and akey(n) not in seen]
+        seen.update(akey(n) for n in names)
+        aliases = [n for n in names if n not in (en, ru)]
+        ans.append([slug(en, used, len(ans)), f"{en}|{ru}", "|".join(aliases)])
 
 PACK = os.path.join(HERE, "..", "..", "server", "src", "main", "resources", "think_or_die", "categories.json")
 VOWELS = "aeiouаеёиоуыэюя"
@@ -26,6 +57,11 @@ def key(s):
     s = unicodedata.normalize("NFD", s.lower().replace("ё", "е").replace("й", "\0"))
     s = "".join(c for c in s if unicodedata.category(c) != "Mn").replace("\0", "й")
     return "".join(c for c in s if c.isalnum() or c in "+#")
+
+
+def akey(s):
+    """key() without a leading English article, as the engine matches aliases."""
+    return key(re.sub(r"^(the|a|an)\s+", "", s.strip(), flags=re.I)) or key(s)
 
 
 def letters(s):
@@ -89,7 +125,7 @@ def build(c, log):
             names = [n for n in names if not in_script(rule, letters(n)) or keeps(rule, letters(n))]
         keep = []
         for n in names:
-            k = key(n)
+            k = akey(n)
             if not k: continue
             if k in seen and seen[k] != i:
                 if n in (en, ru) and not keep:
@@ -134,7 +170,9 @@ def main():
     check_unique_keys()
     pack = json.load(open(PACK, encoding="utf-8"))
     new, log = [], []
+    extra_more = load_more()
     for c in cats_a.C:
+        if c["id"] in extra_more: c["answers"] += "\n" + extra_more[c["id"]]
         if c["id"] in cats_g.EXTRA:
             for x in cats_g.EXTRA[c["id"]].split("\n"):
                 if x.startswith("+"):  # "+English label|alias/alias": more aliases for an existing answer
@@ -154,6 +192,10 @@ def main():
     dup = {i for i in ids if ids.count(i) > 1}
     if dup: sys.exit(f"duplicate ids: {dup}")
     old = [c for c in pack["categories"] if c["id"] not in set(ids)]
+    for c in old:
+        if c["id"] in extra_more: extend_old(c, extra_more[c["id"]], log)
+    unknown = set(extra_more) - {c["id"] for c in pack["categories"]} - set(ids)
+    if unknown: sys.exit(f"more_*.py: unknown category ids {unknown}")
     clash = [c["id"] for c in pack["categories"] if c["id"] in set(ids)]
     pack["categories"] = old + new
     pack["contentVersion"] = pack.get("contentVersion", 1) + 1
