@@ -164,7 +164,7 @@ Brown pelican|Бурый пеликан
 Atlantic puffin|Атлантический тупик|обыкновенный тупик
 Horned puffin|Ипатка
 Tufted puffin|Топорок
-Marbled murrelet|Длинноклювый пыжик
+Long-billed murrelet|Длинноклювый пыжик
 Ancient murrelet|Старик|обыкновенный старик
 Dovekie|Люрик
 Crested auklet|Большая конюга
