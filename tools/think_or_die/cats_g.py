@@ -2,6 +2,15 @@
 # EXTRA: "English|Русский|alias/alias" lines appended to a category; "+English label|alias/alias" adds aliases to an existing answer.
 # Each category id appears once (a repeated dict key would silently replace the earlier one).
 EXTRA = {
+    'things_with_wheels': 'Quad bike|Квадроцикл|квадрик/atv\nGo-kart|Карт|картинг\nGolf cart|Гольф кар\nForklift|Погрузчик',
+    'dinosaur_movies': '+Jurassic World|jurassic world camp cretaceous/мир юрского периода лагерь мел',
+    'magic_users': '+Gandalf|gandalf the white/gandalf the grey/гэндальф белый/гэндальф серый',
+    'spice_plants': '+Vanilla|vanilla bean/vanilla pod/стручок ванили',
+    'battery_devices': '+Remote control|tv remote/remote for tv/пульт от телевизора/пульт от телика',
+    'educational_institutions': '+Vocational school|шарага/шарашка/путяга/бурса',
+    'shoe_brands': '+Nike|найки/найкі/nike air/эйр макс',
+    'marvel_characters': '+Iron Man|железный чел/железяка/айрон мэн/ironman\n+Spider-Man|паук/человек паук/спайди/спайдермен/spiderman/паучок\n+Hulk|халкстер/зелёный',
+    'japanese_dishes': '+Rolls|роллы филадельфия/филка/калифорния ролл',
     'striped_animals': 'Bumblebee|Шмель\nSnake|Полосатая змея\nZebra mussel|Дрейссена',
     'things_with_spring': '+Ballpoint pen|clicky pen/click pen/retractable pen/автоматическая ручка',
     'ice_cream_flavors': 'Butter pecan|Масляный пекан|pecan/пекан\nMaple walnut|Клён и грецкий орех\nRaspberry ripple|Малиновый рипл',
@@ -17,7 +26,7 @@ EXTRA = {
     'ancient_gods': '+Zeus|zues/zevs/зевес',
     'rollable_things': 'Sushi roll|Ролл|sushi/суши/роллы/maki/маки\nSpring roll|Спринг ролл\nBurrito|Буррито\nShawarma|Шаурма|шаверма\nSwiss roll|Рулет|бисквитный рулет\nCinnamon roll|Синнабон|булочка с корицей',
     'ball_sports': 'Football kickabout|Футбольчик|футболчик/баскетбольчик/волейбольчик',
-    'horned_animals': 'Aurochs|Тур|auroch\nNilgai|Нильгау\nSable antelope|Чёрная антилопа\nBongo|Бонго\nEland|Канна|антилопа канна\nGaur|Гаур\nBanteng|Бантенг\nTakin|Такин\nGemsbok|Сернобык\nSpringbok|Спрингбок\nDik-dik|Дик дик\nAddax|Аддакс',
+    'horned_animals': 'Goitered gazelle|Джейран\nAurochs|Тур|auroch\nNilgai|Нильгау\nSable antelope|Чёрная антилопа\nBongo|Бонго\nEland|Канна|антилопа канна\nGaur|Гаур\nBanteng|Бантенг\nTakin|Такин\nGemsbok|Сернобык\nSpringbok|Спрингбок\nDik-dik|Дик дик\nAddax|Аддакс',
     'more_than_four_legs': 'Earwig|Уховёртка|уховертка\nSilverfish|Чешуйница\nCicada|Цикада\nAphid|Тля\nBedbug|Клоп|постельный клоп\nHorsefly|Овод|слепень\nWater strider|Водомерка\nMayfly|Подёнка\nKrill|Криль\nBarnacle|Морской жёлудь\nSea spider|Морской паук\nHarvestman|Сенокосец\nMite|Клещик|пылевой клещ',
     'ocean_animals': 'Capelin|Мойва\nMarlin|Марлин\nSea cucumber|Морской огурец|трепанг/голотурия\nAnchovy|Анчоус|хамса\nSea bass|Сибас|морской окунь\nPollock|Минтай\nSea anemone|Актиния|морской анемон\nNautilus|Наутилус\nHammerhead|Акула молот\nFur seal|Морской котик\nGrouper|Групер\nPlaice|Морская камбала\nHake|Хек\nSprat|Шпрот|килька\nBlue tang|Рыба хирург\nKing crab|Камчатский краб',
     'nocturnal_animals': 'Dormouse|Соня|соня полчок\nKinkajou|Кинкажу\nGenet|Генетта\nCivet|Цивета\nNight monkey|Мирикина|ночная обезьяна\nBushbaby|Галаго\nFennec fox|Фенек\nHoney badger|Медоед\nOcelot|Оцелот\nServal|Сервал\nTasmanian devil|Тасманийский дьявол\nBarn owl|Сипуха\nEagle owl|Филин обыкновенный\nCatfish|Сом\nEel|Угорь\nCrayfish|Рак',

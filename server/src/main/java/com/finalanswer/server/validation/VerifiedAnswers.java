@@ -44,6 +44,25 @@ public final class VerifiedAnswers {
     public ValidationStep exact(){return (c,in)->{Index ix=index(c);String k=in.key(),id=ix.alias.get(k);
         if(id==null){String cy=Phonetic.cyrillic(k);if(cy!=null)id=ix.alias.get(cy);}
         return id==null?null:Verdict.valid(id,Verdict.Source.VERIFIED);};}
+    /** Words that only name the kind of thing ("сыр чеддер", "морее черное", "роллы филадельфия", "the film Titanic"). */
+    static final java.util.Set<String> GENERIC=java.util.Set.of("сыр","море","город","страна","фильм","мультфильм","мульт","кино","игра","игрушка","ролл","роллы","суп","торт","пирог","марка","бренд","фирма","группа","певица","певец","река","озеро","остров","порода","витамин","блюдо","напиток","сок","чай","кофе","соус","пицца","салат","фрукт","ягода","овощ","цветок","дерево","гриб","рыба","птица","зверь","животное","персонаж","герой","планета","созвездие","язык","спорт","танец","профессия","день","праздник","магазин","сеть","журнал","книга","сказка",
+        "cheese","sea","city","country","movie","film","cartoon","game","toy","roll","rolls","soup","cake","pie","brand","band","group","singer","river","lake","island","breed","vitamin","dish","drink","juice","tea","coffee","sauce","pizza","salad","fruit","berry","vegetable","flower","tree","mushroom","fish","bird","animal","character","hero","planet","constellation","language","sport","dance","day","holiday","shop","store","book","tale");
+    /** "морее черное" → черное: one generic word (spelling-tolerant) before or after a verified answer, or two words that both name the same answer. */
+    public ValidationStep generic(){return (c,in)->{Index ix=index(c);String[] w=in.clean().trim().split("[\\s\\-]+");if(w.length!=2)return null;w[0]=AnswerInput.key(w[0]);w[1]=AnswerInput.key(w[1]);if(w[0].isEmpty()||w[1].isEmpty())return null;
+        String a=lookup(ix,w[0]),b=lookup(ix,w[1]);
+        if(a!=null&&a.equals(b))return Verdict.valid(a,Verdict.Source.VERIFIED); // "роллы филадельфия"
+        String title=(c.textEn()+" "+c.textRu()).toLowerCase(java.util.Locale.ROOT).replace('ё','е');
+        if(b!=null&&isGeneric(w[0],title))return Verdict.corrected(b);
+        if(a!=null&&isGeneric(w[1],title))return Verdict.corrected(a);
+        return null;};}
+    /** The generic word must name this category's own kind of thing ("море" for "Name a sea", not "coffee" for programming languages). */
+    private static boolean isGeneric(String word,String title){String cy=Phonetic.cyrillic(word);
+        for(String g:GENERIC){if(!(g.equals(word)||g.equals(cy)||word.length()>=4&&Phonetic.sound(word).equals(Phonetic.sound(g))))continue;
+            String stem=g.length()>4?g.substring(0,4):g;if(java.util.regex.Pattern.compile("(?U)\\b"+java.util.regex.Pattern.quote(stem)).matcher(title).find())return true;}
+        return false;}
+    private static String lookup(Index ix,String word){String id=ix.alias.get(word);if(id!=null)return id;String cy=Phonetic.cyrillic(word);
+        if(cy!=null&&(id=ix.alias.get(cy))!=null)return id;
+        String sk=Phonetic.sound(cy!=null?cy:word);if(sk.length()<3||ix.soundInvalid().contains(sk))return null;String s=ix.sound().get(sk);return s==null||s.isEmpty()?null:s;}
     /** Sound-alike match on the verified answers ("dolfin", "sinderella", "triler", "towl", "shchuka"); a sound shared by two answers or a wrong one decides nothing. */
     /** A verified answer that a Russian word may be a diminutive, plural or colloquial form of ("пультик" → пульт), as {id, alias}; null if none. The AI confirms it ({@link AiJudge#sameWord}). */
     public String[] formOf(Category c,String key){Index ix=index(c);

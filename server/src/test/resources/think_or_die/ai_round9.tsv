@@ -1,0 +1,194 @@
+# category	lang	answer	expected — round 9, Russian first: slang, transliteration, abbreviations, typos, diminutives, traps (written before tuning)
+jumping_animals	ru	кенгурёнок	1
+jumping_animals	ru	лягуха	1
+jumping_animals	ru	улитка	0
+climbing_animals	ru	белочка	1
+climbing_animals	ru	бегемот	0
+fish_eating_animals	ru	тюлень	1
+fish_eating_animals	ru	корова	0
+racket_sports	ru	пингпонг	1
+racket_sports	ru	футбол	0
+winter_sports	ru	хоккейчик	1
+winter_sports	ru	сёрфинг	0
+sports_equipment	ru	скакалочка	1
+sports_equipment	ru	кубок	0
+olympic_hosts	ru	юар	0
+one_word_movies	ru	Аватар	1
+one_word_movies	ru	Один дома	0
+animal_hero_movies	ru	хатико	1
+animal_hero_movies	ru	титаник	0
+movies_with_sequel	ru	шрек	1
+movies_with_sequel	ru	форрест гамп	0
+book_based_movies	ru	мастер и маргарита	1
+book_based_movies	ru	аватар	0
+pirate_movies	ru	пираты карибского моря	1
+pirate_movies	ru	титаник	0
+pressurized_air_things	ru	мячик	1
+pressurized_air_things	ru	кирпич	0
+ink_things	ru	ручка шариковая	1
+ink_things	ru	карандаш	0
+gear_things	ru	часики	1
+gear_things	ru	подушка	0
+foam_things	ru	диванчик	1
+foam_things	ru	нож	0
+sandwich_types	ru	бутер с колбасой	1
+sandwich_types	ru	борщ	0
+deep_fried_dishes	ru	картофан фри	1
+deep_fried_dishes	ru	суп	0
+burger_ingredients	ru	котлетка	1
+burger_ingredients	ru	мороженое	0
+baked_goods	ru	булочка	1
+baked_goods	ru	суп	0
+fast_food_chains	ru	макдак	1
+fast_food_chains	ru	бк	1
+fast_food_chains	ru	пятёрочка	0
+sea_animals_not_fish	ru	осьминожка	1
+sea_animals_not_fish	ru	акула	0
+sea_fish	ru	селёдочка	1
+sea_fish	ru	щука	0
+seas	ru	черное	1
+seas	ru	байкал	0
+seafood	ru	креветочки	1
+seafood	ru	курица	0
+marvel_characters	ru	железный чел	1
+marvel_characters	ru	тони старк	1
+marvel_characters	ru	бэтмен	0
+dc_characters	ru	бэтс	1
+dc_characters	ru	халк	0
+fictional_villains	ru	волан де морт	1
+fictional_villains	ru	гарри поттер	0
+suited_superheroes	ru	железный человек	1
+suited_superheroes	ru	халк	0
+bottled_products	ru	водичка	1
+bottled_products	ru	хлеб	0
+glass_jar_products	ru	огурчики	1
+glass_jar_products	ru	колбаса	0
+italian_dishes	ru	пицца маргарита	1
+italian_dishes	ru	суши	0
+japanese_dishes	ru	роллы филадельфия	1
+japanese_dishes	ru	пельмени	0
+ukrainian_dishes	ru	варенички	1
+ukrainian_dishes	ru	суши	0
+wrapped_dishes	ru	шаверма	1
+wrapped_dishes	ru	суп	0
+birds_of_prey	ru	соколик	1
+birds_of_prey	ru	воробей	0
+pet_birds	ru	волнистик	1
+pet_birds	ru	страус	0
+image_editors	ru	фотошопчик	1
+image_editors	ru	ворд	0
+computer_brands	ru	макбук	1
+computer_brands	ru	виндовс	0
+keyboard_keys	ru	энтер	1
+keyboard_keys	ru	мышка	0
+game_stores	ru	стим	1
+game_stores	ru	ютуб	0
+map_apps	ru	яндекс карты	1
+map_apps	ru	телеграм	0
+fruit_not_apple_banana	ru	апельсинка	1
+fruit_not_apple_banana	ru	яблочко	0
+pet_not_cat_dog	ru	хомячок	1
+pet_not_cat_dog	ru	котик	0
+instrument_not_guitar_piano	ru	скрипочка	1
+instrument_not_guitar_piano	ru	гитарка	0
+europe_not_germany_france	ru	италия	1
+europe_not_germany_france	ru	германия	0
+clothing_not_tshirt_jeans	ru	свитерок	1
+clothing_not_tshirt_jeans	ru	футболочка	0
+christmas_tree_decorations	ru	шарики	1
+christmas_tree_decorations	ru	телефон	0
+halloween_costumes	ru	ведьмочка	1
+halloween_costumes	ru	стол	0
+profession_days	ru	день учителя	1
+profession_days	ru	новый год	0
+bicycle_parts	ru	педальки	1
+bicycle_parts	ru	двигатель	0
+citrus_fruits	ru	лимончик	1
+citrus_fruits	ru	яблоко	0
+tree_fruits	ru	яблочко	1
+tree_fruits	ru	клубника	0
+music_bands	ru	кино	1
+music_bands	ru	киш	1
+music_bands	ru	пугачёва	0
+english_singers	ru	эминем	1
+english_singers	ru	тейлор свифт	0
+russian_female_singers	ru	пугачева	1
+russian_female_singers	ru	киркоров	0
+music_players	ru	колоночка	1
+music_players	ru	гитара	0
+oven_dishes	ru	запеканочка	1
+oven_dishes	ru	окрошка	0
+chocolate_brands	ru	алёнка	1
+chocolate_brands	ru	кока кола	0
+shoe_brands	ru	найки	1
+shoe_brands	ru	зара	0
+appliance_makers	ru	самсунг	1
+appliance_makers	ru	найк	0
+toy_makers	ru	лего	1
+toy_makers	ru	найк	0
+magic_games	ru	ведьмак	1
+magic_games	ru	фифа	0
+racing_games	ru	нфс	1
+racing_games	ru	тетрис	0
+art_professions	ru	художница	1
+art_professions	ru	бухгалтер	0
+asian_countries	ru	китай	1
+asian_countries	ru	египет	0
+african_countries	ru	египет	1
+african_countries	ru	индия	0
+white_on_flag	ru	япония	1
+hot_peppers	ru	халапеньо	1
+hot_peppers	ru	болгарский перец	0
+sour_foods	ru	лимончик	1
+sour_foods	ru	сахар	0
+toy_types	ru	машинка	1
+toy_types	ru	телефон	0
+fairy_tale_characters	ru	колобок	1
+fairy_tale_characters	ru	бэтмен	0
+famous_fairy_tales	ru	репка	1
+famous_fairy_tales	ru	война и мир	0
+baby_care_items	ru	памперсы	1
+baby_care_items	ru	пиво	0
+solar_planets	ru	плутон	0
+solar_planets	ru	марс	1
+famous_cosmonauts	ru	гагарин	1
+famous_cosmonauts	ru	илон маск	0
+fictional_aliens	ru	стич	1
+fictional_aliens	ru	бэтмен	0
+road_signs	ru	кирпич	1
+road_signs	ru	светофор	0
+shop_types	ru	продуктовый	1
+shop_types	ru	школа	0
+medical_facilities	ru	поликлиника	1
+medical_facilities	ru	школа	0
+harry_potter_characters	ru	гермиона	1
+harry_potter_characters	ru	гэндальф	0
+star_wars_characters	ru	йода	1
+star_wars_characters	ru	спок	0
+lotr_characters	ru	голлум	1
+lotr_characters	ru	дамблдор	0
+horror_movies	ru	заклятие	1
+horror_movies	ru	титаник	0
+horror_games	ru	фнаф	1
+horror_games	ru	майнкрафт	0
+logic_games	ru	шахматы	1
+logic_games	ru	футбол	0
+needlework_types	ru	вязание	1
+needlework_types	ru	футбол	0
+weight_class_sports	ru	бокс	1
+weight_class_sports	ru	теннис	0
+olympic_no_ball	ru	плавание	1
+olympic_no_ball	ru	футбол	0
+batman_villains	ru	joker	1
+movie_genres	ru	uzhasy	1
+pump_bottle	ru	shampun	1
+in_kitchen	ru	skovorodka	1
+ocean_animals	ru	delfin	1
+cheese_types	ru	syr chedder	1
+programming_languages	ru	питон	1
+chemical_elements	ru	О2	0
+furniture	ru	стульчик	1
+furniture	ru	ывапро	0
+seas	ru	морее черное	1
+cat_breeds	ru	британец	1
+cat_breeds	ru	дворняга	0
