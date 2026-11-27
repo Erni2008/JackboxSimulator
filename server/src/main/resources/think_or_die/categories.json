@@ -1,4 +1,4 @@
-{"contentVersion":122,"categories":[
+{"contentVersion":123,"categories":[
 {"id":"words_anti","v":4,"type":"WORD_RULE","group":"vocabulary","langs":["en"],"en":"Name an English word containing \"anti\"","ru":"Назовите английское слово, в котором есть «anti»","criteriaEn":"A real English word (one word) whose spelling contains the letters a-n-t-i in a row, other than 'anti' itself.","rule":{"kind":"CONTAINS","value":"anti","lang":"en"},"answers":[]},
 {"id":"words_start_un","v":4,"type":"WORD_RULE","group":"vocabulary","langs":["en"],"en":"Name an English word that starts with \"un\"","ru":"Назовите английское слово, которое начинается на «un»","criteriaEn":"A real English word (one word) starting with 'un'.","rule":{"kind":"STARTS_WITH","value":"un","lang":"en"},"answers":[]},
 {"id":"words_end_ship","v":4,"type":"WORD_RULE","group":"vocabulary","langs":["en"],"en":"Name an English word ending in \"ship\"","ru":"Назовите английское слово, которое заканчивается на «ship»","criteriaEn":"A real English word (one word) ending in 'ship', other than 'ship' itself.","rule":{"kind":"ENDS_WITH","value":"ship","lang":"en"},"answers":[]},
