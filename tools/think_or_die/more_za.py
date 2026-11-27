@@ -96,10 +96,8 @@ Whoopie pie|Вупи пай|вупи-пай
 S'mores|Смор|сморс
 Baked Alaska|Запечённая Аляска|омлет сюрприз
 Sundae|Сандей|мороженое сандэ
-Spumoni|Спумони|спумоне
 Cassata siciliana|Сицилийская кассата|кассата
 Sfogliatella|Сфольятелла|сфольятелле
-Affogato|Аффогато
 Zabaglione|Сабайон|дзабайоне
 Crostata|Кростата
 Pastiera napoletana|Неаполитанская пастьера|пастьера

@@ -188,7 +188,6 @@ Resident Evil Revelations|Обитель зла: Откровения|резид
 Silent Hill: Shattered Memories|Сайлент Хилл: Разбитые воспоминания|шэттерд меморис
 Silent Hill: Origins|Сайлент Хилл: Истоки|сайлент хилл ориджинс
 Silent Hill: Downpour|Сайлент Хилл: Ливень|сайлент хилл даунпур
-P.T. playable teaser|Пи-Ти|P.T.
 Haunting Ground|Хонтинг Граунд|хаунтинг граунд
 Rule of Rose|Рул оф Роуз|правило розы
 Eternal Darkness: Sanity's Requiem|Вечная тьма: Реквием рассудка|этернал даркнесс
