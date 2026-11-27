@@ -15,7 +15,7 @@ import cats_a  # noqa: E402  (defines C and cat())
 import cats_b, cats_c, cats_d, cats_e, cats_f  # noqa: E402,F401
 import cats_h, cats_i, cats_j  # noqa: E402,F401  (second list of 100)
 import cats_k, cats_l, cats_m, cats_n  # noqa: E402,F401  (third list, Russian first)
-import cats_o, cats_p, cats_q  # noqa: E402,F401  (fourth list, 466-560)
+import cats_o, cats_p, cats_q, cats_r, cats_s, cats_t, cats_u, cats_v  # noqa: E402,F401  (fourth list, 466-560)
 import cats_g  # noqa: E402  (answers and traps learned from AI evaluation rounds)
 import glob, importlib  # noqa: E402
 
@@ -84,6 +84,13 @@ def keeps(rule, k):
     if kind == "PALINDROME": return len(k) >= 3 and k == k[::-1]
     if kind == "DOUBLE_LETTER": return any(k[i] == k[i - 1] for i in range(1, len(k)))
     if kind == "REPEAT_LETTER": return any(k.count(c) >= n for c in k)
+    if kind == "MAX_LENGTH": return 2 <= len(k) <= n
+    if kind == "MIDDLE_LETTER": return len(k) >= 3 and v in k[1:-1]
+    if kind == "CONSONANT_RUN":
+        run = best = 0
+        for ch in k:
+            run = run + 1 if ch.isalpha() and ch not in VOWELS and ch not in "ьъ" else 0; best = max(best, run)
+        return best >= n
     if kind == "SAME_ENDS": return len(k) >= 2 and k[0] == k[-1]
     if kind == "STARTS_VOWEL": return bool(k) and k[0] in VOWELS
     if kind == "STARTS_CONSONANT": return bool(k) and k[0].isalpha() and k[0] not in VOWELS and k[0] not in "ъьй"

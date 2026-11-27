@@ -33,6 +33,9 @@ public final class RuleSteps {
             case "STARTS_TWO_VOWELS"->key.length()>=3&&VOWELS.indexOf(key.charAt(0))>=0&&VOWELS.indexOf(key.charAt(1))>=0;
             case "DOUBLE_LETTER"->{boolean d=false;for(int i=1;i<key.length();i++)if(key.charAt(i)==key.charAt(i-1)){d=true;break;}yield d;}
             case "REPEAT_LETTER"->{boolean d=false;for(int i=0;i<key.length()&&!d;i++){char ch=key.charAt(i);d=key.chars().filter(x->x==ch).count()>=r.n();}yield d;}
+            case "MAX_LENGTH"->key.codePointCount(0,key.length())<=r.n()&&key.length()>=2;
+            case "MIDDLE_LETTER"->key.length()>=3&&key.substring(1,key.length()-1).contains(v); // the letter inside the word, not first or last
+            case "CONSONANT_RUN"->{int run=0,best=0;for(char ch:key.toCharArray()){boolean cons=Character.isLetter(ch)&&VOWELS.indexOf(ch)<0&&ch!='ь'&&ch!='ъ';run=cons?run+1:0;best=Math.max(best,run);}yield best>=r.n();}
             case "SAME_ENDS"->key.length()>=2&&key.charAt(0)==key.charAt(key.length()-1);
             case "STARTS_VOWEL"->!key.isEmpty()&&VOWELS.indexOf(key.charAt(0))>=0;
             case "STARTS_CONSONANT"->!key.isEmpty()&&Character.isLetter(key.charAt(0))&&VOWELS.indexOf(key.charAt(0))<0&&"ъьй".indexOf(key.charAt(0))<0;
