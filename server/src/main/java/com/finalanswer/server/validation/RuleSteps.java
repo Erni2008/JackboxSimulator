@@ -28,6 +28,9 @@ public final class RuleSteps {
             case "LENGTH"->key.codePointCount(0,key.length())==r.n();
             case "PALINDROME"->key.length()>=3&&new StringBuilder(key).reverse().toString().equals(key);
             case "NOT_CONTAINS"->!key.contains(v);
+            case "STARTS_ENDS"->{String[] p=r.value().split("\\|");p[0]=AnswerInput.key(p[0]);p[1]=AnswerInput.key(p[1]);yield key.length()>p[0].length()+p[1].length()-1&&key.startsWith(p[0])&&key.endsWith(p[1]);} // value "б|а"
+            case "COUNT_LETTER"->key.chars().filter(x->x==v.charAt(0)).count()==r.n(); // exactly n of that letter
+            case "STARTS_TWO_VOWELS"->key.length()>=3&&VOWELS.indexOf(key.charAt(0))>=0&&VOWELS.indexOf(key.charAt(1))>=0;
             case "DOUBLE_LETTER"->{boolean d=false;for(int i=1;i<key.length();i++)if(key.charAt(i)==key.charAt(i-1)){d=true;break;}yield d;}
             case "REPEAT_LETTER"->{boolean d=false;for(int i=0;i<key.length()&&!d;i++){char ch=key.charAt(i);d=key.chars().filter(x->x==ch).count()>=r.n();}yield d;}
             case "SAME_ENDS"->key.length()>=2&&key.charAt(0)==key.charAt(key.length()-1);

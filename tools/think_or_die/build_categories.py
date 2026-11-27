@@ -14,6 +14,7 @@ sys.path.insert(0, HERE)
 import cats_a  # noqa: E402  (defines C and cat())
 import cats_b, cats_c, cats_d, cats_e, cats_f  # noqa: E402,F401
 import cats_h, cats_i, cats_j  # noqa: E402,F401  (second list of 100)
+import cats_k, cats_l, cats_m, cats_n  # noqa: E402,F401  (third list, Russian first)
 import cats_g  # noqa: E402  (answers and traps learned from AI evaluation rounds)
 
 PACK = os.path.join(HERE, "..", "..", "server", "src", "main", "resources", "think_or_die", "categories.json")
@@ -35,6 +36,11 @@ def keeps(rule, k):
     kind, v, n = rule["kind"], key(rule.get("value", "")), rule.get("n", 0)
     if kind == "CONTAINS": return v in k and k != v
     if kind == "NOT_CONTAINS": return v not in k
+    if kind == "STARTS_ENDS":
+        a, b = (key(x) for x in rule["value"].split("|"))
+        return len(k) > len(a) + len(b) - 1 and k.startswith(a) and k.endswith(b)
+    if kind == "COUNT_LETTER": return k.count(v[0]) == n
+    if kind == "STARTS_TWO_VOWELS": return len(k) >= 3 and k[0] in VOWELS and k[1] in VOWELS
     if kind == "STARTS_WITH": return k.startswith(v) and len(k) > len(v)
     if kind == "ENDS_WITH": return k.endswith(v) and len(k) > len(v)
     if kind == "LENGTH": return len(k) == n
@@ -71,6 +77,8 @@ def build(c, log):
             en, ru, al = f[0], f[0], (f[1] if len(f) > 1 else "")
         else:
             en, ru, al = f[0], (f[1] if len(f) > 1 else f[0]), (f[2] if len(f) > 2 else "")
+        if re.search(r"[A-Za-zА-Яа-яЁё]\d$", ru) or re.search(r"[A-Za-zА-Яа-яЁё]\d$", en):  # draft marker like "Ванна2"
+            log.append(f"  {c['id']}: dropped draft entry '{line}'"); continue
         if checked and langs == ["ru"]: en = ru  # a Russian letter category does not accept the English name as a list answer
         names = [en, ru] + [a for a in al.split("/") if a.strip()]
         if checked:
@@ -96,7 +104,7 @@ def build(c, log):
         answers.append([slug(en, used, i), f"{en_l}|{ru_l}", "|".join(aliases)])
     invalid = []
     for w in (x.strip() for x in c["invalid"].split("/")):
-        if not w: continue
+        if not w or re.search(r"[A-Za-zА-Яа-яЁё]\d$", w): continue
         if key(w) in seen: log.append(f"  {c['id']}: trap '{w}' is a real answer, dropped"); continue
         if key(w) not in {key(x) for x in invalid}: invalid.append(w)
     o = {"id": c["id"], "v": 1, "type": c["type"], "group": c["group"]}
