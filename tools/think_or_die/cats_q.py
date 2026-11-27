@@ -2021,9 +2021,8 @@ Nicholas Miklouho-Maclay|Миклухо Маклай
 Vitus Bering|Беринг
 Afanasy Nikitin|Афанасий Никитин
 Fyodor Konyukhov|Фёдор Конюхов|конюхов
-Adam Johann von Krusenstern|Крузенштерн
+Adam Johann von Krusenstern|Иван Крузенштерн|крузенштерн/иван фёдорович крузенштерн/Ivan Kruzenshtern
 Thor Heyerdahl|Тур Хейердал|хейердал
-Ivan Kruzenshtern|Иван Крузенштерн
 Yuri Lisyansky|Лисянский
 Fabian von Bellingshausen|Беллинсгаузен
 Mikhail Lazarev|Лазарев
