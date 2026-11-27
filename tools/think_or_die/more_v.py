@@ -143,8 +143,7 @@ Let the Right One In|Впусти меня (2008)|впусти меня 2008
 A Tale of Two Sisters|История двух сестёр
 Shutter|Затвор (2004)|затвор тайский фильм
 Train to Busan|Поезд в Пусан''',
-'alien_movies': '''Forbidden Planet|Запретная планета
-Invasion of the Body Snatchers|Вторжение похитителей тел
+'alien_movies': '''Invasion of the Body Snatchers|Вторжение похитителей тел
 It Came from Outer Space|Оно пришло из космоса
 The Thing from Another World|Нечто из иного мира|нечто 1951
 This Island Earth|Этот остров Земля

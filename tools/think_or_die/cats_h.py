@@ -1934,7 +1934,7 @@ Primer|Праймер|база под макияж
 Brow pencil|Карандаш для бровей
 Micellar water|Мицеллярная вода|мицелярка
 Face mask|Маска для лица|тканевая маска/sheet mask
-BB cream|BB крем|cc cream
+BB cream|BB крем
 Perfume|Духи|парфюм
 Lip liner|Карандаш для губ
 Contour|Контуринг|скульптор

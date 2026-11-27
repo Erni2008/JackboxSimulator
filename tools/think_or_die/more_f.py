@@ -157,7 +157,6 @@ Kumquat|Кумкват
 Bergamot|Бергамот
 Yuzu|Юдзу
 Citron|Цитрон
-Buddha's hand|Пальцы Будды|рука будды
 Sweetie|Свити
 Oroblanco|Оробланко
 Tangelo|Танжело
@@ -166,12 +165,10 @@ Ugli fruit|Угли
 Blood orange|Красный апельсин|сицилийский апельсин
 Seville orange|Горький апельсин|бигарадия
 Satsuma|Сацума
-Calamansi|Каламанси
 Key lime|Мексиканский лайм
 Kaffir lime|Каффир лайм
 Finger lime|Пальчиковый лайм
 Limequat|Лимонкват
-Calamondin|Каламондин
 Sudachi|Судачи
 Kabosu|Кабосу
 Dekopon|Декопон|сумо
@@ -179,8 +176,6 @@ Meyer lemon|Лимон Мейера
 Rangpur|Рангпур
 Chinotto|Кинотто
 Etrog|Этрог
-Mineola tangelo|Минеола танжело
-Navel orange|Апельсин навел
 Valencia orange|Валенсия
 Cara cara|Кара кара
 Ponkan|Понкан
