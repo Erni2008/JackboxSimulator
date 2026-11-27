@@ -1,0 +1,158 @@
+# category	lang	answer	expected — round 8, all categories: fresh words, plurals, diminutives, slang, typos, traps (written before tuning)
+horned_animals	ru	козлик	1
+horned_animals	en	reindeers	1
+horned_animals	en	donkey	0
+ocean_animals	ru	дельфинчик	1
+ocean_animals	en	octopi	1
+ocean_animals	ru	щука	0
+nocturnal_animals	en	owls	1
+nocturnal_animals	ru	курица	0
+inflatable_things	ru	шарики	1
+inflatable_things	en	pillow fort	0
+things_with_wheels	ru	тачка	1
+things_with_wheels	en	sledge	0
+glass_objects	ru	бокальчик	1
+glass_objects	en	t-shirt	0
+dairy_products	en	yoghurts	1
+dairy_products	ru	майонез	0
+potato_dishes	ru	картошечка фри	1
+potato_dishes	en	spaghetti	0
+cheese_types	ru	пармезанчик	1
+cheese_types	en	butter	0
+skeleton_bones	ru	рёбрышки	1
+skeleton_bones	en	tendon	0
+internal_organs	ru	сердечко	1
+internal_organs	en	elbow	0
+space_movies	en	Star wars	1
+space_movies	en	Titanic 2	0
+flying_vehicles	en	choppers	1
+flying_vehicles	ru	поезд	0
+watercraft	ru	кораблик	1
+watercraft	en	car	0
+battery_devices	ru	пультик	1
+battery_devices	en	toaster	0
+computer_components	en	video card	1
+computer_components	ru	антивирусник	0
+gemstones	ru	изумрудик	1
+gemstones	en	bricks	0
+mythical_creatures	ru	русалочка	1
+mythical_creatures	en	horse	0
+fictional_robots	en	Optimus prime	1
+fictional_robots	en	Batman	0
+medical_professions	ru	стоматологи	1
+medical_professions	en	lawyer	0
+ball_sports	ru	баскет	1
+ball_sports	en	marathon	0
+board_games	ru	шашечки	1
+board_games	en	hide and seek	0
+dance_styles	ru	вальсик	1
+dance_styles	en	jogging	0
+garden_flowers	ru	розочки	1
+garden_flowers	en	cabbage	0
+spice_plants	ru	перчик чили	1
+spice_plants	en	ketchup	0
+string_instruments	ru	гитарка	1
+string_instruments	en	drum	0
+music_genres	ru	рэпчик	1
+music_genres	en	microphone	0
+horror_creatures	ru	зомбаки	1
+horror_creatures	en	puppy	0
+striped_animals	ru	зебры	1
+striped_animals	en	elephant	0
+hoofed_animals	ru	лошадка	1
+hoofed_animals	en	bear	0
+freezer_foods	ru	пельмешки	1
+freezer_foods	en	honey	0
+cookware	ru	тарелочка	1
+cookware	en	sofa	0
+pizza_toppings	ru	грибочки	1
+pizza_toppings	en	jam	0
+canned_foods	ru	тушёночка	1
+canned_foods	en	ice cream	0
+salad_ingredients	ru	огурчики	1
+salad_ingredients	en	candy	0
+headwear	ru	шапочка	1
+headwear	en	socks	0
+footwear	ru	кроссы	1
+footwear	en	gloves	0
+furniture	ru	стульчик	1
+furniture	en	carpet	0
+ice_cream_flavors	ru	шоколадное	1
+ice_cream_flavors	en	garlic	0
+desserts	ru	тортик	1
+desserts	en	soup	0
+candy_types	ru	леденцы	1
+candy_types	en	cheese	0
+disney_cartoons	ru	Холодное сердце 2	1
+disney_cartoons	en	Kung Fu Panda	0
+car_brands	ru	мерседес бенц	1
+car_brands	en	Boeing	0
+car_parts	ru	колёса	1
+car_parts	en	sail	0
+school_subjects	ru	физра	1
+school_subjects	en	lunch	0
+stationery	ru	ручки	1
+stationery	en	backpack	0
+foreign_languages	ru	английский язык	1
+foreign_languages	en	Brazilian	0
+two_player_games	ru	шахматишки	1
+two_player_games	en	solitaire	0
+mobile_games	en	clash of clans	1
+mobile_games	en	Elden Ring	0
+game_characters	ru	соник	1
+game_characters	en	Shrek	0
+fizzy_drinks	ru	колу	1
+fizzy_drinks	en	milk	0
+tea_types	ru	зелёненький	1
+tea_types	en	coffee	0
+coffee_drinks	ru	капучинка	1
+coffee_drinks	en	tea	0
+hand_tools	ru	молоточек	1
+hand_tools	en	drill press	0
+italian_cities	en	rome	1
+italian_cities	en	Paris	0
+farm_animals	ru	коровка	1
+farm_animals	en	lion	0
+desert_animals	ru	верблюды	1
+desert_animals	en	penguin	0
+river_animals	ru	щучка	1
+river_animals	en	shark	0
+rainforest_animals	ru	обезьянки	1
+rainforest_animals	en	polar bear	0
+cat_breeds	ru	британец	1
+cat_breeds	en	poodle	0
+pasta_types	ru	макарошки	1
+pasta_types	en	rice	0
+annual_holidays	ru	новый год	1
+annual_holidays	en	tuesday	0
+sportswear_brands	ru	найки	1
+sportswear_brands	en	Gucci	0
+social_networks	ru	телега	1
+social_networks	en	Google	0
+phone_makers	ru	айфон	1
+phone_makers	en	Microsoft Office	0
+euro_countries	ru	германия	1
+euro_countries	en	poland	0
+european_capitals	ru	парижик	1
+landlocked_countries	en	Mongolia	1
+landlocked_countries	en	Japan	0
+chemical_elements	ru	железяка	1
+chemical_elements	en	unobtainium	0
+movie_genres	en	romcom	1
+batman_villains	en	two face	1
+disney_princesses	en	rapunzel	1
+programming_languages	en	js	1
+in_kitchen	ru	ложечка	1
+in_bathroom	en	toothbrushes	1
+produces_light	ru	фонарики	1
+pump_bottle	ru	мыльце	1
+ruin_first_date	en	being late	1
+winter_things	ru	снежки	1
+ocean_things	ru	ракушки	1
+track_and_field	en	long jump	1
+pump_bottle	en	brick	0
+produces_light	en	shadow	0
+in_kitchen	en	bathtub	0
+furniture	en	qzxwvb	0
+desserts	ru	вкусняшкаааа	0
+car_brands	en	Zoomzoomcar	0

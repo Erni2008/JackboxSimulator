@@ -44,6 +44,7 @@ public final class ValidationEngine implements AutoCloseable {
             boolean script="ru".equals(c.rule().lang())?k.matches("[а-яё]+"):k.matches("[a-z]+");
             if(!k.isEmpty()&&script&&!RuleSteps.keeps(c.rule(),k))return Verdict.invalid(Verdict.Source.RULE);}
         for(ValidationStep s:steps){Verdict v=s.check(c,in);if(v!=null)return v;}
+        if(ai!=null&&verified.formOf(c,in.key())!=null)return Verdict.pending(); // "щучка": the AI confirms it is a form of a verified answer
         if(c.exhaustive())return Verdict.invalid(Verdict.Source.FALLBACK);
         return ai!=null&&c.allowUnknown()?Verdict.pending():Verdict.uncertain(Verdict.Source.FALLBACK);
     }
@@ -72,7 +73,13 @@ public final class ValidationEngine implements AutoCloseable {
         // non-blocking: every answer is its own queued request, so one slow category never holds up another room
         for(int i=0;i<b.size();i++){Waiting w=b.get(i);
             CompletableFuture<AiJudge.Result> f;
-            try{f=ai.judgeOne(c,w.lang(),new AiJudge.Item("a"+i,w.input().clean()),ids);}catch(RuntimeException e){f=CompletableFuture.failedFuture(e);}
+            String sid="a"+i;String[] form=verified.formOf(c,w.input().key());
+            try{f=form==null?ai.judgeOne(c,w.lang(),new AiJudge.Item(sid,w.input().clean()),ids)
+                // a diminutive / plural of a verified answer: one YES/NO on the word form; if not, the usual judge (or wrong for a closed list)
+                :ai.sameWord(w.input().clean(),form[1]).thenCompose(yes->yes?CompletableFuture.completedFuture(new AiJudge.Result(sid,ValidationStatus.VALID,form[0]))
+                    :c.exhaustive()||!c.allowUnknown()?CompletableFuture.completedFuture(new AiJudge.Result(sid,ValidationStatus.INVALID,null))
+                    :ai.judgeOne(c,w.lang(),new AiJudge.Item(sid,w.input().clean()),ids));}
+            catch(RuntimeException e){f=CompletableFuture.failedFuture(e);}
             f.orTimeout(AI_HARD_TIMEOUT_MS,TimeUnit.MILLISECONDS).whenComplete((r,e)->{
                 if(e!=null){System.err.println("[validation] AI judge failed for one answer: "+e);w.future().complete(Verdict.uncertain(Verdict.Source.FALLBACK));return;}
                 Verdict v=reconcile(r,w.input(),known);

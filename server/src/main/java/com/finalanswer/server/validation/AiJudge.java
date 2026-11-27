@@ -9,6 +9,8 @@ import java.util.List;
  */
 public interface AiJudge {
     record Item(String submissionId,String answer){}
+    /** Is {@code word} only a diminutive, plural or colloquial form of {@code base} (the same thing)? Default: no. */
+    default java.util.concurrent.CompletableFuture<Boolean> sameWord(String word,String base){return java.util.concurrent.CompletableFuture.completedFuture(false);}
     record Result(String submissionId,ValidationStatus verdict,String canonicalAnswer){}
     /** @param knownIds verified canonical ids the judge may map an answer to */
     List<Result> judge(Category category,String lang,List<Item> items,List<String> knownIds) throws Exception;

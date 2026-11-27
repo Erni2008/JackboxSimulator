@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class VerifiedAnswers {
     /** sound: sound key -> answer id ("" when two answers share the sound); soundInvalid: sound keys of known wrong answers */
-    private record Index(Map<String,String> alias,Set<String> invalid,Map<String,String> sound,Set<String> soundInvalid){}
+    private record Index(Map<String,String> alias,Set<String> invalid,Map<String,String> sound,Set<String> soundInvalid,Map<String,String> stem,Set<String> stemInvalid){}
     private final Map<String,Index> cache=new ConcurrentHashMap<>();
 
     private Index index(Category c){return cache.computeIfAbsent(c.id()+"#"+c.version(),k->build(c));}
@@ -30,7 +30,10 @@ public final class VerifiedAnswers {
             if(m.containsKey(k))throw new IllegalArgumentException(c.id()+": '"+s+"' is both valid and known invalid");bad.add(k);}
         Map<String,String> snd=new HashMap<>();for(var e:m.entrySet()){String k=Phonetic.sound(e.getKey());if(k.length()<3)continue;String prev=snd.putIfAbsent(k,e.getValue());if(prev!=null&&!prev.equals(e.getValue()))snd.put(k,"");}
         Set<String> sbad=new HashSet<>();for(String b:bad){String k=Phonetic.sound(b);if(k.length()>=3&&!snd.containsKey(k))sbad.add(k);}
-        return new Index(Map.copyOf(m),Set.copyOf(bad),Map.copyOf(snd),Set.copyOf(sbad));
+        // Russian stems of one-word answers (кот → кот, щука → щук, зелёный → зелен), for diminutives and plurals
+        Map<String,String> st=new HashMap<>();for(var e:m.entrySet()){String s=Diminutive.stem(e.getKey());if(s==null)continue;String v=e.getValue()+"\u0000"+e.getKey();String prev=st.putIfAbsent(s,v);if(prev!=null&&!prev.split("\u0000")[0].equals(e.getValue()))st.put(s,"");}
+        Set<String> stbad=new HashSet<>();for(String b:bad){String s=Diminutive.stem(b);if(s!=null)stbad.add(s);}
+        return new Index(Map.copyOf(m),Set.copyOf(bad),Map.copyOf(snd),Set.copyOf(sbad),Map.copyOf(st),Set.copyOf(stbad));
     }
 
     /** Validates the whole category data (throws on conflicts); used by the loader and the content builder. */
@@ -42,6 +45,10 @@ public final class VerifiedAnswers {
         if(id==null){String cy=Phonetic.cyrillic(k);if(cy!=null)id=ix.alias.get(cy);}
         return id==null?null:Verdict.valid(id,Verdict.Source.VERIFIED);};}
     /** Sound-alike match on the verified answers ("dolfin", "sinderella", "triler", "towl", "shchuka"); a sound shared by two answers or a wrong one decides nothing. */
+    /** A verified answer that a Russian word may be a diminutive, plural or colloquial form of ("пультик" → пульт), as {id, alias}; null if none. The AI confirms it ({@link AiJudge#sameWord}). */
+    public String[] formOf(Category c,String key){Index ix=index(c);
+        for(String s:Diminutive.candidates(key)){if(ix.stemInvalid().contains(s))return null;String v=ix.stem().get(s);if(v!=null&&!v.isEmpty())return v.split("\u0000");}
+        return null;}
     public ValidationStep sound(){return (c,in)->{Index ix=index(c);String k=in.key();if(k.replace(" ","").length()<3)return null;
         String cy=Phonetic.cyrillic(k);
         for(String cand:cy==null?new String[]{k}:new String[]{k,cy}){String sk=Phonetic.sound(cand);if(sk.length()<3)continue;
