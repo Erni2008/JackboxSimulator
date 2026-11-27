@@ -480,7 +480,6 @@ Galaxy on Fire|Гэлакси он Файр|галактика в огне
 Battlefleet Gothic: Armada|Баттлфлит Готик: Армада|боевая флотилия готика
 BattleTech|Баттлтех|бэттлтех
 MechWarrior 5: Mercenaries|Мехварриор 5: Наёмники
-Armored Core VI: Fires of Rubicon|Арморед Кор 6: Огни Рубикона|огни рубикона
 Super Stardust HD|Супер Стардаст HD
 Resogun|Резоган
 R-Type|Эр-Тайп|р тайп
