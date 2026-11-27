@@ -249,7 +249,7 @@ Kleki|Клеки
 Sketchbook Pro|Скетчбук Про|Autodesk Sketchbook
 Infinite Painter|Инфинит Пейнтер|инфинит пэйнтер
 ibis Paint|Ибис Пейнт|ibis Paint X
-PhotoFiltre|Фотофильтр|фотофильтр
+PhotoFiltre|Фотофильтр
 PhotoLine|Фотолайн
 Sumo Paint|Сумо Пейнт
 LunaPic|Лунапик
@@ -329,8 +329,7 @@ Nordsee|Нордзе|нордси
 Милти|Милти|Mealty
 Sushi Wok|Суши Вок
 Sushiset|Суши Сет''',
-'map_apps': '''Guru Maps|Гуру Карты|гуру мэпс
-TruckMap|ТракМэп
+'map_apps': '''TruckMap|ТракМэп
 Trucker Path|Тракер Пат
 Hammer Truck GPS|Хаммер для грузовиков|Hammer GPS
 RoadWarrior Route Planner|Роуд Уорриор|RoadWarrior

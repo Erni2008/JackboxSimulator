@@ -699,7 +699,7 @@ Uber|Uber
 Mail.ru Maps|Карты Mail ru
 Sputnik Maps|Спутник карты
 Rambler Maps|Рамблер карты
-Galileo|Галилео
+Guru Maps|Гуру Карты|Galileo/Galileo Offline Maps/Галилео/гуру мэпс
 GLONASS app|Глонасс
 Zenly|Zenly
 Find My|Локатор|find my
@@ -1514,21 +1514,21 @@ Yuzu|Юдзу
 Citron|Цитрон
 Sweetie|Свити|oroblanco
 Blood orange|Красный апельсин|сицилийский апельсин
-Calamansi|Каламондин
+Calamansi|Каламондин|Calamondin/каламанси
 Finger lime|Пальчиковый лайм
 Ugli|Угли
-Minneola|Минеола
+Minneola|Минеола|Mineola tangelo/минеола танжело
 Satsuma|Сацума
 Bitter orange|Померанец
 Kaffir lime|Каффир лайм
-Buddha's hand|Рука Будды
+Buddha's hand|Рука Будды|пальцы будды
 Limequat|Лаймкват
 Tangelo|Танжело
 Sudachi|Судачи
 Meyer lemon|Лимон Мейера
 Rangpur|Рангпур
 Ponkan|Понкан
-Navel orange|Навел
+Navel orange|Навел|апельсин навел
 Mandarinquat|Мандаринкват""",
     "Apple/Яблоко/Banana/Банан/Kiwi/Киви/Pineapple/Ананас/Mango/Манго/Peach/Персик/Pear/Груша/Grape/Виноград/Persimmon/Хурма/Pomegranate/Гранат/Feijoa/Фейхоа/Passion fruit/Маракуйя",
     allowUnknown=True)
