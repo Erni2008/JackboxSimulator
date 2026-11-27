@@ -678,6 +678,9 @@ public final class RoomService {
                 String id=tod(room).submit(member.id,message.requestId(),intField(data,"round"),Protocol.string(data,"text"),now());
                 if(id!=null&&tod(room).survival!=null)broadcast(room,"THINK_OR_DIE_UPDATED"); // survival: the whole room sees the turn
                 else if(id!=null)pushThinkOrDie(room,member);else reply(peer,room,member,message);}
+            case "TOD_PREVIEW"->{requireThinkOrDie(room,data);if(member.host)return; // first Enter: the full name of a known answer, nothing counted
+                String text=Protocol.string(data,"text");
+                peer.send(Protocol.event("THINK_OR_DIE_PREVIEW",message.requestId(),Map.of("text",text==null?"":text,"label",tod(room).preview(text))));}
             case "TOD_TYPING"->{requireThinkOrDie(room,data);if(member.host)return; // live letters of the answering player, throttled to ~8 a second
                 if(tod(room).typing(member.id,Protocol.string(data,"text"))&&now()-room.thinkOrDieLiveAt>=120){room.thinkOrDieLiveAt=now();tod(room).liveDirty=false;broadcast(room,"THINK_OR_DIE_UPDATED");}}
             case "TOD_VOTE"->{requireThinkOrDie(room,data);if(member.host)throw new Failure(403,"TOD_NOT_A_PLAYER");

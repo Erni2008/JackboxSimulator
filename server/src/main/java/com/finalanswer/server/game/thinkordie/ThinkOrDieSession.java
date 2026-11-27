@@ -478,6 +478,25 @@ public final class ThinkOrDieSession {
         }catch(Failure f){handled.remove(member+":"+requestId);throw f;}
     }
 
+    /**
+     * The full name of what the player typed, when the verified lists know it ("usa" → "United States of America",
+     * "питер" → "Санкт Петербург"); "" when the lists do not know it or it is already written in full.
+     * Nothing is counted or stored: the phone shows the full name in the field and the next Enter submits it.
+     */
+    public String preview(String raw){
+        if(raw==null||raw.length()>400)return "";
+        AnswerInput in=AnswerInput.of(raw);Category c=category();
+        if(in==null||c==null||c.answers().isEmpty())return "";
+        Verdict v;try{v=engine.validate(c,in);}catch(RuntimeException e){return "";}
+        if(v.status()!=ValidationStatus.VALID||v.canonicalId()==null)return "";
+        for(Category.Answer a:c.answers())if(a.id().equals(v.canonicalId())){
+            boolean cyr=raw.codePoints().anyMatch(ch->Character.UnicodeScript.of(ch)==Character.UnicodeScript.CYRILLIC);
+            String label=cyr||"ru".equals(lang)&&!raw.matches(".*[A-Za-z].*")?a.labelRu():a.labelEn();
+            if(label==null||label.isBlank())label=a.labelEn();
+            return AnswerInput.of(label)!=null&&AnswerInput.of(label).clean().equalsIgnoreCase(in.clean())?"":label;}
+        return "";
+    }
+
     /** A dispute vote: any player but the answer's authors, once per dispute (a second vote replaces the first). */
     public void vote(String member,String disputeId,boolean accept,long now){
         Player p=seat(member);tick(now);

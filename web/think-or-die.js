@@ -8,7 +8,7 @@
 function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
   const T=(ru,en)=>typeof faT==='function'?faT(ru,en):en;
   const mini=()=>getState()?.thinkOrDie;
-  let seenRows=new Set(),built=false,root,els={},session='',round=0,raf=0,error='',errorAt=0,outbox=[],held=null,lastPhase='',lastKey='',lastSendAt=0;
+  let seenRows=new Set(),built=false,root,els={},session='',round=0,raf=0,error='',errorAt=0,outbox=[],held=null,lastPhase='',lastKey='',lastSendAt=0,preview=null,previewTimer=0,confirmed='';
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   // built on every use: the room language can change after this controller is created
   const STATES=()=>({
@@ -77,6 +77,13 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
     if(surv?!(m.phase==='TURN'&&m.survival?.turnPlayer===getState()?.selfId):m.phase!=='ANSWERING')return;
     const text=els.input.value.replace(/\s+/g,' ').trim();
     if(!text){els.input.focus();return;}
+    // first Enter: a known answer is first written out in full ("usa" → "United States of America"); the next Enter sends it
+    if(text!==confirmed){
+      if(preview&&preview.text===text)return;
+      const id=send('TOD_PREVIEW',{sessionId:m.sessionId,text});clearTimeout(previewTimer);preview={text,id};
+      previewTimer=setTimeout(()=>{if(preview?.id===id){preview=null;confirmed=text;submit();}},450); // a slow reply never blocks the answer
+      return;}
+    confirmed='';
     if(performance.now()-lastSendAt<260)return; // the server's anti-spam floor
     lastSendAt=performance.now();
     if(surv){const requestId=makeId();lastSendAt=performance.now();send('TOD_SUBMIT',{sessionId:m.sessionId,round:m.round,text},requestId);survSent=text;navigator.vibrate?.(12);els.input.select();return;}
@@ -87,13 +94,22 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
     els.input.focus();render();
   }
   function event(e){
+    if(e.type==='THINK_OR_DIE_PREVIEW'){
+      if(!preview||e.requestId!==preview.id)return;clearTimeout(previewTimer);
+      const text=preview.text,label=String(e.payload?.label||'').trim();preview=null;
+      if(els.input.value.replace(/\s+/g,' ').trim()!==text)return; // the player kept typing: judge the new text on the next Enter
+      if(label){els.input.value=label;confirmed=label;error=T('Enter — отправить','Enter to send');errorAt=performance.now();
+        els.input.focus();els.input.setSelectionRange?.(label.length,label.length);navigator.vibrate?.(8);render();}
+      else{confirmed=text;submit();}
+      return;}
     if(e.type!=='THINK_OR_DIE_REJECTED')return;
+    if(preview&&e.requestId===preview.id){clearTimeout(previewTimer);const t=preview.text;preview=null;confirmed=t;submit();return;} // no full name: send as typed
     const code=e.payload?.code||'';outbox=outbox.filter(o=>o.requestId!==e.requestId);held=null;
     error={TOD_TOO_LATE:T('Время вышло','Time is up'),TOD_NOT_YOUR_TURN:T('Сейчас не твой ход','It is not your turn'),TOD_ANSWERS_CLOSED:T('Приём ответов закрыт','Answers are closed'),TOD_EMPTY_ANSWER:'',TOD_ANSWER_TOO_LONG:T('До 40 знаков','40 characters max'),
       TOD_TOO_FAST:T('Чуть медленнее','A little slower'),TOD_TOO_MANY_ANSWERS:T('Лимит ответов в раунде','Answer limit for this round'),RATE_LIMITED:T('Чуть медленнее','A little slower'),TOD_OWN_ANSWER:T('За свой ответ голосовать нельзя','You cannot vote on your own answer')}[code]??T('Не отправлено','Not sent');
     errorAt=performance.now();render();
   }
-  function reset(){session='';round=0;outbox=[];held=null;error='';lastPhase='';lastKey='';cancelAnimationFrame(raf);raf=0;if(built)els.input.value='';}
+  function reset(){preview=null;confirmed='';clearTimeout(previewTimer);session='';round=0;outbox=[];held=null;error='';lastPhase='';lastKey='';cancelAnimationFrame(raf);raf=0;if(built)els.input.value='';}
   function suspend(){cancelAnimationFrame(raf);raf=0;}
   function paintHint(){const wait=!!held&&error===T('Проверяем…','Checking…');els.hint.textContent=error;els.hint.classList.toggle('err',!!error&&!wait);els.hint.classList.toggle('wait',wait);}
   const me=()=>{const m=mini();return m?.players?.find(p=>p.id===getState()?.selfId)||{};};
@@ -102,7 +118,7 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
     build();const m=mini();if(!m)return;
     if(m.sessionId!==session){reset();session=m.sessionId;}
     if(m.mode==='survival'){renderSurvival(m);return;}
-    if(m.round!==round){round=m.round;outbox=[];held=null;error='';els.input.value='';}
+    if(m.round!==round){round=m.round;outbox=[];held=null;error='';els.input.value='';confirmed='';preview=null;}
     const hist=m.me?.history||[];
     outbox=outbox.filter(o=>o.round===m.round&&hist.filter(h=>h.text===o.text).length<=o.have);
     const p=me(),ph=m.phase,ghost=!!p.ghost;

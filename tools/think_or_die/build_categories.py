@@ -156,6 +156,32 @@ def build(c, log):
     return o
 
 
+# Labels shown to the player when the first Enter writes an answer out in full: abbreviations become the full name
+# (the short form stays an accepted spelling).
+FULL = {
+    "United States": "United States of America", "USA": "United States of America", "US": "United States of America",
+    "США": "Соединённые Штаты Америки", "Соединённые Штаты": "Соединённые Штаты Америки",
+    "UK": "United Kingdom", "UAE": "United Arab Emirates", "ОАЭ": "Объединённые Арабские Эмираты",
+    "ЮАР": "Южно Африканская Республика", "ЦАР": "Центральноафриканская Республика", "CAR": "Central African Republic",
+    "ДР Конго": "Демократическая Республика Конго", "DR Congo": "Democratic Republic of the Congo", "DRC": "Democratic Republic of the Congo",
+    "КНДР": "Корейская Народно Демократическая Республика", "СССР": "Союз Советских Социалистических Республик",
+    "USSR": "Union of Soviet Socialist Republics", "ООН": "Организация Объединённых Наций", "UN": "United Nations",
+    "NYC": "New York City", "LA": "Los Angeles", "СПб": "Санкт Петербург", "Питер": "Санкт Петербург",
+}
+
+
+def full_labels(cats):
+    for c in cats:
+        if c.get("rule") or "two_word" in c["id"] or "letter" in c["id"]: continue  # the name itself is judged there
+        for a in c.get("answers", []):
+            labels = a[1].split("|")
+            new = [FULL.get(l, l) for l in labels]
+            if new == labels: continue
+            have = {key(x) for x in new + (a[2].split("|") if a[2] else [])}
+            extra = [l for l in labels if key(l) not in have and not have.add(key(l))]
+            a[1] = "|".join(new); a[2] = "|".join(x for x in ([a[2]] if a[2] else []) + extra)
+
+
 def check_unique_keys():
     import ast
     tree = ast.parse(open(os.path.join(HERE, "cats_g.py"), encoding="utf-8").read())
@@ -198,6 +224,7 @@ def main():
     if unknown: sys.exit(f"more_*.py: unknown category ids {unknown}")
     clash = [c["id"] for c in pack["categories"] if c["id"] in set(ids)]
     pack["categories"] = old + new
+    full_labels(pack["categories"])
     pack["contentVersion"] = pack.get("contentVersion", 1) + 1
     with open(PACK, "w", encoding="utf-8") as f:
         f.write('{"contentVersion":%d,"categories":[\n' % pack["contentVersion"])

@@ -30,6 +30,19 @@ class ThinkOrDieSessionTest {
         assertEquals(ThinkOrDieSession.Phase.COMPLETED,s.phase());
         assertEquals(1,s.standings().get(0).rank());
     }
+    @Test void previewWritesKnownAnswersInFull(){
+        var s=session(List.of("a","b"),Set.of(),"star_on_flag");toAnswering(s);
+        assertEquals("United States of America",s.preview("usa"));
+        assertEquals("Соединённые Штаты Америки",s.preview("америка"));
+        assertEquals("United States of America",s.preview("Unted States"));
+        assertEquals("",s.preview("United States of America")); // already full: the first Enter sends it
+        assertEquals("",s.preview("Narnia"));        // unknown: sent as typed, the judge decides
+        assertEquals("",s.preview(""));
+        var b=session(List.of("a","b"),Set.of(),"batman_villains");toAnswering(b);
+        assertEquals("Joker",b.preview("the joker"));
+        assertEquals("",b.preview("джокер"));        // same word, only the case differs
+    }
+
     @Test void originalityUsesCanonicalIds(){
         var s=session(List.of("a","b","c","d"),Set.of(),"batman_villains");toAnswering(s);
         say(s,"a","Joker");say(s,"b","The Joker");say(s,"c","JOKER");
