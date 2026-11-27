@@ -498,7 +498,7 @@ Lithuania|Литва
 Azerbaijan|Азербайджан
 Tajikistan|Таджикистан
 Uzbekistan|Узбекистан
-Turkmenistan|Туркменистан
+Turkmenistan|Туркменистан|туркмения
 Bangladesh|Бангладеш
 Algeria|Алжир
 Libya|Ливия
@@ -540,7 +540,6 @@ Syria|Сирия
 Maldives|Мальдивы
 Sri Lanka|Шри Ланка
 Myanmar|Мьянма
-Turkmenistan flag|Туркмения
 Jamaica|Ямайка
 Dominica|Доминика
 Grenada|Гренада
