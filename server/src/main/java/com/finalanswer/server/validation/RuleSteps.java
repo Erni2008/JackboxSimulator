@@ -37,7 +37,7 @@ public final class RuleSteps {
             case "REPEAT_CONSONANT"->{boolean d=false;for(int i=0;i<key.length()&&!d;i++){char ch=key.charAt(i);if(Character.isLetter(ch)&&VOWELS.indexOf(ch)<0&&ch!='ь'&&ch!='ъ'&&key.chars().filter(x->x==ch).count()>=r.n())d=true;}yield d;}
             case "DOUBLE_CONSONANT"->{boolean d=false;for(int i=1;i<key.length();i++){char ch=key.charAt(i);if(ch==key.charAt(i-1)&&Character.isLetter(ch)&&VOWELS.indexOf(ch)<0&&ch!='ь'&&ch!='ъ')d=true;}yield d;}
             case "CONTAINS_ALL"->{boolean all=true;for(String part:r.value().split("\\|"))if(!key.contains(AnswerInput.key(part)))all=false;yield all;} // "ж|а": every letter group
-            case "STARTS_ANY"->{boolean any=false;for(String part:r.value().split("\\|")){String p=AnswerInput.key(part);if(key.startsWith(p)&&key.length()>p.length())any=true;}yield any;} // "до|ре|ми"
+            case "STARTS_ANY"->{boolean any=false;for(String part:r.value().split("\\|")){String p=AnswerInput.key(part);if(key.startsWith(p))any=true;}yield any;} // "до|ре|ми" ("соль" itself counts: it is also a word)
             case "MAX_LENGTH"->key.codePointCount(0,key.length())<=r.n()&&key.length()>=2;
             case "MIDDLE_LETTER"->key.length()>=3&&key.substring(1,key.length()-1).contains(v); // the letter inside the word, not first or last
             case "CONSONANT_RUN"->{int run=0,best=0;for(char ch:key.toCharArray()){boolean cons=Character.isLetter(ch)&&VOWELS.indexOf(ch)<0&&ch!='ь'&&ch!='ъ';run=cons?run+1:0;best=Math.max(best,run);}yield best>=r.n();}

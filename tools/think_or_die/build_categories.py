@@ -89,7 +89,7 @@ def keeps(rule, k):
     if kind == "REPEAT_CONSONANT": return any(cons(c) and k.count(c) >= n for c in k)
     if kind == "DOUBLE_CONSONANT": return any(k[i] == k[i - 1] and cons(k[i]) for i in range(1, len(k)))
     if kind == "CONTAINS_ALL": return all(key(x) in k for x in rule["value"].split("|"))
-    if kind == "STARTS_ANY": return any(k.startswith(key(x)) and len(k) > len(key(x)) for x in rule["value"].split("|"))
+    if kind == "STARTS_ANY": return any(k.startswith(key(x)) for x in rule["value"].split("|"))
     if kind == "MAX_LENGTH": return 2 <= len(k) <= n
     if kind == "MIDDLE_LETTER": return len(k) >= 3 and v in k[1:-1]
     if kind == "CONSONANT_RUN":
