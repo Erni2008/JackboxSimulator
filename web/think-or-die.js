@@ -74,14 +74,18 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
   function submit(){
     const m=mini();if(!m||!isAuthenticated())return;
     const surv=m.mode==='survival';
-    if(surv?!(m.phase==='TURN'&&m.survival?.turnPlayer===getState()?.selfId):m.phase!=='ANSWERING')return;
+    const myTurn=surv&&m.phase==='TURN'&&m.survival?.turnPlayer===getState()?.selfId;
+    if(surv?!myTurn&&!['TURN','TURN_CHECK','TURN_RESULT','CATEGORY_REVEAL'].includes(m.phase):m.phase!=='ANSWERING')return;
     const text=els.input.value.replace(/\s+/g,' ').trim();
     if(!text){els.input.focus();return;}
+    // not your turn yet: the answer waits in the field (Enter only writes it out in full), it goes on your turn
+    if(surv&&!myTurn){if(text!==confirmed&&!(preview&&preview.text===text)){const id=send('TOD_PREVIEW',{sessionId:m.sessionId,text});preview={text,id};}
+      else{error=T('Ждёт твоей очереди','Waits for your turn');errorAt=performance.now();paintHint();}return;}
     // first Enter: a known answer is first written out in full ("usa" → "United States of America"); the next Enter sends it
     if(text!==confirmed){
       if(preview&&preview.text===text)return;
       const id=send('TOD_PREVIEW',{sessionId:m.sessionId,text});clearTimeout(previewTimer);preview={text,id};
-      previewTimer=setTimeout(()=>{if(preview?.id===id){preview=null;confirmed=text;submit();}},450); // a slow reply never blocks the answer
+      previewTimer=setTimeout(()=>{if(preview?.id===id){preview=null;confirmed=text;if(myTurn||!surv)submit();}},450); // a slow reply never blocks the answer
       return;}
     confirmed='';
     if(performance.now()-lastSendAt<260)return; // the server's anti-spam floor
@@ -98,7 +102,7 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
       if(!preview||e.requestId!==preview.id)return;clearTimeout(previewTimer);
       const text=preview.text,label=String(e.payload?.label||'').trim();preview=null;
       if(els.input.value.replace(/\s+/g,' ').trim()!==text)return; // the player kept typing: judge the new text on the next Enter
-      if(label){els.input.value=label;confirmed=label;error=T('Enter — отправить','Enter to send');errorAt=performance.now();
+      if(label){els.input.value=label;confirmed=label;const mm=mini(),wait=mm?.mode==='survival'&&!(mm.phase==='TURN'&&mm.survival?.turnPlayer===getState()?.selfId);error=wait?T('Готово, отправишь в свою очередь','Ready, send it on your turn'):T('Enter — отправить','Enter to send');errorAt=performance.now();
         els.input.focus();els.input.setSelectionRange?.(label.length,label.length);navigator.vibrate?.(8);render();}
       else{confirmed=text;submit();}
       return;}
@@ -212,7 +216,10 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
         els.lives.innerHTML=shown.map(p=>{const si=match.findIndex(sd=>(sd.players||[]).includes(p.id));const l=p.lives??0,out=l<=0;let h='';for(let i=0;i<max;i++)h+=`<i class="${i<l?'on':''}"></i>`;
           return `<li class="${out?'out':''}${p.id===tp&&ph==='TURN'?' turn':''}${p.id===self?' me':''}${si>=0?' side'+si:''}"><img src="/portraits/${esc(charOf(p.id))}.webp" alt=""><span>${p.id===self?T('ТЫ','YOU'):esc(nameOf(p.id))}</span><em>${h}</em></li>`;}).join('');}
     }
-    els.form.hidden=!(sv.turnPlayer===self&&(ph==='TURN'||ph==='TURN_CHECK'));els.send.disabled=!isAuthenticated()||ph==='TURN_CHECK';
+    // the field stays open for every living player, so the next answer can be typed in advance
+    const early=!out&&!p.ghost&&!(duel&&mySide<0)&&['TURN','TURN_CHECK','TURN_RESULT','CATEGORY_REVEAL'].includes(ph);
+    els.form.hidden=!(mine&&(ph==='TURN'||ph==='TURN_CHECK'))&&!early;els.send.disabled=!isAuthenticated()||ph==='TURN_CHECK'||!(mine&&ph==='TURN');
+    root.dataset.early=String(early&&!(mine&&ph==='TURN'));
     els.ghost.hidden=!out||['FINAL_RESULTS','COMPLETED'].includes(ph);
     if(out)els.ghost.textContent=T('ТЫ ВЫБЫЛ · смотри, кто выживет','YOU ARE OUT · watch who survives');
     const watching=duel&&!p.ghost&&mySide<0&&['TURN','TURN_CHECK','TURN_RESULT','CATEGORY_REVEAL','MATCH_INTRO'].includes(ph);
@@ -248,7 +255,9 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
     if(ph==='TURN_RESULT'&&sv.last?.player===self&&sv.last?.outcome==='CORRECT'){els.input.value='';}
     // a new turn starts when TURN follows anything but its own check (a refused AI-checked try comes back to TURN)
     const newTurn=ph==='TURN'&&survTurnKey!=='TURN'&&survTurnKey!=='TURN_CHECK';survTurnKey=ph;
-    if(newTurn&&mine){navigator.vibrate?.([30,60,30]);els.input.value='';survAttempts=0;setTimeout(()=>els.input.focus(),40);}
+    if(ph==='CATEGORY_REVEAL'&&survTurnKey!=='CATEGORY_REVEAL'){els.input.value='';confirmed='';}
+    // your turn: what you typed in advance stays, and the big screen shows it at once
+    if(newTurn&&mine){navigator.vibrate?.([30,60,30]);survAttempts=0;typeSent='';setTimeout(()=>{els.input.focus();liveType();},40);if(els.input.value.trim()){error=T('Enter — отправить','Enter to send');errorAt=performance.now();}}
     if(!raf)tick();
   }
   function renderVote(m){

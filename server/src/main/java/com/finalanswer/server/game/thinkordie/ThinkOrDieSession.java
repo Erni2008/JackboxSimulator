@@ -126,7 +126,7 @@ public final class ThinkOrDieSession {
     /** knockout: the rounds, each a list of matches (a match is two sides, or one side with a bye); winners per match */
     private final List<List<Side[]>> bracket=new ArrayList<>();private final Map<Side[],Side> winners=new IdentityHashMap<>();
     private int matchIndex=-1;private List<Side> match=List.of();private int sideTurn=-1;
-    private int lap,catIndex=-1,outSeq,lapsOnCategory;private String turnPlayer;private long turnMs;
+    private int lap,catAnswers,catIndex=-1,outSeq,lapsOnCategory;private String turnPlayer;private long turnMs;
     /**
      * The category round: sides that already had their turn in the current lap of this category. The category stays
      * until a turn runs out of time; then {@code closing} is set, the sides that have not played this lap yet still
@@ -182,7 +182,7 @@ public final class ThinkOrDieSession {
         bracket.add(pairs(next));matchIndex=-1;enter(Phase.BRACKET,now,survival.bracketMs());
     }
     private void startMatch(long now,boolean intro){lap=0;lapsOnCategory=0;sideTurn=-1;lapDone.clear();closing=false;lastTurn=Map.of();turnPlayer=null;if(intro)enter(Phase.MATCH_INTRO,now,survival.matchIntroMs());else newCategory(now);}
-    private void newCategory(long now){catIndex++;round=catIndex+1;lapDone.clear();closing=false;lapsOnCategory=0;usedKeys.clear();usedCanon.clear();used.clear();lastTurn=Map.of();turnPlayer=null;enter(Phase.CATEGORY_REVEAL,now,survival.categoryMs());}
+    private void newCategory(long now){catIndex++;round=catIndex+1;lapDone.clear();closing=false;lapsOnCategory=0;catAnswers=0;usedKeys.clear();usedCanon.clear();used.clear();lastTurn=Map.of();turnPlayer=null;enter(Phase.CATEGORY_REVEAL,now,survival.categoryMs());}
     private void endMatch(Side winner,long now){
         lastWinner=winner;turnPlayer=null;
         if(format==Format.FFA){finishSurvival(now);return;}
@@ -202,7 +202,7 @@ public final class ThinkOrDieSession {
             if(closing||lapsOnCategory>=survival.lapsPerCategory()){newCategory(now);return;}}
         int nxt=sideTurn;for(int k=1;k<=n;k++){int j=((sideTurn+k)%n+n)%n;if(match.get(j).lives>0&&!lapDone.contains(j)){nxt=j;break;}}
         lapDone.add(nxt);sideTurn=nxt;Side d=match.get(sideTurn);Player p=d.members.get(d.next%d.members.size());d.next++;
-        turnPlayer=p.id;turnMs=survival.turnMs(lap);turnSub=null;attempts.clear();typing="";
+        turnPlayer=p.id;turnMs=survival.turnMsAfter(catAnswers);turnSub=null;attempts.clear();typing="";
         enter(Phase.TURN,now,turnMs);
     }
     private boolean lapComplete(){for(int j=0;j<match.size();j++)if(match.get(j).lives>0&&!lapDone.contains(j))return false;return true;}
@@ -215,7 +215,7 @@ public final class ThinkOrDieSession {
         if(!s.verdict.valid()){refuse(p,s,s.verdict.status()==ValidationStatus.INVALID?"WRONG":"UNSURE",s.text,now);return;}
         if(usedKeys.contains(s.key)||canon!=null&&usedCanon.contains(canon)){refuse(p,s,"REPEAT",label(canon,s.text),now);return;}
         usedKeys.add(s.key);if(canon!=null)usedCanon.add(canon);
-        p.correct++;p.points+=survival.pointsCorrect();
+        p.correct++;catAnswers++;p.points+=survival.pointsCorrect();
         String lb=label(canon,s.text);Side d=sideOf(p);Map<String,Object> u=new LinkedHashMap<>();u.put("label",lb);u.put("player",p.id);u.put("side",d==null?0:d.id);used.add(u);
         lastTurn=Map.of("player",p.id,"outcome","CORRECT","text",s.text,"label",lb,"lives",p.lives);
         enter(Phase.TURN_RESULT,now,survival.resultMs());

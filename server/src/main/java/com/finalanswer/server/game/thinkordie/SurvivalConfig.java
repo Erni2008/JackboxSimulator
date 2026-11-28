@@ -34,6 +34,8 @@ public record SurvivalConfig(int lives,long introMs,long categoryMs,long turnSta
         int lv=Math.max(1,Math.min(5,lives));long start=Math.max(5,Math.min(20,turnSeconds))*1000L;
         return new SurvivalConfig(lv,introMs,categoryMs,start,speedUp?turnStepMs:0,Math.min(turnMinMs,start),checkMaxMs,resultMs,lapsPerCategory,pointsCorrect,finalMs,minSubmitIntervalMs,lv,bracketMs,matchIntroMs,matchResultMs);
     }
+    /** Turn length after this many accepted answers in the current category: every answer takes {@code turnStepMs} off, a new category starts again from {@code turnStartMs}. */
+    public long turnMsAfter(int answers){return Math.max(turnMinMs,turnStartMs-answers*turnStepMs);}
     /** Turn length for a lap (0 = first lap). */
     public long turnMs(int lap){return Math.max(turnMinMs,turnStartMs-lap*turnStepMs);}
 }
