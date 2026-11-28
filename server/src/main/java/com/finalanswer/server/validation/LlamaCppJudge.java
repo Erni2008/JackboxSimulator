@@ -42,6 +42,10 @@ public final class LlamaCppJudge implements AiJudge {
     public static LlamaCppJudge configured(){
         String url=System.getProperty("thinkordie.ai.url",System.getenv().getOrDefault("THINK_OR_DIE_AI_URL",""));
         if(url.isBlank())return null;
+        // players' answers must not travel in clear text over a network: plain http only to this machine
+        try{var u=java.net.URI.create(url);String h=u.getHost();
+            if(!"https".equals(u.getScheme())&&!("127.0.0.1".equals(h)||"localhost".equals(h)||"::1".equals(h)||"[::1]".equals(h))){System.err.println("[security] AI judge disabled: plain http is allowed only to localhost, got "+h);return null;}}
+        catch(IllegalArgumentException e){System.err.println("[validation] AI judge disabled: bad URL");return null;}
         String model=System.getProperty("thinkordie.ai.model",System.getenv().getOrDefault("THINK_OR_DIE_AI_MODEL","qwen3-4b-instruct-2507-q4_k_m"));
         try{return new LlamaCppJudge(url,model,Duration.ofSeconds(8));}catch(IllegalArgumentException e){System.err.println("[validation] AI judge disabled: "+e.getMessage());return null;}
     }

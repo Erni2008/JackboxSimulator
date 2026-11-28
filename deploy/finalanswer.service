@@ -1,6 +1,6 @@
 [Unit]
 Description=Final Answer multiplayer server
-After=network-online.target
+After=network-online.target finalanswer-ai.service
 Wants=network-online.target
 
 [Service]
@@ -13,11 +13,37 @@ ExecStart=/opt/finalanswer/bin/server
 Restart=on-failure
 RestartSec=5
 TimeoutStopSec=20
+# game data (learned answers, AI cache, rarity stats) lives in /var/lib/finalanswer, the only writable place
+StateDirectory=finalanswer
+StateDirectoryMode=0700
+# sandbox: no root powers, read only system, no home folders, no devices, only network sockets
 NoNewPrivileges=true
 PrivateTmp=true
+PrivateDevices=true
 ProtectSystem=strict
 ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources @mount @debug @cpu-emulation @obsolete
 UMask=0077
+# a runaway process cannot take the whole VPS down
+MemoryMax=1536M
+TasksMax=512
+LimitNOFILE=65536
 
 [Install]
 WantedBy=multi-user.target

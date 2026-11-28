@@ -1,0 +1,30 @@
+[Unit]
+Description=Final Answer AI judge (llama.cpp, Qwen3 4B, localhost only)
+After=network-online.target
+
+[Service]
+Type=simple
+User=finalanswer-ai
+Group=finalanswer-ai
+WorkingDirectory=/opt/finalanswer-ai
+# bound to 127.0.0.1: never reachable from the internet, only the game server talks to it
+ExecStart=/opt/finalanswer-ai/llama-server -m /opt/finalanswer-ai/models/Qwen3-4B-Instruct-2507-Q4_K_M.gguf --host 127.0.0.1 --port 18431 -c 8192 -np 4 --jinja
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+CapabilityBoundingSet=
+SystemCallArchitectures=native
+UMask=0077
+MemoryMax=6G
+
+[Install]
+WantedBy=multi-user.target

@@ -43,7 +43,7 @@ public interface RarityStats {
         }
         /** {@code -Drareminds.stats=<path>}, else {@code ~/.finalanswer/rare_minds_stats.json}. */
         public static FileStore configured(){
-            String p=System.getProperty("rareminds.stats","");
+            String p=System.getProperty("rareminds.stats",System.getenv().getOrDefault("RARE_MINDS_STATS",""));
             return new FileStore(p.isBlank()?Path.of(System.getProperty("user.home"),".finalanswer","rare_minds_stats.json"):Path.of(p));
         }
         private final Map<String,Map<String,Long>> unknown=new TreeMap<>();

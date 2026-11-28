@@ -1,5 +1,37 @@
-# Replace with your real DNS name. Caddy obtains and renews TLS certificates.
+# Replace play.example.com with the real domain. Caddy gets and renews the TLS certificate by itself.
+{
+    servers {
+        timeouts {
+            read_header 10s
+            idle 2m
+        }
+    }
+}
+
 play.example.com {
     encode zstd gzip
+    # small requests only: the game API never needs more than a few KB
+    request_body {
+        max_size 16KB
+    }
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        -Server
+    }
+    # access log without query strings or headers (no tokens, no IP lists kept for long)
+    log {
+        output file /var/log/caddy/finalanswer.log {
+            roll_size 20MiB
+            roll_keep 5
+            roll_keep_for 168h
+        }
+        format filter {
+            request>uri query {
+                delete token
+            }
+            request>headers delete
+            request>remote_ip ip_mask 16 32
+        }
+    }
     reverse_proxy 127.0.0.1:8080
 }
