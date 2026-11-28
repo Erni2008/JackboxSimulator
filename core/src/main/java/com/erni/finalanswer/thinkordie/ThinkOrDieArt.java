@@ -26,7 +26,7 @@ final class ThinkOrDieArt implements Disposable {
 
     final Texture pixel,soft,ring,car,carGlass,noise,round,beam,dots;final Texture background;final NinePatch plateFill,plateEdge;
     /** the game's own dungeon kit (lobby): moonlit dungeon, hanging cage, chain, ceiling hook; flame from RARE MINDS */
-    final Texture[] badges=new Texture[4];final Texture panelTex;final com.badlogic.gdx.graphics.g2d.NinePatch panel9;final Texture logo,plate,rules,dungeon,cage,chain,hook,flame;final BitmapFont hand;
+    final Texture[] badges=new Texture[4];final Texture panelTex;final com.badlogic.gdx.graphics.g2d.NinePatch panel9;final Texture logo,plate,plateBlank,rules,dungeon,cage,chain,hook,flame;final BitmapFont hand;
     final BitmapFont horror,display,big,mid,small,tiny;
     /** THINK OR DIE typography: condensed bold for names and numbers, Inter for instructions (both OFL, Latin + Cyrillic) */
     final BitmapFont cond,inter;
@@ -41,7 +41,7 @@ final class ThinkOrDieArt implements Disposable {
         beam=beam();dots=dots();
         var bg=Gdx.files.internal("think_or_die/background.jpg");
         background=bg.exists()?mip(new Texture(bg,true)):null;
-        logo=tex("think_or_die/logo.png");panelTex=tex("think_or_die/panel.png");panel9=panelTex==null?null:new com.badlogic.gdx.graphics.g2d.NinePatch(panelTex,62,62,26,30);plate=tex("think_or_die/category_plate.png");rules=tex("think_or_die/rules_bar.png");for(int i=0;i<4;i++)badges[i]=tex("think_or_die/badge_"+i+".png");dungeon=tex("lobby/background_dungeon.png");cage=tex("lobby/cages/cage_bars.png");hook=tex("lobby/cages/chain_hook.png");flame=tex("rare_minds/ui/flame.png");
+        logo=tex("think_or_die/logo.png");panelTex=tex("think_or_die/panel.png");panel9=panelTex==null?null:new com.badlogic.gdx.graphics.g2d.NinePatch(panelTex,62,62,26,30);plate=tex("think_or_die/category_plate.png");plateBlank=tex("think_or_die/category_plate_blank.png");rules=tex("think_or_die/rules_bar.png");for(int i=0;i<4;i++)badges[i]=tex("think_or_die/badge_"+i+".png");dungeon=tex("lobby/background_dungeon.png");cage=tex("lobby/cages/cage_bars.png");hook=tex("lobby/cages/chain_hook.png");flame=tex("rare_minds/ui/flame.png");
         chain=tex("lobby/cages/chain.png");if(chain!=null)chain.setWrap(Texture.TextureWrap.ClampToEdge,Texture.TextureWrap.Repeat);
         hand=font("ui/fonts/Caveat-Variable.ttf",64,0);
         horror=font("ui/fonts/RussoOne-Regular.ttf",150,0);display=font("ui/fonts/RussoOne-Regular.ttf",108,0);big=font("ui/fonts/RussoOne-Regular.ttf",64,0);

@@ -489,7 +489,7 @@ public final class ThinkOrDieSession {
         AnswerInput in=AnswerInput.of(raw);Category c=category();
         if(in==null||c==null||c.answers().isEmpty())return "";
         Verdict v;try{v=engine.validate(c,in);}catch(RuntimeException e){return "";}
-        if(v.status()!=ValidationStatus.VALID||v.canonicalId()==null)return "";
+        if(v.status()!=ValidationStatus.VALID||v.canonicalId()==null)return partName(c,raw,in);
         for(Category.Answer a:c.answers())if(a.id().equals(v.canonicalId())){
             boolean cyr=raw.codePoints().anyMatch(ch->Character.UnicodeScript.of(ch)==Character.UnicodeScript.CYRILLIC);
             String label=cyr||"ru".equals(lang)&&!raw.matches(".*[A-Za-z].*")?a.labelRu():a.labelEn();
@@ -497,6 +497,26 @@ public final class ThinkOrDieSession {
             return AnswerInput.of(label)!=null&&AnswerInput.of(label).clean().equalsIgnoreCase(in.clean())?"":label;}
         return "";
     }
+
+    /**
+     * "лютер" → "Лекс Лютор": one typed word that is a word of exactly one verified answer (a surname, the main word of a
+     * title), a small typo allowed for longer words. Two or more matches stay ambiguous and show nothing.
+     */
+    private String partName(Category c,String raw,AnswerInput in){
+        String k=in.key();if(k.length()<4||raw.trim().contains(" "))return "";
+        int tol=k.length()>=8?2:k.length()>=5?1:0;String hit=null;Category.Answer found=null;
+        for(Category.Answer a:c.answers()){boolean match=false;
+            for(String name:a.aliases()){String[] words=name.split("[\\s\\-]+");if(words.length<2)continue;
+                for(String w:words){String wk=AnswerInput.key(w);if(wk.length()>=4&&Math.abs(wk.length()-k.length())<=tol&&dist(wk,k)<=tol){match=true;break;}}
+                if(match)break;}
+            if(match){if(found!=null&&!found.id().equals(a.id()))return "";found=a;}}
+        if(found==null)return "";
+        boolean cyr=raw.codePoints().anyMatch(ch->Character.UnicodeScript.of(ch)==Character.UnicodeScript.CYRILLIC);
+        String label=cyr?found.labelRu():found.labelEn();return label==null||label.isBlank()?found.labelEn():label;
+    }
+    private static int dist(String a,String b){int[] p=new int[b.length()+1],q=new int[b.length()+1];for(int j=0;j<=b.length();j++)p[j]=j;
+        for(int i=1;i<=a.length();i++){q[0]=i;for(int j=1;j<=b.length();j++)q[j]=Math.min(Math.min(q[j-1]+1,p[j]+1),p[j-1]+(a.charAt(i-1)==b.charAt(j-1)?0:1));int[] t=p;p=q;q=t;}
+        return p[b.length()];}
 
     /** A dispute vote: any player but the answer's authors, once per dispute (a second vote replaces the first). */
     public void vote(String member,String disputeId,boolean accept,long now){

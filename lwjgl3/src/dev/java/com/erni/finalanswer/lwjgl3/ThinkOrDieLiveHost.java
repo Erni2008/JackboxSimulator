@@ -20,7 +20,7 @@ public final class ThinkOrDieLiveHost {
         int players=Integer.getInteger("tod.players",6);
         var c=new Lwjgl3ApplicationConfiguration();c.setTitle("Final Answer / THINK OR DIE / live test host");c.setWindowedMode(1600,900);c.setForegroundFPS(60);
         new Lwjgl3Application(new Game(){
-            ThinkOrDieScreen screen;volatile long offset;boolean started;WebSocket ws;com.badlogic.gdx.graphics.g2d.SpriteBatch wb;com.badlogic.gdx.graphics.g2d.BitmapFont wf;int online;
+            com.badlogic.gdx.Screen screen;volatile long offset;boolean started;WebSocket ws;com.badlogic.gdx.graphics.g2d.SpriteBatch wb;com.badlogic.gdx.graphics.g2d.BitmapFont wf;int online;
             long now(){return System.currentTimeMillis()+offset;}
             synchronized void send(String type,JsonObject payload){JsonObject m=new JsonObject();m.addProperty("type",type);m.addProperty("requestId",Long.toHexString(System.nanoTime()));payload.addProperty("roomCode",code);m.add("payload",payload);ws.sendText(m.toString(),true).join();}
             @Override public void create(){
@@ -42,7 +42,10 @@ public final class ThinkOrDieLiveHost {
                         for(var e:s.getAsJsonArray("players")){var o=e.getAsJsonObject();if(o.get("name").getAsString().equals(ghost)){JsonObject g=new JsonObject();g.addProperty("id",o.get("id").getAsString());g.addProperty("alive",false);send("QA_SET_ALIVE",g);}}
                         JsonObject p=new JsonObject();p.addProperty("sessionId",s.get("lobbyId").getAsString());send("START_THINK_OR_DIE",p);}}
                 if(!s.has("thinkOrDie"))return;
-                if(screen==null){screen=new ThinkOrDieScreen(s,this::now,id->{JsonObject p=new JsonObject();p.addProperty("sessionId",id);send("END_THINK_OR_DIE",p);});setScreen(screen);}else screen.apply(s);
+                // the same choice as the real game (FinalAnswerGame.openThinkOrDie): the standalone mode is survival
+                java.util.function.Consumer<String> end=id->{JsonObject p=new JsonObject();p.addProperty("sessionId",id);send("END_THINK_OR_DIE",p);};
+                if(screen==null){screen=com.erni.finalanswer.thinkordie.TodSurvivalScreen.isSurvival(s)?new com.erni.finalanswer.thinkordie.TodSurvivalScreen(s,this::now,end):new ThinkOrDieScreen(s,this::now,end);setScreen(screen);}
+                else if(screen instanceof com.erni.finalanswer.thinkordie.TodSurvivalScreen sv)sv.apply(s);else((ThinkOrDieScreen)screen).apply(s);
             }
             @Override public void render(){
                 // test runs are silent (no host voice, music or effects) unless -Pq.sound=true; nothing is saved to settings

@@ -165,11 +165,11 @@ public final class TodSurvivalScreen extends ScreenAdapter {
         boolean result=phase().equals("TURN_RESULT");
         String txt=rem<=0||(result&&rem==0)?tr("ДАЛЕЕ · НОВАЯ КАТЕГОРИЯ","NEXT · A NEW CATEGORY"):tr("ПОСЛЕДНИЙ КРУГ · ЕЩЁ ","LAST ROUND · ")+rem+(ru()?"":(rem==1?" MORE":" MORE"));
         float t=clock-closingAt,k=Math.max(.05f,Interpolation.swingOut.apply(MathUtils.clamp(t/.45f,0,1)));
-        float w=art.width(art.cond,txt,.40f)+110,h=56,y=302;
+        float w=art.width(art.cond,txt,.36f)+96,h=38,y=301; // on the plate's lower edge, clear of the turn plaque
         float pulse=.5f+.5f*MathUtils.sin(clock*4);
         art.glow(W/2,y,w*1.3f,h*2.4f,RED,(.20f+.12f*pulse)*k);
         art.panel(W/2-w*k/2,y-h/2,w*k,h,RED,1);
-        if(k>.6f)art.text(art.cond,txt,W/2,y+13,.40f,new Color(1f,.90f,.82f,1),MathUtils.clamp((k-.6f)/.4f,0,1),0);
+        if(k>.6f)art.text(art.cond,txt,W/2,y+10,.36f,new Color(1f,.90f,.82f,1),MathUtils.clamp((k-.6f)/.4f,0,1),0);
     }
     private boolean ru(){return "ru".equals(lang());}
     /** Cinematic vignette: darker corners and edges so the eye goes to the plate and the turn. */
@@ -190,8 +190,12 @@ public final class TodSurvivalScreen extends ScreenAdapter {
     /** the category plate, text set inside (one line when it fits large, otherwise wrapped and shrunk) */
     private void plate(float z){
         if(art.plate==null)return;z=Math.max(.05f,z);float pw=820*z,ph=pw*art.plate.getHeight()/art.plate.getWidth(),top=500-(1-z)*ph/2;
-        art.batch.setColor(Color.WHITE);art.batch.draw(art.plate,W/2-pw/2,top-ph,pw,ph);if(z<.7f)return;
-        String text=categoryText();float boxW=pw*.80f,boxTop=top-ph*.30f,boxBot=top-ph*.86f,maxH=boxTop-boxBot,mid=(boxTop+boxBot)/2;
+        // the plate without the baked-in English "CATEGORY": the label is drawn in the room's language
+        Texture tex=art.plateBlank!=null?art.plateBlank:art.plate;
+        art.batch.setColor(Color.WHITE);art.batch.draw(tex,W/2-pw/2,top-ph,pw,ph);if(z<.7f)return;
+        if(art.plateBlank!=null)serifText(spaced(tr("КАТЕГОРИЯ","CATEGORY")),W/2,top-ph*47/405f+9*z,.36f*z,new Color(.93f,.80f,.55f,1),1);
+        // the text box stops above the plate's lower edge, where the LAST ROUND ribbon sits
+        String text=categoryText();float boxW=pw*.80f,boxTop=top-ph*.30f,boxBot=top-ph*.80f,maxH=boxTop-boxBot,mid=(boxTop+boxBot)/2;
         serif.getData().setScale(1);gl.setText(serif,text);float one=Math.min(1,boxW/Math.max(1,gl.width));boolean wrap=one<.80f;float sc=wrap?1:one;
         for(int i=0;i<18;i++){serif.getData().setScale(sc);gl.setText(serif,text,IVORY,boxW,Align.center,wrap);if(gl.height<=maxH&&gl.width<=boxW+1)break;sc*=.94f;}
         float ty=mid+gl.height/2;italic(W/2,mid,.10f);
@@ -199,6 +203,7 @@ public final class TodSurvivalScreen extends ScreenAdapter {
         serif.setColor(IVORY);serif.draw(art.batch,text,W/2-boxW/2,ty,boxW,Align.center,wrap);
         serif.getData().setScale(1);art.batch.setTransformMatrix(saved);
     }
+    private static String spaced(String s){StringBuilder b=new StringBuilder();for(int i=0;i<s.length();i++){if(i>0)b.append(' ');b.append(s.charAt(i));}return b.toString();}
     private void italic(float ox,float oy,float k){shear.set(saved).translate(ox,oy,0);Matrix4 m=new Matrix4();m.val[Matrix4.M01]=k;shear.mul(m).translate(-ox,-oy,0);art.batch.setTransformMatrix(shear);}
     private void serifText(String s,float cx,float y,float sc,Color c,float a){
         if(a<=0||sc<=.01f||s==null||s.isEmpty())return;
@@ -344,8 +349,8 @@ public final class TodSurvivalScreen extends ScreenAdapter {
             art.panel(x,y,colW,rowH-6,edge,al);
             String pid=s(a,"player");Texture face=art.face(character(pid));
             if(face!=null){art.batch.setColor(1,1,1,al);art.batch.draw(face,x+20,y+11,rowH-28,rowH-28);art.batch.setColor(Color.WHITE);}
-            art.left(art.inter,s(a,"label"),x+rowH+6,y+(rowH-6)/2+10,.66f,fresh?IVORY:new Color(.88f,.82f,.74f,1),al,colW-rowH-80);
-            art.right(art.inter,name(pid),x+colW-22,y+(rowH-6)/2+7,.40f,DIM,al);
+            art.left(art.inter,s(a,"label"),x+rowH+6,y+(rowH-6)/2+10,.66f,fresh?IVORY:new Color(.88f,.82f,.74f,1),al,colW-rowH-96);
+            art.right(art.inter,name(pid),x+colW-36,y+(rowH-6)/2+7,.40f,DIM,al); // clear of the frame's bevel
             if(age<.5f)art.glow(x+colW/2,y+rowH/2,colW*1.1f,rowH*2,GOLD,.35f*(1-age/.5f));}
     }
     private int round(){return t!=null&&t.has("round")?t.get("round").getAsInt():0;}

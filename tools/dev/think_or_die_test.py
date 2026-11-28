@@ -123,6 +123,19 @@ async def main():
             if b.round != s['round'] or b.phase != 'ANSWERING': return
             await b.cmd('TOD_SUBMIT', sessionId=s['sessionId'], round=s['round'], text=text); stats['sent'] += 1
 
+    async def survival_turn(b, s, key):
+        """Survival (the standalone mode): on the bot's own turn it types one answer, mostly correct."""
+        good, bad = pool(s['categoryId'], a.lang)
+        given = {w.get('text', '').lower() for w in (s.get('survival') or {}).get('wall', [])}
+        fresh = [g for g in good if g.lower() not in given] or good
+        text = random.choice(bad) if (bad and random.random() < .15) else random.choice(fresh) if fresh else 'x'
+        await asyncio.sleep(random.uniform(.6, 1.6))
+        for i in range(1, len(text) + 1):   # live letters on the big screen
+            await asyncio.sleep(b.char_ms * random.uniform(.7, 1.3) / 1000)
+            if b.turn != key: return
+            await b.cmd('TOD_TYPING', sessionId=s['sessionId'], text=text[:i])
+        await b.cmd('TOD_SUBMIT', sessionId=s['sessionId'], round=s.get('round', 0), text=text); stats['sent'] += 1
+
     async def run(b):
         async with websockets.connect(ws_url, max_size=4_000_000) as ws:
             b.ws = ws; b.phase = ''
@@ -140,6 +153,11 @@ async def main():
                 s = p.get('thinkOrDie')
                 if not s: continue
                 b.phase = s['phase']
+                sv = s.get('survival')
+                if sv and s['phase'] == 'TURN':
+                    key = (s.get('round'), sv.get('turnPlayer'), s.get('phaseStartedAt'))
+                    if sv.get('turnPlayer') == p.get('selfId') and getattr(b, 'turn', None) != key:
+                        b.turn = key; asyncio.create_task(survival_turn(b, s, key))
                 if s['phase'] == 'ANSWERING' and s['round'] != b.round:
                     b.round = s['round']; asyncio.create_task(answer_round(b, s))
                 if s['phase'] == 'DISPUTE':

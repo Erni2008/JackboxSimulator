@@ -41,6 +41,7 @@ class ThinkOrDieSessionTest {
         var b=session(List.of("a","b"),Set.of(),"batman_villains");toAnswering(b);
         assertEquals("Joker",b.preview("the joker"));
         assertEquals("",b.preview("джокер"));        // same word, only the case differs
+        String luthor=b.preview("Фальконе");assertTrue(luthor.contains("Фальконе"),luthor);     // a surname → the full name
     }
 
     @Test void originalityUsesCanonicalIds(){

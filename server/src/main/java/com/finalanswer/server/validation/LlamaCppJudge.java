@@ -114,8 +114,10 @@ public final class LlamaCppJudge implements AiJudge {
         // letter-rule word categories: the game already checked the letters, the model only says whether the word exists
         // (asked to judge the whole task it miscounted letters: "семья", "сестра", "пальто" rejected)
         if(c.type()==Category.Type.WORD_RULE)return ask(c,lang,item,knownIds,5);
-        if(!consensus)return ask(c,lang,item,knownIds,0).thenCompose(r->r.verdict()!=ValidationStatus.VALID?java.util.concurrent.CompletableFuture.completedFuture(r)
-            :ask(c,lang,item,knownIds,open?4:3).thenApply(b->b.verdict()==ValidationStatus.INVALID?b:r));
+        // the grader and the second referee are asked at the same time (the server runs parallel slots): the same verdict as
+        // asking one after the other, in about half the wait — a survival turn should not stand still while the AI thinks
+        if(!consensus)return ask(c,lang,item,knownIds,0).thenCombine(ask(c,lang,item,knownIds,open?4:3),
+            (r,b)->r.verdict()!=ValidationStatus.VALID?r:b.verdict()==ValidationStatus.INVALID?b:r);
         var a=ask(c,lang,item,knownIds,0);var b=ask(c,lang,item,knownIds,1);
         return a.thenCombine(b,(x,y)->new Result[]{x,y}).thenCompose(r->
             r[0].verdict()==r[1].verdict()||r[0].verdict()==ValidationStatus.UNCERTAIN||r[1].verdict()==ValidationStatus.UNCERTAIN
