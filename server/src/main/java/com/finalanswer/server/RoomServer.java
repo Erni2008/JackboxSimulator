@@ -66,10 +66,10 @@ public final class RoomServer implements AutoCloseable {
             });
             c.routes.get("/qa/rooms",ctx->ctx.contentType("application/json").result(rooms.qaRooms()));
             c.routes.get("/rooms/{code}",ctx->ctx.result(rooms.view(ctx.pathParam("code"))));
-            c.routes.get("/rooms/{code}/race",ctx->ctx.result(rooms.raceView(ctx.pathParam("code"),ctx.queryParam("token"),"1".equals(ctx.queryParam("close")))));
+            c.routes.get("/rooms/{code}/race",ctx->ctx.result(rooms.raceView(ctx.pathParam("code"),ctx.header("X-Host-Token"),"1".equals(ctx.queryParam("close")))));
             // RARE MINDS private host monitor: token in a header (never in the URL), polled a few times a second
             c.routes.get("/rooms/{code}/rare-minds/monitor",ctx->ctx.result(rooms.rareMindsMonitor(ctx.pathParam("code"),ctx.header("X-Host-Token"))));
-            c.routes.get("/rooms/{code}/cage",ctx->ctx.result(rooms.cageView(ctx.pathParam("code"),ctx.queryParam("token"))));
+            c.routes.get("/rooms/{code}/cage",ctx->ctx.result(rooms.cageView(ctx.pathParam("code"),ctx.header("X-Host-Token"))));
             c.routes.post("/rooms/{code}/join",ctx->{
                 if(!Boolean.getBoolean("race.qa")&&!limits.allow("join:"+ip(ctx),15,.25))throw new RoomService.Failure(429,"RATE_LIMITED");
                 ctx.result(rooms.join(ctx.pathParam("code"),form(ctx)));

@@ -1,6 +1,6 @@
 // АДСКАЯ КЛЕТКА / THE HELL CAGE — the host's big screen (PC browser, captured by the stream).
 // One cage per player hangs on chains over a lava pit. Every cage sinks slowly; a failed repair drops it hard.
-// Data: read-only HTTP feed /rooms/{code}/cage?token=<host token> (never touches the host's own socket).
+// Data: read-only HTTP feed /rooms/{code}/cage with the host token in the X-Host-Token header (never touches the host's own socket).
 // Without ?room the page runs a demo shift with sample players (for previews and rehearsals).
 import * as T from 'three';
 import {Voice} from './games/broken-elevator/feedback';
@@ -292,7 +292,7 @@ const serverNow = () => Date.now() + clockOffset;
 const KIND = (): Record<string, [string, string]> => ({wire: ['⚡', L('Щиток', 'Wires')], pressure: ['◉', L('Клапаны', 'Valves')], formula: ['⚗', L('Лаборатория', 'Lab')], lock: ['🔒', L('Замок', 'Lock')], bomb: ['💣', L('Бомба', 'Bomb')]});
 
 async function poll() {
-  try { const r = await fetch(`/rooms/${encodeURIComponent(ROOM!)}/cage?token=${encodeURIComponent(TOKEN || '')}`, {cache: 'no-store'}); if (!r.ok) throw new Error(String(r.status)); const v = await r.json();
+  try { const r = await fetch(`/rooms/${encodeURIComponent(ROOM!)}/cage`, {cache: 'no-store', headers: {'X-Host-Token': TOKEN || ''}}); if (!r.ok) throw new Error(String(r.status)); const v = await r.json();
     clockOffset = v.now - Date.now(); players = v.players; shift = v.shift ?? null; diff = v.difficulty; active = v.active; if (shift) START_M = shift.startM;
     if ((v.language === 'en' || v.language === 'ru') && !params.get('lang') && v.language !== LANG) { LANG = v.language; texts(); } $('status').textContent = ''; }
   catch { $('status').textContent = L('Нет связи с комнатой…', 'Room connection lost…'); }

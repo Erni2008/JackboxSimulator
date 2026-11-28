@@ -30,9 +30,9 @@ function online() {
     const again = document.getElementById('again')!; again.textContent = st.host ? 'В ЛОББИ' : 'ЖДЁМ ВЕДУЩЕГО'; if (!st.host) again.onclick = () => {};
   };
   if (q.get('host')) { // spectator: poll the race over HTTP (keeps the desktop host's socket untouched)
-    const url = (close = false) => `/rooms/${encodeURIComponent(cred.code)}/race?token=${encodeURIComponent(cred.token)}${close ? '&close=1' : ''}`;
-    const poll = async () => {try {const r = await fetch(url()); const st = await r.json(); if (r.ok) {if (!raceId && st.race) await onState(st); else if (raceId && st.webGame !== 'race') {document.querySelector('#verdict')!.textContent = 'ЗАБЕГ ЗАКРЫТ';} else {offset += ((st.serverTime - Date.now()) - offset) * .2; app?.remote(st.runners); if (st.run) app?.surv?.apply(st.run);}}} catch {} setTimeout(poll, 120);};
-    poll(); document.getElementById('again')!.onclick = () => fetch(url(true)); return;
+    const url = (close = false) => `/rooms/${encodeURIComponent(cred.code)}/race${close ? '?close=1' : ''}`; const auth = {headers: {'X-Host-Token': cred.token}, cache: 'no-store' as RequestCache}; // the token travels in a header, never in a URL (logs, history)
+    const poll = async () => {try {const r = await fetch(url(), auth); const st = await r.json(); if (r.ok) {if (!raceId && st.race) await onState(st); else if (raceId && st.webGame !== 'race') {document.querySelector('#verdict')!.textContent = 'ЗАБЕГ ЗАКРЫТ';} else {offset += ((st.serverTime - Date.now()) - offset) * .2; app?.remote(st.runners); if (st.run) app?.surv?.apply(st.run);}}} catch {} setTimeout(poll, 120);};
+    poll(); document.getElementById('again')!.onclick = () => fetch(url(true), auth); return;
   }
   const connect = () => {
     ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
