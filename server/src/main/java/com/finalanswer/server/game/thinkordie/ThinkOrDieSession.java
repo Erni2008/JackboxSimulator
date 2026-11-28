@@ -123,10 +123,10 @@ public final class ThinkOrDieSession {
     public final Format format;
     static final class Side{final int id;final List<Player> members;int lives,next,out;Side(int id,List<Player> m){this.id=id;members=m;}}
     private final List<Side> entrants=new ArrayList<>();private int sideSeq;
-    /** knockout: the rounds, each a list of matches (a match is two sides, or one side with a bye); winners per match */
+    /** knockout: the rounds, each a list of matches (a match is two sides, or three when the count is odd: nobody gets a free pass); winners per match */
     private final List<List<Side[]>> bracket=new ArrayList<>();private final Map<Side[],Side> winners=new IdentityHashMap<>();
     private int matchIndex=-1;private List<Side> match=List.of();private int sideTurn=-1;
-    private long playFrom;private int lap,catAnswers,catIndex=-1,outSeq,lapsOnCategory;private String turnPlayer;private long turnMs;
+    private long playFrom,seenNow;private int lap,catAnswers,catIndex=-1,outSeq,lapsOnCategory;private String turnPlayer;private long turnMs;
     /**
      * The category round: sides that already had their turn in the current lap of this category. The category stays
      * until a turn runs out of time; then {@code closing} is set, the sides that have not played this lap yet still
@@ -170,11 +170,14 @@ public final class ThinkOrDieSession {
         }
         return changed;
     }
-    private List<Side[]> pairs(List<Side> in){List<Side[]> out=new ArrayList<>();for(int i=0;i<in.size();i+=2)out.add(i+1<in.size()?new Side[]{in.get(i),in.get(i+1)}:new Side[]{in.get(i)});return out;}
+    /** Pairs for a bracket round. An odd side never gets a free pass: it joins the last pair as a three way duel (the last one standing moves on). */
+    private List<Side[]> pairs(List<Side> in){List<Side[]> out=new ArrayList<>();int n=in.size(),even=n%2==1&&n>=3?n-3:n;
+        for(int i=0;i<even;i+=2)out.add(i+1<n?new Side[]{in.get(i),in.get(i+1)}:new Side[]{in.get(i)});
+        if(even<n)out.add(new Side[]{in.get(n-3),in.get(n-2),in.get(n-1)});return out;}
     /** Next match of the current bracket round; byes pass straight through; a finished round builds the next one. */
     private void nextMatch(long now){
         List<Side[]> roundM=bracket.get(bracket.size()-1);
-        while(++matchIndex<roundM.size()){Side[] m=roundM.get(matchIndex);if(m.length==2){match=List.of(m[0],m[1]);int lives=survival.duelLives();
+        while(++matchIndex<roundM.size()){Side[] m=roundM.get(matchIndex);if(m.length>=2){match=List.of(m);int lives=survival.duelLives();
                 for(Side d:match){d.lives=lives;d.next=0;for(Player p:d.members)p.lives=lives;}startMatch(now,true);return;}
             winners.put(m,m[0]);}
         List<Side> next=new ArrayList<>();for(Side[] m:roundM)next.add(winners.get(m));
@@ -270,7 +273,7 @@ public final class ThinkOrDieSession {
     private Map<String,Object> sideView(Side d){Map<String,Object> m=new LinkedHashMap<>();m.put("id",d.id);m.put("players",ids(d));m.put("lives",d.lives);m.put("out",d.out>0);return m;}
     private Map<String,Object> survivalView(){
         Map<String,Object> m=new LinkedHashMap<>();
-        m.put("format",format.name());m.put("lives",format==Format.FFA?survival.lives():survival.duelLives());m.put("lap",lap+1);m.put("turnMs",turnMs);m.put("suddenDeath",suddenDeath(System.currentTimeMillis()));
+        m.put("format",format.name());m.put("lives",format==Format.FFA?survival.lives():survival.duelLives());m.put("lap",lap+1);m.put("turnMs",turnMs);m.put("suddenDeath",suddenDeath(seenNow));
         m.put("closing",closing);m.put("remaining",closing?remainingInLap()+(phase==Phase.TURN||phase==Phase.TURN_CHECK?1:0):-1); // the one answering now counts
         {List<String> done=new ArrayList<>();for(int j:lapDone)if(j>=0&&j<match.size())for(Player q:match.get(j).members)done.add(q.id);m.put("lapDone",done);}
         if(turnPlayer!=null)m.put("turnPlayer",turnPlayer);
@@ -299,7 +302,7 @@ public final class ThinkOrDieSession {
     private void enter(Phase p,long now,long d){phase=p;phaseStarted=now;phaseEnds=d<0?Long.MAX_VALUE:now+d;}
 
     /** Advance time; @return true when the phase changed (the room broadcasts). */
-    public boolean tick(long now){
+    public boolean tick(long now){seenNow=now;
         if(survival!=null)return tickSurvival(now);
         boolean changed=false;
         if(phase==Phase.ANSWERING||phase==Phase.ANSWER_VALIDATION)resolveLive();

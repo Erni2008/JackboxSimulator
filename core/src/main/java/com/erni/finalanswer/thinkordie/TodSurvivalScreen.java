@@ -318,7 +318,7 @@ public final class TodSurvivalScreen extends ScreenAdapter {
             serifText(name(id).toUpperCase(Locale.ROOT)+tr(" ВЫБЫВАЕТ"," IS OUT"),W/2,133,.46f,VIOLET,e);}
     }
     // ---------------------------------------------------------------- the answer wall
-    private static final Color[] SIDE={new Color(1f,.38f,.30f,1),new Color(.45f,.68f,1f,1)};
+    private static final Color[] SIDE={new Color(1f,.38f,.30f,1),new Color(.45f,.68f,1f,1),new Color(.48f,.92f,.52f,1)}; // red, blue, green (a three way duel)
     private final List<Float> born=new ArrayList<>();private String wallKey="";
     /**
      * The answers of this category as engraved bronze plaques in two columns at the sides of the screen. In a duel each
@@ -329,7 +329,7 @@ public final class TodSurvivalScreen extends ScreenAdapter {
         JsonArray u=survival().has("used")?survival().getAsJsonArray("used"):new JsonArray();
         String key=s(t,"categoryId")+":"+round();if(!key.equals(wallKey)){wallKey=key;born.clear();for(int i=0;i<u.size();i++)born.add(-9f);}
         while(born.size()<u.size())born.add(clock);while(born.size()>u.size())born.remove(born.size()-1);
-        boolean duel=duel();JsonArray m=duel&&survival().has("match")?survival().getAsJsonArray("match"):new JsonArray();
+        boolean duel=duel()&&(!survival().has("match")||survival().getAsJsonArray("match").size()==2);JsonArray m=duel&&survival().has("match")?survival().getAsJsonArray("match"):new JsonArray();
         float colW=310,rowH=58,top=536,xl=44,xr=W-44-colW;int rows=8;
         // column banners
         boolean sw=swapped();
@@ -346,7 +346,7 @@ public final class TodSurvivalScreen extends ScreenAdapter {
             if(row>=rows)continue;
             float age=clock-born.get(i),e=Interpolation.pow3Out.apply(MathUtils.clamp(age/.55f,0,1));
             float tx=col==0?xl:xr,ty=top-14-(row+1)*rowH,x=MathUtils.lerp(W/2-colW/2,tx,e),y=MathUtils.lerp(PLAQUE_CY-20,ty,e),al=MathUtils.clamp(age/.15f,0,1)*(1-row*.035f);
-            boolean fresh=age<1.6f;Color edge=fresh?GOLD:duel?SIDE[col]:BRONZE;
+            boolean fresh=age<1.6f;Color edge=fresh?GOLD:duel?SIDE[Math.min(col,2)]:BRONZE;
             art.panel(x,y,colW,rowH-6,edge,al);
             String pid=s(a,"player");Texture face=art.face(character(pid));
             if(face!=null){art.batch.setColor(1,1,1,al);art.batch.draw(face,x+20,y+11,rowH-28,rowH-28);art.batch.setColor(Color.WHITE);}
@@ -359,7 +359,7 @@ public final class TodSurvivalScreen extends ScreenAdapter {
     /** The screen column (0 left, 1 right) of the player's side in the current duel, else -1. The side whose players hang
      *  further left in the frame row gets the left column, so colours and columns always match the frames above. */
     private int sideIndex(String id){JsonArray m=survival().has("match")?survival().getAsJsonArray("match"):null;if(m==null)return -1;
-        for(int c=0;c<m.size();c++)for(JsonElement e:m.get(c).getAsJsonObject().getAsJsonArray("players"))if(e.getAsString().equals(id))return swapped()?1-c:c;return -1;}
+        for(int c=0;c<m.size();c++)for(JsonElement e:m.get(c).getAsJsonObject().getAsJsonArray("players"))if(e.getAsString().equals(id))return m.size()==2&&swapped()?1-c:c;return -1;}
     private int seatOf(String id){List<JsonObject> ps=players();for(int i=0;i<ps.size();i++)if(s(ps.get(i),"id").equals(id))return i;return 99;}
     private boolean swapped(){JsonArray m=survival().has("match")?survival().getAsJsonArray("match"):null;if(m==null||m.size()<2)return false;
         int a=99,b=99;for(JsonElement e:m.get(0).getAsJsonObject().getAsJsonArray("players"))a=Math.min(a,seatOf(e.getAsString()));
@@ -372,28 +372,29 @@ public final class TodSurvivalScreen extends ScreenAdapter {
     private void bracket(){
         logo(800,.62f);
         JsonArray br=survival().has("bracket")?survival().getAsJsonArray("bracket"):new JsonArray();if(br.size()==0)return;
-        int first=br.get(0).getAsJsonArray().size(),total=1;{int n=first;while(n>1){n=(n+1)/2;total++;}}
+        int first=br.get(0).getAsJsonArray().size(),total=1;{int n=first;while(n>1){n=n/2;total++;}} // an odd side joins a duel (three way), so a round halves down
         int ri=survival().get("roundIndex").getAsInt();
         String title=total-ri<=1?tr("ФИНАЛ","THE FINAL"):tr("РАУНД "+(ri+1),"ROUND "+(ri+1));
         float k=Math.min(1,phaseClock/.5f);spacedLabel(title,W/2,722,.60f,GOLD,k);
         float x0=120,x1=W-120,colW=Math.min(300,(x1-x0)/total-40),gapX=total>1?((x1-x0)-colW*total)/(total-1):0;
         float areaTop=680,areaBot=80;
         float[][] centers=new float[total][];
-        for(int c=0;c<total;c++){int n=c<br.size()?br.get(c).getAsJsonArray().size():Math.max(1,(int)Math.ceil(first/Math.pow(2,c)));centers[c]=new float[n];
+        for(int c=0;c<total;c++){int n=c<br.size()?br.get(c).getAsJsonArray().size():Math.max(1,(int)(first/Math.pow(2,c)));centers[c]=new float[n];
             for(int m=0;m<n;m++)centers[c][m]=c==0?areaTop-(areaTop-areaBot)*(m+.5f)/n:(m*2+1<centers[c-1].length?(centers[c-1][m*2]+centers[c-1][m*2+1])/2:centers[c-1][Math.min(m*2,centers[c-1].length-1)]);}
         for(int c=0;c<total;c++){float x=x0+c*(colW+gapX);float d=MathUtils.clamp((phaseClock-c*.18f)/.4f,0,1);
             for(int m=0;m<centers[c].length;m++){float cy=centers[c][m];JsonObject mt=c<br.size()&&m<br.get(c).getAsJsonArray().size()?br.get(c).getAsJsonArray().get(m).getAsJsonObject():null;
                 boolean next=c==ri&&mt!=null&&!mt.has("winner")&&!mt.has("bye")&&isNextMatch(br,ri,m);
                 if(c+1<total){float nx=x+colW+gapX,ny=centers[c+1][Math.min(m/2,centers[c+1].length-1)];art.rect(x+colW,cy-1,gapX/2,2,BRONZE,.6f*d);art.rect(x+colW+gapX/2-1,Math.min(cy,ny),2,Math.abs(ny-cy)+2,BRONZE,.6f*d);art.rect(x+colW+gapX/2,ny-1,gapX/2,2,BRONZE,.6f*d);}
-                float bh=mt!=null&&mt.getAsJsonArray("sides").size()==2?64:34;
+                int ns=mt!=null?mt.getAsJsonArray("sides").size():1;float bh=ns==3?94:ns==2?64:34;
                 if(next)art.glow(x+colW/2,cy,colW*1.3f,bh*2.2f,GOLD,.25f+.1f*MathUtils.sin(clock*4));
                 art.panel(x,cy-bh/2,colW,bh,next?GOLD:BRONZE,d);
                 if(mt==null){art.text(art.inter,"?",x+colW/2,cy+8,.6f,DIM,d,0);continue;}
                 JsonArray sd=mt.getAsJsonArray("sides");int win=mt.has("winner")?mt.get("winner").getAsInt():-1;
-                for(int q=0;q<sd.size();q++){JsonObject one=sd.get(q).getAsJsonObject();float ly=sd.size()==2?cy+(q==0?14:-16):cy+1;boolean w=one.get("id").getAsInt()==win,lost=win>=0&&!w;
+                for(int q=0;q<sd.size();q++){JsonObject one=sd.get(q).getAsJsonObject();float ly=sd.size()==3?cy+30-q*30:sd.size()==2?cy+(q==0?14:-16):cy+1;boolean w=one.get("id").getAsInt()==win,lost=win>=0&&!w;
                     String nm=sideName(one);Color c2=w?GOLD:lost?new Color(.5f,.45f,.42f,1):IVORY;
                     art.left(art.inter,nm,x+14,ly+8,.54f,c2,d,colW-28);if(lost){float lw=Math.min(colW-28,art.width(art.inter,nm,.54f));art.rect(x+14,ly-1,lw,1.5f,RED,.8f*d);}}
                 if(sd.size()==2)art.rect(x+10,cy-1,colW-20,1,BRONZE,.4f*d);
+                if(sd.size()==3){art.rect(x+10,cy+15,colW-20,1,BRONZE,.4f*d);art.rect(x+10,cy-15,colW-20,1,BRONZE,.4f*d);}
                 if(mt.has("bye"))art.right(art.inter,tr("проходит","bye"),x+colW-12,cy+7,.40f,DIM,d);}}
         // the champion slot
         art.text(art.inter,tr("ЧЕМПИОН","CHAMPION"),x0+(total-1)*(colW+gapX)+colW/2,centers[total-1][0]+62,.46f,GOLD,1,0);
@@ -405,14 +406,16 @@ public final class TodSurvivalScreen extends ScreenAdapter {
         int ri=survival().get("roundIndex").getAsInt();
         float k=Interpolation.pow3Out.apply(Math.min(1,phaseClock/.6f)),v=Interpolation.swingOut.apply(MathUtils.clamp((phaseClock-.35f)/.5f,0,1));
         logo(812,.55f);
-        spacedLabel(tr("РАУНД "+(ri+1)+" · ДУЭЛЬ","ROUND "+(ri+1)+" · DUEL"),W/2,724,.56f,DIM,k);
-        for(int c=0;c<2;c++){JsonObject sd=m.get(c).getAsJsonObject();JsonArray pl=sd.getAsJsonArray("players");float baseX=c==0?420:1180,dir=c==0?-1:1;
+        int n=Math.min(3,m.size());boolean three=n==3;
+        spacedLabel(three?tr("РАУНД "+(ri+1)+" · ТРОЙНАЯ ДУЭЛЬ","ROUND "+(ri+1)+" · THREE WAY DUEL"):tr("РАУНД "+(ri+1)+" · ДУЭЛЬ","ROUND "+(ri+1)+" · DUEL"),W/2,724,.56f,DIM,k);
+        if(three)spacedLabel(tr("ДАЛЬШЕ ПРОХОДИТ ОДИН","ONLY ONE MOVES ON"),W/2,40,.42f,GOLD,k);
+        for(int c=0;c<n;c++){JsonObject sd=m.get(c).getAsJsonObject();JsonArray pl=sd.getAsJsonArray("players");float baseX=three?(c==0?300:c==1?800:1300):c==0?420:1180,dir=three&&c==1?0:c==0?-1:1;
             float x=baseX+dir*(1-k)*600;art.glow(x,330,620,520,SIDE[c],.22f*k);
-            for(int q=0;q<pl.size();q++){Texture body=art.body(character(pl.get(q).getAsString()));if(body==null)continue;float bh=pl.size()==1?440:360,bw=bh*body.getWidth()/body.getHeight();
-                float ox=pl.size()==1?0:(q-(pl.size()-1)/2f)*200;art.batch.setColor(1,1,1,k);art.batch.draw(body,x+ox-bw/2,120,bw,bh);}
+            for(int q=0;q<pl.size();q++){Texture body=art.body(character(pl.get(q).getAsString()));if(body==null)continue;float bh=(pl.size()==1?440:360)*(three?.82f:1),bw=bh*body.getWidth()/body.getHeight();
+                float ox=pl.size()==1?0:(q-(pl.size()-1)/2f)*(three?140:200);float y=three&&c==1?120+(1-k)*-500:120;art.batch.setColor(1,1,1,k);art.batch.draw(body,x+ox-bw/2,y,bw,bh);}
             art.batch.setColor(Color.WHITE);
-            art.panel(x-200,70,400,56,SIDE[c],k);art.text(art.cond,sideName(sd),x,111,.46f,SIDE[c],k,370);}
-        if(v>0){art.glow(W/2,360,420,320,RED,.45f*v);serifText("VS",W/2,410,1.6f*v,new Color(1f,.86f,.6f,1),Math.min(1,v));}
+            float pw=three?360:400;art.panel(x-pw/2,70,pw,56,SIDE[c],k);art.text(art.cond,sideName(sd),x,111,.46f,SIDE[c],k,pw-30);}
+        if(v>0)for(float vx:three?new float[]{550,1050}:new float[]{W/2}){art.glow(vx,360,three?300:420,320,RED,.45f*v);serifText("VS",vx,410,(three?1.1f:1.6f)*v,new Color(1f,.86f,.6f,1),Math.min(1,v));}
     }
     /** The duel result: the winning side in gold with rays, the loser struck out. */
     private void matchResult(){

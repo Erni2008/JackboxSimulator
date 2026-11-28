@@ -149,4 +149,14 @@ class ThinkOrDieSessionTest {
         assertEquals(1,st.get(0).rank());assertEquals(1,st.get(1).rank());assertEquals(3,st.get(2).rank());
         assertEquals(CFG.rewardFirst(),st.get(1).souls());assertEquals(CFG.rewardThird(),st.get(2).souls());
     }
+
+    @SuppressWarnings("unchecked")
+    @Test void oddDuelBracketHasAThreeWayMatchAndNoBye(){
+        List<String> seats=List.of("a","b","c","d","e","f","g");List<Category> cs=new ArrayList<>();for(int i=0;i<40;i++)cs.add(PACK.get("in_kitchen"));
+        var s=new ThinkOrDieSession(seats,cs,ValidationEngine.deterministic(new WordDictionary()),CFG,SurvivalConfig.DEFAULT,"en",0,ThinkOrDieSession.Format.DUEL,new Random(3));
+        for(int i=0;i<200&&s.phase()!=ThinkOrDieSession.Phase.BRACKET;i++){now+=100;s.tick(now);}
+        var sv=(Map<String,Object>)s.snapshot(null,true,now).get("survival");var r0=((List<List<Map<String,Object>>>)sv.get("bracket")).get(0);
+        List<Integer> sizes=new ArrayList<>();for(var m:r0){assertFalse(m.containsKey("bye"));sizes.add(((List<?>)m.get("sides")).size());}
+        assertEquals(List.of(2,2,3),sizes);
+    }
 }

@@ -121,9 +121,11 @@
 .tod-turn .vs i{font-style:normal;color:#ffb070;margin:0 8px;font-size:16px;letter-spacing:.1em}
 .tod-turn .s0,.tod-lives li.side0 span{color:#ff8a7a!important}
 .tod-turn .s1,.tod-lives li.side1 span{color:#8ab4ff!important}
+.tod-turn .s2,.tod-lives li.side2 span{color:#7fe08a!important}
 .tod-turn .gold{color:#f7dcae}
 .tod-lives li.side0 img{box-shadow:0 0 0 2px #0f090a,0 0 0 3px #ff6a5a}
 .tod-lives li.side1 img{box-shadow:0 0 0 2px #0f090a,0 0 0 3px #6a9aff}
+.tod-lives li.side2 img{box-shadow:0 0 0 2px #0f090a,0 0 0 3px #5fd06a}
 .tod-lives{display:flex!important;flex-wrap:wrap;justify-content:center;gap:10px 8px}
 .tod-lives li{width:74px}
 /* refused tries of the current turn */

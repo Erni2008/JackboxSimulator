@@ -86,8 +86,8 @@ public final class TodSetupScreen extends ScreenAdapter {
         else return;
         art.play("sounds/impostor/vote_sent.wav",.25f);
     }
-    /** Weighted draw: 2 on 2 and 1 on 1 most of the time, everyone for themselves rarely (2 on 2 needs four players). */
-    private int draw(){int n=players();double r=rnd.nextDouble();if(n<4)return r<.15?0:1;return r<.15?0:r<.575?1:2;}
+    /** Weighted draw: 2 on 2 and 1 on 1 most of the time, everyone for themselves rarely (10%) (2 on 2 needs four players). */
+    private int draw(){int n=players();double r=rnd.nextDouble();if(n<4)return r<.10?0:1;return r<.10?0:r<.55?1:2;}
     private void start(){if(spinning||players()<2)return;spinning=true;target=draw();spinT=0;nextHop=0;hopGap=.06f;art.play("sounds/cursed_boxes/appearance.wav",.6f);}
     private void spin(float dt){
         spinT+=dt;

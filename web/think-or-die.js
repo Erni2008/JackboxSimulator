@@ -195,7 +195,7 @@ function createThinkOrDieController({getState,isAuthenticated,send,makeId,now}){
     if(!els.surv.hidden){
       const tp=sv.turnPlayer||'',me2=tp===self;
       els.turn.innerHTML=ph==='BRACKET'?`<div><p class="tod-turn-k">${T('СЕТКА ТУРНИРА','THE BRACKET')}</p><p class="tod-turn-n">${T('Смотри на экран','Look at the screen')}</p></div>`
-        :ph==='MATCH_INTRO'&&match.length===2?`<div class="vs"><p class="tod-turn-k">${mySide>=0?T('ТВОЯ ДУЭЛЬ','YOUR DUEL'):T('СЛЕДУЮЩАЯ ДУЭЛЬ','NEXT DUEL')}</p><p class="tod-turn-n"><span class="s0">${esc(sideName(match[0]))}</span> <i>VS</i> <span class="s1">${esc(sideName(match[1]))}</span></p></div>`
+        :ph==='MATCH_INTRO'&&match.length>=2?`<div class="vs"><p class="tod-turn-k">${match.length>2?(mySide>=0?T('ТВОЯ ТРОЙНАЯ ДУЭЛЬ','YOUR THREE WAY DUEL'):T('ТРОЙНАЯ ДУЭЛЬ','THREE WAY DUEL')):mySide>=0?T('ТВОЯ ДУЭЛЬ','YOUR DUEL'):T('СЛЕДУЮЩАЯ ДУЭЛЬ','NEXT DUEL')}</p><p class="tod-turn-n">${match.slice(0,3).map((sd,i)=>`<span class="s${i}">${esc(sideName(sd))}</span>`).join(' <i>VS</i> ')}</p>${match.length>2?`<p class="tod-turn-k">${T('дальше проходит один','only one moves on')}</p>`:''}</div>`
         :ph==='MATCH_RESULT'&&sv.winner?`<div><p class="tod-turn-k">${T('ПОБЕДА В ДУЭЛИ','WINS THE DUEL')}</p><p class="tod-turn-n gold">${esc(sideName(sv.winner))}</p></div>`
         :ph==='CATEGORY_REVEAL'?`<p class="tod-turn-k">${T('НОВАЯ КАТЕГОРИЯ','A NEW CATEGORY')}</p>`
         :tp?`<img src="/portraits/${esc(charOf(tp))}.webp" alt=""><div><p class="tod-turn-k">${ph!=='TURN'?T('ОТВЕТИЛ','ANSWERED'):me2?T('ТВОЙ ХОД','YOUR TURN'):T('ОТВЕЧАЕТ','NOW ANSWERING')}</p><p class="tod-turn-n">${ph==='TURN'&&me2?T('Отвечай!','Answer now!'):me2?T('Ты','You'):esc(nameOf(tp))}</p></div>`:'';
