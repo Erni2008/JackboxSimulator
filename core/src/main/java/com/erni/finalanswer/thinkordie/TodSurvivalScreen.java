@@ -159,11 +159,12 @@ public final class TodSurvivalScreen extends ScreenAdapter {
      */
     private boolean wasClosing;private float closingAt=-9;
     private void closingRibbon(){
-        JsonObject sv=survival();boolean closing=sv.has("closing")&&sv.get("closing").getAsBoolean();
+        JsonObject sv=survival();boolean sd=sv.has("suddenDeath")&&sv.get("suddenDeath").getAsBoolean();
+        boolean closing=sd||sv.has("closing")&&sv.get("closing").getAsBoolean();
         if(closing&&!wasClosing){closingAt=clock;art.play("sounds/impostor/vote_started.wav",.45f);}wasClosing=closing;if(!closing)return;
         int rem=sv.has("remaining")?sv.get("remaining").getAsInt():0;
         boolean result=phase().equals("TURN_RESULT");
-        String txt=rem<=0||(result&&rem==0)?tr("ДАЛЕЕ · НОВАЯ КАТЕГОРИЯ","NEXT · A NEW CATEGORY"):tr("ПОСЛЕДНИЙ КРУГ · ЕЩЁ ","LAST ROUND · ")+rem+(ru()?"":(rem==1?" MORE":" MORE"));
+        String txt=sd?tr("ВНЕЗАПНАЯ СМЕРТЬ · ОДНА ОШИБКА И ТЫ ВЫБЫЛ","SUDDEN DEATH · ONE MISS AND YOU ARE OUT"):rem<=0||(result&&rem==0)?tr("ДАЛЕЕ · НОВАЯ КАТЕГОРИЯ","NEXT · A NEW CATEGORY"):tr("ПОСЛЕДНИЙ КРУГ · ЕЩЁ ","LAST ROUND · ")+rem+(ru()?"":(rem==1?" MORE":" MORE"));
         float t=clock-closingAt,k=Math.max(.05f,Interpolation.swingOut.apply(MathUtils.clamp(t/.45f,0,1)));
         float w=art.width(art.cond,txt,.36f)+96,h=38,y=301; // on the plate's lower edge, clear of the turn plaque
         float pulse=.5f+.5f*MathUtils.sin(clock*4);

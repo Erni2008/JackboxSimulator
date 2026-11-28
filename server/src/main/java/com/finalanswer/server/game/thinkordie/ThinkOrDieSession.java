@@ -126,7 +126,7 @@ public final class ThinkOrDieSession {
     /** knockout: the rounds, each a list of matches (a match is two sides, or one side with a bye); winners per match */
     private final List<List<Side[]>> bracket=new ArrayList<>();private final Map<Side[],Side> winners=new IdentityHashMap<>();
     private int matchIndex=-1;private List<Side> match=List.of();private int sideTurn=-1;
-    private int lap,catAnswers,catIndex=-1,outSeq,lapsOnCategory;private String turnPlayer;private long turnMs;
+    private long playFrom;private int lap,catAnswers,catIndex=-1,outSeq,lapsOnCategory;private String turnPlayer;private long turnMs;
     /**
      * The category round: sides that already had their turn in the current lap of this category. The category stays
      * until a turn runs out of time; then {@code closing} is set, the sides that have not played this lap yet still
@@ -156,7 +156,7 @@ public final class ThinkOrDieSession {
             if(now<phaseEnds)break;
             long at=phaseEnds;changed=true;
             switch(phase){
-                case INTRO->{if(format==Format.FFA){match=new ArrayList<>(entrants);startMatch(at,false);}else{bracket.add(pairs(entrants));enter(Phase.BRACKET,at,survival.bracketMs());}}
+                case INTRO->{playFrom=at;if(format==Format.FFA){match=new ArrayList<>(entrants);startMatch(at,false);}else{bracket.add(pairs(entrants));enter(Phase.BRACKET,at,survival.bracketMs());}}
                 case BRACKET->nextMatch(at);
                 case MATCH_INTRO->newCategory(at);
                 case CATEGORY_REVEAL->nextTurn(at);
@@ -202,7 +202,7 @@ public final class ThinkOrDieSession {
             if(closing||lapsOnCategory>=survival.lapsPerCategory()){newCategory(now);return;}}
         int nxt=sideTurn;for(int k=1;k<=n;k++){int j=((sideTurn+k)%n+n)%n;if(match.get(j).lives>0&&!lapDone.contains(j)){nxt=j;break;}}
         lapDone.add(nxt);sideTurn=nxt;Side d=match.get(sideTurn);Player p=d.members.get(d.next%d.members.size());d.next++;
-        turnPlayer=p.id;turnMs=survival.turnMsAfter(catAnswers);turnSub=null;attempts.clear();typing="";
+        turnPlayer=p.id;turnMs=suddenDeath(now)?survival.turnMinMs():survival.turnMsAfter(catAnswers);turnSub=null;attempts.clear();typing="";
         enter(Phase.TURN,now,turnMs);
     }
     private boolean lapComplete(){for(int j=0;j<match.size();j++)if(match.get(j).lives>0&&!lapDone.contains(j))return false;return true;}
@@ -229,7 +229,7 @@ public final class ThinkOrDieSession {
     }
     private String label(String canon,String text){if(canon==null)return text;Category.Answer a=category().answer(canon);return a==null?text:"ru".equals(lang)?a.labelRu():a.labelEn();}
     private void lose(Player p,String why,String text,String label,long now){
-        Side d=sideOf(p);d.lives=Math.max(0,d.lives-1);p.incorrect++;closing=true; // this category ends with the current lap
+        Side d=sideOf(p);d.lives=suddenDeath(now)?0:Math.max(0,d.lives-1);p.incorrect++;closing=true; // this category ends with the current lap
         for(Player m:d.members)m.lives=d.lives;
         boolean dead=d.lives==0;
         if(dead&&format==Format.FFA){p.ghost=true;d.out=p.out=++outSeq;}
@@ -237,6 +237,8 @@ public final class ThinkOrDieSession {
         lastTurn=m;turnSub=null;
         enter(Phase.TURN_RESULT,now,survival.resultMs()+(dead?900:0));
     }
+    /** after {@code suddenDeathMs} of play every turn is the shortest and any lost life knocks you out, so a match never drags on */
+    private boolean suddenDeath(long now){return playFrom>0&&survival.suddenDeathMs()>0&&now-playFrom>=survival.suddenDeathMs();}
     private void finishSurvival(long now){
         // still standing first, then the latest knocked out; ties by correct answers (team mates share their side's place)
         List<Player> order=new ArrayList<>(players);
@@ -268,7 +270,7 @@ public final class ThinkOrDieSession {
     private Map<String,Object> sideView(Side d){Map<String,Object> m=new LinkedHashMap<>();m.put("id",d.id);m.put("players",ids(d));m.put("lives",d.lives);m.put("out",d.out>0);return m;}
     private Map<String,Object> survivalView(){
         Map<String,Object> m=new LinkedHashMap<>();
-        m.put("format",format.name());m.put("lives",format==Format.FFA?survival.lives():survival.duelLives());m.put("lap",lap+1);m.put("turnMs",turnMs);
+        m.put("format",format.name());m.put("lives",format==Format.FFA?survival.lives():survival.duelLives());m.put("lap",lap+1);m.put("turnMs",turnMs);m.put("suddenDeath",suddenDeath(System.currentTimeMillis()));
         m.put("closing",closing);m.put("remaining",closing?remainingInLap()+(phase==Phase.TURN||phase==Phase.TURN_CHECK?1:0):-1); // the one answering now counts
         {List<String> done=new ArrayList<>();for(int j:lapDone)if(j>=0&&j<match.size())for(Player q:match.get(j).members)done.add(q.id);m.put("lapDone",done);}
         if(turnPlayer!=null)m.put("turnPlayer",turnPlayer);
