@@ -29,7 +29,7 @@ public final class TodSetupScreen extends ScreenAdapter {
     private final Supplier<JsonObject> room;private final Listener listener;private final boolean ru;
     private Stage stage;private ThinkOrDieArt art;private Texture pixel;private QuizBackground background;private BitmapFont serif;private final NeonFrame neon=new NeonFrame();
     private final GlyphLayout gl=new GlyphLayout();private float clock;private boolean created;
-    private int format=0,lives=3,turn=10;private boolean speed=true;private int focus=0; // 0 cards, 1 lives, 2 turn, 3 speed, 4 start
+    private int format=0,lives=3,turn=7;private boolean speed=true;private int focus=0; // 0 cards, 1 lives, 2 turn, 3 speed, 4 start
     private final Rectangle[] cards={new Rectangle(),new Rectangle(),new Rectangle()};private final Rectangle livesMinus=new Rectangle(),livesPlus=new Rectangle(),turnMinus=new Rectangle(),turnPlus=new Rectangle(),speedBox=new Rectangle(),startBtn=new Rectangle(),backBtn=new Rectangle();
     private final float[] pick={1,0,0};private float hoverX=-1,hoverY=-1;private final Vector3 v3=new Vector3();
     private static final String[] FORMATS={"FFA","DUEL","TEAMS"};
@@ -66,7 +66,7 @@ public final class TodSetupScreen extends ScreenAdapter {
         switch(focus){
             case 0->{int f=Math.floorMod(format+d,3);setFormat(f);}
             case 1->lives=MathUtils.clamp(lives+d,1,5);
-            case 2->turn=MathUtils.clamp(turn+d,5,20);
+            case 2->turn=MathUtils.clamp(turn+d,4,20);
             case 3->speed=!speed;
             default->{}
         }
@@ -76,7 +76,7 @@ public final class TodSetupScreen extends ScreenAdapter {
         for(int i=0;i<3;i++)if(cards[i].contains(x,y)){setFormat(i);focus=0;art.play("sounds/impostor/vote_sent.wav",.3f);return;}
         if(livesMinus.contains(x,y)){lives=Math.max(1,lives-1);focus=1;}
         else if(livesPlus.contains(x,y)){lives=Math.min(5,lives+1);focus=1;}
-        else if(turnMinus.contains(x,y)){turn=Math.max(5,turn-1);focus=2;}
+        else if(turnMinus.contains(x,y)){turn=Math.max(4,turn-1);focus=2;}
         else if(turnPlus.contains(x,y)){turn=Math.min(20,turn+1);focus=2;}
         else if(speedBox.contains(x,y)){speed=!speed;focus=3;}
         else if(startBtn.contains(x,y)){start();return;}

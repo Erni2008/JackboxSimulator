@@ -18,7 +18,7 @@ import java.util.*;
  * @param pointsCorrect  points for each accepted answer (tie breaker after survival order)
  */
 public record SurvivalConfig(int lives,long introMs,long categoryMs,long turnStartMs,long turnStepMs,long turnMinMs,long checkMaxMs,long resultMs,
-                             int lapsPerCategory,int pointsCorrect,long finalMs,long minSubmitIntervalMs,int duelLives,long bracketMs,long matchIntroMs,long matchResultMs){
+                             int lapsPerCategory,int pointsCorrect,long finalMs,long minSubmitIntervalMs,int duelLives,long bracketMs,long matchIntroMs,long matchResultMs,long suddenDeathMs){
     public static final SurvivalConfig DEFAULT=load();
     static SurvivalConfig load(){
         Properties p=new Properties();
@@ -27,12 +27,12 @@ public record SurvivalConfig(int lives,long introMs,long categoryMs,long turnSta
         return new SurvivalConfig((int)l.applyAsLong("lives",3L),l.applyAsLong("introMs",7000L),l.applyAsLong("categoryMs",3800L),l.applyAsLong("turnStartMs",10000L),
             l.applyAsLong("turnStepMs",1000L),l.applyAsLong("turnMinMs",4000L),l.applyAsLong("checkMaxMs",3000L),l.applyAsLong("resultMs",1800L),
             (int)l.applyAsLong("lapsPerCategory",2L),(int)l.applyAsLong("pointsCorrect",100L),l.applyAsLong("finalMs",14000L),l.applyAsLong("minSubmitIntervalMs",250L),
-            (int)l.applyAsLong("duelLives",2L),l.applyAsLong("bracketMs",6000L),l.applyAsLong("matchIntroMs",4000L),l.applyAsLong("matchResultMs",4500L));
+            (int)l.applyAsLong("duelLives",2L),l.applyAsLong("bracketMs",6000L),l.applyAsLong("matchIntroMs",4000L),l.applyAsLong("matchResultMs",4500L),l.applyAsLong("suddenDeathMs",840000L));
     }
     /** The host's choices from the setup screen (clamped): lives for every format, the first turn length, faster turns or not. */
     public SurvivalConfig with(int lives,int turnSeconds,boolean speedUp){
-        int lv=Math.max(1,Math.min(5,lives));long start=Math.max(5,Math.min(20,turnSeconds))*1000L;
-        return new SurvivalConfig(lv,introMs,categoryMs,start,speedUp?turnStepMs:0,Math.min(turnMinMs,start),checkMaxMs,resultMs,lapsPerCategory,pointsCorrect,finalMs,minSubmitIntervalMs,lv,bracketMs,matchIntroMs,matchResultMs);
+        int lv=Math.max(1,Math.min(5,lives));long start=Math.max(4,Math.min(20,turnSeconds))*1000L;
+        return new SurvivalConfig(lv,introMs,categoryMs,start,speedUp?turnStepMs:0,Math.min(turnMinMs,start),checkMaxMs,resultMs,lapsPerCategory,pointsCorrect,finalMs,minSubmitIntervalMs,lv,bracketMs,matchIntroMs,matchResultMs,suddenDeathMs);
     }
     /** Turn length after this many accepted answers in the current category: every answer takes {@code turnStepMs} off, a new category starts again from {@code turnStartMs}. */
     public long turnMsAfter(int answers){return Math.max(turnMinMs,turnStartMs-answers*turnStepMs);}
