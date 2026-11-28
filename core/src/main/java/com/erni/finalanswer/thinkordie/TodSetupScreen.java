@@ -29,7 +29,10 @@ public final class TodSetupScreen extends ScreenAdapter {
     private final Supplier<JsonObject> room;private final Listener listener;private final boolean ru;
     private Stage stage;private ThinkOrDieArt art;private Texture pixel;private QuizBackground background;private BitmapFont serif;private final NeonFrame neon=new NeonFrame();
     private final GlyphLayout gl=new GlyphLayout();private float clock;private boolean created;
-    private int format=0,lives=3,turn=7;private boolean speed=true;private int focus=0; // 0 cards, 1 lives, 2 turn, 3 speed, 4 start
+    private int format=0,lives=3,turn=7;private boolean speed=true;private int focus=1; // 1 lives, 2 turn, 3 speed, 4 start (the mode is drawn at random)
+    // the mode roulette after START: the highlight runs over the cards, slows down and stops on the drawn mode
+    private boolean spinning;private int target;private float spinT,nextHop,hopGap;private final java.util.Random rnd=new java.util.Random();
+    private static final float SPIN_S=2.6f,HOLD_S=1.1f;
     private final Rectangle[] cards={new Rectangle(),new Rectangle(),new Rectangle()};private final Rectangle livesMinus=new Rectangle(),livesPlus=new Rectangle(),turnMinus=new Rectangle(),turnPlus=new Rectangle(),speedBox=new Rectangle(),startBtn=new Rectangle(),backBtn=new Rectangle();
     private final float[] pick={1,0,0};private float hoverX=-1,hoverY=-1;private final Vector3 v3=new Vector3();
     private static final String[] FORMATS={"FFA","DUEL","TEAMS"};
@@ -52,8 +55,8 @@ public final class TodSetupScreen extends ScreenAdapter {
             @Override public boolean touchDown(int x,int y,int ptr,int btn){v3.set(x,y,0);stage.getViewport().unproject(v3);click(v3.x,v3.y);return true;}
             @Override public boolean keyDown(int k){
                 switch(k){
-                    case Input.Keys.ESCAPE,Input.Keys.BACK->listener.back();
-                    case Input.Keys.UP->focus=Math.max(0,focus-1);
+                    case Input.Keys.ESCAPE,Input.Keys.BACK->{if(!spinning)listener.back();}
+                    case Input.Keys.UP->focus=Math.max(1,focus-1);
                     case Input.Keys.DOWN->focus=Math.min(4,focus+1);
                     case Input.Keys.LEFT->step(-1);
                     case Input.Keys.RIGHT->step(1);
@@ -64,7 +67,6 @@ public final class TodSetupScreen extends ScreenAdapter {
     }
     private void step(int d){
         switch(focus){
-            case 0->{int f=Math.floorMod(format+d,3);setFormat(f);}
             case 1->lives=MathUtils.clamp(lives+d,1,5);
             case 2->turn=MathUtils.clamp(turn+d,4,20);
             case 3->speed=!speed;
@@ -73,7 +75,7 @@ public final class TodSetupScreen extends ScreenAdapter {
     }
     private void setFormat(int f){if(f==format)return;format=f;lives=defaultLives(f);}
     private void click(float x,float y){
-        for(int i=0;i<3;i++)if(cards[i].contains(x,y)){setFormat(i);focus=0;art.play("sounds/impostor/vote_sent.wav",.3f);return;}
+        if(spinning)return;
         if(livesMinus.contains(x,y)){lives=Math.max(1,lives-1);focus=1;}
         else if(livesPlus.contains(x,y)){lives=Math.min(5,lives+1);focus=1;}
         else if(turnMinus.contains(x,y)){turn=Math.max(4,turn-1);focus=2;}
@@ -84,9 +86,20 @@ public final class TodSetupScreen extends ScreenAdapter {
         else return;
         art.play("sounds/impostor/vote_sent.wav",.25f);
     }
-    private void start(){if(!allowed(format))return;art.play("sounds/cursed_boxes/appearance.wav",.6f);listener.start(new Choice(FORMATS[format],lives,turn,speed));}
+    /** Weighted draw: 2 on 2 and 1 on 1 most of the time, everyone for themselves rarely (2 on 2 needs four players). */
+    private int draw(){int n=players();double r=rnd.nextDouble();if(n<4)return r<.15?0:1;return r<.15?0:r<.575?1:2;}
+    private void start(){if(spinning||players()<2)return;spinning=true;target=draw();spinT=0;nextHop=0;hopGap=.06f;art.play("sounds/cursed_boxes/appearance.wav",.6f);}
+    private void spin(float dt){
+        spinT+=dt;
+        if(spinT<SPIN_S){if(spinT>=nextHop){int f=format;do f=(f+1)%3;while(!allowed(f));
+                // land exactly on the target: the last hops are forced towards it
+                if(spinT+hopGap*1.6f>=SPIN_S)f=target;format=f;art.play("sounds/impostor/vote_sent.wav",.22f);hopGap*=1.16f;nextHop=spinT+hopGap;}}
+        else if(format!=target){format=target;}
+        else if(spinT>=SPIN_S&&spinT-dt<SPIN_S)art.play("sounds/cursed_boxes/appearance.wav",.7f);
+        if(spinT>=SPIN_S+HOLD_S){spinning=false;int lv=target==0?lives:Math.max(1,lives-1);listener.start(new Choice(FORMATS[target],lv,turn,speed));}
+    }
     @Override public void resize(int w,int h){if(stage!=null)stage.getViewport().update(w,h,true);}
-    @Override public void render(float dt){ScreenUtils.clear(0,0,0,1);clock+=dt;for(int i=0;i<3;i++)pick[i]+=((i==format?1:0)-pick[i])*Math.min(1,dt*10);stage.act(dt);stage.draw();}
+    @Override public void render(float dt){ScreenUtils.clear(0,0,0,1);clock+=dt;if(spinning)spin(dt);for(int i=0;i<3;i++)pick[i]+=((spinning&&i==format?1:0)-pick[i])*Math.min(1,dt*(spinning&&spinT<SPIN_S?22:10));stage.act(dt);stage.draw();}
     @Override public void hide(){Gdx.input.setInputProcessor(null);}
     @Override public void dispose(){if(!created)return;stage.dispose();art.dispose();pixel.dispose();serif.dispose();background.dispose();neon.dispose();}
 
@@ -97,7 +110,7 @@ public final class TodSetupScreen extends ScreenAdapter {
             try{
                 art.rect(0,0,W,H,new Color(.02f,.01f,.01f,1),.55f);art.glow(W/2,-40,W*1.2f,260,RED,.20f);
                 if(art.logo!=null){float lw=380,lh=lw*art.logo.getHeight()/art.logo.getWidth();sb.setColor(Color.WHITE);sb.draw(art.logo,W/2-lw/2,808-lh/2,lw,lh);}
-                label(tr("ВЫБЕРИ РЕЖИМ","CHOOSE THE MODE"),W/2,716,.52f,DIM);
+                label(spinning&&spinT>=SPIN_S?tr("РЕЖИМ ВЫБРАН","THE MODE IS SET"):tr("РЕЖИМ ВЫПАДЕТ СЛУЧАЙНО","THE MODE IS DRAWN AT RANDOM"),W/2,716,.52f,spinning&&spinT>=SPIN_S?GOLD:DIM);
                 drawCards();drawSettings();drawRoster();drawButtons();
             }finally{sb.setColor(Color.WHITE);sb.setBlendFunction(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);}
         }
@@ -126,7 +139,7 @@ public final class TodSetupScreen extends ScreenAdapter {
             art.text(art.inter,desc[i][0],x+cw/2,y+86,.58f,IVORY,ok?1:.5f,cw-40);
             art.text(art.inter,desc[i][1],x+cw/2,y+62,.50f,DIM,ok?1:.5f,cw-40);
             art.text(art.inter,ok?need[i]:tr("мало игроков","not enough players"),x+cw/2,y+34,.42f,ok?DIM:RED,1,0);
-            if(focus==0&&i==format){float p=.5f+.5f*MathUtils.sin(clock*5);art.rect(x+40,y-10,cw-80,2,GOLD,.4f+.5f*p);}}
+            if(spinning&&i==format){float p=.5f+.5f*MathUtils.sin(clock*5);art.rect(x+40,y-10,cw-80,2,GOLD,.4f+.5f*p);}}
     }
     /** A small scene on each card: one crowd, two facing characters, two pairs facing each other. */
     private void scene(int i,float cx,float baseY,float a){
@@ -182,7 +195,7 @@ public final class TodSetupScreen extends ScreenAdapter {
         float p=.5f+.5f*MathUtils.sin(clock*4);
         if(ok)art.glow(W/2,66,560,140,GOLD,(f?.32f:.18f)+.08f*p);
         art.panel(startBtn.x,startBtn.y,startBtn.width,startBtn.height,ok?GOLD:BRONZE,ok?1:.5f);
-        serifText(tr("НАЧАТЬ","START"),W/2,82,.72f,ok?new Color(1f,.9f,.72f,1):DIM,1);
+        serifText(spinning?tr("ВЫБИРАЕМ…","DRAWING…"):tr("НАЧАТЬ","START"),W/2,82,.72f,ok?new Color(1f,.9f,.72f,1):DIM,1);
         art.panel(backBtn.x,backBtn.y,backBtn.width,backBtn.height,backBtn.contains(hoverX,hoverY)?GOLD:BRONZE,1);
         art.text(art.inter,tr("НАЗАД","BACK"),backBtn.x+backBtn.width/2,backBtn.y+33,.52f,IVORY,1,0);
         art.text(art.inter,tr("Стрелки · Enter · Esc","Arrows · Enter · Esc"),W-150,62,.40f,DIM,1,0);
