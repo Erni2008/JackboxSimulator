@@ -36,3 +36,21 @@ INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
 CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
+
+Dictionary extension (November 2026)
+------------------------------------
+This is a modified version. It combines the original Hunspell-derived list
+with lower-case single-word Russian dictionary entries and inflected forms
+from OpenRussian.org, by the OpenRussian contributors.
+
+OpenRussian snapshot:
+https://github.com/Badestrand/russian-dictionary/tree/50e210c4803237779cb562bc1abcea529066031c
+Source tables: nouns.csv, adjectives.csv, verbs.csv and others.csv.
+The adaptation extracts Russian headwords and explicit forms, strips stress
+marks, folds ё to е and deduplicates. No translations are included.
+
+The OpenRussian data and adaptations are licensed under Creative Commons
+Attribution-ShareAlike 4.0 International (CC BY-SA 4.0).
+https://creativecommons.org/licenses/by-sa/4.0/
+The above Hunspell copyright notice and redistribution conditions continue
+to apply to the Hunspell-derived portion.
