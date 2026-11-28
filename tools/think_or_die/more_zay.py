@@ -1,11 +1,7 @@
 # Taxonomy from FAO ASFIS and Cornell Lab eBird. Place data from UNESCO, Istat and GeoNames.
 MORE = {
 'sea_fish': '''European flounder|Камбала речная|Platichthys flesus
-Argentines|Аргентины |Argentina spp
-Atlantic searobins|Прионоты|Prionotus spp
 Baird's slickhead|Плешан|Alepocephalus bairdii
-Eelpouts|Ликоды|Lycodes spp
-Dealfishes|Вогмеры|Trachipterus spp
 Okhotsk atka mackerel|Терпуг южный одноперый|Pleurogrammus azonus
 Electron subantarctic|Электрона Карлсберга|Electrona carlsbergi
 Thornback ray|Лисица морская |Raja clavata
@@ -14,8 +10,6 @@ European conger|Угорь морской |Conger conger
 Greenback horse mackerel|Ставрида новозеландская|Trachurus declivis
 Thresher|Лисица морская обыкновенная|Alopias vulpinus
 Patagonian grenadier|Макруронус американский|Macruronus magellanicus
-Porgies|Порги|Calamus spp
-Frostfishes|Бентодесмы|Benthodesmus spp
 Japanese jack mackerel|Ставрида японская|Trachurus japonicus
 Tope shark|Акула суповая |Galeorhinus galeus
 Golden redfish|Окунь золотистый|Sebastes norvegicus
@@ -32,7 +26,6 @@ Hapuku wreckfish|Хапуку|Polyprion oxygeneios
 Opah|Опах обыкновенный|Lampris guttatus
 Horn shark|калифорнийская бычья акула|Heterodontus francisci
 Roughhead grenadier|Макрурус северный|Macrourus berglax
-Sculpins|Керчаки|Myoxocephalus spp
 John dory|Солнечник обыкновенный|Zeus faber
 Pacific jack mackerel|Ставрида калифорнийская|Trachurus symmetricus
 Japanese bullhead shark|Японская бычья акула|Heterodontus japonicus
@@ -95,7 +88,6 @@ Spiny icefish|Белокровка Вильсона|Chaenodraco wilsoni
 Tarakihi|Джакас серый|Nemadactylus macropterus
 Murray's abyssal anglerfish|Атлантический черный удильщик|Melanocetus murrayi''',
 'ocean_animals': '''Antarctic krill|Криль антарктический|Euphausia superba
-Sea snails|Рапаны|Rapana spp
 Northern dogwinkle|моллюски-багрянки|Nucella lapillus
 Red king crab|Краб камчатский|Paralithodes camtschaticus
 Atlantic cod|Треска атлантическая|Gadus morhua
@@ -108,14 +100,12 @@ European flounder|Камбала речная|Platichthys flesus
 Northern shortfin squid|Иллекс американский|Illex illecebrosus
 Morotoge shrimp|Креветка равнолапая японская|Pandalus japonicus
 Schoolmaster gonate squid|Кальмар командорский|Berryteuthis magister
-Argentines|Аргентины |Argentina spp
 Northern prawn|Креветка северная|Pandalus borealis
 Wellington flying squid|Кальмар новозеландский|Nototodarus sloanii
 Bigeye grenadier|Макрурус южноатлантический|Macrourus holotrachys
 Leach's Storm-Petrel|Северная качурка|Hydrobates leucorhous
 Bigeye grunt|Отоперка|Brachydeuterus auritus
 Gray-backed Storm-Petrel|Сероспинная океанида|Garrodia nereis
-Atlantic searobins|Прионоты|Prionotus spp
 Southern Fulmar|Антарктический глупыш|Fulmarus glacialoides
 European anchovy|Анчоус европейский|Engraulis encrasicolus
 Chinstrap Penguin|Антарктический пингвин|Pygoscelis antarcticus
@@ -310,9 +300,7 @@ North Pacific hake|Мерлуза орегонская|Merluccius productus
 Stejneger's Petrel|Длинноклювый тайфунник|Pterodroma longirostris
 Ocean pout|Бельдюга американская|Zoarces americanus
 Pycroft's Petrel|Оклендский тайфунник|Pterodroma pycrofti
-Eelpouts|Ликоды|Lycodes spp
 Phoenix Petrel|Белый тайфунник|Pterodroma alba
-Dealfishes|Вогмеры|Trachipterus spp
 Vanuatu Petrel|Вануатский тайфунник|Pterodroma occulta
 Spotted estuary smooth-hound|Акула кунья новозеландская|Mustelus lenticulatus
 Blue Petrel|Голубой буревестник|Halobaena caerulea
@@ -328,8 +316,7 @@ Thornback ray|Лисица морская |Raja clavata
 Slender-billed Prion|Тонкоклювый прион|Pachyptila belcheri
 Pacific cod|Треска тихоокеанская|Gadus macrocephalus
 Fulmar Prion|Толстоклювый прион|Pachyptila crassirostris''',
-'ocean_things': '''Sea snails|Рапаны|Rapana spp
-Antarctic krill|Криль антарктический|Euphausia superba
+'ocean_things': '''Antarctic krill|Криль антарктический|Euphausia superba
 Northern dogwinkle|моллюски-багрянки|Nucella lapillus
 Longfin squid|Кальмар лолиго северо-американский |Doryteuthis pealeii
 Deep-water rose shrimp|Креветка розовая глубоководная|Parapenaeus longirostris
@@ -344,7 +331,6 @@ Subantarctic stone crab|Краб Мюррея|Lithodes murrayi
 Schoolmaster gonate squid|Кальмар командорский|Berryteuthis magister
 Morotoge shrimp|Креветка равнолапая японская|Pandalus japonicus
 Wellington flying squid|Кальмар новозеландский|Nototodarus sloanii
-Argentines|Аргентины |Argentina spp
 Northern prawn|Креветка северная|Pandalus borealis
 Great Shearwater|Пестробрюхий буревестник|Ardenna gravis
 Benguela hake|Мерлуза бенгальская|Merluccius polli
@@ -357,7 +343,6 @@ Blue marlin|Марлин синий|Makaira nigricans
 Westland Petrel|Новозеландский буревестник|Procellaria westlandica
 European anchovy|Анчоус европейский|Engraulis encrasicolus
 Parkinson's Petrel|Чёрный буревестник|Procellaria parkinsoni
-Atlantic searobins|Прионоты|Prionotus spp
 Spectacled Petrel|Очковый буревестник|Procellaria conspicillata
 Bigeye grunt|Отоперка|Brachydeuterus auritus
 White-chinned Petrel|Белогорлый буревестник|Procellaria aequinoctialis
@@ -535,8 +520,6 @@ Meagre|Горбыль серебристый|Argyrosomus regius
 South Polar Skua|Южнополярный поморник|Stercorarius maccormicki
 Navaga|Навага северная|Eleginus nawaga/Wachna cod
 Spotted estuary smooth-hound|Акула кунья новозеландская|Mustelus lenticulatus
-Dealfishes|Вогмеры|Trachipterus spp
-Eelpouts|Ликоды|Lycodes spp
 Ocean pout|Бельдюга американская|Zoarces americanus
 Pintado Petrel|Капский голубок|Daption capense
 North Pacific hake|Мерлуза орегонская|Merluccius productus
@@ -560,8 +543,6 @@ Chilean Skua|Чилийский поморник|Stercorarius chilensis
 Tope shark|Акула суповая |Galeorhinus galeus
 Christmas Island Frigatebird|Рождественский фрегат|Fregata andrewsi
 Japanese jack mackerel|Ставрида японская|Trachurus japonicus
-Frostfishes|Бентодесмы|Benthodesmus spp
-Porgies|Порги|Calamus spp
 Patagonian grenadier|Макруронус американский|Macruronus magellanicus
 Crested bullhead shark|шлемовидная бычья акула|Heterodontus galeatus
 Southern Fulmar|Антарктический глупыш|Fulmarus glacialoides
@@ -570,7 +551,6 @@ Gray-backed Storm-Petrel|Сероспинная океанида|Garrodia nereis
 Golden redfish|Окунь золотистый|Sebastes norvegicus
 Leach's Storm-Petrel|Северная качурка|Hydrobates leucorhous''',
 'sea_animals_not_fish': '''Antarctic krill|Криль антарктический|Euphausia superba
-Sea snails|Рапаны|Rapana spp
 Northern dogwinkle|моллюски-багрянки|Nucella lapillus
 Red king crab|Краб камчатский|Paralithodes camtschaticus
 Whiskered Auklet|Малая конюга|Aethia pygmaea
@@ -985,8 +965,7 @@ Luzon Hornbill|Лусонский калао|Penelopides manillae
 Mindoro Hornbill|Миндорский калао|Penelopides mindorensis
 Samar Hornbill|Самаранский калао|Penelopides samarensis
 Mindanao Hornbill|Минданаоский калао|Penelopides affinis''',
-'nocturnal_animals': '''New Caledonian Owlet-nightjar|Новокаледонский совиный козодой|Aegotheles savesi
-White-tailed Nightjar|Белохвостый козодой|Hydropsalis cayennensis
+'nocturnal_animals': '''White-tailed Nightjar|Белохвостый козодой|Hydropsalis cayennensis
 Ladder-tailed Nightjar|Трезубцехвостый козодой|Hydropsalis climacocerca
 Scissor-tailed Nightjar|Острохвостый козодой|Hydropsalis torquata
 Long-trained Nightjar|Вилохвостый козодой|Hydropsalis forcipata
