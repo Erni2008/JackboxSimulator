@@ -46,6 +46,9 @@ public final class RoomServer implements AutoCloseable {
                 ctx.header("X-Content-Type-Options","nosniff");
                 { String pth=ctx.path(); ctx.header("Cache-Control",pth.matches(".*/(textures|models|fonts)/.*")?"public, max-age=86400":"no-cache"); }
                 ctx.header("Referrer-Policy","no-referrer");
+                ctx.header("X-Frame-Options","DENY");ctx.header("Cross-Origin-Opener-Policy","same-origin");ctx.header("Cross-Origin-Resource-Policy","same-origin");
+                ctx.header("Permissions-Policy","camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()");
+                if(config.publicUrl().startsWith("https://"))ctx.header("Strict-Transport-Security","max-age=31536000; includeSubDomains");
                 ctx.header("Content-Security-Policy","default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' ws: wss:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
                 // THE BROKEN ELEVATOR: GLTFLoader hands embedded textures over as blob: URLs; the film-grain overlay is a data: SVG
                 if(ctx.path().startsWith("/broken-elevator-manual")||ctx.path().startsWith("/hell-cage-host")||ctx.path().startsWith("/race"))ctx.header("Content-Security-Policy","default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' blob: data:; connect-src 'self' blob: ws: wss:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
@@ -129,7 +132,15 @@ public final class RoomServer implements AutoCloseable {
             c.routes.exception(Exception.class,(e,ctx)->ctx.status(500).contentType("application/json").result("{\"error\":\"SERVER_ERROR\"}"));
         });
     }
+    /** Test and developer switches (bots, rate limits off, live file routes) must never reach players. */
+    static void refuseDevSwitchesInProduction(){
+        boolean prod="production".equals(System.getProperty("server.environment",System.getenv().getOrDefault("SERVER_ENV","development")));
+        for(String k:new String[]{"race.qa","lastcommand.dev"})if(Boolean.getBoolean(k)){
+            if(prod)throw new IllegalStateException("-D"+k+" is a developer switch and is refused in production");
+            System.err.println("[security] developer switch "+k+" is ON: rate limits and QA routes are relaxed. Never use it for real players.");}
+    }
     public RoomServer start() {
+        refuseDevSwitchesInProduction();
         app.start(config.host(),config.port());
         scheduler.scheduleAtFixedRate(()->{
             try {

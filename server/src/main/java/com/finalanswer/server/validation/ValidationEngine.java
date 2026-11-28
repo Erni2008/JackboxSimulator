@@ -56,6 +56,7 @@ public final class ValidationEngine implements AutoCloseable {
     }
     /** A closed dispute: remember what the players decided. */
     public void learn(Category c,String key,String text,int yes,int no){learned.record(c.id(),key,text,yes,no);}
+    public void learn(Category c,String key,String text,int yes,int no,String game){learned.record(c.id(),key,text,yes,no,game);}
     private Verdict cached(Category c,AnswerInput in){
         if(ai==null)return null;var e=cache.get(c.id(),c.version(),in.key(),ai.modelVersion());if(e==null)return null;
         return e.status()==ValidationStatus.VALID?Verdict.valid(e.canonicalId(),Verdict.Source.CACHE):Verdict.invalid(Verdict.Source.CACHE);

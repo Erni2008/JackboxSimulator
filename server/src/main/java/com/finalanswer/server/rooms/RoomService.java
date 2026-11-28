@@ -1094,7 +1094,7 @@ public final class RoomService {
     /** read-only feed for the host's HELL CAGE screen (HTTP poll with the host token; never touches the host's socket) */
     /** Host big screen (browser) watches the race over HTTP polling, so it never steals the desktop host's socket. */
     public synchronized String raceView(String code,String token,boolean close){
-        Room room=find(code); if(token==null||!room.host.token.equals(token))throw new Failure(403,"NOT_HOST");
+        Room room=find(code); if(!same(room.host.token,token))throw new Failure(403,"NOT_HOST");
         if(close&&room.webGame.equals("race")){room.webGame="";room.webGameId="";room.race.clear();room.raceSession=null;room.lobbyId=UUID.randomUUID().toString();broadcast(room,"WEB_GAME_CLOSED");}
         Map<String,Object> v=new LinkedHashMap<>(); v.put("serverTime",now()); v.put("code",room.code); v.put("selfId",room.host.id); v.put("host",true); v.put("webGame",room.webGame);
         if(room.webGame.equals("race"))v.put("race",Map.of("map",room.raceMap,"seed",room.raceSeed,"startAt",room.raceStart,"id",room.webGameId));
@@ -1104,7 +1104,7 @@ public final class RoomService {
         return Protocol.JSON.toJson(v);
     }
     public synchronized String cageView(String code,String token){
-        Room room=find(code); if(token==null||!room.host.token.equals(token))throw new Failure(403,"NOT_HOST");
+        Room room=find(code); if(!same(room.host.token,token))throw new Failure(403,"NOT_HOST");
         Map<String,Object> v=new LinkedHashMap<>(); long now=now(); v.put("now",now); v.put("startedAt",room.webGameAt); v.put("active",room.webGame.equals("broken-elevator"));
         v.put("difficulty",room.difficulty.name()); v.put("language",room.language); v.put("roomCode",room.code);
         List<Map<String,Object>> ps=new ArrayList<>();
@@ -1427,7 +1427,7 @@ public final class RoomService {
         if(room==null) throw new Failure(404,"ROOM_NOT_FOUND"); return room;
     }
     private Member authenticate(Room room,String token) {
-        Member m=room.host.token.equals(token)?room.host:room.members.get(token);
+        Member m=same(room.host.token,token)?room.host:room.members.get(token);
         if(m==null||m.left) throw new Failure(403,"SESSION_ENDED"); return m;
     }
     private static void requireHost(Member m) { if(!m.host) throw new Failure(403,"HOST_ONLY"); }
@@ -1435,6 +1435,8 @@ public final class RoomService {
     private String code() { String code; do { StringBuilder b=new StringBuilder(); for(int i=0;i<6;i++) b.append(ALPHABET.charAt(random.nextInt(ALPHABET.length()))); code=b.toString(); } while(rooms.containsKey(code)); return code; }
     private String token() { byte[] bytes=new byte[32]; random.nextBytes(bytes); return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes); }
     private static int integer(String raw,int min,int max,String error) { try { int n=Integer.parseInt(raw); if(n>=min&&n<=max)return n; } catch(NumberFormatException ignored){} throw new Failure(400,error); }
+    /** Constant time token check: the comparison never leaks how many leading characters matched. */
+    private static boolean same(String a,String b){return a!=null&&b!=null&&MessageDigest.isEqual(a.getBytes(java.nio.charset.StandardCharsets.UTF_8),b.getBytes(java.nio.charset.StandardCharsets.UTF_8));}
     private static String text(String value,int max,String error) {
         String s=value==null?"":value.strip();
         if(s.isBlank()||s.codePointCount(0,s.length())>max||s.codePoints().anyMatch(c->Character.isISOControl(c)||Character.getType(c)==Character.FORMAT)) throw new Failure(400,error);

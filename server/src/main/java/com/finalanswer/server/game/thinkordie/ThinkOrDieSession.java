@@ -382,7 +382,7 @@ public final class ThinkOrDieSession {
         for(Dispute d:disputes){long yes=d.votes.values().stream().filter(b->b).count(),no=d.votes.size()-yes;
             // a tie goes to the player: a correct answer must not be lost to a split room
             d.outcome=d.votes.isEmpty()?"NEUTRAL":yes>=no?"ACCEPTED":"REJECTED";
-            Category c=category();if(c!=null)engine.learn(c,d.key,d.text,(int)yes,(int)no); // the next game knows the answer
+            Category c=category();if(c!=null)engine.learn(c,d.key,d.text,(int)yes,(int)no,id); // the next game knows the answer
             for(Sub s:subs)if(s.key.equals(d.key)&&s.result.isEmpty()&&s.verdict.status()==ValidationStatus.UNCERTAIN){
                 if(d.outcome.equals("ACCEPTED"))s.verdict=Verdict.valid("vote:"+d.key,Verdict.Source.VOTE);
                 else if(d.outcome.equals("REJECTED"))s.result="REJECTED";}}
